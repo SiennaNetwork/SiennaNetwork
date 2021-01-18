@@ -7,19 +7,23 @@ contract!(
     InitMsg (deps, env, msg: {
         token_contract: Option<cosmwasm_std::CanonicalAddr>
     }) -> State {
+        // Send from this address to launch the vesting process
+        // TODO make configurable
+        admin:          cosmwasm_std::CanonicalAddr =
+            deps.api.canonical_address(&env.message.sender)?,
+
         // The token contract that will be controlled
+        // TODO see how this can be generated for testing
         token_contract: Option<cosmwasm_std::CanonicalAddr> =
             msg.token_contract,
-        // The admin who can launch the vesting process
-        admin: cosmwasm_std::CanonicalAddr =
-            deps.api.canonical_address(&env.message.sender)?,
-        // Whether the vesting process has been started yet
-        launched: Option<u64> =
+
+        // Whether the vesting process has begun
+        launched:       Option<u64> =
             None
     }
 
     QueryMsg (msg, state, deps) {
-        StatusQuery (foo: bool) {
+        StatusQuery () {
             to_binary(&crate::msg::StatusResponse { launched: state.launched })
         }
     }
