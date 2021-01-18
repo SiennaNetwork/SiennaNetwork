@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "secretjs": "^0.10.4"
+  }
+}
