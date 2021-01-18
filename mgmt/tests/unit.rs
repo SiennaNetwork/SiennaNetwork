@@ -5,12 +5,21 @@ use sienna_mgmt::contract::{init, query, handle};
 use sienna_mgmt::msg::{InitMsg, HandleMsg, QueryMsg, EqualsResponse};
 
 #[test] fn proper_initialization() {
-    let mut deps = mock_dependencies(20, &[]);
-    let msg = InitMsg { value: 17 };
-    let env = mock_env("creator", &coins(1000, "earth"));
+
+    // context
+    let mut deps = mock_dependencies(
+        20,  // TODO WHATIS
+        &[]  // TODO WHATIS
+    );
+    let env = mock_env(
+        "creator",
+        &coins(1000, "earth")
+    ); // TODO WHATIS
+
     // we can just call .unwrap() to assert this was a success
-    let res = init(&mut deps, env, msg).unwrap();
+    let res = init(&mut deps, env, InitMsg {}).unwrap();
     assert_eq!(0, res.messages.len());
+
     // it worked, let's query the state
     let res = query(&deps, QueryMsg::Equals {}).unwrap();
     let value: EqualsResponse = from_binary(&res).unwrap();
