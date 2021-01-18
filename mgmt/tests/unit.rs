@@ -1,5 +1,5 @@
-use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use cosmwasm_std::{coins, from_binary, StdError};
+use cosmwasm_std::testing::{mock_dependencies_with_balances, mock_env};
+use cosmwasm_std::{coins, from_binary, StdError, HumanAddr};
 
 use sienna_mgmt::contract::{init, query, handle};
 use sienna_mgmt::msg::{InitMsg, HandleMsg, QueryMsg, StatusResponse};
@@ -7,25 +7,31 @@ use sienna_mgmt::msg::{InitMsg, HandleMsg, QueryMsg, StatusResponse};
 #[test] fn proper_initialization() {
 
     // context
-    let mut deps = mock_dependencies(
-        20,  // TODO WHATIS
-        &[]  // TODO WHATIS
-    );
-    let env = mock_env(
-        "creator",
-        &coins(1000, "earth")
-    ); // TODO WHATIS
+    let mut deps = mock_dependencies_with_balances(20, &[
+        (&HumanAddr::from("Alice"),   &coins(1000, "SIENNA")),
+        (&HumanAddr::from("Bob"),     &coins(1000, "SIENNA")),
+        (&HumanAddr::from("Mallory"), &coins(   0, "SIENNA"))
+    ]);
 
     // we can just call .unwrap() to assert this was a success
-    let res = init(&mut deps, env, InitMsg {
-        token_contract: None,
-    }).unwrap();
+    let env = mock_env("Alice", &coins(1000, "SIENNA"));
+    let res = init(&mut deps, env, InitMsg { token_contract: None }).unwrap();
     assert_eq!(0, res.messages.len());
 
     // it worked, let's query the state
     let res = query(&deps, QueryMsg::StatusQuery {}).unwrap();
     let value: StatusResponse = from_binary(&res).unwrap();
-    assert_eq!(None, value.launched);
+    assert_eq!(value.launched, None);
+
+    // try triggering a mutation
+    let env = mock_env("Alice", &coins(1000, "SIENNA"));
+    let time = env.block.time;
+    let res = handle(&mut deps, env, HandleMsg::Launch {});
+
+    // check that the state has changed
+    let res = query(&deps, QueryMsg::StatusQuery {}).unwrap();
+    let value: StatusResponse = from_binary(&res).unwrap();
+    assert_eq!(value.launched, Some(time));
 }
 
 //#[test] fn operations () {
@@ -62,3 +68,4 @@ use sienna_mgmt::msg::{InitMsg, HandleMsg, QueryMsg, StatusResponse};
     //assert_eq!(5, value.value);
     //println!("{}", value.value);
 //}
+
