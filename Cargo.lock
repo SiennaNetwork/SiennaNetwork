@@ -305,6 +305,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "fadroma"
+version = "0.1.0"
+
+[[package]]
 name = "fake-simd"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -424,10 +428,6 @@ checksum = "fcf3805d4480bb5b86070dcfeb9e2cb2ebc148adb753c5cca5f884d1d65a42b2"
 dependencies = [
  "cfg-if 0.1.10",
 ]
-
-[[package]]
-name = "macros"
-version = "0.1.0"
 
 [[package]]
 name = "memmap"
@@ -819,7 +819,7 @@ dependencies = [
  "cosmwasm-schema 0.10.0",
  "cosmwasm-std",
  "cosmwasm-storage",
- "macros",
+ "fadroma",
  "schemars",
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
  "serde",
