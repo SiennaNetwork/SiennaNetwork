@@ -24,14 +24,20 @@ contract!(
 
     QueryMsg (msg, state, deps) {
         StatusQuery () {
-            to_binary(&crate::msg::StatusResponse { launched: state.launched })
+            to_binary(&crate::msg::StatusResponse {
+                launched: state.launched
+            })
         }
     }
 
-    HandleMsg (msg, &mut state, env, deps) {
+    HandleMsg (sender, msg, &mut state, env, deps) {
         Launch () {
-            state.launched = Some(env.block.time);
-            Ok(state)
+            if state.admin == sender {
+                state.launched = Some(env.block.time);
+                Ok(state)
+            } else {
+                return Err(StdError::generic_err("access denied"));
+            }
         }
     }
 
