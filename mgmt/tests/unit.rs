@@ -1,7 +1,7 @@
 use cosmwasm_std::testing::{mock_dependencies_with_balances, mock_env};
 use cosmwasm_std::{coins, from_binary, StdError, HumanAddr};
 
-use sienna_mgmt::contract as mgmt;
+use sienna_mgmt as mgmt;
 use sienna_mgmt::msg::{InitMsg, HandleMsg, QueryMsg, StatusResponse};
 
 #[test] fn init () {
@@ -17,7 +17,7 @@ use sienna_mgmt::msg::{InitMsg, HandleMsg, QueryMsg, StatusResponse};
     let res = mgmt::init(
         &mut deps,
         mock_env("Alice", &coins(1000, "SIENNA")),
-        InitMsg { token_contract: None }
+        InitMsg { token: None }
     ).unwrap();
     assert_eq!(0, res.messages.len());
     let value: StatusResponse = from_binary(
@@ -35,7 +35,7 @@ use sienna_mgmt::msg::{InitMsg, HandleMsg, QueryMsg, StatusResponse};
     let res = mgmt::init(
         &mut deps,
         mock_env("Alice", &coins(1000, "SIENNA")),
-        InitMsg { token_contract: None }
+        InitMsg { token: None }
     ).unwrap();
     assert_eq!(0, res.messages.len());
 
