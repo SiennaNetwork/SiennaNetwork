@@ -84,6 +84,7 @@ contract!(
         // After configuring the instance, launch confirmation must be given.
         // An instance can be launched only once.
         // TODO emergency vote to stop everything and refund the initializer
+        // TODO launch transaction should receive/mint its budget?
         Launch () {
             (c: Config) { is_admin(c, sender) }
             (c: &mut Config) {
