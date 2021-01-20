@@ -40,7 +40,7 @@ contract!(
         StatusQuery () {
             (c: Config) {
                 msg::StatusResponse {
-                    launched: c.launched
+                    launched: None
                 }
             }
         }
@@ -54,7 +54,7 @@ contract!(
             }
         },
         SetRecipient (address: cosmwasm_std::CanonicalAddr) {
-            (c: Config) { is_admin(c, sender) }
+            (c: Config) { has_not_launched(c) && is_admin(c, sender) }
             (r: &mut Recipients) {
                 //r.set(r, to_vec(&Recipient {
                     //address,
@@ -66,13 +66,13 @@ contract!(
             }
         },
         RemoveRecipient (address: cosmwasm_std::CanonicalAddr) {
-            (c: Config) { is_admin(c, sender) }
+            (c: Config) { has_not_launched(c) && is_admin(c, sender)  }
             (r: &mut Recipients) {
                 //r.remove(sender)
             }
         },
         Claim () {
-            (r: Recipients) { can_claim(r, sender) }
+            (r: Recipients) { has_launched(c) && can_claim(r, sender) }
             (r: &mut Recipients) {
                 //let mut recipient = r.iter_mut().find(
                     //|&x| x.address == sender
@@ -88,6 +88,14 @@ contract!(
     }
 
 );
+
+fn has_launched (config: state::Config) -> bool {
+    match config.launched { None => false, Some(_) => true }
+}
+
+fn has_not_launched (config: state::Config) -> bool {
+    !has_launched(config)
+}
 
 fn is_admin (config: state::Config, addr: CanonicalAddr)
 -> cosmwasm_std::StdResult<bool> {
