@@ -1,5 +1,5 @@
 use cosmwasm_std::{
-    Api,
+    Api, Env, BlockInfo, MessageInfo, ContractInfo,
     coins, from_binary,
     StdResult, StdError,
     HumanAddr, Coin,
@@ -7,7 +7,7 @@ use cosmwasm_std::{
 };
 
 use cosmwasm_std::testing::{
-    mock_dependencies_with_balances, mock_env,
+    mock_dependencies_with_balances, /*mock_env,*/
     MockApi, MockQuerier
 };
 
@@ -22,11 +22,22 @@ fn harness (balances: &[(&HumanAddr, &[Coin])])
     // Then I want to be able to query its state
     let res = mgmt::init(
         &mut deps,
-        mock_env("Alice", &coins(1000, "SIENNA")),
+        mock_env(0, 0, balances[0].0, balances[0].1.into()),
         mgmt::msg::InitMsg { token: None }
     ).unwrap();
     assert_eq!(0, res.messages.len());
     deps
+}
+
+fn mock_env (height: u64, time: u64, sender: &HumanAddr, sent_funds: Vec<Coin>)
+    -> Env {
+    Env {
+        block: BlockInfo { height, time, chain_id: "secret".into() },
+        message: MessageInfo { sender: sender.into(), sent_funds },
+        contract: ContractInfo { address: "contract".into() },
+        contract_key: Some("".into()),
+        contract_code_hash: "".into()
+    }
 }
 
 macro_rules! query {
@@ -52,9 +63,9 @@ macro_rules! tx {
 }
 
 #[test] fn init () {
-    let mut deps = harness(&[
-        (&HumanAddr::from("Alice"),   &coins(1000, "SIENNA")),
-    ]);
+
+    let alice: HumanAddr = "Alice".into();
+    let mut deps = harness(&[(&alice, &coins(1000, "SIENNA")),]);
 
     // When  I init the contract
     // Then  I should become admin
@@ -67,9 +78,11 @@ macro_rules! tx {
 
 #[test] fn launch () {
 
+    let alice:   HumanAddr = "Alice".into();
+    let mallory: HumanAddr = "Mallory".into();
     let mut deps = harness(&[
-        (&HumanAddr::from("Alice"),   &coins(1000, "SIENNA")),
-        (&HumanAddr::from("Mallory"), &coins(   0, "SIENNA"))
+        (&alice,   &coins(1000, "SIENNA")),
+        (&mallory, &coins(   0, "SIENNA"))
     ]);
 
     // Given the contract IS NOT YET launched
@@ -77,7 +90,8 @@ macro_rules! tx {
     // As    a stranger
     // When  I try to launch the contract
     // Then  I should fail
-    let env = mock_env("Mallory", &coins(0, "SIENNA"));
+    let env = mock_env(1, 1, &mallory, coins(0, "SIENNA"));
+    println!("{:#?}", env);
     tx!(deps env Launch);
     query!(deps StatusQuery (res: StatusResponse) {
         assert_eq!(res.launched, None)
@@ -86,11 +100,10 @@ macro_rules! tx {
     // As    the admin
     // When  I launch the contract
     // Then  it should remember when it was first launched
-    let env = mock_env("Alice", &coins(1000, "SIENNA"));
-    let time1 = env.block.time;
+    let env = mock_env(2, 2, &alice, coins(0, "SIENNA"));
     tx!(deps env Launch);
     query!(deps StatusQuery (res: StatusResponse) {
-        assert_eq!(res.launched, Some(time1))
+        assert_eq!(res.launched, Some(2))
     });
 
     // Given the contract IS ALREADY launched
@@ -99,21 +112,22 @@ macro_rules! tx {
     // When  I launch the contract
     // Then  it should say it's already launched
     // And   it should not update its launch date
-    let env = mock_env("Alice", &coins(1000, "SIENNA"));
-    let time2 = env.block.time;
-    assert!(time2 != time1);
+    let env = mock_env(3, 3, &alice, coins(0, "SIENNA"));
     tx!(deps env Launch);
     query!(deps StatusQuery (res: StatusResponse) {
-        assert_eq!(res.launched, Some(time1))
+        assert_eq!(res.launched, Some(2))
     });
 }
 
 #[test] fn configure () {
 
+    let alice:   HumanAddr = "Alice".into();
+    let bob:     HumanAddr = "Bob".into();
+    let mallory: HumanAddr = "Mallory".into();
     let mut deps = harness(&[
-        (&HumanAddr::from("Alice"),   &coins(1000, "SIENNA")),
-        (&HumanAddr::from("Bob"),     &coins(   0, "SIENNA")),
-        (&HumanAddr::from("Mallory"), &coins(   0, "SIENNA"))
+        (&alice,   &coins(1000, "SIENNA")),
+        (&bob,     &coins(   0, "SIENNA")),
+        (&mallory, &coins(   0, "SIENNA"))
     ]);
 
     // Given the contract IS NOT YET launched
@@ -121,10 +135,10 @@ macro_rules! tx {
     // As    the admin
     // When  I set the recipients
     // Then  I should be able to fetch them
-    let env = mock_env("Alice", &coins(1000, "SIENNA"));
+    let env = mock_env(1, 1, &alice, coins(1000, "SIENNA"));
     tx!(deps env SetRecipients { recipients: vec![
         mgmt::Recipient {
-            address: deps.api.canonical_address(&HumanAddr::from("Bob")).unwrap(),
+            address:  deps.api.canonical_address(&HumanAddr::from("Bob")).unwrap(),
             cliff:    0,
             vestings: 10,
             interval: 10,
@@ -135,19 +149,19 @@ macro_rules! tx {
     // As    a stranger
     // When  I try to set the recipients
     // Then  I should be denied access
-    let env = mock_env("Mallory", &coins(0, "SIENNA"));
+    let env = mock_env(2, 2, &mallory, coins(0, "SIENNA"));
 
     // Given the contract IS ALREADY launched
 
     // As    the admin
     // When  I try to set the recipients
     // Then  I should be denied access
-    let env = mock_env("Alice", &coins(1000, "SIENNA"));
+    let env = mock_env(3, 3, &alice, coins(1000, "SIENNA"));
 
     // As    a stranger
     // When  I try to set the recipients
     // Then  I should be denied access
-    let env = mock_env("Mallory", &coins(0, "SIENNA"));
+    let env = mock_env(4, 4, &mallory, coins(0, "SIENNA"));
 }
 
 /*
