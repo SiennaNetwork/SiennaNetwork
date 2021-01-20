@@ -1,4 +1,5 @@
 use cosmwasm_std::{
+    Api,
     coins, from_binary,
     StdResult, StdError,
     HumanAddr, Coin,
@@ -41,8 +42,12 @@ macro_rules! query {
 }
 
 macro_rules! tx {
-    ($deps:ident $env:ident $Msg:ident) => {
-        let _ = mgmt::handle(&mut $deps, $env, mgmt::msg::HandleMsg::$Msg {});
+    (
+        $deps:ident $env:ident
+        $Msg:ident $({ $($arg:ident : $val:expr),* })?
+    ) => {
+        let msg = mgmt::msg::HandleMsg::$Msg { $($($arg:$val)*)? };
+        let _ = mgmt::handle(&mut $deps, $env, msg);
     }
 }
 
@@ -114,43 +119,35 @@ macro_rules! tx {
     // Given the contract IS NOT YET launched
 
     // As    the admin
-    // When  I add a recipient
-    // Then  I should be able to fetch it
+    // When  I set the recipients
+    // Then  I should be able to fetch them
     let env = mock_env("Alice", &coins(1000, "SIENNA"));
+    tx!(deps env SetRecipients { recipients: vec![
+        mgmt::Recipient {
+            address: deps.api.canonical_address(&HumanAddr::from("Bob")).unwrap(),
+            cliff:    0,
+            vestings: 10,
+            interval: 10,
+            claimed:  0
+        }
+    ] });
 
     // As    a stranger
-    // When  I try to add a recipient
-    // Then  I should be denied access
-    let env = mock_env("Mallory", &coins(0, "SIENNA"));
-
-    // As    the admin
-    // When  I add a recipient with the same address as an existing one
-    // Then  I will have updated that recipient's parameters
-    let env = mock_env("Alice", &coins(1000, "SIENNA"));
-
-    // As    a stranger
-    // When  I try to modify a recipient
-    // Then  I should be denied access
-    let env = mock_env("Mallory", &coins(0, "SIENNA"));
-
-    // As    the admin
-    // When  I delete a recipient
-    // Then  I that recipient should no longer be on the list
-    let env = mock_env("Alice", &coins(1000, "SIENNA"));
-
-    // As    a stranger
-    // When  I try to delete a recipient
+    // When  I try to set the recipients
     // Then  I should be denied access
     let env = mock_env("Mallory", &coins(0, "SIENNA"));
 
     // Given the contract IS ALREADY launched
+
     // As    the admin
-    // When  I try to modify recipients
+    // When  I try to set the recipients
     // Then  I should be denied access
+    let env = mock_env("Alice", &coins(1000, "SIENNA"));
 
     // As    a stranger
-    // When  I try to modify recipients
+    // When  I try to set the recipients
     // Then  I should be denied access
+    let env = mock_env("Mallory", &coins(0, "SIENNA"));
 }
 
 /*

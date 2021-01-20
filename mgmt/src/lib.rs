@@ -2,27 +2,36 @@
 
 use cosmwasm_std::CanonicalAddr;
 
+/// Creator of contract.
+/// TODO make configurable
+type Admin = cosmwasm_std::CanonicalAddr;
+
+/// The token contract that will be controlled.
+/// TODO see how this can be generated for testing
+type Token = Option<cosmwasm_std::CanonicalAddr>;
+
+/// Whether the vesting process has begun and when.
+type Launched = Option<u64>;
+
+/// List of recipient addresses with vesting configs.
+type Recipients = Vec<Recipient>;
+
+/// `message!` defines a struct and makes it CosmWasm-serializable
+message!(Recipient {
+    address:  CanonicalAddr,
+    cliff:    u64,
+    vestings: u64,
+    interval: u64,
+    claimed:  u64
+});
+
 contract!(
 
     State {
-
-        Config {
-            // Send from this address to launch the vesting process
-            // TODO make configurable
-            admin:    cosmwasm_std::CanonicalAddr,
-
-            // The token contract that will be controlled
-            // TODO see how this can be generated for testing
-            token:    Option<cosmwasm_std::CanonicalAddr>,
-
-            // Whether the vesting process has begun and when
-            launched: Option<u64>
-        }
-
-        Recipients {
-            // Addresses that can claim tokens
-        }
-
+        admin:      crate::Admin,
+        token:      crate::Token,
+        launched:   crate::Launched,
+        recipients: crate::Recipients
     }
 
     // Initializing an instance of the contract:
@@ -30,84 +39,50 @@ contract!(
     //   to be passed as an argument
     // * makes the initializer the admin
     InitMsg (deps, env, msg: {
-        token: Option<cosmwasm_std::CanonicalAddr>
+        token: crate::Token
     }) {
-        Config: {
-            admin:    deps.api.canonical_address(&env.message.sender)?,
-            token:    msg.token,
-            launched: None
+        State {
+            admin:      deps.api.canonical_address(&env.message.sender).unwrap(),
+            token:      msg.token,
+            launched:   None,
+            recipients: vec![]
         }
-        Recipients: {}
     }
 
-    QueryMsg (deps, msg) {
+    QueryMsg (deps, state, msg) {
         // Querying the status.
         // TODO how much info should be available here?
         StatusQuery () {
-            (c: Config) {
-                msg::StatusResponse {
-                    launched: None
-                }
-            }
+            msg::StatusResponse { launched: state.launched }
         }
     }
 
-    HandleMsg (deps, env, sender, msg) {
+    HandleMsg (deps, env, sender, state, msg) {
 
         // After initializing the contract,
         // recipients need to be configured by the admin.
-        SetRecipient (
-            address: cosmwasm_std::CanonicalAddr,
-            first_vesting: u64,
-            interval:      u64,
-            last_vesting:  u64,
-            claimed:       u64
-        ) {
-            (c: Config) { has_not_launched(c) && is_admin(c, sender) }
-            (r: &mut Recipients) {
-                //r.set(r, to_vec(&Recipient {
-                    //address,
-                    //first_vesting,
-                    //interval,
-                    //last_vesting,
-                    //claimed,
-                //}))
-            }
-        },
-        RemoveRecipient (address: cosmwasm_std::CanonicalAddr) {
-            (c: Config) { has_not_launched(c) && is_admin(c, sender)  }
-            (r: &mut Recipients) {
-                //r.remove(sender)
-            }
-        },
+        SetRecipients (recipients: crate::Recipients) {
+            if !is_admin(state, sender) { return "access denied" }
+            if has_launched(state) { return "already underway" }
+            state.recipients = recipients
+        }
 
         // After configuring the instance, launch confirmation must be given.
         // An instance can be launched only once.
         // TODO emergency vote to stop everything and refund the initializer
         // TODO launch transaction should receive/mint its budget?
         Launch () {
-            (c: Config) { is_admin(c, sender) }
-            (c: &mut Config) {
-                match c.launched {
-                    Some => return Err("already underway"),
-                    None => {
-                        c.launched = Some(env.block.time)
-                    }
-                }
-            }
-        },
+            if !is_admin(state, sender) { return "access denied" }
+            if has_launched(state) { return "already underway" }
+            state.launched = Some(env.block.time);
+        }
 
         // Recipients can call the Claim method to receive
         // the gains that have accumulated so far.
         Claim () {
-            (r: Recipients) { has_launched(c) && can_claim(r, sender) }
-            (r: &mut Recipients) {
-                //let mut recipient = r.iter_mut().find(
-                    //|&x| x.address == sender
-                //);
-                //recipient.claimable = 0;
-                //state::Recipients::set(sender.as_slice(), &to_vec(&sender)?);
-            }
+            if !has_launched(state) { return "not launched" }
+            if !can_claim(state, sender) { return "nothing for you" }
+            return "not implemented";
         }
     }
 
@@ -117,30 +92,22 @@ contract!(
 
 );
 
-fn has_launched (config: state::Config) -> bool {
-    match config.launched { None => false, Some(_) => true }
+fn has_launched (state: State) -> bool {
+    match state.launched { None => false, Some(_) => true }
 }
 
-fn has_not_launched (config: state::Config) -> bool {
-    !has_launched(config)
+fn has_not_launched (state: State) -> bool {
+    !has_launched(state)
 }
 
-fn is_admin (config: state::Config, addr: CanonicalAddr)
+fn is_admin (state: State, addr: CanonicalAddr)
 -> cosmwasm_std::StdResult<bool> {
-    if addr != config.admin {
+    if addr != state.admin {
         Err(cosmwasm_std::StdError::Unauthorized { backtrace: None })
     } else {
         Ok(true)
     }
 }
 
-fn can_claim (recipients: state::Recipients, addr: CanonicalAddr) {
+fn can_claim (state: State, addr: CanonicalAddr) {
 }
-
-message!(Recipient {
-    address:       CanonicalAddr,
-    first_vesting: u64,
-    interval:      u64,
-    last_vesting:  u64,
-    claimed:       u64
-});
