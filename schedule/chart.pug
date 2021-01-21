@@ -1,8 +1,26 @@
-mixin line ({ key, d })
+mixin line ({ key, points })
   g(data-key=key)
-    path(d=d fill="none" stroke="red")
+    polyline(points=points style="stroke:red;stroke-width:3")
 
 doctype xml
-svg(xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10000000 10000000")
-  each line in lines
-    +line(line)
+svg(xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200")
+  each wallet, i in Object.keys(balances_over_time)
+    g
+      text(y=20*i)= wallet
+      - let points = ''
+      - for (let [T, Y] of Object.entries(balances_over_time[wallet])) {
+      -   points += `${Number(T/60000)+100},${100+(1000-Number(Y/10000))} `
+      - }
+      polyline(fill="none" stroke="red" points=points)
+  rect(x=100 y=100 width=1000 height=1000 stroke="red" fill="none")
+  text(x=100 y=1115 text-anchor="middle")= `T=${Tmin}`
+  text(x=1100 y=1115 text-anchor="middle")= `T=${Tmax}s`
+  - let day_width = 1000 / ((Tmax-Tmin)/(24*60*60))
+  - let week_width = 7 * day_width
+  - console.log(day_width, month_width)
+  each day, i in [...Array(104)]
+    - let x = 100+i*week_width 
+    line(x1=x x2=x y1=100 y2=1100 stroke="#aaa")
+  each day, i in [...Array(104/4)]
+    - let x = 100+i*4*week_width 
+    line(x1=x x2=x y1=100 y2=1100 stroke="#555")

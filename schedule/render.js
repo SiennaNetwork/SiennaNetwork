@@ -139,7 +139,10 @@ function render (transactions, total) {
   }
   const entries = []
   transactions = transactions.sort(({T:T1},{T:T2})=>T1-T2)
+  let Tmin = 0, Tmax = 0
   for (let {T, sent, addr} of transactions) {
+    if (T < Tmin) Tmin = T
+    if (T > Tmax) Tmax = T
     //console.log({T, sent, addr})
     balances[addr] =
       balances[addr] || 0
@@ -158,13 +161,5 @@ function render (transactions, total) {
   }
   require('fs').writeFileSync(
     'chart.svg', 
-    require('pug').compileFile('chart.pug')({
-      lines:
-        Object.entries(balances_over_time).map(([key,value])=>({
-          key,
-          d:[...Object.entries(value)].reduce(
-            (d,[T,y])=>`${d} L${T},${y}`, 'M0,0'
-          )
-        }))
-    }))
+    require('pug').compileFile('chart.pug')({balances_over_time, Tmin, Tmax}))
 }
