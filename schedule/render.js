@@ -16,9 +16,16 @@ const Invariants = {
 if (require.main === module) main()
 
 function main () {
+  require('fs').writeFileSync('transactions.txt', '')
   const data = require('./schedule')
   descend('', 'total', data)
+  require('fs').writeFileSync('transactions.json', JSON.stringify(transactions, null, 2))
   render(transactions, data)
+}
+
+function log(...args) {
+  console.log(...args)
+  require('fs').appendFileSync('transactions.txt', '\n'+[...args].join(' '))
 }
 
 function descend (prefix, stream, {
@@ -31,7 +38,7 @@ function descend (prefix, stream, {
   release,
   over,
 }) {
-  console.log(`\n${prefix}${stream} ${percent}% = ${amount} SIENNA`)
+  log(`\n${prefix}${stream} ${percent}% = ${amount} SIENNA`)
   assert(!(streams&&addr), Invariants.Node)
   if (streams)
     for (let [stream, data] of Object.entries(streams))
@@ -55,7 +62,7 @@ function vest (
 
   if (cliff_at > 0 && cliff_percent > 0) {
     cliff = cliff_percent * amount
-    console.log(
+    log(
       `${prefix}T+${String(cliff_at).padEnd(10)} `+
       `${(String(cliff_percent*100)+'%').padStart(5)} `+
       `(${cliff.toFixed(14).padStart(22)} SIENNA) `+
@@ -69,7 +76,7 @@ function vest (
 
     case 'immediate':
       const sent = amount
-      console.log(
+      log(
         `${prefix}T+${String(0).padEnd(10)} `+
         `${`all`.padStart(5)} `+
         `(${sent.toFixed(14).padStart(22)} SIENNA) `+
@@ -81,12 +88,12 @@ function vest (
     case 'daily':
       over = parseM(over)
       const days = Math.ceil(over / Day)
-      console.log(`${prefix}daily over   ${String(days).padStart(3)} days:`)
+      log(`${prefix}daily over   ${String(days).padStart(3)} days:`)
       const daily = amount / days
       ;[...Array(days)].map((_,day)=>day+1).forEach(day=>{
         const T = cliff_at + day*Day
         const sent = Math.min(daily, amount)
-        console.log(
+        log(
           `${prefix}T+${String(T).padEnd(10)} `+
           `${`1/${days}`.padStart(5)} `+
           `(${sent.toFixed(14).padStart(22)} SIENNA) `+
@@ -99,12 +106,12 @@ function vest (
     case 'monthly':
       over = parseM(over)
       const months = Math.ceil(over / Month)
-      console.log(`${prefix}monthly over ${String(months).padStart(3)} months:`)
+      log(`${prefix}monthly over ${String(months).padStart(3)} months:`)
       const monthly = amount / months
       ;[...Array(months)].map((_,month)=>month+1).forEach(month=>{
         const T = cliff_at + month*Month
         const sent = Math.min(monthly, amount)
-        console.log(
+        log(
           `${prefix}T+${String(T).padEnd(10)} `+
           `${`1/${months}`.padStart(5)} `+
           `(${sent.toFixed(14).padStart(22)} SIENNA) `+
@@ -118,7 +125,7 @@ function vest (
       throw new Error(Invariants.Release)
   }
 
-  console.log(`${prefix}Remaining: ${amount.toFixed(14)} SIENNA`)
+  log(`${prefix}Remaining: ${amount.toFixed(14)} SIENNA`)
 
 }
 
