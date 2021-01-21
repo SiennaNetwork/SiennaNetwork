@@ -4,8 +4,8 @@ mixin line ({ key, points })
   g(data-key=key)
     polyline(points=points style="stroke:red;stroke-width:3")
 
-- let chartW = 2000
-- let chartH = 10000
+- let chartW = 600
+- let chartH = 3000
 - let margin = 100
 - let viewBox = `${-margin} ${-margin} ${chartW+2*margin} ${chartH+2*margin}`
 - let Tscale = chartW / (Tmax - Tmin) // 0.---px = 1second
@@ -33,7 +33,7 @@ mixin stream (y, h, id, vesting, balance)
       x=0 y=0
       width=chartW height=h
       fill=(vesting.release==='immediate')?"rgba(64,255,64,0.2)":"rgba(0,0,0,0.1)")
-    line.stream-border(x1=0 y1=0 x2=chartW y2=0 stroke="#000")
+    line.stream-border(x1=0 y1=0 x2=chartW y2=0 stroke="#000" stroke-width="0.5")
     text.stream-id(x=-10 y=h/2 text-anchor="end")= id
     text.stream-amount(x=chartW+10 y=h/2 text-anchor="start")= amount
     - let points = ''
