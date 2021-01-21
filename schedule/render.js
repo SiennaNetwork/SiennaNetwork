@@ -46,8 +46,9 @@ function vest (
   if (cliff_at > 0) {
     cliff = cliff_percent * amount
     console.log(
-      `${prefix}T+${cliff_at} ${cliff_percent*100}% `+
-      `(${cliff} SIENNA) -> ${addr}, then`)
+      `${prefix}T+${String(cliff_at).padEnd(10)} `+
+      `${(String(cliff_percent*100)+'%').padStart(5)} `+
+      `(${cliff.toFixed(14)} SIENNA) -> ${addr}, then`)
     amount -= cliff
   }
 
@@ -55,32 +56,34 @@ function vest (
   if (daily_over) {
     daily_over = parseM(daily_over)
     const days = Math.floor(daily_over / Day)
-    console.log(`${prefix}           daily over ${days} days`)
+    console.log(`${prefix}daily over   ${String(days).padStart(3)} days:`)
 
     const daily = amount / days
     ;[...Array(days)].forEach((_, day)=>{
       console.log(
         `${prefix}T+${String(cliff_at + day*Day).padEnd(10)} `+
-        `1/${days} (${daily} SIENNA) `+
+        `${`1/${days}`.padStart(5)} (${daily.toFixed(14)} SIENNA) `+
         `-> ${addr}`)
       amount -= daily
     })
   } else if (monthly_over) {
     monthly_over = parseM(monthly_over)
     const months = Math.floor(monthly_over / Month)
-    console.log(`${prefix}           monthly over ${months} months`)
+    console.log(`${prefix}monthly over ${String(months).padStart(3)} months:`)
 
     const monthly = amount / months
     ;[...Array(months)].forEach((_, day)=>{
       console.log(
         `${prefix}T+${String(cliff_at + day*Day).padEnd(10)} `+
-        `1/${months} (${monthly} SIENNA) `+
+        `${`1/${months}`.padStart(5)} (${monthly.toFixed(14)} SIENNA) `+
         `-> ${addr}`)
       amount -= monthly
     })
   } else {
     throw new Error(Invariants.Vest)
   }
+
+  console.log(`${prefix}Remaining: ${amount.toFixed(14)} SIENNA`)
 
 }
 
