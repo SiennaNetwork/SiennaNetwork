@@ -9,14 +9,16 @@ const Month = 30*Day
 const Invariants = {
   Node: 'node must be either recipient (addr) or category (streams), but not both',
   Vest: 'vesting must be be either monthly or daily, but not both',
-  Time: 'time must be expressed as "<number>M" (where M stands for months)'
+  Time: 'time must be expressed as "<number>M" (where M stands for months)',
+  Release: `release must be daily, montly, or immediate`
 }
 
 if (require.main === module) main()
 
 function main () {
-  descend('', 'total', require('./schedule'))
-  console.log(transactions)
+  const data = require('./schedule')
+  descend('', 'total', data)
+  render(transactions, data["="])
 }
 
 function descend (prefix, stream, {
@@ -26,8 +28,8 @@ function descend (prefix, stream, {
   addr,
   "cliff@": cliff_at,
   "cliff%": cliff_percent,
-  monthly_over,
-  daily_over
+  release,
+  over,
 }) {
   console.log(`\n${prefix}${stream} ${percent}% = ${amount} SIENNA`)
   assert(!(streams&&addr), Invariants.Node)
@@ -35,7 +37,7 @@ function descend (prefix, stream, {
     for (let [stream, data] of Object.entries(streams))
       descend(prefix+'  ', stream, data)
   else
-    vest(prefix+'  ', addr, amount, cliff_at, cliff_percent, daily_over, monthly_over)
+    vest(prefix+'  ', addr, amount, cliff_at, cliff_percent, release, over)
 }
 
 function vest (
@@ -44,12 +46,13 @@ function vest (
   amount,
   cliff_at,
   cliff_percent,
-  daily_over,
-  monthly_over
+  release,
+  over
 ) {
 
   cliff_at      = cliff_at      ? parseM(cliff_at)      : 0
   cliff_percent = cliff_percent ? (cliff_percent / 100) : 0
+
   if (cliff_at > 0 && cliff_percent > 0) {
     cliff = cliff_percent * amount
     console.log(
@@ -62,47 +65,57 @@ function vest (
     transactions.push({T:cliff_at, sent:cliff, addr})
   }
 
-  assert(!(monthly_over&&daily_over), Invariants.Vest)
-  if (daily_over) {
-    daily_over = parseM(daily_over)
-    const days = Math.floor(daily_over / Day)
-    console.log(`${prefix}daily over   ${String(days).padStart(3)} days:`)
-    const daily = amount / days
-    ;[...Array(days)].map((_,day)=>day+1).forEach(day=>{
-      const T = cliff_at + day*Day
-      const sent = Math.min(daily, amount)
+  switch (release) {
+
+    case 'immediate':
+      const sent = amount
       console.log(
-        `${prefix}T+${String(T).padEnd(10)} `+
-        `${`1/${days}`.padStart(5)} `+
+        `${prefix}T+${String(0).padEnd(10)} `+
+        `${`all`.padStart(5)} `+
         `(${sent.toFixed(14).padStart(22)} SIENNA) `+
         `-> ${addr}`)
       amount -= sent
-      transactions.push({T, sent, addr})
-    })
-  } else if (monthly_over) {
-    monthly_over = parseM(monthly_over)
-    const months = Math.floor(monthly_over / Month)
-    console.log(`${prefix}monthly over ${String(months).padStart(3)} months:`)
-    const monthly = amount / months
-    ;[...Array(months)].map((_,month)=>month+1).forEach((_, month)=>{
-      const T = cliff_at + month*Month
-      const sent = Math.min(monthly, amount)
-      console.log(
-        `${prefix}T+${String(T).padEnd(10)} `+
-        `${`1/${months}`.padStart(5)} `+
-        `(${sent.toFixed(14).padStart(22)} SIENNA) `+
-        `-> ${addr}`)
-      amount -= sent
-      transactions.push({T, sent, addr})
-    })
-  } else {
-    // release_immediately
-    console.log(
-      `${prefix}T+${String(0).padEnd(10)} `+
-      `${`all`.padStart(5)} (${amount.toFixed(14).padStart(22)} SIENNA) `+
-      `-> ${addr}`)
-    amount -= amount
-    transactions.push({T:0, sent:amount, addr})
+      transactions.push({T:0, sent, addr})
+      break
+
+    case 'daily':
+      over = parseM(over)
+      const days = Math.ceil(over / Day)
+      console.log(`${prefix}daily over   ${String(days).padStart(3)} days:`)
+      const daily = amount / days
+      ;[...Array(days)].map((_,day)=>day+1).forEach(day=>{
+        const T = cliff_at + day*Day
+        const sent = Math.min(daily, amount)
+        console.log(
+          `${prefix}T+${String(T).padEnd(10)} `+
+          `${`1/${days}`.padStart(5)} `+
+          `(${sent.toFixed(14).padStart(22)} SIENNA) `+
+          `-> ${addr}`)
+        amount -= sent
+        transactions.push({T, sent, addr})
+      })
+      break
+
+    case 'monthly':
+      over = parseM(over)
+      const months = Math.ceil(over / Month)
+      console.log(`${prefix}monthly over ${String(months).padStart(3)} months:`)
+      const monthly = amount / months
+      ;[...Array(months)].map((_,month)=>month+1).forEach(month=>{
+        const T = cliff_at + month*Month
+        const sent = Math.min(monthly, amount)
+        console.log(
+          `${prefix}T+${String(T).padEnd(10)} `+
+          `${`1/${months}`.padStart(5)} `+
+          `(${sent.toFixed(14).padStart(22)} SIENNA) `+
+          `-> ${addr}`)
+        amount -= sent
+        transactions.push({T, sent, addr})
+      })
+      break
+
+    default:
+      throw new Error(Invariants.Release)
   }
 
   console.log(`${prefix}Remaining: ${amount.toFixed(14)} SIENNA`)
@@ -115,4 +128,29 @@ function parseM (x) {
   x = Number(x[0])*Month
   assert(!isNaN(x), Invariants.Time)
   return x
+}
+
+function render (transactions, total) {
+  const balances_over_time = {
+    'Contract': { 0: total }
+  }
+  const balances = {
+    'Contract': total
+  }
+  const entries = []
+  transactions = transactions.sort(({T:T1},{T:T2})=>T1-T2)
+  for (let {T, sent, addr} of transactions) {
+    console.log({T, sent, addr})
+
+    balances[addr] = balances[addr] || 0
+    balances[addr] += sent
+
+    if (!balances_over_time[addr]) balances_over_time[addr] = { 0: 0 }
+    if (balances_over_time[addr][T]) throw new Error(`2 transactions same addr same time`)
+    balances_over_time[addr][T] = balances[addr]
+
+    balances['Contract'] -= sent
+    balances_over_time['Contract'][T] = balances['Contract']
+  }
+  console.log(balances_over_time)
 }
