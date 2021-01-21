@@ -1,0 +1,34 @@
+{ "%": 100, "=": 10000000, "streams":
+
+  { "dev_fund":
+    { "%": 15, "=": 1500000, "addr": "DevFund"   }
+
+  , "investors":
+    { "%": 20, "=": 2000000, "addr": "Investors" }
+
+  , "founders":
+    { "%": 23, "=": 2300000, "streams":
+      { "founder_1": { "%": 8.97, "=": 897000, "addr": "Founder1" }
+      , "founder_2": { "%": 8.97, "=": 897000, "addr": "Founder2" }
+      , "founder_3": { "%": 4.37, "=": 437000, "addr": "Founder3" }
+      , "founder_4": { "%": 0.69, "=":  69000, "addr": "Founder4" }
+      }
+    }
+
+  , "advisors":
+    { "%": 2, "=": 200000, "streams":
+      { "adv_1": { "%": 0.5, "=": 50000, "addr": "Advisor1" }
+      , "adv_2": { "%": 0.5, "=": 50000, "addr": "Advisor2" }
+      , "adv_3": { "%": 0.1, "=": 10000, "addr": "Advisor3" }
+      , "adv_r": { "%": 0.9, "=": 90000, "addr": "AdvisorR" }
+      }
+    }
+
+  , "minting_pool":
+    { "%": 40, "=": 4000000, "streams":
+      { "dex": { "%": 3,  "=":  300000, "addr": "DEX" }
+      , "rem": { "%": 37, "=": 3700000, "addr": "???" }
+      }
+    }
+  }
+}
