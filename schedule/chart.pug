@@ -32,7 +32,7 @@ mixin stream (y, h, id, vesting, balance)
     rect.stream-bg(
       x=0 y=0
       width=chartW height=h
-      fill=(vesting.release==='immediate')?"rgba(64,255,64,0.1)":"rgba(0,0,0,0.1)")
+      fill=(vesting.release==='immediate')?"rgba(64,255,64,0.2)":"rgba(0,0,0,0.1)")
     line.stream-border(x1=0 y1=0 x2=chartW y2=0 stroke="#000")
     text.stream-id(x=-10 y=h/2 text-anchor="end")= id
     text.stream-amount(x=chartW+10 y=h/2 text-anchor="start")= amount
