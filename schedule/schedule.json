@@ -1,25 +1,34 @@
 { "%": 100, "=": 10000000, "streams":
 
   { "dev_fund":
-    { "%": 15, "=": 1500000, "addr": "DevFund"   }
+    { "%": 15, "=": 1500000, "addr": "DevFund"
+    , "cliff@": "4M", "cliff%": 5, "monthly_over": "18M" }
 
   , "investors":
-    { "%": 20, "=": 2000000, "addr": "Investors" }
+    { "%": 20, "=": 2000000, "addr": "Investors"
+    , "cliff@": "6M", "cliff%": 0, "daily_over": "16M" }
 
   , "founders":
     { "%": 23, "=": 2300000, "streams":
-      { "founder_1": { "%": 8.97, "=": 897000, "addr": "Founder1" }
-      , "founder_2": { "%": 8.97, "=": 897000, "addr": "Founder2" }
-      , "founder_3": { "%": 4.37, "=": 437000, "addr": "Founder3" }
-      , "founder_4": { "%": 0.69, "=":  69000, "addr": "Founder4" }
+      { "founder_1": { "%": 8.97, "=": 897000, "addr": "Founder1"
+                     , "cliff@": "6M", "cliff%": 10, "daily_over": "16M" }
+      , "founder_2": { "%": 8.97, "=": 897000, "addr": "Founder2"
+                     , "cliff@": "6M", "cliff%": 10, "daily_over": "16M" }
+      , "founder_3": { "%": 4.37, "=": 437000, "addr": "Founder3"
+                     , "cliff@": "6M", "cliff%": 10, "daily_over": "16M" }
+      , "founder_4": { "%": 0.69, "=":  69000, "addr": "Founder4"
+                     , "cliff@": "6M", "cliff%": 10, "daily_over": "16M" }
       }
     }
 
   , "advisors":
     { "%": 2, "=": 200000, "streams":
-      { "adv_1": { "%": 0.5, "=": 50000, "addr": "Advisor1" }
-      , "adv_2": { "%": 0.5, "=": 50000, "addr": "Advisor2" }
-      , "adv_3": { "%": 0.1, "=": 10000, "addr": "Advisor3" }
+      { "adv_1": { "%": 0.5, "=": 50000, "addr": "Advisor1"
+                 , "cliff@": "6M", "daily_over": "16M" }
+      , "adv_2": { "%": 0.5, "=": 50000, "addr": "Advisor2"
+                 , "cliff@": "6M", "daily_over": "16M" }
+      , "adv_3": { "%": 0.1, "=": 10000, "addr": "Advisor3"
+                 , "cliff@": "6M", "daily_over": "6M" }
       , "adv_r": { "%": 0.9, "=": 90000, "addr": "AdvisorR" }
       }
     }
