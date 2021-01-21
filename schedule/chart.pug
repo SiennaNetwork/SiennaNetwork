@@ -5,7 +5,7 @@ mixin line ({ key, points })
     polyline(points=points style="stroke:red;stroke-width:3")
 
 - let chartW = 600
-- let chartH = 3000
+- let chartH = 6000
 - let margin = 100
 - let viewBox = `${-margin} ${-margin} ${chartW+2*margin} ${chartH+2*margin}`
 - let Tscale = chartW / (Tmax - Tmin) // 0.---px = 1second
@@ -32,7 +32,7 @@ mixin stream (y, h, id, vesting, balance)
     rect.stream-bg(
       x=0 y=0
       width=chartW height=h
-      fill=(vesting.release==='immediate')?"rgba(64,255,64,0.2)":"rgba(0,0,0,0.1)")
+      fill=(vesting.release==='immediate')?"rgba(64,255,64,0.2)":"rgba(0,0,0,0.0)")
     line.stream-border(x1=0 y1=0 x2=chartW y2=0 stroke="#000" stroke-width="0.5")
     text.stream-id(x=-10 y=h/2 text-anchor="end")= id
     text.stream-amount(x=chartW+10 y=h/2 text-anchor="start")= amount
@@ -49,7 +49,7 @@ mixin stream (y, h, id, vesting, balance)
     -   lastS = S
     - }
     - points += `${lastX},${amount*Sscale} 0,${amount*Sscale}`
-    polyline(fill="rgba(64,255,64,0.1)" stroke="rgba(0,192,0,0.5)" points=points)
+    polyline(fill="rgba(64,255,64,0.2)" stroke="rgba(0,128,0,0.5)" points=points)
 
 svg(height=chartH xmlns="http://www.w3.org/2000/svg" viewBox=viewBox font-family="monospace" overflow="auto")
 
@@ -70,7 +70,7 @@ svg(height=chartH xmlns="http://www.w3.org/2000/svg" viewBox=viewBox font-family
     //-text(x=n_weeks*week_width y=chartH text-anchor="start")= `0 SIENNA`
     each day, i in [...Array(n_weeks)]
       - let x = i*week_width 
-      line(x1=x x2=x y1=0 y2=chartH stroke="rgba(0,0,0,0.1)")
+      line(x1=x x2=x y1=0 y2=chartH stroke="rgba(0,0,0,0.2)")
     each day, i in [...Array(Math.ceil(n_weeks/2))]
       - let x = i*6*week_width 
-      line(x1=x x2=x y1=0 y2=chartH stroke="rgba(0,0,0,0.2)")
+      line(x1=x x2=x y1=0 y2=chartH stroke="rgba(0,0,0,0.4)")
