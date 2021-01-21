@@ -53,6 +53,8 @@ mixin stream (y, h, id, vesting, balance)
 
 svg(height=chartH xmlns="http://www.w3.org/2000/svg" viewBox=viewBox font-family="monospace" overflow="auto")
 
+  rect(width="120%" height="120%" x="-10%" y="-10%" fill="white")
+
   +streams(0, data.streams, balances_over_time)
 
   - let day_width = chartW / ((Tmax-Tmin)/(24*60*60))
@@ -61,9 +63,9 @@ svg(height=chartH xmlns="http://www.w3.org/2000/svg" viewBox=viewBox font-family
 
   g(id="grid")
     rect(x=0 y=0 width=chartW height=chartH stroke="red" stroke-width="2" fill="none")
-    text(x=0 y=chartH+15 text-anchor="end")= `T=${Tmin}`
+    text(x=0 y=-15 text-anchor="end")= `T=${Tmin}`
     - let n_weeks = 95
-    text(x=n_weeks*week_width y=chartH+15 text-anchor="start")= `T=${Tmax}s`
+    text(x=n_weeks*week_width y=-15 text-anchor="start")= `T=${Tmax}s`
     //-text(x=n_weeks*week_width y=0 text-anchor="start")= `${total} SIENNA`
     //-text(x=n_weeks*week_width y=chartH text-anchor="start")= `0 SIENNA`
     each day, i in [...Array(n_weeks)]
