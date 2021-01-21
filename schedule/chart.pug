@@ -1,0 +1,8 @@
+mixin line ({ key, d })
+  g(data-key=key)
+    path(d=d fill="none" stroke="red")
+
+doctype xml
+svg(xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10000000 10000000")
+  each line in lines
+    +line(line)

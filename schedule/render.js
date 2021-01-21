@@ -140,17 +140,31 @@ function render (transactions, total) {
   const entries = []
   transactions = transactions.sort(({T:T1},{T:T2})=>T1-T2)
   for (let {T, sent, addr} of transactions) {
-    console.log({T, sent, addr})
-
-    balances[addr] = balances[addr] || 0
-    balances[addr] += sent
-
-    if (!balances_over_time[addr]) balances_over_time[addr] = { 0: 0 }
-    if (balances_over_time[addr][T]) throw new Error(`2 transactions same addr same time`)
-    balances_over_time[addr][T] = balances[addr]
-
-    balances['Contract'] -= sent
-    balances_over_time['Contract'][T] = balances['Contract']
+    //console.log({T, sent, addr})
+    balances[addr] =
+      balances[addr] || 0
+    balances[addr] +=
+      sent
+    if (!balances_over_time[addr])
+      balances_over_time[addr] = { 0: 0 }
+    if (balances_over_time[addr][T])
+      throw new Error(`2 transactions same addr same time`)
+    balances_over_time[addr][T] =
+      balances[addr]
+    balances['Contract'] -=
+      sent
+    balances_over_time['Contract'][T] =
+      balances['Contract']
   }
-  console.log(balances_over_time)
+  require('fs').writeFileSync(
+    'chart.svg', 
+    require('pug').compileFile('chart.pug')({
+      lines:
+        Object.entries(balances_over_time).map(([key,value])=>({
+          key,
+          d:[...Object.entries(value)].reduce(
+            (d,[T,y])=>`${d} L${T},${y}`, 'M0,0'
+          )
+        }))
+    }))
 }
