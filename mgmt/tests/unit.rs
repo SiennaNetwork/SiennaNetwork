@@ -164,7 +164,7 @@ macro_rules! tx {
     let env = mock_env(4, 4, &mallory, coins(0, "SIENNA"));
 }
 
-#[text] fn claim () {
+#[test] fn claim () {
 
     let alice:   HumanAddr = "Alice".into();
     let bob:     HumanAddr = "Bob".into();
