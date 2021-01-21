@@ -138,7 +138,7 @@ macro_rules! tx {
     let env = mock_env(1, 1, &alice, coins(1000, "SIENNA"));
     tx!(deps env SetRecipients { recipients: vec![
         mgmt::Recipient {
-            address:  deps.api.canonical_address(&HumanAddr::from("Bob")).unwrap(),
+            address:  deps.api.canonical_address(&bob).unwrap(),
             cliff:    0,
             vestings: 10,
             interval: 10,
@@ -164,46 +164,64 @@ macro_rules! tx {
     let env = mock_env(4, 4, &mallory, coins(0, "SIENNA"));
 }
 
-/*
- *
- * TODO . . . (maybe there's already a library for this?)
+#[text] fn claim () {
 
-    given!("the contract is not yet launched"
-        as "a stranger" [ 0 SIENNA, 0 SCRT ] {
-            when "I try to launch the contract" {
+    let alice:   HumanAddr = "Alice".into();
+    let bob:     HumanAddr = "Bob".into();
+    let mallory: HumanAddr = "Mallory".into();
+    let mut deps = harness(&[
+        (&alice,   &coins(1000, "SIENNA")),
+        (&bob,     &coins(   0, "SIENNA")),
+        (&mallory, &coins(   0, "SIENNA"))
+    ]);
+
+    // Given the contract IS NOT YET launched
+    // As    a stranger
+    // When  I try to claim funds
+    // Then  I should be denied
+    // As    a claimant
+    // When  I try to claim funds
+    // Then  I should be denied
+
+    // Given the contract IS ALREADY launcher
+    // As    a stranger
+    // When  I try to claim funds
+    // Then  I should be denied
+    // As    a claimant
+    // When  I try to claim funds
+    // Then  the contract should transfer them to my address
+    // And   the contract should update how much I've claimed
+}
+
+/*
+
+kukumba!(
+
+    given "the contract is not yet launched"
+
+        as "a stranger" [ 0 SIENNA, 0 SCRT ]
+            when "I try to launch the contract"
                 tx Launch;
-            }
-            then "I should fail" {
-                q StatusQuery (res: StatusResponse) {
+            then "I should fail"
+                q StatusQuery (res: StatusResponse)
                     assert_eq!(res.launched, None)
-                };
-            }
-        }
-        as "the admin" [ 1000 SIENNA, 1000 SCRT ] {
+
+        as "the admin" [ 1000 SIENNA, 1000 SCRT ]
             when "I launch the contract" {
                 let time1 = env.block.time;
                 tx Launch;
             }
-            then "it should remember that moment" {
-                q StatusQuery (res: StatusResponse) {
+            then "it should remember that moment"
+                q StatusQuery (res: StatusResponse)
                     assert_eq!(res.launched, time1)
-                };
-            }
-            let time2 = env.block.time;
-            assert(time1 != time2);
-            tx Launch;
-            q StatusQuery (res: StatusResponse) {
-                assert_eq!(res.launched, time2)
-            };
-        }
-    );
 
-    given!("the contract is already launched"
-        as "the admin" [ 1000 SIENNA, 1000 SCRT ] {
+    given "the contract is already launched"
+
+        as "the admin" [ 1000 SIENNA, 1000 SCRT ]
             when "I try to launch the contract again" {}
             then "it should say it's already launched" {}
             and  "it should not update its launch date" {}
-        }
-    );
+
+);
 
 */
