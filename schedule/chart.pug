@@ -1,26 +1,74 @@
+doctype xml
+
 mixin line ({ key, points })
   g(data-key=key)
     polyline(points=points style="stroke:red;stroke-width:3")
 
-doctype xml
-svg(xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200")
-  each wallet, i in Object.keys(balances_over_time)
-    g
-      text(y=20*i)= wallet
-      - let points = ''
-      - for (let [T, Y] of Object.entries(balances_over_time[wallet])) {
-      -   points += `${Number(T/60000)+100},${100+(1000-Number(Y/10000))} `
-      - }
-      polyline(fill="none" stroke="red" points=points)
-  rect(x=100 y=100 width=1000 height=1000 stroke="red" fill="none")
-  text(x=100 y=1115 text-anchor="middle")= `T=${Tmin}`
-  text(x=1100 y=1115 text-anchor="middle")= `T=${Tmax}s`
-  - let day_width = 1000 / ((Tmax-Tmin)/(24*60*60))
+- let chartW = 2000
+- let chartH = 10000
+- let margin = 100
+- let viewBox = `${-margin} ${-margin} ${chartW+2*margin} ${chartH+2*margin}`
+- let Tscale = chartW / (Tmax - Tmin) // 0.---px = 1second
+- let Sscale = chartH / total         // 0.---px = 1SIENNA
+
+mixin streams (y, streams, balances)
+  - console.log('group', y)
+  each id, i in Object.keys(streams||{})
+    - let vesting = streams[id]
+    - let h = streams[id]['%']/100 * chartH
+    if vesting.addr
+      - let balance = balances[vesting.addr]
+      +stream(y, h, id, vesting, balance)
+    else if vesting.streams
+      g(class="streams" id=id data-h=h transform=`translate(0,${y})`)
+        rect(class="streams" x=0 y=0 width=chartW height=h fill="rgba(0,0,0,0)" stroke="none")
+        +streams(0, vesting.streams, balances)
+    - y += h
+
+mixin stream (y, h, id, vesting, balance)
+  - console.log('stream', y, id)
+  - const amount = vesting['=']
+  g.stream(id=id data-y=y data-h=h transform=`translate(0,${y})`)
+    rect.stream-bg(
+      x=0 y=0
+      width=chartW height=h
+      fill=(vesting.release==='immediate')?"rgba(64,255,64,0.1)":"rgba(0,0,0,0.1)")
+    line.stream-border(x1=0 y1=0 x2=chartW y2=0 stroke="#000")
+    text.stream-id(x=-10 y=h/2 text-anchor="end")= id
+    text.stream-amount(x=chartW+10 y=h/2 text-anchor="start")= amount
+    - let points = ''
+    - let lastX = 0
+    - let lastS = 0
+    - balance = Object.entries(balance)
+    - for (let i in balance) {
+    -   const [T, Y] = balance[i]
+    -   const X = T * Tscale
+    -   const S = (amount - Y) * Sscale
+    -   points += `${X},${lastS} ${X},${S} `
+    -   lastX = X
+    -   lastS = S
+    - }
+    - points += `${lastX},${amount*Sscale} 0,${amount*Sscale}`
+    polyline(fill="rgba(64,255,64,0.1)" stroke="rgba(0,192,0,0.5)" points=points)
+
+svg(height=chartH xmlns="http://www.w3.org/2000/svg" viewBox=viewBox font-family="monospace" overflow="auto")
+
+  +streams(0, data.streams, balances_over_time)
+
+  - let day_width = chartW / ((Tmax-Tmin)/(24*60*60))
   - let week_width = 7 * day_width
   - console.log(day_width, month_width)
-  each day, i in [...Array(104)]
-    - let x = 100+i*week_width 
-    line(x1=x x2=x y1=100 y2=1100 stroke="#aaa")
-  each day, i in [...Array(104/4)]
-    - let x = 100+i*4*week_width 
-    line(x1=x x2=x y1=100 y2=1100 stroke="#555")
+
+  g(id="grid")
+    rect(x=0 y=0 width=chartW height=chartH stroke="red" stroke-width="2" fill="none")
+    text(x=0 y=chartH+15 text-anchor="end")= `T=${Tmin}`
+    - let n_weeks = 95
+    text(x=n_weeks*week_width y=chartH+15 text-anchor="start")= `T=${Tmax}s`
+    //-text(x=n_weeks*week_width y=0 text-anchor="start")= `${total} SIENNA`
+    //-text(x=n_weeks*week_width y=chartH text-anchor="start")= `0 SIENNA`
+    each day, i in [...Array(n_weeks)]
+      - let x = i*week_width 
+      line(x1=x x2=x y1=0 y2=chartH stroke="rgba(0,0,0,0.1)")
+    each day, i in [...Array(Math.ceil(n_weeks/4))]
+      - let x = i*4*week_width 
+      line(x1=x x2=x y1=0 y2=chartH stroke="rgba(0,0,0,0.2)")

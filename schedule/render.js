@@ -18,7 +18,7 @@ if (require.main === module) main()
 function main () {
   const data = require('./schedule')
   descend('', 'total', data)
-  render(transactions, data["="])
+  render(transactions, data)
 }
 
 function descend (prefix, stream, {
@@ -130,7 +130,8 @@ function parseM (x) {
   return x
 }
 
-function render (transactions, total) {
+function render (transactions, data) {
+  const total = data["="]
   const balances_over_time = {
     'Contract': { 0: total }
   }
@@ -161,5 +162,5 @@ function render (transactions, total) {
   }
   require('fs').writeFileSync(
     'chart.svg', 
-    require('pug').compileFile('chart.pug')({balances_over_time, Tmin, Tmax}))
+    require('pug').compileFile('chart.pug')({balances_over_time, Tmin, Tmax, total, data}))
 }
