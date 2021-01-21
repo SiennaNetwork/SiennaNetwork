@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const assert = require('assert')
-const output = []
+const transactions = []
 
 const Day = 24*60*60
 const Month = 30*Day
@@ -12,7 +12,12 @@ const Invariants = {
   Time: 'time must be expressed as "<number>M" (where M stands for months)'
 }
 
-descend('', 'total', require('./schedule'))
+if (require.main === module) main()
+
+function main () {
+  descend('', 'total', require('./schedule'))
+  console.log(transactions)
+}
 
 function descend (prefix, stream, {
   "%": percent,
@@ -53,6 +58,8 @@ function vest (
       `(${cliff.toFixed(14).padStart(22)} SIENNA) `+
       `-> ${addr}, then`)
     amount -= cliff
+
+    transactions.push({T:cliff_at, sent:cliff, addr})
   }
 
   assert(!(monthly_over&&daily_over), Invariants.Vest)
@@ -60,29 +67,33 @@ function vest (
     daily_over = parseM(daily_over)
     const days = Math.floor(daily_over / Day)
     console.log(`${prefix}daily over   ${String(days).padStart(3)} days:`)
-
     const daily = amount / days
     ;[...Array(days)].map((_,day)=>day+1).forEach(day=>{
+      const T = cliff_at + day*Day
+      const sent = Math.min(daily, amount)
       console.log(
-        `${prefix}T+${String(cliff_at + day*Day).padEnd(10)} `+
+        `${prefix}T+${String(T).padEnd(10)} `+
         `${`1/${days}`.padStart(5)} `+
-        `(${Math.min(daily, amount).toFixed(14).padStart(22)} SIENNA) `+
+        `(${sent.toFixed(14).padStart(22)} SIENNA) `+
         `-> ${addr}`)
-      amount -= Math.min(daily, amount)
+      amount -= sent
+      transactions.push({T, sent, addr})
     })
   } else if (monthly_over) {
     monthly_over = parseM(monthly_over)
     const months = Math.floor(monthly_over / Month)
     console.log(`${prefix}monthly over ${String(months).padStart(3)} months:`)
-
     const monthly = amount / months
     ;[...Array(months)].map((_,month)=>month+1).forEach((_, month)=>{
+      const T = cliff_at + month*Month
+      const sent = Math.min(monthly, amount)
       console.log(
-        `${prefix}T+${String(cliff_at + month*Month).padEnd(10)} `+
+        `${prefix}T+${String(T).padEnd(10)} `+
         `${`1/${months}`.padStart(5)} `+
-        `(${Math.min(monthly, amount).toFixed(14).padStart(22)} SIENNA) `+
+        `(${sent.toFixed(14).padStart(22)} SIENNA) `+
         `-> ${addr}`)
-      amount -= Math.min(monthly, amount)
+      amount -= sent
+      transactions.push({T, sent, addr})
     })
   } else {
     // release_immediately
@@ -91,6 +102,7 @@ function vest (
       `${`all`.padStart(5)} (${amount.toFixed(14).padStart(22)} SIENNA) `+
       `-> ${addr}`)
     amount -= amount
+    transactions.push({T:0, sent:amount, addr})
   }
 
   console.log(`${prefix}Remaining: ${amount.toFixed(14)} SIENNA`)
