@@ -3616,5 +3616,5 @@ total 100% = 10000000 SIENNA
       Remaining: 0.00000000000000 SIENNA
 
     remaining 37% = 3700000 SIENNA
-      T+0            all (3700000.00000000000000 SIENNA) -> ???
+      T+0            all (3700000.00000000000000 SIENNA) -> Remaining
       Remaining: 0.00000000000000 SIENNA

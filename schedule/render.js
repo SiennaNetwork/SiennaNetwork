@@ -167,7 +167,24 @@ function render (transactions, data) {
     balances_over_time['Contract'][T] =
       balances['Contract']
   }
+
+  console.log(balances_over_time)
+  const accounts = []
+  ;(function ascend (name, {addr, release, streams, "=":total}) {
+    console.log('ascend', name, addr, streams)
+    if (addr) {
+      accounts.push({ addr, release, total, balances: balances_over_time[addr] })
+    } else if (streams) {
+      for (let [name, data] of Object.entries(streams)) {
+        ascend(name, data)
+      }
+    }
+  })('everything', data)
+
   require('fs').writeFileSync(
     'chart.svg', 
-    require('pug').compileFile('chart.pug')({balances_over_time, Tmin, Tmax, total, data}))
+    require('pug').compileFile('chart.pug')({
+      accounts,
+      balances_over_time, Tmin, Tmax, total, data
+    }))
 }
