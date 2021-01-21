@@ -12,7 +12,9 @@ const Invariants = {
   Time: 'time must be expressed as "<number>M" (where M stands for months)'
 }
 
-;(function descend (prefix, stream, {
+descend('', 'total', require('./schedule'))
+
+function descend (prefix, stream, {
   "%": percent,
   "=": amount,
   streams,
@@ -29,7 +31,7 @@ const Invariants = {
       descend(prefix+'  ', stream, data)
   else
     vest(prefix+'  ', addr, amount, cliff_at, cliff_percent, daily_over, monthly_over)
-})('', 'total', require('./schedule'))
+}
 
 function vest (
   prefix,
@@ -43,12 +45,13 @@ function vest (
 
   cliff_at      = cliff_at      ? parseM(cliff_at)      : 0
   cliff_percent = cliff_percent ? (cliff_percent / 100) : 0
-  if (cliff_at > 0) {
+  if (cliff_at > 0 && cliff_percent > 0) {
     cliff = cliff_percent * amount
     console.log(
       `${prefix}T+${String(cliff_at).padEnd(10)} `+
       `${(String(cliff_percent*100)+'%').padStart(5)} `+
-      `(${cliff.toFixed(14)} SIENNA) -> ${addr}, then`)
+      `(${cliff.toFixed(14).padStart(22)} SIENNA) `+
+      `-> ${addr}, then`)
     amount -= cliff
   }
 
@@ -59,12 +62,13 @@ function vest (
     console.log(`${prefix}daily over   ${String(days).padStart(3)} days:`)
 
     const daily = amount / days
-    ;[...Array(days)].forEach((_, day)=>{
+    ;[...Array(days)].map((_,day)=>day+1).forEach(day=>{
       console.log(
         `${prefix}T+${String(cliff_at + day*Day).padEnd(10)} `+
-        `${`1/${days}`.padStart(5)} (${daily.toFixed(14)} SIENNA) `+
+        `${`1/${days}`.padStart(5)} `+
+        `(${Math.min(daily, amount).toFixed(14).padStart(22)} SIENNA) `+
         `-> ${addr}`)
-      amount -= daily
+      amount -= Math.min(daily, amount)
     })
   } else if (monthly_over) {
     monthly_over = parseM(monthly_over)
@@ -72,15 +76,21 @@ function vest (
     console.log(`${prefix}monthly over ${String(months).padStart(3)} months:`)
 
     const monthly = amount / months
-    ;[...Array(months)].forEach((_, day)=>{
+    ;[...Array(months)].map((_,month)=>month+1).forEach((_, month)=>{
       console.log(
-        `${prefix}T+${String(cliff_at + day*Day).padEnd(10)} `+
-        `${`1/${months}`.padStart(5)} (${monthly.toFixed(14)} SIENNA) `+
+        `${prefix}T+${String(cliff_at + month*Month).padEnd(10)} `+
+        `${`1/${months}`.padStart(5)} `+
+        `(${Math.min(monthly, amount).toFixed(14).padStart(22)} SIENNA) `+
         `-> ${addr}`)
-      amount -= monthly
+      amount -= Math.min(monthly, amount)
     })
   } else {
-    throw new Error(Invariants.Vest)
+    // release_immediately
+    console.log(
+      `${prefix}T+${String(0).padEnd(10)} `+
+      `${`all`.padStart(5)} (${amount.toFixed(14).padStart(22)} SIENNA) `+
+      `-> ${addr}`)
+    amount -= amount
   }
 
   console.log(`${prefix}Remaining: ${amount.toFixed(14)} SIENNA`)
