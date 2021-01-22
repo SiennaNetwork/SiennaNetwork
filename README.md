@@ -16,3 +16,7 @@ cd mgmt
 make compile-optimized-reproducible
 # you know what TODO deploy.js
 ```
+
+## Vesting schedule
+
+![](schedule/chart.svg)
