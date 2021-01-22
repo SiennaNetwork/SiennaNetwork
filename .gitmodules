@@ -4,3 +4,6 @@
 [submodule "fadroma"]
 	path = fadroma
 	url = git@github.com:hackbg/fadroma.git
+[submodule "kukumba"]
+	path = kukumba
+	url = git@github.com:hackbg/kukumba.git
