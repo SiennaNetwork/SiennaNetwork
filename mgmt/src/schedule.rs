@@ -12,12 +12,12 @@ pub type CliffPercent  = u16;
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct Schedule {
-    amount:         Amount,
-    addr:           cosmwasm_std::CanonicalAddr,
-    cliff_months:   CliffMonths,
-    cliff_percent:  CliffPercent,
-    release_mode:   ReleaseMode,
-    release_months: ReleaseMonths,
+    pub amount:         Amount,
+    pub addr:           cosmwasm_std::CanonicalAddr,
+    pub cliff_months:   CliffMonths,
+    pub cliff_percent:  CliffPercent,
+    pub release_mode:   ReleaseMode,
+    pub release_months: ReleaseMonths,
 }
 
 /// This is needed to import the schedule from JSON during compilation.
@@ -31,12 +31,6 @@ const DAY:   Time = 24*60*60;
 const MONTH: Time = 30*DAY;
 
 /// Distil the value in question from the schedule.
-pub fn is_configurable (s: Schedule) -> bool {
-    match s.release_mode {
-        ReleaseMode::Configurable => true,
-        _ => false
-    }
-}
 
 pub fn at (
     a: &cosmwasm_std::CanonicalAddr,

@@ -17,7 +17,7 @@ type Token = Option<Address>;
 type Launched = Option<Time>;
 
 /// TODO: Public hit counter. ;)
-type InvalidOps = u64;
+type ErrorCount = u64;
 
 macro_rules! SIENNA {
     ($x:tt) => {
@@ -31,11 +31,11 @@ macro_rules! canon {
     }
 }
 
-macro_rules! human {
-    ($deps:ident, $($x:tt)*) => {
-        $deps.api.human_address($($x)*).unwrap();
-    }
-}
+//macro_rules! human {
+    //($deps:ident, $($x:tt)*) => {
+        //$deps.api.human_address($($x)*).unwrap();
+    //}
+//}
 
 contract!(
 
@@ -45,7 +45,7 @@ contract!(
         launched:   Launched,
         vested:     FulfilledClaims,
         recipients: ConfiguredRecipients,
-        errors:     u64
+        errors:     ErrorCount
     }
 
     // Initializing an instance of the contract:
@@ -99,7 +99,7 @@ contract!(
                 return err_auth(state)
             }
             match state.launched {
-                Some(_) => err(state, "already underway"),
+                Some(_) => err_msg(state, "already underway"),
                 None => {
                     state.launched = Some(env.block.time);
                     ok(state)
@@ -130,11 +130,11 @@ contract!(
                         slope - progress;
 
                     if difference < 0 {
-                        return err(state, "broken")
+                        return err_msg(state, "broken")
                     }
 
                     if difference == 0 {
-                        return err(state, "nothing for you")
+                        return err_msg(state, "nothing for you")
                     }
 
                     state.vested.push((claimant_canon, now, slope));
@@ -142,7 +142,7 @@ contract!(
                         state,
                         contract,
                         claimant,
-                        difference
+                        SIENNA!(difference)
                     )
                 }
             }
@@ -154,70 +154,3 @@ contract!(
     }
 
 );
-
-fn ok (
-    state: State
-) -> (
-    State,
-    cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
-) {
-    (state, Ok(cosmwasm_std::HandleResponse::default()))
-}
-
-fn ok_send (
-    state:        State,
-    from_address: cosmwasm_std::HumanAddr,
-    to_address:   cosmwasm_std::HumanAddr,
-    amount:       Amount
-) -> (
-    State,
-    cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
-) {
-    (state, Ok(cosmwasm_std::HandleResponse {
-        log: vec![],
-        data: None,
-        messages: vec![cosmwasm_std::CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
-            from_address,
-            to_address,
-            amount: SIENNA!(amount)
-        })],
-    }))
-}
-
-fn err (
-    mut state: State,
-    msg:       &str
-) -> (
-    State,
-    cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
-) {
-    state.errors += 1;
-    (state, Err(cosmwasm_std::StdError::GenericErr {
-        msg: String::from(msg),
-        backtrace: None
-    }))
-}
-
-fn err_auth (
-    mut state: State
-) -> (
-    State,
-    cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
-) {
-    state.errors += 1;
-    (state, Err(cosmwasm_std::StdError::Unauthorized {
-        backtrace: None
-    }))
-}
-
-fn has_launched (state: &State) -> bool {
-    match state.launched { None => false, Some(_) => true }
-}
-
-fn has_not_launched (state: &State) -> bool {
-    !has_launched(state)
-}
-
-fn is_admin (state: &State, addr: cosmwasm_std::CanonicalAddr) -> bool {
-    addr == state.admin
-}
