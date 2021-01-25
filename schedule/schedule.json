@@ -28,16 +28,19 @@
   , "advisors":
     { "%": 2, "=": 200000, "streams":
       { "adv_1":
-        { "%": 0.5, "=": 50000, "addr": "Advisor1"
+        { "%": 0.5,  "=": 50000, "addr": "Advisor1"
         , "cliff@": "6M", "release": "daily", "over": "16M" }
       , "adv_2":
-        { "%": 0.5, "=": 50000, "addr": "Advisor2"
+        { "%": 0.5,  "=": 50000, "addr": "Advisor2"
         , "cliff@": "6M", "release": "daily", "over": "16M" }
       , "adv_3":
-        { "%": 0.1, "=": 10000, "addr": "Advisor3"
+        { "%": 0.1,  "=": 10000, "addr": "Advisor3"
+        , "cliff@": "6M", "release": "daily", "over": "6M" }
+      , "adv_4":
+        { "%": 0.05, "=": 5000, "addr": "Advisor4"
         , "cliff@": "6M", "release": "daily", "over": "6M" }
       , "adv_r":
-        { "%": 0.9, "=": 90000, "addr": "AdvisorR" 
+        { "%": 0.9,  "=": 85000, "addr": "AdvisorR" 
         , "release": "immediate" }
       }
     }

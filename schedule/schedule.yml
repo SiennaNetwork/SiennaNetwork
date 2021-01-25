@@ -62,7 +62,14 @@
   cliff_percent: 0
 
 - addr: Advisor4
-  amount: 90000
+  amount: 5000
+  release_mode: daily
+  release_months: 6
+  cliff_months: 6
+  cliff_percent: 0
+
+- addr: AdvisorR
+  amount: 85000
   release_mode: immediate
 
 - amount: 300000
