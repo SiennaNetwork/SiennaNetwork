@@ -1,6 +1,6 @@
 mod types; use types::*;
-mod schedule; use schedule::slope_at;
-mod progress; use progress::{FulfilledClaims, progress_at};
+mod schedule;
+mod progress; use progress::FulfilledClaims;
 mod configurable; use configurable::ConfiguredRecipients;
 
 #[macro_use] extern crate fadroma;
@@ -16,7 +16,26 @@ type Token = Option<Address>;
 /// Whether the vesting process has begun and when.
 type Launched = Option<Time>;
 
-macro_rules! SIENNA { ($x:tt) => { cosmwasm_std::coins($x, "SIENNA") } }
+/// TODO: Public hit counter. ;)
+type InvalidOps = u64;
+
+macro_rules! SIENNA {
+    ($x:tt) => {
+        cosmwasm_std::coins($x, "SIENNA")
+    }
+}
+
+macro_rules! canon {
+    ($deps:ident, $($x:tt)*) => {
+        $deps.api.canonical_address($($x)*).unwrap();
+    }
+}
+
+macro_rules! human {
+    ($deps:ident, $($x:tt)*) => {
+        $deps.api.human_address($($x)*).unwrap();
+    }
+}
 
 contract!(
 
@@ -25,7 +44,8 @@ contract!(
         token:      Token,
         launched:   Launched,
         vested:     FulfilledClaims,
-        recipients: ConfiguredRecipients
+        recipients: ConfiguredRecipients,
+        errors:     u64
     }
 
     // Initializing an instance of the contract:
@@ -36,11 +56,12 @@ contract!(
         token: crate::Token
     }) {
         State {
-            admin:      deps.api.canonical_address(&env.message.sender).unwrap(),
+            admin:      canon!(deps, &env.message.sender),
             token:      msg.token,
             launched:   None,
             recipients: vec![],
-            vested:     vec![]
+            vested:     vec![],
+            errors:     0
         }
     }
 
@@ -59,10 +80,13 @@ contract!(
         // allows their streams to be redirected in runtime-configurable
         // proportions.
         SetRecipients (recipients: crate::ConfiguredRecipients) {
-            if !is_admin(&state, sender) { return err_auth() }
-            if has_launched(&state) { return err("already underway") }
+            if sender != state.admin {
+                state.errors += 1;
+                return err_auth(state)
+            }
+
             state.recipients = recipients;
-            Ok((state, cosmwasm_std::HandleResponse::default()))
+            ok(state)
         }
 
         // After configuring the instance, launch confirmation must be given.
@@ -70,39 +94,56 @@ contract!(
         // TODO emergency vote to stop everything and refund the initializer
         // TODO launch transaction should receive/mint its budget?
         Launch () {
-            if !is_admin(&state, sender) { return err_auth() }
-            if has_launched(&state) { return err("already underway") }
-            state.launched = Some(env.block.time);
-            Ok((state, cosmwasm_std::HandleResponse::default()))
+            if sender != state.admin {
+                state.errors += 1;
+                return err_auth(state)
+            }
+            match state.launched {
+                Some(_) => err(state, "already underway"),
+                None => {
+                    state.launched = Some(env.block.time);
+                    ok(state)
+                }
+            }
         }
 
         // Recipients can call the Claim method to receive
         // the gains that have accumulated so far.
         Claim () {
             match &state.launched {
-                None => err_auth(),
+                None => {
+                    state.errors += 1;
+                    err_auth(state)
+                },
                 Some(launch) => {
-                    let contract = env.contract.address;
-                    let sender   = env.message.sender;
                     let now      = env.block.time;
+                    let contract = env.contract.address;
+                    let claimant = env.message.sender;
 
-                    let slope = slope_at(launch, now, sender);
-                    let progress = progress_at(&state.vested, &sender, now);
-                    let difference = slope - progress;
-                    if difference > 0 {
-                        state.vested.push((sender, now, slope));
-                        Ok((state, cosmwasm_std::HandleResponse {
-                            log: vec![],
-                            data: None,
-                            messages: vec![cosmwasm_std::BankMsg::Send {
-                                from_address: contract,
-                                to_address:   sender,
-                                amount:       SIENNA!(difference)
-                            }],
-                        }))
-                    } else {
-                        return err("nothing for you")
+                    let claimant_canon =
+                        canon!(deps, &claimant);
+                    let slope =
+                        schedule::at(&claimant_canon, *launch, now);
+                    let progress =
+                        progress::at(&claimant_canon, &state.vested, now);
+                    let difference =
+                        slope - progress;
+
+                    if difference < 0 {
+                        return err(state, "broken")
                     }
+
+                    if difference == 0 {
+                        return err(state, "nothing for you")
+                    }
+
+                    state.vested.push((claimant_canon, now, slope));
+                    ok_send(
+                        state,
+                        contract,
+                        claimant,
+                        difference
+                    )
                 }
             }
         }
@@ -114,12 +155,59 @@ contract!(
 
 );
 
-fn err (msg: &str) -> cosmwasm_std::StdResult<State> {
-    Err(cosmwasm_std::StdError::GenericErr { msg: String::from(msg), backtrace: None })
+fn ok (
+    state: State
+) -> (
+    State,
+    cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
+) {
+    (state, Ok(cosmwasm_std::HandleResponse::default()))
 }
 
-fn err_auth () -> cosmwasm_std::StdResult<State> {
-    Err(cosmwasm_std::StdError::Unauthorized { backtrace: None })
+fn ok_send (
+    state:        State,
+    from_address: cosmwasm_std::HumanAddr,
+    to_address:   cosmwasm_std::HumanAddr,
+    amount:       Amount
+) -> (
+    State,
+    cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
+) {
+    (state, Ok(cosmwasm_std::HandleResponse {
+        log: vec![],
+        data: None,
+        messages: vec![cosmwasm_std::CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
+            from_address,
+            to_address,
+            amount: SIENNA!(amount)
+        })],
+    }))
+}
+
+fn err (
+    mut state: State,
+    msg:       &str
+) -> (
+    State,
+    cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
+) {
+    state.errors += 1;
+    (state, Err(cosmwasm_std::StdError::GenericErr {
+        msg: String::from(msg),
+        backtrace: None
+    }))
+}
+
+fn err_auth (
+    mut state: State
+) -> (
+    State,
+    cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
+) {
+    state.errors += 1;
+    (state, Err(cosmwasm_std::StdError::Unauthorized {
+        backtrace: None
+    }))
 }
 
 fn has_launched (state: &State) -> bool {

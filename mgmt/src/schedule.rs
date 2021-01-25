@@ -16,37 +16,46 @@ pub struct Schedule {
     addr:           cosmwasm_std::CanonicalAddr,
     cliff_months:   CliffMonths,
     cliff_percent:  CliffPercent,
-    release_type:   ReleaseMode,
+    release_mode:   ReleaseMode,
     release_months: ReleaseMonths,
 }
 
 /// This is needed to import the schedule from JSON during compilation.
 const SCHEDULE_SRC: &str = include_str!("../../schedule/schedule.yml");
 lazy_static::lazy_static! {
-    static ref SCHEDULE: serde_yaml::Mapping =
+    static ref SCHEDULES: Vec<Schedule> =
         serde_yaml::from_str(&SCHEDULE_SRC).unwrap();
 }
 
 const DAY:   Time = 24*60*60;
 const MONTH: Time = 30*DAY;
 
-/// Distil the schedule into a single value.
-pub fn slope_at (
+/// Distil the value in question from the schedule.
+pub fn is_configurable (s: Schedule) -> bool {
+    match s.release_mode {
+        ReleaseMode::Configurable => true,
+        _ => false
+    }
+}
+
+pub fn at (
+    a: &cosmwasm_std::CanonicalAddr,
     l: Time,
     t: Time,
-    a: cosmwasm_std::CanonicalAddr
-) -> Option<Amount> {
-    match SCHEDULE.get(a) {
-        None => None,
-        Some(s) => if t > l + s.cliff_months * MONTH {
-            Some(match s.release_type {
+) -> Amount {
+    for s in SCHEDULES.iter() {
+        if s.addr != *a { continue }
+        let cliff_seconds = s.cliff_months as u64 * MONTH;
+        return if t > l + cliff_seconds {
+            match s.release_mode {
                 ReleaseMode::Immediate    => s.amount,
                 ReleaseMode::Daily        => s.amount,
                 ReleaseMode::Monthly      => s.amount,
                 ReleaseMode::Configurable => s.amount
-            })
+            }
         } else {
-            None
+            0
         }
     }
+    0
 }
