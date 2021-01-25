@@ -37,9 +37,11 @@ backtraces = ["cosmwasm-std/backtraces"]
 cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
 cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
 cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
-schemars = "0.7"
-serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-snafu = { version = "0.6.3", features = ["backtraces"] }
-secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit" }
 fadroma = { path = "../fadroma" }
 kukumba = { path = "../kukumba" }
+lazy_static = "1.4.0"
+schemars = "0.7"
+secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit" }
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+serde_yaml = "0.8"
+snafu = { version = "0.6.3", features = ["backtraces"] }

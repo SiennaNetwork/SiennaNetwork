@@ -1,0 +1,73 @@
+- addr: DevFund
+  amount: 1500000
+  release_mode: monthly
+  release_months: 18
+  cliff_months: 4
+  cliff_percent: 5
+
+- addr: Investors
+  amount: 2000000
+  release_mode: daily
+  release_months: 16
+  cliff_months: 6
+  cliff_percent: 0
+
+- addr: Founder1
+  amount: 897000
+  release_mode: daily
+  release_months: 16
+  cliff_months: 6
+  cliff_percent: 10
+  
+- addr: Founder2
+  amount: 897000
+  release_mode: daily
+  release_months: 16
+  cliff_months: 6
+  cliff_percent: 10
+  
+- addr: Founder3
+  amount: 437000
+  release_mode: daily
+  release_months: 16
+  cliff_months: 6
+  cliff_percent: 10
+  
+- addr: Founder4
+  amount: 69000
+  release_mode: daily
+  release_months: 16
+  cliff_months: 6
+  cliff_percent: 10
+  
+- addr: Advisor1
+  amount: 50000
+  release_mode: daily
+  release_months: 16
+  cliff_months: 6
+  cliff_percent: 0
+  
+- addr: Advisor2
+  amount: 50000
+  release_mode: daily
+  release_months: 16
+  cliff_months: 6
+  cliff_percent: 0
+
+- addr: Advisor3
+  amount: 10000
+  release_mode: daily
+  release_months: 6
+  cliff_months: 6
+  cliff_percent: 0
+
+- addr: Advisor4
+  amount: 90000
+  release_mode: immediate
+
+- amount: 300000
+  release_mode: configurable
+
+- addr: Remaining
+  amount: 3700000
+  release_mode: immediate

@@ -108,11 +108,10 @@ kukumba!(
         });
     }
 
-    when "the admin tries to start the vesting" {
+    when "the admin tries to start the vesting"
+    then "the contract should remember that moment" {
         let env = mock_env(2, 2, &alice, coins(0, "SIENNA"));
         tx!(deps env Launch);
-    }
-    then "the contract should remember that moment" {
         query!(deps StatusQuery (res: StatusResponse) {
             assert_eq!(res.launched, Some(2))
         });

@@ -1,29 +1,22 @@
-#[macro_use] extern crate fadroma;
+mod types; use types::*;
+mod schedule; use schedule::slope_at;
+mod progress; use progress::{FulfilledClaims, progress_at};
+mod configurable; use configurable::ConfiguredRecipients;
 
-use cosmwasm_std::CanonicalAddr;
+#[macro_use] extern crate fadroma;
 
 /// Creator of contract.
 /// TODO make configurable
-type Admin = cosmwasm_std::CanonicalAddr;
+type Admin = Address;
 
 /// The token contract that will be controlled.
 /// TODO see how this can be generated for testing
-type Token = Option<cosmwasm_std::CanonicalAddr>;
+type Token = Option<Address>;
 
 /// Whether the vesting process has begun and when.
-type Launched = Option<u64>;
+type Launched = Option<Time>;
 
-/// List of recipient addresses with vesting configs.
-type Recipients = Vec<Recipient>;
-
-/// `message!` defines a struct and makes it CosmWasm-serializable
-message!(Recipient {
-    address:  CanonicalAddr,
-    cliff:    u64,
-    vestings: u64,
-    interval: u64,
-    claimed:  u64
-});
+macro_rules! SIENNA { ($x:tt) => { cosmwasm_std::coins($x, "SIENNA") } }
 
 contract!(
 
@@ -31,7 +24,8 @@ contract!(
         admin:      Admin,
         token:      Token,
         launched:   Launched,
-        recipients: Recipients
+        vested:     FulfilledClaims,
+        recipients: ConfiguredRecipients
     }
 
     // Initializing an instance of the contract:
@@ -45,7 +39,8 @@ contract!(
             admin:      deps.api.canonical_address(&env.message.sender).unwrap(),
             token:      msg.token,
             launched:   None,
-            recipients: vec![]
+            recipients: vec![],
+            vested:     vec![]
         }
     }
 
@@ -59,13 +54,15 @@ contract!(
 
     HandleMsg (deps, env, sender, state, msg) {
 
-        // After initializing the contract,
-        // recipients need to be configured by the admin.
-        SetRecipients (recipients: crate::Recipients) {
+        // Most schedules are static (imported from config at compile time).
+        // However the config supports `release_mode: configurable` which
+        // allows their streams to be redirected in runtime-configurable
+        // proportions.
+        SetRecipients (recipients: crate::ConfiguredRecipients) {
             if !is_admin(&state, sender) { return err_auth() }
             if has_launched(&state) { return err("already underway") }
             state.recipients = recipients;
-            Ok(state)
+            Ok((state, cosmwasm_std::HandleResponse::default()))
         }
 
         // After configuring the instance, launch confirmation must be given.
@@ -76,16 +73,38 @@ contract!(
             if !is_admin(&state, sender) { return err_auth() }
             if has_launched(&state) { return err("already underway") }
             state.launched = Some(env.block.time);
-            Ok(state)
+            Ok((state, cosmwasm_std::HandleResponse::default()))
         }
 
         // Recipients can call the Claim method to receive
         // the gains that have accumulated so far.
         Claim () {
-            if !has_launched(&state) { return err_auth() }
-            if !can_claim(&state, sender) { return err("nothing for you") }
-            //return Err("not implemented");
-            Ok(state)
+            match &state.launched {
+                None => err_auth(),
+                Some(launch) => {
+                    let contract = env.contract.address;
+                    let sender   = env.message.sender;
+                    let now      = env.block.time;
+
+                    let slope = slope_at(launch, now, sender);
+                    let progress = progress_at(&state.vested, &sender, now);
+                    let difference = slope - progress;
+                    if difference > 0 {
+                        state.vested.push((sender, now, slope));
+                        Ok((state, cosmwasm_std::HandleResponse {
+                            log: vec![],
+                            data: None,
+                            messages: vec![cosmwasm_std::BankMsg::Send {
+                                from_address: contract,
+                                to_address:   sender,
+                                amount:       SIENNA!(difference)
+                            }],
+                        }))
+                    } else {
+                        return err("nothing for you")
+                    }
+                }
+            }
         }
     }
 
@@ -111,10 +130,6 @@ fn has_not_launched (state: &State) -> bool {
     !has_launched(state)
 }
 
-fn is_admin (state: &State, addr: CanonicalAddr) -> bool {
+fn is_admin (state: &State, addr: cosmwasm_std::CanonicalAddr) -> bool {
     addr == state.admin
-}
-
-fn can_claim (state: &State, addr: CanonicalAddr) -> bool {
-    false
 }
