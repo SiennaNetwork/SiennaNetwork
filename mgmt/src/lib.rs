@@ -4,6 +4,7 @@ mod progress; use progress::FulfilledClaims;
 mod configurable; use configurable::ConfiguredRecipients;
 
 #[macro_use] extern crate fadroma;
+#[macro_use] extern crate lazy_static;
 
 /// Creator of contract.
 /// TODO make configurable
@@ -36,6 +37,15 @@ macro_rules! canon {
         //$deps.api.human_address($($x)*).unwrap();
     //}
 //}
+
+macro_rules! require_admin {
+    ($state:ident, $sender:ident) => {
+        if $sender != $state.admin {
+            $state.errors += 1;
+            return err_auth($state)
+        }
+    }
+}
 
 contract!(
 
@@ -88,10 +98,7 @@ contract!(
         // allows their streams to be redirected in runtime-configurable
         // proportions.
         SetRecipients (recipients: crate::ConfiguredRecipients) {
-            if sender != state.admin {
-                state.errors += 1;
-                return err_auth(state)
-            }
+            require_admin!(state, sender);
 
             state.recipients = recipients;
             ok(state)
@@ -102,10 +109,8 @@ contract!(
         // TODO emergency vote to stop everything and refund the initializer
         // TODO launch transaction should receive/mint its budget?
         Launch () {
-            if sender != state.admin {
-                state.errors += 1;
-                return err_auth(state)
-            }
+            require_admin!(state, sender);
+
             match state.launched {
                 Some(_) => err_msg(state, "already underway"),
                 None => {

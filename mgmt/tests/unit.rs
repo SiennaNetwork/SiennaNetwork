@@ -42,19 +42,20 @@ fn mock_env (
     contract_code_hash: "".into()
 } }
 
+
 kukumba!(
 
     #[init]
 
     given "the contract is not yet deployed" {
-        let Alice: HumanAddr = "Alice".into();
-        let mut deps = harness(&[(&Alice, &coins(1000, "SIENNA")),]);
+        let ALICE:   HumanAddr = HumanAddr::from("ALICE");
+        let mut deps = harness(&[(&ALICE, &coins(1000, "SIENNA")),]);
     }
 
     when "someone deploys the contract" {
         let res = mgmt::init(
             &mut deps,
-            mock_env(0, 0, &Alice, coins(1000, "SIENNA")),
+            mock_env(0, 0, &ALICE, coins(1000, "SIENNA")),
             mgmt::msg::Init { token: None }
         ).unwrap();
     }
@@ -69,17 +70,17 @@ kukumba!(
     #[launch]
 
     given "the contract is not yet launched" {
-        let Alice:   HumanAddr = "Alice".into();
-        let Mallory: HumanAddr = "Mallory".into();
+        let ALICE:   HumanAddr = HumanAddr::from("ALICE");
+        let MALLORY: HumanAddr = HumanAddr::from("MALLORY");
         let mut deps = harness(&[
-            (&Alice,   &coins(1000, "SIENNA")),
-            (&Mallory, &coins(   0, "SIENNA"))
+            (&ALICE,   &coins(1000, "SIENNA")),
+            (&MALLORY, &coins(   0, "SIENNA"))
         ]);
     }
 
     when "a stranger tries to start the vesting"
     then "they should fail" {
-        let env = mock_env(1, 1, &Mallory, coins(0, "SIENNA"));
+        let env = mock_env(1, 1, &MALLORY, coins(0, "SIENNA"));
         println!("{:#?}", env);
         tx!(deps env Launch);
         query!(Status(deps)->Status(launched)
@@ -88,7 +89,7 @@ kukumba!(
 
     when "the admin tries to start the vesting"
     then "the contract should remember that moment" {
-        let env = mock_env(2, 2, &Alice, coins(0, "SIENNA"));
+        let env = mock_env(2, 2, &ALICE, coins(0, "SIENNA"));
         tx!(deps env Launch);
         query!(Status(deps)->Status(launched)
             { assert_eq!(launched, Some(2)) });
@@ -98,7 +99,7 @@ kukumba!(
     when "the admin tries to start the vesting"
     then "the contract should say it's already launched"
     and "it should not update its launch date" {
-        let env = mock_env(3, 3, &Alice, coins(0, "SIENNA"));
+        let env = mock_env(3, 3, &ALICE, coins(0, "SIENNA"));
         tx!(deps env Launch);
         query!(Status(deps)->Status(launched)
             { assert_eq!(launched, Some(2)) });
@@ -107,51 +108,67 @@ kukumba!(
     #[configure]
 
     given "the contract is not yet launched" {
-        let Alice:   HumanAddr = "Alice".into();
-        let Bob:     HumanAddr = "Bob".into();
-        let Mallory: HumanAddr = "Mallory".into();
+        let ALICE:   HumanAddr = HumanAddr::from("ALICE");
+        let BOB:     HumanAddr = HumanAddr::from("BOB");
+        let MALLORY: HumanAddr = HumanAddr::from("MALLORY");
         let mut deps = harness(&[
-            (&Alice,   &coins(1000, "SIENNA")),
-            (&Bob,     &coins(   0, "SIENNA")),
-            (&Mallory, &coins(   0, "SIENNA"))
+            (&ALICE,   &coins(1000, "SIENNA")),
+            (&BOB,     &coins(   0, "SIENNA")),
+            (&MALLORY, &coins(   0, "SIENNA"))
         ]);
     }
 
     when "the admin sets the recipients"
     then "they should be updated" {
-        let env = mock_env(1, 1, &Alice, coins(0, "SIENNA"));
-        let r = vec![(Bob, 100)];
-        tx!(deps env Launch);
+        let env = mock_env(1, 1, &ALICE, coins(0, "SIENNA"));
+        let r = vec![(canon!(deps, &BOB), 100)];
+        tx!(deps env SetRecipients { recipients: r.clone() });
         query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, []) });
+            { assert_eq!(recipients, r) });
     }
 
-    when "a stranger tries to set the recipients" 
+    when "a stranger tries to set the recipients"
     then "they should be denied access" {
-        let env = mock_env(1, 1, &Mallory, coins(0, "SIENNA"));
-        let recipients = vec![(&Mallory, 100)];
-        tx!(deps env Launch);
+        let env = mock_env(1, 1, &MALLORY, coins(0, "SIENNA"));
+        let r = vec![(canon!(deps, &MALLORY), 100)]
+        tx!(deps env SetRecipients { recipients: r });
         query!(Recipients(deps)->Recipients(recipients)
             { assert_eq!(recipients, []) });
     }
 
     given "the contract is already launched" {
-        let env = mock_env(2, 2, &Alice, coins(0, "SIENNA"));
+        let env = mock_env(2, 2, &ALICE, coins(0, "SIENNA"));
         tx!(deps env Launch);
     }
 
-    when "the admin tries to set the recipients" {
-        let env = mock_env(3, 3, &Alice, coins(1000, "SIENNA"));
+    when "the admin tries to set the recipients"
+    then "they should be denied access" {
+        let env = mock_env(3, 3, &ALICE, coins(1000, "SIENNA"));
+        tx!(deps env SetRecipients {
+            recipients: vec![(canon!(deps, &BOB), 100)]
+        });
+        query!(Recipients(deps)->Recipients(recipients)
+            { assert_eq!(recipients, []) });
     }
-    then "they should be denied access" { todo!() }
 
     when "a stranger tries to set the recipients" {
-        let env = mock_env(4, 4, &Mallory, coins(0, "SIENNA"));
+        let env = mock_env(4, 4, &MALLORY, coins(0, "SIENNA"));
+        tx!(deps env SetRecipients {
+            recipients: vec![(canon!(deps, &MALLORY), 100)]
+        });
+        query!(Recipients(deps)->Recipients(recipients)
+            { assert_eq!(recipients, []) });
     }
+
     then "they should be denied access" { todo!() }
 
     #[claim]
-    given "the contract is not yet launched"
+
+    given "the contract is not yet launched" {
+        let ALICE:   HumanAddr = HumanAddr::from("ALICE");
+        let BOB:     HumanAddr = HumanAddr::from("BOB");
+        let MALLORY: HumanAddr = HumanAddr::from("MALLORY");
+    }
 
     when "a stranger tries to claim funds"
     then "they should be denied" { todo!() }

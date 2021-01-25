@@ -22,3 +22,9 @@ macro_rules! tx {
         let _ = mgmt::handle(&mut $deps, $env, msg);
     }
 }
+
+macro_rules! canon {
+    ($deps:ident, $($x:tt)*) => {
+        $deps.api.canonical_address($($x)*).unwrap();
+    }
+}
