@@ -20,8 +20,10 @@ type Launched = Option<Time>;
 /// TODO: Public hit counter. ;)
 type ErrorCount = u64;
 
+macro_rules! debug { ($($tt:tt)*)=>{} }
+
 macro_rules! SIENNA {
-    ($x:tt) => {
+    ($x:expr) => {
         cosmwasm_std::coins($x, "SIENNA")
     }
 }
@@ -82,7 +84,8 @@ contract!(
             msg::Response::Status { launched: state.launched }
         }
         Recipients () {
-            msg::Response::Recipients { recipients: state.recipients }
+            let response =  msg::Response::Recipients { recipients: state.recipients };
+            response
         }
     }
 
@@ -98,10 +101,13 @@ contract!(
         // allows their streams to be redirected in runtime-configurable
         // proportions.
         SetRecipients (recipients: crate::ConfiguredRecipients) {
-            require_admin!(state, sender);
-
-            state.recipients = recipients;
-            ok(state)
+            if sender != state.admin {
+                state.errors += 1;
+                err_auth(state)
+            } else {
+                state.recipients = recipients.clone();
+                ok(state)
+            }
         }
 
         // After configuring the instance, launch confirmation must be given.
@@ -109,13 +115,16 @@ contract!(
         // TODO emergency vote to stop everything and refund the initializer
         // TODO launch transaction should receive/mint its budget?
         Launch () {
-            require_admin!(state, sender);
-
-            match state.launched {
-                Some(_) => err_msg(state, "already underway"),
-                None => {
-                    state.launched = Some(env.block.time);
-                    ok(state)
+            if sender != state.admin {
+                state.errors += 1;
+                err_auth(state)
+            } else {
+                match state.launched {
+                    Some(_) => err_msg(state, "already underway"),
+                    None => {
+                        state.launched = Some(env.block.time);
+                        ok(state)
+                    }
                 }
             }
         }
@@ -143,20 +152,18 @@ contract!(
                         slope - progress;
 
                     if difference < 0 {
-                        return err_msg(state, "broken")
+                        err_msg(state, "broken")
+                    } else if difference == 0 {
+                        err_msg(state, "nothing for you")
+                    } else {
+                        state.vested.push((claimant_canon, now, slope));
+                        ok_send(
+                            state,
+                            contract,
+                            claimant,
+                            SIENNA!(difference as u128)
+                        )
                     }
-
-                    if difference == 0 {
-                        return err_msg(state, "nothing for you")
-                    }
-
-                    state.vested.push((claimant_canon, now, slope));
-                    ok_send(
-                        state,
-                        contract,
-                        claimant,
-                        SIENNA!(difference)
-                    )
                 }
             }
         }

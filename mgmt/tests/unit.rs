@@ -81,7 +81,6 @@ kukumba!(
     when "a stranger tries to start the vesting"
     then "they should fail" {
         let env = mock_env(1, 1, &MALLORY, coins(0, "SIENNA"));
-        println!("{:#?}", env);
         tx!(deps env Launch);
         query!(Status(deps)->Status(launched)
             { assert_eq!(launched, None) });
@@ -119,21 +118,22 @@ kukumba!(
     }
 
     when "the admin sets the recipients"
-    then "they should be updated" {
-        let env = mock_env(1, 1, &ALICE, coins(0, "SIENNA"));
+    then "the recipients should be updated" {
+        let env = mock_env(1, 1, &ALICE, coins(10, "SIENNA"));
         let r = vec![(canon!(deps, &BOB), 100)];
         tx!(deps env SetRecipients { recipients: r.clone() });
-        query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, r) });
+        query!(Recipients(deps)->Recipients(recipients) {
+            assert_eq!(recipients, r)
+        });
     }
 
     when "a stranger tries to set the recipients"
-    then "they should be denied access" {
-        let env = mock_env(1, 1, &MALLORY, coins(0, "SIENNA"));
-        let r = vec![(canon!(deps, &MALLORY), 100)]
-        tx!(deps env SetRecipients { recipients: r });
+    then "they should not be able to" {
+        let env = mock_env(1, 1, &MALLORY, coins(10, "SIENNA"));
+        let r2 = vec![(canon!(deps, &MALLORY), 100)]
+        tx!(deps env SetRecipients { recipients: r2 });
         query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, []) });
+            { assert_eq!(recipients, r) });
     }
 
     given "the contract is already launched" {
@@ -148,19 +148,18 @@ kukumba!(
             recipients: vec![(canon!(deps, &BOB), 100)]
         });
         query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, []) });
+            { assert_eq!(recipients, r) });
     }
 
-    when "a stranger tries to set the recipients" {
+    when "a stranger tries to set the recipients"
+    then "they should be denied access" {
         let env = mock_env(4, 4, &MALLORY, coins(0, "SIENNA"));
         tx!(deps env SetRecipients {
             recipients: vec![(canon!(deps, &MALLORY), 100)]
         });
         query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, []) });
+            { assert_eq!(recipients, r) });
     }
-
-    then "they should be denied access" { todo!() }
 
     #[claim]
 

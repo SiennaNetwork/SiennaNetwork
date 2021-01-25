@@ -3,10 +3,13 @@ macro_rules! query {
         $Query:ident ( $deps:ident ) -> $Response:ident ( $($arg:ident),* )
         $Assertions:block
     ) => {
-        match from_binary(
+        let response = from_binary(
             &mgmt::query(&$deps, mgmt::msg::Query::$Query {}).unwrap()
-        ).unwrap() {
-            mgmt::msg::Response::$Response {$($arg),*} => $Assertions,
+        ).unwrap();
+        match response {
+            mgmt::msg::Response::$Response {$($arg),*} => {
+                $Assertions
+            },
             _ => panic!("{} returned something other than {}",
                 stringify!($Query), stringify!($Response))
         }
