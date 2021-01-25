@@ -1,12 +1,15 @@
 macro_rules! query {
     (
-        $deps:ident $Query:ident
-        ($res:ident: $Response:ident) $Assertions:block
+        $Query:ident ( $deps:ident ) -> $Response:ident ( $($arg:ident),* )
+        $Assertions:block
     ) => {
-        let $res: mgmt::msg::$Response = from_binary(
-            &mgmt::query(&$deps, mgmt::msg::QueryMsg::$Query {}).unwrap()
-        ).unwrap();
-        $Assertions
+        match from_binary(
+            &mgmt::query(&$deps, mgmt::msg::Query::$Query {}).unwrap()
+        ).unwrap() {
+            mgmt::msg::Response::$Response {$($arg),*} => $Assertions,
+            _ => panic!("{} returned something other than {}",
+                stringify!($Query), stringify!($Response))
+        }
     }
 }
 
@@ -15,7 +18,7 @@ macro_rules! tx {
         $deps:ident $env:ident
         $Msg:ident $({ $($arg:ident : $val:expr),* })?
     ) => {
-        let msg = mgmt::msg::HandleMsg::$Msg { $($($arg:$val)*)? };
+        let msg = mgmt::msg::Handle::$Msg { $($($arg:$val)*)? };
         let _ = mgmt::handle(&mut $deps, $env, msg);
     }
 }

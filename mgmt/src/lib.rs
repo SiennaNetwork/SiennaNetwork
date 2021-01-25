@@ -39,7 +39,7 @@ macro_rules! canon {
 
 contract!(
 
-    State {
+    [State] {
         admin:      Admin,
         token:      Token,
         launched:   Launched,
@@ -52,7 +52,7 @@ contract!(
     // * requires the address of a SNIP20-compatible token contract
     //   to be passed as an argument
     // * makes the initializer the admin
-    InitMsg (deps, env, msg: {
+    [Init] (deps, env, msg: {
         token: crate::Token
     }) {
         State {
@@ -65,15 +65,23 @@ contract!(
         }
     }
 
-    QueryMsg (deps, state, msg) {
+    [Query] (deps, state, msg) {
         // Querying the status.
         // TODO how much info should be available here?
-        StatusQuery () {
-            msg::StatusResponse { launched: state.launched }
+        Status () {
+            msg::Response::Status { launched: state.launched }
+        }
+        Recipients () {
+            msg::Response::Recipients { recipients: state.recipients }
         }
     }
 
-    HandleMsg (deps, env, sender, state, msg) {
+    [Response] {
+        Status     { launched:   Option<u64> }
+        Recipients { recipients: crate::configurable::ConfiguredRecipients }
+    }
+
+    [Handle] (deps, env, sender, state, msg) {
 
         // Most schedules are static (imported from config at compile time).
         // However the config supports `release_mode: configurable` which
@@ -147,10 +155,6 @@ contract!(
                 }
             }
         }
-    }
-
-    Response {
-        StatusResponse { launched: Option<u64> }
     }
 
 );
