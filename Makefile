@@ -27,12 +27,12 @@ _compile-optimized:
 	@# The following line is not necessary, may work only on linux (extra size optimization)
 	wasm-opt -Os ./target/wasm32-unknown-unknown/release/snip20_reference_impl.wasm -o ./sienna_token.wasm
 	wasm-opt -Os ./target/wasm32-unknown-unknown/release/sienna_mgmt.wasm -o ./sienna_mgmt.wasm
-optimizer: ops/optimizer/*
+_optimizer: optimizer/*
 	docker build                               \
-		-f ops/optimizer/Dockerfile               \
+		-f optimizer/Dockerfile                   \
 		-t hackbg/secret-contract-optimizer:latest \
-		ops/optimizer
-compile-optimized-reproducible: optimizer
+		optimizer
+compile-optimized-reproducible: _optimizer
 	for contract in token mgmt; do                                          \
 		docker run --rm                                                        \
 			-v "$$(pwd)/$$contract":/contract                                     \
