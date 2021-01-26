@@ -18,8 +18,7 @@ contracts (the latter of which is built with `fadroma` and tested with
 ```
 git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git
 cargo test
-cd mgmt
-make compile-optimized-reproducible
+make
 ./deployer/deploy.js
 ```
 
