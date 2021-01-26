@@ -145,7 +145,7 @@ contract!(
                     let claimant_canon =
                         canon!(deps, &claimant);
                     let slope =
-                        schedule::at(&claimant_canon, *launch, now);
+                        schedule::at(&claimant, *launch, now);
                     let progress =
                         progress::at(&claimant_canon, &state.vested, now);
                     let difference =

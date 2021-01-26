@@ -13,11 +13,11 @@ pub type CliffPercent  = u16;
 #[serde(rename_all = "snake_case")]
 pub struct Schedule {
     pub amount:         Amount,
-    pub addr:           cosmwasm_std::CanonicalAddr,
-    pub cliff_months:   CliffMonths,
-    pub cliff_percent:  CliffPercent,
+    pub addr:           cosmwasm_std::HumanAddr,
     pub release_mode:   ReleaseMode,
-    pub release_months: ReleaseMonths,
+    pub release_months: Option<ReleaseMonths>,
+    pub cliff_months:   Option<CliffMonths>,
+    pub cliff_percent:  Option<CliffPercent>,
 }
 
 /// This is needed to import the schedule from JSON during compilation.
@@ -33,23 +33,27 @@ const MONTH: Time = 30*DAY;
 /// Distil the value in question from the schedule.
 
 pub fn at (
-    a: &cosmwasm_std::CanonicalAddr,
-    l: Time,
-    t: Time,
+    recipient: &cosmwasm_std::HumanAddr,
+    launched: Time,
+    now:      Time,
 ) -> Amount {
     for s in SCHEDULES.iter() {
-        if s.addr != *a { continue }
-        let cliff_seconds = s.cliff_months as u64 * MONTH;
-        return if t > l + cliff_seconds {
-            match s.release_mode {
-                ReleaseMode::Immediate    => s.amount,
-                ReleaseMode::Daily        => s.amount,
-                ReleaseMode::Monthly      => s.amount,
-                ReleaseMode::Configurable => s.amount
-            }
-        } else {
-            0
+        if s.addr != *recipient {
+            continue
         }
+        let t_start = launched + match s.cliff_months {
+            Some(t) => t as u64 * MONTH,
+            None    => 0
+        };
+        if now < t_start {
+            return 0
+        };
+        match s.release_mode {
+            ReleaseMode::Immediate => s.amount,
+            ReleaseMode::Daily => s.amount,
+            ReleaseMode::Monthly => s.amount,
+            ReleaseMode::Configurable => todo!()
+        };
     }
     0
 }
