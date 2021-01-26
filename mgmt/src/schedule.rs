@@ -21,7 +21,7 @@ pub struct Schedule {
 }
 
 /// This is needed to import the schedule from JSON during compilation.
-const SCHEDULE_SRC: &str = include_str!("../../schedule/schedule.yml");
+const SCHEDULE_SRC: &str = include_str!("schedule.yml");
 lazy_static! {
     static ref SCHEDULES: Vec<Schedule> =
         serde_yaml::from_str(&SCHEDULE_SRC).unwrap();
