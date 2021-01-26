@@ -50,9 +50,42 @@ pub fn at (
         };
         match s.release_mode {
             ReleaseMode::Immediate => s.amount,
-            ReleaseMode::Daily => s.amount,
-            ReleaseMode::Monthly => s.amount,
-            ReleaseMode::Configurable => todo!()
+            ReleaseMode::Configurable => todo!(),
+            _ => {
+                let t_end = t_start + match s.release_months {
+                    Some(t) => t as u64 * MONTH,
+                    _ => panic!("missing `release_months` on daily/monthly vesting")
+                };
+                if now > t_end {
+                     0
+                } else {
+                    let cliff_amount = match s.cliff_percent {
+                        None => 0,
+                        Some(c) => {
+                            let c = c as u64;
+                            if c * s.amount % 100 > 0 {
+                                println!("WARNING: division with remainder for {} cliff amount", s.addr)
+                            }
+                            c * s.amount / 100
+                        }
+                    };
+                    let (t_elapsed, t_total) = match s.release_mode {
+                        ReleaseMode::Daily => (
+                            (  now - t_start) / DAY,
+                            (t_end - t_start) / DAY
+                        ),
+                        ReleaseMode::Monthly => (
+                            (  now - t_start) / MONTH,
+                            (t_end - t_start) / MONTH
+                        ),
+                        _ => unreachable!()
+                    };
+                    if s.amount % t_total > 0 {
+                        println!("WARNING: division with remainder for {} vesting amount", s.addr)
+                    }
+                    cliff_amount + s.amount * t_elapsed / t_total
+                }
+            }
         };
     }
     0
