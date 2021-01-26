@@ -1,5 +1,5 @@
 [workspace]
-members = [ "fadroma", "mgmt", "token" ]
+members = [ "fadroma", "kukumba", "mgmt", "token" ]
 
 [profile.release]
 opt-level = 3

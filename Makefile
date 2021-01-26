@@ -1,5 +1,3 @@
-# Run tests
-
 .DEFAULT_GOAL := compile-optimized-reproducible
 .PHONY: test test-less test-loop
 .PHONY: compile _compile
@@ -7,6 +5,7 @@
 .PHONY: optimizer
 .PHONY: compile-optimized-reproducible
 
+# Run tests
 test:
 	clear
 	tmux clear-history || true
@@ -17,7 +16,6 @@ test-loop:
 	find . | entr make test
 
 # Build binaries
-
 compile: _compile sienna_token.wasm sienna_mgmt.wasm
 _compile:
 	cargo build --target wasm32-unknown-unknown --locked
@@ -35,11 +33,10 @@ _optimizer: optimizer/*
 		-t hackbg/secret-contract-optimizer:latest \
 		optimizer
 compile-optimized-reproducible: _optimizer
-	for contract in token mgmt; do                                          \
-		docker run --rm                                                        \
-			-v "$$(pwd)/$$contract":/contract                                     \
-			-v "$$(pwd)/fadroma":/fadroma                                          \
-			-v "$$(pwd)/kukumba":/kukumba                                           \
+	for contract in sienna-mgmt snip20-secret-token; do                      \
+		echo "Now building $$contract:";                                        \
+		docker run -it --rm                                                      \
+			-v "$$(pwd)":/contract                                                  \
 			-e CARGO_NET_GIT_FETCH_WITH_CLI=true                                     \
 			-e CARGO_TERM_VERBOSE=true                                                \
 			-e CARGO_HTTP_TIMEOUT=240                                                  \
@@ -47,6 +44,6 @@ compile-optimized-reproducible: _optimizer
 			-e GROUP=$$(id -g)                                                           \
 			--mount type=volume,source="$$(basename "$$(pwd)")_cache",target=/code/target \
 			--mount type=volume,source=registry_cache,target=/usr/local/cargo/registry     \
-			hackbg/secret-contract-optimizer:latest;                                        \
+			hackbg/secret-contract-optimizer:latest $$contract;                             \
 		mv $$contract/contract.wasm.gz dist/$$contract.wasm.gz;                            \
 	done

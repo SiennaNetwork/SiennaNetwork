@@ -22,4 +22,4 @@ WORKDIR /contract
 # default $USER and $GROUP to run as
 ENV USER 1000
 ENV GROUP 1000
-ENTRYPOINT [ "/bin/bash", "-c", "/entrypoint.sh" ]
+ENTRYPOINT [ "/entrypoint.sh" ]
