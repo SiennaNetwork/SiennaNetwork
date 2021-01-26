@@ -1,3 +1,5 @@
+.DEFAULT_GOAL := compile-optimized-reproducible
+
 .PHONY: test
 test:
 	cargo --color always test 2>&1|less -R

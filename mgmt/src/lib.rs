@@ -3,23 +3,8 @@
 
 mod types; use types::*;
 mod schedule;
-mod progress; use progress::FulfilledClaims;
-mod configurable; use configurable::ConfiguredRecipients;
+mod progress;
 #[macro_use] mod helpers;
-
-/// Creator of contract.
-/// TODO make configurable
-type Admin = Address;
-
-/// The token contract that will be controlled.
-/// TODO see how this can be generated for testing
-type Token = Option<Address>;
-
-/// Whether the vesting process has begun and when.
-type Launched = Option<Time>;
-
-/// TODO: Public hit counter. ;)
-type ErrorCount = u64;
 
 contract!(
 
@@ -63,7 +48,7 @@ contract!(
 
     [Response] {
         Status     { launched:   Option<u64> }
-        Recipients { recipients: crate::configurable::ConfiguredRecipients }
+        Recipients { recipients: crate::types::ConfiguredRecipients }
     }
 
     [Handle] (deps, env, sender, state, msg) {

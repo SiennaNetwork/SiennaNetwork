@@ -1,8 +1,5 @@
 use crate::types::*;
 
-/// Log of executed claims
-pub type FulfilledClaims = Vec<(Address, Time, Amount)>;
-
 pub fn at (
     a:      &Address,
     claims: &FulfilledClaims,
