@@ -1,6 +1,12 @@
 # Run tests
 
+.DEFAULT_GOAL := compile-optimized-reproducible
 .PHONY: test test-less test-loop
+.PHONY: compile _compile
+.PHONY: compile-optimized _compile-optimized
+.PHONY: optimizer
+.PHONY: compile-optimized-reproducible
+
 test:
 	clear
 	tmux clear-history || true
@@ -12,10 +18,6 @@ test-loop:
 
 # Build binaries
 
-.PHONY: compile _compile
-.PHONY: compile-optimized _compile-optimized
-.PHONY: optimizer
-.PHONY: compile-optimized-reproducible
 compile: _compile sienna_token.wasm sienna_mgmt.wasm
 _compile:
 	cargo build --target wasm32-unknown-unknown --locked
@@ -40,7 +42,7 @@ compile-optimized-reproducible: _optimizer
 			-v "$$(pwd)/kukumba":/kukumba                                           \
 			-e CARGO_NET_GIT_FETCH_WITH_CLI=true                                     \
 			-e CARGO_TERM_VERBOSE=true                                                \
-			-e CARGO_HTTP_TIMEOUT=120                                                  \
+			-e CARGO_HTTP_TIMEOUT=240                                                  \
 			-e USER=$$(id -u)                                                           \
 			-e GROUP=$$(id -g)                                                           \
 			--mount type=volume,source="$$(basename "$$(pwd)")_cache",target=/code/target \
