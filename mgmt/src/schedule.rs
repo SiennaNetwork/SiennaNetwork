@@ -90,3 +90,32 @@ pub fn at (
     }
     0
 }
+
+/*
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "release_mode")]
+enum Schedule {
+    Configurable {
+        amount: Amount
+    },
+    Immediate {
+        amount: Amount,
+        addr:   cosmwasm_std::HumanAddr
+    },
+    Daily {
+        amount: Amount,
+        addr: cosmwasm_std::HumanAddr,
+        release_months: u16,
+        cliff_months:   u16,
+        cliff_percent:  u16
+    },
+    Monthly {
+        amount: Amount,
+        addr: cosmwasm_std::HumanAddr,
+        release_months: u16,
+        cliff_months:   u16,
+        cliff_percent:  u16
+    },
+}
+*/

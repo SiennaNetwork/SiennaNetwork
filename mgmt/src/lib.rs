@@ -1,10 +1,11 @@
+#[macro_use] extern crate fadroma;
+#[macro_use] extern crate lazy_static;
+
 mod types; use types::*;
 mod schedule;
 mod progress; use progress::FulfilledClaims;
 mod configurable; use configurable::ConfiguredRecipients;
-
-#[macro_use] extern crate fadroma;
-#[macro_use] extern crate lazy_static;
+#[macro_use] mod helpers;
 
 /// Creator of contract.
 /// TODO make configurable
@@ -19,35 +20,6 @@ type Launched = Option<Time>;
 
 /// TODO: Public hit counter. ;)
 type ErrorCount = u64;
-
-macro_rules! debug { ($($tt:tt)*)=>{} }
-
-macro_rules! SIENNA {
-    ($x:expr) => {
-        cosmwasm_std::coins($x, "SIENNA")
-    }
-}
-
-macro_rules! canon {
-    ($deps:ident, $($x:tt)*) => {
-        $deps.api.canonical_address($($x)*).unwrap();
-    }
-}
-
-//macro_rules! human {
-    //($deps:ident, $($x:tt)*) => {
-        //$deps.api.human_address($($x)*).unwrap();
-    //}
-//}
-
-macro_rules! require_admin {
-    ($state:ident, $sender:ident) => {
-        if $sender != $state.admin {
-            $state.errors += 1;
-            return err_auth($state)
-        }
-    }
-}
 
 contract!(
 

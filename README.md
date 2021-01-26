@@ -1,11 +1,12 @@
 # SIENNA
 
-
-* `token` - standard SNIP20 token
-* `schedule` - vesting schedule
-* `mgmt` - vesting management contract
-* `fadroma` - smart contract macro library
-* `kukumba` - BDD macro library
+* `docs`      - documentation generation
+* `deployer`  - deploy scripts
+* `optimizer` - build tool
+* `mgmt`      - vesting management contract
+* `token`     - standard SNIP20 token
+* `fadroma`   - smart contract macro library
+* `kukumba`   - BDD macro library
 
 ## Quick start
 
