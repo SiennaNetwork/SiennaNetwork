@@ -20,4 +20,4 @@ make compile-optimized-reproducible
 
 ## Vesting schedule
 
-![](schedule/chart.svg)
+![](docs/chart.svg)
