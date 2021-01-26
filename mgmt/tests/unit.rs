@@ -1,5 +1,5 @@
 #[macro_use] extern crate kukumba;
-#[macro_use] mod macros;
+#[macro_use] mod helpers;
 
 use cosmwasm_std::{
     Api, Env, BlockInfo, MessageInfo, ContractInfo,
@@ -15,33 +15,6 @@ use cosmwasm_std::testing::{
 };
 
 use sienna_mgmt as mgmt;
-
-fn harness (balances: &[(&HumanAddr, &[Coin])])
--> Extern<MemoryStorage, MockApi, MockQuerier> {
-    let mut deps = mock_dependencies_with_balances(20, &balances);
-
-    // As the admin
-    // When I init the contract
-    // Then I want to be able to query its state
-    let res = mgmt::init(
-        &mut deps,
-        mock_env(0, 0, balances[0].0, balances[0].1.into()),
-        mgmt::msg::Init { token: None }
-    ).unwrap();
-    assert_eq!(0, res.messages.len());
-    deps
-}
-
-fn mock_env (
-    height: u64, time: u64, sender: &HumanAddr, sent_funds: Vec<Coin>
-) -> Env { Env {
-    block: BlockInfo { height, time, chain_id: "secret".into() },
-    message: MessageInfo { sender: sender.into(), sent_funds },
-    contract: ContractInfo { address: "contract".into() },
-    contract_key: Some("".into()),
-    contract_code_hash: "".into()
-} }
-
 
 kukumba!(
 
@@ -80,7 +53,7 @@ kukumba!(
 
     when "a stranger tries to start the vesting"
     then "they should fail" {
-        tx!(deps, mock_env(1, 1, &MALLORY, coins(0, "SIENNA")), Launch);
+        tx(deps, mock_env(1, 1, &MALLORY, coins(0, "SIENNA")), Launch {});
         query!(Status(deps)->Status(launched)
             { assert_eq!(launched, None) });
     }
@@ -88,7 +61,7 @@ kukumba!(
     when "the admin tries to start the vesting"
     then "the contract should remember that moment" {
         let time = 2;
-        tx!(deps, mock_env(2, time, &ALICE, coins(0, "SIENNA")), Launch);
+        tx(deps, mock_env(1, 1, &ALICE, coins(0, "SIENNA")), Launch {});
         query!(Status(deps)->Status(launched)
             { assert_eq!(launched, Some(time)) });
     }
@@ -98,7 +71,7 @@ kukumba!(
     then "the contract should say it's already launched"
     and "it should not update its launch date" {
         let next_time = 3;
-        tx!(deps, mock_env(3, next_time, &ALICE, coins(0, "SIENNA")), Launch);
+        tx(deps, mock_env(3, next_time, &ALICE, coins(0, "SIENNA")), Launch);
         query!(Status(deps)->Status(launched)
             { assert_eq!(launched, Some(time)) });
     }
@@ -119,7 +92,7 @@ kukumba!(
     when "the admin sets the recipients"
     then "the recipients should be updated" {
         let r1 = vec![(canon!(deps, &BOB), 100)];
-        tx!(deps, mock_env(1, 1, &ALICE, coins(10, "SIENNA")),
+        tx(deps, mock_env(1, 1, &ALICE, coins(10, "SIENNA")),
             SetRecipients { recipients: r1.clone() });
         query!(Recipients(deps)->Recipients(recipients) {
             assert_eq!(recipients, r1)
@@ -134,20 +107,20 @@ kukumba!(
     when "a stranger tries to set the recipients"
     then "they should not be able to" {
         let r2 = vec![(canon!(deps, &MALLORY), 100)]
-        tx!(deps, mock_env(1, 1, &MALLORY, coins(10, "SIENNA")),
+        tx(deps, mock_env(1, 1, &MALLORY, coins(10, "SIENNA")),
             SetRecipients { recipients: r2 });
         query!(Recipients(deps)->Recipients(recipients)
             { assert_eq!(recipients, r1) });
     }
 
     given "the contract is already launched" {
-        tx!(deps, mock_env(2, 2, &ALICE, coins(0, "SIENNA")), Launch);
+        tx(deps, mock_env(2, 2, &ALICE, coins(0, "SIENNA")), Launch);
     }
 
     when "the admin tries to set the recipients"
     then "the recipients should be updated" {
         let r3 = vec![(canon!(deps, &BOB), 200)]
-        tx!(deps, mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
+        tx(deps, mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
             SetRecipients { recipients: r3 });
         query!(Recipients(deps)->Recipients(recipients)
             { assert_eq!(recipients, r3) });
@@ -161,7 +134,7 @@ kukumba!(
     when "a stranger tries to set the recipients"
     then "an error should be returned" {
         let env = mock_env(4, 4, &MALLORY, coins(0, "SIENNA"));
-        tx!(deps, env, SetRecipients {
+        tx(deps, env, SetRecipients {
             recipients: vec![(canon!(deps, &MALLORY), 100)]
         });
         query!(Recipients(deps)->Recipients(recipients)
@@ -184,7 +157,7 @@ kukumba!(
     when "a stranger tries to claim funds"
     then "they should be denied" {
         assert_eq!(
-            tx!(deps, mock_env(4, 4, &MALLORY, coins(0, "SIENNA")),
+            tx(deps, mock_env(4, 4, &MALLORY, coins(0, "SIENNA")),
                 Claim),
             cosmwasm_std::StdError::GenericErr {
                 msg: String::from("not launched"),
@@ -196,7 +169,7 @@ kukumba!(
     when "a claimant tries to claim funds"
     then "they should be denied" {
         assert_eq!(
-            tx!(deps, mock_env(4, 4, &BOB, coins(0, "SIENNA")), Claim),
+            tx(deps, mock_env(4, 4, &BOB, coins(0, "SIENNA")), Claim),
             cosmwasm_std::StdError::GenericErr {
                 msg: String::from("not launched"),
                 backtrace: None
@@ -205,7 +178,7 @@ kukumba!(
     }
 
     given "the contract is already launched" {
-        tx!(deps, mock_env(1, 1, &ALICE, coins(0, "SIENNA")), Launch);
+        tx(deps, mock_env(1, 1, &ALICE, coins(0, "SIENNA")), Launch);
     }
 
     when "a stranger tries to claim funds"
@@ -217,10 +190,11 @@ kukumba!(
     }
 
     when "a claimant tries to claim funds"
+    and  "the claimant is eligible"
     then "the contract should transfer them to their address"
     and  "it should remember how much that address has claimed so far" {
         assert_eq!(
-            tx!(deps, mock_env(4, 4, &BOB, coins(0, "SIENNA")),
+            tx(deps, mock_env(4, 4, &BOB, coins(0, "SIENNA")),
                 Claim),
             Ok(cosmwasm_std::HandleResponse {
                 log: vec![],
@@ -229,10 +203,16 @@ kukumba!(
                     cosmwasm_std::BankMsg::Send {
                         from_address: HumanAddr::from("contract"),
                         to_address:   BOB,
-                        amount:       SIENNA!(100)
+                        amount:       &coins(100, "SIENNA")
                     })]
             })
         )
+        todo!()
+    }
+
+    when "a claimant tries to claim funds"
+    and  "the claimant has already claimed within this time period"
+    then "the contract should tell the user there's nothing at this time" {
         todo!()
     }
 
