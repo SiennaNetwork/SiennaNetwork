@@ -1,0 +1,25 @@
+FROM rust:1.46
+
+# install toolchain
+RUN rustup target add wasm32-unknown-unknown
+
+# install extra dependencies
+ENV PACKAGES binaryen sudo
+RUN apt update && apt install -y $PACKAGES && rm -rf /var/lib/apt/lists/*
+
+# ensure registry exists
+ENV REGISTRY /usr/local/cargo/registry
+RUN mkdir -p "$REGISTRY"
+
+# add entrypoint
+WORKDIR /
+ADD entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+# ensure mountpoint for source
+WORKDIR /contract
+
+# default $USER and $GROUP to run as
+ENV USER 1000
+ENV GROUP 1000
+ENTRYPOINT [ "/bin/bash", "-c", "/entrypoint.sh" ]
