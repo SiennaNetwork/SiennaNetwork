@@ -18,12 +18,15 @@ macro_rules! query {
 
 macro_rules! tx {
     (
-        $deps:ident $env:ident
+        $deps:expr, $env:expr,
         $Msg:ident $({ $($arg:ident : $val:expr),* })?
-    ) => {
-        let msg = mgmt::msg::Handle::$Msg { $($($arg:$val)*)? };
-        let _ = mgmt::handle(&mut $deps, $env, msg);
-    }
+    ) => { {
+        mgmt::handle(
+            &mut $deps,
+            $env,
+            mgmt::msg::Handle::$Msg { $($($arg:$val)*)? }
+        )
+    } }
 }
 
 macro_rules! canon {

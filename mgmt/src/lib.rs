@@ -135,7 +135,7 @@ contract!(
             match &state.launched {
                 None => {
                     state.errors += 1;
-                    err_auth(state)
+                    err_msg(state, "not launched")
                 },
                 Some(launch) => {
                     let now      = env.block.time;

@@ -80,28 +80,27 @@ kukumba!(
 
     when "a stranger tries to start the vesting"
     then "they should fail" {
-        let env = mock_env(1, 1, &MALLORY, coins(0, "SIENNA"));
-        tx!(deps env Launch);
+        tx!(deps, mock_env(1, 1, &MALLORY, coins(0, "SIENNA")), Launch);
         query!(Status(deps)->Status(launched)
             { assert_eq!(launched, None) });
     }
 
     when "the admin tries to start the vesting"
     then "the contract should remember that moment" {
-        let env = mock_env(2, 2, &ALICE, coins(0, "SIENNA"));
-        tx!(deps env Launch);
+        let time = 2;
+        tx!(deps, mock_env(2, time, &ALICE, coins(0, "SIENNA")), Launch);
         query!(Status(deps)->Status(launched)
-            { assert_eq!(launched, Some(2)) });
+            { assert_eq!(launched, Some(time)) });
     }
 
     given "the contract is already launched"
     when "the admin tries to start the vesting"
     then "the contract should say it's already launched"
     and "it should not update its launch date" {
-        let env = mock_env(3, 3, &ALICE, coins(0, "SIENNA"));
-        tx!(deps env Launch);
+        let next_time = 3;
+        tx!(deps, mock_env(3, next_time, &ALICE, coins(0, "SIENNA")), Launch);
         query!(Status(deps)->Status(launched)
-            { assert_eq!(launched, Some(2)) });
+            { assert_eq!(launched, Some(time)) });
     }
 
     #[configure]
@@ -119,46 +118,54 @@ kukumba!(
 
     when "the admin sets the recipients"
     then "the recipients should be updated" {
-        let env = mock_env(1, 1, &ALICE, coins(10, "SIENNA"));
-        let r = vec![(canon!(deps, &BOB), 100)];
-        tx!(deps env SetRecipients { recipients: r.clone() });
+        let r1 = vec![(canon!(deps, &BOB), 100)];
+        tx!(deps, mock_env(1, 1, &ALICE, coins(10, "SIENNA")),
+            SetRecipients { recipients: r1.clone() });
         query!(Recipients(deps)->Recipients(recipients) {
-            assert_eq!(recipients, r)
+            assert_eq!(recipients, r1)
         });
+    }
+
+    when "the admin sets the recipients above the total"
+    then "an error should be returned" {
+        todo!();
     }
 
     when "a stranger tries to set the recipients"
     then "they should not be able to" {
-        let env = mock_env(1, 1, &MALLORY, coins(10, "SIENNA"));
         let r2 = vec![(canon!(deps, &MALLORY), 100)]
-        tx!(deps env SetRecipients { recipients: r2 });
+        tx!(deps, mock_env(1, 1, &MALLORY, coins(10, "SIENNA")),
+            SetRecipients { recipients: r2 });
         query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, r) });
+            { assert_eq!(recipients, r1) });
     }
 
     given "the contract is already launched" {
-        let env = mock_env(2, 2, &ALICE, coins(0, "SIENNA"));
-        tx!(deps env Launch);
+        tx!(deps, mock_env(2, 2, &ALICE, coins(0, "SIENNA")), Launch);
     }
 
     when "the admin tries to set the recipients"
-    then "they should be denied access" {
-        let env = mock_env(3, 3, &ALICE, coins(1000, "SIENNA"));
-        tx!(deps env SetRecipients {
-            recipients: vec![(canon!(deps, &BOB), 100)]
-        });
+    then "the recipients should be updated" {
+        let r3 = vec![(canon!(deps, &BOB), 200)]
+        tx!(deps, mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
+            SetRecipients { recipients: r3 });
         query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, r) });
+            { assert_eq!(recipients, r3) });
+    }
+
+    when "the admin sets the recipients above the total"
+    then "an error should be returned" {
+        todo!();
     }
 
     when "a stranger tries to set the recipients"
-    then "they should be denied access" {
+    then "an error should be returned" {
         let env = mock_env(4, 4, &MALLORY, coins(0, "SIENNA"));
-        tx!(deps env SetRecipients {
+        tx!(deps, env, SetRecipients {
             recipients: vec![(canon!(deps, &MALLORY), 100)]
         });
         query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, r) });
+            { assert_eq!(recipients, r3) });
     }
 
     #[claim]
@@ -167,21 +174,66 @@ kukumba!(
         let ALICE:   HumanAddr = HumanAddr::from("ALICE");
         let BOB:     HumanAddr = HumanAddr::from("BOB");
         let MALLORY: HumanAddr = HumanAddr::from("MALLORY");
+        let mut deps = harness(&[
+            (&ALICE,   &coins(1000, "SIENNA")),
+            (&BOB,     &coins(   0, "SIENNA")),
+            (&MALLORY, &coins(   0, "SIENNA"))
+        ]);
     }
 
     when "a stranger tries to claim funds"
-    then "they should be denied" { todo!() }
-
-    when "a claimant tries to claim funds" {}
-    then "they should be denied" { todo!() }
-
-    given "the contract is already launched"
-
-    when "a stranger tries to claim funds"
-    then "they should be denied" { todo!() }
+    then "they should be denied" {
+        assert_eq!(
+            tx!(deps, mock_env(4, 4, &MALLORY, coins(0, "SIENNA")),
+                Claim),
+            cosmwasm_std::StdError::GenericErr {
+                msg: String::from("not launched"),
+                backtrace: None
+            }
+        )
+    }
 
     when "a claimant tries to claim funds"
-    then "the contract should transfer them to their address" { todo!() }
-    and  "the contract should remember how much I've claimed so far"  { todo!() }
+    then "they should be denied" {
+        assert_eq!(
+            tx!(deps, mock_env(4, 4, &BOB, coins(0, "SIENNA")), Claim),
+            cosmwasm_std::StdError::GenericErr {
+                msg: String::from("not launched"),
+                backtrace: None
+            }
+        )
+    }
+
+    given "the contract is already launched" {
+        tx!(deps, mock_env(1, 1, &ALICE, coins(0, "SIENNA")), Launch);
+    }
+
+    when "a stranger tries to claim funds"
+    then "they should be denied" {
+        cosmwasm_std::StdError::GenericErr {
+            msg: String::from("nothing for you"),
+            backtrace: None
+        }
+    }
+
+    when "a claimant tries to claim funds"
+    then "the contract should transfer them to their address"
+    and  "it should remember how much that address has claimed so far" {
+        assert_eq!(
+            tx!(deps, mock_env(4, 4, &BOB, coins(0, "SIENNA")),
+                Claim),
+            Ok(cosmwasm_std::HandleResponse {
+                log: vec![],
+                data: None,
+                messages: vec![cosmwasm_std::CosmosMsg::Bank(
+                    cosmwasm_std::BankMsg::Send {
+                        from_address: HumanAddr::from("contract"),
+                        to_address:   BOB,
+                        amount:       SIENNA!(100)
+                    })]
+            })
+        )
+        todo!()
+    }
 
 );
