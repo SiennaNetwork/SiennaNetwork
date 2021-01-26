@@ -17,13 +17,14 @@ chown -R $USER /usr/local/cargo/registry
 echo "Building $Package as $USER:$GROUP..."
 
 # Execute a release build then optimize it with Binaryen
+Output=`echo "$Package" | tr '-' '_'`
 su $USER -c "\
   env RUSTFLAGS='-C link-arg=-s'                                 \
     cargo build -p $Package                                      \
     --release --target wasm32-unknown-unknown --locked --verbose \
     && wasm-opt -Oz                                              \
-      ./target/wasm32-unknown-unknown/release/$Package.wasm      \
-      -o ./contract.wasm                                         \
-    && cat ./contract.wasm | gzip -n -9 > ./contract.wasm.gz     \
-    && rm -f ./contract.wasm                                     \
+      ./target/wasm32-unknown-unknown/release/$Output.wasm       \
+      -o ./$Package.wasm                                         \
+    && cat ./$Package.wasm | gzip -n -9 > ./$Package.wasm.gz     \
+    && rm -f ./$Package.wasm                                     \
   "

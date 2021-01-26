@@ -28,22 +28,23 @@ _compile-optimized:
 	wasm-opt -Os ./target/wasm32-unknown-unknown/release/snip20_reference_impl.wasm -o ./sienna_token.wasm
 	wasm-opt -Os ./target/wasm32-unknown-unknown/release/sienna_mgmt.wasm -o ./sienna_mgmt.wasm
 _optimizer: optimizer/*
-	docker build                               \
-		-f optimizer/Dockerfile                   \
+	docker build                                 \
+		-f optimizer/Dockerfile                    \
 		-t hackbg/secret-contract-optimizer:latest \
 		optimizer
 compile-optimized-reproducible: _optimizer
-	for contract in sienna-mgmt snip20-secret-token; do                      \
-		echo "Now building $$contract:";                                        \
-		docker run -it --rm                                                      \
-			-v "$$(pwd)":/contract                                                  \
-			-e CARGO_NET_GIT_FETCH_WITH_CLI=true                                     \
-			-e CARGO_TERM_VERBOSE=true                                                \
-			-e CARGO_HTTP_TIMEOUT=240                                                  \
-			-e USER=$$(id -u)                                                           \
-			-e GROUP=$$(id -g)                                                           \
+	for contract in sienna-mgmt snip20-reference-impl; do                             \
+		echo "Now building $$contract:";                                                \
+		docker run -it --rm                                                             \
+			-v "$$(pwd)":/contract                                                        \
+			-e CARGO_NET_GIT_FETCH_WITH_CLI=true                                          \
+			-e CARGO_TERM_VERBOSE=true                                                    \
+			-e CARGO_HTTP_TIMEOUT=240                                                     \
+			-e USER=$$(id -u)                                                             \
+			-e GROUP=$$(id -g)                                                            \
 			--mount type=volume,source="$$(basename "$$(pwd)")_cache",target=/code/target \
-			--mount type=volume,source=registry_cache,target=/usr/local/cargo/registry     \
-			hackbg/secret-contract-optimizer:latest $$contract;                             \
-		mv $$contract/contract.wasm.gz dist/$$contract.wasm.gz;                            \
+			--mount type=volume,source=registry_cache,target=/usr/local/cargo/registry    \
+			hackbg/secret-contract-optimizer:latest $$contract &&                         \
+		mv "$$contract.wasm.gz"                                                         \
+		"dist/$$contract-$$(sha256sum -b $$contract.wasm.gz | cut -d' ' -f1).wasm.gz";  \
 	done

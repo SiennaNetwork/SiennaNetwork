@@ -16,9 +16,11 @@ contracts (the latter of which is built with `fadroma` and tested with
 `kukumba`).
 
 ```
-git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git
+git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git sienna
+cd sienna
 cargo test
 make
+ls dist/
 ./deployer/deploy.js
 ```
 
