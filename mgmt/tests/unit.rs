@@ -121,8 +121,22 @@ kukumba!(
 
     }
 
-    when "the admin sets the recipients above the total"
-    then "an error should be returned" {
+    when "the admin tries to set the recipients above the total"
+    then "an error should be returned"
+    and  "the recipients should not be updated" {
+        let recipients = vec![(canon!(deps, &BOB), 10000000)];
+        assert_eq!(
+
+            tx(&mut deps,
+                mock_env(4, 4, &ALICE, coins(0, "SIENNA")),
+                mgmt::msg::Handle::SetRecipients { recipients }),
+
+            Err(cosmwasm_std::StdError::GenericErr {
+                msg: mgmt::strings::err_allocation(0, 0),
+                backtrace: None
+            })
+
+        );
         todo!();
     }
 
@@ -200,7 +214,7 @@ kukumba!(
                 mgmt::msg::Handle::Claim {}),
 
             Err(cosmwasm_std::StdError::GenericErr {
-                msg: String::from("not launched"),
+                msg: mgmt::strings::PRELAUNCH.to_string(),
                 backtrace: None
             })
 
@@ -216,7 +230,7 @@ kukumba!(
                 mgmt::msg::Handle::Claim {}),
 
             Err(cosmwasm_std::StdError::GenericErr {
-                msg: String::from("not launched"),
+                msg: mgmt::strings::PRELAUNCH.to_string(),
                 backtrace: None
             })
 
@@ -239,7 +253,7 @@ kukumba!(
                 mgmt::msg::Handle::Claim {}),
 
             Err(cosmwasm_std::StdError::GenericErr {
-                msg: String::from("not launched"),
+                msg: mgmt::strings::NOTHING.to_string(),
                 backtrace: None
             })
 
@@ -284,7 +298,7 @@ kukumba!(
                 mgmt::msg::Handle::Claim {}),
 
             Err(cosmwasm_std::StdError::GenericErr {
-                msg: String::from("nothing for you"),
+                msg: mgmt::strings::NOTHING.to_string(),
                 backtrace: None
             })
 

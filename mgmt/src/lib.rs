@@ -1,9 +1,10 @@
 #[macro_use] extern crate fadroma;
 #[macro_use] extern crate lazy_static;
 
-mod types; use types::*;
+pub mod types; use types::*;
+pub mod strings;
+
 mod schedule;
-mod progress;
 #[macro_use] mod helpers;
 
 contract!(
@@ -13,7 +14,7 @@ contract!(
         token:      Token,
         launched:   Launched,
         vested:     FulfilledClaims,
-        recipients: ConfiguredRecipients,
+        recipients: Allocation,
         errors:     ErrorCount
     }
 
@@ -48,7 +49,7 @@ contract!(
 
     [Response] {
         Status     { launched:   Option<u64> }
-        Recipients { recipients: crate::types::ConfiguredRecipients }
+        Recipients { recipients: crate::types::Allocation }
     }
 
     [Handle] (deps, env, sender, state, msg) {
@@ -57,7 +58,7 @@ contract!(
         // However the config supports `release_mode: configurable` which
         // allows their streams to be redirected in runtime-configurable
         // proportions.
-        SetRecipients (recipients: crate::ConfiguredRecipients) {
+        SetRecipients (recipients: crate::types::Allocation) {
             if sender != state.admin {
                 state.errors += 1;
                 err_auth(state)
@@ -77,7 +78,7 @@ contract!(
                 err_auth(state)
             } else {
                 match state.launched {
-                    Some(_) => err_msg(state, "already underway"),
+                    Some(_) => err_msg(state, &crate::strings::UNDERWAY),
                     None => {
                         state.launched = Some(env.block.time);
                         ok(state)
@@ -92,7 +93,7 @@ contract!(
             match &state.launched {
                 None => {
                     state.errors += 1;
-                    err_msg(state, "not launched")
+                    err_msg(state, &crate::strings::PRELAUNCH)
                 },
                 Some(launch) => {
                     let now      = env.block.time;
@@ -101,29 +102,32 @@ contract!(
 
                     let claimant_canon =
                         canon!(deps, &claimant);
-                    let slope =
-                        schedule::at(&claimant, *launch, now);
-                    let progress =
-                        progress::at(&claimant_canon, &state.vested, now);
-                    let difference =
-                        slope - progress;
-
-                    if difference < 0 {
-                        err_msg(state, "broken")
-                    } else if difference == 0 {
-                        err_msg(state, "nothing for you")
+                    let claimable =
+                        crate::schedule::claimable(
+                            &claimant, *launch, now);
+                    let claimed =
+                        crate::schedule::claimed(
+                            &claimant_canon, &state.vested, now);
+                    if claimable < claimed {
+                        err_msg(state, &crate::strings::BROKEN)
                     } else {
-                        state.vested.push((claimant_canon, now, slope));
-                        ok_send(
-                            state,
-                            contract,
-                            claimant,
-                            SIENNA!(difference as u128)
-                        )
+                        let difference = claimable - claimed;
+                        if difference > 0 {
+                            state.vested.push((claimant_canon, now, claimable));
+                            ok_send(
+                                state,
+                                contract,
+                                claimant,
+                                SIENNA!(difference as u128)
+                            )
+                        } else {
+                            err_msg(state, &crate::strings::NOTHING)
+                        }
                     }
                 }
             }
         }
+
     }
 
 );

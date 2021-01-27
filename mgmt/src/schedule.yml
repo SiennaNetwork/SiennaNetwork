@@ -1,3 +1,7 @@
+total: 10000000
+configurable: 300000
+preconfigured:
+
 - addr: DevFund
   amount: 1500000
   release_mode: monthly
@@ -71,9 +75,6 @@
 - addr: AdvisorR
   amount: 85000
   release_mode: immediate
-
-- amount: 300000
-  release_mode: configurable
 
 - addr: Remaining
   amount: 3700000
