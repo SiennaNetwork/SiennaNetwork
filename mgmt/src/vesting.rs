@@ -8,8 +8,8 @@ lazy_static! {
     pub static ref SCHEDULE: Schedule = serde_yaml::from_str(&SRC).unwrap();
 }
 
-const DAY:   Seconds = 24*60*60;
-const MONTH: Seconds = 30*DAY;
+pub const DAY:   Seconds = 24*60*60;
+pub const MONTH: Seconds = 30*DAY;
 
 /// Distil the value in question from the schedule.
 
@@ -20,7 +20,7 @@ pub fn claimable (
     launched:        Seconds,
     now:             Seconds,
 ) -> Amount {
-    for s in SCHEDULE.preconfigured.iter() {
+    for s in SCHEDULE.predefined.iter() {
         match s {
             Stream::Immediate { amount, addr } => {
                 if addr == recipient {

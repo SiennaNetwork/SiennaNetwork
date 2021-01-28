@@ -37,7 +37,7 @@ pub struct Schedule {
     pub total:              Amount,
     pub configurable:       Amount,
     pub configurable_daily: Amount,
-    pub preconfigured: Vec<Stream>,
+    pub predefined:    Vec<Stream>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]

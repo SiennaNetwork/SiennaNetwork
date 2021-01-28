@@ -83,6 +83,118 @@ kukumba!(
             { assert_eq!(launched, Some(time)) });
     }
 
+    #[claim_stranger]
+
+    given "the contract is not yet launched" {
+        let ALICE:   HumanAddr = HumanAddr::from("ALICE");
+        let MALLORY: HumanAddr = HumanAddr::from("MALLORY");
+        let mut deps = harness(&[
+            (&ALICE,   &coins(1000, "SIENNA")),
+            (&MALLORY, &coins(   0, "SIENNA"))
+        ]);
+    }
+
+    when "a stranger tries to claim funds"
+    then "they should be denied" {
+        assert_eq!(
+            tx(&mut deps,
+                mock_env(4, 4, &MALLORY, coins(0, "SIENNA")),
+                mgmt::msg::Handle::Claim {}),
+            Err(cosmwasm_std::StdError::GenericErr {
+                msg: mgmt::strings::PRELAUNCH.to_string(),
+                backtrace: None}) );
+    }
+
+    given "the contract is already launched" {
+        let _ = tx(
+            &mut deps,
+            mock_env(1, 1, &ALICE, coins(0, "SIENNA")),
+            mgmt::msg::Handle::Launch {});
+    }
+
+    when "a stranger tries to claim funds"
+    then "they should be denied" {
+        assert_eq!(
+            tx(&mut deps,
+                mock_env(4, 4, &MALLORY, coins(0, "SIENNA")),
+                mgmt::msg::Handle::Claim {}),
+            Err(cosmwasm_std::StdError::GenericErr {
+                msg: mgmt::strings::NOTHING.to_string(),
+                backtrace: None }) );
+    }
+
+    #[claim_predefined]
+
+    given "the contract is not yet launched" {
+        let ALICE:   HumanAddr = HumanAddr::from("ALICE");
+        let BOB:     HumanAddr = HumanAddr::from("BOB");
+        let mut deps = harness(&[
+            (&ALICE,   &coins(1000, "SIENNA")),
+            (&BOB,     &coins(   0, "SIENNA")),
+        ]);
+        let configured_claim_amount = 200;
+        let r = vec![(canon!(deps, &BOB), configured_claim_amount)];
+        let _ = tx(&mut deps,
+            mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
+            mgmt::msg::Handle::SetRecipients { recipients: r.clone() });
+        query!(Recipients(deps)->Recipients(recipients)
+            { assert_eq!(recipients, r) });
+    }
+
+    when "a predefined claimant tries to claim funds"
+    then "they should be denied" { todo!(); }
+
+    given "the contract is already launched" {
+        let _ = tx(
+            &mut deps,
+            mock_env(1, 1, &ALICE, coins(0, "SIENNA")),
+            mgmt::msg::Handle::Launch {});
+    }
+
+    when "a predefined claimant tries to claim funds"
+    then "the contract should transfer them to their address"
+    and  "it should remember how much that address has claimed so far" {
+        let claimant = mgmt::vesting::SCHEDULE.predefined.get(0).unwrap();
+        match claimant {
+            mgmt::types::Stream::Monthly {
+                amount, addr, release_months, cliff_months, cliff_percent
+            } => {
+                let msg = cosmwasm_std::CosmosMsg::Bank(
+                    cosmwasm_std::BankMsg::Send {
+                        from_address: HumanAddr::from("contract"),
+                        to_address:   addr.clone(),
+                        amount:       coins(75000, "SIENNA")});
+                assert_eq!(
+                    tx(&mut deps,
+                        mock_env(4, 4, addr, coins(0, "SIENNA")),
+                        mgmt::msg::Handle::Claim {}),
+                    Ok(cosmwasm_std::HandleResponse {
+                        data:     None,
+                        log:      vec![],
+                        messages: vec![msg] }) );
+            },
+            _ => unreachable!()
+        }
+    }
+
+    when "a predefined claimant tries to claim funds"
+    and  "the claimant has already claimed within this time period"
+    then "the contract should respond that there's nothing at this time" {
+        assert_eq!(
+            tx(&mut deps,
+                mock_env(6, 6, &BOB, coins(0, "SIENNA")),
+                mgmt::msg::Handle::Claim {}),
+            Err(cosmwasm_std::StdError::GenericErr {
+                msg: mgmt::strings::NOTHING.to_string(),
+                backtrace: None }) );
+    }
+
+    when "a predefined claimant tries to claim funds"
+    and  "enough time has passed since their last claim"
+    then "the contract should transfer more funds" {
+        todo!();
+    }
+
     #[configure]
 
     given "the contract is not yet launched" {
@@ -156,8 +268,7 @@ kukumba!(
                 mgmt::msg::Handle::SetRecipients { recipients: r5 }),
             Err(cosmwasm_std::StdError::GenericErr {
                 msg: mgmt::strings::err_allocation(10000000, 300000),
-                backtrace: None})
-        );
+                backtrace: None}) );
         query!(Recipients(deps)->Recipients(recipients)
             { assert_eq!(recipients, r4) });
     }
@@ -172,16 +283,14 @@ kukumba!(
             { assert_eq!(recipients, r4) });
     }
 
-    #[claim]
+    #[claim_configurable]
 
     given "the contract is not yet launched" {
         let ALICE:   HumanAddr = HumanAddr::from("ALICE");
         let BOB:     HumanAddr = HumanAddr::from("BOB");
-        let MALLORY: HumanAddr = HumanAddr::from("MALLORY");
         let mut deps = harness(&[
             (&ALICE,   &coins(1000, "SIENNA")),
             (&BOB,     &coins(   0, "SIENNA")),
-            (&MALLORY, &coins(   0, "SIENNA"))
         ]);
         let configured_claim_amount = 200;
         let r = vec![(canon!(deps, &BOB), configured_claim_amount)];
@@ -192,19 +301,7 @@ kukumba!(
             { assert_eq!(recipients, r) });
     }
 
-    when "a stranger tries to claim funds"
-    then "they should be denied" {
-        assert_eq!(
-            tx(&mut deps,
-                mock_env(4, 4, &MALLORY, coins(0, "SIENNA")),
-                mgmt::msg::Handle::Claim {}),
-            Err(cosmwasm_std::StdError::GenericErr {
-                msg: mgmt::strings::PRELAUNCH.to_string(),
-                backtrace: None})
-        );
-    }
-
-    when "a claimant tries to claim funds"
+    when "a configurable claimant tries to claim funds"
     then "they should be denied" {
         assert_eq!(
             tx(&mut deps,
@@ -212,8 +309,7 @@ kukumba!(
                 mgmt::msg::Handle::Claim {}),
             Err(cosmwasm_std::StdError::GenericErr {
                 msg: mgmt::strings::PRELAUNCH.to_string(),
-                backtrace: None })
-        );
+                backtrace: None }) );
     }
 
     given "the contract is already launched" {
@@ -223,20 +319,7 @@ kukumba!(
             mgmt::msg::Handle::Launch {});
     }
 
-    when "a stranger tries to claim funds"
-    then "they should be denied" {
-        assert_eq!(
-            tx(&mut deps,
-                mock_env(4, 4, &MALLORY, coins(0, "SIENNA")),
-                mgmt::msg::Handle::Claim {}),
-            Err(cosmwasm_std::StdError::GenericErr {
-                msg: mgmt::strings::NOTHING.to_string(),
-                backtrace: None })
-        );
-    }
-
-    when "a claimant tries to claim funds"
-    and  "the claimant is eligible"
+    when "a configured claimant tries to claim funds"
     then "the contract should transfer them to their address"
     and  "it should remember how much that address has claimed so far" {
         let msg = cosmwasm_std::CosmosMsg::Bank(
@@ -251,26 +334,25 @@ kukumba!(
             Ok(cosmwasm_std::HandleResponse {
                 data:     None,
                 log:      vec![],
-                messages: vec![msg] })
-        );
-        todo!();
+                messages: vec![msg] }) );
     }
 
-    when "a claimant tries to claim funds"
+    when "a configured claimant tries to claim funds"
     and  "the claimant has already claimed within this time period"
-    then "the contract should tell the user there's nothing at this time" {
+    then "the contract should respond that there's nothing at this time" {
         assert_eq!(
-
             tx(&mut deps,
-                mock_env(4, 4, &BOB, coins(0, "SIENNA")),
+                mock_env(5, 5, &BOB, coins(0, "SIENNA")),
                 mgmt::msg::Handle::Claim {}),
-
             Err(cosmwasm_std::StdError::GenericErr {
                 msg: mgmt::strings::NOTHING.to_string(),
-                backtrace: None
-            })
+                backtrace: None }) );
+    }
 
-        )
+    when "a configured claimant tries to claim funds"
+    and  "enough time has passed since their last claim"
+    then "the contract should transfer more funds" {
+        todo!();
     }
 
 );

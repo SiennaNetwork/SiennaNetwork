@@ -2,7 +2,7 @@
 #[macro_use] extern crate lazy_static;
 pub mod types; use types::*;
 pub mod strings;
-mod vesting;
+pub mod vesting;
 #[macro_use] mod helpers;
 
 use vesting::{SCHEDULE, claimable, claimed};

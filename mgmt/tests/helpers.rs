@@ -65,6 +65,15 @@ macro_rules! query {
     }
 }
 
+macro_rules! assert_query {
+    ( $Query:ident ( $deps:ident ) -> $Response:ident {
+        $($arg:ident),*
+    } ) => {
+        let res = &mgmt::query(&$deps, mgmt::msg::Query::$Query {}).unwrap();
+        let res = from_binary(res).unwrap();
+    }
+}
+
 macro_rules! tx {
     (
         $deps:expr, $env:expr,
