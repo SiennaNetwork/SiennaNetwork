@@ -37,7 +37,7 @@ kukumba!(
     then "they become admin"
     and  "they should be able to query its state"
     and  "it should say it's not launched yet" {
-        assert_query!(Status(deps) -> Status { launched: None });
+        assert_query!(deps => Status => Status { launched: None });
     }
 
     #[launch]
@@ -57,7 +57,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(1, time, &MALLORY, coins(0, "SIENNA")),
             mgmt::msg::Handle::Launch {});
-        assert_query!(Status(deps) -> Status { launched: None });
+        assert_query!(deps => Status => Status { launched: None });
     }
 
     when "the admin tries to start the vesting"
@@ -65,7 +65,7 @@ kukumba!(
         let time = 3;
         let _ = tx(&mut deps, mock_env(1, time, &ALICE, coins(0, "SIENNA")),
             mgmt::msg::Handle::Launch {});
-        assert_query!(Status(deps) -> Status { launched: Some(time) });
+        assert_query!(deps => Status => Status { launched: Some(time) });
     }
 
     given "the contract is already launched"
@@ -76,7 +76,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(3, next_time, &ALICE, coins(0, "SIENNA")),
             mgmt::msg::Handle::Launch {});
-        assert_query!(Status(deps) -> Status { launched: Some(time) });
+        assert_query!(deps => Status => Status { launched: Some(time) });
     }
 
     #[claim_stranger]
@@ -131,7 +131,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r.clone() });
-        assert_query!(Recipients(deps) -> Recipients { recipients: r });
+        assert_query!(deps => Recipients => Recipients { recipients: r });
     }
 
     when "a predefined claimant tries to claim funds"
@@ -204,7 +204,7 @@ kukumba!(
         let r1 = vec![(canon!(deps, &BOB), 100)];
         let _ = tx(&mut deps, mock_env(1, 1, &ALICE, coins(10, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r1.clone() });
-        assert_query!(Recipients(deps)->Recipients { recipients: r1 });
+        assert_query!(deps => Recipients => Recipients { recipients: r1 });
     }
 
     when "the admin tries to set the recipients above the total"
@@ -217,7 +217,7 @@ kukumba!(
             => Err(cosmwasm_std::StdError::GenericErr {
                 msg: mgmt::strings::err_allocation(10000000, 300000),
                 backtrace: None}));
-        assert_query!(Recipients(deps)->Recipients { recipients: r1 });
+        assert_query!(deps => Recipients => Recipients { recipients: r1 });
     }
 
     when "a stranger tries to set the recipients"
@@ -226,7 +226,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(1, 1, &MALLORY, coins(10, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r3 });
-        assert_query!(Recipients(deps)->Recipients { recipients: r1 });
+        assert_query!(deps => Recipients => Recipients { recipients: r1 });
     }
 
     given "the contract is already launched" {
@@ -240,7 +240,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r4.clone() });
-        assert_query!(Recipients(deps)->Recipients { recipients: r4 });
+        assert_query!(deps => Recipients => Recipients { recipients: r4 });
     }
 
     when "the admin tries to set the recipients above the total"
@@ -253,7 +253,7 @@ kukumba!(
             => Err(cosmwasm_std::StdError::GenericErr {
                 msg: mgmt::strings::err_allocation(10000000, 300000),
                 backtrace: None}) );
-        assert_query!(Recipients(deps)->Recipients { recipients: r4 });
+        assert_query!(deps => Recipients => Recipients { recipients: r4 });
     }
 
     when "a stranger tries to set the recipients"
@@ -262,7 +262,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(4, 4, &MALLORY, coins(0, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r6 });
-        assert_query!(Recipients(deps)->Recipients { recipients: r4 });
+        assert_query!(deps => Recipients => Recipients { recipients: r4 });
     }
 
     #[claim_configurable]
@@ -279,7 +279,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r.clone() });
-        assert_query!(Recipients(deps)->Recipients { recipients: r });
+        assert_query!(deps => Recipients => Recipients { recipients: r });
     }
 
     when "a configurable claimant tries to claim funds"

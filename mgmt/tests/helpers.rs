@@ -84,7 +84,7 @@ macro_rules! query {
 }
 
 macro_rules! assert_query {
-    ( $Query:ident ( $deps:ident ) -> $Response:ident {
+    ( $deps:expr => $Query:ident => $Response:ident {
         $($arg:ident : $val:expr),*
     } ) => {
         match from_binary(
