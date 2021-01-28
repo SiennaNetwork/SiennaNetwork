@@ -22,7 +22,7 @@ kukumba!(
     #[init]
 
     given "the contract is not yet deployed" {
-        let ALICE:   HumanAddr = HumanAddr::from("ALICE");
+        let ALICE: HumanAddr = HumanAddr::from("ALICE");
         let mut deps = harness(&[(&ALICE, &coins(1000, "SIENNA")),]);
     }
 
@@ -37,8 +37,7 @@ kukumba!(
     then "they become admin"
     and  "they should be able to query its state"
     and  "it should say it's not launched yet" {
-        query!(Status(deps) -> Status(launched)
-            { assert_eq!(launched, None) });
+        assert_query!(Status(deps) -> Status { launched: None });
     }
 
     #[launch]
@@ -58,8 +57,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(1, time, &MALLORY, coins(0, "SIENNA")),
             mgmt::msg::Handle::Launch {});
-        query!(Status(deps)->Status(launched)
-            { assert_eq!(launched, None) });
+        assert_query!(Status(deps) -> Status { launched: None });
     }
 
     when "the admin tries to start the vesting"
@@ -67,8 +65,7 @@ kukumba!(
         let time = 3;
         let _ = tx(&mut deps, mock_env(1, time, &ALICE, coins(0, "SIENNA")),
             mgmt::msg::Handle::Launch {});
-        query!(Status(deps)->Status(launched)
-            { assert_eq!(launched, Some(time)) });
+        assert_query!(Status(deps) -> Status { launched: Some(time) });
     }
 
     given "the contract is already launched"
@@ -79,8 +76,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(3, next_time, &ALICE, coins(0, "SIENNA")),
             mgmt::msg::Handle::Launch {});
-        query!(Status(deps)->Status(launched)
-            { assert_eq!(launched, Some(time)) });
+        assert_query!(Status(deps) -> Status { launched: Some(time) });
     }
 
     #[claim_stranger]
@@ -96,13 +92,12 @@ kukumba!(
 
     when "a stranger tries to claim funds"
     then "they should be denied" {
-        assert_eq!(
-            tx(&mut deps,
-                mock_env(4, 4, &MALLORY, coins(0, "SIENNA")),
-                mgmt::msg::Handle::Claim {}),
-            Err(cosmwasm_std::StdError::GenericErr {
+        assert_tx!(deps
+            => [MALLORY, SIENNA => 0] at [block 4, T+4]
+            => mgmt::msg::Handle::Claim {}
+            => Err(cosmwasm_std::StdError::GenericErr {
                 msg: mgmt::strings::PRELAUNCH.to_string(),
-                backtrace: None}) );
+                backtrace: None }) );
     }
 
     given "the contract is already launched" {
@@ -114,11 +109,10 @@ kukumba!(
 
     when "a stranger tries to claim funds"
     then "they should be denied" {
-        assert_eq!(
-            tx(&mut deps,
-                mock_env(4, 4, &MALLORY, coins(0, "SIENNA")),
-                mgmt::msg::Handle::Claim {}),
-            Err(cosmwasm_std::StdError::GenericErr {
+        assert_tx!(deps
+            => [MALLORY, SIENNA => 0] at [block 4, T+4]
+            => mgmt::msg::Handle::Claim {}
+            => Err(cosmwasm_std::StdError::GenericErr {
                 msg: mgmt::strings::NOTHING.to_string(),
                 backtrace: None }) );
     }
@@ -137,8 +131,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r.clone() });
-        query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, r) });
+        assert_query!(Recipients(deps) -> Recipients { recipients: r });
     }
 
     when "a predefined claimant tries to claim funds"
@@ -164,11 +157,10 @@ kukumba!(
                         from_address: HumanAddr::from("contract"),
                         to_address:   addr.clone(),
                         amount:       coins(75000, "SIENNA")});
-                assert_eq!(
-                    tx(&mut deps,
-                        mock_env(4, 4, addr, coins(0, "SIENNA")),
-                        mgmt::msg::Handle::Claim {}),
-                    Ok(cosmwasm_std::HandleResponse {
+                assert_tx!(deps
+                    => [addr, SIENNA => 0] at [block 4, T+4]
+                    => mgmt::msg::Handle::Claim {}
+                    => Ok(cosmwasm_std::HandleResponse {
                         data:     None,
                         log:      vec![],
                         messages: vec![msg] }) );
@@ -180,11 +172,10 @@ kukumba!(
     when "a predefined claimant tries to claim funds"
     and  "the claimant has already claimed within this time period"
     then "the contract should respond that there's nothing at this time" {
-        assert_eq!(
-            tx(&mut deps,
-                mock_env(6, 6, &BOB, coins(0, "SIENNA")),
-                mgmt::msg::Handle::Claim {}),
-            Err(cosmwasm_std::StdError::GenericErr {
+        assert_tx!(deps
+            => [BOB, SIENNA => 0] at [block 6, T+6]
+            => mgmt::msg::Handle::Claim {}
+            => Err(cosmwasm_std::StdError::GenericErr {
                 msg: mgmt::strings::NOTHING.to_string(),
                 backtrace: None }) );
     }
@@ -213,24 +204,20 @@ kukumba!(
         let r1 = vec![(canon!(deps, &BOB), 100)];
         let _ = tx(&mut deps, mock_env(1, 1, &ALICE, coins(10, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r1.clone() });
-        query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, r1) });
+        assert_query!(Recipients(deps)->Recipients { recipients: r1 });
     }
 
     when "the admin tries to set the recipients above the total"
     then "an error should be returned"
     and  "the recipients should not be updated" {
         let r2 = vec![(canon!(deps, &BOB), 10000000)];
-        assert_eq!(
-            tx(&mut deps,
-                mock_env(4, 4, &ALICE, coins(0, "SIENNA")),
-                mgmt::msg::Handle::SetRecipients { recipients: r2 }),
-            Err(cosmwasm_std::StdError::GenericErr {
+        assert_tx!(deps
+            => [ALICE, SIENNA=>0] at [block 4, T+4]
+            => mgmt::msg::Handle::SetRecipients { recipients: r2 }
+            => Err(cosmwasm_std::StdError::GenericErr {
                 msg: mgmt::strings::err_allocation(10000000, 300000),
-                backtrace: None})
-        );
-        query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, r1) });
+                backtrace: None}));
+        assert_query!(Recipients(deps)->Recipients { recipients: r1 });
     }
 
     when "a stranger tries to set the recipients"
@@ -239,8 +226,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(1, 1, &MALLORY, coins(10, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r3 });
-        query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, r1) });
+        assert_query!(Recipients(deps)->Recipients { recipients: r1 });
     }
 
     given "the contract is already launched" {
@@ -254,23 +240,20 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r4.clone() });
-        query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, r4) });
+        assert_query!(Recipients(deps)->Recipients { recipients: r4 });
     }
 
     when "the admin tries to set the recipients above the total"
     then "an error should be returned"
     and  "the recipients should not be updated" {
         let r5 = vec![(canon!(deps, &BOB), 10000000)];
-        assert_eq!(
-            tx(&mut deps,
-                mock_env(4, 4, &ALICE, coins(0, "SIENNA")),
-                mgmt::msg::Handle::SetRecipients { recipients: r5 }),
-            Err(cosmwasm_std::StdError::GenericErr {
+        assert_tx!(deps
+            => [ALICE, SIENNA=>0] at [block 4, T+4]
+            => mgmt::msg::Handle::SetRecipients { recipients: r5 }
+            => Err(cosmwasm_std::StdError::GenericErr {
                 msg: mgmt::strings::err_allocation(10000000, 300000),
                 backtrace: None}) );
-        query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, r4) });
+        assert_query!(Recipients(deps)->Recipients { recipients: r4 });
     }
 
     when "a stranger tries to set the recipients"
@@ -279,35 +262,32 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(4, 4, &MALLORY, coins(0, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r6 });
-        query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, r4) });
+        assert_query!(Recipients(deps)->Recipients { recipients: r4 });
     }
 
     #[claim_configurable]
 
     given "the contract is not yet launched" {
-        let ALICE:   HumanAddr = HumanAddr::from("ALICE");
-        let BOB:     HumanAddr = HumanAddr::from("BOB");
+        let ALICE: HumanAddr = HumanAddr::from("ALICE");
+        let BOB:   HumanAddr = HumanAddr::from("BOB");
         let mut deps = harness(&[
-            (&ALICE,   &coins(1000, "SIENNA")),
-            (&BOB,     &coins(   0, "SIENNA")),
+            (&ALICE, &coins(1000, "SIENNA")),
+            (&BOB,   &coins(   0, "SIENNA")),
         ]);
         let configured_claim_amount = 200;
         let r = vec![(canon!(deps, &BOB), configured_claim_amount)];
         let _ = tx(&mut deps,
             mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r.clone() });
-        query!(Recipients(deps)->Recipients(recipients)
-            { assert_eq!(recipients, r) });
+        assert_query!(Recipients(deps)->Recipients { recipients: r });
     }
 
     when "a configurable claimant tries to claim funds"
     then "they should be denied" {
-        assert_eq!(
-            tx(&mut deps,
-                mock_env(4, 4, &BOB, coins(0, "SIENNA")),
-                mgmt::msg::Handle::Claim {}),
-            Err(cosmwasm_std::StdError::GenericErr {
+        assert_tx!(deps
+            => [BOB, SIENNA=>0] at [block 4, T+4]
+            => mgmt::msg::Handle::Claim {}
+            => Err(cosmwasm_std::StdError::GenericErr {
                 msg: mgmt::strings::PRELAUNCH.to_string(),
                 backtrace: None }) );
     }
@@ -327,11 +307,10 @@ kukumba!(
                 from_address: HumanAddr::from("contract"),
                 to_address:   BOB.clone(),
                 amount:       coins(configured_claim_amount.into(), "SIENNA")});
-        assert_eq!(
-            tx(&mut deps,
-                mock_env(4, 4, &BOB, coins(0, "SIENNA")),
-                mgmt::msg::Handle::Claim {}),
-            Ok(cosmwasm_std::HandleResponse {
+        assert_tx!(deps
+            => [BOB, SIENNA=>0] at [block 4, T+4]
+            => mgmt::msg::Handle::Claim {}
+            => Ok(cosmwasm_std::HandleResponse {
                 data:     None,
                 log:      vec![],
                 messages: vec![msg] }) );
@@ -340,11 +319,10 @@ kukumba!(
     when "a configured claimant tries to claim funds"
     and  "the claimant has already claimed within this time period"
     then "the contract should respond that there's nothing at this time" {
-        assert_eq!(
-            tx(&mut deps,
-                mock_env(5, 5, &BOB, coins(0, "SIENNA")),
-                mgmt::msg::Handle::Claim {}),
-            Err(cosmwasm_std::StdError::GenericErr {
+        assert_tx!(deps
+            => [BOB, SIENNA=>0] at [block 5, T+5]
+            => mgmt::msg::Handle::Claim {}
+            => Err(cosmwasm_std::StdError::GenericErr {
                 msg: mgmt::strings::NOTHING.to_string(),
                 backtrace: None }) );
     }

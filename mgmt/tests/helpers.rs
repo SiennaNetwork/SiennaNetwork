@@ -47,6 +47,24 @@ pub fn tx (
     sienna_mgmt::handle(deps, env, tx)
 }
 
+macro_rules! assert_tx {
+    ( $deps: ident
+        => [$SENDER:expr, SIENNA => $balance:expr]
+            at [block $block:expr, T+$time:expr]
+        => $TX:expr
+        => $Result:expr
+    ) => {
+        assert_eq!(
+            tx(
+                &mut $deps,
+                mock_env($block, $time, &$SENDER, coins($balance, "SIENNA")),
+                $TX
+            ),
+            $Result
+        );
+    }
+}
+
 macro_rules! query {
     (
         $Query:ident ( $deps:ident ) -> $Response:ident ( $($arg:ident),* )
@@ -67,10 +85,17 @@ macro_rules! query {
 
 macro_rules! assert_query {
     ( $Query:ident ( $deps:ident ) -> $Response:ident {
-        $($arg:ident),*
+        $($arg:ident : $val:expr),*
     } ) => {
-        let res = &mgmt::query(&$deps, mgmt::msg::Query::$Query {}).unwrap();
-        let res = from_binary(res).unwrap();
+        match from_binary(
+            &mgmt::query(&$deps, mgmt::msg::Query::$Query {}).unwrap()
+        ).unwrap() {
+            mgmt::msg::Response::$Response {$($arg),*} => {
+                $(assert_eq!($arg, $val));*
+            },
+            _ => panic!("{} didn't return {}",
+                stringify!($Query), stringify!($Response)),
+        }
     }
 }
 
