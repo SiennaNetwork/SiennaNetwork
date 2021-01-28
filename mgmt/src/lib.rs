@@ -2,10 +2,10 @@
 #[macro_use] extern crate lazy_static;
 pub mod types; use types::*;
 pub mod strings;
-mod schedule;
+mod vesting;
 #[macro_use] mod helpers;
 
-use schedule::{SCHEDULE, claimable, claimed};
+use vesting::{SCHEDULE, claimable, claimed};
 
 contract!(
 
