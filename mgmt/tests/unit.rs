@@ -2,20 +2,9 @@
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
-use cosmwasm_std::{
-    Api, Env, BlockInfo, MessageInfo, ContractInfo,
-    coins, from_binary,
-    StdResult, StdError,
-    HumanAddr, Coin,
-    Extern, MemoryStorage
-};
-
-use cosmwasm_std::testing::{
-    mock_dependencies_with_balances, /*mock_env,*/
-    MockApi, MockQuerier
-};
-
 use sienna_mgmt as mgmt;
+
+use cosmwasm_std::{coins, StdError, HumanAddr, Api};
 
 kukumba!(
 
@@ -95,7 +84,7 @@ kukumba!(
         assert_tx!(deps
             => [MALLORY, SIENNA => 0] at [block 4, T+4]
             => mgmt::msg::Handle::Claim {}
-            => Err(cosmwasm_std::StdError::GenericErr {
+            => Err(StdError::GenericErr {
                 msg: mgmt::strings::PRELAUNCH.to_string(),
                 backtrace: None }) );
     }
@@ -112,7 +101,7 @@ kukumba!(
         assert_tx!(deps
             => [MALLORY, SIENNA => 0] at [block 4, T+4]
             => mgmt::msg::Handle::Claim {}
-            => Err(cosmwasm_std::StdError::GenericErr {
+            => Err(StdError::GenericErr {
                 msg: mgmt::strings::NOTHING.to_string(),
                 backtrace: None }) );
     }
@@ -175,7 +164,7 @@ kukumba!(
         assert_tx!(deps
             => [BOB, SIENNA => 0] at [block 6, T+6]
             => mgmt::msg::Handle::Claim {}
-            => Err(cosmwasm_std::StdError::GenericErr {
+            => Err(StdError::GenericErr {
                 msg: mgmt::strings::NOTHING.to_string(),
                 backtrace: None }) );
     }
@@ -214,7 +203,7 @@ kukumba!(
         assert_tx!(deps
             => [ALICE, SIENNA=>0] at [block 4, T+4]
             => mgmt::msg::Handle::SetRecipients { recipients: r2 }
-            => Err(cosmwasm_std::StdError::GenericErr {
+            => Err(StdError::GenericErr {
                 msg: mgmt::strings::err_allocation(10000000, 300000),
                 backtrace: None}));
         assert_query!(deps => Recipients => Recipients { recipients: r1 });
@@ -250,7 +239,7 @@ kukumba!(
         assert_tx!(deps
             => [ALICE, SIENNA=>0] at [block 4, T+4]
             => mgmt::msg::Handle::SetRecipients { recipients: r5 }
-            => Err(cosmwasm_std::StdError::GenericErr {
+            => Err(StdError::GenericErr {
                 msg: mgmt::strings::err_allocation(10000000, 300000),
                 backtrace: None}) );
         assert_query!(deps => Recipients => Recipients { recipients: r4 });
@@ -287,7 +276,7 @@ kukumba!(
         assert_tx!(deps
             => [BOB, SIENNA=>0] at [block 4, T+4]
             => mgmt::msg::Handle::Claim {}
-            => Err(cosmwasm_std::StdError::GenericErr {
+            => Err(StdError::GenericErr {
                 msg: mgmt::strings::PRELAUNCH.to_string(),
                 backtrace: None }) );
     }
@@ -322,7 +311,7 @@ kukumba!(
         assert_tx!(deps
             => [BOB, SIENNA=>0] at [block 5, T+5]
             => mgmt::msg::Handle::Claim {}
-            => Err(cosmwasm_std::StdError::GenericErr {
+            => Err(StdError::GenericErr {
                 msg: mgmt::strings::NOTHING.to_string(),
                 backtrace: None }) );
     }

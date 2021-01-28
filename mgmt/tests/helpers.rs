@@ -65,29 +65,11 @@ macro_rules! assert_tx {
     }
 }
 
-macro_rules! query {
-    (
-        $Query:ident ( $deps:ident ) -> $Response:ident ( $($arg:ident),* )
-        $Assertions:block
-    ) => {
-        let response = from_binary(
-            &mgmt::query(&$deps, mgmt::msg::Query::$Query {}).unwrap()
-        ).unwrap();
-        match response {
-            sienna_mgmt::msg::Response::$Response {$($arg),*} => {
-                $Assertions
-            },
-            _ => panic!("{} returned something other than {}",
-                stringify!($Query), stringify!($Response))
-        }
-    }
-}
-
 macro_rules! assert_query {
     ( $deps:expr => $Query:ident => $Response:ident {
         $($arg:ident : $val:expr),*
     } ) => {
-        match from_binary(
+        match cosmwasm_std::from_binary(
             &mgmt::query(&$deps, mgmt::msg::Query::$Query {}).unwrap()
         ).unwrap() {
             mgmt::msg::Response::$Response {$($arg),*} => {
@@ -97,19 +79,6 @@ macro_rules! assert_query {
                 stringify!($Query), stringify!($Response)),
         }
     }
-}
-
-macro_rules! tx {
-    (
-        $deps:expr, $env:expr,
-        $Msg:ident $({ $($arg:ident : $val:expr),* })?
-    ) => { {
-        mgmt::handle(
-            &mut $deps,
-            $env,
-            sienna_mgmt::msg::Handle::$Msg { $($($arg:$val)*)? }
-        )
-    } }
 }
 
 macro_rules! canon {
