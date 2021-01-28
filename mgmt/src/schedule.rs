@@ -1,6 +1,8 @@
 use crate::types::*;
 use crate::strings::{warn_div_cliff, warn_div_vesting};
-use cosmwasm_std::HumanAddr;
+use cosmwasm_std::{HumanAddr, CanonicalAddr};
+
+use crate::helpers;
 
 /// This is needed to import the schedule from JSON during compilation.
 const SRC: &str = include_str!("schedule.yml");
@@ -14,9 +16,11 @@ const MONTH: Seconds = 30*DAY;
 /// Distil the value in question from the schedule.
 
 pub fn claimable (
-    recipient: &HumanAddr,
-    launched:  Seconds,
-    now:       Seconds,
+    recipient:       &HumanAddr,
+    recipient_canon: &CanonicalAddr,
+    recipients:      &Allocation,
+    launched:        Seconds,
+    now:             Seconds,
 ) -> Amount {
     for s in SCHEDULE.preconfigured.iter() {
         match s {
@@ -45,6 +49,11 @@ pub fn claimable (
                     )
                 }
             },
+        }
+    }
+    for (addr, amount) in recipients {
+        if addr == recipient_canon {
+            return *amount
         }
     }
     0

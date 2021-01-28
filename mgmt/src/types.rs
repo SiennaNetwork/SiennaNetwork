@@ -34,8 +34,9 @@ pub type CliffPercent  = u64;
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct Schedule {
-    pub total:         Amount,
-    pub configurable:  Amount,
+    pub total:              Amount,
+    pub configurable:       Amount,
+    pub configurable_daily: Amount,
     pub preconfigured: Vec<Stream>,
 }
 

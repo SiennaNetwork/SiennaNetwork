@@ -1,5 +1,6 @@
 total: 10000000
 configurable: 300000
+configurable_daily: 2500
 preconfigured:
 
 - addr: DevFund

@@ -1,11 +1,11 @@
 #[macro_use] extern crate fadroma;
 #[macro_use] extern crate lazy_static;
-
 pub mod types; use types::*;
 pub mod strings;
-
-mod schedule; use schedule::{SCHEDULE, claimable, claimed};
+mod schedule;
 #[macro_use] mod helpers;
+
+use schedule::{SCHEDULE, claimable, claimed};
 
 contract!(
 
@@ -64,7 +64,7 @@ contract!(
                 err_auth(state)
             } else {
                 let total = recipients.iter().fold(0, |acc, x| acc + x.1);
-                if total > SCHEDULE.configurable {
+                if total > SCHEDULE.configurable_daily {
                     err_msg(state, &crate::strings::err_allocation(
                         total,
                         SCHEDULE.configurable
@@ -108,8 +108,12 @@ contract!(
                     let contract = env.contract.address;
                     let claimant = env.message.sender;
                     let claimant_canon = canon!(deps, &claimant);
-                    let claimable = claimable(&claimant, *launch, now);
-                    let claimed = claimed(&claimant_canon, &state.vested, now);
+                    let claimable = claimable(
+                        &claimant, &claimant_canon,
+                        &state.recipients, *launch, now);
+                    let claimed = claimed(
+                        &claimant_canon,
+                        &state.vested, now);
                     if claimable < claimed {
                         err_msg(state, &crate::strings::BROKEN)
                     } else {
