@@ -183,6 +183,13 @@ kukumba!(
             (&BOB,     &coins(   0, "SIENNA")),
             (&MALLORY, &coins(   0, "SIENNA"))
         ]);
+        let configured_claim_amount = 200;
+        let r = vec![(canon!(deps, &BOB), configured_claim_amount)];
+        let _ = tx(&mut deps,
+            mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
+            mgmt::msg::Handle::SetRecipients { recipients: r.clone() });
+        query!(Recipients(deps)->Recipients(recipients)
+            { assert_eq!(recipients, r) });
     }
 
     when "a stranger tries to claim funds"
@@ -236,7 +243,7 @@ kukumba!(
             cosmwasm_std::BankMsg::Send {
                 from_address: HumanAddr::from("contract"),
                 to_address:   BOB.clone(),
-                amount:       coins(100, "SIENNA")});
+                amount:       coins(configured_claim_amount.into(), "SIENNA")});
         assert_eq!(
             tx(&mut deps,
                 mock_env(4, 4, &BOB, coins(0, "SIENNA")),

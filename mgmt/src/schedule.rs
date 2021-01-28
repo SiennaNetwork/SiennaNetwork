@@ -2,8 +2,6 @@ use crate::types::*;
 use crate::strings::{warn_div_cliff, warn_div_vesting};
 use cosmwasm_std::{HumanAddr, CanonicalAddr};
 
-use crate::helpers;
-
 /// This is needed to import the schedule from JSON during compilation.
 const SRC: &str = include_str!("schedule.yml");
 lazy_static! {
