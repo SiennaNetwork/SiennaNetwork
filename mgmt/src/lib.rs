@@ -4,7 +4,7 @@
 pub mod types; use types::*;
 pub mod strings;
 
-mod schedule;
+mod schedule; use schedule::{SCHEDULE, claimable, claimed};
 #[macro_use] mod helpers;
 
 contract!(
@@ -63,8 +63,16 @@ contract!(
                 state.errors += 1;
                 err_auth(state)
             } else {
-                state.recipients = recipients.clone();
-                ok(state)
+                let total = recipients.iter().fold(0, |acc, x| acc + x.1);
+                if total > SCHEDULE.configurable {
+                    err_msg(state, &crate::strings::err_allocation(
+                        total,
+                        SCHEDULE.configurable
+                    ))
+                } else {
+                    state.recipients = recipients.clone();
+                    ok(state)
+                }
             }
         }
 
@@ -96,18 +104,12 @@ contract!(
                     err_msg(state, &crate::strings::PRELAUNCH)
                 },
                 Some(launch) => {
-                    let now      = env.block.time;
+                    let now = env.block.time;
                     let contract = env.contract.address;
                     let claimant = env.message.sender;
-
-                    let claimant_canon =
-                        canon!(deps, &claimant);
-                    let claimable =
-                        crate::schedule::claimable(
-                            &claimant, *launch, now);
-                    let claimed =
-                        crate::schedule::claimed(
-                            &claimant_canon, &state.vested, now);
+                    let claimant_canon = canon!(deps, &claimant);
+                    let claimable = claimable(&claimant, *launch, now);
+                    let claimed = claimed(&claimant_canon, &state.vested, now);
                     if claimable < claimed {
                         err_msg(state, &crate::strings::BROKEN)
                     } else {

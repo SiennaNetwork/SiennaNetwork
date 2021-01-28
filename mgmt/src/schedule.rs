@@ -5,7 +5,7 @@ use cosmwasm_std::HumanAddr;
 /// This is needed to import the schedule from JSON during compilation.
 const SRC: &str = include_str!("schedule.yml");
 lazy_static! {
-    static ref SCHEDULE: Schedule = serde_yaml::from_str(&SRC).unwrap();
+    pub static ref SCHEDULE: Schedule = serde_yaml::from_str(&SRC).unwrap();
 }
 
 const DAY:   Seconds = 24*60*60;
