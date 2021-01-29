@@ -41,7 +41,11 @@ pub fn claimable (
         match s {
             Stream::Immediate { amount, addr } => {
                 if addr == recipient {
-                    return immediate(*amount, launched, now)
+                    return if now >= launched {
+                        *amount
+                    } else {
+                        0
+                    }
                 }
             },
             Stream::Monthly {
@@ -77,17 +81,8 @@ pub fn claimable (
     0
 }
 
-fn immediate (
-    amount: Amount,
-    launched: Seconds, now: Seconds,
-) -> Amount {
-    if now >= launched {
-        amount
-    } else {
-        0
-    }
-}
-
+/// Calculate how much the user
+/// can claim at the given time.
 fn periodic (
     amount: Amount, interval: Seconds,
     launched: Seconds, now: Seconds,
@@ -96,19 +91,15 @@ fn periodic (
     let t_start = launched + cliff_months * MONTH;
     if now >= t_start {
         let t_end = t_start + release_months as u64 * MONTH;
-        if now > t_end {
-            0
-        } else {
-            let c = cliff_percent as u64;
-            if c * amount % 100 > 0 { warn_cliff_remainder() }
-            let cliff_amount  = c * amount / 100;
-            let (t_elapsed, t_total) = (
-                (  now - t_start) / interval,
-                (t_end - t_start) / interval
-            );
-            if amount % t_total > 0 { warn_vesting_remainder() }
-            cliff_amount + amount * t_elapsed / t_total
-        }
+        let c = cliff_percent as u64;
+        if c * amount % 100 > 0 { warn_cliff_remainder() }
+        let cliff_amount  = c * amount / 100;
+        let (t_elapsed, t_total) = (
+            (  now - t_start) / interval,
+            (t_end - t_start) / interval
+        );
+        if amount % t_total > 0 { warn_vesting_remainder() }
+        Amount::min(amount, cliff_amount + amount * t_elapsed / t_total)
     } else {
         0
     }

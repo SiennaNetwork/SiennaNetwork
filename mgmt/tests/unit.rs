@@ -126,8 +126,7 @@ kukumba!(
 
     when "a predefined claimant tries to claim funds"
     then "they should be denied" {
-        let claimant = SCHEDULE.predefined.get(0).unwrap();
-        match claimant {
+        match SCHEDULE.predefined.get(0).unwrap() {
             mgmt::types::Stream::Monthly {
                 amount, addr, release_months, cliff_months, cliff_percent
             } => {
@@ -151,16 +150,16 @@ kukumba!(
 
     when "a predefined claimant tries to claim funds before the cliff"
     then "they should be denied" {
-        let PRECONF;
+        let PREDEF;
         let cliff;
         match SCHEDULE.predefined.get(0).unwrap() {
             mgmt::types::Stream::Monthly {
                 amount, addr, release_months, cliff_months, cliff_percent
             } => {
-                PRECONF = addr;
+                PREDEF = addr;
                 cliff = cliff_months*MONTH;
                 assert_tx!(deps
-                    => [PRECONF, SIENNA => 0] at [block 4, T=cliff-1]
+                    => [PREDEF, SIENNA => 0] at [block 4, T=cliff-1]
                     => mgmt::msg::Handle::Claim {}
                     => Err(StdError::GenericErr {
                         msg: mgmt::strings::NOTHING.to_string(),
@@ -174,32 +173,25 @@ kukumba!(
     and  "the first post-cliff vesting has not passed"
     then "the contract should transfer the cliff amount"
     and  "it should remember how much that address has claimed so far" {
-        match SCHEDULE.predefined.get(0).unwrap() {
-            mgmt::types::Stream::Monthly {
-                amount, addr, release_months, cliff_months, cliff_percent
-            } => {
-                let msg = cosmwasm_std::CosmosMsg::Bank(
-                    cosmwasm_std::BankMsg::Send {
-                        from_address: HumanAddr::from("contract"),
-                        to_address:   addr.clone(),
-                        amount:       coins(75000, "SIENNA")});
-                assert_tx!(deps
-                    => [PRECONF, SIENNA => 0] at [block 4, T=cliff]
-                    => mgmt::msg::Handle::Claim {}
-                    => Ok(cosmwasm_std::HandleResponse {
-                        data:     None,
-                        log:      vec![],
-                        messages: vec![msg] }) );
-            },
-            _ => unreachable!()
-        }
+        let msg = cosmwasm_std::CosmosMsg::Bank(
+            cosmwasm_std::BankMsg::Send {
+                from_address: HumanAddr::from("contract"),
+                to_address:   PREDEF.clone(),
+                amount:       coins(75000, "SIENNA")});
+        assert_tx!(deps
+            => [PREDEF, SIENNA => 0] at [block 4, T=cliff]
+            => mgmt::msg::Handle::Claim {}
+            => Ok(cosmwasm_std::HandleResponse {
+                data:     None,
+                log:      vec![],
+                messages: vec![msg] }) );
     }
 
     when "a predefined claimant tries to claim funds"
     and  "the claimant has already claimed within this time period"
     then "the contract should respond that there's nothing at this time" {
         assert_tx!(deps
-            => [PRECONF, SIENNA => 0] at [block 6, T=cliff+1]
+            => [PREDEF, SIENNA => 0] at [block 6, T=cliff+1]
             => mgmt::msg::Handle::Claim {}
             => Err(StdError::GenericErr {
                 msg: mgmt::strings::NOTHING.to_string(),
@@ -212,22 +204,48 @@ kukumba!(
         let msg = cosmwasm_std::CosmosMsg::Bank(
             cosmwasm_std::BankMsg::Send {
                 from_address: HumanAddr::from("contract"),
-                to_address:   PRECONF.clone(),
+                to_address:   PREDEF.clone(),
                 amount:       coins(75000, "SIENNA")});
         assert_tx!(deps
-            => [PRECONF, SIENNA => 0] at [block 4, T=cliff+1*MONTH]
+            => [PREDEF, SIENNA => 0] at [block 4, T=cliff+1*MONTH]
             => mgmt::msg::Handle::Claim {}
             => Ok(cosmwasm_std::HandleResponse {
                 data:     None,
                 log:      vec![],
                 messages: vec![msg.clone()] }) );
         assert_tx!(deps
-            => [PRECONF, SIENNA => 0] at [block 4, T=cliff+2*MONTH]
+            => [PREDEF, SIENNA => 0] at [block 4, T=cliff+2*MONTH]
             => mgmt::msg::Handle::Claim {}
             => Ok(cosmwasm_std::HandleResponse {
                 data:     None,
                 log:      vec![],
                 messages: vec![msg.clone()] }) );
+    }
+
+    when "another predefined claimant tries to claim funds"
+    and  "this is the first time they make a claim"
+    and  "it is a long time after the end of the vesting"
+    then "the contract should transfer everything in one go" {
+        match SCHEDULE.predefined.get(1).unwrap() {
+            mgmt::types::Stream::Daily {
+                amount, addr, release_months, cliff_months, cliff_percent
+            } => {
+                let T = (cliff_months + release_months + 48) * MONTH;
+                let msg = cosmwasm_std::CosmosMsg::Bank(
+                    cosmwasm_std::BankMsg::Send {
+                        from_address: HumanAddr::from("contract"),
+                        to_address:   addr.clone(),
+                        amount:       coins(2000000, "SIENNA")});
+                assert_tx!(deps
+                    => [addr, SIENNA => 0] at [block 4, T=T]
+                    => mgmt::msg::Handle::Claim {}
+                    => Ok(cosmwasm_std::HandleResponse {
+                        data:     None,
+                        log:      vec![],
+                        messages: vec![msg.clone()] }) );
+            },
+            _ => unreachable!()
+        }
     }
 
     #[configure]
