@@ -2,17 +2,33 @@ use crate::types::*;
 use crate::strings::{warn_div_cliff, warn_div_vesting};
 use cosmwasm_std::{HumanAddr, CanonicalAddr};
 
-/// This is needed to import the schedule from JSON during compilation.
+pub const DAY:   Seconds = 24*60*60;
+pub const MONTH: Seconds = 30*DAY;
+
+/// Imports the schedule from JSON during compilation.
 const SRC: &str = include_str!("schedule.yml");
 lazy_static! {
     pub static ref SCHEDULE: Schedule = serde_yaml::from_str(&SRC).unwrap();
 }
 
-pub const DAY:   Seconds = 24*60*60;
-pub const MONTH: Seconds = 30*DAY;
+/// Determine how much an account has claimed
+/// based on the history of fulfilled claims.
+pub fn claimed (
+    a:      &Address,
+    claims: &FulfilledClaims,
+    t:      Seconds
+) -> Amount {
+    for (addr, time, amount) in claims.iter().rev() {
+       if addr != a { continue }
+       if *time > t { continue }
+       return *amount
+    }
+    0
+}
 
-/// Distil the value in question from the schedule.
-
+/// Determine how much one can claim
+/// based on the predefined schedule
+/// and the configurable allocation.
 pub fn claimable (
     recipient:       &HumanAddr,
     recipient_canon: &CanonicalAddr,
@@ -20,6 +36,7 @@ pub fn claimable (
     launched:        Seconds,
     now:             Seconds,
 ) -> Amount {
+    // preconfigured claimants:
     for s in SCHEDULE.predefined.iter() {
         match s {
             Stream::Immediate { amount, addr } => {
@@ -49,11 +66,14 @@ pub fn claimable (
             },
         }
     }
+    // configurable claimants:
     for (addr, amount) in recipients {
         if addr == recipient_canon {
-            return *amount
+            let days_since_launch = (now - launched) / DAY;
+            return *amount * (days_since_launch + 1)
         }
     }
+    // default case:
     0
 }
 
@@ -92,17 +112,4 @@ fn periodic (
     } else {
         0
     }
-}
-
-pub fn claimed (
-    a:      &Address,
-    claims: &FulfilledClaims,
-    t:      Seconds
-) -> Amount {
-    for (addr, time, amount) in claims.iter().rev() {
-       if addr != a { continue }
-       if *time > t { continue }
-       return *amount
-    }
-    0
 }
