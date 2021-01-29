@@ -45,6 +45,5 @@ compile-optimized-reproducible: _optimizer
 			--mount type=volume,source="$$(basename "$$(pwd)")_cache",target=/code/target \
 			--mount type=volume,source=registry_cache,target=/usr/local/cargo/registry    \
 			hackbg/secret-contract-optimizer:latest $$contract &&                         \
-		mv "$$contract.wasm.gz"                                                         \
-		"dist/$$contract-$$(sha256sum -b $$contract.wasm.gz | cut -d' ' -f1).wasm.gz";  \
-	done
+		mv "$$contract.wasm.gz" "dist/$$contract.wasm.gz"; done
+	sha256sum -b dist/*.wasm.gz > dist/checksums.sha256.txt
