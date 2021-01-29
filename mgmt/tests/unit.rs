@@ -3,6 +3,7 @@
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
 use sienna_mgmt as mgmt;
+use mgmt::vesting::{DAY, MONTH, SCHEDULE};
 
 use cosmwasm_std::{coins, StdError, HumanAddr, Api};
 
@@ -82,7 +83,7 @@ kukumba!(
     when "a stranger tries to claim funds"
     then "they should be denied" {
         assert_tx!(deps
-            => [MALLORY, SIENNA => 0] at [block 4, T+4]
+            => [MALLORY, SIENNA => 0] at [block 4, T=4]
             => mgmt::msg::Handle::Claim {}
             => Err(StdError::GenericErr {
                 msg: mgmt::strings::PRELAUNCH.to_string(),
@@ -99,7 +100,7 @@ kukumba!(
     when "a stranger tries to claim funds"
     then "they should be denied" {
         assert_tx!(deps
-            => [MALLORY, SIENNA => 0] at [block 4, T+4]
+            => [MALLORY, SIENNA => 0] at [block 4, T=4]
             => mgmt::msg::Handle::Claim {}
             => Err(StdError::GenericErr {
                 msg: mgmt::strings::NOTHING.to_string(),
@@ -109,35 +110,71 @@ kukumba!(
     #[claim_predefined]
 
     given "the contract is not yet launched" {
-        let ALICE:   HumanAddr = HumanAddr::from("ALICE");
-        let BOB:     HumanAddr = HumanAddr::from("BOB");
+        let ALICE: HumanAddr = HumanAddr::from("ALICE");
+        let BOB:   HumanAddr = HumanAddr::from("BOB");
         let mut deps = harness(&[
-            (&ALICE,   &coins(1000, "SIENNA")),
-            (&BOB,     &coins(   0, "SIENNA")),
+            (&ALICE, &coins(1000, "SIENNA")),
+            (&BOB,   &coins(   0, "SIENNA")),
         ]);
         let configured_claim_amount = 200;
         let r = vec![(canon!(deps, &BOB), configured_claim_amount)];
         let _ = tx(&mut deps,
-            mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
+            mock_env(0, 0, &ALICE, coins(1000, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r.clone() });
         assert_query!(deps => Recipients => Recipients { recipients: r });
     }
 
     when "a predefined claimant tries to claim funds"
-    then "they should be denied" { todo!(); }
+    then "they should be denied" {
+        let claimant = SCHEDULE.predefined.get(0).unwrap();
+        match claimant {
+            mgmt::types::Stream::Monthly {
+                amount, addr, release_months, cliff_months, cliff_percent
+            } => {
+                assert_tx!(deps
+                    => [addr, SIENNA => 0] at [block 4, T=1]
+                    => mgmt::msg::Handle::Claim {}
+                    => Err(StdError::GenericErr {
+                        msg: mgmt::strings::PRELAUNCH.to_string(),
+                        backtrace: None }) );
+            },
+            _ => unreachable!()
+        }
+    }
 
     given "the contract is already launched" {
         let _ = tx(
             &mut deps,
-            mock_env(1, 1, &ALICE, coins(0, "SIENNA")),
+            mock_env(0, 0, &ALICE, coins(0, "SIENNA")),
             mgmt::msg::Handle::Launch {});
     }
 
-    when "a predefined claimant tries to claim funds"
-    then "the contract should transfer them to their address"
+    when "a predefined claimant tries to claim funds before the cliff"
+    then "they should be denied" {
+        let PRECONF;
+        let cliff;
+        match SCHEDULE.predefined.get(0).unwrap() {
+            mgmt::types::Stream::Monthly {
+                amount, addr, release_months, cliff_months, cliff_percent
+            } => {
+                PRECONF = addr;
+                cliff = cliff_months*MONTH;
+                assert_tx!(deps
+                    => [PRECONF, SIENNA => 0] at [block 4, T=cliff-1]
+                    => mgmt::msg::Handle::Claim {}
+                    => Err(StdError::GenericErr {
+                        msg: mgmt::strings::NOTHING.to_string(),
+                        backtrace: None }) );
+            },
+            _ => unreachable!()
+        }
+    }
+
+    when "a predefined claimant tries to claim funds at/after the cliff"
+    and  "the first post-cliff vesting has not passed"
+    then "the contract should transfer the cliff amount"
     and  "it should remember how much that address has claimed so far" {
-        let claimant = mgmt::vesting::SCHEDULE.predefined.get(0).unwrap();
-        match claimant {
+        match SCHEDULE.predefined.get(0).unwrap() {
             mgmt::types::Stream::Monthly {
                 amount, addr, release_months, cliff_months, cliff_percent
             } => {
@@ -147,7 +184,7 @@ kukumba!(
                         to_address:   addr.clone(),
                         amount:       coins(75000, "SIENNA")});
                 assert_tx!(deps
-                    => [addr, SIENNA => 0] at [block 4, T+4]
+                    => [PRECONF, SIENNA => 0] at [block 4, T=cliff]
                     => mgmt::msg::Handle::Claim {}
                     => Ok(cosmwasm_std::HandleResponse {
                         data:     None,
@@ -162,7 +199,7 @@ kukumba!(
     and  "the claimant has already claimed within this time period"
     then "the contract should respond that there's nothing at this time" {
         assert_tx!(deps
-            => [BOB, SIENNA => 0] at [block 6, T+6]
+            => [PRECONF, SIENNA => 0] at [block 6, T=cliff+1]
             => mgmt::msg::Handle::Claim {}
             => Err(StdError::GenericErr {
                 msg: mgmt::strings::NOTHING.to_string(),
@@ -172,7 +209,25 @@ kukumba!(
     when "a predefined claimant tries to claim funds"
     and  "enough time has passed since their last claim"
     then "the contract should transfer more funds" {
-        todo!();
+        let msg = cosmwasm_std::CosmosMsg::Bank(
+            cosmwasm_std::BankMsg::Send {
+                from_address: HumanAddr::from("contract"),
+                to_address:   PRECONF.clone(),
+                amount:       coins(75000, "SIENNA")});
+        assert_tx!(deps
+            => [PRECONF, SIENNA => 0] at [block 4, T=cliff+1*MONTH]
+            => mgmt::msg::Handle::Claim {}
+            => Ok(cosmwasm_std::HandleResponse {
+                data:     None,
+                log:      vec![],
+                messages: vec![msg.clone()] }) );
+        assert_tx!(deps
+            => [PRECONF, SIENNA => 0] at [block 4, T=cliff+2*MONTH]
+            => mgmt::msg::Handle::Claim {}
+            => Ok(cosmwasm_std::HandleResponse {
+                data:     None,
+                log:      vec![],
+                messages: vec![msg.clone()] }) );
     }
 
     #[configure]
@@ -201,7 +256,7 @@ kukumba!(
     and  "the recipients should not be updated" {
         let r2 = vec![(canon!(deps, &BOB), 10000000)];
         assert_tx!(deps
-            => [ALICE, SIENNA=>0] at [block 4, T+4]
+            => [ALICE, SIENNA=>0] at [block 4, T=4]
             => mgmt::msg::Handle::SetRecipients { recipients: r2 }
             => Err(StdError::GenericErr {
                 msg: mgmt::strings::err_allocation(10000000, 300000),
@@ -237,7 +292,7 @@ kukumba!(
     and  "the recipients should not be updated" {
         let r5 = vec![(canon!(deps, &BOB), 10000000)];
         assert_tx!(deps
-            => [ALICE, SIENNA=>0] at [block 4, T+4]
+            => [ALICE, SIENNA=>0] at [block 4, T=4]
             => mgmt::msg::Handle::SetRecipients { recipients: r5 }
             => Err(StdError::GenericErr {
                 msg: mgmt::strings::err_allocation(10000000, 300000),
@@ -266,7 +321,7 @@ kukumba!(
         let configured_claim_amount = 200;
         let r = vec![(canon!(deps, &BOB), configured_claim_amount)];
         let _ = tx(&mut deps,
-            mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
+            mock_env(0, 0, &ALICE, coins(1000, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r.clone() });
         assert_query!(deps => Recipients => Recipients { recipients: r });
     }
@@ -274,7 +329,7 @@ kukumba!(
     when "a configurable claimant tries to claim funds"
     then "they should be denied" {
         assert_tx!(deps
-            => [BOB, SIENNA=>0] at [block 4, T+4]
+            => [BOB, SIENNA=>0] at [block 0, T=0]
             => mgmt::msg::Handle::Claim {}
             => Err(StdError::GenericErr {
                 msg: mgmt::strings::PRELAUNCH.to_string(),
@@ -284,7 +339,7 @@ kukumba!(
     given "the contract is already launched" {
         let _ = tx(
             &mut deps,
-            mock_env(1, 1, &ALICE, coins(0, "SIENNA")),
+            mock_env(0, 0, &ALICE, coins(0, "SIENNA")),
             mgmt::msg::Handle::Launch {});
     }
 
@@ -297,7 +352,7 @@ kukumba!(
                 to_address:   BOB.clone(),
                 amount:       coins(configured_claim_amount.into(), "SIENNA")});
         assert_tx!(deps
-            => [BOB, SIENNA=>0] at [block 4, T+4]
+            => [BOB, SIENNA=>0] at [block 0, T=0]
             => mgmt::msg::Handle::Claim {}
             => Ok(cosmwasm_std::HandleResponse {
                 data:     None,
@@ -309,7 +364,7 @@ kukumba!(
     and  "the claimant has already claimed within this time period"
     then "the contract should respond that there's nothing at this time" {
         assert_tx!(deps
-            => [BOB, SIENNA=>0] at [block 5, T+5]
+            => [BOB, SIENNA=>0] at [block 1, T=1]
             => mgmt::msg::Handle::Claim {}
             => Err(StdError::GenericErr {
                 msg: mgmt::strings::NOTHING.to_string(),
@@ -319,7 +374,18 @@ kukumba!(
     when "a configured claimant tries to claim funds"
     and  "enough time has passed since their last claim"
     then "the contract should transfer more funds" {
-        todo!();
+        let msg = cosmwasm_std::CosmosMsg::Bank(
+            cosmwasm_std::BankMsg::Send {
+                from_address: HumanAddr::from("contract"),
+                to_address:   BOB.clone(),
+                amount:       coins(configured_claim_amount.into(), "SIENNA")});
+        assert_tx!(deps
+            => [BOB, SIENNA=>0] at [block 2, T=DAY]
+            => mgmt::msg::Handle::Claim {}
+            => Ok(cosmwasm_std::HandleResponse {
+                data:     None,
+                log:      vec![],
+                messages: vec![msg] }) );
     }
 
 );

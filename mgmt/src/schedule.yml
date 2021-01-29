@@ -8,7 +8,7 @@ predefined:
 - addr: DevFund
   amount: 1500000
   release_mode: monthly
-  release_months: 18
+  release_months: 20
   cliff_months: 4
   cliff_percent: 5
 

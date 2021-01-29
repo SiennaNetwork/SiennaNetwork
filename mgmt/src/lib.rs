@@ -114,6 +114,7 @@ contract!(
                     let claimed = claimed(
                         &claimant_canon,
                         &state.vested, now);
+                    println!("claim, {}/{} @ {}", claimed, claimable, now);
                     if claimable < claimed {
                         err_msg(state, &crate::strings::BROKEN)
                     } else {

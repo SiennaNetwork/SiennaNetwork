@@ -1,6 +1,4 @@
 use cosmwasm_std::{
-    coins, from_binary,
-    StdResult, StdError,
     HumanAddr, Coin,
     Extern, MemoryStorage,
     Env, BlockInfo, MessageInfo, ContractInfo
@@ -50,7 +48,7 @@ pub fn tx (
 macro_rules! assert_tx {
     ( $deps: ident
         => [$SENDER:expr, SIENNA => $balance:expr]
-            at [block $block:expr, T+$time:expr]
+            at [block $block:expr, T=$time:expr]
         => $TX:expr
         => $Result:expr
     ) => {
