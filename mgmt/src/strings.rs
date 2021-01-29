@@ -12,10 +12,10 @@ pub fn err_allocation (total: Amount, max: Amount) -> String {
         total, max)
 }
 
-pub fn warn_div_cliff () {
+pub fn warn_cliff_remainder () {
     println!("WARNING: division with remainder for cliff amount")
 }
 
-pub fn warn_div_vesting () {
+pub fn warn_vesting_remainder () {
     println!("WARNING: division with remainder for vesting amount")
 }

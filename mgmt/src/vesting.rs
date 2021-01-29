@@ -1,5 +1,5 @@
 use crate::types::*;
-use crate::strings::{warn_div_cliff, warn_div_vesting};
+use crate::strings::{warn_cliff_remainder, warn_vesting_remainder};
 use cosmwasm_std::{HumanAddr, CanonicalAddr};
 
 pub const DAY:   Seconds = 24*60*60;
@@ -100,13 +100,13 @@ fn periodic (
             0
         } else {
             let c = cliff_percent as u64;
-            if c * amount % 100 > 0 { warn_div_cliff() }
+            if c * amount % 100 > 0 { warn_cliff_remainder() }
             let cliff_amount  = c * amount / 100;
             let (t_elapsed, t_total) = (
                 (  now - t_start) / interval,
                 (t_end - t_start) / interval
             );
-            if amount % t_total > 0 { warn_div_vesting() }
+            if amount % t_total > 0 { warn_vesting_remainder() }
             cliff_amount + amount * t_elapsed / t_total
         }
     } else {
