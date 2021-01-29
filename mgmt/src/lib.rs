@@ -10,11 +10,22 @@ use vesting::{SCHEDULE, claimable, claimed};
 contract!(
 
     [State] {
+        /// The instantiatior of the contract
         admin:      Admin,
+
+        /// The SNIP20 token contract that will be managed by this
         token:      Token,
+
+        /// Timestamp of the moment this was launched
         launched:   Launched,
+
+        /// History of fulfilled claims
         vested:     FulfilledClaims,
+
+        /// A dedicated portion of the funds can be redirected at runtime
         recipients: Allocation,
+
+        /// TODO: public counter of invalid requests
         errors:     ErrorCount
     }
 
