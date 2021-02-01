@@ -6,27 +6,35 @@ pub mod vesting;
 #[macro_use] mod helpers;
 
 use vesting::{SCHEDULE, claimable, claimed};
+use secret_toolkit::snip20::handle::{mint_msg, transfer_msg};
+
+/// Default value (according to Reuven on Discord)
+const BLOCK_SIZE: usize = 256;
 
 contract!(
 
     [State] {
         /// The instantiatior of the contract
-        admin:      Admin,
+        admin:          Admin,
 
-        /// The SNIP20 token contract that will be managed by this
-        token:      Token,
+        /// The SNIP20 token contract that will be managed by this instance
+        token_addr:     TokenAddress,
+
+        /// The code hash of the managed contract
+        /// (see `secretcli query compute contract-hash --help`)
+        token_hash:     CodeHash,
 
         /// Timestamp of the moment this was launched
-        launched:   Launched,
+        launched:       Launched,
 
         /// History of fulfilled claims
-        vested:     FulfilledClaims,
+        vested:         FulfilledClaims,
 
         /// A dedicated portion of the funds can be redirected at runtime
-        recipients: Allocation,
+        recipients:     Allocation,
 
         /// TODO: public counter of invalid requests
-        errors:     ErrorCount
+        errors:         ErrorCount
     }
 
     // Initializing an instance of the contract:
@@ -34,11 +42,13 @@ contract!(
     //   to be passed as an argument
     // * makes the initializer the admin
     [Init] (deps, env, msg: {
-        token: crate::Token
+        token_addr: crate::TokenAddress,
+        token_hash: crate::CodeHash
     }) {
         State {
             admin:      canon!(deps, &env.message.sender),
-            token:      msg.token,
+            token_addr: msg.token_addr,
+            token_hash: msg.token_hash,
             launched:   None,
             recipients: vec![],
             vested:     vec![],
@@ -59,7 +69,7 @@ contract!(
     }
 
     [Response] {
-        Status     { launched:   Option<u64> }
+        Status     { launched:   crate::types::Launched }
         Recipients { recipients: crate::types::Allocation }
     }
 
@@ -74,11 +84,14 @@ contract!(
                 state.errors += 1;
                 err_auth(state)
             } else {
-                let total = recipients.iter().fold(0, |acc, x| acc + x.1);
-                if total > SCHEDULE.configurable_daily {
+                let total = recipients.iter().fold(
+                    0u128,
+                    |acc, x| acc + x.1.u128()
+                );
+                if total > SCHEDULE.configurable_daily.u128() {
                     err_msg(state, &crate::strings::err_allocation(
                         total,
-                        SCHEDULE.configurable
+                        SCHEDULE.configurable_daily.u128()
                     ))
                 } else {
                     state.recipients = recipients.clone();
@@ -99,8 +112,22 @@ contract!(
                 match state.launched {
                     Some(_) => err_msg(state, &crate::strings::UNDERWAY),
                     None => {
-                        state.launched = Some(env.block.time);
-                        ok(state)
+                        let token_hash = state.token_hash.clone();
+                        let token_addr = state.token_addr.clone();
+                        match mint_msg(
+                            env.contract.address,
+                            cosmwasm_std::Uint128::from(SCHEDULE.total),
+                            None, // padding
+                            BLOCK_SIZE,
+                            token_hash,
+                            token_addr
+                        ) {
+                            Ok(msg) => {
+                                state.launched = Some(env.block.time);
+                                ok_msg(state, vec![msg])
+                            },
+                            Err(e) => (state, Err(e))
+                        }
                     }
                 }
             }
@@ -131,13 +158,26 @@ contract!(
                     } else {
                         let difference = claimable - claimed;
                         if difference > 0 {
-                            state.vested.push((claimant_canon, now, claimable));
-                            ok_send(
-                                state,
-                                contract,
+                            let token_hash = state.token_hash.clone();
+                            let token_addr = state.token_addr.clone();
+                            match transfer_msg(
                                 claimant,
-                                SIENNA!(difference as u128)
-                            )
+                                cosmwasm_std::Uint128::from(difference),
+                                None,
+                                BLOCK_SIZE,
+                                token_hash,
+                                token_addr,
+                            ) {
+                                Ok(msg) => {
+                                    state.vested.push((
+                                        claimant_canon,
+                                        now,
+                                        claimable
+                                    ));
+                                    ok_msg(state, vec![msg])
+                                },
+                                Err(e) => (state, Err(e))
+                            }
                         } else {
                             err_msg(state, &crate::strings::NOTHING)
                         }

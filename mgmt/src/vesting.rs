@@ -1,6 +1,6 @@
 use crate::types::*;
 use crate::strings::{warn_cliff_remainder, warn_vesting_remainder};
-use cosmwasm_std::{HumanAddr, CanonicalAddr};
+use cosmwasm_std::{HumanAddr, CanonicalAddr, Uint128, Decimal};
 
 pub const DAY:   Seconds = 24*60*60;
 pub const MONTH: Seconds = 30*DAY;
@@ -42,7 +42,7 @@ pub fn claimable (
             Stream::Immediate { amount, addr } => {
                 if addr == recipient {
                     return if now >= launched {
-                        *amount
+                        amount.u128()
                     } else {
                         0
                     }
@@ -53,7 +53,7 @@ pub fn claimable (
             } => {
                 if addr == recipient {
                     return periodic(
-                        *amount, MONTH, launched, now,
+                        amount.u128(), MONTH, launched, now,
                         *release_months, *cliff_months, *cliff_percent,
                     )
                 }
@@ -63,7 +63,7 @@ pub fn claimable (
             } => {
                 if addr == recipient {
                     return periodic(
-                        *amount, DAY, launched, now,
+                        amount.u128(), DAY, launched, now,
                         *release_months, *cliff_months, *cliff_percent,
                     )
                 }
@@ -74,7 +74,7 @@ pub fn claimable (
     for (addr, amount) in recipients {
         if addr == recipient_canon {
             let days_since_launch = (now - launched) / DAY;
-            return *amount * (days_since_launch + 1)
+            return amount.u128() * (days_since_launch + 1) as u128;
         }
     }
     // default case:
@@ -90,16 +90,19 @@ fn periodic (
 ) -> Amount {
     let t_start = launched + cliff_months * MONTH;
     if now >= t_start {
-        let t_end = t_start + release_months as u64 * MONTH;
-        let c = cliff_percent as u64;
+        let t_end = t_start + release_months * MONTH;
+        let c: u128 = cliff_percent.into();
         if c * amount % 100 > 0 { warn_cliff_remainder() }
-        let cliff_amount  = c * amount / 100;
+        let cliff_amount  = (c * amount / 100) as u128;
         let (t_elapsed, t_total) = (
             (  now - t_start) / interval,
             (t_end - t_start) / interval
         );
-        if amount % t_total > 0 { warn_vesting_remainder() }
-        Amount::min(amount, cliff_amount + amount * t_elapsed / t_total)
+        if amount % (t_total as u128) > 0 { warn_vesting_remainder() }
+        Amount::min(
+            amount,
+            cliff_amount + amount * (t_elapsed / t_total) as u128
+        )
     } else {
         0
     }

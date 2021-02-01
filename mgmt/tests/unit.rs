@@ -5,7 +5,7 @@
 use sienna_mgmt as mgmt;
 use mgmt::vesting::{DAY, MONTH, SCHEDULE};
 
-use cosmwasm_std::{coins, StdError, HumanAddr, Api};
+use cosmwasm_std::{coins, StdError, HumanAddr, Api, Uint128};
 
 kukumba!(
 
@@ -20,7 +20,10 @@ kukumba!(
         let res = mgmt::init(
             &mut deps,
             mock_env(0, 0, &ALICE, coins(1000, "SIENNA")),
-            mgmt::msg::Init { token: None }
+            mgmt::msg::Init {
+                token_addr: cosmwasm_std::HumanAddr::from("kukumba"),
+                token_hash: String::new()
+            }
         ).unwrap();
     }
 
@@ -116,11 +119,13 @@ kukumba!(
             (&ALICE, &coins(1000, "SIENNA")),
             (&BOB,   &coins(   0, "SIENNA")),
         ]);
-        let configured_claim_amount = 200;
+
+        let configured_claim_amount: Uint128 = Uint128::from(200u128);
         let r = vec![(canon!(deps, &BOB), configured_claim_amount)];
         let _ = tx(&mut deps,
             mock_env(0, 0, &ALICE, coins(1000, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r.clone() });
+
         assert_query!(deps => Recipients => Recipients { recipients: r });
     }
 
@@ -263,7 +268,7 @@ kukumba!(
 
     when "the admin sets the recipients"
     then "the recipients should be updated" {
-        let r1 = vec![(canon!(deps, &BOB), 100)];
+        let r1 = vec![(canon!(deps, &BOB), Uint128::from(100u128))];
         let _ = tx(&mut deps, mock_env(1, 1, &ALICE, coins(10, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r1.clone() });
         assert_query!(deps => Recipients => Recipients { recipients: r1 });
@@ -272,19 +277,19 @@ kukumba!(
     when "the admin tries to set the recipients above the total"
     then "an error should be returned"
     and  "the recipients should not be updated" {
-        let r2 = vec![(canon!(deps, &BOB), 10000000)];
+        let r2 = vec![(canon!(deps, &BOB), Uint128::from(10000000u128))];
         assert_tx!(deps
             => [ALICE, SIENNA=>0] at [block 4, T=4]
             => mgmt::msg::Handle::SetRecipients { recipients: r2 }
             => Err(StdError::GenericErr {
-                msg: mgmt::strings::err_allocation(10000000, 300000),
+                msg: mgmt::strings::err_allocation(10000000, 2500),
                 backtrace: None}));
         assert_query!(deps => Recipients => Recipients { recipients: r1 });
     }
 
     when "a stranger tries to set the recipients"
     then "they should not be able to" {
-        let r3 = vec![(canon!(deps, &MALLORY), 100)];
+        let r3 = vec![(canon!(deps, &MALLORY), Uint128::from(100u128))];
         let _ = tx(&mut deps,
             mock_env(1, 1, &MALLORY, coins(10, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r3 });
@@ -298,7 +303,7 @@ kukumba!(
 
     when "the admin tries to set the recipients"
     then "the recipients should be updated" {
-        let r4 = vec![(canon!(deps, &BOB), 200)];
+        let r4 = vec![(canon!(deps, &BOB), Uint128::from(200u128))];
         let _ = tx(&mut deps,
             mock_env(3, 3, &ALICE, coins(1000, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r4.clone() });
@@ -308,19 +313,19 @@ kukumba!(
     when "the admin tries to set the recipients above the total"
     then "an error should be returned"
     and  "the recipients should not be updated" {
-        let r5 = vec![(canon!(deps, &BOB), 10000000)];
+        let r5 = vec![(canon!(deps, &BOB), Uint128::from(10000000u128))];
         assert_tx!(deps
             => [ALICE, SIENNA=>0] at [block 4, T=4]
             => mgmt::msg::Handle::SetRecipients { recipients: r5 }
             => Err(StdError::GenericErr {
-                msg: mgmt::strings::err_allocation(10000000, 300000),
+                msg: mgmt::strings::err_allocation(10000000, 2500),
                 backtrace: None}) );
         assert_query!(deps => Recipients => Recipients { recipients: r4 });
     }
 
     when "a stranger tries to set the recipients"
     then "an error should be returned" {
-        let r6 = vec![(canon!(deps, &MALLORY), 100)];
+        let r6 = vec![(canon!(deps, &MALLORY), Uint128::from(100u128))];
         let _ = tx(&mut deps,
             mock_env(4, 4, &MALLORY, coins(0, "SIENNA")),
             mgmt::msg::Handle::SetRecipients { recipients: r6 });
@@ -336,7 +341,7 @@ kukumba!(
             (&ALICE, &coins(1000, "SIENNA")),
             (&BOB,   &coins(   0, "SIENNA")),
         ]);
-        let configured_claim_amount = 200;
+        let configured_claim_amount = Uint128::from(200u128);
         let r = vec![(canon!(deps, &BOB), configured_claim_amount)];
         let _ = tx(&mut deps,
             mock_env(0, 0, &ALICE, coins(1000, "SIENNA")),

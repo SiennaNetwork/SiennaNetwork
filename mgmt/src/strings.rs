@@ -1,3 +1,4 @@
+use cosmwasm_std::Uint128;
 use crate::types::Amount;
 
 lazy_static! {

@@ -21,7 +21,10 @@ pub fn harness (balances: &[(&HumanAddr, &[Coin])])-> ExternMock {
     let res = sienna_mgmt::init(
         &mut deps,
         mock_env(0, 0, balances[0].0, balances[0].1.into()),
-        sienna_mgmt::msg::Init { token: None }
+        sienna_mgmt::msg::Init {
+            token_addr: cosmwasm_std::HumanAddr::from("kukumba"),
+            token_hash: String::new()
+        }
     ).unwrap();
     assert_eq!(0, res.messages.len());
     deps
