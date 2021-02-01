@@ -24,7 +24,7 @@ pub type Launched = Option<Seconds>;
 pub type ErrorCount = u64;
 
 /// Log of executed claims
-pub type FulfilledClaims = Vec<(Address, Seconds, Amount)>;
+pub type FulfilledClaims = Vec<(Address, Seconds, Uint128)>;
 
 /// Configurable recipients.
 /// TODO what happens if this is empty?

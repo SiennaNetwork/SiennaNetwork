@@ -21,7 +21,7 @@ pub fn claimed (
     for (addr, time, amount) in claims.iter().rev() {
        if addr != a { continue }
        if *time > t { continue }
-       return *amount
+       return amount.u128()
     }
     0
 }

@@ -80,6 +80,7 @@ contract!(
         // allows their streams to be redirected in runtime-configurable
         // proportions.
         SetRecipients (recipients: crate::types::Allocation) {
+            use crate::strings::err_allocation;
             if sender != state.admin {
                 state.errors += 1;
                 err_auth(state)
@@ -89,7 +90,7 @@ contract!(
                     |acc, x| acc + x.1.u128()
                 );
                 if total > SCHEDULE.configurable_daily.u128() {
-                    err_msg(state, &crate::strings::err_allocation(
+                    err_msg(state, &err_allocation(
                         total,
                         SCHEDULE.configurable_daily.u128()
                     ))
@@ -109,8 +110,9 @@ contract!(
                 state.errors += 1;
                 err_auth(state)
             } else {
+                use crate::strings::UNDERWAY;
                 match state.launched {
-                    Some(_) => err_msg(state, &crate::strings::UNDERWAY),
+                    Some(_) => err_msg(state, &UNDERWAY),
                     None => {
                         let token_hash = state.token_hash.clone();
                         let token_addr = state.token_addr.clone();
@@ -136,10 +138,11 @@ contract!(
         // Recipients can call the Claim method to receive
         // the gains that have accumulated so far.
         Claim () {
+            use crate::strings::{PRELAUNCH, BROKEN};
             match &state.launched {
                 None => {
                     state.errors += 1;
-                    err_msg(state, &crate::strings::PRELAUNCH)
+                    err_msg(state, &PRELAUNCH)
                 },
                 Some(launch) => {
                     let now = env.block.time;
@@ -154,7 +157,7 @@ contract!(
                         &state.vested, now);
                     println!("claim, {}/{} @ {}", claimed, claimable, now);
                     if claimable < claimed {
-                        err_msg(state, &crate::strings::BROKEN)
+                        err_msg(state, &BROKEN)
                     } else {
                         let difference = claimable - claimed;
                         if difference > 0 {
@@ -172,7 +175,7 @@ contract!(
                                     state.vested.push((
                                         claimant_canon,
                                         now,
-                                        claimable
+                                        cosmwasm_std::Uint128::from(claimable)
                                     ));
                                     ok_msg(state, vec![msg])
                                 },

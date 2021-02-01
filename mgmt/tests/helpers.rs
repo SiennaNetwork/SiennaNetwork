@@ -1,7 +1,8 @@
 use cosmwasm_std::{
     HumanAddr, Coin,
     Extern, MemoryStorage,
-    Env, BlockInfo, MessageInfo, ContractInfo
+    Env, BlockInfo, MessageInfo, ContractInfo,
+    to_binary
 };
 
 use cosmwasm_std::testing::{
@@ -22,7 +23,7 @@ pub fn harness (balances: &[(&HumanAddr, &[Coin])])-> ExternMock {
         &mut deps,
         mock_env(0, 0, balances[0].0, balances[0].1.into()),
         sienna_mgmt::msg::Init {
-            token_addr: cosmwasm_std::HumanAddr::from("kukumba"),
+            token_addr: cosmwasm_std::HumanAddr::from("mgmt"),
             token_hash: String::new()
         }
     ).unwrap();
