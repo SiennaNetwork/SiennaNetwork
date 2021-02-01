@@ -7,9 +7,11 @@ use sienna_mgmt as mgmt;
 use mgmt::vesting::{DAY, MONTH, SCHEDULE};
 
 use cosmwasm_std::{
-    coins, StdError, HumanAddr, Api, Uint128, to_binary,
-    CosmosMsg, WasmMsg
+    coins, StdError, HumanAddr, Api, Uint128,
+    CosmosMsg, WasmMsg, Binary, to_binary, to_vec
 };
+
+use secret_toolkit::snip20;
 
 kukumba!(
 
@@ -182,18 +184,24 @@ kukumba!(
     and  "the first post-cliff vesting has not passed"
     then "the contract should transfer the cliff amount"
     and  "it should remember how much that address has claimed so far" {
-        let msg = cosmwasm_std::CosmosMsg::Bank(
-            cosmwasm_std::BankMsg::Send {
-                from_address: HumanAddr::from("contract"),
-                to_address:   PREDEF.clone(),
-                amount:       coins(75000, "SIENNA")});
         assert_tx!(deps
             => [PREDEF, SIENNA => 0] at [block 4, T=cliff]
             => mgmt::msg::Handle::Claim {}
             => Ok(cosmwasm_std::HandleResponse {
                 data:     None,
                 log:      vec![],
-                messages: vec![msg] }) );
+                messages: vec![
+                    snip20::handle::HandleMsg::Transfer {
+                        recipient: PREDEF.clone(),
+                        amount:    Uint128::from(75000u128),
+                        padding:   None
+                    }.to_cosmos_msg(
+                        256,
+                        "".to_string(),
+                        HumanAddr::from("mgmt"),
+                        None
+                    ).unwrap()
+                ] }) );
     }
 
     when "a predefined claimant tries to claim funds"
@@ -210,11 +218,16 @@ kukumba!(
     when "a predefined claimant tries to claim funds"
     and  "enough time has passed since their last claim"
     then "the contract should transfer more funds" {
-        let msg = cosmwasm_std::CosmosMsg::Bank(
-            cosmwasm_std::BankMsg::Send {
-                from_address: HumanAddr::from("contract"),
-                to_address:   PREDEF.clone(),
-                amount:       coins(75000, "SIENNA")});
+        let msg = snip20::handle::HandleMsg::Transfer {
+            recipient: PREDEF.clone(),
+            amount:    Uint128::from(75000u128),
+            padding:   None
+        }.to_cosmos_msg(
+            256,
+            "".to_string(),
+            HumanAddr::from("mgmt"),
+            None
+        ).unwrap();
         assert_tx!(deps
             => [PREDEF, SIENNA => 0] at [block 4, T=cliff+1*MONTH]
             => mgmt::msg::Handle::Claim {}
@@ -373,24 +386,23 @@ kukumba!(
     when "a configured claimant tries to claim funds"
     then "the contract should transfer them to their address"
     and  "it should remember how much that address has claimed so far" {
+        let msg = snip20::handle::HandleMsg::Transfer {
+            recipient: BOB.clone(),
+            amount:    configured_claim_amount,
+            padding:   None
+        }.to_cosmos_msg(
+            256,
+            "".to_string(),
+            HumanAddr::from("mgmt"),
+            None
+        ).unwrap();
         assert_tx!(deps
             => [BOB, SIENNA=>0] at [block 0, T=0]
             => mgmt::msg::Handle::Claim {}
             => Ok(cosmwasm_std::HandleResponse {
                 data:     None,
                 log:      vec![],
-                messages: vec![
-                    CosmosMsg::Wasm(WasmMsg::Execute {
-                        send:               vec![],
-                        contract_addr:      HumanAddr("mgmt".to_string()),
-                        callback_code_hash: "".to_string(),
-                        msg: to_binary(&secret_toolkit::snip20::handle::HandleMsg::Transfer {
-                            recipient: BOB.clone(),
-                            amount:    configured_claim_amount,
-                            padding:   None
-                        }).unwrap()
-                    })
-                ] }) );
+                messages: vec![ msg ] }) );
     }
 
     when "a configured claimant tries to claim funds"
@@ -407,29 +419,23 @@ kukumba!(
     when "a configured claimant tries to claim funds"
     and  "enough time has passed since their last claim"
     then "the contract should transfer more funds" {
-        //let msg = CosmosMsg::Bank(BankMsg::Send {
-            //from_address: HumanAddr::from("contract"),
-            //to_address:   BOB.clone(),
-            //amount:       coins(configured_claim_amount.into(), "SIENNA")
-        //});
+        let msg = snip20::handle::HandleMsg::Transfer {
+            recipient: BOB.clone(),
+            amount:    configured_claim_amount,
+            padding:   None
+        }.to_cosmos_msg(
+            256,
+            "".to_string(),
+            HumanAddr::from("mgmt"),
+            None
+        ).unwrap();
         assert_tx!(deps
             => [BOB, SIENNA=>0] at [block 2, T=DAY]
             => mgmt::msg::Handle::Claim {}
             => Ok(cosmwasm_std::HandleResponse {
                 data:     None,
                 log:      vec![],
-                messages: vec![
-                    CosmosMsg::Wasm(WasmMsg::Execute {
-                        send:               vec![],
-                        contract_addr:      HumanAddr("mgmt".to_string()),
-                        callback_code_hash: "".to_string(),
-                        msg: to_binary(&secret_toolkit::snip20::handle::HandleMsg::Transfer {
-                            recipient: BOB.clone(),
-                            amount:    configured_claim_amount,
-                            padding:   None
-                        }).unwrap()
-                    })
-                ] }) );
+                messages: vec![msg] }) );
     }
 
 );
