@@ -74,7 +74,7 @@ async function getClient (url, mnemonic, fees) {
     return await client.queryContractSmart(addr, msg)
   }
 
-  async function handle (addr, msg={}) {
+  async function execute (addr, msg={}) {
     return await client.execute(addr, msg)
   }
 }
