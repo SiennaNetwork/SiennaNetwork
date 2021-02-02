@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
 const {
-  EnigmaUtils,
-  Secp256k1Pen,
-  SigningCosmWasmClient,
+  Secp256k1Pen, encodeSecp256k1Pubkey,
   pubkeyToAddress,
-  encodeSecp256k1Pubkey,
+  EnigmaUtils: { GenerateNewSeed },
+  SigningCosmWasmClient,
 } = require('secretjs');
 
 process.on('unhandledRejection', up => {throw up})
@@ -16,51 +15,66 @@ if (require.main === module) main()
 
 async function main (
   httpUrl  = process.env.SECRET_REST_URL,
-  mnemonic = process.env.MNEMONIC,
-  customFees = {
-    upload: { amount: [{ amount: '2000000', denom: 'uscrt' }], gas: '2000000' },
-    init:   { amount: [{ amount:  '500000', denom: 'uscrt' }], gas:  '500000' },
-    exec:   { amount: [{ amount:  '500000', denom: 'uscrt' }], gas:  '500000' },
-    send:   { amount: [{ amount:   '80000', denom: 'uscrt' }], gas:   '80000' },
-  }
+  mnemonic = process.env.MNEMONIC || 'nomnemonic',
+  customFees =
+    { upload: { amount: [{ amount: '2000000', denom: 'uscrt' }], gas: '2000000' }
+    , init:   { amount: [{ amount:  '500000', denom: 'uscrt' }], gas:  '500000' }
+    , exec:   { amount: [{ amount:  '500000', denom: 'uscrt' }], gas:  '500000' }
+    , send:   { amount: [{ amount:   '80000', denom: 'uscrt' }], gas:   '80000' } }
 ) {
-  const signingPen = await Secp256k1Pen.fromMnemonic(mnemonic);
-  const pubkey = encodeSecp256k1Pubkey(signingPen.pubkey);
-  const accAddress = pubkeyToAddress(pubkey, 'secret');
-  const txEncryptionSeed = EnigmaUtils.GenerateNewSeed();
+
+  const client = await getClient(httpUrl, mnemonic, customFees)
+
+  const token = await client.deploy(
+    `${__dirname}/../dist/snip20-reference-impl.wasm.gz`,
+    "SIENNA SNIP20", {
+      name:      "Sienna",
+      symbol:    "SIENNA",
+      decimals:  "18",
+      admin:     client.address,
+      prng_seed: "insecure",
+      config:    { public_total_supply: true }
+    })
+
+  const mgmt = await client.deploy(
+    `${__dirname}/../dist/sienna-mgmt.wasm.gz`,
+    "SIENNA MGMT", {
+      token_addr: token,
+      token_hash: ""
+    })
+
+}
+
+async function getClient (url, mnemonic, fees) {
+  const pen = await Secp256k1Pen.fromMnemonic(mnemonic);
+  const pub = encodeSecp256k1Pubkey(pen.pubkey);
+  const addr = pubkeyToAddress(pub, 'secret');
+  const seed = EnigmaUtils.GenerateNewSeed();
   const client = new SigningCosmWasmClient(
-    httpUrl, accAddress,
-    (signBytes) => signingPen.sign(signBytes),
-    txEncryptionSeed, customFees,
+    url, addr,
+    b => pen.sign(b),
+    seed, fees,
   );
-  console.log('Wallet address: ', accAddress);
-
-  //const buildTarget = 'wasm32-unknown-unknown'
-  //const crateName = 'scrt_calc'
-  //const wasmPath = `${__dirname}/target/${buildTarget}/release/${crateName}.wasm`
-  const wasmPath = `${__dirname}/contract.wasm`
-  const wasm = require('fs').readFileSync(wasmPath)
-  const uploadReceipt = await client.upload(wasm, {});
-  const contract = await client.instantiate(
-    uploadReceipt.codeId,
-    { value: 101 },
-    'My Calculator' + Math.ceil(Math.random() * 10000),
-  );
-  const contractAddress = contract.contractAddress;
-  console.log('contract:', contract);
-
-  let response = await client.queryContractSmart(contractAddress, { equals: {}, })
-  console.log('Equals: ', response.value)
-
-  for (let operation of [
-    { add: { augend:        1 } },
-    { sub: { subtrahend:   10 } },
-    { mul: { multiplier:  100 } },
-    { div: { divisor:    1000 } }
-  ]) {
-    let response = await client.execute(contractAddress, operation)
-    console.log('Response to', operation, ': ', response)
-    response = await client.queryContractSmart(contractAddress, { equals: {}, })
-    console.log('Equals: ', response.value)
+  console.log('Wallet address: ', addr);
+  return { client, deploy, query, execute }
+  async function deploy (source, label, data = {}) {
+    const id = await upload(source)
+    const addr = await init(id, label, data)
+    addr
+  }
+  async function upload (source) {
+    const wasm = await require('fs').promises.readFile(source)
+    const uploadReceipt = await client.upload(wasm, {});
+    return uploadReceipt.codeId
+  }
+  async function init (id, label, data = {}) {
+    const contract = await client.instantiate(id, data, label)
+    return contract.contractAddress
+  }
+  async function query (addr, msg={}) {
+    return await client.queryContractSmart(addr, msg)
+  }
+  async function handle (addr, msg={}) {
+    return await client.execute(addr, msg)
   }
 }
