@@ -14,9 +14,9 @@ pub fn err_allocation (total: Amount, max: Amount) -> String {
 }
 
 pub fn warn_cliff_remainder () {
-    println!("WARNING: division with remainder for cliff amount")
+    //println!("WARNING: division with remainder for cliff amount")
 }
 
 pub fn warn_vesting_remainder () {
-    println!("WARNING: division with remainder for vesting amount")
+    //println!("WARNING: division with remainder for vesting amount")
 }

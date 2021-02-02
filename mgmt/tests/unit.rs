@@ -4,7 +4,7 @@
 use serde::ser::Serialize;
 
 use sienna_mgmt as mgmt;
-use mgmt::vesting::{DAY, MONTH, SCHEDULE};
+use mgmt::schedule::{DAY, MONTH, SCHEDULE};
 
 use cosmwasm_std::{
     coins, StdError, HumanAddr, Api, Uint128,

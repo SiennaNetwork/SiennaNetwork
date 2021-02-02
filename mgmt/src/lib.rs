@@ -1,11 +1,13 @@
 #[macro_use] extern crate fadroma;
 #[macro_use] extern crate lazy_static;
-pub mod types; use types::*;
-pub mod strings;
-pub mod vesting;
 #[macro_use] mod helpers;
 
-use vesting::{SCHEDULE, claimable, claimed};
+pub mod types; use types::*;
+pub mod strings;
+pub mod schedule; use schedule::SCHEDULE;
+pub mod vesting;
+
+use vesting::{claimable, claimed};
 use secret_toolkit::snip20::handle::{mint_msg, transfer_msg};
 
 /// Default value (according to Reuven on Discord)
@@ -155,7 +157,7 @@ contract!(
                     let claimed = claimed(
                         &claimant_canon,
                         &state.vested, now);
-                    println!("claim, {}/{} @ {}", claimed, claimable, now);
+                    //println!("claim, {}/{} @ {}", claimed, claimable, now);
                     if claimable < claimed {
                         err_msg(state, &BROKEN)
                     } else {

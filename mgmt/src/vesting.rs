@@ -1,15 +1,14 @@
 use crate::types::*;
 use crate::strings::{warn_cliff_remainder, warn_vesting_remainder};
-use cosmwasm_std::{HumanAddr, CanonicalAddr, Uint128, Decimal};
+use cosmwasm_std::{HumanAddr, CanonicalAddr};
 
-pub const DAY:   Seconds = 24*60*60;
-pub const MONTH: Seconds = 30*DAY;
+use crate::schedule::{SCHEDULE, DAY, MONTH};
 
 /// Imports the schedule from JSON during compilation.
-const SRC: &str = include_str!("schedule.yml");
-lazy_static! {
-    pub static ref SCHEDULE: Schedule = serde_yaml::from_str(&SRC).unwrap();
-}
+//const SRC: &str = include_str!("schedule.yml");
+//lazy_static! {
+    //pub static ref SCHEDULE: Schedule = serde_yaml::from_str(&SRC).unwrap();
+//}
 
 /// Determine how much an account has claimed
 /// based on the history of fulfilled claims.
