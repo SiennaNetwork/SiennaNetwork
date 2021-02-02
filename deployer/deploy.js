@@ -27,10 +27,10 @@ async function main (
 
   const token = await client.deploy(
     `${__dirname}/../dist/snip20-reference-impl.wasm.gz`,
-    "SIENNA SNIP20", {
+    `SIENNA SNIP20 (${+new Date().toISOString()})`, {
       name:      "Sienna",
       symbol:    "SIENNA",
-      decimals:  "18",
+      decimals:  18,
       admin:     client.address,
       prng_seed: "insecure",
       config:    { public_total_supply: true }
@@ -38,7 +38,7 @@ async function main (
 
   const mgmt = await client.deploy(
     `${__dirname}/../dist/sienna-mgmt.wasm.gz`,
-    "SIENNA MGMT", {
+    `SIENNA MGMT (${+new Date().toISOString()})`, {
       token_addr: token,
       token_hash: ""
     })
