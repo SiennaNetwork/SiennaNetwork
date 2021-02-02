@@ -49,7 +49,7 @@ async function getClient (url, mnemonic, fees) {
   const pen = await Secp256k1Pen.fromMnemonic(mnemonic);
   const pub = encodeSecp256k1Pubkey(pen.pubkey);
   const addr = pubkeyToAddress(pub, 'secret');
-  const seed = EnigmaUtils.GenerateNewSeed();
+  const seed = GenerateNewSeed();
   const sign = b => pen.sign(b)
   const client = new SigningCosmWasmClient(url, addr, sign, seed, fees);
 
