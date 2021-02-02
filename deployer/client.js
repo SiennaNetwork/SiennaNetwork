@@ -28,7 +28,10 @@ module.exports = async function getClient (url, mnemonic, fees) {
     const {contractAddress} = await client.instantiate(id, data, label)
     const hash = require('child_process').execFileSync('secretcli',
       ['query', 'compute', 'contract-hash', contractAddress])
-    return {address: contractAddress, hash: String(hash)}
+    return {
+      address: contractAddress,
+      hash: String(hash).slice(2)
+    }
   }
 
   async function query (addr, msg={}) {
