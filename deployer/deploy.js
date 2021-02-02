@@ -17,7 +17,7 @@ async function main (
   httpUrl  = process.env.SECRET_REST_URL,
   mnemonic = process.env.MNEMONIC,
   customFees =
-    { upload: { amount: [{ amount: '2000000', denom: 'uscrt' }], gas: '2000000' }
+    { upload: { amount: [{ amount: '3000000', denom: 'uscrt' }], gas: '3000000' }
     , init:   { amount: [{ amount:  '500000', denom: 'uscrt' }], gas:  '500000' }
     , exec:   { amount: [{ amount:  '500000', denom: 'uscrt' }], gas:  '500000' }
     , send:   { amount: [{ amount:   '80000', denom: 'uscrt' }], gas:   '80000' } }
@@ -27,7 +27,7 @@ async function main (
 
   const token = await client.deploy(
     `${__dirname}/../dist/snip20-reference-impl.wasm.gz`,
-    `SIENNA SNIP20 (${+new Date().toISOString()})`, {
+    `SIENNA SNIP20 (${new Date().toISOString()})`, {
       name:      "Sienna",
       symbol:    "SIENNA",
       decimals:  18,
@@ -38,7 +38,7 @@ async function main (
 
   const mgmt = await client.deploy(
     `${__dirname}/../dist/sienna-mgmt.wasm.gz`,
-    `SIENNA MGMT (${+new Date().toISOString()})`, {
+    `SIENNA MGMT (${new Date().toISOString()})`, {
       token_addr: token,
       token_hash: ""
     })
