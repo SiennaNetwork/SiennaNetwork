@@ -51,3 +51,6 @@ compile-optimized-reproducible: _optimizer
 deploy-localnet:
 	docker-compose up -d
 	docker-compose exec localnet /sienna/deployer/deploy.js
+test-localnet:
+	docker-compose up -d
+	docker-compose exec localnet /sienna/deployer/test.js
