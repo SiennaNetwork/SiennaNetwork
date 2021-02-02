@@ -46,4 +46,7 @@ compile-optimized-reproducible: _optimizer
 			--mount type=volume,source=registry_cache,target=/usr/local/cargo/registry    \
 			hackbg/secret-contract-optimizer:latest $$contract &&                         \
 		mv "$$contract.wasm.gz" "dist/$$contract.wasm.gz"; done
-	sha256sum -b dist/*.wasm.gz > dist/checksums.sha256.txt
+	gzip -df dist/*.wasm.gz
+	sha256sum -b dist/*.wasm > dist/checksums.sha256.txt
+deploy-localnet:
+	docker-compose up -d

@@ -15,7 +15,7 @@ if (require.main === module) main()
 
 async function main (
   httpUrl  = process.env.SECRET_REST_URL,
-  mnemonic = process.env.MNEMONIC,
+  mnemonic = process.env.MNEMONIC || 'cloth pig april pitch topic column festival vital plate spread jewel twin where crouch leader muscle city brief jacket elder ritual loop upper place',
   customFees =
     { upload: { amount: [{ amount: '3000000', denom: 'uscrt' }], gas: '3000000' }
     , init:   { amount: [{ amount:  '500000', denom: 'uscrt' }], gas:  '500000' }
@@ -25,8 +25,9 @@ async function main (
 
   const client = await getClient(httpUrl, mnemonic, customFees)
 
+  console.log('deploying token...')
   const token = await client.deploy(
-    `${__dirname}/../dist/snip20-reference-impl.wasm.gz`,
+    `${__dirname}/../dist/snip20-reference-impl.wasm`,
     `SIENNA SNIP20 (${new Date().toISOString()})`, {
       name:      "Sienna",
       symbol:    "SIENNA",
@@ -36,8 +37,9 @@ async function main (
       config:    { public_total_supply: true }
     })
 
+  console.log('deploying mgmt...')
   const mgmt = await client.deploy(
-    `${__dirname}/../dist/sienna-mgmt.wasm.gz`,
+    `${__dirname}/../dist/sienna-mgmt.wasm`,
     `SIENNA MGMT (${new Date().toISOString()})`, {
       token_addr: token,
       token_hash: ""
