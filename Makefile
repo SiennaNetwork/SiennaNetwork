@@ -50,3 +50,4 @@ compile-optimized-reproducible: _optimizer
 	sha256sum -b dist/*.wasm > dist/checksums.sha256.txt
 deploy-localnet:
 	docker-compose up -d
+	docker-compose exec localnet /sienna/deployer/deploy.js

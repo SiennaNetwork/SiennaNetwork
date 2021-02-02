@@ -14,7 +14,7 @@ module.exports = main
 if (require.main === module) main()
 
 async function main (
-  httpUrl  = process.env.SECRET_REST_URL,
+  httpUrl  = process.env.SECRET_REST_URL || 'http://localhost:1337',
   mnemonic = process.env.MNEMONIC || 'cloth pig april pitch topic column festival vital plate spread jewel twin where crouch leader muscle city brief jacket elder ritual loop upper place',
   customFees =
     { upload: { amount: [{ amount: '3000000', denom: 'uscrt' }], gas: '3000000' }
@@ -36,14 +36,16 @@ async function main (
       prng_seed: "insecure",
       config:    { public_total_supply: true }
     })
+  console.log(token)
 
   console.log('deploying mgmt...')
   const mgmt = await client.deploy(
     `${__dirname}/../dist/sienna-mgmt.wasm`,
     `SIENNA MGMT (${new Date().toISOString()})`, {
-      token_addr: token,
-      token_hash: ""
+      token_addr: token.address,
+      token_hash: token.hash
     })
+  console.log(mgmt)
 
 }
 
@@ -59,8 +61,7 @@ async function getClient (url, mnemonic, fees) {
 
   async function deploy (source, label, data = {}) {
     const id = await upload(source)
-    const addr = await init(id, label, data)
-    addr
+    return await init(id, label, data)
   }
   async function upload (source) {
     const wasm = await require('fs').promises.readFile(source)
@@ -68,8 +69,10 @@ async function getClient (url, mnemonic, fees) {
     return uploadReceipt.codeId
   }
   async function init (id, label, data = {}) {
-    const contract = await client.instantiate(id, data, label)
-    return contract.contractAddress
+    const {contractAddress} = await client.instantiate(id, data, label)
+    const hash = require('child_process').execFileSync('secretcli',
+      ['query', 'compute', 'contract-hash', contractAddress])
+    return {address: contractAddress, hash: String(hash)}
   }
 
   async function query (addr, msg={}) {
