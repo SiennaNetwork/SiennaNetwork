@@ -15,7 +15,7 @@ if (require.main === module) main()
 
 async function main (
   httpUrl  = process.env.SECRET_REST_URL,
-  mnemonic = process.env.MNEMONIC || 'nomnemonic',
+  mnemonic = process.env.MNEMONIC,
   customFees =
     { upload: { amount: [{ amount: '2000000', denom: 'uscrt' }], gas: '2000000' }
     , init:   { amount: [{ amount:  '500000', denom: 'uscrt' }], gas:  '500000' }
@@ -50,13 +50,11 @@ async function getClient (url, mnemonic, fees) {
   const pub = encodeSecp256k1Pubkey(pen.pubkey);
   const addr = pubkeyToAddress(pub, 'secret');
   const seed = EnigmaUtils.GenerateNewSeed();
-  const client = new SigningCosmWasmClient(
-    url, addr,
-    b => pen.sign(b),
-    seed, fees,
-  );
-  console.log('Wallet address: ', addr);
+  const sign = b => pen.sign(b)
+  const client = new SigningCosmWasmClient(url, addr, sign, seed, fees);
+
   return { client, deploy, query, execute }
+
   async function deploy (source, label, data = {}) {
     const id = await upload(source)
     const addr = await init(id, label, data)
@@ -71,9 +69,11 @@ async function getClient (url, mnemonic, fees) {
     const contract = await client.instantiate(id, data, label)
     return contract.contractAddress
   }
+
   async function query (addr, msg={}) {
     return await client.queryContractSmart(addr, msg)
   }
+
   async function handle (addr, msg={}) {
     return await client.execute(addr, msg)
   }
