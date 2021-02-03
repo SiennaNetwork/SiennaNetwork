@@ -31,6 +31,15 @@ pub fn harness (balances: &[(&HumanAddr, &[Coin])])-> ExternMock {
     deps
 }
 
+macro_rules! harness {
+    ($deps:ident ; $($AGENT:ident),+) => {
+        $(let $AGENT: HumanAddr = HumanAddr::from(stringify!($AGENT));)+
+        let mut $deps = harness(&[
+            $((&$AGENT, &[])),+
+        ]);
+    }
+}
+
 pub fn mock_env (
     height: u64, time: u64, sender: &HumanAddr
 ) -> Env { Env {

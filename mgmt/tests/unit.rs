@@ -19,8 +19,7 @@ kukumba!(
     #[init]
 
     given "the contract is not yet deployed" {
-        let ALICE: HumanAddr = HumanAddr::from("ALICE");
-        let mut deps = harness(&[(&ALICE, &[]),]);
+        harness!(deps; ALICE);
     }
 
     when "someone deploys the contract" {
@@ -43,12 +42,7 @@ kukumba!(
     #[launch]
 
     given "the contract is not yet launched" {
-        let ALICE:   HumanAddr = HumanAddr::from("ALICE");
-        let MALLORY: HumanAddr = HumanAddr::from("MALLORY");
-        let mut deps = harness(&[
-            (&ALICE,   &[]),
-            (&MALLORY, &[])
-        ]);
+        harness!(deps; ALICE, MALLORY);
     }
 
     when "a stranger tries to start the vesting"
@@ -82,12 +76,7 @@ kukumba!(
     #[claim_stranger]
 
     given "the contract is not yet launched" {
-        let ALICE:   HumanAddr = HumanAddr::from("ALICE");
-        let MALLORY: HumanAddr = HumanAddr::from("MALLORY");
-        let mut deps = harness(&[
-            (&ALICE,   &[]),
-            (&MALLORY, &[])
-        ]);
+        harness!(deps; ALICE, MALLORY);
     }
 
     when "a stranger tries to claim funds"
@@ -120,12 +109,7 @@ kukumba!(
     #[claim_predefined]
 
     given "the contract is not yet launched" {
-        let ALICE: HumanAddr = HumanAddr::from("ALICE");
-        let BOB:   HumanAddr = HumanAddr::from("BOB");
-        let mut deps = harness(&[
-            (&ALICE, &[]),
-            (&BOB,   &[]),
-        ]);
+        harness!(deps; ALICE, BOB);
 
         let configured_claim_amount: Uint128 = Uint128::from(200u128);
         let r = vec![(canon!(deps, &BOB), configured_claim_amount)];
@@ -274,14 +258,7 @@ kukumba!(
     #[configure]
 
     given "the contract is not yet launched" {
-        let ALICE:   HumanAddr = HumanAddr::from("ALICE");
-        let BOB:     HumanAddr = HumanAddr::from("BOB");
-        let MALLORY: HumanAddr = HumanAddr::from("MALLORY");
-        let mut deps = harness(&[
-            (&ALICE,   &[]),
-            (&BOB,     &[]),
-            (&MALLORY, &[])
-        ]);
+        harness!(deps; ALICE, BOB, MALLORY);
     }
 
     when "the admin sets the recipients"
@@ -353,12 +330,7 @@ kukumba!(
     #[claim_configurable]
 
     given "the contract is not yet launched" {
-        let ALICE: HumanAddr = HumanAddr::from("ALICE");
-        let BOB:   HumanAddr = HumanAddr::from("BOB");
-        let mut deps = harness(&[
-            (&ALICE, &[]),
-            (&BOB,   &[]),
-        ]);
+        harness!(deps; ALICE, BOB);
         let configured_claim_amount = Uint128::from(200u128);
         let r = vec![(canon!(deps, &BOB), configured_claim_amount)];
         let _ = tx(&mut deps,
