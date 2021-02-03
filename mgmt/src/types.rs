@@ -1,19 +1,17 @@
 use cosmwasm_std::{Uint128, CanonicalAddr, HumanAddr};
 
 /// Time
-pub const DAY:   Seconds = 24*60*60;
-pub const MONTH: Seconds = 30*DAY;
-
-/// Money
-pub const ONE_SIENNA: u128 = 1000000000000000000u128;
-
-/// Basic quantities.
 pub type Seconds    = u64;
 pub type Days       = u64;
 pub type Months     = u64;
+
+/// Money
 pub type Percentage = u64;
 pub type Amount     = u128;
-pub type Address    = CanonicalAddr;
+
+/// Addresses
+/// TODO unnecessary?
+pub type Address = CanonicalAddr;
 
 /// Creator of contract.
 pub type Admin = Address;

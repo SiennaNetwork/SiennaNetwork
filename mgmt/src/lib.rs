@@ -2,16 +2,24 @@
 #[macro_use] extern crate lazy_static;
 #[macro_use] mod helpers;
 
-pub mod types; use types::*;
-pub mod strings;
-pub mod schedule; use schedule::SCHEDULE;
+pub mod constants;
+use constants::BLOCK_SIZE;
+
+pub mod types;
+use types::{
+    Admin,
+    TokenAddress, CodeHash,
+    Launched, FulfilledClaims, Allocation,
+    ErrorCount
+};
+
+pub mod schedule;
+use schedule::SCHEDULE;
+
 pub mod vesting;
 
 use vesting::{claimable, claimed};
 use secret_toolkit::snip20::handle::{mint_msg, transfer_msg};
-
-/// Default value (according to Reuven on Discord)
-const BLOCK_SIZE: usize = 256;
 
 contract!(
 
@@ -44,8 +52,8 @@ contract!(
     //   to be passed as an argument
     // * makes the initializer the admin
     [Init] (deps, env, msg: {
-        token_addr: crate::TokenAddress,
-        token_hash: crate::CodeHash
+        token_addr: crate::types::TokenAddress,
+        token_hash: crate::types::CodeHash
     }) {
         State {
             admin:      canon!(deps, &env.message.sender),
@@ -82,7 +90,6 @@ contract!(
         // allows their streams to be redirected in runtime-configurable
         // proportions.
         SetRecipients (recipients: crate::types::Allocation) {
-            use crate::strings::err_allocation;
             if sender != state.admin {
                 state.errors += 1;
                 err_auth(state)
@@ -92,7 +99,7 @@ contract!(
                     |acc, x| acc + x.1.u128()
                 );
                 if total > SCHEDULE.configurable_daily.u128() {
-                    err_msg(state, &err_allocation(
+                    err_msg(state, &crate::constants::err_allocation(
                         total,
                         SCHEDULE.configurable_daily.u128()
                     ))
@@ -112,9 +119,8 @@ contract!(
                 state.errors += 1;
                 err_auth(state)
             } else {
-                use crate::strings::UNDERWAY;
                 match state.launched {
-                    Some(_) => err_msg(state, &UNDERWAY),
+                    Some(_) => err_msg(state, &crate::constants::UNDERWAY),
                     None => {
                         let token_hash = state.token_hash.clone();
                         let token_addr = state.token_addr.clone();
@@ -140,11 +146,10 @@ contract!(
         // Recipients can call the Claim method to receive
         // the gains that have accumulated so far.
         Claim () {
-            use crate::strings::{PRELAUNCH, BROKEN};
             match &state.launched {
                 None => {
                     state.errors += 1;
-                    err_msg(state, &PRELAUNCH)
+                    err_msg(state, &crate::constants::PRELAUNCH)
                 },
                 Some(launch) => {
                     let now = env.block.time;
@@ -159,7 +164,7 @@ contract!(
                         &state.vested, now);
                     //println!("claim, {}/{} @ {}", claimed, claimable, now);
                     if claimable < claimed {
-                        err_msg(state, &BROKEN)
+                        err_msg(state, &crate::constants::BROKEN)
                     } else {
                         let difference = claimable - claimed;
                         if difference > 0 {
@@ -184,7 +189,7 @@ contract!(
                                 Err(e) => (state, Err(e))
                             }
                         } else {
-                            err_msg(state, &crate::strings::NOTHING)
+                            err_msg(state, &crate::constants::NOTHING)
                         }
                     }
                 }

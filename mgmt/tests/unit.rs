@@ -5,7 +5,8 @@ use serde::ser::Serialize;
 
 use sienna_mgmt as mgmt;
 use mgmt::schedule::SCHEDULE;
-use mgmt::types::{DAY, MONTH, Schedule, Stream, Vesting};
+use mgmt::constants::{DAY, MONTH};
+use mgmt::types::{Schedule, Stream, Vesting};
 
 use cosmwasm_std::{
     coins, StdError, HumanAddr, Api, Uint128,
@@ -85,7 +86,7 @@ kukumba!(
             => from [MALLORY] at [block 4, T=4]
             => mgmt::msg::Handle::Claim {}
             => Err(StdError::GenericErr {
-                msg: mgmt::strings::PRELAUNCH.to_string(),
+                msg: mgmt::constants::PRELAUNCH.to_string(),
                 backtrace: None }) );
     }
 
@@ -102,7 +103,7 @@ kukumba!(
             => from [MALLORY] at [block 4, T=4]
             => mgmt::msg::Handle::Claim {}
             => Err(StdError::GenericErr {
-                msg: mgmt::strings::NOTHING.to_string(),
+                msg: mgmt::constants::NOTHING.to_string(),
                 backtrace: None }) );
     }
 
@@ -129,7 +130,7 @@ kukumba!(
                     => from [addr] at [block 4, T=1]
                     => mgmt::msg::Handle::Claim {}
                     => Err(StdError::GenericErr {
-                        msg: mgmt::strings::PRELAUNCH.to_string(),
+                        msg: mgmt::constants::PRELAUNCH.to_string(),
                         backtrace: None }) );
             },
             _ => unreachable!()
@@ -154,7 +155,7 @@ kukumba!(
                     => from [PREDEF] at [block 4, T=start-1]
                     => mgmt::msg::Handle::Claim {}
                     => Err(StdError::GenericErr {
-                        msg: mgmt::strings::NOTHING.to_string(),
+                        msg: mgmt::constants::NOTHING.to_string(),
                         backtrace: None }) );
             },
             _ => unreachable!()
@@ -192,7 +193,7 @@ kukumba!(
             => from [PREDEF] at [block 6, T=start+1]
             => mgmt::msg::Handle::Claim {}
             => Err(StdError::GenericErr {
-                msg: mgmt::strings::NOTHING.to_string(),
+                msg: mgmt::constants::NOTHING.to_string(),
                 backtrace: None }) );
     }
 
@@ -272,7 +273,7 @@ kukumba!(
             => from [ALICE] at [block 4, T=4]
             => mgmt::msg::Handle::SetRecipients { recipients: r2 }
             => Err(StdError::GenericErr {
-                msg: mgmt::strings::err_allocation(10000000, 2500),
+                msg: mgmt::constants::err_allocation(10000000, 2500),
                 backtrace: None}));
         assert_query!(deps => Recipients => Recipients { recipients: r1 });
     }
@@ -308,7 +309,7 @@ kukumba!(
             => from [ALICE] at [block 4, T=4]
             => mgmt::msg::Handle::SetRecipients { recipients: r5 }
             => Err(StdError::GenericErr {
-                msg: mgmt::strings::err_allocation(10000000, 2500),
+                msg: mgmt::constants::err_allocation(10000000, 2500),
                 backtrace: None}) );
         assert_query!(deps => Recipients => Recipients { recipients: r4 });
     }
@@ -340,7 +341,7 @@ kukumba!(
             => from [BOB] at [block 0, T=0]
             => mgmt::msg::Handle::Claim {}
             => Err(StdError::GenericErr {
-                msg: mgmt::strings::PRELAUNCH.to_string(),
+                msg: mgmt::constants::PRELAUNCH.to_string(),
                 backtrace: None }) );
     }
 
@@ -380,7 +381,7 @@ kukumba!(
             => from [BOB] at [block 1, T=1]
             => mgmt::msg::Handle::Claim {}
             => Err(StdError::GenericErr {
-                msg: mgmt::strings::NOTHING.to_string(),
+                msg: mgmt::constants::NOTHING.to_string(),
                 backtrace: None }) );
     }
 

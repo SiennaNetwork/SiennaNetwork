@@ -7,7 +7,8 @@ use svg::node::element::{Rectangle, Group, Text, Line, Polyline};
 use svg::node::element::path::Data;
 
 use sienna_mgmt::schedule::SCHEDULE;
-use sienna_mgmt::types::{Stream, Vesting, ONE_SIENNA};
+use sienna_mgmt::constants::ONE_SIENNA;
+use sienna_mgmt::types::{Stream, Vesting};
 
 macro_rules! svg {
     ($El:ident $($attr:ident = $value:expr)+) => {
@@ -109,6 +110,11 @@ fn main () {
             .add(svg!(&addr)));
 
         let mut points = String::new();
+
+        let mut now = t_min;
+        while (now < t_max) {
+        }
+
         //for _ in vec![] {
             //points.push_str("");
         //}
