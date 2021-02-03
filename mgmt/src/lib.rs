@@ -148,7 +148,7 @@ contract!(
                 },
                 Some(launch) => {
                     let now = env.block.time;
-                    let contract = env.contract.address;
+                    //let contract = env.contract.address;
                     let claimant = env.message.sender;
                     let claimant_canon = canon!(deps, &claimant);
                     let claimable = claimable(
