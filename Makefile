@@ -5,16 +5,6 @@
 .PHONY: optimizer
 .PHONY: compile-optimized-reproducible
 
-# Run tests
-test:
-	clear
-	tmux clear-history || true
-	cargo --color always test
-test-less:
-	make test 2>&1|less -R
-test-loop:
-	find . | entr make test
-
 # Build binaries
 compile: _compile sienna_token.wasm sienna_mgmt.wasm
 _compile:
@@ -48,9 +38,29 @@ compile-optimized-reproducible: _optimizer
 		mv "$$contract.wasm.gz" "dist/$$contract.wasm.gz"; done
 	gzip -df dist/*.wasm.gz
 	sha256sum -b dist/*.wasm > dist/checksums.sha256.txt
+
+# Integration testing
 deploy-localnet:
 	docker-compose up -d
 	docker-compose exec localnet /sienna/deployer/deploy.js
 test-localnet:
 	docker-compose up -d
 	docker-compose exec localnet /sienna/deployer/test.js
+
+# Unit testing
+test:
+	clear
+	tmux clear-history || true
+	cargo --color always test
+test-docker:
+	docker run -it \
+		-v "$$(pwd)":/contract \
+		-w /contract \
+		--mount type=volume,source="$$(basename "$$(pwd)")_cache",target=/code/target \
+		--mount type=volume,source=registry_cache,target=/usr/local/cargo/registry    \
+		rustlang/rust:nightly-slim \
+		cargo --color always test
+test-less:
+	make test 2>&1|less -R
+test-loop:
+	find . | entr make test
