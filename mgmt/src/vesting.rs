@@ -2,7 +2,7 @@ use crate::types::*;
 use crate::strings::{warn_cliff_remainder, warn_vesting_remainder};
 use cosmwasm_std::{HumanAddr, CanonicalAddr};
 
-use crate::schedule::{SCHEDULE, DAY, MONTH};
+use crate::schedule::SCHEDULE;
 
 /// Imports the schedule from JSON during compilation.
 //const SRC: &str = include_str!("schedule.yml");
