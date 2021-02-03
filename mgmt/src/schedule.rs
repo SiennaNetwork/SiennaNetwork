@@ -1,4 +1,10 @@
-use crate::types::*;
+//! This module defines the vesting schedule and recipients.
+//!
+//! The `SIENNA!` macro (defined in `helpers.rs`; also used by
+//! `monthly!`/`daily!`/`immediate!`) automatically multiplies
+//! the amounts by 10^18 (`ONE_SIENNA`, defined in `types.rs`)
+
+use crate::types::{ONE_SIENNA, Schedule, Stream};
 use cosmwasm_std::{HumanAddr, Uint128};
 
 /// Addresses
