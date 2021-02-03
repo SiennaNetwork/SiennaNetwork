@@ -5,7 +5,7 @@ use serde::ser::Serialize;
 
 use sienna_mgmt as mgmt;
 use mgmt::schedule::SCHEDULE;
-use mgmt::types::{DAY, MONTH};
+use mgmt::types::{DAY, MONTH, Schedule, Stream, Vesting};
 
 use cosmwasm_std::{
     coins, StdError, HumanAddr, Api, Uint128,
@@ -122,10 +122,9 @@ kukumba!(
 
     when "a predefined claimant tries to claim funds"
     then "they should be denied" {
-        match SCHEDULE.predefined.get(0).unwrap() {
-            mgmt::types::Stream::Monthly {
-                amount, addr, release_months, cliff_months, cliff_percent
-            } => {
+        let Stream { amount, addr, vesting } = SCHEDULE.predefined.get(0).unwrap()
+        match vesting {
+            Vesting::Monthly {..} => {
                 assert_tx!(deps
                     => from [addr] at [block 4, T=1]
                     => mgmt::msg::Handle::Claim {}
@@ -146,16 +145,13 @@ kukumba!(
 
     when "a predefined claimant tries to claim funds before the cliff"
     then "they should be denied" {
-        let PREDEF;
-        let cliff;
-        match SCHEDULE.predefined.get(0).unwrap() {
-            mgmt::types::Stream::Monthly {
-                amount, addr, release_months, cliff_months, cliff_percent
-            } => {
-                PREDEF = addr;
-                cliff = cliff_months*MONTH;
+        let start;
+        let Stream { amount, addr: PREDEF, vesting } = SCHEDULE.predefined.get(0).unwrap();
+        match vesting {
+            Vesting::Monthly { start_at, duration, cliff } => {
+                start = *start_at;
                 assert_tx!(deps
-                    => from [PREDEF] at [block 4, T=cliff-1]
+                    => from [PREDEF] at [block 4, T=start-1]
                     => mgmt::msg::Handle::Claim {}
                     => Err(StdError::GenericErr {
                         msg: mgmt::strings::NOTHING.to_string(),
@@ -170,7 +166,7 @@ kukumba!(
     then "the contract should transfer the cliff amount"
     and  "it should remember how much that address has claimed so far" {
         assert_tx!(deps
-            => from [PREDEF] at [block 4, T=cliff]
+            => from [PREDEF] at [block 4, T=start]
             => mgmt::msg::Handle::Claim {}
             => Ok(cosmwasm_std::HandleResponse {
                 data:     None,
@@ -193,7 +189,7 @@ kukumba!(
     and  "the claimant has already claimed within this time period"
     then "the contract should respond that there's nothing at this time" {
         assert_tx!(deps
-            => from [PREDEF] at [block 6, T=cliff+1]
+            => from [PREDEF] at [block 6, T=start+1]
             => mgmt::msg::Handle::Claim {}
             => Err(StdError::GenericErr {
                 msg: mgmt::strings::NOTHING.to_string(),
@@ -214,14 +210,14 @@ kukumba!(
             None
         ).unwrap();
         assert_tx!(deps
-            => from [PREDEF] at [block 4, T=cliff+1*MONTH]
+            => from [PREDEF] at [block 4, T=start+1*MONTH]
             => mgmt::msg::Handle::Claim {}
             => Ok(cosmwasm_std::HandleResponse {
                 data:     None,
                 log:      vec![],
                 messages: vec![msg.clone()] }) );
         assert_tx!(deps
-            => from [PREDEF] at [block 4, T=cliff+2*MONTH]
+            => from [PREDEF] at [block 4, T=start+2*MONTH]
             => mgmt::msg::Handle::Claim {}
             => Ok(cosmwasm_std::HandleResponse {
                 data:     None,
@@ -233,15 +229,14 @@ kukumba!(
     and  "this is the first time they make a claim"
     and  "it is a long time after the end of the vesting"
     then "the contract should transfer everything in one go" {
-        match SCHEDULE.predefined.get(1).unwrap() {
-            mgmt::types::Stream::Daily {
-                amount, addr, release_months, cliff_months, cliff_percent
-            } => {
-                let T = (cliff_months + release_months + 48) * MONTH;
+        let Stream { amount, addr: PREDEF, vesting } = SCHEDULE.predefined.get(1).unwrap();
+        match vesting {
+            Vesting::Daily { start_at, duration, cliff } => {
+                let T = (start_at + duration) + 48 * MONTH;
                 let msg = cosmwasm_std::CosmosMsg::Bank(
                     cosmwasm_std::BankMsg::Send {
                         from_address: HumanAddr::from("contract"),
-                        to_address:   addr.clone(),
+                        to_address:   PREDEF.clone(),
                         amount:       coins(2000000, "SIENNA")});
                 assert_tx!(deps
                     => from [addr] at [block 4, T=T]
