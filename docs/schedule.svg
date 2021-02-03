@@ -1,40 +1,136 @@
 <svg font-family="monospace" font-size="20" height="3000" overflow="auto" viewBox="-200 -200 2400 3400" width="2000" xmlns="http://www.w3.org/2000/svg">
 <rect fill="white" height="120%" width="120%" x="-20%" y="-20%"/>
-<g class="stream monthly" data-h="-inf" data-percent="0" id="secret1DevFund">
-<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+<g class="stream monthly" data-h="264.6572939257569" data-percent="0.15" id="secret1DevFund" transform="translate(0,0)">
+<line class="stream-border" stroke="#000" stroke-width="0.5" x1="0" x2="2000" y1="0" y2="0"/>
+<text class="stream-id" text-anchor="start" x="2010" y="132.32864696287845">
+secret1DevFund
+</text>
+<polyline class="stream-flow" fill="rgba(64,255,64,0.2)" points="" stroke="rgba(0,128,0,0.5)" stroke-width="0.5"/>
+<text class="stream-amount" text-anchor="end" x="-10" y="132.32864696287845">
+1500000
+</text>
+<rect class="stream-bg" fill="transparent" height="264.6572939257569" width="2000" x="0" y="0"/>
 </g>
-<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Investors">
-<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+<g class="stream daily" data-h="265.6175956210247" data-percent="0.2" id="secret1Investors" transform="translate(0,264.6572939257569)">
+<line class="stream-border" stroke="#000" stroke-width="0.5" x1="0" x2="2000" y1="0" y2="0"/>
+<text class="stream-id" text-anchor="start" x="2010" y="132.80879781051235">
+secret1Investors
+</text>
+<polyline class="stream-flow" fill="rgba(64,255,64,0.2)" points="" stroke="rgba(0,128,0,0.5)" stroke-width="0.5"/>
+<text class="stream-amount" text-anchor="end" x="-10" y="132.80879781051235">
+2000000
+</text>
+<rect class="stream-bg" fill="transparent" height="265.6175956210247" width="2000" x="0" y="0"/>
 </g>
-<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Founder1">
-<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+<g class="stream daily" data-h="262.7909420886611" data-percent="0.0897" id="secret1Founder1" transform="translate(0,530.2748895467817)">
+<line class="stream-border" stroke="#000" stroke-width="0.5" x1="0" x2="2000" y1="0" y2="0"/>
+<text class="stream-id" text-anchor="start" x="2010" y="131.39547104433055">
+secret1Founder1
+</text>
+<polyline class="stream-flow" fill="rgba(64,255,64,0.2)" points="" stroke="rgba(0,128,0,0.5)" stroke-width="0.5"/>
+<text class="stream-amount" text-anchor="end" x="-10" y="131.39547104433055">
+897000
+</text>
+<rect class="stream-bg" fill="transparent" height="262.7909420886611" width="2000" x="0" y="0"/>
 </g>
-<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Founder2">
-<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+<g class="stream daily" data-h="262.7909420886611" data-percent="0.0897" id="secret1Founder2" transform="translate(0,793.0658316354427)">
+<line class="stream-border" stroke="#000" stroke-width="0.5" x1="0" x2="2000" y1="0" y2="0"/>
+<text class="stream-id" text-anchor="start" x="2010" y="131.39547104433055">
+secret1Founder2
+</text>
+<polyline class="stream-flow" fill="rgba(64,255,64,0.2)" points="" stroke="rgba(0,128,0,0.5)" stroke-width="0.5"/>
+<text class="stream-amount" text-anchor="end" x="-10" y="131.39547104433055">
+897000
+</text>
+<rect class="stream-bg" fill="transparent" height="262.7909420886611" width="2000" x="0" y="0"/>
 </g>
-<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Founder3">
-<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+<g class="stream daily" data-h="259.7863646021646" data-percent="0.0437" id="secret1Founder3" transform="translate(0,1055.8567737241037)">
+<line class="stream-border" stroke="#000" stroke-width="0.5" x1="0" x2="2000" y1="0" y2="0"/>
+<text class="stream-id" text-anchor="start" x="2010" y="129.8931823010823">
+secret1Founder3
+</text>
+<polyline class="stream-flow" fill="rgba(64,255,64,0.2)" points="" stroke="rgba(0,128,0,0.5)" stroke-width="0.5"/>
+<text class="stream-amount" text-anchor="end" x="-10" y="129.8931823010823">
+437000
+</text>
+<rect class="stream-bg" fill="transparent" height="259.7863646021646" width="2000" x="0" y="0"/>
 </g>
-<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Founder4">
-<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+<g class="stream daily" data-h="248.6006940690386" data-percent="0.0069" id="secret1Founder4" transform="translate(0,1315.6431383262684)">
+<line class="stream-border" stroke="#000" stroke-width="0.5" x1="0" x2="2000" y1="0" y2="0"/>
+<text class="stream-id" text-anchor="start" x="2010" y="124.3003470345193">
+secret1Founder4
+</text>
+<polyline class="stream-flow" fill="rgba(64,255,64,0.2)" points="" stroke="rgba(0,128,0,0.5)" stroke-width="0.5"/>
+<text class="stream-amount" text-anchor="end" x="-10" y="124.3003470345193">
+69000
+</text>
+<rect class="stream-bg" fill="transparent" height="248.6006940690386" width="2000" x="0" y="0"/>
 </g>
-<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Advisor1">
-<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+<g class="stream daily" data-h="245.78158990222602" data-percent="0.005" id="secret1Advisor1" transform="translate(0,1564.243832395307)">
+<line class="stream-border" stroke="#000" stroke-width="0.5" x1="0" x2="2000" y1="0" y2="0"/>
+<text class="stream-id" text-anchor="start" x="2010" y="122.89079495111301">
+secret1Advisor1
+</text>
+<polyline class="stream-flow" fill="rgba(64,255,64,0.2)" points="" stroke="rgba(0,128,0,0.5)" stroke-width="0.5"/>
+<text class="stream-amount" text-anchor="end" x="-10" y="122.89079495111301">
+50000
+</text>
+<rect class="stream-bg" fill="transparent" height="245.78158990222602" width="2000" x="0" y="0"/>
 </g>
-<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Advisor2">
-<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+<g class="stream daily" data-h="245.78158990222602" data-percent="0.005" id="secret1Advisor2" transform="translate(0,1810.025422297533)">
+<line class="stream-border" stroke="#000" stroke-width="0.5" x1="0" x2="2000" y1="0" y2="0"/>
+<text class="stream-id" text-anchor="start" x="2010" y="122.89079495111301">
+secret1Advisor2
+</text>
+<polyline class="stream-flow" fill="rgba(64,255,64,0.2)" points="" stroke="rgba(0,128,0,0.5)" stroke-width="0.5"/>
+<text class="stream-amount" text-anchor="end" x="-10" y="122.89079495111301">
+50000
+</text>
+<rect class="stream-bg" fill="transparent" height="245.78158990222602" width="2000" x="0" y="0"/>
 </g>
-<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Advisor3">
-<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+<g class="stream daily" data-h="221.18436058914997" data-percent="0.001" id="secret1Advisor3" transform="translate(0,2055.807012199759)">
+<line class="stream-border" stroke="#000" stroke-width="0.5" x1="0" x2="2000" y1="0" y2="0"/>
+<text class="stream-id" text-anchor="start" x="2010" y="110.59218029457499">
+secret1Advisor3
+</text>
+<polyline class="stream-flow" fill="rgba(64,255,64,0.2)" points="" stroke="rgba(0,128,0,0.5)" stroke-width="0.5"/>
+<text class="stream-amount" text-anchor="end" x="-10" y="110.59218029457499">
+10000
+</text>
+<rect class="stream-bg" fill="transparent" height="221.18436058914997" width="2000" x="0" y="0"/>
 </g>
-<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Advisor4">
-<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+<g class="stream daily" data-h="193.12955627950913" data-percent="0.0005" id="secret1Advisor4" transform="translate(0,2276.991372788909)">
+<line class="stream-border" stroke="#000" stroke-width="0.5" x1="0" x2="2000" y1="0" y2="0"/>
+<text class="stream-id" text-anchor="start" x="2010" y="96.56477813975457">
+secret1Advisor4
+</text>
+<polyline class="stream-flow" fill="rgba(64,255,64,0.2)" points="" stroke="rgba(0,128,0,0.5)" stroke-width="0.5"/>
+<text class="stream-amount" text-anchor="end" x="-10" y="96.56477813975457">
+5000
+</text>
+<rect class="stream-bg" fill="transparent" height="193.12955627950913" width="2000" x="0" y="0"/>
 </g>
-<g class="stream immediate" data-h="-inf" data-percent="0" id="secret1AdvisorR">
-<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+<g class="stream immediate" data-h="250.23928854974292" data-percent="0.0085" id="secret1AdvisorR" transform="translate(0,2470.120929068418)">
+<line class="stream-border" stroke="#000" stroke-width="0.5" x1="0" x2="2000" y1="0" y2="0"/>
+<text class="stream-id" text-anchor="start" x="2010" y="125.11964427487146">
+secret1AdvisorR
+</text>
+<polyline class="stream-flow" fill="rgba(64,255,64,0.2)" points="" stroke="rgba(0,128,0,0.5)" stroke-width="0.5"/>
+<text class="stream-amount" text-anchor="end" x="-10" y="125.11964427487146">
+85000
+</text>
+<rect class="stream-bg" fill="rgba(64,255,64,0.2" height="250.23928854974292" width="2000" x="0" y="0"/>
 </g>
-<g class="stream immediate" data-h="-inf" data-percent="0" id="secret1Remaining">
-<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+<g class="stream immediate" data-h="267.5002662925762" data-percent="0.37" id="secret1Remaining" transform="translate(0,2720.3602176181607)">
+<line class="stream-border" stroke="#000" stroke-width="0.5" x1="0" x2="2000" y1="0" y2="0"/>
+<text class="stream-id" text-anchor="start" x="2010" y="133.7501331462881">
+secret1Remaining
+</text>
+<polyline class="stream-flow" fill="rgba(64,255,64,0.2)" points="" stroke="rgba(0,128,0,0.5)" stroke-width="0.5"/>
+<text class="stream-amount" text-anchor="end" x="-10" y="133.7501331462881">
+3700000
+</text>
+<rect class="stream-bg" fill="rgba(64,255,64,0.2" height="267.5002662925762" width="2000" x="0" y="0"/>
 </g>
 <g id="grid">
 <rect fill="none" height="3000" stroke="red" stroke-width="2" width="2000" x="0" y="0"/>
@@ -42,61 +138,61 @@
 T=0
 </text>
 <text text-anchor="start" x="2000" y="-15">
-T=1000000000
+T=100000000
 </text>
 <line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="25.929127052722556" x2="25.929127052722556" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="51.85825410544511" x2="51.85825410544511" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="77.78738115816768" x2="77.78738115816768" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="103.71650821089023" x2="103.71650821089023" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="129.64563526361277" x2="129.64563526361277" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="155.57476231633535" x2="155.57476231633535" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="181.5038893690579" x2="181.5038893690579" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="207.43301642178045" x2="207.43301642178045" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="233.362143474503" x2="233.362143474503" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="259.29127052722555" x2="259.29127052722555" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="285.2203975799481" x2="285.2203975799481" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="311.1495246326707" x2="311.1495246326707" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="337.07865168539325" x2="337.07865168539325" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="363.0077787381158" x2="363.0077787381158" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="388.93690579083835" x2="388.93690579083835" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="414.8660328435609" x2="414.8660328435609" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="440.79515989628345" x2="440.79515989628345" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="466.724286949006" x2="466.724286949006" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="492.65341400172855" x2="492.65341400172855" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="518.5825410544511" x2="518.5825410544511" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="544.5116681071737" x2="544.5116681071737" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="570.4407951598962" x2="570.4407951598962" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="596.3699222126188" x2="596.3699222126188" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="622.2990492653414" x2="622.2990492653414" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="648.2281763180639" x2="648.2281763180639" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="674.1573033707865" x2="674.1573033707865" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="700.086430423509" x2="700.086430423509" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="726.0155574762316" x2="726.0155574762316" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="751.9446845289541" x2="751.9446845289541" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="777.8738115816767" x2="777.8738115816767" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="803.8029386343992" x2="803.8029386343992" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="829.7320656871218" x2="829.7320656871218" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="855.6611927398444" x2="855.6611927398444" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="881.5903197925669" x2="881.5903197925669" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="907.5194468452895" x2="907.5194468452895" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="933.448573898012" x2="933.448573898012" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="959.3777009507346" x2="959.3777009507346" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="985.3068280034571" x2="985.3068280034571" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="1011.2359550561797" x2="1011.2359550561797" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="1037.1650821089022" x2="1037.1650821089022" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="1063.0942091616248" x2="1063.0942091616248" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="1089.0233362143474" x2="1089.0233362143474" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="1114.95246326707" x2="1114.95246326707" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="1140.8815903197924" x2="1140.8815903197924" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="1166.810717372515" x2="1166.810717372515" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="1192.7398444252376" x2="1192.7398444252376" y1="0" y2="3000"/>
 <line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
-<line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.4)" x1="155.57476231633535" x2="155.57476231633535" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.4)" x1="311.1495246326707" x2="311.1495246326707" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.4)" x1="466.724286949006" x2="466.724286949006" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.4)" x1="622.2990492653414" x2="622.2990492653414" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.4)" x1="777.8738115816767" x2="777.8738115816767" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.4)" x1="933.448573898012" x2="933.448573898012" y1="0" y2="3000"/>
 </g>
 </svg>
