@@ -45,7 +45,7 @@ test-localnet:
 	docker-compose exec localnet /sienna/deployer/test.js
 
 # Unit testing
-.PHONY: test test-docker test-less test-loop
+.PHONY: test test-docker test-less test-loop coverage
 test:
 	clear
 	tmux clear-history || true
@@ -62,6 +62,19 @@ test-less:
 	make test 2>&1|less -R
 test-loop:
 	find . | entr make test
+coverage:
+	rustup component add llvm-tools-preview
+	cargo install grcov
+	cargo build --manifest-path=mgmt/Cargo.toml
+	cargo build --manifest-path=mgmt/Cargo.toml --tests
+	cargo test --manifest-path=mgmt/Cargo.toml || true
+	grcov mgmt \
+		-s mgmt \
+		--binary-path ./target/debug/ \
+		-t html \
+		--branch \
+		--ignore-not-existing \
+		-o ./target/debug/coverage/
 
 # Extra artifacts
 .PHONY: schema schedule
@@ -69,3 +82,8 @@ schema:
 	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schema
 schedule:
 	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schedule
+
+# Debugging
+.PHONY: expand
+expand:
+	cargo expand --manifest-path=mgmt/Cargo.toml --color=always 2>&1 | less -R

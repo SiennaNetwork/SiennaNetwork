@@ -2,3 +2,4 @@ target
 *.wat
 *.wasm
 *.wasm.gz
+*.profraw
