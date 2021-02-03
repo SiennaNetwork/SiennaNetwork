@@ -150,18 +150,22 @@ fn main () {
         svg!(Text x=width y=-15 text_anchor="end")
             .add(svg!(format!("T={} seconds", t_max))));
 
-    // grid lines
-    let day_width = width as f64 / ((t_max-t_min)/(24*60*60)) as f64;
-    let week_width = 15.0 * day_width;
-    println!("{} {} {}", width, day_width, week_width);
-    let n_weeks = 47;
+    // grid lines - thin
+    let n_weeks = 48;
+    let week_width = width / n_weeks as f64;
+    let day_width = week_width / 7.0;
     for i in 0..n_weeks {
         let x = i as f64 * week_width;
         grid = grid.add(
             svg!(Line x1=x x2=x y1=0 y2=height stroke="rgba(0,0,0,0.2)"));
     }
-    for i in 0..n_weeks/6 {
-        let x = i as f64 * 6.0 * week_width;
+
+    // grid lines - thick
+    let weeks_in_month = 4;
+    let mut n_months = n_weeks/weeks_in_month;
+    if n_weeks % weeks_in_month > 0 { n_months += 1; }
+    for i in 0..n_months {
+        let x = i as f64 * weeks_in_month as f64 * week_width;
         grid = grid.add(
             svg!(Line x1=x x2=x y1=0 y2=height stroke="rgba(0,0,0,0.4)"));
     }
