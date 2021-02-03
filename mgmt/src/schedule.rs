@@ -7,7 +7,9 @@
 use crate::types::{ONE_SIENNA, Schedule, Stream};
 use cosmwasm_std::{HumanAddr, Uint128};
 
-/// Addresses
+/// Addresses.
+/// Internally, the vesting macros call `recipient!(Something)`
+/// to establish the recipient addresses at compile time.
 macro_rules! recipient {
     (DevFund)   => { HumanAddr::from("secret1DevFund")   };
     (Investors) => { HumanAddr::from("secret1Investors") };
@@ -25,6 +27,7 @@ macro_rules! recipient {
 }
 
 lazy_static! {
+    /// The hardcoded token vesting schedule.
     pub static ref SCHEDULE: Schedule = Schedule {
 
         total: SIENNA!(10000000),

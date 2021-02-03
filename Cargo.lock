@@ -830,6 +830,7 @@ dependencies = [
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
  "serde",
  "snafu",
+ "svg",
 ]
 
 [[package]]
@@ -892,6 +893,12 @@ name = "subtle"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e81da0851ada1f3e9d4312c704aa4f8806f0f9d69faaf8df2f3464b4a9437c2"
+
+[[package]]
+name = "svg"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcbef9cf3cf75dd7772fb1f40dd6d90278a5263454db94ee399500ee9918aaa7"
 
 [[package]]
 name = "syn"
