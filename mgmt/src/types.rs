@@ -55,27 +55,56 @@ pub struct Schedule {
     pub predefined:    Vec<Stream>,
 }
 
-/// A predefined vesting stream from `schedule.yml`
+/// A predefined stream of transactions
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
-#[serde(rename_all = "snake_case")]
-#[serde(tag = "release_mode")]
-pub enum Stream {
-    Immediate {
-        amount: Uint128,
-        addr:   HumanAddr
-    },
-    Daily {
-        amount:         Uint128,
-        addr:           HumanAddr,
-        release_months: Months,
-        cliff_months:   Months,
-        cliff_percent:  Percentage
-    },
-    Monthly {
-        amount:         Uint128,
-        addr:           HumanAddr,
-        release_months: Months,
-        cliff_months:   Months,
-        cliff_percent:  Percentage
-    },
+pub struct Stream {
+    pub amount:  Uint128,
+    pub addr:    HumanAddr,
+    pub vesting: Vesting
 }
+
+/// The vesting schedule of an indiviudal stream
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub enum Vesting {
+    /// Release everything immediately
+    Immediate {},
+    /// After releasing `cliff_percent` at `cliff`,
+    /// release every 24 hours for `duration` seconds
+    Daily {
+        duration:      Seconds,
+        cliff:         Seconds,
+        cliff_percent: Percentage
+    },
+    /// After releasing `cliff_percent` at `cliff`,
+    /// release every 720 hours for `duration` seconds
+    Monthly {
+        duration:      Seconds,
+        cliff:         Seconds,
+        cliff_percent: Percentage
+    }
+}
+
+///// A predefined vesting stream from `schedule.yml`
+//#[derive(serde::Serialize, serde::Deserialize, Debug)]
+//#[serde(rename_all = "snake_case")]
+//#[serde(tag = "release_mode")]
+//pub enum Stream {
+    //Immediate {
+        //amount: Uint128,
+        //addr:   HumanAddr
+    //},
+    //Daily {
+        //amount:        Uint128,
+        //addr:          HumanAddr,
+        //duration:      Seconds,
+        //cliff:         Seconds,
+        //cliff_percent: Percentage
+    //},
+    //Monthly {
+        //amount:        Uint128,
+        //addr:          HumanAddr,
+        //duration:      Months,
+        //cliff:         Months,
+        //cliff_percent: Percentage
+    //},
+//}

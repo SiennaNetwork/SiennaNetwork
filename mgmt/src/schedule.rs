@@ -4,7 +4,7 @@
 //! `monthly!`/`daily!`/`immediate!`) automatically multiplies
 //! the amounts by 10^18 (`ONE_SIENNA`, defined in `types.rs`)
 
-use crate::types::{ONE_SIENNA, Schedule, Stream};
+use crate::types::{ONE_SIENNA, Schedule, Stream, Vesting, MONTH};
 use cosmwasm_std::{HumanAddr, Uint128};
 
 /// Addresses.

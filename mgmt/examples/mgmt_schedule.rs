@@ -7,7 +7,7 @@ use svg::node::element::{Rectangle, Group, Text, Line, Polyline};
 use svg::node::element::path::Data;
 
 use sienna_mgmt::schedule::SCHEDULE;
-use sienna_mgmt::types::{Stream, ONE_SIENNA};
+use sienna_mgmt::types::{Stream, Vesting, ONE_SIENNA};
 
 macro_rules! svg {
     ($El:ident $($attr:ident = $value:expr)+) => {
@@ -44,7 +44,10 @@ fn main() {
     let mut y = 0f64;
 
     // data
-    for stream in SCHEDULE.predefined.iter() {
+    for Stream { addr, amount, vesting } in SCHEDULE.predefined.iter() {
+
+        let amount = amount.u128() / ONE_SIENNA;
+        let addr   = addr.to_string();
 
         let mut g = svg!(Group class="stream"
             transform=format!("translate(0,{})", y));
@@ -52,40 +55,22 @@ fn main() {
         let mut bg = svg!(Rectangle class="stream-bg"
             x=0 y=0 width=width fill="transparent");
 
-        let mut addr: String;
-        let mut amount: u128;
-        match stream {
+        match vesting {
 
-            Stream::Immediate{
-                addr:_addr, amount:_amount
-            } => {
+            Vesting::Immediate {} => {
                 g = g.set("class", "stream immediate");
                 bg = bg.set("fill", "rgba(64,255,64,0.2");
-                addr = _addr.to_string();
-                amount = _amount.u128();
             },
 
-            Stream::Monthly{
-                addr:_addr, amount:_amount,
-                release_months, cliff_months, cliff_percent
-            } => {
+            Vesting::Monthly {duration, cliff, cliff_percent} => {
                 g = g.set("class", "stream monthly");
-                addr = _addr.to_string();
-                amount = _amount.u128();
             },
 
-            Stream::Daily{
-                addr:_addr, amount:_amount,
-                release_months, cliff_months, cliff_percent
-            } => {
+            Vesting::Daily {duration, cliff, cliff_percent} => {
                 g = g.set("class", "stream daily");
-                addr = _addr.to_string();
-                amount = _amount.u128();
             }
 
-        }
-
-        amount = amount / ONE_SIENNA;
+        };
 
         let percent = amount as f64 / total as f64;
         g = g.set("data-percent", percent.to_string());
@@ -118,7 +103,7 @@ fn main() {
             x=-10 y=h/2.0 text_anchor="end")
             .add(svg!(amount.to_string())));
 
-        g = g.set("id", addr.to_string());
+        g = g.set("id", addr);
 
         bg = bg.set("height", h);
         g = g.add(bg);

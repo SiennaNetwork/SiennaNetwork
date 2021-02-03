@@ -19,31 +19,36 @@ macro_rules! canon {
 /// Schedules
 macro_rules! monthly {
     ($a:ident $b:literal $c:literal $d:literal $e:literal %) => {
-        Stream::Monthly {
+        Stream {
             addr: recipient!($a),
             amount:  SIENNA!($b),
-            release_months:  $c,
-            cliff_months:    $d,
-            cliff_percent:   $e
+            vesting: Vesting::Monthly {
+                duration:      $c * MONTH,
+                cliff:         $d * MONTH,
+                cliff_percent: $e
+            }
         }
     }
 }
 macro_rules! daily {
     ($a:ident $b:literal $c:literal $d:literal $e:literal %) => {
-        Stream::Daily {
+        Stream {
             addr: recipient!($a),
             amount:  SIENNA!($b),
-            release_months:  $c,
-            cliff_months:    $d,
-            cliff_percent:   $e
+            vesting: Vesting::Daily {
+                duration:      $c * MONTH,
+                cliff:         $d * MONTH,
+                cliff_percent: $e
+            }
         }
     }
 }
 macro_rules! immediate {
     ($a:ident $b:literal) => {
-        Stream::Immediate {
+        Stream {
             addr: recipient!($a),
             amount:  SIENNA!($b),
+            vesting: Vesting::Immediate {}
         }
     }
 }

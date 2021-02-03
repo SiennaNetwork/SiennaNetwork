@@ -36,9 +36,9 @@ pub fn claimable (
     now:             Seconds,
 ) -> Amount {
     // preconfigured claimants:
-    for s in SCHEDULE.predefined.iter() {
-        match s {
-            Stream::Immediate { amount, addr } => {
+    for Stream {addr, amount, vesting} in SCHEDULE.predefined.iter() {
+        match vesting {
+            Vesting::Immediate {} => {
                 if addr == recipient {
                     return if now >= launched {
                         amount.u128()
@@ -47,23 +47,19 @@ pub fn claimable (
                     }
                 }
             },
-            Stream::Monthly {
-                amount, addr, release_months, cliff_months, cliff_percent
-            } => {
+            Vesting::Monthly { duration, cliff, cliff_percent } => {
                 if addr == recipient {
                     return periodic(
                         amount.u128(), MONTH, launched, now,
-                        *release_months, *cliff_months, *cliff_percent,
+                        *duration, *cliff, *cliff_percent,
                     )
                 }
             },
-            Stream::Daily {
-                amount, addr, release_months, cliff_months, cliff_percent
-            } => {
+            Vesting::Daily { duration, cliff, cliff_percent } => {
                 if addr == recipient {
                     return periodic(
                         amount.u128(), DAY, launched, now,
-                        *release_months, *cliff_months, *cliff_percent,
+                        *duration, *cliff, *cliff_percent,
                     )
                 }
             },
