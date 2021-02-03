@@ -19,16 +19,35 @@ macro_rules! svg {
     }
 }
 
-fn main() {
+fn main () {
 
     let total = SCHEDULE.total.u128() / ONE_SIENNA;
-    let (t_min, t_max) = (0, 100000000); // TODO: get those from the schedule
+    let t_min = 0;
+    let mut t_max: u64 = 0;
+    let (mut t_min, mut t_max) = (0, 0);
+    for Stream { addr, amount, vesting } in SCHEDULE.predefined.iter() {
+        let mut _cliff = 0;
+        let mut _duration = 0;
+        match vesting {
+            Vesting::Monthly {cliff, duration, ..} => {
+                _cliff = *cliff;
+                _duration = *duration;
+            },
+            Vesting::Daily {cliff, duration, ..} => {
+                _cliff = *cliff;
+                _duration = *duration;
+            },
+            _ => {}
+        }
+        if _cliff > t_max { t_max = _cliff }
+        if _cliff + _duration > t_max { t_max = _cliff + _duration }
+    }
 
-    let width = 2000;
-    let height = 3000;
-    let margin = 200;
-    let t_scale = width / (t_max - t_min);
-    let viewbox = (-margin, -margin, width+2*margin, height+2*margin);
+    let width = 2000f64;
+    let height = 3000f64;
+    let margin = 200f64;
+    let t_scale = width / (t_max - t_min) as f64;
+    let viewbox = (-margin, -margin, width+2.0*margin, height+2.0*margin);
 
     // chart
     let mut doc = svg!(Document
@@ -86,7 +105,7 @@ fn main() {
             stroke="#000" stroke_width=0.5));
 
         g = g.add(svg!(Text class="stream-id"
-            x=width+10 y=h/2.0 text_anchor="start")
+            x=width+10.0 y=h/2.0 text_anchor="start")
             .add(svg!(&addr)));
 
         let mut points = String::new();
@@ -125,11 +144,11 @@ fn main() {
 
     // grid labels
     grid = grid.add(
-        svg!(Text x=0 y=-15 text_anchor="end")
-            .add(svg!(format!("T={}", t_min))));
+        svg!(Text x=0 y=-15 text_anchor="start")
+            .add(svg!(format!("T={} seconds", t_min))));
     grid = grid.add(
-        svg!(Text x=width y=-15 text_anchor="start")
-            .add(svg!(format!("T={}", t_max))));
+        svg!(Text x=width y=-15 text_anchor="end")
+            .add(svg!(format!("T={} seconds", t_max))));
 
     // grid lines
     let day_width = width as f64 / ((t_max-t_min)/(24*60*60)) as f64;

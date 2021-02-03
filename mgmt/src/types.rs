@@ -68,6 +68,7 @@ pub struct Stream {
 pub enum Vesting {
     /// Release everything immediately
     Immediate {},
+
     /// After releasing `cliff_percent` at `cliff`,
     /// release every 24 hours for `duration` seconds
     Daily {
@@ -75,6 +76,7 @@ pub enum Vesting {
         cliff:         Seconds,
         cliff_percent: Percentage
     },
+
     /// After releasing `cliff_percent` at `cliff`,
     /// release every 720 hours for `duration` seconds
     Monthly {
@@ -83,28 +85,3 @@ pub enum Vesting {
         cliff_percent: Percentage
     }
 }
-
-///// A predefined vesting stream from `schedule.yml`
-//#[derive(serde::Serialize, serde::Deserialize, Debug)]
-//#[serde(rename_all = "snake_case")]
-//#[serde(tag = "release_mode")]
-//pub enum Stream {
-    //Immediate {
-        //amount: Uint128,
-        //addr:   HumanAddr
-    //},
-    //Daily {
-        //amount:        Uint128,
-        //addr:          HumanAddr,
-        //duration:      Seconds,
-        //cliff:         Seconds,
-        //cliff_percent: Percentage
-    //},
-    //Monthly {
-        //amount:        Uint128,
-        //addr:          HumanAddr,
-        //duration:      Months,
-        //cliff:         Months,
-        //cliff_percent: Percentage
-    //},
-//}
