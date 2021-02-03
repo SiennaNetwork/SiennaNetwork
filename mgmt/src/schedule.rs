@@ -40,8 +40,8 @@ lazy_static! {
             daily!     (Advisor3    10000  6 6  0%),
             daily!     (Advisor4     5000  6 6  0%),
 
-            immediate! (AdvisorR    85000        ),
-            immediate! (Remaining 3700000        ),
+            immediate! (AdvisorR    85000         ),
+            immediate! (Remaining 3700000         ),
         ]
 
     };
