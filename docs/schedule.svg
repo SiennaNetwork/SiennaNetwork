@@ -1,0 +1,102 @@
+<svg font-family="monospace" font-size="20" height="3000" overflow="auto" viewBox="-200 -200 2400 3400" width="2000" xmlns="http://www.w3.org/2000/svg">
+<rect fill="white" height="120%" width="120%" x="-20%" y="-20%"/>
+<g class="stream monthly" data-h="-inf" data-percent="0" id="secret1DevFund">
+<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+</g>
+<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Investors">
+<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+</g>
+<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Founder1">
+<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+</g>
+<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Founder2">
+<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+</g>
+<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Founder3">
+<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+</g>
+<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Founder4">
+<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+</g>
+<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Advisor1">
+<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+</g>
+<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Advisor2">
+<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+</g>
+<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Advisor3">
+<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+</g>
+<g class="stream daily" data-h="-inf" data-percent="0" id="secret1Advisor4">
+<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+</g>
+<g class="stream immediate" data-h="-inf" data-percent="0" id="secret1AdvisorR">
+<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+</g>
+<g class="stream immediate" data-h="-inf" data-percent="0" id="secret1Remaining">
+<rect class="stream-bg" height="-inf" width="2000" x="0" y="0"/>
+</g>
+<g id="grid">
+<rect fill="none" height="3000" stroke="red" stroke-width="2" width="2000" x="0" y="0"/>
+<text text-anchor="end" x="0" y="-15">
+T=0
+</text>
+<text text-anchor="start" x="2000" y="-15">
+T=1000000000
+</text>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.2)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
+<line stroke="rgba(0,0,0,0.4)" x1="0" x2="0" y1="0" y2="3000"/>
+</g>
+</svg>

@@ -48,36 +48,49 @@ fn main() {
 
         let mut bg = svg!(Rectangle class="stream-bg"
             x=0 y=0 width=width);
-        g = g.add(bg);
 
         let mut addr: String;
         let mut amount: u128;
         match stream {
-            Stream::Immediate{addr:_addr, amount:_amount} => {
-                g.set("class", "stream immediate");
+
+            Stream::Immediate{
+                addr:_addr, amount:_amount
+            } => {
+                g = g.set("class", "stream immediate");
                 addr = _addr.to_string();
                 amount = _amount.u128();
             },
-            Stream::Monthly{addr, amount, ..} => {
-                g.set("class", "stream monthly");
+
+            Stream::Monthly{
+                addr:_addr, amount:_amount,
+                release_months, cliff_months, cliff_percent
+            } => {
+                g = g.set("class", "stream monthly");
                 addr = _addr.to_string();
                 amount = _amount.u128();
             },
-            Stream::Daily{addr, amount, ..} => {
-                g.set("class", "stream daily");
+
+            Stream::Daily{
+                addr:_addr, amount:_amount,
+                release_months, cliff_months, cliff_percent
+            } => {
+                g = g.set("class", "stream daily");
                 addr = _addr.to_string();
                 amount = _amount.u128();
             }
+
         }
 
-        g.set("id", addr.to_string());
+        g = g.set("id", addr.to_string());
 
         let percent = amount / total;
-        g.set("data-percent", percent);
+        g = g.set("data-percent", percent.to_string());
 
-        let h = f64::from(percent * 10000).ln() * 30f64;
-        g.set("data-h", h);
-        bg.set("height", h);
+        let h = f64::from(percent as i32 * 10000).ln() * 30f64;
+        g = g.set("data-h", h);
+
+        bg = bg.set("height", h);
+        g = g.add(bg);
 
         doc = doc.add(g)
 
