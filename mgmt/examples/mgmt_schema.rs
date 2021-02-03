@@ -8,6 +8,7 @@ use sienna_mgmt::State;
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
+    out_dir.push("mgmt");
     out_dir.push("schema");
     create_dir_all(&out_dir).unwrap();
     remove_schemas(&out_dir).unwrap();

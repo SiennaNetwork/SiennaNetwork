@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Query",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "recipients"
+      ],
+      "properties": {
+        "recipients": {
+          "type": "object"
+        }
+      }
+    }
+  ]
+}

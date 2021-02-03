@@ -1,11 +1,7 @@
 .DEFAULT_GOAL := compile-optimized-reproducible
-.PHONY: test test-less test-loop
-.PHONY: compile _compile
-.PHONY: compile-optimized _compile-optimized
-.PHONY: optimizer
-.PHONY: compile-optimized-reproducible
 
 # Build binaries
+.PHONY: compile _compile compile-optimized _compile-optimized compile-optimized-reproducible
 compile: _compile sienna_token.wasm sienna_mgmt.wasm
 _compile:
 	cargo build --target wasm32-unknown-unknown --locked
@@ -40,6 +36,7 @@ compile-optimized-reproducible: _optimizer
 	sha256sum -b dist/*.wasm > dist/checksums.sha256.txt
 
 # Integration testing
+.PHONY: deploy-localnet test-localnet
 deploy-localnet:
 	docker-compose up -d
 	docker-compose exec localnet /sienna/deployer/deploy.js
@@ -48,6 +45,7 @@ test-localnet:
 	docker-compose exec localnet /sienna/deployer/test.js
 
 # Unit testing
+.PHONY: test test-docker test-less test-loop
 test:
 	clear
 	tmux clear-history || true
@@ -64,3 +62,10 @@ test-less:
 	make test 2>&1|less -R
 test-loop:
 	find . | entr make test
+
+# Extra artifacts
+.PHONY: schema schedule
+schema:
+	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schema
+schedule:
+	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schedule

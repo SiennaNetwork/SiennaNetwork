@@ -3,16 +3,87 @@
   "title": "State",
   "type": "object",
   "required": [
-    "count",
-    "owner"
+    "admin",
+    "errors",
+    "recipients",
+    "token_addr",
+    "token_hash",
+    "vested"
   ],
   "properties": {
-    "count": {
-      "type": "integer",
-      "format": "int32"
+    "admin": {
+      "description": "The instantiatior of the contract",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CanonicalAddr"
+        }
+      ]
     },
-    "owner": {
-      "$ref": "#/definitions/CanonicalAddr"
+    "errors": {
+      "description": "TODO: public counter of invalid requests",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "launched": {
+      "description": "Timestamp of the moment this was launched",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "recipients": {
+      "description": "A dedicated portion of the funds can be redirected at runtime",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "#/definitions/CanonicalAddr"
+          },
+          {
+            "$ref": "#/definitions/Uint128"
+          }
+        ],
+        "maxItems": 2,
+        "minItems": 2
+      }
+    },
+    "token_addr": {
+      "description": "The SNIP20 token contract that will be managed by this instance",
+      "allOf": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        }
+      ]
+    },
+    "token_hash": {
+      "description": "The code hash of the managed contract (see `secretcli query compute contract-hash --help`)",
+      "type": "string"
+    },
+    "vested": {
+      "description": "History of fulfilled claims",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "#/definitions/CanonicalAddr"
+          },
+          {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0.0
+          },
+          {
+            "$ref": "#/definitions/Uint128"
+          }
+        ],
+        "maxItems": 3,
+        "minItems": 3
+      }
     }
   },
   "definitions": {
@@ -22,6 +93,12 @@
     },
     "CanonicalAddr": {
       "$ref": "#/definitions/Binary"
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "Uint128": {
+      "type": "string"
     }
   }
 }
