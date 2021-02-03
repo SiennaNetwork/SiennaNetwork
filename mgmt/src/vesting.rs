@@ -1,4 +1,9 @@
-use crate::types::*;
+use crate::types::{
+    Seconds, DAY, MONTH,
+    Address, Amount, Percentage,
+    Allocation, FulfilledClaims,
+    Stream, Vesting
+};
 use crate::strings::{warn_cliff_remainder, warn_vesting_remainder};
 use cosmwasm_std::{HumanAddr, CanonicalAddr};
 
@@ -40,26 +45,22 @@ pub fn claimable (
         match vesting {
             Vesting::Immediate {} => {
                 if addr == recipient {
-                    return if now >= launched {
-                        amount.u128()
-                    } else {
-                        0
-                    }
+                    return immediate(now, launched, amount.u128());
                 }
             },
-            Vesting::Monthly { duration, cliff, cliff_percent } => {
+            Vesting::Monthly { start_at, duration, cliff } => {
                 if addr == recipient {
                     return periodic(
                         amount.u128(), MONTH, launched, now,
-                        *duration, *cliff, *cliff_percent,
+                        *start_at, *duration, *cliff
                     )
                 }
             },
-            Vesting::Daily { duration, cliff, cliff_percent } => {
+            Vesting::Daily { start_at, duration, cliff } => {
                 if addr == recipient {
                     return periodic(
                         amount.u128(), DAY, launched, now,
-                        *duration, *cliff, *cliff_percent,
+                        *start_at, *duration, *cliff
                     )
                 }
             },
@@ -76,19 +77,28 @@ pub fn claimable (
     0
 }
 
-/// Calculate how much the user
-/// can claim at the given time.
+/// Immediate vesting: if the contract has launched,
+/// the recipient can claim the entire allocated amount
+fn immediate (now: Seconds, launched: Seconds, amount: Amount) -> Amount {
+    return if now >= launched {
+        amount
+    } else {
+        0
+    }
+}
+
+/// Periodic vesting: calculate how much the user can claim at the given time.
 fn periodic (
     amount: Amount, interval: Seconds,
     launched: Seconds, now: Seconds,
-    release_months: Months, cliff_months: Months, cliff_percent: Percentage,
+    start_at: Seconds, duration: Seconds, cliff: Percentage,
 ) -> Amount {
-    let t_start = launched + cliff_months * MONTH;
+    let t_start = launched + start_at;
     if now >= t_start {
-        let t_end = t_start + release_months * MONTH;
-        let c: u128 = cliff_percent.into();
+        let t_end = t_start + duration;
+        let c: u128 = cliff.into();
         if c * amount % 100 > 0 { warn_cliff_remainder() }
-        let cliff_amount  = (c * amount / 100) as u128;
+        let cliff_amount = (c * amount / 100) as u128;
         let (t_elapsed, t_total) = (
             (  now - t_start) / interval,
             (t_end - t_start) / interval

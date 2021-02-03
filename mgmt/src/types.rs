@@ -52,7 +52,7 @@ pub struct Schedule {
     pub configurable_daily: Uint128,
 
     /// Predefined vesting streams
-    pub predefined:    Vec<Stream>,
+    pub predefined:     Vec<Stream>,
 }
 
 /// A predefined stream of transactions
@@ -72,16 +72,16 @@ pub enum Vesting {
     /// After releasing `cliff_percent` at `cliff`,
     /// release every 24 hours for `duration` seconds
     Daily {
-        duration:      Seconds,
-        cliff:         Seconds,
-        cliff_percent: Percentage
+        start_at: Seconds,
+        duration: Seconds,
+        cliff:    Percentage
     },
 
     /// After releasing `cliff_percent` at `cliff`,
     /// release every 720 hours for `duration` seconds
     Monthly {
-        duration:      Seconds,
-        cliff:         Seconds,
-        cliff_percent: Percentage
+        start_at: Seconds,
+        duration: Seconds,
+        cliff:    Percentage
     }
 }

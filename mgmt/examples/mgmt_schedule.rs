@@ -81,11 +81,11 @@ fn main () {
                 bg = bg.set("fill", "rgba(64,255,64,0.2");
             },
 
-            Vesting::Monthly {duration, cliff, cliff_percent} => {
+            Vesting::Monthly {start_at, duration, cliff} => {
                 g = g.set("class", "stream monthly");
             },
 
-            Vesting::Daily {duration, cliff, cliff_percent} => {
+            Vesting::Daily {start_at, duration, cliff} => {
                 g = g.set("class", "stream daily");
             }
 
