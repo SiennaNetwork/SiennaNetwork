@@ -8,7 +8,7 @@ use crate::constants::{
 use crate::types::{
     Seconds, Amount, Percentage,
     Allocation, FulfilledClaims,
-    Stream, Vesting
+    Stream, Vesting, Interval
 };
 
 /// Imports the schedule from JSON during compilation.
@@ -69,18 +69,14 @@ pub fn claimable (
                     return immediate(now, launched, amount.u128());
                 }
             },
-            Vesting::Monthly { start_at, duration, cliff } => {
+            Vesting::Periodic { interval, start_at, duration, cliff } => {
+                let interval = match interval {
+                    Interval::Daily   => DAY,
+                    Interval::Monthly => MONTH
+                };
                 if addr == recipient {
                     return periodic(
-                        amount.u128(), MONTH, launched, now,
-                        *start_at, *duration, *cliff
-                    )
-                }
-            },
-            Vesting::Daily { start_at, duration, cliff } => {
-                if addr == recipient {
-                    return periodic(
-                        amount.u128(), DAY, launched, now,
+                        amount.u128(), interval, launched, now,
                         *start_at, *duration, *cliff
                     )
                 }

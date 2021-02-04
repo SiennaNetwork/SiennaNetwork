@@ -125,7 +125,7 @@ kukumba!(
     then "they should be denied" {
         let Stream { amount, addr, vesting } = SCHEDULE.predefined.get(0).unwrap()
         match vesting {
-            Vesting::Monthly {..} => {
+            Vesting::Periodic {..} => {
                 assert_tx!(deps
                     => from [addr] at [block 4, T=1]
                     => mgmt::msg::Handle::Claim {}
@@ -149,7 +149,7 @@ kukumba!(
         let start;
         let Stream { amount, addr: PREDEF, vesting } = SCHEDULE.predefined.get(0).unwrap();
         match vesting {
-            Vesting::Monthly { start_at, duration, cliff } => {
+            Vesting::Periodic { start_at, duration, cliff, .. } => {
                 start = *start_at;
                 assert_tx!(deps
                     => from [PREDEF] at [block 4, T=start-1]
@@ -232,7 +232,7 @@ kukumba!(
     then "the contract should transfer everything in one go" {
         let Stream { amount, addr: PREDEF, vesting } = SCHEDULE.predefined.get(1).unwrap();
         match vesting {
-            Vesting::Daily { start_at, duration, cliff } => {
+            Vesting::Periodic { start_at, duration, cliff, .. } => {
                 let T = (start_at + duration) + 48 * MONTH;
                 let msg = cosmwasm_std::CosmosMsg::Bank(
                     cosmwasm_std::BankMsg::Send {

@@ -8,7 +8,7 @@ use svg::node::element::path::Data;
 
 use sienna_mgmt::schedule::SCHEDULE;
 use sienna_mgmt::constants::{ONE_SIENNA, DAY, MONTH};
-use sienna_mgmt::types::{Stream, Vesting};
+use sienna_mgmt::types::{Stream, Vesting, Interval};
 use sienna_mgmt::vesting::claimable;
 
 macro_rules! svg {
@@ -31,11 +31,7 @@ fn main () {
         let mut _start_at = 0;
         let mut _duration = 0;
         match vesting {
-            Vesting::Monthly {start_at, duration, ..} => {
-                _start_at = *start_at;
-                _duration = *duration;
-            },
-            Vesting::Daily {start_at, duration, ..} => {
+            Vesting::Periodic {start_at, duration, ..} => {
                 _start_at = *start_at;
                 _duration = *duration;
             },
@@ -109,21 +105,21 @@ fn main () {
                 vestings = 0;
             },
 
-            Vesting::Monthly {start_at, duration, cliff} => {
-                g = g.set("class", "stream monthly");
+            Vesting::Periodic {interval, start_at, duration, cliff} => {
                 start_day = (start_at / DAY).into();
                 cliff_amount = *cliff as u128 * amount / 100;
-                vestings = (duration / MONTH) as u128;
+                match interval {
+                    Interval::Daily => {
+                        g = g.set("class", "stream daily");
+                        vestings = (duration / DAY) as u128;
+                    },
+                    Interval::Monthly => {
+                        g = g.set("class", "stream monthly");
+                        vestings = (duration / MONTH) as u128;
+                    }
+                };
                 portion = (amount - cliff_amount) / vestings;
             },
-
-            Vesting::Daily {start_at, duration, cliff} => {
-                g = g.set("class", "stream daily");
-                start_day = (start_at / DAY).into();
-                cliff_amount = *cliff as u128 * amount / 100;
-                vestings = (duration / DAY) as u128;
-                portion = (amount - cliff_amount) / vestings;
-            }
 
         };
 

@@ -5,7 +5,7 @@
 //! the amounts by 10^18 (`ONE_SIENNA`, defined in `types.rs`)
 
 use crate::constants::{ONE_SIENNA, MONTH};
-use crate::types::{Schedule, Stream, Vesting};
+use crate::types::{Schedule, Stream, Vesting, Interval};
 use cosmwasm_std::{HumanAddr, Uint128};
 
 /// Addresses.

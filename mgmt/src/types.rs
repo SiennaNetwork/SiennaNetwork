@@ -53,23 +53,36 @@ pub struct Stream {
 
 /// The vesting schedule of an indiviudal stream
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub enum Interval {
+    Daily,
+    Monthly
+}
+
+/// The vesting schedule of an indiviudal stream
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub enum Vesting {
     /// Release everything immediately
     Immediate {},
 
-    /// After releasing `cliff_percent` at `cliff`,
-    /// release every 24 hours for `duration` seconds
-    Daily {
-        start_at: Seconds,
-        duration: Seconds,
-        cliff:    Percentage
-    },
-
-    /// After releasing `cliff_percent` at `cliff`,
-    /// release every 720 hours for `duration` seconds
-    Monthly {
+    /// After releasing `cliff`% at `start_at` seconds after launch,
+    /// release an equal portion every 24 or 720 hours
+    /// for `duration` seconds after `start_at`
+    Periodic {
+        interval: Interval,
         start_at: Seconds,
         duration: Seconds,
         cliff:    Percentage
     }
 }
+
+    //Daily {
+    //},
+
+    ///// After releasing `cliff_percent` at `cliff`,
+    ///// release every 720 hours for `duration` seconds
+    //Monthly {
+        //start_at: Seconds,
+        //duration: Seconds,
+        //cliff:    Percentage
+    //}
+//}

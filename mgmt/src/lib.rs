@@ -125,10 +125,7 @@ contract!(
                         match mint_msg(
                             env.contract.address,
                             cosmwasm_std::Uint128::from(SCHEDULE.total),
-                            None, // padding
-                            BLOCK_SIZE,
-                            token_hash,
-                            token_addr
+                            None, BLOCK_SIZE, token_hash, token_addr
                         ) {
                             Ok(msg) => {
                                 state.launched = Some(env.block.time);

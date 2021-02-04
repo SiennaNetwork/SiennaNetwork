@@ -22,7 +22,8 @@ macro_rules! monthly {
         Stream {
             addr: recipient!($a),
             amount:  SIENNA!($b),
-            vesting: Vesting::Monthly {
+            vesting: Vesting::Periodic {
+                interval: Interval::Monthly,
                 start_at: $c * MONTH,
                 duration: $d * MONTH,
                 cliff:    $e
@@ -35,7 +36,8 @@ macro_rules! daily {
         Stream {
             addr: recipient!($a),
             amount:  SIENNA!($b),
-            vesting: Vesting::Daily {
+            vesting: Vesting::Periodic {
+                interval: Interval::Daily,
                 start_at: $c * MONTH,
                 duration: $d * MONTH,
                 cliff:    $e
