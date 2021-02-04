@@ -25,13 +25,33 @@ pub fn claimed (
     claims: &FulfilledClaims,
     t:      Seconds
 ) -> Amount {
+    let mut sum = 0;
     for (addr, time, amount) in claims.iter().rev() {
        if addr != a { continue }
        if *time > t { continue }
-       return amount.u128()
+       sum += amount.u128()
     }
-    0
+    sum
 }
+
+#[test]
+fn test_claimed () {
+    use cosmwasm_std::{CanonicalAddr, Uint128};
+    let alice = CanonicalAddr::from(vec![0u8]);
+    let bob   = CanonicalAddr::from(vec![1u8]);
+    let log   = vec![ (alice.clone(), 100, Uint128::from(100u128))
+                    , (bob.clone(),   100, Uint128::from(200u128))
+                    , (alice.clone(), 200, Uint128::from(300u128)) ];
+    assert_eq!(claimed(&alice, &log,   0),   0);
+    assert_eq!(claimed(&alice, &log,   1),   0);
+    assert_eq!(claimed(&alice, &log, 100), 100);
+    assert_eq!(claimed(&alice, &log, 101), 100);
+    assert_eq!(claimed(&alice, &log, 200), 400);
+    assert_eq!(claimed(&alice, &log, 999), 400);
+    assert_eq!(claimed(&bob,   &log, 999), 200);
+    assert_eq!(claimed(&bob,   &log,  99),   0);
+}
+
 
 /// Determine how much one can claim
 /// based on the predefined schedule
