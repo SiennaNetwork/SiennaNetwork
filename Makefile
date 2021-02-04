@@ -65,9 +65,9 @@ test-loop:
 coverage:
 	rustup component add llvm-tools-preview
 	cargo install grcov
-	RUSTFLAGS="-Zinsturment-coverage" cargo build --manifest-path=mgmt/Cargo.toml
-	RUSTFLAGS="-Zinsturment-coverage" cargo build --manifest-path=mgmt/Cargo.toml --tests
-	RUSTFLAGS="-Zinsturment-coverage" cargo test --manifest-path=mgmt/Cargo.toml || true
+	RUSTFLAGS="-Zinstrument-coverage" cargo build --manifest-path=mgmt/Cargo.toml
+	RUSTFLAGS="-Zinstrument-coverage" cargo build --manifest-path=mgmt/Cargo.toml --tests
+	RUSTFLAGS="-Zinstrument-coverage" cargo test --manifest-path=mgmt/Cargo.toml || true
 	grcov mgmt \
 		-s mgmt \
 		--binary-path ./target/debug/ \
