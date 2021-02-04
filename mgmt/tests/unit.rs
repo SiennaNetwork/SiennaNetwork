@@ -5,7 +5,7 @@ use serde::ser::Serialize;
 
 use sienna_mgmt as mgmt;
 use mgmt::schedule::SCHEDULE;
-use mgmt::constants::{DAY, MONTH};
+use mgmt::constants::{DAY, MONTH, ONE_SIENNA, err_allocation};
 use mgmt::types::{Schedule, Stream, Vesting};
 
 use cosmwasm_std::{
@@ -259,7 +259,7 @@ kukumba!(
 
     when "the admin sets the recipients"
     then "the recipients should be updated" {
-        let r1 = vec![(BOB.clone(), Uint128::from(100u128))];
+        let r1 = vec![(BOB.clone(), SIENNA!(100))];
         let _ = tx(&mut deps, mock_env(1, 1, &ALICE),
             mgmt::msg::Handle::SetRecipients { recipients: r1.clone() });
         assert_query!(deps => Recipients => Recipients { recipients: r1 });
@@ -268,12 +268,12 @@ kukumba!(
     when "the admin tries to set the recipients above the total"
     then "an error should be returned"
     and  "the recipients should not be updated" {
-        let r2 = vec![(BOB.clone(), Uint128::from(10000000u128))];
+        let r2 = vec![(BOB.clone(), SIENNA!(10000000))];
         assert_tx!(deps
             => from [ALICE] at [block 4, T=4]
             => mgmt::msg::Handle::SetRecipients { recipients: r2 }
             => Err(StdError::GenericErr {
-                msg: mgmt::constants::err_allocation(10000000, 2500),
+                msg: err_allocation(10000000*ONE_SIENNA, 2500*ONE_SIENNA),
                 backtrace: None}));
         assert_query!(deps => Recipients => Recipients { recipients: r1 });
     }
@@ -304,12 +304,12 @@ kukumba!(
     when "the admin tries to set the recipients above the total"
     then "an error should be returned"
     and  "the recipients should not be updated" {
-        let r5 = vec![(BOB.clone(), Uint128::from(10000000u128))];
+        let r5 = vec![(BOB.clone(), SIENNA!(10000000))];
         assert_tx!(deps
             => from [ALICE] at [block 4, T=4]
             => mgmt::msg::Handle::SetRecipients { recipients: r5 }
             => Err(StdError::GenericErr {
-                msg: mgmt::constants::err_allocation(10000000, 2500),
+                msg: err_allocation(10000000*ONE_SIENNA, 2500*ONE_SIENNA),
                 backtrace: None}) );
         assert_query!(deps => Recipients => Recipients { recipients: r4 });
     }

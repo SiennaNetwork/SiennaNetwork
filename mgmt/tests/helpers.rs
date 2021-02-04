@@ -90,3 +90,7 @@ macro_rules! assert_query {
         }
     }
 }
+
+macro_rules! SIENNA {
+    ($x:expr) => { Uint128::from($x as u128 * ONE_SIENNA) }
+}
