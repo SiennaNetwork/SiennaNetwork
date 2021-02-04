@@ -35,11 +35,17 @@ compile-optimized-reproducible: _optimizer
 	gzip -df dist/*.wasm.gz
 	sha256sum -b dist/*.wasm > dist/checksums.sha256.txt
 
-# Integration testing
-.PHONY: deploy-localnet test-localnet
-deploy-localnet:
+# Deploy
+.PHONY: deploy
+deploy:
 	docker-compose up -d
 	docker-compose exec localnet /sienna/deployer/deploy.js
+
+# Integration testing
+# You need to get one of the 4 mnemonics that are initially created by your
+# test `secretd` node (can be seen in `docker-compose logs`), and populate
+# your `.env` file accordingly (see `README.md` for info about `.env`)
+.PHONY: test-localnet
 test-localnet:
 	docker-compose up -d
 	docker-compose exec localnet /sienna/deployer/test.js

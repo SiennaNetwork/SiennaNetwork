@@ -9,7 +9,7 @@ module.exports = main
 if (require.main === module) main()
 async function main (
   httpUrl    = process.env.SECRET_REST_URL || 'http://localhost:1337',
-  mnemonic   = process.env.MNEMONIC || 'cloth pig april pitch topic column festival vital plate spread jewel twin where crouch leader muscle city brief jacket elder ritual loop upper place',
+  mnemonic   = process.env.MNEMONIC,
   customFees = { upload: gas(3000000)
                , init:   gas( 500000)
                , exec:   gas( 500000)

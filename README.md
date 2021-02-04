@@ -15,12 +15,36 @@ upload a build (produced by the `optimizer`) of the `token` and `mgmt`
 contracts (the latter of which is built with `fadroma` and tested with 
 `kukumba`).
 
+### Obtain, build, and verify the code
+
+```sh
+git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git sienna \
+  && cd sienna \
+  && make test \
+  && make \
+  && ls dist/ \
+  && cat dist/checksums.sha256.txt
 ```
-git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git sienna
-cd sienna
-cargo test
-make
-ls dist/
+
+### Prepare for deployment
+
+Create a file called `.env` in the repository root, and populate it with
+the node URL, the chain ID, and your mnemonic:
+
+```sh
+cp env.example .env
+$EDITOR .env
+```
+
+### Deploy
+
+To run the deployer in a Docker containter:
+```sh
+make deploy
+```
+
+To run the deployer outside of a Docker container:
+```sh
 ./deployer/deploy.js
 ```
 
