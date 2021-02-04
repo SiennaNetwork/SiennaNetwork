@@ -48,9 +48,9 @@ fn main () {
 
     let width = 2000f64;
     let height = 3000f64;
-    let margin = 200f64;
+    let margin = 500f64;
     let t_scale = width / (t_max - t_min) as f64;
-    let viewbox = (-margin, -margin, width+2.0*margin, height+2.0*margin);
+    let viewbox = (-margin, 0, width+2.0*margin, height+2.0*margin);
 
     // chart
     let mut doc = svg!(Document
@@ -70,37 +70,21 @@ fn main () {
 
         let amount = amount.u128() / ONE_SIENNA;
 
-        let mut g = svg!(Group class="stream"
+        let mut g = svg!(Group id=addr.to_string() class="stream"
             transform=format!("translate(0,{})", y));
 
         let mut bg = svg!(Rectangle class="stream-bg"
             x=0 y=0 width=width fill="transparent");
 
-        match vesting {
-
-            Vesting::Immediate {} => {
-                g = g.set("class", "stream immediate");
-                bg = bg.set("fill", "rgba(64,255,64,0.2");
-            },
-
-            Vesting::Monthly {start_at, duration, cliff} => {
-                g = g.set("class", "stream monthly");
-            },
-
-            Vesting::Daily {start_at, duration, cliff} => {
-                g = g.set("class", "stream daily");
-            }
-
-        };
-
+        // determine height from percentage of total
         let percent = amount as f64 / total as f64;
         g = g.set("data-percent", percent.to_string());
 
-        // random repeated-log scaling
+        // by applying some random repeated-log scaling
+        // which maintains the relative proportions
+        // but also maintains visibility of 5% vs 37%
         let h = ((percent * 10000.0).ln().ln()*100.0).ln() * 50.0;
         g = g.set("data-h", h);
-
-        //println!("\n{} {}/{} {} {}", &addr, &amount, &total, &percent, &h);
 
         g = g.add(svg!(Line class="stream-border"
             x1=0 y1=0 x2=width y2=0
@@ -110,6 +94,35 @@ fn main () {
             x=width+10.0 y=h/2.0 text_anchor="start")
             .add(svg!(&addr.to_string())));
 
+        let portion: u128;
+
+        match vesting {
+
+            Vesting::Immediate {} => {
+                g = g.set("class", "stream immediate");
+                bg = bg.set("fill", "rgba(64,255,64,0.2");
+                portion = amount;
+            },
+
+            Vesting::Monthly {start_at, duration, cliff} => {
+                g = g.set("class", "stream monthly");
+                portion = amount / (duration / MONTH) as u128;
+            },
+
+            Vesting::Daily {start_at, duration, cliff} => {
+                g = g.set("class", "stream daily");
+                portion = amount / (duration / DAY) as u128;
+            }
+
+        };
+
+        // set height of background rectangle
+        // and add it to the group
+        bg = bg.set("height", h);
+        g = g.add(bg);
+
+        // render points and polyline that
+        // correspond to vesting progress
         let mut now = t_min;
         let mut points = String::new();
         let mut lastX = 0.0;
@@ -133,14 +146,15 @@ fn main () {
             stroke_width=0.5
             points=points));
 
+        g = g.add(svg!(Text class="stream-amount" font_weight="bold"
+            x=-10 y=h*0.25 text_anchor="end")
+            .add(svg!(format!("{} SIENNA", amount.to_string()))));
         g = g.add(svg!(Text class="stream-amount"
-            x=-10 y=h/2.0 text_anchor="end")
-            .add(svg!(amount.to_string())));
-
-        g = g.set("id", addr.to_string());
-
-        bg = bg.set("height", h);
-        g = g.add(bg);
+            x=-10 y=h*0.50 text_anchor="end")
+            .add(svg!(format!("{} of total", percent))));
+        g = g.add(svg!(Text class="stream-amount"
+            x=-10 y=h*0.75 text_anchor="end")
+            .add(svg!(format!("{} per vesting", portion))));
 
         doc = doc.add(g);
 

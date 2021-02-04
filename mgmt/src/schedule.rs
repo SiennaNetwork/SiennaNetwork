@@ -37,7 +37,7 @@ lazy_static! {
         configurable_daily: SIENNA!(2500),
 
         predefined: vec! [
-            monthly!   (DevFund   1500000 4 20  5%),
+            monthly!   (DevFund   1500000 5 18  0%),
 
             daily!     (Investors 2000000 6 16  0%),
             daily!     (Founder1   897000 6 16 10%),
