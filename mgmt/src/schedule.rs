@@ -34,9 +34,6 @@ lazy_static! {
 
         total: SIENNA!(10000000),
 
-        configurable: SIENNA!(300000),
-        configurable_daily: SIENNA!(2500),
-
         predefined: vec! [
             monthly!   (DevFund   1500000 5 18  0%),
 
@@ -53,8 +50,13 @@ lazy_static! {
             immediate! (AdvisorR    85000         ),
 
             immediate! (Liquidity  300000         ),
-            immediate! (Remaining 3700000         ),
-        ]
+
+            //immediate! (Remaining 3700000         ),
+            // configurable, see below:
+        ],
+
+        configurable:     SIENNA!(3700000),
+        configurable_daily:  SIENNA!(2500),
 
     };
 }
