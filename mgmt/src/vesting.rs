@@ -1,4 +1,4 @@
-use cosmwasm_std::{HumanAddr, CanonicalAddr};
+use cosmwasm_std::HumanAddr;
 
 use crate::schedule::SCHEDULE;
 use crate::constants::{
@@ -6,8 +6,7 @@ use crate::constants::{
     warn_cliff_remainder, warn_vesting_remainder
 };
 use crate::types::{
-    Seconds,
-    Address, Amount, Percentage,
+    Seconds, Amount, Percentage,
     Allocation, FulfilledClaims,
     Stream, Vesting
 };
@@ -21,35 +20,35 @@ use crate::types::{
 /// Determine how much an account has claimed
 /// based on the history of fulfilled claims.
 pub fn claimed (
-    a:      &Address,
-    claims: &FulfilledClaims,
+    a:      &HumanAddr,
+    vested: &FulfilledClaims,
     t:      Seconds
 ) -> Amount {
     let mut sum = 0;
-    for (addr, time, amount) in claims.iter().rev() {
+    for (addr, time, amount) in vested.iter().rev() {
        if addr != a { continue }
        if *time > t { continue }
-       sum += amount.u128()
+       sum += amount.u128();
     }
     sum
 }
 
 #[test]
 fn test_claimed () {
-    use cosmwasm_std::{CanonicalAddr, Uint128};
-    let alice = CanonicalAddr::from(vec![0u8]);
-    let bob   = CanonicalAddr::from(vec![1u8]);
-    let log   = vec![ (alice.clone(), 100, Uint128::from(100u128))
-                    , (bob.clone(),   100, Uint128::from(200u128))
-                    , (alice.clone(), 200, Uint128::from(300u128)) ];
+    use cosmwasm_std::Uint128;
+    let alice = HumanAddr::from("alice");
+    let bobby = HumanAddr::from("bob");
+    let log = vec![ (alice.clone(), 100, 100u128.into())
+                  , (bobby.clone(), 100, 200u128.into())
+                  , (alice.clone(), 200, 300u128.into()) ];
     assert_eq!(claimed(&alice, &log,   0),   0);
     assert_eq!(claimed(&alice, &log,   1),   0);
     assert_eq!(claimed(&alice, &log, 100), 100);
     assert_eq!(claimed(&alice, &log, 101), 100);
     assert_eq!(claimed(&alice, &log, 200), 400);
     assert_eq!(claimed(&alice, &log, 999), 400);
-    assert_eq!(claimed(&bob,   &log, 999), 200);
-    assert_eq!(claimed(&bob,   &log,  99),   0);
+    assert_eq!(claimed(&bobby, &log, 999), 200);
+    assert_eq!(claimed(&bobby, &log,  99),   0);
 }
 
 
@@ -57,11 +56,10 @@ fn test_claimed () {
 /// based on the predefined schedule
 /// and the configurable allocation.
 pub fn claimable (
-    recipient:       &HumanAddr,
-    recipient_canon: &CanonicalAddr,
-    recipients:      &Allocation,
-    launched:        Seconds,
-    now:             Seconds,
+    recipient:  &HumanAddr,
+    recipients: &Allocation,
+    launched:   Seconds,
+    now:        Seconds,
 ) -> Amount {
     // preconfigured claimants:
     for Stream {addr, amount, vesting} in SCHEDULE.predefined.iter() {
@@ -91,9 +89,9 @@ pub fn claimable (
     }
     // configurable claimants:
     for (addr, amount) in recipients {
-        if addr == recipient_canon {
+        if addr == recipient {
             let days_since_launch = (now - launched) / DAY;
-            return amount.u128() * (days_since_launch + 1) as u128;
+            return (*amount).u128() * (days_since_launch + 1) as u128;
         }
     }
     // default case:

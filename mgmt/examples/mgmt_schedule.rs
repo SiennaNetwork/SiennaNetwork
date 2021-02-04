@@ -138,10 +138,9 @@ fn main () {
         let mut points = String::new();
         let mut lastX = 0.0;
         let mut lastY = 0.0;
-        let null_canon = cosmwasm_std::CanonicalAddr::from(vec![0u8]);
         while now < t_max {
             lastX = now as f64 * t_scale;
-            let vested = claimable(addr, &null_canon, &vec![], 0, now) / ONE_SIENNA;
+            let vested = claimable(addr, &vec![], 0, now) / ONE_SIENNA;
             let y = h - h * (vested as f64 / amount as f64);
             let point = format!("{},{} {},{} ", lastX, lastY, lastX, y);
             //println!("{} @{} {}/{} = {}", &addr, &now, &vested, &amount, &point);

@@ -10,7 +10,8 @@ use types::{
     Admin,
     TokenAddress, CodeHash,
     Launched, FulfilledClaims, Allocation,
-    ErrorCount
+    ErrorCount,
+    Seconds
 };
 
 pub mod schedule;
@@ -56,7 +57,7 @@ contract!(
         token_hash: crate::types::CodeHash
     }) {
         State {
-            admin:      canon!(deps, &env.message.sender),
+            admin:      env.message.sender,
             token_addr: msg.token_addr,
             token_hash: msg.token_hash,
             launched:   None,
@@ -90,14 +91,11 @@ contract!(
         // allows their streams to be redirected in runtime-configurable
         // proportions.
         SetRecipients (recipients: crate::types::Allocation) {
-            if sender != state.admin {
+            if env.message.sender != state.admin {
                 state.errors += 1;
                 err_auth(state)
             } else {
-                let total = recipients.iter().fold(
-                    0u128,
-                    |acc, x| acc + x.1.u128()
-                );
+                let total = recipients.iter().fold(0u128, |acc, x| acc + x.1.u128());
                 if total > SCHEDULE.configurable_daily.u128() {
                     err_msg(state, &crate::constants::err_allocation(
                         total,
@@ -115,7 +113,7 @@ contract!(
         // TODO emergency vote to stop everything and refund the initializer
         // TODO launch transaction should receive/mint its budget?
         Launch () {
-            if sender != state.admin {
+            if env.message.sender != state.admin {
                 state.errors += 1;
                 err_auth(state)
             } else {
@@ -155,41 +153,30 @@ contract!(
                     let now = env.block.time;
                     //let contract = env.contract.address;
                     let claimant = env.message.sender;
-                    let claimant_canon = canon!(deps, &claimant);
-                    let claimable = claimable(
-                        &claimant, &claimant_canon,
-                        &state.recipients, *launch, now);
-                    let claimed = claimed(
-                        &claimant_canon,
-                        &state.vested, now);
+                    let claimable = claimable(&claimant, &state.recipients, *launch, now);
+                    let claimed = claimed(&claimant, &state.vested, now);
                     //println!("claim, {}/{} @ {}", claimed, claimable, now);
                     if claimable < claimed {
                         err_msg(state, &crate::constants::BROKEN)
                     } else {
                         let difference = claimable - claimed;
-                        if difference > 0 {
+                        if difference <= 0 {
+                            err_msg(state, &crate::constants::NOTHING)
+                        } else {
                             let token_hash = state.token_hash.clone();
                             let token_addr = state.token_addr.clone();
                             match transfer_msg(
-                                claimant,
+                                claimant.clone(),
                                 cosmwasm_std::Uint128::from(difference),
-                                None,
-                                BLOCK_SIZE,
-                                token_hash,
-                                token_addr,
+                                None, BLOCK_SIZE, token_hash, token_addr,
                             ) {
+                                Err(e) => (state, Err(e)),
                                 Ok(msg) => {
-                                    state.vested.push((
-                                        claimant_canon,
-                                        now,
-                                        cosmwasm_std::Uint128::from(claimable)
-                                    ));
+                                    let difference = cosmwasm_std::Uint128::from(difference);
+                                    state.vested.push((claimant, now, difference));
                                     ok_msg(state, vec![msg])
                                 },
-                                Err(e) => (state, Err(e))
                             }
-                        } else {
-                            err_msg(state, &crate::constants::NOTHING)
                         }
                     }
                 }

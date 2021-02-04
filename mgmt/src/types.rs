@@ -1,4 +1,4 @@
-use cosmwasm_std::{Uint128, CanonicalAddr, HumanAddr};
+use cosmwasm_std::{Uint128, HumanAddr};
 
 /// Time
 pub type Seconds    = u64;
@@ -9,12 +9,8 @@ pub type Months     = u64;
 pub type Percentage = u64;
 pub type Amount     = u128;
 
-/// Addresses
-/// TODO unnecessary?
-pub type Address = CanonicalAddr;
-
 /// Creator of contract.
-pub type Admin = Address;
+pub type Admin = HumanAddr;
 
 /// The token contract that will be controlled.
 pub type TokenAddress = HumanAddr;
@@ -29,11 +25,11 @@ pub type Launched = Option<Seconds>;
 pub type ErrorCount = u64;
 
 /// Log of executed claims
-pub type FulfilledClaims = Vec<(Address, Seconds, Uint128)>;
+pub type FulfilledClaims = Vec<(HumanAddr, Seconds, Uint128)>;
 
 /// Configurable recipients.
 /// TODO what happens if this is empty?
-pub type Allocation = Vec<(Address, Uint128)>;
+pub type Allocation = Vec<(HumanAddr, Uint128)>;
 
 /// Schedule: predefined vesting streams + how much is configurable on the fly.
 /// TODO validate that predefined + configurable == total, maybe in Init?
