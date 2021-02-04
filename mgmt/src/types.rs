@@ -9,12 +9,6 @@ pub type Months     = u64;
 pub type Percentage = u64;
 pub type Amount     = u128;
 
-/// Creator of contract.
-pub type Admin = HumanAddr;
-
-/// The token contract that will be controlled.
-pub type TokenAddress = HumanAddr;
-
 /// A contract's code hash
 pub type CodeHash = String;
 

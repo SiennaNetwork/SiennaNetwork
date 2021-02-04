@@ -7,8 +7,7 @@ use constants::BLOCK_SIZE;
 
 pub mod types;
 use types::{
-    Admin,
-    TokenAddress, CodeHash,
+    CodeHash,
     Launched, FulfilledClaims, Allocation,
     ErrorCount,
     Seconds
@@ -20,16 +19,17 @@ use schedule::SCHEDULE;
 pub mod vesting;
 
 use vesting::{claimable, claimed};
+use cosmwasm_std::HumanAddr;
 use secret_toolkit::snip20::handle::{mint_msg, transfer_msg};
 
 contract!(
 
     [State] {
         /// The instantiatior of the contract
-        admin:          Admin,
+        admin:          HumanAddr,
 
         /// The SNIP20 token contract that will be managed by this instance
-        token_addr:     TokenAddress,
+        token_addr:     HumanAddr,
 
         /// The code hash of the managed contract
         /// (see `secretcli query compute contract-hash --help`)
@@ -53,7 +53,7 @@ contract!(
     //   to be passed as an argument
     // * makes the initializer the admin
     [Init] (deps, env, msg: {
-        token_addr: crate::types::TokenAddress,
+        token_addr: cosmwasm_std::HumanAddr,
         token_hash: crate::types::CodeHash
     }) {
         State {
