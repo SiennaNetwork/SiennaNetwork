@@ -3,12 +3,13 @@ use std::fs::create_dir_all;
 
 use svg::Document;
 use svg::node::Text as TextNode;
-use svg::node::element::{Rectangle, Group, Text, Line, Polyline};
+use svg::node::element::{Rectangle, Group, Text, Line, Polyline, Circle};
 use svg::node::element::path::Data;
 
 use sienna_mgmt::schedule::SCHEDULE;
-use sienna_mgmt::constants::ONE_SIENNA;
+use sienna_mgmt::constants::{ONE_SIENNA, DAY, MONTH};
 use sienna_mgmt::types::{Stream, Vesting};
+use sienna_mgmt::vesting::claimable;
 
 macro_rules! svg {
     ($El:ident $($attr:ident = $value:expr)+) => {
@@ -67,7 +68,6 @@ fn main () {
     for Stream { addr, amount, vesting } in SCHEDULE.predefined.iter() {
 
         let amount = amount.u128() / ONE_SIENNA;
-        let addr   = addr.to_string();
 
         let mut g = svg!(Group class="stream"
             transform=format!("translate(0,{})", y));
@@ -99,7 +99,7 @@ fn main () {
         let h = ((percent * 10000.0).ln().ln()*100.0).ln() * 50.0;
         g = g.set("data-h", h);
 
-        println!("{} {}/{} {} {}", &addr, &amount, &total, &percent, &h);
+        println!("\n{} {}/{} {} {}", &addr, &amount, &total, &percent, &h);
 
         g = g.add(svg!(Line class="stream-border"
             x1=0 y1=0 x2=width y2=0
@@ -107,28 +107,35 @@ fn main () {
 
         g = g.add(svg!(Text class="stream-id"
             x=width+10.0 y=h/2.0 text_anchor="start")
-            .add(svg!(&addr)));
-
-        let mut points = String::new();
+            .add(svg!(&addr.to_string())));
 
         let mut now = t_min;
-        while (now < t_max) {
+        let mut points = String::new();
+        let mut lastX = 0.0;
+        let mut lastY = 0.0;
+        let null_canon = cosmwasm_std::CanonicalAddr::from(vec![0u8]);
+        while now < t_max {
+            lastX = now as f64 * t_scale;
+            let vested = claimable(addr, &null_canon, &vec![], 0, now) / ONE_SIENNA;
+            let y = h - h * (vested as f64 / amount as f64);
+            let point = format!("{},{} {},{} ", lastX, lastY, lastX, y);
+            println!("{} @{} {}/{} = {}", &addr, &now, &vested, &amount, &point);
+            points.push_str(&point);
+            lastY = y;
+            now += DAY;
+            g = g.add(svg!(Circle cx=lastX cy=y r=1 fill="red" data_t=now data_a=vested.to_string()));
         }
-
-        //for _ in vec![] {
-            //points.push_str("");
-        //}
-        g = g.add(svg!(Polyline class="stream-flow"
-            fill="rgba(64,255,64,0.2)"
-            stroke="rgba(0,128,0,0.5)"
-            stroke_width=0.5
-            points=points));
+        //g = g.add(svg!(Polyline class="stream-flow"
+            //fill="rgba(64,255,64,0.2)"
+            //stroke="rgba(0,128,0,0.5)"
+            //stroke_width=0.5
+            //points=points));
 
         g = g.add(svg!(Text class="stream-amount"
             x=-10 y=h/2.0 text_anchor="end")
             .add(svg!(amount.to_string())));
 
-        g = g.set("id", addr);
+        g = g.set("id", addr.to_string());
 
         bg = bg.set("height", h);
         g = g.add(bg);
@@ -157,24 +164,36 @@ fn main () {
             .add(svg!(format!("T={} seconds", t_max))));
 
     // grid lines - thin
-    let n_weeks = 48;
-    let week_width = width / n_weeks as f64;
-    let day_width = week_width / 7.0;
-    for i in 0..n_weeks {
-        let x = i as f64 * week_width;
+    let n_days = (t_max - t_min) / DAY;
+    let day_width = DAY as f64 * t_scale;
+    let mut i = 0;
+    while i <= n_days {
+        let x = i as f64 * day_width;
         grid = grid.add(
             svg!(Line x1=x x2=x y1=0 y2=height stroke="rgba(0,0,0,0.2)"));
+        i += 1;
+        println!("day {} {}", i, x);
     }
 
     // grid lines - thick
-    let weeks_in_month = 4;
-    let mut n_months = n_weeks/weeks_in_month;
-    if n_weeks % weeks_in_month > 0 { n_months += 1; }
-    for i in 0..n_months {
-        let x = i as f64 * weeks_in_month as f64 * week_width;
+    let n_months = (t_max - t_min) / MONTH;
+    let month_width = MONTH as f64 * t_scale;
+    let mut i = 0;
+    while i <= n_months {
+        let x = i as f64 * month_width;
         grid = grid.add(
             svg!(Line x1=x x2=x y1=0 y2=height stroke="rgba(0,0,0,0.4)"));
+        i += 1;
+        println!("month {} {}", i, x);
     }
+    //let days_in_month = 30;
+    //let mut n_months = n_days/weeks_in_month;
+    //if n_weeks % weeks_in_month > 0 { n_months += 1; }
+    //for i in 0..n_months {
+        //let x = i as f64 * weeks_in_month as f64 * week_width;
+        //grid = grid.add(
+            //svg!(Line x1=x x2=x y1=0 y2=height stroke="rgba(0,0,0,0.4)"));
+    //}
 
     // add grid to document
     doc = doc.add(grid);
