@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 process.on('unhandledRejection', up => {throw up})
-require('dotenv').config()
+require('dotenv').config({path: require('path').resolve(__dirname, '../.env')})
 
 const gas = x => ({amount:[{amount:String(x),denom:'uscrt'}],gas:String(x)})
 
