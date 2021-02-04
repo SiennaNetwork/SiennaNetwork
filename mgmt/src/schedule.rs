@@ -50,9 +50,6 @@ lazy_static! {
             immediate! (AdvisorR    85000         ),
 
             immediate! (Liquidity  300000         ),
-
-            //immediate! (Remaining 3700000         ),
-            // configurable, see below:
         ],
 
         configurable:     SIENNA!(3700000),
