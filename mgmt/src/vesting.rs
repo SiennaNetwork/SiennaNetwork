@@ -122,7 +122,8 @@ fn periodic (
         // then determine how many vesting periods have elapsed
         // (up to the maximum)
         let t_elapsed = Seconds::min(now - t_start, duration); 
-        let n_elapsed: u128 = (t_elapsed / interval).into();
+        let mut n_elapsed: u128 = (t_elapsed / interval).into();
+        if t_elapsed % interval > 0 { n_elapsed += 1; }
 
         // then add that amount to the cliff amount
         vest += portion * n_elapsed;
