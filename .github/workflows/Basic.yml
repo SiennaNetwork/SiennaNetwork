@@ -24,24 +24,24 @@ jobs:
       - name: Run unit tests
         uses: actions-rs/cargo@v1
         with:
-          command: unit-test
+          command: test
           args: --locked
         env:
           RUST_BACKTRACE: 1
 
-      - name: Compile WASM contract
-        uses: actions-rs/cargo@v1
-        with:
-          command: wasm
-          args: --locked
-        env:
-          RUSTFLAGS: "-C link-arg=-s"
+      #- name: Compile WASM contract
+        #uses: actions-rs/cargo@v1
+        #with:
+          #command: wasm
+          #args: --locked
+        #env:
+          #RUSTFLAGS: "-C link-arg=-s"
 
-      - name: Run integration tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: integration-test
-          args: --locked
+      #- name: Run integration tests
+        #uses: actions-rs/cargo@v1
+        #with:
+          #command: integration-test
+          #args: --locked
 
   #lints:
     #name: Lints
