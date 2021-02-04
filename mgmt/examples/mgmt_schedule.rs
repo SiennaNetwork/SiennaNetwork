@@ -28,22 +28,23 @@ fn main () {
     let mut t_max: u64 = 0;
     let (mut t_min, mut t_max) = (0, 0);
     for Stream { addr, amount, vesting } in SCHEDULE.predefined.iter() {
-        let mut _cliff = 0;
+        let mut _start_at = 0;
         let mut _duration = 0;
         match vesting {
-            Vesting::Monthly {cliff, duration, ..} => {
-                _cliff = *cliff;
+            Vesting::Monthly {start_at, duration, ..} => {
+                _start_at = *start_at;
                 _duration = *duration;
             },
-            Vesting::Daily {cliff, duration, ..} => {
-                _cliff = *cliff;
+            Vesting::Daily {start_at, duration, ..} => {
+                _start_at = *start_at;
                 _duration = *duration;
             },
             _ => {}
         }
-        if _cliff > t_max { t_max = _cliff }
-        if _cliff + _duration > t_max { t_max = _cliff + _duration }
+        if _start_at > t_max { t_max = _start_at }
+        if _start_at + _duration > t_max { t_max = _start_at + _duration }
     }
+    t_max += MONTH;
 
     let width = 2000f64;
     let height = 3000f64;
@@ -99,7 +100,7 @@ fn main () {
         let h = ((percent * 10000.0).ln().ln()*100.0).ln() * 50.0;
         g = g.set("data-h", h);
 
-        println!("\n{} {}/{} {} {}", &addr, &amount, &total, &percent, &h);
+        //println!("\n{} {}/{} {} {}", &addr, &amount, &total, &percent, &h);
 
         g = g.add(svg!(Line class="stream-border"
             x1=0 y1=0 x2=width y2=0
@@ -119,17 +120,18 @@ fn main () {
             let vested = claimable(addr, &null_canon, &vec![], 0, now) / ONE_SIENNA;
             let y = h - h * (vested as f64 / amount as f64);
             let point = format!("{},{} {},{} ", lastX, lastY, lastX, y);
-            println!("{} @{} {}/{} = {}", &addr, &now, &vested, &amount, &point);
+            //println!("{} @{} {}/{} = {}", &addr, &now, &vested, &amount, &point);
             points.push_str(&point);
             lastY = y;
             now += DAY;
             g = g.add(svg!(Circle cx=lastX cy=y r=1 fill="red" data_t=now data_a=vested.to_string()));
         }
-        //g = g.add(svg!(Polyline class="stream-flow"
-            //fill="rgba(64,255,64,0.2)"
-            //stroke="rgba(0,128,0,0.5)"
-            //stroke_width=0.5
-            //points=points));
+        points.push_str(&format!("{},{} {},{} {},{}", width, 0, width, h, 0, h));
+        g = g.add(svg!(Polyline class="stream-flow"
+            fill="rgba(64,255,64,0.2)"
+            stroke="rgba(0,128,0,0.5)"
+            stroke_width=0.5
+            points=points));
 
         g = g.add(svg!(Text class="stream-amount"
             x=-10 y=h/2.0 text_anchor="end")
@@ -157,11 +159,11 @@ fn main () {
 
     // grid labels
     grid = grid.add(
-        svg!(Text x=0 y=-15 text_anchor="start")
-            .add(svg!(format!("T={} seconds", t_min))));
+        svg!(Text x=0 y=-15 text_anchor="end")
+            .add(svg!("T=0")));
     grid = grid.add(
-        svg!(Text x=width y=-15 text_anchor="end")
-            .add(svg!(format!("T={} seconds", t_max))));
+        svg!(Text x=width y=-15 text_anchor="start")
+            .add(svg!(format!("T={} days", (t_max-t_min)/DAY))));
 
     // grid lines - thin
     let n_days = (t_max - t_min) / DAY;
@@ -172,7 +174,6 @@ fn main () {
         grid = grid.add(
             svg!(Line x1=x x2=x y1=0 y2=height stroke="rgba(0,0,0,0.2)"));
         i += 1;
-        println!("day {} {}", i, x);
     }
 
     // grid lines - thick
@@ -184,7 +185,6 @@ fn main () {
         grid = grid.add(
             svg!(Line x1=x x2=x y1=0 y2=height stroke="rgba(0,0,0,0.4)"));
         i += 1;
-        println!("month {} {}", i, x);
     }
     //let days_in_month = 30;
     //let mut n_months = n_days/weeks_in_month;
@@ -199,4 +199,6 @@ fn main () {
     doc = doc.add(grid);
 
     svg::save("docs/schedule.svg", &doc).unwrap();
+
+    //println!("{} {}", t_min, t_max/MONTH);
 }

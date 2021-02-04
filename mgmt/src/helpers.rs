@@ -36,8 +36,8 @@ macro_rules! daily {
             addr: recipient!($a),
             amount:  SIENNA!($b),
             vesting: Vesting::Daily {
-                start_at: $d * MONTH,
-                duration: $c * MONTH,
+                start_at: $c * MONTH,
+                duration: $d * MONTH,
                 cliff:    $e
             }
         }

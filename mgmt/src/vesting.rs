@@ -92,26 +92,42 @@ fn immediate (now: Seconds, launched: Seconds, amount: Amount) -> Amount {
 
 /// Periodic vesting: calculate how much the user can claim at the given time.
 fn periodic (
-    amount: Amount, interval: Seconds,
-    launched: Seconds, now: Seconds,
+    amount: Amount, interval: Seconds, launched: Seconds, now: Seconds,
     start_at: Seconds, duration: Seconds, cliff: Percentage,
 ) -> Amount {
     let t_start = launched + start_at;
-    if now >= t_start {
-        let t_end = t_start + duration;
-        let c: u128 = cliff.into();
-        if c * amount % 100 > 0 { warn_cliff_remainder() }
-        let cliff_amount = (c * amount / 100) as u128;
-        let (t_elapsed, t_total) = (
-            (  now - t_start) / interval,
-            (t_end - t_start) / interval
-        );
-        if amount % (t_total as u128) > 0 { warn_vesting_remainder() }
-        Amount::min(
-            amount,
-            cliff_amount + amount * (t_elapsed / t_total) as u128
-        )
+    if now < t_start {
+        // cliff hasn't been reached yet
+        0 
     } else {
-        0
+        // mutable for clarity:
+        let mut vest = 0;
+
+        // start with the cliff amount
+        let cliff = cliff as u128;
+        if cliff * amount % 100 > 0 { warn_cliff_remainder() }
+        let cliff_amount = (cliff * amount / 100) as u128;
+        vest += cliff_amount;
+
+        // then for every `interval` since `t_start`
+        // add an equal portion of the remaining amount
+
+        // then, from the remaining amount and the number of vestings
+        // determine the size of the portion
+        let post_cliff_amount = amount - cliff_amount;
+        let n_total: u128 = (duration / interval).into();
+        if post_cliff_amount % n_total > 0 { warn_vesting_remainder() }
+        let portion = post_cliff_amount / n_total;
+
+        // then determine how many vesting periods have elapsed
+        // (up to the maximum)
+        let t_elapsed = Seconds::min(now - t_start, duration); 
+        let n_elapsed: u128 = (t_elapsed / interval).into();
+
+        // then add that amount to the cliff amount
+        vest += portion * n_elapsed;
+
+        //println!("periodic {}/{}={} -> {}", n_elapsed, n_total, n_elapsed/n_total, vest);
+        vest
     }
 }

@@ -26,4 +26,4 @@ ls dist/
 
 ## Vesting schedule
 
-![](docs/chart.svg)
+![](docs/schedule.svg)
