@@ -47,10 +47,10 @@ fn main () {
     t_max += MONTH;
 
     let width = 2000f64;
-    let height = 3000f64;
+    let height = 3500f64;
     let margin = 500f64;
     let t_scale = width / (t_max - t_min) as f64;
-    let viewbox = (-margin, 0, width+2.0*margin, height+2.0*margin);
+    let viewbox = (-0.75*margin, 0.5*margin, width+2.0*margin, height+1.0*margin);
 
     // chart
     let mut doc = svg!(Document
@@ -87,7 +87,7 @@ fn main () {
         g = g.set("data-h", h);
 
         g = g.add(svg!(Line class="stream-border"
-            x1=0 y1=0 x2=width y2=0
+            x1=0 y1=h x2=width y2=h
             stroke="#000" stroke_width=0.5));
 
         g = g.add(svg!(Text class="stream-id"
@@ -95,23 +95,34 @@ fn main () {
             .add(svg!(&addr.to_string())));
 
         let portion: u128;
+        let vestings: u128;
+        let mut cliff_amount: u128 = 0;
+        let mut start_day: u128 = 0;
 
         match vesting {
 
             Vesting::Immediate {} => {
                 g = g.set("class", "stream immediate");
                 bg = bg.set("fill", "rgba(64,255,64,0.2");
-                portion = amount;
+                cliff_amount = amount;
+                portion = 0;
+                vestings = 0;
             },
 
             Vesting::Monthly {start_at, duration, cliff} => {
                 g = g.set("class", "stream monthly");
-                portion = amount / (duration / MONTH) as u128;
+                start_day = (start_at / DAY).into();
+                cliff_amount = *cliff as u128 * amount / 100;
+                vestings = (duration / MONTH) as u128;
+                portion = (amount - cliff_amount) / vestings;
             },
 
             Vesting::Daily {start_at, duration, cliff} => {
                 g = g.set("class", "stream daily");
-                portion = amount / (duration / DAY) as u128;
+                start_day = (start_at / DAY).into();
+                cliff_amount = *cliff as u128 * amount / 100;
+                vestings = (duration / DAY) as u128;
+                portion = (amount - cliff_amount) / vestings;
             }
 
         };
@@ -147,14 +158,17 @@ fn main () {
             points=points));
 
         g = g.add(svg!(Text class="stream-amount" font_weight="bold"
-            x=-10 y=h*0.25 text_anchor="end")
+            x=-10 y=h*0.2 text_anchor="end")
             .add(svg!(format!("{} SIENNA", amount.to_string()))));
         g = g.add(svg!(Text class="stream-amount"
-            x=-10 y=h*0.50 text_anchor="end")
+            x=-10 y=h*0.4 text_anchor="end")
             .add(svg!(format!("{} of total", percent))));
         g = g.add(svg!(Text class="stream-amount"
-            x=-10 y=h*0.75 text_anchor="end")
-            .add(svg!(format!("{} per vesting", portion))));
+            x=-10 y=h*0.6 text_anchor="end")
+            .add(svg!(format!("{} at day {}, plus", cliff_amount, start_day))));
+        g = g.add(svg!(Text class="stream-amount"
+            x=-10 y=h*0.8 text_anchor="end")
+            .add(svg!(format!("{} per {} vestings", portion, vestings))));
 
         doc = doc.add(g);
 

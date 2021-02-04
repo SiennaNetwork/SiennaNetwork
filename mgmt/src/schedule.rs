@@ -23,6 +23,7 @@ macro_rules! recipient {
     (Advisor3)  => { HumanAddr::from("secret1Advisor3")  };
     (Advisor4)  => { HumanAddr::from("secret1Advisor4")  };
     (AdvisorR)  => { HumanAddr::from("secret1AdvisorR")  };
+    (Liquidity) => { HumanAddr::from("secret1Liquidity") };
     (Remaining) => { HumanAddr::from("secret1Remaining") };
     () => {};
 }
@@ -49,8 +50,9 @@ lazy_static! {
             daily!     (Advisor2    50000 6 16  0%),
             daily!     (Advisor3    10000 6  6  0%),
             daily!     (Advisor4     5000 6  6  0%),
-
             immediate! (AdvisorR    85000         ),
+
+            immediate! (Liquidity  300000         ),
             immediate! (Remaining 3700000         ),
         ]
 
