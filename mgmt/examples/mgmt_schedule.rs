@@ -1,10 +1,6 @@
-use std::env::current_dir;
-use std::fs::create_dir_all;
-
 use svg::Document;
 use svg::node::Text as TextNode;
 use svg::node::element::{Rectangle, Group, Text, Line, Polyline, Circle};
-use svg::node::element::path::Data;
 
 use sienna_mgmt::schedule::SCHEDULE;
 use sienna_mgmt::constants::{ONE_SIENNA, DAY, MONTH};
@@ -28,7 +24,7 @@ fn main () {
     let t_min = 0;
     let mut t_max: u64 = 0;
 
-    for Stream { addr, amount, vesting } in SCHEDULE.predefined.iter() {
+    for Stream { vesting, .. } in SCHEDULE.predefined.iter() {
         let mut _start_at = 0;
         let mut _duration = 0;
         match vesting {
@@ -93,7 +89,7 @@ fn main () {
 
         let portion: u128;
         let vestings: u128;
-        let mut cliff_amount: u128 = 0;
+        let cliff_amount: u128;
         let mut start_day: u128 = 0;
 
         match vesting {
@@ -133,7 +129,7 @@ fn main () {
         // correspond to vesting progress
         let mut now = t_min;
         let mut points = String::new();
-        let mut last_x = 0.0;
+        let mut last_x;
         let mut last_y = 0.0;
         while now < t_max {
             last_x = now as f64 * t_scale;

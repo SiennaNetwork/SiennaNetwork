@@ -35,7 +35,6 @@ pub fn claimed (
 
 #[test]
 fn test_claimed () {
-    use cosmwasm_std::Uint128;
     let alice = HumanAddr::from("alice");
     let bobby = HumanAddr::from("bob");
     let log = vec![ (alice.clone(), 100, 100u128.into())
@@ -84,8 +83,7 @@ pub fn claimable (
                 let start = launched + start_at;
                 if now < start { return 0 }
                 periodic(
-                    amount.u128(), interval, now - start,
-                    *start_at, *duration, *cliff
+                    amount.u128(), interval, now - start, *duration, *cliff
                 )
             },
         }
@@ -105,7 +103,7 @@ pub fn claimable (
 
 fn periodic (
     amount: Amount, interval: Seconds, since_start: Seconds,
-    start_at: Seconds, duration: Seconds, cliff: Percentage,
+    duration: Seconds, cliff: Percentage,
 ) -> Amount {
 
     // mutable for clarity:
@@ -132,7 +130,7 @@ fn periodic (
     // are used to ensure vesting happens at the begginning of an interval
     let t_elapsed = Seconds::min(since_start, duration - interval);
     let n_elapsed = t_elapsed / interval;
-    let mut n_elapsed: u128 = (1 + n_elapsed).into();
+    let n_elapsed: u128 = (1 + n_elapsed).into();
     //if t_elapsed % interval > interval / 2 { n_elapsed += 1; }
 
     // then add that amount to the cliff amount

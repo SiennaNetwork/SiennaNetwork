@@ -1,17 +1,13 @@
 #![allow(non_snake_case)]
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
-use serde::ser::Serialize;
 
 use sienna_mgmt as mgmt;
 use mgmt::schedule::SCHEDULE;
 use mgmt::constants::{DAY, MONTH, ONE_SIENNA, err_allocation};
-use mgmt::types::{Schedule, Stream, Vesting};
+use mgmt::types::{Stream, Vesting};
 
-use cosmwasm_std::{
-    coins, StdError, HumanAddr, Api, Uint128,
-    CosmosMsg, WasmMsg, Binary, to_binary, to_vec
-};
+use cosmwasm_std::{StdError, HumanAddr, Uint128};
 
 use secret_toolkit::snip20;
 
@@ -24,7 +20,7 @@ kukumba!(
     }
 
     when "someone deploys the contract" {
-        let res = mgmt::init(
+        let _ = mgmt::init(
             &mut deps,
             mock_env(0, 0, &ALICE),
             mgmt::msg::Init {
@@ -123,7 +119,7 @@ kukumba!(
 
     when "a predefined claimant tries to claim funds"
     then "they should be denied" {
-        let Stream { amount, addr, vesting } = SCHEDULE.predefined.get(0).unwrap()
+        let Stream { addr, vesting, .. } = SCHEDULE.predefined.get(0).unwrap()
         match vesting {
             Vesting::Periodic {..} => {
                 assert_tx!(deps
@@ -147,9 +143,9 @@ kukumba!(
     when "a predefined claimant tries to claim funds before the cliff"
     then "they should be denied" {
         let start;
-        let Stream { amount, addr: PREDEF, vesting } = SCHEDULE.predefined.get(0).unwrap();
+        let Stream { addr: PREDEF, vesting, .. } = SCHEDULE.predefined.get(0).unwrap();
         match vesting {
-            Vesting::Periodic { start_at, duration, cliff, .. } => {
+            Vesting::Periodic { start_at, .. } => {
                 start = *start_at;
                 assert_tx!(deps
                     => from [PREDEF] at [block 4, T=start-1]
@@ -232,9 +228,9 @@ kukumba!(
     and  "this is the first time they make a claim"
     and  "it is a long time after the end of the vesting"
     then "the contract should transfer everything in one go" {
-        let Stream { amount, addr: PREDEF, vesting } = SCHEDULE.predefined.get(1).unwrap();
+        let Stream { addr: PREDEF, vesting, .. } = SCHEDULE.predefined.get(1).unwrap();
         match vesting {
-            Vesting::Periodic { start_at, duration, cliff, .. } => {
+            Vesting::Periodic { start_at, duration, .. } => {
                 let T = (start_at + duration) + 48 * MONTH;
                 let msg = snip20::handle::HandleMsg::Transfer {
                     recipient: PREDEF.clone(),

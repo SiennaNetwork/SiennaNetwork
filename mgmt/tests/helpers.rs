@@ -2,7 +2,6 @@ use cosmwasm_std::{
     HumanAddr, Coin,
     Extern, MemoryStorage,
     Env, BlockInfo, MessageInfo, ContractInfo,
-    to_binary
 };
 
 use cosmwasm_std::testing::{
