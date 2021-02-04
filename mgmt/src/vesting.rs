@@ -119,11 +119,13 @@ fn periodic (
         if post_cliff_amount % n_total > 0 { warn_vesting_remainder() }
         let portion = post_cliff_amount / n_total;
 
-        // then determine how many vesting periods have elapsed
-        // (up to the maximum)
-        let t_elapsed = Seconds::min(now - t_start, duration); 
-        let mut n_elapsed: u128 = (t_elapsed / interval).into();
-        if t_elapsed % interval > 0 { n_elapsed += 1; }
+        // then determine how many vesting periods have elapsed,
+        // up to the maximum; `duration - interval` and `1 + n_elapsed`
+        // are used to establish correct vesting boundaries
+        let t_elapsed = Seconds::min(now - t_start, duration - interval);
+        let n_elapsed = t_elapsed / interval;
+        let mut n_elapsed: u128 = (1 + n_elapsed).into();
+        //if t_elapsed % interval > interval / 2 { n_elapsed += 1; }
 
         // then add that amount to the cliff amount
         vest += portion * n_elapsed;
