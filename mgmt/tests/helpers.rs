@@ -90,9 +90,3 @@ macro_rules! assert_query {
         }
     }
 }
-
-macro_rules! canon {
-    ($deps:ident, $($x:tt)*) => {
-        $deps.api.canonical_address($($x)*).unwrap();
-    }
-}
