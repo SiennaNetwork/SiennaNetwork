@@ -80,9 +80,11 @@ pub fn claimable (
                     Interval::Daily   => DAY,
                     Interval::Monthly => MONTH
                 };
-                let since_start = now - (launched + start_at);
+                // Can't vest before the cliff
+                let start = launched + start_at;
+                if now < start { return 0 }
                 periodic(
-                    amount.u128(), interval, since_start,
+                    amount.u128(), interval, now - start,
                     *start_at, *duration, *cliff
                 )
             },

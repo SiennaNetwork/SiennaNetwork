@@ -24,9 +24,10 @@ macro_rules! svg {
 fn main () {
 
     let total = SCHEDULE.total.u128() / ONE_SIENNA;
+
     let t_min = 0;
     let mut t_max: u64 = 0;
-    let (mut t_min, mut t_max) = (0, 0);
+
     for Stream { addr, amount, vesting } in SCHEDULE.predefined.iter() {
         let mut _start_at = 0;
         let mut _duration = 0;
@@ -132,18 +133,18 @@ fn main () {
         // correspond to vesting progress
         let mut now = t_min;
         let mut points = String::new();
-        let mut lastX = 0.0;
-        let mut lastY = 0.0;
+        let mut last_x = 0.0;
+        let mut last_y = 0.0;
         while now < t_max {
-            lastX = now as f64 * t_scale;
+            last_x = now as f64 * t_scale;
             let vested = claimable(addr, &vec![], 0, now) / ONE_SIENNA;
             let y = h - h * (vested as f64 / amount as f64);
-            let point = format!("{},{} {},{} ", lastX, lastY, lastX, y);
+            let point = format!("{},{} {},{} ", last_x, last_y, last_x, y);
             //println!("{} @{} {}/{} = {}", &addr, &now, &vested, &amount, &point);
             points.push_str(&point);
-            lastY = y;
+            last_y = y;
             now += DAY;
-            g = g.add(svg!(Circle cx=lastX cy=y r=1 fill="red" data_t=now data_a=vested.to_string()));
+            g = g.add(svg!(Circle cx=last_x cy=y r=1 fill="red" data_t=now data_a=vested.to_string()));
         }
         points.push_str(&format!("{},{} {},{} {},{}", width, 0, width, h, 0, h));
         g = g.add(svg!(Polyline class="stream-flow"

@@ -175,7 +175,8 @@ kukumba!(
                 messages: vec![
                     snip20::handle::HandleMsg::Transfer {
                         recipient: PREDEF.clone(),
-                        amount:    Uint128::from(75000u128),
+                        amount:    Uint128::from(83333333333333333333333u128),
+                        //amount:    SIENNA!(75000),
                         padding:   None
                     }.to_cosmos_msg(
                         256,
@@ -202,7 +203,8 @@ kukumba!(
     then "the contract should transfer more funds" {
         let msg = snip20::handle::HandleMsg::Transfer {
             recipient: PREDEF.clone(),
-            amount:    Uint128::from(75000u128),
+            amount:    Uint128::from(83333333333333333333333u128),
+            //amount:    SIENNA!(75000),
             padding:   None
         }.to_cosmos_msg(
             256,
@@ -234,13 +236,19 @@ kukumba!(
         match vesting {
             Vesting::Periodic { start_at, duration, cliff, .. } => {
                 let T = (start_at + duration) + 48 * MONTH;
-                let msg = cosmwasm_std::CosmosMsg::Bank(
-                    cosmwasm_std::BankMsg::Send {
-                        from_address: HumanAddr::from("contract"),
-                        to_address:   PREDEF.clone(),
-                        amount:       coins(2000000, "SIENNA")});
+                let msg = snip20::handle::HandleMsg::Transfer {
+                    recipient: PREDEF.clone(),
+                    amount:    Uint128::from(1999999999999999999999680u128),
+                    //amount:    SIENNA!(75000),
+                    padding:   None
+                }.to_cosmos_msg(
+                    256,
+                    "".to_string(),
+                    HumanAddr::from("mgmt"),
+                    None
+                ).unwrap();
                 assert_tx!(deps
-                    => from [addr] at [block 4, T=T]
+                    => from [PREDEF] at [block 4, T=T]
                     => mgmt::msg::Handle::Claim {}
                     => Ok(cosmwasm_std::HandleResponse {
                         data:     None,

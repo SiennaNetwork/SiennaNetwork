@@ -141,35 +141,35 @@ contract!(
         // Recipients can call the Claim method to receive
         // the gains that have accumulated so far.
         Claim () {
+            use crate::constants::{PRELAUNCH, BROKEN, NOTHING};
+            use cosmwasm_std::Uint128;
             match &state.launched {
                 None => {
                     state.errors += 1;
-                    err_msg(state, &crate::constants::PRELAUNCH)
+                    err_msg(state, &PRELAUNCH)
                 },
                 Some(launch) => {
                     let now = env.block.time;
-                    //let contract = env.contract.address;
                     let claimant = env.message.sender;
                     let claimable = claimable(&claimant, &state.recipients, *launch, now);
                     let claimed = claimed(&claimant, &state.vested, now);
-                    //println!("claim, {}/{} @ {}", claimed, claimable, now);
                     if claimable < claimed {
-                        err_msg(state, &crate::constants::BROKEN)
+                        err_msg(state, &BROKEN)
                     } else {
                         let difference = claimable - claimed;
                         if difference <= 0 {
-                            err_msg(state, &crate::constants::NOTHING)
+                            err_msg(state, &NOTHING)
                         } else {
                             let token_hash = state.token_hash.clone();
                             let token_addr = state.token_addr.clone();
                             match transfer_msg(
                                 claimant.clone(),
-                                cosmwasm_std::Uint128::from(difference),
+                                Uint128::from(difference),
                                 None, BLOCK_SIZE, token_hash, token_addr,
                             ) {
                                 Err(e) => (state, Err(e)),
                                 Ok(msg) => {
-                                    let difference = cosmwasm_std::Uint128::from(difference);
+                                    let difference = Uint128::from(difference);
                                     state.vested.push((claimant, now, difference));
                                     ok_msg(state, vec![msg])
                                 },
