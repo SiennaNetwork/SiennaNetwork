@@ -44,7 +44,7 @@ pub fn mock_env (
 ) -> Env { Env {
     block: BlockInfo { height, time, chain_id: "secret".into() },
     message: MessageInfo { sender: sender.into(), sent_funds: vec![] },
-    contract: ContractInfo { address: "contract".into() },
+    contract: ContractInfo { address: "mgmt".into() },
     contract_key: Some("".into()),
     contract_code_hash: "0".into()
 } }

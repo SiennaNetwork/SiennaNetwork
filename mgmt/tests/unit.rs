@@ -133,11 +133,25 @@ kukumba!(
         }
     }
 
-    given "the contract is already launched" {
-        let _ = tx(
-            &mut deps,
-            mock_env(0, 0, &ALICE),
-            mgmt::msg::Handle::Launch {});
+    given "the contract is launched" {
+        assert_tx!(deps
+            => from [ALICE] at [block 0, T=0]
+            => mgmt::msg::Handle::Launch {}
+            => Ok(cosmwasm_std::HandleResponse {
+                data:     None,
+                log:      vec![],
+                messages: vec![
+                    snip20::handle::HandleMsg::Mint {
+                        recipient: HumanAddr::from("mgmt"),
+                        amount:    Uint128::from(10000000 * ONE_SIENNA),
+                        padding:   None
+                    }.to_cosmos_msg(
+                        256,
+                        "".to_string(),
+                        HumanAddr::from("mgmt"),
+                        None
+                    ).unwrap()
+                ] }) );
     }
 
     when "a predefined claimant tries to claim funds before the cliff"

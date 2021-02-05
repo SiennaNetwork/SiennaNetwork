@@ -95,12 +95,11 @@ contract!(
                 state.errors += 1;
                 err_auth(state)
             } else {
+                use crate::constants::err_allocation;
                 let total = recipients.iter().fold(0u128, |acc, x| acc + x.1.u128());
-                if total > SCHEDULE.configurable_daily.u128() {
-                    err_msg(state, &crate::constants::err_allocation(
-                        total,
-                        SCHEDULE.configurable_daily.u128()
-                    ))
+                let max = SCHEDULE.configurable_daily.u128();
+                if total > max {
+                    err_msg(state, &err_allocation(total, max))
                 } else {
                     state.recipients = recipients.clone();
                     ok(state)
@@ -117,14 +116,16 @@ contract!(
                 state.errors += 1;
                 err_auth(state)
             } else {
+                use crate::constants::UNDERWAY;
+                use cosmwasm_std::Uint128;
                 match state.launched {
-                    Some(_) => err_msg(state, &crate::constants::UNDERWAY),
+                    Some(_) => err_msg(state, &UNDERWAY),
                     None => {
                         let token_hash = state.token_hash.clone();
                         let token_addr = state.token_addr.clone();
                         match mint_msg(
                             env.contract.address,
-                            cosmwasm_std::Uint128::from(SCHEDULE.total),
+                            Uint128::from(SCHEDULE.total),
                             None, BLOCK_SIZE, token_hash, token_addr
                         ) {
                             Ok(msg) => {
