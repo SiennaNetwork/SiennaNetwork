@@ -33,7 +33,7 @@ kukumba!(
     then "they become admin"
     and  "they should be able to query its state"
     and  "it should say it's not launched yet" {
-        assert_query!(deps => Status => Status { launched: None });
+        assert_query!(deps; Status; Status { launched: None, errors: 0 });
     }
 
     #[launch]
@@ -45,10 +45,11 @@ kukumba!(
     when "a stranger tries to start the vesting"
     then "they should fail" {
         let time = 2;
-        let _ = tx(&mut deps,
-            mock_env(1, time, &MALLORY),
-            mgmt::msg::Handle::Launch {});
-        assert_query!(deps => Status => Status { launched: None });
+        assert_tx!(deps
+            => from [MALLORY] at [block 4, T=4]
+            => mgmt::msg::Handle::Launch {}
+            => Err(StdError::Unauthorized { backtrace: None }));
+        assert_query!(deps; Status; Status { launched: None, errors: 1 });
     }
 
     when "the admin tries to start the vesting"
@@ -56,7 +57,7 @@ kukumba!(
         let time = 3;
         let _ = tx(&mut deps, mock_env(1, time, &ALICE),
             mgmt::msg::Handle::Launch {});
-        assert_query!(deps => Status => Status { launched: Some(time) });
+        assert_query!(deps; Status; Status { launched: Some(time), errors: 1 });
     }
 
     given "the contract is already launched"
@@ -67,7 +68,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(3, next_time, &ALICE),
             mgmt::msg::Handle::Launch {});
-        assert_query!(deps => Status => Status { launched: Some(time) });
+        assert_query!(deps; Status; Status { launched: Some(time), errors: 2 });
     }
 
     #[claim_stranger]
@@ -114,7 +115,7 @@ kukumba!(
             mock_env(0, 0, &ALICE),
             mgmt::msg::Handle::SetRecipients { recipients: r.clone() });
 
-        assert_query!(deps => Recipients => Recipients { recipients: r });
+        assert_query!(deps; Recipients; Recipients { recipients: r });
     }
 
     when "a predefined claimant tries to claim funds"
@@ -280,7 +281,7 @@ kukumba!(
         let r1 = vec![(BOB.clone(), SIENNA!(100))];
         let _ = tx(&mut deps, mock_env(1, 1, &ALICE),
             mgmt::msg::Handle::SetRecipients { recipients: r1.clone() });
-        assert_query!(deps => Recipients => Recipients { recipients: r1 });
+        assert_query!(deps; Recipients; Recipients { recipients: r1 });
     }
 
     when "the admin tries to set the recipients above the total"
@@ -293,7 +294,7 @@ kukumba!(
             => Err(StdError::GenericErr {
                 msg: err_allocation(10000000*ONE_SIENNA, 2500*ONE_SIENNA),
                 backtrace: None}));
-        assert_query!(deps => Recipients => Recipients { recipients: r1 });
+        assert_query!(deps; Recipients; Recipients { recipients: r1 });
     }
 
     when "a stranger tries to set the recipients"
@@ -302,7 +303,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(1, 1, &MALLORY),
             mgmt::msg::Handle::SetRecipients { recipients: r3 });
-        assert_query!(deps => Recipients => Recipients { recipients: r1 });
+        assert_query!(deps; Recipients; Recipients { recipients: r1 });
     }
 
     given "the contract is already launched" {
@@ -316,7 +317,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(3, 3, &ALICE),
             mgmt::msg::Handle::SetRecipients { recipients: r4.clone() });
-        assert_query!(deps => Recipients => Recipients { recipients: r4 });
+        assert_query!(deps; Recipients; Recipients { recipients: r4 });
     }
 
     when "the admin tries to set the recipients above the total"
@@ -329,7 +330,7 @@ kukumba!(
             => Err(StdError::GenericErr {
                 msg: err_allocation(10000000*ONE_SIENNA, 2500*ONE_SIENNA),
                 backtrace: None}) );
-        assert_query!(deps => Recipients => Recipients { recipients: r4 });
+        assert_query!(deps; Recipients; Recipients { recipients: r4 });
     }
 
     when "a stranger tries to set the recipients"
@@ -338,7 +339,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(4, 4, &MALLORY),
             mgmt::msg::Handle::SetRecipients { recipients: r6 });
-        assert_query!(deps => Recipients => Recipients { recipients: r4 });
+        assert_query!(deps; Recipients; Recipients { recipients: r4 });
     }
 
     #[claim_configurable]
@@ -350,7 +351,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(0, 0, &ALICE),
             mgmt::msg::Handle::SetRecipients { recipients: r.clone() });
-        assert_query!(deps => Recipients => Recipients { recipients: r });
+        assert_query!(deps; Recipients; Recipients { recipients: r });
     }
 
     when "a configurable claimant tries to claim funds"

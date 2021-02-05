@@ -75,7 +75,7 @@ macro_rules! assert_tx {
 }
 
 macro_rules! assert_query {
-    ( $deps:expr => $Query:ident => $Response:ident {
+    ( $deps:expr ; $Query:ident ; $Response:ident {
         $($arg:ident : $val:expr),*
     } ) => {
         match cosmwasm_std::from_binary(

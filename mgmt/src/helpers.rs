@@ -4,6 +4,15 @@ macro_rules! SIENNA {
     ($x:expr) => { Uint128::from($x as u128 * ONE_SIENNA) }
 }
 
+/// Auth
+macro_rules! require_admin {
+    (|$env:ident, $state:ident| $body:block) => {
+        if $env.message.sender != $state.admin {
+            err_auth($state)
+        } else $body
+    }
+}
+
 /// Schedules
 macro_rules! monthly {
     ($a:ident $b:literal $c:literal $d:literal $e:literal %) => {

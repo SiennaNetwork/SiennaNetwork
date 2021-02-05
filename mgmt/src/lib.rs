@@ -71,7 +71,10 @@ contract!(
         // Querying the status.
         // TODO how much info should be available here?
         Status () {
-            msg::Response::Status { launched: state.launched }
+            msg::Response::Status {
+                launched: state.launched,
+                errors:   state.errors
+            }
         }
         Recipients () {
             let response =  msg::Response::Recipients { recipients: state.recipients };
@@ -80,42 +83,23 @@ contract!(
     }
 
     [Response] {
-        Status     { launched:   crate::types::Launched }
-        Recipients { recipients: crate::types::Allocation }
+        Status     {
+            launched: crate::types::Launched,
+            errors:   crate::types::ErrorCount
+        }
+        Recipients {
+            recipients: crate::types::Allocation
+        }
     }
 
     [Handle] (deps, env, sender, state, msg) {
-
-        // Most schedules are static (imported from config at compile time).
-        // However the config supports `release_mode: configurable` which
-        // allows their streams to be redirected in runtime-configurable
-        // proportions.
-        SetRecipients (recipients: crate::types::Allocation) {
-            if env.message.sender != state.admin {
-                state.errors += 1;
-                err_auth(state)
-            } else {
-                use crate::constants::err_allocation;
-                let total = recipients.iter().fold(0u128, |acc, x| acc + x.1.u128());
-                let max = SCHEDULE.configurable_daily.u128();
-                if total > max {
-                    err_msg(state, &err_allocation(total, max))
-                } else {
-                    state.recipients = recipients.clone();
-                    ok(state)
-                }
-            }
-        }
 
         // After configuring the instance, launch confirmation must be given.
         // An instance can be launched only once.
         // TODO emergency vote to stop everything and refund the initializer
         // TODO launch transaction should receive/mint its budget?
         Launch () {
-            if env.message.sender != state.admin {
-                state.errors += 1;
-                err_auth(state)
-            } else {
+            require_admin!(|env, state| {
                 use crate::constants::UNDERWAY;
                 use cosmwasm_std::Uint128;
                 match state.launched {
@@ -136,7 +120,34 @@ contract!(
                         }
                     }
                 }
-            }
+            })
+        }
+
+        // Most schedules are static (imported from config at compile time).
+        // However the config supports `release_mode: configurable` which
+        // allows their streams to be redirected in runtime-configurable
+        // proportions.
+        SetRecipients (recipients: crate::types::Allocation) {
+            require_admin!(|env, state| {
+                use crate::constants::err_allocation;
+                let total = recipients.iter().fold(0u128, |acc, x| acc + x.1.u128());
+                let max = SCHEDULE.configurable_daily.u128();
+                if total > max {
+                    err_msg(state, &err_allocation(total, max))
+                } else {
+                    state.recipients = recipients.clone();
+                    ok(state)
+                }
+            })
+        }
+
+        // The admin can make someone else the admin
+        // but there can be only one admin at a given time
+        TransferOwnership (new_admin: cosmwasm_std::HumanAddr) {
+            require_admin!(|env, state| {
+                state.admin = new_admin;
+                ok(state)
+            })
         }
 
         // Recipients can call the Claim method to receive
@@ -146,7 +157,6 @@ contract!(
             use cosmwasm_std::Uint128;
             match &state.launched {
                 None => {
-                    state.errors += 1;
                     err_msg(state, &PRELAUNCH)
                 },
                 Some(launch) => {

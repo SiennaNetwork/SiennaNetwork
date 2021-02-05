@@ -11,12 +11,6 @@ use crate::types::{
     Stream, Vesting, Interval
 };
 
-/// Imports the schedule from JSON during compilation.
-//const SRC: &str = include_str!("schedule.yml");
-//lazy_static! {
-    //pub static ref SCHEDULE: Schedule = serde_yaml::from_str(&SRC).unwrap();
-//}
-
 /// Determine how much an account has claimed
 /// based on the history of fulfilled claims.
 pub fn claimed (
@@ -31,23 +25,6 @@ pub fn claimed (
        sum += amount.u128();
     }
     sum
-}
-
-#[test]
-fn test_claimed () {
-    let alice = HumanAddr::from("alice");
-    let bobby = HumanAddr::from("bob");
-    let log = vec![ (alice.clone(), 100, 100u128.into())
-                  , (bobby.clone(), 100, 200u128.into())
-                  , (alice.clone(), 200, 300u128.into()) ];
-    assert_eq!(claimed(&alice, &log,   0),   0);
-    assert_eq!(claimed(&alice, &log,   1),   0);
-    assert_eq!(claimed(&alice, &log, 100), 100);
-    assert_eq!(claimed(&alice, &log, 101), 100);
-    assert_eq!(claimed(&alice, &log, 200), 400);
-    assert_eq!(claimed(&alice, &log, 999), 400);
-    assert_eq!(claimed(&bobby, &log, 999), 200);
-    assert_eq!(claimed(&bobby, &log,  99),   0);
 }
 
 /// Determine how much one can claim
