@@ -74,15 +74,3 @@ pub enum Vesting {
         cliff:    Percentage
     }
 }
-
-    //Daily {
-    //},
-
-    ///// After releasing `cliff_percent` at `cliff`,
-    ///// release every 720 hours for `duration` seconds
-    //Monthly {
-        //start_at: Seconds,
-        //duration: Seconds,
-        //cliff:    Percentage
-    //}
-//}
