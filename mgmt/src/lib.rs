@@ -123,6 +123,15 @@ contract!(
             })
         }
 
+        // The admin can make someone else the admin
+        // but there can be only one admin at a given time
+        TransferOwnership (new_admin: cosmwasm_std::HumanAddr) {
+            require_admin!(|env, state| {
+                state.admin = new_admin;
+                ok(state)
+            })
+        }
+
         // Most schedules are static (imported from config at compile time).
         // However the config supports `release_mode: configurable` which
         // allows their streams to be redirected in runtime-configurable
@@ -138,15 +147,6 @@ contract!(
                     state.recipients = recipients.clone();
                     ok(state)
                 }
-            })
-        }
-
-        // The admin can make someone else the admin
-        // but there can be only one admin at a given time
-        TransferOwnership (new_admin: cosmwasm_std::HumanAddr) {
-            require_admin!(|env, state| {
-                state.admin = new_admin;
-                ok(state)
             })
         }
 

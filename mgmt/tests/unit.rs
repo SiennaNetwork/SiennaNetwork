@@ -36,6 +36,10 @@ kukumba!(
         assert_query!(deps; Status; Status { launched: None, errors: 0 });
     }
 
+);
+
+kukumba!(
+
     #[launch]
 
     given "the contract is not yet launched" {
@@ -71,6 +75,10 @@ kukumba!(
         assert_query!(deps; Status; Status { launched: Some(time), errors: 2 });
     }
 
+);
+
+kukumba!(
+
     #[claim_stranger]
 
     given "the contract is not yet launched" {
@@ -103,6 +111,10 @@ kukumba!(
                 msg: mgmt::constants::NOTHING.to_string(),
                 backtrace: None }) );
     }
+
+);
+
+kukumba!(
 
     #[claim_predefined]
 
@@ -270,6 +282,10 @@ kukumba!(
         }
     }
 
+);
+
+kukumba!(
+
     #[configure]
 
     given "the contract is not yet launched" {
@@ -341,6 +357,10 @@ kukumba!(
             mgmt::msg::Handle::SetRecipients { recipients: r6 });
         assert_query!(deps; Recipients; Recipients { recipients: r4 });
     }
+
+);
+
+kukumba!(
 
     #[claim_configurable]
 
@@ -426,4 +446,45 @@ kukumba!(
                 messages: vec![msg] }) );
     }
 
+);
+
+kukumba!(
+    #[transfer_ownership]
+    given "a contract instance" {
+        harness!(deps; ALICE, BOB, MALLORY);
+    }
+
+    when "a stranger tries to set a new admin"
+    then "just the hit counter goes up" {
+        assert_tx!(deps
+            => from [MALLORY] at [block 2, T=DAY]
+            => mgmt::msg::Handle::TransferOwnership { new_admin: MALLORY.clone() }
+            => Err(StdError::Unauthorized { backtrace: None }))
+    }
+
+    when "the admin tries to set a new admin"
+    then "the admin is updated" {
+        assert_tx!(deps
+            => from [ALICE] at [block 2, T=DAY]
+            => mgmt::msg::Handle::TransferOwnership { new_admin: BOB.clone() }
+            => Ok(cosmwasm_std::HandleResponse {
+                data: None, log: vec![], messages: vec![] }))
+    }
+
+    when "the old admin tries to set a new admin"
+    then "just the hit counter goes up" {
+        assert_tx!(deps
+            => from [ALICE] at [block 2, T=DAY]
+            => mgmt::msg::Handle::TransferOwnership { new_admin: ALICE.clone() }
+            => Err(StdError::Unauthorized { backtrace: None }))
+    }
+
+    when "the new admin tries to set the admin"
+    then "the admin is updated" {
+        assert_tx!(deps
+            => from [BOB] at [block 2, T=DAY]
+            => mgmt::msg::Handle::TransferOwnership { new_admin: ALICE.clone() }
+            => Ok(cosmwasm_std::HandleResponse {
+                data: None, log: vec![], messages: vec![] }))
+    }
 );

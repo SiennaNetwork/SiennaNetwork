@@ -20,7 +20,7 @@ pub fn harness (balances: &[(&HumanAddr, &[Coin])])-> ExternMock {
     // Then I want to be able to query its state
     let res = sienna_mgmt::init(
         &mut deps,
-        mock_env(0, 0, balances[0].0),
+        mock_env(0, 0, balances[0].0), // first address in `balances` is admin
         sienna_mgmt::msg::Init {
             token_addr: cosmwasm_std::HumanAddr::from("mgmt"),
             token_hash: String::new()
