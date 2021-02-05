@@ -198,8 +198,7 @@ kukumba!(
                 messages: vec![
                     snip20::handle::HandleMsg::Transfer {
                         recipient: PREDEF.clone(),
-                        amount:    Uint128::from(83333333333333333333333u128),
-                        //amount:    SIENNA!(75000),
+                        amount:    SIENNA!(75000),
                         padding:   None
                     }.to_cosmos_msg(
                         256,
@@ -226,8 +225,7 @@ kukumba!(
     then "the contract should transfer more funds" {
         let msg = snip20::handle::HandleMsg::Transfer {
             recipient: PREDEF.clone(),
-            amount:    Uint128::from(83333333333333333333333u128),
-            //amount:    SIENNA!(75000),
+            amount:    SIENNA!(75000),
             padding:   None
         }.to_cosmos_msg(
             256,

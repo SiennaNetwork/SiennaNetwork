@@ -35,7 +35,7 @@ lazy_static! {
         total: SIENNA!(10000000),
 
         predefined: vec! [
-            monthly!   (DevFund   1500000 5 18  0%),
+            monthly!   (DevFund   1500000 4 20  0%),
 
             daily!     (Investors 2000000 6 16  0%),
             daily!     (Founder1   897000 6 16 10%),
@@ -52,7 +52,7 @@ lazy_static! {
             immediate! (Liquidity  300000         ),
         ],
 
-        configurable:     SIENNA!(3700000),
+        configurable:     SIENNA!(3600000),
         configurable_daily:  SIENNA!(2500),
 
     };
