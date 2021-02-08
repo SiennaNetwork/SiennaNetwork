@@ -80,7 +80,7 @@ coverage:
 		-t html \
 		--branch \
 		--ignore-not-existing \
-		-o ./target/debug/coverage/
+		-o ./coverage
 
 # Extra artifacts
 .PHONY: schema schedule

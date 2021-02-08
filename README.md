@@ -51,3 +51,9 @@ To run the deployer outside of a Docker container:
 ## Vesting schedule
 
 ![](docs/schedule.svg)
+
+To regenerate the above chart, run `make schedule`.
+
+## Test coverage
+
+Generate with `make coverage`.
