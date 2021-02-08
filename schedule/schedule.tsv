@@ -1,0 +1,27 @@
+Total	Category	Subtotal	Name	Amount	% of total	Interval	Start after X months	Duration (days)	Cliff (%)	Cliff (SIENNA)	Amount per interval	Address
+10,000,000		10,000,000										
+➥	Investors	2,000,000			20.00%							
+		➥	InvestorN	2,000,000	20.00%	DAILY	6	480	0.01%	200	4166.25	secret1TODO10
+												
+➥	Founders	2,400,000			24.00%							
+		➥	Founder1	800,000	8.00%	DAILY	6	480	10.00%	80000	1500	secret1TODO20
+		➥	Founder2	800,000	8.00%	DAILY	6	480	10.00%	80000	1500	secret1TODO21
+		➥	Founder3	731,000	7.31%	DAILY	6	480	10.00%	73100	1370.625	secret1TODO22
+		➥	Founder4	69,000	0.69%	DAILY	6	480	10.00%	6900	129.375	secret1TODO23
+												
+➥	Dev Fund	1,500,000			15.00%							
+		➥	DevN	1,500,000	15.00%	MONTHLY	4	570	5.00%	75000	75000	secret1TODO30
+												
+➥	Advisors	200,000			2.00%							
+		➥	Advisor1	50,000	0.50%	DAILY	6	480	0.00%	0	3125	secret1TODO40
+		➥	Advisor2	50,000	0.50%	DAILY	6	480	0.00%	0	3125	secret1TODO41
+		➥	Advisor3	10,000	0.10%	DAILY	6	180	0.04%	4	1666	secret1TODO42
+		➥	Advisor4	5,000	0.05%	DAILY	6	180	0.04%	2	833	secret1TODO43
+		➥	AdvisorN	85,000	0.85%	IMMEDIATE	0	-	0.00%	-		secret1TODO44
+												
+➥	Minting Pool	3,900,000			39.00%							
+		➥	LiqProvFund	300,000	3.00%	IMMEDIATE	0	-	0.00%	-		secret1TODO50
+		➥	PoolRem	3,600,000	36.00%	DAILY	0	1440	0.00%	0	2500	
+											1250	secret1TODO51
+											750	secret1TODO52
+											500	secret1TODO53
