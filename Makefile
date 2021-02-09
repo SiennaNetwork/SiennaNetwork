@@ -70,7 +70,8 @@ test-loop:
 	find . | entr make test
 coverage:
 	cargo tarpaulin --avoid-cfg-tarpaulin --workspace --no-fail-fast --verbose \
-		-e snip20-reference-impl -o Html --output-dir=./coverage --exclude-files=token/*
+		-e snip20-reference-impl --exclude-files=token/* --ignore-tests \
+		-o Html --output-dir=./coverage
 
 # Extra artifacts
 .PHONY: schema config schedule

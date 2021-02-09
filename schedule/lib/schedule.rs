@@ -102,8 +102,11 @@ pub enum Interval {
 }
 
 fn periodic (
-    amount: Amount, interval: Seconds, elapsed: Seconds,
-    duration: Seconds, cliff: Percentage,
+    amount:   Amount,
+    interval: Seconds,
+    elapsed:  Seconds,
+    duration: Seconds,
+    cliff:    Percentage,
 ) -> Amount {
 
     // mutable for clarity:
@@ -146,4 +149,15 @@ fn warn_cliff_remainder () {
 
 fn warn_vesting_remainder () {
     //println!("WARNING: division with remainder for vesting amount")
+}
+
+#[test]
+fn test_periodic () {
+    assert_eq!(periodic( 0, 1, 0, 1, 0), 0);
+    assert_eq!(periodic( 1, 1, 0, 1, 0), 1);
+    assert_eq!(periodic(15, 1, 0, 3, 0), 5);
+    assert_eq!(periodic(15, 1, 1, 3, 0), 10);
+    assert_eq!(periodic(15, 1, 2, 3, 0), 15);
+    assert_eq!(periodic(15, 1, 3, 3, 0), 15);
+    assert_eq!(periodic(15, 1, 4, 3, 0), 15);
 }
