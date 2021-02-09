@@ -39,7 +39,7 @@ compile-optimized-reproducible: _optimizer
 .PHONY: deploy
 deploy:
 	docker-compose up -d
-	docker-compose exec localnet /sienna/deployer/deploy.js
+	docker-compose exec localnet /sienna/scripts/deploy.js
 
 # Integration testing
 # You need to get one of the 4 mnemonics that are initially created by your
@@ -48,7 +48,7 @@ deploy:
 .PHONY: test-localnet
 test-localnet:
 	docker-compose up -d
-	docker-compose exec localnet /sienna/deployer/test.js
+	docker-compose exec localnet /sienna/scripts/test.js
 
 # Unit testing
 .PHONY: test test-docker test-less test-loop coverage
@@ -83,10 +83,12 @@ coverage:
 		-o ./coverage
 
 # Extra artifacts
-.PHONY: schema schedule
+.PHONY: schema config schedule
 schema:
 	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schema
-schedule:
+config:
+	./scripts/tsv2json.js
+chart: config
 	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schedule
 
 # Debugging

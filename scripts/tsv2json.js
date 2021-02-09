@@ -26,7 +26,7 @@ module.exports = function tsv2json (
   return data
 
   function invalid_row (i) {
-    console.warn(`row ${i}: invalid row, skipping`)
+    console.warn(`row ${i}: empty or invalid row, skipping`)
   }
 
   function header (data, i) {
@@ -131,6 +131,8 @@ module.exports = function tsv2json (
   }
 
   function periodic_vesting (data, i) {
+    // 2nd part of account row
+    // specifies parameters of periodic vesting
     const [
       _A_,_B_,_C_,_D_,_E_,_F_,
       interval,start_after_x_days,duration_days,
@@ -157,9 +159,9 @@ module.exports = function tsv2json (
       allocation,address
     ] = data
     if (allocation&&address) {
+      // row describes allocation
       address = address.trim()
       allocation = Number(allocation)
-      // row describes allocation
       current_account.recipients.push({address,amount:allocation})
       running_account_total += allocation
     }
@@ -167,6 +169,6 @@ module.exports = function tsv2json (
 }
 
 if (require.main === module) require('fs').writeFileSync(
-  `${__dirname}/../schedule.json`,
-  JSON.stringify(module.exports(), null, 2)
+  `${__dirname}/../config.json`,
+  JSON.stringify({config:{schedule:module.exports()}}, null, 2)
 )
