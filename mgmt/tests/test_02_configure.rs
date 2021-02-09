@@ -10,7 +10,7 @@ use cosmwasm_std::{StdError, HumanAddr, Uint128, HandleResponse};
 use secret_toolkit::snip20;
 
 use sienna_mgmt::msg::Handle;
-use sienna_schedule::{Schedule, Pool, Account, Allocation};
+use sienna_schedule::{Schedule, Pool, Account, Vesting, Allocation};
 
 kukumba!(
 
@@ -20,25 +20,30 @@ kukumba!(
         harness!(deps; ALICE, BOB, MALLORY);
     }
     when "anyone tries to set an invalid configuration" {
-        let s1 = Schedule { total: Uint128::from(100u128), pools: vec![] }
+        let s1 = Schedule::new(100u128, vec![]);
     } then "that fails" {
         test_tx!(deps, ALICE, 0, 0;
-            Handle::Configure { schedule: s1.clone() } => tx_ok!());
+            Handle::Configure { schedule: s1.clone() } =>
+            tx_err!("schedule's pools add up to 0, expected 100"));
     }
     when "the admin tries to set a valid configuration" {
-        let s1 = Schedule {
-            total: Uint128::from(100u128),
-            pools: vec![
-                Pool {
-                    total: Uint128::from(10u128),
-                    accounts: vec![]
-                },
-                Pool {
-                    total: Uint128::from(90u128),
-                    accounts: vec![]
-                }
-            ]
-        }
+        let s1 = Schedule::new(100, vec![
+            Pool::new(10, vec![
+                Account::new(10, Vesting::Immediate {}, vec![
+                    Allocation::new(10, BOB.clone())
+                ])
+            ]),
+            Pool::new(90, vec![
+                Account::new(45, Vesting::Immediate {}, vec![
+                    Allocation::new(45, BOB.clone())
+                ]),
+                Account::new(45, Vesting::Immediate {}, vec![
+                    Allocation::new( 5, BOB.clone()),
+                    Allocation::new(10, BOB.clone()),
+                    Allocation::new(30, BOB.clone())
+                ])
+            ])
+        ])
         test_tx!(deps, ALICE, 0, 0;
             Handle::Configure { schedule: s1.clone() } => tx_ok!());
     } then "the configuration is updated" {
@@ -49,9 +54,9 @@ kukumba!(
             });
     }
     when "someone else tries to set a valid configuration" {
-        let s2 = Schedule { total: Uint128::from(0u128), pools: vec![] }
         test_tx!(deps, MALLORY, 0, 0;
-            Handle::Configure { schedule: s2 } => tx_err_auth!());
+            Handle::Configure { schedule: Schedule::new(0, vec![]) } =>
+                tx_err_auth!());
     } then "the configuration remains unchanged" {
         let pools = s1.pools.clone();
         test_q!(deps, Schedule;

@@ -1,13 +1,13 @@
 # SIENNA
 
-* `docs`      - documentation generation
-* `deployer`  - deploy scripts
+* `scripts`   - deploy, test, and documentation scripts
 * `optimizer` - build tool
 * `token`     - standard SNIP20 token
 * `mgmt`      - vesting management contract
-* `schedule`  - library implementing vesting schedule logic
+* `schedule`  - implementation of vesting schedule logic
 * `fadroma`   - smart contract macro library
 * `kukumba`   - BDD macro library
+* `coverage`  - test coverage report
 
 ## Quick start
 

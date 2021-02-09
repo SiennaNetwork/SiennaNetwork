@@ -10,15 +10,9 @@ pub struct Schedule {
     pub pools: Vec<Pool>
 }
 impl Schedule {
-    pub fn new () -> Self { Self {
-        total: Uint128::zero(),
-        pools: vec![]
-    } }
-
-    pub fn from_pools (pools: Vec<Pool>) -> Self { Self {
-        total: Uint128::from(pools.iter().map(|x:&Pool|x.total.u128()).sum::<u128>()),
-        pools
-    } }
+    pub fn new (total: u128, pools: Vec<Pool>) -> Self {
+        Self { total: Uint128::from(total), pools }
+    }
 
     pub fn validate (&self) -> StdResult<()> {
         let mut total = 0u128;
@@ -53,7 +47,7 @@ impl Schedule {
 
 #[test]
 fn test_schedule () {
-    assert_eq!(Schedule::new().validate(), Ok(()));
+    assert_eq!(Schedule::new(0, vec![]).validate(), Ok(()));
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -63,10 +57,9 @@ pub struct Pool {
     pub accounts: Vec<Account>,
 }
 impl Pool {
-    pub fn new () -> Self { Self {
-        total: Uint128::zero(),
-        accounts: vec![]
-    } }
+    pub fn new (total: u128, accounts: Vec<Account>) -> Self {
+        Self { total: Uint128::from(total), accounts }
+    }
     pub fn validate (&self) -> StdResult<()> {
         let mut total = 0u128;
         for account in self.accounts.iter() {
@@ -86,22 +79,24 @@ impl Pool {
 }
 #[test]
 fn test_pool () {
-    assert_eq!(Pool::new().validate(), Ok(()));
+    assert_eq!(Pool::new(0, vec![]).validate(), Ok(()));
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Account {
     pub amount:     Uint128,
+    pub vesting:    Vesting,
     pub recipients: Vec<Allocation>,
-    pub vesting:    Vesting
 }
 impl Account {
-    pub fn new () -> Self { Self {
-        amount: Uint128::zero(),
-        recipients: vec![],
-        vesting: Vesting::Immediate {}
-    } }
+    pub fn new (
+        amount: u128,
+        vesting: Vesting,
+        recipients: Vec<Allocation>
+    ) -> Self {
+        Self { amount: Uint128::from(amount), vesting, recipients }
+    }
     pub fn validate (&self) -> StdResult<()> {
         let mut total = 0u128;
         for Allocation { addr, amount } in self.recipients.iter() {
@@ -145,14 +140,19 @@ impl Account {
 }
 #[test]
 fn test_account () {
-    assert_eq!(Account::new().validate(), Ok(()));
+    assert_eq!(Account::new(0, Vesting::Immediate {}, vec![]).validate(), Ok(()));
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Allocation {
+    amount: Uint128,
     addr:   HumanAddr,
-    amount: Uint128
+}
+impl Allocation {
+    pub fn new (amount: u128, addr: HumanAddr) -> Self {
+        Self { amount: Uint128::from(amount), addr }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

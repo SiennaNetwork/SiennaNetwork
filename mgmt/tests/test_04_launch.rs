@@ -33,7 +33,7 @@ kukumba!(
     and  "the admin starts the vesting"
     then "the contract mints the tokens"
     and  "it stores the current time as its launch date" {
-        let s = Schedule { total: Uint128::from(100u128), pools: vec![] }
+        let s = Schedule { total: Uint128::from(0u128), pools: vec![] }
         test_tx!(deps, ALICE, 0, 0;
             Handle::Configure { schedule: s.clone() } => tx_ok!());
         test_tx!(deps, ALICE, 4, 4;
