@@ -35,10 +35,11 @@ pub type ErrorCount = u64;
 pub const BLOCK_SIZE: usize = 256;
 
 lazy_static! {
-    pub static ref BROKEN:    &'static str = "broken";
-    pub static ref NOTHING:   &'static str = "nothing for you";
-    pub static ref UNDERWAY:  &'static str = "already underway";
-    pub static ref PRELAUNCH: &'static str = "not launched yet";
+    pub static ref BROKEN:      &'static str = "broken";
+    pub static ref NOTHING:     &'static str = "nothing for you";
+    pub static ref UNDERWAY:    &'static str = "already underway";
+    pub static ref PRELAUNCH:   &'static str = "not launched yet";
+    pub static ref NO_SCHEDULE: &'static str = "set configuration first";
 }
 
 pub fn err_allocation (total: Amount, max: Amount) -> String {
@@ -66,7 +67,7 @@ contract!(
         vested:         History,
 
         /// A dedicated portion of the funds can be redirected at runtime
-        schedule:       Schedule,
+        schedule:       Option<Schedule>,
 
         /// TODO: public counter of invalid requests
         errors:         ErrorCount
@@ -83,11 +84,8 @@ contract!(
     }) {
         use cosmwasm_std::Uint128;
         State {
-            schedule: match msg.schedule {
-                Some(schedule) => schedule,
-                None => Schedule::new() 
-            },
             admin:      env.message.sender,
+            schedule:   msg.schedule,
             token_addr: msg.token_addr,
             token_hash: msg.token_hash,
             launched:   None,
@@ -118,7 +116,7 @@ contract!(
             launched: crate::Launched
         }
         Schedule {
-            schedule: crate::Schedule
+            schedule: Option<crate::Schedule>
         }
     }
 
@@ -130,21 +128,25 @@ contract!(
             require_admin!(|env, state| {
                 use crate::UNDERWAY;
                 use cosmwasm_std::Uint128;
-                match state.launched {
-                    Some(_) => err_msg(state, &UNDERWAY),
-                    None => {
-                        let token_hash = state.token_hash.clone();
-                        let token_addr = state.token_addr.clone();
-                        match mint_msg(
-                            env.contract.address,
-                            Uint128::from(state.schedule.total),
-                            None, BLOCK_SIZE, token_hash, token_addr
-                        ) {
-                            Ok(msg) => {
-                                state.launched = Some(env.block.time);
-                                ok_msg(state, vec![msg])
-                            },
-                            Err(e) => (state, Err(e))
+                match state.schedule {
+                    None => err_msg(state, &NO_SCHEDULE),
+                    Some(ref schedule) => match state.launched {
+                        Some(_) => err_msg(state, &UNDERWAY),
+                        None => {
+                            let schedule = schedule.clone();
+                            let token_hash = state.token_hash.clone();
+                            let token_addr = state.token_addr.clone();
+                            match mint_msg(
+                                env.contract.address,
+                                Uint128::from(schedule.total),
+                                None, BLOCK_SIZE, token_hash, token_addr
+                            ) {
+                                Ok(msg) => {
+                                    state.launched = Some(env.block.time);
+                                    ok_msg(state, vec![msg])
+                                },
+                                Err(e) => (state, Err(e))
+                            }
                         }
                     }
                 }
@@ -165,7 +167,7 @@ contract!(
             require_admin!(|env, state| {
                 match schedule.validate() {
                     Ok(_) => {
-                        state.schedule = schedule;
+                        state.schedule = Some(schedule);
                         ok(state)
                     },
                     Err(e) => (state, Err(e))
@@ -184,7 +186,8 @@ contract!(
                     let now       = env.block.time;
                     let claimant  = env.message.sender;
                     let elapsed   = now - *launch;
-                    let claimable = state.schedule.claimable(&claimant, elapsed);
+                    let schedule  = state.schedule.clone().unwrap();
+                    let claimable = schedule.claimable(&claimant, elapsed);
                     let claimed   = state.vested.claimed(&claimant, now);
 
                     if claimable < claimed {

@@ -77,18 +77,21 @@ macro_rules! test_tx {
 macro_rules! tx_ok {
     () => {
         Ok(cosmwasm_std::HandleResponse { data: None, log: vec![], messages: vec![] })
+    };
+    ($($msg: expr),+) => {
+        Ok(cosmwasm_std::HandleResponse { data: None, log: vec![], messages: vec![$($msg),+] })
+    }
+}
+
+macro_rules! tx_err {
+    ($msg:expr) => {
+        Err(cosmwasm_std::StdError::GenericErr { backtrace: None, msg: $msg.to_string() })
     }
 }
 
 macro_rules! tx_err_auth {
     () => {
         Err(cosmwasm_std::StdError::Unauthorized { backtrace: None })
-    }
-}
-
-macro_rules! tx_err {
-    ($msg:expr) => {
-        Err(cosmwasm_std::StdError::GenericErr { backtrace: None, msg: String::from($msg) })
     }
 }
 

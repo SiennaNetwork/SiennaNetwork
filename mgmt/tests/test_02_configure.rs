@@ -27,9 +27,10 @@ kukumba!(
     }
 
     then "the configuration should be updated" {
+        let pools = s1.pools.clone();
         test_q!(deps, Schedule;
             Schedule {
-                schedule: Schedule { total: s1.total, pools: s1.pools.clone() }
+                schedule: Some(Schedule { total: s1.total, pools })
             });
     }
 
@@ -40,43 +41,11 @@ kukumba!(
     }
 
     then "the configuration should remain unchanged" {
+        let pools = s1.pools.clone();
         test_q!(deps, Schedule;
             Schedule {
-                schedule: Schedule { total: s1.total, pools: s1.pools }
+                schedule: Some(Schedule { total: s1.total, pools })
             });
-    }
-
-    #[transfer_ownership]
-    given "a contract instance" {
-        harness!(deps; ALICE, BOB, MALLORY);
-    }
-
-    when "a stranger tries to set a new admin"
-    then "just the hit counter goes up" {
-        test_tx!(deps, MALLORY, 2, 2;
-            Handle::TransferOwnership { new_admin: MALLORY.clone() } =>
-            tx_err_auth!());
-    }
-
-    when "the admin tries to set a new admin"
-    then "the admin is updated" {
-        test_tx!(deps, ALICE, 2, 2;
-            Handle::TransferOwnership { new_admin: BOB.clone() } =>
-            tx_ok!());
-    }
-
-    when "the former admin tries to set a new admin"
-    then "just the hit counter goes up" {
-        test_tx!(deps, ALICE, 2, 2;
-            Handle::TransferOwnership { new_admin: ALICE.clone() } =>
-            tx_err_auth!());
-    }
-
-    when "the new admin tries to set the admin"
-    then "the admin is updated" {
-        test_tx!(deps, BOB, 2, 2;
-            Handle::TransferOwnership { new_admin: ALICE.clone() } =>
-            tx_ok!());
     }
 
 );

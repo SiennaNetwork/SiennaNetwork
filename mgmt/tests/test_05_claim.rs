@@ -2,12 +2,10 @@
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
-use sienna_mgmt as mgmt;
-use mgmt::msg::Handle;//{DAY, MONTH, ONE_SIENNA, err_allocation};
-
 use cosmwasm_std::{StdError, HumanAddr, Uint128};
-
-use secret_toolkit::snip20;
+use secret_toolkit::snip20::handle::mint_msg;
+use sienna_mgmt::{PRELAUNCH, NOTHING, msg::Handle};
+use sienna_schedule::Schedule;
 
 kukumba!(
 
@@ -18,28 +16,27 @@ kukumba!(
     }
 
     when "a stranger tries to claim funds"
-    then "they should be denied" {
-        test_tx!(deps, MALLORY, 4, 4;
-            Handle::Claim {} => Err(StdError::GenericErr {
-                msg: mgmt::PRELAUNCH.to_string(),
-                backtrace: None
-            }) );
+    then "they are denied" {
+        test_tx!(deps, MALLORY, 1, 1;
+            Handle::Claim {} => tx_err!(PRELAUNCH));
     }
 
-    given "the contract is already launched" {
-        let _ = tx(
-            &mut deps,
-            mock_env(1, 1, &ALICE),
-            mgmt::msg::Handle::Launch {});
+    given "the contract is launched" {
+        let s = Schedule { total: Uint128::from(100u128), pools: vec![] }
+        test_tx!(deps, ALICE, 0, 0;
+            Handle::Configure { schedule: s.clone() } => tx_ok!());
+        test_tx!(deps, ALICE, 2, 2;
+            Handle::Launch {} => tx_ok!(mint_msg(
+                HumanAddr::from("mgmt"),
+                Uint128::from(s.total),
+                None, 256, String::new(), HumanAddr::from("mgmt")
+            ).unwrap()));
     }
 
     when "a stranger tries to claim funds"
-    then "they should be denied" {
+    then "they are denied" {
         test_tx!(deps, MALLORY, 4, 4;
-            Handle::Claim {} => Err(StdError::GenericErr {
-                msg: mgmt::NOTHING.to_string(),
-                backtrace: None
-            }) );
+            Handle::Claim {} => tx_err!(NOTHING));
     }
 
 );
