@@ -179,28 +179,28 @@ contract!(
             use crate::{PRELAUNCH, BROKEN, NOTHING};
             use cosmwasm_std::Uint128;
             match &state.launched {
-                None => {
-                    err_msg(state, &PRELAUNCH)
-                },
+                None => err_msg(state, &PRELAUNCH),
                 Some(launch) => {
-                    let now = env.block.time;
-                    let claimant = env.message.sender;
-                    let elapsed = now - *launch;
+                    let now       = env.block.time;
+                    let claimant  = env.message.sender;
+                    let elapsed   = now - *launch;
                     let claimable = state.schedule.claimable(&claimant, elapsed);
-                    let claimed = state.vested.claimed(&claimant, now);
+                    let claimed   = state.vested.claimed(&claimant, now);
+
                     if claimable < claimed {
                         err_msg(state, &BROKEN)
                     } else {
+
                         let difference = claimable - claimed;
                         if difference <= 0 {
                             err_msg(state, &NOTHING)
                         } else {
-                            let token_hash = state.token_hash.clone();
-                            let token_addr = state.token_addr.clone();
                             match transfer_msg(
                                 claimant.clone(),
                                 Uint128::from(difference),
-                                None, BLOCK_SIZE, token_hash, token_addr,
+                                None, BLOCK_SIZE,
+                                state.token_hash.clone(),
+                                state.token_addr.clone(),
                             ) {
                                 Err(e) => (state, Err(e)),
                                 Ok(msg) => {

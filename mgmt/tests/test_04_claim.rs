@@ -19,7 +19,7 @@ kukumba!(
 
     when "a stranger tries to claim funds"
     then "they should be denied" {
-        test_tx!(deps, MALLORY, 4, 4,
+        test_tx!(deps, MALLORY, 4, 4;
             Handle::Claim {} => Err(StdError::GenericErr {
                 msg: mgmt::PRELAUNCH.to_string(),
                 backtrace: None
@@ -35,7 +35,7 @@ kukumba!(
 
     when "a stranger tries to claim funds"
     then "they should be denied" {
-        test_tx!(deps, MALLORY, 4, 4,
+        test_tx!(deps, MALLORY, 4, 4;
             Handle::Claim {} => Err(StdError::GenericErr {
                 msg: mgmt::NOTHING.to_string(),
                 backtrace: None

@@ -5,134 +5,78 @@
 use sienna_mgmt as mgmt;
 //use mgmt::{DAY, MONTH, ONE_SIENNA, err_allocation, Stream, Vesting};
 
-use cosmwasm_std::{StdError, HumanAddr, Uint128};
+use cosmwasm_std::{StdError, HumanAddr, Uint128, HandleResponse};
 
 use secret_toolkit::snip20;
 
-//kukumba!(
+use sienna_mgmt::msg::Handle;
+use sienna_schedule::Schedule;
 
-    //#[configure]
+kukumba!(
 
-    //given "the contract is not yet launched" {
-        //harness!(deps; ALICE, BOB, MALLORY);
-    //}
+    #[configure]
 
-    //when "the admin sets the recipients"
-    //then "the recipients should be updated" {
-        //let r1 = vec![(BOB.clone(), SIENNA!(100))];
-        //let _ = tx(&mut deps, mock_env(1, 1, &ALICE),
-            //mgmt::msg::Handle::Configure { recipients: r1.clone() });
-        //test_q!(deps; Schedule; Schedule {
-            //recipients: r1
-        //});
-    //}
+    given "a contract" {
+        harness!(deps; ALICE, BOB, MALLORY);
+    }
 
-    //when "the admin tries to set the recipients above the total" {
-        //let r2 = vec![(BOB.clone(), SIENNA!(10000000))];
-    //}
-    //then "an error should be returned" {
-        //test_tx!(deps
-            //=> from [ALICE] at [block 4, T=4]
-            //=> mgmt::msg::Handle::Configure { recipients: r2 }
-            //=> Err(StdError::GenericErr {
-                //msg: err_allocation(10000000*ONE_SIENNA, 2500*ONE_SIENNA),
-                //backtrace: None
-            //}));
-    //}
-    //and  "the recipients should not be updated" {
-        //test_q!(deps; Schedule; Schedule {
-            //recipients: r1
-        //});
-    //}
+    when "the admin tries to set the configuration" {
+        let s1 = Schedule { total: Uint128::from(100u128), pools: vec![] }
+        test_tx!(deps, ALICE, 0, 0;
+            Handle::Configure { schedule: s1.clone() } => tx_ok!());
+    }
 
-    //when "a stranger tries to set the recipients"
-    //then "they should not be able to" {
-        //let r3 = vec![(MALLORY.clone(), Uint128::from(100u128))];
-        //let _ = tx(&mut deps,
-            //mock_env(1, 1, &MALLORY),
-            //mgmt::msg::Handle::Configure {
-                //recipients: r3
-            //});
-        //test_q!(deps; Schedule; Schedule {
-            //recipients: r1
-        //});
-    //}
+    then "the configuration should be updated" {
+        test_q!(deps, Schedule;
+            Schedule {
+                schedule: Schedule { total: s1.total, pools: s1.pools.clone() }
+            });
+    }
 
-    //given "the contract is already launched" {
-        //let _ = tx(&mut deps, mock_env(2, 2, &ALICE),
-            //mgmt::msg::Handle::Launch {});
-    //}
+    when "someone else tries to set the configuration" {
+        let s2 = Schedule { total: Uint128::from(0u128), pools: vec![] }
+        test_tx!(deps, MALLORY, 0, 0;
+            Handle::Configure { schedule: s2 } => tx_err_auth!());
+    }
 
-    //when "the admin tries to set the recipients"
-    //then "the recipients should be updated" {
-        //let r4 = vec![(BOB.clone(), Uint128::from(200u128))];
-        //let _ = tx(&mut deps,
-            //mock_env(3, 3, &ALICE),
-            //mgmt::msg::Handle::Configure { recipients: r4.clone() });
-        //test_q!(deps; Schedule; Schedule { recipients: r4 });
-    //}
+    then "the configuration should remain unchanged" {
+        test_q!(deps, Schedule;
+            Schedule {
+                schedule: Schedule { total: s1.total, pools: s1.pools }
+            });
+    }
 
-    //when "the admin tries to set the recipients above the total"
-    //then "an error should be returned"
-    //and  "the recipients should not be updated" {
-        //let r5 = vec![(BOB.clone(), SIENNA!(10000000))];
-        //test_tx!(deps
-            //=> from [ALICE] at [block 4, T=4]
-            //=> mgmt::msg::Handle::Configure { recipients: r5 }
-            //=> Err(StdError::GenericErr {
-                //msg: err_allocation(10000000*ONE_SIENNA, 2500*ONE_SIENNA),
-                //backtrace: None}) );
-        //test_q!(deps; Schedule; Schedule { recipients: r4 });
-    //}
+    #[transfer_ownership]
+    given "a contract instance" {
+        harness!(deps; ALICE, BOB, MALLORY);
+    }
 
-    //when "a stranger tries to set the recipients"
-    //then "an error should be returned" {
-        //let r6 = vec![(MALLORY.clone(), Uint128::from(100u128))];
-        //let _ = tx(&mut deps,
-            //mock_env(4, 4, &MALLORY),
-            //mgmt::msg::Handle::Configure { recipients: r6 });
-        //test_q!(deps; Schedule; Schedule { recipients: r4 });
-    //}
+    when "a stranger tries to set a new admin"
+    then "just the hit counter goes up" {
+        test_tx!(deps, MALLORY, 2, 2;
+            Handle::TransferOwnership { new_admin: MALLORY.clone() } =>
+            tx_err_auth!());
+    }
 
-//);
+    when "the admin tries to set a new admin"
+    then "the admin is updated" {
+        test_tx!(deps, ALICE, 2, 2;
+            Handle::TransferOwnership { new_admin: BOB.clone() } =>
+            tx_ok!());
+    }
 
-//kukumba!(
-    //#[transfer_ownership]
-    //given "a contract instance" {
-        //harness!(deps; ALICE, BOB, MALLORY);
-    //}
+    when "the former admin tries to set a new admin"
+    then "just the hit counter goes up" {
+        test_tx!(deps, ALICE, 2, 2;
+            Handle::TransferOwnership { new_admin: ALICE.clone() } =>
+            tx_err_auth!());
+    }
 
-    //when "a stranger tries to set a new admin"
-    //then "just the hit counter goes up" {
-        //test_tx!(deps
-            //=> from [MALLORY] at [block 2, T=DAY]
-            //=> mgmt::msg::Handle::TransferOwnership { new_admin: MALLORY.clone() }
-            //=> Err(StdError::Unauthorized { backtrace: None }))
-    //}
+    when "the new admin tries to set the admin"
+    then "the admin is updated" {
+        test_tx!(deps, BOB, 2, 2;
+            Handle::TransferOwnership { new_admin: ALICE.clone() } =>
+            tx_ok!());
+    }
 
-    //when "the admin tries to set a new admin"
-    //then "the admin is updated" {
-        //test_tx!(deps
-            //=> from [ALICE] at [block 2, T=DAY]
-            //=> mgmt::msg::Handle::TransferOwnership { new_admin: BOB.clone() }
-            //=> Ok(cosmwasm_std::HandleResponse {
-                //data: None, log: vec![], messages: vec![] }))
-    //}
-
-    //when "the old admin tries to set a new admin"
-    //then "just the hit counter goes up" {
-        //test_tx!(deps
-            //=> from [ALICE] at [block 2, T=DAY]
-            //=> mgmt::msg::Handle::TransferOwnership { new_admin: ALICE.clone() }
-            //=> Err(StdError::Unauthorized { backtrace: None }))
-    //}
-
-    //when "the new admin tries to set the admin"
-    //then "the admin is updated" {
-        //test_tx!(deps
-            //=> from [BOB] at [block 2, T=DAY]
-            //=> mgmt::msg::Handle::TransferOwnership { new_admin: ALICE.clone() }
-            //=> Ok(cosmwasm_std::HandleResponse {
-                //data: None, log: vec![], messages: vec![] }))
-    //}
-//);
+);

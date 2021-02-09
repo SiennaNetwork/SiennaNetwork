@@ -28,7 +28,10 @@ kukumba!(
     then "they become admin"
     and  "they should be able to query its state"
     and  "it should say it's not launched yet" {
-        test_q!(deps; Status; Status { launched: None, errors: 0 });
+        test_q!(deps, Status; Status {
+            launched: None,
+            errors: 0
+        });
     }
 
 );

@@ -61,7 +61,7 @@ pub fn tx (
 
 macro_rules! test_tx {
     ( $deps: ident, $SENDER:expr, $block:expr, $time:expr
-    , $TX:expr => $Result:expr
+    ; $TX:expr => $Result:expr
     ) => {
         assert_eq!(
             tx(
@@ -74,8 +74,28 @@ macro_rules! test_tx {
     }
 }
 
+macro_rules! tx_ok {
+    () => {
+        Ok(cosmwasm_std::HandleResponse { data: None, log: vec![], messages: vec![] })
+    }
+}
+
+macro_rules! tx_err_auth {
+    () => {
+        Err(cosmwasm_std::StdError::Unauthorized { backtrace: None })
+    }
+}
+
+macro_rules! tx_err {
+    ($msg:expr) => {
+        Err(cosmwasm_std::StdError::GenericErr { backtrace: None, msg: String::from($msg) })
+    }
+}
+
 macro_rules! test_q {
-    ( $deps:expr ; $Query:ident ; $Response:ident {
+    ( $deps:expr
+    , $Query:ident
+    ; $Response:ident {
         $($arg:ident : $val:expr),*
     } ) => {
         match cosmwasm_std::from_binary(
