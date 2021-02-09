@@ -1,6 +1,7 @@
 use crate::units::*;
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
+use cosmwasm_std::{StdResult, StdError};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -9,15 +10,33 @@ pub struct Schedule {
     pub pools: Vec<Pool>
 }
 impl Schedule {
-    pub fn new () -> Self {
-        Self { total: Uint128::zero(), pools: vec![] }
-    }
+    pub fn new () -> Self { Self {
+        total: Uint128::zero(),
+        pools: vec![]
+    } }
 
-    pub fn from_pools (pools: Vec<Pool>) -> Self {
-        Self { total: Uint128::from(pools.iter().map(|x:&Pool|x.total.u128()).sum::<u128>()), pools }
-    }
+    pub fn from_pools (pools: Vec<Pool>) -> Self { Self {
+        total: Uint128::from(pools.iter().map(|x:&Pool|x.total.u128()).sum::<u128>()),
+        pools
+    } }
 
-    pub fn validate (&self) -> cosmwasm_std::StdResult<()> { Ok(()) }
+    pub fn validate (&self) -> StdResult<()> {
+        let mut total = 0u128;
+        for pool in self.pools.iter() {
+            match pool.validate() {
+                Ok(_)  => { total += pool.total.u128() },
+                Err(e) => return Err(e)
+            }
+        }
+        if total == self.total.u128() {
+            Ok(())
+        } else {
+            Err(StdError::GenericErr {
+                backtrace: None,
+                msg: format!("pools total to {}, expected {}", total, self.total)
+            })
+        }
+    }
 
     /// Get amount unlocked for address `a` at time `t`
     pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> Amount {
@@ -33,11 +52,27 @@ impl Schedule {
     }
 }
 
+#[test]
+fn test_schedule () {
+    assert_eq!(Schedule::new().validate(), Ok(()));
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Pool {
     pub total:    Uint128,
     pub accounts: Vec<Account>,
+}
+impl Pool {
+    pub fn new () -> Self { Self {
+        total: Uint128::zero(),
+        accounts: vec![]
+    } }
+    pub fn validate (&self) -> StdResult<()> { Ok(()) }
+}
+#[test]
+fn test_pool () {
+    assert_eq!(Pool::new().validate(), Ok(()));
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -48,6 +83,12 @@ pub struct Account {
     pub vesting:    Vesting
 }
 impl Account {
+    pub fn new () -> Self { Self {
+        amount: Uint128::zero(),
+        recipients: vec![],
+        vesting: Vesting::Immediate {}
+    } }
+    pub fn validate (&self) -> StdResult<()> { Ok(()) }
     pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> Option<Amount> {
         for Allocation { addr, amount } in self.recipients.iter() {
             if addr == a {
@@ -75,6 +116,10 @@ impl Account {
             }
         }
     }
+}
+#[test]
+fn test_account () {
+    assert_eq!(Account::new().validate(), Ok(()));
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
