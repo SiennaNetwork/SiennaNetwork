@@ -5,7 +5,7 @@ use cosmwasm_std::HumanAddr;
 use secret_toolkit::snip20::handle::{mint_msg, transfer_msg};
 pub use sienna_schedule::{
     DAY, MONTH, ONE_SIENNA,
-    Seconds, Days, Months, Percentage, Amount,
+    Seconds, Days, Months, Percentage,
     Schedule, Pool, Account, Allocation, Vesting, Interval,
     History,
 };
@@ -42,7 +42,7 @@ lazy_static! {
     pub static ref NO_SCHEDULE: &'static str = "set configuration first";
 }
 
-pub fn err_allocation (total: Amount, max: Amount) -> String {
+pub fn err_allocation (total: u128, max: u128) -> String {
     format!("allocations added up to {} which is over the maximum of {}",
         total, max)
 }

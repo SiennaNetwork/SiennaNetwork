@@ -12,7 +12,7 @@ pub struct History {
 }
 impl History {
     /// How much has been claimed by address `a` at time `t`
-    pub fn claimed (&self, a: &HumanAddr, t: Seconds) -> Amount {
+    pub fn claimed (&self, a: &HumanAddr, t: Seconds) -> u128 {
         let mut sum = 0;
         for (addr, time, amount) in self.history.iter().rev() {
            if addr != a { continue }

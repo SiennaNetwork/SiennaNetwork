@@ -3,6 +3,8 @@ use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 use cosmwasm_std::{StdResult, StdError};
 
+macro_rules! Error { ($msg:expr) => { Err(StdError::GenericErr { msg: $msg.to_string(), backtrace: None }) } }
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Schedule {
@@ -23,31 +25,67 @@ impl Schedule {
             }
         }
         if total != self.total.u128() {
-            return Err(StdError::GenericErr {
-                backtrace: None,
-                msg: format!("schedule's pools add up to {}, expected {}", total, self.total)
-            })
+            return Error!(format!("schedule's pools add up to {}, expected {}", total, self.total))
         }
         Ok(())
     }
 
     /// Get amount unlocked for address `a` at time `t`
-    pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> Amount {
+    pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> u128 {
+        let mut claimable = 0;
         for Pool { accounts, .. } in self.pools.iter() {
             for account in accounts.iter() {
-                match account.claimable(a, t) {
-                    Some(amount) => return amount,
-                    None         => continue
-                }
+                claimable += account.claimable(a, t)
             }
         }
-        0
+        return claimable
     }
 }
 
 #[test]
 fn test_schedule () {
-    assert_eq!(Schedule::new(0, vec![]).validate(), Ok(()));
+    assert_eq!(Schedule::new(0, vec![]).validate(),
+        Ok(()));
+
+    assert_eq!(Schedule::new(0, vec![]).claimable(&HumanAddr::from(""), 0),
+        0);
+
+    assert_eq!(Schedule::new(100, vec![]).validate(),
+        Error!("schedule's pools add up to 0, expected 100"));
+
+    assert_eq!(Schedule::new(100, vec![Pool::new(50, vec![])]).validate(),
+        Error!("pool's accounts add up to 0, expected 50"));
+
+    assert_eq!(Schedule::new(100, vec![Pool::new(50, vec![
+                Account::new_immediate(20, vec![])])]).validate(),
+        Error!("account's allocations add up to 0, expected 20"));
+
+    assert_eq!(Schedule::new(100, vec![Pool::new(50, vec![
+                Account::new_immediate(20, vec![Allocation::new(20, HumanAddr::from(""))])])]).validate(),
+        Error!("pool's accounts add up to 20, expected 50"));
+
+    assert_eq!(Schedule::new(100, vec![Pool::new(50, vec![
+                Account::new_immediate(30, vec![Allocation::new(30, HumanAddr::from(""))]),
+                Account::new_immediate(20, vec![Allocation::new(20, HumanAddr::from(""))])])]).validate(),
+        Error!("schedule's pools add up to 50, expected 100"));
+
+    assert_eq!(Schedule::new(100, vec![
+            Pool::new(50, vec![
+                Account::new_immediate(30, vec![Allocation::new(30, HumanAddr::from(""))]),
+                Account::new_immediate(20, vec![Allocation::new(20, HumanAddr::from(""))])]),
+            Pool::new(50, vec![
+                Account::new_immediate(30, vec![Allocation::new(30, HumanAddr::from(""))]),
+                Account::new_immediate(20, vec![Allocation::new(20, HumanAddr::from(""))])])]).validate(),
+        Ok(()));
+
+    assert_eq!(Schedule::new(100, vec![
+            Pool::new(50, vec![
+                Account::new_immediate(30, vec![Allocation::new(30, HumanAddr::from(""))]),
+                Account::new_immediate(20, vec![Allocation::new(20, HumanAddr::from(""))])]),
+            Pool::new(50, vec![
+                Account::new_immediate(30, vec![Allocation::new(30, HumanAddr::from(""))]),
+                Account::new_immediate(20, vec![Allocation::new(20, HumanAddr::from(""))])])]).claimable(&HumanAddr::from(""), 0),
+        100);
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -97,6 +135,24 @@ impl Account {
     ) -> Self {
         Self { amount: Uint128::from(amount), vesting, recipients }
     }
+    pub fn new_immediate (
+        a: u128,
+        r: Vec<Allocation>
+    ) -> Self {
+        let v = Vesting::Immediate {};
+        Account::new(a, v, r) 
+    }
+    pub fn new_periodic (
+        a: u128,
+        r: Vec<Allocation>,
+        interval: Interval,
+        start_at: Seconds,
+        duration: Seconds,
+        cliff:    Percentage
+    ) -> Self {
+        let v = Vesting::Periodic {interval, start_at, duration, cliff};
+        Account::new(a, v, r)
+    }
     pub fn validate (&self) -> StdResult<()> {
         let mut total = 0u128;
         for Allocation { addr, amount } in self.recipients.iter() {
@@ -110,15 +166,16 @@ impl Account {
         }
         Ok(())
     }
-    pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> Option<Amount> {
+    pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> u128 {
+        let mut claimable = 0;
         for Allocation { addr, amount } in self.recipients.iter() {
             if addr == a {
-                return Some(self.vest((*amount).u128(), t))
+                claimable += self.vest((*amount).u128(), t)
             }
         }
-        None
+        return claimable
     }
-    fn vest (&self, amount: Amount, t: Seconds) -> Amount {
+    fn vest (&self, amount: u128, t: Seconds) -> u128 {
         match &self.vesting {
             // Immediate vesting: if the contract has launched,
             // the recipient can claim the entire allocated amount
@@ -140,7 +197,26 @@ impl Account {
 }
 #[test]
 fn test_account () {
-    assert_eq!(Account::new(0, Vesting::Immediate {}, vec![]).validate(), Ok(()));
+    assert_eq!(Account::new_immediate(0, vec![]).validate(),
+        Ok(()));
+
+    assert_eq!(Account::new_immediate(100, vec![
+        Allocation::new(40, HumanAddr::from("Alice")),
+        Allocation::new(60, HumanAddr::from("Bob"))
+    ]).claimable(&HumanAddr::from("Alice"), 0),
+        40);
+
+    assert_eq!(Account::new_periodic(100, vec![
+        Allocation::new(40, HumanAddr::from("Alice")),
+        Allocation::new(60, HumanAddr::from("Bob"))
+    ], Interval::Daily, 1, DAY, 0).claimable(&HumanAddr::from("Alice"), 0),
+        0);
+
+    assert_eq!(Account::new_periodic(100, vec![
+        Allocation::new(40, HumanAddr::from("Alice")),
+        Allocation::new(60, HumanAddr::from("Bob"))
+    ], Interval::Daily, 1, DAY, 0).claimable(&HumanAddr::from("Alice"), 1),
+        40);
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -173,12 +249,12 @@ pub enum Interval {
 }
 
 fn periodic (
-    amount:   Amount,
+    amount:   u128,
     interval: Seconds,
     elapsed:  Seconds,
     duration: Seconds,
     cliff:    Percentage,
-) -> Amount {
+) -> u128 {
 
     // mutable for clarity:
     let mut vest = 0;
