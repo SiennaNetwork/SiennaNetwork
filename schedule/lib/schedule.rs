@@ -9,9 +9,16 @@ pub struct Schedule {
     pub pools: Vec<Pool>
 }
 impl Schedule {
-    pub fn validate (&self) -> cosmwasm_std::StdResult<()> {
-        Ok(())
+    pub fn new () -> Self {
+        Self { total: Uint128::zero(), pools: vec![] }
     }
+
+    pub fn from_pools (pools: Vec<Pool>) -> Self {
+        Self { total: Uint128::from(pools.iter().map(|x:&Pool|x.total.u128()).sum::<u128>()), pools }
+    }
+
+    pub fn validate (&self) -> cosmwasm_std::StdResult<()> { Ok(()) }
+
     /// Get amount unlocked for address `a` at time `t`
     pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> Amount {
         for Pool { accounts, .. } in self.pools.iter() {

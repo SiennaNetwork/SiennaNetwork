@@ -2,10 +2,7 @@ use svg::Document;
 use svg::node::Text as TextNode;
 use svg::node::element::{Rectangle, Group, Text, Line, Polyline, Circle};
 
-use sienna_mgmt::schedule::SCHEDULE;
-use sienna_mgmt::constants::{ONE_SIENNA, DAY, MONTH};
-use sienna_mgmt::types::{Stream, Vesting, Interval};
-use sienna_mgmt::vesting::claimable;
+use sienna_schedule::*;
 
 macro_rules! svg {
     ($El:ident $($attr:ident = $value:expr)+) => {

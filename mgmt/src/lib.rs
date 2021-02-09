@@ -12,11 +12,6 @@ pub use sienna_schedule::{
 
 //macro_rules! debug { ($($tt:tt)*)=>{} }
 
-/// Add 18 zeroes
-macro_rules! SIENNA {
-    ($x:expr) => { Uint128::from($x as u128 * ONE_SIENNA) }
-}
-
 /// Auth
 macro_rules! require_admin {
     (|$env:ident, $state:ident| $body:block) => {
@@ -77,21 +72,26 @@ contract!(
         errors:         ErrorCount
     }
 
-    // Initializing an instance of the contract:
-    // * requires the address of a SNIP20-compatible token contract
-    //   to be passed as an argument
-    // * makes the initializer the admin
+    /* Initializing an instance of the contract:
+     *   - requires the address and code hash of
+     *     a contract that implements SNIP20
+     *   - makes the initializer the admin */
     [Init] (deps, env, msg: {
         token_addr: cosmwasm_std::HumanAddr,
-        token_hash: crate::CodeHash
+        token_hash: crate::CodeHash,
+        schedule:   Option<crate::Schedule>
     }) {
+        use cosmwasm_std::Uint128;
         State {
+            schedule: match msg.schedule {
+                Some(schedule) => schedule,
+                None => Schedule::new() 
+            },
             admin:      env.message.sender,
             token_addr: msg.token_addr,
             token_hash: msg.token_hash,
             launched:   None,
-            schedule:   vec![],
-            vested:     History::new(vec![]),
+            vested:     History { history: vec![] },
             errors:     0
         }
     }
@@ -103,19 +103,22 @@ contract!(
             msg::Response::Status {
                 errors:   state.errors,
                 launched: state.launched,
+            }
+        }
+        Schedule () {
+            msg::Response::Schedule {
                 schedule: state.schedule,
             }
         }
     }
 
     [Response] {
-        Status     {
+        Status {
             errors:   crate::ErrorCount,
-            launched: crate::Launched,
-            schedule: crate::Schedule
+            launched: crate::Launched
         }
-        Recipients {
-            recipients: crate::Allocation
+        Schedule {
+            schedule: crate::Schedule
         }
     }
 
@@ -123,8 +126,6 @@ contract!(
 
         // After configuring the instance, launch confirmation must be given.
         // An instance can be launched only once.
-        // TODO emergency vote to stop everything and refund the initializer
-        // TODO launch transaction should receive/mint its budget?
         Launch () {
             require_admin!(|env, state| {
                 use crate::UNDERWAY;
@@ -160,7 +161,7 @@ contract!(
         }
 
         // Update vesting configuration
-        Config (schedule: crate::Schedule) {
+        Configure (schedule: crate::Schedule) {
             require_admin!(|env, state| {
                 match schedule.validate() {
                     Ok(_) => {

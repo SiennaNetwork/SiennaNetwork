@@ -12,6 +12,16 @@ use cosmwasm_std::testing::{
 type ExternMock = Extern<MemoryStorage, MockApi, MockQuerier>;
 type HandleResult = cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>;
 
+macro_rules! harness {
+    ($deps:ident ; $($AGENT:ident),+) => {
+        $(let $AGENT: cosmwasm_std::HumanAddr =
+            cosmwasm_std::HumanAddr::from(stringify!($AGENT));)+
+        let mut $deps = harness(&[
+            $((&$AGENT, &[])),+
+        ]);
+    }
+}
+
 pub fn harness (balances: &[(&HumanAddr, &[Coin])])-> ExternMock {
     let mut deps = mock_dependencies_with_balances(20, &balances);
 
@@ -23,20 +33,12 @@ pub fn harness (balances: &[(&HumanAddr, &[Coin])])-> ExternMock {
         mock_env(0, 0, balances[0].0), // first address in `balances` is admin
         sienna_mgmt::msg::Init {
             token_addr: cosmwasm_std::HumanAddr::from("mgmt"),
-            token_hash: String::new()
+            token_hash: String::new(),
+            schedule: None
         }
     ).unwrap();
     assert_eq!(0, res.messages.len());
     deps
-}
-
-macro_rules! harness {
-    ($deps:ident ; $($AGENT:ident),+) => {
-        $(let $AGENT: HumanAddr = HumanAddr::from(stringify!($AGENT));)+
-        let mut $deps = harness(&[
-            $((&$AGENT, &[])),+
-        ]);
-    }
 }
 
 pub fn mock_env (
@@ -79,9 +81,9 @@ macro_rules! assert_query {
         $($arg:ident : $val:expr),*
     } ) => {
         match cosmwasm_std::from_binary(
-            &mgmt::query(&$deps, mgmt::msg::Query::$Query {}).unwrap()
+            &sienna_mgmt::query(&$deps, sienna_mgmt::msg::Query::$Query {}).unwrap()
         ).unwrap() {
-            mgmt::msg::Response::$Response {$($arg),*} => {
+            sienna_mgmt::msg::Response::$Response {$($arg),*} => {
                 $(assert_eq!($arg, $val));*
             },
             _ => panic!("{} didn't return {}",
@@ -90,6 +92,7 @@ macro_rules! assert_query {
     }
 }
 
+/// Add 18 zeroes and make serializable
 macro_rules! SIENNA {
     ($x:expr) => { Uint128::from($x as u128 * ONE_SIENNA) }
 }

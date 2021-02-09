@@ -169,6 +169,6 @@ module.exports = function tsv2json (
 }
 
 if (require.main === module) require('fs').writeFileSync(
-  `${__dirname}/../config.json`,
-  JSON.stringify({config:{schedule:module.exports()}}, null, 2)
+  `${__dirname}/../config_msg.json`,
+  JSON.stringify({configure:{schedule:module.exports()}}, null, 2)
 )

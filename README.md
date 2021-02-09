@@ -30,7 +30,7 @@ git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git sie
 
 ### Configure the contract
 
-The file `config.json` is used to configure the contract before launching.
+The file `config_msg.json` is used to configure the contract before launching.
 To generate it:
 
 * Go to [the spreadsheet](https://docs.google.com/spreadsheets/d/1sgj-nTE_b25F8O740Av7XYByOzkD0qNx1Jk63G2qRwY/)
