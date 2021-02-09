@@ -1,26 +1,55 @@
 #[macro_use] extern crate fadroma;
 #[macro_use] extern crate lazy_static;
-#[macro_use] mod helpers;
 
-pub mod constants;
-use constants::BLOCK_SIZE;
-
-pub mod types;
-use types::{
-    CodeHash,
-    Launched, FulfilledClaims, Allocation,
-    ErrorCount,
-    //Seconds
-};
-
-pub mod schedule;
-use schedule::SCHEDULE;
-
-pub mod vesting;
-
-use vesting::{claimable, claimed};
 use cosmwasm_std::HumanAddr;
 use secret_toolkit::snip20::handle::{mint_msg, transfer_msg};
+pub use sienna_schedule::{
+    DAY, MONTH, ONE_SIENNA,
+    Seconds, Days, Months, Percentage, Amount,
+    Schedule, Pool, Account, Allocation, Vesting, Interval,
+    History,
+};
+
+//macro_rules! debug { ($($tt:tt)*)=>{} }
+
+/// Add 18 zeroes
+macro_rules! SIENNA {
+    ($x:expr) => { Uint128::from($x as u128 * ONE_SIENNA) }
+}
+
+/// Auth
+macro_rules! require_admin {
+    (|$env:ident, $state:ident| $body:block) => {
+        if $env.message.sender != $state.admin {
+            err_auth($state)
+        } else $body
+    }
+}
+
+/// A contract's code hash
+pub type CodeHash = String;
+
+/// Whether the vesting process has begun and when.
+pub type Launched = Option<Seconds>;
+
+/// Public counter of invalid operations.
+pub type ErrorCount = u64;
+
+/// Default value for Secret Network block size
+/// (according to Reuven on Discord)
+pub const BLOCK_SIZE: usize = 256;
+
+lazy_static! {
+    pub static ref BROKEN:    &'static str = "broken";
+    pub static ref NOTHING:   &'static str = "nothing for you";
+    pub static ref UNDERWAY:  &'static str = "already underway";
+    pub static ref PRELAUNCH: &'static str = "not launched yet";
+}
+
+pub fn err_allocation (total: Amount, max: Amount) -> String {
+    format!("allocations added up to {} which is over the maximum of {}",
+        total, max)
+}
 
 contract!(
 
@@ -39,10 +68,10 @@ contract!(
         launched:       Launched,
 
         /// History of fulfilled claims
-        vested:         FulfilledClaims,
+        vested:         History,
 
         /// A dedicated portion of the funds can be redirected at runtime
-        recipients:     Allocation,
+        schedule:       Schedule,
 
         /// TODO: public counter of invalid requests
         errors:         ErrorCount
@@ -54,15 +83,15 @@ contract!(
     // * makes the initializer the admin
     [Init] (deps, env, msg: {
         token_addr: cosmwasm_std::HumanAddr,
-        token_hash: crate::types::CodeHash
+        token_hash: crate::CodeHash
     }) {
         State {
             admin:      env.message.sender,
             token_addr: msg.token_addr,
             token_hash: msg.token_hash,
             launched:   None,
-            recipients: vec![],
-            vested:     vec![],
+            schedule:   vec![],
+            vested:     History::new(vec![]),
             errors:     0
         }
     }
@@ -72,23 +101,21 @@ contract!(
         // TODO how much info should be available here?
         Status () {
             msg::Response::Status {
+                errors:   state.errors,
                 launched: state.launched,
-                errors:   state.errors
+                schedule: state.schedule,
             }
-        }
-        Recipients () {
-            let response =  msg::Response::Recipients { recipients: state.recipients };
-            response
         }
     }
 
     [Response] {
         Status     {
-            launched: crate::types::Launched,
-            errors:   crate::types::ErrorCount
+            errors:   crate::ErrorCount,
+            launched: crate::Launched,
+            schedule: crate::Schedule
         }
         Recipients {
-            recipients: crate::types::Allocation
+            recipients: crate::Allocation
         }
     }
 
@@ -100,7 +127,7 @@ contract!(
         // TODO launch transaction should receive/mint its budget?
         Launch () {
             require_admin!(|env, state| {
-                use crate::constants::UNDERWAY;
+                use crate::UNDERWAY;
                 use cosmwasm_std::Uint128;
                 match state.launched {
                     Some(_) => err_msg(state, &UNDERWAY),
@@ -109,7 +136,7 @@ contract!(
                         let token_addr = state.token_addr.clone();
                         match mint_msg(
                             env.contract.address,
-                            Uint128::from(SCHEDULE.total),
+                            Uint128::from(state.schedule.total),
                             None, BLOCK_SIZE, token_hash, token_addr
                         ) {
                             Ok(msg) => {
@@ -132,20 +159,15 @@ contract!(
             })
         }
 
-        // Most schedules are static (imported from config at compile time).
-        // However the config supports `release_mode: configurable` which
-        // allows their streams to be redirected in runtime-configurable
-        // proportions.
-        SetRecipients (recipients: crate::types::Allocation) {
+        // Update vesting configuration
+        Config (schedule: crate::Schedule) {
             require_admin!(|env, state| {
-                use crate::constants::err_allocation;
-                let total = recipients.iter().fold(0u128, |acc, x| acc + x.1.u128());
-                let max = SCHEDULE.configurable_daily.u128();
-                if total > max {
-                    err_msg(state, &err_allocation(total, max))
-                } else {
-                    state.recipients = recipients.clone();
-                    ok(state)
+                match schedule.validate() {
+                    Ok(_) => {
+                        state.schedule = schedule;
+                        ok(state)
+                    },
+                    Err(e) => (state, Err(e))
                 }
             })
         }
@@ -153,7 +175,7 @@ contract!(
         // Recipients can call the Claim method to receive
         // the gains that have accumulated so far.
         Claim () {
-            use crate::constants::{PRELAUNCH, BROKEN, NOTHING};
+            use crate::{PRELAUNCH, BROKEN, NOTHING};
             use cosmwasm_std::Uint128;
             match &state.launched {
                 None => {
@@ -162,8 +184,9 @@ contract!(
                 Some(launch) => {
                     let now = env.block.time;
                     let claimant = env.message.sender;
-                    let claimable = claimable(&claimant, &state.recipients, *launch, now);
-                    let claimed = claimed(&claimant, &state.vested, now);
+                    let elapsed = now - *launch;
+                    let claimable = state.schedule.claimable(&claimant, elapsed);
+                    let claimed = state.vested.claimed(&claimant, now);
                     if claimable < claimed {
                         err_msg(state, &BROKEN)
                     } else {
@@ -181,7 +204,7 @@ contract!(
                                 Err(e) => (state, Err(e)),
                                 Ok(msg) => {
                                     let difference = Uint128::from(difference);
-                                    state.vested.push((claimant, now, difference));
+                                    state.vested.history.push((claimant, now, difference));
                                     ok_msg(state, vec![msg])
                                 },
                             }

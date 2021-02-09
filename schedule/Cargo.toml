@@ -8,17 +8,18 @@ edition = "2018"
 
 [dependencies]
 cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 svg = { version = "0.9.0" }
 
 [lib]
 name = "sienna_schedule"
-path = "src/lib.rs"
+path = "lib/lib.rs"
 
-[[bin]]
-name = "sienna_tsv2json"
-path = "src/to_json.rs"
+#[[bin]]
+#name = "sienna_tsv2json"
+#path = "bin/tsv_to_json.rs"
 
-[[bin]]
-name = "sienna_tsv2svg"
-path = "src/to_svg.rs"
+#[[bin]]
+#name = "sienna_json2svg"
+#path = "bin/tsv_to_svg.rs"

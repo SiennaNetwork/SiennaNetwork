@@ -1,10 +1,12 @@
-use crate::types::{Uint128, HumanAddr, Seconds, Amount};
+use crate::units::*;
 
 pub type Claim = (HumanAddr, Seconds, Uint128);
 
 /// Log of executed claims
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
 pub struct History {
-    history: Vec<Claim>
+    pub history: Vec<Claim>
 }
 impl History {
     pub fn new (history: Vec<Claim>) -> Self { Self { history } }
@@ -28,12 +30,12 @@ fn test_claimed () {
     let log = History::new(vec![(alice.clone(), 100, 100u128.into())
                                ,(bobby.clone(), 100, 200u128.into())
                                ,(alice.clone(), 200, 300u128.into())]);
-    assert_eq!(claimed(&alice, &log,   0),   0);
-    assert_eq!(claimed(&alice, &log,   1),   0);
-    assert_eq!(claimed(&alice, &log, 100), 100);
-    assert_eq!(claimed(&alice, &log, 101), 100);
-    assert_eq!(claimed(&alice, &log, 200), 400);
-    assert_eq!(claimed(&alice, &log, 999), 400);
-    assert_eq!(claimed(&bobby, &log, 999), 200);
-    assert_eq!(claimed(&bobby, &log,  99),   0);
+    assert_eq!(log.claimed(&alice,   0),   0);
+    assert_eq!(log.claimed(&alice,   1),   0);
+    assert_eq!(log.claimed(&alice, 100), 100);
+    assert_eq!(log.claimed(&alice, 101), 100);
+    assert_eq!(log.claimed(&alice, 200), 400);
+    assert_eq!(log.claimed(&alice, 999), 400);
+    assert_eq!(log.claimed(&bobby, 999), 200);
+    assert_eq!(log.claimed(&bobby,  99),   0);
 }

@@ -1,12 +1,17 @@
-use crate::types::*;
+use crate::units::*;
+use serde::{Serialize, Deserialize};
+use schemars::JsonSchema;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Schedule {
     pub total: Uint128,
     pub pools: Vec<Pool>
 }
 impl Schedule {
+    pub fn validate (&self) -> cosmwasm_std::StdResult<()> {
+        Ok(())
+    }
     /// Get amount unlocked for address `a` at time `t`
     pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> Amount {
         for Pool { accounts, .. } in self.pools.iter() {
@@ -21,14 +26,14 @@ impl Schedule {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Pool {
     pub total:    Uint128,
     pub accounts: Vec<Account>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Account {
     pub amount:     Uint128,
@@ -65,14 +70,14 @@ impl Account {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Allocation {
     addr:   HumanAddr,
     amount: Uint128
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub enum Vesting {
     Immediate {},
     Periodic {
@@ -83,7 +88,7 @@ pub enum Vesting {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub enum Interval {
     Daily,
     Monthly
@@ -128,10 +133,10 @@ fn periodic (
     vest
 }
 
-pub fn warn_cliff_remainder () {
+fn warn_cliff_remainder () {
     //println!("WARNING: division with remainder for cliff amount")
 }
 
-pub fn warn_vesting_remainder () {
+fn warn_vesting_remainder () {
     //println!("WARNING: division with remainder for vesting amount")
 }
