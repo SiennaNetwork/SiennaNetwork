@@ -2,7 +2,7 @@
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
 use sienna_mgmt as mgmt;
-use mgmt::{DAY, MONTH, ONE_SIENNA};
+use mgmt::msg::Handle;
 
 use cosmwasm_std::{StdError, HumanAddr, Uint128};
 
@@ -19,11 +19,11 @@ kukumba!(
     when "a stranger tries to start the vesting"
     then "they should fail" {
         let time = 2;
-        assert_tx!(deps
-            => from [MALLORY] at [block 4, T=4]
-            => mgmt::msg::Handle::Launch {}
-            => Err(StdError::Unauthorized { backtrace: None }));
-        assert_query!(deps; Status; Status { launched: None, errors: 1 });
+        test_tx!(deps, MALLORY, 4, 4,
+            Handle::Launch {} => Err(StdError::Unauthorized {
+                backtrace: None
+            }));
+        test_q!(deps; Status; Status { launched: None, errors: 1 });
     }
 
     when "the admin tries to start the vesting"
@@ -31,7 +31,7 @@ kukumba!(
         let time = 3;
         let _ = tx(&mut deps, mock_env(1, time, &ALICE),
             mgmt::msg::Handle::Launch {});
-        assert_query!(deps; Status; Status { launched: Some(time), errors: 1 });
+        test_q!(deps; Status; Status { launched: Some(time), errors: 1 });
     }
 
     given "the contract is already launched"
@@ -42,7 +42,7 @@ kukumba!(
         let _ = tx(&mut deps,
             mock_env(3, next_time, &ALICE),
             mgmt::msg::Handle::Launch {});
-        assert_query!(deps; Status; Status { launched: Some(time), errors: 2 });
+        test_q!(deps; Status; Status { launched: Some(time), errors: 2 });
     }
 
 );

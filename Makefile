@@ -69,18 +69,8 @@ test-less:
 test-loop:
 	find . | entr make test
 coverage:
-	rustup component add llvm-tools-preview
-	cargo install grcov
-	RUSTFLAGS="-Zinstrument-coverage" cargo build --manifest-path=mgmt/Cargo.toml
-	RUSTFLAGS="-Zinstrument-coverage" cargo build --manifest-path=mgmt/Cargo.toml --tests
-	RUSTFLAGS="-Zinstrument-coverage" cargo test --manifest-path=mgmt/Cargo.toml || true
-	grcov mgmt \
-		-s mgmt \
-		--binary-path ./target/debug/ \
-		-t html \
-		--branch \
-		--ignore-not-existing \
-		-o ./coverage
+	cargo tarpaulin --avoid-cfg-tarpaulin --workspace --no-fail-fast --verbose \
+		-e snip20-reference-impl -o Html --output-dir=./coverage --exclude-files=token/*
 
 # Extra artifacts
 .PHONY: schema config schedule

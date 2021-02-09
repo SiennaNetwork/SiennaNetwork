@@ -59,11 +59,9 @@ pub fn tx (
     sienna_mgmt::handle(deps, env, tx)
 }
 
-macro_rules! assert_tx {
-    ( $deps: ident
-        => from [$SENDER:expr] at [block $block:expr, T=$time:expr]
-        => $TX:expr
-        => $Result:expr
+macro_rules! test_tx {
+    ( $deps: ident, $SENDER:expr, $block:expr, $time:expr
+    , $TX:expr => $Result:expr
     ) => {
         assert_eq!(
             tx(
@@ -76,7 +74,7 @@ macro_rules! assert_tx {
     }
 }
 
-macro_rules! assert_query {
+macro_rules! test_q {
     ( $deps:expr ; $Query:ident ; $Response:ident {
         $($arg:ident : $val:expr),*
     } ) => {

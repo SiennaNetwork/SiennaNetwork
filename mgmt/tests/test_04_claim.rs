@@ -3,7 +3,7 @@
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
 use sienna_mgmt as mgmt;
-use mgmt::{DAY, MONTH, ONE_SIENNA, err_allocation};
+use mgmt::msg::Handle;//{DAY, MONTH, ONE_SIENNA, err_allocation};
 
 use cosmwasm_std::{StdError, HumanAddr, Uint128};
 
@@ -19,12 +19,11 @@ kukumba!(
 
     when "a stranger tries to claim funds"
     then "they should be denied" {
-        assert_tx!(deps
-            => from [MALLORY] at [block 4, T=4]
-            => mgmt::msg::Handle::Claim {}
-            => Err(StdError::GenericErr {
+        test_tx!(deps, MALLORY, 4, 4,
+            Handle::Claim {} => Err(StdError::GenericErr {
                 msg: mgmt::PRELAUNCH.to_string(),
-                backtrace: None }) );
+                backtrace: None
+            }) );
     }
 
     given "the contract is already launched" {
@@ -36,12 +35,11 @@ kukumba!(
 
     when "a stranger tries to claim funds"
     then "they should be denied" {
-        assert_tx!(deps
-            => from [MALLORY] at [block 4, T=4]
-            => mgmt::msg::Handle::Claim {}
-            => Err(StdError::GenericErr {
+        test_tx!(deps, MALLORY, 4, 4,
+            Handle::Claim {} => Err(StdError::GenericErr {
                 msg: mgmt::NOTHING.to_string(),
-                backtrace: None }) );
+                backtrace: None
+            }) );
     }
 
 );
@@ -59,7 +57,7 @@ kukumba!(
             //mock_env(0, 0, &ALICE),
             //mgmt::msg::Handle::Configure { schedule: r.clone() });
 
-        //assert_query!(deps; Schedule; Schedule { schedule: r });
+        //test_q!(deps; Schedule; Schedule { schedule: r });
     //}
 
     //when "a predefined claimant tries to claim funds"
@@ -67,7 +65,7 @@ kukumba!(
         //let Stream { addr, vesting, .. } = SCHEDULE.predefined.get(0).unwrap()
         //match vesting {
             //Vesting::Periodic {..} => {
-                //assert_tx!(deps
+                //test_tx!(deps
                     //=> from [addr] at [block 4, T=1]
                     //=> mgmt::msg::Handle::Claim {}
                     //=> Err(StdError::GenericErr {
@@ -79,7 +77,7 @@ kukumba!(
     //}
 
     //given "the contract is launched" {
-        //assert_tx!(deps
+        //test_tx!(deps
             //=> from [ALICE] at [block 0, T=0]
             //=> mgmt::msg::Handle::Launch {}
             //=> Ok(cosmwasm_std::HandleResponse {
@@ -106,7 +104,7 @@ kukumba!(
         //match vesting {
             //Vesting::Periodic { start_at, .. } => {
                 //start = *start_at;
-                //assert_tx!(deps
+                //test_tx!(deps
                     //=> from [PREDEF] at [block 4, T=start-1]
                     //=> mgmt::msg::Handle::Claim {}
                     //=> Err(StdError::GenericErr {
@@ -121,7 +119,7 @@ kukumba!(
     //and  "the first post-cliff vesting has not passed"
     //then "the contract should transfer the cliff amount"
     //and  "it should remember how much that address has claimed so far" {
-        //assert_tx!(deps
+        //test_tx!(deps
             //=> from [PREDEF] at [block 4, T=start]
             //=> mgmt::msg::Handle::Claim {}
             //=> Ok(cosmwasm_std::HandleResponse {
@@ -144,7 +142,7 @@ kukumba!(
     //when "a predefined claimant tries to claim funds"
     //and  "the claimant has already claimed within this time period"
     //then "the contract should respond that there's nothing at this time" {
-        //assert_tx!(deps
+        //test_tx!(deps
             //=> from [PREDEF] at [block 6, T=start+1]
             //=> mgmt::msg::Handle::Claim {}
             //=> Err(StdError::GenericErr {
@@ -165,14 +163,14 @@ kukumba!(
             //HumanAddr::from("mgmt"),
             //None
         //).unwrap();
-        //assert_tx!(deps
+        //test_tx!(deps
             //=> from [PREDEF] at [block 4, T=start+1*MONTH]
             //=> mgmt::msg::Handle::Claim {}
             //=> Ok(cosmwasm_std::HandleResponse {
                 //data:     None,
                 //log:      vec![],
                 //messages: vec![msg.clone()] }) );
-        //assert_tx!(deps
+        //test_tx!(deps
             //=> from [PREDEF] at [block 4, T=start+2*MONTH]
             //=> mgmt::msg::Handle::Claim {}
             //=> Ok(cosmwasm_std::HandleResponse {
@@ -200,7 +198,7 @@ kukumba!(
                     //HumanAddr::from("mgmt"),
                     //None
                 //).unwrap();
-                //assert_tx!(deps
+                //test_tx!(deps
                     //=> from [PREDEF] at [block 4, T=T]
                     //=> mgmt::msg::Handle::Claim {}
                     //=> Ok(cosmwasm_std::HandleResponse {
@@ -226,12 +224,12 @@ kukumba!(
         //let _ = tx(&mut deps,
             //mock_env(0, 0, &ALICE),
             //mgmt::msg::Handle::Configure { schedule: r.clone() });
-        //assert_query!(deps; Schedule; Schedule { schedule: r });
+        //test_q!(deps; Schedule; Schedule { schedule: r });
     //}
 
     //when "a configurable claimant tries to claim funds"
     //then "they should be denied" {
-        //assert_tx!(deps
+        //test_tx!(deps
             //=> from [BOB] at [block 0, T=0]
             //=> mgmt::msg::Handle::Claim {}
             //=> Err(StdError::GenericErr {
@@ -259,7 +257,7 @@ kukumba!(
             //HumanAddr::from("mgmt"),
             //None
         //).unwrap();
-        //assert_tx!(deps
+        //test_tx!(deps
             //=> from [BOB] at [block 0, T=0]
             //=> mgmt::msg::Handle::Claim {}
             //=> Ok(cosmwasm_std::HandleResponse {
@@ -271,7 +269,7 @@ kukumba!(
     //when "a configured claimant tries to claim funds"
     //and  "the claimant has already claimed within this time period"
     //then "the contract should respond that there's nothing at this time" {
-        //assert_tx!(deps
+        //test_tx!(deps
             //=> from [BOB] at [block 1, T=1]
             //=> mgmt::msg::Handle::Claim {}
             //=> Err(StdError::GenericErr {
@@ -292,7 +290,7 @@ kukumba!(
             //HumanAddr::from("mgmt"),
             //None
         //).unwrap();
-        //assert_tx!(deps
+        //test_tx!(deps
             //=> from [BOB] at [block 2, T=DAY]
             //=> mgmt::msg::Handle::Claim {}
             //=> Ok(cosmwasm_std::HandleResponse {
