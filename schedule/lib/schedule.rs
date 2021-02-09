@@ -28,14 +28,13 @@ impl Schedule {
                 Err(e) => return Err(e)
             }
         }
-        if total == self.total.u128() {
-            Ok(())
-        } else {
-            Err(StdError::GenericErr {
+        if total != self.total.u128() {
+            return Err(StdError::GenericErr {
                 backtrace: None,
                 msg: format!("schedule's pools add up to {}, expected {}", total, self.total)
             })
         }
+        Ok(())
     }
 
     /// Get amount unlocked for address `a` at time `t`
@@ -76,14 +75,13 @@ impl Pool {
                 Err(e) => return Err(e)
             }
         }
-        if total == self.total.u128() {
-            Ok(())
-        } else {
-            Err(StdError::GenericErr {
+        if total != self.total.u128() {
+            return Err(StdError::GenericErr {
                 backtrace: None,
                 msg: format!("pool's accounts add up to {}, expected {}", total, self.total)
             })
         }
+        Ok(())
     }
 }
 #[test]
@@ -109,14 +107,13 @@ impl Account {
         for Allocation { addr, amount } in self.recipients.iter() {
             total += amount.u128()
         }
-        if total == self.amount.u128() {
-            Ok(())
-        } else {
-            Err(StdError::GenericErr {
+        if total != self.amount.u128() {
+            return Err(StdError::GenericErr {
                 backtrace: None,
                 msg: format!("account's allocations add up to {}, expected {}", total, self.amount)
             })
         }
+        Ok(())
     }
     pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> Option<Amount> {
         for Allocation { addr, amount } in self.recipients.iter() {
@@ -227,9 +224,9 @@ fn warn_vesting_remainder () {
 
 #[test]
 fn test_periodic () {
-    assert_eq!(periodic( 0, 1, 0, 1, 0), 0);
-    assert_eq!(periodic( 1, 1, 0, 1, 0), 1);
-    assert_eq!(periodic(15, 1, 0, 3, 0), 5);
+    assert_eq!(periodic( 0, 1, 0, 1, 0),  0);
+    assert_eq!(periodic( 1, 1, 0, 1, 0),  1);
+    assert_eq!(periodic(15, 1, 0, 3, 0),  5);
     assert_eq!(periodic(15, 1, 1, 3, 0), 10);
     assert_eq!(periodic(15, 1, 2, 3, 0), 15);
     assert_eq!(periodic(15, 1, 3, 3, 0), 15);
