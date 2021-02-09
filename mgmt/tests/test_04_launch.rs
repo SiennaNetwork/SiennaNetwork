@@ -14,15 +14,13 @@ kukumba!(
     given "the contract is not yet launched" {
         harness!(deps; ALICE, MALLORY);
     }
-
-    when "a stranger tries to start the vesting"
+    when "a stranger tries to start the vesting" 
     then "that fails" {
         test_tx!(deps, MALLORY, 2, 2;
             Handle::Launch {} => tx_err_auth!());
         test_q!(deps, Status;
             Status { launched: None, errors: 1 });
     }
-
     when "the contract is not configured"
     and  "the admin tries to start the vesting"
     then "that fails" {
@@ -31,7 +29,6 @@ kukumba!(
         test_q!(deps, Status;
             Status { launched: None, errors: 2 });
     }
-
     when "the contract is configured"
     and  "the admin starts the vesting"
     then "the contract mints the tokens"
@@ -48,7 +45,6 @@ kukumba!(
         test_q!(deps, Status;
             Status { launched: Some(4), errors: 2 });
     }
-
     given "the contract is already launched"
     when "the admin tries to start the vesting again"
     then "the contract says it's already launched"

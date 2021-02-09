@@ -14,7 +14,6 @@ kukumba!(
     given "the contract is not yet launched" {
         harness!(deps; ALICE, MALLORY);
     }
-
     when "a stranger tries to claim funds"
     then "they are denied" {
         test_tx!(deps, MALLORY, 1, 1;
@@ -32,7 +31,6 @@ kukumba!(
                 None, 256, String::new(), HumanAddr::from("mgmt")
             ).unwrap()));
     }
-
     when "a stranger tries to claim funds"
     then "they are denied" {
         test_tx!(deps, MALLORY, 4, 4;

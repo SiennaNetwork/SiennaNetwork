@@ -11,7 +11,6 @@ kukumba!(
     given "the contract is not yet deployed" {
         harness!(deps; ALICE);
     }
-
     when "someone deploys the contract" {
         use sienna_mgmt::{init, msg::Init};
         let _ = init(
@@ -24,10 +23,9 @@ kukumba!(
             }
         ).unwrap();
     }
-
     then "they become admin"
-    and  "they should be able to query its state"
-    and  "it should say it's not launched yet" {
+    and  "if someone queries its state"
+    and  "it says the contract is not launched" {
         test_q!(deps, Status; Status {
             launched: None,
             errors: 0
