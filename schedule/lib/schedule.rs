@@ -33,7 +33,7 @@ impl Schedule {
         } else {
             Err(StdError::GenericErr {
                 backtrace: None,
-                msg: format!("pools total to {}, expected {}", total, self.total)
+                msg: format!("schedule's pools add up to {}, expected {}", total, self.total)
             })
         }
     }
@@ -68,7 +68,23 @@ impl Pool {
         total: Uint128::zero(),
         accounts: vec![]
     } }
-    pub fn validate (&self) -> StdResult<()> { Ok(()) }
+    pub fn validate (&self) -> StdResult<()> {
+        let mut total = 0u128;
+        for account in self.accounts.iter() {
+            match account.validate() {
+                Ok(_)  => { total += account.amount.u128() },
+                Err(e) => return Err(e)
+            }
+        }
+        if total == self.total.u128() {
+            Ok(())
+        } else {
+            Err(StdError::GenericErr {
+                backtrace: None,
+                msg: format!("pool's accounts add up to {}, expected {}", total, self.total)
+            })
+        }
+    }
 }
 #[test]
 fn test_pool () {
@@ -88,7 +104,20 @@ impl Account {
         recipients: vec![],
         vesting: Vesting::Immediate {}
     } }
-    pub fn validate (&self) -> StdResult<()> { Ok(()) }
+    pub fn validate (&self) -> StdResult<()> {
+        let mut total = 0u128;
+        for Allocation { addr, amount } in self.recipients.iter() {
+            total += amount.u128()
+        }
+        if total == self.amount.u128() {
+            Ok(())
+        } else {
+            Err(StdError::GenericErr {
+                backtrace: None,
+                msg: format!("account's allocations add up to {}, expected {}", total, self.amount)
+            })
+        }
+    }
     pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> Option<Amount> {
         for Allocation { addr, amount } in self.recipients.iter() {
             if addr == a {
