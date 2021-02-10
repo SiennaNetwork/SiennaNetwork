@@ -32,7 +32,7 @@ pub fn harness (balances: &[(&HumanAddr, &[Coin])])-> ExternMock {
         &mut deps,
         mock_env(0, 0, balances[0].0), // first address in `balances` is admin
         sienna_mgmt::msg::Init {
-            token_addr: cosmwasm_std::HumanAddr::from("mgmt"),
+            token_addr: cosmwasm_std::HumanAddr::from("token"),
             token_hash: String::new(),
             schedule: None
         }
