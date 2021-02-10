@@ -1,3 +1,5 @@
+//! Model of vesting history.
+
 use crate::units::*;
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;

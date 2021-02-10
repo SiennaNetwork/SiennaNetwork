@@ -1,3 +1,5 @@
+//! Model of vesting schedule.
+
 use crate::units::*;
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
@@ -5,6 +7,7 @@ use cosmwasm_std::{StdResult, StdError};
 
 macro_rules! Error { ($msg:expr) => { Err(StdError::GenericErr { msg: $msg.to_string(), backtrace: None }) } }
 
+/// Root schedule; contains `Pool`s that must add up to `total`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Schedule {
@@ -15,6 +18,8 @@ pub fn schedule (total: u128, pools: Vec<Pool>) -> Schedule {
     Schedule { total: Uint128::from(total), pools }
 }
 
+/// Vesting pool; contains `Channel`s that must add up to `total`
+/// if `partial == false`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Pool {
@@ -30,19 +35,20 @@ pub fn pool_partial (name: &str, total: u128, channels: Vec<Channel>) -> Pool {
     Pool { name: name.to_string(), total: Uint128::from(total), channels, partial: false }
 }
 
+/// Vesting channel: contains one or more `Allocation`s and can be `Periodic`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Channel {
     pub name:   String,
     pub amount: Uint128,
 
-    /// Each portion is split between these addresses
+    /// Each portion is split between these addresses.
     pub allocations: Vec<Allocation>,
 
     /// Immediate channel: if the contract has launched,
     /// the recipient can claim the entire allocated amount once
     /// Periodic channel: contract calculates the maximum amount
-    /// that the user can claim at the given time
+    /// that the user can claim at the given time.
     pub periodic: Option<Periodic>
 }
 pub fn channel_immediate (
@@ -99,6 +105,7 @@ pub fn channel_periodic_multi (
         allocations
     }
 }
+/// Configuration of periodic vesting ladder.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Periodic {
@@ -107,7 +114,7 @@ pub struct Periodic {
     pub duration: Seconds,
     pub cliff:    Uint128
 }
-
+/// Allocation of vesting to multiple addresses.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Allocation {
@@ -121,10 +128,11 @@ pub fn allocation_addr (amount: u128, addr: &HumanAddr) -> Allocation {
     Allocation { amount: Uint128::from(amount), addr: addr.clone() }
 }
 
+/// Allow for validation and computing of `claimable`.
 pub trait Account {
-    /// Make sure account contains valid data
+    /// Make sure account contains valid data.
     fn validate  (&self) -> StdResult<()>;
-    /// Get amount unlocked for address `a` at time `t`
+    /// Get amount unlocked for address `a` at time `t`.
     fn claimable (&self, a: &HumanAddr, t: Seconds) -> u128;
 }
 
@@ -216,6 +224,7 @@ impl Account for Channel {
         return claimable
     }
 }
+
 impl Channel {
     fn portion (&self) -> u128 {
         match &self.periodic {

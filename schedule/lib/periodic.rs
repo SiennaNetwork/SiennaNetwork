@@ -1,3 +1,5 @@
+//! Model of periodic vesting ladder.
+
 use crate::units::*;
 
 pub fn periodic (

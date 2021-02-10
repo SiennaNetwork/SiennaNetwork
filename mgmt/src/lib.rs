@@ -3,7 +3,7 @@
 
 use cosmwasm_std::HumanAddr;
 use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
-pub use sienna_schedule::{Seconds, Schedule, History, Account};
+use sienna_schedule::{Seconds, Schedule, History, Account};
 
 //macro_rules! debug { ($($tt:tt)*)=>{} }
 
@@ -16,7 +16,7 @@ macro_rules! require_admin {
     }
 }
 
-/// A contract's code hash
+/// The managed SNIP20 contract's code hash.
 pub type CodeHash = String;
 
 /// Whether the vesting process has begun and when.
@@ -26,14 +26,19 @@ pub type Launched = Option<Seconds>;
 pub type ErrorCount = u64;
 
 /// Default value for Secret Network block size
-/// (according to Reuven on Discord)
+/// (according to Reuven on Discord).
 pub const BLOCK_SIZE: usize = 256;
 
 lazy_static! {
+    /// Error message: claimed more than claimable.
     pub static ref BROKEN:      &'static str = "broken";
+    /// Error message: unauthorized or nothing to claim right now.
     pub static ref NOTHING:     &'static str = "nothing for you";
+    /// Error message: can't launch more than once.
     pub static ref UNDERWAY:    &'static str = "already underway";
+    /// Error message: can't do this before launching.
     pub static ref PRELAUNCH:   &'static str = "not launched yet";
+    /// Error message: schedule hasn't been set yet.
     pub static ref NO_SCHEDULE: &'static str = "set configuration first";
 }
 
