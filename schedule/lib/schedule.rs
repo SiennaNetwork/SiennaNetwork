@@ -33,6 +33,7 @@ pub fn pool_partial (name: &str, total: u128, releases: Vec<Release>) -> Pool {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Release {
+    pub name:        String,
     pub mode:        ReleaseMode,
     pub amount:      Uint128,
     pub allocations: Vec<Allocation>,
@@ -42,6 +43,7 @@ pub fn release_immediate (
     address: &str
 ) -> Release {
     Release {
+        name: String::new(),
         mode: ReleaseMode::Immediate {},
         amount: Uint128::from(amount),
         allocations: vec![allocation(amount, address)]
@@ -52,6 +54,7 @@ pub fn release_immediate_multi (
     allocations: Vec<Allocation>
 ) -> Release {
     Release {
+        name: String::new(),
         mode: ReleaseMode::Immediate {},
         amount: Uint128::from(amount),
         allocations
@@ -67,6 +70,7 @@ pub fn release_periodic (
 ) -> Release {
     let cliff = Uint128::from(cliff);
     Release {
+        name:   String::new(),
         mode:   ReleaseMode::Periodic {interval, start_at, duration, cliff},
         amount: Uint128::from(amount),
         allocations: vec![allocation(amount, address)]
@@ -82,6 +86,7 @@ pub fn release_periodic_multi (
 ) -> Release {
     let cliff = Uint128::from(cliff);
     Release {
+        name:   String::new(),
         mode:   ReleaseMode::Periodic {interval, start_at, duration, cliff},
         amount: Uint128::from(amount),
         allocations
@@ -180,13 +185,30 @@ impl Release {
         for Allocation { amount, .. } in self.allocations.iter() {
             total += amount.u128()
         }
-        if total != self.amount.u128() {
-            return Err(StdError::GenericErr {
-                backtrace: None,
-                msg: format!("release's allocations add up to {}, expected {}", total, self.amount)
-            })
+        match &self.mode {
+            _ => {},
+            ReleaseMode::Periodic{interval,start_at,duration,cliff} => {
+                if duration % interval > 0 {
+                    return Error!(format!("release {}: duration {} does not divide evenly by {}", &self.name, duration, interval))
+                }
+                if (self.amount - *cliff).unwrap().u128() % Uint128::from(duration / interval).u128() > 0 {
+                    return Error!(format!("release {}: post-cliff amount {} does not divide evenly by {}", &self.name, (self.amount - *cliff).unwrap(), duration / interval))
+                }
+            }
+        }
+        if total != self.portion() {
+            return Error!(
+                format!("release {}: allocations add up to {}, expected {}", &self.name, total, self.portion()))
         }
         Ok(())
+    }
+    fn portion (&self) -> u128 {
+        match &self.mode {
+            ReleaseMode::Immediate {} =>
+                self.amount.u128(),
+            ReleaseMode::Periodic{interval,start_at,duration,cliff} =>
+                (self.amount - *cliff).unwrap().u128() / (duration / interval) as u128
+        }
     }
     fn claimable (&self, a: &HumanAddr, t: Seconds) -> u128 {
         let mut claimable = 0;
