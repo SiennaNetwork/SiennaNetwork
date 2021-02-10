@@ -23,7 +23,7 @@ kukumba!(
             Handle::Configure { schedule: s.clone() } => tx_ok!());
     }
     when "the contract is not yet launched"
-    when "Founder1 tries to claim funds"
+    when "anyone tries to claim funds"
     then "they are denied" {
         test_tx!(deps, founder_1, 1, 1;
             Handle::Claim {} => tx_err!(PRELAUNCH));
@@ -48,27 +48,27 @@ kukumba!(
     then "they are denied" {
         test_tx!(deps, founder_1, 3, t_launch + 1;
             Handle::Claim {} => tx_err!(NOTHING));
-        test_tx!(deps, founder_1, 4, t_launch + 15552000;
+        test_tx!(deps, founder_1, 4, t_launch + 15552000 - 1;
             Handle::Claim {} => tx_err!(NOTHING));
     }
     when "Founder1 claims funds right after the cliff"
     then "they receive 80000 SIENNA" {
-        test_tx!(deps, founder_1, 5, t_launch + 15552001;
+        test_tx!(deps, founder_1, 5, t_launch + 15552000;
             Handle::Claim {} => tx_ok_claim!(founder_1, SIENNA!(80000u128)));
     }
     when "Founder1 tries to claim funds before the next vesting"
     then "they are denied" {
-        test_tx!(deps, founder_1, 6, t_launch + 15552002;
+        test_tx!(deps, founder_1, 6, t_launch + 15552001;
             Handle::Claim {} => tx_err!(NOTHING));
     }
     when "Founder1 claims funds again after 1 day"
     then "they receive 1 vesting's worth of 1500 SIENNA" {
-        test_tx!(deps, founder_1, 7, t_launch + 15552001 + 86400;
+        test_tx!(deps, founder_1, 7, t_launch + 15552000 + 86400;
             Handle::Claim {} => tx_ok_claim!(founder_1, SIENNA!(1500u128)));
     }
     when "Founder1 claims funds again after 2 more days"
     then "they receive 2 vestings' worth of 3000 SIENNA" {
-        test_tx!(deps, founder_1, 8, t_launch + 15520001 + 86400 + 86400 * 2;
+        test_tx!(deps, founder_1, 8, t_launch + 15520000 + 86400 + 86400 * 2;
             Handle::Claim {} => tx_ok_claim!(founder_1, SIENNA!(3000u128)));
     }
 

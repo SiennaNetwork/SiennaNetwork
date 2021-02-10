@@ -66,7 +66,7 @@ macro_rules! test_tx {
         let expected_response = $ExpectedResult;
         let response = tx(&mut $deps, mock_env($block, $time, &$SENDER), $TX);
         if response != expected_response {
-            println!("TRANSACTION TEST FAILED");
+            println!("!!! Test transaction failed (block {}, time {})", $block, $time);
             if let Ok(cosmwasm_std::HandleResponse { messages, log, data }) = expected_response {
                 println!("Expected messages:");
                 for message in messages.iter() {

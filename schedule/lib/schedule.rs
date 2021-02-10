@@ -253,10 +253,12 @@ impl Account for Channel {
     }
     fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<u128> {
         match &self.periodic {
-            None => if *a == self.allocations.get(0).unwrap().addr {
-                Ok(self.amount.u128())
-            } else {
-                Ok(0)
+            None => {
+                if *a == self.allocations.get(0).unwrap().addr {
+                    Ok(self.amount.u128())
+                } else {
+                    Ok(0)
+                }
             },
             Some(Periodic{start_at,cliff,duration,interval}) => {
                 if t < *start_at {
@@ -265,9 +267,20 @@ impl Account for Channel {
                     let elapsed = t - start_at;
                     let portions = u128::min(
                         self.portion_count()?,
-                        (elapsed / duration + 1).into()
+                        (elapsed / duration).into()
                     );
-                    Ok(0)
+                    let mut sum = 0;
+                    let mut for_me = false;
+                    for Allocation { addr, amount } in self.allocations.iter() {
+                        if addr == a {
+                            sum += portions * amount.u128();
+                            for_me = true;
+                        }
+                    }
+                    if for_me {
+                        sum += cliff.u128();
+                    }
+                    Ok(sum)
                 }
             }
         }
