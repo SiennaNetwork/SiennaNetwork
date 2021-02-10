@@ -202,20 +202,28 @@ contract!(
                     if claimable.len() < 1 {
                         err_msg(state, &NOTHING)
                     } else {
+                        println!("Claimable:   {:#?}", &claimable);
+                        println!("\nClaimed:   {:#?}", &state.history.history);
                         let unclaimed = state.history.unclaimed(claimable);
+                        println!("\nUnclaimed: {:#?}", &unclaimed);
                         if unclaimed.len() < 1 {
                             err_msg(state, &NOTHING)
                         } else {
-                            let mut msgs = vec![];
+                            let mut sum: Uint128 = Uint128::zero();
                             for portion in unclaimed.iter() {
-                                msgs.push(transfer_msg(
-                                    portion.address.clone(), portion.amount,
-                                    None, BLOCK_SIZE,
-                                    state.token_hash.clone(), state.token_addr.clone()
-                                )?);
+                                if portion.address != claimant {
+                                    panic!("portion for wrong address {} claimed by {}", &portion.address, &claimant);
+                                }
+                                sum += portion.amount
                             }
+                            let msg = transfer_msg(
+                                claimant, sum,
+                                None, BLOCK_SIZE,
+                                state.token_hash.clone(),
+                                state.token_addr.clone()
+                            )?;
                             state.history.claim(now, unclaimed);
-                            ok_msg(state, msgs)
+                            ok_msg(state, vec![msg])
                         }
                     }
                 }

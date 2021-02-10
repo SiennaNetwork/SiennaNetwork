@@ -108,7 +108,7 @@ pub fn channel_periodic_multi (
     }
 }
 impl Channel {
-    fn portion_count (&self) -> StdResult<u128> {
+    fn portion_count (&self) -> StdResult<u64> {
         match &self.periodic {
             None {} =>
                 Ok(1),
@@ -118,7 +118,7 @@ impl Channel {
                         "channel {}: duration {} does not divide evenly in intervals of {}",
                         &self.name, duration, interval))
                 } else {
-                    Ok((duration / interval) as u128)
+                    Ok(duration / interval)
                 }
         }
     }
@@ -128,7 +128,7 @@ impl Channel {
                 Ok(self.amount.u128()),
             Some(Periodic{cliff,duration,interval,..}) => {
                 let amount_after_cliff = (self.amount - *cliff).unwrap().u128();
-                let portion_count = self.portion_count()?;
+                let portion_count = self.portion_count()? as u128;
                 if amount_after_cliff % portion_count > 0 {
                     Error!(format!(
                         "channel {}: post-cliff amount {} does not divide evenly in {} portions",
@@ -291,20 +291,21 @@ impl Account for Channel {
                     portions.push(portion(self.amount.u128(), a, 0, &reason));
                 }
             },
-            Some(Periodic{start_at,cliff,duration,..}) => {
+            Some(Periodic{start_at,cliff,interval,..}) => {
                 if t >= *start_at {
                     let elapsed = t - start_at;
-                    let n_portions = u128::min(
+                    let n_portions = u64::min(
                         self.portion_count()?,
-                        (elapsed / duration).into()
+                        elapsed / interval
                     );
                     let mut for_me = false;
                     for Allocation { addr, amount } in self.allocations.iter() {
                         if addr == a {
                             for_me = true;
-                            for _ in 0..n_portions {
+                            for n_portion in 0..n_portions {
                                 let reason = format!("{}: vesting", &self.name);
-                                portions.push(portion((*amount).u128(), a, *start_at, &reason))
+                                let t_vested = start_at + n_portion * interval;
+                                portions.push(portion((*amount).u128(), a, t_vested, &reason));
                             }
                         }
                     }

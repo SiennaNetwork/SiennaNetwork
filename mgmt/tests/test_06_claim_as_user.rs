@@ -46,45 +46,46 @@ kukumba!(
 
     when "Founder1 tries to claim funds before the cliff"
     then "they are denied" {
+        let t_cliff = 15552000;
         test_tx!(deps, founder_1, 3, t_launch + 1;
             Handle::Claim {} => tx_err!(NOTHING));
-        test_tx!(deps, founder_1, 4, t_launch + 15552000 - 1;
+        test_tx!(deps, founder_1, 4, t_launch + t_cliff - 1;
             Handle::Claim {} => tx_err!(NOTHING));
     }
     when "Founder1 claims funds right after the cliff"
     then "they receive 80000 SIENNA" {
-        test_tx!(deps, founder_1, 5, t_launch + 15552000;
+        test_tx!(deps, founder_1, 5, t_launch + t_cliff;
             Handle::Claim {} => tx_ok_claim!(founder_1, SIENNA!(80000u128)));
     }
     when "Founder1 tries to claim funds before the next vesting"
     then "they are denied" {
-        test_tx!(deps, founder_1, 6, t_launch + 15552001;
+        test_tx!(deps, founder_1, 6, t_launch + t_cliff + 3600;
             Handle::Claim {} => tx_err!(NOTHING));
     }
     when "Founder1 claims funds again after 1 day"
     then "they receive 1 vesting's worth of 1500 SIENNA" {
-        test_tx!(deps, founder_1, 7, t_launch + 15552000 + 86400;
+        test_tx!(deps, founder_1, 7, t_launch + t_cliff + 86400;
             Handle::Claim {} => tx_ok_claim!(founder_1, SIENNA!(1500u128)));
     }
     when "Founder1 claims funds again after 2 more days"
     then "they receive 2 vestings' worth of 3000 SIENNA" {
-        test_tx!(deps, founder_1, 8, t_launch + 15520000 + 86400 + 86400 * 2;
+        test_tx!(deps, founder_1, 8, t_launch + t_cliff + 86400 + 86400 * 2;
             Handle::Claim {} => tx_ok_claim!(founder_1, SIENNA!(3000u128)));
     }
 
     when "Founder2 tries to claim funds before the cliff"
     then "they are denied" {
-        test_tx!(deps, founder_2, 9, t_launch + 15552000;
+        test_tx!(deps, founder_2, 9, t_launch + t_cliff - 1000;
             Handle::Claim {} => tx_err!(NOTHING));
     }
     when "Founder2 claims funds for the 1st time 10 days after the cliff"
     then "they receive cliff 80000 + 10 vestings' worth of 15000 = 95000 SIENNA" {
-        test_tx!(deps, founder_2, 10, t_launch + 15552001 + 10 * 86400;
+        test_tx!(deps, founder_2, 10, t_launch + t_cliff + 10 * 86400;
             Handle::Claim {} => tx_ok_claim!(founder_2, SIENNA!(95000u128)));
     }
     when "Founder 3 claims funds 500 days after the cliff"
     then "they receive the full amount of 731000 SIENNA" {
-        test_tx!(deps, founder_3, 11, t_launch + 15552001 + 500 * 86400;
+        test_tx!(deps, founder_3, 11, t_launch + t_cliff + 500 * 86400;
             Handle::Claim {} => tx_ok_claim!(founder_3, SIENNA!(731000u128)));
     }
 
