@@ -7,15 +7,19 @@ const Sienna = x => {
     return Number(x.replace(/,/g, ''))
   } 
 }
+
 const Percent = x =>
   x.replace(/%/g, '')
+
 const Days = (x, y) => {
   x = Number(x.trim())
   assert(x*24*60*60 === Number(y), `${x} days must be accompanied with ${y} seconds`)
   return x
 }
+
 const Seconds = x =>
   Number(x.trim())
+
 const Address = x => {
   x = x.trim()
   if (x.length > 0) {
@@ -24,6 +28,8 @@ const Address = x => {
     return x
   }
 }
+
+const isN = x => !isNaN(N)
 
 const columns = ([
   _A_, _B_, _C_, _D_, _E_, _F_, _G_, _H_, _I_,
@@ -37,7 +43,7 @@ const columns = ([
     amount:              Sienna  (_E_),
     percent_of_total:    Percent (_F_),
     interval_days:       Days    (_G_, _H_),
-    interval_seconds:    Seconds (_H_),
+    interval:            Seconds (_H_),
     start_at_days:       Days    (_I_, _J_),
     start_at:            Seconds (_J_),
     duration_days:       Days    (_K_, _L_),
@@ -69,14 +75,14 @@ module.exports = function tsv2json (
                          || pool(columns(data), i)
                          || release(columns(data), i)
                          || allocation(columns(data), i)
-                         || invalid_row(i))
+                         || invalid_row(columns(data), i))
 
   assert(running_total === output.total, `subtotals must add up to total`)
 
   return output
 
-  function invalid_row (i) {
-    console.warn(`row ${i}: skipping`)
+  function invalid_row (data, i) {
+    console.warn(`row ${i}: skipping`, JSON.stringify(data))
   }
 
   function header (data, i) {
@@ -89,10 +95,7 @@ module.exports = function tsv2json (
   // if the row describes the grand total:
   function grand_total ({total, subtotal}, i) {
     if (i === 2) {
-      assert(
-        total===subtotal,
-        'row 1 (schedule total): total must equal subtotal'
-      )
+      assert(total===subtotal,'row 1 (schedule total): total must equal subtotal')
       output.total = total
       output.pools = []
       console.log(`total: ${total}`)
@@ -103,7 +106,6 @@ module.exports = function tsv2json (
   // if the row describes a pool:
   function pool (data, i) {
     let {pool, subtotal, name, percent_of_total} = data
-    console.log('pool', data)
     if (pool && subtotal && percent_of_total) {
       assert(
         percent_of_total/100 === subtotal/output.total,
@@ -134,12 +136,9 @@ module.exports = function tsv2json (
 
   // row describes release
   function release (data, i) {
-    let {name,amount,percent_of_total,interval_days,interval
+    const {name,amount,percent_of_total,interval_days,interval
         ,amount_per_interval,address} = data
-    if (name && amount && percent_of_total && interval) {
-      amount = Number(amount.replace(/,/g, ''))
-      if (interval) interval = Number(interval.trim())
-      if (address) address = address.trim()
+    if (name && amount && percent_of_total) {
       const vesting = (interval == 0) ? { type: 'immediate' } : periodic_vesting(data, i)
       running_pool_total += amount
       running_release_total = Number(amount_per_interval)
@@ -150,7 +149,7 @@ module.exports = function tsv2json (
         address,
         allocations: []
       })
-      console.log(`add release ${name} (${address}) to pool ${current_pool.name}`)
+      console.log(`  add release ${name} (${address}) to pool ${current_pool.name} (${running_pool_total})`)
       return true
     }
   }
@@ -159,17 +158,13 @@ module.exports = function tsv2json (
   // specifies parameters of periodic vesting
   function periodic_vesting (data, i) {
     const {interval,start_at,duration,cliff,amount_per_interval} = data
-    const integer = (name, val) =>
-      assert(!!val, `row ${i}: missing ${name}`)||Number(val)
-    const percent = (name, val) =>
-      assert(!!val, `row ${i}: missing ${name}`)||Number(val.replace(/%/g,'')/100)
     // TODO validate priors
     return {
-      type:     'periodic',
-      interval: integer('interval', interval),
-      start_at: integer('start_at', start_at),
-      duration: integer('duration', duration),
-      cliff:    integer('cliff', cliff),
+      type: 'periodic',
+      interval,
+      start_at,
+      duration,
+      cliff
     }
   }
 
@@ -179,6 +174,7 @@ module.exports = function tsv2json (
       // row describes allocation
       current_release.allocations.push({address,amount:allocation})
       running_release_total += allocation
+      return true
     }
   }
 }

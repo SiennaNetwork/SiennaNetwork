@@ -1,27 +1,27 @@
-Total	Pool	Subtotal	Name	Amount	% of total	Interval (days)	Interval (seconds)	Start after X days	t_start (seconds)	Duration (days)	Duration (seconds)	Cliff (%)	Cliff (SIENNA)	Amount per interval	Allocation	Address	
-10,000,000	Pool	10,000,000															
-➥	Investors	2,000,000			20.00%												
-		➥	InvestorN	2,000,000	20.00%	1	86400	180	15552000	480	41472000	0.01%	200	4166.25		secret1TODO10	
-																	
-➥	Founders	2,400,000			24.00%												
-		➥	Founder1	800,000	8.00%	1	86400	180	15552000	480	41472000	10.00%	80000	1500		secret1TODO20	
-		➥	Founder2	800,000	8.00%	1	86400	180	15552000	480	41472000	10.00%	80000	1500		secret1TODO21	
-		➥	Founder3	731,000	7.31%	1	86400	180	15552000	480	41472000	10.00%	73100	1370.625		secret1TODO22	(n
-		➥	Founder4	69,000	0.69%	1	86400	180	15552000	480	41472000	10.00%	6900	129.375		secret1TODO23	
-																	
-➥	Dev Fund	1,500,000			15.00%												
-		➥	DevN	1,500,000	15.00%	28	2419200	120	10368000	570	49248000	5.00%	75000	75000		secret1TODO30	
-																	
-➥	Advisors	200,000			2.00%												
-		➥	Advisor1	50,000	0.50%	1	86400	180	15552000	480	41472000	0.00%	0	3125		secret1TODO40	
-		➥	Advisor2	50,000	0.50%	1	86400	180	15552000	480	41472000	0.00%	0	3125		secret1TODO41	
-		➥	Advisor3	10,000	0.10%	1	86400	180	15552000	180	15552000	0.04%	4	1666		secret1TODO42	
-		➥	Advisor4	5,000	0.05%	1	86400	180	15552000	180	15552000	0.04%	2	833		secret1TODO43	
-		➥	AdvisorN	85,000	0.85%	0	0	0	0	-	-	-	-			secret1TODO44	
-																	
-➥	Minting Pool	3,900,000			39.00%												
-		➥	LiqProvFund	300,000	3.00%	0	0	0	0	-	-	-	-			secret1TODO50	
-		➥	PoolRem	3,600,000	36.00%	1	86400	0	0	1440	124416000	0.00%	0	2500			
-														➥	1250	secret1TODO51	
-														➥	750	secret1TODO52	
-														➥	500	secret1TODO53	
+Total	Pool	Subtotal	Name	Amount	% of total	Interval (days)	`interval` (seconds)	Start after X days	`start_at` (seconds)	Duration (days)	`duration` (seconds)	Cliff (%)	`cliff` (SIENNA)	Amount per interval	Allocation	Address
+10,000,000	Pool	10,000,000														
+➥	Investors	2,000,000			20.00%											
+		➥	InvestorN	2,000,000	20.00%	1	86400	180	15552000	480	41472000	0.01%	200	4166.25		secret1TODO10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+																
+➥	Founders	2,400,000			24.00%											
+		➥	Founder1	800,000	8.00%	1	86400	180	15552000	480	41472000	10.00%	80000	1500		secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		➥	Founder2	800,000	8.00%	1	86400	180	15552000	480	41472000	10.00%	80000	1500		secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		➥	Founder3	731,000	7.31%	1	86400	180	15552000	480	41472000	10.00%	73100	1370.625		secret1TODO22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		➥	Founder4	69,000	0.69%	1	86400	180	15552000	480	41472000	10.00%	6900	129.375		secret1TODO23xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+																
+➥	Dev Fund	1,500,000			15.00%											
+		➥	DevN	1,500,000	15.00%	28	2419200	120	10368000	570	49248000	5.00%	75000	75000		secret1TODO30xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+																
+➥	Advisors	200,000			2.00%											
+		➥	Advisor1	50,000	0.50%	1	86400	180	15552000	480	41472000	0.00%	0	3125		secret1TODO40xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		➥	Advisor2	50,000	0.50%	1	86400	180	15552000	480	41472000	0.00%	0	3125		secret1TODO41xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		➥	Advisor3	10,000	0.10%	1	86400	180	15552000	180	15552000	0.04%	4	1666		secret1TODO42xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		➥	Advisor4	5,000	0.05%	1	86400	180	15552000	180	15552000	0.04%	2	833		secret1TODO43xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		➥	AdvisorN	85,000	0.85%	0	0	0	0							secret1TODO44xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+																
+➥	Minting Pool	3,900,000			39.00%											
+		➥	LiqProvFund	300,000	3.00%	0	0	0	0							secret1TODO50xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		➥	PoolRem	3,600,000	36.00%	1	86400	0	0	1440	124416000	0.00%	0	2500		
+														➥	1250	secret1TODO51xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+														➥	750	secret1TODO52xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+														➥	500	secret1TODO53xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

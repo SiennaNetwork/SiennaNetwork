@@ -1,235 +1,208 @@
 {
-  "configure": {
-    "schedule": {
-      "total": 10000000,
-      "pools": [
+  "total": 10000000,
+  "pools": [
+    {
+      "name": "Investors",
+      "total": 2000000,
+      "releases": [
         {
-          "name": "Investors",
-          "total": 2000000,
-          "accounts": [
-            {
-              "name": "InvestorN",
-              "amount": 2000000,
-              "vesting": {
-                "type": "periodic",
-                "interval": "DAILY",
-                "start_after_x_days": 180,
-                "duration_days": 480,
-                "cliff_percent": 0.0001,
-                "cliff_amount": 200,
-                "amount_per_interval": 4166.25
-              },
-              "address": "secret1TODO10",
-              "recipients": []
-            }
-          ]
+          "name": "InvestorN",
+          "amount": 2000000,
+          "vesting": {
+            "type": "periodic",
+            "interval": 86400,
+            "start_at": 15552000,
+            "duration": 41472000,
+            "cliff": 200
+          },
+          "address": "secret1TODO10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "allocations": []
+        }
+      ]
+    },
+    {
+      "name": "Founders",
+      "total": 2400000,
+      "releases": [
+        {
+          "name": "Founder1",
+          "amount": 800000,
+          "vesting": {
+            "type": "periodic",
+            "interval": 86400,
+            "start_at": 15552000,
+            "duration": 41472000,
+            "cliff": 80000
+          },
+          "address": "secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "allocations": []
         },
         {
-          "name": "Founders",
-          "total": 2400000,
-          "accounts": [
-            {
-              "name": "Founder1",
-              "amount": 800000,
-              "vesting": {
-                "type": "periodic",
-                "interval": "DAILY",
-                "start_after_x_days": 180,
-                "duration_days": 480,
-                "cliff_percent": 0.1,
-                "cliff_amount": 80000,
-                "amount_per_interval": 1500
-              },
-              "address": "secret1TODO20",
-              "recipients": []
-            },
-            {
-              "name": "Founder2",
-              "amount": 800000,
-              "vesting": {
-                "type": "periodic",
-                "interval": "DAILY",
-                "start_after_x_days": 180,
-                "duration_days": 480,
-                "cliff_percent": 0.1,
-                "cliff_amount": 80000,
-                "amount_per_interval": 1500
-              },
-              "address": "secret1TODO21",
-              "recipients": []
-            },
-            {
-              "name": "Founder3",
-              "amount": 731000,
-              "vesting": {
-                "type": "periodic",
-                "interval": "DAILY",
-                "start_after_x_days": 180,
-                "duration_days": 480,
-                "cliff_percent": 0.1,
-                "cliff_amount": 73100,
-                "amount_per_interval": 1370.625
-              },
-              "address": "secret1TODO22",
-              "recipients": []
-            },
-            {
-              "name": "Founder4",
-              "amount": 69000,
-              "vesting": {
-                "type": "periodic",
-                "interval": "DAILY",
-                "start_after_x_days": 180,
-                "duration_days": 480,
-                "cliff_percent": 0.1,
-                "cliff_amount": 6900,
-                "amount_per_interval": 129.375
-              },
-              "address": "secret1TODO23",
-              "recipients": []
-            }
-          ]
+          "name": "Founder2",
+          "amount": 800000,
+          "vesting": {
+            "type": "periodic",
+            "interval": 86400,
+            "start_at": 15552000,
+            "duration": 41472000,
+            "cliff": 80000
+          },
+          "address": "secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "allocations": []
         },
         {
-          "name": "Dev Fund",
-          "total": 1500000,
-          "accounts": [
-            {
-              "name": "DevN",
-              "amount": 1500000,
-              "vesting": {
-                "type": "periodic",
-                "interval": "MONTHLY",
-                "start_after_x_days": 120,
-                "duration_days": 570,
-                "cliff_percent": 0.05,
-                "cliff_amount": 75000,
-                "amount_per_interval": 75000
-              },
-              "address": "secret1TODO30",
-              "recipients": []
-            }
-          ]
+          "name": "Founder3",
+          "amount": 731000,
+          "vesting": {
+            "type": "periodic",
+            "interval": 86400,
+            "start_at": 15552000,
+            "duration": 41472000,
+            "cliff": 73100
+          },
+          "address": "secret1TODO22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "allocations": []
         },
         {
-          "name": "Advisors",
-          "total": 200000,
-          "accounts": [
-            {
-              "name": "Advisor1",
-              "amount": 50000,
-              "vesting": {
-                "type": "periodic",
-                "interval": "DAILY",
-                "start_after_x_days": 180,
-                "duration_days": 480,
-                "cliff_percent": 0,
-                "cliff_amount": 0,
-                "amount_per_interval": 3125
-              },
-              "address": "secret1TODO40",
-              "recipients": []
-            },
-            {
-              "name": "Advisor2",
-              "amount": 50000,
-              "vesting": {
-                "type": "periodic",
-                "interval": "DAILY",
-                "start_after_x_days": 180,
-                "duration_days": 480,
-                "cliff_percent": 0,
-                "cliff_amount": 0,
-                "amount_per_interval": 3125
-              },
-              "address": "secret1TODO41",
-              "recipients": []
-            },
-            {
-              "name": "Advisor3",
-              "amount": 10000,
-              "vesting": {
-                "type": "periodic",
-                "interval": "DAILY",
-                "start_after_x_days": 180,
-                "duration_days": 180,
-                "cliff_percent": 0.0004,
-                "cliff_amount": 4,
-                "amount_per_interval": 1666
-              },
-              "address": "secret1TODO42",
-              "recipients": []
-            },
-            {
-              "name": "Advisor4",
-              "amount": 5000,
-              "vesting": {
-                "type": "periodic",
-                "interval": "DAILY",
-                "start_after_x_days": 180,
-                "duration_days": 180,
-                "cliff_percent": 0.0004,
-                "cliff_amount": 2,
-                "amount_per_interval": 833
-              },
-              "address": "secret1TODO43",
-              "recipients": []
-            },
-            {
-              "name": "AdvisorN",
-              "amount": 85000,
-              "vesting": {
-                "type": "immediate"
-              },
-              "address": "secret1TODO44",
-              "recipients": []
-            }
-          ]
+          "name": "Founder4",
+          "amount": 69000,
+          "vesting": {
+            "type": "periodic",
+            "interval": 86400,
+            "start_at": 15552000,
+            "duration": 41472000,
+            "cliff": 6900
+          },
+          "address": "secret1TODO23xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "allocations": []
+        }
+      ]
+    },
+    {
+      "name": "Dev Fund",
+      "total": 1500000,
+      "releases": [
+        {
+          "name": "DevN",
+          "amount": 1500000,
+          "vesting": {
+            "type": "periodic",
+            "interval": 2419200,
+            "start_at": 10368000,
+            "duration": 49248000,
+            "cliff": 75000
+          },
+          "address": "secret1TODO30xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "allocations": []
+        }
+      ]
+    },
+    {
+      "name": "Advisors",
+      "total": 200000,
+      "releases": [
+        {
+          "name": "Advisor1",
+          "amount": 50000,
+          "vesting": {
+            "type": "periodic",
+            "interval": 86400,
+            "start_at": 15552000,
+            "duration": 41472000,
+            "cliff": 0
+          },
+          "address": "secret1TODO40xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "allocations": []
         },
         {
-          "name": "Minting Pool",
-          "total": 3900000,
-          "accounts": [
+          "name": "Advisor2",
+          "amount": 50000,
+          "vesting": {
+            "type": "periodic",
+            "interval": 86400,
+            "start_at": 15552000,
+            "duration": 41472000,
+            "cliff": 0
+          },
+          "address": "secret1TODO41xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "allocations": []
+        },
+        {
+          "name": "Advisor3",
+          "amount": 10000,
+          "vesting": {
+            "type": "periodic",
+            "interval": 86400,
+            "start_at": 15552000,
+            "duration": 15552000,
+            "cliff": 4
+          },
+          "address": "secret1TODO42xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "allocations": []
+        },
+        {
+          "name": "Advisor4",
+          "amount": 5000,
+          "vesting": {
+            "type": "periodic",
+            "interval": 86400,
+            "start_at": 15552000,
+            "duration": 15552000,
+            "cliff": 2
+          },
+          "address": "secret1TODO43xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "allocations": []
+        },
+        {
+          "name": "AdvisorN",
+          "amount": 85000,
+          "vesting": {
+            "type": "immediate"
+          },
+          "address": "secret1TODO44xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "allocations": []
+        }
+      ]
+    },
+    {
+      "name": "Minting Pool",
+      "total": 3900000,
+      "releases": [
+        {
+          "name": "LiqProvFund",
+          "amount": 300000,
+          "vesting": {
+            "type": "immediate"
+          },
+          "address": "secret1TODO50xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "allocations": []
+        },
+        {
+          "name": "PoolRem",
+          "amount": 3600000,
+          "vesting": {
+            "type": "periodic",
+            "interval": 86400,
+            "start_at": 0,
+            "duration": 124416000,
+            "cliff": 0
+          },
+          "allocations": [
             {
-              "name": "LiqProvFund",
-              "amount": 300000,
-              "vesting": {
-                "type": "immediate"
-              },
-              "address": "secret1TODO50",
-              "recipients": []
+              "address": "secret1TODO51xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": 1250
             },
             {
-              "name": "PoolRem",
-              "amount": 3600000,
-              "vesting": {
-                "type": "periodic",
-                "interval": "DAILY",
-                "start_after_x_days": 0,
-                "duration_days": 1440,
-                "cliff_percent": 0,
-                "cliff_amount": 0,
-                "amount_per_interval": 2500
-              },
-              "address": "",
-              "recipients": [
-                {
-                  "address": "secret1TODO51",
-                  "amount": 1250
-                },
-                {
-                  "address": "secret1TODO52",
-                  "amount": 750
-                },
-                {
-                  "address": "secret1TODO53",
-                  "amount": 500
-                }
-              ]
+              "address": "secret1TODO52xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": 750
+            },
+            {
+              "address": "secret1TODO53xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": 500
             }
           ]
         }
       ]
     }
-  }
+  ]
 }
