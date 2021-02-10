@@ -23,7 +23,7 @@ macro_rules! harness {
 }
 
 pub fn harness (balances: &[(&HumanAddr, &[Coin])])-> ExternMock {
-    let mut deps = mock_dependencies_with_balances(20, &balances);
+    let mut deps = mock_dependencies_with_balances(45, &balances);
 
     // As the admin
     // When I init the contract
@@ -118,6 +118,15 @@ macro_rules! tx_ok {
     };
     ($($msg: expr),+) => {
         Ok(cosmwasm_std::HandleResponse { data: None, log: vec![], messages: vec![$($msg),+] })
+    }
+}
+
+macro_rules! tx_ok_claim {
+    ($addr:expr, $amount:expr) => {
+        tx_ok!(transfer_msg(
+            $addr.clone(), $amount,
+            None, 256, String::new(), HumanAddr::from("token")
+        ).unwrap())
     }
 }
 

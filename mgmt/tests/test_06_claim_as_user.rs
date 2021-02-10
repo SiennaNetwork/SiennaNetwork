@@ -3,7 +3,7 @@
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
 use cosmwasm_std::{StdError, HumanAddr, Uint128};
-use secret_toolkit::snip20::handle::{mint_msg, transfer_msg};
+use secret_toolkit::snip20::handle::{mint_msg, set_minters_msg, transfer_msg};
 use sienna_mgmt::{PRELAUNCH, NOTHING, msg::Handle};
 use sienna_schedule::Schedule;
 
@@ -11,63 +11,92 @@ kukumba!(
 
     #[claim_as_user]
 
-    given "a contract with a configured schedule" {
-        harness!(deps; ALICE, BOB);
+    given "a contract with the production schedule" {
+        harness!(deps; ADMIN);
+        let founder_1 = HumanAddr::from("secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        let founder_2 = HumanAddr::from("secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        let founder_3 = HumanAddr::from("secret1TODO22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
         let source = include_str!("../../config_msg.json");
         println!("{}", source);
         let s: Schedule = serde_json::from_str(include_str!("../../config_msg.json")).unwrap();
-        test_tx!(deps, ALICE, 0, 0;
+        test_tx!(deps, ADMIN, 0, 0;
             Handle::Configure { schedule: s.clone() } => tx_ok!());
     }
     when "the contract is not yet launched"
-    when "the user tries to claim funds"
+    when "Founder1 tries to claim funds"
     then "they are denied" {
-        test_tx!(deps, BOB, 1, 1;
+        test_tx!(deps, founder_1, 1, 1;
             Handle::Claim {} => tx_err!(PRELAUNCH));
     }
-    when "the contract is launched" {
-        test_tx!(deps, ALICE, 0, 0;
-            Handle::Launch {} => tx_ok!());
+    when "the contract is launched"
+    then "tokens should be minted and minting should be disabled" {
+        let t_launch = 2;
+        test_tx!(deps, ADMIN, 2, t_launch;
+            Handle::Launch {} => tx_ok!(
+                mint_msg(
+                    HumanAddr::from("mgmt"), Uint128::from(s.total),
+                    None, 256, String::new(), HumanAddr::from("token")
+                ).unwrap(),
+                set_minters_msg(
+                    vec![],
+                    None, 256, String::new(), HumanAddr::from("token")
+                ).unwrap()
+            ));
     }
-    and  "the user tries to claim funds"
-    then "they receive the first portion of the allocated funds" {
-        test_tx!(deps, BOB, 2, 2;
-            Handle::Claim {} => tx_ok!(transfer_msg(
-                HumanAddr::from("mgmt"),
-                Uint128::from(100u128),
-                None, 256, String::new(), HumanAddr::from("token")
-            ).unwrap()));
-    }
-    when "the user tries to claim funds before the next vesting point"
+
+    when "Founder1 tries to claim funds before the cliff"
     then "they are denied" {
-        todo!();
+        test_tx!(deps, founder_1, 3, t_launch + 1;
+            Handle::Claim {} => tx_err!(NOTHING));
+        test_tx!(deps, founder_1, 4, t_launch + 15552000;
+            Handle::Claim {} => tx_err!(NOTHING));
     }
-    when "the user tries to claim funds after the next vesting point"
-    the  "they receive the next portion of the allocated funds" {
-        todo!();
+    when "Founder1 claims funds right after the cliff"
+    then "they receive 80000 SIENNA" {
+        test_tx!(deps, founder_1, 5, t_launch + 15552001;
+            Handle::Claim {} => tx_ok_claim!(founder_1, SIENNA!(80000u128)));
     }
-    when "the user tries to claim funds before the next vesting point"
+    when "Founder1 tries to claim funds before the next vesting"
     then "they are denied" {
-        todo!();
+        test_tx!(deps, founder_1, 6, t_launch + 15552002;
+            Handle::Claim {} => tx_err!(NOTHING));
     }
-    when "the user tries to claim funds after several vesting points"
-    the  "they receive the next portions of the allocated funds" {
-        todo!();
+    when "Founder1 claims funds again after 1 day"
+    then "they receive 1 vesting's worth of 1500 SIENNA" {
+        test_tx!(deps, founder_1, 7, t_launch + 15552001 + 86400;
+            Handle::Claim {} => tx_ok_claim!(founder_1, SIENNA!(1500u128)));
     }
-    when "the user tries to claim funds before the next vesting point"
+    when "Founder1 claims funds again after 2 more days"
+    then "they receive 2 vestings' worth of 3000 SIENNA" {
+        test_tx!(deps, founder_1, 8, t_launch + 15520001 + 86400 + 86400 * 2;
+            Handle::Claim {} => tx_ok_claim!(founder_1, SIENNA!(3000u128)));
+    }
+
+    when "Founder2 tries to claim funds before the cliff"
     then "they are denied" {
-        todo!();
+        test_tx!(deps, founder_2, 9, t_launch + 15552000;
+            Handle::Claim {} => tx_err!(NOTHING));
+    }
+    when "Founder2 claims funds for the 1st time 10 days after the cliff"
+    then "they receive cliff 80000 + 10 vestings' worth of 15000 = 95000 SIENNA" {
+        test_tx!(deps, founder_2, 10, t_launch + 15552001 + 10 * 86400;
+            Handle::Claim {} => tx_ok_claim!(founder_2, SIENNA!(95000u128)));
+    }
+    when "Founder 3 claims funds 500 days after the cliff"
+    then "they receive the full amount of 731000 SIENNA" {
+        test_tx!(deps, founder_3, 11, t_launch + 15552001 + 500 * 86400;
+            Handle::Claim {} => tx_ok_claim!(founder_3, SIENNA!(731000u128)));
     }
 
 );
 
     //given "the contract is not yet launched" {
-        //harness!(deps; ALICE, BOB);
+        //harness!(deps; ADMIN, BOB);
 
         //let configured_claim_amount: Uint128 = Uint128::from(200u128);
         //let r = vec![(BOB, configured_claim_amount)];
-        //let _ = tx(&mut deps,
-            //mock_env(0, 0, &ALICE),
+    //let _ = tx(&mut deps,
+            //mock_env(0, 0, &ADMIN),
             //mgmt::msg::Handle::Configure { schedule: r.clone() });
 
         //test_q!(deps; Schedule; Schedule { schedule: r });
@@ -91,7 +120,7 @@ kukumba!(
 
     //given "the contract is launched" {
         //test_tx!(deps
-            //=> from [ALICE] at [block 0, T=0]
+            //=> from [ADMIN] at [block 0, T=0]
             //=> mgmt::msg::Handle::Launch {}
             //=> Ok(cosmwasm_std::HandleResponse {
                 //data:     None,
@@ -231,11 +260,11 @@ kukumba!(
     //#[claim_configurable]
 
     //given "the contract is not yet launched" {
-        //harness!(deps; ALICE, BOB);
+        //harness!(deps; ADMIN, BOB);
         //let configured_claim_amount = Uint128::from(200u128);
         //let r = vec![(BOB.clone(), configured_claim_amount)];
         //let _ = tx(&mut deps,
-            //mock_env(0, 0, &ALICE),
+            //mock_env(0, 0, &ADMIN),
             //mgmt::msg::Handle::Configure { schedule: r.clone() });
         //test_q!(deps; Schedule; Schedule { schedule: r });
     //}
@@ -253,7 +282,7 @@ kukumba!(
     //given "the contract is already launched" {
         //let _ = tx(
             //&mut deps,
-            //mock_env(0, 0, &ALICE),
+            //mock_env(0, 0, &ADMIN),
             //mgmt::msg::Handle::Launch {});
     //}
 
