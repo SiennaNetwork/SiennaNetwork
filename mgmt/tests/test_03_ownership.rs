@@ -15,7 +15,7 @@ kukumba!(
     }
     when "a stranger tries to set a new admin"
     then "just the hit counter goes up" {
-        test_tx!(deps, MALLORY, 2, 2;
+        test_tx!(deps, MALLORY, 1, 1;
             Handle::TransferOwnership { new_admin: MALLORY.clone() } =>
             tx_err_auth!());
     }
@@ -27,24 +27,28 @@ kukumba!(
     }
     when "the former admin tries to set a new admin"
     then "just the hit counter goes up" {
-        test_tx!(deps, ALICE, 2, 2;
+        test_tx!(deps, ALICE, 3, 3;
             Handle::TransferOwnership { new_admin: ALICE.clone() } =>
             tx_err_auth!());
     }
     when "the new admin tries to set the admin"
     then "the admin is updated" {
-        test_tx!(deps, BOB, 2, 2;
+        test_tx!(deps, BOB, 4, 4;
             Handle::TransferOwnership { new_admin: ALICE.clone() } =>
             tx_ok!());
     }
     when "someone else tries to disown the contract"
     and  "just the hit counter goes up" {
-        test_tx!(deps, MALLORY, 2, 2; Handle::Disown {} => tx_err_auth!());
+        test_tx!(deps, MALLORY, 5, 5;
+            Handle::Disown {} =>
+            tx_err_auth!());
     }
     when "the admin disowns the contract"
     then "there is no admin"
     and  "nobody can control the contract" {
-        test_tx!(deps, ALICE, 2, 2; Handle::Disown {} => tx_ok!());
+        test_tx!(deps, ALICE, 6, 6;
+            Handle::Disown {} =>
+            tx_ok!());
         test_tx!(deps, ALICE, 2, 2;
             Handle::TransferOwnership { new_admin: ALICE.clone() } =>
             tx_err_auth!());

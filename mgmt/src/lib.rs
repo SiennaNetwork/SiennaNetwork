@@ -133,7 +133,7 @@ contract!(
         // but there can be only one admin at a given time,
         TransferOwnership (new_admin: cosmwasm_std::HumanAddr) {
             require_admin!(|env, state| {
-                state.admin = None;
+                state.admin = Some(new_admin);
                 ok(state)
             })
         }

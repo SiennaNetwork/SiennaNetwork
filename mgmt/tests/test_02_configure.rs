@@ -37,14 +37,22 @@ kukumba!(
             );
         }
     }
-    when "the admin tries to set a configuration that doesn't divide evenly" {
-        let s_uneven = schedule(100u128,
-            vec![pool_partial("Advisors", 200000u128,
-                vec![channel_periodic(10000u128, &"Advisor3", 86400, 15552000, 15552000, 0)])]);
-    } then "that fails" {
-        test_tx!(deps, ALICE, 0, 0;
-            Handle::Configure { schedule: s_uneven } =>
-            tx_err!("channel Advisor3: amount does not divide evenly"));
+    when "the admin tries to set a configuration that doesn't divide evenly"
+    then "that fails" {
+        for (schedule, error) in [(
+            schedule(100u128,
+                vec![pool_partial("Advisors", 200000u128,
+                    vec![channel_periodic(11000u128, &"Advisor3", 86400, 15552000, 15552001, 1000)])]),
+            "channel : duration 15552001 does not divide evenly in intervals of 86400"
+        ), (
+            schedule(100u128,
+                vec![pool_partial("Advisors", 200000u128,
+                    vec![channel_periodic(11000u128, &"Advisor3", 86400, 15552000, 15552000, 1000)])]),
+            "channel : post-cliff amount 10000 does not divide evenly in 180 portions"
+        )].iter() {
+            test_tx!(deps, ALICE, 0, 0;
+                Handle::Configure { schedule: schedule.clone() } => tx_err!(error));
+        }
     }
     when "the sets a valid configuration" {
         let s1 = schedule(100, vec![

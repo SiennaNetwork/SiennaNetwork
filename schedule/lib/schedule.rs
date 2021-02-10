@@ -188,12 +188,15 @@ impl Account for Channel {
         match &self.periodic {
             None => {},
             Some(Periodic{start_at,cliff,duration,interval}) => {
-                println!("validate channel {}: {} {} {} {} -> portion = {}", &self.name, &self.amount, cliff, duration, interval, self.portion());
                 if duration % interval > 0 {
-                    return Error!(format!("channel {}: duration {} does not divide evenly by {}", &self.name, duration, interval))
+                    return Error!(format!(
+                        "channel {}: duration {} does not divide evenly in intervals of {}",
+                        &self.name, duration, interval))
                 }
                 if (self.amount - *cliff).unwrap().u128() % Uint128::from(duration / interval).u128() > 0 {
-                    return Error!(format!("channel {}: post-cliff amount {} does not divide evenly by {}", &self.name, (self.amount - *cliff).unwrap(), duration / interval))
+                    return Error!(format!(
+                        "channel {}: post-cliff amount {} does not divide evenly in {} portions",
+                        &self.name, (self.amount - *cliff).unwrap(), duration / interval))
                 }
             }
         }
