@@ -148,13 +148,12 @@ module.exports = function tsv2json (
     const {name,amount,percent_of_total,interval_days,interval
         ,amount_per_interval,address} = data
     if (name && amount && percent_of_total) {
-      const mode = (interval == 0) ? { type: 'immediate' } : periodic_vesting(data, i)
       running_pool_total += amount
       running_channel_total = BigInt(amount_per_interval||0)
       current_pool.channels.push(current_channel = {
         name,
         amount,
-        mode,
+        periodic: (interval == 0) ? undefined : periodic_vesting(data, i),
         allocations: []
       })
       if (address) current_channel.allocations.push({addr:address,amount:amount_per_interval||amount})
@@ -169,7 +168,7 @@ module.exports = function tsv2json (
     const {interval,start_at,duration,cliff,amount_per_interval} = data
     // TODO validate priors
     return {
-      type: 'periodic',
+      type: 'channel_periodic',
       interval,
       start_at,
       duration,

@@ -33,10 +33,17 @@ pub fn pool_partial (name: &str, total: u128, channels: Vec<Channel>) -> Pool {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Channel {
-    pub name:        String,
-    pub mode:        ReleaseMode,
-    pub amount:      Uint128,
+    pub name:   String,
+    pub amount: Uint128,
+
+    /// Each portion is split between these addresses
     pub allocations: Vec<Allocation>,
+
+    /// Immediate channel: if the contract has launched,
+    /// the recipient can claim the entire allocated amount once
+    /// Periodic channel: contract calculates the maximum amount
+    /// that the user can claim at the given time
+    pub periodic: Option<Periodic>
 }
 pub fn channel_immediate (
     amount: u128,
@@ -44,9 +51,9 @@ pub fn channel_immediate (
 ) -> Channel {
     Channel {
         name: String::new(),
-        mode: ReleaseMode::Immediate {},
         amount: Uint128::from(amount),
-        allocations: vec![allocation(amount, address)]
+        periodic: None,
+        allocations: vec![allocation(amount, address)],
     }
 }
 pub fn channel_immediate_multi (
@@ -55,8 +62,8 @@ pub fn channel_immediate_multi (
 ) -> Channel {
     Channel {
         name: String::new(),
-        mode: ReleaseMode::Immediate {},
         amount: Uint128::from(amount),
+        periodic: None,
         allocations
     }
 }
@@ -70,9 +77,9 @@ pub fn channel_periodic (
 ) -> Channel {
     let cliff = Uint128::from(cliff);
     Channel {
-        name:   String::new(),
-        mode:   ReleaseMode::Periodic {interval, start_at, duration, cliff},
+        name: String::new(),
         amount: Uint128::from(amount),
+        periodic: Some(Periodic {interval, start_at, duration, cliff}),
         allocations: vec![allocation(amount, address)]
     }
 }
@@ -86,26 +93,19 @@ pub fn channel_periodic_multi (
 ) -> Channel {
     let cliff = Uint128::from(cliff);
     Channel {
-        name:   String::new(),
-        mode:   ReleaseMode::Periodic {interval, start_at, duration, cliff},
+        name: String::new(),
         amount: Uint128::from(amount),
+        periodic: Some(Periodic {interval, start_at, duration, cliff}),
         allocations
     }
 }
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case", tag = "type")]
-pub enum ReleaseMode {
-    /// Immediate channel: if the contract has launched,
-    /// the recipient can claim the entire allocated amount once
-    Immediate {},
-    /// Periodic channel: contract calculates the maximum amount
-    /// that the user can claim at the given time
-    Periodic {
-        interval: Seconds,
-        start_at: Seconds,
-        duration: Seconds,
-        cliff:    Uint128
-    }
+#[serde(rename_all = "snake_case")]
+pub struct Periodic {
+    pub interval: Seconds,
+    pub start_at: Seconds,
+    pub duration: Seconds,
+    pub cliff:    Uint128
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -185,9 +185,9 @@ impl Account for Channel {
         for Allocation { amount, .. } in self.allocations.iter() {
             total += amount.u128()
         }
-        match &self.mode {
-            ReleaseMode::Immediate {} => {},
-            ReleaseMode::Periodic{start_at,cliff,duration,interval} => {
+        match &self.periodic {
+            None => {},
+            Some(Periodic{start_at,cliff,duration,interval}) => {
                 println!("validate channel {}: {} {} {} {} -> portion = {}", &self.name, &self.amount, cliff, duration, interval, self.portion());
                 if duration % interval > 0 {
                     return Error!(format!("channel {}: duration {} does not divide evenly by {}", &self.name, duration, interval))
@@ -215,19 +215,18 @@ impl Account for Channel {
 }
 impl Channel {
     fn portion (&self) -> u128 {
-        match &self.mode {
-            ReleaseMode::Immediate {} =>
+        match &self.periodic {
+            None {} =>
                 self.amount.u128(),
-            ReleaseMode::Periodic{interval,start_at,duration,cliff} =>
+            Some(Periodic{interval,start_at,duration,cliff}) =>
                 (self.amount - *cliff).unwrap().u128() / (duration / interval) as u128
         }
     }
     fn vest (&self, amount: u128, t: Seconds) -> u128 {
-        match &self.mode {
-            ReleaseMode::Immediate {} =>
+        match &self.periodic {
+            None {} =>
                 amount,
-
-            ReleaseMode::Periodic { interval, start_at, duration, cliff } => {
+            Some(Periodic{interval,start_at,duration,cliff}) => {
                 // Can't vest before the cliff
                 if t < *start_at { return 0 }
                 crate::periodic(amount, cliff.u128(), *interval, *duration, t - start_at)
