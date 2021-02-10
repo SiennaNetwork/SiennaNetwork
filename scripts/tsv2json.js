@@ -1,10 +1,17 @@
 #!/usr/bin/env node
 const assert = require('assert')
 
+const ONE_SIENNA        = BigInt('1000000000000000000')
+const THOUSANDTH_SIENNA = BigInt(   '1000000000000000')
+
+const isN = x => !isNaN(x)
+
 const Sienna = x => {
   x = x.trim()
   if (x.length > 0) {
-    return Number(x.replace(/,/g, ''))
+    x = Number(x.replace(/,/g, ''))
+    if (isN(x)) x = BigInt(x*1000) * THOUSANDTH_SIENNA
+    return x
   } 
 }
 
@@ -29,8 +36,6 @@ const Address = x => {
   }
 }
 
-const isN = x => !isNaN(N)
-
 const columns = ([
   _A_, _B_, _C_, _D_, _E_, _F_, _G_, _H_, _I_,
   _J_, _K_, _L_, _M_, _N_, _O_, _P_, _Q_
@@ -51,7 +56,7 @@ const columns = ([
     cliff_percent:       Percent (_M_),
     cliff:               Sienna  (_N_),
     amount_per_interval: Sienna  (_O_),
-    allocation:          Number  (_P_),
+    allocation:          Sienna  (_P_),
     address:             Address (_Q_)
   }
   return data
@@ -61,10 +66,12 @@ module.exports = function tsv2json (
   input = require('fs').readFileSync(`${__dirname}/../schedule.tsv`, 'utf8')
 ) {
   const output = {}
-  let current_pool, current_release, current_allocation
-  let running_total = 0
-  let running_pool_total = 0
-  let running_release_total = 0
+  let current_pool
+    , current_release
+    , current_allocation
+    , running_total         = BigInt(0)
+    , running_pool_total    = BigInt(0)
+    , running_release_total = BigInt(0)
 
   input
     .split('\n') // newline delimited
@@ -107,11 +114,11 @@ module.exports = function tsv2json (
   function pool (data, i) {
     let {pool, subtotal, name, percent_of_total} = data
     if (pool && subtotal && percent_of_total) {
-      assert(
-        percent_of_total/100 === subtotal/output.total,
-        `row ${i} (pool): percent_of_total=${percent_of_total} `+
-        `must equal (subtotal[${subtotal} / total[${output.total}]) = ${subtotal/output.total}`
-      )
+      //assert(
+        //percent_of_total/100 === subtotal/output.total,
+        //`row ${i} (pool): percent_of_total=${percent_of_total} `+
+        //`must equal (subtotal[${subtotal} / total[${output.total}]) = ${subtotal/output.total}`
+      //)
       assert(
         (running_total = running_total + subtotal) <= output.total,
         `row ${i} (pool): subtotals must not add up to more than total`
@@ -123,10 +130,11 @@ module.exports = function tsv2json (
           `${running_pool_total} (expected ${current_pool.total})`
         )
       }
-      running_pool_total = 0
+      running_pool_total = BigInt(0)
       output.pools.push(current_pool = {
         name: pool,
         total: subtotal,
+        partial: false,
         releases: []
       })
       console.log(`add pool ${pool} ${subtotal}`)
@@ -139,16 +147,16 @@ module.exports = function tsv2json (
     const {name,amount,percent_of_total,interval_days,interval
         ,amount_per_interval,address} = data
     if (name && amount && percent_of_total) {
-      const vesting = (interval == 0) ? { type: 'immediate' } : periodic_vesting(data, i)
+      const mode = (interval == 0) ? { type: 'immediate' } : periodic_vesting(data, i)
       running_pool_total += amount
-      running_release_total = Number(amount_per_interval)
+      running_release_total = BigInt(amount_per_interval||0)
       current_pool.releases.push(current_release = {
         name,
         amount,
-        vesting,
-        address,
+        mode,
         allocations: []
       })
+      if (address) current_release.allocations.push({addr:address,amount:amount_per_interval||amount})
       console.log(`  add release ${name} (${address}) to pool ${current_pool.name} (${running_pool_total})`)
       return true
     }
@@ -172,7 +180,7 @@ module.exports = function tsv2json (
     let {allocation,address} = data
     if (allocation&&address) {
       // row describes allocation
-      current_release.allocations.push({address,amount:allocation})
+      current_release.allocations.push({addr:address,amount:allocation})
       running_release_total += allocation
       return true
     }
@@ -181,5 +189,9 @@ module.exports = function tsv2json (
 
 if (require.main === module) require('fs').writeFileSync(
   `${__dirname}/../config_msg.json`,
-  JSON.stringify(module.exports(), null, 2)
+  require('json-bigint').stringify(module.exports(), (key, value) => (
+      typeof value === 'bigint'
+          ? value.toString()
+          : value // return everything else unchanged
+  ), 2)
 )

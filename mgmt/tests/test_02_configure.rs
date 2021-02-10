@@ -18,10 +18,13 @@ kukumba!(
     given "a contract" {
         harness!(deps; ALICE, BOB, MALLORY);
     }
-    when "anyone but the admin tries to set a configuration" {
-        todo!();
-    } then "that fails" {
-        todo!();
+    when "anyone but the admin tries to set a configuration"
+    then "that fails" {
+        for sender in [&BOB, &MALLORY].iter() {
+            test_tx!(deps, sender.clone(), 0, 0;
+                Handle::Configure { schedule: schedule(0, vec![]) } =>
+                    tx_err_auth!());
+        }
     }
     when "the admin tries to set a configuration that doesn't add up"
     then "that fails" {
@@ -29,7 +32,7 @@ kukumba!(
             schedule(100u128, vec![])
         ].iter() {
             test_tx!(deps, ALICE, 0, 0;
-                Handle::Configure { schedule: *schedule } =>
+                Handle::Configure { schedule: schedule.clone() } =>
                 tx_err!("schedule: pools add up to 0, expected 100")
             );
         }

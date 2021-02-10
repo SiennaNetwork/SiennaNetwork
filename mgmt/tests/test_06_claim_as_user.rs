@@ -5,7 +5,7 @@
 use cosmwasm_std::{StdError, HumanAddr, Uint128};
 use secret_toolkit::snip20::handle::{mint_msg, transfer_msg};
 use sienna_mgmt::{PRELAUNCH, NOTHING, msg::Handle};
-use sienna_schedule::{schedule, pool, release_immediate_multi, allocation_addr};
+use sienna_schedule::Schedule;
 
 kukumba!(
 
@@ -13,14 +13,9 @@ kukumba!(
 
     given "a contract with a configured schedule" {
         harness!(deps; ALICE, BOB);
-        let s =
-            schedule(100, vec![
-                pool("", 50, vec![
-                    release_immediate_multi(30, vec![allocation_addr(30, &BOB)]),
-                    release_immediate_multi(20, vec![allocation_addr(20, &BOB)])]),
-                pool("", 50, vec![
-                    release_immediate_multi(30, vec![allocation_addr(30, &BOB)]),
-                    release_immediate_multi(20, vec![allocation_addr(20, &BOB)])])]);
+        let source = include_str!("../../config_msg.json");
+        println!("{}", source);
+        let s: Schedule = serde_json::from_str(include_str!("../../config_msg.json")).unwrap();
         test_tx!(deps, ALICE, 0, 0;
             Handle::Configure { schedule: s.clone() } => tx_ok!());
     }

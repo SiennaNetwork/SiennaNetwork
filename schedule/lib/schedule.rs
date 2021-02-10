@@ -63,8 +63,9 @@ pub fn release_periodic (
     interval: Seconds,
     start_at: Seconds,
     duration: Seconds,
-    cliff:    Percentage
+    cliff:    u128
 ) -> Release {
+    let cliff = Uint128::from(cliff);
     Release {
         mode:   ReleaseMode::Periodic {interval, start_at, duration, cliff},
         amount: Uint128::from(amount),
@@ -77,8 +78,9 @@ pub fn release_periodic_multi (
     interval:    Seconds,
     start_at:    Seconds,
     duration:    Seconds,
-    cliff:       Percentage
+    cliff:       u128
 ) -> Release {
+    let cliff = Uint128::from(cliff);
     Release {
         mode:   ReleaseMode::Periodic {interval, start_at, duration, cliff},
         amount: Uint128::from(amount),
@@ -86,6 +88,7 @@ pub fn release_periodic_multi (
     }
 }
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case", tag = "type")]
 pub enum ReleaseMode {
     /// Immediate release: if the contract has launched,
     /// the recipient can claim the entire allocated amount once
@@ -96,7 +99,7 @@ pub enum ReleaseMode {
         interval: Seconds,
         start_at: Seconds,
         duration: Seconds,
-        cliff:    Percentage
+        cliff:    Uint128
     }
 }
 
@@ -202,7 +205,7 @@ impl Release {
             ReleaseMode::Periodic { interval, start_at, duration, cliff } => {
                 // Can't vest before the cliff
                 if t < *start_at { return 0 }
-                crate::periodic(amount, *interval, t - start_at, *duration, *cliff)
+                crate::periodic(amount, *interval, t - start_at, *duration, cliff.u128())
             }
         }
     }

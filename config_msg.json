@@ -1,204 +1,257 @@
 {
-  "total": 10000000,
+  "total": "10000000000000000000000000",
   "pools": [
     {
       "name": "Investors",
-      "total": 2000000,
+      "total": "2000000000000000000000000",
+      "partial": false,
       "releases": [
         {
           "name": "InvestorN",
-          "amount": 2000000,
-          "vesting": {
+          "amount": "2000000000000000000000000",
+          "mode": {
             "type": "periodic",
             "interval": 86400,
             "start_at": 15552000,
             "duration": 41472000,
-            "cliff": 200
+            "cliff": "200000000000000000000"
           },
-          "address": "secret1TODO10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "allocations": []
+          "allocations": [
+            {
+              "addr": "secret1TODO10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "4166250000000000000000"
+            }
+          ]
         }
       ]
     },
     {
       "name": "Founders",
-      "total": 2400000,
+      "total": "2400000000000000000000000",
+      "partial": false,
       "releases": [
         {
           "name": "Founder1",
-          "amount": 800000,
-          "vesting": {
+          "amount": "800000000000000000000000",
+          "mode": {
             "type": "periodic",
             "interval": 86400,
             "start_at": 15552000,
             "duration": 41472000,
-            "cliff": 80000
+            "cliff": "80000000000000000000000"
           },
-          "address": "secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "allocations": []
+          "allocations": [
+            {
+              "addr": "secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "1500000000000000000000"
+            }
+          ]
         },
         {
           "name": "Founder2",
-          "amount": 800000,
-          "vesting": {
+          "amount": "800000000000000000000000",
+          "mode": {
             "type": "periodic",
             "interval": 86400,
             "start_at": 15552000,
             "duration": 41472000,
-            "cliff": 80000
+            "cliff": "80000000000000000000000"
           },
-          "address": "secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "allocations": []
+          "allocations": [
+            {
+              "addr": "secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "1500000000000000000000"
+            }
+          ]
         },
         {
           "name": "Founder3",
-          "amount": 731000,
-          "vesting": {
+          "amount": "731000000000000000000000",
+          "mode": {
             "type": "periodic",
             "interval": 86400,
             "start_at": 15552000,
             "duration": 41472000,
-            "cliff": 73100
+            "cliff": "73100000000000000000000"
           },
-          "address": "secret1TODO22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "allocations": []
+          "allocations": [
+            {
+              "addr": "secret1TODO22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "1370625000000000000000"
+            }
+          ]
         },
         {
           "name": "Founder4",
-          "amount": 69000,
-          "vesting": {
+          "amount": "69000000000000000000000",
+          "mode": {
             "type": "periodic",
             "interval": 86400,
             "start_at": 15552000,
             "duration": 41472000,
-            "cliff": 6900
+            "cliff": "6900000000000000000000"
           },
-          "address": "secret1TODO23xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "allocations": []
+          "allocations": [
+            {
+              "addr": "secret1TODO23xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "129375000000000000000"
+            }
+          ]
         }
       ]
     },
     {
       "name": "Dev Fund",
-      "total": 1500000,
+      "total": "1500000000000000000000000",
+      "partial": false,
       "releases": [
         {
           "name": "DevN",
-          "amount": 1500000,
-          "vesting": {
+          "amount": "1500000000000000000000000",
+          "mode": {
             "type": "periodic",
             "interval": 2419200,
             "start_at": 10368000,
             "duration": 49248000,
-            "cliff": 75000
+            "cliff": "75000000000000000000000"
           },
-          "address": "secret1TODO30xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "allocations": []
+          "allocations": [
+            {
+              "addr": "secret1TODO30xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "75000000000000000000000"
+            }
+          ]
         }
       ]
     },
     {
       "name": "Advisors",
-      "total": 200000,
+      "total": "200000000000000000000000",
+      "partial": false,
       "releases": [
         {
           "name": "Advisor1",
-          "amount": 50000,
-          "vesting": {
+          "amount": "50000000000000000000000",
+          "mode": {
             "type": "periodic",
             "interval": 86400,
             "start_at": 15552000,
             "duration": 41472000,
-            "cliff": 0
+            "cliff": "0"
           },
-          "address": "secret1TODO40xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "allocations": []
+          "allocations": [
+            {
+              "addr": "secret1TODO40xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "3125000000000000000000"
+            }
+          ]
         },
         {
           "name": "Advisor2",
-          "amount": 50000,
-          "vesting": {
+          "amount": "50000000000000000000000",
+          "mode": {
             "type": "periodic",
             "interval": 86400,
             "start_at": 15552000,
             "duration": 41472000,
-            "cliff": 0
+            "cliff": "0"
           },
-          "address": "secret1TODO41xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "allocations": []
+          "allocations": [
+            {
+              "addr": "secret1TODO41xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "3125000000000000000000"
+            }
+          ]
         },
         {
           "name": "Advisor3",
-          "amount": 10000,
-          "vesting": {
+          "amount": "10000000000000000000000",
+          "mode": {
             "type": "periodic",
             "interval": 86400,
             "start_at": 15552000,
             "duration": 15552000,
-            "cliff": 4
+            "cliff": "4000000000000000000"
           },
-          "address": "secret1TODO42xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "allocations": []
+          "allocations": [
+            {
+              "addr": "secret1TODO42xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "1666000000000000000000"
+            }
+          ]
         },
         {
           "name": "Advisor4",
-          "amount": 5000,
-          "vesting": {
+          "amount": "5000000000000000000000",
+          "mode": {
             "type": "periodic",
             "interval": 86400,
             "start_at": 15552000,
             "duration": 15552000,
-            "cliff": 2
+            "cliff": "2000000000000000000"
           },
-          "address": "secret1TODO43xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "allocations": []
+          "allocations": [
+            {
+              "addr": "secret1TODO43xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "833000000000000000000"
+            }
+          ]
         },
         {
           "name": "AdvisorN",
-          "amount": 85000,
-          "vesting": {
+          "amount": "85000000000000000000000",
+          "mode": {
             "type": "immediate"
           },
-          "address": "secret1TODO44xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "allocations": []
+          "allocations": [
+            {
+              "addr": "secret1TODO44xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "85000000000000000000000"
+            }
+          ]
         }
       ]
     },
     {
       "name": "Minting Pool",
-      "total": 3900000,
+      "total": "3900000000000000000000000",
+      "partial": false,
       "releases": [
         {
           "name": "LiqProvFund",
-          "amount": 300000,
-          "vesting": {
+          "amount": "300000000000000000000000",
+          "mode": {
             "type": "immediate"
           },
-          "address": "secret1TODO50xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          "allocations": []
+          "allocations": [
+            {
+              "addr": "secret1TODO50xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "300000000000000000000000"
+            }
+          ]
         },
         {
           "name": "PoolRem",
-          "amount": 3600000,
-          "vesting": {
+          "amount": "3600000000000000000000000",
+          "mode": {
             "type": "periodic",
             "interval": 86400,
             "start_at": 0,
             "duration": 124416000,
-            "cliff": 0
+            "cliff": "0"
           },
           "allocations": [
             {
-              "address": "secret1TODO51xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": 1250
+              "addr": "secret1TODO51xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "1250000000000000000000"
             },
             {
-              "address": "secret1TODO52xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": 750
+              "addr": "secret1TODO52xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "750000000000000000000"
             },
             {
-              "address": "secret1TODO53xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": 500
+              "addr": "secret1TODO53xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "amount": "500000000000000000000"
             }
           ]
         }

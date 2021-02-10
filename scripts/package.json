@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "dotenv": "^8.2.0",
-    "secretjs": "^0.10.4",
-    "pug": "^3.0.0"
+    "json-bigint": "^1.0.0",
+    "pug": "^3.0.0",
+    "secretjs": "^0.10.4"
   }
 }
