@@ -23,7 +23,7 @@ kukumba!(
             Handle::Configure { schedule: s.clone() } => tx_ok!());
     }
     when "the contract is not yet launched"
-    when "anyone tries to claim funds"
+    and  "anyone tries to claim funds"
     then "they are denied" {
         test_tx!(deps, founder_1, 1, 1;
             Handle::Claim {} => tx_err!(PRELAUNCH));
