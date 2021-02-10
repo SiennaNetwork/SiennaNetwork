@@ -61,14 +61,54 @@ pub fn tx (
 
 macro_rules! test_tx {
     ( $deps: ident, $SENDER:expr, $block:expr, $time:expr
-    ; $TX:expr => $Result:expr
+    ; $TX:expr => $ExpectedResult:expr
     ) => {
-        let result = tx(
-            &mut $deps,
-            mock_env($block, $time, &$SENDER),
-            $TX
-        );
-        assert_eq!($Result, result);
+        let expected_response = $ExpectedResult;
+        let response = tx(&mut $deps, mock_env($block, $time, &$SENDER), $TX);
+        if response != expected_response {
+            println!("TRANSACTION TEST FAILED");
+            if let Ok(cosmwasm_std::HandleResponse { messages, log, data }) = expected_response {
+                println!("Expected messages:");
+                for message in messages.iter() {
+                    match message {
+                        cosmwasm_std::CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute{contract_addr,callback_code_hash,msg,send}) => {
+                            println!("  WASM execute");
+                            println!("    contract_addr:      {:?}", contract_addr);
+                            println!("    callback_code_hash: {:?}", callback_code_hash);
+                            println!("    send:               {:?}", send);
+                            println!("    msg:\n      {}", std::str::from_utf8(msg.as_slice()).unwrap())
+                        },
+                        _ =>
+                            println!("  {:#?}", &message)
+                    }
+                }
+                println!("Expected log:\n  {:#?}", &log);
+                println!("Expected data:\n  {:#?}", &data);
+            } else {
+                println!("Expected response:\n  {:#?}", &expected_response);
+            }
+            if let Ok(cosmwasm_std::HandleResponse { messages, log, data }) = response {
+                println!("Actual messages:");
+                for message in messages.iter() {
+                    match message {
+                        cosmwasm_std::CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute{contract_addr,callback_code_hash,msg,send}) => {
+                            println!("  WASM execute");
+                            println!("    contract_addr:      {:?}", contract_addr);
+                            println!("    callback_code_hash: {:?}", callback_code_hash);
+                            println!("    send:               {:?}", send);
+                            println!("    msg:\n      {}", std::str::from_utf8(msg.as_slice()).unwrap())
+                        },
+                        _ =>
+                            println!("  {:#?}", &message)
+                    }
+                }
+                println!("Actual log:\n  {:#?}", &log);
+                println!("Actual data:\n  {:#?}", &data);
+            } else {
+                println!("Actual response:\n  {:#?}", &response);
+            }
+            panic!("transaction test failed")
+        }
     }
 }
 
