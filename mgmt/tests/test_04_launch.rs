@@ -31,8 +31,11 @@ kukumba!(
     }
     when "the contract is configured"
     and  "the admin starts the vesting"
-    then "the contract mints the tokens"
-    and  "it stores the current time as its launch date" {
+    then "the contract mints the tokens" {
+        todo!();
+    } and "nobody can mint tokens anymore" {
+        todo!();
+    } and "the current time is remembered as the launch date" {
         let s = Schedule { total: Uint128::from(0u128), pools: vec![] }
         test_tx!(deps, ALICE, 0, 0;
             Handle::Configure { schedule: s.clone() } => tx_ok!());

@@ -2,15 +2,9 @@
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
-use sienna_mgmt as mgmt;
-//use mgmt::{DAY, MONTH, ONE_SIENNA, err_allocation, Stream, Vesting};
-
 use cosmwasm_std::{StdError, HumanAddr, Uint128, HandleResponse};
-
-use secret_toolkit::snip20;
-
 use sienna_mgmt::msg::Handle;
-use sienna_schedule::{Schedule, Pool, Account, Vesting, Allocation};
+use sienna_schedule::{Schedule, schedule, pool, release_immediate_multi, allocation_addr};
 
 kukumba!(
 
@@ -19,28 +13,38 @@ kukumba!(
     given "a contract" {
         harness!(deps; ALICE, BOB, MALLORY);
     }
-    when "anyone tries to set an invalid configuration" {
-        let s1 = Schedule::new(100u128, vec![]);
+    when "anyone but the admin tries to set a configuration" {
+        todo!();
+    } then "that fails" {
+        todo!();
+    }
+    when "the admin tries to set a configuration that doesn't add up" {
+        let s1 = schedule(100u128, vec![]);
     } then "that fails" {
         test_tx!(deps, ALICE, 0, 0;
             Handle::Configure { schedule: s1.clone() } =>
-            tx_err!("schedule's pools add up to 0, expected 100"));
+            tx_err!("schedule: pools add up to 0, expected 100"));
+    }
+    when "the admin tries to set a configuration that doesn't divide evenly" {
+        let s1 = schedule(100u128, vec![]);
+    } then "that fails" {
+        todo!();
     }
     when "the admin tries to set a valid configuration" {
-        let s1 = Schedule::new(100, vec![
-            Pool::new(10, vec![
-                Account::new(10, Vesting::Immediate {}, vec![
-                    Allocation::new(10, BOB.clone())
+        let s1 = schedule(100, vec![
+            pool("", 10, vec![
+                release_immediate_multi(10, vec![
+                    allocation_addr(10, &BOB)
                 ])
             ]),
-            Pool::new(90, vec![
-                Account::new(45, Vesting::Immediate {}, vec![
-                    Allocation::new(45, BOB.clone())
+            pool("", 90, vec![
+                release_immediate_multi(45, vec![
+                    allocation_addr(45, &BOB)
                 ]),
-                Account::new(45, Vesting::Immediate {}, vec![
-                    Allocation::new( 5, BOB.clone()),
-                    Allocation::new(10, BOB.clone()),
-                    Allocation::new(30, BOB.clone())
+                release_immediate_multi(45, vec![
+                    allocation_addr( 5, &BOB),
+                    allocation_addr(10, &BOB),
+                    allocation_addr(30, &BOB)
                 ])
             ])
         ])
@@ -55,7 +59,7 @@ kukumba!(
     }
     when "someone else tries to set a valid configuration" {
         test_tx!(deps, MALLORY, 0, 0;
-            Handle::Configure { schedule: Schedule::new(0, vec![]) } =>
+            Handle::Configure { schedule: schedule(0, vec![]) } =>
                 tx_err_auth!());
     } then "the configuration remains unchanged" {
         let pools = s1.pools.clone();

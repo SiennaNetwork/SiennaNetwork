@@ -2,13 +2,7 @@
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
-use sienna_mgmt as mgmt;
-//use mgmt::{DAY, MONTH, ONE_SIENNA, err_allocation, Stream, Vesting};
-
 use cosmwasm_std::{StdError, HumanAddr, Uint128, HandleResponse};
-
-use secret_toolkit::snip20;
-
 use sienna_mgmt::msg::Handle;
 use sienna_schedule::Schedule;
 
@@ -42,6 +36,11 @@ kukumba!(
         test_tx!(deps, BOB, 2, 2;
             Handle::TransferOwnership { new_admin: ALICE.clone() } =>
             tx_ok!());
+    }
+    when "the admin disowns the contract"
+    then "there is no admin"
+    and  "nobody can control the contract" {
+        todo!()
     }
 
 );

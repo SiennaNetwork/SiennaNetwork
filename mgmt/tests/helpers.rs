@@ -115,5 +115,5 @@ macro_rules! test_q {
 
 /// Add 18 zeroes and make serializable
 macro_rules! SIENNA {
-    ($x:expr) => { Uint128::from($x as u128 * ONE_SIENNA) }
+    ($x:expr) => { Uint128::from($x as u128 * sienna_schedule::ONE_SIENNA) }
 }

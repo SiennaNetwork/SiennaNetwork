@@ -3,12 +3,7 @@
 
 use cosmwasm_std::HumanAddr;
 use secret_toolkit::snip20::handle::{mint_msg, transfer_msg};
-pub use sienna_schedule::{
-    DAY, MONTH, ONE_SIENNA,
-    Seconds, Days, Months, Percentage,
-    Schedule, Pool, Account, Allocation, Vesting, Interval,
-    History,
-};
+pub use sienna_schedule::{Seconds, Schedule, History, Account};
 
 //macro_rules! debug { ($($tt:tt)*)=>{} }
 
@@ -133,13 +128,12 @@ contract!(
                     Some(ref schedule) => match state.launched {
                         Some(_) => err_msg(state, &UNDERWAY),
                         None => {
-                            let schedule = schedule.clone();
-                            let token_hash = state.token_hash.clone();
-                            let token_addr = state.token_addr.clone();
                             match mint_msg(
                                 env.contract.address,
-                                Uint128::from(schedule.total),
-                                None, BLOCK_SIZE, token_hash, token_addr
+                                Uint128::from(schedule.clone().total),
+                                None, BLOCK_SIZE,
+                                state.token_hash.clone(),
+                                state.token_addr.clone()
                             ) {
                                 Ok(msg) => {
                                     state.launched = Some(env.block.time);

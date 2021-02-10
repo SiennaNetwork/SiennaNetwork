@@ -55,7 +55,7 @@ test-localnet:
 test:
 	clear
 	tmux clear-history || true
-	cargo --color always test
+	cargo --color always test --no-fail-fast
 test-docker:
 	docker run -it \
 		-v "$$(pwd)":/contract \

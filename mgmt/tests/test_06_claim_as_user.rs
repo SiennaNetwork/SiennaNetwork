@@ -3,45 +3,65 @@
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
 use cosmwasm_std::{StdError, HumanAddr, Uint128};
-use secret_toolkit::snip20::handle::mint_msg;
+use secret_toolkit::snip20::handle::{mint_msg, transfer_msg};
 use sienna_mgmt::{PRELAUNCH, NOTHING, msg::Handle};
-use sienna_schedule::Schedule;
+use sienna_schedule::{schedule, pool, release_immediate_multi, allocation_addr};
 
 kukumba!(
 
-    #[claim_stranger]
+    #[claim_as_user]
 
-    given "the contract is not yet launched" {
-        harness!(deps; ALICE, MALLORY);
-    }
-    when "a stranger tries to claim funds"
-    then "they are denied" {
-        test_tx!(deps, MALLORY, 1, 1;
-            Handle::Claim {} => tx_err!(PRELAUNCH));
-    }
-
-    given "the contract is launched" {
-        let s = Schedule { total: Uint128::from(0u128), pools: vec![] }
+    given "a contract with a configured schedule" {
+        harness!(deps; ALICE, BOB);
+        let s =
+            schedule(100, vec![
+                pool("", 50, vec![
+                    release_immediate_multi(30, vec![allocation_addr(30, &BOB)]),
+                    release_immediate_multi(20, vec![allocation_addr(20, &BOB)])]),
+                pool("", 50, vec![
+                    release_immediate_multi(30, vec![allocation_addr(30, &BOB)]),
+                    release_immediate_multi(20, vec![allocation_addr(20, &BOB)])])]);
         test_tx!(deps, ALICE, 0, 0;
             Handle::Configure { schedule: s.clone() } => tx_ok!());
-        test_tx!(deps, ALICE, 2, 2;
-            Handle::Launch {} => tx_ok!(mint_msg(
+    }
+    when "the contract is not yet launched"
+    when "the user tries to claim funds"
+    then "they are denied" {
+        test_tx!(deps, BOB, 1, 1;
+            Handle::Claim {} => tx_err!(PRELAUNCH));
+    }
+    when "the contract is launched"
+    and  "the user tries to claim funds"
+    then "they receive the first portion of the allocated funds" {
+        test_tx!(deps, BOB, 2, 2;
+            Handle::Claim {} => tx_ok!(transfer_msg(
                 HumanAddr::from("mgmt"),
-                Uint128::from(s.total),
-                None, 256, String::new(), HumanAddr::from("mgmt")
+                Uint128::from(100u128),
+                None, 256, String::new(), HumanAddr::from("token")
             ).unwrap()));
     }
-    when "a stranger tries to claim funds"
+    when "the user tries to claim funds before the next vesting point"
     then "they are denied" {
-        test_tx!(deps, MALLORY, 4, 4;
-            Handle::Claim {} => tx_err!(NOTHING));
+        todo!();
+    }
+    when "the user tries to claim funds after the next vesting point"
+    the  "they receive the next portion of the allocated funds" {
+        todo!();
+    }
+    when "the user tries to claim funds before the next vesting point"
+    then "they are denied" {
+        todo!();
+    }
+    when "the user tries to claim funds after several vesting points"
+    the  "they receive the next portions of the allocated funds" {
+        todo!();
+    }
+    when "the user tries to claim funds before the next vesting point"
+    then "they are denied" {
+        todo!();
     }
 
 );
-
-//kukumba!(
-
-    //#[claim_predefined]
 
     //given "the contract is not yet launched" {
         //harness!(deps; ALICE, BOB);
