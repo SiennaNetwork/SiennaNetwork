@@ -18,7 +18,7 @@ kukumba!(
     given "a contract" {
         harness!(deps; ALICE, BOB, MALLORY);
     }
-    when "the admin tries to remove a pool"
+    when "the admin tries to change the number, names, or ordering of pools"
     then "it is not possible"{
         todo!();
     }

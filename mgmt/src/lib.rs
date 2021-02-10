@@ -198,7 +198,7 @@ contract!(
                     let claimant  = env.message.sender;
                     let elapsed   = now - *launch;
                     let schedule  = state.schedule.clone().unwrap();
-                    let claimable = schedule.claimable(&claimant, elapsed);
+                    let claimable = schedule.claimable(&claimant, elapsed)?;
                     let claimed   = state.vested.claimed(&claimant, now);
                     if claimable < claimed {
                         err_msg(state, &BROKEN)

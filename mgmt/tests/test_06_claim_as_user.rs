@@ -25,7 +25,10 @@ kukumba!(
         test_tx!(deps, BOB, 1, 1;
             Handle::Claim {} => tx_err!(PRELAUNCH));
     }
-    when "the contract is launched"
+    when "the contract is launched" {
+        test_tx!(deps, ALICE, 0, 0;
+            Handle::Launch {} => tx_ok!());
+    }
     and  "the user tries to claim funds"
     then "they receive the first portion of the allocated funds" {
         test_tx!(deps, BOB, 2, 2;

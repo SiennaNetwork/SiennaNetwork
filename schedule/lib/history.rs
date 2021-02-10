@@ -40,4 +40,6 @@ fn test_claimed () {
     assert_eq!(log.claimed(&alice, 999), 400);
     assert_eq!(log.claimed(&bobby, 999), 200);
     assert_eq!(log.claimed(&bobby,  99),   0);
+
+    todo!("history records count of portions claimed in order to support varying amounts")
 }

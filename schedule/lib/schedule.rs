@@ -5,7 +5,9 @@ use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 use cosmwasm_std::{StdResult, StdError};
 
-macro_rules! Error { ($msg:expr) => { Err(StdError::GenericErr { msg: $msg.to_string(), backtrace: None }) } }
+macro_rules! Error {
+    ($msg:expr) => { Err(StdError::GenericErr { msg: $msg.to_string(), backtrace: None }) }
+}
 
 /// Root schedule; contains `Pool`s that must add up to `total`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -29,10 +31,10 @@ pub struct Pool {
     pub channels: Vec<Channel>,
 }
 pub fn pool (name: &str, total: u128, channels: Vec<Channel>) -> Pool {
-    Pool { name: name.to_string(), total: Uint128::from(total), channels, partial: true }
+    Pool { name: name.to_string(), total: Uint128::from(total), channels, partial: false }
 }
 pub fn pool_partial (name: &str, total: u128, channels: Vec<Channel>) -> Pool {
-    Pool { name: name.to_string(), total: Uint128::from(total), channels, partial: false }
+    Pool { name: name.to_string(), total: Uint128::from(total), channels, partial: true }
 }
 
 /// Vesting channel: contains one or more `Allocation`s and can be `Periodic`.
@@ -128,18 +130,41 @@ pub fn allocation_addr (amount: u128, addr: &HumanAddr) -> Allocation {
     Allocation { amount: Uint128::from(amount), addr: addr.clone() }
 }
 
+pub trait Named {
+    fn get_name (&self) -> &str;
+}
+impl Named for Pool {
+    fn get_name (&self) -> &str { &self.name }
+}
+fn check_for_duplicates (items: &Vec<impl Named>, msg: &str) -> StdResult<()> {
+    let mut names: Vec<String> = vec![];
+    for item in items.iter() {
+        let item_name = item.get_name();
+        for visited_name in names.iter() {
+            if item_name == *visited_name {
+                return Error!(format!("{} {}", msg, &item_name))
+            }
+        }
+        names.push(item_name.into())
+    }
+    Ok(())
+}
+
 /// Allow for validation and computing of `claimable`.
 pub trait Account {
     /// Make sure account contains valid data.
     fn validate  (&self) -> StdResult<()>;
     /// Get amount unlocked for address `a` at time `t`.
-    fn claimable (&self, a: &HumanAddr, t: Seconds) -> u128;
+    fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<u128>;
 }
 
 impl Account for Schedule {
     fn validate (&self) -> StdResult<()> {
         let mut total = 0u128;
+        check_for_duplicates(&self.pools, "schedule: duplicate pool name")?;
+        let mut pools: Vec<String> = vec![];
         for pool in self.pools.iter() {
+            pools.push(pool.name.clone());
             match pool.validate() {
                 Ok(_)  => { total += pool.total.u128() },
                 Err(e) => return Err(e)
@@ -150,12 +175,12 @@ impl Account for Schedule {
         }
         Ok(())
     }
-    fn claimable (&self, a: &HumanAddr, t: Seconds) -> u128 {
+    fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<u128> {
         let mut claimable = 0;
         for pool in self.pools.iter() {
-            claimable += pool.claimable(a, t)
+            claimable += pool.claimable(a, t)?
         }
-        return claimable
+        Ok(claimable)
     }
 }
 
@@ -174,64 +199,125 @@ impl Account for Pool {
             total != self.total.u128()
         };
         if invalid_total {
-            return Error!(format!("pool ${}: channels add up to {}, expected {}", self.name, total, self.total))
+            return Error!(format!("pool {}: channels add up to {}, expected {}", self.name, total, self.total))
         }
         Ok(())
     }
-    fn claimable (&self, a: &HumanAddr, t: Seconds) -> u128 {
+    fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<u128> {
         let mut claimable = 0;
         for channel in self.channels.iter() {
-            claimable += channel.claimable(a, t)
+            claimable += channel.claimable(a, t)?
         }
-        return claimable
+        Ok(claimable)
     }
 }
 
 impl Account for Channel {
     fn validate (&self) -> StdResult<()> {
-        let mut total = 0u128;
-        for Allocation { amount, .. } in self.allocations.iter() {
-            total += amount.u128()
-        }
         match &self.periodic {
             None => {},
             Some(Periodic{start_at,cliff,duration,interval}) => {
-                if duration % interval > 0 {
+                if *duration < 1 {
                     return Error!(format!(
-                        "channel {}: duration {} does not divide evenly in intervals of {}",
-                        &self.name, duration, interval))
+                        "channel {}: periodic vesting's duration can't bw 0",
+                        &self.name))
                 }
-                if (self.amount - *cliff).unwrap().u128() % Uint128::from(duration / interval).u128() > 0 {
+                if *interval < 1 {
                     return Error!(format!(
-                        "channel {}: post-cliff amount {} does not divide evenly in {} portions",
-                        &self.name, (self.amount - *cliff).unwrap(), duration / interval))
+                        "channel {}: periodic vesting's interval can't be 0",
+                        &self.name))
+                }
+                if *cliff > self.amount {
+                    return Error!(format!(
+                        "channel {}: cliff {} can't be larger than total amount {}",
+                        &self.name, cliff, self.amount))
+                }
+                if self.allocations.len() > 1 && cliff.u128() > 0 {
+                    return Error!(format!(
+                        "channel {}: cliff not supported with multiple allocations",
+                        &self.name))
                 }
             }
         }
-        if total != self.portion() {
+        let mut total_portion = 0u128;
+        for Allocation { amount, .. } in self.allocations.iter() {
+            total_portion += amount.u128()
+        }
+        let portion_size = self.portion_size()?;
+        if total_portion != portion_size {
             return Error!(
-                format!("channel {}: allocations add up to {}, expected {}", &self.name, total, self.portion()))
+                format!("channel {}: allocations add up to {}, expected {}",
+                &self.name, total_portion, portion_size))
         }
         Ok(())
     }
-    fn claimable (&self, a: &HumanAddr, t: Seconds) -> u128 {
-        let mut claimable = 0;
-        for Allocation { addr, amount } in self.allocations.iter() {
-            if addr == a {
-                claimable += self.vest((*amount).u128(), t)
+    fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<u128> {
+        match &self.periodic {
+            None => if *a == self.allocations.get(0).unwrap().addr {
+                Ok(self.amount.u128())
+            } else {
+                Ok(0)
+            },
+            Some(Periodic{start_at,cliff,duration,interval}) => {
+                if t < *start_at {
+                    Ok(0)
+                } else {
+                    let elapsed = t - start_at;
+                    let portions = u128::min(
+                        self.portion_count()?,
+                        (elapsed / duration + 1).into()
+                    );
+                    Ok(0)
+                }
             }
         }
-        return claimable
+        //let mut claimable = 0;
+        //for Allocation { addr, amount } in self.allocations.iter() {
+            //if addr == a {
+                //claimable += self.vest((*amount).u128(), t)
+            //}
+        //}
+        //let portion_size = self.portion_size()?;
+        //if claimable > portion_size {
+            //return Error!(format!(
+                //"channel {}: claims for {} added up to {} which is more than the expected {}",
+                //self.name, &a, &claimable, &portion_size
+            //))
+        //}
+        //Ok(claimable)
     }
 }
 
 impl Channel {
-    fn portion (&self) -> u128 {
+    fn portion_count (&self) -> StdResult<u128> {
         match &self.periodic {
             None {} =>
-                self.amount.u128(),
-            Some(Periodic{interval,start_at,duration,cliff}) =>
-                (self.amount - *cliff).unwrap().u128() / (duration / interval) as u128
+                Ok(1),
+            Some(Periodic{interval,duration,..}) =>
+                if duration % interval > 0 {
+                    Error!(format!(
+                        "channel {}: duration {} does not divide evenly in intervals of {}",
+                        &self.name, duration, interval))
+                } else {
+                    Ok((duration / interval) as u128)
+                }
+        }
+    }
+    fn portion_size (&self) -> StdResult<u128> {
+        match &self.periodic {
+            None {} =>
+                Ok(self.amount.u128()),
+            Some(Periodic{cliff,duration,interval,..}) => {
+                let amount_after_cliff = (self.amount - *cliff).unwrap().u128();
+                let portion_count = self.portion_count()?;
+                if amount_after_cliff % portion_count > 0 {
+                    Error!(format!(
+                        "channel {}: post-cliff amount {} does not divide evenly in {} portions",
+                        &self.name, amount_after_cliff, duration / interval))
+                } else {
+                    Ok(amount_after_cliff / portion_count)
+                }
+            }
         }
     }
     fn vest (&self, amount: u128, t: Seconds) -> u128 {
@@ -247,78 +333,135 @@ impl Channel {
     }
 }
 
-#[test]
-fn test_channel () {
-    assert_eq!(channel_immediate_multi(100, vec![
-        allocation(40, &"Alice"),
-        allocation(60, &"Bob")
-    ]).claimable(&HumanAddr::from("Alice"), 0),
-        40);
+#[cfg(test)]
+mod tests {
+    use crate::units::*;
+    use super::*;
 
-    assert_eq!(channel_periodic_multi(100, vec![
-        allocation(40, &"Alice"),
-        allocation(60, &"Bob")
-    ], DAY, 1, DAY, 0).claimable(&HumanAddr::from("Alice"), 0),
-        0);
+    #[test]
+    fn test_schedule () {
+        assert_eq!(schedule(0, vec![]).validate(),
+            Ok(()));
+        assert_eq!(schedule(0, vec![pool("P1", 0, vec![]), pool("P2", 0, vec![])]).validate(),
+            Ok(()));
+        assert_eq!(schedule(0, vec![pool("P1", 0, vec![]), pool("P1", 0, vec![])]).validate(),
+            Error!("schedule: duplicate pool name P1"));
+    }
 
-    assert_eq!(channel_periodic_multi(100, vec![
-        allocation(40, &"Alice"),
-        allocation(60, &"Bob")
-    ], DAY, 1, DAY, 0).claimable(&HumanAddr::from("Alice"), 1),
-        40);
+    #[test]
+    fn test_pool () {
+        assert_eq!(pool("", 0, vec![]).validate(),
+            Ok(()));
+    }
 
-    // for allocations to make sense:
-    todo!("allocations must be divided per channel and not from the total")
-}
+    #[test]
+    fn test_channel () {
+        assert_eq!(channel_immediate_multi(100, vec![
+            allocation(40, &"Alice"),
+            allocation(60, &"Bob")
+        ]).claimable(&HumanAddr::from("Alice"), 0),
+            Ok(40));
 
-#[test]
-fn test_pool () {
-    assert_eq!(pool("", 0, vec![]).validate(), Ok(()));
-}
+        assert_eq!(channel_periodic_multi(100, vec![
+            allocation(40, &"Alice"),
+            allocation(60, &"Bob")
+        ], DAY, 1, DAY, 0).claimable(&HumanAddr::from("Alice"), 0),
+            Ok(0));
 
-#[test]
-fn test_schedule_pool_channel_and_allocation () {
-    assert_eq!(schedule(0, vec![]).validate(),
-        Ok(()));
+        assert_eq!(channel_periodic_multi(100, vec![
+            allocation(40, &"Alice"),
+            allocation(60, &"Bob")
+        ], DAY, 1, DAY, 0).claimable(&HumanAddr::from("Alice"), 1),
+            Ok(40));
 
-    assert_eq!(schedule(0, vec![]).claimable(&HumanAddr::from(""), 0),
-        0);
+        assert_eq!(channel_periodic_multi(100, vec![
+            allocation(40, &"Alice"),
+            allocation(60, &"Bob")
+        ], DAY, 1, 2*DAY, 0).validate(),
+            Error!("channel : allocations add up to 100, expected 50"));
 
-    assert_eq!(schedule(100, vec![]).validate(),
-        Error!("schedule: pools add up to 0, expected 100"));
+        assert_eq!(channel_periodic_multi(200, vec![
+            allocation(40, &"Alice"),
+            allocation(60, &"Bob")
+        ], DAY, 1, 2*DAY, 0).validate(),
+            Ok(()));
 
-    assert_eq!(schedule(100, vec![pool("", 50, vec![])]).validate(),
-        Error!("pool: channels add up to 0, expected 50"));
+        assert_eq!(channel_periodic_multi(200, vec![
+            allocation(40, &"Alice"),
+            allocation(60, &"Bob")
+        ], DAY, 1, 2*DAY, 0).claimable(&HumanAddr::from("Alice"), 1),
+            Ok(40));
 
-    assert_eq!(schedule(100, vec![pool("", 50, vec![
-                channel_immediate(20, &"")])]).validate(),
-        Error!("pool: channels add up to 20, expected 50"));
+        assert_eq!(channel_periodic_multi(200, vec![
+            allocation(40, &"Alice"),
+            allocation(60, &"Bob")
+        ], DAY, 1, 2*DAY, 0).claimable(&HumanAddr::from("Alice"), DAY + 1),
+            Ok(80));
 
-    assert_eq!(schedule(100, vec![pool("", 50, vec![
-                channel_immediate(30, &""),
-                channel_immediate_multi(20, vec![allocation(10, &"")
-                                               ,allocation(10, &"")])])]).validate(),
-        Error!("schedule: pools add up to 50, expected 100"));
+        assert_eq!(channel_periodic(
+            201, &"Alice", DAY, 1, 2*DAY, 0
+        ).claimable(&HumanAddr::from("Alice"), 1),
+            Ok(101));
 
-    assert_eq!(schedule(100, vec![
+        assert_eq!(channel_periodic(
+            201, &"Alice", DAY, 1, 2*DAY, 0
+        ).claimable(&HumanAddr::from("Alice"), DAY + 1),
+            Ok(201));
+
+        // for allocations to make sense:
+        todo!("allocations must be divided per channel and not from the total")
+    }
+
+    #[test]
+    fn test_schedule_pool_channel_and_allocation () {
+
+        assert_eq!(schedule(0, vec![]).claimable(&HumanAddr::from(""), 0),
+            Ok(0));
+
+        assert_eq!(schedule(100, vec![]).validate(),
+            Error!("schedule: pools add up to 0, expected 100"));
+
+        assert_eq!(schedule(100, vec![
+            pool("P1", 50, vec![])
+        ]).validate(),
+            Error!("pool P1: channels add up to 0, expected 50"));
+
+        assert_eq!(schedule(100, vec![
+            pool("P1", 50, vec![channel_immediate(20, &"")]),
+            pool("P2", 50, vec![channel_immediate(30, &"")])
+        ]).validate(),
+            Error!("pool P1: channels add up to 20, expected 50"));
+
+        assert_eq!(schedule(100, vec![
             pool("", 50, vec![
+                channel_immediate(30, &""),
+                channel_immediate_multi(20,
+                    vec![allocation(10, &"")
+                        ,allocation(10, &"")])
+            ])]).validate(),
+            Error!("schedule: pools add up to 50, expected 100"));
+
+        assert_eq!(schedule(100, vec![
+            pool("P1", 50, vec![
                 channel_immediate(30, &""),
                 channel_immediate_multi(20, vec![allocation(20, &"")])
             ]),
-            pool("", 50, vec![
+            pool("P2", 50, vec![
                 channel_immediate_multi(30, vec![allocation(30, &"")]),
-                channel_immediate_multi(20, vec![allocation(20, &"")])])]).validate(),
-        Ok(()));
+                channel_immediate_multi(20, vec![allocation(20, &"")])])
+        ]).validate(),
+            Ok(()));
 
-    assert_eq!(schedule(100, vec![
-        pool("", 50, vec![
-            channel_immediate_multi(30, vec![allocation(30, &"")]),
-            channel_immediate_multi(20, vec![allocation(20, &"")])
-        ]),
-        pool("", 50, vec![
-            channel_immediate_multi(30, vec![allocation(30, &"")]),
-            channel_immediate_multi(20, vec![allocation(20, &"")])
-        ])
-    ]).claimable(&HumanAddr::from(""), 0),
-        100);
+        assert_eq!(schedule(100, vec![
+            pool("P1", 50, vec![
+                channel_immediate_multi(30, vec![allocation(30, &"")]),
+                channel_immediate_multi(20, vec![allocation(20, &"")])
+            ]),
+            pool("P2", 50, vec![
+                channel_immediate_multi(30, vec![allocation(30, &"")]),
+                channel_immediate_multi(20, vec![allocation(20, &"")])
+            ])
+        ]).claimable(&HumanAddr::from(""), 0),
+            Ok(100));
+    }
 }
