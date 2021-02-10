@@ -247,7 +247,7 @@ impl Account for Channel {
     fn validate (&self) -> StdResult<()> {
         match &self.periodic {
             None => {},
-            Some(Periodic{start_at,cliff,duration,interval}) => {
+            Some(Periodic{cliff,duration,interval,..}) => {
                 if *duration < 1 {
                     return Error!(format!(
                         "channel {}: periodic vesting's duration can't bw 0",
@@ -291,7 +291,7 @@ impl Account for Channel {
                     portions.push(portion(self.amount.u128(), a, 0, &reason));
                 }
             },
-            Some(Periodic{start_at,cliff,duration,interval}) => {
+            Some(Periodic{start_at,cliff,duration,..}) => {
                 if t >= *start_at {
                     let elapsed = t - start_at;
                     let n_portions = u128::min(
@@ -302,7 +302,7 @@ impl Account for Channel {
                     for Allocation { addr, amount } in self.allocations.iter() {
                         if addr == a {
                             for_me = true;
-                            for p in 0..n_portions {
+                            for _ in 0..n_portions {
                                 let reason = format!("{}: vesting", &self.name);
                                 portions.push(portion((*amount).u128(), a, *start_at, &reason))
                             }

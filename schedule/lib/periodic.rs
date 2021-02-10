@@ -42,14 +42,6 @@ pub fn periodic (
     vest
 }
 
-fn warn_cliff_remainder () {
-    //println!("WARNING: division with remainder for cliff amount")
-}
-
-fn warn_release_remainder () {
-    //println!("WARNING: division with remainder for release amount")
-}
-
 #[test]
 fn test_periodic () {
     assert_eq!(periodic( 0, 0, 1, 1, 0),  0);
