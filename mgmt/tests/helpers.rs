@@ -63,14 +63,12 @@ macro_rules! test_tx {
     ( $deps: ident, $SENDER:expr, $block:expr, $time:expr
     ; $TX:expr => $Result:expr
     ) => {
-        assert_eq!(
-            tx(
-                &mut $deps,
-                mock_env($block, $time, &$SENDER),
-                $TX
-            ),
-            $Result
+        let result = tx(
+            &mut $deps,
+            mock_env($block, $time, &$SENDER),
+            $TX
         );
+        assert_eq!(result, $Result);
     }
 }
 

@@ -60,7 +60,7 @@ pub fn release_immediate_multi (
 pub fn release_periodic (
     amount:   u128,
     address:  &str,
-    interval: Interval,
+    interval: Seconds,
     start_at: Seconds,
     duration: Seconds,
     cliff:    Percentage
@@ -74,7 +74,7 @@ pub fn release_periodic (
 pub fn release_periodic_multi (
     amount:      u128,
     allocations: Vec<Allocation>,
-    interval:    Interval,
+    interval:    Seconds,
     start_at:    Seconds,
     duration:    Seconds,
     cliff:       Percentage
@@ -93,16 +93,11 @@ pub enum ReleaseMode {
     /// Periodic release: contract calculates the maximum amount
     /// that the user can claim at the given time
     Periodic {
-        interval: Interval,
+        interval: Seconds,
         start_at: Seconds,
         duration: Seconds,
         cliff:    Percentage
     }
-}
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub enum Interval {
-    Daily,
-    Monthly
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -205,13 +200,9 @@ impl Release {
                 amount,
 
             ReleaseMode::Periodic { interval, start_at, duration, cliff } => {
-                let interval = match interval {
-                    Interval::Daily   => DAY,
-                    Interval::Monthly => MONTH
-                };
                 // Can't vest before the cliff
                 if t < *start_at { return 0 }
-                crate::periodic(amount, interval, t - start_at, *duration, *cliff)
+                crate::periodic(amount, *interval, t - start_at, *duration, *cliff)
             }
         }
     }
@@ -228,13 +219,13 @@ fn test_release () {
     assert_eq!(release_periodic_multi(100, vec![
         allocation(40, &"Alice"),
         allocation(60, &"Bob")
-    ], Interval::Daily, 1, DAY, 0).claimable(&HumanAddr::from("Alice"), 0),
+    ], DAY, 1, DAY, 0).claimable(&HumanAddr::from("Alice"), 0),
         0);
 
     assert_eq!(release_periodic_multi(100, vec![
         allocation(40, &"Alice"),
         allocation(60, &"Bob")
-    ], Interval::Daily, 1, DAY, 0).claimable(&HumanAddr::from("Alice"), 1),
+    ], DAY, 1, DAY, 0).claimable(&HumanAddr::from("Alice"), 1),
         40);
 
     // for allocations to make sense:
@@ -258,11 +249,11 @@ fn test_schedule_pool_release_and_allocation () {
         Error!("schedule: pools add up to 0, expected 100"));
 
     assert_eq!(schedule(100, vec![pool("", 50, vec![])]).validate(),
-        Error!("pool's releases add up to 0, expected 50"));
+        Error!("pool: releases add up to 0, expected 50"));
 
     assert_eq!(schedule(100, vec![pool("", 50, vec![
                 release_immediate(20, &"")])]).validate(),
-        Error!("pool's releases add up to 20, expected 50"));
+        Error!("pool: releases add up to 20, expected 50"));
 
     assert_eq!(schedule(100, vec![pool("", 50, vec![
                 release_immediate(30, &""),

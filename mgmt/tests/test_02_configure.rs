@@ -4,7 +4,12 @@
 
 use cosmwasm_std::{StdError, HumanAddr, Uint128, HandleResponse};
 use sienna_mgmt::msg::Handle;
-use sienna_schedule::{Schedule, schedule, pool, release_immediate_multi, allocation_addr};
+use sienna_schedule::{
+    Schedule,
+    schedule, pool, pool_partial,
+    release_periodic, release_immediate_multi,
+    allocation_addr
+};
 
 kukumba!(
 
@@ -18,19 +23,27 @@ kukumba!(
     } then "that fails" {
         todo!();
     }
-    when "the admin tries to set a configuration that doesn't add up" {
-        let s1 = schedule(100u128, vec![]);
-    } then "that fails" {
-        test_tx!(deps, ALICE, 0, 0;
-            Handle::Configure { schedule: s1.clone() } =>
-            tx_err!("schedule: pools add up to 0, expected 100"));
+    when "the admin tries to set a configuration that doesn't add up"
+    then "that fails" {
+        for schedule in [
+            schedule(100u128, vec![])
+        ].iter() {
+            test_tx!(deps, ALICE, 0, 0;
+                Handle::Configure { schedule: *schedule } =>
+                tx_err!("schedule: pools add up to 0, expected 100")
+            );
+        }
     }
     when "the admin tries to set a configuration that doesn't divide evenly" {
-        let s1 = schedule(100u128, vec![]);
+        let s_uneven = schedule(100u128,
+            vec![pool_partial("Advisors", 200000u128,
+                vec![release_periodic(10000u128, &"Advisor3", 86400, 15552000, 15552000, 0)])]);
     } then "that fails" {
-        todo!();
+        test_tx!(deps, ALICE, 0, 0;
+            Handle::Configure { schedule: s_uneven } =>
+            tx_err!("release Advisor3: amount does not divide evenly"));
     }
-    when "the admin tries to set a valid configuration" {
+    when "the sets a valid configuration" {
         let s1 = schedule(100, vec![
             pool("", 10, vec![
                 release_immediate_multi(10, vec![

@@ -37,10 +37,17 @@ kukumba!(
             Handle::TransferOwnership { new_admin: ALICE.clone() } =>
             tx_ok!());
     }
+    when "someone else tries to disown the contract"
+    and  "just the hit counter goes up" {
+        test_tx!(deps, MALLORY, 2, 2; Handle::Disown {} => tx_err_auth!());
+    }
     when "the admin disowns the contract"
     then "there is no admin"
     and  "nobody can control the contract" {
-        todo!()
+        test_tx!(deps, ALICE, 2, 2; Handle::Disown {} => tx_ok!());
+        test_tx!(deps, ALICE, 2, 2;
+            Handle::TransferOwnership { new_admin: ALICE.clone() } =>
+            tx_err_auth!());
     }
 
 );

@@ -2,7 +2,7 @@
 #[macro_use] extern crate lazy_static;
 
 use cosmwasm_std::HumanAddr;
-use secret_toolkit::snip20::handle::{mint_msg, transfer_msg};
+use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
 pub use sienna_schedule::{Seconds, Schedule, History, Account};
 
 //macro_rules! debug { ($($tt:tt)*)=>{} }
@@ -10,7 +10,7 @@ pub use sienna_schedule::{Seconds, Schedule, History, Account};
 /// Auth
 macro_rules! require_admin {
     (|$env:ident, $state:ident| $body:block) => {
-        if $env.message.sender != $state.admin {
+        if Some($env.message.sender) != $state.admin {
             err_auth($state)
         } else $body
     }
@@ -46,7 +46,7 @@ contract!(
 
     [State] {
         /// The instantiatior of the contract
-        admin:          HumanAddr,
+        admin:          Option<HumanAddr>,
 
         /// The SNIP20 token contract that will be managed by this instance
         token_addr:     HumanAddr,
@@ -77,9 +77,8 @@ contract!(
         token_hash: crate::CodeHash,
         schedule:   Option<crate::Schedule>
     }) {
-        use cosmwasm_std::Uint128;
         State {
-            admin:      env.message.sender,
+            admin:      Some(env.message.sender),
             schedule:   msg.schedule,
             token_addr: msg.token_addr,
             token_hash: msg.token_hash,
@@ -117,6 +116,19 @@ contract!(
 
     [Handle] (deps, env, sender, state, msg) {
 
+        // Before launching the contract, a schedule must be loaded
+        Configure (schedule: crate::Schedule) {
+            require_admin!(|env, state| {
+                match schedule.validate() {
+                    Ok(_) => {
+                        state.schedule = Some(schedule);
+                        ok(state)
+                    },
+                    Err(e) => (state, Err(e))
+                }
+            })
+        }
+
         // After configuring the instance, launch confirmation must be given.
         // An instance can be launched only once.
         Launch () {
@@ -128,19 +140,23 @@ contract!(
                     Some(ref schedule) => match state.launched {
                         Some(_) => err_msg(state, &UNDERWAY),
                         None => {
-                            match mint_msg(
-                                env.contract.address,
-                                Uint128::from(schedule.clone().total),
-                                None, BLOCK_SIZE,
-                                state.token_hash.clone(),
-                                state.token_addr.clone()
-                            ) {
-                                Ok(msg) => {
-                                    state.launched = Some(env.block.time);
-                                    ok_msg(state, vec![msg])
-                                },
-                                Err(e) => (state, Err(e))
-                            }
+                            let actions = vec![
+                                mint_msg(
+                                    env.contract.address,
+                                    Uint128::from(schedule.clone().total),
+                                    None, BLOCK_SIZE,
+                                    state.token_hash.clone(),
+                                    state.token_addr.clone()
+                                ).unwrap(),
+                                set_minters_msg(
+                                    vec![],
+                                    None, BLOCK_SIZE,
+                                    state.token_hash.clone(),
+                                    state.token_addr.clone()
+                                ).unwrap(),
+                            ];
+                            state.launched = Some(env.block.time);
+                            ok_msg(state, actions)
                         }
                     }
                 }
@@ -148,24 +164,20 @@ contract!(
         }
 
         // The admin can make someone else the admin
-        // but there can be only one admin at a given time
+        // but there can be only one admin at a given time,
         TransferOwnership (new_admin: cosmwasm_std::HumanAddr) {
             require_admin!(|env, state| {
-                state.admin = new_admin;
+                state.admin = None;
                 ok(state)
             })
         }
 
-        // Update vesting configuration
-        Configure (schedule: crate::Schedule) {
+        // or the admin can disown the contract
+        // so that nobody can be admin anymore:
+        Disown () {
             require_admin!(|env, state| {
-                match schedule.validate() {
-                    Ok(_) => {
-                        state.schedule = Some(schedule);
-                        ok(state)
-                    },
-                    Err(e) => (state, Err(e))
-                }
+                state.admin = None;
+                ok(state)
             })
         }
 
