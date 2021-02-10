@@ -52,5 +52,3 @@ fn test_periodic () {
     assert_eq!(periodic(15, 0, 1, 3, 3), 15);
     assert_eq!(periodic(15, 0, 1, 3, 4), 15);
 }
-
-

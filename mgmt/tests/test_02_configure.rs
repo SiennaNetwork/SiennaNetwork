@@ -42,12 +42,12 @@ kukumba!(
         for (schedule, error) in [(
             schedule(100u128,
                 vec![pool_partial("Advisors", 200000u128,
-                    vec![channel_periodic(11000u128, &"Advisor3", 86400, 15552000, 15552001, 1000)])]),
+                    vec![channel_periodic(11000u128, &BOB, 86400, 15552000, 15552001, 1000)])]),
             "channel : duration 15552001 does not divide evenly in intervals of 86400"
         ), (
             schedule(100u128,
                 vec![pool_partial("Advisors", 200000u128,
-                    vec![channel_periodic(11000u128, &"Advisor3", 86400, 15552000, 15552000, 1000)])]),
+                    vec![channel_periodic(11000u128, &BOB, 86400, 15552000, 15552000, 1000)])]),
             "channel : post-cliff amount 10000 does not divide evenly in 180 portions"
         )].iter() {
             test_tx!(deps, ALICE, 0, 0;
@@ -56,16 +56,16 @@ kukumba!(
     }
     when "the sets a valid configuration" {
         let s1 = schedule(100, vec![
-            pool("", 10, vec![
-                channel_immediate_multi(10, vec![
+            pool("P1", 10, vec![
+                channel_immediate_multi(10, &vec![
                     allocation_addr(10, &BOB)
                 ])
             ]),
-            pool("", 90, vec![
-                channel_immediate_multi(45, vec![
+            pool("P2", 90, vec![
+                channel_immediate_multi(45, &vec![
                     allocation_addr(45, &BOB)
                 ]),
-                channel_immediate_multi(45, vec![
+                channel_immediate_multi(45, &vec![
                     allocation_addr( 5, &BOB),
                     allocation_addr(10, &BOB),
                     allocation_addr(30, &BOB)

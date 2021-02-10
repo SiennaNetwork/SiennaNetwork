@@ -323,19 +323,47 @@ impl Account for Channel {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Portion {
-    amount:  Uint128,
-    address: HumanAddr,
-    vested:  Seconds,
-    claimed: Option<Seconds>,
-    reason:  String
+    pub amount:  Uint128,
+    pub address: HumanAddr,
+    pub vested:  Seconds,
+    pub reason:  String
 }
 pub fn portion (amt: u128, addr: &HumanAddr, vested: Seconds, reason: &str) -> Portion {
     Portion {
-        amount: Uint128::from(amt),
+        amount:  Uint128::from(amt),
         address: addr.clone(),
-        vested,
-        claimed: None,
-        reason: reason.to_string()
+        vested:  vested,
+        reason:  reason.to_string()
+    }
+}
+/// History entry
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct ClaimedPortion {
+    portion: Portion,
+    claimed: Seconds
+}
+/// Log of executed claims
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct History {
+    pub history: Vec<ClaimedPortion>
+}
+impl History {
+    /// Takes list of portions, returns the ones which aren't marked as claimed
+    pub fn unclaimed (&mut self, claimable: Vec<Portion>) -> Vec<Portion> {
+        // TODO sort by timestamp and validate that there is no overlap
+        //      between claimed/unclaimed because that would signal an error
+        let claimed_portions: Vec<Portion> =
+            self.history.iter().map(|claimed| claimed.portion.clone()).collect();
+        claimable.into_iter()
+            .filter(|portion| !claimed_portions.contains(portion)).collect()
+    }
+    /// Marks a portion as claimed
+    pub fn claim (&mut self, claimed: Seconds, portions: Vec<Portion>) {
+        for portion in portions.iter() {
+            self.history.push(ClaimedPortion {claimed, portion: portion.clone()} )
+        }
     }
 }
 
@@ -459,5 +487,9 @@ mod tests {
                 portion(20u128, &alice, 0u64, ": immediate"),
                 portion(30u128, &alice, 0u64, ": immediate")
             ]));
+    }
+
+    #[test]
+    fn test_history () {
     }
 }

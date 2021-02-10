@@ -64,7 +64,7 @@ contract!(
         launched:       Launched,
 
         /// History of fulfilled claims
-        vested:         History,
+        history:         History,
 
         /// A dedicated portion of the funds can be redirected at runtime
         schedule:       Option<Schedule>,
@@ -88,7 +88,7 @@ contract!(
             token_addr: msg.token_addr,
             token_hash: msg.token_hash,
             launched:   None,
-            vested:     History { history: vec![] },
+            history:     History { history: vec![] },
             errors:     0
         }
     }
@@ -190,7 +190,7 @@ contract!(
         // the gains that they have accumulated so far.
         Claim () {
             use crate::{PRELAUNCH, BROKEN, NOTHING};
-            use cosmwasm_std::Uint128;
+            use cosmwasm_std::{Uint128};
             match &state.launched {
                 None => err_msg(state, &PRELAUNCH),
                 Some(launch) => {
@@ -199,28 +199,23 @@ contract!(
                     let elapsed   = now - *launch;
                     let schedule  = state.schedule.clone().unwrap();
                     let claimable = schedule.claimable(&claimant, elapsed)?;
-                    let claimed   = state.vested.claimed(&claimant, now);
-                    if claimable < claimed {
-                        err_msg(state, &BROKEN)
+                    if claimable.len() < 1 {
+                        err_msg(state, &NOTHING)
                     } else {
-                        let difference = claimable - claimed;
-                        if difference <= 0 {
+                        let unclaimed = state.history.unclaimed(claimable);
+                        if unclaimed.len() < 1 {
                             err_msg(state, &NOTHING)
                         } else {
-                            match transfer_msg(
-                                claimant.clone(),
-                                Uint128::from(difference),
-                                None, BLOCK_SIZE,
-                                state.token_hash.clone(),
-                                state.token_addr.clone(),
-                            ) {
-                                Err(e) => (state, Err(e)),
-                                Ok(msg) => {
-                                    let difference = Uint128::from(difference);
-                                    state.vested.history.push((claimant, now, difference));
-                                    ok_msg(state, vec![msg])
-                                },
+                            let mut msgs = vec![];
+                            for portion in unclaimed.iter() {
+                                msgs.push(transfer_msg(
+                                    portion.address.clone(), portion.amount,
+                                    None, BLOCK_SIZE,
+                                    state.token_hash.clone(), state.token_addr.clone()
+                                )?);
                             }
+                            state.history.claim(now, unclaimed);
+                            ok_msg(state, msgs)
                         }
                     }
                 }
