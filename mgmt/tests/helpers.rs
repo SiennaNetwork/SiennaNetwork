@@ -68,7 +68,7 @@ macro_rules! test_tx {
             mock_env($block, $time, &$SENDER),
             $TX
         );
-        assert_eq!(result, $Result);
+        assert_eq!($Result, result);
     }
 }
 

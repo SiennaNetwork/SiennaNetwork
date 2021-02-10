@@ -7,7 +7,7 @@ use sienna_mgmt::msg::Handle;
 use sienna_schedule::{
     Schedule,
     schedule, pool, pool_partial,
-    release_periodic, release_immediate_multi,
+    channel_periodic, channel_immediate_multi,
     allocation_addr
 };
 
@@ -40,24 +40,24 @@ kukumba!(
     when "the admin tries to set a configuration that doesn't divide evenly" {
         let s_uneven = schedule(100u128,
             vec![pool_partial("Advisors", 200000u128,
-                vec![release_periodic(10000u128, &"Advisor3", 86400, 15552000, 15552000, 0)])]);
+                vec![channel_periodic(10000u128, &"Advisor3", 86400, 15552000, 15552000, 0)])]);
     } then "that fails" {
         test_tx!(deps, ALICE, 0, 0;
             Handle::Configure { schedule: s_uneven } =>
-            tx_err!("release Advisor3: amount does not divide evenly"));
+            tx_err!("channel Advisor3: amount does not divide evenly"));
     }
     when "the sets a valid configuration" {
         let s1 = schedule(100, vec![
             pool("", 10, vec![
-                release_immediate_multi(10, vec![
+                channel_immediate_multi(10, vec![
                     allocation_addr(10, &BOB)
                 ])
             ]),
             pool("", 90, vec![
-                release_immediate_multi(45, vec![
+                channel_immediate_multi(45, vec![
                     allocation_addr(45, &BOB)
                 ]),
-                release_immediate_multi(45, vec![
+                channel_immediate_multi(45, vec![
                     allocation_addr( 5, &BOB),
                     allocation_addr(10, &BOB),
                     allocation_addr(30, &BOB)

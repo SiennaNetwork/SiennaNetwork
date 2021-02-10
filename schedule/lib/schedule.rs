@@ -186,8 +186,9 @@ impl Account for Channel {
             total += amount.u128()
         }
         match &self.mode {
-            _ => {},
-            ReleaseMode::Periodic{interval,start_at,duration,cliff} => {
+            ReleaseMode::Immediate {} => {},
+            ReleaseMode::Periodic{start_at,cliff,duration,interval} => {
+                println!("validate channel {}: {} {} {} {} -> portion = {}", &self.name, &self.amount, cliff, duration, interval, self.portion());
                 if duration % interval > 0 {
                     return Error!(format!("channel {}: duration {} does not divide evenly by {}", &self.name, duration, interval))
                 }

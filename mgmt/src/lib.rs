@@ -129,6 +129,24 @@ contract!(
             })
         }
 
+        // The admin can make someone else the admin
+        // but there can be only one admin at a given time,
+        TransferOwnership (new_admin: cosmwasm_std::HumanAddr) {
+            require_admin!(|env, state| {
+                state.admin = None;
+                ok(state)
+            })
+        }
+
+        // or the admin can disown the contract
+        // so that nobody can be admin anymore:
+        Disown () {
+            require_admin!(|env, state| {
+                state.admin = None;
+                ok(state)
+            })
+        }
+
         // After configuring the instance, launch confirmation must be given.
         // An instance can be launched only once.
         Launch () {
@@ -163,26 +181,8 @@ contract!(
             })
         }
 
-        // The admin can make someone else the admin
-        // but there can be only one admin at a given time,
-        TransferOwnership (new_admin: cosmwasm_std::HumanAddr) {
-            require_admin!(|env, state| {
-                state.admin = None;
-                ok(state)
-            })
-        }
-
-        // or the admin can disown the contract
-        // so that nobody can be admin anymore:
-        Disown () {
-            require_admin!(|env, state| {
-                state.admin = None;
-                ok(state)
-            })
-        }
-
         // Recipients can call the Claim method to receive
-        // the gains that have accumulated so far.
+        // the gains that they have accumulated so far.
         Claim () {
             use crate::{PRELAUNCH, BROKEN, NOTHING};
             use cosmwasm_std::Uint128;
@@ -195,11 +195,9 @@ contract!(
                     let schedule  = state.schedule.clone().unwrap();
                     let claimable = schedule.claimable(&claimant, elapsed);
                     let claimed   = state.vested.claimed(&claimant, now);
-
                     if claimable < claimed {
                         err_msg(state, &BROKEN)
                     } else {
-
                         let difference = claimable - claimed;
                         if difference <= 0 {
                             err_msg(state, &NOTHING)

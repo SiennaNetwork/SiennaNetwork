@@ -38,7 +38,7 @@ const Address = x => {
 
 const columns = ([
   _A_, _B_, _C_, _D_, _E_, _F_, _G_, _H_, _I_,
-  _J_, _K_, _L_, _M_, _N_, _O_, _P_, _Q_
+  _J_, _K_, _L_, _M_, _N_, _O_, _P_, _Q_, _R_
 ]) => {
   const data = {
     total:               Sienna  (_A_),
@@ -47,17 +47,18 @@ const columns = ([
     name:                String  (_D_),
     amount:              Sienna  (_E_),
     percent_of_total:    Percent (_F_),
-    interval_days:       Days    (_G_, _H_),
-    interval:            Seconds (_H_),
-    start_at_days:       Days    (_I_, _J_),
-    start_at:            Seconds (_J_),
+    start_at_days:       Days    (_G_, _H_),
+    start_at:            Seconds (_H_),
+    interval_days:       Days    (_I_, _J_),
+    interval:            Seconds (_J_),
     duration_days:       Days    (_K_, _L_),
     duration:            Seconds (_L_),
-    cliff_percent:       Percent (_M_),
-    cliff:               Sienna  (_N_),
-    amount_per_interval: Sienna  (_O_),
-    allocation:          Sienna  (_P_),
-    address:             Address (_Q_)
+    vestings:            Number  (_M_),
+    cliff_percent:       Percent (_N_),
+    cliff:               Sienna  (_O_),
+    amount_per_interval: Sienna  (_P_),
+    allocation:          Sienna  (_Q_),
+    address:             Address (_R_)
   }
   return data
 }
@@ -67,11 +68,11 @@ module.exports = function tsv2json (
 ) {
   const output = {}
   let current_pool
-    , current_release
+    , current_channel
     , current_allocation
     , running_total         = BigInt(0)
     , running_pool_total    = BigInt(0)
-    , running_release_total = BigInt(0)
+    , running_channel_total = BigInt(0)
 
   input
     .split('\n') // newline delimited
@@ -80,7 +81,7 @@ module.exports = function tsv2json (
     .forEach(([i, data]) => header(data, i)
                          || grand_total(columns(data), i)
                          || pool(columns(data), i)
-                         || release(columns(data), i)
+                         || channel(columns(data), i)
                          || allocation(columns(data), i)
                          || invalid_row(columns(data), i))
 
@@ -135,34 +136,34 @@ module.exports = function tsv2json (
         name: pool,
         total: subtotal,
         partial: false,
-        releases: []
+        channels: []
       })
       console.log(`add pool ${pool} ${subtotal}`)
       return true
     }
   }
 
-  // row describes release
-  function release (data, i) {
+  // row describes channel
+  function channel (data, i) {
     const {name,amount,percent_of_total,interval_days,interval
         ,amount_per_interval,address} = data
     if (name && amount && percent_of_total) {
       const mode = (interval == 0) ? { type: 'immediate' } : periodic_vesting(data, i)
       running_pool_total += amount
-      running_release_total = BigInt(amount_per_interval||0)
-      current_pool.releases.push(current_release = {
+      running_channel_total = BigInt(amount_per_interval||0)
+      current_pool.channels.push(current_channel = {
         name,
         amount,
         mode,
         allocations: []
       })
-      if (address) current_release.allocations.push({addr:address,amount:amount_per_interval||amount})
-      console.log(`  add release ${name} (${address}) to pool ${current_pool.name} (${running_pool_total})`)
+      if (address) current_channel.allocations.push({addr:address,amount:amount_per_interval||amount})
+      console.log(`  add channel ${name} (${address}) to pool ${current_pool.name} (${running_pool_total})`)
       return true
     }
   }
 
-  // 2nd part of release row
+  // 2nd part of channel row
   // specifies parameters of periodic vesting
   function periodic_vesting (data, i) {
     const {interval,start_at,duration,cliff,amount_per_interval} = data
@@ -180,8 +181,8 @@ module.exports = function tsv2json (
     let {allocation,address} = data
     if (allocation&&address) {
       // row describes allocation
-      current_release.allocations.push({addr:address,amount:allocation})
-      running_release_total += allocation
+      current_channel.allocations.push({addr:address,amount:allocation})
+      running_channel_total += allocation
       return true
     }
   }
