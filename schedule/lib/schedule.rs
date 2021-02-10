@@ -179,7 +179,7 @@ impl Account for Pool {
     }
 }
 
-impl Release {
+impl Account for Release {
     fn validate (&self) -> StdResult<()> {
         let mut total = 0u128;
         for Allocation { amount, .. } in self.allocations.iter() {
@@ -202,14 +202,6 @@ impl Release {
         }
         Ok(())
     }
-    fn portion (&self) -> u128 {
-        match &self.mode {
-            ReleaseMode::Immediate {} =>
-                self.amount.u128(),
-            ReleaseMode::Periodic{interval,start_at,duration,cliff} =>
-                (self.amount - *cliff).unwrap().u128() / (duration / interval) as u128
-        }
-    }
     fn claimable (&self, a: &HumanAddr, t: Seconds) -> u128 {
         let mut claimable = 0;
         for Allocation { addr, amount } in self.allocations.iter() {
@@ -218,6 +210,16 @@ impl Release {
             }
         }
         return claimable
+    }
+}
+impl Release {
+    fn portion (&self) -> u128 {
+        match &self.mode {
+            ReleaseMode::Immediate {} =>
+                self.amount.u128(),
+            ReleaseMode::Periodic{interval,start_at,duration,cliff} =>
+                (self.amount - *cliff).unwrap().u128() / (duration / interval) as u128
+        }
     }
     fn vest (&self, amount: u128, t: Seconds) -> u128 {
         match &self.mode {
