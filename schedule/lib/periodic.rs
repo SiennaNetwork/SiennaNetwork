@@ -2,10 +2,10 @@ use crate::units::*;
 
 pub fn periodic (
     amount:   u128,
+    cliff:    u128,
     interval: Seconds,
-    elapsed:  Seconds,
     duration: Seconds,
-    cliff:    Percentage,
+    elapsed:  Seconds,
 ) -> u128 {
 
     // mutable for clarity:
@@ -13,7 +13,6 @@ pub fn periodic (
 
     // start with the cliff amount
     let cliff = cliff as u128;
-    if cliff * amount % 100 > 0 { warn_cliff_remainder() }
     let cliff_amount = (cliff * amount / 100) as u128;
     vest += cliff_amount;
 
@@ -24,7 +23,6 @@ pub fn periodic (
     // determine the size of the portion
     let post_cliff_amount = amount - cliff_amount;
     let n_total: u128 = (duration / interval).into();
-    if post_cliff_amount % n_total > 0 { warn_release_remainder() }
     let portion = post_cliff_amount / n_total;
 
     // then determine how many release periods have elapsed,
@@ -52,13 +50,13 @@ fn warn_release_remainder () {
 
 #[test]
 fn test_periodic () {
-    assert_eq!(periodic( 0, 1, 0, 1, 0),  0);
-    assert_eq!(periodic( 1, 1, 0, 1, 0),  1);
-    assert_eq!(periodic(15, 1, 0, 3, 0),  5);
-    assert_eq!(periodic(15, 1, 1, 3, 0), 10);
-    assert_eq!(periodic(15, 1, 2, 3, 0), 15);
-    assert_eq!(periodic(15, 1, 3, 3, 0), 15);
-    assert_eq!(periodic(15, 1, 4, 3, 0), 15);
+    assert_eq!(periodic( 0, 0, 1, 1, 0),  0);
+    assert_eq!(periodic( 1, 0, 1, 1, 0),  1);
+    assert_eq!(periodic(15, 0, 1, 3, 0),  5);
+    assert_eq!(periodic(15, 0, 1, 3, 1), 10);
+    assert_eq!(periodic(15, 0, 1, 3, 2), 15);
+    assert_eq!(periodic(15, 0, 1, 3, 3), 15);
+    assert_eq!(periodic(15, 0, 1, 3, 4), 15);
 }
 
 

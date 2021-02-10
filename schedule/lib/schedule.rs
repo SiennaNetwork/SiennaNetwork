@@ -21,71 +21,71 @@ pub struct Pool {
     pub name:     String,
     pub total:    Uint128,
     pub partial:  bool,
-    pub releases: Vec<Release>,
+    pub channels: Vec<Channel>,
 }
-pub fn pool (name: &str, total: u128, releases: Vec<Release>) -> Pool {
-    Pool { name: name.to_string(), total: Uint128::from(total), releases, partial: true }
+pub fn pool (name: &str, total: u128, channels: Vec<Channel>) -> Pool {
+    Pool { name: name.to_string(), total: Uint128::from(total), channels, partial: true }
 }
-pub fn pool_partial (name: &str, total: u128, releases: Vec<Release>) -> Pool {
-    Pool { name: name.to_string(), total: Uint128::from(total), releases, partial: false }
+pub fn pool_partial (name: &str, total: u128, channels: Vec<Channel>) -> Pool {
+    Pool { name: name.to_string(), total: Uint128::from(total), channels, partial: false }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct Release {
+pub struct Channel {
     pub name:        String,
     pub mode:        ReleaseMode,
     pub amount:      Uint128,
     pub allocations: Vec<Allocation>,
 }
-pub fn release_immediate (
+pub fn channel_immediate (
     amount: u128,
     address: &str
-) -> Release {
-    Release {
+) -> Channel {
+    Channel {
         name: String::new(),
         mode: ReleaseMode::Immediate {},
         amount: Uint128::from(amount),
         allocations: vec![allocation(amount, address)]
     }
 }
-pub fn release_immediate_multi (
+pub fn channel_immediate_multi (
     amount: u128,
     allocations: Vec<Allocation>
-) -> Release {
-    Release {
+) -> Channel {
+    Channel {
         name: String::new(),
         mode: ReleaseMode::Immediate {},
         amount: Uint128::from(amount),
         allocations
     }
 }
-pub fn release_periodic (
+pub fn channel_periodic (
     amount:   u128,
     address:  &str,
     interval: Seconds,
     start_at: Seconds,
     duration: Seconds,
     cliff:    u128
-) -> Release {
+) -> Channel {
     let cliff = Uint128::from(cliff);
-    Release {
+    Channel {
         name:   String::new(),
         mode:   ReleaseMode::Periodic {interval, start_at, duration, cliff},
         amount: Uint128::from(amount),
         allocations: vec![allocation(amount, address)]
     }
 }
-pub fn release_periodic_multi (
+pub fn channel_periodic_multi (
     amount:      u128,
     allocations: Vec<Allocation>,
     interval:    Seconds,
     start_at:    Seconds,
     duration:    Seconds,
     cliff:       u128
-) -> Release {
+) -> Channel {
     let cliff = Uint128::from(cliff);
-    Release {
+    Channel {
         name:   String::new(),
         mode:   ReleaseMode::Periodic {interval, start_at, duration, cliff},
         amount: Uint128::from(amount),
@@ -95,10 +95,10 @@ pub fn release_periodic_multi (
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case", tag = "type")]
 pub enum ReleaseMode {
-    /// Immediate release: if the contract has launched,
+    /// Immediate channel: if the contract has launched,
     /// the recipient can claim the entire allocated amount once
     Immediate {},
-    /// Periodic release: contract calculates the maximum amount
+    /// Periodic channel: contract calculates the maximum amount
     /// that the user can claim at the given time
     Periodic {
         interval: Seconds,
@@ -154,9 +154,9 @@ impl Account for Schedule {
 impl Account for Pool {
     fn validate (&self) -> StdResult<()> {
         let mut total = 0u128;
-        for release in self.releases.iter() {
-            match release.validate() {
-                Ok(_)  => { total += release.amount.u128() },
+        for channel in self.channels.iter() {
+            match channel.validate() {
+                Ok(_)  => { total += channel.amount.u128() },
                 Err(e) => return Err(e)
             }
         }
@@ -166,20 +166,20 @@ impl Account for Pool {
             total != self.total.u128()
         };
         if invalid_total {
-            return Error!(format!("pool ${}: releases add up to {}, expected {}", self.name, total, self.total))
+            return Error!(format!("pool ${}: channels add up to {}, expected {}", self.name, total, self.total))
         }
         Ok(())
     }
     fn claimable (&self, a: &HumanAddr, t: Seconds) -> u128 {
         let mut claimable = 0;
-        for release in self.releases.iter() {
-            claimable += release.claimable(a, t)
+        for channel in self.channels.iter() {
+            claimable += channel.claimable(a, t)
         }
         return claimable
     }
 }
 
-impl Account for Release {
+impl Account for Channel {
     fn validate (&self) -> StdResult<()> {
         let mut total = 0u128;
         for Allocation { amount, .. } in self.allocations.iter() {
@@ -189,16 +189,16 @@ impl Account for Release {
             _ => {},
             ReleaseMode::Periodic{interval,start_at,duration,cliff} => {
                 if duration % interval > 0 {
-                    return Error!(format!("release {}: duration {} does not divide evenly by {}", &self.name, duration, interval))
+                    return Error!(format!("channel {}: duration {} does not divide evenly by {}", &self.name, duration, interval))
                 }
                 if (self.amount - *cliff).unwrap().u128() % Uint128::from(duration / interval).u128() > 0 {
-                    return Error!(format!("release {}: post-cliff amount {} does not divide evenly by {}", &self.name, (self.amount - *cliff).unwrap(), duration / interval))
+                    return Error!(format!("channel {}: post-cliff amount {} does not divide evenly by {}", &self.name, (self.amount - *cliff).unwrap(), duration / interval))
                 }
             }
         }
         if total != self.portion() {
             return Error!(
-                format!("release {}: allocations add up to {}, expected {}", &self.name, total, self.portion()))
+                format!("channel {}: allocations add up to {}, expected {}", &self.name, total, self.portion()))
         }
         Ok(())
     }
@@ -212,7 +212,7 @@ impl Account for Release {
         return claimable
     }
 }
-impl Release {
+impl Channel {
     fn portion (&self) -> u128 {
         match &self.mode {
             ReleaseMode::Immediate {} =>
@@ -229,34 +229,34 @@ impl Release {
             ReleaseMode::Periodic { interval, start_at, duration, cliff } => {
                 // Can't vest before the cliff
                 if t < *start_at { return 0 }
-                crate::periodic(amount, *interval, t - start_at, *duration, cliff.u128())
+                crate::periodic(amount, cliff.u128(), *interval, *duration, t - start_at)
             }
         }
     }
 }
 
 #[test]
-fn test_release () {
-    assert_eq!(release_immediate_multi(100, vec![
+fn test_channel () {
+    assert_eq!(channel_immediate_multi(100, vec![
         allocation(40, &"Alice"),
         allocation(60, &"Bob")
     ]).claimable(&HumanAddr::from("Alice"), 0),
         40);
 
-    assert_eq!(release_periodic_multi(100, vec![
+    assert_eq!(channel_periodic_multi(100, vec![
         allocation(40, &"Alice"),
         allocation(60, &"Bob")
     ], DAY, 1, DAY, 0).claimable(&HumanAddr::from("Alice"), 0),
         0);
 
-    assert_eq!(release_periodic_multi(100, vec![
+    assert_eq!(channel_periodic_multi(100, vec![
         allocation(40, &"Alice"),
         allocation(60, &"Bob")
     ], DAY, 1, DAY, 0).claimable(&HumanAddr::from("Alice"), 1),
         40);
 
     // for allocations to make sense:
-    todo!("allocations must be divided per release and not from the total")
+    todo!("allocations must be divided per channel and not from the total")
 }
 
 #[test]
@@ -265,7 +265,7 @@ fn test_pool () {
 }
 
 #[test]
-fn test_schedule_pool_release_and_allocation () {
+fn test_schedule_pool_channel_and_allocation () {
     assert_eq!(schedule(0, vec![]).validate(),
         Ok(()));
 
@@ -276,36 +276,36 @@ fn test_schedule_pool_release_and_allocation () {
         Error!("schedule: pools add up to 0, expected 100"));
 
     assert_eq!(schedule(100, vec![pool("", 50, vec![])]).validate(),
-        Error!("pool: releases add up to 0, expected 50"));
+        Error!("pool: channels add up to 0, expected 50"));
 
     assert_eq!(schedule(100, vec![pool("", 50, vec![
-                release_immediate(20, &"")])]).validate(),
-        Error!("pool: releases add up to 20, expected 50"));
+                channel_immediate(20, &"")])]).validate(),
+        Error!("pool: channels add up to 20, expected 50"));
 
     assert_eq!(schedule(100, vec![pool("", 50, vec![
-                release_immediate(30, &""),
-                release_immediate_multi(20, vec![allocation(10, &"")
+                channel_immediate(30, &""),
+                channel_immediate_multi(20, vec![allocation(10, &"")
                                                ,allocation(10, &"")])])]).validate(),
         Error!("schedule: pools add up to 50, expected 100"));
 
     assert_eq!(schedule(100, vec![
             pool("", 50, vec![
-                release_immediate(30, &""),
-                release_immediate_multi(20, vec![allocation(20, &"")])
+                channel_immediate(30, &""),
+                channel_immediate_multi(20, vec![allocation(20, &"")])
             ]),
             pool("", 50, vec![
-                release_immediate_multi(30, vec![allocation(30, &"")]),
-                release_immediate_multi(20, vec![allocation(20, &"")])])]).validate(),
+                channel_immediate_multi(30, vec![allocation(30, &"")]),
+                channel_immediate_multi(20, vec![allocation(20, &"")])])]).validate(),
         Ok(()));
 
     assert_eq!(schedule(100, vec![
         pool("", 50, vec![
-            release_immediate_multi(30, vec![allocation(30, &"")]),
-            release_immediate_multi(20, vec![allocation(20, &"")])
+            channel_immediate_multi(30, vec![allocation(30, &"")]),
+            channel_immediate_multi(20, vec![allocation(20, &"")])
         ]),
         pool("", 50, vec![
-            release_immediate_multi(30, vec![allocation(30, &"")]),
-            release_immediate_multi(20, vec![allocation(20, &"")])
+            channel_immediate_multi(30, vec![allocation(30, &"")]),
+            channel_immediate_multi(20, vec![allocation(20, &"")])
         ])
     ]).claimable(&HumanAddr::from(""), 0),
         100);
