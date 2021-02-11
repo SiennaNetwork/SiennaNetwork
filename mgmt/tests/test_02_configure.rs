@@ -76,7 +76,7 @@ kukumba!(
         let pools = s1.pools.clone();
         test_q!(deps, GetSchedule;
             Schedule {
-                schedule:Schedule { total: s1.total, pools }
+                schedule: Some(Schedule { total: s1.total, pools })
             });
     }
     when "someone else tries to set a valid configuration" {
@@ -87,8 +87,19 @@ kukumba!(
         let pools = s1.pools.clone();
         test_q!(deps, GetSchedule;
             Schedule {
-                schedule: Schedule { total: s1.total, pools }
+                schedule: Some(Schedule { total: s1.total, pools })
             });
+    }
+    when "the contract launches" {
+        test_tx!(deps, ALICE, 0, 0;
+            Launch {} => tx_ok_launch!(s1.total));
+    } then "the configuration can't be changed anymore" {
+        test_tx!(deps, ALICE, 0, 0;
+            Configure { schedule: s1.clone() } => tx_err!(sienna_mgmt::UNDERWAY));
+        test_tx!(deps, BOB, 0, 0;
+            Configure { schedule: s1.clone() } => tx_err_auth!());
+        test_tx!(deps, MALLORY, 0, 0;
+            Configure { schedule: s1.clone() } => tx_err_auth!());
     }
 
 );

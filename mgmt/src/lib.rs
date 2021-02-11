@@ -68,7 +68,7 @@ contract!(
         history:        sienna_schedule::History,
 
         /// Vesting configuration.
-        schedule:       sienna_schedule::Schedule,
+        schedule:       Option<sienna_schedule::Schedule>,
 
         /// TODO: public counter of invalid requests
         errors:         ErrorCount
@@ -79,19 +79,20 @@ contract!(
      *     a contract that implements SNIP20
      *   - makes the initializer the admin */
     [Init] (deps, env, msg: {
-        schedule:   sienna_schedule::Schedule,
+        schedule:   Option<sienna_schedule::Schedule>,
         token_addr: cosmwasm_std::HumanAddr,
         token_hash: crate::CodeHash
     }) {
-        msg.schedule.validate()?;
         State {
             admin:      Some(env.message.sender),
-            schedule:   msg.schedule,
+            errors:     0,
+
             token_addr: msg.token_addr,
             token_hash: msg.token_hash,
+
+            schedule:   msg.schedule,
             launched:   None,
             history:    History { history: vec![] },
-            errors:     0
         }
     }
 
@@ -117,7 +118,7 @@ contract!(
             launched: crate::Launched
         }
         Schedule {
-            schedule: sienna_schedule::Schedule
+            schedule: Option<sienna_schedule::Schedule>
         }
     }
 
@@ -128,12 +129,15 @@ contract!(
             schedule: sienna_schedule::Schedule
         ) {
             require_admin!(|env, state| {
-                match schedule.validate() {
-                    Ok(_) => {
-                        state.schedule = schedule;
-                        ok(state)
-                    },
-                    Err(e) => (state, Err(e))
+                match state.launched {
+                    Some(_) => err_msg(state, &UNDERWAY),
+                    None => match schedule.validate() {
+                        Err(e) => (state, Err(e)),
+                        Ok(_) => {
+                            state.schedule = Some(schedule);
+                            ok(state)
+                        },
+                    }
                 }
             })
         }
@@ -145,24 +149,30 @@ contract!(
             allocations:  Vec<sienna_schedule::Allocation>
         ) {
             require_admin!(|env, state| {
-                let mut schedule = state.schedule.clone();
-                let mut changed = false;
-                for pool in schedule.pools.iter_mut() {
-                    if pool.name == pool_name {
-                        for channel in pool.channels.iter_mut() {
-                            if channel.name == channel_name {
-                                channel.allocations = allocations.clone();
-                                changed = true;
-                                break
+                match &state.schedule {
+                    None => err_msg(state, &NO_SCHEDULE),
+                    Some(schedule) => {
+                        let mut schedule = schedule.clone();
+                        let mut changed = false;
+                        for pool in schedule.pools.iter_mut() {
+                            if pool.name == pool_name {
+                                for channel in pool.channels.iter_mut() {
+                                    if channel.name == channel_name {
+                                        channel.allocations = allocations.clone();
+                                        changed = true;
+                                        break
+                                    }
+                                }
+                                if changed { break; }
                             }
                         }
-                        if changed { break; }
+                        if changed {
+                            state.schedule = Some(schedule);
+                            ok(state)
+                        } else {
+                            err_msg(state, &NOT_FOUND)
+                        }
                     }
-                }
-                if changed {
-                    ok(state)
-                } else {
-                    err_msg(state, &NOT_FOUND)
                 }
             })
         }
@@ -193,27 +203,30 @@ contract!(
             require_admin!(|env, state| {
                 use crate::UNDERWAY;
                 use cosmwasm_std::Uint128;
-                state.schedule.validate()?;
-                match state.launched {
-                    Some(_) => err_msg(state, &UNDERWAY),
-                    None => {
-                        let actions = vec![
-                            mint_msg(
-                                env.contract.address,
-                                Uint128::from(state.schedule.clone().total),
-                                None, BLOCK_SIZE,
-                                state.token_hash.clone(),
-                                state.token_addr.clone()
-                            ).unwrap(),
-                            set_minters_msg(
-                                vec![],
-                                None, BLOCK_SIZE,
-                                state.token_hash.clone(),
-                                state.token_addr.clone()
-                            ).unwrap(),
-                        ];
-                        state.launched = Some(env.block.time);
-                        ok_msg(state, actions)
+                match &state.schedule {
+                    None => err_msg(state, &NO_SCHEDULE),
+                    Some(schedule) => match &state.launched {
+                        Some(_) => err_msg(state, &UNDERWAY),
+                        None => {
+                            schedule.validate()?;
+                            let actions = vec![
+                                mint_msg(
+                                    env.contract.address,
+                                    Uint128::from(schedule.total),
+                                    None, BLOCK_SIZE,
+                                    state.token_hash.clone(),
+                                    state.token_addr.clone()
+                                ).unwrap(),
+                                set_minters_msg(
+                                    vec![],
+                                    None, BLOCK_SIZE,
+                                    state.token_hash.clone(),
+                                    state.token_addr.clone()
+                                ).unwrap(),
+                            ];
+                            state.launched = Some(env.block.time);
+                            ok_msg(state, actions)
+                        }
                     }
                 }
             })
@@ -230,7 +243,8 @@ contract!(
                     let now       = env.block.time;
                     let claimant  = env.message.sender;
                     let elapsed   = now - *launch;
-                    let claimable = state.schedule.claimable(&claimant, elapsed)?;
+                    let schedule  = state.schedule.clone().unwrap();
+                    let claimable = schedule.claimable(&claimant, elapsed)?;
                     if claimable.len() < 1 {
                         err_msg(state, &NOTHING)
                     } else {

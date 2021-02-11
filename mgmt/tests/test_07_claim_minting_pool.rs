@@ -45,6 +45,11 @@ kukumba!(
         test_tx!(deps, lpf, 3, t_launch + 1;
             Claim {} => tx_ok_claim!(lpf, SIENNA!(300000u128)));
     }
+    and "the liquidity provision fund is claimed again"
+    then "nothing more is transfered" {
+        test_tx!(deps, lpf, 3, t_launch + 1;
+            Claim {} => tx_err!(NOTHING));
+    }
 
     when "the remaining pool tokens are claimed"
     then "the corresponding portion of them is transferred" {

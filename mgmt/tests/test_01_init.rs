@@ -15,7 +15,7 @@ kukumba!(
             &mut deps,
             mock_env(0, 0, &ALICE),
             Init {
-                schedule:   sienna_schedule::schedule(0, vec![]),
+                schedule:   Some(sienna_schedule::schedule(0, vec![])),
                 token_addr: cosmwasm_std::HumanAddr::from("mgmt"),
                 token_hash: String::new(),
             }

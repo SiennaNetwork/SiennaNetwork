@@ -135,7 +135,6 @@ impl Channel {
             Some(Periodic{cliff,duration,interval,..}) => {
                 let amount_after_cliff = (self.amount - *cliff).unwrap().u128();
                 let portion_count = self.portion_count()? as u128;
-                println!("AAC={} PC={}", &amount_after_cliff, &portion_count);
                 if amount_after_cliff % portion_count > 0 {
                     Error!(format!(
                         "channel {}: post-cliff amount {} does not divide evenly in {} portions",
