@@ -32,9 +32,9 @@ pub fn harness (balances: &[(&HumanAddr, &[Coin])])-> ExternMock {
         &mut deps,
         mock_env(0, 0, balances[0].0), // first address in `balances` is admin
         sienna_mgmt::msg::Init {
+            schedule:   sienna_schedule::schedule(0u128, vec![]),
             token_addr: cosmwasm_std::HumanAddr::from("token"),
             token_hash: String::new(),
-            schedule: None
         }
     ).unwrap();
     assert_eq!(0, res.messages.len());
@@ -122,9 +122,24 @@ macro_rules! tx_ok {
     }
 }
 
+macro_rules! tx_ok_launch {
+    ($amount:expr) => {
+        tx_ok!(
+            secret_toolkit::snip20::handle::mint_msg(
+                HumanAddr::from("mgmt"), Uint128::from($amount),
+                None, 256, String::new(), HumanAddr::from("token")
+            ).unwrap(),
+            secret_toolkit::snip20::handle::set_minters_msg(
+                vec![],
+                None, 256, String::new(), HumanAddr::from("token")
+            ).unwrap()
+        )
+    }
+}
+
 macro_rules! tx_ok_claim {
     ($addr:expr, $amount:expr) => {
-        tx_ok!(transfer_msg(
+        tx_ok!(secret_toolkit::snip20::handle::transfer_msg(
             $addr.clone(), $amount,
             None, 256, String::new(), HumanAddr::from("token")
         ).unwrap())

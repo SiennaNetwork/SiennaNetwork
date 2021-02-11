@@ -2,8 +2,6 @@
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
-use cosmwasm_std::HumanAddr;
-
 kukumba!(
 
     #[init]
@@ -17,9 +15,9 @@ kukumba!(
             &mut deps,
             mock_env(0, 0, &ALICE),
             Init {
-                token_addr: HumanAddr::from("mgmt"),
+                schedule:   sienna_schedule::schedule(0, vec![]),
+                token_addr: cosmwasm_std::HumanAddr::from("mgmt"),
                 token_hash: String::new(),
-                schedule:   None
             }
         ).unwrap();
     }

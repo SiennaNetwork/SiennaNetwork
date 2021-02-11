@@ -3,8 +3,6 @@
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
 use cosmwasm_std::{StdError, HumanAddr, Uint128};
-use secret_toolkit::snip20::handle::{mint_msg,set_minters_msg};
-use sienna_mgmt::msg::Handle;
 use sienna_schedule::Schedule;
 
 kukumba!(
@@ -37,16 +35,7 @@ kukumba!(
         test_tx!(deps, ALICE, 0, 0;
             Configure { schedule: s.clone() } => tx_ok!());
         test_tx!(deps, ALICE, 4, 4;
-            Launch {} => tx_ok!(
-                mint_msg(
-                    HumanAddr::from("mgmt"), Uint128::from(s.total),
-                    None, 256, String::new(), HumanAddr::from("token")
-                ).unwrap(),
-                set_minters_msg(
-                    vec![],
-                    None, 256, String::new(), HumanAddr::from("token")
-                ).unwrap()
-            ));
+            Launch {} => tx_ok_launch!(s.total));
         test_q!(deps, Status;
             Status { launched: Some(4), errors: 2 });
     }

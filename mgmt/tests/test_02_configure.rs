@@ -2,8 +2,6 @@
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
-use cosmwasm_std::{StdError, HumanAddr, Uint128, HandleResponse};
-use sienna_mgmt::msg::Handle;
 use sienna_schedule::{
     Schedule,
     schedule, pool, pool_partial,
@@ -22,8 +20,8 @@ kukumba!(
     then "that fails" {
         for sender in [&BOB, &MALLORY].iter() {
             test_tx!(deps, sender.clone(), 0, 0;
-                Configure { schedule: schedule(0, vec![]) } =>
-                    tx_err_auth!());
+                Configure { schedule: schedule(0, vec![]) }
+                => tx_err_auth!());
         }
     }
     when "the admin tries to set a configuration that doesn't add up"
@@ -32,8 +30,8 @@ kukumba!(
             schedule(100u128, vec![])
         ].iter() {
             test_tx!(deps, ALICE, 0, 0;
-                Configure { schedule: schedule.clone() } =>
-                tx_err!("schedule: pools add up to 0, expected 100")
+                Configure { schedule: schedule.clone() }
+                => tx_err!("schedule: pools add up to 0, expected 100")
             );
         }
     }
@@ -76,9 +74,9 @@ kukumba!(
             Configure { schedule: s1.clone() } => tx_ok!());
     } then "the configuration is updated" {
         let pools = s1.pools.clone();
-        test_q!(deps, Schedule;
+        test_q!(deps, GetSchedule;
             Schedule {
-                schedule: Some(Schedule { total: s1.total, pools })
+                schedule:Schedule { total: s1.total, pools }
             });
     }
     when "someone else tries to set a valid configuration" {
@@ -87,9 +85,9 @@ kukumba!(
                 tx_err_auth!());
     } then "the configuration remains unchanged" {
         let pools = s1.pools.clone();
-        test_q!(deps, Schedule;
+        test_q!(deps, GetSchedule;
             Schedule {
-                schedule: Some(Schedule { total: s1.total, pools })
+                schedule: Schedule { total: s1.total, pools }
             });
     }
 

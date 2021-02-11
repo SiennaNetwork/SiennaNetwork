@@ -1,9 +1,8 @@
 #[macro_use] extern crate fadroma;
 #[macro_use] extern crate lazy_static;
 
-use cosmwasm_std::HumanAddr;
 use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
-use sienna_schedule::{Seconds, Schedule, History, Account};
+use sienna_schedule::{Seconds, History, Account};
 
 //macro_rules! debug { ($($tt:tt)*)=>{} }
 
@@ -40,6 +39,8 @@ lazy_static! {
     pub static ref PRELAUNCH:   &'static str = "not launched yet";
     /// Error message: schedule hasn't been set yet.
     pub static ref NO_SCHEDULE: &'static str = "set configuration first";
+    /// Error message: can't find channel/pool by name.
+    pub static ref NOT_FOUND:   &'static str = "target not found";
 }
 
 pub fn err_allocation (total: u128, max: u128) -> String {
@@ -50,24 +51,24 @@ pub fn err_allocation (total: u128, max: u128) -> String {
 contract!(
 
     [State] {
-        /// The instantiatior of the contract
-        admin:          Option<HumanAddr>,
+        /// The instantiatior of the contract.
+        admin:          Option<cosmwasm_std::HumanAddr>,
 
-        /// The SNIP20 token contract that will be managed by this instance
-        token_addr:     HumanAddr,
+        /// The SNIP20 token contract that will be managed by this instance.
+        token_addr:     cosmwasm_std::HumanAddr,
 
         /// The code hash of the managed contract
-        /// (see `secretcli query compute contract-hash --help`)
+        /// (see `secretcli query compute contract-hash --help`).
         token_hash:     CodeHash,
 
-        /// Timestamp of the moment this was launched
+        /// When this contract is launched, this is set to the block time.
         launched:       Launched,
 
-        /// History of fulfilled claims
-        history:         History,
+        /// History of fulfilled claims.
+        history:        sienna_schedule::History,
 
-        /// A dedicated portion of the funds can be redirected at runtime
-        schedule:       Option<Schedule>,
+        /// Vesting configuration.
+        schedule:       sienna_schedule::Schedule,
 
         /// TODO: public counter of invalid requests
         errors:         ErrorCount
@@ -78,17 +79,18 @@ contract!(
      *     a contract that implements SNIP20
      *   - makes the initializer the admin */
     [Init] (deps, env, msg: {
+        schedule:   sienna_schedule::Schedule,
         token_addr: cosmwasm_std::HumanAddr,
-        token_hash: crate::CodeHash,
-        schedule:   Option<crate::Schedule>
+        token_hash: crate::CodeHash
     }) {
+        msg.schedule.validate()?;
         State {
             admin:      Some(env.message.sender),
             schedule:   msg.schedule,
             token_addr: msg.token_addr,
             token_hash: msg.token_hash,
             launched:   None,
-            history:     History { history: vec![] },
+            history:    History { history: vec![] },
             errors:     0
         }
     }
@@ -102,7 +104,7 @@ contract!(
                 launched: state.launched,
             }
         }
-        Schedule () {
+        GetSchedule () {
             msg::Response::Schedule {
                 schedule: state.schedule,
             }
@@ -115,18 +117,20 @@ contract!(
             launched: crate::Launched
         }
         Schedule {
-            schedule: Option<crate::Schedule>
+            schedule: sienna_schedule::Schedule
         }
     }
 
     [Handle] (deps, env, sender, state, msg) {
 
         // Before launching the contract, a schedule must be loaded
-        Configure (schedule: crate::Schedule) {
+        Configure (
+            schedule: sienna_schedule::Schedule
+        ) {
             require_admin!(|env, state| {
                 match schedule.validate() {
                     Ok(_) => {
-                        state.schedule = Some(schedule);
+                        state.schedule = schedule;
                         ok(state)
                     },
                     Err(e) => (state, Err(e))
@@ -134,9 +138,40 @@ contract!(
             })
         }
 
+        // Update the allocations of a channel
+        Reallocate (
+            pool_name:    String,
+            channel_name: String,
+            allocations:  Vec<sienna_schedule::Allocation>
+        ) {
+            require_admin!(|env, state| {
+                let mut schedule = state.schedule.clone();
+                let mut changed = false;
+                for pool in schedule.pools.iter_mut() {
+                    if pool.name == pool_name {
+                        for channel in pool.channels.iter_mut() {
+                            if channel.name == channel_name {
+                                channel.allocations = allocations.clone();
+                                changed = true;
+                                break
+                            }
+                        }
+                        if changed { break; }
+                    }
+                }
+                if changed {
+                    ok(state)
+                } else {
+                    err_msg(state, &NOT_FOUND)
+                }
+            })
+        }
+
         // The admin can make someone else the admin
         // but there can be only one admin at a given time,
-        TransferOwnership (new_admin: cosmwasm_std::HumanAddr) {
+        TransferOwnership (
+            new_admin: cosmwasm_std::HumanAddr
+        ) {
             require_admin!(|env, state| {
                 state.admin = Some(new_admin);
                 ok(state)
@@ -158,29 +193,27 @@ contract!(
             require_admin!(|env, state| {
                 use crate::UNDERWAY;
                 use cosmwasm_std::Uint128;
-                match state.schedule {
-                    None => err_msg(state, &NO_SCHEDULE),
-                    Some(ref schedule) => match state.launched {
-                        Some(_) => err_msg(state, &UNDERWAY),
-                        None => {
-                            let actions = vec![
-                                mint_msg(
-                                    env.contract.address,
-                                    Uint128::from(schedule.clone().total),
-                                    None, BLOCK_SIZE,
-                                    state.token_hash.clone(),
-                                    state.token_addr.clone()
-                                ).unwrap(),
-                                set_minters_msg(
-                                    vec![],
-                                    None, BLOCK_SIZE,
-                                    state.token_hash.clone(),
-                                    state.token_addr.clone()
-                                ).unwrap(),
-                            ];
-                            state.launched = Some(env.block.time);
-                            ok_msg(state, actions)
-                        }
+                state.schedule.validate()?;
+                match state.launched {
+                    Some(_) => err_msg(state, &UNDERWAY),
+                    None => {
+                        let actions = vec![
+                            mint_msg(
+                                env.contract.address,
+                                Uint128::from(state.schedule.clone().total),
+                                None, BLOCK_SIZE,
+                                state.token_hash.clone(),
+                                state.token_addr.clone()
+                            ).unwrap(),
+                            set_minters_msg(
+                                vec![],
+                                None, BLOCK_SIZE,
+                                state.token_hash.clone(),
+                                state.token_addr.clone()
+                            ).unwrap(),
+                        ];
+                        state.launched = Some(env.block.time);
+                        ok_msg(state, actions)
                     }
                 }
             })
@@ -197,8 +230,7 @@ contract!(
                     let now       = env.block.time;
                     let claimant  = env.message.sender;
                     let elapsed   = now - *launch;
-                    let schedule  = state.schedule.clone().unwrap();
-                    let claimable = schedule.claimable(&claimant, elapsed)?;
+                    let claimable = state.schedule.claimable(&claimant, elapsed)?;
                     if claimable.len() < 1 {
                         err_msg(state, &NOTHING)
                     } else {

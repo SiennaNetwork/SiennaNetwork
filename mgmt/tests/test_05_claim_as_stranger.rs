@@ -2,10 +2,9 @@
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
-use cosmwasm_std::{StdError, HumanAddr, Uint128};
-use secret_toolkit::snip20::handle::{mint_msg, set_minters_msg, transfer_msg};
-use sienna_mgmt::{PRELAUNCH, NOTHING, msg::Handle};
-use sienna_schedule::{Schedule,Pool,Account,Allocation};
+use cosmwasm_std::{HumanAddr, Uint128};
+use sienna_mgmt::{PRELAUNCH, NOTHING};
+use sienna_schedule::Schedule;
 
 kukumba!(
 
@@ -25,17 +24,7 @@ kukumba!(
         test_tx!(deps, ALICE, 0, 0;
             Configure { schedule: s.clone() } => tx_ok!());
         test_tx!(deps, ALICE, 2, 2;
-            Launch {} => tx_ok!(
-                mint_msg(
-                    HumanAddr::from("mgmt"),
-                    Uint128::from(s.total),
-                    None, 256, String::new(), HumanAddr::from("token")
-                ).unwrap(),
-                set_minters_msg(
-                    vec![],
-                    None, 256, String::new(), HumanAddr::from("token")
-                ).unwrap()
-            ));
+            Launch {} => tx_ok_launch!(s.total));
     }
     when "a stranger tries to claim funds"
     then "they are denied" {

@@ -2,10 +2,6 @@
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
-use cosmwasm_std::{StdError, HumanAddr, Uint128, HandleResponse};
-use sienna_mgmt::msg::Handle;
-use sienna_schedule::Schedule;
-
 kukumba!(
 
     #[transfer_ownership]
