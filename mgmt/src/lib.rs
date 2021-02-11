@@ -74,10 +74,10 @@ contract!(
         errors:         ErrorCount
     }
 
-    /* Initializing an instance of the contract:
-     *   - requires the address and code hash of
-     *     a contract that implements SNIP20
-     *   - makes the initializer the admin */
+    /// Initializing an instance of the contract:
+    ///  - requires the address and code hash of
+    ///    a contract that implements SNIP20
+    ///  - makes the initializer the admin
     [Init] (deps, env, msg: {
         schedule:   Option<sienna_schedule::Schedule>,
         token_addr: cosmwasm_std::HumanAddr,
@@ -97,8 +97,6 @@ contract!(
     }
 
     [Query] (deps, state, msg) {
-        // Querying the status.
-        // TODO how much info should be available here?
         Status () {
             msg::Response::Status {
                 errors:   state.errors,
@@ -124,7 +122,7 @@ contract!(
 
     [Handle] (deps, env, sender, state, msg) {
 
-        // Before launching the contract, a schedule must be loaded
+        /// Load a new schedule (only before launching the contract)
         Configure (
             schedule: sienna_schedule::Schedule
         ) {
@@ -142,7 +140,7 @@ contract!(
             })
         }
 
-        // Update the allocations of a channel
+        /// Update the allocations of a channel
         Reallocate (
             pool_name:    String,
             channel_name: String,
@@ -177,8 +175,8 @@ contract!(
             })
         }
 
-        // The admin can make someone else the admin
-        // but there can be only one admin at a given time,
+        /// The admin can make someone else the admin,
+        /// but there can be only one admin at a given time (or none)
         TransferOwnership (
             new_admin: cosmwasm_std::HumanAddr
         ) {
@@ -188,8 +186,8 @@ contract!(
             })
         }
 
-        // or the admin can disown the contract
-        // so that nobody can be admin anymore:
+        /// The admin can disown the contract
+        /// so that nobody can be admin anymore:
         Disown () {
             require_admin!(|env, state| {
                 state.admin = None;
@@ -197,8 +195,10 @@ contract!(
             })
         }
 
-        // After configuring the instance, launch confirmation must be given.
-        // An instance can be launched only once.
+        /// An instance can be launched only once.
+        /// Launching the instance mints the total tokens as specified by
+        /// the schedule, and prevents any more tokens from ever being minted
+        /// by the underlying contract.
         Launch () {
             require_admin!(|env, state| {
                 use crate::UNDERWAY;
@@ -232,8 +232,8 @@ contract!(
             })
         }
 
-        // Recipients can call the Claim method to receive
-        // the gains that they have accumulated so far.
+        /// After launch, recipients can call the Claim method to
+        /// receive the gains that they have accumulated so far.
         Claim () {
             use crate::{PRELAUNCH, BROKEN, NOTHING};
             use cosmwasm_std::{Uint128};
