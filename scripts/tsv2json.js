@@ -154,9 +154,9 @@ module.exports = function tsv2json (
         name,
         amount,
         periodic: (interval == 0) ? undefined : periodic_vesting(data, i),
-        allocations: []
+        allocations: [[0, []]]
       })
-      if (address) current_channel.allocations.push({addr:address,amount:amount_per_interval||amount})
+      if (address) current_channel.allocations[0][1].push({addr:address,amount:amount_per_interval||amount})
       console.log(`  add channel ${name} (${address}) to pool ${current_pool.name} (${running_pool_total})`)
       return true
     }
@@ -180,7 +180,7 @@ module.exports = function tsv2json (
     let {allocation,address} = data
     if (allocation&&address) {
       // row describes allocation
-      current_channel.allocations.push({addr:address,amount:allocation})
+      current_channel.allocations[0][1].push({addr:address,amount:allocation})
       running_channel_total += allocation
       return true
     }

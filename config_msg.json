@@ -17,10 +17,15 @@
             "cliff": "200000000000000000000"
           },
           "allocations": [
-            {
-              "addr": "secret1TODO10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "4166250000000000000000"
-            }
+            [
+              0,
+              [
+                {
+                  "addr": "secret1TODO10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "4166250000000000000000"
+                }
+              ]
+            ]
           ]
         }
       ]
@@ -41,10 +46,15 @@
             "cliff": "80000000000000000000000"
           },
           "allocations": [
-            {
-              "addr": "secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "1500000000000000000000"
-            }
+            [
+              0,
+              [
+                {
+                  "addr": "secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "1500000000000000000000"
+                }
+              ]
+            ]
           ]
         },
         {
@@ -58,10 +68,15 @@
             "cliff": "80000000000000000000000"
           },
           "allocations": [
-            {
-              "addr": "secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "1500000000000000000000"
-            }
+            [
+              0,
+              [
+                {
+                  "addr": "secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "1500000000000000000000"
+                }
+              ]
+            ]
           ]
         },
         {
@@ -75,10 +90,15 @@
             "cliff": "73100000000000000000000"
           },
           "allocations": [
-            {
-              "addr": "secret1TODO22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "1370625000000000000000"
-            }
+            [
+              0,
+              [
+                {
+                  "addr": "secret1TODO22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "1370625000000000000000"
+                }
+              ]
+            ]
           ]
         },
         {
@@ -92,10 +112,15 @@
             "cliff": "6900000000000000000000"
           },
           "allocations": [
-            {
-              "addr": "secret1TODO23xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "129375000000000000000"
-            }
+            [
+              0,
+              [
+                {
+                  "addr": "secret1TODO23xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "129375000000000000000"
+                }
+              ]
+            ]
           ]
         }
       ]
@@ -116,10 +141,15 @@
             "cliff": "0"
           },
           "allocations": [
-            {
-              "addr": "secret1TODO30xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "75000000000000000000000"
-            }
+            [
+              0,
+              [
+                {
+                  "addr": "secret1TODO30xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "75000000000000000000000"
+                }
+              ]
+            ]
           ]
         }
       ]
@@ -140,10 +170,15 @@
             "cliff": "8000000000000000000"
           },
           "allocations": [
-            {
-              "addr": "secret1TODO40xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "104150000000000000000"
-            }
+            [
+              0,
+              [
+                {
+                  "addr": "secret1TODO40xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "104150000000000000000"
+                }
+              ]
+            ]
           ]
         },
         {
@@ -157,10 +192,15 @@
             "cliff": "8000000000000000000"
           },
           "allocations": [
-            {
-              "addr": "secret1TODO41xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "104150000000000000000"
-            }
+            [
+              0,
+              [
+                {
+                  "addr": "secret1TODO41xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "104150000000000000000"
+                }
+              ]
+            ]
           ]
         },
         {
@@ -174,10 +214,15 @@
             "cliff": "1000000000000000000"
           },
           "allocations": [
-            {
-              "addr": "secret1TODO42xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "55550000000000000000"
-            }
+            [
+              0,
+              [
+                {
+                  "addr": "secret1TODO42xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "55550000000000000000"
+                }
+              ]
+            ]
           ]
         },
         {
@@ -191,20 +236,30 @@
             "cliff": "800000000000000000"
           },
           "allocations": [
-            {
-              "addr": "secret1TODO43xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "10415000000000000000"
-            }
+            [
+              0,
+              [
+                {
+                  "addr": "secret1TODO43xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "10415000000000000000"
+                }
+              ]
+            ]
           ]
         },
         {
           "name": "AdvisorN",
           "amount": "85000000000000000000000",
           "allocations": [
-            {
-              "addr": "secret1TODO44xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "85000000000000000000000"
-            }
+            [
+              0,
+              [
+                {
+                  "addr": "secret1TODO44xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "85000000000000000000000"
+                }
+              ]
+            ]
           ]
         }
       ]
@@ -218,10 +273,15 @@
           "name": "LiqProvFund",
           "amount": "300000000000000000000000",
           "allocations": [
-            {
-              "addr": "secret1TODO50xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "300000000000000000000000"
-            }
+            [
+              0,
+              [
+                {
+                  "addr": "secret1TODO50xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "300000000000000000000000"
+                }
+              ]
+            ]
           ]
         },
         {
@@ -235,18 +295,23 @@
             "cliff": "0"
           },
           "allocations": [
-            {
-              "addr": "secret1TODO51xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "1250000000000000000000"
-            },
-            {
-              "addr": "secret1TODO52xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "750000000000000000000"
-            },
-            {
-              "addr": "secret1TODO53xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-              "amount": "500000000000000000000"
-            }
+            [
+              0,
+              [
+                {
+                  "addr": "secret1TODO51xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "1250000000000000000000"
+                },
+                {
+                  "addr": "secret1TODO52xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "750000000000000000000"
+                },
+                {
+                  "addr": "secret1TODO53xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "amount": "500000000000000000000"
+                }
+              ]
+            ]
           ]
         }
       ]

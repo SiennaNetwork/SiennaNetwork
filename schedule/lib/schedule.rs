@@ -668,10 +668,10 @@ mod tests {
             Ok(99u128));
 
         assert_eq!(c.claimable(&alice, start_at),
-            Ok(vec![portion(cliff, &alice, start_at, ": cliff")]));
+            Ok(vec![portion(cliff, &alice, start_at,           ": cliff")]));
 
         assert_eq!(c.claimable(&alice, start_at + 1),
-            Ok(vec![portion(cliff, &alice, start_at, ": cliff")]));
+            Ok(vec![portion(cliff, &alice, start_at,           ": cliff")]));
 
         assert_eq!(c.claimable(&alice, start_at + interval),
             Ok(vec![portion(cliff,  &alice, start_at,          ": cliff")
@@ -695,22 +695,22 @@ mod tests {
             Ok(100u128));
 
         assert_eq!(c.claimable(&alice, start_at),
-            Ok(vec![portion(cliff, &alice, start_at, ": cliff")]));
+            Ok(vec![portion(cliff,   &alice, start_at,            ": cliff")]));
 
         assert_eq!(c.claimable(&alice, start_at + 1),
-            Ok(vec![portion(cliff, &alice, start_at, ": cliff")]));
+            Ok(vec![portion(cliff,   &alice, start_at,            ": cliff")]));
 
         assert_eq!(c.claimable(&alice, start_at + interval),
-            Ok(vec![portion(cliff,   &alice, start_at,             ": cliff")
+            Ok(vec![portion(cliff,   &alice, start_at,            ": cliff")
                    ,portion(100u128, &alice, start_at+interval,   ": vesting")]));
 
         assert_eq!(c.claimable(&alice, start_at + 2*interval),
-            Ok(vec![portion(cliff,   &alice, start_at,             ": cliff")
+            Ok(vec![portion(cliff,   &alice, start_at,            ": cliff")
                    ,portion(100u128, &alice, start_at+interval,   ": vesting")
                    ,portion(100u128, &alice, start_at+2*interval, ": vesting")]));
 
         assert_eq!(c.claimable(&alice, start_at + 10*interval),
-            Ok(vec![portion(cliff,   &alice, start_at,             ": cliff")
+            Ok(vec![portion(cliff,   &alice, start_at,            ": cliff")
                    ,portion(100u128, &alice, start_at+interval,   ": vesting")
                    ,portion(100u128, &alice, start_at+2*interval, ": vesting")]));
     }
