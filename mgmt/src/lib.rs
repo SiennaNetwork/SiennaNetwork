@@ -2,7 +2,7 @@
 #[macro_use] extern crate lazy_static;
 
 use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
-use sienna_schedule::{Seconds, History, Account};
+use sienna_schedule::{Seconds, History};
 
 //macro_rules! debug { ($($tt:tt)*)=>{} }
 
@@ -92,7 +92,7 @@ contract!(
 
             schedule:   msg.schedule,
             launched:   None,
-            history:    History { history: vec![] },
+            history:    History::new(),
         }
     }
 
@@ -156,7 +156,7 @@ contract!(
                             if pool.name == pool_name {
                                 for channel in pool.channels.iter_mut() {
                                     if channel.name == channel_name {
-                                        channel.allocations = allocations.clone();
+                                        channel.allocations.push((env.block.time, allocations.clone()));
                                         changed = true;
                                         break
                                     }

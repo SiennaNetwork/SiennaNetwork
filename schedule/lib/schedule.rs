@@ -9,7 +9,7 @@ macro_rules! Error {
     ($msg:expr) => { Err(StdError::GenericErr { msg: $msg.to_string(), backtrace: None }) }
 }
 
-/// Root schedule; contains `Pool`s that must add up to `total`.
+/// Vesting schedule; contains `Pool`s that must add up to `total`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Schedule {
@@ -18,6 +18,46 @@ pub struct Schedule {
 }
 pub fn schedule (total: u128, pools: Vec<Pool>) -> Schedule {
     Schedule { total: Uint128::from(total), pools }
+}
+impl Schedule {
+    /// Make sure that the schedule contains valid data.
+    pub fn validate (&self) -> StdResult<()> {
+        let mut total = 0u128;
+        check_for_duplicate_pools(&self.pools, "schedule: duplicate pool name")?;
+        let mut pools: Vec<String> = vec![];
+        for pool in self.pools.iter() {
+            pools.push(pool.name.clone());
+            match pool.validate() {
+                Ok(_)  => { total += pool.total.u128() },
+                Err(e) => return Err(e)
+            }
+        }
+        if total != self.total.u128() {
+            return Error!(format!("schedule: pools add up to {}, expected {}", total, self.total))
+        }
+        Ok(())
+    }
+    /// Get amount unlocked for address `a` at time `t`.
+    pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<Vec<Portion>> {
+        let mut portions = vec![];
+        for pool in self.pools.iter() {
+            portions.append(&mut pool.claimable(a, t)?);
+        }
+        Ok(portions)
+    }
+}
+fn check_for_duplicate_pools (items: &Vec<Pool>, msg: &str) -> StdResult<()> {
+    let mut names: Vec<String> = vec![];
+    for item in items.iter() {
+        let item_name = &item.name;
+        for visited_name in names.iter() {
+            if item_name == visited_name {
+                return Error!(format!("{} {}", msg, &item_name))
+            }
+        }
+        names.push(item_name.into())
+    }
+    Ok(())
 }
 
 /// Vesting pool; contains `Channel`s that must add up to `total`
@@ -36,6 +76,33 @@ pub fn pool (name: &str, total: u128, channels: Vec<Channel>) -> Pool {
 pub fn pool_partial (name: &str, total: u128, channels: Vec<Channel>) -> Pool {
     Pool { name: name.to_string(), total: Uint128::from(total), channels, partial: true }
 }
+impl Pool {
+    pub fn validate (&self) -> StdResult<()> {
+        let mut total = 0u128;
+        for channel in self.channels.iter() {
+            match channel.validate() {
+                Ok(_)  => { total += channel.amount.u128() },
+                Err(e) => return Err(e)
+            }
+        }
+        let invalid_total = if self.partial {
+            total > self.total.u128()
+        } else {
+            total != self.total.u128()
+        };
+        if invalid_total {
+            return Error!(format!("pool {}: channels add up to {}, expected {}", self.name, total, self.total))
+        }
+        Ok(())
+    }
+    pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<Vec<Portion>> {
+        let mut portions = vec![];
+        for channel in self.channels.iter() {
+            portions.append(&mut channel.claimable(a, t)?);
+        }
+        Ok(portions)
+    }
+}
 
 /// Vesting channel: contains one or more `Allocation`s and can be `Periodic`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -44,8 +111,8 @@ pub struct Channel {
     pub name:   String,
     pub amount: Uint128,
 
-    /// Each portion is split between these addresses.
-    pub allocations: Vec<Allocation>,
+    /// Each portion can be split between multiple addresses.
+    pub allocations: Vec<(Seconds, Vec<Allocation>)>,
 
     /// Immediate channel: if the contract has launched,
     /// the recipient can claim the entire allocated amount once
@@ -61,7 +128,7 @@ pub fn channel_immediate (
         name: String::new(),
         amount: Uint128::from(amount),
         periodic: None,
-        allocations: vec![allocation(amount, address)],
+        allocations: vec![(0, vec![allocation(amount, address)])],
     }
 }
 pub fn channel_immediate_multi (
@@ -72,7 +139,7 @@ pub fn channel_immediate_multi (
         name: String::new(),
         amount: Uint128::from(amount),
         periodic: None,
-        allocations: allocations.clone()
+        allocations: vec![(0, allocations.clone())]
     }
 }
 pub fn channel_periodic (
@@ -93,8 +160,7 @@ pub fn channel_periodic (
     let amount_after_cliff = (channel.amount - cliff).unwrap().u128();
     let portion_count = (duration / interval) as u128;
     let portion_size = amount_after_cliff / portion_count;
-    let allocation = allocation(portion_size, address);
-    channel.allocations.push(allocation);
+    channel.allocations.push((0, vec![allocation(portion_size, address)]));
     channel
 }
 pub fn channel_periodic_multi (
@@ -110,11 +176,113 @@ pub fn channel_periodic_multi (
         name: String::new(),
         amount: Uint128::from(amount),
         periodic: Some(Periodic {interval, start_at, duration, cliff}),
-        allocations: allocations.clone()
+        allocations: vec![(0, allocations.clone())]
     }
 }
 impl Channel {
-    fn portion_count (&self) -> StdResult<u64> {
+    pub fn validate (&self) -> StdResult<()> {
+        match &self.periodic {
+            None => {},
+            Some(Periodic{cliff,duration,interval,..}) => {
+                if *duration < 1 {
+                    return Error!(format!(
+                        "channel {}: periodic vesting's duration can't bw 0",
+                        &self.name))
+                }
+                if *interval < 1 {
+                    return Error!(format!(
+                        "channel {}: periodic vesting's interval can't be 0",
+                        &self.name))
+                }
+                if *cliff > self.amount {
+                    return Error!(format!(
+                        "channel {}: cliff {} can't be larger than total amount {}",
+                        &self.name, cliff, self.amount))
+                }
+                for (_, allocations) in self.allocations.iter() {
+                    if allocations.len() > 1 && cliff.u128() > 0 {
+                        return Error!(format!(
+                            "channel {}: cliff not supported with multiple allocations",
+                            &self.name))
+                    }
+                }
+            }
+        }
+        for (_, allocations) in self.allocations.iter() {
+            let mut total_portion = 0u128;
+            for Allocation { amount, .. } in allocations.iter() {
+                total_portion += amount.u128()
+            }
+            let portion_size = self.portion_size()?;
+            if total_portion != portion_size {
+                return Error!(
+                    format!("channel {}: allocations add up to {}, expected {}",
+                    &self.name, total_portion, portion_size))
+            }
+        }
+        Ok(())
+    }
+    /// Return list of portions that have become claimable for address `a` by time `t`.
+    /// Immediate vestings only need the latest set of allocations to work,
+    /// but periodic vestings need to iterate over the full history of allocations
+    /// in order to generate portions after reallocation without rewriting history.
+    /// **WARNING**: it is assumed that there is always at least 1 set of allocations,
+    ///              that there is no more than 1 set of allocations per timestamp,
+    ///              and that allocations are stored sorted
+    pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<Vec<Portion>> {
+        let mut portions = vec![];
+        match &self.periodic {
+            None => { // immediate
+                match self.allocations.get(self.allocations.len()-1) {
+                    None => return Error!(format!("{}: no allocations", &self.name)),
+                    Some((_, latest_allocations)) => {
+                        for Allocation { addr, amount } in latest_allocations.iter() {
+                            if addr == a {
+                                let reason = format!("{}: immediate", &self.name);
+                                portions.push(portion((*amount).u128(), a, 0, &reason));
+                            }
+                        }
+                    }
+                }
+            },
+            Some(Periodic{start_at,cliff,interval,..}) => { // periodic
+                if t >= *start_at { // nothing can be claimed before the start
+                    let elapsed = t - start_at;
+                    let n_portions = u64::min( // unaffected by reallocation
+                        self.portion_count()?,
+                        elapsed / interval
+                    );
+                    let mut for_me = false; // flag to add cliff at the end
+                    for n_portion in 0..n_portions {
+                        let t_portion = start_at + n_portion * interval;
+                        let (mut t_allocations, mut current_allocations) = match self.allocations.get(0) {
+                            Some((t, allocations)) => (t, allocations),
+                            None => return Error!(format!("{}: no allocations", &self.name))
+                        };
+                        for (t, allocations) in self.allocations.iter() {
+                            if *t > t_portion { break }
+                            if t > t_allocations { current_allocations = allocations }
+                        }
+                        for Allocation { addr, amount } in current_allocations.iter() {
+                            if addr == a {
+                                for_me = true;
+                                let reason = format!("{}: vesting", &self.name);
+                                let t_vested = start_at + n_portion * interval;
+                                portions.push(portion((*amount).u128(), a, t_vested, &reason));
+                            }
+                        }
+                    }
+                    let cliff = (*cliff).u128();
+                    if for_me && cliff > 0 {
+                        let reason = format!("{}: cliff", &self.name);
+                        portions.insert(0, portion(cliff, a, *start_at, &reason));
+                    }
+                }
+            }
+        }
+        Ok(portions)
+    }
+    pub fn portion_count (&self) -> StdResult<u64> {
         match &self.periodic {
             None {} =>
                 Ok(1),
@@ -128,7 +296,7 @@ impl Channel {
                 }
         }
     }
-    fn portion_size (&self) -> StdResult<u128> {
+    pub fn portion_size (&self) -> StdResult<u128> {
         match &self.periodic {
             None {} =>
                 Ok(self.amount.u128()),
@@ -145,8 +313,17 @@ impl Channel {
             }
         }
     }
+    /// Allocations can be changed on the fly without affecting past vestings.
+    pub fn reallocate (&mut self, t: Seconds, allocations: Vec<Allocation>) -> StdResult<()> {
+        let t_max = self.allocations.iter().fold(0, |x,y|Seconds::max(x,y.0));
+        if t < t_max {
+            return Error!(format!("channel {}: can not reallocate in the past ({} < {})",
+                &self.name, &t, t_max))
+        }
+        self.allocations.push((t, allocations));
+        self.validate()
+    }
 }
-
 /// Configuration of periodic vesting ladder.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -166,166 +343,6 @@ pub struct Allocation {
 pub fn allocation (amount: u128, addr: &HumanAddr) -> Allocation {
     Allocation { amount: Uint128::from(amount), addr: addr.clone() }
 }
-
-pub trait Named {
-    fn get_name (&self) -> &str;
-}
-impl Named for Pool {
-    fn get_name (&self) -> &str { &self.name }
-}
-fn check_for_duplicates (items: &Vec<impl Named>, msg: &str) -> StdResult<()> {
-    let mut names: Vec<String> = vec![];
-    for item in items.iter() {
-        let item_name = item.get_name();
-        for visited_name in names.iter() {
-            if item_name == *visited_name {
-                return Error!(format!("{} {}", msg, &item_name))
-            }
-        }
-        names.push(item_name.into())
-    }
-    Ok(())
-}
-
-/// Allow for validation and computing of `claimable`.
-pub trait Account {
-    /// Make sure account contains valid data.
-    fn validate  (&self) -> StdResult<()>;
-    /// Get amount unlocked for address `a` at time `t`.
-    fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<Vec<Portion>>;
-}
-impl Account for Schedule {
-    fn validate (&self) -> StdResult<()> {
-        let mut total = 0u128;
-        check_for_duplicates(&self.pools, "schedule: duplicate pool name")?;
-        let mut pools: Vec<String> = vec![];
-        for pool in self.pools.iter() {
-            pools.push(pool.name.clone());
-            match pool.validate() {
-                Ok(_)  => { total += pool.total.u128() },
-                Err(e) => return Err(e)
-            }
-        }
-        if total != self.total.u128() {
-            return Error!(format!("schedule: pools add up to {}, expected {}", total, self.total))
-        }
-        Ok(())
-    }
-    fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<Vec<Portion>> {
-        let mut portions = vec![];
-        for pool in self.pools.iter() {
-            portions.append(&mut pool.claimable(a, t)?);
-        }
-        Ok(portions)
-    }
-}
-impl Account for Pool {
-    fn validate (&self) -> StdResult<()> {
-        let mut total = 0u128;
-        for channel in self.channels.iter() {
-            match channel.validate() {
-                Ok(_)  => { total += channel.amount.u128() },
-                Err(e) => return Err(e)
-            }
-        }
-        let invalid_total = if self.partial {
-            total > self.total.u128()
-        } else {
-            total != self.total.u128()
-        };
-        if invalid_total {
-            return Error!(format!("pool {}: channels add up to {}, expected {}", self.name, total, self.total))
-        }
-        Ok(())
-    }
-    fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<Vec<Portion>> {
-        let mut portions = vec![];
-        for channel in self.channels.iter() {
-            portions.append(&mut channel.claimable(a, t)?);
-        }
-        Ok(portions)
-    }
-}
-impl Account for Channel {
-    fn validate (&self) -> StdResult<()> {
-        match &self.periodic {
-            None => {},
-            Some(Periodic{cliff,duration,interval,..}) => {
-                if *duration < 1 {
-                    return Error!(format!(
-                        "channel {}: periodic vesting's duration can't bw 0",
-                        &self.name))
-                }
-                if *interval < 1 {
-                    return Error!(format!(
-                        "channel {}: periodic vesting's interval can't be 0",
-                        &self.name))
-                }
-                if *cliff > self.amount {
-                    return Error!(format!(
-                        "channel {}: cliff {} can't be larger than total amount {}",
-                        &self.name, cliff, self.amount))
-                }
-                if self.allocations.len() > 1 && cliff.u128() > 0 {
-                    return Error!(format!(
-                        "channel {}: cliff not supported with multiple allocations",
-                        &self.name))
-                }
-            }
-        }
-        let mut total_portion = 0u128;
-        for Allocation { amount, .. } in self.allocations.iter() {
-            total_portion += amount.u128()
-        }
-        let portion_size = self.portion_size()?;
-        if total_portion != portion_size {
-            return Error!(
-                format!("channel {}: allocations add up to {}, expected {}",
-                &self.name, total_portion, portion_size))
-        }
-        Ok(())
-    }
-    fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<Vec<Portion>> {
-        let mut portions = vec![];
-        match &self.periodic {
-            None => {
-                for Allocation { addr, amount } in self.allocations.iter() {
-                    if addr == a {
-                        let reason = format!("{}: immediate", &self.name);
-                        portions.push(portion((*amount).u128(), a, 0, &reason));
-                    }
-                }
-            },
-            Some(Periodic{start_at,cliff,interval,..}) => {
-                if t >= *start_at {
-                    let elapsed = t - start_at;
-                    let n_portions = u64::min(
-                        self.portion_count()?,
-                        elapsed / interval
-                    );
-                    let mut for_me = false;
-                    for Allocation { addr, amount } in self.allocations.iter() {
-                        if addr == a {
-                            for_me = true;
-                            for n_portion in 0..n_portions {
-                                let reason = format!("{}: vesting", &self.name);
-                                let t_vested = start_at + n_portion * interval;
-                                portions.push(portion((*amount).u128(), a, t_vested, &reason));
-                            }
-                        }
-                    }
-                    let cliff = (*cliff).u128();
-                    if for_me && cliff > 0 {
-                        let reason = format!("{}: cliff", &self.name);
-                        portions.insert(0, portion(cliff, a, *start_at, &reason));
-                    }
-                }
-            }
-        }
-        Ok(portions)
-    }
-}
-
 /// Claimable portion / history entry.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -343,13 +360,6 @@ pub fn portion (amt: u128, addr: &HumanAddr, vested: Seconds, reason: &str) -> P
         reason:  reason.to_string()
     }
 }
-/// History entry
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub struct ClaimedPortion {
-    portion: Portion,
-    claimed: Seconds
-}
 /// Log of executed claims
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -357,6 +367,7 @@ pub struct History {
     pub history: Vec<ClaimedPortion>
 }
 impl History {
+    pub fn new () -> Self { Self { history: vec![] } }
     /// Takes list of portions, returns the ones which aren't marked as claimed
     pub fn unclaimed (&mut self, claimable: Vec<Portion>) -> Vec<Portion> {
         // TODO sort by timestamp and validate that there is no overlap
@@ -372,6 +383,13 @@ impl History {
             self.history.push(ClaimedPortion {claimed, portion: portion.clone()} )
         }
     }
+}
+/// History entry
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct ClaimedPortion {
+    portion: Portion,
+    claimed: Seconds
 }
 
 #[cfg(test)]
@@ -391,7 +409,7 @@ mod tests {
             Error!("pool P1: channels add up to 0, expected 50"));
         assert_eq!(schedule(0, vec![pool("P1", 0, vec![]), pool("P2", 0, vec![])]).validate(),
             Ok(()));
-        assert_eq!(schedule(0, vec![pool("P1", 0, vec![]), pool("P1", 0, vec![])]).validate(),
+        assert_eq!(schedule(0, vec![pool("P1", 0, vec![]), pool("P2", 0, vec![])]).validate(),
             Error!("schedule: duplicate pool name P1"));
     }
 
@@ -523,10 +541,10 @@ mod tests {
                         &vec![allocation(18, &alice)
                              ,allocation( 2, &bob)])]),
                 pool("P2", 50,
-                    vec![channel_immediate_multi(50,
+                    vec![channel_periodic_multi(50,
                         &vec![allocation(28, &alice)
                              ,allocation( 3, &bob)
-                             ,allocation(19, &alice)])])
+                             ,allocation(19, &alice)], 1, 0, 1, 0)])
                 ]);
         assert_eq!(s.validate(),
             Ok(()));
@@ -546,6 +564,43 @@ mod tests {
     }
 
     #[test]
-    fn test_history () {
+    fn test_reallocation () {
+        let alice = HumanAddr::from("Alice");
+        let bob   = HumanAddr::from("Bob");
+
+        let interval = DAY;
+        let start_at = 0;
+        let duration = 10 * DAY;
+        let cliff    = 0;
+
+        let mut s = channel_periodic_multi(1000u128, &vec![
+            allocation(75u128, &alice),
+            allocation(25u128, &bob),
+        ], interval, start_at, duration, cliff);
+        let claimable = s.claimable(&alice, 0);
+        assert_eq!(s.claimable(&alice, 1 * DAY),
+            Ok(vec![portion(75u128, &alice, 0 * DAY, ": vesting")]));
+        assert_eq!(s.claimable(&alice, 2 * DAY),
+            Ok(vec![portion(75u128, &alice, 0 * DAY, ": vesting")
+                   ,portion(75u128, &alice, 1 * DAY, ": vesting")]));
+        assert_eq!(s.claimable(&alice, 3 * DAY),
+            Ok(vec![portion(75u128, &alice, 0 * DAY, ": vesting")
+                   ,portion(75u128, &alice, 1 * DAY, ": vesting")
+                   ,portion(75u128, &alice, 2 * DAY, ": vesting")]));
+        s.reallocate(3 * DAY + 1, vec![
+            allocation(50u128, &alice),
+            allocation(50u128, &bob)
+        ]);
+        assert_eq!(s.claimable(&alice, 4 * DAY),
+            Ok(vec![portion(75u128, &alice, 0 * DAY, ": vesting")
+                   ,portion(75u128, &alice, 1 * DAY, ": vesting")
+                   ,portion(75u128, &alice, 2 * DAY, ": vesting")
+                   ,portion(50u128, &alice, 3 * DAY, ": vesting")]));
+        assert_eq!(s.claimable(&alice, 5 * DAY),
+            Ok(vec![portion(75u128, &alice, 0 * DAY, ": vesting")
+                   ,portion(75u128, &alice, 1 * DAY, ": vesting")
+                   ,portion(75u128, &alice, 2 * DAY, ": vesting")
+                   ,portion(50u128, &alice, 3 * DAY, ": vesting")
+                   ,portion(50u128, &alice, 4 * DAY, ": vesting")]));
     }
 }
