@@ -8,7 +8,7 @@ use sienna_schedule::{
     Schedule,
     schedule, pool, pool_partial,
     channel_periodic, channel_immediate_multi,
-    allocation_addr
+    allocation
 };
 
 kukumba!(

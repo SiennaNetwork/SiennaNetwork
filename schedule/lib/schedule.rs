@@ -61,7 +61,7 @@ pub fn channel_immediate (
         name: String::new(),
         amount: Uint128::from(amount),
         periodic: None,
-        allocations: vec![allocation_addr(amount, address)],
+        allocations: vec![allocation(amount, address)],
     }
 }
 pub fn channel_immediate_multi (
@@ -93,7 +93,7 @@ pub fn channel_periodic (
     let amount_after_cliff = (channel.amount - cliff).unwrap().u128();
     let portion_count = (duration / interval) as u128;
     let portion_size = amount_after_cliff / portion_count;
-    let allocation = allocation_addr(portion_size, address);
+    let allocation = allocation(portion_size, address);
     channel.allocations.push(allocation);
     channel
 }
@@ -164,10 +164,7 @@ pub struct Allocation {
     amount: Uint128,
     addr:   HumanAddr,
 }
-pub fn allocation (amount: u128, addr: &str) -> Allocation {
-    Allocation { amount: Uint128::from(amount), addr: HumanAddr::from(addr) }
-}
-pub fn allocation_addr (amount: u128, addr: &HumanAddr) -> Allocation {
+pub fn allocation (amount: u128, addr: &HumanAddr) -> Allocation {
     Allocation { amount: Uint128::from(amount), addr: addr.clone() }
 }
 
@@ -410,8 +407,8 @@ mod tests {
         let alice = HumanAddr::from("Alice");
         let bob   = HumanAddr::from("Bob");
         let allocations = vec![
-            allocation_addr(40, &alice),
-            allocation_addr(60, &bob)
+            allocation(40, &alice),
+            allocation(60, &bob)
         ];
 
         assert_eq!(
@@ -508,8 +505,8 @@ mod tests {
         assert_eq!(schedule(100, vec![
             pool("", 50, vec![
                 channel_immediate(30, &alice),
-                channel_immediate_multi(20, &vec![allocation_addr(10, &alice)
-                                                 ,allocation_addr(10, &alice)])
+                channel_immediate_multi(20, &vec![allocation(10, &alice)
+                                                 ,allocation(10, &alice)])
             ])]).validate(),
             Error!("schedule: pools add up to 50, expected 100"));
     }
@@ -524,13 +521,13 @@ mod tests {
                 vec![channel_immediate(29, &alice)
                     ,channel_immediate(1, &bob)
                     ,channel_immediate_multi(20,
-                        &vec![allocation_addr(18, &alice)
-                             ,allocation_addr( 2, &bob)])]),
+                        &vec![allocation(18, &alice)
+                             ,allocation( 2, &bob)])]),
                 pool("P2", 50,
                     vec![channel_immediate_multi(50,
-                        &vec![allocation_addr(28, &alice)
-                             ,allocation_addr( 3, &bob)
-                             ,allocation_addr(19, &alice)])])
+                        &vec![allocation(28, &alice)
+                             ,allocation( 3, &bob)
+                             ,allocation(19, &alice)])])
                 ]);
         assert_eq!(s.validate(),
             Ok(()));

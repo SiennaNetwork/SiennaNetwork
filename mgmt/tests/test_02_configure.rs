@@ -8,7 +8,7 @@ use sienna_schedule::{
     Schedule,
     schedule, pool, pool_partial,
     channel_periodic, channel_immediate_multi,
-    allocation_addr
+    allocation
 };
 
 kukumba!(
@@ -58,17 +58,17 @@ kukumba!(
         let s1 = schedule(100, vec![
             pool("P1", 10, vec![
                 channel_immediate_multi(10, &vec![
-                    allocation_addr(10, &BOB)
+                    allocation(10, &BOB)
                 ])
             ]),
             pool("P2", 90, vec![
                 channel_immediate_multi(45, &vec![
-                    allocation_addr(45, &BOB)
+                    allocation(45, &BOB)
                 ]),
                 channel_immediate_multi(45, &vec![
-                    allocation_addr( 5, &BOB),
-                    allocation_addr(10, &BOB),
-                    allocation_addr(30, &BOB)
+                    allocation( 5, &BOB),
+                    allocation(10, &BOB),
+                    allocation(30, &BOB)
                 ])
             ])
         ])
