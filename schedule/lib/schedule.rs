@@ -263,8 +263,6 @@ impl Channel {
 
     fn claimable_periodic (&self, a: &HumanAddr, t: Seconds, p: &Periodic) -> StdResult<Vec<Portion>> {
 
-        println!("\nCP {} {:#?}", &t, &p);
-
         let Periodic{start_at,cliff,interval,duration} = p;
 
         // Interval can't be 0 (prevent infinite loop below)
@@ -306,7 +304,6 @@ impl Channel {
         if cliff > 0 {
             for Allocation { addr, amount } in current_allocations.iter() {
                 if addr == a {
-                    println!("CLIFF {}", t_cursor);
                     // The first group of allocations must contain exactly
                     // 1 user to avoid splitting the cliff.
                     if current_allocations.len() != 1 {
@@ -327,8 +324,8 @@ impl Channel {
             // After the first cliff, add a new claimable portion
             // for every `interval` seconds unless `t_cursor` is
             // past the current time or the end time.
-            if t_cursor > t { println!("END1 {}>{}", t_cursor, t); break }
-            if t_cursor >= start_at + n_portions * interval { println!("END2 {}>{}", t_cursor, n_portions*interval); break }
+            if t_cursor > t { break }
+            if t_cursor >= start_at + n_portions * interval { break }
 
             // Determine the group of allocations that is current
             // at time `t_cursor`. (It is assumed that groups of
@@ -343,7 +340,6 @@ impl Channel {
             // corresponding portion.
             for Allocation { addr, amount } in current_allocations.iter() {
                 if addr == a {
-                    println!("REGULAR {}", t_cursor);
                     let amount = (*amount).u128();
                     let reason = format!("{}: vesting", &self.name);
                     portions.push(portion(amount, a, t_cursor, &reason));
@@ -502,6 +498,60 @@ mod tests {
     }
 
     #[test]
+    fn test_invalid_schedules () {
+        let alice = HumanAddr::from("Alice");
+        assert_eq!(schedule(100, vec![
+            pool("P1", 50, vec![channel_immediate(20, &alice)]),
+            pool("P2", 50, vec![channel_immediate(30, &alice)])
+        ]).validate(),
+            Error!("pool P1: channels add up to 20, expected 50"));
+
+        assert_eq!(schedule(100, vec![
+            pool("", 50, vec![
+                channel_immediate(30, &alice),
+                channel_periodic_multi(20, &vec![allocation(10, &alice)
+                                                 ,allocation(10, &alice)], 1, 0, 1, 0)
+            ])]).validate(),
+            Error!("schedule: pools add up to 50, expected 100"));
+    }
+
+    #[test]
+    fn test_valid_schedule_with_main_features () {
+        let alice = HumanAddr::from("Alice");
+        let bob = HumanAddr::from("Bob");
+
+        let s = schedule(110, vec![
+            pool("P1", 50, vec![
+                channel_immediate(29, &alice),
+                channel_immediate(1, &bob),
+                channel_periodic(20, &alice, 1, 0, 1, 0).unwrap()
+            ]),
+            pool("P2", 60, vec![
+                channel_periodic(10, &alice, 1, 0, 2, 2).unwrap(),
+                channel_periodic_multi(50, &vec![
+                    allocation(28, &alice),
+                    allocation( 3, &bob),
+                    allocation(19, &alice)
+                ], 1, 0, 1, 0)])]);
+
+        assert_eq!(s.validate(),
+            Ok(()));
+        assert_eq!(s.claimable(&alice, 0),
+            Ok(vec![
+                portion(29u128, &alice, 0u64, ": immediate"),
+                portion(20u128, &alice, 0u64, ": vesting"),
+                portion( 2u128, &alice, 0u64, ": cliff"),
+                portion(28u128, &alice, 0u64, ": vesting"),
+                portion(19u128, &alice, 0u64, ": vesting")
+            ]));
+        assert_eq!(s.claimable(&bob, 0),
+            Ok(vec![
+                portion(1u128, &bob, 0u64, ": immediate"),
+                portion(3u128, &bob, 0u64, ": vesting"),
+            ]));
+    }
+
+    #[test]
     fn test_pool () {
         assert_eq!(pool("", 0, vec![]).validate(),
             Ok(()));
@@ -586,7 +636,7 @@ mod tests {
         let c = channel_periodic(total, &alice, interval, start_at, duration, cliff).unwrap();
 
         assert_eq!(c.regular_portion_count(),
-            Ok(duration/interval - 1));
+            Ok(1));
 
         assert_eq!(c.regular_portion_size(),
             Ok(99u128));
@@ -613,7 +663,7 @@ mod tests {
         let c = channel_periodic(total, &alice, interval, start_at, duration, cliff).unwrap();
 
         assert_eq!(c.regular_portion_count(),
-            Ok(duration/interval - 1));
+            Ok(2));
 
         assert_eq!(c.regular_portion_size(),
             Ok(100u128));
@@ -640,55 +690,6 @@ mod tests {
     }
 
     #[test]
-    fn test_invalid_schedules () {
-        let alice = HumanAddr::from("Alice");
-        assert_eq!(schedule(100, vec![
-            pool("P1", 50, vec![channel_immediate(20, &alice)]),
-            pool("P2", 50, vec![channel_immediate(30, &alice)])
-        ]).validate(),
-            Error!("pool P1: channels add up to 20, expected 50"));
-
-        assert_eq!(schedule(100, vec![
-            pool("", 50, vec![
-                channel_immediate(30, &alice),
-                channel_periodic_multi(20, &vec![allocation(10, &alice)
-                                                 ,allocation(10, &alice)], 1, 0, 1, 0)
-            ])]).validate(),
-            Error!("schedule: pools add up to 50, expected 100"));
-    }
-
-    #[test]
-    fn test_valid_schedule_with_all_features () {
-        let alice = HumanAddr::from("Alice");
-        let bob = HumanAddr::from("Bob");
-        let s = schedule(
-            100,
-            vec![pool("P1", 50,
-                vec![channel_immediate(29, &alice)
-                    ,channel_immediate(1, &bob)
-                    ,channel_periodic(20, &alice, 1, 0, 1, 0).unwrap()])
-                ,pool("P2", 50,
-                    vec![channel_periodic_multi(50,
-                        &vec![allocation(28, &alice)
-                             ,allocation( 3, &bob)
-                             ,allocation(19, &alice)], 1, 0, 1, 0)])]);
-        assert_eq!(s.validate(),
-            Ok(()));
-        assert_eq!(s.claimable(&alice, 0),
-            Ok(vec![
-                portion(29u128, &alice, 0u64, ": immediate"),
-                portion(20u128, &alice, 0u64, ": immediate"),
-                portion(28u128, &alice, 0u64, ": immediate"),
-                portion(19u128, &alice, 0u64, ": immediate")
-            ]));
-        assert_eq!(s.claimable(&bob, 0),
-            Ok(vec![
-                portion(1u128, &bob, 0u64, ": immediate"),
-                portion(3u128, &bob, 0u64, ": immediate"),
-            ]));
-    }
-
-    #[test]
     fn test_reallocation () {
         let alice = HumanAddr::from("Alice");
         let bob   = HumanAddr::from("Bob");
@@ -703,25 +704,25 @@ mod tests {
             allocation(25u128, &bob),
         ], interval, start_at, duration, cliff);
         let claimable = s.claimable(&alice, 0);
-        assert_eq!(s.claimable(&alice, 1 * DAY),
+        assert_eq!(s.claimable(&alice, 0 * DAY),
             Ok(vec![portion(75u128, &alice, 0 * DAY, ": vesting")]));
-        assert_eq!(s.claimable(&alice, 2 * DAY),
+        assert_eq!(s.claimable(&alice, 1 * DAY),
             Ok(vec![portion(75u128, &alice, 0 * DAY, ": vesting")
                    ,portion(75u128, &alice, 1 * DAY, ": vesting")]));
-        assert_eq!(s.claimable(&alice, 3 * DAY),
+        assert_eq!(s.claimable(&alice, 2 * DAY),
             Ok(vec![portion(75u128, &alice, 0 * DAY, ": vesting")
                    ,portion(75u128, &alice, 1 * DAY, ": vesting")
                    ,portion(75u128, &alice, 2 * DAY, ": vesting")]));
         s.reallocate(3 * DAY + 1, vec![
             allocation(50u128, &alice),
             allocation(50u128, &bob)
-        ]);
-        assert_eq!(s.claimable(&alice, 4 * DAY),
+        ]).unwrap();
+        assert_eq!(s.claimable(&alice, 3 * DAY),
             Ok(vec![portion(75u128, &alice, 0 * DAY, ": vesting")
                    ,portion(75u128, &alice, 1 * DAY, ": vesting")
                    ,portion(75u128, &alice, 2 * DAY, ": vesting")
                    ,portion(50u128, &alice, 3 * DAY, ": vesting")]));
-        assert_eq!(s.claimable(&alice, 5 * DAY),
+        assert_eq!(s.claimable(&alice, 4 * DAY),
             Ok(vec![portion(75u128, &alice, 0 * DAY, ": vesting")
                    ,portion(75u128, &alice, 1 * DAY, ": vesting")
                    ,portion(75u128, &alice, 2 * DAY, ": vesting")
