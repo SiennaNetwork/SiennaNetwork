@@ -150,18 +150,17 @@ module.exports = function tsv2json (
 
   // row describes channel
   function channel (data, i) {
-    const {name,amount,percent_of_total,interval_days,interval
-        ,portion,address} = data
+    const {name,amount,percent_of_total,interval_days,interval,expected_portion,address} = data
     if (name && amount && percent_of_total) {
       running_pool_total += amount
-      running_channel_total = BigInt(portion||0)
+      running_channel_total = BigInt(expected_portion||0)
       current_pool.channels.push(current_channel = {
         name,
         amount,
         periodic: (interval == 0) ? undefined : periodic_vesting(data, i),
         allocations: [[0, []]]
       })
-      if (address) current_channel.allocations[0][1].push({addr:address,amount:portion||amount})
+      if (address) current_channel.allocations[0][1].push({addr:address,amount:expected_portion||amount})
       console.log(`  add channel ${name} (${address}) to pool ${current_pool.name} (${running_pool_total})`)
       return true
     }

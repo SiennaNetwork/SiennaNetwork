@@ -40,7 +40,7 @@ pub fn channel_periodic (
     let mut channel = Channel {
         name: String::new(),
         amount: Uint128::from(amount),
-        periodic: Some(periodic(amount, start_at, cliff, duration, interval)?),
+        periodic: Some(periodic_validated(amount, start_at, cliff, duration, interval)?),
         allocations: vec![]
     };
     let portion = channel.portion_size()?;
@@ -59,11 +59,26 @@ pub fn channel_periodic_multi (
     Channel {
         name: String::new(),
         amount: Uint128::from(amount),
-        periodic: Some(periodic(amount, start_at, cliff, duration, interval).unwrap()),
+        periodic: Some(periodic_validated(amount, start_at, cliff, duration, interval).unwrap()),
         allocations: vec![(0, allocations.clone())]
     }
 }
 pub fn periodic (
+    start_at: Seconds,
+    cliff:    u128,
+    duration: Seconds,
+    interval: Seconds
+) -> Periodic {
+    Periodic {
+        interval,
+        start_at,
+        duration,
+        cliff:              Uint128::from(cliff),
+        expected_portion:   Uint128::zero(),
+        expected_remainder: Uint128::zero()
+    }
+}
+pub fn periodic_validated (
     amount:   u128,
     start_at: Seconds,
     cliff:    u128,

@@ -24,7 +24,7 @@
               [
                 {
                   "addr": "secret1TODO10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                  "amount": "2000000000000000000000000"
+                  "amount": "4175000000000000000000"
                 }
               ]
             ]
@@ -55,7 +55,7 @@
               [
                 {
                   "addr": "secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                  "amount": "800000000000000000000000"
+                  "amount": "1500000000000000000000"
                 }
               ]
             ]
@@ -79,7 +79,7 @@
               [
                 {
                   "addr": "secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                  "amount": "800000000000000000000000"
+                  "amount": "1500000000000000000000"
                 }
               ]
             ]
@@ -103,7 +103,7 @@
               [
                 {
                   "addr": "secret1TODO22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                  "amount": "731000000000000000000000"
+                  "amount": "1370000000000000000000"
                 }
               ]
             ]
@@ -127,7 +127,7 @@
               [
                 {
                   "addr": "secret1TODO23xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                  "amount": "69000000000000000000000"
+                  "amount": "129000000000000000000"
                 }
               ]
             ]
@@ -158,7 +158,7 @@
               [
                 {
                   "addr": "secret1TODO30xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                  "amount": "1500000000000000000000000"
+                  "amount": "75000000000000000000000"
                 }
               ]
             ]
@@ -189,7 +189,7 @@
               [
                 {
                   "addr": "secret1TODO40xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                  "amount": "50000000000000000000000"
+                  "amount": "104000000000000000000"
                 }
               ]
             ]
@@ -213,7 +213,7 @@
               [
                 {
                   "addr": "secret1TODO41xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                  "amount": "50000000000000000000000"
+                  "amount": "104000000000000000000"
                 }
               ]
             ]
@@ -237,7 +237,7 @@
               [
                 {
                   "addr": "secret1TODO42xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                  "amount": "10000000000000000000000"
+                  "amount": "55000000000000000000"
                 }
               ]
             ]
@@ -261,7 +261,7 @@
               [
                 {
                   "addr": "secret1TODO43xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                  "amount": "5000000000000000000000"
+                  "amount": "10000000000000000000"
                 }
               ]
             ]
