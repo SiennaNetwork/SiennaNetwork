@@ -282,42 +282,43 @@ impl Channel {
         let mut portions = vec![];
         let mut t_cursor = *start_at;
         let cliff  = cliff.u128();
-        let end_at = *start_at + *duration;
+        let end_at = Seconds::min(t, *start_at + *duration);
         let mut n_portions = self.regular_portion_count()?;
-        loop {
-            // Make sure allocations exist.
-            if self.allocations.len() < 1 {
-                return Error!(format!("{}: launched with no allocations", &self.name))
-            }
 
-            // Get first group of allocations.
-            let (t_alloc, current_allocations) = self.allocations.get(0).unwrap();
-            let mut current_allocations = current_allocations;
-            if *t_alloc > t_cursor {
-                return Error!(format!("{}: time of first allocations is after current time", &self.name))
-            }
+        // Make sure allocations exist.
+        if self.allocations.len() < 1 {
+            return Error!(format!("{}: launched with no allocations", &self.name))
+        }
 
-            // If this is the first iteration of this `loop`, and the `channel`
-            // has a `cliff`, and the first group of `allocations` contains the
-            // claimant `a`, then that user must receive the cliff amount.
-            // (TODO: and divide rest by 1 less?)
-            if t_cursor == *start_at && cliff > 0 {
-                for Allocation { addr, amount } in current_allocations.iter() {
-                    if addr == a {
-                        // The first group of allocations must contain exactly
-                        // 1 user to avoid splitting the cliff.
-                        if current_allocations.len() != 1 {
-                            return Error!(format!("{}: if cliff is present there must be exactly one allocation", &self.name));
-                        }
-                        // If the above is true, make the cliff amount claimable
-                        // as the first portion, and advance the time.
-                        let reason = format!("{}: cliff", &self.name);
-                        portions.push(portion(cliff, a, *start_at, &reason));
-                        t_cursor += interval;
+        // Get first group of allocations.
+        let (t_alloc, current_allocations) = self.allocations.get(0).unwrap();
+        let mut current_allocations = current_allocations;
+        if *t_alloc > t_cursor {
+            return Error!(format!("{}: time of first allocations is after current time", &self.name))
+        }
+
+        // If this is the first iteration of this `loop`, and the `channel`
+        // has a `cliff`, and the first group of `allocations` contains the
+        // claimant `a`, then that user must receive the cliff amount.
+        // (TODO: and divide rest by 1 less?)
+        if cliff > 0 {
+            for Allocation { addr, amount } in current_allocations.iter() {
+                if addr == a {
+                    // The first group of allocations must contain exactly
+                    // 1 user to avoid splitting the cliff.
+                    if current_allocations.len() != 1 {
+                        return Error!(format!("{}: if cliff is present there must be exactly one allocation", &self.name));
                     }
+                    // If the above is true, make the cliff amount claimable
+                    // as the first portion, and advance the time.
+                    let reason = format!("{}: cliff", &self.name);
+                    portions.push(portion(cliff, a, *start_at, &reason));
+                    t_cursor += interval;
                 }
             }
+        }
 
+        loop {
             // After the first cliff, add a new claimable portion
             // for every `interval` seconds unless `t_cursor` is
             // past the current time or the end time.
@@ -361,8 +362,10 @@ impl Channel {
                         "channel {}: duration {} does not divide evenly in intervals of {}",
                         &self.name, duration, interval))
                 } else {
+                    if duration < interval {
+                        return Error!(format!("channel {}: duration ({}) must be >= interval ({})", &self.name, duration, interval));
+                    }
                     let mut n_portions = duration / interval;
-                    println!("RPC {}", cliff);
                     if *cliff > Uint128::zero() {
                         if n_portions < 2 {
                             return Error!(format!("channel {}: periodic vesting must contain at least 1 non-cliff portion", &self.name))
@@ -575,7 +578,7 @@ mod tests {
         let duration = 2*interval;
         let c = channel_periodic(total, &alice, interval, start_at, duration, cliff).unwrap();
         assert_eq!(c.regular_portion_count(),
-            Ok(1));
+            Ok(duration/interval - 1));
         assert_eq!(c.regular_portion_size(),
             Ok(99u128));
         assert_eq!(c.claimable(&alice, start_at),
@@ -593,7 +596,7 @@ mod tests {
         let duration = 3*DAY;
         let c = channel_periodic(total, &alice, interval, start_at, duration, cliff).unwrap();
         assert_eq!(c.regular_portion_count(),
-            Ok(2));
+            Ok(duration/interval - 1));
         assert_eq!(c.regular_portion_size(),
             Ok(66u128));
         assert_eq!(c.claimable(&alice, start_at),
@@ -673,28 +676,24 @@ mod tests {
             vec![pool("P1", 50,
                 vec![channel_immediate(29, &alice)
                     ,channel_immediate(1, &bob)
-                    ,channel_immediate_multi(20,
-                        &vec![allocation(18, &alice)
-                             ,allocation( 2, &bob)])]),
-                pool("P2", 50,
+                    ,channel_periodic(20, &alice, 1, 0, 1, 0).unwrap()])
+                ,pool("P2", 50,
                     vec![channel_periodic_multi(50,
                         &vec![allocation(28, &alice)
                              ,allocation( 3, &bob)
-                             ,allocation(19, &alice)], 1, 0, 1, 0)])
-                ]);
+                             ,allocation(19, &alice)], 1, 0, 1, 0)])]);
         assert_eq!(s.validate(),
             Ok(()));
         assert_eq!(s.claimable(&alice, 0),
             Ok(vec![
                 portion(29u128, &alice, 0u64, ": immediate"),
-                portion(18u128, &alice, 0u64, ": immediate"),
+                portion(20u128, &alice, 0u64, ": immediate"),
                 portion(28u128, &alice, 0u64, ": immediate"),
                 portion(19u128, &alice, 0u64, ": immediate")
             ]));
         assert_eq!(s.claimable(&bob, 0),
             Ok(vec![
                 portion(1u128, &bob, 0u64, ": immediate"),
-                portion(2u128, &bob, 0u64, ": immediate"),
                 portion(3u128, &bob, 0u64, ": immediate"),
             ]));
     }
