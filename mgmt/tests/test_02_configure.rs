@@ -2,11 +2,10 @@
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
+use cosmwasm_std::Uint128;
 use sienna_schedule::{
-    Schedule,
-    schedule, pool, pool_partial,
-    channel_periodic, channel_periodic_multi,
-    allocation
+    Schedule, schedule, pool, pool_partial, Channel, Periodic,
+    channel_periodic, channel_periodic_multi, allocation
 };
 
 kukumba!(
@@ -38,21 +37,29 @@ kukumba!(
     when "the admin tries to set a configuration that doesn't divide evenly"
     then "that fails" {
         for (schedule, error) in [(
-            schedule(100u128,
-                vec![pool_partial("Advisors", 200000u128,
-                    vec![channel_periodic(11000u128, &BOB, 86400, 15552000, 15552001, 1000).unwrap()])]),
-            "channel : duration 15552001 does not divide evenly in intervals of 86400"
+            schedule(200000u128,vec![pool_partial("Advisors", 200000u128,vec![
+                Channel {
+                    name:        "Invalid1".to_string(),
+                    amount:      Uint128::from(11000u128),
+                    periodic:    Some(Periodic { interval: 86400, start_at: 15552000, duration: 15552001, cliff: Uint128::from(1000u128)}),
+                    allocations: vec![]
+                }])]),
+            "channel Invalid1: duration (15552001s) does not divide evenly in intervals of 86400s"
         ), (
-            schedule(100u128,
-                vec![pool_partial("Advisors", 200000u128,
-                    vec![channel_periodic(11000u128, &BOB, 86400, 15552000, 15552000, 1000).unwrap()])]),
-            "channel : post-cliff amount 10000 does not divide evenly in 180 portions"
+            schedule(200000u128,vec![pool_partial("Advisors", 200000u128,vec![
+                Channel {
+                    name:        "Invalid2".to_string(),
+                    amount:      Uint128::from(11000u128),
+                    periodic:    Some(Periodic { interval: 86400, start_at: 15552000, duration: 15552000, cliff: Uint128::from(1000u128)}),
+                    allocations: vec![]
+                }])]),
+            "channel Invalid2: post-cliff amount 10000 does not divide evenly in 180 portions"
         )].iter() {
             test_tx!(deps, ALICE, 0, 0;
                 Configure { schedule: schedule.clone() } => tx_err!(error));
         }
     }
-    when "the sets a valid configuration" {
+    when "the admin sets a valid configuration" {
         let s1 = schedule(100, vec![
             pool("P1", 10, vec![
                 channel_periodic_multi(10, &vec![
@@ -75,9 +82,7 @@ kukumba!(
     } then "the configuration is updated" {
         let pools = s1.pools.clone();
         test_q!(deps, GetSchedule;
-            Schedule {
-                schedule: Some(Schedule { total: s1.total, pools })
-            });
+            Schedule { schedule: Some(Schedule { total: s1.total, pools }) });
     }
     when "someone else tries to set a valid configuration" {
         test_tx!(deps, MALLORY, 0, 0;
@@ -86,9 +91,7 @@ kukumba!(
     } then "the configuration remains unchanged" {
         let pools = s1.pools.clone();
         test_q!(deps, GetSchedule;
-            Schedule {
-                schedule: Some(Schedule { total: s1.total, pools })
-            });
+            Schedule { schedule: Some(Schedule { total: s1.total, pools }) });
     }
     when "the contract launches" {
         test_tx!(deps, ALICE, 0, 0;
