@@ -53,25 +53,26 @@ kukumba!(
 
     when "the remaining pool tokens are claimed"
     then "the corresponding portion of them is transferred" {
-        test_tx!(deps, rem1, 4, t_launch + 2;
+        println!("{:#?}", &s)
+        test_tx!(deps, rem1, 4, t_launch + 86400 + 2;
             Claim {} => tx_ok_claim!(rem1, SIENNA!(1250u128)));
-        test_tx!(deps, rem2, 5, t_launch + 3;
-            Claim {} => tx_ok_claim!(rem1, SIENNA!(750u128)));
+        test_tx!(deps, rem2, 5, t_launch + 86400 + 3;
+            Claim {} => tx_ok_claim!(rem2, SIENNA!(750u128)));
     }
 
     when "the remaining pool tokens are claimed late"
     then "the corresponding portion of them is transferred" {
-        test_tx!(deps, rem3, 6, t_launch + 3*86400;
+        test_tx!(deps, rem3, 6, t_launch + 86400 + 3*86400;
             Claim {} => tx_ok_claim!(rem1, SIENNA!(1500u128)));
     }
 
     when "more remaining pool tokens are claimed"
     then "the corresponding portion of them is transferred" {
-        test_tx!(deps, rem1, 6, t_launch + 4*86400;
+        test_tx!(deps, rem1, 6, t_launch + 86400 + 4*86400;
             Claim {} => tx_ok_claim!(rem1, SIENNA!(2500u128)));
-        test_tx!(deps, rem2, 7, t_launch + 4*86400 + 1;
+        test_tx!(deps, rem2, 7, t_launch + 86400 + 4*86400 + 1;
             Claim {} => tx_ok_claim!(rem2, SIENNA!(1500u128)));
-        test_tx!(deps, rem3, 8, t_launch + 4*86400 + 2;
+        test_tx!(deps, rem3, 8, t_launch + 86400 + 4*86400 + 2;
             Claim {} => tx_ok_claim!(rem3, SIENNA!(500u128)));
     }
 
@@ -86,11 +87,11 @@ kukumba!(
                     allocation(1000, &rem2),
                     allocation(1100, &rem3)
                 ] } => tx_ok!());
-        test_tx!(deps, rem3, 6, t_launch + 5*86400;
+        test_tx!(deps, rem3, 6, t_launch + 86400 + 5*86400;
             Claim {} => tx_ok_claim!(rem3, SIENNA!(1100u128)));
-        test_tx!(deps, rem2, 6, t_launch + 5*86400 + 10;
+        test_tx!(deps, rem2, 6, t_launch + 86400 + 5*86400 + 10;
             Claim {} => tx_ok_claim!(rem2, SIENNA!(1000u128)));
-        test_tx!(deps, rem1, 6, t_launch + 5*86400 + 20;
+        test_tx!(deps, rem1, 6, t_launch + 86400 + 5*86400 + 20;
             Claim {} => tx_ok_claim!(rem1, SIENNA!( 900u128)));
     }
 
