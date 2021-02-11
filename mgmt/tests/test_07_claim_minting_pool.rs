@@ -9,6 +9,13 @@ use sienna_schedule::Schedule;
 
 kukumba!(
 
-    #[claim_remaining_pool_tokens]
+    #[claim_minting_pool]
+
+    given "a contract with the production schedule" {
+        harness!(deps; ADMIN);
+        let s: Schedule = serde_json::from_str(include_str!("../../config_msg.json")).unwrap();
+        test_tx!(deps, ADMIN, 0, 0;
+            Configure { schedule: s.clone() } => tx_ok!());
+    }
 
 );

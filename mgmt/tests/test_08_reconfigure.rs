@@ -13,11 +13,19 @@ use sienna_schedule::{
 
 kukumba!(
 
+    // TODO merge this into test_02_configure.rs
+    // allow full reconfiguration only before vesting has started
+    // (or before anyone has claimed from that pool?)
+
     #[reconfigure]
 
-    given "a contract" {
-        harness!(deps; ALICE, BOB, MALLORY);
+    given "a contract with the production schedule" {
+        harness!(deps; ADMIN);
+        let s: Schedule = serde_json::from_str(include_str!("../../config_msg.json")).unwrap();
+        test_tx!(deps, ADMIN, 0, 0;
+            Configure { schedule: s.clone() } => tx_ok!());
     }
+
     //when "the admin tries to change the number, names, or ordering of pools"
     //then "it is not possible"{
         //todo!();

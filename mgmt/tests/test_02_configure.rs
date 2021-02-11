@@ -22,7 +22,7 @@ kukumba!(
     then "that fails" {
         for sender in [&BOB, &MALLORY].iter() {
             test_tx!(deps, sender.clone(), 0, 0;
-                Handle::Configure { schedule: schedule(0, vec![]) } =>
+                Configure { schedule: schedule(0, vec![]) } =>
                     tx_err_auth!());
         }
     }
@@ -32,7 +32,7 @@ kukumba!(
             schedule(100u128, vec![])
         ].iter() {
             test_tx!(deps, ALICE, 0, 0;
-                Handle::Configure { schedule: schedule.clone() } =>
+                Configure { schedule: schedule.clone() } =>
                 tx_err!("schedule: pools add up to 0, expected 100")
             );
         }
@@ -51,7 +51,7 @@ kukumba!(
             "channel : post-cliff amount 10000 does not divide evenly in 180 portions"
         )].iter() {
             test_tx!(deps, ALICE, 0, 0;
-                Handle::Configure { schedule: schedule.clone() } => tx_err!(error));
+                Configure { schedule: schedule.clone() } => tx_err!(error));
         }
     }
     when "the sets a valid configuration" {
@@ -73,7 +73,7 @@ kukumba!(
             ])
         ])
         test_tx!(deps, ALICE, 0, 0;
-            Handle::Configure { schedule: s1.clone() } => tx_ok!());
+            Configure { schedule: s1.clone() } => tx_ok!());
     } then "the configuration is updated" {
         let pools = s1.pools.clone();
         test_q!(deps, Schedule;
@@ -83,7 +83,7 @@ kukumba!(
     }
     when "someone else tries to set a valid configuration" {
         test_tx!(deps, MALLORY, 0, 0;
-            Handle::Configure { schedule: schedule(0, vec![]) } =>
+            Configure { schedule: schedule(0, vec![]) } =>
                 tx_err_auth!());
     } then "the configuration remains unchanged" {
         let pools = s1.pools.clone();

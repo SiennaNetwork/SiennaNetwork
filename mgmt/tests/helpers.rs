@@ -61,10 +61,11 @@ pub fn tx (
 
 macro_rules! test_tx {
     ( $deps: ident, $SENDER:expr, $block:expr, $time:expr
-    ; $TX:expr => $ExpectedResult:expr
+    ; $TX:ident { $($arg:ident : $val:expr),* } => $ExpectedResult:expr
     ) => {
         let expected_response = $ExpectedResult;
-        let response = tx(&mut $deps, mock_env($block, $time, &$SENDER), $TX);
+        let request = sienna_mgmt::msg::Handle::$TX { $($arg : $val),* };
+        let response = tx(&mut $deps, mock_env($block, $time, &$SENDER), request);
         if response != expected_response {
             println!("!!! Test transaction failed (block {}, time {})", $block, $time);
             if let Ok(cosmwasm_std::HandleResponse { messages, log, data }) = expected_response {

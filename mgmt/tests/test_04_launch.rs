@@ -17,7 +17,7 @@ kukumba!(
     when "a stranger tries to start the vesting" 
     then "that fails" {
         test_tx!(deps, MALLORY, 2, 2;
-            Handle::Launch {} => tx_err_auth!());
+            Launch {} => tx_err_auth!());
         test_q!(deps, Status;
             Status { launched: None, errors: 1 });
     }
@@ -25,7 +25,7 @@ kukumba!(
     and  "the admin tries to start the vesting"
     then "that fails" {
         test_tx!(deps, ALICE, 3, 3;
-            Handle::Launch {} => tx_err!(sienna_mgmt::NO_SCHEDULE));
+            Launch {} => tx_err!(sienna_mgmt::NO_SCHEDULE));
         test_q!(deps, Status;
             Status { launched: None, errors: 2 });
     }
@@ -35,9 +35,9 @@ kukumba!(
     and  "the current time is remembered as the launch date" {
         let s = Schedule { total: Uint128::from(0u128), pools: vec![] }
         test_tx!(deps, ALICE, 0, 0;
-            Handle::Configure { schedule: s.clone() } => tx_ok!());
+            Configure { schedule: s.clone() } => tx_ok!());
         test_tx!(deps, ALICE, 4, 4;
-            Handle::Launch {} => tx_ok!(
+            Launch {} => tx_ok!(
                 mint_msg(
                     HumanAddr::from("mgmt"), Uint128::from(s.total),
                     None, 256, String::new(), HumanAddr::from("token")
@@ -56,7 +56,7 @@ kukumba!(
     and "it does not mint tokens"
     and "it does not update its launch date" {
         test_tx!(deps, ALICE, 5, 5;
-            Handle::Launch {} => tx_err!(sienna_mgmt::UNDERWAY));
+            Launch {} => tx_err!(sienna_mgmt::UNDERWAY));
         test_q!(deps, Status;
             Status { launched: Some(4), errors: 3 });
     }

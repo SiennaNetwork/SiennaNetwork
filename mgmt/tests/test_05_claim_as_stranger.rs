@@ -17,15 +17,15 @@ kukumba!(
     when "a stranger tries to claim funds"
     then "they are denied" {
         test_tx!(deps, MALLORY, 1, 1;
-            Handle::Claim {} => tx_err!(PRELAUNCH));
+            Claim {} => tx_err!(PRELAUNCH));
     }
 
     given "the contract is launched" {
         let s = Schedule { total: Uint128::from(0u128), pools: vec![] }
         test_tx!(deps, ALICE, 0, 0;
-            Handle::Configure { schedule: s.clone() } => tx_ok!());
+            Configure { schedule: s.clone() } => tx_ok!());
         test_tx!(deps, ALICE, 2, 2;
-            Handle::Launch {} => tx_ok!(
+            Launch {} => tx_ok!(
                 mint_msg(
                     HumanAddr::from("mgmt"),
                     Uint128::from(s.total),
@@ -40,7 +40,7 @@ kukumba!(
     when "a stranger tries to claim funds"
     then "they are denied" {
         test_tx!(deps, MALLORY, 4, 4;
-            Handle::Claim {} => tx_err!(NOTHING));
+            Claim {} => tx_err!(NOTHING));
     }
 
 );
