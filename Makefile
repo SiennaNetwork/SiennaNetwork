@@ -74,13 +74,15 @@ coverage:
 		-o Html --output-dir=./coverage
 
 # Extra artifacts
-.PHONY: schema config schedule
+.PHONY: schema config schedule docs
 schema:
 	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schema
 config:
 	./scripts/tsv2json.js
 chart: config
 	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schedule
+docs:
+	cargo doc --document-private-items
 
 # Debugging
 .PHONY: expand

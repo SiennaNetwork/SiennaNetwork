@@ -41,7 +41,7 @@ kukumba!(
                 Channel {
                     name:        "Invalid1".to_string(),
                     amount:      Uint128::from(11000u128),
-                    periodic:    Some(periodic(11000u128, 15552000, 1000u128, 15552001, 86400)),
+                    periodic:    Some(periodic(11000u128, 15552000, 1000u128, 15552001, 86400).unwrap()),
                     allocations: vec![]
                 }])]),
             "channel Invalid1: duration (15552001s) does not divide evenly in intervals of 86400s"
@@ -50,7 +50,7 @@ kukumba!(
                 Channel {
                     name:        "Invalid2".to_string(),
                     amount:      Uint128::from(11000u128),
-                    periodic:    Some(periodic(11000u128, 15552000, 1000u128, 15552000, 86400)),
+                    periodic:    Some(periodic(11000u128, 15552000, 1000u128, 15552000, 86400).unwrap()),
                     allocations: vec![]
                 }])]),
             "channel Invalid2: post-cliff amount 9900 does not divide evenly in 179 portions"
