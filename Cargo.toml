@@ -1,5 +1,11 @@
 [workspace]
-members = [ "fadroma", "kukumba", "schedule", "mgmt", "token" ]
+members = [
+  "kukumba",  # bdd testing framework
+  "fadroma",  # smart contract microframework
+  "token",    # any token that implements SNIP20
+  "schedule", # model of the client's vesting logic
+  "mgmt"      # smart contract that mints and vests tokens according to schedule
+]
 
 [profile.release]
 opt-level = 3

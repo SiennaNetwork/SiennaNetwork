@@ -1,32 +1,37 @@
 # SIENNA
 
-* `scripts`   - deploy, test, and documentation scripts
-* `optimizer` - build tool
-* `token`     - standard SNIP20 token
-* `mgmt`      - vesting management contract
-* `schedule`  - implementation of vesting schedule logic
-* `fadroma`   - smart contract macro library
-* `kukumba`   - BDD macro library
-* `coverage`  - test coverage report
-
 ## Quick start
-
-Make sure you're familiar with the `docs`, then use the `deployer` to
-upload a build (produced by the `optimizer`) of the `token` and `mgmt`
-contracts (the latter of which is built with `fadroma`, tested with 
-`kukumba`, and configured with a `schedule`).
-
-### Fetch, build, and verify the code
 
 ```sh
 git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git sienna 
-cd sienna      # enter repository
-make test      # run tests
-make coverage  # generate test coverage reports
-make           # production build
-ls dist/       # view contents of production build
+cd sienna        # enter repository
+make test        # run tests
+cargo doc --open # view documentation (needs code to compile)
+make coverage    # generate test coverage reports (needs all tests to pass)
+make             # compile a production build
+ls dist/         # view build results
 cat dist/checksums.sha256.txt # view production build checksums
 ```
+
+## Overview
+
+By running `cargo doc --open` you can get an overview of most of the Rust
+code in this project.
+
+![](docs/cargo_docs_exist.png)
+
+* `Makefile` is the entry point of the project,
+  and defines shorthands for most common operations.
+* `scripts/tsv2json.js` generates `config_msg.json`, see below
+* `scripts/deploy.js` deploys a new blank instance of the contract
+* `scripts/test.js` deploys and runs a quick functionality check
+* `optimizer` - vendored copy of cosmwasm smart contract optimizer
+* `kukumba` - bdd testing framework
+* `fadroma` - smart contract macro library
+* `token` - standard [SNIP20](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-20.md) token
+* `mgmt` - vesting management contract
+* `schedule` - model of the client's vesting logic
+* `coverage`  - test coverage report
 
 ### Configure the contract
 
@@ -37,8 +42,10 @@ To generate it:
   that defines the vesting schedule.
 * Download it as TSV using **File->Download->Tab-separated values (.tsv, current sheet)**
 * Replace `schedule.tsv` with the downloaded file (renaming it from e.g. `SIENNA - Schedule.tsv`)
-* Run `make config` to obtain an up-to-date `config.json`
-* FIXME: Run `make chart` to visualize the vesting schedule.
+* Make sure that `scripts/node_modules` is up to date (run `npm install` or `yarn` in `scripts`)
+* Run `make config` of `./scripts/tsv2json.js` to obtain an up-to-date `config.json`.
+
+![](./docs/schedule_and_data_model)
 
 ### Prepare for deployment
 

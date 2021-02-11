@@ -36,7 +36,7 @@ kukumba!(
     }
     when "the admin tries to set a configuration that doesn't divide evenly"
     then "that fails" {
-        for (schedule, error) in [(
+        for (schedule, error) in [/* DISABLED - currently implementing remainders (
             schedule(200000u128,vec![pool_partial("Advisors", 200000u128,vec![
                 Channel {
                     name:        "Invalid1".to_string(),
@@ -45,7 +45,7 @@ kukumba!(
                     allocations: vec![]
                 }])]),
             "channel Invalid1: duration (15552001s) does not divide evenly in intervals of 86400s"
-        ), (
+        ),*/ (
             schedule(200000u128,vec![pool_partial("Advisors", 200000u128,vec![
                 Channel {
                     name:        "Invalid2".to_string(),

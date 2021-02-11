@@ -1,16 +1,16 @@
-Total	Pool	Subtotal	Name	Amount	% of total	Start at Nth day	`start_at` (seconds)	Interval (days)	`interval` (seconds)	Duration (days)	`duration` (seconds)	Portions	Cliff %	`cliff` (SIENNA)	Remainder	Portion size	Allocation	Address
+Total	Pool	Subtotal	Name	Amount	% of total	Start at Nth day	`start_at` (seconds)	Interval (days)	`interval` (seconds)	Duration (days)	`duration` (seconds)	Regular portions	Cliff %	`cliff` (SIENNA)	Remainder	Portion size	Allocation	Address
 10,000,000		10,000,000																
 ➥	Investors	2,000,000			20.00%													
-		➥	InvestorN	2,000,000	20.00%	180	15552000	1	86400	480	41472000	480	0.00%	0	175	4175		secret1TODO10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		➥	InvestorN	2,000,000	20.00%	180	15552000	1	86400	480	41472000	480	0.00%	0	4,486	4166		secret1TODO10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 																		
 ➥	Founders	2,400,000			24.00%													
-		➥	Founder1	800,000	8.00%	180	15552000	1	86400	480	41472000	480	10.00%	80000	0	1500		secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-		➥	Founder2	800,000	8.00%	180	15552000	1	86400	480	41472000	480	10.00%	80000	0	1500		secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-		➥	Founder3	731,000	7.31%	180	15552000	1	86400	480	41472000	480	10.00%	73100	300	1370		secret1TODO22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-		➥	Founder4	69,000	0.69%	180	15552000	1	86400	480	41472000	480	10.00%	6900	180	129		secret1TODO23xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-																		
+		➥	Founder1	800,000	8.00%	180	15552000	1	86400	480	41472000	479	10.00%	80000	63	1503		secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		➥	Founder2	800,000	8.00%	180	15552000	1	86400	480	41472000	479	10.00%	80000	63	1503		secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		➥	Founder3	731,000	7.31%	180	15552000	1	86400	480	41472000	479	10.00%	73100	233	1373		secret1TODO22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		➥	Founder4	69,000	0.69%	180	15552000	1	86400	480	41472000	479	10.00%	6900	309	129		secret1TODO23xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+			Iu															
 ➥	Dev Fund	1,500,000			15.00%													
-		➥	DevN	1,500,000	15.00%	120	10368000	30	2592000	570	49248000	19	5.00%	75000	0	75000		secret1TODO30xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		➥	DevN	1,500,000	15.00%	120	10368000	30	2592000	600	51840000	19	5.00%	75000	0	75000		secret1TODO30xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 																		
 ➥	Advisors	200,000			2.00%													
 		➥	Advisor1	50,000	0.50%	180	15552000	1	86400	480	41472000	480	0.00%	0	80	104		secret1TODO40xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
