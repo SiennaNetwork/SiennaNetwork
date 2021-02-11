@@ -739,7 +739,7 @@ mod tests {
             Ok(vec![portion(75u128, &alice, 0 * DAY, ": vesting")
                    ,portion(75u128, &alice, 1 * DAY, ": vesting")
                    ,portion(75u128, &alice, 2 * DAY, ": vesting")]));
-        s.reallocate(3 * DAY + 1, vec![
+        s.reallocate(2 * DAY + 1, vec![
             allocation(50u128, &alice),
             allocation(50u128, &bob)
         ]).unwrap();
