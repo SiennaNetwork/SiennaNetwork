@@ -18,24 +18,24 @@ kukumba!(
     given "a contract" {
         harness!(deps; ALICE, BOB, MALLORY);
     }
-    when "the admin tries to change the number, names, or ordering of pools"
-    then "it is not possible"{
-        todo!();
-    }
-    when "the admin tries to change a pool"
-    and  "the changes would reduce someone's balance"
-    then "it is not possible" {
-        todo!();
-    }
-    when "the admin tries to change a pool"
-    and  "the changes don't reduce anyone's balance"
-    then "it is possible" {
-        todo!();
-    }
-    when "the admin tries to change allocations"
-    then "it is not possible"{
-        todo!();
-    }
+    //when "the admin tries to change the number, names, or ordering of pools"
+    //then "it is not possible"{
+        //todo!();
+    //}
+    //when "the admin tries to change a pool"
+    //and  "the changes would reduce someone's balance"
+    //then "it is not possible" {
+        //todo!();
+    //}
+    //when "the admin tries to change a pool"
+    //and  "the changes don't reduce anyone's balance"
+    //then "it is possible" {
+        //todo!();
+    //}
+    //when "the admin tries to change allocations"
+    //then "it is not possible"{
+        //todo!();
+    //}
 
 );
 

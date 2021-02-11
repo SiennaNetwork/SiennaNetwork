@@ -84,12 +84,18 @@ pub fn channel_periodic (
     cliff:    u128
 ) -> Channel {
     let cliff = Uint128::from(cliff);
-    Channel {
+    let mut channel = Channel {
         name: String::new(),
         amount: Uint128::from(amount),
         periodic: Some(Periodic {interval, start_at, duration, cliff}),
-        allocations: vec![allocation_addr(amount, address)]
-    }
+        allocations: vec![]
+    };
+    let amount_after_cliff = (channel.amount - cliff).unwrap().u128();
+    let portion_count = (duration / interval) as u128;
+    let portion_size = amount_after_cliff / portion_count;
+    let allocation = allocation_addr(portion_size, address);
+    channel.allocations.push(allocation);
+    channel
 }
 pub fn channel_periodic_multi (
     amount:      u128,
@@ -129,6 +135,7 @@ impl Channel {
             Some(Periodic{cliff,duration,interval,..}) => {
                 let amount_after_cliff = (self.amount - *cliff).unwrap().u128();
                 let portion_count = self.portion_count()? as u128;
+                println!("AAC={} PC={}", &amount_after_cliff, &portion_count);
                 if amount_after_cliff % portion_count > 0 {
                     Error!(format!(
                         "channel {}: post-cliff amount {} does not divide evenly in {} portions",
@@ -286,9 +293,11 @@ impl Account for Channel {
         let mut portions = vec![];
         match &self.periodic {
             None => {
-                if *a == self.allocations.get(0).unwrap().addr {
-                    let reason = format!("{}: immediate", &self.name);
-                    portions.push(portion(self.amount.u128(), a, 0, &reason));
+                for Allocation { addr, amount } in self.allocations.iter() {
+                    if addr == a {
+                        let reason = format!("{}: immediate", &self.name);
+                        portions.push(portion((*amount).u128(), a, 0, &reason));
+                    }
                 }
             },
             Some(Periodic{start_at,cliff,interval,..}) => {
@@ -309,9 +318,10 @@ impl Account for Channel {
                             }
                         }
                     }
-                    if for_me {
+                    let cliff = (*cliff).u128();
+                    if for_me && cliff > 0 {
                         let reason = format!("{}: cliff", &self.name);
-                        portions.insert(0, portion((*cliff).u128(), a, *start_at, &reason));
+                        portions.insert(0, portion(cliff, a, *start_at, &reason));
                     }
                 }
             }
@@ -408,41 +418,82 @@ mod tests {
             channel_immediate_multi(100, &allocations).claimable(&alice, 0),
             Ok(vec![portion( 40u128, &alice, 0u64, ": immediate")]));
 
+        let interval = DAY;
+        let start_at = 1;
+        let duration = DAY;
+        let cliff = 0;
         assert_eq!(
-            channel_periodic_multi(100, &allocations, DAY, 1, DAY, 0).claimable(&alice, 0),
+            channel_periodic_multi(100, &allocations, interval, start_at, duration, cliff).claimable(&alice, 0),
             Ok(vec![]));
-
         assert_eq!(
-            channel_periodic_multi(100, &allocations, DAY, 1, DAY, 0).claimable(&alice, 1),
-            Ok(vec![portion( 40u128, &alice, 0u64, ": immediate")]));
+            channel_periodic_multi(100, &allocations, interval, start_at, duration, cliff).claimable(&alice, 1),
+            Ok(vec![ /* zero cliff generates no portion */ ]));
 
-        assert_eq!(
-            channel_periodic_multi(100, &allocations, DAY, 1, 2*DAY, 0).validate(),
+        let cliff = 1;
+        assert_eq!( // but if cliff > 0 then there's a "0th" portion at vesting start
+            channel_periodic_multi(100, &allocations, interval, start_at, duration, cliff).claimable(&alice, 1),
+            Ok(vec![portion(  1u128, &alice, start_at, ": cliff")]));
+
+        let duration = 2*DAY;
+        let cliff = 0;
+        assert_eq!( // if duration doubles, portion size is halved
+            channel_periodic_multi(100, &allocations, interval, start_at, duration, cliff).validate(),
             Error!("channel : allocations add up to 100, expected 50"));
-
-        assert_eq!(
-            channel_periodic_multi(200, &allocations, DAY, 1, 2*DAY, 0).validate(),
+        assert_eq!( // doubling the amount alongside the duration...
+            channel_periodic_multi(200, &allocations, interval, start_at, duration, cliff).validate(),
             Ok(()));
+        assert_eq!( // ...lets us receive the same portion...
+            channel_periodic_multi(200, &allocations, interval, start_at, duration, cliff).claimable(&alice, start_at + DAY),
+            Ok(vec![portion( 40u128, &alice, start_at + 0*DAY, ": vesting")]));
+        assert_eq!( // ...for twice as long.
+            channel_periodic_multi(200, &allocations, interval, start_at, duration, cliff).claimable(&alice, start_at + 2*DAY),
+            Ok(vec![portion( 40u128, &alice, start_at + 0*DAY, ": vesting")
+                   ,portion( 40u128, &alice, start_at + 1*DAY, ": vesting")]));
 
-        assert_eq!(
-            channel_periodic_multi(200, &allocations, DAY, 1, 2*DAY, 0).claimable(&alice, 1),
-            Ok(vec![portion( 40u128, &alice, 0u64, ": immediate")]));
-
-        assert_eq!(
-            channel_periodic_multi(200, &allocations, DAY, 1, 2*DAY, 0).claimable(&alice, DAY + 1),
-            Ok(vec![portion( 40u128, &alice, 0*DAY, ": vesting"),
-                    portion( 40u128, &alice, 1*DAY, ": vesting")]));
-
-        assert_eq!(
-            channel_periodic(201, &alice, DAY, 1, 2*DAY, 0).claimable(&alice, 1),
-            Ok(vec![portion(  1u128, &alice, 0*DAY, ": cliff"),
-                    portion(100u128, &alice, 0*DAY, ": vesting")]));
-
-        assert_eq!(
-            channel_periodic(201, &alice, DAY, 1, 2*DAY, 0).claimable(&alice, DAY + 1),
-            Ok(vec![portion(  1u128, &alice, 0*DAY, ": cliff"),
-                    portion(100u128, &alice, 0*DAY, ": vesting"),
-                    portion(100u128, &alice, 1*DAY, ": vesting")]));
+        // Here's what was casting the shadow of a off-by-one error all along!
+        //
+        // If `cliff > 0` then it's actually a `N+1`-day vesting, because
+        // there must be an `interval` between the cliff and the 1st portion.
+        //
+        // While maintaining this assumption, synthetic cliffs have been added
+        // in the schedule to channels that don't divide evenly into the
+        // designated portion amount.
+        //
+        // The sizes of those cliffs have been determined experimentally with
+        // a criterion that might seem esoteric: no more than 3 digits after
+        // the decimal point. This is to appease the BigInt handling in
+        // `tsv2json.js`.
+        //
+        // Effectively, this means that the first time advisors can claim money,
+        // it's going to be a smaller amount than the regular one that they'll
+        // get during the following days.
+        //
+        // TODO: validate expected portion sizes from spreadsheet against actual
+        //       ones calculated by the contract to see if this discrepancy is
+        //       handled in the same way?
+        let cliff = 1;
+        let duration = 3*DAY;
+        //assert_eq!(
+            //channel_periodic(202, &alice, interval, start_at, duration, 0).validate(),
+            //Error!("channel : post-cliff amount 202 does not divide evenly in 2 portions"));
+        //assert_eq!(
+            //channel_periodic(202, &alice, interval, start_at, duration, cliff).validate(),
+            //Ok(()));
+        //assert_eq!(
+            //channel_periodic(202, &alice, interval, start_at, duration, cliff).claimable(&alice, start_at - 1),
+            //Ok(vec![]));
+        //assert_eq!(
+            //channel_periodic(202, &alice, interval, start_at, duration, cliff).claimable(&alice, start_at),
+            //Ok(vec![portion(  1u128, &alice, start_at + 0*DAY, ": cliff")]));
+        //assert_eq!(
+            //channel_periodic(202, &alice, interval, start_at, duration, cliff).claimable(&alice, start_at + DAY),
+            //Ok(vec![portion(  1u128, &alice, start_at + 0*DAY, ": cliff"),
+                    //portion(100u128, &alice, start_at + 1*DAY, ": vesting")]));
+        //assert_eq!(
+            //channel_periodic(201, &alice, interval, start_at, duration, cliff).claimable(&alice, start_at + 2*DAY),
+            //Ok(vec![portion(  1u128, &alice, start_at + 0*DAY, ": cliff"),
+                    //portion(100u128, &alice, start_at + 1*DAY, ": vesting"),
+                    //portion(100u128, &alice, start_at + 2*DAY, ": vesting")]));
     }
 
     #[test]
@@ -466,27 +517,35 @@ mod tests {
     #[test]
     fn test_valid_schedule_with_all_features () {
         let alice = HumanAddr::from("Alice");
+        let bob = HumanAddr::from("Bob");
         let s = schedule(
             100,
             vec![pool("P1", 50,
-                vec![channel_immediate(30, &alice)
+                vec![channel_immediate(29, &alice)
+                    ,channel_immediate(1, &bob)
                     ,channel_immediate_multi(20,
-                        &vec![allocation_addr(20, &alice)])]),
+                        &vec![allocation_addr(18, &alice)
+                             ,allocation_addr( 2, &bob)])]),
                 pool("P2", 50,
                     vec![channel_immediate_multi(50,
-                        &vec![allocation_addr(30, &alice)
-                             ,allocation_addr(20, &alice)])])
+                        &vec![allocation_addr(28, &alice)
+                             ,allocation_addr( 3, &bob)
+                             ,allocation_addr(19, &alice)])])
                 ]);
-
         assert_eq!(s.validate(),
             Ok(()));
-
         assert_eq!(s.claimable(&alice, 0),
             Ok(vec![
-                portion(30u128, &alice, 0u64, ": immediate"),
-                portion(20u128, &alice, 0u64, ": immediate"),
-                portion(20u128, &alice, 0u64, ": immediate"),
-                portion(30u128, &alice, 0u64, ": immediate")
+                portion(29u128, &alice, 0u64, ": immediate"),
+                portion(18u128, &alice, 0u64, ": immediate"),
+                portion(28u128, &alice, 0u64, ": immediate"),
+                portion(19u128, &alice, 0u64, ": immediate")
+            ]));
+        assert_eq!(s.claimable(&bob, 0),
+            Ok(vec![
+                portion(1u128, &bob, 0u64, ": immediate"),
+                portion(2u128, &bob, 0u64, ": immediate"),
+                portion(3u128, &bob, 0u64, ": immediate"),
             ]));
     }
 
