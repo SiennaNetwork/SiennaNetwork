@@ -4,7 +4,7 @@
 
 use cosmwasm_std::Uint128;
 use sienna_schedule::{
-    Schedule, schedule, pool, pool_partial, Channel, Periodic,
+    Schedule, schedule, pool, pool_partial, Channel, periodic,
     channel_periodic, channel_periodic_multi, allocation
 };
 
@@ -41,7 +41,7 @@ kukumba!(
                 Channel {
                     name:        "Invalid1".to_string(),
                     amount:      Uint128::from(11000u128),
-                    periodic:    Some(Periodic { interval: 86400, start_at: 15552000, duration: 15552001, cliff: Uint128::from(1000u128)}),
+                    periodic:    Some(periodic(11000u128, 15552000, 1000u128, 15552001, 86400)),
                     allocations: vec![]
                 }])]),
             "channel Invalid1: duration (15552001s) does not divide evenly in intervals of 86400s"
@@ -50,10 +50,10 @@ kukumba!(
                 Channel {
                     name:        "Invalid2".to_string(),
                     amount:      Uint128::from(11000u128),
-                    periodic:    Some(Periodic { interval: 86400, start_at: 15552000, duration: 15552000, cliff: Uint128::from(1000u128)}),
+                    periodic:    Some(periodic(11000u128, 15552000, 1000u128, 15552000, 86400)),
                     allocations: vec![]
                 }])]),
-            "channel Invalid2: post-cliff amount 10000 does not divide evenly in 180 portions"
+            "channel Invalid2: post-cliff amount 9900 does not divide evenly in 179 portions"
         )].iter() {
             test_tx!(deps, ALICE, 0, 0;
                 Configure { schedule: schedule.clone() } => tx_err!(error));

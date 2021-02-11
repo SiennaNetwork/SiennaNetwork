@@ -37,28 +37,29 @@ const Address = x => {
 }
 
 const columns = ([
-  _A_, _B_, _C_, _D_, _E_, _F_, _G_, _H_, _I_,
-  _J_, _K_, _L_, _M_, _N_, _O_, _P_, _Q_, _R_
+  _A_, _B_, _C_, _D_, _E_, _F_, _G_, _H_, _I_, _J_,
+  _K_, _L_, _M_, _N_, _O_, _P_, _Q_, _R_, _S_
 ]) => {
   const data = {
-    total:               Sienna  (_A_),
-    pool:                String  (_B_),
-    subtotal:            Sienna  (_C_),
-    name:                String  (_D_),
-    amount:              Sienna  (_E_),
-    percent_of_total:    Percent (_F_),
-    start_at_days:       Days    (_G_, _H_),
-    start_at:            Seconds (_H_),
-    interval_days:       Days    (_I_, _J_),
-    interval:            Seconds (_J_),
-    duration_days:       Days    (_K_, _L_),
-    duration:            Seconds (_L_),
-    vestings:            Number  (_M_),
-    cliff_percent:       Percent (_N_),
-    cliff:               Sienna  (_O_),
-    amount_per_interval: Sienna  (_P_),
-    allocation:          Sienna  (_Q_),
-    address:             Address (_R_)
+    total:              Sienna  (_A_),
+    pool:               String  (_B_),
+    subtotal:           Sienna  (_C_),
+    name:               String  (_D_),
+    amount:             Sienna  (_E_),
+    percent_of_total:   Percent (_F_),
+    start_at_days:      Days    (_G_, _H_),
+    start_at:           Seconds (_H_),
+    interval_days:      Days    (_I_, _J_),
+    interval:           Seconds (_J_),
+    duration_days:      Days    (_K_, _L_),
+    duration:           Seconds (_L_),
+    vestings:           Number  (_M_),
+    cliff_percent:      Percent (_N_),
+    cliff:              Sienna  (_O_),
+    expected_portion:   Sienna  (_P_),
+    expected_remainder: Sienna  (_Q_),
+    allocation:         Sienna  (_R_),
+    address:            Address (_S_)
   }
   return data
 }
@@ -90,7 +91,11 @@ module.exports = function tsv2json (
   return output
 
   function invalid_row (data, i) {
-    console.warn(`row ${i}: skipping`, JSON.stringify(data))
+    console.warn(`row ${i}: skipping`, JSON.stringify(data, (key, value) => (
+        typeof value === 'bigint'
+            ? value.toString()
+            : value // return everything else unchanged
+    ), 2))
   }
 
   function header (data, i) {
@@ -146,17 +151,17 @@ module.exports = function tsv2json (
   // row describes channel
   function channel (data, i) {
     const {name,amount,percent_of_total,interval_days,interval
-        ,amount_per_interval,address} = data
+        ,portion,address} = data
     if (name && amount && percent_of_total) {
       running_pool_total += amount
-      running_channel_total = BigInt(amount_per_interval||0)
+      running_channel_total = BigInt(portion||0)
       current_pool.channels.push(current_channel = {
         name,
         amount,
         periodic: (interval == 0) ? undefined : periodic_vesting(data, i),
         allocations: [[0, []]]
       })
-      if (address) current_channel.allocations[0][1].push({addr:address,amount:amount_per_interval||amount})
+      if (address) current_channel.allocations[0][1].push({addr:address,amount:portion||amount})
       console.log(`  add channel ${name} (${address}) to pool ${current_pool.name} (${running_pool_total})`)
       return true
     }
@@ -165,14 +170,12 @@ module.exports = function tsv2json (
   // 2nd part of channel row
   // specifies parameters of periodic vesting
   function periodic_vesting (data, i) {
-    const {interval,start_at,duration,cliff,amount_per_interval} = data
+    const {interval,start_at,duration,cliff,portion,expected_portion,expected_remainder} = data
     // TODO validate priors
     return {
       type: 'channel_periodic',
-      interval,
-      start_at,
-      duration,
-      cliff
+      interval, start_at, duration, cliff,
+      expected_portion, expected_remainder
     }
   }
 

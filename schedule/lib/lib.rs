@@ -141,10 +141,16 @@ pub struct Channel {
     /// Each portion can be split between multiple addresses.
     pub allocations: Vec<(Seconds, Vec<Allocation>)>,
 
-    /// Immediate channel: if the contract has launched,
-    /// the recipient can claim the entire allocated amount once
-    /// Periodic channel: contract calculates the maximum amount
-    /// that the user can claim at the given time.
+    /// `None` -> 1 vesting at launch, `Some(Periodic)` -> multiple vestings.
+    ///
+    /// This is an `Option` instead of `Channel` being an `Enum` because
+    /// `serde_json_wasm` doesn't support non-C-style enums.
+    ///
+    /// Immediate vesting:  the recipient can claim the entire allocated amount
+    /// once (after the contract has been launched).
+    ///
+    /// Periodic vesting: contract calculates the maximum amount that the user
+    /// can claim at the given time.
     pub periodic: Option<Periodic>
 }
 pub fn channel_immediate (
@@ -159,8 +165,8 @@ pub fn channel_immediate (
     }
 }
 pub fn channel_immediate_multi (
-    amount: u128,
-    allocations: &Vec<Allocation>
+    _amount: u128,
+    _allocations: &Vec<Allocation>
 ) -> Channel {
     panic!("immediate vesting with multiple recipients is not supported")
     //Channel {
@@ -178,11 +184,10 @@ pub fn channel_periodic (
     duration: Seconds,
     cliff:    u128
 ) -> StdResult<Channel> {
-    let cliff = Uint128::from(cliff);
     let mut channel = Channel {
         name: String::new(),
         amount: Uint128::from(amount),
-        periodic: Some(Periodic {interval, start_at, duration, cliff}),
+        periodic: Some(periodic(amount, start_at, cliff, duration, interval)),
         allocations: vec![]
     };
     channel.allocations.push((0, vec![allocation(channel.regular_portion_size()?, address)]));
@@ -197,31 +202,14 @@ pub fn channel_periodic_multi (
     cliff:       u128
 ) -> Channel {
     if cliff > 0 { panic!("periodic vesting with cliff and multiple recipients is not supported") }
-    let cliff = Uint128::from(cliff);
     Channel {
         name: String::new(),
         amount: Uint128::from(amount),
-        periodic: Some(Periodic {interval, start_at, duration, cliff}),
+        periodic: Some(periodic(amount, start_at, cliff, duration, interval)),
         allocations: vec![(0, allocations.clone())]
     }
 }
 impl Channel {
-    fn err_zero_duration (&self) -> StdResult<()> {
-        Error!(format!("channel {}: periodic vesting's duration can't be 0",
-            &self.name))
-    }
-    fn err_zero_interval<T> (&self) -> StdResult<T> {
-        Error!(format!("channel {}: periodic vesting's interval can't be 0",
-            &self.name))
-    }
-    fn err_cliff_gt_total (&self, cliff: Uint128) -> StdResult<()> {
-        Error!(format!( "channel {}: cliff {} can't be larger than total amount {}",
-            &self.name, cliff, self.amount))
-    }
-    fn err_periodic_cliff_multiple<T> (&self) -> StdResult<T> {
-        Error!(format!("channel {}: periodic vesting with cliff and multiple allocations is not supported",
-            &self.name))
-    }
     fn err_total (&self, total: u128, portion: u128) -> StdResult<()> {
         Error!(format!("channel {}: allocations add up to {}, expected {}",
             &self.name, total, portion))
@@ -230,26 +218,6 @@ impl Channel {
         Error!(format!("channel {}: no allocations",
             &self.name))
     }
-    fn err_time_travel<T> (&self) -> StdResult<T> {
-        Error!(format!("channel {}: time of first allocations is after current time",
-            &self.name))
-    }
-    fn err_duration_remainder<T> (&self, duration: u64, interval: u64) -> StdResult<T> {
-        Error!(format!("channel {}: duration ({}s) does not divide evenly in intervals of {}s",
-            &self.name, duration, interval))
-    }
-    fn err_interval_gt_duration<T> (&self, duration: u64, interval: u64) -> StdResult<T> {
-        Error!(format!("channel {}: duration ({}) must be >= interval ({})",
-            &self.name, duration, interval))
-    }
-    fn err_cliff_only<T> (&self) -> StdResult<T> {
-        Error!(format!("channel {}: periodic vesting must contain at least 1 non-cliff portion",
-            &self.name))
-    }
-    fn err_amount_remainder<T> (&self, amount: u128, portions: u128) -> StdResult<T> {
-        Error!(format!("channel {}: post-cliff amount {} does not divide evenly in {} portions",
-            &self.name, amount, portions))
-    }
     fn err_realloc_time_travel (&self, t: Seconds, t_max: Seconds) -> StdResult<()> {
         Error!(format!("channel {}: can not reallocate in the past ({} < {})",
             &self.name, &t, t_max))
@@ -257,18 +225,7 @@ impl Channel {
     pub fn validate (&self) -> StdResult<()> {
         match &self.periodic {
             None => {},
-            Some(Periodic{cliff,duration,interval,..}) => {
-                if *duration < 1 { return self.err_zero_duration() }
-                if *interval < 1 { return self.err_zero_interval() }
-                if *cliff > self.amount { return self.err_cliff_gt_total(*cliff) }
-                for (_, allocations) in self.allocations.iter() {
-                    if allocations.len() > 1 && cliff.u128() > 0 {
-                        return self.err_periodic_cliff_multiple()
-                    }
-                }
-                self.regular_portion_count()?;
-                self.regular_portion_size()?;
-            }
+            Some(periodic) => periodic.validate(&self)?
         }
         for (_, allocations) in self.allocations.iter() {
             let mut total_portion = 0u128;
@@ -291,12 +248,11 @@ impl Channel {
     ///              and that allocations are stored sorted
     pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<Vec<Portion>> {
         match &self.periodic {
-            None    => self.claimable_immediate(a, t),
-            Some(p) => self.claimable_periodic(a, t, p),
+            None           => self.claimable_immediate(a),
+            Some(periodic) => periodic.claimable(&self, a, t),
         }
     }
-
-    fn claimable_immediate (&self, a: &HumanAddr, t: Seconds) -> StdResult<Vec<Portion>> {
+    fn claimable_immediate (&self, a: &HumanAddr) -> StdResult<Vec<Portion>> {
         let mut portions = vec![];
         match self.allocations.get(self.allocations.len()-1) {
             None => return self.err_no_allocations(),
@@ -311,13 +267,137 @@ impl Channel {
         }
         Ok(portions)
     }
+    /// 1 if immediate, or `duration/interval` if periodic.
+    /// Returns error if `duration` is not a multiple of `interval`.
+    pub fn regular_portion_count (&self) -> StdResult<u64> {
+        match &self.periodic {
+            None           => Ok(1u64),
+            Some(periodic) => periodic.regular_portion_count(&self.name)
+        }
+    }
+    /// Full `amount` if immediate, or `(amount-cliff)/regular_portion_count` if periodic.
+    /// Returns error if amount can't be divided evenly in that number of portions.
+    pub fn regular_portion_size (&self) -> StdResult<u128> {
+        match &self.periodic {
+            None           => Ok(self.amount.u128()),
+            Some(periodic) => periodic.regular_portion_size(&self.name, self.amount.u128())
+        }
+    }
+    /// Allocations can be changed on the fly without affecting past vestings.
+    pub fn reallocate (&mut self, t: Seconds, allocations: Vec<Allocation>) -> StdResult<()> {
+        let t_max = self.allocations.iter().fold(0, |x,y|Seconds::max(x,y.0));
+        if t < t_max { return self.err_realloc_time_travel(t, t_max) }
+        self.allocations.push((t, allocations));
+        self.validate()
+    }
+}
+/// Configuration of periodic vesting ladder.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct Periodic {
+    pub interval:  Seconds,
+    pub start_at:  Seconds,
+    pub duration:  Seconds,
+    pub cliff:              Uint128,
+    pub expected_portion:   Uint128,
+    pub expected_remainder: Uint128
+}
+pub fn periodic (
+    amount:   u128,
+    start_at: Seconds,
+    cliff:    u128,
+    duration: Seconds,
+    interval: Seconds
+) -> Periodic {
+    let n_full_portions    = (duration/interval) as u128;
+    let expected_portion   = (amount - cliff)/n_full_portions;
+    let expected_remainder = amount - cliff - expected_portion*n_full_portions;
+    Periodic {
+        interval,
+        start_at,
+        duration,
+        cliff:              Uint128::from(cliff),
+        expected_portion:   Uint128::from(expected_portion),
+        expected_remainder: Uint128::from(expected_remainder)
+    }
+}
+impl Periodic {
+    fn err_zero_duration (&self, name: &str) -> StdResult<()> {
+        Error!(format!("channel {}: periodic vesting's duration can't be 0",
+            name))
+    }
+    fn err_zero_interval<T> (&self, name: &str) -> StdResult<T> {
+        Error!(format!("channel {}: periodic vesting's interval can't be 0",
+            name))
+    }
+    fn err_cliff_gt_total (&self, name: &str, cliff: u128, amount: u128) -> StdResult<()> {
+        Error!(format!( "channel {}: cliff {} can't be larger than total amount {}",
+            name, cliff, amount))
+    }
+    fn err_periodic_cliff_multiple<T> (&self, name: &str) -> StdResult<T> {
+        Error!(format!("channel {}: periodic vesting with cliff and multiple allocations is not supported",
+            name))
+    }
+    fn err_duration_remainder<T> (&self, name: &str) -> StdResult<T> {
+        Error!(format!("channel {}: duration ({}s) does not divide evenly in intervals of {}s",
+            name, self.duration, self.interval))
+    }
+    fn err_interval_gt_duration<T> (&self, name: &str) -> StdResult<T> {
+        Error!(format!("channel {}: duration ({}) must be >= interval ({})",
+            name, self.duration, self.interval))
+    }
+    fn err_cliff_only<T> (&self, name: &str) -> StdResult<T> {
+        Error!(format!("channel {}: periodic vesting must contain at least 1 non-cliff portion",
+            name))
+    }
+    fn err_amount_remainder<T> (&self, name: &str, amount: u128, portions: u128) -> StdResult<T> {
+        Error!(format!("channel {}: post-cliff amount {} does not divide evenly in {} portions",
+            name, amount, portions))
+    }
+    fn err_time_travel<T> (&self, name: &str) -> StdResult<T> {
+        Error!(format!("channel {}: time of first allocations is after current time",
+            name))
+    }
+    pub fn regular_portion_count (&self, name: &str) -> StdResult<u64> {
+        let Periodic{cliff,duration,interval,..}=self;
+        if duration % interval > 0 { return self.err_duration_remainder(name); }
+        if duration < interval { return self.err_interval_gt_duration(name); }
+        let n_portions = duration / interval;
+        if *cliff > Uint128::zero() {
+            if n_portions < 2 { return self.err_cliff_only(name) }
+            return Ok(n_portions - 1u64)
+        }
+        Ok(n_portions)
+    }
+    pub fn regular_portion_size (&self, name: &str, amount: u128) -> StdResult<u128> {
+        let n_portions = self.regular_portion_count(name)? as u128;
+        let mut amount = amount;
+        amount -= self.cliff.u128();
+        amount -= self.expected_remainder.u128();
+        if amount % n_portions > 0 {
+            self.err_amount_remainder(name, amount, n_portions) 
+        } else {
+            Ok(amount / n_portions)
+        }
+    }
+    pub fn validate (&self, ch: &Channel) -> StdResult<()> {
+        let Periodic{cliff,duration,interval,..} = self;
+        if *duration < 1u64 { return self.err_zero_duration(&ch.name) }
+        if *interval < 1u64 { return self.err_zero_interval(&ch.name) }
+        if *cliff > ch.amount { return self.err_cliff_gt_total(&ch.name, cliff.u128(), ch.amount.u128()) }
+        for (_, allocations) in ch.allocations.iter() {
+            if allocations.len() > 1 && cliff.u128() > 0 { return self.err_periodic_cliff_multiple(&ch.name) }
+        }
+        self.regular_portion_count(&ch.name)?;
+        self.regular_portion_size(&ch.name, ch.amount.u128())?;
+        Ok(())
+    }
+    pub fn claimable (&self, ch: &Channel, a: &HumanAddr, t: Seconds) -> StdResult<Vec<Portion>> {
 
-    fn claimable_periodic (&self, a: &HumanAddr, t: Seconds, p: &Periodic) -> StdResult<Vec<Portion>> {
-
-        let Periodic{start_at,cliff,interval,duration} = p;
+        let Periodic{start_at,cliff,interval,..} = self;
 
         // Interval can't be 0 (prevent infinite loop below)
-        if *interval == 0 { return self.err_zero_interval() }
+        if *interval == 0 { return self.err_zero_interval(&ch.name) }
 
         // Nothing can be claimed before the start
         if t < *start_at { return Ok(vec![]) }
@@ -329,34 +409,31 @@ impl Channel {
         let mut portions = vec![];
         let mut t_cursor = *start_at;
         let cliff  = cliff.u128();
-        let end_at = Seconds::min(t, *start_at + *duration);
-        let mut n_portions = self.regular_portion_count()?;
+        let mut n_portions = self.regular_portion_count(&ch.name)?;
 
         // Make sure allocations exist.
-        if self.allocations.len() < 1 {
-            return self.err_no_allocations();
-        }
+        if ch.allocations.len() < 1 { return ch.err_no_allocations(); }
 
         // Get first group of allocations.
-        let (t_alloc, current_allocations) = self.allocations.get(0).unwrap();
+        let (t_alloc, current_allocations) = ch.allocations.get(0).unwrap();
         let mut current_allocations = current_allocations;
-        if *t_alloc > t_cursor { return self.err_time_travel() }
+        if *t_alloc > t_cursor { return self.err_time_travel(&ch.name) }
 
         // If this is the first iteration of this `loop`, and the `channel`
         // has a `cliff`, and the first group of `allocations` contains the
         // claimant `a`, then that user must receive the cliff amount.
         // (TODO: and divide rest by 1 less?)
         if cliff > 0 {
-            for Allocation { addr, amount } in current_allocations.iter() {
+            for Allocation {addr, ..} in current_allocations.iter() {
                 if addr == a {
                     // The first group of allocations must contain exactly
                     // 1 user to avoid splitting the cliff.
                     if current_allocations.len() != 1 {
-                        return self.err_periodic_cliff_multiple()
+                        return self.err_periodic_cliff_multiple(&ch.name)
                     }
                     // If the above is true, make the cliff amount claimable
                     // as the first portion, and advance the time.
-                    let reason = format!("{}: cliff", &self.name);
+                    let reason = format!("{}: cliff", &ch.name);
                     portions.push(portion(cliff, a, *start_at, &reason));
                     t_cursor += interval;
                     n_portions += 1;
@@ -375,7 +452,7 @@ impl Channel {
             // Determine the group of allocations that is current
             // at time `t_cursor`. (It is assumed that groups of
             // allocations are sorted).
-            for (t_alloc, allocations) in self.allocations.iter() {
+            for (t_alloc, allocations) in ch.allocations.iter() {
                 if *t_alloc > t_cursor { break }
                 current_allocations = allocations;
             }
@@ -386,7 +463,7 @@ impl Channel {
             for Allocation { addr, amount } in current_allocations.iter() {
                 if addr == a {
                     let amount = (*amount).u128();
-                    let reason = format!("{}: vesting", &self.name);
+                    let reason = format!("{}: vesting", &ch.name);
                     portions.push(portion(amount, a, t_cursor, &reason));
                 }
             }
@@ -396,62 +473,6 @@ impl Channel {
         }
         Ok(portions)
     }
-
-    /// 1 if immediate, or `duration/interval` if periodic.
-    /// Returns error if `duration` is not a multiple of `interval`.
-    pub fn regular_portion_count (&self) -> StdResult<u64> {
-        match &self.periodic {
-            None {} =>
-                Ok(1),
-            Some(Periodic{interval,duration,cliff,..}) =>
-                if duration % interval > 0 {
-                    return self.err_duration_remainder(*duration, *interval)
-                } else {
-                    if duration < interval {
-                        return self.err_interval_gt_duration(*duration, *interval);
-                    }
-                    let mut n_portions = duration / interval;
-                    if *cliff > Uint128::zero() {
-                        if n_portions < 2 { return self.err_cliff_only() }
-                        n_portions -= 1;
-                    }
-                    Ok(n_portions)
-                }
-        }
-    }
-    /// Full `amount` if immediate, or `(amount-cliff)/regular_portion_count` if periodic.
-    /// Returns error if amount can't be divided evenly in that number of portions.
-    pub fn regular_portion_size (&self) -> StdResult<u128> {
-        match &self.periodic {
-            None {} =>
-                Ok(self.amount.u128()),
-            Some(Periodic{cliff,duration,interval,..}) => {
-                let amount_after_cliff = (self.amount - *cliff).unwrap().u128();
-                let mut n_portions = self.regular_portion_count()? as u128;
-                if amount_after_cliff % n_portions > 0 {
-                    self.err_amount_remainder(amount_after_cliff, n_portions) 
-                } else {
-                    Ok(amount_after_cliff / n_portions)
-                }
-            }
-        }
-    }
-    /// Allocations can be changed on the fly without affecting past vestings.
-    pub fn reallocate (&mut self, t: Seconds, allocations: Vec<Allocation>) -> StdResult<()> {
-        let t_max = self.allocations.iter().fold(0, |x,y|Seconds::max(x,y.0));
-        if t < t_max { return self.err_realloc_time_travel(t, t_max) }
-        self.allocations.push((t, allocations));
-        self.validate()
-    }
-}
-/// Configuration of periodic vesting ladder.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub struct Periodic {
-    pub interval: Seconds,
-    pub start_at: Seconds,
-    pub duration: Seconds,
-    pub cliff:    Uint128
 }
 /// Allocation of vesting to multiple addresses.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -656,7 +677,6 @@ mod tests {
         let interval = DAY;
         let start_at = 1;
         let alice = HumanAddr::from("Alice");
-        let bob = HumanAddr::from("Bob");
 
         // if cliff > 0 then the first portion is the cliff
         // and the remaining amount is divided between `regular_portion_count-1`
@@ -739,7 +759,6 @@ mod tests {
             allocation(75u128, &alice),
             allocation(25u128, &bob),
         ], interval, start_at, duration, cliff);
-        let claimable = s.claimable(&alice, 0);
         assert_eq!(s.claimable(&alice, 0 * DAY),
             Ok(vec![portion(75u128, &alice, 0 * DAY, ": vesting")]));
         assert_eq!(s.claimable(&alice, 1 * DAY),
