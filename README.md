@@ -36,16 +36,16 @@ code in this project.
 ### Configure the contract
 
 The file `config_msg.json` is used to configure the contract before launching.
-To generate it:
+To generate it, go to [the spreadsheet](https://docs.google.com/spreadsheets/d/1sgj-nTE_b25F8O740Av7XYByOzkD0qNx1Jk63G2qRwY/)
+that defines the vesting schedule.
 
-* Go to [the spreadsheet](https://docs.google.com/spreadsheets/d/1sgj-nTE_b25F8O740Av7XYByOzkD0qNx1Jk63G2qRwY/)
-  that defines the vesting schedule.
+![](./docs/schedule_and_data_model.png)
+
 * Download it as TSV using **File->Download->Tab-separated values (.tsv, current sheet)**
 * Replace `schedule.tsv` with the downloaded file (renaming it from e.g. `SIENNA - Schedule.tsv`)
 * Make sure that `scripts/node_modules` is up to date (run `npm install` or `yarn` in `scripts`)
 * Run `make config` of `./scripts/tsv2json.js` to obtain an up-to-date `config.json`.
 
-![](./docs/schedule_and_data_model)
 
 ### Prepare for deployment
 
