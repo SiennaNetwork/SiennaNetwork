@@ -313,7 +313,8 @@
             "start_at": 0,
             "duration": 124416000,
             "cliff": "0",
-            "expected_portion": "2500000000000000000000"
+            "expected_portion": "2500000000000000000000",
+            "expected_remainder": "0"
           },
           "allocations": [
             [

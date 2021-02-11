@@ -53,11 +53,11 @@ const columns = ([
     interval:           Seconds (_J_),
     duration_days:      Days    (_K_, _L_),
     duration:           Seconds (_L_),
-    vestings:           Number  (_M_),
+    portions:           Number  (_M_),
     cliff_percent:      Percent (_N_),
     cliff:              Sienna  (_O_),
-    expected_portion:   Sienna  (_P_),
-    expected_remainder: Sienna  (_Q_),
+    expected_remainder: Sienna  (_P_),
+    expected_portion:   Sienna  (_Q_),
     allocation:         Sienna  (_R_),
     address:            Address (_S_)
   }
