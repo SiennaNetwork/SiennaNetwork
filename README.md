@@ -19,13 +19,13 @@ contracts (the latter of which is built with `fadroma`, tested with
 ### Fetch, build, and verify the code
 
 ```sh
-git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git sienna \
-  && cd sienna \     # enter repository
-  && make test \     # run tests
-  && make coverage \ # generate test coverage reports
-  && make \          # production build
-  && ls dist/ \      # view contents of production build
-  && cat dist/checksums.sha256.txt # view production build checksums
+git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git sienna 
+cd sienna      # enter repository
+make test      # run tests
+make coverage  # generate test coverage reports
+make           # production build
+ls dist/       # view contents of production build
+cat dist/checksums.sha256.txt # view production build checksums
 ```
 
 ### Configure the contract
