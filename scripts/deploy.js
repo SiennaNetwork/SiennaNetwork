@@ -1,9 +1,7 @@
 #!/usr/bin/env node
-
 process.on('unhandledRejection', up => {throw up})
-require('dotenv').config({
-  path: require('path').resolve(__dirname, '../.env')
-})
+const envfile = require('path').resolve(__dirname, '../.env')
+require('dotenv').config({ path: envfile })
 
 const gas = x => ({amount:[{amount:String(x),denom:'uscrt'}],gas:String(x)})
 
@@ -32,6 +30,8 @@ async function main (
       config:    { public_total_supply: true }
     })
   console.log(token)
+  require('fs').appendFileSync(envfile,
+    `\nTOKEN=${JSON.stringify(token)}`)
 
   console.log('deploying mgmt...')
   const mgmt = await client.deploy(
@@ -41,6 +41,8 @@ async function main (
       token_hash: token.hash
     })
   console.log(mgmt)
+  require('fs').appendFileSync(envfile,
+    `\nMGMT=${JSON.stringify(mgmt)}`)
 
   return { client, mgmt, token }
 

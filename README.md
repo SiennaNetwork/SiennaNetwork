@@ -5,6 +5,7 @@
 ```sh
 git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git sienna 
 cd sienna        # enter repository
+yarn             # install dependencies of build scripts
 make test        # run tests
 cargo doc --open # view documentation (needs code to compile)
 make coverage    # generate test coverage reports (needs all tests to pass)
@@ -100,11 +101,12 @@ $EDITOR .env # edit this file
   If the contract is not launched and your `.env` file contains the keys to its admin account,
   the contract's configuration will be updated.
 
-### 🚀 Launch the contract - `make launch`
+### 🚀 Launch the contract - `make launch && make status`
 
 * The contract can be launched only once.
-* This will mint the tokens and remove all minters from the underlying SNIP20 token.
-* The contract will irreversibly enter the `Launched` state and vesting will begin
+* `make launch` will mint the tokens and remove all minters from the underlying SNIP20 token,
+  after which The contract will irreversibly enter the `Launched` state and vesting will commence.
+* `make status` can be used to monitor the status of the contract
 
 ### 💰 Vesting - `make claim`
 

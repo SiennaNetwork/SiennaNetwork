@@ -80,10 +80,13 @@ schedule:
 .PHONY: localnet-deploy localnet-configure localnet-launch localnet-claim
 localnet-deploy:
 	docker-compose up -d
-	docker-compose exec localnet /sienna/scripts/deploy_mgmt_and_token.js
+	docker-compose exec localnet /sienna/scripts/deploy.js
 localnet-configure:
 	docker-compose up -d
 	docker-compose exec localnet /sienna/scripts/configure.js
+localnet-status:
+	docker-compose up -d
+	docker-compose exec localnet /sienna/scripts/status.js
 localnet-launch:
 	docker-compose up -d
 	docker-compose exec localnet /sienna/scripts/launch.js
@@ -94,13 +97,15 @@ localnet-claim:
 # Local deployment
 .PHONY: localnet-deploy localnet-configure localnet-launch localnet-claim
 deploy:
-	echo "Not implemented"
+	scripts/deploy.js
 configure:
-	echo "Not implemented"
+	scripts/configure.js
+status:
+	scripts/status.js
 launch:
-	echo "Not implemented"
+	scripts/launch.js
 claim:
-	echo "Not implemented"
+	scripts/claim.js
 
 # Debugging
 .PHONY: expand
