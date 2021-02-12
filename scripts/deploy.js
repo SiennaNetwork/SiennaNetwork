@@ -3,24 +3,13 @@ process.on('unhandledRejection', up => {throw up})
 const envfile = require('path').resolve(__dirname, '../.env')
 require('dotenv').config({ path: envfile })
 
-const gas = x => ({amount:[{amount:String(x),denom:'uscrt'}],gas:String(x)})
-
 module.exports = main
 if (require.main === module) main()
 async function main (
-  httpUrl    = process.env.SECRET_REST_URL || 'http://localhost:1337',
-  mnemonic   = process.env.MNEMONIC,
-  customFees = { upload: gas(3000000)
-               , init:   gas( 500000)
-               , exec:   gas( 500000)
-               , send:   gas(  80000) },
-  output = (x={}) => {
-    if (x.data instanceof Uint8Array) x.data = new TextDecoder('utf-8').decode(x.data)
-    console.log(require('prettyjson').render(x))
-  }
+  output = require('./output'),
+  client = require('./client')(),
 ) {
-
-  const client = await require('./client')(httpUrl, mnemonic, customFees)
+  client = await Promise.resolve(client)
 
   output('deploying token...')
   const token = await client.deploy(

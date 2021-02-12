@@ -5,7 +5,19 @@ const {
   SigningCosmWasmClient,
 } = require('secretjs');
 
-module.exports = async function getClient (url, mnemonic, fees) {
+const gas = require('./gas')
+
+module.exports = async function getClient (
+  url =
+    process.env.SECRET_REST_URL || 'http://localhost:1337',
+  mnemonic =
+    process.env.MNEMONIC,
+  fees =
+    { upload: gas(3000000)
+    , init:   gas( 500000)
+    , exec:   gas( 500000)
+    , send:   gas(  80000) }
+) {
   const pen = await Secp256k1Pen.fromMnemonic(mnemonic);
   const pub = encodeSecp256k1Pubkey(pen.pubkey);
   const addr = pubkeyToAddress(pub, 'secret');

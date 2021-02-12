@@ -6,16 +6,10 @@ require('dotenv').config({ path: envfile })
 module.exports = main
 if (require.main === module) main()
 async function main (
-  gas = require('./gas'),
-  client = require('./client')(
-    process.env.SECRET_REST_URL || 'http://localhost:1337',
-    process.env.MNEMONIC,
-    { upload: gas(3000000)
-    , init:   gas( 500000)
-    , exec:   gas( 500000)
-    , send:   gas(  80000) }),
-  MGMT = JSON.parse(process.env.MGMT||"{}"),
-  output = x => console.log(require('prettyjson').render(x))
+  output = require('./output'),
+  client = require('./client')(),
+
+  MGMT   = JSON.parse(process.env.MGMT||"{}"),
 ) {
   client = await Promise.resolve(client)
   output(await client.query(MGMT.address,
