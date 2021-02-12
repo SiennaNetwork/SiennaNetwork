@@ -59,8 +59,8 @@ kukumba!(
                 Configure { schedule: schedule.clone() } => tx_err!(error));
         }
     }
-    when "the admin sets a valid configuration" {
-        let s1 = schedule(100, vec![
+    when "the admin sets a minimal valid configuration" {
+        let s0 = schedule(100, vec![
             pool("P1", 10, vec![
                 channel_periodic_multi(10, &vec![
                     allocation(10, &BOB)
@@ -77,32 +77,27 @@ kukumba!(
                 ], 1, 0, 1, 0)
             ])
         ])
-        test_tx!(deps, ALICE, 0, 0;
-            Configure { schedule: s1.clone() } => tx_ok!());
+        test_tx!(deps, ALICE, 0, 0; Configure { schedule: s0.clone() } => tx_ok!());
     } then "the configuration is updated" {
-        let pools = s1.pools.clone();
-        test_q!(deps, GetSchedule;
-            Schedule { schedule: Some(Schedule { total: s1.total, pools }) });
+        test_q!(deps, GetSchedule; Schedule { schedule: Some(s0.clone()) });
     }
     when "someone else tries to set a valid configuration" {
-        test_tx!(deps, MALLORY, 0, 0;
-            Configure { schedule: schedule(0, vec![]) } =>
-                tx_err_auth!());
+        test_tx!(deps, MALLORY, 0, 0; Configure { schedule: schedule(0, vec![]) } => tx_err_auth!());
     } then "the configuration remains unchanged" {
-        let pools = s1.pools.clone();
-        test_q!(deps, GetSchedule;
-            Schedule { schedule: Some(Schedule { total: s1.total, pools }) });
+        test_q!(deps, GetSchedule; Schedule { schedule: Some(s0.clone()) });
+    }
+    when "the admin sets the planned production configuration" {
+        let s: Schedule = serde_json::from_str(include_str!("../../config.json")).unwrap();
+        test_tx!(deps, ALICE, 0, 0; Configure { schedule: s.clone() } => tx_ok!());
+    } then "the configuration is updated" {
+        test_q!(deps, GetSchedule; Schedule { schedule: Some(s.clone()) });
     }
     when "the contract launches" {
-        test_tx!(deps, ALICE, 0, 0;
-            Launch {} => tx_ok_launch!(s1.total));
+        test_tx!(deps, ALICE, 0, 0; Launch {} => tx_ok_launch!(s.total));
     } then "the configuration can't be changed anymore" {
-        test_tx!(deps, ALICE, 0, 0;
-            Configure { schedule: s1.clone() } => tx_err!(sienna_mgmt::UNDERWAY));
-        test_tx!(deps, BOB, 0, 0;
-            Configure { schedule: s1.clone() } => tx_err_auth!());
-        test_tx!(deps, MALLORY, 0, 0;
-            Configure { schedule: s1.clone() } => tx_err_auth!());
+        test_tx!(deps, ALICE,   0, 0; Configure { schedule: s0.clone() } => tx_err!(sienna_mgmt::UNDERWAY));
+        test_tx!(deps, BOB,     0, 0; Configure { schedule: s0.clone() } => tx_err_auth!());
+        test_tx!(deps, MALLORY, 0, 0; Configure { schedule: s0.clone() } => tx_err_auth!());
     }
 
 );
