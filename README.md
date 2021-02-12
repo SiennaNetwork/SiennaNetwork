@@ -56,6 +56,8 @@ cat dist/checksums.sha256.txt # view production build checksums
 * `make coverage` generates a test coverage report
   if you provide a working installation of [tarpaulin](https://crates.io/crates/cargo-tarpaulin).
 
+![](./docs/coverage.jpeg)
+
 ### ✏️ Configure the contract
 
 The file `config.json` contains the specific vesting parameters
