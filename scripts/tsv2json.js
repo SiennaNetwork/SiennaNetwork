@@ -190,7 +190,7 @@ module.exports = function tsv2json (
 }
 
 if (require.main === module) require('fs').writeFileSync(
-  `${__dirname}/../config_msg.json`,
+  `${__dirname}/../config.json`,
   require('json-bigint').stringify(module.exports(), (key, value) => (
       typeof value === 'bigint'
           ? value.toString()

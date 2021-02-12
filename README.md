@@ -36,7 +36,7 @@ Crates of interest include:
   and defines shorthands for most common operations.
 * `Cargo.toml` defines the root workspace for all Rust modules.
 * `scripts/package.json` dependencies of Node.js scripts
-* `scripts/tsv2json.js` generates `config_msg.json`, see below
+* `scripts/tsv2json.js` generates `config.json`, see below
 * `scripts/deploy.js` deploys a new blank instance of the contract
 * `scripts/test.js` deploys and runs a quick functionality check
 * `optimizer` - vendored copy of cosmwasm smart contract optimizer
@@ -47,21 +47,22 @@ Crates of interest include:
 * `schedule` - model of the client's vesting logic
 * `coverage`  - test coverage report
 
-## Launching the contract
+## Contract lifecycle
 
-### Validate the contract
+### 🔍 Validate the contract 
 
 `cargo test` runs test suites for all or specific modules.
 
 If you can't get the contract to build in your OS's environment,
 try `make test-docker` to run tests in a Docker container.
 
-`make coverage` generates a single-file Tarpaulin coverage report,
-provided you have run `cargo install cargo-tarpaulin` before that.
+`make coverage` generates a single-file [Tarpaulin](https://crates.io/crates/cargo-tarpaulin)
+coverage report, provided you have run `cargo install cargo-tarpaulin` before that.
 
-### Configure the contract
+### ✏️ Configure the contract
 
-The file `config_msg.json` is used to configure the contract before launching.
+The file `config.json` contains the specific vesting parameters
+and is used to configure the contract before launching.
 To generate it, go to [the spreadsheet](https://docs.google.com/spreadsheets/d/1sgj-nTE_b25F8O740Av7XYByOzkD0qNx1Jk63G2qRwY/)
 that defines the vesting schedule.
 
@@ -70,10 +71,10 @@ that defines the vesting schedule.
 * Download it as TSV using **File->Download->Tab-separated values (.tsv, current sheet)**
 * Replace `schedule.tsv` with the downloaded file (renaming it from e.g. `SIENNA - Schedule.tsv`)
 * Make sure that `scripts/node_modules` is up to date (run `npm install` or `yarn` in `scripts`)
-* Run `make config` of `./scripts/tsv2json.js` to obtain an up-to-date `config.json`.
+* Run `make config` or `./scripts/tsv2json.js` to obtain an up-to-date `config.json`.
 * Don't forget to update the screenshot here :)
 
-### Prepare for deployment
+### 🗝️ Prepare for deployment
 
 Create a file called `.env` in the repository root, and populate it with
 the node URL, the chain ID, and mnemonic of the wallet who will be the
@@ -84,15 +85,56 @@ cp env.example .env
 $EDITOR .env # edit this file
 ```
 
-### Deploy
+### 🚚 Deploy
 
 To run the deployer in a Docker containter:
+
 ```sh
 make deploy
 ```
 
 It's also OK to run the deployer without a Docker container - it runs just fine,
 provided the usual dependencies are provided by the environment.
+
 ```sh
-./deployer/deploy.js
+./scripts/mgmt_deploy.js
+```
+
+### 🔧 Update the configuration
+
+The deployed contract instance can be arbitrarily reconfigured before launch.
+
+* Generate a new `config.json` (by running either `make config` or
+  `./scripts/tsv2json.js`)
+
+* Run `./scripts/configure.js` with the address of the contract
+  that you would like to reconfigure.
+
+```sh
+./scripts/mgmt_config.js secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+If the contract is not launched and your `.env` file contains the keys to the
+admin account, the configuration will be updated.
+
+### 🚀 Launch the contract
+
+The contract can be launched only once.
+
+Run `./scripts/mgmt_launch.js` with the contract address:
+
+```sh
+./scripts/launch.js secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+* This will mint the tokens and remove all minters from the underlying SNIP20 token.
+* The contract will irreversibly ether the launched state.
+
+### 💰 Vesting
+
+After launching the contract, claims can now be made to it.
+If there's an amount vested to the claiming address, it will be transferred.
+
+```sh
+./scripts/mgmt_claim.js
 ```
