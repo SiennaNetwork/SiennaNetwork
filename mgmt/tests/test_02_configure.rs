@@ -60,7 +60,7 @@ kukumba!(
         }
     }
     when "the admin sets a minimal valid configuration" {
-        let s0 = schedule(100, vec![
+        let s0 = schedule(150, vec![
             pool("P1", 10, vec![
                 channel_periodic_multi(10, &vec![
                     allocation(10, &BOB)
@@ -75,11 +75,36 @@ kukumba!(
                     allocation(10, &BOB),
                     allocation(30, &BOB)
                 ], 1, 0, 1, 0)
-            ])
+            ]),
+            pool_partial("P3", 50, vec![])
         ])
         test_tx!(deps, ALICE, 0, 0; Configure { schedule: s0.clone() } => tx_ok!());
     } then "the configuration is updated" {
-        test_q!(deps, GetSchedule; Schedule { schedule: Some(s0.clone()) });
+        test_tx!(deps, ALICE, 0, 0; AddChannel {
+            pool_name:   "P3".to_string(),
+            name:        "FOO".to_string(),
+            amount:      Uint128::from(20u128),
+            allocations: vec![],
+            periodic:    None
+        } => tx_ok!());
+        test_tx!(deps, ALICE, 0, 0; AddChannel {
+            pool_name:   "P3".to_string(),
+            name:        "BAR".to_string(),
+            amount:      Uint128::from(20u128),
+            allocations: vec![],
+            periodic:    None
+        } => tx_ok!());
+        test_tx!(deps, ALICE, 0, 0; AddChannel {
+            pool_name:   "P3".to_string(),
+            name:        "BAZ".to_string(),
+            amount:      Uint128::from(40u128),
+            allocations: vec![],
+            periodic:    None
+        } => tx_err!("pool P3: tried to add channel with size 40, which is more than the remaining 10 of this pool's total 50"));
+    }
+    when "the admin adds a new account to a partial pool" {
+        test_tx!(deps, ALICE, 0, 0; Configure { schedule: s0.clone() } => tx_ok!());
+    } then "the configuration is updated" {
     }
     when "someone else tries to set a valid configuration" {
         test_tx!(deps, MALLORY, 0, 0; Configure { schedule: schedule(0, vec![]) } => tx_err_auth!());

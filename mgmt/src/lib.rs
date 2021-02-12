@@ -162,6 +162,7 @@ contract!(
                                 };
                                 channel.validate()?;
                                 pool.add_channel(channel)?;
+                                changed = true;
                                 break
                             }
                         }
