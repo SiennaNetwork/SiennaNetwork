@@ -84,7 +84,7 @@ cp env.example .env
 $EDITOR .env # edit this file
 ```
 
-### 🚚 Deploy - `make`, `make deploy`
+### 🚚 Deploy - `make && make deploy`
 
 * Run `make` to generate the production binaries in `dist/`.
 * Run `make deploy` to deploy the SNIP20 token and associated management contract
@@ -108,9 +108,5 @@ $EDITOR .env # edit this file
 
 ### 💰 Vesting - `make claim`
 
-After launching the contract, claims can now be made to it.
-If there's an amount vested to the claiming address, it will be transferred.
-
-```sh
-./scripts/mgmt_claim.js
-```
+* After launching the contract, claims can now be made to it.
+* If there's an amount unlocked for the claiming address, it will be received.
