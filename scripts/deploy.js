@@ -13,12 +13,16 @@ async function main (
   customFees = { upload: gas(3000000)
                , init:   gas( 500000)
                , exec:   gas( 500000)
-               , send:   gas(  80000) }
+               , send:   gas(  80000) },
+  output = (x={}) => {
+    if (x.data instanceof Uint8Array) x.data = new TextDecoder('utf-8').decode(x.data)
+    console.log(require('prettyjson').render(x))
+  }
 ) {
 
   const client = await require('./client')(httpUrl, mnemonic, customFees)
 
-  console.log('deploying token...')
+  output('deploying token...')
   const token = await client.deploy(
     `${__dirname}/../dist/snip20-reference-impl.wasm`,
     `SIENNA SNIP20 (${new Date().toISOString()})`, {
@@ -29,20 +33,30 @@ async function main (
       prng_seed: "insecure",
       config:    { public_total_supply: true }
     })
-  console.log(token)
+  output(token)
   require('fs').appendFileSync(envfile,
     `\nTOKEN=${JSON.stringify(token)}`)
 
-  console.log('deploying mgmt...')
+  output('deploying mgmt...')
   const mgmt = await client.deploy(
     `${__dirname}/../dist/sienna-mgmt.wasm`,
     `SIENNA MGMT (${new Date().toISOString()})`, {
       token_addr: token.address,
       token_hash: token.hash
     })
-  console.log(mgmt)
+  output(mgmt)
   require('fs').appendFileSync(envfile,
     `\nMGMT=${JSON.stringify(mgmt)}`)
+
+  output('allowing mgmt to mint tokens...')
+  output(
+    await client.execute(token.address,
+      { set_minters: { minters: [mgmt.address] } }))
+
+  output('transferring ownership of token to mgmt...')
+  output(
+    await client.execute(token.address,
+      { change_admin: { address: mgmt.address } }))
 
   return { client, mgmt, token }
 

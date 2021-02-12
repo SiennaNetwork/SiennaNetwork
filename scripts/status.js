@@ -20,4 +20,6 @@ async function main (
   client = await Promise.resolve(client)
   output(await client.query(MGMT.address,
     { status: {} }))
+  output(await client.query(MGMT.address,
+    { get_schedule: {} }))
 }
