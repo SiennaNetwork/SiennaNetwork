@@ -140,6 +140,42 @@ contract!(
             })
         }
 
+        /// Add a new channel to a pool
+        AddChannel (
+            pool_name:   String,
+            name:        String,
+            amount:      cosmwasm_std::Uint128,
+            allocations: Vec<sienna_schedule::Allocation>,
+            periodic:    Option<sienna_schedule::Periodic>
+        ) {
+            require_admin!(|env, state| {
+                match &state.schedule {
+                    None => err_msg(state, &NO_SCHEDULE),
+                    Some(schedule) => {
+                        let mut changed = false;
+                        let mut schedule = schedule.clone();
+                        for pool in schedule.pools.iter_mut() {
+                            if pool.name == pool_name {
+                                let channel = sienna_schedule::Channel {
+                                    name, amount, periodic,
+                                    allocations: vec![(0, allocations)]
+                                };
+                                channel.validate()?;
+                                pool.add_channel(channel)?;
+                                break
+                            }
+                        }
+                        if changed {
+                            state.schedule = Some(schedule);
+                            ok(state)
+                        } else {
+                            err_msg(state, &NOT_FOUND)
+                        }
+                    }
+                }
+            })
+        }
+
         /// Update the allocations of a channel
         Reallocate (
             pool_name:    String,
@@ -156,7 +192,10 @@ contract!(
                             if pool.name == pool_name {
                                 for channel in pool.channels.iter_mut() {
                                     if channel.name == channel_name {
-                                        channel.allocations.push((env.block.time, allocations.clone()));
+                                        channel.allocations.push((
+                                            env.block.time,
+                                            allocations.clone()
+                                        ));
                                         changed = true;
                                         break
                                     }
