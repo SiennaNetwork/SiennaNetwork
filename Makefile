@@ -35,12 +35,6 @@ compile-optimized-reproducible: _optimizer
 	gzip -df dist/*.wasm.gz
 	sha256sum -b dist/*.wasm > dist/checksums.sha256.txt
 
-# Deploy
-.PHONY: deploy
-deploy:
-	docker-compose up -d
-	docker-compose exec localnet /sienna/scripts/deploy.js
-
 # Integration testing
 # You need to get one of the 4 mnemonics that are initially created by your
 # test `secretd` node (can be seen in `docker-compose logs`), and populate
@@ -68,21 +62,45 @@ test-less:
 	make test 2>&1|less -R
 test-loop:
 	find . | entr make test
+
+# Extra artifacts
+.PHONY: docs coverage schema schedule
+docs:
+	cargo doc --document-private-items
 coverage:
 	cargo tarpaulin --avoid-cfg-tarpaulin --workspace --no-fail-fast --verbose \
 		-e snip20-reference-impl --exclude-files=token/* \
 		-o Html --output-dir=./coverage
-
-# Extra artifacts
-.PHONY: schema config schedule docs
 schema:
 	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schema
-config:
+schedule:
 	./scripts/tsv2json.js
-chart: config
-	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schedule
-docs:
-	cargo doc --document-private-items
+
+# Local deployment
+.PHONY: localnet-deploy localnet-configure localnet-launch localnet-claim
+localnet-deploy:
+	docker-compose up -d
+	docker-compose exec localnet /sienna/scripts/deploy_mgmt_and_token.js
+localnet-configure:
+	docker-compose up -d
+	docker-compose exec localnet /sienna/scripts/configure.js
+localnet-launch:
+	docker-compose up -d
+	docker-compose exec localnet /sienna/scripts/launch.js
+localnet-claim:
+	docker-compose up -d
+	docker-compose exec localnet /sienna/scripts/claim.js
+
+# Local deployment
+.PHONY: localnet-deploy localnet-configure localnet-launch localnet-claim
+deploy:
+	echo "Not implemented"
+configure:
+	echo "Not implemented"
+launch:
+	echo "Not implemented"
+claim:
+	echo "Not implemented"
 
 # Debugging
 .PHONY: expand

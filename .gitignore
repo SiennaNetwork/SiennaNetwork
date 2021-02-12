@@ -4,3 +4,4 @@ target
 *.wasm.gz
 *.profraw
 .env
+node_modules

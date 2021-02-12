@@ -15,19 +15,6 @@ cat dist/checksums.sha256.txt # view production build checksums
 
 ## API documentation
 
-By running `cargo doc --open` you can get an overview of most of the Rust
-code involved in this project.
-
-![](docs/cargo_docs_exist.png)
-
-Crates of interest include:
-* `target/doc/sienna_schedule`
-* `target/doc/sienna_mgmt`
-* `target/doc/snip20_reference_impl`
-* `target/doc/secret_toolkit_snip20`
-* `target/doc/cosmwasm_std`
-* `target/doc/cosmwasm_storage`
-
 ## Overview of project contents 
 
 ![](./docs/project_contents.png)
@@ -35,10 +22,7 @@ Crates of interest include:
 * `Makefile` is the entry point of the project,
   and defines shorthands for most common operations.
 * `Cargo.toml` defines the root workspace for all Rust modules.
-* `scripts/package.json` dependencies of Node.js scripts
-* `scripts/tsv2json.js` generates `config.json`, see below
-* `scripts/deploy.js` deploys a new blank instance of the contract
-* `scripts/test.js` deploys and runs a quick functionality check
+* `package.json` dependencies of Node.js scripts
 * `optimizer` - vendored copy of cosmwasm smart contract optimizer
 * `kukumba` - bdd testing framework
 * `fadroma` - smart contract macro library
@@ -49,15 +33,28 @@ Crates of interest include:
 
 ## Contract lifecycle
 
-### 🔍 Validate the contract 
+### 🔍 Validate the contract - `make docs`, `make test`, `make coverage`
 
-`cargo test` runs test suites for all or specific modules.
+* `make docs` compiles the API documentation.
+  `cargo doc --open` builds the API documentation and opens it in your browser.
+  Crates of interest include:
+  * `target/doc/sienna_schedule`
+  * `target/doc/sienna_mgmt`
+  * `target/doc/snip20_reference_impl`
+  * `target/doc/secret_toolkit_snip20`
+  * `target/doc/cosmwasm_std`
+  * `target/doc/cosmwasm_storage`
 
-If you can't get the contract to build in your OS's environment,
-try `make test-docker` to run tests in a Docker container.
+![](./docs/cargo_docs_exist.png)
 
-`make coverage` generates a single-file [Tarpaulin](https://crates.io/crates/cargo-tarpaulin)
-coverage report, provided you have run `cargo install cargo-tarpaulin` before that.
+* `make test` runs the test suites of all modules.
+  If you can't get the contract to build in your OS's environment,
+  try `make test-docker` to run tests in a Docker container.
+
+![](./docs/tests.png)
+
+* `make coverage` generates a test coverage report
+  if you provide a working installation of [tarpaulin](https://crates.io/crates/cargo-tarpaulin).
 
 ### ✏️ Configure the contract
 
@@ -72,7 +69,7 @@ that defines the vesting schedule.
 * Replace `schedule.tsv` with the downloaded file (renaming it from e.g. `SIENNA - Schedule.tsv`)
 * Make sure that `scripts/node_modules` is up to date (run `npm install` or `yarn` in `scripts`)
 * Run `make config` or `./scripts/tsv2json.js` to obtain an up-to-date `config.json`.
-* Don't forget to update the screenshot here :)
+* Don't forget to update the screenshot here if you commit the new `schedule.tsv` and `config.json` :)
 
 ### 🗝️ Prepare for deployment
 
@@ -85,52 +82,29 @@ cp env.example .env
 $EDITOR .env # edit this file
 ```
 
-### 🚚 Deploy
+### 🚚 Deploy - `make`, `make deploy`
 
-To run the deployer in a Docker containter:
+* Run `make` to generate the production binaries in `dist/`.
+* Run `make deploy` to deploy the SNIP20 token and associated management contract
+  to the network specified in `.env`.
+* This will append the addresses of the deployed contracts to your `.env` file,
+  so that subsequent commands will work with the last deployed instance of the contract.
 
-```sh
-make deploy
-```
+### 🔧 Update the configuration - `make schedule && make config`
 
-It's also OK to run the deployer without a Docker container - it runs just fine,
-provided the usual dependencies are provided by the environment.
+* The contract instance can be reconfigured before launch.
+* Run `make schedule` to generate an up-to-date `config.json` from `schedule.tsv`.
+* Run `make configure` to upload the schedule to the contract put in `.env` by `make deploy`.
+  If the contract is not launched and your `.env` file contains the keys to its admin account,
+  the contract's configuration will be updated.
 
-```sh
-./scripts/mgmt_deploy.js
-```
+### 🚀 Launch the contract - `make launch`
 
-### 🔧 Update the configuration
-
-The deployed contract instance can be arbitrarily reconfigured before launch.
-
-* Generate a new `config.json` (by running either `make config` or
-  `./scripts/tsv2json.js`)
-
-* Run `./scripts/configure.js` with the address of the contract
-  that you would like to reconfigure.
-
-```sh
-./scripts/mgmt_config.js secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-If the contract is not launched and your `.env` file contains the keys to the
-admin account, the configuration will be updated.
-
-### 🚀 Launch the contract
-
-The contract can be launched only once.
-
-Run `./scripts/mgmt_launch.js` with the contract address:
-
-```sh
-./scripts/launch.js secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
+* The contract can be launched only once.
 * This will mint the tokens and remove all minters from the underlying SNIP20 token.
-* The contract will irreversibly ether the launched state.
+* The contract will irreversibly enter the `Launched` state and vesting will begin
 
-### 💰 Vesting
+### 💰 Vesting - `make claim`
 
 After launching the contract, claims can now be made to it.
 If there's an amount vested to the claiming address, it will be transferred.
