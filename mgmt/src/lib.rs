@@ -29,8 +29,8 @@ pub type ErrorCount = u64;
 pub const BLOCK_SIZE: usize = 256;
 
 lazy_static! {
-    /// Error message: claimed more than claimable.
-    pub static ref BROKEN:      &'static str = "broken";
+    /// Error message: assumptions have been violated.
+    pub static ref CORRUPTED:   &'static str = "broken";
     /// Error message: unauthorized or nothing to claim right now.
     pub static ref NOTHING:     &'static str = "nothing for you";
     /// Error message: can't launch more than once.
@@ -235,7 +235,7 @@ contract!(
         /// After launch, recipients can call the Claim method to
         /// receive the gains that they have accumulated so far.
         Claim () {
-            use crate::{PRELAUNCH, BROKEN, NOTHING};
+            use crate::{PRELAUNCH, NOTHING};
             use cosmwasm_std::{Uint128};
             match &state.launched {
                 None => err_msg(state, &PRELAUNCH),
@@ -248,10 +248,23 @@ contract!(
                     if claimable.len() < 1 {
                         err_msg(state, &NOTHING)
                     } else {
-                        println!("Claimable:   {:#?}", &claimable);
+                        let unclaimed = state.history.unclaimed(claimable.clone());
+
+                        println!("Now: {:#?}", &now);
+                        println!("Claimable: {:#?}", &claimable);
+                        for portion in claimable.iter() {
+                            println!("{:?}", &portion);
+                        }
                         println!("\nClaimed:   {:#?}", &state.history.history);
-                        let unclaimed = state.history.unclaimed(claimable);
+                        for portion in state.history.history.iter() {
+                            println!("{:?}", &portion);
+                        }
+
                         println!("\nUnclaimed: {:#?}", &unclaimed);
+                        for portion in unclaimed.iter() {
+                            println!("{:?}", &portion);
+                        }
+
                         if unclaimed.len() < 1 {
                             err_msg(state, &NOTHING)
                         } else {

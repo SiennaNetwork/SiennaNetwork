@@ -16,7 +16,7 @@
             "duration": 41472000,
             "cliff": "0",
             "expected_portion": "4166000000000000000000",
-            "expected_remainder": "4486000000000000000000"
+            "expected_remainder": "320000000000000000000"
           },
           "allocations": [
             [
@@ -44,10 +44,10 @@
             "type": "channel_periodic",
             "interval": 86400,
             "start_at": 15552000,
-            "duration": 41472000,
+            "duration": 41558400,
             "cliff": "80000000000000000000000",
-            "expected_portion": "1503000000000000000000",
-            "expected_remainder": "63000000000000000000"
+            "expected_portion": "1500000000000000000000",
+            "expected_remainder": "0"
           },
           "allocations": [
             [
@@ -55,7 +55,7 @@
               [
                 {
                   "addr": "secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                  "amount": "1503000000000000000000"
+                  "amount": "1500000000000000000000"
                 }
               ]
             ]
@@ -68,10 +68,10 @@
             "type": "channel_periodic",
             "interval": 86400,
             "start_at": 15552000,
-            "duration": 41472000,
+            "duration": 41558400,
             "cliff": "80000000000000000000000",
-            "expected_portion": "1503000000000000000000",
-            "expected_remainder": "63000000000000000000"
+            "expected_portion": "1500000000000000000000",
+            "expected_remainder": "0"
           },
           "allocations": [
             [
@@ -79,7 +79,7 @@
               [
                 {
                   "addr": "secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                  "amount": "1503000000000000000000"
+                  "amount": "1500000000000000000000"
                 }
               ]
             ]
@@ -92,10 +92,10 @@
             "type": "channel_periodic",
             "interval": 86400,
             "start_at": 15552000,
-            "duration": 41472000,
+            "duration": 41558400,
             "cliff": "73100000000000000000000",
-            "expected_portion": "1373000000000000000000",
-            "expected_remainder": "233000000000000000000"
+            "expected_portion": "1370000000000000000000",
+            "expected_remainder": "300000000000000000000"
           },
           "allocations": [
             [
@@ -103,7 +103,7 @@
               [
                 {
                   "addr": "secret1TODO22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                  "amount": "1373000000000000000000"
+                  "amount": "1370000000000000000000"
                 }
               ]
             ]
@@ -116,10 +116,10 @@
             "type": "channel_periodic",
             "interval": 86400,
             "start_at": 15552000,
-            "duration": 41472000,
+            "duration": 41558400,
             "cliff": "6900000000000000000000",
             "expected_portion": "129000000000000000000",
-            "expected_remainder": "309000000000000000000"
+            "expected_remainder": "180000000000000000000"
           },
           "allocations": [
             [
@@ -136,7 +136,7 @@
       ]
     },
     {
-      "name": "Dev Fund",
+      "name": "DevFund",
       "total": "1500000000000000000000000",
       "partial": false,
       "channels": [
@@ -285,7 +285,7 @@
       ]
     },
     {
-      "name": "Minting Pool",
+      "name": "MintingPool",
       "total": "3900000000000000000000000",
       "partial": false,
       "channels": [

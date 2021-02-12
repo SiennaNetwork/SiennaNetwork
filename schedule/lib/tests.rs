@@ -13,16 +13,17 @@ macro_rules! invalid {
 }
 macro_rules! claim {
     ($schedule:expr, $addr: expr, $time: expr $(, $res:expr)*) => {
-        let claimable = $schedule.claimable(&$addr, $time);
-        for claim in claimable.iter() {
-            println!("");
-            for portion in claim.iter() {
-                println!("{}", &portion);
-            }
-        }
+        let actual = $schedule.claimable(&$addr, $time);
         let expected = Ok(vec![$($res),*]);
-        if claimable != expected {
-            println!("Expected:");
+        if actual != expected {
+            println!("---ACTUAL:---");
+            match actual {
+                Ok(actual) => for portion in actual.iter() {
+                    println!("{}", &portion);
+                },
+                Err(e) => println!("Error: {}", &e)
+            }
+            println!("---EXPECTED:---");
             for claim in expected.iter() {
                 println!("");
                 for portion in claim.iter() {
@@ -48,7 +49,7 @@ fn test_pool () {
     valid!(pool("", 0, vec![]));
     let alice = HumanAddr::from("Alice");
     invalid!(schedule(100, vec![
-        pool("P1", 50, vec![channel_immediate(20, &alice)]),
+        pool("P1", 50, vec![chanschedulenel_immediate(20, &alice)]),
         pool("P2", 50, vec![channel_immediate(30, &alice)])
     ]),
         "pool P1: channels add up to 20, expected 50");
@@ -234,46 +235,64 @@ fn test_channel_periodic_with_cliff_and_2_vestings () {
 #[test]
 fn test_reallocation () {
     // TODO: time of reallocation should be time of last claimed portion
-    let alice = HumanAddr::from("Alice");
-    let bob   = HumanAddr::from("Bob");
+    let alice   = HumanAddr::from("Alice");
+    let bob     = HumanAddr::from("Bob");
+    let charlie = HumanAddr::from("Charlie");
 
     let interval = DAY;
     let start_at = 0;
-    let duration = 10 * DAY;
+    let duration = 7 * DAY;
     let cliff    = 0;
 
-    let mut s = channel_periodic_multi(1000u128, &vec![
-        allocation(75u128, &alice),
-        allocation(25u128, &bob),
-    ], interval, start_at, duration, cliff);
+    let mut s = channel_periodic_multi(
+        700u128, &vec![allocation(75u128, &alice)],
+        interval, start_at, duration, cliff);
 
     claim!(s, alice, 0*DAY,
         portion(75u128, &alice, 0 * DAY, ": vesting"));
-
     claim!(s, alice, 1*DAY,
         portion(75u128, &alice, 0 * DAY, ": vesting"),
         portion(75u128, &alice, 1 * DAY, ": vesting"));
-
     claim!(s, alice, 2*DAY,
         portion(75u128, &alice, 0 * DAY, ": vesting"),
         portion(75u128, &alice, 1 * DAY, ": vesting"),
         portion(75u128, &alice, 2 * DAY, ": vesting"));
-
     claim!(s, alice, 3*DAY,
         portion(75u128, &alice, 0 * DAY, ": vesting"),
         portion(75u128, &alice, 1 * DAY, ": vesting"),
         portion(75u128, &alice, 2 * DAY, ": vesting"),
         portion(75u128, &alice, 3 * DAY, ": vesting"));
-
-    s.reallocate(4 * DAY + 1, vec![allocation(50u128, &alice),allocation(50u128, &bob)]).unwrap();
-
+    claim!(s, bob, 0*DAY);
+    claim!(s, bob, 1*DAY);
+    claim!(s, bob, 2*DAY);
+    claim!(s, bob, 3*DAY);
+    claim!(s, charlie, 10*DAY);
+    s.reallocate(4*DAY, vec![allocation(50u128, &alice)
+                            ,allocation(50u128, &bob)]).unwrap();
+    claim!(s, alice, 4*DAY,
+        portion(75u128, &alice, 0 * DAY, ": vesting"),
+        portion(75u128, &alice, 1 * DAY, ": vesting"),
+        portion(75u128, &alice, 2 * DAY, ": vesting"),
+        portion(75u128, &alice, 3 * DAY, ": vesting"),
+        portion(50u128, &alice, 4 * DAY, ": vesting"));
     claim!(s, alice, 7*DAY,
         portion(75u128, &alice, 0 * DAY, ": vesting"),
         portion(75u128, &alice, 1 * DAY, ": vesting"),
         portion(75u128, &alice, 2 * DAY, ": vesting"),
         portion(75u128, &alice, 3 * DAY, ": vesting"),
-        portion(75u128, &alice, 4 * DAY, ": vesting"),
+        portion(50u128, &alice, 4 * DAY, ": vesting"),
         portion(50u128, &alice, 5 * DAY, ": vesting"),
-        portion(50u128, &alice, 6 * DAY, ": vesting"),
-        portion(50u128, &alice, 7 * DAY, ": vesting"));
+        portion(50u128, &alice, 6 * DAY, ": vesting"));
+    claim!(s, bob, 5*DAY,
+        portion(50u128, &bob, 4 * DAY, ": vesting"),
+        portion(50u128, &bob, 5 * DAY, ": vesting"));
+    claim!(s, bob, 10*DAY,
+        portion(50u128, &bob, 4 * DAY, ": vesting"),
+        portion(50u128, &bob, 5 * DAY, ": vesting"),
+        portion(50u128, &bob, 6 * DAY, ": vesting"));
+    claim!(s, charlie, 10*DAY);
+}
+
+#[test]
+fn test_channel_with_cliff_multiple_vestings_partial_reallocation_and_remainder () {
 }

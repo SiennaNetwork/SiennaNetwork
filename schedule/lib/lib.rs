@@ -115,7 +115,7 @@ impl Pool {
     }
 }
 
-/// Vesting channel: contains one or more `Allocation`s and can be `Periodic`.
+/// Portions generator: can be immediate or `Periodic`; contains `Allocation`s (maybe partial).
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Channel {
@@ -150,6 +150,23 @@ impl Channel {
         Error!(format!("channel {}: can not reallocate in the past ({} < {})",
             &self.name, &t, t_max))
     }
+    fn err_realloc_cliff (&self) -> StdResult<()> {
+        Error!(format!("channel {}: reallocations for channels with cliffs are not supported",
+            &self.name))
+    }
+    /// Allocations can be changed on the fly without affecting past vestings.
+    pub fn reallocate (&mut self, t: Seconds, allocations: Vec<Allocation>) -> StdResult<()> {
+        match &self.periodic {
+            None => {},
+            Some(Periodic{cliff,..}) => if (*cliff).u128() > 0 {
+                return self.err_realloc_cliff()
+            }
+        };
+        let t_max = self.allocations.iter().fold(0, |x,y|Seconds::max(x,y.0));
+        if t < t_max { return self.err_realloc_time_travel(t, t_max) }
+        self.allocations.push((t, allocations));
+        self.validate()
+    }
     pub fn validate (&self) -> StdResult<()> {
         match &self.periodic {
             None => {},
@@ -161,7 +178,7 @@ impl Channel {
                 total_portion += amount.u128()
             }
             let portion_size = self.portion_size()?;
-            if total_portion != portion_size {
+            if total_portion > portion_size {
                 return self.err_total(total_portion, portion_size);
             }
         }
@@ -211,13 +228,6 @@ impl Channel {
             Some(periodic) => periodic.portion_size(&self.name, self.amount.u128())
         }
     }
-    /// Allocations can be changed on the fly without affecting past vestings.
-    pub fn reallocate (&mut self, t: Seconds, allocations: Vec<Allocation>) -> StdResult<()> {
-        let t_max = self.allocations.iter().fold(0, |x,y|Seconds::max(x,y.0));
-        if t < t_max { return self.err_realloc_time_travel(t, t_max) }
-        self.allocations.push((t, allocations));
-        self.validate()
-    }
 }
 
 /// Configuration of periodic vesting ladder.
@@ -245,7 +255,11 @@ impl Periodic {
             name, cliff, amount))
     }
     fn err_periodic_cliff_multiple<T> (&self, name: &str) -> StdResult<T> {
-        Error!(format!("channel {}: periodic vesting with cliff and multiple allocations is not supported",
+        Error!(format!("channel {}: cliffs not supported alongside split allocations",
+            name))
+    }
+    fn err_periodic_remainder_multiple<T> (&self, name: &str) -> StdResult<T> {
+        Error!(format!("channel {}: remainders not supported alongside split allocations",
             name))
     }
     fn err_duration_remainder<T> (&self, name: &str) -> StdResult<T> {
@@ -297,6 +311,7 @@ impl Periodic {
         self.portion_size(&ch.name, ch.amount.u128())?;
         Ok(())
     }
+    /// Critical section: generates `Portion`s according to the vesting ladder config.
     pub fn claimable (&self, ch: &Channel, a: &HumanAddr, t: Seconds) -> StdResult<Vec<Portion>> {
 
         let Periodic{start_at,cliff,interval,..} = self;
@@ -307,13 +322,13 @@ impl Periodic {
         // Nothing can be claimed before the start
         if t < *start_at { return Ok(vec![]) }
 
-        // Now comes the fun part, where we iterate over the time range
+        // Now comes the part where we iterate over the time range
         // `start_at..min(t, start_at+duration)` in steps of `interval`,
         // and add vestings in accordance with the allocations that are
         // current for the particular moment in time.
         let mut portions = vec![];
+        let mut total_received: u128 = 0;
         let mut t_cursor = *start_at;
-        let cliff  = cliff.u128();
         let mut n_portions = self.portion_count(&ch.name)?;
 
         // Make sure allocations exist.
@@ -324,10 +339,10 @@ impl Periodic {
         let mut current_allocations = current_allocations;
         if *t_alloc > t_cursor { return self.err_time_travel(&ch.name) }
 
-        // If this is the first iteration of this `loop`, and the `channel`
-        // has a `cliff`, and the first group of `allocations` contains the
-        // claimant `a`, then that user must receive the cliff amount.
-        // (TODO: and divide rest by 1 less?)
+        // If the `channel` has a `cliff`, and the first group of
+        // `allocations` contains the claimant `a`, then that
+        // user must receive the cliff amount.
+        let cliff = cliff.u128();
         if cliff > 0 {
             for Allocation {addr, ..} in current_allocations.iter() {
                 if addr == a {
@@ -336,23 +351,23 @@ impl Periodic {
                     if current_allocations.len() != 1 {
                         return self.err_periodic_cliff_multiple(&ch.name)
                     }
-                    // If the above is true, make the cliff amount claimable
-                    // as the first portion, and advance the time.
+                    // If the above is true, make the cliff amount
+                    // the first portion, and advance the time.
                     let reason = format!("{}: cliff", &ch.name);
                     portions.push(portion(cliff, a, *start_at, &reason));
                     t_cursor += interval;
                     n_portions += 1;
+                    total_received += cliff;
                     break
                 }
             }
         }
 
+        // After the first cliff, add a new portion for every `interval` seconds until `t`
+        // unless `t_cursor` is past the current time `t` or the end time `t_end`.
+        let t_end = start_at + n_portions * interval;
         loop {
-            // After the first cliff, add a new claimable portion
-            // for every `interval` seconds unless `t_cursor` is
-            // past the current time or the end time.
-            if t_cursor > t { break }
-            if t_cursor >= start_at + n_portions * interval { break }
+            if t_cursor > t || t_cursor >= t_end { break }
 
             // Determine the group of allocations that is current
             // at time `t_cursor`. (It is assumed that groups of
@@ -370,12 +385,35 @@ impl Periodic {
                     let amount = (*amount).u128();
                     let reason = format!("{}: vesting", &ch.name);
                     portions.push(portion(amount, a, t_cursor, &reason));
+                    total_received += amount;
                 }
             }
 
             // Advance the time.
             t_cursor += interval
         }
+        // MAYBE cap this by sum, not by time?
+
+        // If we're at/past the end, add give the remainder.
+        // How does this work with multiple allocations though?
+        if t_cursor >= t_end {
+            let remainder = ch.amount.u128() - total_received;
+            if remainder > 0 {
+                // The last group of allocations must contain exactly 1 user
+                // in order to avoid splitting the remainder.
+                if current_allocations.len() == 1 {
+                    let Allocation{addr,..} = current_allocations.get(0).unwrap();
+                    if addr == a {
+                        let reason = format!("{}: remainder", &ch.name);
+                        portions.push(portion(remainder, a, t_cursor, &reason));
+                    }
+                    // If that is not the case, the admin should be able to
+                    // call `Reallocate` and determine a single adress to
+                    // receive the remainder.
+                }
+            }
+        }
+
         Ok(portions)
     }
 }

@@ -53,13 +53,13 @@ const columns = ([
     interval:           Seconds (_J_),
     duration_days:      Days    (_K_, _L_),
     duration:           Seconds (_L_),
-    portions:           Number  (_M_),
-    cliff_percent:      Percent (_N_),
-    cliff:              Sienna  (_O_),
-    expected_remainder: Sienna  (_P_),
-    expected_portion:   Sienna  (_Q_),
-    allocation:         Sienna  (_R_),
-    address:            Address (_S_)
+    cliff_percent:      Percent (_M_),
+    cliff:              Sienna  (_N_),
+    portions:           Number  (_O_),
+    expected_portion:   Sienna  (_P_),
+    allocation:         Sienna  (_Q_),
+    address:            Address (_R_),
+    expected_remainder: Sienna  (_S_),
   }
   return data
 }

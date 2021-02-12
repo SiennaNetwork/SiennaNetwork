@@ -1,2 +1,2 @@
-7b7871420cf37d2e23b1fdbddc70fd724287a1f6830d938586aefb42f58c5368 *dist/sienna-mgmt.wasm
+861c4b00eaf64004bb070c343d65811632191c4ad3317806de44a9ed9e861cf1 *dist/sienna-mgmt.wasm
 c04b8873a9c30ff09026715504d8f0c1ed4b72d898ed286e5ec333b7ef43e9f1 *dist/snip20-reference-impl.wasm
