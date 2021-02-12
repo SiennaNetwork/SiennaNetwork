@@ -86,11 +86,15 @@ pub struct Pool {
     pub channels: Vec<Channel>,
 }
 impl Pool {
-    fn err_total (&self, total: u128) -> StdResult<()> {
+    fn err_total<T> (&self, total: u128) -> StdResult<T> {
         Error!(format!("pool {}: channels add up to {}, expected {}",
             &self.name, total, self.total))
     }
-    pub fn validate (&self) -> StdResult<()> {
+    fn err_too_big<T> (&self, amount: u128, unallocated: u128) -> StdResult<T> {
+        Error!(format!("pool {}: tried to add channel with size {}, which is more than the remaining {} of this pool's total {}",
+            &self.name, amount, unallocated, self.total.u128()))
+    }
+    pub fn validate (&self) -> StdResult<u128> {
         let mut total = 0u128;
         for channel in self.channels.iter() {
             match channel.validate() {
@@ -104,7 +108,7 @@ impl Pool {
             total != self.total.u128()
         };
         if invalid_total { return self.err_total(total) }
-        Ok(())
+        Ok(total)
     }
     pub fn claimable (&self, a: &HumanAddr, t: Seconds) -> StdResult<Vec<Portion>> {
         let mut portions = vec![];
@@ -112,6 +116,16 @@ impl Pool {
             portions.append(&mut channel.claimable(a, t)?);
         }
         Ok(portions)
+    }
+    pub fn add_channel (&mut self, ch: Channel) -> StdResult<()> {
+        ch.validate()?;
+        let allocated = self.validate()?;
+        let unallocated = self.total.u128() - allocated;
+        if ch.amount.u128() > unallocated {
+            return self.err_too_big(ch.amount.u128(), unallocated);
+        }
+        self.channels.push(ch);
+        Ok(())
     }
 }
 
@@ -123,6 +137,7 @@ pub struct Channel {
     pub amount: Uint128,
 
     /// Each portion can be split between multiple addresses.
+    /// The full history of reallocations is stored here.
     pub allocations: Vec<(Seconds, Vec<Allocation>)>,
 
     /// `None` -> 1 vesting at launch, `Some(Periodic)` -> multiple vestings.
@@ -154,19 +169,6 @@ impl Channel {
         Error!(format!("channel {}: reallocations for channels with cliffs are not supported",
             &self.name))
     }
-    /// Allocations can be changed on the fly without affecting past vestings.
-    pub fn reallocate (&mut self, t: Seconds, allocations: Vec<Allocation>) -> StdResult<()> {
-        match &self.periodic {
-            None => {},
-            Some(Periodic{cliff,..}) => if (*cliff).u128() > 0 {
-                return self.err_realloc_cliff()
-            }
-        };
-        let t_max = self.allocations.iter().fold(0, |x,y|Seconds::max(x,y.0));
-        if t < t_max { return self.err_realloc_time_travel(t, t_max) }
-        self.allocations.push((t, allocations));
-        self.validate()
-    }
     pub fn validate (&self) -> StdResult<()> {
         match &self.periodic {
             None => {},
@@ -183,6 +185,19 @@ impl Channel {
             }
         }
         Ok(())
+    }
+    /// Allocations can be changed on the fly without affecting past vestings.
+    pub fn reallocate (&mut self, t: Seconds, allocations: Vec<Allocation>) -> StdResult<()> {
+        match &self.periodic {
+            None => {},
+            Some(Periodic{cliff,..}) => if (*cliff).u128() > 0 {
+                return self.err_realloc_cliff()
+            }
+        };
+        let t_max = self.allocations.iter().fold(0, |x,y|Seconds::max(x,y.0));
+        if t < t_max { return self.err_realloc_time_travel(t, t_max) }
+        self.allocations.push((t, allocations));
+        self.validate()
     }
     /// Return list of portions that have become claimable for address `a` by time `t`.
     /// Immediate vestings only need the latest set of allocations to work,

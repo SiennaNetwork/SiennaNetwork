@@ -4,6 +4,9 @@ use super::*;
 macro_rules! valid {
     ($schedule:expr) => {
         assert_eq!($schedule.validate(), Ok(()));
+    };
+    ($schedule:expr, $value:expr) => {
+        assert_eq!($schedule.validate(), Ok($value));
     }
 }
 macro_rules! invalid {
@@ -16,14 +19,14 @@ macro_rules! claim {
         let actual = $schedule.claimable(&$addr, $time);
         let expected = Ok(vec![$($res),*]);
         if actual != expected {
-            println!("---ACTUAL:---");
+            println!("---ACTUAL CLAIMS:---");
             match actual {
                 Ok(actual) => for portion in actual.iter() {
                     println!("{}", &portion);
                 },
                 Err(e) => println!("Error: {}", &e)
             }
-            println!("---EXPECTED:---");
+            println!("---EXPECTED CLAIMS:---");
             for claim in expected.iter() {
                 println!("");
                 for portion in claim.iter() {
@@ -46,10 +49,10 @@ fn test_schedule () {
 
 #[test]
 fn test_pool () {
-    valid!(pool("", 0, vec![]));
+    valid!(pool("", 0, vec![]), 0);
     let alice = HumanAddr::from("Alice");
     invalid!(schedule(100, vec![
-        pool("P1", 50, vec![chanschedulenel_immediate(20, &alice)]),
+        pool("P1", 50, vec![channel_immediate(20, &alice)]),
         pool("P2", 50, vec![channel_immediate(30, &alice)])
     ]),
         "pool P1: channels add up to 20, expected 50");
