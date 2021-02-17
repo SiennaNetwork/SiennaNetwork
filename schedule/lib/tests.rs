@@ -1,4 +1,4 @@
-use crate::units::*;
+use crate::*;
 use super::*;
 
 macro_rules! valid {
@@ -16,7 +16,7 @@ macro_rules! invalid {
 }
 macro_rules! claim {
     ($schedule:expr, $addr: expr, $time: expr $(, $res:expr)*) => {
-        let actual = $schedule.claimable(&$addr, $time);
+        let actual = $schedule.claimable_by_at(&$addr, $time);
         let expected = Ok(vec![$($res),*]);
         if actual != expected {
             println!("---ACTUAL CLAIMS:---");
@@ -49,7 +49,7 @@ fn test_schedule () {
 
 #[test]
 fn test_pool () {
-    valid!(pool("", 0, vec![]), 0);
+    valid!(pool("", 0, vec![]));
     let alice = HumanAddr::from("Alice");
     invalid!(schedule(100, vec![
         pool("P1", 50, vec![channel_immediate(20, &alice)]),
