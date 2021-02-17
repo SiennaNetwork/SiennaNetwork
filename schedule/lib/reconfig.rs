@@ -23,6 +23,13 @@ impl Pool {
 
 impl Channel {
     /// Allocations can be changed on the fly without affecting past vestings.
+    /// FIXME: Allocations are timestamped with real time
+    ///        but schedule measures time from `t_launch=0`
+    ///        and allocations are realized in `Periodic`s
+    ///        which only start measuring time at `start_at`
+    ///        For now, reallocations should be forbidden
+    ///        before the launch because trying to timestamp
+    ///        an allocation would cause an underflow?
     pub fn reallocate (&mut self, t: Seconds, allocations: Vec<Allocation>) -> StdResult<()> {
         match &self.periodic {
             None => {},

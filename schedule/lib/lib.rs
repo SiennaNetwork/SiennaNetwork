@@ -1,33 +1,30 @@
-use serde::{Serialize, Deserialize};
-use schemars::JsonSchema;
-use cosmwasm_std::{StdResult, StdError};
-
-/// Used to define error handlers
-
+/// error result constructor
 macro_rules! Error {
     ($msg:expr) => {
         Err(cosmwasm_std::StdError::GenericErr { msg: $msg.to_string(), backtrace: None })
     };
 }
 
+/// define error conditions with corresponding parameterized messages
 macro_rules! define_errors {
     ($(
         $name:ident ($(&$self:ident,)? $($arg:ident : $type:ty),*) ->
-        ($format:literal $(, $var:expr)+)
+        ($format:literal $(, $var:expr)*)
     )+) => {
-        //impl $Struct {
-            $(pub fn $name<T> ($(&$self,)? $($arg : $type),*) -> StdResult<T> {
-                Error!(format!($format $(, $var)+))
-            })+
-        //}
+        $(pub fn $name<T> ($(&$self,)? $($arg : $type),*) -> StdResult<T> {
+            Error!(format!($format $(, $var)*))
+        })+
     }
 }
 
 pub mod units; pub use units::*;
 pub mod validate; pub use validate::*;
 pub mod vesting; pub use vesting::*;
-pub mod reconfig; use reconfig::*;
+pub mod reconfig; pub use reconfig::*;
 #[cfg(test)] mod tests;
+
+use schemars::JsonSchema;
+use serde::{Serialize, Deserialize};
 
 /// Vesting schedule; contains `Pool`s that must add up to `total`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -78,7 +75,7 @@ pub struct Channel {
 
     /// Each portion can be split between multiple addresses.
     /// The full history of reallocations is stored here.
-    pub allocations: Vec<(Seconds, Vec<Allocation>)>,
+    pub allocations: Vec<AllocationSet>,
 
     /// This is an `Option` instead of `Channel` being an `Enum` because
     /// `serde_json_wasm` doesn't support non-C-style enums.
@@ -192,6 +189,23 @@ pub fn periodic_validated (
 }
 
 /// Allocation of vesting to multiple addresses.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct AllocationSet {
+    t:         Seconds,
+    cliff:     Vec<Allocation>,
+    regular:   Vec<Allocation>,
+    remainder: Vec<Allocation>,
+}
+pub fn allocation_set (
+    t:         Seconds,
+    cliff:     Vec<Allocation>,
+    regular:   Vec<Allocation>,
+    remainder: Vec<Allocation>
+) -> AllocationSet {
+    AllocationSet { t, cliff, regular, remainder }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Allocation {

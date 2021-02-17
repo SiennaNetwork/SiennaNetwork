@@ -1,4 +1,3 @@
-use cosmwasm_std::StdResult;
 use crate::*;
 
 impl Schedule {
