@@ -1,3 +1,70 @@
+//! # Schedule
+//!
+//! This crate describes a vesting `Schedule`, split into `Pools` that
+//! consist of `Accounts`, which may be immediate or `Periodic`, and their
+//! output may be split between multiple addresses in accordance with given
+//! `AllocationSet`s.
+//!
+//! The main thing a `Schedule` does is generate a list of `Portions`;
+//! a smart contract can take that list and use it as a blueprint for the
+//! funds that are unlocked for users to claim:
+//!
+//! ```rust
+//! let amount = Uint128::from(100);
+//! let address = HumanAddr::from("someone");
+//! assert_eq!(
+//!     Schedule {
+//!         total: amount,
+//!         pools: vec![
+//!             Pool {
+//!                 name: "P1",
+//!                 total: amount,
+//!                 partial: false,
+//!                 channels: vec![
+//!                     Channel {
+//!                         name: "C1",
+//!                         amount,
+//!                         allocations: vec![
+//!                             AllocationSet {
+//!                                 t: 0,
+//!                                 cliff: vec![],
+//!                                 regular: vec![
+//!                                     Allocation {
+//!                                         amount,
+//!                                         address
+//!                                     }
+//!                                 ]
+//!                             }
+//!                         ]
+//!                     }
+//!                 ]
+//!             }
+//!         ]
+//!     }.all(),
+//!     vec![
+//!         Portion {
+//!             amount: Uint128::from(100),
+//!             address: HumanAddr
+//!         }
+//!     ]
+//! )
+//! ```
+//!
+//! ## 4-tier validation
+//!
+//! 1. The schema, representing the vesting schedule in terms of the structs
+//!    defined by this crate. This is deserialized from a static input;
+//!    any deviations from the schema cause the input to be rejected.
+//!
+//! 2. The `validate` module, which checks that sums don't exceed totals.
+//!
+//! 3. The runtime assertions in the `vesting`, which prevent
+//!    invalid configurations from generating output.
+//!
+//! 4. For a running contract, valid outputs are further filtered by the
+//!    `reconfig` module, which rejects configurations that change already
+//!    vested/claimed portions.
+
 /// error result constructor
 macro_rules! Error {
     ($msg:expr) => {
@@ -19,14 +86,14 @@ macro_rules! define_errors {
         )+
     }
 }
+/// alias for the most basic return type that may contain an error
+pub type UsuallyOk = StdResult<()>;
 
 pub mod units; pub use units::*;
 pub mod validate; pub use validate::*;
 pub mod vesting; pub use vesting::*;
 pub mod reconfig; pub use reconfig::*;
 #[cfg(test)] mod tests;
-
-pub type UsuallyOk                = StdResult<()>;
 
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};

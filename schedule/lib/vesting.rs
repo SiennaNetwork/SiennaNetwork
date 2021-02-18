@@ -30,8 +30,7 @@
 
 use crate::*;
 
-
-trait Vesting {
+pub trait Vesting {
     /// Get amount unlocked for address `a` at time `t`.
     fn claimable_by_at (&self, a: &HumanAddr, t: Seconds) -> UsuallyPortions {
         let mut all = self.all()?;
@@ -80,7 +79,7 @@ impl Vesting for Channel {
                 }
                 let latest_allocations =
                     self.allocations.get(self.allocations.len()-1).unwrap();
-                latest_allocations.vest_immediate(&self, self.amount.u128())
+                latest_allocations.vest_immediate(&self)
             }
         }
     }
@@ -276,9 +275,9 @@ impl AllocationSet {
     }
     /// For channels that vest everything immediately
     // TODO governance formatted as diff between (config.json, tx.json) pairs
-    pub fn vest_immediate (&self, c: &Channel, total: u128) -> UsuallyPortions {
+    pub fn vest_immediate (&self, c: &Channel) -> UsuallyPortions {
         Self::assert_not_periodic(&c)?;
-        self.assert_no_periodic_allocations();
+        self.assert_no_periodic_allocations()?;
         let total = Self::sum(&self.regular);
         if total < c.amount.u128() {
             Self::err_immediate_partial_allocation()

@@ -2,7 +2,7 @@
 #[macro_use] extern crate lazy_static;
 
 use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
-use sienna_schedule::{Seconds, History};
+use sienna_schedule::{Seconds, History, Vesting};
 
 //macro_rules! debug { ($($tt:tt)*)=>{} }
 
@@ -284,7 +284,7 @@ contract!(
                     let claimant  = env.message.sender;
                     let elapsed   = now - *launch;
                     let schedule  = state.schedule.clone().unwrap();
-                    let claimable = schedule.claimable(&claimant, elapsed)?;
+                    let claimable = schedule.claimable_by_at(&claimant, elapsed)?;
                     if claimable.len() < 1 {
                         err_msg(state, &NOTHING)
                     } else {
