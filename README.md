@@ -1,5 +1,16 @@
 # SIENNA
 
+## v2 roadmap
+
+* [ ] schedule: rewrite allocations to support splitting of cliffs and remainders
+* [ ] schedule: fix tests
+* [ ] schedule: update configuration generator to output pre-generated list of transactions
+* [ ] mgmt: update to take list of transactions as input instead of full schedule
+* [ ] mgmt: implement time travel protectio covering claimed past vestings
+* [ ] mgmt: implement corruption flag + killswitch
+* [ ] token: implement corruption flag + killswitch
+* [ ] governance: implement as voting on diffs between (config.json, tx.json) pairs
+
 ## Quick start
 
 ```sh
