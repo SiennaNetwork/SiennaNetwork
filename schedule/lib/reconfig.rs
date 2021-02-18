@@ -1,8 +1,42 @@
-use cosmwasm_std::StdResult;
 use crate::*;
 
+/// Log of executed claims
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct History {
+    pub history: Vec<ClaimedPortion>
+}
+impl History {
+    pub fn new () -> Self { Self { history: vec![] } }
+    /// Takes list of portions, returns the ones which aren't marked as claimed
+    pub fn unclaimed (&mut self, claimable: Portions) -> Portions {
+        // TODO throw if monotonicity of time is violated in eiter collection
+        let claimed_portions: Portions =
+            self.history.iter().map(|claimed| claimed.portion.clone()).collect();
+        claimable.into_iter()
+            .filter(|portion| {!claimed_portions.contains(portion)}).collect()
+    }
+    /// Marks a portion as claimed
+    pub fn claim (&mut self, claimed: Seconds, portions: Portions) {
+        for portion in portions.iter() {
+            self.history.push(ClaimedPortion {
+                claimed,
+                portion: portion.clone()
+            })
+        }
+    }
+}
+
+/// History entry
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct ClaimedPortion {
+    portion: Portion,
+    claimed: Seconds
+}
+
 impl Pool {
-    pub fn add_channel (&mut self, ch: Channel) -> StdResult<()> {
+    pub fn add_channel (&mut self, ch: Channel) -> UsuallyOk {
         ch.validate()?;
         self.validate()?;
         let allocated = self.channels_total()?;
@@ -30,18 +64,19 @@ impl Channel {
     ///        For now, reallocations should be forbidden
     ///        before the launch because trying to timestamp
     ///        an allocation would cause an underflow?
-    pub fn reallocate (&mut self, t: Seconds, allocations: Vec<Allocation>) -> StdResult<()> {
+    pub fn reallocate (&mut self, a: AllocationSet) -> UsuallyOk {
         match &self.periodic {
             None => {},
             Some(Periodic{cliff,..}) => if (*cliff).u128() > 0 {
                 return Self::err_realloc_cliff(&self.name)
             }
         };
-        let t_max = self.allocations.iter().fold(0, |x,y|Seconds::max(x,y.0));
-        if t < t_max {
-            return Self::err_realloc_time_travel(&self.name, t, t_max)
+        for allocations in self.allocations.iter() {
+            if allocations.t > a.t {
+                return Self::err_realloc_time_travel(&self.name, a.t, allocations.t)
+            }
         }
-        self.allocations.push((t, allocations));
+        self.allocations.push(a);
         self.validate()
     }
     define_errors!{

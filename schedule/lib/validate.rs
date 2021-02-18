@@ -43,15 +43,8 @@ impl Channel {
             None => {},
             Some(periodic) => periodic.validate(&self)?
         }
-        for (_, allocations) in self.allocations.iter() {
-            let mut total_portion = 0u128;
-            for Allocation { amount, .. } in allocations.iter() {
-                total_portion += amount.u128()
-            }
-            let portion_size = self.portion_size()?;
-            if total_portion > portion_size {
-                return Self::err_total(&self.name, total_portion, portion_size);
-            }
+        for allocations in self.allocations.iter() {
+            allocations.validate()?;
         }
         Ok(())
     }
@@ -67,9 +60,6 @@ impl Periodic {
         if *duration < 1u64 { return Self::err_zero_duration(&ch.name) }
         if *interval < 1u64 { return Self::err_zero_interval(&ch.name) }
         if *cliff > ch.amount { return Self::err_cliff_gt_total(&ch.name, cliff.u128(), ch.amount.u128()) }
-        for (_, allocations) in ch.allocations.iter() {
-            if allocations.len() > 1 && cliff.u128() > 0 { return Self::err_periodic_cliff_multiple(&ch.name) }
-        }
         self.portion_count(&ch.name)?;
         self.portion_size(&ch.name, ch.amount.u128())?;
         Ok(())
@@ -84,7 +74,11 @@ impl Periodic {
         err_cliff_gt_total (name: &str, cliff: u128, amount: u128) ->
             ("channel {}: cliff {} can't be larger than total amount {}",
                 name, cliff, amount)
-        err_periodic_cliff_multiple (name: &str) ->
-            ("channel {}: cliffs not supported alongside split allocations",
-                name)}
+    }
+}
+
+impl AllocationSet {
+    pub fn validate (&self) -> StdResult<()> {
+        Ok(())
+    }
 }

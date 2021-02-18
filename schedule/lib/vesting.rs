@@ -30,21 +30,20 @@
 
 use crate::*;
 
-type MaybePortions = StdResult<Vec<Portion>>;
 
 trait Vesting {
     /// Get amount unlocked for address `a` at time `t`.
-    fn claimable_by_at (&self, a: &HumanAddr, t: Seconds) -> MaybePortions {
-        let all = self.all()?;
+    fn claimable_by_at (&self, a: &HumanAddr, t: Seconds) -> UsuallyPortions {
+        let mut all = self.all()?;
         all.retain(|Portion{address,vested,..}|address==a&&*vested<=t);
         Ok(all)
     }
-    fn all (&self) -> MaybePortions;
+    fn all (&self) -> UsuallyPortions;
 }
 
 impl Vesting for Schedule {
     /// Get list of all portions that will be unlocked by this schedule
-    fn all (&self) -> MaybePortions {
+    fn all (&self) -> UsuallyPortions {
         let mut portions = vec![];
         for pool in self.pools.iter() {
             portions.append(&mut pool.all()?);
@@ -55,7 +54,7 @@ impl Vesting for Schedule {
 
 impl Vesting for Pool {
     /// Get list of all portions that will be unlocked by this pool
-    fn all (&self) -> MaybePortions {
+    fn all (&self) -> UsuallyPortions {
         let mut portions = vec![];
         for pool in self.channels.iter() {
             portions.append(&mut pool.all()?);
@@ -72,17 +71,16 @@ impl Vesting for Channel {
     /// **WARNING**: it is assumed that there is always at least 1 set of allocations,
     ///              that there is no more than 1 set of allocations per timestamp,
     ///              and that allocations are stored sorted
-    fn all (&self) -> MaybePortions {
+    fn all (&self) -> UsuallyPortions {
         match &self.periodic {
-            Some(periodic) => periodic.all(&self),
+            Some(periodic) => Ok(periodic.all(&self)?.0),
             None => {
-                let mut portions = vec![];
                 if self.allocations.len() < 1 {
                     return Self::err_no_allocations(&self.name);
                 }
                 let latest_allocations =
                     self.allocations.get(self.allocations.len()-1).unwrap();
-                Ok(latest_allocations.vest_immediate(&self.name, self.amount.u128())?)
+                latest_allocations.vest_immediate(&self, self.amount.u128())
             }
         }
     }
@@ -113,14 +111,12 @@ impl Channel {
 impl Periodic {
     /// Generate all portions for channel `ch`
     /// given `self` is the portioning config
-    pub fn all (&self, ch: &Channel) -> MaybePortions {
+    pub fn all (&self, ch: &Channel) -> UsuallyPortionsWithTotal {
         // assume battle formation
-        let Channel { name
-                    , amount:      total_amount
+        let Channel { amount:      total_amount
                     , allocations: all_allocations
                     , .. } = ch;
         let Periodic { start_at
-                     , cliff
                      , interval
                      , .. } = self;
         // late-validate some assumptions
@@ -132,37 +128,37 @@ impl Periodic {
         if all_allocations.len() < 1 { return Channel::err_no_allocations(&ch.name); }
         if *interval == 0 { return Self::err_zero_interval(&ch.name) }
         // let's go
-        let mut active_allocations = all_allocations.get(0).unwrap();
         let mut all_portions = vec![];
-        let mut remaining = total_amount.u128();
+        let mut remaining_amount = total_amount.u128();
         // "scroll" allocations to start of vesting
         // FIXME an assumption that we're not currently validating
         //       is that the allocations are always stored sorted
-        let all_allocations = all_allocations.iter();
-        // let's keep the iterator around
-        for a in all_allocations {
-            let AllocationSet{t,..} = a;
-            if t > start_at {
-                // GOTCHA this may cause allocations to go missing
-                // if there's only one of them within an interval
-                // because the iterator loops once too many
-                // is there a rewind/peek?
-                break
+        let mut active_allocations = all_allocations.get(0).unwrap();
+        // from now on we'll only be moving forward in time with allocations
+        // so let's make the collection of `AllocationSet`s a mutable iterator
+        let mut all_allocations = all_allocations.iter().peekable();
+        // if there are more recent allocations before the cliff,
+        // switch to those
+        loop {
+            match all_allocations.peek() {
+                None => break,
+                Some(AllocationSet{t,..}) => if t > start_at { break }
             }
-            if *t > active_allocations.t {
-                active_allocations = a
+            match all_allocations.next() {
+                None => break,
+                Some(a) => if a.t > active_allocations.t { active_allocations = a }
             }
         }
         // now the active `AllocationSet` is the last one given
         // before `start_at` and the ones before it don't matter.
         // let's use its `cliff` allocations to vest the cliff,
-        let mut t_cursor = start_at;
+        let mut t_cursor = *start_at;
         match active_allocations.vest_cliff(&ch, &self)? {
             None => { /* no cliff, start with 1st regular portion */ },
-            Some((vested, portions)) => {
+            Some((mut portions, vested)) => {
                 all_portions.append(&mut portions);
-                remaining -= vested;
-                *t_cursor += interval; // tempus fugit
+                remaining_amount -= vested;
+                t_cursor += interval; // tempus fugit
             }
         };
         // there we go. now, let's repeat this - `self.portion_count` times
@@ -172,196 +168,44 @@ impl Periodic {
         loop {
             // before each regular vesting, new reallocations may have happened
             // so let's fast-forward the iterator to the current allocation set
-            for a in all_allocations {
-                let AllocationSet{t,..} = a;
-                if t > t_cursor {
-                    break
+            loop {
+                match all_allocations.peek() {
+                    None => break,
+                    Some(AllocationSet{t,..}) => if *t > t_cursor { break }
                 }
-                if *t > active_allocations.t {
-                    active_allocations = a
+                match all_allocations.next() {
+                    None => break,
+                    Some(a) => if a.t > active_allocations.t { active_allocations = a }
                 }
             }
-            // now let's see if we have enough remaining
-            // for another regular portion
-            if remaining > active_allocations.regular_portion_size() {
-                match active_allocations.vest_regular(&ch, *t_cursor, remaining)? {
-                    None => { return Self::err_empty_regular_vesting() },
-                    Some((vested, portions)) => {
-                        all_portions.append(&mut portions);
-                        remaining -= vested;
-                        *t_cursor += interval;
-                    }
-                }
-            } else if remaining > active_allocations.final_portion_size() {
-                Self::err_remaining_after_final()
-            } else if remaining == active_allocations.final_portion_size() {
-                match active_allocations.vest_final(&ch, *t_cursor, remaining)? {
-                    None => { /*???*/ },
-                    Some((vested, portions)) => {
-                        all_portions.append(&mut portions);
-                        remaining -= vested;
-                        break
-                    }
-                }
-            } else if remaining < active_allocations.final_portion_size() {
-                Self::err_too_little_remaining()
+            if remaining_amount > AllocationSet::sum(&active_allocations.regular) {
+                // if there's enough left for for a regular portion,
+                // vest that and advance the time
+                let (mut portions, vested) = active_allocations.vest_regular(
+                    &ch, t_cursor, remaining_amount)?;
+                all_portions.append(&mut portions);
+                remaining_amount -= vested;
+                t_cursor += interval;
+            } else if remaining_amount > AllocationSet::sum(&active_allocations.remainder) {
+                // if there's not enough left for a regular or remainder portion
+                return Self::err_too_much_remaining()
+            } else if remaining_amount == AllocationSet::sum(&active_allocations.remainder) {
+                // if there's exactly enough left for a remainder portion,
+                // vest that and stop. (this is meant to include the
+                // `remaining_amount == 0 && active_allocations.remainder = []` case)
+                let (mut portions, vested) = active_allocations.vest_remainder(
+                    &ch, &self, remaining_amount)?;
+                all_portions.append(&mut portions);
+                remaining_amount -= vested;
+                break
+            } else if remaining_amount < AllocationSet::sum(&active_allocations.remainder) {
+                // if there's too little left for a remainder portion
+                return Self::err_too_little_remaining()
             }
+        }
+        Ok((all_portions, remaining_amount))
     }
 
-    //fn add_regular () -> MaybePortions {
-        //let mut portions = vec![];
-        //loop {
-            //if t_cursor > t || t_cursor >= t_end { break }
-
-            //// Determine the group of allocations that is current
-            //// at time `t_cursor`. (It is assumed that groups of
-            //// allocations are sorted).
-            //for (t_alloc, allocations) in ch.allocations.iter() {
-                //if *t_alloc > t_cursor { break }
-                //current_allocations = allocations;
-            //}
-            
-            //// From the current group of allocations, determine
-            //// the actual claimable amount, and add the
-            //// corresponding portion.
-            //for Allocation { addr, amount } in current_allocations.iter() {
-                //if addr == a {
-                    //let amount = (*amount).u128();
-                    //let reason = format!("{}: vesting", &ch.name);
-                    //portions.push(portion(amount, a, t_cursor, &reason));
-                    //total_received += amount;
-                //}
-            //}
-
-            //// Advance the time.
-            //t_cursor += interval
-        //}
-        //Ok(portions)
-    //}
-    //fn add_remainder () -> MaybePortions {
-        //let mut portions = vec![];
-        //let remainder = ch.amount.u128() - total_received;
-        //if remainder > 0 {
-            //// The last group of allocations must contain exactly 1 user
-            //// in order to avoid splitting the remainder.
-            //if current_allocations.len() == 1 {
-                //let Allocation{addr,..} = current_allocations.get(0).unwrap();
-                //if addr == a {
-                    //let reason = format!("{}: remainder", &ch.name);
-                    //portions.push(portion(remainder, a, t_cursor, &reason));
-                //}
-                //// If that is not the case, the admin should be able to
-                //// call `Reallocate` and determine a single adress to
-                //// receive the remainder.
-            //}
-        //}
-        //Ok(portions)
-    //}
-    ///// Critical section: generates `Portion`s according to the vesting ladder config.
-    //pub fn claimable_by_at (&self, ch: &Channel, a: &HumanAddr, t: Seconds) -> MaybePortions {
-
-        //let Periodic{start_at,cliff,interval,..} = self;
-
-         //Interval can't be 0 (prevent infinite loop below)
-        //if *interval == 0 { return Self::err_zero_interval(&ch.name) }
-
-         //Nothing can be claimed before the start
-        //if t < *start_at { return Ok(vec![]) }
-
-         //Now comes the part where we iterate over the time range
-         //`start_at..min(t, start_at+duration)` in steps of `interval`,
-         //and add vestings in accordance with the allocations that are
-         //current for the particular moment in time.
-        //let mut portions = vec![];
-        //let mut total_received: u128 = 0;
-        //let mut t_cursor = *start_at;
-        //let mut n_portions = self.portion_count(&ch.name)?;
-
-         //Make sure allocations exist.
-        //if ch.allocations.len() < 1 { return Channel::err_no_allocations(&ch.name); }
-
-         //Get first group of allocations.
-        //let (t_alloc, current_allocations) = ch.allocations.get(0).unwrap();
-        //let mut current_allocations = current_allocations;
-        //if *t_alloc > t_cursor { return Self::err_time_travel(&ch.name) }
-
-         //If the `channel` has a `cliff`, and the first group of
-         //`allocations` contains the claimant `a`, then that
-         //user must receive the cliff amount.
-        //let cliff = cliff.u128();
-        //if cliff > 0 {
-             //The first group of allocations must contain exactly
-             //1 user to avoid splitting the cliff.
-            //if current_allocations.len() != 1 {
-                //return Self::err_periodic_cliff_multiple(&ch.name)
-            //}
-            //for Allocation {addr, ..} in current_allocations.iter() {
-                //if addr == a {
-                     //If the above is true, make the cliff amount
-                     //the first portion, and advance the time.
-                    //let reason = format!("{}: cliff", &ch.name);
-                    //portions.push(portion(cliff, a, *start_at, &reason));
-                    //t_cursor += interval;
-                    //n_portions += 1;
-                    //total_received += cliff;
-                    //break
-                //}
-            //}
-        //}
-
-         //After the first cliff, add a new portion for every `interval` seconds until `t`
-         //unless `t_cursor` is past the current time `t` or the end time `t_end`.
-        //let t_end = start_at + n_portions * interval;
-        //loop {
-            //if t_cursor > t || t_cursor >= t_end { break }
-
-             //Determine the group of allocations that is current
-             //at time `t_cursor`. (It is assumed that groups of
-             //allocations are sorted).
-            //for (t_alloc, allocations) in ch.allocations.iter() {
-                //if *t_alloc > t_cursor { break }
-                //current_allocations = allocations;
-            //}
-            
-             //From the current group of allocations, determine
-             //the actual claimable amount, and add the
-             //corresponding portion.
-            //for Allocation { addr, amount } in current_allocations.iter() {
-                //if addr == a {
-                    //let amount = (*amount).u128();
-                    //let reason = format!("{}: vesting", &ch.name);
-                    //portions.push(portion(amount, a, t_cursor, &reason));
-                    //total_received += amount;
-                //}
-            //}
-
-             //Advance the time.
-            //t_cursor += interval
-        //}
-         //MAYBE cap this by sum, not by time?
-
-         //If we're at/past the end, add give the remainder.
-         //How does this work with multiple allocations though?
-        //if t_cursor >= t_end {
-            //let remainder = ch.amount.u128() - total_received;
-            //if remainder > 0 {
-                 //The last group of allocations must contain exactly 1 user
-                 //in order to avoid splitting the remainder.
-                //if current_allocations.len() == 1 {
-                    //let Allocation{addr,..} = current_allocations.get(0).unwrap();
-                    //if addr == a {
-                        //let reason = format!("{}: remainder", &ch.name);
-                        //portions.push(portion(remainder, a, t_cursor, &reason));
-                    //}
-                     //If that is not the case, the admin should be able to
-                     //call `Reallocate` and determine a single adress to
-                     //receive the remainder.
-                //}
-            //}
-        //}
-
-        //Ok(portions)
-    //}
     /// GOTCHA: Partial reallocations should extend the duration of the vesting,
     ///         increasing `portion_count` accordingly.
     pub fn portion_count (&self, name: &str) -> StdResult<u64> {
@@ -406,63 +250,76 @@ impl Periodic {
             ("channel {}: time of first allocations is after current time",
                 name)
         err_empty_regular_vesting () -> ("")
+        err_too_much_remaining () -> ("")
+        err_too_little_remaining () -> ("")
     }
 }
+
 impl AllocationSet {
-    pub fn vest_immediate (
+    /// For things that don't work with a periodic channel, like immediate vesting
+    /// MAYBE the type system can do something about this?
+    /// GOTCHA `serde-wasm` doesn't support non-C-like structs though
+    fn assert_not_periodic (c: &Channel) -> UsuallyOk {
+        match c.periodic {
+            Some(_) => Self::err_immediate_periodic(),
+            None    => Ok(())
+        }
+    }
+    fn assert_no_periodic_allocations (&self) -> UsuallyOk {
+        if self.cliff.len() > 0 || self.remainder.len() > 0 {
+            // these only make sense in periodic vesting scenario
+            // so their presence for an immediate-release channel is an error
+            Self::err_immediate_periodic_allocations()
+        } else {
+            Ok(())
+        }
+    }
+    /// For channels that vest everything immediately
+    // TODO governance formatted as diff between (config.json, tx.json) pairs
+    pub fn vest_immediate (&self, c: &Channel, total: u128) -> UsuallyPortions {
+        Self::assert_not_periodic(&c)?;
+        self.assert_no_periodic_allocations();
+        let total = Self::sum(&self.regular);
+        if total < c.amount.u128() {
+            Self::err_immediate_partial_allocation()
+        } else if total > c.amount.u128() {
+            Self::err_profligate()
+        } else {
+            let reason = format!("{}: immediate", &c.name);
+            Ok(Self::portions(&self.regular, 0, &reason))
+        }
+    }
+
+    /// For things that don't work with an immediate channel, like periodic vesting
+    fn assert_not_immediate (c: &Channel) -> UsuallyOk {
+        match c.periodic {
+            None    => Self::err_periodic_immediate(),
+            Some(_) => Ok(())
+        }
+    }
+    fn assert_total_not_exceeded (
         &self,
-        name: &str,
-        total: u128
-    ) -> MaybePortions {
-        // these only make sense in periodic vesting scenario
-        // so their presence for an immediate-release channel is an error
-        self.assert_no_cliff(name)?;
-        self.assert_no_remainder(name)?;
-        let mut sum_of_allocations = 0u128;
-        let mut portions = vec![];
-        for Allocation{amount, addr} in self.regular.iter() {
-            portions.push(Portion {
-                amount:  *amount,
-                address: *addr,
-                vested:  0,
-                reason:  format!("{}: cliff", name)
-            });
-            sum_of_allocations += amount.u128();
-            if sum_of_allocations > total {
-                return Self::err_profligate()
-            }
+        actual_total: u128,
+        expected_total: u128,
+    ) -> UsuallyOk {
+        if actual_total > expected_total {
+            return Self::err_profligate()
         }
-        Ok(portions) 
-    }
-    fn assert_no_cliff (&self, name: &str) -> StdResult<()> {
-        if self.cliff.len() > 0 {
-            Self::err_cliff_allocations(name)
-        } else {
-            Ok(())
-        }
-    }
-    fn assert_no_remainder (&self, name: &str) -> StdResult<()> {
-        if self.remainder.len() > 0 {
-            Self::err_remainder_allocations(&name)
-        } else {
-            Ok(())
-        }
+        Ok(())
     }
     pub fn vest_cliff (
         &self,
         c: &Channel,
         p: &Periodic
-    ) -> StdResult<Option<(u128, Vec<Portion>)>> {
-        let total = self.assert_total_not_exceeded(p.cliff.u128(), &self.cliff)?;
+    ) -> PerhapsPortionsWithTotal {
+        Self::assert_not_immediate(&c)?;
+        let total = Self::sum(&self.cliff);
+        self.assert_total_not_exceeded(p.cliff.u128(), total)?;
         if total == p.cliff.u128() && total == 0 {
             Ok(None)
         } else {
-            Ok((total, self.cliff.iter().map(|Allocation{amount,addr}| Portion {
-                amount:  *amount,
-                address: *addr,
-                vested:  p.start_at,
-                reason:  format!("{}: cliff", &c.name)
-            }).collect()))
+            let reason = format!("{}: cliff", &c.name);
+            Ok(Some((Self::portions(&self.cliff, p.start_at, &reason), total)))
         }
     }
     pub fn vest_regular (
@@ -470,49 +327,41 @@ impl AllocationSet {
         c: &Channel,
         t: Seconds,
         max: u128, // current maximum portion size according to caller
-    ) -> StdResult<Option<(u128, Vec<Portion>)>> {
-        self.assert_total_not_exceeded(max, &self.regular)?;
-        Ok(Some((total, self.regular.iter().map(|Allocation{amount,addr}| Portion {
-            amount:  *amount,
-            address: *addr,
-            vested:  t,
-            reason:  format!("{}: cliff", &c.name)
-        }).collect())))
+    ) -> UsuallyPortionsWithTotal {
+        Self::assert_not_immediate(&c)?;
+        let total = Self::sum(&self.regular);
+        self.assert_total_not_exceeded(max, total)?;
+        let reason = format!("{}: vesting", &c.name);
+        Ok((Self::portions(&self.regular, t, &reason), total))
     }
     pub fn vest_remainder (
         &self,
         c: &Channel,
         p: &Periodic,
         remainder: u128, // current maximum portion size according to caller
-    ) -> StdResult<Option<(u128, Vec<Portion>)>> {
-        let total = self.assert_total_not_exceeded(remainder, &self.remainder)?;
+    ) -> UsuallyPortionsWithTotal {
+        Self::assert_not_periodic(&c)?;
+        let total = Self::sum(&self.remainder);
+        self.assert_total_not_exceeded(remainder, total)?;
         if total < remainder {
-            Self::err_remainder_not_fully_allocated(&c.name)
+            Self::err_remainder_not_fully_allocated()
         } else {
-            Ok(Some((total, self.regular.iter().map(|Allocation{amount,addr}| Portion {
-                amount:  *amount,
-                address: *addr,
-                vested:  p.start_at,
-                reason:  format!("{}: cliff", &c.name)
-            }).collect())))
+            let t = p.start_at + p.duration;
+            let reason = format!("{}: cliff", &c.name);
+            Ok((Self::portions(&self.remainder, t, &reason), total))
         }
-    }
-    fn assert_total_not_exceeded (
-        &self,
-        expected_total: u128,
-        allocations: &Vec<Allocation>
-    ) -> StdResult<u128> {
-        let mut sum_of_allocations = 0u128;
-        for Allocation{amount,..} in allocations.iter() {
-            sum_of_allocations += amount.u128();
-            if sum_of_allocations > expected_total {
-                return Self::err_profligate()
-            }
-        }
-        Ok(sum_of_allocations)
     }
     define_errors!{
-        err_profligate () -> ("")
-        err_cliff_allocations (name: &str) -> ("")
-        err_remainder_allocations (name: &str) -> ("") }
+        err_profligate () -> (
+            "this would give too much")
+        err_immediate_periodic () -> (
+            "immediate vesting tried on periodic channel")
+        err_immediate_periodic_allocations () -> (
+            "immediate vesting tried alongside cliff/remainder allocation subsets")
+        err_immediate_partial_allocation () -> (
+            "")
+        err_periodic_immediate () -> (
+            "periodic vesting tried on immediate channel")
+        err_remainder_not_fully_allocated () -> (
+            "") }
 }

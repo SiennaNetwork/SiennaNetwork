@@ -23,6 +23,8 @@ pub mod vesting; pub use vesting::*;
 pub mod reconfig; pub use reconfig::*;
 #[cfg(test)] mod tests;
 
+pub type UsuallyOk                = StdResult<()>;
+
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
 
@@ -89,132 +91,58 @@ pub struct Channel {
     /// and claims transfer only the portions unlocked so far
     pub periodic: Option<Periodic>
 }
-pub fn channel_immediate (
-    amount: u128,
-    address: &HumanAddr
-) -> Channel {
-    Channel {
-        name: String::new(),
-        amount: Uint128::from(amount),
-        periodic: None,
-        allocations: vec![(0, vec![allocation(amount, address)])],
-    }
-}
-pub fn channel_immediate_multi (
-    _amount: u128,
-    _allocations: &Vec<Allocation>
-) -> Channel {
-    panic!("immediate vesting with multiple recipients is not supported")
-}
-pub fn channel_periodic (
-    amount:   u128,
-    address:  &HumanAddr,
-    interval: Seconds,
-    start_at: Seconds,
-    duration: Seconds,
-    cliff:    u128
-) -> StdResult<Channel> {
-    let mut channel = Channel {
-        name: String::new(),
-        amount: Uint128::from(amount),
-        periodic: Some(periodic_validated(amount, start_at, cliff, duration, interval)?),
-        allocations: vec![]
-    };
-    let portion = channel.portion_size()?;
-    channel.allocations.push((0, vec![allocation(portion, address)]));
-    Ok(channel)
-}
-pub fn channel_periodic_multi (
-    amount:      u128,
-    allocations: &Vec<Allocation>,
-    interval:    Seconds,
-    start_at:    Seconds,
-    duration:    Seconds,
-    cliff:       u128
-) -> Channel {
-    if cliff > 0 { panic!("periodic vesting with cliff and multiple recipients is not supported") }
-    Channel {
-        name: String::new(),
-        amount: Uint128::from(amount),
-        periodic: Some(periodic_validated(amount, start_at, cliff, duration, interval).unwrap()),
-        allocations: vec![(0, allocations.clone())]
-    }
-}
 
 /// Configuration of periodic vesting ladder.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Periodic {
-    pub interval:  Seconds,
-    pub start_at:  Seconds,
-    pub duration:  Seconds,
+    pub interval:           Seconds,
+    pub start_at:           Seconds,
+    pub duration:           Seconds,
     pub cliff:              Uint128,
     pub expected_portion:   Uint128,
     pub expected_remainder: Uint128
 }
-pub fn periodic (
-    start_at: Seconds,
-    cliff:    u128,
-    duration: Seconds,
-    interval: Seconds
-) -> Periodic {
-    Periodic {
-        interval, start_at, duration, cliff: Uint128::from(cliff),
-        expected_portion:   Uint128::zero(),
-        expected_remainder: Uint128::zero()
-    }
-}
-pub fn periodic_validated (
-    amount:   u128,
-    start_at: Seconds,
-    cliff:    u128,
-    duration: Seconds,
-    interval: Seconds
-) -> StdResult<Periodic> {
-    let mut p = Periodic {
-        interval, start_at, duration, cliff: Uint128::from(cliff),
-        expected_portion:   Uint128::zero(),
-        expected_remainder: Uint128::zero()
-    };
-    let portion = p.portion_size("", amount)?;
-    let n_portions = p.portion_count("")?;
-    p.expected_portion = Uint128::from(portion);
 
-    let mut remainder = amount;
-    remainder -= cliff;
-    remainder -= portion * n_portions as u128;
-    p.expected_remainder = Uint128::from(remainder);
-
-    Ok(p)
-}
-
-/// Allocation of vesting to multiple addresses.
+/// Each Portion can be distributed among multiple addresses.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct AllocationSet {
     t:         Seconds,
-    cliff:     Vec<Allocation>,
-    regular:   Vec<Allocation>,
-    remainder: Vec<Allocation>,
+    cliff:     Allocations,
+    regular:   Allocations,
+    remainder: Allocations,
 }
-pub fn allocation_set (
-    t:         Seconds,
-    cliff:     Vec<Allocation>,
-    regular:   Vec<Allocation>,
-    remainder: Vec<Allocation>
-) -> AllocationSet {
-    AllocationSet { t, cliff, regular, remainder }
+impl AllocationSet {
+    fn portions (a: &Allocations, t: Seconds, r: &str) -> Portions {
+        a.iter().map(|b|b.to_portion(t, r)).collect::<Vec<_>>()
+    }
+    fn sum (a: &Allocations) -> u128 {
+        let mut sum = 0u128;
+        for Allocation{amount,..} in a.iter() {
+            sum+= amount.u128();
+        }
+        sum
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Allocation {
-    amount: Uint128,
-    addr:   HumanAddr,
+    amount:  Uint128,
+    address: HumanAddr,
 }
-pub fn allocation (amount: u128, addr: &HumanAddr) -> Allocation {
-    Allocation { amount: Uint128::from(amount), addr: addr.clone() }
+impl Allocation {
+    pub fn to_portion (&self, vested: Seconds, reason: &str) -> Portion {
+        Portion {
+            amount:  self.amount,
+            address: self.address.clone(),
+            vested,
+            reason: reason.to_string()
+        }
+    }
 }
+pub type Allocations = Vec<Allocation>;
 
 /// Claimable portion
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -230,44 +158,8 @@ impl std::fmt::Display for Portion {
         write!(f, "<{} {} to {} at {}>", self.reason, self.amount, self.address, self.vested)
     }
 }
-pub fn portion (amt: u128, addr: &HumanAddr, vested: Seconds, reason: &str) -> Portion {
-    Portion {
-        amount:  Uint128::from(amt),
-        address: addr.clone(),
-        vested:  vested,
-        reason:  reason.to_string()
-    }
-}
-
-/// Log of executed claims
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub struct History {
-    pub history: Vec<ClaimedPortion>
-}
-impl History {
-    pub fn new () -> Self { Self { history: vec![] } }
-    /// Takes list of portions, returns the ones which aren't marked as claimed
-    pub fn unclaimed (&mut self, claimable: Vec<Portion>) -> Vec<Portion> {
-        // TODO sort by timestamp and validate that there is no overlap
-        //      between claimed/unclaimed because that would signal an error
-        let claimed_portions: Vec<Portion> =
-            self.history.iter().map(|claimed| claimed.portion.clone()).collect();
-        claimable.into_iter()
-            .filter(|portion| !claimed_portions.contains(portion)).collect()
-    }
-    /// Marks a portion as claimed
-    pub fn claim (&mut self, claimed: Seconds, portions: Vec<Portion>) {
-        for portion in portions.iter() {
-            self.history.push(ClaimedPortion {claimed, portion: portion.clone()} )
-        }
-    }
-}
-
-/// History entry
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub struct ClaimedPortion {
-    portion: Portion,
-    claimed: Seconds
-}
+pub type Portions                 = Vec<Portion>;
+pub type PortionsWithTotal        = (Portions, u128);
+pub type UsuallyPortions          = StdResult<Portions>;
+pub type UsuallyPortionsWithTotal = StdResult<PortionsWithTotal>;
+pub type PerhapsPortionsWithTotal = StdResult<Option<PortionsWithTotal>>;
