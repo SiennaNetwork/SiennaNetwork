@@ -4,11 +4,12 @@
 
 * [ ] schedule: rewrite allocations to support splitting of cliffs and remainders
 * [ ] schedule: update configuration generator to output pre-generated list of transactions
-* [ ] schedule: if it is discovered that reconfigurable `Channel`s can take over
-      the functions of `Allocation` and `AllocationSet` objects, merge all three
-      into `Account`, simplifying the data model considerably.
 * [ ] mgmt: update to take list of transactions as input instead of full schedule
 * [ ] mgmt: implement time travel protectio covering claimed past vestings
+* [ ] schedule: if it is discovered that fully reconfigurable `Channel`s with
+      appropriate historical protections can take over the functions of the
+      `Allocation` and `AllocationSet` features, merge all three into `Account`.
+      (this would simplify the data model considerably.)
 * [ ] mgmt: implement corruption flag + killswitch
 * [ ] token: implement corruption flag + killswitch
 * [ ] governance: implement as voting on diffs between (config.json, tx.json) pairs
