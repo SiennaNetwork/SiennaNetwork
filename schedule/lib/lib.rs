@@ -35,9 +35,6 @@ pub struct Schedule {
     pub total:   Uint128,
     pub pools:   Vec<Pool>,
 }
-pub fn schedule (total: u128, pools: Vec<Pool>) -> Schedule {
-    Schedule { total: Uint128::from(total), pools }
-}
 
 /// Vesting pool; contains `Channel`s that must add up to `total`
 /// if `partial == false`.
@@ -60,12 +57,6 @@ impl Pool {
         }
         Ok(total)
     }
-}
-pub fn pool (name: &str, total: u128, channels: Vec<Channel>) -> Pool {
-    Pool { name: name.to_string(), total: Uint128::from(total), channels, partial: false }
-}
-pub fn pool_partial (name: &str, total: u128, channels: Vec<Channel>) -> Pool {
-    Pool { name: name.to_string(), total: Uint128::from(total), channels, partial: true }
 }
 
 /// Portions generator: can be immediate or `Periodic`; contains `Allocation`s (maybe partial).

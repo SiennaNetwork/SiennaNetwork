@@ -837,7 +837,7 @@ dependencies = [
 
 [[package]]
 name = "sienna_schedule"
-version = "1.0.0-rc2"
+version = "2.0.0-pre"
 dependencies = [
  "cosmwasm-std",
  "schemars",
