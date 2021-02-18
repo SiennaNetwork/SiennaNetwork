@@ -11,9 +11,12 @@ macro_rules! define_errors {
         $name:ident ($(&$self:ident,)? $($arg:ident : $type:ty),*) ->
         ($format:literal $(, $var:expr)*)
     )+) => {
-        $(pub fn $name<T> ($(&$self,)? $($arg : $type),*) -> StdResult<T> {
-            Error!(format!($format $(, $var)*))
-        })+
+        $(
+            #[doc=$format]
+            pub fn $name<T> ($(&$self,)? $($arg : $type),*) -> StdResult<T> {
+                Error!(format!($format $(, $var)*))
+            }
+        )+
     }
 }
 
