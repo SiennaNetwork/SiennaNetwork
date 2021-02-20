@@ -1,3 +1,34 @@
+//! # Schedule validation
+//!
+//! The following structs implement a `validate` method:
+//! * `Schedule`
+//! * `Pool`
+//! * `Channel`
+//! * `Periodic`
+//! * `AllocationSet`
+//!
+//! Unfortunately, `rustdoc` does not allow for the `impl`s that are defined
+//! in this module to be rendered on this doc page, because they implement
+//! `struct`s defined in another file.
+//!
+//! Documentation of the methods (and errors) defined in this file
+//! can be found in the documentation for those structs.
+//!
+//! ## Layers of validation:
+//!
+//! 1. The schema, representing the vesting schedule in terms of the structs
+//!    defined by this crate. This is deserialized from a static input;
+//!    any deviations from the schema cause the input to be rejected.
+//!
+//! 2. The `validate` module, which checks that sums don't exceed totals.
+//!
+//! 3. The runtime assertions in the `vesting`, which prevent
+//!    invalid configurations from generating output.
+//!
+//! 4. For a running contract, valid outputs are further filtered by the
+//!    `reconfig` module, which rejects configurations that change already
+//!    vested/claimed portions.
+
 use crate::*;
 
 impl Schedule {

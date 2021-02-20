@@ -1,4 +1,9 @@
-//! Unit definitions (time, money, address, success/failure)
+//! # Unit definitions
+//!
+//! * Time
+//! * Money
+//! * Addresses
+//! * Success/failure
 
 // Time
 pub type Seconds = u64;

@@ -1,32 +1,29 @@
-/// Here's what was casting the shadow of a off-by-one error all along, and
-/// causing difficult-to-verbalize confusion around some aspects of the spec.
-///
-/// Let's assume there's an interval of `N` between vestings:
-/// * If `cliff == 0` then all the vestings are equal: `amount / n_portions`.
-/// * If `cliff > 0` then the first vesting is equal to `cliff`, and since
-///   there's an interval of `N` after it, every other vesting is equal to
-///   `(amount - cliff) / (n_portions / 1)`.
-///
-/// So, `if cliff > 0 { n_portions -= 1 }`.
-///
-/// How to fix that? Adding cliffs everywhere to get appropriate post-cliff
-/// amounts is one option. However:
-/// * The cliff sizes are reassuringly arbitrary. I like that they are
-///   nice round numbers.
-/// * Making them interdependent with the rest of the calculations sounds
-///   painful, especially considering that the contract works in fixed
-///   precision and it is not obvious at all how to pick cliffs that both:
-///   * turn the remaining portions into nice round numbers, and
-///   * are nice round numbers themselves.
-/// * Receiving the cliff and the first vesting at the same time, or receiving
-///   a cliff that's smaller than the regular vesting portion before the regular
-///   vesting commences, can be confusing for claimants; and picking an
-///   appropriate cliff size for every account should be up to the contract
-///   owner and not the library implementor.
-///
-/// Therefore, remainders are used in the following way: while cliffs remain
-/// arbitrary, the last vesting of every channel contains the remainder of
-/// the division `(amount - cliff) / (n_portions / 1)`.
+//! # Vesting
+//!
+//! This module implements the logic that turns a nested configuration into
+//! a flat list of `Portion`s, each one describing a transactions that needs
+//! to be executed in the future.
+//!
+//! `AllocationSet` implements the functions:
+//! * `vest_immediate`
+//! * `vest_cliff`
+//! * `vest_regular`
+//! * `vest_remainder`
+//!
+//! These output `Portion`s, which are subsequently "bubbled up" all the way
+//! to the contract which will execute them, by the `all()` methods of these
+//! structs:
+//!
+//! * `Schedule`
+//! * `Pool`
+//! * `Channel`
+//! * `Periodic`
+//!
+//! All but `Periodic` implement their `all()` method via the `Vesting` trait.
+//!
+//! Just like `validate`, this module contains more than `rustdoc` renders.
+//! Aside from the `Vesting` trait, more info about the aforementioned methods
+//! can be found in the docs for the corresponding struct.
 
 use crate::*;
 
@@ -67,6 +64,7 @@ impl Vesting for Channel {
     /// Immediate vestings only need the latest set of allocations to work,
     /// but periodic vestings need to iterate over the full history of allocations
     /// in order to generate portions after reallocation without rewriting history.
+    ///
     /// **WARNING**: it is assumed that there is always at least 1 set of allocations,
     ///              that there is no more than 1 set of allocations per timestamp,
     ///              and that allocations are stored sorted

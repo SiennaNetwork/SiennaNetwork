@@ -1,69 +1,87 @@
-//! # Schedule
-//!
-//! This crate describes a vesting `Schedule`, split into `Pools` that
-//! consist of `Accounts`, which may be immediate or `Periodic`, and their
-//! output may be split between multiple addresses in accordance with given
-//! `AllocationSet`s.
-//!
-//! The main thing a `Schedule` does is generate a list of `Portions`;
+//! The main thing this create does is generate a list of `Portions`;
 //! a smart contract can take that list and use it as a blueprint for the
-//! funds that are unlocked for users to claim:
+//! funds that are unlocked for users to claim.
+//!
+//! # Data model
+//!
+//! The `Schedule`:
+//! * has a `total`
+//! * has one or more `Pool`s which must add up to `total`, each of which
+//!     * has a `total`
+//!     * has one or more `Channel`s, each of which
+//!         * has one or more `AllocationSet`s
+//!         * can be either
+//!             * __immediate__ (`periodic: None`)
+//!                 * which means the funds are released immediately
+//!                 * in which case the associated `AllocationSet`s must
+//!                   not contain `cliff` or `remainder` allocations.
+//!             * or __periodic__ (`periodic: Some(Periodic{..})`)
+//!                 * which means that it consists of
+//!                     * an optional `cliff`
+//!                     * one or more `regular` portions
+//!                     * a `remainder`
+//!                 * and that their `AllocationSet`s must contain
+//!                   `cliff`, `regular` and `remainder` allocations
+//!                   that add up to the correct amount
+//!
+//! `serde_json_wasm` (used internally by CosmWasm) does not support advanced
+//! Rust `enum`s; were it to support them:
+//! * `Channel`, `Periodic`, and `AllocationSet` could be merged into
+//!   a single enum with two variants.
+//! * the extra validation logic that prevents invalid combinations between the
+//!   three could be removed.
+//!
+//! # How to use
+//!
+//! Normally, a `Schedule` is deserialized from user input; however, the
+//! `schedule!` macro exists to allow `Schedule`s to be defined in terse
+//! Rust code. Below is such an example, demonstrating most features of
+//! this crate; use `.all()` to get the resulting list of transcations.
 //!
 //! ```rust
-//! let amount = Uint128::from(100);
-//! let address = HumanAddr::from("someone");
-//! assert_eq!(
-//!     Schedule {
-//!         total: amount,
-//!         pools: vec![
-//!             Pool {
-//!                 name: "P1",
-//!                 total: amount,
-//!                 partial: false,
-//!                 channels: vec![
-//!                     Channel {
-//!                         name: "C1",
-//!                         amount,
-//!                         allocations: vec![
-//!                             AllocationSet {
-//!                                 t: 0,
-//!                                 cliff: vec![],
-//!                                 regular: vec![
-//!                                     Allocation {
-//!                                         amount,
-//!                                         address
-//!                                     }
-//!                                 ]
-//!                             }
-//!                         ]
-//!                     }
-//!                 ]
-//!             }
-//!         ]
-//!     }.all(),
-//!     vec![
-//!         Portion {
-//!             amount: Uint128::from(100),
-//!             address: HumanAddr
-//!         }
-//!     ]
-//! )
+//! let ALICE = HumanAddr::from("Alice");
+//! let BOB   = HumanAddr::from("Bob");
+//! let CANDY = HumanAddr::from("Candy");
+//! let S = schedule!(300 => (
+//!     P0(100) = (
+//!         C00(50) = (
+//!             ALICE => 50
+//!         )
+//!         C01(50) = (
+//!             BOB   => 25
+//!             CANDY => 25
+//!         )
+//!     )
+//!     P1(200) = (
+//!         C10(100) = (
+//!             cliff(20 at 5) = (
+//!                 ALICE => 12
+//!                 BOB   =>  8
+//!             )
+//!             regular(30 every 30) = (
+//!                 ALICE => 15
+//!                 BOB   => 15
+//!             ),
+//!             remainder(20) = (
+//!                 CANDY => 20
+//!             )
+//!         )
+//!     )
+//! ));
+//! assert_eq!(S.all(), portions!(
+//!     [  0  ALICE  50  "C00: immediate"]
+//!     [  0  BOB    25  "C01: immediate"]
+//!     [  0  CANDY  25  "C01: immediate"]
+//!
+//!     [  5  ALICE  12  "C10: cliff"    ]
+//!     [  5  BOB     8  "C10: cliff"    ]
+//!     [ 35  ALICE  15  "C10: vesting"  ]
+//!     [ 35  BOB    15  "C10: vesting"  ]
+//!     [ 65  ALICE  15  "C10: vesting"  ]
+//!     [ 65  BOB    15  "C10: vesting"  ]
+//!     [ 65  CANDY  20  "C10: remainder"]
+//! ))
 //! ```
-//!
-//! ## 4-tier validation
-//!
-//! 1. The schema, representing the vesting schedule in terms of the structs
-//!    defined by this crate. This is deserialized from a static input;
-//!    any deviations from the schema cause the input to be rejected.
-//!
-//! 2. The `validate` module, which checks that sums don't exceed totals.
-//!
-//! 3. The runtime assertions in the `vesting`, which prevent
-//!    invalid configurations from generating output.
-//!
-//! 4. For a running contract, valid outputs are further filtered by the
-//!    `reconfig` module, which rejects configurations that change already
-//!    vested/claimed portions.
 
 /// error result constructor
 macro_rules! Error {
@@ -86,8 +104,20 @@ macro_rules! define_errors {
         )+
     }
 }
+
 /// alias for the most basic return type that may contain an error
 pub type UsuallyOk = StdResult<()>;
+
+/// create `Schedule` w/ (`Pool`s w/ (`Channel`s w/ `Periodic`s & (`AllocationSet`s w/ `Allocation`s)))
+macro_rules! schedule {
+    ($total:expr => ($(
+        $pool:ident ( $pool_total:expr ) = ($(
+            $channel:ident ( $channel_total:expr ) = ($(
+                $addr:expr => $amount:expr
+            )+)
+        )+)
+    )+)) => { Schedule { total: $total, pools: vec![$($pool),+] } };
+}
 
 pub mod units; pub use units::*;
 pub mod validate; pub use validate::*;
@@ -157,10 +187,10 @@ pub struct Channel {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Periodic {
-    pub interval:           Seconds,
     pub start_at:           Seconds,
-    pub duration:           Seconds,
     pub cliff:              Uint128,
+    pub duration:           Seconds,
+    pub interval:           Seconds,
     pub expected_portion:   Uint128,
     pub expected_remainder: Uint128
 }
@@ -203,6 +233,8 @@ impl Allocation {
         }
     }
 }
+
+/// list of `Allocation`s
 pub type Allocations = Vec<Allocation>;
 
 /// Claimable portion
@@ -219,8 +251,18 @@ impl std::fmt::Display for Portion {
         write!(f, "<{} {} to {} at {}>", self.reason, self.amount, self.address, self.vested)
     }
 }
+
+/// list of `Portion`s
 pub type Portions                 = Vec<Portion>;
+
+/// list of `Portion`s with expected total (for caller to check)
 pub type PortionsWithTotal        = (Portions, u128);
+
+/// list of `Portion`s, or error
 pub type UsuallyPortions          = StdResult<Portions>;
+
+/// list of `Portion`s with total, or error
 pub type UsuallyPortionsWithTotal = StdResult<PortionsWithTotal>;
+
+/// list of `Portion`s with total, `None`, or error (used by `vest_cliff`/`vest_remainder`)
 pub type PerhapsPortionsWithTotal = StdResult<Option<PortionsWithTotal>>;
