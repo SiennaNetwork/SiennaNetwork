@@ -33,97 +33,20 @@
 //!
 //! # How to use
 //!
-//! Normally, a `Schedule` is deserialized from user input; however, the
-//! `schedule!` macro exists to allow `Schedule`s to be defined in terse
-//! Rust code. Below is such an example, demonstrating most features of
-//! this crate; use `.all()` to get the resulting list of transcations.
-//!
-//! ```rust
-//! let ALICE = HumanAddr::from("Alice");
-//! let BOB   = HumanAddr::from("Bob");
-//! let CANDY = HumanAddr::from("Candy");
-//! let S = schedule!(300 => (
-//!     P0(100) = (
-//!         C00(50) = (
-//!             ALICE => 50
-//!         )
-//!         C01(50) = (
-//!             BOB   => 25
-//!             CANDY => 25
-//!         )
-//!     )
-//!     P1(200) = (
-//!         C10(100) = (
-//!             cliff(20 at 5) = (
-//!                 ALICE => 12
-//!                 BOB   =>  8
-//!             )
-//!             regular(30 every 30) = (
-//!                 ALICE => 15
-//!                 BOB   => 15
-//!             ),
-//!             remainder(20) = (
-//!                 CANDY => 20
-//!             )
-//!         )
-//!     )
-//! ));
-//! assert_eq!(S.all(), portions!(
-//!     [  0  ALICE  50  "C00: immediate"]
-//!     [  0  BOB    25  "C01: immediate"]
-//!     [  0  CANDY  25  "C01: immediate"]
-//!
-//!     [  5  ALICE  12  "C10: cliff"    ]
-//!     [  5  BOB     8  "C10: cliff"    ]
-//!     [ 35  ALICE  15  "C10: vesting"  ]
-//!     [ 35  BOB    15  "C10: vesting"  ]
-//!     [ 65  ALICE  15  "C10: vesting"  ]
-//!     [ 65  BOB    15  "C10: vesting"  ]
-//!     [ 65  CANDY  20  "C10: remainder"]
-//! ))
-//! ```
+//! * Normally, a `Schedule` is built from a spreadsheet or deserialized from
+//!   a JSON file.
+//! * However, the `schedule!` macro, documented in `macros`, exists to allow
+//!   `Schedule`s to be defined in reasonably terse Rust code.
 
-/// error result constructor
-macro_rules! Error {
-    ($msg:expr) => {
-        Err(cosmwasm_std::StdError::GenericErr { msg: $msg.to_string(), backtrace: None })
-    };
-}
-
-/// define error conditions with corresponding parameterized messages
-macro_rules! define_errors {
-    ($(
-        $name:ident ($(&$self:ident,)? $($arg:ident : $type:ty),*) ->
-        ($format:literal $(, $var:expr)*)
-    )+) => {
-        $(
-            #[doc=$format]
-            pub fn $name<T> ($(&$self,)? $($arg : $type),*) -> StdResult<T> {
-                Error!(format!($format $(, $var)*))
-            }
-        )+
-    }
-}
-
-/// alias for the most basic return type that may contain an error
-pub type UsuallyOk = StdResult<()>;
-
-/// create `Schedule` w/ (`Pool`s w/ (`Channel`s w/ `Periodic`s & (`AllocationSet`s w/ `Allocation`s)))
-macro_rules! schedule {
-    ($total:expr => ($(
-        $pool:ident ( $pool_total:expr ) = ($(
-            $channel:ident ( $channel_total:expr ) = ($(
-                $addr:expr => $amount:expr
-            )+)
-        )+)
-    )+)) => { Schedule { total: $total, pools: vec![$($pool),+] } };
-}
-
+pub mod macros;
 pub mod units; pub use units::*;
 pub mod validate; pub use validate::*;
 pub mod vesting; pub use vesting::*;
-pub mod reconfig; pub use reconfig::*;
+pub mod history; pub use history::*;
 #[cfg(test)] mod tests;
+
+/// alias for the most basic return type that may contain an error
+pub type UsuallyOk = StdResult<()>;
 
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
@@ -241,9 +164,9 @@ pub type Allocations = Vec<Allocation>;
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Portion {
-    pub amount:  Uint128,
-    pub address: HumanAddr,
     pub vested:  Seconds,
+    pub address: HumanAddr,
+    pub amount:  Uint128,
     pub reason:  String
 }
 impl std::fmt::Display for Portion {
