@@ -113,9 +113,7 @@ pub struct Periodic {
     pub start_at:           Seconds,
     pub cliff:              Uint128,
     pub duration:           Seconds,
-    pub interval:           Seconds,
-    pub expected_portion:   Uint128,
-    pub expected_remainder: Uint128
+    pub interval:           Seconds
 }
 
 /// Each Portion can be distributed among multiple addresses.

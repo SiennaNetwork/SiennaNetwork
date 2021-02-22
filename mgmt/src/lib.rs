@@ -2,7 +2,6 @@
 #[macro_use] extern crate lazy_static;
 
 use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
-use sienna_schedule::{Seconds, History, Vesting};
 
 //macro_rules! debug { ($($tt:tt)*)=>{} }
 
@@ -19,10 +18,13 @@ macro_rules! require_admin {
 pub type CodeHash = String;
 
 /// Whether the vesting process has begun and when.
-pub type Launched = Option<Seconds>;
+pub type Launched = Option<sienna_schedule::Seconds>;
 
 /// Public counter of invalid operations.
 pub type ErrorCount = u64;
+
+/// List of transactions to execute
+pub type FlatSchedule = (cosmwasm_std::Uint128, sienna_schedule::Portions);
 
 /// Default value for Secret Network block size
 /// (according to Reuven on Discord).
@@ -68,7 +70,7 @@ contract!(
         history:        sienna_schedule::History,
 
         /// Vesting configuration.
-        schedule:       Option<sienna_schedule::Schedule>,
+        schedule:       Option<FlatSchedule>,
 
         /// TODO: public counter of invalid requests
         errors:         ErrorCount
@@ -79,7 +81,7 @@ contract!(
     ///    a contract that implements SNIP20
     ///  - makes the initializer the admin
     [Init] (deps, env, msg: {
-        schedule:   Option<sienna_schedule::Schedule>,
+        schedule:   Option<crate::FlatSchedule>,
         token_addr: cosmwasm_std::HumanAddr,
         token_hash: crate::CodeHash
     }) {
@@ -92,7 +94,7 @@ contract!(
 
             schedule:   msg.schedule,
             launched:   None,
-            history:    History::new(),
+            history:    sienna_schedule::History::new(),
         }
     }
 
@@ -116,7 +118,7 @@ contract!(
             launched: crate::Launched
         }
         Schedule {
-            schedule: Option<sienna_schedule::Schedule>
+            schedule: Option<crate::FlatSchedule>
         }
     }
 
@@ -124,94 +126,12 @@ contract!(
 
         /// Load a new schedule (only before launching the contract)
         Configure (
-            schedule: sienna_schedule::Schedule
+            schedule: crate::FlatSchedule
         ) {
             require_admin!(|env, state| {
-                match state.launched {
-                    Some(_) => err_msg(state, &UNDERWAY),
-                    None => match schedule.validate() {
-                        Err(e) => (state, Err(e)),
-                        Ok(_) => {
-                            state.schedule = Some(schedule);
-                            ok(state)
-                        },
-                    }
-                }
-            })
-        }
-
-        /// Add a new channel to a pool
-        AddChannel (
-            pool_name:   String,
-            name:        String,
-            amount:      cosmwasm_std::Uint128,
-            allocations: Vec<sienna_schedule::Allocation>,
-            periodic:    Option<sienna_schedule::Periodic>
-        ) {
-            require_admin!(|env, state| {
-                match &state.schedule {
-                    None => err_msg(state, &NO_SCHEDULE),
-                    Some(schedule) => {
-                        let mut changed = false;
-                        let mut schedule = schedule.clone();
-                        for pool in schedule.pools.iter_mut() {
-                            if pool.name == pool_name {
-                                let channel = sienna_schedule::Channel {
-                                    name, amount, periodic,
-                                    allocations: vec![(0, allocations)]
-                                };
-                                channel.validate()?;
-                                pool.add_channel(channel)?;
-                                changed = true;
-                                break
-                            }
-                        }
-                        if changed {
-                            state.schedule = Some(schedule);
-                            ok(state)
-                        } else {
-                            err_msg(state, &NOT_FOUND)
-                        }
-                    }
-                }
-            })
-        }
-
-        /// Update the allocations of a channel
-        Reallocate (
-            pool_name:    String,
-            channel_name: String,
-            allocations:  Vec<sienna_schedule::Allocation>
-        ) {
-            require_admin!(|env, state| {
-                match &state.schedule {
-                    None => err_msg(state, &NO_SCHEDULE),
-                    Some(schedule) => {
-                        let mut schedule = schedule.clone();
-                        let mut changed = false;
-                        for pool in schedule.pools.iter_mut() {
-                            if pool.name == pool_name {
-                                for channel in pool.channels.iter_mut() {
-                                    if channel.name == channel_name {
-                                        channel.allocations.push((
-                                            env.block.time,
-                                            allocations.clone()
-                                        ));
-                                        changed = true;
-                                        break
-                                    }
-                                }
-                                if changed { break; }
-                            }
-                        }
-                        if changed {
-                            state.schedule = Some(schedule);
-                            ok(state)
-                        } else {
-                            err_msg(state, &NOT_FOUND)
-                        }
-                    }
-                }
+                state.history.validate_schedule_update(state.schedule, schedule)?;
+                state.schedule = Some(schedule);
+                ok(state)
             })
         }
 
@@ -248,7 +168,6 @@ contract!(
                     Some(schedule) => match &state.launched {
                         Some(_) => err_msg(state, &UNDERWAY),
                         None => {
-                            schedule.validate()?;
                             let actions = vec![
                                 mint_msg(
                                     env.contract.address,

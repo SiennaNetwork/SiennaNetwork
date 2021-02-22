@@ -2,7 +2,7 @@
 
 ## v2 roadmap
 
-* [ ] schedule: rewrite allocations to support splitting of cliffs and remainders
+* [x] schedule: rewrite allocations to support splitting of cliffs and remainders
 * [ ] schedule: update configuration generator to output pre-generated list of transactions
 * [ ] mgmt: update to take list of transactions as input instead of full schedule
 * [ ] mgmt: implement time travel protectio covering claimed past vestings
