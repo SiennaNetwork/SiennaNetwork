@@ -39,6 +39,8 @@ impl History {
             })
         }
     }
+    /// Validates a proposed update to the schedule
+    pub fn validate_schedule_update (&self) -> UsuallyOk { Ok(()) }
 }
 
 /// History entry

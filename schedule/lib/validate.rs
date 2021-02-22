@@ -26,7 +26,7 @@
 //!    invalid configurations from generating output.
 //!
 //! 4. For a running contract, valid outputs are further filtered by the
-//!    `reconfig` module, which rejects configurations that change already
+//!    `history` module, which rejects configurations that change already
 //!    vested/claimed portions.
 
 use crate::*;
