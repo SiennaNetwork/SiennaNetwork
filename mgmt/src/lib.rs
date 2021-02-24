@@ -23,9 +23,6 @@ pub type Launched = Option<sienna_schedule::Seconds>;
 /// Public counter of invalid operations.
 pub type ErrorCount = u64;
 
-/// List of transactions to execute
-pub type FlatSchedule = (cosmwasm_std::Uint128, sienna_schedule::Portions);
-
 /// Default value for Secret Network block size
 /// (according to Reuven on Discord).
 pub const BLOCK_SIZE: usize = 256;
@@ -70,7 +67,10 @@ contract!(
         history:        sienna_schedule::History,
 
         /// Vesting configuration.
-        schedule:       Option<FlatSchedule>,
+        schedule:       Option<sienna_schedule::Portions>,
+
+        /// Total amount to mint
+        total:          cosmwasm_std::Uint128,
 
         /// TODO: public counter of invalid requests
         errors:         ErrorCount
@@ -81,7 +81,7 @@ contract!(
     ///    a contract that implements SNIP20
     ///  - makes the initializer the admin
     [Init] (deps, env, msg: {
-        schedule:   Option<crate::FlatSchedule>,
+        schedule:   Option<sienna_schedule::Portions>,
         token_addr: cosmwasm_std::HumanAddr,
         token_hash: crate::CodeHash
     }) {
@@ -93,6 +93,7 @@ contract!(
             token_hash: msg.token_hash,
 
             schedule:   msg.schedule,
+            total:      cosmwasm_std::Uint128::zero(),
             launched:   None,
             history:    sienna_schedule::History::new(),
         }
@@ -108,6 +109,7 @@ contract!(
         GetSchedule () {
             msg::Response::Schedule {
                 schedule: state.schedule,
+                total:    state.total
             }
         }
     }
@@ -118,7 +120,8 @@ contract!(
             launched: crate::Launched
         }
         Schedule {
-            schedule: Option<crate::FlatSchedule>
+            schedule: Option<sienna_schedule::Portions>,
+            total:    cosmwasm_std::Uint128
         }
     }
 
@@ -126,11 +129,21 @@ contract!(
 
         /// Load a new schedule (only before launching the contract)
         Configure (
-            schedule: crate::FlatSchedule
+            portions: sienna_schedule::Portions
         ) {
             require_admin!(|env, state| {
-                state.history.validate_schedule_update(state.schedule, schedule)?;
-                state.schedule = Some(schedule);
+                match state.schedule {
+                    None => Ok(()),
+                    Some(schedule) => state.history.validate_schedule_update(
+                        &schedule,
+                        &portions
+                    )
+                }?;
+                state.total = cosmwasm_std::Uint128::zero();
+                for portion in portions.iter() {
+                    state.total += portion.amount
+                }
+                state.schedule = Some(portions);
                 ok(state)
             })
         }
@@ -161,17 +174,15 @@ contract!(
         /// by the underlying contract.
         Launch () {
             require_admin!(|env, state| {
-                use crate::UNDERWAY;
-                use cosmwasm_std::Uint128;
                 match &state.schedule {
-                    None => err_msg(state, &NO_SCHEDULE),
-                    Some(schedule) => match &state.launched {
-                        Some(_) => err_msg(state, &UNDERWAY),
+                    None => err_msg(state, &crate::NO_SCHEDULE),
+                    Some(portions) => match &state.launched {
+                        Some(_) => err_msg(state, &crate::UNDERWAY),
                         None => {
                             let actions = vec![
                                 mint_msg(
                                     env.contract.address,
-                                    Uint128::from(schedule.total),
+                                    state.total,
                                     None, BLOCK_SIZE,
                                     state.token_hash.clone(),
                                     state.token_addr.clone()
@@ -194,21 +205,19 @@ contract!(
         /// After launch, recipients can call the Claim method to
         /// receive the gains that they have accumulated so far.
         Claim () {
-            use crate::{PRELAUNCH, NOTHING};
-            use cosmwasm_std::{Uint128};
             match &state.launched {
-                None => err_msg(state, &PRELAUNCH),
+                None => err_msg(state, &crate::PRELAUNCH),
                 Some(launch) => {
                     let now       = env.block.time;
-                    let claimant  = env.message.sender;
                     let elapsed   = now - *launch;
-                    let schedule  = state.schedule.clone().unwrap();
-                    let claimable = schedule.claimable_by_at(&claimant, elapsed)?;
-                    if claimable.len() < 1 {
-                        err_msg(state, &NOTHING)
-                    } else {
-                        let unclaimed = state.history.unclaimed(claimable.clone());
-
+                    let claimant  = env.message.sender;
+                    let claimable: sienna_schedule::Portions = state.schedule.clone().unwrap()
+                        .into_iter().filter(|portion| {
+                            portion.vested<=elapsed &&
+                            portion.address==claimant
+                        }).collect();
+                    if claimable.len() > 0 {
+                        let unclaimed = state.history.unclaimed(&claimable);
                         println!("Now: {:#?}", &now);
                         println!("Claimable: {:#?}", &claimable);
                         for portion in claimable.iter() {
@@ -218,15 +227,12 @@ contract!(
                         for portion in state.history.history.iter() {
                             println!("{:?}", &portion);
                         }
-
                         println!("\nUnclaimed: {:#?}", &unclaimed);
                         for portion in unclaimed.iter() {
                             println!("{:?}", &portion);
                         }
-
-                        if unclaimed.len() < 1 {
-                            err_msg(state, &NOTHING)
-                        } else {
+                        if unclaimed.len() > 0 {
+                            use cosmwasm_std::Uint128;
                             let mut sum: Uint128 = Uint128::zero();
                             for portion in unclaimed.iter() {
                                 if portion.address != claimant {
@@ -242,7 +248,11 @@ contract!(
                             )?;
                             state.history.claim(now, unclaimed);
                             ok_msg(state, vec![msg])
+                        } else {
+                            err_msg(state, &NOTHING)
                         }
+                    } else {
+                        err_msg(state, &crate::NOTHING)
                     }
                 }
             }

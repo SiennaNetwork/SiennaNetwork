@@ -1,4 +1,4 @@
-//! # Reconfiguration
+//! # History and reconfiguration
 //!
 //! TODO.
 //!
@@ -23,15 +23,23 @@ pub struct History {
 impl History {
     pub fn new () -> Self { Self { history: vec![] } }
     /// Takes list of portions, returns the ones which aren't marked as claimed
-    pub fn unclaimed (&mut self, claimable: Portions) -> Portions {
+    pub fn unclaimed (
+        &self,
+        claimable: &Portions
+    ) -> Portions {
         // TODO throw if monotonicity of time is violated in eiter collection
-        let claimed_portions: Portions =
+        let claimed_portions: Vec<_> =
             self.history.iter().map(|claimed| claimed.portion.clone()).collect();
-        claimable.into_iter()
-            .filter(|portion| {!claimed_portions.contains(portion)}).collect()
+        claimable.iter()
+            .filter(|p|{!claimed_portions.contains(p)})
+            .map(|p|p.clone()).collect()
     }
     /// Marks a portion as claimed
-    pub fn claim (&mut self, claimed: Seconds, portions: Portions) {
+    pub fn claim (
+        &mut self,
+        claimed: Seconds,
+        portions: Portions
+    ) {
         for portion in portions.iter() {
             self.history.push(ClaimedPortion {
                 claimed,
@@ -40,7 +48,13 @@ impl History {
         }
     }
     /// Validates a proposed update to the schedule
-    pub fn validate_schedule_update (&self) -> UsuallyOk { Ok(()) }
+    pub fn validate_schedule_update<'a> (
+        &self,
+        old: &Portions,
+        new: &Portions
+    ) -> UsuallyOk {
+        Ok(())
+    }
 }
 
 /// History entry
