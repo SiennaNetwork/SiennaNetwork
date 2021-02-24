@@ -4,15 +4,7 @@
 use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
 
 //macro_rules! debug { ($($tt:tt)*)=>{} }
-
-/// Auth
-macro_rules! require_admin {
-    (|$env:ident, $state:ident| $body:block) => {
-        if Some($env.message.sender) != $state.admin {
-            err_auth($state)
-        } else $body
-    }
-}
+pub mod safety; pub use safety::*;
 
 /// The managed SNIP20 contract's code hash.
 pub type CodeHash = String;
@@ -26,26 +18,6 @@ pub type ErrorCount = u64;
 /// Default value for Secret Network block size
 /// (according to Reuven on Discord).
 pub const BLOCK_SIZE: usize = 256;
-
-lazy_static! {
-    /// Error message: assumptions have been violated.
-    pub static ref CORRUPTED:   &'static str = "broken";
-    /// Error message: unauthorized or nothing to claim right now.
-    pub static ref NOTHING:     &'static str = "nothing for you";
-    /// Error message: can't launch more than once.
-    pub static ref UNDERWAY:    &'static str = "already underway";
-    /// Error message: can't do this before launching.
-    pub static ref PRELAUNCH:   &'static str = "not launched yet";
-    /// Error message: schedule hasn't been set yet.
-    pub static ref NO_SCHEDULE: &'static str = "set configuration first";
-    /// Error message: can't find channel/pool by name.
-    pub static ref NOT_FOUND:   &'static str = "target not found";
-}
-
-pub fn err_allocation (total: u128, max: u128) -> String {
-    format!("allocations added up to {} which is over the maximum of {}",
-        total, max)
-}
 
 contract!(
 
@@ -67,7 +39,7 @@ contract!(
         history:        sienna_schedule::History,
 
         /// Vesting configuration.
-        schedule:       Option<sienna_schedule::Portions>,
+        schedule:       sienna_schedule::Portions,
 
         /// Total amount to mint
         total:          cosmwasm_std::Uint128,
@@ -92,10 +64,13 @@ contract!(
             token_addr: msg.token_addr,
             token_hash: msg.token_hash,
 
-            schedule:   msg.schedule,
             total:      cosmwasm_std::Uint128::zero(),
-            launched:   None,
+            schedule:   match (msg.schedule) {
+                Some(portions) => portions,
+                None => vec![]
+            },
             history:    sienna_schedule::History::new(),
+            launched:   None,
         }
     }
 
@@ -120,7 +95,7 @@ contract!(
             launched: crate::Launched
         }
         Schedule {
-            schedule: Option<sienna_schedule::Portions>,
+            schedule: sienna_schedule::Portions,
             total:    cosmwasm_std::Uint128
         }
     }
@@ -132,18 +107,15 @@ contract!(
             portions: sienna_schedule::Portions
         ) {
             require_admin!(|env, state| {
-                match state.schedule {
-                    None => Ok(()),
-                    Some(schedule) => state.history.validate_schedule_update(
-                        &schedule,
-                        &portions
-                    )
-                }?;
+                state.history.validate_schedule_update(
+                    &state.schedule,
+                    &portions
+                )?;
                 state.total = cosmwasm_std::Uint128::zero();
                 for portion in portions.iter() {
                     state.total += portion.amount
                 }
-                state.schedule = Some(portions);
+                state.schedule = portions;
                 ok(state)
             })
         }
@@ -174,11 +146,13 @@ contract!(
         /// by the underlying contract.
         Launch () {
             require_admin!(|env, state| {
-                match &state.schedule {
-                    None => err_msg(state, &crate::NO_SCHEDULE),
-                    Some(portions) => match &state.launched {
-                        Some(_) => err_msg(state, &crate::UNDERWAY),
-                        None => {
+                match &state.launched {
+                    Some(_) => err_msg(state, &crate::UNDERWAY),
+                    None => {
+                        if state.schedule.len() < 1
+                        || state.total == cosmwasm_std::Uint128::zero() {
+                            err_msg(state, &crate::NO_SCHEDULE)
+                        } else  {
                             let actions = vec![
                                 mint_msg(
                                     env.contract.address,
@@ -208,10 +182,10 @@ contract!(
             match &state.launched {
                 None => err_msg(state, &crate::PRELAUNCH),
                 Some(launch) => {
-                    let now       = env.block.time;
-                    let elapsed   = now - *launch;
-                    let claimant  = env.message.sender;
-                    let claimable: sienna_schedule::Portions = state.schedule.clone().unwrap()
+                    let now      = env.block.time;
+                    let elapsed  = now - *launch;
+                    let claimant = env.message.sender;
+                    let claimable: sienna_schedule::Portions = state.schedule.clone()
                         .into_iter().filter(|portion| {
                             portion.vested<=elapsed &&
                             portion.address==claimant

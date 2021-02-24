@@ -120,10 +120,10 @@ pub struct Periodic {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct AllocationSet {
-    t:         Seconds,
-    cliff:     Allocations,
-    regular:   Allocations,
-    remainder: Allocations,
+    pub t:         Seconds,
+    pub cliff:     Allocations,
+    pub regular:   Allocations,
+    pub remainder: Allocations,
 }
 impl AllocationSet {
     fn portions (a: &Allocations, t: Seconds, r: &str) -> Portions {
@@ -141,8 +141,8 @@ impl AllocationSet {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Allocation {
-    amount:  Uint128,
-    address: HumanAddr,
+    pub amount:  Uint128,
+    pub address: HumanAddr,
 }
 impl Allocation {
     pub fn to_portion (&self, vested: Seconds, reason: &str) -> Portion {

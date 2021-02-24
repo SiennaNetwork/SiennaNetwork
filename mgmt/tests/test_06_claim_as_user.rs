@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 #[macro_use] extern crate kukumba;
+#[macro_use] extern crate sienna_schedule; use sienna_schedule::{Schedule,Vesting};
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
 use cosmwasm_std::{StdError, HumanAddr, Uint128};
 use sienna_mgmt::{PRELAUNCH, NOTHING};
-use sienna_schedule::Schedule;
 
 kukumba!(
 
@@ -14,7 +14,7 @@ kukumba!(
         harness!(deps; ADMIN);
         let s: Schedule = serde_json::from_str(include_str!("../../config.json")).unwrap();
         test_tx!(deps, ADMIN, 0, 0;
-            Configure { schedule: s.clone() } => tx_ok!());
+            Configure { portions: s.all().unwrap() } => tx_ok!());
 
         let founder_1 = HumanAddr::from("secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
         let founder_2 = HumanAddr::from("secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");

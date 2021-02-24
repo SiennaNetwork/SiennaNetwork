@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 #[macro_use] extern crate kukumba;
+#[macro_use] extern crate sienna_schedule; use sienna_schedule::Vesting;
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
 use cosmwasm_std::{StdError, HumanAddr, Uint128};
-use sienna_schedule::Schedule;
 
 kukumba!(
 
@@ -31,9 +31,9 @@ kukumba!(
     and  "the admin starts the vesting"
     then "the contract mints the tokens"
     and  "the current time is remembered as the launch date" {
-        let s = Schedule { total: Uint128::from(0u128), pools: vec![] }
+        let s = Schedule!(0)
         test_tx!(deps, ALICE, 0, 0;
-            Configure { schedule: s.clone() } => tx_ok!());
+            Configure { portions: s.all().unwrap() } => tx_ok!());
         test_tx!(deps, ALICE, 4, 4;
             Launch {} => tx_ok_launch!(s.total));
         test_q!(deps, Status;

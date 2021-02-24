@@ -6,30 +6,41 @@
 //! # #[macro_use] extern crate sienna_schedule; use sienna_schedule::Vesting;
 //! # #[allow(non_snake_case)]
 //! # fn main() {
+//! // some imaginary people:
 //! let Alice = cosmwasm_std::HumanAddr::from("Alice");
 //! let Bob   = cosmwasm_std::HumanAddr::from("Bob");
 //! let Candy = cosmwasm_std::HumanAddr::from("Candy");
-//! let S = schedule!(0 => []);
-//! let S = schedule!(0 => [ P0(0) => [] ]);
-//! let S = schedule!(0 => [ P0(0) => [ C0(0) => [] ] ]);
-//! let S = schedule!(300 => [
-//!     P0(100) => [
-//!         C00(50) => [ Alice => 50 ]
-//!         C01(50) => [ Bob => 25; Candy => 25 ]
-//!     ]
-//!     // one channel vests portions periodically after a cliff
-//!     // TODO: this channel has its allocations altered halfway
-//!     P1(200) => [
-//!         C10(100) => [
-//!             0: [
-//!                 cliff(20 at 5)       => [ Alice => 12; Bob =>  8 ]
-//!                 regular(30 every 30) => [ Alice => 15; Bob => 15 ]
-//!                 remainder(20)        => [ Candy => 20 ]
-//!             ]
-//!         ]
-//!     ]
-//! ]);
-//! assert_eq!(S.all(), Ok(portions!(
+//! // some empty, but valid schedules
+//! let S = Schedule!(0);
+//! let S = Schedule!(0
+//!     (P0 0)
+//!     (P1 0));
+//! let S = Schedule!(0
+//!     (P0 0 (C0 0)));
+//! let S = Schedule!(0
+//!     (P0 0 (C0 0 (Alice 0) (Bob 0))
+//!           (C1 0)));
+//! let S = Schedule!(0
+//!     (P0 0 (C0 0 (T=0 cliff     0    at 0 (Alice 0) (Bob 0)
+//!                      regular   0 every 0 (Alice 0) (Bob 0)
+//!                      remainder 0         (Alice 0) (Bob 0)))
+//!           (C1 0 (T=0 cliff     0    at 0 (Alice 0) (Bob 0)
+//!                      regular   0 every 0 (Alice 0) (Bob 0)
+//!                      remainder 0         (Alice 0) (Bob 0))
+//!                 (T=1 cliff     0    at 0 (Alice 0) (Bob 0)
+//!                      regular   0 every 0 (Alice 0) (Bob 0)
+//!                      remainder 0         (Alice 0) (Bob 0)))));
+//! // now let's try a populated schedule
+//! let S = Schedule!(300
+//!     (P0 100 (C00 50 (Alice 50))
+//!             (C01 50 (Bob 25) (Candy 25)))
+//!     (P1 200 (C10 100  (T=0 cliff     20     at 5 (Alice 12) (Bob 8)
+//!                            regular   30 every 30 (Alice 15) (Bob 15)
+//!                            remainder 20          (Candy 20)))
+//!             (C11 100  (T=0 cliff     20     at 5 (Alice 12) (Bob 8)
+//!                            regular   30 every 30 (Alice 15) (Bob 15)
+//!                            remainder 20          (Candy 20)))));
+//! assert_eq!(S.all(), Ok(Portions!(
 //!     [  0  Alice  50  "C00: immediate"]
 //!     [  0  Bob    25  "C01: immediate"]
 //!     [  0  Candy  25  "C01: immediate"]
@@ -41,6 +52,14 @@
 //!     [ 65  Alice  15  "C10: vesting"  ]
 //!     [ 65  Bob    15  "C10: vesting"  ]
 //!     [ 65  Candy  20  "C10: remainder"]
+//!
+//!     [  5  Alice  12  "C11: cliff"    ]
+//!     [  5  Bob     8  "C11: cliff"    ]
+//!     [ 35  Alice  15  "C11: vesting"  ]
+//!     [ 35  Bob    15  "C11: vesting"  ]
+//!     [ 65  Alice  15  "C11: vesting"  ]
+//!     [ 65  Bob    15  "C11: vesting"  ]
+//!     [ 65  Candy  20  "C11: remainder"]
 //! )))
 //! # }
 //! ```
@@ -53,7 +72,7 @@
     ($x:expr) => { String::from(stringify!($x)) }
 }
 
-#[macro_export] macro_rules! portions {
+#[macro_export] macro_rules! Portions {
     ($([$t:literal $addr:ident $amount:literal $reason:literal])+) => {
         vec![$(sienna_schedule::Portion {
             vested:  $t,
@@ -65,10 +84,11 @@
 }
 
 /// instantiate the described schedule
-#[macro_export] macro_rules! schedule {
-    ( $total:expr => [ $( $pool:ident ( $pool_total:expr ) => [ $(
-        $channel:ident ( $channel_total:expr ) => [ $($allocations:tt)* ]
-    )* ] )* ] ) => {
+#[macro_export] macro_rules! Schedule {
+    ( $total:literal
+        $( ( $pool:ident $pool_total:literal
+            $( ( $channel:ident $channel_total:literal
+                $( $allocations:tt )* ) )* ) )* ) => {
         sienna_schedule::Schedule {
             total:        U128!($total),
             pools:        vec![$( sienna_schedule::Pool {
@@ -76,15 +96,15 @@
                 total:    U128!($pool_total),
                 partial:  true,
                 channels: vec![$(
-                    channel!($channel ($channel_total) => [$($allocations)*])
+                    Channel!($channel $channel_total $($allocations)*)
                 ),*]
             } ),*]
         }
     };
 }
 
-#[macro_export] macro_rules! channel {
-    ($name:ident ($total:expr) => []) => {
+#[macro_export] macro_rules! Channel {
+    ($name:ident $total:literal) => {
         sienna_schedule::Channel {
             name: string!($name),
             amount: U128!($total),
@@ -92,14 +112,27 @@
             allocations: vec![]
         }
     };
-    ($name:ident ($total:expr) => [ $($t:literal : [
-        cliff ($cliff:literal at $start_at:literal)
-            => [ $($cliff_allocations:tt)* ]
-        regular ($portion:literal every $interval:literal)
-            => [ $($regular_allocations:tt)* ]
-        remainder ($remainder:literal)
-            => [ $($remainder_allocations:tt)* ]
-    ] ),* ] ) => {
+    ($name:ident $total:literal $(($who:ident $how_much:literal))*) => {
+        sienna_schedule::Channel {
+            name:        string!($name),
+            amount:      U128!($total),
+            periodic:    None,
+            allocations: vec![sienna_schedule::AllocationSet {
+                t: 0,
+                cliff: vec![],
+                regular: Allocations!($($who => $how_much)*),
+                remainder: vec![]
+            }]
+        }
+    };
+    ($name:ident $total:literal $( ( T= $t:literal
+        cliff $cliff:literal at $start_at:literal
+        $(($who1:ident $how_much1:literal))*
+        regular $portion:literal every $interval:literal
+        $(($who2:ident $how_much2:literal))*
+        remainder $remainder:literal
+        $(($who3:ident $how_much3:literal))*
+    ) )*) => {
         sienna_schedule::Channel {
             name:        string!($name),
             amount:      U128!($total),
@@ -111,30 +144,17 @@
             },
             allocations: vec![$(sienna_schedule::AllocationSet {
                 t: 0,
-                cliff: allocations!($($cliff_allocations)*),
-                regular: allocations!($($regular_allocations)*),
-                remainder: allocations!($($remainder_allocations)*)
+                cliff:     Allocations!($($who1 => $how_much1)*),
+                regular:   Allocations!($($who2 => $how_much2)*),
+                remainder: Allocations!($($who3 => $how_much3)*)
             }),*]
-        }
-    };
-    ($name:ident ($total:expr) => [ $($who:expr => $how_much:expr);* ] ) => {
-        sienna_schedule::Channel {
-            name:        string!($name),
-            amount:      U128!($total),
-            periodic:    None,
-            allocations: vec![sienna_schedule::AllocationSet {
-                t: 0,
-                cliff: vec![],
-                regular: allocations!($($who => $how_much)*),
-                remainder: vec![]
-            }]
         }
     };
 }           
 
-#[macro_export] macro_rules! allocations {
+#[macro_export] macro_rules! Allocations {
     ($($who:expr => $how_much:expr)+) => {
-        vec![$(sienna_schedule::Allocation { amount: $who.clone(), address: U128!($how_much) }),+]
+        vec![$(sienna_schedule::Allocation { address: $who.clone(), amount: U128!($how_much) }),+]
     }
 }
 

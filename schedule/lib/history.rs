@@ -32,9 +32,10 @@ impl History {
             self.history.iter().map(|claimed| claimed.portion.clone()).collect();
         claimable.iter()
             .filter(|p|{!claimed_portions.contains(p)})
-            .map(|p|p.clone()).collect()
+            .map(|p|p.clone())
+        .collect()
     }
-    /// Marks a portion as claimed
+    /// Marks one or more portions as claimed. This is irreversible.
     pub fn claim (
         &mut self,
         claimed: Seconds,
