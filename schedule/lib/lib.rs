@@ -82,61 +82,30 @@ impl Pool {
     }
 }
 
-/// Portions generator: can be immediate or `Periodic`; contains `Allocation`s (maybe partial).
+/// Individual vesting config.
+/// Immediate release is thought of as a special case of vesting where:
+/// * `cliff == amount`
+/// * `duration == interval == 0`,
+/// * only `cliff_allocations` is considered.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Channel {
-    pub name:   String,
-    pub amount: Uint128,
+    name: String,
+    amount: Uint128,
 
-    /// Each portion can be split between multiple addresses.
-    /// The full history of reallocations is stored here.
-    pub allocations: Vec<AllocationSet>,
+    start_at: Seconds,
+    cliff: Uint128,
+    cliff_allocations: Allocations,
 
-    /// This is an `Option` instead of `Channel` being an `Enum` because
-    /// `serde_json_wasm` doesn't support non-C-style enums.
-    ///
-    /// `None` -> immediate vesting at launch:
-    /// the recipient can claim the entire allocated amount
-    /// once (after the contract has been launched).
-    ///
-    /// `Some(Periodic{..})` -> Periodic vesting:
-    /// amount is unlocked in portions
-    /// and claims transfer only the portions unlocked so far
-    pub periodic: Option<Periodic>
-}
+    interval: Seconds,
+    regular_allocations: Allocations,
 
-/// Configuration of periodic vesting ladder.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub struct Periodic {
-    pub start_at:           Seconds,
-    pub cliff:              Uint128,
-    pub duration:           Seconds,
-    pub interval:           Seconds
+    duration: Seconds,
+    remainder_allocations: Allocations,
 }
 
 /// Each Portion can be distributed among multiple addresses.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub struct AllocationSet {
-    pub t:         Seconds,
-    pub cliff:     Allocations,
-    pub regular:   Allocations,
-    pub remainder: Allocations,
-}
-impl AllocationSet {
-    fn portions (a: &Allocations, t: Seconds, r: &str) -> Portions {
-        a.iter().map(|b|b.to_portion(t, r)).collect::<Vec<_>>()
-    }
-    fn sum (a: &Allocations) -> u128 {
-        let mut sum = 0u128;
-        for Allocation{amount,..} in a.iter() {
-            sum+= amount.u128();
-        }
-        sum
-    }
-}
+pub type Allocations = Vec<Allocation>;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -154,9 +123,16 @@ impl Allocation {
         }
     }
 }
-
-/// list of `Allocation`s
-pub type Allocations = Vec<Allocation>;
+pub fn allocations_to_portions (a: &Allocations, t: Seconds, r: &str) -> Portions {
+    a.iter().map(|b|b.to_portion(t, r)).collect::<Vec<_>>()
+}
+pub fn sum_allocations (a: &Allocations) -> u128 {
+    let mut sum = 0u128;
+    for Allocation{amount,..} in a.iter() {
+        sum+= amount.u128();
+    }
+    sum
+}
 
 /// Claimable portion
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

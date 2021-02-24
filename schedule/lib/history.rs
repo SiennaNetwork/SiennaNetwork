@@ -95,21 +95,16 @@ impl Channel {
     ///        For now, reallocations should be forbidden
     ///        before the launch because trying to timestamp
     ///        an allocation would cause an underflow?
-    pub fn reallocate (&mut self, a: AllocationSet) -> UsuallyOk {
-        match &self.periodic {
-            None => {},
-            Some(Periodic{cliff,..}) => if (*cliff).u128() > 0 {
-                return Self::err_realloc_cliff(&self.name)
-            }
-        };
-        for allocations in self.allocations.iter() {
-            if allocations.t > a.t {
-                return Self::err_realloc_time_travel(&self.name, a.t, allocations.t)
-            }
-        }
-        self.allocations.push(a);
-        self.validate()
-    }
+    //pub fn reallocate (&mut self, t: Seconds, c: ChannelConfig) -> UsuallyOk {
+        ////c.validate()?;
+        //for (t2, _) in self.config.iter() {
+            //if t < *t2 {
+                //return Self::err_realloc_time_travel(&self.name, t, *t2)
+            //}
+        //}
+        //self.config.push((t, c));
+        //self.validate()
+    //}
     define_errors!{
         err_realloc_cliff (name: &str) ->
             ("channel {}: reallocations for channels with cliffs are not supported",

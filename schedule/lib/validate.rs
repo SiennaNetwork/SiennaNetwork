@@ -31,8 +31,12 @@
 
 use crate::*;
 
-impl Schedule {
-    pub fn validate (&self) -> StdResult<()> {
+pub trait Validate {
+    fn validate (&self) -> StdResult<()> { Ok(()) }
+}
+
+impl Validate for Schedule {
+    fn validate (&self) -> StdResult<()> {
         let mut total = 0u128;
         let mut pools: Vec<String> = vec![];
         for pool in self.pools.iter() {
@@ -45,14 +49,16 @@ impl Schedule {
         if total != self.total.u128() { return Self::err_total(total, self.total.u128()) }
         Ok(())
     }
+}
+impl Schedule {
     define_errors!{
         err_total (actual: u128, expected: u128) ->
             ("schedule: pools add up to {}, expected {}",
                 actual, expected)}
 }
 
-impl Pool {
-    pub fn validate (&self) -> StdResult<()> {
+impl Validate for Pool {
+    fn validate (&self) -> StdResult<()> {
         let total = self.channels_total()?;
         let invalid_total = if self.partial {
             total > self.total.u128()
@@ -62,40 +68,42 @@ impl Pool {
         if invalid_total { return Self::err_total(&self.name, total, self.total.u128()) }
         Ok(())
     }
+}
+impl Pool {
     define_errors!{
         err_total (name: &str, actual: u128, expected: u128) ->
             ("pool {}: channels add up to {}, expected {}",
                 name, actual, expected)}
 }
 
+impl Validate for Channel {
+    fn validate (&self) -> StdResult<()> {
+        //match &self.allocations {
+            //ChannelConfig::Immediate(config) => {
+                //config.validate()?;
+            //},
+            //ChannelConfig::Periodic(config) => {
+                //for (_, periodic, allocations) in config.iter() {
+                    //periodic.validate(&self)?;
+                    //allocations.validate()?;
+                //}
+            //}
+        //}
+        Ok(())
+    }
+}
 impl Channel {
-    pub fn validate (&self) -> StdResult<()> {
-        match &self.periodic {
-            None => {},
-            Some(periodic) => periodic.validate(&self)?
-        }
-        for allocations in self.allocations.iter() {
-            allocations.validate()?;
-        }
+    pub fn validate_periodic (&self, ch: &Channel) -> StdResult<()> {
+        let Channel{cliff,duration,interval,..} = self;
+        if *duration < 1u64 { return Self::err_zero_duration(&ch.name) }
+        if *interval < 1u64 { return Self::err_zero_interval(&ch.name) }
+        if *cliff > ch.amount { return Self::err_cliff_gt_total(&ch.name, cliff.u128(), ch.amount.u128()) }
         Ok(())
     }
     define_errors!{
         err_total (name: &str, total: u128, portion: u128) -> 
             ("channel {}: allocations add up to {}, expected {}",
-                name, total, portion)}
-}
-
-impl Periodic {
-    pub fn validate (&self, ch: &Channel) -> StdResult<()> {
-        let Periodic{cliff,duration,interval,..} = self;
-        if *duration < 1u64 { return Self::err_zero_duration(&ch.name) }
-        if *interval < 1u64 { return Self::err_zero_interval(&ch.name) }
-        if *cliff > ch.amount { return Self::err_cliff_gt_total(&ch.name, cliff.u128(), ch.amount.u128()) }
-        self.portion_count(&ch.name)?;
-        self.portion_size(&ch.name, ch.amount.u128())?;
-        Ok(())
-    }
-    define_errors!{
+                name, total, portion)
         err_zero_duration (name: &str) ->
             ("channel {}: periodic vesting's duration can't be 0",
                 name)
@@ -105,11 +113,5 @@ impl Periodic {
         err_cliff_gt_total (name: &str, cliff: u128, amount: u128) ->
             ("channel {}: cliff {} can't be larger than total amount {}",
                 name, cliff, amount)
-    }
-}
-
-impl AllocationSet {
-    pub fn validate (&self) -> StdResult<()> {
-        Ok(())
     }
 }
