@@ -18,7 +18,7 @@
 //! assert_eq!(
 //!     Schedule!(0 (P0 0) (P1 0)).all(),
 //!     Portions!());
-//! // sibling channels inside a pool
+//! // sibling accounts inside a pool
 //! assert_eq!(
 //!     Schedule!(0 (P0 0 (C0 0 (Alice 0)) (C1 0 (Bob 0)))).all(),
 //!     Portions!());
@@ -66,12 +66,12 @@
     ($x:ident) => { String::from(stringify!($x)) }
 }
 
-/// Create a `Channel` from a short description
-#[macro_export] macro_rules! Channel {
+/// Create a `Account` from a short description
+#[macro_export] macro_rules! Account {
     ( (
         $name:ident $total:literal
         $(($who:ident $how_much:literal))*
-    ) ) => { sienna_schedule::Channel {
+    ) ) => { sienna_schedule::Account {
         name:             Str!($name),
         total:            U128!($total),
         start_at:         0,
@@ -87,7 +87,7 @@
         head    $head:literal    at $start_at:literal $(($who1:ident $how_much1:literal))*
         body $portion:literal every $interval:literal $(($who2:ident $how_much2:literal))*
         tail    $tail:literal                         $(($who3:ident $how_much3:literal))*
-    ) ) => { sienna_schedule::Channel {
+    ) ) => { sienna_schedule::Account {
         name:             Str!($name),
         total:            U128!($total),
         start_at:         $start_at,
@@ -100,19 +100,19 @@
     } };
 }
 
-/// Create a `Schedule`->`Pool`s->`Channel`s tree
+/// Create a `Schedule`->`Pool`s->`Account`s tree
 /// from a short description
 #[macro_export] macro_rules! Schedule {
     ( $total:literal $((
         $pool:ident $pool_total:literal
-        $($channel:tt)*
+        $($account:tt)*
     ) )* ) => { sienna_schedule::Schedule {
         total:        U128!($total),
         pools:        vec![$( sienna_schedule::Pool {
             name:     Str!($pool),
             total:    U128!($pool_total),
             partial:  true,
-            channels: vec![$(Channel!($channel),)*]
+            accounts: vec![$(Account!($account),)*]
         } ),*]
     } }
 }

@@ -16,7 +16,7 @@
 //!
 //! * `Schedule`
 //! * `Pool`
-//! * `Channel`
+//! * `Account`
 //! * `Periodic`
 //!
 //! All but `Periodic` implement their `all()` method via the `Vesting` trait.
@@ -52,16 +52,16 @@ impl Vesting for Pool {
     /// Get list of all portions that will be unlocked by this pool
     fn all (&self) -> UsuallyPortions {
         let mut portions = vec![];
-        for channel in self.channels.iter() {
-            portions.append(&mut channel.all()?);
+        for account in self.accounts.iter() {
+            portions.append(&mut account.all()?);
         }
         Ok(portions)
     }
 }
 
-impl Vesting for Channel {
-    /// Get list of all portions that this channel will ever make available,
-    /// given its history of configurations.
+impl Vesting for Account {
+    /// Generate list of all portions that this account will
+    /// ever make available, given its history of configurations.
     fn all (&self) -> UsuallyPortions {
         let mut t_cursor = self.start_at;
         let mut all_portions = vec![];
@@ -102,7 +102,7 @@ impl Vesting for Channel {
         Ok(all_portions)
     }
 }
-impl Channel {
+impl Account {
     fn vest (
         &self,
         t_cursor:    Seconds,

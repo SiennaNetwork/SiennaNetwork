@@ -3,7 +3,7 @@
 //! The following structs implement a `validate` method:
 //! * `Schedule`
 //! * `Pool`
-//! * `Channel`
+//! * `Account`
 //! * `Periodic`
 //! * `AllocationSet`
 //!
@@ -59,7 +59,7 @@ impl Schedule {
 
 impl Validate for Pool {
     fn validate (&self) -> StdResult<()> {
-        let total = self.channels_total()?;
+        let total = self.accounts_total()?;
         let invalid_total = if self.partial {
             total > self.total.u128()
         } else {
@@ -72,17 +72,17 @@ impl Validate for Pool {
 impl Pool {
     define_errors!{
         err_total (name: &str, actual: u128, expected: u128) ->
-            ("pool {}: channels add up to {}, expected {}",
+            ("pool {}: accounts add up to {}, expected {}",
                 name, actual, expected)}
 }
 
-impl Validate for Channel {
+impl Validate for Account {
     fn validate (&self) -> StdResult<()> {
         //match &self.allocations {
-            //ChannelConfig::Immediate(config) => {
+            //AccountConfig::Immediate(config) => {
                 //config.validate()?;
             //},
-            //ChannelConfig::Periodic(config) => {
+            //AccountConfig::Periodic(config) => {
                 //for (_, periodic, allocations) in config.iter() {
                     //periodic.validate(&self)?;
                     //allocations.validate()?;
@@ -92,9 +92,9 @@ impl Validate for Channel {
         Ok(())
     }
 }
-impl Channel {
-    pub fn validate_periodic (&self, ch: &Channel) -> StdResult<()> {
-        let Channel{head,duration,interval,..} = self;
+impl Account {
+    pub fn validate_periodic (&self, ch: &Account) -> StdResult<()> {
+        let Account{head,duration,interval,..} = self;
         if *duration < 1u64 { return Self::err_zero_duration(&ch.name) }
         if *interval < 1u64 { return Self::err_zero_interval(&ch.name) }
         if *head > ch.total { return Self::err_head_gt_total(&ch.name, head.u128(), ch.total.u128()) }
@@ -102,16 +102,16 @@ impl Channel {
     }
     define_errors!{
         err_total (name: &str, total: u128, portion: u128) -> 
-            ("channel {}: allocations add up to {}, expected {}",
+            ("account {}: allocations add up to {}, expected {}",
                 name, total, portion)
         err_zero_duration (name: &str) ->
-            ("channel {}: periodic vesting's duration can't be 0",
+            ("account {}: periodic vesting's duration can't be 0",
                 name)
         err_zero_interval (name: &str) ->
-            ("channel {}: periodic vesting's interval can't be 0",
+            ("account {}: periodic vesting's interval can't be 0",
                 name)
         err_head_gt_total (name: &str, head: u128, total: u128) ->
-            ("channel {}: head {} can't be larger than total total {}",
+            ("account {}: head {} can't be larger than total total {}",
                 name, head, total)
     }
 }

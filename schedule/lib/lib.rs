@@ -8,7 +8,7 @@
 //! * has a `total`
 //! * has one or more `Pool`s which must add up to `total`, each of which
 //!     * has a `total`
-//!     * has one or more `Channel`s, each of which
+//!     * has one or more `Account`s, each of which
 //!         * has one or more `AllocationSet`s
 //!         * can be either
 //!             * __immediate__ (`periodic: None`)
@@ -26,7 +26,7 @@
 //!
 //! `serde_json_wasm` (used internally by CosmWasm) does not support advanced
 //! Rust `enum`s; were it to support them:
-//! * `Channel`, `Periodic`, and `AllocationSet` could be merged into
+//! * `Account`, `Periodic`, and `AllocationSet` could be merged into
 //!   a single enum with two variants.
 //! * the extra validation logic that prevents invalid combinations between the
 //!   three could be removed.
@@ -59,7 +59,7 @@ pub struct Schedule {
     pub pools:   Vec<Pool>,
 }
 
-/// Vesting pool; contains `Channel`s that must add up to `total`
+/// Vesting pool; contains `Account`s that must add up to `total`
 /// if `partial == false`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -67,14 +67,14 @@ pub struct Pool {
     pub name:     String,
     pub total:    Uint128,
     pub partial:  bool,
-    pub channels: Vec<Channel>,
+    pub accounts: Vec<Account>,
 }
 impl Pool {
-    fn channels_total (&self) -> StdResult<u128> {
+    fn accounts_total (&self) -> StdResult<u128> {
         let mut total = 0u128;
-        for channel in self.channels.iter() {
-            match channel.validate() {
-                Ok(_)  => { total += channel.total.u128() },
+        for account in self.accounts.iter() {
+            match account.validate() {
+                Ok(_)  => { total += account.total.u128() },
                 Err(e) => return Err(e)
             }
         }
@@ -89,10 +89,10 @@ impl Pool {
 /// * only `head_allocations` is considered.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct Channel {
+pub struct Account {
     /// Human-readable name
     pub name:   String,
-    /// Funds that this channel will release
+    /// Funds that this account will release
     pub total: Uint128,
     /// If `> 0`, releases this much money the first time
     pub head: Uint128,

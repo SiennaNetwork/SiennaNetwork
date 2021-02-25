@@ -43,7 +43,7 @@
     //valid!(schedule(0, vec![]));
     //claim!(schedule(0, vec![]), HumanAddr::from(""), 0);
     //invalid!(schedule(100, vec![]), "schedule: pools add up to 0, expected 100");
-    //invalid!(schedule(100, vec![pool("P1", 50, vec![])]), "pool P1: channels add up to 0, expected 50");
+    //invalid!(schedule(100, vec![pool("P1", 50, vec![])]), "pool P1: accounts add up to 0, expected 50");
     //valid!(schedule(0, vec![pool("P1", 0, vec![]), pool("P2", 0, vec![])]));
 //}
 
@@ -52,19 +52,19 @@
     //valid!(pool("", 0, vec![]));
     //let alice = HumanAddr::from("Alice");
     //invalid!(schedule(100, vec![
-        //pool("P1", 50, vec![channel_immediate(20, &alice)]),
-        //pool("P2", 50, vec![channel_immediate(30, &alice)])
+        //pool("P1", 50, vec![account_immediate(20, &alice)]),
+        //pool("P2", 50, vec![account_immediate(30, &alice)])
     //]),
-        //"pool P1: channels add up to 20, expected 50");
+        //"pool P1: accounts add up to 20, expected 50");
     //invalid!(schedule(100, vec![
-        //pool("P1", 50, vec![channel_immediate(50, &alice)]),
-        //pool("P2", 50, vec![channel_immediate(30, &alice)])
+        //pool("P1", 50, vec![account_immediate(50, &alice)]),
+        //pool("P2", 50, vec![account_immediate(30, &alice)])
     //]),
-        //"pool P2: channels add up to 30, expected 50");
+        //"pool P2: accounts add up to 30, expected 50");
     //invalid!(schedule(100, vec![
         //pool("", 50, vec![
-            //channel_immediate(30, &alice),
-            //channel_periodic_multi(20, &vec![allocation(10, &alice)
+            //account_immediate(30, &alice),
+            //account_periodic_multi(20, &vec![allocation(10, &alice)
                                              //,allocation(10, &alice)], 1, 0, 1, 0)
         //])]),
             //"schedule: pools add up to 50, expected 100");
@@ -76,13 +76,13 @@
     //let bob = HumanAddr::from("Bob");
     //let s = schedule(110, vec![
         //pool("P1", 50, vec![
-            //channel_immediate(29, &alice),
-            //channel_immediate(1, &bob),
-            //channel_periodic(20, &alice, 1, 0, 1, 0).unwrap()
+            //account_immediate(29, &alice),
+            //account_immediate(1, &bob),
+            //account_periodic(20, &alice, 1, 0, 1, 0).unwrap()
         //]),
         //pool("P2", 60, vec![
-            //channel_periodic(10, &alice, 1, 0, 2, 2).unwrap(),
-            //channel_periodic_multi(50, &vec![
+            //account_periodic(10, &alice, 1, 0, 2, 2).unwrap(),
+            //account_periodic_multi(50, &vec![
                 //allocation(28, &alice),
                 //allocation( 3, &bob),
                 //allocation(19, &alice)
@@ -100,14 +100,14 @@
 //}
 
 //#[test]
-//fn test_channel_immediate () {
+//fn test_account_immediate () {
     //let alice = HumanAddr::from("Alice");
-    //claim!(channel_immediate(100, &alice), &alice, 0,
+    //claim!(account_immediate(100, &alice), &alice, 0,
         //portion(100u128, &alice, 0u64, ": immediate"));
 //}
 
 //#[test]
-//fn test_channel_periodic_no_cliff () {
+//fn test_account_periodic_no_cliff () {
     //let total    = 300;
     //let interval = DAY;
     //let start_at = 100;
@@ -116,7 +116,7 @@
     //let alice    = HumanAddr::from("Alice");
     //let bob      = HumanAddr::from("Bob");
 
-    //let c = schedule(total,vec![pool("P1",total,vec![channel_periodic_multi(
+    //let c = schedule(total,vec![pool("P1",total,vec![account_periodic_multi(
         //total, &vec![
             //allocation(40, &alice),
             //allocation(60, &bob)
@@ -155,21 +155,21 @@
 //}
 
 //#[test]
-//fn test_channel_periodic_with_cliff_only () {
+//fn test_account_periodic_with_cliff_only () {
     //// duration = interval -> [cliff]
-    //// but that should be an immediate channel instead, so it fails
+    //// but that should be an immediate account instead, so it fails
     //let alice    = HumanAddr::from("Alice");
     //let total    = 100;
     //let interval = DAY;
     //let start_at = 1;
     //let duration = interval;
     //let cliff    = 1u128;
-    //assert_eq!(channel_periodic(total, &alice, interval, start_at, duration, cliff),
-        //Error!("channel : periodic vesting must contain at least 1 non-cliff portion"));
+    //assert_eq!(account_periodic(total, &alice, interval, start_at, duration, cliff),
+        //Error!("account : periodic vesting must contain at least 1 non-cliff portion"));
 //}
 
 //#[test]
-//fn test_channel_periodic_with_cliff_and_1_vesting () {
+//fn test_account_periodic_with_cliff_and_1_vesting () {
     //// duration = 2*interval -> [cliff, vesting]
     //let alice    = HumanAddr::from("Alice");
     //let total    = 100;
@@ -178,7 +178,7 @@
     //let duration = 2*interval;
     //let cliff    = 1u128;
 
-    //let c = channel_periodic(total, &alice, interval, start_at, duration, cliff).unwrap();
+    //let c = account_periodic(total, &alice, interval, start_at, duration, cliff).unwrap();
     //assert_eq!(c.portion_count(), Ok(1));
     //assert_eq!(c.portion_size(),  Ok(99u128));
 
@@ -198,7 +198,7 @@
 //}
 
 //#[test]
-//fn test_channel_periodic_with_cliff_and_2_vestings () {
+//fn test_account_periodic_with_cliff_and_2_vestings () {
     //// duration = 3*interval -> [cliff, vesting, vesting]
     //let alice    = HumanAddr::from("Alice");
     //let total    = 201;
@@ -210,7 +210,7 @@
     //// if cliff > 0 then the first portion is the cliff
     //// and the remaining amount is divided by `portion_count`
 
-    //let c = channel_periodic(total, &alice, interval, start_at, duration, cliff).unwrap();
+    //let c = account_periodic(total, &alice, interval, start_at, duration, cliff).unwrap();
     //assert_eq!(c.portion_count(), Ok(2));
     //assert_eq!(c.portion_size(),  Ok(100u128));
 
@@ -247,7 +247,7 @@
     //let duration = 7 * DAY;
     //let cliff    = 0;
 
-    //let mut s = channel_periodic_multi(
+    //let mut s = account_periodic_multi(
         //700u128, &vec![allocation(75u128, &alice)],
         //interval, start_at, duration, cliff);
 
@@ -297,5 +297,5 @@
 //}
 
 //#[test]
-//fn test_channel_with_cliff_multiple_vestings_partial_reallocation_and_remainder () {
+//fn test_account_with_cliff_multiple_vestings_partial_reallocation_and_remainder () {
 //}
