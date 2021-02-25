@@ -63,73 +63,73 @@ impl Vesting for Channel {
     /// Get list of all portions that this channel will ever make available,
     /// given its history of configurations.
     fn all (&self) -> UsuallyPortions {
-        // assume battle formation
-        let Channel { name, total
-                    , start_at, head, head_allocations
-                    , interval, body_allocations
-                    , duration, tail_allocations } = self;
-
-        // let's go
         let mut t_cursor = self.start_at;
         let mut all_portions = vec![];
-        let mut remaining = (*total).u128();
-
-        // 1. vest the head.
-        let reason = format!("{}: head", name);
-        // add portions from head allocations
-        for allocation in head_allocations.iter() {
-            if allocation.amount.u128() > remaining {
-                return Self::err_broke();
-            }
-            all_portions.push(allocation.to_portion(t_cursor, &reason));
-            remaining -= allocation.amount.u128();
-        }
-        if remaining == 0u128 || *interval == 0 || *duration == 0 {
+        let mut remaining = self.total.u128();
+        self.vest( // 1. vest the head.
+            t_cursor,
+            &format!("{}: body", &self.name),
+            &mut remaining,
+            &mut all_portions,
+            &self.head_allocations
+        )?;
+        if remaining == 0u128 || self.interval == 0 || self.duration == 0 {
             return Ok(all_portions)
         }
-
-        // 2. vest body portions
-        loop {
-            // move time forward
-            t_cursor += interval;
-            // duration is optional but if we cross it then it ends here
-            if *duration > 0u64 && t_cursor > self.start_at+self.duration {
+        loop { // 2. vest the body
+            t_cursor += self.interval; // move time forward
+            // duration is optional but if we cross it then the body ends here
+            if self.duration > 0u64 && t_cursor > self.start_at + self.duration {
                 break
             }
-            // add portions from body allocations
-            let reason = format!("{}: body", name);
-            for allocation in body_allocations.iter() {
-                if allocation.amount.u128() > remaining {
-                    return Self::err_broke();
-                }
-                all_portions.push(allocation.to_portion(t_cursor, &reason));
-                remaining -= allocation.amount.u128();
-            }
+            self.vest( // add portions from body allocations
+                t_cursor,
+                &format!("{}: body", &self.name),
+                &mut remaining,
+                &mut all_portions,
+                &self.body_allocations
+            )?;
         }
-
-        // 3. vest tails
-        if remaining > 0 {
-            // add portions from tail allocations
-            let reason = format!("{}: tail", name);
-            for allocation in tail_allocations.iter() {
-                if allocation.amount.u128() > remaining {
-                    return Self::err_broke();
-                }
-                all_portions.push(allocation.to_portion(t_cursor, &reason));
-                remaining -= allocation.amount.u128();
-            }
+        if remaining > 0 { // 3. vest the tail
+            self.vest(
+                t_cursor,
+                &format!("{}: tail", &self.name),
+                &mut remaining,
+                &mut all_portions,
+                &self.tail_allocations
+            )?;
         }
-
         Ok(all_portions)
-
     }
 }
 impl Channel {
+    fn vest (
+        &self,
+        t_cursor:    Seconds,
+        reason:      &str,
+        remaining:   &mut u128,
+        portions:    &mut Portions,
+        allocations: &Allocations,
+    ) -> UsuallyOk {
+        for allocation in allocations.iter() {
+            if allocation.amount.u128() > *remaining {
+                // make sure the account hasn't run out of money
+                return Self::err_broke();
+            }
+            if allocation.amount == Uint128::zero() {
+                // ignore empty portions
+                continue
+            }
+            portions.push(allocation.to_portion(t_cursor, &reason));
+            *remaining -= allocation.amount.u128();
+        }
+        Ok(())
+    }
     /// 1 if immediate, or `duration/interval` if periodic.
     /// Returns error if `duration` is not a multiple of `interval`.
     pub fn portion_count (&self) -> u128 {
         if self.interval == 0 {
-            0 
+            0
         } else {
             (self.total.u128() - self.head.u128()) / self.interval as u128
         }
@@ -138,7 +138,7 @@ impl Channel {
     /// Returns error if total can't be divided evenly in that number of portions.
     pub fn portion_size (&self) -> u128 {
         if self.interval == 0 {
-            0 
+            0
         } else {
             self.total.u128() / self.portion_count()
         }
