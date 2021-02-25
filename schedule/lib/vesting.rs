@@ -6,9 +6,9 @@
 //!
 //! `AllocationSet` implements the functions:
 //! * `vest_immediate`
-//! * `vest_cliff`
-//! * `vest_regular`
-//! * `vest_remainder`
+//! * `vest_head`
+//! * `vest_body`
+//! * `vest_tail`
 //!
 //! These output `Portion`s, which are subsequently "bubbled up" all the way
 //! to the contract which will execute them, by the `all()` methods of these
@@ -64,20 +64,20 @@ impl Vesting for Channel {
     /// given its history of configurations.
     fn all (&self) -> UsuallyPortions {
         // assume battle formation
-        let Channel { name, amount
-                    , start_at, cliff, cliff_allocations
-                    , interval, regular_allocations
-                    , duration, remainder_allocations } = self;
+        let Channel { name, total
+                    , start_at, head, head_allocations
+                    , interval, body_allocations
+                    , duration, tail_allocations } = self;
 
         // let's go
         let mut t_cursor = self.start_at;
         let mut all_portions = vec![];
-        let mut remaining = (*amount).u128();
+        let mut remaining = (*total).u128();
 
-        // 1. vest the cliff.
-        let reason = format!("{}: cliff", name);
-        // add portions from cliff allocations
-        for allocation in cliff_allocations.iter() {
+        // 1. vest the head.
+        let reason = format!("{}: head", name);
+        // add portions from head allocations
+        for allocation in head_allocations.iter() {
             if allocation.amount.u128() > remaining {
                 return Self::err_broke();
             }
@@ -88,7 +88,7 @@ impl Vesting for Channel {
             return Ok(all_portions)
         }
 
-        // 2. vest regular portions
+        // 2. vest body portions
         loop {
             // move time forward
             t_cursor += interval;
@@ -96,9 +96,9 @@ impl Vesting for Channel {
             if *duration > 0u64 && t_cursor > self.start_at+self.duration {
                 break
             }
-            // add portions from regular allocations
-            let reason = format!("{}: regular", name);
-            for allocation in regular_allocations.iter() {
+            // add portions from body allocations
+            let reason = format!("{}: body", name);
+            for allocation in body_allocations.iter() {
                 if allocation.amount.u128() > remaining {
                     return Self::err_broke();
                 }
@@ -107,11 +107,11 @@ impl Vesting for Channel {
             }
         }
 
-        // 3. vest remainders
+        // 3. vest tails
         if remaining > 0 {
-            // add portions from remainder allocations
-            let reason = format!("{}: remainder", name);
-            for allocation in remainder_allocations.iter() {
+            // add portions from tail allocations
+            let reason = format!("{}: tail", name);
+            for allocation in tail_allocations.iter() {
                 if allocation.amount.u128() > remaining {
                     return Self::err_broke();
                 }
@@ -131,16 +131,16 @@ impl Channel {
         if self.interval == 0 {
             0 
         } else {
-            (self.amount.u128() - self.cliff.u128()) / self.interval as u128
+            (self.total.u128() - self.head.u128()) / self.interval as u128
         }
     }
-    /// Full `amount` if immediate, or `(amount-cliff)/portion_count` if periodic.
-    /// Returns error if amount can't be divided evenly in that number of portions.
+    /// Full `total` if immediate, or `(total-head)/portion_count` if periodic.
+    /// Returns error if total can't be divided evenly in that number of portions.
     pub fn portion_size (&self) -> u128 {
         if self.interval == 0 {
             0 
         } else {
-            self.amount.u128() / self.portion_count()
+            self.total.u128() / self.portion_count()
         }
     }
     define_errors!{

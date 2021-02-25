@@ -72,9 +72,9 @@ impl Pool {
         self.validate()?;
         let allocated = self.channels_total()?;
         let unallocated = self.total.u128() - allocated;
-        if ch.amount.u128() > unallocated {
+        if ch.total.u128() > unallocated {
             return Self::err_too_big(
-                &self.name, ch.amount.u128(), unallocated, self.total.u128()
+                &self.name, ch.total.u128(), unallocated, self.total.u128()
             )
         }
         self.channels.push(ch);
@@ -87,7 +87,7 @@ impl Pool {
 }
 
 impl Channel {
-    /// Allocations can be changed on the fly without affecting past vestings.
+    /*/// Allocations can be changed on the fly without affecting past vestings.
     /// FIXME: Allocations are timestamped with real time
     ///        but schedule measures time from `t_launch=0`
     ///        and allocations are realized in `Periodic`s
@@ -95,16 +95,16 @@ impl Channel {
     ///        For now, reallocations should be forbidden
     ///        before the launch because trying to timestamp
     ///        an allocation would cause an underflow?
-    //pub fn reallocate (&mut self, t: Seconds, c: ChannelConfig) -> UsuallyOk {
-        ////c.validate()?;
-        //for (t2, _) in self.config.iter() {
-            //if t < *t2 {
-                //return Self::err_realloc_time_travel(&self.name, t, *t2)
-            //}
-        //}
-        //self.config.push((t, c));
-        //self.validate()
-    //}
+    pub fn reallocate (&mut self, t: Seconds, c: ChannelConfig) -> UsuallyOk {
+        //c.validate()?;
+        for (t2, _) in self.config.iter() {
+            if t < *t2 {
+                return Self::err_realloc_time_travel(&self.name, t, *t2)
+            }
+        }
+        self.config.push((t, c));
+        self.validate()
+    }*/
     define_errors!{
         err_realloc_cliff (name: &str) ->
             ("channel {}: reallocations for channels with cliffs are not supported",

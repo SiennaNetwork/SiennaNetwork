@@ -14,14 +14,14 @@
 //!             * __immediate__ (`periodic: None`)
 //!                 * which means the funds are released immediately
 //!                 * in which case the associated `AllocationSet`s must
-//!                   not contain `cliff` or `remainder` allocations.
+//!                   not contain `head` or `tail` allocations.
 //!             * or __periodic__ (`periodic: Some(Periodic{..})`)
 //!                 * which means that it consists of
-//!                     * an optional `cliff`
-//!                     * one or more `regular` portions
-//!                     * a `remainder`
+//!                     * an optional `head`
+//!                     * one or more `body` portions
+//!                     * a `tail`
 //!                 * and that their `AllocationSet`s must contain
-//!                   `cliff`, `regular` and `remainder` allocations
+//!                   `head`, `body` and `tail` allocations
 //!                   that add up to the correct amount
 //!
 //! `serde_json_wasm` (used internally by CosmWasm) does not support advanced
@@ -74,7 +74,7 @@ impl Pool {
         let mut total = 0u128;
         for channel in self.channels.iter() {
             match channel.validate() {
-                Ok(_)  => { total += channel.amount.u128() },
+                Ok(_)  => { total += channel.total.u128() },
                 Err(e) => return Err(e)
             }
         }
@@ -84,24 +84,32 @@ impl Pool {
 
 /// Individual vesting config.
 /// Immediate release is thought of as a special case of vesting where:
-/// * `cliff == amount`
+/// * `head == total`
 /// * `duration == interval == 0`,
-/// * only `cliff_allocations` is considered.
+/// * only `head_allocations` is considered.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Channel {
-    name: String,
-    amount: Uint128,
+    /// Human-readable name
+    pub name:   String,
+    /// Funds that this channel will release
+    pub total: Uint128,
+    /// If `> 0`, releases this much money the first time
+    pub head: Uint128,
+    /// Head can be portioned between multiple addresses
+    pub head_allocations: Allocations,
+    /// Size of regular portion - determines how many portions will be vested
+    pub body_allocations: Allocations,
+    /// Vested once after regular portions run out (TODO but not after `duration`?)
+    pub tail_allocations: Allocations,
 
-    start_at: Seconds,
-    cliff: Uint128,
-    cliff_allocations: Allocations,
-
-    interval: Seconds,
-    regular_allocations: Allocations,
-
-    duration: Seconds,
-    remainder_allocations: Allocations,
+    /// How many seconds after contract launch to begin vesting
+    pub start_at: Seconds,
+    /// How many seconds to wait between portions
+    pub interval: Seconds,
+    /// If `> 0`, vesting stops after this much seconds
+    /// regardless of how much is left of the `total`.
+    pub duration: Seconds,
 }
 
 /// Each Portion can be distributed among multiple addresses.
@@ -161,5 +169,5 @@ pub type UsuallyPortions          = StdResult<Portions>;
 /// list of `Portion`s with total, or error
 pub type UsuallyPortionsWithTotal = StdResult<PortionsWithTotal>;
 
-/// list of `Portion`s with total, `None`, or error (used by `vest_cliff`/`vest_remainder`)
+/// list of `Portion`s with total, `None`, or error (used by `vest_head`/`vest_tail`)
 pub type PerhapsPortionsWithTotal = StdResult<Option<PortionsWithTotal>>;

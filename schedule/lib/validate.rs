@@ -94,10 +94,10 @@ impl Validate for Channel {
 }
 impl Channel {
     pub fn validate_periodic (&self, ch: &Channel) -> StdResult<()> {
-        let Channel{cliff,duration,interval,..} = self;
+        let Channel{head,duration,interval,..} = self;
         if *duration < 1u64 { return Self::err_zero_duration(&ch.name) }
         if *interval < 1u64 { return Self::err_zero_interval(&ch.name) }
-        if *cliff > ch.amount { return Self::err_cliff_gt_total(&ch.name, cliff.u128(), ch.amount.u128()) }
+        if *head > ch.total { return Self::err_head_gt_total(&ch.name, head.u128(), ch.total.u128()) }
         Ok(())
     }
     define_errors!{
@@ -110,8 +110,8 @@ impl Channel {
         err_zero_interval (name: &str) ->
             ("channel {}: periodic vesting's interval can't be 0",
                 name)
-        err_cliff_gt_total (name: &str, cliff: u128, amount: u128) ->
-            ("channel {}: cliff {} can't be larger than total amount {}",
-                name, cliff, amount)
+        err_head_gt_total (name: &str, head: u128, total: u128) ->
+            ("channel {}: head {} can't be larger than total total {}",
+                name, head, total)
     }
 }
