@@ -1,42 +1,31 @@
-//! The main thing this create does is generate a list of `Portions`;
-//! a smart contract can take that list and use it as a blueprint for the
-//! funds that are unlocked for users to claim.
+//! * Lets you instantiate a `Schedule` in terms of `Pool`s of `Account`s.
+//!     * `Pool`s allow `Account`s to be added in the future
+//! * Lets you generate a flat list of transactions as specified by that
+//!   schedule.
+//!     * `Account`s can release their amounts immediately,
+//!       or vest them, to one or several addresses.
+//!         * Separate `head`, `body` and `tail` allocations allow for
+//!           cliffs and remainders to be flexibly implemented
+//! * `TODO` Lets you compare a partially-executed schedule with a new proposal,
+//!   and determine if the alteration to the schedule is allowed
+//!     * In strict mode, no vested portion is allowed to be canceled.
+//!       (this makes the schedule append-only?)
+//!     * In non-strict mode, no claimed portion is allowed to be canceled.
 //!
-//! # Data model
+//! ## How to use
 //!
-//! The `Schedule`:
-//! * has a `total`
-//! * has one or more `Pool`s which must add up to `total`, each of which
-//!     * has a `total`
-//!     * has one or more `Account`s, each of which
-//!         * has one or more `AllocationSet`s
-//!         * can be either
-//!             * __immediate__ (`periodic: None`)
-//!                 * which means the funds are released immediately
-//!                 * in which case the associated `AllocationSet`s must
-//!                   not contain `head` or `tail` allocations.
-//!             * or __periodic__ (`periodic: Some(Periodic{..})`)
-//!                 * which means that it consists of
-//!                     * an optional `head`
-//!                     * one or more `body` portions
-//!                     * a `tail`
-//!                 * and that their `AllocationSet`s must contain
-//!                   `head`, `body` and `tail` allocations
-//!                   that add up to the correct amount
-//!
-//! `serde_json_wasm` (used internally by CosmWasm) does not support advanced
-//! Rust `enum`s; were it to support them:
-//! * `Account`, `Periodic`, and `AllocationSet` could be merged into
-//!   a single enum with two variants.
-//! * the extra validation logic that prevents invalid combinations between the
-//!   three could be removed.
-//!
-//! # How to use
-//!
-//! * Normally, a `Schedule` is built from a spreadsheet or deserialized from
-//!   a JSON file.
-//! * However, the `schedule!` macro, documented in `macros`, exists to allow
-//!   `Schedule`s to be defined in reasonably terse Rust code.
+//! * `TODO` Use the executables in `bin` to ingest a `tsv`, `ods` or `json`
+//!   file describing a schedule, and  generate a pair of `schedule.json`
+//!   (what the parser understood) and `transactions.json` (what transactions
+//!   were generated).
+//!   * Load `transactions.json` into `mgmt` to update the schedule
+//!     * `TODO` historical validation should be executed in the contract
+//!   * Load `schedule.json` + `transactions.json` into `gov` to let users
+//!     vote on amendments to the schedule.
+//! * The `schedule!` macro, documented in `macros`, exists to allow schedules
+//!   to be hardcoded using a terse syntax.
+//! * Earlier versions of this crate were executed on-chain. This should still
+//!   be possible, although not recommended.
 
 pub mod macros;
 pub mod units; pub use units::*;
