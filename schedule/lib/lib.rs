@@ -13,6 +13,7 @@
 /// invalid!(schedule(100, vec![]), "schedule: pools add up to 0, expected 100");
 /// invalid!(schedule(100, vec![pool("P1", 50, vec![])]), "pool P1: channels add up to 0, expected 50");
 /// valid!(schedule(0, vec![pool("P1", 0, vec![]), pool("P2", 0, vec![])]));
+/// # }
 /// ```
 ///
 /// ## The `Pool` object
@@ -21,7 +22,10 @@
 /// * Otherwise, requires `Channel`s to add up to the total from the start
 ///
 /// ```
+/// #[macro_use] extern crate sienna_schedule; use sienna_schedule::constructors::*;
+/// # fn main () {
 /// valid!(pool("", 0, vec![]), 0);
+/// # }
 /// ```
 ///
 /// ## The `Channel` object
@@ -37,6 +41,9 @@
 /// optionally be split into multiple `Portions` for multiple addresses.
 ///
 /// ```
+/// # use sienna_schedule::units::*;
+/// #[macro_use] extern crate sienna_schedule; use sienna_schedule::constructors::*;
+/// # fn main () {
 /// let alice = HumanAddr::from("Alice");
 /// invalid!(schedule(100, vec![
 ///     pool("P1", 50, vec![channel_immediate(20, &alice)]),
@@ -55,6 +62,7 @@
 ///                                         ,allocation(10, &alice)], 1, 0, 1, 0)
 ///     ])]),
 ///         "schedule: pools add up to 50, expected 100");
+/// # }
 /// ```
 ///
 /// ## Notice to future generations
@@ -65,6 +73,11 @@
 /// could cause a one-by-off error if you don't count the cliff
 /// as a separate portion, resulting in portion allocations that
 /// fail to divide evenly.
+///
+/// Take heed that the cliff counts as a separate portion, and
+/// subtract it from the total amount before determining
+/// portion size as `(amount - cliff) / duration`
+/// and portion count as `duration / interval`.
 
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
