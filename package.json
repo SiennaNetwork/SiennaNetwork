@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "coverage": "truffle run coverage",
+    "test": "truffle test"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +15,7 @@
     "@openzeppelin/test-helpers": "^0.5.10",
     "chai": "^4.3.0",
     "mocha": "^8.3.0",
+    "solidity-coverage": "^0.7.15",
     "truffle": "^5.2.1"
   },
   "dependencies": {
