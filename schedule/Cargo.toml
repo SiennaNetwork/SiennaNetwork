@@ -1,25 +1,28 @@
 [package]
-name = "sienna_schedule"
+name    = "sienna_schedule"
 version = "2.0.0-pre"
-authors = ["Adam Avramov <adam@hack.bg>"]
+authors = ["Adam A. <adam@hack.bg>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
-snafu = { version = "0.6.3", features = ["backtraces"] }
-schemars = "0.7"
-serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-svg = { version = "0.9.0" }
 
 [lib]
 name = "sienna_schedule"
 path = "lib/lib.rs"
 
-#[[bin]]
-#name = "sienna_tsv2json"
-#path = "bin/tsv_to_json.rs"
+[dependencies]
+cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+snafu        = { version = "0.6.3", features = ["backtraces"] }
+serde        = { version = "1.0.103", default-features = false, features = ["derive"] }
+schemars     = "0.7"
+
+[dev-dependencies]
+clap            = "3.0.0-beta.2"
+svg             = "0.9.0"
+spreadsheet-ods = "0.5.2"
+color-rs        = "^0.5.0"
+
+[[example]]
+name = "sienna_schedule"
+path = "bin/cli.rs"
 
 #[[bin]]
 #name = "sienna_json2svg"
