@@ -28,13 +28,14 @@
 use crate::*;
 
 pub trait Vesting {
+    /// Get list of all portions that will be unlocked
+    fn all (&self) -> UsuallyPortions;
     /// Get amount unlocked for address `a` at time `t`.
     fn claimable_by_at (&self, a: &HumanAddr, t: Seconds) -> UsuallyPortions {
         let mut all = self.all()?;
         all.retain(|Portion{address,vested,..}|address==a&&*vested<=t);
         Ok(all)
     }
-    fn all (&self) -> UsuallyPortions;
 }
 
 impl Vesting for Schedule {
@@ -68,17 +69,17 @@ impl Vesting for Account {
         let mut remaining = self.total.u128();
         self.vest( // 1. vest the head.
             t_cursor,
-            &format!("{}: body", &self.name),
+            &format!("{}: head", &self.name),
             &mut remaining,
             &mut all_portions,
             &self.head_allocations
         )?;
-        if remaining == 0u128 || self.interval == 0 || self.duration == 0 {
+        if remaining == 0u128 || self.interval == 0 {
             return Ok(all_portions)
         }
         loop { // 2. vest the body
             t_cursor += self.interval; // move time forward
-            // duration is optional but if we cross it then the body ends here
+            // duration is optional, but if we're past it then the body ends here
             if self.duration > 0u64 && t_cursor > self.start_at + self.duration {
                 break
             }
@@ -89,6 +90,10 @@ impl Vesting for Account {
                 &mut all_portions,
                 &self.body_allocations
             )?;
+            if remaining < sum_allocations(&self.body_allocations) {
+                // not enough money for a full body portion, move onto tail
+                break
+            }
         }
         if remaining > 0 { // 3. vest the tail
             self.vest(
@@ -114,14 +119,15 @@ impl Account {
         for allocation in allocations.iter() {
             if allocation.amount.u128() > *remaining {
                 // make sure the account hasn't run out of money
-                return Self::err_broke();
+                return self.err_broke();
             }
             if allocation.amount == Uint128::zero() {
                 // ignore empty portions
                 continue
             }
-            portions.push(allocation.to_portion(t_cursor, &reason));
-            *remaining -= allocation.amount.u128();
+            let portion = allocation.to_portion(t_cursor, &reason);
+            *remaining -= portion.amount.u128();
+            portions.push(portion);
         }
         Ok(())
     }
@@ -144,7 +150,9 @@ impl Account {
         }
     }
     define_errors!{
-        err_broke () -> ("")
+        err_broke (&self, ) -> (
+            "{}: account would run out of money",
+            &self.name)
         err_unspent () -> ("")
     }
 }

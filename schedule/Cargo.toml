@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+snafu = { version = "0.6.3", features = ["backtraces"] }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 svg = { version = "0.9.0" }

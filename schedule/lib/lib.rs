@@ -39,6 +39,7 @@ pub type UsuallyOk = StdResult<()>;
 
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
+use snafu::GenerateBacktrace;
 
 /// Vesting schedule; contains `Pool`s that must add up to `total`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -142,7 +143,7 @@ pub struct Portion {
 }
 impl std::fmt::Display for Portion {
     fn fmt (&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<{} {} to {} at {}>", self.reason, self.amount, self.address, self.vested)
+        write!(f, "T={:.>10} \"{}\" {:.>18} to {}", self.vested, self.reason, self.amount.u128(), self.address)
     }
 }
 

@@ -3,14 +3,40 @@
 //! Example of using `schedule!` and `portions!` to materialize a schedule.
 //!
 //! ```rust
-//! # #[macro_use] extern crate sienna_schedule; use sienna_schedule::Vesting;
 //! # #[allow(non_snake_case)]
-//! # fn main() {
+//! # #[macro_use] extern crate sienna_schedule;
+//! # extern crate snafu; use snafu::GenerateBacktrace;
+//! # /// custom output on equality assertion fail
+//! # fn type_of<T> (_: &T) -> String {
+//! #   String::from(format!("{}", std::any::type_name::<T>()))
+//! # }
+//! # macro_rules! assert_eq { ($actual:expr, $expected:expr) => {
+//! #   match (&$actual, &$expected) {
+//! #       (actual_val, expected_val) => {
+//! #           if !(*actual_val == *expected_val) {
+//! #               println!("expected {}:", type_of(&expected_val));
+//! #               match expected_val {
+//! #                 Ok(val) => for x in val.iter() { println!("{}", x); },
+//! #                 Err(e)  => println!("{:#?}", &e)
+//! #               }
+//! #               println!("\nactual {}:", type_of(&actual_val));
+//! #               match actual_val {
+//! #                 Ok(val) => for x in val.iter() { println!("{}", x); },
+//! #                 Err(e)  => println!("{:#?}", &e)
+//! #               }
+//! #               panic!("schedule didn't generate expected portions");
+//! #           }
+//! #       }
+//! #   }
+//! # }; }
+//! # fn main () {
 //! // some imaginary people:
-//! let Alice = cosmwasm_std::HumanAddr::from("Alice");
-//! let Bob   = cosmwasm_std::HumanAddr::from("Bob");
-//! let Candy = cosmwasm_std::HumanAddr::from("Candy");
+//! use cosmwasm_std::HumanAddr;
+//! let Alice = HumanAddr::from("Alice");
+//! let Bob   = HumanAddr::from("Bob");
+//! let Candy = HumanAddr::from("Candy");
 //! // some empty, but valid schedules
+//! use sienna_schedule::Vesting; // needed for .all() trait fn
 //! assert_eq!(
 //!     Schedule!(0).all(),
 //!     Portions!());
@@ -33,25 +59,25 @@
 //!                                    body 30 every 30 (Alice 15) (Bob 15)
 //!                                    tail 20          (Candy 20)))).all(),
 //!     Portions!(
-//!          [  0  Alice  50  "C00: head"    ]
-//!          [  0  Bob    25  "C01: head"    ]
-//!          [  0  Candy  25  "C01: head"    ]
+//!          [  0  Alice  50  "C00: head" ]
+//!          [  0  Bob    25  "C01: head" ]
+//!          [  0  Candy  25  "C01: head" ]
 //!
-//!          [  5  Alice  12  "C10: head"    ]
-//!          [  5  Bob     8  "C10: head"    ]
-//!          [ 35  Alice  15  "C10: vesting" ]
-//!          [ 35  Bob    15  "C10: vesting" ]
-//!          [ 65  Alice  15  "C10: vesting" ]
-//!          [ 65  Bob    15  "C10: vesting" ]
-//!          [ 65  Candy  20  "C10: tail"    ]
+//!          [  5  Alice  12  "C10: head" ]
+//!          [  5  Bob     8  "C10: head" ]
+//!          [ 35  Alice  15  "C10: body" ]
+//!          [ 35  Bob    15  "C10: body" ]
+//!          [ 65  Alice  15  "C10: body" ]
+//!          [ 65  Bob    15  "C10: body" ]
+//!          [ 65  Candy  20  "C10: tail" ]
 //!
-//!          [  5  Alice  12  "C11: head"    ]
-//!          [  5  Bob     8  "C11: head"    ]
-//!          [ 35  Alice  15  "C11: vesting" ]
-//!          [ 35  Bob    15  "C11: vesting" ]
-//!          [ 65  Alice  15  "C11: vesting" ]
-//!          [ 65  Bob    15  "C11: vesting" ]
-//!          [ 65  Candy  20  "C11: tail"    ] ));
+//!          [  5  Alice  12  "C11: head" ]
+//!          [  5  Bob     8  "C11: head" ]
+//!          [ 35  Alice  15  "C11: body" ]
+//!          [ 35  Bob    15  "C11: body" ]
+//!          [ 65  Alice  15  "C11: body" ]
+//!          [ 65  Bob    15  "C11: body" ]
+//!          [ 65  Candy  20  "C11: tail" ] ));
 //!
 //! # }
 //! ```
@@ -71,14 +97,14 @@
     ( (
         $name:ident $total:literal
         $(($who:ident $how_much:literal))*
-    ) ) => { sienna_schedule::Account {
+    ) ) => { $crate::Account {
         name:             Str!($name),
         total:            U128!($total),
         start_at:         0,
         interval:         0,
         duration:         0,
         head:             U128!(0),
-        head_allocations: vec![$(sienna_schedule::Allocation{address:$who.clone(),amount:U128!($how_much)}),*],
+        head_allocations: vec![$($crate::Allocation{address:$who.clone(),amount:U128!($how_much)}),*],
         body_allocations: vec![],
         tail_allocations: vec![]
     } };
@@ -87,16 +113,16 @@
         head    $head:literal    at $start_at:literal $(($who1:ident $how_much1:literal))*
         body $portion:literal every $interval:literal $(($who2:ident $how_much2:literal))*
         tail    $tail:literal                         $(($who3:ident $how_much3:literal))*
-    ) ) => { sienna_schedule::Account {
+    ) ) => { $crate::Account {
         name:             Str!($name),
         total:            U128!($total),
         start_at:         $start_at,
         interval:         $interval,
         duration:         0, // TODO
         head:             U128!($head),
-        head_allocations: vec![$(sienna_schedule::Allocation{address:$who1.clone(),amount:U128!($how_much1)}),*],
-        body_allocations: vec![$(sienna_schedule::Allocation{address:$who2.clone(),amount:U128!($how_much2)}),*],
-        tail_allocations: vec![$(sienna_schedule::Allocation{address:$who3.clone(),amount:U128!($how_much3)}),*],
+        head_allocations: vec![$($crate::Allocation{address:$who1.clone(),amount:U128!($how_much1)}),*],
+        body_allocations: vec![$($crate::Allocation{address:$who2.clone(),amount:U128!($how_much2)}),*],
+        tail_allocations: vec![$($crate::Allocation{address:$who3.clone(),amount:U128!($how_much3)}),*],
     } };
 }
 
@@ -106,9 +132,9 @@
     ( $total:literal $((
         $pool:ident $pool_total:literal
         $($account:tt)*
-    ) )* ) => { sienna_schedule::Schedule {
+    ) )* ) => { $crate::Schedule {
         total:        U128!($total),
-        pools:        vec![$( sienna_schedule::Pool {
+        pools:        vec![$( $crate::Pool {
             name:     Str!($pool),
             total:    U128!($pool_total),
             partial:  true,
@@ -120,7 +146,7 @@
 /// Create a `Result<Vec<Portion>>` from a short description
 #[macro_export] macro_rules! Portions {
     ($([$t:literal $addr:ident $amount:literal $reason:literal])*) => {
-        Ok(vec![$(sienna_schedule::Portion {
+        Ok(vec![$($crate::Portion {
             vested:  $t,
             address: $addr.clone(),
             amount:  cosmwasm_std::Uint128::from($amount as u128),
@@ -132,7 +158,10 @@
 /// Create an error result
 #[macro_export] macro_rules! Error {
     ($msg:expr) => {
-        Err(cosmwasm_std::StdError::GenericErr { msg: $msg.to_string(), backtrace: None })
+        Err(cosmwasm_std::StdError::GenericErr {
+            msg: $msg.to_string(),
+            backtrace: Some(snafu::Backtrace::generate())
+        })
     };
 }
 

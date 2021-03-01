@@ -842,6 +842,7 @@ dependencies = [
  "cosmwasm-std",
  "schemars",
  "serde",
+ "snafu",
  "svg",
 ]
 
