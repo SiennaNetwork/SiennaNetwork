@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# Production build of arbitrary commit hash
+set -aue
+Timestamp=`date --rfc-3339=date`
+Commit=${1:-main}
+Origin=`git remote get-url origin`
+for Contract in sienna-mgmt snip20-reference-impl; do
+  echo "Now building $Contract:"
+  docker run -it --rm                                                  \
+    -e CARGO_NET_GIT_FETCH_WITH_CLI=true                                \
+    -e CARGO_TERM_VERBOSE=true                                           \
+    -e CARGO_HTTP_TIMEOUT=240                                             \
+    -v "`pwd`":/output                                                     \
+    -v $HOME/.ssh/id_rsa:/root/.ssh/id_rsa:ro                               \
+    -v $HOME/.ssh/known_hosts:/root/.ssh/known_hosts:ro                      \
+    --mount type=volume,source=sienna_cache,target=/code/target               \
+    --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+    --entrypoint /bin/sh                   \
+    hackbg/secret-contract-optimizer:latest \
+    -c "mkdir -p /contract && cd /contract  &&\
+        git clone --recursive -n $Origin . &&\
+        git checkout $Commit              &&\
+        git submodule update             &&\
+        chown -R 1000 /contract         &&\
+        /entrypoint.sh $Contract       &&\
+        mv $Contract.wasm.gz /output/"
+  mv "$Contract.wasm.gz" "dist/$Timestamp-$Commit-$Contract.wasm.gz"; done
+cd dist
+sha256sum -b *.wasm.gz > checksums.sha256.txt
+

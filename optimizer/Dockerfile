@@ -19,7 +19,7 @@ RUN chmod +x entrypoint.sh
 # ensure mountpoint for source
 WORKDIR /contract
 
-# default $USER and $GROUP to run as
+# default $USER and $GROUP to switch to
 ENV USER 1000
 ENV GROUP 1000
 ENTRYPOINT [ "/entrypoint.sh" ]

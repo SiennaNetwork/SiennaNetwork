@@ -24,6 +24,8 @@ async function deploy ({
   mgmtLabel  = `SIENNA MGMT (${new Date().toISOString()})`,
   mgmtConfig = {},
 
+  schedule = require('../config.json'),
+
 }={}) {
   client = await Promise.resolve(client)
 
@@ -48,7 +50,7 @@ async function deploy ({
   say(`${mgmt.address} is now admin of ${token.address}`)
 
   say('setting schedule in mgmt...') ///////////////////////////////////////////////////////////////
-  say(await (require('./config')({client, mgmt})))
+  say(await (require('./config')({client, mgmt, schedule})))
 
   say('ready to launch!') //////////////////////////////////////////////////////////////////////////
   return {
