@@ -31,13 +31,13 @@ async function poc () {
   const [xZibitA, xZibitB] = await Promise.all([
     deploy({
       client,
-      token: `dist/2021-03-02-80f6297-snip20-reference-impl.wasm.gz`,
-      mgmt:  `dist/2021-03-02-80f6297-sienna-mgmt.wasm.gz`,
+      token: `dist/2021-03-02-80f6297-snip20-reference-impl.wasm`,
+      mgmt:  `dist/2021-03-02-80f6297-sienna-mgmt.wasm`,
     }),
     deploy({
       client,
-      token: `dist/2021-03-02-bfdef1b-snip20-reference-impl.wasm.gz`,
-      mgmt:  `dist/2021-03-02-bfdef1b-sienna-mgmt.wasm.gz`,
+      token: `dist/2021-03-02-bfdef1b-snip20-reference-impl.wasm`,
+      mgmt:  `dist/2021-03-02-bfdef1b-sienna-mgmt.wasm`,
     })
   ])
 

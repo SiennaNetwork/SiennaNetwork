@@ -24,8 +24,7 @@ for Contract in sienna-mgmt snip20-reference-impl; do
         git submodule update             &&\
         chown -R 1000 /contract         &&\
         /entrypoint.sh $Contract       &&\
-        mv $Contract.wasm.gz /output/"
-  mv "$Contract.wasm.gz" "dist/$Timestamp-$Commit-$Contract.wasm.gz"; done
+        mv $Contract.wasm /output/"
+  mv "$Contract.wasm" "dist/$Timestamp-$Commit-$Contract.wasm"; done
 cd dist
-sha256sum -b *.wasm.gz > checksums.sha256.txt
-
+sha256sum -b *.wasm > checksums.sha256.txt

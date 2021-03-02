@@ -24,6 +24,4 @@ su build -c "\
     --release --target wasm32-unknown-unknown --locked --verbose \
     && wasm-opt -Oz                                              \
       ./target/wasm32-unknown-unknown/release/$Output.wasm       \
-      -o ./$Package.wasm                                         \
-    && cat ./$Package.wasm | gzip -n -9 > ./$Package.wasm.gz     \
-    && rm -f ./$Package.wasm"
+      -o ./$Package.wasm"

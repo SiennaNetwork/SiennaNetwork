@@ -14,9 +14,9 @@ for Contract in sienna-mgmt snip20-reference-impl; do
     --mount type=volume,source=sienna_cache,target=/code/target               \
     --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
     hackbg/secret-contract-optimizer:latest $Contract
-  mv "$Contract.wasm.gz" "dist/$Timestamp-$Commit-$Contract.wasm.gz"
+  mv "$Contract.wasm" "dist/$Timestamp-$Commit-$Contract.wasm"
 done
 
 # Generate checksums
 cd dist
-sha256sum -b *.wasm.gz > checksums.sha256.txt
+sha256sum -b *.wasm > checksums.sha256.txt
