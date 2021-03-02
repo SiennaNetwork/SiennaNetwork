@@ -45,7 +45,7 @@ _optimizer: optimizer/*
 		-t hackbg/secret-contract-optimizer:latest \
 		optimizer
 prod: _optimizer
-	scripts/production-build.sh
+	time scripts/production-build.sh
 # TODO: see if there's any value in keeping these around:
 #compile: _compile sienna_token.wasm sienna_mgmt.wasm
 #_compile:
