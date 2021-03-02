@@ -242,6 +242,7 @@ contract!(
         Launch () {
             require_admin!(|env, state| {
                 use crate::UNDERWAY;
+                use cosmwasm_std::Uint128;
                 match &state.schedule {
                     None => err_msg(state, &NO_SCHEDULE),
                     Some(schedule) => match &state.launched {
@@ -251,7 +252,7 @@ contract!(
                             let actions = vec![
                                 mint_msg(
                                     env.contract.address,
-                                    schedule.total,
+                                    Uint128::from(schedule.total),
                                     None, BLOCK_SIZE,
                                     state.token_hash.clone(),
                                     state.token_addr.clone()
@@ -284,7 +285,7 @@ contract!(
                     let elapsed   = now - *launch;
                     let schedule  = state.schedule.clone().unwrap();
                     let claimable = schedule.claimable(&claimant, elapsed)?;
-                    if claimable.is_empty() {
+                    if claimable.len() < 1 {
                         err_msg(state, &NOTHING)
                     } else {
                         let unclaimed = state.history.unclaimed(claimable.clone());
@@ -304,7 +305,7 @@ contract!(
                             println!("{:?}", &portion);
                         }
 
-                        if unclaimed.is_empty() {
+                        if unclaimed.len() < 1 {
                             err_msg(state, &NOTHING)
                         } else {
                             let mut sum: Uint128 = Uint128::zero();
