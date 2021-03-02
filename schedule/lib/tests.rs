@@ -179,23 +179,23 @@ fn test_reallocation () {
     let cliff    = 0;
 
     let mut s = channel_periodic_multi(
-        700u128, &vec![allocation(75u128, &alice)],
+        700u128, &vec![allocation(100u128, &alice)],
         interval, start_at, duration, cliff);
 
     claim!(s, alice, 0*DAY,
-        portion(75u128, &alice, 0 * DAY, ": vesting"));
+        portion(100u128, &alice, 0 * DAY, ": vesting"));
     claim!(s, alice, 1*DAY,
-        portion(75u128, &alice, 0 * DAY, ": vesting"),
-        portion(75u128, &alice, 1 * DAY, ": vesting"));
+        portion(100u128, &alice, 0 * DAY, ": vesting"),
+        portion(100u128, &alice, 1 * DAY, ": vesting"));
     claim!(s, alice, 2*DAY,
-        portion(75u128, &alice, 0 * DAY, ": vesting"),
-        portion(75u128, &alice, 1 * DAY, ": vesting"),
-        portion(75u128, &alice, 2 * DAY, ": vesting"));
+        portion(100u128, &alice, 0 * DAY, ": vesting"),
+        portion(100u128, &alice, 1 * DAY, ": vesting"),
+        portion(100u128, &alice, 2 * DAY, ": vesting"));
     claim!(s, alice, 3*DAY,
-        portion(75u128, &alice, 0 * DAY, ": vesting"),
-        portion(75u128, &alice, 1 * DAY, ": vesting"),
-        portion(75u128, &alice, 2 * DAY, ": vesting"),
-        portion(75u128, &alice, 3 * DAY, ": vesting"));
+        portion(100u128, &alice, 0 * DAY, ": vesting"),
+        portion(100u128, &alice, 1 * DAY, ": vesting"),
+        portion(100u128, &alice, 2 * DAY, ": vesting"),
+        portion(100u128, &alice, 3 * DAY, ": vesting"));
     claim!(s, bob, 0*DAY);
     claim!(s, bob, 1*DAY);
     claim!(s, bob, 2*DAY);
@@ -204,16 +204,16 @@ fn test_reallocation () {
     s.reallocate(4*DAY, vec![allocation(50u128, &alice)
                             ,allocation(50u128, &bob)]).unwrap();
     claim!(s, alice, 4*DAY,
-        portion(75u128, &alice, 0 * DAY, ": vesting"),
-        portion(75u128, &alice, 1 * DAY, ": vesting"),
-        portion(75u128, &alice, 2 * DAY, ": vesting"),
-        portion(75u128, &alice, 3 * DAY, ": vesting"),
+        portion(100u128, &alice, 0 * DAY, ": vesting"),
+        portion(100u128, &alice, 1 * DAY, ": vesting"),
+        portion(100u128, &alice, 2 * DAY, ": vesting"),
+        portion(100u128, &alice, 3 * DAY, ": vesting"),
         portion(50u128, &alice, 4 * DAY, ": vesting"));
     claim!(s, alice, 7*DAY,
-        portion(75u128, &alice, 0 * DAY, ": vesting"),
-        portion(75u128, &alice, 1 * DAY, ": vesting"),
-        portion(75u128, &alice, 2 * DAY, ": vesting"),
-        portion(75u128, &alice, 3 * DAY, ": vesting"),
+        portion(100u128, &alice, 0 * DAY, ": vesting"),
+        portion(100u128, &alice, 1 * DAY, ": vesting"),
+        portion(100u128, &alice, 2 * DAY, ": vesting"),
+        portion(100u128, &alice, 3 * DAY, ": vesting"),
         portion(50u128, &alice, 4 * DAY, ": vesting"),
         portion(50u128, &alice, 5 * DAY, ": vesting"),
         portion(50u128, &alice, 6 * DAY, ": vesting"));

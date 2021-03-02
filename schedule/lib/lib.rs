@@ -234,12 +234,13 @@ impl Channel {
     /// Allocations can be changed on the fly without affecting past vestings.
     pub fn reallocate (&mut self, t: Seconds, allocations: Vec<Allocation>) -> StdResult<()> {
         if let Some(Periodic{cliff: Uint128(0),..}) = self.periodic {
+            let latest_allocation = self.allocations.iter().fold(0, |x,y|Seconds::max(x,y.0));
+            if t < latest_allocation { return self.err_realloc_time_travel(t, latest_allocation) }
+            self.allocations.push((t, allocations));
+            self.validate()
+        } else {
             return self.err_realloc_cliff();
         }
-        let latest_allocation = self.allocations.iter().fold(0, |x,y|Seconds::max(x,y.0));
-        if t < latest_allocation { return self.err_realloc_time_travel(t, latest_allocation) }
-        self.allocations.push((t, allocations));
-        self.validate()
     }
     /// Return list of portions that have become claimable for address `a` by time `t`.
     /// Immediate vestings only need the latest set of allocations to work,
@@ -376,10 +377,11 @@ impl Periodic {
         // `start_at..min(t, start_at+duration)` in steps of `interval`,
         // and add vestings in accordance with the allocations that are
         // current for the particular moment in time.
-        let mut portions             = vec![];
-        let mut total_received: u128 = 0;
-        let mut t_cursor             = start_at;
-        let mut n_portions           = self.portion_count(&ch.name)?;
+        let mut portions       = vec![];
+        let mut total_received = 0u128;
+        let mut total_vested   = 0u128;
+        let mut t_cursor       = start_at;
+        let mut n_portions     = self.portion_count(&ch.name)?;
 
         // Make sure allocations exist.
         if ch.allocations.is_empty() { return ch.err_no_allocations(); }
@@ -407,6 +409,7 @@ impl Periodic {
                     t_cursor += interval;
                     n_portions += 1;
                     total_received += cliff;
+                    total_vested += cliff;
                     break
                 }
             }
@@ -430,12 +433,13 @@ impl Periodic {
             // the actual claimable amount, and add the
             // corresponding portion.
             for Allocation { addr, amount } in current_allocations.iter() {
+                let amount = (*amount).u128();
                 if addr == a {
-                    let amount = (*amount).u128();
                     let reason = format!("{}: vesting", &ch.name);
                     portions.push(portion(amount, a, t_cursor, &reason));
                     total_received += amount;
                 }
+                total_vested += amount;
             }
 
             // Advance the time.
@@ -446,7 +450,7 @@ impl Periodic {
         // If we're at/past the end, add give the remainder.
         // How does this work with multiple allocations though?
         if t_cursor >= t_end {
-            let remainder = ch.amount.u128() - total_received;
+            let remainder = ch.amount.u128() - total_vested;
             if remainder > 0 {
                 // The last group of allocations must contain exactly 1 user
                 // in order to avoid splitting the remainder.
@@ -460,6 +464,7 @@ impl Periodic {
                     // call `Reallocate` and determine a single adress to
                     // receive the remainder.
                 } else {
+                    println!("{:#?}", &ch);
                     return self.err_periodic_remainder_multiple(&ch.name);
                 }
             }
