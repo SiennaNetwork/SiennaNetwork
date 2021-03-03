@@ -7,13 +7,13 @@ module.exports = main
 if (require.main === module) main()
 async function main (
   output = require('./output'),
-  client = require('./client')(),
+  agent = require('./agent')(),
 
   MGMT   = JSON.parse(process.env.MGMT||"{}"),
 ) {
-  client = await Promise.resolve(client)
-  output(await client.query(MGMT.address,
+  agent = await Promise.resolve(agent)
+  output(await agent.query(MGMT.address,
     { status: {} }))
-  output(await client.query(MGMT.address,
+  output(await agent.query(MGMT.address,
     { get_schedule: {} }))
 }

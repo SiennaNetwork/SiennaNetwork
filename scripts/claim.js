@@ -6,12 +6,10 @@ require('dotenv').config({ path: envfile })
 module.exports = main
 if (require.main === module) main()
 async function main (
-  output = require('./output')(),
-  client = require('./client')(),
-
-  MGMT   = JSON.parse(process.env.MGMT||"{}"),
+  say    = require('./say')("[claim]"),
+  agent = require('./agent')(),
+  mgmt   = JSON.parse(process.env.MGMT||"{}"),
 ) {
-  client = await Promise.resolve(client)
-  output(await client.execute(MGMT.address,
-    {claim: {}}))
+  agent = await Promise.resolve(agent)
+  return say(await agent.execute(mgmt.address, {claim: {}}))
 }

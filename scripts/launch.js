@@ -3,15 +3,14 @@ process.on('unhandledRejection', up => {throw up})
 const envfile = require('path').resolve(__dirname, '../.env')
 require('dotenv').config({ path: envfile })
 
-module.exports = main
-if (require.main === module) main()
-async function main (
-  output = require('./output'),
-  client = require('./client')(),
-
-  MGMT   = JSON.parse(process.env.MGMT||"{}"),
+async function launch (
+  say    = require('./say')('[launch]'),
+  agent = require('./agent').fromEnvironment(),
+  mgmt   = JSON.parse(process.env.MGMT||"{}"),
 ) {
-  client = await Promise.resolve(client)
-  output(await client.execute(MGMT.address,
-    {launch: {}}))
+  say(`launch ${mgmt} as ${agent.addr}`)
+  agent = await Promise.resolve(agent)
+  say(await agent.execute(mgmt.address, {launch: {}}))
 }
+
+module.exports=(require.main&&require.main!==module)?launch:config()

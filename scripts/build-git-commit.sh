@@ -14,7 +14,7 @@ for Contract in sienna-mgmt snip20-reference-impl; do
     -v "`pwd`":/output                                                     \
     -v $HOME/.ssh/id_rsa:/root/.ssh/id_rsa:ro                               \
     -v $HOME/.ssh/known_hosts:/root/.ssh/known_hosts:ro                      \
-    --mount type=volume,source=sienna_cache,target=/code/target               \
+    --mount type=volume,source=sienna_cache_$Commit,target=/code/target       \
     --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
     --entrypoint /bin/sh                   \
     hackbg/secret-contract-optimizer:latest \
@@ -25,6 +25,6 @@ for Contract in sienna-mgmt snip20-reference-impl; do
         chown -R 1000 /contract         &&\
         /entrypoint.sh $Contract       &&\
         mv $Contract.wasm /output/"
-  mv "$Contract.wasm" "dist/$Timestamp-$Commit-$Contract.wasm"; done
+  mv "$Contract.wasm" "dist/$Commit-$Contract.wasm"; done
 cd dist
 sha256sum -b *.wasm > checksums.sha256.txt
