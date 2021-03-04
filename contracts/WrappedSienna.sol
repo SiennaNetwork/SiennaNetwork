@@ -21,7 +21,6 @@ contract WrappedSienna is Context, AccessControl, ERC20Burnable, ERC20Pausable {
      */
     constructor(address bridge) public ERC20("Wrapped SIENNA", "wSIENNA") {
         _setupDecimals(18);
-
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(PAUSER_ROLE, _msgSender());
         _setupRole(MINTER_ROLE, bridge);

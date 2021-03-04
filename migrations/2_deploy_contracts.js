@@ -1,6 +1,6 @@
 const WrappedSienna = artifacts.require('WrappedSienna');
-module.exports = function (deployer) {
-  const bridgeAddress = '0x2b89bf8ba858cd2fcee1fada378d5cd6936968be';
 
-  deployer.deploy(WrappedSienna, bridgeAddress);
+module.exports = function (deployer, networks, accounts) {
+  // TODO: use real bridge address for e2e tests
+  deployer.deploy(WrappedSienna, accounts[0]);
 };
