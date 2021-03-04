@@ -1,17 +1,15 @@
-//const { accounts, contract } = require('@openzeppelin/test-environment');
 const { BN } = require('@openzeppelin/test-helpers');
 const { expect, assert } = require('chai');
 
 const WrappedSienna = artifacts.require('WrappedSienna');
 
 contract('WrappedSienna', (accounts) => {
-  const bridgeAddress = '0x2b89bf8ba858cd2fcee1fada378d5cd6936968be';
-  const [initialHolder, recipient, anotherAccount] = accounts;
+  const [admin, bridgeAddress, anotherAccount1, anotherAccount2] = accounts;
   const name = 'Wrapped SIENNA';
   const symbol = 'wSIENNA';
 
   beforeEach(async () => {
-    this.token = await WrappedSienna.new(initialHolder);
+    this.token = await WrappedSienna.new(admin);
   });
 
   it('has a name', async () => {
@@ -30,19 +28,19 @@ contract('WrappedSienna', (accounts) => {
   });
 
   it('paused is successfull', async () => {
-    const result = await this.token.pause({ from: initialHolder });
+    const result = await this.token.pause({ from: admin });
     assert.ok(result, 'Pause failed.');
   });
 
   it('unpaused is successfull', async () => {
-    await this.token.pause({ from: initialHolder });
-    const result = await this.token.unpause({ from: initialHolder });
+    await this.token.pause({ from: admin });
+    const result = await this.token.unpause({ from: admin });
     assert.ok(result, 'Unpaused failed.');
   });
 
   it('not allowed to pause from account with no pauser role', async () => {
     try {
-      await this.token.pause({ from: recipient });
+      await this.token.pause({ from: anotherAccount1 });
       assert.fail('The transaction should have thrown an error');
     } catch (err) {
       assert.include(
@@ -55,8 +53,8 @@ contract('WrappedSienna', (accounts) => {
 
   it('not allowed to unpause from account with no pauser role', async () => {
     try {
-      await this.token.pause({ from: initialHolder });
-      await this.token.unpause({ from: recipient });
+      await this.token.pause({ from: admin });
+      await this.token.unpause({ from: anotherAccount1 });
       assert.fail('The transaction should have thrown an error');
     } catch (err) {
       assert.include(
@@ -68,15 +66,15 @@ contract('WrappedSienna', (accounts) => {
   });
 
   it('transfer tokens from minter to other account (mint)', async () => {
-    const minterBalanceBefore = await this.token.balanceOf(initialHolder);
-    const accountBalanceBefore = await this.token.balanceOf(recipient);
+    const minterBalanceBefore = await this.token.balanceOf(admin);
+    const accountBalanceBefore = await this.token.balanceOf(anotherAccount1);
 
-    await this.token.transfer(recipient, new BN(1000000), {
-      from: initialHolder,
+    await this.token.transfer(anotherAccount1, new BN(1000000), {
+      from: admin,
     });
 
-    const minterBalanceAfter = await this.token.balanceOf(initialHolder);
-    const accountBalanceAfter = await this.token.balanceOf(recipient);
+    const minterBalanceAfter = await this.token.balanceOf(admin);
+    const accountBalanceAfter = await this.token.balanceOf(anotherAccount1);
 
     assert.ok(
       minterBalanceAfter.eq(minterBalanceBefore),
@@ -89,18 +87,18 @@ contract('WrappedSienna', (accounts) => {
   });
 
   it('transfer tokens from other account to minter (burn)', async () => {
-    await this.token.transfer(anotherAccount, new BN(2000000), {
-      from: initialHolder,
+    await this.token.transfer(anotherAccount1, new BN(2000000), {
+      from: admin,
     });
-    const minterBalanceBefore = await this.token.balanceOf(initialHolder);
-    const accountBalanceBefore = await this.token.balanceOf(anotherAccount);
+    const minterBalanceBefore = await this.token.balanceOf(admin);
+    const accountBalanceBefore = await this.token.balanceOf(anotherAccount1);
 
-    await this.token.transfer(initialHolder, new BN(1000000), {
-      from: anotherAccount,
+    await this.token.transfer(admin, new BN(1000000), {
+      from: anotherAccount1,
     });
 
-    const minterBalanceAfter = await this.token.balanceOf(initialHolder);
-    const accountBalanceAfter = await this.token.balanceOf(anotherAccount);
+    const minterBalanceAfter = await this.token.balanceOf(admin);
+    const accountBalanceAfter = await this.token.balanceOf(anotherAccount1);
 
     assert.ok(
       minterBalanceAfter.eq(minterBalanceBefore),
@@ -113,18 +111,18 @@ contract('WrappedSienna', (accounts) => {
   });
 
   it('transfer tokens from one account to another', async () => {
-    await this.token.transfer(anotherAccount, new BN(2000000), {
-      from: initialHolder,
+    await this.token.transfer(anotherAccount1, new BN(2000000), {
+      from: admin,
     });
-    const accountBalanceBefore = await this.token.balanceOf(anotherAccount);
-    const recipientBalanceBefore = await this.token.balanceOf(recipient);
+    const accountBalanceBefore = await this.token.balanceOf(anotherAccount1);
+    const recipientBalanceBefore = await this.token.balanceOf(anotherAccount2);
 
-    await this.token.transfer(recipient, new BN(1000000), {
-      from: anotherAccount,
+    await this.token.transfer(anotherAccount2, new BN(1000000), {
+      from: anotherAccount1,
     });
 
-    const accountBalanceAfter = await this.token.balanceOf(anotherAccount);
-    const recipientBalanceAfter = await this.token.balanceOf(recipient);
+    const accountBalanceAfter = await this.token.balanceOf(anotherAccount2);
+    const recipientBalanceAfter = await this.token.balanceOf(anotherAccount1);
 
     assert.ok(
       accountBalanceAfter.lt(accountBalanceBefore),
@@ -136,11 +134,22 @@ contract('WrappedSienna', (accounts) => {
     );
   });
 
-  //account[1] to account[2] when acc[1] have no money - to fail
-  xit('not allowed to transfer tokens from acount with no tokens to another account', async () => {
-
+  it('not allowed to transfer tokens during the contract is paused', async () => {
+    try {
+      await this.token.transfer(anotherAccount1, new BN(2000000), {
+        from: admin,
+      });
+      await this.token.pause({ from: admin });
+      await this.token.transfer(anotherAccount2, new BN(1000000), {
+        from: anotherAccount1,
+      });
+      assert.fail('The transaction should have thrown an error');
+    } catch (err) {
+      assert.include(
+        err.message,
+        'token transfer while paused',
+        'The error message should contain "token transfer while paused"'
+      );
+    }
   });
-
-  //try to transfer tokens during the contract is paused - need to fail
-  xit('not allowed to transfer tokens during the contract is paused', async () => { });
 });
