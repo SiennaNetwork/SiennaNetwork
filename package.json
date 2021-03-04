@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "coverage": "truffle run coverage",
-    "test": "truffle test"
+    "test": "truffle test",
+    "prettier-js": "npx prettier --write 'test/*.js'"
   },
   "keywords": [],
   "author": "",
