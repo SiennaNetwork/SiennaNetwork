@@ -152,4 +152,20 @@ contract('WrappedSienna', (accounts) => {
       );
     }
   });
+
+  it('not allowed to transfer tokens from account with no tokens to another account', async () => {
+    try {
+      await this.token.transfer(anotherAccount1, new BN(1000000), {
+        from: anotherAccount2,
+      });
+      assert.fail('The transaction should have thrown an error');
+    } catch (err) {
+      assert.include(
+        err.message,
+        'exceeds balance',
+        'The error message should contain "exceeds balance"'
+      );
+    }
+  });
+
 });
