@@ -6,5 +6,5 @@ require('./lib')(module, async function launch ({
 } = {}) {
   say(`launch ${mgmt} as ${agent.addr}`)
   agent = await Promise.resolve(agent)
-  say(await agent.execute(mgmt.address, {launch: {}}))
+  say()
 })

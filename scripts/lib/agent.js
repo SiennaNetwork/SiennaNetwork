@@ -1,96 +1,129 @@
-const {resolve} = require('path')
-const {execFileSync} = require('child_process')
-const { Secp256k1Pen, encodeSecp256k1Pubkey
-      , pubkeyToAddress
-      , EnigmaUtils: { GenerateNewSeed }
-      , SigningCosmWasmClient, } = require('secretjs')
+module.exports = module.exports.default = class SecretNetworkAgent {
 
-module.exports = {
-  fromEnvironment: getAgentFromEnvironment,
-  fromKeyPair:     getAgentFromKeyPair
-}
+  // the API endpoint
 
-async function getAgentFromKeyPair (name, {
-  say  = require('./say')(`[agent ${name}]`),
-  url  = process.env.SECRET_REST_URL || 'http://localhost:1337',
-  key  = require('secretjs').EnigmaUtils.GenerateNewKeyPair(),
-  fees = require('./gas').defaultFees,
-} = {}) {
-  const {privkey, pubkey} = key
-  const mne = require('@cosmjs/crypto').Bip39.encode(privkey).data
-  const {API, addr} = await getAPI(url, mne, fees)
-  say(mne)
-  return Object.assign(agentMethods(API, say), { name, addr, privkey, pubkey, mnemonic: mne })
-}
+  static APIURL = require('./say').tag('APIURL')(
+    process.env.SECRET_REST_URL || 'http://localhost:1337')
 
-async function getAgentFromEnvironment ({
-  say  = require('./say')("[agent YOU]"),
-  env  = require('./env')(),
-  url  = process.env.SECRET_REST_URL || 'http://localhost:1337',
-  mne  = process.env.MNEMONIC,
-  fees = require('./gas').defaultFees,
-} = {}) {
-  const {API, addr, pubkey} = await getAPI(url, mne, fees)
-  return Object.assign(agentMethods(API, say), { name: 'env', addr, pubkey, mnemonic: mne })
-}
+  // ways of creating authenticated clients
 
-async function getAPI (url, mne, fees) {
-  const pen  = await Secp256k1Pen.fromMnemonic(mne);
-  const pub  = encodeSecp256k1Pubkey(pen.pubkey);
-  const addr = pubkeyToAddress(pub, 'secret');
-  const seed = GenerateNewSeed();
-  const API  = new SigningCosmWasmClient(
-    url,
-    addr,
-    pen.sign.bind(pen),
-    seed,
-    fees
-  )
-  return {API, addr, pubkey: pub}
-}
-
-function agentMethods (API, say) {
-  return {
-    async status () {
-      const {header:{time,height}} = await API.getBlock()
-      return say({time,height})
-    },
-    async deploy (source, label, data = {}) {
-      // todo measure gas
-      say(`deploy ${source}`)
-      const id = await this.upload(source)
-      return await this.init(id, label, data)
-    },
-    async upload (source) {
-      source = resolve(resolve(__dirname, '..'), source)
-      this.status()
-      say(`uploading ${source}`)
-      const wasm = await require('fs').promises.readFile(source)
-      const uploadReceipt = await API.upload(wasm, {});
-      return uploadReceipt.codeId
-    },
-    async init (id, label, data = {}) {
-      this.status()
-      say(`init ${id} as ${label} with ${JSON.stringify(data)}`)
-      const {contractAddress} = await API.instantiate(id, data, label)
-      say(await this.status())
-      const hash = execFileSync('secretcli', [
-        'query', 'compute', 'contract-hash', contractAddress
-      ])
-      return {
-        id,
-        label,
-        address: contractAddress,
-        hash: String(hash).slice(2)
-      }
-    },
-    async query (addr, msg={}) {
-      this.status()
-      return await API.queryContractSmart(addr, msg)
-    },
-    async execute (addr, msg={}) {
-      this.status()
-      return await API.execute(addr, msg)
-    },
+  static async fromKeyPair ({
+    say     = require('./say'),
+    name    = "",
+    keyPair = require('secretjs').EnigmaUtils.GenerateNewKeyPair()
+  }={}) {
+    const mnemonic = require('@cosmjs/crypto').Bip39.encode(keyPair.privkey).data
+    return await SecretNetworkAgent.fromMnemonic({name, mnemonic, keyPair, say})
   }
+
+  static async fromMnemonic ({
+    say      = require('./say'),
+    name     = "",
+    mnemonic = process.env.MNEMONIC,
+    keyPair // optional
+  }={}) {
+    const pen = await require('secretjs').Secp256k1Pen.fromMnemonic(mnemonic)
+    return new SecretNetworkAgent({name, pen, keyPair, say, mnemonic})
+  }
+
+  // initial setup
+
+  constructor ({
+    say  = require('./say'),
+    name = "",
+    pen,
+    keyPair,
+    mnemonic,
+    fees = require('./gas').defaultFees,
+    secretjs: { encodeSecp256k1Pubkey, pubkeyToAddress, EnigmaUtils, SigningCosmWasmClient
+              } = require('secretjs')
+  }) {
+    Object.assign(this, {
+      name, keyPair, pen, mnemonic, fees,
+      say: say.tag(`@${name}`)
+    })
+    this.pubkey  = encodeSecp256k1Pubkey(this.pen.pubkey)
+    this.address = pubkeyToAddress(this.pubkey, 'secret')
+    this.seed    = EnigmaUtils.GenerateNewSeed()
+    this.sign    = pen.sign.bind(pen)
+    this.API     = new (require('secretjs').SigningCosmWasmClient)(
+      SecretNetworkAgent.APIURL, this.address, this.sign, this.seed, this.fees)
+    return this
+  }
+
+  // interact with the network:
+
+  async status () {
+    const {header:{time,height}} = await this.API.getBlock()
+    return this.say.tag(' #status')({
+      time,
+      height,
+      account: await this.API.getAccount(this.address)
+    })
+  }
+
+  async account () {
+    const {execFileSync} = require('child_process')
+    const account = JSON.parse(execFileSync('secretcli', [ 'query', 'account', this.address ]))
+    return this.say.tag(` #account`)(account)
+  }
+
+  async time () {
+    const {header:{time,height}} = await this.API.getBlock()
+    return this.say.tag(' #time')({time,height})
+  }
+
+  async waitForNextBlock () {
+    const {header:{height}} = await this.API.getBlock()
+    this.say('waiting for next block before continuing...')
+    while (true) {
+      await new Promise(ok=>setTimeout(ok, 1000))
+      const now = await this.API.getBlock()
+      if (now.header.height > height) break
+    }
+  }
+
+  async query ({ name, address }, method='', args={}) {
+    this.say.tag(` #${name} #${method}?`)(args)
+    const response = await this.API.queryContractSmart(address, {[method]:args})
+    this.say.tag(` #${name} #${method}? #returned`)(response)
+    return response
+  }
+
+  async execute ({ name, address }, method='', args={}) {
+    this.say.tag(` #${name} #${method}!`)(args)
+    const response = await this.API.execute(address, {[method]:args})
+    this.say.tag(` #${name} #${method}! #returned`)(response)
+    return response
+  }
+
+  // deploy smart contracts to the network:
+
+  async upload ({
+    say=this.say,
+    binary
+  }) { // upload code to public registry
+    const {resolve} = require('path')
+    binary = resolve(resolve(__dirname, '..'), binary)
+    say(binary)
+    const wasm = await require('fs').promises.readFile(binary)
+    const uploadReceipt = await this.API.upload(wasm, {});
+    say(uploadReceipt)
+    return uploadReceipt.codeId
+  }
+
+  async instantiate ({
+    id, data = {}, label = ''
+  }) { // initial transaction
+    const {contractAddress} = await this.API.instantiate(id, data, label)
+    // TODO get contract hash from secretjs
+    const {execFileSync} = require('child_process')
+    const hash = execFileSync('secretcli', [ 'query', 'compute', 'contract-hash', contractAddress ])
+    return {
+      id, label,
+      address: contractAddress,
+      hash:    String(hash).slice(2)
+    }
+  }
+
 }

@@ -1,8 +1,8 @@
-const $ = module.exports = {
+module.exports = {
 
   async getBalance ({
     say   = require('./say')('[getBalance]'),
-    key   = $.createViewingKey({agent, token}),
+    key   = this.createViewingKey({agent, token}),
     agent = require('./agent').fromEnvironment(),
     token,
     address
@@ -19,8 +19,7 @@ const $ = module.exports = {
   }={}) {
     const method = 'create_viewing_key'
     const {[method]:{key}} = JSON.parse(require("@iov/encoding").fromUtf8(
-      await agent.execute(token.address,{[method]:{entropy}})
-    ))
+      await agent.execute(token.address,{[method]:{entropy}})))
     return say(key)
   }
 

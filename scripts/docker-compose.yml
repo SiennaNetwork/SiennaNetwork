@@ -1,18 +1,30 @@
 version: '3.4'
+volumes: # clear those with `docker-compose down -v` to run "from scratch"
+  secretd:
+  secretcli:
+  sgx-secrets:
+  shared-keys:
 services:
-
   localnet:
     image: enigmampc/secret-network-sw-dev
     network_mode: host
+    entrypoint: /init.sh
     volumes:
-      - './.secretd:/root/.secretd:rw'
-      - './.secretcli:/root/.secretcli:rw'
-      - './.sgx-secrets:/root/.sgx-secrets:rw'
-
+      - './lib/init.sh:/init.sh:ro'
+      #- './lib/unroot.sh:/unroot.sh:ro'
+      - 'secretd:/root/.secretd:rw'
+      - 'secretcli:/root/.secretcli:rw'
+      - 'sgx-secrets:/root/.sgx-secrets:rw'
+      - 'shared-keys:/shared-keys:rw'
   compare:
     build: .
     network_mode: host
+    user: "1000:1000"
     volumes:
       - '..:/sienna:ro'
-      - './.secretcli:/root/.secretcli:rw'
-    command: /sienna/scripts/compare.js
+      - 'secretcli:/home/node/.secretcli:rw'
+      - 'shared-keys:/shared-keys:rw'
+      - '/var/lib/docker:/var/lib/docker:rw'
+    # wait for localnet to become available on port 1337:
+    entrypoint: /bin/bash
+    command: [ '-c', 'while ! nc -z localhost 1337; do sleep 0.1; done; /sienna/scripts/compare.js' ]

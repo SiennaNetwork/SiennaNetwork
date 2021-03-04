@@ -1,6 +1,7 @@
 {
   "version": "1.0.0-rc2",
   "dependencies": {
+    "colors": "^1.4.0",
     "dotenv": "^8.2.0",
     "prettyjson": "^1.2.1",
     "pug": "^3.0.0",

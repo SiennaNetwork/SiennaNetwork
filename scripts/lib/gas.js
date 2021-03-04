@@ -1,9 +1,9 @@
 module.exports = Object.assign(
   gas,
   { defaultFees:
-    { upload: gas(3000000)
+    { upload: gas(2000000)
     , init:   gas( 500000)
-    , exec:   gas( 500000)
+    , exec:   gas( 250000)
     , send:   gas(  80000) } })
 
 function gas (x) {
