@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
-module.exports = main
-if (require.main === module) main()
-async function main () {
+require('./lib')(module, async function main () {
   const { agent, mgmt, token } = await require('./deploy')()
   console.log('token info before launch:')
   console.log(await agent.query(token.address, { "token_info": {} }))
@@ -16,4 +14,4 @@ async function main () {
   await agent.execute(mgmt.address, { "launch": {} })
   console.log('token info after launch:')
   console.log(await agent.query(token.address, { "token_info": {} }))
-}
+})

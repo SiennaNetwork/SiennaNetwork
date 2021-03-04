@@ -1,5 +1,5 @@
 module.exports = (
-  file = require('path').resolve(__dirname, '../.env')
+  file = require('path').resolve(__dirname, '../../.env')
 ) => {
   require('dotenv').config({ path: file })
   return {

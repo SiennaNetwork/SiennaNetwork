@@ -2,6 +2,8 @@
 
 # Production build of arbitrary commit hash
 set -aue
+cd `dirname $(dirname $0)`
+pwd
 Timestamp=`date --rfc-3339=date`
 Commit=${1:-main}
 Origin=`git remote get-url origin`
@@ -11,7 +13,7 @@ for Contract in sienna-mgmt snip20-reference-impl; do
     -e CARGO_NET_GIT_FETCH_WITH_CLI=true                                \
     -e CARGO_TERM_VERBOSE=true                                           \
     -e CARGO_HTTP_TIMEOUT=240                                             \
-    -v "`pwd`":/output                                                     \
+    -v "`dirname $(pwd)`":/output                                          \
     -v $HOME/.ssh/id_rsa:/root/.ssh/id_rsa:ro                               \
     -v $HOME/.ssh/known_hosts:/root/.ssh/known_hosts:ro                      \
     --mount type=volume,source=sienna_cache_$Commit,target=/code/target       \

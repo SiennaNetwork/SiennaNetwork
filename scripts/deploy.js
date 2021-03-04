@@ -1,11 +1,9 @@
 #!/usr/bin/env node
-process.on('unhandledRejection', up => {throw up})
+require('./lib')(module, async function deploy ({
 
-async function deploy ({
-
-  say    = require('./say')('[deploy]'),
-  env    = require('./env')(),
-  agent = require('./agent').fromEnvironment(),
+  say   = require('./lib/say')('[deploy]'),
+  env   = require('./lib/env')(),
+  agent = require('./lib/agent').fromEnvironment(),
 
   version = `2021-03-02-80f6297`,
 
@@ -28,10 +26,12 @@ async function deploy ({
 
 }={}) {
   agent = await Promise.resolve(agent)
+  say(await agent.status())
 
   say('deploying token...') ////////////////////////////////////////////////////////////////////////
   token = await agent.deploy(token, tokenLabel, tokenConfig)
   say(env.write('TOKEN', token))
+  say(await agent.status())
 
   say('deploying mgmt...') /////////////////////////////////////////////////////////////////////////
   mgmt = await agent.deploy(mgmt, mgmtLabel, {
@@ -40,24 +40,27 @@ async function deploy ({
     ...mgmtConfig,
   })
   say(env.write('MGMT', mgmt))
+  say(await agent.status())
 
   say('allowing mgmt to mint tokens...') ///////////////////////////////////////////////////////////
   say(await agent.execute(token.address, { set_minters: { minters: [mgmt.address] } }))
   say(`${mgmt.address} can now tell ${token.address} to mint`)
+  say(await agent.status())
 
   say('transferring ownership of token to mgmt...') ////////////////////////////////////////////////
   say(await agent.execute(token.address, { change_admin: { address: mgmt.address } }))
   say(`${mgmt.address} is now admin of ${token.address}`)
+  say(await agent.status())
 
   say('setting schedule in mgmt...') ///////////////////////////////////////////////////////////////
   say(await (require('./config')({agent, mgmt, schedule})))
+  say(await agent.status())
 
   say('ready to launch!') //////////////////////////////////////////////////////////////////////////
+  say(await agent.status())
   return {
     agent,
     mgmt,
     token
   }
-}
-
-module.exports=(require.main&&require.main!==module)?deploy:deploy()
+})

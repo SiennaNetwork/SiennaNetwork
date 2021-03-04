@@ -24,7 +24,7 @@ async function getAgentFromKeyPair (name, {
 }
 
 async function getAgentFromEnvironment ({
-  say  = require('./say')("[agent ADMIN]"),
+  say  = require('./say')("[agent YOU]"),
   env  = require('./env')(),
   url  = process.env.SECRET_REST_URL || 'http://localhost:1337',
   mne  = process.env.MNEMONIC,
@@ -53,23 +53,28 @@ function agentMethods (API, say) {
   return {
     async status () {
       const {header:{time,height}} = await API.getBlock()
-      return 
+      return say({time,height})
     },
     async deploy (source, label, data = {}) {
       // todo measure gas
+      this.status()
+      say(`deploy ${source}`)
       const id = await this.upload(source)
       return await this.init(id, label, data)
     },
     async upload (source) {
       source = resolve(resolve(__dirname, '..'), source)
+      this.status()
       say(`uploading ${source}`)
       const wasm = await require('fs').promises.readFile(source)
       const uploadReceipt = await API.upload(wasm, {});
       return uploadReceipt.codeId
     },
     async init (id, label, data = {}) {
+      this.status()
       say(`init ${id} as ${label} with ${JSON.stringify(data)}`)
       const {contractAddress} = await API.instantiate(id, data, label)
+      say(await this.status())
       const hash = execFileSync('secretcli', [
         'query', 'compute', 'contract-hash', contractAddress
       ])
@@ -81,9 +86,11 @@ function agentMethods (API, say) {
       }
     },
     async query (addr, msg={}) {
+      this.status()
       return await API.queryContractSmart(addr, msg)
     },
     async execute (addr, msg={}) {
+      this.status()
       return await API.execute(addr, msg)
     },
   }
