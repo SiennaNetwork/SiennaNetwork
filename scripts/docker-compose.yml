@@ -1,14 +1,9 @@
-version: '3'
-networks:
-  sienna:
-    driver: bridge
-    ipam: { config: [ { subnet: 10.0.0.0/24 } ] }
+version: '3.4'
 services:
 
   localnet:
-    image:    enigmampc/secret-network-sw-dev
-    networks: [ sienna ]
-    ports:    [ "26657:26657", "26656:26656", "1317:1317" ]
+    image: enigmampc/secret-network-sw-dev
+    network_mode: host
     volumes:
       - './.secretd:/root/.secretd:rw'
       - './.secretcli:/root/.secretcli:rw'
@@ -16,7 +11,8 @@ services:
 
   compare:
     build: .
+    network_mode: host
     volumes:
       - '..:/sienna:ro'
-      - '/var/run/docker.sock:/var/run/docker.sock'
-    command: docker ps
+      - './.secretcli:/root/.secretcli:rw'
+    command: /sienna/scripts/compare.js

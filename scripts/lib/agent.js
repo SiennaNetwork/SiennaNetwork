@@ -57,7 +57,6 @@ function agentMethods (API, say) {
     },
     async deploy (source, label, data = {}) {
       // todo measure gas
-      this.status()
       say(`deploy ${source}`)
       const id = await this.upload(source)
       return await this.init(id, label, data)
