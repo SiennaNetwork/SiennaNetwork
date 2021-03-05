@@ -38,11 +38,11 @@ require('./lib')(module, async function compare ({
   CHARLIE = SecretNetworkAgent.fromKeyPair({say, name: "CHARLIE"}),
   // * A list of the commits to compare:
   commits = [ 
-    //`1.0.0-rc1`, // * where `MGMT`'s `AddChannel` method is not implemented yet
+    //`1.0.0-rc1`, // * before implementing `AddChannel`
     //`1.0.0-rc2`, // * as delivered for audit (fails to build)
-    `1.0.0-rc3`, // * the above + fix to Cargo.lock to allow it to build
-    `1.0.0-rc4`, // * the above + patches as per SCL-04/07/11
-    `1.0.0-rc5`, // * the above, fixed.
+    `1.0.0-rc3`,   // * the above + fix to Cargo.lock to allow it to build
+    //`1.0.0-rc4`, // * the above + patches SCL{01..13} + MGL{01..02} (fails test suite at SCL-04)
+    `1.0.0-rc5`,   // * the above + revert SCL-04
   ],
   // * Interfaces to the contracts
   SNIP20Contract = require('./lib/contract').SNIP20Contract,
