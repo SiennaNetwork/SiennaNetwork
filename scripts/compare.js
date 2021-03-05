@@ -59,18 +59,20 @@ require('./lib')(module, async function compare ({
     //   upload multiple contracts in 1 block crashes something
     // * Deploy the token
     const TOKEN = await SNIP20Contract.fromCommit({agent: ADMIN, commit})
-    await ADMIN.waitForNextBlock()
+    //await ADMIN.waitForNextBlock()
     // * Generate viewing keys
-    const VK = {
-      ALICE: await TOKEN.createViewingKey(ALICE, ALICE.address),
-      BOB:   await TOKEN.createViewingKey(BOB,   BOB.address),
-    }
+    const [vkALICE, vkBOB] = await Promise.all([
+      TOKEN.createViewingKey(ALICE, ALICE.address),
+      TOKEN.createViewingKey(BOB,   BOB.address),
+    ])
     // * Deploy the vesting manager
     const MGMT = await MGMTContract.fromCommit({agent: ADMIN, commit, token: TOKEN}) 
-    // * Connect it to the token
-    await MGMT.acquire(TOKEN)
-    // * Configure it with a schedule corresponding to the situation described below
-    await MGMT.configure(getSchedule({ ALICE, BOB }))
+    await Promise.all([
+      // * Connect it to the token
+      await MGMT.acquire(TOKEN),
+      // * Configure it with a schedule corresponding to the situation described below
+      await MGMT.configure(getSchedule({ ALICE, BOB }))
+    ])
     // * Launch it
     await MGMT.launch()
     // * It should finish in a few seconds and then it gets interesting.
@@ -83,12 +85,12 @@ require('./lib')(module, async function compare ({
     //   * Admin decides to vest only the remainder to ALICE, and removes BOB via `reallocate`.
     //   * ALICE claims remainder, also receives BOB's unclaimed portions.
     while (true) {
-      await ADMIN.status()
+      //await ADMIN.status()
       await ADMIN.waitForNextBlock()
       for (let commit of commits) {
         await MGMT.claim(ALICE)
-        await TOKEN.balance({ agent: ALICE, viewkey: VK.ALICE, address: ALICE.address })
-        await TOKEN.balance({ agent: BOB,   viewkey: VK.BOB,   address: BOB.address   })
+        await TOKEN.balance({ agent: ALICE, viewkey: vkALICE, address: ALICE.address })
+        await TOKEN.balance({ agent: BOB,   viewkey: vkBOB,   address: BOB.address   })
       }
     }
 

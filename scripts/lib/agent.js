@@ -122,17 +122,14 @@ module.exports = module.exports.default = class SecretNetworkAgent {
     return result
   }
 
-  async instantiate ({
+  async instantiate ({ // call init on a new instance
     id, data = {}, label = ''
-  }) { // initial transaction
+  }) {
     const {contractAddress} = await this.API.instantiate(id, data, label)
-    // TODO get contract hash from secretjs
-    const {execFileSync} = require('child_process')
-    const hash = execFileSync('secretcli', [ 'query', 'compute', 'contract-hash', contractAddress ])
     return {
       id, label,
       address: contractAddress,
-      hash:    String(hash).slice(2)
+      hash:    await this.API.getCodeHashByContractAddr(contractAddress)
     }
   }
 

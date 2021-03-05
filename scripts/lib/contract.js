@@ -111,8 +111,10 @@ module.exports.MGMTContract = class MGMTContract extends module.exports {
   async claim (claimant) {
     try {
       return await claimant.execute(this, 'claim')
-    } catch (error) {
-      this.say.tag(` #${this.name} #error`)(JSON.stringify(error))
+    } catch ({ message, stack, tx, result, log }) {
+      try { log = JSON.parse(log) } catch {}
+      this.say.tag(` #${this.name} #error`)(log)
+      return { error: true, log }
     }
   }
 

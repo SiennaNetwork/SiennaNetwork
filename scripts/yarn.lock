@@ -698,10 +698,8 @@ safe-buffer@^5.0.1, safe-buffer@^5.1.0, safe-buffer@^5.1.2, safe-buffer@^5.2.0, 
   resolved "https://registry.yarnpkg.com/safe-buffer/-/safe-buffer-5.2.1.tgz#1eaf9fa9bdb1fdd4ec75f58f9cdb4e6b7827eec6"
   integrity sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==
 
-secretjs@^0.10.4:
-  version "0.10.4"
-  resolved "https://registry.yarnpkg.com/secretjs/-/secretjs-0.10.4.tgz#37f7514f52de3c72079525712a48081973c1bb8f"
-  integrity sha512-KykV8qEHTx1fzFWnVIPEc4efeEhz649dNnHjs9+h0QSLcckVieuBCqhUCk1/Ya3/3KvQFN0OeoArOO8Q8oCoBQ==
+"secretjs@file:../platform/cosmwasm-js/packages/sdk":
+  version "0.10.3"
   dependencies:
     "@iov/crypto" "^2.1.0"
     "@iov/encoding" "^2.1.0"

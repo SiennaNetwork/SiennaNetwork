@@ -27,4 +27,4 @@ services:
       - '/var/lib/docker:/var/lib/docker:rw'
     # wait for localnet to become available on port 1337:
     entrypoint: /bin/bash
-    command: [ '-c', 'while ! nc -z localhost 1337; do sleep 0.1; done; /sienna/scripts/compare.js' ]
+    command: [ '-c', 'yarn; while ! nc -z localhost 1337; do sleep 0.1; done; /sienna/scripts/compare.js' ]

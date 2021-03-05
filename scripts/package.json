@@ -5,6 +5,6 @@
     "dotenv": "^8.2.0",
     "prettyjson": "^1.2.1",
     "pug": "^3.0.0",
-    "secretjs": "^0.10.4"
+    "secretjs": "file:../platform/cosmwasm-js/packages/sdk"
   }
 }
