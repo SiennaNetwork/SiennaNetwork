@@ -111,11 +111,12 @@ module.exports.MGMTContract = class MGMTContract extends module.exports {
   async claim (claimant) {
     try {
       return await claimant.execute(this, 'claim')
-    } catch ({ message, stack, tx, result, log }) {
-      return {
-        error: true,
-        log: this.say.tag(` #${this.name} #error`)(log)
-      }
+    } catch (e) {
+      // make error visible:
+      Object.defineProperties(e, { stack: { enumerable: true }, message: { enumerable: true } })
+      // give it a flag:
+      e.error = true
+      return this.say.tag(` #${this.name} #error`)(e)
     }
   }
 
