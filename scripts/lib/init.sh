@@ -1,40 +1,57 @@
 #!/bin/bash
+
+# look around
 cd ~
 whoami
 pwd
 ls -alh
-file=~/.secretd/config/genesis.json
-if [ ! -e "$file" ]; then
-  echo "clear state from preceding genesis ----"
+
+# config
+ChainID=enigma-pub-testnet-3
+Genesis=~/.secretd/config/genesis.json
+GenesisKeys=/shared-keys
+GenesisAccounts=(ADMIN ALICE BOB CHARLIE DAVE EUSTACE MALLORY)
+
+# run genesis once
+if [ ! -e "$Genesis" ]; then
+
+  echo "prepare for genesis ==================="
+  echo "clear state ---------------------------"
   rm -rf ~/.secretd/*
   rm -rf ~/.secretcli/*
   rm -rf ~/.sgx_secrets/*
   echo "initialize secretcli-------------------"
-  secretcli config chain-id enigma-pub-testnet-3
+  secretcli config chain-id $ChainID
   secretcli config output json
   secretcli config indent true
   secretcli config trust-node true
   secretcli config keyring-backend test
   echo "initialize secretd---------------------"
-  secretd init banana --chain-id enigma-pub-testnet-3
+  secretd init banana --chain-id $ChainID
   cp ~/node_key.json ~/.secretd/config/node_key.json
   perl -i -pe 's/"stake"/"uscrt"/g' ~/.secretd/config/genesis.json # wtf is going on here
-  echo "create admin key-----------------------"
-  ADMIN="ADMIN"
-  ADMIN_KEY=`secretcli keys add $ADMIN 2>&1`
-  echo "$ADMIN_KEY" > /shared-keys/admin_key.json
-  cat /shared-keys/admin_key.json
-  chmod a+r /shared-keys/admin_key.json
-  echo "get admin address----------------------"
-  ADMIN_ADDR="$(secretcli keys show -a $ADMIN)"
-  echo "$ADMIN_ADDR"
-  echo "add genesis balance for admin----------"
-  secretd add-genesis-account "$ADMIN_ADDR" 1000000000000000000uscrt
-  secretd gentx --name $ADMIN --keyring-backend test --amount 1000000uscrt
-  echo "mystery block 1------------------------"
+
+  echo "prepare genesis accounts =============="
+  for Name in ${GenesisAccounts[@]}; do
+    echo "[$Name] 1. create key"
+    Key=`secretcli keys add $Name 2>&1`
+    echo "[$Name] 2. store key"
+    echo "$Key" > /shared-keys/$Name.json
+    cat /shared-keys/$Name.json
+    chmod a+r /shared-keys/$Name.json
+    echo "[$Name] 3. get address"
+    Address="$(secretcli keys show -a $Name)"
+    echo "$Address"
+    echo "[$Name] 4. add to genesis"
+    secretd add-genesis-account "$Address" 1000000000000000000uscrt
+    secretd gentx --name $Name --keyring-backend test --amount 1000000uscrt
+  done
+
+  echo "perform genesis ======================="
+  echo "stage 1--------------------------------"
   secretd collect-gentxs
   secretd validate-genesis
-  echo "mystery block 2------------------------"
+  echo "stage 2--------------------------------"
   secretd init-bootstrap
   secretd validate-genesis
 fi

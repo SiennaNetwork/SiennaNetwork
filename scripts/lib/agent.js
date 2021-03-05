@@ -104,12 +104,12 @@ module.exports = module.exports.default = class SecretNetworkAgent {
     binary
   }) { // upload code to public registry
     const {resolve} = require('path')
-    binary = resolve(resolve(__dirname, '..'), binary)
-    say(binary)
+    binary = say.tag(' #uploading')(resolve(resolve(__dirname, '..'), binary))
+    //const idFile = `${binary}.id`
+    //if (await require('fs').promises.exists(binary
     const wasm = await require('fs').promises.readFile(binary)
     const uploadReceipt = await this.API.upload(wasm, {});
-    say(uploadReceipt)
-    return uploadReceipt.codeId
+    return say.tag(' #uploaded')(uploadReceipt)
   }
 
   async instantiate ({

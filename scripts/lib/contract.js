@@ -7,10 +7,11 @@ module.exports = module.exports.default = class SecretNetworkContract {
     name, label, data = {}
   }) {
     if (!id) { // if the contract is not uploaded, do it
-      id = await agent.upload({
+      const upload = await agent.upload({
         say: say.tag(` #upload`),
         binary
       })
+      id = upload.codeId
       //await agent.waitForNextBlock()
     }
     const args = say.tag(` #instantiate`)({ id, label, data })
@@ -63,14 +64,15 @@ module.exports.SNIP20Contract = class SNIP20Contract extends module.exports {
   }
 
   async createViewingKey (agent, address, entropy = "minimal") {
-    const response = await agent.execute(address, 'create_viewing_key', { entropy })
+    const response = await agent.execute(this, 'create_viewing_key', { entropy })
     const {create_viewing_key:{key}} = JSON.parse(response.data)
     this.say.tag(` #new-viewing-key`)({'for': address, key})
     return key
   }
 
   async balance ({ agent, viewkey, address }) {
-    return await this.query('balance', {key: viewkey, address}, agent)
+    const {balance:{amount}} = await this.query('balance', {key: viewkey, address}, agent)
+    return amount
   }
 
   async setMinters (minters = []) {
@@ -109,7 +111,7 @@ module.exports.MGMTContract = class MGMTContract extends module.exports {
     try {
       return await claimant.execute(this, 'claim')
     } catch (error) {
-      return this.say.tag(` #${this.name} #error`)(error)
+      this.say.tag(` #${this.name} #error`)(JSON.stringify(error))
     }
   }
 
