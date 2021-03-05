@@ -57,7 +57,6 @@ require('./lib')(module, async function compare ({
   for (let commit of commits) {
     // * This could've been done in parallel, but trying to
     //   upload multiple contracts in 1 block crashes something
-    await ADMIN.waitForNextBlock()
     // * Deploy the token
     const TOKEN = await SNIP20Contract.fromCommit({agent: ADMIN, commit})
     await ADMIN.waitForNextBlock()
@@ -92,7 +91,11 @@ require('./lib')(module, async function compare ({
         await TOKEN.balance({ agent: BOB,   viewkey: VK.BOB,   address: BOB.address   })
       }
     }
+
+    // * Pause for a block before trying with the next version
+    await ADMIN.waitForNextBlock()
   }
+
 })
 
 // ## Conclusions

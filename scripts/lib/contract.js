@@ -24,9 +24,10 @@ module.exports = module.exports.default = class SecretNetworkContract {
     say = require('./say').tag(`${this.name}{${commit}}`),
     ...args
   }) {
-    if (!require('fs').existsSync(binary)) {
+    const binaryFullPath = require('path').resolve(__dirname, '../../dist/', binary)
+    if (!require('fs').existsSync(binaryFullPath)) {
       // * Recompile binary if absent
-      say.tag(` #building`)(binary)
+      say.tag(` #building`)(binaryFullPath)
       const builder = require('path').resolve(__dirname, '../build/commit.sh')
       const build = require('child_process').spawnSync(builder, [ commit ], { stdio: 'inherit' })
       say.tag(` #build-result(${binary})`)(build)
@@ -53,7 +54,7 @@ module.exports.SNIP20Contract = class SNIP20Contract extends module.exports {
 
   static async fromCommit (args={}) {
     args.name   = `TOKEN{${args.commit}}`
-    args.binary = require('path').resolve(__dirname, `../../dist/${args.commit}-snip20-reference-impl.wasm`)
+    args.binary = `${args.commit}-snip20-reference-impl.wasm`
     args.data   = { name:      "Sienna"
                   , symbol:    "SIENNA"
                   , decimals:  18
@@ -89,7 +90,7 @@ module.exports.MGMTContract = class MGMTContract extends module.exports {
 
   static async fromCommit (args={}) {
     args.name   = `MGMT{${args.commit}}`
-    args.binary = require('path').resolve(__dirname, `../../dist/${args.commit}-sienna-mgmt.wasm`)
+    args.binary = `${args.commit}-sienna-mgmt.wasm`
     args.data   = { token_addr: args.token.address, token_hash: args.token.hash, ...args.data }
     return super.fromCommit(args)
   }

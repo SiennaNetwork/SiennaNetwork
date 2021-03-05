@@ -99,17 +99,27 @@ module.exports = module.exports.default = class SecretNetworkAgent {
 
   // deploy smart contracts to the network:
 
-  async upload ({
+  async upload ({ // upload code blob to the chain
     say=this.say,
     binary
-  }) { // upload code to public registry
-    const {resolve} = require('path')
-    binary = say.tag(' #uploading')(resolve(resolve(__dirname, '..'), binary))
-    //const idFile = `${binary}.id`
-    //if (await require('fs').promises.exists(binary
-    const wasm = await require('fs').promises.readFile(binary)
-    const uploadReceipt = await this.API.upload(wasm, {});
-    return say.tag(' #uploaded')(uploadReceipt)
+  }) {
+    const {existsSync} = require('fs')
+    const {exists, readFile, writeFile} = require('fs').promises
+
+    // resolve binary from build folder
+    binary = require('path').resolve(__dirname, '../../dist', binary)
+
+    // check for past upload receipt
+    const receipt = `${binary}.${await this.API.getChainId()}.upload`
+    if (existsSync(receipt)) {
+      return say.tag(' #cached')(JSON.parse(await readFile(receipt, 'utf8')))
+    }
+
+    // if no receipt, upload anew
+    say.tag(' #uploading')(binary)
+    const result = say.tag(' #uploaded')(await this.API.upload(await readFile(binary), {}));
+    await writeFile(receipt, JSON.stringify(result), 'utf8')
+    return result
   }
 
   async instantiate ({

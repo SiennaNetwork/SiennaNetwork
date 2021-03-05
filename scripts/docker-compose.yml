@@ -21,7 +21,7 @@ services:
     network_mode: host
     user: "1000:1000"
     volumes:
-      - '..:/sienna:ro'
+      - '..:/sienna:rw'
       - 'secretcli:/home/node/.secretcli:rw'
       - 'shared-keys:/shared-keys:rw'
       - '/var/lib/docker:/var/lib/docker:rw'
