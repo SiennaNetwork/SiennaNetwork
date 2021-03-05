@@ -818,8 +818,7 @@ dependencies = [
 
 [[package]]
 name = "sienna-mgmt"
-version = "1.0.0-rc2"
-dependencies = [
+version = "1.0.0-rc3"
  "cosmwasm-schema 0.10.0",
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -837,7 +836,7 @@ dependencies = [
 
 [[package]]
 name = "sienna_schedule"
-version = "1.0.0-rc2"
+version = "1.0.0-rc3"
 dependencies = [
  "cosmwasm-std",
  "schemars",

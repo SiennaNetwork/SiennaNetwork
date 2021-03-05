@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-rc2",
+  "version": "1.0.0-rc3",
   "dependencies": {
     "colors": "^1.4.0",
     "dotenv": "^8.2.0",
