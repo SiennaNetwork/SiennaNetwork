@@ -26,6 +26,8 @@
 //   locally in a Docker container).
 //   * What the vulnerability search did expose was a critical lack of available tooling
 //     and documentation by our platform vendors (Secret Network, Cosmos Network).
+//     Verifying our code in isolation from the environment in which it will run
+//     provides little benefit.
 //   * A significant step towards resolving this lack was undertaken during the search:
 //     trying to demonstrate erroneous behavior step-by-step in <100LOC produced a
 //     concise interface for addressing smart contracts with known schemas from a
@@ -146,16 +148,18 @@ require('./lib')(module, async function compare ({
 
 // ## Appendix A - Schedule
 //
-// * The following is a valid JSON schedule - an intermediate representation between
-//   the configuration spreadsheet and the `schedule` module's actual in-memory model.
+// * The following is a valid JSON schedule:
+//   * an intermediate representation between the configuration spreadsheet
+//     and the `schedule` module's actual in-memory model.
+//   * a guide to the contract's execution model.
 function getSchedule ({ ALICE, BOB }) {
   return {
     "total": "1000000000000",
-    "pools": [ // * `Pool`s map to the first-level categories from the spec: 
-      {        //   Investors, Founders, Advisors,... 
-        "name": "Pool",     // * If the `Pool` is marked `partial` (as is the default)
-        "total": "1000000000000", //   new `Channel`s can be added by the admin to it before or 
-        "partial": true,    //   after launch, up to the maximum pool amount.
+    "pools": [ // * `Pool`s map to the first-level categories from the spec:
+      {        //   Investors, Founders, Advisors,...
+        "name": "Pool",           // * If the `Pool` is marked `partial` (as is the default),
+        "total": "1000000000000", //   new `Channel`s can be added by the admin to it before or
+        "partial": true,          //   after launch, up to the maximum pool amount.
         "channels": [ // * `Channel`s correspond to individual budget items like Investor1,
           {           //   Founder2, Advisor3, as well as DevFund, Liquidity Provision Fund...
             "name": "Channel",   // * Recipients need to actively claim from the channel to receive
@@ -169,7 +173,7 @@ function getSchedule ({ ALICE, BOB }) {
               "duration":  30,   //   is it immediately obvious whether there are 6 or 7 portions?
               "expected_portion": "166000000000",  // * It's key to have some remainder (the amount not
               "expected_remainder": "4000000000"   //   dividing evenly by the duration) to trigger the bug.
-            }, 
+            },
             "allocations": [ // * Channels also have `Allocation`s. They're address/amount pairs
               [              //   that implement the "liquidity provision fund" part of the spec by
                 0,           //   splitting the daily portion between multiple configured addresses
