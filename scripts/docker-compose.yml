@@ -24,7 +24,8 @@ services:
       - '..:/sienna:rw'
       - 'secretcli:/home/node/.secretcli:rw'
       - 'shared-keys:/shared-keys:rw'
-      - '/var/lib/docker:/var/lib/docker:rw'
+      - '/var/run/docker.sock:/var/run/docker.sock:rw'
     # wait for localnet to become available on port 1337:
     entrypoint: /bin/bash
-    command: [ '-c', 'yarn; while ! nc -z localhost 1337; do sleep 0.1; done; /sienna/scripts/compare.js' ]
+    working_dir: /sienna/scripts
+    command: [ '-c', 'yarn; while ! nc -z localhost 1337; do sleep 0.1; done; ./compare.js' ]

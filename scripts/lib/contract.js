@@ -112,14 +112,17 @@ module.exports.MGMTContract = class MGMTContract extends module.exports {
     try {
       return await claimant.execute(this, 'claim')
     } catch ({ message, stack, tx, result, log }) {
-      try { log = JSON.parse(log) } catch {}
-      this.say.tag(` #${this.name} #error`)(log)
-      return { error: true, log }
+      return {
+        error: true,
+        log: this.say.tag(` #${this.name} #error`)(log)
+      }
     }
   }
 
-  async addChannel () {}
+  async reallocate (pool_name, channel_name, allocations) {
+    return await this.execute('reallocate', { pool_name, channel_name, allocations })
+  }
 
-  async reallocate () {}
+  async addChannel () { /* TODO */ }
 
 }

@@ -67,11 +67,12 @@ require('./lib')(module, async function compare ({
     ])
     // * Deploy the vesting manager
     const MGMT = await MGMTContract.fromCommit({agent: ADMIN, commit, token: TOKEN}) 
+    let schedule
     await Promise.all([
       // * Connect it to the token
       await MGMT.acquire(TOKEN),
       // * Configure it with a schedule corresponding to the situation described below
-      await MGMT.configure(getSchedule({ ALICE, BOB }))
+      await MGMT.configure(schedule = getSchedule({ ALICE, BOB }))
     ])
     // * Launch it
     await MGMT.launch()
@@ -81,18 +82,31 @@ require('./lib')(module, async function compare ({
     // * Suppose `ALICE` and `BOB` are two swap contracts scheduled to
     //   receive funds from the Liquidity Provision Fund.
     //   * ALICE claims every portion. BOB claims no portions.
-    //   * Vesting ends. Remainder can't be vested because of constraint added for `rc2`
-    //   * Admin decides to vest only the remainder to ALICE, and removes BOB via `reallocate`.
-    //   * ALICE claims remainder, also receives BOB's unclaimed portions.
     while (true) {
-      //await ADMIN.status()
       await ADMIN.waitForNextBlock()
-      for (let commit of commits) {
-        await MGMT.claim(ALICE)
-        await TOKEN.balance({ agent: ALICE, viewkey: vkALICE, address: ALICE.address })
-        await TOKEN.balance({ agent: BOB,   viewkey: vkBOB,   address: BOB.address   })
+      const result = await MGMT.claim(ALICE)
+      await TOKEN.balance({ agent: ALICE, viewkey: vkALICE, address: ALICE.address })
+      await TOKEN.balance({ agent: BOB,   viewkey: vkBOB,   address: BOB.address   })
+      if (result.error) {
+        const {generic_err:{msg}} = JSON.parse(result.log)
+        if (msg === "nothing for you") break // * Vesting ends.
+        else throw new Error(JSON.stringify(result))
       }
     }
+    // * Remainder can't be vested to multiple recipients
+    //   because of validity constraint introduced in `rc2`.
+    //   * Admin allocates remainder to ALICE.
+    await MGMT.reallocate(
+      schedule.pools[0].name,
+      schedule.pools[0].channels[0].name,
+      [ { addr:   ALICE.address
+        , amount: schedule.pools[0].channels[0].periodic.expected_remainder } ])
+    await ADMIN.waitForNextBlock()
+    //   * ALICE claims remainder.
+    await MGMT.claim(ALICE)
+    await TOKEN.balance({ agent: ALICE, viewkey: vkALICE, address: ALICE.address })
+    //   * **OOPS!** ALICE has received BOB's unclaimed portions.
+    await MGMT.claim(BOB) // Sorry Bob.
 
     // * Pause for a block before trying with the next version
     await ADMIN.waitForNextBlock()
