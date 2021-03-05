@@ -14,16 +14,33 @@
 //
 // * At a certain point during the implementation it became clear that some of the amounts
 //   budgeted by the specification do not divide evenly by the number of scheduled portions.
+//   * This caused "remainder portions" to be approved as an addition to the scope.
+//     Remainders are computed at runtime by the `Portion.claimable_by_at` function.
+//   * Reinstating one of the unused errors that the CertiK report suggested removed as per SCL-07
+//     tipped us off to a possible source of unexpected behavior in the contract when claiming
+//     those remainder portions.
 //
-// * This caused "remainder portions" to be approved as an addition to the scope.
-//   Remainders are computed at runtime by the `Portion.claimable_by_at` function.
+// * The behavior was ultimately deemed impossible to exploit. However, the search for it
+//   led us to give the SIENNA smart contract system its first good test run in a real
+//   production-like environment (a single Secret Network test node, which you can run
+//   locally in a Docker container).
+//   * What the vulnerability search did expose was a critical lack of available tooling
+//     and documentation by our platform vendors (Secret Network, Cosmos Network).
+//   * A significant step towards resolving this lack was undertaken during the search:
+//     trying to demonstrate erroneous behavior step-by-step in <100LOC produced a
+//     concise interface for addressing smart contracts with known schemas from a
+//     familiar JavaScript environment.
 //
-// * Reinstating one of the unused errors that the CertiK report suggested removed as per SCL-07
-//   tipped us off to a possible source of unexpected behavior in the contract when claiming
-//   those remainder portions.
-
-
-// ## Dependencies
+// * Various other omissions in the source code were identified and resolved,
+//   thanks to the feedback from the CertiK report.
+//   * Most glaringly, what we delivered for the audit
+//     didn't even compile. (Why didn't you tell us?)
+//   * This was identified to be simply the result of
+//     an outdated `Cargo.lock` file and fixed in due course.
+//
+// ## Demonstration
+//
+// ### Dependencies
 require('./lib')(module, async function compare ({
   // * Logging:
   say = require('./lib/say'),
@@ -46,7 +63,7 @@ require('./lib')(module, async function compare ({
   MGMTContract   = require('./lib/contract').MGMTContract
 }={}) {
 
-  // ## Preparation
+  // ### Preparation
 
   // * Wait for asynchronous calls in arguments to finish:
   ;[ADMIN, ALICE, BOB] = await Promise.all([ADMIN, ALICE, BOB])
@@ -78,7 +95,7 @@ require('./lib')(module, async function compare ({
     await MGMT.launch()
     // * It should finish in a few seconds and then it gets interesting.
 
-    // ## Demonstration
+    // ### Hocus Pocus
     // * Suppose `ALICE` and `BOB` are two swap contracts scheduled to
     //   receive funds from the Liquidity Provision Fund.
     //   * ALICE claims every portion. BOB claims no portions.
@@ -107,6 +124,7 @@ require('./lib')(module, async function compare ({
     await TOKEN.balance({ agent: ALICE, viewkey: vkALICE, address: ALICE.address })
     //   * **OOPS!** ALICE has received BOB's unclaimed portions.
     await MGMT.claim(BOB) // Sorry Bob.
+    await TOKEN.balance({ agent: BOB, viewkey: vkBOB, address: BOB.address })
 
     // * Pause for a block before trying with the next version
     await ADMIN.waitForNextBlock()
