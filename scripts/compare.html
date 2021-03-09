@@ -1,0 +1,357 @@
+<!doctype html><html><head><style>* { position: relative; box-sizing: border-box }body { font-family: sans-serif; background: #aaa; color: #333; }.text code { font-size: 1.2em; background: white; color: #f88212; font-weight: bold; display: inline-block; padding: 0.2rem 0.5rem; margin: -0.2rem 0 }header, .section { max-width: 1024px; margin: 0 auto }header { padding-top:2em; text-align: center; background-image: linear-gradient(to bottom, transparent, #eee) }.section.text { padding: 1em 4em }.section.mixed { display: flex; flex-flow: row nowrap; align-items: stretch }.section.mixed .code, .section.mixed .text { display: flex; align-items: center }.section.mixed .code { padding: 0.5em 2em; width: 62% }.section.mixed .text { padding: 0.5em 2em; width: 38% }.section.mixed .text > ul { margin-left: 1em }.section.mixed ul, .section.mixed li { padding-top: 0; padding-bottom: 0; margin: 0 }.text { background: #eee }.code { padding: 1em 2em; font-family: monospace; font-size: 1.2em; white-space: pre; background: #333; color: #fff }ul, li { margin: 0; padding: 0 }ul { margin: 0; padding-left: 1em }li > ul { margin-left: 1em; margin-top: 1em }li { margin-left: 1emcenter; }li + li { margin-top: 1em; }p, li { line-height: 1.5 }h1,h2,h3 { text-align: center }</style></head><body><header><a href="https://hack.bg"><img src=" data:image/png;base64,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"></a></header><div class="section text"><h1 id="sienna-post-audit-report">SIENNA Post-Audit Report</h1>
+<p> <strong>2021-03-09, Hack.bg;</strong> CertiK&#39;s audit prompted us to conduct further research into ensuring correct behavior
+ of smart contracts on the Secret Network. One suggestion, <code>SCL-07</code>, stood out as
+ controversial, and lead us to suspect it would introduce a bug in the contract.</p>
+<p> What follows are notes from an exploration that started with investigating a few broken unit
+ tests and resulted in a thorough overview of platform tooling, several candidate bug fixes (in
+ both our code and that of the platform), and an integration test that demonstrates contract
+ operation in real time.</p>
+<h2 id="background">Background</h2>
+<p> The object model of the <code>schedule</code> library, based on an overview of the schedule,
+ and used by the <code>mgmt</code> contract, is described in <a href="#appendix-a---schedule">Appendix A</a>.
+ Two of its features require attention:</p>
+<ul>
+<li><strong>Allocations</strong> allow a <code>Portion</code> to be split between multiple recipient addresses.<ul>
+<li>Introduced early on as the underlying primitive that implements the
+liquidity provision fund. Value updated at runtime by the admin by calling <code>reallocate</code>.</li>
+<li>Full history of allocations must be saved in contract storage to prevent &quot;time travel&quot;
+(updates to the schedule that would result in negative vesting balances)</li>
+</ul>
+</li>
+<li><strong>Remainders</strong> were approved as an addition to the scope when it became evident
+that some of the amounts budgeted by the specification do not divide evenly by
+the number of scheduled portions.<ul>
+<li>In <code>rc2</code>, remainders are computed at runtime (by the <code>Periodic.claimable_by_at</code> function).</li>
+</ul>
+</li>
+</ul>
+<h2 id="summary">Summary</h2>
+<p> Test cases broken by applying the suggested fixes to <code>SCL-04</code> and <code>SCL-07</code>
+ alerted us to a possible source of <strong>unexpected behavior</strong> at the intersection
+ of allocation and remainder logic.</p>
+<p> My inital suspicion was that, had a developer proceeded uncritically and followed through with
+ editing out the failing unit tests, it might have opened a way to claim portions allocated
+ for other addresses within a <code>Channel</code> (see <a href="#appendix-a---schedule">Appendix A</a> for
+ description of object model) during the vesting of remainder portions.</p>
+<h2 id="measures-taken">Measures taken</h2>
+<p> To verify whether we have a bug on our hands, <strong>this integration test</strong> was implemented.
+ This afforded us the visibility to ultimately deem the suspected erroneous behavior
+ <strong>impossible to exploit</strong>.</p>
+<ul>
+<li>However, according to the output of this test, remainders are impossible to vest at all,
+even after the required manual reallocation, <strong>potentially leaving funds locked in
+the contract</strong>.<ul>
+<li>This suggests an underlying issue in determining the active set of <code>Allocation</code>s
+for the channel, because using the wrong set of allocations would fail silently;
+indeed, an error is returned only when trying to <code>claim</code> after the reallocation</li>
+<li>Further validation is planned to proceed with an upgraded version of the scheduling logic,
+which does not exhibit the same constraints, and therefore <strong>rules out the particular
+problematic edge cases</strong> explored in the following demonstration.</li>
+</ul>
+</li>
+<li>At this stage, verifying the code in isolation from the intended runtime environment
+provides insufficient benefit. This is why this script puts contract binaries through
+their paces on a <strong>local testnet</strong>.<ul>
+<li>Currently, it consists of a single Secret Network node running in a Docker container.
+In the future, larger test networks may be spawned to simulate consensus failure, etc.</li>
+</ul>
+</li>
+<li>This script <strong>compares actual on-chain behavior</strong> (no mocks!) of <strong>specific commits</strong>.
+In ~120 lines of code, it demonstrates operating the vesting contract (configuring, launching,
+and claiming) and its associated token (minting, transfers, balance check).<ul>
+<li>In the future, this may be extended to interactions with other contracts from
+the project.</li>
+</ul>
+</li>
+</ul>
+<h1 id="demonstration">Demonstration</h1>
+<ul>
+<li>If you read this document, you&#39;ll become updated about the status of the project
+like never before<ul>
+<li>Don&#39;t miss out on the <a href="#findings-and-conclusions">findings and conclusions</a> section below.</li>
+</ul>
+</li>
+<li>To run this script, and see the contract working:<ul>
+<li>Go to the root of the project repository</li>
+<li>Start the backend with <code>docker-compose up -d localnet</code></li>
+<li>Build the commits under test, e.g. <code>./scripts/build/commit.sh 1.0.0-rc2</code></li>
+<li>Run the test with <code>docker-compose run compare</code></li>
+<li>Wait. The selected commits will be tested in sequence, at a rate of 5 seconds per block,
+which adds up to <strong>~1.5min per test run</strong>.</li>
+</ul>
+</li>
+</ul>
+</div></div><div class="section mixed"><div class="code">compare().then(console.log) </div><div class="text"><p> When the testing ends, this will print <code>ok</code> or error for each version.</p>
+</div></div></div></div><div class="section text"><h2 id="dependencies">Dependencies</h2>
+</div></div><div class="section code">async function compare ({</div></div><div class="section mixed"><div class="code">  say = require('./lib/say').tag(`${new Date().toISOString()} `), </div><div class="text"><ul>
+<li>Logging</li>
+</ul>
+</div></div></div><div class="section mixed"><div class="code">  SecretNetworkAgent = require('./lib/agent'), </div><div class="text"><ul>
+<li>Pre-existing testnet wallets with gas money</li>
+</ul>
+</div></div></div><div class="section mixed"><div class="code">  MNE   = x => require(`/shared-keys/${x}.json`).mnemonic, </div><div class="text"><ul>
+<li>Gets mnemonics from environment</li>
+</ul>
+</div></div></div></div><div class="section code">  ADMIN = SecretNetworkAgent.fromMnemonic({say, name: "ADMIN", mnemonic: MNE("ADMIN")}),
+  ALICE = SecretNetworkAgent.fromMnemonic({say, name: "ALICE", mnemonic: MNE("ALICE")}),
+  BOB   = SecretNetworkAgent.fromMnemonic({say, name: "BOB",   mnemonic: MNE("BOB")  }),</div></div><div class="section mixed"><div class="code">  commits = [  </div><div class="text"><p> list of Git refs to compare. (Tags/branches work fine.) However, you&#39;ll need to compile these yourself, with e.g. <code>./scripts/build/commit 1.0.0-rc3</code> before you run the script, because calling Docker from Docker is messy.</p>
+</div></div></div><div class="section mixed"><div class="code">    `main`,        </div><div class="text"><ul>
+<li><strong>main</strong>: top of main branch</li>
+</ul>
+</div></div></div><div class="section mixed"><div class="code">    //`1.0.0-rc1`, </div><div class="text"><ul>
+<li><strong>rc1</strong>: before implementing <code>AddChannel</code></li>
+</ul>
+</div></div></div><div class="section mixed"><div class="code">    //`1.0.0-rc2`, </div><div class="text"><ul>
+<li><strong>rc2</strong>: as delivered for preliminary audit (fails to build)</li>
+</ul>
+</div></div></div><div class="section mixed"><div class="code">    `1.0.0-rc3`,   </div><div class="text"><ul>
+<li><strong>rc3</strong>: the above + fix to <code>Cargo.lock</code> to allow it to build</li>
+</ul>
+</div></div></div><div class="section mixed"><div class="code">    //`1.0.0-rc4`, </div><div class="text"><ul>
+<li><strong>rc4</strong>: the above + patches SCL{01..13} + MGL{01..02} (fails test suite at SCL-04)</li>
+</ul>
+</div></div></div><div class="section mixed"><div class="code">    `1.0.0-rc5`,   </div><div class="text"><ul>
+<li><strong>rc5</strong>: the above + revert SCL-04</li>
+</ul>
+</div></div></div></div><div class="section code">  ],</div></div><div class="section mixed"><div class="code">  SNIP20Contract = require('./lib/contract').SNIP20Contract, </div><div class="text"><p> This wrapper lets us command the token</p>
+</div></div></div><div class="section mixed"><div class="code">  MGMTContract   = require('./lib/contract').MGMTContract    </div><div class="text"><p> and this one the vesting.</p>
+</div></div></div></div><div class="section code">}={}) {</div></div><div class="section mixed"><div class="code">  ;[ADMIN, ALICE, BOB] = await Promise.all([ADMIN, ALICE, BOB]) </div><div class="text"><p> Wait for async dependencies to be ready.</p>
+</div></div></div><div class="section mixed"><div class="code">  await Promise.all([ADMIN,ALICE,BOB].map(x=>x.status())) </div><div class="text"><p> Print the time, and address/balance of each account.</p>
+</div></div></div></div><div class="section text"><p> Let&#39;s go!</p>
+<h2 id="preparation">Preparation</h2>
+<p> Let&#39;s deploy several different instances of the codebase, in order to see how they
+ respond to the test. Tests will execute in sequence (because trying to upload multiple
+ contracts in 1 block crashes; the rest should be more amenable to parallelization).
+ Results will be stored in <code>results</code>, and displayed at the end.</p>
+</div></div><div class="section code">  const results = {}
+  for (let commit of commits) await testCommit(commit, say.tag(`#testing{${commit}}`))
+  async function testCommit (commit, say) {
+    say(`-----------------------------------------------------------------------------------------`)
+    try {</div></div><div class="section text"><p> (This could&#39;ve been done in parallel, but trying to
+ upload multiple contracts in 1 block crashes something?)</p>
+<h3 id="deploy-the-token">Deploy the token</h3>
+</div></div><div class="section code">      const TOKEN = await SNIP20Contract.fromCommit({say, agent: ADMIN, commit})</div></div><div class="section text"><h3 id="generate-viewing-keys">Generate viewing keys</h3>
+</div></div><div class="section code">      const [vkALICE, vkBOB] = await Promise.all([
+        TOKEN.createViewingKey(ALICE, ALICE.address),
+        TOKEN.createViewingKey(BOB,   BOB.address),
+      ])</div></div><div class="section text"><h3 id="deploy-and-launch-the-vesting-manager">Deploy and launch the vesting manager</h3>
+</div></div><div class="section code">      const MGMT = await MGMTContract.fromCommit({say, agent: ADMIN, commit, token: TOKEN}) 
+      let schedule
+      await Promise.all([</div></div><div class="section mixed"><div class="code">        await MGMT.acquire(TOKEN), </div><div class="text"><ul>
+<li>Give it a token to issue</li>
+</ul>
+</div></div></div><div class="section mixed"><div class="code">        await MGMT.configure(schedule = getSchedule({ ALICE, BOB })) </div><div class="text"><ul>
+<li>Configure the vesting</li>
+</ul>
+</div></div></div></div><div class="section code">      ])</div></div><div class="section mixed"><div class="code">      await MGMT.launch() </div><div class="text"><ul>
+<li>Launch it</li>
+</ul>
+</div></div></div></div><div class="section code">      say(`launched vesting ----------------------------------------------------------------------`)</div></div><div class="section text"><h2 id="normal-behavior">Normal behavior</h2>
+<p> Suppose <code>ALICE</code> and <code>BOB</code> are two swap contracts scheduled to
+ receive funds from the Liquidity Provision Fund.</p>
+<ul>
+<li>ALICE claims every portion.</li>
+<li>BOB claims no portions.</li>
+</ul>
+</div></div><div class="section mixed"><div class="code">      while (true) { </div><div class="text"><p> Repeat the claim until vesting has ended:</p>
+</div></div></div><div class="section mixed"><div class="code">        await ADMIN.waitForNextBlock() </div><div class="text"><p> Wait for next portion to vest (in the schedule, the interval is configured to be ~= block time)</p>
+</div></div></div></div><div class="section code">        try { 
+          say(`ALICE claims ------------------------------------------------------------------------`)</div></div><div class="section mixed"><div class="code">          await MGMT.claim(ALICE) </div><div class="text"><p> Claim a portion and check recipient balance to confirm it has been transferred</p>
+</div></div></div></div><div class="section code">          await TOKEN.balance({
+            agent: ALICE,
+            viewkey: vkALICE,
+            address: ALICE.address
+          }) </div></div><div class="section mixed"><div class="code">        } catch (error) { </div><div class="text"><p> If that fails:</p>
+</div></div></div></div><div class="section code">          if (!error.log) {
+            say(' #warning')('not the error we were expecting')
+          } else {
+            const log = JSON.parse(error.log) 
+            say.tag(' #error')(log)</div></div><div class="section text"><p> SecretJS should parse error.log for us (assuming it&#39;s always JSON if present...?)</p>
+<ul>
+<li><code>rc</code> builds respond with <code>nothing for you</code>, meaning <code>0</code> funds claimable for ALICE.</li>
+<li><code>main</code> builds responds with <code>remainders not supported...</code>, meaning the contract&#39;s
+pre-launch self-validation logic has deemed the schedule erroneous (success!)</li>
+</ul>
+<p> It&#39;s the second one that provides the most clues to the real underlying issue:
+ failing to use the right allocation set.</p>
+</div></div><div class="section code">            if ( 
+              log.generic_err && (
+                log.generic_err.msg === 'nothing for you' ||
+                log.generic_err.msg === 'channel Channel1: remainders not supported alongside split allocations'
+              )
+            ) { 
+              say.tag('#MGMT')('vesting ended')</div></div><div class="section mixed"><div class="code">              break </div><div class="text"><p> That means the vesting has ended and we can move forward onto remainders</p>
+</div></div></div></div><div class="section code">            } else {
+              say.tag(' #warning')('not the error we were expecting either, try again')
+            }
+          }
+          console.log(error)
+          break
+        }
+      }
+      say(`vesting ended -------------------------------------------------------------------------`)</div></div><div class="section text"><p> Now ALICE should have <code>6 * 100000000000</code> and BOB should still have <code>0</code>:</p>
+</div></div><div class="section code">      await TOKEN.balance({ agent: ALICE, viewkey: vkALICE, address: ALICE.address })
+      await TOKEN.balance({ agent: BOB,   viewkey: vkBOB,   address: BOB.address   })</div></div><div class="section text"><p> Because of constraints introduced in <code>rc2</code>, a remainder can&#39;t be vested to multiple
+ recipients (meaning of <code>SCL-07</code>). This means it needs to be manually reallocated,
+ otherwise it&#39;s stuck in the contract.</p>
+<p> So it doesn&#39;t make sense to <code>Disown</code> the contract (<code>MGL-03</code>) if it
+ contains both remainders and split allocations, because if manual intervention
+ is impossible the remainders would remain unclaimable forever.</p>
+<h2 id="abnormal-behavior">Abnormal behavior</h2>
+<p> Indeed, remainders do remain unclaimable forever, on both <code>main</code> and <code>rc5</code>,
+ for a slightly different reason on either. (The original suspected issue would&#39;ve
+ had ALICE receive BOB&#39;s unclaimed portions alongside the remainder.)</p>
+<p> What actually happens is <strong>the call to <code>reallocate</code> fails silently</strong>, so the remainders
+ can&#39;t be transferred at all. If the <code>reallocate</code> was correct, it&#39;s likely that the original
+ issue would&#39;ve manifested.</p>
+<p> Here&#39;s how the admin allocates a tiny bit of the remainder to ALICE.</p>
+</div></div><div class="section code">      say(`reallocate remainders -----------------------------------------------------------------`)
+      await MGMT.reallocate(
+        schedule.pools[0].name,
+        schedule.pools[0].channels[0].name,
+        [ { addr:   ALICE.address
+          , amount: "1" } ])
+      await ADMIN.waitForNextBlock()</div></div><div class="section mixed"><div class="code">      await MGMT.claim(ALICE) </div><div class="text"><p> ALICE claims remainder.</p>
+</div></div></div></div><div class="section code">      await TOKEN.balance({ agent: ALICE, viewkey: vkALICE, address: ALICE.address })</div></div><div class="section text"><p> <strong>OOPS</strong>! If allocations worked, here ALICE would&#39;ve received all the channel&#39;s available
+ funds, including BOB&#39;s unclaimed portions (sorry Bob), in addition to the allocated
+ crumb of the remainder.</p>
+</div></div><div class="section code">      await MGMT.claim(BOB)
+      await TOKEN.balance({ agent: BOB, viewkey: vkBOB, address: BOB.address })</div></div><div class="section mixed"><div class="code">      await ADMIN.waitForNextBlock() </div><div class="text"><p> Pause for a block before trying with the next version</p>
+</div></div></div></div><div class="section code">      say(`ok, next version ----------------------------------------------------------------------`)</div></div><div class="section mixed"><div class="code">      results[commit] = 'OK' </div><div class="text"><p> store success</p>
+</div></div></div></div><div class="section code">    } catch (e) {
+      say.tag(' #error')(`------------------------------------------------------------------------`)
+      console.error(e)</div></div><div class="section mixed"><div class="code">      results[commit] = e </div><div class="text"><p> store error</p>
+</div></div></div></div><div class="section code">      say(`done with ${commit}; next? ------------------------------------------------------------\n`)
+    }
+  }
+  return results
+}</div></div><div class="section text"><h1 id="findings-and-conclusions">Findings and conclusions</h1>
+<h2 id="suggested-next-steps">Suggested next steps</h2>
+<ul>
+<li>A simplified, <strong>hardened version of the schedule logic</strong> (<code>schedule 2</code>) is already nearing
+completion, and we will soon proceed to incrementally merge it into the <code>main</code> development
+branch. In absence of further &quot;discoveries&quot;, that will be the last major update to the
+vesting contract.</li>
+<li>As the SecretNetwork development workflow revolves around downloading marginally verified
+root binaries (Docker) and user-level source code (NPM), a <strong>further audit of the vendor
+supply chain</strong> is recommended; <strong>reproducible builds</strong> (for tooling) and <strong>cargo-crev</strong>
+(for contracts) may help.</li>
+<li><strong>Submit pull requests to SecretJS</strong> with various things that make it more usable;
+coordinate with Enigma to make sure it lands at the right time; maybe we can help them
+document their JS API and publish the generated documentation?<ul>
+<li>Need to implement error schema on the JS end that corresponds to Rust error variants</li>
+<li>Untangle error handling from marshaling from crypto</li>
+<li>Try to flatten stack of <code>EnigmaUtils-&gt;RestClient-&gt;CosmWasmClient-&gt;SigningCosmWasmClient-&gt;Agent</code></li>
+<li>Implement generic <code>Agent</code> that creates a local async proxy in JS-land to easily call contract
+methods based on the generated schema<ul>
+<li>It doesn&#39;t look like any of the JSON schema generated by the Rust crates is taken into
+account by SecretJS, although that would be the most obvious way to use it. My guess
+is that Enigma rely on TypeScript type annotations rather than language-agnostic schema?</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Even in a slow-moving environment such as a blockchain, <strong>good iteration rates</strong> are needed
+to ensure quality developer attention. Keeping the build/test cycle under a minute (in
+a warmed-up environment) is a good point of reference.<ul>
+<li>For that purpose, the <code>init</code> method of <code>mgmt</code> can be augmented to allow loading a schedule,
+acquiring control over the token contract, and launching the vesting, in a single operation.
+Bundling those in one transaction may also be easier on gas costs, as it avoids multiple
+rounds of messages being sent back and forth through the crypto layer.</li>
+<li>Further gas optimisation: <code>schedule 2</code> will support pre-computing the whole vesting
+off-chain (as well as generating <code>Portion</code>s on the fly) - need to compare which option
+is more efficient</li>
+</ul>
+</li>
+<li>Still unclear how claim transactions will be initiated; maybe we need to wrap the vesting
+contract into a <strong>HTTP API</strong> for users (relatively easy), or as an add-on to MetaMask/Keplr?<ul>
+<li>Determine how the DEX/AMM contracts will claim funds from the <strong>Liquidity Provision Fund</strong>?</li>
+</ul>
+</li>
+<li>Allow <strong>early returns</strong> in <code>mgmt</code> via update to the <code>fadroma</code> macro, in order to
+<strong>reduce conditional complexity</strong> of the contract methods (which are actually
+just block expressions and as such can&#39;t contain early returns)</li>
+<li>Allow schedule configs to be moved between unit and integration tests as JSON</li>
+<li>Figure out a way to run the blockchain faster/<strong>time travel</strong> (libfaketime?), in order to
+run tests faster/<strong>integration test the real schedule</strong>.</li>
+<li>The <code>mgmt</code> contract does not implement a way for anyone to <strong>query its progress</strong>. Add one?</li>
+</ul>
+<h2 id="observations">Observations</h2>
+<ul>
+<li>The architecture of this platform and its associated APIs seems reasonable enough;
+so far, I&#39;ve seen exactly <strong>zero glaring design faults</strong> with disaster potential.
+The simplicity of the platform APIs is a virtue, however it also <strong>highlights any
+remaining oversights</strong>.<ul>
+<li>Just like it can be easy to underestimate the small quality-of-life details that
+make up a coherent platform experience, I&#39;ve admittedly fallen trap to overestimating
+various incongruences here, initially seeing them as more severe than what their impact
+amounts to. Better safe than sorry though.</li>
+<li>Certain <code>wtf</code>s and deficiencies in the platform inevitably emerge in due course;
+Expect all such inconveniences to be fixed as needed, either by the platform devs
+in their normal course of work, or by us in the process of preparing SIENNA for primetime.
+The Secret Network codebase is certainly concise and malleable enough to allow for
+the latter.</li>
+</ul>
+</li>
+<li>For example, during the construction of this integration test, which checks for 
+the &quot;correct&quot; error being thrown in order to know when to proceed to the
+second stage of the woult-be &quot;exploit&quot;, it became clear that <strong>error handling over
+the Rust/JS barrier</strong> is underdeveloped.<ul>
+<li>it hangs on a regex match (this looks like something that needs to be fixed
+on the server side, nodes should return structured data on errors too)</li>
+<li>after my intervention, at least the API consumer doesn&#39;t need to do the same thing again
+to extract the JSON error contents from a contract error forwarded by the API,
+and there aren&#39;t multiple instances of the same error decryption logic on different
+levels of the library.</li>
+</ul>
+</li>
+<li><strong>SecretJS</strong>, the library that is ostensibly meant to be used to connect
+the Secret Contract to the outside world, feels like it needs more developer attention.<ul>
+<li>An <strong>improved JS API</strong> stands out as an obvious milestone to <strong>wider adoption</strong> of
+Secret Network-based products. It&#39;s workable as it is, but I expect further integration
+work to expose even more room for improvement. Research in this direction is already ongoing
+as part of the current implementation.</li>
+<li>Overall <strong>lack of SecretJS documentation</strong> other than a handful of examples on GitHub.<ul>
+<li>The <strong>examples omit critical steps</strong> - such as creating an account (privkey/pubkey pair)
+without the help of a browser extension (!).</li>
+<li>SecretJS <strong>versions released in the presence of failing test cases</strong>?</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h1 id="appendix-a---schedule">Appendix A - Schedule</h1>
+<ul>
+<li>The following is a valid JSON schedule:<ul>
+<li>an intermediate representation between the configuration spreadsheet
+and the <code>schedule</code> module&#39;s actual in-memory model.</li>
+<li>a guide to the contract&#39;s execution model.</li>
+</ul>
+</li>
+</ul>
+</div></div><div class="section code">function getSchedule ({ ALICE, BOB }) {
+  return {
+    "total": "1000000000000",</div></div><div class="section mixed"><div class="code">    "pools": [ </div><div class="text"><p> <code>Pool</code>s map to the first-level categories from the spec: Investors, Founders, Advisors,...</p>
+</div></div></div></div><div class="section code">      {        
+        "name": "Pool1",
+        "total": "1000000000000",</div></div><div class="section mixed"><div class="code">        "partial": true, </div><div class="text"><p> If the <code>Pool</code> is marked <code>partial</code> (as is the default), new <code>Channel</code>s can be added by the admin to it before or after launch, up to the <code>total</code> pool amount.</p>
+</div></div></div></div><div class="section code">        "channels": [ 
+          {</div></div><div class="section mixed"><div class="code">            "name": "Channel1", </div><div class="text"><p> <code>Channel</code>s correspond to individual budget items like Investor1, Founder2, Advisor3, as well as DevFund, Liquidity Provision Fund...</p>
+</div></div></div></div><div class="section code">            "amount": "1000000000000",</div></div><div class="section mixed"><div class="code">            "periodic": { </div><div class="text"><p> Recipients need to actively claim from the channel to receive the funds that are <code>Periodic</code>ally unlocked. It is expected that this can happen just as easily daily or long after the vesting has ended; the contract is used for safekeeping.</p>
+</div></div></div><div class="section mixed"><div class="code">              "type":     "channel_periodic", </div><div class="text"><p> simple periodic vesting configuration:</p>
+</div></div></div><div class="section mixed"><div class="code">              "cliff":    "0", </div><div class="text"><p> no cliff;</p>
+</div></div></div><div class="section mixed"><div class="code">              "start_at":  0,  </div><div class="text"><p> start right away;</p>
+</div></div></div><div class="section mixed"><div class="code">              "interval":  5,  </div><div class="text"><p> about one portion per localnet block for the test&#39;s sake;</p>
+</div></div></div><div class="section mixed"><div class="code">              "duration":  30, </div><div class="text"><p> is it immediately obvious whether there are 6 or 7 portions?</p>
+</div></div></div><div class="section mixed"><div class="code">              "expected_portion": "166666666666", </div><div class="text"><p> Purely informational.</p>
+</div></div></div><div class="section mixed"><div class="code">              "expected_remainder": "4"  </div><div class="text"><p> Also informational; it&#39;s necessary for the allocations to leave have some remainder in order to trigger the bug.</p>
+</div></div></div></div><div class="section code">            },</div></div><div class="section mixed"><div class="code">            "allocations": [ </div><div class="text"><p> Channels also have <code>Allocation</code>s. They&#39;re address/amount pairs that implement the &quot;liquidity provision fund&quot; part of the spec by splitting the daily portion between multiple configured addresses (e.g. the SIENNA Swap AMM contracts).</p>
+</div></div></div></div><div class="section code">              [ 0 , [ { "addr": ALICE.address, "amount": "100000000000" }
+                    , { "addr": BOB.address,   "amount":  "66666666660" } ] ]</div></div><div class="section text"><p> Calling <code>reallocate</code> on the contract adds a new record here, containing an updated timestamp and the new allocations.</p>
+</div></div><div class="section code">            ]   
+          }
+        ]
+      }
+    ]
+  }
+}</div></div></body></html>

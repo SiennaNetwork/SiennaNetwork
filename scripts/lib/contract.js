@@ -6,7 +6,6 @@ module.exports = module.exports.default = class SecretNetworkContract {
     agent, id, binary,
     name, label, data = {}
   }) {
-    console.log('SNCdeploy', say)
     say = say.tag(` #${this.name}`)
     if (!id) { // if the contract is not uploaded, do it
       const upload = await agent.upload({ say: say.tag(` #upload`), binary })
@@ -53,7 +52,6 @@ module.exports = module.exports.default = class SecretNetworkContract {
 module.exports.SNIP20Contract = class SNIP20Contract extends module.exports {
 
   static async fromCommit (args={}) {
-    console.log('S2FC', args)
     args.name   = `TOKEN{${args.commit}}`
     args.binary = `${args.commit}-snip20-reference-impl.wasm`
     args.data   = { name:      "Sienna"
