@@ -2,28 +2,28 @@ module.exports = module.exports.default = class SecretNetworkContract {
 
   // todo measure gas
   static async deploy ({
-    say = require('./say').tag(`#${this.name}`),
+    say = require('./say').mute(),
     agent, id, binary,
     name, label, data = {}
   }) {
+    console.log('SNCdeploy', say)
+    say = say.tag(` #${this.name}`)
     if (!id) { // if the contract is not uploaded, do it
-      const upload = await agent.upload({
-        say: say.tag(` #upload`),
-        binary
-      })
+      const upload = await agent.upload({ say: say.tag(` #upload`), binary })
       id = upload.codeId
       //await agent.waitForNextBlock()
     }
     const args = say.tag(` #instantiate`)({ id, label, data })
     const {address, hash} = say.tag(` #instantiated`)(await agent.instantiate(args))
-    return new this({ say, agent, id, binary, name, label, data, address, hash })
+    return new this({say, agent, id, binary, name, label, data, address, hash})
   }
 
   static async fromCommit ({
+    say = require('./say').mute(),
     name, commit, binary,
-    say = require('./say').tag(`${this.name}{${commit}}`),
     ...args
   }) {
+    say = say.tag(` #${this.name}{${commit}}`)
     const binaryFullPath = require('path').resolve(__dirname, '../../dist/', binary)
     if (!require('fs').existsSync(binaryFullPath)) {
       // * Recompile binary if absent
@@ -33,7 +33,7 @@ module.exports = module.exports.default = class SecretNetworkContract {
       say.tag(` #build-result(${binary})`)(build)
     }
     const label = `${commit} ${name} (${new Date().toISOString()})`
-    return this.deploy({binary, label, name, ...args})
+    return this.deploy({say, binary, label, name, ...args})
   }
 
   constructor (properties = {}) {
@@ -53,6 +53,7 @@ module.exports = module.exports.default = class SecretNetworkContract {
 module.exports.SNIP20Contract = class SNIP20Contract extends module.exports {
 
   static async fromCommit (args={}) {
+    console.log('S2FC', args)
     args.name   = `TOKEN{${args.commit}}`
     args.binary = `${args.commit}-snip20-reference-impl.wasm`
     args.data   = { name:      "Sienna"
@@ -109,15 +110,7 @@ module.exports.MGMTContract = class MGMTContract extends module.exports {
   }
 
   async claim (claimant) {
-    try {
-      return await claimant.execute(this, 'claim')
-    } catch (e) {
-      // make error visible:
-      Object.defineProperties(e, { stack: { enumerable: true }, message: { enumerable: true } })
-      // give it a flag:
-      e.error = true
-      return this.say.tag(` #${this.name} #error`)(e)
-    }
+    return await claimant.execute(this, 'claim')
   }
 
   async reallocate (pool_name, channel_name, allocations) {

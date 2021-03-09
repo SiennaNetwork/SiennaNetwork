@@ -8,7 +8,7 @@ module.exports = module.exports.default = class SecretNetworkAgent {
   // ways of creating authenticated clients
 
   static async fromKeyPair ({
-    say     = require('./say'),
+    say     = require('./say').mute(),
     name    = "",
     keyPair = require('secretjs').EnigmaUtils.GenerateNewKeyPair()
   }={}) {
@@ -17,7 +17,7 @@ module.exports = module.exports.default = class SecretNetworkAgent {
   }
 
   static async fromMnemonic ({
-    say      = require('./say'),
+    say      = require('./say').mute(),
     name     = "",
     mnemonic = process.env.MNEMONIC,
     keyPair // optional
@@ -29,7 +29,7 @@ module.exports = module.exports.default = class SecretNetworkAgent {
   // initial setup
 
   constructor ({
-    say  = require('./say'),
+    say  = require('./say').mute(),
     name = "",
     pen,
     keyPair,

@@ -1,10 +1,9 @@
 {
-  "version": "1.0.0-rc3",
+  "name": "sienna-scripts",
+  "version": "1.0.0-poc",
   "dependencies": {
     "colors": "^1.4.0",
-    "dotenv": "^8.2.0",
     "prettyjson": "^1.2.1",
-    "pug": "^3.0.0",
-    "secretjs": "file:../platform/cosmwasm-js/packages/sdk"
+    "secretjs": "^0.10.3"
   }
 }

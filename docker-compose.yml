@@ -10,22 +10,20 @@ services:
     network_mode: host
     entrypoint: /init.sh
     volumes:
-      - './lib/init.sh:/init.sh:ro'
-      #- './lib/unroot.sh:/unroot.sh:ro'
+      - './localnet/init.sh:/init.sh:ro'
       - 'secretd:/root/.secretd:rw'
       - 'secretcli:/root/.secretcli:rw'
       - 'sgx-secrets:/root/.sgx-secrets:rw'
       - 'shared-keys:/shared-keys:rw'
   compare:
-    build: .
+    build: ./scripts
     network_mode: host
     user: "1000:1000"
     volumes:
-      - '..:/sienna:rw'
+      - '.:/sienna:rw'
       - 'secretcli:/home/node/.secretcli:rw'
       - 'shared-keys:/shared-keys:rw'
       - '/var/run/docker.sock:/var/run/docker.sock:rw'
-    # wait for localnet to become available on port 1337:
     entrypoint: /bin/bash
     working_dir: /sienna/scripts
-    command: [ '-c', 'yarn; while ! nc -z localhost 1337; do sleep 0.1; done; ./compare.js' ]
+    command: /sienna/scripts/compare.sh
