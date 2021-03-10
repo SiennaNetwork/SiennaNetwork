@@ -21,7 +21,7 @@ git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git sie
 cd sienna        # enter repository
 yarn             # install dependencies of build scripts
 make test        # run tests
-cargo doc --open # view documentation (needs code to compile)
+cargo doc --open # view documentation (needs the code to compile)
 make coverage    # generate test coverage reports (needs all tests to pass)
 make             # compile a production build
 ls dist/         # view build results

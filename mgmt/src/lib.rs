@@ -195,6 +195,7 @@ contract!(
                         if unclaimed.is_empty() {
                             err_msg(state, &NOTHING)
                         } else {
+                            use cosmwasm_std::Uint128;
                             let mut sum: Uint128 = Uint128::zero();
                             for portion in unclaimed.iter() {
                                 if portion.address != claimant {
@@ -210,8 +211,6 @@ contract!(
                             )?;
                             state.history.claim(now, unclaimed);
                             ok_msg(state, vec![msg])
-                        } else {
-                            err_msg(state, &NOTHING)
                         }
                     } else {
                         err_msg(state, &crate::NOTHING)

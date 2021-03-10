@@ -1,0 +1,14 @@
+{
+  "name": "@hackbg/mgmt",
+  "version": "1.0.0-rc",
+  "main": "./index.js",
+  "dependencies": {
+    "colors": "^1.4.0",
+    "marked": "^2.0.1",
+    "prettyjson": "^1.2.1",
+    "secretjs": "^0.10.3"
+  },
+  "peerDependencies": {
+    "@hackbg/integra": "*"
+  }
+}

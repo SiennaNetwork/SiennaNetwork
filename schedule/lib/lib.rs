@@ -5,11 +5,10 @@
 ///   * Has a `total`.
 ///   * Contains `Pool`s adding up to that total.
 /// * `Pool`: subdivision of schedule,
-///   * Contains `Channel`s.
-///   * If `partial` is true, allows channels to be added at a later time, up to the total.
-///   * Otherwise, requires `Channel`s to add up to exactly the total in order to pass validation.
-/// * `Account`: subdivision of a `Pool`.
-///   * corresponds to `Channel`+`Periodic` in v1.
+///   * Contains `Account`s.
+///   * If `partial` is true, `Account`s can be at runtime, up to the total.
+///   * Otherwise, requires `Account`s to add up to exactly the total in order to pass validation.
+/// * `Account`: subdivision of a `Pool` (corresponds to `Channel`+`Periodic` from v1)
 ///   * contains 3 sets of `Allocation`s:
 ///     * `head` for splitting the cliff.
 ///     * `body` for splitting the regular portions.
@@ -19,6 +18,9 @@
 ///     but it's easier and more future-proof to implement splitting as the general case
 ///     rather than a special case (which would rightfully belong in a separate contract otherwise)
 ///   * Generates `Portion`s from `Allocation`s.
+/// * `Allocation`: pair of address and amount.
+///   * `TODO`: establish constraints about allocation totals
+/// * `Portion`: an `Allocation` with a `vested` date and a `reason`.
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
 use snafu::GenerateBacktrace;
