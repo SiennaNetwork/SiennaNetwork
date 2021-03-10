@@ -6,3 +6,4 @@ target
 .env
 node_modules
 .~*
+.idea
