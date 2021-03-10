@@ -192,21 +192,9 @@ contract!(
                         }).collect();
                     if claimable.len() > 0 {
                         let unclaimed = state.history.unclaimed(&claimable);
-                        println!("Now: {:#?}", &now);
-                        println!("Claimable: {:#?}", &claimable);
-                        for portion in claimable.iter() {
-                            println!("{:?}", &portion);
-                        }
-                        println!("\nClaimed:   {:#?}", &state.history.history);
-                        for portion in state.history.history.iter() {
-                            println!("{:?}", &portion);
-                        }
-                        println!("\nUnclaimed: {:#?}", &unclaimed);
-                        for portion in unclaimed.iter() {
-                            println!("{:?}", &portion);
-                        }
-                        if unclaimed.len() > 0 {
-                            use cosmwasm_std::Uint128;
+                        if unclaimed.is_empty() {
+                            err_msg(state, &NOTHING)
+                        } else {
                             let mut sum: Uint128 = Uint128::zero();
                             for portion in unclaimed.iter() {
                                 if portion.address != claimant {

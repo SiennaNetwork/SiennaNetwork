@@ -1,9 +1,12 @@
 [submodule "token"]
-	path = token
-	url = git@github.com:hackbg/snip20-reference-impl.git
+  path = token
+  url = git@github.com:hackbg/snip20-reference-impl.git
 [submodule "fadroma"]
-	path = fadroma
-	url = git@github.com:hackbg/fadroma.git
+  path = fadroma
+  url = git@github.com:hackbg/fadroma.git
 [submodule "kukumba"]
-	path = kukumba
-	url = git@github.com:hackbg/kukumba.git
+  path = kukumba
+  url = git@github.com:hackbg/kukumba.git
+[submodule "platform"]
+  path = platform
+  url = git@github.com:hackbg/SecretNetwork.git

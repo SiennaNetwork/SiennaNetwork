@@ -1,6 +1,6 @@
 [package]
 name = "sienna-mgmt"
-version = "1.0.0-rc2"
+version = "1.0.0-rc6"
 authors = ["Adam Avramov <adam@hack.bg>"]
 edition = "2018"
 
@@ -16,16 +16,18 @@ exclude = [
 crate-type = ["cdylib", "rlib"]
 doctest = false
 
-[profile.release]
-opt-level = 3
-debug = false
-rpath = false
-lto = true
-debug-assertions = false
-codegen-units = 1
-panic = 'abort'
-incremental = false
-overflow-checks = true
+# lifted to crate root
+#
+#[profile.release]
+#opt-level = 3
+#debug = false
+#rpath = false
+#lto = true
+#debug-assertions = false
+#codegen-units = 1
+#panic = 'abort'
+#incremental = false
+#overflow-checks = true
 
 [features]
 default = []

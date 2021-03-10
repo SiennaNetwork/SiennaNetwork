@@ -1,46 +1,35 @@
-//! * Lets you instantiate a `Schedule` in terms of `Pool`s of `Account`s.
-//!     * `Pool`s allow `Account`s to be added in the future
-//! * Lets you generate a flat list of transactions as specified by that
-//!   schedule.
-//!     * `Account`s can release their amounts immediately,
-//!       or vest them, to one or several addresses.
-//!         * Separate `head`, `body` and `tail` allocations allow for
-//!           cliffs and remainders to be flexibly implemented
-//! * `TODO` Lets you compare a partially-executed schedule with a new proposal,
-//!   and determine if the alteration to the schedule is allowed
-//!     * In strict mode, no vested portion is allowed to be canceled.
-//!       (this makes the schedule append-only?)
-//!     * In non-strict mode, no claimed portion is allowed to be canceled.
-//!
-//! ## How to use
-//!
-//! * `TODO` Use the executables in `bin` to ingest a `tsv`, `ods` or `json`
-//!   file describing a schedule, and  generate a pair of `schedule.json`
-//!   (what the parser understood) and `transactions.json` (what transactions
-//!   were generated).
-//!   * Load `transactions.json` into `mgmt` to update the schedule
-//!     * `TODO` historical validation should be executed in the contract
-//!   * Load `schedule.json` + `transactions.json` into `gov` to let users
-//!     vote on amendments to the schedule.
-//! * The `schedule!` macro, documented in `macros`, exists to allow schedules
-//!   to be hardcoded using a terse syntax.
-//! * Earlier versions of this crate were executed on-chain. This should still
-//!   be possible, although not recommended.
-
+/// # SIENNA/Hack.bg Schedule v2.0
+///
+/// ## Concept model
+/// * `Schedule`: the root object.
+///   * Has a `total`.
+///   * Contains `Pool`s adding up to that total.
+/// * `Pool`: subdivision of schedule,
+///   * Contains `Channel`s.
+///   * If `partial` is true, allows channels to be added at a later time, up to the total.
+///   * Otherwise, requires `Channel`s to add up to exactly the total in order to pass validation.
+/// * `Account`: subdivision of a `Pool`.
+///   * corresponds to `Channel`+`Periodic` in v1.
+///   * contains 3 sets of `Allocation`s:
+///     * `head` for splitting the cliff.
+///     * `body` for splitting the regular portions.
+///     * `tail` for splitting the remainders.
+///   * The above are added for completeness' sake; the currently planned schedule does not
+///     require splitting `head/`tail`s, and only needs one instance of splitting `body` -
+///     but it's easier and more future-proof to implement splitting as the general case
+///     rather than a special case (which would rightfully belong in a separate contract otherwise)
+///   * Generates `Portion`s from `Allocation`s.
+use schemars::JsonSchema;
+use serde::{Serialize, Deserialize};
+use snafu::GenerateBacktrace;
 pub mod macros;
 pub mod units; pub use units::*;
 pub mod validate; pub use validate::*;
 pub mod vesting; pub use vesting::*;
 pub mod history; pub use history::*;
 #[cfg(test)] mod tests;
-
 /// alias for the most basic return type that may contain an error
 pub type UsuallyOk = StdResult<()>;
-
-use schemars::JsonSchema;
-use serde::{Serialize, Deserialize};
-use snafu::GenerateBacktrace;
-
 /// Vesting schedule; contains `Pool`s that must add up to `total`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -48,7 +37,6 @@ pub struct Schedule {
     pub total:   Uint128,
     pub pools:   Vec<Pool>,
 }
-
 /// Vesting pool; contains `Account`s that must add up to `total`
 /// if `partial == false`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -71,7 +59,6 @@ impl Pool {
         Ok(total)
     }
 }
-
 /// Individual vesting config.
 /// Immediate release is thought of as a special case of vesting where:
 /// * `head == total`
@@ -92,7 +79,6 @@ pub struct Account {
     pub body_allocations: Allocations,
     /// Vested once after regular portions run out (TODO but not after `duration`?)
     pub tail_allocations: Allocations,
-
     /// How many seconds after contract launch to begin vesting
     pub start_at: Seconds,
     /// How many seconds to wait between portions
@@ -101,10 +87,8 @@ pub struct Account {
     /// regardless of how much is left of the `total`.
     pub duration: Seconds,
 }
-
 /// Each Portion can be distributed among multiple addresses.
 pub type Allocations = Vec<Allocation>;
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Allocation {
@@ -131,7 +115,6 @@ pub fn sum_allocations (a: &Allocations) -> u128 {
     }
     sum
 }
-
 /// Claimable portion
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -146,18 +129,13 @@ impl std::fmt::Display for Portion {
         write!(f, "T={:.>10} \"{}\" {:.>18} to {}", self.vested, self.reason, self.amount.u128(), self.address)
     }
 }
-
 /// list of `Portion`s
 pub type Portions                 = Vec<Portion>;
-
 /// list of `Portion`s with expected total (for caller to check)
 pub type PortionsWithTotal        = (Portions, u128);
-
 /// list of `Portion`s, or error
 pub type UsuallyPortions          = StdResult<Portions>;
-
 /// list of `Portion`s with total, or error
 pub type UsuallyPortionsWithTotal = StdResult<PortionsWithTotal>;
-
 /// list of `Portion`s with total, `None`, or error (used by `vest_head`/`vest_tail`)
 pub type PerhapsPortionsWithTotal = StdResult<Option<PortionsWithTotal>>;

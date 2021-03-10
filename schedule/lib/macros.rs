@@ -1,4 +1,4 @@
-//! Macros for internal use
+//! Macros, for internal use>
 //!
 //! Example of using `schedule!` and `portions!` to materialize a schedule.
 //!
@@ -165,7 +165,7 @@
     };
 }
 
-/// Inside `impl`, define error cases and messages
+/// Inside and `impl`, define error cases and messages
 #[macro_export] macro_rules! define_errors {
     ($(
         $name:ident ($(&$self:ident,)? $($arg:ident : $type:ty),*) ->

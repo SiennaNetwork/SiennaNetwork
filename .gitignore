@@ -5,4 +5,5 @@ target
 *.profraw
 .env
 node_modules
-.~lock*
+.~*
+yarn-error.log
