@@ -1,75 +1,6 @@
 use crate::units::*;
 use super::*;
 
-macro_rules! valid {
-    ($schedule:expr) => {
-        assert_eq!($schedule.validate(), Ok(()));
-    };
-    ($schedule:expr, $value:expr) => {
-        assert_eq!($schedule.validate(), Ok($value));
-    }
-}
-macro_rules! invalid {
-    ($schedule:expr, $error:expr) => {
-        assert_eq!($schedule.validate(), Error!($error));
-    }
-}
-macro_rules! claim {
-    ($schedule:expr, $addr: expr, $time: expr $(, $res:expr)*) => {
-        let actual = $schedule.claimable(&$addr, $time);
-        let expected = Ok(vec![$($res),*]);
-        if actual != expected {
-            println!("---ACTUAL CLAIMS:---");
-            match actual {
-                Ok(actual) => for portion in actual.iter() {
-                    println!("{}", &portion);
-                },
-                Err(e) => println!("Error: {}", &e)
-            }
-            println!("---EXPECTED CLAIMS:---");
-            for claim in expected.iter() {
-                println!("");
-                for portion in claim.iter() {
-                    println!("{}", &portion);
-                }
-            }
-            panic!("test failed: claim!")
-        }
-    }
-}
-
-#[test]
-fn test_schedule () {
-    valid!(schedule(0, vec![]));
-    claim!(schedule(0, vec![]), HumanAddr::from(""), 0);
-    invalid!(schedule(100, vec![]), "schedule: pools add up to 0, expected 100");
-    invalid!(schedule(100, vec![pool("P1", 50, vec![])]), "pool P1: channels add up to 0, expected 50");
-    valid!(schedule(0, vec![pool("P1", 0, vec![]), pool("P2", 0, vec![])]));
-}
-
-#[test]
-fn test_pool () {
-    valid!(pool("", 0, vec![]), 0);
-    let alice = HumanAddr::from("Alice");
-    invalid!(schedule(100, vec![
-        pool("P1", 50, vec![channel_immediate(20, &alice)]),
-        pool("P2", 50, vec![channel_immediate(30, &alice)])
-    ]),
-        "pool P1: channels add up to 20, expected 50");
-    invalid!(schedule(100, vec![
-        pool("P1", 50, vec![channel_immediate(50, &alice)]),
-        pool("P2", 50, vec![channel_immediate(30, &alice)])
-    ]),
-        "pool P2: channels add up to 30, expected 50");
-    invalid!(schedule(100, vec![
-        pool("", 50, vec![
-            channel_immediate(30, &alice),
-            channel_periodic_multi(20, &vec![allocation(10, &alice)
-                                             ,allocation(10, &alice)], 1, 0, 1, 0)
-        ])]),
-            "schedule: pools add up to 50, expected 100");
-}
-
 #[test]
 fn valid_schedule_with_main_features () {
     let alice = HumanAddr::from("Alice");
@@ -248,23 +179,23 @@ fn test_reallocation () {
     let cliff    = 0;
 
     let mut s = channel_periodic_multi(
-        700u128, &vec![allocation(75u128, &alice)],
+        700u128, &vec![allocation(100u128, &alice)],
         interval, start_at, duration, cliff);
 
     claim!(s, alice, 0*DAY,
-        portion(75u128, &alice, 0 * DAY, ": vesting"));
+        portion(100u128, &alice, 0 * DAY, ": vesting"));
     claim!(s, alice, 1*DAY,
-        portion(75u128, &alice, 0 * DAY, ": vesting"),
-        portion(75u128, &alice, 1 * DAY, ": vesting"));
+        portion(100u128, &alice, 0 * DAY, ": vesting"),
+        portion(100u128, &alice, 1 * DAY, ": vesting"));
     claim!(s, alice, 2*DAY,
-        portion(75u128, &alice, 0 * DAY, ": vesting"),
-        portion(75u128, &alice, 1 * DAY, ": vesting"),
-        portion(75u128, &alice, 2 * DAY, ": vesting"));
+        portion(100u128, &alice, 0 * DAY, ": vesting"),
+        portion(100u128, &alice, 1 * DAY, ": vesting"),
+        portion(100u128, &alice, 2 * DAY, ": vesting"));
     claim!(s, alice, 3*DAY,
-        portion(75u128, &alice, 0 * DAY, ": vesting"),
-        portion(75u128, &alice, 1 * DAY, ": vesting"),
-        portion(75u128, &alice, 2 * DAY, ": vesting"),
-        portion(75u128, &alice, 3 * DAY, ": vesting"));
+        portion(100u128, &alice, 0 * DAY, ": vesting"),
+        portion(100u128, &alice, 1 * DAY, ": vesting"),
+        portion(100u128, &alice, 2 * DAY, ": vesting"),
+        portion(100u128, &alice, 3 * DAY, ": vesting"));
     claim!(s, bob, 0*DAY);
     claim!(s, bob, 1*DAY);
     claim!(s, bob, 2*DAY);
@@ -273,16 +204,16 @@ fn test_reallocation () {
     s.reallocate(4*DAY, vec![allocation(50u128, &alice)
                             ,allocation(50u128, &bob)]).unwrap();
     claim!(s, alice, 4*DAY,
-        portion(75u128, &alice, 0 * DAY, ": vesting"),
-        portion(75u128, &alice, 1 * DAY, ": vesting"),
-        portion(75u128, &alice, 2 * DAY, ": vesting"),
-        portion(75u128, &alice, 3 * DAY, ": vesting"),
+        portion(100u128, &alice, 0 * DAY, ": vesting"),
+        portion(100u128, &alice, 1 * DAY, ": vesting"),
+        portion(100u128, &alice, 2 * DAY, ": vesting"),
+        portion(100u128, &alice, 3 * DAY, ": vesting"),
         portion(50u128, &alice, 4 * DAY, ": vesting"));
     claim!(s, alice, 7*DAY,
-        portion(75u128, &alice, 0 * DAY, ": vesting"),
-        portion(75u128, &alice, 1 * DAY, ": vesting"),
-        portion(75u128, &alice, 2 * DAY, ": vesting"),
-        portion(75u128, &alice, 3 * DAY, ": vesting"),
+        portion(100u128, &alice, 0 * DAY, ": vesting"),
+        portion(100u128, &alice, 1 * DAY, ": vesting"),
+        portion(100u128, &alice, 2 * DAY, ": vesting"),
+        portion(100u128, &alice, 3 * DAY, ": vesting"),
         portion(50u128, &alice, 4 * DAY, ": vesting"),
         portion(50u128, &alice, 5 * DAY, ": vesting"),
         portion(50u128, &alice, 6 * DAY, ": vesting"));

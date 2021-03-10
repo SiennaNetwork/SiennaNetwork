@@ -1,43 +1,91 @@
-/// Here's what was casting the shadow of a off-by-one error all along, and
-/// causing difficult-to-verbalize confusion around some aspects of the spec.
+/// # SIENNA Schedule v1.0
 ///
-/// Let's assume there's an interval of `N` between vestings:
-/// * If `cliff == 0` then all the vestings are equal: `amount / n_portions`.
-/// * If `cliff > 0` then the first vesting is equal to `cliff`, and since
-///   there's an interval of `N` after it, every other vesting is equal to
-///   `(amount - cliff) / (n_portions / 1)`.
+/// ## The `Schedule` object
 ///
-/// So, `if cliff > 0 { n_portions -= 1 }`.
+/// The root object. Has a `total`, contains `Pools` adding up to that total.
 ///
-/// How to fix that? Adding cliffs everywhere to get appropriate post-cliff
-/// amounts is one option. However:
-/// * The cliff sizes are reassuringly arbitrary. I like that they are
-///   nice round numbers.
-/// * Making them interdependent with the rest of the calculations sounds
-///   painful, especially considering that the contract works in fixed
-///   precision and it is not obvious at all how to pick cliffs that both:
-///   * turn the remaining portions into nice round numbers, and
-///   * are nice round numbers themselves.
-/// * Receiving the cliff and the first vesting at the same time, or receiving
-///   a cliff that's smaller than the regular vesting portion before the regular
-///   vesting commences, can be confusing for claimants; and picking an
-///   appropriate cliff size for every account should be up to the contract
-///   owner and not the library implementor.
+/// ```
+/// # use sienna_schedule::units::*;
+/// #[macro_use] extern crate sienna_schedule; use sienna_schedule::constructors::*;
+/// # fn main () {
+/// valid!(schedule(0, vec![]));
+/// claim!(schedule(0, vec![]), HumanAddr::from(""), 0);
+/// invalid!(schedule(100, vec![]), "schedule: pools add up to 0, expected 100");
+/// invalid!(schedule(100, vec![pool("P1", 50, vec![])]), "pool P1: channels add up to 0, expected 50");
+/// valid!(schedule(0, vec![pool("P1", 0, vec![]), pool("P2", 0, vec![])]));
+/// # }
+/// ```
 ///
-/// Therefore, remainders are used in the following way: while cliffs remain
-/// arbitrary, the last vesting of every channel contains the remainder of
-/// the division `(amount - cliff) / (n_portions / 1)`.
+/// ## The `Pool` object
+/// Subdivision of `Schedule`, contains `Channel`s.
+/// * If `partial` is true, makes room for adding channels at a later time, up to the total.
+/// * Otherwise, requires `Channel`s to add up to the total from the start
+///
+/// ```
+/// #[macro_use] extern crate sienna_schedule; use sienna_schedule::constructors::*;
+/// # fn main () {
+/// valid!(pool("", 0, vec![]), 0);
+/// # }
+/// ```
+///
+/// ## The `Channel` object
+/// Subdivision of a `Pool`.
+/// * If it contains `Periodic` scheduling, it releases periodic `Portion`s,
+///   starting at `start_at` seconds since launch and then every `interval`
+///   seconds over a specified `duration`, optionally with special
+///   `cliff` and `remainder` vestings.
+/// * Otherwise it releases the whole `amount` as one big `Portion` upon contract launch.
+///
+/// ## The `Allocation` object
+/// Regular vesting of channels (but not cliff or remainder vestings) can
+/// optionally be split into multiple `Portions` for multiple addresses.
+///
+/// ```
+/// # use sienna_schedule::units::*;
+/// #[macro_use] extern crate sienna_schedule; use sienna_schedule::constructors::*;
+/// # fn main () {
+/// let alice = HumanAddr::from("Alice");
+/// invalid!(schedule(100, vec![
+///     pool("P1", 50, vec![channel_immediate(20, &alice)]),
+///     pool("P2", 50, vec![channel_immediate(30, &alice)])
+/// ]),
+///     "pool P1: channels add up to 20, expected 50");
+/// invalid!(schedule(100, vec![
+///     pool("P1", 50, vec![channel_immediate(50, &alice)]),
+///     pool("P2", 50, vec![channel_immediate(30, &alice)])
+/// ]),
+///     "pool P2: channels add up to 30, expected 50");
+/// invalid!(schedule(100, vec![
+///     pool("", 50, vec![
+///         channel_immediate(30, &alice),
+///         channel_periodic_multi(20, &vec![allocation(10, &alice)
+///                                         ,allocation(10, &alice)], 1, 0, 1, 0)
+///     ])]),
+///         "schedule: pools add up to 50, expected 100");
+/// # }
+/// ```
+///
+/// ## Notice to future generations
+/// Here stood a long-winded and partially confused explanation
+/// which was part of my initial analysis of the vesting logic.
+///
+/// A naive reading of the budget allocated in the project brief
+/// could cause a one-by-off error if you don't count the cliff
+/// as a separate portion, resulting in portion allocations that
+/// fail to divide evenly.
+///
+/// Take heed that the cliff counts as a separate portion, and
+/// subtract it from the total amount before determining
+/// portion size as `(amount - cliff) / duration`
+/// and portion count as `duration / interval`.
 
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
-use cosmwasm_std::{StdResult, StdError};
+use cosmwasm_std::StdResult;
 
+pub mod macros;
 pub mod units; pub use units::*;
 pub mod constructors; pub use constructors::*;
-
-macro_rules! Error {
-    ($msg:expr) => { Err(StdError::GenericErr { msg: $msg.to_string(), backtrace: None }) }
-}
 
 /// Vesting schedule; contains `Pool`s that must add up to `total`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -54,9 +102,7 @@ impl Schedule {
     /// Make sure that the schedule contains valid data.
     pub fn validate (&self) -> StdResult<()> {
         let mut total = 0u128;
-        let mut pools: Vec<String> = vec![];
         for pool in self.pools.iter() {
-            pools.push(pool.name.clone());
             match pool.validate() {
                 Ok(_)  => { total += pool.total.u128() },
                 Err(e) => return Err(e)
@@ -170,9 +216,8 @@ impl Channel {
             &self.name))
     }
     pub fn validate (&self) -> StdResult<()> {
-        match &self.periodic {
-            None => {},
-            Some(periodic) => periodic.validate(&self)?
+        if let Some(ref periodic) = self.periodic {
+            periodic.validate(&self)?;
         }
         for (_, allocations) in self.allocations.iter() {
             let mut total_portion = 0u128;
@@ -188,16 +233,14 @@ impl Channel {
     }
     /// Allocations can be changed on the fly without affecting past vestings.
     pub fn reallocate (&mut self, t: Seconds, allocations: Vec<Allocation>) -> StdResult<()> {
-        match &self.periodic {
-            None => {},
-            Some(Periodic{cliff,..}) => if (*cliff).u128() > 0 {
-                return self.err_realloc_cliff()
-            }
-        };
-        let t_max = self.allocations.iter().fold(0, |x,y|Seconds::max(x,y.0));
-        if t < t_max { return self.err_realloc_time_travel(t, t_max) }
-        self.allocations.push((t, allocations));
-        self.validate()
+        if let Some(Periodic{cliff: Uint128(0),..}) = self.periodic {
+            let latest_allocation = self.allocations.iter().fold(0, |x,y|Seconds::max(x,y.0));
+            if t < latest_allocation { return self.err_realloc_time_travel(t, latest_allocation) }
+            self.allocations.push((t, allocations));
+            self.validate()
+        } else {
+            return self.err_realloc_cliff();
+        }
     }
     /// Return list of portions that have become claimable for address `a` by time `t`.
     /// Immediate vestings only need the latest set of allocations to work,
@@ -214,7 +257,7 @@ impl Channel {
     }
     fn claimable_immediate (&self, a: &HumanAddr) -> StdResult<Vec<Portion>> {
         let mut portions = vec![];
-        match self.allocations.get(self.allocations.len()-1) {
+        match self.allocations.last() {
             None => return self.err_no_allocations(),
             Some((_, latest_allocations)) => {
                 for Allocation { addr, amount } in latest_allocations.iter() {
@@ -289,10 +332,6 @@ impl Periodic {
         Error!(format!("channel {}: periodic vesting must contain at least 1 non-cliff portion",
             name))
     }
-    fn err_amount_remainder<T> (&self, name: &str, actual: u128, expected: u128) -> StdResult<T> {
-        Error!(format!("channel {}: remainder was {}, expected {}",
-            name, actual, expected))
-    }
     fn err_time_travel<T> (&self, name: &str) -> StdResult<T> {
         Error!(format!("channel {}: time of first allocations is after current time",
             name))
@@ -302,7 +341,7 @@ impl Periodic {
         if duration % interval > 0 { return self.err_duration_remainder(name); }
         if duration < interval { return self.err_interval_gt_duration(name); }
         let n_portions = duration / interval;
-        if *cliff > Uint128::zero() {
+        if cliff.u128() > 0 {
             if n_portions < 2 { return self.err_cliff_only(name) }
             return Ok(n_portions - 1u64)
         }
@@ -310,9 +349,7 @@ impl Periodic {
     }
     pub fn portion_size (&self, name: &str, amount: u128) -> StdResult<u128> {
         let n_portions = self.portion_count(name)? as u128;
-        let mut amount = amount;
-        amount -= self.cliff.u128();
-        Ok(amount / n_portions)
+        Ok((amount - self.cliff.u128()) / n_portions)
     }
     pub fn validate (&self, ch: &Channel) -> StdResult<()> {
         let Periodic{cliff,duration,interval,..} = self;
@@ -322,32 +359,32 @@ impl Periodic {
         for (_, allocations) in ch.allocations.iter() {
             if allocations.len() > 1 && cliff.u128() > 0 { return self.err_periodic_cliff_multiple(&ch.name) }
         }
-        self.portion_count(&ch.name)?;
         self.portion_size(&ch.name, ch.amount.u128())?;
         Ok(())
     }
     /// Critical section: generates `Portion`s according to the vesting ladder config.
     pub fn claimable (&self, ch: &Channel, a: &HumanAddr, t: Seconds) -> StdResult<Vec<Portion>> {
 
-        let Periodic{start_at,cliff,interval,..} = self;
+        let &Periodic { start_at, cliff: Uint128(cliff), interval, .. } = self;
 
         // Interval can't be 0 (prevent infinite loop below)
-        if *interval == 0 { return self.err_zero_interval(&ch.name) }
+        if interval == 0 { return self.err_zero_interval(&ch.name) }
 
         // Nothing can be claimed before the start
-        if t < *start_at { return Ok(vec![]) }
+        if t < start_at { return Ok(vec![]) }
 
         // Now comes the part where we iterate over the time range
         // `start_at..min(t, start_at+duration)` in steps of `interval`,
         // and add vestings in accordance with the allocations that are
         // current for the particular moment in time.
-        let mut portions = vec![];
-        let mut total_received: u128 = 0;
-        let mut t_cursor = *start_at;
-        let mut n_portions = self.portion_count(&ch.name)?;
+        let mut portions       = vec![];
+        let mut total_received = 0u128;
+        let mut total_vested   = 0u128;
+        let mut t_cursor       = start_at;
+        let mut n_portions     = self.portion_count(&ch.name)?;
 
         // Make sure allocations exist.
-        if ch.allocations.len() < 1 { return ch.err_no_allocations(); }
+        if ch.allocations.is_empty() { return ch.err_no_allocations(); }
 
         // Get first group of allocations.
         let (t_alloc, current_allocations) = ch.allocations.get(0).unwrap();
@@ -357,7 +394,6 @@ impl Periodic {
         // If the `channel` has a `cliff`, and the first group of
         // `allocations` contains the claimant `a`, then that
         // user must receive the cliff amount.
-        let cliff = cliff.u128();
         if cliff > 0 {
             for Allocation {addr, ..} in current_allocations.iter() {
                 if addr == a {
@@ -369,10 +405,11 @@ impl Periodic {
                     // If the above is true, make the cliff amount
                     // the first portion, and advance the time.
                     let reason = format!("{}: cliff", &ch.name);
-                    portions.push(portion(cliff, a, *start_at, &reason));
+                    portions.push(portion(cliff, a, start_at, &reason));
                     t_cursor += interval;
                     n_portions += 1;
                     total_received += cliff;
+                    total_vested += cliff;
                     break
                 }
             }
@@ -396,12 +433,13 @@ impl Periodic {
             // the actual claimable amount, and add the
             // corresponding portion.
             for Allocation { addr, amount } in current_allocations.iter() {
+                let amount = (*amount).u128();
                 if addr == a {
-                    let amount = (*amount).u128();
                     let reason = format!("{}: vesting", &ch.name);
                     portions.push(portion(amount, a, t_cursor, &reason));
                     total_received += amount;
                 }
+                total_vested += amount;
             }
 
             // Advance the time.
@@ -412,7 +450,7 @@ impl Periodic {
         // If we're at/past the end, add give the remainder.
         // How does this work with multiple allocations though?
         if t_cursor >= t_end {
-            let remainder = ch.amount.u128() - total_received;
+            let remainder = ch.amount.u128() - total_vested;
             if remainder > 0 {
                 // The last group of allocations must contain exactly 1 user
                 // in order to avoid splitting the remainder.
@@ -425,6 +463,9 @@ impl Periodic {
                     // If that is not the case, the admin should be able to
                     // call `Reallocate` and determine a single adress to
                     // receive the remainder.
+                } else {
+                    println!("{:#?}", &ch);
+                    return self.err_periodic_remainder_multiple(&ch.name);
                 }
             }
         }
