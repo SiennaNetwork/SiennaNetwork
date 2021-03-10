@@ -107,6 +107,7 @@ impl Vesting for Account {
         Ok(all_portions)
     }
 }
+
 impl Account {
     fn vest (
         &self,

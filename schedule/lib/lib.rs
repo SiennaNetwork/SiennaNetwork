@@ -1,6 +1,6 @@
 /// # SIENNA/Hack.bg Schedule v2.0
 ///
-/// ## Concept model
+/// ## Conceptual model
 /// * `Schedule`: the root object.
 ///   * Has a `total`.
 ///   * Contains `Pool`s adding up to that total.
@@ -21,26 +21,37 @@
 /// * `Allocation`: pair of address and amount.
 ///   * `TODO`: establish constraints about allocation totals
 /// * `Portion`: an `Allocation` with a `vested` date and a `reason`.
+///   * `TODO`: `reason`s are few; convert to enum
+
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
 use snafu::GenerateBacktrace;
+
 pub mod macros;
-pub mod units; pub use units::*;
 pub mod validate; pub use validate::*;
 pub mod vesting; pub use vesting::*;
 pub mod history; pub use history::*;
+pub use cosmwasm_std::{Uint128, HumanAddr, StdResult, StdError};
 #[cfg(test)] mod tests;
-/// alias for the most basic return type that may contain an error
+
+/// Unit of time
+pub type Seconds = u64;
+
+/// Unit of account
+pub const ONE_SIENNA: u128 = 1000000000000000000u128;
+
+/// The most basic return type that may contain an error
 pub type UsuallyOk = StdResult<()>;
-/// Vesting schedule; contains `Pool`s that must add up to `total`.
+
+/// Contains `Pool`s that must add up to `total`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Schedule {
     pub total:   Uint128,
     pub pools:   Vec<Pool>,
 }
-/// Vesting pool; contains `Account`s that must add up to `total`
-/// if `partial == false`.
+
+/// contains `Account`s; if `partial == false`, they must add up to `total`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Pool {
@@ -61,6 +72,7 @@ impl Pool {
         Ok(total)
     }
 }
+
 /// Individual vesting config.
 /// Immediate release is thought of as a special case of vesting where:
 /// * `head == total`
@@ -89,7 +101,8 @@ pub struct Account {
     /// regardless of how much is left of the `total`.
     pub duration: Seconds,
 }
-/// Each Portion can be distributed among multiple addresses.
+
+/// Allows a `Portion` to be split between multiple addresses.
 pub type Allocations = Vec<Allocation>;
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -107,9 +120,12 @@ impl Allocation {
         }
     }
 }
+
+/// Turns `Allocations` to `Portions` by adding the same timestamp/reason to all
 pub fn allocations_to_portions (a: &Allocations, t: Seconds, r: &str) -> Portions {
     a.iter().map(|b|b.to_portion(t, r)).collect::<Vec<_>>()
 }
+/// Returns the total value of a list of `Allocations`.
 pub fn sum_allocations (a: &Allocations) -> u128 {
     let mut sum = 0u128;
     for Allocation{amount,..} in a.iter() {

@@ -165,7 +165,7 @@
     };
 }
 
-/// Inside and `impl`, define error cases and messages
+/// Define error conditions (inside and `impl` block)
 #[macro_export] macro_rules! define_errors {
     ($(
         $name:ident ($(&$self:ident,)? $($arg:ident : $type:ty),*) ->

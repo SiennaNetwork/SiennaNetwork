@@ -1,11 +1,10 @@
-//! # Schedule validation
+//! # Input validation
 //!
-//! The following structs implement a `validate` method:
+//! The `Schedule`, `Pool`, and `Account` structs
+//! implement the `Validate` trait, providing a `validate` method.
 //! * `Schedule`
 //! * `Pool`
 //! * `Account`
-//! * `Periodic`
-//! * `AllocationSet`
 //!
 //! Unfortunately, `rustdoc` does not allow for the `impl`s that are defined
 //! in this module to be rendered on this doc page, because they implement
@@ -31,22 +30,26 @@
 
 use crate::*;
 
+/// Trait for something that undergoes validation
+/// returning `Ok` or an error.
 pub trait Validate {
+    /// Default implementation is a no-op
     fn validate (&self) -> StdResult<()> { Ok(()) }
 }
 
 impl Validate for Schedule {
+    /// Schedule must contain valid pools that add up to the schedule total
     fn validate (&self) -> StdResult<()> {
         let mut total = 0u128;
-        let mut pools: Vec<String> = vec![];
         for pool in self.pools.iter() {
-            pools.push(pool.name.clone());
             match pool.validate() {
                 Ok(_)  => { total += pool.total.u128() },
                 Err(e) => return Err(e)
             }
         }
-        if total != self.total.u128() { return Self::err_total(total, self.total.u128()) }
+        if total != self.total.u128() {
+            return Self::err_total(total, self.total.u128())
+        }
         Ok(())
     }
 }
