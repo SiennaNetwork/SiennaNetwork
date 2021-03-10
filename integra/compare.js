@@ -66,7 +66,7 @@
 // * To run this script, and see the contract working:
 //   * Go to the root of the project repository
 //   * Start the backend with `docker-compose up -d localnet`
-//   * Build the commits under test, e.g. `./scripts/build/commit.sh 1.0.0-rc2`
+//   * Build each commits to test, e.g. `./build/commit.sh 1.0.0-rc2`
 //   * Run the test with `docker-compose run compare`
 //   * Wait. The selected commits will be tested in sequence, at a rate of 5 seconds per block,
 //     which adds up to **~1.5min per test run**.

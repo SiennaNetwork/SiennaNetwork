@@ -1,13 +1,13 @@
 {
   "private": true,
   "workspaces": [
-    "./scripts",
     "./platform/cosmwasm-js",
     "./platform/cosmwasm-js/packages/*",
+    "./integra",
     "./schedule",
     "./mgmt"
   ],
   "devDependencies": {
-    "sienna-scripts": "1.0.0-poc"
+    "@hackbg/integra": "*"
   }
 }
