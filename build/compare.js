@@ -73,12 +73,14 @@
 compare().then(console.log) // When the testing ends, this will print `ok` or error for each version.
 // ## Dependencies
 async function compare ({
-  say = require('./lib/say').tag(`${new Date().toISOString()} `), // * Logging
-  SecretNetworkAgent = require('./lib/agent'), // * Pre-existing testnet wallets with gas money
-  MNE   = x => require(`/shared-keys/${x}.json`).mnemonic, // * Gets mnemonics from environment
-  ADMIN = SecretNetworkAgent.fromMnemonic({say, name: "ADMIN", mnemonic: MNE("ADMIN")}),
-  ALICE = SecretNetworkAgent.fromMnemonic({say, name: "ALICE", mnemonic: MNE("ALICE")}),
-  BOB   = SecretNetworkAgent.fromMnemonic({say, name: "BOB",   mnemonic: MNE("BOB")  }),
+  Fadroma = require('@hackbg/fadroma'), // utility library
+  say = Fadroma.say.tag(`${new Date().toISOString()} `), // * Logging
+  Agent = Fadroma.SecretNetworkAgent, // * Gets mnemonics from environment
+  MNE   = x => require(`/shared-keys/${x}.json`).mnemonic, 
+  // Pre-existing testnet wallets with gas money:
+  ADMIN = Agent.fromMnemonic({say, name: "ADMIN", mnemonic: MNE("ADMIN")}),
+  ALICE = Agent.fromMnemonic({say, name: "ALICE", mnemonic: MNE("ALICE")}),
+  BOB   = Agent.fromMnemonic({say, name: "BOB",   mnemonic: MNE("BOB")  }),
   commits = [  // list of Git refs to compare. (Tags/branches work fine.) However, you'll need to compile these yourself, with e.g. `./scripts/build/commit 1.0.0-rc3` before you run the script, because calling Docker from Docker is messy.
     `main`,        // * **main**: top of main branch
     //`1.0.0-rc1`, // * **rc1**: before implementing `AddChannel`
@@ -87,8 +89,25 @@ async function compare ({
     //`1.0.0-rc4`, // * **rc4**: the above + patches SCL{01..13} + MGL{01..02} (fails test suite at SCL-04)
     `1.0.0-rc5`,   // * **rc5**: the above + revert SCL-04
   ],
-  SNIP20Contract = require('./lib/contract').SNIP20Contract, // This wrapper lets us command the token
-  MGMTContract   = require('./lib/contract').MGMTContract    // and this one the vesting.
+  // This wrapper lets us command the token:
+  SNIP20Contract = class SNIP20Contract extends require('@hackbg/snip20') {
+    static fromCommit = async (args={}) => super.fromCommit({ ...args,
+      name:   `TOKEN{${args.commit}}`,
+      binary: `${args.commit}-snip20-reference-impl.wasm`,
+      data:   { name:      "Sienna"
+              , symbol:    "SIENNA"
+              , decimals:  18
+              , admin:     args.agent.address
+              , prng_seed: "insecure"
+              , config:    { public_total_supply: true } } }) },
+  // And this one, the vesting:
+  MGMTContract = class MGMTContract extends require('@hackbg/mgmt') {
+    static fromCommit = async (args={}) => super.fromCommit({ ...args,
+      name:   `MGMT{${args.commit}}`,
+      binary: `${args.commit}-sienna-mgmt.wasm`,
+      data:   { token_addr: args.token.address
+              , token_hash: args.token.hash
+              , ...args.data } }) }
 }={}) {
   ;[ADMIN, ALICE, BOB] = await Promise.all([ADMIN, ALICE, BOB]) // Wait for async dependencies to be ready.
   await Promise.all([ADMIN,ALICE,BOB].map(x=>x.status())) // Print the time, and address/balance of each account.

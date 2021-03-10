@@ -7,6 +7,15 @@
     "token_hash"
   ],
   "properties": {
+    "schedule": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/Portion"
+      }
+    },
     "token_addr": {
       "$ref": "#/definitions/HumanAddr"
     },
@@ -16,6 +25,35 @@
   },
   "definitions": {
     "HumanAddr": {
+      "type": "string"
+    },
+    "Portion": {
+      "description": "Claimable portion",
+      "type": "object",
+      "required": [
+        "address",
+        "amount",
+        "reason",
+        "vested"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "vested": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "Uint128": {
       "type": "string"
     }
   }

@@ -3,31 +3,22 @@
   "title": "Handle",
   "anyOf": [
     {
+      "description": "Load a new schedule (only before launching the contract)",
       "type": "object",
       "required": [
-        "set_recipients"
+        "configure"
       ],
       "properties": {
-        "set_recipients": {
+        "configure": {
           "type": "object",
           "required": [
-            "recipients"
+            "portions"
           ],
           "properties": {
-            "recipients": {
+            "portions": {
               "type": "array",
               "items": {
-                "type": "array",
-                "items": [
-                  {
-                    "$ref": "#/definitions/CanonicalAddr"
-                  },
-                  {
-                    "$ref": "#/definitions/Uint128"
-                  }
-                ],
-                "maxItems": 2,
-                "minItems": 2
+                "$ref": "#/definitions/Portion"
               }
             }
           }
@@ -35,6 +26,39 @@
       }
     },
     {
+      "description": "The admin can make someone else the admin, but there can be only one admin at a given time (or none)",
+      "type": "object",
+      "required": [
+        "transfer_ownership"
+      ],
+      "properties": {
+        "transfer_ownership": {
+          "type": "object",
+          "required": [
+            "new_admin"
+          ],
+          "properties": {
+            "new_admin": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "The admin can disown the contract so that nobody can be admin anymore:",
+      "type": "object",
+      "required": [
+        "disown"
+      ],
+      "properties": {
+        "disown": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "description": "An instance can be launched only once. Launching the instance mints the total tokens as specified by the schedule, and prevents any more tokens from ever being minted by the underlying contract.",
       "type": "object",
       "required": [
         "launch"
@@ -46,6 +70,7 @@
       }
     },
     {
+      "description": "After launch, recipients can call the Claim method to receive the gains that they have accumulated so far.",
       "type": "object",
       "required": [
         "claim"
@@ -58,12 +83,34 @@
     }
   ],
   "definitions": {
-    "Binary": {
-      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+    "HumanAddr": {
       "type": "string"
     },
-    "CanonicalAddr": {
-      "$ref": "#/definitions/Binary"
+    "Portion": {
+      "description": "Claimable portion",
+      "type": "object",
+      "required": [
+        "address",
+        "amount",
+        "reason",
+        "vested"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "vested": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
     },
     "Uint128": {
       "type": "string"

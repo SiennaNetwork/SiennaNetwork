@@ -5,11 +5,10 @@
   "workspaces": [
     "./platform/cosmwasm-js",
     "./platform/cosmwasm-js/packages/*",
-    "./integra",
+    "./fadroma",
     "./schedule",
-    "./mgmt"
-  ],
-  "devDependencies": {
-    "@hackbg/integra": "*"
-  }
+    "./token",
+    "./mgmt",
+    "./build"
+  ]
 }

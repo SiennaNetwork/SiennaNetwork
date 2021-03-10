@@ -63,6 +63,7 @@ prod: _optimizer
 .PHONY: schema schedule
 schema:
 	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schema
+	cargo run --manifest-path=token/Cargo.toml --example schema
 schedule:
 	./schedule/tsv2json.js
 

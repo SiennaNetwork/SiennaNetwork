@@ -3,19 +3,22 @@
   "title": "State",
   "type": "object",
   "required": [
-    "admin",
     "errors",
-    "recipients",
+    "history",
+    "schedule",
     "token_addr",
     "token_hash",
-    "vested"
+    "total"
   ],
   "properties": {
     "admin": {
-      "description": "The instantiatior of the contract",
-      "allOf": [
+      "description": "The instantiatior of the contract.",
+      "anyOf": [
         {
-          "$ref": "#/definitions/CanonicalAddr"
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "null"
         }
       ]
     },
@@ -25,8 +28,16 @@
       "format": "uint64",
       "minimum": 0.0
     },
+    "history": {
+      "description": "History of fulfilled claims.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/History"
+        }
+      ]
+    },
     "launched": {
-      "description": "Timestamp of the moment this was launched",
+      "description": "When this contract is launched, this is set to the block time.",
       "type": [
         "integer",
         "null"
@@ -34,25 +45,15 @@
       "format": "uint64",
       "minimum": 0.0
     },
-    "recipients": {
-      "description": "A dedicated portion of the funds can be redirected at runtime",
+    "schedule": {
+      "description": "Vesting configuration.",
       "type": "array",
       "items": {
-        "type": "array",
-        "items": [
-          {
-            "$ref": "#/definitions/CanonicalAddr"
-          },
-          {
-            "$ref": "#/definitions/Uint128"
-          }
-        ],
-        "maxItems": 2,
-        "minItems": 2
+        "$ref": "#/definitions/Portion"
       }
     },
     "token_addr": {
-      "description": "The SNIP20 token contract that will be managed by this instance",
+      "description": "The SNIP20 token contract that will be managed by this instance.",
       "allOf": [
         {
           "$ref": "#/definitions/HumanAddr"
@@ -60,42 +61,80 @@
       ]
     },
     "token_hash": {
-      "description": "The code hash of the managed contract (see `secretcli query compute contract-hash --help`)",
+      "description": "The code hash of the managed contract (see `secretcli query compute contract-hash --help`).",
       "type": "string"
     },
-    "vested": {
-      "description": "History of fulfilled claims",
-      "type": "array",
-      "items": {
-        "type": "array",
-        "items": [
-          {
-            "$ref": "#/definitions/CanonicalAddr"
-          },
-          {
-            "type": "integer",
-            "format": "uint64",
-            "minimum": 0.0
-          },
-          {
-            "$ref": "#/definitions/Uint128"
-          }
-        ],
-        "maxItems": 3,
-        "minItems": 3
-      }
+    "total": {
+      "description": "Total amount to mint",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Uint128"
+        }
+      ]
     }
   },
   "definitions": {
-    "Binary": {
-      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
-      "type": "string"
+    "ClaimedPortion": {
+      "description": "History entry",
+      "type": "object",
+      "required": [
+        "claimed",
+        "portion"
+      ],
+      "properties": {
+        "claimed": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "portion": {
+          "$ref": "#/definitions/Portion"
+        }
+      }
     },
-    "CanonicalAddr": {
-      "$ref": "#/definitions/Binary"
+    "History": {
+      "description": "Log of executed claims",
+      "type": "object",
+      "required": [
+        "history"
+      ],
+      "properties": {
+        "history": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ClaimedPortion"
+          }
+        }
+      }
     },
     "HumanAddr": {
       "type": "string"
+    },
+    "Portion": {
+      "description": "Claimable portion",
+      "type": "object",
+      "required": [
+        "address",
+        "amount",
+        "reason",
+        "vested"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "vested": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
     },
     "Uint128": {
       "type": "string"

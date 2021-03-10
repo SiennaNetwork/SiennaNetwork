@@ -10,7 +10,15 @@
       "properties": {
         "status": {
           "type": "object",
+          "required": [
+            "errors"
+          ],
           "properties": {
+            "errors": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
             "launched": {
               "type": [
                 "integer",
@@ -26,30 +34,24 @@
     {
       "type": "object",
       "required": [
-        "recipients"
+        "schedule"
       ],
       "properties": {
-        "recipients": {
+        "schedule": {
           "type": "object",
           "required": [
-            "recipients"
+            "schedule",
+            "total"
           ],
           "properties": {
-            "recipients": {
+            "schedule": {
               "type": "array",
               "items": {
-                "type": "array",
-                "items": [
-                  {
-                    "$ref": "#/definitions/CanonicalAddr"
-                  },
-                  {
-                    "$ref": "#/definitions/Uint128"
-                  }
-                ],
-                "maxItems": 2,
-                "minItems": 2
+                "$ref": "#/definitions/Portion"
               }
+            },
+            "total": {
+              "$ref": "#/definitions/Uint128"
             }
           }
         }
@@ -57,12 +59,34 @@
     }
   ],
   "definitions": {
-    "Binary": {
-      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+    "HumanAddr": {
       "type": "string"
     },
-    "CanonicalAddr": {
-      "$ref": "#/definitions/Binary"
+    "Portion": {
+      "description": "Claimable portion",
+      "type": "object",
+      "required": [
+        "address",
+        "amount",
+        "reason",
+        "vested"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "vested": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
     },
     "Uint128": {
       "type": "string"
