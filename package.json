@@ -1,0 +1,9 @@
+{
+  "name": "@hackbg/snip20",
+  "version": "0.0.0",
+  "main": "./schema/index.js",
+  "peerDependencies": {
+    "@hackbg/fadroma": "*"
+  }
+}
+
