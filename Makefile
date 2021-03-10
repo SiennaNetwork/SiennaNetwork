@@ -45,7 +45,7 @@ _optimizer: optimizer/*
 		-t hackbg/secret-contract-optimizer:latest \
 		optimizer
 prod: _optimizer
-	time scripts/build/working-tree.sh
+	time build/working-tree
 # TODO: see if there's any value in keeping these around:
 #compile: _compile sienna_token.wasm sienna_mgmt.wasm
 #_compile:
@@ -64,7 +64,7 @@ prod: _optimizer
 schema:
 	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schema
 schedule:
-	./scripts/tsv2json.js
+	./schedule/tsv2json.js
 
 # TODO: update
 ## Local deployment
