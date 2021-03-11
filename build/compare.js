@@ -73,24 +73,15 @@
 compare().then(console.log) // When the testing ends, this will print `ok` or error for each version.
 // ## Dependencies
 async function compare ({
-  Fadroma = require('@hackbg/fadroma'), // utility library
-  say = Fadroma.say.tag(`${new Date().toISOString()} `), // * Logging
-  Agent = Fadroma.SecretNetworkAgent, // * Gets mnemonics from environment
-  MNE   = x => require(`/shared-keys/${x}.json`).mnemonic, 
-  // Pre-existing testnet wallets with gas money:
-  ADMIN = Agent.fromMnemonic({say, name: "ADMIN", mnemonic: MNE("ADMIN")}),
-  ALICE = Agent.fromMnemonic({say, name: "ALICE", mnemonic: MNE("ALICE")}),
-  BOB   = Agent.fromMnemonic({say, name: "BOB",   mnemonic: MNE("BOB")  }),
-  commits = [  // list of Git refs to compare. (Tags/branches work fine.) However, you'll need to compile these yourself, with e.g. `./scripts/build/commit 1.0.0-rc3` before you run the script, because calling Docker from Docker is messy.
-    `main`,        // * **main**: top of main branch
-    //`1.0.0-rc1`, // * **rc1**: before implementing `AddChannel`
-    //`1.0.0-rc2`, // * **rc2**: as delivered for preliminary audit (fails to build)
-    `1.0.0-rc3`,   // * **rc3**: the above + fix to `Cargo.lock` to allow it to build
-    //`1.0.0-rc4`, // * **rc4**: the above + patches SCL{01..13} + MGL{01..02} (fails test suite at SCL-04)
-    `1.0.0-rc5`,   // * **rc5**: the above + revert SCL-04
-  ],
-  // This wrapper lets us command the token:
-  SNIP20Contract = class SNIP20Contract extends require('@hackbg/snip20') {
+
+  // Utilities:
+  Fadroma = require('@hackbg/fadroma'),
+  now     = () => new Date().toISOString(), // * Timestamper
+  say     = Fadroma.say.tag(`${now()} `),   // * Logger
+  Agent   = Fadroma.SecretNetworkAgent,     // * Wrapper around SigningCosmWasmClient
+
+  // Interfaces around contracts:
+  SNIP20Contract = class SNIP20Contract extends require('@hackbg/snip20') { // * Token
     static fromCommit = async (args={}) => super.fromCommit({ ...args,
       name:   `TOKEN{${args.commit}}`,
       binary: `${args.commit}-snip20-reference-impl.wasm`,
@@ -100,39 +91,54 @@ async function compare ({
               , admin:     args.agent.address
               , prng_seed: "insecure"
               , config:    { public_total_supply: true } } }) },
-  // And this one, the vesting:
-  MGMTContract = class MGMTContract extends require('@hackbg/mgmt') {
+  MGMTContract = class MGMTContract extends require('@hackbg/mgmt') { // * Vesting
     static fromCommit = async (args={}) => super.fromCommit({ ...args,
       name:   `MGMT{${args.commit}}`,
       binary: `${args.commit}-sienna-mgmt.wasm`,
       data:   { token_addr: args.token.address
               , token_hash: args.token.hash
-              , ...args.data } }) }
+              , ...args.data } }) },
+
+  // Pre-existing testnet wallets with gas money:
+  MNE   = x => require(`/shared-keys/${x}.json`).mnemonic, // get mnemonic from file
+  ADMIN = Agent.fromMnemonic({say, name: "ADMIN", mnemonic: MNE("ADMIN")}),
+  ALICE = Agent.fromMnemonic({say, name: "ALICE", mnemonic: MNE("ALICE")}),
+  BOB   = Agent.fromMnemonic({say, name: "BOB",   mnemonic: MNE("BOB")  }),
+
+  // List of Git refs to compare.
+  // * You'll need to compile these yourself, with e.g. `./scripts/build/commit 1.0.0-rc3`
+  //   before you run the script, because calling Docker from Docker is messy.
+  commits = [
+    `main`,        // * **main**: top of main branch
+    //`1.0.0-rc1`, // * **rc1**: before implementing `AddChannel`
+    //`1.0.0-rc2`, // * **rc2**: as delivered for preliminary audit (fails to build)
+    //`1.0.0-rc3`,   // * **rc3**: the above + fix to `Cargo.lock` to allow it to build
+    //`1.0.0-rc4`, // * **rc4**: the above + patches SCL{01..13} + MGL{01..02} (fails test suite at SCL-04)
+    //`1.0.0-rc5`,   // * **rc5**: the above + revert SCL-04
+  ],
+
 }={}) {
   ;[ADMIN, ALICE, BOB] = await Promise.all([ADMIN, ALICE, BOB]) // Wait for async dependencies to be ready.
   await Promise.all([ADMIN,ALICE,BOB].map(x=>x.status())) // Print the time, and address/balance of each account.
   // Let's go!
   // ## Preparation
-  // Let's deploy several different instances of the codebase, in order to see how they
-  // respond to the test. Tests will execute in sequence (because trying to upload multiple
-  // contracts in 1 block crashes; the rest should be more amenable to parallelization).
-  // Results will be stored in `results`, and displayed at the end.
-  const results = {}
+  // Let's deploy the specified `commit`s, in order to see how they respond to the test.
+  // Tests will execute in sequence (because trying to upload multiple contracts in 1 block crashes;
+  // the rest should be more amenable to parallelization though).
+  const results = {} // Results will be stored in `results`, and displayed at the end.
   for (let commit of commits) await testCommit(commit, say.tag(`#testing{${commit}}`))
   async function testCommit (commit, say) {
     say(`-----------------------------------------------------------------------------------------`)
     try {
-      // (This could've been done in parallel, but trying to
-      // upload multiple contracts in 1 block crashes something?)
       // ### Deploy the token
       const TOKEN = await SNIP20Contract.fromCommit({say, agent: ADMIN, commit})
       // ### Generate viewing keys
       const [vkALICE, vkBOB] = await Promise.all([
-        TOKEN.createViewingKey(ALICE, ALICE.address),
-        TOKEN.createViewingKey(BOB,   BOB.address),
+        TOKEN.createViewingKey(ALICE, "entropy"),
+        TOKEN.createViewingKey(BOB,   "entropy"),
       ])
       // ### Deploy and launch the vesting manager
-      const MGMT = await MGMTContract.fromCommit({say, agent: ADMIN, commit, token: TOKEN}) 
+      const MGMT = await MGMTContract.fromCommit({say, agent: ADMIN, commit, token: TOKEN})
       let schedule
       await Promise.all([
         await MGMT.acquire(TOKEN), // * Give it a token to issue
@@ -147,19 +153,19 @@ async function compare ({
       // * BOB claims no portions.
       while (true) { // Repeat the claim until vesting has ended:
         await ADMIN.waitForNextBlock() // Wait for next portion to vest (in the schedule, the interval is configured to be ~= block time)
-        try { 
+        try {
           say(`ALICE claims ------------------------------------------------------------------------`)
           await MGMT.claim(ALICE) // Claim a portion and check recipient balance to confirm it has been transferred
           await TOKEN.balance({
             agent: ALICE,
             viewkey: vkALICE,
             address: ALICE.address
-          }) 
+          })
         } catch (error) { // If that fails:
           if (!error.log) {
-            say(' #warning')('not the error we were expecting')
+            say.tag(' #warning')('not the error we were expecting')
           } else {
-            const log = JSON.parse(error.log) 
+            const log = JSON.parse(error.log)
             say.tag(' #error')(log)
             // SecretJS should parse error.log for us (assuming it's always JSON if present...?)
             // * `rc` builds respond with `nothing for you`, meaning `0` funds claimable for ALICE.
@@ -168,12 +174,12 @@ async function compare ({
             //
             // It's the second one that provides the most clues to the real underlying issue:
             // failing to use the right allocation set.
-            if ( 
+            if (
               log.generic_err && (
                 log.generic_err.msg === 'nothing for you' ||
                 log.generic_err.msg === 'channel Channel1: remainders not supported alongside split allocations'
               )
-            ) { 
+            ) {
               say.tag('#MGMT')('vesting ended')
               break // That means the vesting has ended and we can move forward onto remainders
             } else {
@@ -186,8 +192,8 @@ async function compare ({
       }
       say(`vesting ended -------------------------------------------------------------------------`)
       // Now ALICE should have `6 * 100000000000` and BOB should still have `0`:
-      await TOKEN.balance({ agent: ALICE, viewkey: vkALICE, address: ALICE.address })
-      await TOKEN.balance({ agent: BOB,   viewkey: vkBOB,   address: BOB.address   })
+      await TOKEN.balance(ALICE, vkALICE)
+      await TOKEN.balance(BOB,   vkBOB)
       // Because of constraints introduced in `rc2`, a remainder can't be vested to multiple
       // recipients (meaning of `SCL-07`). This means it needs to be manually reallocated,
       // otherwise it's stuck in the contract.
@@ -211,16 +217,15 @@ async function compare ({
       await MGMT.reallocate(
         schedule.pools[0].name,
         schedule.pools[0].channels[0].name,
-        [ { addr:   ALICE.address
-          , amount: "1" } ])
+        { [ALICE.address]: "1" })
       await ADMIN.waitForNextBlock()
       await MGMT.claim(ALICE) // ALICE claims remainder.
-      await TOKEN.balance({ agent: ALICE, viewkey: vkALICE, address: ALICE.address })
+      await TOKEN.balance(ALICE, vkALICE)
       // **OOPS**! If allocations worked, here ALICE would've received all the channel's available
       // funds, including BOB's unclaimed portions (sorry Bob), in addition to the allocated
       // crumb of the remainder.
       await MGMT.claim(BOB)
-      await TOKEN.balance({ agent: BOB, viewkey: vkBOB, address: BOB.address })
+      await TOKEN.balance(BOB, vkBOB)
       await ADMIN.waitForNextBlock() // Pause for a block before trying with the next version
       say(`ok, next version ----------------------------------------------------------------------`)
       results[commit] = 'OK' // store success
@@ -290,7 +295,7 @@ async function compare ({
 //     in their normal course of work, or by us in the process of preparing SIENNA for primetime.
 //     The Secret Network codebase is certainly concise and malleable enough to allow for
 //     the latter.
-// * For example, during the construction of this integration test, which checks for 
+// * For example, during the construction of this integration test, which checks for
 //   the "correct" error being thrown in order to know when to proceed to the
 //   second stage of the woult-be "exploit", it became clear that **error handling over
 //   the Rust/JS barrier** is underdeveloped.
@@ -321,11 +326,11 @@ function getSchedule ({ ALICE, BOB }) {
   return {
     "total": "1000000000000",
     "pools": [ // `Pool`s map to the first-level categories from the spec: Investors, Founders, Advisors,...
-      {        
+      {
         "name": "Pool1",
         "total": "1000000000000",
         "partial": true, // If the `Pool` is marked `partial` (as is the default), new `Channel`s can be added by the admin to it before or after launch, up to the `total` pool amount.
-        "channels": [ 
+        "channels": [
           {
             "name": "Channel1", // `Channel`s correspond to individual budget items like Investor1, Founder2, Advisor3, as well as DevFund, Liquidity Provision Fund...
             "amount": "1000000000000",
@@ -342,7 +347,7 @@ function getSchedule ({ ALICE, BOB }) {
               [ 0 , [ { "addr": ALICE.address, "amount": "100000000000" }
                     , { "addr": BOB.address,   "amount":  "66666666660" } ] ]
               // Calling `reallocate` on the contract adds a new record here, containing an updated timestamp and the new allocations.
-            ]   
+            ]
           }
         ]
       }

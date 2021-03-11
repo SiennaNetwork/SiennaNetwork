@@ -74,7 +74,7 @@ like never before<ul>
 <li>To run this script, and see the contract working:<ul>
 <li>Go to the root of the project repository</li>
 <li>Start the backend with <code>docker-compose up -d localnet</code></li>
-<li>Build the commits under test, e.g. <code>./scripts/build/commit.sh 1.0.0-rc2</code></li>
+<li>Build each commits to test, e.g. <code>./build/commit.sh 1.0.0-rc2</code></li>
 <li>Run the test with <code>docker-compose run compare</code></li>
 <li>Wait. The selected commits will be tested in sequence, at a rate of 5 seconds per block,
 which adds up to <strong>~1.5min per test run</strong>.</li>
@@ -83,19 +83,46 @@ which adds up to <strong>~1.5min per test run</strong>.</li>
 </ul>
 </div></div><div class="section mixed"><div class="code">compare().then(console.log) </div><div class="text"><p> When the testing ends, this will print <code>ok</code> or error for each version.</p>
 </div></div></div></div><div class="section text"><h2 id="dependencies">Dependencies</h2>
-</div></div><div class="section code">async function compare ({</div></div><div class="section mixed"><div class="code">  say = require('./lib/say').tag(`${new Date().toISOString()} `), </div><div class="text"><ul>
-<li>Logging</li>
+</div></div><div class="section code">async function compare ({</div></div><div class="section text"><p> Utilities:</p>
+</div></div><div class="section code">  Fadroma = require('@hackbg/fadroma'),</div></div><div class="section mixed"><div class="code">  now     = () => new Date().toISOString(), </div><div class="text"><ul>
+<li>Timestamper</li>
 </ul>
-</div></div></div><div class="section mixed"><div class="code">  SecretNetworkAgent = require('./lib/agent'), </div><div class="text"><ul>
-<li>Pre-existing testnet wallets with gas money</li>
+</div></div></div><div class="section mixed"><div class="code">  say     = Fadroma.say.tag(`${now()} `),   </div><div class="text"><ul>
+<li>Logger</li>
 </ul>
-</div></div></div><div class="section mixed"><div class="code">  MNE   = x => require(`/shared-keys/${x}.json`).mnemonic, </div><div class="text"><ul>
-<li>Gets mnemonics from environment</li>
+</div></div></div><div class="section mixed"><div class="code">  Agent   = Fadroma.SecretNetworkAgent,     </div><div class="text"><ul>
+<li>Wrapper around SigningCosmWasmClient</li>
 </ul>
-</div></div></div></div><div class="section code">  ADMIN = SecretNetworkAgent.fromMnemonic({say, name: "ADMIN", mnemonic: MNE("ADMIN")}),
-  ALICE = SecretNetworkAgent.fromMnemonic({say, name: "ALICE", mnemonic: MNE("ALICE")}),
-  BOB   = SecretNetworkAgent.fromMnemonic({say, name: "BOB",   mnemonic: MNE("BOB")  }),</div></div><div class="section mixed"><div class="code">  commits = [  </div><div class="text"><p> list of Git refs to compare. (Tags/branches work fine.) However, you&#39;ll need to compile these yourself, with e.g. <code>./scripts/build/commit 1.0.0-rc3</code> before you run the script, because calling Docker from Docker is messy.</p>
-</div></div></div><div class="section mixed"><div class="code">    `main`,        </div><div class="text"><ul>
+</div></div></div></div><div class="section text"><p> Interfaces around contracts:</p>
+</div></div><div class="section mixed"><div class="code">  SNIP20Contract = class SNIP20Contract extends require('@hackbg/snip20') { </div><div class="text"><ul>
+<li>Token</li>
+</ul>
+</div></div></div></div><div class="section code">    static fromCommit = async (args={}) => super.fromCommit({ ...args,
+      name:   `TOKEN{${args.commit}}`,
+      binary: `${args.commit}-snip20-reference-impl.wasm`,
+      data:   { name:      "Sienna"
+              , symbol:    "SIENNA"
+              , decimals:  18
+              , admin:     args.agent.address
+              , prng_seed: "insecure"
+              , config:    { public_total_supply: true } } }) },</div></div><div class="section mixed"><div class="code">  MGMTContract = class MGMTContract extends require('@hackbg/mgmt') { </div><div class="text"><ul>
+<li>Vesting</li>
+</ul>
+</div></div></div></div><div class="section code">    static fromCommit = async (args={}) => super.fromCommit({ ...args,
+      name:   `MGMT{${args.commit}}`,
+      binary: `${args.commit}-sienna-mgmt.wasm`,
+      data:   { token_addr: args.token.address
+              , token_hash: args.token.hash
+              , ...args.data } }) },</div></div><div class="section text"><p> Pre-existing testnet wallets with gas money:</p>
+</div></div><div class="section mixed"><div class="code">  MNE   = x => require(`/shared-keys/${x}.json`).mnemonic, </div><div class="text"><p> get mnemonic from file</p>
+</div></div></div></div><div class="section code">  ADMIN = Agent.fromMnemonic({say, name: "ADMIN", mnemonic: MNE("ADMIN")}),
+  ALICE = Agent.fromMnemonic({say, name: "ALICE", mnemonic: MNE("ALICE")}),
+  BOB   = Agent.fromMnemonic({say, name: "BOB",   mnemonic: MNE("BOB")  }),</div></div><div class="section text"><p> List of Git refs to compare.</p>
+<ul>
+<li>You&#39;ll need to compile these yourself, with e.g. <code>./scripts/build/commit 1.0.0-rc3</code>
+before you run the script, because calling Docker from Docker is messy.</li>
+</ul>
+</div></div><div class="section code">  commits = [</div></div><div class="section mixed"><div class="code">    `main`,        </div><div class="text"><ul>
 <li><strong>main</strong>: top of main branch</li>
 </ul>
 </div></div></div><div class="section mixed"><div class="code">    //`1.0.0-rc1`, </div><div class="text"><ul>
@@ -104,38 +131,33 @@ which adds up to <strong>~1.5min per test run</strong>.</li>
 </div></div></div><div class="section mixed"><div class="code">    //`1.0.0-rc2`, </div><div class="text"><ul>
 <li><strong>rc2</strong>: as delivered for preliminary audit (fails to build)</li>
 </ul>
-</div></div></div><div class="section mixed"><div class="code">    `1.0.0-rc3`,   </div><div class="text"><ul>
+</div></div></div><div class="section mixed"><div class="code">    //`1.0.0-rc3`,   </div><div class="text"><ul>
 <li><strong>rc3</strong>: the above + fix to <code>Cargo.lock</code> to allow it to build</li>
 </ul>
 </div></div></div><div class="section mixed"><div class="code">    //`1.0.0-rc4`, </div><div class="text"><ul>
 <li><strong>rc4</strong>: the above + patches SCL{01..13} + MGL{01..02} (fails test suite at SCL-04)</li>
 </ul>
-</div></div></div><div class="section mixed"><div class="code">    `1.0.0-rc5`,   </div><div class="text"><ul>
+</div></div></div><div class="section mixed"><div class="code">    //`1.0.0-rc5`,   </div><div class="text"><ul>
 <li><strong>rc5</strong>: the above + revert SCL-04</li>
 </ul>
-</div></div></div></div><div class="section code">  ],</div></div><div class="section mixed"><div class="code">  SNIP20Contract = require('./lib/contract').SNIP20Contract, </div><div class="text"><p> This wrapper lets us command the token</p>
-</div></div></div><div class="section mixed"><div class="code">  MGMTContract   = require('./lib/contract').MGMTContract    </div><div class="text"><p> and this one the vesting.</p>
-</div></div></div></div><div class="section code">}={}) {</div></div><div class="section mixed"><div class="code">  ;[ADMIN, ALICE, BOB] = await Promise.all([ADMIN, ALICE, BOB]) </div><div class="text"><p> Wait for async dependencies to be ready.</p>
+</div></div></div></div><div class="section code">  ],</div></div><div class="section text"></div></div><div class="section code">}={}) {</div></div><div class="section mixed"><div class="code">  ;[ADMIN, ALICE, BOB] = await Promise.all([ADMIN, ALICE, BOB]) </div><div class="text"><p> Wait for async dependencies to be ready.</p>
 </div></div></div><div class="section mixed"><div class="code">  await Promise.all([ADMIN,ALICE,BOB].map(x=>x.status())) </div><div class="text"><p> Print the time, and address/balance of each account.</p>
 </div></div></div></div><div class="section text"><p> Let&#39;s go!</p>
 <h2 id="preparation">Preparation</h2>
-<p> Let&#39;s deploy several different instances of the codebase, in order to see how they
- respond to the test. Tests will execute in sequence (because trying to upload multiple
- contracts in 1 block crashes; the rest should be more amenable to parallelization).
- Results will be stored in <code>results</code>, and displayed at the end.</p>
-</div></div><div class="section code">  const results = {}
-  for (let commit of commits) await testCommit(commit, say.tag(`#testing{${commit}}`))
+<p> Let&#39;s deploy the specified <code>commit</code>s, in order to see how they respond to the test.
+ Tests will execute in sequence (because trying to upload multiple contracts in 1 block crashes;
+ the rest should be more amenable to parallelization though).</p>
+</div></div><div class="section mixed"><div class="code">  const results = {} </div><div class="text"><p> Results will be stored in <code>results</code>, and displayed at the end.</p>
+</div></div></div></div><div class="section code">  for (let commit of commits) await testCommit(commit, say.tag(`#testing{${commit}}`))
   async function testCommit (commit, say) {
     say(`-----------------------------------------------------------------------------------------`)
-    try {</div></div><div class="section text"><p> (This could&#39;ve been done in parallel, but trying to
- upload multiple contracts in 1 block crashes something?)</p>
-<h3 id="deploy-the-token">Deploy the token</h3>
+    try {</div></div><div class="section text"><h3 id="deploy-the-token">Deploy the token</h3>
 </div></div><div class="section code">      const TOKEN = await SNIP20Contract.fromCommit({say, agent: ADMIN, commit})</div></div><div class="section text"><h3 id="generate-viewing-keys">Generate viewing keys</h3>
 </div></div><div class="section code">      const [vkALICE, vkBOB] = await Promise.all([
-        TOKEN.createViewingKey(ALICE, ALICE.address),
-        TOKEN.createViewingKey(BOB,   BOB.address),
+        TOKEN.createViewingKey(ALICE, "entropy"),
+        TOKEN.createViewingKey(BOB,   "entropy"),
       ])</div></div><div class="section text"><h3 id="deploy-and-launch-the-vesting-manager">Deploy and launch the vesting manager</h3>
-</div></div><div class="section code">      const MGMT = await MGMTContract.fromCommit({say, agent: ADMIN, commit, token: TOKEN}) 
+</div></div><div class="section code">      const MGMT = await MGMTContract.fromCommit({say, agent: ADMIN, commit, token: TOKEN})
       let schedule
       await Promise.all([</div></div><div class="section mixed"><div class="code">        await MGMT.acquire(TOKEN), </div><div class="text"><ul>
 <li>Give it a token to issue</li>
@@ -155,17 +177,17 @@ which adds up to <strong>~1.5min per test run</strong>.</li>
 </ul>
 </div></div><div class="section mixed"><div class="code">      while (true) { </div><div class="text"><p> Repeat the claim until vesting has ended:</p>
 </div></div></div><div class="section mixed"><div class="code">        await ADMIN.waitForNextBlock() </div><div class="text"><p> Wait for next portion to vest (in the schedule, the interval is configured to be ~= block time)</p>
-</div></div></div></div><div class="section code">        try { 
+</div></div></div></div><div class="section code">        try {
           say(`ALICE claims ------------------------------------------------------------------------`)</div></div><div class="section mixed"><div class="code">          await MGMT.claim(ALICE) </div><div class="text"><p> Claim a portion and check recipient balance to confirm it has been transferred</p>
 </div></div></div></div><div class="section code">          await TOKEN.balance({
             agent: ALICE,
             viewkey: vkALICE,
             address: ALICE.address
-          }) </div></div><div class="section mixed"><div class="code">        } catch (error) { </div><div class="text"><p> If that fails:</p>
+          })</div></div><div class="section mixed"><div class="code">        } catch (error) { </div><div class="text"><p> If that fails:</p>
 </div></div></div></div><div class="section code">          if (!error.log) {
-            say(' #warning')('not the error we were expecting')
+            say.tag(' #warning')('not the error we were expecting')
           } else {
-            const log = JSON.parse(error.log) 
+            const log = JSON.parse(error.log)
             say.tag(' #error')(log)</div></div><div class="section text"><p> SecretJS should parse error.log for us (assuming it&#39;s always JSON if present...?)</p>
 <ul>
 <li><code>rc</code> builds respond with <code>nothing for you</code>, meaning <code>0</code> funds claimable for ALICE.</li>
@@ -174,12 +196,12 @@ pre-launch self-validation logic has deemed the schedule erroneous (success!)</l
 </ul>
 <p> It&#39;s the second one that provides the most clues to the real underlying issue:
  failing to use the right allocation set.</p>
-</div></div><div class="section code">            if ( 
+</div></div><div class="section code">            if (
               log.generic_err && (
                 log.generic_err.msg === 'nothing for you' ||
                 log.generic_err.msg === 'channel Channel1: remainders not supported alongside split allocations'
               )
-            ) { 
+            ) {
               say.tag('#MGMT')('vesting ended')</div></div><div class="section mixed"><div class="code">              break </div><div class="text"><p> That means the vesting has ended and we can move forward onto remainders</p>
 </div></div></div></div><div class="section code">            } else {
               say.tag(' #warning')('not the error we were expecting either, try again')
@@ -190,8 +212,8 @@ pre-launch self-validation logic has deemed the schedule erroneous (success!)</l
         }
       }
       say(`vesting ended -------------------------------------------------------------------------`)</div></div><div class="section text"><p> Now ALICE should have <code>6 * 100000000000</code> and BOB should still have <code>0</code>:</p>
-</div></div><div class="section code">      await TOKEN.balance({ agent: ALICE, viewkey: vkALICE, address: ALICE.address })
-      await TOKEN.balance({ agent: BOB,   viewkey: vkBOB,   address: BOB.address   })</div></div><div class="section text"><p> Because of constraints introduced in <code>rc2</code>, a remainder can&#39;t be vested to multiple
+</div></div><div class="section code">      await TOKEN.balance(ALICE, vkALICE)
+      await TOKEN.balance(BOB,   vkBOB)</div></div><div class="section text"><p> Because of constraints introduced in <code>rc2</code>, a remainder can&#39;t be vested to multiple
  recipients (meaning of <code>SCL-07</code>). This means it needs to be manually reallocated,
  otherwise it&#39;s stuck in the contract.</p>
 <p> So it doesn&#39;t make sense to <code>Disown</code> the contract (<code>MGL-03</code>) if it
@@ -209,14 +231,13 @@ pre-launch self-validation logic has deemed the schedule erroneous (success!)</l
       await MGMT.reallocate(
         schedule.pools[0].name,
         schedule.pools[0].channels[0].name,
-        [ { addr:   ALICE.address
-          , amount: "1" } ])
+        { [ALICE.address]: "1" })
       await ADMIN.waitForNextBlock()</div></div><div class="section mixed"><div class="code">      await MGMT.claim(ALICE) </div><div class="text"><p> ALICE claims remainder.</p>
-</div></div></div></div><div class="section code">      await TOKEN.balance({ agent: ALICE, viewkey: vkALICE, address: ALICE.address })</div></div><div class="section text"><p> <strong>OOPS</strong>! If allocations worked, here ALICE would&#39;ve received all the channel&#39;s available
+</div></div></div></div><div class="section code">      await TOKEN.balance(ALICE, vkALICE)</div></div><div class="section text"><p> <strong>OOPS</strong>! If allocations worked, here ALICE would&#39;ve received all the channel&#39;s available
  funds, including BOB&#39;s unclaimed portions (sorry Bob), in addition to the allocated
  crumb of the remainder.</p>
 </div></div><div class="section code">      await MGMT.claim(BOB)
-      await TOKEN.balance({ agent: BOB, viewkey: vkBOB, address: BOB.address })</div></div><div class="section mixed"><div class="code">      await ADMIN.waitForNextBlock() </div><div class="text"><p> Pause for a block before trying with the next version</p>
+      await TOKEN.balance(BOB, vkBOB)</div></div><div class="section mixed"><div class="code">      await ADMIN.waitForNextBlock() </div><div class="text"><p> Pause for a block before trying with the next version</p>
 </div></div></div></div><div class="section code">      say(`ok, next version ----------------------------------------------------------------------`)</div></div><div class="section mixed"><div class="code">      results[commit] = 'OK' </div><div class="text"><p> store success</p>
 </div></div></div></div><div class="section code">    } catch (e) {
       say.tag(' #error')(`------------------------------------------------------------------------`)
@@ -293,7 +314,7 @@ The Secret Network codebase is certainly concise and malleable enough to allow f
 the latter.</li>
 </ul>
 </li>
-<li>For example, during the construction of this integration test, which checks for 
+<li>For example, during the construction of this integration test, which checks for
 the &quot;correct&quot; error being thrown in order to know when to proceed to the
 second stage of the woult-be &quot;exploit&quot;, it became clear that <strong>error handling over
 the Rust/JS barrier</strong> is underdeveloped.<ul>
@@ -332,10 +353,10 @@ and the <code>schedule</code> module&#39;s actual in-memory model.</li>
 </div></div><div class="section code">function getSchedule ({ ALICE, BOB }) {
   return {
     "total": "1000000000000",</div></div><div class="section mixed"><div class="code">    "pools": [ </div><div class="text"><p> <code>Pool</code>s map to the first-level categories from the spec: Investors, Founders, Advisors,...</p>
-</div></div></div></div><div class="section code">      {        
+</div></div></div></div><div class="section code">      {
         "name": "Pool1",
         "total": "1000000000000",</div></div><div class="section mixed"><div class="code">        "partial": true, </div><div class="text"><p> If the <code>Pool</code> is marked <code>partial</code> (as is the default), new <code>Channel</code>s can be added by the admin to it before or after launch, up to the <code>total</code> pool amount.</p>
-</div></div></div></div><div class="section code">        "channels": [ 
+</div></div></div></div><div class="section code">        "channels": [
           {</div></div><div class="section mixed"><div class="code">            "name": "Channel1", </div><div class="text"><p> <code>Channel</code>s correspond to individual budget items like Investor1, Founder2, Advisor3, as well as DevFund, Liquidity Provision Fund...</p>
 </div></div></div></div><div class="section code">            "amount": "1000000000000",</div></div><div class="section mixed"><div class="code">            "periodic": { </div><div class="text"><p> Recipients need to actively claim from the channel to receive the funds that are <code>Periodic</code>ally unlocked. It is expected that this can happen just as easily daily or long after the vesting has ended; the contract is used for safekeeping.</p>
 </div></div></div><div class="section mixed"><div class="code">              "type":     "channel_periodic", </div><div class="text"><p> simple periodic vesting configuration:</p>
@@ -348,7 +369,7 @@ and the <code>schedule</code> module&#39;s actual in-memory model.</li>
 </div></div></div></div><div class="section code">            },</div></div><div class="section mixed"><div class="code">            "allocations": [ </div><div class="text"><p> Channels also have <code>Allocation</code>s. They&#39;re address/amount pairs that implement the &quot;liquidity provision fund&quot; part of the spec by splitting the daily portion between multiple configured addresses (e.g. the SIENNA Swap AMM contracts).</p>
 </div></div></div></div><div class="section code">              [ 0 , [ { "addr": ALICE.address, "amount": "100000000000" }
                     , { "addr": BOB.address,   "amount":  "66666666660" } ] ]</div></div><div class="section text"><p> Calling <code>reallocate</code> on the contract adds a new record here, containing an updated timestamp and the new allocations.</p>
-</div></div><div class="section code">            ]   
+</div></div><div class="section code">            ]
           }
         ]
       }

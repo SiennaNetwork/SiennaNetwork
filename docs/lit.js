@@ -3,7 +3,7 @@ require('colors')
 const { readFileSync } = require('fs')
 const { resolve } = require('path')
 
-const source = resolve(__dirname, 'compare.js')
+const source = resolve(process.argv[2])
 
 const lines = []
 for (let line of readFileSync(source, 'utf8').split('\n').slice(2)) {

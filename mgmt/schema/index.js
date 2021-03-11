@@ -19,6 +19,10 @@ module.exports = class MGMT extends SecretNetworkContract.withSchema({
   // launch the vesting
   launch = () => this.tx.launch()
 
+  // update allocations for an account
+  reallocate = (pool, account, allocations) => this.tx.reallocate(pool, account,
+    Object.entries(allocations).map(([addr, amount])=>({addr, amount})))
+
   // claim accumulated portions
   claim = claimant => this.tx.claim({}, claimant)
 
