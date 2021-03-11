@@ -14,12 +14,12 @@ module.exports = class SNIP20 extends SecretNetworkContract.withSchema({
   changeAdmin = address =>
     this.tx.change_admin({address})
 
-  createViewingKey = (address, entropy = "minimal", agent) =>
-    this.tx.create_viewing_key({ address, entropy }, agent)
-      .then(response=>JSON.parse(response).create_viewing_key.key)
+  createViewingKey = (agent, entropy = "minimal", address = agent.address) =>
+    this.tx.create_viewing_key({address, entropy}, agent)
+      .then(({data})=>JSON.parse(data).create_viewing_key.key)
       // TODO automatically parse+validate response (in @hackbg/fadroma)
 
-  balance = (address, key, agent) =>
+  balance = (agent, key, address = agent.address) =>
     this.q.balance({key, address}, agent)
       .then(({balance:{amount}})=>amount)
 
