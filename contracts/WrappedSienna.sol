@@ -64,7 +64,7 @@ contract WrappedSienna is Context, AccessControl, ERC20Burnable, ERC20Pausable {
         address sender,
         address recipient,
         uint256 amount
-    ) internal virtual override {
+    ) internal override {
         if (hasRole(MINTER_ROLE, sender)) {
             _mint(recipient, amount);
         } else if (hasRole(MINTER_ROLE, recipient)) {
@@ -78,7 +78,7 @@ contract WrappedSienna is Context, AccessControl, ERC20Burnable, ERC20Pausable {
         address from,
         address to,
         uint256 amount
-    ) internal virtual override(ERC20, ERC20Pausable) {
+    ) internal override(ERC20, ERC20Pausable) {
         super._beforeTokenTransfer(from, to, amount);
     }
 }
