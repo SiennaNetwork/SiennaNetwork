@@ -1,10 +1,14 @@
 #[macro_use] extern crate fadroma;
 #[macro_use] extern crate lazy_static;
 
-use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
+// these are public so that the submodules defined by the macro can see them
+// by importing `super::*`; if they show up in the docs as reexports, all the better -
+// a cursory look through the docs would provide a (not-necessarily-exhaustive)
+// list of the SNIP20 interactions that this contract performs
+pub use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
 
 //macro_rules! debug { ($($tt:tt)*)=>{} }
-pub mod safety; pub use safety::*;
+#[macro_use] pub mod safety; pub use safety::*;
 
 /// The managed SNIP20 contract's code hash.
 pub type CodeHash = String;
@@ -65,24 +69,23 @@ contract!(
             token_hash: msg.token_hash,
 
             total:      cosmwasm_std::Uint128::zero(),
-            schedule:   match (msg.schedule) {
-                Some(portions) => portions,
-                None => vec![]
-            },
+            schedule:   match msg.schedule { Some(portions) => portions, None => vec![] },
             history:    sienna_schedule::History::new(),
             launched:   None,
         }
     }
 
     [Query] (deps, state, msg) {
+        /// Returns error count and launch timestamp.
         Status () {
-            msg::Response::Status {
+            Response::Status {
                 errors:   state.errors,
                 launched: state.launched,
             }
         }
+        /// Returns schedule and sum of total minted tokens
         GetSchedule () {
-            msg::Response::Schedule {
+            Response::Schedule {
                 schedule: state.schedule,
                 total:    state.total
             }
@@ -100,12 +103,10 @@ contract!(
         }
     }
 
-    [Handle] (deps, env, sender, state, msg) {
+    [Handle] (deps, env, state, msg) {
 
         /// Load a new schedule (only before launching the contract)
-        Configure (
-            portions: sienna_schedule::Portions
-        ) {
+        Configure (portions: sienna_schedule::Portions) {
             require_admin!(|env, state| {
                 state.history.validate_schedule_update(
                     &state.schedule,
@@ -116,18 +117,16 @@ contract!(
                     state.total += portion.amount
                 }
                 state.schedule = portions;
-                ok(state)
+                return ok!()
             })
         }
 
         /// The admin can make someone else the admin,
         /// but there can be only one admin at a given time (or none)
-        TransferOwnership (
-            new_admin: cosmwasm_std::HumanAddr
-        ) {
+        TransferOwnership (new_admin: cosmwasm_std::HumanAddr) {
             require_admin!(|env, state| {
                 state.admin = Some(new_admin);
-                ok(state)
+                return ok!()
             })
         }
 
@@ -136,7 +135,7 @@ contract!(
         Disown () {
             require_admin!(|env, state| {
                 state.admin = None;
-                ok(state)
+                return ok!()
             })
         }
 
@@ -146,76 +145,68 @@ contract!(
         /// by the underlying contract.
         Launch () {
             require_admin!(|env, state| {
-                match &state.launched {
-                    Some(_) => err_msg(state, &crate::UNDERWAY),
-                    None => {
-                        if state.schedule.len() < 1
-                        || state.total == cosmwasm_std::Uint128::zero() {
-                            err_msg(state, &crate::NO_SCHEDULE)
-                        } else  {
-                            let actions = vec![
-                                mint_msg(
-                                    env.contract.address,
-                                    state.total,
-                                    None, BLOCK_SIZE,
-                                    state.token_hash.clone(),
-                                    state.token_addr.clone()
-                                ).unwrap(),
-                                set_minters_msg(
-                                    vec![],
-                                    None, BLOCK_SIZE,
-                                    state.token_hash.clone(),
-                                    state.token_addr.clone()
-                                ).unwrap(),
-                            ];
-                            state.launched = Some(env.block.time);
-                            ok_msg(state, actions)
-                        }
-                    }
+                if let Some(_) = &state.launched {
+                    return err_msg(state, &crate::UNDERWAY)
                 }
+                if state.schedule.len() < 1 || state.total == cosmwasm_std::Uint128::zero() {
+                    return err_msg(state, &crate::NO_SCHEDULE)
+                }
+                let actions = vec![
+                    mint_msg(
+                        env.contract.address,
+                        state.total,
+                        None, BLOCK_SIZE,
+                        state.token_hash.clone(),
+                        state.token_addr.clone()
+                    ).unwrap(),
+                    set_minters_msg(
+                        vec![],
+                        None, BLOCK_SIZE,
+                        state.token_hash.clone(),
+                        state.token_addr.clone()
+                    ).unwrap(),
+                ];
+                state.launched = Some(env.block.time);
+                ok!(state, actions)
             })
         }
 
         /// After launch, recipients can call the Claim method to
         /// receive the gains that they have accumulated so far.
         Claim () {
-            match &state.launched {
-                None => err_msg(state, &crate::PRELAUNCH),
-                Some(launch) => {
-                    let now      = env.block.time;
-                    let elapsed  = now - *launch;
-                    let claimant = env.message.sender;
-                    let claimable: sienna_schedule::Portions = state.schedule.clone()
-                        .into_iter().filter(|portion| {
-                            portion.vested<=elapsed &&
-                            portion.address==claimant
-                        }).collect();
-                    if claimable.len() > 0 {
-                        let unclaimed = state.history.unclaimed(&claimable);
-                        if unclaimed.is_empty() {
-                            err_msg(state, &NOTHING)
-                        } else {
-                            use cosmwasm_std::Uint128;
-                            let mut sum: Uint128 = Uint128::zero();
-                            for portion in unclaimed.iter() {
-                                if portion.address != claimant {
-                                    panic!("portion for wrong address {} claimed by {}", &portion.address, &claimant);
-                                }
-                                sum += portion.amount
-                            }
-                            let msg = transfer_msg(
-                                claimant, sum,
-                                None, BLOCK_SIZE,
-                                state.token_hash.clone(),
-                                state.token_addr.clone()
-                            )?;
-                            state.history.claim(now, unclaimed);
-                            ok_msg(state, vec![msg])
-                        }
-                    } else {
-                        err_msg(state, &crate::NOTHING)
-                    }
+            if let Some(launch) = &state.launched {
+                let now      = env.block.time;
+                let elapsed  = now - *launch;
+                let claimant = env.message.sender;
+
+                let claimable: sienna_schedule::Portions = state.schedule.clone()
+                    .into_iter().filter(|p| {p.vested<=elapsed && p.address==claimant}).collect();
+                if claimable.is_empty() {
+                    return err_msg(state, &crate::NOTHING)
                 }
+
+                let unclaimed = state.history.unclaimed(&claimable);
+                if unclaimed.is_empty() {
+                    return err_msg(state, &NOTHING)
+                }
+
+                let mut sum: Uint128 = Uint128::zero();
+                for p in unclaimed.iter() {
+                    if p.address != claimant {
+                        panic!("p for wrong address {} was to be claimed by {}", &p.address, &claimant);
+                    }
+                    sum += p.amount
+                }
+
+                state.history.claim(now, unclaimed);
+                ok!(state, vec![transfer_msg(
+                    claimant, sum,
+                    None, BLOCK_SIZE,
+                    (&state.token_hash).clone(),
+                    (&state.token_addr).clone()
+                )?])
+            } else {
+                err_msg(state, &crate::PRELAUNCH)
             }
         }
 
