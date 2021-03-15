@@ -5,6 +5,7 @@ members = [
   "token",    # any token that implements SNIP20
   "schedule", # model of the client's vesting logic
   "mgmt",     # smart contract that mints and vests tokens according to schedule
+  "rpt",      # smart contract that claims from mgmt and splits the received funds among recipients
   "utils"     # utility code used by contracts
 ]
 
