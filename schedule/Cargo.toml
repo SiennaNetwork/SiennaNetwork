@@ -1,6 +1,6 @@
 [package]
 name = "sienna_schedule"
-version = "1.0.0-rc2"
+version = "1.0.0-rc6"
 authors = ["Adam Avramov <adam@hack.bg>"]
 edition = "2018"
 

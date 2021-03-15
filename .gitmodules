@@ -7,3 +7,6 @@
 [submodule "kukumba"]
 	path = kukumba
 	url = git@github.com:hackbg/kukumba.git
+[submodule "platform"]
+	path = platform
+	url = git@github.com:hackbg/SecretNetwork.git

@@ -288,40 +288,30 @@ contract!(
                         err_msg(state, &NOTHING)
                     } else {
                         let unclaimed = state.history.unclaimed(claimable.clone());
-
-                        println!("Now: {:#?}", &now);
-                        println!("Claimable: {:#?}", &claimable);
-                        for portion in claimable.iter() {
-                            println!("{:?}", &portion);
-                        }
-                        println!("\nClaimed:   {:#?}", &state.history.history);
-                        for portion in state.history.history.iter() {
-                            println!("{:?}", &portion);
-                        }
-
-                        println!("\nUnclaimed: {:#?}", &unclaimed);
-                        for portion in unclaimed.iter() {
-                            println!("{:?}", &portion);
-                        }
-
                         if unclaimed.is_empty() {
                             err_msg(state, &NOTHING)
                         } else {
                             let mut sum: Uint128 = Uint128::zero();
+                            let mut broken = false;
                             for portion in unclaimed.iter() {
                                 if portion.address != claimant {
-                                    panic!("portion for wrong address {} claimed by {}", &portion.address, &claimant);
+                                    broken = true;
+                                    break
                                 }
                                 sum += portion.amount
                             }
-                            let msg = transfer_msg(
-                                claimant, sum,
-                                None, BLOCK_SIZE,
-                                state.token_hash.clone(),
-                                state.token_addr.clone()
-                            )?;
-                            state.history.claim(now, unclaimed);
-                            ok_msg(state, vec![msg])
+                            if broken {
+                                err_msg(state, &format!("portion for wrong address claimed by {}", &claimant))
+                            } else {
+                                let msg = transfer_msg(
+                                    claimant, sum,
+                                    None, BLOCK_SIZE,
+                                    state.token_hash.clone(),
+                                    state.token_addr.clone()
+                                )?;
+                                state.history.claim(now, unclaimed);
+                                ok_msg(state, vec![msg])
+                            }
                         }
                     }
                 }

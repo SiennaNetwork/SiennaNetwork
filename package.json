@@ -1,9 +1,13 @@
 {
-  "version": "1.0.0-rc2",
-  "dependencies": {
-    "dotenv": "^8.2.0",
-    "prettyjson": "^1.2.1",
-    "pug": "^3.0.0",
-    "secretjs": "^0.10.4"
+  "private": true,
+  "workspaces": [
+    "./platform/cosmwasm-js",
+    "./platform/cosmwasm-js/packages/*",
+    "./integra",
+    "./schedule",
+    "./mgmt"
+  ],
+  "devDependencies": {
+    "@hackbg/integra": "*"
   }
 }

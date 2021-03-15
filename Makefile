@@ -45,7 +45,7 @@ _optimizer: optimizer/*
 		-t hackbg/secret-contract-optimizer:latest \
 		optimizer
 prod: _optimizer
-	scripts/production-build.sh
+	time build/working-tree
 # TODO: see if there's any value in keeping these around:
 #compile: _compile sienna_token.wasm sienna_mgmt.wasm
 #_compile:
@@ -64,38 +64,39 @@ prod: _optimizer
 schema:
 	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schema
 schedule:
-	./scripts/tsv2json.js
+	./schedule/tsv2json.js
 
-# Local deployment
-.PHONY: localnet-deploy localnet-configure localnet-launch localnet-claim
-localnet-deploy:
-	docker-compose up -d
-	docker-compose exec localnet /sienna/scripts/deploy.js
-localnet-configure:
-	docker-compose up -d
-	docker-compose exec localnet /sienna/scripts/configure.js
-localnet-status:
-	docker-compose up -d
-	docker-compose exec localnet /sienna/scripts/status.js
-localnet-launch:
-	docker-compose up -d
-	docker-compose exec localnet /sienna/scripts/launch.js
-localnet-claim:
-	docker-compose up -d
-	docker-compose exec localnet /sienna/scripts/claim.js
+# TODO: update
+## Local deployment
+#.PHONY: localnet-deploy localnet-configure localnet-launch localnet-claim
+#localnet-deploy:
+	#docker-compose up -d
+	#docker-compose exec localnet /sienna/scripts/deploy.js
+#localnet-configure:
+	#docker-compose up -d
+	#docker-compose exec localnet /sienna/scripts/configure.js
+#localnet-status:
+	#docker-compose up -d
+	#docker-compose exec localnet /sienna/scripts/status.js
+#localnet-launch:
+	#docker-compose up -d
+	#docker-compose exec localnet /sienna/scripts/launch.js
+#localnet-claim:
+	#docker-compose up -d
+	#docker-compose exec localnet /sienna/scripts/claim.js
 
-# Real deployment
-.PHONY: deploy configure launch claim
-deploy:
-	scripts/deploy.js
-configure:
-	scripts/configure.js
-status:
-	scripts/status.js
-launch:
-	scripts/launch.js
-claim:
-	scripts/claim.js
+## Real deployment
+#.PHONY: deploy configure launch claim
+#deploy:
+	#scripts/deploy.js
+#configure:
+	#scripts/configure.js
+#status:
+	#scripts/status.js
+#launch:
+	#scripts/launch.js
+#claim:
+	#scripts/claim.js
 
 # Debugging
 .PHONY: expand
