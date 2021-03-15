@@ -6,15 +6,15 @@
 // a cursory look through the docs would provide a (not-necessarily-exhaustive)
 // list of the SNIP20 interactions that this contract performs
 pub use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
+pub use sienna_schedule::{Seconds, Portions, History};
 
-//macro_rules! debug { ($($tt:tt)*)=>{} }
 #[macro_use] pub mod safety; pub use safety::*;
 
 /// The managed SNIP20 contract's code hash.
 pub type CodeHash = String;
 
 /// Whether the vesting process has begun and when.
-pub type Launched = Option<sienna_schedule::Seconds>;
+pub type Launched = Option<Seconds>;
 
 /// Public counter of invalid operations.
 pub type ErrorCount = u64;
@@ -27,29 +27,22 @@ contract!(
 
     [State] {
         /// The instantiatior of the contract.
-        admin:          Option<cosmwasm_std::HumanAddr>,
-
+        admin:      Option<HumanAddr>,
         /// The SNIP20 token contract that will be managed by this instance.
-        token_addr:     cosmwasm_std::HumanAddr,
-
+        token_addr: HumanAddr,
         /// The code hash of the managed contract
         /// (see `secretcli query compute contract-hash --help`).
-        token_hash:     CodeHash,
-
+        token_hash: CodeHash,
         /// When this contract is launched, this is set to the block time.
-        launched:       Launched,
-
+        launched:   Launched,
         /// History of fulfilled claims.
-        history:        sienna_schedule::History,
-
+        history:    History,
         /// Vesting configuration.
-        schedule:       sienna_schedule::Portions,
-
+        schedule:   Portions,
         /// Total amount to mint
-        total:          cosmwasm_std::Uint128,
-
+        total:      Uint128,
         /// TODO: public counter of invalid requests
-        errors:         ErrorCount
+        errors:     ErrorCount
     }
 
     /// Initializing an instance of the contract:
@@ -57,20 +50,20 @@ contract!(
     ///    a contract that implements SNIP20
     ///  - makes the initializer the admin
     [Init] (deps, env, msg: {
-        schedule:   Option<sienna_schedule::Portions>,
-        token_addr: cosmwasm_std::HumanAddr,
-        token_hash: crate::CodeHash
+        schedule:   Option<Portions>,
+        token_addr: HumanAddr,
+        token_hash: CodeHash
     }) {
         State {
-            admin:      Some(env.message.sender),
             errors:     0,
+            admin:      Some(env.message.sender),
 
             token_addr: msg.token_addr,
             token_hash: msg.token_hash,
 
-            total:      cosmwasm_std::Uint128::zero(),
+            total:      Uint128::zero(),
             schedule:   match msg.schedule { Some(portions) => portions, None => vec![] },
-            history:    sienna_schedule::History::new(),
+            history:    History::new(),
             launched:   None,
         }
     }
@@ -94,39 +87,39 @@ contract!(
 
     [Response] {
         Status {
-            errors:   crate::ErrorCount,
-            launched: crate::Launched
+            errors:   ErrorCount,
+            launched: Launched
         }
         Schedule {
-            schedule: sienna_schedule::Portions,
-            total:    cosmwasm_std::Uint128
+            schedule: Portions,
+            total:    Uint128
         }
     }
 
     [Handle] (deps, env, state, msg) {
 
         /// Load a new schedule (only before launching the contract)
-        Configure (portions: sienna_schedule::Portions) {
+        Configure (portions: Portions) {
             require_admin!(|env, state| {
                 state.history.validate_schedule_update(
                     &state.schedule,
                     &portions
                 )?;
-                state.total = cosmwasm_std::Uint128::zero();
+                state.total = Uint128::zero();
                 for portion in portions.iter() {
                     state.total += portion.amount
                 }
                 state.schedule = portions;
-                return ok!()
+                ok!(state)
             })
         }
 
         /// The admin can make someone else the admin,
         /// but there can be only one admin at a given time (or none)
-        TransferOwnership (new_admin: cosmwasm_std::HumanAddr) {
+        TransferOwnership (new_admin: HumanAddr) {
             require_admin!(|env, state| {
                 state.admin = Some(new_admin);
-                return ok!()
+                ok!(state)
             })
         }
 
@@ -135,7 +128,7 @@ contract!(
         Disown () {
             require_admin!(|env, state| {
                 state.admin = None;
-                return ok!()
+                ok!(state)
             })
         }
 
@@ -146,12 +139,12 @@ contract!(
         Launch () {
             require_admin!(|env, state| {
                 if let Some(_) = &state.launched {
-                    return err_msg(state, &crate::UNDERWAY)
+                    return err_msg(state, &UNDERWAY)
                 }
-                if state.schedule.len() < 1 || state.total == cosmwasm_std::Uint128::zero() {
-                    return err_msg(state, &crate::NO_SCHEDULE)
+                if state.schedule.len() < 1 || state.total == Uint128::zero() {
+                    return err_msg(state, &NO_SCHEDULE)
                 }
-                let actions = vec![
+                let messages = vec![
                     mint_msg(
                         env.contract.address,
                         state.total,
@@ -167,7 +160,7 @@ contract!(
                     ).unwrap(),
                 ];
                 state.launched = Some(env.block.time);
-                ok!(state, actions)
+                ok!(state, messages)
             })
         }
 
@@ -179,10 +172,10 @@ contract!(
                 let elapsed  = now - *launch;
                 let claimant = env.message.sender;
 
-                let claimable: sienna_schedule::Portions = state.schedule.clone()
+                let claimable: Portions = state.schedule.clone()
                     .into_iter().filter(|p| {p.vested<=elapsed && p.address==claimant}).collect();
                 if claimable.is_empty() {
-                    return err_msg(state, &crate::NOTHING)
+                    return err_msg(state, &NOTHING)
                 }
 
                 let unclaimed = state.history.unclaimed(&claimable);
@@ -193,7 +186,10 @@ contract!(
                 let mut sum: Uint128 = Uint128::zero();
                 for p in unclaimed.iter() {
                     if p.address != claimant {
-                        panic!("p for wrong address {} was to be claimed by {}", &p.address, &claimant);
+                        panic!("p for wrong address {} was to be claimed by {}",
+                            &p.address,
+                            &claimant
+                        );
                     }
                     sum += p.amount
                 }
@@ -206,7 +202,7 @@ contract!(
                     (&state.token_addr).clone()
                 )?])
             } else {
-                err_msg(state, &crate::PRELAUNCH)
+                err_msg(state, &PRELAUNCH)
             }
         }
 

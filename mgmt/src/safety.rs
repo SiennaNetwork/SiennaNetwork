@@ -3,7 +3,9 @@
     (|$env:ident, $state:ident| $body:block) => {
         if Some($env.message.sender) != $state.admin {
             err_auth($state)
-        } else $body
+        } else {
+            $body
+        }
     }
 }
 
