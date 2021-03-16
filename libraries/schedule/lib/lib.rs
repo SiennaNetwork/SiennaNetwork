@@ -18,6 +18,7 @@ pub use cosmwasm_std::{Uint128, HumanAddr, StdResult, StdError};
 pub mod errors; pub use errors::*;
 pub mod validate; pub use validate::*;
 pub mod vesting; pub use vesting::*;
+pub mod mutate; pub use mutate::*;
 
 /// Unit of time
 pub type Seconds = u64;

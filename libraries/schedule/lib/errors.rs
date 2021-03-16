@@ -45,9 +45,9 @@ define_errors!(
         err_pool_full (&self,) ->
             ("pool {}: can't add any more accounts to this pool",
                 &self.name)
-        err_account_too_big (&self, actual: Uint128, expected: u128) ->
+        err_account_too_big (&self, account: &Account) ->
             ("pool {}: account ({}) > unallocated funds in pool ({})",
-                &self.name, actual, expected)
+                &self.name, account.amount.u128(), self.unallocated())
     }
     Account {
         err_empty (&self,) ->
