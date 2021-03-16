@@ -69,19 +69,49 @@ contract!(
     }
 
     [Query] (deps, state, msg) {
-        /// Returns error count and launch timestamp.
+
+        /// Return error count and launch timestamp.
         Status () {
             Response::Status {
                 errors:   state.errors,
                 launched: state.launched,
             }
         }
-        /// Returns schedule and sum of total minted tokens
+
+        /// Return schedule and sum of total minted tokens
         GetSchedule () {
             Response::Schedule {
                 schedule: state.schedule,
                 total:    state.total
             }
+        }
+
+        /// Return amount that can be claimed by the specified address at the specified time
+        Claimable (address: HumanAddr, time: Seconds) {
+            let mut amount = Uint128::zero();
+            if let Some(launch) = &state.launched {
+                let elapsed  = time - *launch;
+                let claimable: Portions = state.schedule
+                    .clone()
+                    .into_iter()
+                    .filter(|p| {p.vested<=elapsed && p.address==address})
+                    .collect();
+                if !claimable.is_empty() {
+                    let unclaimed = state.history.unclaimed(&claimable);
+                    if !unclaimed.is_empty() {
+                        for p in unclaimed.iter() {
+                            if p.address != address {
+                                panic!("p for wrong address {} was to be claimed by {}",
+                                    &p.address,
+                                    &address
+                                );
+                            }
+                            amount += p.amount
+                        }
+                    }
+                }
+            }
+            Response::Claimable { address, amount }
         }
     }
 
@@ -93,6 +123,10 @@ contract!(
         Schedule {
             schedule: Portions,
             total:    Uint128
+        }
+        Claimable {
+            address:  HumanAddr,
+            amount:   Uint128
         }
     }
 
