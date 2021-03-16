@@ -3,12 +3,18 @@
   "version": "2.0.0-pre",
   "private": true,
   "workspaces": [
-    "./platform/cosmwasm-js",
-    "./platform/cosmwasm-js/packages/*",
-    "./fadroma",
-    "./schedule",
-    "./token",
-    "./mgmt",
-    "./build"
-  ]
+    "./libraries/platform/cosmwasm-js",
+    "./libraries/platform/cosmwasm-js/packages/*",
+    "./libraries/fadroma",
+    "./libraries/schedule",
+    "./contracts/token",
+    "./contracts/mgmt",
+    "./contracts/build"
+  ],
+  "dependencies": {
+    "chokidar": "^3.5.1",
+    "node-notifier": "^9.0.1",
+    "open": "^8.0.2",
+    "prettyjson": "^1.2.1"
+  }
 }

@@ -4,9 +4,9 @@
 
 * [x] schedule: rewrite allocations to support splitting of cliffs and remainders
 * [ ] schedule: update configuration generator to output pre-generated list of transactions
-* [ ] mgmt: update to take list of transactions as input instead of full schedule
-* [ ] mgmt: implement time travel protectio covering claimed past vestings
-* [ ] schedule: if it is discovered that fully reconfigurable `Channel`s with
+* [x] mgmt: update to take list of transactions as input instead of full schedule
+* [ ] mgmt: implement time travel protection covering claimed past vestings
+* [x] schedule: if it is discovered that fully reconfigurable `Channel`s with
       appropriate historical protections can take over the functions of the
       `Allocation` and `AllocationSet` features, merge all three into `Account`.
       (this would simplify the data model considerably.)
@@ -20,8 +20,8 @@
 git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git sienna 
 cd sienna        # enter repository
 yarn             # install dependencies of build scripts
+./sienna docs    # build and open documentation
 make test        # run tests
-cargo doc --open # view documentation (needs the code to compile)
 make coverage    # generate test coverage reports (needs all tests to pass)
 make             # compile a production build
 ls dist/         # view build results

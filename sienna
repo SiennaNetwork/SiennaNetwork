@@ -1,0 +1,88 @@
+#!/usr/bin/env node
+
+const { readFileSync, writeFileSync, existsSync } = require('fs')
+const { resolve, basename, extname } = require('path')
+const { execFileSync } = require('child_process')
+const { argv, stdout, stderr, exit } = require('process')
+
+const { scheduleFromSpreadsheet } = require('@hackbg/schedule')
+
+require('@hackbg/fadroma').entrypoint(module, function main (
+  args = argv.slice(2)
+) {
+  require('yargs')(argv.slice(2)).demandCommand(1, '') // print usage by default
+
+    .command('docs [crate]',
+      'build Rust documentation and open it in the browser',
+      yargs => yargs.positional('crate', {
+        describe: 'path to input file',
+        default: 'sienna_schedule'
+      }),
+      docs)
+
+    .command('test',
+      'runs test suite for the entire Cargo workspace',
+      runTests)
+
+    .command('configure [file]',
+      'convert a spreadsheet into a JSON schedule for the contract',
+      yargs => yargs.positional('file', {
+        describe: 'path to input file',
+        default: resolve(__dirname, 'config', 'config.ods')
+      }),
+      convert)
+
+    .command('deploy',
+      'deploys and configures all contracts',
+      deploy)
+
+    .argv
+
+})
+
+function stdoutify (fn) {
+  const withBigInts = (k, v) => typeof v === 'bigint' ? v.toString() : v
+  return (...args) => stdout.write(JSON.stringify(fn(...args), withBigInts, 2))
+}
+
+function docs ({crate}) {
+  const target = resolve(__dirname, 'target', 'doc', crate, 'index.html')
+  try {
+    cargo('doc')
+  } catch (e) {
+    stderr.write('\n🤔 Building documentation failed.')
+    if (existsSync(target)) {
+      stderr.write(`\n⏳ Opening what exists at ${target}...`)
+    } else {
+      return
+    }
+  }
+  const url = `file:///${target}`
+  require('open')(url)
+}
+
+function convert ({file}) {
+  file = resolve(file)
+  const name = basename(file, extname(file)) // path without extension
+  const schedule = scheduleFromSpreadsheet({ file })
+  stderr.write(require('prettyjson').render(schedule))
+}
+
+function runTests () {
+  stderr.write(`\n⏳ Running tests...\n`)
+  try {
+    cargo('test')
+    stderr.write('\n😁 Tests ran successfully.\n')
+  } catch (e) {
+    stderr.write('\n😳 Tests failed.\n')
+  }
+}
+
+function cargo (...args) {
+  execFileSync('cargo', ['--color=always', ...args], { stdio: 'inherit' })
+}
+
+function deploy () {
+  stderr.write('\nNot implemented.')
+  exit(0)
+}
