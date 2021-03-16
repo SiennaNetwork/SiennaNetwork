@@ -9,29 +9,15 @@
 ///   * If `partial` is true, `Account`s can be at runtime, up to the total.
 ///   * Otherwise, requires `Account`s to add up to exactly the total in order to pass validation.
 /// * `Account`: subdivision of a `Pool` (corresponds to `Channel`+`Periodic` from v1)
-///   * contains 3 sets of `Allocation`s:
-///     * `head` for splitting the cliff.
-///     * `body` for splitting the regular portions.
-///     * `tail` for splitting the remainders.
-///   * The above are added for completeness' sake; the currently planned schedule does not
-///     require splitting `head/`tail`s, and only needs one instance of splitting `body` -
-///     but it's easier and more future-proof to implement splitting as the general case
-///     rather than a special case (which would rightfully belong in a separate contract otherwise)
-///   * Generates `Portion`s from `Allocation`s.
-/// * `Allocation`: pair of address and amount.
-///   * `TODO`: establish constraints about allocation totals
-/// * `Portion`: an `Allocation` with a `vested` date and a `reason`.
-///   * `TODO`: `reason`s are few; convert to enum
 
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
 use snafu::GenerateBacktrace;
+pub use cosmwasm_std::{Uint128, HumanAddr, StdResult, StdError};
 
-pub mod macros;
+pub mod errors;
 pub mod validate; pub use validate::*;
 pub mod vesting; pub use vesting::*;
-pub use cosmwasm_std::{Uint128, HumanAddr, StdResult, StdError};
-#[cfg(test)] mod tests;
 
 /// Unit of time
 pub type Seconds = u64;
@@ -49,17 +35,38 @@ pub struct Schedule {
     pub total:   Uint128,
     pub pools:   Vec<Pool>,
 }
+impl Schedule {
+    pub fn new (pools: &[Pool]) -> Self {
+        let pools = pools.to_vec();
+        let mut total = Uint128::zero();
+        for pool in pools.iter() { total += pool.total }
+        Schedule { total, pools }
+    }
+}
 
-/// contains `Account`s; if `partial == false`, they must add up to `total`.
+/// Subdivision of `Schedule`, contains `Account`s, may be `partial`.
+/// If `partial == false`, they must add up to `total`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Pool {
+    /// if `true`, adding new `Account`s is allowed at runtime, up to `total`.
+    /// otherwise, accounts must add up to `total` at creation.
+    pub partial:  bool,
     pub name:     String,
     pub total:    Uint128,
-    pub partial:  bool,
     pub accounts: Vec<Account>,
 }
 impl Pool {
+    pub fn partial (name: &str, total: u128, accounts: &[Account]) -> Self {
+        let accounts = accounts.to_vec();
+        Pool { partial: true, name: name.into(), total: total.into(), accounts }
+    }
+    pub fn complete (name: &str, accounts: &[Account]) -> Self {
+        let accounts = accounts.to_vec();
+        let mut total = Uint128::zero();
+        for &Account{amount,..} in accounts.iter() { total += amount }
+        Pool { partial: false, name: name.into(), total, accounts }
+    }
     fn accounts_total (&self) -> StdResult<u128> {
         let mut total = 0u128;
         for account in self.accounts.iter() {
@@ -94,22 +101,29 @@ pub struct Account {
     pub duration: Seconds,
 }
 impl Account {
-    /// 1 if immediate, or `duration/interval` if periodic.
-    /// Returns error if `duration` is not a multiple of `interval`.
-    pub fn portion_count (&self) -> u128 {
-        if self.interval == 0 {
-            0
-        } else {
-            (self.amount.u128() - self.cliff.u128()) / self.interval as u128
+    pub fn immediate (name: &str, address: &HumanAddr, amount: u128) -> Self {
+        Self {
+            name:     name.into(),
+            address:  address.clone(),
+            amount:   amount.into(),
+            cliff:    0u128.into(),
+            start_at: 0,
+            interval: 0,
+            duration: 0
         }
     }
-    /// Full `amount` if immediate, or `(amount-cliff)/portion_count` if periodic.
-    /// Returns error if amount can't be divided evenly in that number of portions.
-    pub fn portion_size (&self) -> u128 {
-        if self.interval == 0 {
-            0
-        } else {
-            self.amount.u128() / self.portion_count()
+    pub fn periodic (
+        name: &str, address: &HumanAddr, amount: u128,
+        cliff: u128, start_at: Seconds, interval: Seconds, duration: Seconds
+    ) -> Self {
+        Self {
+            name:    name.into(),
+            address: address.clone(),
+            amount:  amount.into(),
+            cliff:   cliff.into(),
+            start_at,
+            interval,
+            duration
         }
     }
 }
