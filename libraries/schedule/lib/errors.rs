@@ -10,50 +10,58 @@
 
 /// Define error conditions (inside and `impl` block)
 #[macro_export] macro_rules! define_errors {
-    ($( $Struct:ident {
-        $(
-            $name:ident
-            ($(&$self:ident,)? $($arg:ident : $type:ty),*)
-            -> ($format:literal $(, $var:expr)*)
-        )*
-    } )*) => {
-        $(
-            impl $Struct {
-                $(
-                    #[doc=$format]
-                    pub fn $name<T> ($(&$self,)? $($arg : $type),*) -> StdResult<T> {
-                        Error!(format!($format $(, $var)*))
-                    }
-                )*
+    ($( $Struct:ident { $(
+        $name:ident
+        ($(&$self:ident,)? $($arg:ident : $type:ty),*)
+        { $format:literal $(, $var:expr)* }
+    )* } )*) => {
+        $( impl $Struct { $(
+            #[doc=$format]
+            pub fn $name<T> ($(&$self,)? $($arg : $type),*) -> cosmwasm_std::StdResult<T> {
+                Error!(format!($format $(, $var)*))
             }
-        )*
+        )* } )*
     }
 }
 
 use crate::{Schedule, Pool, Account};
-use cosmwasm_std::{StdResult, Uint128};
 define_errors!(
     Schedule {
-        err_total (&self,) ->
-            ("schedule: pools add up to {}, expected {}",
-                &self.subtotal(), &self.total)
+        err_total (&self,) {
+            "schedule: pools add up to {}, expected {}",
+            &self.subtotal(), &self.total
+        }
+        err_pool_not_found (&self, name: String) {
+            "schedule: pool {} not found",
+            &name
+        }
     }
     Pool {
-        err_total (&self,) ->
-            ("pool {}: accounts add up to {}, expected {}",
-                &self.name, &self.subtotal(), &self.total)
-        err_pool_full (&self,) ->
-            ("pool {}: can't add any more accounts to this pool",
-                &self.name)
-        err_account_too_big (&self, account: &Account) ->
-            ("pool {}: account ({}) > unallocated funds in pool ({})",
-                &self.name, account.amount.u128(), self.unallocated())
+        err_total (&self,) {
+            "pool {}: accounts add up to {}, expected {}",
+            &self.name, &self.subtotal(), &self.total
+        }
+        err_pool_full (&self,) {
+            "pool {}: can't add any more accounts to this pool",
+            &self.name
+        }
+        err_account_too_big (&self, account: &Account) {
+            "pool {}: account ({}) > unallocated funds in pool ({})",
+            &self.name,
+            account.amount.u128(),
+            self.unallocated()
+        }
     }
     Account {
-        err_empty (&self,) ->
-            ("account {}: amount must be >0", &self.name)
-        err_cliff_too_big (&self,) ->
-            ("account {}: cliff ({}) > total ({})",
-                &self.name, &self.cliff, &self.amount)
+        err_empty (&self,) {
+            "account {}: amount must be >0",
+            &self.name
+        }
+        err_cliff_too_big (&self,) {
+            "account {}: cliff ({}) > total ({})",
+            &self.name,
+            &self.cliff,
+            &self.amount
+        }
     }
 );
