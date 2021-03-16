@@ -77,7 +77,6 @@ mod tests {
     #![allow(non_snake_case)]
     use cosmwasm_std::HumanAddr;
     use crate::{Schedule, Pool, Account, Vesting};
-
     #[test] fn test_blank () {
         // some imaginary people:
         let Alice = HumanAddr::from("Alice");
@@ -85,8 +84,8 @@ mod tests {
         // some empty, but valid schedules
         for s in &[
             Schedule::new(&[]),
-            Schedule::new(&[ Pool::complete("", &[]) ]),
-            Schedule::new(&[ Pool::complete("", &[ Account::immediate("", &Alice, 0) ]) ]),
+            Schedule::new(&[ Pool::full("", &[]) ]),
+            Schedule::new(&[ Pool::full("", &[ Account::immediate("", &Alice, 0) ]) ]),
             Schedule::new(&[ Pool::partial("", 1, &[ Account::immediate("", &Alice, 0) ]) ])
         ] {
           assert_eq!(0, s.unlocked(&Alice, 0));
@@ -94,20 +93,31 @@ mod tests {
           assert_eq!(0, s.unlocked(&Bob,   1001));
         }
     }
-
     #[test] fn test_vest_immediate () {
+        // a periodic `Account`...
         let Alice = HumanAddr::from("Alice");
         let Bob   = HumanAddr::from("Bob");
-        let S = Schedule::new(&[Pool::complete("", &[Account::immediate("", &Alice, 100)])]);
+        let A = Account::immediate("", &Alice, 100);
+        assert_eq!(100, A.amount.u128());
+        assert_eq!(  0, A.cliff.u128());
+        assert_eq!(100, A.amount_sans_cliff());
+        assert_eq!(  0, A.start_at);
+        assert_eq!(  0, A.interval);
+        assert_eq!(  0, A.duration);
+        assert_eq!(  0, A.portion_count());
+        assert_eq!(100, A.portion_size());
+        assert_eq!(  0, A.remainder());
+        // ...in a `Pool`...
+        let P = Pool::full("", &[A.clone()]);
+        assert_eq!(100, P.total.u128());
+        // ...in a `Schedule`.
+        let S = Schedule::new(&[P.clone()]);
         assert_eq!(100, S.total.u128());
-        assert_eq!(100, S.pools.get(0).unwrap().total.u128());
-        assert_eq!(100, S.pools.get(0).unwrap().accounts.get(0).unwrap().amount.u128());
-        for &t in &[0,1,100,1000] {
+        for t in 0..100 {
             assert_eq!(100, S.unlocked(&Alice, t));
-            assert_eq!(0,   S.unlocked(&Bob,   t));
+            assert_eq!(  0, S.unlocked(&Bob, t));
         }
     }
-
     #[test] fn test_vest_periodic () {
         // a periodic `Account`...
         let Alice = HumanAddr::from("Alice");
@@ -123,7 +133,7 @@ mod tests {
         assert_eq!( 11, A.portion_size());
         assert_eq!(  2, A.remainder());
         // ...in a `Pool`...
-        let P = Pool::complete("", &[A.clone()]);
+        let P = Pool::full("", &[A.clone()]);
         assert_eq!(100, P.total.u128());
         // ...in a `Schedule`.
         let S = Schedule::new(&[P.clone()]);
@@ -133,7 +143,8 @@ mod tests {
         println!("\nbefore start");
         for t in 0..A.start_at {
             print!("[@{}: {}] ", &t, &S.unlocked(&Alice, t));
-            assert_eq!(0, S.unlocked(&Alice, t))
+            assert_eq!(0, S.unlocked(&Alice, t));
+            assert_eq!(0, S.unlocked(&Bob, t));
         }
         // ...cliff...
         println!("\n\ncliff (+{})", &A.cliff);

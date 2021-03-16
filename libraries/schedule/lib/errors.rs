@@ -34,22 +34,24 @@ use crate::{Schedule, Pool, Account};
 use cosmwasm_std::{StdResult, Uint128};
 define_errors!(
     Schedule {
-        err_total (actual: u128, expected: Uint128) ->
+        err_total (&self,) ->
             ("schedule: pools add up to {}, expected {}",
-                actual, expected)
+                &self.subtotal(), &self.total)
     }
     Pool {
-        err_total (name: &str, actual: u128, expected: &Uint128) ->
+        err_total (&self,) ->
             ("pool {}: accounts add up to {}, expected {}",
-                name, actual, expected)
-        err_add_account_complete (&self,) ->
+                &self.name, &self.subtotal(), &self.total)
+        err_pool_full (&self,) ->
             ("pool {}: can't add any more accounts to this pool",
                 &self.name)
-        err_add_account_too_big (&self, actual: Uint128, expected: u128) ->
+        err_account_too_big (&self, actual: Uint128, expected: u128) ->
             ("pool {}: account ({}) > unallocated funds in pool ({})",
                 &self.name, actual, expected)
     }
     Account {
+        err_empty (&self,) ->
+            ("account {}: amount must be >0", &self.name)
         err_cliff_too_big (&self,) ->
             ("account {}: cliff ({}) > total ({})",
                 &self.name, &self.cliff, &self.amount)

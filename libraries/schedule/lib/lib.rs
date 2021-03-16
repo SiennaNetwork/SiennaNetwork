@@ -12,7 +12,7 @@
 
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
-use snafu::GenerateBacktrace;
+//use snafu::GenerateBacktrace;
 pub use cosmwasm_std::{Uint128, HumanAddr, StdResult, StdError};
 
 pub mod errors; pub use errors::*;
@@ -37,10 +37,13 @@ pub struct Schedule {
 }
 impl Schedule {
     pub fn new (pools: &[Pool]) -> Self {
-        let pools = pools.to_vec();
-        let mut total = Uint128::zero();
-        for pool in pools.iter() { total += pool.total }
-        Schedule { total, pools }
+        let mut s = Schedule { total: Uint128::zero(), pools: pools.to_vec() };
+        s.total = Uint128::from(s.subtotal());
+        s
+    }
+    /// Sum of all contained pools (expected to equal `self.total`)
+    pub fn subtotal (&self) -> u128 {
+        self.pools.iter().fold(0, |total, pool| total + pool.total.u128())
     }
 }
 
@@ -61,20 +64,19 @@ impl Pool {
         let accounts = accounts.to_vec();
         Pool { partial: true, name: name.into(), total: total.into(), accounts }
     }
-    pub fn complete (name: &str, accounts: &[Account]) -> Self {
+    pub fn full (name: &str, accounts: &[Account]) -> Self {
         let accounts = accounts.to_vec();
         let mut total = Uint128::zero();
         for &Account{amount,..} in accounts.iter() { total += amount }
         Pool { partial: false, name: name.into(), total, accounts }
     }
-    /// Sum of all contrained accounts, sans any unallocated funds
-    pub fn subtotal (&self) -> StdResult<u128> {
-        let mut total = 0u128;
-        for account in self.accounts.iter() {
-            account.validate()?;
-            total += account.amount.u128();
-        }
-        Ok(total)
+    /// Sum of all contained accounts - expected to equal total
+    pub fn subtotal (&self) -> u128 {
+        self.accounts.iter().fold(0, |total, acc| total + acc.amount.u128())
+    }
+    /// Remaining unallocated funds
+    pub fn unallocated (&self) -> u128 {
+        self.total.u128() - self.subtotal()
     }
 }
 
