@@ -1103,14 +1103,13 @@ dependencies = [
 
 [[package]]
 name = "sienna-mgmt"
-version = "1.0.0-rc6"
+version = "2.0.0-wip"
 dependencies = [
  "cosmwasm-schema 0.10.0",
  "cosmwasm-std",
  "cosmwasm-storage",
  "fadroma",
  "kukumba",
- "lazy_static",
  "schemars",
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
  "serde",

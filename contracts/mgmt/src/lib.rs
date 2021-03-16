@@ -1,5 +1,4 @@
 #[macro_use] extern crate fadroma;
-#[macro_use] extern crate lazy_static;
 
 // these are public so that the submodules defined by the macro can see them
 // by importing `super::*`; if they show up in the docs as reexports, all the better -
@@ -9,9 +8,8 @@ pub use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg
 pub use sienna_schedule::{Seconds, Schedule, Pool, Account, Vesting};
 pub use std::{collections::BTreeMap, cmp::Ordering};
 
-#[macro_use] pub mod safety; pub use safety::*;
-
 /// Wrapped `HumanAddr` that can be sorted
+#[derive(serde::Serialize,serde::Deserialize,Clone,Debug,PartialEq,schemars::JsonSchema)]
 pub struct Address(HumanAddr);
 impl PartialOrd for Address {
     fn partial_cmp (&self, other: &Self) -> Option<Ordering> {
@@ -21,11 +19,6 @@ impl PartialOrd for Address {
 impl Ord for Address {
     fn cmp (&self, other: &Self) -> Ordering {
         self.0.as_str().cmp(other.0.as_str())
-    }
-}
-impl PartialEq for Address {
-    fn eq (&self, other: &Self) -> bool {
-        self.0.as_str() == other.0.as_str()
     }
 }
 impl Eq for Address {}
@@ -52,7 +45,7 @@ pub type ErrorCount = u64;
 pub const BLOCK_SIZE: usize = 256;
 
 /// Authentication
-#[macro_export] macro_rules! require_admin {
+macro_rules! require_admin {
     (|$env:ident, $state:ident| $body:block) => {
         if Some($env.message.sender) != $state.admin {
             err_auth($state)
@@ -63,7 +56,7 @@ pub const BLOCK_SIZE: usize = 256;
 }
 
 /// Error messages
-macro_rules! error {
+#[macro_export] macro_rules! error {
     // Assumptions have been violated.
     (CORRUPTED) => { "broken" };
     // Unknown claimant or nothing to claim right now.
@@ -109,28 +102,27 @@ contract!(
     }) {
         let errors   = 0;
         let admin    = Some(env.message.sender);
-        let total    = Uint128::zero();
+        let total    = schedule.total;
         let history  = History::new();
         let launched = None;
-        State { errors, admin, token_addr, token_hash, total, schedule, history, launched }
+        State {
+            errors, admin, total, history, launched,
+            schedule, token_addr, token_hash
+        }
     }
 
-    [Query] (deps, state, msg) {
+    [Query] (_deps, state, msg) {
 
         /// Return error count and launch timestamp.
         Status () {
-            Response::Status {
-                errors:   state.errors,
-                launched: state.launched,
-            }
+            let State { errors, launched, .. } = state;
+            Response::Status { errors, launched }
         }
 
         /// Return schedule and sum of total minted tokens
         GetSchedule () {
-            Response::Schedule {
-                schedule: state.schedule,
-                total:    state.total
-            }
+            let State { schedule, total, .. } = state;
+            Response::Schedule { schedule, total }
         }
 
         /// Return one account from the schedule
@@ -139,7 +131,7 @@ contract!(
                 if pool.name == pool_name {
                     for account in pool.accounts.iter() {
                         if account.name == account_name {
-                            return Response::Account { pool, account }
+                            return Response::Account { pool: pool.clone(), account: account.clone() }
                         }
                     }
                     break
@@ -152,10 +144,10 @@ contract!(
         Claimable (address: HumanAddr, time: Seconds) {
             if let Some(launch) = &state.launched {
                 let elapsed = time - launch;
-                let (vested, claimable) = portion(&state, address, elapsed);
+                let (_, claimable) = portion(&state, &address, elapsed);
                 Response::Claimable { address, claimable: claimable.into() }
             } else {
-                Response::Error { error: StdError::GenericErr { msg: String::from(PRELAUNCH), backtrace: None } }
+                Response::Error { msg: error!(PRELAUNCH).to_string() }
             }
         }
     }
@@ -165,7 +157,7 @@ contract!(
         Schedule  { schedule: Schedule, total: Uint128 }
         Account   { pool: Pool, account: Account }
         Claimable { address: HumanAddr, claimable: Uint128 }
-        Error     { error: StdError }
+        Error     { msg: String }
         NotFound  {}
     }
 
@@ -203,7 +195,7 @@ contract!(
         /// by the underlying contract.
         Launch () {
             require_admin!(|env, state| {
-                if let Some(_) = &state.launched { return err_msg(state, &UNDERWAY) }
+                if let Some(_) = &state.launched { return err_msg(state, error!(UNDERWAY)) }
                 let messages = vec![
                     mint_msg(
                         env.contract.address,
@@ -230,24 +222,24 @@ contract!(
             if let &Some(launch) = &state.launched {
                 let address = env.message.sender;
                 let elapsed = env.block.time - launch;
-                let (vested, claimable) = portion(&state, address, elapsed);
+                let (vested, claimable) = portion(&state, &address, elapsed);
                 if claimable > 0 {
-                    state.history.insert(address.into(), vested.into());
+                    state.history.insert(address.clone().into(), vested.into());
                     return ok!(state, vec![transfer(&state, &address, claimable.into())?]);
                 }
-                err_msg(state, &NOTHING)
+                err_msg(state, error!(NOTHING))
             } else {
-                err_msg(state, &PRELAUNCH)
+                err_msg(state, error!(PRELAUNCH))
             }
         }
     }
 
 );
 
-fn portion (state: &State, address: HumanAddr, elapsed: Seconds) -> (u128, u128) {
+fn portion (state: &State, address: &HumanAddr, elapsed: Seconds) -> (u128, u128) {
     let vested = state.schedule.vested(&address, elapsed);
     if vested > 0 {
-        let claimed = match state.history.get(&address.into()) {
+        let claimed = match state.history.get(&address.clone().into()) {
             Some(claimed) => claimed.u128(),
             None => 0
         };
