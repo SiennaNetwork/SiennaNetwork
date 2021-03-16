@@ -26,3 +26,4 @@ snafu = { version = "0.6.3", features = ["backtraces"] }
 
 [dev-dependencies]
 kukumba = { path = "../kukumba" }
+snip20-reference-impl = { path = "../token" }

@@ -1,9 +1,17 @@
 #[macro_use] extern crate fadroma;
 #[macro_use] extern crate lazy_static;
 pub use secret_toolkit::snip20::handle::transfer_msg;
+pub use sienna_mgmt::msg::{Query as MGMTQuery, Response as MGMTResponse, Handle as MGMTHandle};
 
 pub type Config = Vec<(HumanAddr, Uint128)>;
+fn sum_config (config: &Config) -> Uint128 {
+    let mut total = Uint128::zero();
+    for (_, amount) in config.iter() { total += *amount; }
+    total
+}
+
 pub type CodeHash = String;
+
 pub type ErrorCount = u64;
 pub const BLOCK_SIZE: usize = 256;
 
@@ -23,6 +31,7 @@ contract!(
         errors:      ErrorCount,
         admin:       HumanAddr,
         config:      Config,
+        total:       Uint128,
         token_addr:  HumanAddr,
         token_hash:  CodeHash,
         mgmt_addr:   HumanAddr,
@@ -38,12 +47,13 @@ contract!(
     }) {
         State {
             errors: 0,
-            admin:       env.message.sender,
-            config:      msg.config,
-            token_addr:  msg.token_addr,
-            token_hash:  msg.token_hash,
-            mgmt_addr:   msg.mgmt_addr,
-            mgmt_hash:   msg.mgmt_hash,
+            admin:  env.message.sender,
+            total:  sum_config(&msg.config),
+            config: msg.config,
+            token_addr: msg.token_addr,
+            token_hash: msg.token_hash,
+            mgmt_addr:  msg.mgmt_addr,
+            mgmt_hash:  msg.mgmt_hash,
         }
     }
 
@@ -66,15 +76,41 @@ contract!(
     [Handle] (deps, env, state, msg) {
         Configure (config: Config) {
             require_admin!(|env, state| {
-                state.config = config;
-                return ok!(state)
+                let address = env.contract.address;
+                let time    = env.block.time;
+                let query   = MGMTQuery::Claimable { address, time };
+                let response = deps.querier.query::<MGMTResponse>(
+                    &cosmwasm_std::QueryRequest::Wasm(
+                        cosmwasm_std::WasmQuery::Smart {
+                            contract_addr:      state.mgmt_addr.clone(),
+                            callback_code_hash: state.mgmt_hash.clone(),
+                            msg: to_binary(&query)? // TODO pad to BLOCK_SIZE
+                        }
+                    )
+                )?;
+                if let MGMTResponse::Claimable { amount, .. } = response {
+                    let total = sum_config(&config);
+                    if amount == total {
+                        state.config = config;
+                        state.total = total;
+                        ok!(state)
+                    } else {
+                        err_msg(state, &format!("allocations must add up to {}, not {}",
+                            &amount,
+                            &total
+                        ))
+                    }
+                } else {
+                    err_msg(state, &format!("mgmt returned wrong response"))
+                }
             })
         }
         Vest () {
+            // check how much can be claimed
             // claim funds from mgmt:
             let mut messages = vec![
                 CosmosMsg::Wasm(WasmMsg::Execute {
-                    msg:  to_binary(&sienna_mgmt::msg::Handle::Claim {})?,
+                    msg:  to_binary(&MGMTHandle::Claim {})?, // TODO padding
                     send: vec![],
                     contract_addr:      state.mgmt_addr.clone(),
                     callback_code_hash: state.mgmt_hash.clone(),
@@ -82,14 +118,15 @@ contract!(
             ];
             // then distribte them among each recipient:
             for (addr, amount) in state.config.iter() {
-                messages.push(transfer_msg(
-                    addr.clone(), amount.clone(), None, BLOCK_SIZE,
-                    state.token_hash.clone(),
-                    state.token_addr.clone()
-                ).unwrap());
+                messages.push(transfer(&state, &addr, *amount)?);
             }
             ok!(state, messages)
         }
     }
 );
 
+fn transfer (state: &State, addr: &HumanAddr, amount: Uint128) -> StdResult<CosmosMsg> {
+    let token_hash = state.token_hash.clone();
+    let token_addr = state.token_addr.clone();
+    transfer_msg(addr.clone(), amount, None, BLOCK_SIZE, token_hash, token_addr)
+}
