@@ -31,7 +31,9 @@ impl Vesting for Account {
                     amount += self.remainder();
                     break
                 }
-                if t_cursor > t_query { break }
+                if t_cursor > t_query {
+                    break
+                }
                 amount += self.portion_size();
                 t_cursor += self.interval;
             }
@@ -112,12 +114,14 @@ mod tests {
         let Bob   = HumanAddr::from("Bob");
         let A = Account::periodic("", &Alice, 100, 10, 20, 11, 90);
         assert_eq!(100, A.amount.u128());
-        assert_eq!(10, A.cliff.u128());
-        assert_eq!(20, A.start_at);
-        assert_eq!(11, A.interval);
-        assert_eq!(90, A.duration);
-        assert_eq!( 8, A.portion_count());
-        assert_eq!(11, A.portion_size());
+        assert_eq!( 10, A.cliff.u128());
+        assert_eq!( 90, A.amount_sans_cliff());
+        assert_eq!( 20, A.start_at);
+        assert_eq!( 11, A.interval);
+        assert_eq!( 90, A.duration);
+        assert_eq!(  8, A.portion_count());
+        assert_eq!( 11, A.portion_size());
+        assert_eq!(  2, A.remainder());
         // ...in a `Pool`...
         let P = Pool::complete("", &[A.clone()]);
         assert_eq!(100, P.total.u128());

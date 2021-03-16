@@ -15,7 +15,7 @@ use serde::{Serialize, Deserialize};
 use snafu::GenerateBacktrace;
 pub use cosmwasm_std::{Uint128, HumanAddr, StdResult, StdError};
 
-pub mod errors;
+pub mod errors; pub use errors::*;
 pub mod validate; pub use validate::*;
 pub mod vesting; pub use vesting::*;
 
@@ -67,7 +67,8 @@ impl Pool {
         for &Account{amount,..} in accounts.iter() { total += amount }
         Pool { partial: false, name: name.into(), total, accounts }
     }
-    fn accounts_total (&self) -> StdResult<u128> {
+    /// Sum of all contrained accounts, sans any unallocated funds
+    pub fn subtotal (&self) -> StdResult<u128> {
         let mut total = 0u128;
         for account in self.accounts.iter() {
             account.validate()?;

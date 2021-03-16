@@ -30,22 +30,18 @@
 
 use crate::*;
 
-/// Trait for something that undergoes validation
-/// returning `Ok` or an error.
+/// Trait for something that undergoes validation, returning `Ok` or an error.
 pub trait Validate {
     /// Default implementation is a no-op
-    fn validate (&self) -> StdResult<()> { Ok(()) }
+    fn validate (&self) -> UsuallyOk { Ok(()) }
 }
-
 impl Validate for Schedule {
     /// Schedule must contain valid pools that add up to the schedule total
-    fn validate (&self) -> StdResult<()> {
+    fn validate (&self) -> UsuallyOk {
         let mut total = 0u128;
         for pool in self.pools.iter() {
-            match pool.validate() {
-                Ok(_)  => { total += pool.total.u128() },
-                Err(e) => return Err(e)
-            }
+            pool.validate()?;
+            total += pool.total.u128();
         }
         if total != self.total.u128() {
             return Self::err_total(total, self.total)
@@ -53,16 +49,9 @@ impl Validate for Schedule {
         Ok(())
     }
 }
-impl Schedule {
-    define_errors!{
-        err_total (actual: u128, expected: Uint128) ->
-            ("schedule: pools add up to {}, expected {}",
-                actual, expected)}
-}
-
 impl Validate for Pool {
-    fn validate (&self) -> StdResult<()> {
-        let total = self.accounts_total()?;
+    fn validate (&self) -> UsuallyOk {
+        let total = self.subtotal()?;
         let invalid_total = if self.partial {
             total > self.total.u128()
         } else {
@@ -72,46 +61,11 @@ impl Validate for Pool {
         Ok(())
     }
 }
-impl Pool {
-    define_errors!{
-        err_total (name: &str, actual: u128, expected: &Uint128) ->
-            ("pool {}: accounts add up to {}, expected {}",
-                name, actual, expected)}
-}
-
 impl Validate for Account {
-    fn validate (&self) -> StdResult<()> {
-        //match &self.allocations {
-            //AccountConfig::Immediate(config) => {
-                //config.validate()?;
-            //},
-            //AccountConfig::Periodic(config) => {
-                //for (_, periodic, allocations) in config.iter() {
-                    //periodic.validate(&self)?;
-                    //allocations.validate()?;
-                //}
-            //}
-        //}
+    fn validate (&self) -> UsuallyOk {
+        if self.cliff > self.amount {
+            return self.err_cliff_too_big()
+        }
         Ok(())
-    }
-}
-impl Account {
-    pub fn validate_periodic (&self, acc: &Account) -> StdResult<()> {
-        let &Account{cliff,duration,interval,..} = self;
-        if duration < 1u64 { return Self::err_zero_duration(&acc.name) }
-        if interval < 1u64 { return Self::err_zero_interval(&acc.name) }
-        if cliff > acc.amount { return Self::err_cliff_gt_total(&acc.name, &cliff, &acc.amount) }
-        Ok(())
-    }
-    define_errors!{
-        err_zero_duration (name: &str) ->
-            ("account {}: periodic vesting's duration can't be 0",
-                name)
-        err_zero_interval (name: &str) ->
-            ("account {}: periodic vesting's interval can't be 0",
-                name)
-        err_cliff_gt_total (name: &str, cliff: &Uint128, total: &Uint128) ->
-            ("account {}: cliff ({}) can't be larger than total ({})",
-                name, cliff, total)
     }
 }
