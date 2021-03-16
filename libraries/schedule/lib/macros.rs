@@ -95,34 +95,20 @@
 /// Create a `Account` from a short description
 #[macro_export] macro_rules! Account {
     ( (
-        $name:ident $total:literal
-        $(($who:ident $how_much:literal))*
+        ($name:ident $address:ident)
+        (amount $amount:expr)
+        (start $start_at:expr)
+        (cliff $cliff:expr)
+        (interval $interval:expr)
+        (duration $duration:expr)
     ) ) => { $crate::Account {
-        name:             Str!($name),
-        total:            U128!($total),
-        start_at:         0,
-        interval:         0,
-        duration:         0,
-        head:             U128!(0),
-        head_allocations: vec![$($crate::Allocation{address:$who.clone(),amount:U128!($how_much)}),*],
-        body_allocations: vec![],
-        tail_allocations: vec![]
-    } };
-    ( (
-        $name:ident $total:literal
-        head    $head:literal    at $start_at:literal $(($who1:ident $how_much1:literal))*
-        body $portion:literal every $interval:literal $(($who2:ident $how_much2:literal))*
-        tail    $tail:literal                         $(($who3:ident $how_much3:literal))*
-    ) ) => { $crate::Account {
-        name:             Str!($name),
-        total:            U128!($total),
-        start_at:         $start_at,
-        interval:         $interval,
-        duration:         0, // TODO
-        head:             U128!($head),
-        head_allocations: vec![$($crate::Allocation{address:$who1.clone(),amount:U128!($how_much1)}),*],
-        body_allocations: vec![$($crate::Allocation{address:$who2.clone(),amount:U128!($how_much2)}),*],
-        tail_allocations: vec![$($crate::Allocation{address:$who3.clone(),amount:U128!($how_much3)}),*],
+        name:     Str!($name),
+        address:  $address.clone(),
+        amount:   U128!($amount),
+        cliff:    U128!($cliff)
+        start_at: $start_at,
+        interval: $interval,
+        duration: $duration,
     } };
 }
 

@@ -24,7 +24,7 @@
 //! 3. The runtime assertions in the `vesting`, which prevent
 //!    invalid configurations from generating output.
 //!
-//! 4. For a running contract, valid outputs are further filtered by the
+//! 4. For a runnihttps://github.com/qarmin/czkawkang contract, valid outputs are further filtered by the
 //!    `history` module, which rejects configurations that change already
 //!    vested/claimed portions.
 
@@ -48,14 +48,14 @@ impl Validate for Schedule {
             }
         }
         if total != self.total.u128() {
-            return Self::err_total(total, self.total.u128())
+            return Self::err_total(total, self.total)
         }
         Ok(())
     }
 }
 impl Schedule {
     define_errors!{
-        err_total (actual: u128, expected: u128) ->
+        err_total (actual: u128, expected: Uint128) ->
             ("schedule: pools add up to {}, expected {}",
                 actual, expected)}
 }
@@ -68,13 +68,13 @@ impl Validate for Pool {
         } else {
             total != self.total.u128()
         };
-        if invalid_total { return Self::err_total(&self.name, total, self.total.u128()) }
+        if invalid_total { return Self::err_total(&self.name, total, &self.total) }
         Ok(())
     }
 }
 impl Pool {
     define_errors!{
-        err_total (name: &str, actual: u128, expected: u128) ->
+        err_total (name: &str, actual: u128, expected: &Uint128) ->
             ("pool {}: accounts add up to {}, expected {}",
                 name, actual, expected)}
 }
@@ -96,25 +96,22 @@ impl Validate for Account {
     }
 }
 impl Account {
-    pub fn validate_periodic (&self, ch: &Account) -> StdResult<()> {
-        let Account{head,duration,interval,..} = self;
-        if *duration < 1u64 { return Self::err_zero_duration(&ch.name) }
-        if *interval < 1u64 { return Self::err_zero_interval(&ch.name) }
-        if *head > ch.total { return Self::err_head_gt_total(&ch.name, head.u128(), ch.total.u128()) }
+    pub fn validate_periodic (&self, acc: &Account) -> StdResult<()> {
+        let &Account{cliff,duration,interval,..} = self;
+        if duration < 1u64 { return Self::err_zero_duration(&acc.name) }
+        if interval < 1u64 { return Self::err_zero_interval(&acc.name) }
+        if cliff > acc.amount { return Self::err_cliff_gt_total(&acc.name, &cliff, &acc.amount) }
         Ok(())
     }
     define_errors!{
-        err_total (name: &str, total: u128, portion: u128) -> 
-            ("account {}: allocations add up to {}, expected {}",
-                name, total, portion)
         err_zero_duration (name: &str) ->
             ("account {}: periodic vesting's duration can't be 0",
                 name)
         err_zero_interval (name: &str) ->
             ("account {}: periodic vesting's interval can't be 0",
                 name)
-        err_head_gt_total (name: &str, head: u128, total: u128) ->
-            ("account {}: head {} can't be larger than total total {}",
-                name, head, total)
+        err_cliff_gt_total (name: &str, cliff: &Uint128, total: &Uint128) ->
+            ("account {}: cliff ({}) can't be larger than total ({})",
+                name, cliff, total)
     }
 }
