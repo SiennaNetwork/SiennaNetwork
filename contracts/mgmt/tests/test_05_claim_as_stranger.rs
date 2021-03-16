@@ -3,7 +3,6 @@
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
 use cosmwasm_std::{HumanAddr, Uint128};
-use sienna_mgmt::{PRELAUNCH, NOTHING};
 use sienna_schedule::{Schedule, Vesting};
 
 kukumba!(

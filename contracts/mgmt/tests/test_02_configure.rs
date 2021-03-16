@@ -34,7 +34,7 @@ kukumba!(
             Schedule { schedule: s0.all().unwrap(), total: Uint128::zero() });
     }
     when "the admin sets the planned production configuration" {
-        let s: Schedule = serde_json::from_str(include_str!("../../config.json")).unwrap();
+        let s: Schedule = serde_json::from_str(include_str!("../../../settings/config.json")).unwrap();
         test_tx!(deps, ALICE, 0, 0;
             Configure { portions: s.all().unwrap() } => tx_ok!());
     } then "the configuration is updated" {

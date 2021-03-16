@@ -4,7 +4,6 @@
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
 use cosmwasm_std::{StdError, HumanAddr, Uint128};
-use sienna_mgmt::{PRELAUNCH, NOTHING};
 
 kukumba!(
 
@@ -12,7 +11,7 @@ kukumba!(
 
     given "a contract with the production schedule" {
         harness!(deps; ADMIN);
-        let s: Schedule = serde_json::from_str(include_str!("../../config.json")).unwrap();
+        let s: Schedule = serde_json::from_str(include_str!("../../../settings/config.json")).unwrap();
         test_tx!(deps, ADMIN, 0, 0;
             Configure { portions: s.all().unwrap() } => tx_ok!());
 

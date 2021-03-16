@@ -1,3 +1,5 @@
+#![allow(unused_macros)]
+
 use cosmwasm_std::{
     HumanAddr, Coin,
     Extern, MemoryStorage,
