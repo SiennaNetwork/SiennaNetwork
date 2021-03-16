@@ -7,6 +7,12 @@ module.exports = class MGMT extends SecretNetworkContract.withSchema({
   handleMsg:   require('./handle.json')
 }) {
 
+  // query contract status
+  get status () { return this.q.status() }
+
+  // query current schedule
+  get schedule () { return this.q.get_schedule() }
+
   // take over a SNIP20 token
   acquire = async snip20 => {
     await snip20.setMinters([this.address])
@@ -19,17 +25,10 @@ module.exports = class MGMT extends SecretNetworkContract.withSchema({
   // launch the vesting
   launch = () => this.tx.launch()
 
-  // update allocations for an account
-  reallocate = (pool, account, allocations) => this.tx.reallocate(pool, account,
-    Object.entries(allocations).map(([addr, amount])=>({addr, amount})))
-
   // claim accumulated portions
   claim = claimant => this.tx.claim({}, claimant)
 
-  // query contract status
-  get status () { return this.q.status() }
-
-  // query current schedule
-  get schedule () { return this.q.get_schedule() }
+  // add a new account to a pool
+  add = (pool, account) => this.tx.add_account({ pool, account })
 
 }

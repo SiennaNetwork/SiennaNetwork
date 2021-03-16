@@ -30,11 +30,10 @@
     },
     "history": {
       "description": "History of fulfilled claims.",
-      "allOf": [
-        {
-          "$ref": "#/definitions/History"
-        }
-      ]
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Uint128"
+      }
     },
     "launched": {
       "description": "When this contract is launched, this is set to the block time.",
@@ -47,10 +46,11 @@
     },
     "schedule": {
       "description": "Vesting configuration.",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Portion"
-      }
+      "allOf": [
+        {
+          "$ref": "#/definitions/Schedule"
+        }
+      ]
     },
     "token_addr": {
       "description": "The SNIP20 token contract that will be managed by this instance.",
@@ -74,65 +74,114 @@
     }
   },
   "definitions": {
-    "ClaimedPortion": {
-      "description": "History entry",
+    "Account": {
+      "description": "Individual vesting config. Immediate release is thought of as a special case of vesting where: * `head == total` * `duration == interval == 0`, * only `head_allocations` is considered.",
       "type": "object",
       "required": [
-        "claimed",
-        "portion"
+        "address",
+        "amount",
+        "cliff",
+        "duration",
+        "interval",
+        "name",
+        "start_at"
       ],
       "properties": {
-        "claimed": {
+        "address": {
+          "description": "Recipient address",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          ]
+        },
+        "amount": {
+          "description": "Funds that this account will release",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "cliff": {
+          "description": "If `> 0`, releases this much money the first time, pushing back the regular portions",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "duration": {
+          "description": "If `> 0`, vesting stops after this much seconds regardless of how much is left of `total`.",
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
-        "portion": {
-          "$ref": "#/definitions/Portion"
-        }
-      }
-    },
-    "History": {
-      "description": "Log of executed claims",
-      "type": "object",
-      "required": [
-        "history"
-      ],
-      "properties": {
-        "history": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ClaimedPortion"
-          }
+        "interval": {
+          "description": "How many seconds to wait between portions",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "name": {
+          "description": "Human-readable name",
+          "type": "string"
+        },
+        "start_at": {
+          "description": "How many seconds after contract launch to begin vesting",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
         }
       }
     },
     "HumanAddr": {
       "type": "string"
     },
-    "Portion": {
-      "description": "Claimable portion",
+    "Pool": {
+      "description": "Subdivision of `Schedule`, contains `Account`s, may be `partial`. If `partial == false`, they must add up to `total`.",
       "type": "object",
       "required": [
-        "address",
-        "amount",
-        "reason",
-        "vested"
+        "accounts",
+        "name",
+        "partial",
+        "total"
       ],
       "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
+        "accounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Account"
+          }
         },
-        "amount": {
-          "$ref": "#/definitions/Uint128"
-        },
-        "reason": {
+        "name": {
           "type": "string"
         },
-        "vested": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0.0
+        "partial": {
+          "description": "if `true`, adding new `Account`s is allowed at runtime, up to `total`. otherwise, accounts must add up to `total` at creation.",
+          "type": "boolean"
+        },
+        "total": {
+          "$ref": "#/definitions/Uint128"
+        }
+      }
+    },
+    "Schedule": {
+      "description": "Contains `Pool`s that must add up to `total`.",
+      "type": "object",
+      "required": [
+        "pools",
+        "total"
+      ],
+      "properties": {
+        "pools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Pool"
+          }
+        },
+        "total": {
+          "$ref": "#/definitions/Uint128"
         }
       }
     },

@@ -5,7 +5,7 @@
 // a cursory look through the docs would provide a (not-necessarily-exhaustive)
 // list of the SNIP20 interactions that this contract performs
 pub use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
-pub use sienna_schedule::{Seconds, Schedule, Pool, Account, Vesting};
+pub use sienna_schedule::{Seconds, Schedule, Pool, Account, Vesting, Validation};
 pub use std::{collections::BTreeMap, cmp::Ordering};
 
 /// Wrapped `HumanAddr` that can be sorted
@@ -56,17 +56,13 @@ macro_rules! require_admin {
 }
 
 /// Error messages
-#[macro_export] macro_rules! error {
-    // Assumptions have been violated.
-    (CORRUPTED) => { "broken" };
-    // Unknown claimant or nothing to claim right now.
-    (NOTHING)   => { "nothing" };
-    // Already launched
-    (UNDERWAY)  => { "already underway" };
-    // Not launched yet
-    (PRELAUNCH) => { "not launched yet" };
-    // Can't find account or pool by name
-    (NOT_FOUND) => { "not found" }
+#[macro_export] macro_rules! MGMTError {
+    (CORRUPTED)   => { "broken" };  // Contract has entered a state that violates core assumptions.
+    (NOTHING)     => { "nothing" }; // Unknown claimant or nothing to claim right now.
+    (UNDERWAY)    => { "already underway" }; // Already launched
+    (PRELAUNCH)   => { "not launched yet" }; // Not launched yet
+    (NOT_FOUND)   => { "not found" };        // Can't find account or pool by name
+    (ADD_ACCOUNT) => { "unexpected error when adding account" } // Shouldn't happen
 }
 
 contract!(
@@ -147,7 +143,7 @@ contract!(
                 let (_, claimable) = portion(&state, &address, elapsed);
                 Response::Claimable { address, claimable: claimable.into() }
             } else {
-                Response::Error { msg: error!(PRELAUNCH).to_string() }
+                Response::Error { msg: MGMTError!(PRELAUNCH).to_string() }
             }
         }
     }
@@ -166,8 +162,22 @@ contract!(
         /// Load a new schedule (only before launching the contract)
         Configure (schedule: Schedule) {
             require_admin!(|env, state| {
+                schedule.validate()?;
                 state.schedule = schedule;
                 ok!(state)
+            })
+        }
+
+        /// Add a new account to a partially filled pool
+        AddAccount (pool: String, account: Account) {
+            require_admin!(|env, state| {
+                match state.schedule.add_account(pool, account) {
+                    Ok(()) => ok!(state),
+                    Err(e) => match e {
+                        StdError::GenericErr { msg, .. } => err_msg(state, &msg),
+                        _ => err_msg(state, MGMTError!(ADD_ACCOUNT))
+                    }
+                }
             })
         }
 
@@ -195,7 +205,7 @@ contract!(
         /// by the underlying contract.
         Launch () {
             require_admin!(|env, state| {
-                if let Some(_) = &state.launched { return err_msg(state, error!(UNDERWAY)) }
+                if let Some(_) = &state.launched { return err_msg(state, MGMTError!(UNDERWAY)) }
                 let messages = vec![
                     mint_msg(
                         env.contract.address,
@@ -227,9 +237,9 @@ contract!(
                     state.history.insert(address.clone().into(), vested.into());
                     return ok!(state, vec![transfer(&state, &address, claimable.into())?]);
                 }
-                err_msg(state, error!(NOTHING))
+                err_msg(state, MGMTError!(NOTHING))
             } else {
-                err_msg(state, error!(PRELAUNCH))
+                err_msg(state, MGMTError!(PRELAUNCH))
             }
         }
     }
@@ -237,7 +247,7 @@ contract!(
 );
 
 fn portion (state: &State, address: &HumanAddr, elapsed: Seconds) -> (u128, u128) {
-    let vested = state.schedule.vested(&address, elapsed);
+    let vested = state.schedule.unlocked(&address, elapsed);
     if vested > 0 {
         let claimed = match state.history.get(&address.clone().into()) {
             Some(claimed) => claimed.u128(),
