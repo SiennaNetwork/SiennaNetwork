@@ -6,9 +6,37 @@
 // a cursory look through the docs would provide a (not-necessarily-exhaustive)
 // list of the SNIP20 interactions that this contract performs
 pub use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
-pub use sienna_schedule::{Seconds, Schedule, Pool, Account, Portions, History};
+pub use sienna_schedule::{Seconds, Schedule, Pool, Account, Vesting};
+pub use std::{collections::BTreeMap, cmp::Ordering};
 
 #[macro_use] pub mod safety; pub use safety::*;
+
+/// Wrapped `HumanAddr` that can be sorted
+pub struct Address(HumanAddr);
+impl PartialOrd for Address {
+    fn partial_cmp (&self, other: &Self) -> Option<Ordering> {
+        self.0.as_str().partial_cmp(other.0.as_str())
+    }
+}
+impl Ord for Address {
+    fn cmp (&self, other: &Self) -> Ordering {
+        self.0.as_str().cmp(other.0.as_str())
+    }
+}
+impl PartialEq for Address {
+    fn eq (&self, other: &Self) -> bool {
+        self.0.as_str() == other.0.as_str()
+    }
+}
+impl Eq for Address {}
+impl From<HumanAddr> for Address {
+    fn from (other: HumanAddr) -> Self {
+        Self(other)
+    }
+}
+
+/// How much each recipient has claimed so far
+pub type History = BTreeMap<Address, Uint128>;
 
 /// The managed SNIP20 contract's code hash.
 pub type CodeHash = String;
@@ -101,7 +129,7 @@ contract!(
             if let Some(launch) = &state.launched {
                 let elapsed = time - *launch;
                 let vested  = state.schedule.vested(address, elapsed);
-                let claimed = state.history.get(address);
+                let claimed = state.history.get(address.into());
                 if claimed < vested {
                     amount = vested - claimed
                 }
@@ -118,7 +146,7 @@ contract!(
             launched: Launched
         }
         Schedule {
-            schedule: Portions,
+            schedule: Schedule,
             total:    Uint128
         }
         Account {
@@ -126,8 +154,8 @@ contract!(
             account: Account
         }
         Claimable {
-            address:  HumanAddr,
-            amount:   Uint128
+            address: HumanAddr,
+            amount:  Uint128
         }
         NotFound {}
     }
@@ -135,17 +163,9 @@ contract!(
     [Handle] (deps, env, state, msg) {
 
         /// Load a new schedule (only before launching the contract)
-        Configure (portions: Portions) {
+        Configure (schedule: Schedule) {
             require_admin!(|env, state| {
-                state.history.validate_schedule_update(
-                    &state.schedule,
-                    &portions
-                )?;
-                state.total = Uint128::zero();
-                for portion in portions.iter() {
-                    state.total += portion.amount
-                }
-                state.schedule = portions;
+                state.schedule = schedule;
                 ok!(state)
             })
         }
@@ -174,12 +194,7 @@ contract!(
         /// by the underlying contract.
         Launch () {
             require_admin!(|env, state| {
-                if let Some(_) = &state.launched {
-                    return err_msg(state, &UNDERWAY)
-                }
-                if state.schedule.len() < 1 || state.total == Uint128::zero() {
-                    return err_msg(state, &NO_SCHEDULE)
-                }
+                if let Some(_) = &state.launched { return err_msg(state, &UNDERWAY) }
                 let messages = vec![
                     mint_msg(
                         env.contract.address,
@@ -203,45 +218,39 @@ contract!(
         /// After launch, recipients can call the Claim method to
         /// receive the gains that they have accumulated so far.
         Claim () {
-            if let Some(launch) = &state.launched {
-                let now      = env.block.time;
-                let elapsed  = now - *launch;
-                let claimant = env.message.sender;
-
-                let claimable: Portions = state.schedule.clone()
-                    .into_iter().filter(|p| {p.vested<=elapsed && p.address==claimant}).collect();
-                if claimable.is_empty() {
-                    return err_msg(state, &NOTHING)
+            if let &Some(launch) = &state.launched {
+                let address = env.message.sender;
+                let elapsed = env.block.time - launch;
+                let (vested, claimable) = portion(&state, address, elapsed);
+                if claimable > 0 {
+                    state.history.insert(address.into(), vested.into());
+                    return ok!(state, vec![transfer(&state, &address, claimable.into())?]);
                 }
-
-                let unclaimed = state.history.unclaimed(&claimable);
-                if unclaimed.is_empty() {
-                    return err_msg(state, &NOTHING)
-                }
-
-                let mut sum: Uint128 = Uint128::zero();
-                for p in unclaimed.iter() {
-                    if p.address != claimant {
-                        panic!("p for wrong address {} was to be claimed by {}",
-                            &p.address,
-                            &claimant
-                        );
-                    }
-                    sum += p.amount
-                }
-
-                state.history.claim(now, unclaimed);
-                ok!(state, vec![transfer_msg(
-                    claimant, sum,
-                    None, BLOCK_SIZE,
-                    (&state.token_hash).clone(),
-                    (&state.token_addr).clone()
-                )?])
+                err_msg(state, &NOTHING)
             } else {
                 err_msg(state, &PRELAUNCH)
             }
         }
-
     }
 
 );
+
+fn portion (state: &State, address: HumanAddr, elapsed: Seconds) -> (u128, u128) {
+    let vested = state.schedule.vested(&address, elapsed);
+    if vested > 0 {
+        let claimed = match state.history.get(&address.into()) {
+            Some(claimed) => claimed.u128(),
+            None => 0
+        };
+        if vested > claimed {
+            return (vested, vested - claimed);
+        }
+    }
+    return (vested, 0)
+}
+
+fn transfer (state: &State, addr: &HumanAddr, amount: Uint128) -> StdResult<CosmosMsg> {
+    let token_hash = state.token_hash.clone();
+    let token_addr = state.token_addr.clone();
+    transfer_msg(addr.clone(), amount, None, BLOCK_SIZE, token_hash, token_addr)
+}

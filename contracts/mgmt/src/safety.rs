@@ -24,9 +24,3 @@ lazy_static! {
     /// Error message: can't find channel/pool by name.
     pub static ref NOT_FOUND:   &'static str = "target not found";
 }
-
-pub fn err_allocation (total: u128, max: u128) -> String {
-    format!("allocations added up to {} which is over the maximum of {}",
-        total, max)
-}
-
