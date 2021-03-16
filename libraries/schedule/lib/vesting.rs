@@ -30,12 +30,14 @@ use crate::*;
 pub trait Vesting {
     /// Get list of all portions that will be unlocked
     fn all (&self) -> UsuallyPortions;
-    /// Get amount unlocked for address `a` at time `t`.
+    /// Get portions unlocked for address `a` at time `t`.
     fn claimable_by_at (&self, a: &HumanAddr, t: Seconds) -> UsuallyPortions {
         let mut all = self.all()?;
         all.retain(|Portion{address,vested,..}|address==a&&*vested<=t);
         Ok(all)
     }
+    /// Get total amount unlocked for address `a` at time `t`.
+    fn vested (&self, a: &HumanAddr, t: Seconds) -> u128;
 }
 
 impl Vesting for Schedule {
@@ -47,6 +49,14 @@ impl Vesting for Schedule {
         }
         Ok(portions)
     }
+    /// Get total amount unlocked for address `a` at time `t`.
+    fn vested (&self, a: &HumanAddr, t: Seconds) -> u128 {
+        let mut total = 0;
+        for pool in self.pools.iter() {
+            total += pool.vested(a, t)
+        }
+        total
+    }
 }
 
 impl Vesting for Pool {
@@ -57,6 +67,14 @@ impl Vesting for Pool {
             portions.append(&mut account.all()?);
         }
         Ok(portions)
+    }
+    /// Get total amount unlocked for address `a` at time `t`.
+    fn vested (&self, a: &HumanAddr, t: Seconds) -> u128 {
+        let mut total = 0;
+        for account in self.accounts.iter() {
+            total += account.vested(a, t)
+        }
+        total
     }
 }
 
@@ -105,6 +123,27 @@ impl Vesting for Account {
             )?;
         }
         Ok(all_portions)
+    }
+    /// Get total amount unlocked for address `a` at time `t`.
+    fn vested (&self, a: &HumanAddr, t: Seconds) -> u128 {
+        if *a != self.address { return 0 }
+        if t < self.start_at { return 0 }
+        let mut amount = 0u128;
+        let mut t_cursor = self.start_at;
+        if self.cliff > Uint128::zero() {
+            amount += self.cliff.u128();
+            t_cursor += self.interval;
+        }
+        loop {
+            if t_cursor > t { break }
+            if t_cursor > self.duration { break }
+            amount += self.portion_size();
+            t_cursor += self.interval;
+        }
+        if t_cursor > self.duration {
+            amount += self.amount.u128() - amount;
+        }
+        amount
     }
 }
 

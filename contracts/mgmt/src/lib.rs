@@ -6,7 +6,7 @@
 // a cursory look through the docs would provide a (not-necessarily-exhaustive)
 // list of the SNIP20 interactions that this contract performs
 pub use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
-pub use sienna_schedule::{Seconds, Portions, History};
+pub use sienna_schedule::{Seconds, Schedule, Pool, Account, Portions, History};
 
 #[macro_use] pub mod safety; pub use safety::*;
 
@@ -38,7 +38,7 @@ contract!(
         /// History of fulfilled claims.
         history:    History,
         /// Vesting configuration.
-        schedule:   Portions,
+        schedule:   Schedule,
         /// Total amount to mint
         total:      Uint128,
         /// TODO: public counter of invalid requests
@@ -50,22 +50,16 @@ contract!(
     ///    a contract that implements SNIP20
     ///  - makes the initializer the admin
     [Init] (deps, env, msg: {
-        schedule:   Option<Portions>,
+        schedule:   Schedule,
         token_addr: HumanAddr,
         token_hash: CodeHash
     }) {
-        State {
-            errors:     0,
-            admin:      Some(env.message.sender),
-
-            token_addr: msg.token_addr,
-            token_hash: msg.token_hash,
-
-            total:      Uint128::zero(),
-            schedule:   match msg.schedule { Some(portions) => portions, None => vec![] },
-            history:    History::new(),
-            launched:   None,
-        }
+        let errors   = 0;
+        let admin    = Some(env.message.sender);
+        let total    = Uint128::zero();
+        let history  = History::new();
+        let launched = None;
+        State { errors, admin, token_addr, token_hash, total, schedule, history, launched }
     }
 
     [Query] (deps, state, msg) {
@@ -86,32 +80,35 @@ contract!(
             }
         }
 
-        /// Return amount that can be claimed by the specified address at the specified time
-        Claimable (address: HumanAddr, time: Seconds) {
-            let mut amount = Uint128::zero();
-            if let Some(launch) = &state.launched {
-                let elapsed  = time - *launch;
-                let claimable: Portions = state.schedule
-                    .clone()
-                    .into_iter()
-                    .filter(|p| {p.vested<=elapsed && p.address==address})
-                    .collect();
-                if !claimable.is_empty() {
-                    let unclaimed = state.history.unclaimed(&claimable);
-                    if !unclaimed.is_empty() {
-                        for p in unclaimed.iter() {
-                            if p.address != address {
-                                panic!("p for wrong address {} was to be claimed by {}",
-                                    &p.address,
-                                    &address
-                                );
-                            }
-                            amount += p.amount
+        /// Return one account from the schedule
+        GetAccount (pool_name: String, account_name: String) {
+            for pool in state.schedule.pools.iter() {
+                if pool.name == pool_name {
+                    for account in pool.accounts.iter() {
+                        if account.name == account_name {
+                            return Response::Account { pool, account }
                         }
                     }
+                    break
                 }
             }
-            Response::Claimable { address, amount }
+            Response::NotFound {}
+        }
+
+        /// Return amount that can be claimed by the specified address at the specified time
+        Claimable (address: HumanAddr, time: Seconds) {
+            let amount = Uint128::zero();
+            if let Some(launch) = &state.launched {
+                let elapsed = time - *launch;
+                let vested  = state.schedule.vested(address, elapsed);
+                let claimed = state.history.get(address);
+                if claimed < vested {
+                    amount = vested - claimed
+                }
+                Response::Claimable { address, amount }
+            } else {
+                StdError::GenericErr { msg: String::from(&PRELAUNCH), backtrace: None }
+            }
         }
     }
 
@@ -124,10 +121,15 @@ contract!(
             schedule: Portions,
             total:    Uint128
         }
+        Account {
+            pool:    Pool,
+            account: Account
+        }
         Claimable {
             address:  HumanAddr,
             amount:   Uint128
         }
+        NotFound {}
     }
 
     [Handle] (deps, env, state, msg) {

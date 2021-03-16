@@ -5,10 +5,10 @@
       "name": "Investors",
       "total": "2000000000000000000000000",
       "partial": false,
-      "channels": [
+      "accounts": [
         {
           "name": "InvestorN",
-          "amount": "2000000000000000000000000",
+          "total": "2000000000000000000000000",
           "periodic": {
             "type": "channel_periodic",
             "interval": 86400,
@@ -36,10 +36,10 @@
       "name": "Founders",
       "total": "2400000000000000000000000",
       "partial": false,
-      "channels": [
+      "accounts": [
         {
           "name": "Founder1",
-          "amount": "800000000000000000000000",
+          "total": "800000000000000000000000",
           "periodic": {
             "type": "channel_periodic",
             "interval": 86400,
@@ -63,7 +63,7 @@
         },
         {
           "name": "Founder2",
-          "amount": "800000000000000000000000",
+          "total": "800000000000000000000000",
           "periodic": {
             "type": "channel_periodic",
             "interval": 86400,
@@ -87,7 +87,7 @@
         },
         {
           "name": "Founder3",
-          "amount": "731000000000000000000000",
+          "total": "731000000000000000000000",
           "periodic": {
             "type": "channel_periodic",
             "interval": 86400,
@@ -111,7 +111,7 @@
         },
         {
           "name": "Founder4",
-          "amount": "69000000000000000000000",
+          "total": "69000000000000000000000",
           "periodic": {
             "type": "channel_periodic",
             "interval": 86400,
@@ -139,10 +139,10 @@
       "name": "DevFund",
       "total": "1500000000000000000000000",
       "partial": false,
-      "channels": [
+      "accounts": [
         {
           "name": "DevN",
-          "amount": "1500000000000000000000000",
+          "total": "1500000000000000000000000",
           "periodic": {
             "type": "channel_periodic",
             "interval": 2592000,
@@ -170,10 +170,10 @@
       "name": "Advisors",
       "total": "200000000000000000000000",
       "partial": false,
-      "channels": [
+      "accounts": [
         {
           "name": "Advisor1",
-          "amount": "50000000000000000000000",
+          "total": "50000000000000000000000",
           "periodic": {
             "type": "channel_periodic",
             "interval": 86400,
@@ -197,7 +197,7 @@
         },
         {
           "name": "Advisor2",
-          "amount": "50000000000000000000000",
+          "total": "50000000000000000000000",
           "periodic": {
             "type": "channel_periodic",
             "interval": 86400,
@@ -221,7 +221,7 @@
         },
         {
           "name": "Advisor3",
-          "amount": "10000000000000000000000",
+          "total": "10000000000000000000000",
           "periodic": {
             "type": "channel_periodic",
             "interval": 86400,
@@ -245,7 +245,7 @@
         },
         {
           "name": "Advisor4",
-          "amount": "5000000000000000000000",
+          "total": "5000000000000000000000",
           "periodic": {
             "type": "channel_periodic",
             "interval": 86400,
@@ -269,7 +269,7 @@
         },
         {
           "name": "AdvisorN",
-          "amount": "85000000000000000000000",
+          "total": "85000000000000000000000",
           "allocations": [
             [
               0,
@@ -288,10 +288,10 @@
       "name": "MintingPool",
       "total": "3900000000000000000000000",
       "partial": false,
-      "channels": [
+      "accounts": [
         {
           "name": "LiqProvFund",
-          "amount": "300000000000000000000000",
+          "total": "300000000000000000000000",
           "allocations": [
             [
               0,
@@ -306,7 +306,7 @@
         },
         {
           "name": "PoolRem",
-          "amount": "3600000000000000000000000",
+          "total": "3600000000000000000000000",
           "periodic": {
             "type": "channel_periodic",
             "interval": 86400,

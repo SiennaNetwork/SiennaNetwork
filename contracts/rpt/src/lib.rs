@@ -45,16 +45,10 @@ contract!(
         mgmt_addr:   HumanAddr,
         mgmt_hash:   CodeHash
     }) {
-        State {
-            errors: 0,
-            admin:  env.message.sender,
-            total:  sum_config(&msg.config),
-            config: msg.config,
-            token_addr: msg.token_addr,
-            token_hash: msg.token_hash,
-            mgmt_addr:  msg.mgmt_addr,
-            mgmt_hash:  msg.mgmt_hash,
-        }
+        let errors = 0;
+        let admin = env.message.sender;
+        let total = sum_config(&config);
+        State { errors, admin, total, config, token_addr, token_hash, mgmt_addr, mgmt_hash }
     }
 
     [Query] (deps, state, msg) {

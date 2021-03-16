@@ -21,18 +21,9 @@ fn main () {
     let t_min = 0;
     let mut t_max: u64 = 0;
 
-    for Stream { vesting, .. } in SCHEDULE.predefined.iter() {
-        let mut _start_at = 0;
-        let mut _duration = 0;
-        match vesting {
-            Vesting::Periodic {start_at, duration, ..} => {
-                _start_at = *start_at;
-                _duration = *duration;
-            },
-            _ => {}
-        }
-        if _start_at > t_max { t_max = _start_at }
-        if _start_at + _duration > t_max { t_max = _start_at + _duration }
+    for Account { start_at, duration } in SCHEDULE.predefined.iter() {
+        if start_at > t_max { t_max = start_at }
+        if start_at + duration > t_max { t_max = start_at + duration }
     }
     t_max += MONTH;
 
@@ -56,7 +47,7 @@ fn main () {
     let mut y = 0f64;
 
     // data
-    for Stream { addr, amount, vesting } in SCHEDULE.predefined.iter() {
+    for Account { addr, amount, vesting } in SCHEDULE.predefined.iter() {
 
         let amount = amount.u128() / ONE_SIENNA;
 

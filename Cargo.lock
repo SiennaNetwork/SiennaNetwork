@@ -424,7 +424,7 @@ dependencies = [
 
 [[package]]
 name = "fadroma"
-version = "2.1.1"
+version = "2.1.2"
 
 [[package]]
 name = "fake-simd"
@@ -1134,6 +1134,7 @@ dependencies = [
  "serde",
  "sienna-mgmt",
  "snafu",
+ "snip20-reference-impl",
 ]
 
 [[package]]

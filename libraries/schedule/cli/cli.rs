@@ -4,41 +4,35 @@ use sienna_schedule::*;
 
 macro_rules! subcommand {
     ($($matches:ident $subcommand:literal $body:block)+) => {
-        $(if let Some(ref $matches) = $matches.subcommand_matches($subcommand) {
-            $body
-        })*
+        $(if let Some(ref $matches) = $matches.subcommand_matches($subcommand) { $body; return })*
     }
 }
 
 fn main () {
-    let matches = App::new("sienna_schedule")
+    let app = App::new("sienna_schedule")
         .version("1.0")
         .author("Adam A. <adam@hack.bg>")
         .about("Manages vesting schedule definitions")
 
         .subcommand(App::new("template")
             .about("Generate a template spreadsheet")
-
             .arg(Arg::new("force")
                 .short('f').long("force").takes_value(false)
                 .about("Overwrite the destination file if it exists"))
-
             .arg(Arg::new("PATH")
                 .default_value("./schedule.ods")))
 
         .subcommand(App::new("validate")
             .about("Validate a configuration")
-
             .arg(Arg::new("PATH")
                 .default_value("schedule.ods")))
 
         .subcommand(App::new("render")
             .about("Generate a portion list from a configuration")
-
             .arg(Arg::new("PATH")
-                .default_value("schedule.ods")))
+                .default_value("schedule.ods")));
 
-        .get_matches();
+    let matches = &app.get_matches();
 
     subcommand!(
         matches "template" {
@@ -62,6 +56,8 @@ fn main () {
             println!("RENDER {:#?}", &path);
         }
     );
+
+    app.print_long_help();
 }
 
 fn generate_template () -> spreadsheet_ods::WorkBook {

@@ -64,10 +64,8 @@ impl Pool {
     fn accounts_total (&self) -> StdResult<u128> {
         let mut total = 0u128;
         for account in self.accounts.iter() {
-            match account.validate() {
-                Ok(_)  => { total += account.total.u128() },
-                Err(e) => return Err(e)
-            }
+            account.validate()?;
+            total += account.total.u128();
         }
         Ok(total)
     }
@@ -83,22 +81,17 @@ impl Pool {
 pub struct Account {
     /// Human-readable name
     pub name:   String,
+    /// Recipient address
+    pub address: HumanAddr,
     /// Funds that this account will release
-    pub total: Uint128,
-    /// If `> 0`, releases this much money the first time
-    pub head: Uint128,
-    /// Head can be portioned between multiple addresses
-    pub head_allocations: Allocations,
-    /// Size of regular portion - determines how many portions will be vested
-    pub body_allocations: Allocations,
-    /// Vested once after regular portions run out (TODO but not after `duration`?)
-    pub tail_allocations: Allocations,
+    pub amount: Uint128,
+    /// If `> 0`, releases this much money the first time, pushing back the regular portions
+    pub cliff: Uint128,
     /// How many seconds after contract launch to begin vesting
     pub start_at: Seconds,
     /// How many seconds to wait between portions
     pub interval: Seconds,
-    /// If `> 0`, vesting stops after this much seconds
-    /// regardless of how much is left of the `total`.
+    /// If `> 0`, vesting stops after this much seconds regardless of how much is left of `total`.
     pub duration: Seconds,
 }
 

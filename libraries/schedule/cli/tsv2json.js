@@ -1,68 +1,6 @@
 #!/usr/bin/env node
 const assert = require('assert')
-
-const ONE_SIENNA        = BigInt('1000000000000000000')
-const THOUSANDTH_SIENNA = BigInt(   '1000000000000000')
-
-const isN = x => !isNaN(x)
-
-const Sienna = x => {
-  x = x.trim()
-  if (x.length > 0) {
-    x = Number(x.replace(/,/g, ''))
-    if (isN(x)) x = BigInt(x*1000) * THOUSANDTH_SIENNA
-    return x
-  } 
-}
-
-const Percent = x =>
-  x.replace(/%/g, '')
-
-const Days = (x, y) => {
-  x = Number(x.trim())
-  assert(x*24*60*60 === Number(y), `${x} days must be accompanied with ${y} seconds`)
-  return x
-}
-
-const Seconds = x =>
-  Number(x.trim())
-
-const Address = x => {
-  x = x.trim()
-  if (x.length > 0) {
-    assert(x.length === 45, `address must be 45 characters: ${x}`)
-    assert(x.startsWith('secret1'))
-    return x
-  }
-}
-
-const columns = ([
-  _A_, _B_, _C_, _D_, _E_, _F_, _G_, _H_, _I_, _J_,
-  _K_, _L_, _M_, _N_, _O_, _P_, _Q_, _R_, _S_
-]) => {
-  const data = {
-    total:              Sienna  (_A_),
-    pool:               String  (_B_),
-    subtotal:           Sienna  (_C_),
-    name:               String  (_D_),
-    amount:             Sienna  (_E_),
-    percent_of_total:   Percent (_F_),
-    start_at_days:      Days    (_G_, _H_),
-    start_at:           Seconds (_H_),
-    interval_days:      Days    (_I_, _J_),
-    interval:           Seconds (_J_),
-    duration_days:      Days    (_K_, _L_),
-    duration:           Seconds (_L_),
-    cliff_percent:      Percent (_M_),
-    cliff:              Sienna  (_N_),
-    portions:           Number  (_O_),
-    expected_portion:   Sienna  (_P_),
-    allocation:         Sienna  (_Q_),
-    address:            Address (_R_),
-    expected_remainder: Sienna  (_S_),
-  }
-  return data
-}
+const row2record = require('./columns')
 
 module.exports = function tsv2json (
   input = require('fs').readFileSync(`${__dirname}/../schedule.tsv`, 'utf8')
@@ -80,11 +18,11 @@ module.exports = function tsv2json (
     .map(row=>row.split('\t')) // tab separated
     .map((data,i)=>[i+1,data]) // count rows from 1
     .forEach(([i, data]) => header(data, i)
-                         || grand_total(columns(data), i)
-                         || pool(columns(data), i)
-                         || channel(columns(data), i)
-                         || allocation(columns(data), i)
-                         || invalid_row(columns(data), i))
+                         || grand_total(row2record(data), i)
+                         || pool(row2record(data), i)
+                         || channel(row2record(data), i)
+                         || allocation(row2record(data), i)
+                         || invalid_row(row2record(data), i))
 
   assert(running_total === output.total, `subtotals must add up to total`)
 
@@ -188,12 +126,3 @@ module.exports = function tsv2json (
     }
   }
 }
-
-if (require.main === module) require('fs').writeFileSync(
-  `${__dirname}/../config.json`,
-  require('json-bigint').stringify(module.exports(), (key, value) => (
-      typeof value === 'bigint'
-          ? value.toString()
-          : value // return everything else unchanged
-  ), 2)
-)

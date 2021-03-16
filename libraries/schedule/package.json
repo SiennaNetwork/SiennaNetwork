@@ -1,0 +1,9 @@
+{
+  "name": "@hackbg/schedule",
+  "version": "2.0.0-wip",
+  "main": "./cli/index.js",
+  "dependencies": {
+    "json-bigint": "^1.0.0",
+    "xlsx": "^0.16.9"
+  }
+}
