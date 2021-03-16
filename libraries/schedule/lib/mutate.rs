@@ -31,7 +31,7 @@ impl Pool {
 mod tests {
     #![allow(non_snake_case)]
     use cosmwasm_std::HumanAddr;
-    use crate::{Schedule, Pool, Account, Validate};
+    use crate::{Schedule, Pool, Account, Validation};
     #[test] fn test_add_to_full () {
         let Alice = HumanAddr::from("Alice");
         let Bob   = HumanAddr::from("Bob");
@@ -74,5 +74,7 @@ mod tests {
                    S.pools.get(0).unwrap().err_pool_full());
         assert_eq!(S.add_account("P2".to_string(), A.clone()),
                    S.pools.get(1).unwrap().err_pool_full());
+        assert_eq!(S.add_account("P3".to_string(), A.clone()),
+                   S.err_pool_not_found("P3".to_string()));
     }
 }

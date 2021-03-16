@@ -1,10 +1,7 @@
 //! # Input validation
 //!
-//! The `Schedule`, `Pool`, and `Account` structs
-//! implement the `Validate` trait, providing a `validate` method.
-//! * `Schedule`
-//! * `Pool`
-//! * `Account`
+//! The `Schedule`, `Pool`, and `Account` structs implement the `Validation` trait, which
+//! provides a `validate` method on top of the implicit schema validation provided by Serde.
 //!
 //! Unfortunately, `rustdoc` does not allow for the `impl`s that are defined
 //! in this module to be rendered on this doc page, because they implement
@@ -12,30 +9,15 @@
 //!
 //! Documentation of the methods (and errors) defined in this file
 //! can be found in the documentation for those structs.
-//!
-//! ## Layers of validation:
-//!
-//! 1. The schema, representing the vesting schedule in terms of the structs
-//!    defined by this crate. This is deserialized from a static input;
-//!    any deviations from the schema cause the input to be rejected.
-//!
-//! 2. The `validate` module, which checks that sums don't exceed totals.
-//!
-//! 3. The runtime assertions in the `vesting`, which prevent
-//!    invalid configurations from generating output.
-//!
-//! 4. For a runnihttps://github.com/qarmin/czkawkang contract, valid outputs are further filtered by the
-//!    `history` module, which rejects configurations that change already
-//!    vested/claimed portions.
 
 use crate::*;
 
 /// Trait for something that undergoes validation, returning `Ok` or an error.
-pub trait Validate {
+pub trait Validation {
     /// Default implementation is a no-op
     fn validate (&self) -> UsuallyOk { Ok(()) }
 }
-impl Validate for Schedule {
+impl Validation for Schedule {
     /// Schedule must contain valid pools that add up to the schedule total
     fn validate (&self) -> UsuallyOk {
         for pool in self.pools.iter() {
@@ -47,7 +29,7 @@ impl Validate for Schedule {
         Ok(())
     }
 }
-impl Validate for Pool {
+impl Validation for Pool {
     fn validate (&self) -> UsuallyOk {
         for account in self.accounts.iter() {
             account.validate()?;
@@ -61,7 +43,7 @@ impl Validate for Pool {
         Ok(())
     }
 }
-impl Validate for Account {
+impl Validation for Account {
     fn validate (&self) -> UsuallyOk {
         if self.amount == Uint128::zero() {
             return self.err_empty()
@@ -77,7 +59,7 @@ impl Validate for Account {
 mod tests {
     #![allow(non_snake_case)]
     use cosmwasm_std::HumanAddr;
-    use crate::{Schedule, Pool, Account, Validate};
+    use crate::{Schedule, Pool, Account, Validation};
     #[test] fn test_amount_eq_zero () {
         let A = Account::periodic("A", &HumanAddr::from(""), 0, 0, 0, 0, 0);
         assert_eq!(A.validate(),
