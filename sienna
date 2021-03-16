@@ -3,7 +3,7 @@
 const { readFileSync, writeFileSync, existsSync } = require('fs')
 const { resolve, basename, extname } = require('path')
 const { execFileSync } = require('child_process')
-const { argv, stdout, stderr, exit } = require('process')
+const { env, argv, stdout, stderr, exit } = require('process')
 
 const { scheduleFromSpreadsheet } = require('@hackbg/schedule')
 
@@ -69,7 +69,11 @@ function convert ({file}) {
 }
 
 function runTests () {
-  stderr.write(`\n⏳ Running tests...\n`)
+  if (env.TMUX) {
+    run('clear')
+    run('tmux', 'clear-history')
+  }
+  stderr.write(`⏳ Running tests...\n\n`)
   try {
     cargo('test')
     stderr.write('\n😁 Tests ran successfully.\n')
@@ -78,11 +82,15 @@ function runTests () {
   }
 }
 
-function cargo (...args) {
-  execFileSync('cargo', ['--color=always', ...args], { stdio: 'inherit' })
-}
-
 function deploy () {
   stderr.write('\nNot implemented.')
   exit(0)
+}
+
+function cargo (...args) {
+  run('cargo', '--color=always', ...args)
+}
+
+function run (cmd, ...args) {
+  execFileSync(cmd, [...args], {stdio:'inherit'})
 }
