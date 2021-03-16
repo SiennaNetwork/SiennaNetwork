@@ -51,6 +51,31 @@ pub type ErrorCount = u64;
 /// (according to Reuven on Discord).
 pub const BLOCK_SIZE: usize = 256;
 
+/// Authentication
+#[macro_export] macro_rules! require_admin {
+    (|$env:ident, $state:ident| $body:block) => {
+        if Some($env.message.sender) != $state.admin {
+            err_auth($state)
+        } else {
+            $body
+        }
+    }
+}
+
+/// Error messages
+macro_rules! error {
+    // Assumptions have been violated.
+    (CORRUPTED) => { "broken" };
+    // Unknown claimant or nothing to claim right now.
+    (NOTHING)   => { "nothing" };
+    // Already launched
+    (UNDERWAY)  => { "already underway" };
+    // Not launched yet
+    (PRELAUNCH) => { "not launched yet" };
+    // Can't find account or pool by name
+    (NOT_FOUND) => { "not found" }
+}
+
 contract!(
 
     [State] {
@@ -125,39 +150,23 @@ contract!(
 
         /// Return amount that can be claimed by the specified address at the specified time
         Claimable (address: HumanAddr, time: Seconds) {
-            let amount = Uint128::zero();
             if let Some(launch) = &state.launched {
-                let elapsed = time - *launch;
-                let vested  = state.schedule.vested(address, elapsed);
-                let claimed = state.history.get(address.into());
-                if claimed < vested {
-                    amount = vested - claimed
-                }
-                Response::Claimable { address, amount }
+                let elapsed = time - launch;
+                let (vested, claimable) = portion(&state, address, elapsed);
+                Response::Claimable { address, claimable: claimable.into() }
             } else {
-                StdError::GenericErr { msg: String::from(&PRELAUNCH), backtrace: None }
+                Response::Error { error: StdError::GenericErr { msg: String::from(PRELAUNCH), backtrace: None } }
             }
         }
     }
 
     [Response] {
-        Status {
-            errors:   ErrorCount,
-            launched: Launched
-        }
-        Schedule {
-            schedule: Schedule,
-            total:    Uint128
-        }
-        Account {
-            pool:    Pool,
-            account: Account
-        }
-        Claimable {
-            address: HumanAddr,
-            amount:  Uint128
-        }
-        NotFound {}
+        Status    { errors: ErrorCount, launched: Launched }
+        Schedule  { schedule: Schedule, total: Uint128 }
+        Account   { pool: Pool, account: Account }
+        Claimable { address: HumanAddr, claimable: Uint128 }
+        Error     { error: StdError }
+        NotFound  {}
     }
 
     [Handle] (deps, env, state, msg) {
