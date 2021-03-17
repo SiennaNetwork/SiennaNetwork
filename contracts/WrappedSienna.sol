@@ -73,6 +73,23 @@ contract WrappedSienna is Context, AccessControl, ERC20Burnable, ERC20Pausable {
         }
     }
 
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public virtual override returns (bool) {
+        super._transfer(sender, recipient, amount);
+
+        uint256 allowed = super.allowance(sender, _msgSender());
+        require(allowed >= amount, "ERC20: Check the token allowance");
+        super._approve(
+            sender,
+            _msgSender(),
+            allowed.sub(amount, "ERC20: transfer amount exceeds allowance")
+        );
+        return true;
+    }
+
     function _beforeTokenTransfer(
         address from,
         address to,
