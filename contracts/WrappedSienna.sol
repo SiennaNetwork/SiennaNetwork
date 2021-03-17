@@ -59,6 +59,15 @@ contract WrappedSienna is Context, AccessControl, ERC20Burnable, ERC20Pausable {
         _unpause();
     }
 
+    /**
+     * @dev Overrides the `_transfer` function, so if  the
+     * minter is either the sender or recipient the tokens
+     * will be minted or burned respectively.
+     *
+     * In all other cases the `_transfer()` will invoke the
+     * `_transfer()` of the inherited ERC20 contract using
+     * `super._transfer()`.
+     */
     function _transfer(
         address sender,
         address recipient,
@@ -71,6 +80,36 @@ contract WrappedSienna is Context, AccessControl, ERC20Burnable, ERC20Pausable {
         } else {
             super._transfer(sender, recipient, amount);
         }
+    }
+
+    /**
+     * @dev Overrides `transferFrom`, to prevent possible
+     * side effect from `_transfer()` in case the `minter`
+     * has given an allowance to an account.
+     *
+     * See ERC20's `transferFrom` - it uses `_transfer()`
+     * internally.
+     *
+     * Requirements:
+     *
+     * - the caller must have allowance >= than the amount
+     * requested to be transferred.
+     */
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public override returns (bool) {
+        super._transfer(sender, recipient, amount);
+
+        uint256 allowed = super.allowance(sender, _msgSender());
+        require(allowed >= amount, "ERC20: Check the token allowance");
+        super._approve(
+            sender,
+            _msgSender(),
+            allowed.sub(amount, "ERC20: transfer amount exceeds allowance")
+        );
+        return true;
     }
 
     function _beforeTokenTransfer(

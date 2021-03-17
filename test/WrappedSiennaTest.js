@@ -168,4 +168,86 @@ contract('WrappedSienna', (accounts) => {
     }
   });
 
+  it('transfer tokens from minter account to another', async () => {
+    const initialAmount = 500000;
+    const amountTransferAfter = 250000;
+    await this.token.transfer(anotherAccount1, new BN(initialAmount), {
+      from: admin,
+    });
+    await this.token.transfer(admin, new BN(initialAmount), {
+      from: admin,
+    });
+
+    const minterBalanceBefore = await this.token.balanceOf(admin);
+    const recipientBalanceBefore = await this.token.balanceOf(anotherAccount1);
+
+    assert.deepEqual(
+      minterBalanceBefore,
+      recipientBalanceBefore,
+      `Minter and Recipient should have equal balances.`
+    );
+
+    await this.token.approve(anotherAccount1, new BN(amountTransferAfter), {
+      from: admin,
+    });
+
+    const allowed = await this.token.allowance(admin, anotherAccount1);
+
+    await this.token.transferFrom(admin, anotherAccount1, allowed, {
+      from: anotherAccount1,
+    });
+
+    const minterBalanceAfter = await this.token.balanceOf(admin);
+    const recipientBalanceAfter = await this.token.balanceOf(anotherAccount1);
+
+    assert.ok(
+      minterBalanceAfter.lt(minterBalanceBefore),
+      "Tokens in sender's account didn't decrement"
+    );
+    assert.ok(
+      recipientBalanceAfter.gt(recipientBalanceBefore),
+      "Tokens in the receiving account didn't increment"
+    );
+  });
+
+  it('transfer tokens from account (!minter) to another account', async () => {
+    const initialAmount = 500000;
+    const amountTransferAfter = 250000;
+    await this.token.transfer(anotherAccount1, new BN(initialAmount), {
+      from: admin,
+    });
+
+    const senderBalanceBefore = await this.token.balanceOf(anotherAccount1);
+    const recipientBalanceBefore = await this.token.balanceOf(anotherAccount2);
+
+    assert.ok(
+      senderBalanceBefore.gt(recipientBalanceBefore),
+      "Tokens in the receiving account didn't increment"
+    );
+
+    await this.token.approve(anotherAccount2, new BN(amountTransferAfter), {
+      from: anotherAccount1,
+    });
+
+    const allowed = await this.token.allowance(
+      anotherAccount2,
+      anotherAccount1
+    );
+
+    await this.token.transferFrom(anotherAccount2, anotherAccount1, allowed, {
+      from: anotherAccount1,
+    });
+
+    const senderBalanceAfter = await this.token.balanceOf(anotherAccount2);
+    const recipientBalanceAfter = await this.token.balanceOf(anotherAccount1);
+
+    assert.ok(
+      senderBalanceAfter.lt(senderBalanceBefore),
+      "Tokens in sender's account didn't decrement"
+    );
+    assert.ok(
+      recipientBalanceAfter.gt(recipientBalanceBefore),
+      "Tokens in the receiving account didn't increment"
+    );
+  });
 });
