@@ -37,6 +37,10 @@ require('@hackbg/fadroma').entrypoint(module, function main (
       }),
       convert)
 
+    .command('build',
+      'compiles production builds of all contracts',
+      build)
+
     .command('deploy',
       'deploys and configures all contracts',
       deploy)
@@ -100,6 +104,16 @@ function generateCoverage () {
     //`--exclude-files=${resolve(__dirname, 'libraries', 'platform')}`, // ignore vendor libs
     //`--output-dir=${output}`
   //)
+}
+
+function build () {
+  const optimizer = resolve(__dirname, 'build', 'optimizer')
+  run('docker', 'build',
+    '--file='+resolve(optimizer, 'Dockerfile'),
+    '--tag=hackbg/secret-contract-optimizer:latest',
+    optimizer)
+  const builder = resolve(__dirname, 'build', 'working-tree')
+  run(builder)
 }
 
 function deploy () {
