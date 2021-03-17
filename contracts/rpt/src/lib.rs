@@ -1,5 +1,4 @@
 #[macro_use] extern crate fadroma;
-#[macro_use] extern crate lazy_static;
 pub use secret_toolkit::snip20::handle::transfer_msg;
 pub use sienna_mgmt::msg::{Query as MGMTQuery, Response as MGMTResponse, Handle as MGMTHandle};
 
