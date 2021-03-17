@@ -8,7 +8,6 @@ use sienna_mgmt::State;
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
-    out_dir.push("mgmt");
     out_dir.push("schema");
     create_dir_all(&out_dir).unwrap();
     remove_schemas(&out_dir).unwrap();
@@ -18,6 +17,4 @@ fn main() {
     export_schema(&schema_for!(msg::Handle),   &out_dir);
     export_schema(&schema_for!(msg::Query),    &out_dir);
     export_schema(&schema_for!(msg::Response), &out_dir);
-
-    // TODO schedule, progress, configurable
 }

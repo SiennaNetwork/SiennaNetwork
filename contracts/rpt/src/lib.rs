@@ -82,15 +82,15 @@ contract!(
                         }
                     )
                 )?;
-                if let MGMTResponse::Claimable { amount, .. } = response {
+                if let MGMTResponse::Claimable { claimable, .. } = response {
                     let total = sum_config(&config);
-                    if amount == total {
+                    if claimable == total {
                         state.config = config;
                         state.total = total;
                         ok!(state)
                     } else {
                         err_msg(state, &format!("allocations must add up to {}, not {}",
-                            &amount,
+                            &claimable,
                             &total
                         ))
                     }
