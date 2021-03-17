@@ -10,10 +10,11 @@ const { scheduleFromSpreadsheet } = require('@hackbg/schedule')
 require('@hackbg/fadroma').entrypoint(module, function main (
   args = argv.slice(2)
 ) {
-  require('yargs')(argv.slice(2)).demandCommand(1, '') // print usage by default
+  require('yargs')(args)
+    .demandCommand(1, '') // print usage by default
 
     .command('docs [crate]',
-      'build Rust documentation and open it in the browser',
+      'build Rust documentation and open it in a browser',
       yargs => yargs.positional('crate', {
         describe: 'path to input file',
         default: 'sienna_schedule'
@@ -21,8 +22,12 @@ require('@hackbg/fadroma').entrypoint(module, function main (
       docs)
 
     .command('test',
-      'runs test suite for the entire Cargo workspace',
+      'run test suites for entire Cargo workspace',
       runTests)
+
+    .command('coverage',
+      'generate test coverage for the entire Cargo workspace and open it in a browser',
+      generateCoverage)
 
     .command('configure [file]',
       'convert a spreadsheet into a JSON schedule for the contract',
@@ -82,6 +87,21 @@ function runTests () {
   }
 }
 
+function generateCoverage () {
+  // fixed by https://github.com/rust-lang/cargo/issues/9220
+  let output = resolve(__dirname, 'docs', 'coverage')
+  cargo('tarpaulin', '--out=Html', '--output-dir='+output)
+    //'tarpaulin', 
+    //'--avoid-cfg-tarpaulin', // ???
+    //'--workspace', // obviously
+    //'--no-fail-fast', // try to continue on test failure
+    //'--verbose', // why not
+    //'-o', 'Html', // output as html
+    //`--exclude-files=${resolve(__dirname, 'libraries', 'platform')}`, // ignore vendor libs
+    //`--output-dir=${output}`
+  //)
+}
+
 function deploy () {
   stderr.write('\nNot implemented.')
   exit(0)
@@ -92,5 +112,6 @@ function cargo (...args) {
 }
 
 function run (cmd, ...args) {
+  stderr.write(`\n🏃 running:\n${cmd} ${args.join(' ')}\n\n`)
   execFileSync(cmd, [...args], {stdio:'inherit'})
 }
