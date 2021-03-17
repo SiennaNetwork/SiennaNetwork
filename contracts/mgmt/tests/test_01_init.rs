@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+#[cfg(test)] #[macro_use] extern crate sienna_mgmt;
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
 
@@ -15,7 +16,7 @@ kukumba!(
             &mut deps,
             mock_env(0, 0, &ALICE),
             Init {
-                schedule:   None,
+                schedule:   sienna_schedule::Schedule::new(&[]),
                 token_addr: cosmwasm_std::HumanAddr::from("token"),
                 token_hash: String::new(),
             }

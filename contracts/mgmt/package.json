@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/mgmt",
-  "version": "1.0.0-rc",
+  "version": "2.0.0-wip",
   "main": "./schema/index.js",
   "dependencies": {
     "@hackbg/fadroma": "*"

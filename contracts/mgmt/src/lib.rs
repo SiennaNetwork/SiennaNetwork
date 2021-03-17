@@ -127,7 +127,10 @@ contract!(
                 if pool.name == pool_name {
                     for account in pool.accounts.iter() {
                         if account.name == account_name {
-                            return Response::Account { pool: pool.clone(), account: account.clone() }
+                            return Response::Account {
+                                pool: pool.clone(),
+                                account: account.clone()
+                            }
                         }
                     }
                     break

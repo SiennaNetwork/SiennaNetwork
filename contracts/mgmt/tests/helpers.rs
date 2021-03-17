@@ -34,7 +34,7 @@ pub fn harness (balances: &[(&HumanAddr, &[Coin])])-> ExternMock {
         &mut deps,
         mock_env(0, 0, balances[0].0), // first address in `balances` is admin
         sienna_mgmt::msg::Init {
-            schedule:   None,
+            schedule:   sienna_schedule::Schedule::new(&[]),
             token_addr: cosmwasm_std::HumanAddr::from("token"),
             token_hash: String::new(),
         }
@@ -150,9 +150,10 @@ macro_rules! tx_ok_claim {
 }
 
 macro_rules! tx_err {
-    ($msg:expr) => {
-        Err(cosmwasm_std::StdError::GenericErr { backtrace: None, msg: $msg.to_string() })
-    }
+    ($msg:tt) => { Err(cosmwasm_std::StdError::GenericErr {
+        backtrace: None,
+        msg: MGMTError!($msg).to_string()
+    }) }
 }
 
 macro_rules! tx_err_auth {

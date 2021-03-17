@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+#[macro_use] extern crate sienna_mgmt;
 #[macro_use] extern crate kukumba;
 #[macro_use] extern crate sienna_schedule; use sienna_schedule::{Schedule,Vesting};
 #[macro_use] mod helpers; use helpers::{harness, mock_env, tx};
@@ -12,8 +13,7 @@ kukumba!(
     given "a contract with the production schedule" {
         harness!(deps; ADMIN);
         let s: Schedule = serde_json::from_str(include_str!("../../../settings/config.json")).unwrap();
-        test_tx!(deps, ADMIN, 0, 0;
-            Configure { portions: s.all().unwrap() } => tx_ok!());
+        test_tx!(deps, ADMIN, 0, 0; Configure { schedule: s.clone() } => tx_ok!());
 
         let founder_1 = HumanAddr::from("secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
         let founder_2 = HumanAddr::from("secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
