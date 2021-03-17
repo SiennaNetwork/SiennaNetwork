@@ -51,19 +51,11 @@ contract!(
     }
 
     [Query] (deps, state, msg) {
-        Status () {
-            Response::Status {
-                errors: state.errors,
-                config: state.config
-            }
-        }
+        Status () { Response::Status { errors: state.errors, config: state.config } }
     }
 
     [Response] {
-        Status {
-            errors: ErrorCount,
-            config: Config
-        }
+        Status { errors: ErrorCount, config: Config }
     }
 
     [Handle] (deps, env, state, msg) {

@@ -171,8 +171,8 @@ impl Querier for MockQuerier {
                             mgmt => {
                                 //let msg: MGMTQuery = from_binary(&msg).unwrap();
                                 let response = MGMTResponse::Claimable {
-                                    address: HumanAddr::from("rpt"),
-                                    amount:  Uint128::from(self.claimable)
+                                    address:   HumanAddr::from("rpt"),
+                                    claimable: Uint128::from(self.claimable)
                                 };
                                 QuerierResult::Ok(to_binary(&response))
                             },
