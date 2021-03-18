@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const { readFileSync, writeFileSync, existsSync } = require('fs')
-const { resolve, basename, extname } = require('path')
+const { resolve, basename, extname, dirname } = require('path')
 const { execFileSync } = require('child_process')
 const { env, argv, stdout, stderr, exit } = require('process')
 
@@ -33,9 +33,9 @@ require('@hackbg/fadroma').entrypoint(module, function main (
       'convert a spreadsheet into a JSON schedule for the contract',
       yargs => yargs.positional('file', {
         describe: 'path to input file',
-        default: resolve(__dirname, 'config', 'config.ods')
+        default: resolve(__dirname, 'settings', 'schedule.ods')
       }),
-      convert)
+      configure)
 
     .command('build',
       'compiles production builds of all contracts',
@@ -49,14 +49,16 @@ require('@hackbg/fadroma').entrypoint(module, function main (
 
 })
 
-function stdoutify (fn) {
+function stringify (data) {
+  const indent = 2
   const withBigInts = (k, v) => typeof v === 'bigint' ? v.toString() : v
-  return (...args) => stdout.write(JSON.stringify(fn(...args), withBigInts, 2))
+  return JSON.stringify(data, withBigInts, indent)
 }
 
 function docs ({crate}) {
   const target = resolve(__dirname, 'target', 'doc', crate, 'index.html')
   try {
+    stderr.write(`⏳ Building documentation...\n\n`)
     cargo('doc')
   } catch (e) {
     stderr.write('\n🤔 Building documentation failed.')
@@ -70,11 +72,17 @@ function docs ({crate}) {
   require('open')(url)
 }
 
-function convert ({file}) {
+function configure ({file}) {
   file = resolve(file)
+  stderr.write(`⏳ Importing configuration from ${file}...\n\n`)
   const name = basename(file, extname(file)) // path without extension
   const schedule = scheduleFromSpreadsheet({ file })
-  stderr.write(require('prettyjson').render(schedule))
+  const serialized = stringify(schedule)
+  stderr.write(require('prettyjson').render(JSON.parse(serialized))) // or `BigInt`s don't show
+  const output = resolve(dirname(file), `${name}.json`)
+  stderr.write(`\n\n⏳ Saving configuration to ${output}...\n\n`)
+  writeFileSync(output, stringify(schedule), 'utf8')
+  stderr.write(`🟢 Configuration saved to ${output}`)
 }
 
 function runTests () {
@@ -85,9 +93,9 @@ function runTests () {
   stderr.write(`⏳ Running tests...\n\n`)
   try {
     cargo('test')
-    stderr.write('\n😁 Tests ran successfully.\n')
+    stderr.write('\n🟢 Tests ran successfully.\n')
   } catch (e) {
-    stderr.write('\n😳 Tests failed.\n')
+    stderr.write('\n👹 Tests failed.\n')
   }
 }
 

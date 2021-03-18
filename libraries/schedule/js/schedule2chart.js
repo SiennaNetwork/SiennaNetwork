@@ -1,5 +1,8 @@
-#!/usr/bin/env node
+function chartFromScheduleAndPortions ({ schedule, portions }) {
+  throw new Error('chartFromScheduleAndPortions: not implemented')
+}
 
+/*
 const assert = require('assert')
 const transactions = []
 
@@ -188,3 +191,4 @@ function render (transactions, data) {
       balances_over_time, Tmin, Tmax, total, data
     }))
 }
+*/

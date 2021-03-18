@@ -2,14 +2,7 @@ const JSON = require('json-bigint')
 const assert = require('assert')
 const XLSX = require('xlsx')
 
-module.exports = {
-  scheduleFromSpreadsheet,
-  portionsFromSchedule,
-  chartFromScheduleAndPortions,
-  spreadsheetFromSchedule
-}
-
-function scheduleFromSpreadsheet ({
+module.exports = function scheduleFromSpreadsheet ({
   file,                                   // pass a filename
   book  = XLSX.readFile(file),            // or pass a Sheet.js Workbook object
   sheet = book.Sheets[book.SheetNames[0]] // or a Sheet.js Sheet
@@ -21,21 +14,25 @@ function scheduleFromSpreadsheet ({
     .map((_,i)=>XLSX.utils.encode_col(i))
   //console.log({startCol, endCol}, columns)
   const schedule = {} // data will be added here
+  const headerHeight = 5
   let currentPool      = null
     , currentAccount   = null
     , runningTotal     = BigInt(0)
     , runningPoolTotal = BigInt(0)
-  for (let i = startRow + 4; // skip header
-       i <= endRow + 1;      // `+1` needed to count the last row?
-       i++                   // go over every line
+  for (let i = startRow + headerHeight; // skip header
+       i <= endRow + 1; // `+1` needed to count the last row?
+       i++ // go over every line
   ) {
-    const row   = XLSX.utils.encode_row(i);
-    const cells = columns.map(col=>`${col}${i}`).map(cell=>(sheet[cell]||{}).v)
-    const data  = require('./columns')(cells)
+    const row   = XLSX.utils.encode_row(i); // get row number
+    const cells = columns.map(col=>`${col}${i}`).map(cell=>(sheet[cell]||{}).v) // get row values
+    const data  = require('./columns')(cells) // turn [cell] to {field:value}
 
     // Grand total (first line after header)
-    if (i === 4) { 
-      assert(data.total===data.subtotal,'row 4 (schedule total): total must equal subtotal')
+    if (i === headerHeight) {
+      assert(
+        data.total===data.subtotal,
+        `row ${headerHeight} (schedule total): total must equal subtotal`
+      )
       schedule.total = data.total
       schedule.pools = []
     }
@@ -56,12 +53,9 @@ function scheduleFromSpreadsheet ({
       runningPoolTotal += data.amount
       const {name,amount,percent_of_total,interval,portion_size,address} = data
       currentPool.accounts.push(currentAccount = pick(data, [
-        'name', 'amount',
+        'name', 'amount', 'address',
         'start_at', 'interval', 'duration',
         'cliff', 'portion_size', 'remainder',
-        'head_allocations',
-        'body_allocations',
-        'tail_allocations',
       ]))
     }
     // Other things
@@ -70,21 +64,6 @@ function scheduleFromSpreadsheet ({
     }
   }
   return schedule
-}
-
-function portionsFromSchedule (schedule) {
-  console.log('portionsFromSchedule: not implemented')
-  process.exit(1)
-}
-
-function chartFromScheduleAndPortions ({ schedule, portions }) {
-  console.log('chartFromScheduleAndPortions: not implemented')
-  process.exit(1)
-}
-
-function spreadsheetFromSchedule () {
-  console.log('spreadsheetFromSchedule: not implemented')
-  process.exit(1)
 }
 
 // BigInt-aware JSON serializer (converts them to strings)

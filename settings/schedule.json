@@ -1,0 +1,183 @@
+{
+  "total": "10000000000000000000000000",
+  "pools": [
+    {
+      "name": "Investors",
+      "total": "2000000000000000000000000",
+      "partial": false,
+      "accounts": [
+        {
+          "name": "InvestorN",
+          "amount": "2000000000000000000000000",
+          "address": "secret1TODO10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "start_at": 15552000,
+          "interval": 86400,
+          "duration": 41472000,
+          "cliff": "0",
+          "portion_size": "4166000000000000000000",
+          "remainder": "320000000000000000000"
+        }
+      ]
+    },
+    {
+      "name": "Founders",
+      "total": "2400000000000000000000000",
+      "partial": false,
+      "accounts": [
+        {
+          "name": "Founder1",
+          "amount": "800000000000000000000000",
+          "address": "secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "start_at": 15552000,
+          "interval": 86400,
+          "duration": 51840000,
+          "cliff": "0",
+          "portion_size": "1333000000000000000000",
+          "remainder": "200000000000000000000"
+        },
+        {
+          "name": "Founder2",
+          "amount": "800000000000000000000000",
+          "address": "secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "start_at": 15552000,
+          "interval": 86400,
+          "duration": 51840000,
+          "cliff": "0",
+          "portion_size": "1333000000000000000000",
+          "remainder": "200000000000000000000"
+        },
+        {
+          "name": "Founder3",
+          "amount": "731000000000000000000000",
+          "address": "secret1TODO22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "start_at": 15552000,
+          "interval": 86400,
+          "duration": 51840000,
+          "cliff": "0",
+          "portion_size": "1218000000000000000000",
+          "remainder": "200000000000000000000"
+        },
+        {
+          "name": "Founder4",
+          "amount": "69000000000000000000000",
+          "address": "secret1TODO23xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "start_at": 15552000,
+          "interval": 86400,
+          "duration": 51840000,
+          "cliff": "0",
+          "portion_size": "115000000000000000000",
+          "remainder": "0"
+        }
+      ]
+    },
+    {
+      "name": "DevFund",
+      "total": "1500000000000000000000000",
+      "partial": false,
+      "accounts": [
+        {
+          "name": "DevN",
+          "amount": "1500000000000000000000000",
+          "address": "secret1TODO30xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "start_at": 10368000,
+          "interval": 2592000,
+          "duration": 64800000,
+          "cliff": "75000000000000000000000",
+          "portion_size": "59375000000000000000000",
+          "remainder": "0"
+        }
+      ]
+    },
+    {
+      "name": "Advisors",
+      "total": "200000000000000000000000",
+      "partial": false,
+      "accounts": [
+        {
+          "name": "Advisor1",
+          "amount": "50000000000000000000000",
+          "address": "secret1TODO40xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "start_at": 15552000,
+          "interval": 86400,
+          "duration": 41472000,
+          "cliff": "0",
+          "portion_size": "104000000000000000000",
+          "remainder": "80000000000000000000"
+        },
+        {
+          "name": "Advisor2",
+          "amount": "50000000000000000000000",
+          "address": "secret1TODO41xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "start_at": 15552000,
+          "interval": 86400,
+          "duration": 41472000,
+          "cliff": "0",
+          "portion_size": "104000000000000000000",
+          "remainder": "80000000000000000000"
+        },
+        {
+          "name": "Advisor3",
+          "amount": "10000000000000000000000",
+          "address": "secret1TODO42xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "start_at": 15552000,
+          "interval": 86400,
+          "duration": 15552000,
+          "cliff": "0",
+          "portion_size": "55000000000000000000",
+          "remainder": "100000000000000000000"
+        },
+        {
+          "name": "Advisor4",
+          "amount": "5000000000000000000000",
+          "address": "secret1TODO43xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "start_at": 15552000,
+          "interval": 86400,
+          "duration": 41472000,
+          "cliff": "0",
+          "portion_size": "10000000000000000000",
+          "remainder": "200000000000000000000"
+        },
+        {
+          "name": "AdvisorN",
+          "amount": "85000000000000000000000",
+          "address": "secret1TODO44xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "start_at": 0,
+          "interval": 0,
+          "duration": 0,
+          "cliff": "85000000000000000000000",
+          "portion_size": false,
+          "remainder": false
+        }
+      ]
+    },
+    {
+      "name": "MintingPool",
+      "total": "3900000000000000000000000",
+      "partial": false,
+      "accounts": [
+        {
+          "name": "LPF",
+          "amount": "300000000000000000000000",
+          "address": "secret1TODO50xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "start_at": 0,
+          "interval": 0,
+          "duration": 0,
+          "cliff": "300000000000000000000000",
+          "portion_size": false,
+          "remainder": false
+        },
+        {
+          "name": "RPT",
+          "amount": "3600000000000000000000000",
+          "address": "SPLIT_RPT",
+          "start_at": 0,
+          "interval": 86400,
+          "duration": 124416000,
+          "cliff": "0",
+          "portion_size": "2500000000000000000000",
+          "remainder": "0"
+        }
+      ]
+    }
+  ]
+}
