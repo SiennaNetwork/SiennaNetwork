@@ -5,31 +5,10 @@
 // a cursory look through the docs would provide a (not-necessarily-exhaustive)
 // list of the SNIP20 interactions that this contract performs
 pub use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
-pub use sienna_schedule::{Seconds, Schedule, Pool, Account, Vesting, Validation};
-pub use std::{collections::BTreeMap, cmp::Ordering};
-
-/// Wrapped `HumanAddr` that can be sorted
-#[derive(serde::Serialize,serde::Deserialize,Clone,Debug,PartialEq,schemars::JsonSchema)]
-pub struct Address(HumanAddr);
-impl PartialOrd for Address {
-    fn partial_cmp (&self, other: &Self) -> Option<Ordering> {
-        self.0.as_str().partial_cmp(other.0.as_str())
-    }
-}
-impl Ord for Address {
-    fn cmp (&self, other: &Self) -> Ordering {
-        self.0.as_str().cmp(other.0.as_str())
-    }
-}
-impl Eq for Address {}
-impl From<HumanAddr> for Address {
-    fn from (other: HumanAddr) -> Self {
-        Self(other)
-    }
-}
+pub use sienna_schedule::{Seconds, Schedule, Pool, Account, Vesting, Validation, LinearMap};
 
 /// How much each recipient has claimed so far
-pub type History = BTreeMap<Address, Uint128>;
+pub type History = LinearMap<HumanAddr, Uint128>;
 
 /// The managed SNIP20 contract's code hash.
 pub type CodeHash = String;
@@ -81,8 +60,6 @@ contract!(
         history:    History,
         /// Vesting configuration.
         schedule:   Schedule,
-        /// Total amount to mint
-        total:      Uint128,
         /// TODO: public counter of invalid requests
         errors:     ErrorCount
     }
@@ -98,11 +75,10 @@ contract!(
     }) {
         let errors   = 0;
         let admin    = Some(env.message.sender);
-        let total    = schedule.total;
         let history  = History::new();
         let launched = None;
         State {
-            errors, admin, total, history, launched,
+            errors, admin, history, launched,
             schedule, token_addr, token_hash
         }
     }
@@ -115,10 +91,10 @@ contract!(
             Response::Status { errors, launched }
         }
 
-        /// Return schedule and sum of total minted tokens
+        /// Return schedule
         GetSchedule () {
-            let State { schedule, total, .. } = state;
-            Response::Schedule { schedule, total }
+            let State { schedule, .. } = state;
+            Response::Schedule { schedule }
         }
 
         /// Return one account from the schedule
@@ -153,7 +129,7 @@ contract!(
 
     [Response] {
         Status    { errors: ErrorCount, launched: Launched }
-        Schedule  { schedule: Schedule, total: Uint128 }
+        Schedule  { schedule: Schedule }
         Account   { pool: Pool, account: Account }
         Claimable { address: HumanAddr, claimable: Uint128 }
         Error     { msg: String }
@@ -212,7 +188,7 @@ contract!(
                 let messages = vec![
                     mint_msg(
                         env.contract.address,
-                        state.total,
+                        state.schedule.total,
                         None, BLOCK_SIZE,
                         state.token_hash.clone(),
                         state.token_addr.clone()
