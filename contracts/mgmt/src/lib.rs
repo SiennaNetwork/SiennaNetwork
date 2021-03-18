@@ -141,6 +141,7 @@ contract!(
         /// Load a new schedule (only before launching the contract)
         Configure (schedule: Schedule) {
             require_admin!(|env, state| {
+                if let Some(_) = &state.launched { return err_msg(state, MGMTError!(UNDERWAY)) }
                 schedule.validate()?;
                 state.schedule = schedule;
                 ok!(state)
@@ -214,9 +215,10 @@ contract!(
                 let (vested, claimable) = portion(&state, &address, elapsed);
                 if claimable > 0 {
                     state.history.insert(address.clone().into(), vested.into());
-                    return ok!(state, vec![transfer(&state, &address, claimable.into())?]);
+                    ok!(state, vec![transfer(&state, &address, claimable.into())?])
+                } else {
+                    err_msg(state, MGMTError!(NOTHING))
                 }
-                err_msg(state, MGMTError!(NOTHING))
             } else {
                 err_msg(state, MGMTError!(PRELAUNCH))
             }
