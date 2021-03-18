@@ -12,7 +12,7 @@ kukumba!(
 
     given "a contract with the production schedule" {
         harness!(deps; ADMIN);
-        let s: Schedule = serde_json::from_str(include_str!("../../../settings/config.json")).unwrap();
+        let s: Schedule = serde_json::from_str(include_str!("../../../settings/schedule.json")).unwrap();
         test_tx!(deps, ADMIN, 0, 0; Configure { schedule: s.clone() } => tx_ok!());
 
         let founder_1 = HumanAddr::from("secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
