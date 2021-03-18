@@ -15,6 +15,7 @@ use serde::{Serialize, Deserialize};
 //use snafu::GenerateBacktrace;
 pub use cosmwasm_std::{Uint128, HumanAddr, StdResult, StdError};
 
+pub mod map; pub use map::*;
 pub mod errors; pub use errors::*;
 pub mod validate; pub use validate::*;
 pub mod vesting; pub use vesting::*;
