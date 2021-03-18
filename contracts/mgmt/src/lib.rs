@@ -163,7 +163,7 @@ contract!(
 
         /// The admin can make someone else the admin,
         /// but there can be only one admin at a given time (or none)
-        TransferOwnership (new_admin: HumanAddr) {
+        SetOwner (new_admin: HumanAddr) {
             require_admin!(|env, state| {
                 state.admin = Some(new_admin);
                 ok!(state)

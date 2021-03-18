@@ -48,53 +48,48 @@ kukumba!(
     when "the contract is launched"
     then "tokens should be minted and minting should be disabled" {
         let t_launch = 2;
-        test_tx!(deps, ADMIN, 2, t_launch;
-            Launch {} => tx_ok_launch!(s.total));
+        test_tx!(deps, ADMIN, 2, t_launch; Launch {} => tx_ok_launch!(s.total));
     }
 
     when "Founder1 tries to claim funds before the cliff"
     then "they are denied" {
         let t_cliff = 15552000;
-        test_tx!(deps, founder_1, 3, t_launch + 1;
-            Claim {} => tx_err!(NOTHING));
-        test_tx!(deps, founder_1, 4, t_launch + t_cliff - 1;
-            Claim {} => tx_err!(NOTHING));
+        test_tx!(deps, founder_1, 3, t_launch + 1; Claim {} => tx_err!(NOTHING));
+        test_tx!(deps, founder_1, 4, t_launch + t_cliff - 1; Claim {} => tx_err!(NOTHING));
     }
     when "Founder1 claims funds right after the cliff"
     then "they receive 80000 SIENNA" {
-        test_tx!(deps, founder_1, 5, t_launch + t_cliff;
-            Claim {} => tx_ok_claim!(founder_1, SIENNA!(80000u128)));
+        test_tx!(deps, founder_1, 5, t_launch + t_cliff; Claim {} =>
+            tx_ok_claim!(founder_1, SIENNA!(80000u128)));
     }
     when "Founder1 tries to claim funds before the next vesting"
     then "they are denied" {
-        test_tx!(deps, founder_1, 6, t_launch + t_cliff + 3600;
-            Claim {} => tx_err!(NOTHING));
+        test_tx!(deps, founder_1, 6, t_launch + t_cliff + 3600; Claim {} => tx_err!(NOTHING));
     }
     when "Founder1 claims funds again after 1 day"
     then "they receive 1 vesting's worth of 1500 SIENNA" {
-        test_tx!(deps, founder_1, 7, t_launch + t_cliff + 86400;
-            Claim {} => tx_ok_claim!(founder_1, SIENNA!(1500u128)));
+        test_tx!(deps, founder_1, 7, t_launch + t_cliff + 86400; Claim {} =>
+            tx_ok_claim!(founder_1, SIENNA!(1500u128)));
     }
     when "Founder1 claims funds again after 2 more days"
     then "they receive 2 vestings' worth of 3000 SIENNA" {
-        test_tx!(deps, founder_1, 8, t_launch + t_cliff + 86400 + 86400 * 2;
-            Claim {} => tx_ok_claim!(founder_1, SIENNA!(3000u128)));
+        test_tx!(deps, founder_1, 8, t_launch + t_cliff + 86400 + 86400 * 2; Claim {} =>
+            tx_ok_claim!(founder_1, SIENNA!(3000u128)));
     }
 
     when "Founder2 tries to claim funds before the cliff"
     then "they are denied" {
-        test_tx!(deps, founder_2, 9, t_launch + t_cliff - 1000;
-            Claim {} => tx_err!(NOTHING));
+        test_tx!(deps, founder_2, 9, t_launch + t_cliff - 1000; Claim {} => tx_err!(NOTHING));
     }
     when "Founder2 claims funds for the 1st time 10 days after the cliff"
     then "they receive cliff 80000 + 10 vestings' worth of 15000 = 95000 SIENNA" {
-        test_tx!(deps, founder_2, 10, t_launch + t_cliff + 10 * 86400;
-            Claim {} => tx_ok_claim!(founder_2, SIENNA!(95000u128)));
+        test_tx!(deps, founder_2, 10, t_launch + t_cliff + 10 * 86400; Claim {} =>
+            tx_ok_claim!(founder_2, SIENNA!(95000u128)));
     }
     when "Founder 3 claims funds 500 days after the cliff"
     then "they receive the full amount of 731000 SIENNA" {
-        test_tx!(deps, founder_3, 11, t_launch + t_cliff + 500 * 86400;
-            Claim {} => tx_ok_claim!(founder_3, SIENNA!(731000u128)));
+        test_tx!(deps, founder_3, 11, t_launch + t_cliff + 500 * 86400; Claim {} =>
+            tx_ok_claim!(founder_3, SIENNA!(731000u128)));
     }
 
     #[claim_minting_pool]
@@ -112,40 +107,33 @@ kukumba!(
 
     when "the liquidity provision fund is claimed before launch"
     then "it is not transferred" {
-        test_tx!(deps, lpf, 1, 1;
-            Claim {} => tx_err!(PRELAUNCH));
+        test_tx!(deps, lpf, 1, 1; Claim {} => tx_err!(PRELAUNCH));
     }
     when "the remaining pool tokens are claimed before launch"
     then "they are not transferred" {
         for rem in [&rem1, &rem2, &rem3].iter() {
-            test_tx!(deps, *rem, 1, 1;
-                Claim {} => tx_err!(PRELAUNCH));
+            test_tx!(deps, *rem, 1, 1; Claim {} => tx_err!(PRELAUNCH));
         }
     }
 
     when "the contract is launched" {
         let t_launch = 2*86400u64;
-        test_tx!(deps, ADMIN, 2, t_launch;
-            Launch {} => tx_ok_launch!(s.total));
+        test_tx!(deps, ADMIN, 2, t_launch; Launch {} => tx_ok_launch!(s.total));
     }
     and "the liquidity provision fund is claimed"
     then "it is received in full" {
-        test_tx!(deps, lpf, 3, t_launch + 1;
-            Claim {} => tx_ok_claim!(lpf, SIENNA!(300000u128)));
+        test_tx!(deps, lpf, 3, t_launch + 1; Claim {} => tx_ok_claim!(lpf, SIENNA!(300000u128)));
     }
     and "the liquidity provision fund is claimed again"
     then "nothing more is transfered" {
-        test_tx!(deps, lpf, 3, t_launch + 1;
-            Claim {} => tx_err!(NOTHING));
+        test_tx!(deps, lpf, 3, t_launch + 1; Claim {} => tx_err!(NOTHING));
     }
 
     when "the remaining pool tokens are claimed"
     then "the corresponding portion of them is transferred" {
         println!("{:#?}", &s)
-        test_tx!(deps, rem1, 3, t_launch + 1;
-            Claim {} => tx_ok_claim!(rem1, SIENNA!(1250u128)));
-        test_tx!(deps, rem2, 4, t_launch + 86400;
-            Claim {} => tx_ok_claim!(rem2, SIENNA!(2*750u128)));
+        test_tx!(deps, rem1, 3, t_launch + 1; Claim {} => tx_ok_claim!(rem1, SIENNA!(1250u128)));
+        test_tx!(deps, rem2, 4, t_launch + 86400; Claim {} => tx_ok_claim!(rem2, SIENNA!(2*750u128)));
     }
 
     //when "the remaining pool tokens are claimed late"
