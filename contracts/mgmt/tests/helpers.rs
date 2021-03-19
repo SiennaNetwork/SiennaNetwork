@@ -26,10 +26,6 @@ macro_rules! harness {
 
 pub fn harness (balances: &[(&HumanAddr, &[Coin])])-> ExternMock {
     let mut deps = mock_dependencies_with_balances(45, &balances);
-
-    // As the admin
-    // When I init the contract
-    // Then I want to be able to query its state
     let res = sienna_mgmt::init(
         &mut deps,
         mock_env(0, 0, balances[0].0), // first address in `balances` is admin
@@ -53,129 +49,108 @@ pub fn mock_env (
     contract_code_hash: "0".into()
 } }
 
-pub fn tx (
-    deps: &mut ExternMock,
-    env:  Env,
-    tx:   sienna_mgmt::msg::Handle
-) -> HandleResult {
-    sienna_mgmt::handle(deps, env, tx)
+macro_rules! test_q {
+    ( $deps:expr
+    ; $Query:ident $( { $($qarg:ident $(: $qval:expr)?),* } )?
+    == $Response:ident { $($rarg:ident : $rval:expr),* }
+    ) => {
+        match cosmwasm_std::from_binary(&sienna_mgmt::query(
+            &$deps, sienna_mgmt::msg::Query::$Query { $( $($qarg $(:$qval)?),* )? }
+        ).unwrap()).unwrap() {
+            sienna_mgmt::msg::Response::$Response {$($rarg),*} => { $(assert_eq!($rarg, $rval));* },
+            _ => panic!("{} didn't return {}", stringify!($Query), stringify!($Response)),
+        }
+    }
 }
 
 macro_rules! test_tx {
-    ( $deps: ident, $SENDER:expr, $block:expr, $time:expr
-    ; $TX:ident { $($arg:ident : $val:expr),* } => $ExpectedResult:expr
+    ( $deps: ident; $SENDER:expr, $block:expr, $time:expr
+    ; $TX:ident { $($arg:ident : $val:expr),* }
+    == $ExpectedResult:expr
     ) => {
+
+        macro_rules! ok {
+            () => {
+                Ok(cosmwasm_std::HandleResponse { data: None, log: vec![], messages: vec![] })
+            };
+            (messages: $msgs:tt) => {
+                Ok(cosmwasm_std::HandleResponse { data: None, log: vec![], messages: vec! $msgs })
+            };
+            (launched: $amount:expr) => {
+                ok!(messages: [
+                    secret_toolkit::snip20::handle::mint_msg(
+                        cosmwasm_std::HumanAddr::from("mgmt"),
+                        cosmwasm_std::Uint128::from($amount),
+                        None, 256, String::new(), cosmwasm_std::HumanAddr::from("token")
+                    ).unwrap(),
+                    secret_toolkit::snip20::handle::set_minters_msg(
+                        vec![],
+                        None, 256, String::new(), cosmwasm_std::HumanAddr::from("token")
+                    ).unwrap()
+                ])
+            };
+            (claimed: $addr:expr, $amount:expr) => {
+                ok!(messages: [
+                    secret_toolkit::snip20::handle::transfer_msg(
+                        $addr.clone(), $amount,
+                        None, 256, String::new(), HumanAddr::from("token")
+                    ).unwrap()
+                ])
+            };
+        }
+        macro_rules! err {
+            (auth) => { Err(cosmwasm_std::StdError::Unauthorized { backtrace: None }) };
+            ($msg:tt) => { Err(cosmwasm_std::StdError::GenericErr {
+                backtrace: None, msg: $msg.to_string()
+            }) }
+        }
+
         let expected_response = $ExpectedResult;
         let request = sienna_mgmt::msg::Handle::$TX { $($arg : $val),* };
-        let response = tx(&mut $deps, mock_env($block, $time, &$SENDER), request);
+        let response = sienna_mgmt::handle(&mut $deps, mock_env($block, $time, &$SENDER), request);
         if response != expected_response {
             println!("!!! Test transaction failed (block {}, time {})", $block, $time);
             if let Ok(cosmwasm_std::HandleResponse { messages, log, data }) = expected_response {
+                println!("Expected data =\n {:#?}", &data);
+                println!("Expected logs =\n {:#?}", &log);
                 println!("Expected messages:");
                 for message in messages.iter() {
                     match message {
                         cosmwasm_std::CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute{contract_addr,callback_code_hash,msg,send}) => {
                             println!("  WASM execute");
-                            println!("    contract_addr:      {:?}", contract_addr);
-                            println!("    callback_code_hash: {:?}", callback_code_hash);
-                            println!("    send:               {:?}", send);
-                            println!("    msg:\n      {}", std::str::from_utf8(msg.as_slice()).unwrap())
+                            println!("    contract_addr:     = {:?}", contract_addr);
+                            println!("    callback_code_hash = {:?}", callback_code_hash);
+                            println!("    send               = {:?}", send);
+                            println!("    msg:\n{}", std::str::from_utf8(msg.as_slice()).unwrap())
                         },
                         _ =>
                             println!("  {:#?}", &message)
                     }
                 }
-                println!("Expected log:\n  {:#?}", &log);
-                println!("Expected data:\n  {:#?}", &data);
             } else {
                 println!("Expected response:\n  {:#?}", &expected_response);
             }
             if let Ok(cosmwasm_std::HandleResponse { messages, log, data }) = response {
+                println!("Actual data =\n{:#?}", &data);
+                println!("Actual logs =\n{:#?}", &log);
                 println!("Actual messages:");
                 for message in messages.iter() {
                     match message {
                         cosmwasm_std::CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute{contract_addr,callback_code_hash,msg,send}) => {
                             println!("  WASM execute");
-                            println!("    contract_addr:      {:?}", contract_addr);
-                            println!("    callback_code_hash: {:?}", callback_code_hash);
-                            println!("    send:               {:?}", send);
-                            println!("    msg:\n      {}", std::str::from_utf8(msg.as_slice()).unwrap())
+                            println!("    contract_addr:     = {:?}", contract_addr);
+                            println!("    callback_code_hash = {:?}", callback_code_hash);
+                            println!("    send:              = {:?}", send);
+                            println!("    msg:\n{}", std::str::from_utf8(msg.as_slice()).unwrap())
                         },
                         _ =>
                             println!("  {:#?}", &message)
                     }
                 }
-                println!("Actual log:\n  {:#?}", &log);
-                println!("Actual data:\n  {:#?}", &data);
             } else {
                 println!("Actual response:\n  {:#?}", &response);
             }
             panic!("transaction test failed")
-        }
-    }
-}
-
-macro_rules! tx_ok {
-    () => {
-        Ok(cosmwasm_std::HandleResponse { data: None, log: vec![], messages: vec![] })
-    };
-    ($($msg: expr),+) => {
-        Ok(cosmwasm_std::HandleResponse { data: None, log: vec![], messages: vec![$($msg),+] })
-    }
-}
-
-macro_rules! tx_ok_launch {
-    ($amount:expr) => {
-        tx_ok!(
-            secret_toolkit::snip20::handle::mint_msg(
-                cosmwasm_std::HumanAddr::from("mgmt"),
-                cosmwasm_std::Uint128::from($amount),
-                None, 256, String::new(), cosmwasm_std::HumanAddr::from("token")
-            ).unwrap(),
-            secret_toolkit::snip20::handle::set_minters_msg(
-                vec![],
-                None, 256, String::new(), cosmwasm_std::HumanAddr::from("token")
-            ).unwrap()
-        )
-    }
-}
-
-macro_rules! tx_ok_claim {
-    ($addr:expr, $amount:expr) => {
-        tx_ok!(secret_toolkit::snip20::handle::transfer_msg(
-            $addr.clone(), $amount,
-            None, 256, String::new(), HumanAddr::from("token")
-        ).unwrap())
-    }
-}
-
-macro_rules! tx_err {
-    ($msg:tt) => { Err(cosmwasm_std::StdError::GenericErr {
-        backtrace: None,
-        msg: MGMTError!($msg).to_string()
-    }) }
-}
-
-macro_rules! tx_err_auth {
-    () => {
-        Err(cosmwasm_std::StdError::Unauthorized { backtrace: None })
-    }
-}
-
-macro_rules! test_q {
-    ( $deps:expr
-    , $Query:ident
-    ; $Response:ident {
-        $($arg:ident : $val:expr),*
-    } ) => {
-        match cosmwasm_std::from_binary(
-            &sienna_mgmt::query(&$deps, sienna_mgmt::msg::Query::$Query {}).unwrap()
-        ).unwrap() {
-            sienna_mgmt::msg::Response::$Response {$($arg),*} => {
-                $(assert_eq!($arg, $val));*
-            },
-            _ => panic!("{} didn't return {}",
-                stringify!($Query), stringify!($Response)),
         }
     }
 }
