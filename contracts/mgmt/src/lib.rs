@@ -92,20 +92,21 @@ contract!(
         }
 
         /// Return schedule
-        GetSchedule () {
+        Schedule () {
             let State { schedule, .. } = state;
             Response::Schedule { schedule }
         }
 
-        /// Return one account from the schedule
-        GetAccount (pool_name: String, account_name: String) {
+        /// Return the allocated portion size of an account
+        /// (used by RPT to validate its configuration)
+        Portion (pool_name: String, account_name: String) {
             for pool in state.schedule.pools.iter() {
                 if pool.name == pool_name {
                     for account in pool.accounts.iter() {
                         if account.name == account_name {
-                            return Response::Account {
-                                pool: pool.clone(),
-                                account: account.clone()
+                            return Response::Portion {
+                                address: account.address.clone(),
+                                portion: Uint128::from(account.portion_size())
                             }
                         }
                     }
@@ -116,11 +117,14 @@ contract!(
         }
 
         /// Return amount that can be claimed by the specified address at the specified time
-        Claimable (address: HumanAddr, time: Seconds) {
-            if let Some(launch) = &state.launched {
-                let elapsed = time - launch;
-                let (_, claimable) = portion(&state, &address, elapsed);
-                Response::Claimable { address, claimable: claimable.into() }
+        Progress (address: HumanAddr, time: Seconds) {
+            if let Some(_) = &state.launched {
+                let unlocked = state.schedule.unlocked(&address, time).into();
+                let claimed = match state.history.get(&address.clone()) {
+                    Some(&claimed) => claimed,
+                    None => Uint128::zero()
+                };
+                Response::Progress { address, unlocked, claimed }
             } else {
                 Response::Error { msg: MGMTError!(PRELAUNCH).to_string() }
             }
@@ -128,12 +132,12 @@ contract!(
     }
 
     [Response] {
-        Status    { errors: ErrorCount, launched: Launched }
-        Schedule  { schedule: Schedule }
-        Account   { pool: Pool, account: Account }
-        Claimable { address: HumanAddr, claimable: Uint128 }
-        Error     { msg: String }
-        NotFound  {}
+        Status   { errors: ErrorCount, launched: Launched }
+        Schedule { schedule: Schedule }
+        Portion  { address: HumanAddr, portion: Uint128 }
+        Progress { address: HumanAddr, unlocked: Uint128, claimed: Uint128 }
+        Error    { msg: String }
+        NotFound {}
     }
 
     [Handle] (deps, env, state, msg) {
@@ -212,9 +216,9 @@ contract!(
             if let &Some(launch) = &state.launched {
                 let address = env.message.sender;
                 let elapsed = env.block.time - launch;
-                let (vested, claimable) = portion(&state, &address, elapsed);
+                let (unlocked, claimable) = portion(&state, &address, elapsed);
                 if claimable > 0 {
-                    state.history.insert(address.clone().into(), vested.into());
+                    state.history.insert(address.clone().into(), unlocked.into());
                     ok!(state, vec![transfer(&state, &address, claimable.into())?])
                 } else {
                     err_msg(state, MGMTError!(NOTHING))
@@ -228,17 +232,17 @@ contract!(
 );
 
 fn portion (state: &State, address: &HumanAddr, elapsed: Seconds) -> (u128, u128) {
-    let vested = state.schedule.unlocked(&address, elapsed);
-    if vested > 0 {
+    let unlocked = state.schedule.unlocked(&address, elapsed);
+    if unlocked > 0 {
         let claimed = match state.history.get(&address.clone().into()) {
             Some(claimed) => claimed.u128(),
             None => 0
         };
-        if vested > claimed {
-            return (vested, vested - claimed);
+        if unlocked > claimed {
+            return (unlocked, unlocked - claimed);
         }
     }
-    return (vested, 0)
+    return (unlocked, 0)
 }
 
 fn transfer (state: &State, addr: &HumanAddr, amount: Uint128) -> StdResult<CosmosMsg> {
