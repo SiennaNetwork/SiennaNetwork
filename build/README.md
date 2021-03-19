@@ -1,6 +1,7 @@
-## Building
-These scripts build a specified commit or the current working tree.
+## `build/`
 
-## Integration testing
-* To start a localnet: `docker-compose up -d localnet`
-* Then, to run the integration test: `docker-compose run compare`.
+* `working-tree`: make production build of current working tree
+* `commit`: make production build of specified commit
+* `outputs/`: build results
+* `optimizer/`: build tool
+* `localnet/`: integration testing tool
