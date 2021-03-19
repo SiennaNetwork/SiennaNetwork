@@ -17,6 +17,7 @@ use sienna_rpt::{
 };
 use sienna_mgmt::msg::{Query as MGMTQuery, Response as MGMTResponse, Handle as MGMTHandle};
 use snip20_reference_impl::msg::{HandleMsg as TokenHandle};
+use linear_map::LinearMap;
 
 kukumba!(
 
@@ -29,22 +30,24 @@ kukumba!(
         let mut deps = Extern {
             storage: MockStorage::default(),
             api:     MockApi::new(45),
-            querier: MockQuerier { claimable: 2500 }
+            querier: MockQuerier { portion: 2500 }
         }
-        let config = vec![
+        let config = LinearMap(vec![
             (BOB.clone(),   Uint128::from(1000u128)),
             (CAROL.clone(), Uint128::from(1500u128))
-        ];
+        ]);
     }
 
     when "someone deploys the contract" {
         assert_eq!(
             init(&mut deps, mock_env(0, 0, &ALICE), RPTInit {
-                config:      vec![],
-                token_addr:  HumanAddr::from("token"),
-                token_hash:  String::new(),
-                mgmt_addr:   HumanAddr::from("mgmt"),
-                mgmt_hash:   String::new(),
+                pool:       "Pool0".to_string(),
+                account:    "Account0".to_string(),
+                config:     LinearMap(vec![]),
+                token_addr: HumanAddr::from("token"),
+                token_hash: String::new(),
+                mgmt_addr:  HumanAddr::from("mgmt"),
+                mgmt_hash:  String::new(),
             }).unwrap().messages.len(),
             0,
             "deploy failed"
@@ -57,7 +60,7 @@ kukumba!(
     and "it has to be a valid configuration" {
         assert_eq!(
             status(&deps),
-            RPTResponse::Status { errors: 0, config: vec![] },
+            RPTResponse::Status { errors: 0, config: LinearMap(vec![]) },
             "querying status failed"
         );
         assert_eq!(
@@ -69,21 +72,19 @@ kukumba!(
             ),
             (
                 Err(cosmwasm_std::StdError::Unauthorized { backtrace: None }),
-                RPTResponse::Status { errors: 1, config: vec![] },
+                RPTResponse::Status { errors: 1, config: LinearMap(vec![]) },
             ),
             "wrong user was able to set config"
         );
         assert_eq!(
             {
                 handle(&mut deps, mock_env(2, 2, &ALICE), RPTHandle::Configure {
-                    config: vec![
-                        (BOB.clone(),   Uint128::from(1001u128)),
-                        (CAROL.clone(), Uint128::from(1500u128))
-                    ]
+                    config: LinearMap(vec![(BOB.clone(),   Uint128::from(1001u128)),
+                                           (CAROL.clone(), Uint128::from(1500u128))])
                 });
                 status(&deps)
             },
-            RPTResponse::Status { errors: 2, config: vec![] },
+            RPTResponse::Status { errors: 2, config: LinearMap(vec![]) },
             "admin was able to set invalid config"
         );
         assert_eq!(
@@ -98,7 +99,9 @@ kukumba!(
         );
     }
 
-    when "anyone calls the vest method" {
+    when "anyone calls the vest method"
+    then "the contract claims funds from mgmt"
+    and "it distributes them to the configured recipients" {
         let messages = handle(
             &mut deps, mock_env(2, 2, &MALLORY), RPTHandle::Vest {}
         ).unwrap().messages;
@@ -119,7 +122,7 @@ kukumba!(
                 msg, contract_addr, callback_code_hash, ..
             }) = messages.get(i).unwrap() {
                 if let TokenHandle::Transfer {recipient,amount,..} = from_binary::<TokenHandle>(&msg).unwrap() {
-                    let (expected_recipient, expected_amount) = config.get(i-1).unwrap();
+                    let (expected_recipient, expected_amount) = config.0.get(i-1).unwrap();
                     assert_eq!(*expected_recipient, recipient);
                     assert_eq!(*expected_amount, amount);
                 } else {
@@ -129,10 +132,6 @@ kukumba!(
                 panic!("unexpected message #{}", i+1);
             }
         }
-    }
-    then "the contract claims funds from mgmt" {
-    }
-    and "it distributes them to the configured recipients" {
     }
 
 );
@@ -157,7 +156,7 @@ fn status<S:Storage,A:Api,Q:Querier> (deps: &Extern<S,A,Q>) -> RPTResponse {
     //println!("{}", std::any::type_name::<T>())
 //}
 struct MockQuerier {
-    claimable: u128
+    portion: u128
 }
 impl Querier for MockQuerier {
     fn raw_query (&self, bin_request: &[u8]) -> QuerierResult {
@@ -170,9 +169,8 @@ impl Querier for MockQuerier {
                         match &contract_addr {
                             mgmt => {
                                 //let msg: MGMTQuery = from_binary(&msg).unwrap();
-                                let response = MGMTResponse::Claimable {
-                                    address:   HumanAddr::from("rpt"),
-                                    claimable: Uint128::from(self.claimable)
+                                let response = MGMTResponse::Portion {
+                                    portion: Uint128::from(self.portion)
                                 };
                                 QuerierResult::Ok(to_binary(&response))
                             },
