@@ -23,7 +23,3 @@ color-rs        = "^0.5.0"
 #[[example]]
 #name = "sienna_schedule"
 #path = "bin/cli.rs"
-
-#[[bin]]
-#name = "sienna_json2svg"
-#path = "bin/tsv_to_svg.rs"
