@@ -17,7 +17,7 @@ use std::mem::replace;
 /// to risk altering the default execution environment (of which `serde_json_wasm` is part),
 /// even though there's no obvious reason why that wouldn't work.
 #[derive(serde::Serialize,serde::Deserialize,Clone,Debug,PartialEq,schemars::JsonSchema)]
-pub struct LinearMap<K, V>(Vec<(K, V)>);
+pub struct LinearMap<K, V>(pub Vec<(K, V)>);
 impl<K: PartialEq, V> LinearMap<K, V> {
     pub fn new () -> Self { Self(Vec::new()) }
     pub fn get (&self, key: &K) -> Option<&V> {

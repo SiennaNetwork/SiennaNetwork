@@ -580,6 +580,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "linear-map"
+version = "0.0.0"
+dependencies = [
+ "cosmwasm-std",
+ "schemars",
+ "serde",
+ "snafu",
+]
+
+[[package]]
 name = "log"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1110,6 +1120,7 @@ dependencies = [
  "cosmwasm-storage",
  "fadroma",
  "kukumba",
+ "linear-map",
  "schemars",
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
  "serde",
@@ -1127,6 +1138,7 @@ dependencies = [
  "cosmwasm-storage",
  "fadroma",
  "kukumba",
+ "linear-map",
  "schemars",
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
  "serde",
