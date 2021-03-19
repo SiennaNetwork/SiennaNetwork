@@ -1,3 +1,5 @@
+//! Methods to amend the schedule at runtime
+
 use crate::*;
 impl Schedule {
     pub fn add_account (&mut self, pool_name: String, account: Account) -> UsuallyOk {

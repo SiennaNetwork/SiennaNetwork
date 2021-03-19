@@ -51,6 +51,11 @@ impl Validation for Account {
         if self.cliff > self.amount {
             return self.err_cliff_too_big()
         }
+        if self.amount.u128() != (
+            self.cliff.u128() + self.portion_size() * self.portion_count() + self.remainder()
+        ) {
+            return self.err_does_not_add_up()
+        }
         Ok(())
     }
 }

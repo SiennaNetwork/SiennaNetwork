@@ -1,6 +1,8 @@
+//! Minimal KV store that passes serialization
+
 use std::mem::replace;
 
-/// Wrapped `Vec` with `get` and `insert` methods
+/// Just a wrapped `Vec` with `get` and `insert` methods
 /// because `serde_json_wasm` doesn't serialize maps (even in v0.3)
 ///
 /// This acts as a KV map but serializes as an array of [K,V] pairs:

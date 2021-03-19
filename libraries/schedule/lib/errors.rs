@@ -1,3 +1,5 @@
+//! Error definitions
+
 /// Create an error result
 #[macro_export] macro_rules! Error {
     ($msg:expr) => {
@@ -8,7 +10,7 @@
     };
 }
 
-/// Define error conditions (inside and `impl` block)
+/// `impl` error methods on one or more structs
 #[macro_export] macro_rules! define_errors {
     ($( $Struct:ident { $(
         $name:ident
@@ -62,6 +64,10 @@ define_errors!(
             &self.name,
             &self.cliff,
             &self.amount
+        }
+        err_does_not_add_up (&self,) {
+            "account {}: cliff + portions + remainder don't add up to amount",
+            &self.name
         }
     }
 );

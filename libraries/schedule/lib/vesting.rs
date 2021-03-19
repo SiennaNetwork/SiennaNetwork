@@ -1,3 +1,5 @@
+//! Core vesting logic
+
 use crate::*;
 
 pub trait Vesting {
@@ -44,31 +46,34 @@ impl Vesting for Account {
     }
 }
 impl Account {
-    pub fn amount_sans_cliff (&self) -> u128 {
+    /// Amount to vest after the cliff
+    pub fn amount_after_cliff (&self) -> u128 {
         self.amount.u128() - self.cliff.u128()
     }
-    /// 1 if immediate, or `duration/interval` if periodic.
-    /// Returns error if `duration` is not a multiple of `interval`.
+    /// Number of non-cliff portions.
     pub fn portion_count (&self) -> u128 {
-        if self.interval == 0 {
-            0
+        if self.amount_after_cliff() > 0 {
+            if self.interval > 0 {
+                (self.duration / self.interval) as u128 // multiple portions besides cliff
+            } else {
+                1 // one portion in addition to the cliff (cliff + remainder)
+            }
         } else {
-            self.amount_sans_cliff() / self.interval as u128
+            0 // immediate vesting (cliff only, no extra portions)
         }
     }
-    /// Full `amount` if immediate, or `(amount-cliff)/portion_count` if periodic.
-    /// Returns error if amount can't be divided evenly in that number of portions.
+    /// Size of non-cliff portions.
     pub fn portion_size (&self) -> u128 {
-        if self.interval == 0 {
-            self.amount_sans_cliff()
+        if self.amount_after_cliff () > 0 {
+            self.amount_after_cliff() / self.portion_count()
         } else {
-            self.amount_sans_cliff() / self.portion_count()
+            0 // immediate vesting (cliff only, no extra portions)
         }
     }
     /// If `(amount-cliff)` doesn't divide evenly by `portion_size`,
     /// the remainder is added to the last portion.
     pub fn remainder (&self) -> u128 {
-        self.amount_sans_cliff() % self.portion_size()
+        self.amount_after_cliff() - self.portion_size() * self.portion_count()
     }
 }
 
@@ -100,7 +105,7 @@ mod tests {
         let A = Account::immediate("", &Alice, 100);
         assert_eq!(100, A.amount.u128());
         assert_eq!(  0, A.cliff.u128());
-        assert_eq!(100, A.amount_sans_cliff());
+        assert_eq!(100, A.amount_after_cliff());
         assert_eq!(  0, A.start_at);
         assert_eq!(  0, A.interval);
         assert_eq!(  0, A.duration);
@@ -118,6 +123,50 @@ mod tests {
             assert_eq!(  0, S.unlocked(&Bob, t));
         }
     }
+    #[test] fn test_vest_periodic_no_cliff () {
+        // a periodic `Account`...
+        let Alice = HumanAddr::from("Alice");
+        let Bob   = HumanAddr::from("Bob");
+        let A = Account::periodic("", &Alice, 90, 0, 20, 11, 90);
+        assert_eq!(90, A.amount.u128());
+        assert_eq!( 0, A.cliff.u128());
+        assert_eq!(90, A.amount_after_cliff());
+        assert_eq!(20, A.start_at);
+        assert_eq!(11, A.interval);
+        assert_eq!(90, A.duration);
+        assert_eq!( 8, A.portion_count());
+        assert_eq!(11, A.portion_size());
+        assert_eq!( 2, A.remainder());
+        // ...in a `Pool`...
+        let P = Pool::full("", &[A.clone()]);
+        assert_eq!(90, P.total.u128());
+        // ...in a `Schedule`.
+        let S = Schedule::new(&[P.clone()]);
+        assert_eq!(90, S.total.u128());
+
+        // Before start...
+        for t in 0..A.start_at {
+            print!("[@{}: {}] ", &t, &S.unlocked(&Alice, t));
+            assert_eq!(0, S.unlocked(&Alice, t));
+            assert_eq!(0, S.unlocked(&Bob, t));
+        }
+        // ...portions...
+        for n in 0..(A.portion_count() as u64) {
+            let t_portion:      u64 = A.start_at + n*A.interval;
+            let t_next_portion: u64 = t_portion + A.interval;
+            for t in t_portion..t_next_portion {
+                print!("[@{}: {}] ", &t, &S.unlocked(&Alice, t));
+                assert_eq!(S.unlocked(&Alice, t), (n+1)as u128 *11u128);
+                assert_eq!(S.unlocked(&Bob, t),   0u128);
+            }
+        }
+        // ...last portion and remainder.
+        let t_remainder = A.start_at + A.duration;
+        for t in t_remainder..t_remainder + A.duration {
+            assert_eq!(S.unlocked(&Alice, t), 100);
+            assert_eq!(S.unlocked(&Bob, t), 0);
+        }
+    }
     #[test] fn test_vest_periodic () {
         // a periodic `Account`...
         let Alice = HumanAddr::from("Alice");
@@ -125,7 +174,7 @@ mod tests {
         let A = Account::periodic("", &Alice, 100, 10, 20, 11, 90);
         assert_eq!(100, A.amount.u128());
         assert_eq!( 10, A.cliff.u128());
-        assert_eq!( 90, A.amount_sans_cliff());
+        assert_eq!( 90, A.amount_after_cliff());
         assert_eq!( 20, A.start_at);
         assert_eq!( 11, A.interval);
         assert_eq!( 90, A.duration);
@@ -140,14 +189,12 @@ mod tests {
         assert_eq!(100, S.total.u128());
 
         // Before start...
-        println!("\nbefore start");
         for t in 0..A.start_at {
             print!("[@{}: {}] ", &t, &S.unlocked(&Alice, t));
             assert_eq!(0, S.unlocked(&Alice, t));
             assert_eq!(0, S.unlocked(&Bob, t));
         }
         // ...cliff...
-        println!("\n\ncliff (+{})", &A.cliff);
         for t in A.start_at..(A.start_at+A.interval) {
             print!("[@{}: {}] ", &t, &S.unlocked(&Alice, t));
             assert_eq!(S.unlocked(&Alice, t), 10);
@@ -157,7 +204,6 @@ mod tests {
         for n in 1..(A.portion_count() as u64) {
             let t_portion:      u64 = A.start_at + n*A.interval;
             let t_next_portion: u64 = t_portion + A.interval;
-            println!("\n\nportion {} (+{})", &n, &A.portion_size());
             for t in t_portion..t_next_portion {
                 print!("[@{}: {}] ", &t, &S.unlocked(&Alice, t));
                 assert_eq!(S.unlocked(&Alice, t), (10 + n*11) as u128);
@@ -167,10 +213,6 @@ mod tests {
         // ...last portion and remainder.
         let t_remainder = A.start_at + A.duration;
         for t in t_remainder..t_remainder + A.duration {
-            println!("\n\nlast portion {} (+{}) + remainder (+{})",
-                &A.portion_count(),
-                &A.portion_size(),
-                &A.remainder());
             assert_eq!(S.unlocked(&Alice, t), 100);
             assert_eq!(S.unlocked(&Bob, t), 0);
         }
