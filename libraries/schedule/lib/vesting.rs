@@ -20,29 +20,29 @@ impl Vesting for Account {
     fn unlocked (&self, a: &HumanAddr, t_query: Seconds) -> u128 {
         if *a != self.address { return 0 }
         if t_query < self.start_at { return 0 }
-        let mut amount = 0u128;
+        let mut vested = 0u128;
         let mut t_cursor = self.start_at;
         if self.cliff > Uint128::zero() {
-            amount += self.cliff.u128();
+            vested += self.cliff.u128();
             t_cursor += self.interval;
         }
         if self.interval > 0 {
             let t_end = self.start_at + self.duration;
             loop {
                 if t_cursor >= t_end {
-                    amount += self.remainder();
+                    vested += self.remainder();
                     break
                 }
                 if t_cursor > t_query {
                     break
                 }
-                amount += self.portion_size();
+                vested += self.portion_size();
                 t_cursor += self.interval;
             }
         } else {
-            amount += self.portion_size()
+            vested += self.portion_size()
         }
-        amount
+        vested
     }
 }
 impl Account {
