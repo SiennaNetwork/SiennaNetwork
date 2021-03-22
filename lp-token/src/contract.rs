@@ -1069,7 +1069,7 @@ mod tests {
     use cosmwasm_std::testing::*;
     use cosmwasm_std::{from_binary, BlockInfo, ContractInfo, MessageInfo, QueryResponse, WasmMsg};
     use std::any::Any;
-    use amm_shared::Callback;
+    use shared::Callback;
 
     // Helper functions
 
