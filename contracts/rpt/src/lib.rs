@@ -86,16 +86,15 @@ contract!(
 
         /// Set how funds will be split.
         Configure (config: Config) {
-            require_admin!(|env, state| {
-                let response = query_portion_size(&state, &deps.querier)?;
-                match validate_config(response, &config) {
-                    Ok(_) => {
-                        state.config = config;
-                        ok!(state)
-                    },
-                    Err(e) => err_msg(state, &e)
-                }
-            })
+            is_admin(&state, &env)?;
+            let response = query_portion_size(&state, &deps.querier)?;
+            match validate_config(response, &config) {
+                Ok(_) => {
+                    state.config = config;
+                    ok!(state)
+                },
+                Err(e) => err_msg(state, &e)
+            }
         }
 
         /// Receive and distribute funds.
@@ -124,6 +123,14 @@ contract!(
         }
     }
 );
+
+fn is_admin (state: &State, env: &Env) -> StatefulResult<()> {
+    if state.admin.clone() == env.message.sender {
+        return Ok(((), None))
+    } else {
+        Err(StatefulError((StdError::Unauthorized { backtrace: None }, None)))
+    }
+}
 
 fn query_portion_size<Q: Querier> (state: &State, querier: &Q) -> StdResult<MGMTResponse> {
     use cosmwasm_std::{QueryRequest, WasmQuery};

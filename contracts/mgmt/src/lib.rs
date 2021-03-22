@@ -23,18 +23,6 @@ pub type ErrorCount = u64;
 /// (according to Reuven on Discord; used for padding).
 pub const BLOCK_SIZE: usize = 256;
 
-/// Authentication
-/// TODO if handlers return StdResult this could simply be a function
-macro_rules! require_admin {
-    (|$env:ident, $state:ident| $body:block) => {
-        if Some($env.message.sender) != $state.admin {
-            err_auth($state)
-        } else {
-            $body
-        }
-    }
-}
-
 /// Error messages
 #[macro_export] macro_rules! MGMTError {
     (CORRUPTED)   => { "broken" };  // Contract has entered a state that violates core assumptions.
@@ -143,43 +131,39 @@ contract!(
 
         /// Load a new schedule (only before launching the contract)
         Configure (schedule: Schedule) {
-            require_admin!(|env, state| {
-                if let Some(_) = &state.launched { return err_msg(state, MGMTError!(UNDERWAY)) }
-                schedule.validate()?;
-                state.schedule = schedule;
-                ok!(state)
-            })
+            is_admin(&state, &env)?;
+            is_not_launched(&state)?;
+            schedule.validate()?;
+            state.schedule = schedule;
+            ok!(state)
         }
 
         /// Add a new account to a partially filled pool
         AddAccount (pool: String, account: Account) {
-            require_admin!(|env, state| {
-                match state.schedule.add_account(pool, account) {
-                    Ok(()) => ok!(state),
-                    Err(e) => match e {
-                        StdError::GenericErr { msg, .. } => err_msg(state, &msg),
-                        _ => err_msg(state, MGMTError!(ADD_ACCOUNT))
-                    }
+            is_admin(&state, &env)?;
+            match state.schedule.add_account(pool, account) {
+                Ok(()) => ok!(state),
+                Err(e) => match e {
+                    StdError::GenericErr { msg, .. } => err_msg(state, &msg),
+                    _ => err_msg(state, MGMTError!(ADD_ACCOUNT))
                 }
-            })
+            }
         }
 
         /// The admin can make someone else the admin,
         /// but there can be only one admin at a given time (or none)
         SetOwner (new_admin: HumanAddr) {
-            require_admin!(|env, state| {
-                state.admin = Some(new_admin);
-                ok!(state)
-            })
+            is_admin(&state, &env)?;
+            state.admin = Some(new_admin);
+            ok!(state)
         }
 
         /// The admin can disown the contract
         /// so that nobody can be admin anymore:
         Disown () {
-            require_admin!(|env, state| {
-                state.admin = None;
-                ok!(state)
-            })
+            is_admin(&state, &env)?;
+            state.admin = None;
+            ok!(state)
         }
 
         /// An instance can be launched only once.
@@ -187,48 +171,54 @@ contract!(
         /// the schedule, and prevents any more tokens from ever being minted
         /// by the underlying contract.
         Launch () {
-            require_admin!(|env, state| {
-                if let Some(_) = &state.launched { return err_msg(state, MGMTError!(UNDERWAY)) }
-                let messages = vec![
-                    mint_msg(
-                        env.contract.address,
-                        state.schedule.total,
-                        None, BLOCK_SIZE,
-                        state.token_hash.clone(),
-                        state.token_addr.clone()
-                    ).unwrap(),
-                    set_minters_msg(
-                        vec![],
-                        None, BLOCK_SIZE,
-                        state.token_hash.clone(),
-                        state.token_addr.clone()
-                    ).unwrap(),
-                ];
-                state.launched = Some(env.block.time);
-                ok!(state, messages)
-            })
+            is_admin(&state, &env)?;
+            is_not_launched(&state)?;
+            state.launched = Some(env.block.time);
+            ok!(state, acquire(&state, &env)?)
         }
 
         /// After launch, recipients can call the Claim method to
         /// receive the gains that they have accumulated so far.
         Claim () {
-            if let &Some(launch) = &state.launched {
-                let address = env.message.sender;
-                let elapsed = env.block.time - launch;
-                let (unlocked, claimable) = portion(&state, &address, elapsed);
-                if claimable > 0 {
-                    state.history.insert(address.clone().into(), unlocked.into());
-                    ok!(state, vec![transfer(&state, &address, claimable.into())?])
-                } else {
-                    err_msg(state, MGMTError!(NOTHING))
-                }
+            let launched = is_launched(&state)?;
+            let address = env.message.sender;
+            let elapsed = env.block.time - launched;
+            let (unlocked, claimable) = portion(&state, &address, elapsed);
+            if claimable > 0 {
+                state.history.insert(address.clone().into(), unlocked.into());
+                ok!(state, vec![transfer(&state, &address, claimable.into())?])
             } else {
-                err_msg(state, MGMTError!(PRELAUNCH))
+                err_msg(state, MGMTError!(NOTHING))
             }
         }
     }
 
 );
+
+fn is_admin (state: &State, env: &Env) -> StdResult<()> {
+    if state.admin == Some(env.message.sender.clone()) { return Ok(()) }
+    Err(StdError::Unauthorized { backtrace: None })
+}
+
+fn is_not_launched (state: &State) -> StdResult<()> {
+    match state.launched {
+        None => Ok(()),
+        Some(_) => Err(StdError::GenericErr {
+            msg: MGMTError!(UNDERWAY).to_string(),
+            backtrace: None
+        })
+    }
+}
+
+fn is_launched (state: &State) -> StdResult<Seconds> {
+    match state.launched {
+        Some(launched) => Ok(launched),
+        None => Err(StdError::GenericErr {
+            msg: MGMTError!(PRELAUNCH).to_string(),
+            backtrace: None
+        })
+    }
+}
 
 fn portion (state: &State, address: &HumanAddr, elapsed: Seconds) -> (u128, u128) {
     let unlocked = state.schedule.unlocked(&address, elapsed);
@@ -242,6 +232,19 @@ fn portion (state: &State, address: &HumanAddr, elapsed: Seconds) -> (u128, u128
         }
     }
     return (unlocked, 0)
+}
+
+fn acquire (state: &State, env: &Env) -> StdResult<Vec<CosmosMsg>> {
+    Ok(vec![
+        mint_msg(
+            env.contract.address.clone(), state.schedule.total,
+            None, BLOCK_SIZE, state.token_hash.clone(), state.token_addr.clone()
+        )?,
+        set_minters_msg(
+            vec![],
+            None, BLOCK_SIZE, state.token_hash.clone(), state.token_addr.clone()
+        )?,
+    ])
 }
 
 fn transfer (state: &State, addr: &HumanAddr, amount: Uint128) -> StdResult<CosmosMsg> {
