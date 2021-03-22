@@ -1,4 +1,6 @@
-# Automated market-maker (AMM) - Uniswap
+# Sienna Automated market-maker (AMM)
+
+This is an Automated Marked Maker Decentralized Exchange written in Rust (CosmWasm) inspired by Uniswap Protocol.
 
 ## Contracts
 
@@ -16,7 +18,13 @@ Exchange contracts are automated market makers between a token pair. These can b
 ## Actors
 
 ### Trader
-A trader can exchange their token for another token through Terraswap using the price determined by the liquidity pool ratio.
+A trader can exchange their token for another token through SiennaSwap using the price determined by the liquidity pool ratio.
 
 ### Liquidity Provider
 Must deposit an equivalent value of both tokens. This increases liquidity for the corresponding pair market while maintaining the pool price.
+
+
+## References
+- https://github.com/enigmampc/SecretSwap
+- https://github.com/terraswap/terraswap
+- https://github.com/Uniswap/uniswap-v1
