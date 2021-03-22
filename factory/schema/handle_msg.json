@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HandleMsg",
+  "anyOf": [
+    {
+      "description": "Instantiates an exchange pair contract",
+      "type": "object",
+      "required": [
+        "create_exchange"
+      ],
+      "properties": {
+        "create_exchange": {
+          "type": "object",
+          "required": [
+            "pair"
+          ],
+          "properties": {
+            "pair": {
+              "$ref": "#/definitions/TokenPair"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Used by a newly instantiated exchange contract to register itself with the factory",
+      "type": "object",
+      "required": [
+        "register_exchange"
+      ],
+      "properties": {
+        "register_exchange": {
+          "type": "object",
+          "required": [
+            "pair"
+          ],
+          "properties": {
+            "pair": {
+              "$ref": "#/definitions/TokenPair"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "HumanAddr": {
+      "type": "string"
+    },
+    "TokenPair": {
+      "type": "array",
+      "items": [
+        {
+          "$ref": "#/definitions/TokenType"
+        },
+        {
+          "$ref": "#/definitions/TokenType"
+        }
+      ],
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "TokenType": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "custom_token"
+          ],
+          "properties": {
+            "custom_token": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "token_code_hash"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "token_code_hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "native_token"
+          ],
+          "properties": {
+            "native_token": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

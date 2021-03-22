@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsgResponse",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "pair_info"
+      ],
+      "properties": {
+        "pair_info": {
+          "$ref": "#/definitions/TokenPair"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "factory_info"
+      ],
+      "properties": {
+        "factory_info": {
+          "$ref": "#/definitions/ContractInfo"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "pool"
+      ],
+      "properties": {
+        "pool": {
+          "$ref": "#/definitions/TokenPairAmount"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "ContractInfo": {
+      "description": "Code hash and address of a contract.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "TokenPair": {
+      "type": "array",
+      "items": [
+        {
+          "$ref": "#/definitions/TokenType"
+        },
+        {
+          "$ref": "#/definitions/TokenType"
+        }
+      ],
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "TokenPairAmount": {
+      "type": "object",
+      "required": [
+        "amount_0",
+        "amount_1",
+        "pair"
+      ],
+      "properties": {
+        "amount_0": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "amount_1": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "pair": {
+          "$ref": "#/definitions/TokenPair"
+        }
+      }
+    },
+    "TokenType": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "custom_token"
+          ],
+          "properties": {
+            "custom_token": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "token_code_hash"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "token_code_hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "native_token"
+          ],
+          "properties": {
+            "native_token": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}

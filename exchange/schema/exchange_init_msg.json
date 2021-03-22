@@ -1,0 +1,173 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExchangeInitMsg",
+  "type": "object",
+  "required": [
+    "callback",
+    "factory_info",
+    "lp_token_contract",
+    "pair"
+  ],
+  "properties": {
+    "callback": {
+      "$ref": "#/definitions/Callback"
+    },
+    "factory_info": {
+      "description": "Used by the exchange contract to send back its address to the factory on init",
+      "allOf": [
+        {
+          "$ref": "#/definitions/ContractInfo"
+        }
+      ]
+    },
+    "lp_token_contract": {
+      "description": "LP token instantiation info",
+      "allOf": [
+        {
+          "$ref": "#/definitions/ContractInstantiationInfo"
+        }
+      ]
+    },
+    "pair": {
+      "description": "The tokens that will be managed by the exchange",
+      "allOf": [
+        {
+          "$ref": "#/definitions/TokenPair"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "Callback": {
+      "description": "Used to ask a contract to send back a message.",
+      "type": "object",
+      "required": [
+        "contract_addr",
+        "contract_code_hash",
+        "msg"
+      ],
+      "properties": {
+        "contract_addr": {
+          "description": "The address of the contract requesting the callback.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          ]
+        },
+        "contract_code_hash": {
+          "description": "The code hash the contract requesting the callback.",
+          "type": "string"
+        },
+        "msg": {
+          "description": "The message to call.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
+        }
+      }
+    },
+    "ContractInfo": {
+      "description": "Code hash and address of a contract.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "ContractInstantiationInfo": {
+      "description": "Info used to instantiate a contract",
+      "type": "object",
+      "required": [
+        "code_hash",
+        "id"
+      ],
+      "properties": {
+        "code_hash": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "TokenPair": {
+      "type": "array",
+      "items": [
+        {
+          "$ref": "#/definitions/TokenType"
+        },
+        {
+          "$ref": "#/definitions/TokenType"
+        }
+      ],
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "TokenType": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "custom_token"
+          ],
+          "properties": {
+            "custom_token": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "token_code_hash"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "token_code_hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "native_token"
+          ],
+          "properties": {
+            "native_token": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

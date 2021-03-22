@@ -1,0 +1,204 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HandleMsg",
+  "anyOf": [
+    {
+      "type": "string",
+      "enum": [
+        "on_lp_token_init"
+      ]
+    },
+    {
+      "type": "object",
+      "required": [
+        "add_liquidity"
+      ],
+      "properties": {
+        "add_liquidity": {
+          "type": "object",
+          "required": [
+            "deposit"
+          ],
+          "properties": {
+            "deposit": {
+              "$ref": "#/definitions/TokenPairAmount"
+            },
+            "slippage_tolerance": {
+              "description": "The amount the price moves in a trading pair between when a transaction is submitted and when it is executed. Transactions that exceed this threshold will be rejected.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "remove_liquidity"
+      ],
+      "properties": {
+        "remove_liquidity": {
+          "type": "object",
+          "required": [
+            "amount",
+            "recipient"
+          ],
+          "properties": {
+            "amount": {
+              "description": "The amount of LP tokens burned.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                }
+              ]
+            },
+            "recipient": {
+              "description": "The account to refund the tokens to.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "swap"
+      ],
+      "properties": {
+        "swap": {
+          "type": "object",
+          "required": [
+            "offer"
+          ],
+          "properties": {
+            "offer": {
+              "description": "The token type to swap from.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/TokenTypeAmount"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "Decimal": {
+      "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+      "type": "string"
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "TokenPair": {
+      "type": "array",
+      "items": [
+        {
+          "$ref": "#/definitions/TokenType"
+        },
+        {
+          "$ref": "#/definitions/TokenType"
+        }
+      ],
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "TokenPairAmount": {
+      "type": "object",
+      "required": [
+        "amount_0",
+        "amount_1",
+        "pair"
+      ],
+      "properties": {
+        "amount_0": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "amount_1": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "pair": {
+          "$ref": "#/definitions/TokenPair"
+        }
+      }
+    },
+    "TokenType": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "custom_token"
+          ],
+          "properties": {
+            "custom_token": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "token_code_hash"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "token_code_hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "native_token"
+          ],
+          "properties": {
+            "native_token": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "TokenTypeAmount": {
+      "type": "object",
+      "required": [
+        "amount",
+        "token"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "token": {
+          "$ref": "#/definitions/TokenType"
+        }
+      }
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}

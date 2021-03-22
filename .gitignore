@@ -1,0 +1,12 @@
+target
+*.wat
+*.wasm
+*.wasm.gz
+*.profraw
+.env
+node_modules
+.~*
+yarn-error.log
+.idea
+
+!snip20-reference-impl.wasm

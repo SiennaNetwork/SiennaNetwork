@@ -1,0 +1,3 @@
+[submodule "fadroma"]
+	path = fadroma
+	url = https://github.com/hackbg/fadroma

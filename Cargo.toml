@@ -1,0 +1,20 @@
+[workspace]
+members = [
+  "fadroma",  # smart contract microframework
+  "exchange", # uniswap exchange contract implementation
+  "factory",  # factory contract for creating exchanges
+  "shared",   # shared types between amm-factory and dex,
+  "lp-token", # a slight modification of a SNIP20 token used to represent a liquidity provider's share
+  "utils"     # utility code used by contracts
+]
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'
+incremental = false
+overflow-checks = true
