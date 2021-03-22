@@ -14,7 +14,8 @@ pub struct ExchangeInitMsg {
     /// Used by the exchange contract to
     /// send back its address to the factory on init
     pub factory_info: ContractInfo,
-    pub callback: Callback
+    pub callback: Callback,
+    pub sienna_token: ContractInfo
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]

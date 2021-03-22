@@ -2,7 +2,9 @@
 use serde::{Deserialize, Serialize};
 use cosmwasm_std::{CanonicalAddr, HumanAddr, Storage, Querier, Api, StdResult, Extern, ReadonlyStorage, StdError};
 use utils::storage::{save, load};
-use shared::{TokenPair, TokenPairStored, TokenTypeStored, ContractInstantiationInfo};
+use shared::{TokenPair, TokenPairStored, TokenTypeStored, ContractInstantiationInfo, ContractInfo};
+
+use crate::msg::InitMsg;
 
 const CONFIG_KEY: &[u8] = b"config";
 
@@ -10,6 +12,7 @@ const CONFIG_KEY: &[u8] = b"config";
 pub(crate) struct Config {
     pub lp_token_contract: ContractInstantiationInfo,
     pub pair_contract: ContractInstantiationInfo,
+    pub sienna_token: ContractInfo
 }
 
 /// Represents the address of an exchange and the pair that it manages
@@ -19,6 +22,16 @@ pub(crate) struct Exchange {
     pub pair: TokenPair,
     /// Address of the contract that manages the exchange.
     pub address: HumanAddr
+}
+
+impl Config {
+    pub fn from_init_msg(msg: InitMsg) -> Self {
+        Self {
+            lp_token_contract: msg.lp_token_contract,
+            pair_contract: msg.pair_contract,
+            sienna_token: msg.sienna_token
+        }
+    }
 }
 
 /// Returns StdResult<()> resulting from saving the config to storage

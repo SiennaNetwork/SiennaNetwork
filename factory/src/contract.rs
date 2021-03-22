@@ -15,16 +15,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     _env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
-    let InitMsg {
-        lp_token_contract,
-        pair_contract,
-    } = msg;
-
-    let config = Config {
-        lp_token_contract,
-        pair_contract,
-    };
-    
+    let config = Config::from_init_msg(msg);
     save_config(&mut deps.storage, &config)?;
 
     Ok(InitResponse::default())
@@ -100,7 +91,8 @@ fn create_exchange<S: Storage, A: Api, Q: Querier>(
                                 msg: to_binary(&HandleMsg::RegisterExchange {
                                     pair: pair.clone()
                                 })?,
-                            }
+                            },
+                            sienna_token: config.sienna_token
                         }
                     )?
                 }
@@ -163,9 +155,8 @@ fn query_exchange_address<S: Storage, A: Api, Q: Querier>(
 mod tests {
     use super::*;
     use shared::{ContractInstantiationInfo, TokenType};
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage};
     use cosmwasm_std::{from_binary, StdError};
-    use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
 
     fn dependencies() -> Extern<MockStorage, MockApi, MockQuerier> {
         mock_dependencies(10, &[])
@@ -185,9 +176,15 @@ mod tests {
             id: 33
         };
 
+        let sienna_token = ContractInfo {
+            code_hash: "3124312312".into(),
+            address: HumanAddr("sienna_token".into())
+        };
+
         let result = init(deps, mock_env("sender1111", &[]), InitMsg {
             lp_token_contract: lp_token_contract.clone(),
-            pair_contract: pair_contract.clone()
+            pair_contract: pair_contract.clone(),
+            sienna_token: sienna_token.clone()
         });
 
         assert!(result.is_ok());
@@ -196,6 +193,7 @@ mod tests {
 
         assert_eq!(lp_token_contract, config.lp_token_contract);
         assert_eq!(pair_contract, config.pair_contract);
+        assert_eq!(sienna_token, config.sienna_token);
 
         Ok(())
     }

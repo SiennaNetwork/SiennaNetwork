@@ -85,6 +85,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             // We get the address when the instantiated LP token calls OnLpTokenInit
             address: HumanAddr::default()
         },
+        sienna_token: msg.sienna_token,
         pair: msg.pair,
         contract_addr: env.contract.address,
         viewing_key: viewing_key,

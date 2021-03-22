@@ -11,6 +11,7 @@ const CONFIG_KEY: &[u8] = b"config";
 pub(crate) struct Config {
     pub factory_info: ContractInfo,
     pub lp_token_info: ContractInfo,
+    pub sienna_token: ContractInfo,
     pub pair: TokenPair,
     /// The address of the current contract, because they decided that they don't want
     /// to give you an `Env` in the query callback.
@@ -30,6 +31,7 @@ pub(crate) struct Config {
 struct ConfigStored {
     pub factory_info: ContractInfoStored,
     pub lp_token_info: ContractInfoStored,
+    pub sienna_token: ContractInfoStored,
     pub pair: TokenPairStored,
     pub contract_addr: CanonicalAddr,
     pub viewing_key: ViewingKey,
@@ -43,6 +45,7 @@ pub(crate) fn store_config<S: Storage, A: Api, Q: Querier>(
     let stored = ConfigStored {
         factory_info: config.factory_info.to_stored(&deps.api)?,
         lp_token_info: config.lp_token_info.to_stored(&deps.api)?,
+        sienna_token: config.sienna_token.to_stored(&deps.api)?,
         pair: config.pair.to_stored(&deps.api)?,
         contract_addr: deps.api.canonical_address(&config.contract_addr)?,
         viewing_key: config.viewing_key.clone(),
@@ -60,6 +63,7 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
     Ok(Config {
         factory_info: result.factory_info.to_normal(&deps.api)?,
         lp_token_info: result.lp_token_info.to_normal(&deps.api)?,
+        sienna_token: result.sienna_token.to_normal(&deps.api)?,
         pair: result.pair.to_normal(&deps.api)?,
         contract_addr: deps.api.human_address(&result.contract_addr)?,
         viewing_key: result.viewing_key,
@@ -85,6 +89,10 @@ mod tests {
             lp_token_info: ContractInfo {
                 code_hash: "token_hash".into(),
                 address: HumanAddr("lp_token".into())
+            },
+            sienna_token: ContractInfo {
+                code_hash: "sienna_token_hash".into(),
+                address: HumanAddr("seinna_tkn".into())
             },
             pair: TokenPair(
                 TokenType::CustomToken {
