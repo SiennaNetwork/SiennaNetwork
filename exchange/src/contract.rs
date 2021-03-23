@@ -20,8 +20,12 @@ type SwapResult = StdResult<(Uint128, Uint128, Uint128)>;
 /// Pad handle responses and log attributes to blocks
 /// of 256 bytes to prevent leaking info based on response size
 const BLOCK_SIZE: usize = 256;
-const FEE_NOM: Uint128 = Uint128(3);
-const FEE_DENOM: Uint128 = Uint128(1000);
+
+#[derive(Clone, Copy, Debug)]
+struct Fee {
+    nom: u8,
+    denom: u16
+}
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -348,13 +352,36 @@ fn swap<S: Storage, A: Api, Q: Querier>(
 
     let mut config = load_config(deps)?;
 
-    let (return_amount, spread_amount, commission_amount) = do_swap(deps, &mut config, &offer, false)?;
+    let has_sienna = has_sienna_token(&config);
+    let fee = if has_sienna {
+        Fee::sienna()
+    } else {
+        Fee::regular()
+    };
+
+    let (mut return_amount, spread_amount, mut commission_amount) = do_swap(deps, &mut config, &offer, fee, false)?;
     store_config(deps, &config)?; // Save in order to update the pool_cache
 
+    let mut messages = vec![];
+
+    // If this contract manages a sienna token 0.28% goes to LP and the other 0.02% is
+    // converted to SIENNA and burned. So here, deduct a further 0.02% from the return_amount.
+    if has_sienna {
+        let (result, decrease_amount) = percentage_decrease(U256::from(return_amount.u128()), Fee::new(2, fee.denom))?;
+        let decrease_amount = Uint128(decrease_amount.low_u128());
+
+        commission_amount = commission_amount + decrease_amount;
+        return_amount = Uint128(result.low_u128());
+
+        // TODO: Currently, this won't work. We need to decrease the total amount of SIENNA without the need for an account.
+        // Is there anything like admin rights in SNIP20?
+        messages.push(snip20::burn_msg(decrease_amount, None, BLOCK_SIZE, config.sienna_token.code_hash, config.sienna_token.address)?)
+    }
+
+    messages.push(create_send_msg(&offer.token, env.contract.address, env.message.sender, return_amount)?);
+
     Ok(HandleResponse{
-        messages: vec![
-            create_send_msg(&offer.token, env.contract.address, env.message.sender, return_amount)?
-        ],
+        messages,
         log: vec![
             log("action", "swap"),
             log("offer_token", offer.token.to_string()),
@@ -403,7 +430,9 @@ fn swap_simulation<S: Storage, A: Api, Q: Querier>(
     mut config: Config,
     offer: TokenTypeAmount
 ) -> QueryResult {
-    let (return_amount, spread_amount, commission_amount) = do_swap(deps, &mut config, &offer, true)?;
+    // We don't care whether the actual LP commission is 0.28% (when the pair manages a Sienna token) or 0.30%
+    // because the total fee for the end user is 0.30% regadless
+    let (return_amount, spread_amount, commission_amount) = do_swap(deps, &mut config, &offer, Fee::regular(), true)?;
 
     Ok(to_binary(
         &SwapSimulationResponse{
@@ -474,6 +503,7 @@ fn do_swap<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     config: &mut Config,
     offer: &TokenTypeAmount,
+    fee: Fee,
     is_simulation: bool
 ) -> SwapResult {
     if !config.pair.contains(&offer.token) {
@@ -494,7 +524,8 @@ fn do_swap<S: Storage, A: Api, Q: Querier>(
     compute_swap(
         Uint128(amount.low_u128()),
         balances[token_index ^ 1],
-        offer.amount
+        offer.amount,
+        fee
     )
 }
 
@@ -502,7 +533,8 @@ fn do_swap<S: Storage, A: Api, Q: Querier>(
 fn compute_swap(
     offer_pool: Uint128,
     ask_pool: Uint128,
-    offer_amount: Uint128
+    offer_amount: Uint128,
+    fee: Fee
 ) -> SwapResult {
     // offer => ask
     let offer_pool = Some(U256::from(offer_pool.u128()));
@@ -545,36 +577,43 @@ fn compute_swap(
         })?
         .saturating_sub(return_amount.unwrap());
 
-    // commission_amount = return_amount * commission_rate_nom / commission_rate_denom
-    let commission_rate_nom = Some(U256::from(FEE_NOM.u128()));
-    let commission_rate_denom = Some(U256::from(FEE_DENOM.u128()));
-    let commission_amount = u256_math::div(
-        u256_math::mul(return_amount, commission_rate_nom),
-        commission_rate_denom,
-    )
-    .ok_or_else(|| {
-        StdError::generic_err(format!(
-            "Cannot calculate return_amount {} * commission_rate_nom {} / commission_rate_denom {}",
-            return_amount.unwrap(),
-            commission_rate_nom.unwrap(),
-            commission_rate_denom.unwrap()
-        ))
-    })?;
-
-    // commission will be absorbed to pool
-    let return_amount = u256_math::sub(return_amount, Some(commission_amount)).ok_or_else(|| {
-        StdError::generic_err(format!(
-            "Cannot calculate return_amount {} - commission_amount {}",
-            return_amount.unwrap(),
-            commission_amount
-        ))
-    })?;
+    // commission_amount = return_amount * fee.nom / fee.denom
+    let (return_amount, commission_amount) = percentage_decrease(return_amount.unwrap(), fee)?;
 
     Ok((
         Uint128(return_amount.low_u128()),
         Uint128(spread_amount.low_u128()),
         Uint128(commission_amount.low_u128()),
     ))
+}
+
+fn percentage_decrease(amount: U256, fee: Fee) -> StdResult<(U256, U256)> {
+    let amount = Some(amount);
+    let nom = Some(U256::from(fee.nom));
+    let denom = Some(U256::from(fee.denom));
+
+    let decrease_amount = u256_math::div(
+        u256_math::mul(amount, nom),
+        denom,
+    )
+    .ok_or_else(|| {
+        StdError::generic_err(format!(
+            "Cannot calculate return_amount {} * commission_rate_nom {} / commission_rate_denom {}",
+            amount.unwrap(),
+            nom.unwrap(),
+            denom.unwrap()
+        ))
+    })?;
+
+    let result = u256_math::sub(amount, Some(decrease_amount)).ok_or_else(|| {
+        StdError::generic_err(format!(
+            "Cannot calculate return_amount {} - commission_amount {}",
+            amount.unwrap(),
+            decrease_amount
+        ))
+    })?;
+
+    Ok((result, decrease_amount))
 }
 
 /// The amount the price moves in a trading pair between when a transaction is submitted and when it is executed.
@@ -608,7 +647,36 @@ fn assert_slippage_tolerance(
     Ok(())
 }
 
-/* 
+fn has_sienna_token(config: &Config) -> bool {
+    for token in config.pair.into_iter() {
+        if let TokenType::CustomToken { contract_addr, .. } = token {
+            if *contract_addr == config.sienna_token.address {
+                return  true;
+            }
+        }
+    }
+
+    false
+}
+
+impl Fee {
+    pub fn new(nom: u8, denom: u16) -> Self {
+        Self {
+            nom,
+            denom
+        }
+    }
+
+    pub fn regular() -> Self {
+        Self::new(3, 1000)
+    }
+
+    pub fn sienna() -> Self {
+        Self::new(28, 10000)
+    }
+}
+
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -619,6 +687,8 @@ mod tests {
         let offer_pool_amount = 1200;
         let ask_pool_amount = 400;
         let offered_amount = 3;
+
+        let fee = Fee::regular();
         
         let token0_decimals = U256::from(18);
         let token1_decimals = U256::from(6);
@@ -628,7 +698,7 @@ mod tests {
         
         let offer_amount = Uint128(U256::from(offered_amount).checked_pow(token0_decimals).unwrap().low_u128());
 
-        let (return_amount_d, spread_amount_d, commission_amount_d) = compute_swap(offer_pool.sub(offer_amount)?, ask_pool, offer_amount)?;
+        let (return_amount_d, spread_amount_d, commission_amount_d) = compute_swap(offer_pool.sub(offer_amount)?, ask_pool, offer_amount, fee)?;
         println!("Using decimals: return_amount: {}, spread_amount: {}, commission_amount: {}", return_amount_d, spread_amount_d, commission_amount_d);
 
         let offer_pool = Uint128(offer_pool_amount);
@@ -636,7 +706,7 @@ mod tests {
 
         let offer_amount = Uint128(offered_amount);
 
-        let (return_amount, spread_amount, commission_amount) = compute_swap(offer_pool.sub(offer_amount)?, ask_pool, offer_amount)?;
+        let (return_amount, spread_amount, commission_amount) = compute_swap(offer_pool.sub(offer_amount)?, ask_pool, offer_amount, fee)?;
         println!("Ignoring decimals: return_amount: {}, spread_amount: {}, commission_amount: {}", return_amount, spread_amount, commission_amount);
 
         assert_eq!(return_amount_d, return_amount);
