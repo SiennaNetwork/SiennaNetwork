@@ -117,11 +117,19 @@ yargs(process.argv.slice(2))
         '--tag=hackbg/secret-contract-optimizer:latest',
         optimizer)
       const buildOutputs = abs('build', 'outputs')
-      Promise.all(readdirSync(abs('contracts'))
-        .filter(x=>statSync(abs('contracts', x)).isDirectory())
-        .map(name=>commit
-            ? buildCommit({ commit, name, buildOutputs })
-            : buildWorkingTree({ projectRoot: abs(), name, buildOutputs }))) })
+      //const isDir = x=>statSync(abs('contracts', x)).isDirectory()
+      //const contracts = readdirSync(abs('contracts')).filter(isDir)
+      const contracts =
+        [ 'snip20-reference-impl'
+        , 'sienna-mgmt'
+        , 'sienna-rpt' ]
+      const build =
+        commit ? name => buildCommit({commit, name, buildOutputs})
+               : name => buildWorkingTree({projectRoot:abs(), name, buildOutputs})
+      for (const name of contracts) {
+        await build(name)
+      }
+    })
 
   .command('deploy',
     'Deploys and configures all contracts.',

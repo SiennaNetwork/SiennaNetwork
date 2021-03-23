@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 
+set -aemux
+
 # The Cargo package that contains the contract
 Package=$1
+Tag=$2
 
 # Switch to non-root user
 USER=${USER:-1000}
@@ -18,10 +21,8 @@ echo "Building $Package as user build ($USER:$GROUP)..."
 
 # Execute a release build then optimize it with Binaryen
 Output=`echo "$Package" | tr '-' '_'`
-su build -c "\
-  env RUSTFLAGS='-C link-arg=-s'                                 \
-    cargo build -p $Package                                      \
-    --release --target wasm32-unknown-unknown --locked --verbose \
-    && wasm-opt -Oz                                              \
-      ./target/wasm32-unknown-unknown/release/$Output.wasm       \
-      -o ./$Package.wasm"
+ls -alh
+su build -c "env RUSTFLAGS='-C link-arg=-s' \
+  cargo build -p $Package --release --target wasm32-unknown-unknown --locked --verbose \
+  && wasm-opt -Oz ./target/wasm32-unknown-unknown/release/$Output.wasm -o /output/$Tag-$Package.wasm \
+  && cd /output/ && sha256sum -b *.wasm > checksums.sha256.txt"
