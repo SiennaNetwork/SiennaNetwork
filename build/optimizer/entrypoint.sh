@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
+# The Cargo package that contains the contract
 Package=$1
 
-# Container starts out as root, then switches to $USER:$GROUP if provided.
-# If not provided, it continues to run as root, producing a root-owned binary.
+# Switch to non-root user
 USER=${USER:-1000}
 GROUP=${GROUP:-1000}
 groupadd -g$GROUP $GROUP || true

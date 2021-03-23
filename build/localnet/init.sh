@@ -38,7 +38,7 @@ if [ ! -e "$Genesis" ]; then
     echo "[$Name] 2. store key"
     echo "$Key" > /shared-keys/$Name.json
     cat /shared-keys/$Name.json
-    chmod a+r /shared-keys/$Name.json
+    chmod a+rw /shared-keys/$Name.json
     echo "[$Name] 3. get address"
     Address="$(secretcli keys show -a $Name)"
     echo "$Address"

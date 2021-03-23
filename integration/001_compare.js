@@ -91,6 +91,7 @@ async function compare ({
               , admin:     args.agent.address
               , prng_seed: "insecure"
               , config:    { public_total_supply: true } } }) },
+
   MGMTContract = class MGMTContract extends require('@hackbg/mgmt') { // * Vesting
     static fromCommit = async (args={}) => super.fromCommit({ ...args,
       name:   `MGMT{${args.commit}}`,

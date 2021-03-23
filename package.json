@@ -2,6 +2,7 @@
   "name": "@hackbg/sienna",
   "version": "2.0.0-pre",
   "private": true,
+  "type": "module",
   "workspaces": [
     "./libraries/platform/cosmwasm-js",
     "./libraries/platform/cosmwasm-js/packages/*",
@@ -9,10 +10,11 @@
     "./libraries/schedule",
     "./contracts/token",
     "./contracts/mgmt",
-    "./contracts/build"
+    "./contracts/rpt"
   ],
   "dependencies": {
     "chokidar": "^3.5.1",
+    "esm": "^3.2.25",
     "node-notifier": "^9.0.1",
     "open": "^8.0.2",
     "prettyjson": "^1.2.1"
