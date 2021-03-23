@@ -18,29 +18,32 @@ impl Vesting for Pool {
 }
 impl Vesting for Account {
     fn unlocked (&self, a: &HumanAddr, t_query: Seconds) -> u128 {
-        if *a != self.address { return 0 }
-        if t_query < self.start_at { return 0 }
+        if *a != self.address { // if asking about someone else
+            return 0
+        }
+        if t_query < self.start_at { // if asking about a moment before the start
+            return 0
+        }
         let mut vested = 0u128;
         let mut t_cursor = self.start_at;
-        if self.cliff > Uint128::zero() {
-            vested += self.cliff.u128();
-            t_cursor += self.interval;
+        if self.cliff > Uint128::zero() { // if there's a cliff
+            vested += self.cliff.u128();  // vest it first
+            t_cursor += self.interval;    // and push the rest of the portions by one
         }
-        if self.interval > 0 {
+        if self.portion_size() > 0 { // prevent infinite loop
             let t_end = self.start_at + self.duration;
+            let max = self.amount.u128();
             loop {
-                if t_cursor >= t_end {
-                    vested += self.remainder();
-                    break
+                if vested >= max || t_cursor >= t_end { // clamp by both time and amount
+                    vested = max;  // this implicitly adds the remainder
+                    break // and makes sure the contract never overspends
                 }
-                if t_cursor > t_query {
-                    break
+                if t_cursor > t_query { // if asking about a point of time before the end
+                    break               // stop here
                 }
                 vested += self.portion_size();
                 t_cursor += self.interval;
             }
-        } else {
-            vested += self.portion_size()
         }
         vested
     }
@@ -53,10 +56,10 @@ impl Account {
     /// Number of non-cliff portions.
     pub fn portion_count (&self) -> u128 {
         if self.amount_after_cliff() > 0 {
-            if self.interval > 0 {
-                (self.duration / self.interval) as u128 // multiple portions besides cliff
+            if self.duration > 0 && self.interval > 0 {
+                (self.duration / self.interval) as u128 // 1 or more portions besides cliff
             } else {
-                1 // one portion in addition to the cliff (cliff + remainder)
+                1 // one portion besides cliff (e.g. cliff + remainder)
             }
         } else {
             0 // immediate vesting (cliff only, no extra portions)
@@ -64,7 +67,7 @@ impl Account {
     }
     /// Size of non-cliff portions.
     pub fn portion_size (&self) -> u128 {
-        if self.amount_after_cliff () > 0 {
+        if self.amount_after_cliff() > 0 {
             self.amount_after_cliff() / self.portion_count()
         } else {
             0 // immediate vesting (cliff only, no extra portions)
@@ -109,8 +112,33 @@ mod tests {
         assert_eq!(  0, A.start_at);
         assert_eq!(  0, A.interval);
         assert_eq!(  0, A.duration);
-        assert_eq!(  0, A.portion_count());
+        assert_eq!(  1, A.portion_count());
         assert_eq!(100, A.portion_size());
+        assert_eq!(  0, A.remainder());
+        // ...in a `Pool`...
+        let P = Pool::full("", &[A.clone()]);
+        assert_eq!(100, P.total.u128());
+        // ...in a `Schedule`.
+        let S = Schedule::new(&[P.clone()]);
+        assert_eq!(100, S.total.u128());
+        for t in 0..100 {
+            assert_eq!(100, S.unlocked(&Alice, t));
+            assert_eq!(  0, S.unlocked(&Bob, t));
+        }
+    }
+    #[test] fn test_vest_immediate_as_cliff () { // different way of expressing the same thing
+        // a periodic `Account`...
+        let Alice = HumanAddr::from("Alice");
+        let Bob   = HumanAddr::from("Bob");
+        let A = Account::periodic("", &Alice, 100, 100, 0, 0, 0);
+        assert_eq!(100, A.amount.u128());
+        assert_eq!(100, A.cliff.u128());
+        assert_eq!(  0, A.amount_after_cliff());
+        assert_eq!(  0, A.start_at);
+        assert_eq!(  0, A.interval);
+        assert_eq!(  0, A.duration);
+        assert_eq!(  0, A.portion_count());
+        assert_eq!(  0, A.portion_size());
         assert_eq!(  0, A.remainder());
         // ...in a `Pool`...
         let P = Pool::full("", &[A.clone()]);
@@ -162,7 +190,7 @@ mod tests {
         }
         // ...last portion and remainder.
         let t_remainder = A.start_at + A.duration;
-        for t in t_remainder..t_remainder + A.duration {
+        for t in t_remainder..t_remainder + A.duration + 1 {
             assert_eq!(S.unlocked(&Alice, t), 100);
             assert_eq!(S.unlocked(&Bob, t), 0);
         }
@@ -212,7 +240,7 @@ mod tests {
         }
         // ...last portion and remainder.
         let t_remainder = A.start_at + A.duration;
-        for t in t_remainder..t_remainder + A.duration {
+        for t in t_remainder..t_remainder + A.duration + 1 {
             assert_eq!(S.unlocked(&Alice, t), 100);
             assert_eq!(S.unlocked(&Bob, t), 0);
         }
