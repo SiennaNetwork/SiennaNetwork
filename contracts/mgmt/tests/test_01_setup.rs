@@ -29,7 +29,7 @@ kukumba!(
     then "they become admin"
     and  "if someone queries its state"
     and  "it says the contract is not launched" {
-        test_q!(deps; Status == Status { launched: None, errors: 0 });
+        test_q!(deps; Status == Status { launched: None });
     }
 
     #[configure]
@@ -79,7 +79,7 @@ kukumba!(
     when "a stranger tries to start the vesting"
     then "that fails" {
         test_tx!(deps; MALLORY, 2, 2; Launch {} == err!(auth));
-        test_q!(deps; Status == Status { launched: None, errors: 1 });
+        test_q!(deps; Status == Status { launched: None });
     }
     when "the contract is configured"
     and  "the admin starts the vesting"
@@ -88,7 +88,7 @@ kukumba!(
         let s = sienna_schedule::Schedule::new(&[]);
         test_tx!(deps; ALICE, 3, 3; Configure { schedule: s.clone() } == ok!());
         test_tx!(deps; ALICE, 4, 4; Launch {} == ok!(launched: s.total));
-        test_q!(deps; Status == Status { launched: Some(4), errors: 1 });
+        test_q!(deps; Status == Status { launched: Some(4) });
     }
     given "the contract is already launched"
     when "the admin tries to start the vesting again"
@@ -96,7 +96,7 @@ kukumba!(
     and "it does not mint tokens"
     and "it does not update its launch date" {
         test_tx!(deps; ALICE, 5, 5; Launch {} == err!(UNDERWAY));
-        test_q!(deps; Status == Status { launched: Some(4), errors: 2 });
+        test_q!(deps; Status == Status { launched: Some(4) });
     }
 
 

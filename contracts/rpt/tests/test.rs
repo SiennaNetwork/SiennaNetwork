@@ -60,7 +60,7 @@ kukumba!(
     and "it has to be a valid configuration" {
         assert_eq!(
             status(&deps),
-            RPTResponse::Status { errors: 0, config: LinearMap(vec![]) },
+            RPTResponse::Status { config: LinearMap(vec![]) },
             "querying status failed"
         );
         assert_eq!(
@@ -72,7 +72,7 @@ kukumba!(
             ),
             (
                 Err(cosmwasm_std::StdError::Unauthorized { backtrace: None }),
-                RPTResponse::Status { errors: 1, config: LinearMap(vec![]) },
+                RPTResponse::Status { config: LinearMap(vec![]) },
             ),
             "wrong user was able to set config"
         );
@@ -84,7 +84,7 @@ kukumba!(
                 });
                 status(&deps)
             },
-            RPTResponse::Status { errors: 2, config: LinearMap(vec![]) },
+            RPTResponse::Status { config: LinearMap(vec![]) },
             "admin was able to set invalid config"
         );
         assert_eq!(
@@ -94,7 +94,7 @@ kukumba!(
                 });
                 status(&deps)
             },
-            RPTResponse::Status { errors: 2, config: config.clone() },
+            RPTResponse::Status { config: config.clone() },
             "admin was unable to set valid config"
         );
     }

@@ -16,9 +16,6 @@ pub type CodeHash = String;
 /// Whether the vesting process has begun and when.
 pub type Launched = Option<Seconds>;
 
-/// Public counter of invalid operations.
-pub type ErrorCount = u64;
-
 /// Default value for Secret Network block size
 /// (according to Reuven on Discord; used for padding).
 pub const BLOCK_SIZE: usize = 256;
@@ -48,9 +45,7 @@ contract!(
         /// History of fulfilled claims.
         history:    History,
         /// Vesting configuration.
-        schedule:   Schedule,
-        /// TODO: public counter of invalid requests
-        errors:     ErrorCount
+        schedule:   Schedule
     }
 
     /// Initializing an instance of the contract:
@@ -62,12 +57,11 @@ contract!(
         token_addr: HumanAddr,
         token_hash: CodeHash
     }) {
-        let errors   = 0;
         let admin    = Some(env.message.sender);
         let history  = History::new();
         let launched = None;
         State {
-            errors, admin, history, launched,
+            admin, history, launched,
             schedule, token_addr, token_hash
         }
     }
@@ -75,16 +69,10 @@ contract!(
     [Query] (_deps, state, msg) {
 
         /// Return error count and launch timestamp.
-        Status () {
-            let State { errors, launched, .. } = state;
-            Response::Status { errors, launched }
-        }
+        Status () { Response::Status { launched: state.launched } }
 
         /// Return schedule
-        Schedule () {
-            let State { schedule, .. } = state;
-            Response::Schedule { schedule }
-        }
+        Schedule () { Response::Schedule { schedule: state.schedule } }
 
         /// Return the allocated portion size of an account
         /// (used by RPT to validate its configuration)
@@ -119,7 +107,7 @@ contract!(
     }
 
     [Response] {
-        Status   { errors: ErrorCount, launched: Launched }
+        Status   { launched: Launched }
         Schedule { schedule: Schedule }
         Portion  { portion: Uint128 }
         Progress { unlocked: Uint128, claimed: Uint128 }

@@ -18,9 +18,6 @@ fn sum_config<T> (map: &LinearMap<T, Uint128>) -> Uint128 {
 /// Code hashes for MGMT and SNIP20
 pub type CodeHash = String;
 
-/// Public counter of invalid operations.
-pub type ErrorCount = u64;
-
 /// Default value for Secret Network block size (used for padding)
 pub const BLOCK_SIZE: usize = 256;
 
@@ -44,7 +41,6 @@ pub const BLOCK_SIZE: usize = 256;
 
 contract!(
     [State] {
-        errors:     ErrorCount,
         admin:      HumanAddr,
 
         pool:       String,
@@ -69,17 +65,16 @@ contract!(
         mgmt_addr:  HumanAddr,
         mgmt_hash:  CodeHash
     }) {
-        let errors = 0;
         let admin = env.message.sender;
-        State { errors, admin, pool, account, config, token_addr, token_hash, mgmt_addr, mgmt_hash }
+        State { admin, pool, account, config, token_addr, token_hash, mgmt_addr, mgmt_hash }
     }
 
     [Query] (deps, state, msg) {
-        Status () { Response::Status { errors: state.errors, config: state.config } }
+        Status () { Response::Status { config: state.config } }
     }
 
     [Response] {
-        Status { errors: ErrorCount, config: Config }
+        Status { config: Config }
     }
 
     [Handle] (deps, env, state, msg) {
