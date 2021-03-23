@@ -1,11 +1,13 @@
-const { SecretNetworkContract } = require('@hackbg/fadroma')
+import { SecretNetwork, loadSchemas } from '@hackbg/fadroma'
 
-module.exports = class MGMT extends SecretNetworkContract.withSchema({
-  initMsg:     require('./init.json'),
-  queryMsg:    require('./query.json'),
-  queryAnswer: require('./response.json'),
-  handleMsg:   require('./handle.json')
-}) {
+export const schema = loadSchemas(import.meta.url, {
+  initMsg:     './init.json',
+  queryMsg:    './query.json',
+  queryAnswer: './response.json',
+  handleMsg:   './handle.json'
+})
+
+export default class MGMT extends SecretNetwork.Contract.withSchema(schema) {
 
   // query contract status
   get status () { return this.q.status() }
@@ -17,6 +19,7 @@ module.exports = class MGMT extends SecretNetworkContract.withSchema({
   acquire = async snip20 => {
     await snip20.setMinters([this.address])
     await snip20.changeAdmin(this.address)
+    return this
   }
 
   // load a schedule
