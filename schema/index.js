@@ -1,12 +1,14 @@
-const { SecretNetworkContract } = require('@hackbg/fadroma')
+import { SecretNetwork, loadSchemas } from '@hackbg/fadroma'
 
-module.exports = class SNIP20 extends SecretNetworkContract.withSchema({
-  initMsg:      require('./init_msg.json'),
-  queryMsg:     require('./query_msg.json'),
-  queryAnswer:  require('./query_answer.json'),
-  handleMsg:    require('./handle_msg.json'),
-  handleAnswer: require('./handle_answer.json')
-}) {
+export const schema = loadSchemas(import.meta.url, {
+  initMsg:      './init_msg.json',
+  queryMsg:     './query_msg.json',
+  queryAnswer:  './query_answer.json',
+  handleMsg:    './handle_msg.json',
+  handleAnswer: './handle_answer.json'
+})
+
+export default class SNIP20 extends SecretNetwork.Contract.withSchema(schema) {
 
   setMinters = minters =>
     this.tx.set_minters({minters})
