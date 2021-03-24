@@ -15,8 +15,8 @@
 //     received.
 //   * Thanks to this, the data model implemented in `schedule` was simplified considerably.
 //     The former stack of, roughly speaking,
-//     `Schedule(Pool(Channel(Periodic,Vec<(Seconds,Vec<Allocation>))`
-//     has now become simply `Schedule(Pool(Account))`. The two alternate vesting modes
+//     `Schedule(Pool(Channel(Periodic{..},Vec<(Seconds,Vec<Allocation>))`
+//     has now become simply `Schedule(Pool(Account{..}))`. The two alternate vesting modes
 //     (immediate and periodic) are now described in terms of the same set of fields
 //     on the `Account` struct.
 //     * In accordance with the above, as well as with the intention of the project,
@@ -50,13 +50,7 @@ import SNIP20Contract from '@hackbg/snip20'
 import MGMTContract from '@hackbg/mgmt'
 import RPTContract from '@hackbg/rpt'
 
-const commit = 'main' // git ref
-
-const fastForward = t => { /* TODO: Kill localnet and restart it with `libfaketime` set to `t` */ }
-
-const say = sayer.tag(() => new Date().toISOString()) // * Timestamped logger
-
-const buildRoot = fileURLToPath(new URL('../build', import.meta.url))
+const say = sayer.tag(() => new Date().toISOString()) // Timestamped logger
 
 SecretNetwork.Agent.fromMnemonic({
   say:      say.tag('agent'),
@@ -65,27 +59,25 @@ SecretNetwork.Agent.fromMnemonic({
 
 }).then(async function prepare (agent) {
   const wallets    = []
-  const recipients = []
+  const recipients = {}
   const schedule   = loadJSON('../settings/schedule.json', import.meta.url)
-  const split      = []
+  // create a wallet for each address in the schedule
   for await (const pool of schedule.pools) {
     for await (const account of pool.accounts) {
-      const {name} = account
-      const {address} = recipients[name] = await SecretNetwork.Agent.fromKeyPair({say, name})
-      wallets.push([address, 1])
+      const agent = await SecretNetwork.Agent.fromKeyPair({say, name: account.name})
+      account.address = agent.address // replace placeholder address with test address
+      wallets.push([agent.address, 1000000]) // balance to cover gas costs
+      recipients[account.name] = {agent} // store agent
     }
   }
-  return { agent, recipients, schedule, split }
   await agent.sendMany(wallets, 'create recipient wallets')
+  return { agent, recipients, schedule }
 
-}).then(async function deploy ({ agent, recipients, schedule, split }) {
-
-  const builder = new SecretNetwork.Builder({
-    say: say.tag('builder'),
-    buildCommand: resolve(buildRoot, 'working-tree'),
-    buildRoot,
-    agent
-  })
+}).then(async function deploy ({ agent, recipients, schedule }) {
+  const commit    = 'HEAD' // git ref
+  const buildRoot = fileURLToPath(new URL('../build', import.meta.url))
+  const outputDir = resolve(buildRoot, 'outputs')
+  const builder   = new SecretNetwork.Builder({ say: say.tag('builder'), outputDir, agent })
 
   const token = await builder.deploy(SNIP20Contract, {
     name:      "Sienna",
@@ -97,7 +89,12 @@ SecretNetwork.Agent.fromMnemonic({
   }, {
     name: 'snip20-reference-impl',
     commit,
+    say,
   })
+
+  for (const [name, {agent}] of Object.entries(recipients)) {
+    recipients[name].viewkey = await token.createViewingKey(agent, "entropy")
+  }
 
   const mgmt = await builder.deploy(MGMTContract, {
     token_addr: token.address,
@@ -106,6 +103,7 @@ SecretNetwork.Agent.fromMnemonic({
   }, {
     name: 'sienna-mgmt',
     commit,
+    say,
   })
 
   const rpt = await builder.deploy(RPTContract, {
@@ -113,26 +111,58 @@ SecretNetwork.Agent.fromMnemonic({
     token_hash: token.hash,
     mgmt_addr:  mgmt.address,
     mgmt_hash:  mgmt.hash,
+    pool:    'MintingPool',
+    account: 'RPT',
+    config: [[agent.address, "2500000000000000000000"]]
   }, {
     name: 'sienna-rpt',
     commit,
+    say,
   })
 
-  return { agent, token, mgmt, rpt }
+  schedule
+    .pools.filter(x=>x.name==='MintingPool')[0]
+    .accounts.filter(x=>x.name==='RPT')[0]
+    .address = rpt.address
 
-}).then(async function test ({ token, mgmt, rpt }) {
+  await mgmt.configure(schedule)
+
+  return { agent, token, mgmt, rpt, recipients }
+
+}).then(async function test ({ agent, token, mgmt, rpt, recipients }) {
+
+  const fastForward = t => { /* TODO: Kill localnet and restart it with `libfaketime` set to `t` */ }
 
   await mgmt.acquire(token)
   await mgmt.launch()
+  await agent.waitForNextBlock()
   let t = 0
-  while (true) {
-    t++
-    await rpt.vest()
-    await fastForward()
-    if (t % 3 === 0) { // every once in a while
-      const newConfig = []
-      await rpt.configure(newConfig) // reconfigure RPT
+  try {
+    //while (true) {
+      t++
+      for (const [name, agent] of Object.entries(recipients)) {
+        say.tag('claim')(name)
+        try {
+          await mgmt.claim(agent)
+          say.tag('ok').tag(name)()
+        } catch (e) {
+          say.tag('error').tag(name)(e)
+        }
+      }
+      await rpt.vest()
+      //await fastForward()
+      //if (t % 3 === 0) { // every once in a while
+        //const newConfig = []
+        //await rpt.configure(newConfig) // reconfigure RPT
+      //}
+    //}
+  } finally {
+    for (const [name, {agent, viewkey}] of Object.entries(recipients)) {
+      await token.balance(agent, viewkey)
     }
+    // admin:
+    const viewkey = await token.createViewingKey(agent, "entropy")
+    await token.balance(agent, viewkey)
   }
 
 })
