@@ -7,7 +7,7 @@ use factory::msg::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
 
 fn main() {
     let ref mut out_dir = current_dir().unwrap();
-    out_dir.push("amm-factory");
+    out_dir.push("factory");
     out_dir.push("schema");
 
     create_dir_all(&out_dir).unwrap();
