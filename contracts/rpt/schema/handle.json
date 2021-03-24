@@ -3,7 +3,7 @@
   "title": "Handle",
   "anyOf": [
     {
-      "description": "Load a new schedule (only before launching the contract)",
+      "description": "Set how funds will be split.",
       "type": "object",
       "required": [
         "configure"
@@ -12,207 +12,48 @@
         "configure": {
           "type": "object",
           "required": [
-            "schedule"
+            "config"
           ],
           "properties": {
-            "schedule": {
-              "$ref": "#/definitions/Schedule"
+            "config": {
+              "$ref": "#/definitions/LinearMap_for_HumanAddr_and_Uint128"
             }
           }
         }
       }
     },
     {
-      "description": "Add a new account to a partially filled pool",
+      "description": "Receive and distribute funds. `WARNING` a cliff on the RPT account would totally confuse this",
       "type": "object",
       "required": [
-        "add_account"
+        "vest"
       ],
       "properties": {
-        "add_account": {
-          "type": "object",
-          "required": [
-            "account",
-            "pool"
-          ],
-          "properties": {
-            "account": {
-              "$ref": "#/definitions/Account"
-            },
-            "pool": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "The admin can make someone else the admin, but there can be only one admin at a given time (or none)",
-      "type": "object",
-      "required": [
-        "set_owner"
-      ],
-      "properties": {
-        "set_owner": {
-          "type": "object",
-          "required": [
-            "new_admin"
-          ],
-          "properties": {
-            "new_admin": {
-              "$ref": "#/definitions/HumanAddr"
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "The admin can disown the contract so that nobody can be admin anymore:",
-      "type": "object",
-      "required": [
-        "disown"
-      ],
-      "properties": {
-        "disown": {
-          "type": "object"
-        }
-      }
-    },
-    {
-      "description": "An instance can be launched only once. Launching the instance mints the total tokens as specified by the schedule, and prevents any more tokens from ever being minted by the underlying contract.",
-      "type": "object",
-      "required": [
-        "launch"
-      ],
-      "properties": {
-        "launch": {
-          "type": "object"
-        }
-      }
-    },
-    {
-      "description": "After launch, recipients can call the Claim method to receive the gains that they have accumulated so far.",
-      "type": "object",
-      "required": [
-        "claim"
-      ],
-      "properties": {
-        "claim": {
+        "vest": {
           "type": "object"
         }
       }
     }
   ],
   "definitions": {
-    "Account": {
-      "description": "Individual vesting config. Immediate release is thought of as a special case of vesting where: * `head == total` * `duration == interval == 0`, * only `head_allocations` is considered.",
-      "type": "object",
-      "required": [
-        "address",
-        "amount",
-        "cliff",
-        "duration",
-        "interval",
-        "name",
-        "start_at"
-      ],
-      "properties": {
-        "address": {
-          "description": "Recipient address",
-          "allOf": [
-            {
-              "$ref": "#/definitions/HumanAddr"
-            }
-          ]
-        },
-        "amount": {
-          "description": "Funds that this account will release",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Uint128"
-            }
-          ]
-        },
-        "cliff": {
-          "description": "If `> 0`, releases this much money the first time, pushing back the regular portions",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Uint128"
-            }
-          ]
-        },
-        "duration": {
-          "description": "If `> 0`, vesting stops after this much seconds regardless of how much is left of `total`.",
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0.0
-        },
-        "interval": {
-          "description": "How many seconds to wait between portions",
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0.0
-        },
-        "name": {
-          "description": "Human-readable name",
-          "type": "string"
-        },
-        "start_at": {
-          "description": "How many seconds after contract launch to begin vesting",
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0.0
-        }
-      }
-    },
     "HumanAddr": {
       "type": "string"
     },
-    "Pool": {
-      "description": "Subdivision of `Schedule`, contains `Account`s, may be `partial`. If `partial == false`, they must add up to `total`.",
-      "type": "object",
-      "required": [
-        "accounts",
-        "name",
-        "partial",
-        "total"
-      ],
-      "properties": {
-        "accounts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Account"
+    "LinearMap_for_HumanAddr_and_Uint128": {
+      "description": "Just a wrapped `Vec` with `get` and `insert` methods.\n\nActs as a KV map but serializes as an array of [K,V] pairs: * new keys are appended to the end, existing keys are updated in place * there is no check for keys being unique during deserialization * in case of duplicate keys, it's the 1st instance of a given key that \"counts\".\n\nIt's like this because `serde_json_wasm` doesn't serialize maps (`HashMap`, `BTreeMap`). This is true even in even in versions more recent than the default for SecretNetwork: the `serialize_map` method contains a single `unreachable!()` panic. It's not immediately obvious why this remains the case the case; perhaps iterating over of those is somehow more expensive on a blockchain? In any case, in the absence of gas benchmarks it's pointless to risk altering the default execution environment (of which `serde_json_wasm` is part), even though there's no obvious reason why that wouldn't work.",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "#/definitions/HumanAddr"
+          },
+          {
+            "$ref": "#/definitions/Uint128"
           }
-        },
-        "name": {
-          "type": "string"
-        },
-        "partial": {
-          "description": "if `true`, adding new `Account`s is allowed at runtime, up to `total`. otherwise, accounts must add up to `total` at creation.",
-          "type": "boolean"
-        },
-        "total": {
-          "$ref": "#/definitions/Uint128"
-        }
-      }
-    },
-    "Schedule": {
-      "description": "Contains `Pool`s that must add up to `total`.",
-      "type": "object",
-      "required": [
-        "pools",
-        "total"
-      ],
-      "properties": {
-        "pools": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Pool"
-          }
-        },
-        "total": {
-          "$ref": "#/definitions/Uint128"
-        }
+        ],
+        "maxItems": 2,
+        "minItems": 2
       }
     },
     "Uint128": {

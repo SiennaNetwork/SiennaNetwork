@@ -3,8 +3,8 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-use sienna_mgmt::msg;
-use sienna_mgmt::State;
+use sienna_rpt::msg;
+use sienna_rpt::State;
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
