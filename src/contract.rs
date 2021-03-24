@@ -3,11 +3,13 @@
 use cosmwasm_std::{
     log, to_binary, Api, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Env, Extern,
     HandleResponse, HumanAddr, InitResponse, Querier, QueryResult, ReadonlyStorage, StdError,
-    StdResult, Storage, Uint128,
+    StdResult, Storage, Uint128, WasmMsg
 };
 
+use shared::Snip20InitMsg;
+
 use crate::msg::{
-    space_pad, ContractStatusLevel, HandleAnswer, HandleMsg, InitMsg, QueryAnswer, QueryMsg,
+    space_pad, ContractStatusLevel, HandleAnswer, HandleMsg, QueryAnswer, QueryMsg,
     ResponseStatus::Success,
 };
 use crate::rand::sha_256;
@@ -25,7 +27,7 @@ pub const RESPONSE_BLOCK_SIZE: usize = 256;
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    msg: InitMsg,
+    msg: Snip20InitMsg,
 ) -> StdResult<InitResponse> {
     let init_config = msg.config();
     let mut total_supply: u128 = 0;
@@ -78,7 +80,23 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     config.set_contract_status(ContractStatusLevel::NormalRun);
     config.set_minters(Vec::from([admin]))?;
 
-    Ok(InitResponse::default())
+    let mut messages = vec![];
+
+    if let Some(callback) = msg.callback {
+        messages.push(
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: callback.contract_addr,
+                callback_code_hash: callback.contract_code_hash,
+                msg: callback.msg,
+                send: vec![],
+            })
+        )
+    }
+
+    Ok(InitResponse {
+        messages,
+        log: vec![]
+    })
 }
 
 fn pad_response(response: StdResult<HandleResponse>) -> StdResult<HandleResponse> {
@@ -1071,11 +1089,13 @@ fn is_valid_symbol(symbol: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msg::ResponseStatus;
-    use crate::msg::{InitConfig, InitialBalance};
     use cosmwasm_std::testing::*;
     use cosmwasm_std::{from_binary, BlockInfo, ContractInfo, MessageInfo, QueryResponse, WasmMsg};
     use std::any::Any;
+
+    use shared::{Snip20InitConfig as InitConfig, Snip20InitialBalance as InitialBalance};
+
+    use crate::msg::ResponseStatus;
 
     // Helper functions
 
