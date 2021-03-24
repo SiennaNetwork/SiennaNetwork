@@ -18,20 +18,6 @@ fn sum_config<T> (map: &LinearMap<T, Uint128>) -> Uint128 {
 /// Code hashes for MGMT and SNIP20
 pub type CodeHash = String;
 
-/// Default value for Secret Network block size (used for padding)
-pub const BLOCK_SIZE: usize = 256;
-
-/// Authentication
-#[macro_export] macro_rules! require_admin {
-    (|$env:ident, $state:ident| $body:block) => {
-        if $env.message.sender != $state.admin {
-            err_auth($state)
-        } else {
-            $body
-        }
-    }
-}
-
 /// Error messages
 #[macro_export] macro_rules! RPTError {
     (CORRUPTED) => { "broken" };  // Contract has entered a state that violates core assumptions.
@@ -126,6 +112,9 @@ fn is_admin (state: &State, env: &Env) -> StatefulResult<()> {
         Err(StatefulError((StdError::Unauthorized { backtrace: None }, None)))
     }
 }
+
+/// Default value for Secret Network block size (used for padding)
+pub const BLOCK_SIZE: usize = 256;
 
 fn query_portion_size<Q: Querier> (state: &State, querier: &Q) -> StdResult<MGMTResponse> {
     use cosmwasm_std::{QueryRequest, WasmQuery};
