@@ -50,10 +50,10 @@
       "description": "The admin can make someone else the admin, but there can be only one admin at a given time (or none)",
       "type": "object",
       "required": [
-        "transfer_ownership"
+        "set_owner"
       ],
       "properties": {
-        "transfer_ownership": {
+        "set_owner": {
           "type": "object",
           "required": [
             "new_admin"

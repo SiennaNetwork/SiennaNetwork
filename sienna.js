@@ -1,19 +1,42 @@
 #!/usr/bin/env node
-
+// core
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs'
 import { resolve, basename, extname, dirname } from 'path'
 import { env, argv, stdout, stderr, exit } from 'process'
 import { execFileSync } from 'child_process'
 import { fileURLToPath } from 'url'
 
+// 3rd party
 import { render } from 'prettyjson'
 import open from 'open'
 import yargs from 'yargs'
 
+// custom
 import { buildCommit, buildWorkingTree } from '@hackbg/fadroma/js/builder.js'
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
 
-const abs = (...args) => resolve(dirname(fileURLToPath(import.meta.url)), ...args)
+// resolve path relative to this file's parent directory
+const abs = (...args) =>
+  resolve(dirname(fileURLToPath(import.meta.url)), ...args)
+
+// [contracts that can be built] -> [`cargo run --example` target to generate JSON schema]
+const CONTRACTS = {
+  'token': {
+    package:         'snip20-reference-impl',
+    schemaGenerator: 'schema'
+  },
+  'mgmt': {
+    package:         'sienna-mgmt',
+    schemaGenerator: 'mgmt_schema'
+  },
+  'rpt': {
+    package:         'sienna-rpt',
+    schemaGenerator: 'rpt_schema'
+  }
+}
+
+// cargo "example" targets that can be called to generate JSON schema
+const SCHEMA_GENERATORS = [ 'mgmt_schema', 'rpt_schema', /*snip20*/'schema' ]
 
 yargs(process.argv.slice(2))
   .demandCommand(1, '') // print usage by default
@@ -38,6 +61,22 @@ yargs(process.argv.slice(2))
         }
       }
       open(`file:///${target}`)
+    })
+
+  .command('schema',
+    `Generate JSON schema for each contract's messages`,
+    function schema () {
+      const cwd = process.cwd()
+      try {
+        for (const [contract, {schemaGenerator}] of Object.entries(CONTRACTS)) {
+          const contractDir = abs('contracts', contract)
+          stderr.write(`Generating schema in ${contractDir}...`)
+          process.chdir(contractDir)
+          cargo('run', '--example', schemaGenerator)
+        }
+      } finally {
+        process.chdir(cwd)
+      }
     })
 
   .command('test',
@@ -119,15 +158,14 @@ yargs(process.argv.slice(2))
       const buildOutputs = abs('build', 'outputs')
       //const isDir = x=>statSync(abs('contracts', x)).isDirectory()
       //const contracts = readdirSync(abs('contracts')).filter(isDir)
-      const contracts =
-        [ 'snip20-reference-impl'
-        , 'sienna-mgmt'
-        , 'sienna-rpt' ]
-      const build =
-        commit ? name => buildCommit({commit, name, buildOutputs})
-               : name => buildWorkingTree({projectRoot:abs(), name, buildOutputs})
-      for (const name of contracts) {
-        await build(name)
+      for (const [name, {packageName}] of Object.entries(CONTRACTS)) {
+        if (commit) {
+          stderr.write(`\n⏳ Building ${name} (${packageName}) @ ${commit}...\n\n`)
+          buildCommit({commit, name, buildOutputs})
+        } else {
+          stderr.write(`\n⏳ Building ${name} (${packageName})...\n\n`)
+          buildWorkingTree({projectRoot:abs(), name, buildOutputs})
+        }
       }
     })
 

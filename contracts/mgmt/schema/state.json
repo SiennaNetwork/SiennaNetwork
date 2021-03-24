@@ -3,12 +3,10 @@
   "title": "State",
   "type": "object",
   "required": [
-    "errors",
     "history",
     "schedule",
     "token_addr",
-    "token_hash",
-    "total"
+    "token_hash"
   ],
   "properties": {
     "admin": {
@@ -22,18 +20,13 @@
         }
       ]
     },
-    "errors": {
-      "description": "TODO: public counter of invalid requests",
-      "type": "integer",
-      "format": "uint64",
-      "minimum": 0.0
-    },
     "history": {
       "description": "History of fulfilled claims.",
-      "type": "object",
-      "additionalProperties": {
-        "$ref": "#/definitions/Uint128"
-      }
+      "allOf": [
+        {
+          "$ref": "#/definitions/LinearMap_for_HumanAddr_and_Uint128"
+        }
+      ]
     },
     "launched": {
       "description": "When this contract is launched, this is set to the block time.",
@@ -63,14 +56,6 @@
     "token_hash": {
       "description": "The code hash of the managed contract (see `secretcli query compute contract-hash --help`).",
       "type": "string"
-    },
-    "total": {
-      "description": "Total amount to mint",
-      "allOf": [
-        {
-          "$ref": "#/definitions/Uint128"
-        }
-      ]
     }
   },
   "definitions": {
@@ -137,6 +122,23 @@
     },
     "HumanAddr": {
       "type": "string"
+    },
+    "LinearMap_for_HumanAddr_and_Uint128": {
+      "description": "Just a wrapped `Vec` with `get` and `insert` methods.\n\nActs as a KV map but serializes as an array of [K,V] pairs: * new keys are appended to the end, existing keys are updated in place * there is no check for keys being unique during deserialization * in case of duplicate keys, it's the 1st instance of a given key that \"counts\".\n\nIt's like this because `serde_json_wasm` doesn't serialize maps (`HashMap`, `BTreeMap`). This is true even in even in versions more recent than the default for SecretNetwork: the `serialize_map` method contains a single `unreachable!()` panic. It's not immediately obvious why this remains the case the case; perhaps iterating over of those is somehow more expensive on a blockchain? In any case, in the absence of gas benchmarks it's pointless to risk altering the default execution environment (of which `serde_json_wasm` is part), even though there's no obvious reason why that wouldn't work.",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "#/definitions/HumanAddr"
+          },
+          {
+            "$ref": "#/definitions/Uint128"
+          }
+        ],
+        "maxItems": 2,
+        "minItems": 2
+      }
     },
     "Pool": {
       "description": "Subdivision of `Schedule`, contains `Account`s, may be `partial`. If `partial == false`, they must add up to `total`.",

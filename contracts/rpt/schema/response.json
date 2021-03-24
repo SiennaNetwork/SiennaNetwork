@@ -10,15 +10,7 @@
       "properties": {
         "status": {
           "type": "object",
-          "required": [
-            "errors"
-          ],
           "properties": {
-            "errors": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
             "launched": {
               "type": [
                 "integer",
@@ -40,14 +32,29 @@
         "schedule": {
           "type": "object",
           "required": [
-            "schedule",
-            "total"
+            "schedule"
           ],
           "properties": {
             "schedule": {
               "$ref": "#/definitions/Schedule"
-            },
-            "total": {
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "portion"
+      ],
+      "properties": {
+        "portion": {
+          "type": "object",
+          "required": [
+            "portion"
+          ],
+          "properties": {
+            "portion": {
               "$ref": "#/definitions/Uint128"
             }
           }
@@ -57,43 +64,20 @@
     {
       "type": "object",
       "required": [
-        "account"
+        "progress"
       ],
       "properties": {
-        "account": {
+        "progress": {
           "type": "object",
           "required": [
-            "account",
-            "pool"
+            "claimed",
+            "unlocked"
           ],
           "properties": {
-            "account": {
-              "$ref": "#/definitions/Account"
+            "claimed": {
+              "$ref": "#/definitions/Uint128"
             },
-            "pool": {
-              "$ref": "#/definitions/Pool"
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "claimable"
-      ],
-      "properties": {
-        "claimable": {
-          "type": "object",
-          "required": [
-            "address",
-            "claimable"
-          ],
-          "properties": {
-            "address": {
-              "$ref": "#/definitions/HumanAddr"
-            },
-            "claimable": {
+            "unlocked": {
               "$ref": "#/definitions/Uint128"
             }
           }

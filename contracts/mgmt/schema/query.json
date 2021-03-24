@@ -15,25 +15,25 @@
       }
     },
     {
-      "description": "Return schedule and sum of total minted tokens",
+      "description": "Return schedule",
       "type": "object",
       "required": [
-        "get_schedule"
+        "schedule"
       ],
       "properties": {
-        "get_schedule": {
+        "schedule": {
           "type": "object"
         }
       }
     },
     {
-      "description": "Return one account from the schedule",
+      "description": "Return the allocated portion size of an account (used by RPT to validate its configuration)",
       "type": "object",
       "required": [
-        "get_account"
+        "portion"
       ],
       "properties": {
-        "get_account": {
+        "portion": {
           "type": "object",
           "required": [
             "account_name",
@@ -54,10 +54,10 @@
       "description": "Return amount that can be claimed by the specified address at the specified time",
       "type": "object",
       "required": [
-        "claimable"
+        "progress"
       ],
       "properties": {
-        "claimable": {
+        "progress": {
           "type": "object",
           "required": [
             "address",
