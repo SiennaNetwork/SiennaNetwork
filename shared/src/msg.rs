@@ -1,8 +1,8 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::{HumanAddr, Binary};
+use cosmwasm_std::{HumanAddr, Binary, Uint128};
 
-use crate::TokenPair;
+use crate::{TokenPair, TokenType};
 use crate::{ContractInfo, ContractInstantiationInfo};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -18,15 +18,6 @@ pub struct ExchangeInitMsg {
     pub sienna_token: ContractInfo
 }
 
-#[derive(Serialize, Deserialize, JsonSchema)]
-pub struct LpTokenInitMsg {
-    pub name: String,
-    pub admin: HumanAddr,
-    pub symbol: String,
-    pub decimals: u8,
-    pub callback: Callback
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 /// Used to ask a contract to send back a message.
 pub struct Callback {
@@ -34,6 +25,67 @@ pub struct Callback {
     pub msg: Binary,
     /// The address of the contract requesting the callback.
     pub contract_addr: HumanAddr,
-    /// The code hash the contract requesting the callback.
+    /// The code hash of the contract requesting the callback.
     pub contract_code_hash: String,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+pub struct IdoInitMsg {
+    /// The token that will be used to buy the instantiated SNIP20
+    pub input_token: TokenType,
+    pub swap_ratio: Uint128,
+    pub snip20_contract: ContractInstantiationInfo,
+    pub snip20_init_info: Snip20TokenInitInfo
+}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+/// Used to provide only the essential info
+/// to an IDO that instantiates a snip20 token
+pub struct Snip20TokenInitInfo {
+    pub name: String,
+    pub prng_seed: Binary,
+    pub symbol: String,
+    pub decimals: u8,
+    pub config: Option<Snip20InitConfig>
+}
+
+// SNIP20
+#[derive(Serialize, Deserialize, JsonSchema)]
+pub struct Snip20InitMsg {
+    pub name: String,
+    pub admin: Option<HumanAddr>,
+    pub symbol: String,
+    pub decimals: u8,
+    pub initial_balances: Option<Vec<Snip20InitialBalance>>,
+    pub prng_seed: Binary,
+    pub config: Option<Snip20InitConfig>,
+    pub callback: Option<Callback>
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
+pub struct Snip20InitialBalance {
+    pub address: HumanAddr,
+    pub amount: Uint128,
+}
+
+/// This type represents optional configuration values which can be overridden.
+/// All values are optional and have defaults which are more private by default,
+/// but can be overridden if necessary
+#[derive(Serialize, Deserialize, JsonSchema, Clone, Default, Debug)]
+pub struct Snip20InitConfig {
+    /// Indicates whether the total supply is public or should be kept secret.
+    /// default: False
+    pub public_total_supply: Option<bool>,
+}
+
+impl Snip20InitMsg {
+    pub fn config(&self) -> Snip20InitConfig {
+        self.config.clone().unwrap_or_default()
+    }
+}
+
+impl Snip20InitConfig {
+    pub fn public_total_supply(&self) -> bool {
+        self.public_total_supply.unwrap_or(false)
+    }
 }

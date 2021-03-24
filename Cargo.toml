@@ -1,11 +1,12 @@
 [workspace]
 members = [
-  "fadroma",  # smart contract microframework
-  "exchange", # uniswap exchange contract implementation
-  "factory",  # factory contract for creating exchanges
-  "shared",   # shared types between amm-factory and dex,
-  "lp-token", # a slight modification of a SNIP20 token used to represent a liquidity provider's share
-  "utils"     # utility code used by contracts
+  "fadroma",               # smart contract microframework
+  "exchange",              # uniswap exchange contract implementation
+  "factory",               # factory contract for creating exchanges
+  "shared",                # shared types between all amm contracts
+  "snip20-reference-impl", # snip20 token implementation with a modification to call back a contract after init
+  "ido",                   # initial dex offering implementation
+  "utils"                  # utility code used by contracts
 ]
 
 [profile.release]

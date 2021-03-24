@@ -469,28 +469,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lp-token"
-version = "0.1.0"
-dependencies = [
- "base64 0.12.3",
- "bincode2",
- "cosmwasm-schema 0.9.4",
- "cosmwasm-sgx-vm",
- "cosmwasm-std",
- "cosmwasm-storage",
- "hex",
- "rand_chacha 0.2.2",
- "rand_core 0.5.1",
- "schemars",
- "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit?rev=6aa670f)",
- "serde",
- "sha2 0.9.3",
- "shared",
- "snafu",
- "subtle 2.4.0",
-]
-
-[[package]]
 name = "memmap"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -917,6 +895,28 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "snip20-reference-impl"
+version = "0.1.0"
+dependencies = [
+ "base64 0.12.3",
+ "bincode2",
+ "cosmwasm-schema 0.9.4",
+ "cosmwasm-sgx-vm",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "hex",
+ "rand_chacha 0.2.2",
+ "rand_core 0.5.1",
+ "schemars",
+ "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit?rev=6aa670f)",
+ "serde",
+ "sha2 0.9.3",
+ "shared",
+ "snafu",
+ "subtle 2.4.0",
 ]
 
 [[package]]

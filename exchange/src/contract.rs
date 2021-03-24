@@ -1,15 +1,13 @@
 use std::ops::Add;
 use cosmwasm_std::{
-    to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier, StdError,
+    to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier, StdError, Binary,
     StdResult, Storage, QueryResult, CosmosMsg, WasmMsg, Uint128, log, HumanAddr, Decimal
 };
 use secret_toolkit::snip20;
-use shared::{
-    ExchangeInitMsg, LpTokenInitMsg, TokenType, TokenPairAmount,
-    ContractInfo, Callback, U256, TokenTypeAmount, create_send_msg
-};
+use shared::{Callback, ContractInfo, ExchangeInitMsg, Snip20InitConfig, Snip20InitMsg, TokenPairAmount, TokenType, TokenTypeAmount, U256, create_send_msg};
 use shared::u256_math;
 use utils::viewing_key::ViewingKey;
+use utils::rand::Prng;
 
 use crate::msg::{HandleMsg, QueryMsg, QueryMsgResponse, SwapSimulationResponse};
 use crate::state::{Config, store_config, load_config};
@@ -44,22 +42,29 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     try_register_custom_token(&env, &mut messages, &msg.pair.0, &viewing_key)?;
     try_register_custom_token(&env, &mut messages, &msg.pair.1, &viewing_key)?;
 
+    let mut rng = Prng::new(&env.message.sender.0.as_bytes(), &env.block.time.to_be_bytes());
+
     // Create LP token
     messages.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
         code_id: msg.lp_token_contract.id,
-        msg: to_binary(&LpTokenInitMsg {
+        msg: to_binary(&Snip20InitMsg {
             name: format!(
                 "SecretSwap Liquidity Provider (LP) token for {}-{}",
                 &msg.pair.0, &msg.pair.1
             ),
-            admin: env.contract.address.clone(),
+            admin: Some(env.contract.address.clone()),
             symbol: "SWAP-LP".to_string(),
             decimals: 6,
-            callback: Callback {
+            callback: Some(Callback {
                 msg: to_binary(&HandleMsg::OnLpTokenInit)?,
                 contract_addr: env.contract.address.clone(),
                 contract_code_hash: env.contract_code_hash
-            }
+            }),
+            initial_balances: None,
+            prng_seed: Binary::from(rng.rand_bytes()),
+            config: Some(Snip20InitConfig {
+                public_total_supply: Some(true)
+            })
         })?,
         send: vec![],
         label: format!(
