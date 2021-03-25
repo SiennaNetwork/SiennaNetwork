@@ -39,10 +39,11 @@ const CONTRACTS = {
 const SCHEMA_GENERATORS = [ 'mgmt_schema', 'rpt_schema', /*snip20*/'schema' ]
 
 yargs(process.argv.slice(2))
+  .wrap(yargs.terminalWidth())
   .demandCommand(1, '') // print usage by default
 
   .command('docs [crate]',
-    'Build Rust documentation and open it in a browser.',
+    '📖 Build the documentation and open it in a browser.',
     yargs => yargs.positional('crate', {
       describe: 'path to input file',
       default: 'sienna_schedule'
@@ -63,24 +64,8 @@ yargs(process.argv.slice(2))
       open(`file:///${target}`)
     })
 
-  .command('schema',
-    `Generate JSON schema for each contract's messages`,
-    function schema () {
-      const cwd = process.cwd()
-      try {
-        for (const [contract, {schemaGenerator}] of Object.entries(CONTRACTS)) {
-          const contractDir = abs('contracts', contract)
-          stderr.write(`Generating schema in ${contractDir}...`)
-          process.chdir(contractDir)
-          cargo('run', '--example', schemaGenerator)
-        }
-      } finally {
-        process.chdir(cwd)
-      }
-    })
-
   .command('test',
-    'Run test suites for entire Cargo workspace.',
+    '⚗️  Run test suites for all the individual components.',
     function runTests () {
       clear()
       stderr.write(`⏳ Running tests...\n\n`)
@@ -92,23 +77,8 @@ yargs(process.argv.slice(2))
       }
     })
 
-  .command('demo',
-    'Run one of the integration tests / executable reports.',
-    function runDemo ({demo = '002_rpt.mjs'}) {
-      clear()
-      demo = abs('integration', demo)
-      stderr.write(`⏳ Running demo ${demo}...\n\n`)
-      try {
-        run('docker-compose', 'up', '-d', 'localnet')
-        run('node', '--trace-warnings', '--unhandled-rejections=strict', demo)
-        stderr.write('\n🟢 Demo executed successfully.\n')
-      } catch (e) {
-        stderr.write('\n👹 Demo failed.\n')
-      }
-    })
-
   .command('coverage',
-    'Generate test coverage for the entire Cargo workspace and open it in a browser.',
+    '🗺️  Generate test coverage and open it in a browser.',
     function generateCoverage () {
       // fixed by https://github.com/rust-lang/cargo/issues/9220
       let output = abs('docs', 'coverage')
@@ -124,16 +94,47 @@ yargs(process.argv.slice(2))
       //)
     })
 
-  .command('configure [spreadsheet]',
-    'Convert a spreadsheet into a JSON schedule for the contract.',
+  .command('demo',
+    '📜 Run integration tests/demos/executable reports.',
+    function runDemo ({demo = '002_rpt.mjs'}) {
+      clear()
+      demo = abs('integration', demo)
+      stderr.write(`⏳ Running demo ${demo}...\n\n`)
+      try {
+        run('docker-compose', 'up', '-d', 'localnet')
+        run('node', '--trace-warnings', '--unhandled-rejections=strict', demo)
+        stderr.write('\n🟢 Demo executed successfully.\n')
+      } catch (e) {
+        stderr.write('\n👹 Demo failed.\n')
+      }
+    })
+
+  .command('schema',
+    `🤙 Regenerate JSON schema for each contract's API.`,
+    function schema () {
+      const cwd = process.cwd()
+      try {
+        for (const [contract, {schemaGenerator}] of Object.entries(CONTRACTS)) {
+          const contractDir = abs('contracts', contract)
+          stderr.write(`Generating schema in ${contractDir}...`)
+          process.chdir(contractDir)
+          cargo('run', '--example', schemaGenerator)
+        }
+      } finally {
+        process.chdir(cwd)
+      }
+    })
+
+  .command('schedule [file]',
+    '📅 Convert a spreadsheet into a JSON schedule for the contract.',
     yargs => yargs.positional('spreadsheet', {
       describe: 'path to input spreadsheet',
       default: abs('settings', 'schedule.ods')
     }),
-    function configure ({ spreadsheet }) {
-      spreadsheet = resolve(spreadsheet)
-      stderr.write(`⏳ Importing configuration from ${spreadsheet}...\n\n`)
-      const name = basename(spreadsheet, extname(spreadsheet)) // path without extension
+    function configure ({ file }) {
+      file = resolve(file)
+      stderr.write(`⏳ Importing configuration from ${file}...\n\n`)
+      const name = basename(file, extname(file)) // path without extension
       const schedule = scheduleFromSpreadsheet({ file })
       const serialized = stringify(schedule)
       stderr.write(render(JSON.parse(serialized))) // or `BigInt`s don't show
@@ -143,13 +144,12 @@ yargs(process.argv.slice(2))
       stderr.write(`🟢 Configuration saved to ${output}`)
     })
 
-  .command('build [commit]',
-    'Compiles production builds of all contracts '+
-    'from either the working tree or a specific commit.',
-    yargs => yargs.positional('commit', {
+  .command('build [ref]',
+    '👷 Compile all contracts - either from working tree or a Git ref',
+    yargs => yargs.positional('ref', {
       describe: 'upstream commit to build'
     }),
-    async function build ({ commit }) {
+    async function build ({ ref }) {
       const optimizer = abs('build', 'optimizer')
       run('docker', 'build',
         '--file=' + resolve(optimizer, 'Dockerfile'),
@@ -159,9 +159,9 @@ yargs(process.argv.slice(2))
       //const isDir = x=>statSync(abs('contracts', x)).isDirectory()
       //const contracts = readdirSync(abs('contracts')).filter(isDir)
       for (const [name, {packageName}] of Object.entries(CONTRACTS)) {
-        if (commit) {
-          stderr.write(`\n⏳ Building ${name} (${packageName}) @ ${commit}...\n\n`)
-          buildCommit({commit, name, buildOutputs})
+        if (ref) {
+          stderr.write(`\n⏳ Building ${name} (${packageName}) @ ${ref}...\n\n`)
+          buildCommit({ref, name, buildOutputs})
         } else {
           stderr.write(`\n⏳ Building ${name} (${packageName})...\n\n`)
           buildWorkingTree({projectRoot:abs(), name, buildOutputs})
@@ -170,7 +170,14 @@ yargs(process.argv.slice(2))
     })
 
   .command('deploy',
-    'Deploys and configures all contracts.',
+    '🚀 Upload, instantiate, and configure all contracts.',
+    function deploy () {
+      stderr.write('\nNot implemented.')
+      exit(0)
+    })
+
+  .command('launch',
+    '💸 Launch the vesting contract.',
     function deploy () {
       stderr.write('\nNot implemented.')
       exit(0)
