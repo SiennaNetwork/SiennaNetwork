@@ -20,66 +20,45 @@ impl Vesting for Pool {
 }
 impl Vesting for Account {
     /// Unlocked sum for this account at a point in time
-    fn unlocked (&self, t_query: Seconds, a: &HumanAddr) -> u128 {
+    fn unlocked (&self, t: Seconds, a: &HumanAddr) -> u128 {
         if *a != self.address { // if asking about someone else
-            return 0
+            0
+        } else if t < self.start_at { // if asking about a moment before the start
+            0
+        } else if t >= self.end() { // at the end the full amount must've been vested
+            self.amount.u128()
+        } else {
+            let n = self.most_recent_portion(t).unwrap() as u128;
+            self.cliff.u128() + n * self.portion_size()
         }
-        if t_query < self.start_at { // if asking about a moment before the start
-            return 0
-        }
-        let mut vested = 0u128;
-        let mut t_cursor = self.start_at;
-        if self.cliff > Uint128::zero() { // if there's a cliff
-            vested += self.cliff.u128();  // vest it first
-            t_cursor += self.interval;    // and push the rest of the portions by one
-        }
-        if self.portion_size() > 0 { // prevent infinite loop
-            let t_end = self.end();
-            let max = self.amount.u128();
-            loop {
-                if vested >= max || t_cursor >= t_end { // clamp by both time and amount
-                    vested = max;  // this implicitly adds the remainder
-                    break // and makes sure the contract never overspends
-                }
-                if t_cursor > t_query { // if asking about a point of time before the end
-                    break               // stop here
-                }
-                vested += self.portion_size();
-                t_cursor += self.interval;
-            }
-        }
-        vested
     }
 }
 impl Account {
-    /// Amount to vest after the cliff
-    pub fn amount_after_cliff (&self) -> u128 {
-        self.amount.u128() - self.cliff.u128()
-    }
-    /// Number of non-cliff portions.
-    pub fn portion_count (&self) -> u128 {
+    /// Size of regular (non-cliff) portions.
+    pub fn portion_size (&self) -> u128 {
         if self.amount_after_cliff() > 0 {
-            if self.duration > 0 && self.interval > 0 {
-                (self.duration / self.interval) as u128 // 1 or more portions besides cliff
-            } else {
-                1 // one portion besides cliff (e.g. cliff + remainder)
-            }
+            self.amount_after_cliff() / self.portion_count() as u128
         } else {
             0 // immediate vesting (cliff only, no extra portions)
         }
     }
-    /// Size of non-cliff portions.
-    pub fn portion_size (&self) -> u128 {
-        if self.amount_after_cliff() > 0 {
-            self.amount_after_cliff() / self.portion_count()
+    /// Amount to vest after the cliff
+    pub fn amount_after_cliff (&self) -> u128 {
+        assert!(self.amount >= self.cliff);
+        self.amount.u128() - self.cliff.u128()
+    }
+    /// Number of non-cliff portions.
+    pub fn portion_count (&self) -> u64 {
+        if self.interval > 0 {
+            (self.duration / self.interval) as u64
         } else {
-            0 // immediate vesting (cliff only, no extra portions)
+            0
         }
     }
     /// If `(amount-cliff)` doesn't divide evenly by `portion_size`,
     /// the remainder is added to the last portion.
     pub fn remainder (&self) -> u128 {
-        self.amount_after_cliff() - self.portion_size() * self.portion_count()
+        self.amount_after_cliff() - self.portion_size() * self.portion_count() as u128
     }
     /// Timestamp of last vesting (when remainder is received)
     pub fn end (&self) -> Seconds {
@@ -94,9 +73,9 @@ impl Account {
         }
     }
     /// Most recent portion vested at time `t`
-    pub fn most_recent_portion (&self, t: Seconds) -> Option<Seconds> {
+    pub fn most_recent_portion (&self, t: Seconds) -> Option<u64> {
         match self.elapsed(t) {
-            Some(elapsed) => Some(elapsed / self.interval + 1),
+            Some(elapsed) => Some(u64::min(elapsed / self.interval, self.portion_count())),
             None => None
         }
     }
@@ -214,23 +193,34 @@ mod tests {
             if t == A.start_at + A.duration + A.interval { break }
             a = S.unlocked(t, &Alice);
             b = S.unlocked(t, &Bob);
-            println!("{:>12}│{:>12}│{:>12}│{:>12}│", t, if t < A.start_at {
+            print!("{:>12}│", t);
+            println!("{:>12}│{:>12}│{:>12}│", if t < A.start_at {
+                assert_eq!(a, 0);
+                assert_eq!(b, 0);
                 String::from("😴 pre")
             } else if t == A.start_at {
+                assert_eq!(a, A.cliff.u128());
+                assert_eq!(b, 0);
                 String::from("✨ cliff")
-            } else if A.vests_at(t) {
-                format!("💸 vest #{}", A.most_recent_portion(t).unwrap())
             } else if t == A.end() && A.remainder() > 0 {
+                assert_eq!(a, A.amount.u128());
+                assert_eq!(b, 0);
                 String::from("✨ remainder")
             } else if t >= A.end() {
+                assert_eq!(a, A.amount.u128());
+                assert_eq!(b, 0);
                 String::from("✅ done")
+            } else if A.vests_at(t) {
+                let p = A.most_recent_portion(t).unwrap() as u128;
+                assert_eq!(a, A.cliff.u128() + p * A.portion_size());
+                assert_eq!(b, 0);
+                format!("💸 vest #{}", p)
             } else {
                 String::from("⏳ wait")
             }, &a, &b);
         }
         assert_eq!(a, A.amount.u128());
         assert_eq!(b, 0);
-        panic!()
     }
     #[test] fn vest_periodic_no_cliff () {
         let Alice = HumanAddr::from("Alice");
@@ -267,21 +257,24 @@ mod tests {
                 assert_eq!(a, 0);
                 assert_eq!(b, 0);
                 String::from("😴 pre")
+            } else if t == A.end() && A.remainder() > 0 {
+                assert_eq!(a, A.amount.u128());
+                assert_eq!(b, 0);
+                String::from("✨ remainder")
+            } else if t >= A.end() {
+                assert_eq!(a, A.amount.u128());
+                assert_eq!(b, 0);
+                String::from("✅ done")
             } else if A.vests_at(t) {
                 let p = A.most_recent_portion(t).unwrap() as u128;
                 assert_eq!(a, p * A.portion_size());
                 assert_eq!(b, 0);
                 format!("💸 vest #{}", p)
-            } else if t == A.end() && A.remainder() > 0 {
-                String::from("✨ remainder")
-            } else if t >= A.end() {
-                String::from("✅ done")
             } else {
                 String::from("⏳ wait")
             }, &a, &b);
         }
         assert_eq!(a, A.amount.u128());
         assert_eq!(b, 0);
-        panic!()
     }
 }
