@@ -4,20 +4,23 @@ use crate::*;
 
 pub trait Vesting {
     /// Get total amount unlocked for address `a` at time `t`.
-    fn unlocked (&self, a: &HumanAddr, t: Seconds) -> u128;
+    fn unlocked (&self, t: Seconds, a: &HumanAddr) -> u128;
 }
 impl Vesting for Schedule {
-    fn unlocked (&self, a: &HumanAddr, t: Seconds) -> u128 {
-        self.pools.iter().fold(0, |total, pool| total + pool.unlocked(a, t))
+    /// Sum of unlocked amounts for this address for all pools
+    fn unlocked (&self, t: Seconds, a: &HumanAddr) -> u128 {
+        self.pools.iter().fold(0, |total, pool| total + pool.unlocked(t, a))
     }
 }
 impl Vesting for Pool {
-    fn unlocked (&self, a: &HumanAddr, t: Seconds) -> u128 {
-        self.accounts.iter().fold(0, |total, account| total + account.unlocked(a, t))
+    /// Sum of unlocked amounts for this address for all accounts in this pool
+    fn unlocked (&self, t: Seconds, a: &HumanAddr) -> u128 {
+        self.accounts.iter().fold(0, |total, account| total + account.unlocked(t, a))
     }
 }
 impl Vesting for Account {
-    fn unlocked (&self, a: &HumanAddr, t_query: Seconds) -> u128 {
+    /// Unlocked sum for this account at a point in time
+    fn unlocked (&self, t_query: Seconds, a: &HumanAddr) -> u128 {
         if *a != self.address { // if asking about someone else
             return 0
         }
@@ -31,7 +34,7 @@ impl Vesting for Account {
             t_cursor += self.interval;    // and push the rest of the portions by one
         }
         if self.portion_size() > 0 { // prevent infinite loop
-            let t_end = self.start_at + self.duration;
+            let t_end = self.end();
             let max = self.amount.u128();
             loop {
                 if vested >= max || t_cursor >= t_end { // clamp by both time and amount
@@ -78,6 +81,32 @@ impl Account {
     pub fn remainder (&self) -> u128 {
         self.amount_after_cliff() - self.portion_size() * self.portion_count()
     }
+    /// Timestamp of last vesting (when remainder is received)
+    pub fn end (&self) -> Seconds {
+        self.start_at + self.duration
+    }
+    /// Time elapsed since start
+    pub fn elapsed (&self, t: Seconds) -> Option<Seconds> {
+        if t >= self.start_at {
+            Some(t - self.start_at)
+        } else {
+            None
+        }
+    }
+    /// Most recent portion vested at time `t`
+    pub fn most_recent_portion (&self, t: Seconds) -> Option<Seconds> {
+        match self.elapsed(t) {
+            Some(elapsed) => Some(elapsed / self.interval + 1),
+            None => None
+        }
+    }
+    /// Whether a portion is unlocked at the exact moment specified
+    pub fn vests_at (&self, t: Seconds) -> bool {
+        match self.elapsed(t) {
+            Some(elapsed) => elapsed % self.interval == 0,
+            None => false
+        }
+    }
 }
 
 #[cfg(test)]
@@ -85,164 +114,174 @@ mod tests {
     #![allow(non_snake_case)]
     use cosmwasm_std::HumanAddr;
     use crate::{Schedule, Pool, Account, Vesting};
-    #[test] fn test_blank () {
+    #[test] fn blank () {
         // some imaginary people:
         let Alice = HumanAddr::from("Alice");
         let Bob   = HumanAddr::from("Bob");
         // some empty, but valid schedules
-        for s in &[
+        for S in &[
             Schedule::new(&[]),
             Schedule::new(&[ Pool::full("", &[]) ]),
             Schedule::new(&[ Pool::full("", &[ Account::immediate("", &Alice, 0) ]) ]),
             Schedule::new(&[ Pool::partial("", 1, &[ Account::immediate("", &Alice, 0) ]) ])
         ] {
-          assert_eq!(0, s.unlocked(&Alice, 0));
-          assert_eq!(0, s.unlocked(&Alice, 1));
-          assert_eq!(0, s.unlocked(&Bob,   1001));
+          assert_eq!(S.unlocked(0, &Alice), 0);
+          assert_eq!(S.unlocked(1, &Alice), 0);
+          assert_eq!(S.unlocked(1001, &Bob), 0);
         }
     }
-    #[test] fn test_vest_immediate () {
+    #[test] fn vest_immediate () {
         // a periodic `Account`...
         let Alice = HumanAddr::from("Alice");
         let Bob   = HumanAddr::from("Bob");
         let A = Account::immediate("", &Alice, 100);
-        assert_eq!(100, A.amount.u128());
-        assert_eq!(  0, A.cliff.u128());
-        assert_eq!(100, A.amount_after_cliff());
-        assert_eq!(  0, A.start_at);
-        assert_eq!(  0, A.interval);
-        assert_eq!(  0, A.duration);
-        assert_eq!(  1, A.portion_count());
-        assert_eq!(100, A.portion_size());
-        assert_eq!(  0, A.remainder());
-        // ...in a `Pool`...
         let P = Pool::full("", &[A.clone()]);
-        assert_eq!(100, P.total.u128());
-        // ...in a `Schedule`.
         let S = Schedule::new(&[P.clone()]);
+        for (l, r) in &[
+            (A.amount.u128(),        100),
+            (A.cliff.u128(),           0),
+            (A.amount_after_cliff(), 100),
+            (A.start_at.into(),        0),
+            (A.interval.into(),        0),
+            (A.duration.into(),        0),
+            (A.portion_count().into(), 1),
+            (A.portion_size(),       100),
+            (A.remainder(),            0),
+        ] {
+            assert_eq!(l, r);
+        }
+        assert_eq!(100, P.total.u128());
         assert_eq!(100, S.total.u128());
         for t in 0..100 {
-            assert_eq!(100, S.unlocked(&Alice, t));
-            assert_eq!(  0, S.unlocked(&Bob, t));
+            assert_eq!(100, S.unlocked(t, &Alice));
+            assert_eq!(  0, S.unlocked(t, &Bob));
         }
     }
-    #[test] fn test_vest_immediate_as_cliff () { // different way of expressing the same thing
+    #[test] fn vest_immediate_as_cliff () { // different way of expressing the same thing
         // a periodic `Account`...
         let Alice = HumanAddr::from("Alice");
         let Bob   = HumanAddr::from("Bob");
         let A = Account::periodic("", &Alice, 100, 100, 0, 0, 0);
-        assert_eq!(100, A.amount.u128());
-        assert_eq!(100, A.cliff.u128());
-        assert_eq!(  0, A.amount_after_cliff());
-        assert_eq!(  0, A.start_at);
-        assert_eq!(  0, A.interval);
-        assert_eq!(  0, A.duration);
-        assert_eq!(  0, A.portion_count());
-        assert_eq!(  0, A.portion_size());
-        assert_eq!(  0, A.remainder());
-        // ...in a `Pool`...
         let P = Pool::full("", &[A.clone()]);
-        assert_eq!(100, P.total.u128());
-        // ...in a `Schedule`.
         let S = Schedule::new(&[P.clone()]);
+        for (l, r) in &[
+            (A.amount.u128(),        100),
+            (A.cliff.u128(),         100),
+            (A.amount_after_cliff(),   0),
+            (A.start_at.into(),        0),
+            (A.interval.into(),        0),
+            (A.duration.into(),        0),
+            (A.portion_count().into(), 0),
+            (A.portion_size(),         0),
+            (A.remainder(),            0),
+        ] {
+            assert_eq!(l, r);
+        }
+        assert_eq!(100, P.total.u128());
         assert_eq!(100, S.total.u128());
         for t in 0..100 {
-            assert_eq!(100, S.unlocked(&Alice, t));
-            assert_eq!(  0, S.unlocked(&Bob, t));
+            assert_eq!(100, S.unlocked(t, &Alice));
+            assert_eq!(  0, S.unlocked(t, &Bob));
         }
     }
-    #[test] fn test_vest_periodic_no_cliff () {
-        // a periodic `Account`...
+    #[test] fn vest_periodic_with_cliff () {
         let Alice = HumanAddr::from("Alice");
-        let Bob   = HumanAddr::from("Bob");
-        let A = Account::periodic("", &Alice, 90, 0, 20, 11, 90);
-        assert_eq!(90, A.amount.u128());
-        assert_eq!( 0, A.cliff.u128());
-        assert_eq!(90, A.amount_after_cliff());
-        assert_eq!(20, A.start_at);
-        assert_eq!(11, A.interval);
-        assert_eq!(90, A.duration);
-        assert_eq!( 8, A.portion_count());
-        assert_eq!(11, A.portion_size());
-        assert_eq!( 2, A.remainder());
-        // ...in a `Pool`...
+        let Bob = HumanAddr::from("Bob");
+        let A = Account::periodic("", &Alice, 100, 42, 7, 12, 70);
         let P = Pool::full("", &[A.clone()]);
-        assert_eq!(90, P.total.u128());
-        // ...in a `Schedule`.
-        let S = Schedule::new(&[P.clone()]);
-        assert_eq!(90, S.total.u128());
-
-        // Before start...
-        for t in 0..A.start_at {
-            print!("[@{}: {}] ", &t, &S.unlocked(&Alice, t));
-            assert_eq!(0, S.unlocked(&Alice, t));
-            assert_eq!(0, S.unlocked(&Bob, t));
-        }
-        // ...portions...
-        for n in 0..(A.portion_count() as u64) {
-            let t_portion:      u64 = A.start_at + n*A.interval;
-            let t_next_portion: u64 = t_portion + A.interval;
-            for t in t_portion..t_next_portion {
-                print!("[@{}: {}] ", &t, &S.unlocked(&Alice, t));
-                assert_eq!(S.unlocked(&Alice, t), (n+1)as u128 *11u128);
-                assert_eq!(S.unlocked(&Bob, t),   0u128);
-            }
-        }
-        // ...last portion and remainder.
-        let t_remainder = A.start_at + A.duration;
-        for t in t_remainder..t_remainder + A.duration + 1 {
-            assert_eq!(S.unlocked(&Alice, t), 100);
-            assert_eq!(S.unlocked(&Bob, t), 0);
-        }
-    }
-    #[test] fn test_vest_periodic () {
-        // a periodic `Account`...
-        let Alice = HumanAddr::from("Alice");
-        let Bob   = HumanAddr::from("Bob");
-        let A = Account::periodic("", &Alice, 100, 10, 20, 11, 90);
-        assert_eq!(100, A.amount.u128());
-        assert_eq!( 10, A.cliff.u128());
-        assert_eq!( 90, A.amount_after_cliff());
-        assert_eq!( 20, A.start_at);
-        assert_eq!( 11, A.interval);
-        assert_eq!( 90, A.duration);
-        assert_eq!(  8, A.portion_count());
-        assert_eq!( 11, A.portion_size());
-        assert_eq!(  2, A.remainder());
-        // ...in a `Pool`...
-        let P = Pool::full("", &[A.clone()]);
-        assert_eq!(100, P.total.u128());
-        // ...in a `Schedule`.
         let S = Schedule::new(&[P.clone()]);
         assert_eq!(100, S.total.u128());
-
-        // Before start...
-        for t in 0..A.start_at {
-            print!("[@{}: {}] ", &t, &S.unlocked(&Alice, t));
-            assert_eq!(0, S.unlocked(&Alice, t));
-            assert_eq!(0, S.unlocked(&Bob, t));
+        assert_eq!(100, P.total.u128());
+        for (l, r) in &[
+            (A.amount.u128(),        100),
+            (A.cliff.u128(),          42),
+            (A.amount_after_cliff(),  58),
+            (A.start_at.into(),        7),
+            (A.interval.into(),       12),
+            (A.duration.into(),       70),
+            (A.end().into(),          77),
+            (A.portion_count().into(), 5),
+            (A.portion_size(),        11),
+            (A.remainder(),            3),
+        ] {
+            assert_eq!(l, r);
         }
-        // ...cliff...
-        for t in A.start_at..(A.start_at+A.interval) {
-            print!("[@{}: {}] ", &t, &S.unlocked(&Alice, t));
-            assert_eq!(S.unlocked(&Alice, t), 10);
-            assert_eq!(S.unlocked(&Bob, t), 0);
+        println!(" {:<11}│ {:<11} │ {:<11}│ {:<11}", "T", "Event", "Alice", "Bob");
+        println!("{:─^52}┐", "");
+        let mut a = 0;
+        let mut b = 0;
+        for t in 1..200 {
+            if t == A.start_at + A.duration + A.interval { break }
+            a = S.unlocked(t, &Alice);
+            b = S.unlocked(t, &Bob);
+            println!("{:>12}│{:>12}│{:>12}│{:>12}│", t, if t < A.start_at {
+                String::from("😴 pre")
+            } else if t == A.start_at {
+                String::from("✨ cliff")
+            } else if A.vests_at(t) {
+                format!("💸 vest #{}", A.most_recent_portion(t).unwrap())
+            } else if t == A.end() && A.remainder() > 0 {
+                String::from("✨ remainder")
+            } else if t >= A.end() {
+                String::from("✅ done")
+            } else {
+                String::from("⏳ wait")
+            }, &a, &b);
         }
-        // ...portions...
-        for n in 1..(A.portion_count() as u64) {
-            let t_portion:      u64 = A.start_at + n*A.interval;
-            let t_next_portion: u64 = t_portion + A.interval;
-            for t in t_portion..t_next_portion {
-                print!("[@{}: {}] ", &t, &S.unlocked(&Alice, t));
-                assert_eq!(S.unlocked(&Alice, t), (10 + n*11) as u128);
-                assert_eq!(S.unlocked(&Bob, t),   0u128);
-            }
+        assert_eq!(a, A.amount.u128());
+        assert_eq!(b, 0);
+        panic!()
+    }
+    #[test] fn vest_periodic_no_cliff () {
+        let Alice = HumanAddr::from("Alice");
+        let Bob = HumanAddr::from("Bob");
+        let A = Account::periodic("", &Alice, 90, 0, 20, 11, 90);
+        let P = Pool::full("", &[A.clone()]);
+        let S = Schedule::new(&[P.clone()]);
+        assert_eq!(90, S.total.u128());
+        assert_eq!(90, P.total.u128());
+        for (l, r) in &[
+            (A.amount.u128(),         90),
+            (A.cliff.u128(),           0),
+            (A.amount_after_cliff(),  90),
+            (A.start_at.into(),       20),
+            (A.interval.into(),       11),
+            (A.duration.into(),       90),
+            (A.end().into(),         110),
+            (A.portion_count().into(), 8),
+            (A.portion_size(),        11),
+            (A.remainder(),            2),
+        ] {
+            assert_eq!(l, r);
         }
-        // ...last portion and remainder.
-        let t_remainder = A.start_at + A.duration;
-        for t in t_remainder..t_remainder + A.duration + 1 {
-            assert_eq!(S.unlocked(&Alice, t), 100);
-            assert_eq!(S.unlocked(&Bob, t), 0);
+        println!(" {:<11}│ {:<11} │ {:<11}│ {:<11}", "T", "Event", "Alice", "Bob");
+        println!("{:─^52}┐", "");
+        let mut a = 0;
+        let mut b = 0;
+        for t in 1..200 {
+            if t == A.start_at + A.duration + A.interval { break }
+            a = S.unlocked(t, &Alice);
+            b = S.unlocked(t, &Bob);
+            print!("{:>12}│", t);
+            println!("{:>12}│{:>12}│{:>12}│", if t < A.start_at {
+                assert_eq!(a, 0);
+                assert_eq!(b, 0);
+                String::from("😴 pre")
+            } else if A.vests_at(t) {
+                let p = A.most_recent_portion(t).unwrap() as u128;
+                assert_eq!(a, p * A.portion_size());
+                assert_eq!(b, 0);
+                format!("💸 vest #{}", p)
+            } else if t == A.end() && A.remainder() > 0 {
+                String::from("✨ remainder")
+            } else if t >= A.end() {
+                String::from("✅ done")
+            } else {
+                String::from("⏳ wait")
+            }, &a, &b);
         }
+        assert_eq!(a, A.amount.u128());
+        assert_eq!(b, 0);
+        panic!()
     }
 }
