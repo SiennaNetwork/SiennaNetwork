@@ -2,8 +2,8 @@
 
 ## Quick start
 
-Here's how you obtain the code, install JS dependencies,
-and get a list of the actions you can perform:
+Here's how to fetch the code, install JS dependencies,
+and obtain a list of the actions you can perform:
 
 ```sh
 git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git sienna 
@@ -27,6 +27,6 @@ Commands:
   sienna.js launch           💸 Launch the vesting contract.
 
 Options:
-  --help     Show help                                                                     [boolean]
-  --version  Show version number                                                           [boolean]
+  --help     Show help                                                              [boolean]
+  --version  Show version number                                                    [boolean]
 ```
