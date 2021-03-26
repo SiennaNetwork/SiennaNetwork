@@ -3,8 +3,7 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-use ido::state::Config;
-use ido::msg::{HandleMsg, QueryMsg};
+use ido::msg::{HandleMsg, QueryMsg, QueryMsgResponse};
 use shared::IdoInitMsg;
 
 fn main() {
@@ -19,5 +18,5 @@ fn main() {
     export_schema(&schema_for!(IdoInitMsg), out_dir);
     export_schema(&schema_for!(HandleMsg), out_dir);
     export_schema(&schema_for!(QueryMsg), out_dir);
-    export_schema(&schema_for!(Config), out_dir);
+    export_schema(&schema_for!(QueryMsgResponse), out_dir);
 }

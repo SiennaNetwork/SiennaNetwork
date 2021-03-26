@@ -33,7 +33,7 @@ pub struct Callback {
 pub struct IdoInitMsg {
     /// The token that will be used to buy the instantiated SNIP20
     pub input_token: TokenType,
-    pub swap_ratio: Uint128,
+    pub rate: Uint128,
     pub snip20_contract: ContractInstantiationInfo,
     pub snip20_init_info: Snip20TokenInitInfo
 }

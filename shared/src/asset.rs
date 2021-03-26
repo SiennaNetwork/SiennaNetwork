@@ -194,7 +194,7 @@ impl TokenType {
         }
     }
 
-    pub(crate) fn assert_sent_native_token_balance(&self, env: &Env, amount: Uint128) -> StdResult<()> {
+    pub fn assert_sent_native_token_balance(&self, env: &Env, amount: Uint128) -> StdResult<()> {
         if let TokenType::NativeToken { denom } = &self {
             return match env.message.sent_funds.iter().find(|x| x.denom == *denom) {
                 Some(coin) => {

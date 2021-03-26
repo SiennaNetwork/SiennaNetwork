@@ -685,38 +685,4 @@ impl Fee {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ops::Sub;
-
-    #[test]
-    fn test_taking_token_decimals_into_account_is_irrelevant() -> StdResult<()> {
-        let offer_pool_amount = 1200;
-        let ask_pool_amount = 400;
-        let offered_amount = 3;
-
-        let fee = Fee::regular();
-        
-        let token0_decimals = U256::from(18);
-        let token1_decimals = U256::from(6);
-
-        let offer_pool = Uint128(U256::from(offer_pool_amount).checked_pow(token0_decimals).unwrap().low_u128());
-        let ask_pool = Uint128(U256::from(ask_pool_amount).checked_pow(token1_decimals).unwrap().low_u128());
-        
-        let offer_amount = Uint128(U256::from(offered_amount).checked_pow(token0_decimals).unwrap().low_u128());
-
-        let (return_amount_d, spread_amount_d, commission_amount_d) = compute_swap(offer_pool.sub(offer_amount)?, ask_pool, offer_amount, fee)?;
-        println!("Using decimals: return_amount: {}, spread_amount: {}, commission_amount: {}", return_amount_d, spread_amount_d, commission_amount_d);
-
-        let offer_pool = Uint128(offer_pool_amount);
-        let ask_pool = Uint128(ask_pool_amount);
-
-        let offer_amount = Uint128(offered_amount);
-
-        let (return_amount, spread_amount, commission_amount) = compute_swap(offer_pool.sub(offer_amount)?, ask_pool, offer_amount, fee)?;
-        println!("Ignoring decimals: return_amount: {}, spread_amount: {}, commission_amount: {}", return_amount, spread_amount, commission_amount);
-
-        assert_eq!(return_amount_d, return_amount);
-
-        Ok(())
-    }
-}
 */
