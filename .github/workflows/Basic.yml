@@ -2,12 +2,12 @@
 
 on: [push, pull_request]
 
-name: Basic
+name: SIENNA CI
 
 jobs:
 
   test:
-    name: Test Suite
+    name: Unit tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -28,6 +28,63 @@ jobs:
         with:
           command: test
           args: --locked
+        env:
+          RUST_BACKTRACE: 1
+
+  coverage:
+    name: Unit test coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install toolchain that works with Tarpaulin
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: 1.49.0
+          target: wasm32-unknown-unknown
+          override: true
+
+      - name: Install Tarpaulin
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-tarpaulin
+        env:
+          RUST_BACKTRACE: 1
+
+      - name: Generate test coverage
+        uses: actions-rs/cargo@v1
+        with:
+          command: tarpaulin
+          args: --out=Html --output-dir=docs
+        env:
+          RUST_BACKTRACE: 1
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: 1.49.0
+          target: wasm32-unknown-unknown
+          override: true
+
+      - name: Render documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
         env:
           RUST_BACKTRACE: 1
 
