@@ -66,85 +66,42 @@ kukumba!(
         let zero = Uint128::zero();
         for P in s.pools.iter() {
             for A in P.accounts.iter() {
-                let address = A.address.clone();
-
+                let address       = A.address.clone();
                 let portion_count = A.portion_count();
                 let portion_size  = A.portion_size();
                 let remainder     = A.remainder();
                 println!("\n{} {} {} {}",
                     &A.name, A.start_at, A.interval, A.duration);
-                println!("{} + {} * {} + {} = {}",
-                    A.cliff, portion_count, portion_size, remainder, A.amount);
+                println!("{} = {} + {} * {} + {}",
+                    A.amount, A.cliff, portion_count, portion_size, remainder);
                 assert_eq!(A.cliff.u128() + portion_count as u128 * portion_size + remainder,
                     A.amount.u128());
-
-                // test that funds are not unlocked before `start_at`
-                if A.start_at > 0 {
+                if A.start_at > 0 { //funds are not unlocked before `start_at`
                     test_q!(deps;
                         Progress { address: address.clone(), time: A.start_at - 1 } ==
                         Progress { unlocked: zero, claimed: zero });
                 }
-
-                // test cliff or first portion
-                if A.cliff > zero {
+                if A.cliff > zero { // cliff
                     test_q!(deps;
                         Progress { address: address.clone(), time: A.start_at } ==
                         Progress { unlocked: A.cliff, claimed: zero });
-                } else {
+                } else { // first portion
                     test_q!(deps;
                         Progress { address: address.clone(), time: A.start_at } ==
                         Progress { unlocked: Uint128::from(A.portion_size()), claimed: zero });
                 }
-
-                // test that entire amount is vested by the end
-                test_q!(deps; Progress {
-                    address: address.clone(),
-                    time:    A.start_at + A.duration
-                } == Progress {
-                    unlocked: A.amount,
-                    claimed:  zero
-                });
+                test_q!(deps; // entire amount is unlocked by the end
+                    Progress { address: address.clone(), time: A.start_at + A.duration } ==
+                    Progress { unlocked: A.amount, claimed: zero });
             }
         }
     }
-    //then "they are denied" {
-        //let t_cliff = 15552000;
-        //test_tx!(deps; founder_1, 3, t_launch + 1; Claim {} == err!(NOTHING));
-        //test_tx!(deps; founder_1, 4, t_launch + t_cliff - 1; Claim {} == err!(NOTHING));
-    //}
-    //when "Founder1 claims funds right after the cliff"
-    //then "they receive 80000 SIENNA" {
-        //test_tx!(deps; founder_1, 5, t_launch + t_cliff; Claim {} ==
-            //ok!(claimed: founder_1, SIENNA!(80000u128)));
-    //}
-    //when "Founder1 tries to claim funds before the next vesting"
-    //then "they are denied" {
-        //test_tx!(deps; founder_1, 6, t_launch + t_cliff + 3600; Claim {} == err!(NOTHING));
-    //}
-    //when "Founder1 claims funds again after 1 day"
-    //then "they receive 1 vesting's worth of 1500 SIENNA" {
-        //test_tx!(deps; founder_1, 7, t_launch + t_cliff + 86400; Claim {} ==
-            //ok!(claimed: founder_1, SIENNA!(1500u128)));
-    //}
-    //when "Founder1 claims funds again after 2 more days"
-    //then "they receive 2 vestings' worth of 3000 SIENNA" {
-        //test_tx!(deps; founder_1, 8, t_launch + t_cliff + 86400 + 86400 * 2; Claim {} ==
-            //ok!(claimed: founder_1, SIENNA!(3000u128)));
-    //}
-
-    //when "Founder2 tries to claim funds before the cliff"
-    //then "they are denied" {
-        //test_tx!(deps; founder_2, 9, t_launch + t_cliff - 1000; Claim {} == err!(NOTHING));
-    //}
-    //when "Founder2 claims funds for the 1st time 10 days after the cliff"
-    //then "they receive cliff 80000 + 10 vestings' worth of 15000 = 95000 SIENNA" {
-        //test_tx!(deps; founder_2, 10, t_launch + t_cliff + 10 * 86400; Claim {} ==
-            //ok!(claimed: founder_2, SIENNA!(95000u128)));
-    //}
-    //when "Founder 3 claims funds 500 days after the cliff"
-    //then "they receive the full amount of 731000 SIENNA" {
-        //test_tx!(deps; founder_3, 11, t_launch + t_cliff + 500 * 86400; Claim {} ==
-            //ok!(claimed: founder_3, SIENNA!(731000u128)));
-    //}
-
+    and "by the end of the contract everyone will have unlocked exactly their assigned amount" {
+        for P in s.pools.iter() {
+            for A in P.accounts.iter() {
+                test_tx!(deps; A.address, A.end() / 5, A.end();
+                    Claim {} == ok!(claimed: A.address, A.amount));
+            }
+        }
+    }
 );
