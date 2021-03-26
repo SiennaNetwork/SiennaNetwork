@@ -8,7 +8,7 @@ use shared::{Callback, ContractInfo, IdoInitMsg, Snip20InitMsg, TokenType, U256}
 use shared::u256_math;
 
 use crate::msg::{HandleMsg, QueryMsg, QueryMsgResponse};
-use crate::state::{Config, save_config, load_config};
+use crate::state::{Config, save_config, load_config, SwapConstants};
 
 /// Pad handle responses and log attributes to blocks
 /// of 256 bytes to prevent leaking info based on response size
@@ -19,11 +19,34 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: IdoInitMsg,
 ) -> StdResult<InitResponse> {
+    if msg.snip20_init_info.decimals > 18 {
+        return Err(StdError::generic_err("Decimals must not exceed 18"));
+    }
+
+    let input_token_decimals = match &msg.input_token {
+        TokenType::NativeToken { .. } => 6,
+        TokenType::CustomToken { contract_addr, token_code_hash } => {
+            let result = snip20::token_info_query(
+                &deps.querier,
+                BLOCK_SIZE,
+                token_code_hash.clone(),
+                contract_addr.clone()
+            )?;
+
+            result.decimals
+        }
+    };
+
     let config = Config {
         input_token: msg.input_token,
-        rate: msg.rate,
+        swap_constants: SwapConstants {
+            swap_token_decimals: msg.snip20_init_info.decimals,
+            rate: msg.rate,
+            input_token_decimals,
+            whole_swap_token: get_whole_token_representation(msg.snip20_init_info.decimals),
+        },
         // We get this info when the instantiated SNIP20 calls HandleMsg::OnSnip20Init
-        swapped_token: ContractInfo {
+        swap_token: ContractInfo {
             code_hash: msg.snip20_contract.code_hash.clone(),
             address: HumanAddr::default()
         }
@@ -93,7 +116,13 @@ fn swap<S: Storage, A: Api, Q: Querier>(
 
     config.input_token.assert_sent_native_token_balance(&env, amount)?;
 
-    let mint_amount = calc_output_amount(amount, config.rate)?;
+    let mint_amount = calc_output_amount(amount, config.swap_constants)?;
+
+    if mint_amount.u128() == 0 {
+        return Err(StdError::generic_err(format!(
+            "Insufficient amount provided: the swap did not succeed because 0 new tokens would be minted"
+        )));
+    }
 
     let mut messages = vec![];
 
@@ -119,8 +148,8 @@ fn swap<S: Storage, A: Api, Q: Querier>(
             mint_amount,
             None,
             BLOCK_SIZE,
-            config.swapped_token.code_hash,
-            config.swapped_token.address
+            config.swap_token.code_hash,
+            config.swap_token.address
         )?
     );
 
@@ -142,12 +171,12 @@ fn on_snip20_init<S: Storage, A: Api, Q: Querier>(
     let mut config = load_config(deps)?;
     
     //This should only be set once when the SNIP20 token is instantiated.
-    if config.swapped_token.address != HumanAddr::default() {
+    if config.swap_token.address != HumanAddr::default() {
         return Err(StdError::generic_err("Invalid token type!"));
     }
 
-    config.swapped_token = ContractInfo {
-        code_hash: config.swapped_token.code_hash,
+    config.swap_token = ContractInfo {
+        code_hash: config.swap_token.code_hash,
         address: env.message.sender.clone()
     };
 
@@ -158,7 +187,7 @@ fn on_snip20_init<S: Storage, A: Api, Q: Querier>(
             env.contract_code_hash,
             None,
             BLOCK_SIZE,
-            config.swapped_token.code_hash,
+            config.swap_token.code_hash,
             env.message.sender.clone(),
         )?],
         log: vec![log("swapped_token address", env.message.sender.as_str())],
@@ -170,30 +199,65 @@ fn get_rate<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> QueryResu
     let config = load_config(deps)?;
 
     Ok(to_binary(&QueryMsgResponse::GetRate {
-        rate: config.rate
+        rate: config.swap_constants.rate
     })?)
 }
 
-fn calc_output_amount(amount: Uint128, rate: Uint128) -> StdResult<Uint128> {
+fn calc_output_amount(amount: Uint128, constants: SwapConstants) -> StdResult<Uint128> {
     // Technically the numbers here should be very far
     // from overflowing an Uint128 but who knows...
-    
-    let amount = Some(U256::from(amount.u128()));
-    let rate = Some(U256::from(rate.u128()));
 
-    let result = u256_math::mul(amount, rate).ok_or_else(|| 
-        StdError::generic_err(format!("Couldn't calculate output_amount"))
+    let err_msg = "An error occurred when calculating the amount of new tokens to be minted.";
+
+    let amount = Some(U256::from(amount.u128()));
+    let rate = Some(U256::from(constants.rate.u128()));
+    
+    // result amount * rate / one whole swap_token (constants.whole_swap_token)
+    let mut result = u256_math::mul(amount, rate).ok_or_else(|| 
+        StdError::generic_err(err_msg)
     )?;
 
-    // TODO: This 1_000_000_000 is hardcoded for now but shouldn't be.
-    // It should have N zeroes = decimals of our token
-    let result = u256_math::div(Some(result), Some(U256::from(1_000_000_000))).ok_or_else(||
-        StdError::generic_err(format!("Couldn't calculate rate"))
+    // But, if tokens have different number of decimals, we need to compensate either by 
+    // dividing or multiplying (depending on which token has more decimals) the difference
+    if constants.input_token_decimals < constants.swap_token_decimals {
+        let compensation = get_whole_token_representation(
+            constants.swap_token_decimals - constants.input_token_decimals
+        );
+        let compensation = Some(U256::from(compensation.u128()));
+
+        result = u256_math::mul(Some(result), compensation).ok_or_else(|| 
+            StdError::generic_err(err_msg) 
+        )?;
+    } else if constants.swap_token_decimals < constants.input_token_decimals {
+        let compensation = get_whole_token_representation(
+            constants.input_token_decimals - constants.swap_token_decimals
+        );
+        let compensation = Some(U256::from(compensation.u128()));
+
+        result = u256_math::div(Some(result), compensation).ok_or_else(|| 
+            StdError::generic_err(err_msg) 
+        )?;
+    }
+
+    let whole_token = Some(U256::from(constants.whole_swap_token.u128()));
+    let result = u256_math::div(Some(result), whole_token).ok_or_else(||
+        StdError::generic_err(err_msg)
     )?;
 
     Ok(Uint128(result.low_u128()))
 }
 
+/// Get the amount needed to represent 1 whole token given its decimals.
+/// Ex. Given token A that has 3 decimals, 1 A == 1000
+fn get_whole_token_representation(decimals: u8) -> Uint128 {
+    let mut whole_token = 1u128;
+
+    for _ in 0..decimals {
+        whole_token *= 10;
+    };
+
+    Uint128(whole_token)
+}
 
 #[cfg(test)]
 mod tests {
@@ -201,6 +265,15 @@ mod tests {
 
     #[test]
     fn test_calc_output_amount() {
+        fn create_constants(input_token_decimals: u8, swap_token_decimals: u8, rate: Uint128) -> SwapConstants {
+            SwapConstants { 
+                whole_swap_token: get_whole_token_representation(swap_token_decimals),
+                rate,
+                input_token_decimals,
+                swap_token_decimals
+            }
+        }
+
         // Assuming the user friendly (in the UI) exchange rate has been set to
         // 1 swapped_token (9 decimals) == 1.5 input_token (9 decimals):
         // the rate would be 1 / 1.5 = 0.(6) or 666666666 (0.(6) ** 10 * 9)
@@ -210,12 +283,28 @@ mod tests {
         // If we want to get 2 of swapped_token, we need to send 3 input_token
         // i.e. amount = 3000000000 (3 * 10 ** 9 decimals)
 
-        let amount = Uint128(3000000000);
-        let rate = Uint128(666666666);
+        let constants = create_constants(9, 9, Uint128(666_666_666));
+        let amount = Uint128(3_000_000_000);
 
-        // TODO: the current formula works correctly only if both tokens have the same number of decimals
-        let result = calc_output_amount(amount, rate).unwrap();
-        assert_eq!(result, Uint128(1999999998));
+        let result = calc_output_amount(amount, constants).unwrap();
+        assert_eq!(result, Uint128(1_999_999_998));
+
+        // Should work the same even if input_token has less decimals (ex. 6)
+        let constants = create_constants(6, 9, Uint128(666_666_666));
+
+        // Here amount has 3 zeroes less because input_token now has 6 decimals, so
+        // 1 input_token = 3000000 (3 * 10 ** 6)
+        let amount = Uint128(3_000_000);
+
+        let result = calc_output_amount(amount, constants).unwrap();
+        assert_eq!(result, Uint128(1_999_999_998));
+
+        // And the other way around - when swap_token has 6 decimals.
+        // Here the rate and result have 3 less digits - to account for the less decimals
+        let constants = create_constants(9, 6, Uint128(666_666));
+        let amount = Uint128(3_000_000_000);
+
+        let result = calc_output_amount(amount, constants).unwrap();
+        assert_eq!(result, Uint128(1_999_998));
     }
 }
-
