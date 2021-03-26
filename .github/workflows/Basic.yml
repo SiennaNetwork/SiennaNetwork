@@ -2,18 +2,18 @@ on: [push, pull_request]
 name: SIENNA CI
 jobs:
   test:
-    name: Unit tests
+    name: Unit tests and documentation
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
         with:
           submodules: true
-      - name: Install stable toolchain
+      - name: Install toolchain that allows macro backtrace
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.49.0
+          toolchain: nightly
           target: wasm32-unknown-unknown
           override: true
       - name: Run unit tests
@@ -23,9 +23,16 @@ jobs:
           args: --locked
         env:
           RUST_BACKTRACE: 1
+          RUSTFLAGS: -Zmacro-backtrace
+      - name: Render documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+        env:
+          RUST_BACKTRACE: 1
 
   coverage:
-    name: Unit test coverage
+    name: Test coverage report (Tarpaulin)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -36,7 +43,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.49.0
+          toolchain: stable
           target: wasm32-unknown-unknown
           override: true
       - name: Install Tarpaulin
@@ -61,25 +68,3 @@ jobs:
           git config --global user.name "hack.bg"
           git commit -m "🤖 updated coverage @ $(date -u)" || true
           git push
-
-  docs:
-    name: Documentation
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: 1.49.0
-          target: wasm32-unknown-unknown
-          override: true
-      - name: Render documentation
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-        env:
-          RUST_BACKTRACE: 1
