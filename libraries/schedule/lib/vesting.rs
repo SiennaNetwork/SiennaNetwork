@@ -36,10 +36,10 @@ impl Vesting for Account {
 impl Account {
     /// Size of regular (non-cliff) portions.
     pub fn portion_size (&self) -> u128 {
-        if self.amount_after_cliff() > 0 {
+        if self.portion_count() > 0 {
             self.amount_after_cliff() / self.portion_count() as u128
         } else {
-            0 // immediate vesting (cliff only, no extra portions)
+            0
         }
     }
     /// Amount to vest after the cliff
@@ -50,7 +50,7 @@ impl Account {
     /// Number of non-cliff portions.
     pub fn portion_count (&self) -> u64 {
         if self.interval > 0 {
-            (self.duration / self.interval) as u64
+            (self.duration / self.interval) as u64 + match self.cliff.u128() { 0 => 1, _ => 0 }
         } else {
             0
         }
@@ -75,7 +75,10 @@ impl Account {
     /// Most recent portion vested at time `t`
     pub fn most_recent_portion (&self, t: Seconds) -> Option<u64> {
         match self.elapsed(t) {
-            Some(elapsed) => Some(u64::min(elapsed / self.interval, self.portion_count())),
+            Some(elapsed) => Some(u64::min(
+                elapsed / self.interval + match self.cliff.u128() { 0 => 1, _ => 0 },
+                self.portion_count()
+            )),
             None => None
         }
     }
@@ -123,9 +126,9 @@ mod tests {
             (A.start_at.into(),        0),
             (A.interval.into(),        0),
             (A.duration.into(),        0),
-            (A.portion_count().into(), 1),
-            (A.portion_size(),       100),
-            (A.remainder(),            0),
+            (A.portion_count().into(), 0),
+            (A.portion_size(),         0),
+            (A.remainder(),          100),
         ] {
             assert_eq!(l, r);
         }
@@ -185,7 +188,7 @@ mod tests {
         ] {
             assert_eq!(l, r);
         }
-        println!(" {:<11}│ {:<11} │ {:<11}│ {:<11}", "T", "Event", "Alice", "Bob");
+        println!("\n {:<11}│ {:<11} │ {:<11}│ {:<11}", "T", "Event", "Alice", "Bob");
         println!("{:─^52}┐", "");
         let mut a = 0;
         let mut b = 0;
@@ -201,7 +204,7 @@ mod tests {
             } else if t == A.start_at {
                 assert_eq!(a, A.cliff.u128());
                 assert_eq!(b, 0);
-                String::from("✨ cliff")
+                String::from("🚀 cliff")
             } else if t == A.end() && A.remainder() > 0 {
                 assert_eq!(a, A.amount.u128());
                 assert_eq!(b, 0);
@@ -225,26 +228,26 @@ mod tests {
     #[test] fn vest_periodic_no_cliff () {
         let Alice = HumanAddr::from("Alice");
         let Bob = HumanAddr::from("Bob");
-        let A = Account::periodic("", &Alice, 90, 0, 20, 11, 90);
+        let A = Account::periodic("", &Alice, 92, 0, 20, 11, 90);
         let P = Pool::full("", &[A.clone()]);
         let S = Schedule::new(&[P.clone()]);
-        assert_eq!(90, S.total.u128());
-        assert_eq!(90, P.total.u128());
+        assert_eq!(92, S.total.u128());
+        assert_eq!(92, P.total.u128());
         for (l, r) in &[
-            (A.amount.u128(),         90),
+            (A.amount.u128(),         92),
             (A.cliff.u128(),           0),
-            (A.amount_after_cliff(),  90),
+            (A.amount_after_cliff(),  92),
             (A.start_at.into(),       20),
             (A.interval.into(),       11),
             (A.duration.into(),       90),
             (A.end().into(),         110),
-            (A.portion_count().into(), 8),
-            (A.portion_size(),        11),
+            (A.portion_count().into(), 9),
+            (A.portion_size(),        10),
             (A.remainder(),            2),
         ] {
             assert_eq!(l, r);
         }
-        println!(" {:<11}│ {:<11} │ {:<11}│ {:<11}", "T", "Event", "Alice", "Bob");
+        println!("\n {:<11}│ {:<11} │ {:<11}│ {:<11}", "T", "Event", "Alice", "Bob");
         println!("{:─^52}┐", "");
         let mut a = 0;
         let mut b = 0;

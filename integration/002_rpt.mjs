@@ -79,7 +79,7 @@ SecretNetwork.Agent.fromMnemonic({
   const outputDir = resolve(buildRoot, 'outputs')
   const builder   = new SecretNetwork.Builder({ say: say.tag('builder'), outputDir, agent })
 
-  const token = await builder.deploy(SNIP20Contract, {
+  const TOKEN = await builder.deploy(SNIP20Contract, {
     name:      "Sienna",
     symbol:    "SIENNA",
     decimals:  18,
@@ -93,12 +93,12 @@ SecretNetwork.Agent.fromMnemonic({
   })
 
   for (const [name, {agent}] of Object.entries(recipients)) {
-    recipients[name].viewkey = await token.createViewingKey(agent, "entropy")
+    recipients[name].viewkey = await TOKEN.createViewingKey(agent, "entropy")
   }
 
-  const mgmt = await builder.deploy(MGMTContract, {
-    token_addr: token.address,
-    token_hash: token.hash,
+  const MGMT = await builder.deploy(MGMTContract, {
+    token_addr: TOKEN.address,
+    token_hash: TOKEN.hash,
     schedule
   }, {
     name: 'sienna-mgmt',
@@ -106,11 +106,11 @@ SecretNetwork.Agent.fromMnemonic({
     say,
   })
 
-  const rpt = await builder.deploy(RPTContract, {
-    token_addr: token.address,
-    token_hash: token.hash,
-    mgmt_addr:  mgmt.address,
-    mgmt_hash:  mgmt.hash,
+  const RPT = await builder.deploy(RPTContract, {
+    token_addr: TOKEN.address,
+    token_hash: TOKEN.hash,
+    mgmt_addr:  MGMT.address,
+    mgmt_hash:  MGMT.hash,
     pool:    'MintingPool',
     account: 'RPT',
     config: [[agent.address, "2500000000000000000000"]]
@@ -123,46 +123,29 @@ SecretNetwork.Agent.fromMnemonic({
   schedule
     .pools.filter(x=>x.name==='MintingPool')[0]
     .accounts.filter(x=>x.name==='RPT')[0]
-    .address = rpt.address
+    .address = RPT.address
 
-  await mgmt.configure(schedule)
+  await MGMT.configure(schedule)
 
-  return { agent, token, mgmt, rpt, recipients }
+  return { agent, TOKEN, MGMT, RPT, recipients }
 
-}).then(async function test ({ agent, token, mgmt, rpt, recipients }) {
+}).then(async function test ({ agent, recipients, TOKEN, MGMT, RPT }) {
 
   const fastForward = t => { /* TODO: Kill localnet and restart it with `libfaketime` set to `t` */ }
-
-  await mgmt.acquire(token)
-  await mgmt.launch()
-  await agent.waitForNextBlock()
-  let t = 0
+  await MGMT.acquire(TOKEN)
+  await MGMT.launch()
   try {
-    //while (true) {
-      t++
-      for (const [name, agent] of Object.entries(recipients)) {
-        say.tag('claim')(name)
-        try {
-          await mgmt.claim(agent)
-          say.tag('ok').tag(name)()
-        } catch (e) {
-          say.tag('error').tag(name)(e)
-        }
-      }
-      await rpt.vest()
-      //await fastForward()
-      //if (t % 3 === 0) { // every once in a while
-        //const newConfig = []
-        //await rpt.configure(newConfig) // reconfigure RPT
-      //}
-    //}
-  } finally {
-    for (const [name, {agent, viewkey}] of Object.entries(recipients)) {
-      await token.balance(agent, viewkey)
+    for (const [name, agent] of Object.entries(recipients)) {
+      say.tag('progress')({ name, ...(await MGMT.progress(agent.address)) })
     }
-    // admin:
-    const viewkey = await token.createViewingKey(agent, "entropy")
-    await token.balance(agent, viewkey)
+    //await RPT.vest()
+  } finally {
+    //for (const [name, {agent, viewkey}] of Object.entries(recipients)) {
+      //await TOKEN.balance(agent, viewkey)
+    //}
+    //// admin:
+    //const viewkey = await TOKEN.createViewingKey(agent, "entropy")
+    //await TOKEN.balance(agent, viewkey)
   }
 
 })

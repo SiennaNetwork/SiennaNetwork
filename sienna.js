@@ -70,7 +70,9 @@ yargs(process.argv.slice(2))
       clear()
       stderr.write(`⏳ Running tests...\n\n`)
       try {
-        cargo('test')
+        run('sh', '-c',
+          'cargo test --color=always --no-fail-fast -- --nocapture --test-threads=1 2>&1'+
+          ' | less -R')
         stderr.write('\n🟢 Tests ran successfully.\n')
       } catch (e) {
         stderr.write('\n👹 Tests failed.\n')

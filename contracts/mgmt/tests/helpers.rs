@@ -50,15 +50,21 @@ pub fn mock_env (
 } }
 
 macro_rules! test_q {
-    ( $deps:expr
-    ; $Query:ident $( { $($qarg:ident $(: $qval:expr)?),* } )?
-    == $Response:ident { $($rarg:ident : $rval:expr),* }
+    ( $deps:expr;
+        $QueryVariant:ident $( { $($query_field:ident $(: $query_value:expr)?),* } )? ==
+        $ResponseVariant:ident { $($response_field:ident : $expected_value:expr),* }
     ) => {
-        match cosmwasm_std::from_binary(&sienna_mgmt::query(
-            &$deps, sienna_mgmt::msg::Query::$Query { $( $($qarg $(:$qval)?),* )? }
-        ).unwrap()).unwrap() {
-            sienna_mgmt::msg::Response::$Response {$($rarg),*} => { $(assert_eq!($rarg, $rval));* },
-            _ => panic!("{} didn't return {}", stringify!($Query), stringify!($Response)),
+        let msg = sienna_mgmt::msg::Query::$QueryVariant {
+            $( $($query_field $(:$query_value)?),* )?
+        };
+        let response = sienna_mgmt::query(&$deps, msg).unwrap();
+        match cosmwasm_std::from_binary(&response).unwrap() {
+            sienna_mgmt::msg::Response::$ResponseVariant {$($response_field),*} => {
+                $(assert_eq!($response_field, $expected_value));*
+            },
+            _ => {
+                panic!("{} didn't return {}", stringify!($QueryVariant), stringify!($ResponseVariant))
+            },
         }
     }
 }

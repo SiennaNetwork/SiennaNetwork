@@ -63,55 +63,46 @@ kukumba!(
         test_tx!(deps; ADMIN, 2, t_launch; Launch {} == ok!(launched: s.total));
     }
     and "the appropriate amounts will be unlocked at the appropriate times" {
-        for pool in s.pools.iter() {
-            for account in pool.accounts.iter() {
-                println!("\n{:?}\n{} + {} * {} + {} = {}",
-                    &account,
-                    account.cliff,
-                    account.portion_count(),
-                    account.portion_size(),
-                    account.remainder(),
-                    account.amount
-                );
-                let address = account.address.clone();
+        let zero = Uint128::zero();
+        for P in s.pools.iter() {
+            for A in P.accounts.iter() {
+                let address = A.address.clone();
+
+                let portion_count = A.portion_count();
+                let portion_size  = A.portion_size();
+                let remainder     = A.remainder();
+                println!("\n{} {} {} {}",
+                    &A.name, A.start_at, A.interval, A.duration);
+                println!("{} + {} * {} + {} = {}",
+                    A.cliff, portion_count, portion_size, remainder, A.amount);
+                assert_eq!(A.cliff.u128() + portion_count as u128 * portion_size + remainder,
+                    A.amount.u128());
 
                 // test that funds are not unlocked before `start_at`
-                if account.start_at > 0 {
-                    test_q!(deps; Progress {
-                        address: address.clone(),
-                        time:    account.start_at - 1
-                    } == Progress {
-                        unlocked: Uint128::zero(),
-                        claimed:  Uint128::zero()
-                    });
+                if A.start_at > 0 {
+                    test_q!(deps;
+                        Progress { address: address.clone(), time: A.start_at - 1 } ==
+                        Progress { unlocked: zero, claimed: zero });
                 }
 
                 // test cliff or first portion
-                if account.cliff > Uint128::zero() {
-                    test_q!(deps; Progress {
-                        address: address.clone(),
-                        time:    account.start_at
-                    } == Progress {
-                        unlocked: account.cliff,
-                        claimed:  Uint128::zero()
-                    });
+                if A.cliff > zero {
+                    test_q!(deps;
+                        Progress { address: address.clone(), time: A.start_at } ==
+                        Progress { unlocked: A.cliff, claimed: zero });
                 } else {
-                    test_q!(deps; Progress {
-                        address: address.clone(),
-                        time:    account.start_at
-                    } == Progress {
-                        unlocked: Uint128::from(account.portion_size()),
-                        claimed:  Uint128::zero()
-                    });
+                    test_q!(deps;
+                        Progress { address: address.clone(), time: A.start_at } ==
+                        Progress { unlocked: Uint128::from(A.portion_size()), claimed: zero });
                 }
 
                 // test that entire amount is vested by the end
                 test_q!(deps; Progress {
                     address: address.clone(),
-                    time:    account.start_at + account.duration
+                    time:    A.start_at + A.duration
                 } == Progress {
-                    unlocked: account.amount,
-                    claimed:  Uint128::zero()
+                    unlocked: A.amount,
+                    claimed:  zero
                 });
             }
         }

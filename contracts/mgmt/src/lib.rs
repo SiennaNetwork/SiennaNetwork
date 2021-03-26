@@ -94,7 +94,7 @@ contract!(
         /// Return amount that can be claimed by the specified address at the specified time
         Progress (address: HumanAddr, time: Seconds) {
             if let Some(_) = &state.launched {
-                let unlocked = state.schedule.unlocked(&address, time).into();
+                let unlocked = state.schedule.unlocked(time, &address).into();
                 let claimed = match state.history.get(&address.clone()) {
                     Some(&claimed) => claimed,
                     None => Uint128::zero()
@@ -168,10 +168,9 @@ contract!(
         /// After launch, recipients can call the Claim method to
         /// receive the gains that they have accumulated so far.
         Claim () {
-            let launched = is_launched(&state)?;
+            is_launched(&state)?;
             let address = env.message.sender;
-            let elapsed = env.block.time - launched;
-            let (unlocked, claimable) = portion(&state, &address, elapsed);
+            let (unlocked, claimable) = portion(&state, &address, env.block.time);
             if claimable > 0 {
                 state.history.insert(address.clone().into(), unlocked.into());
                 ok!(state, vec![transfer(&state, &address, claimable.into())?])
@@ -208,8 +207,8 @@ fn is_launched (state: &State) -> StdResult<Seconds> {
     }
 }
 
-fn portion (state: &State, address: &HumanAddr, elapsed: Seconds) -> (u128, u128) {
-    let unlocked = state.schedule.unlocked(&address, elapsed);
+fn portion (state: &State, address: &HumanAddr, t: Seconds) -> (u128, u128) {
+    let unlocked = state.schedule.unlocked(t, &address);
     if unlocked > 0 {
         let claimed = match state.history.get(&address.clone().into()) {
             Some(claimed) => claimed.u128(),
