@@ -22,15 +22,15 @@ const abs = (...args) =>
 // [contracts that can be built] -> [`cargo run --example` target to generate JSON schema]
 const CONTRACTS = {
   'token': {
-    package:         'snip20-reference-impl',
+    packageName:     'snip20-reference-impl',
     schemaGenerator: 'schema'
   },
   'mgmt': {
-    package:         'sienna-mgmt',
+    packageName:     'sienna-mgmt',
     schemaGenerator: 'mgmt_schema'
   },
   'rpt': {
-    package:         'sienna-rpt',
+    packageName:     'sienna-rpt',
     schemaGenerator: 'rpt_schema'
   }
 }
@@ -96,15 +96,19 @@ yargs(process.argv.slice(2))
       //)
     })
 
-  .command('demo',
+  .command('demo [script]',
     '📜 Run integration tests/demos/executable reports.',
-    function runDemo ({demo = '002_rpt.mjs'}) {
+    yargs => yargs.positional('script', {
+      describe: 'path to demo script',
+      default: '002_rpt.mjs'
+    }),
+    function runDemo ({script}) {
       clear()
-      demo = abs('integration', demo)
-      stderr.write(`⏳ Running demo ${demo}...\n\n`)
+      script = abs('integration', script)
+      stderr.write(`⏳ Running demo ${script}...\n\n`)
       try {
         run('docker-compose', 'up', '-d', 'localnet')
-        run('node', '--trace-warnings', '--unhandled-rejections=strict', demo)
+        run('node', '--trace-warnings', '--unhandled-rejections=strict', script)
         stderr.write('\n🟢 Demo executed successfully.\n')
       } catch (e) {
         stderr.write('\n👹 Demo failed.\n')
@@ -163,10 +167,11 @@ yargs(process.argv.slice(2))
       for (const [name, {packageName}] of Object.entries(CONTRACTS)) {
         if (ref) {
           stderr.write(`\n⏳ Building ${name} (${packageName}) @ ${ref}...\n\n`)
-          buildCommit({ref, name, buildOutputs})
+          const origin = 'git@github.com:hackbg/sienna-secret-token.git'
+          buildCommit({origin, ref, packageName, buildOutputs})
         } else {
           stderr.write(`\n⏳ Building ${name} (${packageName})...\n\n`)
-          buildWorkingTree({projectRoot:abs(), name, buildOutputs})
+          buildWorkingTree({repo: abs(), packageName, buildOutputs})
         }
       }
     })
