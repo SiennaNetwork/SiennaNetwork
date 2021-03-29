@@ -1,28 +1,21 @@
-# Based on https://github.com/actions-rs/example/blob/master/.github/workflows/quickstart.yml
-
 on: [push, pull_request]
-
-name: Basic
-
+name: SIENNA CI
 jobs:
-
   test:
-    name: Test Suite
+    name: Unit tests and documentation
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
         with:
           submodules: true
-
-      - name: Install stable toolchain
+      - name: Install toolchain that allows macro backtrace
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.49.0
+          toolchain: nightly
           target: wasm32-unknown-unknown
           override: true
-
       - name: Run unit tests
         uses: actions-rs/cargo@v1
         with:
@@ -30,53 +23,48 @@ jobs:
           args: --locked
         env:
           RUST_BACKTRACE: 1
+          RUSTFLAGS: -Zmacro-backtrace
+      - name: Render documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+        env:
+          RUST_BACKTRACE: 1
 
-      #- name: Compile WASM contract
-        #uses: actions-rs/cargo@v1
-        #with:
-          #command: wasm
-          #args: --locked
-        #env:
-          #RUSTFLAGS: "-C link-arg=-s"
-
-      #- name: Run integration tests
-        #uses: actions-rs/cargo@v1
-        #with:
-          #command: integration-test
-          #args: --locked
-
-  #lints:
-    #name: Lints
-    #runs-on: ubuntu-latest
-    #steps:
-      #- name: Checkout sources
-        #uses: actions/checkout@v2
-
-      #- name: Install stable toolchain
-        #uses: actions-rs/toolchain@v1
-        #with:
-          #profile: minimal
-          #toolchain: 1.43.1
-          #override: true
-          #components: rustfmt, clippy
-
-      #- name: Run cargo fmt
-        #uses: actions-rs/cargo@v1
-        #with:
-          #command: fmt
-          #args: --all -- --check
-
-      #- name: Run cargo clippy
-        #uses: actions-rs/cargo@v1
-        #with:
-          #command: clippy
-          #args: -- -D warnings
-
-      ## TODO: we should check
-      ## CHANGES_IN_REPO=$(git status --porcelain)
-      ## after this, but I don't know how
-      #- name: Generate Schema
-        #uses: actions-rs/cargo@v1
-        #with:
-          #command: schema
-          #args: --locked
+  coverage:
+    name: Test coverage report (Tarpaulin)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Install toolchain that works with Tarpaulin
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+      - name: Install Tarpaulin
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-tarpaulin
+        env:
+          RUST_BACKTRACE: 1
+      - name: Generate test coverage
+        uses: actions-rs/cargo@v1
+        with:
+          command: tarpaulin
+          args: --out=Html --output-dir=docs --exclude-files=libraries/platform
+        env:
+          RUST_BACKTRACE: 1
+      - name: Commit coverage report
+        run: |
+          git checkout $(git symbolic-ref --short HEAD)
+          git add docs/tarpaulin-report.html
+          git config --global user.email "hack@hack.bg"
+          git config --global user.name "hack.bg"
+          git commit -m "🤖 updated coverage @ $(date -u)" || true
+          git push

@@ -7,7 +7,7 @@ pwd
 Timestamp=`date --rfc-3339=date`
 Commit=${1:-main}
 Origin=`git remote get-url origin`
-for Contract in sienna-mgmt snip20-reference-impl; do
+for Contract in sienna-mgmt sienna-rpt snip20-reference-impl; do
   echo "Now building $Contract:"
   docker run -it --rm                                       \
     -e CARGO_NET_GIT_FETCH_WITH_CLI=true                     \
@@ -28,6 +28,6 @@ for Contract in sienna-mgmt snip20-reference-impl; do
         /entrypoint.sh $Contract                    &&\
         ls -al && (gzip -df $Contract.wasm.gz||true) &&\
         mv $Contract.wasm /output/"
-  ls -al && mv "$Contract.wasm" "dist/$Commit-$Contract.wasm"; done
-cd dist
+  ls -al && mv "$Contract.wasm" "build/outputs/$Commit-$Contract.wasm"; done
+cd build/outputs
 sha256sum -b *.wasm > checksums.sha256.txt

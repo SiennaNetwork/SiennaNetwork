@@ -39,12 +39,12 @@ test-localnet:
 
 # Compilation
 .PHONY: prod
-_optimizer: optimizer/*
-	docker build                                 \
-		-f optimizer/Dockerfile                    \
+optimizer: build/optimizer/*
+	docker build                               \
+		-f build/optimizer/Dockerfile             \
 		-t hackbg/secret-contract-optimizer:latest \
-		optimizer
-prod: _optimizer
+		build/optimizer
+prod: optimizer
 	time build/working-tree
 # TODO: see if there's any value in keeping these around:
 #compile: _compile sienna_token.wasm sienna_mgmt.wasm
@@ -63,6 +63,7 @@ prod: _optimizer
 .PHONY: schema schedule
 schema:
 	cargo run --manifest-path=mgmt/Cargo.toml --example mgmt_schema
+	cargo run --manifest-path=token/Cargo.toml --example schema
 schedule:
 	./schedule/tsv2json.js
 

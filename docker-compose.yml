@@ -1,4 +1,5 @@
 version: '3.4'
+
 volumes: # clear those with `docker-compose down -v` to run "from scratch"
   secretd:
   secretcli:
@@ -10,20 +11,8 @@ services:
     network_mode: host
     entrypoint: /init.sh
     volumes:
-      - './localnet/init.sh:/init.sh:ro'
+      - './build/localnet/init.sh:/init.sh:ro'
+      - './build/localnet/keys:/shared-keys:rw'
       - 'secretd:/root/.secretd:rw'
       - 'secretcli:/root/.secretcli:rw'
       - 'sgx-secrets:/root/.sgx-secrets:rw'
-      - 'shared-keys:/shared-keys:rw'
-  compare:
-    build: ./scripts
-    network_mode: host
-    user: "1000:1000"
-    volumes:
-      - '.:/sienna:rw'
-      - 'secretcli:/home/node/.secretcli:rw'
-      - 'shared-keys:/shared-keys:rw'
-      - '/var/run/docker.sock:/var/run/docker.sock:rw'
-    entrypoint: /bin/bash
-    working_dir: /sienna/scripts
-    command: /sienna/scripts/compare.sh
