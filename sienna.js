@@ -97,7 +97,7 @@ yargs(process.argv.slice(2))
     '📜 Run integration tests/demos/executable reports.',
     yargs => yargs.positional('script', {
       describe: 'path to demo script',
-      default: '002_rpt.mjs'
+      default: 'demo.mjs'
     }),
     function runDemo ({script}) {
       clear()

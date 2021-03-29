@@ -11,7 +11,7 @@ RUN mkdir -p "$REGISTRY"
 ENV USER 1000
 ENV GROUP 1000
 # ensure mountpoint for source
-WORKDIR /contract
+WORKDIR /src
 ADD entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT [ "/entrypoint.sh" ]

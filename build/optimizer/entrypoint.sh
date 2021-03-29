@@ -24,5 +24,5 @@ Output=`echo "$Package" | tr '-' '_'`
 ls -alh
 su build -c "env RUSTFLAGS='-C link-arg=-s' \
   cargo build -p $Package --release --target wasm32-unknown-unknown --locked --verbose \
-  && wasm-opt -Oz ./target/wasm32-unknown-unknown/release/$Output.wasm -o /output/$Tag-$Package.wasm \
+  && wasm-opt -Oz ./target/wasm32-unknown-unknown/release/$Output.wasm -o /output/$Package@$Tag.wasm \
   && cd /output/ && sha256sum -b *.wasm > checksums.sha256.txt"

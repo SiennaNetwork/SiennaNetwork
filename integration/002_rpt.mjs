@@ -106,20 +106,6 @@ SecretNetwork.Agent.fromMnemonic({
     say,
   })
 
-  const RPT = await builder.deploy(RPTContract, {
-    token_addr: TOKEN.address,
-    token_hash: TOKEN.hash,
-    mgmt_addr:  MGMT.address,
-    mgmt_hash:  MGMT.hash,
-    pool:    'MintingPool',
-    account: 'RPT',
-    config: [[agent.address, "2500000000000000000000"]]
-  }, {
-    name: 'sienna-rpt',
-    commit,
-    say,
-  })
-
   schedule
     .pools.filter(x=>x.name==='MintingPool')[0]
     .accounts.filter(x=>x.name==='RPT')[0]
