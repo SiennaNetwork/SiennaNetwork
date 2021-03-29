@@ -158,17 +158,17 @@ yargs(process.argv.slice(2))
         '--file=' + resolve(optimizer, 'Dockerfile'),
         '--tag=hackbg/secret-contract-optimizer:latest',
         optimizer)
-      const buildOutputs = abs('build', 'outputs')
+      const outputDir = abs('build', 'outputs')
       //const isDir = x=>statSync(abs('contracts', x)).isDirectory()
       //const contracts = readdirSync(abs('contracts')).filter(isDir)
       for (const [name, {packageName}] of Object.entries(CONTRACTS)) {
         if (ref) {
           stderr.write(`\n⏳ Building ${name} (${packageName}) @ ${ref}...\n\n`)
           const origin = 'git@github.com:hackbg/sienna-secret-token.git'
-          buildCommit({origin, ref, packageName, buildOutputs})
+          buildCommit({origin, ref, packageName, outputDir})
         } else {
           stderr.write(`\n⏳ Building ${name} (${packageName})...\n\n`)
-          buildWorkingTree({repo: abs(), packageName, buildOutputs})
+          buildWorkingTree({repo: abs(), packageName, outputDir})
         }
       }
     })
