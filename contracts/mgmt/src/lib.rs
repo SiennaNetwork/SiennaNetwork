@@ -13,6 +13,9 @@ pub type History = LinearMap<HumanAddr, Uint128>;
 /// The managed SNIP20 contract's code hash.
 pub type CodeHash = String;
 
+/// Pair of address and code hash
+pub type ContractLink = (HumanAddr, CodeHash);
+
 /// Whether the vesting process has begun and when.
 pub type Launched = Option<Seconds>;
 
@@ -37,7 +40,7 @@ contract!(
         admin:    Option<HumanAddr>,
         /// The SNIP20 token contract that will be managed by this instance.
         /// (see `secretcli query compute contract-hash --help` to get the hash).
-        token:    (HumanAddr, CodeHash),
+        token:    ContractLink,
         /// When this contract is launched, this is set to the block time.
         launched: Launched,
         /// History of fulfilled claims.
@@ -52,7 +55,7 @@ contract!(
     ///  - makes the initializer the admin
     [Init] (deps, env, msg: {
         schedule: Schedule,
-        token:    (HumanAddr, CodeHash)
+        token:    ContractLink
     }) {
         let admin    = Some(env.message.sender);
         let history  = History::new();

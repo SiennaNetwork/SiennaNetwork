@@ -11,6 +11,9 @@ pub type Config = LinearMap<HumanAddr, Uint128>;
 /// Code hashes for MGMT and SNIP20
 pub type CodeHash = String;
 
+/// Pair of address and code hash
+pub type ContractLink = (HumanAddr, CodeHash);
+
 /// Error messages
 #[macro_export] macro_rules! RPTError {
     (CORRUPTED) => { "broken" };  // Contract has entered a state that violates core assumptions.
@@ -24,8 +27,8 @@ contract!(
         pool:    String,
         account: String,
         config:  Config,
-        token:  (HumanAddr, CodeHash),
-        mgmt:   (HumanAddr, CodeHash)
+        token:   ContractLink,
+        mgmt:    ContractLink
     }
 
     /// Requires MGMT and SNIP20 to be deployed. Their addresses and hashes,
@@ -34,8 +37,8 @@ contract!(
         pool:    String,
         account: String,
         config:  Config,
-        token:   (HumanAddr, CodeHash),
-        mgmt:    (HumanAddr, CodeHash)
+        token:   ContractLink,
+        mgmt:    ContractLink
     }) {
         let admin = env.message.sender;
         State { admin, pool, account, config, token, mgmt }
