@@ -8,5 +8,3 @@ node_modules
 .~*
 yarn-error.log
 .idea
-
-!snip20-reference-impl.wasm
