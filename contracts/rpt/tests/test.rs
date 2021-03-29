@@ -41,13 +41,11 @@ kukumba!(
     when "someone deploys the contract" {
         assert_eq!(
             init(&mut deps, mock_env(0, 0, &ALICE), RPTInit {
-                pool:       "Pool0".to_string(),
-                account:    "Account0".to_string(),
-                config:     LinearMap(vec![]),
-                token_addr: HumanAddr::from("token"),
-                token_hash: String::new(),
-                mgmt_addr:  HumanAddr::from("mgmt"),
-                mgmt_hash:  String::new(),
+                pool:    "Pool0".to_string(),
+                account: "Account0".to_string(),
+                config:  LinearMap(vec![]),
+                token:   (HumanAddr::from("token"), String::new()),
+                mgmt:    (HumanAddr::from("mgmt"),  String::new()),
             }).unwrap().messages.len(),
             0,
             "deploy failed"

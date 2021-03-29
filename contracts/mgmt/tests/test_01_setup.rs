@@ -20,9 +20,8 @@ kukumba!(
             &mut deps,
             mock_env(0, 0, &ALICE),
             Init {
-                schedule:   sienna_schedule::Schedule::new(&[]),
-                token_addr: cosmwasm_std::HumanAddr::from("token"),
-                token_hash: String::new(),
+                schedule: sienna_schedule::Schedule::new(&[]),
+                token:    (cosmwasm_std::HumanAddr::from("token"), String::new()),
             }
         ).unwrap();
     }
