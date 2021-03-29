@@ -10,7 +10,7 @@ use std::mem::replace;
 /// * in case of duplicate keys, it's the 1st instance of a given key that "counts".
 ///
 /// It's like this because `serde_json_wasm` doesn't serialize maps (`HashMap`, `BTreeMap`).
-/// This is true even in even in versions more recent than the default for SecretNetwork:
+/// This is true even in versions more recent than the default for SecretNetwork:
 /// the `serialize_map` method contains a single `unreachable!()` panic. It's not immediately
 /// obvious why this remains the case the case; perhaps iterating over of those is somehow more
 /// expensive on a blockchain? In any case, in the absence of gas benchmarks it's pointless
@@ -44,4 +44,3 @@ impl<K: PartialEq, V> LinearMap<K, V> {
         }
     }
 }
-
