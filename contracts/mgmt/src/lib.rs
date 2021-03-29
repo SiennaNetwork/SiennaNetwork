@@ -34,18 +34,16 @@ contract!(
 
     [State] {
         /// The instantiatior of the contract.
-        admin:      Option<HumanAddr>,
+        admin:    Option<HumanAddr>,
         /// The SNIP20 token contract that will be managed by this instance.
-        token_addr: HumanAddr,
-        /// The code hash of the managed contract
-        /// (see `secretcli query compute contract-hash --help`).
-        token_hash: CodeHash,
+        /// (see `secretcli query compute contract-hash --help` to get the hash).
+        token:    (HumanAddr, CodeHash),
         /// When this contract is launched, this is set to the block time.
-        launched:   Launched,
+        launched: Launched,
         /// History of fulfilled claims.
-        history:    History,
+        history:  History,
         /// Vesting configuration.
-        schedule:   Schedule
+        schedule: Schedule
     }
 
     /// Initializing an instance of the contract:
@@ -53,17 +51,13 @@ contract!(
     ///    a contract that implements SNIP20
     ///  - makes the initializer the admin
     [Init] (deps, env, msg: {
-        schedule:   Schedule,
-        token_addr: HumanAddr,
-        token_hash: CodeHash
+        schedule: Schedule,
+        token:    (HumanAddr, CodeHash)
     }) {
         let admin    = Some(env.message.sender);
         let history  = History::new();
         let launched = None;
-        State {
-            admin, history, launched,
-            schedule, token_addr, token_hash
-        }
+        State { admin, history, launched, schedule, token }
     }
 
     [Query] (_deps, state, msg) {
@@ -222,20 +216,20 @@ fn portion (state: &State, address: &HumanAddr, t: Seconds) -> (u128, u128) {
 }
 
 fn acquire (state: &State, env: &Env) -> StdResult<Vec<CosmosMsg>> {
+    let (addr, hash) = state.token.clone();
     Ok(vec![
         mint_msg(
             env.contract.address.clone(), state.schedule.total,
-            None, BLOCK_SIZE, state.token_hash.clone(), state.token_addr.clone()
+            None, BLOCK_SIZE, hash.clone(), addr.clone()
         )?,
         set_minters_msg(
             vec![],
-            None, BLOCK_SIZE, state.token_hash.clone(), state.token_addr.clone()
+            None, BLOCK_SIZE, hash.clone(), addr.clone()
         )?,
     ])
 }
 
-fn transfer (state: &State, addr: &HumanAddr, amount: Uint128) -> StdResult<CosmosMsg> {
-    let token_hash = state.token_hash.clone();
-    let token_addr = state.token_addr.clone();
-    transfer_msg(addr.clone(), amount, None, BLOCK_SIZE, token_hash, token_addr)
+fn transfer (state: &State, recipient: &HumanAddr, amount: Uint128) -> StdResult<CosmosMsg> {
+    let (addr, hash) = state.token.clone();
+    transfer_msg(recipient.clone(), amount, None, BLOCK_SIZE, hash, addr)
 }

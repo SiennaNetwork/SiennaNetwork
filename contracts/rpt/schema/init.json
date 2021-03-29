@@ -5,11 +5,9 @@
   "required": [
     "account",
     "config",
-    "mgmt_addr",
-    "mgmt_hash",
+    "mgmt",
     "pool",
-    "token_addr",
-    "token_hash"
+    "token"
   ],
   "properties": {
     "account": {
@@ -18,20 +16,34 @@
     "config": {
       "$ref": "#/definitions/LinearMap_for_HumanAddr_and_Uint128"
     },
-    "mgmt_addr": {
-      "$ref": "#/definitions/HumanAddr"
-    },
-    "mgmt_hash": {
-      "type": "string"
+    "mgmt": {
+      "type": "array",
+      "items": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "maxItems": 2,
+      "minItems": 2
     },
     "pool": {
       "type": "string"
     },
-    "token_addr": {
-      "$ref": "#/definitions/HumanAddr"
-    },
-    "token_hash": {
-      "type": "string"
+    "token": {
+      "type": "array",
+      "items": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "maxItems": 2,
+      "minItems": 2
     }
   },
   "definitions": {

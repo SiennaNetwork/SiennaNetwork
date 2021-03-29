@@ -4,18 +4,24 @@
   "type": "object",
   "required": [
     "schedule",
-    "token_addr",
-    "token_hash"
+    "token"
   ],
   "properties": {
     "schedule": {
       "$ref": "#/definitions/Schedule"
     },
-    "token_addr": {
-      "$ref": "#/definitions/HumanAddr"
-    },
-    "token_hash": {
-      "type": "string"
+    "token": {
+      "type": "array",
+      "items": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "maxItems": 2,
+      "minItems": 2
     }
   },
   "definitions": {
