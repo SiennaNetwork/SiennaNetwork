@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "InitMsg",
+  "title": "Snip20InitMsg",
   "type": "object",
   "required": [
     "decimals",
@@ -19,10 +19,20 @@
         }
       ]
     },
+    "callback": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Callback"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "config": {
       "anyOf": [
         {
-          "$ref": "#/definitions/InitConfig"
+          "$ref": "#/definitions/Snip20InitConfig"
         },
         {
           "type": "null"
@@ -40,7 +50,7 @@
         "null"
       ],
       "items": {
-        "$ref": "#/definitions/InitialBalance"
+        "$ref": "#/definitions/Snip20InitialBalance"
       }
     },
     "name": {
@@ -58,10 +68,41 @@
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
     },
+    "Callback": {
+      "description": "Used to ask a contract to send back a message.",
+      "type": "object",
+      "required": [
+        "contract_addr",
+        "contract_code_hash",
+        "msg"
+      ],
+      "properties": {
+        "contract_addr": {
+          "description": "The address of the contract requesting the callback.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          ]
+        },
+        "contract_code_hash": {
+          "description": "The code hash of the contract requesting the callback.",
+          "type": "string"
+        },
+        "msg": {
+          "description": "The message to call.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
+        }
+      }
+    },
     "HumanAddr": {
       "type": "string"
     },
-    "InitConfig": {
+    "Snip20InitConfig": {
       "description": "This type represents optional configuration values which can be overridden. All values are optional and have defaults which are more private by default, but can be overridden if necessary",
       "type": "object",
       "properties": {
@@ -74,7 +115,7 @@
         }
       }
     },
-    "InitialBalance": {
+    "Snip20InitialBalance": {
       "type": "object",
       "required": [
         "address",

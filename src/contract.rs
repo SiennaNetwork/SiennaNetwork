@@ -1108,7 +1108,7 @@ mod tests {
         let mut deps = mock_dependencies(20, &[]);
         let env = mock_env("instantiator", &[]);
 
-        let init_msg = InitMsg {
+        let init_msg = Snip20InitMsg {
             name: "sec-sec".to_string(),
             admin: Some(HumanAddr("admin".to_string())),
             symbol: "SECSEC".to_string(),
@@ -1116,6 +1116,7 @@ mod tests {
             initial_balances: Some(initial_balances),
             prng_seed: Binary::from("lolz fun yay".as_bytes()),
             config: None,
+            callback: None
         };
 
         (init(&mut deps, env, init_msg), deps)
@@ -2472,7 +2473,7 @@ mod tests {
 
         let mut deps = mock_dependencies(20, &[]);
         let env = mock_env("instantiator", &[]);
-        let init_msg = InitMsg {
+        let init_msg = Snip20InitMsg {
             name: init_name.clone(),
             admin: Some(init_admin.clone()),
             symbol: init_symbol.clone(),
@@ -2483,6 +2484,7 @@ mod tests {
             }]),
             prng_seed: Binary::from("lolz fun yay".as_bytes()),
             config: Some(init_config),
+            callback: None
         };
         let init_result = init(&mut deps, env, init_msg);
         assert!(
