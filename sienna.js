@@ -35,9 +35,6 @@ const CONTRACTS = {
   }
 }
 
-// cargo "example" targets that can be called to generate JSON schema
-const SCHEMA_GENERATORS = [ 'mgmt_schema', 'rpt_schema', /*snip20*/'schema' ]
-
 yargs(process.argv.slice(2))
   .wrap(yargs.terminalWidth())
   .demandCommand(1, '') // print usage by default
