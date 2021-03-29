@@ -19,11 +19,11 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: IdoInitMsg,
 ) -> StdResult<InitResponse> {
-    if msg.snip20_init_info.decimals > 18 {
+    if msg.info.snip20_init_info.decimals > 18 {
         return Err(StdError::generic_err("Decimals must not exceed 18"));
     }
 
-    let input_token_decimals = match &msg.input_token {
+    let input_token_decimals = match &msg.info.input_token {
         TokenType::NativeToken { .. } => 6,
         TokenType::CustomToken { contract_addr, token_code_hash } => {
             let result = snip20::token_info_query(
@@ -38,18 +38,19 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     };
 
     let config = Config {
-        input_token: msg.input_token,
+        input_token: msg.info.input_token,
         swap_constants: SwapConstants {
-            swap_token_decimals: msg.snip20_init_info.decimals,
-            rate: msg.rate,
+            swap_token_decimals: msg.info.snip20_init_info.decimals,
+            rate: msg.info.rate,
             input_token_decimals,
-            whole_swap_token: get_whole_token_representation(msg.snip20_init_info.decimals),
+            whole_swap_token: get_whole_token_representation(msg.info.snip20_init_info.decimals),
         },
         // We get this info when the instantiated SNIP20 calls HandleMsg::OnSnip20Init
         swap_token: ContractInfo {
             code_hash: msg.snip20_contract.code_hash.clone(),
             address: HumanAddr::default()
-        }
+        },
+        callback: Some(msg.callback)
     };
 
     save_config(deps, &config)?;
@@ -61,15 +62,15 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         callback_code_hash: msg.snip20_contract.code_hash,
         label: format!(
             "{}({})",
-            msg.snip20_init_info.name.clone(),
-            msg.snip20_init_info.symbol.clone()
+            msg.info.snip20_init_info.name.clone(),
+            msg.info.snip20_init_info.symbol.clone()
         ),
         msg: to_binary(&Snip20InitMsg {
-            name: msg.snip20_init_info.name,
-            symbol: msg.snip20_init_info.symbol,
-            decimals: msg.snip20_init_info.decimals,
-            prng_seed: msg.snip20_init_info.prng_seed,
-            config: msg.snip20_init_info.config,
+            name: msg.info.snip20_init_info.name,
+            symbol: msg.info.snip20_init_info.symbol,
+            decimals: msg.info.snip20_init_info.decimals,
+            prng_seed: msg.info.snip20_init_info.prng_seed,
+            config: msg.info.snip20_init_info.config,
             admin: Some(env.contract.address.clone()),
             initial_balances: None,
             callback: Some(Callback {
@@ -175,21 +176,38 @@ fn on_snip20_init<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err("Invalid token type!"));
     }
 
+    let mut messages = vec![];
+
+    messages.push(snip20::register_receive_msg(
+        env.contract_code_hash,
+        None,
+        BLOCK_SIZE,
+        config.swap_token.code_hash.clone(),
+        env.message.sender.clone()
+    )?);
+
+    let callback = config.callback.unwrap(); // Safe, because this function is executed only once
+
+    // Register with factory
+    messages.push(
+        CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: callback.contract_addr,
+            callback_code_hash: callback.contract_code_hash,
+            msg: callback.msg,
+            send: vec![],
+        })
+    );
+
     config.swap_token = ContractInfo {
         code_hash: config.swap_token.code_hash,
         address: env.message.sender.clone()
     };
+    config.callback = None;
 
     save_config(deps, &config)?;
 
     Ok(HandleResponse {
-        messages: vec![snip20::register_receive_msg(
-            env.contract_code_hash,
-            None,
-            BLOCK_SIZE,
-            config.swap_token.code_hash,
-            env.message.sender.clone(),
-        )?],
+        messages,
         log: vec![log("swapped_token address", env.message.sender.as_str())],
         data: None,
     })

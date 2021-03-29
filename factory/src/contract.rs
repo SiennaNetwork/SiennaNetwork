@@ -2,9 +2,9 @@ use cosmwasm_std::{
     to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdError,
     StdResult, Storage, WasmMsg, CosmosMsg, log, HumanAddr
 };
-use shared::{TokenPair, ExchangeInitMsg, ContractInfo, Callback};
+use shared::{Callback, ContractInfo, ExchangeInitMsg, IdoInitConfig, IdoInitMsg, TokenPair};
 
-use crate::msg::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
+use crate::{msg::{InitMsg, HandleMsg, QueryMsg, QueryResponse}, state::store_ido_address};
 use crate::state::{
     save_config, load_config, Config, pair_exists, store_exchange,
     get_address_for_pair, get_pair_for_address, Exchange
@@ -28,7 +28,9 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     match msg {
         HandleMsg::CreateExchange { pair } => create_exchange(deps, env, pair),
-        HandleMsg::RegisterExchange { pair } => register_exchange(deps, env, pair)
+        HandleMsg::CreateIdo { info } => create_ido(deps, env, info),
+        HandleMsg::RegisterExchange { pair } => register_exchange(deps, env, pair),
+        HandleMsg::RegisterIdo => register_ido(deps, env)
     }
 }
 
@@ -80,7 +82,7 @@ fn create_exchange<S: Storage, A: Api, Q: Querier>(
                     msg: to_binary(
                         &ExchangeInitMsg {
                             pair: pair.clone(),
-                            lp_token_contract: config.lp_token_contract.clone(),
+                            lp_token_contract: config.snip20_contract.clone(),
                             factory_info: ContractInfo {
                                 code_hash: env.contract_code_hash.clone(),
                                 address: env.contract.address.clone()
@@ -112,7 +114,7 @@ fn register_exchange<S: Storage, A: Api, Q: Querier>(
     pair: TokenPair
 ) -> StdResult<HandleResponse> {
     let exchange = Exchange {
-        pair: pair,
+        pair,
         address: env.message.sender
     };
 
@@ -150,6 +152,62 @@ fn query_exchange_address<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+fn create_ido<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    info: IdoInitConfig
+) -> StdResult<HandleResponse> {
+
+    let config = load_config(deps)?;
+    
+    // Again, creating the IDO happens when the instantiated contract calls
+    // us back via the HandleMsg::RegisterIdo so that we can get its address.
+    
+    Ok(HandleResponse {
+        messages: vec![
+            CosmosMsg::Wasm(WasmMsg::Instantiate {
+                code_id: config.ido_contract.id,
+                callback_code_hash: config.ido_contract.code_hash.clone(),
+                send: vec![],
+                label: format!(
+                    "IDO for {}({}), id: {}",
+                    info.snip20_init_info.name,
+                    info.snip20_init_info.symbol,
+                    config.ido_contract.id
+                ),
+                msg: to_binary(&IdoInitMsg {
+                    info: info,
+                    snip20_contract: config.snip20_contract,
+                    callback: Callback {
+                        contract_addr: env.contract.address,
+                        contract_code_hash: env.contract_code_hash,
+                        msg: to_binary(&HandleMsg::RegisterIdo)?
+                    }
+                })?
+            })
+        ],
+        log: vec![
+            log("action", "create_exchange")
+        ],
+        data: None
+    })
+}
+
+fn register_ido<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env
+) -> StdResult<HandleResponse> {
+    store_ido_address(deps, &env.message.sender)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("created IDO", env.message.sender)
+        ],
+        data: None
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -175,14 +233,20 @@ mod tests {
             id: 33
         };
 
+        let ido_contract = ContractInstantiationInfo {
+            code_hash: "348534835".into(),
+            id: 69
+        };
+
         let sienna_token = ContractInfo {
             code_hash: "3124312312".into(),
             address: HumanAddr("sienna_tkn".into())
         };
 
         let result = init(deps, mock_env("sender1111", &[]), InitMsg {
-            lp_token_contract: lp_token_contract.clone(),
+            snip20_contract: lp_token_contract.clone(),
             pair_contract: pair_contract.clone(),
+            ido_contract: ido_contract.clone(),
             sienna_token: sienna_token.clone()
         });
 
@@ -190,8 +254,9 @@ mod tests {
 
         let config = load_config(deps)?;
 
-        assert_eq!(lp_token_contract, config.lp_token_contract);
+        assert_eq!(lp_token_contract, config.snip20_contract);
         assert_eq!(pair_contract, config.pair_contract);
+        assert_eq!(ido_contract, config.ido_contract);
         assert_eq!(sienna_token, config.sienna_token);
 
         Ok(())

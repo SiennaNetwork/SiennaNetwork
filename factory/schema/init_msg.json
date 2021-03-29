@@ -3,18 +3,42 @@
   "title": "InitMsg",
   "type": "object",
   "required": [
-    "lp_token_contract",
-    "pair_contract"
+    "ido_contract",
+    "pair_contract",
+    "sienna_token",
+    "snip20_contract"
   ],
   "properties": {
-    "lp_token_contract": {
+    "ido_contract": {
       "$ref": "#/definitions/ContractInstantiationInfo"
     },
     "pair_contract": {
       "$ref": "#/definitions/ContractInstantiationInfo"
+    },
+    "sienna_token": {
+      "$ref": "#/definitions/ContractInfo"
+    },
+    "snip20_contract": {
+      "$ref": "#/definitions/ContractInstantiationInfo"
     }
   },
   "definitions": {
+    "ContractInfo": {
+      "description": "Code hash and address of a contract.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
     "ContractInstantiationInfo": {
       "description": "Info used to instantiate a contract",
       "type": "object",
@@ -32,6 +56,9 @@
           "minimum": 0.0
         }
       }
+    },
+    "HumanAddr": {
+      "type": "string"
     }
   }
 }

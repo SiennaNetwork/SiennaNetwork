@@ -1,3 +1,4 @@
+use std::fmt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use cosmwasm_std::{HumanAddr, Binary, Uint128};
@@ -31,10 +32,17 @@ pub struct Callback {
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 pub struct IdoInitMsg {
+    pub snip20_contract: ContractInstantiationInfo,
+    pub info: IdoInitConfig,
+    /// Used by the IDO to register itself with the factory.
+    pub callback: Callback
+}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+pub struct IdoInitConfig {
     /// The token that will be used to buy the instantiated SNIP20
     pub input_token: TokenType,
     pub rate: Uint128,
-    pub snip20_contract: ContractInstantiationInfo,
     pub snip20_init_info: Snip20TokenInitInfo
 }
 
@@ -87,5 +95,16 @@ impl Snip20InitMsg {
 impl Snip20InitConfig {
     pub fn public_total_supply(&self) -> bool {
         self.public_total_supply.unwrap_or(false)
+    }
+}
+
+impl fmt::Display for IdoInitConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Input token: {}, Rate: {}, Created token: {}({})",
+            self.input_token, self.rate, 
+            self.snip20_init_info.name, self.snip20_init_info.symbol
+        )
     }
 }

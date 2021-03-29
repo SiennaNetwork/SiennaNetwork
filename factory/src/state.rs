@@ -1,6 +1,6 @@
 
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::{HumanAddr, Storage, Querier, Api, StdResult, Extern, StdError};
+use cosmwasm_std::{Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage};
 use utils::storage::{save, load};
 use shared::{
     TokenPair, TokenPairStored, TokenTypeStored, ContractInstantiationInfo,
@@ -10,11 +10,13 @@ use shared::{
 use crate::msg::InitMsg;
 
 const CONFIG_KEY: &[u8] = b"config";
+const IDO_PREFIX: &[u8] = b"ido_";
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct Config {
-    pub lp_token_contract: ContractInstantiationInfo,
+    pub snip20_contract: ContractInstantiationInfo,
     pub pair_contract: ContractInstantiationInfo,
+    pub ido_contract: ContractInstantiationInfo,
     pub sienna_token: ContractInfo
 }
 
@@ -29,16 +31,18 @@ pub(crate) struct Exchange {
 
 #[derive(Serialize, Deserialize)]
 struct ConfigStored {
-    pub lp_token_contract: ContractInstantiationInfo,
+    pub snip20_contract: ContractInstantiationInfo,
     pub pair_contract: ContractInstantiationInfo,
+    pub ido_contract: ContractInstantiationInfo,
     pub sienna_token: ContractInfoStored
 }
 
 impl Config {
     pub fn from_init_msg(msg: InitMsg) -> Self {
         Self {
-            lp_token_contract: msg.lp_token_contract,
+            snip20_contract: msg.snip20_contract,
             pair_contract: msg.pair_contract,
+            ido_contract: msg.ido_contract,
             sienna_token: msg.sienna_token
         }
     }
@@ -49,8 +53,9 @@ pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     config: &Config) -> StdResult<()> {
     let config = ConfigStored {
-        lp_token_contract: config.lp_token_contract.clone(),
+        snip20_contract: config.snip20_contract.clone(),
         pair_contract: config.pair_contract.clone(),
+        ido_contract: config.ido_contract.clone(),
         sienna_token: config.sienna_token.to_stored(&deps.api)?
     };
 
@@ -62,8 +67,9 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>
     let result: ConfigStored = load(&deps.storage, CONFIG_KEY)?;
 
     let config = Config {
-        lp_token_contract: result.lp_token_contract.clone(),
-        pair_contract: result.pair_contract.clone(),
+        snip20_contract: result.snip20_contract,
+        pair_contract: result.pair_contract,
+        ido_contract: result.ido_contract,
         sienna_token: result.sienna_token.to_normal(&deps.api)?
     };
 
@@ -138,6 +144,29 @@ pub(crate) fn get_address_for_pair<S: Storage, A: Api, Q: Querier>(
     let canonical = load(&deps.storage, &key)?;
 
     Ok(deps.api.human_address(&canonical)?)
+}
+
+pub(crate) fn store_ido_address<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    address: &HumanAddr
+) -> StdResult<()> {
+    let address = deps.api.canonical_address(&address)?;
+
+    save(&mut deps.storage, generate_ido_key(&address).as_slice(), &address)
+}
+/*
+pub(crate) fn get_ido_address<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    address: &HumanAddr
+) -> StdResult<()> {
+    let address = deps.api.canonical_address(&address)?;
+
+    load(&deps.storage, generate_ido_key(&address).as_slice())
+}
+*/
+
+fn generate_ido_key(address: &CanonicalAddr) -> Vec<u8> {
+    [ IDO_PREFIX, address.as_slice() ].concat()
 }
 
 fn generate_pair_key(
