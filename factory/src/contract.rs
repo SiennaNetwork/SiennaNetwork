@@ -16,7 +16,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
     let config = Config::from_init_msg(msg);
-    save_config(&mut deps.storage, &config)?;
+    save_config(deps, &config)?;
 
     Ok(InitResponse::default())
 }
@@ -56,7 +56,7 @@ fn create_exchange<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err("Pair already exists"));
     }
 
-    let config = load_config(&deps.storage)?;
+    let config = load_config(deps)?;
 
     // Actually creating the exchange happens when the instantiated contract calls
     // us back via the HandleMsg::RegisterExchange so that we can get its address.
@@ -144,7 +144,6 @@ fn query_exchange_address<S: Storage, A: Api, Q: Querier>(
     pair: TokenPair
 ) -> StdResult<Binary> {
     let address = get_address_for_pair(deps, &pair)?;
-    let address = deps.api.human_address(&address)?;
     
     to_binary(&QueryResponse::GetExchangeAddress {
         address
@@ -178,7 +177,7 @@ mod tests {
 
         let sienna_token = ContractInfo {
             code_hash: "3124312312".into(),
-            address: HumanAddr("sienna_token".into())
+            address: HumanAddr("sienna_tkn".into())
         };
 
         let result = init(deps, mock_env("sender1111", &[]), InitMsg {
@@ -189,7 +188,7 @@ mod tests {
 
         assert!(result.is_ok());
 
-        let config = load_config(&deps.storage)?;
+        let config = load_config(deps)?;
 
         assert_eq!(lp_token_contract, config.lp_token_contract);
         assert_eq!(pair_contract, config.pair_contract);

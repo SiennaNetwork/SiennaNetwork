@@ -1,8 +1,11 @@
 
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::{CanonicalAddr, HumanAddr, Storage, Querier, Api, StdResult, Extern, ReadonlyStorage, StdError};
+use cosmwasm_std::{HumanAddr, Storage, Querier, Api, StdResult, Extern, StdError};
 use utils::storage::{save, load};
-use shared::{TokenPair, TokenPairStored, TokenTypeStored, ContractInstantiationInfo, ContractInfo};
+use shared::{
+    TokenPair, TokenPairStored, TokenTypeStored, ContractInstantiationInfo,
+    ContractInfo, ContractInfoStored
+};
 
 use crate::msg::InitMsg;
 
@@ -24,6 +27,13 @@ pub(crate) struct Exchange {
     pub address: HumanAddr
 }
 
+#[derive(Serialize, Deserialize)]
+struct ConfigStored {
+    pub lp_token_contract: ContractInstantiationInfo,
+    pub pair_contract: ContractInstantiationInfo,
+    pub sienna_token: ContractInfoStored
+}
+
 impl Config {
     pub fn from_init_msg(msg: InitMsg) -> Self {
         Self {
@@ -35,22 +45,29 @@ impl Config {
 }
 
 /// Returns StdResult<()> resulting from saving the config to storage
-///
-/// # Arguments
-///
-/// * `storage` - a mutable reference to the storage this item should go to
-/// * `config` - a reference to a Config struct
-pub(crate) fn save_config(storage: &mut impl Storage, config: &Config) -> StdResult<()> {
-    save(storage, CONFIG_KEY, config)
+pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    config: &Config) -> StdResult<()> {
+    let config = ConfigStored {
+        lp_token_contract: config.lp_token_contract.clone(),
+        pair_contract: config.pair_contract.clone(),
+        sienna_token: config.sienna_token.to_stored(&deps.api)?
+    };
+
+    save(&mut deps.storage, CONFIG_KEY, &config)
 }
 
 /// Returns StdResult<Config> resulting from retrieving the config from storage
-///
-/// # Arguments
-///
-/// * `storage` - a reference to the storage this item should go to
-pub(crate) fn load_config(storage: &impl ReadonlyStorage) -> StdResult<Config> {
-    load(storage, CONFIG_KEY)
+pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Config> {
+    let result: ConfigStored = load(&deps.storage, CONFIG_KEY)?;
+
+    let config = Config {
+        lp_token_contract: result.lp_token_contract.clone(),
+        pair_contract: result.pair_contract.clone(),
+        sienna_token: result.sienna_token.to_normal(&deps.api)?
+    };
+
+    Ok(config)
 }
 
 /// Returns StdResult<bool> indicating whether a pair has been created before or not.
@@ -114,11 +131,13 @@ pub(crate) fn get_pair_for_address<S: Storage, A: Api, Q: Querier>(
 pub(crate) fn get_address_for_pair<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     pair: &TokenPair
-) -> StdResult<CanonicalAddr> {
+) -> StdResult<HumanAddr> {
     let pair = pair.to_stored(&deps.api)?;
     let key = generate_pair_key(&pair);
 
-    load(&deps.storage, &key)
+    let canonical = load(&deps.storage, &key)?;
+
+    Ok(deps.api.human_address(&canonical)?)
 }
 
 fn generate_pair_key(
@@ -248,7 +267,6 @@ mod tests {
 
         let retrieved_pair = get_pair_for_address(&deps, &exchange.address)?;
         let retrieved_address = get_address_for_pair(&deps, &pair)?;
-        let retrieved_address = deps.api.human_address(&retrieved_address)?;
         
         assert_eq!(pair, retrieved_pair);
         assert_eq!(address, retrieved_address);
