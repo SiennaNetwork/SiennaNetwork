@@ -1,5 +1,20 @@
 .DEFAULT_GOAL := prod
 
+# Compilation
+optimizer: build/optimizer/*
+	docker build                               \
+		-f build/optimizer/Dockerfile             \
+		-t hackbg/secret-contract-optimizer:latest \
+		build/optimizer
+localnet: integraton/localnet/*
+	docker build                           \
+		-f integraton/localnet/Dockerfile          \
+		-t hackbg/secret-network-sw-dev:latest \
+		integraton/localnet
+.PHONY: prod
+prod: optimizer
+	time build/working-tree
+
 # Validation
 .PHONY: docs coverage expand
 docs:
@@ -36,16 +51,6 @@ test-loop:
 test-localnet:
 	docker-compose up -d
 	docker-compose exec localnet /sienna/scripts/test.js
-
-# Compilation
-.PHONY: prod
-optimizer: build/optimizer/*
-	docker build                               \
-		-f build/optimizer/Dockerfile             \
-		-t hackbg/secret-contract-optimizer:latest \
-		build/optimizer
-prod: optimizer
-	time build/working-tree
 # TODO: see if there's any value in keeping these around:
 #compile: _compile sienna_token.wasm sienna_mgmt.wasm
 #_compile:
