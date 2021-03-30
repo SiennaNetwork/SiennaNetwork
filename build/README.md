@@ -1,7 +1,8 @@
 ## `build/`
 
-* `working-tree`: make production build of current working tree
-* `commit`: make production build of specified commit
-* `outputs/`: build results
 * `optimizer/`: build tool
-* `localnet/`: integration testing tool
+* `outputs/`: contains build results
+* `outputs/checksums.sha256.txt`: hashes of built binaries
+* `outputs/<PACKAGE>@<COMMIT>.wasm`: built binaries (gitignored)
+* `outputs/<PACKAGE>@<COMMIT>.<NETWORK>.upload`:
+  code IDs; delete these to reupload (e.g. after reinitializing localnet)
