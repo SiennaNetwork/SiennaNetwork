@@ -1,4 +1,6 @@
 
+use std::usize;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage};
 use utils::storage::{save, load};
@@ -10,14 +12,23 @@ use shared::{
 use crate::msg::InitMsg;
 
 const CONFIG_KEY: &[u8] = b"config";
-const IDO_PREFIX: &[u8] = b"ido_";
+const IDO_PREFIX: &[u8; 1] = b"I";
+//const PAIR_PREFIX: &[u8; 1] = b"P";
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+pub struct Pagination {
+    pub start: u64,
+    pub limit: u8
+}
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct Config {
     pub snip20_contract: ContractInstantiationInfo,
     pub pair_contract: ContractInstantiationInfo,
     pub ido_contract: ContractInstantiationInfo,
-    pub sienna_token: ContractInfo
+    pub sienna_token: ContractInfo,
+    pub pair_count: u64,
+    pub ido_count: u64
 }
 
 /// Represents the address of an exchange and the pair that it manages
@@ -34,7 +45,9 @@ struct ConfigStored {
     pub snip20_contract: ContractInstantiationInfo,
     pub pair_contract: ContractInstantiationInfo,
     pub ido_contract: ContractInstantiationInfo,
-    pub sienna_token: ContractInfoStored
+    pub sienna_token: ContractInfoStored,
+    pub pair_count: u64,
+    pub ido_count: u64
 }
 
 impl Config {
@@ -43,7 +56,9 @@ impl Config {
             snip20_contract: msg.snip20_contract,
             pair_contract: msg.pair_contract,
             ido_contract: msg.ido_contract,
-            sienna_token: msg.sienna_token
+            sienna_token: msg.sienna_token,
+            pair_count: 0,
+            ido_count: 0
         }
     }
 }
@@ -56,7 +71,9 @@ pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
         snip20_contract: config.snip20_contract.clone(),
         pair_contract: config.pair_contract.clone(),
         ido_contract: config.ido_contract.clone(),
-        sienna_token: config.sienna_token.to_stored(&deps.api)?
+        sienna_token: config.sienna_token.to_stored(&deps.api)?,
+        pair_count: config.pair_count,
+        ido_count: config.ido_count
     };
 
     save(&mut deps.storage, CONFIG_KEY, &config)
@@ -70,7 +87,9 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>
         snip20_contract: result.snip20_contract,
         pair_contract: result.pair_contract,
         ido_contract: result.ido_contract,
-        sienna_token: result.sienna_token.to_normal(&deps.api)?
+        sienna_token: result.sienna_token.to_normal(&deps.api)?,
+        pair_count: result.pair_count,
+        ido_count: result.ido_count
     };
 
     Ok(config)
@@ -115,7 +134,7 @@ pub(crate) fn store_exchange<S: Storage, A: Api, Q: Querier>(
     if let Some(_) = deps.storage.get(&key) {
         return Err(StdError::generic_err("Exchange address already exists"));
     }
-
+    
     save(&mut deps.storage, canonical.as_slice(), &pair)?;
     save(&mut deps.storage, &key, &canonical)?;
 
@@ -148,25 +167,54 @@ pub(crate) fn get_address_for_pair<S: Storage, A: Api, Q: Querier>(
 
 pub(crate) fn store_ido_address<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    address: &HumanAddr
+    address: &HumanAddr,
+    config: &mut Config
 ) -> StdResult<()> {
     let address = deps.api.canonical_address(&address)?;
+    let index = generate_ido_index(&config.ido_count);
 
-    save(&mut deps.storage, generate_ido_key(&address).as_slice(), &address)
+    // The SecretSwap implementation keeps all the keys in a single array which eventually grows big
+    // and costs more to write back. It still neads to read the actual values one by one, as in here.
+    // On the other hand it (SecretSwap) should be faster when reading all values. Here, this optimized for
+    // faster writing by only having to write a single value with no reading. But this approach should be slower
+    // when reading all values as we have O (n * 2) whereas SecretSwap is (n + 1) even though the could be a very large 1 value. 
+    // How much slower will this be in practice is the question. Needs testing.
+    save(&mut deps.storage, index.as_slice(), &address)?;
+
+    config.ido_count += 1;
+    save_config(deps, &config)?;
+
+    Ok(())
 }
-/*
-pub(crate) fn get_ido_address<S: Storage, A: Api, Q: Querier>(
+
+pub(crate) fn get_idos<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    address: &HumanAddr
-) -> StdResult<()> {
-    let address = deps.api.canonical_address(&address)?;
+    config: &Config,
+    pagination: Pagination
+) -> StdResult<Vec<HumanAddr>> {
+    if pagination.start >= config.ido_count {
+        return Ok(vec![]);
+    }
 
-    load(&deps.storage, generate_ido_key(&address).as_slice())
+    let limit = pagination.limit.min(Pagination::MAX_LIMIT);
+
+    let mut result = Vec::with_capacity(limit as usize);
+    
+    let end = pagination.start + limit as u64;
+
+    for i in pagination.start..end {
+        let index = generate_ido_index(&i);
+        let addr: CanonicalAddr = load(&deps.storage, index.as_slice())?;
+
+        let human_addr = deps.api.human_address(&addr)?;
+        result.push(human_addr);
+    }
+
+    Ok(result)
 }
-*/
 
-fn generate_ido_key(address: &CanonicalAddr) -> Vec<u8> {
-    [ IDO_PREFIX, address.as_slice() ].concat()
+fn generate_ido_index(index: &u64) -> Vec<u8> {
+    [ IDO_PREFIX, index.to_string().as_bytes() ].concat()
 }
 
 fn generate_pair_key(
@@ -189,12 +237,25 @@ fn generate_pair_key(
     bytes.concat()
 }
 
+impl Pagination {
+    const MAX_LIMIT: u8 = 30;
+
+    pub fn new(start: u64, limit: u8) -> Self {
+        Self {
+            start,
+            limit
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::testing::{mock_dependencies};
+    use cosmwasm_std::testing::mock_dependencies;
     use cosmwasm_std::{HumanAddr, Storage};
     use shared::TokenType;
+
+    use crate::msg::InitMsg;
 
     fn create_deps() -> Extern<impl Storage, impl Api, impl Querier> {
         mock_dependencies(10, &[])
@@ -367,6 +428,54 @@ mod tests {
         store_exchange(deps, &exchange)?;
 
         assert!(pair_exists(deps, &pair)?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_idos() -> StdResult<()> {
+        let ref mut deps = create_deps();
+
+        let mut config = Config::from_init_msg(InitMsg {
+            snip20_contract: ContractInstantiationInfo {
+                id: 1,
+                code_hash: "snip20_contract".into()
+            },
+            ido_contract: ContractInstantiationInfo {
+                id: 1,
+                code_hash: "ido_contract".into()
+            },
+            pair_contract: ContractInstantiationInfo {
+                id: 1,
+                code_hash: "pair_contract".into()
+            },
+            sienna_token: ContractInfo {
+                code_hash: "sienna_token".into(),
+                address: HumanAddr::from("sienna_ad")
+            }
+        });
+
+        save_config(deps, &config)?;
+
+        let mut addresses = vec![];
+
+        for i in 0..33 {
+            let addr = HumanAddr::from(format!("addr_{}", i));
+
+            store_ido_address(deps, &addr, &mut config)?;
+            addresses.push(addr);
+        }
+
+        let mut config = load_config(deps)?;
+
+        let result = get_idos(deps, &mut config, Pagination::new(addresses.len() as u64, 20))?;
+        assert_eq!(result.len(), 0);
+
+        let result = get_idos(deps, &mut config, Pagination::new(0, Pagination::MAX_LIMIT + 10))?;
+        assert_eq!(result.len(), Pagination::MAX_LIMIT as usize);
+
+        let result = get_idos(deps, &mut config, Pagination::new(3, Pagination::MAX_LIMIT))?;
+        assert_eq!(result, addresses[3..]);
 
         Ok(())
     }

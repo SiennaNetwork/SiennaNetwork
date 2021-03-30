@@ -3,6 +3,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use shared::{TokenPair, ContractInstantiationInfo, ContractInfo, IdoInitConfig};
 
+use crate::state::Pagination;
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {
     pub snip20_contract: ContractInstantiationInfo,
@@ -40,6 +42,9 @@ pub enum QueryMsg {
     },
     GetExchangeAddress {
         pair: TokenPair
+    },
+    ListIdos {
+        pagination: Pagination
     }
 }
 
@@ -51,5 +56,8 @@ pub enum QueryResponse {
     },
     GetExchangeAddress {
         address: HumanAddr
+    },
+    ListIdos {
+        idos: Vec<HumanAddr>
     }
 }

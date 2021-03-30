@@ -4,10 +4,10 @@ use cosmwasm_std::{
 };
 use shared::{Callback, ContractInfo, ExchangeInitMsg, IdoInitConfig, IdoInitMsg, TokenPair};
 
-use crate::{msg::{InitMsg, HandleMsg, QueryMsg, QueryResponse}, state::store_ido_address};
+use crate::{msg::{InitMsg, HandleMsg, QueryMsg, QueryResponse}, state::{Pagination, store_ido_address}};
 use crate::state::{
     save_config, load_config, Config, pair_exists, store_exchange,
-    get_address_for_pair, get_pair_for_address, Exchange
+    get_address_for_pair, get_pair_for_address, Exchange, get_idos
 };
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
@@ -40,7 +40,8 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<Binary> {
     match msg {
         QueryMsg::GetExchangePair { exchange_addr } => query_exchange_pair(deps, exchange_addr),
-        QueryMsg::GetExchangeAddress { pair } => query_exchange_address(deps, pair)
+        QueryMsg::GetExchangeAddress { pair } => query_exchange_address(deps, pair),
+        QueryMsg::ListIdos { pagination } => list_idos(deps, pagination)
     }
 }
 
@@ -197,7 +198,9 @@ fn register_ido<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env
 ) -> StdResult<HandleResponse> {
-    store_ido_address(deps, &env.message.sender)?;
+    let mut config = load_config(deps)?;
+
+    store_ido_address(deps, &env.message.sender, &mut config)?;
 
     Ok(HandleResponse {
         messages: vec![],
@@ -206,6 +209,18 @@ fn register_ido<S: Storage, A: Api, Q: Querier>(
         ],
         data: None
     })
+}
+
+fn list_idos<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    pagination: Pagination
+) -> StdResult<Binary> {
+    let config = load_config(deps)?;
+    let result = get_idos(deps, &config, pagination)?;
+
+    Ok(to_binary(&QueryResponse::ListIdos {
+        idos: result
+    })?)
 }
 
 #[cfg(test)]
