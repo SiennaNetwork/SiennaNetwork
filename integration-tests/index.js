@@ -15,6 +15,8 @@ async function run_tests() {
 async function setup() {
   const commit = process.argv[2]
 
+  SecretNetwork.Agent.APIURL = 'http://localhost:1337';
+
   const snip20_wasm = resolve(`../dist/${commit}-snip20-reference-impl.wasm`)
   const exchange_wasm = resolve(`../dist/${commit}-exchange.wasm`)
   const ido_wasm = resolve(`../dist/${commit}-ido.wasm`)
