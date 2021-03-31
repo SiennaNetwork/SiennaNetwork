@@ -55,7 +55,7 @@ const say = sayer.tag(() => new Date().toISOString()) // Timestamped logger
 SecretNetwork.Agent.fromMnemonic({
   say:      say.tag('agent'),
   name:     "agent",
-  mnemonic: loadJSON(`../build/localnet/keys/ADMIN.json`, import.meta.url).mnemonic
+  mnemonic: loadJSON(`../integration/localnet/keys/ADMIN.json`, import.meta.url).mnemonic
 
 }).then(async function prepare (agent) {
   const wallets    = []

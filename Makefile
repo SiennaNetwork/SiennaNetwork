@@ -6,11 +6,11 @@ optimizer: build/optimizer/*
 		-f build/optimizer/Dockerfile             \
 		-t hackbg/secret-contract-optimizer:latest \
 		build/optimizer
-localnet: integraton/localnet/*
+localnet: integration/localnet/*
 	docker build                           \
-		-f integraton/localnet/Dockerfile          \
+		-f integration/localnet/Dockerfile          \
 		-t hackbg/secret-network-sw-dev:latest \
-		integraton/localnet
+		integration/localnet
 .PHONY: prod
 prod: optimizer
 	time build/working-tree
