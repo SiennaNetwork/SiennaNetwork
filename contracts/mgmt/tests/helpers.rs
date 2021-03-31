@@ -81,6 +81,9 @@ macro_rules! test_tx {
             (messages: $msgs:tt) => {
                 Ok(cosmwasm_std::HandleResponse { data: None, log: vec![], messages: vec! $msgs })
             };
+            (messages: $msgs:tt, log: $log:expr) => {
+                Ok(cosmwasm_std::HandleResponse { data: None, log: $log, messages: vec! $msgs })
+            };
             (launched: $amount:expr) => {
                 ok!(messages: [
                     secret_toolkit::snip20::handle::mint_msg(
@@ -92,6 +95,8 @@ macro_rules! test_tx {
                         vec![],
                         None, 256, String::new(), cosmwasm_std::HumanAddr::from("token")
                     ).unwrap()
+                ], log: vec![
+                    cosmwasm_std::LogAttribute { key: "launched".to_string(), value: $time.to_string() }
                 ])
             };
             (claimed: $addr:expr, $amount:expr) => {
@@ -116,8 +121,8 @@ macro_rules! test_tx {
         if response != expected_response {
             println!("!!! Test transaction failed (block {}, time {})", $block, $time);
             if let Ok(cosmwasm_std::HandleResponse { messages, log, data }) = expected_response {
-                println!("Expected data =\n {:#?}", &data);
-                println!("Expected logs =\n {:#?}", &log);
+                println!("Expected data: {:#?}", &data);
+                println!("Expected logs: {:#?}", &log);
                 println!("Expected messages:");
                 for message in messages.iter() {
                     match message {
@@ -136,8 +141,8 @@ macro_rules! test_tx {
                 println!("Expected response:\n  {:#?}", &expected_response);
             }
             if let Ok(cosmwasm_std::HandleResponse { messages, log, data }) = response {
-                println!("Actual data =\n{:#?}", &data);
-                println!("Actual logs =\n{:#?}", &log);
+                println!("Actual data: {:#?}", &data);
+                println!("Actual logs: {:#?}", &log);
                 println!("Actual messages:");
                 for message in messages.iter() {
                     match message {

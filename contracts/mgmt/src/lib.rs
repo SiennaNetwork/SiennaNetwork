@@ -143,8 +143,7 @@ contract!(
             ok!(state)
         }
 
-        /// The admin can disown the contract
-        /// so that nobody can be admin anymore:
+        /// DANGER: Set admin to None, making further changes impossible.
         Disown () {
             is_admin(&state, &env)?;
             state.admin = None;
@@ -159,7 +158,9 @@ contract!(
             is_admin(&state, &env)?;
             is_not_launched(&state)?;
             state.launched = Some(env.block.time);
-            ok!(state, acquire(&state, &env)?)
+            ok!(state, acquire(&state, &env)?, vec![
+                LogAttribute { key: "launched".to_string(), value: env.block.time.to_string() }
+            ])
         }
 
         /// After launch, recipients can call the Claim method to
