@@ -1,6 +1,6 @@
-const SecretNetworkContract = require('../fadroma/js/contract')
+import SecretNetworkContract from '@hackbg/fadroma/js/contract.js'
 
-class Callback {
+export class Callback {
     constructor(msg, contract_addr, contract_code_hash) {
         this.msg = msg
         this.contract_addr = contract_addr
@@ -8,21 +8,28 @@ class Callback {
     }
 }
 
-class ContractInstantiationInfo {
+export class ContractInstantiationInfo {
     constructor(code_hash, id) {
         this.code_hash = code_hash
         this.id = id
     }
 }
 
-class TokenPair {
+export class ContractInfo {
+    constructor(code_hash, address) {
+        this.code_hash = code_hash
+        this.address = address
+    }
+}
+
+export class TokenPair {
     constructor(token_0, token_1) {
         this.token_0 = token_0
         this.token_1 = token_1
     }
 }
 
-class TokenPairAmount {
+export class TokenPairAmount {
     constructor(pair, amount_0, amount_1) {
         this.amount_0 = amount_0
         this.amount_1 = amount_1
@@ -30,15 +37,15 @@ class TokenPairAmount {
     }
 }
 
-class TokenTypeAmount {
+export class TokenTypeAmount {
     constructor(token, amount) {
         this.token = token
         this.amount = amount
     }
 }
 
-class FactoryContract extends SecretNetworkContract { 
-    static async instantiate (say, commit, lp_token_contract, pair_contract) {
+export class FactoryContract extends SecretNetworkContract { 
+    static async instantiate (say, commit, snip20_contract, pair_contract, ido_contract, sienna_token) {
         const name = 'amm-factory'
         const binary = `${commit}-${name}.wasm`
 
@@ -46,8 +53,10 @@ class FactoryContract extends SecretNetworkContract {
         args.name = name
         args.binary = binary
         args.data = { 
-            lp_token_contract: lp_token_contract,
-            pair_contract: pair_contract
+            snip20_contract,
+            pair_contract,
+            ido_contract,
+            sienna_token
         }
 
         say = say.tag(`#${this.name}`)
@@ -76,7 +85,7 @@ class FactoryContract extends SecretNetworkContract {
     }
 }
 
-class ExchangeContract { 
+export class ExchangeContract { 
     constructor(name, address, agent) {
         this.info = { name, address };
         this.agent = agent;
@@ -121,7 +130,7 @@ class ExchangeContract {
     }
 }
 
-class SNIP20Contract extends SecretNetworkContract {
+export class SNIP20Contract extends SecretNetworkContract {
 
     static async deployNewToken (name, agent, binary, init_msg) {
         let args = {}
@@ -161,12 +170,3 @@ class SNIP20Contract extends SecretNetworkContract {
       return await this.execute('change_admin', {address})
     } 
 }
-
-module.exports = Callback
-module.exports = FactoryContract
-module.exports = ContractInstantiationInfo
-module.exports = TokenPair
-module.exports = TokenPairAmount
-module.exports = ExchangeContract
-module.exports = TokenTypeAmount
-module.exports = SNIP20Contract

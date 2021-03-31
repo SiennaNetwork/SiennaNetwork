@@ -4,6 +4,8 @@ docker run -d --rm \
 
  Commit=`git rev-parse --short HEAD`
 
+ sleep 10
+
  node --trace-warnings index.js $Commit
 
  docker kill secretdev
