@@ -8,5 +8,5 @@
 	path = libraries/kukumba
 	url = git@github.com:hackbg/kukumba.git
 [submodule "platform"]
-	path = libraries/platform
+	path = platform
 	url = git@github.com:hackbg/SecretNetwork.git

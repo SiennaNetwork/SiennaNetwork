@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "./libraries/platform/cosmwasm-js",
-    "./libraries/platform/cosmwasm-js/packages/*",
+    "./platform/cosmwasm-js",
+    "./platform/cosmwasm-js/packages/*",
     "./libraries/fadroma",
     "./libraries/schedule",
     "./contracts/token",

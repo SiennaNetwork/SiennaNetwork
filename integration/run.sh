@@ -4,7 +4,7 @@ set -aue
 # This rebuilds SecretJS so that any changes (such as error handling fixes) are seen by the test.
 # If this fails, make sure there is no `build/node_modules` directory; if it exists, delete it.
 echo "Ensuring build deps for SecretJS are available ----------------------------------------------"
-pushd libraries/platform/cosmwasm-js/packages/sdk
+pushd platform/cosmwasm-js/packages/sdk
 yarn
 echo "Building SecretJS with saner error handling -------------------------------------------------"
 yarn build
