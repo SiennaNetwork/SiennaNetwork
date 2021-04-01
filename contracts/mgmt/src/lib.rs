@@ -34,7 +34,6 @@ pub const BLOCK_SIZE: usize = 256;
 }
 
 contract!(
-
     [State] {
         /// The instantiatior of the contract.
         admin:    Option<HumanAddr>,
@@ -48,7 +47,6 @@ contract!(
         /// Vesting configuration.
         schedule: Schedule
     }
-
     /// Initializing an instance of the contract:
     ///  - requires the address and code hash of
     ///    a contract that implements SNIP20
@@ -62,15 +60,28 @@ contract!(
         let launched = None;
         State { admin, history, launched, schedule, token }
     }
-
     [Query] (_deps, state, msg) {
-
         /// Return error count and launch timestamp.
-        Status () { Response::Status { launched: state.launched } }
-
+        Status () {
+            Response::Status { launched: state.launched }
+        }
         /// Return schedule
-        Schedule () { Response::Schedule { schedule: state.schedule } }
-
+        Schedule () {
+            Response::Schedule { schedule: state.schedule }
+        }
+        /// Return amount that can be claimed by the specified address at the specified time
+        Progress (address: HumanAddr, time: Seconds) {
+            if let Some(_) = &state.launched {
+                let unlocked = state.schedule.unlocked(time, &address).into();
+                let claimed = match state.history.get(&address.clone()) {
+                    Some(&claimed) => claimed,
+                    None => Uint128::zero()
+                };
+                Response::Progress { unlocked, claimed }
+            } else {
+                Response::Error { msg: MGMTError!(PRELAUNCH).to_string() }
+            }
+        }
         /// Return the allocated portion size of an account
         /// (used by RPT to validate its configuration)
         Portion (pool_name: String, account_name: String) {
@@ -87,22 +98,7 @@ contract!(
             }
             Response::NotFound {}
         }
-
-        /// Return amount that can be claimed by the specified address at the specified time
-        Progress (address: HumanAddr, time: Seconds) {
-            if let Some(_) = &state.launched {
-                let unlocked = state.schedule.unlocked(time, &address).into();
-                let claimed = match state.history.get(&address.clone()) {
-                    Some(&claimed) => claimed,
-                    None => Uint128::zero()
-                };
-                Response::Progress { unlocked, claimed }
-            } else {
-                Response::Error { msg: MGMTError!(PRELAUNCH).to_string() }
-            }
-        }
     }
-
     [Response] {
         Status   { launched: Launched }
         Schedule { schedule: Schedule }
@@ -111,9 +107,7 @@ contract!(
         Error    { msg: String }
         NotFound {}
     }
-
     [Handle] (deps, env, state, msg) {
-
         /// Load a new schedule (only before launching the contract)
         Configure (schedule: Schedule) {
             is_admin(&state, &env)?;
@@ -122,7 +116,6 @@ contract!(
             state.schedule = schedule;
             ok!(state)
         }
-
         /// Add a new account to a partially filled pool
         AddAccount (pool: String, account: Account) {
             is_admin(&state, &env)?;
@@ -134,7 +127,6 @@ contract!(
                 }
             }
         }
-
         /// The admin can make someone else the admin,
         /// but there can be only one admin at a given time (or none)
         SetOwner (new_admin: HumanAddr) {
@@ -142,14 +134,12 @@ contract!(
             state.admin = Some(new_admin);
             ok!(state)
         }
-
         /// DANGER: Set admin to None, making further changes impossible.
         Disown () {
             is_admin(&state, &env)?;
             state.admin = None;
             ok!(state)
         }
-
         /// An instance can be launched only once.
         /// Launching the instance mints the total tokens as specified by
         /// the schedule, and prevents any more tokens from ever being minted
@@ -162,7 +152,6 @@ contract!(
                 LogAttribute { key: "launched".to_string(), value: env.block.time.to_string() }
             ])
         }
-
         /// After launch, recipients can call the Claim method to
         /// receive the gains that they have accumulated so far.
         Claim () {

@@ -59,11 +59,11 @@ contract!(
             is_admin(&state, &env)?;
             let response = query_portion_size(&state, &deps.querier)?;
             match validate_config(response, &config) {
+                Err(e) => err_msg(state, &e),
                 Ok(_) => {
                     state.config = config;
                     ok!(state)
                 },
-                Err(e) => err_msg(state, &e)
             }
         }
 
