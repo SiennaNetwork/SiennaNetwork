@@ -67,7 +67,7 @@
       }
     },
     {
-      "description": "The admin can disown the contract so that nobody can be admin anymore:",
+      "description": "DANGER: Set admin to None, making further changes impossible.",
       "type": "object",
       "required": [
         "disown"
