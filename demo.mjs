@@ -27,7 +27,10 @@ const schedule  = loadJSON('./settings/schedule.json', here)
 
 const localnet = SecretNetwork.connect(here).then(async ({chain, agent, builder})=>{
 
-  const steps = [['time', 'description', 'took', 'gas', 'profiling overhead']]
+  const rows = [
+    ['time', 'description', 'took', 'gas', 'profiling overhead'],
+    ['---', '---', '---', '---', '---']
+  ]
 
   const recipients = await prepare(chain, agent, schedule)
   const contracts  = await deploy(builder, schedule, recipients)
@@ -142,7 +145,7 @@ const localnet = SecretNetwork.connect(here).then(async ({chain, agent, builder}
   async function verify (agent, recipients, contracts, schedule) {
     const { TOKEN, MGMT, RPT } = contracts
 
-    await step('set null viewing keysasync () => {
+    await step('set null viewing keys', async () => {
       const vk = "entropy"
       return (await Promise.all(
         Object.values(recipients).map(({agent})=>
@@ -151,7 +154,7 @@ const localnet = SecretNetwork.connect(here).then(async ({chain, agent, builder}
       )).map(({tx})=>tx)
     })
 
-    await step('make mgmt owner of tokenasync () => {
+    await step('make mgmt owner of token', async () => {
       return await MGMT.acquire(TOKEN) // TODO auto-acquire on init
     })
 
@@ -171,9 +174,11 @@ const localnet = SecretNetwork.connect(here).then(async ({chain, agent, builder}
       return [result.transactionHash]
     })
 
-    const tsv = steps.map(step=>step.join('\t')).join('\n')
-    console.log(tsv)
-    writeFile(resolve(workspace, 'artifacts', 'gas-report.tsv'), tsv, 'utf8')
+    writeFile(
+      resolve(workspace, 'artifacts', 'gas-report.md'),
+      rows.filter(Boolean).map(step=>`| `+step.join(' | ')+`| `).join('\n'),
+      'utf8'
+    )
 
     while (true) {
       await agent.waitForNextBlock()
@@ -204,9 +209,9 @@ const localnet = SecretNetwork.connect(here).then(async ({chain, agent, builder}
       const t3 = new Date()
       say(`⛽ cost ${totalGasUsed} gas`)
       say(`🔍 gas check took ${t3-t2}msec`)
-      steps.push([t1.toISOString(), description, t2-t1, totalGasUsed, t3-t2])
+      rows.push([t1.toISOString(), description, t2-t1, totalGasUsed, t3-t2])
     } else {
-      steps.push([t1.toISOString(), description, t2-t1])
+      rows.push([t1.toISOString(), description, t2-t1])
     }
   }
 
