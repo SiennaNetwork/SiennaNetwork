@@ -14,17 +14,15 @@ export default class MGMT extends SecretNetwork.Contract.withSchema(schema) {
   get schedule () { return this.q.get_schedule() }
   // take over a SNIP20 token
   acquire = async snip20 => {
-    await snip20.setMinters([this.address])
-    await snip20.changeAdmin(this.address)
-    return this
+    const {transactionHash: tx1} = await snip20.setMinters([this.address])
+    const {transactionHash: tx2} = await snip20.changeAdmin(this.address)
+    return [tx1, tx2]
   }
   // load a schedule
   configure = schedule => this.tx.configure({ schedule })
   // launch the vesting
   launch = () =>
-    this.tx.launch().then(result=>({
-      launched: result.logs[0].events[1].attributes[1].value
-    }))
+    this.tx.launch()
   // claim accumulated portions
   claim = claimant =>
     this.tx.claim({}, claimant)

@@ -1,3 +1,4 @@
 *
 !.gitignore
 !checksums.sha256.txt
+!gas-report.*

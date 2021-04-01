@@ -11,111 +11,203 @@
 //   * [ ] reconfiguring the Remaining Pool Token split, preserving the total portion size
 //   * [ ] adding new accounts to Advisor/Investor pools
 import assert from 'assert'
+import { writeFile } from 'fs/promises'
 import { fileURLToPath } from 'url'
 import { resolve, dirname } from 'path'
-import { say as sayer, loadJSON, SecretNetwork } from '@hackbg/fadroma'
+import { backOff } from "exponential-backoff";
+import { loadJSON, SecretNetwork } from '@hackbg/fadroma'
 import SNIP20Contract from '@hackbg/snip20'
 import MGMTContract from '@hackbg/mgmt'
 import RPTContract from '@hackbg/rpt'
 
-SecretNetwork.connect(import.meta.url, async ({chain, agent, builder})=>{
-  console.log({chain,builder,agent})
-  const schedule   = loadJSON('./settings/schedule.json', import.meta.url)
+const say       = x => console.log(x)
+const here      = import.meta.url
+const workspace = dirname(fileURLToPath(here))
+const schedule  = loadJSON('./settings/schedule.json', here)
+
+const localnet = SecretNetwork.connect(here).then(async ({chain, agent, builder})=>{
+
+  const steps = [['time', 'description', 'took', 'gas', 'profiling overhead']]
+
   const recipients = await prepare(chain, agent, schedule)
   const contracts  = await deploy(builder, schedule, recipients)
-  const result     = await verify(agent, recipients, contracts, schedule) 
+  const result     = await verify(agent, recipients, contracts, schedule)
   say(result)
-})
 
-async function prepare (chain, agent, schedule) {
-  const wallets    = []
-      , recipients = {}
-      , mutatePool = pool =>
-          Promise.all(pool.accounts.map(mutateAccount))
-      , mutateAccount = async account => {
+  async function prepare (chain, agent, schedule) {
+
+    const wallets    = []
+        , recipients = {}
+
+    await step('shorten schedule and replace placeholders with test accounts',
+      async () => {
+        await Promise.all(schedule.pools.map(function mutatePool (pool) {
+          return Promise.all(pool.accounts.map(mutateAccount))
+        }))
+        async function mutateAccount (account) {
           // * create an agent for each recipient address (used to test claims)
-          const { name } = account
-          const agent = await chain.getAgent(name) // create agent
-          const { address } = agent
+          const {name} = account
+          const recipient = await chain.getAgent(name) // create agent
+          const {address} = recipient
           account.address = address        // replace placeholder with real address
           wallets.push([address, 1000000]) // balance to cover gas costs
-          recipients[name] = {agent}       // store agent
+          recipients[name] = {agent: recipient, address } // store agent
+
           // * divide all times in account by 86400, so that a day passes in a second
           account.start_at /= 86400
           account.interval /= 86400
-          account.duration /= 86400 }
-  for (let name of [ // extra accounts for reconfigurations
-    'TokenPair1',
-    'TokenPair2',
-    'TokenPair3',
-    'NewAdvisor',
-    'NewInvestor1',
-    'NewInvestor2',
-  ]) {
-    const agent = await chain.getAgent(name) // create agent
-    wallets.push([agent.address, 1000000])
-    recipients[name] = {agent}
-  }
-  await Promise.all(schedule.pools.map(mutatePool))
-  // seed agent wallets so the network recognizes they exist
-  await agent.sendMany(wallets, 'create recipient wallets')
-  return recipients
-}
+          account.duration /= 86400
+        }
+      })
 
-async function deploy (builder, schedule, recipients) {
-  const repo = dirname(fileURLToPath(import.meta.url))
-  builder = builder.configure({
-    buildImage: 'hackbg/secret-contract-optimizer:latest',
-    buildUser:  'root',
-    outputDir:  resolve(repo, 'build', 'output'),
-    repo
-  })
-  console.log({builder})
-  const contracts = {}
-  contracts.Token =
-    await builder.crate('snip20-reference-impl').deploy(SNIP20Contract, {
-      name:      "Sienna",
-      symbol:    "SIENNA",
-      decimals:  18,
-      admin:     builder.agent.address,
-      prng_seed: "insecure",
-      config:    { public_total_supply: true }
+    await step('create extra test accounts for reallocation tests', async () => {
+      for (let name of [ // extra accounts for reconfigurations
+        'TokenPair1', 'TokenPair2', 'TokenPair3',
+        'NewAdvisor', 'NewInvestor1', 'NewInvestor2',
+      ]) {
+        const extra = await chain.getAgent(name) // create agent
+        wallets.push([extra.address, 1000000])
+        recipients[name] = {agent: extra, address: extra.address}
+      }
     })
-  contracts.MGMT =
-    await builder.crate('sienna-mgmt').deploy(MGMTContract, {
-      token:     [contracts.Token.address, contracts.Token.hash],
+
+    await step('preseed all test accounts', async () => {
+      const {transactionHash} = await agent.sendMany(wallets, 'create recipient wallets')
+      return [transactionHash]
+      //agent.API.searchTX
+    })
+
+    return recipients
+
+  }
+
+  async function deploy (builder, schedule, recipients) {
+
+    builder = builder.configure({
+      buildImage: 'hackbg/secret-contract-optimizer:latest',
+      buildUser:  'root',
+      outputDir:  resolve(workspace, 'artifacts'),
+    })
+
+    const contracts = {}
+    const initTXs = {}
+
+    await step('build and deploy token', async () => {
+      const label = +new Date()+'-snip20'
+      const crate = 'snip20-reference-impl'
+      const {codeId, compressedSize} = await builder.getUploadReceipt(workspace, crate)
+      console.log(`⚖️  compressed size ${compressedSize} bytes`)
+      contracts.TOKEN = new SNIP20Contract({ agent, codeId, label, initMsg: {
+        name:      "Sienna",
+        symbol:    "SIENNA",
+        decimals:  18,
+        admin:     builder.agent.address,
+        prng_seed: "insecure",
+        config:    { public_total_supply: true }
+      } })
+      return [initTXs.TOKEN = await contracts.TOKEN.init()]
+    })
+
+    await step('build and deploy mgmt', async () => {
+      const label = +new Date()+'-mgmt'
+      const crate = 'sienna-mgmt'
+      const {codeId, compressedSize} = await builder.getUploadReceipt(workspace, crate)
+      console.log(`⚖️  compressed size ${compressedSize} bytes`)
+      contracts.MGMT = new MGMTContract({ agent, codeId, label, initMsg: {
+        token:     [contracts.TOKEN.address, contracts.TOKEN.codeHash],
+        schedule
+      } })
+      return [initTXs.MGMT = await contracts.MGMT.init()]
+    })
+
+    await step('build and deploy rpt', async () => {
+      const label = +new Date()+'-rpt'
+      const crate = 'sienna-rpt'
+      const {codeId, compressedSize} = await builder.getUploadReceipt(workspace, crate)
+      console.log(`⚖️  compressed size ${compressedSize} bytes`)
+      contracts.RPT = new RPTContract({ agent, codeId, label, initMsg: {
+        token:     [contracts.TOKEN.address, contracts.TOKEN.codeHash],
+        mgmt:      [contracts.MGMT.address,  contracts.MGMT.codeHash],
+        pool:      'MintingPool',
+        account:   'RPT',
+        config:    [ [recipients.TokenPair1.address, "2500000000000000000000"]]
+      } })
+      return [initTXs.RPT = await contracts.RPT.init()]
+    })
+
+    return contracts
+
+  }
+
+  async function verify (agent, recipients, contracts, schedule) {
+    const { TOKEN, MGMT, RPT } = contracts
+
+    await step('set null viewing keysasync () => {
+      const vk = "entropy"
+      return (await Promise.all(
+        Object.values(recipients).map(({agent})=>
+          TOKEN.setViewingKey(agent, "entropy")
+        )
+      )).map(({tx})=>tx)
+    })
+
+    await step('make mgmt owner of tokenasync () => {
+      return await MGMT.acquire(TOKEN) // TODO auto-acquire on init
+    })
+
+    await step('point RPT account in schedule to RPT contract', async () => {
       schedule
+        .pools.filter(x=>x.name==='MintingPool')[0]
+        .accounts.filter(x=>x.name==='RPT')[0]
+        .address = RPT.address
+      const {transactionHash: tx} = await MGMT.configure(schedule)
+      return [tx]
     })
-  contracts.RPT =
-    await builder.crate('sienna-rpt').deploy(RPTContract, {
-      token:     [contracts.Token.address, contracts.Token.hash],
-      mgmt:      [contracts.MGMT.address,  contracts.MGMT.hash],
-      pool:      'MintingPool',
-      account:   'RPT',
-      config:    [ [recipients.TokenPair1.address, "2500000000000000000000"]]
-    })
-  return contracts
-}
 
-async function verify (agent, recipients, contracts, schedule) {
-  // create viewing keys
-  const vk = await Promise.all(Object.values(recipients).map(async recipient=>
-    recipient.vk = await TOKEN.createViewingKey(recipient.agent, "entropy")
-  ))
-  // mgmt takes over token; TODO auto-acquire on init
-  await MGMT.acquire(TOKEN)
-  // update schedule to point at RPT contract
-  schedule
-    .pools.filter(x=>x.name==='MintingPool')[0]
-    .accounts.filter(x=>x.name==='RPT')[0]
-    .address = RPT.address
-  // load updated schedule into contract
-  await MGMT.configure(schedule)
-  // launch the vesting
-  const {logs:{launched}} = await MGMT.launch()
-  while (true) {
-    await ADMIN.waitForNextBlock()
-    const elapsed = (+ new Date() / 1000) - launched
-    say.tag("elapsed")(elapsed)
+    let launched
+    await step('launch the vesting', async () => {
+      const result = await MGMT.launch()
+      launched = 1000 * Number(result.logs[0].events[1].attributes[1].value)
+      return [result.transactionHash]
+    })
+
+    const tsv = steps.map(step=>step.join('\t')).join('\n')
+    console.log(tsv)
+    writeFile(resolve(workspace, 'artifacts', 'gas-report.tsv'), tsv, 'utf8')
+
+    while (true) {
+      await agent.waitForNextBlock()
+      const now = new Date()
+      const elapsed = now - launched
+      console.log({launched, elapsed})
+      await Promise.all(Object.values(recipients).map(({address})=>
+        MGMT.progress(address, now)))
+    }
   }
-}
+
+  async function step (description, callback) {
+    const t1 = new Date()
+    say(`\n${description}`)
+    const txHashes = await Promise.resolve(callback())
+    const t2 = new Date()
+    say(`⏱️  took ${t2-t1}msec`)
+    if (txHashes) {
+      const txs = await Promise.all(txHashes.map(id=>
+        backOff(async ()=>{
+          try {
+            return await agent.API.restClient.get(`/txs/${id}`)
+          } catch (e) {
+            throw e
+          }
+        })))
+      const totalGasUsed = txs.map(x=>Number(x.gas_used)).reduce((x,y)=>x+y, 0)
+      const t3 = new Date()
+      say(`⛽ cost ${totalGasUsed} gas`)
+      say(`🔍 gas check took ${t3-t2}msec`)
+      steps.push([t1.toISOString(), description, t2-t1, totalGasUsed, t3-t2])
+    } else {
+      steps.push([t1.toISOString(), description, t2-t1])
+    }
+  }
+
+})
