@@ -11,31 +11,24 @@
 //   * [ ] reconfiguring the Remaining Pool Token split, preserving the total portion size
 //   * [ ] adding new accounts to Advisor/Investor pools
 import assert from 'assert'
-import { writeFile } from 'fs/promises'
 import { fileURLToPath } from 'url'
 import { resolve, dirname } from 'path'
 import { backOff } from "exponential-backoff";
-import { loadJSON, SecretNetwork } from '@hackbg/fadroma'
+import { loadJSON, table, SecretNetwork } from '@hackbg/fadroma'
 import SNIP20Contract from '@hackbg/snip20'
 import MGMTContract from '@hackbg/mgmt'
 import RPTContract from '@hackbg/rpt'
 
-const say       = x => console.log(x)
-const here      = import.meta.url
-const workspace = dirname(fileURLToPath(here))
-const schedule  = loadJSON('./settings/schedule.json', here)
+export default async function demo ({chain, agent, builder}) {
 
-const localnet = SecretNetwork.connect(here).then(async ({chain, agent, builder})=>{
-
-  const rows = [
-    ['time', 'description', 'took', 'gas', 'profiling overhead'],
-    ['---', '---', '---', '---', '---']
-  ]
-
+  const say       = x => console.log(x)
+  const here      = import.meta.url
+  const workspace = dirname(fileURLToPath(here))
+  const schedule  = loadJSON('./settings/schedule.json', here)
+  const gasReport = table([ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ])
   const recipients = await prepare(chain, agent, schedule)
   const contracts  = await deploy(builder, schedule, recipients)
   const result     = await verify(agent, recipients, contracts, schedule)
-  say(result)
 
   async function prepare (chain, agent, schedule) {
 
@@ -74,10 +67,14 @@ const localnet = SecretNetwork.connect(here).then(async ({chain, agent, builder}
       }
     })
 
-    await step('preseed all test accounts', async () => {
-      const {transactionHash} = await agent.sendMany(wallets, 'create recipient wallets')
-      return [transactionHash]
-      //agent.API.searchTX
+    await step('preseed test accounts', async () => {
+      const txHashes = []
+      for (let wallet of wallets) {
+        console.log(wallet)
+        const tx = await agent.send(wallet[0], wallet[1], 'create recipient wallet')
+        txHashes.push(tx.transactionHash)
+      }
+      return txHashes
     })
 
     return recipients
@@ -174,11 +171,7 @@ const localnet = SecretNetwork.connect(here).then(async ({chain, agent, builder}
       return [result.transactionHash]
     })
 
-    writeFile(
-      resolve(workspace, 'artifacts', 'gas-report.md'),
-      rows.filter(Boolean).map(step=>`| `+step.join(' | ')+`| `).join('\n'),
-      'utf8'
-    )
+    await gasReport.write(resolve(workspace, 'artifacts', 'gas-report.md'))
 
     while (true) {
       await agent.waitForNextBlock()
@@ -197,22 +190,22 @@ const localnet = SecretNetwork.connect(here).then(async ({chain, agent, builder}
     const t2 = new Date()
     say(`⏱️  took ${t2-t1}msec`)
     if (txHashes) {
-      const txs = await Promise.all(txHashes.map(id=>
-        backOff(async ()=>{
-          try {
-            return await agent.API.restClient.get(`/txs/${id}`)
-          } catch (e) {
-            throw e
-          }
-        })))
+      const getTx = tx => backOff(async ()=>{
+        try {
+          return await agent.API.restClient.get(`/txs/${tx}`)
+        } catch (e) {
+          throw e
+        }
+      })
+      const txs = await Promise.all(txHashes.map(getTx))
       const totalGasUsed = txs.map(x=>Number(x.gas_used)).reduce((x,y)=>x+y, 0)
       const t3 = new Date()
       say(`⛽ cost ${totalGasUsed} gas`)
       say(`🔍 gas check took ${t3-t2}msec`)
-      rows.push([t1.toISOString(), description, t2-t1, totalGasUsed, t3-t2])
+      gasReport.push([t1.toISOString(), description, t2-t1, totalGasUsed, t3-t2])
     } else {
-      rows.push([t1.toISOString(), description, t2-t1])
+      gasReport.push([t1.toISOString(), description, t2-t1])
     }
   }
 
-})
+}
