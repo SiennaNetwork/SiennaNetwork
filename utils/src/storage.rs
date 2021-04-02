@@ -1,7 +1,5 @@
-use std::any::type_name;
 use serde::{Serialize, de::DeserializeOwned};
-use secret_toolkit::serialization::{Bincode2, Serde};
-use cosmwasm_std::{ReadonlyStorage, StdError, StdResult, Storage};
+use cosmwasm_std::{ReadonlyStorage, StdError, StdResult, Storage, from_slice, to_vec};
 
 /// Returns StdResult<()> resulting from saving an item to storage
 ///
@@ -11,7 +9,7 @@ use cosmwasm_std::{ReadonlyStorage, StdError, StdResult, Storage};
 /// * `key` - a byte slice representing the key to access the stored item
 /// * `value` - a reference to the item to store
 pub fn save<T: Serialize, S: Storage>(storage: &mut S, key: &[u8], value: &T) -> StdResult<()> {
-    storage.set(key, &Bincode2::serialize(value)?);
+    storage.set(key, &to_vec(value)?);
     Ok(())
 }
 
@@ -33,26 +31,13 @@ pub fn remove<S: Storage>(storage: &mut S, key: &[u8]) {
 /// * `storage` - a reference to the storage this item is in
 /// * `key` - a byte slice representing the key that accesses the stored item
 pub fn load<T: DeserializeOwned, S: ReadonlyStorage>(storage: &S, key: &[u8]) -> StdResult<T> {
-    Bincode2::deserialize(
-        &storage
-            .get(key)
-            .ok_or_else(|| StdError::not_found(type_name::<T>()))?,
-    )
-}
+    let result = storage.get(key).ok_or_else(||
+        StdError::SerializeErr { 
+            source: "load".into(),
+            msg: "key not found".into(),
+            backtrace: None
+        }
+    )?;
 
-/// Returns StdResult<Option<T>> from retrieving the item with the specified key.
-/// Returns Ok(None) if there is no item with that key
-///
-/// # Arguments
-///
-/// * `storage` - a reference to the storage this item is in
-/// * `key` - a byte slice representing the key that accesses the stored item
-pub fn may_load<T: DeserializeOwned, S: ReadonlyStorage>(
-    storage: &S,
-    key: &[u8],
-) -> StdResult<Option<T>> {
-    match storage.get(key) {
-        Some(value) => Bincode2::deserialize(&value).map(Some),
-        None => Ok(None),
-    }
+    from_slice(&result)
 }
