@@ -39,6 +39,28 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "list_idos"
+      ],
+      "properties": {
+        "list_idos": {
+          "type": "object",
+          "required": [
+            "idos"
+          ],
+          "properties": {
+            "idos": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "definitions": {

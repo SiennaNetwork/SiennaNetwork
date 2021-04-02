@@ -39,11 +39,49 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "list_idos"
+      ],
+      "properties": {
+        "list_idos": {
+          "type": "object",
+          "required": [
+            "pagination"
+          ],
+          "properties": {
+            "pagination": {
+              "$ref": "#/definitions/Pagination"
+            }
+          }
+        }
+      }
     }
   ],
   "definitions": {
     "HumanAddr": {
       "type": "string"
+    },
+    "Pagination": {
+      "type": "object",
+      "required": [
+        "limit",
+        "start"
+      ],
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "format": "uint8",
+          "minimum": 0.0
+        },
+        "start": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
     },
     "TokenPair": {
       "type": "array",

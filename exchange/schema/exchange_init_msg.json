@@ -6,7 +6,8 @@
     "callback",
     "factory_info",
     "lp_token_contract",
-    "pair"
+    "pair",
+    "sienna_token"
   ],
   "properties": {
     "callback": {
@@ -35,6 +36,9 @@
           "$ref": "#/definitions/TokenPair"
         }
       ]
+    },
+    "sienna_token": {
+      "$ref": "#/definitions/ContractInfo"
     }
   },
   "definitions": {
@@ -60,7 +64,7 @@
           ]
         },
         "contract_code_hash": {
-          "description": "The code hash the contract requesting the callback.",
+          "description": "The code hash of the contract requesting the callback.",
           "type": "string"
         },
         "msg": {

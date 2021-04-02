@@ -4,10 +4,11 @@ use cosmwasm_std::{
 };
 use shared::{Callback, ContractInfo, ExchangeInitMsg, IdoInitConfig, IdoInitMsg, TokenPair};
 
-use crate::{msg::{InitMsg, HandleMsg, QueryMsg, QueryResponse}, state::{Pagination, store_ido_address}};
+use crate::msg::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
 use crate::state::{
     save_config, load_config, Config, pair_exists, store_exchange,
-    get_address_for_pair, get_pair_for_address, Exchange, get_idos
+    get_address_for_pair, get_pair_for_address, Exchange, get_idos,
+    Pagination, store_ido_address
 };
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
