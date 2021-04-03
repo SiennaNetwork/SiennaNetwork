@@ -89,23 +89,21 @@ export default async function demo ({network, agent, builder}) {
       buildImage: 'enigmampc/secret-contract-optimizer:latest',
       buildUser:  'root',
       outputDir:  resolve(workspace, 'artifacts'), })
-    const binaries = await build({ task, builder })
-    const receipts = await upload({ task, builder, binaries })
+    const binaries  = await build({ task, builder })
+    const receipts  = await upload({ task, builder, binaries })
+    const timestamp = String(+ new Date())
     const contracts = await initialize({ task, agent, receipts, inits: {
-      TOKEN: { label: `${+new Date()}-snip20`
+      TOKEN: { label:  `[${timestamp}] snip20`
              , initMsg: { name:      "Sienna"
                         , symbol:    "SIENNA"
                         , decimals:  18
                         , admin:     builder.agent.address
                         , prng_seed: "insecure"
                         , config:    { public_total_supply: true } } },
-      MGMT:  { label: `${+new Date()}-mgmt`
-             , initMsg: { token: [contracts.TOKEN.address, contracts.TOKEN.codeHash]
-                        , schedule } },
-      RPT:   { label: `${+new Date()}-rpt`
-             , initMsg: { token:     [contracts.TOKEN.address, contracts.TOKEN.codeHash]
-                        , mgmt:      [contracts.MGMT.address,  contracts.MGMT.codeHash ]
-                        , pool:      'MintingPool'
+      MGMT:  { label:  `[${timestamp}] mgmt`
+             , initMsg: { schedule } },
+      RPT:   { label:  `[${timestamp}] rpt`
+             , initMsg: { pool:      'MintingPool'
                         , account:   'RPT'
                         , config:    [[recipients.TokenPair1.address, "2500000000000000000000"]]}} } })
     return contracts

@@ -1,5 +1,10 @@
+import SNIP20Contract from '@hackbg/snip20'
+import MGMTContract from '@hackbg/mgmt'
+import RPTContract from '@hackbg/rpt'
+
 import { taskmaster } from '@hackbg/fadroma'
 import { resolve, dirname, fileURLToPath } from '@hackbg/fadroma/js/sys.js'
+import { pull } from '@hackbg/fadroma/js/net.js'
 
 export default async function deploy ({
   task = taskmaster(),
@@ -14,21 +19,22 @@ export default async function deploy ({
 }
 
 export async function build ({
-  task = taskmaster(),
-  builder,
-  workspace = resolve(dirname(fileURLToPath(import.meta.url)))
+  task      = taskmaster(),
+  workspace = resolve(dirname(fileURLToPath(import.meta.url))),
+  outputDir = resolve(workspace, 'artifacts'),
+  builder   = new SecretNetwork.Builder(),
 } = {}) {
+  await pull('enigmampc/secret-contract-optimizer:latest')
   const binaries = {}
-  await task.parallel(
-    'build contracts',
+  await task.parallel('build project',
     task('build token', async () => {
-      binaries.TOKEN = await builder.build({workspace, crate: 'snip20-reference-impl'})
+      binaries.TOKEN = await builder.build({outputDir, workspace, crate: 'snip20-reference-impl'})
     }),
     task('build mgmt', async () => {
-      binaries.MGMT = await builder.build({workspace, crate: 'snip20-reference-impl'})
+      binaries.MGMT = await builder.build({outputDir, workspace, crate: 'sienna-mgmt'})
     }),
     task('build rpt', async () => {
-      binaries.RPT = await builder.build({workspace, crate: 'snip20-reference-impl'})
+      binaries.RPT = await builder.build({outputDir, workspace, crate: 'sienna-rpt'})
     })
   )
   return binaries
@@ -40,17 +46,18 @@ export async function upload ({
   binaries
 } = {}) {
   const receipts = {}
-  return await task.parallel(
-    'upload contracts',
-    ...Object.entries({
-      TOKEN: 'upload token',
-      MGMT:  'upload mgmt',
-      RPT:   'upload rpt'
-    }).map(([id, info]=>task(info, async () => {
-      receipts[id] = await builder.uploadCached(binaries[id])
-      console.info(`⚖️  compressed size ${receipts[id].compressedSize} bytes`)
-    })
-  )
+  await task('upload token', async () => {
+    receipts.TOKEN = await builder.uploadCached(binaries.TOKEN)
+    console.log(`⚖️  compressed size ${receipts.TOKEN.compressedSize} bytes`)
+  })
+  await task('upload mgmt', async () => {
+    receipts.MGMT = await builder.uploadCached(binaries.MGMT)
+    console.log(`⚖️  compressed size ${receipts.MGMT.compressedSize} bytes`)
+  })
+  await task('upload rpt', async () => {
+    receipts.RPT = await builder.uploadCached(binaries.RPT)
+    console.log(`⚖️  compressed size ${receipts.RPT.compressedSize} bytes`)
+  })
   return receipts
 }
 
@@ -67,10 +74,13 @@ export async function initialize ({
     report(await contracts.TOKEN.init(inits.TOKEN))
   })
   await task('initialize mgmt', async () => {
+    inits.MGMT.initMsg.token = [contracts.TOKEN.address, contracts.TOKEN.codeHash]
     contracts.MGMT = new MGMTContract({ agent, codeId: receipts.MGMT.id })
     report(await contracts.MGMT.init(inits.MGMT))
   })
   await task('initialize rpt', async () => {
+    inits.RPT.initMsg.token = [contracts.TOKEN.address, contracts.TOKEN.codeHash]
+    inits.RPT.initMsg.mgmt  = [contracts.MGMT.address, contracts.MGMT.codeHash]
     contracts.RPT = new RPTContract({ agent, codeId: receipts.RPT.id })
     report(await contracts.RPT.init(inits.RPT))
   })

@@ -17,6 +17,7 @@
     "esm": "^3.2.25",
     "node-notifier": "^9.0.1",
     "open": "^8.0.2",
-    "prettyjson": "^1.2.1"
+    "prettyjson": "^1.2.1",
+    "yargs": "^16.2.0"
   }
 }

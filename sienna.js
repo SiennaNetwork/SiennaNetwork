@@ -159,10 +159,7 @@ yargs(process.argv.slice(2))
 
   .command('build [ref]',
     '👷 Compile contracts from working tree',
-    async function buildCommand ({ ref }) {
-      run('docker', 'pull', 'enigmampc-secret-contract-optimizer:latest')
-      await build()
-    })
+    () => build({ builder: new SecretNetwork.Builder() }))
 
   .command('deploy',
     '🚀 Upload, instantiate, and configure all contracts.',
