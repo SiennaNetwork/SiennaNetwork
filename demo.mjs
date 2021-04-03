@@ -13,20 +13,26 @@
 import assert from 'assert'
 import { fileURLToPath } from 'url'
 import { resolve, dirname } from 'path'
-import { backOff } from "exponential-backoff";
-import { loadJSON, table, SecretNetwork } from '@hackbg/fadroma'
+import { loadJSON, taskmaster, SecretNetwork } from '@hackbg/fadroma'
 import SNIP20Contract from '@hackbg/snip20'
 import MGMTContract from '@hackbg/mgmt'
 import RPTContract from '@hackbg/rpt'
 
-export default async function demo ({chain, agent, builder}) {
+import { build, upload, initialize } from './ops.js'
 
-  const say       = x => console.log(x)
-  const here      = import.meta.url
-  const workspace = dirname(fileURLToPath(here))
-  const schedule  = loadJSON('./settings/schedule.json', here)
-  const gasReport = table([ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ])
-  const recipients = await prepare(chain, agent, schedule)
+const __dirname = fileURLToPath(dirname(import.meta.url))
+
+export default async function demo ({network, agent, builder}) {
+
+  const task = taskmaster({
+    header: [ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ],
+    output: resolve(__dirname, 'docs', 'gas-report.md'),
+    agent
+  })
+
+  const here       = import.meta.url
+  const schedule   = loadJSON('./settings/schedule.json', here)
+  const recipients = await prepare(network, agent, schedule)
   const contracts  = await deploy(builder, schedule, recipients)
   const result     = await verify(agent, recipients, contracts, schedule)
 
@@ -35,7 +41,7 @@ export default async function demo ({chain, agent, builder}) {
     const wallets    = []
         , recipients = {}
 
-    await step('shorten schedule and replace placeholders with test accounts',
+    await task('shorten schedule and replace placeholders with test accounts',
       async () => {
         await Promise.all(schedule.pools.map(function mutatePool (pool) {
           return Promise.all(pool.accounts.map(mutateAccount))
@@ -56,7 +62,7 @@ export default async function demo ({chain, agent, builder}) {
         }
       })
 
-    await step('create extra test accounts for reallocation tests', async () => {
+    await task('create extra test accounts for reallocation tests', async () => {
       for (let name of [ // extra accounts for reconfigurations
         'TokenPair1', 'TokenPair2', 'TokenPair3',
         'NewAdvisor', 'NewInvestor1', 'NewInvestor2',
@@ -67,14 +73,10 @@ export default async function demo ({chain, agent, builder}) {
       }
     })
 
-    await step('preseed test accounts', async () => {
-      const txHashes = []
-      for (let wallet of wallets) {
-        console.log(wallet)
-        const tx = await agent.send(wallet[0], wallet[1], 'create recipient wallet')
-        txHashes.push(tx.transactionHash)
-      }
-      return txHashes
+    await task('create recipient accounts', async () => {
+      const tx = await agent.send(...wallets[0], 'create recipient accounts')
+      //const tx = await agent.sendMany(wallets, 'create recipient accounts')
+      return [tx.transactionHash]
     })
 
     return recipients
@@ -82,67 +84,37 @@ export default async function demo ({chain, agent, builder}) {
   }
 
   async function deploy (builder, schedule, recipients) {
-
-    builder = builder.configure({
-      buildImage: 'hackbg/secret-contract-optimizer:latest',
+    const workspace  = dirname(fileURLToPath(here))
+    builder.configure({
+      buildImage: 'enigmampc/secret-contract-optimizer:latest',
       buildUser:  'root',
-      outputDir:  resolve(workspace, 'artifacts'),
-    })
-
-    const contracts = {}
-    const initTXs = {}
-
-    await step('build and deploy token', async () => {
-      const label = +new Date()+'-snip20'
-      const crate = 'snip20-reference-impl'
-      const {codeId, compressedSize} = await builder.getUploadReceipt(workspace, crate)
-      console.log(`⚖️  compressed size ${compressedSize} bytes`)
-      contracts.TOKEN = new SNIP20Contract({ agent, codeId, label, initMsg: {
-        name:      "Sienna",
-        symbol:    "SIENNA",
-        decimals:  18,
-        admin:     builder.agent.address,
-        prng_seed: "insecure",
-        config:    { public_total_supply: true }
-      } })
-      return [initTXs.TOKEN = await contracts.TOKEN.init()]
-    })
-
-    await step('build and deploy mgmt', async () => {
-      const label = +new Date()+'-mgmt'
-      const crate = 'sienna-mgmt'
-      const {codeId, compressedSize} = await builder.getUploadReceipt(workspace, crate)
-      console.log(`⚖️  compressed size ${compressedSize} bytes`)
-      contracts.MGMT = new MGMTContract({ agent, codeId, label, initMsg: {
-        token:     [contracts.TOKEN.address, contracts.TOKEN.codeHash],
-        schedule
-      } })
-      return [initTXs.MGMT = await contracts.MGMT.init()]
-    })
-
-    await step('build and deploy rpt', async () => {
-      const label = +new Date()+'-rpt'
-      const crate = 'sienna-rpt'
-      const {codeId, compressedSize} = await builder.getUploadReceipt(workspace, crate)
-      console.log(`⚖️  compressed size ${compressedSize} bytes`)
-      contracts.RPT = new RPTContract({ agent, codeId, label, initMsg: {
-        token:     [contracts.TOKEN.address, contracts.TOKEN.codeHash],
-        mgmt:      [contracts.MGMT.address,  contracts.MGMT.codeHash],
-        pool:      'MintingPool',
-        account:   'RPT',
-        config:    [ [recipients.TokenPair1.address, "2500000000000000000000"]]
-      } })
-      return [initTXs.RPT = await contracts.RPT.init()]
-    })
-
+      outputDir:  resolve(workspace, 'artifacts'), })
+    const binaries = await build({ task, builder })
+    const receipts = await upload({ task, builder, binaries })
+    const contracts = await initialize({ task, agent, receipts, inits: {
+      TOKEN: { label: `${+new Date()}-snip20`
+             , initMsg: { name:      "Sienna"
+                        , symbol:    "SIENNA"
+                        , decimals:  18
+                        , admin:     builder.agent.address
+                        , prng_seed: "insecure"
+                        , config:    { public_total_supply: true } } },
+      MGMT:  { label: `${+new Date()}-mgmt`
+             , initMsg: { token: [contracts.TOKEN.address, contracts.TOKEN.codeHash]
+                        , schedule } },
+      RPT:   { label: `${+new Date()}-rpt`
+             , initMsg: { token:     [contracts.TOKEN.address, contracts.TOKEN.codeHash]
+                        , mgmt:      [contracts.MGMT.address,  contracts.MGMT.codeHash ]
+                        , pool:      'MintingPool'
+                        , account:   'RPT'
+                        , config:    [[recipients.TokenPair1.address, "2500000000000000000000"]]}} } })
     return contracts
-
   }
 
   async function verify (agent, recipients, contracts, schedule) {
     const { TOKEN, MGMT, RPT } = contracts
 
-    await step('set null viewing keys', async () => {
+    await task('set null viewing keys', async () => {
       const vk = "entropy"
       return (await Promise.all(
         Object.values(recipients).map(({agent})=>
@@ -151,11 +123,11 @@ export default async function demo ({chain, agent, builder}) {
       )).map(({tx})=>tx)
     })
 
-    await step('make mgmt owner of token', async () => {
+    await task('make mgmt owner of token', async () => {
       return await MGMT.acquire(TOKEN) // TODO auto-acquire on init
     })
 
-    await step('point RPT account in schedule to RPT contract', async () => {
+    await task('point RPT account in schedule to RPT contract', async () => {
       schedule
         .pools.filter(x=>x.name==='MintingPool')[0]
         .accounts.filter(x=>x.name==='RPT')[0]
@@ -165,13 +137,13 @@ export default async function demo ({chain, agent, builder}) {
     })
 
     let launched
-    await step('launch the vesting', async () => {
+    await task('launch the vesting', async () => {
       const result = await MGMT.launch()
       launched = 1000 * Number(result.logs[0].events[1].attributes[1].value)
       return [result.transactionHash]
     })
 
-    await gasReport.write(resolve(workspace, 'artifacts', 'gas-report.md'))
+    await task.done()
 
     while (true) {
       await agent.waitForNextBlock()
@@ -180,31 +152,6 @@ export default async function demo ({chain, agent, builder}) {
       console.log({launched, elapsed})
       await Promise.all(Object.values(recipients).map(({address})=>
         MGMT.progress(address, now)))
-    }
-  }
-
-  async function step (description, callback) {
-    const t1 = new Date()
-    say(`\n${description}`)
-    const txHashes = await Promise.resolve(callback())
-    const t2 = new Date()
-    say(`⏱️  took ${t2-t1}msec`)
-    if (txHashes) {
-      const getTx = tx => backOff(async ()=>{
-        try {
-          return await agent.API.restClient.get(`/txs/${tx}`)
-        } catch (e) {
-          throw e
-        }
-      })
-      const txs = await Promise.all(txHashes.map(getTx))
-      const totalGasUsed = txs.map(x=>Number(x.gas_used)).reduce((x,y)=>x+y, 0)
-      const t3 = new Date()
-      say(`⛽ cost ${totalGasUsed} gas`)
-      say(`🔍 gas check took ${t3-t2}msec`)
-      gasReport.push([t1.toISOString(), description, t2-t1, totalGasUsed, t3-t2])
-    } else {
-      gasReport.push([t1.toISOString(), description, t2-t1])
     }
   }
 
