@@ -12,8 +12,10 @@ import open from 'open'
 import yargs from 'yargs'
 
 // custom
-import { buildCommit, buildWorkingTree } from '@hackbg/fadroma/js/builder.js'
+import { SecretNetwork } from '@hackbg/fadroma'
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
+import { build, upload, initialize } from './ops.js'
+import demo from './demo.js'
 
 // resolve path relative to this file's parent directory
 const abs = (...args) =>
@@ -36,7 +38,7 @@ const CONTRACTS = {
 }
 
 yargs(process.argv.slice(2))
-  .wrap(yargs.terminalWidth())
+  .wrap(yargs().terminalWidth())
   .demandCommand(1, '') // print usage by default
 
   .command('docs [crate]',
@@ -93,21 +95,29 @@ yargs(process.argv.slice(2))
       //)
     })
 
-  .command('demo [script]',
+  .command('demo [script] [--testnet]',
     '📜 Run integration tests/demos/executable reports.',
     yargs => yargs.positional('script', {
       describe: 'path to demo script',
       default: 'demo.mjs'
+    }).option('testnet', {
+      describe: 'run on holodeck-2 instead of locally'
     }),
-    function runDemo ({script}) {
+    async function runDemo ({script, testnet}) {
       clear()
-      script = abs('integration', script)
+      //script = abs('integration', script)
       stderr.write(`⏳ Running demo ${script}...\n\n`)
       try {
-        run('docker-compose', 'up', '-d', 'localnet')
-        run('node', '--trace-warnings', '--unhandled-rejections=strict', script)
-        stderr.write('\n🟢 Demo executed successfully.\n')
+        if (testnet) {
+          throw new Error('not implemented')
+        } else {
+          const stateBase = resolve(dirname(fileURLToPath(import.meta.url)), '.fadroma')
+          const environment = await SecretNetwork.localnet({stateBase})
+          await demo(environment)
+          stderr.write('\n🟢 Demo executed successfully.\n')
+        }
       } catch (e) {
+        console.error(e)
         stderr.write('\n👹 Demo failed.\n')
       }
     })
@@ -117,8 +127,8 @@ yargs(process.argv.slice(2))
     function schema () {
       const cwd = process.cwd()
       try {
-        for (const [contract, {schemaGenerator}] of Object.entries(CONTRACTS)) {
-          const contractDir = abs('contracts', contract)
+        for (const [name, {schemaGenerator}] of Object.entries(CONTRACTS)) {
+          const contractDir = abs('contracts', name)
           stderr.write(`Generating schema in ${contractDir}...`)
           process.chdir(contractDir)
           cargo('run', '--example', schemaGenerator)
@@ -148,29 +158,10 @@ yargs(process.argv.slice(2))
     })
 
   .command('build [ref]',
-    '👷 Compile all contracts - either from working tree or a Git ref',
-    yargs => yargs.positional('ref', {
-      describe: 'upstream commit to build'
-    }),
-    async function build ({ ref }) {
-      const optimizer = abs('build', 'optimizer')
-      run('docker', 'build',
-        '--file=' + resolve(optimizer, 'Dockerfile'),
-        '--tag=hackbg/secret-contract-optimizer:latest',
-        optimizer)
-      const outputDir = abs('build', 'outputs')
-      //const isDir = x=>statSync(abs('contracts', x)).isDirectory()
-      //const contracts = readdirSync(abs('contracts')).filter(isDir)
-      for (const [name, {packageName}] of Object.entries(CONTRACTS)) {
-        if (ref) {
-          stderr.write(`\n⏳ Building ${name} (${packageName}) @ ${ref}...\n\n`)
-          const origin = 'git@github.com:hackbg/sienna-secret-token.git'
-          buildCommit({origin, ref, packageName, outputDir})
-        } else {
-          stderr.write(`\n⏳ Building ${name} (${packageName})...\n\n`)
-          buildWorkingTree({repo: abs(), packageName, outputDir})
-        }
-      }
+    '👷 Compile contracts from working tree',
+    async function buildCommand ({ ref }) {
+      run('docker', 'pull', 'enigmampc-secret-contract-optimizer:latest')
+      await build()
     })
 
   .command('deploy',
