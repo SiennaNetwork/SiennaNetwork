@@ -130,6 +130,9 @@ export default async function demo ({network, agent, builder}) {
         .pools.filter(x=>x.name==='MintingPool')[0]
         .accounts.filter(x=>x.name==='RPT')[0]
         .address = RPT.address
+
+      recipients['RPT'] = { address: RPT.address }
+
       const {transactionHash} = await MGMT.configure(schedule)
       report(transactionHash)
     })
@@ -147,7 +150,7 @@ export default async function demo ({network, agent, builder}) {
       await agent.nextBlock
       const now = new Date()
       const elapsed = now - launched
-      console.info(`\n⏱️  ${(elapsed/1000).toFixed(3)} seconds after launch:`)
+      console.info(`\n⏱️  ${(elapsed/1000).toFixed(3)} "days" (seconds) after launch:`)
       for (const [name, recipient] of Object.entries(recipients)) {
         const {progress} = await MGMT.progress(recipient.address, now)
         //MGMT.claim(recipient.agent)
