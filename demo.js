@@ -30,11 +30,11 @@ export default async function demo ({network, agent, builder}) {
     agent
   })
 
-  const here       = import.meta.url
-  const schedule   = loadJSON('./settings/schedule.json', here)
-  const recipients = await prepare(network, agent, schedule)
-  const contracts  = await deploy(builder, schedule, recipients)
-  const result     = await verify(agent, recipients, contracts, schedule)
+  const here                  = import.meta.url
+      , schedule              = loadJSON('./settings/schedule.json', here)
+      , {recipients, wallets} = await prepare(network, agent, schedule)
+      , contracts             = await deploy(builder, schedule, recipients)
+      , result                = await verify(agent, recipients, wallets, contracts, schedule)
 
   async function prepare (chain, agent, schedule) {
 
@@ -53,12 +53,13 @@ export default async function demo ({network, agent, builder}) {
           const {address} = recipient
           account.address = address        // replace placeholder with real address
           wallets.push([address, 1000000]) // balance to cover gas costs
-          recipients[name] = {agent: recipient, address } // store agent
+          recipients[name] = {agent: recipient, address} // store agent
 
           // * divide all times in account by 86400, so that a day passes in a second
           account.start_at /= 86400
           account.interval /= 86400
           account.duration /= 86400
+          console.debug(`${account.name}: ${account.start_at}, ${account.interval}, ${account.duration}`)
         }
       })
 
@@ -73,12 +74,7 @@ export default async function demo ({network, agent, builder}) {
       }
     })
 
-    await task(`create ${wallets.length} recipient accounts`, async report => {
-      const tx = await agent.sendMany(wallets, 'create recipient accounts')
-      report(tx.transactionHash)
-    })
-
-    return recipients
+    return {recipients, wallets}
 
   }
 
@@ -108,8 +104,14 @@ export default async function demo ({network, agent, builder}) {
     return contracts
   }
 
-  async function verify (agent, recipients, contracts, schedule) {
+  async function verify (agent, recipients, wallets, contracts, schedule) {
+
     const { TOKEN, MGMT, RPT } = contracts
+
+    await task(`create ${wallets.length} recipient accounts`, async report => {
+      const tx = await agent.sendMany(wallets, 'create recipient accounts')
+      report(tx.transactionHash)
+    })
 
     await task('set null viewing keys', async report => {
       const vk = "entropy"
@@ -147,12 +149,12 @@ export default async function demo ({network, agent, builder}) {
       const now = new Date()
       const elapsed = Math.floor(now - launched)
       for (const [name, recipient] of Object.entries(recipients)) {
-        const {progress:{unlocked, claimed}} = await MGMT.progress(recipient.address, now)
         process.stdout.write(`${now.toISOString()} (${elapsed}msec after start): `)
+        const {progress} = await MGMT.progress(recipient.address, now)
         //MGMT.claim(recipient.agent)
           //.then(result=>console.info(`claimed ${recipient.agent.name}`, result))
           //.catch(result=>console.info(`failed ${recipient.agent.name}`, result))
-        console.log(`${name}: ${claimed}/${unlocked}`)
+        console.log(`${name}:`, JSON.stringify(progress))
       }
     }
   }

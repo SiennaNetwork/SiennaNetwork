@@ -1,4 +1,5 @@
 #![allow(unused_macros)]
+#![allow(dead_code)]
 
 use cosmwasm_std::{
     HumanAddr, Coin,

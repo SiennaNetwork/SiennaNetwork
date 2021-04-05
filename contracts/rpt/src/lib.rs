@@ -44,8 +44,10 @@ contract!(
         State { admin, pool, account, config, token, mgmt }
     }
 
-    [Query] (deps, state, msg) {
-        Status () { Response::Status { config: state.config } }
+    [Query] (_deps, state, msg) {
+        Status () {
+            Response::Status { config: state.config }
+        }
     }
 
     [Response] {

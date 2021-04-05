@@ -70,12 +70,14 @@ kukumba!(
                 let portion_count = A.portion_count();
                 let portion_size  = A.portion_size();
                 let remainder     = A.remainder();
-                println!("\n{} {} {} {}",
+                println!("\naccount: {} {} {} {}",
                     &A.name, A.start_at, A.interval, A.duration);
-                println!("{} = {} + {} * {} + {}",
+                println!("amounts: {} = {} + {} * {} + {}",
                     A.amount, A.cliff, portion_count, portion_size, remainder);
-                assert_eq!(A.cliff.u128() + portion_count as u128 * portion_size + remainder,
-                    A.amount.u128());
+                assert_eq!(
+                    A.cliff.u128() + portion_count as u128 * portion_size + remainder,
+                    A.amount.u128(),
+                    "(cliff + portions + remainder) should equal account total");
                 if A.start_at > 0 { //funds are not unlocked before `start_at`
                     test_q!(deps;
                         Progress { address: address.clone(), time: A.start_at - 1 } ==

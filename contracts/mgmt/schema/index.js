@@ -27,8 +27,11 @@ export default class MGMT extends SecretNetwork.Contract.withSchema(schema) {
   claim = claimant =>
     this.tx.claim({}, claimant)
   // see how much is claimable by someone at a certain time
-  progress = (address, time = + new Date()) =>
-    this.q.progress({ address, time: Math.floor(time  / 1000) })
+  progress = (address, time = + new Date()) => {
+    time = Math.floor(time / 1000) // convert JS msec to CosmWasm seconds
+    //console.debug(`querying progress for ${address} at ${time} seconds`)
+    return this.q.progress({ address, time })
+  }
   // add a new account to a pool
   add = (pool, account) =>
     this.tx.add_account({ pool, account })

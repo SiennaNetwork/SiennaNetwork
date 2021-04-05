@@ -20,15 +20,15 @@ impl Vesting for Pool {
 }
 impl Vesting for Account {
     /// Unlocked sum for this account at a point in time
-    fn unlocked (&self, t: Seconds, a: &HumanAddr) -> u128 {
+    fn unlocked (&self, elapsed: Seconds, a: &HumanAddr) -> u128 {
         if *a != self.address { // if asking about someone else
             0
-        } else if t < self.start_at { // if asking about a moment before the start
+        } else if elapsed < self.start_at { // if asking about a moment before the start
             0
-        } else if t >= self.end() { // at the end the full amount must've been vested
+        } else if elapsed >= self.end() { // at the end the full amount must've been vested
             self.amount.u128()
         } else {
-            let n = self.most_recent_portion(t).unwrap() as u128;
+            let n = self.most_recent_portion(elapsed).unwrap() as u128;
             self.cliff.u128() + n * self.portion_size()
         }
     }

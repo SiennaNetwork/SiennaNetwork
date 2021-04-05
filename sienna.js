@@ -95,24 +95,19 @@ yargs(process.argv.slice(2))
       //)
     })
 
-  .command('demo [script] [--testnet]',
+  .command('demo [--testnet]',
     '📜 Run integration tests/demos/executable reports.',
-    yargs => yargs.positional('script', {
-      describe: 'path to demo script',
-      default: 'demo.mjs'
-    }).option('testnet', {
-      describe: 'run on holodeck-2 instead of locally'
-    }),
-    async function runDemo ({script, testnet}) {
+    async function runDemo ({testnet}) {
       clear()
       //script = abs('integration', script)
-      stderr.write(`⏳ Running demo ${script}...\n\n`)
       try {
         const stateBase = resolve(dirname(fileURLToPath(import.meta.url)), '.fadroma')
         let environment
         if (testnet) {
+          stderr.write(`⏳ Running demo on testnet...\n\n`)
           environment = await SecretNetwork.testnet({stateBase})
         } else {
+          stderr.write(`⏳ Running demo on localnet...\n\n`)
           environment = await SecretNetwork.localnet({stateBase})
         }
         await demo(environment)
