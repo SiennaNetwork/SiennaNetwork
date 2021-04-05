@@ -59,7 +59,6 @@ export default async function demo ({network, agent, builder}) {
           account.start_at /= 86400
           account.interval /= 86400
           account.duration /= 86400
-          console.debug(`${account.name}: ${account.start_at}, ${account.interval}, ${account.duration}`)
         }
       })
 
@@ -115,31 +114,31 @@ export default async function demo ({network, agent, builder}) {
 
     await task('set null viewing keys', async report => {
       const vk = "entropy"
-      return (await Promise.all(
-        Object.values(recipients).map(({agent})=>
-          TOKEN.setViewingKey(agent, "entropy")
-        )
-      )).map(({tx})=>tx)
+      let txs = Object.values(recipients).map(({agent})=>TOKEN.setViewingKey(agent, "entropy"))
+      txs = await Promise.all(txs)
+      for (const {tx} of txs) report(tx.transactionHash)
     })
 
-    await task('make mgmt owner of token', async () => {
-      return await MGMT.acquire(TOKEN) // TODO auto-acquire on init
+    await task('make mgmt owner of token', async report => {
+      const [tx1, tx2] = await MGMT.acquire(TOKEN) // TODO auto-acquire on init
+      report(tx1.transactionHash)
+      report(tx2.transactionHash)
     })
 
-    await task('point RPT account in schedule to RPT contract', async () => {
+    await task('point RPT account in schedule to RPT contract', async report => {
       schedule
         .pools.filter(x=>x.name==='MintingPool')[0]
         .accounts.filter(x=>x.name==='RPT')[0]
         .address = RPT.address
-      const {transactionHash: tx} = await MGMT.configure(schedule)
-      return [tx]
+      const {transactionHash} = await MGMT.configure(schedule)
+      report(transactionHash)
     })
 
     let launched
-    await task('launch the vesting', async () => {
-      const result = await MGMT.launch()
-      launched = 1000 * Number(result.logs[0].events[1].attributes[1].value)
-      return [result.transactionHash]
+    await task('launch the vesting', async report => {
+      const {transactionHash, logs} = await MGMT.launch()
+      launched = 1000 * Number(logs[0].events[1].attributes[1].value)
+      report(transactionHash)
     })
 
     await task.done()
@@ -147,14 +146,15 @@ export default async function demo ({network, agent, builder}) {
     while (true) {
       await agent.nextBlock
       const now = new Date()
-      const elapsed = Math.floor(now - launched)
+      const elapsed = now - launched
+      console.info(`\n⏱️  ${(elapsed/1000).toFixed(3)} seconds after launch:`)
       for (const [name, recipient] of Object.entries(recipients)) {
-        process.stdout.write(`${now.toISOString()} (${elapsed}msec after start): `)
         const {progress} = await MGMT.progress(recipient.address, now)
         //MGMT.claim(recipient.agent)
           //.then(result=>console.info(`claimed ${recipient.agent.name}`, result))
           //.catch(result=>console.info(`failed ${recipient.agent.name}`, result))
-        console.log(`${name}:`, JSON.stringify(progress))
+        console.info( `${name}:`.padEnd(15)
+                    , progress.claimed.padStart(30), `/`, progress.unlocked.padStart(30) )
       }
     }
   }
