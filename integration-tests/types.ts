@@ -5,12 +5,11 @@ export type TokenType = CustomToken | NativeToken;
 export class TokenPair {
     token_0: TokenType;
     token_1: TokenType;
-    amount_0: Uint128;
-    amount_1: Uint128;
 }
 
 export class TokenPairAmount extends TokenPair {
-    amount: Uint128;
+    amount_0: Uint128;
+    amount_1: Uint128;
 }
 
 export class TokenTypeAmount {
