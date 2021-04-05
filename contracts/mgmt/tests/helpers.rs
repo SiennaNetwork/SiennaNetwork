@@ -49,7 +49,7 @@ pub fn mock_env (
     contract_code_hash: "0".into()
 } }
 
-macro_rules! test_q {
+macro_rules! q {
     ( $deps:expr;
         $QueryVariant:ident $( { $($query_field:ident $(: $query_value:expr)?),* } )? ==
         $ResponseVariant:ident { $($response_field:ident : $expected_value:expr),* }
@@ -69,7 +69,7 @@ macro_rules! test_q {
     }
 }
 
-macro_rules! test_tx {
+macro_rules! tx {
     ( $deps: ident; $SENDER:expr, $block:expr, $time:expr
     ; $TX:ident { $($arg:ident : $val:expr),* }
     == $ExpectedResult:expr

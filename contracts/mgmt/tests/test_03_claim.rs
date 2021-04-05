@@ -13,9 +13,9 @@ macro_rules! SIENNA {
     ($x:expr) => { Uint128::from($x as u128 * sienna_schedule::ONE_SIENNA) }
 }
 
-kukumba!(
+kukumba! {
 
-    #[claim_as_stranger]
+    #[no_claim_as_stranger]
 
     given "the contract is not yet launched" {
         harness!(deps; ALICE, MALLORY);
@@ -24,25 +24,25 @@ kukumba!(
     }
     when "a stranger tries to claim funds"
     then "they are denied" {
-        test_tx!(deps; MALLORY, 1, 1; Claim {} == err!(PRELAUNCH));
+        tx!(deps; MALLORY, 1, 1; Claim {} == err!(PRELAUNCH));
     }
 
     given "the contract is launched" {
         let s = Schedule { total: Uint128::from(0u128), pools: vec![] }
-        test_tx!(deps; ALICE, 0, 0; Configure { schedule: s.clone() } == ok!());
-        test_tx!(deps; ALICE, 2, 2; Launch {} == ok!(launched: s.total));
+        tx!(deps; ALICE, 0, 0; Configure { schedule: s.clone() } == ok!());
+        tx!(deps; ALICE, 2, 2; Launch {} == ok!(launched: s.total));
     }
     when "a stranger tries to claim funds"
     then "they are denied" {
-        test_tx!(deps; MALLORY, 4, 4; Claim {} == err!(NOTHING));
+        tx!(deps; MALLORY, 4, 4; Claim {} == err!(NOTHING));
     }
 
-    #[claim_as_user]
+    #[ok_claim_as_user]
 
     given "a contract with the production schedule" {
         harness!(deps; ADMIN);
         let s: Schedule = serde_json::from_str(include_str!("../../../settings/schedule.json")).unwrap();
-        test_tx!(deps; ADMIN, 0, 0; Configure { schedule: s.clone() } == ok!());
+        tx!(deps; ADMIN, 0, 0; Configure { schedule: s.clone() } == ok!());
 
         let founder_1 = HumanAddr::from("secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
         let founder_2 = HumanAddr::from("secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
@@ -54,13 +54,13 @@ kukumba!(
     and  "anyone tries to claim funds"
     then "they are denied" {
         for user in [&founder_1, &founder_2, &founder_3].iter() {
-            test_tx!(deps; *user, 1, 1; Claim {} == err!(PRELAUNCH));
+            tx!(deps; *user, 1, 1; Claim {} == err!(PRELAUNCH));
         }
     }
     when "the contract is launched"
     then "tokens should be minted and minting should be disabled" {
         let t_launch = 2;
-        test_tx!(deps; ADMIN, 2, t_launch; Launch {} == ok!(launched: s.total));
+        tx!(deps; ADMIN, 2, t_launch; Launch {} == ok!(launched: s.total));
     }
     and "the appropriate amounts will be unlocked at the appropriate times" {
         let zero = Uint128::zero();
@@ -79,20 +79,20 @@ kukumba!(
                     A.amount.u128(),
                     "(cliff + portions + remainder) should equal account total");
                 if A.start_at > 0 { //funds are not unlocked before `start_at`
-                    test_q!(deps;
+                    q!(deps;
                         Progress { address: address.clone(), time: A.start_at - 1 } ==
                         Progress { unlocked: zero, claimed: zero });
                 }
                 if A.cliff > zero { // cliff
-                    test_q!(deps;
+                    q!(deps;
                         Progress { address: address.clone(), time: A.start_at } ==
                         Progress { unlocked: A.cliff, claimed: zero });
                 } else { // first portion
-                    test_q!(deps;
+                    q!(deps;
                         Progress { address: address.clone(), time: A.start_at } ==
                         Progress { unlocked: Uint128::from(A.portion_size()), claimed: zero });
                 }
-                test_q!(deps; // entire amount is unlocked by the end
+                q!(deps; // entire amount is unlocked by the end
                     Progress { address: address.clone(), time: A.start_at + A.duration } ==
                     Progress { unlocked: A.amount, claimed: zero });
             }
@@ -101,9 +101,10 @@ kukumba!(
     and "by the end of the contract everyone will have unlocked exactly their assigned amount" {
         for P in s.pools.iter() {
             for A in P.accounts.iter() {
-                test_tx!(deps; A.address, A.end() / 5, A.end();
+                tx!(deps; A.address, A.end() / 5, A.end();
                     Claim {} == ok!(claimed: A.address, A.amount));
             }
         }
     }
-);
+
+}
