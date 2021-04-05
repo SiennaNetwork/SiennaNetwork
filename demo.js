@@ -73,10 +73,9 @@ export default async function demo ({network, agent, builder}) {
       }
     })
 
-    await task('create recipient accounts', async () => {
-      const tx = await agent.send(...wallets[0], 'create recipient accounts')
-      //const tx = await agent.sendMany(wallets, 'create recipient accounts')
-      return [tx.transactionHash]
+    await task(`create ${wallets.length} recipient accounts`, async report => {
+      const tx = await agent.sendMany(wallets, 'create recipient accounts')
+      report(tx.transactionHash)
     })
 
     return recipients
@@ -144,12 +143,13 @@ export default async function demo ({network, agent, builder}) {
     await task.done()
 
     while (true) {
-      await agent.waitForNextBlock()
-      const now = new Date()
-      const elapsed = now - launched
-      console.log({launched, elapsed})
-      await Promise.all(Object.values(recipients).map(({address})=>
-        MGMT.progress(address, now)))
+      await agent.nextBlock
+      for (const [name, recipient] of Object.entries(recipients)) {
+        const now = new Date()
+        const elapsed = now - launched
+        const { unlocked, claimed } = await MGMT.progress(recipient.address, now)
+        console.log(`${now.toISOString()} (${elapsed} after start)`, name, unlocked)
+      }
     }
   }
 

@@ -7,8 +7,8 @@ import { resolve, dirname, fileURLToPath } from '@hackbg/fadroma/js/sys.js'
 import { pull } from '@hackbg/fadroma/js/net.js'
 
 export default async function deploy ({
-  task = taskmaster(),
-  builder,
+  task     = taskmaster(),
+  builder  = new SecretNetwork.Builder(),
   initMsgs
 }) {
   return await task('build, upload, and initialize contracts', async () => {
@@ -41,8 +41,8 @@ export async function build ({
 }
 
 export async function upload ({
-  task = taskmaster(),
-  builder,
+  task    = taskmaster(),
+  builder = new SecretNetwork.Builder(),
   binaries
 } = {}) {
   const receipts = {}
@@ -70,18 +70,21 @@ export async function initialize ({
   const contracts = {}
   const initTXs = {}
   await task('initialize token', async report => {
-    contracts.TOKEN = new SNIP20Contract({ agent, codeId: receipts.TOKEN.id })
+    const {codeId} = receipts.TOKEN
+    contracts.TOKEN = new SNIP20Contract({ agent, codeId })
     report(await contracts.TOKEN.init(inits.TOKEN))
   })
-  await task('initialize mgmt', async () => {
+  await task('initialize mgmt', async report => {
+    const {codeId} = receipts.MGMT
     inits.MGMT.initMsg.token = [contracts.TOKEN.address, contracts.TOKEN.codeHash]
-    contracts.MGMT = new MGMTContract({ agent, codeId: receipts.MGMT.id })
+    contracts.MGMT = new MGMTContract({ agent, codeId })
     report(await contracts.MGMT.init(inits.MGMT))
   })
-  await task('initialize rpt', async () => {
+  await task('initialize rpt', async report => {
+    const {codeId} = receipts.RPT
     inits.RPT.initMsg.token = [contracts.TOKEN.address, contracts.TOKEN.codeHash]
     inits.RPT.initMsg.mgmt  = [contracts.MGMT.address, contracts.MGMT.codeHash]
-    contracts.RPT = new RPTContract({ agent, codeId: receipts.RPT.id })
+    contracts.RPT = new RPTContract({ agent, codeId })
     report(await contracts.RPT.init(inits.RPT))
   })
   return contracts

@@ -159,7 +159,7 @@ yargs(process.argv.slice(2))
 
   .command('build [ref]',
     '👷 Compile contracts from working tree',
-    () => build({ builder: new SecretNetwork.Builder() }))
+    () => build())
 
   .command('deploy',
     '🚀 Upload, instantiate, and configure all contracts.',
