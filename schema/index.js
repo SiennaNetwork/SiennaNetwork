@@ -20,14 +20,14 @@ export default class SNIP20 extends SecretNetwork.Contract.withSchema(schema) {
     this.tx.change_admin({address})
 
   async createViewingKey (agent, entropy = "minimal", address = agent.address) {
-    const {data, transactionHash: tx} = await this.tx.create_viewing_key({key}, agent)
-    const {key} = JSON.parse(decode(data)).create_viewing_key
+    const tx = await this.tx.create_viewing_key({key}, agent)
+    const {key} = JSON.parse(decode(tx.data)).create_viewing_key
     return {tx, key}
   }
 
   async setViewingKey (agent, key, address = agent.address) {
-    const {data, transactionHash: tx} = await this.tx.set_viewing_key({key}, agent)
-    const {status} = JSON.parse(decode(data)).set_viewing_key
+    const tx = await this.tx.set_viewing_key({key}, agent)
+    const {status} = JSON.parse(decode(tx.data)).set_viewing_key
     return {tx, status}
   }
 
