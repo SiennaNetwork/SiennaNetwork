@@ -68,7 +68,7 @@ export default async function demo ({network, agent, builder}) {
         'NewAdvisor', 'NewInvestor1', 'NewInvestor2',
       ]) {
         const extra = await chain.getAgent(name) // create agent
-        wallets.push([extra.address, 1000000])
+        wallets.push([extra.address, 10000000])
         recipients[name] = {agent: extra, address: extra.address}
       }
     })
@@ -111,7 +111,7 @@ export default async function demo ({network, agent, builder}) {
   async function verify (agent, recipients, contracts, schedule) {
     const { TOKEN, MGMT, RPT } = contracts
 
-    await task('set null viewing keys', async () => {
+    await task('set null viewing keys', async report => {
       const vk = "entropy"
       return (await Promise.all(
         Object.values(recipients).map(({agent})=>
@@ -144,11 +144,15 @@ export default async function demo ({network, agent, builder}) {
 
     while (true) {
       await agent.nextBlock
+      const now = new Date()
+      const elapsed = Math.floor(now - launched)
       for (const [name, recipient] of Object.entries(recipients)) {
-        const now = new Date()
-        const elapsed = now - launched
-        const { unlocked, claimed } = await MGMT.progress(recipient.address, now)
-        console.log(`${now.toISOString()} (${elapsed} after start)`, name, unlocked)
+        const {progress:{unlocked, claimed}} = await MGMT.progress(recipient.address, now)
+        process.stdout.write(`${now.toISOString()} (${elapsed}msec after start): `)
+        //MGMT.claim(recipient.agent)
+          //.then(result=>console.info(`claimed ${recipient.agent.name}`, result))
+          //.catch(result=>console.info(`failed ${recipient.agent.name}`, result))
+        console.log(`${name}: ${claimed}/${unlocked}`)
       }
     }
   }

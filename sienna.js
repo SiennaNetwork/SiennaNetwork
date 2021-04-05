@@ -108,14 +108,15 @@ yargs(process.argv.slice(2))
       //script = abs('integration', script)
       stderr.write(`⏳ Running demo ${script}...\n\n`)
       try {
+        const stateBase = resolve(dirname(fileURLToPath(import.meta.url)), '.fadroma')
+        let environment
         if (testnet) {
-          throw new Error('not implemented')
+          environment = await SecretNetwork.testnet({stateBase})
         } else {
-          const stateBase = resolve(dirname(fileURLToPath(import.meta.url)), '.fadroma')
-          const environment = await SecretNetwork.localnet({stateBase})
-          await demo(environment)
-          stderr.write('\n🟢 Demo executed successfully.\n')
+          environment = await SecretNetwork.localnet({stateBase})
         }
+        await demo(environment)
+        stderr.write('\n🟢 Demo executed successfully.\n')
       } catch (e) {
         console.error(e)
         stderr.write('\n👹 Demo failed.\n')
