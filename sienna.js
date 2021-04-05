@@ -96,7 +96,9 @@ yargs(process.argv.slice(2))
     })
 
   .command('demo [--testnet]',
-    '📜 Run integration tests/demos/executable reports.',
+    '📜 Run integration test/demo.',
+    yargs =>
+      yargs.option('testnet', { describe: 'run on holodeck-2 instead of a local container' }),
     async function runDemo ({testnet}) {
       clear()
       //script = abs('integration', script)
