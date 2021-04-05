@@ -5,36 +5,36 @@
 
 kukumba! {
 
-    #[transfer_ownership]
-
-    given "a contract instance" {
-        harness!(deps; ALICE, BOB, MALLORY);
-    }
+    #[no_unauthorized_set_admin]
+    given "a contract instance" { harness!(deps; ADMIN, ADMIN2, STRANGER); }
     when "a stranger tries to set a new admin"
-    then "just the hit counter goes up" {
-        tx!(deps; MALLORY, 1, 1; SetOwner { new_admin: MALLORY.clone() } == err!(auth));
-    }
+    then "that fails" {
+        tx!(deps; STRANGER, 1, 1; SetOwner { new_admin: STRANGER.clone() } == err!(auth)); }
+
+    #[ok_set_admin]
+    given "a contract instance" { harness!(deps; ADMIN, ADMIN2, STRANGER); }
     when "the admin tries to set a new admin"
     then "the admin is updated" {
-        tx!(deps; ALICE, 2, 2; SetOwner { new_admin: BOB.clone() } == ok!());
-    }
+        tx!(deps; ADMIN, 2, 2; SetOwner { new_admin: ADMIN2.clone() } == ok!()); }
     when "the former admin tries to set a new admin"
-    then "just the hit counter goes up" {
-        tx!(deps; ALICE, 3, 3; SetOwner { new_admin: ALICE.clone() } == err!(auth));
-    }
+    then "that fails" {
+        tx!(deps; ADMIN, 3, 3; SetOwner { new_admin: ADMIN.clone() } == err!(auth)); }
     when "the new admin tries to set the admin"
     then "the admin is updated" {
-        tx!(deps; BOB, 4, 4; SetOwner { new_admin: ALICE.clone() } == ok!());
-    }
+        tx!(deps; ADMIN2, 4, 4; SetOwner { new_admin: ADMIN.clone() } == ok!()); }
+
+    #[no_unauthorized_disown]
+    given "a contract instance" { harness!(deps; ADMIN, STRANGER); }
     when "someone else tries to disown the contract"
-    and  "just the hit counter goes up" {
-        tx!(deps; MALLORY, 5, 5; Disown {} == err!(auth));
-    }
+    and  "that fails" {
+        tx!(deps; STRANGER, 5, 5; Disown {} == err!(auth)); }
+
+    #[ok_disown]
+    given "a contract instance" { harness!(deps; ADMIN, STRANGER); }
     when "the admin disowns the contract"
     then "there is no admin"
     and  "nobody can control the contract" {
-        tx!(deps; ALICE, 6, 6; Disown {} == ok!());
-        tx!(deps; ALICE, 2, 2; SetOwner { new_admin: ALICE.clone() } == err!(auth));
-    }
+        tx!(deps; ADMIN, 6, 6; Disown {} == ok!());
+        tx!(deps; ADMIN, 2, 2; SetOwner { new_admin: ADMIN.clone() } == err!(auth)); }
 
 }

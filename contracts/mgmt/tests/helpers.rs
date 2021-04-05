@@ -60,7 +60,7 @@ macro_rules! q {
         let response = sienna_mgmt::query(&$deps, msg).unwrap();
         match cosmwasm_std::from_binary(&response).unwrap() {
             sienna_mgmt::msg::Response::$ResponseVariant {$($response_field),* ,.. } => {
-                $(assert_eq!($response_field, $expected_value));*
+                $(assert_eq!($response_field, $expected_value, stringify!($response_field)));*
             },
             _ => {
                 panic!("{} didn't return {}", stringify!($QueryVariant), stringify!($ResponseVariant))

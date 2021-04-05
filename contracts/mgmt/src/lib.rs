@@ -30,7 +30,7 @@ pub const BLOCK_SIZE: usize = 256;
     (UNDERWAY)    => { "already underway" }; // Already launched
     (PRELAUNCH)   => { "not launched yet" }; // Not launched yet
     (NOT_FOUND)   => { "not found" };        // Can't find account or pool by name
-    (ADD_ACCOUNT) => { "unexpected error when adding account" } // Shouldn't happen
+    (ADD_ACCOUNT) => { "can't add account" } // Pool full
 }
 
 contract!(
@@ -118,9 +118,9 @@ contract!(
             ok!(state)
         }
         /// Add a new account to a partially filled pool
-        AddAccount (pool: String, account: Account) {
+        AddAccount (pool_name: String, account: Account) {
             is_admin(&state, &env)?;
-            match state.schedule.add_account(pool, account) {
+            match state.schedule.add_account(pool_name, account) {
                 Ok(()) => ok!(state),
                 Err(e) => match e {
                     StdError::GenericErr { msg, .. } => err_msg(state, &msg),
