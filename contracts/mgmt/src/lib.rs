@@ -201,7 +201,7 @@ fn get_elapsed (t1: Seconds, t2: Seconds) -> Seconds {
         t1 - t2
     } else {
         0
-    };
+    }
 }
 
 fn portion (state: &State, address: &HumanAddr, elapsed: Seconds) -> (u128, u128) {
