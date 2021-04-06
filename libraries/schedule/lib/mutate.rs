@@ -1,6 +1,8 @@
 //! Methods to amend the schedule at runtime
 
 use crate::*;
+use crate::validate::Validation;
+
 impl Schedule {
     pub fn add_account (&mut self, pool_name: String, account: Account) -> UsuallyOk {
         for pool in self.pools.iter_mut() {

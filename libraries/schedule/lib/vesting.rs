@@ -50,7 +50,7 @@ impl Account {
     /// Number of non-cliff portions.
     pub fn portion_count (&self) -> u64 {
         if self.interval > 0 {
-            (self.duration / self.interval) as u64 + match self.cliff.u128() { 0 => 1, _ => 0 }
+            (self.duration / self.interval) as u64
         } else {
             0
         }

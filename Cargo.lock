@@ -1156,6 +1156,7 @@ dependencies = [
  "cosmwasm-std",
  "schemars",
  "serde",
+ "serde-json-wasm",
  "snafu",
  "spreadsheet-ods",
  "svg",
