@@ -4,3 +4,4 @@
 [submodule "snip20-reference-impl"]
 	path = snip20-reference-impl
 	url = https://github.com/hackbg/snip20-reference-impl
+	branch = callbacks
