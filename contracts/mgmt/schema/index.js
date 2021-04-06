@@ -33,6 +33,6 @@ export default class MGMT extends SecretNetwork.Contract.withSchema(schema) {
     return this.q.progress({ address, time })
   }
   // add a new account to a pool
-  add = (pool, account) =>
-    this.tx.add_account({ pool, account })
+  add = (pool_name, account) =>
+    this.tx.add_account({ pool_name, account })
 }
