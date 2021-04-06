@@ -12,12 +12,14 @@
 
 /// `impl` error methods on one or more structs
 #[macro_export] macro_rules! define_errors {
-    ($( $Struct:ident { $(
-        $name:ident
-        ($(&$self:ident,)? $($arg:ident : $type:ty),*)
-        { $format:literal $(, $var:expr)* }
-    )* } )*) => {
-        $( impl $Struct { $(
+    ($(
+        $Struct:ident $(<$G:tt$(:$GG:tt)?>)? { $(
+            $name:ident
+            ($(&$self:ident,)? $($arg:ident : $type:ty),*)
+            { $format:literal $(, $var:expr)* }
+        )* }
+    )*) => {
+        $( impl $(<$G$(:$GG)?>)? $Struct $(<$G>)? { $(
             #[doc=$format]
             pub fn $name<T> ($(&$self,)? $($arg : $type),*) -> cosmwasm_std::StdResult<T> {
                 Error!(format!($format $(, $var)*))
@@ -28,7 +30,7 @@
 
 use crate::{Schedule, Pool, Account};
 define_errors!(
-    Schedule {
+    Schedule<A:Clone> {
         err_total (&self,) {
             "schedule: pools add up to {}, expected {}",
             &self.subtotal(), &self.total
@@ -38,7 +40,7 @@ define_errors!(
             &name
         }
     }
-    Pool {
+    Pool<A:Clone> {
         err_total (&self,) {
             "pool {}: accounts add up to {}, expected {}",
             &self.name, &self.subtotal(), &self.total
@@ -47,14 +49,14 @@ define_errors!(
             "pool {}: can't add any more accounts to this pool",
             &self.name
         }
-        err_account_too_big (&self, account: &Account) {
+        err_account_too_big (&self, account: &Account<A>) {
             "pool {}: account ({}) > unallocated funds in pool ({})",
             &self.name,
             account.amount.u128(),
             self.unallocated()
         }
     }
-    Account {
+    Account<A:Clone> {
         err_empty (&self,) {
             "account {}: amount must be >0",
             &self.name

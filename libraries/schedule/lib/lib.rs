@@ -16,6 +16,7 @@ use serde::{Serialize, Deserialize};
 pub use cosmwasm_std::{Uint128, HumanAddr, StdResult, StdError};
 
 pub mod errors; pub use errors::*;
+pub mod canon; pub use canon::*;
 pub mod validate;
 pub mod vesting;
 pub mod mutate;
@@ -32,12 +33,12 @@ pub type UsuallyOk = StdResult<()>;
 /// Contains `Pool`s that must add up to `total`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct Schedule {
+pub struct Schedule<A:Clone> {
     pub total:   Uint128,
-    pub pools:   Vec<Pool>,
+    pub pools:   Vec<Pool<A>>,
 }
-impl Schedule {
-    pub fn new (pools: &[Pool]) -> Self {
+impl<A:Clone> Schedule<A> {
+    pub fn new (pools: &[Pool<A>]) -> Self {
         let mut s = Schedule { total: Uint128::zero(), pools: pools.to_vec() };
         s.total = Uint128::from(s.subtotal());
         s
@@ -52,20 +53,20 @@ impl Schedule {
 /// If `partial == false`, they must add up to `total`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct Pool {
+pub struct Pool<A> {
     /// if `true`, adding new `Account`s is allowed at runtime, up to `total`.
     /// otherwise, accounts must add up to `total` at creation.
     pub partial:  bool,
     pub name:     String,
     pub total:    Uint128,
-    pub accounts: Vec<Account>,
+    pub accounts: Vec<Account<A>>,
 }
-impl Pool {
-    pub fn partial (name: &str, total: u128, accounts: &[Account]) -> Self {
+impl<A:Clone> Pool<A> {
+    pub fn partial (name: &str, total: u128, accounts: &[Account<A>]) -> Self {
         let accounts = accounts.to_vec();
         Pool { partial: true, name: name.into(), total: total.into(), accounts }
     }
-    pub fn full (name: &str, accounts: &[Account]) -> Self {
+    pub fn full (name: &str, accounts: &[Account<A>]) -> Self {
         let accounts = accounts.to_vec();
         let mut total = Uint128::zero();
         for &Account{amount,..} in accounts.iter() { total += amount }
@@ -88,11 +89,11 @@ impl Pool {
 /// * only `head_allocations` is considered.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct Account {
+pub struct Account<A> {
     /// Human-readable name
     pub name:     String,
     /// Recipient address
-    pub address:  HumanAddr,
+    pub address:  A,
     /// Funds that this account will release
     pub amount:   Uint128,
     /// If `> 0`, releases this much money the first time, pushing back the regular portions
@@ -104,8 +105,8 @@ pub struct Account {
     /// If `> 0`, vesting stops after this much seconds regardless of how much is left of `total`.
     pub duration: Seconds,
 }
-impl Account {
-    pub fn immediate (name: &str, address: &HumanAddr, amount: u128) -> Self {
+impl<A:Clone> Account<A> {
+    pub fn immediate (name: &str, address: &A, amount: u128) -> Self {
         Self {
             name:     name.into(),
             address:  address.clone(),
@@ -117,7 +118,7 @@ impl Account {
         }
     }
     pub fn periodic (
-        name: &str, address: &HumanAddr, amount: u128,
+        name: &str, address: &A, amount: u128,
         cliff: u128, start_at: Seconds, interval: Seconds, duration: Seconds
     ) -> Self {
         Self {

@@ -2,26 +2,26 @@
 
 use crate::*;
 
-pub trait Vesting {
+pub trait Vesting<A:Clone+PartialEq> {
     /// Get total amount unlocked for address `a` at time `t`.
-    fn unlocked (&self, t: Seconds, a: &HumanAddr) -> u128;
+    fn unlocked (&self, elapsed: Seconds, address: &A) -> u128;
 }
-impl Vesting for Schedule {
+impl<A:Clone+PartialEq> Vesting<A> for Schedule<A> {
     /// Sum of unlocked amounts for this address for all pools
-    fn unlocked (&self, t: Seconds, a: &HumanAddr) -> u128 {
-        self.pools.iter().fold(0, |total, pool| total + pool.unlocked(t, a))
+    fn unlocked (&self, elapsed: Seconds, address: &A) -> u128 {
+        self.pools.iter().fold(0, |total, pool| total + pool.unlocked(elapsed, address))
     }
 }
-impl Vesting for Pool {
+impl<A:Clone+PartialEq> Vesting<A> for Pool<A> {
     /// Sum of unlocked amounts for this address for all accounts in this pool
-    fn unlocked (&self, t: Seconds, a: &HumanAddr) -> u128 {
-        self.accounts.iter().fold(0, |total, account| total + account.unlocked(t, a))
+    fn unlocked (&self, elapsed: Seconds, address: &A) -> u128 {
+        self.accounts.iter().fold(0, |total, account| total + account.unlocked(elapsed, address))
     }
 }
-impl Vesting for Account {
+impl<A:Clone+PartialEq> Vesting<A> for Account<A> {
     /// Unlocked sum for this account at a point in time
-    fn unlocked (&self, elapsed: Seconds, a: &HumanAddr) -> u128 {
-        if *a != self.address { // if asking about someone else
+    fn unlocked (&self, elapsed: Seconds, address: &A) -> u128 {
+        if *address != self.address { // if asking about someone else
             0
         } else if elapsed < self.start_at { // if asking about a moment before the start
             0
@@ -33,7 +33,7 @@ impl Vesting for Account {
         }
     }
 }
-impl Account {
+impl<A> Account<A> {
     /// Size of regular (non-cliff) portions.
     pub fn portion_size (&self) -> u128 {
         if self.portion_count() > 0 {

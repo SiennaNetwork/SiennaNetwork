@@ -17,7 +17,7 @@ pub trait Validation {
     /// Default implementation is a no-op
     fn validate (&self) -> UsuallyOk { Ok(()) }
 }
-impl Validation for Schedule {
+impl<A:Clone> Validation for Schedule<A> {
     /// Schedule must contain valid pools that add up to the schedule total
     fn validate (&self) -> UsuallyOk {
         for pool in self.pools.iter() {
@@ -29,7 +29,7 @@ impl Validation for Schedule {
         Ok(())
     }
 }
-impl Validation for Pool {
+impl<A:Clone> Validation for Pool<A> {
     fn validate (&self) -> UsuallyOk {
         for account in self.accounts.iter() {
             account.validate()?;
@@ -43,7 +43,7 @@ impl Validation for Pool {
         Ok(())
     }
 }
-impl Validation for Account {
+impl<A:Clone> Validation for Account<A> {
     fn validate (&self) -> UsuallyOk {
         if self.amount == Uint128::zero() {
             return self.err_empty()
@@ -106,7 +106,7 @@ mod tests {
                    P.err_total());
     }
     #[test] fn test_pools_lt_schedule () {
-        let S = Schedule {
+        let S: Schedule<HumanAddr> = Schedule {
             total: 1u128.into(),
             pools: vec![]
         };

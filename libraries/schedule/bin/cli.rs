@@ -58,6 +58,6 @@ fn main () -> Result<(), std::io::Error> {
 
 }
 
-fn get_schedule (path: &str) -> Result<Schedule, serde_json_wasm::de::Error> {
+fn get_schedule (path: &str) -> Result<Schedule<HumanAddr>, serde_json_wasm::de::Error> {
     from_str(&read_to_string(Path::new(path)).unwrap())
 }

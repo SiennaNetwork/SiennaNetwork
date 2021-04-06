@@ -2,8 +2,8 @@
 
 use crate::{*, validate::Validation};
 
-impl Schedule {
-    pub fn add_account (&mut self, pool_name: String, account: Account) -> UsuallyOk {
+impl<A: Clone> Schedule<A> {
+    pub fn add_account (&mut self, pool_name: String, account: Account<A>) -> UsuallyOk {
         for pool in self.pools.iter_mut() {
             if pool.name == pool_name {
                 return pool.add_account(account)
@@ -12,8 +12,8 @@ impl Schedule {
         self.err_pool_not_found(pool_name)
     }
 }
-impl Pool {
-    pub fn add_account (&mut self, account: Account) -> UsuallyOk {
+impl<A: Clone> Pool<A> {
+    pub fn add_account (&mut self, account: Account<A>) -> UsuallyOk {
         if !self.partial {
             return self.err_pool_full()
         }
