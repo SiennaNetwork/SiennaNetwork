@@ -63,8 +63,8 @@ export default async function demo ({network, agent, builder}) {
         const {name} = account
         const recipient = await chain.getAgent(name) // create agent
         const {address} = recipient
-        account.address = address        // replace placeholder with real address
-        wallets.push([address, 1000000]) // balance to cover gas costs
+        account.address = address         // replace placeholder with real address
+        wallets.push([address, 10000000]) // balance to cover gas costs
         recipients[name] = {agent: recipient, address} // store agent
 
         // * divide all times in account by 86400, so that a day passes in a second
@@ -161,6 +161,8 @@ export default async function demo ({network, agent, builder}) {
       const elapsed = now - launched
       console.info(`\n⏱️  ${(elapsed/1000).toFixed(3)} "days" (seconds) after launch:`)
 
+      const claimable = []
+
       for (const [name, recipient] of Object.entries(recipients)) {
         if (name.startsWith('TokenPair')) {
           // token pairs are only visible to the RPT contract
@@ -172,6 +174,19 @@ export default async function demo ({network, agent, builder}) {
           `${name}:`.padEnd(15),
           progress.claimed.padStart(30), `/`, progress.unlocked.padStart(30)
         )
+        // one random recipient with newly unlocked balance will claim:
+        if (name !== 'RPT' && progress.claimed < progress.unlocked) {
+          claimable.push(name)
+        }
+      }
+
+      if (claimable.length > 0) {
+        const claimant = claimable[Math.floor(Math.random() * claimable.length)]
+        console.info(`\n${claimant} claims...`)
+        const recipient = recipients[claimant]
+        await MGMT.claim(recipient.agent)
+        const balance = String(await TOKEN.balance(recipient.agent, VK))
+        console.info(`balance of ${claimant} is now: ${balance}`)
       }
 
       if (!addedAccount && elapsed > 20000) {
@@ -198,7 +213,7 @@ export default async function demo ({network, agent, builder}) {
         ])
       }
 
-      console.debug('\nclaiming RPT tokens...')
+      console.debug('\nvesting RPT tokens...')
       await RPT.vest()
       for (const [name, recipient] of Object.entries(recipients)) {
         if (name.startsWith('TokenPair')) {
