@@ -241,9 +241,9 @@ mod tests {
             (A.interval.into(),       11),
             (A.duration.into(),       90),
             (A.end().into(),         110),
-            (A.portion_count().into(), 9),
-            (A.portion_size(),        10),
-            (A.remainder(),            2),
+            (A.portion_count().into(), 8),
+            (A.portion_size(),        11),
+            (A.remainder(),            4),
         ] {
             assert_eq!(l, r);
         }
