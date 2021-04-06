@@ -75,10 +75,8 @@ export default async function demo ({network, agent, builder}) {
     })
 
     await task('create extra test accounts for reallocation tests', async () => {
-      for (let name of [ // extra accounts for reconfigurations
-        'TokenPair1', 'TokenPair2', 'TokenPair3',
-        'NewAdvisor', 'NewInvestor1', 'NewInvestor2',
-      ]) {
+      const extras = [ 'NewAdvisor', 'TokenPair1', 'TokenPair2', 'TokenPair3', ]
+      for (const name of extras) {
         const extra = await chain.getAgent(name) // create agent
         wallets.push([extra.address, 10000000])
         recipients[name] = {agent: extra, address: extra.address}
@@ -124,9 +122,9 @@ export default async function demo ({network, agent, builder}) {
       report(tx.transactionHash)
     })
 
+    const VK = ""
     await task('set null viewing keys', async report => {
-      const vk = "entropy"
-      let txs = Object.values(recipients).map(({agent})=>TOKEN.setViewingKey(agent, "entropy"))
+      let txs = Object.values(recipients).map(({agent})=>TOKEN.setViewingKey(agent, VK))
       txs = await Promise.all(txs)
       for (const {tx} of txs) report(tx.transactionHash)
     })
@@ -164,26 +162,51 @@ export default async function demo ({network, agent, builder}) {
       console.info(`\n⏱️  ${(elapsed/1000).toFixed(3)} "days" (seconds) after launch:`)
 
       for (const [name, recipient] of Object.entries(recipients)) {
+        if (name.startsWith('TokenPair')) {
+          // token pairs are only visible to the RPT contract
+          // so it doesn't make sense to pass them to the `unlocked` method
+          continue
+        }
         const {progress} = await MGMT.progress(recipient.address, now)
-        //MGMT.claim(recipient.agent)
-          //.then(result=>console.info(`claimed ${recipient.agent.name}`, result))
-          //.catch(result=>console.info(`failed ${recipient.agent.name}`, result))
-        console.info( `${name}:`.padEnd(15)
-                    , progress.claimed.padStart(30), `/`, progress.unlocked.padStart(30) )
+        console.info(
+          `${name}:`.padEnd(15),
+          progress.claimed.padStart(30), `/`, progress.unlocked.padStart(30)
+        )
       }
 
       if (!addedAccount && elapsed > 20000) {
-        console.log('\nadding new account to advisors pool')
+        console.log('\nadding new account to advisors pool...')
         addedAccount = true
         await MGMT.add('Advisors', {
           name:     'NewAdvisor',
           address:  recipients['NewAdvisor'].address,
           amount:   "600000000000000000000",
           cliff:    "100000000000000000000",
-          start_at: Math.floor(elapsed / 1000),
+          start_at: Math.floor(elapsed / 1000) + 5,
           interval: 5,
           duration: 25,
         })
+      }
+
+      if (!reallocated && elapsed > 30000) {
+        console.log('\nreallocating RPT...')
+        reallocated = true
+        await RPT.configure([
+          [recipients.TokenPair1.address,  "250000000000000000000"],
+          [recipients.TokenPair2.address, "1250000000000000000000"],
+          [recipients.TokenPair3.address, "1000000000000000000000"],
+        ])
+      }
+
+      console.debug('\nclaiming RPT tokens...')
+      await RPT.vest()
+      for (const [name, recipient] of Object.entries(recipients)) {
+        if (name.startsWith('TokenPair')) {
+          console.log(
+            `${name}:`.padEnd(15),
+            String(await TOKEN.balance(recipient.agent, VK)).padStart(30)
+          )
+        }
       }
 
     }
