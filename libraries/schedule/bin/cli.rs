@@ -10,30 +10,40 @@ fn main () -> Result<(), std::io::Error> {
     let mut app = App::new("sienna_schedule")
         .version("1.0")
         .author("Adam A. <adam@hack.bg>")
-        .about("Manages vesting schedule definitions")
+        .about("Converts a schedule from JSON to Markdown, materializing all portions")
         .arg(Arg::new("PATH")
             .default_value("../../settings/schedule.json"));
 
     let matches = &app.clone().get_matches();
     match matches.value_of("PATH") {
         Some(path) => {
-            println!("reading schedule from {}", &path);
+            println!("\n# Schedule");
+            println!("\n(Generated from schedule.json)\n", &path, &path);
             let schedule = get_schedule(path).unwrap();
-            println!("{:#?}", &schedule);
+            println!("Internal representation:\n```\n{:#?}\n```", &schedule);
             schedule.validate().unwrap();
             for pool in schedule.pools.iter() {
+                println!("\n## Pool: *{}*", &pool.name);
                 for account in pool.accounts.iter() {
-                    println!("\nAccount:       {}", &account.name);
-                    println!("  Amount:        {}", &account.amount);
-                    println!("  Cliff:         {}", &account.cliff);
-                    println!("  Portion size:  {}", &account.portion_size());
-                    println!("  Portion count: {}", &account.portion_count());
+                    println!("\n### Account: *{}*\n", &account.name);
+                    println!("* Amount: **{} uSIENNA**", &account.amount);
+                    println!("* Cliff: **{} uSIENNA**", &account.cliff);
+                    println!("* Portion size: **{} uSIENNA**", &account.portion_size());
+                    println!("* Portion count: **{}**\n", &account.portion_count());
+                    let mut portion = if account.cliff > cosmwasm_std::Uint128::zero() { -1 } else { 0 };
                     let mut balance = 0u128;
+                    println!("|portion #|timestamp (seconds)|unlocked amount (uSIENNA)|");
+                    println!("|:-:|--:|--:|");
                     for t in account.start_at..account.end()+1 {
                         let new_balance = account.unlocked(t, &account.address);
                         if new_balance != balance {
+                            portion += 1;
                             balance = new_balance;
-                            println!("{:>12}│{:>26}", t, balance);
+                            println!("|{:>7}|{:>12}|{:>26}|",
+                                if portion == 0 { "cliff".to_string() } else { portion.to_string() },
+                                t,
+                                balance
+                            );
                         }
                     }
                 }
