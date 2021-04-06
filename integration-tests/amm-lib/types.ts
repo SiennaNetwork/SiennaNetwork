@@ -25,7 +25,7 @@ export class TokenTypeAmount {
 }
 
 export interface CustomToken {
-    token: {
+    custom_token: {
         contract_addr: Address;
         token_code_hash: string;
     };
@@ -79,72 +79,6 @@ export class Pagination {
          */
         readonly limit: number
     ) { }
-}
-
-/**
- * Just to show what the response could look like.
- */
-export type FactoryQueryResponse =
-  | {
-      get_exchange_pair: {
-        pair: TokenPair;
-      };
-    }
-  | {
-      get_exchange_address: {
-        address: Address;
-      };
-    }
-  | {
-      list_idos: {
-        idos: Address[];
-      };
-    };
-
-export class FactoryContract {
-    static HandleMsg = class {
-        static create_exchange(pair: TokenPair): object {
-            return {
-                create_exchange: {
-                    pair
-                }
-            }
-        }
-
-        static create_ido(info: IdoInitConfig): object {
-            return {
-                create_ido: {
-                    info
-                }
-            }
-        }
-    }
-
-    static QueryMsg = class {
-        static get_exchange_pair(exchange_addr: Address): object {
-            return {
-                get_exchange_pair: {
-                    exchange_addr
-                }
-            }
-        }
-
-        static get_exchange_address(pair: TokenPair): object {
-            return {
-                get_exchange_address: {
-                    pair
-                }
-            }
-        }
-
-        static list_idos(pagination: Pagination): object {
-            return {
-                pagination: {
-                    pagination
-                }
-            }
-        }
-    }
 }
 
 /***********************************************************************************

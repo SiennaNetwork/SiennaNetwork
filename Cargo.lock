@@ -888,6 +888,7 @@ dependencies = [
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
  "serde",
  "snafu",
+ "utils",
 ]
 
 [[package]]

@@ -1,6 +1,7 @@
 use cosmwasm_std::{HumanAddr, CanonicalAddr, StdResult, Api};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use utils::{humanize_maybe_empty, canonicalize_maybe_empty};
 
 /// Code hash and address of a contract.
 #[derive(Serialize, Deserialize, JsonSchema, Clone, PartialEq, Debug)]
@@ -35,7 +36,7 @@ impl ContractInfo {
     pub fn to_stored(&self, api: &impl Api) -> StdResult<ContractInfoStored> {
         Ok(ContractInfoStored {
             code_hash: self.code_hash.clone(),
-            address: api.canonical_address(&self.address)?
+            address: canonicalize_maybe_empty(api, &self.address)?
         })
     }
 }
@@ -44,7 +45,7 @@ impl ContractInfoStored {
     pub fn to_normal(self, api: &impl Api) -> StdResult<ContractInfo> {
         Ok(ContractInfo {
             code_hash: self.code_hash,
-            address: api.human_address(&self.address)?
+            address: humanize_maybe_empty(api, &self.address)?
         })
     }
 }

@@ -49,7 +49,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         code_id: msg.lp_token_contract.id,
         msg: to_binary(&Snip20InitMsg {
             name: format!(
-                "SecretSwap Liquidity Provider (LP) token for {}-{}",
+                "SiennaSwap Liquidity Provider (LP) token for {}-{}",
                 &msg.pair.0, &msg.pair.1
             ),
             admin: Some(env.contract.address.clone()),
@@ -68,7 +68,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         })?,
         send: vec![],
         label: format!(
-            "{}-{}-SecretSwap-LP-Token-{}",
+            "{}-{}-SiennaSwap-LP-Token-{}",
             &msg.pair.0,
             &msg.pair.1,
             &env.contract.address.clone()
