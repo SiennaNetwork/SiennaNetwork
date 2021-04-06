@@ -18,7 +18,7 @@ fn main () -> Result<(), std::io::Error> {
     match matches.value_of("PATH") {
         Some(path) => {
             println!("\n# Schedule");
-            println!("\n(Generated from schedule.json)\n", &path, &path);
+            println!("\n(Generated from schedule.json)\n");
             let schedule = get_schedule(path).unwrap();
             println!("Internal representation:\n```\n{:#?}\n```", &schedule);
             schedule.validate().unwrap();
@@ -32,16 +32,16 @@ fn main () -> Result<(), std::io::Error> {
                     println!("* Portion count: **{}**\n", &account.portion_count());
                     let mut portion = if account.cliff > cosmwasm_std::Uint128::zero() { -1 } else { 0 };
                     let mut balance = 0u128;
-                    println!("|portion #|timestamp (seconds)|unlocked amount (uSIENNA)|");
-                    println!("|:-:|--:|--:|");
+                    println!("|portion #|day|unlocked amount (uSIENNA)|");
+                    println!("|:-:|:-:|--:|");
                     for t in account.start_at..account.end()+1 {
                         let new_balance = account.unlocked(t, &account.address);
                         if new_balance != balance {
                             portion += 1;
                             balance = new_balance;
-                            println!("|{:>7}|{:>12}|{:>26}|",
+                            println!("|{:>7}|{:>7}|{:>26}|",
                                 if portion == 0 { "cliff".to_string() } else { portion.to_string() },
-                                t,
+                                t / 86400,
                                 balance
                             );
                         }
