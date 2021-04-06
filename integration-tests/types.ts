@@ -3,57 +3,68 @@ export type Address = string;
 export type TokenType = CustomToken | NativeToken;
 
 export class TokenPair {
-    token_0: TokenType;
-    token_1: TokenType;
+    constructor(
+        readonly token_0: TokenType,
+        readonly token_1: TokenType
+    ) {}
 }
 
-export class TokenPairAmount extends TokenPair {
-    amount_0: Uint128;
-    amount_1: Uint128;
+export class TokenPairAmount {
+    constructor(
+        readonly pair: TokenPair,
+        readonly amount_0: Uint128,
+        readonly amount_1: Uint128
+    ) { }
 }
 
 export class TokenTypeAmount {
-    token: TokenType;
-    amount: Uint128;
+    constructor(
+        readonly token: TokenType,
+        readonly amount: Uint128
+    ) {}
 }
 
-export class CustomToken {
+export interface CustomToken {
     token: {
         contract_addr: Address;
         token_code_hash: string;
     };
 }
 
-export class NativeToken {
+export interface NativeToken {
     native_token: {
         denom: string;
     };
 }
 
 export class IdoInitConfig {
-    /**
-     * This is the token that will be used to buy our token.
-     */
-    input_token: TokenType;
-    /**
-     * Check this to understand how the rate is set: https://github.com/SiennaNetwork/sienna-swap-amm/blob/b3dc9b21d8f6c11c32d9282ebc1ad5267aa1fa44/ido/src/contract.rs#L277
-     */
-    rate: Uint128;
-    snip20_init_info: Snip20TokenInitInfo;
+    constructor(
+        /**
+         * This is the token that will be used to buy our token.
+         */
+        readonly input_token: TokenType,
+        /**
+         * Check this to understand how the rate is set: https://github.com/SiennaNetwork/sienna-swap-amm/blob/b3dc9b21d8f6c11c32d9282ebc1ad5267aa1fa44/ido/src/contract.rs#L277
+         */
+        readonly rate: Uint128,
+        readonly snip20_init_info: Snip20TokenInitInfo
+    ) {}
 }
 
 export class Snip20TokenInitInfo {
-    name: string;
-    symbol: string;
-    /**
-     * Must be a base64 encoded string. Otherwise, the tx will fail.
-     */
-    prng_seed: string;
-    /**
-     * Max is 18
-     */
-    decimals: number;
-    config?: Snip20InitConfig | null;
+    constructor(
+        readonly name: string,
+        readonly symbol: string,
+        /**
+         * Must be a base64 encoded string. Otherwise, the tx will fail.
+         */
+        readonly prng_seed: string,
+        /**
+         * Max is 18
+         */
+        readonly decimals: number,
+        readonly config?: Snip20InitConfig | null
+    ) {}
 }
 
 export class Snip20InitConfig {
@@ -61,11 +72,13 @@ export class Snip20InitConfig {
 }
 
 export class Pagination {
-    start: number;
-    /**
-     * Max is 30.
-     */
-    limit: number;
+    constructor(
+        readonly start: number,
+        /**
+         * Max is 30.
+         */
+        readonly limit: number
+    ) { }
 }
 
 /**
@@ -139,11 +152,15 @@ export class FactoryContract {
  **********************************************************************************/
 
 export class ContractInfo {
-    code_hash: string;
-    address: Address;
+    constructor(
+        readonly code_hash: string,
+        readonly address: Address
+    ) {}
 }
 
 export class ContractInstantiationInfo {
-    code_hash: string;
-    id: number;
+    constructor(
+        readonly code_hash: string,
+        readonly id: number
+    ) {}
 }
