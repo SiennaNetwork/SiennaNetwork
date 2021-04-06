@@ -38,29 +38,41 @@ export default async function demo ({network, agent, builder}) {
 
   async function prepare (chain, agent, schedule) {
 
+    await task('allow adding accounts to Advisors pool in place of AdvisorN', () => {
+      for (const pool of schedule.pools) {
+        if (pool.name === 'Advisors') {
+          pool.partial = true
+          for (const i in pool.accounts) {
+            if (pool.accounts[i].name === 'AdvisorN') {
+              pool.accounts.splice(i, 1)
+              break
+            }
+          }
+          break
+        }
+      }
+    })
+
     const wallets    = []
         , recipients = {}
 
-    await task('shorten schedule and replace placeholders with test accounts',
-      async () => {
-        await Promise.all(schedule.pools.map(function mutatePool (pool) {
-          return Promise.all(pool.accounts.map(mutateAccount))
-        }))
-        async function mutateAccount (account) {
-          // * create an agent for each recipient address (used to test claims)
-          const {name} = account
-          const recipient = await chain.getAgent(name) // create agent
-          const {address} = recipient
-          account.address = address        // replace placeholder with real address
-          wallets.push([address, 1000000]) // balance to cover gas costs
-          recipients[name] = {agent: recipient, address} // store agent
+    await task('shorten schedule and replace placeholders with test accounts', async () => {
+      await Promise.all(schedule.pools.map(pool=>Promise.all(pool.accounts.map(mutateAccount))))
+      async function mutateAccount (account) {
+        // * create an agent for each recipient address (used to test claims)
+        const {name} = account
+        const recipient = await chain.getAgent(name) // create agent
+        const {address} = recipient
+        account.address = address        // replace placeholder with real address
+        wallets.push([address, 1000000]) // balance to cover gas costs
+        recipients[name] = {agent: recipient, address} // store agent
 
-          // * divide all times in account by 86400, so that a day passes in a second
-          account.start_at /= 86400
-          account.interval /= 86400
-          account.duration /= 86400
-        }
-      })
+        // * divide all times in account by 86400, so that a day passes in a second
+        account.start_at /= 86400
+        account.interval /= 86400
+        account.duration /= 86400
+      }
+    })
 
     await task('create extra test accounts for reallocation tests', async () => {
       for (let name of [ // extra accounts for reconfigurations
@@ -126,13 +138,10 @@ export default async function demo ({network, agent, builder}) {
     })
 
     await task('point RPT account in schedule to RPT contract', async report => {
-      schedule
-        .pools.filter(x=>x.name==='MintingPool')[0]
-        .accounts.filter(x=>x.name==='RPT')[0]
-        .address = RPT.address
-
+      schedule.pools.filter(x=>x.name==='MintingPool')[0]
+              .accounts.filter(x=>x.name==='RPT')[0]
+              .address = RPT.address
       recipients['RPT'] = { address: RPT.address }
-
       const {transactionHash} = await MGMT.configure(schedule)
       report(transactionHash)
     })
@@ -146,11 +155,14 @@ export default async function demo ({network, agent, builder}) {
 
     await task.done()
 
+    let addedAccount = false
+    let reallocated  = false
     while (true) {
       await agent.nextBlock
       const now = new Date()
       const elapsed = now - launched
       console.info(`\n⏱️  ${(elapsed/1000).toFixed(3)} "days" (seconds) after launch:`)
+
       for (const [name, recipient] of Object.entries(recipients)) {
         const {progress} = await MGMT.progress(recipient.address, now)
         //MGMT.claim(recipient.agent)
@@ -159,6 +171,21 @@ export default async function demo ({network, agent, builder}) {
         console.info( `${name}:`.padEnd(15)
                     , progress.claimed.padStart(30), `/`, progress.unlocked.padStart(30) )
       }
+
+      if (!addedAccount && elapsed > 20000) {
+        console.log('\nadding new account to advisors pool')
+        addedAccount = true
+        await MGMT.add('Advisors', {
+          name:     'NewAdvisor',
+          address:  recipients['NewAdvisor'].address,
+          amount:   "600000000000000000000",
+          cliff:    "100000000000000000000",
+          start_at: Math.floor(elapsed / 1000),
+          interval: 5,
+          duration: 25,
+        })
+      }
+
     }
   }
 
