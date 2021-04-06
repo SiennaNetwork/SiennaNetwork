@@ -1,7 +1,6 @@
 //! Methods to amend the schedule at runtime
 
-use crate::*;
-use crate::validate::Validation;
+use crate::{*, validate::Validation};
 
 impl Schedule {
     pub fn add_account (&mut self, pool_name: String, account: Account) -> UsuallyOk {
@@ -35,7 +34,7 @@ impl Pool {
 mod tests {
     #![allow(non_snake_case)]
     use cosmwasm_std::HumanAddr;
-    use crate::{Schedule, Pool, Account, Validation};
+    use crate::{Schedule, Pool, Account, validate::Validation};
     #[test] fn test_add_to_full () {
         let Alice = HumanAddr::from("Alice");
         let Bob   = HumanAddr::from("Bob");

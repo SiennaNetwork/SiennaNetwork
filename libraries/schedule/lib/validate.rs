@@ -66,7 +66,7 @@ impl Validation for Account {
 mod tests {
     #![allow(non_snake_case)]
     use cosmwasm_std::HumanAddr;
-    use crate::{Schedule, Pool, Account, Validation};
+    use crate::{Schedule, Pool, Account, validate::Validation};
     #[test] fn test_amount_eq_zero () {
         let A = Account::periodic("A", &HumanAddr::from(""), 0, 0, 0, 0, 0);
         assert_eq!(A.validate(),

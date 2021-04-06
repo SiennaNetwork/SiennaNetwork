@@ -95,7 +95,7 @@ impl Account {
 mod tests {
     #![allow(non_snake_case)]
     use cosmwasm_std::HumanAddr;
-    use crate::{Schedule, Pool, Account, Vesting};
+    use crate::{Schedule, Pool, Account, vesting::Vesting};
     #[test] fn blank () {
         // some imaginary people:
         let Alice = HumanAddr::from("Alice");

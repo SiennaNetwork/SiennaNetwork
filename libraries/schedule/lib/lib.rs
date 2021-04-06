@@ -90,13 +90,13 @@ impl Pool {
 #[serde(rename_all = "snake_case")]
 pub struct Account {
     /// Human-readable name
-    pub name:   String,
+    pub name:     String,
     /// Recipient address
-    pub address: HumanAddr,
+    pub address:  HumanAddr,
     /// Funds that this account will release
-    pub amount: Uint128,
+    pub amount:   Uint128,
     /// If `> 0`, releases this much money the first time, pushing back the regular portions
-    pub cliff: Uint128,
+    pub cliff:    Uint128,
     /// How many seconds after contract launch to begin vesting
     pub start_at: Seconds,
     /// How many seconds to wait between portions
