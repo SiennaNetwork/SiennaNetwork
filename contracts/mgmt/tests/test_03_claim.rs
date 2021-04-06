@@ -37,8 +37,7 @@ kukumba! {
         let founder_1 = HumanAddr::from("secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
         let founder_2 = HumanAddr::from("secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
         let founder_3 = HumanAddr::from("secret1TODO22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-        let PRELAUNCH = MGMTError!(PRELAUNCH);
-        let NOTHING   = MGMTError!(NOTHING); }
+        let PRELAUNCH = MGMTError!(PRELAUNCH); }
     when "the contract is not yet launched"
     and  "anyone tries to claim funds"
     then "they are denied" {
@@ -69,20 +68,21 @@ kukumba! {
                         Progress { unlocked: zero, claimed: zero }); }
                 if A.cliff > zero { // cliff
                     q!(deps;
-                        Progress { address: address.clone(), time: A.start_at } ==
+                        Progress { address: address.clone(), time: A.start_at + A.interval } ==
                         Progress { unlocked: A.cliff, claimed: zero });
                 } else { // first portion
                     q!(deps;
-                        Progress { address: address.clone(), time: A.start_at + 1 } ==
+                        Progress { address: address.clone(), time: A.start_at + A.interval } ==
                         Progress { unlocked: Uint128::from(A.portion_size()), claimed: zero });
                 }
                 q!(deps; // entire amount is unlocked by the end
-                    Progress { address: address.clone(), time: A.start_at + A.duration } ==
+                    Progress { address: address.clone(), time: A.start_at + A.duration + A.interval } ==
                     Progress { unlocked: A.amount, claimed: zero }); } } }
     and "by the end of the contract everyone will have unlocked exactly their assigned amount" {
         for P in s.pools.iter() {
             for A in P.accounts.iter() {
-                tx!(deps; A.address, A.end() / 5, A.end();
+                let t = A.end() + A.interval;
+                tx!(deps; A.address, t / 5, t;
                     Claim {} == ok!(claimed: A.address, A.amount)); } } }
 
 }
