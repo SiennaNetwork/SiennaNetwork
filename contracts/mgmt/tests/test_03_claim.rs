@@ -32,7 +32,7 @@ kukumba! {
     #[ok_claim_as_user_only_after_launch]
     given "a contract with the production schedule" {
         harness!(deps; ADMIN);
-        let s: Schedule = serde_json::from_str(include_str!("../../../settings/schedule.json")).unwrap();
+        let s: Schedule<HumanAddr> = serde_json::from_str(include_str!("../../../settings/schedule.json")).unwrap();
         tx!(deps; ADMIN, 0, 0; Configure { schedule: s.clone() } == ok!());
         let founder_1 = HumanAddr::from("secret1TODO20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
         let founder_2 = HumanAddr::from("secret1TODO21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");

@@ -6,6 +6,7 @@
 extern crate sienna_schedule; use sienna_schedule::{Schedule, Pool, Account};
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env};
+use cosmwasm_std::HumanAddr;
 
 kukumba! {
 
@@ -38,7 +39,7 @@ kukumba! {
             q!(deps; Schedule == Schedule { schedule: original_schedule }); } }
     when "the admin sets the real configuration" {
         let src = include_str!("../../../settings/schedule.json")
-        let s: Schedule = serde_json::from_str(src).unwrap();
+        let s: Schedule<HumanAddr> = serde_json::from_str(src).unwrap();
         tx!(deps; ADMIN, 0, 0; Configure { schedule: s.clone() } == ok!()); }
     then "the configuration is updated" {
         q!(deps; Schedule == Schedule { schedule: s.clone() }); }
