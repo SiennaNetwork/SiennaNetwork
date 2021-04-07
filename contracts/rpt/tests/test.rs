@@ -23,87 +23,72 @@ kukumba!(
 
     #[rpt]
     given "the contract is not yet deployed" {
-        let ALICE   = HumanAddr::from("secret1ALICE");
-        let BOB     = HumanAddr::from("secret1BOB");
-        let CAROL   = HumanAddr::from("secret1CAROL");
-        let MALLORY = HumanAddr::from("secret1MALLORY");
+        let ADMIN    = HumanAddr::from("secret1ADMIN");
+        let TOKEN1   = HumanAddr::from("secret1TOKEN1");
+        let TOKEN2   = HumanAddr::from("secret1TOKEN2");
+        let STRANGER = HumanAddr::from("secret1STRANGER");
         let mut deps = Extern {
             storage: MockStorage::default(),
             api:     MockApi::new(45),
-            querier: MockQuerier { portion: 2500 }
-        }
-        let config = LinearMap(vec![
-            (BOB.clone(),   Uint128::from(1000u128)),
-            (CAROL.clone(), Uint128::from(1500u128))
-        ]);
-    }
-
+            querier: MockQuerier { portion: 2500 } }
+        let initial_config = LinearMap(vec![
+            (ADMIN.clone(), Uint128::from(2500u128))]);
+        let updated_config = LinearMap(vec![
+            (TOKEN1.clone(),   Uint128::from(1000u128)),
+            (TOKEN2.clone(), Uint128::from(1500u128)) ]);
+        let invalid_config = LinearMap(vec![
+            (TOKEN1.clone(),   Uint128::from(1001u128)),
+            (TOKEN2.clone(), Uint128::from(1500u128)) ]); }
     when "someone deploys the contract" {
         assert_eq!(
-            init(&mut deps, mock_env(0, 0, &ALICE), RPTInit {
-                pool:    "Pool0".to_string(),
-                account: "Account0".to_string(),
-                config:  LinearMap(vec![]),
+            0,
+            init(&mut deps, mock_env(0, 0, &ADMIN), RPTInit {
+                portion: Uint128::from(2500u128),
+                config:  initial_config.clone(),
                 token:   (HumanAddr::from("token"), String::new()),
                 mgmt:    (HumanAddr::from("mgmt"),  String::new()),
             }).unwrap().messages.len(),
-            0,
-            "deploy failed"
-        );
-    }
-
+            "deploy failed" ); }
     then "they become admin"
     and "they can set the configuration"
     and "noone else can"
     and "it has to be a valid configuration" {
-        assert_eq!(
-            status(&deps),
-            RPTResponse::Status { config: LinearMap(vec![]) },
-            "querying status failed"
-        );
-        assert_eq!(
-            (
-                handle(&mut deps, mock_env(1, 1, &MALLORY), RPTHandle::Configure {
-                    config: config.clone()
-                }),
-                status(&deps),
-            ),
-            (
-                Err(cosmwasm_std::StdError::Unauthorized { backtrace: None }),
-                RPTResponse::Status { config: LinearMap(vec![]) },
-            ),
-            "wrong user was able to set config"
-        );
-        assert_eq!(
-            {
-                handle(&mut deps, mock_env(2, 2, &ALICE), RPTHandle::Configure {
-                    config: LinearMap(vec![(BOB.clone(),   Uint128::from(1001u128)),
-                                           (CAROL.clone(), Uint128::from(1500u128))])
-                });
-                status(&deps)
-            },
-            RPTResponse::Status { config: LinearMap(vec![]) },
-            "admin was able to set invalid config"
-        );
-        assert_eq!(
-            {
-                handle(&mut deps, mock_env(2, 2, &ALICE), RPTHandle::Configure {
-                    config: config.clone()
-                });
-                status(&deps)
-            },
-            RPTResponse::Status { config: config.clone() },
-            "admin was unable to set valid config"
-        );
-    }
+        let status_initial = RPTResponse::Status { config: initial_config }
+        assert_eq!(status_initial.clone(), status(&deps), "querying status failed");
 
+        let exp_unauth = (
+            Err(cosmwasm_std::StdError::Unauthorized { backtrace: None }),
+            status_initial.clone());
+        let act_unauth = (
+            handle(&mut deps, mock_env(1, 1, &STRANGER), RPTHandle::Configure {
+                config: updated_config.clone()
+            }),
+            status(&deps));
+        assert_eq!(exp_unauth, act_unauth, "wrong user was able to set config");
+
+        let exp_invalid = status_initial.clone();
+        let act_invalid = {
+            handle(&mut deps, mock_env(2, 2, &ADMIN), RPTHandle::Configure {
+                config: invalid_config.clone()
+            });
+            status(&deps) }
+        assert_eq!(exp_invalid, act_invalid, "admin was able to set invalid config");
+
+        let exp_valid = RPTResponse::Status { config: updated_config.clone() };
+        let act_valid = {
+            handle(&mut deps, mock_env(2, 2, &ADMIN), RPTHandle::Configure {
+                config: updated_config.clone()
+            }).unwrap();
+            status(&deps) };
+        assert_eq!(exp_valid, act_valid, "admin was unable to set valid config"); }
     when "anyone calls the vest method"
     then "the contract claims funds from mgmt"
     and "it distributes them to the configured recipients" {
         let messages = handle(
-            &mut deps, mock_env(2, 2, &MALLORY), RPTHandle::Vest {}
+            &mut deps, mock_env(2, 2, &STRANGER), RPTHandle::Vest {}
         ).unwrap().messages;
         assert_eq!(messages.len(), 3, "unexpected message count");
+
         // check claim from token
         if let CosmosMsg::Wasm(WasmMsg::Execute {
             msg, contract_addr, callback_code_hash, ..
@@ -120,9 +105,9 @@ kukumba!(
                 msg, contract_addr, callback_code_hash, ..
             }) = messages.get(i).unwrap() {
                 if let TokenHandle::Transfer {recipient,amount,..} = from_binary::<TokenHandle>(&msg).unwrap() {
-                    let (expected_recipient, expected_amount) = config.0.get(i-1).unwrap();
+                    let (expected_recipient, expected_amount) = updated_config.0.get(i-1).unwrap();
                     assert_eq!(*expected_recipient, recipient);
-                    assert_eq!(*expected_amount, amount);
+                    assert_eq!(*expected_amount,    amount);
                 } else {
                     panic!("unexpected message #{}", i+1);
                 }
@@ -166,9 +151,12 @@ impl Querier for MockQuerier {
                         let mgmt = HumanAddr::from("mgmt");
                         match &contract_addr {
                             mgmt => {
-                                //let msg: MGMTQuery = from_binary(&msg).unwrap();
-                                let response = MGMTResponse::Portion {
-                                    portion: Uint128::from(self.portion)
+                                let response = MGMTResponse::Progress {
+                                    time:     0u64,
+                                    launched: 0u64,
+                                    elapsed:  0u64,
+                                    unlocked: Uint128::from(2500u128),
+                                    claimed:  Uint128::zero(),
                                 };
                                 QuerierResult::Ok(to_binary(&response))
                             },
