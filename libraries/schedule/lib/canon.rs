@@ -4,7 +4,7 @@ use crate::{Schedule, Pool, Account};
 use cosmwasm_std::{Api, CanonicalAddr, HumanAddr, StdResult};
 
 impl Schedule<CanonicalAddr> {
-    fn humanize <A:Api> (&self, api: &A) -> StdResult<Schedule<HumanAddr>> {
+    pub fn humanize <A:Api> (&self, api: &A) -> StdResult<Schedule<HumanAddr>> {
         let pools: Result<Vec<_>,_> = self.pools.iter().map(|p|p.humanize(api)).collect();
         Ok(Schedule {
             total: self.total,
@@ -13,7 +13,7 @@ impl Schedule<CanonicalAddr> {
     }
 }
 impl Pool<CanonicalAddr> {
-    fn humanize <A:Api> (&self, api: &A) -> StdResult<Pool<HumanAddr>> {
+    pub fn humanize <A:Api> (&self, api: &A) -> StdResult<Pool<HumanAddr>> {
         let accounts: Result<Vec<_>,_> = self.accounts.iter().map(|a|a.humanize(api)).collect();
         Ok(Pool {
             name:     self.name.clone(),
@@ -24,7 +24,7 @@ impl Pool<CanonicalAddr> {
     }
 }
 impl Account<CanonicalAddr> {
-    fn humanize <A:Api> (&self, api: &A) -> StdResult<Account<HumanAddr>> {
+    pub fn humanize <A:Api> (&self, api: &A) -> StdResult<Account<HumanAddr>> {
         Ok(Account {
             name:     self.name.clone(),
             amount:   self.amount,
@@ -38,7 +38,7 @@ impl Account<CanonicalAddr> {
 }
 
 impl Schedule<HumanAddr> {
-    fn canonize <A:Api> (&self, api: &A) -> StdResult<Schedule<CanonicalAddr>> {
+    pub fn canonize <A:Api> (&self, api: &A) -> StdResult<Schedule<CanonicalAddr>> {
         let pools: Result<Vec<_>,_> = self.pools.iter().map(|p|p.canonize(api)).collect();
         Ok(Schedule {
             total: self.total,
@@ -47,7 +47,7 @@ impl Schedule<HumanAddr> {
     }
 }
 impl Pool<HumanAddr> {
-    fn canonize <A:Api> (&self, api: &A) -> StdResult<Pool<CanonicalAddr>> {
+    pub fn canonize <A:Api> (&self, api: &A) -> StdResult<Pool<CanonicalAddr>> {
         let accounts: Result<Vec<_>,_> = self.accounts.iter().map(|a|a.canonize(api)).collect();
         Ok(Pool {
             name:     self.name.clone(),
@@ -58,7 +58,7 @@ impl Pool<HumanAddr> {
     }
 }
 impl Account<HumanAddr> {
-    fn canonize <A:Api> (&self, api: &A) -> StdResult<Account<CanonicalAddr>> {
+    pub fn canonize <A:Api> (&self, api: &A) -> StdResult<Account<CanonicalAddr>> {
         Ok(Account {
             name:     self.name.clone(),
             amount:   self.amount,
