@@ -27,30 +27,6 @@
       }
     },
     {
-      "description": "Return the allocated portion size of an account (used by RPT to validate its configuration)",
-      "type": "object",
-      "required": [
-        "portion"
-      ],
-      "properties": {
-        "portion": {
-          "type": "object",
-          "required": [
-            "account_name",
-            "pool_name"
-          ],
-          "properties": {
-            "account_name": {
-              "type": "string"
-            },
-            "pool_name": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    {
       "description": "Return amount that can be claimed by the specified address at the specified time",
       "type": "object",
       "required": [
@@ -71,6 +47,30 @@
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Return the allocated portion size of an account (used by RPT to validate its configuration)",
+      "type": "object",
+      "required": [
+        "portion"
+      ],
+      "properties": {
+        "portion": {
+          "type": "object",
+          "required": [
+            "account_name",
+            "pool_name"
+          ],
+          "properties": {
+            "account_name": {
+              "type": "string"
+            },
+            "pool_name": {
+              "type": "string"
             }
           }
         }

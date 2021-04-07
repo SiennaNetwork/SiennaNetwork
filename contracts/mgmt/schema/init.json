@@ -8,7 +8,7 @@
   ],
   "properties": {
     "schedule": {
-      "$ref": "#/definitions/Schedule"
+      "$ref": "#/definitions/Schedule_for_HumanAddr"
     },
     "token": {
       "type": "array",
@@ -25,7 +25,7 @@
     }
   },
   "definitions": {
-    "Account": {
+    "Account_for_HumanAddr": {
       "description": "Individual vesting config. Immediate release is thought of as a special case of vesting where: * `head == total` * `duration == interval == 0`, * only `head_allocations` is considered.",
       "type": "object",
       "required": [
@@ -89,7 +89,7 @@
     "HumanAddr": {
       "type": "string"
     },
-    "Pool": {
+    "Pool_for_HumanAddr": {
       "description": "Subdivision of `Schedule`, contains `Account`s, may be `partial`. If `partial == false`, they must add up to `total`.",
       "type": "object",
       "required": [
@@ -102,7 +102,7 @@
         "accounts": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Account"
+            "$ref": "#/definitions/Account_for_HumanAddr"
           }
         },
         "name": {
@@ -117,7 +117,7 @@
         }
       }
     },
-    "Schedule": {
+    "Schedule_for_HumanAddr": {
       "description": "Contains `Pool`s that must add up to `total`.",
       "type": "object",
       "required": [
@@ -128,7 +128,7 @@
         "pools": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Pool"
+            "$ref": "#/definitions/Pool_for_HumanAddr"
           }
         },
         "total": {

@@ -9,10 +9,10 @@
   ],
   "properties": {
     "admin": {
-      "description": "The instantiatior of the contract.",
+      "description": "Starts out as the instantiatior of the contract, can be changed via `SetOwner` or `Disown`.",
       "anyOf": [
         {
-          "$ref": "#/definitions/HumanAddr"
+          "$ref": "#/definitions/CanonicalAddr"
         },
         {
           "type": "null"
@@ -20,10 +20,10 @@
       ]
     },
     "history": {
-      "description": "History of fulfilled claims.",
+      "description": "How much each address has received from the contract.",
       "allOf": [
         {
-          "$ref": "#/definitions/LinearMap_for_HumanAddr_and_Uint128"
+          "$ref": "#/definitions/LinearMap_for_CanonicalAddr_and_Uint128"
         }
       ]
     },
@@ -37,19 +37,19 @@
       "minimum": 0.0
     },
     "schedule": {
-      "description": "Vesting configuration.",
+      "description": "Vesting configuration. Can be changed using `Configure`.",
       "allOf": [
         {
-          "$ref": "#/definitions/Schedule"
+          "$ref": "#/definitions/Schedule_for_CanonicalAddr"
         }
       ]
     },
     "token": {
-      "description": "The SNIP20 token contract that will be managed by this instance. (see `secretcli query compute contract-hash --help` to get the hash).",
+      "description": "The SNIP20 token contract that will be managed by this instance. This needs to be provided at init and can't be changed. (see `secretcli query compute contract-hash --help` to get the hash).",
       "type": "array",
       "items": [
         {
-          "$ref": "#/definitions/HumanAddr"
+          "$ref": "#/definitions/CanonicalAddr"
         },
         {
           "type": "string"
@@ -60,7 +60,7 @@
     }
   },
   "definitions": {
-    "Account": {
+    "Account_for_CanonicalAddr": {
       "description": "Individual vesting config. Immediate release is thought of as a special case of vesting where: * `head == total` * `duration == interval == 0`, * only `head_allocations` is considered.",
       "type": "object",
       "required": [
@@ -77,7 +77,7 @@
           "description": "Recipient address",
           "allOf": [
             {
-              "$ref": "#/definitions/HumanAddr"
+              "$ref": "#/definitions/CanonicalAddr"
             }
           ]
         },
@@ -121,17 +121,21 @@
         }
       }
     },
-    "HumanAddr": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
     },
-    "LinearMap_for_HumanAddr_and_Uint128": {
+    "CanonicalAddr": {
+      "$ref": "#/definitions/Binary"
+    },
+    "LinearMap_for_CanonicalAddr_and_Uint128": {
       "description": "Just a wrapped `Vec` with `get` and `insert` methods.\n\nActs as a KV map but serializes as an array of [K,V] pairs: * new keys are appended to the end, existing keys are updated in place * there is no check for keys being unique during deserialization * in case of duplicate keys, it's the 1st instance of a given key that \"counts\".\n\nIt's like this because `serde_json_wasm` doesn't serialize maps (`HashMap`, `BTreeMap`). This is true even in versions more recent than the default for SecretNetwork: the `serialize_map` method contains a single `unreachable!()` panic. It's not immediately obvious why this remains the case the case; perhaps iterating over of those is somehow more expensive on a blockchain? In any case, in the absence of gas benchmarks it's pointless to risk altering the default execution environment (of which `serde_json_wasm` is part), even though there's no obvious reason why that wouldn't work.",
       "type": "array",
       "items": {
         "type": "array",
         "items": [
           {
-            "$ref": "#/definitions/HumanAddr"
+            "$ref": "#/definitions/CanonicalAddr"
           },
           {
             "$ref": "#/definitions/Uint128"
@@ -141,7 +145,7 @@
         "minItems": 2
       }
     },
-    "Pool": {
+    "Pool_for_CanonicalAddr": {
       "description": "Subdivision of `Schedule`, contains `Account`s, may be `partial`. If `partial == false`, they must add up to `total`.",
       "type": "object",
       "required": [
@@ -154,7 +158,7 @@
         "accounts": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Account"
+            "$ref": "#/definitions/Account_for_CanonicalAddr"
           }
         },
         "name": {
@@ -169,7 +173,7 @@
         }
       }
     },
-    "Schedule": {
+    "Schedule_for_CanonicalAddr": {
       "description": "Contains `Pool`s that must add up to `total`.",
       "type": "object",
       "required": [
@@ -180,7 +184,7 @@
         "pools": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Pool"
+            "$ref": "#/definitions/Pool_for_CanonicalAddr"
           }
         },
         "total": {
