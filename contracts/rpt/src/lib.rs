@@ -100,7 +100,6 @@ contract!(
                 return err_msg(state, &e);
             }
             // 2. claim funds:
-            let (contract_addr, callback_code_hash) = state.mgmt.clone();
             let mut msg = to_binary(&MGMTHandle::Claim {})?;
             space_pad(&mut msg.0, BLOCK_SIZE);
             messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
