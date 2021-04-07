@@ -1,6 +1,25 @@
 import { Address, TokenPair, IdoInitConfig, Pagination } from './types.js'
 import { ExecuteResult, SigningCosmWasmClient } from 'secretjs'
 
+export const FEES = {
+    upload: {
+        amount: [{ amount: "2000000", denom: "uscrt" }],
+        gas: "2000000",
+    },
+    init: {
+        amount: [{ amount: "500000", denom: "uscrt" }],
+        gas: "500000",
+    },
+    exec: {
+        amount: [{ amount: "600000", denom: "uscrt" }],
+        gas: "600000",
+    },
+    send: {
+        amount: [{ amount: "80000", denom: "uscrt" }],
+        gas: "80000",
+    },
+  }
+
 export interface GetExchangePairResponse {
     get_exchange_pair: {
         pair: TokenPair;

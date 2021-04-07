@@ -1,6 +1,11 @@
-import {  ContractInstantiationInfo, ContractInfo, TokenPair, NativeToken, CustomToken } from './amm-lib/types.js'
-import { FactoryContract } from './amm-lib/contract.js'
-import { SigningCosmWasmClient, Secp256k1Pen, encodeSecp256k1Pubkey, EnigmaUtils, pubkeyToAddress, CosmWasmClient } from 'secretjs'
+import { 
+  ContractInstantiationInfo, ContractInfo, TokenPair
+} from './amm-lib/types.js'
+import { FactoryContract, FEES } from './amm-lib/contract.js'
+import { 
+  SigningCosmWasmClient, Secp256k1Pen, encodeSecp256k1Pubkey,
+  EnigmaUtils, pubkeyToAddress
+} from 'secretjs'
 import { Bip39, Random } from "@iov/crypto"
 
 import { resolve } from 'path'
@@ -23,25 +28,6 @@ const ACC_B: LocalAccount = ACC[1] as LocalAccount
 const ACC_C: LocalAccount = ACC[2] as LocalAccount
 const ACC_D: LocalAccount = ACC[3] as LocalAccount
 
-const FEES = {
-  upload: {
-      amount: [{ amount: "2000000", denom: "uscrt" }],
-      gas: "2000000",
-  },
-  init: {
-      amount: [{ amount: "500000", denom: "uscrt" }],
-      gas: "500000",
-  },
-  exec: {
-      amount: [{ amount: "500000", denom: "uscrt" }],
-      gas: "500000",
-  },
-  send: {
-      amount: [{ amount: "80000", denom: "uscrt" }],
-      gas: "80000",
-  },
-}
-
 interface SetupResult {
   factory: FactoryContract,
   sienna_token: ContractInfo
@@ -51,11 +37,16 @@ interface AsyncFn {
   (): Promise<void>
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+const SLEEP_TIME = 1000
+
 async function run_tests() {
   const client_a = await build_client(ACC_A.mnemonic)
   const { factory, sienna_token } = await setup(client_a)
 
-  await test_create_exchange(factory, sienna_token)
+  const created_pair = await test_create_exchange(factory, sienna_token)
+  await sleep(SLEEP_TIME)
+  await test_create_existing_pair_error(factory, created_pair)
 }
 
 async function setup(client: SigningCosmWasmClient): Promise<SetupResult> {
@@ -114,7 +105,7 @@ async function build_client(mnemonic: string): Promise<SigningCosmWasmClient> {
   )
 }
 
-async function test_create_exchange(factory: FactoryContract, token_info: ContractInfo) {
+async function test_create_exchange(factory: FactoryContract, token_info: ContractInfo): Promise<TokenPair> {
   const pair = new TokenPair({
       native_token: {
         denom: 'uscrt'
@@ -127,20 +118,67 @@ async function test_create_exchange(factory: FactoryContract, token_info: Contra
     }
   )
   
-  execute_test(
+  await execute_test(
     'test_create_exchange',
     async () => { await factory.create_exchange(pair); }
+  )
+
+  return pair
+}
+
+async function test_create_existing_pair_error(factory: FactoryContract, pair: TokenPair) {
+  await execute_test_expect(
+    'test_create_existing_pair_error',
+    async () => { await factory.create_exchange(pair) },
+    'Pair already exists'
+  )
+
+  await sleep(SLEEP_TIME)
+
+  const swapped = new TokenPair(pair.token_1, pair.token_0)
+
+  await execute_test_expect(
+    'test_create_existing_pair_error_swapped',
+    async () => { await factory.create_exchange(swapped) },
+    'Pair already exists'
   )
 }
 
 async function execute_test(test_name: string, test: AsyncFn) {
   try {
     await test()
-    console.log(`${test_name}..............................✅`)
+    print_success(test_name)
   } catch(e) {
     console.error(e)
-    console.log(`${test_name}..............................❌`)
+    print_error(test_name)
   }
+}
+
+async function execute_test_expect(
+    test_name: string,
+    test: AsyncFn,
+    expected_error: string
+) {
+  try {
+    await test()
+    print_error(`${test_name}(expected error)`)
+  } catch (e) {
+    if (e.message.includes(expected_error)) {
+      print_success(test_name)
+      return
+    }
+
+    console.error(e)
+    print_error(test_name)
+  }
+}
+
+function print_success(test_name: string) {
+  console.log(`${test_name}..............................✅`)
+}
+
+function print_error(test_name: string) {
+  console.log(`${test_name}..............................❌`)
 }
 
 run_tests().catch(console.log)

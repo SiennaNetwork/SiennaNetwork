@@ -53,7 +53,13 @@ export class IdoInitConfig {
 
 export class Snip20TokenInitInfo {
     constructor(
+        /**
+         * Must be between 3-200 chars length.
+         */
         readonly name: string,
+        /**
+         * Must be between 3-12 chars length, letters only.
+         */
         readonly symbol: string,
         /**
          * Must be a base64 encoded string. Otherwise, the tx will fail.

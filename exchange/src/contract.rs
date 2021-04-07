@@ -378,8 +378,6 @@ fn swap<S: Storage, A: Api, Q: Querier>(
         commission_amount = commission_amount + decrease_amount;
         return_amount = Uint128(result.low_u128());
 
-        // TODO: Currently, this won't work. We need to decrease the total amount of SIENNA without the need for an account.
-        // Is there anything like admin rights in SNIP20?
         messages.push(snip20::burn_msg(decrease_amount, None, BLOCK_SIZE, config.sienna_token.code_hash, config.sienna_token.address)?)
     }
 
