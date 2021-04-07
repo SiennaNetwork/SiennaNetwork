@@ -1,6 +1,6 @@
 [package]
 name    = "linear-map"
-version = "0.0.0"
+version = "1.0.0-rc1"
 authors = ["Adam A. <adam@hack.bg>"]
 edition = "2018"
 

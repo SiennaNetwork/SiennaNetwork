@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/sienna",
-  "version": "2.0.0-pre",
+  "version": "2.0.0-rc1",
   "private": true,
   "type": "module",
   "workspaces": [

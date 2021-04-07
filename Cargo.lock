@@ -424,7 +424,7 @@ dependencies = [
 
 [[package]]
 name = "fadroma"
-version = "2.1.2"
+version = "3.0.0-rc1"
 
 [[package]]
 name = "fake-simd"
@@ -549,7 +549,7 @@ checksum = "dd25036021b0de88a0aff6b850051563c6516d0bf53f8638938edbb9de732736"
 
 [[package]]
 name = "kukumba"
-version = "1.0.0-rc1"
+version = "1.0.1"
 
 [[package]]
 name = "lazy_static"
@@ -581,7 +581,7 @@ dependencies = [
 
 [[package]]
 name = "linear-map"
-version = "0.0.0"
+version = "1.0.0-rc1"
 dependencies = [
  "cosmwasm-std",
  "schemars",
@@ -1113,7 +1113,7 @@ dependencies = [
 
 [[package]]
 name = "sienna-mgmt"
-version = "2.0.0-wip"
+version = "2.0.0-rc1"
 dependencies = [
  "cosmwasm-schema 0.10.0",
  "cosmwasm-std",
@@ -1131,7 +1131,7 @@ dependencies = [
 
 [[package]]
 name = "sienna-rpt"
-version = "1.0.0"
+version = "1.0.0-rc1"
 dependencies = [
  "cosmwasm-schema 0.10.0",
  "cosmwasm-std",
@@ -1149,7 +1149,7 @@ dependencies = [
 
 [[package]]
 name = "sienna_schedule"
-version = "2.0.0-pre"
+version = "2.0.0-rc1"
 dependencies = [
  "clap 3.0.0-beta.2",
  "color-rs",
