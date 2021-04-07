@@ -88,29 +88,11 @@ contract!(
                 Ok(Response::Error { msg: MGMTError!(PRELAUNCH).to_string() })
             }
         }
-
-        /// Return the allocated portion size of an account
-        /// (used by RPT to validate its configuration)
-        Portion (pool_name: String, account_name: String) {
-            for pool in state.schedule.pools.iter() {
-                if pool.name == pool_name {
-                    for account in pool.accounts.iter() {
-                        if account.name == account_name {
-                            let portion = Uint128::from(account.portion_size());
-                            return Ok(Response::Portion { portion })
-                        }
-                    }
-                    break
-                }
-            }
-            Ok(Response::NotFound {})
-        }
     }
 
     [Response] {
         Status   { launched: Launched }
         Schedule { schedule: Schedule<HumanAddr> }
-        Portion  { portion: Uint128 }
         Progress { time: Seconds, launched: Seconds, elapsed: Seconds, unlocked: Uint128, claimed: Uint128 }
         Error    { msg: String }
         NotFound {}
