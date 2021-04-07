@@ -1,7 +1,12 @@
 import { 
-  ContractInstantiationInfo, ContractInfo, TokenPair
+  ContractInstantiationInfo, ContractInfo,
+  TokenPair, Address, TokenPairAmount
 } from './amm-lib/types.js'
-import { FactoryContract, FEES } from './amm-lib/contract.js'
+import { FactoryContract, ExchangeContract, FEES } from './amm-lib/contract.js'
+import { 
+  execute_test, execute_test_expect, assert_objects_equal,
+  assert_equal, assert_not_equal
+} from './test_helpers.js'
 import { 
   SigningCosmWasmClient, Secp256k1Pen, encodeSecp256k1Pubkey,
   EnigmaUtils, pubkeyToAddress
@@ -33,10 +38,6 @@ interface SetupResult {
   sienna_token: ContractInfo
 }
 
-interface AsyncFn {
-  (): Promise<void>
-}
-
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 const SLEEP_TIME = 1000
 
@@ -46,7 +47,19 @@ async function run_tests() {
 
   const created_pair = await test_create_exchange(factory, sienna_token)
   await sleep(SLEEP_TIME)
+
   await test_create_existing_pair_error(factory, created_pair)
+  
+  const pair_address = await test_get_exchange_address(factory, created_pair)
+  await test_get_exchange_pair(factory, created_pair, pair_address)
+
+  const exchange = new ExchangeContract(client_a, pair_address)
+  await test_get_pair_info(exchange, created_pair)
+  await test_get_factory_info(exchange, factory.address)
+  await test_get_pool(exchange)
+
+  await test_provide_liquidity(exchange, created_pair)
+  await sleep(SLEEP_TIME)
 }
 
 async function setup(client: SigningCosmWasmClient): Promise<SetupResult> {
@@ -120,7 +133,7 @@ async function test_create_exchange(factory: FactoryContract, token_info: Contra
   
   await execute_test(
     'test_create_exchange',
-    async () => { await factory.create_exchange(pair); }
+    async () => { await factory.create_exchange(pair) }
   )
 
   return pair
@@ -144,41 +157,83 @@ async function test_create_existing_pair_error(factory: FactoryContract, pair: T
   )
 }
 
-async function execute_test(test_name: string, test: AsyncFn) {
-  try {
-    await test()
-    print_success(test_name)
-  } catch(e) {
-    console.error(e)
-    print_error(test_name)
-  }
-}
+async function test_get_exchange_address(factory: FactoryContract, pair: TokenPair): Promise<Address> {
+  let address = '';
 
-async function execute_test_expect(
-    test_name: string,
-    test: AsyncFn,
-    expected_error: string
-) {
-  try {
-    await test()
-    print_error(`${test_name}(expected error)`)
-  } catch (e) {
-    if (e.message.includes(expected_error)) {
-      print_success(test_name)
-      return
+  await execute_test(
+    'test_get_exchange_address',
+    async () => { 
+      const result = await factory.get_exchange_address(pair)
+      address = result
     }
+  )
 
-    console.error(e)
-    print_error(test_name)
-  }
+  return address
 }
 
-function print_success(test_name: string) {
-  console.log(`${test_name}..............................✅`)
+async function test_get_exchange_pair(factory: FactoryContract, pair: TokenPair, address: Address) {
+  await execute_test(
+    'test_get_exchange_pair',
+    async () => { 
+      const result = await factory.get_exchange_pair(address)
+      assert_objects_equal(pair, result)
+    }
+  )
 }
 
-function print_error(test_name: string) {
-  console.log(`${test_name}..............................❌`)
+async function test_get_pair_info(exchange: ExchangeContract, pair: TokenPair) {
+  await execute_test(
+    'test_get_pair_info',
+    async () => {
+      const result = await exchange.get_pair_info()
+      assert_objects_equal(pair, result)
+    }
+  )
+}
+
+async function test_get_factory_info(exchange: ExchangeContract, address: Address) {
+  await execute_test(
+    'test_get_factory_info',
+    async () => {
+      const result = await exchange.get_factory_info()
+      assert_equal(address, result.address)
+    }
+  )
+}
+
+async function test_get_pool(exchange: ExchangeContract) {
+  await execute_test(
+    'test_get_pool',
+    async () => {
+      const result = await exchange.get_pool()
+      assert_equal(result.amount_0, '0')
+      assert_equal(result.amount_1, '0')
+    }
+  )
+}
+
+async function test_provide_liquidity(exchange: ExchangeContract, pair: TokenPair) {
+  const amount0 = '5000000'
+  const amount1 = '5000000000000000000'
+
+  const amount = new TokenPairAmount(pair, amount0, amount1) // 5 of each
+
+  await execute_test(
+    'test_provide_liquidity',
+    async () => {
+      const result = await exchange.provide_liquidity(amount)
+      assert_not_equal(result.logs[2].log, '0')
+    }
+  )
+
+  await execute_test(
+    'test_provide_liquidity_pool_not_empty',
+    async () => {
+      const result = await exchange.get_pool()
+      assert_equal(result.amount_0, amount0)
+      assert_equal(result.amount_1, amount1)
+    }
+  )
 }
 
 run_tests().catch(console.log)

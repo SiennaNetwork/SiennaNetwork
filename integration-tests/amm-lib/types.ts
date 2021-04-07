@@ -1,12 +1,13 @@
 export type Uint128 = string;
 export type Address = string;
 export type TokenType = CustomToken | NativeToken;
+export type Decimal = string;
 
 export class TokenPair {
     constructor(
         readonly token_0: TokenType,
         readonly token_1: TokenType
-    ) {}
+    ) { }
 }
 
 export class TokenPairAmount {
@@ -21,7 +22,7 @@ export class TokenTypeAmount {
     constructor(
         readonly token: TokenType,
         readonly amount: Uint128
-    ) {}
+    ) { }
 }
 
 export interface CustomToken {
