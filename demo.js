@@ -90,7 +90,7 @@ export async function verify (task, agent, recipients, wallets, contracts, sched
   await task.done()
   task = taskmaster({
     header: [ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ],
-    output: resolve(__dirname, 'artifacts', 'profile-runtime.md'),
+    output: resolve(__dirname, 'artifacts', agent.network.chainId, 'profile-runtime.md'),
     agent })
   let addedAccount = false
   let reallocated  = false
@@ -128,32 +128,36 @@ export async function verify (task, agent, recipients, wallets, contracts, sched
           const claimant = claimable[Math.floor(Math.random() * claimable.length)]
           console.info(`\n${claimant} claims...`)
           const recipient = recipients[claimant]
-          await MGMT.claim(recipient.agent)
+          const tx = await MGMT.claim(recipient.agent)
           const balance = String(await TOKEN.balance(recipient.agent, VK))
-          console.info(`balance of ${claimant} is now: ${balance}`) }) }
+          console.info(`balance of ${claimant} is now: ${balance}`)
+          report(tx.transactionHash) }) }
 
       if (!addedAccount && elapsed > 20000) {
         await task('add new account to advisors pool', async report => {
           addedAccount = true
-          await MGMT.add('Advisors', {
+          const tx = await MGMT.add('Advisors', {
             name:     'NewAdvisor',
             address:  recipients['NewAdvisor'].address,
             amount:   "600000000000000000000",
             cliff:    "100000000000000000000",
             start_at: Math.floor(elapsed / 1000) + 5,
             interval: 5,
-            duration: 25 }) }) }
+            duration: 25 })
+          report(tx.transactionHash) }) }
 
       if (!reallocated && elapsed > 30000) {
         await task('reallocate RPT...', async report => {
           reallocated = true
-          await RPT.configure([
+          const tx = await RPT.configure([
             [recipients.TokenPair1.address,  "250000000000000000000"],
             [recipients.TokenPair2.address, "1250000000000000000000"],
-            [recipients.TokenPair3.address, "1000000000000000000000"] ]) }) }
+            [recipients.TokenPair3.address, "1000000000000000000000"] ])
+          report(tx.transactionHash) }) }
 
       await task('vest RPT tokens', async report => {
-        await RPT.vest() })
+        const tx = await RPT.vest()
+        report(tx.transactionHash) })
 
       await task('query balances of RPT recipients', async report => {
         for (const [name, recipient] of Object.entries(recipients)) {
