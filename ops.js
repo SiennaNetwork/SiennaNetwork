@@ -210,4 +210,17 @@ export function generateDocs () {
   open(`file:///${target}`)
 }
 
+export async function makeTestnetWallets (options = {}) {
+  const { n       = 20
+        , network = await SecretNetwork.testnet({stateBase})
+        , agent   = network.agent } = options
+  const wallets = await Promise.all([...Array(n)].map(()=>network.network.getAgent()))
+  for (const {address, mnemonic} of wallets) {
+    await agent.send(address, 5000000)
+    console.info()
+    console.info(address)
+    console.info(mnemonic)
+  }
+}
+
 export async function launch () {}

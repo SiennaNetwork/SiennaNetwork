@@ -16,7 +16,8 @@ import { scheduleFromSpreadsheet } from '@hackbg/schedule'
 import { CONTRACTS, abs, stateBase
        , build, upload, initialize, launch
        , prepareConfig, setConfig
-       , generateCoverage, generateSchema, generateDocs } from './ops.js'
+       , generateCoverage, generateSchema, generateDocs
+       , makeTestnetWallets } from './ops.js'
 import demo from './demo.js'
 
 const main = () => yargs(process.argv.slice(2))
@@ -112,6 +113,10 @@ const main = () => yargs(process.argv.slice(2))
         stderr.write('\n👹 Demo failed.\n')
       }
     })
+
+  .command('make-testnet-wallets',
+    'Create and preseed 20 empty testnet wallets',
+    makeTestnetWallets)
 
   .argv
 
