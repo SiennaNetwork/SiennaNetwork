@@ -59,7 +59,7 @@ async function prepare (task, chain, agent, schedule) {
       const {address} = recipient
       account.address = address         // replace placeholder with real address
       wallets.push([address, 10000000]) // balance to cover gas costs
-      recipients[name] = {agent: recipient, address} // store agent
+      recipients[name] = {agent: recipient, address, total: account.amount} // store agent
       // * divide all times in account by 86400, so that a day passes in a second
       account.start_at /= 86400
       account.interval /= 86400
@@ -105,14 +105,20 @@ export async function verify (task, agent, recipients, wallets, contracts, sched
       const claimable = []
 
       await task('query vesting progress', async report => {
-        console.info(`ACCOUNT`.padEnd(14), `CLAIMED`.padStart(30), `  `, `UNLOCKED`.padStart(30) )
+        console.info( `ACCOUNT`.padEnd(11)
+                    , `CLAIMED`.padEnd(25), `  `
+                    , `UNLOCKED`.padEnd(25), `  `
+                    , `TOTAL`.padEnd(25) )
         for (const [name, recipient] of Object.entries(recipients)) {
           // token pairs are only visible to the RPT contract
           // so it doesn't make sense to pass them to the `Progress` query
           if (name.startsWith('TokenPair')) continue
           const {progress} = await MGMT.progress(recipient.address, now)
           const {claimed, unlocked} = progress
-          console.info( `${name}:`.padEnd(14), claimed.padStart(30), `of`, unlocked.padStart(30) )
+          console.info( `${name}`.padEnd(11)
+                      , claimed.padStart(25), `of`
+                      , unlocked.padStart(25), `of`
+                      , (recipient.total||'').padStart(25) )
           if (name === 'RPT') continue
           // one random recipient with newly unlocked balance will claim:
           if (progress.claimed < progress.unlocked) claimable.push(name) } })
