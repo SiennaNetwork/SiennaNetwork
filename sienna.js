@@ -30,7 +30,7 @@ const main = () => yargs(process.argv.slice(2))
     '👷 Compile contracts from working tree',
     build)
 
-  .command('upload <network>',
+  .command('upload <conn>',
     '📦 Upload compiled contracts to network',
     withNetwork,
     upload)
@@ -40,7 +40,7 @@ const main = () => yargs(process.argv.slice(2))
     withSpreadsheet,
     prepareConfig)
 
-  .command('init <network> [<schedule>]',
+  .command('init <conn> [<schedule>]',
     '💡 Instantiate uploaded contracts',
     yargs => withSchedule(withNetwork(yargs)),
     args => initialize(args).then(console.info))
@@ -121,7 +121,7 @@ const main = () => yargs(process.argv.slice(2))
   .argv
 
 const withNetwork = yargs =>
-  yargs.positional('network',
+  yargs.positional('conn',
     { describe: 'the network to connect to'
     , default:  'localnet'
     , choices:  ['localnet', 'testnet', 'mainnet'] })

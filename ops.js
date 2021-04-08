@@ -12,39 +12,40 @@ import { fileURLToPath, resolve, basename, extname, dirname
        , readFile, writeFile } from '@hackbg/fadroma/js/sys.js'
 
 // resolve path relative to this file's parent directory
-export const abs = (...args) => resolve(dirname(fileURLToPath(import.meta.url)), ...args)
+export const __dirname = dirname(fileURLToPath(import.meta.url))
+export const abs = (...args) => resolve(__dirname, ...args)
 export const stateBase = abs('artifacts')
 
-const timestamp = new Date().toISOString()
-  .replace(/[-:\.]/g, '-')
-  .replace(/[TZ]/g, '_')
-const prng_seed = "insecure"
-
 // contract list
+const prefix = new Date().toISOString().replace(/[-:\.]/g, '-').replace(/[TZ]/g, '_')
+const prng_seed = 'insecure'
 export const CONTRACTS = {
-  TOKEN: {
-    crate:   'snip20-reference-impl',
-    schema:  'schema',
-    label:   `${timestamp}snip20`,
-    initMsg: { prng_seed, name: "Sienna", symbol: "SIENNA", decimals:  18
-             , config: { public_total_supply: true } } },
-  MGMT: {
-    crate:   'sienna-mgmt',
-    schema:  'mgmt_schema',
-    label:   `${timestamp}mgmt`,
-    initMsg: {} },
-  RPT: {
-    crate:   'sienna-rpt',
-    schema:  'rpt_schema',
-    label:   `${timestamp}rpt`,
-    initMsg: {} }
-}
+  TOKEN:
+    { crate:   'snip20-reference-impl'
+    , schema:  'schema'
+    , label:   `${prefix}SIENNA_SNIP20`
+    , initMsg:
+      { prng_seed
+      , name:     "Sienna"
+      , symbol:   "SIENNA"
+      , decimals: 18
+      , config:   { public_total_supply: true } } },
+  MGMT:
+    { crate:   'sienna-mgmt'
+    , schema:  'mgmt_schema'
+    , label:   `${prefix}SIENNA_MGMT`
+    , initMsg: {} },
+  RPT:
+    { crate:   'sienna-rpt'
+    , schema:  'rpt_schema'
+    , label:   `${prefix}SIENNA_RPT`
+    , initMsg: {} } }
 
 export async function build ({
   task      = taskmaster(),
-  workspace = abs('.'),
-  outputDir = resolve(workspace, 'artifacts'),
   builder   = new SecretNetwork.Builder(),
+  workspace = __dirname,
+  outputDir = resolve(workspace, 'artifacts'),
 } = {}) {
   await pull('enigmampc/secret-contract-optimizer:latest')
   const binaries = {}
@@ -57,14 +58,15 @@ export async function build ({
 }
 
 export async function upload (options = {}) {
-  let {
+  const {
     task     = taskmaster(),
-    network  = await SecretNetwork.localnet({stateBase}),
     binaries = await build()
   } = options
 
-  if (typeof network === 'string') network = await SecretNetwork[network]({stateBase})
-  const {builder} = network
+  let { builder
+      , conn = builder ? null : await SecretNetwork.localnet({stateBase}) } = options
+  if (typeof conn === 'string') conn = await SecretNetwork[conn]({stateBase})
+  if (!builder) builder = conn.builder
 
   const receipts = {}
   for (let contract of Object.keys(CONTRACTS)) {
@@ -96,18 +98,19 @@ export function prepareConfig ({
 
 export async function initialize (options = {}) {
 
-  let { network = await SecretNetwork.localnet({stateBase}) } = options
-  if (typeof network === 'string') network = await SecretNetwork[network]({stateBase})
-  const {agent} = network
+  let { agent
+      , conn = agent ? {network: agent.network}
+                     : await SecretNetwork.localnet({stateBase}) } = options
+  if (typeof conn === 'string') conn = await SecretNetwork[conn]({stateBase})
+  if (!agent) agent = conn.agent
+
+  const { task = taskmaster()
+        , receipts = await upload({agent, conn, task})
+        , inits = CONTRACTS
+        , initialRPTRecipient = agent.address } = options
 
   let { schedule } = options
   if (typeof schedule === 'string') schedule = JSON.parse(await readFile(schedule, 'utf8'))
-
-  const {
-    task     = taskmaster(),
-    receipts = await upload({network}),
-    inits    = CONTRACTS,
-  } = options
 
   const contracts = {}
 
@@ -137,9 +140,9 @@ export async function initialize (options = {}) {
     initMsg.token   = [TOKEN.address, TOKEN.codeHash]
     initMsg.mgmt    = [MGMT.address,  MGMT.codeHash ]
     initMsg.portion = "2500000000000000000000"
-    initMsg.config  = [[agent.address, initMsg.portion]]
+    initMsg.config  = [[initialRPTRecipient, initMsg.portion]]
     contracts.RPT = await RPTContract.init({ agent, codeId, label, initMsg })
-    report(contracts.RPT)
+    report(contracts.RPT.transactionHash)
   })
 
   await task('point rpt account in mgmt schedule to rpt contract', async report => {
@@ -210,17 +213,17 @@ export function generateDocs () {
 }
 
 export async function makeWallets (options = {}) {
-  const { n       = 20
-        , network = await SecretNetwork.testnet({stateBase})
-        , agent   = network.agent } = options
+  const { n     = 20
+        , conn  = await SecretNetwork.testnet({stateBase})
+        , agent = conn.agent } = options
   console.info(`make ${n} wallets...`)
-  const agents = await Promise.all([...Array(n)].map(()=>network.network.getAgent()))
+  const agents = await Promise.all([...Array(n)].map(()=>conn.conn.getAgent()))
   for (const {address, mnemonic} of agents) {
     await agent.send(address, 5000000)
     console.info()
     console.info(address)
     console.info(mnemonic)
-    const file = resolve(network.network.wallets, `${address}.json`)
+    const file = resolve(conn.network.wallets, `${address}.json`)
     await writeFile(file, JSON.stringify({address, mnemonic}), 'utf8')
   }
 }
