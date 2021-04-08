@@ -7,61 +7,72 @@ import { execFileSync } from 'child_process'
 import { fileURLToPath } from 'url'
 
 // 3rd party
-import { render } from 'prettyjson'
 import open from 'open'
 import yargs from 'yargs'
 
 // custom
 import { SecretNetwork } from '@hackbg/fadroma'
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
-import { build, upload, initialize } from './ops.js'
+import { CONTRACTS, abs, stateBase
+       , build, upload, initialize, launch
+       , prepareConfig, setConfig
+       , generateCoverage, generateSchema, generateDocs } from './ops.js'
 import demo from './demo.js'
 
-// resolve path relative to this file's parent directory
-const abs = (...args) =>
-  resolve(dirname(fileURLToPath(import.meta.url)), ...args)
-
-// [contracts that can be built] -> [`cargo run --example` target to generate JSON schema]
-const CONTRACTS = {
-  'token': {
-    packageName:     'snip20-reference-impl',
-    schemaGenerator: 'schema'
-  },
-  'mgmt': {
-    packageName:     'sienna-mgmt',
-    schemaGenerator: 'mgmt_schema'
-  },
-  'rpt': {
-    packageName:     'sienna-rpt',
-    schemaGenerator: 'rpt_schema'
-  }
-}
-
-yargs(process.argv.slice(2))
+const main = () => yargs(process.argv.slice(2))
   .wrap(yargs().terminalWidth())
-  .demandCommand(1, '') // print usage by default
+  .demandCommand(1, '')
+
+  // main deploy flow:
+
+  .command('build',
+    '👷 Compile contracts from working tree',
+    build)
+
+  .command('upload <network>',
+    '📦 Upload compiled contracts to network',
+    withNetwork,
+    upload)
+
+  .command('prepare-config [<spreadsheet>]',
+    '📅 Convert a spreadsheet into a JSON schedule',
+    withSpreadsheet,
+    prepareConfig)
+
+  .command('init <network> [<schedule>]',
+    '💡 Instantiate uploaded contracts',
+    yargs => withSchedule(withNetwork(yargs)),
+    initialize)
+
+  .command('launch <initReceiptOrContractAddr>',
+    '📦 Launch initialized contracts',
+    launch)
+
+  // configuration:
+
+  .command('set-config <initReceiptOrContractAddr> <schedule>',
+    '⚡ Upload a JSON config to an initialized contract',
+    yargs => yargs.positional('file', {
+      describe: 'path to input JSON',
+      default: abs('settings', 'schedule.json') }),
+    setConfig)
+
+  // appendices:
+
+  .command('coverage',
+    '🗺️  Generate test coverage and open it in a browser.',
+    generateCoverage)
+
+  .command('schema',
+    `🤙 Regenerate JSON schema for each contract's API.`,
+    generateSchema)
 
   .command('docs [crate]',
     '📖 Build the documentation and open it in a browser.',
     yargs => yargs.positional('crate', {
-      describe: 'path to input file',
-      default: 'sienna_schedule'
-    }),
-    function docs ({crate}) {
-      const target = abs('target', 'doc', crate, 'index.html')
-      try {
-        stderr.write(`⏳ Building documentation...\n\n`)
-        cargo('doc')
-      } catch (e) {
-        stderr.write('\n🤔 Building documentation failed.')
-        if (existsSync(target)) {
-          stderr.write(`\n⏳ Opening what exists at ${target}...`)
-        } else {
-          return
-        }
-      }
-      open(`file:///${target}`)
-    })
+      describe: 'crate to open',
+      default: 'sienna_schedule' }),
+    generateDocs)
 
   .command('test',
     '⚗️  Run test suites for all the individual components.',
@@ -78,23 +89,6 @@ yargs(process.argv.slice(2))
       }
     })
 
-  .command('coverage',
-    '🗺️  Generate test coverage and open it in a browser.',
-    function generateCoverage () {
-      // fixed by https://github.com/rust-lang/cargo/issues/9220
-      let output = abs('docs', 'coverage')
-      cargo('tarpaulin', '--out=Html', `--output-dir=${output}`)
-        //'tarpaulin', 
-        //'--avoid-cfg-tarpaulin', // ???
-        //'--workspace', // obviously
-        //'--no-fail-fast', // try to continue on test failure
-        //'--verbose', // why not
-        //'-o', 'Html', // output as html
-        //`--exclude-files=${resolve(__dirname, 'libraries', 'platform')}`, // ignore vendor libs
-        //`--output-dir=${output}`
-      //)
-    })
-
   .command('demo [--testnet]',
     '📜 Run integration test/demo.',
     yargs =>
@@ -103,7 +97,6 @@ yargs(process.argv.slice(2))
       clear()
       //script = abs('integration', script)
       try {
-        const stateBase = resolve(dirname(fileURLToPath(import.meta.url)), '.fadroma')
         let environment
         if (testnet) {
           stderr.write(`⏳ Running demo on testnet...\n\n`)
@@ -120,66 +113,25 @@ yargs(process.argv.slice(2))
       }
     })
 
-  .command('schema',
-    `🤙 Regenerate JSON schema for each contract's API.`,
-    function schema () {
-      const cwd = process.cwd()
-      try {
-        for (const [name, {schemaGenerator}] of Object.entries(CONTRACTS)) {
-          const contractDir = abs('contracts', name)
-          stderr.write(`Generating schema in ${contractDir}...`)
-          process.chdir(contractDir)
-          cargo('run', '--example', schemaGenerator)
-        }
-      } finally {
-        process.chdir(cwd)
-      }
-    })
-
-  .command('schedule [file]',
-    '📅 Convert a spreadsheet into a JSON schedule for the contract.',
-    yargs => yargs.positional('spreadsheet', {
-      describe: 'path to input spreadsheet',
-      default: abs('settings', 'schedule.ods')
-    }),
-    function configure ({ file }) {
-      file = resolve(file)
-      stderr.write(`⏳ Importing configuration from ${file}...\n\n`)
-      const name = basename(file, extname(file)) // path without extension
-      const schedule = scheduleFromSpreadsheet({ file })
-      const serialized = stringify(schedule)
-      stderr.write(render(JSON.parse(serialized))) // or `BigInt`s don't show
-      const output = resolve(dirname(file), `${name}.json`)
-      stderr.write(`\n\n⏳ Saving configuration to ${output}...\n\n`)
-      writeFileSync(output, stringify(schedule), 'utf8')
-      stderr.write(`🟢 Configuration saved to ${output}`)
-    })
-
-  .command('build [ref]',
-    '👷 Compile contracts from working tree',
-    () => build())
-
-  .command('deploy',
-    '🚀 Upload, instantiate, and configure all contracts.',
-    function deploy () {
-      stderr.write('\nNot implemented.')
-      exit(0)
-    })
-
-  .command('launch',
-    '💸 Launch the vesting contract.',
-    function deploy () {
-      stderr.write('\nNot implemented.')
-      exit(0)
-    })
-
   .argv
 
-function stringify (data) {
-  const indent = 2
-  const withBigInts = (k, v) => typeof v === 'bigint' ? v.toString() : v
-  return JSON.stringify(data, withBigInts, indent)
-}
+const withNetwork = yargs =>
+  yargs.positional('network',
+    { describe: 'the network to connect to'
+    , default:  'localnet'
+    , choices:  ['localnet', 'testnet', 'mainnet'] })
+
+const withSpreadsheet = yargs =>
+  yargs.positional('spreadsheet',
+    { describe: 'path to input spreadsheet'
+    , default:  abs('settings', 'schedule.ods') })
+
+const withSchedule = yargs =>
+  yargs.positional('schedule',
+    { describe: 'the schedule to use'
+    , default:  abs('settings', 'schedule.json') })
+
+main()
 
 function cargo (...args) {
   run('cargo', '--color=always', ...args)

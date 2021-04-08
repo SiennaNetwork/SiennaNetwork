@@ -93,10 +93,10 @@ export default async function demo ({network, agent, builder}) {
       buildImage: 'enigmampc/secret-contract-optimizer:latest',
       buildUser:  'root',
       outputDir:  resolve(workspace, 'artifacts'), })
-    const binaries  = await build({ deployTask, builder })
-    const receipts  = await upload({ deployTask, builder, binaries })
+    const binaries  = await build({ task: deployTask, builder })
+    const receipts  = await upload({ task: deployTask, builder, binaries })
     const timestamp = String(+ new Date())
-    const contracts = await initialize({ deployTask, agent, receipts, inits: {
+    const contracts = await initialize({ task: deployTask, agent, receipts, inits: {
       TOKEN: { label:  `[${timestamp}] snip20`
              , initMsg: { name:      "Sienna"
                         , symbol:    "SIENNA"
