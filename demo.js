@@ -25,26 +25,21 @@ const __dirname = fileURLToPath(dirname(import.meta.url))
 export default async function demo (conn) {
   // fadroma provides a connection as well as agent and builder classes
   const {network, agent, builder} = conn
-
   // record timing and gas costs of deployment operations
   const header = [ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ]
-      , output = resolve(__dirname, 'artifacts', 'profile-deploy.md')
+      , output = resolve(__dirname, 'artifacts', network.chainId, 'profile-deploy.md')
       , deployTask = taskmaster({ header, output, agent })
-
   // modify schedule and prepare environment for demo
   const schedule = loadJSON('./settings/schedule.json', import.meta.url)
       , {wallets, recipients} = await prepare(deployTask, network, agent, schedule)
-
   // build, deploy, and initialize contracts
   const binaries = await build({task: deployTask, builder})
       , receipts = await upload({task: deployTask, builder, binaries})
       , initialRPTRecipient = recipients.TokenPair1.address
       , initArgs = {task: deployTask, agent, receipts, schedule}
       , contracts = await initialize({...initArgs, initialRPTRecipient})
-
   // launch the vesting and confirm that the claims work as expected
   await verify(deployTask, agent, recipients, wallets, contracts, schedule)
-
 }
 
 async function prepare (task, chain, agent, schedule) {
@@ -110,14 +105,14 @@ export async function verify (task, agent, recipients, wallets, contracts, sched
       const claimable = []
 
       await task('query vesting progress', async report => {
+        console.info(`ACCOUNT`.padEnd(14), `CLAIMED`.padStart(30), `  `, `UNLOCKED`.padStart(30) )
         for (const [name, recipient] of Object.entries(recipients)) {
           // token pairs are only visible to the RPT contract
           // so it doesn't make sense to pass them to the `Progress` query
           if (name.startsWith('TokenPair')) continue
           const {progress} = await MGMT.progress(recipient.address, now)
-          console.info(
-            `${name}:`.padEnd(15),
-            progress.claimed.padStart(30), `/`, progress.unlocked.padStart(30) )
+          const {claimed, unlocked} = progress
+          console.info( `${name}:`.padEnd(14), claimed.padStart(30), `of`, unlocked.padStart(30) )
           if (name === 'RPT') continue
           // one random recipient with newly unlocked balance will claim:
           if (progress.claimed < progress.unlocked) claimable.push(name) } })

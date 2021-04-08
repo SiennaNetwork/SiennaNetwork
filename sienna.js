@@ -100,17 +100,17 @@ const main = () => yargs(process.argv.slice(2))
       try {
         let environment
         if (testnet) {
-          stderr.write(`⏳ Running demo on testnet...\n\n`)
+          console.info(`⏳ running demo on testnet...`)
           environment = await SecretNetwork.testnet({stateBase})
         } else {
-          stderr.write(`⏳ Running demo on localnet...\n\n`)
+          console.info(`⏳ running demo on localnet...`)
           environment = await SecretNetwork.localnet({stateBase})
         }
         await demo(environment)
-        stderr.write('\n🟢 Demo executed successfully.\n')
+        console.info('\n🟢 Demo executed successfully.\n')
       } catch (e) {
         console.error(e)
-        stderr.write('\n👹 Demo failed.\n')
+        console.info('\n👹 Demo failed.\n')
       }
     })
 

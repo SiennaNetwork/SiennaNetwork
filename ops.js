@@ -58,10 +58,7 @@ export async function build ({
 }
 
 export async function upload (options = {}) {
-  const {
-    task     = taskmaster(),
-    binaries = await build()
-  } = options
+  const { task = taskmaster(), binaries = await build() } = options
 
   let { builder
       , conn = builder ? null : await SecretNetwork.localnet({stateBase}) } = options
@@ -70,9 +67,10 @@ export async function upload (options = {}) {
 
   const receipts = {}
   for (let contract of Object.keys(CONTRACTS)) {
-    await task(`upload ${contract}`, async () => {
+    await task(`upload ${contract}`, async report => {
       const receipt = receipts[contract] = await builder.uploadCached(binaries[contract])
       console.log(`⚖️  compressed size ${receipt.compressedSize} bytes`)
+      report(receipt.transactionHash)
     })
   }
   return receipts
