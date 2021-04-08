@@ -1,3 +1,3 @@
-8bb585c98a2adc3b7be4b14b0ffb6bd7fb021531988205aebb001f72fcd48252 *sienna-mgmt@HEAD.wasm
-24f591af5f1bc2b8187140cdead5a4a6a73e69dd5fdafd426695764e0b43beae *sienna-rpt@HEAD.wasm
+eb1b7ca8dfde9876b47b3e8a77a105209b7aa018fc13c966685f5fe9ec0ce4d4 *sienna-mgmt@HEAD.wasm
+569e6603af82d86d11804819f309437945cab7cf6e22fe33c6d0a8886943d62f *sienna-rpt@HEAD.wasm
 bdc309d73213e445caa161691546e596ab6994a48634ef9702448f1ef9cdf71a *snip20-reference-impl@HEAD.wasm

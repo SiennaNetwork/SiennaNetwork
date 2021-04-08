@@ -17,7 +17,7 @@ import { CONTRACTS, abs, stateBase
        , build, upload, initialize, launch
        , prepareConfig, setConfig
        , generateCoverage, generateSchema, generateDocs
-       , makeTestnetWallets } from './ops.js'
+       , makeWallets } from './ops.js'
 import demo from './demo.js'
 
 const main = () => yargs(process.argv.slice(2))
@@ -43,7 +43,7 @@ const main = () => yargs(process.argv.slice(2))
   .command('init <network> [<schedule>]',
     '💡 Instantiate uploaded contracts',
     yargs => withSchedule(withNetwork(yargs)),
-    initialize)
+    args => initialize(args).then(console.info))
 
   .command('launch <initReceiptOrContractAddr>',
     '📦 Launch initialized contracts',
@@ -114,9 +114,9 @@ const main = () => yargs(process.argv.slice(2))
       }
     })
 
-  .command('make-testnet-wallets',
+  .command('make-wallets',
     'Create and preseed 20 empty testnet wallets',
-    makeTestnetWallets)
+    makeWallets)
 
   .argv
 

@@ -1,0 +1,41 @@
+{
+  "contractAddress": "secret1q04mdk6j9ryw58ja5rav8j9pkk8972raa588wf",
+  "logs": [
+    {
+      "msg_index": 0,
+      "log": "",
+      "events": [
+        {
+          "type": "message",
+          "attributes": [
+            {
+              "key": "action",
+              "value": "instantiate"
+            },
+            {
+              "key": "module",
+              "value": "compute"
+            },
+            {
+              "key": "signer",
+              "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+            },
+            {
+              "key": "code_id",
+              "value": "28167"
+            },
+            {
+              "key": "contract_address",
+              "value": "secret1q04mdk6j9ryw58ja5rav8j9pkk8972raa588wf"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "transactionHash": "AFD754A94B6290C1880962632525D10E593F8AD252E7D393F48C603692ABF5EF",
+  "data": "03EBB6DB5228C8EA1E5DA0FAC3C8A1B58E5F287D",
+  "codeId": 28167,
+  "label": "2021-04-08_13-41-45-900_rpt",
+  "codeHash": "569e6603af82d86d11804819f309437945cab7cf6e22fe33c6d0a8886943d62f"
+}

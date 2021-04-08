@@ -1,4 +1,1 @@
-*
-!.gitignore
-!checksums.sha256.txt
-!*.md
+*.wasm
