@@ -1,6 +1,7 @@
 import { 
     Address, TokenPair, IdoInitConfig, Pagination, TokenPairAmount,
-    Decimal, Uint128, ContractInfo, NativeToken
+    Decimal, Uint128, ContractInfo, get_token_type, TypeOfToken, 
+    TokenInfo, ViewingKey
 } from './types.js'
 import { ExecuteResult, SigningCosmWasmClient } from 'secretjs'
 
@@ -21,6 +22,15 @@ export const FEES = {
         amount: [{ amount: "80000", denom: "uscrt" }],
         gas: "80000",
     },
+}
+
+/**
+ * This only exists because they didn't bother to
+ * export it in secretjs for some reason...
+ */
+export interface Coin {
+    readonly denom: string;
+    readonly amount: string;
 }
 
 export interface SmartContract {
@@ -132,7 +142,8 @@ export class ExchangeContract implements SmartContract {
             }
         }
 
-        return await this.client.execute(this.address, msg)
+        const transfer = add_native_balance(amount)
+        return await this.client.execute(this.address, msg, undefined, transfer)
     }
 
     async withdraw_liquidity(amount: Uint128, recipient: Address): Promise<ExecuteResult> {
@@ -153,7 +164,8 @@ export class ExchangeContract implements SmartContract {
             }
         }
 
-        return await this.client.execute(this.address, msg,)
+        const transfer = add_native_balance(amount)
+        return await this.client.execute(this.address, msg, undefined, transfer)
     }
 
     async get_pair_info(): Promise<TokenPair> {
@@ -185,5 +197,127 @@ export class ExchangeContract implements SmartContract {
         }
 
         return await this.client.queryContractSmart(this.address, msg)
+    }
+}
+
+export interface GetAllowanceResponse {
+    spender: Address,
+    owner: Address,
+    allowance: Uint128,
+    expiration?: number | undefined
+}
+
+export interface GetExchangeRateResponse {
+    rate: Uint128,
+    denom: string
+}
+
+export class Snip20Contract implements SmartContract {
+    constructor(readonly client: SigningCosmWasmClient, readonly address: Address) { }
+
+    async increase_allowance(
+        spender: Address,
+        amount: Uint128,
+        expiration?: number | null,
+        padding?: string | null
+    ): Promise<ExecuteResult> {
+        const msg = {
+            increase_allowance: {
+                spender,
+                amount,
+                expiration,
+                padding
+            }
+        }
+
+        return await this.client.execute(this.address, msg)
+    }
+
+    async get_allowance(owner: Address, spender: Address, key: ViewingKey): Promise<GetAllowanceResponse> {
+        const msg = {
+            allowance: {
+                owner,
+                spender,
+                key
+            }
+        }
+
+        const result = await this.client.queryContractSmart(this.address, msg)
+        return result as GetAllowanceResponse
+    }
+
+    async get_token_info(): Promise<TokenInfo> {
+        const msg = {
+            token_info: { }
+        }
+
+        const result = await this.client.queryContractSmart(this.address, msg)
+        return result as TokenInfo
+    }
+
+    get_exchange_rate(): GetExchangeRateResponse {
+        /*
+        const msg = {
+            exchange_rate: { }
+        }
+
+        const result = await this.client.queryContractSmart(this.address, msg)
+        return result as GetExchangeRateResponse
+        */
+        // This is hardcoded in the contract
+        return {
+            rate: "1",
+            denom: "uscrt"
+        }
+    }
+
+    async set_viewing_key(key: ViewingKey, padding?: string | null): Promise<ExecuteResult> {
+        const msg = {
+            set_viewing_key: {
+                key,
+                padding
+            }
+        }
+
+        return await this.client.execute(this.address, msg)
+    }
+
+    async deposit(amount: Uint128, padding?: string | null): Promise<ExecuteResult> {
+        const msg = {
+            deposit: {
+                padding
+            }
+        }
+
+        const transfer = [ coin(amount) ]
+        return await this.client.execute(this.address, msg, undefined, transfer)
+    }
+}
+
+function add_native_balance(amount: TokenPairAmount): Coin[] | undefined {
+    let result: Coin[] | undefined = [ ]
+
+    if(get_token_type(amount.pair.token_0) == TypeOfToken.Native) {
+        result.push({
+            denom: 'uscrt',
+            amount: amount.amount_0
+        })
+    } 
+    else if(get_token_type(amount.pair.token_1) == TypeOfToken.Native) {
+        result.push({
+            denom: 'uscrt',
+            amount: amount.amount_1
+        })
+    } else {
+        result = undefined
+    }
+
+    return result
+}
+
+function coin(amount: Uint128): Coin {
+    return {
+        denom: 'uscrt',
+        amount
     }
 }

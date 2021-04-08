@@ -2,6 +2,10 @@ export type Uint128 = string;
 export type Address = string;
 export type TokenType = CustomToken | NativeToken;
 export type Decimal = string;
+/**
+ * Base64 encoded
+ */
+export type ViewingKey = string
 
 export class TokenPair {
     constructor(
@@ -36,6 +40,13 @@ export interface NativeToken {
     native_token: {
         denom: string;
     };
+}
+
+export interface TokenInfo {
+    name: string,
+    symbol: string,
+    decimals: number,
+    total_supply?: Uint128 | undefined
 }
 
 export class IdoInitConfig {
@@ -86,6 +97,21 @@ export class Pagination {
          */
         readonly limit: number
     ) { }
+}
+
+export enum TypeOfToken {
+    Native,
+    Custom
+}
+
+export function get_token_type(token: TokenType): TypeOfToken {
+    const raw = token as Object
+
+    if (raw.hasOwnProperty('native_token')) {
+        return TypeOfToken.Native
+    }
+
+    return TypeOfToken.Custom
 }
 
 /***********************************************************************************

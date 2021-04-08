@@ -1,8 +1,8 @@
 import { 
   ContractInstantiationInfo, ContractInfo,
-  TokenPair, Address, TokenPairAmount
+  TokenPair, Address, TokenPairAmount, ViewingKey
 } from './amm-lib/types.js'
-import { FactoryContract, ExchangeContract, FEES } from './amm-lib/contract.js'
+import { FactoryContract, ExchangeContract, Snip20Contract, FEES } from './amm-lib/contract.js'
 import { 
   execute_test, execute_test_expect, assert_objects_equal,
   assert_equal, assert_not_equal
@@ -11,7 +11,8 @@ import {
   SigningCosmWasmClient, Secp256k1Pen, encodeSecp256k1Pubkey,
   EnigmaUtils, pubkeyToAddress
 } from 'secretjs'
-import { Bip39, Random } from "@iov/crypto"
+import { Sha256, Random } from "@iov/crypto"
+import { Buffer } from 'buffer'
 
 import { resolve } from 'path'
 import { readFileSync } from 'fs'
@@ -58,7 +59,9 @@ async function run_tests() {
   await test_get_factory_info(exchange, factory.address)
   await test_get_pool(exchange)
 
-  await test_provide_liquidity(exchange, created_pair)
+  const snip20 = new Snip20Contract(client_a, sienna_token.address)
+
+  await test_iquidity(exchange, snip20, created_pair)
   await sleep(SLEEP_TIME)
 }
 
@@ -212,17 +215,26 @@ async function test_get_pool(exchange: ExchangeContract) {
   )
 }
 
-async function test_provide_liquidity(exchange: ExchangeContract, pair: TokenPair) {
-  const amount0 = '5000000'
-  const amount1 = '5000000000000000000'
+async function test_iquidity(exchange: ExchangeContract, snip20: Snip20Contract, pair: TokenPair) {
+  const amount = '5000000'
 
-  const amount = new TokenPairAmount(pair, amount0, amount1) // 5 of each
+  // TODO: The current snip20 implementation is garbage and doesn't implement
+  // decimal conversion, so providing only a single amount for now
+  //const amount1 = '5000000000000000000'
+
+  await snip20.deposit(amount)
+  await sleep(SLEEP_TIME)
+
+  await snip20.increase_allowance(exchange.address, amount)
+  await sleep(SLEEP_TIME)
+
+  const token_amount = new TokenPairAmount(pair, amount, amount) // 5 of each
 
   await execute_test(
     'test_provide_liquidity',
     async () => {
-      const result = await exchange.provide_liquidity(amount)
-      assert_not_equal(result.logs[2].log, '0')
+      const result = await exchange.provide_liquidity(token_amount)
+      assert_equal(result.logs[0].events[2].attributes[3].value, amount) //LP tokens
     }
   )
 
@@ -230,10 +242,27 @@ async function test_provide_liquidity(exchange: ExchangeContract, pair: TokenPai
     'test_provide_liquidity_pool_not_empty',
     async () => {
       const result = await exchange.get_pool()
-      assert_equal(result.amount_0, amount0)
-      assert_equal(result.amount_1, amount1)
+      assert_equal(result.amount_0, amount)
+      assert_equal(result.amount_1, amount)
     }
   )
+
+  await sleep(SLEEP_TIME)
+
+  await execute_test(
+    'test_withdraw_liquidity',
+    async () => {
+      const result = await exchange.withdraw_liquidity(amount, exchange.client.senderAddress)
+      console.log(JSON.stringify(result.logs, null, 2))
+    }
+  )
+}
+
+export function create_viewing_key(): ViewingKey {
+  const rand_bytes = Random.getBytes(32)
+  const key = new Sha256(rand_bytes).digest()
+
+  return Buffer.from(key).toString('base64')
 }
 
 run_tests().catch(console.log)
