@@ -5,7 +5,7 @@ import {
 import { FactoryContract, ExchangeContract, Snip20Contract, FEES } from './amm-lib/contract.js'
 import { 
   execute_test, execute_test_expect, assert_objects_equal,
-  assert_equal, assert_not_equal
+  assert_equal, assert_not_equal, extract_log_value
 } from './test_helpers.js'
 import { 
   SigningCosmWasmClient, Secp256k1Pen, encodeSecp256k1Pubkey,
@@ -234,7 +234,7 @@ async function test_iquidity(exchange: ExchangeContract, snip20: Snip20Contract,
     'test_provide_liquidity',
     async () => {
       const result = await exchange.provide_liquidity(token_amount)
-      assert_equal(result.logs[0].events[2].attributes[3].value, amount) //LP tokens
+      assert_equal(extract_log_value(result, 'share'), amount) //LP tokens
     }
   )
 

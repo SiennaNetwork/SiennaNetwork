@@ -96,7 +96,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         },
         sienna_token: msg.sienna_token,
         pair: msg.pair,
-        contract_addr: env.contract.address,
+        contract_addr: env.contract.address.clone(),
         viewing_key: viewing_key,
         pool_cache: [ Uint128::zero(), Uint128::zero() ]
     };
@@ -105,7 +105,9 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 
     Ok(InitResponse {
         messages,
-        log: vec![]
+        log: vec![
+            log("created_exchange_address", env.contract.address.as_str())
+        ]
     })
 }
 

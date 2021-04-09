@@ -1,3 +1,5 @@
+import { ExecuteResult } from 'secretjs'
+
 export type ValueType = number | string | bigint | undefined
 
 export interface AsyncFn {
@@ -54,6 +56,10 @@ export async function execute_test_expect(
         console.error(e)
         print_error(test_name)
     }
+}
+
+export function extract_log_value(txResult: ExecuteResult, key: string): string | undefined {
+    return txResult?.logs[0]?.events?.find(e => e.type === 'wasm')?.attributes?.find(a => a.key === key)?.value
 }
 
 function assert_objects_equal_internal(object1: any, object2: any) {
