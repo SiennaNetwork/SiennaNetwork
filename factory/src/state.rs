@@ -24,6 +24,7 @@ pub struct Pagination {
 #[derive(Serialize, Deserialize)]
 pub(crate) struct Config {
     pub snip20_contract: ContractInstantiationInfo,
+    pub lp_token_contract: ContractInstantiationInfo,
     pub pair_contract: ContractInstantiationInfo,
     pub ido_contract: ContractInstantiationInfo,
     pub sienna_token: ContractInfo,
@@ -43,6 +44,7 @@ pub(crate) struct Exchange {
 #[derive(Serialize, Deserialize)]
 struct ConfigStored {
     pub snip20_contract: ContractInstantiationInfo,
+    pub lp_token_contract: ContractInstantiationInfo,
     pub pair_contract: ContractInstantiationInfo,
     pub ido_contract: ContractInstantiationInfo,
     pub sienna_token: ContractInfoStored,
@@ -54,6 +56,7 @@ impl Config {
     pub fn from_init_msg(msg: InitMsg) -> Self {
         Self {
             snip20_contract: msg.snip20_contract,
+            lp_token_contract: msg.lp_token_contract,
             pair_contract: msg.pair_contract,
             ido_contract: msg.ido_contract,
             sienna_token: msg.sienna_token,
@@ -69,6 +72,7 @@ pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
     config: &Config) -> StdResult<()> {
     let config = ConfigStored {
         snip20_contract: config.snip20_contract.clone(),
+        lp_token_contract: config.lp_token_contract.clone(),
         pair_contract: config.pair_contract.clone(),
         ido_contract: config.ido_contract.clone(),
         sienna_token: config.sienna_token.to_stored(&deps.api)?,
@@ -85,6 +89,7 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>
 
     let config = Config {
         snip20_contract: result.snip20_contract,
+        lp_token_contract: result.lp_token_contract,
         pair_contract: result.pair_contract,
         ido_contract: result.ido_contract,
         sienna_token: result.sienna_token.to_normal(&deps.api)?,
@@ -441,12 +446,16 @@ mod tests {
                 id: 1,
                 code_hash: "snip20_contract".into()
             },
+            lp_token_contract: ContractInstantiationInfo {
+                id: 2,
+                code_hash: "lp_token_contract".into()
+            },
             ido_contract: ContractInstantiationInfo {
-                id: 1,
+                id: 3,
                 code_hash: "ido_contract".into()
             },
             pair_contract: ContractInstantiationInfo {
-                id: 1,
+                id: 4,
                 code_hash: "pair_contract".into()
             },
             sienna_token: ContractInfo {

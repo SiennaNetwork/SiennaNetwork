@@ -84,7 +84,7 @@ fn create_exchange<S: Storage, A: Api, Q: Querier>(
                     msg: to_binary(
                         &ExchangeInitMsg {
                             pair: pair.clone(),
-                            lp_token_contract: config.snip20_contract.clone(),
+                            lp_token_contract: config.lp_token_contract.clone(),
                             factory_info: ContractInfo {
                                 code_hash: env.contract_code_hash.clone(),
                                 address: env.contract.address.clone()
@@ -239,6 +239,11 @@ mod tests {
     fn proper_initialization() -> StdResult<()> {
         let ref mut deps = dependencies();
 
+        let snip20_contract = ContractInstantiationInfo {
+            code_hash: "12355254".into(),
+            id: 64
+        };
+
         let lp_token_contract = ContractInstantiationInfo {
             code_hash: "23123123".into(),
             id: 64
@@ -260,7 +265,8 @@ mod tests {
         };
 
         let result = init(deps, mock_env("sender1111", &[]), InitMsg {
-            snip20_contract: lp_token_contract.clone(),
+            snip20_contract: snip20_contract.clone(),
+            lp_token_contract: lp_token_contract.clone(),
             pair_contract: pair_contract.clone(),
             ido_contract: ido_contract.clone(),
             sienna_token: sienna_token.clone()
@@ -270,7 +276,8 @@ mod tests {
 
         let config = load_config(deps)?;
 
-        assert_eq!(lp_token_contract, config.snip20_contract);
+        assert_eq!(snip20_contract, config.snip20_contract);
+        assert_eq!(lp_token_contract, config.lp_token_contract);
         assert_eq!(pair_contract, config.pair_contract);
         assert_eq!(ido_contract, config.ido_contract);
         assert_eq!(sienna_token, config.sienna_token);

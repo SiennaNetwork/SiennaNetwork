@@ -8,6 +8,7 @@ use crate::state::Pagination;
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {
     pub snip20_contract: ContractInstantiationInfo,
+    pub lp_token_contract: ContractInstantiationInfo,
     pub pair_contract: ContractInstantiationInfo,
     pub ido_contract: ContractInstantiationInfo,
     pub sienna_token: ContractInfo

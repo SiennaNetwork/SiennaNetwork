@@ -58,8 +58,14 @@ export async function execute_test_expect(
     }
 }
 
+// This shouldn't be changed as it is taken from the frontend and it is used to test
+// whether it works with the contracts' logs
 export function extract_log_value(txResult: ExecuteResult, key: string): string | undefined {
     return txResult?.logs[0]?.events?.find(e => e.type === 'wasm')?.attributes?.find(a => a.key === key)?.value
+}
+
+export function print_object(object: any) {
+    console.log(JSON.stringify(object, null, 2))
 }
 
 function assert_objects_equal_internal(object1: any, object2: any) {
@@ -83,10 +89,6 @@ function assert_objects_equal_internal(object1: any, object2: any) {
     }
 
     return true
-}
-
-function print_object(object: any) {
-    console.log(JSON.stringify(object, null, 2))
 }
 
 function print_success(test_name: string) {

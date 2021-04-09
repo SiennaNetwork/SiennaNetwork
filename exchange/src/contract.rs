@@ -328,7 +328,8 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
         i += 1;
     }
 
-    messages.push(snip20::burn_msg(
+    messages.push(snip20::burn_from_msg(
+        env.message.sender,
         amount,
         None,
         BLOCK_SIZE,
@@ -337,7 +338,7 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
     );
 
     Ok(HandleResponse {
-        messages: messages,
+        messages,
         log: vec![
             log("action", "remove_liquidity"),
             log("withdrawn_share", amount.to_string()),

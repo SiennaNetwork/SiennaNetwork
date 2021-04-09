@@ -5,7 +5,7 @@ import {
 import { FactoryContract, ExchangeContract, Snip20Contract, FEES } from './amm-lib/contract.js'
 import { 
   execute_test, execute_test_expect, assert_objects_equal,
-  assert_equal, assert_not_equal, extract_log_value
+  assert_equal, assert_not_equal, extract_log_value, print_object
 } from './test_helpers.js'
 import { 
   SigningCosmWasmClient, Secp256k1Pen, encodeSecp256k1Pubkey,
@@ -61,7 +61,7 @@ async function run_tests() {
 
   const snip20 = new Snip20Contract(client_a, sienna_token.address)
 
-  await test_iquidity(exchange, snip20, created_pair)
+  await test_liquidity(exchange, snip20, created_pair)
   await sleep(SLEEP_TIME)
 }
 
@@ -72,15 +72,18 @@ async function setup(client: SigningCosmWasmClient): Promise<SetupResult> {
   const exchange_wasm = readFileSync(resolve(`../dist/${commit}-exchange.wasm`))
   const ido_wasm = readFileSync(resolve(`../dist/${commit}-ido.wasm`))
   const factory_wasm = readFileSync(resolve(`../dist/${commit}-factory.wasm`))
+  const lp_token_wasm = readFileSync(resolve(`../dist/${commit}-lp-token.wasm`))
 
   const exchange_upload = await client.upload(exchange_wasm, {})
   const snip20_upload = await client.upload(snip20_wasm, {})
   const ido_upload = await client.upload(ido_wasm, {})
   const factory_upload = await client.upload(factory_wasm, {})
+  const lp_token_upload = await client.upload(lp_token_wasm, {})
 
   const pair_contract = new ContractInstantiationInfo(exchange_upload.originalChecksum, exchange_upload.codeId)
   const snip20_contract = new ContractInstantiationInfo(snip20_upload.originalChecksum, snip20_upload.codeId)
   const ido_contract = new ContractInstantiationInfo(ido_upload.originalChecksum, ido_upload.codeId)
+  const lp_token_contract = new ContractInstantiationInfo(lp_token_upload.originalChecksum, lp_token_upload.codeId)
 
   const sienna_init_msg = {
     name: 'sienna',
@@ -94,6 +97,7 @@ async function setup(client: SigningCosmWasmClient): Promise<SetupResult> {
 
   const factory_init_msg = {
     snip20_contract,
+    lp_token_contract,
     pair_contract,
     ido_contract,
     sienna_token
@@ -215,7 +219,7 @@ async function test_get_pool(exchange: ExchangeContract) {
   )
 }
 
-async function test_iquidity(exchange: ExchangeContract, snip20: Snip20Contract, pair: TokenPair) {
+async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract, pair: TokenPair) {
   const amount = '5000000'
 
   // TODO: The current snip20 implementation is garbage and doesn't implement
@@ -242,6 +246,7 @@ async function test_iquidity(exchange: ExchangeContract, snip20: Snip20Contract,
     'test_provide_liquidity_pool_not_empty',
     async () => {
       const result = await exchange.get_pool()
+
       assert_equal(result.amount_0, amount)
       assert_equal(result.amount_1, amount)
     }
@@ -253,7 +258,21 @@ async function test_iquidity(exchange: ExchangeContract, snip20: Snip20Contract,
     'test_withdraw_liquidity',
     async () => {
       const result = await exchange.withdraw_liquidity(amount, exchange.client.senderAddress)
-      console.log(JSON.stringify(result.logs, null, 2))
+      
+      assert_equal(extract_log_value(result, 'withdrawn_share'), amount)
+      assert_equal(result.logs[0].events[1].attributes[0].value, exchange.client.senderAddress)
+    }
+  )
+
+  await sleep(SLEEP_TIME)
+
+  await execute_test(
+    'test_pool_empty_after_withdraw',
+    async () => {
+      const result = await exchange.get_pool()
+      
+      assert_equal(result.amount_0, '0')
+      assert_equal(result.amount_1, '0')
     }
   )
 }
