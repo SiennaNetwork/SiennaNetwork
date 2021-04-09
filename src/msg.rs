@@ -314,14 +314,12 @@ pub enum ResponseStatus {
 #[serde(rename_all = "snake_case")]
 pub enum ContractStatusLevel {
     NormalRun,
-    StopAllButRedeems,
     StopAll,
 }
 
 pub fn status_level_to_u8(status_level: ContractStatusLevel) -> u8 {
     match status_level {
         ContractStatusLevel::NormalRun => 0,
-        ContractStatusLevel::StopAllButRedeems => 1,
         ContractStatusLevel::StopAll => 2,
     }
 }
@@ -329,7 +327,6 @@ pub fn status_level_to_u8(status_level: ContractStatusLevel) -> u8 {
 pub fn u8_to_status_level(status_level: u8) -> StdResult<ContractStatusLevel> {
     match status_level {
         0 => Ok(ContractStatusLevel::NormalRun),
-        1 => Ok(ContractStatusLevel::StopAllButRedeems),
         2 => Ok(ContractStatusLevel::StopAll),
         _ => Err(StdError::generic_err("Invalid state level")),
     }

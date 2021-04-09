@@ -1,7 +1,7 @@
 /// This contract implements SNIP-20 standard:
 /// https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-20.md
 use cosmwasm_std::{
-    log, to_binary, Api, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Env, Extern,
+    log, to_binary, Api, Binary, CanonicalAddr, CosmosMsg, Env, Extern,
     HandleResponse, HumanAddr, InitResponse, Querier, QueryResult, ReadonlyStorage, StdError,
     StdResult, Storage, Uint128,
 };
@@ -99,14 +99,9 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     let contract_status = ReadonlyConfig::from_storage(&deps.storage).contract_status();
 
     match contract_status {
-        ContractStatusLevel::StopAll | ContractStatusLevel::StopAllButRedeems => {
+        ContractStatusLevel::StopAll => {
             let response = match msg {
                 HandleMsg::SetContractStatus { level, .. } => set_contract_status(deps, env, level),
-                HandleMsg::Redeem { amount, .. }
-                    if contract_status == ContractStatusLevel::StopAllButRedeems =>
-                {
-                    try_redeem(deps, env, amount)
-                }
                 _ => Err(StdError::generic_err(
                     "This contract is stopped and this action is not allowed",
                 )),
@@ -117,64 +112,36 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     }
 
     let response = match msg {
-        // Native
-        HandleMsg::Deposit { .. } => try_deposit(deps, env),
-        HandleMsg::Redeem { amount, .. } => try_redeem(deps, env, amount),
-
-        // Base
-        HandleMsg::Transfer {
-            recipient, amount, ..
-        } => try_transfer(deps, env, &recipient, amount),
-        HandleMsg::Send {
-            recipient,
-            amount,
-            msg,
-            ..
-        } => try_send(deps, env, &recipient, amount, msg),
-        HandleMsg::Burn { amount, .. } => try_burn(deps, env, amount),
-        HandleMsg::RegisterReceive { code_hash, .. } => try_register_receive(deps, env, code_hash),
-        HandleMsg::CreateViewingKey { entropy, .. } => try_create_key(deps, env, entropy),
-        HandleMsg::SetViewingKey { key, .. } => try_set_key(deps, env, key),
-
-        // Allowance
-        HandleMsg::IncreaseAllowance {
-            spender,
-            amount,
-            expiration,
-            ..
-        } => try_increase_allowance(deps, env, spender, amount, expiration),
-        HandleMsg::DecreaseAllowance {
-            spender,
-            amount,
-            expiration,
-            ..
-        } => try_decrease_allowance(deps, env, spender, amount, expiration),
-        HandleMsg::TransferFrom {
-            owner,
-            recipient,
-            amount,
-            ..
-        } => try_transfer_from(deps, env, &owner, &recipient, amount),
-        HandleMsg::SendFrom {
-            owner,
-            recipient,
-            amount,
-            msg,
-            ..
-        } => try_send_from(deps, env, &owner, &recipient, amount, msg),
-        HandleMsg::BurnFrom { owner, amount, .. } => try_burn_from(deps, env, &owner, amount),
-
-        // Mint
-        HandleMsg::Mint {
-            recipient, amount, ..
-        } => try_mint(deps, env, recipient, amount),
-
-        // Other
         HandleMsg::ChangeAdmin { address, .. } => change_admin(deps, env, address),
         HandleMsg::SetContractStatus { level, .. } => set_contract_status(deps, env, level),
+
+        HandleMsg::SetMinters { minters, .. } => set_minters(deps, env, minters),
         HandleMsg::AddMinters { minters, .. } => add_minters(deps, env, minters),
         HandleMsg::RemoveMinters { minters, .. } => remove_minters(deps, env, minters),
-        HandleMsg::SetMinters { minters, .. } => set_minters(deps, env, minters),
+        HandleMsg::Mint { recipient, amount, .. } => try_mint(deps, env, recipient, amount),
+        HandleMsg::Burn { amount, .. } => try_burn(deps, env, amount),
+        HandleMsg::BurnFrom { owner, amount, .. } => try_burn_from(deps, env, &owner, amount),
+
+        HandleMsg::Deposit  { .. } => Err(StdError::generic_err("not allowed.")),
+        HandleMsg::Redeem   { .. } => Err(StdError::generic_err("not allowed.")),
+
+        HandleMsg::Transfer { recipient, amount, .. } =>
+            try_transfer(deps, env, &recipient, amount),
+        HandleMsg::TransferFrom { owner, recipient, amount, .. } =>
+            try_transfer_from(deps, env, &owner, &recipient, amount),
+        HandleMsg::Send { recipient, amount, msg, .. } =>
+            try_send(deps, env, &recipient, amount, msg),
+        HandleMsg::SendFrom { owner, recipient, amount, msg, .. } =>
+            try_send_from(deps, env, &owner, &recipient, amount, msg),
+
+        HandleMsg::CreateViewingKey { entropy, .. } => try_create_key(deps, env, entropy),
+        HandleMsg::SetViewingKey { key, .. } => try_set_key(deps, env, key),
+        HandleMsg::RegisterReceive { code_hash, .. } => try_register_receive(deps, env, code_hash),
+
+        HandleMsg::IncreaseAllowance { spender, amount, expiration, .. } =>
+            try_increase_allowance(deps, env, spender, amount, expiration),
+        HandleMsg::DecreaseAllowance { spender, amount, expiration, .. } =>
+            try_decrease_allowance(deps, env, spender, amount, expiration),
     };
 
     pad_response(response)
@@ -435,103 +402,6 @@ pub fn try_check_allowance<S: Storage, A: Api, Q: Querier>(
         expiration: allowance.expiration,
     };
     to_binary(&response)
-}
-
-fn try_deposit<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-) -> StdResult<HandleResponse> {
-    let mut amount = Uint128::zero();
-
-    for coin in &env.message.sent_funds {
-        if coin.denom == "uscrt" {
-            amount = coin.amount
-        }
-    }
-
-    if amount.is_zero() {
-        return Err(StdError::generic_err("No funds were sent to be deposited"));
-    }
-
-    let amount = amount.u128();
-
-    let sender_address = deps.api.canonical_address(&env.message.sender)?;
-
-    let mut balances = Balances::from_storage(&mut deps.storage);
-    let account_balance = balances.balance(&sender_address);
-    if let Some(account_balance) = account_balance.checked_add(amount) {
-        balances.set_account_balance(&sender_address, account_balance);
-    } else {
-        return Err(StdError::generic_err(
-            "This deposit would overflow your balance",
-        ));
-    }
-
-    let mut config = Config::from_storage(&mut deps.storage);
-    let total_supply = config.total_supply();
-    if let Some(total_supply) = total_supply.checked_add(amount) {
-        config.set_total_supply(total_supply);
-    } else {
-        return Err(StdError::generic_err(
-            "This deposit would overflow the currency's total supply",
-        ));
-    }
-
-    let res = HandleResponse {
-        messages: vec![],
-        log: vec![],
-        data: Some(to_binary(&HandleAnswer::Deposit { status: Success })?),
-    };
-
-    Ok(res)
-}
-
-fn try_redeem<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    amount: Uint128,
-) -> StdResult<HandleResponse> {
-    let sender_address = deps.api.canonical_address(&env.message.sender)?;
-    let amount_raw = amount.u128();
-
-    let mut balances = Balances::from_storage(&mut deps.storage);
-    let account_balance = balances.balance(&sender_address);
-
-    if let Some(account_balance) = account_balance.checked_sub(amount_raw) {
-        balances.set_account_balance(&sender_address, account_balance);
-    } else {
-        return Err(StdError::generic_err(format!(
-            "insufficient funds to redeem: balance={}, required={}",
-            account_balance, amount_raw
-        )));
-    }
-
-    let mut config = Config::from_storage(&mut deps.storage);
-    let total_supply = config.total_supply();
-    if let Some(total_supply) = total_supply.checked_sub(amount_raw) {
-        config.set_total_supply(total_supply);
-    } else {
-        return Err(StdError::generic_err(
-            "You are tyring to redeem more tokens than what is available in the total supply",
-        ));
-    }
-
-    let withdrawl_coins: Vec<Coin> = vec![Coin {
-        denom: "uscrt".to_string(),
-        amount,
-    }];
-
-    let res = HandleResponse {
-        messages: vec![CosmosMsg::Bank(BankMsg::Send {
-            from_address: env.contract.address,
-            to_address: env.message.sender,
-            amount: withdrawl_coins,
-        })],
-        log: vec![],
-        data: Some(to_binary(&HandleAnswer::Redeem { status: Success })?),
-    };
-
-    Ok(res)
 }
 
 fn try_transfer_impl<S: Storage, A: Api, Q: Querier>(
@@ -1099,31 +969,6 @@ mod tests {
         };
 
         (init(&mut deps, env, init_msg), deps)
-    }
-
-    /// Will return a ViewingKey only for the first account in `initial_balances`
-    fn auth_query_helper(
-        initial_balances: Vec<InitialBalance>,
-    ) -> (ViewingKey, Extern<MockStorage, MockApi, MockQuerier>) {
-        let (init_result, mut deps) = init_helper(initial_balances.clone());
-        assert!(
-            init_result.is_ok(),
-            "Init failed: {}",
-            init_result.err().unwrap()
-        );
-
-        let account = initial_balances[0].address.clone();
-        let create_vk_msg = HandleMsg::CreateViewingKey {
-            entropy: "42".to_string(),
-            padding: None,
-        };
-        let handle_response = handle(&mut deps, mock_env(account.0, &[]), create_vk_msg).unwrap();
-        let vk = match from_binary(&handle_response.data.unwrap()).unwrap() {
-            HandleAnswer::CreateViewingKey { key } => key,
-            _ => panic!("Unexpected result from handle"),
-        };
-
-        (vk, deps)
     }
 
     fn extract_error_msg<T: Any>(error: StdResult<T>) -> String {
@@ -1935,76 +1780,6 @@ mod tests {
     }
 
     #[test]
-    fn test_handle_redeem() {
-        let (init_result, mut deps) = init_helper(vec![InitialBalance {
-            address: HumanAddr("butler".to_string()),
-            amount: Uint128(5000),
-        }]);
-        assert!(
-            init_result.is_ok(),
-            "Init failed: {}",
-            init_result.err().unwrap()
-        );
-
-        let handle_msg = HandleMsg::Redeem {
-            amount: Uint128(1000),
-            denom: None,
-            padding: None,
-        };
-        let handle_result = handle(&mut deps, mock_env("butler", &[]), handle_msg);
-        assert!(
-            handle_result.is_ok(),
-            "handle() failed: {}",
-            handle_result.err().unwrap()
-        );
-
-        let balances = ReadonlyBalances::from_storage(&deps.storage);
-        let canonical = deps
-            .api
-            .canonical_address(&HumanAddr("butler".to_string()))
-            .unwrap();
-        assert_eq!(balances.account_amount(&canonical), 4000)
-    }
-
-    #[test]
-    fn test_handle_deposit() {
-        let (init_result, mut deps) = init_helper(vec![InitialBalance {
-            address: HumanAddr("lebron".to_string()),
-            amount: Uint128(5000),
-        }]);
-        assert!(
-            init_result.is_ok(),
-            "Init failed: {}",
-            init_result.err().unwrap()
-        );
-
-        let handle_msg = HandleMsg::Deposit { padding: None };
-        let handle_result = handle(
-            &mut deps,
-            mock_env(
-                "lebron",
-                &[Coin {
-                    denom: "uscrt".to_string(),
-                    amount: Uint128(1000),
-                }],
-            ),
-            handle_msg,
-        );
-        assert!(
-            handle_result.is_ok(),
-            "handle() failed: {}",
-            handle_result.err().unwrap()
-        );
-
-        let balances = ReadonlyBalances::from_storage(&deps.storage);
-        let canonical = deps
-            .api
-            .canonical_address(&HumanAddr("lebron".to_string()))
-            .unwrap();
-        assert_eq!(balances.account_amount(&canonical), 6000)
-    }
-
-    #[test]
     fn test_handle_burn() {
         let initial_amount: u128 = 5000;
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
@@ -2080,7 +1855,7 @@ mod tests {
         );
 
         let pause_msg = HandleMsg::SetContractStatus {
-            level: ContractStatusLevel::StopAllButRedeems,
+            level: ContractStatusLevel::StopAll,
             padding: None,
         };
         let handle_result = handle(&mut deps, mock_env("not_admin", &[]), pause_msg);
@@ -2118,55 +1893,6 @@ mod tests {
         let handle_result = handle(&mut deps, mock_env("not_admin", &[]), change_admin_msg);
         let error = extract_error_msg(handle_result);
         assert!(error.contains(&admin_err.clone()));
-    }
-
-    #[test]
-    fn test_handle_pause_with_withdrawals() {
-        let (init_result, mut deps) = init_helper(vec![InitialBalance {
-            address: HumanAddr("lebron".to_string()),
-            amount: Uint128(5000),
-        }]);
-        assert!(
-            init_result.is_ok(),
-            "Init failed: {}",
-            init_result.err().unwrap()
-        );
-
-        let pause_msg = HandleMsg::SetContractStatus {
-            level: ContractStatusLevel::StopAllButRedeems,
-            padding: None,
-        };
-
-        let handle_result = handle(&mut deps, mock_env("admin", &[]), pause_msg);
-        assert!(
-            handle_result.is_ok(),
-            "Pause handle failed: {}",
-            handle_result.err().unwrap()
-        );
-
-        let send_msg = HandleMsg::Transfer {
-            recipient: HumanAddr("account".to_string()),
-            amount: Uint128(123),
-            padding: None,
-        };
-        let handle_result = handle(&mut deps, mock_env("admin", &[]), send_msg);
-        let error = extract_error_msg(handle_result);
-        assert_eq!(
-            error,
-            "This contract is stopped and this action is not allowed".to_string()
-        );
-
-        let withdraw_msg = HandleMsg::Redeem {
-            amount: Uint128(5000),
-            denom: None,
-            padding: None,
-        };
-        let handle_result = handle(&mut deps, mock_env("lebron", &[]), withdraw_msg);
-        assert!(
-            handle_result.is_ok(),
-            "Withdraw failed: {}",
-            handle_result.err().unwrap()
-        );
     }
 
     #[test]
