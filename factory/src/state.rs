@@ -203,7 +203,7 @@ pub(crate) fn get_idos<S: Storage, A: Api, Q: Querier>(
     let end = (pagination.start + limit as u64).min(config.ido_count);
 
     let mut result = Vec::with_capacity((end - pagination.start) as usize);
-    println!("capacity: {}", result.capacity());
+    
     for i in pagination.start..end {
         let index = generate_ido_index(&i);
         let addr: CanonicalAddr = load(&deps.storage, index.as_slice())?;
