@@ -42,7 +42,7 @@ export default async function demo (conn) {
   await verify(deployTask, agent, recipients, wallets, contracts, schedule)
 }
 
-async function prepare (task, chain, agent, schedule) {
+async function prepare (task, network, agent, schedule) {
   const wallets = [], recipients = {}
   await task('allow adding accounts to Advisors pool in place of AdvisorN', () => {
     for (const pool of schedule.pools) if (pool.name === 'Advisors') {
@@ -55,7 +55,7 @@ async function prepare (task, chain, agent, schedule) {
     async function mutateAccount (account) {
       // * create an agent for each recipient address (used to test claims)
       const {name} = account
-      const recipient = await chain.getAgent(name) // create agent
+      const recipient = await network.getAgent(name) // create agent
       const {address} = recipient
       account.address = address         // replace placeholder with real address
       wallets.push([address, 10000000]) // balance to cover gas costs
@@ -67,12 +67,13 @@ async function prepare (task, chain, agent, schedule) {
   await task('create extra test accounts for reallocation tests', async () => {
     const extras = [ 'NewAdvisor', 'TokenPair1', 'TokenPair2', 'TokenPair3', ]
     for (const name of extras) {
-      const extra = await chain.getAgent(name) // create agent
+      const extra = await network.getAgent(name) // create agent
       wallets.push([extra.address, 10000000])
       recipients[name] = {agent: extra, address: extra.address} } })
-  await task(`create ${wallets.length} wallets for the test accounts`, async report => {
-    const tx = await agent.sendMany(wallets, 'create recipient accounts')
-    report(tx.transactionHash) })
+  if (network.chainId !== 'holodeck-2') {
+    await task(`create ${wallets.length} wallets for the test accounts`, async report => {
+      const tx = await agent.sendMany(wallets, 'create recipient accounts')
+      report(tx.transactionHash) }) }
   return { wallets, recipients } }
 
 export async function verify (task, agent, recipients, wallets, contracts, schedule) {
