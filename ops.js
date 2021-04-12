@@ -155,6 +155,12 @@ export async function initialize (options = {}) {
   return contracts
 }
 
+export async function configure ({
+  file = abs('settings', 'schedule.json')
+}) {
+  throw new Error('not implemented')
+}
+
 export default async function deploy ({
   task     = taskmaster(),
   builder  = new SecretNetwork.Builder(),
@@ -168,7 +174,17 @@ export default async function deploy ({
   })
 }
 
-export async function setConfig ({
+export async function launch () {
+  throw new Error('not implemented')
+}
+
+export async function reallocate ({
+  file = abs('settings', 'schedule.json')
+}) {
+  throw new Error('not implemented')
+}
+
+export async function addAccount ({
   file = abs('settings', 'schedule.json')
 }) {
   throw new Error('not implemented')
@@ -225,8 +241,6 @@ export async function makeWallets (options = {}) {
     await writeFile(file, JSON.stringify({address, mnemonic}), 'utf8')
   }
 }
-
-export async function launch () {}
 
 const stringify = data => {
   const indent = 2
