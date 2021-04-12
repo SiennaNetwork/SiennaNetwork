@@ -85,8 +85,8 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     if let Some(callback) = msg.callback {
         messages.push(
             CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: callback.contract_addr,
-                callback_code_hash: callback.contract_code_hash,
+                contract_addr: callback.contract.address,
+                callback_code_hash: callback.contract.code_hash,
                 msg: callback.msg,
                 send: vec![],
             })
