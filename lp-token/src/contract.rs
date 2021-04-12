@@ -85,8 +85,8 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     if let Some(callback) = msg.callback {
         messages.push(
             CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: callback.contract_addr,
-                callback_code_hash: callback.contract_code_hash,
+                contract_addr: callback.contract.address,
+                callback_code_hash: callback.contract.code_hash,
                 msg: callback.msg,
                 send: vec![],
             })
@@ -1066,7 +1066,7 @@ fn cmd_unavailable() -> StdResult<HandleResponse> {
 mod tests {
     use super::*;
     use cosmwasm_std::testing::*;
-    use cosmwasm_std::{from_binary, BlockInfo, ContractInfo, MessageInfo, QueryResponse, WasmMsg};
+    use cosmwasm_std::{from_binary, BlockInfo, ContractInfo, MessageInfo, QueryResponse};
     use std::any::Any;
 
     use shared::{Snip20InitConfig as InitConfig, Snip20InitialBalance as InitialBalance};

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::{HumanAddr, Binary, Uint128};
 
 use crate::{TokenPair, TokenType};
-use crate::{ContractInfo, ContractInstantiationInfo};
+use cosmwasm_utils::{ContractInfo, ContractInstantiationInfo, Callback};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct ExchangeInitMsg {
@@ -17,17 +17,6 @@ pub struct ExchangeInitMsg {
     pub factory_info: ContractInfo,
     pub callback: Callback,
     pub sienna_token: ContractInfo
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-/// Used to ask a contract to send back a message.
-pub struct Callback {
-    /// The message to call.
-    pub msg: Binary,
-    /// The address of the contract requesting the callback.
-    pub contract_addr: HumanAddr,
-    /// The code hash of the contract requesting the callback.
-    pub contract_code_hash: String,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]

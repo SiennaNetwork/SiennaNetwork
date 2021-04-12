@@ -50,22 +50,17 @@
       "description": "Used to ask a contract to send back a message.",
       "type": "object",
       "required": [
-        "contract_addr",
-        "contract_code_hash",
+        "contract",
         "msg"
       ],
       "properties": {
-        "contract_addr": {
-          "description": "The address of the contract requesting the callback.",
+        "contract": {
+          "description": "Info about the contract requesting the callback.",
           "allOf": [
             {
-              "$ref": "#/definitions/HumanAddr"
+              "$ref": "#/definitions/ContractInfo"
             }
           ]
-        },
-        "contract_code_hash": {
-          "description": "The code hash of the contract requesting the callback.",
-          "type": "string"
         },
         "msg": {
           "description": "The message to call.",

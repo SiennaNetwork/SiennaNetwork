@@ -83,6 +83,16 @@
             "offer"
           ],
           "properties": {
+            "expected_return": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "offer": {
               "description": "The token type to swap from.",
               "allOf": [

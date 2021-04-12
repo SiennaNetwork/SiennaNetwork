@@ -3,11 +3,9 @@ use std::usize;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage};
-use utils::storage::{save, load};
-use shared::{
-    TokenPair, TokenPairStored, TokenTypeStored, ContractInstantiationInfo,
-    ContractInfo, ContractInfoStored
-};
+use cosmwasm_utils::storage::{save, load};
+use cosmwasm_utils::{ContractInstantiationInfo, ContractInfo, ContractInfoStored};
+use shared::{TokenPair, TokenPairStored, TokenTypeStored};
 
 use crate::msg::InitMsg;
 

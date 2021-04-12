@@ -1,7 +1,8 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Uint128, HumanAddr, Decimal};
-use shared::{ContractInfo, TokenPair, TokenPairAmount, TokenTypeAmount};
+use shared::{TokenPair, TokenPairAmount, TokenTypeAmount};
+use cosmwasm_utils::ContractInfo;
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]

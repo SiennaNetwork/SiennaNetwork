@@ -4,10 +4,11 @@ use cosmwasm_std::{
     StdResult, Storage, QueryResult, CosmosMsg, WasmMsg, Uint128, log, HumanAddr, Decimal
 };
 use secret_toolkit::snip20;
-use shared::{Callback, ContractInfo, ExchangeInitMsg, Snip20InitConfig, Snip20InitMsg, TokenPairAmount, TokenType, TokenTypeAmount, U256, create_send_msg};
+use shared::{ExchangeInitMsg, Snip20InitConfig, Snip20InitMsg, TokenPairAmount, TokenType, TokenTypeAmount, U256, create_send_msg};
 use shared::u256_math;
-use utils::viewing_key::ViewingKey;
-use utils::rand::Prng;
+use cosmwasm_utils::{Callback, ContractInfo};
+use cosmwasm_utils::viewing_key::ViewingKey;
+use cosmwasm_utils::rand::Prng;
 
 use crate::msg::{HandleMsg, QueryMsg, QueryMsgResponse, SwapSimulationResponse};
 use crate::state::{Config, store_config, load_config};
@@ -57,8 +58,10 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             decimals: 6,
             callback: Some(Callback {
                 msg: to_binary(&HandleMsg::OnLpTokenInit)?,
-                contract_addr: env.contract.address.clone(),
-                contract_code_hash: env.contract_code_hash
+                contract: ContractInfo {
+                    address: env.contract.address.clone(),
+                    code_hash: env.contract_code_hash
+                }
             }),
             initial_balances: None,
             prng_seed: Binary::from(rng.rand_bytes()),
@@ -80,8 +83,8 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     // the factory contract in order to register this address
     messages.push(
         CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: msg.callback.contract_addr,
-            callback_code_hash: msg.callback.contract_code_hash,
+            contract_addr: msg.callback.contract.address,
+            callback_code_hash: msg.callback.contract.code_hash,
             msg: msg.callback.msg,
             send: vec![],
         })

@@ -2,7 +2,8 @@ use cosmwasm_std::{
     to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdError,
     StdResult, Storage, WasmMsg, CosmosMsg, log
 };
-use shared::{Callback, ContractInfo, ExchangeInitMsg, IdoInitConfig, IdoInitMsg, TokenPair};
+use shared::{ExchangeInitMsg, IdoInitConfig, IdoInitMsg, TokenPair};
+use cosmwasm_utils::{Callback, ContractInfo};
 
 use crate::msg::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
 use crate::state::{
@@ -90,8 +91,10 @@ fn create_exchange<S: Storage, A: Api, Q: Querier>(
                                 address: env.contract.address.clone()
                             },
                             callback: Callback {
-                                contract_addr: env.contract.address,
-                                contract_code_hash: env.contract_code_hash,
+                                contract: ContractInfo {
+                                    address: env.contract.address,
+                                    code_hash: env.contract_code_hash,
+                                },
                                 msg: to_binary(&HandleMsg::RegisterExchange {
                                     pair: pair.clone()
                                 })?,
@@ -166,8 +169,10 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
                     info: info,
                     snip20_contract: config.snip20_contract,
                     callback: Callback {
-                        contract_addr: env.contract.address,
-                        contract_code_hash: env.contract_code_hash,
+                        contract: ContractInfo {
+                            address: env.contract.address,
+                            code_hash: env.contract_code_hash,
+                        },
                         msg: to_binary(&HandleMsg::RegisterIdo)?
                     }
                 })?
@@ -223,12 +228,13 @@ fn list_exchanges<S: Storage, A: Api, Q: Querier>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shared::{ContractInstantiationInfo, TokenType};
+    use shared::{TokenType};
     use cosmwasm_std::testing::{
         mock_dependencies, mock_env, MockApi,
         MockQuerier, MockStorage
     };
     use cosmwasm_std::{from_binary, StdError, HumanAddr};
+    use cosmwasm_utils::ContractInstantiationInfo;
 
     fn dependencies() -> Extern<MockStorage, MockApi, MockQuerier> {
         mock_dependencies(10, &[])

@@ -1,9 +1,10 @@
 use cosmwasm_std::{Api, CanonicalAddr, Extern, HumanAddr, Querier, StdResult, Storage, Uint128};
 use serde::{Serialize,Deserialize};
 
-use shared::{TokenPair, TokenPairStored, ContractInfo, ContractInfoStored};
-use utils::storage::{load, save};
-use utils::viewing_key::ViewingKey;
+use shared::{TokenPair, TokenPairStored};
+use cosmwasm_utils::{ContractInfo, ContractInfoStored};
+use cosmwasm_utils::storage::{load, save};
+use cosmwasm_utils::viewing_key::ViewingKey;
 
 const CONFIG_KEY: &[u8] = b"config"; 
 

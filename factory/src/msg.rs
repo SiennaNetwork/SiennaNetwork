@@ -1,7 +1,8 @@
 use cosmwasm_std::HumanAddr;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use shared::{TokenPair, ContractInstantiationInfo, ContractInfo, IdoInitConfig};
+use shared::{TokenPair, IdoInitConfig};
+use cosmwasm_utils::{ContractInstantiationInfo, ContractInfo};
 
 use crate::state::{Exchange, Pagination};
 

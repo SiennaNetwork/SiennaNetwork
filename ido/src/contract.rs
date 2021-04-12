@@ -3,9 +3,9 @@ use cosmwasm_std::{
     Querier, QueryResult, StdError, StdResult, Storage, Uint128, WasmMsg, log, to_binary
 };
 use secret_toolkit::snip20;
-use shared::{Callback, ContractInfo, IdoInitMsg, Snip20InitMsg, TokenType, U256};
-
+use shared::{IdoInitMsg, Snip20InitMsg, TokenType, U256};
 use shared::u256_math;
+use cosmwasm_utils::{Callback, ContractInfo};
 
 use crate::msg::{HandleMsg, QueryMsg, QueryMsgResponse};
 use crate::state::{Config, save_config, load_config, SwapConstants};
@@ -75,8 +75,10 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             initial_balances: None,
             callback: Some(Callback {
                 msg: to_binary(&HandleMsg::OnSnip20Init)?,
-                contract_addr: env.contract.address.clone(),
-                contract_code_hash: env.contract_code_hash
+                contract: ContractInfo {
+                    address: env.contract.address.clone(),
+                    code_hash: env.contract_code_hash
+                }
             })
         })?,
         send: vec![]
@@ -191,8 +193,8 @@ fn on_snip20_init<S: Storage, A: Api, Q: Querier>(
     // Register with factory
     messages.push(
         CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: callback.contract_addr,
-            callback_code_hash: callback.contract_code_hash,
+            contract_addr: callback.contract.address,
+            callback_code_hash: callback.contract.code_hash,
             msg: callback.msg,
             send: vec![],
         })

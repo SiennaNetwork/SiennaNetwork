@@ -40,5 +40,5 @@ schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
 secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit" }
-utils = { path = "../utils" }
+cosmwasm-utils = { git = "https://github.com/hackbg/cosmwasm-utils" }
 shared = { path = "../shared" }

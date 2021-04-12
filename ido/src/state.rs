@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use cosmwasm_std::{ StdResult, Extern, Storage, Querier, Api, Uint128};
 
-use shared::{ContractInfo, ContractInfoStored, TokenType, TokenTypeStored, Callback};
-use utils::storage::{load, save};
+use shared::{TokenType, TokenTypeStored};
+use cosmwasm_utils::{ContractInfo, ContractInfoStored, Callback};
+use cosmwasm_utils::storage::{load, save};
 
 pub(crate) static CONFIG_KEY: &[u8] = b"config";
 
