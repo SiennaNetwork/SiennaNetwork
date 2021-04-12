@@ -49,6 +49,11 @@ export interface TokenInfo {
     total_supply?: Uint128 | undefined
 }
 
+export interface Exchange {
+    pair: TokenPair,
+    address: Address
+}
+
 export class IdoInitConfig {
     constructor(
         /**

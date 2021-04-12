@@ -1,6 +1,6 @@
 import { 
-  ContractInstantiationInfo, ContractInfo,
-  TokenPair, Address, TokenPairAmount, ViewingKey
+  ContractInstantiationInfo, ContractInfo, TokenType,
+  TokenPair, Address, TokenPairAmount, ViewingKey, Uint128, TokenTypeAmount, Pagination
 } from './amm-lib/types.js'
 import { FactoryContract, ExchangeContract, Snip20Contract, FEES } from './amm-lib/contract.js'
 import { 
@@ -51,8 +51,7 @@ async function run_tests() {
 
   await test_create_existing_pair_error(factory, created_pair)
   
-  const pair_address = await test_get_exchange_address(factory, created_pair)
-  await test_get_exchange_pair(factory, created_pair, pair_address)
+  const pair_address = await test_query_exchanges(factory, created_pair)
 
   const exchange = new ExchangeContract(client_a, pair_address)
   await test_get_pair_info(exchange, created_pair)
@@ -63,6 +62,8 @@ async function run_tests() {
 
   await test_liquidity(exchange, snip20, created_pair)
   await sleep(SLEEP_TIME)
+
+  await test_swap(exchange, snip20, created_pair)
 }
 
 async function setup(client: SigningCosmWasmClient): Promise<SetupResult> {
@@ -164,7 +165,7 @@ async function test_create_existing_pair_error(factory: FactoryContract, pair: T
   )
 }
 
-async function test_get_exchange_address(factory: FactoryContract, pair: TokenPair): Promise<Address> {
+async function test_query_exchanges(factory: FactoryContract, pair: TokenPair): Promise<Address> {
   let address = '';
 
   await execute_test(
@@ -175,17 +176,17 @@ async function test_get_exchange_address(factory: FactoryContract, pair: TokenPa
     }
   )
 
-  return address
-}
-
-async function test_get_exchange_pair(factory: FactoryContract, pair: TokenPair, address: Address) {
   await execute_test(
-    'test_get_exchange_pair',
+    'test_list_exchanges',
     async () => { 
-      const result = await factory.get_exchange_pair(address)
-      assert_objects_equal(pair, result)
+      const result = await factory.list_exchanges(new Pagination(0, 30))
+      assert_equal(result.length, 1)
+      assert_equal(result[0].address, address)
+      assert_objects_equal(result[0].pair, pair)
     }
   )
+
+  return address
 }
 
 async function test_get_pair_info(exchange: ExchangeContract, pair: TokenPair) {
@@ -226,13 +227,9 @@ async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract
   // decimal conversion, so providing only a single amount for now
   //const amount1 = '5000000000000000000'
 
-  await snip20.deposit(amount)
-  await sleep(SLEEP_TIME)
+  await snip20_deposit(snip20, amount, exchange.address)
 
-  await snip20.increase_allowance(exchange.address, amount)
-  await sleep(SLEEP_TIME)
-
-  const token_amount = new TokenPairAmount(pair, amount, amount) // 5 of each
+  const token_amount = new TokenPairAmount(pair, amount, amount)
 
   await execute_test(
     'test_provide_liquidity',
@@ -258,7 +255,7 @@ async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract
     'test_withdraw_liquidity',
     async () => {
       const result = await exchange.withdraw_liquidity(amount, exchange.client.senderAddress)
-      
+
       assert_equal(extract_log_value(result, 'withdrawn_share'), amount)
       assert_equal(result.logs[0].events[1].attributes[0].value, exchange.client.senderAddress)
     }
@@ -277,7 +274,41 @@ async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract
   )
 }
 
-export function create_viewing_key(): ViewingKey {
+async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pair: TokenPair) {
+  const amount = '5000000'
+
+  // Setup liquidity pool
+  await snip20_deposit(snip20, amount, exchange.address)
+
+  const pair_amount = new TokenPairAmount(pair, amount, amount)
+  await exchange.provide_liquidity(pair_amount)
+
+  await sleep(SLEEP_TIME)
+
+  const client_b = await build_client(ACC_B.mnemonic)
+
+  const offer_token = new TokenTypeAmount(pair.token_0, '6000000') // swap uscrt for sienna
+  print_object(await exchange.simulate_swap(offer_token))
+
+  await execute_test_expect(
+    'test_swap_larger_than_pool',
+    async () => {
+      const offer_token = new TokenTypeAmount(pair.token_0, '6000000') // swap uscrt for sienna
+      print_object(await exchange.swap(offer_token))
+    },
+    'The swap amount offered is larger than pool amount.'
+  )
+}
+
+async function snip20_deposit(snip20: Snip20Contract, amount: Uint128, exchange_address: Address) {
+  await snip20.deposit(amount)
+  await sleep(SLEEP_TIME)
+
+  await snip20.increase_allowance(exchange_address, amount)
+  await sleep(SLEEP_TIME)
+}
+
+function create_viewing_key(): ViewingKey {
   const rand_bytes = Random.getBytes(32)
   const key = new Sha256(rand_bytes).digest()
 

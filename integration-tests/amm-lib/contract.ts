@@ -1,7 +1,7 @@
 import { 
     Address, TokenPair, IdoInitConfig, Pagination, TokenPairAmount,
     Decimal, Uint128, ContractInfo, get_token_type, TypeOfToken, 
-    TokenInfo, ViewingKey
+    TokenInfo, ViewingKey, TokenTypeAmount, Exchange
 } from './types.js'
 import { ExecuteResult, SigningCosmWasmClient } from 'secretjs'
 
@@ -56,6 +56,12 @@ export interface ListIdosResponse {
     }
 }
 
+export interface ListExchangesResponse {
+    list_exchanges: {
+        exchanges: Exchange[];
+    }
+}
+
 export class FactoryContract implements SmartContract {
     constructor(readonly client: SigningCosmWasmClient, readonly address: Address) { }
 
@@ -66,7 +72,10 @@ export class FactoryContract implements SmartContract {
             }
         }
 
-        return await this.client.execute(this.address, msg)
+        return await this.client.execute(this.address, msg, undefined, undefined, {
+            amount: [{ amount: "700000", denom: "uscrt" }],
+            gas: "700000",
+        })
     }
 
     async create_ido(info: IdoInitConfig): Promise<ExecuteResult> {
@@ -77,17 +86,6 @@ export class FactoryContract implements SmartContract {
         }
 
         return await this.client.execute(this.address, msg)
-    }
-    
-    async get_exchange_pair(exchange_addr: Address): Promise<TokenPair> {
-        const msg = {
-            get_exchange_pair: {
-                exchange_addr
-            }
-        }
-
-        const result = await this.client.queryContractSmart(this.address, msg) as GetExchangePairResponse
-        return result.get_exchange_pair.pair
     }
 
     async get_exchange_address(pair: TokenPair): Promise<Address> {
@@ -103,13 +101,24 @@ export class FactoryContract implements SmartContract {
 
     async list_idos(pagination: Pagination): Promise<Address[]> {
         const msg = {
-            pagination: {
+            list_idos: {
                 pagination
             }
         }
 
         const result = await this.client.queryContractSmart(this.address, msg) as ListIdosResponse
         return result.list_idos.idos
+    }
+
+    async list_exchanges(pagination: Pagination): Promise<Exchange[]> {
+        const msg = {
+            list_exchanges: {
+                pagination
+            }
+        }
+
+        const result = await this.client.queryContractSmart(this.address, msg) as ListExchangesResponse
+        return result.list_exchanges.exchanges
     }
 }
 
@@ -142,7 +151,7 @@ export class ExchangeContract implements SmartContract {
             }
         }
 
-        const transfer = add_native_balance(amount)
+        const transfer = add_native_balance_pair(amount)
         return await this.client.execute(this.address, msg, undefined, transfer)
     }
 
@@ -157,7 +166,7 @@ export class ExchangeContract implements SmartContract {
         return await this.client.execute(this.address, msg)
     }
 
-    async swap(amount: TokenPairAmount): Promise<ExecuteResult> {
+    async swap(amount: TokenTypeAmount): Promise<ExecuteResult> {
         const msg = {
             swap: {
                 offer: amount
@@ -189,13 +198,13 @@ export class ExchangeContract implements SmartContract {
         return result.pool
     }
 
-    async simulate_swap(amount: TokenPairAmount): Promise<SwapSimulationResponse> {
+    async simulate_swap(amount: TokenTypeAmount): Promise<SwapSimulationResponse> {
         const msg = {
             swap_simulation: {
                 offer: amount
             }
         }
-
+        
         return await this.client.queryContractSmart(this.address, msg)
     }
 }
@@ -294,7 +303,7 @@ export class Snip20Contract implements SmartContract {
     }
 }
 
-function add_native_balance(amount: TokenPairAmount): Coin[] | undefined {
+function add_native_balance_pair(amount: TokenPairAmount): Coin[] | undefined {
     let result: Coin[] | undefined = [ ]
 
     if(get_token_type(amount.pair.token_0) == TypeOfToken.Native) {
@@ -309,6 +318,22 @@ function add_native_balance(amount: TokenPairAmount): Coin[] | undefined {
             amount: amount.amount_1
         })
     } else {
+        result = undefined
+    }
+
+    return result
+}
+
+function add_native_balance(amount: TokenTypeAmount): Coin[] | undefined {
+    let result: Coin[] | undefined = [ ]
+
+    if(get_token_type(amount.token) == TypeOfToken.Native) {
+        result.push({
+            denom: 'uscrt',
+            amount: amount.amount
+        })
+    } 
+    else {
         result = undefined
     }
 

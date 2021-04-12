@@ -1,14 +1,14 @@
 use cosmwasm_std::{
     to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdError,
-    StdResult, Storage, WasmMsg, CosmosMsg, log, HumanAddr
+    StdResult, Storage, WasmMsg, CosmosMsg, log
 };
 use shared::{Callback, ContractInfo, ExchangeInitMsg, IdoInitConfig, IdoInitMsg, TokenPair};
 
 use crate::msg::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
 use crate::state::{
     save_config, load_config, Config, pair_exists, store_exchange,
-    get_address_for_pair, get_pair_for_address, Exchange, get_idos,
-    Pagination, store_ido_address
+    get_address_for_pair, get_idos,
+    Pagination, store_ido_address, get_exchanges
 };
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
@@ -40,8 +40,8 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
-        QueryMsg::GetExchangePair { exchange_addr } => query_exchange_pair(deps, exchange_addr),
         QueryMsg::GetExchangeAddress { pair } => query_exchange_address(deps, pair),
+        QueryMsg::ListExchanges { pagination } => list_exchanges(deps, pagination),
         QueryMsg::ListIdos { pagination } => list_idos(deps, pagination)
     }
 }
@@ -115,31 +115,16 @@ fn register_exchange<S: Storage, A: Api, Q: Querier>(
     env: Env,
     pair: TokenPair
 ) -> StdResult<HandleResponse> {
-    let exchange = Exchange {
-        pair,
-        address: env.message.sender
-    };
-
-    store_exchange(deps, &exchange)?;
+    store_exchange(deps, &pair, &env.message.sender)?;
 
     Ok(HandleResponse {
         messages: vec![],
         log: vec![
             log("action", "register_exchange"),
-            log("pair", exchange.pair),
+            log("address", env.message.sender),
+            log("pair", pair)
         ],
         data: None
-    })
-}
-
-fn query_exchange_pair<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    exchange_addr: HumanAddr
-) -> StdResult<Binary> {
-    let pair = get_pair_for_address(deps, &exchange_addr)?;
-
-    to_binary(&QueryResponse::GetExchangePair {
-        pair
     })
 }
 
@@ -217,10 +202,21 @@ fn list_idos<S: Storage, A: Api, Q: Querier>(
     pagination: Pagination
 ) -> StdResult<Binary> {
     let config = load_config(deps)?;
-    let result = get_idos(deps, &config, pagination)?;
+    let idos = get_idos(deps, &config, pagination)?;
 
     Ok(to_binary(&QueryResponse::ListIdos {
-        idos: result
+        idos
+    })?)
+}
+
+fn list_exchanges<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    pagination: Pagination
+) -> StdResult<Binary> {
+    let exchanges = get_exchanges(deps, pagination)?;
+
+    Ok(to_binary(&QueryResponse::ListExchanges {
+        exchanges
     })?)
 }
 
@@ -228,8 +224,11 @@ fn list_idos<S: Storage, A: Api, Q: Querier>(
 mod tests {
     use super::*;
     use shared::{ContractInstantiationInfo, TokenType};
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage};
-    use cosmwasm_std::{from_binary, StdError};
+    use cosmwasm_std::testing::{
+        mock_dependencies, mock_env, MockApi,
+        MockQuerier, MockStorage
+    };
+    use cosmwasm_std::{from_binary, StdError, HumanAddr};
 
     fn dependencies() -> Extern<MockStorage, MockApi, MockQuerier> {
         mock_dependencies(10, &[])
@@ -375,17 +374,6 @@ mod tests {
         match response {
             QueryResponse::GetExchangeAddress { address } => assert_eq!(sender_addr, address),
             _ => return Err(StdError::generic_err("Wrong response. Expected: QueryResponse::GetExchangeAddress."))
-        };
-        
-        let result = query(deps, QueryMsg::GetExchangePair {
-            exchange_addr: sender_addr.clone()
-        })?;
-
-        let response: QueryResponse = from_binary(&result)?;
-        
-        match response {
-            QueryResponse::GetExchangePair { pair } => assert_eq!(pair, pair),
-            _ => return Err(StdError::generic_err("Wrong response. Expected: QueryResponse::GetExchangePair."))
         };
         
         Ok(())

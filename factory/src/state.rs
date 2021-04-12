@@ -13,12 +13,21 @@ use crate::msg::InitMsg;
 
 const CONFIG_KEY: &[u8] = b"config";
 const IDO_PREFIX: &[u8; 1] = b"I";
-//const PAIR_PREFIX: &[u8; 1] = b"P";
+const EXCHANGES_KEY: &[u8] = b"exchanges";
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 pub struct Pagination {
     pub start: u64,
     pub limit: u8
+}
+
+/// Represents the address of an exchange and the pair that it manages
+#[derive(Serialize, Deserialize, JsonSchema, Clone, PartialEq, Debug)]
+pub struct Exchange {
+    /// The pair that the contract manages.
+    pub pair: TokenPair,
+    /// Address of the contract that manages the exchange.
+    pub address: HumanAddr
 }
 
 #[derive(Serialize, Deserialize)]
@@ -32,15 +41,6 @@ pub(crate) struct Config {
     pub ido_count: u64
 }
 
-/// Represents the address of an exchange and the pair that it manages
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub(crate) struct Exchange {
-    /// The pair that the contract manages.
-    pub pair: TokenPair,
-    /// Address of the contract that manages the exchange.
-    pub address: HumanAddr
-}
-
 #[derive(Serialize, Deserialize)]
 struct ConfigStored {
     pub snip20_contract: ContractInstantiationInfo,
@@ -50,6 +50,12 @@ struct ConfigStored {
     pub sienna_token: ContractInfoStored,
     pub pair_count: u64,
     pub ido_count: u64
+}
+
+#[derive(Serialize, Deserialize)]
+struct ExchangeStored {
+    pub pair: TokenPairStored,
+    pub address: CanonicalAddr
 }
 
 impl Config {
@@ -120,41 +126,35 @@ pub(crate) fn pair_exists<S: Storage, A: Api, Q: Querier>(
 /// already exists or if something else goes wrong.
 pub(crate) fn store_exchange<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    exchange: &Exchange
+    pair: &TokenPair,
+    address: &HumanAddr
 ) -> StdResult<()> {
-    let Exchange {
-        pair,
-        address
-    } = exchange;
-
     let canonical = deps.api.canonical_address(&address)?;
-    
-    if let Some(_) = deps.storage.get(canonical.as_slice()) {
-        return Err(StdError::generic_err("Exchange already exists"));
-    }
 
     let pair = pair.to_stored(&deps.api)?;
     let key = generate_pair_key(&pair);
 
     if let Some(_) = deps.storage.get(&key) {
-        return Err(StdError::generic_err("Exchange address already exists"));
+        return Err(StdError::generic_err("Exchange already exists"));
     }
     
-    save(&mut deps.storage, canonical.as_slice(), &pair)?;
     save(&mut deps.storage, &key, &canonical)?;
 
+    let mut exchanges = load_exchanges(&deps.storage)?;
+
+    if exchanges.iter().any(|e| e.address == canonical) {
+        return Err(StdError::generic_err("Exchange address already exists"));
+    }
+
+    let exchange = ExchangeStored {
+        pair,
+        address: canonical
+    };
+    exchanges.push(exchange);
+
+    save_exchanges(&mut deps.storage, &exchanges)?;
+
     Ok(())
-}
-
-/// Get the exchange pair that the given contract address manages.
-pub(crate) fn get_pair_for_address<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    exchange_addr: &HumanAddr
-) -> StdResult<TokenPair> {
-    let canonical = deps.api.canonical_address(exchange_addr)?;
-
-    let result: TokenPairStored = load(&deps.storage, canonical.as_slice())?;
-    result.to_normal(&deps.api)
 }
 
 /// Get the address of an exchange contract which manages the given pair.
@@ -202,11 +202,10 @@ pub(crate) fn get_idos<S: Storage, A: Api, Q: Querier>(
     }
 
     let limit = pagination.limit.min(Pagination::MAX_LIMIT);
+    let end = (pagination.start + limit as u64).min(config.ido_count);
 
-    let mut result = Vec::with_capacity(limit as usize);
-    
-    let end = pagination.start + limit as u64;
-
+    let mut result = Vec::with_capacity((end - pagination.start) as usize);
+    println!("capacity: {}", result.capacity());
     for i in pagination.start..end {
         let index = generate_ido_index(&i);
         let addr: CanonicalAddr = load(&deps.storage, index.as_slice())?;
@@ -216,6 +215,47 @@ pub(crate) fn get_idos<S: Storage, A: Api, Q: Querier>(
     }
 
     Ok(result)
+}
+
+pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    pagination: Pagination
+) -> StdResult<Vec<Exchange>> {
+    let mut exchanges = load_exchanges(&deps.storage)?;
+
+    if pagination.start as usize >= exchanges.len() {
+        return Ok(vec![]);
+    }
+
+    let limit = pagination.limit.min(Pagination::MAX_LIMIT);
+    let end = (pagination.start + limit as u64).min(exchanges.len() as u64);
+
+    let mut result = Vec::with_capacity((end - pagination.start) as usize);
+    
+    for exchange in exchanges.drain((pagination.start as usize)..(end as usize)).collect::<Vec<ExchangeStored>>() {     
+        result.push(Exchange {
+            pair: exchange.pair.to_normal(&deps.api)?,
+            address: deps.api.human_address(&exchange.address)?
+        })
+    }
+
+    Ok(result)
+}
+
+fn load_exchanges(storage: &impl Storage) -> StdResult<Vec<ExchangeStored>> {
+    let result: StdResult<Vec<ExchangeStored>> = load(storage, EXCHANGES_KEY);
+
+    match result {
+        Ok(vec) => Ok(vec),
+        Err(kind) => match kind {
+            StdError::SerializeErr { .. }=> Ok(vec![]),
+            _ => Err(kind)
+        }
+    }
+}
+
+fn save_exchanges(storage: &mut impl Storage, exchanges: &Vec<ExchangeStored>) -> StdResult<()> {
+    save(storage, EXCHANGES_KEY, exchanges)
 }
 
 fn generate_ido_index(index: &u64) -> Vec<u8> {
@@ -266,6 +306,38 @@ mod tests {
         mock_dependencies(10, &[])
     }
 
+    fn swap_pair(pair: &TokenPair) -> TokenPair {
+        TokenPair(
+            pair.1.clone(),
+            pair.0.clone()
+        )
+    }
+
+    fn mock_config() -> Config {
+        Config::from_init_msg(InitMsg {
+            snip20_contract: ContractInstantiationInfo {
+                id: 1,
+                code_hash: "snip20_contract".into()
+            },
+            lp_token_contract: ContractInstantiationInfo {
+                id: 2,
+                code_hash: "lp_token_contract".into()
+            },
+            ido_contract: ContractInstantiationInfo {
+                id: 3,
+                code_hash: "ido_contract".into()
+            },
+            pair_contract: ContractInstantiationInfo {
+                id: 4,
+                code_hash: "pair_contract".into()
+            },
+            sienna_token: ContractInfo {
+                code_hash: "sienna_token".into(),
+                address: HumanAddr::from("sienna_ad")
+            }
+        })
+    }
+
     #[test]
     fn generates_the_same_key_for_swapped_pairs() -> StdResult<()> {
         fn cmp_pair<S: Storage, A: Api, Q: Querier>(
@@ -283,13 +355,6 @@ mod tests {
             assert_eq!(key, swapped_key);
 
             Ok(())
-        }
-
-        fn swap_pair(pair: &TokenPair) -> TokenPair {
-            TokenPair(
-                pair.1.clone(),
-                pair.0.clone()
-            )
         }
 
         let ref deps = create_deps();
@@ -353,17 +418,11 @@ mod tests {
 
         let address = HumanAddr("ctrct_addr".into());
 
-        let exchange = Exchange {
-            pair: pair.clone(),
-            address: address.clone()
-        };
+        store_exchange(&mut deps, &pair, &address)?;
 
-        store_exchange(&mut deps, &exchange)?;
-
-        let retrieved_pair = get_pair_for_address(&deps, &exchange.address)?;
         let retrieved_address = get_address_for_pair(&deps, &pair)?;
         
-        assert_eq!(pair, retrieved_pair);
+        assert!(pair_exists(&mut deps, &pair)?);
         assert_eq!(address, retrieved_address);
 
         Ok(())
@@ -372,97 +431,31 @@ mod tests {
     #[test]
     fn only_one_exchange_per_factory() -> StdResult<()> {
         let ref mut deps = create_deps();
+        let pair = TokenPair (
+            TokenType::CustomToken {
+                contract_addr: HumanAddr("first_addr".into()),
+                token_code_hash: "13123adasd".into()
+            },
+            TokenType::CustomToken {
+                contract_addr: HumanAddr("scnd_addr".into()),
+                token_code_hash: "4534qwerqqw".into()
+            }  
+        );
 
-        let exchange = Exchange {
-            pair: TokenPair (
-                TokenType::CustomToken {
-                    contract_addr: HumanAddr("first_addr".into()),
-                    token_code_hash: "13123adasd".into()
-                },
-                TokenType::CustomToken {
-                    contract_addr: HumanAddr("scnd_addr".into()),
-                    token_code_hash: "4534qwerqqw".into()
-                }  
-            ),
-            address: HumanAddr("ctrct_addr".into())
-        };
+        store_exchange(deps, &pair, &"first_addr".into())?;
 
-        store_exchange(deps, &exchange)?;
-
-        let exchange = Exchange {
-            pair: TokenPair (
-                TokenType::CustomToken {
-                    contract_addr: HumanAddr("scnd_addr".into()),
-                    token_code_hash: "4534qwerqqw".into()
-                },
-                TokenType::CustomToken {
-                    contract_addr: HumanAddr("first_addr".into()),
-                    token_code_hash: "13123adasd".into()
-                },
-            ),
-            address: HumanAddr("other_addr".into())
-        };
+        let swapped = swap_pair(&pair);
         
-        match store_exchange(deps, &exchange) {
+        match store_exchange(deps, &swapped, &"other_addr".into()) {
             Ok(_) => Err(StdError::generic_err("Exchange already exists")),
             Err(_) => Ok(())
         }
     }
 
     #[test]
-    fn test_pair_exists() -> StdResult<()> {
-        let ref mut deps = create_deps();
-
-        let pair = TokenPair (
-            TokenType::CustomToken {
-                contract_addr: HumanAddr("first_addr".into()),
-                token_code_hash: "13123adasd".into()
-            },
-            TokenType::NativeToken {
-                denom: "test1".into()
-            },
-        );
-
-        let address = HumanAddr("ctrct_addr".into());
-
-        let exchange = Exchange {
-            pair: pair.clone(),
-            address: address.clone()
-        };
-
-        store_exchange(deps, &exchange)?;
-
-        assert!(pair_exists(deps, &pair)?);
-
-        Ok(())
-    }
-
-    #[test]
     fn test_get_idos() -> StdResult<()> {
         let ref mut deps = create_deps();
-
-        let mut config = Config::from_init_msg(InitMsg {
-            snip20_contract: ContractInstantiationInfo {
-                id: 1,
-                code_hash: "snip20_contract".into()
-            },
-            lp_token_contract: ContractInstantiationInfo {
-                id: 2,
-                code_hash: "lp_token_contract".into()
-            },
-            ido_contract: ContractInstantiationInfo {
-                id: 3,
-                code_hash: "ido_contract".into()
-            },
-            pair_contract: ContractInstantiationInfo {
-                id: 4,
-                code_hash: "pair_contract".into()
-            },
-            sienna_token: ContractInfo {
-                code_hash: "sienna_token".into(),
-                address: HumanAddr::from("sienna_ad")
-            }
-        });
+        let mut config = mock_config();
 
         save_config(deps, &config)?;
 
@@ -480,11 +473,55 @@ mod tests {
         let result = get_idos(deps, &mut config, Pagination::new(addresses.len() as u64, 20))?;
         assert_eq!(result.len(), 0);
 
+        let result = get_idos(deps, &mut config, Pagination::new((addresses.len() - 1) as u64, 20))?;
+        assert_eq!(result.len(), 1);
+
         let result = get_idos(deps, &mut config, Pagination::new(0, Pagination::MAX_LIMIT + 10))?;
         assert_eq!(result.len(), Pagination::MAX_LIMIT as usize);
 
         let result = get_idos(deps, &mut config, Pagination::new(3, Pagination::MAX_LIMIT))?;
         assert_eq!(result, addresses[3..]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_exchanges() -> StdResult<()> {
+        let ref mut deps = create_deps();
+
+        let mut exchanges = vec![];
+
+        for i in 0..33 {
+            let pair = TokenPair (
+                TokenType::CustomToken {
+                    contract_addr: HumanAddr(format!("addr_{}", i)),
+                    token_code_hash: format!("code_hash_{}", i)
+                },
+                TokenType::NativeToken {
+                    denom: format!("denom_{}", i)
+                }, 
+            );
+            let address = HumanAddr(format!("address_{}", i));
+
+            store_exchange(deps, &pair, &address)?;
+
+            exchanges.push(Exchange {
+                pair,
+                address
+            });
+        }
+
+        let result = get_exchanges(deps, Pagination::new(exchanges.len() as u64, 20))?;
+        assert_eq!(result.len(), 0);
+
+        let result = get_exchanges(deps, Pagination::new((exchanges.len() - 1) as u64, 20))?;
+        assert_eq!(result.len(), 1);
+
+        let result = get_exchanges(deps, Pagination::new(0, Pagination::MAX_LIMIT + 10))?;
+        assert_eq!(result.len(), Pagination::MAX_LIMIT as usize);
+
+        let result = get_exchanges(deps, Pagination::new(3, Pagination::MAX_LIMIT))?;
+        assert_eq!(result, exchanges[3..]);
 
         Ok(())
     }

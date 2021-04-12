@@ -3,7 +3,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use shared::{TokenPair, ContractInstantiationInfo, ContractInfo, IdoInitConfig};
 
-use crate::state::Pagination;
+use crate::state::{Exchange, Pagination};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {
@@ -38,13 +38,13 @@ pub enum HandleMsg {
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    GetExchangePair {
-        exchange_addr: HumanAddr,
-    },
     GetExchangeAddress {
         pair: TokenPair
     },
     ListIdos {
+        pagination: Pagination
+    },
+    ListExchanges {
         pagination: Pagination
     }
 }
@@ -52,13 +52,13 @@ pub enum QueryMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryResponse {
-    GetExchangePair {
-        pair: TokenPair
-    },
     GetExchangeAddress {
         address: HumanAddr
     },
     ListIdos {
         idos: Vec<HumanAddr>
+    },
+    ListExchanges {
+        exchanges: Vec<Exchange>
     }
 }
