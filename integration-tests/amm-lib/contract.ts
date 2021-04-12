@@ -166,10 +166,11 @@ export class ExchangeContract implements SmartContract {
         return await this.client.execute(this.address, msg)
     }
 
-    async swap(amount: TokenTypeAmount): Promise<ExecuteResult> {
+    async swap(amount: TokenTypeAmount, expected_return?: Decimal | null): Promise<ExecuteResult> {
         const msg = {
             swap: {
-                offer: amount
+                offer: amount,
+                expected_return
             }
         }
 

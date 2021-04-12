@@ -20,7 +20,8 @@ pub enum HandleMsg {
     },
     Swap {
         /// The token type to swap from.
-        offer: TokenTypeAmount
+        offer: TokenTypeAmount,
+        expected_return: Option<Uint128>,
     },
     /// Sent by the LP token contract so that we can record its address.
     OnLpTokenInit

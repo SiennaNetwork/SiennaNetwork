@@ -120,7 +120,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::AddLiquidity { deposit, slippage_tolerance } => add_liquidity(deps, env, deposit, slippage_tolerance),
         HandleMsg::RemoveLiquidity { amount, recipient } => remove_liquidity(deps, env, amount, recipient),
         HandleMsg::OnLpTokenInit => register_lp_token(deps, env),
-        HandleMsg::Swap { offer } => swap(deps, env, offer)
+        HandleMsg::Swap { offer, expected_return } => swap(deps, env, offer, expected_return)
     }
 }
 
@@ -354,7 +354,8 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
 fn swap<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    offer: TokenTypeAmount
+    offer: TokenTypeAmount,
+    expected_return: Option<Uint128>
 ) -> StdResult<HandleResponse> {
     offer.assert_sent_native_token_balance(&env)?;
 
@@ -382,6 +383,14 @@ fn swap<S: Storage, A: Api, Q: Querier>(
         return_amount = Uint128(result.low_u128());
 
         messages.push(snip20::burn_msg(decrease_amount, None, BLOCK_SIZE, config.sienna_token.code_hash, config.sienna_token.address)?)
+    }
+
+    if let Some(expected_return) = expected_return {
+        if return_amount.lt(&expected_return) {
+            return Err(StdError::generic_err(
+                "Operation fell short of expected_return",
+            ));
+        }
     }
 
     messages.push(create_send_msg(&offer.token, env.contract.address, env.message.sender, return_amount)?);
