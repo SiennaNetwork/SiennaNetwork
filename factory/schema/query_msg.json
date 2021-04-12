@@ -5,25 +5,6 @@
     {
       "type": "object",
       "required": [
-        "get_exchange_pair"
-      ],
-      "properties": {
-        "get_exchange_pair": {
-          "type": "object",
-          "required": [
-            "exchange_addr"
-          ],
-          "properties": {
-            "exchange_addr": {
-              "$ref": "#/definitions/HumanAddr"
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
         "get_exchange_address"
       ],
       "properties": {
@@ -47,6 +28,25 @@
       ],
       "properties": {
         "list_idos": {
+          "type": "object",
+          "required": [
+            "pagination"
+          ],
+          "properties": {
+            "pagination": {
+              "$ref": "#/definitions/Pagination"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "list_exchanges"
+      ],
+      "properties": {
+        "list_exchanges": {
           "type": "object",
           "required": [
             "pagination"

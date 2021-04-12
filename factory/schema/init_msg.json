@@ -4,12 +4,16 @@
   "type": "object",
   "required": [
     "ido_contract",
+    "lp_token_contract",
     "pair_contract",
     "sienna_token",
     "snip20_contract"
   ],
   "properties": {
     "ido_contract": {
+      "$ref": "#/definitions/ContractInstantiationInfo"
+    },
+    "lp_token_contract": {
       "$ref": "#/definitions/ContractInstantiationInfo"
     },
     "pair_contract": {

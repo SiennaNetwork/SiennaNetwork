@@ -5,25 +5,6 @@
     {
       "type": "object",
       "required": [
-        "get_exchange_pair"
-      ],
-      "properties": {
-        "get_exchange_pair": {
-          "type": "object",
-          "required": [
-            "pair"
-          ],
-          "properties": {
-            "pair": {
-              "$ref": "#/definitions/TokenPair"
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
         "get_exchange_address"
       ],
       "properties": {
@@ -61,9 +42,57 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "list_exchanges"
+      ],
+      "properties": {
+        "list_exchanges": {
+          "type": "object",
+          "required": [
+            "exchanges"
+          ],
+          "properties": {
+            "exchanges": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Exchange"
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "definitions": {
+    "Exchange": {
+      "description": "Represents the address of an exchange and the pair that it manages",
+      "type": "object",
+      "required": [
+        "address",
+        "pair"
+      ],
+      "properties": {
+        "address": {
+          "description": "Address of the contract that manages the exchange.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          ]
+        },
+        "pair": {
+          "description": "The pair that the contract manages.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TokenPair"
+            }
+          ]
+        }
+      }
+    },
     "HumanAddr": {
       "type": "string"
     },
