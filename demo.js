@@ -7,9 +7,6 @@ import { fileURLToPath } from 'url'
 import { resolve, dirname } from 'path'
 import bignum from 'bignum'
 import { loadJSON, taskmaster, SecretNetwork } from '@hackbg/fadroma'
-import SNIP20Contract from '@hackbg/snip20'
-import MGMTContract from '@hackbg/mgmt'
-import RPTContract from '@hackbg/rpt'
 // ## What you're looking at
 //
 // This script is intended to demonstrate correct behavior of the smart contracts
@@ -22,29 +19,26 @@ import RPTContract from '@hackbg/rpt'
 //   [Docker](https://docs.docker.com/get-docker/).
 //
 // ## The following features are tested:
-//
+
 // * 👷 **deploying** and **configuring** the token, mgmt, and rpt contracts.
-// * 💸 **making claims** according to the initial **schedule** (sped up by a factor of 8400)
+import { build, upload, initialize, ensureWallets } from './ops.js'
 // * ⚠️  **viewing unlocked funds for any known address** without having to make a claim
+// * 💸 **making claims** according to the initial **schedule** (sped up by a factor of 8400)
+// * 🤵 **allocating unassigned funds** from a pool to a **new account**
+import SNIP20Contract from '@hackbg/snip20'
+import MGMTContract from '@hackbg/mgmt'
 // * 💰 **splitting the Remaining Pool Tokens** between multiple addresses
 // * 🍰 **reconfiguring that split**, preserving the **total portion size**
-// * 🤵 **allocating unassigned funds** from a pool to a **new account**
+import RPTContract from '@hackbg/rpt'
 //
-// Required: a testnet (holodeck-2), or in absence of testnet,
+// Required: access to a testnet (holodeck-2), or in absence of testnet,
 // a handle to a localnet (automatically instantiated
 // in a Docker container from `sienna.js`)
 
-// ### About `ops.js`
-// `ops.js` contains environment-independent implementations
-// of the main lifecycle procedures of the deployment,
-// where `sienna.js` can find them for the production launch.
-import { build, upload, initialize, ensureWallets } from './ops.js'
+const __dirname = fileURLToPath(dirname(import.meta.url)) // (ESModules killed `__dirname`)
 
-// (ESModules nuke `__dirname`, recreate it like this for brevity)
-const __dirname = fileURLToPath(dirname(import.meta.url))
-
-/** Conducts a test run of the contract deployment. */
 // ## Overview of the demo procedure
+/** Conducts a test run of the contract deployment. */
 export default async function demo (environment) {
   // * The operational **environment** provided by [Fadroma](https://fadroma.tech/js/)
   //   contains the `agent` and `builder` helpers, as well as the `chainId` of the `network`.
@@ -90,15 +84,15 @@ async function prepare ({task, network, agent, schedule}) {
   await task('shorten schedule and replace placeholders with test accounts', async () => {
     await Promise.all(schedule.pools.map(pool=>Promise.all(pool.accounts.map(
       async function mutateAccount (account) {
-        // * Create an agent with a new address for each recipient account.
+        // Create an agent with a new address for each recipient account.
         const recipient = await network.getAgent(account.name)
         const {address} = recipient
-        // * Put that address in the schedule
+        // Put that address in the schedule
         account.address = address
         wallets.push([address, 10000000]) // balance to cover gas costs
         recipients[account.name] = {agent: recipient, address, total: account.amount} // store agent
-        // * While we're here, *divide all timings in that account by 86400*,
-        //   so that a day passes in a second
+        // While we're here, *divide all timings in that account by 86400*,
+        // so that a day passes in a second
         account.start_at /= 86400
         account.interval /= 86400
         account.duration /= 86400 })))) })
@@ -109,9 +103,8 @@ async function prepare ({task, network, agent, schedule}) {
       const extra = await network.getAgent(name) // create agent
       wallets.push([extra.address, recipientGasBudget.toString()])
       recipients[name] = {agent: extra, address: extra.address} } })
-
+  // * Make sure the wallets exist on-chain.
   await ensureWallets({ task, agent, recipientGasBudget, wallets, recipients })
-
   return { wallets, recipients } }
 
 // # Verification
@@ -119,35 +112,36 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
 
   const { TOKEN, MGMT, RPT } = contracts
 
-  // Let's give every recipient an empty viewing key so we can check their balances.
+  // Let's just give every recipient an empty viewing key so we can check their balances.
   const VK = ""
   await task(`set null viewing key on ${recipient.length} SIENNA accounts`, async report => {
     let txs = Object.values(recipients).map(({agent})=>TOKEN.setViewingKey(agent, VK))
     txs = await Promise.all(txs)
     for (const {tx} of txs) report(tx.transactionHash) })
 
-  // And let's go! 🚀
+  // ## And let's go! 🚀
   let launched
   await task('launch the vesting', async report => {
     const {transactionHash, logs} = await MGMT.launch()
     launched = 1000 * Number(logs[0].events[1].attributes[1].value)
     report(transactionHash) })
 
-  // Okay, new taskmaster instance (2nd part of profiling - runtime).
+  // Okay, **new taskmaster instance** (2nd part of profiling - runtime).
   // This one will measure the claims.
-  // Claims will happen every 5 seconds = 1 block = 5 "days" (shortened schedule).
-  // This includes the `RPT#vest()` method - if called daily, reported gas costs
-  // for that method need to be multiplied by 5.
   await task.done()
   task = taskmaster({
     header: [ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ],
     output: resolve(__dirname, 'artifacts', agent.network.chainId, 'profile-runtime.md'),
     agent })
 
-  // These happen once in the whole test cycle:
+  // The following happen **once** in the whole test cycle:
   let addedAccount = false
   let reallocated  = false
 
+  // And this one is expected to happen **zero** times:
+  let error
+
+  // ## Main test loop 🔁
   while (true) {
     try {
       await agent.nextBlock
@@ -157,15 +151,14 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
 
       const claimable = []
 
+      // ⚠️  Vesting info is public!
       await task('query vesting progress', async report => {
         console.info( `ACCOUNT`.padEnd(11)
                     , `CLAIMED`.padEnd(25), `  `
                     , `UNLOCKED`.padEnd(25), `  `
                     , `TOTAL`.padEnd(25) )
         for (const [name, recipient] of Object.entries(recipients)) {
-          // token pairs are only visible to the RPT contract
-          // so it doesn't make sense to pass them to the `Progress` query
-          if (name.startsWith('TokenPair')) continue
+          if (name.startsWith('TokenPair')) continue // token pairs are only visible to the RPT contract
           const {progress} = await MGMT.progress(recipient.address, now)
           const {claimed, unlocked} = progress
           console.info( `${name}`.padEnd(11)
@@ -173,19 +166,22 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
                       , unlocked.padStart(25), `of`
                       , (recipient.total||'').padStart(25) )
           if (name === 'RPT') continue
-          // one random recipient with newly unlocked balance will claim:
+          // Every iteration, one random recipient
+          // with newly unlocked balance will claim. Collect the names of such recipients:
           if (progress.claimed < progress.unlocked) claimable.push(name) } })
 
       if (claimable.length > 0) {
         await task('make one claim', async report => {
           const claimant = claimable[Math.floor(Math.random() * claimable.length)]
           console.info(`\n${claimant} claims...`)
+          // * **Test claim.**
           const recipient = recipients[claimant]
           const tx = await MGMT.claim(recipient.agent)
           const balance = String(await TOKEN.balance(recipient.agent, VK))
           console.info(`balance of ${claimant} is now: ${balance}`)
           report(tx.transactionHash) }) }
 
+      // * **Test mutation 1**: add account, occurs 20 "days" in
       if (!addedAccount && elapsed > 20000) {
         await task('add new account to advisors pool', async report => {
           addedAccount = true
@@ -199,6 +195,7 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
             duration: 25 })
           report(tx.transactionHash) }) }
 
+      // * **Test mutation 2**: reallocate RPT, occurs 30 "days" in
       if (!reallocated && elapsed > 30000) {
         await task('reallocate RPT...', async report => {
           reallocated = true
@@ -208,10 +205,12 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
             [recipients.TokenPair3.address, "1000000000000000000000"] ])
           report(tx.transactionHash) }) }
 
+      // * **Test RPT vesting**. This 
+      // Since claims happen every ~5 seconds (= 1 block = 5 "days" of the shortened schedule)
+      // if this method is meant to be called daily, its cost must be multiplied by 5.
       await task('vest RPT tokens', async report => {
         const tx = await RPT.vest()
         report(tx.transactionHash) })
-
       await task('query balances of RPT recipients', async report => {
         for (const [name, recipient] of Object.entries(recipients)) {
           if (name.startsWith('TokenPair')) {
@@ -220,11 +219,13 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
               String(await TOKEN.balance(recipient.agent, VK)).padStart(30)) } } })
 
     } catch (e) {
+      error = e
       console.info(`demo exited with error: ${e.message}`)
       console.error(e)
       break
     }
   }
 
-  await task.done()
+  await task.done() // save the runtime profile even on error
+  if (error) throw error
 }
