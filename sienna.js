@@ -17,7 +17,7 @@ import { CONTRACTS, abs, stateBase
        , build, upload, initialize, launch
        , prepareConfig, configure, reallocate, addAccount
        , generateCoverage, generateSchema, generateDocs
-       , makeWallets } from './ops.js'
+       , ensureWallets } from './ops.js'
 import demo from './demo.js'
 
 const main = () => yargs(process.argv.slice(2))
@@ -63,9 +63,9 @@ const main = () => yargs(process.argv.slice(2))
   .command('coverage',
     '⚗️  Generate test coverage and open it in a browser.',
     generateCoverage)
-  .command('test-accounts',
+  .command('ensure-wallets',
     '⚗️  Ensure there are testnet wallets for the demo.',
-    makeWallets)
+    ensureWallets)
   .command('demo [--testnet]',
     '⚗️  Run integration test/demo.',
     args.IsTestnet, runDemo)

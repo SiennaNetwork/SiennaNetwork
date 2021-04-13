@@ -55,12 +55,10 @@ p {
   margin: 15px 0 0px;
 }
   .annotation ul, .annotation ol {
-    margin: 25px 0;
+    margin: 0;
   }
     .annotation ul li, .annotation ol li {
-      font-size: 14px;
-      line-height: 18px;
-      margin: 10px 0;
+      margin: 0;
     }
 
 h1, h2, h3, h4, h5, h6 {
@@ -68,7 +66,6 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1em;
   font-weight: normal;
   font-family: "roboto-black";
-  text-transform: uppercase;
   margin: 30px 0 15px 0;
 }
 
@@ -241,7 +238,7 @@ ul.sections > li > div {
   ul.sections > li > div.annotation p tt, .annotation code {
     background: #f8f8ff;
     border: 1px solid #dedede;
-    font-size: 12px;
+    font-size: 14px;
     padding: 0 0.2em;
   }
 }
@@ -260,7 +257,7 @@ ul.sections > li > div {
     line-height: 18px;
   }
   p, ul, ol {
-    margin: 0 0 15px;
+    margin: 15px 0 0;
   }
 
 
@@ -290,7 +287,7 @@ ul.sections > li > div {
     position: absolute;
     top: 0; bottom: 0;
     width: 350px;
-    background: #fff;
+    background: #ddd;
     border-right: 1px solid #e5e5ee;
     z-index: -1;
   }
@@ -361,16 +358,16 @@ ul.sections > li > div {
 @media only screen and (min-width: 1025px) {
 
   body {
-    font-size: 16px;
-    line-height: 24px;
+    font-size: 18px;
+    line-height: 30px;
   }
 
   #background {
-    width: 525px;
+    width: 50em;
   }
   ul.sections > li > div.annotation {
-    max-width: 525px;
-    min-width: 525px;
+    max-width: 50em;
+    min-width: 50em;
     padding: 10px 25px 1px 50px;
   }
   ul.sections > li > div.content {

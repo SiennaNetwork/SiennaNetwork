@@ -44,9 +44,9 @@ export const CONTRACTS = {
     , initMsg: {} } }
 
 export async function build (options = {}) {
-  const { task      = taskmaster(),
-        , builder   = new SecretNetwork.Builder(),
-        , workspace = __dirname,
+  const { task      = taskmaster()
+        , builder   = new SecretNetwork.Builder()
+        , workspace = __dirname
         , outputDir = resolve(workspace, 'artifacts') } = options
 
   // pull build container
@@ -166,27 +166,34 @@ export async function initialize (options = {}) {
 
 export async function ensureWallets (options = {}) {
 
+  let { recipientGasBudget = bignum("10000000") } = options
+
+  // allow passing it as string
+  recipientGasBudget = bignum(recipientGasBudget)
+
   const { task  = taskmaster()
         , n     = 16 // give or take
         // connection defaults to testnet because localnet
         // wallets are not worth keeping (they don't even
         // transfer between localnet instances)
-        , conn  = await SecretNetwork.testnet({stateBase})
-        // use the default agent of the connection
-        , agent = conn.agent } = options
+        , agent
+        // TODO: existing wallets passed here decrease `preseedTotal`
+        , recipients = {}
+        , wallets = []
+        } = options
 
   // check that admin has enough balance to create the wallets
   const balance =
     bignum(await agent.getBalance())
   const recipientBalances =
     await Promise.all(Object.values(recipients)
-      .map(({agent})=>[agent.name, bignum(agent.balance)])
+      .map(({agent})=>[agent.name, bignum(agent.balance)]))
   const fee =
     bignum(agent.fees.send)
   const preseedTotal =
     fee.add(bignum(wallets.length).mul(recipientGasBudget))
   console.debug({balance, recipientBalances, fee, preseedTotal})
-  if (preseedTotal > balance) {
+  if (preseedTotal.gt(balance)) {
     const message =
       `admin wallet does not have enough balance to preseed test wallets` +
      `(${balance.toString()}<${preseedTotal.toString()}); can't proceed.\n\n` +
@@ -194,20 +201,9 @@ export async function ensureWallets (options = {}) {
       `on testnet, use the faucet with ${agent.address}`
     console.error(message)
     process.exit(1) }
-
   await task(`ensure ${wallets.length} test accounts have balance`, async report => {
     const tx = await agent.sendMany(wallets, 'create recipient accounts')
     report(tx.transactionHash)})
-  //console.info(`make ${n} wallets...`)
-  //const agents = await Promise.all([...Array(n)].map(()=>conn.conn.getAgent()))
-  //for (const {address, mnemonic} of agents) {
-    //await agent.send(address, 5000000)
-    //console.info()
-    //console.info(address)
-    //console.info(mnemonic)
-    //const file = resolve(conn.network.wallets, `${address}.json`)
-    //await writeFile(file, JSON.stringify({address, mnemonic}), 'utf8')
-  //}
 }
 
 export async function configure ({

@@ -37,20 +37,6 @@
                 <a class="ss" href="#section-2">&#x00a7;</a>
               </div>
               <h1 id="sienna-vesting-contract-demo">SIENNA Vesting Contract Demo</h1>
-<p>Run this with <code>./sienna.js demo</code>.</p>
-<p>This script is intended to demonstrate correct behavior
-of the smart contracts when interoperating with a JS environment.</p>
-<p>The following features are tested:</p>
-<ul>
-<li>deploying and configuring the token and vesting contracts</li>
-<li>making claims according to the initial schedule</li>
-<li>checking unlocked funds without making a claim</li>
-<li>splitting the Remaining Pool Tokens between multiple addresses</li>
-<li>reconfiguring the Remaining Pool Token split, preserving the total portion size</li>
-<li>adding new accounts to Advisor/Investor pools</li>
-</ul>
-<p>Required: a testnet (holodeck-2), or in absence of testnet,
-a handle to a localnet (instantiated in a Docker container from <code>sienna.js</code>)</p>
 
             </div>
             
@@ -72,14 +58,30 @@ a handle to a localnet (instantiated in a Docker container from <code>sienna.js<
               <div class="sswrap ">
                 <a class="ss" href="#section-3">&#x00a7;</a>
               </div>
-              <p>These are environment-independent implementations
-of the main lifecycle procedures of the deployment,
-so they go in their own module, where <code>sienna.js</code> can
-find them for the production launch.</p>
+              <h2 id="what-youre-looking-at">What you’re looking at</h2>
+<p>This script is intended to demonstrate correct behavior of the smart contracts
+when interoperating with a JS environment.</p>
+<p><strong>Run this with <code>./sienna.js demo</code>.</strong></p>
+<ul>
+<li><code>./sienna.js demo --testnet</code> runs this on <code>holodeck-2</code></li>
+<li><code>./sienna.js demo</code> runs this on a local testnet in a Docker container, which has id
+<code>enigma-pub-testnet-3</code>, and is referred to as <code>localnet</code>. Needs
+<a href="https://docs.docker.com/get-docker/">Docker</a>.</li>
+</ul>
+<h2 id="the-following-features-are-tested">The following features are tested:</h2>
+<ul>
+<li>👷 <strong>deploying</strong> and <strong>configuring</strong> the token, mgmt, and rpt contracts.</li>
+<li>💸 <strong>making claims</strong> according to the initial <strong>schedule</strong> (sped up by a factor of 8400)</li>
+<li>⚠️  <strong>viewing unlocked funds for any known address</strong> without having to make a claim</li>
+<li>💰 <strong>splitting the Remaining Pool Tokens</strong> between multiple addresses</li>
+<li>🍰 <strong>reconfiguring that split</strong>, preserving the <strong>total portion size</strong></li>
+<li>🤵 <strong>allocating unassigned funds</strong> from a pool to a <strong>new account</strong></li>
+</ul>
+<p>Required: a testnet (holodeck-2), or in absence of testnet,
+a handle to a localnet (automatically instantiated
+in a Docker container from <code>sienna.js</code>)</p>
 
             </div>
-            
-            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">import</span> { build, upload, initialize, ensureWallets } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./ops.js&#x27;</span></pre></div></div>
             
         </li>
         
@@ -90,14 +92,14 @@ find them for the production launch.</p>
               <div class="sswrap ">
                 <a class="ss" href="#section-4">&#x00a7;</a>
               </div>
-              <p>“new modules” nuke __dirname, let’s recreate it like this for brevity:</p>
+              <h3 id="about-opsjs">About <code>ops.js</code></h3>
+<p><code>ops.js</code> contains environment-independent implementations
+of the main lifecycle procedures of the deployment,
+where <code>sienna.js</code> can find them for the production launch.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">const</span> __dirname = fileURLToPath(dirname(<span class="hljs-keyword">import</span>.meta.url))
-
-<span class="hljs-comment">/** Conducts a test run of the contract deployment. */</span>
-<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">demo</span> (<span class="hljs-params">environment</span>) </span>{</pre></div></div>
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">import</span> { build, upload, initialize, ensureWallets } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./ops.js&#x27;</span></pre></div></div>
             
         </li>
         
@@ -108,11 +110,13 @@ find them for the production launch.</p>
               <div class="sswrap ">
                 <a class="ss" href="#section-5">&#x00a7;</a>
               </div>
-              <p>Fadroma provides a connection, as well as agent and builder classes</p>
+              <p>(ESModules nuke <code>__dirname</code>, recreate it like this for brevity)</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">const</span> {network, agent, builder} = environment</pre></div></div>
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">const</span> __dirname = fileURLToPath(dirname(<span class="hljs-keyword">import</span>.meta.url))
+
+<span class="hljs-comment">/** Conducts a test run of the contract deployment. */</span></pre></div></div>
             
         </li>
         
@@ -123,13 +127,11 @@ find them for the production launch.</p>
               <div class="sswrap ">
                 <a class="ss" href="#section-6">&#x00a7;</a>
               </div>
-              <p>Record timing and gas costs of deployment operations</p>
+              <h2 id="overview-of-the-demo-procedure">Overview of the demo procedure</h2>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">const</span> header = [ <span class="hljs-string">&#x27;time&#x27;</span>, <span class="hljs-string">&#x27;info&#x27;</span>, <span class="hljs-string">&#x27;time (msec)&#x27;</span>, <span class="hljs-string">&#x27;gas (uSCRT)&#x27;</span>, <span class="hljs-string">&#x27;overhead (msec)&#x27;</span> ]
-      , output = resolve(__dirname, <span class="hljs-string">&#x27;artifacts&#x27;</span>, network.chainId, <span class="hljs-string">&#x27;profile-deploy.md&#x27;</span>)
-      , deployTask = taskmaster({ header, output, agent })</pre></div></div>
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">demo</span> (<span class="hljs-params">environment</span>) </span>{</pre></div></div>
             
         </li>
         
@@ -140,20 +142,14 @@ find them for the production launch.</p>
               <div class="sswrap ">
                 <a class="ss" href="#section-7">&#x00a7;</a>
               </div>
-              <p>Prepare schedule and recipients for demo.</p>
-<ul>
-<li>The schedule is shortened by a factor of 86400
-(number of seconds in a day) in order to run in 
-about 15 minutes. This is necessitated by the
-node being resistant to <code>libfaketime</code>.</li>
-<li>The recipient wallets are created if they don’t exist,
-by the admin sending a gas budget to them (in uSCRT). </li>
+              <ul>
+<li>The operational <strong>environment</strong> provided by <a href="https://fadroma.tech/js/">Fadroma</a>
+contains the <code>agent</code> and <code>builder</code> helpers, as well as the <code>chainId</code> of the <code>network</code>.</li>
 </ul>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">const</span> schedule = loadJSON(<span class="hljs-string">&#x27;./settings/schedule.json&#x27;</span>, <span class="hljs-keyword">import</span>.meta.url)
-      , {wallets, recipients} = <span class="hljs-keyword">await</span> prepare(deployTask, network, agent, schedule)</pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">const</span> {network, agent, builder} = environment</pre></div></div>
             
         </li>
         
@@ -164,15 +160,16 @@ by the admin sending a gas budget to them (in uSCRT). </li>
               <div class="sswrap ">
                 <a class="ss" href="#section-8">&#x00a7;</a>
               </div>
-              <p>Build, deploy, and initialize contracts</p>
+              <ul>
+<li><strong>taskmaster</strong> is a tiny high-level profiler that records how much time and gas
+each operation took, and writes a report in <code>artifacts</code> with a Markdown table of events.</li>
+</ul>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">const</span> binaries = <span class="hljs-keyword">await</span> build({<span class="hljs-attr">task</span>: deployTask, builder})
-      , receipts = <span class="hljs-keyword">await</span> upload({<span class="hljs-attr">task</span>: deployTask, builder, binaries})
-      , initialRPTRecipient = recipients.TokenPair1.address
-      , initArgs = {<span class="hljs-attr">task</span>: deployTask, agent, receipts, schedule}
-      , contracts = <span class="hljs-keyword">await</span> initialize({...initArgs, initialRPTRecipient})</pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">const</span> header = [ <span class="hljs-string">&#x27;time&#x27;</span>, <span class="hljs-string">&#x27;info&#x27;</span>, <span class="hljs-string">&#x27;time (msec)&#x27;</span>, <span class="hljs-string">&#x27;gas (uSCRT)&#x27;</span>, <span class="hljs-string">&#x27;overhead (msec)&#x27;</span> ]
+      , output = resolve(__dirname, <span class="hljs-string">&#x27;artifacts&#x27;</span>, network.chainId, <span class="hljs-string">&#x27;profile-deploy.md&#x27;</span>)
+      , task = taskmaster({ header, output, agent })</pre></div></div>
             
         </li>
         
@@ -183,14 +180,21 @@ by the admin sending a gas budget to them (in uSCRT). </li>
               <div class="sswrap ">
                 <a class="ss" href="#section-9">&#x00a7;</a>
               </div>
-              <p>Launch the vesting and confirm that the claims work as expected</p>
+              <ul>
+<li>Prepare <strong>schedule</strong> and <strong>recipients</strong><ul>
+<li>The schedule is shortened by a factor of 86400 (number of seconds in a day)
+in order to run in  about 15 minutes. This is necessitated by the node being
+resistant to <code>libfaketime</code>.</li>
+<li>The recipient wallets are created if they don’t exist -
+ the admin sendings a gas budget to them (in uSCRT).</li>
+</ul>
+</li>
+</ul>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">await</span> verify(deployTask, agent, recipients, wallets, contracts, schedule)
-}
-
-<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">prepare</span> (<span class="hljs-params">task, network, agent, schedule</span>) </span>{</pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">const</span> schedule = loadJSON(<span class="hljs-string">&#x27;./settings/schedule.json&#x27;</span>, <span class="hljs-keyword">import</span>.meta.url)
+      , {wallets, recipients} = <span class="hljs-keyword">await</span> prepare({task, network, agent, schedule})</pre></div></div>
             
         </li>
         
@@ -201,9 +205,65 @@ by the admin sending a gas budget to them (in uSCRT). </li>
               <div class="sswrap ">
                 <a class="ss" href="#section-10">&#x00a7;</a>
               </div>
-              <p>this deletes the <code>AdvisorN</code> account from the schedule
-to allow the <code>AddAccount</code> method to be tested.
-TODO update spreadsheet!</p>
+              <ul>
+<li><strong>Build</strong>, <strong>deploy</strong>, and <strong>initialize</strong> contracts</li>
+</ul>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">const</span> binaries = <span class="hljs-keyword">await</span> build({task, builder})
+      , receipts = <span class="hljs-keyword">await</span> upload({task, builder, binaries})
+      , initialRPTRecipient = recipients.TokenPair1.address
+      , initArgs = {<span class="hljs-attr">task</span>: task, agent, receipts, schedule}
+      , contracts = <span class="hljs-keyword">await</span> initialize({...initArgs, initialRPTRecipient})</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-11">&#x00a7;</a>
+              </div>
+              <ul>
+<li><strong>Launch</strong> the vesting and confirm that the <strong>claims</strong> and <strong>mutations</strong> work as specified.</li>
+</ul>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">await</span> verify({task, agent, recipients, wallets, contracts, schedule})
+}</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-12">&#x00a7;</a>
+              </div>
+              <h1 id="preparation">Preparation</h1>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">prepare</span> (<span class="hljs-params">{task, network, agent, schedule}</span>) </span>{</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-13">&#x00a7;</a>
+              </div>
+              <ul>
+<li>Let’s delete the <code>AdvisorN</code> account from the schedule
+to allow the <code>AddAccount</code> method to be tested.</li>
+<li>TODO update spreadsheet! This account does not exist anymore</li>
+</ul>
 
             </div>
             
@@ -217,105 +277,24 @@ TODO update spreadsheet!</p>
         </li>
         
         
-        <li id="section-11">
-            <div class="annotation">
-              
-              <div class="sswrap ">
-                <a class="ss" href="#section-11">&#x00a7;</a>
-              </div>
-              <p>and now, for my next trick, I’m gonna need some wallets</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">const</span> wallets    = []
-      , recipients = {}
-      , recipientGasBudget = bignum(<span class="hljs-number">10000000</span>) <span class="hljs-comment">// uscrt</span>
-
-  <span class="hljs-keyword">await</span> task(<span class="hljs-string">&#x27;shorten schedule and replace placeholders with test accounts&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
-    <span class="hljs-keyword">await</span> <span class="hljs-built_in">Promise</span>.all(schedule.pools.map(<span class="hljs-function"><span class="hljs-params">pool</span>=&gt;</span><span class="hljs-built_in">Promise</span>.all(pool.accounts.map(mutateAccount))))
-    <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">mutateAccount</span> (<span class="hljs-params">account</span>) </span>{</pre></div></div>
-            
-        </li>
-        
-        
-        <li id="section-12">
-            <div class="annotation">
-              
-              <div class="sswrap ">
-                <a class="ss" href="#section-12">&#x00a7;</a>
-              </div>
-              <p>Create an agent for each recipient address.
-These agents will call the claim method of the main contract
-and the vest method of the rpt splitter contract.</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">const</span> recipient = <span class="hljs-keyword">await</span> network.getAgent(account.name)
-      <span class="hljs-keyword">const</span> {address} = recipient</pre></div></div>
-            
-        </li>
-        
-        
-        <li id="section-13">
-            <div class="annotation">
-              
-              <div class="sswrap ">
-                <a class="ss" href="#section-13">&#x00a7;</a>
-              </div>
-              <p>replace placeholder with real address</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>      account.address = address         
-      wallets.push([address, <span class="hljs-number">10000000</span>]) <span class="hljs-comment">// balance to cover gas costs</span>
-      recipients[account.name] = {<span class="hljs-attr">agent</span>: recipient, address, <span class="hljs-attr">total</span>: account.amount} <span class="hljs-comment">// store agent</span></pre></div></div>
-            
-        </li>
-        
-        
         <li id="section-14">
             <div class="annotation">
               
               <div class="sswrap ">
                 <a class="ss" href="#section-14">&#x00a7;</a>
               </div>
-              <p>divide all times in account by 86400, so that a day passes in a second</p>
+              <ul>
+<li>And now, for my next trick, I’m gonna need some <strong>wallets</strong>!</li>
+</ul>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      account.start_at /= <span class="hljs-number">86400</span>
-      account.interval /= <span class="hljs-number">86400</span>
-      account.duration /= <span class="hljs-number">86400</span> } })
-
-
-  <span class="hljs-keyword">await</span> task(<span class="hljs-string">&#x27;create extra test accounts for reallocation tests&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
-    <span class="hljs-keyword">const</span> extras = [ <span class="hljs-string">&#x27;NewAdvisor&#x27;</span>, <span class="hljs-string">&#x27;TokenPair1&#x27;</span>, <span class="hljs-string">&#x27;TokenPair2&#x27;</span>, <span class="hljs-string">&#x27;TokenPair3&#x27;</span>, ]
-    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> name <span class="hljs-keyword">of</span> extras) {
-      <span class="hljs-keyword">const</span> extra = <span class="hljs-keyword">await</span> network.getAgent(name) <span class="hljs-comment">// create agent</span>
-      wallets.push([extra.address, recipientGasBudget.toString()])
-      recipients[name] = {<span class="hljs-attr">agent</span>: extra, <span class="hljs-attr">address</span>: extra.address} } })
-
-  <span class="hljs-keyword">await</span> task(<span class="hljs-string">`ensure <span class="hljs-subst">${wallets.length}</span> test accounts have balance`</span>, <span class="hljs-keyword">async</span> report =&gt; {
-    <span class="hljs-keyword">await</span> ensureWallets({ task }) })
-
-  <span class="hljs-keyword">return</span> { wallets, recipients } }
-
-<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">verify</span> (<span class="hljs-params">task, agent, recipients, wallets, contracts, schedule</span>) </span>{
-
-  <span class="hljs-keyword">const</span> { TOKEN, MGMT, RPT } = contracts
-  <span class="hljs-keyword">const</span> VK = <span class="hljs-string">&quot;&quot;</span>
-
-  <span class="hljs-keyword">await</span> task(<span class="hljs-string">`set null viewing key on <span class="hljs-subst">${recipient.length}</span> SIENNA accounts`</span>, <span class="hljs-keyword">async</span> report =&gt; {
-    <span class="hljs-keyword">let</span> txs = <span class="hljs-built_in">Object</span>.values(recipients).map(<span class="hljs-function">(<span class="hljs-params">{agent}</span>)=&gt;</span>TOKEN.setViewingKey(agent, VK))
-    txs = <span class="hljs-keyword">await</span> <span class="hljs-built_in">Promise</span>.all(txs)
-    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> {tx} <span class="hljs-keyword">of</span> txs) report(tx.transactionHash) })
-
-  <span class="hljs-keyword">let</span> launched
-
-  <span class="hljs-keyword">await</span> task(<span class="hljs-string">&#x27;launch the vesting&#x27;</span>, <span class="hljs-keyword">async</span> report =&gt; {
-    <span class="hljs-keyword">const</span> {transactionHash, logs} = <span class="hljs-keyword">await</span> MGMT.launch()
-    launched = <span class="hljs-number">1000</span> * <span class="hljs-built_in">Number</span>(logs[<span class="hljs-number">0</span>].events[<span class="hljs-number">1</span>].attributes[<span class="hljs-number">1</span>].value)
-    report(transactionHash) })</pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">const</span> wallets    = []
+      , recipients = {}
+      , recipientGasBudget = bignum(<span class="hljs-number">10000000</span>) <span class="hljs-comment">// uscrt</span>
+  <span class="hljs-keyword">await</span> task(<span class="hljs-string">&#x27;shorten schedule and replace placeholders with test accounts&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">await</span> <span class="hljs-built_in">Promise</span>.all(schedule.pools.map(<span class="hljs-function"><span class="hljs-params">pool</span>=&gt;</span><span class="hljs-built_in">Promise</span>.all(pool.accounts.map(
+      <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">mutateAccount</span> (<span class="hljs-params">account</span>) </span>{</pre></div></div>
             
         </li>
         
@@ -326,9 +305,147 @@ and the vest method of the rpt splitter contract.</p>
               <div class="sswrap ">
                 <a class="ss" href="#section-15">&#x00a7;</a>
               </div>
-              <p>new taskmaster (2nd part of profiling - runtime)
-claims test will now runs in units of 5 seconds = 1 block = 5 “days” (shortened schedule)
-i.e. if rpt accounts are gonna claim daily then that value must be multiplied by 5 (it isn’t)</p>
+              <ul>
+<li>Create an agent with a new address for each recipient account.</li>
+</ul>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">const</span> recipient = <span class="hljs-keyword">await</span> network.getAgent(account.name)
+        <span class="hljs-keyword">const</span> {address} = recipient</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-16">&#x00a7;</a>
+              </div>
+              <ul>
+<li>Put that address in the schedule</li>
+</ul>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        account.address = address         
+        wallets.push([address, <span class="hljs-number">10000000</span>]) <span class="hljs-comment">// balance to cover gas costs</span>
+        recipients[account.name] = {<span class="hljs-attr">agent</span>: recipient, address, <span class="hljs-attr">total</span>: account.amount} <span class="hljs-comment">// store agent</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-17">&#x00a7;</a>
+              </div>
+              <ul>
+<li>While we’re here, <em>divide all timings in that account by 86400</em>,
+so that a day passes in a second</li>
+</ul>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        account.start_at /= <span class="hljs-number">86400</span>
+        account.interval /= <span class="hljs-number">86400</span>
+        account.duration /= <span class="hljs-number">86400</span> })))) })</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-18">&#x00a7;</a>
+              </div>
+              <ul>
+<li>Some more wallets please. These will be used for the mutation tests.</li>
+</ul>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">await</span> task(<span class="hljs-string">&#x27;create extra test accounts for reallocation tests&#x27;</span>, <span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> extras = [ <span class="hljs-string">&#x27;NewAdvisor&#x27;</span>, <span class="hljs-string">&#x27;TokenPair1&#x27;</span>, <span class="hljs-string">&#x27;TokenPair2&#x27;</span>, <span class="hljs-string">&#x27;TokenPair3&#x27;</span>, ]
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> name <span class="hljs-keyword">of</span> extras) {
+      <span class="hljs-keyword">const</span> extra = <span class="hljs-keyword">await</span> network.getAgent(name) <span class="hljs-comment">// create agent</span>
+      wallets.push([extra.address, recipientGasBudget.toString()])
+      recipients[name] = {<span class="hljs-attr">agent</span>: extra, <span class="hljs-attr">address</span>: extra.address} } })
+  <span class="hljs-keyword">await</span> ensureWallets({ task })
+  <span class="hljs-keyword">return</span> { wallets, recipients } }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-19">&#x00a7;</a>
+              </div>
+              <h1 id="verification">Verification</h1>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">verify</span> (<span class="hljs-params">{task, agent, recipients, wallets, contracts, schedule}</span>) </span>{
+
+  <span class="hljs-keyword">const</span> { TOKEN, MGMT, RPT } = contracts</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-20">&#x00a7;</a>
+              </div>
+              <p>Let’s give every recipient a null viewing key so we can check their balances.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">const</span> VK = <span class="hljs-string">&quot;&quot;</span>
+  <span class="hljs-keyword">await</span> task(<span class="hljs-string">`set null viewing key on <span class="hljs-subst">${recipient.length}</span> SIENNA accounts`</span>, <span class="hljs-keyword">async</span> report =&gt; {
+    <span class="hljs-keyword">let</span> txs = <span class="hljs-built_in">Object</span>.values(recipients).map(<span class="hljs-function">(<span class="hljs-params">{agent}</span>)=&gt;</span>TOKEN.setViewingKey(agent, VK))
+    txs = <span class="hljs-keyword">await</span> <span class="hljs-built_in">Promise</span>.all(txs)
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> {tx} <span class="hljs-keyword">of</span> txs) report(tx.transactionHash) })</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-21">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-21">&#x00a7;</a>
+              </div>
+              <p>And let’s go! 🚀</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">let</span> launched
+  <span class="hljs-keyword">await</span> task(<span class="hljs-string">&#x27;launch the vesting&#x27;</span>, <span class="hljs-keyword">async</span> report =&gt; {
+    <span class="hljs-keyword">const</span> {transactionHash, logs} = <span class="hljs-keyword">await</span> MGMT.launch()
+    launched = <span class="hljs-number">1000</span> * <span class="hljs-built_in">Number</span>(logs[<span class="hljs-number">0</span>].events[<span class="hljs-number">1</span>].attributes[<span class="hljs-number">1</span>].value)
+    report(transactionHash) })</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-22">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-22">&#x00a7;</a>
+              </div>
+              <p>Okay, new taskmaster instance (2nd part of profiling - runtime).
+This one will measure the claims.
+Claims will happen every 5 seconds = 1 block = 5 “days” (shortened schedule).
+This includes the <code>RPT#vest()</code> method - if called daily, reported gas costs
+for that method need to be multiplied by 5.</p>
 
             </div>
             
@@ -341,13 +458,13 @@ i.e. if rpt accounts are gonna claim daily then that value must be multiplied by
         </li>
         
         
-        <li id="section-16">
+        <li id="section-23">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-16">&#x00a7;</a>
+                <a class="ss" href="#section-23">&#x00a7;</a>
               </div>
-              <p>these happen once in the whole test cycle</p>
+              <p>These happen once in the whole test cycle:</p>
 
             </div>
             
@@ -373,11 +490,11 @@ i.e. if rpt accounts are gonna claim daily then that value must be multiplied by
         </li>
         
         
-        <li id="section-17">
+        <li id="section-24">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-17">&#x00a7;</a>
+                <a class="ss" href="#section-24">&#x00a7;</a>
               </div>
               <p>token pairs are only visible to the RPT contract
 so it doesn’t make sense to pass them to the <code>Progress</code> query</p>
@@ -396,11 +513,11 @@ so it doesn’t make sense to pass them to the <code>Progress</code> query</p>
         </li>
         
         
-        <li id="section-18">
+        <li id="section-25">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-18">&#x00a7;</a>
+                <a class="ss" href="#section-25">&#x00a7;</a>
               </div>
               <p>one random recipient with newly unlocked balance will claim:</p>
 

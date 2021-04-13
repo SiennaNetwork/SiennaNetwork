@@ -25,6 +25,6 @@
   },
   "scripts": {
     "start": "node sienna.js",
-    "docco": "docco demo.js"
+    "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css"
   }
 }
