@@ -64,6 +64,7 @@ jobs:
         run: |
           git checkout $(git symbolic-ref --short HEAD)
           git add docs/tarpaulin-report.html
+          git diff --cached
           git config --global user.email "hack@hack.bg"
           git config --global user.name "hack.bg"
           git commit -m "🤖 updated coverage @ $(date -u)" || true
