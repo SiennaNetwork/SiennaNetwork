@@ -360,7 +360,24 @@ fn swap<S: Storage, A: Api, Q: Querier>(
     offer: TokenTypeAmount,
     expected_return: Option<Uint128>
 ) -> StdResult<HandleResponse> {
-    offer.assert_sent_native_token_balance(&env)?;
+    let mut messages = vec![];
+
+    match &offer.token {
+        TokenType::NativeToken { .. } => {
+            offer.assert_sent_native_token_balance(&env)?;
+        },
+        TokenType::CustomToken { contract_addr, token_code_hash } => {
+            messages.push(snip20::transfer_from_msg(
+                env.message.sender.clone(),
+                env.contract.address.clone(),
+                offer.amount,
+                None,
+                BLOCK_SIZE,
+                token_code_hash.clone(),
+                contract_addr.clone()
+            )?);
+        }
+    }
 
     let mut config = load_config(deps)?;
 
@@ -374,7 +391,7 @@ fn swap<S: Storage, A: Api, Q: Querier>(
     let (mut return_amount, spread_amount, mut commission_amount) = do_swap(deps, &mut config, &offer, fee, false)?;
     store_config(deps, &config)?; // Save in order to update the pool_cache
 
-    let mut messages = vec![];
+    let mut logs = vec![];
 
     // If this contract manages a sienna token 0.28% goes to LP and the other 0.02% is
     // converted to SIENNA and burned. So here, deduct a further 0.02% from the return_amount.
@@ -384,6 +401,8 @@ fn swap<S: Storage, A: Api, Q: Querier>(
 
         commission_amount = commission_amount + decrease_amount;
         return_amount = Uint128(result.low_u128());
+
+        logs.push(log("sienna_burned", decrease_amount.to_string()));
 
         messages.push(snip20::burn_msg(decrease_amount, None, BLOCK_SIZE, config.sienna_token.code_hash, config.sienna_token.address)?)
     }
@@ -396,18 +415,24 @@ fn swap<S: Storage, A: Api, Q: Querier>(
         }
     }
 
-    messages.push(create_send_msg(&offer.token, env.contract.address, env.message.sender, return_amount)?);
+    let index = config.pair.get_token_index(&offer.token).unwrap(); // Safe, checked in do_swap
+    let token = config.pair.get_token(index ^ 1).unwrap();
+
+    messages.push(create_send_msg(&token, env.contract.address, env.message.sender, return_amount)?);
 
     Ok(HandleResponse{
         messages,
-        log: vec![
-            log("action", "swap"),
-            log("offer_token", offer.token.to_string()),
-            log("offer_amount", offer.amount.to_string()),
-            log("return_amount", return_amount.to_string()),
-            log("spread_amount", spread_amount.to_string()),
-            log("commission_amount", commission_amount.to_string()),
-        ],
+        log: [vec![
+                log("action", "swap"),
+                log("has_sienna", has_sienna),
+                log("offer_token", offer.token.to_string()),
+                log("offer_amount", offer.amount.to_string()),
+                log("return_amount", return_amount.to_string()),
+                log("spread_amount", spread_amount.to_string()),
+                log("commission_amount", commission_amount.to_string()),
+            ], 
+            logs 
+        ].concat(),
         data: None
     })
 }
@@ -531,16 +556,23 @@ fn do_swap<S: Storage, A: Api, Q: Querier>(
     let balances = config.pair.query_balances(&deps.querier, config.contract_addr.clone(), config.viewing_key.0.clone())?;
     let token_index = config.pair.get_token_index(&offer.token).unwrap(); //Safe because we checked above for existence
     
-    let amount = U256::from(balances[token_index].u128()).checked_sub(U256::from(offer.amount.u128())).ok_or_else(|| {
-        StdError::generic_err("The swap amount offered is larger than pool amount.")
-    })?;
+    let mut offer_pool = balances[token_index];
 
     if !is_simulation {
         config.pool_cache[token_index] = config.pool_cache[token_index].add(offer.amount);
+
+        // If offer.token is not native, the balance hasn't been increased yet
+        if let TokenType::NativeToken { .. } = offer.token {
+            let result = U256::from(offer_pool.u128()).checked_sub(U256::from(offer.amount.u128())).ok_or_else(|| {
+                StdError::generic_err("This can't really happen.")
+            })?;
+
+            offer_pool = Uint128(result.low_u128())
+        }
     }
 
     compute_swap(
-        Uint128(amount.low_u128()),
+        offer_pool,
         balances[token_index ^ 1],
         offer.amount,
         fee

@@ -175,13 +175,7 @@ pub(crate) fn store_ido_address<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<()> {
     let address = deps.api.canonical_address(&address)?;
     let index = generate_ido_index(&config.ido_count);
-
-    // The SecretSwap implementation keeps all the keys in a single array which eventually grows big
-    // and costs more to write back. It still neads to read the actual values one by one, as in here.
-    // On the other hand it (SecretSwap) should be faster when reading all values. Here, this optimized for
-    // faster writing by only having to write a single value with no reading. But this approach should be slower
-    // when reading all values as we have O (n * 2) whereas SecretSwap is (n + 1) even though the could be a very large 1 value. 
-    // How much slower will this be in practice is the question. Needs testing.
+    
     save(&mut deps.storage, index.as_slice(), &address)?;
 
     config.ido_count += 1;

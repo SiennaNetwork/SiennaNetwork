@@ -1,9 +1,15 @@
 import { ExecuteResult } from 'secretjs'
 
-export type ValueType = number | string | bigint | undefined
+export type ValueType = number | string | bigint | undefined | boolean
 
 export interface AsyncFn {
     (): Promise<void>
+}
+
+export function assert(condition: boolean) {
+    if(!condition) {
+        throw new Error('Assertion failed!')
+    }
 }
 
 export function assert_equal(val1: ValueType, val2: ValueType) {

@@ -222,6 +222,12 @@ export interface GetExchangeRateResponse {
     denom: string
 }
 
+export interface GetBalanceResponse {
+    balance: {
+        amount: Uint128
+    }
+}
+
 export class Snip20Contract implements SmartContract {
     constructor(readonly client: SigningCosmWasmClient, readonly address: Address) { }
 
@@ -254,6 +260,18 @@ export class Snip20Contract implements SmartContract {
 
         const result = await this.client.queryContractSmart(this.address, msg)
         return result as GetAllowanceResponse
+    }
+
+    async get_balance(address: Address, key: ViewingKey): Promise<Uint128> {
+        const msg = {
+            balance: {
+                address,
+                key
+            }
+        }
+
+        const result = await this.client.queryContractSmart(this.address, msg) as GetBalanceResponse
+        return result.balance.amount
     }
 
     async get_token_info(): Promise<TokenInfo> {

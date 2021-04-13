@@ -77,8 +77,8 @@ pub fn create_send_msg(
                 contract_addr: contract_addr.clone(),
                 callback_code_hash: token_code_hash.to_string(),
                 msg: to_binary(&snip20::HandleMsg::Send {
-                    recipient: recipient,
-                    amount: amount,
+                    recipient,
+                    amount,
                     padding: None,
                     msg: None,
                 })?,
@@ -275,6 +275,14 @@ impl TokenPair {
         }
 
         None
+    }
+
+    pub fn get_token(&self, index: usize) -> Option<&TokenType> {
+        match index {
+            0 => Some(&self.0),
+            1 => Some(&self.1),
+            _ => None
+        }
     }
 }
 

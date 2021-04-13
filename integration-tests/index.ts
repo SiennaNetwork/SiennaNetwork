@@ -4,12 +4,12 @@ import {
 } from './amm-lib/types.js'
 import { FactoryContract, ExchangeContract, Snip20Contract, FEES } from './amm-lib/contract.js'
 import { 
-  execute_test, execute_test_expect, assert_objects_equal,
+  execute_test, execute_test_expect, assert_objects_equal, assert,
   assert_equal, assert_not_equal, extract_log_value, print_object
 } from './test_helpers.js'
 import { 
   SigningCosmWasmClient, Secp256k1Pen, encodeSecp256k1Pubkey,
-  EnigmaUtils, pubkeyToAddress
+  EnigmaUtils, pubkeyToAddress, Account
 } from 'secretjs'
 import { Sha256, Random } from "@iov/crypto"
 import { Buffer } from 'buffer'
@@ -286,17 +286,78 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
   await sleep(SLEEP_TIME)
 
   const client_b = await build_client(ACC_B.mnemonic)
-
+  const exchange_b = new ExchangeContract(client_b, exchange.address)
+  const snip20_b = new Snip20Contract(client_b, snip20.address)
+  
   const offer_token = new TokenTypeAmount(pair.token_0, '6000000') // swap uscrt for sienna
-  print_object(await exchange.simulate_swap(offer_token))
+
+  await execute_test(
+    'test_swap_simulation',
+    async () => {
+      exchange_b.simulate_swap(offer_token)
+
+      const pool = await exchange_b.get_pool()
+      
+      assert_equal(pool.amount_0, amount)
+      assert_equal(pool.amount_1, amount)
+    }
+  )
+
+  await execute_test(
+    'test_swap_from_native',
+    async () => {
+      const balance_before = parseInt(await get_native_balance(client_b));
+      const result = await exchange_b.swap(offer_token)
+      const balance_after = parseInt(await get_native_balance(client_b));
+      
+      assert(balance_before > balance_after) // TODO: calculate exact amount after adding gas parameters
+
+      const pool = await exchange_b.get_pool()
+
+      const amnt = parseInt(amount)
+      const amount_0 = parseInt(pool.amount_0)
+      const amount_1 = parseInt(pool.amount_1)
+
+      assert(amnt < amount_0)
+      assert(amnt > amount_1)
+
+      assert_equal(extract_log_value(result, 'has_sienna'), 'true')
+
+      const sienna_burned = parseInt(extract_log_value(result, 'sienna_burned') as string)
+      const return_amount = parseInt(extract_log_value(result, 'return_amount') as string)
+
+      assert(amnt - return_amount - sienna_burned === amount_1)
+    }
+  )
+
+  await snip20_deposit(snip20_b, amount, exchange.address)
+  
+  let key = create_viewing_key()
+  await snip20_b.set_viewing_key(key)
 
   await execute_test_expect(
-    'test_swap_larger_than_pool',
+    'test_swap_from_snip20_insufficient_allowance',
     async () => {
-      const offer_token = new TokenTypeAmount(pair.token_0, '6000000') // swap uscrt for sienna
-      print_object(await exchange.swap(offer_token))
+      await exchange_b.swap(new TokenTypeAmount(pair.token_1, '99999999999999'))
     },
-    'The swap amount offered is larger than pool amount.'
+    'insufficient allowance:'
+  )
+
+  await execute_test(
+    'test_swap_from_snip20',
+    async () => {
+      const native_balance_before = parseInt(await get_native_balance(client_b))
+      const token_balance_before = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
+
+      const swap_amount = '3000000'    
+      const result = await exchange_b.swap(new TokenTypeAmount(pair.token_1, swap_amount))
+
+      const native_balance_after = parseInt(await get_native_balance(client_b))
+      const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
+
+      assert(native_balance_after > native_balance_before) // TODO: calculate exact amount after adding gas parameters
+      assert(token_balance_before - parseInt(swap_amount) === token_balance_after)
+    }
   )
 }
 
@@ -306,6 +367,11 @@ async function snip20_deposit(snip20: Snip20Contract, amount: Uint128, exchange_
 
   await snip20.increase_allowance(exchange_address, amount)
   await sleep(SLEEP_TIME)
+}
+
+async function get_native_balance(client: SigningCosmWasmClient): Promise<string> {
+  const account = await client.getAccount() as Account
+  return account.balance[0].amount
 }
 
 function create_viewing_key(): ViewingKey {
