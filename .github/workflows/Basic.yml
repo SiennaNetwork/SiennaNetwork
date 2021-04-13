@@ -24,12 +24,23 @@ jobs:
         env:
           RUST_BACKTRACE: 1
           RUSTFLAGS: -Zmacro-backtrace
-      - name: Render documentation
+      - name: Render Cargo documentation
         uses: actions-rs/cargo@v1
         with:
           command: doc
         env:
           RUST_BACKTRACE: 1
+      - name: Render and commit Docco documentation
+        run:
+          yarn
+          yarn docco
+          git checkout $(git symbolic-ref --short HEAD)
+          git add docs/demo.html
+          git diff --cached
+          git config --global user.email "hack@hack.bg"
+          git config --global user.name "hack.bg"
+          git commit -m "🤖 updated docs/demo.html @ $(date -u)" || true
+          git push
 
   coverage:
     name: Test coverage report (Tarpaulin)
@@ -63,9 +74,10 @@ jobs:
       - name: Commit coverage report
         run: |
           git checkout $(git symbolic-ref --short HEAD)
-          git add docs/tarpaulin-report.html
+          mv docs/tarpaulin-report.html docs/coverage.html
+          git add docs/coverage.html
           git diff --cached
           git config --global user.email "hack@hack.bg"
           git config --global user.name "hack.bg"
-          git commit -m "🤖 updated coverage @ $(date -u)" || true
+          git commit -m "🤖 updated docs/coverage.html @ $(date -u)" || true
           git push

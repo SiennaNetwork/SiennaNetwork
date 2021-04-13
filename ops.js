@@ -1,6 +1,8 @@
 import { stderr } from 'process'
 import { writeFileSync } from 'fs'
 
+import bignum from 'bignum'
+
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
 import SNIP20Contract from '@hackbg/snip20'
 import MGMTContract from '@hackbg/mgmt'
@@ -41,24 +43,30 @@ export const CONTRACTS = {
     , label:   `${prefix}SIENNA_RPT`
     , initMsg: {} } }
 
-export async function build ({
-  task      = taskmaster(),
-  builder   = new SecretNetwork.Builder(),
-  workspace = __dirname,
-  outputDir = resolve(workspace, 'artifacts'),
-} = {}) {
+export async function build (options = {}) {
+  const { task      = taskmaster(),
+        , builder   = new SecretNetwork.Builder(),
+        , workspace = __dirname,
+        , outputDir = resolve(workspace, 'artifacts') } = options
+
+  // pull build container
   await pull('enigmampc/secret-contract-optimizer:latest')
+
+  // build all contracts
   const binaries = {}
   await task.parallel('build project',
     ...Object.entries(CONTRACTS).map(([name, {crate}])=>
       task(`build ${name}`, async report => {
         binaries[name] = await builder.build({outputDir, workspace, crate})
       })))
+
   return binaries
 }
 
 export async function upload (options = {}) {
-  const { task = taskmaster(), binaries = await build() } = options
+  const { task     = taskmaster()
+        , binaries = await build() // if binaries are not passed, build 'em
+        } = options
 
   let { builder
       , conn = builder ? null : await SecretNetwork.localnet({stateBase}) } = options
@@ -70,23 +78,21 @@ export async function upload (options = {}) {
     await task(`upload ${contract}`, async report => {
       const receipt = receipts[contract] = await builder.uploadCached(binaries[contract])
       console.log(`⚖️  compressed size ${receipt.compressedSize} bytes`)
-      report(receipt.transactionHash)
-    })
-  }
+      report(receipt.transactionHash) }) }
+
   return receipts
 }
 
-export function prepareConfig ({
-  file = abs('settings', 'schedule.ods')
-}) {
-  file = resolve(file)
-  stderr.write(`\n⏳ Importing configuration from ${file}...\n\n`)
+export function prepareConfig (options = {}) {
+  const { file = abs('settings', 'schedule.ods')
+        } = options
 
+  file = resolve(file) // ???
+
+  stderr.write(`\n⏳ Importing configuration from ${file}...\n\n`)
   const name       = basename(file, extname(file)) // path without extension
   const schedule   = scheduleFromSpreadsheet({ file })
   const serialized = stringify(schedule)
-  //stderr.write(render(JSON.parse(serialized))) // or `BigInt`s don't show
-
   const output     = resolve(dirname(file), `${name}.json`)
   stderr.write(`⏳ Saving configuration to ${output}...\n\n`)
 
@@ -96,63 +102,112 @@ export function prepareConfig ({
 
 export async function initialize (options = {}) {
 
+  // idempotency support
+  // passing existing `contracts` to this makes it a no-op
+  const { contracts = {} } = options
+  if (Object.keys(contracts)>0) return contracts
+
+  // unwrap mutable options
   let { agent
       , conn = agent ? {network: agent.network}
-                     : await SecretNetwork.localnet({stateBase}) } = options
-  if (typeof conn === 'string') conn = await SecretNetwork[conn]({stateBase})
-  if (!agent) agent = conn.agent
+                     : await SecretNetwork.localnet({stateBase})
+      , schedule
+      } = options
 
-  const { task = taskmaster()
-        , receipts = await upload({agent, conn, task})
-        , inits = CONTRACTS
-        , initialRPTRecipient = agent.address } = options
-
-  let { schedule } = options
+  // accepts schedule as string or struct
   if (typeof schedule === 'string') schedule = JSON.parse(await readFile(schedule, 'utf8'))
 
-  const contracts = {}
+  // if `conn` is just the connection type, replace it with a real connection
+  if (typeof conn === 'string') conn = await SecretNetwork[conn]({stateBase})
 
+  // if there's no agent, use the default one from the connection
+  if (!agent) agent = conn.agent
+
+  // unwrap remaining options
+  const { task                = taskmaster()
+        , receipts            = await upload({agent, conn, task})
+        , inits               = CONTRACTS
+        , initialRPTRecipient = agent.address
+        } = options
+
+  // too many steps - mgmt could automatically instantiate token and rpt
   await task('initialize token', async report => {
     const {codeId} = receipts.TOKEN, {label, initMsg} = inits.TOKEN
     initMsg.admin = agent.address
     contracts.TOKEN = await SNIP20Contract.init({agent, codeId, label, initMsg})
-    report(contracts.TOKEN.transactionHash)
-  })
-
+    report(contracts.TOKEN.transactionHash) })
   await task('initialize mgmt', async report => {
     const {codeId} = receipts.MGMT, {label, initMsg} = inits.MGMT
     initMsg.token    = [contracts.TOKEN.address, contracts.TOKEN.codeHash]
     initMsg.schedule = schedule
     contracts.MGMT = await MGMTContract.init({agent, codeId, label, initMsg})
-    report(contracts.MGMT.transactionHash)
-  })
-
+    report(contracts.MGMT.transactionHash) })
   await task('make mgmt owner of token', async report => {
     const {MGMT, TOKEN} = contracts, [tx1, tx2] = await MGMT.acquire(TOKEN)
     report(tx1.transactionHash)
-    report(tx2.transactionHash)
-  })
-
+    report(tx2.transactionHash) })
   await task('initialize rpt', async report => {
     const {codeId} = receipts.RPT, {label, initMsg} = inits.RPT, {MGMT, TOKEN} = contracts
     initMsg.token   = [TOKEN.address, TOKEN.codeHash]
     initMsg.mgmt    = [MGMT.address,  MGMT.codeHash ]
-    initMsg.portion = "2500000000000000000000"
+    initMsg.portion = "2500000000000000000000" // TODO get this from schedule!!!
     initMsg.config  = [[initialRPTRecipient, initMsg.portion]]
     contracts.RPT = await RPTContract.init({ agent, codeId, label, initMsg })
-    report(contracts.RPT.transactionHash)
-  })
-
+    report(contracts.RPT.transactionHash) })
   await task('point rpt account in mgmt schedule to rpt contract', async report => {
     const {MGMT, RPT} = contracts
     schedule.pools.filter(x=>x.name==='MintingPool')[0]
             .accounts.filter(x=>x.name==='RPT')[0]
             .address = RPT.address
     const {transactionHash} = await MGMT.configure(schedule)
-    report(transactionHash)
-  })
-
+    report(transactionHash) })
   return contracts
+}
+
+export async function ensureWallets (options = {}) {
+
+  const { task  = taskmaster()
+        , n     = 16 // give or take
+        // connection defaults to testnet because localnet
+        // wallets are not worth keeping (they don't even
+        // transfer between localnet instances)
+        , conn  = await SecretNetwork.testnet({stateBase})
+        // use the default agent of the connection
+        , agent = conn.agent } = options
+
+  // check that admin has enough balance to create the wallets
+  const balance =
+    bignum(await agent.getBalance())
+  const recipientBalances =
+    await Promise.all(Object.values(recipients)
+      .map(({agent})=>[agent.name, bignum(agent.balance)])
+  const fee =
+    bignum(agent.fees.send)
+  const preseedTotal =
+    fee.add(bignum(wallets.length).mul(recipientGasBudget))
+  console.debug({balance, recipientBalances, fee, preseedTotal})
+  if (preseedTotal > balance) {
+    const message =
+      `admin wallet does not have enough balance to preseed test wallets` +
+     `(${balance.toString()}<${preseedTotal.toString()}); can't proceed.\n\n` +
+      `on localnet, it's easiest to clear the state and redo the genesis.\n` +
+      `on testnet, use the faucet with ${agent.address}`
+    console.error(message)
+    process.exit(1) }
+
+  await task(`ensure ${wallets.length} test accounts have balance`, async report => {
+    const tx = await agent.sendMany(wallets, 'create recipient accounts')
+    report(tx.transactionHash)})
+  //console.info(`make ${n} wallets...`)
+  //const agents = await Promise.all([...Array(n)].map(()=>conn.conn.getAgent()))
+  //for (const {address, mnemonic} of agents) {
+    //await agent.send(address, 5000000)
+    //console.info()
+    //console.info(address)
+    //console.info(mnemonic)
+    //const file = resolve(conn.network.wallets, `${address}.json`)
+    //await writeFile(file, JSON.stringify({address, mnemonic}), 'utf8')
+  //}
 }
 
 export async function configure ({
@@ -224,22 +279,6 @@ export function generateDocs () {
     }
   }
   open(`file:///${target}`)
-}
-
-export async function makeWallets (options = {}) {
-  const { n     = 20
-        , conn  = await SecretNetwork.testnet({stateBase})
-        , agent = conn.agent } = options
-  console.info(`make ${n} wallets...`)
-  const agents = await Promise.all([...Array(n)].map(()=>conn.conn.getAgent()))
-  for (const {address, mnemonic} of agents) {
-    await agent.send(address, 5000000)
-    console.info()
-    console.info(address)
-    console.info(mnemonic)
-    const file = resolve(conn.network.wallets, `${address}.json`)
-    await writeFile(file, JSON.stringify({address, mnemonic}), 'utf8')
-  }
 }
 
 const stringify = data => {

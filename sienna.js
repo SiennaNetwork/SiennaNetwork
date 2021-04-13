@@ -63,8 +63,8 @@ const main = () => yargs(process.argv.slice(2))
   .command('coverage',
     '⚗️  Generate test coverage and open it in a browser.',
     generateCoverage)
-  .command('make-wallets',
-    '⚗️  Create and preseed 20 empty testnet wallets',
+  .command('test-accounts',
+    '⚗️  Ensure there are testnet wallets for the demo.',
     makeWallets)
   .command('demo [--testnet]',
     '⚗️  Run integration test/demo.',

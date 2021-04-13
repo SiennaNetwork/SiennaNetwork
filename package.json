@@ -15,6 +15,7 @@
   "dependencies": {
     "bignum": "^0.13.1",
     "chokidar": "^3.5.1",
+    "docco": "^0.8.1",
     "esm": "^3.2.25",
     "node-notifier": "^9.0.1",
     "open": "^8.0.2",
@@ -23,6 +24,7 @@
     "yargs": "^16.2.0"
   },
   "scripts": {
-    "start": "node sienna.js"
+    "start": "node sienna.js",
+    "docco": "docco demo.js"
   }
 }

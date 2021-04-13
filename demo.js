@@ -1,104 +1,148 @@
 #!/usr/bin/env node
 /* vim: set ts=2 sts=2 sw=2 et cc=100 */
 // # SIENNA Vesting Contract Demo
-// * by using a local testnet container,
-// * this script demonstrates:
-//   * deploying and configuring the token and vesting contracts
-//   * making claims according to the initial schedule
-//   * checking unlocked funds without making a claim
-//   * splitting the Remaining Pool Tokens between multiple addresses
-//   * reconfiguring the Remaining Pool Token split, preserving the total portion size
-//   * adding new accounts to Advisor/Investor pools
+//
+// Run this with `./sienna.js demo`.
+//
+// This script is intended to demonstrate correct behavior
+// of the smart contracts when interoperating with a JS environment.
+//
+// The following features are tested:
+//
+// * deploying and configuring the token and vesting contracts
+// * making claims according to the initial schedule
+// * checking unlocked funds without making a claim
+// * splitting the Remaining Pool Tokens between multiple addresses
+// * reconfiguring the Remaining Pool Token split, preserving the total portion size
+// * adding new accounts to Advisor/Investor pools
+//
+// Required: a testnet (holodeck-2), or in absence of testnet,
+// a handle to a localnet (instantiated in a Docker container from `sienna.js`)
 import assert from 'assert'
 import { fileURLToPath } from 'url'
 import { resolve, dirname } from 'path'
+import bignum from 'bignum'
 import { loadJSON, taskmaster, SecretNetwork } from '@hackbg/fadroma'
-
 import SNIP20Contract from '@hackbg/snip20'
 import MGMTContract from '@hackbg/mgmt'
 import RPTContract from '@hackbg/rpt'
 
-import { build, upload, initialize } from './ops.js'
+// These are environment-independent implementations
+// of the main lifecycle procedures of the deployment,
+// so they go in their own module, where `sienna.js` can
+// find them for the production launch.
+import { build, upload, initialize, ensureWallets } from './ops.js'
 
+// "new modules" nuke __dirname, let's recreate it like this for brevity:
 const __dirname = fileURLToPath(dirname(import.meta.url))
 
-export default async function demo (conn) {
-  // fadroma provides a connection as well as agent and builder classes
-  const {network, agent, builder} = conn
-  // record timing and gas costs of deployment operations
+/** Conducts a test run of the contract deployment. */
+export default async function demo (environment) {
+  // Fadroma provides a connection, as well as agent and builder classes
+  const {network, agent, builder} = environment
+  // Record timing and gas costs of deployment operations
   const header = [ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ]
       , output = resolve(__dirname, 'artifacts', network.chainId, 'profile-deploy.md')
       , deployTask = taskmaster({ header, output, agent })
-  // modify schedule and prepare environment for demo
+  // Prepare schedule and recipients for demo.
+  // * The schedule is shortened by a factor of 86400
+  //   (number of seconds in a day) in order to run in 
+  //   about 15 minutes. This is necessitated by the
+  //   node being resistant to `libfaketime`.
+  // * The recipient wallets are created if they don't exist,
+  //   by the admin sending a gas budget to them (in uSCRT). 
   const schedule = loadJSON('./settings/schedule.json', import.meta.url)
       , {wallets, recipients} = await prepare(deployTask, network, agent, schedule)
-  // build, deploy, and initialize contracts
+  // Build, deploy, and initialize contracts
   const binaries = await build({task: deployTask, builder})
       , receipts = await upload({task: deployTask, builder, binaries})
       , initialRPTRecipient = recipients.TokenPair1.address
       , initArgs = {task: deployTask, agent, receipts, schedule}
       , contracts = await initialize({...initArgs, initialRPTRecipient})
-  // launch the vesting and confirm that the claims work as expected
+  // Launch the vesting and confirm that the claims work as expected
   await verify(deployTask, agent, recipients, wallets, contracts, schedule)
 }
 
 async function prepare (task, network, agent, schedule) {
-  const wallets = [], recipients = {}
+
+  // this deletes the `AdvisorN` account from the schedule
+  // to allow the `AddAccount` method to be tested.
+  // TODO update spreadsheet!
   await task('allow adding accounts to Advisors pool in place of AdvisorN', () => {
     for (const pool of schedule.pools) if (pool.name === 'Advisors') {
       pool.partial = true
       for (const i in pool.accounts) if (pool.accounts[i].name === 'AdvisorN') {
         pool.accounts.splice(i, 1)
         break } break } })
+
+  // and now, for my next trick, I'm gonna need some wallets
+  const wallets    = []
+      , recipients = {}
+      , recipientGasBudget = bignum(10000000) // uscrt
+
   await task('shorten schedule and replace placeholders with test accounts', async () => {
     await Promise.all(schedule.pools.map(pool=>Promise.all(pool.accounts.map(mutateAccount))))
     async function mutateAccount (account) {
-      // * create an agent for each recipient address (used to test claims)
-      const {name} = account
-      const recipient = await network.getAgent(name) // create agent
+      // Create an agent for each recipient address.
+      // These agents will call the claim method of the main contract
+      // and the vest method of the rpt splitter contract.
+      const recipient = await network.getAgent(account.name)
       const {address} = recipient
-      account.address = address         // replace placeholder with real address
+      // replace placeholder with real address
+      account.address = address         
       wallets.push([address, 10000000]) // balance to cover gas costs
-      recipients[name] = {agent: recipient, address, total: account.amount} // store agent
-      // * divide all times in account by 86400, so that a day passes in a second
+      recipients[account.name] = {agent: recipient, address, total: account.amount} // store agent
+      // divide all times in account by 86400, so that a day passes in a second
       account.start_at /= 86400
       account.interval /= 86400
       account.duration /= 86400 } })
+
+
   await task('create extra test accounts for reallocation tests', async () => {
     const extras = [ 'NewAdvisor', 'TokenPair1', 'TokenPair2', 'TokenPair3', ]
     for (const name of extras) {
       const extra = await network.getAgent(name) // create agent
-      wallets.push([extra.address, 10000000])
+      wallets.push([extra.address, recipientGasBudget.toString()])
       recipients[name] = {agent: extra, address: extra.address} } })
-  if (network.chainId !== 'holodeck-2') {
-    await task(`create ${wallets.length} wallets for the test accounts`, async report => {
-      const tx = await agent.sendMany(wallets, 'create recipient accounts')
-      report(tx.transactionHash) }) }
+
+  await task(`ensure ${wallets.length} test accounts have balance`, async report => {
+    await ensureWallets({ task }) })
+
   return { wallets, recipients } }
 
 export async function verify (task, agent, recipients, wallets, contracts, schedule) {
+
   const { TOKEN, MGMT, RPT } = contracts
   const VK = ""
-  await task('set null viewing keys', async report => {
+
+  await task(`set null viewing key on ${recipient.length} SIENNA accounts`, async report => {
     let txs = Object.values(recipients).map(({agent})=>TOKEN.setViewingKey(agent, VK))
     txs = await Promise.all(txs)
     for (const {tx} of txs) report(tx.transactionHash) })
+
   let launched
+
   await task('launch the vesting', async report => {
     const {transactionHash, logs} = await MGMT.launch()
     launched = 1000 * Number(logs[0].events[1].attributes[1].value)
     report(transactionHash) })
+
+  // new taskmaster (2nd part of profiling - runtime)
+  // claims test will now runs in units of 5 seconds = 1 block = 5 "days" (shortened schedule)
+  // i.e. if rpt accounts are gonna claim daily then that value must be multiplied by 5 (it isn't)
   await task.done()
   task = taskmaster({
     header: [ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ],
     output: resolve(__dirname, 'artifacts', agent.network.chainId, 'profile-runtime.md'),
     agent })
+
+  // these happen once in the whole test cycle
   let addedAccount = false
   let reallocated  = false
+
   while (true) {
     try {
       await agent.nextBlock
-
       const now = new Date()
       const elapsed = now - launched
       console.info(`\n⏱️  ${Math.floor(elapsed/1000)} "days" (seconds) after launch:`)
