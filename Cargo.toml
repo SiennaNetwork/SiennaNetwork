@@ -1,6 +1,5 @@
 [workspace]
 members = [
-  "fadroma",               # smart contract microframework
   "exchange",              # uniswap exchange contract implementation
   "factory",               # factory contract for creating exchanges
   "shared",                # shared types between all amm contracts
