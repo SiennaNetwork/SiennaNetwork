@@ -1,21 +1,18 @@
 import { 
-  ContractInstantiationInfo, ContractInfo, TokenType,
-  TokenPair, Address, TokenPairAmount, ViewingKey, Uint128, TokenTypeAmount, Pagination
+  ContractInfo, TokenPair, Address, TokenPairAmount,
+  ViewingKey, Uint128, TokenTypeAmount, Pagination
 } from './amm-lib/types.js'
-import { FactoryContract, ExchangeContract, Snip20Contract, create_fee } from './amm-lib/contract.js'
+import { FactoryContract, ExchangeContract, Snip20Contract } from './amm-lib/contract.js'
 import { 
   execute_test, execute_test_expect, assert_objects_equal, assert,
   assert_equal, assert_not_equal, extract_log_value, print_object
 } from './test_helpers.js'
-import { 
-  SigningCosmWasmClient, Secp256k1Pen, encodeSecp256k1Pubkey,
-  EnigmaUtils, pubkeyToAddress, Account
-} from 'secretjs'
+import { setup, build_client } from './setup.js'
+import { NullJsonFileWriter } from './utils/json_file_writer.js'
+import { SigningCosmWasmClient, Account } from 'secretjs'
 import { Sha256, Random } from "@iov/crypto"
 import { Buffer } from 'buffer'
 
-import { resolve } from 'path'
-import { readFileSync } from 'fs'
 import.meta.url
 
 interface LocalAccount {
@@ -34,17 +31,12 @@ const ACC_B: LocalAccount = ACC[1] as LocalAccount
 const ACC_C: LocalAccount = ACC[2] as LocalAccount
 const ACC_D: LocalAccount = ACC[3] as LocalAccount
 
-interface SetupResult {
-  factory: FactoryContract,
-  sienna_token: ContractInfo
-}
-
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 const SLEEP_TIME = 1000
 
 async function run_tests() {
-  const client_a = await build_client(ACC_A.mnemonic)
-  const { factory, sienna_token } = await setup(client_a)
+  const client_a = await build_client(ACC_A.mnemonic, APIURL)
+  const { factory, sienna_token } = await setup(client_a, process.argv[2], undefined, new NullJsonFileWriter)
 
   const created_pair = await test_create_exchange(factory, sienna_token)
   await sleep(SLEEP_TIME)
@@ -64,66 +56,6 @@ async function run_tests() {
   await sleep(SLEEP_TIME)
 
   await test_swap(exchange, snip20, created_pair)
-}
-
-async function setup(client: SigningCosmWasmClient): Promise<SetupResult> {
-  const fee = create_fee('2000000')
-  const commit = process.argv[2]
-
-  const snip20_wasm = readFileSync(resolve(`../dist/${commit}-snip20-reference-impl.wasm`))
-  const exchange_wasm = readFileSync(resolve(`../dist/${commit}-exchange.wasm`))
-  const ido_wasm = readFileSync(resolve(`../dist/${commit}-ido.wasm`))
-  const factory_wasm = readFileSync(resolve(`../dist/${commit}-factory.wasm`))
-  const lp_token_wasm = readFileSync(resolve(`../dist/${commit}-lp-token.wasm`))
-
-  const exchange_upload = await client.upload(exchange_wasm, { }, undefined, fee)
-  const snip20_upload = await client.upload(snip20_wasm, {}, undefined, fee)
-  const ido_upload = await client.upload(ido_wasm, {}, undefined, fee)
-  const factory_upload = await client.upload(factory_wasm, {}, undefined, fee)
-  const lp_token_upload = await client.upload(lp_token_wasm, {}, undefined, fee)
-
-  const pair_contract = new ContractInstantiationInfo(exchange_upload.originalChecksum, exchange_upload.codeId)
-  const snip20_contract = new ContractInstantiationInfo(snip20_upload.originalChecksum, snip20_upload.codeId)
-  const ido_contract = new ContractInstantiationInfo(ido_upload.originalChecksum, ido_upload.codeId)
-  const lp_token_contract = new ContractInstantiationInfo(lp_token_upload.originalChecksum, lp_token_upload.codeId)
-
-  const sienna_init_msg = {
-    name: 'sienna',
-    symbol: 'SIENNA',
-    decimals: 18,
-    prng_seed: 'MTMyMWRhc2RhZA=='
-  } 
-
-  const sienna_contract = await client.instantiate(snip20_upload.codeId, sienna_init_msg, 'SIENNA TOKEN', undefined, undefined, fee)
-  const sienna_token = new ContractInfo(snip20_upload.originalChecksum, sienna_contract.contractAddress)
-
-  const factory_init_msg = {
-    snip20_contract,
-    lp_token_contract,
-    pair_contract,
-    ido_contract,
-    sienna_token
-  }
-  
-  const result = await client.instantiate(factory_upload.codeId, factory_init_msg, 'AMM-FACTORY', undefined, undefined, fee)
-  const factory = new FactoryContract(result.contractAddress, client)
-
-  return { factory, sienna_token }
-}
-
-async function build_client(mnemonic: string): Promise<SigningCosmWasmClient> {
-  const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
-  const seed = EnigmaUtils.GenerateNewSeed();
-
-  const pubkey  = encodeSecp256k1Pubkey(pen.pubkey)
-  const address = pubkeyToAddress(pubkey, 'secret')
-
-  return new SigningCosmWasmClient(
-    APIURL,
-    address,
-    (bytes) => pen.sign(bytes),
-    seed
-  )
 }
 
 async function test_create_exchange(factory: FactoryContract, token_info: ContractInfo): Promise<TokenPair> {
@@ -285,7 +217,7 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
 
   await sleep(SLEEP_TIME)
 
-  const client_b = await build_client(ACC_B.mnemonic)
+  const client_b = await build_client(ACC_B.mnemonic, APIURL)
   const exchange_b = new ExchangeContract(exchange.address, client_b)
   const snip20_b = new Snip20Contract(snip20.address, client_b)
   
@@ -350,7 +282,7 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
       const token_balance_before = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
 
       const swap_amount = '3000000'    
-      const result = await exchange_b.swap(new TokenTypeAmount(pair.token_1, swap_amount))
+      await exchange_b.swap(new TokenTypeAmount(pair.token_1, swap_amount))
 
       const native_balance_after = parseInt(await get_native_balance(client_b))
       const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
