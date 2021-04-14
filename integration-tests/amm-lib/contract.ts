@@ -3,7 +3,7 @@ import {
     Decimal, Uint128, ContractInfo, get_token_type, TypeOfToken, 
     TokenInfo, ViewingKey, TokenTypeAmount, Exchange
 } from './types.js'
-import { ExecuteResult, SigningCosmWasmClient } from 'secretjs'
+import { ExecuteResult, SigningCosmWasmClient, CosmWasmClient } from 'secretjs'
 
 export const FEES = {
     upload: {
@@ -33,11 +33,6 @@ export interface Coin {
     readonly amount: string;
 }
 
-export interface SmartContract {
-    readonly client: SigningCosmWasmClient,
-    readonly address: Address
-}
-
 export interface GetExchangePairResponse {
     get_exchange_pair: {
         pair: TokenPair;
@@ -62,8 +57,30 @@ export interface ListExchangesResponse {
     }
 }
 
-export class FactoryContract implements SmartContract {
-    constructor(readonly client: SigningCosmWasmClient, readonly address: Address) { }
+export class SmartContract {
+    constructor(
+        readonly address: Address,
+        readonly signing_client: SigningCosmWasmClient,
+        readonly client?: CosmWasmClient | undefined
+    ) { }
+
+    protected query_client(): CosmWasmClient | SigningCosmWasmClient {
+        if(this.client !== undefined) {
+            return this.client
+        }
+
+        return this.signing_client
+    }
+}
+
+export class FactoryContract extends SmartContract {
+    constructor(
+        readonly address: Address,
+        readonly signing_client: SigningCosmWasmClient,
+        readonly client?: CosmWasmClient | undefined
+    ) {
+        super(address, signing_client, client)
+    }
 
     async create_exchange(pair: TokenPair): Promise<ExecuteResult> {
         const msg = {
@@ -72,7 +89,7 @@ export class FactoryContract implements SmartContract {
             }
         }
 
-        return await this.client.execute(this.address, msg, undefined, undefined, {
+        return await this.signing_client.execute(this.address, msg, undefined, undefined, {
             amount: [{ amount: "700000", denom: "uscrt" }],
             gas: "700000",
         })
@@ -85,7 +102,7 @@ export class FactoryContract implements SmartContract {
             }
         }
 
-        return await this.client.execute(this.address, msg)
+        return await this.signing_client.execute(this.address, msg)
     }
 
     async get_exchange_address(pair: TokenPair): Promise<Address> {
@@ -95,7 +112,7 @@ export class FactoryContract implements SmartContract {
             }
         }
 
-        const result = await this.client.queryContractSmart(this.address, msg) as GetExchangeAddressResponse
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetExchangeAddressResponse
         return result.get_exchange_address.address
     }
 
@@ -106,7 +123,7 @@ export class FactoryContract implements SmartContract {
             }
         }
 
-        const result = await this.client.queryContractSmart(this.address, msg) as ListIdosResponse
+        const result = await this.query_client().queryContractSmart(this.address, msg) as ListIdosResponse
         return result.list_idos.idos
     }
 
@@ -117,7 +134,7 @@ export class FactoryContract implements SmartContract {
             }
         }
 
-        const result = await this.client.queryContractSmart(this.address, msg) as ListExchangesResponse
+        const result = await this.query_client().queryContractSmart(this.address, msg) as ListExchangesResponse
         return result.list_exchanges.exchanges
     }
 }
@@ -140,8 +157,14 @@ export interface SwapSimulationResponse {
     commission_amount: Uint128
 }
 
-export class ExchangeContract implements SmartContract {
-    constructor(readonly client: SigningCosmWasmClient, readonly address: Address) { }
+export class ExchangeContract extends SmartContract {
+    constructor(
+        readonly address: Address,
+        readonly signing_client: SigningCosmWasmClient,
+        readonly client?: CosmWasmClient | undefined
+    ) {
+        super(address, signing_client, client)
+    }
 
     async provide_liquidity(amount: TokenPairAmount, tolerance?: Decimal | null): Promise<ExecuteResult> {
         const msg = {
@@ -150,9 +173,9 @@ export class ExchangeContract implements SmartContract {
                 slippage_tolerance: tolerance
             }
         }
-
+        
         const transfer = add_native_balance_pair(amount)
-        return await this.client.execute(this.address, msg, undefined, transfer)
+        return await this.signing_client.execute(this.address, msg, undefined, transfer)
     }
 
     async withdraw_liquidity(amount: Uint128, recipient: Address): Promise<ExecuteResult> {
@@ -163,7 +186,7 @@ export class ExchangeContract implements SmartContract {
             }
         }
 
-        return await this.client.execute(this.address, msg)
+        return await this.signing_client.execute(this.address, msg)
     }
 
     async swap(amount: TokenTypeAmount, expected_return?: Decimal | null): Promise<ExecuteResult> {
@@ -175,27 +198,27 @@ export class ExchangeContract implements SmartContract {
         }
 
         const transfer = add_native_balance(amount)
-        return await this.client.execute(this.address, msg, undefined, transfer)
+        return await this.signing_client.execute(this.address, msg, undefined, transfer)
     }
 
     async get_pair_info(): Promise<TokenPair> {
         const msg = 'pair_info' as unknown as object //yeah...
 
-        const result = await this.client.queryContractSmart(this.address, msg) as GetPairInfoResponse
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetPairInfoResponse
         return result.pair_info
     }
 
     async get_factory_info(): Promise<ContractInfo> {
         const msg = 'factory_info' as unknown as object
 
-        const result = await this.client.queryContractSmart(this.address, msg) as GetFactoryInfoResponse
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetFactoryInfoResponse
         return result.factory_info
     }
 
     async get_pool(): Promise<TokenPairAmount> {
         const msg = 'pool' as unknown as object
 
-        const result = await this.client.queryContractSmart(this.address, msg) as GetPoolResponse
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetPoolResponse
         return result.pool
     }
 
@@ -206,7 +229,7 @@ export class ExchangeContract implements SmartContract {
             }
         }
         
-        return await this.client.queryContractSmart(this.address, msg)
+        return await this.query_client().queryContractSmart(this.address, msg)
     }
 }
 
@@ -228,8 +251,14 @@ export interface GetBalanceResponse {
     }
 }
 
-export class Snip20Contract implements SmartContract {
-    constructor(readonly client: SigningCosmWasmClient, readonly address: Address) { }
+export class Snip20Contract extends SmartContract {
+    constructor(
+        readonly address: Address,
+        readonly signing_client: SigningCosmWasmClient,
+        readonly client?: CosmWasmClient | undefined
+    ) {
+        super(address, signing_client, client)
+    }
 
     async increase_allowance(
         spender: Address,
@@ -246,7 +275,7 @@ export class Snip20Contract implements SmartContract {
             }
         }
 
-        return await this.client.execute(this.address, msg)
+        return await this.signing_client.execute(this.address, msg)
     }
 
     async get_allowance(owner: Address, spender: Address, key: ViewingKey): Promise<GetAllowanceResponse> {
@@ -258,7 +287,7 @@ export class Snip20Contract implements SmartContract {
             }
         }
 
-        const result = await this.client.queryContractSmart(this.address, msg)
+        const result = await this.query_client().queryContractSmart(this.address, msg)
         return result as GetAllowanceResponse
     }
 
@@ -270,7 +299,7 @@ export class Snip20Contract implements SmartContract {
             }
         }
 
-        const result = await this.client.queryContractSmart(this.address, msg) as GetBalanceResponse
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetBalanceResponse
         return result.balance.amount
     }
 
@@ -279,7 +308,7 @@ export class Snip20Contract implements SmartContract {
             token_info: { }
         }
 
-        const result = await this.client.queryContractSmart(this.address, msg)
+        const result = await this.query_client().queryContractSmart(this.address, msg)
         return result as TokenInfo
     }
 
@@ -307,7 +336,7 @@ export class Snip20Contract implements SmartContract {
             }
         }
 
-        return await this.client.execute(this.address, msg)
+        return await this.signing_client.execute(this.address, msg)
     }
 
     async deposit(amount: Uint128, padding?: string | null): Promise<ExecuteResult> {
@@ -318,7 +347,7 @@ export class Snip20Contract implements SmartContract {
         }
 
         const transfer = [ coin(amount) ]
-        return await this.client.execute(this.address, msg, undefined, transfer)
+        return await this.signing_client.execute(this.address, msg, undefined, transfer)
     }
 }
 

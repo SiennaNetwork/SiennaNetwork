@@ -53,12 +53,12 @@ async function run_tests() {
   
   const pair_address = await test_query_exchanges(factory, created_pair)
 
-  const exchange = new ExchangeContract(client_a, pair_address)
+  const exchange = new ExchangeContract(pair_address, client_a)
   await test_get_pair_info(exchange, created_pair)
   await test_get_factory_info(exchange, factory.address)
   await test_get_pool(exchange)
 
-  const snip20 = new Snip20Contract(client_a, sienna_token.address)
+  const snip20 = new Snip20Contract(sienna_token.address, client_a)
 
   await test_liquidity(exchange, snip20, created_pair)
   await sleep(SLEEP_TIME)
@@ -105,7 +105,7 @@ async function setup(client: SigningCosmWasmClient): Promise<SetupResult> {
   }
   
   const result = await client.instantiate(factory_upload.codeId, factory_init_msg, 'AMM-FACTORY')
-  const factory = new FactoryContract(client, result.contractAddress)
+  const factory = new FactoryContract(result.contractAddress, client)
 
   return { factory, sienna_token }
 }
@@ -254,10 +254,10 @@ async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract
   await execute_test(
     'test_withdraw_liquidity',
     async () => {
-      const result = await exchange.withdraw_liquidity(amount, exchange.client.senderAddress)
+      const result = await exchange.withdraw_liquidity(amount, exchange.signing_client.senderAddress)
 
       assert_equal(extract_log_value(result, 'withdrawn_share'), amount)
-      assert_equal(result.logs[0].events[1].attributes[0].value, exchange.client.senderAddress)
+      assert_equal(result.logs[0].events[1].attributes[0].value, exchange.signing_client.senderAddress)
     }
   )
 
@@ -286,8 +286,8 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
   await sleep(SLEEP_TIME)
 
   const client_b = await build_client(ACC_B.mnemonic)
-  const exchange_b = new ExchangeContract(client_b, exchange.address)
-  const snip20_b = new Snip20Contract(client_b, snip20.address)
+  const exchange_b = new ExchangeContract(exchange.address, client_b)
+  const snip20_b = new Snip20Contract(snip20.address, client_b)
   
   const offer_token = new TokenTypeAmount(pair.token_0, '6000000') // swap uscrt for sienna
 
