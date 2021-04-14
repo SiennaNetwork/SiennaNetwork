@@ -2,7 +2,7 @@ import {
   ContractInstantiationInfo, ContractInfo, TokenType,
   TokenPair, Address, TokenPairAmount, ViewingKey, Uint128, TokenTypeAmount, Pagination
 } from './amm-lib/types.js'
-import { FactoryContract, ExchangeContract, Snip20Contract, FEES } from './amm-lib/contract.js'
+import { FactoryContract, ExchangeContract, Snip20Contract, create_fee } from './amm-lib/contract.js'
 import { 
   execute_test, execute_test_expect, assert_objects_equal, assert,
   assert_equal, assert_not_equal, extract_log_value, print_object
@@ -67,6 +67,7 @@ async function run_tests() {
 }
 
 async function setup(client: SigningCosmWasmClient): Promise<SetupResult> {
+  const fee = create_fee('2000000')
   const commit = process.argv[2]
 
   const snip20_wasm = readFileSync(resolve(`../dist/${commit}-snip20-reference-impl.wasm`))
@@ -75,11 +76,11 @@ async function setup(client: SigningCosmWasmClient): Promise<SetupResult> {
   const factory_wasm = readFileSync(resolve(`../dist/${commit}-factory.wasm`))
   const lp_token_wasm = readFileSync(resolve(`../dist/${commit}-lp-token.wasm`))
 
-  const exchange_upload = await client.upload(exchange_wasm, {})
-  const snip20_upload = await client.upload(snip20_wasm, {})
-  const ido_upload = await client.upload(ido_wasm, {})
-  const factory_upload = await client.upload(factory_wasm, {})
-  const lp_token_upload = await client.upload(lp_token_wasm, {})
+  const exchange_upload = await client.upload(exchange_wasm, { }, undefined, fee)
+  const snip20_upload = await client.upload(snip20_wasm, {}, undefined, fee)
+  const ido_upload = await client.upload(ido_wasm, {}, undefined, fee)
+  const factory_upload = await client.upload(factory_wasm, {}, undefined, fee)
+  const lp_token_upload = await client.upload(lp_token_wasm, {}, undefined, fee)
 
   const pair_contract = new ContractInstantiationInfo(exchange_upload.originalChecksum, exchange_upload.codeId)
   const snip20_contract = new ContractInstantiationInfo(snip20_upload.originalChecksum, snip20_upload.codeId)
@@ -93,7 +94,7 @@ async function setup(client: SigningCosmWasmClient): Promise<SetupResult> {
     prng_seed: 'MTMyMWRhc2RhZA=='
   } 
 
-  const sienna_contract = await client.instantiate(snip20_upload.codeId, sienna_init_msg, 'SIENNA TOKEN')
+  const sienna_contract = await client.instantiate(snip20_upload.codeId, sienna_init_msg, 'SIENNA TOKEN', undefined, undefined, fee)
   const sienna_token = new ContractInfo(snip20_upload.originalChecksum, sienna_contract.contractAddress)
 
   const factory_init_msg = {
@@ -104,7 +105,7 @@ async function setup(client: SigningCosmWasmClient): Promise<SetupResult> {
     sienna_token
   }
   
-  const result = await client.instantiate(factory_upload.codeId, factory_init_msg, 'AMM-FACTORY')
+  const result = await client.instantiate(factory_upload.codeId, factory_init_msg, 'AMM-FACTORY', undefined, undefined, fee)
   const factory = new FactoryContract(result.contractAddress, client)
 
   return { factory, sienna_token }
@@ -121,8 +122,7 @@ async function build_client(mnemonic: string): Promise<SigningCosmWasmClient> {
     APIURL,
     address,
     (bytes) => pen.sign(bytes),
-    seed,
-    FEES
+    seed
   )
 }
 

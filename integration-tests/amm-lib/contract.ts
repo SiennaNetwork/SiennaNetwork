@@ -5,32 +5,15 @@ import {
 } from './types.js'
 import { ExecuteResult, SigningCosmWasmClient, CosmWasmClient } from 'secretjs'
 
-export const FEES = {
-    upload: {
-        amount: [{ amount: "2000000", denom: "uscrt" }],
-        gas: "2000000",
-    },
-    init: {
-        amount: [{ amount: "500000", denom: "uscrt" }],
-        gas: "500000",
-    },
-    exec: {
-        amount: [{ amount: "600000", denom: "uscrt" }],
-        gas: "600000",
-    },
-    send: {
-        amount: [{ amount: "80000", denom: "uscrt" }],
-        gas: "80000",
-    },
-}
-
-/**
- * This only exists because they didn't bother to
- * export it in secretjs for some reason...
- */
+// These two are not exported in secretjs...
 export interface Coin {
     readonly denom: string;
     readonly amount: string;
+}
+
+export interface Fee {
+    readonly amount: ReadonlyArray<Coin>
+    readonly gas: Uint128
 }
 
 export interface GetExchangePairResponse {
@@ -54,6 +37,24 @@ export interface ListIdosResponse {
 export interface ListExchangesResponse {
     list_exchanges: {
         exchanges: Exchange[];
+    }
+}
+
+function create_coin(amount: Uint128): Coin {
+    return {
+        denom: 'uscrt',
+        amount
+    }
+}
+
+export function create_fee(amount: Uint128, gas?: Uint128 | undefined): Fee {
+    if (gas === undefined) {
+        gas = amount
+    }
+
+    return {
+        amount: [{ amount, denom: "uscrt" }],
+        gas,
     }
 }
 
@@ -82,27 +83,32 @@ export class FactoryContract extends SmartContract {
         super(address, signing_client, client)
     }
 
-    async create_exchange(pair: TokenPair): Promise<ExecuteResult> {
+    async create_exchange(pair: TokenPair, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             create_exchange: {
                 pair
             }
         }
 
-        return await this.signing_client.execute(this.address, msg, undefined, undefined, {
-            amount: [{ amount: "700000", denom: "uscrt" }],
-            gas: "700000",
-        })
+        if (fee === undefined) {
+            fee = create_fee('700000')
+        }
+
+        return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async create_ido(info: IdoInitConfig): Promise<ExecuteResult> {
+    async create_ido(info: IdoInitConfig, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             create_ido: {
                 info
             }
         }
 
-        return await this.signing_client.execute(this.address, msg)
+        if (fee === undefined) {
+            fee = create_fee('200000')
+        }
+
+        return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
     async get_exchange_address(pair: TokenPair): Promise<Address> {
@@ -166,19 +172,23 @@ export class ExchangeContract extends SmartContract {
         super(address, signing_client, client)
     }
 
-    async provide_liquidity(amount: TokenPairAmount, tolerance?: Decimal | null): Promise<ExecuteResult> {
+    async provide_liquidity(amount: TokenPairAmount, tolerance?: Decimal | null, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             add_liquidity: {
                 deposit: amount,
                 slippage_tolerance: tolerance
             }
         }
+
+        if (fee === undefined) {
+            fee = create_fee('3000000')
+        }
         
         const transfer = add_native_balance_pair(amount)
-        return await this.signing_client.execute(this.address, msg, undefined, transfer)
+        return await this.signing_client.execute(this.address, msg, undefined, transfer, fee)
     }
 
-    async withdraw_liquidity(amount: Uint128, recipient: Address): Promise<ExecuteResult> {
+    async withdraw_liquidity(amount: Uint128, recipient: Address, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             remove_liquidity: {
                 amount,
@@ -186,10 +196,14 @@ export class ExchangeContract extends SmartContract {
             }
         }
 
-        return await this.signing_client.execute(this.address, msg)
+        if (fee === undefined) {
+            fee = create_fee('2500000')
+        }
+
+        return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async swap(amount: TokenTypeAmount, expected_return?: Decimal | null): Promise<ExecuteResult> {
+    async swap(amount: TokenTypeAmount, expected_return?: Decimal | null, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             swap: {
                 offer: amount,
@@ -197,8 +211,12 @@ export class ExchangeContract extends SmartContract {
             }
         }
 
+        if (fee === undefined) {
+            fee = create_fee('2400000')
+        }
+
         const transfer = add_native_balance(amount)
-        return await this.signing_client.execute(this.address, msg, undefined, transfer)
+        return await this.signing_client.execute(this.address, msg, undefined, transfer, fee)
     }
 
     async get_pair_info(): Promise<TokenPair> {
@@ -264,7 +282,8 @@ export class Snip20Contract extends SmartContract {
         spender: Address,
         amount: Uint128,
         expiration?: number | null,
-        padding?: string | null
+        padding?: string | null,
+        fee?: Fee | undefined
     ): Promise<ExecuteResult> {
         const msg = {
             increase_allowance: {
@@ -275,7 +294,11 @@ export class Snip20Contract extends SmartContract {
             }
         }
 
-        return await this.signing_client.execute(this.address, msg)
+        if (fee === undefined) {
+            fee = create_fee('200000')
+        }
+
+        return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
     async get_allowance(owner: Address, spender: Address, key: ViewingKey): Promise<GetAllowanceResponse> {
@@ -328,7 +351,7 @@ export class Snip20Contract extends SmartContract {
         }
     }
 
-    async set_viewing_key(key: ViewingKey, padding?: string | null): Promise<ExecuteResult> {
+    async set_viewing_key(key: ViewingKey, padding?: string | null, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             set_viewing_key: {
                 key,
@@ -336,18 +359,28 @@ export class Snip20Contract extends SmartContract {
             }
         }
 
-        return await this.signing_client.execute(this.address, msg)
+        if (fee === undefined) {
+            fee = create_fee('200000')
+        }
+
+
+        return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async deposit(amount: Uint128, padding?: string | null): Promise<ExecuteResult> {
+    async deposit(amount: Uint128, padding?: string | null, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             deposit: {
                 padding
             }
         }
 
-        const transfer = [ coin(amount) ]
-        return await this.signing_client.execute(this.address, msg, undefined, transfer)
+        if (fee === undefined) {
+            fee = create_fee('200000')
+        }
+
+
+        const transfer = [ create_coin(amount) ]
+        return await this.signing_client.execute(this.address, msg, undefined, transfer, fee)
     }
 }
 
@@ -386,11 +419,4 @@ function add_native_balance(amount: TokenTypeAmount): Coin[] | undefined {
     }
 
     return result
-}
-
-function coin(amount: Uint128): Coin {
-    return {
-        denom: 'uscrt',
-        amount
-    }
 }
