@@ -252,10 +252,7 @@ export class ExchangeContract extends SmartContract {
 }
 
 export interface GetAllowanceResponse {
-    spender: Address,
-    owner: Address,
-    allowance: Uint128,
-    expiration?: number | undefined
+    allowance: Allowance
 }
 
 export interface GetExchangeRateResponse {
@@ -267,6 +264,13 @@ export interface GetBalanceResponse {
     balance: {
         amount: Uint128
     }
+}
+
+export interface Allowance {
+    spender: Address,
+    owner: Address,
+    allowance: Uint128,
+    expiration?: number | null
 }
 
 export class Snip20Contract extends SmartContract {
@@ -301,7 +305,7 @@ export class Snip20Contract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async get_allowance(owner: Address, spender: Address, key: ViewingKey): Promise<GetAllowanceResponse> {
+    async get_allowance(owner: Address, spender: Address, key: ViewingKey): Promise<Allowance> {
         const msg = {
             allowance: {
                 owner,
@@ -310,8 +314,8 @@ export class Snip20Contract extends SmartContract {
             }
         }
 
-        const result = await this.query_client().queryContractSmart(this.address, msg)
-        return result as GetAllowanceResponse
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetAllowanceResponse
+        return result.allowance
     }
 
     async get_balance(address: Address, key: ViewingKey): Promise<Uint128> {

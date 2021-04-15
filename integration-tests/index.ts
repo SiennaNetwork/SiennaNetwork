@@ -267,6 +267,14 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
   let key = create_viewing_key()
   await snip20_b.set_viewing_key(key)
 
+  await execute_test(
+    'test_get_allowance',
+    async () => {
+      const result = await snip20_b.get_allowance(client_b.senderAddress, exchange.address, key)
+      assert_equal(result.allowance, amount)
+    }
+  )
+
   await execute_test_expect(
     'test_swap_from_snip20_insufficient_allowance',
     async () => {

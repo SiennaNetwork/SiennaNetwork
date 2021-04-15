@@ -27,7 +27,7 @@ async function deploy() {
             readline.close()
 
             const info = new ContractInfo(code_hash, address)
-            const writer = new JsonFileWriter('../dist/')
+            const writer = new JsonFileWriter(`../dist/${process.env.SECRET_CHAIN_ID}/`)
 
             await setup(client, process.argv[2], info, writer)
         })
