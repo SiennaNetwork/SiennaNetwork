@@ -86,7 +86,7 @@ macro_rules! generate_disable_msg {
         impl fmt::Display for DisabledMsg {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 let name = match *self {
-                    $(DisabledMsg::$VariantName { .. } => stringify!(DisabledMsg::$VariantName),)*
+                    $(DisabledMsg::$VariantName { .. } => stringify!($VariantName),)*
                 };
 
                 write!(
