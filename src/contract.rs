@@ -67,6 +67,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     let prng_seed_hashed = sha_256(&msg.prng_seed.0);
 
     let mut config = Config::from_storage(&mut deps.storage);
+
     config.set_constants(&Constants {
         name: msg.name,
         symbol: msg.symbol,
@@ -75,9 +76,11 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         prng_seed: prng_seed_hashed.to_vec(),
         total_supply_is_public: init_config.public_total_supply(),
     })?;
+
     config.set_total_supply(total_supply);
     config.set_contract_status(ContractStatusLevel::NormalRun);
     config.set_minters(Vec::from([admin]))?;
+    config.set_disabled_messages(&msg.disabled_messages.unwrap_or(vec![]))?;
 
     let mut messages = vec![];
 
@@ -103,7 +106,16 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
-    let contract_status = ReadonlyConfig::from_storage(&deps.storage).contract_status();
+    let config = ReadonlyConfig::from_storage(&deps.storage);
+
+    let disabled_messages = config.disabled_messages();
+    let disabled = msg.to_disabled();
+
+    if disabled_messages.contains(&disabled) {
+        return Err(StdError::generic_err(format!("The message \"{}\" is disabled for this contract.", disabled)))
+    }
+
+    let contract_status = config.contract_status();
 
     match contract_status {
         ContractStatusLevel::StopAll | ContractStatusLevel::StopAllButRedeems => {
@@ -1084,14 +1096,13 @@ mod tests {
     use cosmwasm_std::{from_binary, BlockInfo, ContractInfo, MessageInfo, QueryResponse, WasmMsg};
     use std::any::Any;
 
-    use crate::msg::{InitConfig, InitialBalance};
-
-    use crate::msg::ResponseStatus;
+    use crate::msg::{InitConfig, InitialBalance, ResponseStatus, DisabledMsg};
 
     // Helper functions
 
     fn init_helper(
         initial_balances: Vec<InitialBalance>,
+        disabled_messages: Vec<DisabledMsg>
     ) -> (
         StdResult<InitResponse>,
         Extern<MockStorage, MockApi, MockQuerier>,
@@ -1107,7 +1118,8 @@ mod tests {
             initial_balances: Some(initial_balances),
             prng_seed: Binary::from("lolz fun yay".as_bytes()),
             config: None,
-            callback: None
+            callback: None,
+            disabled_messages: Some(disabled_messages)
         };
 
         (init(&mut deps, env, init_msg), deps)
@@ -1189,7 +1201,9 @@ mod tests {
         let (init_result, deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert_eq!(init_result.unwrap(), InitResponse::default());
 
         let config = ReadonlyConfig::from_storage(&deps.storage);
@@ -1212,7 +1226,9 @@ mod tests {
         let (init_result, _deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(u128::max_value()),
-        }]);
+        }],
+        vec![]);
+        
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1228,7 +1244,9 @@ mod tests {
                 address: HumanAddr("giannis".to_string()),
                 amount: Uint128(1),
             },
-        ]);
+        ],
+        vec![]);
+
         let error = extract_error_msg(init_result);
         assert_eq!(
             error,
@@ -1243,7 +1261,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![ DisabledMsg::SetMinters, DisabledMsg::SetContractStatus ]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1285,7 +1305,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![ DisabledMsg::BurnFrom, DisabledMsg::Burn ]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1329,7 +1351,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1355,7 +1379,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![ DisabledMsg::Send, DisabledMsg::SendFrom, DisabledMsg::SetViewingKey ]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1391,7 +1417,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1440,7 +1468,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1558,7 +1588,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1672,7 +1704,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1749,7 +1783,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1828,7 +1864,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1894,7 +1932,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1924,7 +1964,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("admin".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1951,7 +1993,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("butler".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1983,7 +2027,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2022,7 +2068,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(initial_amount),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2052,7 +2100,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(initial_amount),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2084,7 +2134,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2137,7 +2189,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2186,7 +2240,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2235,7 +2291,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2280,7 +2338,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2324,7 +2384,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2398,7 +2460,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("giannis".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2475,7 +2539,8 @@ mod tests {
             }]),
             prng_seed: Binary::from("lolz fun yay".as_bytes()),
             config: Some(init_config),
-            callback: None
+            callback: None,
+            disabled_messages: None
         };
         let init_result = init(&mut deps, env, init_msg);
         assert!(
@@ -2513,7 +2578,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("giannis".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2622,7 +2689,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2669,7 +2738,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2748,5 +2819,55 @@ mod tests {
             _ => panic!("Unexpected"),
         };
         assert_eq!(transfers.len(), 2);
+    }
+
+    #[test]
+    fn test_disabled_messages() {
+        fn assert_error(result: StdResult<HandleResponse>) {
+            assert!(result.is_err());
+
+            let err = result.unwrap_err();
+
+            match err {
+                StdError::GenericErr { msg, .. } => {
+                    assert!(msg.contains("is disabled for this contract."))
+                },
+                _ => panic!("Wrong error!")
+            }
+        }
+
+        let (init_result, mut deps) = init_helper(
+            vec![],
+            vec![ DisabledMsg::Redeem, DisabledMsg::BurnFrom, DisabledMsg::ChangeAdmin ]
+        );
+
+        assert!(
+            init_result.is_ok(),
+            "Init failed: {}",
+            init_result.err().unwrap()
+        );
+
+        let msg = HandleMsg::Redeem {
+            amount: Uint128(123123),
+            denom: None,
+            padding: None
+        };
+
+        assert_error(handle(&mut deps, mock_env("goshu", &[]), msg));
+
+        let msg = HandleMsg::BurnFrom {
+            owner: HumanAddr("pesho".into()),
+            amount: Uint128(123123),
+            padding: None
+        };
+
+        assert_error(handle(&mut deps, mock_env("goshu", &[]), msg));
+
+        let msg = HandleMsg::ChangeAdmin {
+            address: HumanAddr("mf doom".into()),
+            padding: None
+        };
+
+        assert_error(handle(&mut deps, mock_env("goshu", &[]), msg));
     }
 }

@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_utils::viewing_key::ViewingKey;
 use serde::de::DeserializeOwned;
 
-use crate::msg::{status_level_to_u8, u8_to_status_level, ContractStatusLevel};
+use crate::msg::{status_level_to_u8, u8_to_status_level, ContractStatusLevel, DisabledMsg};
 
 pub static CONFIG_KEY: &[u8] = b"config";
 pub const PREFIX_TXS: &[u8] = b"transfers";
@@ -24,6 +24,7 @@ pub const KEY_TOTAL_SUPPLY: &[u8] = b"total_supply";
 pub const KEY_CONTRACT_STATUS: &[u8] = b"contract_status";
 pub const KEY_MINTERS: &[u8] = b"minters";
 pub const KEY_TX_COUNT: &[u8] = b"tx-count";
+pub const KEY_DISABLED_MESSAGES: &[u8] = b"disabled_messages";
 
 pub const PREFIX_CONFIG: &[u8] = b"config";
 pub const PREFIX_BALANCES: &[u8] = b"balances";
@@ -197,6 +198,10 @@ impl<'a, S: ReadonlyStorage> ReadonlyConfig<'a, S> {
     pub fn tx_count(&self) -> u64 {
         self.as_readonly().tx_count()
     }
+
+    pub fn disabled_messages(&self) -> Vec<DisabledMsg> {
+        self.as_readonly().disabled_messages()
+    }
 }
 
 fn set_bin_data<T: Serialize, S: Storage>(storage: &mut S, key: &[u8], data: &T) -> StdResult<()> {
@@ -290,6 +295,14 @@ impl<'a, S: Storage> Config<'a, S> {
     pub fn set_tx_count(&mut self, count: u64) -> StdResult<()> {
         set_bin_data(&mut self.storage, KEY_TX_COUNT, &count)
     }
+
+    pub fn disabled_messages(&self) -> Vec<DisabledMsg> {
+        self.as_readonly().disabled_messages()
+    }
+
+    pub fn set_disabled_messages(&mut self, messages: &Vec<DisabledMsg>) -> StdResult<()> {
+        set_bin_data(&mut self.storage, KEY_DISABLED_MESSAGES, messages)
+    }
 }
 
 /// This struct refactors out the readonly methods that we need for `Config` and `ReadonlyConfig`
@@ -333,8 +346,12 @@ impl<'a, S: ReadonlyStorage> ReadonlyConfigImpl<'a, S> {
         get_bin_data(self.0, KEY_MINTERS).unwrap()
     }
 
-    pub fn tx_count(&self) -> u64 {
+    fn tx_count(&self) -> u64 {
         get_bin_data(self.0, KEY_TX_COUNT).unwrap_or_default()
+    }
+
+    fn disabled_messages(&self) -> Vec<DisabledMsg> {
+        get_bin_data(self.0, KEY_DISABLED_MESSAGES).unwrap()
     }
 }
 
