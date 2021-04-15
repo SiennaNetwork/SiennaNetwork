@@ -7,9 +7,10 @@ use cosmwasm_std::{
 };
 use cosmwasm_utils::crypto::sha_256;
 use cosmwasm_utils::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
+use secret_toolkit::utils::pad_handle_result;
 
 use crate::msg::{
-    space_pad, ContractStatusLevel, HandleAnswer, HandleMsg,
+    ContractStatusLevel, HandleAnswer, HandleMsg,
     QueryAnswer, QueryMsg, ResponseStatus::Success, InitMsg
 };
 use crate::receiver::Snip20ReceiveMsg;
@@ -97,16 +98,6 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     })
 }
 
-fn pad_response(response: StdResult<HandleResponse>) -> StdResult<HandleResponse> {
-    response.map(|mut response| {
-        response.data = response.data.map(|mut data| {
-            space_pad(RESPONSE_BLOCK_SIZE, &mut data.0);
-            data
-        });
-        response
-    })
-}
-
 pub fn handle<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -127,7 +118,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
                     "This contract is stopped and this action is not allowed",
                 )),
             };
-            return pad_response(response);
+            return pad_handle_result(response, RESPONSE_BLOCK_SIZE);
         }
         ContractStatusLevel::NormalRun => {} // If it's a normal run just continue
     }
@@ -193,7 +184,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::SetMinters { minters, .. } => set_minters(deps, env, minters),
     };
 
-    pad_response(response)
+    pad_handle_result(response, RESPONSE_BLOCK_SIZE)
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
