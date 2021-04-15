@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Snip20InitMsg",
+  "title": "InitMsg",
   "type": "object",
   "required": [
     "decimals",
@@ -32,7 +32,7 @@
     "config": {
       "anyOf": [
         {
-          "$ref": "#/definitions/Snip20InitConfig"
+          "$ref": "#/definitions/InitConfig"
         },
         {
           "type": "null"
@@ -50,7 +50,7 @@
         "null"
       ],
       "items": {
-        "$ref": "#/definitions/Snip20InitialBalance"
+        "$ref": "#/definitions/InitialBalance"
       }
     },
     "name": {
@@ -113,7 +113,7 @@
     "HumanAddr": {
       "type": "string"
     },
-    "Snip20InitConfig": {
+    "InitConfig": {
       "description": "This type represents optional configuration values which can be overridden. All values are optional and have defaults which are more private by default, but can be overridden if necessary",
       "type": "object",
       "properties": {
@@ -126,7 +126,7 @@
         }
       }
     },
-    "Snip20InitialBalance": {
+    "InitialBalance": {
       "type": "object",
       "required": [
         "address",

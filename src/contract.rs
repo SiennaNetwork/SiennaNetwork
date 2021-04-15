@@ -5,21 +5,19 @@ use cosmwasm_std::{
     HandleResponse, HumanAddr, InitResponse, Querier, QueryResult, ReadonlyStorage, StdError,
     StdResult, Storage, Uint128, WasmMsg
 };
-
-use shared::Snip20InitMsg;
+use cosmwasm_utils::crypto::sha_256;
+use cosmwasm_utils::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
 
 use crate::msg::{
-    space_pad, ContractStatusLevel, HandleAnswer, HandleMsg, QueryAnswer, QueryMsg,
-    ResponseStatus::Success,
+    space_pad, ContractStatusLevel, HandleAnswer, HandleMsg,
+    QueryAnswer, QueryMsg, ResponseStatus::Success, InitMsg
 };
-use crate::rand::sha_256;
 use crate::receiver::Snip20ReceiveMsg;
 use crate::state::{
     get_receiver_hash, get_transfers, read_allowance, read_viewing_key, set_receiver_hash,
     store_transfer, write_allowance, write_viewing_key, Balances, Config, Constants,
     ReadonlyBalances, ReadonlyConfig,
 };
-use crate::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
 
 /// We make sure that responses from `handle` are padded to a multiple of this size.
 pub const RESPONSE_BLOCK_SIZE: usize = 256;
@@ -27,7 +25,7 @@ pub const RESPONSE_BLOCK_SIZE: usize = 256;
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    msg: Snip20InitMsg,
+    msg: InitMsg,
 ) -> StdResult<InitResponse> {
     let init_config = msg.config();
     let mut total_supply: u128 = 0;
@@ -1095,7 +1093,7 @@ mod tests {
     use cosmwasm_std::{from_binary, BlockInfo, ContractInfo, MessageInfo, QueryResponse, WasmMsg};
     use std::any::Any;
 
-    use shared::{Snip20InitConfig as InitConfig, Snip20InitialBalance as InitialBalance};
+    use crate::msg::{InitConfig, InitialBalance};
 
     use crate::msg::ResponseStatus;
 
@@ -1110,7 +1108,7 @@ mod tests {
         let mut deps = mock_dependencies(20, &[]);
         let env = mock_env("instantiator", &[]);
 
-        let init_msg = Snip20InitMsg {
+        let init_msg = InitMsg {
             name: "sec-sec".to_string(),
             admin: Some(HumanAddr("admin".to_string())),
             symbol: "SECSEC".to_string(),
@@ -2475,7 +2473,7 @@ mod tests {
 
         let mut deps = mock_dependencies(20, &[]);
         let env = mock_env("instantiator", &[]);
-        let init_msg = Snip20InitMsg {
+        let init_msg = InitMsg {
             name: init_name.clone(),
             admin: Some(init_admin.clone()),
             symbol: init_symbol.clone(),
