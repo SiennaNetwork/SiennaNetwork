@@ -26,13 +26,13 @@ fn main () -> Result<(), std::io::Error> {
                 println!("\n## Pool: *{}*", &pool.name);
                 for account in pool.accounts.iter() {
                     println!("\n### Account: *{}*\n", &account.name);
-                    println!("* Amount: **{} uSIENNA**", &account.amount);
-                    println!("* Cliff: **{} uSIENNA**", &account.cliff);
-                    println!("* Portion size: **{} uSIENNA**", &account.portion_size());
+                    println!("* Amount: **{} attoSIENNA**", &account.amount);
+                    println!("* Cliff: **{} attoSIENNA**", &account.cliff);
+                    println!("* Portion size: **{} attoSIENNA**", &account.portion_size());
                     println!("* Portion count: **{}**\n", &account.portion_count());
                     let mut portion = if account.cliff > cosmwasm_std::Uint128::zero() { -1 } else { 0 };
                     let mut balance = 0u128;
-                    println!("|portion #|day|unlocked amount (uSIENNA)|");
+                    println!("|portion #|day|unlocked amount (attoSIENNA)|");
                     println!("|:-:|:-:|--:|");
                     for t in account.start_at..account.end()+1 {
                         let new_balance = account.unlocked(t, &account.address);

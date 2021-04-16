@@ -258,12 +258,12 @@ Schedule {
 
 ### Account: *InvestorN*
 
-* Amount: **2000000000000000000000000 uSIENNA**
-* Cliff: **0 uSIENNA**
-* Portion size: **4166666666666666666666 uSIENNA**
+* Amount: **2000000000000000000000000 attoSIENNA**
+* Cliff: **0 attoSIENNA**
+* Portion size: **4166666666666666666666 attoSIENNA**
 * Portion count: **480**
 
-|portion #|day|unlocked amount (uSIENNA)|
+|portion #|day|unlocked amount (attoSIENNA)|
 |:-:|:-:|--:|
 |      1|    180|    4166666666666666666666|
 |      2|    181|    8333333333333333333332|
@@ -751,12 +751,12 @@ Schedule {
 
 ### Account: *Founder1*
 
-* Amount: **800000000000000000000000 uSIENNA**
-* Cliff: **0 uSIENNA**
-* Portion size: **1333333333333333333333 uSIENNA**
+* Amount: **800000000000000000000000 attoSIENNA**
+* Cliff: **0 attoSIENNA**
+* Portion size: **1333333333333333333333 attoSIENNA**
 * Portion count: **600**
 
-|portion #|day|unlocked amount (uSIENNA)|
+|portion #|day|unlocked amount (attoSIENNA)|
 |:-:|:-:|--:|
 |      1|    180|    1333333333333333333333|
 |      2|    181|    2666666666666666666666|
@@ -1362,12 +1362,12 @@ Schedule {
 
 ### Account: *Founder2*
 
-* Amount: **800000000000000000000000 uSIENNA**
-* Cliff: **0 uSIENNA**
-* Portion size: **1333333333333333333333 uSIENNA**
+* Amount: **800000000000000000000000 attoSIENNA**
+* Cliff: **0 attoSIENNA**
+* Portion size: **1333333333333333333333 attoSIENNA**
 * Portion count: **600**
 
-|portion #|day|unlocked amount (uSIENNA)|
+|portion #|day|unlocked amount (attoSIENNA)|
 |:-:|:-:|--:|
 |      1|    180|    1333333333333333333333|
 |      2|    181|    2666666666666666666666|
@@ -1973,12 +1973,12 @@ Schedule {
 
 ### Account: *Founder3*
 
-* Amount: **731000000000000000000000 uSIENNA**
-* Cliff: **0 uSIENNA**
-* Portion size: **1218333333333333333333 uSIENNA**
+* Amount: **731000000000000000000000 attoSIENNA**
+* Cliff: **0 attoSIENNA**
+* Portion size: **1218333333333333333333 attoSIENNA**
 * Portion count: **600**
 
-|portion #|day|unlocked amount (uSIENNA)|
+|portion #|day|unlocked amount (attoSIENNA)|
 |:-:|:-:|--:|
 |      1|    180|    1218333333333333333333|
 |      2|    181|    2436666666666666666666|
@@ -2584,12 +2584,12 @@ Schedule {
 
 ### Account: *Founder4*
 
-* Amount: **69000000000000000000000 uSIENNA**
-* Cliff: **0 uSIENNA**
-* Portion size: **115000000000000000000 uSIENNA**
+* Amount: **69000000000000000000000 attoSIENNA**
+* Cliff: **0 attoSIENNA**
+* Portion size: **115000000000000000000 attoSIENNA**
 * Portion count: **600**
 
-|portion #|day|unlocked amount (uSIENNA)|
+|portion #|day|unlocked amount (attoSIENNA)|
 |:-:|:-:|--:|
 |      1|    180|     115000000000000000000|
 |      2|    181|     230000000000000000000|
@@ -3196,12 +3196,12 @@ Schedule {
 
 ### Account: *DevN*
 
-* Amount: **1500000000000000000000000 uSIENNA**
-* Cliff: **75000000000000000000000 uSIENNA**
-* Portion size: **57000000000000000000000 uSIENNA**
+* Amount: **1500000000000000000000000 attoSIENNA**
+* Cliff: **75000000000000000000000 attoSIENNA**
+* Portion size: **57000000000000000000000 attoSIENNA**
 * Portion count: **25**
 
-|portion #|day|unlocked amount (uSIENNA)|
+|portion #|day|unlocked amount (attoSIENNA)|
 |:-:|:-:|--:|
 |  cliff|    120|   75000000000000000000000|
 |      1|    150|  132000000000000000000000|
@@ -3234,12 +3234,12 @@ Schedule {
 
 ### Account: *Advisor1*
 
-* Amount: **50000000000000000000000 uSIENNA**
-* Cliff: **0 uSIENNA**
-* Portion size: **104166666666666666666 uSIENNA**
+* Amount: **50000000000000000000000 attoSIENNA**
+* Cliff: **0 attoSIENNA**
+* Portion size: **104166666666666666666 attoSIENNA**
 * Portion count: **480**
 
-|portion #|day|unlocked amount (uSIENNA)|
+|portion #|day|unlocked amount (attoSIENNA)|
 |:-:|:-:|--:|
 |      1|    180|     104166666666666666666|
 |      2|    181|     208333333333333333332|
@@ -3725,12 +3725,12 @@ Schedule {
 
 ### Account: *Advisor2*
 
-* Amount: **50000000000000000000000 uSIENNA**
-* Cliff: **0 uSIENNA**
-* Portion size: **104166666666666666666 uSIENNA**
+* Amount: **50000000000000000000000 attoSIENNA**
+* Cliff: **0 attoSIENNA**
+* Portion size: **104166666666666666666 attoSIENNA**
 * Portion count: **480**
 
-|portion #|day|unlocked amount (uSIENNA)|
+|portion #|day|unlocked amount (attoSIENNA)|
 |:-:|:-:|--:|
 |      1|    180|     104166666666666666666|
 |      2|    181|     208333333333333333332|
@@ -4216,12 +4216,12 @@ Schedule {
 
 ### Account: *Advisor3*
 
-* Amount: **10000000000000000000000 uSIENNA**
-* Cliff: **0 uSIENNA**
-* Portion size: **55555555555555555555 uSIENNA**
+* Amount: **10000000000000000000000 attoSIENNA**
+* Cliff: **0 attoSIENNA**
+* Portion size: **55555555555555555555 attoSIENNA**
 * Portion count: **180**
 
-|portion #|day|unlocked amount (uSIENNA)|
+|portion #|day|unlocked amount (attoSIENNA)|
 |:-:|:-:|--:|
 |      1|    180|      55555555555555555555|
 |      2|    181|     111111111111111111110|
@@ -4407,12 +4407,12 @@ Schedule {
 
 ### Account: *Advisor4*
 
-* Amount: **5000000000000000000000 uSIENNA**
-* Cliff: **0 uSIENNA**
-* Portion size: **10416666666666666666 uSIENNA**
+* Amount: **5000000000000000000000 attoSIENNA**
+* Cliff: **0 attoSIENNA**
+* Portion size: **10416666666666666666 attoSIENNA**
 * Portion count: **480**
 
-|portion #|day|unlocked amount (uSIENNA)|
+|portion #|day|unlocked amount (attoSIENNA)|
 |:-:|:-:|--:|
 |      1|    180|      10416666666666666666|
 |      2|    181|      20833333333333333332|
@@ -4898,12 +4898,12 @@ Schedule {
 
 ### Account: *AdvisorN*
 
-* Amount: **85000000000000000000000 uSIENNA**
-* Cliff: **85000000000000000000000 uSIENNA**
-* Portion size: **0 uSIENNA**
+* Amount: **85000000000000000000000 attoSIENNA**
+* Cliff: **85000000000000000000000 attoSIENNA**
+* Portion size: **0 attoSIENNA**
 * Portion count: **0**
 
-|portion #|day|unlocked amount (uSIENNA)|
+|portion #|day|unlocked amount (attoSIENNA)|
 |:-:|:-:|--:|
 |  cliff|      0|   85000000000000000000000|
 
@@ -4911,23 +4911,23 @@ Schedule {
 
 ### Account: *LPF*
 
-* Amount: **300000000000000000000000 uSIENNA**
-* Cliff: **300000000000000000000000 uSIENNA**
-* Portion size: **0 uSIENNA**
+* Amount: **300000000000000000000000 attoSIENNA**
+* Cliff: **300000000000000000000000 attoSIENNA**
+* Portion size: **0 attoSIENNA**
 * Portion count: **0**
 
-|portion #|day|unlocked amount (uSIENNA)|
+|portion #|day|unlocked amount (attoSIENNA)|
 |:-:|:-:|--:|
 |  cliff|      0|  300000000000000000000000|
 
 ### Account: *RPT*
 
-* Amount: **3600000000000000000000000 uSIENNA**
-* Cliff: **0 uSIENNA**
-* Portion size: **2500000000000000000000 uSIENNA**
+* Amount: **3600000000000000000000000 attoSIENNA**
+* Cliff: **0 attoSIENNA**
+* Portion size: **2500000000000000000000 attoSIENNA**
 * Portion count: **1440**
 
-|portion #|day|unlocked amount (uSIENNA)|
+|portion #|day|unlocked amount (attoSIENNA)|
 |:-:|:-:|--:|
 |      1|      0|    2500000000000000000000|
 |      2|      1|    5000000000000000000000|
