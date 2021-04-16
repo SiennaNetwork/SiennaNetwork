@@ -3,6 +3,7 @@ import { writeFileSync, readdirSync, readFileSync } from 'fs'
 import assert from 'assert'
 
 import bignum from 'bignum'
+import prompts from 'prompts'
 
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
 import SNIP20Contract from '@hackbg/snip20'
@@ -15,6 +16,7 @@ import { fileURLToPath, resolve, basename, extname, dirname
        , readFile, writeFile } from '@hackbg/fadroma/js/sys.js'
 
 // resolve path relative to this file's parent directory
+
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 export const abs = (...args) => resolve(__dirname, ...args)
 export const stateBase = abs('artifacts')
@@ -56,6 +58,7 @@ export const CONTRACTS = {
     , label:   `${prefix}SIENNA_RPT`
     , initMsg: {} } }
 
+// build and upload
 export async function build (options = {}) {
   const { task      = taskmaster()
         , builder   = new SecretNetwork.Builder()
@@ -94,23 +97,6 @@ export async function upload (options = {}) {
       report(receipt.transactionHash) }) }
 
   return receipts
-}
-
-export function prepareConfig (options = {}) {
-  const { file = abs('settings', 'schedule.ods')
-        } = options
-
-  file = resolve(file) // ???
-
-  stderr.write(`\n⏳ Importing configuration from ${file}...\n\n`)
-  const name       = basename(file, extname(file)) // path without extension
-  const schedule   = scheduleFromSpreadsheet({ file })
-  const serialized = stringify(schedule)
-  const output     = resolve(dirname(file), `${name}.json`)
-  stderr.write(`⏳ Saving configuration to ${output}...\n\n`)
-
-  writeFileSync(output, stringify(schedule), 'utf8')
-  stderr.write(`🟢 Configuration saved to ${output}\n`)
 }
 
 export async function initialize (options = {}) {
@@ -175,6 +161,79 @@ export async function initialize (options = {}) {
     const {transactionHash} = await MGMT.configure(schedule)
     report(transactionHash) })
   return contracts
+}
+
+export async function deploy (options = {}) {
+  const { task     = taskmaster()
+        , initMsgs = {}
+        } = options
+
+  let { agent
+      , builder = agent ? agent.getBuilder() : undefined
+      , network = builder ? builder.network : await prompts(
+        { type: 'select'
+        , name: 'network'
+        , message: 'Select network'
+        , initial: 0
+        , choices:
+          [ {title: 'localnet', value: 'localnet', description: 'local docker container'}
+          , {title: 'testnet',  value: 'testnet',  description: 'holodeck-2'}
+          , {title: 'mainnet',  value: 'mainnet',  description: 'secret network mainnet' } ] })
+      } = options
+
+  if (typeof network === 'string') {
+    assert(['localnet','testnet','mainnet'].indexOf(network) > -1)
+    const conn = await SecretNetwork[network]()
+    network = conn.network
+    agent   = conn.agent
+    builder = conn.builder
+  }
+
+  return await task('build, upload, and initialize contracts', async () => {
+    const binaries  = await build({ task, builder })
+    const receipts  = await upload({ task, builder, binaries })
+    const contracts = await initialize({
+      task, receipts, agent,
+      schedule, initialRPTRecipient
+    })
+  })
+}
+
+export function genConfig (options = {}) {
+  const { file = abs('settings', 'schedule.ods')
+        } = options
+
+  stderr.write(`\n⏳ Importing configuration from ${file}...\n\n`)
+  const name       = basename(file, extname(file)) // path without extension
+  const schedule   = scheduleFromSpreadsheet({ file })
+  const serialized = stringify(schedule)
+  const output     = resolve(dirname(file), `${name}.json`)
+  stderr.write(`⏳ Saving configuration to ${output}...\n\n`)
+
+  writeFileSync(output, stringify(schedule), 'utf8')
+  stderr.write(`🟢 Configuration saved to ${output}\n`)
+}
+
+export async function configure ({
+  file = abs('settings', 'schedule.json')
+}) {
+  throw new Error('not implemented')
+}
+
+export async function launch () {
+  throw new Error('not implemented')
+}
+
+export async function reallocate ({
+  file = abs('settings', 'schedule.json')
+}) {
+  throw new Error('not implemented')
+}
+
+export async function addAccount ({
+  file = abs('settings', 'schedule.json')
+}) {
+  throw new Error('not implemented')
 }
 
 export async function ensureWallets (options = {}) {
@@ -250,77 +309,6 @@ export async function ensureWallets (options = {}) {
     }
     return {balance, recipientBalances}
   }
-}
-
-export async function configure ({
-  file = abs('settings', 'schedule.json')
-}) {
-  throw new Error('not implemented')
-}
-
-export default async function deploy ({
-  task     = taskmaster(),
-  builder  = new SecretNetwork.Builder(),
-  initMsgs
-}) {
-  builder = await Promise.resolve(builder)
-  return await task('build, upload, and initialize contracts', async () => {
-    const binaries  = await build({ task, builder })
-    const receipts  = await upload({ task, builder, binaries })
-    const contracts = await initialize({ task, builder, initMsgs })
-  })
-}
-
-export async function launch () {
-  throw new Error('not implemented')
-}
-
-export async function reallocate ({
-  file = abs('settings', 'schedule.json')
-}) {
-  throw new Error('not implemented')
-}
-
-export async function addAccount ({
-  file = abs('settings', 'schedule.json')
-}) {
-  throw new Error('not implemented')
-}
-
-export function generateCoverage () {
-  // fixed by https://github.com/rust-lang/cargo/issues/9220
-  let output = abs('docs', 'coverage')
-  cargo('tarpaulin', '--out=Html', `--output-dir=${output}`)
-}
-
-export function generateSchema () {
-  const cwd = process.cwd()
-  try {
-    for (const [name, {schema}] of Object.entries(CONTRACTS)) {
-      const contractDir = abs('contracts', name)
-      stderr.write(`Generating schema in ${contractDir}...`)
-      process.chdir(contractDir)
-      cargo('run', '--example', schema)
-    }
-  } finally {
-    process.chdir(cwd)
-  }
-}
-
-export function generateDocs () {
-  const target = abs('target', 'doc', crate, 'index.html')
-  try {
-    stderr.write(`⏳ Building documentation...\n\n`)
-    cargo('doc')
-  } catch (e) {
-    stderr.write('\n🤔 Building documentation failed.')
-    if (existsSync(target)) {
-      stderr.write(`\n⏳ Opening what exists at ${target}...`)
-    } else {
-      return
-    }
-  }
-  open(`file:///${target}`)
 }
 
 const stringify = data => {

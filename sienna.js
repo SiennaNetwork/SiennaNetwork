@@ -14,35 +14,56 @@ import yargs from 'yargs'
 import { SecretNetwork } from '@hackbg/fadroma'
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
 import { CONTRACTS, abs, stateBase
-       , build, upload, initialize, launch
-       , prepareConfig, configure, reallocate, addAccount
-       , generateCoverage, generateSchema, generateDocs
+       , deploy, build, upload, initialize, launch
+       , genConfig, configure, reallocate, addAccount
        , ensureWallets } from './ops.js'
+import { genCoverage, genSchema, genDocs } from './artifacts/index.js'
 import demo from './demo.js'
 
 const main = () => yargs(process.argv.slice(2))
   .wrap(yargs().terminalWidth())
   .demandCommand(1, '')
 
-  // prepare contract binaries:
+  // validation:
+  .command('test',
+    '⚗️  Run test suites for all the individual components.',
+    runTests)
+  .command('ensure-wallets',
+    '⚗️  Ensure there are testnet wallets for the demo.',
+    ensureWallets)
+  .command('demo [--testnet]',
+    '⚗️  Run integration test/demo.',
+    args.IsTestnet, runDemo)
+
+  // artifacts:
   .command('build',
     '👷 Compile contracts from working tree',
     build)
+  .command('schema',
+    `🤙 Regenerate JSON schema for each contract's API.`,
+    genSchema)
+  .command('docs [crate]',
+    '📖 Build the documentation and open it in a browser.',
+    args.Crate, genDocs)
+  .command('coverage',
+    '⚗️  Generate test coverage and open it in a browser.',
+    genCoverage)
+  .command('config [<spreadsheet>]',
+    '📅 Convert a spreadsheet into a JSON schedule',
+    args.Spreadsheet, genConfig)
+
+  // prepare contract binaries:
+  .command('deploy',
+    '🚀 Build, init, and deploy (step by step with prompts)',
+    combine(args.Network, args.Schedule), x => deploy(x).then(console.info))
   .command('upload <network>',
     '📦 Upload compiled contracts to network',
     args.Network, upload)
-
-  // pre-launch config
-  .command('prepare-config [<spreadsheet>]',
-    '📅 Convert a spreadsheet into a JSON schedule',
-    args.Spreadsheet, prepareConfig)
-
-  // init&launch
-  .command('init <network> [<schedule>]',
-    '💡 Instantiate uploaded contracts',
+  .command('init <network> [<network>]',
+    '🚀 Just instantiate uploaded contracts',
     combine(args.Network, args.Schedule), x => initialize(x).then(console.info))
-  .command('launch <initReceiptOrContractAddr>',
-    '🚀 Launch initialized contracts',
+  .command('launch <deployment>',
+    '🚀 Just launch initialized contracts',
     launch)
 
   // post-launch config
@@ -55,26 +76,6 @@ const main = () => yargs(process.argv.slice(2))
   .command('add-account <deployment> <account>',
     '⚡ Add a new account to a partial vesting pool',
     combine(args.Deployment, args.Account), addAccount)
-
-  // validation:
-  .command('test',
-    '⚗️  Run test suites for all the individual components.',
-    runTests)
-  .command('coverage',
-    '⚗️  Generate test coverage and open it in a browser.',
-    generateCoverage)
-  .command('ensure-wallets',
-    '⚗️  Ensure there are testnet wallets for the demo.',
-    ensureWallets)
-  .command('demo [--testnet]',
-    '⚗️  Run integration test/demo.',
-    args.IsTestnet, runDemo)
-  .command('schema',
-    `🤙 Regenerate JSON schema for each contract's API.`,
-    generateSchema)
-  .command('docs [crate]',
-    '📖 Build the documentation and open it in a browser.',
-    args.Crate, generateDocs)
 
   .argv
 
@@ -108,11 +109,13 @@ const args =
       'allocations',
       { describe: 'new allocation of Remaining Pool Tokens' }) }
 
-const cargo = (...args) => run('cargo', '--color=always', ...args)
+export const clear = () =>
+  env.TMUX && run('sh', '-c', 'clear && tmux clear-history')
 
-const clear = () => env.TMUX && run('sh', '-c', 'clear && tmux clear-history')
+export const cargo = (...args) =>
+  run('cargo', '--color=always', ...args)
 
-const run = (cmd, ...args) => {
+export const run = (cmd, ...args) => {
   stderr.write(`\n🏃 running:\n${cmd} ${args.join(' ')}\n\n`)
   execFileSync(cmd, [...args], {stdio:'inherit'})
 }
