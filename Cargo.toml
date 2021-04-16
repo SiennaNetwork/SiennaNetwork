@@ -39,8 +39,8 @@ schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
 bincode2 = "2.0.1"
-
 cosmwasm-utils = { git = "https://github.com/hackbg/cosmwasm-utils.git", rev = "c76c905" }
+snip20 = { path = "./packages/snip20" }
 
 [dev-dependencies]
 cosmwasm-vm = { package = "cosmwasm-sgx-vm", git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }

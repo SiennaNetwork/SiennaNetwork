@@ -9,10 +9,11 @@ use cosmwasm_utils::crypto::sha_256;
 use cosmwasm_utils::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
 use secret_toolkit::utils::pad_handle_result;
 
-use crate::msg::{
-    ContractStatusLevel, HandleAnswer, HandleMsg,
-    QueryAnswer, QueryMsg, ResponseStatus::Success, InitMsg
-};
+use snip20::data::ContractStatusLevel;
+use snip20::handle::{HandleMsg, HandleAnswer, ResponseStatus::Success};
+use snip20::query::{QueryMsg, QueryAnswer};
+use snip20::init::InitMsg;
+
 use crate::receiver::Snip20ReceiveMsg;
 use crate::state::{
     get_receiver_hash, get_transfers, read_allowance, read_viewing_key, set_receiver_hash,
@@ -1096,7 +1097,8 @@ mod tests {
     use cosmwasm_std::{from_binary, BlockInfo, ContractInfo, MessageInfo, QueryResponse, WasmMsg};
     use std::any::Any;
 
-    use crate::msg::{InitConfig, InitialBalance, ResponseStatus, DisabledMsg};
+    use snip20::handle::{ResponseStatus, DisabledMsg};
+    use snip20::init::{InitConfig, InitialBalance};
 
     // Helper functions
 

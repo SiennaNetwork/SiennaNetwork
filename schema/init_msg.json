@@ -44,6 +44,15 @@
       "format": "uint8",
       "minimum": 0.0
     },
+    "disabled_messages": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/DisabledMsg"
+      }
+    },
     "initial_balances": {
       "type": [
         "array",
@@ -109,6 +118,30 @@
           "type": "string"
         }
       }
+    },
+    "DisabledMsg": {
+      "type": "string",
+      "enum": [
+        "redeem",
+        "deposit",
+        "transfer",
+        "send",
+        "burn",
+        "register_receive",
+        "create_viewing_key",
+        "set_viewing_key",
+        "increase_allowance",
+        "decrease_allowance",
+        "transfer_from",
+        "send_from",
+        "burn_from",
+        "mint",
+        "add_minters",
+        "remove_minters",
+        "set_minters",
+        "change_admin",
+        "set_contract_status"
+      ]
     },
     "HumanAddr": {
       "type": "string"

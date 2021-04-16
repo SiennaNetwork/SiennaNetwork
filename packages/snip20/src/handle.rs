@@ -2,52 +2,10 @@ use std::fmt;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::{Binary, HumanAddr, StdError, StdResult, Uint128};
+use cosmwasm_std::{Uint128, HumanAddr, Binary};
 use cosmwasm_utils::viewing_key::ViewingKey;
-use cosmwasm_utils::Callback;
 
-use crate::state::Tx;
-
-#[derive(Serialize, Deserialize, JsonSchema)]
-pub struct InitMsg {
-    pub name: String,
-    pub admin: Option<HumanAddr>,
-    pub symbol: String,
-    pub decimals: u8,
-    pub initial_balances: Option<Vec<InitialBalance>>,
-    pub prng_seed: Binary,
-    pub config: Option<InitConfig>,
-    pub callback: Option<Callback>,
-    pub disabled_messages: Option<Vec<DisabledMsg>>
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
-pub struct InitialBalance {
-    pub address: HumanAddr,
-    pub amount: Uint128,
-}
-
-/// This type represents optional configuration values which can be overridden.
-/// All values are optional and have defaults which are more private by default,
-/// but can be overridden if necessary
-#[derive(Serialize, Deserialize, JsonSchema, Clone, Default, Debug)]
-pub struct InitConfig {
-    /// Indicates whether the total supply is public or should be kept secret.
-    /// default: False
-    pub public_total_supply: Option<bool>,
-}
-
-impl InitMsg {
-    pub fn config(&self) -> InitConfig {
-        self.config.clone().unwrap_or_default()
-    }
-}
-
-impl InitConfig {
-    pub fn public_total_supply(&self) -> bool {
-        self.public_total_supply.unwrap_or(false)
-    }
-}
+use crate::data::ContractStatusLevel;
 
 macro_rules! generate_disable_msg {
     ($pub:vis
@@ -199,7 +157,7 @@ generate_disable_msg!{
         SetContractStatus {
             level: ContractStatusLevel,
             padding: Option<String>,
-        },
+        }
     }
 }
 
@@ -275,80 +233,7 @@ pub enum HandleAnswer {
     },
     SetContractStatus {
         status: ResponseStatus,
-    },
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum QueryMsg {
-    TokenInfo {},
-    ExchangeRate {},
-    Allowance {
-        owner: HumanAddr,
-        spender: HumanAddr,
-        key: String,
-    },
-    Balance {
-        address: HumanAddr,
-        key: String,
-    },
-    TransferHistory {
-        address: HumanAddr,
-        key: String,
-        page: Option<u32>,
-        page_size: u32,
-    },
-    Minters {},
-}
-
-impl QueryMsg {
-    pub fn get_validation_params(&self) -> (Vec<&HumanAddr>, ViewingKey) {
-        match self {
-            Self::Balance { address, key } => (vec![address], ViewingKey(key.clone())),
-            Self::TransferHistory { address, key, .. } => (vec![address], ViewingKey(key.clone())),
-            Self::Allowance {
-                owner,
-                spender,
-                key,
-                ..
-            } => (vec![owner, spender], ViewingKey(key.clone())),
-            _ => panic!("This query type does not require authentication"),
-        }
     }
-}
-
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
-#[serde(rename_all = "snake_case")]
-pub enum QueryAnswer {
-    TokenInfo {
-        name: String,
-        symbol: String,
-        decimals: u8,
-        total_supply: Option<Uint128>,
-    },
-    ExchangeRate {
-        rate: Uint128,
-        denom: String,
-    },
-    Allowance {
-        spender: HumanAddr,
-        owner: HumanAddr,
-        allowance: Uint128,
-        expiration: Option<u64>,
-    },
-    Balance {
-        amount: Uint128,
-    },
-    TransferHistory {
-        txs: Vec<Tx>,
-    },
-
-    ViewingKeyError {
-        msg: String,
-    },
-    Minters {
-        minters: Vec<HumanAddr>,
-    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
@@ -361,54 +246,4 @@ pub struct CreateViewingKeyResponse {
 pub enum ResponseStatus {
     Success,
     Failure,
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-#[serde(rename_all = "snake_case")]
-pub enum ContractStatusLevel {
-    NormalRun,
-    StopAllButRedeems,
-    StopAll,
-}
-
-pub fn status_level_to_u8(status_level: ContractStatusLevel) -> u8 {
-    match status_level {
-        ContractStatusLevel::NormalRun => 0,
-        ContractStatusLevel::StopAllButRedeems => 1,
-        ContractStatusLevel::StopAll => 2,
-    }
-}
-
-pub fn u8_to_status_level(status_level: u8) -> StdResult<ContractStatusLevel> {
-    match status_level {
-        0 => Ok(ContractStatusLevel::NormalRun),
-        1 => Ok(ContractStatusLevel::StopAllButRedeems),
-        2 => Ok(ContractStatusLevel::StopAll),
-        _ => Err(StdError::generic_err("Invalid state level")),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use cosmwasm_std::{from_slice, StdResult};
-
-    #[derive(Serialize, Deserialize, JsonSchema, Debug, PartialEq)]
-    #[serde(rename_all = "snake_case")]
-    pub enum Something {
-        Var { padding: Option<String> },
-    }
-    
-    #[test]
-    fn test_deserialization_of_missing_option_fields() -> StdResult<()> {
-        let input = b"{ \"var\": {} }";
-        let obj: Something = from_slice(input)?;
-        assert_eq!(
-            obj,
-            Something::Var { padding: None },
-            "unexpected value: {:?}",
-            obj
-        );
-        Ok(())
-    }
 }

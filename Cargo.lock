@@ -821,6 +821,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "snip20"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-std",
+ "cosmwasm-utils",
+ "schemars",
+ "serde",
+]
+
+[[package]]
 name = "snip20-reference-impl"
 version = "0.1.0"
 dependencies = [
@@ -834,6 +844,7 @@ dependencies = [
  "secret-toolkit",
  "serde",
  "snafu",
+ "snip20",
 ]
 
 [[package]]

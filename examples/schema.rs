@@ -2,7 +2,9 @@ use std::env::current_dir;
 use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
-use snip20_reference_impl::msg::{HandleAnswer, HandleMsg, QueryAnswer, QueryMsg, InitMsg};
+use snip20::init::InitMsg;
+use snip20::handle::{HandleAnswer, HandleMsg};
+use snip20::query::{QueryAnswer, QueryMsg};
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
