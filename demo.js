@@ -21,7 +21,7 @@ import { loadJSON, taskmaster, SecretNetwork } from '@hackbg/fadroma'
 // ## The following features are tested:
 
 // * 👷 **deploying** and **configuring** the token, mgmt, and rpt contracts.
-import { build, upload, initialize, ensureWallets } from './ops.js'
+import { build, upload, initialize, ensureWallets, SIENNA, fmtSIENNA } from './ops.js'
 // * ⚠️  **viewing unlocked funds for any known address** without having to make a claim
 // * 💸 **making claims** according to the initial **schedule** (sped up by a factor of 8400)
 // * 🤵 **allocating unassigned funds** from a pool to a **new account**
@@ -78,7 +78,7 @@ async function prepare ({task, network, agent, schedule}) {
         pool.accounts.splice(i, 1)
         break } break } })
   // * And now, for my next trick, I'm gonna need some **wallets**!
-  const recipientGasBudget = bignum(1000000) // uscrt
+  const recipientGasBudget = bignum(10000000) // uscrt
       , wallets    = []
       , recipients = {}
   await task('shorten schedule and replace placeholders with test accounts', async () => {
@@ -104,7 +104,7 @@ async function prepare ({task, network, agent, schedule}) {
       wallets.push([extra.address, recipientGasBudget.toString()])
       recipients[name] = {agent: extra, address: extra.address} } })
   // * Make sure the wallets exist on-chain.
-  await ensureWallets({ task, agent, recipientGasBudget, wallets, recipients })
+  await ensureWallets({ task, connection: null, agent, wallets, recipients, recipientGasBudget })
   return { wallets, recipients } }
 
 // # Verification
@@ -114,10 +114,11 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
 
   // Let's just give every recipient an empty viewing key so we can check their balances.
   const VK = ""
-  await task(`set null viewing key on ${recipient.length} SIENNA accounts`, async report => {
-    let txs = Object.values(recipients).map(({agent})=>TOKEN.setViewingKey(agent, VK))
-    txs = await Promise.all(txs)
-    for (const {tx} of txs) report(tx.transactionHash) })
+  await task(`set null viewing key on ${Object.keys(recipients).length} SIENNA accounts`,
+    async report => {
+      let txs = Object.values(recipients).map(({agent})=>TOKEN.setViewingKey(agent, VK))
+      txs = await Promise.all(txs)
+      for (const {tx} of txs) report(tx.transactionHash) })
 
   // ## And let's go! 🚀
   let launched
@@ -154,17 +155,17 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
       // ⚠️  Vesting info is public!
       await task('query vesting progress', async report => {
         console.info( `ACCOUNT`.padEnd(11)
-                    , `CLAIMED`.padEnd(25), `  `
-                    , `UNLOCKED`.padEnd(25), `  `
-                    , `TOTAL`.padEnd(25) )
+                    , `CLAIMED`.padEnd(26), `  `
+                    , `UNLOCKED`.padEnd(26), `  `
+                    , `TOTAL`.padEnd(26) )
         for (const [name, recipient] of Object.entries(recipients)) {
           if (name.startsWith('TokenPair')) continue // token pairs are only visible to the RPT contract
           const {progress} = await MGMT.progress(recipient.address, now)
           const {claimed, unlocked} = progress
           console.info( `${name}`.padEnd(11)
-                      , claimed.padStart(25), `of`
-                      , unlocked.padStart(25), `of`
-                      , (recipient.total||'').padStart(25) )
+                      , fmtSIENNA(claimed).padStart(26), `of`
+                      , fmtSIENNA(unlocked).padStart(26), `of`
+                      , fmtSIENNA(recipient.total||0).padStart(26) )
           if (name === 'RPT') continue
           // Every iteration, one random recipient
           // with newly unlocked balance will claim. Collect the names of such recipients:
@@ -178,7 +179,7 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
           const recipient = recipients[claimant]
           const tx = await MGMT.claim(recipient.agent)
           const balance = String(await TOKEN.balance(recipient.agent, VK))
-          console.info(`balance of ${claimant} is now: ${balance}`)
+          console.info(`balance of ${claimant} is now: ${balance} uSIENNA`)
           report(tx.transactionHash) }) }
 
       // * **Test mutation 1**: add account, occurs 20 "days" in
@@ -216,7 +217,7 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
           if (name.startsWith('TokenPair')) {
             console.log(
               `${name}:`.padEnd(15),
-              String(await TOKEN.balance(recipient.agent, VK)).padStart(30)) } } })
+              fmtSIENNA(String(await TOKEN.balance(recipient.agent, VK))).padStart(30)) } } })
 
     } catch (e) {
       error = e
