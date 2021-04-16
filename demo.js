@@ -21,7 +21,7 @@ import { loadJSON, taskmaster, SecretNetwork } from '@hackbg/fadroma'
 // ## The following features are tested:
 
 // * 👷 **deploying** and **configuring** the token, mgmt, and rpt contracts.
-import { build, upload, initialize, ensureWallets, SIENNA, fmtSIENNA } from './ops.js'
+import { build, upload, initialize, ensureWallets, fmtSIENNA } from './ops.js'
 // * ⚠️  **viewing unlocked funds for any known address** without having to make a claim
 // * 💸 **making claims** according to the initial **schedule** (sped up by a factor of 8400)
 // * 🤵 **allocating unassigned funds** from a pool to a **new account**

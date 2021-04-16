@@ -19,13 +19,17 @@ export const __dirname = dirname(fileURLToPath(import.meta.url))
 export const abs = (...args) => resolve(__dirname, ...args)
 export const stateBase = abs('artifacts')
 
-// token decimals
-export const DECIMALS =
-  18
-export const SIENNA =
-  bignum(`1${[...Array(DECIMALS)].map(()=>`0`).join('')}`)
-export const fmtSIENNA = x =>
-  `${bignum(x).div(SIENNA).toString()}.${bignum(x).mod(SIENNA).toString().padEnd(18, '0')}`
+// decimals
+export const fmtDecimals = d => x =>
+  `${bignum(x).div(d).toString()}.${bignum(x).mod(d).toString().padEnd(18, '0')}`
+
+export const SIENNA_DECIMALS = 18
+export const ONE_SIENNA = bignum(`1${[...Array(SIENNA_DECIMALS)].map(()=>`0`).join('')}`)
+export const fmtSIENNA = fmtDecimals(ONE_SIENNA)
+
+export const SCRT_DECIMALS = 6
+export const ONE_SCRT = bignum(`1${[...Array(SCRT_DECIMALS)].map(()=>`0`).join('')}`)
+export const fmtSCRT = fmtDecimals(ONE_SCRT)
 
 // contract list
 const prefix = new Date().toISOString().replace(/[-:\.]/g, '-').replace(/[TZ]/g, '_')
@@ -196,41 +200,11 @@ export async function ensureWallets (options = {}) {
         // [[address,budget]]
         , wallets    = await recipientsToWallets(recipients)
         } = options
-  async function getDefaultRecipients () {
-    const recipients = {}
-    const wallets = readdirSync(agent.network.wallets)
-      .filter(x=>x.endsWith('.json'))
-      .map(x=>readFileSync(resolve(agent.network.wallets, x), 'utf8'))
-      .map(JSON.parse)
-    for (const {address, mnemonic} of wallets) {
-      recipients[address] = {
-        agent: await agent.network.getAgent({mnemonic}),
-        address
-      }
-    }
-    return recipients
-  }
-  async function recipientsToWallets (recipients) {
-    return Promise.all(Object.values(recipients).map(({address, agent})=>{
-      return agent.balance.then(balance=>[address, recipientGasBudget, bignum(balance) ])
-    }))
-  }
 
   // check that admin has enough balance to create the wallets
-  console.log(await agent.getBalance())
-  const balance =
-    bignum(await agent.getBalance())
-  console.info('agent balance',
-    balance.toString())
-  const recipientBalances =
-    await Promise.all(Object.values(recipients)
-      .map(({agent})=>[agent.name, bignum(agent.balance)]))
-  console.info('recipient balances\n' +
-    recipientBalances.map(([name,balance])=>`${name} ${balance.toString()}`).join('\n'))
-  const fee =
-    bignum(agent.fees.send)
-  const preseedTotal =
-    fee.add(bignum(wallets.length).mul(recipientGasBudget))
+  const {balance, recipientBalances} = await fetchAdminAndRecipientBalances()
+  const fee = bignum(agent.fees.send)
+  const preseedTotal = fee.add(bignum(wallets.length).mul(recipientGasBudget))
   if (preseedTotal.gt(balance)) {
     const message =
       `admin wallet does not have enough balance to preseed test wallets ` +
@@ -243,6 +217,39 @@ export async function ensureWallets (options = {}) {
   await task(`ensure ${wallets.length} test accounts have balance`, async report => {
     const tx = await agent.sendMany(wallets, 'create recipient accounts')
     report(tx.transactionHash)})
+
+  await fetchAdminAndRecipientBalances()
+
+  async function getDefaultRecipients () {
+    const recipients = {}
+    const wallets = readdirSync(agent.network.wallets)
+      .filter(x=>x.endsWith('.json'))
+      .map(x=>readFileSync(resolve(agent.network.wallets, x), 'utf8'))
+      .map(JSON.parse)
+    for (const {address, mnemonic} of wallets) {
+      const agent = await agent.network.getAgent({mnemonic})
+      assert(address === agent.address)
+      recipients[address] = { agent, address }
+    }
+    return recipients
+  }
+  async function recipientsToWallets (recipients) {
+    return Promise.all(Object.values(recipients).map(({address, agent})=>{
+      return agent.balance.then(balance=>[address, recipientGasBudget, bignum(balance) ])
+    }))
+  }
+  async function fetchAdminAndRecipientBalances () {
+    const balance = bignum(await agent.getBalance())
+    console.info('Admin balance:', balance.toString())
+    const withBalance = async ({agent}) => [agent.name, bignum(await agent.balance)]
+    const recipientBalances = []
+    console.info('\nRecipient balances:')
+    for (const {agent} of Object.values(recipients)) {
+      recipientBalances.push([agent.name, bignum(await agent.balance)])
+      console.info(name.padEnd(10), fmtSCRT(balance))
+    }
+    return {balance, recipientBalances}
+  }
 }
 
 export async function configure ({
