@@ -7,6 +7,9 @@ use cosmwasm_utils::viewing_key::ViewingKey;
 
 use crate::data::ContractStatusLevel;
 
+/// Generates an enum with equivalent named variants, but without the payload.
+/// The generated enum is used in InitMsg to specify which messages to be
+/// disabled in the contract. This way, the two are also kept in sync.
 macro_rules! generate_disable_msg {
     ($pub:vis
     enum $EnumName:ident {
