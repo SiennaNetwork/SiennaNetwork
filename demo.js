@@ -165,7 +165,8 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
           console.info( `${name}`.padEnd(11)
                       , fmtSIENNA(claimed).padStart(26), `of`
                       , fmtSIENNA(unlocked).padStart(26), `of`
-                      , fmtSIENNA(recipient.total||0).padStart(26) )
+                      , fmtSIENNA(recipient.total||0).padStart(26)
+                      , 'SIENNA')
           if (name === 'RPT') continue
           // Every iteration, one random recipient
           // with newly unlocked balance will claim. Collect the names of such recipients:
@@ -179,7 +180,7 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
           const recipient = recipients[claimant]
           const tx = await MGMT.claim(recipient.agent)
           const balance = String(await TOKEN.balance(recipient.agent, VK))
-          console.info(`balance of ${claimant} is now: ${balance} uSIENNA`)
+          console.info(`balance of ${claimant} is now: ${fmtSIENNA(balance)} SIENNA`)
           report(tx.transactionHash) }) }
 
       // * **Test mutation 1**: add account, occurs 20 "days" in
@@ -217,7 +218,8 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
           if (name.startsWith('TokenPair')) {
             console.log(
               `${name}:`.padEnd(15),
-              fmtSIENNA(String(await TOKEN.balance(recipient.agent, VK))).padStart(30)) } } })
+              fmtSIENNA(String(await TOKEN.balance(recipient.agent, VK))).padStart(30),
+              'SIENNA') } } })
 
     } catch (e) {
       error = e

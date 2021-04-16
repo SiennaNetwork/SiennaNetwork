@@ -1,5 +1,6 @@
 import { stderr } from 'process'
-import { writeFileSync } from 'fs'
+import { writeFileSync, readdirSync, readFileSync } from 'fs'
+import assert from 'assert'
 
 import bignum from 'bignum'
 
@@ -17,6 +18,14 @@ import { fileURLToPath, resolve, basename, extname, dirname
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 export const abs = (...args) => resolve(__dirname, ...args)
 export const stateBase = abs('artifacts')
+
+// token decimals
+export const DECIMALS =
+  18
+export const SIENNA =
+  bignum(`1${[...Array(DECIMALS)].map(()=>`0`).join('')}`)
+export const fmtSIENNA = x =>
+  `${bignum(x).div(SIENNA).toString()}.${bignum(x).mod(SIENNA).toString().padEnd(18, '0')}`
 
 // contract list
 const prefix = new Date().toISOString().replace(/[-:\.]/g, '-').replace(/[TZ]/g, '_')
@@ -166,39 +175,69 @@ export async function initialize (options = {}) {
 
 export async function ensureWallets (options = {}) {
 
-  let { recipientGasBudget = bignum("10000000") } = options
+  let { recipientGasBudget = bignum("5000000")
+      , connection         = 'testnet' } = options
 
-  // allow passing it as string
+  // allow passing strings:
   recipientGasBudget = bignum(recipientGasBudget)
+  if (typeof connection === 'string') {
+    assert(['localnet','testnet','mainnet'].indexOf(connection) > -1)
+    connection = await SecretNetwork[connection]({stateBase})
+  }
 
   const { task  = taskmaster()
         , n     = 16 // give or take
         // connection defaults to testnet because localnet
         // wallets are not worth keeping (they don't even
         // transfer between localnet instances)
-        , agent
-        // TODO: existing wallets passed here decrease `preseedTotal`
-        , recipients = {}
-        , wallets = []
+        , agent      = connection.agent
+        // {address:{agent,address}}
+        , recipients = await getDefaultRecipients()
+        // [[address,budget]]
+        , wallets    = await recipientsToWallets(recipients)
         } = options
+  async function getDefaultRecipients () {
+    const recipients = {}
+    const wallets = readdirSync(agent.network.wallets)
+      .filter(x=>x.endsWith('.json'))
+      .map(x=>readFileSync(resolve(agent.network.wallets, x), 'utf8'))
+      .map(JSON.parse)
+    for (const {address, mnemonic} of wallets) {
+      recipients[address] = {
+        agent: await agent.network.getAgent({mnemonic}),
+        address
+      }
+    }
+    return recipients
+  }
+  async function recipientsToWallets (recipients) {
+    return Promise.all(Object.values(recipients).map(({address, agent})=>{
+      return agent.balance.then(balance=>[address, recipientGasBudget, bignum(balance) ])
+    }))
+  }
 
   // check that admin has enough balance to create the wallets
+  console.log(await agent.getBalance())
   const balance =
     bignum(await agent.getBalance())
+  console.info('agent balance',
+    balance.toString())
   const recipientBalances =
     await Promise.all(Object.values(recipients)
       .map(({agent})=>[agent.name, bignum(agent.balance)]))
+  console.info('recipient balances\n' +
+    recipientBalances.map(([name,balance])=>`${name} ${balance.toString()}`).join('\n'))
   const fee =
     bignum(agent.fees.send)
   const preseedTotal =
     fee.add(bignum(wallets.length).mul(recipientGasBudget))
-  console.debug({balance, recipientBalances, fee, preseedTotal})
   if (preseedTotal.gt(balance)) {
     const message =
-      `admin wallet does not have enough balance to preseed test wallets` +
-     `(${balance.toString()}<${preseedTotal.toString()}); can't proceed.\n\n` +
+      `admin wallet does not have enough balance to preseed test wallets ` +
+     `(${balance.toString()} < ${preseedTotal.toString()}); can't proceed.\n\n` +
       `on localnet, it's easiest to clear the state and redo the genesis.\n` +
-      `on testnet, use the faucet with ${agent.address}`
+      `on testnet, use the faucet at https://faucet.secrettestnet.io/ twice\n` +
+      `with ${agent.address} to get 200 testnet SCRT`
     console.error(message)
     process.exit(1) }
   await task(`ensure ${wallets.length} test accounts have balance`, async report => {
