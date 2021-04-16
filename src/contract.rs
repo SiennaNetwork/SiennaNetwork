@@ -3,21 +3,23 @@
 use cosmwasm_std::{
     log, to_binary, Api, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Env, Extern,
     HandleResponse, HumanAddr, InitResponse, Querier, QueryResult, ReadonlyStorage, StdError,
-    StdResult, Storage, Uint128,
+    StdResult, Storage, Uint128, WasmMsg
 };
+use cosmwasm_utils::crypto::sha_256;
+use cosmwasm_utils::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
+use secret_toolkit::utils::pad_handle_result;
 
-use crate::msg::{
-    space_pad, ContractStatusLevel, HandleAnswer, HandleMsg, InitMsg, QueryAnswer, QueryMsg,
-    ResponseStatus::Success,
-};
-use crate::rand::sha_256;
+use snip20::data::ContractStatusLevel;
+use snip20::handle::{HandleMsg, HandleAnswer, ResponseStatus::Success};
+use snip20::query::{QueryMsg, QueryAnswer};
+use snip20::init::InitMsg;
+
 use crate::receiver::Snip20ReceiveMsg;
 use crate::state::{
     get_receiver_hash, get_transfers, read_allowance, read_viewing_key, set_receiver_hash,
     store_transfer, write_allowance, write_viewing_key, Balances, Config, Constants,
     ReadonlyBalances, ReadonlyConfig,
 };
-use crate::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
 
 /// We make sure that responses from `handle` are padded to a multiple of this size.
 pub const RESPONSE_BLOCK_SIZE: usize = 256;
@@ -49,12 +51,12 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     // Check name, symbol, decimals
     if !is_valid_name(&msg.name) {
         return Err(StdError::generic_err(
-            "Name is not in the expected format (3-30 UTF-8 bytes)",
+            "Name is not in the expected format (3-200 UTF-8 bytes)",
         ));
     }
     if !is_valid_symbol(&msg.symbol) {
         return Err(StdError::generic_err(
-            "Ticker symbol is not in expected format [A-Z]{3,6}",
+            "Ticker symbol is not in expected format [A-Za-z-]{3,12}",
         ));
     }
     if msg.decimals > 18 {
@@ -66,6 +68,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     let prng_seed_hashed = sha_256(&msg.prng_seed.0);
 
     let mut config = Config::from_storage(&mut deps.storage);
+
     config.set_constants(&Constants {
         name: msg.name,
         symbol: msg.symbol,
@@ -74,20 +77,28 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         prng_seed: prng_seed_hashed.to_vec(),
         total_supply_is_public: init_config.public_total_supply(),
     })?;
+
     config.set_total_supply(total_supply);
     config.set_contract_status(ContractStatusLevel::NormalRun);
     config.set_minters(Vec::from([admin]))?;
+    config.set_disabled_messages(&msg.disabled_messages.unwrap_or(vec![]))?;
 
-    Ok(InitResponse::default())
-}
+    let mut messages = vec![];
 
-fn pad_response(response: StdResult<HandleResponse>) -> StdResult<HandleResponse> {
-    response.map(|mut response| {
-        response.data = response.data.map(|mut data| {
-            space_pad(RESPONSE_BLOCK_SIZE, &mut data.0);
-            data
-        });
-        response
+    if let Some(callback) = msg.callback {
+        messages.push(
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: callback.contract.address,
+                callback_code_hash: callback.contract.code_hash,
+                msg: callback.msg,
+                send: vec![],
+            })
+        )
+    }
+
+    Ok(InitResponse {
+        messages,
+        log: vec![]
     })
 }
 
@@ -96,7 +107,16 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
-    let contract_status = ReadonlyConfig::from_storage(&deps.storage).contract_status();
+    let config = ReadonlyConfig::from_storage(&deps.storage);
+
+    let disabled_messages = config.disabled_messages();
+    let disabled = msg.to_disabled();
+
+    if disabled_messages.contains(&disabled) {
+        return Err(StdError::generic_err(format!("The message \"{}\" is disabled for this contract.", disabled)))
+    }
+
+    let contract_status = config.contract_status();
 
     match contract_status {
         ContractStatusLevel::StopAll | ContractStatusLevel::StopAllButRedeems => {
@@ -111,7 +131,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
                     "This contract is stopped and this action is not allowed",
                 )),
             };
-            return pad_response(response);
+            return pad_handle_result(response, RESPONSE_BLOCK_SIZE);
         }
         ContractStatusLevel::NormalRun => {} // If it's a normal run just continue
     }
@@ -177,7 +197,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::SetMinters { minters, .. } => set_minters(deps, env, minters),
     };
 
-    pad_response(response)
+    pad_handle_result(response, RESPONSE_BLOCK_SIZE)
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
@@ -1050,14 +1070,16 @@ fn check_if_admin<S: Storage>(config: &Config<S>, account: &HumanAddr) -> StdRes
 
 fn is_valid_name(name: &str) -> bool {
     let len = name.len();
-    3 <= len && len <= 30
+    3 <= len && len <= 200
 }
 
 fn is_valid_symbol(symbol: &str) -> bool {
     let len = symbol.len();
-    let len_is_valid = 3 <= len && len <= 6;
+    let len_is_valid = 3 <= len && len <= 12;
 
-    len_is_valid && symbol.bytes().all(|byte| b'A' <= byte && byte <= b'Z')
+    len_is_valid && symbol.bytes().all(|byte| {
+        (b'A' <= byte && byte <= b'Z') || (b'a' <= byte && byte <= b'z') || byte == b'-'
+    })
 }
 
 // pub fn migrate<S: Storage, A: Api, Q: Querier>(
@@ -1071,16 +1093,18 @@ fn is_valid_symbol(symbol: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msg::ResponseStatus;
-    use crate::msg::{InitConfig, InitialBalance};
     use cosmwasm_std::testing::*;
     use cosmwasm_std::{from_binary, BlockInfo, ContractInfo, MessageInfo, QueryResponse, WasmMsg};
     use std::any::Any;
+
+    use snip20::handle::{ResponseStatus, DisabledMsg};
+    use snip20::init::{InitConfig, InitialBalance};
 
     // Helper functions
 
     fn init_helper(
         initial_balances: Vec<InitialBalance>,
+        disabled_messages: Vec<DisabledMsg>
     ) -> (
         StdResult<InitResponse>,
         Extern<MockStorage, MockApi, MockQuerier>,
@@ -1096,11 +1120,13 @@ mod tests {
             initial_balances: Some(initial_balances),
             prng_seed: Binary::from("lolz fun yay".as_bytes()),
             config: None,
+            callback: None,
+            disabled_messages: Some(disabled_messages)
         };
 
         (init(&mut deps, env, init_msg), deps)
     }
-
+    /*
     /// Will return a ViewingKey only for the first account in `initial_balances`
     fn auth_query_helper(
         initial_balances: Vec<InitialBalance>,
@@ -1125,7 +1151,7 @@ mod tests {
 
         (vk, deps)
     }
-
+    */
     fn extract_error_msg<T: Any>(error: StdResult<T>) -> String {
         match error {
             Ok(response) => {
@@ -1177,7 +1203,9 @@ mod tests {
         let (init_result, deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert_eq!(init_result.unwrap(), InitResponse::default());
 
         let config = ReadonlyConfig::from_storage(&deps.storage);
@@ -1200,7 +1228,9 @@ mod tests {
         let (init_result, _deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(u128::max_value()),
-        }]);
+        }],
+        vec![]);
+        
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1216,7 +1246,9 @@ mod tests {
                 address: HumanAddr("giannis".to_string()),
                 amount: Uint128(1),
             },
-        ]);
+        ],
+        vec![]);
+
         let error = extract_error_msg(init_result);
         assert_eq!(
             error,
@@ -1231,7 +1263,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![ DisabledMsg::SetMinters, DisabledMsg::SetContractStatus ]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1273,7 +1307,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![ DisabledMsg::BurnFrom, DisabledMsg::Burn ]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1317,7 +1353,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1343,7 +1381,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![ DisabledMsg::Send, DisabledMsg::SendFrom, DisabledMsg::SetViewingKey ]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1379,7 +1419,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1428,7 +1470,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1546,7 +1590,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1660,7 +1706,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1737,7 +1785,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1816,7 +1866,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1882,7 +1934,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1912,7 +1966,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("admin".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1939,7 +1995,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("butler".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -1971,7 +2029,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2010,7 +2070,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(initial_amount),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2040,7 +2102,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(initial_amount),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2072,7 +2136,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2125,7 +2191,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2174,7 +2242,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2223,7 +2293,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2268,7 +2340,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2312,7 +2386,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2386,7 +2462,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("giannis".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2463,6 +2541,8 @@ mod tests {
             }]),
             prng_seed: Binary::from("lolz fun yay".as_bytes()),
             config: Some(init_config),
+            callback: None,
+            disabled_messages: None
         };
         let init_result = init(&mut deps, env, init_msg);
         assert!(
@@ -2500,7 +2580,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("giannis".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2609,7 +2691,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2656,7 +2740,9 @@ mod tests {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
             address: HumanAddr("bob".to_string()),
             amount: Uint128(5000),
-        }]);
+        }],
+        vec![]);
+
         assert!(
             init_result.is_ok(),
             "Init failed: {}",
@@ -2735,5 +2821,55 @@ mod tests {
             _ => panic!("Unexpected"),
         };
         assert_eq!(transfers.len(), 2);
+    }
+
+    #[test]
+    fn test_disabled_messages() {
+        fn assert_error(result: StdResult<HandleResponse>) {
+            assert!(result.is_err());
+
+            let err = result.unwrap_err();
+
+            match err {
+                StdError::GenericErr { msg, .. } => {
+                    assert!(msg.contains("is disabled for this contract."))
+                },
+                _ => panic!("Wrong error!")
+            }
+        }
+
+        let (init_result, mut deps) = init_helper(
+            vec![],
+            vec![ DisabledMsg::Redeem, DisabledMsg::BurnFrom, DisabledMsg::ChangeAdmin ]
+        );
+
+        assert!(
+            init_result.is_ok(),
+            "Init failed: {}",
+            init_result.err().unwrap()
+        );
+
+        let msg = HandleMsg::Redeem {
+            amount: Uint128(123123),
+            denom: None,
+            padding: None
+        };
+
+        assert_error(handle(&mut deps, mock_env("goshu", &[]), msg));
+
+        let msg = HandleMsg::BurnFrom {
+            owner: HumanAddr("pesho".into()),
+            amount: Uint128(123123),
+            padding: None
+        };
+
+        assert_error(handle(&mut deps, mock_env("goshu", &[]), msg));
+
+        let msg = HandleMsg::ChangeAdmin {
+            address: HumanAddr("mf doom".into()),
+            padding: None
+        };
+
+        assert_error(handle(&mut deps, mock_env("goshu", &[]), msg));
     }
 }

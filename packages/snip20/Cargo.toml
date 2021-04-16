@@ -1,0 +1,17 @@
+[package]
+name = "snip20"
+version = "0.1.0"
+authors = ["aakamenov <asparuh@hack.bg>"]
+edition = "2018"
+
+[features]
+default = []
+# for quicker tests, cargo test --lib
+# for more explicit tests, cargo test --features=backtraces
+backtraces = ["cosmwasm-std/backtraces"]
+
+[dependencies]
+cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+cosmwasm-utils = { git = "https://github.com/hackbg/cosmwasm-utils.git", rev = "c76c905" }
+schemars = "0.7"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
