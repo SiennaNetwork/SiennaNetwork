@@ -3,7 +3,7 @@
 skinparam shadowing false
 left to right direction
 
-namespace SNIP20 {
+namespace SNIP20 #ffeeaa {
   interface IMint {
     - tx AddMinters ()
     - tx RemoveMinters ()
@@ -16,7 +16,7 @@ namespace SNIP20 {
     - tx Deposit (padding)
     - tx Redeem (amount, denom, padding)
   }
-  interface IViewingKeys {
+  interface IViewKey {
     - tx CreateViewingKey (entropy, padding)
     - tx SetViewingKey (entropy, padding)
   }
@@ -35,39 +35,6 @@ namespace SNIP20 {
   }
   interface IContractStatus {
     - tx SetContractStatus ()
-  }
-}
-
-namespace Emergency {
-  interface IEmergency {
-    --
-    + tx SetEmergency (s: EmergencyStatus)
-    --
-    + q GetEmergency ()
-    --
-    + fn is_normal_operation (state)?
-    + fn is_emergency (state)?
-    --
-    + fn set_emergency (state, reason)
-  }
-  enum EmergencyStatus {
-    + NoEmergency
-    + Emergency<Reason>
-    + ContractDisabled<Reason>
-  }
-}
-
-namespace Administrated {
-  interface IAdministrated {
-    - state a: Option<Admin>
-    - state p: IsAdminPublic
-    --
-    - tx SetAdmin (a: Admin, p: IsAdminPublic)
-    - tx RemoveAdmin ()
-    --
-    + q GetAdmin ()
-    --
-    + fn is_admin (deps)
   }
 }
 
@@ -101,20 +68,25 @@ namespace Vesting {
     - tx Vest ()
   }
 
-  class SIENNA {}
-  SIENNA -u-> SNIP20
+  class SIENNA <<SNIP20>> {}
+  SIENNA .u. SNIP20
 
   class MGMT {}
-  MGMT -d-> ICC.ITokenLink
-  MGMT -l-> Vesting.ISchedule
-  MGMT -l-> Vesting.IClaimable
+  MGMT .d. ICC.ITokenLink
+  MGMT .l. Vesting.ISchedule
+  MGMT .l. Vesting.IClaimable
+
+  MGMT <=> RPT
+  MGMT =d=> SIENNA
+  RPT => SIENNA
 
   class RPT {}
-  RPT -r-> ICC.ITokenLink
-  RPT -r-> Vesting.ISplitPortion
+  RPT .r. ICC.ITokenLink
+  RPT .r. ICC.IContractLink
+  RPT .r. Vesting.ISplitPortion
 }
 
-namespace TGE {
+namespace ICC {
   interface ITokenLink {
     - state t: Token
     --
@@ -122,26 +94,132 @@ namespace TGE {
     --
     - tx SetToken ()
   }
+
+  interface IContractLink {
+    + address: CanonicalAddr
+    + code_hash: String
+  }
 }
 
 namespace AMM {
-  class Factory {}
-  class Pair {}
-  class LPToken {}
-  LPToken -d-> SNIP20
+  class Factory {
+    + q GetExchangeAddress (pair: TokenPair)
+    + q ListIdos (pagination Pagination)
+    + q ListExchanges (pagination Pagination)
+    - tx CreateExchange (pair: TokenPair)
+    - tx CreateIdo (info: IdoInitConfig)
+    - tx RegisterExchange (pair: TokenPair)
+    - tx RegisterIdo ()
+  }
+
+  class ExchangePair {
+    - q PairInfo ()
+    - q FactoryInfo ()
+    - q Pool
+    - q SwapSimulation (offer: TokenTypeAmount)
+    - tx AddLiquidity (deposit: TokenPairAmount, slippage_tolerance)
+    - tx RemoveLiquidity (amount, recipient)
+    - tx Swap (offer: TokenTypeAmount, expected_return)
+    - tx OnLpTokenInit ()
+  }
+
+  class LPToken <<SNIP20>> {}
+  LPToken .d. SNIP20
+
+  class IDO {
+    + q GetRate ()
+    - tx OnSnip20Init ()
+    - tx Swap (amount)
+  }
 }
 
 namespace Rewards {
-  class WeightMaster {}
+  class WeightMaster {
+    - tx ChangeAdmin (addr)
+    --
+    - tx SetGovToken (addr, hash)
+    --
+    - tx UpdateAllocation (spy_addr, spy_hash, hook)
+    - tx SetWeights (weights)
+    - tx SetSchedule (schedule)
+  }
   
-  class GovernanceToken {}
-  GovernanceToken -u-> SNIP20
+  class GovernanceToken <<SNIP20>> {}
+  GovernanceToken .u. SNIP20
 
-  class CashbackMinter {}
+  class CashbackMinter {
+    - state sscrt_addr: Addr
+    - state paired_tokens: Vec<Addr>
+    - state cashback: SecretContract
+    - tx ReceiveSwapData (asset_in, asset_out, account)
+  }
   
-  class Cashback {}
+  class Cashback <<SNIP20>> {}
+  Cashback .u. SNIP20
   
-  class LPStaking {}
+  class LPStaking {
+    - state reward_token
+    - state inc_token
+    - state prng_seed
+    - state viewing_key
+    - state master
+    - state token_info
+    --
+    - tx ChangeAdmin (address)
+    --
+    - tx StopContract ()
+    - tx EmergencyRedeem ()
+    - tx ResumeContract ()
+    --
+    - tx CreateViewingKey (entropy)
+    - tx SetViewingKey (key)
+    --
+    - tx Redeem (amount)
+    - tx Receive (from, amount, msg)
+    - tx NotifyAllocation (amount, hook)
+  }
+  LPStaking ..> SNIP20.IViewKey
+
+  WeightMaster -u-> GovernanceToken
 }
+
+
+namespace TODOEmergency #DDDDDD {
+  interface IEmergency {
+    --
+    + tx SetEmergency (s: EmergencyStatus)
+    --
+    + q GetEmergency ()
+    --
+    + fn is_normal_operation (state)?
+    + fn is_emergency (state)?
+    --
+    + fn set_emergency (state, reason)
+  }
+  enum EmergencyStatus {
+    + NoEmergency
+    + Emergency<Reason>
+    + ContractDisabled<Reason>
+  }
+}
+
+namespace TODOAdministrated #DDDDDD {
+  interface IAdministrated {
+    - state a: Option<Admin>
+    - state p: IsAdminPublic
+    --
+    - tx SetAdmin (a: Admin, p: IsAdminPublic)
+    - tx RemoveAdmin ()
+    --
+    + q GetAdmin ()
+    --
+    + fn is_admin (deps)
+  }
+
+}
+
+Vesting --d[hidden]-- TODOAdministrated
+Vesting --d[hidden]-- TODOEmergency
+Vesting --u[hidden]-- ICC
 
 @enduml
