@@ -30,16 +30,16 @@ export async function setup(client: SigningCosmWasmClient, commit: string, sienn
     writer.write(exchange_upload, `uploads/exchange`)
 
     const snip20_upload = await client.upload(snip20_wasm, {}, undefined, fee)
-    writer.write(exchange_upload, `uploads/snip20`)
+    writer.write(snip20_upload, `uploads/snip20`)
 
     const ido_upload = await client.upload(ido_wasm, {}, undefined, fee)
-    writer.write(exchange_upload, `uploads/ido`)
+    writer.write(ido_upload, `uploads/ido`)
 
     const factory_upload = await client.upload(factory_wasm, {}, undefined, fee)
-    writer.write(exchange_upload, `uploads/factory`)
+    writer.write(factory_upload, `uploads/factory`)
 
     const lp_token_upload = await client.upload(lp_token_wasm, {}, undefined, fee)
-    writer.write(exchange_upload, `uploads/lp_token`)
+    writer.write(lp_token_upload, `uploads/lp_token`)
   
     const pair_contract = new ContractInstantiationInfo(exchange_upload.originalChecksum, exchange_upload.codeId)
     const snip20_contract = new ContractInstantiationInfo(snip20_upload.originalChecksum, snip20_upload.codeId)

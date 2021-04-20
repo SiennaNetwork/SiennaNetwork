@@ -386,6 +386,22 @@ export class Snip20Contract extends SmartContract {
         const transfer = [ create_coin(amount) ]
         return await this.signing_client.execute(this.address, msg, undefined, transfer, fee)
     }
+
+    async transfer(recipient: Address, amount: Uint128, padding?: string | null, fee?: Fee | undefined): Promise<ExecuteResult> {
+        const msg = {
+            transfer: {
+                recipient,
+                amount,
+                padding
+            }
+        }
+
+        if (fee === undefined) {
+            fee = create_fee('200000')
+        }
+
+        return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
+    }
 }
 
 function add_native_balance_pair(amount: TokenPairAmount): Coin[] | undefined {

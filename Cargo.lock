@@ -963,7 +963,6 @@ dependencies = [
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit?rev=6aa670f)",
  "serde",
  "sha2 0.9.3",
- "shared",
  "snafu",
  "subtle 2.4.0",
 ]
