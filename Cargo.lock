@@ -437,21 +437,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ido"
-version = "0.1.0"
-dependencies = [
- "cosmwasm-schema 0.10.0",
- "cosmwasm-std",
- "cosmwasm-storage",
- "cosmwasm-utils",
- "schemars",
- "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
- "serde",
- "shared",
- "snafu",
-]
-
-[[package]]
 name = "itoa"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -912,6 +897,7 @@ dependencies = [
 [[package]]
 name = "shared"
 version = "0.1.0"
+source = "git+https://github.com/hackbg/sienna-amm-shared#50074b363b60ae8ddb5e8798f49ba6abbe93aa0d"
 dependencies = [
  "cosmwasm-schema 0.10.0",
  "cosmwasm-std",

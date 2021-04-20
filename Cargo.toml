@@ -2,10 +2,8 @@
 members = [
   "exchange",              # uniswap exchange contract implementation
   "factory",               # factory contract for creating exchanges
-  "shared",                # shared types between all amm contracts
   "snip20-reference-impl", # snip20 token implementation with a modification to call back a contract after init
   "lp-token",              # snip20 liquidity provider token
-  "ido",                   # initial dex offering implementation
 ]
 
 [profile.release]
