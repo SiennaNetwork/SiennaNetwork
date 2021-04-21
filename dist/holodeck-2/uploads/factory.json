@@ -1,9 +1,9 @@
 {
-  "originalSize": 329464,
-  "originalChecksum": "af002c0f73aec64a4d69d0cc49f2718b8960885aaefc008fcfd7bd0244f79525",
-  "compressedSize": 108755,
-  "compressedChecksum": "c2dbabf44b492fe35e04656c69dc959c4660bc470accbc5dbca0fb03ca69c2da",
-  "codeId": 28523,
+  "originalSize": 198240,
+  "originalChecksum": "df8c6c2f8166f3a8c0c307ac58919651cd150b70105ff04ea413381134549c0b",
+  "compressedSize": 68582,
+  "compressedChecksum": "7c02da0862dc9f7082309cdff31c3a9422ba5fa93313ce49d275c03a2d587004",
+  "codeId": 28573,
   "logs": [
     {
       "msg_index": 0,
@@ -26,12 +26,12 @@
             },
             {
               "key": "code_id",
-              "value": "28523"
+              "value": "28573"
             }
           ]
         }
       ]
     }
   ],
-  "transactionHash": "3C8C717E53F5AB36CC2786142B9D6C138D69A0D2873E9018E5AEC33F10A869FC"
+  "transactionHash": "4086601AC905D1BB9DE4276C397DA82ECCF9CF59B9BD45F44EE4F93444B89132"
 }
