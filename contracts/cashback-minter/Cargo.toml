@@ -22,11 +22,13 @@ default = []
 backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
-secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
-cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-scrt-finance = { path = "../../packages/scrt-finance" }
+cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-utils = { git = "https://github.com/hackbg/cosmwasm-utils", tag = "secret-v1.0.4" }
 schemars = "0.7"
+scrt-finance = { path = "../../packages/scrt-finance" }
+secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
-cosmwasm-utils = { git = "https://github.com/hackbg/cosmwasm-utils", tag = "secret-v1.0.4" }
+weight-master = { path = "../weight-master" }
+cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }

@@ -1,4 +1,4 @@
-pub mod contract;
+pub mod contract; #[cfg(test)] mod contract_test;
 pub mod msg;
 mod rand;
 pub mod receiver;
