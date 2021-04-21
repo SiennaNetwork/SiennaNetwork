@@ -3,9 +3,8 @@
 use cosmwasm_std::{
     from_binary, log, to_binary, Api, Binary, CanonicalAddr, CosmosMsg, Env, Extern,
     HandleResponse, HumanAddr, InitResponse, Querier, QueryResult, ReadonlyStorage, StdError,
-    StdResult, Storage, Uint128, WasmMsg,
+    StdResult, Storage, Uint128, WasmMsg, Coin
 };
-
 use crate::msg::{
     space_pad, ContractStatusLevel, HandleAnswer, HandleMsg, HookMsg, InitMsg, QueryAnswer,
     QueryMsg, ResponseStatus::Success,

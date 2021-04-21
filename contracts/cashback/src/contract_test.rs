@@ -1,11 +1,15 @@
 #[cfg(test)]
 
-use crate::contract::*;
-use crate::msg::ResponseStatus;
-use crate::msg::{InitConfig, InitialBalance};
-use cosmwasm_std::testing::*;
-use cosmwasm_std::{from_binary, BlockInfo, ContractInfo, MessageInfo, QueryResponse, WasmMsg};
 use std::any::Any;
+use cosmwasm_std::{
+    testing::*,
+    StdError, StdResult,
+    HumanAddr, Uint128, Coin,
+    Extern, Api, InitResponse, QueryResponse, HandleResponse,
+    Env, BlockInfo, ContractInfo, MessageInfo,
+    CosmosMsg, WasmMsg, Binary, from_binary, to_binary,
+};
+use crate::{contract::*, msg::*, viewing_key::*, state::*, rand::*, receiver::*};
 
 // Helper functions
 
@@ -19,13 +23,10 @@ fn init_helper(
     let env = mock_env("instantiator", &[]);
 
     let init_msg = InitMsg {
-        name: "sec-sec".to_string(),
-        admin: Some(HumanAddr("admin".to_string())),
-        symbol: "SECSEC".to_string(),
-        decimals: 8,
         initial_balances: Some(initial_balances),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
-        config: None,
+        master: SecretContract { address: "master".into(), hash: "masterhash".into() },
+        sefi: SecretContract { address: "sefi".into(), hash: "sefihash".into() }
     };
 
     (init(&mut deps, env, init_msg), deps)
@@ -79,7 +80,7 @@ fn ensure_success(handle_result: HandleResponse) -> bool {
 
     match handle_result {
         HandleAnswer::Deposit { status }
-        | HandleAnswer::Redeem { status }
+        //| HandleAnswer::Redeem { status }
         | HandleAnswer::Transfer { status }
         | HandleAnswer::Send { status }
         | HandleAnswer::Burn { status }
@@ -343,7 +344,7 @@ fn test_handle_set_viewing_key() {
         from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
     assert_eq!(
         to_binary(&unwrapped_result).unwrap(),
-        to_binary(&HandleAnswer::SetViewingKey { status: Success }).unwrap(),
+        to_binary(&HandleAnswer::SetViewingKey { status: ResponseStatus::Success }).unwrap(),
     );
     let bob_canonical = deps
         .api
@@ -864,75 +865,75 @@ fn test_handle_set_contract_status() {
     assert!(matches!(contract_status, ContractStatusLevel::StopAll{..}));
 }
 
-#[test]
-fn test_handle_redeem() {
-    let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: HumanAddr("butler".to_string()),
-        amount: Uint128(5000),
-    }]);
-    assert!(
-        init_result.is_ok(),
-        "Init failed: {}",
-        init_result.err().unwrap()
-    );
+//#[test]
+//fn test_handle_redeem() {
+    //let (init_result, mut deps) = init_helper(vec![InitialBalance {
+        //address: HumanAddr("butler".to_string()),
+        //amount: Uint128(5000),
+    //}]);
+    //assert!(
+        //init_result.is_ok(),
+        //"Init failed: {}",
+        //init_result.err().unwrap()
+    //);
 
-    let handle_msg = HandleMsg::Redeem {
-        amount: Uint128(1000),
-        denom: None,
-        padding: None,
-    };
-    let handle_result = handle(&mut deps, mock_env("butler", &[]), handle_msg);
-    assert!(
-        handle_result.is_ok(),
-        "handle() failed: {}",
-        handle_result.err().unwrap()
-    );
+    //let handle_msg = HandleMsg::Redeem {
+        //amount: Uint128(1000),
+        //denom: None,
+        //padding: None,
+    //};
+    //let handle_result = handle(&mut deps, mock_env("butler", &[]), handle_msg);
+    //assert!(
+        //handle_result.is_ok(),
+        //"handle() failed: {}",
+        //handle_result.err().unwrap()
+    //);
 
-    let balances = ReadonlyBalances::from_storage(&deps.storage);
-    let canonical = deps
-        .api
-        .canonical_address(&HumanAddr("butler".to_string()))
-        .unwrap();
-    assert_eq!(balances.account_amount(&canonical), 4000)
-}
+    //let balances = ReadonlyBalances::from_storage(&deps.storage);
+    //let canonical = deps
+        //.api
+        //.canonical_address(&HumanAddr("butler".to_string()))
+        //.unwrap();
+    //assert_eq!(balances.account_amount(&canonical), 4000)
+//}
 
-#[test]
-fn test_handle_deposit() {
-    let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: HumanAddr("lebron".to_string()),
-        amount: Uint128(5000),
-    }]);
-    assert!(
-        init_result.is_ok(),
-        "Init failed: {}",
-        init_result.err().unwrap()
-    );
+//#[test]
+//fn test_handle_deposit() {
+    //let (init_result, mut deps) = init_helper(vec![InitialBalance {
+        //address: HumanAddr("lebron".to_string()),
+        //amount: Uint128(5000),
+    //}]);
+    //assert!(
+        //init_result.is_ok(),
+        //"Init failed: {}",
+        //init_result.err().unwrap()
+    //);
 
-    let handle_msg = HandleMsg::Deposit { padding: None };
-    let handle_result = handle(
-        &mut deps,
-        mock_env(
-            "lebron",
-            &[Coin {
-                denom: "uscrt".to_string(),
-                amount: Uint128(1000),
-            }],
-        ),
-        handle_msg,
-    );
-    assert!(
-        handle_result.is_ok(),
-        "handle() failed: {}",
-        handle_result.err().unwrap()
-    );
+    //let handle_msg = HandleMsg::Deposit { padding: None };
+    //let handle_result = handle(
+        //&mut deps,
+        //mock_env(
+            //"lebron",
+            //&[Coin {
+                //denom: "uscrt".to_string(),
+                //amount: Uint128(1000),
+            //}],
+        //),
+        //handle_msg,
+    //);
+    //assert!(
+        //handle_result.is_ok(),
+        //"handle() failed: {}",
+        //handle_result.err().unwrap()
+    //);
 
-    let balances = ReadonlyBalances::from_storage(&deps.storage);
-    let canonical = deps
-        .api
-        .canonical_address(&HumanAddr("lebron".to_string()))
-        .unwrap();
-    assert_eq!(balances.account_amount(&canonical), 6000)
-}
+    //let balances = ReadonlyBalances::from_storage(&deps.storage);
+    //let canonical = deps
+        //.api
+        //.canonical_address(&HumanAddr("lebron".to_string()))
+        //.unwrap();
+    //assert_eq!(balances.account_amount(&canonical), 6000)
+//}
 
 #[test]
 fn test_handle_burn() {
@@ -1050,54 +1051,54 @@ fn test_handle_admin_commands() {
     assert!(error.contains(&admin_err.clone()));
 }
 
-#[test]
-fn test_handle_pause_with_withdrawals() {
-    let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: HumanAddr("lebron".to_string()),
-        amount: Uint128(5000),
-    }]);
-    assert!(
-        init_result.is_ok(),
-        "Init failed: {}",
-        init_result.err().unwrap()
-    );
+//#[test]
+//fn test_handle_pause_with_withdrawals() {
+    //let (init_result, mut deps) = init_helper(vec![InitialBalance {
+        //address: HumanAddr("lebron".to_string()),
+        //amount: Uint128(5000),
+    //}]);
+    //assert!(
+        //init_result.is_ok(),
+        //"Init failed: {}",
+        //init_result.err().unwrap()
+    //);
 
-    let pause_msg = HandleMsg::SetContractStatus {
-        level: ContractStatusLevel::StopAllButRedeems,
-        padding: None,
-    };
+    //let pause_msg = HandleMsg::SetContractStatus {
+        //level: ContractStatusLevel::StopAllButRedeems,
+        //padding: None,
+    //};
 
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), pause_msg);
-    assert!(
-        handle_result.is_ok(),
-        "Pause handle failed: {}",
-        handle_result.err().unwrap()
-    );
+    //let handle_result = handle(&mut deps, mock_env("admin", &[]), pause_msg);
+    //assert!(
+        //handle_result.is_ok(),
+        //"Pause handle failed: {}",
+        //handle_result.err().unwrap()
+    //);
 
-    let send_msg = HandleMsg::Transfer {
-        recipient: HumanAddr("account".to_string()),
-        amount: Uint128(123),
-        padding: None,
-    };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), send_msg);
-    let error = extract_error_msg(handle_result);
-    assert_eq!(
-        error,
-        "This contract is stopped and this action is not allowed".to_string()
-    );
+    //let send_msg = HandleMsg::Transfer {
+        //recipient: HumanAddr("account".to_string()),
+        //amount: Uint128(123),
+        //padding: None,
+    //};
+    //let handle_result = handle(&mut deps, mock_env("admin", &[]), send_msg);
+    //let error = extract_error_msg(handle_result);
+    //assert_eq!(
+        //error,
+        //"This contract is stopped and this action is not allowed".to_string()
+    //);
 
-    let withdraw_msg = HandleMsg::Redeem {
-        amount: Uint128(5000),
-        denom: None,
-        padding: None,
-    };
-    let handle_result = handle(&mut deps, mock_env("lebron", &[]), withdraw_msg);
-    assert!(
-        handle_result.is_ok(),
-        "Withdraw failed: {}",
-        handle_result.err().unwrap()
-    );
-}
+    //let withdraw_msg = HandleMsg::Redeem {
+        //amount: Uint128(5000),
+        //denom: None,
+        //padding: None,
+    //};
+    //let handle_result = handle(&mut deps, mock_env("lebron", &[]), withdraw_msg);
+    //assert!(
+        //handle_result.is_ok(),
+        //"Withdraw failed: {}",
+        //handle_result.err().unwrap()
+    //);
+//}
 
 #[test]
 fn test_handle_pause_all() {
@@ -1135,17 +1136,17 @@ fn test_handle_pause_all() {
         "This contract is stopped and this action is not allowed".to_string()
     );
 
-    let withdraw_msg = HandleMsg::Redeem {
-        amount: Uint128(5000),
-        denom: None,
-        padding: None,
-    };
-    let handle_result = handle(&mut deps, mock_env("lebron", &[]), withdraw_msg);
-    let error = extract_error_msg(handle_result);
-    assert_eq!(
-        error,
-        "This contract is stopped and this action is not allowed".to_string()
-    );
+    //let withdraw_msg = HandleMsg::Redeem {
+        //amount: Uint128(5000),
+        //denom: None,
+        //padding: None,
+    //};
+    //let handle_result = handle(&mut deps, mock_env("lebron", &[]), withdraw_msg);
+    //let error = extract_error_msg(handle_result);
+    //assert_eq!(
+        //error,
+        //"This contract is stopped and this action is not allowed".to_string()
+    //);
 }
 
 #[test]
@@ -1383,16 +1384,13 @@ fn test_query_token_info() {
     let mut deps = mock_dependencies(20, &[]);
     let env = mock_env("instantiator", &[]);
     let init_msg = InitMsg {
-        name: init_name.clone(),
-        admin: Some(init_admin.clone()),
-        symbol: init_symbol.clone(),
-        decimals: init_decimals.clone(),
         initial_balances: Some(vec![InitialBalance {
             address: HumanAddr("giannis".to_string()),
             amount: init_supply,
         }]),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
-        config: Some(init_config),
+        master: SecretContract { address: "master".into(), hash: "masterhash".into() },
+        sefi: SecretContract { address: "sefi".into(), hash: "sefihash".into() }
     };
     let init_result = init(&mut deps, env, init_msg);
     assert!(
