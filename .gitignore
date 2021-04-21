@@ -19,3 +19,6 @@ build/
 
 node_modules/
 artifacts/
+
+test.log
+yarn-error.log
