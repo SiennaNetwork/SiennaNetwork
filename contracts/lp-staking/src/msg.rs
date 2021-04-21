@@ -1,6 +1,6 @@
 pub use scrt_finance::lp_staking_msg::{
-    LPStakingHandleMsg::{Receive, Redeem, SetViewingKey},
-    LPStakingQueryMsg::{Rewards},
+    LPStakingInitMsg,
+    LPStakingQueryMsg, LPStakingQueryAnswer,
+    LPStakingHandleMsg, LPStakingHandleAnswer,
     LPStakingReceiveMsg,
-    LPStakingHandleAnswer
 };

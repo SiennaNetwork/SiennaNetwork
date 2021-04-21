@@ -1,16 +1,18 @@
 #![cfg(test)]
 
-use crate::contract::*;
-use crate::msg::*;
-use crate::state::SecretContract;
+use crate::{contract::*, msg::*, state::Config};
+use scrt_finance::types::{TokenInfo, SecretContract};
 use cosmwasm_std::testing::{
     mock_dependencies, MockApi, MockQuerier, MockStorage, MOCK_CONTRACT_ADDR,
 };
 use cosmwasm_std::{
-    coins, Coin, from_binary, BlockInfo, Coin, ContractInfo, Empty, MessageInfo, StdError, WasmMsg,
+    coins, Coin, from_binary, BlockInfo, ContractInfo, Empty, MessageInfo, StdError, WasmMsg,
+    CosmosMsg, StdResult, InitResponse, HumanAddr, Binary,
+    Env, Storage, Api, Querier, Extern, Uint128, to_binary
 };
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use secret_toolkit::storage::TypedStore;
 
 // Helper functions
 

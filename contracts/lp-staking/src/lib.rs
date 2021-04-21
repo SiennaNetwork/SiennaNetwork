@@ -1,5 +1,5 @@
-mod constants;
-pub mod contract;
+pub mod contract; #[cfg(test)] mod contract_test;
+pub mod constants;
 pub mod querier;
 pub mod state;
 pub mod msg;

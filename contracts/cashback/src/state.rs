@@ -167,12 +167,6 @@ pub struct Constants {
     pub total_supply_is_public: bool,
 }
 
-#[derive(Serialize, Debug, Deserialize, Clone, PartialEq, JsonSchema, Default)]
-pub struct SecretContract {
-    pub address: HumanAddr,
-    pub hash: String,
-}
-
 pub struct ReadonlyConfig<'a, S: ReadonlyStorage> {
     storage: ReadonlyPrefixedStorage<'a, S>,
 }

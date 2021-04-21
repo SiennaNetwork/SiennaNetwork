@@ -2,7 +2,13 @@ use cosmwasm_std::{HumanAddr, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-// RewardPool is a struct that keeps track of rewards and lockups
+#[derive(Serialize, Debug, Deserialize, Clone, PartialEq, JsonSchema, Default)]
+pub struct SecretContract {
+    pub address: HumanAddr,
+    pub hash: String,
+}
+
+/// Keeps track of rewards and lockups
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
 pub struct RewardPool {
     pub residue: u128,
@@ -46,3 +52,4 @@ pub type Schedule = Vec<ScheduleUnit>;
 pub fn sort_schedule(s: &mut Schedule) {
     s.sort_by(|&s1, &s2| s1.end_block.cmp(&s2.end_block))
 }
+
