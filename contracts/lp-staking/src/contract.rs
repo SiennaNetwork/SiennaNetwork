@@ -40,6 +40,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             prng_seed: prng_seed_hashed.to_vec(),
             is_stopped: false,
             own_addr: env.contract.address,
+            deadline: msg.deadline
         },
     )?;
 
@@ -49,6 +50,8 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             residue: 0,
             inc_token_supply: 0,
             acc_reward_per_share: 0,
+            last_reward_block: 0,
+            pending_rewards: 0
         },
     )?;
 
@@ -185,9 +188,9 @@ fn receive<S: Storage, A: Api, Q: Querier>(
     msg: Binary,
 ) -> StdResult<HandleResponse> {
     let msg: LPStakingReceiveMsg = from_binary(&msg)?;
-
     match msg {
         LPStakingReceiveMsg::Deposit {} => deposit(deps, env, from, amount),
+        LPStakingReceiveMsg::DepositRewards {} => deposit(deps, env, from, amount),
     }
 }
 

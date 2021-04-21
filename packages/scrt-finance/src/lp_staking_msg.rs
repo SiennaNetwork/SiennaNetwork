@@ -42,6 +42,10 @@ pub enum LPStakingHandleMsg {
         amount: Uint128,
         hook: Option<Binary>,
     },
+
+    DepositRewards {},
+    ClaimRewardPool { to: Option<HumanAddr> },
+    SetDeadline { block: u64 }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -52,6 +56,7 @@ pub struct LPStakingInitMsg {
     pub viewing_key: String,
     pub token_info: TokenInfo,
     pub prng_seed: Binary,
+    pub deadline: u64
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
@@ -72,6 +77,7 @@ pub enum LPStakingHandleAnswer {
 #[serde(rename_all = "snake_case")]
 pub enum LPStakingReceiveMsg {
     Deposit {},
+    DepositRewards {}
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -107,6 +113,7 @@ pub enum LPStakingQueryMsg {
         address: HumanAddr,
         key: String,
         height: u64,
+        new_rewards: Uint128
     },
     Balance {
         address: HumanAddr,

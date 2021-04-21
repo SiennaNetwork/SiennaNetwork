@@ -12,4 +12,5 @@ pub struct Config {
     pub prng_seed: Vec<u8>,
     pub is_stopped: bool,
     pub own_addr: HumanAddr,
+    pub deadline: u64
 }

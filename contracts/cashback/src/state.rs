@@ -15,6 +15,8 @@ use crate::msg::{status_level_to_u8, u8_to_status_level, ContractStatusLevel};
 use crate::viewing_key::ViewingKey;
 use serde::de::DeserializeOwned;
 
+pub use scrt_finance::types::SecretContract;
+
 pub static CONFIG_KEY: &[u8] = b"config";
 pub const PREFIX_TXS: &[u8] = b"transfers";
 

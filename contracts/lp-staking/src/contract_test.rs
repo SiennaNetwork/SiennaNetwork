@@ -1,15 +1,19 @@
 #![cfg(test)]
 
-use crate::{contract::*, msg::*, state::Config};
-use scrt_finance::types::{TokenInfo, SecretContract};
-use cosmwasm_std::testing::{
-    mock_dependencies, MockApi, MockQuerier, MockStorage, MOCK_CONTRACT_ADDR,
-};
+use crate::{contract::*, msg::*, state::*, constants::*};
+use scrt_finance::types::{TokenInfo, SecretContract, RewardPool, UserInfo};
 use cosmwasm_std::{
-    coins, Coin, from_binary, BlockInfo, ContractInfo, Empty, MessageInfo, StdError, WasmMsg,
-    CosmosMsg, StdResult, InitResponse, HumanAddr, Binary,
-    Env, Storage, Api, Querier, Extern, Uint128, to_binary
+    Empty,
+    coins, Coin,
+    HumanAddr, Uint128,
+    StdResult, StdError,
+    Binary, to_binary, from_binary,
+    Env, Storage, Api, Querier, Extern,
+    BlockInfo, MessageInfo, ContractInfo,
+    WasmMsg, CosmosMsg, InitResponse, HandleResponse,
+    testing::{mock_dependencies, MockApi, MockQuerier, MockStorage, MOCK_CONTRACT_ADDR}
 };
+use cosmwasm_utils::ContractInfo as ContractInfoWithHash;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use secret_toolkit::storage::TypedStore;
@@ -26,19 +30,20 @@ fn init_helper(
     let env = mock_env("admin", &[], 1);
 
     let init_msg = LPStakingInitMsg {
-        reward_token: SecretContract {
+        deadline: 0u64,
+        reward_token: ContractInfoWithHash {
             address: HumanAddr("scrt".to_string()),
-            contract_hash: "1".to_string(),
+            code_hash: "1".to_string(),
         },
-        inc_token: SecretContract {
+        inc_token: ContractInfoWithHash {
             address: HumanAddr("eth".to_string()),
-            contract_hash: "2".to_string(),
+            code_hash: "2".to_string(),
         },
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         viewing_key: "123".to_string(),
-        master: SecretContract {
+        master: ContractInfoWithHash {
             address: Default::default(),
-            contract_hash: "".to_string(),
+            code_hash: "".to_string(),
         },
         token_info: TokenInfo {
             name: "".to_string(),
@@ -142,7 +147,7 @@ fn print_status(
         .unwrap();
     let config: Config = TypedStore::attach(&deps.storage).load(CONFIG_KEY).unwrap();
 
-    println!("####### Statistics for block: {} #######", block);
+    //println!("####### Statistics for block: {} #######", block);
     println!("Deadline: {}", config.deadline);
     println!("Locked ETH: {}", reward_pool.inc_token_supply);
     println!("Pending rewards: {}", reward_pool.pending_rewards);
@@ -176,6 +181,7 @@ fn query_rewards(
         address: user,
         new_rewards: new_mint,
         key: "42".to_string(),
+        height: 0
     };
 
     let result: LPStakingQueryAnswer = from_binary(&query(&deps, query_msg).unwrap()).unwrap();
@@ -187,7 +193,7 @@ fn query_rewards(
 
 fn set_vks(deps: &mut Extern<MockStorage, MockApi, MockQuerier>, users: Vec<HumanAddr>) {
     for user in users {
-        let vk_msg = SetViewingKey {
+        let vk_msg = LPStakingHandleMsg::SetViewingKey {
             key: "42".to_string(),
             padding: None,
         };
@@ -254,7 +260,7 @@ fn sanity_run(mut rewards: u128, mut deadline: u64) {
 
     let (init_result, mut deps) = init_helper(deadline);
 
-    deposit_rewards(&mut deps, mock_env("scrt", &[], 1), rewards).unwrap();
+    // TODO: deposit_rewards(&mut deps, mock_env("scrt", &[], 1), rewards).unwrap();
 
     let actions = vec!["deposit", "redeem", "deadline", "rewards"];
     let users = vec![
@@ -285,7 +291,7 @@ fn sanity_run(mut rewards: u128, mut deadline: u64) {
         }
 
         if block % 10000 == 0 {
-            print_status(&deps, users.clone(), block);
+            print_status(&deps, users.clone(), block as u128);
         }
 
         deadline = TypedStore::<Config, MockStorage>::attach(&deps.storage)
@@ -356,7 +362,7 @@ fn continue_after_ended(
         }
 
         if block % 10000 == 0 {
-            print_status(&deps, users.clone(), block);
+            print_status(&deps, users.clone(), block.into());
         }
 
         new_deadline = TypedStore::<Config, MockStorage>::attach(&deps.storage)
@@ -436,7 +442,7 @@ fn test_stop_contract() {
         from_binary(&handle_response.unwrap().data.unwrap()).unwrap();
     assert_eq!(
         to_binary(&unwrapped_result).unwrap(),
-        to_binary(&LPStakingHandleAnswer::StopContract { status: Success }).unwrap()
+        to_binary(&LPStakingHandleAnswer::StopContract { status: LPStakingResponseStatus::Success }).unwrap()
     );
 
     let redeem_msg = LPStakingHandleMsg::Redeem { amount: None };
@@ -455,7 +461,7 @@ fn test_stop_contract() {
         from_binary(&handle_response.unwrap().data.unwrap()).unwrap();
     assert_eq!(
         to_binary(&unwrapped_result).unwrap(),
-        to_binary(&LPStakingHandleAnswer::ResumeContract { status: Success }).unwrap()
+        to_binary(&LPStakingHandleAnswer::ResumeContract { status: LPStakingResponseStatus::Success }).unwrap()
     );
 
     let redeem_msg = LPStakingHandleMsg::Redeem { amount: None };
@@ -464,7 +470,7 @@ fn test_stop_contract() {
         from_binary(&handle_response.unwrap().data.unwrap()).unwrap();
     assert_eq!(
         to_binary(&unwrapped_result).unwrap(),
-        to_binary(&LPStakingHandleAnswer::Redeem { status: Success }).unwrap()
+        to_binary(&LPStakingHandleAnswer::Redeem { status: LPStakingResponseStatus::Success }).unwrap()
     );
 }
 
@@ -492,7 +498,7 @@ fn test_admin() {
         from_binary(&handle_response.unwrap().data.unwrap()).unwrap();
     assert_eq!(
         to_binary(&unwrapped_result).unwrap(),
-        to_binary(&LPStakingHandleAnswer::ChangeAdmin { status: Success }).unwrap()
+        to_binary(&LPStakingHandleAnswer::ChangeAdmin { status: LPStakingResponseStatus::Success }).unwrap()
     );
 
     let admin_action_msg = LPStakingHandleMsg::ChangeAdmin {
@@ -515,7 +521,7 @@ fn test_admin() {
         from_binary(&handle_response.unwrap().data.unwrap()).unwrap();
     assert_eq!(
         to_binary(&unwrapped_result).unwrap(),
-        to_binary(&LPStakingHandleAnswer::ChangeAdmin { status: Success }).unwrap()
+        to_binary(&LPStakingHandleAnswer::ChangeAdmin { status: LPStakingResponseStatus::Success }).unwrap()
     );
 }
 

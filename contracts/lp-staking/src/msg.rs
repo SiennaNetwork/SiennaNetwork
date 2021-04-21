@@ -3,4 +3,5 @@ pub use scrt_finance::lp_staking_msg::{
     LPStakingQueryMsg, LPStakingQueryAnswer,
     LPStakingHandleMsg, LPStakingHandleAnswer,
     LPStakingReceiveMsg,
+    LPStakingResponseStatus
 };
