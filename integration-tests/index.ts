@@ -126,7 +126,7 @@ async function test_get_pair_info(exchange: ExchangeContract, pair: TokenPair) {
     'test_get_pair_info',
     async () => {
       const result = await exchange.get_pair_info()
-      assert_objects_equal(pair, result)
+      assert_objects_equal(pair, result.pair)
     }
   )
 }

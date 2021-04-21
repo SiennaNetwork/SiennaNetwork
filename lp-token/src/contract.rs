@@ -63,7 +63,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err("Decimals must not exceed 18"));
     }
 
-    let admin = msg.admin.unwrap_or_else(|| env.message.sender);
+    let admin = msg.admin.unwrap_or_else(|| env.message.sender.clone());
 
     let prng_seed_hashed = sha_256(&msg.prng_seed.0);
 
@@ -92,10 +92,13 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             })
         )
     }
-
+    
     Ok(InitResponse {
         messages,
-        log: vec![]
+        log: vec![
+            log("token_address", env.contract.address),
+            log("token_code_hash", env.contract_code_hash)
+        ]
     })
 }
 
@@ -1175,8 +1178,8 @@ mod tests {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(5000),
         }]);
-        assert_eq!(init_result.unwrap(), InitResponse::default());
-
+        assert_ne!(init_result.unwrap(), InitResponse::default());
+        
         let config = ReadonlyConfig::from_storage(&deps.storage);
         let constants = config.constants().unwrap();
         assert_eq!(config.total_supply(), 5000);

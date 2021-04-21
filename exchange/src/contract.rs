@@ -134,7 +134,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     let config = load_config(deps)?;
 
     match msg {
-        QueryMsg::PairInfo => to_binary(&QueryMsgResponse::PairInfo(config.pair)),
+        QueryMsg::PairInfo => query_pair_info(config),
         QueryMsg::FactoryInfo => to_binary(&QueryMsgResponse::FactoryInfo(config.factory_info)),
         QueryMsg::Pool => query_pool_amount(deps, config),
         QueryMsg::SwapSimulation { offer } => swap_simulation(deps, config, offer)
@@ -450,6 +450,15 @@ fn query_pool_amount<S: Storage, A: Api, Q: Querier>(
             amount_1: result[1]
         }
     ))
+}
+
+fn query_pair_info(
+    config: Config
+) -> QueryResult {
+    to_binary(&QueryMsgResponse::PairInfo {
+        pair: config.pair,
+        liquidity_token: config.lp_token_info
+    })
 }
 
 fn query_liquidity(querier: &impl Querier, lp_token_info: &ContractInfo) -> StdResult<Uint128> {

@@ -22,7 +22,6 @@ export async function setup(client: SigningCosmWasmClient, commit: string, sienn
   
     const snip20_wasm = readFileSync(resolve(`../dist/${commit}-snip20-reference-impl.wasm`))
     const exchange_wasm = readFileSync(resolve(`../dist/${commit}-exchange.wasm`))
-    const ido_wasm = readFileSync(resolve(`../dist/${commit}-ido.wasm`))
     const factory_wasm = readFileSync(resolve(`../dist/${commit}-factory.wasm`))
     const lp_token_wasm = readFileSync(resolve(`../dist/${commit}-lp-token.wasm`))
   
@@ -32,9 +31,6 @@ export async function setup(client: SigningCosmWasmClient, commit: string, sienn
     const snip20_upload = await client.upload(snip20_wasm, {}, undefined, fee)
     writer.write(snip20_upload, `uploads/snip20`)
 
-    const ido_upload = await client.upload(ido_wasm, {}, undefined, fee)
-    writer.write(ido_upload, `uploads/ido`)
-
     const factory_upload = await client.upload(factory_wasm, {}, undefined, fee)
     writer.write(factory_upload, `uploads/factory`)
 
@@ -43,7 +39,6 @@ export async function setup(client: SigningCosmWasmClient, commit: string, sienn
   
     const pair_contract = new ContractInstantiationInfo(exchange_upload.originalChecksum, exchange_upload.codeId)
     const snip20_contract = new ContractInstantiationInfo(snip20_upload.originalChecksum, snip20_upload.codeId)
-    const ido_contract = new ContractInstantiationInfo(ido_upload.originalChecksum, ido_upload.codeId)
     const lp_token_contract = new ContractInstantiationInfo(lp_token_upload.originalChecksum, lp_token_upload.codeId)
     
     if(sienna_token === undefined) {
@@ -64,7 +59,7 @@ export async function setup(client: SigningCosmWasmClient, commit: string, sienn
         snip20_contract,
         lp_token_contract,
         pair_contract,
-        ido_contract,
+        ido_contract: new ContractInstantiationInfo('', 0), //Moved to separate repo, now need to think how to build it all here....
         sienna_token
     }
     

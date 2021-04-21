@@ -146,7 +146,7 @@ export class FactoryContract extends SmartContract {
 }
 
 export interface GetPairInfoResponse {
-    pair_info: TokenPair
+    pair_info: PairInfo
 }
 
 export interface GetFactoryInfoResponse {
@@ -161,6 +161,11 @@ export interface SwapSimulationResponse {
     return_amount: Uint128,
     spread_amount: Uint128,
     commission_amount: Uint128
+}
+
+export interface PairInfo {
+    pair: TokenPair,
+    liquidity_token: ContractInfo
 }
 
 export class ExchangeContract extends SmartContract {
@@ -219,7 +224,7 @@ export class ExchangeContract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, transfer, fee)
     }
 
-    async get_pair_info(): Promise<TokenPair> {
+    async get_pair_info(): Promise<PairInfo> {
         const msg = 'pair_info' as unknown as object //yeah...
 
         const result = await this.query_client().queryContractSmart(this.address, msg) as GetPairInfoResponse
