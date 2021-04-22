@@ -25,8 +25,7 @@ impl<A: Clone> Pool<A> {
         if self.unallocated() == 0 {
             self.partial = false
         }
-        self.validate()?;
-        Ok(())
+        self.validate()
     }
 }
 
