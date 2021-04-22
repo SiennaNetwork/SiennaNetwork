@@ -23,12 +23,12 @@ pub const BLOCK_SIZE: usize = 256;
 
 /// Error messages
 #[macro_export] macro_rules! MGMTError {
-    (CORRUPTED)   => { "broken" };  // Contract has entered a state that violates core assumptions.
-    (NOTHING)     => { "nothing" }; // Unknown claimant or nothing to claim right now.
-    (UNDERWAY)    => { "already underway" }; // Already launched
-    (PRELAUNCH)   => { "not launched yet" }; // Not launched yet
-    (NOT_FOUND)   => { "not found" };        // Can't find account or pool by name
-    (ADD_ACCOUNT) => { "can't add account" } // Pool full
+    (CORRUPTED)   => { "Contract has entered a state that violates core assumptions" };
+    (NOTHING)     => { "Nothing to claim right now." };
+    (UNDERWAY)    => { "The vesting has already begun." };
+    (PRELAUNCH)   => { "The vesting has not yet begun." };
+    (NOT_FOUND)   => { "Can't find account or pool by name" };
+    (ADD_ACCOUNT) => { "Can't add account - pool full" };
 }
 
 contract!(
