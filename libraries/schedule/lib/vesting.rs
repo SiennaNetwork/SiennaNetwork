@@ -2,7 +2,7 @@
 
 use crate::*;
 
-pub trait Vesting<A:Clone+PartialEq> {
+pub trait Vesting<A> {
     /// Get total amount unlocked for address `a` at time `t`.
     fn unlocked (&self, elapsed: Seconds, address: &A) -> u128;
 }
