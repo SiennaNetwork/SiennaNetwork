@@ -36,9 +36,9 @@ pub type ContractLink<T> = (T, CodeHash);
 
 /// Error messages
 #[macro_export] macro_rules! RPTError {
-    (CORRUPTED) => { "broken" };  // Contract has entered a state that violates core assumptions.
-    (TOTAL: $x:expr, $y:expr) => { format!("allocations must add up to {}, not {}", &$x, &$y) };
-    (MGMT) => { "mgmt returned wrong response" };
+    (CORRUPTED) => { "Contract has entered a state that violates core assumptions." };
+    (TOTAL: $x:expr, $y:expr) => { format!("Allocations must add up to {}, not {}", &$x, &$y) };
+    (MGMT) => { "Main vesting contract returned unexpected response." };
 }
 
 contract!(
