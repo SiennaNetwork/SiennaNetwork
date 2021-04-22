@@ -148,8 +148,8 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Send { .. } => /* try_send(deps, env, &recipient, amount, msg)*/ cmd_unavailable(),
         HandleMsg::Burn { .. } => /* try_burn(deps, env, amount)*/ cmd_unavailable(),
         HandleMsg::RegisterReceive { code_hash, .. } => try_register_receive(deps, env, code_hash),
-        HandleMsg::CreateViewingKey { .. } => /* try_create_key(deps, env, entropy)*/ cmd_unavailable(),
-        HandleMsg::SetViewingKey { .. } => /* try_set_key(deps, env, key)*/ cmd_unavailable(),
+        HandleMsg::CreateViewingKey { entropy, .. } => try_create_key(deps, env, entropy),
+        HandleMsg::SetViewingKey { key, .. } => try_set_key(deps, env, key),
 
         // Allowance
         HandleMsg::IncreaseAllowance {
@@ -1338,7 +1338,7 @@ mod tests {
             .unwrap();
         assert_eq!(hash, "this_is_a_hash_of_a_code".to_string());
     }
-    /*
+    
     #[test]
     fn test_handle_create_viewing_key() {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
@@ -1374,8 +1374,7 @@ mod tests {
         let saved_vk = read_viewing_key(&deps.storage, &bob_canonical).unwrap();
         assert!(key.check_viewing_key(saved_vk.as_slice()));
     }
-    */
-    /*
+    
     #[test]
     fn test_handle_set_viewing_key() {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
@@ -1424,7 +1423,7 @@ mod tests {
         let saved_vk = read_viewing_key(&deps.storage, &bob_canonical).unwrap();
         assert!(actual_vk.check_viewing_key(&saved_vk));
     }
-    */
+    
     #[test]
     fn test_handle_transfer_from() {
         let (init_result, mut deps) = init_helper(vec![InitialBalance {
