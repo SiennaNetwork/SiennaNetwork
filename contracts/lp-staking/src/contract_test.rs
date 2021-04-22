@@ -1,10 +1,9 @@
 #![cfg(test)]
 
 use crate::{contract::*, msg::*, state::*, constants::*};
-use scrt_finance::types::{TokenInfo, SecretContract, RewardPool, UserInfo};
+use scrt_finance::types::{TokenInfo, RewardPool, UserInfo};
 use cosmwasm_std::{
-    Empty,
-    coins, Coin,
+    Coin,
     HumanAddr, Uint128,
     StdResult, StdError,
     Binary, to_binary, from_binary,
@@ -13,7 +12,7 @@ use cosmwasm_std::{
     WasmMsg, CosmosMsg, InitResponse, HandleResponse,
     testing::{mock_dependencies, MockApi, MockQuerier, MockStorage, MOCK_CONTRACT_ADDR}
 };
-use cosmwasm_utils::ContractInfo as ContractInfoWithHash;
+use scrt_finance::ContractInfo as ContractInfoWithHash;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use secret_toolkit::storage::TypedStore;
@@ -21,7 +20,7 @@ use secret_toolkit::storage::TypedStore;
 // Helper functions
 
 fn init_helper(
-    deadline: u64,
+    _deadline: u64,
 ) -> (
     StdResult<InitResponse>,
     Extern<MockStorage, MockApi, MockQuerier>,
@@ -217,7 +216,6 @@ fn extract_rewards(result: StdResult<HandleResponse>) -> u128 {
                                     Snip20HandleMsg::Transfer { amount, .. } => {
                                         return amount.u128();
                                     }
-                                    _ => panic!(),
                                 }
                             }
                         }
@@ -229,12 +227,12 @@ fn extract_rewards(result: StdResult<HandleResponse>) -> u128 {
         }
         Err(e) => match e {
             StdError::NotFound { .. } => {}
-            StdError::GenericErr { msg, backtrace } => {
+            StdError::GenericErr { msg, .. } => {
                 if !msg.contains("insufficient") {
-                    panic!(format!("{}", msg))
+                    panic!("Wrong error message")
                 }
             }
-            _ => panic!(format!("{:?}", e)),
+            _ => panic!("Unexpected error"),
         },
     }
 
@@ -258,7 +256,7 @@ fn extract_reward_deposit(msg: LPStakingHandleMsg) -> u128 {
 fn sanity_run(mut rewards: u128, mut deadline: u64) {
     let mut rng = rand::thread_rng();
 
-    let (init_result, mut deps) = init_helper(deadline);
+    let (_init_result, mut deps) = init_helper(deadline);
 
     // TODO: deposit_rewards(&mut deps, mock_env("scrt", &[], 1), rewards).unwrap();
 
@@ -278,7 +276,7 @@ fn sanity_run(mut rewards: u128, mut deadline: u64) {
     while block < (deadline + 10_000) {
         let num_of_actions = rng.gen_range(0, 5);
 
-        for i in 0..num_of_actions {
+        for _ in 0..num_of_actions {
             let action_idx = rng.gen_range(0, actions.len());
 
             let user_idx = rng.gen_range(0, users.len());
@@ -332,14 +330,14 @@ fn continue_after_ended(
     let msg = LPStakingHandleMsg::SetDeadline {
         block: new_deadline,
     };
-    let result = handle(deps, mock_env("admin".to_string(), &[], start_block), msg);
+    let _result = handle(deps, mock_env("admin".to_string(), &[], start_block), msg);
     let msg = LPStakingHandleMsg::Receive {
         sender: HumanAddr("admin".to_string()),
         from: HumanAddr("admin".to_string()),
         amount: Uint128(rewards),
         msg: to_binary(&LPStakingReceiveMsg::DepositRewards {}).unwrap(),
     };
-    let result = handle(
+    let _result = handle(
         deps,
         mock_env("scrt".to_string(), &[], start_block + 1),
         msg,
@@ -349,7 +347,7 @@ fn continue_after_ended(
     while block < (new_deadline + 10_000) {
         let num_of_actions = rng.gen_range(0, 5);
 
-        for i in 0..num_of_actions {
+        for _ in 0..num_of_actions {
             let action_idx = rng.gen_range(0, actions.len());
 
             let user_idx = rng.gen_range(0, users.len());
@@ -388,7 +386,7 @@ fn continue_after_ended(
 
 #[test]
 fn test_claim_pool() {
-    let (init_result, mut deps) = init_helper(10000000); // Claim height is deadline + 1
+    let (_init_result, mut deps) = init_helper(10000000); // Claim height is deadline + 1
 
     let claim_msg = LPStakingHandleMsg::ClaimRewardPool { to: None };
     let handle_response = handle(&mut deps, mock_env("not_admin", &[], 10), claim_msg.clone());
@@ -425,7 +423,7 @@ fn test_claim_pool() {
 
 #[test]
 fn test_stop_contract() {
-    let (init_result, mut deps) = init_helper(10000000);
+    let (_init_result, mut deps) = init_helper(10000000);
 
     let stop_msg = LPStakingHandleMsg::StopContract {};
     let handle_response = handle(&mut deps, mock_env("not_admin", &[], 10), stop_msg.clone());
@@ -476,7 +474,7 @@ fn test_stop_contract() {
 
 #[test]
 fn test_admin() {
-    let (init_result, mut deps) = init_helper(10000000);
+    let (_init_result, mut deps) = init_helper(10000000);
 
     let admin_action_msg = LPStakingHandleMsg::ChangeAdmin {
         address: HumanAddr("not_admin".to_string()),

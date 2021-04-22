@@ -1,7 +1,7 @@
 /// This contract implements SNIP-20 standard:
 /// https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-20.md
 use cosmwasm_std::{
-    log, to_binary, Api, Binary, CanonicalAddr, Coin, CosmosMsg, Env, Extern,
+    log, to_binary, Api, Binary, CanonicalAddr, CosmosMsg, Env, Extern,
     HandleResponse, HumanAddr, InitResponse, Querier, QueryResult, ReadonlyStorage, StdError,
     StdResult, Storage, Uint128,
 };
@@ -16,9 +16,8 @@ use crate::state::{
     store_transfer, write_allowance, write_viewing_key, Balances, Config, Constants,
     ReadonlyBalances, ReadonlyConfig,
 };
+
 use crate::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
-
-
 
 /// We make sure that responses from `handle` are padded to a multiple of this size.
 pub const RESPONSE_BLOCK_SIZE: usize = 256;

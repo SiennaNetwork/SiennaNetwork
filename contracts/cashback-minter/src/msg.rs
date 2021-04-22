@@ -2,7 +2,7 @@ use crate::asset::Asset;
 use crate::state::Pair;
 use cosmwasm_std::HumanAddr;
 use schemars::JsonSchema;
-use cosmwasm_utils::ContractInfo;
+use scrt_finance::ContractInfo;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, JsonSchema)]

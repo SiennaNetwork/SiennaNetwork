@@ -1,5 +1,5 @@
 use cosmwasm_std::HumanAddr;
-use cosmwasm_utils::ContractInfo;
+use scrt_finance::ContractInfo;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]

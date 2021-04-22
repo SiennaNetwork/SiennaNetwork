@@ -175,7 +175,7 @@ fn update_allocation<S: Storage, A: Api, Q: Querier>(
     let mut rewards = 0;
     let mut messages = vec![];
     if spy_settings.last_update_block < env.block.height && spy_settings.weight > 0 {
-        // Calc amount to minLPStakingHandleMsgt for this spy contract and push to messages
+        // Calc amount to mint for this spy contract and push to messages
         rewards = get_spy_rewards(
             env.block.height,
             state.total_weight,
@@ -374,10 +374,11 @@ fn enforce_admin(config: State, env: Env) -> StdResult<()> {
 
     Ok(())
 }
-
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
     use cosmwasm_std::{coins, from_binary, StdError};
 }
+*/

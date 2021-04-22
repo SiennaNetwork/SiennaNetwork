@@ -7,6 +7,7 @@ use cosmwasm_std::{
 use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
 
 use secret_toolkit::storage::{AppendStore, AppendStoreMut, TypedStore, TypedStoreMut};
+use scrt_finance::ContractInfo;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -14,8 +15,6 @@ use serde::{Deserialize, Serialize};
 use crate::msg::{status_level_to_u8, u8_to_status_level, ContractStatusLevel};
 use crate::viewing_key::ViewingKey;
 use serde::de::DeserializeOwned;
-
-pub use scrt_finance::types::SecretContract;
 
 pub static CONFIG_KEY: &[u8] = b"config";
 pub const PREFIX_TXS: &[u8] = b"transfers";
@@ -204,7 +203,7 @@ impl<'a, S: ReadonlyStorage> ReadonlyConfig<'a, S> {
         self.as_readonly().tx_count()
     }
 
-    pub fn master_contract(&self) -> SecretContract {
+    pub fn master_contract(&self) -> ContractInfo {
         self.as_readonly().master_contract()
     }
 }
@@ -301,11 +300,11 @@ impl<'a, S: Storage> Config<'a, S> {
         set_bin_data(&mut self.storage, KEY_TX_COUNT, &count)
     }
 
-    pub fn set_master_contract(&mut self, master: SecretContract) -> StdResult<()> {
+    pub fn set_master_contract(&mut self, master: ContractInfo) -> StdResult<()> {
         set_bin_data(&mut self.storage, KEY_MASTER_CONTRACT, &master)
     }
 
-    pub fn master_contract(&self) -> SecretContract {
+    pub fn master_contract(&self) -> ContractInfo {
         self.as_readonly().master_contract()
     }
 }
@@ -354,8 +353,8 @@ impl<'a, S: ReadonlyStorage> ReadonlyConfigImpl<'a, S> {
     pub fn tx_count(&self) -> u64 {
         get_bin_data(self.0, KEY_TX_COUNT).unwrap_or_default()
     }
-
-    fn master_contract(&self) -> SecretContract {
+    //TODO: need to be converted to stored
+    fn master_contract(&self) -> ContractInfo {
         get_bin_data(self.0, KEY_MASTER_CONTRACT).unwrap_or_default()
     }
 }

@@ -40,7 +40,6 @@ cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
-cosmwasm-utils = { git = "https://github.com/hackbg/cosmwasm-utils", tag = "secret-v1.0.4" }
 scrt-finance = { path = "../../packages/scrt-finance" }
 
 [dev-dependencies]

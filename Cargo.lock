@@ -140,7 +140,6 @@ dependencies = [
  "cosmwasm-schema 0.10.0",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage",
- "cosmwasm-utils",
  "schemars",
  "scrt-finance",
  "secret-toolkit",
@@ -532,7 +531,6 @@ version = "0.1.0"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage",
- "cosmwasm-utils",
  "rand 0.7.3",
  "schemars",
  "scrt-finance",

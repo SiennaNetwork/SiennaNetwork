@@ -4,7 +4,7 @@ use std::any::Any;
 use cosmwasm_std::{
     testing::*,
     StdError, StdResult,
-    HumanAddr, Uint128, Coin,
+    HumanAddr, Uint128,
     Extern, Api, InitResponse, QueryResponse, HandleResponse,
     Env, BlockInfo, ContractInfo, MessageInfo,
     CosmosMsg, WasmMsg, Binary, from_binary, to_binary,
@@ -34,7 +34,7 @@ fn init_helper(
 
     (init(&mut deps, env, init_msg), deps)
 }
-
+/*
 /// Will return a ViewingKey only for the first account in `initial_balances`
 fn auth_query_helper(
     initial_balances: Vec<InitialBalance>,
@@ -59,7 +59,7 @@ fn auth_query_helper(
 
     (vk, deps)
 }
-
+*/
 fn extract_error_msg<T: Any>(error: StdResult<T>) -> String {
     match error {
         Ok(response) => {

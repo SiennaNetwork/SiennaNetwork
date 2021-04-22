@@ -7,7 +7,7 @@ use crate::asset::{Asset, AssetInfo};
 use crate::msg::{HandleMsg, InitMsg, QueryAnswer, QueryMsg, ResponseStatus};
 use crate::state::{Pair, KEY_ADMIN, KEY_CSHBK, KEY_DATA_SENDER, KEY_SSCRT, PREFIX_PAIRED_TOKENS};
 use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
-use cosmwasm_utils::ContractInfo;
+use scrt_finance::ContractInfo;
 use secret_toolkit::snip20;
 use secret_toolkit::storage::{TypedStore, TypedStoreMut};
 

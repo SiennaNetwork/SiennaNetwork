@@ -1,8 +1,8 @@
-use cosmwasm_utils::ContractInfo;
-use cosmwasm_utils::viewing_key::ViewingKey;
 use cosmwasm_std::{Binary, HumanAddr, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use crate::viewing_key::ViewingKey;
+use crate::ContractInfo;
 
 use crate::types::TokenInfo;
 

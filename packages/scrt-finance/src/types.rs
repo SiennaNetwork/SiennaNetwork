@@ -2,12 +2,6 @@ use cosmwasm_std::{HumanAddr, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Debug, Deserialize, Clone, PartialEq, JsonSchema, Default)]
-pub struct SecretContract {
-    pub address: HumanAddr,
-    pub hash: String,
-}
-
 /// Keeps track of rewards and lockups
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
 pub struct RewardPool {

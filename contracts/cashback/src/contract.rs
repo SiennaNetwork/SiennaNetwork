@@ -14,11 +14,12 @@ use crate::receiver::Snip20ReceiveMsg;
 use crate::state::{
     get_receiver_hash, get_transfers, read_allowance, read_viewing_key, set_receiver_hash,
     store_transfer, write_allowance, write_viewing_key, Balances, Config, Constants,
-    ReadonlyBalances, ReadonlyConfig, SecretContract, KEY_MASTER_CONTRACT, REWARD_BALANCE_KEY,
+    ReadonlyBalances, ReadonlyConfig, KEY_MASTER_CONTRACT, REWARD_BALANCE_KEY,
     SEFI_KEY,
 };
 use crate::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
 use scrt_finance::master_msg::MasterHandleMsg;
+use scrt_finance::ContractInfo;
 use secret_toolkit::storage::{TypedStore, TypedStoreMut};
 
 /// We make sure that responses from `handle` are padded to a multiple of this size.
@@ -50,10 +51,10 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     let admin = env.message.sender;
 
     let prng_seed_hashed = sha_256(&msg.prng_seed.0);
-
-    TypedStoreMut::<SecretContract, S>::attach(&mut deps.storage)
+    //TODO: need to be converted to stored
+    TypedStoreMut::<ContractInfo, S>::attach(&mut deps.storage)
         .store(KEY_MASTER_CONTRACT, &msg.master)?;
-    TypedStoreMut::<SecretContract, S>::attach(&mut deps.storage).store(SEFI_KEY, &msg.sefi)?;
+    TypedStoreMut::<ContractInfo, S>::attach(&mut deps.storage).store(SEFI_KEY, &msg.sefi)?;
 
     let mut config = Config::from_storage(&mut deps.storage);
     config.set_constants(&Constants {
@@ -682,9 +683,9 @@ fn try_burn_from<S: Storage, A: Api, Q: Querier>(
         &spender_address,
         allowance,
     )?;
-
+    //TODO: need to be converted to stored
     let master =
-        TypedStore::<SecretContract, S>::attach(&deps.storage).load(KEY_MASTER_CONTRACT)?;
+        TypedStore::<ContractInfo, S>::attach(&deps.storage).load(KEY_MASTER_CONTRACT)?;
     update_allocation(
         env,
         master,
@@ -829,8 +830,9 @@ fn try_burn<S: Storage, A: Api, Q: Querier>(
     env: Env,
     amount: Uint128,
 ) -> StdResult<HandleResponse> {
+    //TODO: need to be converted to stored
     let master =
-        TypedStore::<SecretContract, S>::attach(&deps.storage).load(KEY_MASTER_CONTRACT)?;
+        TypedStore::<ContractInfo, S>::attach(&deps.storage).load(KEY_MASTER_CONTRACT)?;
     let sender = env.message.sender.clone();
     update_allocation(
         env,
@@ -967,13 +969,13 @@ fn check_if_admin<S: Storage>(config: &Config<S>, account: &HumanAddr) -> StdRes
 
 fn update_allocation(
     env: Env,
-    master: SecretContract,
+    master: ContractInfo,
     hook: Option<Binary>,
 ) -> StdResult<HandleResponse> {
     Ok(HandleResponse {
         messages: vec![WasmMsg::Execute {
             contract_addr: master.address,
-            callback_code_hash: master.hash,
+            callback_code_hash: master.code_hash,
             msg: to_binary(&MasterHandleMsg::UpdateAllocation {
                 spy_addr: env.contract.address,
                 spy_hash: env.contract_code_hash,
@@ -996,7 +998,8 @@ fn transfer_reward<S: Storage, A: Api, Q: Querier>(
     let reward_balance = TypedStore::<u128, S>::attach(&deps.storage)
         .load(REWARD_BALANCE_KEY)
         .unwrap_or(0);
-    let sefi = TypedStore::<SecretContract, S>::attach(&deps.storage)
+    //TODO: need to be converted to stored
+    let sefi = TypedStore::<ContractInfo, S>::attach(&deps.storage)
         .load(SEFI_KEY)
         .unwrap();
     let reward = burn_amount * reward_balance / total_supply;
@@ -1007,7 +1010,7 @@ fn transfer_reward<S: Storage, A: Api, Q: Querier>(
             Uint128(reward),
             None,
             1,
-            sefi.hash,
+            sefi.code_hash,
             sefi.address,
         )?])
     } else {

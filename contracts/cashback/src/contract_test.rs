@@ -6,10 +6,11 @@ use cosmwasm_std::{
     StdError, StdResult,
     HumanAddr, Uint128,
     Extern, Api, InitResponse, QueryResponse, HandleResponse,
-    Env, BlockInfo, ContractInfo, MessageInfo,
+    Env, BlockInfo, ContractInfo as ContractAddress, MessageInfo,
     CosmosMsg, WasmMsg, Binary, from_binary, to_binary,
 };
 use scrt_finance::master_msg::MasterHandleMsg;
+use scrt_finance::ContractInfo;
 use crate::{contract::*, msg::*, viewing_key::*, state::*, rand::*, receiver::*};
 
 const TOKEN_NAME: &'static str = "Cashback Token";
@@ -32,8 +33,8 @@ fn init_helper(
     let init_msg = InitMsg {
         initial_balances: Some(initial_balances),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
-        master: SecretContract { address: "master".into(), hash: "masterhash".into() },
-        sefi: SecretContract { address: "sefi".into(), hash: "sefihash".into() }
+        master: ContractInfo { address: "master".into(), code_hash: "masterhash".into() },
+        sefi: ContractInfo { address: "sefi".into(), code_hash: "sefihash".into() }
     };
 
     (init(&mut deps, env, init_msg), deps)
@@ -112,7 +113,6 @@ fn assert_sent_update_allocation_msg(response: HandleResponse, env: Env) {
     let messages = response.messages;
 
     assert!(messages.len() == 1);
-    assert!(matches!(messages[0].clone(), CosmosMsg::Wasm(WasmMsg::Execute { .. })));
 
     if let CosmosMsg::Wasm(msg) = &messages[0] {
         if let WasmMsg::Execute { msg, .. } = msg {
@@ -449,7 +449,7 @@ fn test_handle_transfer_from() {
                 sender: HumanAddr("bob".to_string()),
                 sent_funds: vec![],
             },
-            contract: ContractInfo {
+            contract: ContractAddress {
                 address: HumanAddr::from(MOCK_CONTRACT_ADDR),
             },
             contract_key: Some("".to_string()),
@@ -1426,8 +1426,8 @@ fn test_query_token_info() {
             amount: init_supply,
         }]),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
-        master: SecretContract { address: "master".into(), hash: "masterhash".into() },
-        sefi: SecretContract { address: "sefi".into(), hash: "sefihash".into() }
+        master: ContractInfo { address: "master".into(), code_hash: "masterhash".into() },
+        sefi: ContractInfo { address: "sefi".into(), code_hash: "sefihash".into() }
     };
     let init_result = init(&mut deps, env, init_msg);
     assert!(
