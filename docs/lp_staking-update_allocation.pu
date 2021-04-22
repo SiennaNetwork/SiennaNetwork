@@ -1,0 +1,12 @@
+@startuml
+title lp_staking::update_allocation
+
+participant lp_staking
+participant weight_master
+participant gov_token
+
+lp_staking -> weight_master : MasterHandleMsg::UpdateAllocation
+weight_master -> gov_token : Snip20HandleMsg::Mint { recipient: lp_staking }
+weight_master -> lp_staking : LPStakingHandleMsg::NotifyAllocation
+note right: Contains the rewards amount
+@enduml
