@@ -28,8 +28,10 @@ impl<A:Clone+PartialEq> Vesting<A> for Account<A> {
         } else if elapsed >= self.end() { // at the end the full amount must've been vested
             self.amount.u128()
         } else {
-            let n = self.most_recent_portion(elapsed).unwrap() as u128;
-            self.cliff.u128() + n * self.portion_size()
+            match self.most_recent_portion(elapsed) {
+                Some(n) => self.cliff.u128() + (n as u128) * self.portion_size(),
+                None => 0
+            }
         }
     }
 }
