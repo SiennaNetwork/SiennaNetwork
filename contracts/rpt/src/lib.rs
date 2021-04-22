@@ -169,9 +169,9 @@ fn is_admin <S:Storage,A:Api,Q:Querier> (
 fn transfer <A:Api> (
     api: &A, state: &State, recipient: &CanonicalAddr, amount: Uint128
 ) -> StdResult<CosmosMsg> {
-    let (token_addr, token_hash) = state.token.clone();
+    let (token_addr, token_hash) = &state.token;
     let token_addr = api.human_address(&token_addr)?;
     let recipient  = api.human_address(&recipient)?;
-    transfer_msg(recipient, amount, None, BLOCK_SIZE, token_hash, token_addr)
+    transfer_msg(recipient, amount, None, BLOCK_SIZE, token_hash.clone(), token_addr)
 }
 
