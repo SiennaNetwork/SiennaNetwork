@@ -20,64 +20,66 @@ import { CONTRACTS, abs, stateBase
 import { genCoverage, genSchema, genDocs } from './artifacts/index.js'
 import demo from './demo.js'
 
-const main = () => yargs(process.argv.slice(2))
-  .wrap(yargs().terminalWidth())
-  .demandCommand(1, '')
+export default function main () {
+  return yargs(process.argv.slice(2))
+    .wrap(yargs().terminalWidth())
+    .demandCommand(1, '')
 
-  // validation:
-  .command('test',
-    '⚗️  Run test suites for all the individual components.',
-    runTests)
-  .command('ensure-wallets',
-    '⚗️  Ensure there are testnet wallets for the demo.',
-    ensureWallets)
-  .command('demo [--testnet]',
-    '⚗️  Run integration test/demo.',
-    args.IsTestnet, runDemo)
+    // validation:
+    .command('test',
+      '⚗️  Run test suites for all the individual components.',
+      runTests)
+    .command('ensure-wallets',
+      '⚗️  Ensure there are testnet wallets for the demo.',
+      ensureWallets)
+    .command('demo [--testnet]',
+      '⚗️  Run integration test/demo.',
+      args.IsTestnet, runDemo)
 
-  // artifacts:
-  .command('build',
-    '👷 Compile contracts from working tree',
-    build)
-  .command('schema',
-    `🤙 Regenerate JSON schema for each contract's API.`,
-    genSchema)
-  .command('docs [crate]',
-    '📖 Build the documentation and open it in a browser.',
-    args.Crate, genDocs)
-  .command('coverage',
-    '⚗️  Generate test coverage and open it in a browser.',
-    genCoverage)
-  .command('config [<spreadsheet>]',
-    '📅 Convert a spreadsheet into a JSON schedule',
-    args.Spreadsheet, genConfig)
+    // artifacts:
+    .command('build',
+      '👷 Compile contracts from working tree',
+      build)
+    .command('schema',
+      `🤙 Regenerate JSON schema for each contract's API.`,
+      genSchema)
+    .command('docs [crate]',
+      '📖 Build the documentation and open it in a browser.',
+      args.Crate, genDocs)
+    .command('coverage',
+      '⚗️  Generate test coverage and open it in a browser.',
+      genCoverage)
+    .command('config [<spreadsheet>]',
+      '📅 Convert a spreadsheet into a JSON schedule',
+      args.Spreadsheet, genConfig)
 
-  // prepare contract binaries:
-  .command('deploy',
-    '🚀 Build, init, and deploy (step by step with prompts)',
-    combine(args.Network, args.Schedule), x => deploy(x).then(console.info))
-  .command('upload <network>',
-    '📦 Upload compiled contracts to network',
-    args.Network, upload)
-  .command('init <network> [<network>]',
-    '🚀 Just instantiate uploaded contracts',
-    combine(args.Network, args.Schedule), x => initialize(x).then(console.info))
-  .command('launch <deployment>',
-    '🚀 Just launch initialized contracts',
-    launch)
+    // prepare contract binaries:
+    .command('deploy',
+      '🚀 Build, init, and deploy (step by step with prompts)',
+      combine(args.Network, args.Schedule), x => deploy(x).then(console.info))
+    .command('upload <network>',
+      '📦 Upload compiled contracts to network',
+      args.Network, upload)
+    .command('init <network> [<network>]',
+      '🚀 Just instantiate uploaded contracts',
+      combine(args.Network, args.Schedule), x => initialize(x).then(console.info))
+    .command('launch <deployment>',
+      '🚀 Just launch initialized contracts',
+      launch)
 
-  // post-launch config
-  .command('configure <deployment> <schedule>',
-    '⚡ Upload a JSON config to an initialized contract',
-    combine(args.Deployment, args.Schedule), configure)
-  .command('reallocate <deployment> <allocations>',
-    '⚡ Update the allocations of the RPT tokens',
-    combine(args.Deployment, args.Allocations), reallocate)
-  .command('add-account <deployment> <account>',
-    '⚡ Add a new account to a partial vesting pool',
-    combine(args.Deployment, args.Account), addAccount)
+    // post-launch config
+    .command('configure <deployment> <schedule>',
+      '⚡ Upload a JSON config to an initialized contract',
+      combine(args.Deployment, args.Schedule), configure)
+    .command('reallocate <deployment> <allocations>',
+      '⚡ Update the allocations of the RPT tokens',
+      combine(args.Deployment, args.Allocations), reallocate)
+    .command('add-account <deployment> <account>',
+      '⚡ Add a new account to a partial vesting pool',
+      combine(args.Deployment, args.Account), addAccount)
 
-  .argv
+    .argv
+}
 
 const combine = (...args) =>
   yargs => args.reduce((yargs, argfn)=>argfn(yargs), yargs)
@@ -129,7 +131,7 @@ const runTests = () => {
       ' | less -R')
     stderr.write('\n🟢 Tests ran successfully.\n')
   } catch (e) {
-    stderr.write('\n👹 Tests failed.\n')
+    stderr.write('\n🔴 Tests failed.\n')
   }
 }
 
@@ -149,8 +151,14 @@ const runDemo = async ({testnet}) => {
     console.info('\n🟢 Demo executed successfully.\n')
   } catch (e) {
     console.error(e)
-    console.info('\n👹 Demo failed.\n')
+    console.info('\n🔴 Demo failed.\n')
   }
 }
 
-main()
+try {
+  main()
+} catch (e) {
+  console.error(e)
+  const ISSUES = `https://github.com/hackbg/sienna-secret-token/issues`
+  console.info(`👹 That was a bug. Report it at ${ISSUES}`)
+}
