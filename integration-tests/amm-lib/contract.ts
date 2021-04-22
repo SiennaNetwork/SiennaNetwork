@@ -91,7 +91,7 @@ export class FactoryContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('700000')
+            fee = create_fee('800000')
         }
 
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
