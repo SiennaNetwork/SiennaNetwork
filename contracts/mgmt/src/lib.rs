@@ -112,7 +112,7 @@ contract!(
         AddAccount (pool_name: String, account: Account<HumanAddr>) {
             is_admin(&deps.api, &state, &env)?;
             let account = account.canonize(&deps.api)?;
-            match state.schedule.add_account(pool_name, account) {
+            match state.schedule.add_account(&pool_name, account) {
                 Ok(()) => ok!(state),
                 Err(e) => match e {
                     StdError::GenericErr { msg, .. } => err_msg(state, &msg),

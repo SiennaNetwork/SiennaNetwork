@@ -44,7 +44,7 @@ kukumba! {
     then "the schedule is updated" {
         let a = Account::immediate("account", &HumanAddr::from("account"), 500);
         let mut updated_schedule = original_schedule.clone();
-        updated_schedule.add_account("pool".to_string(), a.clone()).unwrap();
+        updated_schedule.add_account("pool", a.clone()).unwrap();
         tx!(deps; ADMIN, 1, 1; AddAccount { pool_name: "pool".to_string(), account: a.clone() }
             == ok!());
         q!(deps; Schedule == Schedule { schedule: updated_schedule }); }
@@ -86,7 +86,7 @@ kukumba! {
     and "the correct amounts claimable can be queried for the new account" {
         let a = Account::immediate("account", &HumanAddr::from("account"), 500);
         let mut updated_schedule = original_schedule.clone();
-        updated_schedule.add_account("pool".to_string(), a.clone()).unwrap();
+        updated_schedule.add_account("pool", a.clone()).unwrap();
         tx!(deps; ADMIN, 1, 1; AddAccount { pool_name: "pool".to_string(), account: a.clone() }
             == ok!());
         q!(deps; Schedule == Schedule { schedule: updated_schedule });

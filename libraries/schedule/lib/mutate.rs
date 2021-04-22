@@ -3,13 +3,13 @@
 use crate::{*, validate::Validation};
 
 impl<A: Clone> Schedule<A> {
-    pub fn add_account (&mut self, pool_name: String, account: Account<A>) -> UsuallyOk {
+    pub fn add_account (&mut self, pool_name: &str, account: Account<A>) -> UsuallyOk {
         for pool in self.pools.iter_mut() {
             if pool.name == pool_name {
                 return pool.add_account(account)
             }
         }
-        self.err_pool_not_found(&pool_name)
+        self.err_pool_not_found(pool_name)
     }
 }
 impl<A: Clone> Pool<A> {
@@ -66,18 +66,18 @@ mod tests {
             Pool::partial("P1", 100, &[]),
             Pool::full("P2", &[Account::immediate("A", &Alice, 100)]),
         ]);
-        assert_eq!(S.add_account("P1".to_string(), Account::immediate("B", &Bob, 50)),
+        assert_eq!(S.add_account("P1", Account::immediate("B", &Bob, 50)),
                    Ok(()));
         let A = Account::immediate("B", &Bob, 100);
-        assert_eq!(S.add_account("P1".to_string(), A.clone()),
+        assert_eq!(S.add_account("P1", A.clone()),
                    S.pools.get(0).unwrap().err_account_too_big(&A));
-        assert_eq!(S.add_account("P1".to_string(), Account::immediate("C", &Carol, 50)),
+        assert_eq!(S.add_account("P1", Account::immediate("C", &Carol, 50)),
                    Ok(()));
-        assert_eq!(S.add_account("P1".to_string(), A.clone()),
+        assert_eq!(S.add_account("P1", A.clone()),
                    S.pools.get(0).unwrap().err_pool_full());
-        assert_eq!(S.add_account("P2".to_string(), A.clone()),
+        assert_eq!(S.add_account("P2", A.clone()),
                    S.pools.get(1).unwrap().err_pool_full());
-        assert_eq!(S.add_account("P3".to_string(), A.clone()),
+        assert_eq!(S.add_account("P3", A.clone()),
                    S.err_pool_not_found("P3"));
     }
 }
