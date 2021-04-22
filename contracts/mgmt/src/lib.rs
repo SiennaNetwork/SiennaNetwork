@@ -216,16 +216,16 @@ fn portion (state: &State, address: &CanonicalAddr, elapsed: Seconds) -> (u128, 
 }
 
 fn acquire <A:Api> (api: &A, state: &State, env: &Env) -> StdResult<Vec<CosmosMsg>> {
-    let (addr, hash) = state.token.clone();
-    let addr = api.human_address(&addr)?;
+    let (addr_canon, hash) = state.token.clone();
+    let addr_human = api.human_address(&addr_canon)?;
     Ok(vec![
         mint_msg(
             env.contract.address.clone(), state.schedule.total,
-            None, BLOCK_SIZE, hash.clone(), addr.clone()
+            None, BLOCK_SIZE, hash.clone(), addr_human.clone()
         )?,
         set_minters_msg(
             vec![],
-            None, BLOCK_SIZE, hash.clone(), addr.clone()
+            None, BLOCK_SIZE, hash.clone(), addr_human.clone()
         )?,
     ])
 }
