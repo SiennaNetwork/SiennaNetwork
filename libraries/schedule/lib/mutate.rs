@@ -9,7 +9,7 @@ impl<A: Clone> Schedule<A> {
                 return pool.add_account(account)
             }
         }
-        self.err_pool_not_found(pool_name)
+        self.err_pool_not_found(&pool_name)
     }
 }
 impl<A: Clone> Pool<A> {
@@ -78,6 +78,6 @@ mod tests {
         assert_eq!(S.add_account("P2".to_string(), A.clone()),
                    S.pools.get(1).unwrap().err_pool_full());
         assert_eq!(S.add_account("P3".to_string(), A.clone()),
-                   S.err_pool_not_found("P3".to_string()));
+                   S.err_pool_not_found("P3"));
     }
 }

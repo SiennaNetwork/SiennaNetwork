@@ -35,7 +35,7 @@ define_errors!(
             "schedule: pools add up to {}, expected {}",
             &self.subtotal(), &self.total
         }
-        err_pool_not_found (&self, name: String) {
+        err_pool_not_found (&self, name: &str) {
             "schedule: pool {} not found",
             &name
         }
