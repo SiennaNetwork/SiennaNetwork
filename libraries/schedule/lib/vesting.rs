@@ -76,13 +76,10 @@ impl<A> Account<A> {
     }
     /// Most recent portion vested at time `t`
     pub fn most_recent_portion (&self, t: Seconds) -> Option<u64> {
-        match self.elapsed(t) {
-            Some(elapsed) => Some(u64::min(
-                elapsed / self.interval + match self.cliff.u128() { 0 => 1, _ => 0 },
-                self.portion_count()
-            )),
-            None => None
-        }
+        self.elapsed(t).map(|elapsed| u64::min(
+            elapsed / self.interval + match self.cliff.u128() { 0 => 1, _ => 0 },
+            self.portion_count()
+        ))
     }
     /// Whether a portion is unlocked at the exact moment specified
     pub fn vests_at (&self, t: Seconds) -> bool {
