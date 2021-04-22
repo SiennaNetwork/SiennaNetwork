@@ -4,12 +4,19 @@ use std::any::Any;
 use cosmwasm_std::{
     testing::*,
     StdError, StdResult,
-    HumanAddr, Uint128, Coin,
+    HumanAddr, Uint128,
     Extern, Api, InitResponse, QueryResponse, HandleResponse,
     Env, BlockInfo, ContractInfo, MessageInfo,
     CosmosMsg, WasmMsg, Binary, from_binary, to_binary,
 };
+use scrt_finance::master_msg::MasterHandleMsg;
 use crate::{contract::*, msg::*, viewing_key::*, state::*, rand::*, receiver::*};
+
+const TOKEN_NAME: &'static str = "Cashback Token";
+const TOKEN_SYMBOL: &'static str = "CSHBK";
+const TOKEN_DECIMALS: u8 = 6;
+
+const ADMIN: &'static str = "instantiator";
 
 // Helper functions
 
@@ -20,7 +27,7 @@ fn init_helper(
     Extern<MockStorage, MockApi, MockQuerier>,
 ) {
     let mut deps = mock_dependencies(20, &[]);
-    let env = mock_env("instantiator", &[]);
+    let env = mock_env(ADMIN, &[]);
 
     let init_msg = InitMsg {
         initial_balances: Some(initial_balances),
@@ -31,7 +38,7 @@ fn init_helper(
 
     (init(&mut deps, env, init_msg), deps)
 }
-
+/*
 /// Will return a ViewingKey only for the first account in `initial_balances`
 fn auth_query_helper(
     initial_balances: Vec<InitialBalance>,
@@ -56,7 +63,7 @@ fn auth_query_helper(
 
     (vk, deps)
 }
-
+*/
 fn extract_error_msg<T: Any>(error: StdResult<T>) -> String {
     match error {
         Ok(response) => {
@@ -101,6 +108,29 @@ fn ensure_success(handle_result: HandleResponse) -> bool {
     }
 }
 
+fn assert_sent_update_allocation_msg(response: HandleResponse, env: Env) {
+    let messages = response.messages;
+
+    assert!(messages.len() == 1);
+    assert!(matches!(messages[0].clone(), CosmosMsg::Wasm(WasmMsg::Execute { .. })));
+
+    if let CosmosMsg::Wasm(msg) = &messages[0] {
+        if let WasmMsg::Execute { msg, .. } = msg {
+            match from_binary(msg).unwrap() {
+                MasterHandleMsg::UpdateAllocation { spy_addr, spy_hash, .. } => {
+                    assert_eq!(spy_addr, env.contract.address);
+                    assert_eq!(spy_hash, env.contract_code_hash);
+                },
+                _ => panic!("Wrong message sent!")
+            }
+        } else {
+            panic!("Expected WasmMsg::Execute!");
+        }
+    } else {
+        panic!("Expected Wasm message!");
+    }
+}
+
 // Init tests
 
 #[test]
@@ -115,15 +145,15 @@ fn test_init_sanity() {
     let constants = config.constants().unwrap();
     assert_eq!(config.total_supply(), 5000);
     assert_eq!(config.contract_status(), ContractStatusLevel::NormalRun);
-    assert_eq!(constants.name, "sec-sec".to_string());
-    assert_eq!(constants.admin, HumanAddr("admin".to_string()));
-    assert_eq!(constants.symbol, "SECSEC".to_string());
-    assert_eq!(constants.decimals, 8);
+    assert_eq!(constants.name, TOKEN_NAME);
+    assert_eq!(constants.admin, HumanAddr("instantiator".to_string()));
+    assert_eq!(constants.symbol, TOKEN_SYMBOL);
+    assert_eq!(constants.decimals, TOKEN_DECIMALS);
     assert_eq!(
         constants.prng_seed,
         sha_256("lolz fun yay".to_owned().as_bytes())
     );
-    assert_eq!(constants.total_supply_is_public, false);
+    assert_eq!(constants.total_supply_is_public, true);
 }
 
 #[test]
@@ -588,9 +618,11 @@ fn test_handle_send_from() {
 
 #[test]
 fn test_handle_burn_from() {
+    let initial_balance = Uint128(5000);
+
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
         address: HumanAddr("bob".to_string()),
-        amount: Uint128(5000),
+        amount: initial_balance,
     }]);
     assert!(
         init_result.is_ok(),
@@ -636,21 +668,28 @@ fn test_handle_burn_from() {
         amount: Uint128(2000),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let env = mock_env("alice", &[]);
+    let handle_result = handle(&mut deps, env.clone(), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
+
+    assert_sent_update_allocation_msg(handle_result.unwrap(), env);
+
     let bob_canonical = deps
         .api
         .canonical_address(&HumanAddr("bob".to_string()))
         .unwrap();
+
     let bob_balance = crate::state::ReadonlyBalances::from_storage(&deps.storage)
         .account_amount(&bob_canonical);
-    assert_eq!(bob_balance, 5000 - 2000);
+
+    assert_eq!(bob_balance, initial_balance.u128());
+
     let total_supply = ReadonlyConfig::from_storage(&deps.storage).total_supply();
-    assert_eq!(total_supply, 5000 - 2000);
+    assert_eq!(total_supply, initial_balance.u128());
 
     // Second burn more than allowance
     let handle_msg = HandleMsg::BurnFrom {
@@ -658,6 +697,7 @@ fn test_handle_burn_from() {
         amount: Uint128(1),
         padding: None,
     };
+
     let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
@@ -824,7 +864,7 @@ fn test_handle_change_admin() {
         address: HumanAddr("bob".to_string()),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(&mut deps, mock_env(ADMIN, &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
@@ -854,7 +894,7 @@ fn test_handle_set_contract_status() {
         level: ContractStatusLevel::StopAll,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(&mut deps, mock_env(ADMIN, &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
@@ -954,7 +994,10 @@ fn test_handle_burn() {
         amount: Uint128(burn_amount),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("lebron", &[]), handle_msg);
+
+    let env = mock_env("lebron", &[]);
+
+    let handle_result = handle(&mut deps, env.clone(), handle_msg);
     assert!(
         handle_result.is_ok(),
         "Pause handle failed: {}",
@@ -962,7 +1005,9 @@ fn test_handle_burn() {
     );
 
     let new_supply = ReadonlyConfig::from_storage(&deps.storage).total_supply();
-    assert_eq!(new_supply, supply - burn_amount);
+    assert_eq!(new_supply, supply);
+
+    assert_sent_update_allocation_msg(handle_result.unwrap(), env)
 }
 
 #[test]
@@ -985,7 +1030,7 @@ fn test_handle_mint() {
         amount: Uint128(mint_amount),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(&mut deps, mock_env(ADMIN, &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "Pause handle failed: {}",
@@ -1117,7 +1162,7 @@ fn test_handle_pause_all() {
         padding: None,
     };
 
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), pause_msg);
+    let handle_result = handle(&mut deps, mock_env(ADMIN, &[]), pause_msg);
     assert!(
         handle_result.is_ok(),
         "Pause handle failed: {}",
@@ -1173,7 +1218,7 @@ fn test_handle_set_minters() {
         minters: vec![HumanAddr("bob".to_string())],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(&mut deps, mock_env(ADMIN, &[]), handle_msg);
     assert!(ensure_success(handle_result.unwrap()));
 
     let handle_msg = HandleMsg::Mint {
@@ -1218,7 +1263,7 @@ fn test_handle_add_minters() {
         minters: vec![HumanAddr("bob".to_string())],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(&mut deps, mock_env(ADMIN, &[]), handle_msg);
     assert!(ensure_success(handle_result.unwrap()));
 
     let handle_msg = HandleMsg::Mint {
@@ -1234,7 +1279,7 @@ fn test_handle_add_minters() {
         amount: Uint128(100),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(&mut deps, mock_env(ADMIN, &[]), handle_msg);
     assert!(ensure_success(handle_result.unwrap()));
 }
 
@@ -1262,7 +1307,7 @@ fn test_handle_remove_minters() {
         minters: vec![HumanAddr("admin".to_string())],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(&mut deps, mock_env(ADMIN, &[]), handle_msg);
     assert!(ensure_success(handle_result.unwrap()));
 
     let handle_msg = HandleMsg::Mint {
@@ -1288,7 +1333,7 @@ fn test_handle_remove_minters() {
         minters: vec![HumanAddr("admin".to_string())],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(&mut deps, mock_env(ADMIN, &[]), handle_msg);
     assert!(ensure_success(handle_result.unwrap()));
 
     let handle_msg = HandleMsg::Mint {
@@ -1371,14 +1416,6 @@ fn test_authenticated_queries() {
 
 #[test]
 fn test_query_token_info() {
-    let init_name = "sec-sec".to_string();
-    let init_admin = HumanAddr("admin".to_string());
-    let init_symbol = "SECSEC".to_string();
-    let init_decimals = 8;
-    let init_config: InitConfig = from_binary(&Binary::from(
-        r#"{ "public_total_supply": true }"#.as_bytes(),
-    ))
-    .unwrap();
     let init_supply = Uint128(5000);
 
     let mut deps = mock_dependencies(20, &[]);
@@ -1414,9 +1451,9 @@ fn test_query_token_info() {
             decimals,
             total_supply,
         } => {
-            assert_eq!(name, init_name);
-            assert_eq!(symbol, init_symbol);
-            assert_eq!(decimals, init_decimals);
+            assert_eq!(name, TOKEN_NAME);
+            assert_eq!(symbol, TOKEN_SYMBOL);
+            assert_eq!(decimals, TOKEN_DECIMALS);
             assert_eq!(total_supply, Some(Uint128(5000)));
         }
         _ => panic!("unexpected"),
