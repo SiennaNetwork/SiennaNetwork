@@ -373,6 +373,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "fadroma"
+version = "3.0.0-rc1"
+
+[[package]]
 name = "fake-simd"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1074,6 +1078,7 @@ dependencies = [
  "cosmwasm-schema 0.10.0",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage",
+ "fadroma",
  "schemars",
  "scrt-finance",
  "secret-toolkit",

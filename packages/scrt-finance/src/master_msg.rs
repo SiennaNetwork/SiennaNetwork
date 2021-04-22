@@ -5,8 +5,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct MasterInitMsg {
-    pub gov_token_addr: HumanAddr,
-    pub gov_token_hash: String,
+    pub gov_token: (HumanAddr, String),
     pub minting_schedule: Schedule,
 }
 
