@@ -17,12 +17,18 @@ pub trait Validation {
     /// Default implementation is a no-op
     fn validate (&self) -> UsuallyOk { Ok(()) }
 }
+impl<A:Validation> Validation for Vec<A> {
+    fn validate (&self) -> UsuallyOk {
+        for item in self.iter() {
+            item.validate()?
+        }
+        Ok(())
+    }
+}
 impl<A:Clone> Validation for Schedule<A> {
     /// Schedule must contain valid pools that add up to the schedule total
     fn validate (&self) -> UsuallyOk {
-        for pool in self.pools.iter() {
-            pool.validate()?;
-        }
+        self.pools.validate()?;
         if self.subtotal() != self.total.u128() {
             return self.err_total()
         }
@@ -31,9 +37,7 @@ impl<A:Clone> Validation for Schedule<A> {
 }
 impl<A:Clone> Validation for Pool<A> {
     fn validate (&self) -> UsuallyOk {
-        for account in self.accounts.iter() {
-            account.validate()?;
-        }
+        self.accounts.validate()?;
         let invalid_total = if self.partial {
             self.subtotal() > self.total.u128()
         } else {
