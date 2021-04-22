@@ -11,6 +11,9 @@ use secret_toolkit::crypto::{sha_256, Prng};
 
 const VIEWING_KEY_PREFIX: &str = "api_key_";
 
+/// Based on lengths in bytes of the block height and time
+const EXTRA_ENTROPY: usize = 16; // FIXME document why
+
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 pub struct ViewingKey(pub String);
 
@@ -18,7 +21,7 @@ impl ViewingKey {
     ///A good source for the `seed` and `entropy` values is https://www.random.org/strings/
     pub fn new(env: &Env, seed: &[u8], entropy: &[u8]) -> Self {
         // 16 here represents the lengths in bytes of the block height and time.
-        let entropy_len = 16 + env.message.sender.len() + entropy.len();
+        let entropy_len = EXTRA_ENTROPY + env.message.sender.len() + entropy.len();
         let mut rng_entropy = Vec::with_capacity(entropy_len);
         rng_entropy.extend_from_slice(&env.block.height.to_be_bytes());
         rng_entropy.extend_from_slice(&env.block.time.to_be_bytes());
