@@ -61,7 +61,7 @@ contract!(
         State { admin, history, launched, schedule, token }
     }
 
-    [Query] (deps, state, msg) {
+    [Query] (deps, state, msg) -> Response {
         /// Return error count and launch timestamp.
         Status () {
             Ok(Response::Status { launched: state.launched })
@@ -98,7 +98,7 @@ contract!(
         NotFound {}
     }
 
-    [Handle] (deps, env, state, msg) {
+    [Handle] (deps, env, state, msg) -> Response {
         /// Load a new schedule (only before launching the contract)
         Configure (schedule: Schedule<HumanAddr>) {
             is_admin(&deps.api, &state, &env)?;

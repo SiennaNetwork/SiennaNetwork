@@ -71,7 +71,7 @@ contract!(
         State { admin, portion, config, token, mgmt }
     }
 
-    [Query] (deps, state, msg) {
+    [Query] (deps, state, msg) -> Response {
         Status () {
             Ok(Response::Status { config: humanize(&deps.api, state.config)? })
         }
@@ -81,7 +81,7 @@ contract!(
         Status { config: Config<HumanAddr> }
     }
 
-    [Handle] (deps, env, state, msg) {
+    [Handle] (deps, env, state, msg) -> Response {
 
         /// Set how funds will be split.
         Configure (config: Config<HumanAddr>) {
