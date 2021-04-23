@@ -202,9 +202,7 @@ fn notify_allocation<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     let config = TypedStore::<Config, S>::attach(&deps.storage).load(CONFIG_KEY)?;
     if env.message.sender != config.master.address && env.message.sender != config.admin {
-        return Err(StdError::generic_err(
-            "you are not allowed to call this function",
-        ));
+        return Err(StdError::unauthorized());
     }
 
     let reward_pool = update_rewards(deps, /*&env, &config,*/ amount)?;
