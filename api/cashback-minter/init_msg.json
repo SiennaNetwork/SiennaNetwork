@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InitMsg",
+  "type": "object",
+  "required": [
+    "cashback",
+    "sscrt_addr"
+  ],
+  "properties": {
+    "cashback": {
+      "$ref": "#/definitions/ContractInfo"
+    },
+    "pairs": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/Pair"
+      }
+    },
+    "sscrt_addr": {
+      "$ref": "#/definitions/HumanAddr"
+    }
+  },
+  "definitions": {
+    "ContractInfo": {
+      "description": "Code hash and address of a contract.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "Pair": {
+      "type": "object",
+      "required": [
+        "asset_0",
+        "asset_1"
+      ],
+      "properties": {
+        "asset_0": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "asset_1": {
+          "$ref": "#/definitions/HumanAddr"
+        }
+      }
+    }
+  }
+}

@@ -927,6 +927,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "sienna-rewards-schema"
+version = "0.0.0"
+dependencies = [
+ "cashback-minter",
+ "cashback-token",
+ "cosmwasm-schema 0.10.0",
+ "gov-token",
+ "lp-staking",
+ "weight-master",
+]
+
+[[package]]
 name = "snafu"
 version = "0.6.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
