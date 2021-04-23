@@ -66,8 +66,9 @@ contract!(
     [Response] {}
 
     [Handle] (deps, env, state, msg: MasterHandleMsg) -> MasterHandleAnswer {
+        /// test
         UpdateAllocation (spy_addr: HumanAddr, spy_hash: String, hook: Option<Binary>) {
-            let state = config_read(&deps.storage).load()?;
+            is_admin(&deps.api, &state, &env)?;
 
             let mut rs = TypedStoreMut::attach(&mut deps.storage);
             let mut spy_settings = rs.load(spy_addr.0.as_bytes()).unwrap_or(SpySettings {
@@ -90,8 +91,8 @@ contract!(
                     Uint128(rewards),
                     None,
                     1,
-                    state.gov_token_hash.clone(),
-                    state.gov_token_addr,
+                    state.gov_token.1.clone(),
+                    state.gov_token.0.clone(),
                 )?);
 
                 spy_settings.last_update_block = env.block.height;
@@ -101,7 +102,7 @@ contract!(
             // Notify to the spy contract on the new allocation
             messages.push(
                 WasmMsg::Execute {
-                    contract_addr: spy_address.clone(),
+                    contract_addr: spy_addr.clone(),
                     callback_code_hash: spy_hash,
                     msg: to_binary(&LPStakingHandleMsg::NotifyAllocation {
                         amount: Uint128(rewards),
@@ -112,27 +113,23 @@ contract!(
                 .into(),
             );
 
-            Ok(HandleResponse {
-                messages,
-                log: vec![log("update_allocation", spy_address.0)],
-                data: Some(to_binary(&MasterHandleAnswer::Success)?),
-            })
+            ok!(state, messages, vec![log("update_allocation", spy_addr.0)], to_binary(&MasterHandleAnswer::Success)?)
         }
         SetWeights (weights: Vec<WeightInfo>) {
             is_admin(&deps.api, &state, &env)?;
+
             let mut messages = vec![];
-            let mut logs = vec![];
+            let mut logs     = vec![];
+
             let mut new_weight_counter = 0;
             let mut old_weight_counter = 0;
+
             // Update reward contracts one by one
             for to_update in weights {
                 let mut rs = TypedStoreMut::attach(&mut deps.storage);
                 let mut spy_settings =
                     rs.load(to_update.address.clone().0.as_bytes())
-                        .unwrap_or(SpySettings {
-                            weight: 0,
-                            last_update_block: env.block.height,
-                        });
+                    .unwrap_or(SpySettings { weight: 0, last_update_block: env.block.height, });
 
                 // There is no need to update a SPY twice in a block, and there is no need to update a SPY
                 // that had 0 weight until now
@@ -149,8 +146,8 @@ contract!(
                         Uint128(rewards),
                         None,
                         1,
-                        state.gov_token_hash.clone(),
-                        state.gov_token_addr.clone(),
+                        state.gov_token.1.clone(),
+                        state.gov_token.0.clone(),
                     )?);
 
                     // Notify to the spy contract on the new allocation
@@ -184,56 +181,35 @@ contract!(
             }
 
             state.total_weight = state.total_weight - old_weight_counter + new_weight_counter;
-            config(&mut deps.storage).save(&state)?;
 
-            Ok(HandleResponse {
-                messages,
-                log: logs,
-                data: Some(to_binary(&MasterHandleAnswer::Success)?),
-            })
+            ok!(state, messages, logs, to_binary(&MasterHandleAnswer::Success)?)
         }
         SetSchedule (schedule) {
             is_admin(&deps.api, &state, &env)?;
             let mut s = schedule;
             sort_schedule(&mut s);
             state.minting_schedule = s;
-            st.save(&state)?;
-            Ok(HandleResponse {
-                messages: vec![],
-                log: vec![],
-                data: Some(to_binary(&MasterHandleAnswer::Success)?),
-            })
+            ok!(state, vec![], vec![], to_binary(&MasterHandleAnswer::Success)?)
         }
         SetGovToken (addr, hash) {
             is_admin(&deps.api, &state, &env)?;
-            state.gov_token_addr = gov_addr.clone();
-            state.gov_token_hash = gov_hash;
-            config(&mut deps.storage).save(&state)?;
-            Ok(HandleResponse {
-                messages: vec![],
-                log: vec![log("set_gov_token", gov_addr.0)],
-                data: Some(to_binary(&MasterHandleAnswer::Success)?),
-            })
+            state.gov_token = (addr.clone(), hash);
+            ok!(state, vec![], vec![log("set_gov_token", addr)], to_binary(&MasterHandleAnswer::Success)?)
         }
         ChangeAdmin (addr) {
             is_admin(&deps.api, &state, &env)?;
-            state.admin = admin_addr;
-            config(&mut deps.storage).save(&state)?;
-            Ok(HandleResponse {
-                messages: vec![],
-                log: vec![],
-                data: Some(to_binary(&MasterHandleAnswer::Success)?),
-            })
+            state.admin = env.message.sender;
+            ok!(state, vec![], vec![], to_binary(&MasterHandleAnswer::Success)?)
         }
     }
 );
 
 fn get_spy_settings <S: Storage> (
     storage: &S,
-    spy_address: HumanAddr
+    spy_addr: HumanAddr
 ) -> SpySettings {
     TypedStore::attach(storage)
-        .load(spy_address.0.as_bytes())
+        .load(spy_addr.0.as_bytes())
         .unwrap_or(SpySettings { weight: 0, last_update_block: 0, })
 }
 
@@ -263,7 +239,7 @@ fn get_spy_rewards(
     (multiplier * spy_settings.weight as u128) / total_weight as u128
 }
 
-fn is_admin <A:Api> (api: &A, state: &State, env: &Env) -> StdResult<()> {
+fn is_admin <A:Api> (_api: &A, state: &State, env: &Env) -> StdResult<()> {
     //let sender = api.canonical_address(&env.message.sender)?;
     if state.admin == env.message.sender { return Ok(()) }
     Err(StdError::Unauthorized { backtrace: None })
