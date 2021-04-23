@@ -2,7 +2,10 @@
 
 // TODO(fadroma): remove need for these to be public
 pub use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
-pub use sienna_schedule::{Seconds, Schedule, Pool, Account, vesting::Vesting, validate::Validation};
+pub use sienna_schedule::{
+    Seconds, Schedule, Pool, Account,
+    vesting::Vesting, validate::Validation, canon::{Humanize, Canonize}
+};
 pub use linear_map::LinearMap;
 
 /// How much each recipient has claimed so far
