@@ -1,0 +1,13 @@
+[Weight Master] o-> NotifyAllocation[Spy Contracts]
+[Weight Master] -> Mint[Govern Token - SNIP20]
+
+[Spy Contracts] o-> RegisterReceive[Reward Tokens - SNIP20]
+[Spy Contracts] o-> SetViewingKey[Reward Tokens - SNIP20]
+[Spy Contracts] o-> Transfer[Reward Tokens - SNIP20]
+
+[Spy Contracts] o-> RegisterReceive[Incetivized Tokens - SNIP20]
+[Spy Contracts] o-> SetViewingKey[Incetivized Tokens - SNIP20]
+
+[Spy Contracts] -> UpdateAllocation[Weight Master]
+
+[<note> Just putting this here so it can render properly...]

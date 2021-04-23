@@ -54,6 +54,7 @@ pub struct LPStakingInitMsg {
     pub inc_token: ContractInfo,
     pub master: ContractInfo,
     pub viewing_key: String,
+    /// Info about the current token
     pub token_info: TokenInfo,
     pub prng_seed: Binary,
     pub deadline: u64
