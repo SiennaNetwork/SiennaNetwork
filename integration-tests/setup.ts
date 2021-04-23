@@ -25,7 +25,7 @@ export async function setup(client: SigningCosmWasmClient, commit: string, sienn
     const factory_wasm = readFileSync(resolve(`../dist/${commit}-factory.wasm`))
     const lp_token_wasm = readFileSync(resolve(`../dist/${commit}-lp-token.wasm`))
     const ido_wasm = readFileSync(resolve(`../dist/ido.wasm`))
-  
+
     const exchange_upload = await client.upload(exchange_wasm, { }, undefined, fee)
     writer.write(exchange_upload, `uploads/exchange`)
 
@@ -40,7 +40,7 @@ export async function setup(client: SigningCosmWasmClient, commit: string, sienn
 
     const ido_upload = await client.upload(ido_wasm, {}, undefined, fee)
     writer.write(ido_upload, `uploads/ido`)
-  
+
     const pair_contract = new ContractInstantiationInfo(exchange_upload.originalChecksum, exchange_upload.codeId)
     const snip20_contract = new ContractInstantiationInfo(snip20_upload.originalChecksum, snip20_upload.codeId)
     const lp_token_contract = new ContractInstantiationInfo(lp_token_upload.originalChecksum, lp_token_upload.codeId)
@@ -54,7 +54,7 @@ export async function setup(client: SigningCosmWasmClient, commit: string, sienn
             prng_seed: create_rand_base64()
         } 
 
-        const sienna_contract = await client.instantiate(snip20_upload.codeId, sienna_init_msg, 'SIENNA TOKEN', undefined, undefined, fee)
+        const sienna_contract = await client.instantiate(snip20_upload.codeId, sienna_init_msg, `${commit} - SIENNA TOKEN`, undefined, undefined, fee)
         sienna_token = new ContractInfo(snip20_upload.originalChecksum, sienna_contract.contractAddress)
     }
 
@@ -68,7 +68,7 @@ export async function setup(client: SigningCosmWasmClient, commit: string, sienn
         sienna_token
     }
     
-    const result = await client.instantiate(factory_upload.codeId, factory_init_msg, 'AMM-FACTORY', undefined, undefined, fee)
+    const result = await client.instantiate(factory_upload.codeId, factory_init_msg, `${commit} - AMM FACTORY`, undefined, undefined, fee)
     writer.write(
         new ContractInfo(factory_upload.originalChecksum, result.contractAddress),
         `addresses/factory`
