@@ -4,6 +4,7 @@ use cosmwasm_std::{
     Api, CanonicalAddr, HumanAddr, Querier, StdResult, Env,
     Uint128, CosmosMsg, WasmMsg, BankMsg, Coin, to_binary, StdError
 };
+use cosmwasm_utils::{ContractInfo, ContractInfoStored};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize, Deserializer, Serializer};
 use secret_toolkit::snip20;
@@ -78,6 +79,24 @@ pub struct Exchange {
     pub pair: TokenPair,
     /// Address of the contract that manages the exchange.
     pub address: HumanAddr
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Clone, Copy, Debug)]
+pub struct Fee {
+    nom: u8,
+    denom: u16
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
+pub struct ExchangeSettings {
+    pub fee: Fee,
+    pub cashback_minter: Option<ContractInfo>
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+pub struct ExchangeSettingsStored {
+    pub fee: Fee,
+    pub cashback_minter: Option<ContractInfoStored>
 }
 
 pub fn create_send_msg(
@@ -319,6 +338,49 @@ impl PartialEq for TokenPair {
 impl TokenPairStored {
     pub fn to_normal(self, api: &impl Api) -> StdResult<TokenPair> {
         Ok(TokenPair(self.0.to_normal(api)?, self.1.to_normal(api)?))
+    }
+}
+
+impl Fee {
+    pub fn new(nom: u8, denom: u16) -> Self {
+        Self {
+            nom,
+            denom
+        }
+    }
+
+    pub fn uniswap() -> Self {
+        Self::new(3, 1000)
+    }
+
+    pub fn sienna() -> Self {
+        Self::new(28, 10000)
+    }
+}
+
+impl ExchangeSettings {
+    pub fn to_stored(&self, api: &impl Api) -> StdResult<ExchangeSettingsStored> {
+        Ok(ExchangeSettingsStored {
+            fee: self.fee,
+            cashback_minter: if let Some(info) = &self.cashback_minter { 
+                Some(info.to_stored(api)?) 
+            } else {
+                None
+            }
+        })
+    }
+}
+
+impl ExchangeSettingsStored {
+    pub fn to_normal(self, api: &impl Api) -> StdResult<ExchangeSettings> {
+        Ok(ExchangeSettings{
+            fee: self.fee,
+            cashback_minter: if let Some(info) = self.cashback_minter { 
+                Some(info.to_normal(api)?)
+            } else {
+                None
+            }
+        })
     }
 }
 

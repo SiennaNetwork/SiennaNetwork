@@ -9,7 +9,7 @@ use cosmwasm_utils::{ContractInfo, ContractInstantiationInfo, Callback};
 pub mod factory {
     use super::*;
     use super::ido::IdoInitConfig;
-    use crate::{Pagination, Exchange};
+    use crate::{Pagination, Exchange, ExchangeSettings};
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
     pub struct InitMsg {
@@ -17,7 +17,8 @@ pub mod factory {
         pub lp_token_contract: ContractInstantiationInfo,
         pub pair_contract: ContractInstantiationInfo,
         pub ido_contract: ContractInstantiationInfo,
-        pub sienna_token: ContractInfo
+        pub sienna_token: ContractInfo,
+        pub exchange_settings: ExchangeSettings
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -52,10 +53,11 @@ pub mod factory {
         },
         ListExchanges {
             pagination: Pagination
-        }
+        },
+        GetExchangeSettings
     }
 
-    #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    #[derive(Serialize, Deserialize, Debug, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryResponse {
         GetExchangeAddress {
@@ -66,6 +68,9 @@ pub mod factory {
         },
         ListExchanges {
             exchanges: Vec<Exchange>
+        },
+        GetExchangeSettings {
+            settings: ExchangeSettings
         }
     }
 }
@@ -203,7 +208,6 @@ pub mod ido {
         }
     }
 }
-
 
 pub mod snip20 {
     use super::*;
