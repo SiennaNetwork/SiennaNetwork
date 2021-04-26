@@ -3,6 +3,7 @@
   "title": "InitMsg",
   "type": "object",
   "required": [
+    "exchange_settings",
     "ido_contract",
     "lp_token_contract",
     "pair_contract",
@@ -10,6 +11,9 @@
     "snip20_contract"
   ],
   "properties": {
+    "exchange_settings": {
+      "$ref": "#/definitions/ExchangeSettings"
+    },
     "ido_contract": {
       "$ref": "#/definitions/ContractInstantiationInfo"
     },
@@ -57,6 +61,46 @@
         "id": {
           "type": "integer",
           "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "ExchangeSettings": {
+      "type": "object",
+      "required": [
+        "fee"
+      ],
+      "properties": {
+        "cashback_minter": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContractInfo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fee": {
+          "$ref": "#/definitions/Fee"
+        }
+      }
+    },
+    "Fee": {
+      "type": "object",
+      "required": [
+        "denom",
+        "nom"
+      ],
+      "properties": {
+        "denom": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        },
+        "nom": {
+          "type": "integer",
+          "format": "uint8",
           "minimum": 0.0
         }
       }

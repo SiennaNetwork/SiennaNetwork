@@ -2,14 +2,14 @@ use cosmwasm_std::{
     to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdError,
     StdResult, Storage, WasmMsg, CosmosMsg, log
 };
-use shared::{ExchangeInitMsg, IdoInitConfig, IdoInitMsg, TokenPair};
-use cosmwasm_utils::{Callback, ContractInfo};
+use sienna_amm_shared::{Callback, ContractInfo, TokenPair, Pagination};
+use sienna_amm_shared::msg::exchange::InitMsg as ExchangeInitMsg;
+use sienna_amm_shared::msg::ido::{IdoInitMsg, IdoInitConfig};
+use sienna_amm_shared::msg::factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
 
-use crate::msg::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
 use crate::state::{
     save_config, load_config, Config, pair_exists, store_exchange,
-    get_address_for_pair, get_idos,
-    Pagination, store_ido_address, get_exchanges
+    get_address_for_pair, get_idos, store_ido_address, get_exchanges
 };
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
@@ -43,7 +43,8 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     match msg {
         QueryMsg::GetExchangeAddress { pair } => query_exchange_address(deps, pair),
         QueryMsg::ListExchanges { pagination } => list_exchanges(deps, pagination),
-        QueryMsg::ListIdos { pagination } => list_idos(deps, pagination)
+        QueryMsg::ListIdos { pagination } => list_idos(deps, pagination),
+        QueryMsg::GetExchangeSettings => query_exchange_settings(deps)
     }
 }
 
@@ -225,16 +226,25 @@ fn list_exchanges<S: Storage, A: Api, Q: Querier>(
     })?)
 }
 
+fn query_exchange_settings<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>
+) -> StdResult<Binary> {
+    let config = load_config(deps)?;
+
+    Ok(to_binary(&QueryResponse::GetExchangeSettings {
+        settings: config.exchange_settings
+    })?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shared::{TokenType};
+    use sienna_amm_shared::{ContractInstantiationInfo, Fee, TokenType, ExchangeSettings};
     use cosmwasm_std::testing::{
         mock_dependencies, mock_env, MockApi,
         MockQuerier, MockStorage
     };
     use cosmwasm_std::{from_binary, StdError, HumanAddr};
-    use cosmwasm_utils::ContractInstantiationInfo;
 
     fn dependencies() -> Extern<MockStorage, MockApi, MockQuerier> {
         mock_dependencies(10, &[])
@@ -269,12 +279,18 @@ mod tests {
             address: HumanAddr("sienna_tkn".into())
         };
 
+        let exchange_settings = ExchangeSettings {
+            fee: Fee::uniswap(),
+            cashback_minter: None
+        };
+
         let result = init(deps, mock_env("sender1111", &[]), InitMsg {
             snip20_contract: snip20_contract.clone(),
             lp_token_contract: lp_token_contract.clone(),
             pair_contract: pair_contract.clone(),
             ido_contract: ido_contract.clone(),
-            sienna_token: sienna_token.clone()
+            sienna_token: sienna_token.clone(),
+            exchange_settings: exchange_settings.clone()
         });
 
         assert!(result.is_ok());
@@ -286,7 +302,8 @@ mod tests {
         assert_eq!(pair_contract, config.pair_contract);
         assert_eq!(ido_contract, config.ido_contract);
         assert_eq!(sienna_token, config.sienna_token);
-
+        assert_eq!(exchange_settings, config.exchange_settings);
+        
         Ok(())
     }
 

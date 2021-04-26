@@ -64,9 +64,44 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "get_exchange_settings"
+      ],
+      "properties": {
+        "get_exchange_settings": {
+          "type": "object",
+          "required": [
+            "settings"
+          ],
+          "properties": {
+            "settings": {
+              "$ref": "#/definitions/ExchangeSettings"
+            }
+          }
+        }
+      }
     }
   ],
   "definitions": {
+    "ContractInfo": {
+      "description": "Code hash and address of a contract.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
     "Exchange": {
       "description": "Represents the address of an exchange and the pair that it manages",
       "type": "object",
@@ -90,6 +125,46 @@
               "$ref": "#/definitions/TokenPair"
             }
           ]
+        }
+      }
+    },
+    "ExchangeSettings": {
+      "type": "object",
+      "required": [
+        "fee"
+      ],
+      "properties": {
+        "cashback_minter": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContractInfo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fee": {
+          "$ref": "#/definitions/Fee"
+        }
+      }
+    },
+    "Fee": {
+      "type": "object",
+      "required": [
+        "denom",
+        "nom"
+      ],
+      "properties": {
+        "denom": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        },
+        "nom": {
+          "type": "integer",
+          "format": "uint8",
+          "minimum": 0.0
         }
       }
     },

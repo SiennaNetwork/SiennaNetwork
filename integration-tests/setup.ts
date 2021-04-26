@@ -65,7 +65,14 @@ export async function setup(client: SigningCosmWasmClient, commit: string, sienn
         lp_token_contract,
         pair_contract,
         ido_contract,
-        sienna_token
+        sienna_token,
+        exchange_settings: {
+            fee: {
+                nom: 3,
+                denom: 1000
+            },
+            cashback_minter: undefined
+        }
     }
     
     const result = await client.instantiate(factory_upload.codeId, factory_init_msg, `${commit} - AMM FACTORY`, undefined, undefined, fee)

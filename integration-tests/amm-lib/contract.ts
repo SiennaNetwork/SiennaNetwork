@@ -40,6 +40,11 @@ export interface ListExchangesResponse {
     }
 }
 
+export interface SwapFee {
+    nom: number,
+    denom: number
+}
+
 function create_coin(amount: Uint128): Coin {
     return {
         denom: 'uscrt',

@@ -1,10 +1,9 @@
 use cosmwasm_std::{Api, CanonicalAddr, Extern, HumanAddr, Querier, StdResult, Storage, Uint128};
 use serde::{Serialize,Deserialize};
 
-use shared::{TokenPair, TokenPairStored};
-use cosmwasm_utils::{ContractInfo, ContractInfoStored};
-use cosmwasm_utils::storage::{load, save};
-use cosmwasm_utils::viewing_key::ViewingKey;
+use sienna_amm_shared::{TokenPair, TokenPairStored, ContractInfo, ContractInfoStored};
+use sienna_amm_shared::storage::{load, save};
+use sienna_amm_shared::viewing_key::ViewingKey;
 
 const CONFIG_KEY: &[u8] = b"config"; 
 
@@ -76,7 +75,7 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
 mod tests {
     use super::*;
     use cosmwasm_std::testing::mock_dependencies;
-    use shared::TokenType;
+    use sienna_amm_shared::TokenType;
 
     #[test]
     fn properly_stores_config() -> StdResult<()> {

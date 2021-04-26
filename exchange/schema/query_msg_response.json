@@ -9,7 +9,19 @@
       ],
       "properties": {
         "pair_info": {
-          "$ref": "#/definitions/TokenPair"
+          "type": "object",
+          "required": [
+            "liquidity_token",
+            "pair"
+          ],
+          "properties": {
+            "liquidity_token": {
+              "$ref": "#/definitions/ContractInfo"
+            },
+            "pair": {
+              "$ref": "#/definitions/TokenPair"
+            }
+          }
         }
       }
     },

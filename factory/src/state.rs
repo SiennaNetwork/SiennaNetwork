@@ -1,32 +1,23 @@
 
 use std::usize;
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::{Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage};
-use cosmwasm_utils::storage::{save, load};
-use cosmwasm_utils::{ContractInstantiationInfo, ContractInfo, ContractInfoStored};
-use shared::{TokenPair, TokenPairStored, TokenTypeStored};
-
-use crate::msg::InitMsg;
+use cosmwasm_std::{
+    Api, CanonicalAddr, Extern, HumanAddr, Querier,
+    StdError, StdResult, Storage
+};
+use sienna_amm_shared::storage::{save, load};
+use sienna_amm_shared::{
+    ContractInstantiationInfo, ContractInfo, ContractInfoStored,
+    ExchangeSettings, ExchangeSettingsStored, TokenPair,
+    TokenPairStored, TokenTypeStored, Pagination, Exchange
+};
+use sienna_amm_shared::msg::factory::InitMsg;
 
 const CONFIG_KEY: &[u8] = b"config";
 const IDO_PREFIX: &[u8; 1] = b"I";
 const EXCHANGES_KEY: &[u8] = b"exchanges";
 
-#[derive(Serialize, Deserialize, JsonSchema)]
-pub struct Pagination {
-    pub start: u64,
-    pub limit: u8
-}
-
-/// Represents the address of an exchange and the pair that it manages
-#[derive(Serialize, Deserialize, JsonSchema, Clone, PartialEq, Debug)]
-pub struct Exchange {
-    /// The pair that the contract manages.
-    pub pair: TokenPair,
-    /// Address of the contract that manages the exchange.
-    pub address: HumanAddr
-}
+const PAGINATION_LIMIT: u8 = 30;
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct Config {
@@ -35,6 +26,7 @@ pub(crate) struct Config {
     pub pair_contract: ContractInstantiationInfo,
     pub ido_contract: ContractInstantiationInfo,
     pub sienna_token: ContractInfo,
+    pub exchange_settings: ExchangeSettings,
     pub pair_count: u64,
     pub ido_count: u64
 }
@@ -46,6 +38,7 @@ struct ConfigStored {
     pub pair_contract: ContractInstantiationInfo,
     pub ido_contract: ContractInstantiationInfo,
     pub sienna_token: ContractInfoStored,
+    pub exchange_settings: ExchangeSettingsStored,
     pub pair_count: u64,
     pub ido_count: u64
 }
@@ -64,6 +57,7 @@ impl Config {
             pair_contract: msg.pair_contract,
             ido_contract: msg.ido_contract,
             sienna_token: msg.sienna_token,
+            exchange_settings: msg.exchange_settings,
             pair_count: 0,
             ido_count: 0
         }
@@ -80,6 +74,7 @@ pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
         pair_contract: config.pair_contract.clone(),
         ido_contract: config.ido_contract.clone(),
         sienna_token: config.sienna_token.to_stored(&deps.api)?,
+        exchange_settings: config.exchange_settings.to_stored(&deps.api)?,
         pair_count: config.pair_count,
         ido_count: config.ido_count
     };
@@ -97,6 +92,7 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>
         pair_contract: result.pair_contract,
         ido_contract: result.ido_contract,
         sienna_token: result.sienna_token.to_normal(&deps.api)?,
+        exchange_settings: result.exchange_settings.to_normal(&deps.api)?,
         pair_count: result.pair_count,
         ido_count: result.ido_count
     };
@@ -193,7 +189,7 @@ pub(crate) fn get_idos<S: Storage, A: Api, Q: Querier>(
         return Ok(vec![]);
     }
 
-    let limit = pagination.limit.min(Pagination::MAX_LIMIT);
+    let limit = pagination.limit.min(PAGINATION_LIMIT);
     let end = (pagination.start + limit as u64).min(config.ido_count);
 
     let mut result = Vec::with_capacity((end - pagination.start) as usize);
@@ -219,7 +215,7 @@ pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
         return Ok(vec![]);
     }
 
-    let limit = pagination.limit.min(Pagination::MAX_LIMIT);
+    let limit = pagination.limit.min(PAGINATION_LIMIT);
     let end = (pagination.start + limit as u64).min(exchanges.len() as u64);
 
     let mut result = Vec::with_capacity((end - pagination.start) as usize);
@@ -274,25 +270,12 @@ fn generate_pair_key(
     bytes.concat()
 }
 
-impl Pagination {
-    const MAX_LIMIT: u8 = 30;
-
-    pub fn new(start: u64, limit: u8) -> Self {
-        Self {
-            start,
-            limit
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use cosmwasm_std::testing::mock_dependencies;
     use cosmwasm_std::{HumanAddr, Storage};
-    use shared::TokenType;
-
-    use crate::msg::InitMsg;
+    use sienna_amm_shared::{TokenType, Fee};
 
     fn create_deps() -> Extern<impl Storage, impl Api, impl Querier> {
         mock_dependencies(10, &[])
@@ -303,6 +286,13 @@ mod tests {
             pair.1.clone(),
             pair.0.clone()
         )
+    }
+
+    fn pagination(start: u64, limit: u8) -> Pagination {
+        Pagination {
+            start,
+            limit
+        }
     }
 
     fn mock_config() -> Config {
@@ -326,6 +316,10 @@ mod tests {
             sienna_token: ContractInfo {
                 code_hash: "sienna_token".into(),
                 address: HumanAddr::from("sienna_ad")
+            },
+            exchange_settings: ExchangeSettings {
+                fee: Fee::uniswap(),
+                cashback_minter: None
             }
         })
     }
@@ -462,16 +456,16 @@ mod tests {
 
         let mut config = load_config(deps)?;
 
-        let result = get_idos(deps, &mut config, Pagination::new(addresses.len() as u64, 20))?;
+        let result = get_idos(deps, &mut config, pagination(addresses.len() as u64, 20))?;
         assert_eq!(result.len(), 0);
 
-        let result = get_idos(deps, &mut config, Pagination::new((addresses.len() - 1) as u64, 20))?;
+        let result = get_idos(deps, &mut config, pagination((addresses.len() - 1) as u64, 20))?;
         assert_eq!(result.len(), 1);
 
-        let result = get_idos(deps, &mut config, Pagination::new(0, Pagination::MAX_LIMIT + 10))?;
-        assert_eq!(result.len(), Pagination::MAX_LIMIT as usize);
+        let result = get_idos(deps, &mut config, pagination(0, PAGINATION_LIMIT + 10))?;
+        assert_eq!(result.len(), PAGINATION_LIMIT as usize);
 
-        let result = get_idos(deps, &mut config, Pagination::new(3, Pagination::MAX_LIMIT))?;
+        let result = get_idos(deps, &mut config, pagination(3, PAGINATION_LIMIT))?;
         assert_eq!(result, addresses[3..]);
 
         Ok(())
@@ -503,16 +497,16 @@ mod tests {
             });
         }
 
-        let result = get_exchanges(deps, Pagination::new(exchanges.len() as u64, 20))?;
+        let result = get_exchanges(deps, pagination(exchanges.len() as u64, 20))?;
         assert_eq!(result.len(), 0);
 
-        let result = get_exchanges(deps, Pagination::new((exchanges.len() - 1) as u64, 20))?;
+        let result = get_exchanges(deps, pagination((exchanges.len() - 1) as u64, 20))?;
         assert_eq!(result.len(), 1);
 
-        let result = get_exchanges(deps, Pagination::new(0, Pagination::MAX_LIMIT + 10))?;
-        assert_eq!(result.len(), Pagination::MAX_LIMIT as usize);
+        let result = get_exchanges(deps, pagination(0, PAGINATION_LIMIT + 10))?;
+        assert_eq!(result.len(), PAGINATION_LIMIT as usize);
 
-        let result = get_exchanges(deps, Pagination::new(3, Pagination::MAX_LIMIT))?;
+        let result = get_exchanges(deps, pagination(3, PAGINATION_LIMIT))?;
         assert_eq!(result, exchanges[3..]);
 
         Ok(())

@@ -3,11 +3,10 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-use factory::msg::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
+use sienna_amm_shared::msg::factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
 
 fn main() {
     let ref mut out_dir = current_dir().unwrap();
-    out_dir.push("factory");
     out_dir.push("schema");
 
     create_dir_all(&out_dir).unwrap();

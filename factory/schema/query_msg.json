@@ -3,6 +3,12 @@
   "title": "QueryMsg",
   "anyOf": [
     {
+      "type": "string",
+      "enum": [
+        "get_exchange_settings"
+      ]
+    },
+    {
       "type": "object",
       "required": [
         "get_exchange_address"

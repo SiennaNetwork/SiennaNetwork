@@ -4,13 +4,14 @@ use cosmwasm_std::{
     StdResult, Storage, QueryResult, CosmosMsg, WasmMsg, Uint128, log, HumanAddr, Decimal
 };
 use secret_toolkit::snip20;
-use shared::{ExchangeInitMsg, Snip20InitConfig, Snip20InitMsg, TokenPairAmount, TokenType, TokenTypeAmount, U256, create_send_msg};
-use shared::u256_math;
-use cosmwasm_utils::{Callback, ContractInfo};
-use cosmwasm_utils::viewing_key::ViewingKey;
-use cosmwasm_utils::rand::Prng;
+use sienna_amm_shared::{Callback, ContractInfo, TokenPairAmount, TokenType, TokenTypeAmount, create_send_msg};
+use sienna_amm_shared::msg::exchange::{InitMsg, HandleMsg, QueryMsg, QueryMsgResponse, SwapSimulationResponse};
+use sienna_amm_shared::msg::snip20::{Snip20InitConfig, Snip20InitMsg};
+use sienna_amm_shared::u256_math;
+use sienna_amm_shared::u256_math::U256;
+use sienna_amm_shared::viewing_key::ViewingKey;
+use sienna_amm_shared::crypto::Prng;
 
-use crate::msg::{HandleMsg, QueryMsg, QueryMsgResponse, SwapSimulationResponse};
 use crate::state::{Config, store_config, load_config};
 use crate::decimal_math;
 
@@ -29,7 +30,7 @@ struct Fee {
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    msg: ExchangeInitMsg,
+    msg: InitMsg,
 ) -> StdResult<InitResponse> {
 
     if msg.pair.0 == msg.pair.1 {
@@ -455,7 +456,7 @@ fn query_pool_amount<S: Storage, A: Api, Q: Querier>(
 fn query_pair_info(
     config: Config
 ) -> QueryResult {
-    to_binary(&QueryMsgResponse::PairInfo {
+    to_binary(&QueryMsgResponse::PairInfo{
         pair: config.pair,
         liquidity_token: config.lp_token_info
     })
