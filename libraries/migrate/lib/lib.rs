@@ -1,19 +1,19 @@
-use cosmwasm_std::{StdError, HumanAddr};
+use cosmwasm_std::{StdResult, StdError, HumanAddr};
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 
-#[derive(Serialize, Deserialize, JsonSchema)]
+#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
 pub enum ContractStatusLevel {
-    Normal,
+    Operational,
     Paused,
-    Migration,
+    Migrating,
 }
 
-#[derive(Serialize, Deserialize, JsonSchema)]
+#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
 pub struct ContractStatus {
-    level:       ContractStatusLevel,
-    reason:      String,
-    new_address: Option<HumanAddr>
+    pub level:       ContractStatusLevel,
+    pub reason:      String,
+    pub new_address: Option<HumanAddr>
 }
 
 macro_rules! migration_message {
@@ -23,42 +23,42 @@ macro_rules! migration_message {
     ) };
     (migration: $reason:expr, $new_address:expr) => { format!(
          "This contract is being migrated to {}, please use that address instead. Reason: {}",
-         &$new_address,
+         &$new_address.unwrap_or(HumanAddr::default()),
          &$reason
     ) };
 }
 
-pub fn is_operational (status: &ContractStatus) -> StatefulResult<()> {
+pub fn is_operational (status: &ContractStatus) -> StdResult<()> {
     let ContractStatus { level, reason, new_address } = status;
     match level {
-        ContractStatusLevel::Normal => Ok(((), None)),
-        ContractStatusLevel::Paused => Err(StatefulError((StdError::GenericErr {
+        ContractStatusLevel::Operational => Ok(()),
+        ContractStatusLevel::Paused => Err(StdError::GenericErr {
             backtrace: None,
             msg: migration_message!(paused: reason)
-        }, None))),
-        ContractStatusLevel::Migration => Err(StatefulError((StdError::GenericErr {
+        }),
+        ContractStatusLevel::Migrating => Err(StdError::GenericErr {
             backtrace: None,
-            msg: migration_message!(migration: reason, new_address)
-        }, None))),
+            msg: migration_message!(migration: reason, new_address.clone())
+        }),
     }
 }
 
 pub fn can_set_status (
-    status: &ContractStatus,
-    new_status_level: ContractStatusLevel
-) -> StatefulResult<()> {
+    status:           &ContractStatus,
+    new_status_level: &ContractStatusLevel
+) -> StdResult<()> {
     let ContractStatus { level, reason, new_address } = status;
     match level {
-        ContractStatusLevel::Normal => Ok(((), None)),
-        ContractStatusLevel::Paused => Ok(((), None)),
-        ContractStatusLevel::Migration => match new_status_level {
+        ContractStatusLevel::Operational => Ok(()),
+        ContractStatusLevel::Paused => Ok(()),
+        ContractStatusLevel::Migrating => match new_status_level {
             // if already migrating, allow message and new_address to be updated
-            ContractStatusLevel::Migration => Ok(((), None)),
+            ContractStatusLevel::Migrating => Ok(()),
             // but prevent reverting from migration status
-            _ => Err(StatefulError((StdError::GenericErr {
+            _ => Err(StdError::GenericErr {
                 backtrace: None,
-                msg: migration_message!(migration: reason, new_address);
-            }, None)))
+                msg: migration_message!(migration: reason, new_address.clone())
+            })
         }
     }
 }

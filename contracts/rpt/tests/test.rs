@@ -13,7 +13,8 @@ use cosmwasm_std::{
 };
 use sienna_rpt::{
     init, query, handle,
-    msg::{Init as RPTInit, Query as RPTQuery, Handle as RPTHandle, Response as RPTResponse}
+    msg::{Init as RPTInit, Query as RPTQuery, Handle as RPTHandle, Response as RPTResponse},
+    ContractStatus, ContractStatusLevel
 };
 use sienna_mgmt::msg::{Query as MGMTQuery, Response as MGMTResponse, Handle as MGMTHandle};
 use snip20_reference_impl::msg::{HandleMsg as TokenHandle};
@@ -57,38 +58,48 @@ kukumba!(
             config: initial_config,
             token:  (HumanAddr::from("token"), String::new()),
             mgmt:   (HumanAddr::from("mgmt"),  String::new()),
+            status: ContractStatus {
+                level: ContractStatusLevel::Operational,
+                reason: String::new(),
+                new_address: None
+            }
         }
         assert_eq!(status_initial.clone(), status(&deps), "querying status failed");
 
-        let exp_unauth = (
+        let expected_unauth = (
             Err(cosmwasm_std::StdError::Unauthorized { backtrace: None }),
             status_initial.clone());
-        let act_unauth = (
+        let actual_unauth = (
             handle(&mut deps, mock_env(1, 1, &STRANGER), RPTHandle::Configure {
                 config: updated_config.clone()
             }),
             status(&deps));
-        assert_eq!(exp_unauth, act_unauth, "wrong user was able to set config");
+        assert_eq!(expected_unauth, actual_unauth, "wrong user was able to set config");
 
-        let exp_invalid = status_initial.clone();
-        let act_invalid = {
+        let expected_invalid = status_initial.clone();
+        let actual_invalid = {
             handle(&mut deps, mock_env(2, 2, &ADMIN), RPTHandle::Configure {
                 config: invalid_config.clone()
             });
             status(&deps) }
-        assert_eq!(exp_invalid, act_invalid, "admin was able to set invalid config");
+        assert_eq!(expected_invalid, actual_invalid, "admin was able to set invalid config");
 
-        let exp_valid = RPTResponse::Status {
+        let expected_valid = RPTResponse::Status {
             config: updated_config.clone(),
             token:  (HumanAddr::from("token"), String::new()),
             mgmt:   (HumanAddr::from("mgmt"),  String::new()),
+            status: ContractStatus {
+                level: ContractStatusLevel::Operational,
+                reason: String::new(),
+                new_address: None
+            }
         };
-        let act_valid = {
+        let actual_valid = {
             handle(&mut deps, mock_env(2, 2, &ADMIN), RPTHandle::Configure {
                 config: updated_config.clone()
             }).unwrap();
             status(&deps) };
-        assert_eq!(exp_valid, act_valid, "admin was unable to set valid config"); }
+        assert_eq!(expected_valid, actual_valid, "admin was unable to set valid config"); }
     when "anyone calls the vest method"
     then "the contract claims funds from mgmt"
     and "it distributes them to the configured recipients" {

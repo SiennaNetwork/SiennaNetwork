@@ -36,8 +36,10 @@ contract!(
         config:  Config<CanonicalAddr>,
         /// A link to the token.
         token:   ContractLink<CanonicalAddr>,
-        /// A ling to the management contract which gives tokens.
-        mgmt:    ContractLink<CanonicalAddr>
+        /// A link to the management contract which gives tokens.
+        mgmt:    ContractLink<CanonicalAddr>,
+        /// The paused/migration flag
+        status:  ContractStatus
     }
 
     /// Requires MGMT and SNIP20 to be deployed. Their addresses and hashes,
@@ -49,16 +51,24 @@ contract!(
         mgmt:    ContractLink<HumanAddr>
     }) {
         validate(portion, &config)?;
-        let config = canonize(&deps.api, config)?;
-        let admin  = deps.api.canonical_address(&env.message.sender)?;
-        let token  = (deps.api.canonical_address(&token.0)?, token.1);
-        let mgmt   = (deps.api.canonical_address(&mgmt.0)?,  mgmt.1);
-        State { admin, portion, config, token, mgmt }
+        State {
+            portion,
+            admin:  deps.api.canonical_address(&env.message.sender)?,
+            config: canonize(&deps.api, config)?,
+            token:  (deps.api.canonical_address(&token.0)?, token.1),
+            mgmt:   (deps.api.canonical_address(&mgmt.0)?,  mgmt.1),
+            status: ContractStatus {
+                level: ContractStatusLevel::Operational,
+                reason: String::new(),
+                new_address: None
+            }
+        }
     }
 
     [Query] (deps, state, msg) -> Response {
         Status () {
             Ok(Response::Status {
+                status: state.status,
                 config: humanize(&deps.api, state.config)?,
                 token:  (deps.api.human_address(&state.token.0)?, state.token.1.clone()),
                 mgmt:   (deps.api.human_address(&state.mgmt.0)?,  state.mgmt.1.clone())
@@ -79,8 +89,8 @@ contract!(
 
         /// Set how funds will be split.
         Configure (config: Config<HumanAddr>) {
-            is_operational(&deps, &state)?;
             is_admin(&deps, &env, &state)?;
+            is_operational(&state.status)?;
             validate(state.portion, &config)?;
             state.config = canonize(&deps.api, config)?;
             ok!(state)
@@ -89,7 +99,7 @@ contract!(
         /// Receive and distribute funds.
         /// `WARNING` a cliff on the RPT account could confuse this?
         Vest () {
-            is_operational(&deps, &state)?;
+            is_operational(&state.status)?;
             let claimable = query_claimable(&deps, &env, &state.mgmt)?;
             let mut messages = vec![];
             let mut msg = to_binary(&MGMTHandle::Claim {})?;
@@ -118,10 +128,10 @@ contract!(
         /// Set the contract status.
         /// Used to pause the contract operation in case of errors,
         /// and to initiate a migration to a fixed version of the contract.
-        SetStatus (status: ContractStatusLevel, message: String, new_address: Option<HumanAddr>) {
-            is_admin(&deps, &state)?;
-            can_set_status(&deps, &state, status)?;
-            state.status = ContractStatus { status, message, new_address }
+        SetStatus (level: ContractStatusLevel, reason: String, new_address: Option<HumanAddr>) {
+            is_admin(&deps, &env, &state)?;
+            can_set_status(&state.status, &level)?;
+            state.status = ContractStatus { level, reason, new_address };
             ok!(state)
         }
     }
