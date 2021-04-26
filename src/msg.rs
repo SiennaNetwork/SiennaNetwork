@@ -130,7 +130,10 @@ pub mod exchange {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryMsgResponse {
-        PairInfo(TokenPair),
+        PairInfo {
+            pair: TokenPair,
+            liquidity_token: ContractInfo
+        },
         FactoryInfo(ContractInfo),
         Pool(TokenPairAmount)
     }
