@@ -9,13 +9,19 @@ pub trait Vesting<A> {
 impl<A:Clone+PartialEq> Vesting<A> for Schedule<A> {
     /// Sum of unlocked amounts for this address for all pools
     fn unlocked (&self, elapsed: Seconds, address: &A) -> u128 {
-        self.pools.iter().fold(0, |total, pool| total + pool.unlocked(elapsed, address))
+        u128::min(
+            self.pools.iter().fold(0, |total, pool| total + pool.unlocked(elapsed, address)),
+            self.subtotal()
+        )
     }
 }
 impl<A:Clone+PartialEq> Vesting<A> for Pool<A> {
     /// Sum of unlocked amounts for this address for all accounts in this pool
     fn unlocked (&self, elapsed: Seconds, address: &A) -> u128 {
-        self.accounts.iter().fold(0, |total, account| total + account.unlocked(elapsed, address))
+        u128::min(
+            self.accounts.iter().fold(0, |total, account| total + account.unlocked(elapsed, address)),
+            self.subtotal()
+        )
     }
 }
 impl<A:Clone+PartialEq> Vesting<A> for Account<A> {
@@ -28,10 +34,13 @@ impl<A:Clone+PartialEq> Vesting<A> for Account<A> {
         } else if elapsed >= self.end() { // at the end the full amount must've been vested
             self.amount.u128()
         } else {
-            match self.most_recent_portion(elapsed) {
-                Some(n) => self.cliff.u128() + (n as u128) * self.portion_size(),
-                None => 0
-            }
+            u128::min(
+                match self.most_recent_portion(elapsed) {
+                    Some(n) => self.cliff.u128() + (n as u128) * self.portion_size(),
+                    None => 0
+                },
+                self.amount.u128()
+            )
         }
     }
 }
