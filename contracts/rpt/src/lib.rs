@@ -73,12 +73,20 @@ contract!(
 
     [Query] (deps, state, msg) -> Response {
         Status () {
-            Ok(Response::Status { config: humanize(&deps.api, state.config)? })
+            Ok(Response::Status {
+                config: humanize(&deps.api, state.config)?,
+                token:  (deps.api.human_address(&state.token.0)?, state.token.1.clone()),
+                mgmt:   (deps.api.human_address(&state.mgmt.0)?,  state.mgmt.1.clone())
+            })
         }
     }
 
     [Response] {
-        Status { config: Config<HumanAddr> }
+        Status {
+            config: Config<HumanAddr>,
+            token:  ContractLink<HumanAddr>,
+            mgmt:   ContractLink<HumanAddr>
+        }
     }
 
     [Handle] (deps, env, state, msg) -> Response {

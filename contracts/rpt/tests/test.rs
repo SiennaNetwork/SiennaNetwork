@@ -34,10 +34,10 @@ kukumba!(
         let initial_config = LinearMap(vec![
             (ADMIN.clone(), Uint128::from(2500u128))]);
         let updated_config = LinearMap(vec![
-            (TOKEN1.clone(),   Uint128::from(1000u128)),
+            (TOKEN1.clone(), Uint128::from(1000u128)),
             (TOKEN2.clone(), Uint128::from(1500u128)) ]);
         let invalid_config = LinearMap(vec![
-            (TOKEN1.clone(),   Uint128::from(1001u128)),
+            (TOKEN1.clone(), Uint128::from(1001u128)),
             (TOKEN2.clone(), Uint128::from(1500u128)) ]); }
     when "someone deploys the contract" {
         assert_eq!(
@@ -53,7 +53,11 @@ kukumba!(
     and "they can set the configuration"
     and "noone else can"
     and "it has to be a valid configuration" {
-        let status_initial = RPTResponse::Status { config: initial_config }
+        let status_initial = RPTResponse::Status {
+            config: initial_config,
+            token:  (HumanAddr::from("token"), String::new()),
+            mgmt:   (HumanAddr::from("mgmt"),  String::new()),
+        }
         assert_eq!(status_initial.clone(), status(&deps), "querying status failed");
 
         let exp_unauth = (
@@ -74,7 +78,11 @@ kukumba!(
             status(&deps) }
         assert_eq!(exp_invalid, act_invalid, "admin was able to set invalid config");
 
-        let exp_valid = RPTResponse::Status { config: updated_config.clone() };
+        let exp_valid = RPTResponse::Status {
+            config: updated_config.clone(),
+            token:  (HumanAddr::from("token"), String::new()),
+            mgmt:   (HumanAddr::from("mgmt"),  String::new()),
+        };
         let act_valid = {
             handle(&mut deps, mock_env(2, 2, &ADMIN), RPTHandle::Configure {
                 config: updated_config.clone()

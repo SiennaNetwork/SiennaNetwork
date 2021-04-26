@@ -67,7 +67,9 @@ contract!(
     [Query] (deps, state, msg) -> Response {
         /// Return error count and launch timestamp.
         Status () {
-            Ok(Response::Status { launched: state.launched })
+            let (canon, hash) = state.token;
+            let token = (deps.api.human_address(&canon)?, hash.clone());
+            Ok(Response::Status { launched: state.launched, token })
         }
 
         /// Return schedule
@@ -94,7 +96,7 @@ contract!(
     }
 
     [Response] {
-        Status   { launched: Launched }
+        Status   { launched: Launched, token: ContractLink<HumanAddr> }
         Schedule { schedule: Schedule<HumanAddr> }
         Progress { time: Seconds, launched: Seconds, elapsed: Seconds, unlocked: Uint128, claimed: Uint128 }
         Error    { msg: String }
