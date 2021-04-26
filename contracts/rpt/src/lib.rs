@@ -3,6 +3,7 @@
 // TODO(fadroma): we don't really need these to be public (see note in `mgmt`)
 pub use secret_toolkit::{snip20::handle::transfer_msg, utils::space_pad};
 pub use sienna_mgmt::msg::{Query as MGMTQuery, Response as MGMTResponse, Handle as MGMTHandle};
+pub use sienna_migration::{ContractStatus, ContractStatusLevel, is_operational, can_set_status};
 pub use linear_map::LinearMap;
 pub use cosmwasm_std::{QueryRequest, WasmQuery};
 
@@ -11,22 +12,6 @@ pub const BLOCK_SIZE: usize = 256;
 
 /// Into what parts to split the received amount
 pub type Config<T> = LinearMap<T, Uint128>;
-fn canonize <A:Api> (api: &A, config: Config<HumanAddr>) -> StdResult<Config<CanonicalAddr>> {
-    let config: Result<Vec<_>,_> = config.0.iter().map(
-        |(human, amount)| match api.canonical_address(human) {
-            Ok(canon) => Ok((canon, *amount)),
-            Err(e)    => Err(e)
-        }).collect();
-    Ok(LinearMap(config?))
-}
-fn humanize <A:Api> (api: &A, config: Config<CanonicalAddr>) -> StdResult<Config<HumanAddr>> {
-    let config: Result<Vec<_>,_> = config.0.iter().map(
-        |(canon, amount)| match api.human_address(canon) {
-            Ok(human) => Ok((human, *amount)),
-            Err(e)    => Err(e)
-        }).collect();
-    Ok(LinearMap(config?))
-}
 
 /// Code hashes for MGMT and SNIP20
 pub type CodeHash = String;
@@ -83,6 +68,7 @@ contract!(
 
     [Response] {
         Status {
+            status: ContractStatus,
             config: Config<HumanAddr>,
             token:  ContractLink<HumanAddr>,
             mgmt:   ContractLink<HumanAddr>
@@ -93,6 +79,7 @@ contract!(
 
         /// Set how funds will be split.
         Configure (config: Config<HumanAddr>) {
+            is_operational(&deps, &state)?;
             is_admin(&deps, &env, &state)?;
             validate(state.portion, &config)?;
             state.config = canonize(&deps.api, config)?;
@@ -102,6 +89,7 @@ contract!(
         /// Receive and distribute funds.
         /// `WARNING` a cliff on the RPT account could confuse this?
         Vest () {
+            is_operational(&deps, &state)?;
             let claimable = query_claimable(&deps, &env, &state.mgmt)?;
             let mut messages = vec![];
             let mut msg = to_binary(&MGMTHandle::Claim {})?;
@@ -125,6 +113,16 @@ contract!(
             } else {
                 vec![]
             })
+        }
+
+        /// Set the contract status.
+        /// Used to pause the contract operation in case of errors,
+        /// and to initiate a migration to a fixed version of the contract.
+        SetStatus (status: ContractStatusLevel, message: String, new_address: Option<HumanAddr>) {
+            is_admin(&deps, &state)?;
+            can_set_status(&deps, &state, status)?;
+            state.status = ContractStatus { status, message, new_address }
+            ok!(state)
         }
     }
 );
@@ -156,6 +154,23 @@ fn validate <T> (portion: Uint128, config: &Config<T>) -> StdResult<()> {
     } else {
         Err(StdError::GenericErr { msg: RPTError!(TOTAL: portion, total), backtrace: None })
     }
+}
+
+fn canonize <A:Api> (api: &A, config: Config<HumanAddr>) -> StdResult<Config<CanonicalAddr>> {
+    let config: Result<Vec<_>,_> = config.0.iter().map(
+        |(human, amount)| match api.canonical_address(human) {
+            Ok(canon) => Ok((canon, *amount)),
+            Err(e)    => Err(e)
+        }).collect();
+    Ok(LinearMap(config?))
+}
+fn humanize <A:Api> (api: &A, config: Config<CanonicalAddr>) -> StdResult<Config<HumanAddr>> {
+    let config: Result<Vec<_>,_> = config.0.iter().map(
+        |(canon, amount)| match api.human_address(canon) {
+            Ok(human) => Ok((human, *amount)),
+            Err(e)    => Err(e)
+        }).collect();
+    Ok(LinearMap(config?))
 }
 
 fn sum_config <T> (map: &LinearMap<T, Uint128>) -> Uint128 {

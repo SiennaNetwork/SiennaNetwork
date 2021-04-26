@@ -3,6 +3,7 @@ members = [
   "libraries/kukumba",  # bdd testing framework
   "libraries/fadroma",  # smart contract microframework
   "libraries/schedule", # model of SIENNA vesting logic
+  "libraries/migrate",  # migration flag
   "contracts/mgmt",     # smart contract that mints and vests tokens according to schedule
   "contracts/rpt",      # smart contract that claims from mgmt and splits the received funds among recipients
   "contracts/token",    # any token that implements SNIP20

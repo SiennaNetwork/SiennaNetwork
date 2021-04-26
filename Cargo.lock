@@ -1125,7 +1125,18 @@ dependencies = [
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
  "serde",
  "serde_json",
- "sienna_schedule",
+ "sienna-migrate",
+ "sienna-schedule",
+ "snafu",
+]
+
+[[package]]
+name = "sienna-migrate"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-std",
+ "schemars",
+ "serde",
  "snafu",
 ]
 
@@ -1143,12 +1154,13 @@ dependencies = [
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
  "serde",
  "sienna-mgmt",
+ "sienna-migrate",
  "snafu",
  "snip20-reference-impl",
 ]
 
 [[package]]
-name = "sienna_schedule"
+name = "sienna-schedule"
 version = "2.0.0-rc1"
 dependencies = [
  "clap 3.0.0-beta.2",
@@ -1386,16 +1398,6 @@ name = "unicode-xid"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
-
-[[package]]
-name = "utils"
-version = "0.1.0"
-dependencies = [
- "cosmwasm-std",
- "schemars",
- "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
- "serde",
-]
 
 [[package]]
 name = "uuid"
