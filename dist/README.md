@@ -10,5 +10,3 @@ is `checksums.sha256.txt`, which
 accumulates the checksums for the
 build outputs of different commits
 to catch changes in the toolchain.
-
-`snip20-reference-impl.wasm` is not a part of the project, but is needed for testing, so it is kept for convenience.

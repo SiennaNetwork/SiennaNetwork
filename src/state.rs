@@ -1,9 +1,8 @@
 use serde::{Deserialize, Serialize};
 use cosmwasm_std::{ StdResult, Extern, Storage, Querier, Api, Uint128};
 
-use shared::{TokenType, TokenTypeStored};
-use cosmwasm_utils::{ContractInfo, ContractInfoStored, Callback};
-use cosmwasm_utils::storage::{load, save};
+use sienna_amm_shared::{TokenType, TokenTypeStored, ContractInfo, ContractInfoStored, Callback};
+use sienna_amm_shared::storage::{load, save};
 
 pub(crate) static CONFIG_KEY: &[u8] = b"config";
 

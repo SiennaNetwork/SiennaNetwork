@@ -3,13 +3,10 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-use ido::msg::{HandleMsg, QueryMsg, QueryMsgResponse};
-use shared::IdoInitMsg;
+use sienna_amm_shared::msg::ido::{IdoInitMsg, HandleMsg, QueryMsg, QueryMsgResponse};
 
 fn main() {
     let ref mut out_dir = current_dir().unwrap();
-
-    out_dir.push("ido");
     out_dir.push("schema");
 
     create_dir_all(&out_dir).unwrap();

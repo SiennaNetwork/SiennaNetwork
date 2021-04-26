@@ -3,11 +3,12 @@ use cosmwasm_std::{
     Querier, QueryResult, StdError, StdResult, Storage, Uint128, WasmMsg, log, to_binary
 };
 use secret_toolkit::snip20;
-use shared::{IdoInitMsg, Snip20InitMsg, TokenType, U256};
-use shared::u256_math;
-use cosmwasm_utils::{Callback, ContractInfo};
+use sienna_amm_shared::{Callback, ContractInfo, TokenType};
+use sienna_amm_shared::msg::ido::{IdoInitMsg, HandleMsg, QueryMsg, QueryMsgResponse};
+use sienna_amm_shared::msg::snip20::Snip20InitMsg;
+use sienna_amm_shared::u256_math;
+use sienna_amm_shared::u256_math::U256;
 
-use crate::msg::{HandleMsg, QueryMsg, QueryMsgResponse};
 use crate::state::{Config, save_config, load_config, SwapConstants};
 
 /// Pad handle responses and log attributes to blocks
