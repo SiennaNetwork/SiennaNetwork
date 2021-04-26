@@ -73,17 +73,18 @@ namespace Vesting {
 
   class MGMT {}
   MGMT .d. ICC.ITokenLink
-  MGMT .l. Vesting.ISchedule
-  MGMT .l. Vesting.IClaimable
+  MGMT .u. Vesting.ISchedule
+  MGMT .u. Vesting.IClaimable
+  Vesting.IClaimable -r[hidden]- Vesting.ISchedule
 
   MGMT <=> RPT
-  MGMT =d=> SIENNA
+  MGMT =u=> SIENNA
   RPT => SIENNA
 
   class RPT {}
   RPT .r. ICC.ITokenLink
   RPT .r. ICC.IContractLink
-  RPT .r. Vesting.ISplitPortion
+  RPT .u. Vesting.ISplitPortion
 }
 
 namespace ICC {
@@ -180,7 +181,7 @@ namespace Rewards {
   }
   LPStaking ..> SNIP20.IViewKey
 
-  WeightMaster -u-> GovernanceToken
+  WeightMaster -l-> GovernanceToken
 }
 
 

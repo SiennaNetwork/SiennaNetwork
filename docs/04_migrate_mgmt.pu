@@ -1,0 +1,43 @@
+@startuml
+skinparam backgroundColor #ccc
+skinparam sequence.LifeLineBorderColor #555
+actor Admin order 0
+entity SIENNA order 3
+entity MGMT order 2
+entity RPT order 4
+== Normal operation ==
+create actor Claimant order 1
+Admin -[hidden]-> Claimant
+Claimant -> MGMT : **tx** Claim!
+MGMT -> SIENNA : **tx** Transfer!
+note right #00ff00: update balance
+MGMT -> Claimant : **res** (successful claim)
+Claimant -> SIENNA : **q** Balance?
+SIENNA -> Claimant : **res** updated balance
+== Pausing MGMT ==
+Admin -> MGMT : **tx** SetStatus(Paused)
+note right #ffaa00: state.status = Paused
+Claimant -x MGMT : **tx** Claim
+note right #ff8888: can't claim when paused
+MGMT -> Claimant : **err** "Claims are currently paused. (reason: [reason])"
+== Migrating MGMT ==
+create entity newMGMT order 2
+Admin -> newMGMT : **init** Deploy
+Admin -> MGMT : **tx** SetStatus(MigrateTo(newMGMT))
+Admin -x MGMT : **tx** SetStatus(Normal)
+note right #ff8888: migration mode is **permanent**
+Admin -> newMGMT : **tx** MigrateFrom(MGMT)
+newMGMT -> MGMT : **q** Config?
+MGMT -> newMGMT : **res** (config)
+note right #00ff00: copy parent config
+Claimant -x MGMT : **tx** Claim
+note right #ff8888: can't claim from contract under migration
+MGMT -> Claimant : **err** "The vesting has moved is moving to [newMGMT] (reason: [reason]).\nYour balance and unlock progress have been preserved.\nPlease use that address to claim your tokens."
+Claimant -> newMGMT : **tx** Claim!
+note right #00ff00: new contract takes over the old one's functionality
+newMGMT -> SIENNA : **tx** Transfer!
+note right #00ff00: claim successful
+newMGMT -> Claimant : **res** (successful claim)
+Claimant -> SIENNA : **q** Balance?
+SIENNA -> Claimant : **res** updated balance
+@enduml

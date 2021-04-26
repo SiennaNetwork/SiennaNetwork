@@ -1,0 +1,41 @@
+@startuml
+skinparam backgroundColor #ccc
+skinparam sequence.LifeLineBorderColor #555
+actor Admin order 0
+entity RPT order 1
+entity MGMT order 2
+entity SIENNA order 3
+== Normal operation ==
+Admin -> RPT : Deploy
+Admin -> RPT : **tx** Vest!
+RPT -> MGMT : **tx** Claim!
+MGMT -> SIENNA : **tx** Transfer!(from=MGMT,to=RPT)
+RPT -> SIENNA : **tx** Transfer!(from=RPT,to=TOKENPAIR1)
+RPT -> SIENNA : **tx** Transfer!(from=RPT,to=TOKENPAIR2)
+RPT -> SIENNA : **tx** Transfer!(from=RPT,to=TOKENPAIR3)
+== Pausing RPT ==
+Admin -> RPT : **tx** SetStatus!(Paused)
+note right #ffaa00: state.status = Paused
+Admin -x RPT : **tx** Vest!
+RPT -> Claimant : **err** "Vesting is currently paused. (reason: [reason])"
+create entity newRPT order 1
+== Upgrading RPT ==
+Admin -> newRPT : **init** Deploy
+Admin -> RPT : **tx** SetStatus!(MigrateTo(newRPT))
+note right #ff8888: **irreversible!**
+Admin -> newRPT : **tx** MigrateFrom!(RPT)
+newRPT -> RPT : **q** Config
+RPT -> newRPT : (current config)
+note right #00ff00: copied config from parent
+Admin -x RPT : **tx** Vest!
+note right #ff8888: user should call the new contract instead
+RPT -> Admin : **err** "The remaining pool tokens are moving to [newRPT].\nPlease use that address to fund the RPT recipients"
+Admin -> newRPT : **tx** Vest!
+note right #00ff00: new contract takes over the old one's functionality
+newRPT -> MGMT : **tx** Claim!
+MGMT -> SIENNA : **tx** Transfer!(from=MGMT,to=newRPT)
+newRPT -> SIENNA : **tx** Transfer!(from=newRPT,to=TOKENPAIR1)
+newRPT -> SIENNA : **tx** Transfer!(from=newRPT,to=TOKENPAIR2)
+newRPT -> SIENNA : **tx** Transfer!(from=newRPT,to=TOKENPAIR3)
+
+@enduml

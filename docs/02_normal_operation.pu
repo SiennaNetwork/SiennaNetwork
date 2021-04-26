@@ -1,0 +1,22 @@
+@startuml
+
+skinparam backgroundColor #ccc
+skinparam sequence.LifeLineBorderColor #555
+
+actor Claimant
+entity MGMT
+entity SIENNA
+entity RPT
+
+== Normal operation ==
+
+Claimant -> MGMT : **tx** Claim!
+MGMT -> SIENNA : **tx** Transfer!
+note right #00ff00: update balance
+MGMT -> Claimant : **res** (successful claim)
+
+Claimant -> SIENNA : **q** Balance?
+SIENNA -> Claimant : **res** updated balance
+
+@enduml
+
