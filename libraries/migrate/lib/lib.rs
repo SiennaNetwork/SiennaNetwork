@@ -16,6 +16,16 @@ pub struct ContractStatus {
     pub new_address: Option<HumanAddr>
 }
 
+impl Default for ContractStatus {
+    fn default () -> Self {
+        Self {
+            level:       ContractStatusLevel::Operational,
+            reason:      String::new(),
+            new_address: None
+        }
+    }
+}
+
 macro_rules! migration_message {
     (paused: $reason:expr) => { format!(
          "This contract has been paused. Reason: {}",

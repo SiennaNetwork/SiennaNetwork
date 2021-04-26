@@ -2,6 +2,7 @@
 
 // TODO(fadroma): remove need for these to be public
 pub use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
+pub use sienna_migration::{ContractStatus, ContractStatusLevel, is_operational, can_set_status};
 pub use sienna_schedule::{
     Seconds, Schedule, Pool, Account,
     vesting::Vesting, validate::Validation, canon::{Humanize, Canonize}
@@ -49,27 +50,33 @@ contract!(
         /// How much each address has received from the contract.
         history:  History,
         /// Vesting configuration. Can be changed using `Configure`.
-        schedule: Schedule<CanonicalAddr>
+        schedule: Schedule<CanonicalAddr>,
+        /// The paused/migration flag.
+        status:  ContractStatus
     }
 
     [Init] (deps, env, msg: {
         schedule: Schedule<HumanAddr>,
         token:    ContractLink<HumanAddr>
     }) {
-        let admin    = Some(deps.api.canonical_address(&env.message.sender)?);
-        let history  = History::new();
-        let launched = None;
-        let schedule = schedule.canonize(&deps.api)?;
-        let token = (deps.api.canonical_address(&token.0)?, token.1);
-        State { admin, history, launched, schedule, token }
+        State {
+            admin:    Some(deps.api.canonical_address(&env.message.sender)?),
+            history:  History::new(),
+            launched: None,
+            schedule: schedule.canonize(&deps.api)?,
+            token:    (deps.api.canonical_address(&token.0)?, token.1),
+            status:   ContractStatus::default()
+        }
     }
 
     [Query] (deps, state, msg) -> Response {
         /// Return error count and launch timestamp.
         Status () {
-            let (canon, hash) = state.token;
-            let token = (deps.api.human_address(&canon)?, hash.clone());
-            Ok(Response::Status { launched: state.launched, token })
+            Ok(Response::Status {
+                status:   state.status,
+                launched: state.launched,
+                token:    (deps.api.human_address(&state.token.0)?, state.token.1.clone()),
+            })
         }
 
         /// Return schedule
@@ -96,7 +103,7 @@ contract!(
     }
 
     [Response] {
-        Status   { launched: Launched, token: ContractLink<HumanAddr> }
+        Status   { launched: Launched, token: ContractLink<HumanAddr>, status: ContractStatus }
         Schedule { schedule: Schedule<HumanAddr> }
         Progress { time: Seconds, launched: Seconds, elapsed: Seconds, unlocked: Uint128, claimed: Uint128 }
         Error    { msg: String }
@@ -104,9 +111,21 @@ contract!(
     }
 
     [Handle] (deps, env, state, msg) -> Response {
+
+        /// Set the contract status.
+        /// Used to pause the contract operation in case of errors,
+        /// and to initiate a migration to a fixed version of the contract.
+        SetStatus (level: ContractStatusLevel, reason: String, new_address: Option<HumanAddr>) {
+            is_admin(&deps.api, &state, &env)?;
+            can_set_status(&state.status, &level)?;
+            state.status = ContractStatus { level, reason, new_address };
+            ok!(state)
+        }
+
         /// Load a new schedule (only before launching the contract)
         Configure (schedule: Schedule<HumanAddr>) {
             is_admin(&deps.api, &state, &env)?;
+            is_operational(&state.status)?;
             is_not_launched(&state)?;
             schedule.validate()?;
             state.schedule = schedule.canonize(&deps.api)?;
@@ -116,6 +135,7 @@ contract!(
         /// Add a new account to a partially filled pool
         AddAccount (pool_name: String, account: Account<HumanAddr>) {
             is_admin(&deps.api, &state, &env)?;
+            is_operational(&state.status)?;
             let account = account.canonize(&deps.api)?;
             match state.schedule.add_account(&pool_name, account) {
                 Ok(()) => ok!(state),
@@ -130,6 +150,7 @@ contract!(
         /// but there can be only one admin at a given time (or none)
         SetOwner (new_admin: HumanAddr) {
             is_admin(&deps.api, &state, &env)?;
+            is_operational(&state.status)?;
             state.admin = Some(deps.api.canonical_address(&new_admin)?);
             ok!(state)
         }
@@ -137,6 +158,7 @@ contract!(
         /// DANGER: Set admin to None, making further changes impossible.
         Disown () {
             is_admin(&deps.api, &state, &env)?;
+            is_operational(&state.status)?;
             state.admin = None;
             ok!(state)
         }
@@ -148,6 +170,7 @@ contract!(
         Launch () {
             is_admin(&deps.api, &state, &env)?;
             is_not_launched(&state)?;
+            is_operational(&state.status)?;
             state.launched = Some(env.block.time);
             ok!(state, acquire(&deps.api, &state, &env)?, vec![
                 LogAttribute { key: "launched".to_string(), value: env.block.time.to_string() }
@@ -157,6 +180,7 @@ contract!(
         /// After launch, recipients can call the Claim method to
         /// receive the gains that they have accumulated so far.
         Claim () {
+            is_operational(&state.status)?;
             let launched = is_launched(&state)?;
             let elapsed  = get_elapsed(env.block.time, launched);
             let claimant = deps.api.canonical_address(&env.message.sender)?;

@@ -38,7 +38,7 @@ contract!(
         token:   ContractLink<CanonicalAddr>,
         /// A link to the management contract which gives tokens.
         mgmt:    ContractLink<CanonicalAddr>,
-        /// The paused/migration flag
+        /// The paused/migration flag.
         status:  ContractStatus
     }
 
@@ -57,11 +57,7 @@ contract!(
             config: canonize(&deps.api, config)?,
             token:  (deps.api.canonical_address(&token.0)?, token.1),
             mgmt:   (deps.api.canonical_address(&mgmt.0)?,  mgmt.1),
-            status: ContractStatus {
-                level: ContractStatusLevel::Operational,
-                reason: String::new(),
-                new_address: None
-            }
+            status: ContractStatus::default()
         }
     }
 
@@ -86,6 +82,16 @@ contract!(
     }
 
     [Handle] (deps, env, state, msg) -> Response {
+
+        /// Set the contract status.
+        /// Used to pause the contract operation in case of errors,
+        /// and to initiate a migration to a fixed version of the contract.
+        SetStatus (level: ContractStatusLevel, reason: String, new_address: Option<HumanAddr>) {
+            is_admin(&deps, &env, &state)?;
+            can_set_status(&state.status, &level)?;
+            state.status = ContractStatus { level, reason, new_address };
+            ok!(state)
+        }
 
         /// Set how funds will be split.
         Configure (config: Config<HumanAddr>) {
@@ -123,16 +129,6 @@ contract!(
             } else {
                 vec![]
             })
-        }
-
-        /// Set the contract status.
-        /// Used to pause the contract operation in case of errors,
-        /// and to initiate a migration to a fixed version of the contract.
-        SetStatus (level: ContractStatusLevel, reason: String, new_address: Option<HumanAddr>) {
-            is_admin(&deps, &env, &state)?;
-            can_set_status(&state.status, &level)?;
-            state.status = ContractStatus { level, reason, new_address };
-            ok!(state)
         }
     }
 );
