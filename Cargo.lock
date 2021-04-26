@@ -502,7 +502,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "shared"
+name = "sienna-amm-shared"
 version = "0.1.0"
 dependencies = [
  "cosmwasm-std",
