@@ -1,6 +1,6 @@
 // Copied from https://github.com/enigmampc/SecretSwap/blob/master/contracts/secretswap_pair/src/u256_math.rs
 
-use primitive_types::U256;
+pub use primitive_types::U256;
 
 fn checked_sub(b: U256) -> impl Fn(U256) -> Option<U256> {
     move |a: U256| a.checked_sub(b)

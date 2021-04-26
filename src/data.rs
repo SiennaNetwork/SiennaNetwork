@@ -65,6 +65,21 @@ pub struct TokenPairAmountIterator<'a> {
     index: u8
 }
 
+#[derive(Serialize, Deserialize, JsonSchema)]
+pub struct Pagination {
+    pub start: u64,
+    pub limit: u8
+}
+
+/// Represents the address of an exchange and the pair that it manages
+#[derive(Serialize, Deserialize, JsonSchema, Clone, PartialEq, Debug)]
+pub struct Exchange {
+    /// The pair that the contract manages.
+    pub pair: TokenPair,
+    /// Address of the contract that manages the exchange.
+    pub address: HumanAddr
+}
+
 pub fn create_send_msg(
     token: &TokenType,
     sender: HumanAddr,
