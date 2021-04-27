@@ -17,7 +17,6 @@ pub mod factory {
         pub lp_token_contract: ContractInstantiationInfo,
         pub pair_contract: ContractInstantiationInfo,
         pub ido_contract: ContractInstantiationInfo,
-        pub sienna_token: ContractInfo,
         pub exchange_settings: ExchangeSettings
     }
 
@@ -87,8 +86,7 @@ pub mod exchange {
         /// Used by the exchange contract to
         /// send back its address to the factory on init
         pub factory_info: ContractInfo,
-        pub callback: Callback,
-        pub sienna_token: ContractInfo
+        pub callback: Callback
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]

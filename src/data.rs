@@ -81,6 +81,12 @@ pub struct Exchange {
     pub address: HumanAddr
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ExchangeStored {
+    pub pair: TokenPairStored,
+    pub address: CanonicalAddr
+}
+
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Clone, Copy, Debug)]
 pub struct Fee {
     pub nom: u8,
@@ -376,6 +382,24 @@ impl ExchangeSettingsStored {
             } else {
                 None
             }
+        })
+    }
+}
+
+impl Exchange {
+    pub fn to_stored(&self, api: &impl Api) -> StdResult<ExchangeStored> {
+        Ok(ExchangeStored {
+            pair: self.pair.to_stored(api)?,
+            address: api.canonical_address(&self.address)?
+        })
+    }
+}
+
+impl ExchangeStored {
+    pub fn to_normal(self, api: &impl Api) -> StdResult<Exchange> {
+        Ok(Exchange {
+            pair: self.pair.to_normal(api)?,
+            address: api.human_address(&self.address)?
         })
     }
 }
