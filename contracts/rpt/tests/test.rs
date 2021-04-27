@@ -1,4 +1,9 @@
+#![cfg(test)]
+#![allow(dead_code)]
+#![allow(unused_macros)]
+#![allow(unused_imports)]
 #![allow(non_snake_case)]
+
 #[macro_use] extern crate kukumba;
 
 use cosmwasm_std::{
@@ -111,9 +116,7 @@ kukumba!(
         assert_eq!(messages.len(), 3, "unexpected message count");
 
         // check claim from token
-        if let CosmosMsg::Wasm(WasmMsg::Execute {
-            msg, contract_addr, callback_code_hash, ..
-        }) = messages.get(0).unwrap() {
+        if let CosmosMsg::Wasm(WasmMsg::Execute { msg, .. }) = messages.get(0).unwrap() {
             if let MGMTHandle::Claim {..} = from_binary::<MGMTHandle>(&msg).unwrap() {} else {
                 panic!("unexpected 1st message");
             }
@@ -122,9 +125,7 @@ kukumba!(
         }
         // check vestings to recipients
         for i in 1..3 {
-            if let CosmosMsg::Wasm(WasmMsg::Execute {
-                msg, contract_addr, callback_code_hash, ..
-            }) = messages.get(i).unwrap() {
+            if let CosmosMsg::Wasm(WasmMsg::Execute { msg, .. }) = messages.get(i).unwrap() {
                 if let TokenHandle::Transfer {recipient,amount,..} = from_binary::<TokenHandle>(&msg).unwrap() {
                     let (expected_recipient, expected_amount) = updated_config.0.get(i-1).unwrap();
                     assert_eq!(*expected_recipient, recipient);
@@ -168,7 +169,7 @@ impl Querier for MockQuerier {
         match &request {
             QueryRequest::Wasm(msg) => {
                 match msg {
-                    WasmQuery::Smart { contract_addr, msg, .. } => {
+                    WasmQuery::Smart { contract_addr, .. } => {
                         let mgmt = HumanAddr::from("mgmt");
                         match &contract_addr {
                             mgmt => {
