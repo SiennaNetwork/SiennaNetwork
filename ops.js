@@ -85,9 +85,9 @@ export async function upload (options = {}) {
         } = options
 
   let { builder
-      , conn = builder ? null : await SecretNetwork.localnet({stateBase}) } = options
-  if (typeof conn === 'string') conn = await SecretNetwork[conn]({stateBase})
-  if (!builder) builder = conn.builder
+      , network = builder ? null : await SecretNetwork.localnet({stateBase}) } = options
+  if (typeof network === 'string') network = await SecretNetwork[network]({stateBase})
+  if (!builder) builder = network.builder
 
   const receipts = {}
   for (let contract of Object.keys(CONTRACTS)) {
@@ -305,7 +305,7 @@ export async function ensureWallets (options = {}) {
     console.info('\nRecipient balances:')
     for (const {agent} of Object.values(recipients)) {
       recipientBalances.push([agent.name, bignum(await agent.balance)])
-      console.info(name.padEnd(10), fmtSCRT(balance))
+      console.info(agent.name.padEnd(10), fmtSCRT(balance))
     }
     return {balance, recipientBalances}
   }

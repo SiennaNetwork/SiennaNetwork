@@ -1,21 +1,21 @@
 | time | info | time (msec) | gas (uSCRT) | overhead (msec) |
 | --- | --- | --- | --- | --- |
-| 2021-04-16T11:43:37.866Z | allow adding accounts to Advisors pool in place of AdvisorN | 0 |
-| 2021-04-16T11:43:37.866Z | shorten schedule and replace placeholders with test accounts | 103 |
-| 2021-04-16T11:43:37.969Z | create extra test accounts for reallocation tests | 23 |
-| 2021-04-16T11:43:38.680Z | ensure 16 test accounts have balance | 4072 | 329271 | 820 |
-| 2021-04-16T11:43:54.881Z | build RPT | 3195 |
-| 2021-04-16T11:43:54.880Z | build MGMT | 3283 |
-| 2021-04-16T11:43:54.880Z | build TOKEN | 3542 |
-| 2021-04-16T11:43:54.881Z | build project | 3542 |
-| 2021-04-16T11:43:58.424Z | upload TOKEN | 5 | 1597512 | 747 |
-| 2021-04-16T11:43:59.176Z | upload MGMT | 3 | 1431896 | 791 |
-| 2021-04-16T11:43:59.970Z | upload RPT | 2 | 1430468 | 1111 |
-| 2021-04-16T11:44:01.084Z | initialize token | 7783 | 141097 | 509 |
-| 2021-04-16T11:44:09.376Z | initialize mgmt | 4508 | 238281 | 548 |
-| 2021-04-16T11:44:14.432Z | make mgmt owner of token | 9113 | 216505 | 578 |
-| 2021-04-16T11:44:24.123Z | initialize rpt | 4836 | 134902 | 365 |
-| 2021-04-16T11:44:29.324Z | point rpt account in mgmt schedule to rpt contract | 4438 | 239540 | 498 |
-| 2021-04-16T11:44:34.261Z | set null viewing key on undefined SIENNA accounts | 8901 | 1722870 | 495 |
-| 2021-04-16T11:44:43.657Z | launch the vesting | 6174 | 313457 | 430 |
-|  | **total** | 63523 | 7795799 | 6892 |
+| 2021-04-27T08:02:50.905Z | allow adding accounts to Advisors pool in place of AdvisorN | 0 |
+| 2021-04-27T08:02:50.905Z | shorten schedule and replace placeholders with test accounts | 186 |
+| 2021-04-27T08:02:51.091Z | create extra test accounts for reallocation tests | 41 |
+| 2021-04-27T08:03:20.808Z | ensure 16 test accounts have balance | 17119 | 329343 | 812 |
+| 2021-04-27T08:04:07.575Z | build TOKEN | 3811 |
+| 2021-04-27T08:04:07.576Z | build RPT | 3814 |
+| 2021-04-27T08:04:07.576Z | build MGMT | 3851 |
+| 2021-04-27T08:04:07.576Z | build project | 3851 |
+| 2021-04-27T08:04:11.428Z | upload TOKEN | 3 | 1597512 | 11064 |
+| 2021-04-27T08:04:22.496Z | upload MGMT | 10 | 1431896 | 1087 |
+| 2021-04-27T08:04:23.594Z | upload RPT | 11 | 1430468 | 1009 |
+| 2021-04-27T08:04:24.615Z | initialize token | 10623 | 141097 | 539 |
+| 2021-04-27T08:04:35.777Z | initialize mgmt | 5125 | 238281 | 609 |
+| 2021-04-27T08:04:41.512Z | make mgmt owner of token | 16268 | 216505 | 5440 |
+| 2021-04-27T08:05:03.220Z | initialize rpt | 12034 | 134902 | 381 |
+| 2021-04-27T08:05:15.636Z | point rpt account in mgmt schedule to rpt contract | 10805 | 239540 | 739 |
+| 2021-04-27T08:05:27.181Z | set null viewing key on 16 SIENNA accounts | 53875 | 1721958 | 405 |
+| 2021-04-27T08:06:21.461Z | launch the vesting | 5122 | 313457 | 606 |
+|  | **total** | 146549 | 7794959 | 22691 |
