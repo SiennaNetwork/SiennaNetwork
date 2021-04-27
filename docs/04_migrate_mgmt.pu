@@ -5,39 +5,42 @@ actor Admin order 0
 entity SIENNA order 3
 entity MGMT order 2
 entity RPT order 4
+
 == Normal operation ==
 create actor Claimant order 1
 Admin -[hidden]-> Claimant
-Claimant -> MGMT : **tx** Claim!
-MGMT -> SIENNA : **tx** Transfer!
+Claimant -> MGMT : **tx** MGMT.Claim
+MGMT -> SIENNA : **tx** SNIP20.Transfer
 note right #00ff00: update balance
 MGMT -> Claimant : **res** (successful claim)
-Claimant -> SIENNA : **q** Balance?
+Claimant -> SIENNA : **q** SNIP20.Balance
 SIENNA -> Claimant : **res** updated balance
+
 == Pausing MGMT ==
-Admin -> MGMT : **tx** SetStatus(Paused)
+Admin -> MGMT : **tx** MGMT.SetStatus(Paused)
 note right #ffaa00: state.status = Paused
-Claimant -x MGMT : **tx** Claim
+Claimant -x MGMT : **tx** MGMT.Claim
 note right #ff8888: can't claim when paused
-MGMT -> Claimant : **err** "Claims are currently paused. (reason: [reason])"
+MGMT -> Claimant : **err** "Contract paused!"
+
 == Migrating MGMT ==
+Admin -> MGMT : **q** MGMT.Schedule
+MGMT -> Admin : **res** (current schedule)
+Admin -> MGMT : **q** MGMT.History
+MGMT -> Admin : **res** (current claim history)
 create entity newMGMT order 2
-Admin -> newMGMT : **init** Deploy
-Admin -> MGMT : **tx** SetStatus(MigrateTo(newMGMT))
-Admin -x MGMT : **tx** SetStatus(Normal)
-note right #ff8888: migration mode is **permanent**
-Admin -> newMGMT : **tx** MigrateFrom(MGMT)
-newMGMT -> MGMT : **q** Config?
-MGMT -> newMGMT : **res** (config)
-note right #00ff00: copy parent config
-Claimant -x MGMT : **tx** Claim
-note right #ff8888: can't claim from contract under migration
-MGMT -> Claimant : **err** "The vesting has moved is moving to [newMGMT] (reason: [reason]).\nYour balance and unlock progress have been preserved.\nPlease use that address to claim your tokens."
-Claimant -> newMGMT : **tx** Claim!
-note right #00ff00: new contract takes over the old one's functionality
-newMGMT -> SIENNA : **tx** Transfer!
+Admin -> newMGMT : **init** MGMT.Init(schedule, history)
+note right #00ff00: new instance with config from previous one
+Admin -> MGMT : **tx** MGMT.SetStatus(Migrating, reason, newMGMT)
+note right #ffaa00: state.status = Migrating **(permanent!)**
+Claimant -x MGMT : **tx** MGMT.Claim
+note right #ff8888: can't claim from contract during migration
+MGMT -> Claimant : **err** "Use newMGMT instead!"
+Claimant -> newMGMT : **tx** MGMT.Claim!
+note right #00ff00: newMGMT takes over from MGMT
+newMGMT -> SIENNA : **tx** SNIP20.Transfer
 note right #00ff00: claim successful
 newMGMT -> Claimant : **res** (successful claim)
-Claimant -> SIENNA : **q** Balance?
+Claimant -> SIENNA : **q** SNIP20.Balance?
 SIENNA -> Claimant : **res** updated balance
 @enduml
