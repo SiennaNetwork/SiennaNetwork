@@ -51,22 +51,22 @@ impl <K: PartialEq, V> LinearMap<K, V> {
     }
 }
 
-impl <V: Clone> LinearMap<HumanAddr, V> {
+impl <V: Copy> LinearMap<HumanAddr, V> {
     pub fn canonize <A: Api> (&self, api: &A) -> StdResult<LinearMap<CanonicalAddr, V>> {
         let canonized: Result<Vec<_>,_> = self.0.iter().map(
             |(human, value)| match api.canonical_address(human) {
-                Ok(canon) => Ok((canon, value.clone())),
+                Ok(canon) => Ok((canon, *value)),
                 Err(e)    => Err(e)
             }).collect();
         Ok(LinearMap(canonized?))
     }
 }
 
-impl <V: Clone> LinearMap<CanonicalAddr, V> {
+impl <V: Copy> LinearMap<CanonicalAddr, V> {
     pub fn humanize <A: Api> (&self, api: &A) -> StdResult<LinearMap<HumanAddr, V>> {
         let humanized: Result<Vec<_>,_> = self.0.iter().map(
             |(canon, value)| match api.human_address(canon) {
-                Ok(human) => Ok((human, value.clone())),
+                Ok(human) => Ok((human, *value)),
                 Err(e)    => Err(e)
             }).collect();
         Ok(LinearMap(humanized?))
