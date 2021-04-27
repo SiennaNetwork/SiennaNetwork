@@ -1,8 +1,7 @@
-use crate::asset::Asset;
 use crate::state::Pair;
 use cosmwasm_std::HumanAddr;
 use schemars::JsonSchema;
-use scrt_finance::ContractInfo;
+use sienna_amm_shared::{ContractInfo, TokenTypeAmount};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, JsonSchema)]
@@ -16,8 +15,8 @@ pub struct InitMsg {
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
     ReceiveSwapData {
-        asset_in: Asset,
-        asset_out: Asset,
+        asset_in: TokenTypeAmount,
+        asset_out: TokenTypeAmount,
         account: HumanAddr,
     },
 

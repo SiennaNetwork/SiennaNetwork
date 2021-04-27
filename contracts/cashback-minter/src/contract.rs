@@ -3,11 +3,11 @@ use cosmwasm_std::{
     ReadonlyStorage, StdError, StdResult, Storage, Uint128,
 };
 
-use crate::asset::{Asset, AssetInfo};
+//use crate::asset::{Asset, AssetInfo};
 use crate::msg::{HandleMsg, InitMsg, QueryAnswer, QueryMsg, ResponseStatus};
 use crate::state::{Pair, KEY_ADMIN, KEY_CSHBK, KEY_DATA_SENDER, KEY_SSCRT, PREFIX_PAIRED_TOKENS};
 use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
-use scrt_finance::ContractInfo;
+use sienna_amm_shared::{ContractInfo, TokenType, TokenTypeAmount};
 use secret_toolkit::snip20;
 use secret_toolkit::storage::{TypedStore, TypedStoreMut};
 
@@ -52,8 +52,8 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 fn receive_swap_data<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    asset_in: Asset,
-    asset_out: Asset,
+    asset_in: TokenTypeAmount,
+    asset_out: TokenTypeAmount,
     account: HumanAddr,
 ) -> StdResult<HandleResponse> {
     // Verify that sender is authorized
@@ -151,11 +151,11 @@ fn set_data_sender<S: Storage, A: Api, Q: Querier>(
 
 fn get_eligibility<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    asset_in: Asset,
-    asset_out: Asset,
+    asset_in: TokenTypeAmount,
+    asset_out: TokenTypeAmount,
 ) -> StdResult<u128> {
-    let scrt: Asset;
-    let paired: Asset;
+    let scrt: TokenTypeAmount;
+    let paired: TokenTypeAmount;
 
     if is_scrt(deps, asset_in.clone())? {
         scrt = asset_in;
@@ -167,9 +167,9 @@ fn get_eligibility<S: Storage, A: Api, Q: Querier>(
         return Ok(0);
     }
 
-    let paired_addr: HumanAddr = match paired.info {
-        AssetInfo::Token { contract_addr, .. } => contract_addr,
-        AssetInfo::NativeToken { .. } => return Ok(scrt.amount.0), // If paired is native => this is the SCRT<>sSCRT pair
+    let paired_addr: HumanAddr = match paired.token {
+        TokenType::CustomToken { contract_addr, .. } => contract_addr,
+        TokenType::NativeToken { .. } => return Ok(scrt.amount.0), // If paired is native => this is the SCRT<>sSCRT pair
     };
     let is_stored =
         PrefixedStorage::new(PREFIX_PAIRED_TOKENS, &mut deps.storage).get(paired_addr.0.as_bytes());
@@ -183,14 +183,14 @@ fn get_eligibility<S: Storage, A: Api, Q: Querier>(
 
 fn is_scrt<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    asset: Asset,
+    asset: TokenTypeAmount,
 ) -> StdResult<bool> {
-    match asset.info {
-        AssetInfo::Token { contract_addr, .. } => {
+    match asset.token {
+        TokenType::CustomToken { contract_addr, .. } => {
             let sscrt = TypedStore::<HumanAddr, S>::attach(&deps.storage).load(KEY_SSCRT)?;
             Ok(contract_addr == sscrt)
         }
-        AssetInfo::NativeToken { denom } => Ok(denom.to_lowercase() == "uscrt".to_string()),
+        TokenType::NativeToken { denom } => Ok(denom.to_lowercase() == "uscrt".to_string()),
     }
 }
 
