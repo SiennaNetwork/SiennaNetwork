@@ -20,6 +20,10 @@ use cosmwasm_std::{StdResult, Api, HumanAddr, CanonicalAddr};
 #[derive(serde::Serialize,serde::Deserialize,Clone,Debug,PartialEq,schemars::JsonSchema)]
 pub struct LinearMap<K, V>(pub Vec<(K, V)>);
 
+impl <K, V> Default for LinearMap<K, V> {
+    fn default () -> Self { Self(Vec::new()) }
+}
+
 impl <K: PartialEq, V> LinearMap<K, V> {
     pub fn new () -> Self { Self(Vec::new()) }
     pub fn get (&self, key: &K) -> Option<&V> {
