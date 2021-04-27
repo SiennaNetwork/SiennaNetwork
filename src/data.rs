@@ -351,12 +351,12 @@ impl Fee {
         }
     }
 
-    pub fn uniswap() -> Self {
+    pub fn swap() -> Self {
         Self::new(3, 1000)
     }
 
-    pub fn sienna() -> Self {
-        Self::new(28, 10000)
+    pub fn sienna_burn() -> Self {
+        Self::new(2, 10000)
     }
 }
 
