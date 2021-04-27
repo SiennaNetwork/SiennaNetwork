@@ -54,7 +54,7 @@ contract!(
         State {
             portion,
             admin:  deps.api.canonical_address(&env.message.sender)?,
-            config: canonize(&deps.api, config)?,
+            config: config.canonize(&deps.api)?,
             token:  (deps.api.canonical_address(&token.0)?, token.1),
             mgmt:   (deps.api.canonical_address(&mgmt.0)?,  mgmt.1),
             status: ContractStatus::default()
@@ -65,7 +65,7 @@ contract!(
         Status () {
             Ok(Response::Status {
                 status: state.status,
-                config: humanize(&deps.api, state.config)?,
+                config: state.config.humanize(&deps.api)?,
                 token:  (deps.api.human_address(&state.token.0)?, state.token.1.clone()),
                 mgmt:   (deps.api.human_address(&state.mgmt.0)?,  state.mgmt.1.clone())
             })
@@ -74,10 +74,12 @@ contract!(
 
     [Response] {
         Status {
-            status: ContractStatus,
-            config: Config<HumanAddr>,
-            token:  ContractLink<HumanAddr>,
-            mgmt:   ContractLink<HumanAddr>
+            admin:   HumanAddr,
+            portion: Uint128,
+            config:  Config<HumanAddr>,
+            token:   ContractLink<HumanAddr>,
+            mgmt:    ContractLink<HumanAddr>
+            status:  ContractStatus,
         }
     }
 
@@ -98,7 +100,7 @@ contract!(
             is_admin(&deps, &env, &state)?;
             is_operational(&state.status)?;
             validate(state.portion, &config)?;
-            state.config = canonize(&deps.api, config)?;
+            state.config = config.canonize(&deps.api)?;
             ok!(state)
         }
 
@@ -170,6 +172,7 @@ fn canonize <A:Api> (api: &A, config: Config<HumanAddr>) -> StdResult<Config<Can
         }).collect();
     Ok(LinearMap(config?))
 }
+
 fn humanize <A:Api> (api: &A, config: Config<CanonicalAddr>) -> StdResult<Config<HumanAddr>> {
     let config: Result<Vec<_>,_> = config.0.iter().map(
         |(canon, amount)| match api.human_address(canon) {
