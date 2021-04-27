@@ -83,8 +83,8 @@ pub struct Exchange {
 
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Clone, Copy, Debug)]
 pub struct Fee {
-    nom: u8,
-    denom: u16
+    pub nom: u8,
+    pub denom: u16
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
