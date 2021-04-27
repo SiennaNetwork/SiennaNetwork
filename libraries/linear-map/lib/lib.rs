@@ -1,6 +1,7 @@
 //! Minimal KV store that passes `serde_json_wasm` serialization
 
 use std::mem::replace;
+use cosmwasm_std::{StdResult, Api, HumanAddr, CanonicalAddr};
 
 /// Just a wrapped `Vec` with `get` and `insert` methods.
 ///
@@ -18,7 +19,8 @@ use std::mem::replace;
 /// even though there's no obvious reason why that wouldn't work.
 #[derive(serde::Serialize,serde::Deserialize,Clone,Debug,PartialEq,schemars::JsonSchema)]
 pub struct LinearMap<K, V>(pub Vec<(K, V)>);
-impl<K: PartialEq, V> LinearMap<K, V> {
+
+impl <K: PartialEq, V> LinearMap<K, V> {
     pub fn new () -> Self { Self(Vec::new()) }
     pub fn get (&self, key: &K) -> Option<&V> {
         for (k, v) in self.0.iter() {
@@ -42,5 +44,27 @@ impl<K: PartialEq, V> LinearMap<K, V> {
             self.0.push((key, value));
             None
         }
+    }
+}
+
+impl <V: Clone> LinearMap<HumanAddr, V> {
+    pub fn canonize <A: Api> (&self, api: &A) -> StdResult<LinearMap<CanonicalAddr, V>> {
+        let canonized: Result<Vec<_>,_> = self.0.iter().map(
+            |(human, value)| match api.canonical_address(human) {
+                Ok(canon) => Ok((canon, value.clone())),
+                Err(e)    => Err(e)
+            }).collect();
+        Ok(LinearMap(canonized?))
+    }
+}
+
+impl <V: Clone> LinearMap<CanonicalAddr, V> {
+    pub fn humanize <A: Api> (&self, api: &A) -> StdResult<LinearMap<HumanAddr, V>> {
+        let humanized: Result<Vec<_>,_> = self.0.iter().map(
+            |(canon, value)| match api.human_address(canon) {
+                Ok(human) => Ok((human, value.clone())),
+                Err(e)    => Err(e)
+            }).collect();
+        Ok(LinearMap(humanized?))
     }
 }
