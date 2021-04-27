@@ -164,24 +164,6 @@ fn validate <T> (portion: Uint128, config: &Config<T>) -> StdResult<()> {
     }
 }
 
-fn canonize <A:Api> (api: &A, config: Config<HumanAddr>) -> StdResult<Config<CanonicalAddr>> {
-    let config: Result<Vec<_>,_> = config.0.iter().map(
-        |(human, amount)| match api.canonical_address(human) {
-            Ok(canon) => Ok((canon, *amount)),
-            Err(e)    => Err(e)
-        }).collect();
-    Ok(LinearMap(config?))
-}
-
-fn humanize <A:Api> (api: &A, config: Config<CanonicalAddr>) -> StdResult<Config<HumanAddr>> {
-    let config: Result<Vec<_>,_> = config.0.iter().map(
-        |(canon, amount)| match api.human_address(canon) {
-            Ok(human) => Ok((human, *amount)),
-            Err(e)    => Err(e)
-        }).collect();
-    Ok(LinearMap(config?))
-}
-
 fn sum_config <T> (map: &LinearMap<T, Uint128>) -> Uint128 {
     let mut total = Uint128::zero();
     for (_, amount) in map.0.iter() { total += *amount; }
