@@ -1,7 +1,7 @@
 #[macro_use] extern crate fadroma;
 
 // TODO(fadroma): remove need for these to be public
-pub use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg};
+pub use secret_toolkit::snip20::handle::{mint_msg, transfer_msg, set_minters_msg, change_admin_msg};
 pub use sienna_migration::{ContractStatus, ContractStatusLevel, is_operational, can_set_status};
 pub use sienna_schedule::{
     Seconds, Schedule, Pool, Account,
@@ -10,7 +10,7 @@ pub use sienna_schedule::{
 pub use linear_map::LinearMap;
 
 /// How much each recipient has claimed so far
-pub type History = LinearMap<CanonicalAddr, Uint128>;
+pub type History<T> = LinearMap<T, Uint128>;
 
 /// The managed SNIP20 contract's code hash.
 pub type CodeHash = String;
@@ -38,9 +38,8 @@ pub const BLOCK_SIZE: usize = 256;
 contract!(
 
     [State] {
-        /// Starts out as the instantiatior of the contract, can be changed
-        /// via `SetOwner` or `Disown`.
-        admin:    Option<CanonicalAddr>,
+        /// Starts out as the instantiatior of the contract, can be changed via `SetOwner`
+        admin:    CanonicalAddr,
         /// The SNIP20 token contract that will be managed by this instance.
         /// This needs to be provided at init and can't be changed.
         /// (see `secretcli query compute contract-hash --help` to get the hash).
@@ -48,20 +47,21 @@ contract!(
         /// When this contract is launched, this is set to the block time.
         launched: Launched,
         /// How much each address has received from the contract.
-        history:  History,
+        history:  History<CanonicalAddr>,
         /// Vesting configuration. Can be changed using `Configure`.
         schedule: Schedule<CanonicalAddr>,
         /// The paused/migration flag.
-        status:  ContractStatus
+        status:   ContractStatus
     }
 
     [Init] (deps, env, msg: {
         schedule: Schedule<HumanAddr>,
+        history:  Option<History<HumanAddr>>,
         token:    ContractLink<HumanAddr>
     }) {
         State {
-            admin:    Some(deps.api.canonical_address(&env.message.sender)?),
-            history:  History::new(),
+            admin:    deps.api.canonical_address(&env.message.sender)?,
+            history:  history.unwrap_or_default().canonize(&deps.api)?,
             launched: None,
             schedule: schedule.canonize(&deps.api)?,
             token:    (deps.api.canonical_address(&token.0)?, token.1),
@@ -82,6 +82,11 @@ contract!(
         /// Return schedule
         Schedule () {
             Ok(Response::Schedule { schedule: state.schedule.humanize(&deps.api)? })
+        }
+
+        /// Return claim history
+        History () {
+            Ok(Response::History { history: state.history.humanize(&deps.api)? })
         }
 
         /// Return amount that can be claimed by the specified address at the specified time
@@ -105,6 +110,7 @@ contract!(
     [Response] {
         Status   { launched: Launched, token: ContractLink<HumanAddr>, status: ContractStatus }
         Schedule { schedule: Schedule<HumanAddr> }
+        History  { history: History<HumanAddr> }
         Progress { time: Seconds, launched: Seconds, elapsed: Seconds, unlocked: Uint128, claimed: Uint128 }
         Error    { msg: String }
         NotFound {}
@@ -117,9 +123,21 @@ contract!(
         /// and to initiate a migration to a fixed version of the contract.
         SetStatus (level: ContractStatusLevel, reason: String, new_address: Option<HumanAddr>) {
             is_admin(&deps.api, &state, &env)?;
-            can_set_status(&state.status, &level)?;
+            can_set_status(&state.status, &level)?; // can't go back from migration
+            let messages = match level {
+                // upon entering migration mode,
+                // token admin is changed from "MGMT" to "MGMT's admin"
+                // so that the token can be administrated manually
+                ContractStatusLevel::Migrating => vec![{
+                    change_admin_msg(
+                        deps.api.human_address(&state.admin)?,
+                        None, BLOCK_SIZE, state.token.1.clone(), deps.api.human_address(&state.token.0)?
+                    )?
+                }],
+                _ => vec![]
+            };
             state.status = ContractStatus { level, reason, new_address };
-            ok!(state)
+            ok!(state, messages)
         }
 
         /// Load a new schedule (only before launching the contract)
@@ -151,15 +169,7 @@ contract!(
         SetOwner (new_admin: HumanAddr) {
             is_admin(&deps.api, &state, &env)?;
             is_operational(&state.status)?;
-            state.admin = Some(deps.api.canonical_address(&new_admin)?);
-            ok!(state)
-        }
-
-        /// DANGER: Set admin to None, making further changes impossible.
-        Disown () {
-            is_admin(&deps.api, &state, &env)?;
-            is_operational(&state.status)?;
-            state.admin = None;
+            state.admin = deps.api.canonical_address(&new_admin)?;
             ok!(state)
         }
 
@@ -172,7 +182,7 @@ contract!(
             is_not_launched(&state)?;
             is_operational(&state.status)?;
             state.launched = Some(env.block.time);
-            ok!(state, acquire(&deps.api, &state, &env)?, vec![
+            ok!(state, mint_and_clear_minters(&deps.api, &state, &env)?, vec![
                 LogAttribute { key: "launched".to_string(), value: env.block.time.to_string() }
             ])
         }
@@ -198,7 +208,7 @@ contract!(
 
 fn is_admin <A:Api> (api: &A, state: &State, env: &Env) -> StdResult<()> {
     let sender = api.canonical_address(&env.message.sender)?;
-    if state.admin == Some(sender) { return Ok(()) }
+    if state.admin == sender { return Ok(()) }
     Err(StdError::Unauthorized { backtrace: None })
 }
 
@@ -244,7 +254,7 @@ fn portion (state: &State, address: &CanonicalAddr, elapsed: Seconds) -> (u128, 
     return (unlocked, 0)
 }
 
-fn acquire <A:Api> (api: &A, state: &State, env: &Env) -> StdResult<Vec<CosmosMsg>> {
+fn mint_and_clear_minters <A:Api> (api: &A, state: &State, env: &Env) -> StdResult<Vec<CosmosMsg>> {
     let (addr_canon, hash) = state.token.clone();
     let addr_human = api.human_address(&addr_canon)?;
     Ok(vec![

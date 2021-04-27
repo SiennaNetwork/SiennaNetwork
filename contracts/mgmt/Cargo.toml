@@ -25,7 +25,7 @@ cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "
 fadroma          = { path = "../../libraries/fadroma" }
 linear-map       = { path = "../../libraries/linear-map" }
 schemars         = "0.7"
-secret-toolkit   = { git = "https://github.com/enigmampc/secret-toolkit" }
+secret-toolkit   = { git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
 serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
 sienna-migrate   = { path = "../../libraries/migrate" }
 sienna-schedule  = { path = "../../libraries/schedule" }

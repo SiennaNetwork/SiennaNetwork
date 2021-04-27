@@ -16,6 +16,7 @@ kukumba! {
         use sienna_mgmt::{init, msg::Init};
         let s = Schedule::new(&[Pool::full("",&[])]);
         let _ = init(&mut deps, mock_env(0, 0, &ADMIN), Init {
+            history:  None,
             schedule: s.clone(),
             token:    (cosmwasm_std::HumanAddr::from("token"), String::new()),
         }).unwrap(); }
