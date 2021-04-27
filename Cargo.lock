@@ -937,13 +937,38 @@ dependencies = [
 [[package]]
 name = "secret-toolkit"
 version = "0.1.0"
+source = "git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b#9a33d7b455dd920b7ce67e4e24970753f7aa9a5c"
+dependencies = [
+ "secret-toolkit-crypto 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b)",
+ "secret-toolkit-serialization 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b)",
+ "secret-toolkit-snip20 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b)",
+ "secret-toolkit-snip721",
+ "secret-toolkit-storage 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b)",
+ "secret-toolkit-utils 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b)",
+]
+
+[[package]]
+name = "secret-toolkit"
+version = "0.1.0"
 source = "git+https://github.com/enigmampc/secret-toolkit#1faf60a45ece9b4dc7c635786259f731405b4f76"
 dependencies = [
- "secret-toolkit-crypto",
+ "secret-toolkit-crypto 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
  "secret-toolkit-serialization 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
- "secret-toolkit-snip20",
+ "secret-toolkit-snip20 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
  "secret-toolkit-storage 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
- "secret-toolkit-utils",
+ "secret-toolkit-utils 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
+]
+
+[[package]]
+name = "secret-toolkit-crypto"
+version = "0.1.0"
+source = "git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b#9a33d7b455dd920b7ce67e4e24970753f7aa9a5c"
+dependencies = [
+ "cosmwasm-std",
+ "libsecp256k1",
+ "rand_chacha 0.2.2",
+ "rand_core 0.5.1",
+ "sha2 0.9.3",
 ]
 
 [[package]]
@@ -971,6 +996,16 @@ dependencies = [
 [[package]]
 name = "secret-toolkit-serialization"
 version = "0.1.0"
+source = "git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b#9a33d7b455dd920b7ce67e4e24970753f7aa9a5c"
+dependencies = [
+ "bincode2",
+ "cosmwasm-std",
+ "serde",
+]
+
+[[package]]
+name = "secret-toolkit-serialization"
+version = "0.1.0"
 source = "git+https://github.com/enigmampc/secret-toolkit#1faf60a45ece9b4dc7c635786259f731405b4f76"
 dependencies = [
  "bincode2",
@@ -981,11 +1016,33 @@ dependencies = [
 [[package]]
 name = "secret-toolkit-snip20"
 version = "0.1.0"
+source = "git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b#9a33d7b455dd920b7ce67e4e24970753f7aa9a5c"
+dependencies = [
+ "cosmwasm-std",
+ "schemars",
+ "secret-toolkit-utils 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b)",
+ "serde",
+]
+
+[[package]]
+name = "secret-toolkit-snip20"
+version = "0.1.0"
 source = "git+https://github.com/enigmampc/secret-toolkit#1faf60a45ece9b4dc7c635786259f731405b4f76"
 dependencies = [
  "cosmwasm-std",
  "schemars",
- "secret-toolkit-utils",
+ "secret-toolkit-utils 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
+ "serde",
+]
+
+[[package]]
+name = "secret-toolkit-snip721"
+version = "0.1.0"
+source = "git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b#9a33d7b455dd920b7ce67e4e24970753f7aa9a5c"
+dependencies = [
+ "cosmwasm-std",
+ "schemars",
+ "secret-toolkit-utils 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b)",
  "serde",
 ]
 
@@ -1003,11 +1060,32 @@ dependencies = [
 [[package]]
 name = "secret-toolkit-storage"
 version = "0.1.0"
+source = "git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b#9a33d7b455dd920b7ce67e4e24970753f7aa9a5c"
+dependencies = [
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "secret-toolkit-serialization 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b)",
+ "serde",
+]
+
+[[package]]
+name = "secret-toolkit-storage"
+version = "0.1.0"
 source = "git+https://github.com/enigmampc/secret-toolkit#1faf60a45ece9b4dc7c635786259f731405b4f76"
 dependencies = [
  "cosmwasm-std",
  "cosmwasm-storage",
  "secret-toolkit-serialization 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
+ "serde",
+]
+
+[[package]]
+name = "secret-toolkit-utils"
+version = "0.1.0"
+source = "git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b#9a33d7b455dd920b7ce67e4e24970753f7aa9a5c"
+dependencies = [
+ "cosmwasm-std",
+ "schemars",
  "serde",
 ]
 
@@ -1122,7 +1200,7 @@ dependencies = [
  "kukumba",
  "linear-map",
  "schemars",
- "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",
+ "secret-toolkit 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b)",
  "serde",
  "serde_json",
  "sienna-migrate",
