@@ -1,11 +1,10 @@
 use cosmwasm_std::{
     to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
-    ReadonlyStorage, StdError, StdResult, Storage, Uint128,
+    ReadonlyStorage, StdError, StdResult, Storage, Uint128, log
 };
 
-//use crate::asset::{Asset, AssetInfo};
 use crate::msg::{HandleMsg, InitMsg, QueryAnswer, QueryMsg, ResponseStatus};
-use crate::state::{Pair, KEY_ADMIN, KEY_CSHBK, KEY_DATA_SENDER, KEY_SSCRT, PREFIX_PAIRED_TOKENS};
+use crate::state::{Pair, KEY_ADMIN, KEY_CSHBK, KEY_SSCRT, PREFIX_PAIRED_TOKENS};
 use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
 use sienna_amm_shared::{ContractInfo, TokenType, TokenTypeAmount};
 use secret_toolkit::snip20;
@@ -44,8 +43,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         } => receive_swap_data(deps, env, asset_in, asset_out, account),
         HandleMsg::AddPairs { pairs } => add_pairs(deps, env, pairs),
         HandleMsg::RemovePairs { pairs } => remove_pairs(deps, env, pairs),
-        HandleMsg::SetAdmin { address } => set_admin(deps, env, address),
-        HandleMsg::SetDataSender { address } => set_data_sender(deps, env, address),
+        HandleMsg::SetAdmin { address } => set_admin(deps, env, address)
     }
 }
 
@@ -56,18 +54,26 @@ fn receive_swap_data<S: Storage, A: Api, Q: Querier>(
     asset_out: TokenTypeAmount,
     account: HumanAddr,
 ) -> StdResult<HandleResponse> {
-    // Verify that sender is authorized
-    let authorized: HumanAddr = TypedStore::attach(&deps.storage).load(KEY_DATA_SENDER)?;
-    if env.message.sender != authorized {
-        return Err(StdError::generic_err("data sender is not authorized!"));
+    // Check eligibility
+    let is_stored = PrefixedStorage::new(PREFIX_PAIRED_TOKENS, &mut deps.storage)
+        .get(env.message.sender.0.as_bytes());
+
+    if is_stored.is_none() {
+        // If stored => eligible
+        return Ok(HandleResponse {
+            messages: vec![],
+            log: vec![log("cashback_minting", "not_eligible")],
+            data: None,
+        });
     }
 
     let amount = get_eligibility(deps, asset_in, asset_out)?;
 
     let mut messages = vec![];
+
     if amount > 0 {
-        let cashback =
-            TypedStore::<ContractInfo, S>::attach(&mut deps.storage).load(KEY_CSHBK)?;
+        let cashback = TypedStore::<ContractInfo, S>::attach(&mut deps.storage).load(KEY_CSHBK)?;
+
         messages.push(snip20::mint_msg(
             account,
             Uint128(amount),
@@ -123,22 +129,6 @@ fn set_admin<S: Storage, A: Api, Q: Querier>(
     enforce_admin(deps, env)?;
 
     TypedStoreMut::<HumanAddr, S>::attach(&mut deps.storage).store(KEY_ADMIN, &address)?;
-
-    Ok(HandleResponse {
-        messages: vec![],
-        log: vec![],
-        data: Some(to_binary(&ResponseStatus::Success)?),
-    })
-}
-
-fn set_data_sender<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    address: HumanAddr,
-) -> StdResult<HandleResponse> {
-    enforce_admin(deps, env)?;
-
-    TypedStoreMut::<HumanAddr, S>::attach(&mut deps.storage).store(KEY_DATA_SENDER, &address)?;
 
     Ok(HandleResponse {
         messages: vec![],
