@@ -89,14 +89,16 @@ pub struct Fee {
 
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
 pub struct ExchangeSettings {
-    pub fee: Fee,
-    pub cashback_minter: Option<ContractInfo>
+    pub swap_fee: Fee,
+    pub sienna_fee: Fee,
+    pub sienna_burner: Option<ContractInfo>
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct ExchangeSettingsStored {
-    pub fee: Fee,
-    pub cashback_minter: Option<ContractInfoStored>
+    pub swap_fee: Fee,
+    pub sienna_fee: Fee,
+    pub sienna_burner: Option<ContractInfoStored>
 }
 
 pub fn create_send_msg(
@@ -361,8 +363,9 @@ impl Fee {
 impl ExchangeSettings {
     pub fn to_stored(&self, api: &impl Api) -> StdResult<ExchangeSettingsStored> {
         Ok(ExchangeSettingsStored {
-            fee: self.fee,
-            cashback_minter: if let Some(info) = &self.cashback_minter { 
+            swap_fee: self.swap_fee,
+            sienna_fee: self.sienna_fee,
+            sienna_burner: if let Some(info) = &self.sienna_burner { 
                 Some(info.to_stored(api)?) 
             } else {
                 None
@@ -374,8 +377,9 @@ impl ExchangeSettings {
 impl ExchangeSettingsStored {
     pub fn to_normal(self, api: &impl Api) -> StdResult<ExchangeSettings> {
         Ok(ExchangeSettings{
-            fee: self.fee,
-            cashback_minter: if let Some(info) = self.cashback_minter { 
+            swap_fee: self.swap_fee,
+            sienna_fee: self.sienna_fee,
+            sienna_burner: if let Some(info) = self.sienna_burner { 
                 Some(info.to_normal(api)?)
             } else {
                 None

@@ -212,6 +212,70 @@ pub mod ido {
     }
 }
 
+pub mod sienna_burner {
+    use super::*;
+
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    pub struct InitMsg {
+        pub sienna_token: ContractInfo,
+        pub pairs: Option<Vec<HumanAddr>>,
+        pub burn_pool: HumanAddr,
+        pub admin: Option<HumanAddr>
+    }
+    
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum HandleMsg {
+        Burn {
+            amount: Uint128
+        },
+        AddPairs {
+            pairs: Vec<HumanAddr>,
+        },
+        RemovePairs {
+            pairs: Vec<HumanAddr>,
+        },
+        SetAdmin {
+            address: HumanAddr,
+        },
+        SetBurnPool {
+            address: HumanAddr
+        },
+        SetSiennaToken {
+            info: ContractInfo
+        }
+    }
+    
+    #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum QueryMsg {
+        SiennaToken,
+        BurnPool,
+        Admin,
+    }
+    
+    #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum QueryAnswer {
+        SiennaToken { 
+            info: ContractInfo 
+        },
+        Admin {
+            address: HumanAddr 
+        },
+        BurnPool { 
+            address: HumanAddr
+        }
+    }
+    
+    #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum ResponseStatus {
+        Success,
+        Failure,
+    }
+}
+
 pub mod snip20 {
     use super::*;
 
