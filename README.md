@@ -98,6 +98,10 @@ All files           |      100 |      100 |      100 |      100 |               
 
 ## Deployment
 
+1. Create a `.secret` file which contains the mnemonic phrase for the account which is to be used for deployment.
+2. Make sure you've set the proper bridge address in the deployment script here: https://github.com/SiennaNetwork/wrapped-sienna/blob/5c9e934c421c10d811aec7d2122683af15bac61d/migrations/2_deploy_contracts.js#L6
+3. Make sure the Infura API key is working here: https://github.com/SiennaNetwork/wrapped-sienna/blob/5c9e934c421c10d811aec7d2122683af15bac61d/truffle-config.js#L22
+
 ```
 $ npx truffle migrate --network <network>
 ```
