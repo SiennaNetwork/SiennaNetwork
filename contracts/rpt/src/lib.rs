@@ -64,22 +64,22 @@ contract!(
     [Query] (deps, state, msg) -> Response {
         Status () {
             Ok(Response::Status {
-                status: state.status,
-                config: state.config.humanize(&deps.api)?,
-                token:  (deps.api.human_address(&state.token.0)?, state.token.1.clone()),
-                mgmt:   (deps.api.human_address(&state.mgmt.0)?,  state.mgmt.1.clone())
+                portion: state.portion,
+                status:  state.status,
+                config:  state.config.humanize(&deps.api)?,
+                token:   (deps.api.human_address(&state.token.0)?, state.token.1.clone()),
+                mgmt:    (deps.api.human_address(&state.mgmt.0)?,  state.mgmt.1.clone())
             })
         }
     }
 
     [Response] {
         Status {
-            admin:   HumanAddr,
             portion: Uint128,
             config:  Config<HumanAddr>,
             token:   ContractLink<HumanAddr>,
-            mgmt:    ContractLink<HumanAddr>
-            status:  ContractStatus,
+            mgmt:    ContractLink<HumanAddr>,
+            status:  ContractStatus
         }
     }
 

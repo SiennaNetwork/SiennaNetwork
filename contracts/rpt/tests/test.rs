@@ -55,10 +55,11 @@ kukumba!(
     and "noone else can"
     and "it has to be a valid configuration" {
         let status_initial = RPTResponse::Status {
-            config: initial_config,
-            token:  (HumanAddr::from("token"), String::new()),
-            mgmt:   (HumanAddr::from("mgmt"),  String::new()),
-            status: ContractStatus {
+            portion: Uint128::from(2500u128),
+            config:  initial_config,
+            token:   (HumanAddr::from("token"), String::new()),
+            mgmt:    (HumanAddr::from("mgmt"),  String::new()),
+            status:  ContractStatus {
                 level: ContractStatusLevel::Operational,
                 reason: String::new(),
                 new_address: None
@@ -85,10 +86,11 @@ kukumba!(
         assert_eq!(expected_invalid, actual_invalid, "admin was able to set invalid config");
 
         let expected_valid = RPTResponse::Status {
-            config: updated_config.clone(),
-            token:  (HumanAddr::from("token"), String::new()),
-            mgmt:   (HumanAddr::from("mgmt"),  String::new()),
-            status: ContractStatus {
+            portion: Uint128::from(2500u128),
+            config:  updated_config.clone(),
+            token:   (HumanAddr::from("token"), String::new()),
+            mgmt:    (HumanAddr::from("mgmt"),  String::new()),
+            status:  ContractStatus {
                 level: ContractStatusLevel::Operational,
                 reason: String::new(),
                 new_address: None
