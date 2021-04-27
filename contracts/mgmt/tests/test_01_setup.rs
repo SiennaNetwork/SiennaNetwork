@@ -3,7 +3,7 @@
 #![allow(non_snake_case)]
 
 #[macro_use] extern crate sienna_mgmt;
-extern crate sienna_schedule; use sienna_schedule::{Schedule, Pool, Account};
+extern crate sienna_schedule; use sienna_schedule::{Schedule, Pool};
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env};
 use cosmwasm_std::HumanAddr;

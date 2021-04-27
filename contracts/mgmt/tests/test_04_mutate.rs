@@ -1,9 +1,10 @@
 #![cfg(test)]
 #![allow(dead_code)]
 #![allow(unused_macros)]
+#![allow(unused_imports)]
 #![allow(non_snake_case)]
 
-#[macro_use] extern crate sienna_mgmt;
+extern crate sienna_mgmt;
 #[macro_use] extern crate kukumba;
 #[macro_use] mod helpers; use helpers::{harness, mock_env};
 use cosmwasm_std::{HumanAddr, Uint128};
