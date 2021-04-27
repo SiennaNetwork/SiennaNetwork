@@ -7,9 +7,9 @@ use cosmwasm_std::{
 };
 use sienna_amm_shared::storage::{save, load};
 use sienna_amm_shared::{
-    ContractInstantiationInfo, ContractInfo, ContractInfoStored,
-    ExchangeSettings, ExchangeSettingsStored, TokenPair,
-    TokenPairStored, TokenTypeStored, Pagination, Exchange
+    ContractInstantiationInfo,ExchangeSettings, ExchangeSettingsStored,
+    TokenPair, TokenPairStored, TokenTypeStored, Pagination, Exchange,
+    ExchangeStored
 };
 use sienna_amm_shared::msg::factory::InitMsg;
 
@@ -25,7 +25,6 @@ pub(crate) struct Config {
     pub lp_token_contract: ContractInstantiationInfo,
     pub pair_contract: ContractInstantiationInfo,
     pub ido_contract: ContractInstantiationInfo,
-    pub sienna_token: ContractInfo,
     pub exchange_settings: ExchangeSettings,
     pub pair_count: u64,
     pub ido_count: u64
@@ -37,16 +36,9 @@ struct ConfigStored {
     pub lp_token_contract: ContractInstantiationInfo,
     pub pair_contract: ContractInstantiationInfo,
     pub ido_contract: ContractInstantiationInfo,
-    pub sienna_token: ContractInfoStored,
     pub exchange_settings: ExchangeSettingsStored,
     pub pair_count: u64,
     pub ido_count: u64
-}
-
-#[derive(Serialize, Deserialize)]
-struct ExchangeStored {
-    pub pair: TokenPairStored,
-    pub address: CanonicalAddr
 }
 
 impl Config {
@@ -56,7 +48,6 @@ impl Config {
             lp_token_contract: msg.lp_token_contract,
             pair_contract: msg.pair_contract,
             ido_contract: msg.ido_contract,
-            sienna_token: msg.sienna_token,
             exchange_settings: msg.exchange_settings,
             pair_count: 0,
             ido_count: 0
@@ -67,13 +58,13 @@ impl Config {
 /// Returns StdResult<()> resulting from saving the config to storage
 pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    config: &Config) -> StdResult<()> {
+    config: &Config
+) -> StdResult<()> {
     let config = ConfigStored {
         snip20_contract: config.snip20_contract.clone(),
         lp_token_contract: config.lp_token_contract.clone(),
         pair_contract: config.pair_contract.clone(),
         ido_contract: config.ido_contract.clone(),
-        sienna_token: config.sienna_token.to_stored(&deps.api)?,
         exchange_settings: config.exchange_settings.to_stored(&deps.api)?,
         pair_count: config.pair_count,
         ido_count: config.ido_count
@@ -91,7 +82,6 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>
         lp_token_contract: result.lp_token_contract,
         pair_contract: result.pair_contract,
         ido_contract: result.ido_contract,
-        sienna_token: result.sienna_token.to_normal(&deps.api)?,
         exchange_settings: result.exchange_settings.to_normal(&deps.api)?,
         pair_count: result.pair_count,
         ido_count: result.ido_count
@@ -221,10 +211,7 @@ pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
     let mut result = Vec::with_capacity((end - pagination.start) as usize);
     
     for exchange in exchanges.drain((pagination.start as usize)..(end as usize)).collect::<Vec<ExchangeStored>>() {     
-        result.push(Exchange {
-            pair: exchange.pair.to_normal(&deps.api)?,
-            address: deps.api.human_address(&exchange.address)?
-        })
+        result.push(exchange.to_normal(&deps.api)?)
     }
 
     Ok(result)
@@ -313,13 +300,10 @@ mod tests {
                 id: 4,
                 code_hash: "pair_contract".into()
             },
-            sienna_token: ContractInfo {
-                code_hash: "sienna_token".into(),
-                address: HumanAddr::from("sienna_ad")
-            },
             exchange_settings: ExchangeSettings {
-                fee: Fee::uniswap(),
-                cashback_minter: None
+                swap_fee: Fee::new(28, 10000),
+                sienna_fee: Fee::new(2, 10000),
+                sienna_burner: None
             }
         })
     }

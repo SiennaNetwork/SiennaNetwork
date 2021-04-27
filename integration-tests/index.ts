@@ -2,7 +2,7 @@ import {
   ContractInfo, TokenPair, Address, TokenPairAmount,
   ViewingKey, Uint128, TokenTypeAmount, Pagination
 } from './amm-lib/types.js'
-import { FactoryContract, ExchangeContract, Snip20Contract } from './amm-lib/contract.js'
+import { FactoryContract, ExchangeContract, Snip20Contract, create_fee } from './amm-lib/contract.js'
 import { 
   execute_test, execute_test_expect, assert_objects_equal, assert,
   assert_equal, assert_not_equal, extract_log_value, print_object
@@ -36,7 +36,17 @@ const SLEEP_TIME = 1000
 
 async function run_tests() {
   const client_a = await build_client(ACC_A.mnemonic, APIURL)
-  const { factory, sienna_token } = await setup(client_a, process.argv[2], undefined, new NullJsonFileWriter)
+
+  const { factory, snip20_contract} = await setup(client_a, process.argv[2], new NullJsonFileWriter)
+  const sienna_init_msg = {
+    name: 'sienna',
+    symbol: 'SIENNA',
+    decimals: 18,
+    prng_seed: create_rand_base64()
+  } 
+
+  const sienna_contract = await client_a.instantiate(snip20_contract.id, sienna_init_msg, 'SIENNA TOKEN', undefined, undefined, create_fee('2000000'))
+  const sienna_token = new ContractInfo(snip20_contract.code_hash, sienna_contract.contractAddress)
 
   const created_pair = await test_create_exchange(factory, sienna_token)
   await sleep(SLEEP_TIME)
@@ -253,12 +263,12 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
       assert(amnt < amount_0)
       assert(amnt > amount_1)
 
-      assert_equal(extract_log_value(result, 'has_sienna'), 'true')
-
-      const sienna_burned = parseInt(extract_log_value(result, 'sienna_burned') as string)
+      //TODO: Uncomment when the burner is implemented
+      //const sienna_burned = parseInt(extract_log_value(result, 'sienna_burned') as string)
       const return_amount = parseInt(extract_log_value(result, 'return_amount') as string)
-
-      assert(amnt - return_amount - sienna_burned === amount_1)
+      assert(amnt - return_amount === amount_1)
+      //TODO: Uncomment when the burner is implemented
+      //assert(amnt - return_amount - sienna_burned === amount_1)
     }
   )
 
@@ -319,6 +329,11 @@ function create_viewing_key(): ViewingKey {
   const key = new Sha256(rand_bytes).digest()
 
   return Buffer.from(key).toString('base64')
+}
+
+function create_rand_base64(): string {
+  const rand_bytes = Random.getBytes(32)
+  return Buffer.from(rand_bytes).toString('base64')
 }
 
 run_tests().catch(console.log)

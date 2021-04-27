@@ -99,8 +99,7 @@ fn create_exchange<S: Storage, A: Api, Q: Querier>(
                                 msg: to_binary(&HandleMsg::RegisterExchange {
                                     pair: pair.clone()
                                 })?,
-                            },
-                            sienna_token: config.sienna_token
+                            }
                         }
                     )?
                 }
@@ -274,14 +273,10 @@ mod tests {
             id: 69
         };
 
-        let sienna_token = ContractInfo {
-            code_hash: "3124312312".into(),
-            address: HumanAddr("sienna_tkn".into())
-        };
-
         let exchange_settings = ExchangeSettings {
-            fee: Fee::uniswap(),
-            cashback_minter: None
+            swap_fee: Fee::new(28, 10000),
+            sienna_fee: Fee::new(2, 10000),
+            sienna_burner: None
         };
 
         let result = init(deps, mock_env("sender1111", &[]), InitMsg {
@@ -289,7 +284,6 @@ mod tests {
             lp_token_contract: lp_token_contract.clone(),
             pair_contract: pair_contract.clone(),
             ido_contract: ido_contract.clone(),
-            sienna_token: sienna_token.clone(),
             exchange_settings: exchange_settings.clone()
         });
 
@@ -301,7 +295,6 @@ mod tests {
         assert_eq!(lp_token_contract, config.lp_token_contract);
         assert_eq!(pair_contract, config.pair_contract);
         assert_eq!(ido_contract, config.ido_contract);
-        assert_eq!(sienna_token, config.sienna_token);
         assert_eq!(exchange_settings, config.exchange_settings);
         
         Ok(())

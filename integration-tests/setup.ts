@@ -1,8 +1,6 @@
 import { ContractInfo, ContractInstantiationInfo } from './amm-lib/types.js'
 import { FactoryContract, create_fee } from './amm-lib/contract.js'
 import { IJsonFileWriter } from './utils/json_file_writer.js'
-import { Random } from "@iov/crypto"
-import { Buffer } from 'buffer'
 
 import { 
     SigningCosmWasmClient, Secp256k1Pen, encodeSecp256k1Pubkey,
@@ -14,10 +12,10 @@ import { readFileSync } from 'fs'
 
 interface SetupResult {
     factory: FactoryContract,
-    sienna_token: ContractInfo,
+    snip20_contract: ContractInstantiationInfo,
 }
 
-export async function setup(client: SigningCosmWasmClient, commit: string, sienna_token: ContractInfo | undefined, writer: IJsonFileWriter): Promise<SetupResult> {
+export async function setup(client: SigningCosmWasmClient, commit: string, writer: IJsonFileWriter): Promise<SetupResult> {
     const fee = create_fee('2000000')
   
     const snip20_wasm = readFileSync(resolve(`../dist/${commit}-snip20-reference-impl.wasm`))
@@ -45,33 +43,22 @@ export async function setup(client: SigningCosmWasmClient, commit: string, sienn
     const snip20_contract = new ContractInstantiationInfo(snip20_upload.originalChecksum, snip20_upload.codeId)
     const lp_token_contract = new ContractInstantiationInfo(lp_token_upload.originalChecksum, lp_token_upload.codeId)
     const ido_contract = new ContractInstantiationInfo(ido_upload.originalChecksum, ido_upload.codeId)
-    
-    if(sienna_token === undefined) {
-        const sienna_init_msg = {
-            name: 'sienna',
-            symbol: 'SIENNA',
-            decimals: 18,
-            prng_seed: create_rand_base64()
-        } 
-
-        const sienna_contract = await client.instantiate(snip20_upload.codeId, sienna_init_msg, `${commit} - SIENNA TOKEN`, undefined, undefined, fee)
-        sienna_token = new ContractInfo(snip20_upload.originalChecksum, sienna_contract.contractAddress)
-    }
-
-    writer.write(sienna_token, `addresses/sienna_token`)
   
     const factory_init_msg = {
         snip20_contract,
         lp_token_contract,
         pair_contract,
         ido_contract,
-        sienna_token,
         exchange_settings: {
-            fee: {
-                nom: 3,
-                denom: 1000
+            swap_fee: {
+                nom: 28,
+                denom: 10000
             },
-            cashback_minter: undefined
+            sienna_fee: {
+                nom: 2,
+                denom: 10000
+            },
+            sienna_burner: undefined
         }
     }
     
@@ -83,7 +70,7 @@ export async function setup(client: SigningCosmWasmClient, commit: string, sienn
 
     const factory = new FactoryContract(result.contractAddress, client)
   
-    return { factory, sienna_token }
+    return { factory, snip20_contract }
 }
 
 export async function build_client(mnemonic: string, api_url: string): Promise<SigningCosmWasmClient> {
@@ -99,9 +86,4 @@ export async function build_client(mnemonic: string, api_url: string): Promise<S
         (bytes) => pen.sign(bytes),
         seed
     )
-}
-
-function create_rand_base64(): string {
-    const rand_bytes = Random.getBytes(32)
-    return Buffer.from(rand_bytes).toString('base64')
 }

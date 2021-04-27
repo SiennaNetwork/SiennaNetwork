@@ -1,12 +1,18 @@
 use std::ops::Add;
 use cosmwasm_std::{
-    to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier, StdError, Binary,
-    StdResult, Storage, QueryResult, CosmosMsg, WasmMsg, Uint128, log, HumanAddr, Decimal
+    to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier,
+    StdError, Binary, StdResult, Storage, QueryResult, CosmosMsg, WasmMsg,
+    Uint128, log, HumanAddr, Decimal, QueryRequest, WasmQuery
 };
 use secret_toolkit::snip20;
-use sienna_amm_shared::{Callback, ContractInfo, TokenPairAmount, TokenType, TokenTypeAmount, create_send_msg};
+use sienna_amm_shared::{
+    Callback, ContractInfo, TokenPairAmount, TokenType,
+    TokenTypeAmount, create_send_msg, Fee, ExchangeSettings
+};
 use sienna_amm_shared::msg::exchange::{InitMsg, HandleMsg, QueryMsg, QueryMsgResponse, SwapSimulationResponse};
 use sienna_amm_shared::msg::snip20::{Snip20InitConfig, Snip20InitMsg};
+use sienna_amm_shared::msg::factory::QueryMsg as FactoryQueryMsg;
+use sienna_amm_shared::msg::sienna_burner::HandleMsg as BurnerHandleMsg;
 use sienna_amm_shared::u256_math;
 use sienna_amm_shared::u256_math::U256;
 use sienna_amm_shared::viewing_key::ViewingKey;
@@ -21,12 +27,6 @@ type SwapResult = StdResult<(Uint128, Uint128, Uint128)>;
 /// of 256 bytes to prevent leaking info based on response size
 const BLOCK_SIZE: usize = 256;
 
-#[derive(Clone, Copy, Debug)]
-struct Fee {
-    nom: u8,
-    denom: u16
-}
-
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -39,12 +39,12 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 
     let mut messages = vec![];
 
-    let viewing_key = ViewingKey::new(&env, b"YfhL28JtDN", b"JdjhIh3KhM");
+    let mut rng = Prng::new(&env.message.sender.0.as_bytes(), &env.block.time.to_be_bytes());
+
+    let viewing_key = ViewingKey::new(&env, &rng.rand_bytes(), &rng.rand_bytes());
 
     try_register_custom_token(&env, &mut messages, &msg.pair.0, &viewing_key)?;
     try_register_custom_token(&env, &mut messages, &msg.pair.1, &viewing_key)?;
-
-    let mut rng = Prng::new(&env.message.sender.0.as_bytes(), &env.block.time.to_be_bytes());
 
     // Create LP token
     messages.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
@@ -98,10 +98,9 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             // We get the address when the instantiated LP token calls OnLpTokenInit
             address: HumanAddr::default()
         },
-        sienna_token: msg.sienna_token,
         pair: msg.pair,
         contract_addr: env.contract.address.clone(),
-        viewing_key: viewing_key,
+        viewing_key,
         pool_cache: [ Uint128::zero(), Uint128::zero() ]
     };
 
@@ -382,31 +381,10 @@ fn swap<S: Storage, A: Api, Q: Querier>(
 
     let mut config = load_config(deps)?;
 
-    let has_sienna = has_sienna_token(&config);
-    let fee = if has_sienna {
-        Fee::sienna()
-    } else {
-        Fee::regular()
-    };
+    let settings = query_exchange_settings(&deps.querier, config.factory_info.clone())?;
 
-    let (mut return_amount, spread_amount, mut commission_amount) = do_swap(deps, &mut config, &offer, fee, false)?;
+    let (mut return_amount, spread_amount, mut commission_amount) = do_swap(deps, &mut config, &offer, settings.swap_fee, false)?;
     store_config(deps, &config)?; // Save in order to update the pool_cache
-
-    let mut logs = vec![];
-
-    // If this contract manages a sienna token 0.28% goes to LP and the other 0.02% is
-    // converted to SIENNA and burned. So here, deduct a further 0.02% from the return_amount.
-    if has_sienna {
-        let (result, decrease_amount) = percentage_decrease(U256::from(return_amount.u128()), Fee::new(2, fee.denom))?;
-        let decrease_amount = Uint128(decrease_amount.low_u128());
-
-        commission_amount = commission_amount + decrease_amount;
-        return_amount = Uint128(result.low_u128());
-
-        logs.push(log("sienna_burned", decrease_amount.to_string()));
-
-        messages.push(snip20::burn_msg(decrease_amount, None, BLOCK_SIZE, config.sienna_token.code_hash, config.sienna_token.address)?)
-    }
 
     if let Some(expected_return) = expected_return {
         if return_amount.lt(&expected_return) {
@@ -416,6 +394,24 @@ fn swap<S: Storage, A: Api, Q: Querier>(
         }
     }
 
+    // SIENNA needs to be burned on each swap in order to decrease the total supply
+    if let Some(info) = settings.sienna_burner {
+        let (result, decrease_amount) = percentage_decrease(U256::from(return_amount.u128()), settings.sienna_fee)?;
+        let decrease_amount = Uint128(decrease_amount.low_u128());
+
+        commission_amount = commission_amount + decrease_amount;
+        return_amount = Uint128(result.low_u128());
+
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            callback_code_hash: info.code_hash,
+            contract_addr: info.address,
+            msg: to_binary(&BurnerHandleMsg::Burn {
+                amount: decrease_amount
+            })?,
+            send: vec![]
+        }))
+    }
+
     let index = config.pair.get_token_index(&offer.token).unwrap(); // Safe, checked in do_swap
     let token = config.pair.get_token(index ^ 1).unwrap();
 
@@ -423,17 +419,14 @@ fn swap<S: Storage, A: Api, Q: Querier>(
 
     Ok(HandleResponse{
         messages,
-        log: [vec![
-                log("action", "swap"),
-                log("has_sienna", has_sienna),
-                log("offer_token", offer.token.to_string()),
-                log("offer_amount", offer.amount.to_string()),
-                log("return_amount", return_amount.to_string()),
-                log("spread_amount", spread_amount.to_string()),
-                log("commission_amount", commission_amount.to_string()),
-            ], 
-            logs 
-        ].concat(),
+        log: vec![
+            log("action", "swap"),
+            log("offer_token", offer.token.to_string()),
+            log("offer_amount", offer.amount.to_string()),
+            log("return_amount", return_amount.to_string()),
+            log("spread_amount", spread_amount.to_string()),
+            log("commission_amount", commission_amount.to_string())
+        ],
         data: None
     })
 }
@@ -483,9 +476,17 @@ fn swap_simulation<S: Storage, A: Api, Q: Querier>(
     mut config: Config,
     offer: TokenTypeAmount
 ) -> QueryResult {
-    // We don't care whether the actual LP commission is 0.28% (when the pair manages a Sienna token) or 0.30%
-    // because the total fee for the end user is 0.30% regadless
-    let (return_amount, spread_amount, commission_amount) = do_swap(deps, &mut config, &offer, Fee::regular(), true)?;
+    let settings = query_exchange_settings(&deps.querier, config.factory_info.clone())?;
+
+    let (mut return_amount, spread_amount, mut commission_amount) = do_swap(deps, &mut config, &offer, settings.swap_fee, true)?;
+
+    if let Some(_) = settings.sienna_burner {
+        let (result, decrease_amount) = percentage_decrease(U256::from(return_amount.u128()), settings.sienna_fee)?;
+        let decrease_amount = Uint128(decrease_amount.low_u128());
+
+        commission_amount = commission_amount + decrease_amount;
+        return_amount = Uint128(result.low_u128());
+    }
 
     Ok(to_binary(
         &SwapSimulationResponse{
@@ -707,33 +708,14 @@ fn assert_slippage_tolerance(
     Ok(())
 }
 
-fn has_sienna_token(config: &Config) -> bool {
-    for token in config.pair.into_iter() {
-        if let TokenType::CustomToken { contract_addr, .. } = token {
-            if *contract_addr == config.sienna_token.address {
-                return  true;
-            }
-        }
-    }
+fn query_exchange_settings(querier: &impl Querier, factory: ContractInfo) -> StdResult<ExchangeSettings> {
+    let settings = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        callback_code_hash: factory.code_hash,
+        contract_addr: factory.address,
+        msg: to_binary(&FactoryQueryMsg::GetExchangeSettings)?
+    }))?;
 
-    false
-}
-
-impl Fee {
-    pub fn new(nom: u8, denom: u16) -> Self {
-        Self {
-            nom,
-            denom
-        }
-    }
-
-    pub fn regular() -> Self {
-        Self::new(3, 1000)
-    }
-
-    pub fn sienna() -> Self {
-        Self::new(28, 10000)
-    }
+    Ok(settings)
 }
 
 /*
