@@ -95,6 +95,14 @@ contract!(
             ok!(state)
         }
 
+        /// The current admin can make someone else the admin.
+        SetOwner (new_admin: HumanAddr) {
+            is_admin(&deps, &env, &state)?;
+            is_operational(&state.status)?;
+            state.admin = deps.api.canonical_address(&new_admin)?;
+            ok!(state)
+        }
+
         /// Set how funds will be split.
         Configure (config: Config<HumanAddr>) {
             is_admin(&deps, &env, &state)?;
@@ -188,4 +196,3 @@ fn transfer <A:Api> (
     let recipient  = api.human_address(&recipient)?;
     transfer_msg(recipient, amount, None, BLOCK_SIZE, token_hash.clone(), token_addr)
 }
-

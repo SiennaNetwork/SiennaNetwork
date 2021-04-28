@@ -37,6 +37,26 @@
       }
     },
     {
+      "description": "The current admin can make someone else the admin.",
+      "type": "object",
+      "required": [
+        "set_owner"
+      ],
+      "properties": {
+        "set_owner": {
+          "type": "object",
+          "required": [
+            "new_admin"
+          ],
+          "properties": {
+            "new_admin": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
       "description": "Set how funds will be split.",
       "type": "object",
       "required": [

@@ -140,6 +140,14 @@ contract!(
             ok!(state, messages)
         }
 
+        /// The current admin can make someone else the admin.
+        SetOwner (new_admin: HumanAddr) {
+            is_admin(&deps.api, &state, &env)?;
+            is_operational(&state.status)?;
+            state.admin = deps.api.canonical_address(&new_admin)?;
+            ok!(state)
+        }
+
         /// Load a new schedule (only before launching the contract)
         Configure (schedule: Schedule<HumanAddr>) {
             is_admin(&deps.api, &state, &env)?;
@@ -162,15 +170,6 @@ contract!(
                     _ => err_msg(state, MGMTError!(ADD_ACCOUNT))
                 }
             }
-        }
-
-        /// The admin can make someone else the admin,
-        /// but there can be only one admin at a given time (or none)
-        SetOwner (new_admin: HumanAddr) {
-            is_admin(&deps.api, &state, &env)?;
-            is_operational(&state.status)?;
-            state.admin = deps.api.canonical_address(&new_admin)?;
-            ok!(state)
         }
 
         /// An instance can be launched only once.
