@@ -942,6 +942,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "sienna-burner"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-schema 0.10.0",
+ "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "schemars",
+ "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit?branch=debug-print)",
+ "serde",
+ "sienna-amm-shared",
+ "snafu",
+]
+
+[[package]]
 name = "snafu"
 version = "0.6.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
