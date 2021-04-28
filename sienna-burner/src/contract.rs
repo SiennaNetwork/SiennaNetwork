@@ -6,6 +6,7 @@ use cosmwasm_std::{
 use sienna_amm_shared::msg::sienna_burner::{HandleMsg, InitMsg, QueryAnswer, QueryMsg, ResponseStatus};
 use sienna_amm_shared::ContractInfo;
 use sienna_amm_shared::snip20;
+
 use crate::state::*;
 
 const BLOCK_SIZE: usize = 256;
@@ -17,7 +18,15 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<InitResponse> {
     save_token_info(deps, &msg.sienna_token)?;
     save_burn_pool(deps, &msg.burn_pool)?;
-    save_admin(deps, &msg.admin.unwrap_or(env.message.sender))?;
+    
+    let admins = if let Some(mut admins) = msg.admins {
+        admins.push(msg.factory_address);
+        admins
+    } else {
+        vec![ msg.factory_address, env.message.sender ]
+    };
+
+    save_admins(deps, &admins)?;
 
     if let Some(pairs) = msg.pairs {
         save_pair_addresses(deps, &pairs)?;
@@ -37,7 +46,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         } => burn(deps, env, amount),
         HandleMsg::AddPairs { pairs } => add_pairs(deps, env, pairs),
         HandleMsg::RemovePairs { pairs } => remove_pairs(deps, env, pairs),
-        HandleMsg::SetAdmin { address } => set_admin(deps, env, address),
+        HandleMsg::AddAdmins { addresses } => add_admins(deps, env, addresses),
         HandleMsg::SetBurnPool {address } => set_burn_pool(deps, env, address),
         HandleMsg::SetSiennaToken { info } => set_token(deps, env, info)
     }
@@ -49,7 +58,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<Binary> {
     match msg {
         QueryMsg::BurnPool => query_burn_pool(deps),
-        QueryMsg::Admin => query_admin(deps),
+        QueryMsg::Admins => query_admins(deps),
         QueryMsg::SiennaToken => query_token(deps)
     }
 }
@@ -114,13 +123,13 @@ fn remove_pairs<S: Storage, A: Api, Q: Querier>(
     })
 }
 
-fn set_admin<S: Storage, A: Api, Q: Querier>(
+fn add_admins<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    address: HumanAddr,
+    addresses: Vec<HumanAddr>,
 ) -> StdResult<HandleResponse> {
     enforce_admin(deps, env)?;
-    save_admin(deps, &address)?;
+    save_admins(deps, &addresses)?;
 
     Ok(HandleResponse {
         messages: vec![],
@@ -163,9 +172,9 @@ fn enforce_admin<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
 ) -> StdResult<()> {
-    let admin = load_admin(deps)?;
+    let admins = load_admins(deps)?;
 
-    if admin == env.message.sender {
+    if admins.contains(&env.message.sender) {
         return Ok(());
     }
 
@@ -180,11 +189,11 @@ fn query_burn_pool<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> St
     })
 }
 
-fn query_admin<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Binary> {
-    let address = load_admin(deps)?;
+fn query_admins<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Binary> {
+    let addresses = load_admins(deps)?;
 
-    to_binary(&QueryAnswer::Admin { 
-        address 
+    to_binary(&QueryAnswer::Admins { 
+        addresses
     })
 }
 

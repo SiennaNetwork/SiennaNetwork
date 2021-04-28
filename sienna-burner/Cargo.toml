@@ -15,6 +15,17 @@ exclude = [
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'
+incremental = false
+overflow-checks = true
+
 [features]
 default = []
 # for quicker tests, cargo test --lib
@@ -26,7 +37,6 @@ cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v
 cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 schemars = "0.7"
-secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
-sienna-amm-shared = { git = "https://github.com/hackbg/sienna-amm-shared", rev = "bdd971d" }
+sienna-amm-shared = { git = "https://github.com/hackbg/sienna-amm-shared", rev = "fae0055" }
