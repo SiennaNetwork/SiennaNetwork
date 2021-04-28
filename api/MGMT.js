@@ -1,10 +1,10 @@
 import { SecretNetwork, loadSchemas } from '@hackbg/fadroma'
 
 export const schema = loadSchemas(import.meta.url, {
-  initMsg:     './init.json',
-  queryMsg:    './query.json',
-  queryAnswer: './response.json',
-  handleMsg:   './handle.json'
+  initMsg:     './mgmt/init.json',
+  queryMsg:    './mgmt/query.json',
+  queryAnswer: './mgmt/response.json',
+  handleMsg:   './mgmt/handle.json'
 })
 
 export default class MGMT extends SecretNetwork.Contract.withSchema(schema) {

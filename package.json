@@ -1,18 +1,19 @@
 {
-  "name": "@hackbg/sienna",
-  "version": "2.0.0-rc1",
+  "name": "@hackbg/sienna-tge",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "workspaces": [
-    "./platform/cosmwasm-js",
-    "./platform/cosmwasm-js/packages/*",
+    "./contracts/mgmt",
+    "./contracts/rpt",
+    "./contracts/token",
     "./libraries/fadroma",
     "./libraries/schedule",
-    "./contracts/token",
-    "./contracts/mgmt",
-    "./contracts/rpt"
+    "./platform/cosmwasm-js",
+    "./platform/cosmwasm-js/packages/*"
   ],
   "dependencies": {
+    "@hackbg/fadroma": "./libraries/fadroma",
     "bignum": "^0.13.1",
     "chokidar": "^3.5.1",
     "docco": "^0.8.1",

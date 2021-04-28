@@ -6,9 +6,7 @@ import bignum from 'bignum'
 import prompts from 'prompts'
 
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
-import SNIP20Contract from '@hackbg/snip20'
-import MGMTContract from '@hackbg/mgmt'
-import RPTContract from '@hackbg/rpt'
+import { SNIP20Contract, MGMTContract, RPTContract } from './api/index.js'
 
 import { taskmaster, SecretNetwork } from '@hackbg/fadroma'
 import { pull } from '@hackbg/fadroma/js/net.js'

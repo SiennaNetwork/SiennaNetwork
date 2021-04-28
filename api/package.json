@@ -1,0 +1,9 @@
+{
+  "name": "@hackbg/sienna-tge-api",
+  "version": "0.0.0",
+  "main": "./schema/index.js",
+  "type": "module",
+  "dependencies": {
+    "@hackbg/fadroma": "*"
+  }
+}

@@ -3,16 +3,12 @@
   "title": "Init",
   "type": "object",
   "required": [
-    "account",
     "config",
     "mgmt",
-    "pool",
+    "portion",
     "token"
   ],
   "properties": {
-    "account": {
-      "type": "string"
-    },
     "config": {
       "$ref": "#/definitions/LinearMap_for_HumanAddr_and_Uint128"
     },
@@ -29,8 +25,8 @@
       "maxItems": 2,
       "minItems": 2
     },
-    "pool": {
-      "type": "string"
+    "portion": {
+      "$ref": "#/definitions/Uint128"
     },
     "token": {
       "type": "array",

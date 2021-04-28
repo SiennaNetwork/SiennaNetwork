@@ -1,15 +1,55 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Handle",
+  "title": "Response",
   "anyOf": [
     {
-      "description": "Load a new schedule (only before launching the contract)",
       "type": "object",
       "required": [
-        "configure"
+        "status"
       ],
       "properties": {
-        "configure": {
+        "status": {
+          "type": "object",
+          "required": [
+            "status",
+            "token"
+          ],
+          "properties": {
+            "launched": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "status": {
+              "$ref": "#/definitions/ContractStatus"
+            },
+            "token": {
+              "type": "array",
+              "items": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "maxItems": 2,
+              "minItems": 2
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "schedule"
+      ],
+      "properties": {
+        "schedule": {
           "type": "object",
           "required": [
             "schedule"
@@ -23,23 +63,78 @@
       }
     },
     {
-      "description": "Add a new account to a partially filled pool",
       "type": "object",
       "required": [
-        "add_account"
+        "history"
       ],
       "properties": {
-        "add_account": {
+        "history": {
           "type": "object",
           "required": [
-            "account",
-            "pool_name"
+            "history"
           ],
           "properties": {
-            "account": {
-              "$ref": "#/definitions/Account_for_HumanAddr"
+            "history": {
+              "$ref": "#/definitions/LinearMap_for_HumanAddr_and_Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "progress"
+      ],
+      "properties": {
+        "progress": {
+          "type": "object",
+          "required": [
+            "claimed",
+            "elapsed",
+            "launched",
+            "time",
+            "unlocked"
+          ],
+          "properties": {
+            "claimed": {
+              "$ref": "#/definitions/Uint128"
             },
-            "pool_name": {
+            "elapsed": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "launched": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "time": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "unlocked": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "object",
+          "required": [
+            "msg"
+          ],
+          "properties": {
+            "msg": {
               "type": "string"
             }
           }
@@ -47,57 +142,12 @@
       }
     },
     {
-      "description": "The admin can make someone else the admin, but there can be only one admin at a given time (or none)",
       "type": "object",
       "required": [
-        "set_owner"
+        "not_found"
       ],
       "properties": {
-        "set_owner": {
-          "type": "object",
-          "required": [
-            "new_admin"
-          ],
-          "properties": {
-            "new_admin": {
-              "$ref": "#/definitions/HumanAddr"
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "DANGER: Set admin to None, making further changes impossible.",
-      "type": "object",
-      "required": [
-        "disown"
-      ],
-      "properties": {
-        "disown": {
-          "type": "object"
-        }
-      }
-    },
-    {
-      "description": "An instance can be launched only once. Launching the instance mints the total tokens as specified by the schedule, and prevents any more tokens from ever being minted by the underlying contract.",
-      "type": "object",
-      "required": [
-        "launch"
-      ],
-      "properties": {
-        "launch": {
-          "type": "object"
-        }
-      }
-    },
-    {
-      "description": "After launch, recipients can call the Claim method to receive the gains that they have accumulated so far.",
-      "type": "object",
-      "required": [
-        "claim"
-      ],
-      "properties": {
-        "claim": {
+        "not_found": {
           "type": "object"
         }
       }
@@ -165,8 +215,58 @@
         }
       }
     },
+    "ContractStatus": {
+      "type": "object",
+      "required": [
+        "level",
+        "reason"
+      ],
+      "properties": {
+        "level": {
+          "$ref": "#/definitions/ContractStatusLevel"
+        },
+        "new_address": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "ContractStatusLevel": {
+      "type": "string",
+      "enum": [
+        "Operational",
+        "Paused",
+        "Migrating"
+      ]
+    },
     "HumanAddr": {
       "type": "string"
+    },
+    "LinearMap_for_HumanAddr_and_Uint128": {
+      "description": "Just a wrapped `Vec` with `get` and `insert` methods.\n\nActs as a KV map but serializes as an array of [K,V] pairs: * new keys are appended to the end, existing keys are updated in place * there is no check for keys being unique during deserialization * in case of duplicate keys, it's the 1st instance of a given key that \"counts\".\n\nIt's like this because `serde_json_wasm` doesn't serialize maps (`HashMap`, `BTreeMap`). This is true even in versions more recent than the default for SecretNetwork: the `serialize_map` method contains a single `unreachable!()` panic. It's not immediately obvious why this remains the case the case; perhaps iterating over of those is somehow more expensive on a blockchain? In any case, in the absence of gas benchmarks it's pointless to risk altering the default execution environment (of which `serde_json_wasm` is part), even though there's no obvious reason why that wouldn't work.",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "#/definitions/HumanAddr"
+          },
+          {
+            "$ref": "#/definitions/Uint128"
+          }
+        ],
+        "maxItems": 2,
+        "minItems": 2
+      }
     },
     "Pool_for_HumanAddr": {
       "description": "Subdivision of `Schedule`, contains `Account`s, may be `partial`. If `partial == false`, they must add up to `total`.",

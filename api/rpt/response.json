@@ -11,11 +11,47 @@
         "status": {
           "type": "object",
           "required": [
-            "config"
+            "config",
+            "mgmt",
+            "portion",
+            "status",
+            "token"
           ],
           "properties": {
             "config": {
               "$ref": "#/definitions/LinearMap_for_HumanAddr_and_Uint128"
+            },
+            "mgmt": {
+              "type": "array",
+              "items": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "portion": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "status": {
+              "$ref": "#/definitions/ContractStatus"
+            },
+            "token": {
+              "type": "array",
+              "items": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "maxItems": 2,
+              "minItems": 2
             }
           }
         }
@@ -23,6 +59,39 @@
     }
   ],
   "definitions": {
+    "ContractStatus": {
+      "type": "object",
+      "required": [
+        "level",
+        "reason"
+      ],
+      "properties": {
+        "level": {
+          "$ref": "#/definitions/ContractStatusLevel"
+        },
+        "new_address": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "ContractStatusLevel": {
+      "type": "string",
+      "enum": [
+        "Operational",
+        "Paused",
+        "Migrating"
+      ]
+    },
     "HumanAddr": {
       "type": "string"
     },

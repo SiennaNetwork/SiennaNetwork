@@ -1,10 +1,10 @@
 import { SecretNetwork, loadSchemas } from '@hackbg/fadroma'
 
 export const schema = loadSchemas(import.meta.url, {
-  initMsg:     './init.json',
-  queryMsg:    './query.json',
-  queryAnswer: './response.json',
-  handleMsg:   './handle.json'
+  initMsg:     './rpt/init.json',
+  queryMsg:    './rpt/query.json',
+  queryAnswer: './rpt/response.json',
+  handleMsg:   './rpt/handle.json'
 })
 
 export default class RPT extends SecretNetwork.Contract.withSchema(schema) {

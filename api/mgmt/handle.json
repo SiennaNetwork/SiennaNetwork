@@ -1,35 +1,69 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Response",
+  "title": "Handle",
   "anyOf": [
     {
+      "description": "Set the contract status. Used to pause the contract operation in case of errors, and to initiate a migration to a fixed version of the contract.",
       "type": "object",
       "required": [
-        "status"
+        "set_status"
       ],
       "properties": {
-        "status": {
+        "set_status": {
           "type": "object",
+          "required": [
+            "level",
+            "reason"
+          ],
           "properties": {
-            "launched": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint64",
-              "minimum": 0.0
+            "level": {
+              "$ref": "#/definitions/ContractStatusLevel"
+            },
+            "new_address": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reason": {
+              "type": "string"
             }
           }
         }
       }
     },
     {
+      "description": "The current admin can make someone else the admin.",
       "type": "object",
       "required": [
-        "schedule"
+        "set_owner"
       ],
       "properties": {
-        "schedule": {
+        "set_owner": {
+          "type": "object",
+          "required": [
+            "new_admin"
+          ],
+          "properties": {
+            "new_admin": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Load a new schedule (only before launching the contract)",
+      "type": "object",
+      "required": [
+        "configure"
+      ],
+      "properties": {
+        "configure": {
           "type": "object",
           "required": [
             "schedule"
@@ -43,78 +77,23 @@
       }
     },
     {
+      "description": "Add a new account to a partially filled pool",
       "type": "object",
       "required": [
-        "portion"
+        "add_account"
       ],
       "properties": {
-        "portion": {
+        "add_account": {
           "type": "object",
           "required": [
-            "portion"
+            "account",
+            "pool_name"
           ],
           "properties": {
-            "portion": {
-              "$ref": "#/definitions/Uint128"
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "progress"
-      ],
-      "properties": {
-        "progress": {
-          "type": "object",
-          "required": [
-            "claimed",
-            "elapsed",
-            "launched",
-            "time",
-            "unlocked"
-          ],
-          "properties": {
-            "claimed": {
-              "$ref": "#/definitions/Uint128"
+            "account": {
+              "$ref": "#/definitions/Account_for_HumanAddr"
             },
-            "elapsed": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "launched": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "time": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "unlocked": {
-              "$ref": "#/definitions/Uint128"
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "error"
-      ],
-      "properties": {
-        "error": {
-          "type": "object",
-          "required": [
-            "msg"
-          ],
-          "properties": {
-            "msg": {
+            "pool_name": {
               "type": "string"
             }
           }
@@ -122,12 +101,25 @@
       }
     },
     {
+      "description": "An instance can be launched only once. Launching the instance mints the total tokens as specified by the schedule, and prevents any more tokens from ever being minted by the underlying contract.",
       "type": "object",
       "required": [
-        "not_found"
+        "launch"
       ],
       "properties": {
-        "not_found": {
+        "launch": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "description": "After launch, recipients can call the Claim method to receive the gains that they have accumulated so far.",
+      "type": "object",
+      "required": [
+        "claim"
+      ],
+      "properties": {
+        "claim": {
           "type": "object"
         }
       }
@@ -194,6 +186,14 @@
           "minimum": 0.0
         }
       }
+    },
+    "ContractStatusLevel": {
+      "type": "string",
+      "enum": [
+        "Operational",
+        "Paused",
+        "Migrating"
+      ]
     },
     "HumanAddr": {
       "type": "string"

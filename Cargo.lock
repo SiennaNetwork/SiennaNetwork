@@ -1253,6 +1253,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "sienna-tge-schema"
+version = "0.0.0"
+dependencies = [
+ "cosmwasm-schema 0.10.0",
+ "sienna-mgmt",
+ "sienna-rpt",
+ "snip20-reference-impl",
+]
+
+[[package]]
 name = "siphasher"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
