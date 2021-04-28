@@ -1,1 +1,0 @@
-Cashback Minter Contract

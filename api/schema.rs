@@ -1,24 +1,12 @@
 use std::env::current_dir;
 use std::fs::create_dir_all;
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
-use cashback_minter;
 use cashback_token;
 use gov_token;
 use lp_staking;
 use weight_master;
 
 fn main() {
-    let mut out_dir = current_dir().unwrap();
-    out_dir.push("api");
-    out_dir.push("cashback-minter");
-    create_dir_all(&out_dir).unwrap();
-    remove_schemas(&out_dir).unwrap();
-    export_schema(&schema_for!(cashback_minter::msg::InitMsg), &out_dir);
-    export_schema(&schema_for!(cashback_minter::msg::HandleMsg), &out_dir);
-    //export_schema(&schema_for!(cashback_minter::msg::HandleAnswer), &out_dir);
-    export_schema(&schema_for!(cashback_minter::msg::QueryMsg), &out_dir);
-    export_schema(&schema_for!(cashback_minter::msg::QueryAnswer), &out_dir);
-
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");
     out_dir.push("cashback-token");

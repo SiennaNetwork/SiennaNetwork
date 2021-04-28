@@ -14,9 +14,6 @@ export const CONTRACTS =
   { CASHBACK:
     { crate: 'cashback' 
     , label: `${prefix}SIENNA.Rewards.Cashback` }
-  , CASHBACK_MINTER:
-    { crate: 'cashback-minter'
-    , label: `${prefix}SIENNA.Rewards.CashbackMinter` }
   , GOVERNANCE_TOKEN:
     { crate: 'gov-token'
     , label: `${prefix}SIENNA.Rewards.GovernanceToken` }

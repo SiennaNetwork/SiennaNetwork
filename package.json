@@ -5,7 +5,6 @@
   "type": "module",
   "workspaces": [
     "./contracts/cashback",
-    "./contracts/cashback-minter",
     "./contracts/gov-token",
     "./contracts/lp-staking",
     "./contracts/weight-master",
