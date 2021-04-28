@@ -46,8 +46,9 @@ pub fn save_admins<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     addresses: &Vec<HumanAddr>
 ) -> StdResult<()> {
-    let mut admins: Vec<CanonicalAddr> = load(&deps.storage, ADMINS_KEY)?;
-
+    let mut admins: Vec<CanonicalAddr> = 
+        load(&deps.storage, ADMINS_KEY).unwrap_or(vec![]);
+    
     for address in addresses {
         let canonical = deps.api.canonical_address(address)?;
         admins.push(canonical);
