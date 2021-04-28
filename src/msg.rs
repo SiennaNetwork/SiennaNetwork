@@ -215,10 +215,15 @@ pub mod sienna_burner {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct InitMsg {
+        /// SIENNA token
         pub sienna_token: ContractInfo,
         pub pairs: Option<Vec<HumanAddr>>,
+        /// The account to burn SIENNA from
         pub burn_pool: HumanAddr,
-        pub admin: Option<HumanAddr>
+        /// Needs to be added as an admin in order to allow
+        /// it to add new pair addresses.
+        pub factory_address: HumanAddr,
+        pub admins: Option<Vec<HumanAddr>>
     }
     
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -233,8 +238,8 @@ pub mod sienna_burner {
         RemovePairs {
             pairs: Vec<HumanAddr>,
         },
-        SetAdmin {
-            address: HumanAddr,
+        AddAdmins {
+            addresses: Vec<HumanAddr>,
         },
         SetBurnPool {
             address: HumanAddr
@@ -249,7 +254,7 @@ pub mod sienna_burner {
     pub enum QueryMsg {
         SiennaToken,
         BurnPool,
-        Admin,
+        Admins,
     }
     
     #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
@@ -258,8 +263,8 @@ pub mod sienna_burner {
         SiennaToken { 
             info: ContractInfo 
         },
-        Admin {
-            address: HumanAddr 
+        Admins {
+            addresses: Vec<HumanAddr>
         },
         BurnPool { 
             address: HumanAddr
