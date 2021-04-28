@@ -58,6 +58,9 @@ export const CONTRACTS = {
     , label:   `${prefix}SIENNA_RPT`
     , initMsg: {} } }
 
+export const DEFAULT_SCHEDULE = JSON.parse(
+  readFileSync(resolve(__dirname, 'settings', 'schedule.json'), 'utf8'))
+
 // build and upload
 export async function build (options = {}) {
   const { task      = taskmaster()
@@ -166,6 +169,7 @@ export async function initialize (options = {}) {
 export async function deploy (options = {}) {
   const { task     = taskmaster()
         , initMsgs = {}
+        , schedule = DEFAULT_SCHEDULE
         } = options
 
   let { agent
@@ -192,10 +196,7 @@ export async function deploy (options = {}) {
   return await task('build, upload, and initialize contracts', async () => {
     const binaries  = await build({ task, builder })
     const receipts  = await upload({ task, builder, binaries })
-    const contracts = await initialize({
-      task, receipts, agent,
-      schedule, initialRPTRecipient
-    })
+    const contracts = await initialize({ task, receipts, agent, schedule })
   })
 }
 

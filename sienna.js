@@ -54,7 +54,7 @@ export default function main () {
       args.Spreadsheet, genConfig)
 
     // prepare contract binaries:
-    .command('deploy',
+    .command('deploy [network] [schedule]',
       '🚀 Build, init, and deploy (step by step with prompts)',
       combine(args.Network, args.Schedule), x => deploy(x).then(console.info))
     .command('upload <network>',
