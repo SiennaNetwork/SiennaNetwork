@@ -22,14 +22,13 @@ import { loadJSON, taskmaster, SecretNetwork } from '@hackbg/fadroma'
 
 // * 👷 **deploying** and **configuring** the token, mgmt, and rpt contracts.
 import { build, upload, initialize, ensureWallets, fmtSIENNA } from './ops.js'
+
 // * ⚠️  **viewing unlocked funds for any known address** without having to make a claim
 // * 💸 **making claims** according to the initial **schedule** (sped up by a factor of 8400)
 // * 🤵 **allocating unassigned funds** from a pool to a **new account**
-import SNIP20Contract from '@hackbg/snip20'
-import MGMTContract from '@hackbg/mgmt'
 // * 💰 **splitting the Remaining Pool Tokens** between multiple addresses
 // * 🍰 **reconfiguring that split**, preserving the **total portion size**
-import RPTContract from '@hackbg/rpt'
+import { SNIP20Contract, MGMTContract, RPTContract } from './api/index.js'
 //
 // Required: access to a testnet (holodeck-2), or in absence of testnet,
 // a handle to a localnet (automatically instantiated
