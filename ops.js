@@ -4,6 +4,7 @@ import assert from 'assert'
 
 import bignum from 'bignum'
 import prompts from 'prompts'
+import { table } from 'table'
 
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
 import { SNIP20Contract, MGMTContract, RPTContract } from './api/index.js'
@@ -195,6 +196,12 @@ export async function deploy (options = {}) {
     const binaries  = await build({ task, builder })
     const receipts  = await upload({ task, builder, binaries })
     const contracts = await initialize({ task, receipts, agent, schedule })
+    console.log(table([
+      ['Contract\nDescription', 'Address\nCode hash'],
+      ['TOKEN\nSienna SNIP20 token', `${contracts.TOKEN.address}\n${contracts.TOKEN.codeHash}`],
+      ['MGMT\nVesting',              `${contracts.MGMT.address}\n${contracts.MGMT.codeHash}`],
+      ['RPT\nRemaining pool tokens', `${contracts.RPT.address}\n${contracts.RPT.codeHash}`]
+    ]))
   })
 }
 
