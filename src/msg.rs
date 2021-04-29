@@ -34,11 +34,14 @@ pub mod factory {
         /// Used by a newly instantiated exchange contract to register
         /// itself with the factory
         RegisterExchange {
-            pair: TokenPair
+            pair: TokenPair,
+            signature: Binary
         },
         /// Used by a newly instantiated IDO contract to register
         /// itself with the factory
-        RegisterIdo
+        RegisterIdo {
+            signature: Binary
+        }
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
