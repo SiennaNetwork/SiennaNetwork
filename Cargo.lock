@@ -929,7 +929,7 @@ dependencies = [
 [[package]]
 name = "sienna-amm-shared"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/sienna-amm-shared?rev=fae0055#fae0055c2426642fb2f9c5b0429469abe948733a"
+source = "git+https://github.com/hackbg/sienna-amm-shared?rev=8970e0d#8970e0d8ed229beed16b2f2020d87b9bc5648121"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",

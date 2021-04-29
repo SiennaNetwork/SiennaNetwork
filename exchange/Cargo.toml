@@ -40,4 +40,4 @@ schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
 secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
-sienna-amm-shared = { git = "https://github.com/hackbg/sienna-amm-shared", rev = "fae0055" }
+sienna-amm-shared = { git = "https://github.com/hackbg/sienna-amm-shared", rev = "8970e0d" }
