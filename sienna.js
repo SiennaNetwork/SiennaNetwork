@@ -14,7 +14,7 @@ import yargs from 'yargs'
 import { SecretNetwork } from '@hackbg/fadroma'
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
 import { CONTRACTS, abs, stateBase
-       , deploy, build, upload, initialize, launch
+       , deploy, build, upload, initialize, launch, transfer
        , genConfig, configure, reallocate, addAccount
        , ensureWallets } from './ops.js'
 import { genCoverage, genSchema, genDocs } from './artifacts/index.js'
@@ -68,6 +68,9 @@ export default function main () {
       launch)
 
     // post-launch config
+    .command('transfer <network> <address>',
+      '⚡ Transfer ownership to another address',
+      combine(args.Network, args.Address), transfer)
     .command('configure <deployment> <schedule>',
       '⚡ Upload a JSON config to an initialized contract',
       combine(args.Deployment, args.Schedule), configure)
@@ -92,6 +95,9 @@ const args =
       { describe: 'the network to connect to'
       , default:  'localnet'
       , choices:  ['localnet', 'testnet', 'mainnet'] })
+  , Address: yargs => yargs.positional(
+      'address',
+      { describe: 'secret network address' })
   , Spreadsheet: yargs => yargs.positional(
       'spreadsheet',
       { describe: 'path to input spreadsheet'

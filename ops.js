@@ -1,5 +1,5 @@
 import { stderr } from 'process'
-import { writeFileSync, readdirSync, readFileSync } from 'fs'
+import { writeFileSync, readdirSync, readFileSync, existsSync } from 'fs'
 import assert from 'assert'
 
 import bignum from 'bignum'
@@ -203,6 +203,53 @@ export async function deploy (options = {}) {
       ['RPT\nRemaining pool tokens', `${contracts.RPT.address}\n${contracts.RPT.codeHash}`]
     ]))
   })
+}
+
+export async function transfer (options = {}) {
+  const { address
+        , network
+        , instance = await pickInstance(network) } = options
+}
+
+const conformNetwork = network => {
+  switch (network) {
+    case 'secret-2': case 'holodeck-2': case 'enigma-pub-testnet-3': return network
+    case 'mainnet': return 'secret-2'
+    case 'testnet': return 'holodeck-2'
+    case 'localnet': return 'enigma-pub-testnet-3'
+    default:
+      console.log(`🔴 ${network} is not a valid network identifier.`)
+      process.exit(1)
+  }
+}
+
+export async function pickInstance (network) {
+  network = conformNetwork(network)
+  const instanceDir = resolve(__dirname, 'artifacts', network, 'instances')
+  if (!existsSync(instanceDir)) {
+    console.log(`🔴 ${instanceDir} does not exist - can't pick a contract to call.`)
+    process.exit(1)
+  }
+  const message = 'Select a contract to transfer:'
+  const {result} =
+    await prompts({ type: 'select', name: 'result', message, choices: readdirSync(instanceDir)
+    .filter(x=>x.endsWith('.json')).sort().reverse()
+    .map(instance=>{
+      const title = instance
+      const value = resolve(instanceDir, instance)
+      try {
+        const {contractAddress} = JSON.parse(readFileSync(value, 'utf8'))
+        return {title, value, description: contractAddress}
+      } catch (e) {
+        return {title, value: null, description: 'could not parse this instance file'}
+      }
+    }) })
+  if (typeof result === 'string') {
+    return result
+  } else {
+    console.log(`🔴 picked an invalid instance file - can't proceed`)
+    process.exit(1)
+  }
 }
 
 export function genConfig (options = {}) {
