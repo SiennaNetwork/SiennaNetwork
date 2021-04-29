@@ -1,6 +1,6 @@
 [submodule "token"]
 	path = contracts/token
-	url = git@github.com:hackbg/snip20-reference-impl.git
+	url = git@github.com:SiennaNetwork/snip20-reference-impl.git
 [submodule "fadroma"]
 	path = libraries/fadroma
 	url = git@github.com:hackbg/fadroma.git
