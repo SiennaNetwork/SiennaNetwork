@@ -1,16 +1,20 @@
 use cosmwasm_std::{
-    to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdError,
-    StdResult, Storage, WasmMsg, CosmosMsg, log
+    Api, Binary, CosmosMsg, Env, Extern, HandleResponse, InitResponse,
+    Querier, StdError, StdResult, Storage, WasmMsg, log, to_binary
 };
 use sienna_amm_shared::{Callback, ContractInfo, TokenPair, Pagination};
 use sienna_amm_shared::msg::exchange::InitMsg as ExchangeInitMsg;
 use sienna_amm_shared::msg::ido::{IdoInitMsg, IdoInitConfig};
 use sienna_amm_shared::msg::factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
+use sienna_amm_shared::msg::sienna_burner::HandleMsg as BurnerHandleMsg;
+use sienna_amm_shared::storage::*;
 
 use crate::state::{
     save_config, load_config, Config, pair_exists, store_exchange,
     get_address_for_pair, get_idos, store_ido_address, get_exchanges
 };
+
+const EPHEMERAL_STORAGE_KEY: &[u8] = b"ephemeral_storage";
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -31,8 +35,8 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     match msg {
         HandleMsg::CreateExchange { pair } => create_exchange(deps, env, pair),
         HandleMsg::CreateIdo { info } => create_ido(deps, env, info),
-        HandleMsg::RegisterExchange { pair } => register_exchange(deps, env, pair),
-        HandleMsg::RegisterIdo => register_ido(deps, env)
+        HandleMsg::RegisterExchange { pair, signature } => register_exchange(deps, env, pair, signature),
+        HandleMsg::RegisterIdo { signature } => register_ido(deps, env, signature)
     }
 }
 
@@ -64,10 +68,16 @@ fn create_exchange<S: Storage, A: Api, Q: Querier>(
 
     let config = load_config(deps)?;
 
+    // We take advantage of the serialized execution model to create a signature
+    // and remove it at the end of the transaction. This signature is passed to
+    // the created pair which it then returns to HandleMsg::RegisterExchange so that
+    // it can be compared to the one we stored. This way, we ensure that exchanges 
+    // can only be created through this method.
+    let signature = create_signature(&env)?;
+    save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
+
     // Actually creating the exchange happens when the instantiated contract calls
     // us back via the HandleMsg::RegisterExchange so that we can get its address.
-    // This is also more robust as we should register the pair only if the exchange
-    // contract has been successfully instantiated.
 
     Ok(HandleResponse{
         messages: vec![
@@ -97,7 +107,8 @@ fn create_exchange<S: Storage, A: Api, Q: Querier>(
                                     code_hash: env.contract_code_hash,
                                 },
                                 msg: to_binary(&HandleMsg::RegisterExchange {
-                                    pair: pair.clone()
+                                    pair: pair.clone(),
+                                    signature
                                 })?,
                             }
                         }
@@ -116,12 +127,29 @@ fn create_exchange<S: Storage, A: Api, Q: Querier>(
 fn register_exchange<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    pair: TokenPair
+    pair: TokenPair,
+    signature: Binary
 ) -> StdResult<HandleResponse> {
+    ensure_correct_signature(&mut deps.storage, signature)?;
+
     store_exchange(deps, &pair, &env.message.sender)?;
 
+    let config = load_config(&deps)?;
+    let mut messages = vec![];
+
+    if let Some(info) = config.exchange_settings.sienna_burner {
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: info.address,
+            callback_code_hash: info.code_hash,
+            msg: to_binary(&BurnerHandleMsg::AddPairs {
+                pairs: vec![ env.message.sender.clone() ]
+            })?,
+            send: vec![]
+        }))
+    }
+
     Ok(HandleResponse {
-        messages: vec![],
+        messages,
         log: vec![
             log("action", "register_exchange"),
             log("address", env.message.sender),
@@ -147,12 +175,14 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
     env: Env,
     info: IdoInitConfig
 ) -> StdResult<HandleResponse> {
-
-    let config = load_config(deps)?;
+    let signature = create_signature(&env)?;
+    save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
     
     // Again, creating the IDO happens when the instantiated contract calls
     // us back via the HandleMsg::RegisterIdo so that we can get its address.
     
+    let config = load_config(deps)?;
+
     Ok(HandleResponse {
         messages: vec![
             CosmosMsg::Wasm(WasmMsg::Instantiate {
@@ -173,7 +203,9 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
                             address: env.contract.address,
                             code_hash: env.contract_code_hash,
                         },
-                        msg: to_binary(&HandleMsg::RegisterIdo)?
+                        msg: to_binary(&HandleMsg::RegisterIdo {
+                            signature
+                        })?
                     }
                 })?
             })
@@ -187,8 +219,11 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
 
 fn register_ido<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    env: Env
+    env: Env,
+    signature: Binary
 ) -> StdResult<HandleResponse> {
+    ensure_correct_signature(&mut deps.storage, signature)?;
+
     let mut config = load_config(deps)?;
 
     store_ido_address(deps, &env.message.sender, &mut config)?;
@@ -235,6 +270,27 @@ fn query_exchange_settings<S: Storage, A: Api, Q: Querier>(
     })?)
 }
 
+fn create_signature(env: &Env) -> StdResult<Binary> {
+    to_binary(&[
+        env.message.sender.0.as_bytes(),
+        &env.block.height.to_be_bytes(),
+        &env.block.time.to_be_bytes()
+    ].concat())
+}
+
+fn ensure_correct_signature(storage: &mut impl Storage, signature: Binary) -> StdResult<()> {
+    let stored_signature: Binary =
+        load(storage, EPHEMERAL_STORAGE_KEY).unwrap_or_default();
+
+    if stored_signature != signature {
+        return  Err(StdError::unauthorized());
+    }
+
+    remove(storage, EPHEMERAL_STORAGE_KEY);
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -249,53 +305,62 @@ mod tests {
         mock_dependencies(10, &[])
     }
 
+    fn assert_unauthorized(response: StdResult<HandleResponse>) {
+        assert!(response.is_err());
+
+        let err = response.unwrap_err();
+        assert_eq!(err, StdError::unauthorized())
+    }
+
+    fn config() -> Config {
+        Config::from_init_msg(InitMsg {
+            snip20_contract: ContractInstantiationInfo {
+                code_hash: "12355254".into(),
+                id: 64
+            },
+            lp_token_contract: ContractInstantiationInfo {
+                code_hash: "23123123".into(),
+                id: 64
+            },
+            pair_contract: ContractInstantiationInfo {
+                code_hash: "2341586789".into(),
+                id: 33
+            },
+            ido_contract: ContractInstantiationInfo {
+                code_hash: "348534835".into(),
+                id: 69
+            },
+            exchange_settings: ExchangeSettings {
+                swap_fee: Fee::new(28, 10000),
+                sienna_fee: Fee::new(2, 10000),
+                sienna_burner: None
+            }
+        })
+    }
+
     #[test]
     fn proper_initialization() -> StdResult<()> {
         let ref mut deps = dependencies();
 
-        let snip20_contract = ContractInstantiationInfo {
-            code_hash: "12355254".into(),
-            id: 64
-        };
-
-        let lp_token_contract = ContractInstantiationInfo {
-            code_hash: "23123123".into(),
-            id: 64
-        };
-
-        let pair_contract = ContractInstantiationInfo {
-            code_hash: "2341586789".into(),
-            id: 33
-        };
-
-        let ido_contract = ContractInstantiationInfo {
-            code_hash: "348534835".into(),
-            id: 69
-        };
-
-        let exchange_settings = ExchangeSettings {
-            swap_fee: Fee::new(28, 10000),
-            sienna_fee: Fee::new(2, 10000),
-            sienna_burner: None
-        };
+        let config = config();
 
         let result = init(deps, mock_env("sender1111", &[]), InitMsg {
-            snip20_contract: snip20_contract.clone(),
-            lp_token_contract: lp_token_contract.clone(),
-            pair_contract: pair_contract.clone(),
-            ido_contract: ido_contract.clone(),
-            exchange_settings: exchange_settings.clone()
+            snip20_contract: config.snip20_contract.clone(),
+            lp_token_contract: config.lp_token_contract.clone(),
+            pair_contract: config.pair_contract.clone(),
+            ido_contract: config.ido_contract.clone(),
+            exchange_settings: config.exchange_settings.clone()
         });
 
         assert!(result.is_ok());
 
         let config = load_config(deps)?;
 
-        assert_eq!(snip20_contract, config.snip20_contract);
-        assert_eq!(lp_token_contract, config.lp_token_contract);
-        assert_eq!(pair_contract, config.pair_contract);
-        assert_eq!(ido_contract, config.ido_contract);
-        assert_eq!(exchange_settings, config.exchange_settings);
+        assert_eq!(config.snip20_contract, config.snip20_contract);
+        assert_eq!(config.lp_token_contract, config.lp_token_contract);
+        assert_eq!(config.pair_contract, config.pair_contract);
+        assert_eq!(config.ido_contract, config.ido_contract);
+        assert_eq!(config.exchange_settings, config.exchange_settings);
         
         Ok(())
     }
@@ -362,7 +427,7 @@ mod tests {
     }
 
     #[test]
-    fn query_exchange() -> StdResult<()> {
+    fn test_register_exchange() -> StdResult<()> {
         let ref mut deps = dependencies();
 
         let pair = TokenPair (
@@ -377,13 +442,126 @@ mod tests {
 
         let sender_addr = HumanAddr("sender1111".into());
 
-        handle(deps, mock_env(sender_addr.clone(), &[]), HandleMsg::RegisterExchange {
-            pair: pair.clone()
-        })?;
+        let result = handle(
+            deps,
+            mock_env(sender_addr.clone(), &[]),
+            HandleMsg::RegisterExchange {
+                pair: pair.clone(),
+                signature: to_binary("whatever")?
+            }
+        );
+
+        assert_unauthorized(result);
+
+        let config = config();
+        save_config(deps, &config)?;
+
+        let env = mock_env(sender_addr.clone(), &[]);
+
+        let signature = create_signature(&env)?;
+        save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
+
+        handle(
+            deps,
+            env,
+            HandleMsg::RegisterExchange {
+                pair: pair.clone(),
+                signature
+            }
+        )?;
+
+        //Ensure that the ephemeral storage is empty after the message
+        let result: StdResult<Binary> = load(&deps.storage, EPHEMERAL_STORAGE_KEY);
         
-        let result = query(deps, QueryMsg::GetExchangeAddress {
-            pair: pair.clone()
-        })?;
+        match result.unwrap_err() {
+            StdError::SerializeErr { .. } => { },
+            _ => panic!("Expected StdError::SerializeErr")
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_register_ido() -> StdResult<()> {
+        let ref mut deps = dependencies();
+
+        let sender_addr = HumanAddr("sender1111".into());
+
+        let result = handle(
+            deps,
+            mock_env(sender_addr.clone(), &[]),
+            HandleMsg::RegisterIdo {
+                signature: to_binary("whatever")?
+            }
+        );
+
+        assert_unauthorized(result);
+
+        let config = config();
+        save_config(deps, &config)?;
+
+        let env = mock_env(sender_addr.clone(), &[]);
+
+        let signature = create_signature(&env)?;
+        save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
+
+        handle(
+            deps,
+            env,
+            HandleMsg::RegisterIdo {
+                signature
+            }
+        )?;
+
+        //Ensure that the ephemeral storage is empty after the message
+        let result: StdResult<Binary> = load(&deps.storage, EPHEMERAL_STORAGE_KEY);
+        
+        match result.unwrap_err() {
+            StdError::SerializeErr { .. } => { },
+            _ => panic!("Expected StdError::SerializeErr")
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn query_exchange() -> StdResult<()> {
+        let ref mut deps = dependencies();
+
+        let pair = TokenPair (
+            TokenType::CustomToken {
+                contract_addr: HumanAddr("token_addr".into()),
+                token_code_hash: "13123adasd".into()
+            },
+            TokenType::NativeToken {
+                denom: "test1".into()
+            },
+        );
+
+        let config = config();
+        save_config(deps, &config)?;
+
+        let sender_addr = HumanAddr("sender1111".into());
+        let env = mock_env(sender_addr.clone(), &[]);
+
+        let signature = create_signature(&env)?;
+        save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
+
+        handle(
+            deps,
+            env,
+            HandleMsg::RegisterExchange {
+                pair: pair.clone(),
+                signature
+            }
+        ).unwrap();
+        
+        let result = query(
+            deps,
+            QueryMsg::GetExchangeAddress {
+                pair: pair.clone()
+            }
+        )?;
 
         let response: QueryResponse = from_binary(&result)?;
 
