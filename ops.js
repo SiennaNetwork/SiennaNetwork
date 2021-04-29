@@ -161,6 +161,12 @@ export async function initialize (options = {}) {
             .address = RPT.address
     const {transactionHash} = await MGMT.configure(schedule)
     report(transactionHash) })
+  console.log(table([
+    ['Contract\nDescription', 'Address\nCode hash'],
+    ['TOKEN\nSienna SNIP20 token', `${contracts.TOKEN.address}\n${contracts.TOKEN.codeHash}`],
+    ['MGMT\nVesting',              `${contracts.MGMT.address}\n${contracts.MGMT.codeHash}`],
+    ['RPT\nRemaining pool tokens', `${contracts.RPT.address}\n${contracts.RPT.codeHash}`]
+  ]))
   return contracts
 }
 
@@ -195,12 +201,6 @@ export async function deploy (options = {}) {
     const binaries  = await build({ task, builder })
     const receipts  = await upload({ task, builder, binaries })
     const contracts = await initialize({ task, receipts, agent, schedule })
-    console.log(table([
-      ['Contract\nDescription', 'Address\nCode hash'],
-      ['TOKEN\nSienna SNIP20 token', `${contracts.TOKEN.address}\n${contracts.TOKEN.codeHash}`],
-      ['MGMT\nVesting',              `${contracts.MGMT.address}\n${contracts.MGMT.codeHash}`],
-      ['RPT\nRemaining pool tokens', `${contracts.RPT.address}\n${contracts.RPT.codeHash}`]
-    ]))
   })
 }
 
