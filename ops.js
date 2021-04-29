@@ -271,22 +271,34 @@ export async function configure ({
   file = abs('settings', 'schedule.json')
 }) {
   throw new Error('not implemented')
+  const { address
+        , network
+        , instance = await pickInstance(network) } = options
 }
 
 export async function launch () {
   throw new Error('not implemented')
+  const { address
+        , network
+        , instance = await pickInstance(network) } = options
 }
 
 export async function reallocate ({
   file = abs('settings', 'schedule.json')
 }) {
   throw new Error('not implemented')
+  const { address
+        , network
+        , instance = await pickInstance(network) } = options
 }
 
 export async function addAccount ({
   file = abs('settings', 'schedule.json')
 }) {
   throw new Error('not implemented')
+  const { address
+        , network
+        , instance = await pickInstance(network) } = options
 }
 
 export async function ensureWallets (options = {}) {
