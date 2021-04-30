@@ -5,7 +5,7 @@
 import assert from 'assert'
 import { fileURLToPath } from 'url'
 import { resolve, dirname } from 'path'
-import bignum from 'bignum'
+import bignum from 'bignumber.js'
 import { loadJSON, taskmaster, SecretNetwork } from '@hackbg/fadroma'
 // ## What you're looking at
 //
