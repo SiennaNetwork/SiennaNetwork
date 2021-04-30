@@ -115,23 +115,26 @@ export async function initialize (options = {}) {
 
   // unwrap mutable options
   let { agent
-      , conn = agent ? {network: agent.network}
-                     : await SecretNetwork.localnet({stateBase})
+      , network = agent ? {network: agent.network} : await SecretNetwork.localnet({stateBase})
       , schedule
       } = options
+
 
   // accepts schedule as string or struct
   if (typeof schedule === 'string') schedule = JSON.parse(await readFile(schedule, 'utf8'))
 
-  // if `conn` is just the connection type, replace it with a real connection
-  if (typeof conn === 'string') conn = await SecretNetwork[conn]({stateBase})
+  // if `network` is just the connection type, replace it with a real connection
+  if (typeof network === 'string') {
+    network = conformChainIdToNetwork(network)
+    network = await SecretNetwork[network]({stateBase})
+  }
 
   // if there's no agent, use the default one from the connection
-  if (!agent) agent = conn.agent
+  if (!agent) agent = network.agent
 
   // unwrap remaining options
   const { task                = taskmaster()
-        , receipts            = await upload({agent, conn, task})
+        , receipts            = await upload({agent, network, task})
         , inits               = CONTRACTS
         , initialRPTRecipient = agent.address
         } = options
@@ -346,20 +349,32 @@ const stringify = data => {
   return JSON.stringify(data, withBigInts, indent)
 }
 
-const conformNetwork = network => {
+const conformNetworkToChainId = network => {
   switch (network) {
     case 'secret-2': case 'holodeck-2': case 'enigma-pub-testnet-3': return network
     case 'mainnet': return 'secret-2'
     case 'testnet': return 'holodeck-2'
     case 'localnet': return 'enigma-pub-testnet-3'
     default:
-      console.log(`🔴 ${network} is not a valid network identifier.`)
+      console.log(`🔴 ${network} is not a known chain id or category.`)
+      process.exit(1)
+  }
+}
+
+const conformChainIdToNetwork = network => {
+  switch (network) {
+    case 'mainnet': case 'testnet': case 'localnet': return network
+    case 'secret-2': return 'mainnet'
+    case 'holodeck-2': return 'testnet'
+    case 'enigma-pub-testnet-3': return 'localnet'
+    default:
+      console.log(`🔴 ${network} is not a known chain id or category.`)
       process.exit(1)
   }
 }
 
 export async function pickInstance (network) {
-  network = conformNetwork(network)
+  network = conformNetworkToChainId(network)
   const instanceDir = resolve(__dirname, 'artifacts', network, 'instances')
   if (!existsSync(instanceDir)) {
     console.log(`🔴 ${instanceDir} does not exist - can't pick a contract to call.`)

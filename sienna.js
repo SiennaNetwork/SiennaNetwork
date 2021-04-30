@@ -60,7 +60,7 @@ export default function main () {
     .command('upload <network>',
       '📦 Upload compiled contracts to network',
       args.Network, upload)
-    .command('init <network> [<network>]',
+    .command('init <network> [<schedule>]',
       '🚀 Just instantiate uploaded contracts',
       combine(args.Network, args.Schedule), x => initialize(x).then(console.info))
     .command('launch <deployment>',
