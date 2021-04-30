@@ -2,7 +2,7 @@ import { stderr } from 'process'
 import { writeFileSync, readdirSync, readFileSync, existsSync } from 'fs'
 import assert from 'assert'
 
-import bignum from 'bignum'
+import bignum from 'bignumber.js'
 import prompts from 'prompts'
 import { table } from 'table'
 

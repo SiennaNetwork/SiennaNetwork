@@ -14,7 +14,7 @@
   ],
   "dependencies": {
     "@hackbg/fadroma": "./libraries/fadroma",
-    "bignum": "^0.13.1",
+    "bignumber.js": "^9.0.1",
     "chokidar": "^3.5.1",
     "docco": "^0.8.1",
     "esm": "^3.2.25",
