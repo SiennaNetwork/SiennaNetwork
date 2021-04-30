@@ -1,13 +1,13 @@
 {pkgs?import<nixpkgs>{}}: pkgs.mkShell {
   name = "sienna";
   nativeBuildInputs = with pkgs; [
-    binaryen
+    #binaryen
     #cargo-tarpaulin
-    cloc
+    #cloc
     nodejs-14_x
-    plantuml
-    rustup
-    wabt
+    #plantuml
+    #rustup
+    #wabt
     yarn
   ];
   shellHook = ''
