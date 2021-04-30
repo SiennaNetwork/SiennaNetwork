@@ -1,6 +1,9 @@
 {pkgs?import<nixpkgs>{}}: pkgs.mkShell {
   name = "sienna";
   nativeBuildInputs = with pkgs; [
+    bash
+    git
+    jq
     #binaryen
     #cargo-tarpaulin
     #cloc
