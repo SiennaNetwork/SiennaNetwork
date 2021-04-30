@@ -74,7 +74,13 @@ export async function build (options = {}) {
   const binaries = {}
   for (const [name, {crate}] of Object.entries(CONTRACTS)) {
     await task(`build ${name}`, async report => {
-      binaries[name] = await builder.build({outputDir, workspace, crate})
+      const buildOutput = resolve(outputDir, `${crate}@HEAD.wasm`)
+      if (existsSync(buildOutput)) {
+        console.info(`${buildOutput} exists. Delete it to rebuild that contract.`)
+        binaries[name] = buildOutput
+      } else {
+        binaries[name] = await builder.build({outputDir, workspace, crate})
+      }
     })
   }
   return binaries
@@ -162,7 +168,7 @@ export async function initialize (options = {}) {
     const {transactionHash} = await MGMT.configure(schedule)
     report(transactionHash) })
   console.log(table([
-    ['Contract\nDescription', 'Address\nCode hash'],
+    ['Contract\nDescription',      'Address\nCode hash'],
     ['TOKEN\nSienna SNIP20 token', `${contracts.TOKEN.address}\n${contracts.TOKEN.codeHash}`],
     ['MGMT\nVesting',              `${contracts.MGMT.address}\n${contracts.MGMT.codeHash}`],
     ['RPT\nRemaining pool tokens', `${contracts.RPT.address}\n${contracts.RPT.codeHash}`]
