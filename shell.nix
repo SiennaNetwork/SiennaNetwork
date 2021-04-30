@@ -2,7 +2,7 @@
   name = "sienna";
   nativeBuildInputs = with pkgs; [
     binaryen
-    cargo-tarpaulin
+    #cargo-tarpaulin
     cloc
     nodejs-14_x
     plantuml
