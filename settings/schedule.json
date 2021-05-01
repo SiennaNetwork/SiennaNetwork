@@ -3,7 +3,7 @@
   "pools": [
     {
       "name": "Investors",
-      "total": "1995000000000000000000000",
+      "total": "2000000000000000000000000",
       "partial": true,
       "accounts": [
         {
@@ -544,6 +544,17 @@
           "cliff": "0",
           "portion_size": "197000000000000000000",
           "remainder": "440000000000000000000"
+        },
+        {
+          "name": "Founder7",
+          "amount": "15000000000000000000000",
+          "address": "secret1h7sp840n0zq2ewpe4ucys60hjs67dwm8xwcljq",
+          "start_at": 15552000,
+          "interval": 86400,
+          "duration": 51840000,
+          "cliff": "0",
+          "portion_size": "25000000000000000000",
+          "remainder": "0"
         }
       ]
     },
@@ -567,7 +578,7 @@
     },
     {
       "name": "Founders",
-      "total": "2415000000000000000000000",
+      "total": "2400000000000000000000000",
       "partial": false,
       "accounts": [
         {
@@ -635,17 +646,6 @@
           "cliff": "0",
           "portion_size": "25000000000000000000",
           "remainder": "0"
-        },
-        {
-          "name": "Founder7",
-          "amount": "15000000000000000000000",
-          "address": "secret1h7sp840n0zq2ewpe4ucys60hjs67dwm8xwcljq",
-          "start_at": 15552000,
-          "interval": 86400,
-          "duration": 51840000,
-          "cliff": "0",
-          "portion_size": "25000000000000000000",
-          "remainder": "0"
         }
       ]
     },
@@ -669,8 +669,8 @@
     },
     {
       "name": "Advisors",
-      "total": "190000000000000000000000",
-      "partial": false,
+      "total": "200000000000000000000000",
+      "partial": true,
       "accounts": [
         {
           "name": "Advisor1",
