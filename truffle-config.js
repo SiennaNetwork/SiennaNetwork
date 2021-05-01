@@ -80,7 +80,7 @@ module.exports = {
         );
       },
       gas: 5000000,
-      gasPrice: 5e9,
+      gasPrice: 48000000000, // 48 gwei
       network_id: 1,
     },
     rinkeby: {
@@ -91,8 +91,8 @@ module.exports = {
         );
       },
       network_id: 4,
-      gas: 4500000,
-      gasPrice: 10000000000,
+      gas: 5000000,
+      gasPrice: 48000000000, // 48 gwei
     },
   },
 
