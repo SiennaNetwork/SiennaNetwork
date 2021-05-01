@@ -5,6 +5,7 @@ import assert from 'assert'
 import bignum from 'bignumber.js'
 import prompts from 'prompts'
 import { table } from 'table'
+import { render } from 'prettyjson'
 
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
 import { SNIP20Contract, MGMTContract, RPTContract } from './api/index.js'
@@ -126,9 +127,9 @@ export async function initialize (options = {}) {
       , schedule
       } = options
 
-
   // accepts schedule as string or struct
   if (typeof schedule === 'string') schedule = JSON.parse(await readFile(schedule, 'utf8'))
+  console.log(render(schedule))
 
   // if `network` is just the connection type, replace it with a real connection
   if (typeof network === 'string') {
@@ -156,6 +157,9 @@ export async function initialize (options = {}) {
     const {codeId} = receipts.MGMT, {label, initMsg} = inits.MGMT
     initMsg.token    = [contracts.TOKEN.address, contracts.TOKEN.codeHash]
     initMsg.schedule = schedule
+    schedule.pools.filter(x=>x.name==='MintingPool')[0]
+            .accounts.filter(x=>x.name==='RPT')[0]
+            .address = agent.address
     contracts.MGMT = await MGMTContract.init({agent, codeId, label, initMsg})
     report(contracts.MGMT.transactionHash) })
   await task('make mgmt owner of token', async report => {
