@@ -9,3 +9,4 @@ node_modules
 yarn-error.log
 .idea
 .fadroma
+.DS_Store
