@@ -513,6 +513,17 @@
           "remainder": "200000000000000000000"
         },
         {
+          "name": "286",
+          "amount": "10000000000000000000000",
+          "address": "secret1mlu6zevn6kjkxc77fx229taknxegtwu9smrute",
+          "start_at": 7776000,
+          "interval": 86400,
+          "duration": 41472000,
+          "cliff": "0",
+          "portion_size": "20000000000000000000",
+          "remainder": "400000000000000000000"
+        },
+        {
           "name": "KOL1",
           "amount": "4000000000000000000000",
           "address": "secret1mkkgwzvvtjltl70amuuycml4647lux449p9fvu",
