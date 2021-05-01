@@ -57,8 +57,15 @@ export const CONTRACTS = {
     , label:   `${prefix}SIENNA_RPT`
     , initMsg: {} } }
 
-export const DEFAULT_SCHEDULE = JSON.parse(
-  readFileSync(resolve(__dirname, 'settings', 'schedule.json'), 'utf8'))
+export const getDefaultSchedule = () => {
+  const path = resolve(__dirname, 'settings', 'schedule.json')
+  try {
+    JSON.parse(readFileSync(path, 'utf8'))
+  } catch (e) {
+    console.warn(`${path} does not exist - "./sienna.js config" should create it`)
+    return null
+  }
+}
 
 // build and upload
 export async function build (options = {}) {
@@ -182,7 +189,7 @@ export async function initialize (options = {}) {
 export async function deploy (options = {}) {
   const { task     = taskmaster()
         , initMsgs = {}
-        , schedule = DEFAULT_SCHEDULE
+        , schedule = getDefaultSchedule()
         } = options
 
   let { agent
