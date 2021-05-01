@@ -403,17 +403,6 @@
           "remainder": "240000000000000000000"
         },
         {
-          "name": "286",
-          "amount": "10000000000000000000000",
-          "address": "secret1r3tup72x6693lmpe2kg08dgxyg9490v5e6scwd",
-          "start_at": 7776000,
-          "interval": 86400,
-          "duration": 41472000,
-          "cliff": "0",
-          "portion_size": "20000000000000000000",
-          "remainder": "400000000000000000000"
-        },
-        {
           "name": "922",
           "amount": "3000000000000000000000",
           "address": "secret1duqps0fq32s2qwyqkxwguxvct6p7xyxy9lmyhg",
@@ -697,7 +686,7 @@
         {
           "name": "Advisor3",
           "amount": "10000000000000000000000",
-          "address": "secret14rn2yd4wke7gfu7tga6l37k4lz2p8rh8chp07z",
+          "address": "secret1rj5hqd8n75yldu0dtp4u4kwepmh00q6392qwpq",
           "start_at": 15552000,
           "interval": 86400,
           "duration": 41472000,
