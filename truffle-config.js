@@ -79,8 +79,8 @@ module.exports = {
           `https://mainnet.infura.io/v3/${infuraKey}`
         );
       },
-      gas: 5000000,
-      gasPrice: 5e9,
+      gas: 6700000,
+      gasPrice: 48000000000, // 48 gwei
       network_id: 1,
     },
     rinkeby: {
@@ -91,8 +91,8 @@ module.exports = {
         );
       },
       network_id: 4,
-      gas: 4500000,
-      gasPrice: 10000000000,
+      gas: 6700000,
+      gasPrice: 48000000000, // 48 gwei
     },
   },
 
