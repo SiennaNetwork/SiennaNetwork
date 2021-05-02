@@ -5,7 +5,7 @@ const WrappedSienna = artifacts.require('WrappedSienna');
 
 contract('WrappedSienna', (accounts) => {
   const [admin, bridgeAddress, anotherAccount1, anotherAccount2] = accounts;
-  const name = 'Wrapped SIENNA';
+  const name = 'Sienna (ERC20)';
   const symbol = 'wSIENNA';
 
   beforeEach(async () => {
