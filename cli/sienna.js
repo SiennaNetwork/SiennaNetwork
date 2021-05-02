@@ -13,11 +13,13 @@ import yargs from 'yargs'
 // custom
 import { SecretNetwork } from '@hackbg/fadroma'
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
-import { CONTRACTS, abs, stateBase
+
+import { abs } from './root.js'
+import { CONTRACTS, stateBase
        , deploy, build, upload, initialize, launch, transfer
-       , genConfig, configure, reallocate, addAccount
+       , configure, reallocate, addAccount
        , ensureWallets } from './ops.js'
-import { genCoverage, genSchema, genDocs } from './gen.js'
+import { genConfig, genCoverage, genSchema, genDocs } from './gen.js'
 import demo from './demo.js'
 
 export default function main () {
@@ -63,9 +65,9 @@ export default function main () {
     .command('init <network> [<schedule>]',
       '🚀 Just instantiate uploaded contracts',
       combine(args.Network, args.Schedule), x => initialize(x).then(console.info))
-    .command('launch <deployment>',
-      '🚀 Just launch initialized contracts',
-      launch)
+    .command('launch <network> <address>',
+      '🚀 Launch deployed vesting contract',
+      combine(args.Network, args.Address), launch)
 
     // post-launch config
     .command('transfer <network> <address>',

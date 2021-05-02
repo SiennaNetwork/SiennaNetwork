@@ -58,7 +58,7 @@ export default async function demo (environment) {
   // * **Build**, **deploy**, and **initialize** contracts
   const binaries = await build({task, builder})
       , receipts = await upload({task, builder, binaries})
-      , initialRPTRecipient = recipients.TokenPair1.address
+      , initialRPTRecipient = agent.address
       , initArgs = {task: task, agent, receipts, schedule}
       , contracts = await initialize({...initArgs, initialRPTRecipient})
   // * **Launch** the vesting and confirm that the **claims** and **mutations** work as specified.
@@ -96,14 +96,14 @@ async function prepare ({task, network, agent, schedule}) {
         account.interval /= 86400
         account.duration /= 86400 })))) })
   // * Some more wallets please. These will be used for the mutation tests.
-  await task('create extra test accounts for reallocation tests', async () => {
-    const extras = [ 'NewAdvisor', 'TokenPair1', 'TokenPair2', 'TokenPair3', ]
-    for (const name of extras) {
-      const extra = await network.getAgent(name) // create agent
-      wallets.push([extra.address, recipientGasBudget.toString()])
-      recipients[name] = {agent: extra, address: extra.address} } })
+  //await task('create extra test accounts for reallocation tests', async () => {
+    //const extras = [ 'NewAdvisor', 'TokenPair1', 'TokenPair2', 'TokenPair3', ]
+    //for (const name of extras) {
+      //const extra = await network.getAgent(name) // create agent
+      //wallets.push([extra.address, recipientGasBudget.toString()])
+      //recipients[name] = {agent: extra, address: extra.address} } })
   // * Make sure the wallets exist on-chain.
-  await ensureWallets({ task, connection: null, agent, wallets, recipients, recipientGasBudget })
+  //await ensureWallets({ task, connection: null, agent, wallets, recipients, recipientGasBudget })
   return { wallets, recipients } }
 
 // # Verification
@@ -113,11 +113,11 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
 
   // Let's just give every recipient an empty viewing key so we can check their balances.
   const VK = ""
-  await task(`set null viewing key on ${Object.keys(recipients).length} SIENNA accounts`,
-    async report => {
-      let txs = Object.values(recipients).map(({agent})=>TOKEN.setViewingKey(agent, VK))
-      txs = await Promise.all(txs)
-      for (const {tx} of txs) report(tx.transactionHash) })
+  //await task(`set null viewing key on ${Object.keys(recipients).length} SIENNA accounts`,
+    //async report => {
+      //let txs = Object.values(recipients).map(({agent})=>TOKEN.setViewingKey(agent, VK))
+      //txs = await Promise.all(txs)
+      //for (const {tx} of txs) report(tx.transactionHash) })
 
   // ## And let's go! 🚀
   let launched

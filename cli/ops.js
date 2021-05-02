@@ -1,5 +1,5 @@
 import { stderr } from 'process'
-import { writeFileSync, readdirSync, readFileSync, existsSync } from 'fs'
+import { readdirSync, readFileSync, existsSync } from 'fs'
 import assert from 'assert'
 
 import bignum from 'bignumber.js'
@@ -7,7 +7,6 @@ import prompts from 'prompts'
 import { table } from 'table'
 import { render } from 'prettyjson'
 
-import { scheduleFromSpreadsheet } from '@hackbg/schedule'
 import { SNIP20Contract, MGMTContract, RPTContract } from '../api/index.js'
 
 import { taskmaster, SecretNetwork } from '@hackbg/fadroma'
@@ -15,10 +14,9 @@ import { pull } from '@hackbg/fadroma/js/net.js'
 import { fileURLToPath, resolve, basename, extname, dirname
        , readFile, writeFile } from '@hackbg/fadroma/js/sys.js'
 
-// resolve path relative to this file's parent directory
+import { conformChainIdToNetwork, pickNetwork, pickInstance } from './pick.js'
+import { projectRoot, abs } from './root.js'
 
-const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-export const abs = (...args) => resolve(projectRoot, ...args)
 export const stateBase = abs('artifacts')
 
 // decimals
@@ -198,15 +196,7 @@ export async function deploy (options = {}) {
 
   let { agent
       , builder = agent ? agent.getBuilder() : undefined
-      , network = builder ? builder.network : await prompts(
-        { type: 'select'
-        , name: 'network'
-        , message: 'Select network'
-        , initial: 0
-        , choices:
-          [ {title: 'localnet', value: 'localnet', description: 'local docker container'}
-          , {title: 'testnet',  value: 'testnet',  description: 'holodeck-2'}
-          , {title: 'mainnet',  value: 'mainnet',  description: 'secret network mainnet' } ] })
+      , network = builder ? builder.network : await pickNetwork()
       } = options
 
   if (typeof network === 'string') {
@@ -225,24 +215,10 @@ export async function deploy (options = {}) {
 }
 
 export async function transfer (options = {}) {
+  throw new Error('not implemented')
   const { address
         , network
         , instance = await pickInstance(network) } = options
-}
-
-export function genConfig (options = {}) {
-  const { file = abs('settings', 'schedule.ods')
-        } = options
-
-  stderr.write(`\n⏳ Importing configuration from ${file}...\n\n`)
-  const name       = basename(file, extname(file)) // path without extension
-  const schedule   = scheduleFromSpreadsheet({ file })
-  const serialized = stringify(schedule)
-  const output     = resolve(dirname(file), `${name}.json`)
-  stderr.write(`⏳ Saving configuration to ${output}...\n\n`)
-
-  writeFileSync(output, stringify(schedule), 'utf8')
-  stderr.write(`🟢 Configuration saved to ${output}\n`)
 }
 
 export async function configure ({
@@ -254,11 +230,25 @@ export async function configure ({
         , instance = await pickInstance(network) } = options
 }
 
-export async function launch () {
-  throw new Error('not implemented')
-  const { address
-        , network
-        , instance = await pickInstance(network) } = options
+export async function launch (options = {}) {
+  let { network
+      , address
+      } = options
+  if (typeof network === 'string') {
+    network = conformChainIdToNetwork(network)
+    network = (await SecretNetwork[network]({stateBase}))
+  }
+  const MGMT = network.network.getContract(MGMTContract, address, network.agent)
+  console.info(`⏳ launching contract ${address}...`)
+  try {
+    await MGMT.launch()
+    console.info(`🟢 launch reported success`)
+  } catch (e) {
+    console.warn(e)
+    console.info(`🔴 launch reported a failure`)
+  }
+  console.info(`⏳ querying status...`)
+  console.log(render(await MGMT.status))
 }
 
 export async function reallocate ({
@@ -351,64 +341,5 @@ export async function ensureWallets (options = {}) {
       console.info(agent.name.padEnd(10), fmtSCRT(balance))
     }
     return {balance, recipientBalances}
-  }
-}
-
-const stringify = data => {
-  const indent = 2
-  const withBigInts = (k, v) => typeof v === 'bigint' ? v.toString() : v
-  return JSON.stringify(data, withBigInts, indent)
-}
-
-const conformNetworkToChainId = network => {
-  switch (network) {
-    case 'secret-2': case 'holodeck-2': case 'enigma-pub-testnet-3': return network
-    case 'mainnet': return 'secret-2'
-    case 'testnet': return 'holodeck-2'
-    case 'localnet': return 'enigma-pub-testnet-3'
-    default:
-      console.log(`🔴 ${network} is not a known chain id or category.`)
-      process.exit(1)
-  }
-}
-
-const conformChainIdToNetwork = network => {
-  switch (network) {
-    case 'mainnet': case 'testnet': case 'localnet': return network
-    case 'secret-2': return 'mainnet'
-    case 'holodeck-2': return 'testnet'
-    case 'enigma-pub-testnet-3': return 'localnet'
-    default:
-      console.log(`🔴 ${network} is not a known chain id or category.`)
-      process.exit(1)
-  }
-}
-
-export async function pickInstance (network) {
-  network = conformNetworkToChainId(network)
-  const instanceDir = resolve(projectRoot, 'artifacts', network, 'instances')
-  if (!existsSync(instanceDir)) {
-    console.log(`🔴 ${instanceDir} does not exist - can't pick a contract to call.`)
-    process.exit(1)
-  }
-  const message = 'Select a contract to transfer:'
-  const {result} =
-    await prompts({ type: 'select', name: 'result', message, choices: readdirSync(instanceDir)
-    .filter(x=>x.endsWith('.json')).sort().reverse()
-    .map(instance=>{
-      const title = instance
-      const value = resolve(instanceDir, instance)
-      try {
-        const {contractAddress} = JSON.parse(readFileSync(value, 'utf8'))
-        return {title, value, description: contractAddress}
-      } catch (e) {
-        return {title, value: null, description: 'could not parse this instance file'}
-      }
-    }) })
-  if (typeof result === 'string') {
-    return result
-  } else {
-    console.log(`🔴 picked an invalid instance file - can't proceed`)
-    process.exit(1)
   }
 }
