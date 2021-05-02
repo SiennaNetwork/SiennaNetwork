@@ -1,5 +1,9 @@
 import { execFileSync } from 'child_process'
 import { env, stderr } from 'process'
+
+import SecretNetwork from '@hackbg/fadroma/js/SecretNetwork/index.js'
+
+import { stateBase } from './ops.js'
 import demo from './demo.js'
 
 export const clear = () =>
