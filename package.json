@@ -18,7 +18,8 @@
     "eth-gas-reporter": "^0.2.21",
     "mocha": "^8.3.0",
     "solidity-coverage": "^0.7.15",
-    "truffle": "^5.2.1"
+    "truffle": "^5.2.1",
+    "truffle-plugin-verify": "^0.5.7"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^3.4.0",

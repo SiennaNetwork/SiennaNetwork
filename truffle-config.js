@@ -128,5 +128,9 @@ module.exports = {
     enabled: false,
   },
 
-  plugins: ['solidity-coverage'],
+  plugins: ['solidity-coverage', 'truffle-plugin-verify'],
+
+  api_keys: {
+    etherscan: '5HRC8U7DEAR17RDN7DMUT46G8IGXQR82GD',
+  },
 };
