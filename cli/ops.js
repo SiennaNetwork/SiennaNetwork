@@ -3,7 +3,6 @@ import { readdirSync, readFileSync, existsSync } from 'fs'
 import assert from 'assert'
 
 import bignum from 'bignumber.js'
-import prompts from 'prompts'
 import { table } from 'table'
 import { render } from 'prettyjson'
 
@@ -14,7 +13,8 @@ import { pull } from '@hackbg/fadroma/js/net.js'
 import { fileURLToPath, resolve, basename, extname, dirname
        , readFile, writeFile } from '@hackbg/fadroma/js/sys.js'
 
-import { conformChainIdToNetwork, pickNetwork, pickInstance } from './pick.js'
+import { conformChainIdToNetwork, conformNetworkToChainId
+       , pickNetwork, pickInstance, pickKey } from './pick.js'
 import { projectRoot, abs } from './root.js'
 
 export const stateBase = abs('artifacts')
@@ -342,4 +342,18 @@ export async function ensureWallets (options = {}) {
     }
     return {balance, recipientBalances}
   }
+}
+
+export async function claim (options = {}) {
+  const { claimant = await pickKey()
+        } = options
+
+  let { network = 'localnet'
+      } = options
+  if (typeof network === 'string') {
+    network = conformChainIdToNetwork(network)
+    network = await SecretNetwork[network]({stateBase})
+  }
+
+  console.log({network, claimant})
 }

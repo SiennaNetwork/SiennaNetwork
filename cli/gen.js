@@ -2,8 +2,8 @@ import { writeFileSync } from 'fs'
 import { resolve, basename, extname, dirname, existsSync } from '@hackbg/fadroma/js/sys.js'
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
 
-import { cargo } from './sienna.js'
 import { abs } from './root.js'
+import { cargo } from './run.js'
 import { CONTRACTS } from './ops.js'
 
 const {stderr} = process

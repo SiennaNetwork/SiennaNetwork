@@ -3,7 +3,6 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs'
 import { resolve, basename, extname, dirname } from 'path'
 import { env, argv, stdout, stderr, exit } from 'process'
-import { execFileSync } from 'child_process'
 import { fileURLToPath } from 'url'
 
 // 3rd party
@@ -15,12 +14,12 @@ import { SecretNetwork } from '@hackbg/fadroma'
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
 
 import { abs } from './root.js'
+import { clear, cargo, run, runTests, runDemo } from './run.js'
+import { genConfig, genCoverage, genSchema, genDocs } from './gen.js'
 import { CONTRACTS, stateBase
        , deploy, build, upload, initialize, launch, transfer
        , configure, reallocate, addAccount
-       , ensureWallets } from './ops.js'
-import { genConfig, genCoverage, genSchema, genDocs } from './gen.js'
-import demo from './demo.js'
+       , ensureWallets, claim } from './ops.js'
 
 export default function main () {
   return yargs(process.argv.slice(2))
@@ -55,7 +54,7 @@ export default function main () {
       '📅 Convert a spreadsheet into a JSON schedule',
       args.Spreadsheet, genConfig)
 
-    // prepare contract binaries:
+    // deployment and configuration:
     .command('deploy [network] [schedule]',
       '🚀 Build, init, and deploy (step by step with prompts)',
       combine(args.Network, args.Schedule), x => deploy(x).then(console.info))
@@ -68,8 +67,6 @@ export default function main () {
     .command('launch <network> <address>',
       '🚀 Launch deployed vesting contract',
       combine(args.Network, args.Address), launch)
-
-    // post-launch config
     .command('transfer <network> <address>',
       '⚡ Transfer ownership to another address',
       combine(args.Network, args.Address), transfer)
@@ -82,6 +79,11 @@ export default function main () {
     .command('add-account <deployment> <account>',
       '⚡ Add a new account to a partial vesting pool',
       combine(args.Deployment, args.Account), addAccount)
+
+    // claiming:
+    .command('claim <network> <contract> [<claimant>]',
+      '⚡ Claim funds from a deployed contract',
+      combine(args.Network, args.Contract, args.Claimant), claim)
 
     .argv
 }
@@ -99,6 +101,12 @@ const args =
       , choices:  ['localnet', 'testnet', 'mainnet'] })
   , Address: yargs => yargs.positional(
       'address',
+      { describe: 'secret network address' })
+  , Contract: yargs => yargs.positional(
+      'contract',
+      { describe: 'secret network address' })
+  , Claimant: yargs => yargs.positional(
+      'claimant',
       { describe: 'secret network address' })
   , Spreadsheet: yargs => yargs.positional(
       'spreadsheet',
@@ -118,50 +126,6 @@ const args =
   , Allocations: yargs => yargs.positional(
       'allocations',
       { describe: 'new allocation of Remaining Pool Tokens' }) }
-
-export const clear = () =>
-  env.TMUX && run('sh', '-c', 'clear && tmux clear-history')
-
-export const cargo = (...args) =>
-  run('cargo', '--color=always', ...args)
-
-export const run = (cmd, ...args) => {
-  stderr.write(`\n🏃 running:\n${cmd} ${args.join(' ')}\n\n`)
-  execFileSync(cmd, [...args], {stdio:'inherit'})
-}
-
-const runTests = () => {
-  clear()
-  stderr.write(`⏳ Running tests...\n\n`)
-  try {
-    run('sh', '-c',
-      'cargo test --color=always --no-fail-fast -- --nocapture --test-threads=1 2>&1'+
-      ' | less -R')
-    stderr.write('\n🟢 Tests ran successfully.\n')
-  } catch (e) {
-    stderr.write('\n🔴 Tests failed.\n')
-  }
-}
-
-const runDemo = async ({testnet}) => {
-  clear()
-  //script = abs('integration', script)
-  try {
-    let environment
-    if (testnet) {
-      console.info(`⏳ running demo on testnet...`)
-      environment = await SecretNetwork.testnet({stateBase})
-    } else {
-      console.info(`⏳ running demo on localnet...`)
-      environment = await SecretNetwork.localnet({stateBase})
-    }
-    await demo(environment)
-    console.info('\n🟢 Demo executed successfully.\n')
-  } catch (e) {
-    console.error(e)
-    console.info('\n🔴 Demo failed.\n')
-  }
-}
 
 try {
   main()

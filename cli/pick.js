@@ -1,4 +1,6 @@
+import prompts from 'prompts'
 import { resolve } from '@hackbg/fadroma/js/sys.js'
+import { outputOf } from './run.js'
 
 export const conformNetworkToChainId = network => {
   switch (network) {
@@ -63,4 +65,16 @@ export async function pickNetwork () {
       [ {title: 'localnet', value: 'localnet', description: 'local docker container'}
       , {title: 'testnet',  value: 'testnet',  description: 'holodeck-2'}
       , {title: 'mainnet',  value: 'mainnet',  description: 'secret network mainnet' } ] })
+}
+
+export async function pickKey () {
+  const keys = JSON.parse(outputOf('secretcli', 'keys', 'list'))
+  const keyToChoice = ({name, address})=>({title:name,value:{name,address},description:address})
+  const chosen = await prompts(
+    { type: 'select'
+    , name: 'key'
+    , message: 'Select key from secretcli keyring'
+    , initial: 0
+    , choices: keys.map(keyToChoice) })
+  return chosen.key
 }
