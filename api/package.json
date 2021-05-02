@@ -4,6 +4,6 @@
   "main": "./schema/index.js",
   "type": "module",
   "dependencies": {
-    "@hackbg/fadroma": "../libraries/fadroma"
+    "@hackbg/fadroma": "*"
   }
 }

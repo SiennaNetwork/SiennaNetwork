@@ -17,7 +17,7 @@ import { CONTRACTS, abs, stateBase
        , deploy, build, upload, initialize, launch, transfer
        , genConfig, configure, reallocate, addAccount
        , ensureWallets } from './ops.js'
-import { genCoverage, genSchema, genDocs } from './artifacts/index.js'
+import { genCoverage, genSchema, genDocs } from './gen.js'
 import demo from './demo.js'
 
 export default function main () {

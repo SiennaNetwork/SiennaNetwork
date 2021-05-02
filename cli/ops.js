@@ -8,7 +8,7 @@ import { table } from 'table'
 import { render } from 'prettyjson'
 
 import { scheduleFromSpreadsheet } from '@hackbg/schedule'
-import { SNIP20Contract, MGMTContract, RPTContract } from './api/index.js'
+import { SNIP20Contract, MGMTContract, RPTContract } from '../api/index.js'
 
 import { taskmaster, SecretNetwork } from '@hackbg/fadroma'
 import { pull } from '@hackbg/fadroma/js/net.js'
@@ -306,7 +306,7 @@ export async function ensureWallets (options = {}) {
   // check that admin has enough balance to create the wallets
   const {balance, recipientBalances} = await fetchAdminAndRecipientBalances()
   const fee = bignum(agent.fees.send)
-  const preseedTotal = fee.add(bignum(wallets.length).mul(recipientGasBudget))
+  const preseedTotal = fee.plus(bignum(wallets.length).times(recipientGasBudget))
   if (preseedTotal.gt(balance)) {
     const message =
       `admin wallet does not have enough balance to preseed test wallets ` +

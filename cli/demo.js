@@ -28,13 +28,13 @@ import { build, upload, initialize, ensureWallets, fmtSIENNA } from './ops.js'
 // * 🤵 **allocating unassigned funds** from a pool to a **new account**
 // * 💰 **splitting the Remaining Pool Tokens** between multiple addresses
 // * 🍰 **reconfiguring that split**, preserving the **total portion size**
-import { SNIP20Contract, MGMTContract, RPTContract } from './api/index.js'
+import { SNIP20Contract, MGMTContract, RPTContract } from '../api/index.js'
 //
 // Required: access to a testnet (holodeck-2), or in absence of testnet,
 // a handle to a localnet (automatically instantiated
 // in a Docker container from `sienna.js`)
 
-const __dirname = fileURLToPath(dirname(import.meta.url)) // (ESModules killed `__dirname`)
+const projectRoot = resolve(fileURLToPath(dirname(import.meta.url)), '..')
 
 // ## Overview of the demo procedure
 /** Conducts a test run of the contract deployment. */
@@ -45,7 +45,7 @@ export default async function demo (environment) {
   // * **taskmaster** is a tiny high-level profiler that records how much time and gas
   // each operation took, and writes a report in `artifacts` with a Markdown table of events.
   const header = [ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ]
-      , output = resolve(__dirname, 'artifacts', network.chainId, 'profile-deploy.md')
+      , output = resolve(projectRoot, 'artifacts', network.chainId, 'profile-deploy.md')
       , task = taskmaster({ header, output, agent })
   // * Prepare **schedule** and **recipients**
   //   * The schedule is shortened by a factor of 86400 (number of seconds in a day)
@@ -131,7 +131,7 @@ export async function verify ({task, agent, recipients, wallets, contracts, sche
   await task.done()
   task = taskmaster({
     header: [ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ],
-    output: resolve(__dirname, 'artifacts', agent.network.chainId, 'profile-runtime.md'),
+    output: resolve(projectRoot, 'artifacts', agent.network.chainId, 'profile-runtime.md'),
     agent })
 
   // The following happen **once** in the whole test cycle:

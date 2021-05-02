@@ -1,5 +1,5 @@
-import { cargo } from '../sienna.js'
-import { CONTRACTS, abs } from '../ops.js'
+import { cargo } from './sienna.js'
+import { CONTRACTS, abs } from './ops.js'
 
 const {stderr} = process
 

@@ -2,32 +2,18 @@
   "name": "@hackbg/sienna-tge",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "workspaces": [
-    "./contracts/mgmt",
-    "./contracts/rpt",
-    "./contracts/token",
     "./libraries/fadroma",
     "./libraries/schedule",
     "./platform/cosmwasm-js",
-    "./platform/cosmwasm-js/packages/*"
+    "./platform/cosmwasm-js/packages/*",
+    "./api",
+    "./cli"
   ],
   "dependencies": {
-    "@hackbg/fadroma": "./libraries/fadroma",
-    "bignumber.js": "^9.0.1",
-    "chokidar": "^3.5.1",
-    "docco": "^0.8.1",
-    "esm": "^3.2.25",
-    "node-notifier": "^9.0.1",
-    "open": "^8.0.2",
-    "prettyjson": "^1.2.1",
-    "prompts": "^2.4.1",
-    "secretjs": "^0.11.0",
-    "table": "^6.6.0",
-    "yargs": "^16.2.0"
+    "docco": "^0.8.1"
   },
   "scripts": {
-    "start": "node sienna.js",
     "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css"
   }
 }
