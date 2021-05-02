@@ -91,16 +91,22 @@ contract!(
         SetStatus (level: ContractStatusLevel, reason: String, new_address: Option<HumanAddr>) {
             is_admin(&deps, &env, &state)?;
             can_set_status(&state.status, &level)?;
+
             state.status = ContractStatus { level, reason, new_address };
-            ok!(state)
+
+            save_state!();
+            Ok(HandleResponse::default())
         }
 
         /// The current admin can make someone else the admin.
         SetOwner (new_admin: HumanAddr) {
             is_admin(&deps, &env, &state)?;
             is_operational(&state.status)?;
+
             state.admin = deps.api.canonical_address(&new_admin)?;
-            ok!(state)
+
+            save_state!();
+            Ok(HandleResponse::default())
         }
 
         /// Set how funds will be split.
@@ -108,14 +114,18 @@ contract!(
             is_admin(&deps, &env, &state)?;
             is_operational(&state.status)?;
             validate(state.portion, &config)?;
+
             state.config = config.canonize(&deps.api)?;
-            ok!(state)
+
+            save_state!();
+            Ok(HandleResponse::default())
         }
 
         /// Receive and distribute funds.
         /// `WARNING` a cliff on the RPT account could confuse this?
         Vest () {
             is_operational(&state.status)?;
+
             let claimable = query_claimable(&deps, &env, &state.mgmt)?;
             let mut messages = vec![];
             let mut msg = to_binary(&MGMTHandle::Claim {})?;
@@ -134,11 +144,17 @@ contract!(
                 let msg = transfer(&deps.api, &state, addr, Uint128::from(amount.u128()*portions));
                 messages.push(msg?);
             }
-            ok!(state, messages, if remainder > 0 {
-                vec![LogAttribute { key: "remainder (locked forever)".to_string(), value: remainder.to_string() }]
-            } else {
-                vec![]
-            })
+
+            let mut log = vec![];
+            if remainder > 0 {
+                log.push(LogAttribute {
+                    key: "remainder (locked forever)".to_string(),
+                    value: remainder.to_string()
+                });
+            }
+
+            save_state!();
+            Ok(HandleResponse { messages, data: None, log })
         }
     }
 );
@@ -180,11 +196,11 @@ fn sum_config <T> (map: &LinearMap<T, Uint128>) -> Uint128 {
 
 fn is_admin <S:Storage,A:Api,Q:Querier> (
     deps: &Extern<S,A,Q>, env: &Env, state: &State
-) -> StatefulResult<()> {
+) -> StdResult<()> {
     if state.admin == deps.api.canonical_address(&env.message.sender)? {
-        return Ok(((), None))
+        Ok(())
     } else {
-        Err(StatefulError((StdError::Unauthorized { backtrace: None }, None)))
+        Err(StdError::Unauthorized { backtrace: None })
     }
 }
 

@@ -27,12 +27,12 @@ pub const BLOCK_SIZE: usize = 256;
 
 /// Error messages
 #[macro_export] macro_rules! MGMTError {
-    (CORRUPTED)   => { "Contract has entered a state that violates core assumptions" };
-    (NOTHING)     => { "Nothing to claim right now." };
-    (UNDERWAY)    => { "The vesting has already begun." };
-    (PRELAUNCH)   => { "The vesting has not yet begun." };
-    (NOT_FOUND)   => { "Can't find account or pool by name" };
-    (ADD_ACCOUNT) => { "Can't add account - pool full" };
+    (CORRUPTED)   => { "Contract has entered a state that violates core assumptions".to_string() };
+    (NOTHING)     => { "Nothing to claim right now.".to_string() };
+    (UNDERWAY)    => { "The vesting has already begun.".to_string() };
+    (PRELAUNCH)   => { "The vesting has not yet begun.".to_string() };
+    (NOT_FOUND)   => { "Can't find account or pool by name".to_string() };
+    (ADD_ACCOUNT) => { "Can't add account - pool full".to_string() };
 }
 
 contract!(
@@ -124,6 +124,7 @@ contract!(
         SetStatus (level: ContractStatusLevel, reason: String, new_address: Option<HumanAddr>) {
             is_admin(&deps.api, &state, &env)?;
             can_set_status(&state.status, &level)?; // can't go back from migration
+
             let messages = match level {
                 // upon entering migration mode,
                 // token admin is changed from "MGMT" to "MGMT's admin"
@@ -137,15 +138,20 @@ contract!(
                 _ => vec![]
             };
             state.status = ContractStatus { level, reason, new_address };
-            ok!(state, messages)
+
+            save_state!();
+            Ok(HandleResponse { messages, data: None, log: vec![] })
         }
 
         /// The current admin can make someone else the admin.
         SetOwner (new_admin: HumanAddr) {
             is_admin(&deps.api, &state, &env)?;
             is_operational(&state.status)?;
+
             state.admin = deps.api.canonical_address(&new_admin)?;
-            ok!(state)
+
+            save_state!();
+            Ok(HandleResponse::default())
         }
 
         /// Load a new schedule (only before launching the contract)
@@ -153,23 +159,24 @@ contract!(
             is_admin(&deps.api, &state, &env)?;
             is_operational(&state.status)?;
             is_not_launched(&state)?;
+
             schedule.validate()?;
             state.schedule = schedule.canonize(&deps.api)?;
-            ok!(state)
+
+            save_state!();
+            Ok(HandleResponse::default())
         }
 
         /// Add a new account to a partially filled pool
         AddAccount (pool_name: String, account: Account<HumanAddr>) {
             is_admin(&deps.api, &state, &env)?;
             is_operational(&state.status)?;
+
             let account = account.canonize(&deps.api)?;
-            match state.schedule.add_account(&pool_name, account) {
-                Ok(()) => ok!(state),
-                Err(e) => match e {
-                    StdError::GenericErr { msg, .. } => err_msg(state, &msg),
-                    _ => err_msg(state, MGMTError!(ADD_ACCOUNT))
-                }
-            }
+            state.schedule.add_account(&pool_name, account)?;
+
+            save_state!();
+            Ok(HandleResponse::default())
         }
 
         /// An instance can be launched only once.
@@ -180,25 +187,33 @@ contract!(
             is_admin(&deps.api, &state, &env)?;
             is_not_launched(&state)?;
             is_operational(&state.status)?;
+
             state.launched = Some(env.block.time);
-            ok!(state, mint_and_clear_minters(&deps.api, &state, &env)?, vec![
+            let messages = mint_and_clear_minters(&deps.api, &state, &env)?;
+
+            save_state!();
+            Ok(HandleResponse { messages, data: None, log: vec![
                 LogAttribute { key: "launched".to_string(), value: env.block.time.to_string() }
-            ])
+            ] })
         }
 
         /// After launch, recipients can call the Claim method to
         /// receive the gains that they have accumulated so far.
         Claim () {
             is_operational(&state.status)?;
+
             let launched = is_launched(&state)?;
             let elapsed  = get_elapsed(env.block.time, launched);
             let claimant = deps.api.canonical_address(&env.message.sender)?;
             let (unlocked, claimable) = portion(&state, &claimant, elapsed);
             if claimable > 0 {
                 state.history.insert(claimant.clone(), unlocked.into());
-                ok!(state, vec![transfer(&deps.api, &state, &claimant, claimable.into())?])
+                let messages = vec![transfer(&deps.api, &state, &claimant, claimable.into())?];
+
+                save_state!();
+                Ok(HandleResponse { messages, data: None, log: vec![] })
             } else {
-                err_msg(state, MGMTError!(NOTHING))
+                Err(StdError::GenericErr { msg: MGMTError!(NOTHING), backtrace: None })
             }
         }
     }
