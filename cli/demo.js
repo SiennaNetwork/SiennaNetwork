@@ -53,7 +53,7 @@ export default async function demo (environment) {
   //     resistant to `libfaketime`.
   //   *  The recipient wallets are created if they don't exist -
   //      the admin sendings a gas budget to them (in uSCRT).
-  const schedule = loadJSON('./settings/schedule.json', import.meta.url)
+  const schedule = loadJSON('../settings/schedule.json', import.meta.url)
       , {wallets, recipients} = await prepare({task, network, agent, schedule})
   // * **Build**, **deploy**, and **initialize** contracts
   const binaries = await build({task, builder})

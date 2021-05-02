@@ -17,8 +17,8 @@ import { fileURLToPath, resolve, basename, extname, dirname
 
 // resolve path relative to this file's parent directory
 
-export const __dirname = dirname(fileURLToPath(import.meta.url))
-export const abs = (...args) => resolve(__dirname, ...args)
+const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+export const abs = (...args) => resolve(projectRoot, ...args)
 export const stateBase = abs('artifacts')
 
 // decimals
@@ -59,7 +59,7 @@ export const CONTRACTS = {
     , initMsg: {} } }
 
 export const getDefaultSchedule = () => {
-  const path = resolve(__dirname, 'settings', 'schedule.json')
+  const path = resolve(projectRoot, 'settings', 'schedule.json')
   try {
     JSON.parse(readFileSync(path, 'utf8'))
   } catch (e) {
@@ -72,7 +72,7 @@ export const getDefaultSchedule = () => {
 export async function build (options = {}) {
   const { task      = taskmaster()
         , builder   = new SecretNetwork.Builder()
-        , workspace = __dirname
+        , workspace = projectRoot
         , outputDir = resolve(workspace, 'artifacts') } = options
 
   // pull build container
@@ -386,7 +386,7 @@ const conformChainIdToNetwork = network => {
 
 export async function pickInstance (network) {
   network = conformNetworkToChainId(network)
-  const instanceDir = resolve(__dirname, 'artifacts', network, 'instances')
+  const instanceDir = resolve(projectRoot, 'artifacts', network, 'instances')
   if (!existsSync(instanceDir)) {
     console.log(`🔴 ${instanceDir} does not exist - can't pick a contract to call.`)
     process.exit(1)
