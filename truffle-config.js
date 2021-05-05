@@ -22,7 +22,17 @@ const HDWalletProvider = require('@truffle/hdwallet-provider');
 const infuraKey = '546fa386883c451b9126471cf4ccc33f';
 //
 const fs = require('fs');
-const mnemonic = fs.readFileSync('.secret').toString().trim();
+let mnemonic;
+try {
+  mnemonic = fs.readFileSync('.secret').toString().trim();
+} catch (err) {
+  if (err.code === 'ENOENT') {
+    mnemonic =
+      'recipe flock effort test evil card identify grab shift venture movie tonight';
+  } else {
+    throw err;
+  }
+}
 
 module.exports = {
   /**
