@@ -80,6 +80,49 @@ async function test_create_exchange(factory: FactoryContract, token_info: Contra
       }
     }
   )
+
+  await execute_test_expect(
+    'test_create_exchange_through_register_exchange_error',
+    async () => { 
+      const msg = {
+        register_exchange: {
+          pair,
+          signature: 'whatever'
+        }
+      }
+
+      const client_b = await build_client(ACC_B.mnemonic, APIURL)
+      const client_c = await build_client(ACC_C.mnemonic, APIURL)
+
+      const fee = create_fee('300000')
+
+      const assert_unauthorized = (e: any) => {
+        if (e.message.includes('unauthorized')) {
+          return
+        }
+
+        console.log(`"Error: register_exchange returned wrong error message: ${e.message}"`)
+      };
+
+      const err_msg = 'Error: register_exchange should fail!'
+
+      // Don't await these two in order to simulate multiple clients executing at once
+      client_b.execute(factory.address, msg, undefined, undefined, fee)
+        .then(
+          () => console.log(err_msg),
+          assert_unauthorized
+        )
+      
+      client_c.execute(factory.address, msg, undefined, undefined, fee)
+        .then(
+          () => console.log(err_msg),
+          assert_unauthorized
+        )
+      
+      await factory.signing_client.execute(factory.address, msg, undefined, undefined, fee)
+    },
+    'unauthorized'
+  )
   
   await execute_test(
     'test_create_exchange',
@@ -101,7 +144,7 @@ async function test_create_existing_pair_error(factory: FactoryContract, pair: T
   const swapped = new TokenPair(pair.token_1, pair.token_0)
 
   await execute_test_expect(
-    'test_create_existing_pair_error_swapped',
+    'test_create_existing_pair_swapped_error',
     async () => { await factory.create_exchange(swapped) },
     'Pair already exists'
   )

@@ -11,7 +11,7 @@ use sienna_amm_shared::{
 };
 use sienna_amm_shared::msg::exchange::{InitMsg, HandleMsg, QueryMsg, QueryMsgResponse, SwapSimulationResponse};
 use sienna_amm_shared::msg::snip20::{Snip20InitConfig, Snip20InitMsg};
-use sienna_amm_shared::msg::factory::QueryMsg as FactoryQueryMsg;
+use sienna_amm_shared::msg::factory::{QueryMsg as FactoryQueryMsg, QueryResponse as FactoryResponse};
 use sienna_amm_shared::msg::sienna_burner::HandleMsg as BurnerHandleMsg;
 use sienna_amm_shared::u256_math;
 use sienna_amm_shared::u256_math::U256;
@@ -709,13 +709,16 @@ fn assert_slippage_tolerance(
 }
 
 fn query_exchange_settings(querier: &impl Querier, factory: ContractInfo) -> StdResult<ExchangeSettings> {
-    let settings = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    let result: FactoryResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         callback_code_hash: factory.code_hash,
         contract_addr: factory.address,
         msg: to_binary(&FactoryQueryMsg::GetExchangeSettings)?
     }))?;
 
-    Ok(settings)
+    match result {
+        FactoryResponse::GetExchangeSettings { settings } => Ok(settings),
+        _ => Err(StdError::generic_err("An error occurred while trying to retrieve exchange settings."))
+    }
 }
 
 /*

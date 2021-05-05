@@ -354,13 +354,13 @@ mod tests {
 
         assert!(result.is_ok());
 
-        let config = load_config(deps)?;
+        let loaded_config = load_config(deps)?;
 
-        assert_eq!(config.snip20_contract, config.snip20_contract);
-        assert_eq!(config.lp_token_contract, config.lp_token_contract);
-        assert_eq!(config.pair_contract, config.pair_contract);
-        assert_eq!(config.ido_contract, config.ido_contract);
-        assert_eq!(config.exchange_settings, config.exchange_settings);
+        assert_eq!(config.snip20_contract, loaded_config.snip20_contract);
+        assert_eq!(config.lp_token_contract, loaded_config.lp_token_contract);
+        assert_eq!(config.pair_contract, loaded_config.pair_contract);
+        assert_eq!(config.ido_contract, loaded_config.ido_contract);
+        assert_eq!(config.exchange_settings, loaded_config.exchange_settings);
         
         Ok(())
     }
