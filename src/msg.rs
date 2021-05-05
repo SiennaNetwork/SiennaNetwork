@@ -215,6 +215,9 @@ pub mod ido {
 
 pub mod sienna_burner {
     use super::*;
+    use composable_admin::multi_admin::{
+        MultiAdminHandleMsg, MultiAdminQueryMsg, MultiAdminQueryResponse
+    };
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct InitMsg {
@@ -241,15 +244,13 @@ pub mod sienna_burner {
         RemovePairs {
             pairs: Vec<HumanAddr>,
         },
-        AddAdmins {
-            addresses: Vec<HumanAddr>,
-        },
         SetBurnPool {
             address: HumanAddr
         },
         SetSiennaToken {
             info: ContractInfo
-        }
+        },
+        Admin(MultiAdminHandleMsg),
     }
     
     #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
@@ -257,7 +258,7 @@ pub mod sienna_burner {
     pub enum QueryMsg {
         SiennaToken,
         BurnPool,
-        Admins,
+        Admin(MultiAdminQueryMsg),
     }
     
     #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
@@ -266,12 +267,10 @@ pub mod sienna_burner {
         SiennaToken { 
             info: ContractInfo 
         },
-        Admins {
-            addresses: Vec<HumanAddr>
-        },
         BurnPool { 
             address: HumanAddr
-        }
+        },
+        Admin(MultiAdminQueryResponse)
     }
     
     #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
