@@ -5,7 +5,6 @@ use sienna_amm_shared::{ContractInfo, ContractInfoStored};
 
 const SIENNA_TOKEN_KEY: &[u8] = b"sienna_token";
 const BURN_POOL_KEY: &[u8] = b"burn_pool";
-const ADMINS_KEY: &[u8] = b"admins";
 const PAIRS_PREFIX: &[u8] = b"pairs";
 
 pub fn save_token_info<S: Storage, A: Api, Q: Querier>(
@@ -40,34 +39,6 @@ pub fn load_burn_pool<S: Storage, A: Api, Q: Querier>(
     let canonical: CanonicalAddr = load(&deps.storage, BURN_POOL_KEY)?;
 
     deps.api.human_address(&canonical)
-}
-
-pub fn save_admins<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    addresses: &Vec<HumanAddr>
-) -> StdResult<()> {
-    let mut admins: Vec<CanonicalAddr> = 
-        load(&deps.storage, ADMINS_KEY).unwrap_or(vec![]);
-    
-    for address in addresses {
-        let canonical = deps.api.canonical_address(address)?;
-        admins.push(canonical);
-    }
-
-    save(&mut deps.storage, ADMINS_KEY, &admins)
-}
-
-pub fn load_admins<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>
-) -> StdResult<Vec<HumanAddr>> {
-    let admins: Vec<CanonicalAddr> = load(&deps.storage, ADMINS_KEY)?;
-    let mut result = Vec::with_capacity(admins.len());
-
-    for admin in admins {
-        result.push(deps.api.human_address(&admin)?)
-    }
-
-    Ok(result)
 }
 
 pub fn save_pair_addresses<S: Storage, A: Api, Q: Querier>(

@@ -2,10 +2,13 @@ use cosmwasm_std::{
     to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr,
     InitResponse, Querier, StdError, StdResult, Storage, Uint128, log
 };
-
 use sienna_amm_shared::msg::sienna_burner::{HandleMsg, InitMsg, QueryAnswer, QueryMsg, ResponseStatus};
 use sienna_amm_shared::ContractInfo;
 use sienna_amm_shared::snip20;
+use sienna_amm_shared::admin::multi_admin::{
+    require_admin, assert_admin, save_admins, multi_admin_handle,
+    multi_admin_query, DefaultHandleImpl, DefaultQueryImpl
+};
 
 use crate::state::*;
 
@@ -46,9 +49,9 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         } => burn(deps, env, amount),
         HandleMsg::AddPairs { pairs } => add_pairs(deps, env, pairs),
         HandleMsg::RemovePairs { pairs } => remove_pairs(deps, env, pairs),
-        HandleMsg::AddAdmins { addresses } => add_admins(deps, env, addresses),
         HandleMsg::SetBurnPool {address } => set_burn_pool(deps, env, address),
-        HandleMsg::SetSiennaToken { info } => set_token(deps, env, info)
+        HandleMsg::SetSiennaToken { info } => set_token(deps, env, info),
+        HandleMsg::Admin(admin_msg) => multi_admin_handle(deps, env, admin_msg, DefaultHandleImpl)
     }
 }
 
@@ -58,8 +61,8 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<Binary> {
     match msg {
         QueryMsg::BurnPool => query_burn_pool(deps),
-        QueryMsg::Admins => query_admins(deps),
-        QueryMsg::SiennaToken => query_token(deps)
+        QueryMsg::SiennaToken => query_token(deps),
+        QueryMsg::Admin(admin_msg) => multi_admin_query(deps, admin_msg, DefaultQueryImpl)
     }
 }
 
@@ -93,12 +96,12 @@ fn burn<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+#[require_admin]
 fn add_pairs<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     pairs: Vec<HumanAddr>,
 ) -> StdResult<HandleResponse> {
-    enforce_admin(deps, env)?;
     save_pair_addresses(deps, &pairs)?;
 
     Ok(HandleResponse {
@@ -108,12 +111,12 @@ fn add_pairs<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+#[require_admin]
 fn remove_pairs<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     pairs: Vec<HumanAddr>,
 ) -> StdResult<HandleResponse> {
-    enforce_admin(deps, env)?;
     remove_pair_addresses(deps, &pairs)?;
 
     Ok(HandleResponse {
@@ -123,27 +126,12 @@ fn remove_pairs<S: Storage, A: Api, Q: Querier>(
     })
 }
 
-fn add_admins<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    addresses: Vec<HumanAddr>,
-) -> StdResult<HandleResponse> {
-    enforce_admin(deps, env)?;
-    save_admins(deps, &addresses)?;
-
-    Ok(HandleResponse {
-        messages: vec![],
-        log: vec![],
-        data: Some(to_binary(&ResponseStatus::Success)?),
-    })
-}
-
+#[require_admin]
 fn set_burn_pool<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     address: HumanAddr,
 ) -> StdResult<HandleResponse> {
-    enforce_admin(deps, env)?;
     save_burn_pool(deps, &address)?;
 
     Ok(HandleResponse {
@@ -153,12 +141,12 @@ fn set_burn_pool<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+#[require_admin]
 fn set_token<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     info: ContractInfo,
 ) -> StdResult<HandleResponse> {
-    enforce_admin(deps, env)?;
     save_token_info(deps, &info)?;
 
     Ok(HandleResponse {
@@ -168,32 +156,11 @@ fn set_token<S: Storage, A: Api, Q: Querier>(
     })
 }
 
-fn enforce_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-) -> StdResult<()> {
-    let admins = load_admins(deps)?;
-
-    if admins.contains(&env.message.sender) {
-        return Ok(());
-    }
-
-    Err(StdError::unauthorized())
-}
-
 fn query_burn_pool<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Binary> {
     let address = load_burn_pool(deps)?;
 
     to_binary(&QueryAnswer::BurnPool {
         address,
-    })
-}
-
-fn query_admins<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Binary> {
-    let addresses = load_admins(deps)?;
-
-    to_binary(&QueryAnswer::Admins { 
-        addresses
     })
 }
 
@@ -209,7 +176,12 @@ fn query_token<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdRes
 mod tests {
     use super::*;
     use cosmwasm_std::from_binary;
-    use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage, mock_dependencies, mock_env};
+    use cosmwasm_std::testing::{
+        MockApi, MockQuerier, MockStorage, mock_dependencies, mock_env
+    };
+    use sienna_amm_shared::admin::multi_admin::{
+        MultiAdminHandleMsg, MultiAdminQueryMsg, MultiAdminQueryResponse, load_admins
+    };
 
     const FACTORY: &'static str = "factory_address";
     const BURN_POOL: &'static str = "burn_pool";
@@ -437,9 +409,9 @@ mod tests {
         let result = handle(
             deps,
             mock_env("non_admin", &[]),
-            HandleMsg::AddAdmins {
+            HandleMsg::Admin(MultiAdminHandleMsg::AddAdmins {
                 addresses: new_admins.clone()
-            }
+            })
         );
 
         assert_unauthorized(result);
@@ -447,45 +419,34 @@ mod tests {
         handle(
             deps,
             mock_env(SENDER, &[]),
-            HandleMsg::AddAdmins {
+            HandleMsg::Admin(MultiAdminHandleMsg::AddAdmins {
                 addresses: new_admins.clone()
-            }
+            })
         )?;
 
-        let result = query(deps, QueryMsg::Admins)?;
-        let result: QueryAnswer = from_binary(&result)?;
+        let result = query(deps, QueryMsg::Admin(MultiAdminQueryMsg::Admins))?;
+        let result: MultiAdminQueryResponse = from_binary(&result)?;
 
-        match result {
-            QueryAnswer::Admins { addresses } => {
-                assert_eq!(
-                    addresses,
-                    [ 
-                        vec![ HumanAddr(FACTORY.into()), HumanAddr(SENDER.into()) ],
-                        new_admins.clone()
-                    ].concat()
-                )
-            },
-            _ => panic!("Expected QueryAnswer::Admins")
-        }
+        assert_eq!(
+            result.addresses,
+            [ 
+                vec![ HumanAddr(FACTORY.into()), HumanAddr(SENDER.into()) ],
+                new_admins.clone()
+            ].concat()
+        );
 
         handle(
             deps,
             mock_env(new_admins[0].clone(), &[]),
-            HandleMsg::AddAdmins {
+            HandleMsg::Admin(MultiAdminHandleMsg::AddAdmins {
                 addresses: new_admins.clone()
-            }
+            })
         )?;
 
-        let result = query(deps, QueryMsg::Admins)?;
-        let result: QueryAnswer = from_binary(&result)?;
-
-        match result {
-            QueryAnswer::Admins { addresses } => {
-                assert!(addresses.len() == new_admins.len() * 2 + 2)
-            },
-            _ => panic!("Expected QueryAnswer::Admins")
-        }
-
+        let result = query(deps, QueryMsg::Admin(MultiAdminQueryMsg::Admins))?;
+        let result: MultiAdminQueryResponse = from_binary(&result)?;
+        assert!(result.addresses.len() == new_admins.len() * 2 + 2);
+        
         Ok(())
     }
 

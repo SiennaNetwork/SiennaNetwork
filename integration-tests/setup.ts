@@ -39,6 +39,9 @@ export async function setup(client: SigningCosmWasmClient, commit: string, write
     const ido_upload = await client.upload(ido_wasm, {}, undefined, fee)
     writer.write(ido_upload, `uploads/ido`)
 
+    //const burner_upload = await client.upload(ido_wasm, {}, undefined, fee)
+    //writer.write(burner_upload, `uploads/burner`)
+
     const pair_contract = new ContractInstantiationInfo(exchange_upload.originalChecksum, exchange_upload.codeId)
     const snip20_contract = new ContractInstantiationInfo(snip20_upload.originalChecksum, snip20_upload.codeId)
     const lp_token_contract = new ContractInstantiationInfo(lp_token_upload.originalChecksum, lp_token_upload.codeId)

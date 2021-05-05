@@ -39,4 +39,4 @@ cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
-sienna-amm-shared = { git = "https://github.com/hackbg/sienna-amm-shared", rev = "8970e0d" }
+sienna-amm-shared = { git = "https://github.com/hackbg/sienna-amm-shared", rev = "65e94b1" }
