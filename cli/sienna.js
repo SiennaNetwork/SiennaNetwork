@@ -40,7 +40,7 @@ export default function main () {
     // artifacts:
     .command('build',
       '👷 Compile contracts from working tree',
-      build)
+      args.Sequential, build)
     .command('schema',
       `🤙 Regenerate JSON schema for each contract's API.`,
       genSchema)
@@ -94,6 +94,9 @@ const args =
   { IsTestnet:   yargs => yargs.option(
       'testnet',
       { describe: 'run on holodeck-2 instead of a local container' })
+  , Sequential:  yargs => yargs.option(
+      'sequential',
+      { describe: 'build contracts one at a time instead of simultaneously' })
   , Network:     yargs => yargs.positional(
       'network',
       { describe: 'the network to connect to'
