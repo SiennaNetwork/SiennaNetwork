@@ -202,7 +202,7 @@ contract('WrappedSienna', (accounts) => {
       const recipientBalanceAfter = await this.token.balanceOf(anotherAccount1);
 
       assert.ok(
-        recipientBalanceAfter.gt(recipientBalanceBefore),
+        recipientBalanceAfter.eq(recipientBalanceBefore),
         "Tokens in the receiving account didn't increment"
       );
       assert.ok(
@@ -283,6 +283,17 @@ contract('WrappedSienna', (accounts) => {
     assert.ok(
       recipientBalanceAfter.gt(recipientBalanceBefore),
       "Tokens in the receiving account didn't increment"
+    );
+
+    const allowedAfter = await this.token.allowance(
+      anotherAccount1,
+      anotherAccount2,
+      { from: anotherAccount1 }
+    );
+    assert.equal(
+      allowedAfter,
+      0,
+      'Allowance spent, but recipient still has allowance left'
     );
   });
 });
