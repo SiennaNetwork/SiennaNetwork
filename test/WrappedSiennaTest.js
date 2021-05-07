@@ -220,36 +220,61 @@ contract('WrappedSienna', (accounts) => {
     }
   });
 
-  it('transfer tokens from account (!minter) to another account', async () => {
-    const initialAmount = 500000;
-    const amountTransferAfter = 250000;
-    await this.token.transfer(anotherAccount1, new BN(initialAmount), {
-      from: admin,
-    });
+  it('transfer tokens from minter account to self via allowance', async () => {
+    // this is the bridge - trusted part.
+    // we trust the bridge to not mint itself tokens either via the mint method
+    // or by giving itself allowance and calling `transferFrom` which will do
+    // the same
+    try {
+      const minterBalanceBefore = await this.token.balanceOf(bridgeAddress);
 
+      await this.token.approve(bridgeAddress, new BN(100), {
+        from: bridgeAddress,
+      });
+
+      const allowed = await this.token.allowance(bridgeAddress, bridgeAddress);
+
+      await this.token.transferFrom(bridgeAddress, bridgeAddress, allowed, {
+        from: bridgeAddress,
+      });
+
+      const minterBalanceAfter = await this.token.balanceOf(bridgeAddress);
+
+      assert.ok(
+        minterBalanceBefore.eq(minterBalanceAfter),
+        'Minter balance was changed'
+      );
+
+      assert.fail('The transaction should have thrown an error');
+    } catch (err) {
+      assert.include(
+        err.message,
+        'exceeds balance',
+        'The error message should contain "exceeds balance"'
+      );
+    }
+  });
+
+  it('transfer tokens from account (!minter) to another account', async () => {
     const senderBalanceBefore = await this.token.balanceOf(anotherAccount1);
     const recipientBalanceBefore = await this.token.balanceOf(anotherAccount2);
 
-    assert.ok(
-      senderBalanceBefore.gt(recipientBalanceBefore),
-      "Tokens in the receiving account didn't increment"
-    );
-
-    await this.token.approve(anotherAccount2, new BN(amountTransferAfter), {
+    const approve = await this.token.approve(anotherAccount2, new BN(100), {
       from: anotherAccount1,
     });
 
     const allowed = await this.token.allowance(
+      anotherAccount1,
       anotherAccount2,
-      anotherAccount1
+      { from: anotherAccount1 }
     );
 
-    await this.token.transferFrom(anotherAccount2, anotherAccount1, allowed, {
-      from: anotherAccount1,
+    await this.token.transferFrom(anotherAccount1, anotherAccount2, allowed, {
+      from: anotherAccount2,
     });
 
-    const senderBalanceAfter = await this.token.balanceOf(anotherAccount2);
-    const recipientBalanceAfter = await this.token.balanceOf(anotherAccount1);
+    const senderBalanceAfter = await this.token.balanceOf(anotherAccount1);
+    const recipientBalanceAfter = await this.token.balanceOf(anotherAccount2);
 
     assert.ok(
       senderBalanceAfter.lt(senderBalanceBefore),
