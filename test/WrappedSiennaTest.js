@@ -220,11 +220,7 @@ contract('WrappedSienna', (accounts) => {
     }
   });
 
-  it('transfer tokens from minter account to self via allowance', async () => {
-    // this is the bridge - trusted part.
-    // we trust the bridge to not mint itself tokens either via the mint method
-    // or by giving itself allowance and calling `transferFrom` which will do
-    // the same
+  it('transfer tokens from minter account to self via allowance (should fail)', async () => {
     try {
       const minterBalanceBefore = await this.token.balanceOf(bridgeAddress);
 
