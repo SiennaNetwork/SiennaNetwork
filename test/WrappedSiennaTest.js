@@ -292,4 +292,33 @@ contract('WrappedSienna', (accounts) => {
       'Allowance spent, but recipient still has allowance left'
     );
   });
+
+  it('transfer tokens from account (!minter) to minter account (bridge) via transferFrom', async () => {
+    const senderBalanceBefore = await this.token.balanceOf(anotherAccount1);
+    const bridgeBalanceBefore = await this.token.balanceOf(bridgeAddress);
+
+    assert.equal(bridgeBalanceBefore, 0, 'Bridge balance is not 0');
+
+    const approve = await this.token.approve(bridgeAddress, new BN(100), {
+      from: anotherAccount1,
+    });
+
+    const allowed = await this.token.allowance(anotherAccount1, bridgeAddress, {
+      from: anotherAccount1,
+    });
+
+    await this.token.transferFrom(anotherAccount1, bridgeAddress, allowed, {
+      from: bridgeAddress,
+    });
+
+    const senderBalanceAfter = await this.token.balanceOf(anotherAccount1);
+
+    assert.ok(
+      senderBalanceAfter.lt(senderBalanceBefore),
+      "Tokens in sender's account didn't decrement"
+    );
+
+    const bridgeBalanceAfter = await this.token.balanceOf(bridgeAddress);
+    assert.equal(bridgeBalanceAfter, 0, 'Bridge balance was changed');
+  });
 });
