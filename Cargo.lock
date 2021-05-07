@@ -133,28 +133,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
-name = "cashback-token"
-version = "0.1.0"
-dependencies = [
- "base64 0.12.3",
- "bincode2",
- "cosmwasm-schema 0.9.4",
- "cosmwasm-sgx-vm",
- "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "cosmwasm-storage",
- "hex",
- "rand_chacha 0.2.2",
- "rand_core 0.5.1",
- "schemars",
- "scrt-finance",
- "secret-toolkit",
- "serde",
- "sha2 0.9.3",
- "snafu",
- "subtle 2.4.0",
-]
-
-[[package]]
 name = "cbindgen"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -920,7 +898,6 @@ dependencies = [
 name = "sienna-rewards-schema"
 version = "0.0.0"
 dependencies = [
- "cashback-token",
  "cosmwasm-schema 0.10.0",
  "gov-token",
  "lp-staking",

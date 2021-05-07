@@ -11,10 +11,7 @@ const prefix = new Date().toISOString().replace(/[-:\.]/g, '-').replace(/[TZ]/g,
 const prng_seed = 'insecure'
 
 export const CONTRACTS =
-  { CASHBACK:
-    { crate: 'cashback' 
-    , label: `${prefix}SIENNA.Rewards.Cashback` }
-  , GOVERNANCE_TOKEN:
+  { GOVERNANCE_TOKEN:
     { crate: 'gov-token'
     , label: `${prefix}SIENNA.Rewards.GovernanceToken` }
   , LP_STAKING:

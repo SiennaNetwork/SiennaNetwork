@@ -1,6 +1,5 @@
 [Weight Master] o-> NotifyAllocation[Spy Contracts]
 [Weight Master] -> Mint[Govern Token - SNIP20]
-[Weight Master] -> NotifyAllocation[Cashback]
 
 [Spy Contracts] o-> RegisterReceive[Reward Tokens - SNIP20]
 [Spy Contracts] o-> SetViewingKey[Reward Tokens - SNIP20]
@@ -8,10 +7,3 @@
 [Spy Contracts] o-> RegisterReceive[Incetivized Tokens - SNIP20]
 [Spy Contracts] o-> SetViewingKey[Incetivized Tokens - SNIP20]
 [Spy Contracts] -> UpdateAllocation[Weight Master]
-
-[Pair Contracts] o-> ReceiveSwapData[Cashback Minter]
-
-[Cashback Minter] -> Mint[Cashback]
-
-[Cashback] -> UpdateAllocation[Weight Master]
-[Cashback] -> Transfer[Govern Token - SNIP20]
