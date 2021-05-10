@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HandleMsg",
+  "anyOf": [
+    {
+      "type": "string",
+      "enum": [
+        "test"
+      ]
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/AdminHandleMsg"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "AdminHandleMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "change_admin"
+          ],
+          "properties": {
+            "change_admin": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "HumanAddr": {
+      "type": "string"
+    }
+  }
+}
