@@ -90,7 +90,7 @@ fn create_exchange<S: Storage, A: Api, Q: Querier>(
                         "{}-{}-pair-{}-{}",
                         pair.0,
                         pair.1,
-                        env.contract.address.clone(),
+                        env.contract.address,
                         config.pair_contract.id
                     ),
                     msg: to_binary(
@@ -196,7 +196,7 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
                     config.ido_contract.id
                 ),
                 msg: to_binary(&IdoInitMsg {
-                    info: info,
+                    info,
                     snip20_contract: config.snip20_contract,
                     callback: Callback {
                         contract: ContractInfo {
@@ -244,9 +244,7 @@ fn list_idos<S: Storage, A: Api, Q: Querier>(
     let config = load_config(deps)?;
     let idos = get_idos(deps, &config, pagination)?;
 
-    Ok(to_binary(&QueryResponse::ListIdos {
-        idos
-    })?)
+    to_binary(&QueryResponse::ListIdos { idos })
 }
 
 fn list_exchanges<S: Storage, A: Api, Q: Querier>(
@@ -255,9 +253,7 @@ fn list_exchanges<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<Binary> {
     let exchanges = get_exchanges(deps, pagination)?;
 
-    Ok(to_binary(&QueryResponse::ListExchanges {
-        exchanges
-    })?)
+    to_binary(&QueryResponse::ListExchanges { exchanges })
 }
 
 fn query_exchange_settings<S: Storage, A: Api, Q: Querier>(

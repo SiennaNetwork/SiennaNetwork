@@ -98,12 +98,7 @@ pub(crate) fn pair_exists<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<bool> {
     let pair = pair.to_stored(&deps.api)?;
     let key = generate_pair_key(&pair);
-
-    if let Some(_) = deps.storage.get(&key) {
-        return Ok(true);
-    }
-
-    Ok(false)
+    Ok(deps.storage.get(&key).is_some())
 }
 
 /// Stores information about an exchange contract. Returns an `StdError` if the exchange
@@ -118,10 +113,10 @@ pub(crate) fn store_exchange<S: Storage, A: Api, Q: Querier>(
     let pair = pair.to_stored(&deps.api)?;
     let key = generate_pair_key(&pair);
 
-    if let Some(_) = deps.storage.get(&key) {
+    if deps.storage.get(&key).is_some() {
         return Err(StdError::generic_err("Exchange already exists"));
     }
-    
+
     save(&mut deps.storage, &key, &canonical)?;
 
     let mut exchanges = load_exchanges(&deps.storage)?;
@@ -130,15 +125,12 @@ pub(crate) fn store_exchange<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err("Exchange address already exists"));
     }
 
-    let exchange = ExchangeStored {
+    exchanges.push(ExchangeStored {
         pair,
         address: canonical
-    };
-    exchanges.push(exchange);
+    });
 
-    save_exchanges(&mut deps.storage, &exchanges)?;
-
-    Ok(())
+    save_exchanges(&mut deps.storage, &exchanges)
 }
 
 /// Get the address of an exchange contract which manages the given pair.
@@ -151,7 +143,7 @@ pub(crate) fn get_address_for_pair<S: Storage, A: Api, Q: Querier>(
 
     let canonical = load(&deps.storage, &key)?;
 
-    Ok(deps.api.human_address(&canonical)?)
+    deps.api.human_address(&canonical)
 }
 
 pub(crate) fn store_ido_address<S: Storage, A: Api, Q: Querier>(
@@ -161,13 +153,11 @@ pub(crate) fn store_ido_address<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<()> {
     let address = deps.api.canonical_address(&address)?;
     let index = generate_ido_index(&config.ido_count);
-    
+
     save(&mut deps.storage, index.as_slice(), &address)?;
 
     config.ido_count += 1;
-    save_config(deps, &config)?;
-
-    Ok(())
+    save_config(deps, &config)
 }
 
 pub(crate) fn get_idos<S: Storage, A: Api, Q: Querier>(
@@ -183,7 +173,7 @@ pub(crate) fn get_idos<S: Storage, A: Api, Q: Querier>(
     let end = (pagination.start + limit as u64).min(config.ido_count);
 
     let mut result = Vec::with_capacity((end - pagination.start) as usize);
-    
+
     for i in pagination.start..end {
         let index = generate_ido_index(&i);
         let addr: CanonicalAddr = load(&deps.storage, index.as_slice())?;
@@ -209,8 +199,8 @@ pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
     let end = (pagination.start + limit as u64).min(exchanges.len() as u64);
 
     let mut result = Vec::with_capacity((end - pagination.start) as usize);
-    
-    for exchange in exchanges.drain((pagination.start as usize)..(end as usize)).collect::<Vec<ExchangeStored>>() {     
+
+    for exchange in exchanges.drain((pagination.start as usize)..(end as usize)).collect::<Vec<ExchangeStored>>() {
         result.push(exchange.to_normal(&deps.api)?)
     }
 
@@ -252,7 +242,7 @@ fn generate_pair_key(
         TokenTypeStored::CustomToken { contract_addr, .. } => bytes.push(contract_addr.as_slice())
     }
 
-    bytes.sort_by(|a, b| a.cmp(&b));
+    bytes.sort();
 
     bytes.concat()
 }
@@ -316,12 +306,12 @@ mod tests {
         ) -> StdResult<()> {
             let stored_pair = pair.to_stored(&deps.api)?;
             let key = generate_pair_key(&stored_pair);
-    
+
             let pair = swap_pair(&pair);
-    
+
             let stored_pair = pair.to_stored(&deps.api)?;
             let swapped_key = generate_pair_key(&stored_pair);
-    
+
             assert_eq!(key, swapped_key);
 
             Ok(())
@@ -383,7 +373,7 @@ mod tests {
             TokenType::CustomToken {
                 contract_addr: HumanAddr("scnd_addr".into()),
                 token_code_hash: "4534qwerqqw".into()
-            }  
+            }
         );
 
         let address = HumanAddr("ctrct_addr".into());
@@ -391,7 +381,7 @@ mod tests {
         store_exchange(&mut deps, &pair, &address)?;
 
         let retrieved_address = get_address_for_pair(&deps, &pair)?;
-        
+
         assert!(pair_exists(&mut deps, &pair)?);
         assert_eq!(address, retrieved_address);
 
@@ -409,13 +399,13 @@ mod tests {
             TokenType::CustomToken {
                 contract_addr: HumanAddr("scnd_addr".into()),
                 token_code_hash: "4534qwerqqw".into()
-            }  
+            }
         );
 
         store_exchange(deps, &pair, &"first_addr".into())?;
 
         let swapped = swap_pair(&pair);
-        
+
         match store_exchange(deps, &swapped, &"other_addr".into()) {
             Ok(_) => Err(StdError::generic_err("Exchange already exists")),
             Err(_) => Ok(())
@@ -469,7 +459,7 @@ mod tests {
                 },
                 TokenType::NativeToken {
                     denom: format!("denom_{}", i)
-                }, 
+                },
             );
             let address = HumanAddr(format!("address_{}", i));
 

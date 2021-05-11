@@ -45,7 +45,7 @@ pub(crate) fn store_config<S: Storage, A: Api, Q: Querier>(
         pair: config.pair.to_stored(&deps.api)?,
         contract_addr: deps.api.canonical_address(&config.contract_addr)?,
         viewing_key: config.viewing_key.clone(),
-        pool_cache: config.pool_cache.clone()
+        pool_cache: config.pool_cache
     };
 
     save(&mut deps.storage, CONFIG_KEY, &stored)
