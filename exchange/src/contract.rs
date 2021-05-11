@@ -75,7 +75,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             "{}-{}-SiennaSwap-LP-Token-{}",
             &msg.pair.0,
             &msg.pair.1,
-            &env.contract.address.clone()
+            &env.contract.address
         ),
         callback_code_hash: msg.lp_token_contract.code_hash.clone(),
     }));
@@ -171,9 +171,8 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
     let mut messages: Vec<CosmosMsg> = vec![];
 
     let mut pool_balances = deposit.pair.query_balances(&deps.querier, contract_addr, viewing_key.0)?;
-    let mut i = 0;
 
-    for (amount, token) in deposit.into_iter() {
+    for (i, (amount, token)) in deposit.into_iter().enumerate() {
         match &token {
             TokenType::CustomToken { contract_addr, token_code_hash } => {
                 messages.push(snip20::transfer_from_msg(
@@ -192,8 +191,6 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
                 pool_balances[i] = (pool_balances[i] - amount)?;
             }
         }
-
-        i += 1;
     }
 
     assert_slippage_tolerance(
@@ -212,13 +209,11 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
         let amount_1 = U256::from(deposit.amount_1.u128());
 
         let initial_liquidity = u256_math::mul(Some(amount_0), Some(amount_1))
-            .and_then(|prod| u256_math::sqrt(prod))
-            .ok_or_else(|| {
-                StdError::generic_err(format!(
-                    "Cannot calculate sqrt(deposit_0 {} * deposit_1 {})",
-                    amount_0, amount_1
-                ))
-            })?;
+            .and_then(u256_math::sqrt)
+            .ok_or(StdError::generic_err(format!(
+                "Cannot calculate sqrt(deposit_0 {} * deposit_1 {})",
+                amount_0, amount_1
+            )))?;
 
         clamp(initial_liquidity)?
     } else {
@@ -230,26 +225,24 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
         let amount_0 = Some(U256::from(deposit.amount_0.u128()));
         let pool_0 = Some(U256::from(pool_balances[0].u128()));
 
-        let share_0 = u256_math::div(u256_math::mul(amount_0, total_share), pool_0).ok_or_else(|| {
-            StdError::generic_err(format!(
+        let share_0 = u256_math::div(u256_math::mul(amount_0, total_share), pool_0)
+            .ok_or(StdError::generic_err(format!(
                 "Cannot calculate deposits[0] {} * total_share {} / pools[0].amount {}",
                 amount_0.unwrap(),
                 total_share.unwrap(),
                 pool_0.unwrap()
-            ))
-        })?;
+            )))?;
 
         let amount_1 = Some(U256::from(deposit.amount_1.u128()));
         let pool_1 = Some(U256::from(pool_balances[1].u128()));
 
-        let share_1 = u256_math::div(u256_math::mul(amount_1, total_share), pool_1).ok_or_else(|| {
-            StdError::generic_err(format!(
+        let share_1 = u256_math::div(u256_math::mul(amount_1, total_share), pool_1)
+            .ok_or(StdError::generic_err(format!(
                 "Cannot calculate deposits[1] {} * total_share {} / pools[1].amount {}",
                 amount_1.unwrap(),
                 total_share.unwrap(),
                 pool_1.unwrap()
-            ))
-        })?;
+            )))?;
 
         clamp(std::cmp::min(share_0, share_1))?
     };
@@ -307,28 +300,22 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
         let withdrawn_token_amount = u256_math::div(
             u256_math::mul(pool_amount, withdraw_amount),
             total_liquidity,
-        )
-        .ok_or_else(|| {
-            StdError::generic_err(format!(
-                "Cannot calculate current_pool_amount {} * withdrawn_share_amount {} / total_share {}",
-                pool_amount.unwrap(),
-                withdraw_amount.unwrap(),
-                total_liquidity.unwrap()
-            ))
-        })?;
+        ).ok_or(StdError::generic_err(format!(
+            "Cannot calculate current_pool_amount {} * withdrawn_share_amount {} / total_share {}",
+            pool_amount.unwrap(),
+            withdraw_amount.unwrap(),
+            total_liquidity.unwrap()
+        )))?;
 
         pool_withdrawn[i] = clamp(withdrawn_token_amount)?;
     }
 
     let mut messages: Vec<CosmosMsg> = Vec::with_capacity(2);
-    let mut i = 0;
 
-    for token in pair.into_iter() {
+    for (i, token) in pair.into_iter().enumerate() {
         messages.push(
             create_send_msg(&token, env.contract.address.clone(), recipient.clone(), pool_withdrawn[i])?
         );
-
-        i += 1;
     }
 
     messages.push(snip20::burn_from_msg(
@@ -337,18 +324,15 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
         None,
         BLOCK_SIZE,
         lp_token_info.code_hash,
-        lp_token_info.address)?
-    );
+        lp_token_info.address
+    )?);
 
     Ok(HandleResponse {
         messages,
         log: vec![
             log("action", "remove_liquidity"),
             log("withdrawn_share", amount.to_string()),
-            log(
-                "refund_assets",
-                format!("{}, {}", pair.0.clone(), pair.1.clone()),
-            ),
+            log("refund_assets", format!("{}, {}", &pair.0, &pair.1)),
         ],
         data: None
     })
@@ -484,17 +468,11 @@ fn swap_simulation<S: Storage, A: Api, Q: Querier>(
         let (result, decrease_amount) = percentage_decrease(U256::from(return_amount.u128()), settings.sienna_fee)?;
         let decrease_amount = clamp(decrease_amount)?;
 
-        commission_amount = commission_amount + decrease_amount;
+        commission_amount += decrease_amount;
         return_amount = clamp(result)?;
     }
 
-    Ok(to_binary(
-        &SwapSimulationResponse{
-            return_amount,
-            spread_amount,
-            commission_amount
-        }
-    )?)
+    to_binary(&SwapSimulationResponse { return_amount, spread_amount, commission_amount })
 }
 
 fn register_lp_token<S: Storage, A: Api, Q: Querier>(
@@ -574,9 +552,8 @@ fn do_swap<S: Storage, A: Api, Q: Querier>(
 
         // If offer.token is not native, the balance hasn't been increased yet
         if let TokenType::NativeToken { .. } = offer.token {
-            let result = U256::from(offer_pool.u128()).checked_sub(U256::from(offer.amount.u128())).ok_or_else(|| {
-                StdError::generic_err("This can't really happen.")
-            })?;
+            let result = U256::from(offer_pool.u128()).checked_sub(U256::from(offer.amount.u128()))
+                .ok_or(StdError::generic_err("This can't really happen."))?;
 
             offer_pool = clamp(result)?
         }
@@ -603,49 +580,38 @@ fn compute_swap(
     let offer_amount = Some(U256::from(offer_amount.u128()));
 
     // cp = offer_pool * ask_pool
-    let cp = u256_math::mul(offer_pool, ask_pool);
-    cp.ok_or_else(|| {
-        StdError::generic_err(format!(
-            "Cannot calculate cp = offer_pool {} * ask_pool {}",
-            offer_pool.unwrap(),
-            ask_pool.unwrap()
-        ))
-    })?;
+    let cp = u256_math::mul(offer_pool, ask_pool).ok_or(StdError::generic_err(format!(
+        "Cannot calculate cp = offer_pool {} * ask_pool {}",
+        offer_pool.unwrap(),
+        ask_pool.unwrap()
+    )))?;
 
     // return_amount = (ask_pool - cp / (offer_pool + offer_amount))
     // ask_amount = return_amount * (1 - commission_rate)
-    let return_amount = u256_math::sub(ask_pool, u256_math::div(cp, u256_math::add(offer_pool, offer_amount)));
-    return_amount.ok_or_else(|| {
-        StdError::generic_err(format!(
+    let return_amount = u256_math::sub(ask_pool, u256_math::div(Some(cp), u256_math::add(offer_pool, offer_amount)))
+        .ok_or(StdError::generic_err(format!(
             "Cannot calculate return_amount = (ask_pool {} - cp {} / (offer_pool {} + offer_amount {}))",
             ask_pool.unwrap(),
-            cp.unwrap(),
+            cp,
             offer_pool.unwrap(),
             offer_amount.unwrap(),
-        ))
-    })?;
+        )))?;
 
     // calculate spread & commission
     // spread = offer_amount * ask_pool / offer_pool - return_amount
     let spread_amount = u256_math::div(u256_math::mul(offer_amount, ask_pool), offer_pool)
-        .ok_or_else(|| {
-            StdError::generic_err(format!(
-                "Cannot calculate offer_amount {} * ask_pool {} / offer_pool {}",
-                offer_amount.unwrap(),
-                ask_pool.unwrap(),
-                offer_pool.unwrap()
-            ))
-        })?
-        .saturating_sub(return_amount.unwrap());
+        .ok_or(StdError::generic_err(format!(
+            "Cannot calculate offer_amount {} * ask_pool {} / offer_pool {}",
+            offer_amount.unwrap(),
+            ask_pool.unwrap(),
+            offer_pool.unwrap()
+        )))?
+        .saturating_sub(return_amount);
 
     // commission_amount = return_amount * fee.nom / fee.denom
-    let (return_amount, commission_amount) = percentage_decrease(return_amount.unwrap(), fee)?;
+    let (return_amount, commission_amount) = percentage_decrease(return_amount, fee)?;
 
-    Ok((
-        clamp(return_amount)?,
-        clamp(spread_amount)?,
-        clamp(commission_amount)?,
-    ))
+    Ok((clamp(return_amount)?, clamp(spread_amount)?, clamp(commission_amount)?))
 }
 
 fn percentage_decrease(amount: U256, fee: Fee) -> StdResult<(U256, U256)> {
@@ -653,26 +619,20 @@ fn percentage_decrease(amount: U256, fee: Fee) -> StdResult<(U256, U256)> {
     let nom = Some(U256::from(fee.nom));
     let denom = Some(U256::from(fee.denom));
 
-    let decrease_amount = u256_math::div(
-        u256_math::mul(amount, nom),
-        denom,
-    )
-    .ok_or_else(|| {
-        StdError::generic_err(format!(
+    let decrease_amount = u256_math::div(u256_math::mul(amount, nom), denom,)
+        .ok_or(StdError::generic_err(format!(
             "Cannot calculate return_amount {} * commission_rate_nom {} / commission_rate_denom {}",
             amount.unwrap(),
             nom.unwrap(),
             denom.unwrap()
-        ))
-    })?;
+        )))?;
 
-    let result = u256_math::sub(amount, Some(decrease_amount)).ok_or_else(|| {
-        StdError::generic_err(format!(
+    let result = u256_math::sub(amount, Some(decrease_amount))
+        .ok_or(StdError::generic_err(format!(
             "Cannot calculate return_amount {} - commission_amount {}",
             amount.unwrap(),
             decrease_amount
-        ))
-    })?;
+        )))?;
 
     Ok((result, decrease_amount))
 }
