@@ -220,7 +220,7 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
                 ))
             })?;
 
-        Uint128(initial_liquidity.low_u128())
+        clamp(initial_liquidity)?
     } else {
         // When adding to an existing pool, an equal amount of each token, proportional to the
         // current price, must be deposited. So, determine how many LP tokens are minted.
@@ -251,7 +251,7 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
             ))
         })?;
 
-        Uint128(std::cmp::min(share_0, share_1).low_u128())
+        clamp(std::cmp::min(share_0, share_1))?
     };
 
     messages.push(snip20::mint_msg(
@@ -317,7 +317,7 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
             ))
         })?;
 
-        pool_withdrawn[i] = Uint128(withdrawn_token_amount.low_u128());
+        pool_withdrawn[i] = clamp(withdrawn_token_amount)?;
     }
 
     let mut messages: Vec<CosmosMsg> = Vec::with_capacity(2);
@@ -397,10 +397,10 @@ fn swap<S: Storage, A: Api, Q: Querier>(
     // SIENNA needs to be burned on each swap in order to decrease the total supply
     if let Some(info) = settings.sienna_burner {
         let (result, decrease_amount) = percentage_decrease(U256::from(return_amount.u128()), settings.sienna_fee)?;
-        let decrease_amount = Uint128(decrease_amount.low_u128());
+        let decrease_amount = clamp(decrease_amount)?;
 
         commission_amount = commission_amount + decrease_amount;
-        return_amount = Uint128(result.low_u128());
+        return_amount = clamp(result)?;
 
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
             callback_code_hash: info.code_hash,
@@ -482,10 +482,10 @@ fn swap_simulation<S: Storage, A: Api, Q: Querier>(
 
     if let Some(_) = settings.sienna_burner {
         let (result, decrease_amount) = percentage_decrease(U256::from(return_amount.u128()), settings.sienna_fee)?;
-        let decrease_amount = Uint128(decrease_amount.low_u128());
+        let decrease_amount = clamp(decrease_amount)?;
 
         commission_amount = commission_amount + decrease_amount;
-        return_amount = Uint128(result.low_u128());
+        return_amount = clamp(result)?;
     }
 
     Ok(to_binary(
@@ -578,7 +578,7 @@ fn do_swap<S: Storage, A: Api, Q: Querier>(
                 StdError::generic_err("This can't really happen.")
             })?;
 
-            offer_pool = Uint128(result.low_u128())
+            offer_pool = clamp(result)?
         }
     }
 
@@ -642,9 +642,9 @@ fn compute_swap(
     let (return_amount, commission_amount) = percentage_decrease(return_amount.unwrap(), fee)?;
 
     Ok((
-        Uint128(return_amount.low_u128()),
-        Uint128(spread_amount.low_u128()),
-        Uint128(commission_amount.low_u128()),
+        clamp(return_amount)?,
+        clamp(spread_amount)?,
+        clamp(commission_amount)?,
     ))
 }
 
@@ -726,3 +726,11 @@ fn query_exchange_settings(querier: &impl Querier, factory: ContractInfo) -> Std
 mod tests {
     use super::*;
 */
+
+fn clamp(val: U256) -> StdResult<Uint128> {
+    if val > u128::MAX.into() {
+        Err(StdError::generic_err(format!("cannot represent {} in 128 bits", &val)))
+    } else {
+        Ok(Uint128(val.low_u128()))
+    }
+}
