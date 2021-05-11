@@ -34,7 +34,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<InitResponse> {
 
     if msg.pair.0 == msg.pair.1 {
-        panic!("Trying to create an exchange with the same token.");
+        return Err(StdError::generic_err("Trying to create an exchange with the same token."));
     }
 
     let mut messages = vec![];
@@ -465,7 +465,7 @@ fn query_liquidity(querier: &impl Querier, lp_token_info: &ContractInfo) -> StdR
 
     //If this happens, the LP token has been incorrectly configured
     if result.total_supply.is_none() {
-        panic!("LP token has no available supply.");
+        unreachable!("LP token has no available supply.");
     }
 
     Ok(result.total_supply.unwrap())
