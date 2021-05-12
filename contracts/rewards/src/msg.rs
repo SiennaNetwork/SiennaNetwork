@@ -6,7 +6,7 @@ use cosmwasm_utils::ContractInfo;
 
 use crate::data::RewardPool;
 
-pub(crate) const UPPER_OVERFLOW_MSG: &str = "Upper bound overflow detected.";
+pub(crate) const OVERFLOW_MSG: &str = "Upper bound overflow detected.";
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {
@@ -25,12 +25,20 @@ pub enum HandleMsg {
         amount: Uint128,
         lp_token: HumanAddr
     },
+    RetrieveTokens {
+        amount: Uint128,
+        lp_token: HumanAddr
+    },
+    Claim {
+        /// The address of the LP tokens pools to claim from.
+        lp_tokens: Vec<HumanAddr>
+    },
     AddPools { 
         pools: Vec<RewardPool>
     },
     RemovePools {
         /// The addresses of the LP tokens of the pools to be removed.
-        addresses: Vec<HumanAddr>
+        lp_tokens: Vec<HumanAddr>
     },
     ChangeClaimInterval {
         interval: u64

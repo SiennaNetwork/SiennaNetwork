@@ -8,7 +8,9 @@ use schemars::JsonSchema;
 pub struct RewardPool {
     pub lp_token: ContractInfo,
     /// The reward amount allocated to this pool.
-    pub share: u128
+    pub share: u128,
+    /// Total amount locked by all participants.
+    pub size: u128
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
@@ -28,7 +30,8 @@ pub struct Account {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct RewardPoolStored {
     pub lp_token: ContractInfoStored,
-    pub share: u128
+    pub share: u128,
+    pub size: u128
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -80,7 +83,8 @@ impl RewardPool {
     pub(crate) fn to_stored(&self, api: &impl Api) -> StdResult<RewardPoolStored> {
         Ok(RewardPoolStored {
             lp_token: self.lp_token.to_stored(api)?,
-            share: self.share
+            share: self.share,
+            size: self.size
         })
     }
 }
@@ -89,7 +93,8 @@ impl RewardPoolStored {
     pub(crate) fn to_normal(self, api: &impl Api) -> StdResult<RewardPool> {
         Ok(RewardPool {
             lp_token: self.lp_token.to_normal(api)?,
-            share: self.share
+            share: self.share,
+            size: self.size
         })
     }
 }

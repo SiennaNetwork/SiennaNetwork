@@ -10,9 +10,10 @@ use composable_admin::admin::{
 use secret_toolkit::snip20;
 use cosmwasm_utils::viewing_key::ViewingKey;
 
-use crate::msg::{HandleMsg, InitMsg, QueryMsg, UPPER_OVERFLOW_MSG};
+use crate::{msg::{HandleMsg, InitMsg, QueryMsg, OVERFLOW_MSG}, state::load_config};
 use crate::state::{
-    save_config, Config, add_pools, get_pool, get_account, save_account
+    save_config, Config, add_pools, get_pool, get_account, save_account,
+    save_pool, delete_account
 };
 use crate::data::RewardPool;
 
@@ -63,8 +64,10 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     match msg {
         HandleMsg::LockTokens { amount, lp_token } => lock_tokens(deps, env, amount, lp_token),
+        HandleMsg::RetrieveTokens { amount, lp_token } => retrieve_tokens(deps, env, amount, lp_token),
+        HandleMsg::Claim { lp_tokens } => claim(deps, env, lp_tokens),
         HandleMsg::AddPools { pools } => add_more_pools(deps, env, pools),
-        HandleMsg::RemovePools { addresses } => remove_some_pools(deps, env, addresses), // Great naming btw
+        HandleMsg::RemovePools { lp_tokens } => remove_some_pools(deps, env, lp_tokens), // Great naming btw
         HandleMsg::ChangeClaimInterval { interval } => change_claim_interval(deps, env, interval),
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl)
     }
@@ -91,15 +94,18 @@ fn lock_tokens<S: Storage, A: Api, Q: Querier>(
         return  Err(StdError::generic_err(format!("LP token {} is not eligible for rewards.", lp_token_addr)));
     }
 
-    let mut account = get_account(deps, env.message.sender, lp_token_addr)?;
+    let mut pool = pool.unwrap(); // Safe, checked above
+    let mut account = get_account(deps, &env.message.sender, &lp_token_addr)?;
 
     account.locked_amount = 
         account.locked_amount.checked_add(amount.u128())
-        .ok_or_else(|| StdError::generic_err(UPPER_OVERFLOW_MSG))?;
+        .ok_or_else(|| StdError::generic_err(OVERFLOW_MSG))?;
+
+    pool.size += pool.size.checked_add(amount.u128())
+        .ok_or_else(|| StdError::generic_err(OVERFLOW_MSG))?;
 
     save_account(deps, &account)?;
-
-    let pool = pool.unwrap(); // Safe, checked above
+    save_pool(deps, &pool)?;
     
     Ok(HandleResponse{
         messages: vec![
@@ -117,8 +123,113 @@ fn lock_tokens<S: Storage, A: Api, Q: Querier>(
             log("action", "lock_tokens"),
             log("amount_locked", amount),
             log("locked_by", account.owner),
-            log("lp_token", account.lp_token_addr)
+            log("lp_token", account.lp_token_addr),
+            log("new_pool_size", pool.size)
         ],
+        data: None
+    })
+}
+
+fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    amount: Uint128,
+    lp_token_addr: HumanAddr
+) -> StdResult<HandleResponse> {
+    let pool = get_pool(deps, &lp_token_addr)?;
+
+    if pool.is_none() {
+        return  Err(StdError::generic_err(format!("LP token {} is not eligible for rewards.", lp_token_addr)));
+    }
+
+    let mut pool = pool.unwrap(); // Safe, checked above
+    let mut account = get_account(deps, &env.message.sender, &lp_token_addr)?;
+
+    account.locked_amount = account.locked_amount.checked_sub(amount.u128())
+        .ok_or_else(|| StdError::generic_err("Insufficient balance."))?;
+
+    pool.size += pool.size.saturating_sub(amount.u128());
+
+    if account.locked_amount == 0 {
+        delete_account(deps, &account)?;
+    } else {
+        save_account(deps, &account)?;
+    }
+
+    save_pool(deps, &pool)?;
+    
+    Ok(HandleResponse{
+        messages: vec![
+            snip20::transfer_msg(
+                account.owner.clone(),
+                amount,
+                None,
+                BLOCK_SIZE,
+                pool.lp_token.code_hash,
+                pool.lp_token.address
+            )?
+        ],
+        log: vec![
+            log("action", "retrieve_tokens"),
+            log("amount_retrieved", amount),
+            log("retrieved_by", account.owner),
+            log("lp_token", account.lp_token_addr),
+            log("new_pool_size", pool.size)
+        ],
+        data: None
+    })
+}
+
+fn claim<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    lp_tokens: Vec<HumanAddr>
+) -> StdResult<HandleResponse> {
+    let config = load_config(deps)?;
+
+    let mut messages = vec![];
+
+    for addr in lp_tokens {
+        let mut account = get_account(deps, &env.message.sender, &addr)?;
+
+        if account.locked_amount == 0 {
+            return Err(StdError::generic_err(format!("This account has no tokens locked in {}", addr)));
+        }
+
+        let pool = get_pool(deps, &addr)?;
+
+        let portions = if account.last_claimed == 0{
+            1 // This account is claiming for the first time
+        } else {
+            // Could do (current_time - last_claimed) / interval
+            // but can't use floats so...
+            let mut result = 0;
+
+            let gap = env.block.time - account.last_claimed;
+            let mut acc = config.claim_interval;
+
+            while gap > acc {
+                acc += config.claim_interval;
+                result += 1;
+            }
+
+            result
+        };
+
+        if portions == 0 {
+            return Err(StdError::generic_err(format!(
+                "Need to wait {} more time before claiming.",
+                env.block.time - account.last_claimed
+            )));
+        }
+
+        account.last_claimed = env.block.time;
+        save_account(deps, &account)?;
+    }
+
+    Ok(HandleResponse {
+        messages,
+        log: vec![],
         data: None
     })
 }

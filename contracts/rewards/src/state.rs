@@ -9,7 +9,7 @@ use cosmwasm_utils::storage::{load, save, ns_load, ns_save, ns_remove};
 use cosmwasm_utils::viewing_key::ViewingKey;
 
 use crate::data::*;
-use crate::msg::UPPER_OVERFLOW_MSG;
+use crate::msg::OVERFLOW_MSG;
 
 const CONFIG_KEY: &[u8] = b"config";
 const POOLS_KEY: &[u8] = b"pools";
@@ -37,7 +37,7 @@ impl Config {
     pub fn add_shares_checked(&mut self, pools: &Vec<RewardPool>) -> StdResult<()> {
         for pool in pools {
             self.total_share = self.total_share.checked_add(pool.share)
-                .ok_or_else(|| StdError::generic_err(UPPER_OVERFLOW_MSG))?;
+                .ok_or_else(|| StdError::generic_err(OVERFLOW_MSG))?;
         }
 
         Ok(())
@@ -162,6 +162,20 @@ pub(crate) fn get_pool<S: Storage, A: Api, Q: Querier>(
     }
 }
 
+pub(crate) fn save_pool<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    pool: &RewardPool
+) -> StdResult<()> {
+    let pool = pool.to_stored(&deps.api)?;
+
+    ns_save(
+        &mut deps.storage,
+        POOLS_KEY,
+        pool.lp_token.address.as_slice(),
+        &pool
+    )
+}
+
 pub(crate) fn save_account<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     account: &Account
@@ -179,8 +193,8 @@ pub(crate) fn save_account<S: Storage, A: Api, Q: Querier>(
 
 pub(crate) fn get_account<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    address: HumanAddr,
-    lp_token_addr: HumanAddr
+    address: &HumanAddr,
+    lp_token_addr: &HumanAddr
 ) -> StdResult<Account> {
     let addr_raw = deps.api.canonical_address(&address)?;
     let lp_token_raw = deps.api.canonical_address(&lp_token_addr)?;
@@ -191,13 +205,13 @@ pub(crate) fn get_account<S: Storage, A: Api, Q: Querier>(
     if let Some(acc) = result {
         acc.to_normal(&deps.api)
     } else {
-        Ok(Account::new(address, lp_token_addr))
+        Ok(Account::new(address.clone(), lp_token_addr.clone()))
     }
 }
 
 pub(crate) fn delete_account<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    account: Account
+    account: &Account
 ) -> StdResult<()> {
     let account = account.to_stored(&deps.api)?;
     let key = generate_account_key(&account.owner, &account.lp_token_addr);
