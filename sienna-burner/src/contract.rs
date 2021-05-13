@@ -5,8 +5,9 @@ use cosmwasm_std::{
 use sienna_amm_shared::msg::sienna_burner::{HandleMsg, InitMsg, QueryAnswer, QueryMsg, ResponseStatus};
 use sienna_amm_shared::ContractInfo;
 use sienna_amm_shared::snip20;
+use sienna_amm_shared::admin::require_admin;
 use sienna_amm_shared::admin::multi_admin::{
-    require_admin, assert_admin, save_admins, multi_admin_handle,
+    assert_admin, save_admins, multi_admin_handle,
     multi_admin_query, DefaultHandleImpl, DefaultQueryImpl
 };
 

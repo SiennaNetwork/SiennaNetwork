@@ -179,7 +179,7 @@ dependencies = [
 [[package]]
 name = "composable-admin"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/composable-admin.git#eff964ace155c324b03a0cafaf48e822a454a7c0"
+source = "git+https://github.com/hackbg/composable-admin.git?rev=e4d0dda#e4d0ddadad8ce633693609c6827d555715f01de9"
 dependencies = [
  "cosmwasm-schema 0.10.0",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
@@ -282,10 +282,11 @@ dependencies = [
 [[package]]
 name = "cosmwasm-utils"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/cosmwasm-utils?tag=secret-v1.0.4#fa4f15a130e86378408853cc6ae1ac5de80c6968"
+source = "git+https://github.com/hackbg/cosmwasm-utils?rev=949116e#949116e5a78f37a044d11bd1c11134f7a3f1b16b"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "primitive-types",
  "rand_chacha 0.2.2",
  "rand_core 0.5.1",
  "schemars",
@@ -717,7 +718,7 @@ dependencies = [
 [[package]]
 name = "require-admin"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/composable-admin.git#eff964ace155c324b03a0cafaf48e822a454a7c0"
+source = "git+https://github.com/hackbg/composable-admin.git?rev=e4d0dda#e4d0ddadad8ce633693609c6827d555715f01de9"
 dependencies = [
  "quote",
  "syn",
@@ -959,13 +960,12 @@ dependencies = [
 [[package]]
 name = "sienna-amm-shared"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/sienna-amm-shared?rev=65e94b1#65e94b11efce5b87a281148995222d3c2ca8e0d8"
+source = "git+https://github.com/hackbg/sienna-amm-shared?rev=88451d9#88451d941a67643b5cb2c8a858e8af008f37b8a1"
 dependencies = [
  "composable-admin",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-utils",
- "primitive-types",
  "schemars",
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit?branch=debug-print)",
  "serde",

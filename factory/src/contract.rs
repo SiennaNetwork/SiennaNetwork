@@ -276,7 +276,7 @@ fn create_signature(env: &Env) -> StdResult<Binary> {
 
 fn ensure_correct_signature(storage: &mut impl Storage, signature: Binary) -> StdResult<()> {
     let stored_signature: Binary =
-        load(storage, EPHEMERAL_STORAGE_KEY).unwrap_or_default();
+        load(storage, EPHEMERAL_STORAGE_KEY)?.unwrap_or_default();
 
     if stored_signature != signature {
         return  Err(StdError::unauthorized());
@@ -467,11 +467,11 @@ mod tests {
         )?;
 
         //Ensure that the ephemeral storage is empty after the message
-        let result: StdResult<Binary> = load(&deps.storage, EPHEMERAL_STORAGE_KEY);
+        let result: Option<Binary> = load(&deps.storage, EPHEMERAL_STORAGE_KEY)?;
         
-        match result.unwrap_err() {
-            StdError::SerializeErr { .. } => { },
-            _ => panic!("Expected StdError::SerializeErr")
+        match result {
+            None => { },
+            _ => panic!("Ephemeral storage should be empty!")
         }
 
         Ok(())
@@ -508,13 +508,12 @@ mod tests {
                 signature
             }
         )?;
-
         //Ensure that the ephemeral storage is empty after the message
-        let result: StdResult<Binary> = load(&deps.storage, EPHEMERAL_STORAGE_KEY);
+        let result: Option<Binary> = load(&deps.storage, EPHEMERAL_STORAGE_KEY)?;
         
-        match result.unwrap_err() {
-            StdError::SerializeErr { .. } => { },
-            _ => panic!("Expected StdError::SerializeErr")
+        match result {
+            None => { },
+            _ => panic!("Ephemeral storage should be empty!")
         }
 
         Ok(())

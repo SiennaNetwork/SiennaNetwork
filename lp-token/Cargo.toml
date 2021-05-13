@@ -47,7 +47,7 @@ rand_chacha = { version = "0.2.2", default-features = false }
 rand_core = { version =  "0.5.1", default-features = false }
 sha2 = { version = "0.9.1", default-features = false }
 
-sienna-amm-shared = { git = "https://github.com/hackbg/sienna-amm-shared", rev = "65e94b1" }
+sienna-amm-shared = { git = "https://github.com/hackbg/sienna-amm-shared", rev = "88451d9" }
 
 [dev-dependencies]
 cosmwasm-vm = { package = "cosmwasm-sgx-vm", git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }

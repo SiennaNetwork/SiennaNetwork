@@ -1,4 +1,7 @@
-use cosmwasm_std::{Api, CanonicalAddr, Extern, HumanAddr, Querier, StdResult, Storage, Uint128};
+use cosmwasm_std::{
+    Api, CanonicalAddr, Extern, HumanAddr, Querier,
+    StdResult, Storage, Uint128, StdError
+};
 use serde::{Serialize,Deserialize};
 
 use sienna_amm_shared::{TokenPair, TokenPairStored, ContractInfo, ContractInfoStored};
@@ -54,7 +57,9 @@ pub(crate) fn store_config<S: Storage, A: Api, Q: Querier>(
 pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>
 ) -> StdResult<Config> {
-    let result: ConfigStored = load(&deps.storage, CONFIG_KEY)?;
+    let result: ConfigStored = load(&deps.storage, CONFIG_KEY)?.ok_or_else(||
+        StdError::generic_err("Config doesn't exist in storage.")
+    )?;
 
     Ok(Config {
         factory_info: result.factory_info.to_normal(&deps.api)?,
