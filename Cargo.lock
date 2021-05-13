@@ -73,7 +73,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "composable-admin"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/composable-admin.git#eff964ace155c324b03a0cafaf48e822a454a7c0"
+source = "git+https://github.com/hackbg/composable-admin.git?rev=e4d0dda#e4d0ddadad8ce633693609c6827d555715f01de9"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -117,10 +117,11 @@ dependencies = [
 [[package]]
 name = "cosmwasm-utils"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/cosmwasm-utils?tag=secret-v1.0.4#fa4f15a130e86378408853cc6ae1ac5de80c6968"
+source = "git+https://github.com/hackbg/cosmwasm-utils?rev=949116e#949116e5a78f37a044d11bd1c11134f7a3f1b16b"
 dependencies = [
  "cosmwasm-std",
  "cosmwasm-storage",
+ "primitive-types",
  "rand_chacha",
  "rand_core",
  "schemars",
@@ -344,7 +345,7 @@ dependencies = [
 [[package]]
 name = "require-admin"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/composable-admin.git#eff964ace155c324b03a0cafaf48e822a454a7c0"
+source = "git+https://github.com/hackbg/composable-admin.git?rev=e4d0dda#e4d0ddadad8ce633693609c6827d555715f01de9"
 dependencies = [
  "quote",
  "syn",
@@ -541,7 +542,6 @@ dependencies = [
  "cosmwasm-std",
  "cosmwasm-storage",
  "cosmwasm-utils",
- "primitive-types",
  "schemars",
  "secret-toolkit",
  "serde",
