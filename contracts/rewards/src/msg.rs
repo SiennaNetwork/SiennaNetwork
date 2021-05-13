@@ -40,9 +40,6 @@ pub enum HandleMsg {
         /// The addresses of the LP tokens of the pools to be removed.
         lp_tokens: Vec<HumanAddr>
     },
-    ChangeClaimInterval {
-        interval: u64
-    },
     Admin(AdminHandleMsg)
 }
 

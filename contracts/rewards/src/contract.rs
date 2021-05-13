@@ -79,7 +79,6 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Claim { lp_tokens } => claim(deps, env, lp_tokens),
         HandleMsg::AddPools { pools } => add_more_pools(deps, env, pools),
         HandleMsg::RemovePools { lp_tokens } => remove_some_pools(deps, env, lp_tokens), // Great naming btw
-        HandleMsg::ChangeClaimInterval { interval } => change_claim_interval(deps, env, interval),
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl)
     }
 }
@@ -191,13 +190,13 @@ fn claim<S: Storage, A: Api, Q: Querier>(
     let mut total_rewards_amount = 0;
 
     for addr in lp_tokens {
+        let pool = get_pool_or_fail(deps, &addr)?;
+
         let mut account = get_account(deps, &env.message.sender, &addr)?;
 
         if account.locked_amount == 0 {
             return Err(StdError::generic_err(format!("This account has no tokens locked in {}", addr)));
         }
-
-        let pool = get_pool_or_fail(deps, &addr)?;
 
         let reward_amount = calc_reward_share(
             account.locked_amount,
@@ -289,15 +288,6 @@ fn remove_some_pools<S: Storage, A: Api, Q: Querier>(
     env: Env,
     addresses: Vec<HumanAddr>
 ) -> StdResult<HandleResponse>{
-    unimplemented!()
-}
-
-#[require_admin]
-fn change_claim_interval<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    interval: u64
-) -> StdResult<HandleResponse> {
     unimplemented!()
 }
 
