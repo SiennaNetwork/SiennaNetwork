@@ -11,7 +11,7 @@ pub(crate) const OVERFLOW_MSG: &str = "Upper bound overflow detected.";
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {
     pub admin: Option<HumanAddr>,
-    pub sienna_token: ContractInfo,
+    pub reward_token: ContractInfo,
     pub reward_pools: Option<Vec<RewardPool>>,
     pub claim_interval: u64,
     pub prng_seed: Binary,
