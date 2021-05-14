@@ -1,6 +1,6 @@
 use cosmwasm_std::{
     Api, CanonicalAddr, Extern, HumanAddr, Querier, StdResult,
-    Storage, StdError
+    Storage, StdError, Uint128
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -31,7 +31,7 @@ struct ConfigStored {
     pub reward_token: ContractInfoStored,
     pub token_decimals: u8,
     pub viewing_key: ViewingKey,
-    pub total_share: u128,
+    pub total_share: Uint128,
     pub claim_interval: u64
 }
 
@@ -54,7 +54,7 @@ pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
         reward_token: config.reward_token.to_stored(&deps.api)?,
         token_decimals: config.token_decimals,
         viewing_key: config.viewing_key.clone(),
-        total_share: config.total_share,
+        total_share: Uint128(config.total_share),
         claim_interval: config.claim_interval
     };
 
@@ -70,7 +70,7 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
         reward_token: config.reward_token.to_normal(&deps.api)?,
         token_decimals: config.token_decimals,
         viewing_key: config.viewing_key,
-        total_share: config.total_share,
+        total_share: config.total_share.u128(),
         claim_interval: config.claim_interval
     })
 }

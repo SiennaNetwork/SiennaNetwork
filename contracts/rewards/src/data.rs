@@ -1,4 +1,4 @@
-use cosmwasm_std::{Api, CanonicalAddr, HumanAddr, StdResult};
+use cosmwasm_std::{Api, CanonicalAddr, HumanAddr, StdResult, Uint128};
 use cosmwasm_utils::{ContractInfo, ContractInfoStored};
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
@@ -30,15 +30,15 @@ pub struct Account {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct RewardPoolStored {
     pub lp_token: ContractInfoStored,
-    pub share: u128,
-    pub size: u128
+    pub share: Uint128,
+    pub size: Uint128
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct AccountStored {
     pub owner: CanonicalAddr,
     pub lp_token_addr: CanonicalAddr,
-    pub locked_amount: u128,
+    pub locked_amount: Uint128,
     pub last_claimed: u64
 }
 
@@ -62,7 +62,7 @@ impl Account {
         Ok(AccountStored {
             owner: api.canonical_address(&self.owner)?,
             lp_token_addr: api.canonical_address(&self.lp_token_addr)?,
-            locked_amount: self.locked_amount,
+            locked_amount: Uint128(self.locked_amount),
             last_claimed: self.last_claimed,
         })
     }
@@ -73,7 +73,7 @@ impl AccountStored {
         Ok(Account {
             owner: api.human_address(&self.owner)?,
             lp_token_addr: api.human_address(&self.lp_token_addr)?,
-            locked_amount: self.locked_amount,
+            locked_amount: self.locked_amount.u128(),
             last_claimed: self.last_claimed
         })
     }
@@ -83,8 +83,8 @@ impl RewardPool {
     pub(crate) fn to_stored(&self, api: &impl Api) -> StdResult<RewardPoolStored> {
         Ok(RewardPoolStored {
             lp_token: self.lp_token.to_stored(api)?,
-            share: self.share,
-            size: self.size
+            share: Uint128(self.share),
+            size: Uint128(self.size)
         })
     }
 }
@@ -93,8 +93,8 @@ impl RewardPoolStored {
     pub(crate) fn to_normal(self, api: &impl Api) -> StdResult<RewardPool> {
         Ok(RewardPool {
             lp_token: self.lp_token.to_normal(api)?,
-            share: self.share,
-            size: self.size
+            share: self.share.u128(),
+            size: self.size.u128()
         })
     }
 }

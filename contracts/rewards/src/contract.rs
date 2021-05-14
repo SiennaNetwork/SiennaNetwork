@@ -13,7 +13,7 @@ use secret_toolkit::snip20;
 use cosmwasm_utils::viewing_key::ViewingKey;
 use cosmwasm_utils::convert::{convert_token, get_whole_token_representation};
 
-use crate::msg::{HandleMsg, InitMsg, QueryMsg, OVERFLOW_MSG};
+use crate::msg::{HandleMsg, InitMsg, QueryMsg, OVERFLOW_MSG, RewardPoolConfig};
 use crate::state::{
     save_config, Config, add_pools, get_pool, get_account, save_account,
     save_pool, delete_account, load_config
@@ -48,6 +48,8 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     };
 
     if let Some(pools) = msg.reward_pools {
+        let pools = into_pools(pools);
+
         config.add_shares_checked(&pools)?;
         add_pools(deps, &pools)?;
     }
@@ -77,7 +79,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::LockTokens { amount, lp_token } => lock_tokens(deps, env, amount, lp_token),
         HandleMsg::RetrieveTokens { amount, lp_token } => retrieve_tokens(deps, env, amount, lp_token),
         HandleMsg::Claim { lp_tokens } => claim(deps, env, lp_tokens),
-        HandleMsg::AddPools { pools } => add_more_pools(deps, env, pools),
+        HandleMsg::AddPools { pools } => add_more_pools(deps, env, into_pools(pools)),
         HandleMsg::RemovePools { lp_tokens } => remove_some_pools(deps, env, lp_tokens), // Great naming btw
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl)
     }
@@ -260,7 +262,7 @@ fn claim<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse {
         messages: vec![
             snip20::transfer_msg(
-                env.message.sender,
+                env.message.sender.clone(),
                 Uint128(total_rewards_amount),
                 None,
                 BLOCK_SIZE,
@@ -268,7 +270,11 @@ fn claim<S: Storage, A: Api, Q: Querier>(
                 config.reward_token.address
             )?
         ],
-        log: vec![],
+        log: vec![
+            log("action", "claim"),
+            log("claimed_by", env.message.sender),
+            log("total_claimed", total_rewards_amount)
+        ],
         data: None
     })
 }
@@ -332,12 +338,22 @@ fn get_pool_or_fail<S: Storage, A: Api, Q: Querier>(
     )
 }
 
+#[inline]
+fn into_pools(mut vec: Vec<RewardPoolConfig>) -> Vec<RewardPool> {
+    vec.drain(..).map(|p| p.into()).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::{testing::{mock_dependencies, mock_env}};
-    use cosmwasm_std::{coins, from_binary, StdError};
+
+    use std::thread::sleep;
+    use std::time::Duration;
+    use cosmwasm_std::to_binary;
+    use cosmwasm_std::testing::mock_env;
     use cosmwasm_utils::ContractInfo;
+
+    use crate::test_helpers::{mock_dependencies, mock_env_with_time};
 
     fn create_pool(share: u128, size: u128) -> RewardPool {
         RewardPool {
@@ -364,5 +380,87 @@ mod tests {
         // Absorb the entire pool if owning 100% of pool share.
         let result = calc_reward_share(1000_000_000, &pool, 18).unwrap();
         assert_eq!(result, 500_000_000_000_000_000_000);
+    }
+
+    #[test]
+    fn test_claim() {
+        // Config
+        let pool_share: u128 = 500_000_000_000_000_000_000;
+        let iterations = 10;
+        let claim_interval = 1;
+        let num_users = 5;
+        let tokens_per_user = 10_000_000;
+
+        let reward_token_supply = pool_share * iterations;
+        let reward_token_decimals = 18;
+        let reward_token = ContractInfo {
+            address: "reward_token".into(),
+            code_hash: "reward_token_hash".into()
+        };
+
+        let ref mut deps = mock_dependencies(
+            20,
+            reward_token.clone(),
+            Uint128(reward_token_supply),
+            reward_token_decimals
+        );
+
+        let lp_token_addr = HumanAddr("lp_token".into());
+
+        let pool = RewardPoolConfig {
+            lp_token: ContractInfo {
+                address: lp_token_addr.clone(),
+                code_hash: "lp_token_hash".into()
+            },
+            share: Uint128(pool_share)
+        };
+
+        init(deps, mock_env("admin", &[]), InitMsg {
+            reward_token,
+            admin: None,
+            reward_pools: Some(vec![ pool.into() ]),
+            claim_interval,
+            prng_seed: to_binary(&"whatever").unwrap(),
+            entropy: to_binary(&"whatever").unwrap()
+        }).unwrap();
+
+        let mut users = Vec::with_capacity(num_users);
+
+        for i in 0..num_users {
+            let user = HumanAddr(format!("User {}", i));
+            users.push(user.clone());
+
+            lock_tokens(
+                deps,
+                mock_env(user, &[]),
+                Uint128(tokens_per_user),
+                lp_token_addr.clone()
+            ).unwrap();
+        }
+
+        // Skip claiming for some users to simulate them
+        // not getting their rewards every time they can
+        //let skip = 3;
+        let mut total_claimed = 0;
+
+        for _ in 0..iterations {
+            for user in users.clone() {
+                let result = claim(
+                    deps,
+                    mock_env_with_time(user),
+                    vec![ lp_token_addr.clone() ]
+                ).unwrap();
+
+                let claimed = result.log.iter().find(|e|
+                     e.key == "total_claimed"
+                ).unwrap();
+
+                total_claimed += claimed.value.parse::<u128>().unwrap();
+            }
+            
+            sleep(Duration::from_secs(claim_interval + 1))
+        }
+
+        assert_eq!(total_claimed, reward_token_supply);
     }
 }

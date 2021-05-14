@@ -3,6 +3,8 @@ pub mod msg;
 pub mod state;
 pub mod data;
 
+mod test_helpers;
+
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use super::contract;
