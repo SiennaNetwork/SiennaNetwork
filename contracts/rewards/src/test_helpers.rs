@@ -54,8 +54,8 @@ pub fn mock_env_with_time(sender: impl Into<HumanAddr>) -> Env {
 }
 
 pub struct MockSnip20Querier {
+    pub reward_token_supply: Uint128,
     reward_token: ContractInfo,
-    reward_token_supply: Uint128,
     reward_token_decimals: u8
 }
 

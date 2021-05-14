@@ -189,7 +189,7 @@ fn claim<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     let config = load_config(deps)?;
 
-    let mut total_rewards_amount = 0;
+    let mut total_rewards_amount: u128 = 0;
 
     for addr in lp_tokens {
         let pool = get_pool_or_fail(deps, &addr)?;
@@ -221,7 +221,7 @@ fn claim<S: Storage, A: Api, Q: Querier>(
             let mut result = 0;
 
             let gap = env.block.time - account.last_claimed;
-            let mut acc = config.claim_interval;
+            let mut acc = 0;
 
             while gap > acc {
                 acc += config.claim_interval;
@@ -241,7 +241,9 @@ fn claim<S: Storage, A: Api, Q: Querier>(
         account.last_claimed = env.block.time;
         save_account(deps, &account)?;
 
-        total_rewards_amount += reward_amount * portions;
+        total_rewards_amount = total_rewards_amount.saturating_add(
+            reward_amount * portions
+        );
     }
 
     let available_balance = snip20::balance_query(
@@ -253,17 +255,23 @@ fn claim<S: Storage, A: Api, Q: Querier>(
         config.reward_token.address.clone()
     )?;
 
-    if total_rewards_amount > available_balance.amount.u128() {
+    let mut claim_amount = total_rewards_amount;
+
+    let available_balance = available_balance.amount.u128();
+
+    if available_balance == 0 {
         return Err(StdError::generic_err(
-            "Insufficient amount of reward token in contract balance."
+            "The reward token pool is currently empty."
         ));
+    } else if total_rewards_amount > available_balance {
+        claim_amount = available_balance;
     }
 
     Ok(HandleResponse {
         messages: vec![
             snip20::transfer_msg(
                 env.message.sender.clone(),
-                Uint128(total_rewards_amount),
+                Uint128(claim_amount),
                 None,
                 BLOCK_SIZE,
                 config.reward_token.code_hash,
@@ -273,7 +281,8 @@ fn claim<S: Storage, A: Api, Q: Querier>(
         log: vec![
             log("action", "claim"),
             log("claimed_by", env.message.sender),
-            log("total_claimed", total_rewards_amount)
+            log("total_rewards_amount", total_rewards_amount),
+            log("claimed_amount", claim_amount)
         ],
         data: None
     })
@@ -350,10 +359,13 @@ mod tests {
     use std::thread::sleep;
     use std::time::Duration;
     use cosmwasm_std::to_binary;
-    use cosmwasm_std::testing::mock_env;
+    use cosmwasm_std::testing::{mock_env, MockStorage, MockApi};
     use cosmwasm_utils::ContractInfo;
+    use rand::{Rng, thread_rng};
 
-    use crate::test_helpers::{mock_dependencies, mock_env_with_time};
+    use crate::test_helpers::{
+        mock_dependencies, mock_env_with_time, MockSnip20Querier
+    };
 
     fn create_pool(share: u128, size: u128) -> RewardPool {
         RewardPool {
@@ -366,30 +378,54 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_calc_reward_share() {
-        let pool = create_pool(
-            500_000_000_000_000_000_000,
-            1000_000_000
+    fn execute_claim(
+        deps: &mut Extern<MockStorage, MockApi, MockSnip20Querier>,
+        user: HumanAddr,
+        lp_token: HumanAddr
+    ) -> StdResult<(bool, u128)> {
+        let result = claim(
+            deps,
+            mock_env_with_time(user.clone()),
+            vec![ lp_token ]
         );
 
-        // If owning 15% of pool share, then receive 15% of 500 = 75
-        let result = calc_reward_share(150_000_000, &pool, 18).unwrap();
-        assert_eq!(result, 75_000_000_000_000_000_000);
+        if result.is_err() { 
+            let err = result.unwrap_err();
 
-        // Absorb the entire pool if owning 100% of pool share.
-        let result = calc_reward_share(1000_000_000, &pool, 18).unwrap();
-        assert_eq!(result, 500_000_000_000_000_000_000);
+            match &err {
+                StdError::GenericErr { msg, .. } => {
+                    if msg == "The reward token pool is currently empty." {
+                        return Ok((true, 0));
+                    } else {
+                        return Err(err);
+                    }
+                },
+                _ => return Err(err)
+            }
+        }
+
+        let result = result.unwrap();
+
+        let claimed = result.log.iter().find(|e|
+            e.key == "claimed_amount"
+        ).unwrap();
+
+        let value = claimed.value.parse::<u128>().unwrap();
+
+        // Subtract to simulate SNIP20 transfer message
+        let supply = deps.querier.reward_token_supply.u128();
+        deps.querier.reward_token_supply = Uint128(supply - value);
+
+        Ok((false, value))
     }
 
-    #[test]
-    fn test_claim() {
-        // Config
-        let pool_share: u128 = 500_000_000_000_000_000_000;
-        let iterations = 10;
+    fn claim_run() {
+        let mut rng = thread_rng();
+
+        let pool_share: u128 = rng.gen_range(100_000_000_000_000_000_000..800_000_000_000_000_000_000);
+        let iterations = rng.gen_range(5..20);
         let claim_interval = 1;
-        let num_users = 5;
-        let tokens_per_user = 10_000_000;
+        let num_users = rng.gen_range(5..20);
 
         let reward_token_supply = pool_share * iterations;
         let reward_token_decimals = 18;
@@ -427,40 +463,91 @@ mod tests {
         let mut users = Vec::with_capacity(num_users);
 
         for i in 0..num_users {
-            let user = HumanAddr(format!("User {}", i));
+            let user = HumanAddr(format!("User {}", i + 1));
             users.push(user.clone());
 
             lock_tokens(
                 deps,
                 mock_env(user, &[]),
-                Uint128(tokens_per_user),
+                Uint128(rng.gen_range(10_000_000..100_000_000)),
                 lp_token_addr.clone()
             ).unwrap();
         }
 
-        // Skip claiming for some users to simulate them
-        // not getting their rewards every time they can
-        //let skip = 3;
         let mut total_claimed = 0;
 
         for _ in 0..iterations {
             for user in users.clone() {
-                let result = claim(
-                    deps,
-                    mock_env_with_time(user),
-                    vec![ lp_token_addr.clone() ]
-                ).unwrap();
+                let rand = rng.gen_range(0..20);
 
-                let claimed = result.log.iter().find(|e|
-                     e.key == "total_claimed"
-                ).unwrap();
+                // Skip claiming for some users to simulate them
+                // not getting their rewards every time they can
+                if rand % 2 == 0 {
+                    let (depleted, claimed) = execute_claim(
+                        deps,
+                        user,
+                        lp_token_addr.clone()
+                    ).unwrap();
 
-                total_claimed += claimed.value.parse::<u128>().unwrap();
+                    total_claimed += claimed;
+
+                    if depleted {
+                        break;
+                    }
+                }
+
+                // Sleep a tiny amount to introduce some entropy
+                sleep(Duration::from_millis(rand));
             }
             
-            sleep(Duration::from_secs(claim_interval + 1))
+            // Ensure that the claim interval has passed
+            sleep(Duration::new(claim_interval, 1000))
+        }
+
+        // Final run to claim any remaining rewards
+        let mut is_done = false;
+
+        while !is_done {
+            for user in users.clone() {
+                let (depleted, claimed) = execute_claim(
+                    deps,
+                    user,
+                    lp_token_addr.clone()
+                ).unwrap();
+
+                total_claimed += claimed;
+                is_done = depleted;
+            }
+
+            // Ensure that the claim interval has passed
+            sleep(Duration::new(claim_interval, 1000))
         }
 
         assert_eq!(total_claimed, reward_token_supply);
+    }
+
+    #[test]
+    fn test_calc_reward_share() {
+        let pool = create_pool(
+            500_000_000_000_000_000_000,
+            1000_000_000
+        );
+
+        // If owning 15% of pool share, then receive 15% of 500 = 75
+        let result = calc_reward_share(150_000_000, &pool, 18).unwrap();
+        assert_eq!(result, 75_000_000_000_000_000_000);
+
+        // Absorb the entire pool if owning 100% of pool share.
+        let result = calc_reward_share(1000_000_000, &pool, 18).unwrap();
+        assert_eq!(result, 500_000_000_000_000_000_000);
+    }
+
+    #[test]
+    fn test_claim() {
+        let runs = 10;
+
+        for _ in 0..runs {
+            claim_run();
+        }
     }
 }
