@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsg",
+  "anyOf": [
+    {
+      "type": "string",
+      "enum": [
+        "sienna_token",
+        "burn_pool"
+      ]
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/MultiAdminQueryMsg"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "MultiAdminQueryMsg": {
+      "type": "string",
+      "enum": [
+        "admins"
+      ]
+    }
+  }
+}

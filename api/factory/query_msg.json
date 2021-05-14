@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsg",
+  "anyOf": [
+    {
+      "type": "string",
+      "enum": [
+        "get_exchange_settings"
+      ]
+    },
+    {
+      "type": "object",
+      "required": [
+        "get_exchange_address"
+      ],
+      "properties": {
+        "get_exchange_address": {
+          "type": "object",
+          "required": [
+            "pair"
+          ],
+          "properties": {
+            "pair": {
+              "$ref": "#/definitions/TokenPair"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "list_idos"
+      ],
+      "properties": {
+        "list_idos": {
+          "type": "object",
+          "required": [
+            "pagination"
+          ],
+          "properties": {
+            "pagination": {
+              "$ref": "#/definitions/Pagination"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "list_exchanges"
+      ],
+      "properties": {
+        "list_exchanges": {
+          "type": "object",
+          "required": [
+            "pagination"
+          ],
+          "properties": {
+            "pagination": {
+              "$ref": "#/definitions/Pagination"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "HumanAddr": {
+      "type": "string"
+    },
+    "Pagination": {
+      "type": "object",
+      "required": [
+        "limit",
+        "start"
+      ],
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "format": "uint8",
+          "minimum": 0.0
+        },
+        "start": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "TokenPair": {
+      "type": "array",
+      "items": [
+        {
+          "$ref": "#/definitions/TokenType"
+        },
+        {
+          "$ref": "#/definitions/TokenType"
+        }
+      ],
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "TokenType": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "custom_token"
+          ],
+          "properties": {
+            "custom_token": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "token_code_hash"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "token_code_hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "native_token"
+          ],
+          "properties": {
+            "native_token": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

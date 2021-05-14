@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryAnswer",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "sienna_token"
+      ],
+      "properties": {
+        "sienna_token": {
+          "type": "object",
+          "required": [
+            "info"
+          ],
+          "properties": {
+            "info": {
+              "$ref": "#/definitions/ContractInfo"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "burn_pool"
+      ],
+      "properties": {
+        "burn_pool": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/MultiAdminQueryResponse"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "ContractInfo": {
+      "description": "Code hash and address of a contract.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "MultiAdminQueryResponse": {
+      "type": "object",
+      "required": [
+        "addresses"
+      ],
+      "properties": {
+        "addresses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HumanAddr"
+          }
+        }
+      }
+    }
+  }
+}

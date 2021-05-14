@@ -4,7 +4,8 @@ members = [
   "factory",               # factory contract for creating exchanges
   "snip20-reference-impl", # snip20 token implementation with a modification to call back a contract after init
   "lp-token",              # snip20 liquidity provider token
-  "sienna-burner"          # burns SIENNA on each swap
+  "sienna-burner",         # burns SIENNA on each swap
+  "api",                   # schema generator for all the above
 ]
 
 [profile.release]
