@@ -2,3 +2,6 @@
 	path = snip20-reference-impl
 	url = https://github.com/hackbg/snip20-reference-impl
 	branch = master
+[submodule "fadroma"]
+	path = fadroma
+	url = git@github.com:hackbg/fadroma.git

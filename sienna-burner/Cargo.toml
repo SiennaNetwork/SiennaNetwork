@@ -14,6 +14,7 @@ exclude = [
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
 
 [profile.release]
 opt-level = 3
@@ -40,3 +41,4 @@ schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
 sienna-amm-shared = { git = "https://github.com/hackbg/sienna-amm-shared", rev = "65e94b1" }
+fadroma-scrt-migrate = { path = "../fadroma/scrt-migrate" }

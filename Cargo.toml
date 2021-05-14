@@ -6,6 +6,7 @@ members = [
   "lp-token",              # snip20 liquidity provider token
   "sienna-burner",         # burns SIENNA on each swap
   "api",                   # schema generator for all the above
+  "fadroma/scrt-migrate"   # pause contracts and mark them for upgrade
 ]
 
 [profile.release]
