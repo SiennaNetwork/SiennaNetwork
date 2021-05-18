@@ -73,7 +73,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: tarpaulin
-          args: --out=Html --output-dir=docs --exclude-files=libraries/platform
+          args: --out=Html --output-dir=docs --exclude-files=libraries/platform --timeout 300
         env:
           RUST_BACKTRACE: 1
       - name: Commit coverage report

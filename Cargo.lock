@@ -265,7 +265,7 @@ dependencies = [
 [[package]]
 name = "composable-admin"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/composable-admin.git?rev=e4d0dda#e4d0ddadad8ce633693609c6827d555715f01de9"
+source = "git+https://github.com/hackbg/fadroma.git?rev=0122fe0#0122fe016fa9c29d347b2f18ba83c5d16278fe27"
 dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
@@ -279,6 +279,7 @@ dependencies = [
 [[package]]
 name = "composable-auth"
 version = "0.1.0"
+source = "git+https://github.com/hackbg/fadroma.git?rev=0122fe0#0122fe016fa9c29d347b2f18ba83c5d16278fe27"
 dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
@@ -390,7 +391,7 @@ dependencies = [
 [[package]]
 name = "cosmwasm-utils"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/cosmwasm-utils?rev=949116e#949116e5a78f37a044d11bd1c11134f7a3f1b16b"
+source = "git+https://github.com/hackbg/fadroma.git?rev=0122fe0#0122fe016fa9c29d347b2f18ba83c5d16278fe27"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
@@ -944,7 +945,7 @@ dependencies = [
 [[package]]
 name = "require-admin"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/composable-admin.git?rev=e4d0dda#e4d0ddadad8ce633693609c6827d555715f01de9"
+source = "git+https://github.com/hackbg/fadroma.git?rev=0122fe0#0122fe016fa9c29d347b2f18ba83c5d16278fe27"
 dependencies = [
  "quote",
  "syn",

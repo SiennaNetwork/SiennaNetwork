@@ -39,9 +39,9 @@ schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
 secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
-cosmwasm-utils = { git = "https://github.com/hackbg/cosmwasm-utils", rev = "949116e" }
-composable-admin = { git = "https://github.com/hackbg/composable-admin.git", rev = "e4d0dda" }
-composable-auth = { path = "../../../composable-auth/composable-auth" }
+cosmwasm-utils = { git = "https://github.com/hackbg/fadroma", rev = "0122fe0" }
+composable-admin = { git = "https://github.com/hackbg/fadroma.git", rev = "0122fe0" }
+composable-auth = { git = "https://github.com/hackbg/fadroma.git", rev = "0122fe0" }
 
 [dev-dependencies]
 rand = "0.8.0"
