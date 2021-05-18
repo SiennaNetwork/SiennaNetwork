@@ -12,6 +12,7 @@ use sienna_amm_shared::admin::multi_admin::{
 };
 
 use crate::state::*;
+use fadroma_scrt_migrate::{is_operational, can_set_status, set_status, get_status};
 
 const BLOCK_SIZE: usize = 256;
 
@@ -44,14 +45,14 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
-    match msg {
+    with_status!(deps, match msg {
         HandleMsg::Burn { amount } => burn(deps, env, amount),
         HandleMsg::AddPairs { pairs } => add_pairs(deps, env, pairs),
         HandleMsg::RemovePairs { pairs } => remove_pairs(deps, env, pairs),
         HandleMsg::SetBurnPool {address } => set_burn_pool(deps, env, address),
         HandleMsg::SetSiennaToken { info } => set_token(deps, env, info),
         HandleMsg::Admin(admin_msg) => multi_admin_handle(deps, env, admin_msg, DefaultHandleImpl)
-    }
+    })
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(
@@ -59,6 +60,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
+        QueryMsg::Status => to_binary(&get_status(deps)?),
         QueryMsg::BurnPool => query_burn_pool(deps),
         QueryMsg::SiennaToken => query_token(deps),
         QueryMsg::Admin(admin_msg) => multi_admin_query(deps, admin_msg, DefaultQueryImpl)

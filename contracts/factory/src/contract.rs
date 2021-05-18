@@ -13,6 +13,7 @@ use crate::state::{
     save_config, load_config, Config, pair_exists, store_exchange,
     get_address_for_pair, get_idos, store_ido_address, get_exchanges
 };
+use fadroma_scrt_migrate::{is_operational, can_set_status, set_status, get_status};
 
 const EPHEMERAL_STORAGE_KEY: &[u8] = b"ephemeral_storage";
 
@@ -32,12 +33,12 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
-    match msg {
+    with_status!(deps, match msg {
         HandleMsg::CreateExchange { pair } => create_exchange(deps, env, pair),
         HandleMsg::CreateIdo { info } => create_ido(deps, env, info),
         HandleMsg::RegisterExchange { pair, signature } => register_exchange(deps, env, pair, signature),
         HandleMsg::RegisterIdo { signature } => register_ido(deps, env, signature)
-    }
+    })
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(
@@ -45,6 +46,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
+        QueryMsg::Status => to_binary(&get_status(deps)?),
         QueryMsg::GetExchangeAddress { pair } => query_exchange_address(deps, pair),
         QueryMsg::ListExchanges { pagination } => list_exchanges(deps, pagination),
         QueryMsg::ListIdos { pagination } => list_idos(deps, pagination),

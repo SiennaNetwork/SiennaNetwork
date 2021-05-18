@@ -413,9 +413,10 @@ dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "fadroma-scrt-migrate",
  "schemars",
  "serde",
- "sienna-amm-shared 0.1.0 (git+https://github.com/hackbg/sienna-amm-shared?rev=88451d9)",
+ "sienna-amm-shared 0.1.0",
  "snafu",
 ]
 
@@ -1054,9 +1055,10 @@ dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "fadroma-scrt-migrate",
  "schemars",
  "serde",
- "sienna-amm-shared 0.1.0 (git+https://github.com/hackbg/sienna-amm-shared?rev=88451d9)",
+ "sienna-amm-shared 0.1.0",
  "snafu",
 ]
 
