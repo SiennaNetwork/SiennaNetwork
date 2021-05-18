@@ -39,11 +39,11 @@ test-localnet:
 
 # Compilation
 .PHONY: prod
-_optimizer: optimizer/*
+_optimizer: build/optimizer/*
 	docker build                                 \
-		-f optimizer/Dockerfile                    \
+		-f build/optimizer/Dockerfile                    \
 		-t hackbg/secret-contract-optimizer:latest \
-		optimizer
+		build/optimizer
 prod: _optimizer
 	time build/working-tree
 # TODO: see if there's any value in keeping these around:
