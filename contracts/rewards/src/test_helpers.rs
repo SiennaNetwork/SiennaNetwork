@@ -1,5 +1,3 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use cosmwasm_std::{
     Querier, QueryRequest, Empty, SystemError, from_slice,
     WasmQuery, to_binary, QuerierResult, Uint128, Extern,
@@ -9,7 +7,6 @@ use cosmwasm_std::{
 use cosmwasm_std::testing::{MockApi, MockStorage, MOCK_CONTRACT_ADDR};
 use serde::{Serialize, Deserialize};
 use secret_toolkit::snip20::query::{Balance, TokenInfo};
-
 use cosmwasm_utils::ContractInfo;
 
 #[allow(dead_code)]
@@ -31,14 +28,11 @@ pub fn mock_dependencies(
 }
 
 #[allow(dead_code)]
-pub fn mock_env_with_time(sender: impl Into<HumanAddr>) -> Env {
-    let now = SystemTime::now();
-    let timestamp = now.duration_since(UNIX_EPOCH).unwrap();
-
+pub fn mock_env_with_time(sender: impl Into<HumanAddr>, time: u64) -> Env {
     Env {
         block: BlockInfo {
             height: 12_345,
-            time: timestamp.as_secs(),
+            time,
             chain_id: "cosmos-testnet-14002".to_string(),
         },
         message: MessageInfo {

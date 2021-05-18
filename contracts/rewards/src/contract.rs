@@ -231,7 +231,7 @@ fn claim<S: Storage, A: Api, Q: Querier>(
             account.last_claimed,
             config.claim_interval,
             env.block.time
-        );
+        )?;
 
         if portions == 0 {
             return Err(StdError::generic_err(format!(
@@ -316,7 +316,7 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
             account.last_claimed,
             config.claim_interval,
             current_time
-        );
+        )?;
 
         if portions == 0 {
             results.push(ClaimResult::error(addr, ClaimError::IntervalNotReached {
@@ -410,24 +410,31 @@ fn into_pools(mut vec: Vec<RewardPoolConfig>) -> Vec<RewardPool> {
     vec.drain(..).map(|p| p.into()).collect()
 }
 
-fn calc_portions(last_claimed: u64, claim_interval: u64, block_time: u64) -> u32 {
+fn calc_portions(
+    last_claimed: u64,
+    claim_interval: u64,
+    block_time: u64
+) -> StdResult<u32> {
     if last_claimed == 0 {
-        return 1; // This account is claiming for the first time
+        return Ok(1); // This account is claiming for the first time
     }
 
     // Could do (current_time - last_claimed) / interval
     // but can't use floats so...
     let mut result = 0;
+    
+    let gap = block_time.checked_sub(last_claimed).ok_or_else(|| 
+        // Will happen if a wrong time has been provided in claim simulation
+        StdError::generic_err("Invalid timestamp supplied.")
+    )?;
+    let mut acc = claim_interval;
 
-    let gap = block_time - last_claimed;
-    let mut acc = 0;
-
-    while gap > acc {
+    while gap >= acc {
         acc += claim_interval;
         result += 1;
     }
 
-    result
+    Ok(result)
 }
 
 fn get_balance(querier: &impl Querier, config: &Config) -> StdResult<u128> {
@@ -455,8 +462,7 @@ fn get_balance(querier: &impl Querier, config: &Config) -> StdResult<u128> {
 mod tests {
     use super::*;
 
-    use std::thread::sleep;
-    use std::time::Duration;
+    use std::time::{SystemTime, UNIX_EPOCH};
     use cosmwasm_std::to_binary;
     use cosmwasm_std::testing::{mock_env, MockStorage, MockApi};
     use cosmwasm_utils::ContractInfo;
@@ -479,12 +485,13 @@ mod tests {
 
     fn execute_claim(
         deps: &mut Extern<MockStorage, MockApi, MockSnip20Querier>,
+        time: u64,
         user: HumanAddr,
         lp_token: HumanAddr
     ) -> StdResult<(bool, u128)> {
         let result = claim(
             deps,
-            mock_env_with_time(user.clone()),
+            mock_env_with_time(user.clone(), time),
             vec![ lp_token ]
         );
 
@@ -528,7 +535,7 @@ mod tests {
 
         let pool_share: u128 = rng.gen_range(100_000_000_000_000_000_000..800_000_000_000_000_000_000);
         let iterations = rng.gen_range(5..20);
-        let claim_interval = 1;
+        let claim_interval = 86400; // 1 day
         let num_users = rng.gen_range(5..20);
 
         let reward_token_supply = pool_share * iterations;
@@ -537,6 +544,9 @@ mod tests {
             address: "reward_token".into(),
             code_hash: "reward_token_hash".into()
         };
+
+        let now = SystemTime::now();
+        let mut time = now.duration_since(UNIX_EPOCH).unwrap().as_secs();
 
         let ref mut deps = mock_dependencies(
             20,
@@ -591,6 +601,7 @@ mod tests {
                     if rand % 2 == 0 {
                         let (depleted, claimed) = execute_claim(
                             deps,
+                            time,
                             user,
                             lp_token_addr.clone()
                         ).unwrap();
@@ -599,12 +610,12 @@ mod tests {
                         is_done = depleted;
                     }
 
-                    // Sleep a tiny amount to introduce some entropy
-                    sleep(Duration::from_millis(rand));
+                    // Let a tiny amount of time to pass to introduce some entropy
+                    time += rand;
                 }
                 
                 // Ensure that the claim interval has passed
-                sleep(Duration::new(claim_interval, 1000))
+                time += claim_interval;
             }
         }
 
@@ -613,6 +624,7 @@ mod tests {
             for user in users.clone() {
                 let (depleted, claimed) = execute_claim(
                     deps,
+                    time,
                     user,
                     lp_token_addr.clone()
                 ).unwrap();
@@ -622,7 +634,7 @@ mod tests {
             }
 
             // Ensure that the claim interval has passed
-            sleep(Duration::new(claim_interval, 1000))
+            time += claim_interval;
         }
 
         assert_eq!(total_claimed, reward_token_supply);
@@ -646,10 +658,47 @@ mod tests {
 
     #[test]
     fn test_claim() {
-        let runs = 10;
+        let runs = 100;
 
         for _ in 0..runs {
             claim_run();
         }
+    }
+
+    #[test]
+    fn test_calc_portions() {
+        let now = SystemTime::now();
+        let time = now.duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let claim_interval = 86400; // 1 day
+
+        assert_eq!(0, calc_portions(
+            time - claim_interval + 1,
+            claim_interval,
+            time
+        ).unwrap());
+
+        assert_eq!(1, calc_portions(
+            time - claim_interval - 1000,
+            claim_interval,
+            time
+        ).unwrap());
+
+        assert_eq!(2, calc_portions(
+            time - claim_interval * 2,
+            claim_interval,
+            time
+        ).unwrap());
+
+        assert_eq!(1, calc_portions(
+            (time - claim_interval * 2) + 1,
+            claim_interval,
+            time
+        ).unwrap());
+
+        assert_eq!(10, calc_portions(
+            time - claim_interval * 10,
+            claim_interval,
+            time
+        ).unwrap());
     }
 }
