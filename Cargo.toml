@@ -7,8 +7,10 @@ members = [
   "contracts/sienna-burner",         # burns SIENNA on each swap
   "api",                             # schema generator for all of the above
 
-  "libraries/amm-shared",          # definitions that are shared between AMM and IDO
-  "libraries/fadroma/scrt-migrate" # pause contracts and mark them for upgrade
+  "libraries/amm-shared",           # definitions that are shared between AMM and IDO
+  "libraries/fadroma/scrt-migrate", # pause contracts and mark them for upgrade
+  "libraries/fadroma/scrt-admin/composable-admin", # proc macro for `require_admin` attribute
+  "libraries/fadroma/scrt-admin/require-admin"     # implementation of admin check
 ]
 
 [profile.release]

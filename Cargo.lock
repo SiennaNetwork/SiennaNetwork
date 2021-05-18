@@ -181,12 +181,25 @@ dependencies = [
 [[package]]
 name = "composable-admin"
 version = "0.1.0"
+dependencies = [
+ "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "require-admin 0.1.0",
+ "schemars",
+ "serde",
+ "snafu",
+]
+
+[[package]]
+name = "composable-admin"
+version = "0.1.0"
 source = "git+https://github.com/hackbg/composable-admin.git?rev=e4d0dda#e4d0ddadad8ce633693609c6827d555715f01de9"
 dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "require-admin",
+ "require-admin 0.1.0 (git+https://github.com/hackbg/composable-admin.git?rev=e4d0dda)",
  "schemars",
  "serde",
  "snafu",
@@ -431,6 +444,7 @@ dependencies = [
 name = "fadroma-scrt-migrate"
 version = "0.1.0"
 dependencies = [
+ "composable-admin 0.1.0",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-utils 0.1.0",
  "fadroma-scrt-addr",
@@ -766,6 +780,14 @@ dependencies = [
 [[package]]
 name = "require-admin"
 version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "require-admin"
+version = "0.1.0"
 source = "git+https://github.com/hackbg/composable-admin.git?rev=e4d0dda#e4d0ddadad8ce633693609c6827d555715f01de9"
 dependencies = [
  "quote",
@@ -1022,7 +1044,7 @@ dependencies = [
 name = "sienna-amm-shared"
 version = "0.1.0"
 dependencies = [
- "composable-admin",
+ "composable-admin 0.1.0",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-utils 0.1.0 (git+https://github.com/hackbg/cosmwasm-utils?rev=949116e)",
@@ -1038,7 +1060,7 @@ name = "sienna-amm-shared"
 version = "0.1.0"
 source = "git+https://github.com/hackbg/sienna-amm-shared?rev=88451d9#88451d941a67643b5cb2c8a858e8af008f37b8a1"
 dependencies = [
- "composable-admin",
+ "composable-admin 0.1.0 (git+https://github.com/hackbg/composable-admin.git?rev=e4d0dda)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-utils 0.1.0 (git+https://github.com/hackbg/cosmwasm-utils?rev=949116e)",

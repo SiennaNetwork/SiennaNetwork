@@ -33,7 +33,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
-    with_status!(deps, match msg {
+    with_status!(deps, env, match msg {
         HandleMsg::CreateExchange { pair } => create_exchange(deps, env, pair),
         HandleMsg::CreateIdo { info } => create_ido(deps, env, info),
         HandleMsg::RegisterExchange { pair, signature } => register_exchange(deps, env, pair, signature),
