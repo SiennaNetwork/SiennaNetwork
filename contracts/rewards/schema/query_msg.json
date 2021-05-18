@@ -5,6 +5,44 @@
     {
       "type": "object",
       "required": [
+        "claim_simulation"
+      ],
+      "properties": {
+        "claim_simulation": {
+          "type": "object",
+          "required": [
+            "address",
+            "current_time",
+            "lp_tokens",
+            "viewing_key"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "current_time": {
+              "description": "Unix time in seconds.",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "lp_tokens": {
+              "description": "The address of the LP tokens pools to claim from.",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            },
+            "viewing_key": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
         "admin"
       ],
       "properties": {
@@ -20,6 +58,9 @@
       "enum": [
         "admin"
       ]
+    },
+    "HumanAddr": {
+      "type": "string"
     }
   }
 }

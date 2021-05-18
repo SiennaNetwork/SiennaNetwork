@@ -319,7 +319,7 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
         )?;
 
         if portions == 0 {
-            results.push(ClaimResult::error(addr, ClaimError::IntervalNotReached {
+            results.push(ClaimResult::error(addr, ClaimError::EarlyClaim {
                 time_to_wait: config.claim_interval - (current_time - account.last_claimed)
             }));
             continue;

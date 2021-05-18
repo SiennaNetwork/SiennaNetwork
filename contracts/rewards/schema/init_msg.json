@@ -3,15 +3,92 @@
   "title": "InitMsg",
   "type": "object",
   "required": [
-    "admin"
+    "claim_interval",
+    "entropy",
+    "prng_seed",
+    "reward_token"
   ],
   "properties": {
     "admin": {
-      "$ref": "#/definitions/HumanAddr"
+      "anyOf": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "claim_interval": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "entropy": {
+      "$ref": "#/definitions/Binary"
+    },
+    "prng_seed": {
+      "$ref": "#/definitions/Binary"
+    },
+    "reward_pools": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/RewardPoolConfig"
+      }
+    },
+    "reward_token": {
+      "$ref": "#/definitions/ContractInfo"
     }
   },
   "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "ContractInfo": {
+      "description": "Code hash and address of a contract.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
     "HumanAddr": {
+      "type": "string"
+    },
+    "RewardPoolConfig": {
+      "description": "Represents a pair that is eligible for rewards.",
+      "type": "object",
+      "required": [
+        "lp_token",
+        "share"
+      ],
+      "properties": {
+        "lp_token": {
+          "$ref": "#/definitions/ContractInfo"
+        },
+        "share": {
+          "description": "The reward amount allocated to this pool.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        }
+      }
+    },
+    "Uint128": {
       "type": "string"
     }
   }

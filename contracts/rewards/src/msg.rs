@@ -95,7 +95,7 @@ pub enum ClaimError {
     PoolEmpty,
     AccountZeroLocked,
     AccountZeroReward,
-    IntervalNotReached {
+    EarlyClaim {
         time_to_wait: u64
     }
 }

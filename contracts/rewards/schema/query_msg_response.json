@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsgResponse",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "claim_simulation"
+      ],
+      "properties": {
+        "claim_simulation": {
+          "$ref": "#/definitions/ClaimSimulationResult"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "ClaimError": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "pool_empty"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "account_zero_locked"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "account_zero_reward"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "time_to_wait",
+            "type"
+          ],
+          "properties": {
+            "time_to_wait": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "early_claim"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "ClaimResult": {
+      "type": "object",
+      "required": [
+        "lp_token_addr",
+        "reward_amount",
+        "success"
+      ],
+      "properties": {
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ClaimError"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lp_token_addr": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "reward_amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ClaimSimulationResult": {
+      "type": "object",
+      "required": [
+        "actual_claimed",
+        "results",
+        "total_rewards_amount"
+      ],
+      "properties": {
+        "actual_claimed": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ClaimResult"
+          }
+        },
+        "total_rewards_amount": {
+          "$ref": "#/definitions/Uint128"
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}

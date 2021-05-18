@@ -3,10 +3,118 @@
   "title": "HandleMsg",
   "anyOf": [
     {
-      "type": "string",
-      "enum": [
-        "test"
-      ]
+      "type": "object",
+      "required": [
+        "lock_tokens"
+      ],
+      "properties": {
+        "lock_tokens": {
+          "type": "object",
+          "required": [
+            "amount",
+            "lp_token"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "lp_token": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "retrieve_tokens"
+      ],
+      "properties": {
+        "retrieve_tokens": {
+          "type": "object",
+          "required": [
+            "amount",
+            "lp_token"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "lp_token": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "claim"
+      ],
+      "properties": {
+        "claim": {
+          "type": "object",
+          "required": [
+            "lp_tokens"
+          ],
+          "properties": {
+            "lp_tokens": {
+              "description": "The address of the LP tokens pools to claim from.",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "add_pools"
+      ],
+      "properties": {
+        "add_pools": {
+          "type": "object",
+          "required": [
+            "pools"
+          ],
+          "properties": {
+            "pools": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/RewardPoolConfig"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "remove_pools"
+      ],
+      "properties": {
+        "remove_pools": {
+          "type": "object",
+          "required": [
+            "lp_tokens"
+          ],
+          "properties": {
+            "lp_tokens": {
+              "description": "The addresses of the LP tokens of the pools to be removed.",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
     },
     {
       "type": "object",
@@ -16,6 +124,17 @@
       "properties": {
         "admin": {
           "$ref": "#/definitions/AdminHandleMsg"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "auth"
+      ],
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/AuthHandleMsg"
         }
       }
     }
@@ -44,7 +163,101 @@
         }
       ]
     },
+    "AuthHandleMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "create_viewing_key"
+          ],
+          "properties": {
+            "create_viewing_key": {
+              "type": "object",
+              "required": [
+                "entropy"
+              ],
+              "properties": {
+                "entropy": {
+                  "type": "string"
+                },
+                "padding": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "set_viewing_key"
+          ],
+          "properties": {
+            "set_viewing_key": {
+              "type": "object",
+              "required": [
+                "key"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "padding": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ContractInfo": {
+      "description": "Code hash and address of a contract.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
     "HumanAddr": {
+      "type": "string"
+    },
+    "RewardPoolConfig": {
+      "description": "Represents a pair that is eligible for rewards.",
+      "type": "object",
+      "required": [
+        "lp_token",
+        "share"
+      ],
+      "properties": {
+        "lp_token": {
+          "$ref": "#/definitions/ContractInfo"
+        },
+        "share": {
+          "description": "The reward amount allocated to this pool.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        }
+      }
+    },
+    "Uint128": {
       "type": "string"
     }
   }
