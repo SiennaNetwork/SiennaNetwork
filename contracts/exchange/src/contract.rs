@@ -18,8 +18,8 @@ use sienna_amm_shared::u256_math::U256;
 use sienna_amm_shared::viewing_key::ViewingKey;
 use sienna_amm_shared::crypto::Prng;
 
-use crate::state::{Config, store_config, load_config};
-use crate::decimal_math;
+use crate::{state::{Config, store_config, load_config}, decimal_math};
+use fadroma_scrt_migrate::{is_operational, can_set_status, set_status, get_status};
 
 type SwapResult = StdResult<(Uint128, Uint128, Uint128)>;
 
@@ -119,12 +119,12 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
-    match msg {
+    with_status!(deps, match msg {
         HandleMsg::AddLiquidity { deposit, slippage_tolerance } => add_liquidity(deps, env, deposit, slippage_tolerance),
         HandleMsg::RemoveLiquidity { amount, recipient } => remove_liquidity(deps, env, amount, recipient),
         HandleMsg::OnLpTokenInit => register_lp_token(deps, env),
         HandleMsg::Swap { offer, expected_return } => swap(deps, env, offer, expected_return)
-    }
+    })
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(
@@ -132,8 +132,8 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     msg: QueryMsg,
 ) -> QueryResult {
     let config = load_config(deps)?;
-
     match msg {
+        QueryMsg::Status => to_binary(&get_status(deps)?),
         QueryMsg::PairInfo => query_pair_info(config),
         QueryMsg::FactoryInfo => to_binary(&QueryMsgResponse::FactoryInfo(config.factory_info)),
         QueryMsg::Pool => query_pool_amount(deps, config),
