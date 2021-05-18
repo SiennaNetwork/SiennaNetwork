@@ -5,7 +5,7 @@ use cosmwasm_std::{HumanAddr, Binary, Uint128, Decimal};
 
 use crate::{TokenPair, TokenType, TokenTypeAmount, TokenPairAmount};
 use cosmwasm_utils::{ContractInfo, ContractInstantiationInfo, Callback};
-use fadroma_scrt_migrate::ContractStatusLevel;
+use fadroma_scrt_migrate::types::ContractStatusLevel;
 
 pub mod factory {
     use super::*;
