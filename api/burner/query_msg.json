@@ -5,6 +5,7 @@
     {
       "type": "string",
       "enum": [
+        "status",
         "sienna_token",
         "burn_pool"
       ]

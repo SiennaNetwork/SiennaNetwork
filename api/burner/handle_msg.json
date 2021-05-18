@@ -3,6 +3,40 @@
   "title": "HandleMsg",
   "anyOf": [
     {
+      "description": "Set pause/migration status",
+      "type": "object",
+      "required": [
+        "set_status"
+      ],
+      "properties": {
+        "set_status": {
+          "type": "object",
+          "required": [
+            "level",
+            "reason"
+          ],
+          "properties": {
+            "level": {
+              "$ref": "#/definitions/ContractStatusLevel"
+            },
+            "new_address": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
       "type": "object",
       "required": [
         "burn"
@@ -131,6 +165,14 @@
           "type": "string"
         }
       }
+    },
+    "ContractStatusLevel": {
+      "type": "string",
+      "enum": [
+        "Operational",
+        "Paused",
+        "Migrating"
+      ]
     },
     "HumanAddr": {
       "type": "string"

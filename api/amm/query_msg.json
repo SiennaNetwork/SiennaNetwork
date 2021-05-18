@@ -5,6 +5,7 @@
     {
       "type": "string",
       "enum": [
+        "status",
         "pair_info",
         "factory_info",
         "pool"

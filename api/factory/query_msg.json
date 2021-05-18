@@ -5,6 +5,7 @@
     {
       "type": "string",
       "enum": [
+        "status",
         "get_exchange_settings"
       ]
     },
