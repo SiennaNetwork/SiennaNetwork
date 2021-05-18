@@ -293,6 +293,22 @@ dependencies = [
 [[package]]
 name = "cosmwasm-utils"
 version = "0.1.0"
+dependencies = [
+ "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "primitive-types",
+ "rand_chacha 0.2.2",
+ "rand_core 0.5.1",
+ "schemars",
+ "serde",
+ "sha2 0.9.3",
+ "snafu",
+ "subtle 2.4.0",
+]
+
+[[package]]
+name = "cosmwasm-utils"
+version = "0.1.0"
 source = "git+https://github.com/hackbg/cosmwasm-utils?rev=949116e#949116e5a78f37a044d11bd1c11134f7a3f1b16b"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
@@ -382,11 +398,10 @@ dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "fadroma-scrt-migrate",
  "schemars",
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit?branch=debug-print)",
  "serde",
- "sienna-amm-shared",
+ "sienna-amm-shared 0.1.0 (git+https://github.com/hackbg/sienna-amm-shared?rev=88451d9)",
  "snafu",
 ]
 
@@ -397,18 +412,26 @@ dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "fadroma-scrt-migrate",
  "schemars",
  "serde",
- "sienna-amm-shared",
+ "sienna-amm-shared 0.1.0 (git+https://github.com/hackbg/sienna-amm-shared?rev=88451d9)",
  "snafu",
+]
+
+[[package]]
+name = "fadroma-scrt-addr"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
 ]
 
 [[package]]
 name = "fadroma-scrt-migrate"
 version = "0.1.0"
 dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
+ "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-utils 0.1.0",
+ "fadroma-scrt-addr",
  "schemars",
  "serde",
  "snafu",
@@ -561,7 +584,7 @@ dependencies = [
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit?branch=debug-print)",
  "serde",
  "sha2 0.9.3",
- "sienna-amm-shared",
+ "sienna-amm-shared 0.1.0 (git+https://github.com/hackbg/sienna-amm-shared?rev=88451d9)",
  "snafu",
  "subtle 2.4.0",
 ]
@@ -988,9 +1011,23 @@ dependencies = [
  "exchange",
  "factory",
  "lp-token",
- "sienna-amm-shared",
+ "sienna-amm-shared 0.1.0",
  "sienna-burner",
  "snip20-reference-impl",
+]
+
+[[package]]
+name = "sienna-amm-shared"
+version = "0.1.0"
+dependencies = [
+ "composable-admin",
+ "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-utils 0.1.0 (git+https://github.com/hackbg/cosmwasm-utils?rev=949116e)",
+ "schemars",
+ "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit?branch=debug-print)",
+ "serde",
+ "snafu",
 ]
 
 [[package]]
@@ -1001,7 +1038,7 @@ dependencies = [
  "composable-admin",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "cosmwasm-utils",
+ "cosmwasm-utils 0.1.0 (git+https://github.com/hackbg/cosmwasm-utils?rev=949116e)",
  "schemars",
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit?branch=debug-print)",
  "serde",
@@ -1015,10 +1052,9 @@ dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "fadroma-scrt-migrate",
  "schemars",
  "serde",
- "sienna-amm-shared",
+ "sienna-amm-shared 0.1.0 (git+https://github.com/hackbg/sienna-amm-shared?rev=88451d9)",
  "snafu",
 ]
 

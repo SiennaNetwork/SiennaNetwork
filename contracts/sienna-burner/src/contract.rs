@@ -45,9 +45,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     match msg {
-        HandleMsg::Burn {
-            amount
-        } => burn(deps, env, amount),
+        HandleMsg::Burn { amount } => burn(deps, env, amount),
         HandleMsg::AddPairs { pairs } => add_pairs(deps, env, pairs),
         HandleMsg::RemovePairs { pairs } => remove_pairs(deps, env, pairs),
         HandleMsg::SetBurnPool {address } => set_burn_pool(deps, env, address),

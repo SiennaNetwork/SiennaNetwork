@@ -6,12 +6,12 @@ edition = "2018"
 
 [dependencies]
 cosmwasm-schema       = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
-exchange              = { path = "../exchange" }
-factory               = { path = "../factory" }
-lp-token              = { path = "../lp-token" }
-sienna-burner         = { path = "../sienna-burner" }
-snip20-reference-impl = { path = "../snip20-reference-impl" }
-sienna-amm-shared     = { git = "https://github.com/hackbg/sienna-amm-shared", rev = "65e94b1" }
+exchange              = { path = "../contracts/exchange" }
+factory               = { path = "../contracts/factory" }
+lp-token              = { path = "../contracts/lp-token" }
+sienna-burner         = { path = "../contracts/sienna-burner" }
+snip20-reference-impl = { path = "../contracts/snip20-reference-impl" }
+sienna-amm-shared     = { path = "../libraries/amm-shared" }
 
 [[bin]]
 name = "schema"
