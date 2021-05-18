@@ -7,11 +7,13 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
-secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
-cosmwasm-utils = { git = "https://github.com/hackbg/cosmwasm-utils", rev = "949116e" }
+
 composable-admin = { git = "https://github.com/hackbg/composable-admin.git", rev = "e4d0dda" }
+cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-utils = { git = "https://github.com/hackbg/cosmwasm-utils", rev = "949116e" }
+secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
+fadroma-scrt-migrate = { git = "https://github.com/hackbg/fadroma", rev = "045e2e0" }

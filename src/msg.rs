@@ -5,6 +5,7 @@ use cosmwasm_std::{HumanAddr, Binary, Uint128, Decimal};
 
 use crate::{TokenPair, TokenType, TokenTypeAmount, TokenPairAmount};
 use cosmwasm_utils::{ContractInfo, ContractInstantiationInfo, Callback};
+use fadroma_scrt_migrate::ContractStatusLevel;
 
 pub mod factory {
     use super::*;
@@ -23,6 +24,12 @@ pub mod factory {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum HandleMsg {
+        /// Set pause/migration status
+        SetStatus {
+            level: ContractStatusLevel,
+            reason: String,
+            new_address: Option<HumanAddr>
+        },
         /// Instantiates an exchange pair contract
         CreateExchange {
             pair: TokenPair
@@ -47,6 +54,8 @@ pub mod factory {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryMsg {
+        /// Get pause/migration status
+        Status,
         GetExchangeAddress {
             pair: TokenPair
         },
@@ -95,6 +104,12 @@ pub mod exchange {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum HandleMsg {
+        /// Set pause/migration status
+        SetStatus {
+            level: ContractStatusLevel,
+            reason: String,
+            new_address: Option<HumanAddr>
+        },
         AddLiquidity {
             deposit: TokenPairAmount,
             /// The amount the price moves in a trading pair between when a transaction is submitted and when it is executed.
@@ -119,6 +134,8 @@ pub mod exchange {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryMsg {
+        /// Get pause/migration status
+        Status,
         PairInfo,
         FactoryInfo,
         Pool,
@@ -181,6 +198,12 @@ pub mod ido {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum HandleMsg {
+        /// Set pause/migration status
+        SetStatus {
+            level: ContractStatusLevel,
+            reason: String,
+            new_address: Option<HumanAddr>
+        },
         OnSnip20Init,
         Swap {
             amount: Uint128
@@ -190,6 +213,8 @@ pub mod ido {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryMsg {
+        /// Get pause/migration status
+        Status,
         GetRate
     }
 
@@ -235,6 +260,12 @@ pub mod sienna_burner {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum HandleMsg {
+        /// Set pause/migration status
+        SetStatus {
+            level: ContractStatusLevel,
+            reason: String,
+            new_address: Option<HumanAddr>
+        },
         Burn {
             amount: Uint128
         },
@@ -256,6 +287,8 @@ pub mod sienna_burner {
     #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryMsg {
+        /// Get pause/migration status
+        Status,
         SiennaToken,
         BurnPool,
         Admin(MultiAdminQueryMsg),
