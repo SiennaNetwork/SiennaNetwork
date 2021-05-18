@@ -1,4 +1,8 @@
-use cosmwasm_std::{Api, CanonicalAddr, Extern, HumanAddr, Querier, ReadonlyStorage, StdResult, Storage};
+use cosmwasm_std::{
+    Api, CanonicalAddr, Extern, HumanAddr, Querier,
+    ReadonlyStorage, StdResult, Storage, StdError
+
+};
 use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
 use sienna_amm_shared::storage::{save, load};
 use sienna_amm_shared::{ContractInfo, ContractInfoStored};
@@ -19,7 +23,9 @@ pub fn save_token_info<S: Storage, A: Api, Q: Querier>(
 pub fn load_token_info<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>
 ) -> StdResult<ContractInfo> {
-    let stored: ContractInfoStored = load(&deps.storage, SIENNA_TOKEN_KEY)?;
+    let stored: ContractInfoStored = load(&deps.storage, SIENNA_TOKEN_KEY)?.ok_or_else(||
+        StdError::generic_err("Token info doesn't exist in storage.")
+    )?;
 
     stored.to_normal(&deps.api)
 }
@@ -36,7 +42,9 @@ pub fn save_burn_pool<S: Storage, A: Api, Q: Querier>(
 pub fn load_burn_pool<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>
 ) -> StdResult<HumanAddr> {
-    let canonical: CanonicalAddr = load(&deps.storage, BURN_POOL_KEY)?;
+    let canonical: CanonicalAddr = load(&deps.storage, BURN_POOL_KEY)?.ok_or_else(||
+        StdError::generic_err("Burn pool address doesn't exist in storage.")
+    )?;
 
     deps.api.human_address(&canonical)
 }

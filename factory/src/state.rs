@@ -75,7 +75,9 @@ pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
 
 /// Returns StdResult<Config> resulting from retrieving the config from storage
 pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Config> {
-    let result: ConfigStored = load(&deps.storage, CONFIG_KEY)?;
+    let result: ConfigStored = load(&deps.storage, CONFIG_KEY)?.ok_or_else(||
+        StdError::generic_err("Config doesn't exist in storage.")
+    )?;
 
     let config = Config {
         snip20_contract: result.snip20_contract,
@@ -141,7 +143,9 @@ pub(crate) fn get_address_for_pair<S: Storage, A: Api, Q: Querier>(
     let pair = pair.to_stored(&deps.api)?;
     let key = generate_pair_key(&pair);
 
-    let canonical = load(&deps.storage, &key)?;
+    let canonical = load(&deps.storage, &key)?.ok_or_else(||
+        StdError::generic_err("Address doesn't exist in storage.")
+    )?;
 
     deps.api.human_address(&canonical)
 }
@@ -176,7 +180,9 @@ pub(crate) fn get_idos<S: Storage, A: Api, Q: Querier>(
 
     for i in pagination.start..end {
         let index = generate_ido_index(&i);
-        let addr: CanonicalAddr = load(&deps.storage, index.as_slice())?;
+        let addr: CanonicalAddr = load(&deps.storage, index.as_slice())?.ok_or_else(||
+            StdError::generic_err("IDO address doesn't exist in storage.")
+        )?;
 
         let human_addr = deps.api.human_address(&addr)?;
         result.push(human_addr);
@@ -208,15 +214,12 @@ pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
 }
 
 fn load_exchanges(storage: &impl Storage) -> StdResult<Vec<ExchangeStored>> {
-    let result: StdResult<Vec<ExchangeStored>> = load(storage, EXCHANGES_KEY);
+    let result: Option<Vec<ExchangeStored>> = load(storage, EXCHANGES_KEY)?;
 
-    match result {
-        Ok(vec) => Ok(vec),
-        Err(kind) => match kind {
-            StdError::SerializeErr { .. }=> Ok(vec![]),
-            _ => Err(kind)
-        }
-    }
+    Ok(match result {
+        Some(vec) => vec,
+        None => vec![]
+    })
 }
 
 fn save_exchanges(storage: &mut impl Storage, exchanges: &Vec<ExchangeStored>) -> StdResult<()> {
