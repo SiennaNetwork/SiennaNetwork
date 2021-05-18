@@ -19,6 +19,7 @@ const ACCOUNTS_KEY: &[u8] = b"accounts";
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct Config {
     pub reward_token: ContractInfo,
+    pub this_contract: ContractInfo,
     pub token_decimals: u8,
     pub viewing_key: ViewingKey,
     /// The total sum of all pool shares.
@@ -29,6 +30,7 @@ pub struct Config {
 #[derive(Serialize, Deserialize, Debug)]
 struct ConfigStored {
     pub reward_token: ContractInfoStored,
+    pub this_contract: ContractInfoStored,
     pub token_decimals: u8,
     pub viewing_key: ViewingKey,
     pub total_share: Uint128,
@@ -52,6 +54,7 @@ pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<()> {
     let config = ConfigStored {
         reward_token: config.reward_token.to_stored(&deps.api)?,
+        this_contract: config.this_contract.to_stored(&deps.api)?,
         token_decimals: config.token_decimals,
         viewing_key: config.viewing_key.clone(),
         total_share: Uint128(config.total_share),
@@ -68,6 +71,7 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
 
     Ok(Config {
         reward_token: config.reward_token.to_normal(&deps.api)?,
+        this_contract: config.this_contract.to_normal(&deps.api)?,
         token_decimals: config.token_decimals,
         viewing_key: config.viewing_key,
         total_share: config.total_share.u128(),

@@ -2,18 +2,25 @@ use std::u128;
 
 use cosmwasm_std::{
     Api, Binary, Env, Extern, HandleResponse, HumanAddr, InitResponse,
-    Querier, StdResult, Storage, Uint128, StdError, log
+    Querier, StdResult, Storage, Uint128, StdError, log, to_binary
 };
 use composable_admin::require_admin;
 use composable_admin::admin::{
-    save_admin, admin_handle, admin_query, DefaultHandleImpl, DefaultQueryImpl,
-    assert_admin
+    save_admin, admin_handle, admin_query, DefaultHandleImpl as DefaultAdminHandle,
+    DefaultQueryImpl, assert_admin
+};
+use composable_auth::{
+    auth_handle, authenticate, DefaultHandleImpl as DefaultAuthHandle
 };
 use secret_toolkit::snip20;
+use cosmwasm_utils::ContractInfo;
 use cosmwasm_utils::viewing_key::ViewingKey;
 use cosmwasm_utils::convert::{convert_token, get_whole_token_representation};
 
-use crate::msg::{HandleMsg, InitMsg, QueryMsg, OVERFLOW_MSG, RewardPoolConfig};
+use crate::msg::{
+    HandleMsg, InitMsg, QueryMsg, OVERFLOW_MSG, RewardPoolConfig,
+    QueryMsgResponse, ClaimSimulationResult, ClaimResult, ClaimError
+};
 use crate::state::{
     save_config, Config, add_pools, get_pool, get_account, save_account,
     save_pool, delete_account, load_config
@@ -41,6 +48,10 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 
     let mut config = Config {
         reward_token: msg.reward_token,
+        this_contract: ContractInfo {
+            address: env.contract.address,
+            code_hash: env.contract_code_hash
+        },
         token_decimals: token_info.decimals,
         viewing_key,
         total_share: 0,
@@ -81,7 +92,8 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Claim { lp_tokens } => claim(deps, env, lp_tokens),
         HandleMsg::AddPools { pools } => add_more_pools(deps, env, into_pools(pools)),
         HandleMsg::RemovePools { lp_tokens } => remove_some_pools(deps, env, lp_tokens), // Great naming btw
-        HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl)
+        HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultAdminHandle),
+        HandleMsg::Auth(auth_msg) => auth_handle(deps, env, auth_msg, DefaultAuthHandle)
     }
 }
 
@@ -90,6 +102,9 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
+        QueryMsg::ClaimSimulation { 
+            lp_tokens, viewing_key, address, current_time 
+        } => claim_simulation(deps, lp_tokens, address, ViewingKey(viewing_key), current_time),
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl)
     }
 }
@@ -188,12 +203,12 @@ fn claim<S: Storage, A: Api, Q: Querier>(
     lp_tokens: Vec<HumanAddr>
 ) -> StdResult<HandleResponse> {
     let config = load_config(deps)?;
+    let available_balance = get_balance(&deps.querier, &config)?;
 
     let mut total_rewards_amount: u128 = 0;
 
     for addr in lp_tokens {
         let pool = get_pool_or_fail(deps, &addr)?;
-
         let mut account = get_account(deps, &env.message.sender, &addr)?;
 
         if account.locked_amount == 0 {
@@ -206,30 +221,17 @@ fn claim<S: Storage, A: Api, Q: Querier>(
             config.token_decimals
         )?;
 
-        // TODO: not sure if actually possible
         if reward_amount == 0 {
             return Err(StdError::generic_err(format!(
                 "Reward amount for {} is zero.", &addr)
             ));
         }
 
-        let portions = if account.last_claimed == 0 {
-            1 // This account is claiming for the first time
-        } else {
-            // Could do (current_time - last_claimed) / interval
-            // but can't use floats so...
-            let mut result = 0;
-
-            let gap = env.block.time - account.last_claimed;
-            let mut acc = 0;
-
-            while gap > acc {
-                acc += config.claim_interval;
-                result += 1;
-            }
-
-            result
-        };
+        let portions = calc_portions(
+            account.last_claimed,
+            config.claim_interval,
+            env.block.time
+        );
 
         if portions == 0 {
             return Err(StdError::generic_err(format!(
@@ -242,30 +244,15 @@ fn claim<S: Storage, A: Api, Q: Querier>(
         save_account(deps, &account)?;
 
         total_rewards_amount = total_rewards_amount.saturating_add(
-            reward_amount * portions
+            reward_amount.saturating_mul(portions as u128)
         );
     }
 
-    let available_balance = snip20::balance_query(
-        &deps.querier,
-        env.contract.address,
-        config.viewing_key.0,
-        BLOCK_SIZE,
-        config.reward_token.code_hash.clone(),
-        config.reward_token.address.clone()
-    )?;
-
-    let mut claim_amount = total_rewards_amount;
-
-    let available_balance = available_balance.amount.u128();
-
-    if available_balance == 0 {
-        return Err(StdError::generic_err(
-            "The reward token pool is currently empty."
-        ));
-    } else if total_rewards_amount > available_balance {
-        claim_amount = available_balance;
-    }
+    let claim_amount = if total_rewards_amount > available_balance {
+        available_balance
+    } else {
+        total_rewards_amount
+    };
 
     Ok(HandleResponse {
         messages: vec![
@@ -286,6 +273,77 @@ fn claim<S: Storage, A: Api, Q: Querier>(
         ],
         data: None
     })
+}
+
+fn claim_simulation<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    lp_tokens: Vec<HumanAddr>,
+    sender: HumanAddr,
+    key: ViewingKey,
+    current_time: u64
+) -> StdResult<Binary> {
+    let canonical = deps.api.canonical_address(&sender)?;
+    authenticate(&deps.storage, &key, canonical.as_slice())?;
+
+    let config = load_config(deps)?;
+    let available_balance = get_balance(&deps.querier, &config)?;
+    
+    let mut total_rewards_amount: u128 = 0;
+
+    let mut results = Vec::with_capacity(lp_tokens.len());
+
+    for addr in lp_tokens {
+        let pool = get_pool_or_fail(deps, &addr)?;
+        let account = get_account(deps, &sender, &addr)?;
+
+        if account.locked_amount == 0 {
+            results.push(ClaimResult::error(addr, ClaimError::AccountZeroLocked));
+            continue;
+        }
+
+        let reward_amount = calc_reward_share(
+            account.locked_amount,
+            &pool,
+            config.token_decimals
+        )?;
+
+        if reward_amount == 0 {
+            results.push(ClaimResult::error(addr, ClaimError::AccountZeroReward));
+            continue;
+        }
+
+        let portions = calc_portions(
+            account.last_claimed,
+            config.claim_interval,
+            current_time
+        );
+
+        if portions == 0 {
+            results.push(ClaimResult::error(addr, ClaimError::IntervalNotReached {
+                time_to_wait: config.claim_interval - (current_time - account.last_claimed)
+            }));
+            continue;
+        }
+
+        let reward_amount = reward_amount.saturating_mul(portions as u128);
+        results.push(ClaimResult::success(addr, Uint128(reward_amount)));
+
+        total_rewards_amount = total_rewards_amount.saturating_add(reward_amount);
+    }
+
+    let claim_amount = if total_rewards_amount > available_balance {
+        available_balance
+    } else {
+        total_rewards_amount
+    };
+
+    Ok(to_binary(&QueryMsgResponse::ClaimSimulation(
+        ClaimSimulationResult {
+            total_rewards_amount: Uint128(total_rewards_amount),
+            actual_claimed: Uint128(claim_amount),
+            results
+        }
+    ))?)
 }
 
 #[require_admin]
@@ -352,6 +410,47 @@ fn into_pools(mut vec: Vec<RewardPoolConfig>) -> Vec<RewardPool> {
     vec.drain(..).map(|p| p.into()).collect()
 }
 
+fn calc_portions(last_claimed: u64, claim_interval: u64, block_time: u64) -> u32 {
+    if last_claimed == 0 {
+        return 1; // This account is claiming for the first time
+    }
+
+    // Could do (current_time - last_claimed) / interval
+    // but can't use floats so...
+    let mut result = 0;
+
+    let gap = block_time - last_claimed;
+    let mut acc = 0;
+
+    while gap > acc {
+        acc += claim_interval;
+        result += 1;
+    }
+
+    result
+}
+
+fn get_balance(querier: &impl Querier, config: &Config) -> StdResult<u128> {
+    let available_balance = snip20::balance_query(
+        querier,
+        config.this_contract.address.clone(),
+        config.viewing_key.0.clone(),
+        BLOCK_SIZE,
+        config.reward_token.code_hash.clone(),
+        config.reward_token.address.clone()
+    )?;
+
+    let available_balance = available_balance.amount.u128();
+
+    if available_balance == 0 {
+        return Err(StdError::generic_err(
+            "The reward token pool is currently empty."
+        ));
+    }
+
+    Ok(available_balance)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -396,9 +495,14 @@ mod tests {
                 StdError::GenericErr { msg, .. } => {
                     if msg == "The reward token pool is currently empty." {
                         return Ok((true, 0));
-                    } else {
-                        return Err(err);
+                    } else if msg.starts_with("Reward amount for") {
+                        // It is possible for the user share to be so small that
+                        // the reward amount calculated would be zero. So this 
+                        // this shouldn't be counted as a program error.
+                        return Ok((false, 0));
                     }
+
+                    return Err(err);
                 },
                 _ => return Err(err)
             }
@@ -475,38 +579,36 @@ mod tests {
         }
 
         let mut total_claimed = 0;
+        let mut is_done = false;
 
-        for _ in 0..iterations {
-            for user in users.clone() {
-                let rand = rng.gen_range(0..20);
+        while !is_done {
+            for _ in 0..iterations {
+                for user in users.clone() {
+                    let rand = rng.gen_range(0..20);
 
-                // Skip claiming for some users to simulate them
-                // not getting their rewards every time they can
-                if rand % 2 == 0 {
-                    let (depleted, claimed) = execute_claim(
-                        deps,
-                        user,
-                        lp_token_addr.clone()
-                    ).unwrap();
+                    // Skip claiming for some users to simulate them
+                    // not getting their rewards every time they can
+                    if rand % 2 == 0 {
+                        let (depleted, claimed) = execute_claim(
+                            deps,
+                            user,
+                            lp_token_addr.clone()
+                        ).unwrap();
 
-                    total_claimed += claimed;
-
-                    if depleted {
-                        break;
+                        total_claimed += claimed;
+                        is_done = depleted;
                     }
-                }
 
-                // Sleep a tiny amount to introduce some entropy
-                sleep(Duration::from_millis(rand));
+                    // Sleep a tiny amount to introduce some entropy
+                    sleep(Duration::from_millis(rand));
+                }
+                
+                // Ensure that the claim interval has passed
+                sleep(Duration::new(claim_interval, 1000))
             }
-            
-            // Ensure that the claim interval has passed
-            sleep(Duration::new(claim_interval, 1000))
         }
 
         // Final run to claim any remaining rewards
-        let mut is_done = false;
-
         while !is_done {
             for user in users.clone() {
                 let (depleted, claimed) = execute_claim(
