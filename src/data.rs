@@ -4,8 +4,6 @@ use schemars::JsonSchema;
 use secret_toolkit::snip20;
 use serde::{Serialize, Deserialize};
 
-const BLOCK_SIZE: usize = 256;
-
 #[derive(Serialize, Deserialize, JsonSchema)]
 pub struct Pagination {
     pub start: u64,

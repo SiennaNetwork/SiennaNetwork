@@ -3,7 +3,6 @@ use crate::token_type::TokenType;
 use fadroma_scrt_addr::{Canonize, Humanize};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize, Deserializer, Serializer};
-use std::fmt;
 
 #[derive(Clone, Debug, JsonSchema)]
 pub struct TokenPair<A>(pub TokenType<A>, pub TokenType<A>);
