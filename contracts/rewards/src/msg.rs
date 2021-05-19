@@ -5,7 +5,7 @@ use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
 use composable_auth::AuthHandleMsg;
 use cosmwasm_utils::ContractInfo;
 
-use crate::data::RewardPool;
+use crate::data::{RewardPool, Account};
 
 pub(crate) const OVERFLOW_MSG: &str = "Upper bound overflow detected.";
 
@@ -39,7 +39,7 @@ pub enum HandleMsg {
         lp_token: HumanAddr
     },
     Claim {
-        /// The address of the LP tokens pools to claim from.
+        /// The addresses of the LP tokens pools to claim from.
         lp_tokens: Vec<HumanAddr>
     },
     AddPools { 
@@ -57,12 +57,19 @@ pub enum HandleMsg {
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     ClaimSimulation {
-        /// The address of the LP tokens pools to claim from.
+        /// The addresses of the LP tokens pools to claim from.
         lp_tokens: Vec<HumanAddr>,
         viewing_key: String,
         address: HumanAddr,
         /// Unix time in seconds.
         current_time: u64
+    },
+    Pools,
+    Accounts { 
+        address: HumanAddr,
+        viewing_key: String,
+        /// The addresses of the LP tokens pools to get the accounts for.
+        lp_tokens: Vec<HumanAddr>
     },
     Admin(AdminQueryMsg)
 }
@@ -70,7 +77,9 @@ pub enum QueryMsg {
 #[derive(Serialize, Deserialize, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsgResponse {
-    ClaimSimulation(ClaimSimulationResult)
+    ClaimSimulation(ClaimSimulationResult),
+    Accounts(Vec<Account>),
+    Pools(Vec<RewardPool>)
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug)]

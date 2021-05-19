@@ -1,6 +1,6 @@
 use cosmwasm_std::{
     Api, CanonicalAddr, Extern, HumanAddr, Querier, StdResult,
-    Storage, StdError, Uint128
+    Storage, StdError, Uint128, Binary
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -22,6 +22,7 @@ pub struct Config {
     pub this_contract: ContractInfo,
     pub token_decimals: u8,
     pub viewing_key: ViewingKey,
+    pub prng_seed: Binary,
     /// The total sum of all pool shares.
     pub total_share: u128,
     pub claim_interval: u64
@@ -33,6 +34,7 @@ struct ConfigStored {
     pub this_contract: ContractInfoStored,
     pub token_decimals: u8,
     pub viewing_key: ViewingKey,
+    pub prng_seed: Binary,
     pub total_share: Uint128,
     pub claim_interval: u64
 }
@@ -57,6 +59,7 @@ pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
         this_contract: config.this_contract.to_stored(&deps.api)?,
         token_decimals: config.token_decimals,
         viewing_key: config.viewing_key.clone(),
+        prng_seed: config.prng_seed.clone(),
         total_share: Uint128(config.total_share),
         claim_interval: config.claim_interval
     };
@@ -74,6 +77,7 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
         this_contract: config.this_contract.to_normal(&deps.api)?,
         token_decimals: config.token_decimals,
         viewing_key: config.viewing_key,
+        prng_seed: config.prng_seed,
         total_share: config.total_share.u128(),
         claim_interval: config.claim_interval
     })
@@ -107,10 +111,10 @@ pub(crate) fn add_pools<S: Storage, A: Api, Q: Querier>(
 }
 
 pub(crate) fn load_pools<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+    deps: &Extern<S, A, Q>,
 ) -> StdResult<Vec<RewardPool>> {
     let index: Vec<CanonicalAddr> = 
-        load(&mut deps.storage, POOL_INDEX)?.unwrap_or(vec![]);
+        load(&deps.storage, POOL_INDEX)?.unwrap_or(vec![]);
 
     let mut result = Vec::with_capacity(index.len());
 

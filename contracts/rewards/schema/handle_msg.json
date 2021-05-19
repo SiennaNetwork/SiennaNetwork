@@ -61,7 +61,7 @@
           ],
           "properties": {
             "lp_tokens": {
-              "description": "The address of the LP tokens pools to claim from.",
+              "description": "The addresses of the LP tokens pools to claim from.",
               "type": "array",
               "items": {
                 "$ref": "#/definitions/HumanAddr"

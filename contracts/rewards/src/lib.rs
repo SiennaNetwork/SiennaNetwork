@@ -2,6 +2,7 @@ pub mod contract;
 pub mod msg;
 pub mod state;
 pub mod data;
+pub mod auth;
 
 mod test_helpers;
 

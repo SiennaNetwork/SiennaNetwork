@@ -12,9 +12,77 @@
           "$ref": "#/definitions/ClaimSimulationResult"
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "accounts"
+      ],
+      "properties": {
+        "accounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Account"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "pools"
+      ],
+      "properties": {
+        "pools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RewardPool"
+          }
+        }
+      }
     }
   ],
   "definitions": {
+    "Account": {
+      "description": "Accounts are based on (user - LP token) pairs. This means that a single user can have multiple accounts - one for each LP token.",
+      "type": "object",
+      "required": [
+        "last_claimed",
+        "locked_amount",
+        "lp_token_addr",
+        "owner"
+      ],
+      "properties": {
+        "last_claimed": {
+          "description": "The last time that the user claimed their rewards.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "locked_amount": {
+          "description": "The amount of LP tokens the owner has locked into this contract.",
+          "type": "integer",
+          "format": "uint128",
+          "minimum": 0.0
+        },
+        "lp_token_addr": {
+          "description": "The address of the LP token that this account is for.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          ]
+        },
+        "owner": {
+          "description": "The owner of this account.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          ]
+        }
+      }
+    },
     "ClaimError": {
       "anyOf": [
         {
@@ -132,8 +200,50 @@
         }
       }
     },
+    "ContractInfo": {
+      "description": "Code hash and address of a contract.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
     "HumanAddr": {
       "type": "string"
+    },
+    "RewardPool": {
+      "description": "Represents a pair that is eligible for rewards.",
+      "type": "object",
+      "required": [
+        "lp_token",
+        "share",
+        "size"
+      ],
+      "properties": {
+        "lp_token": {
+          "$ref": "#/definitions/ContractInfo"
+        },
+        "share": {
+          "description": "The reward amount allocated to this pool.",
+          "type": "integer",
+          "format": "uint128",
+          "minimum": 0.0
+        },
+        "size": {
+          "description": "Total amount locked by all participants.",
+          "type": "integer",
+          "format": "uint128",
+          "minimum": 0.0
+        }
+      }
     },
     "Uint128": {
       "type": "string"

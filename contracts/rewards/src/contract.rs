@@ -9,9 +9,7 @@ use composable_admin::admin::{
     save_admin, admin_handle, admin_query, DefaultHandleImpl as DefaultAdminHandle,
     DefaultQueryImpl, assert_admin
 };
-use composable_auth::{
-    auth_handle, authenticate, DefaultHandleImpl as DefaultAuthHandle
-};
+use composable_auth::{auth_handle, authenticate};
 use secret_toolkit::snip20;
 use cosmwasm_utils::ContractInfo;
 use cosmwasm_utils::viewing_key::ViewingKey;
@@ -23,9 +21,10 @@ use crate::msg::{
 };
 use crate::state::{
     save_config, Config, add_pools, get_pool, get_account, save_account,
-    save_pool, delete_account, load_config
+    save_pool, delete_account, load_config, load_pools
 };
 use crate::data::RewardPool;
+use crate::auth::AuthImpl;
 
 const BLOCK_SIZE: usize = 256;
 
@@ -54,6 +53,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         },
         token_decimals: token_info.decimals,
         viewing_key,
+        prng_seed: msg.prng_seed,
         total_share: 0,
         claim_interval: msg.claim_interval
     };
@@ -93,7 +93,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::AddPools { pools } => add_more_pools(deps, env, into_pools(pools)),
         HandleMsg::RemovePools { lp_tokens } => remove_some_pools(deps, env, lp_tokens), // Great naming btw
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultAdminHandle),
-        HandleMsg::Auth(auth_msg) => auth_handle(deps, env, auth_msg, DefaultAuthHandle)
+        HandleMsg::Auth(auth_msg) => auth_handle(deps, env, auth_msg, AuthImpl)
     }
 }
 
@@ -102,9 +102,11 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
-        QueryMsg::ClaimSimulation { 
-            lp_tokens, viewing_key, address, current_time 
-        } => claim_simulation(deps, lp_tokens, address, ViewingKey(viewing_key), current_time),
+        QueryMsg::ClaimSimulation { lp_tokens, viewing_key, address, current_time } => 
+            claim_simulation(deps, lp_tokens, address, ViewingKey(viewing_key), current_time),
+        QueryMsg::Pools => query_pools(deps),
+        QueryMsg::Accounts { address, viewing_key, lp_tokens } =>
+            query_accounts(deps, address, ViewingKey(viewing_key), lp_tokens),
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl)
     }
 }
@@ -223,8 +225,8 @@ fn claim<S: Storage, A: Api, Q: Querier>(
 
         if reward_amount == 0 {
             return Err(StdError::generic_err(format!(
-                "Reward amount for {} is zero.", &addr)
-            ));
+                "Reward amount for {} is zero.", &addr
+            )));
         }
 
         let portions = calc_portions(
@@ -350,7 +352,7 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
 fn add_more_pools<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    pools: Vec<RewardPool>
+    _pools: Vec<RewardPool>
 ) -> StdResult<HandleResponse>{
     unimplemented!()
 }
@@ -359,9 +361,36 @@ fn add_more_pools<S: Storage, A: Api, Q: Querier>(
 fn remove_some_pools<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    addresses: Vec<HumanAddr>
+    _addresses: Vec<HumanAddr>
 ) -> StdResult<HandleResponse>{
     unimplemented!()
+}
+
+fn query_pools<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+) -> StdResult<Binary> {
+    let pools = load_pools(deps)?;
+
+    Ok(to_binary(&QueryMsgResponse::Pools(pools))?)
+}
+
+fn query_accounts<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    address: HumanAddr,
+    key: ViewingKey,
+    lp_tokens:Vec<HumanAddr>
+) -> StdResult<Binary> {
+    let canonical = deps.api.canonical_address(&address)?;
+    authenticate(&deps.storage, &key, canonical.as_slice())?;
+
+    let mut result = Vec::with_capacity(lp_tokens.len());
+
+    for addr in lp_tokens {
+        let account = get_account(deps, &address, &addr)?;
+        result.push(account);
+    }
+
+    Ok(to_binary(&QueryMsgResponse::Accounts(result))?)
 }
 
 fn calc_reward_share(
