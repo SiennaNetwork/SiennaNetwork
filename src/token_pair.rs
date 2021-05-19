@@ -104,7 +104,7 @@ impl<'a, A: Clone> Iterator for TokenPairIterator<'a, A> {
 
 // These are only used for serde, because it doesn't work with struct tuples.
 #[derive(Serialize, Deserialize)]
-struct TokenPairSerde<A: Clone> {
+pub struct TokenPairSerde<A: Clone> {
     token_0: TokenType<A>,
     token_1: TokenType<A>,
 }
