@@ -2,12 +2,17 @@ use cosmwasm_std::{
     Api, Binary, CosmosMsg, Env, Extern, HandleResponse, InitResponse,
     Querier, StdError, StdResult, Storage, WasmMsg, log, to_binary
 };
-use sienna_amm_shared::{Callback, ContractInfo, TokenPair, Pagination};
-use sienna_amm_shared::msg::exchange::InitMsg as ExchangeInitMsg;
-use sienna_amm_shared::msg::ido::{IdoInitMsg, IdoInitConfig};
-use sienna_amm_shared::msg::factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
-use sienna_amm_shared::msg::sienna_burner::HandleMsg as BurnerHandleMsg;
-use sienna_amm_shared::storage::*;
+use sienna_amm_shared::{
+    TokenPair, Pagination, msg::{
+        exchange::InitMsg as ExchangeInitMsg,
+        ido::{IdoInitMsg, IdoInitConfig},
+        factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse},
+        sienna_burner::HandleMsg as BurnerHandleMsg
+    }
+};
+
+use fadroma_scrt_callback::{ContractInstantiationInfo, ContractInstance, Callback};
+use fadroma_scrt_storage::{load, save, remove};
 
 use crate::state::{
     save_config, load_config, Config, pair_exists, store_exchange,
@@ -99,13 +104,13 @@ fn create_exchange<S: Storage, A: Api, Q: Querier>(
                         &ExchangeInitMsg {
                             pair: pair.clone(),
                             lp_token_contract: config.lp_token_contract.clone(),
-                            factory_info: ContractInfo {
+                            factory_info: ContractInstance {
                                 code_hash: env.contract_code_hash.clone(),
-                                address: env.contract.address.clone()
+                                address:   env.contract.address.clone()
                             },
                             callback: Callback {
-                                contract: ContractInfo {
-                                    address: env.contract.address,
+                                contract: ContractInstance {
+                                    address:   env.contract.address,
                                     code_hash: env.contract_code_hash,
                                 },
                                 msg: to_binary(&HandleMsg::RegisterExchange {
@@ -140,12 +145,11 @@ fn register_exchange<S: Storage, A: Api, Q: Querier>(
     let mut messages = vec![];
 
     if let Some(info) = config.exchange_settings.sienna_burner {
+        let pairs = vec![ env.message.sender.clone() ];
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: info.address,
+            contract_addr:      info.address,
             callback_code_hash: info.code_hash,
-            msg: to_binary(&BurnerHandleMsg::AddPairs {
-                pairs: vec![ env.message.sender.clone() ]
-            })?,
+            msg: to_binary(&BurnerHandleMsg::AddPairs { pairs })?,
             send: vec![]
         }))
     }
@@ -201,8 +205,8 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
                     info,
                     snip20_contract: config.snip20_contract,
                     callback: Callback {
-                        contract: ContractInfo {
-                            address: env.contract.address,
+                        contract: ContractInstance {
+                            address:   env.contract.address,
                             code_hash: env.contract_code_hash,
                         },
                         msg: to_binary(&HandleMsg::RegisterIdo {
@@ -310,7 +314,7 @@ mod tests {
         assert_eq!(err, StdError::unauthorized())
     }
 
-    fn config() -> Config {
+    fn config() -> Config<HumanAddr> {
         Config::from_init_msg(InitMsg {
             snip20_contract: ContractInstantiationInfo {
                 code_hash: "12355254".into(),

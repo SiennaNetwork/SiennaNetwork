@@ -4,71 +4,74 @@ use cosmwasm_std::{
 };
 use serde::{Serialize,Deserialize};
 
-use sienna_amm_shared::{TokenPair, TokenPairStored, ContractInfo, ContractInfoStored};
-use sienna_amm_shared::storage::{load, save};
-use sienna_amm_shared::viewing_key::ViewingKey;
+use fadroma_scrt_addr::{Humanize, Canonize};
+use fadroma_scrt_callback::ContractInstance;
+use fadroma_scrt_storage::{load, save};
+use cosmwasm_utils::viewing_key::ViewingKey;
+use sienna_amm_shared::TokenPair;
 
-const CONFIG_KEY: &[u8] = b"config"; 
+const CONFIG_KEY: &[u8] = b"config";
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
-pub(crate) struct Config {
-    pub factory_info: ContractInfo,
-    pub lp_token_info: ContractInfo,
-    pub pair: TokenPair,
+pub(crate) struct Config<A> {
+    pub factory_info:  ContractInstance<A>,
+    pub lp_token_info: ContractInstance<A>,
+    pub pair:          TokenPair,
     /// The address of the current contract.
-    pub contract_addr: HumanAddr,
-    /// Viewing key used for custom snip20 tokens.
-    pub viewing_key: ViewingKey,
-    /// Typically, smart contracts which need tokens to perform some functionality 
-    /// require callers to first make an approval on the token contract, then call a function
-    /// that in turn calls transferFrom on the token contract. This is not how Uniswap pairs accept tokens.
+    pub contract_addr: A,
+    /// Viewing key used for custom SNIP20 tokens.
+    pub viewing_key:   ViewingKey,
+    /// Typically, smart contracts which need tokens to perform some functionality
+    /// require callers to first make an approval on the token contract,
+    /// then call a function that in turn calls transferFrom on the token contract.
+    ///
+    /// This is not how Uniswap pairs accept tokens.
     /// Instead, pairs check their token balances at the end of every interaction.
-    /// Then, at the beginning of the next interaction, current balances are differenced against the stored values
-    /// to determine the amount of tokens that were sent by the current interactor.
+    ///
+    /// Then, at the beginning of the next interaction, current balances are differenced
+    /// against the stored values to determine the amount of tokens that were sent by the
+    /// current interactor.
     pub pool_cache: [Uint128; 2]
 }
-
-#[derive(Serialize, Deserialize, Debug)]
-struct ConfigStored {
-    pub factory_info: ContractInfoStored,
-    pub lp_token_info: ContractInfoStored,
-    pub pair: TokenPairStored,
-    pub contract_addr: CanonicalAddr,
-    pub viewing_key: ViewingKey,
-    pub pool_cache: [Uint128; 2]
+impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
+    fn canonize <A: Api> (&self, api: &A) -> StdResult<Config<CanonicalAddr>> {
+        Ok(Config {
+            factory_info:  self.factory_info.canonize(api)?,
+            lp_token_info: self.lp_token_info.canonize(api)?,
+            pair:          self.pair.to_stored(api)?,
+            contract_addr: self.contract_addr.canonize(api)?,
+            viewing_key:   self.viewing_key,
+            pool_cache:    self.pool_cache
+        })
+    }
+}
+impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
+    fn humanize <A: Api> (&self, api: &A) -> StdResult<Config<HumanAddr>> {
+        Ok(Config {
+            factory_info:  self.factory_info.humanize(api)?,
+            lp_token_info: self.lp_token_info.humanize(api)?,
+            pair:          self.pair.to_normal(&deps.api)?,
+            contract_addr: self.contract_addr.humanize(api)?,
+            viewing_key:   self.viewing_key,
+            pool_cache:    self.pool_cache
+        })
+    }
 }
 
-pub(crate) fn store_config<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    config: &Config
+pub(crate) fn store_config <S: Storage, A: Api, Q: Querier>(
+    deps:   &mut Extern<S, A, Q>,
+    config: &Config<HumanAddr>
 ) -> StdResult<()> {
-    let stored = ConfigStored {
-        factory_info: config.factory_info.to_stored(&deps.api)?,
-        lp_token_info: config.lp_token_info.to_stored(&deps.api)?,
-        pair: config.pair.to_stored(&deps.api)?,
-        contract_addr: deps.api.canonical_address(&config.contract_addr)?,
-        viewing_key: config.viewing_key.clone(),
-        pool_cache: config.pool_cache
-    };
-
-    save(&mut deps.storage, CONFIG_KEY, &stored)
+    save(&mut deps.storage, CONFIG_KEY, &config.canonize(&deps.api))
 }
 
 pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>
-) -> StdResult<Config> {
-    let result: ConfigStored = load(&deps.storage, CONFIG_KEY)?.ok_or_else(||
+) -> StdResult<Config<HumanAddr>> {
+    let result: Config<CanonicalAddr> = load(&deps.storage, CONFIG_KEY)?.ok_or(
         StdError::generic_err("Config doesn't exist in storage.")
     )?;
-
-    Ok(Config {
-        factory_info: result.factory_info.to_normal(&deps.api)?,
-        lp_token_info: result.lp_token_info.to_normal(&deps.api)?,
-        pair: result.pair.to_normal(&deps.api)?,
-        contract_addr: deps.api.human_address(&result.contract_addr)?,
-        viewing_key: result.viewing_key,
-        pool_cache: result.pool_cache
-    })
+    result.humanize(&deps.api)
 }
 
 #[cfg(test)]

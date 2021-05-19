@@ -1,17 +1,15 @@
-
-use std::usize;
+use cosmwasm_std::{Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage};
+use fadroma_scrt_addr::{Humanize, Canonize};
+use fadroma_scrt_callback::ContractInstantiationInfo;
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::{
-    Api, CanonicalAddr, Extern, HumanAddr, Querier,
-    StdError, StdResult, Storage
-};
-use sienna_amm_shared::storage::{save, load};
 use sienna_amm_shared::{
-    ContractInstantiationInfo,ExchangeSettings, ExchangeSettingsStored,
+    ExchangeSettings,
     TokenPair, TokenPairStored, TokenTypeStored, Pagination, Exchange,
-    ExchangeStored
+    ExchangeStored,
+    msg::factory::InitMsg,
+    storage::{save, load},
 };
-use sienna_amm_shared::msg::factory::InitMsg;
+use std::usize;
 
 const CONFIG_KEY: &[u8] = b"config";
 const IDO_PREFIX: &[u8; 1] = b"I";
@@ -20,76 +18,69 @@ const EXCHANGES_KEY: &[u8] = b"exchanges";
 const PAGINATION_LIMIT: u8 = 30;
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct Config {
-    pub snip20_contract: ContractInstantiationInfo,
+pub(crate) struct Config<A> {
+    pub snip20_contract:   ContractInstantiationInfo,
     pub lp_token_contract: ContractInstantiationInfo,
-    pub pair_contract: ContractInstantiationInfo,
-    pub ido_contract: ContractInstantiationInfo,
-    pub exchange_settings: ExchangeSettings,
-    pub pair_count: u64,
-    pub ido_count: u64
+    pub pair_contract:     ContractInstantiationInfo,
+    pub ido_contract:      ContractInstantiationInfo,
+    pub exchange_settings: ExchangeSettings<A>,
+    pub pair_count:        u64,
+    pub ido_count:         u64
 }
-
-#[derive(Serialize, Deserialize)]
-struct ConfigStored {
-    pub snip20_contract: ContractInstantiationInfo,
-    pub lp_token_contract: ContractInstantiationInfo,
-    pub pair_contract: ContractInstantiationInfo,
-    pub ido_contract: ContractInstantiationInfo,
-    pub exchange_settings: ExchangeSettingsStored,
-    pub pair_count: u64,
-    pub ido_count: u64
-}
-
-impl Config {
+impl Config<HumanAddr> {
     pub fn from_init_msg(msg: InitMsg) -> Self {
         Self {
-            snip20_contract: msg.snip20_contract,
+            snip20_contract:   msg.snip20_contract,
             lp_token_contract: msg.lp_token_contract,
-            pair_contract: msg.pair_contract,
-            ido_contract: msg.ido_contract,
+            pair_contract:     msg.pair_contract,
+            ido_contract:      msg.ido_contract,
             exchange_settings: msg.exchange_settings,
-            pair_count: 0,
-            ido_count: 0
+            pair_count:        0,
+            ido_count:         0
         }
+    }
+}
+impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
+    fn canonize <A: Api> (&self, api: &A) -> StdResult<Config<CanonicalAddr>> {
+        Ok(Config {
+            snip20_contract:   self.snip20_contract.clone(),
+            lp_token_contract: self.lp_token_contract.clone(),
+            pair_contract:     self.pair_contract.clone(),
+            ido_contract:      self.ido_contract.clone(),
+            exchange_settings: self.exchange_settings.canonize(api)?,
+            pair_count:        self.pair_count,
+            ido_count:         self.ido_count
+        })
+    }
+}
+impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
+    fn humanize <A: Api> (&self, api: &A) -> StdResult<Config<HumanAddr>> {
+        Ok(Config {
+            snip20_contract:   self.snip20_contract.clone(),
+            lp_token_contract: self.lp_token_contract.clone(),
+            pair_contract:     self.pair_contract.clone(),
+            ido_contract:      self.ido_contract.clone(),
+            exchange_settings: self.exchange_settings.humanize(api)?,
+            pair_count:        self.pair_count,
+            ido_count:         self.ido_count
+        })
     }
 }
 
 /// Returns StdResult<()> resulting from saving the config to storage
 pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    config: &Config
+    deps:   &mut Extern<S, A, Q>,
+    config: &Config<HumanAddr>
 ) -> StdResult<()> {
-    let config = ConfigStored {
-        snip20_contract: config.snip20_contract.clone(),
-        lp_token_contract: config.lp_token_contract.clone(),
-        pair_contract: config.pair_contract.clone(),
-        ido_contract: config.ido_contract.clone(),
-        exchange_settings: config.exchange_settings.to_stored(&deps.api)?,
-        pair_count: config.pair_count,
-        ido_count: config.ido_count
-    };
-
-    save(&mut deps.storage, CONFIG_KEY, &config)
+    save(&mut deps.storage, CONFIG_KEY, &config.canonize(&deps.api))
 }
 
 /// Returns StdResult<Config> resulting from retrieving the config from storage
-pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Config> {
-    let result: ConfigStored = load(&deps.storage, CONFIG_KEY)?.ok_or_else(||
-        StdError::generic_err("Config doesn't exist in storage.")
-    )?;
-
-    let config = Config {
-        snip20_contract: result.snip20_contract,
-        lp_token_contract: result.lp_token_contract,
-        pair_contract: result.pair_contract,
-        ido_contract: result.ido_contract,
-        exchange_settings: result.exchange_settings.to_normal(&deps.api)?,
-        pair_count: result.pair_count,
-        ido_count: result.ido_count
-    };
-
-    Ok(config)
+pub(crate) fn load_config <S: Storage, A: Api, Q: Querier> (
+    deps: &Extern<S, A, Q>
+) -> StdResult<Config<HumanAddr>> {
+    let config: Option<Config<CanonicalAddr>> = load(&deps.storage, CONFIG_KEY)?;
+    config.ok_or(StdError::generic_err("Config doesn't exist in storage."))?.humanize(&deps.api)
 }
 
 /// Returns StdResult<bool> indicating whether a pair has been created before or not.
@@ -106,8 +97,8 @@ pub(crate) fn pair_exists<S: Storage, A: Api, Q: Querier>(
 /// Stores information about an exchange contract. Returns an `StdError` if the exchange
 /// already exists or if something else goes wrong.
 pub(crate) fn store_exchange<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    pair: &TokenPair,
+    deps:    &mut Extern<S, A, Q>,
+    pair:    &TokenPair,
     address: &HumanAddr
 ) -> StdResult<()> {
     let canonical = deps.api.canonical_address(&address)?;
@@ -151,9 +142,9 @@ pub(crate) fn get_address_for_pair<S: Storage, A: Api, Q: Querier>(
 }
 
 pub(crate) fn store_ido_address<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+    deps:    &mut Extern<S, A, Q>,
     address: &HumanAddr,
-    config: &mut Config
+    config:  &mut Config<HumanAddr>
 ) -> StdResult<()> {
     let address = deps.api.canonical_address(&address)?;
     let index = generate_ido_index(&config.ido_count);
@@ -165,8 +156,8 @@ pub(crate) fn store_ido_address<S: Storage, A: Api, Q: Querier>(
 }
 
 pub(crate) fn get_idos<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    config: &Config,
+    deps:       &Extern<S, A, Q>,
+    config:     &Config<HumanAddr>,
     pagination: Pagination
 ) -> StdResult<Vec<HumanAddr>> {
     if pagination.start >= config.ido_count {
@@ -207,7 +198,7 @@ pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
     let mut result = Vec::with_capacity((end - pagination.start) as usize);
 
     for exchange in exchanges.drain((pagination.start as usize)..(end as usize)).collect::<Vec<ExchangeStored>>() {
-        result.push(exchange.to_normal(&deps.api)?)
+        result.push(exchange.humanize(&deps.api)?)
     }
 
     Ok(result)
@@ -275,7 +266,7 @@ mod tests {
         }
     }
 
-    fn mock_config() -> Config {
+    fn mock_config() -> Config<HumanAddr> {
         Config::from_init_msg(InitMsg {
             snip20_contract: ContractInstantiationInfo {
                 id: 1,

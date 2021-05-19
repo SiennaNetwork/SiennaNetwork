@@ -417,7 +417,7 @@ fn swap<S: Storage, A: Api, Q: Querier>(
 
 fn query_pool_amount<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    config: Config
+    config: Config<HumanAddr>
 ) -> QueryResult {
     let result = config.pair.query_balances(&deps.querier, config.contract_addr, config.viewing_key.0)?;
 
@@ -431,7 +431,7 @@ fn query_pool_amount<S: Storage, A: Api, Q: Querier>(
 }
 
 fn query_pair_info(
-    config: Config
+    config: Config<HumanAddr>
 ) -> QueryResult {
     to_binary(&QueryMsgResponse::PairInfo{
         pair: config.pair,
@@ -457,7 +457,7 @@ fn query_liquidity(querier: &impl Querier, lp_token_info: &ContractInfo) -> StdR
 
 fn swap_simulation<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    mut config: Config,
+    mut config: Config<HumanAddr>,
     offer: TokenTypeAmount
 ) -> QueryResult {
     let settings = query_exchange_settings(&deps.querier, config.factory_info.clone())?;
@@ -533,7 +533,7 @@ fn try_register_custom_token(
 
 fn do_swap<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    config: &mut Config,
+    config: &mut Config<HumanAddr>,
     offer: &TokenTypeAmount,
     fee: Fee,
     is_simulation: bool
@@ -668,7 +668,10 @@ fn assert_slippage_tolerance(
     Ok(())
 }
 
-fn query_exchange_settings(querier: &impl Querier, factory: ContractInfo) -> StdResult<ExchangeSettings> {
+fn query_exchange_settings (
+    querier: &impl Querier,
+    factory: ContractInfo
+) -> StdResult<ExchangeSettings<HumanAddr>> {
     let result: FactoryResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         callback_code_hash: factory.code_hash,
         contract_addr: factory.address,

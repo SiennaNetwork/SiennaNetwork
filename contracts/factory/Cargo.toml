@@ -37,9 +37,12 @@ schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
 
-cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-schema  = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 
-fadroma-scrt-migrate = { path = "../../libraries/fadroma/scrt-migrate" }
-sienna-amm-shared = { path = "../../libraries/amm-shared" }
+fadroma-scrt-addr     = { path = "../../libraries/fadroma/scrt-addr" }
+fadroma-scrt-callback = { path = "../../libraries/fadroma/scrt-callback" }
+fadroma-scrt-migrate  = { path = "../../libraries/fadroma/scrt-migrate" }
+fadroma-scrt-storage  = { path = "../../libraries/fadroma/scrt-storage" }
+sienna-amm-shared     = { path = "../../libraries/amm-shared" }

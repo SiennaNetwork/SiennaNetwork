@@ -3,13 +3,13 @@ use cosmwasm_std::{
     InitResponse, Querier, StdError, StdResult, Storage, Uint128, log
 };
 use sienna_amm_shared::msg::sienna_burner::{HandleMsg, InitMsg, QueryAnswer, QueryMsg, ResponseStatus};
-use sienna_amm_shared::ContractInfo;
 use sienna_amm_shared::snip20;
 use sienna_amm_shared::admin::require_admin;
 use sienna_amm_shared::admin::multi_admin::{
     assert_admin, save_admins, multi_admin_handle,
     multi_admin_query, DefaultHandleImpl, DefaultQueryImpl
 };
+use fadroma_scrt_callback::ContractInstance;
 
 use crate::state::*;
 use fadroma_scrt_migrate::{is_operational, can_set_status, set_status, get_status};
@@ -146,7 +146,7 @@ fn set_burn_pool<S: Storage, A: Api, Q: Querier>(
 fn set_token<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    info: ContractInfo,
+    info: ContractInstance<HumanAddr>,
 ) -> StdResult<HandleResponse> {
     save_token_info(deps, &info)?;
 
@@ -196,7 +196,7 @@ mod tests {
         let mut deps = mock_dependencies(20, &[]);
 
         let msg = InitMsg {
-            sienna_token: ContractInfo {
+            sienna_token: ContractInstance {
                 address: "sienna_token".into(),
                 code_hash: "sienna_token_hash".into()
             },
@@ -220,7 +220,7 @@ mod tests {
 
     #[test]
     fn test_proper_init() -> StdResult<()> {
-        let sienna_token = ContractInfo {
+        let sienna_token = ContractInstance {
             address: "sienna_token".into(),
             code_hash: "sienna_token_hash".into()
         };
@@ -492,7 +492,7 @@ mod tests {
     fn test_set_sienna_token() -> StdResult<()> {
         let ref mut deps = initialize(None, None)?;
         
-        let token = ContractInfo {
+        let token = ContractInstance {
             address: "new_token".into(),
             code_hash: "new_token_hash".into()
         };

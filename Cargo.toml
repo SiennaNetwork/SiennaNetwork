@@ -9,6 +9,7 @@ members = [
 
   "libraries/amm-shared",           # definitions that are shared between AMM and IDO
   "libraries/fadroma/scrt-migrate", # pause contracts and mark them for upgrade
+  "libraries/fadroma/scrt-utils",   # grab bag of utility functions
   "libraries/fadroma/scrt-admin/composable-admin", # proc macro for `require_admin` attribute
   "libraries/fadroma/scrt-admin/require-admin"     # implementation of admin check
 ]
