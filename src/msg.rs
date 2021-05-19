@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::{HumanAddr, Binary, Uint128, Decimal};
 
 use crate::{TokenPair, TokenType, TokenTypeAmount, TokenPairAmount};
-use cosmwasm_utils::{ContractInfo, ContractInstantiationInfo, Callback};
+
+use fadroma_scrt_callback::{ContractInstantiationInfo, ContractInstance, Callback};
 use fadroma_scrt_migrate::types::ContractStatusLevel;
 
 pub mod factory {
@@ -14,11 +15,11 @@ pub mod factory {
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
     pub struct InitMsg {
-        pub snip20_contract: ContractInstantiationInfo,
+        pub snip20_contract:   ContractInstantiationInfo,
         pub lp_token_contract: ContractInstantiationInfo,
-        pub pair_contract: ContractInstantiationInfo,
-        pub ido_contract: ContractInstantiationInfo,
-        pub exchange_settings: ExchangeSettings
+        pub pair_contract:     ContractInstantiationInfo,
+        pub ido_contract:      ContractInstantiationInfo,
+        pub exchange_settings: ExchangeSettings<HumanAddr>
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -81,7 +82,7 @@ pub mod factory {
             exchanges: Vec<Exchange>
         },
         GetExchangeSettings {
-            settings: ExchangeSettings
+            settings: ExchangeSettings<HumanAddr>
         }
     }
 }
@@ -97,8 +98,8 @@ pub mod exchange {
         pub lp_token_contract: ContractInstantiationInfo,
         /// Used by the exchange contract to
         /// send back its address to the factory on init
-        pub factory_info: ContractInfo,
-        pub callback: Callback
+        pub factory_info: ContractInstance<HumanAddr>,
+        pub callback: Callback<HumanAddr>
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -150,9 +151,9 @@ pub mod exchange {
     pub enum QueryMsgResponse {
         PairInfo {
             pair: TokenPair,
-            liquidity_token: ContractInfo
+            liquidity_token: ContractInstance<HumanAddr>
         },
-        FactoryInfo(ContractInfo),
+        FactoryInfo(ContractInstance<HumanAddr>),
         Pool(TokenPairAmount)
     }
 
@@ -173,7 +174,7 @@ pub mod ido {
         pub snip20_contract: ContractInstantiationInfo,
         pub info: IdoInitConfig,
         /// Used by the IDO to register itself with the factory.
-        pub callback: Callback
+        pub callback: Callback<HumanAddr>
     }
     
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -247,7 +248,7 @@ pub mod sienna_burner {
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct InitMsg {
         /// SIENNA token
-        pub sienna_token: ContractInfo,
+        pub sienna_token: ContractInstance<HumanAddr>,
         pub pairs: Option<Vec<HumanAddr>>,
         /// The account to burn SIENNA from
         pub burn_pool: HumanAddr,
@@ -262,25 +263,15 @@ pub mod sienna_burner {
     pub enum HandleMsg {
         /// Set pause/migration status
         SetStatus {
-            level: ContractStatusLevel,
-            reason: String,
+            level:       ContractStatusLevel,
+            reason:      String,
             new_address: Option<HumanAddr>
         },
-        Burn {
-            amount: Uint128
-        },
-        AddPairs {
-            pairs: Vec<HumanAddr>,
-        },
-        RemovePairs {
-            pairs: Vec<HumanAddr>,
-        },
-        SetBurnPool {
-            address: HumanAddr
-        },
-        SetSiennaToken {
-            info: ContractInfo
-        },
+        Burn           { amount: Uint128 },
+        AddPairs       { pairs: Vec<HumanAddr>, },
+        RemovePairs    { pairs: Vec<HumanAddr>, },
+        SetBurnPool    { address: HumanAddr },
+        SetSiennaToken { info: ContractInstance<HumanAddr> },
         Admin(MultiAdminHandleMsg),
     }
     
@@ -297,12 +288,8 @@ pub mod sienna_burner {
     #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryAnswer {
-        SiennaToken { 
-            info: ContractInfo 
-        },
-        BurnPool { 
-            address: HumanAddr
-        },
+        SiennaToken { info: ContractInstance<HumanAddr> },
+        BurnPool { address: HumanAddr },
         Admin(MultiAdminQueryResponse)
     }
     
@@ -326,7 +313,7 @@ pub mod snip20 {
         pub initial_balances: Option<Vec<Snip20InitialBalance>>,
         pub prng_seed: Binary,
         pub config: Option<Snip20InitConfig>,
-        pub callback: Option<Callback>
+        pub callback: Option<Callback<HumanAddr>>
     }
     
     #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]

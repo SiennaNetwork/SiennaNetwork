@@ -13,8 +13,10 @@ snafu = { version = "0.6.3" }
 
 cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-utils = { git = "https://github.com/hackbg/cosmwasm-utils", rev = "949116e" }
 secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
 
-composable-admin = { path = "../fadroma/scrt-admin/composable-admin" }
-fadroma-scrt-migrate = { path = "../fadroma/scrt-migrate" }
+composable-admin      = { path = "../fadroma/scrt-admin/composable-admin" }
+cosmwasm-utils        = { path = "../fadroma/scrt-utils" }
+fadroma-scrt-addr     = { path = "../fadroma/scrt-addr" }
+fadroma-scrt-callback = { path = "../fadroma/scrt-callback" }
+fadroma-scrt-migrate  = { path = "../fadroma/scrt-migrate" }
