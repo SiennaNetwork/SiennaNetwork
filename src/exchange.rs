@@ -1,5 +1,5 @@
 use cosmwasm_std::{HumanAddr, StdResult, Api, CanonicalAddr};
-use crate::data::{TokenPair, TokenPairStored};
+use crate::token_pair::{TokenPair, TokenPairStored};
 use fadroma_scrt_addr::{Humanize, Canonize};
 use fadroma_scrt_callback::ContractInstance;
 use schemars::JsonSchema;
@@ -76,4 +76,13 @@ impl ExchangeSettings<CanonicalAddr> {
 pub struct Fee {
     pub nom: u8,
     pub denom: u16
+}
+
+impl Fee {
+    pub fn new(nom: u8, denom: u16) -> Self {
+        Self {
+            nom,
+            denom
+        }
+    }
 }
