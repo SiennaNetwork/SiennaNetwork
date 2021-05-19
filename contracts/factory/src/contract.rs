@@ -1,6 +1,6 @@
 use cosmwasm_std::{
     Api, Binary, CosmosMsg, Env, Extern, HandleResponse, InitResponse,
-    Querier, StdError, StdResult, Storage, WasmMsg, log, to_binary
+    Querier, StdError, StdResult, Storage, WasmMsg, log, to_binary, HumanAddr
 };
 use sienna_amm_shared::{
     TokenPair, Pagination, msg::{
@@ -11,7 +11,8 @@ use sienna_amm_shared::{
     }
 };
 
-use fadroma_scrt_callback::{ContractInstantiationInfo, ContractInstance, Callback};
+use composable_admin::{require_admin};
+use fadroma_scrt_callback::{ContractInstance, Callback};
 use fadroma_scrt_storage::{load, save, remove};
 
 use crate::state::{
@@ -39,10 +40,12 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     with_status!(deps, env, match msg {
-        HandleMsg::CreateExchange { pair } => create_exchange(deps, env, pair),
-        HandleMsg::CreateIdo { info } => create_ido(deps, env, info),
-        HandleMsg::RegisterExchange { pair, signature } => register_exchange(deps, env, pair, signature),
-        HandleMsg::RegisterIdo { signature } => register_ido(deps, env, signature)
+        HandleMsg::SetConfig { .. }            => set_config(deps, env, msg),
+        HandleMsg::CreateExchange { pair }     => create_exchange(deps, env, pair),
+        HandleMsg::CreateIdo { info }          => create_ido(deps, env, info),
+        HandleMsg::RegisterExchange { pair, signature } =>
+            register_exchange(deps, env, pair, signature),
+        HandleMsg::RegisterIdo { signature }   => register_ido(deps, env, signature)
     })
 }
 
@@ -51,12 +54,49 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Status => to_binary(&get_status(deps)?),
-        QueryMsg::GetExchangeAddress { pair } => query_exchange_address(deps, pair),
+        QueryMsg::Status                       => to_binary(&get_status(deps)?),
+        QueryMsg::GetConfig {}                 => get_config(deps),
+        QueryMsg::GetExchangeAddress { pair }  => query_exchange_address(deps, pair),
         QueryMsg::ListExchanges { pagination } => list_exchanges(deps, pagination),
-        QueryMsg::ListIdos { pagination } => list_idos(deps, pagination),
-        QueryMsg::GetExchangeSettings => query_exchange_settings(deps)
+        QueryMsg::ListIdos { pagination }      => list_idos(deps, pagination),
+        QueryMsg::GetExchangeSettings          => query_exchange_settings(deps)
     }
+}
+
+#[require_admin]
+pub fn set_config<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env:  Env,
+    msg:  HandleMsg
+) -> StdResult<HandleResponse> {
+    if let HandleMsg::SetConfig {
+        snip20_contract, lp_token_contract, pair_contract, ido_contract,
+        exchange_settings
+    } = msg {
+        let mut config = load_config(deps)?;
+        if let Some(new_value) = snip20_contract   { config.snip20_contract   = new_value; }
+        if let Some(new_value) = lp_token_contract { config.lp_token_contract = new_value; }
+        if let Some(new_value) = pair_contract     { config.pair_contract     = new_value; }
+        if let Some(new_value) = ido_contract      { config.ido_contract      = new_value; }
+        if let Some(new_value) = exchange_settings { config.exchange_settings = new_value; }
+        save_config(deps, &config)?;
+        Ok(HandleResponse::default())
+    } else {
+        unreachable!()
+    }
+}
+
+pub fn get_config<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+) -> StdResult<Binary> {
+    let Config::<HumanAddr> {
+        snip20_contract, lp_token_contract, pair_contract, ido_contract,
+        exchange_settings, ..
+    } = load_config(deps)?;
+    to_binary(&QueryResponse::Config {
+        snip20_contract, lp_token_contract, pair_contract, ido_contract,
+        exchange_settings
+    })
 }
 
 pub fn create_exchange<S: Storage, A: Api, Q: Querier>(
