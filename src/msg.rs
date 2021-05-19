@@ -31,6 +31,14 @@ pub mod factory {
             reason: String,
             new_address: Option<HumanAddr>
         },
+        /// Set contract templates and exchange settings
+        SetConfig {
+            snip20_contract:   Option<ContractInstantiationInfo>,
+            lp_token_contract: Option<ContractInstantiationInfo>,
+            pair_contract:     Option<ContractInstantiationInfo>,
+            ido_contract:      Option<ContractInstantiationInfo>,
+            exchange_settings: Option<ExchangeSettings<HumanAddr>>
+        },
         /// Instantiates an exchange pair contract
         CreateExchange {
             pair: TokenPair
@@ -57,15 +65,11 @@ pub mod factory {
     pub enum QueryMsg {
         /// Get pause/migration status
         Status,
-        GetExchangeAddress {
-            pair: TokenPair
-        },
-        ListIdos {
-            pagination: Pagination
-        },
-        ListExchanges {
-            pagination: Pagination
-        },
+        /// Get configuration (contract templates and exchange settings)
+        GetConfig {},
+        GetExchangeAddress { pair: TokenPair },
+        ListIdos { pagination: Pagination },
+        ListExchanges { pagination: Pagination },
         GetExchangeSettings
     }
 
@@ -83,6 +87,13 @@ pub mod factory {
         },
         GetExchangeSettings {
             settings: ExchangeSettings<HumanAddr>
+        },
+        Config {
+            snip20_contract:   ContractInstantiationInfo,
+            lp_token_contract: ContractInstantiationInfo,
+            pair_contract:     ContractInstantiationInfo,
+            ido_contract:      ContractInstantiationInfo,
+            exchange_settings: ExchangeSettings<HumanAddr>
         }
     }
 }
