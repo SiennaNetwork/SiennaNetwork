@@ -1,4 +1,3 @@
-use std::fmt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use cosmwasm_std::{HumanAddr, Binary, Uint128, Decimal};
@@ -235,17 +234,6 @@ pub mod ido {
     pub enum QueryMsgResponse {
         GetRate { 
             rate: Uint128 
-        }
-    }
-
-    impl fmt::Display for IdoInitConfig {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(
-                f,
-                "Input token: {}, Rate: {}, Created token: {}({})",
-                self.input_token, self.rate, 
-                self.snip20_init_info.name, self.snip20_init_info.symbol
-            )
         }
     }
 }

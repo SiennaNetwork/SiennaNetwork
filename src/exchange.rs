@@ -7,12 +7,13 @@ use serde::{Serialize, Deserialize};
 
 /// Represents the address of an exchange and the pair that it manages
 #[derive(Serialize, Deserialize, JsonSchema, Clone, PartialEq, Debug)]
-pub struct Exchange <A> {
+pub struct Exchange <A: Clone> {
     /// The pair that the contract manages.
     pub pair:    TokenPair<A>,
     /// Address of the contract that manages the exchange.
     pub address: A
 }
+
 impl Canonize<Exchange<CanonicalAddr>> for Exchange<HumanAddr> {
     fn canonize (&self, api: &impl Api) -> StdResult<Exchange<CanonicalAddr>> {
         Ok(Exchange {
@@ -21,8 +22,9 @@ impl Canonize<Exchange<CanonicalAddr>> for Exchange<HumanAddr> {
         })
     }
 }
+
 impl Humanize<Exchange<HumanAddr>> for Exchange<CanonicalAddr> {
-    fn humanize (self, api: &impl Api) -> StdResult<Exchange<HumanAddr>> {
+    fn humanize (&self, api: &impl Api) -> StdResult<Exchange<HumanAddr>> {
         Ok(Exchange {
             pair:    self.pair.humanize(api)?,
             address: api.human_address(&self.address)?
@@ -56,6 +58,7 @@ impl ExchangeSettings<HumanAddr> {
         })
     }
 }
+
 impl ExchangeSettings<CanonicalAddr> {
     pub fn humanize (self, api: &impl Api) -> StdResult<ExchangeSettings<HumanAddr>> {
         Ok(ExchangeSettings {

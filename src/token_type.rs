@@ -3,7 +3,6 @@ use fadroma_scrt_addr::{Canonize, Humanize};
 use schemars::JsonSchema;
 use secret_toolkit::snip20;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Display, Formatter, Result};
 
 const BLOCK_SIZE: usize = 256;
 
@@ -19,16 +18,8 @@ pub enum TokenType<A> {
         denom: String,
     },
 }
-impl<A: Display> Display for TokenType<A> {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        match self {
-            TokenType::NativeToken { denom } => write!(f, "{}", denom),
-            TokenType::CustomToken { contract_addr, .. } => write!(f, "{}", contract_addr),
-        }
-    }
-}
 impl Canonize<TokenType<CanonicalAddr>> for TokenType<HumanAddr> {
-    fn canonize <A: Api> (&self, api: &A) -> StdResult<TokenType<CanonicalAddr>> {
+    fn canonize (&self, api: &impl Api) -> StdResult<TokenType<CanonicalAddr>> {
         Ok(match self {
             Self::CustomToken { contract_addr, token_code_hash } => TokenType::CustomToken {
                 contract_addr: contract_addr.canonize(api)?,
@@ -41,7 +32,7 @@ impl Canonize<TokenType<CanonicalAddr>> for TokenType<HumanAddr> {
     }
 }
 impl Humanize<TokenType<HumanAddr>> for TokenType<CanonicalAddr> {
-    fn humanize <A: Api> (&self, api: &A) -> StdResult<TokenType<HumanAddr>> {
+    fn humanize (&self, api: &impl Api) -> StdResult<TokenType<HumanAddr>> {
         Ok(match self {
             Self::CustomToken { contract_addr, token_code_hash } => TokenType::CustomToken {
                 contract_addr: contract_addr.humanize(api)?,
@@ -57,7 +48,7 @@ impl Humanize<TokenType<HumanAddr>> for TokenType<CanonicalAddr> {
 #[deprecated(note="please use TokenType<CanonicalAddr> instead")]
 pub type TokenTypeStored = TokenType<CanonicalAddr>;
 
-impl<A> TokenType<A> {
+impl<A: Clone> TokenType<A> {
     pub fn is_native_token(&self) -> bool {
         match self {
             TokenType::NativeToken { .. } => true,

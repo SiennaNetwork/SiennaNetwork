@@ -7,13 +7,15 @@ use std::fmt;
 
 #[derive(Clone, Debug, JsonSchema)]
 pub struct TokenPair<A>(pub TokenType<A>, pub TokenType<A>);
+
 impl Canonize<TokenPair<CanonicalAddr>> for TokenPair<HumanAddr> {
-    fn canonize <A: Api> (&self, api: &A) -> StdResult<TokenPair<CanonicalAddr>> {
+    fn canonize (&self, api: &impl Api) -> StdResult<TokenPair<CanonicalAddr>> {
         Ok(TokenPair(self.0.canonize(api)?, self.1.canonize(api)?))
     }
 }
+
 impl Humanize<TokenPair<HumanAddr>> for TokenPair<CanonicalAddr> {
-    fn humanize <A: Api> (&self, api: &A) -> StdResult<TokenPair<HumanAddr>> {
+    fn humanize (&self, api: &impl Api) -> StdResult<TokenPair<HumanAddr>> {
         Ok(TokenPair(self.0.humanize(api)?, self.1.humanize(api)?))
     }
 }
@@ -26,28 +28,7 @@ pub struct TokenPairIterator<'a, A> {
     index: u8
 }
 
-impl<A> fmt::Display for TokenPair<A> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Token 1: {} \n Token 2: {}", self.0, self.1)
-    }
-}
-
-impl<A> TokenPair<A> {
-    /// Returns the balance for each token in the pair. The order of the balances in returned array
-    /// correspond to the token order in the pair i.e `[ self.0 balance, self.1 balance ]`.
-    pub fn query_balances(
-        &self,
-        querier: &impl Querier,
-        exchange_addr: HumanAddr,
-        viewing_key: String
-    ) -> StdResult<[Uint128; 2]> {
-        let amount_0 = self.0.query_balance(querier, exchange_addr.clone(), viewing_key.clone())?;
-        let amount_1 = self.1.query_balance(querier, exchange_addr, viewing_key)?;
-
-        // order is important
-        Ok([amount_0, amount_1])
-    }
-
+impl<A: Clone + PartialEq> TokenPair<A> {
     /// Returns `true` if one of the token types in the pair is the same as the argument.
     pub fn contains(&self, token: &TokenType<A>) -> bool {
         self.0 == *token || self.1 == *token
@@ -74,13 +55,30 @@ impl<A> TokenPair<A> {
     }
 }
 
-impl<A> PartialEq for TokenPair<A> {
+impl TokenPair<HumanAddr> {
+    /// Returns the balance for each token in the pair. The order of the balances in returned array
+    /// correspond to the token order in the pair i.e `[ self.0 balance, self.1 balance ]`.
+    pub fn query_balances(
+        &self,
+        querier: &impl Querier,
+        exchange_addr: HumanAddr,
+        viewing_key: String
+    ) -> StdResult<[Uint128; 2]> {
+        let amount_0 = self.0.query_balance(querier, exchange_addr.clone(), viewing_key.clone())?;
+        let amount_1 = self.1.query_balance(querier, exchange_addr, viewing_key)?;
+
+        // order is important
+        Ok([amount_0, amount_1])
+    }
+}
+
+impl<A: PartialEq> PartialEq for TokenPair<A> {
     fn eq(&self, other: &TokenPair<A>) -> bool {
         (self.0 == other.0 || self.0 == other.1) && (self.1 == other.0 || self.1 == other.1)
     }
 }
 
-impl<'a, A> IntoIterator for &'a TokenPair<A> {
+impl<'a, A: Clone> IntoIterator for &'a TokenPair<A> {
     type Item = &'a TokenType<A>;
     type IntoIter = TokenPairIterator<'a, A>;
     fn into_iter(self) -> Self::IntoIter {
@@ -88,7 +86,7 @@ impl<'a, A> IntoIterator for &'a TokenPair<A> {
     }
 }
 
-impl<'a, A> Iterator for TokenPairIterator<'a, A> {
+impl<'a, A: Clone> Iterator for TokenPairIterator<'a, A> {
     type Item = &'a TokenType<A>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -106,7 +104,7 @@ impl<'a, A> Iterator for TokenPairIterator<'a, A> {
 
 // These are only used for serde, because it doesn't work with struct tuples.
 #[derive(Serialize, Deserialize)]
-struct TokenPairSerde<A> {
+struct TokenPairSerde<A: Clone> {
     token_0: TokenType<A>,
     token_1: TokenType<A>,
 }
@@ -114,7 +112,7 @@ struct TokenPairSerde<A> {
 #[deprecated(note="please use TokenPairStoredSerde<CanonicalAddr> instead")]
 pub type TokenPairStoredSerde = TokenPairSerde<CanonicalAddr>;
 
-impl<A> Serialize for TokenPair<A> {
+impl<A: Clone + Serialize> Serialize for TokenPair<A> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -123,7 +121,7 @@ impl<A> Serialize for TokenPair<A> {
     }
 }
 
-impl<'de, A> Deserialize<'de> for TokenPair<A> {
+impl<'de, A: Deserialize<'de> + Clone> Deserialize<'de> for TokenPair<A> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -139,7 +137,7 @@ mod tests {
 
     #[test]
     fn token_pair_equality() {
-        let pair = TokenPair(
+        let pair: TokenPair<HumanAddr> = TokenPair(
             TokenType::CustomToken {
                 contract_addr: "address".into(),
                 token_code_hash: "hash".into()

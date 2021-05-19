@@ -1,13 +1,8 @@
-use cosmwasm_std::{
-    Api, CanonicalAddr, HumanAddr, Querier, StdResult, Env,
-    Uint128, CosmosMsg, WasmMsg, BankMsg, Coin, to_binary, StdError
-};
-use cosmwasm_utils::{ContractInfo, ContractInfoStored};
+use cosmwasm_std::{HumanAddr, StdResult, Uint128, CosmosMsg, WasmMsg, BankMsg, Coin, to_binary};
 use crate::token_type::TokenType;
 use schemars::JsonSchema;
 use secret_toolkit::snip20;
-use serde::{Deserialize, Serialize, Deserializer, Serializer};
-use std::fmt;
+use serde::{Serialize, Deserialize};
 
 const BLOCK_SIZE: usize = 256;
 
@@ -17,8 +12,8 @@ pub struct Pagination {
     pub limit: u8
 }
 
-pub fn create_send_msg <A> (
-    token:     &TokenType<A>,
+pub fn create_send_msg (
+    token:     &TokenType<HumanAddr>,
     sender:    HumanAddr,
     recipient: HumanAddr,
     amount:    Uint128

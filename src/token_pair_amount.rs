@@ -5,20 +5,13 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct TokenPairAmount<A> {
+pub struct TokenPairAmount<A: Clone> {
     pub pair:     TokenPair<A>,
     pub amount_0: Uint128,
     pub amount_1: Uint128
 }
-impl fmt::Display for TokenPairAmount<HumanAddr> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f, "Token 1: {} {} \n Token 2: {} {}",
-            self.pair.0, self.amount_0, self.pair.1, self.amount_1
-        )
-    }
-}
-impl<A> TokenPairAmount<A> {
+
+impl<A: Clone> TokenPairAmount<A> {
     pub fn assert_sent_native_token_balance(&self, env: &Env) -> StdResult<()> {
         self.pair.0.assert_sent_native_token_balance(env, self.amount_0)?;
         self.pair.1.assert_sent_native_token_balance(env, self.amount_1)?;
@@ -26,7 +19,8 @@ impl<A> TokenPairAmount<A> {
         Ok(())
     }
 }
-impl<'a, A> IntoIterator for &'a TokenPairAmount<A> {
+
+impl<'a, A: Clone> IntoIterator for &'a TokenPairAmount<A> {
     type Item = (Uint128, &'a TokenType<A>);
     type IntoIter = TokenPairAmountIterator<'a, A>;
     fn into_iter(self) -> Self::IntoIter {
@@ -37,11 +31,12 @@ impl<'a, A> IntoIterator for &'a TokenPairAmount<A> {
     }
 }
 
-pub struct TokenPairAmountIterator<'a, A> {
+pub struct TokenPairAmountIterator<'a, A: Clone> {
     pair: &'a TokenPairAmount<A>,
     index: u8
 }
-impl<'a, A> Iterator for TokenPairAmountIterator<'a, A> {
+
+impl<'a, A: Clone> Iterator for TokenPairAmountIterator<'a, A> {
     type Item = (Uint128, &'a TokenType<A>);
     fn next(&mut self) -> Option<Self::Item> {
         let result = match self.index {
