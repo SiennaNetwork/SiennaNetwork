@@ -41,7 +41,7 @@ pub mod factory {
         },
         /// Instantiates an exchange pair contract
         CreateExchange {
-            pair: TokenPair
+            pair: TokenPair<HumanAddr>
         },
         /// Instantiates an IDO contract
         CreateIdo {
@@ -50,7 +50,7 @@ pub mod factory {
         /// Used by a newly instantiated exchange contract to register
         /// itself with the factory
         RegisterExchange {
-            pair: TokenPair,
+            pair: TokenPair<HumanAddr>,
             signature: Binary
         },
         /// Used by a newly instantiated IDO contract to register
@@ -67,7 +67,7 @@ pub mod factory {
         Status,
         /// Get configuration (contract templates and exchange settings)
         GetConfig {},
-        GetExchangeAddress { pair: TokenPair },
+        GetExchangeAddress { pair: TokenPair<HumanAddr> },
         ListIdos { pagination: Pagination },
         ListExchanges { pagination: Pagination },
         GetExchangeSettings
@@ -83,7 +83,7 @@ pub mod factory {
             idos: Vec<HumanAddr>
         },
         ListExchanges {
-            exchanges: Vec<Exchange>
+            exchanges: Vec<Exchange<HumanAddr>>
         },
         GetExchangeSettings {
             settings: ExchangeSettings<HumanAddr>
@@ -104,7 +104,7 @@ pub mod exchange {
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
     pub struct InitMsg {
         /// The tokens that will be managed by the exchange
-        pub pair: TokenPair,
+        pub pair: TokenPair<HumanAddr>,
         /// LP token instantiation info
         pub lp_token_contract: ContractInstantiationInfo,
         /// Used by the exchange contract to
@@ -123,7 +123,7 @@ pub mod exchange {
             new_address: Option<HumanAddr>
         },
         AddLiquidity {
-            deposit: TokenPairAmount,
+            deposit: TokenPairAmount<HumanAddr>,
             /// The amount the price moves in a trading pair between when a transaction is submitted and when it is executed.
             /// Transactions that exceed this threshold will be rejected.
             slippage_tolerance: Option<Decimal>
@@ -136,7 +136,7 @@ pub mod exchange {
         },
         Swap {
             /// The token type to swap from.
-            offer: TokenTypeAmount,
+            offer: TokenTypeAmount<HumanAddr>,
             expected_return: Option<Uint128>,
         },
         /// Sent by the LP token contract so that we can record its address.
@@ -153,7 +153,7 @@ pub mod exchange {
         Pool,
         SwapSimulation {
             /// The token type to swap from.
-            offer: TokenTypeAmount
+            offer: TokenTypeAmount<HumanAddr>
         }
     }
 
@@ -161,11 +161,11 @@ pub mod exchange {
     #[serde(rename_all = "snake_case")]
     pub enum QueryMsgResponse {
         PairInfo {
-            pair: TokenPair,
+            pair: TokenPair<HumanAddr>,
             liquidity_token: ContractInstance<HumanAddr>
         },
         FactoryInfo(ContractInstance<HumanAddr>),
-        Pool(TokenPairAmount)
+        Pool(TokenPairAmount<HumanAddr>)
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -191,7 +191,7 @@ pub mod ido {
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct IdoInitConfig {
         /// The token that will be used to buy the instantiated SNIP20
-        pub input_token: TokenType,
+        pub input_token: TokenType<HumanAddr>,
         pub rate: Uint128,
         pub snip20_init_info: Snip20TokenInitInfo
     }

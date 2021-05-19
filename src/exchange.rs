@@ -1,5 +1,5 @@
 use cosmwasm_std::{HumanAddr, StdResult, Api, CanonicalAddr};
-use crate::token_pair::{TokenPair, TokenPairStored};
+use crate::token_pair::TokenPair;
 use fadroma_scrt_addr::{Humanize, Canonize};
 use fadroma_scrt_callback::ContractInstance;
 use schemars::JsonSchema;
@@ -7,33 +7,31 @@ use serde::{Serialize, Deserialize};
 
 /// Represents the address of an exchange and the pair that it manages
 #[derive(Serialize, Deserialize, JsonSchema, Clone, PartialEq, Debug)]
-pub struct Exchange {
+pub struct Exchange <A> {
     /// The pair that the contract manages.
-    pub pair:    TokenPair,
+    pub pair:    TokenPair<A>,
     /// Address of the contract that manages the exchange.
-    pub address: HumanAddr
+    pub address: A
 }
-impl Exchange {
-    pub fn canonize (&self, api: &impl Api) -> StdResult<ExchangeStored> {
-        Ok(ExchangeStored {
-            pair: self.pair.to_stored(api)?,
-            address: api.canonical_address(&self.address)?
+impl Canonize<Exchange<CanonicalAddr>> for Exchange<HumanAddr> {
+    fn canonize (&self, api: &impl Api) -> StdResult<Exchange<CanonicalAddr>> {
+        Ok(Exchange {
+            pair:    self.pair.canonize(api)?,
+            address: self.address.canonize(api)?
         })
     }
 }
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ExchangeStored {
-    pub pair:    TokenPairStored,
-    pub address: CanonicalAddr
-}
-impl ExchangeStored {
-    pub fn humanize (self, api: &impl Api) -> StdResult<Exchange> {
+impl Humanize<Exchange<HumanAddr>> for Exchange<CanonicalAddr> {
+    fn humanize (self, api: &impl Api) -> StdResult<Exchange<HumanAddr>> {
         Ok(Exchange {
-            pair: self.pair.to_normal(api)?,
+            pair:    self.pair.humanize(api)?,
             address: api.human_address(&self.address)?
         })
     }
 }
+
+#[deprecated(note="please use Exchange<CanonicalAddr> instead")]
+pub type ExchangeStored = Exchange<CanonicalAddr>;
 
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
 pub struct ExchangeSettings<A> {

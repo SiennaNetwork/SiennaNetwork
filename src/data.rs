@@ -17,8 +17,8 @@ pub struct Pagination {
     pub limit: u8
 }
 
-pub fn create_send_msg(
-    token:     &TokenType,
+pub fn create_send_msg <A> (
+    token:     &TokenType<A>,
     sender:    HumanAddr,
     recipient: HumanAddr,
     amount:    Uint128
