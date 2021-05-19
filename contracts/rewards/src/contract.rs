@@ -1,5 +1,3 @@
-use std::u128;
-
 use cosmwasm_std::{
     Api, Binary, Env, Extern, HandleResponse, HumanAddr, InitResponse,
     Querier, StdResult, Storage, Uint128, StdError, log, to_binary
@@ -21,9 +19,10 @@ use crate::msg::{
 };
 use crate::state::{
     save_config, Config, add_pools, get_pool, get_account, save_account,
-    save_pool, delete_account, load_config, load_pools
+    get_or_create_account, save_pool, delete_account, load_config, load_pools,
+    get_inactive_pool
 };
-use crate::data::RewardPool;
+use crate::data::{RewardPool, Account};
 use crate::auth::AuthImpl;
 
 const BLOCK_SIZE: usize = 256;
@@ -119,7 +118,7 @@ fn lock_tokens<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     let mut pool = get_pool_or_fail(deps, &lp_token_addr)?;
 
-    let mut account = get_account(deps, &env.message.sender, &lp_token_addr)?;
+    let mut account = get_or_create_account(deps, &env.message.sender, &lp_token_addr)?;
 
     account.locked_amount = 
         account.locked_amount.checked_add(amount.u128())
@@ -160,14 +159,10 @@ fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
     amount: Uint128,
     lp_token_addr: HumanAddr
 ) -> StdResult<HandleResponse> {
-    let mut pool = get_pool_or_fail(deps, &lp_token_addr)?;
-
-    let mut account = get_account(deps, &env.message.sender, &lp_token_addr)?;
+    let mut account = get_account_or_fail(deps, &env.message.sender, &lp_token_addr)?;
 
     account.locked_amount = account.locked_amount.checked_sub(amount.u128())
         .ok_or_else(|| StdError::generic_err("Insufficient balance."))?;
-
-    pool.size = pool.size.saturating_sub(amount.u128());
 
     if account.locked_amount == 0 {
         delete_account(deps, &account)?;
@@ -175,7 +170,18 @@ fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
         save_account(deps, &account)?;
     }
 
-    save_pool(deps, &pool)?;
+    let pool = if let Some(mut p) = get_pool(deps, &lp_token_addr)? {
+        p.size = p.size.saturating_sub(amount.u128());
+        save_pool(deps, &p)?;
+
+        Some(p)
+    } else {
+        get_inactive_pool(deps, &lp_token_addr)?
+    }.ok_or_else(||
+        StdError::generic_err(
+            format!("Pool {} doesn't exist.", lp_token_addr)
+        )
+    )?;
     
     Ok(HandleResponse{
         messages: vec![
@@ -211,11 +217,7 @@ fn claim<S: Storage, A: Api, Q: Querier>(
 
     for addr in lp_tokens {
         let pool = get_pool_or_fail(deps, &addr)?;
-        let mut account = get_account(deps, &env.message.sender, &addr)?;
-
-        if account.locked_amount == 0 {
-            return Err(StdError::generic_err(format!("This account has no tokens locked in {}", addr)));
-        }
+        let mut account = get_account_or_fail(deps, &env.message.sender, &addr)?;
 
         let reward_amount = calc_reward_share(
             account.locked_amount,
@@ -296,7 +298,7 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
 
     for addr in lp_tokens {
         let pool = get_pool_or_fail(deps, &addr)?;
-        let account = get_account(deps, &sender, &addr)?;
+        let account = get_or_create_account(deps, &sender, &addr)?;
 
         if account.locked_amount == 0 {
             results.push(ClaimResult::error(addr, ClaimError::AccountZeroLocked));
@@ -386,7 +388,7 @@ fn query_accounts<S: Storage, A: Api, Q: Querier>(
     let mut result = Vec::with_capacity(lp_tokens.len());
 
     for addr in lp_tokens {
-        let account = get_account(deps, &address, &addr)?;
+        let account = get_or_create_account(deps, &address, &addr)?;
         result.push(account);
     }
 
@@ -427,9 +429,24 @@ fn get_pool_or_fail<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: &HumanAddr
 ) -> StdResult<RewardPool> { 
-    get_pool(deps, &address)?.ok_or_else(||
+    get_pool(deps, address)?.ok_or_else(||
         StdError::generic_err(format!(
             "LP token {} is not eligible for rewards.", address
+        ))
+    )
+}
+
+#[inline]
+fn get_account_or_fail<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    address: &HumanAddr,
+    lp_token: &HumanAddr
+) -> StdResult<Account> { 
+    get_account(deps, address, lp_token)?.ok_or_else(||
+        StdError::generic_err(format!(
+            "No account for {} exists for address {}.",
+            address,
+            lp_token
         ))
     )
 }

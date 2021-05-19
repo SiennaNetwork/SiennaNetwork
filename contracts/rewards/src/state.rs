@@ -14,6 +14,7 @@ use crate::msg::OVERFLOW_MSG;
 const CONFIG_KEY: &[u8] = b"config";
 const POOLS_KEY: &[u8] = b"pools";
 const POOL_INDEX: &[u8] = b"pools_index";
+const INACTIVE_POOLS_KEY: &[u8] = b"inactive_pools";
 const ACCOUNTS_KEY: &[u8] = b"accounts";
 
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
@@ -130,29 +131,45 @@ pub(crate) fn load_pools<S: Storage, A: Api, Q: Querier>(
     Ok(result)
 }
 
-pub(crate) fn remove_pools<S: Storage, A: Api, Q: Querier>(
+pub(crate) fn set_pools_inactive<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     addresses: &Vec<HumanAddr>
 ) -> StdResult<()> {
     let mut index: Vec<CanonicalAddr> = 
         load(&mut deps.storage, POOL_INDEX)?.unwrap_or(vec![]);
 
-    // No pools stored
-    if index.len() == 0 {
-        return Ok(());
-    }
-
     for addr in addresses {
         let canonical = deps.api.canonical_address(addr)?;
 
         let pos = index
             .iter()
-            .position(|a| *a == canonical);
+            .position(|a| *a == canonical)
+            .ok_or_else(||
+                StdError::generic_err(
+                    format!("Pool {} doesn't exist in active pool index.", addr)
+                )
+            )?;
 
-        if let Some(i) = pos {
-            ns_remove(&mut deps.storage, POOLS_KEY, &canonical.as_slice());
-            index.swap_remove(i);
-        }
+        let mut pool: RewardPoolStored = 
+            ns_load(&mut deps.storage, POOLS_KEY, &canonical.as_slice())?
+            .ok_or_else(||
+                StdError::generic_err(
+                    format!("Pool {} doesn't exist in active pool index.", addr)
+                )
+            )?;
+        
+        pool.share = Uint128::zero();
+        pool.size = Uint128::zero();
+
+        ns_save(
+            &mut deps.storage,
+            INACTIVE_POOLS_KEY,
+            pool.lp_token.address.as_slice(),
+            &pool
+        )?;
+            
+        ns_remove(&mut deps.storage, POOLS_KEY, &canonical.as_slice());
+        index.swap_remove(pos);
     }
 
     save(&mut deps.storage, POOL_INDEX, &index)
@@ -166,6 +183,22 @@ pub(crate) fn get_pool<S: Storage, A: Api, Q: Querier>(
 
     let result: Option<RewardPoolStored> = 
         ns_load(&deps.storage, POOLS_KEY, address.as_slice())?;
+    
+    if let Some(pool) = result {
+        Ok(Some(pool.to_normal(&deps.api)?))
+    } else {
+        Ok(None)
+    }
+}
+
+pub(crate) fn get_inactive_pool<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    address: &HumanAddr
+) -> StdResult<Option<RewardPool>> {
+    let address = deps.api.canonical_address(address)?;
+
+    let result: Option<RewardPoolStored> = 
+        ns_load(&deps.storage, INACTIVE_POOLS_KEY, address.as_slice())?;
     
     if let Some(pool) = result {
         Ok(Some(pool.to_normal(&deps.api)?))
@@ -203,11 +236,25 @@ pub(crate) fn save_account<S: Storage, A: Api, Q: Querier>(
     )
 }
 
-pub(crate) fn get_account<S: Storage, A: Api, Q: Querier>(
+pub(crate) fn get_or_create_account<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: &HumanAddr,
     lp_token_addr: &HumanAddr
 ) -> StdResult<Account> {
+    let result: Option<Account> = get_account(deps, address, lp_token_addr)?;
+
+    if let Some(acc) = result {
+        Ok(acc)
+    } else {
+        Ok(Account::new(address.clone(), lp_token_addr.clone()))
+    }
+}
+
+pub(crate) fn get_account<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    address: &HumanAddr,
+    lp_token_addr: &HumanAddr
+) -> StdResult<Option<Account>> {
     let addr_raw = deps.api.canonical_address(&address)?;
     let lp_token_raw = deps.api.canonical_address(&lp_token_addr)?;
 
@@ -215,9 +262,9 @@ pub(crate) fn get_account<S: Storage, A: Api, Q: Querier>(
     let result: Option<AccountStored> = ns_load(&deps.storage, ACCOUNTS_KEY, &key)?;
 
     if let Some(acc) = result {
-        acc.to_normal(&deps.api)
+        Ok(Some(acc.to_normal(&deps.api)?))
     } else {
-        Ok(Account::new(address.clone(), lp_token_addr.clone()))
+        Ok(None)
     }
 }
 
