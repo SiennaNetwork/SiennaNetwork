@@ -72,39 +72,10 @@ pub struct Pagination {
     pub limit: u8
 }
 
-/// Represents the address of an exchange and the pair that it manages
-#[derive(Serialize, Deserialize, JsonSchema, Clone, PartialEq, Debug)]
-pub struct Exchange {
-    /// The pair that the contract manages.
-    pub pair: TokenPair,
-    /// Address of the contract that manages the exchange.
-    pub address: HumanAddr
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ExchangeStored {
-    pub pair: TokenPairStored,
-    pub address: CanonicalAddr
-}
-
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Clone, Copy, Debug)]
 pub struct Fee {
     pub nom: u8,
     pub denom: u16
-}
-
-#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
-pub struct ExchangeSettings {
-    pub swap_fee: Fee,
-    pub sienna_fee: Fee,
-    pub sienna_burner: Option<ContractInfo>
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub struct ExchangeSettingsStored {
-    pub swap_fee: Fee,
-    pub sienna_fee: Fee,
-    pub sienna_burner: Option<ContractInfoStored>
 }
 
 pub fn create_send_msg(
@@ -355,52 +326,6 @@ impl Fee {
             nom,
             denom
         }
-    }
-}
-
-impl ExchangeSettings {
-    pub fn to_stored(&self, api: &impl Api) -> StdResult<ExchangeSettingsStored> {
-        Ok(ExchangeSettingsStored {
-            swap_fee: self.swap_fee,
-            sienna_fee: self.sienna_fee,
-            sienna_burner: if let Some(info) = &self.sienna_burner { 
-                Some(info.to_stored(api)?) 
-            } else {
-                None
-            }
-        })
-    }
-}
-
-impl ExchangeSettingsStored {
-    pub fn to_normal(self, api: &impl Api) -> StdResult<ExchangeSettings> {
-        Ok(ExchangeSettings{
-            swap_fee: self.swap_fee,
-            sienna_fee: self.sienna_fee,
-            sienna_burner: if let Some(info) = self.sienna_burner { 
-                Some(info.to_normal(api)?)
-            } else {
-                None
-            }
-        })
-    }
-}
-
-impl Exchange {
-    pub fn to_stored(&self, api: &impl Api) -> StdResult<ExchangeStored> {
-        Ok(ExchangeStored {
-            pair: self.pair.to_stored(api)?,
-            address: api.canonical_address(&self.address)?
-        })
-    }
-}
-
-impl ExchangeStored {
-    pub fn to_normal(self, api: &impl Api) -> StdResult<Exchange> {
-        Ok(Exchange {
-            pair: self.pair.to_normal(api)?,
-            address: api.human_address(&self.address)?
-        })
     }
 }
 
