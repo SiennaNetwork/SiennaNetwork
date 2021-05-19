@@ -3,18 +3,18 @@ use cosmwasm_std::{
     Querier, StdError, StdResult, Storage, WasmMsg, log, to_binary, HumanAddr
 };
 use sienna_amm_shared::{
-    TokenPair, Pagination, msg::{
+    TokenPair,
+    Pagination,
+    msg::{
         exchange::InitMsg as ExchangeInitMsg,
         ido::{IdoInitMsg, IdoInitConfig},
         factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse},
         sienna_burner::HandleMsg as BurnerHandleMsg
-    }
+    },
+    admin::{require_admin, multi_admin::assert_admin}
 };
-
-use composable_admin::{require_admin};
 use fadroma_scrt_callback::{ContractInstance, Callback};
 use fadroma_scrt_storage::{load, save, remove};
-
 use crate::state::{
     save_config, load_config, Config, pair_exists, store_exchange,
     get_address_for_pair, get_idos, store_ido_address, get_exchanges
@@ -102,7 +102,7 @@ pub fn get_config<S: Storage, A: Api, Q: Querier>(
 pub fn create_exchange<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    pair: TokenPair
+    pair: TokenPair<HumanAddr>
 ) -> StdResult<HandleResponse> {
 
     if pair.0 == pair.1 {
@@ -174,7 +174,7 @@ pub fn create_exchange<S: Storage, A: Api, Q: Querier>(
 fn register_exchange<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    pair: TokenPair,
+    pair: TokenPair<HumanAddr>,
     signature: Binary
 ) -> StdResult<HandleResponse> {
     ensure_correct_signature(&mut deps.storage, signature)?;
@@ -207,7 +207,7 @@ fn register_exchange<S: Storage, A: Api, Q: Querier>(
 
 fn query_exchange_address<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    pair: TokenPair
+    pair: TokenPair<HumanAddr>
 ) -> StdResult<Binary> {
     let address = get_address_for_pair(deps, &pair)?;
     

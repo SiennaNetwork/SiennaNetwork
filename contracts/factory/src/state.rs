@@ -3,9 +3,7 @@ use fadroma_scrt_addr::{Humanize, Canonize};
 use fadroma_scrt_callback::ContractInstantiationInfo;
 use serde::{Deserialize, Serialize};
 use sienna_amm_shared::{
-    Exchange, ExchangeStored, ExchangeSettings,
-    TokenPair, TokenPairStored, TokenTypeStored,
-    Pagination,
+    Exchange, ExchangeSettings, TokenPair, TokenType, Pagination,
     msg::factory::InitMsg,
     storage::{save, load},
 };
@@ -41,7 +39,7 @@ impl Config<HumanAddr> {
     }
 }
 impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
-    fn canonize <A: Api> (&self, api: &A) -> StdResult<Config<CanonicalAddr>> {
+    fn canonize (&self, api: &impl Api) -> StdResult<Config<CanonicalAddr>> {
         Ok(Config {
             snip20_contract:   self.snip20_contract.clone(),
             lp_token_contract: self.lp_token_contract.clone(),
@@ -54,14 +52,13 @@ impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
     }
 }
 impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
-    fn humanize <A: Api> (&self, api: &A) -> StdResult<Config<HumanAddr>> {
-        let exchange_settings = self.exchange_settings.clone();
+    fn humanize (&self, api: &impl Api) -> StdResult<Config<HumanAddr>> {
         Ok(Config {
             snip20_contract:   self.snip20_contract.clone(),
             lp_token_contract: self.lp_token_contract.clone(),
             pair_contract:     self.pair_contract.clone(),
             ido_contract:      self.ido_contract.clone(),
-            exchange_settings: exchange_settings.humanize(api)?,
+            exchange_settings: self.exchange_settings.clone().humanize(api)?,
             pair_count:        self.pair_count,
             ido_count:         self.ido_count
         })
@@ -88,10 +85,9 @@ pub(crate) fn load_config <S: Storage, A: Api, Q: Querier> (
 /// Note that TokenPair(A, B) and TokenPair(B, A) is considered to be same.
 pub(crate) fn pair_exists<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    pair: &TokenPair
+    pair: &TokenPair<HumanAddr>
 ) -> StdResult<bool> {
-    let pair = pair.to_stored(&deps.api)?;
-    let key = generate_pair_key(&pair);
+    let key = generate_pair_key(&pair.canonize(&deps.api)?);
     Ok(deps.storage.get(&key).is_some())
 }
 
@@ -99,41 +95,33 @@ pub(crate) fn pair_exists<S: Storage, A: Api, Q: Querier>(
 /// already exists or if something else goes wrong.
 pub(crate) fn store_exchange<S: Storage, A: Api, Q: Querier>(
     deps:    &mut Extern<S, A, Q>,
-    pair:    &TokenPair,
+    pair:    &TokenPair<HumanAddr>,
     address: &HumanAddr
 ) -> StdResult<()> {
-    let canonical = deps.api.canonical_address(&address)?;
-
-    let pair = pair.to_stored(&deps.api)?;
+    let pair = pair.canonize(&deps.api)?;
     let key = generate_pair_key(&pair);
-
     if deps.storage.get(&key).is_some() {
         return Err(StdError::generic_err("Exchange already exists"));
     }
 
-    save(&mut deps.storage, &key, &canonical)?;
+    let address = address.canonize(&deps.api)?;
+    save(&mut deps.storage, &key, &address)?;
 
     let mut exchanges = load_exchanges(&deps.storage)?;
-
-    if exchanges.iter().any(|e| e.address == canonical) {
+    if exchanges.iter().any(|e| e.address == address) {
         return Err(StdError::generic_err("Exchange address already exists"));
     }
 
-    exchanges.push(ExchangeStored {
-        pair,
-        address: canonical
-    });
-
+    exchanges.push(Exchange { pair, address });
     save_exchanges(&mut deps.storage, &exchanges)
 }
 
 /// Get the address of an exchange contract which manages the given pair.
 pub(crate) fn get_address_for_pair<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    pair: &TokenPair
+    pair: &TokenPair<HumanAddr>
 ) -> StdResult<HumanAddr> {
-    let pair = pair.to_stored(&deps.api)?;
-    let key = generate_pair_key(&pair);
+    let key = generate_pair_key(&pair.canonize(&deps.api)?);
 
     let canonical = load(&deps.storage, &key)?.ok_or_else(||
         StdError::generic_err("Address doesn't exist in storage.")
@@ -186,7 +174,7 @@ pub(crate) fn get_idos<S: Storage, A: Api, Q: Querier>(
 pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     pagination: Pagination
-) -> StdResult<Vec<Exchange>> {
+) -> StdResult<Vec<Exchange<HumanAddr>>> {
     let mut exchanges = load_exchanges(&deps.storage)?;
 
     if pagination.start as usize >= exchanges.len() {
@@ -198,23 +186,25 @@ pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
 
     let mut result = Vec::with_capacity((end - pagination.start) as usize);
 
-    for exchange in exchanges.drain((pagination.start as usize)..(end as usize)).collect::<Vec<ExchangeStored>>() {
+    let exchanges = exchanges
+        .drain((pagination.start as usize)..(end as usize))
+        .collect::<Vec<Exchange<CanonicalAddr>>>();
+    for exchange in exchanges {
         result.push(exchange.humanize(&deps.api)?)
     }
 
     Ok(result)
 }
 
-fn load_exchanges(storage: &impl Storage) -> StdResult<Vec<ExchangeStored>> {
-    let result: Option<Vec<ExchangeStored>> = load(storage, EXCHANGES_KEY)?;
-
-    Ok(match result {
-        Some(vec) => vec,
-        None => vec![]
-    })
+fn load_exchanges(storage: &impl Storage) -> StdResult<Vec<Exchange<CanonicalAddr>>> {
+    let result: Option<Vec<Exchange<CanonicalAddr>>> = load(storage, EXCHANGES_KEY)?;
+    Ok(result.unwrap_or(vec![]))
 }
 
-fn save_exchanges(storage: &mut impl Storage, exchanges: &Vec<ExchangeStored>) -> StdResult<()> {
+fn save_exchanges(
+    storage: &mut impl Storage,
+    exchanges: &Vec<Exchange<CanonicalAddr>>
+) -> StdResult<()> {
     save(storage, EXCHANGES_KEY, exchanges)
 }
 
@@ -223,18 +213,18 @@ fn generate_ido_index(index: &u64) -> Vec<u8> {
 }
 
 pub fn generate_pair_key(
-    pair: &TokenPairStored
+    pair: &TokenPair<CanonicalAddr>
 ) -> Vec<u8> {
     let mut bytes: Vec<&[u8]> = Vec::new();
 
     match &pair.0 {
-        TokenTypeStored::NativeToken { denom } => bytes.push(denom.as_bytes()),
-        TokenTypeStored::CustomToken { contract_addr, .. } => bytes.push(contract_addr.as_slice())
+        TokenType::NativeToken { denom } => bytes.push(denom.as_bytes()),
+        TokenType::CustomToken { contract_addr, .. } => bytes.push(contract_addr.as_slice())
     }
 
     match &pair.1 {
-        TokenTypeStored::NativeToken { denom } => bytes.push(denom.as_bytes()),
-        TokenTypeStored::CustomToken { contract_addr, .. } => bytes.push(contract_addr.as_slice())
+        TokenType::NativeToken { denom } => bytes.push(denom.as_bytes()),
+        TokenType::CustomToken { contract_addr, .. } => bytes.push(contract_addr.as_slice())
     }
 
     bytes.sort();

@@ -2,17 +2,20 @@ use cosmwasm_std::{
     to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr,
     InitResponse, Querier, StdError, StdResult, Storage, Uint128, log
 };
-use sienna_amm_shared::msg::sienna_burner::{HandleMsg, InitMsg, QueryAnswer, QueryMsg, ResponseStatus};
-use sienna_amm_shared::snip20;
-use sienna_amm_shared::admin::require_admin;
-use sienna_amm_shared::admin::multi_admin::{
-    assert_admin, save_admins, multi_admin_handle,
-    multi_admin_query, DefaultHandleImpl, DefaultQueryImpl
-};
-use fadroma_scrt_callback::ContractInstance;
-
 use crate::state::*;
+use fadroma_scrt_callback::ContractInstance;
 use fadroma_scrt_migrate::{is_operational, can_set_status, set_status, get_status};
+use sienna_amm_shared::{
+    snip20,
+    msg::sienna_burner::{HandleMsg, InitMsg, QueryAnswer, QueryMsg, ResponseStatus},
+    admin::{
+        require_admin,
+        multi_admin::{
+            assert_admin, save_admins, multi_admin_handle,
+            multi_admin_query, DefaultHandleImpl, DefaultQueryImpl
+        }
+    }
+};
 
 const BLOCK_SIZE: usize = 256;
 

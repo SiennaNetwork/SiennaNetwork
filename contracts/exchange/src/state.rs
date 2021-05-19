@@ -13,10 +13,10 @@ use sienna_amm_shared::TokenPair;
 const CONFIG_KEY: &[u8] = b"config";
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
-pub(crate) struct Config<A> {
+pub(crate) struct Config<A: Clone> {
     pub factory_info:  ContractInstance<A>,
     pub lp_token_info: ContractInstance<A>,
-    pub pair:          TokenPair,
+    pub pair:          TokenPair<A>,
     /// The address of the current contract.
     pub contract_addr: A,
     /// Viewing key used for custom SNIP20 tokens.
@@ -34,25 +34,25 @@ pub(crate) struct Config<A> {
     pub pool_cache: [Uint128; 2]
 }
 impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
-    fn canonize <A: Api> (&self, api: &A) -> StdResult<Config<CanonicalAddr>> {
+    fn canonize (&self, api: &impl Api) -> StdResult<Config<CanonicalAddr>> {
         Ok(Config {
             factory_info:  self.factory_info.canonize(api)?,
             lp_token_info: self.lp_token_info.canonize(api)?,
-            pair:          self.pair.to_stored(api)?,
+            pair:          self.pair.canonize(api)?,
             contract_addr: self.contract_addr.canonize(api)?,
-            viewing_key:   self.viewing_key,
+            viewing_key:   self.viewing_key.clone(),
             pool_cache:    self.pool_cache
         })
     }
 }
 impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
-    fn humanize <A: Api> (&self, api: &A) -> StdResult<Config<HumanAddr>> {
+    fn humanize (&self, api: &impl Api) -> StdResult<Config<HumanAddr>> {
         Ok(Config {
             factory_info:  self.factory_info.humanize(api)?,
             lp_token_info: self.lp_token_info.humanize(api)?,
-            pair:          self.pair.to_normal(&deps.api)?,
+            pair:          self.pair.humanize(api)?,
             contract_addr: self.contract_addr.humanize(api)?,
-            viewing_key:   self.viewing_key,
+            viewing_key:   self.viewing_key.clone(),
             pool_cache:    self.pool_cache
         })
     }
@@ -62,7 +62,7 @@ pub(crate) fn store_config <S: Storage, A: Api, Q: Querier>(
     deps:   &mut Extern<S, A, Q>,
     config: &Config<HumanAddr>
 ) -> StdResult<()> {
-    save(&mut deps.storage, CONFIG_KEY, &config.canonize(&deps.api))
+    save(&mut deps.storage, CONFIG_KEY, &config.canonize(&deps.api)?)
 }
 
 pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
@@ -85,11 +85,11 @@ mod tests {
         let mut deps = mock_dependencies(10, &[]);
 
         let config = Config {
-            factory_info: ContractInfo {
+            factory_info: ContractInstance {
                 code_hash: "factory_hash".into(),
                 address: HumanAddr("factory".into())
             },
-            lp_token_info: ContractInfo {
+            lp_token_info: ContractInstance {
                 code_hash: "token_hash".into(),
                 address: HumanAddr("lp_token".into())
             },

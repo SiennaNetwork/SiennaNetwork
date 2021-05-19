@@ -6,20 +6,20 @@ use cosmwasm_std::{
 };
 use secret_toolkit::snip20;
 use sienna_amm_shared::{
-    Callback, ContractInfo, TokenPairAmount, TokenType,
-    TokenTypeAmount, create_send_msg, Fee, ExchangeSettings
+    TokenPairAmount, TokenType,
+    TokenTypeAmount, create_send_msg, Fee, ExchangeSettings,
+    msg::{
+        exchange::{InitMsg, HandleMsg, QueryMsg, QueryMsgResponse, SwapSimulationResponse},
+        snip20::{Snip20InitConfig, Snip20InitMsg},
+        factory::{QueryMsg as FactoryQueryMsg, QueryResponse as FactoryResponse},
+        sienna_burner::HandleMsg as BurnerHandleMsg,
+    },
+    u256_math, u256_math::U256, viewing_key::ViewingKey, crypto::Prng
 };
-use sienna_amm_shared::msg::exchange::{InitMsg, HandleMsg, QueryMsg, QueryMsgResponse, SwapSimulationResponse};
-use sienna_amm_shared::msg::snip20::{Snip20InitConfig, Snip20InitMsg};
-use sienna_amm_shared::msg::factory::{QueryMsg as FactoryQueryMsg, QueryResponse as FactoryResponse};
-use sienna_amm_shared::msg::sienna_burner::HandleMsg as BurnerHandleMsg;
-use sienna_amm_shared::u256_math;
-use sienna_amm_shared::u256_math::U256;
-use sienna_amm_shared::viewing_key::ViewingKey;
-use sienna_amm_shared::crypto::Prng;
 
 use crate::{state::{Config, store_config, load_config}, decimal_math};
 use fadroma_scrt_migrate::{is_operational, can_set_status, set_status, get_status};
+use fadroma_scrt_callback::{Callback, ContractInstance};
 
 type SwapResult = StdResult<(Uint128, Uint128, Uint128)>;
 
@@ -59,7 +59,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             decimals: 6,
             callback: Some(Callback {
                 msg: to_binary(&HandleMsg::OnLpTokenInit)?,
-                contract: ContractInfo {
+                contract: ContractInstance {
                     address: env.contract.address.clone(),
                     code_hash: env.contract_code_hash
                 }
@@ -93,7 +93,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 
     let config = Config {
         factory_info: msg.factory_info,
-        lp_token_info: ContractInfo {
+        lp_token_info: ContractInstance {
             code_hash: msg.lp_token_contract.code_hash,
             // We get the address when the instantiated LP token calls OnLpTokenInit
             address: HumanAddr::default()
@@ -144,7 +144,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
 fn add_liquidity<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    deposit: TokenPairAmount,
+    deposit: TokenPairAmount<HumanAddr>,
     slippage: Option<Decimal>
 ) -> StdResult<HandleResponse> {
     deposit.assert_sent_native_token_balance(&env)?;
@@ -341,7 +341,7 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
 fn swap<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    offer: TokenTypeAmount,
+    offer: TokenTypeAmount<HumanAddr>,
     expected_return: Option<Uint128>
 ) -> StdResult<HandleResponse> {
     let mut messages = vec![];
@@ -439,7 +439,10 @@ fn query_pair_info(
     })
 }
 
-fn query_liquidity(querier: &impl Querier, lp_token_info: &ContractInfo) -> StdResult<Uint128> {
+fn query_liquidity(
+    querier: &impl Querier,
+    lp_token_info: &ContractInstance<HumanAddr>
+) -> StdResult<Uint128> {
     let result = snip20::token_info_query(
         querier,
         BLOCK_SIZE,
@@ -458,7 +461,7 @@ fn query_liquidity(querier: &impl Querier, lp_token_info: &ContractInfo) -> StdR
 fn swap_simulation<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     mut config: Config<HumanAddr>,
-    offer: TokenTypeAmount
+    offer: TokenTypeAmount<HumanAddr>
 ) -> QueryResult {
     let settings = query_exchange_settings(&deps.querier, config.factory_info.clone())?;
 
@@ -506,7 +509,7 @@ fn register_lp_token<S: Storage, A: Api, Q: Querier>(
 fn try_register_custom_token(
     env: &Env,
     messages: &mut Vec<CosmosMsg>,
-    token: &TokenType,
+    token: &TokenType<HumanAddr>,
     viewing_key: &ViewingKey
 ) -> StdResult<()> {
     if let TokenType::CustomToken { 
@@ -534,7 +537,7 @@ fn try_register_custom_token(
 fn do_swap<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     config: &mut Config<HumanAddr>,
-    offer: &TokenTypeAmount,
+    offer: &TokenTypeAmount<HumanAddr>,
     fee: Fee,
     is_simulation: bool
 ) -> SwapResult {
@@ -670,7 +673,7 @@ fn assert_slippage_tolerance(
 
 fn query_exchange_settings (
     querier: &impl Querier,
-    factory: ContractInfo
+    factory: ContractInstance<HumanAddr>
 ) -> StdResult<ExchangeSettings<HumanAddr>> {
     let result: FactoryResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         callback_code_hash: factory.code_hash,

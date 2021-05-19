@@ -9,6 +9,7 @@ pub use sienna_amm_shared::{
     Pagination,
     msg::factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse},
 };
+pub use fadroma_scrt_addr::{Humanize, Canonize};
 pub use fadroma_scrt_callback::ContractInstantiationInfo;
 pub use fadroma_scrt_storage::{load, save, remove};
 pub use crate::{contract::*, state::*};
@@ -291,8 +292,8 @@ mod test_contract {
 mod test_state {
     use super::*;
 
-    fn swap_pair(pair: &TokenPair) -> TokenPair {
-        TokenPair( pair.1.clone(), pair.0.clone() )
+    fn swap_pair<A: Clone> (pair: &TokenPair<A>) -> TokenPair<A> {
+        TokenPair(pair.1.clone(), pair.0.clone())
     }
 
     fn pagination(start: u64, limit: u8) -> Pagination {
@@ -329,14 +330,14 @@ mod test_state {
     fn generates_the_same_key_for_swapped_pairs() -> StdResult<()> {
         fn cmp_pair<S: Storage, A: Api, Q: Querier>(
             deps: &Extern<S, A, Q>,
-            pair: TokenPair
+            pair: TokenPair<HumanAddr>
         ) -> StdResult<()> {
-            let stored_pair = pair.to_stored(&deps.api)?;
+            let stored_pair = pair.canonize(&deps.api)?;
             let key = generate_pair_key(&stored_pair);
 
             let pair = swap_pair(&pair);
 
-            let stored_pair = pair.to_stored(&deps.api)?;
+            let stored_pair = pair.canonize(&deps.api)?;
             let swapped_key = generate_pair_key(&stored_pair);
 
             assert_eq!(key, swapped_key);

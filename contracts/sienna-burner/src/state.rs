@@ -31,7 +31,7 @@ pub fn save_burn_pool<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     address: &HumanAddr
 ) -> StdResult<()> {
-    save(&mut deps.storage, BURN_POOL_KEY, &address.canonize(&deps.api))
+    save(&mut deps.storage, BURN_POOL_KEY, &address.canonize(&deps.api)?)
 }
 
 pub fn load_burn_pool<S: Storage, A: Api, Q: Querier>(
