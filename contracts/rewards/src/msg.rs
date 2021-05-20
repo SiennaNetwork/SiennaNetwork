@@ -9,7 +9,7 @@ use crate::data::{RewardPool, Account};
 
 pub(crate) const OVERFLOW_MSG: &str = "Upper bound overflow detected.";
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, JsonSchema)]
 /// Represents a pair that is eligible for rewards.
 pub struct RewardPoolConfig {
     pub lp_token: ContractInfo,
@@ -42,12 +42,9 @@ pub enum HandleMsg {
         /// The addresses of the LP tokens pools to claim from.
         lp_tokens: Vec<HumanAddr>
     },
-    AddPools { 
+    ChangePools {
+        total_share: Uint128, 
         pools: Vec<RewardPoolConfig>
-    },
-    RemovePools {
-        /// The addresses of the LP tokens of the pools to be removed.
-        lp_tokens: Vec<HumanAddr>
     },
     Admin(AdminHandleMsg),
     Auth(AuthHandleMsg)

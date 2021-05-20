@@ -18,8 +18,8 @@ use crate::msg::{
     QueryMsgResponse, ClaimSimulationResult, ClaimResult, ClaimError
 };
 use crate::state::{
-    save_config, Config, add_pools, get_pool, get_account, save_account,
-    get_or_create_account, save_pool, delete_account, load_config, load_pools,
+    save_config, Config, replace_active_pools, get_pool, get_account, save_account,
+    get_or_create_account, save_pool, delete_account, load_config, get_pools,
     get_inactive_pool
 };
 use crate::data::{RewardPool, Account};
@@ -44,7 +44,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         msg.reward_token.address.clone()
     )?;
 
-    let mut config = Config {
+    let config = Config {
         reward_token: msg.reward_token,
         this_contract: ContractInfo {
             address: env.contract.address,
@@ -53,18 +53,15 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         token_decimals: token_info.decimals,
         viewing_key,
         prng_seed: msg.prng_seed,
-        total_share: 0,
         claim_interval: msg.claim_interval
     };
 
+    save_config(deps, &config)?;
+
     if let Some(pools) = msg.reward_pools {
         let pools = into_pools(pools);
-
-        config.add_shares_checked(&pools)?;
-        add_pools(deps, &pools)?;
+        replace_active_pools(deps, &pools)?;
     }
-
-    save_config(deps, &config)?;
 
     Ok(InitResponse {
         messages: vec![
@@ -89,8 +86,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::LockTokens { amount, lp_token } => lock_tokens(deps, env, amount, lp_token),
         HandleMsg::RetrieveTokens { amount, lp_token } => retrieve_tokens(deps, env, amount, lp_token),
         HandleMsg::Claim { lp_tokens } => claim(deps, env, lp_tokens),
-        HandleMsg::AddPools { pools } => add_more_pools(deps, env, into_pools(pools)),
-        HandleMsg::RemovePools { lp_tokens } => remove_some_pools(deps, env, lp_tokens), // Great naming btw
+        HandleMsg::ChangePools { pools, total_share } => change_pools(deps, env, into_pools(pools), total_share),
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultAdminHandle),
         HandleMsg::Auth(auth_msg) => auth_handle(deps, env, auth_msg, AuthImpl)
     }
@@ -117,7 +113,6 @@ fn lock_tokens<S: Storage, A: Api, Q: Querier>(
     lp_token_addr: HumanAddr
 ) -> StdResult<HandleResponse> {
     let mut pool = get_pool_or_fail(deps, &lp_token_addr)?;
-
     let mut account = get_or_create_account(deps, &env.message.sender, &lp_token_addr)?;
 
     account.locked_amount = 
@@ -351,27 +346,41 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
 }
 
 #[require_admin]
-fn add_more_pools<S: Storage, A: Api, Q: Querier>(
+fn change_pools<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    _pools: Vec<RewardPool>
+    pools: Vec<RewardPool>,
+    total_share: Uint128
 ) -> StdResult<HandleResponse>{
-    unimplemented!()
-}
+    let mut sum_total = 0u128;
 
-#[require_admin]
-fn remove_some_pools<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    _addresses: Vec<HumanAddr>
-) -> StdResult<HandleResponse>{
-    unimplemented!()
+    for pool in pools.iter() {
+        sum_total = sum_total.checked_add(pool.share).ok_or_else(||
+            StdError::generic_err(OVERFLOW_MSG)
+        )?;
+    }
+
+    if total_share.u128() != sum_total {
+        return Err(StdError::generic_err(
+            format!("Total pool share({}) doesn't match the expected total({}).", sum_total, total_share)
+        ))
+    }
+
+    replace_active_pools(deps, &pools)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("action", "change_pools"),
+        ],
+        data: None
+    })
 }
 
 fn query_pools<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
 ) -> StdResult<Binary> {
-    let pools = load_pools(deps)?;
+    let pools = get_pools(deps)?;
 
     Ok(to_binary(&QueryMsgResponse::Pools(pools))?)
 }
@@ -518,6 +527,236 @@ mod tests {
         mock_dependencies, mock_env_with_time, MockSnip20Querier
     };
 
+    #[test]
+    fn test_init() {
+        let reward_token = ContractInfo {
+            address: "reward_token".into(),
+            code_hash: "reward_token_hash".into()
+        };
+
+        let decimals = 18;
+        let claim_interval = 100;
+        let prng_seed = to_binary(&"whatever").unwrap();
+
+        let reward_pools = vec![
+            RewardPoolConfig {
+                share: Uint128(100),
+                lp_token: ContractInfo {
+                    address: "pool1".into(),
+                    code_hash: "pool1_hash".into()
+                }
+            },
+            RewardPoolConfig {
+                share: Uint128(200),
+                lp_token: ContractInfo {
+                    address: "pool2".into(),
+                    code_hash: "pool2_hash".into()
+                }
+            }
+        ];
+
+        let ref mut deps = mock_dependencies(20, reward_token.clone(), Uint128(1), decimals);
+
+        let msg = InitMsg {
+            admin: None,
+            reward_token: reward_token.clone(),
+            claim_interval,
+            reward_pools: Some(reward_pools.clone()),
+            prng_seed: prng_seed.clone(),
+            entropy: to_binary(&"whatever").unwrap()
+        };
+
+        init(deps, mock_env("admin", &[]), msg).unwrap();
+
+        let config = load_config(deps).unwrap();
+        assert_eq!(config.reward_token, reward_token);
+        assert_eq!(config.token_decimals, decimals);
+        assert_eq!(config.claim_interval, claim_interval);
+        assert_eq!(config.prng_seed, prng_seed);
+
+        let pools = into_pools(reward_pools);
+        let stored_pools = get_pools(deps).unwrap();
+
+        assert_eq!(pools.len(), stored_pools.len());
+
+        for (i, pool) in pools.iter().enumerate() {
+            assert_pools_eq(pool, &stored_pools[i]);
+        }
+    }
+
+    #[test]
+    fn test_change_pools() {
+        let reward_token = ContractInfo {
+            address: "reward_token".into(),
+            code_hash: "reward_token_hash".into()
+        };
+
+        let initial_pools = vec![
+            RewardPoolConfig {
+                share: Uint128(100),
+                lp_token: ContractInfo {
+                    address: "pool1".into(),
+                    code_hash: "pool1_hash".into()
+                }
+            },
+            RewardPoolConfig {
+                share: Uint128(200),
+                lp_token: ContractInfo {
+                    address: "pool2".into(),
+                    code_hash: "pool2_hash".into()
+                }
+            }
+        ];
+
+        let ref mut deps = mock_dependencies(20, reward_token.clone(), Uint128(1), 18);
+
+        let msg = InitMsg {
+            admin: None,
+            reward_token,
+            claim_interval: 100,
+            reward_pools: Some(initial_pools.clone()),
+            prng_seed: to_binary(&"whatever").unwrap(),
+            entropy: to_binary(&"whatever").unwrap()
+        };
+
+        init(deps, mock_env("admin", &[]), msg).unwrap();
+
+        let err = handle(deps, mock_env("unauthorized", &[]), HandleMsg::ChangePools {
+            pools: vec![],
+            total_share: Uint128(100)
+        }).unwrap_err();
+
+        assert_eq!(err, StdError::unauthorized());
+
+        let third_pool = RewardPoolConfig {
+            share: Uint128(300),
+            lp_token: ContractInfo {
+                address: "pool3".into(),
+                code_hash: "pool3_hash".into()
+            }
+        };
+
+        let new_pools = vec![ 
+            initial_pools[0].clone(),
+            initial_pools[1].clone(),
+            third_pool
+        ];
+
+        let err = handle(deps, mock_env("admin", &[]), HandleMsg::ChangePools {
+            pools: new_pools.clone(),
+            total_share: Uint128(599)
+        }).unwrap_err();
+
+        match err {
+            StdError::GenericErr { msg, .. } => assert!(msg.starts_with("Total pool share(")),
+            _ => panic!("Expected StdError::GenericErr, got: {}", err)
+        }
+        
+        handle(deps, mock_env("admin", &[]), HandleMsg::ChangePools {
+            pools: new_pools,
+            total_share: Uint128(600)
+        }).unwrap();
+
+        let new_pools = vec![ 
+            RewardPoolConfig {
+                share: Uint128(300),
+                lp_token: ContractInfo {
+                    address: "pool3".into(),
+                    code_hash: "pool3_hash".into()
+                }
+            },
+            RewardPoolConfig {
+                share: Uint128(400),
+                lp_token: ContractInfo {
+                    address: "pool4".into(),
+                    code_hash: "pool4_hash".into()
+                }
+            }
+        ];
+
+        handle(deps, mock_env("admin", &[]), HandleMsg::ChangePools {
+            pools: new_pools.clone(),
+            total_share: Uint128(700)
+        }).unwrap();
+
+        let initial_pools = into_pools(initial_pools);
+
+        assert_eq!(get_pools(deps).unwrap(), into_pools(new_pools));
+
+        assert_eq!(
+            get_inactive_pool(deps, &initial_pools[0].lp_token.address).unwrap().unwrap(),
+            initial_pools[0]
+        );
+
+        assert_eq!(
+            get_inactive_pool(deps, &initial_pools[1].lp_token.address).unwrap().unwrap(),
+            initial_pools[1]
+        );
+    }
+
+    #[test]
+    fn test_calc_reward_share() {
+        let pool = create_pool(
+            500_000_000_000_000_000_000,
+            1000_000_000
+        );
+
+        // If owning 15% of pool share, then receive 15% of 500 = 75
+        let result = calc_reward_share(150_000_000, &pool, 18).unwrap();
+        assert_eq!(result, 75_000_000_000_000_000_000);
+
+        // Absorb the entire pool if owning 100% of pool share.
+        let result = calc_reward_share(1000_000_000, &pool, 18).unwrap();
+        assert_eq!(result, 500_000_000_000_000_000_000);
+    }
+
+    #[test]
+    fn test_claim() {
+        let runs = 100;
+
+        for _ in 0..runs {
+            claim_run();
+        }
+    }
+
+    #[test]
+    fn test_calc_portions() {
+        let now = SystemTime::now();
+        let time = now.duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let claim_interval = 86400; // 1 day
+
+        assert_eq!(0, calc_portions(
+            time - claim_interval + 1,
+            claim_interval,
+            time
+        ).unwrap());
+
+        assert_eq!(1, calc_portions(
+            time - claim_interval - 1000,
+            claim_interval,
+            time
+        ).unwrap());
+
+        assert_eq!(2, calc_portions(
+            time - claim_interval * 2,
+            claim_interval,
+            time
+        ).unwrap());
+
+        assert_eq!(1, calc_portions(
+            (time - claim_interval * 2) + 1,
+            claim_interval,
+            time
+        ).unwrap());
+
+        assert_eq!(10, calc_portions(
+            time - claim_interval * 10,
+            claim_interval,
+            time
+        ).unwrap());
+    }
+
+
     fn create_pool(share: u128, size: u128) -> RewardPool {
         RewardPool {
             lp_token: ContractInfo {
@@ -527,6 +766,12 @@ mod tests {
             share,
             size
         }
+    }
+
+    fn assert_pools_eq(lhs: &RewardPool, rhs: &RewardPool) {
+        assert_eq!(lhs.lp_token, rhs.lp_token);
+        assert_eq!(lhs.share, rhs.share);
+        assert_eq!(lhs.size, rhs.size);
     }
 
     fn execute_claim(
@@ -684,67 +929,5 @@ mod tests {
         }
 
         assert_eq!(total_claimed, reward_token_supply);
-    }
-
-    #[test]
-    fn test_calc_reward_share() {
-        let pool = create_pool(
-            500_000_000_000_000_000_000,
-            1000_000_000
-        );
-
-        // If owning 15% of pool share, then receive 15% of 500 = 75
-        let result = calc_reward_share(150_000_000, &pool, 18).unwrap();
-        assert_eq!(result, 75_000_000_000_000_000_000);
-
-        // Absorb the entire pool if owning 100% of pool share.
-        let result = calc_reward_share(1000_000_000, &pool, 18).unwrap();
-        assert_eq!(result, 500_000_000_000_000_000_000);
-    }
-
-    #[test]
-    fn test_claim() {
-        let runs = 100;
-
-        for _ in 0..runs {
-            claim_run();
-        }
-    }
-
-    #[test]
-    fn test_calc_portions() {
-        let now = SystemTime::now();
-        let time = now.duration_since(UNIX_EPOCH).unwrap().as_secs();
-        let claim_interval = 86400; // 1 day
-
-        assert_eq!(0, calc_portions(
-            time - claim_interval + 1,
-            claim_interval,
-            time
-        ).unwrap());
-
-        assert_eq!(1, calc_portions(
-            time - claim_interval - 1000,
-            claim_interval,
-            time
-        ).unwrap());
-
-        assert_eq!(2, calc_portions(
-            time - claim_interval * 2,
-            claim_interval,
-            time
-        ).unwrap());
-
-        assert_eq!(1, calc_portions(
-            (time - claim_interval * 2) + 1,
-            claim_interval,
-            time
-        ).unwrap());
-
-        assert_eq!(10, calc_portions(
-            time - claim_interval * 10,
-            claim_interval,
-            time
-        ).unwrap());
     }
 }

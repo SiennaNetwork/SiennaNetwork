@@ -9,7 +9,6 @@ use cosmwasm_utils::storage::{load, save, ns_load, ns_save, ns_remove};
 use cosmwasm_utils::viewing_key::ViewingKey;
 
 use crate::data::*;
-use crate::msg::OVERFLOW_MSG;
 
 const CONFIG_KEY: &[u8] = b"config";
 const POOLS_KEY: &[u8] = b"pools";
@@ -24,8 +23,6 @@ pub struct Config {
     pub token_decimals: u8,
     pub viewing_key: ViewingKey,
     pub prng_seed: Binary,
-    /// The total sum of all pool shares.
-    pub total_share: u128,
     pub claim_interval: u64
 }
 
@@ -36,19 +33,7 @@ struct ConfigStored {
     pub token_decimals: u8,
     pub viewing_key: ViewingKey,
     pub prng_seed: Binary,
-    pub total_share: Uint128,
     pub claim_interval: u64
-}
-
-impl Config {
-    pub fn add_shares_checked(&mut self, pools: &Vec<RewardPool>) -> StdResult<()> {
-        for pool in pools {
-            self.total_share = self.total_share.checked_add(pool.share)
-                .ok_or_else(|| StdError::generic_err(OVERFLOW_MSG))?;
-        }
-
-        Ok(())
-    }
 }
 
 pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
@@ -61,7 +46,6 @@ pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
         token_decimals: config.token_decimals,
         viewing_key: config.viewing_key.clone(),
         prng_seed: config.prng_seed.clone(),
-        total_share: Uint128(config.total_share),
         claim_interval: config.claim_interval
     };
 
@@ -79,25 +63,37 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
         token_decimals: config.token_decimals,
         viewing_key: config.viewing_key,
         prng_seed: config.prng_seed,
-        total_share: config.total_share.u128(),
         claim_interval: config.claim_interval
     })
 }
 
-pub(crate) fn add_pools<S: Storage, A: Api, Q: Querier>(
+pub(crate) fn replace_active_pools<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     pools: &Vec<RewardPool>
 ) -> StdResult<()> {
-    let mut index: Vec<CanonicalAddr> = 
-        load(&mut deps.storage, POOL_INDEX)?.unwrap_or(vec![]);
+    let mut index = Vec::with_capacity(pools.len());
+    let mut pools_stored = Vec::with_capacity(pools.len());
 
-    for pool in pools {
-        let pool = pool.to_stored(&deps.api)?;
+    // Keep sizes for pools that stay
+    for pool in pools.iter() {
+        let mut pool = pool.to_stored(&deps.api)?;
+        index.push(pool.lp_token.address.clone());
 
-        if index.contains(&pool.lp_token.address) {
-            continue;
+        let stored_pool: Option<RewardPoolStored> = 
+            ns_load(&deps.storage, POOLS_KEY, pool.lp_token.address.as_slice())?;
+
+        if let Some(p) = stored_pool {
+            pool.size = p.size;
         }
 
+        pools_stored.push(pool);
+    }
+
+    // Delete all the current pools
+    set_current_pools_inactive(deps)?;
+
+    // Finally, save/update the new ones and ensure they are not inactive
+    for pool in pools_stored {
         ns_save(
             &mut deps.storage,
             POOLS_KEY,
@@ -105,13 +101,13 @@ pub(crate) fn add_pools<S: Storage, A: Api, Q: Querier>(
             &pool
         )?;
 
-        index.push(pool.lp_token.address);
+        ns_remove(&mut deps.storage, INACTIVE_POOLS_KEY, &pool.lp_token.address.as_slice());
     }
 
-    Ok(())
+    save(&mut deps.storage, POOL_INDEX, &index)
 }
 
-pub(crate) fn load_pools<S: Storage, A: Api, Q: Querier>(
+pub(crate) fn get_pools<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
 ) -> StdResult<Vec<RewardPool>> {
     let index: Vec<CanonicalAddr> = 
@@ -129,50 +125,6 @@ pub(crate) fn load_pools<S: Storage, A: Api, Q: Querier>(
     }
 
     Ok(result)
-}
-
-pub(crate) fn set_pools_inactive<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    addresses: &Vec<HumanAddr>
-) -> StdResult<()> {
-    let mut index: Vec<CanonicalAddr> = 
-        load(&mut deps.storage, POOL_INDEX)?.unwrap_or(vec![]);
-
-    for addr in addresses {
-        let canonical = deps.api.canonical_address(addr)?;
-
-        let pos = index
-            .iter()
-            .position(|a| *a == canonical)
-            .ok_or_else(||
-                StdError::generic_err(
-                    format!("Pool {} doesn't exist in active pool index.", addr)
-                )
-            )?;
-
-        let mut pool: RewardPoolStored = 
-            ns_load(&mut deps.storage, POOLS_KEY, &canonical.as_slice())?
-            .ok_or_else(||
-                StdError::generic_err(
-                    format!("Pool {} doesn't exist in active pool index.", addr)
-                )
-            )?;
-        
-        pool.share = Uint128::zero();
-        pool.size = Uint128::zero();
-
-        ns_save(
-            &mut deps.storage,
-            INACTIVE_POOLS_KEY,
-            pool.lp_token.address.as_slice(),
-            &pool
-        )?;
-            
-        ns_remove(&mut deps.storage, POOLS_KEY, &canonical.as_slice());
-        index.swap_remove(pos);
-    }
-
-    save(&mut deps.storage, POOL_INDEX, &index)
 }
 
 pub(crate) fn get_pool<S: Storage, A: Api, Q: Querier>(
@@ -282,6 +234,37 @@ pub(crate) fn delete_account<S: Storage, A: Api, Q: Querier>(
     );
 
     Ok(())
+}
+
+fn set_current_pools_inactive<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>
+) -> StdResult<()> {
+    let index: Vec<CanonicalAddr> = 
+        load(&mut deps.storage, POOL_INDEX)?.unwrap_or(vec![]);
+
+    for addr in index {
+        let mut pool: RewardPoolStored = 
+            ns_load(&mut deps.storage, POOLS_KEY, &addr.as_slice())?
+            .ok_or_else(||
+                StdError::generic_err(
+                    format!("Pool {} doesn't exist in active pool index.", addr)
+                )
+            )?;
+        
+        pool.share = Uint128::zero();
+        pool.size = Uint128::zero();
+
+        ns_save(
+            &mut deps.storage,
+            INACTIVE_POOLS_KEY,
+            pool.lp_token.address.as_slice(),
+            &pool
+        )?;
+            
+        ns_remove(&mut deps.storage, POOLS_KEY, &addr.as_slice());
+    }
+
+    save(&mut deps.storage, POOL_INDEX, &Vec::<CanonicalAddr>::new())
 }
 
 fn generate_account_key(

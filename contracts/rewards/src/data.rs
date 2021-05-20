@@ -3,7 +3,7 @@ use cosmwasm_utils::{ContractInfo, ContractInfoStored};
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 /// Represents a pair that is eligible for rewards.
 pub struct RewardPool {
     pub lp_token: ContractInfo,
@@ -45,6 +45,12 @@ pub(crate) struct AccountStored {
 impl PartialEq for Account {
     fn eq(&self, other: &Self) -> bool {
         self.owner == other.owner && self.lp_token_addr == self.lp_token_addr
+    }
+}
+
+impl PartialEq for RewardPool {
+    fn eq(&self, other: &Self) -> bool {
+        self.lp_token.address == other.lp_token.address
     }
 }
 
