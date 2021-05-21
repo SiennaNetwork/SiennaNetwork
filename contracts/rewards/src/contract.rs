@@ -851,22 +851,42 @@ mod tests {
     }
 
     fn claim_run() {
+        const NUM_POOLS: usize = 3;
+        
+        fn pools_to_call(index: usize) -> usize {
+            if index % NUM_POOLS == 0 {
+                NUM_POOLS
+            } else {
+                1
+            }
+        }
+
         let mut rng = thread_rng();
 
-        let pool_share: u128 = rng.gen_range(100_000_000_000_000_000_000..800_000_000_000_000_000_000);
         let iterations = rng.gen_range(5..20);
         let claim_interval = 86400; // 1 day
         let num_users = rng.gen_range(5..20);
 
-        let reward_token_supply = pool_share * iterations;
         let reward_token_decimals = 18;
         let reward_token = ContractInfo {
             address: "reward_token".into(),
             code_hash: "reward_token_hash".into()
         };
 
-        let now = SystemTime::now();
-        let mut time = now.duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let mut pools = Vec::with_capacity(NUM_POOLS);
+
+        for i in 0..NUM_POOLS {
+            pools.push(RewardPoolConfig {
+                lp_token: ContractInfo {
+                    address: HumanAddr(format!("lp_token_{}", i)),
+                    code_hash: format!("lp_token_hash_{}", i)
+                },
+                share: Uint128(rng.gen_range(100_000_000_000_000_000_000..800_000_000_000_000_000_000))
+            });
+        }
+
+        let total_share: u128 = pools.iter().map(|p| p.share.u128()).sum();
+        let reward_token_supply = total_share * iterations;
 
         let ref mut deps = mock_dependencies(
             20,
@@ -875,59 +895,61 @@ mod tests {
             reward_token_decimals
         );
 
-        let lp_token_addr = HumanAddr("lp_token".into());
-
-        let pool = RewardPoolConfig {
-            lp_token: ContractInfo {
-                address: lp_token_addr.clone(),
-                code_hash: "lp_token_hash".into()
-            },
-            share: Uint128(pool_share)
-        };
-
         init(deps, mock_env("admin", &[]), InitMsg {
             reward_token,
             admin: None,
-            reward_pools: Some(vec![ pool.into() ]),
+            reward_pools: Some(pools.clone()),
             claim_interval,
             prng_seed: to_binary(&"whatever").unwrap(),
             entropy: to_binary(&"whatever").unwrap()
         }).unwrap();
 
+        let pools = into_pools(pools);
         let mut users = Vec::with_capacity(num_users);
 
         for i in 0..num_users {
             let user = HumanAddr(format!("User {}", i + 1));
             users.push(user.clone());
 
-            lock_tokens(
-                deps,
-                mock_env(user, &[]),
-                Uint128(rng.gen_range(10_000_000..100_000_000)),
-                lp_token_addr.clone()
-            ).unwrap();
+            let pools_to_lock = pools_to_call(i);
+
+            for p in 0..pools_to_lock{
+                lock_tokens(
+                    deps,
+                    mock_env(user.clone(), &[]),
+                    Uint128(rng.gen_range(10_000_000..100_000_000)),
+                    pools[p].lp_token.address.clone()
+                ).unwrap();
+            }
         }
+
+        let now = SystemTime::now();
+        let mut time = now.duration_since(UNIX_EPOCH).unwrap().as_secs();
 
         let mut total_claimed = 0;
         let mut is_done = false;
 
         while !is_done {
             for _ in 0..iterations {
-                for user in users.clone() {
+                for (i, user) in users.clone().into_iter().enumerate() {
                     let rand = rng.gen_range(0..20);
 
                     // Skip claiming for some users to simulate them
                     // not getting their rewards every time they can
                     if rand % 2 == 0 {
-                        let (depleted, claimed) = execute_claim(
-                            deps,
-                            time,
-                            user,
-                            lp_token_addr.clone()
-                        ).unwrap();
+                        let pools_to_claim = pools_to_call(i);
 
-                        total_claimed += claimed;
-                        is_done = depleted;
+                        for p in 0..pools_to_claim {
+                            let (depleted, claimed) = execute_claim(
+                                deps,
+                                time,
+                                user.clone(),
+                                pools[p].lp_token.address.clone()
+                            ).unwrap();
+    
+                            total_claimed += claimed;
+                            is_done = depleted;
+                        }
                     }
 
                     // Let a tiny amount of time to pass to introduce some entropy
@@ -946,7 +968,7 @@ mod tests {
                     deps,
                     time,
                     user,
-                    lp_token_addr.clone()
+                    pools[0].lp_token.address.clone()
                 ).unwrap();
 
                 total_claimed += claimed;
