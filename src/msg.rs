@@ -148,8 +148,6 @@ pub mod exchange {
         /// Get pause/migration status
         Status,
         PairInfo,
-        FactoryInfo,
-        Pool,
         SwapSimulation {
             /// The token type to swap from.
             offer: TokenTypeAmount<HumanAddr>
@@ -160,11 +158,12 @@ pub mod exchange {
     #[serde(rename_all = "snake_case")]
     pub enum QueryMsgResponse {
         PairInfo {
-            pair: TokenPair<HumanAddr>,
-            liquidity_token: ContractInstance<HumanAddr>
-        },
-        FactoryInfo(ContractInstance<HumanAddr>),
-        Pool(TokenPairAmount<HumanAddr>)
+            liquidity_token: ContractInstance<HumanAddr>,
+            factory:         ContractInstance<HumanAddr>,
+            pair:            TokenPair<HumanAddr>,
+            amount_0:        Uint128,
+            amount_1:        Uint128,
+        }
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
