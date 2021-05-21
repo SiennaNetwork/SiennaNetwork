@@ -18,7 +18,7 @@ use sienna_amm_shared::{
 };
 
 use crate::{state::{Config, store_config, load_config}, decimal_math};
-use fadroma_scrt_migrate::{is_operational, can_set_status, set_status, get_status};
+use fadroma_scrt_migrate::get_status;
 use fadroma_scrt_callback::{Callback, ContractInstance};
 
 type SwapResult = StdResult<(Uint128, Uint128, Uint128)>;
@@ -131,13 +131,23 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     msg: QueryMsg,
 ) -> QueryResult {
-    let config = load_config(deps)?;
     match msg {
         QueryMsg::Status => to_binary(&get_status(deps)?),
-        QueryMsg::PairInfo => query_pair_info(config),
-        QueryMsg::FactoryInfo => to_binary(&QueryMsgResponse::FactoryInfo(config.factory_info)),
-        QueryMsg::Pool => query_pool_amount(deps, config),
-        QueryMsg::SwapSimulation { offer } => swap_simulation(deps, config, offer)
+        QueryMsg::PairInfo => {
+            let config = load_config(deps)?;
+            let result = config.pair.query_balances(&deps.querier, config.contract_addr, config.viewing_key.0)?;
+            to_binary(&QueryMsgResponse::PairInfo {
+                liquidity_token: config.lp_token_info,
+                factory: config.factory_info,
+                pair: config.pair,
+                amount_0: result[0],
+                amount_1: result[1]
+            })
+        },
+        QueryMsg::SwapSimulation { offer } => {
+            let config = load_config(deps)?;
+            to_binary(&swap_simulation(deps, config, offer)?)
+        }
     }
 }
 
@@ -415,29 +425,7 @@ fn swap<S: Storage, A: Api, Q: Querier>(
     })
 }
 
-fn query_pool_amount<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    config: Config<HumanAddr>
-) -> QueryResult {
-    let result = config.pair.query_balances(&deps.querier, config.contract_addr, config.viewing_key.0)?;
 
-    to_binary(&QueryMsgResponse::Pool(
-        TokenPairAmount {
-            pair: config.pair,
-            amount_0: result[0],
-            amount_1: result[1]
-        }
-    ))
-}
-
-fn query_pair_info(
-    config: Config<HumanAddr>
-) -> QueryResult {
-    to_binary(&QueryMsgResponse::PairInfo{
-        pair: config.pair,
-        liquidity_token: config.lp_token_info
-    })
-}
 
 fn query_liquidity(
     querier: &impl Querier,
@@ -462,7 +450,7 @@ fn swap_simulation<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     mut config: Config<HumanAddr>,
     offer: TokenTypeAmount<HumanAddr>
-) -> QueryResult {
+) -> StdResult<SwapSimulationResponse> {
     let settings = query_exchange_settings(&deps.querier, config.factory_info.clone())?;
 
     let (mut return_amount, spread_amount, mut commission_amount) = do_swap(deps, &mut config, &offer, settings.swap_fee, true)?;
@@ -475,7 +463,7 @@ fn swap_simulation<S: Storage, A: Api, Q: Querier>(
         return_amount = clamp(result)?;
     }
 
-    to_binary(&SwapSimulationResponse { return_amount, spread_amount, commission_amount })
+    Ok(SwapSimulationResponse { return_amount, spread_amount, commission_amount })
 }
 
 fn register_lp_token<S: Storage, A: Api, Q: Querier>(
