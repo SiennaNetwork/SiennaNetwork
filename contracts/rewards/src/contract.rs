@@ -577,15 +577,23 @@ mod tests {
         let pools = into_pools(reward_pools);
         let stored_pools = get_pools(deps).unwrap();
 
-        assert_eq!(pools.len(), stored_pools.len());
-
-        for (i, pool) in pools.iter().enumerate() {
-            assert_pools_eq(pool, &stored_pools[i]);
-        }
+        assert_pools_eq(&pools, &stored_pools);
     }
 
     #[test]
     fn test_change_pools() {
+        fn assert_pools_inactive<S: Storage, A: Api, Q: Querier>(
+            deps: &Extern<S, A, Q>,
+            pools: &Vec<RewardPool>
+        ) {
+            for pool in pools {
+                assert_eq!(
+                    get_inactive_pool(deps, &pool.lp_token.address).unwrap().unwrap(),
+                    *pool
+                );
+            }
+        }
+
         let reward_token = ContractInfo {
             address: "reward_token".into(),
             code_hash: "reward_token_hash".into()
@@ -657,7 +665,7 @@ mod tests {
             total_share: Uint128(600)
         }).unwrap();
 
-        let new_pools = vec![ 
+        let second_pools = vec![ 
             RewardPoolConfig {
                 share: Uint128(300),
                 lp_token: ContractInfo {
@@ -675,23 +683,38 @@ mod tests {
         ];
 
         handle(deps, mock_env("admin", &[]), HandleMsg::ChangePools {
-            pools: new_pools.clone(),
+            pools: second_pools.clone(),
             total_share: Uint128(700)
         }).unwrap();
 
-        let initial_pools = into_pools(initial_pools);
+        assert_pools_eq(&get_pools(deps).unwrap(), &into_pools(second_pools.clone()));
+        assert_pools_inactive(deps, &into_pools(initial_pools.clone()));
 
-        assert_eq!(get_pools(deps).unwrap(), into_pools(new_pools));
+        let locked_tokens = 9999;
 
-        assert_eq!(
-            get_inactive_pool(deps, &initial_pools[0].lp_token.address).unwrap().unwrap(),
-            initial_pools[0]
-        );
+        lock_tokens(
+            deps,
+            mock_env("user", &[]),
+            Uint128(locked_tokens),
+            second_pools[0].lp_token.address.clone()
+        ).unwrap();
 
-        assert_eq!(
-            get_inactive_pool(deps, &initial_pools[1].lp_token.address).unwrap().unwrap(),
-            initial_pools[1]
-        );
+        let third_pools = vec![
+            initial_pools[0].clone(),
+            initial_pools[1].clone(),
+            second_pools[0].clone()
+        ];
+
+        handle(deps, mock_env("admin", &[]), HandleMsg::ChangePools {
+            pools: third_pools.clone(),
+            total_share: Uint128(600)
+        }).unwrap();
+
+        let mut third_pools = into_pools(third_pools);
+        third_pools[2].size = locked_tokens;
+
+        assert_pools_eq(&get_pools(deps).unwrap(), &third_pools);
+        assert_pools_inactive(deps, &into_pools([ second_pools[1].clone() ].to_vec()));
     }
 
     #[test]
@@ -768,10 +791,16 @@ mod tests {
         }
     }
 
-    fn assert_pools_eq(lhs: &RewardPool, rhs: &RewardPool) {
-        assert_eq!(lhs.lp_token, rhs.lp_token);
-        assert_eq!(lhs.share, rhs.share);
-        assert_eq!(lhs.size, rhs.size);
+    fn assert_pools_eq(lhs: &Vec<RewardPool>, rhs: &Vec<RewardPool>) {
+        assert_eq!(lhs.len(), rhs.len());
+
+        for (i, pool) in lhs.iter().enumerate() {
+            let other = &rhs[i];
+
+            assert_eq!(pool.lp_token, other.lp_token);
+            assert_eq!(pool.share, other.share);
+            assert_eq!(pool.size, other.size);
+        }
     }
 
     fn execute_claim(
