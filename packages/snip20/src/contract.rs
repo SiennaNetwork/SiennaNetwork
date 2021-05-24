@@ -301,7 +301,10 @@ pub fn query_transactions<S: Storage, A: Api, Q: Querier>(
     let address = deps.api.canonical_address(account).unwrap();
     let (txs, total) = get_transfers(&deps.api, &deps.storage, &address, page, page_size)?;
 
-    let result = QueryAnswer::TransferHistory { txs, total: Some(total) };
+    let result = QueryAnswer::TransferHistory {
+        txs,
+        total: Some(total),
+    };
     to_binary(&result)
 }
 
@@ -627,7 +630,7 @@ fn try_transfer_impl<S: Storage, A: Api, Q: Querier>(
         &recipient_address,
         amount,
         symbol,
-        env.block
+        env.block,
     )?;
 
     Ok(())
