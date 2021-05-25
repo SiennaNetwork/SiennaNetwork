@@ -14,6 +14,40 @@ pub use fadroma_scrt_callback::ContractInstantiationInfo;
 pub use fadroma_scrt_storage::{load, save, remove};
 pub use crate::{contract::*, state::*};
 
+impl Into<InitMsg> for &Config<HumanAddr> {
+    fn into (self) -> InitMsg {
+        InitMsg {
+            snip20_contract:   self.snip20_contract.clone(),
+            lp_token_contract: self.lp_token_contract.clone(),
+            pair_contract:     self.pair_contract.clone(),
+            ido_contract:      self.ido_contract.clone(),
+            exchange_settings: self.exchange_settings.clone()
+        }
+    }
+}
+impl Into<HandleMsg> for &Config<HumanAddr> {
+    fn into (self) -> HandleMsg {
+        HandleMsg::SetConfig {
+            snip20_contract:   Some(self.snip20_contract.clone()),
+            lp_token_contract: Some(self.lp_token_contract.clone()),
+            pair_contract:     Some(self.pair_contract.clone()),
+            ido_contract:      Some(self.ido_contract.clone()),
+            exchange_settings: Some(self.exchange_settings.clone())
+        }
+    }
+}
+impl Into<QueryResponse> for &Config<HumanAddr> {
+    fn into (self) -> QueryResponse {
+        QueryResponse::Config {
+            snip20_contract:   self.snip20_contract.clone(),
+            lp_token_contract: self.lp_token_contract.clone(),
+            pair_contract:     self.pair_contract.clone(),
+            ido_contract:      self.ido_contract.clone(),
+            exchange_settings: self.exchange_settings.clone()
+        }
+    }
+}
+
 fn mkenv (sender: impl Into<HumanAddr>) -> Env {
     mock_env(sender, &[])
 }

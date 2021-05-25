@@ -64,39 +64,6 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
         })
     }
 }
-impl Into<InitMsg> for &Config<HumanAddr> {
-    fn into (self) -> InitMsg {
-        InitMsg {
-            snip20_contract:   self.snip20_contract.clone(),
-            lp_token_contract: self.lp_token_contract.clone(),
-            pair_contract:     self.pair_contract.clone(),
-            ido_contract:      self.ido_contract.clone(),
-            exchange_settings: self.exchange_settings.clone()
-        }
-    }
-}
-impl Into<HandleMsg> for &Config<HumanAddr> {
-    fn into (self) -> HandleMsg {
-        HandleMsg::SetConfig {
-            snip20_contract:   Some(self.snip20_contract.clone()),
-            lp_token_contract: Some(self.lp_token_contract.clone()),
-            pair_contract:     Some(self.pair_contract.clone()),
-            ido_contract:      Some(self.ido_contract.clone()),
-            exchange_settings: Some(self.exchange_settings.clone())
-        }
-    }
-}
-impl Into<QueryResponse> for &Config<HumanAddr> {
-    fn into (self) -> QueryResponse {
-        QueryResponse::Config {
-            snip20_contract:   self.snip20_contract.clone(),
-            lp_token_contract: self.lp_token_contract.clone(),
-            pair_contract:     self.pair_contract.clone(),
-            ido_contract:      self.ido_contract.clone(),
-            exchange_settings: self.exchange_settings.clone()
-        }
-    }
-}
 
 /// Returns StdResult<()> resulting from saving the config to storage
 pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
