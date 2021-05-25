@@ -7,7 +7,7 @@ docs:
 coverage:
 	cargo tarpaulin --avoid-cfg-tarpaulin --workspace --no-fail-fast --verbose \
 		-e snip20-reference-impl --exclude-files=token/* \
-		-o Html --output-dir=./coverage
+		-o Html --output-dir=.
 expand:
 	cargo expand --manifest-path=mgmt/Cargo.toml --color=always 2>&1 | less -R
 # Unit testing
