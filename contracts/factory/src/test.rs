@@ -81,7 +81,7 @@ mod test_contract {
 
     #[test] fn ok_init () -> StdResult<()> {
         let ref mut deps = mkdeps();
-        let env = mkenv("sender1111");
+        let env = mkenv("admin");
         let config = mkconfig(0);
         assert!(init(deps, env, (&config).into()).is_ok());
         assert_eq!(config, load_config(deps)?);
@@ -91,7 +91,7 @@ mod test_contract {
     #[test] fn ok_get_set_config () -> StdResult<()> {
         let ref mut deps = mkdeps();
         let config1 = mkconfig(1);
-        let env = mkenv("sender1111");
+        let env = mkenv("admin");
         // init with some config
         assert!(init(deps, env.clone(), (&config1).into()).is_ok());
         // get current config
@@ -103,6 +103,22 @@ mod test_contract {
         // updated config is returned
         let response: QueryResponse = from_binary(&query(deps, QueryMsg::GetConfig {})?)?;
         assert_eq!(response, (&config2).into());
+        Ok(())
+    }
+
+    #[test] fn no_unauthorized_set_config () -> StdResult<()> {
+        let ref mut deps = mkdeps();
+        let config1 = mkconfig(1);
+        let env = mkenv("admin");
+        // init with some config
+        assert!(init(deps, env.clone(), (&config1).into()).is_ok());
+        // someone else tries to set config
+        let config2 = mkconfig(2);
+        let env = mkenv("badman");
+        assert!(handle(deps, env, (&config2).into()).is_err());
+        // config remains unchanged
+        let response: QueryResponse = from_binary(&query(deps, QueryMsg::GetConfig {})?)?;
+        assert_eq!(response, (&config1).into());
         Ok(())
     }
 
