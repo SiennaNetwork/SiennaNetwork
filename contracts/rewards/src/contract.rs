@@ -300,13 +300,13 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
             continue;
         }
 
-        let reward_amount = calc_reward_share(
+        let reward_per_portion = calc_reward_share(
             account.locked_amount,
             &pool,
             config.token_decimals
         )?;
 
-        if reward_amount == 0 {
+        if reward_per_portion == 0 {
             results.push(ClaimResult::error(addr, ClaimError::AccountZeroReward));
             continue;
         }
@@ -324,8 +324,8 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
             continue;
         }
 
-        let reward_amount = reward_amount.saturating_mul(portions as u128);
-        results.push(ClaimResult::success(addr, Uint128(reward_amount)));
+        let reward_amount = reward_per_portion.saturating_mul(portions as u128);
+        results.push(ClaimResult::success(addr, Uint128(reward_amount), Uint128(reward_per_portion)));
 
         total_rewards_amount = total_rewards_amount.saturating_add(reward_amount);
     }

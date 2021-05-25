@@ -90,6 +90,7 @@ pub struct ClaimSimulationResult {
 pub struct ClaimResult {
     pub lp_token_addr: HumanAddr,
     pub reward_amount: Uint128,
+    pub reward_per_portion: Uint128,
     pub success: bool,
     pub error: Option<ClaimError>
 }
@@ -107,10 +108,11 @@ pub enum ClaimError {
 }
 
 impl ClaimResult {
-    pub fn success(lp_token_addr: HumanAddr, reward_amount: Uint128) -> Self {
+    pub fn success(lp_token_addr: HumanAddr, reward_amount: Uint128, reward_per_portion: Uint128) -> Self {
         Self {
             lp_token_addr,
             reward_amount,
+            reward_per_portion,
             success: true,
             error: None
         }
@@ -120,6 +122,7 @@ impl ClaimResult {
         Self {
             lp_token_addr,
             reward_amount: Uint128::zero(),
+            reward_per_portion: Uint128::zero(),
             success: false,
             error: Some(error)
         }
