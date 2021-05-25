@@ -1,0 +1,210 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HandleMsg",
+  "anyOf": [
+    {
+      "description": "Set pause/migration status",
+      "type": "object",
+      "required": [
+        "set_status"
+      ],
+      "properties": {
+        "set_status": {
+          "type": "object",
+          "required": [
+            "level",
+            "reason"
+          ],
+          "properties": {
+            "level": {
+              "$ref": "#/definitions/ContractStatusLevel"
+            },
+            "new_address": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "burn"
+      ],
+      "properties": {
+        "burn": {
+          "type": "object",
+          "required": [
+            "amount"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "add_pairs"
+      ],
+      "properties": {
+        "add_pairs": {
+          "type": "object",
+          "required": [
+            "pairs"
+          ],
+          "properties": {
+            "pairs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "remove_pairs"
+      ],
+      "properties": {
+        "remove_pairs": {
+          "type": "object",
+          "required": [
+            "pairs"
+          ],
+          "properties": {
+            "pairs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_burn_pool"
+      ],
+      "properties": {
+        "set_burn_pool": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_sienna_token"
+      ],
+      "properties": {
+        "set_sienna_token": {
+          "type": "object",
+          "required": [
+            "info"
+          ],
+          "properties": {
+            "info": {
+              "$ref": "#/definitions/ContractInfo"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/MultiAdminHandleMsg"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "ContractInfo": {
+      "description": "Code hash and address of a contract.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "ContractStatusLevel": {
+      "type": "string",
+      "enum": [
+        "Operational",
+        "Paused",
+        "Migrating"
+      ]
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "MultiAdminHandleMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "add_admins"
+          ],
+          "properties": {
+            "add_admins": {
+              "type": "object",
+              "required": [
+                "addresses"
+              ],
+              "properties": {
+                "addresses": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/HumanAddr"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}

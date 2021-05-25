@@ -5,9 +5,9 @@
 docs:
 	cargo doc --document-private-items
 coverage:
-	cargo tarpaulin --avoid-cfg-tarpaulin --workspace --no-fail-fast --verbose \
+	time cargo tarpaulin --avoid-cfg-tarpaulin --workspace --no-fail-fast --verbose \
 		-e snip20-reference-impl --exclude-files=token/* \
-		-o Html --output-dir=./coverage
+		-o Html --output-dir=.
 expand:
 	cargo expand --manifest-path=mgmt/Cargo.toml --color=always 2>&1 | less -R
 # Unit testing
@@ -39,11 +39,11 @@ test-localnet:
 
 # Compilation
 .PHONY: prod
-_optimizer: optimizer/*
+_optimizer: build/optimizer/*
 	docker build                                 \
-		-f optimizer/Dockerfile                    \
+		-f build/optimizer/Dockerfile                    \
 		-t hackbg/secret-contract-optimizer:latest \
-		optimizer
+		build/optimizer
 prod: _optimizer
 	time build/working-tree
 # TODO: see if there's any value in keeping these around:

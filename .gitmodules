@@ -1,4 +1,10 @@
 [submodule "snip20-reference-impl"]
-	path = snip20-reference-impl
+	path = contracts/snip20-reference-impl
 	url = https://github.com/hackbg/snip20-reference-impl
 	branch = master
+[submodule "fadroma"]
+	path = libraries/fadroma
+	url = git@github.com:hackbg/fadroma.git
+[submodule "libraries/amm-shared"]
+	path = libraries/amm-shared
+	url = git@github.com:hackbg/sienna-amm-shared.git

@@ -1,10 +1,17 @@
 [workspace]
 members = [
-  "exchange",              # uniswap exchange contract implementation
-  "factory",               # factory contract for creating exchanges
-  "snip20-reference-impl", # snip20 token implementation with a modification to call back a contract after init
-  "lp-token",              # snip20 liquidity provider token
-  "sienna-burner"          # burns SIENNA on each swap
+  "contracts/exchange",              # uniswap exchange contract implementation
+  "contracts/factory",               # factory contract for creating exchanges
+  "contracts/snip20-reference-impl", # snip20 token implementation with a modification to call back a contract after init
+  "contracts/lp-token",              # snip20 liquidity provider token
+  "contracts/sienna-burner",         # burns SIENNA on each swap
+  "api",                             # schema generator for all of the above
+
+  "libraries/amm-shared",           # definitions that are shared between AMM and IDO
+  "libraries/fadroma/scrt-migrate", # pause contracts and mark them for upgrade
+  "libraries/fadroma/scrt-utils",   # grab bag of utility functions
+  "libraries/fadroma/scrt-admin/composable-admin", # proc macro for `require_admin` attribute
+  "libraries/fadroma/scrt-admin/require-admin"     # implementation of admin check
 ]
 
 [profile.release]

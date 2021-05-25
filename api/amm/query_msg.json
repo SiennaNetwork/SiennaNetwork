@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsg",
+  "anyOf": [
+    {
+      "type": "string",
+      "enum": [
+        "status",
+        "pair_info",
+        "factory_info",
+        "pool"
+      ]
+    },
+    {
+      "type": "object",
+      "required": [
+        "swap_simulation"
+      ],
+      "properties": {
+        "swap_simulation": {
+          "type": "object",
+          "required": [
+            "offer"
+          ],
+          "properties": {
+            "offer": {
+              "description": "The token type to swap from.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/TokenTypeAmount"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "HumanAddr": {
+      "type": "string"
+    },
+    "TokenType": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "custom_token"
+          ],
+          "properties": {
+            "custom_token": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "token_code_hash"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "token_code_hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "native_token"
+          ],
+          "properties": {
+            "native_token": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "TokenTypeAmount": {
+      "type": "object",
+      "required": [
+        "amount",
+        "token"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "token": {
+          "$ref": "#/definitions/TokenType"
+        }
+      }
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}
