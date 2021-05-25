@@ -277,6 +277,9 @@ pub enum QueryMsg {
         page_size: u32,
     },
     Minters {},
+    LastUserIndex {
+        account: HumanAddr,
+    },
 }
 
 impl QueryMsg {

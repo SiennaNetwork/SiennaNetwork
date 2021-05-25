@@ -199,7 +199,6 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
     }
 }
 
-
 pub fn authenticated_queries<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     msg: QueryMsg,
@@ -554,7 +553,7 @@ fn try_redeem<S: Storage, A: Api, Q: Querier>(
     }
 
     let sender_address = deps.api.canonical_address(&env.message.sender)?;
-  
+
     let amount_raw = amount.u128();
     if amount_raw <= 0 {
         return Err(StdError::generic_err("Amount to redeem needs to be > 0"));

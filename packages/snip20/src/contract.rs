@@ -13,7 +13,7 @@ use crate::msg::{
 use crate::rand::sha_256;
 use crate::receiver::Snip20ReceiveMsg;
 use crate::state::{
-    get_receiver_hash, get_transfers, read_allowance, read_viewing_key, set_receiver_hash,
+    self, get_receiver_hash, get_transfers, read_allowance, read_viewing_key, set_receiver_hash,
     store_transfer, write_allowance, write_viewing_key, Balances, Config, Constants,
     ReadonlyBalances, ReadonlyConfig,
 };
@@ -195,6 +195,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
         QueryMsg::TokenConfig {} => query_token_config(&deps.storage),
         QueryMsg::ExchangeRate {} => query_exchange_rate(&deps.storage),
         QueryMsg::Minters { .. } => query_minters(deps),
+        QueryMsg::LastUserIndex { account } => query_get_user_index(&account, &deps),
         _ => authenticated_queries(deps, msg),
     }
 }
@@ -290,6 +291,20 @@ fn query_token_config<S: ReadonlyStorage>(storage: &S) -> QueryResult {
         mint_enabled: constants.mint_is_enabled,
         burn_enabled: constants.burn_is_enabled,
     })
+}
+
+pub fn query_get_user_index<S: Storage, A: Api, Q: Querier>(
+    account: &HumanAddr,
+    deps: &Extern<S, A, Q>,
+) -> StdResult<Binary> {
+    match state::get_user_index(&deps.storage, account) {
+        Some(result) => Ok(result),
+        None => {
+            return Err(StdError::generic_err(
+                "Сouldn't find last index of the user",
+            ));
+        }
+    }
 }
 
 pub fn query_transactions<S: Storage, A: Api, Q: Querier>(

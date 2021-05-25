@@ -1,9 +1,11 @@
 use std::any::type_name;
 use std::convert::TryFrom;
 
+use cosmwasm_std::Binary;
 use cosmwasm_std::{
     Api, CanonicalAddr, Coin, HumanAddr, ReadonlyStorage, StdError, StdResult, Storage, Uint128,
 };
+use cosmwasm_storage::singleton;
 use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
 
 use secret_toolkit::storage::{AppendStore, AppendStoreMut, TypedStore, TypedStoreMut};
@@ -29,6 +31,7 @@ pub const PREFIX_BALANCES: &[u8] = b"balances";
 pub const PREFIX_ALLOWANCES: &[u8] = b"allowances";
 pub const PREFIX_VIEW_KEY: &[u8] = b"viewingkey";
 pub const PREFIX_RECEIVERS: &[u8] = b"receivers";
+pub const PREFIX_USER_INDEXIS: &[u8] = b"user_indexes";
 
 // Note that id is a globally incrementing counter.
 // Since it's 64 bits long, even at 50 tx/s it would take
@@ -423,8 +426,6 @@ impl<'a, S: ReadonlyStorage> ReadonlyBalancesImpl<'a, S> {
     }
 }
 
-// Allowances
-
 #[derive(Serialize, Debug, Deserialize, Clone, PartialEq, Default, JsonSchema)]
 pub struct Allowance {
     pub amount: u128,
@@ -479,6 +480,12 @@ pub fn get_receiver_hash<S: ReadonlyStorage>(
         String::from_utf8(data)
             .map_err(|_err| StdError::invalid_utf8("stored code hash was not a valid String"))
     })
+}
+// Get user index inteface
+pub fn get_user_index<S: ReadonlyStorage>(storage: &S, account: &HumanAddr) -> Option<Binary> {
+    let store = ReadonlyPrefixedStorage::new(PREFIX_USER_INDEXIS, storage);
+    let result = store.get(account.as_str().as_bytes())?;
+    Some(Binary::from(result.as_slice()))
 }
 
 pub fn set_receiver_hash<S: Storage>(store: &mut S, account: &HumanAddr, code_hash: String) {
