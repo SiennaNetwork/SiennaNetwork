@@ -11,6 +11,7 @@ pub mod factory {
     use super::*;
     use super::ido::IdoInitConfig;
     use crate::{Pagination, Exchange, ExchangeSettings};
+    use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
     pub struct InitMsg {
@@ -56,7 +57,9 @@ pub mod factory {
         /// itself with the factory
         RegisterIdo {
             signature: Binary
-        }
+        },
+
+        Admin(AdminHandleMsg)
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -69,7 +72,9 @@ pub mod factory {
         GetExchangeAddress { pair: TokenPair<HumanAddr> },
         ListIdos { pagination: Pagination },
         ListExchanges { pagination: Pagination },
-        GetExchangeSettings
+        GetExchangeSettings,
+
+        Admin(AdminQueryMsg)
     }
 
     #[derive(Serialize, Deserialize, Debug, JsonSchema)]
