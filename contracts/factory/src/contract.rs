@@ -11,7 +11,13 @@ use sienna_amm_shared::{
         factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse},
         sienna_burner::HandleMsg as BurnerHandleMsg
     },
-    admin::{require_admin, multi_admin::assert_admin}
+    admin::{
+        require_admin,
+        admin::{
+            DefaultHandleImpl as AdminHandle, DefaultQueryImpl as AdminQuery,
+            admin_handle, admin_query, assert_admin
+        }
+    }
 };
 use fadroma_scrt_callback::{ContractInstance, Callback};
 use fadroma_scrt_storage::{load, save, remove};
@@ -45,7 +51,9 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::CreateIdo { info }          => create_ido(deps, env, info),
         HandleMsg::RegisterExchange { pair, signature } =>
             register_exchange(deps, env, pair, signature),
-        HandleMsg::RegisterIdo { signature }   => register_ido(deps, env, signature)
+        HandleMsg::RegisterIdo { signature }   => register_ido(deps, env, signature),
+
+        HandleMsg::Admin(msg) => admin_handle(deps, env, msg, AdminHandle),
     })
 }
 
@@ -59,7 +67,9 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::GetExchangeAddress { pair }  => query_exchange_address(deps, pair),
         QueryMsg::ListExchanges { pagination } => list_exchanges(deps, pagination),
         QueryMsg::ListIdos { pagination }      => list_idos(deps, pagination),
-        QueryMsg::GetExchangeSettings          => query_exchange_settings(deps)
+        QueryMsg::GetExchangeSettings          => query_exchange_settings(deps),
+
+        QueryMsg::Admin(msg) => admin_query(deps, msg, AdminQuery),
     }
 }
 
