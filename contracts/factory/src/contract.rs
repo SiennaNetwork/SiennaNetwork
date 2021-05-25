@@ -15,7 +15,7 @@ use sienna_amm_shared::{
         require_admin,
         admin::{
             DefaultHandleImpl as AdminHandle, DefaultQueryImpl as AdminQuery,
-            admin_handle, admin_query, assert_admin
+            save_admin, admin_handle, admin_query, assert_admin
         }
     }
 };
@@ -31,11 +31,13 @@ pub const EPHEMERAL_STORAGE_KEY: &[u8] = b"ephemeral_storage";
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    _env: Env,
+    env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
     let config = Config::from_init_msg(msg);
     save_config(deps, &config)?;
+
+    save_admin(deps, &env.message.sender)?;
 
     Ok(InitResponse::default())
 }
