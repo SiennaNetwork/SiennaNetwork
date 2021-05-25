@@ -5,7 +5,7 @@
 docs:
 	cargo doc --document-private-items
 coverage:
-	cargo tarpaulin --avoid-cfg-tarpaulin --workspace --no-fail-fast --verbose \
+	time cargo tarpaulin --avoid-cfg-tarpaulin --workspace --no-fail-fast --verbose \
 		-e snip20-reference-impl --exclude-files=token/* \
 		-o Html --output-dir=.
 expand:
