@@ -14,76 +14,66 @@ pub use fadroma_scrt_callback::ContractInstantiationInfo;
 pub use fadroma_scrt_storage::{load, save, remove};
 pub use crate::{contract::*, state::*};
 
-pub fn create_deps() -> Extern<impl Storage, impl Api, impl Querier> {
+fn mkenv (sender: impl Into<HumanAddr>) -> Env {
+    mock_env(sender, &[])
+}
+
+fn mkdeps () -> Extern<impl Storage, impl Api, impl Querier> {
     mock_dependencies(10, &[])
+}
+
+fn mkconfig (id: u64) -> Config<HumanAddr> {
+    Config::from_init_msg(InitMsg {
+        snip20_contract:   ContractInstantiationInfo { id, code_hash: "snip20".into() },
+        lp_token_contract: ContractInstantiationInfo { id, code_hash: "lptoken".into(), },
+        pair_contract:     ContractInstantiationInfo { id, code_hash: "2341586789".into(), },
+        ido_contract:      ContractInstantiationInfo { id,  code_hash: "348534835".into(), },
+        exchange_settings: ExchangeSettings {
+            swap_fee: Fee::new(28, 10000),
+            sienna_fee: Fee::new(2, 10000),
+            sienna_burner: None
+        }
+    })
+}
+
+fn assert_unauthorized(response: StdResult<HandleResponse>) {
+    assert!(response.is_err());
+    let err = response.unwrap_err();
+    assert_eq!(err, StdError::unauthorized())
 }
 
 mod test_contract {
     use super::*;
 
-    fn assert_unauthorized(response: StdResult<HandleResponse>) {
-        assert!(response.is_err());
-
-        let err = response.unwrap_err();
-        assert_eq!(err, StdError::unauthorized())
-    }
-
-    fn config() -> Config<HumanAddr> {
-        Config::from_init_msg(InitMsg {
-            snip20_contract: ContractInstantiationInfo {
-                code_hash: "12355254".into(),
-                id: 64
-            },
-            lp_token_contract: ContractInstantiationInfo {
-                code_hash: "23123123".into(),
-                id: 64
-            },
-            pair_contract: ContractInstantiationInfo {
-                code_hash: "2341586789".into(),
-                id: 33
-            },
-            ido_contract: ContractInstantiationInfo {
-                code_hash: "348534835".into(),
-                id: 69
-            },
-            exchange_settings: ExchangeSettings {
-                swap_fee: Fee::new(28, 10000),
-                sienna_fee: Fee::new(2, 10000),
-                sienna_burner: None
-            }
-        })
-    }
-
-    #[test]
-    fn proper_initialization() -> StdResult<()> {
-        let ref mut deps = create_deps();
-
-        let config = config();
-
-        let result = init(deps, mock_env("sender1111", &[]), InitMsg {
-            snip20_contract: config.snip20_contract.clone(),
-            lp_token_contract: config.lp_token_contract.clone(),
-            pair_contract: config.pair_contract.clone(),
-            ido_contract: config.ido_contract.clone(),
-            exchange_settings: config.exchange_settings.clone()
-        });
-
-        assert!(result.is_ok());
-
-        let loaded_config = load_config(deps)?;
-
-        assert_eq!(config.snip20_contract, loaded_config.snip20_contract);
-        assert_eq!(config.lp_token_contract, loaded_config.lp_token_contract);
-        assert_eq!(config.pair_contract, loaded_config.pair_contract);
-        assert_eq!(config.ido_contract, loaded_config.ido_contract);
-        assert_eq!(config.exchange_settings, loaded_config.exchange_settings);
-        
+    #[test] fn ok_init () -> StdResult<()> {
+        let ref mut deps = mkdeps();
+        let env = mkenv("sender1111");
+        let config = mkconfig(0);
+        assert!(init(deps, env, (&config).into()).is_ok());
+        assert_eq!(config, load_config(deps)?);
         Ok(())
     }
 
-    #[test]
-    fn create_exchange_for_the_same_tokens_returns_error() -> StdResult<()> {
-        let ref mut deps = create_deps();
+    #[test] fn ok_get_set_config () -> StdResult<()> {
+        let ref mut deps = mkdeps();
+        let config1 = mkconfig(1);
+        let env = mkenv("sender1111");
+        // init with some config
+        assert!(init(deps, env.clone(), (&config1).into()).is_ok());
+        // get current config
+        let response: QueryResponse = from_binary(&query(deps, QueryMsg::GetConfig {})?)?;
+        assert_eq!(response, (&config1).into());
+        // set config to something else
+        let config2 = mkconfig(2);
+        assert!(handle(deps, env, (&config2).into()).is_ok());
+        // updated config is returned
+        let response: QueryResponse = from_binary(&query(deps, QueryMsg::GetConfig {})?)?;
+        assert_eq!(response, (&config2).into());
+        Ok(())
+    }
+
+    #[test] fn create_exchange_for_the_same_tokens_returns_error() -> StdResult<()> {
+        let ref mut deps = mkdeps();
 
         let pair = TokenPair (
             TokenType::CustomToken {
@@ -96,7 +86,7 @@ mod test_contract {
             },
         );
 
-        let result = create_exchange(deps, mock_env("sender", &[]), pair);
+        let result = create_exchange(deps, mkenv("sender"), pair);
 
         let error: StdError = result.unwrap_err();
 
@@ -122,7 +112,7 @@ mod test_contract {
             },
         );
 
-        let result = create_exchange(deps, mock_env("sender", &[]), pair);
+        let result = create_exchange(deps, mkenv("sender"), pair);
 
         let error: StdError = result.unwrap_err();
 
@@ -142,9 +132,8 @@ mod test_contract {
         Ok(())
     }
 
-    #[test]
-    fn test_register_exchange() -> StdResult<()> {
-        let ref mut deps = create_deps();
+    #[test] fn test_register_exchange() -> StdResult<()> {
+        let ref mut deps = mkdeps();
 
         let pair = TokenPair (
             TokenType::CustomToken {
@@ -160,7 +149,7 @@ mod test_contract {
 
         let result = handle(
             deps,
-            mock_env(sender_addr.clone(), &[]),
+            mkenv(sender_addr.clone()),
             HandleMsg::RegisterExchange {
                 pair: pair.clone(),
                 signature: to_binary("whatever")?
@@ -169,10 +158,10 @@ mod test_contract {
 
         assert_unauthorized(result);
 
-        let config = config();
+        let config = mkconfig(0);
         save_config(deps, &config)?;
 
-        let env = mock_env(sender_addr.clone(), &[]);
+        let env = mkenv(sender_addr.clone());
 
         let signature = create_signature(&env)?;
         save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
@@ -197,15 +186,14 @@ mod test_contract {
         Ok(())
     }
 
-    #[test]
-    fn test_register_ido() -> StdResult<()> {
-        let ref mut deps = create_deps();
+    #[test] fn test_register_ido() -> StdResult<()> {
+        let ref mut deps = mkdeps();
 
         let sender_addr = HumanAddr("sender1111".into());
 
         let result = handle(
             deps,
-            mock_env(sender_addr.clone(), &[]),
+            mkenv(sender_addr.clone()),
             HandleMsg::RegisterIdo {
                 signature: to_binary("whatever")?
             }
@@ -213,10 +201,10 @@ mod test_contract {
 
         assert_unauthorized(result);
 
-        let config = config();
+        let config = mkconfig(0);
         save_config(deps, &config)?;
 
-        let env = mock_env(sender_addr.clone(), &[]);
+        let env = mkenv(sender_addr.clone());
 
         let signature = create_signature(&env)?;
         save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
@@ -239,9 +227,8 @@ mod test_contract {
         Ok(())
     }
 
-    #[test]
-    fn query_exchange() -> StdResult<()> {
-        let ref mut deps = create_deps();
+    #[test] fn query_exchange() -> StdResult<()> {
+        let ref mut deps = mkdeps();
 
         let pair = TokenPair (
             TokenType::CustomToken {
@@ -253,11 +240,11 @@ mod test_contract {
             },
         );
 
-        let config = config();
+        let config = mkconfig(0);
         save_config(deps, &config)?;
 
         let sender_addr = HumanAddr("sender1111".into());
-        let env = mock_env(sender_addr.clone(), &[]);
+        let env = mkenv(sender_addr.clone());
 
         let signature = create_signature(&env)?;
         save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
@@ -345,7 +332,7 @@ mod test_state {
             Ok(())
         }
 
-        let ref deps = create_deps();
+        let ref deps = mkdeps();
 
         cmp_pair(
             deps,
@@ -391,7 +378,7 @@ mod test_state {
 
     #[test]
     fn query_correct_exchange_info() -> StdResult<()> {
-        let mut deps = create_deps();
+        let mut deps = mkdeps();
 
         let pair = TokenPair (
             TokenType::CustomToken {
@@ -418,7 +405,7 @@ mod test_state {
 
     #[test]
     fn only_one_exchange_per_factory() -> StdResult<()> {
-        let ref mut deps = create_deps();
+        let ref mut deps = mkdeps();
         let pair = TokenPair (
             TokenType::CustomToken {
                 contract_addr: HumanAddr("first_addr".into()),
@@ -442,7 +429,7 @@ mod test_state {
 
     #[test]
     fn test_get_idos() -> StdResult<()> {
-        let ref mut deps = create_deps();
+        let ref mut deps = mkdeps();
         let mut config = mock_config();
 
         save_config(deps, &config)?;
@@ -475,7 +462,7 @@ mod test_state {
 
     #[test]
     fn test_get_exchanges() -> StdResult<()> {
-        let ref mut deps = create_deps();
+        let ref mut deps = mkdeps();
 
         let mut exchanges = vec![];
 

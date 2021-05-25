@@ -4,7 +4,7 @@ use fadroma_scrt_callback::ContractInstantiationInfo;
 use serde::{Deserialize, Serialize};
 use sienna_amm_shared::{
     Exchange, ExchangeSettings, TokenPair, TokenType, Pagination,
-    msg::factory::InitMsg,
+    msg::factory::{InitMsg, HandleMsg, QueryResponse},
     storage::{save, load},
 };
 use std::usize;
@@ -15,7 +15,7 @@ const EXCHANGES_KEY: &[u8] = b"exchanges";
 
 pub const PAGINATION_LIMIT: u8 = 30;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub(crate) struct Config<A> {
     pub snip20_contract:   ContractInstantiationInfo,
     pub lp_token_contract: ContractInstantiationInfo,
@@ -62,6 +62,39 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
             pair_count:        self.pair_count,
             ido_count:         self.ido_count
         })
+    }
+}
+impl Into<InitMsg> for &Config<HumanAddr> {
+    fn into (self) -> InitMsg {
+        InitMsg {
+            snip20_contract:   self.snip20_contract.clone(),
+            lp_token_contract: self.lp_token_contract.clone(),
+            pair_contract:     self.pair_contract.clone(),
+            ido_contract:      self.ido_contract.clone(),
+            exchange_settings: self.exchange_settings.clone()
+        }
+    }
+}
+impl Into<HandleMsg> for &Config<HumanAddr> {
+    fn into (self) -> HandleMsg {
+        HandleMsg::SetConfig {
+            snip20_contract:   Some(self.snip20_contract.clone()),
+            lp_token_contract: Some(self.lp_token_contract.clone()),
+            pair_contract:     Some(self.pair_contract.clone()),
+            ido_contract:      Some(self.ido_contract.clone()),
+            exchange_settings: Some(self.exchange_settings.clone())
+        }
+    }
+}
+impl Into<QueryResponse> for &Config<HumanAddr> {
+    fn into (self) -> QueryResponse {
+        QueryResponse::Config {
+            snip20_contract:   self.snip20_contract.clone(),
+            lp_token_contract: self.lp_token_contract.clone(),
+            pair_contract:     self.pair_contract.clone(),
+            ido_contract:      self.ido_contract.clone(),
+            exchange_settings: self.exchange_settings.clone()
+        }
     }
 }
 

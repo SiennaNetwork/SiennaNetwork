@@ -34,11 +34,8 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
-    let config = Config::from_init_msg(msg);
-    save_config(deps, &config)?;
-
+    save_config(deps, &Config::from_init_msg(msg))?;
     save_admin(deps, &env.message.sender)?;
-
     Ok(InitResponse::default())
 }
 
@@ -48,12 +45,12 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     with_status!(deps, env, match msg {
-        HandleMsg::SetConfig { .. }            => set_config(deps, env, msg),
-        HandleMsg::CreateExchange { pair }     => create_exchange(deps, env, pair),
-        HandleMsg::CreateIdo { info }          => create_ido(deps, env, info),
+        HandleMsg::SetConfig { .. }          => set_config(deps, env, msg),
+        HandleMsg::CreateExchange { pair }   => create_exchange(deps, env, pair),
+        HandleMsg::CreateIdo { info }        => create_ido(deps, env, info),
+        HandleMsg::RegisterIdo { signature } => register_ido(deps, env, signature),
         HandleMsg::RegisterExchange { pair, signature } =>
             register_exchange(deps, env, pair, signature),
-        HandleMsg::RegisterIdo { signature }   => register_ido(deps, env, signature),
 
         HandleMsg::Admin(msg) => admin_handle(deps, env, msg, AdminHandle),
     })
