@@ -32,6 +32,8 @@ pub const PREFIX_ALLOWANCES: &[u8] = b"allowances";
 pub const PREFIX_VIEW_KEY: &[u8] = b"viewingkey";
 pub const PREFIX_RECEIVERS: &[u8] = b"receivers";
 pub const PREFIX_USER_INDEXIS: &[u8] = b"user_indexes";
+pub const INTERESTED_REDIRECTION_ADDRESS: &[u8] = b"interestRedirectionAddresses";
+pub const REDIRECTED_BALANCES: &[u8] = b"redirectedBalances";
 
 // Note that id is a globally incrementing counter.
 // Since it's 64 bits long, even at 50 tx/s it would take
@@ -484,6 +486,20 @@ pub fn get_receiver_hash<S: ReadonlyStorage>(
 // Get user index inteface
 pub fn get_user_index<S: ReadonlyStorage>(storage: &S, account: &HumanAddr) -> Option<Binary> {
     let store = ReadonlyPrefixedStorage::new(PREFIX_USER_INDEXIS, storage);
+    let result = store.get(account.as_str().as_bytes())?;
+    Some(Binary::from(result.as_slice()))
+}
+
+// Get interested redirection address
+pub fn get_interested_redirection_address<S: ReadonlyStorage>(storage: &S,account: &HumanAddr) -> Option<Binary> {
+    let store = ReadonlyPrefixedStorage::new(INTERESTED_REDIRECTION_ADDRESS,storage);
+    let result = store.get(account.as_str().as_bytes())?;
+    Some(Binary::from(result.as_slice()))
+}
+
+// Get the total redirected balance
+pub fn get_redirection_balance<S: ReadonlyStorage>(storage: &S,account: &HumanAddr) -> Option<Binary> {
+    let store = ReadonlyPrefixedStorage::new(REDIRECTED_BALANCES,storage);
     let result = store.get(account.as_str().as_bytes())?;
     Some(Binary::from(result.as_slice()))
 }
