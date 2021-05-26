@@ -4,6 +4,7 @@ use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 use snip20_reference_impl::msg as token;
 use sienna_mgmt::msg as mgmt;
 use sienna_rpt::msg as rpt;
+use sienna_rewards::msg as rewards;
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
@@ -36,4 +37,14 @@ fn main() {
     export_schema(&schema_for!(rpt::Handle), &out_dir);
     export_schema(&schema_for!(rpt::Query), &out_dir);
     export_schema(&schema_for!(rpt::Response), &out_dir);
+
+    let mut out_dir = current_dir().unwrap();
+    out_dir.push("api");
+    out_dir.push("rewards");
+    create_dir_all(&out_dir).unwrap();
+    remove_schemas(&out_dir).unwrap();
+    export_schema(&schema_for!(rewards::InitMsg), &out_dir);
+    export_schema(&schema_for!(rewards::HandleMsg), &out_dir);
+    export_schema(&schema_for!(rewards::QueryMsg), &out_dir);
+    export_schema(&schema_for!(rewards::QueryMsgResponse), &out_dir);
 }

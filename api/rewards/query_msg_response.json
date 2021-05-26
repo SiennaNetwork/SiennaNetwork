@@ -154,6 +154,7 @@
       "required": [
         "lp_token_addr",
         "reward_amount",
+        "reward_per_portion",
         "success"
       ],
       "properties": {
@@ -171,6 +172,9 @@
           "$ref": "#/definitions/HumanAddr"
         },
         "reward_amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "reward_per_portion": {
           "$ref": "#/definitions/Uint128"
         },
         "success": {

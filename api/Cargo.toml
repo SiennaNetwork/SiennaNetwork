@@ -9,6 +9,7 @@ cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v
 snip20-reference-impl = { path = "../contracts/token" }
 sienna-mgmt  = { path = "../contracts/mgmt" }
 sienna-rpt   = { path = "../contracts/rpt" }
+sienna-rewards = { path = "../contracts/rewards" }
 
 [[bin]]
 name = "schema"
