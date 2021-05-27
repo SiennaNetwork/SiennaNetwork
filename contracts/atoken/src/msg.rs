@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{Binary, HumanAddr, StdError, StdResult, Uint128};
 
-use crate::state::Tx;
+use crate::batch;
+use crate::transaction_history::{RichTx, Tx};
 use crate::viewing_key::ViewingKey;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
@@ -76,7 +77,7 @@ impl InitConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, JsonSchema)]
+#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
     // Native coin interactions
@@ -93,16 +94,27 @@ pub enum HandleMsg {
     Transfer {
         recipient: HumanAddr,
         amount: Uint128,
+        memo: Option<String>,
         padding: Option<String>,
     },
     Send {
         recipient: HumanAddr,
         amount: Uint128,
         msg: Option<Binary>,
+        memo: Option<String>,
+        padding: Option<String>,
+    },
+    BatchTransfer {
+        actions: Vec<batch::TransferAction>,
+        padding: Option<String>,
+    },
+    BatchSend {
+        actions: Vec<batch::SendAction>,
         padding: Option<String>,
     },
     Burn {
         amount: Uint128,
+        memo: Option<String>,
         padding: Option<String>,
     },
     RegisterReceive {
@@ -135,6 +147,7 @@ pub enum HandleMsg {
         owner: HumanAddr,
         recipient: HumanAddr,
         amount: Uint128,
+        memo: Option<String>,
         padding: Option<String>,
     },
     SendFrom {
@@ -142,11 +155,25 @@ pub enum HandleMsg {
         recipient: HumanAddr,
         amount: Uint128,
         msg: Option<Binary>,
+        memo: Option<String>,
+        padding: Option<String>,
+    },
+    BatchTransferFrom {
+        actions: Vec<batch::TransferFromAction>,
+        padding: Option<String>,
+    },
+    BatchSendFrom {
+        actions: Vec<batch::SendFromAction>,
         padding: Option<String>,
     },
     BurnFrom {
         owner: HumanAddr,
         amount: Uint128,
+        memo: Option<String>,
+        padding: Option<String>,
+    },
+    BatchBurnFrom {
+        actions: Vec<batch::BurnFromAction>,
         padding: Option<String>,
     },
 
@@ -154,6 +181,11 @@ pub enum HandleMsg {
     Mint {
         recipient: HumanAddr,
         amount: Uint128,
+        memo: Option<String>,
+        padding: Option<String>,
+    },
+    BatchMint {
+        actions: Vec<batch::MintAction>,
         padding: Option<String>,
     },
     AddMinters {
@@ -198,6 +230,12 @@ pub enum HandleAnswer {
     Send {
         status: ResponseStatus,
     },
+    BatchTransfer {
+        status: ResponseStatus,
+    },
+    BatchSend {
+        status: ResponseStatus,
+    },
     Burn {
         status: ResponseStatus,
     },
@@ -228,12 +266,24 @@ pub enum HandleAnswer {
     SendFrom {
         status: ResponseStatus,
     },
+    BatchTransferFrom {
+        status: ResponseStatus,
+    },
+    BatchSendFrom {
+        status: ResponseStatus,
+    },
     BurnFrom {
+        status: ResponseStatus,
+    },
+    BatchBurnFrom {
         status: ResponseStatus,
     },
 
     // Mint
     Mint {
+        status: ResponseStatus,
+    },
+    BatchMint {
         status: ResponseStatus,
     },
     AddMinters {
@@ -260,6 +310,7 @@ pub enum HandleAnswer {
 pub enum QueryMsg {
     TokenInfo {},
     TokenConfig {},
+    ContractStatus {},
     ExchangeRate {},
     Allowance {
         owner: HumanAddr,
@@ -276,7 +327,19 @@ pub enum QueryMsg {
         page: Option<u32>,
         page_size: u32,
     },
+    TransactionHistory {
+        address: HumanAddr,
+        key: String,
+        page: Option<u32>,
+        page_size: u32,
+    },
     Minters {},
+    LastUserIndex {
+        account: HumanAddr,
+    },
+    InterestedRedirectionAddress{account: HumanAddr},
+    RedirectedBalance{account: HumanAddr},
+    PrincpleBalanceOf{address: HumanAddr},
 }
 
 impl QueryMsg {
@@ -284,6 +347,9 @@ impl QueryMsg {
         match self {
             Self::Balance { address, key } => (vec![address], ViewingKey(key.clone())),
             Self::TransferHistory { address, key, .. } => (vec![address], ViewingKey(key.clone())),
+            Self::TransactionHistory { address, key, .. } => {
+                (vec![address], ViewingKey(key.clone()))
+            }
             Self::Allowance {
                 owner,
                 spender,
@@ -311,6 +377,9 @@ pub enum QueryAnswer {
         mint_enabled: bool,
         burn_enabled: bool,
     },
+    ContractStatus {
+        status: ContractStatusLevel,
+    },
     ExchangeRate {
         rate: Uint128,
         denom: String,
@@ -328,13 +397,17 @@ pub enum QueryAnswer {
         txs: Vec<Tx>,
         total: Option<u64>,
     },
-
+    TransactionHistory {
+        txs: Vec<RichTx>,
+        total: Option<u64>,
+    },
     ViewingKeyError {
         msg: String,
     },
     Minters {
         minters: Vec<HumanAddr>,
     },
+ 
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]

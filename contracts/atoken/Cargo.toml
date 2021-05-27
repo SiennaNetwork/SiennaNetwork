@@ -27,26 +27,19 @@ incremental = false
 overflow-checks = true
 
 [features]
-default = []
 # for quicker tests, cargo test --lib
 # for more explicit tests, cargo test --features=backtraces
-#backtraces = ["cosmwasm-std/backtraces"]
-#debug-print = ["cosmwasm-std/debug-print"]
+#default = ["debug-print"]
 backtraces = ["cosmwasm-std/backtraces", "cosmwasm-vm/backtraces"]
-
+debug-print = ["cosmwasm-std/debug-print"]
 
 [dependencies]
-#cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-#cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-#cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-snip20-reference-impl = { path = "../../packages/snip20", version = "0.1.0" }
-cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
-cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
-secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", rev = "6aa670f" }
+cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", rev = "v0.1.1-debug-print" }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
-
 bincode2 = "2.0.1"
 subtle = { version = "2.2.3", default-features = false }
 base64 = "0.12.3"
