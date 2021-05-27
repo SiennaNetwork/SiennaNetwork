@@ -4,6 +4,7 @@ pub mod state;
 pub mod data;
 pub mod auth;
 
+#[cfg(test)]
 mod test_helpers;
 
 #[cfg(target_arch = "wasm32")]
