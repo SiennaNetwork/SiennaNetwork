@@ -280,9 +280,15 @@ pub enum QueryMsg {
     LastUserIndex {
         account: HumanAddr,
     },
-    InterestedRedirectionAddress{account: HumanAddr},
-    RedirectedBalance{account: HumanAddr},
-    PrincpleBalanceOf{address: HumanAddr},
+    InterestedRedirectionAddress {
+        account: HumanAddr,
+    },
+    RedirectedBalance {
+        account: HumanAddr,
+    },
+    PrincpleBalanceOf {
+        address: HumanAddr,
+    },
 }
 
 impl QueryMsg {

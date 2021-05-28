@@ -6,7 +6,6 @@ use cosmwasm_std::{
     StdResult, Storage, Uint128,
 };
 
-use crate::{batch, state};
 use crate::msg::{
     space_pad, ContractStatusLevel, HandleAnswer, HandleMsg, InitMsg, QueryAnswer, QueryMsg,
     ResponseStatus::Success,
@@ -21,6 +20,7 @@ use crate::transaction_history::{
     get_transfers, get_txs, store_burn, store_deposit, store_mint, store_redeem, store_transfer,
 };
 use crate::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
+use crate::{batch, state};
 
 /// We make sure that responses from `handle` are padded to a multiple of this size.
 pub const RESPONSE_BLOCK_SIZE: usize = 256;
@@ -232,8 +232,10 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
         QueryMsg::ExchangeRate {} => query_exchange_rate(&deps.storage),
         QueryMsg::Minters { .. } => query_minters(deps),
         QueryMsg::LastUserIndex { account } => query_get_user_index(&account, &deps),
-        QueryMsg::InterestedRedirectionAddress {account} => query_get_interested_redirection_address(&account, &deps),
-        QueryMsg::RedirectedBalance {account} => query_get_redirected_balance(&account, &deps),
+        QueryMsg::InterestedRedirectionAddress { account } => {
+            query_get_interested_redirection_address(&account, &deps)
+        }
+        QueryMsg::RedirectedBalance { account } => query_get_redirected_balance(&account, &deps),
         _ => authenticated_queries(deps, msg),
     }
 }
@@ -257,7 +259,9 @@ pub fn authenticated_queries<S: Storage, A: Api, Q: Querier>(
             return match msg {
                 // Base
                 QueryMsg::Balance { address, .. } => query_balance(&deps, &address),
-                QueryMsg::PrincpleBalanceOf{address} => query_principal_balance_of(&deps, &address),
+                QueryMsg::PrincpleBalanceOf { address } => {
+                    query_principal_balance_of(&deps, &address)
+                }
 
                 QueryMsg::TransferHistory {
                     address,
@@ -296,7 +300,7 @@ pub fn query_get_user_index<S: Storage, A: Api, Q: Querier>(
     }
 }
 
-pub fn query_get_interested_redirection_address<S: Storage,A: Api, Q: Querier>(
+pub fn query_get_interested_redirection_address<S: Storage, A: Api, Q: Querier>(
     account: &HumanAddr,
     deps: &Extern<S, A, Q>,
 ) -> QueryResult {
@@ -309,14 +313,16 @@ pub fn query_get_interested_redirection_address<S: Storage,A: Api, Q: Querier>(
     }
 }
 
-pub fn query_get_redirected_balance<S: Storage,A: Api, Q: Querier>(
+pub fn query_get_redirected_balance<S: Storage, A: Api, Q: Querier>(
     account: &HumanAddr,
     deps: &Extern<S, A, Q>,
 ) -> QueryResult {
     match state::get_redirection_balance(&deps.storage, account) {
         Some(result) => Ok(result),
         None => {
-            return Err(StdError::generic_err("Couldn't find the total redirected balance"));
+            return Err(StdError::generic_err(
+                "Couldn't find the total redirected balance",
+            ));
         }
     }
 }
@@ -326,8 +332,6 @@ pub fn query_principal_balance_of<S: Storage, A: Api, Q: Querier>(
 ) -> QueryResult {
     query_balance(deps, account)
 }
-
-
 
 fn query_exchange_rate<S: ReadonlyStorage>(storage: &S) -> QueryResult {
     let config = ReadonlyConfig::from_storage(storage);

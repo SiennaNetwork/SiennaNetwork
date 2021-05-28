@@ -491,15 +491,21 @@ pub fn get_user_index<S: ReadonlyStorage>(storage: &S, account: &HumanAddr) -> O
 }
 
 // Get interested redirection address
-pub fn get_interested_redirection_address<S: ReadonlyStorage>(storage: &S,account: &HumanAddr) -> Option<Binary> {
-    let store = ReadonlyPrefixedStorage::new(INTERESTED_REDIRECTION_ADDRESS,storage);
+pub fn get_interested_redirection_address<S: ReadonlyStorage>(
+    storage: &S,
+    account: &HumanAddr,
+) -> Option<Binary> {
+    let store = ReadonlyPrefixedStorage::new(INTERESTED_REDIRECTION_ADDRESS, storage);
     let result = store.get(account.as_str().as_bytes())?;
     Some(Binary::from(result.as_slice()))
 }
 
 // Get the total redirected balance
-pub fn get_redirection_balance<S: ReadonlyStorage>(storage: &S,account: &HumanAddr) -> Option<Binary> {
-    let store = ReadonlyPrefixedStorage::new(REDIRECTED_BALANCES,storage);
+pub fn get_redirection_balance<S: ReadonlyStorage>(
+    storage: &S,
+    account: &HumanAddr,
+) -> Option<Binary> {
+    let store = ReadonlyPrefixedStorage::new(REDIRECTED_BALANCES, storage);
     let result = store.get(account.as_str().as_bytes())?;
     Some(Binary::from(result.as_slice()))
 }

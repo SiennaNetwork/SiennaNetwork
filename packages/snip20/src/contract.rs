@@ -196,8 +196,10 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
         QueryMsg::ExchangeRate {} => query_exchange_rate(&deps.storage),
         QueryMsg::Minters { .. } => query_minters(deps),
         QueryMsg::LastUserIndex { account } => query_get_user_index(&account, &deps),
-        QueryMsg::InterestedRedirectionAddress {account} => query_get_interested_redirection_address(&account, &deps),
-        QueryMsg::RedirectedBalance {account} => query_get_redirected_balance(&account, &deps),
+        QueryMsg::InterestedRedirectionAddress { account } => {
+            query_get_interested_redirection_address(&account, &deps)
+        }
+        QueryMsg::RedirectedBalance { account } => query_get_redirected_balance(&account, &deps),
         _ => authenticated_queries(deps, msg),
     }
 }
@@ -221,7 +223,9 @@ pub fn authenticated_queries<S: Storage, A: Api, Q: Querier>(
             return match msg {
                 // Base
                 QueryMsg::Balance { address, .. } => query_balance(&deps, &address),
-                QueryMsg::PrincpleBalanceOf{address} => query_principal_balance_of(&deps, &address),
+                QueryMsg::PrincpleBalanceOf { address } => {
+                    query_principal_balance_of(&deps, &address)
+                }
                 QueryMsg::TransferHistory {
                     address,
                     page,
@@ -310,7 +314,7 @@ pub fn query_get_user_index<S: Storage, A: Api, Q: Querier>(
     }
 }
 
-pub fn query_get_interested_redirection_address<S: Storage,A: Api, Q: Querier>(
+pub fn query_get_interested_redirection_address<S: Storage, A: Api, Q: Querier>(
     account: &HumanAddr,
     deps: &Extern<S, A, Q>,
 ) -> QueryResult {
@@ -323,14 +327,16 @@ pub fn query_get_interested_redirection_address<S: Storage,A: Api, Q: Querier>(
     }
 }
 
-pub fn query_get_redirected_balance<S: Storage,A: Api, Q: Querier>(
+pub fn query_get_redirected_balance<S: Storage, A: Api, Q: Querier>(
     account: &HumanAddr,
     deps: &Extern<S, A, Q>,
 ) -> QueryResult {
     match state::get_redirection_balance(&deps.storage, account) {
         Some(result) => Ok(result),
         None => {
-            return Err(StdError::generic_err("Couldn't find the total redirected balance"));
+            return Err(StdError::generic_err(
+                "Couldn't find the total redirected balance",
+            ));
         }
     }
 }
