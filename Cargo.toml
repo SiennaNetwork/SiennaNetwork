@@ -2,6 +2,7 @@
 members = [
   "contracts/exchange",              # uniswap exchange contract implementation
   "contracts/factory",               # factory contract for creating exchanges
+  "contracts/ido",                  # Sienna IDO
   "contracts/snip20-reference-impl", # snip20 token implementation with a modification to call back a contract after init
   "contracts/lp-token",              # snip20 liquidity provider token
   "contracts/sienna-burner",         # burns SIENNA on each swap

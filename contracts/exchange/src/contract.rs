@@ -5,7 +5,7 @@ use cosmwasm_std::{
     Uint128, log, HumanAddr, Decimal, QueryRequest, WasmQuery
 };
 use secret_toolkit::snip20;
-use sienna_amm_shared::{
+use amm_shared::{
     TokenPairAmount, TokenType,
     TokenTypeAmount, create_send_msg, Fee, ExchangeSettings,
     msg::{
@@ -135,7 +135,9 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::Status => to_binary(&get_status(deps)?),
         QueryMsg::PairInfo => {
             let config = load_config(deps)?;
+
             let result = config.pair.query_balances(&deps.querier, config.contract_addr, config.viewing_key.0)?;
+
             to_binary(&QueryMsgResponse::PairInfo {
                 liquidity_token: config.lp_token_info,
                 factory: config.factory_info,

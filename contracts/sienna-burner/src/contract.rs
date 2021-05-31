@@ -4,8 +4,8 @@ use cosmwasm_std::{
 };
 use crate::state::*;
 use fadroma_scrt_callback::ContractInstance;
-use fadroma_scrt_migrate::{is_operational, can_set_status, set_status, get_status};
-use sienna_amm_shared::{
+use fadroma_scrt_migrate::get_status;
+use amm_shared::{
     snip20,
     msg::sienna_burner::{HandleMsg, InitMsg, QueryAnswer, QueryMsg, ResponseStatus},
     admin::{
@@ -183,7 +183,7 @@ mod tests {
     use cosmwasm_std::testing::{
         MockApi, MockQuerier, MockStorage, mock_dependencies, mock_env
     };
-    use sienna_amm_shared::admin::multi_admin::{
+    use amm_shared::admin::multi_admin::{
         MultiAdminHandleMsg, MultiAdminQueryMsg, MultiAdminQueryResponse, load_admins
     };
 

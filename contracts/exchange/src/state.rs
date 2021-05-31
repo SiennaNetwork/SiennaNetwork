@@ -8,7 +8,7 @@ use fadroma_scrt_addr::{Humanize, Canonize};
 use fadroma_scrt_callback::ContractInstance;
 use fadroma_scrt_storage::{load, save};
 use cosmwasm_utils::viewing_key::ViewingKey;
-use sienna_amm_shared::TokenPair;
+use amm_shared::TokenPair;
 
 const CONFIG_KEY: &[u8] = b"config";
 
@@ -33,6 +33,7 @@ pub(crate) struct Config<A: Clone> {
     /// current interactor.
     pub pool_cache: [Uint128; 2]
 }
+
 impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
     fn canonize (&self, api: &impl Api) -> StdResult<Config<CanonicalAddr>> {
         Ok(Config {
@@ -78,7 +79,7 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
 mod tests {
     use super::*;
     use cosmwasm_std::testing::mock_dependencies;
-    use sienna_amm_shared::TokenType;
+    use amm_shared::TokenType;
 
     #[test]
     fn properly_stores_config() -> StdResult<()> {

@@ -46,14 +46,14 @@
       "description": "SIENNA token",
       "allOf": [
         {
-          "$ref": "#/definitions/ContractInfo"
+          "$ref": "#/definitions/ContractInstance_for_HumanAddr"
         }
       ]
     }
   },
   "definitions": {
-    "ContractInfo": {
-      "description": "Code hash and address of a contract.",
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
       "type": "object",
       "required": [
         "address",

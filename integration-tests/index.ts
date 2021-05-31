@@ -208,7 +208,7 @@ async function test_get_pool(exchange: ExchangeContract) {
 async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract, pair: TokenPair) {
   const amount = '5000000'
 
-  // TODO: The current snip20 implementation is garbage and doesn't implement
+  // TODO: The current snip20 implementation doesn't implement
   // decimal conversion, so providing only a single amount for now
   //const amount1 = '5000000000000000000'
 

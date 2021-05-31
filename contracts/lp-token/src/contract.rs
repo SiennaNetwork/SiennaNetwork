@@ -6,7 +6,7 @@ use cosmwasm_std::{
     StdResult, Storage, Uint128, WasmMsg
 };
 
-use sienna_amm_shared::msg::snip20::Snip20InitMsg;
+use amm_shared::msg::snip20::Snip20InitMsg;
 
 use crate::msg::{
     space_pad, ContractStatusLevel, HandleAnswer, HandleMsg, QueryAnswer, QueryMsg,
@@ -1072,7 +1072,7 @@ mod tests {
     use cosmwasm_std::{from_binary, BlockInfo, ContractInfo, MessageInfo, QueryResponse};
     use std::any::Any;
 
-    use sienna_amm_shared::msg::snip20::{Snip20InitConfig as InitConfig, Snip20InitialBalance as InitialBalance};
+    use amm_shared::msg::snip20::{Snip20InitConfig as InitConfig, Snip20InitialBalance as InitialBalance};
 
     use crate::msg::ResponseStatus;
 

@@ -6,9 +6,7 @@
       "type": "string",
       "enum": [
         "status",
-        "pair_info",
-        "factory_info",
-        "pool"
+        "pair_info"
       ]
     },
     {
@@ -27,7 +25,7 @@
               "description": "The token type to swap from.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/TokenTypeAmount"
+                  "$ref": "#/definitions/TokenTypeAmount_for_HumanAddr"
                 }
               ]
             }
@@ -40,7 +38,22 @@
     "HumanAddr": {
       "type": "string"
     },
-    "TokenType": {
+    "TokenTypeAmount_for_HumanAddr": {
+      "type": "object",
+      "required": [
+        "amount",
+        "token"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "token": {
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
+        }
+      }
+    },
+    "TokenType_for_HumanAddr": {
       "anyOf": [
         {
           "type": "object",
@@ -85,21 +98,6 @@
           }
         }
       ]
-    },
-    "TokenTypeAmount": {
-      "type": "object",
-      "required": [
-        "amount",
-        "token"
-      ],
-      "properties": {
-        "amount": {
-          "$ref": "#/definitions/Uint128"
-        },
-        "token": {
-          "$ref": "#/definitions/TokenType"
-        }
-      }
     },
     "Uint128": {
       "type": "string"

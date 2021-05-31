@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # A slight modification to the init script, to save the created keys
-# along with their mnemonics to a file. This should be possible to begin with,
-# but it isn't so that I can waste hours of my time dealing with this BS.
+# along with their mnemonics to a file.
 
 file=~/.secretd/config/genesis.json
 if [ ! -e "$file" ]; then

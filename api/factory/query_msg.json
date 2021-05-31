@@ -10,6 +10,18 @@
       ]
     },
     {
+      "description": "Get configuration (contract templates and exchange settings)",
+      "type": "object",
+      "required": [
+        "get_config"
+      ],
+      "properties": {
+        "get_config": {
+          "type": "object"
+        }
+      }
+    },
+    {
       "type": "object",
       "required": [
         "get_exchange_address"
@@ -22,7 +34,7 @@
           ],
           "properties": {
             "pair": {
-              "$ref": "#/definitions/TokenPair"
+              "$ref": "#/definitions/TokenPair_for_HumanAddr"
             }
           }
         }
@@ -65,9 +77,26 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/AdminQueryMsg"
+        }
+      }
     }
   ],
   "definitions": {
+    "AdminQueryMsg": {
+      "type": "string",
+      "enum": [
+        "admin"
+      ]
+    },
     "HumanAddr": {
       "type": "string"
     },
@@ -90,20 +119,20 @@
         }
       }
     },
-    "TokenPair": {
+    "TokenPair_for_HumanAddr": {
       "type": "array",
       "items": [
         {
-          "$ref": "#/definitions/TokenType"
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
         },
         {
-          "$ref": "#/definitions/TokenType"
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
         }
       ],
       "maxItems": 2,
       "minItems": 2
     },
-    "TokenType": {
+    "TokenType_for_HumanAddr": {
       "anyOf": [
         {
           "type": "object",

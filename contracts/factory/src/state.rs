@@ -2,9 +2,9 @@ use cosmwasm_std::{Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, Std
 use fadroma_scrt_addr::{Humanize, Canonize};
 use fadroma_scrt_callback::ContractInstantiationInfo;
 use serde::{Deserialize, Serialize};
-use sienna_amm_shared::{
+use amm_shared::{
     Exchange, ExchangeSettings, TokenPair, TokenType, Pagination,
-    msg::factory::{InitMsg, HandleMsg, QueryResponse},
+    msg::factory::InitMsg,
     storage::{save, load},
 };
 use std::usize;

@@ -58,7 +58,7 @@
             "exchanges": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Exchange"
+                "$ref": "#/definitions/Exchange_for_HumanAddr"
               }
             }
           }
@@ -78,7 +78,42 @@
           ],
           "properties": {
             "settings": {
-              "$ref": "#/definitions/ExchangeSettings"
+              "$ref": "#/definitions/ExchangeSettings_for_HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "config"
+      ],
+      "properties": {
+        "config": {
+          "type": "object",
+          "required": [
+            "exchange_settings",
+            "ido_contract",
+            "lp_token_contract",
+            "pair_contract",
+            "snip20_contract"
+          ],
+          "properties": {
+            "exchange_settings": {
+              "$ref": "#/definitions/ExchangeSettings_for_HumanAddr"
+            },
+            "ido_contract": {
+              "$ref": "#/definitions/ContractInstantiationInfo"
+            },
+            "lp_token_contract": {
+              "$ref": "#/definitions/ContractInstantiationInfo"
+            },
+            "pair_contract": {
+              "$ref": "#/definitions/ContractInstantiationInfo"
+            },
+            "snip20_contract": {
+              "$ref": "#/definitions/ContractInstantiationInfo"
             }
           }
         }
@@ -86,8 +121,8 @@
     }
   ],
   "definitions": {
-    "ContractInfo": {
-      "description": "Code hash and address of a contract.",
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
       "type": "object",
       "required": [
         "address",
@@ -102,7 +137,50 @@
         }
       }
     },
-    "Exchange": {
+    "ContractInstantiationInfo": {
+      "description": "Info needed to instantiate a contract.",
+      "type": "object",
+      "required": [
+        "code_hash",
+        "id"
+      ],
+      "properties": {
+        "code_hash": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "ExchangeSettings_for_HumanAddr": {
+      "type": "object",
+      "required": [
+        "sienna_fee",
+        "swap_fee"
+      ],
+      "properties": {
+        "sienna_burner": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sienna_fee": {
+          "$ref": "#/definitions/Fee"
+        },
+        "swap_fee": {
+          "$ref": "#/definitions/Fee"
+        }
+      }
+    },
+    "Exchange_for_HumanAddr": {
       "description": "Represents the address of an exchange and the pair that it manages",
       "type": "object",
       "required": [
@@ -122,34 +200,9 @@
           "description": "The pair that the contract manages.",
           "allOf": [
             {
-              "$ref": "#/definitions/TokenPair"
+              "$ref": "#/definitions/TokenPair_for_HumanAddr"
             }
           ]
-        }
-      }
-    },
-    "ExchangeSettings": {
-      "type": "object",
-      "required": [
-        "sienna_fee",
-        "swap_fee"
-      ],
-      "properties": {
-        "sienna_burner": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/ContractInfo"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "sienna_fee": {
-          "$ref": "#/definitions/Fee"
-        },
-        "swap_fee": {
-          "$ref": "#/definitions/Fee"
         }
       }
     },
@@ -175,20 +228,20 @@
     "HumanAddr": {
       "type": "string"
     },
-    "TokenPair": {
+    "TokenPair_for_HumanAddr": {
       "type": "array",
       "items": [
         {
-          "$ref": "#/definitions/TokenType"
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
         },
         {
-          "$ref": "#/definitions/TokenType"
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
         }
       ],
       "maxItems": 2,
       "minItems": 2
     },
-    "TokenType": {
+    "TokenType_for_HumanAddr": {
       "anyOf": [
         {
           "type": "object",

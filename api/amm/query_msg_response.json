@@ -11,46 +11,36 @@
         "pair_info": {
           "type": "object",
           "required": [
+            "amount_0",
+            "amount_1",
+            "factory",
             "liquidity_token",
             "pair"
           ],
           "properties": {
+            "amount_0": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "amount_1": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "factory": {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+            },
             "liquidity_token": {
-              "$ref": "#/definitions/ContractInfo"
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
             },
             "pair": {
-              "$ref": "#/definitions/TokenPair"
+              "$ref": "#/definitions/TokenPair_for_HumanAddr"
             }
           }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "factory_info"
-      ],
-      "properties": {
-        "factory_info": {
-          "$ref": "#/definitions/ContractInfo"
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "pool"
-      ],
-      "properties": {
-        "pool": {
-          "$ref": "#/definitions/TokenPairAmount"
         }
       }
     }
   ],
   "definitions": {
-    "ContractInfo": {
-      "description": "Code hash and address of a contract.",
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
       "type": "object",
       "required": [
         "address",
@@ -68,39 +58,20 @@
     "HumanAddr": {
       "type": "string"
     },
-    "TokenPair": {
+    "TokenPair_for_HumanAddr": {
       "type": "array",
       "items": [
         {
-          "$ref": "#/definitions/TokenType"
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
         },
         {
-          "$ref": "#/definitions/TokenType"
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
         }
       ],
       "maxItems": 2,
       "minItems": 2
     },
-    "TokenPairAmount": {
-      "type": "object",
-      "required": [
-        "amount_0",
-        "amount_1",
-        "pair"
-      ],
-      "properties": {
-        "amount_0": {
-          "$ref": "#/definitions/Uint128"
-        },
-        "amount_1": {
-          "$ref": "#/definitions/Uint128"
-        },
-        "pair": {
-          "$ref": "#/definitions/TokenPair"
-        }
-      }
-    },
-    "TokenType": {
+    "TokenType_for_HumanAddr": {
       "anyOf": [
         {
           "type": "object",

@@ -8,10 +8,11 @@ edition = "2018"
 cosmwasm-schema       = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
 exchange              = { path = "../contracts/exchange" }
 factory               = { path = "../contracts/factory" }
+ido                   = { path = "../contracts/ido" }
 lp-token              = { path = "../contracts/lp-token" }
 sienna-burner         = { path = "../contracts/sienna-burner" }
 snip20-reference-impl = { path = "../contracts/snip20-reference-impl" }
-sienna-amm-shared     = { path = "../libraries/amm-shared" }
+amm-shared            = { path = "../libraries/amm-shared" }
 
 [[bin]]
 name = "schema"

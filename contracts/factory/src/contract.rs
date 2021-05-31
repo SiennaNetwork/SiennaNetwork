@@ -2,12 +2,12 @@ use cosmwasm_std::{
     Api, Binary, CosmosMsg, Env, Extern, HandleResponse, InitResponse,
     Querier, StdError, StdResult, Storage, WasmMsg, log, to_binary, HumanAddr
 };
-use sienna_amm_shared::{
+use amm_shared::{
     TokenPair,
     Pagination,
     msg::{
         exchange::InitMsg as ExchangeInitMsg,
-        ido::{IdoInitMsg, IdoInitConfig},
+        ido::{InitMsg as IdoInitMsg, InitConfig as IdoInitConfig},
         factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse},
         sienna_burner::HandleMsg as BurnerHandleMsg
     },
@@ -25,7 +25,7 @@ use crate::state::{
     save_config, load_config, Config, pair_exists, store_exchange,
     get_address_for_pair, get_idos, store_ido_address, get_exchanges
 };
-use fadroma_scrt_migrate::{is_operational, can_set_status, set_status, get_status};
+use fadroma_scrt_migrate::get_status;
 
 pub const EPHEMERAL_STORAGE_KEY: &[u8] = b"ephemeral_storage";
 

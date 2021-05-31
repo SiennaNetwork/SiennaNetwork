@@ -37,6 +37,70 @@
       }
     },
     {
+      "description": "Set contract templates and exchange settings",
+      "type": "object",
+      "required": [
+        "set_config"
+      ],
+      "properties": {
+        "set_config": {
+          "type": "object",
+          "properties": {
+            "exchange_settings": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ExchangeSettings_for_HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "ido_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContractInstantiationInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "lp_token_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContractInstantiationInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "pair_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContractInstantiationInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "snip20_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContractInstantiationInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
       "description": "Instantiates an exchange pair contract",
       "type": "object",
       "required": [
@@ -50,7 +114,7 @@
           ],
           "properties": {
             "pair": {
-              "$ref": "#/definitions/TokenPair"
+              "$ref": "#/definitions/TokenPair_for_HumanAddr"
             }
           }
         }
@@ -70,7 +134,7 @@
           ],
           "properties": {
             "info": {
-              "$ref": "#/definitions/IdoInitConfig"
+              "$ref": "#/definitions/InitConfig"
             }
           }
         }
@@ -91,7 +155,7 @@
           ],
           "properties": {
             "pair": {
-              "$ref": "#/definitions/TokenPair"
+              "$ref": "#/definitions/TokenPair_for_HumanAddr"
             },
             "signature": {
               "$ref": "#/definitions/Binary"
@@ -119,14 +183,83 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/AdminHandleMsg"
+        }
+      }
     }
   ],
   "definitions": {
+    "AdminHandleMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "change_admin"
+          ],
+          "properties": {
+            "change_admin": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
     "Binary": {
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
     },
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "ContractInstantiationInfo": {
+      "description": "Info needed to instantiate a contract.",
+      "type": "object",
+      "required": [
+        "code_hash",
+        "id"
+      ],
+      "properties": {
+        "code_hash": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
     "ContractStatusLevel": {
+      "description": "Possible states of a contract.",
       "type": "string",
       "enum": [
         "Operational",
@@ -134,10 +267,54 @@
         "Migrating"
       ]
     },
+    "ExchangeSettings_for_HumanAddr": {
+      "type": "object",
+      "required": [
+        "sienna_fee",
+        "swap_fee"
+      ],
+      "properties": {
+        "sienna_burner": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sienna_fee": {
+          "$ref": "#/definitions/Fee"
+        },
+        "swap_fee": {
+          "$ref": "#/definitions/Fee"
+        }
+      }
+    },
+    "Fee": {
+      "type": "object",
+      "required": [
+        "denom",
+        "nom"
+      ],
+      "properties": {
+        "denom": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        },
+        "nom": {
+          "type": "integer",
+          "format": "uint8",
+          "minimum": 0.0
+        }
+      }
+    },
     "HumanAddr": {
       "type": "string"
     },
-    "IdoInitConfig": {
+    "InitConfig": {
       "type": "object",
       "required": [
         "input_token",
@@ -149,7 +326,7 @@
           "description": "The token that will be used to buy the instantiated SNIP20",
           "allOf": [
             {
-              "$ref": "#/definitions/TokenType"
+              "$ref": "#/definitions/TokenType_for_HumanAddr"
             }
           ]
         },
@@ -210,20 +387,20 @@
         }
       }
     },
-    "TokenPair": {
+    "TokenPair_for_HumanAddr": {
       "type": "array",
       "items": [
         {
-          "$ref": "#/definitions/TokenType"
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
         },
         {
-          "$ref": "#/definitions/TokenType"
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
         }
       ],
       "maxItems": 2,
       "minItems": 2
     },
-    "TokenType": {
+    "TokenType_for_HumanAddr": {
       "anyOf": [
         {
           "type": "object",

@@ -3,7 +3,7 @@ pub use cosmwasm_std::{
     HandleResponse, from_binary, HumanAddr,
     testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage}
 };
-pub use sienna_amm_shared::{
+pub use amm_shared::{
     Exchange, ExchangeSettings, Fee,
     TokenPair, TokenType,
     Pagination,

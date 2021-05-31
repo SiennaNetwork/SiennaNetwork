@@ -46,4 +46,4 @@ fadroma-scrt-addr     = { path = "../../libraries/fadroma/scrt-addr" }
 fadroma-scrt-callback = { path = "../../libraries/fadroma/scrt-callback" }
 fadroma-scrt-migrate  = { path = "../../libraries/fadroma/scrt-migrate" }
 fadroma-scrt-storage  = { path = "../../libraries/fadroma/scrt-storage" }
-sienna-amm-shared     = { path = "../../libraries/amm-shared" }
+amm-shared     = { path = "../../libraries/amm-shared" }

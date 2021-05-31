@@ -55,7 +55,7 @@
           ],
           "properties": {
             "deposit": {
-              "$ref": "#/definitions/TokenPairAmount"
+              "$ref": "#/definitions/TokenPairAmount_for_HumanAddr"
             },
             "slippage_tolerance": {
               "description": "The amount the price moves in a trading pair between when a transaction is submitted and when it is executed. Transactions that exceed this threshold will be rejected.",
@@ -131,7 +131,7 @@
               "description": "The token type to swap from.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/TokenTypeAmount"
+                  "$ref": "#/definitions/TokenTypeAmount_for_HumanAddr"
                 }
               ]
             }
@@ -142,6 +142,7 @@
   ],
   "definitions": {
     "ContractStatusLevel": {
+      "description": "Possible states of a contract.",
       "type": "string",
       "enum": [
         "Operational",
@@ -156,20 +157,7 @@
     "HumanAddr": {
       "type": "string"
     },
-    "TokenPair": {
-      "type": "array",
-      "items": [
-        {
-          "$ref": "#/definitions/TokenType"
-        },
-        {
-          "$ref": "#/definitions/TokenType"
-        }
-      ],
-      "maxItems": 2,
-      "minItems": 2
-    },
-    "TokenPairAmount": {
+    "TokenPairAmount_for_HumanAddr": {
       "type": "object",
       "required": [
         "amount_0",
@@ -184,11 +172,39 @@
           "$ref": "#/definitions/Uint128"
         },
         "pair": {
-          "$ref": "#/definitions/TokenPair"
+          "$ref": "#/definitions/TokenPair_for_HumanAddr"
         }
       }
     },
-    "TokenType": {
+    "TokenPair_for_HumanAddr": {
+      "type": "array",
+      "items": [
+        {
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
+        },
+        {
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
+        }
+      ],
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "TokenTypeAmount_for_HumanAddr": {
+      "type": "object",
+      "required": [
+        "amount",
+        "token"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "token": {
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
+        }
+      }
+    },
+    "TokenType_for_HumanAddr": {
       "anyOf": [
         {
           "type": "object",
@@ -233,21 +249,6 @@
           }
         }
       ]
-    },
-    "TokenTypeAmount": {
-      "type": "object",
-      "required": [
-        "amount",
-        "token"
-      ],
-      "properties": {
-        "amount": {
-          "$ref": "#/definitions/Uint128"
-        },
-        "token": {
-          "$ref": "#/definitions/TokenType"
-        }
-      }
     },
     "Uint128": {
       "type": "string"
