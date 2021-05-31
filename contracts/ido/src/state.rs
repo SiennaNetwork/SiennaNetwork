@@ -5,8 +5,8 @@ use cosmwasm_std::{
 };
 use fadroma_scrt_callback::{ContractInstance, Callback};
 use fadroma_scrt_addr::{Canonize, Humanize};
+use fadroma_scrt_storage::{save, load};
 use amm_shared::TokenType;
-use amm_shared::storage::{load, save};
 
 pub(crate) static CONFIG_KEY: &[u8] = b"config";
 
@@ -19,6 +19,7 @@ pub(crate) struct Config<A> {
     pub swap_constants: SwapConstants,
     pub callback: Option<Callback<A>>
 }
+
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 /// Used when calculating the swap. These do not change
 /// throughout the lifetime of the contract.

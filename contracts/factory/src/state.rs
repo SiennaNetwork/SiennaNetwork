@@ -1,11 +1,11 @@
 use cosmwasm_std::{Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage};
 use fadroma_scrt_addr::{Humanize, Canonize};
 use fadroma_scrt_callback::ContractInstantiationInfo;
+use fadroma_scrt_storage::{save, load};
 use serde::{Deserialize, Serialize};
 use amm_shared::{
     Exchange, ExchangeSettings, TokenPair, TokenType, Pagination,
-    msg::factory::InitMsg,
-    storage::{save, load},
+    msg::factory::InitMsg
 };
 use std::usize;
 

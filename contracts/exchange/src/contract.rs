@@ -13,9 +13,9 @@ use amm_shared::{
         snip20::{Snip20InitConfig, Snip20InitMsg},
         factory::{QueryMsg as FactoryQueryMsg, QueryResponse as FactoryResponse},
         sienna_burner::HandleMsg as BurnerHandleMsg,
-    },
-    u256_math, u256_math::U256, viewing_key::ViewingKey, crypto::Prng
+    }
 };
+use cosmwasm_utils::{u256_math, u256_math::U256, viewing_key::ViewingKey, crypto::Prng};
 
 use crate::{state::{Config, store_config, load_config}, decimal_math};
 use fadroma_scrt_migrate::get_status;
