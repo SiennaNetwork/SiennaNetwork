@@ -11,7 +11,7 @@ enum InterestRateMode {
 }
 const SECODNS_PER_YEAR: u128 = 31_536_000;
 
-struct UserReserveData {
+pub struct UserReserveData {
     //principal amount borrowed by the user.
     principal_borrow_balance: u128,
     //cumulated variable borrow index for the user. Expressed in ray
@@ -166,8 +166,203 @@ impl ReserveData {
     pub fn get_total_borrows(&self) -> u128 {
         _get_total_borrows(self)
     }
+
+    /**
+     * @dev enables borrowing on a reserve
+     * @param _self the reserve object
+     * @param _stableBorrowRateEnabled true if the stable borrow rate must be enabled by default, false otherwise
+     **/
+
+    pub fn enable_borrowing(&mut self, _stable_borrow_rate_enable: bool) -> StdResult<()> {
+        if self.borrowing_enabled == true {
+            return Err(StdError::generic_err("Reserve is already enabled"));
+        }
+        self.borrowing_enabled = true;
+        self.is_stable_borrow_rate_enabled = _stable_borrow_rate_enable;
+        Ok(())
+    }
+
+    /**
+     * @dev disables borrowing on a reserve
+     * @param _self the reserve object
+     **/
+
+    pub fn disable_borrowing(&mut self) {
+        self.borrowing_enabled = false;
+    }
+
+    /**
+     * @dev enables a reserve to be used as collateral
+     * @param _self the reserve object
+     * @param _baseLTVasCollateral the loan to value of the asset when used as collateral
+     * @param _liquidationThreshold the threshold at which loans using this asset as collateral will be considered undercollateralized
+     * @param _liquidationBonus the bonus liquidators receive to liquidate this asset
+     **/
+
+    pub fn enable_as_collateral(
+        &mut self,
+        _base_ltv_as_collateral: u128,
+        _liqudation_threshold: u128,
+        _liqudation_bouns: u128,
+    ) -> StdResult<()> {
+        if self.borrowing_enabled == true {
+            return Err(StdError::generic_err(
+                "Reserve is already enabled as collateral",
+            ));
+        }
+        self.usage_as_collateral_enabled = true;
+        self.base_ltv_as_collateral = _base_ltv_as_collateral;
+        self.liquidation_threshold = _liqudation_threshold;
+        self.liquidation_bonus = _liqudation_bouns;
+
+        if self.last_liquidity_cumulate_index == 0 {
+            self.last_liquidity_cumulate_index = wad_ray_math::ray();
+        }
+        Ok(())
+    }
+
+    /**
+     * @dev disables a reserve as collateral
+     * @param _self the reserve object
+     **/
+
+    pub fn disable_as_collateral(&mut self) {
+        self.usage_as_collateral_enabled = false;
+    }
+
+    pub fn increase_total_borrows_stable_and_update_averege_rate(
+        &mut self,
+        _amount: u128,
+        _rate: u128,
+    ) {
+        let previus_total_borrow_stable = self.total_borrow_stable;
+        //updating reserve borrows stable
+        self.total_borrow_stable = self.total_borrow_stable.add(_amount);
+
+        //update the average stable rate
+        //weighted average of all the borrows
+        let weighted_last_borrows = _amount.wad_to_ray().ray_mul(_rate);
+        let _weighted_previous_total_borrows = previus_total_borrow_stable
+            .wad_to_ray()
+            .ray_mul(self.current_average_stable_borrow_rate);
+        self.current_average_stable_borrow_rate = weighted_last_borrows
+            .add(weighted_last_borrows)
+            .ray_div(self.total_borrow_stable.wad_to_ray());
+    }
+/**
+    * @dev decreases the total borrows at a stable rate on a specific reserve and updates the
+    * average stable rate consequently
+    * @param _reserve the reserve object
+    * @param _amount the amount to substract to the total borrows stable
+    * @param _rate the rate at which the amount has been repaid
+    **/
+    pub fn descrees_total_borrows_stable_and_update_average_rate(
+        &mut self,
+        _amount: u128,
+        _rate: u128,
+    ) -> StdResult<()> {
+        if self.total_borrow_stable < _amount {
+            return Err(StdError::generic_err("Invalid amount to decrease"));
+        }
+
+        let previus_total_borrow_stable = self.total_borrow_stable;
+
+        //updating reserve borrows stable
+        self.total_borrow_stable = self.total_borrow_stable.sub(_amount);
+        if self.total_borrow_stable == 0 {
+            self.current_average_stable_borrow_rate = 0;
+            return Ok(());
+        }
+
+        //update the average stable rate
+        //weighted average of all the borrows
+        let weighted_last_borrow = _amount.wad_to_ray().ray_mul(_rate);
+        let weighted_previous_total_borrows = previus_total_borrow_stable
+            .wad_to_ray()
+            .ray_mul(self.current_average_stable_borrow_rate);
+
+        if weighted_previous_total_borrows < weighted_last_borrow {
+            return Err(StdError::generic_err("The amounts to subtract don't match"));
+        }
+
+        self.current_average_stable_borrow_rate = weighted_previous_total_borrows
+            .sub(weighted_last_borrow)
+            .ray_div(self.total_borrow_stable.wad_to_ray());
+
+        Ok(())
+    }
+
+    /**
+    * @dev increases the total borrows at a variable rate
+    * @param _reserve the reserve object
+    * @param _amount the amount to add to the total borrows variable
+    **/
+    pub fn increase_total_borrows_variable(&mut self, _amount: u128) {
+        self.total_borrows_variable = self.total_borrows_variable.add(_amount);
+    } 
+
+     /**
+    * @dev decreases the total borrows at a variable rate
+    * @param _reserve the reserve object
+    * @param _amount the amount to substract to the total borrows variable
+    **/
+
+    pub fn decrease_total_borrows_varible(&mut self, _amount: u128) -> StdResult<()> {
+        if self.total_borrows_variable < _amount {
+            return Err(StdError::generic_err("The amount that is being subtracted from the variable total borrows is incorrect"));
+        }
+        Ok(())
+    }
 }
 
+impl UserReserveData {
+    /**
+     * @dev calculates the compounded borrow balance of a user
+     * @param _self the userReserve object
+     * @param _reserve the reserve object
+     * @return the user compounded borrow balance
+     **/
+    pub fn get_compounded_borrow_balance(&self, _reserve: &ReserveData, env: &Env) -> u128 {
+        if self.principal_borrow_balance == 0 {
+            return 0;
+        }
+
+        let principal_borrow_balance_ray = self.principal_borrow_balance.wad_to_ray();
+        let mut compounded_balance = 0_u128;
+        let mut cumulated_interest = 0_u128;
+
+        if self.stable_borrow_rate > 0 {
+            cumulated_interest = calculate_compouned_interest(
+                self.stable_borrow_rate,
+                self.last_update_timestamp,
+                env,
+            );
+        } else {
+            //variable interest
+            cumulated_interest = calculate_compouned_interest(
+                _reserve.current_variable_borrow_rate,
+                _reserve.last_update_timestamp,
+                env,
+            )
+            .ray_mul(_reserve.last_variable_borrow_cumulative_index)
+            .ray_div(self.last_variable_borrow_cumulative_index);
+        }
+
+        compounded_balance = principal_borrow_balance_ray
+            .ray_mul(cumulated_interest)
+            .ray_to_wad();
+        if compounded_balance == self.principal_borrow_balance {
+            //solium-disable-next-line
+            if self.last_update_timestamp != env.block.time {
+                //no interest cumulation because of the rounding - we add 1 wei
+                //as symbolic cumulated interest to avoid interest free loans.
+
+                return self.principal_borrow_balance.add(1);
+            }
+        }
+        compounded_balance
+    }
+}
 /**
  * @dev Updates the liquidity cumulative index Ci and variable borrow cumulative index Bvc. Refer to the whitepaper for
  * a formal specification.
