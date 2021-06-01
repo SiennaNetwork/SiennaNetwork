@@ -1,9 +1,9 @@
 use cosmwasm_std::{Binary, HumanAddr, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use fadroma_scrt_callback::ContractInstance;
 use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
 use composable_auth::AuthHandleMsg;
-use cosmwasm_utils::ContractInfo;
 
 use crate::data::{RewardPool, Account};
 
@@ -12,7 +12,7 @@ pub(crate) const OVERFLOW_MSG: &str = "Upper bound overflow detected.";
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, JsonSchema)]
 /// Represents a pair that is eligible for rewards.
 pub struct RewardPoolConfig {
-    pub lp_token: ContractInfo,
+    pub lp_token: ContractInstance<HumanAddr>,
     /// The reward amount allocated to this pool.
     pub share: Uint128,
 }
@@ -20,7 +20,7 @@ pub struct RewardPoolConfig {
 #[derive(Serialize, Deserialize, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {
     pub admin: Option<HumanAddr>,
-    pub reward_token: ContractInfo,
+    pub reward_token: ContractInstance<HumanAddr>,
     pub reward_pools: Option<Vec<RewardPoolConfig>>,
     pub claim_interval: u64,
     pub prng_seed: Binary,
@@ -75,8 +75,8 @@ pub enum QueryMsg {
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsgResponse {
     ClaimSimulation(ClaimSimulationResult),
-    Accounts(Vec<Account>),
-    Pools(Vec<RewardPool>)
+    Accounts(Vec<Account<HumanAddr>>),
+    Pools(Vec<RewardPool<HumanAddr>>)
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug)]
@@ -129,12 +129,13 @@ impl ClaimResult {
     }
 }
 
-impl Into<RewardPool> for RewardPoolConfig {
-    fn into(self) -> RewardPool {
+impl Into<RewardPool<HumanAddr
+>> for RewardPoolConfig {
+    fn into(self) -> RewardPool<HumanAddr> {
         RewardPool {
             lp_token: self.lp_token,
-            share: self.share.u128(),
-            size: 0
+            share: self.share,
+            size: Uint128::zero()
         }
     }
 }

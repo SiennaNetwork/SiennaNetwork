@@ -7,12 +7,11 @@ use cosmwasm_std::{
 use cosmwasm_std::testing::{MockApi, MockStorage, MOCK_CONTRACT_ADDR};
 use serde::{Serialize, Deserialize};
 use secret_toolkit::snip20::query::{Balance, TokenInfo};
-use cosmwasm_utils::ContractInfo;
+use fadroma_scrt_callback::ContractInstance;
 
-#[allow(dead_code)]
 pub fn mock_dependencies(
     canonical_length: usize,
-    reward_token: ContractInfo,
+    reward_token: ContractInstance<HumanAddr>,
     reward_token_supply: Uint128,
     reward_token_decimals: u8
 ) -> Extern<MockStorage, MockApi, MockSnip20Querier> {
@@ -27,7 +26,6 @@ pub fn mock_dependencies(
     }
 }
 
-#[allow(dead_code)]
 pub fn mock_env_with_time(sender: impl Into<HumanAddr>, time: u64) -> Env {
     Env {
         block: BlockInfo {
@@ -49,7 +47,7 @@ pub fn mock_env_with_time(sender: impl Into<HumanAddr>, time: u64) -> Env {
 
 pub struct MockSnip20Querier {
     pub reward_token_supply: Uint128,
-    reward_token: ContractInfo,
+    reward_token: ContractInstance<HumanAddr>,
     reward_token_decimals: u8
 }
 
@@ -94,7 +92,7 @@ impl Querier for MockSnip20Querier {
 
                 match msg {
                     QueryMsg::Balance { .. } => {
-                        let info = ContractInfo {
+                        let info = ContractInstance {
                             code_hash: callback_code_hash,
                             address: contract_addr
                         };

@@ -4,8 +4,9 @@ use cosmwasm_std::{
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use cosmwasm_utils::{ContractInfo, ContractInfoStored};
-use cosmwasm_utils::storage::{load, save, ns_load, ns_save, ns_remove};
+use fadroma_scrt_callback::ContractInstance;
+use fadroma_scrt_addr::{Canonize, Humanize};
+use fadroma_scrt_storage::{load, save, ns_load, ns_save, ns_remove};
 use cosmwasm_utils::viewing_key::ViewingKey;
 
 use crate::data::*;
@@ -17,19 +18,9 @@ const INACTIVE_POOLS_KEY: &[u8] = b"inactive_pools";
 const ACCOUNTS_KEY: &[u8] = b"accounts";
 
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-pub struct Config {
-    pub reward_token: ContractInfo,
-    pub this_contract: ContractInfo,
-    pub token_decimals: u8,
-    pub viewing_key: ViewingKey,
-    pub prng_seed: Binary,
-    pub claim_interval: u64
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct ConfigStored {
-    pub reward_token: ContractInfoStored,
-    pub this_contract: ContractInfoStored,
+pub struct Config<A> {
+    pub reward_token: ContractInstance<A>,
+    pub this_contract: ContractInstance<A>,
     pub token_decimals: u8,
     pub viewing_key: ViewingKey,
     pub prng_seed: Binary,
@@ -38,48 +29,32 @@ struct ConfigStored {
 
 pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    config: &Config
+    config: &Config<HumanAddr>
 ) -> StdResult<()> {
-    let config = ConfigStored {
-        reward_token: config.reward_token.to_stored(&deps.api)?,
-        this_contract: config.this_contract.to_stored(&deps.api)?,
-        token_decimals: config.token_decimals,
-        viewing_key: config.viewing_key.clone(),
-        prng_seed: config.prng_seed.clone(),
-        claim_interval: config.claim_interval
-    };
-
-    save(&mut deps.storage, CONFIG_KEY, &config)
+    save(&mut deps.storage, CONFIG_KEY, &config.canonize(&deps.api)?)
 }
 
 pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>
-) -> StdResult<Config> {
-    let config: ConfigStored = load(&deps.storage, CONFIG_KEY)?.unwrap();
+) -> StdResult<Config<HumanAddr>> {
+    let config: Config<CanonicalAddr> = load(&deps.storage, CONFIG_KEY)?.unwrap();
 
-    Ok(Config {
-        reward_token: config.reward_token.to_normal(&deps.api)?,
-        this_contract: config.this_contract.to_normal(&deps.api)?,
-        token_decimals: config.token_decimals,
-        viewing_key: config.viewing_key,
-        prng_seed: config.prng_seed,
-        claim_interval: config.claim_interval
-    })
+    Ok(config.humanize(&deps.api)?)
 }
 
 pub(crate) fn replace_active_pools<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    pools: &Vec<RewardPool>
+    pools: &Vec<RewardPool<HumanAddr>>
 ) -> StdResult<()> {
     let mut index = Vec::with_capacity(pools.len());
     let mut pools_stored = Vec::with_capacity(pools.len());
 
     // Keep sizes for pools that stay
     for pool in pools.iter() {
-        let mut pool = pool.to_stored(&deps.api)?;
+        let mut pool = pool.canonize(&deps.api)?;
         index.push(pool.lp_token.address.clone());
 
-        let stored_pool: Option<RewardPoolStored> = 
+        let stored_pool: Option<RewardPool<CanonicalAddr>> = 
             ns_load(&deps.storage, POOLS_KEY, pool.lp_token.address.as_slice())?;
 
         if let Some(p) = stored_pool {
@@ -109,18 +84,18 @@ pub(crate) fn replace_active_pools<S: Storage, A: Api, Q: Querier>(
 
 pub(crate) fn get_pools<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-) -> StdResult<Vec<RewardPool>> {
+) -> StdResult<Vec<RewardPool<HumanAddr>>> {
     let index: Vec<CanonicalAddr> = 
         load(&deps.storage, POOL_INDEX)?.unwrap_or(vec![]);
 
     let mut result = Vec::with_capacity(index.len());
 
     for addr in index {
-        let pool: Option<RewardPoolStored> = 
+        let pool: Option<RewardPool<CanonicalAddr>> = 
             ns_load(&deps.storage, POOLS_KEY, addr.as_slice())?;
 
         if let Some(p) = pool {
-            result.push(p.to_normal(&deps.api)?)
+            result.push(p.humanize(&deps.api)?)
         }
     }
 
@@ -130,14 +105,14 @@ pub(crate) fn get_pools<S: Storage, A: Api, Q: Querier>(
 pub(crate) fn get_pool<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: &HumanAddr
-) -> StdResult<Option<RewardPool>> {
+) -> StdResult<Option<RewardPool<HumanAddr>>> {
     let address = deps.api.canonical_address(address)?;
 
-    let result: Option<RewardPoolStored> = 
+    let result: Option<RewardPool<CanonicalAddr>> = 
         ns_load(&deps.storage, POOLS_KEY, address.as_slice())?;
     
     if let Some(pool) = result {
-        Ok(Some(pool.to_normal(&deps.api)?))
+        Ok(Some(pool.humanize(&deps.api)?))
     } else {
         Ok(None)
     }
@@ -146,14 +121,14 @@ pub(crate) fn get_pool<S: Storage, A: Api, Q: Querier>(
 pub(crate) fn get_inactive_pool<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: &HumanAddr
-) -> StdResult<Option<RewardPool>> {
+) -> StdResult<Option<RewardPool<HumanAddr>>> {
     let address = deps.api.canonical_address(address)?;
 
-    let result: Option<RewardPoolStored> = 
+    let result: Option<RewardPool<CanonicalAddr>> = 
         ns_load(&deps.storage, INACTIVE_POOLS_KEY, address.as_slice())?;
     
     if let Some(pool) = result {
-        Ok(Some(pool.to_normal(&deps.api)?))
+        Ok(Some(pool.humanize(&deps.api)?))
     } else {
         Ok(None)
     }
@@ -161,9 +136,9 @@ pub(crate) fn get_inactive_pool<S: Storage, A: Api, Q: Querier>(
 
 pub(crate) fn save_pool<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    pool: &RewardPool
+    pool: &RewardPool<HumanAddr>
 ) -> StdResult<()> {
-    let pool = pool.to_stored(&deps.api)?;
+    let pool = pool.canonize(&deps.api)?;
 
     ns_save(
         &mut deps.storage,
@@ -175,9 +150,9 @@ pub(crate) fn save_pool<S: Storage, A: Api, Q: Querier>(
 
 pub(crate) fn save_account<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    account: &Account
+    account: &Account<HumanAddr>
 ) -> StdResult<()> {
-    let account = account.to_stored(&deps.api)?;
+    let account = account.canonize(&deps.api)?;
     let key = generate_account_key(&account.owner, &account.lp_token_addr);
 
     ns_save(
@@ -192,8 +167,8 @@ pub(crate) fn get_or_create_account<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: &HumanAddr,
     lp_token_addr: &HumanAddr
-) -> StdResult<Account> {
-    let result: Option<Account> = get_account(deps, address, lp_token_addr)?;
+) -> StdResult<Account<HumanAddr>> {
+    let result: Option<Account<HumanAddr>> = get_account(deps, address, lp_token_addr)?;
 
     if let Some(acc) = result {
         Ok(acc)
@@ -206,15 +181,15 @@ pub(crate) fn get_account<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: &HumanAddr,
     lp_token_addr: &HumanAddr
-) -> StdResult<Option<Account>> {
+) -> StdResult<Option<Account<HumanAddr>>> {
     let addr_raw = deps.api.canonical_address(&address)?;
     let lp_token_raw = deps.api.canonical_address(&lp_token_addr)?;
 
     let key = generate_account_key(&addr_raw, &lp_token_raw);
-    let result: Option<AccountStored> = ns_load(&deps.storage, ACCOUNTS_KEY, &key)?;
+    let result: Option<Account<CanonicalAddr>> = ns_load(&deps.storage, ACCOUNTS_KEY, &key)?;
 
     if let Some(acc) = result {
-        Ok(Some(acc.to_normal(&deps.api)?))
+        Ok(Some(acc.humanize(&deps.api)?))
     } else {
         Ok(None)
     }
@@ -222,9 +197,9 @@ pub(crate) fn get_account<S: Storage, A: Api, Q: Querier>(
 
 pub(crate) fn delete_account<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    account: &Account
+    account: &Account<HumanAddr>
 ) -> StdResult<()> {
-    let account = account.to_stored(&deps.api)?;
+    let account = account.canonize(&deps.api)?;
     let key = generate_account_key(&account.owner, &account.lp_token_addr);
 
     ns_remove(
@@ -243,7 +218,7 @@ fn set_current_pools_inactive<S: Storage, A: Api, Q: Querier>(
         load(&mut deps.storage, POOL_INDEX)?.unwrap_or(vec![]);
 
     for addr in index {
-        let mut pool: RewardPoolStored = 
+        let mut pool: RewardPool<CanonicalAddr> = 
             ns_load(&mut deps.storage, POOLS_KEY, &addr.as_slice())?
             .ok_or_else(||
                 StdError::generic_err(
@@ -272,4 +247,30 @@ fn generate_account_key(
     lp_token_addr: &CanonicalAddr
 ) -> Vec<u8> {
     [ owner.as_slice(), lp_token_addr.as_slice() ].concat()
+}
+
+impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
+    fn humanize (&self, api: &impl Api) -> StdResult<Config<HumanAddr>> {
+        Ok(Config {
+            reward_token: self.reward_token.humanize(api)?,
+            this_contract: self.this_contract.humanize(api)?,
+            token_decimals: self.token_decimals,
+            viewing_key: self.viewing_key.clone(),
+            prng_seed: self.prng_seed.clone(),
+            claim_interval: self.claim_interval
+        })
+    }
+}
+
+impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
+    fn canonize (&self, api: &impl Api) -> StdResult<Config<CanonicalAddr>> {
+        Ok(Config {
+            reward_token: self.reward_token.canonize(api)?,
+            this_contract: self.this_contract.canonize(api)?,
+            token_decimals: self.token_decimals,
+            viewing_key: self.viewing_key.clone(),
+            prng_seed: self.prng_seed.clone(),
+            claim_interval: self.claim_interval
+        })
+    }
 }

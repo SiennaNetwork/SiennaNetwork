@@ -1,106 +1,94 @@
 use cosmwasm_std::{Api, CanonicalAddr, HumanAddr, StdResult, Uint128};
-use cosmwasm_utils::{ContractInfo, ContractInfoStored};
+use fadroma_scrt_callback::ContractInstance;
+use fadroma_scrt_addr::{Canonize, Humanize};
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 /// Represents a pair that is eligible for rewards.
-pub struct RewardPool {
-    pub lp_token: ContractInfo,
+pub struct RewardPool<A> {
+    pub lp_token: ContractInstance<A>,
     /// The reward amount allocated to this pool.
-    pub share: u128,
+    pub share: Uint128,
     /// Total amount locked by all participants.
-    pub size: u128
+    pub size: Uint128
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 /// Accounts are based on (user - LP token) pairs. This means that a single
 /// user can have multiple accounts - one for each LP token.
-pub struct Account {
+pub struct Account<A> {
     /// The owner of this account.
-    pub owner: HumanAddr,
+    pub owner: A,
     /// The address of the LP token that this account is for.
-    pub lp_token_addr: HumanAddr,
+    pub lp_token_addr: A,
     /// The amount of LP tokens the owner has locked into this contract.
-    pub locked_amount: u128,
+    pub locked_amount: Uint128,
     /// The last time that the user claimed their rewards.
     pub last_claimed: u64
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub(crate) struct RewardPoolStored {
-    pub lp_token: ContractInfoStored,
-    pub share: Uint128,
-    pub size: Uint128
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub(crate) struct AccountStored {
-    pub owner: CanonicalAddr,
-    pub lp_token_addr: CanonicalAddr,
-    pub locked_amount: Uint128,
-    pub last_claimed: u64
-}
-
-impl PartialEq for Account {
+impl PartialEq for Account<HumanAddr> {
     fn eq(&self, other: &Self) -> bool {
         self.owner == other.owner && self.lp_token_addr == self.lp_token_addr
     }
 }
 
-impl PartialEq for RewardPool {
+impl PartialEq for RewardPool<HumanAddr> {
     fn eq(&self, other: &Self) -> bool {
         self.lp_token.address == other.lp_token.address
     }
 }
 
-impl Account {
+impl Account<HumanAddr> {
     pub fn new(owner: HumanAddr, lp_token_addr: HumanAddr) -> Self {
         Account {
             owner,
             lp_token_addr,
-            locked_amount: 0,
+            locked_amount: Uint128::zero(),
             last_claimed: 0
         }
     }
-
-    pub(crate) fn to_stored(&self, api: &impl Api) -> StdResult<AccountStored> {
-        Ok(AccountStored {
-            owner: api.canonical_address(&self.owner)?,
-            lp_token_addr: api.canonical_address(&self.lp_token_addr)?,
-            locked_amount: Uint128(self.locked_amount),
-            last_claimed: self.last_claimed,
-        })
-    }
 }
 
-impl AccountStored {
-    pub(crate) fn to_normal(self, api: &impl Api) -> StdResult<Account> {
+impl Humanize<Account<HumanAddr>> for Account<CanonicalAddr> {
+    fn humanize(&self, api: &impl Api) -> StdResult<Account<HumanAddr>> {
         Ok(Account {
-            owner: api.human_address(&self.owner)?,
-            lp_token_addr: api.human_address(&self.lp_token_addr)?,
-            locked_amount: self.locked_amount.u128(),
+            owner: self.owner.humanize(api)?,
+            lp_token_addr: self.lp_token_addr.humanize(api)?,
+            locked_amount: self.locked_amount,
             last_claimed: self.last_claimed
         })
     }
 }
 
-impl RewardPool {
-    pub(crate) fn to_stored(&self, api: &impl Api) -> StdResult<RewardPoolStored> {
-        Ok(RewardPoolStored {
-            lp_token: self.lp_token.to_stored(api)?,
-            share: Uint128(self.share),
-            size: Uint128(self.size)
+impl Canonize<Account<CanonicalAddr>> for Account<HumanAddr> {
+    fn canonize (&self, api: &impl Api) -> StdResult<Account<CanonicalAddr>> {
+        Ok(Account {
+            owner: self.owner.canonize(api)?,
+            lp_token_addr: self.lp_token_addr.canonize(api)?,
+            locked_amount: self.locked_amount,
+            last_claimed: self.last_claimed,
         })
     }
 }
 
-impl RewardPoolStored {
-    pub(crate) fn to_normal(self, api: &impl Api) -> StdResult<RewardPool> {
+impl Humanize<RewardPool<HumanAddr>> for RewardPool<CanonicalAddr> {
+    fn humanize(&self, api: &impl Api) -> StdResult<RewardPool<HumanAddr>> {
         Ok(RewardPool {
-            lp_token: self.lp_token.to_normal(api)?,
-            share: self.share.u128(),
-            size: self.size.u128()
+            lp_token: self.lp_token.humanize(api)?,
+            share: self.share,
+            size: self.size
+        })
+    }
+}
+
+impl Canonize<RewardPool<CanonicalAddr>> for RewardPool<HumanAddr> {
+    fn canonize (&self, api: &impl Api) -> StdResult<RewardPool<CanonicalAddr>> {
+        Ok(RewardPool {
+            lp_token: self.lp_token.canonize(api)?,
+            share: self.share,
+            size: self.size
         })
     }
 }

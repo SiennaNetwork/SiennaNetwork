@@ -9,7 +9,7 @@ use composable_admin::admin::{
 };
 use composable_auth::{auth_handle, authenticate};
 use secret_toolkit::snip20;
-use cosmwasm_utils::ContractInfo;
+use fadroma_scrt_callback::ContractInstance;
 use cosmwasm_utils::viewing_key::ViewingKey;
 use cosmwasm_utils::convert::{convert_token, get_whole_token_representation};
 
@@ -46,7 +46,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 
     let config = Config {
         reward_token: msg.reward_token,
-        this_contract: ContractInfo {
+        this_contract: ContractInstance {
             address: env.contract.address,
             code_hash: env.contract_code_hash
         },
@@ -116,11 +116,11 @@ fn lock_tokens<S: Storage, A: Api, Q: Querier>(
     let mut account = get_or_create_account(deps, &env.message.sender, &lp_token_addr)?;
 
     account.locked_amount = 
-        account.locked_amount.checked_add(amount.u128())
-        .ok_or_else(|| StdError::generic_err(OVERFLOW_MSG))?;
+        account.locked_amount.u128().checked_add(amount.u128())
+        .ok_or_else(|| StdError::generic_err(OVERFLOW_MSG))?.into();
 
-    pool.size = pool.size.checked_add(amount.u128())
-        .ok_or_else(|| StdError::generic_err(OVERFLOW_MSG))?;
+    pool.size = pool.size.u128().checked_add(amount.u128())
+        .ok_or_else(|| StdError::generic_err(OVERFLOW_MSG))?.into();
 
     save_account(deps, &account)?;
     save_pool(deps, &pool)?;
@@ -156,17 +156,17 @@ fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     let mut account = get_account_or_fail(deps, &env.message.sender, &lp_token_addr)?;
 
-    account.locked_amount = account.locked_amount.checked_sub(amount.u128())
-        .ok_or_else(|| StdError::generic_err("Insufficient balance."))?;
+    account.locked_amount = account.locked_amount.u128().checked_sub(amount.u128())
+        .ok_or_else(|| StdError::generic_err("Insufficient balance."))?.into();
 
-    if account.locked_amount == 0 {
+    if account.locked_amount == Uint128::zero() {
         delete_account(deps, &account)?;
     } else {
         save_account(deps, &account)?;
     }
 
     let pool = if let Some(mut p) = get_pool(deps, &lp_token_addr)? {
-        p.size = p.size.saturating_sub(amount.u128());
+        p.size = p.size.u128().saturating_sub(amount.u128()).into();
         save_pool(deps, &p)?;
 
         Some(p)
@@ -215,7 +215,7 @@ fn claim<S: Storage, A: Api, Q: Querier>(
         let mut account = get_account_or_fail(deps, &env.message.sender, &addr)?;
 
         let reward_amount = calc_reward_share(
-            account.locked_amount,
+            account.locked_amount.u128(),
             &pool,
             config.token_decimals
         )?;
@@ -295,13 +295,13 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
         let pool = get_pool_or_fail(deps, &addr)?;
         let account = get_or_create_account(deps, &sender, &addr)?;
 
-        if account.locked_amount == 0 {
+        if account.locked_amount == Uint128::zero() {
             results.push(ClaimResult::error(addr, ClaimError::AccountZeroLocked));
             continue;
         }
 
         let reward_per_portion = calc_reward_share(
-            account.locked_amount,
+            account.locked_amount.u128(),
             &pool,
             config.token_decimals
         )?;
@@ -349,13 +349,13 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
 fn change_pools<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    pools: Vec<RewardPool>,
+    pools: Vec<RewardPool<HumanAddr>>,
     total_share: Uint128
 ) -> StdResult<HandleResponse>{
     let mut sum_total = 0u128;
 
     for pool in pools.iter() {
-        sum_total = sum_total.checked_add(pool.share).ok_or_else(||
+        sum_total = sum_total.checked_add(pool.share.u128()).ok_or_else(||
             StdError::generic_err(OVERFLOW_MSG)
         )?;
     }
@@ -406,13 +406,13 @@ fn query_accounts<S: Storage, A: Api, Q: Querier>(
 
 fn calc_reward_share(
     mut user_locked: u128,
-    pool: &RewardPool,
+    pool: &RewardPool<HumanAddr>,
     reward_token_decimals: u8
 ) -> StdResult<u128> {
     user_locked *= 100; // Multiply by 100 to get a non float percentage
 
     // This error shouldn't really happen since the TX should already have failed.
-    let share_percentage = user_locked.checked_div(pool.size).ok_or_else(|| 
+    let share_percentage = user_locked.checked_div(pool.size.u128()).ok_or_else(|| 
         StdError::generic_err(format!("Pool size for {} is zero.", pool.lp_token.address))
     )?;
 
@@ -427,7 +427,7 @@ fn calc_reward_share(
     // share * pool.share / one reward token
     convert_token(
         share,
-        pool.share,
+        pool.share.u128(),
         reward_token_decimals,
         reward_token_decimals
     )
@@ -437,7 +437,7 @@ fn calc_reward_share(
 fn get_pool_or_fail<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: &HumanAddr
-) -> StdResult<RewardPool> { 
+) -> StdResult<RewardPool<HumanAddr>> { 
     get_pool(deps, address)?.ok_or_else(||
         StdError::generic_err(format!(
             "LP token {} is not eligible for rewards.", address
@@ -450,7 +450,7 @@ fn get_account_or_fail<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: &HumanAddr,
     lp_token: &HumanAddr
-) -> StdResult<Account> { 
+) -> StdResult<Account<HumanAddr>> { 
     get_account(deps, address, lp_token)?.ok_or_else(||
         StdError::generic_err(format!(
             "No account for {} exists for address {}.",
@@ -461,7 +461,7 @@ fn get_account_or_fail<S: Storage, A: Api, Q: Querier>(
 }
 
 #[inline]
-fn into_pools(mut vec: Vec<RewardPoolConfig>) -> Vec<RewardPool> {
+fn into_pools(mut vec: Vec<RewardPoolConfig>) -> Vec<RewardPool<HumanAddr>> {
     vec.drain(..).map(|p| p.into()).collect()
 }
 
@@ -492,7 +492,7 @@ fn calc_portions(
     Ok(result)
 }
 
-fn get_balance(querier: &impl Querier, config: &Config) -> StdResult<u128> {
+fn get_balance(querier: &impl Querier, config: &Config<HumanAddr>) -> StdResult<u128> {
     let available_balance = snip20::balance_query(
         querier,
         config.this_contract.address.clone(),
@@ -520,7 +520,6 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
     use cosmwasm_std::to_binary;
     use cosmwasm_std::testing::{mock_env, MockStorage, MockApi};
-    use cosmwasm_utils::ContractInfo;
     use rand::{Rng, thread_rng};
 
     use crate::test_helpers::{
@@ -529,7 +528,7 @@ mod tests {
 
     #[test]
     fn test_init() {
-        let reward_token = ContractInfo {
+        let reward_token = ContractInstance {
             address: "reward_token".into(),
             code_hash: "reward_token_hash".into()
         };
@@ -541,14 +540,14 @@ mod tests {
         let reward_pools = vec![
             RewardPoolConfig {
                 share: Uint128(100),
-                lp_token: ContractInfo {
+                lp_token: ContractInstance {
                     address: "pool1".into(),
                     code_hash: "pool1_hash".into()
                 }
             },
             RewardPoolConfig {
                 share: Uint128(200),
-                lp_token: ContractInfo {
+                lp_token: ContractInstance {
                     address: "pool2".into(),
                     code_hash: "pool2_hash".into()
                 }
@@ -584,7 +583,7 @@ mod tests {
     fn test_change_pools() {
         fn assert_pools_inactive<S: Storage, A: Api, Q: Querier>(
             deps: &Extern<S, A, Q>,
-            pools: &Vec<RewardPool>
+            pools: &Vec<RewardPool<HumanAddr>>
         ) {
             for pool in pools {
                 assert_eq!(
@@ -594,7 +593,7 @@ mod tests {
             }
         }
 
-        let reward_token = ContractInfo {
+        let reward_token = ContractInstance {
             address: "reward_token".into(),
             code_hash: "reward_token_hash".into()
         };
@@ -602,14 +601,14 @@ mod tests {
         let initial_pools = vec![
             RewardPoolConfig {
                 share: Uint128(100),
-                lp_token: ContractInfo {
+                lp_token: ContractInstance {
                     address: "pool1".into(),
                     code_hash: "pool1_hash".into()
                 }
             },
             RewardPoolConfig {
                 share: Uint128(200),
-                lp_token: ContractInfo {
+                lp_token: ContractInstance {
                     address: "pool2".into(),
                     code_hash: "pool2_hash".into()
                 }
@@ -638,7 +637,7 @@ mod tests {
 
         let third_pool = RewardPoolConfig {
             share: Uint128(300),
-            lp_token: ContractInfo {
+            lp_token: ContractInstance {
                 address: "pool3".into(),
                 code_hash: "pool3_hash".into()
             }
@@ -668,14 +667,14 @@ mod tests {
         let second_pools = vec![ 
             RewardPoolConfig {
                 share: Uint128(300),
-                lp_token: ContractInfo {
+                lp_token: ContractInstance {
                     address: "pool3".into(),
                     code_hash: "pool3_hash".into()
                 }
             },
             RewardPoolConfig {
                 share: Uint128(400),
-                lp_token: ContractInfo {
+                lp_token: ContractInstance {
                     address: "pool4".into(),
                     code_hash: "pool4_hash".into()
                 }
@@ -690,12 +689,12 @@ mod tests {
         assert_pools_eq(&get_pools(deps).unwrap(), &into_pools(second_pools.clone()));
         assert_pools_inactive(deps, &into_pools(initial_pools.clone()));
 
-        let locked_tokens = 9999;
+        let locked_tokens = Uint128(9999);
 
         lock_tokens(
             deps,
             mock_env("user", &[]),
-            Uint128(locked_tokens),
+            locked_tokens,
             second_pools[0].lp_token.address.clone()
         ).unwrap();
 
@@ -780,18 +779,18 @@ mod tests {
     }
 
 
-    fn create_pool(share: u128, size: u128) -> RewardPool {
+    fn create_pool(share: u128, size: u128) -> RewardPool<HumanAddr> {
         RewardPool {
-            lp_token: ContractInfo {
+            lp_token: ContractInstance {
                 address: HumanAddr::from("lp_token"),
                 code_hash: "lp_token".into()
             },
-            share,
-            size
+            share: Uint128(share),
+            size: Uint128(size)
         }
     }
 
-    fn assert_pools_eq(lhs: &Vec<RewardPool>, rhs: &Vec<RewardPool>) {
+    fn assert_pools_eq(lhs: &Vec<RewardPool<HumanAddr>>, rhs: &Vec<RewardPool<HumanAddr>>) {
         assert_eq!(lhs.len(), rhs.len());
 
         for (i, pool) in lhs.iter().enumerate() {
@@ -868,7 +867,7 @@ mod tests {
         let num_users = rng.gen_range(5..20);
 
         let reward_token_decimals = 18;
-        let reward_token = ContractInfo {
+        let reward_token = ContractInstance {
             address: "reward_token".into(),
             code_hash: "reward_token_hash".into()
         };
@@ -877,7 +876,7 @@ mod tests {
 
         for i in 0..NUM_POOLS {
             pools.push(RewardPoolConfig {
-                lp_token: ContractInfo {
+                lp_token: ContractInstance {
                     address: HumanAddr(format!("lp_token_{}", i)),
                     code_hash: format!("lp_token_hash_{}", i)
                 },
