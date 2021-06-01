@@ -1,5 +1,5 @@
-import { ContractInfo, ContractInstantiationInfo } from './amm-lib/types.js'
-import { FactoryContract, create_fee } from './amm-lib/contract.js'
+import { ContractInstantiationInfo } from './amm-lib/types.js'
+import { create_fee } from './amm-lib/contract.js'
 import { IJsonFileWriter } from './utils/json_file_writer.js'
 
 import { 
@@ -10,12 +10,16 @@ import {
 import { resolve } from 'path'
 import { readFileSync } from 'fs'
 
-interface SetupResult {
-    factory: FactoryContract,
-    snip20_contract: ContractInstantiationInfo,
+export interface UploadResult {
+    factory: ContractInstantiationInfo,
+    snip20: ContractInstantiationInfo,
+    exchange: ContractInstantiationInfo,
+    lp_token: ContractInstantiationInfo,
+    ido: ContractInstantiationInfo,
+    burner: ContractInstantiationInfo
 }
 
-export async function setup(client: SigningCosmWasmClient, commit: string, writer: IJsonFileWriter): Promise<SetupResult> {
+export async function upload(client: SigningCosmWasmClient, commit: string, writer: IJsonFileWriter): Promise<UploadResult> {
     const fee = create_fee('2500000')
   
     const snip20_wasm = readFileSync(resolve(`../dist/${commit}-snip20-reference-impl.wasm`))
@@ -23,8 +27,9 @@ export async function setup(client: SigningCosmWasmClient, commit: string, write
     const factory_wasm = readFileSync(resolve(`../dist/${commit}-factory.wasm`))
     const lp_token_wasm = readFileSync(resolve(`../dist/${commit}-lp-token.wasm`))
     const ido_wasm = readFileSync(resolve(`../dist/${commit}-ido.wasm`))
+    const burner_wasm = readFileSync(resolve(`../dist/${commit}-sienna-burner.wasm`))
 
-    const exchange_upload = await client.upload(exchange_wasm, { }, undefined, fee)
+    const exchange_upload = await client.upload(exchange_wasm, {}, undefined, fee)
     writer.write(exchange_upload, `uploads/exchange`)
 
     const snip20_upload = await client.upload(snip20_wasm, {}, undefined, fee)
@@ -39,41 +44,17 @@ export async function setup(client: SigningCosmWasmClient, commit: string, write
     const ido_upload = await client.upload(ido_wasm, {}, undefined, fee)
     writer.write(ido_upload, `uploads/ido`)
 
-    //const burner_upload = await client.upload(ido_wasm, {}, undefined, fee)
-    //writer.write(burner_upload, `uploads/burner`)
-
-    const pair_contract = new ContractInstantiationInfo(exchange_upload.originalChecksum, exchange_upload.codeId)
-    const snip20_contract = new ContractInstantiationInfo(snip20_upload.originalChecksum, snip20_upload.codeId)
-    const lp_token_contract = new ContractInstantiationInfo(lp_token_upload.originalChecksum, lp_token_upload.codeId)
-    const ido_contract = new ContractInstantiationInfo(ido_upload.originalChecksum, ido_upload.codeId)
+    const burner_upload = await client.upload(burner_wasm, {}, undefined, fee)
+    writer.write(burner_upload, `uploads/burner`)
   
-    const factory_init_msg = {
-        snip20_contract,
-        lp_token_contract,
-        pair_contract,
-        ido_contract,
-        exchange_settings: {
-            swap_fee: {
-                nom: 28,
-                denom: 10000
-            },
-            sienna_fee: {
-                nom: 2,
-                denom: 10000
-            },
-            sienna_burner: undefined
-        }
+    return { 
+        factory: new ContractInstantiationInfo(factory_upload.originalChecksum, factory_upload.codeId),
+        snip20: new ContractInstantiationInfo(snip20_upload.originalChecksum, snip20_upload.codeId),
+        exchange: new ContractInstantiationInfo(exchange_upload.originalChecksum, exchange_upload.codeId),
+        lp_token: new ContractInstantiationInfo(lp_token_upload.originalChecksum, lp_token_upload.codeId),
+        ido: new ContractInstantiationInfo(ido_upload.originalChecksum, ido_upload.codeId),
+        burner: new ContractInstantiationInfo(burner_upload.originalChecksum, burner_upload.codeId)
     }
-    
-    const result = await client.instantiate(factory_upload.codeId, factory_init_msg, `${commit} - AMM FACTORY`, undefined, undefined, fee)
-    writer.write(
-        new ContractInfo(factory_upload.originalChecksum, result.contractAddress),
-        `addresses/factory`
-    )
-
-    const factory = new FactoryContract(result.contractAddress, client)
-  
-    return { factory, snip20_contract }
 }
 
 export async function build_client(mnemonic: string, api_url: string): Promise<SigningCosmWasmClient> {

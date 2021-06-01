@@ -1,13 +1,13 @@
 import { 
   ContractInfo, TokenPair, Address, TokenPairAmount,
-  ViewingKey, Uint128, TokenTypeAmount, Pagination
+  ViewingKey, Uint128, TokenTypeAmount, Pagination, ContractInstantiationInfo
 } from './amm-lib/types.js'
 import { FactoryContract, ExchangeContract, Snip20Contract, create_fee } from './amm-lib/contract.js'
 import { 
   execute_test, execute_test_expect, assert_objects_equal, assert,
   assert_equal, assert_not_equal, extract_log_value, print_object
 } from './test_helpers.js'
-import { setup, build_client } from './setup.js'
+import { upload, build_client, UploadResult } from './setup.js'
 import { NullJsonFileWriter } from './utils/json_file_writer.js'
 import { SigningCosmWasmClient, Account } from 'secretjs'
 import { Sha256, Random } from "@iov/crypto"
@@ -37,16 +37,10 @@ const SLEEP_TIME = 1000
 async function run_tests() {
   const client_a = await build_client(ACC_A.mnemonic, APIURL)
 
-  const { factory, snip20_contract} = await setup(client_a, process.argv[2], new NullJsonFileWriter)
-  const sienna_init_msg = {
-    name: 'sienna',
-    symbol: 'SIENNA',
-    decimals: 18,
-    prng_seed: create_rand_base64()
-  } 
+  const result = await upload(client_a, process.argv[2], new NullJsonFileWriter)
 
-  const sienna_contract = await client_a.instantiate(snip20_contract.id, sienna_init_msg, 'SIENNA TOKEN', undefined, undefined, create_fee('2000000'))
-  const sienna_token = new ContractInfo(snip20_contract.code_hash, sienna_contract.contractAddress)
+  const factory = await create_factory(client_a, result)
+  const sienna_token = await create_sienna_token(client_a, result.snip20)
 
   const created_pair = await test_create_exchange(factory, sienna_token)
   await sleep(SLEEP_TIME)
@@ -356,6 +350,57 @@ function create_viewing_key(): ViewingKey {
 function create_rand_base64(): string {
   const rand_bytes = Random.getBytes(32)
   return Buffer.from(rand_bytes).toString('base64')
+}
+
+async function create_factory(client: SigningCosmWasmClient, result: UploadResult): Promise<FactoryContract> {
+  const factory_init_msg = {
+    snip20_contract: result.snip20,
+    lp_token_contract: result.lp_token,
+    pair_contract: result.exchange,
+    ido_contract: result.ido,
+    exchange_settings: {
+        swap_fee: {
+            nom: 28,
+            denom: 10000
+        },
+        sienna_fee: {
+            nom: 2,
+            denom: 10000
+        },
+        sienna_burner: undefined
+    }
+  }
+
+  const factory_instance = await client.instantiate(
+    result.factory.id,
+    factory_init_msg,
+    `SIENNA AMM FACTORY`,
+    undefined,
+    undefined,
+    create_fee('200000')
+  )
+
+  return new FactoryContract(factory_instance.contractAddress, client)
+}
+
+async function create_sienna_token(client: SigningCosmWasmClient, snip20: ContractInstantiationInfo): Promise<ContractInfo> {
+  const sienna_init_msg = {
+    name: 'sienna',
+    symbol: 'SIENNA',
+    decimals: 18,
+    prng_seed: create_rand_base64()
+  }
+
+  const sienna_contract = await client.instantiate(
+    snip20.id,
+    sienna_init_msg,
+    'SIENNA TOKEN',
+    undefined,
+    undefined,
+    create_fee('200000')
+  )
+  
+  return new ContractInfo(snip20.code_hash, sienna_contract.contractAddress)
 }
 
 run_tests().catch(console.log)
