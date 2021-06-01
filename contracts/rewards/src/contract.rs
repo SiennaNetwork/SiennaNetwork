@@ -417,12 +417,10 @@ fn calc_reward_share(
     )?;
 
     // Convert to actual amount of reward token
-    let share = share_percentage.checked_mul(
+    let share = share_percentage.saturating_mul(
         // -2 to compensate for the multiplication above
         get_whole_token_representation(reward_token_decimals - 2)
-    ).ok_or_else(|| 
-        StdError::generic_err(OVERFLOW_MSG)
-    )?;
+    );
 
     // share * pool.share / one reward token
     convert_token(
