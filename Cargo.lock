@@ -463,15 +463,7 @@ name = "fadroma-scrt-storage"
 version = "0.1.0"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "primitive-types",
- "rand_chacha 0.2.2",
- "rand_core 0.5.1",
- "schemars",
  "serde",
- "sha2 0.9.5",
- "snafu",
- "subtle 2.4.0",
 ]
 
 [[package]]
