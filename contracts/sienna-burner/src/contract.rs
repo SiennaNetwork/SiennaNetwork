@@ -2,7 +2,6 @@ use cosmwasm_std::{
     to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr,
     InitResponse, Querier, StdError, StdResult, Storage, Uint128, log
 };
-use crate::state::*;
 use fadroma_scrt_callback::ContractInstance;
 use fadroma_scrt_migrate::get_status;
 use amm_shared::{
@@ -16,6 +15,8 @@ use amm_shared::{
         }
     }
 };
+
+use crate::state::*;
 
 const BLOCK_SIZE: usize = 256;
 

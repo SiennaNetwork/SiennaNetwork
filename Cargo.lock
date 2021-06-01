@@ -1070,7 +1070,6 @@ dependencies = [
  "amm-shared",
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "fadroma-scrt-addr",
  "fadroma-scrt-callback",
  "fadroma-scrt-migrate",
