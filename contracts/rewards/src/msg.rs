@@ -68,6 +68,8 @@ pub enum QueryMsg {
         /// The addresses of the LP tokens pools to get the accounts for.
         lp_tokens: Vec<HumanAddr>
     },
+    /// This is only here because of Keplr
+    TokenInfo,
     Admin(AdminQueryMsg)
 }
 
@@ -76,7 +78,13 @@ pub enum QueryMsg {
 pub enum QueryMsgResponse {
     ClaimSimulation(ClaimSimulationResult),
     Accounts(Vec<Account<HumanAddr>>),
-    Pools(Vec<RewardPool<HumanAddr>>)
+    Pools(Vec<RewardPool<HumanAddr>>),
+    TokenInfo {
+        name: String,
+        symbol: String,
+        decimals: u8,
+        total_supply: Option<Uint128>
+    }
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug)]
