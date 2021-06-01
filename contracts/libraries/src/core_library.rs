@@ -249,13 +249,13 @@ impl ReserveData {
             .add(weighted_last_borrows)
             .ray_div(self.total_borrow_stable.wad_to_ray());
     }
-/**
-    * @dev decreases the total borrows at a stable rate on a specific reserve and updates the
-    * average stable rate consequently
-    * @param _reserve the reserve object
-    * @param _amount the amount to substract to the total borrows stable
-    * @param _rate the rate at which the amount has been repaid
-    **/
+    /**
+     * @dev decreases the total borrows at a stable rate on a specific reserve and updates the
+     * average stable rate consequently
+     * @param _reserve the reserve object
+     * @param _amount the amount to substract to the total borrows stable
+     * @param _rate the rate at which the amount has been repaid
+     **/
     pub fn descrees_total_borrows_stable_and_update_average_rate(
         &mut self,
         _amount: u128,
@@ -293,23 +293,25 @@ impl ReserveData {
     }
 
     /**
-    * @dev increases the total borrows at a variable rate
-    * @param _reserve the reserve object
-    * @param _amount the amount to add to the total borrows variable
-    **/
+     * @dev increases the total borrows at a variable rate
+     * @param _reserve the reserve object
+     * @param _amount the amount to add to the total borrows variable
+     **/
     pub fn increase_total_borrows_variable(&mut self, _amount: u128) {
         self.total_borrows_variable = self.total_borrows_variable.add(_amount);
-    } 
+    }
 
-     /**
-    * @dev decreases the total borrows at a variable rate
-    * @param _reserve the reserve object
-    * @param _amount the amount to substract to the total borrows variable
-    **/
+    /**
+     * @dev decreases the total borrows at a variable rate
+     * @param _reserve the reserve object
+     * @param _amount the amount to substract to the total borrows variable
+     **/
 
     pub fn decrease_total_borrows_varible(&mut self, _amount: u128) -> StdResult<()> {
         if self.total_borrows_variable < _amount {
-            return Err(StdError::generic_err("The amount that is being subtracted from the variable total borrows is incorrect"));
+            return Err(StdError::generic_err(
+                "The amount that is being subtracted from the variable total borrows is incorrect",
+            ));
         }
         Ok(())
     }

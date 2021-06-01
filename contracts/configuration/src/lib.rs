@@ -1,7 +1,8 @@
 pub mod contract;
+pub mod lending_pool_addresses_provider;
+pub mod lending_pool_parameters_provider;
 pub mod msg;
 pub mod state;
-
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use super::contract;
