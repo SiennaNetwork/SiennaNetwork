@@ -15,7 +15,8 @@
             "amount_1",
             "factory",
             "liquidity_token",
-            "pair"
+            "pair",
+            "total_liquidity"
           ],
           "properties": {
             "amount_0": {
@@ -32,6 +33,9 @@
             },
             "pair": {
               "$ref": "#/definitions/TokenPair_for_HumanAddr"
+            },
+            "total_liquidity": {
+              "$ref": "#/definitions/Uint128"
             }
           }
         }

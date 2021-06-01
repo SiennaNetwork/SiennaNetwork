@@ -54,6 +54,15 @@ export interface Exchange {
     address: Address
 }
 
+export interface PairInfo {
+    amount_0: Uint128;
+    amount_1: Uint128;
+    factory: ContractInfo;
+    liquidity_token: ContractInfo;
+    pair: TokenPair;
+    total_liquidity: Uint128;
+}
+
 export class IdoInitConfig {
     constructor(
         /**
@@ -65,7 +74,7 @@ export class IdoInitConfig {
          */
         readonly rate: Uint128,
         readonly snip20_init_info: Snip20TokenInitInfo
-    ) {}
+    ) { }
 }
 
 export class Snip20TokenInitInfo {
@@ -87,7 +96,7 @@ export class Snip20TokenInitInfo {
          */
         readonly decimals: number,
         readonly config?: Snip20InitConfig | null
-    ) {}
+    ) { }
 }
 
 export class Snip20InitConfig {
@@ -119,20 +128,106 @@ export function get_token_type(token: TokenType): TypeOfToken {
     return TypeOfToken.Custom
 }
 
-/***********************************************************************************
- * The types below are used in integration tests only and are not needed by the UI.*
- **********************************************************************************/
+export interface Allowance {
+    spender: Address,
+    owner: Address,
+    allowance: Uint128,
+    expiration?: number | null
+}
+
+export interface ExchangeRate {
+    rate: Uint128,
+    denom: string
+}
+
+export interface RewardPool {
+    lp_token: ContractInfo;
+    /**
+     * The reward amount allocated to this pool.
+     */
+    share: number;
+    /**
+     * Total amount locked by all participants.
+     */
+    size: number;
+}
+
+export interface RewardsAccount {
+    /**
+     * The address of the LP token that this account is for.
+     */
+    lp_token_addr: Address;
+    /**
+     * The owner of this account.
+     */
+    owner: Address;
+    /**
+     * The last time that the user claimed their rewards.
+     */
+    last_claimed: number;
+    /**
+     * The amount of LP tokens the owner has locked into this contract.
+     */
+    locked_amount: number;
+}
+
+export type ClaimError =
+    | {
+        /**
+         * Occurs when the rewards pool is currently empty.
+         */
+        type: "pool_empty";
+    }
+    | {
+        /**
+         * Occurs when the user has no tokens locked in this pool. 
+         * In practice, this can occur when a wrong address was provided to the query.
+         */
+        type: "account_zero_locked";
+    }
+    | {
+        /**
+         * It is possible for the user's share to be so little, that
+         * the actual reward amount of rewards calculated to be zero.
+         * However, it is highly unlikely in practice.
+         */
+        type: "account_zero_reward";
+    }
+    | {
+        /**
+         * In Unix seconds.
+         */
+        time_to_wait: number;
+        /**
+         * Occurs when the user tries to claim earlier than the designated claim interval.
+         */
+        type: "early_claim";
+    };
+
+export interface ClaimSimulationResult {
+    total_rewards_amount: Uint128;
+    actual_claimed: Uint128;
+    results: ClaimResult[];
+}
+
+export interface ClaimResult {
+    error?: ClaimError | null;
+    lp_token_addr: Address;
+    reward_amount: Uint128;
+    reward_per_portion: Uint128;
+    success: boolean;
+}
 
 export class ContractInfo {
     constructor(
         readonly code_hash: string,
         readonly address: Address
-    ) {}
+    ) { }
 }
 
 export class ContractInstantiationInfo {
     constructor(
         readonly code_hash: string,
         readonly id: number
-    ) {}
+    ) { }
 }

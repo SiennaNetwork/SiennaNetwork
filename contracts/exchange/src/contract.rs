@@ -136,14 +136,16 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::PairInfo => {
             let config = load_config(deps)?;
 
-            let result = config.pair.query_balances(&deps.querier, config.contract_addr, config.viewing_key.0)?;
+            let balances = config.pair.query_balances(&deps.querier, config.contract_addr, config.viewing_key.0)?;
+            let total_liquidity = query_liquidity(&deps.querier, &config.lp_token_info)?;
 
             to_binary(&QueryMsgResponse::PairInfo {
                 liquidity_token: config.lp_token_info,
                 factory: config.factory_info,
                 pair: config.pair,
-                amount_0: result[0],
-                amount_1: result[1]
+                amount_0: balances[0],
+                amount_1: balances[1],
+                total_liquidity
             })
         },
         QueryMsg::SwapSimulation { offer } => {

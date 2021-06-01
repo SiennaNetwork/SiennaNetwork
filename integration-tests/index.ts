@@ -56,9 +56,7 @@ async function run_tests() {
   const pair_address = await test_query_exchanges(factory, created_pair)
 
   const exchange = new ExchangeContract(pair_address, client_a)
-  await test_get_pair_info(exchange, created_pair)
-  await test_get_factory_info(exchange, factory.address)
-  await test_get_pool(exchange)
+  await test_get_pair_info(exchange, created_pair, factory.address)
 
   const snip20 = new Snip20Contract(sienna_token.address, client_a)
 
@@ -97,11 +95,9 @@ async function test_create_exchange(factory: FactoryContract, token_info: Contra
       const fee = create_fee('300000')
 
       const assert_unauthorized = (e: any) => {
-        if (e.message.includes('unauthorized')) {
-          return
+        if (!e.message.includes('unauthorized')) {
+          console.log(`"Error: register_exchange returned wrong error message: ${e.message}"`)
         }
-
-        console.log(`"Error: register_exchange returned wrong error message: ${e.message}"`)
       };
 
       const err_msg = 'Error: register_exchange should fail!'
@@ -174,33 +170,16 @@ async function test_query_exchanges(factory: FactoryContract, pair: TokenPair): 
   return address
 }
 
-async function test_get_pair_info(exchange: ExchangeContract, pair: TokenPair) {
+async function test_get_pair_info(exchange: ExchangeContract, pair: TokenPair, factory_address: Address) {
   await execute_test(
     'test_get_pair_info',
     async () => {
       const result = await exchange.get_pair_info()
       assert_objects_equal(pair, result.pair)
-    }
-  )
-}
-
-async function test_get_factory_info(exchange: ExchangeContract, address: Address) {
-  await execute_test(
-    'test_get_factory_info',
-    async () => {
-      const result = await exchange.get_factory_info()
-      assert_equal(address, result.address)
-    }
-  )
-}
-
-async function test_get_pool(exchange: ExchangeContract) {
-  await execute_test(
-    'test_get_pool',
-    async () => {
-      const result = await exchange.get_pool()
       assert_equal(result.amount_0, '0')
       assert_equal(result.amount_1, '0')
+      assert_equal(result.total_liquidity, '0')
+      assert_equal(factory_address, result.factory.address)
     }
   )
 }
@@ -227,7 +206,7 @@ async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract
   await execute_test(
     'test_provide_liquidity_pool_not_empty',
     async () => {
-      const result = await exchange.get_pool()
+      const result = await exchange.get_pair_info()
 
       assert_equal(result.amount_0, amount)
       assert_equal(result.amount_1, amount)
@@ -251,7 +230,7 @@ async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract
   await execute_test(
     'test_pool_empty_after_withdraw',
     async () => {
-      const result = await exchange.get_pool()
+      const result = await exchange.get_pair_info()
       
       assert_equal(result.amount_0, '0')
       assert_equal(result.amount_1, '0')
@@ -281,7 +260,7 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
     async () => {
       exchange_b.simulate_swap(offer_token)
 
-      const pool = await exchange_b.get_pool()
+      const pool = await exchange_b.get_pair_info()
       
       assert_equal(pool.amount_0, amount)
       assert_equal(pool.amount_1, amount)
@@ -297,7 +276,7 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
       
       assert(balance_before > balance_after) // TODO: calculate exact amount after adding gas parameters
 
-      const pool = await exchange_b.get_pool()
+      const pool = await exchange_b.get_pair_info()
 
       const amnt = parseInt(amount)
       const amount_0 = parseInt(pool.amount_0)

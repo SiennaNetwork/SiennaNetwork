@@ -168,6 +168,7 @@ pub mod exchange {
             pair:            TokenPair<HumanAddr>,
             amount_0:        Uint128,
             amount_1:        Uint128,
+            total_liquidity: Uint128
         }
     }
 
