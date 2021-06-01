@@ -16,13 +16,13 @@ interface SetupResult {
 }
 
 export async function setup(client: SigningCosmWasmClient, commit: string, writer: IJsonFileWriter): Promise<SetupResult> {
-    const fee = create_fee('2000000')
+    const fee = create_fee('2500000')
   
     const snip20_wasm = readFileSync(resolve(`../dist/${commit}-snip20-reference-impl.wasm`))
     const exchange_wasm = readFileSync(resolve(`../dist/${commit}-exchange.wasm`))
     const factory_wasm = readFileSync(resolve(`../dist/${commit}-factory.wasm`))
     const lp_token_wasm = readFileSync(resolve(`../dist/${commit}-lp-token.wasm`))
-    const ido_wasm = readFileSync(resolve(`../dist/ido.wasm`))
+    const ido_wasm = readFileSync(resolve(`../dist/${commit}-ido.wasm`))
 
     const exchange_upload = await client.upload(exchange_wasm, { }, undefined, fee)
     writer.write(exchange_upload, `uploads/exchange`)

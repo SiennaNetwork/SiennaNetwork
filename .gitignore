@@ -9,4 +9,3 @@ node_modules
 yarn-error.log
 .idea
 /integration-tests/dist/
-!ido.wasm
