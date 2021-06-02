@@ -52,7 +52,7 @@ export default function main () {
       args.Spreadsheet, genConfig)
     .command('clean-localnet',
       '♻️  Try to terminate a loose localnet container and remove its state files',
-      new SecretNetwork.Node().terminate())
+      () => new SecretNetwork.Node().terminate())
 
     // deployment and configuration:
     .command('deploy-tge [network] [schedule]',
