@@ -10,7 +10,8 @@ import { render } from 'prettyjson'
 import { SNIP20Contract, MGMTContract, RPTContract } from '../api/index.js'
 
 import { taskmaster, SecretNetwork } from '@hackbg/fadroma'
-import * as Ops from '@hackbg/fadroma/js/SecretNetwork/ops.js'
+import ContractEnsemble from '@hackbg/fadroma/js/SecretNetwork/Ensemble.js'
+import ensureWallets from '@hackbg/fadroma/js/SecretNetwork/ensureWallets.js'
 import { pull } from '@hackbg/fadroma/js/net.js'
 import { fileURLToPath, resolve, basename, extname, dirname
        , readFile, writeFile } from '@hackbg/fadroma/js/sys.js'
@@ -33,7 +34,7 @@ export const SCRT_DECIMALS = 6
 export const ONE_SCRT = bignum(`1${[...Array(SCRT_DECIMALS)].map(()=>`0`).join('')}`)
 export const fmtSCRT = fmtDecimals(ONE_SCRT)
 
-export const ensureWallets = Ops.ensureWallets
+export { ensureWallets }
 
 export const getDefaultSchedule = () => {
   const path = resolve(projectRoot, 'settings', 'schedule.json')
@@ -49,44 +50,9 @@ const prefix = new Date().toISOString().replace(/[-:\.]/g, '-').replace(/[TZ]/g,
 
 const prng_seed = randomBytes(36).toString('hex')
 
-export class Contracts {
-  static contracts = {}
+export class TGEContracts extends ContractEnsemble {
 
-  static build  = (options={}) => Ops.build(this.contracts,  { workspace: projectRoot, ...options })
-  static upload = (options={}) => Ops.upload(this.contracts, { workspace: projectRoot, ...options })
-  static initialize = async () => { throw new Error('not implemented!') }
-  static configure = async () => { throw new Error('not implemented!') }
-  static transferOwnership = async () => { throw new Error('not implemented!') }
-
-  static async deploy (options = {}) {
-    const { task     = taskmaster()
-          , initMsgs = {}
-          , schedule = getDefaultSchedule()
-          } = options
-
-    let { agent
-        , builder = agent ? agent.getBuilder() : undefined
-        , network = builder ? builder.network : await pickNetwork()
-        } = options
-
-    if (typeof network === 'string') {
-      assert(['localnet','testnet','mainnet'].indexOf(network) > -1)
-      const conn = await SecretNetwork[network]()
-      network = conn.network
-      agent   = conn.agent
-      builder = conn.builder
-    }
-
-    return await task('build, upload, and initialize contracts', async () => {
-      const binaries  = await this.build({ task, builder })
-      const receipts  = await this.upload({ task, builder, binaries })
-      const contracts = await this.initialize({ task, receipts, agent, schedule })
-    })
-  }
-
-}
-
-export class TGEContracts extends Contracts {
+  static workspace = abs()
 
   static contracts = {
     TOKEN:
@@ -206,7 +172,7 @@ export class TGEContracts extends Contracts {
     console.log(render(await MGMT.status))
   }
 
-  static async reallocate () {}
+  static async reallocate () { throw new Error('not implemented') }
 
   static async addAccount () { throw new Error('not implemented') }
 
@@ -224,7 +190,9 @@ export class TGEContracts extends Contracts {
 
 }
 
-export class RewardsContracts extends Contracts {
+export class RewardsContracts extends ContractEnsemble {
+
+  static workspace = abs()
 
   static contracts = {
     TOKEN:
@@ -241,5 +209,15 @@ export class RewardsContracts extends Contracts {
       { crate: 'sienna-rewards'
       , label: `${prefix}SIENNA_REWARDS`
       , initMsg: JSON.parse(readFileSync(abs('settings/rewards.json'), 'utf8')) } }
+
+  static async initialize () {
+    const { task } = taskmaster()
+    await task('initialize token', async report => {
+      const {codeId} = receipts.TOKEN, {label, initMsg} = inits.TOKEN
+      initMsg.admin = agent.address
+      contracts.TOKEN = await SNIP20Contract.init({agent, codeId, label, initMsg})
+      report(contracts.TOKEN.transactionHash)
+    })
+  }
 
 }
