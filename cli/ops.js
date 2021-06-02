@@ -34,7 +34,9 @@ export const fmtSCRT = fmtDecimals(ONE_SCRT)
 
 // contract list
 const prefix = new Date().toISOString().replace(/[-:\.]/g, '-').replace(/[TZ]/g, '_')
-const prng_seed = 'insecure'
+
+const prng_seed = require('crypto').randomBytes(36).toString('hex')
+
 export const CONTRACTS = {
   TOKEN:
     { crate:   'snip20-reference-impl'
