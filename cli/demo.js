@@ -21,7 +21,7 @@ import { loadJSON, taskmaster, SecretNetwork } from '@hackbg/fadroma'
 // ## The following features are tested:
 
 // * 👷 **deploying** and **configuring** the token, mgmt, and rpt contracts.
-import { build, upload, initialize, ensureWallets, fmtSIENNA } from './ops.js'
+import { ensureWallets, fmtSIENNA } from './ops.js'
 
 // * ⚠️  **viewing unlocked funds for any known address** without having to make a claim
 // * 💸 **making claims** according to the initial **schedule** (sped up by a factor of 8400)
@@ -56,11 +56,11 @@ export default async function demo (environment) {
   const schedule = loadJSON('../settings/schedule.json', import.meta.url)
       , {wallets, recipients} = await prepare({task, network, agent, schedule})
   // * **Build**, **deploy**, and **initialize** contracts
-  const binaries = await build({task, builder})
-      , receipts = await upload({task, builder, binaries})
+  const binaries = await TGEContracts.build({task, builder})
+      , receipts = await TGEContracts.upload({task, builder, binaries})
       , initialRPTRecipient = agent.address
       , initArgs = {task: task, agent, receipts, schedule}
-      , contracts = await initialize({...initArgs, initialRPTRecipient})
+      , contracts = await TGEContracts.initialize({...initArgs, initialRPTRecipient})
   // * **Launch** the vesting and confirm that the **claims** and **mutations** work as specified.
   await verify({task, agent, recipients, wallets, contracts, schedule})
 }
