@@ -238,6 +238,12 @@ export class RewardsContracts extends ContractEnsemble {
       instances.REWARDS = await RewardsContract.init({agent, codeId, label, initMsg})
       report(instances.REWARDS.transactionHash)
     })
+
+    await task('mint reward token', async report => {
+      const result = await instances.TOKEN.mint(agent, '390000000000000000000000', instances.REWARDS.contractAddress)
+      report(result)
+    })
+
     console.log(instances)
     return instances
   }
