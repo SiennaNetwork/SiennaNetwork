@@ -31,6 +31,7 @@ pub fn get_lending_pool<S: ReadonlyStorage>(storage: &S) -> Option<Binary> {
  * @param _id the id of the contract to be updated
  * @param _newAddress the address of the new implementation
  **/
-pub fn update_impl_internal<S: Storage>(storage: &mut S, _id: &[u8], address: &HumanAddr) { // unimplemented!
-    let proxy_address = get_address(storage, _id); 
+pub fn update_impl_internal<S: Storage>(storage: &mut S, _id: &[u8], address: &HumanAddr) {
+    // unimplemented!
+    let proxy_address = get_address(storage, _id);
 }

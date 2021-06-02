@@ -71,19 +71,58 @@ impl WadRayMath for u128 {
     }
 
     fn ray_pow(&mut self, mut n: u128) -> u128 {
-        let mut z = 0_u128;
-        match n % 2 != 0 {
-            true => z = *self,
-            false => z = RAY,
-        }
+        let mut z = if n % 2 != 0 { *self } else { RAY };
+
         n = n / 2;
         while n != 0 {
             *self = _ray_mul(*self, *self);
             if n % 2 != 0 {
                 z = _ray_mul(z, *self);
+                return z;
             }
             n = n / 2;
         }
         z
+    }
+}
+
+#[cfg(test)]
+mod wad_ray_tests {
+    use super::*;
+
+    #[test]
+    fn wad_mul_test() {
+        let res = 10_u128.pow(18).wad_mul(5);
+        assert_eq!(5, res);
+    }
+
+    #[test]
+    fn wad_div_test() {
+        let res = 10_u128.pow(18).wad_div(5);
+        assert_eq!(2 * 10_u128.pow(35), res);
+    }
+
+    #[test]
+    fn ray_mul_test() {
+        let res = 10_u128.pow(27).ray_mul(5);
+        assert_eq!(5, res);
+    }
+
+    #[test]
+    fn ray_div_test() {
+        let res = 10_u128.pow(5).ray_div(5);
+        assert_eq!(2 * 10_u128.pow(31), res);
+    }
+
+    #[test]
+    fn ray_to_wad_test() {
+        let res = 10_u128.pow(9).ray_to_wad();
+        assert_eq!(1, res);
+    }
+
+    #[test]
+    fn wad_to_ray_test() {
+        let res = 10_u128.pow(18).ray_pow(1_000_000_000_000);
+        assert_eq!(0, res);
     }
 }

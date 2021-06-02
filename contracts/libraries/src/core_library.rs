@@ -11,6 +11,7 @@ enum InterestRateMode {
 }
 const SECODNS_PER_YEAR: u128 = 31_536_000;
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct UserReserveData {
     //principal amount borrowed by the user.
     principal_borrow_balance: u128,
@@ -25,7 +26,7 @@ pub struct UserReserveData {
     //defines if a specific deposit should or not be used as a collateral in borrows
     use_as_collateral: bool,
 }
-
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ReserveData {
     //the liquidity index. Expressed in ray
     last_liquidity_cumulate_index: u128,
@@ -140,7 +141,7 @@ impl ReserveData {
         _decimals: u128,
         _interested_rate_strategy_address: String,
     ) -> StdResult<()> {
-        if self.a_token_address.is_empty() {
+        if !self.a_token_address.is_empty() {
             return Err(StdError::generic_err(
                 "Reserve has already been initialized",
             ));
@@ -403,4 +404,40 @@ fn _get_total_borrows(_reserve: &ReserveData) -> u128 {
     _reserve
         .total_borrow_stable
         .add(_reserve.total_borrows_variable)
+}
+
+#[cfg(test)]
+mod core_lib_tests {
+    use super::*;
+
+    #[test]
+    fn inti_test() {
+        let mut data = ReserveData::default();
+        data.init(
+            "deafult_address".to_string(),
+            1000,
+            "test_rate_strategy_address".to_string(),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn double_init_test() {
+        let mut data = ReserveData::default();
+        data.init(
+            "a_token_address".to_string(),
+            10,
+            "interested_rate_strategy_address".to_string(),
+        ).unwrap();
+        let res =  data.init(
+            "a_token_address".to_string(),
+            10,
+            "interested_rate_strategy_address".to_string(),
+        );
+        let want = Err(StdError::generic_err(
+            "Reserve has already been initialized",
+        ));
+        
+        assert_eq!(want,res);
+    }
 }
