@@ -7,7 +7,7 @@ import bignum from 'bignumber.js'
 import { table } from 'table'
 import { render } from 'prettyjson'
 
-import { SNIP20Contract, MGMTContract, RPTContract } from '../api/index.js'
+import { SNIP20Contract, MGMTContract, RPTContract, RewardsContract } from '../api/index.js'
 
 import { taskmaster, SecretNetwork } from '@hackbg/fadroma'
 import ContractEnsemble from '@hackbg/fadroma/js/SecretNetwork/Ensemble.js'
@@ -210,14 +210,36 @@ export class RewardsContracts extends ContractEnsemble {
       , label: `${prefix}SIENNA_REWARDS`
       , initMsg: JSON.parse(readFileSync(abs('settings/rewards.json'), 'utf8')) } }
 
-  static async initialize () {
-    const { task } = taskmaster()
+  static async initialize ({ receipts, agent }) {
+    const instances = {}
+    const task = taskmaster()
     await task('initialize token', async report => {
-      const {codeId} = receipts.TOKEN, {label, initMsg} = inits.TOKEN
-      initMsg.admin = agent.address
-      contracts.TOKEN = await SNIP20Contract.init({agent, codeId, label, initMsg})
-      report(contracts.TOKEN.transactionHash)
+      const {codeId} = receipts.TOKEN
+      const {label, initMsg} = this.contracts.TOKEN
+      Object.assign(initMsg, {
+        admin: agent.address
+      })
+      instances.TOKEN = await SNIP20Contract.init({agent, codeId, label, initMsg})
+      report(instances.TOKEN.transactionHash)
     })
+    await task('initialize rewards', async report => {
+      const {codeId} = receipts.REWARDS
+      const {label, initMsg} = this.contracts.REWARDS
+      console.log(agent.address)
+      Object.assign(initMsg, {
+        admin:     agent.address,
+        entropy:   randomBytes(36).toString('base64'),
+        prng_seed: randomBytes(36).toString('base64'),
+        reward_token: {
+          address:   instances.TOKEN.contractAddress,
+          code_hash: instances.TOKEN.codeHash
+        },
+      })
+      instances.REWARDS = await RewardsContract.init({agent, codeId, label, initMsg})
+      report(instances.REWARDS.transactionHash)
+    })
+    console.log(instances)
+    return instances
   }
 
 }
