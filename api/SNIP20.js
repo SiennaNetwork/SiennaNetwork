@@ -36,4 +36,10 @@ export default class SNIP20 extends SecretNetwork.Contract.withSchema(schema) {
     return amount
   }
 
+  async mint (agent, amount, recipient, address = agent.address) {
+    const tx = await this.tx.mint({amount, recipient, padding: null}, agent)
+    const {mint} = JSON.parse(decode(tx.data)).mint
+    return {tx, mint}
+  }
+
 }

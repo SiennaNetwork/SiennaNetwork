@@ -4,7 +4,7 @@ import { scheduleFromSpreadsheet } from '@hackbg/schedule'
 
 import { abs } from './root.js'
 import { cargo } from './run.js'
-import { CONTRACTS } from './ops.js'
+import { TGEContracts } from './ops.js'
 
 const {stderr} = process
 
@@ -37,7 +37,7 @@ export function genCoverage () {
 export function genSchema () {
   const cwd = process.cwd()
   try {
-    for (const [name, {schema}] of Object.entries(CONTRACTS)) {
+    for (const [name, {schema}] of Object.entries(TGEContracts.contracts)) {
       const contractDir = abs('contracts', name.toLowerCase() /*!!!*/ )
       stderr.write(`Generating schema in ${contractDir}...`)
       process.chdir(contractDir)
