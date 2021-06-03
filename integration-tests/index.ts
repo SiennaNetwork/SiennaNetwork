@@ -6,12 +6,14 @@ import { FactoryContract, ExchangeContract, Snip20Contract, create_fee } from '.
 import { 
   execute_test, execute_test_expect, assert_objects_equal, assert,
   assert_equal, assert_not_equal, extract_log_value, print_object
-} from './test_helpers.js'
+} from './utils/test_helpers.js'
 import { upload, build_client, UploadResult } from './setup.js'
 import { NullJsonFileWriter } from './utils/json_file_writer.js'
+import { TxAnalytics } from './utils/tx_analytics.js'
 import { SigningCosmWasmClient, Account } from 'secretjs'
 import { Sha256, Random } from "@iov/crypto"
 import { Buffer } from 'buffer'
+import { table } from 'table';
 
 import.meta.url
 
@@ -34,9 +36,11 @@ const ACC_D: LocalAccount = ACC[3] as LocalAccount
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 const SLEEP_TIME = 1000
 
+const analytics: TxAnalytics = new TxAnalytics(APIURL)
+
 async function run_tests() {
   const client_a = await build_client(ACC_A.mnemonic, APIURL)
-
+  
   const result = await upload(client_a, process.argv[2], new NullJsonFileWriter)
 
   const factory = await create_factory(client_a, result)
@@ -58,6 +62,8 @@ async function run_tests() {
   await sleep(SLEEP_TIME)
 
   await test_swap(exchange, snip20, created_pair)
+
+  await display_analytics()
 }
 
 async function test_create_exchange(factory: FactoryContract, token_info: ContractInfo): Promise<TokenPair> {
@@ -116,7 +122,10 @@ async function test_create_exchange(factory: FactoryContract, token_info: Contra
   
   await execute_test(
     'test_create_exchange',
-    async () => { await factory.create_exchange(pair) }
+    async () => { 
+      let result = await factory.create_exchange(pair)
+      analytics.add_tx('create exchange', result)
+    }
   )
 
   return pair
@@ -193,6 +202,8 @@ async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract
     'test_provide_liquidity',
     async () => {
       const result = await exchange.provide_liquidity(token_amount)
+      analytics.add_tx('provide liquidity', result)
+
       assert_equal(extract_log_value(result, 'share'), amount) //LP tokens
     }
   )
@@ -213,6 +224,7 @@ async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract
     'test_withdraw_liquidity',
     async () => {
       const result = await exchange.withdraw_liquidity(amount, exchange.signing_client.senderAddress)
+      analytics.add_tx('withdraw liquidity', result)
 
       assert_equal(extract_log_value(result, 'withdrawn_share'), amount)
       assert_equal(result.logs[0].events[1].attributes[0].value, exchange.signing_client.senderAddress)
@@ -267,6 +279,8 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
       const balance_before = parseInt(await get_native_balance(client_b));
       const result = await exchange_b.swap(offer_token)
       const balance_after = parseInt(await get_native_balance(client_b));
+
+      analytics.add_tx('native swap', result)
       
       assert(balance_before > balance_after) // TODO: calculate exact amount after adding gas parameters
 
@@ -316,7 +330,9 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
       const token_balance_before = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
 
       const swap_amount = '3000000'    
-      await exchange_b.swap(new TokenTypeAmount(pair.token_1, swap_amount))
+
+      let result = await exchange_b.swap(new TokenTypeAmount(pair.token_1, swap_amount))
+      analytics.add_tx('SNIP20 swap', result)
 
       const native_balance_after = parseInt(await get_native_balance(client_b))
       const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
@@ -401,6 +417,15 @@ async function create_sienna_token(client: SigningCosmWasmClient, snip20: Contra
   )
   
   return new ContractInfo(snip20.code_hash, sienna_contract.contractAddress)
+}
+
+async function display_analytics() {
+  const gas = await analytics.get_gas_usage()
+
+  const gas_table = [ [ 'TX Name', 'Gas Wanted', 'Gas Used' ] ]
+  gas.forEach(x => gas_table.push([ x.name, x.gas_wanted, x.gas_used ]))
+
+  console.log(`\n Gas Usage:\n${table(gas_table)}`)
 }
 
 run_tests().catch(console.log)

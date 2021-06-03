@@ -16,6 +16,7 @@
   "dependencies": {
     "dotenv": "^8.2.0",
     "secretjs": "^0.11.0",
+    "table": "^6.7.1",
     "typescript": "^4.2.3"
   },
   "devDependencies": {
