@@ -78,6 +78,18 @@
       }
     },
     {
+      "description": "This is only here because of Keplr",
+      "type": "object",
+      "required": [
+        "token_info"
+      ],
+      "properties": {
+        "token_info": {
+          "type": "object"
+        }
+      }
+    },
+    {
       "type": "object",
       "required": [
         "admin"

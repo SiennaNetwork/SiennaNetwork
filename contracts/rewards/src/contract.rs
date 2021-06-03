@@ -102,7 +102,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::Pools => query_pools(deps),
         QueryMsg::Accounts { address, viewing_key, lp_tokens } =>
             query_accounts(deps, address, ViewingKey(viewing_key), lp_tokens),
-        QueryMsg::TokenInfo => query_token_info(),
+        QueryMsg::TokenInfo { } => query_token_info(),
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl)
     }
 }
@@ -526,7 +526,7 @@ mod tests {
     use super::*;
 
     use std::time::{SystemTime, UNIX_EPOCH};
-    use cosmwasm_std::to_binary;
+    use cosmwasm_std::{to_binary, from_binary};
     use cosmwasm_std::testing::{mock_env, MockStorage, MockApi};
     use rand::{Rng, thread_rng};
 
@@ -585,6 +585,19 @@ mod tests {
         let stored_pools = get_pools(deps).unwrap();
 
         assert_pools_eq(&pools, &stored_pools);
+
+        let result = query(deps, QueryMsg::TokenInfo { }).unwrap();
+        let response: QueryMsgResponse = from_binary(&result).unwrap();
+
+        match response {
+            QueryMsgResponse::TokenInfo { name, symbol, decimals, total_supply } => {
+                assert_eq!(name, "Sienna Rewards");
+                assert_eq!(symbol, "SRW");
+                assert_eq!(decimals, 1);
+                assert_eq!(total_supply, None);
+            },
+            _ => panic!("Expected QueryMsgResponse::TokenInfo")
+        }
     }
 
     #[test]

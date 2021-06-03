@@ -69,7 +69,7 @@ pub enum QueryMsg {
         lp_tokens: Vec<HumanAddr>
     },
     /// This is only here because of Keplr
-    TokenInfo,
+    TokenInfo { },
     Admin(AdminQueryMsg)
 }
 
