@@ -194,6 +194,8 @@ export class RewardsContracts extends ContractEnsemble {
 
   static workspace = abs()
 
+  static build = (...args) => super.build(...args)
+
   static contracts = {
     TOKEN:
       { crate:   'snip20-reference-impl'

@@ -9,6 +9,8 @@ export const schema = loadSchemas(import.meta.url, {
 
 export default class RewardsContract extends SecretNetwork.Contract.withSchema(schema) {
 
+  static init = (...args) => super.init(...args)
+
   get status () { return this.q.status() }
   get admin () { return this.q.admin() }
 
