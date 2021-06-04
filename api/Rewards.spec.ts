@@ -14,10 +14,9 @@ import "https://unpkg.com/mocha@8.4.0/mocha.js";
 import SNIP20 from './SNIP20.js'
 import Rewards from './Rewards.js'
 
-import {CONTRACTS} from '../cli/ops.js'
+import {RewardsContracts} from '../cli/ops.js'
 import {abs} from '../cli/root.js'
-import SecretNetworkNode from '../libraries/fadroma/js/SecretNetwork/Node.ts'
-console.log({SecretNetworkNode})
+import SecretNetwork from '../libraries/fadroma/js/SecretNetwork/index.js'
 
 /**
  * Browser based Mocha requires `window.location` to exist.
@@ -49,12 +48,83 @@ function add(a: number, b: number): number {
 /**
  * We write our tests as usual!
  */
-describe("add", () => {
+describe("Rewards", () => {
+
+  const state = {
+    node:          null,
+    network:       null,
+    tokenCodeId:   null,
+    rewardsCodeId: null,
+    agent:         null,
+    token:         null,
+    rewards:       null
+  }
+
+  before(async function setupAll () {
+    this.timeout(60000)
+    // before each test run, compile fresh versions of the contracts
+    const buildResult = await RewardsContracts.build({
+      workspace: abs(),
+      parallel: false
+    })
+    const {TOKEN:tokenBinary, REWARDS:rewardsBinary} = buildResult
+    console.log({buildResult})
+    process.exit(123)
+    // run a clean localnet
+    const {node, network, builder} = await SecretNetwork.localnet({
+      stateBase: abs('artifacts')
+    })
+    Object.assign(state, { node, network, builder })
+    // and upload them to it
+    const receipts = await Promise.all([
+      builder.uploadCached(tokenBinary),
+      builder.uploadCached(rewardsBinary)
+    ])
+    Object.assign(state, {
+      tokenCodeId:   receipts[0].codeId,
+      rewardsCodeId: receipts[1].codeId
+    })
+    this.timeout(15000)
+  })
+
+  beforeEach(setupEach(state))
+
+  after(cleanupAll(state))
+
   it("should add two positive numbers correctly", () => {
     console.log('helloOoO')
     //expect(add(2, 3)).toEqual(5);
   });
 });
+
+
+
+function setupEach (state:any) {
+  return async function () {
+    state.agent = await state.network.getAgent()
+    state.token = await SNIP20.init({
+      agent:   state.agent,
+      label:   'token',
+      codeId:  state.tokenCodeId,
+      initMsg: RewardsContracts.contracts.TOKEN.initMsg
+    })
+    state.rewards = await Rewards.init({
+      agent:   state.agent,
+      label:   'rewards',
+      codeId:  state.rewardsCodeId,
+      initMsg: {
+        ...RewardsContracts.contracts.REWARDS.initMsg,
+        reward_token: state.token.address
+      }
+    })
+  }
+}
+
+function cleanupAll (state:any) {
+  return async function () {
+    await state.node.remove()
+  }
+}
 
 /**
  * And finally we run our tests, passing the onCompleted function
