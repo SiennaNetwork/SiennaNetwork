@@ -3,7 +3,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use fadroma_scrt_callback::ContractInstance;
 use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
-use composable_auth::AuthHandleMsg;
 
 use crate::data::{RewardPool, Account};
 
@@ -46,8 +45,15 @@ pub enum HandleMsg {
         total_share: Uint128, 
         pools: Vec<RewardPoolConfig>
     },
-    Admin(AdminHandleMsg),
-    Auth(AuthHandleMsg)
+    CreateViewingKey {
+        entropy: String,
+        padding: Option<String>,
+    },
+    SetViewingKey {
+        key: String,
+        padding: Option<String>,
+    },
+    Admin(AdminHandleMsg)
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, JsonSchema)]

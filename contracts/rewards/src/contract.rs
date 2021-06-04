@@ -7,7 +7,7 @@ use composable_admin::admin::{
     save_admin, admin_handle, admin_query, DefaultHandleImpl as DefaultAdminHandle,
     DefaultQueryImpl, assert_admin
 };
-use composable_auth::{auth_handle, authenticate};
+use composable_auth::{auth_handle, authenticate, AuthHandleMsg};
 use secret_toolkit::snip20;
 use fadroma_scrt_callback::ContractInstance;
 use cosmwasm_utils::viewing_key::ViewingKey;
@@ -88,7 +88,10 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Claim { lp_tokens } => claim(deps, env, lp_tokens),
         HandleMsg::ChangePools { pools, total_share } => change_pools(deps, env, into_pools(pools), total_share),
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultAdminHandle),
-        HandleMsg::Auth(auth_msg) => auth_handle(deps, env, auth_msg, AuthImpl)
+        HandleMsg::CreateViewingKey { entropy, .. } =>
+            auth_handle(deps, env, AuthHandleMsg::CreateViewingKey { entropy, padding: None }, AuthImpl),
+        HandleMsg::SetViewingKey { key, .. } =>
+            auth_handle(deps, env, AuthHandleMsg::SetViewingKey { key, padding: None }, AuthImpl)
     }
 }
 

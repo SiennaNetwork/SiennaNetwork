@@ -100,22 +100,61 @@
     {
       "type": "object",
       "required": [
-        "admin"
+        "create_viewing_key"
       ],
       "properties": {
-        "admin": {
-          "$ref": "#/definitions/AdminHandleMsg"
+        "create_viewing_key": {
+          "type": "object",
+          "required": [
+            "entropy"
+          ],
+          "properties": {
+            "entropy": {
+              "type": "string"
+            },
+            "padding": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
         }
       }
     },
     {
       "type": "object",
       "required": [
-        "auth"
+        "set_viewing_key"
       ],
       "properties": {
-        "auth": {
-          "$ref": "#/definitions/AuthHandleMsg"
+        "set_viewing_key": {
+          "type": "object",
+          "required": [
+            "key"
+          ],
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "padding": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/AdminHandleMsg"
         }
       }
     }
@@ -137,60 +176,6 @@
               "properties": {
                 "address": {
                   "$ref": "#/definitions/HumanAddr"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    "AuthHandleMsg": {
-      "anyOf": [
-        {
-          "type": "object",
-          "required": [
-            "create_viewing_key"
-          ],
-          "properties": {
-            "create_viewing_key": {
-              "type": "object",
-              "required": [
-                "entropy"
-              ],
-              "properties": {
-                "entropy": {
-                  "type": "string"
-                },
-                "padding": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "set_viewing_key"
-          ],
-          "properties": {
-            "set_viewing_key": {
-              "type": "object",
-              "required": [
-                "key"
-              ],
-              "properties": {
-                "key": {
-                  "type": "string"
-                },
-                "padding": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
                 }
               }
             }
