@@ -188,7 +188,6 @@ impl WadRayMath for u128 {
     }
 }
 
-
 #[cfg(test)]
 mod wad_ray_tests {
     use super::*;
@@ -261,16 +260,16 @@ mod wad_ray_tests {
     #[test]
     fn ray_to_wad_test_256() {
         let ten = U256::from(10);
-        let res =  ten.pow(U256::from(9)).ray_to_wad();
+        let res = ten.pow(U256::from(9)).ray_to_wad();
         assert_eq!(U256::from(1), res);
     }
 
     #[test]
     fn wad_to_ray_test_256() {
         let ten = U256::from(10);
-        let res = ten.pow(U256::from(18)).ray_pow(U256::from(1000000000000_u64));
+        let res = ten
+            .pow(U256::from(18))
+            .ray_pow(U256::from(1000000000000_u64));
         assert_eq!(U256::from(0), res);
     }
-
-
 }
