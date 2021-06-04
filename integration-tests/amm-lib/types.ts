@@ -54,6 +54,17 @@ export interface Exchange {
     address: Address
 }
 
+export interface ExchangeSettings {
+    sienna_burner?: ContractInfo | undefined;
+    sienna_fee: ExchangeFee;
+    swap_fee: ExchangeFee;
+}
+
+export interface ExchangeFee {
+    denom: number;
+    nom: number;
+}
+
 export interface PairInfo {
     amount_0: Uint128;
     amount_1: Uint128;

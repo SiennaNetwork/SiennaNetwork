@@ -1,9 +1,9 @@
 import { 
     Address, TokenPair, IdoInitConfig, Pagination, TokenPairAmount,
-    Decimal, Uint128, ContractInfo, get_token_type, TypeOfToken, 
+    Decimal, Uint128, get_token_type, TypeOfToken, 
     TokenInfo, ViewingKey, TokenTypeAmount, Exchange, RewardPool,
     RewardsAccount, PairInfo, Allowance, ClaimSimulationResult,
-    ExchangeRate
+    ExchangeRate, ContractInstantiationInfo, ExchangeSettings
 } from './types.js'
 import { ExecuteResult, SigningCosmWasmClient, CosmWasmClient } from 'secretjs'
 
@@ -110,6 +110,31 @@ export class FactoryContract extends SmartContract {
 
         if (fee === undefined) {
             fee = create_fee('200000')
+        }
+
+        return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
+    }
+
+    async set_config(
+        snip20_contract: ContractInstantiationInfo | undefined,
+        lp_token_contract: ContractInstantiationInfo | undefined,
+        pair_contract: ContractInstantiationInfo | undefined,
+        ido_contract: ContractInstantiationInfo | undefined,
+        exchange_settings: ExchangeSettings | undefined,
+        fee?: Fee | undefined
+    ): Promise<ExecuteResult> {
+        const msg = {
+            set_config: {
+                snip20_contract,
+                lp_token_contract,
+                pair_contract,
+                ido_contract,
+                exchange_settings
+            }
+        }
+
+        if (fee === undefined) {
+            fee = create_fee('150000')
         }
 
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)

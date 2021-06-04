@@ -1,6 +1,6 @@
 import { 
   ContractInfo, TokenPair, Address, TokenPairAmount,
-  ViewingKey, Uint128, TokenTypeAmount, Pagination, ContractInstantiationInfo
+  ViewingKey, Uint128, TokenTypeAmount, Pagination, ContractInstantiationInfo, ExchangeSettings
 } from './amm-lib/types.js'
 import { FactoryContract, ExchangeContract, Snip20Contract, create_fee } from './amm-lib/contract.js'
 import { 
@@ -31,7 +31,7 @@ const ACC: object[] = JSON.parse(process.argv[3])
 const ACC_A: LocalAccount = ACC[0] as LocalAccount
 const ACC_B: LocalAccount = ACC[1] as LocalAccount
 const ACC_C: LocalAccount = ACC[2] as LocalAccount
-const ACC_D: LocalAccount = ACC[3] as LocalAccount
+const BURN_POOL: LocalAccount = ACC[3] as LocalAccount
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 const SLEEP_TIME = 1000
@@ -43,8 +43,8 @@ async function run_tests() {
   
   const result = await upload(client_a, process.argv[2], new NullJsonFileWriter)
 
-  const factory = await create_factory(client_a, result)
-  const sienna_token = await create_sienna_token(client_a, result.snip20)
+  const factory = await instantiate_factory(client_a, result)
+  const sienna_token = await instantiate_sienna_token(client_a, result.snip20)
 
   const created_pair = await test_create_exchange(factory, sienna_token)
   await sleep(SLEEP_TIME)
@@ -56,12 +56,16 @@ async function run_tests() {
   const exchange = new ExchangeContract(pair_address, client_a)
   await test_get_pair_info(exchange, created_pair, factory.address)
 
-  const snip20 = new Snip20Contract(sienna_token.address, client_a)
-
-  await test_liquidity(exchange, snip20, created_pair)
+  await test_liquidity(exchange, sienna_token, created_pair)
   await sleep(SLEEP_TIME)
 
-  await test_swap(exchange, snip20, created_pair)
+  await test_swap(
+    exchange,
+    factory,
+    sienna_token,
+    result.burner,
+    created_pair
+  )
 
   await display_analytics()
 }
@@ -124,7 +128,7 @@ async function test_create_exchange(factory: FactoryContract, token_info: Contra
     'test_create_exchange',
     async () => { 
       let result = await factory.create_exchange(pair)
-      analytics.add_tx('create exchange', result)
+      analytics.add_tx('Factory: Create Exchange', result)
     }
   )
 
@@ -187,13 +191,14 @@ async function test_get_pair_info(exchange: ExchangeContract, pair: TokenPair, f
   )
 }
 
-async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract, pair: TokenPair) {
+async function test_liquidity(exchange: ExchangeContract, sienna_token: ContractInfo, pair: TokenPair) {
   const amount = '5000000'
 
   // TODO: The current snip20 implementation doesn't implement
   // decimal conversion, so providing only a single amount for now
   //const amount1 = '5000000000000000000'
 
+  const snip20 = new Snip20Contract(sienna_token.address, exchange.signing_client)
   await snip20_deposit(snip20, amount, exchange.address)
 
   const token_amount = new TokenPairAmount(pair, amount, amount)
@@ -202,7 +207,7 @@ async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract
     'test_provide_liquidity',
     async () => {
       const result = await exchange.provide_liquidity(token_amount)
-      analytics.add_tx('provide liquidity', result)
+      analytics.add_tx('Exchange: Provide Liquidity', result)
 
       assert_equal(extract_log_value(result, 'share'), amount) //LP tokens
     }
@@ -224,7 +229,7 @@ async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract
     'test_withdraw_liquidity',
     async () => {
       const result = await exchange.withdraw_liquidity(amount, exchange.signing_client.senderAddress)
-      analytics.add_tx('withdraw liquidity', result)
+      analytics.add_tx('Exchange: Withdraw Liquidity', result)
 
       assert_equal(extract_log_value(result, 'withdrawn_share'), amount)
       assert_equal(result.logs[0].events[1].attributes[0].value, exchange.signing_client.senderAddress)
@@ -244,11 +249,18 @@ async function test_liquidity(exchange: ExchangeContract, snip20: Snip20Contract
   )
 }
 
-async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pair: TokenPair) {
+async function test_swap(
+  exchange: ExchangeContract,
+  factory: FactoryContract,
+  sienna_token: ContractInfo,
+  burner_upload: ContractInstantiationInfo,
+  pair: TokenPair
+) {
   const amount = '5000000'
 
   // Setup liquidity pool
-  await snip20_deposit(snip20, amount, exchange.address)
+  const snip20_a = new Snip20Contract(sienna_token.address, exchange.signing_client)
+  await snip20_deposit(snip20_a, amount, exchange.address)
 
   const pair_amount = new TokenPairAmount(pair, amount, amount)
   await exchange.provide_liquidity(pair_amount)
@@ -257,7 +269,7 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
 
   const client_b = await build_client(ACC_B.mnemonic, APIURL)
   const exchange_b = new ExchangeContract(exchange.address, client_b)
-  const snip20_b = new Snip20Contract(snip20.address, client_b)
+  const snip20_b = new Snip20Contract(sienna_token.address, client_b)
   
   const offer_token = new TokenTypeAmount(pair.token_0, '6000000') // swap uscrt for sienna
 
@@ -280,7 +292,7 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
       const result = await exchange_b.swap(offer_token)
       const balance_after = parseInt(await get_native_balance(client_b));
 
-      analytics.add_tx('native swap', result)
+      analytics.add_tx('Exchange: Native Swap', result)
       
       assert(balance_before > balance_after) // TODO: calculate exact amount after adding gas parameters
 
@@ -304,7 +316,7 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
 
   await snip20_deposit(snip20_b, amount, exchange.address)
   
-  let key = create_viewing_key()
+  const key = create_viewing_key()
   await snip20_b.set_viewing_key(key)
 
   await execute_test(
@@ -331,14 +343,45 @@ async function test_swap(exchange: ExchangeContract, snip20: Snip20Contract, pai
 
       const swap_amount = '3000000'    
 
-      let result = await exchange_b.swap(new TokenTypeAmount(pair.token_1, swap_amount))
-      analytics.add_tx('SNIP20 swap', result)
+      const result = await exchange_b.swap(new TokenTypeAmount(pair.token_1, swap_amount))
+      analytics.add_tx('Exchange: SNIP20 Swap', result)
 
       const native_balance_after = parseInt(await get_native_balance(client_b))
       const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
 
-      assert(native_balance_after > native_balance_before) // TODO: calculate exact amount after adding gas parameters
+      assert(native_balance_after > native_balance_before)
       assert(token_balance_before - parseInt(swap_amount) === token_balance_after)
+    }
+  )
+
+  await execute_test(
+    'test_swap_with_burner',
+    async () => {
+      await instantiate_burner(factory, sienna_token, burner_upload)
+
+      const client_burner = await build_client(BURN_POOL.mnemonic, APIURL)
+      const snip20_burner = new Snip20Contract(sienna_token.address, client_burner)
+
+      const key_burner = create_viewing_key()
+      await snip20_burner.set_viewing_key(key_burner)
+
+      const amount_before_burn = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
+
+      const amount_to_swap = 3500000;
+      const allowance = await snip20_b.get_allowance(client_b.senderAddress, exchange.address, key)
+
+      await snip20_b.increase_allowance(
+        exchange.address,
+        (amount_to_swap - parseInt(allowance.allowance)).toString()
+      )
+
+      const result = await exchange_b.swap(new TokenTypeAmount(pair.token_1, amount_to_swap.toString()))
+      analytics.add_tx('Exchange: Swap With Burner', result)
+
+      const sienna_burned = extract_log_value(result, 'sienna_burned') as string
+
+      const amount_after_burn = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
+      assert(amount_before_burn - amount_after_burn === parseInt(sienna_burned))
     }
   )
 }
@@ -368,29 +411,19 @@ function create_rand_base64(): string {
   return Buffer.from(rand_bytes).toString('base64')
 }
 
-async function create_factory(client: SigningCosmWasmClient, result: UploadResult): Promise<FactoryContract> {
+async function instantiate_factory(client: SigningCosmWasmClient, result: UploadResult): Promise<FactoryContract> {
   const factory_init_msg = {
     snip20_contract: result.snip20,
     lp_token_contract: result.lp_token,
     pair_contract: result.exchange,
     ido_contract: result.ido,
-    exchange_settings: {
-        swap_fee: {
-            nom: 28,
-            denom: 10000
-        },
-        sienna_fee: {
-            nom: 2,
-            denom: 10000
-        },
-        sienna_burner: undefined
-    }
+    exchange_settings: get_exchange_settings()
   }
 
   const factory_instance = await client.instantiate(
     result.factory.id,
     factory_init_msg,
-    `SIENNA AMM FACTORY`,
+    'SIENNA AMM FACTORY',
     undefined,
     undefined,
     create_fee('200000')
@@ -399,7 +432,7 @@ async function create_factory(client: SigningCosmWasmClient, result: UploadResul
   return new FactoryContract(factory_instance.contractAddress, client)
 }
 
-async function create_sienna_token(client: SigningCosmWasmClient, snip20: ContractInstantiationInfo): Promise<ContractInfo> {
+async function instantiate_sienna_token(client: SigningCosmWasmClient, snip20: ContractInstantiationInfo): Promise<ContractInfo> {
   const sienna_init_msg = {
     name: 'sienna',
     symbol: 'SIENNA',
@@ -419,6 +452,41 @@ async function create_sienna_token(client: SigningCosmWasmClient, snip20: Contra
   return new ContractInfo(snip20.code_hash, sienna_contract.contractAddress)
 }
 
+async function instantiate_burner(factory: FactoryContract, sienna_token: ContractInfo, burner_upload: ContractInstantiationInfo) {
+  const pairs = await factory.list_exchanges(new Pagination(0, 30))
+
+  const burner_init_msg = {
+    sienna_token,
+    factory_address: factory.address,
+    burn_pool: BURN_POOL.address,
+    pairs: pairs.map(x => x.address)
+  }
+
+  const burner_instance = await factory.signing_client.instantiate(
+    burner_upload.id,
+    burner_init_msg,
+    'SIENNA BURNER',
+    undefined,
+    undefined,
+    create_fee('200000')
+  )
+
+  // Create burn pool and allow burner contract to execute burn
+  const burn_pool_amount = '100000000000000000000'
+
+  let snip20 = new Snip20Contract(sienna_token.address, factory.signing_client)
+  await snip20.mint(BURN_POOL.address, burn_pool_amount)
+
+  snip20 = new Snip20Contract(sienna_token.address, await build_client(BURN_POOL.mnemonic, APIURL))
+  await snip20.increase_allowance(burner_instance.contractAddress, burn_pool_amount)
+
+  const exchange_settings = get_exchange_settings()
+  exchange_settings.sienna_burner = new ContractInfo(burner_upload.code_hash, burner_instance.contractAddress)
+
+  const set_config_result = await factory.set_config(undefined, undefined, undefined, undefined, exchange_settings)
+  analytics.add_tx('Factory: Set Exchange Settings', set_config_result)
+}
+
 async function display_analytics() {
   const gas = await analytics.get_gas_usage()
 
@@ -426,6 +494,20 @@ async function display_analytics() {
   gas.forEach(x => gas_table.push([ x.name, x.gas_wanted, x.gas_used ]))
 
   console.log(`\n Gas Usage:\n${table(gas_table)}`)
+}
+
+function get_exchange_settings(): ExchangeSettings {
+  return {
+    swap_fee: {
+      nom: 28,
+      denom: 10000
+    },
+    sienna_fee: {
+        nom: 2,
+        denom: 10000
+    },
+    sienna_burner: undefined
+  }
 }
 
 run_tests().catch(console.log)
