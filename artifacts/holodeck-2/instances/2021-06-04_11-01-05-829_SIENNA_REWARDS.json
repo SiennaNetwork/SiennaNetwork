@@ -1,9 +1,5 @@
 {
-  "originalSize": 311899,
-  "originalChecksum": "d4961bebdd13f09c83532af54788e5eb635c95ff33eeb3f0e314afb61af32b34",
-  "compressedSize": 104462,
-  "compressedChecksum": "7e098be82f4fde0c2e7905035e07c49507752cb5ec050b7680582dc7fcef52e3",
-  "codeId": 29334,
+  "contractAddress": "secret1vz8pkzpu2edjpv9pluckfx6zvqgtnyx8r0peqc",
   "logs": [
     {
       "msg_index": 0,
@@ -14,7 +10,7 @@
           "attributes": [
             {
               "key": "action",
-              "value": "store-code"
+              "value": "instantiate"
             },
             {
               "key": "module",
@@ -27,11 +23,19 @@
             {
               "key": "code_id",
               "value": "29334"
+            },
+            {
+              "key": "contract_address",
+              "value": "secret1vz8pkzpu2edjpv9pluckfx6zvqgtnyx8r0peqc"
             }
           ]
         }
       ]
     }
   ],
-  "transactionHash": "FEFC2121FEAFFE16FBD1EB6079C1AA6630C37C7411D4C4CDB135FA721D493600"
+  "transactionHash": "82E29CC4AE3E5E0ECA1FD21C7CF27325DE625159D39A52BA5869B963A8E90A2A",
+  "data": "608E1B083C565B20B0A1FF31649B426010B990C7",
+  "codeId": 29334,
+  "label": "2021-06-04_11-01-05-829_SIENNA_REWARDS",
+  "codeHash": "d4961bebdd13f09c83532af54788e5eb635c95ff33eeb3f0e314afb61af32b34"
 }
