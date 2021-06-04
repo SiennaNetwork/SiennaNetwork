@@ -267,7 +267,7 @@ dependencies = [
 [[package]]
 name = "composable-admin"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/fadroma?rev=01ed0cc#01ed0cc436f069a887b02ca815548d22eef0afaf"
+source = "git+https://github.com/hackbg/fadroma?rev=e2316f0#e2316f0a6ef8cbd3bed8adb08c7a5c3269cdb587"
 dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
@@ -281,7 +281,7 @@ dependencies = [
 [[package]]
 name = "composable-auth"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/fadroma?rev=01ed0cc#01ed0cc436f069a887b02ca815548d22eef0afaf"
+source = "git+https://github.com/hackbg/fadroma?rev=e2316f0#e2316f0a6ef8cbd3bed8adb08c7a5c3269cdb587"
 dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
@@ -393,7 +393,7 @@ dependencies = [
 [[package]]
 name = "cosmwasm-utils"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/fadroma?rev=01ed0cc#01ed0cc436f069a887b02ca815548d22eef0afaf"
+source = "git+https://github.com/hackbg/fadroma?rev=e2316f0#e2316f0a6ef8cbd3bed8adb08c7a5c3269cdb587"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
@@ -495,7 +495,7 @@ version = "3.0.0-rc1"
 [[package]]
 name = "fadroma-scrt-addr"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/fadroma?rev=01ed0cc#01ed0cc436f069a887b02ca815548d22eef0afaf"
+source = "git+https://github.com/hackbg/fadroma?rev=e2316f0#e2316f0a6ef8cbd3bed8adb08c7a5c3269cdb587"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
 ]
@@ -503,7 +503,7 @@ dependencies = [
 [[package]]
 name = "fadroma-scrt-callback"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/fadroma?rev=01ed0cc#01ed0cc436f069a887b02ca815548d22eef0afaf"
+source = "git+https://github.com/hackbg/fadroma?rev=e2316f0#e2316f0a6ef8cbd3bed8adb08c7a5c3269cdb587"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
@@ -515,7 +515,7 @@ dependencies = [
 [[package]]
 name = "fadroma-scrt-storage"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/fadroma?rev=01ed0cc#01ed0cc436f069a887b02ca815548d22eef0afaf"
+source = "git+https://github.com/hackbg/fadroma?rev=e2316f0#e2316f0a6ef8cbd3bed8adb08c7a5c3269cdb587"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "serde",
@@ -977,7 +977,7 @@ dependencies = [
 [[package]]
 name = "require-admin"
 version = "0.1.0"
-source = "git+https://github.com/hackbg/fadroma?rev=01ed0cc#01ed0cc436f069a887b02ca815548d22eef0afaf"
+source = "git+https://github.com/hackbg/fadroma?rev=e2316f0#e2316f0a6ef8cbd3bed8adb08c7a5c3269cdb587"
 dependencies = [
  "quote",
  "syn",

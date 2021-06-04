@@ -28,12 +28,12 @@ schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
 secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
-cosmwasm-utils = { git = "https://github.com/hackbg/fadroma", rev = "01ed0cc" }
-composable-admin = { git = "https://github.com/hackbg/fadroma", rev = "01ed0cc" }
-composable-auth = { git = "https://github.com/hackbg/fadroma", rev = "01ed0cc" }
-fadroma-scrt-callback = { git = "https://github.com/hackbg/fadroma", rev = "01ed0cc" }
-fadroma-scrt-addr = { git = "https://github.com/hackbg/fadroma", rev = "01ed0cc" }
-fadroma-scrt-storage = { git = "https://github.com/hackbg/fadroma", rev = "01ed0cc" }
+cosmwasm-utils = { git = "https://github.com/hackbg/fadroma", rev = "e2316f0" }
+composable-admin = { git = "https://github.com/hackbg/fadroma", rev = "e2316f0" }
+composable-auth = { git = "https://github.com/hackbg/fadroma", rev = "e2316f0" }
+fadroma-scrt-callback = { git = "https://github.com/hackbg/fadroma", rev = "e2316f0" }
+fadroma-scrt-addr = { git = "https://github.com/hackbg/fadroma", rev = "e2316f0" }
+fadroma-scrt-storage = { git = "https://github.com/hackbg/fadroma", rev = "e2316f0" }
 
 [dev-dependencies]
 rand = "0.8.0"

@@ -3,7 +3,7 @@ use cosmwasm_std::{
     StdResult
 };
 use composable_auth::{
-    AuthHandle, ViewingKey, save_viewing_key, CreateViewingKeyData
+    AuthHandle, ViewingKey, save_viewing_key, HandleAnswer
 };
 
 use crate::state::load_config;
@@ -27,8 +27,8 @@ impl AuthHandle for AuthImpl {
         Ok(HandleResponse {
             messages: vec![],
             log: vec![],
-            data: Some(to_binary(&CreateViewingKeyData {
-                key: key.0
+            data: Some(to_binary(&HandleAnswer::CreateViewingKey {
+                key
             })?)
         })
     }
