@@ -1,9 +1,12 @@
+import { randomBytes } from 'crypto'
+
 import SNIP20 from './SNIP20.js'
 import Rewards from './Rewards.js'
 
-import {CONTRACTS} from '../cli/ops.js'
+import {RewardsContracts} from '../cli/ops.js'
 import {abs} from '../cli/root.js'
-import {SecretNetwork, SecretNetworkOps as Ops} from '@hackbg/fadroma'
+import {SecretNetwork} from '@hackbg/fadroma'
+import ensureWallets from '@hackbg/fadroma/js/SecretNetwork/ensureWallets.js'
 
 describe('Rewards', () => {
 
@@ -21,7 +24,10 @@ describe('Rewards', () => {
   beforeEach(setupEach(state))
   after(cleanupAll(state))
 
-  it('can lock and return tokens', async () => {
+  it('can lock and return tokens', async function () {
+    this.timeout(60000)
+    const {agent, token, rewards}=state
+
     await token.mint(agent, 100)
     assert(await token.balance(agent)   === 100)
     assert(await token.balance(rewards) ===   0)
@@ -35,7 +41,10 @@ describe('Rewards', () => {
     assert(await token.balance(rewards) ===   0)
   })
 
-  it('can process claims', async () => {
+  it('can process claims', async function () {
+    this.timeout(60000)
+    const {agent, token, rewards}=state
+
     await rewards.claim(agent)
     expect(await token.balance(agent)   ===   0)
 
@@ -78,49 +87,56 @@ function setupAll (state = {}) {
   return async function () {
     this.timeout(60000)
     // before each test run, compile fresh versions of the contracts
-    const {token, rewards} = await Ops.build({
-      token:   { name: 'token',   crate: 'snip20-reference-impl' },
-      rewards: { name: 'rewards', crate: 'sienna-rewards' }
-    }, {
+    const {TOKEN: tokenBinary, REWARDS: rewardsBinary} = await RewardsContracts.build({
       workspace: abs(),
       parallel: false
     })
     // run a clean localnet
-    const {node, network, builder} = await SecretNetwork.localnet({
+    const {node, network, agent, builder} = await SecretNetwork.localnet({
       stateBase: abs('artifacts')
     })
-    Object.assign(state, { node, network, bulder })
+    await agent.nextBlock
+    Object.assign(state, { node, network, admin: agent, builder })
     // and upload them to it
-    ;([{codeId: tokenCodeId}, {codeId: rewardsCodeId}] = await Promise.all([
-      builder.uploadCached(token),
-      builder.uploadCached(rewards)
-    ]))
-    this.timeout(15000)
+    const {codeId: tokenCodeId}   = await builder.uploadCached(tokenBinary)
+    const {codeId: rewardsCodeId} = await builder.uploadCached(rewardsBinary)
+    Object.assign(state, { tokenCodeId, rewardsCodeId })
   }
 }
 
 function setupEach (state = {}) {
   return async function () {
-    state.agent = await network.getAgent()
+    this.timeout(60000)
+    //state.agent = await state.network.getAgent()
+    console.log('\ndeploying instance of token')
     state.token = await SNIP20.init({
-      agent:   state.agent,
+      agent:   state.admin,
       label:   'token',
-      codeId:  tokenCodeId,
-      initMsg: CONTRACTS.TOKEN.initMsg
+      codeId:  state.tokenCodeId,
+      initMsg: RewardsContracts.contracts.TOKEN.initMsg
     })
+    console.log('\ndeploying instance of rewards')
+    const reward_token = { address: state.token.address, code_hash: state.token.codeHash }
+    const initMsg = {
+      ...RewardsContracts.contracts.REWARDS.initMsg,
+      admin: state.admin.address,
+      reward_token,
+      entropy:   randomBytes(36).toString('base64'),
+      prng_seed: randomBytes(36).toString('base64')
+    }
+    console.log({initMsg})
     state.rewards = await Rewards.init({
-      agent:   state.agent,
+      agent:   state.admin,
       label:   'rewards',
-      codeId:  rewardsCodeId,
-      initMsg: { reward_token: token.address }
+      codeId:  state.rewardsCodeId,
+      initMsg
     })
+    console.log('ready')
   }
 }
 
 function cleanupAll (state = {}) {
   return async function () {
-    await state.node.remove()
+    await state.node.terminate()
   }
 }
-
-func
