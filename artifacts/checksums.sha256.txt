@@ -1,2 +1,2 @@
-651559684e1d1d3f4d702bbf030e9842ce2dd4137d354d3c8822713ba7a8d1de *sienna-rewards@HEAD.wasm
+d4961bebdd13f09c83532af54788e5eb635c95ff33eeb3f0e314afb61af32b34 *sienna-rewards@HEAD.wasm
 b9b54ff283e6c7f8a6a030d3fd2105865c6dc961f4fddeb2a968d94e08ce99a7 *snip20-reference-impl@HEAD.wasm
