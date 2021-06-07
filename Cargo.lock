@@ -214,6 +214,7 @@ dependencies = [
  "cosmwasm-schema 0.10.0",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "libraries",
  "schemars",
  "serde",
  "snafu",
@@ -486,8 +487,11 @@ name = "libraries"
 version = "0.1.0"
 dependencies = [
  "bigint",
+ "cosmwasm-schema 0.10.0",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "lazy_static",
+ "schemars",
+ "serde",
 ]
 
 [[package]]

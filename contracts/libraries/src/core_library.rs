@@ -1,8 +1,9 @@
-
-use crate::wad_ray_math::{self,WadRayMathU256};
+use super::uint256::Uint256;
+use crate::wad_ray_math::{self, WadRayMathU256};
 use bigint::U256;
-use cosmwasm_std::{ Env, StdError, StdResult};
+use cosmwasm_std::{Env, StdError, StdResult, Uint128};
 use lazy_static::lazy_static;
+use serde::{Deserialize, Serialize};
 use std::ops::{Add, Div, Sub};
 pub enum InterestRateMode {
     Stable,
@@ -12,49 +13,48 @@ pub enum InterestRateMode {
 lazy_static! {
     static ref SECODNS_PER_YEAR: U256 = U256::from(31_536_000);
 }
-//const SECODNS_PER_YEAR: U256 = U256::from(31_536_000);
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UserReserveData {
     //principal amount borrowed by the user.
-    principal_borrow_balance: U256,
+    principal_borrow_balance: Uint256,
     //cumulated variable borrow index for the user. Expressed in ray
-    last_variable_borrow_cumulative_index: U256,
+    last_variable_borrow_cumulative_index: Uint256,
     //origination fee cumulated by the user
-    origination_fee: U256,
+    origination_fee: Uint256,
     // stable borrow rate at which the user has borrowed. Expressed in ray
-    stable_borrow_rate: U256,
+    stable_borrow_rate: Uint256,
     last_update_timestamp: u64,
 
     //defines if a specific deposit should or not be used as a collateral in borrows
     use_as_collateral: bool,
 }
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReserveData {
     //the liquidity index. Expressed in ray
-    last_liquidity_cumulate_index: U256,
+    last_liquidity_cumulate_index: Uint256,
     //the current supply rate. Expressed in ray
-    current_liquidity_rate: U256,
+    current_liquidity_rate: Uint256,
     //the total borrows of the reserve at a stable rate. Expressed in the currency decimals
-    total_borrow_stable: U256,
+    total_borrow_stable: Uint256,
     //the total borrows of the reserve at a variable rate. Expressed in the currency decimals
-    total_borrows_variable: U256,
+    total_borrows_variable: Uint256,
     //the current variable borrow rate. Expressed in ray
-    current_variable_borrow_rate: U256,
+    current_variable_borrow_rate: Uint256,
     //the current stable borrow rate. Expressed in ray
-    current_stable_borrow_rate: U256,
+    current_stable_borrow_rate: Uint256,
     //the current average stable borrow rate (weighted average of all the different stable rate loans). Expressed in ray
-    current_average_stable_borrow_rate: U256,
+    current_average_stable_borrow_rate: Uint256,
     //variable borrow index. Expressed in ray
-    last_variable_borrow_cumulative_index: U256,
+    last_variable_borrow_cumulative_index: Uint256,
     //the ltv of the reserve. Expressed in percentage (0-100)
-    base_ltv_as_collateral: U256,
+    base_ltv_as_collateral: Uint256,
     //the liquidation threshold of the reserve. Expressed in percentage (0-100)
-    liquidation_threshold: U256,
+    liquidation_threshold: Uint256,
     //the liquidation bonus of the reserve. Expressed in percentage
-    liquidation_bonus: U256,
+    liquidation_bonus: Uint256,
     //the decimals of the reserve asset
-    decimals: U256,
+    decimals: Uint256,
 
     /*
     address of the aToken representing the asset
@@ -87,8 +87,12 @@ impl ReserveData {
      * @return the normalized income. expressed in ray
      **/
     pub fn get_normolized_income(&self, env: &Env) -> U256 {
-        calculate_linear_interest(self.current_liquidity_rate, self.last_update_timestamp, env)
-            .ray_mul(self.last_liquidity_cumulate_index)
+        calculate_linear_interest(
+            self.current_liquidity_rate.0,
+            self.last_update_timestamp,
+            env,
+        )
+        .ray_mul(self.last_liquidity_cumulate_index.0)
     }
     /**
      * @dev Updates the liquidity cumulative index Ci and variable borrow cumulative index Bvc. Refer to the whitepaper for
@@ -99,19 +103,22 @@ impl ReserveData {
         let total_borrows = _get_total_borrows(&self);
         if total_borrows > U256::from(0) {
             let camulated_liquidity_interest = calculate_linear_interest(
-                self.current_liquidity_rate,
+                self.current_liquidity_rate.0,
                 self.last_update_timestamp,
                 env,
             );
-            self.last_variable_borrow_cumulative_index =
-                camulated_liquidity_interest.ray_mul(self.last_variable_borrow_cumulative_index);
+            self.last_variable_borrow_cumulative_index = Uint256::from(
+                camulated_liquidity_interest.ray_mul(self.last_variable_borrow_cumulative_index.0),
+            );
             let cumulated_varible_borrow_interest = calculate_compouned_interest(
                 self.current_variable_borrow_rate,
                 self.last_update_timestamp,
                 env,
             );
-            self.last_variable_borrow_cumulative_index = cumulated_varible_borrow_interest
-                .ray_mul(self.last_variable_borrow_cumulative_index);
+            self.last_variable_borrow_cumulative_index = Uint256::from(
+                cumulated_varible_borrow_interest
+                    .ray_mul(self.last_variable_borrow_cumulative_index.0),
+            );
         }
     }
 
@@ -128,7 +135,7 @@ impl ReserveData {
         let cumulated_liquidity = amount_to_liquidity_ratio.add(wad_ray_math::ray_256());
 
         self.last_liquidity_cumulate_index =
-            cumulated_liquidity.ray_mul(self.last_liquidity_cumulate_index);
+            Uint256::from(cumulated_liquidity.ray_mul(self.last_liquidity_cumulate_index.0));
     }
 
     /**
@@ -141,7 +148,7 @@ impl ReserveData {
     pub fn init(
         &mut self,
         _a_token_address: String,
-        _decimals: U256,
+        _decimals: Uint256,
         _interested_rate_strategy_address: String,
     ) -> StdResult<()> {
         if !self.a_token_address.is_empty() {
@@ -150,12 +157,12 @@ impl ReserveData {
             ));
         }
 
-        if self.last_liquidity_cumulate_index == U256::from(0) {
-            self.last_liquidity_cumulate_index = wad_ray_math::ray_256();
+        if self.last_liquidity_cumulate_index.0 == U256::from(0) {
+            self.last_liquidity_cumulate_index = wad_ray_math::ray_256().into();
         }
 
-        if self.last_variable_borrow_cumulative_index == U256::from(0) {
-            self.last_variable_borrow_cumulative_index = wad_ray_math::ray_256();
+        if self.last_variable_borrow_cumulative_index == U256::from(0).into() {
+            self.last_variable_borrow_cumulative_index = Uint256::from(wad_ray_math::ray_256());
         }
         self.a_token_address = _a_token_address;
         self.decimals = _decimals;
@@ -205,9 +212,9 @@ impl ReserveData {
 
     pub fn enable_as_collateral(
         &mut self,
-        _base_ltv_as_collateral: U256,
-        _liqudation_threshold: U256,
-        _liqudation_bouns: U256,
+        _base_ltv_as_collateral: Uint256,
+        _liqudation_threshold: Uint256,
+        _liqudation_bouns: Uint256,
     ) -> StdResult<()> {
         if self.borrowing_enabled == true {
             return Err(StdError::generic_err(
@@ -219,8 +226,8 @@ impl ReserveData {
         self.liquidation_threshold = _liqudation_threshold;
         self.liquidation_bonus = _liqudation_bouns;
 
-        if self.last_liquidity_cumulate_index == U256::from(0) {
-            self.last_liquidity_cumulate_index = wad_ray_math::ray_256();
+        if self.last_liquidity_cumulate_index == U256::from(0).into() {
+            self.last_liquidity_cumulate_index = wad_ray_math::ray_256().into();
         }
         Ok(())
     }
@@ -236,8 +243,8 @@ impl ReserveData {
 
     pub fn increase_total_borrows_stable_and_update_averege_rate(
         &mut self,
-        _amount: U256,
-        _rate: U256,
+        _amount: Uint256,
+        _rate: Uint256,
     ) {
         let previus_total_borrow_stable = self.total_borrow_stable;
         //updating reserve borrows stable
@@ -245,13 +252,16 @@ impl ReserveData {
 
         //update the average stable rate
         //weighted average of all the borrows
-        let weighted_last_borrows = _amount.wad_to_ray().ray_mul(_rate);
+        let weighted_last_borrows = _amount.0.wad_to_ray().ray_mul(_rate.0);
         let _weighted_previous_total_borrows = previus_total_borrow_stable
+            .0
             .wad_to_ray()
-            .ray_mul(self.current_average_stable_borrow_rate);
-        self.current_average_stable_borrow_rate = weighted_last_borrows
-            .add(weighted_last_borrows)
-            .ray_div(self.total_borrow_stable.wad_to_ray());
+            .ray_mul(self.current_average_stable_borrow_rate.0);
+        self.current_average_stable_borrow_rate = Uint256::from(
+            weighted_last_borrows
+                .add(weighted_last_borrows)
+                .ray_div(self.total_borrow_stable.0.wad_to_ray()),
+        );
     }
     /**
      * @dev decreases the total borrows at a stable rate on a specific reserve and updates the
@@ -262,8 +272,8 @@ impl ReserveData {
      **/
     pub fn decrease_total_borrows_stable_and_update_average_rate(
         &mut self,
-        _amount: U256,
-        _rate: U256,
+        _amount: Uint256,
+        _rate: Uint256,
     ) -> StdResult<()> {
         if self.total_borrow_stable < _amount {
             return Err(StdError::generic_err("Invalid amount to decrease"));
@@ -273,24 +283,27 @@ impl ReserveData {
 
         //updating reserve borrows stable
         self.total_borrow_stable = self.total_borrow_stable.sub(_amount);
-        if self.total_borrow_stable == U256::from(0) {
-            self.current_average_stable_borrow_rate = U256::from(0);
+        if self.total_borrow_stable == U256::from(0).into() {
+            self.current_average_stable_borrow_rate = U256::from(0).into();
             return Ok(());
         }
 
         //update the average stable rate
         //weighted average of all the borrows
-        let weighted_last_borrow = _amount.wad_to_ray().ray_mul(_rate);
+        let weighted_last_borrow = _amount.0.wad_to_ray().ray_mul(_rate.0);
         let weighted_previous_total_borrows = previus_total_borrow_stable
+            .0
             .wad_to_ray()
-            .ray_mul(self.current_average_stable_borrow_rate);
+            .ray_mul(self.current_average_stable_borrow_rate.0);
         if weighted_previous_total_borrows < weighted_last_borrow {
             return Err(StdError::generic_err("The amounts to subtract don't match"));
         }
 
-        self.current_average_stable_borrow_rate = weighted_previous_total_borrows
-            .sub(weighted_last_borrow)
-            .ray_div(self.total_borrow_stable.wad_to_ray());
+        self.current_average_stable_borrow_rate = Uint256::from(
+            weighted_previous_total_borrows
+                .sub(weighted_last_borrow)
+                .ray_div(self.total_borrow_stable.0.wad_to_ray()),
+        );
 
         Ok(())
     }
@@ -300,7 +313,7 @@ impl ReserveData {
      * @param _reserve the reserve object
      * @param _amount the amount to add to the total borrows variable
      **/
-    pub fn increase_total_borrows_variable(&mut self, _amount: U256) {
+    pub fn increase_total_borrows_variable(&mut self, _amount: Uint256) {
         self.total_borrows_variable = self.total_borrows_variable.add(_amount);
     }
 
@@ -310,7 +323,7 @@ impl ReserveData {
      * @param _amount the amount to substract to the total borrows variable
      **/
 
-    pub fn decrease_total_borrows_varible(&mut self, _amount: U256) -> StdResult<()> {
+    pub fn decrease_total_borrows_varible(&mut self, _amount: Uint256) -> StdResult<()> {
         if self.total_borrows_variable < _amount {
             return Err(StdError::generic_err(
                 "The amount that is being subtracted from the variable total borrows is incorrect",
@@ -328,15 +341,15 @@ impl UserReserveData {
      * @return the user compounded borrow balance
      **/
     pub fn get_compounded_borrow_balance(&self, _reserve: &ReserveData, env: &Env) -> U256 {
-        if self.principal_borrow_balance == U256::from(0) {
+        if self.principal_borrow_balance.0 == U256::from(0) {
             return U256::from(0);
         }
 
-        let principal_borrow_balance_ray = self.principal_borrow_balance.wad_to_ray();
+        let principal_borrow_balance_ray = self.principal_borrow_balance.0.wad_to_ray();
         let mut compounded_balance = U256::from(0);
         let mut cumulated_interest = U256::from(0);
 
-        if self.stable_borrow_rate > U256::from(0) {
+        if self.stable_borrow_rate > Uint256::from(0_u64) {
             cumulated_interest = calculate_compouned_interest(
                 self.stable_borrow_rate,
                 self.last_update_timestamp,
@@ -349,20 +362,20 @@ impl UserReserveData {
                 _reserve.last_update_timestamp,
                 env,
             )
-            .ray_mul(_reserve.last_variable_borrow_cumulative_index)
-            .ray_div(self.last_variable_borrow_cumulative_index);
+            .ray_mul(_reserve.last_variable_borrow_cumulative_index.0)
+            .ray_div(self.last_variable_borrow_cumulative_index.0);
         }
 
         compounded_balance = principal_borrow_balance_ray
             .ray_mul(cumulated_interest)
             .ray_to_wad();
-        if compounded_balance == self.principal_borrow_balance {
+        if compounded_balance == self.principal_borrow_balance.0 {
             //solium-disable-next-line
             if self.last_update_timestamp != env.block.time {
                 //no interest cumulation because of the rounding - we add 1 wei
                 //as symbolic cumulated interest to avoid interest free loans.
 
-                return self.principal_borrow_balance.add(U256::from(1));
+                return self.principal_borrow_balance.0.add(U256::from(1));
             }
         }
         compounded_balance
@@ -387,10 +400,14 @@ pub fn calculate_linear_interest(_rate: U256, _last_update_timestamp: u64, env: 
     _rate.ray_mul(time_delta).add(wad_ray_math::ray_256())
 }
 
-pub fn calculate_compouned_interest(_rate: U256, _last_update_timestamp: u64, env: &Env) -> U256 {
+pub fn calculate_compouned_interest(
+    _rate: Uint256,
+    _last_update_timestamp: u64,
+    env: &Env,
+) -> U256 {
     let time_defference = U256::from(env.block.time.sub(_last_update_timestamp));
 
-    let rate_pre_second = _rate.div(*SECODNS_PER_YEAR);
+    let rate_pre_second = _rate.0.div(*SECODNS_PER_YEAR);
 
     rate_pre_second
         .add(wad_ray_math::ray_256())
@@ -405,7 +422,8 @@ pub fn calculate_compouned_interest(_rate: U256, _last_update_timestamp: u64, en
 fn _get_total_borrows(_reserve: &ReserveData) -> U256 {
     _reserve
         .total_borrow_stable
-        .add(_reserve.total_borrows_variable)
+        .0
+        .add(_reserve.total_borrows_variable.0)
 }
 
 #[cfg(test)]
@@ -421,7 +439,7 @@ mod core_lib_tests {
         let mut data = ReserveData::default();
         data.init(
             "deafult_address".to_string(),
-            U256::from(1000),
+            U256::from(1000).into(),
             "test_rate_strategy_address".to_string(),
         )
         .unwrap();
@@ -432,13 +450,13 @@ mod core_lib_tests {
         let mut data = ReserveData::default();
         data.init(
             "a_token_address".to_string(),
-            U256::from(10),
+            U256::from(10).into(),
             "interested_rate_strategy_address".to_string(),
         )
         .unwrap();
         let res = data.init(
             "a_token_address".to_string(),
-            U256::from(10),
+            U256::from(10).into(),
             "interested_rate_strategy_address".to_string(),
         );
         let want = Err(StdError::generic_err(
@@ -450,21 +468,21 @@ mod core_lib_tests {
 
     #[test]
     fn get_normolize_test() {
-        let  reserve_data = ReserveData {
+        let reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: false,
-            current_average_stable_borrow_rate: U256::from(2).pow(U256::from(1)),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(10).pow(U256::from(27)),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(2).pow(U256::from(1)).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(10).pow(U256::from(27)).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_520,
             usage_as_collateral_enabled: true,
@@ -512,7 +530,7 @@ mod core_lib_tests {
             contract_code_hash: "".to_string(),
         };
 
-        let res = calculate_compouned_interest(U256::from(10), 1_571_800_320, &env);
+        let res = calculate_compouned_interest(Uint256::from(10_u64), 1_571_800_320, &env);
         assert_eq!(U256::from(10).pow(U256::from(27)), res);
     }
 
@@ -541,28 +559,28 @@ mod core_lib_tests {
     #[test]
     fn get_compounded_borrow_balance_test() {
         let user_data = UserReserveData {
-            principal_borrow_balance: U256::from(10000),
-            last_variable_borrow_cumulative_index: U256::from(10),
-            origination_fee: U256::from(5),
-            stable_borrow_rate: U256::from(50),
+            principal_borrow_balance: Uint256::from(10000u64), //U256::from(10000),
+            last_variable_borrow_cumulative_index: Uint256::from(10_u64),
+            origination_fee: Uint256::from(5_u64),
+            stable_borrow_rate: Uint256::from(50_u64),
             last_update_timestamp: 1_571_800_320,
             use_as_collateral: true,
         };
         let reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: true,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(70),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(7),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(70).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(7).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -611,19 +629,19 @@ mod core_lib_tests {
 
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: true,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(70),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(70).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -635,7 +653,7 @@ mod core_lib_tests {
         reserve_data.update_cumulative_indexes(&env);
 
         assert_eq!(
-            U256::from(70),
+            Uint256::from(70u64),
             reserve_data.last_variable_borrow_cumulative_index
         );
     }
@@ -644,19 +662,19 @@ mod core_lib_tests {
     fn get_total_borrows_test() {
         let reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: true,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(70),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(70).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -672,19 +690,19 @@ mod core_lib_tests {
     fn enable_borrowing_test_1() {
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: true,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(70),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(70).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -702,19 +720,19 @@ mod core_lib_tests {
     fn enable_borrowing_test_2() {
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: false,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(70),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(70).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -731,19 +749,19 @@ mod core_lib_tests {
     fn disable_borrowing_test() {
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: true,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(70),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(70).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -760,19 +778,19 @@ mod core_lib_tests {
     fn enable_as_cllateral_test_1() {
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: true,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(70),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(70).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -781,7 +799,11 @@ mod core_lib_tests {
             is_freezed: false,
         };
 
-        let res = reserve_data.enable_as_collateral(U256::from(77), U256::from(14), U256::from(80));
+        let res = reserve_data.enable_as_collateral(
+            U256::from(77).into(),
+            U256::from(14).into(),
+            U256::from(80).into(),
+        );
         let want = Err(StdError::generic_err(
             "Reserve is already enabled as collateral",
         ));
@@ -792,19 +814,19 @@ mod core_lib_tests {
     fn enable_as_cllateral_test_2() {
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: false,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(70),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(70).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -814,23 +836,27 @@ mod core_lib_tests {
         };
 
         reserve_data
-            .enable_as_collateral(U256::from(77), U256::from(14), U256::from(80))
+            .enable_as_collateral(
+                U256::from(77).into(),
+                U256::from(14).into(),
+                U256::from(80).into(),
+            )
             .unwrap();
         let want = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(77),
+            base_ltv_as_collateral: U256::from(77).into(),
             borrowing_enabled: false,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(70),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(14),
-            liquidation_bonus: U256::from(80),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(70).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(14).into(),
+            liquidation_bonus: U256::from(80).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -846,19 +872,19 @@ mod core_lib_tests {
     fn disable_as_collateral_test() {
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: false,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(70),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(70).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -874,19 +900,19 @@ mod core_lib_tests {
     fn increase_total_borrows_stable_and_update_averege_rate_test() {
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: false,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(0),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(0).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -895,33 +921,33 @@ mod core_lib_tests {
             is_freezed: false,
         };
         let ten = U256::from(10);
-        let amount = ten.pow(U256::from(27));
-        reserve_data
-            .increase_total_borrows_stable_and_update_averege_rate(amount, U256::from(80000_u64));
-        assert_eq!(amount, reserve_data.total_borrow_stable);
-        assert_eq!(
-            U256::from(160000),
-            reserve_data.current_average_stable_borrow_rate
+        let amount = ten.pow(U256::from(27)).into();
+        reserve_data.increase_total_borrows_stable_and_update_averege_rate(
+            amount,
+            U256::from(80000_u64).into(),
         );
+        let want: Uint256 = U256::from(160000).into();
+        assert_eq!(amount, reserve_data.total_borrow_stable);
+        assert_eq!(want, reserve_data.current_average_stable_borrow_rate);
     }
 
     #[test]
     fn descrees_total_borrows_stable_and_update_average_rate_test_1() {
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: false,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(20),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(20).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -931,8 +957,10 @@ mod core_lib_tests {
         };
 
         let want = Err(StdError::generic_err("Invalid amount to decrease"));
-        let res = reserve_data
-            .decrease_total_borrows_stable_and_update_average_rate(U256::from(40), U256::from(70));
+        let res = reserve_data.decrease_total_borrows_stable_and_update_average_rate(
+            U256::from(40).into(),
+            U256::from(70).into(),
+        );
 
         assert_eq!(want, res);
     }
@@ -941,19 +969,19 @@ mod core_lib_tests {
     fn descrees_total_borrows_stable_and_update_average_rate_test_2() {
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: false,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(140),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(140).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -963,29 +991,35 @@ mod core_lib_tests {
         };
 
         reserve_data
-            .decrease_total_borrows_stable_and_update_average_rate(U256::from(70), U256::from(70))
+            .decrease_total_borrows_stable_and_update_average_rate(
+                U256::from(70).into(),
+                U256::from(70).into(),
+            )
             .unwrap();
-        assert_eq!(70, reserve_data.total_borrow_stable.as_u64());
-        assert_eq!(0, reserve_data.current_average_stable_borrow_rate.as_u64());
+        assert_eq!(Uint256::from(70u64), reserve_data.total_borrow_stable);
+        assert_eq!(
+            Uint256::zero(),
+            reserve_data.current_average_stable_borrow_rate
+        );
     }
 
     #[test]
     fn descrees_total_borrows_stable_and_update_average_rate_test_3() {
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: false,
-            current_average_stable_borrow_rate: U256::from(100),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(140),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(100).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(140).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -995,10 +1029,16 @@ mod core_lib_tests {
         };
 
         reserve_data
-            .decrease_total_borrows_stable_and_update_average_rate(U256::from(140), U256::from(70))
+            .decrease_total_borrows_stable_and_update_average_rate(
+                U256::from(140).into(),
+                U256::from(70).into(),
+            )
             .unwrap();
-        assert_eq!(0, reserve_data.total_borrow_stable.as_u64());
-        assert_eq!(0, reserve_data.current_average_stable_borrow_rate.as_u64());
+        assert_eq!(Uint256::zero(), reserve_data.total_borrow_stable);
+        assert_eq!(
+            Uint256::zero(),
+            reserve_data.current_average_stable_borrow_rate
+        );
     }
 
     #[test]
@@ -1006,19 +1046,19 @@ mod core_lib_tests {
         //let total_borrow_stabl
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: false,
-            current_average_stable_borrow_rate: U256::from(2).pow(U256::from(1)),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(10).pow(U256::from(27)),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(2).pow(U256::from(1)).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(10).pow(U256::from(27)).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -1028,8 +1068,8 @@ mod core_lib_tests {
         };
 
         let res = reserve_data.decrease_total_borrows_stable_and_update_average_rate(
-            U256::from(10).pow(U256::from(26)),
-            U256::from(70),
+            U256::from(10).pow(U256::from(26)).into(),
+            U256::from(70).into(),
         );
         let want = Err(StdError::generic_err("The amounts to subtract don't match"));
         assert_eq!(want, res);
@@ -1039,19 +1079,19 @@ mod core_lib_tests {
     fn increase_total_borrows_variable_test() {
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: false,
-            current_average_stable_borrow_rate: U256::from(2).pow(U256::from(1)),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(10).pow(U256::from(27)),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(2).pow(U256::from(1)).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(10).pow(U256::from(27)).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -1060,28 +1100,28 @@ mod core_lib_tests {
             is_freezed: false,
         };
 
-        reserve_data.increase_total_borrows_variable(U256::from(100));
+        reserve_data.increase_total_borrows_variable(U256::from(100).into());
 
-        assert_eq!(200, reserve_data.total_borrows_variable.as_u64());
+        assert_eq!(Uint256::from(200_u64), reserve_data.total_borrows_variable);
     }
 
     #[test]
     fn decrease_total_borrows_varible_test_1() {
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: false,
-            current_average_stable_borrow_rate: U256::from(2).pow(U256::from(1)),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(10).pow(U256::from(27)),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(2).pow(U256::from(1)).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(10).pow(U256::from(27)).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -1089,7 +1129,7 @@ mod core_lib_tests {
             is_active: true,
             is_freezed: false,
         };
-        let res = reserve_data.decrease_total_borrows_varible(U256::from(200));
+        let res = reserve_data.decrease_total_borrows_varible(U256::from(200).into());
         let want = Err(StdError::generic_err(
             "The amount that is being subtracted from the variable total borrows is incorrect",
         ));
@@ -1100,19 +1140,19 @@ mod core_lib_tests {
     fn decrease_total_borrows_varible_test_2() {
         let mut reserve_data = ReserveData {
             a_token_address: "tokena_addrr".to_string(),
-            base_ltv_as_collateral: U256::from(50),
+            base_ltv_as_collateral: U256::from(50).into(),
             borrowing_enabled: false,
-            current_average_stable_borrow_rate: U256::from(2).pow(U256::from(1)),
-            current_liquidity_rate: U256::from(400),
-            last_liquidity_cumulate_index: U256::from(50),
-            total_borrow_stable: U256::from(10).pow(U256::from(27)),
-            total_borrows_variable: U256::from(100),
-            current_variable_borrow_rate: U256::from(70),
-            current_stable_borrow_rate: U256::from(78),
-            last_variable_borrow_cumulative_index: U256::from(70),
-            liquidation_threshold: U256::from(7),
-            liquidation_bonus: U256::from(45),
-            decimals: U256::from(10),
+            current_average_stable_borrow_rate: U256::from(2).pow(U256::from(1)).into(),
+            current_liquidity_rate: U256::from(400).into(),
+            last_liquidity_cumulate_index: U256::from(50).into(),
+            total_borrow_stable: U256::from(10).pow(U256::from(27)).into(),
+            total_borrows_variable: U256::from(100).into(),
+            current_variable_borrow_rate: Uint256::from(70_u64),
+            current_stable_borrow_rate: U256::from(78).into(),
+            last_variable_borrow_cumulative_index: U256::from(70).into(),
+            liquidation_threshold: U256::from(7).into(),
+            liquidation_bonus: U256::from(45).into(),
+            decimals: U256::from(10).into(),
             interest_rate_strategy_address: "test_rate_strategy_addr".to_string(),
             last_update_timestamp: 1_571_800_320,
             usage_as_collateral_enabled: true,
@@ -1122,12 +1162,19 @@ mod core_lib_tests {
         };
 
         reserve_data
-            .decrease_total_borrows_stable_and_update_average_rate(U256::from(50), U256::from(50))
+            .decrease_total_borrows_stable_and_update_average_rate(
+                U256::from(50).into(),
+                U256::from(50).into(),
+            )
             .unwrap();
+        let want: Uint256 = Uint256::from(10_u64).0.pow(U256::from(27)).into();
         assert_eq!(
-            U256::from(10).pow(U256::from(27)) - U256::from(50),
+            want - Uint256::from(50_u64),
             reserve_data.total_borrow_stable
         );
-        assert_eq!(2, reserve_data.current_average_stable_borrow_rate.as_u64());
+        assert_eq!(
+            Uint256::from(2u64),
+            reserve_data.current_average_stable_borrow_rate
+        );
     }
 }

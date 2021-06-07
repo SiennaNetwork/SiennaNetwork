@@ -1,3 +1,4 @@
+use crate::uint256::Uint256;
 use bigint::U256;
 use lazy_static::lazy_static;
 use std::ops::{Add, Div, Mul};
@@ -10,7 +11,7 @@ const halfRAY: u128 = RAY / 2;
 
 const WAD_RAY_RATIO: u128 = 1 * 10_u128.pow(9);
 
-// 256 Consts
+// U256 Constss
 
 lazy_static! {
     static ref WAD_256: U256 = {

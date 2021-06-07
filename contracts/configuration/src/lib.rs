@@ -1,5 +1,6 @@
 pub mod contract;
 pub mod lending_pool_addresses_provider;
+pub mod lending_pool_core;
 pub mod lending_pool_parameters_provider;
 pub mod msg;
 pub mod state;
