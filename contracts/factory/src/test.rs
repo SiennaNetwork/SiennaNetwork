@@ -77,6 +77,8 @@ fn assert_unauthorized(response: StdResult<HandleResponse>) {
 }
 
 mod test_contract {
+    use amm_shared::ContractInstance;
+
     use super::*;
 
     #[test] fn ok_init () -> StdResult<()> {
@@ -120,6 +122,44 @@ mod test_contract {
         let response: QueryResponse = from_binary(&query(deps, QueryMsg::GetConfig {})?)?;
         assert_eq!(response, (&config1).into());
         Ok(())
+    }
+
+    #[test]
+    fn set_config_update_pairs_in_burner() {
+        let ref mut deps = mkdeps();
+        let config = mkconfig(1);
+        let env = mkenv("admin");
+
+        assert!(init(deps, env.clone(), (&config).into()).is_ok());
+
+        // Should update when current burner address is None
+        let mut config = mkconfig(1);
+        config.exchange_settings.sienna_burner = Some(ContractInstance {
+            address: "address".into(),
+            code_hash: "code_hash".into()
+        });
+
+        let result = handle(deps, env.clone(), (&config).into()).unwrap();
+        assert!(result.messages.len() == 1);
+
+        // Shouldn't update when the same address is supplied
+        let result = handle(deps, env.clone(), (&config).into()).unwrap();
+        assert!(result.messages.len() == 0);
+
+        // Shouldn't update when None is supplied
+        config.exchange_settings.sienna_burner = None;
+        
+        let result = handle(deps, env.clone(), (&config).into()).unwrap();
+        assert!(result.messages.len() == 0);
+
+        // Should update when a new address is supplied
+        config.exchange_settings.sienna_burner = Some(ContractInstance {
+            address: "address2".into(),
+            code_hash: "code_hash2".into()
+        });
+
+        let result = handle(deps, env, (&config).into()).unwrap();
+        assert!(result.messages.len() == 1);
     }
 
     #[test] fn create_exchange_for_the_same_tokens_returns_error() -> StdResult<()> {

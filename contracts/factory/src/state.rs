@@ -189,6 +189,7 @@ pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
     let exchanges = exchanges
         .drain((pagination.start as usize)..(end as usize))
         .collect::<Vec<Exchange<CanonicalAddr>>>();
+
     for exchange in exchanges {
         result.push(exchange.humanize(&deps.api)?)
     }
@@ -196,7 +197,7 @@ pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
     Ok(result)
 }
 
-fn load_exchanges(storage: &impl Storage) -> StdResult<Vec<Exchange<CanonicalAddr>>> {
+pub(crate) fn load_exchanges(storage: &impl Storage) -> StdResult<Vec<Exchange<CanonicalAddr>>> {
     let result: Option<Vec<Exchange<CanonicalAddr>>> = load(storage, EXCHANGES_KEY)?;
     Ok(result.unwrap_or(vec![]))
 }
