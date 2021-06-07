@@ -6144,7 +6144,7 @@ jasmine-spec-reporter@^4.2.1:
   dependencies:
     colors "1.1.2"
 
-jasmine@^3.3.1:
+jasmine@^3.3.1, jasmine@^3.7.0:
   version "3.7.0"
   resolved "https://registry.yarnpkg.com/jasmine/-/jasmine-3.7.0.tgz#d36638c0c815e6ad5666676e386d79e2ccb70835"
   integrity sha512-wlzGQ+cIFzMEsI+wDqmOwvnjTvolLFwlcpYLCqSPPH0prOQaW3P+IzMhHYn934l1imNvw07oCyX+vGUv3wmtSQ==

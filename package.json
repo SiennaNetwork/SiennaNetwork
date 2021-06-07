@@ -11,9 +11,12 @@
     "./cli"
   ],
   "dependencies": {
-    "docco": "^0.8.1"
+    "chai": "^4.3.4",
+    "docco": "^0.8.1",
+    "mocha": "^8.4.0"
   },
   "scripts": {
-    "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css"
+    "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",
+    "test": "./sienna clean-localnet && mocha api/Rewards.spec.js"
   }
 }

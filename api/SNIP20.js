@@ -13,6 +13,8 @@ const decode = buffer => decoder.decode(buffer).trim()
 
 export default class SNIP20 extends SecretNetwork.Contract.withSchema(schema) {
 
+  static init = (...args) => super.init(...args)
+
   setMinters = minters =>
     this.tx.set_minters({minters})
 
