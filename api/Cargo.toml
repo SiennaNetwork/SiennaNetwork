@@ -10,7 +10,6 @@ exchange              = { path = "../contracts/exchange" }
 factory               = { path = "../contracts/factory" }
 ido                   = { path = "../contracts/ido" }
 lp-token              = { path = "../contracts/lp-token" }
-sienna-burner         = { path = "../contracts/sienna-burner" }
 snip20-reference-impl = { path = "../contracts/snip20-reference-impl" }
 amm-shared            = { path = "../libraries/amm-shared" }
 

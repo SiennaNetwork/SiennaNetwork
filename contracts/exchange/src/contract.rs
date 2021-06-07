@@ -2,17 +2,16 @@ use std::ops::Add;
 use cosmwasm_std::{
     to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier,
     StdError, Binary, StdResult, Storage, QueryResult, CosmosMsg, WasmMsg,
-    Uint128, log, HumanAddr, Decimal, QueryRequest, WasmQuery
+    Uint128, log, HumanAddr, Decimal, QueryRequest, WasmQuery, BankMsg, Coin
 };
 use secret_toolkit::snip20;
 use amm_shared::{
-    TokenPairAmount, TokenType,
-    TokenTypeAmount, create_send_msg, Fee, ExchangeSettings,
+    ExchangeSettings, Fee, TokenPairAmount, TokenType, TokenTypeAmount, 
+    create_send_msg, 
     msg::{
         exchange::{InitMsg, HandleMsg, QueryMsg, QueryMsgResponse, SwapSimulationResponse},
-        snip20::{Snip20InitConfig, Snip20InitMsg},
-        factory::{QueryMsg as FactoryQueryMsg, QueryResponse as FactoryResponse},
-        sienna_burner::HandleMsg as BurnerHandleMsg,
+        factory::{QueryMsg as FactoryQueryMsg, QueryResponse as FactoryResponse}, 
+        snip20::{Snip20InitConfig, Snip20InitMsg}
     }
 };
 use cosmwasm_utils::{u256_math, u256_math::U256, viewing_key::ViewingKey, crypto::Prng};
@@ -345,7 +344,7 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
         messages,
         log: vec![
             log("action", "remove_liquidity"),
-            log("withdrawn_share", amount.to_string()),
+            log("withdrawn_share", amount),
             log("refund_assets", format!("{}, {}", &pair.0, &pair.1)),
         ],
         data: None
@@ -355,33 +354,81 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
 fn swap<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    offer: TokenTypeAmount<HumanAddr>,
+    mut offer: TokenTypeAmount<HumanAddr>,
     expected_return: Option<Uint128>
 ) -> StdResult<HandleResponse> {
     let mut messages = vec![];
-
-    match &offer.token {
-        TokenType::NativeToken { .. } => {
-            offer.assert_sent_native_token_balance(&env)?;
-        },
-        TokenType::CustomToken { contract_addr, token_code_hash } => {
-            messages.push(snip20::transfer_from_msg(
-                env.message.sender.clone(),
-                env.contract.address.clone(),
-                offer.amount,
-                None,
-                BLOCK_SIZE,
-                token_code_hash.clone(),
-                contract_addr.clone()
-            )?);
-        }
-    }
 
     let mut config = load_config(deps)?;
 
     let settings = query_exchange_settings(&deps.querier, config.factory_info.clone())?;
 
-    let (mut return_amount, spread_amount, mut commission_amount) = do_swap(deps, &mut config, &offer, settings.swap_fee, false)?;
+    let mut sienna_commission = Uint128::zero();
+
+    // Transfer a small fee to the burner address
+    if let Some(burner_address) = settings.sienna_burner {
+        let (result, decrease_amount) = percentage_decrease(U256::from(offer.amount.u128()), settings.sienna_fee)?;
+
+        match &offer.token {
+            TokenType::CustomToken { contract_addr, token_code_hash } => {
+                // Transfer the fee directly to burner
+                messages.push(snip20::transfer_from_msg(
+                    env.message.sender.clone(),
+                    burner_address,
+                    decrease_amount,
+                    None,
+                    BLOCK_SIZE,
+                    token_code_hash.clone(),
+                    contract_addr.clone()
+                )?);
+
+                // and the rest to the contract
+                messages.push(snip20::transfer_from_msg(
+                    env.message.sender.clone(),
+                    env.contract.address.clone(),
+                    result,
+                    None,
+                    BLOCK_SIZE,
+                    token_code_hash.clone(),
+                    contract_addr.clone()
+                )?);
+            },
+            TokenType::NativeToken { denom } => {
+                offer.assert_sent_native_token_balance(&env)?;
+
+                messages.push(CosmosMsg::Bank(BankMsg::Send {
+                    from_address: env.contract.address.clone(),
+                    to_address: burner_address,
+                    amount: vec![Coin {
+                        denom: denom.clone(),
+                        amount: decrease_amount
+                    }]
+                }));
+            }
+        }
+
+        offer.amount = result;
+        sienna_commission = decrease_amount;
+    } else {
+        match &offer.token {
+            TokenType::NativeToken { .. } => {
+                offer.assert_sent_native_token_balance(&env)?;
+            },
+            TokenType::CustomToken { contract_addr, token_code_hash } => {
+                messages.push(snip20::transfer_from_msg(
+                    env.message.sender.clone(),
+                    env.contract.address.clone(),
+                    offer.amount,
+                    None,
+                    BLOCK_SIZE,
+                    token_code_hash.clone(),
+                    contract_addr.clone()
+                )?);
+            }
+        }
+    }
+
+    let (return_amount, spread_amount, swap_commission) = do_swap(deps, &mut config, &offer, settings.swap_fee, false)?;
     store_config(deps, &config)?; // Save in order to update the pool_cache
 
     if let Some(expected_return) = expected_return {
@@ -390,23 +437,6 @@ fn swap<S: Storage, A: Api, Q: Querier>(
                 "Operation fell short of expected_return",
             ));
         }
-    }
-
-    // Add a fraction of the swap amount to the SIENNA burn pool
-    if let Some(info) = settings.sienna_burner {
-        let (_result, decrease_amount) = percentage_decrease(U256::from(offer.amount.u128()), settings.sienna_fee)?;
-
-        commission_amount = commission_amount + decrease_amount;
-        return_amount = (return_amount - decrease_amount)?;
-
-        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            callback_code_hash: info.code_hash,
-            contract_addr: info.address,
-            msg: to_binary(&BurnerHandleMsg::AddToBurnPool {
-                amount: decrease_amount
-            })?,
-            send: vec![]
-        }))
     }
 
     let index = config.pair.get_token_index(&offer.token).unwrap(); // Safe, checked in do_swap
@@ -418,17 +448,17 @@ fn swap<S: Storage, A: Api, Q: Querier>(
         messages,
         log: vec![
             log("action", "swap"),
-            log("offer_token", offer.token.to_string()),
-            log("offer_amount", offer.amount.to_string()),
-            log("return_amount", return_amount.to_string()),
-            log("spread_amount", spread_amount.to_string()),
-            log("commission_amount", commission_amount.to_string())
+            log("offer_token", offer.token),
+            log("offer_amount", offer.amount),
+            log("return_amount", return_amount),
+            log("spread_amount", spread_amount),
+            log("sienna_commission", sienna_commission),
+            log("swap_commission", swap_commission),
+            log("commission_amount", swap_commission + sienna_commission)
         ],
         data: None
     })
 }
-
-
 
 fn query_liquidity(
     querier: &impl Querier,
@@ -452,18 +482,21 @@ fn query_liquidity(
 fn swap_simulation<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     mut config: Config<HumanAddr>,
-    offer: TokenTypeAmount<HumanAddr>
+    mut offer: TokenTypeAmount<HumanAddr>
 ) -> StdResult<SwapSimulationResponse> {
     let settings = query_exchange_settings(&deps.querier, config.factory_info.clone())?;
 
-    let (mut return_amount, spread_amount, mut commission_amount) = do_swap(deps, &mut config, &offer, settings.swap_fee, true)?;
+    let mut commission_amount = Uint128::zero();
 
     if let Some(_) = settings.sienna_burner {
-        let (_result, decrease_amount) = percentage_decrease(U256::from(offer.amount.u128()), settings.sienna_fee)?;
+        let (result, decrease_amount) = percentage_decrease(U256::from(offer.amount.u128()), settings.sienna_fee)?;
 
-        commission_amount += decrease_amount;
-        return_amount = (return_amount - decrease_amount)?;
+        offer.amount = result;
+        commission_amount = decrease_amount;
     }
+
+    let (return_amount, spread_amount, swap_commission) = do_swap(deps, &mut config, &offer, settings.swap_fee, true)?;
+    commission_amount += swap_commission;
 
     Ok(SwapSimulationResponse { return_amount, spread_amount, commission_amount })
 }
@@ -491,7 +524,7 @@ fn register_lp_token<S: Storage, A: Api, Q: Querier>(
             config.lp_token_info.code_hash,
             env.message.sender.clone(),
         )?],
-        log: vec![log("liquidity_token_addr", env.message.sender.as_str())],
+        log: vec![log("liquidity_token_addr", env.message.sender)],
         data: None,
     })
 }

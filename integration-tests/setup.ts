@@ -15,8 +15,7 @@ export interface UploadResult {
     snip20: ContractInstantiationInfo,
     exchange: ContractInstantiationInfo,
     lp_token: ContractInstantiationInfo,
-    ido: ContractInstantiationInfo,
-    burner: ContractInstantiationInfo
+    ido: ContractInstantiationInfo
 }
 
 export async function upload(client: SigningCosmWasmClient, commit: string, writer: IJsonFileWriter): Promise<UploadResult> {
@@ -27,7 +26,6 @@ export async function upload(client: SigningCosmWasmClient, commit: string, writ
     const factory_wasm = readFileSync(resolve(`../dist/${commit}-factory.wasm`))
     const lp_token_wasm = readFileSync(resolve(`../dist/${commit}-lp-token.wasm`))
     const ido_wasm = readFileSync(resolve(`../dist/${commit}-ido.wasm`))
-    const burner_wasm = readFileSync(resolve(`../dist/${commit}-sienna-burner.wasm`))
 
     const exchange_upload = await client.upload(exchange_wasm, {}, undefined, fee)
     writer.write(exchange_upload, `uploads/exchange`)
@@ -43,17 +41,13 @@ export async function upload(client: SigningCosmWasmClient, commit: string, writ
 
     const ido_upload = await client.upload(ido_wasm, {}, undefined, fee)
     writer.write(ido_upload, `uploads/ido`)
-
-    const burner_upload = await client.upload(burner_wasm, {}, undefined, fee)
-    writer.write(burner_upload, `uploads/burner`)
   
     return { 
         factory: new ContractInstantiationInfo(factory_upload.originalChecksum, factory_upload.codeId),
         snip20: new ContractInstantiationInfo(snip20_upload.originalChecksum, snip20_upload.codeId),
         exchange: new ContractInstantiationInfo(exchange_upload.originalChecksum, exchange_upload.codeId),
         lp_token: new ContractInstantiationInfo(lp_token_upload.originalChecksum, lp_token_upload.codeId),
-        ido: new ContractInstantiationInfo(ido_upload.originalChecksum, ido_upload.codeId),
-        burner: new ContractInstantiationInfo(burner_upload.originalChecksum, burner_upload.codeId)
+        ido: new ContractInstantiationInfo(ido_upload.originalChecksum, ido_upload.codeId)
     }
 }
 

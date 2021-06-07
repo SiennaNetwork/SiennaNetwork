@@ -1,7 +1,6 @@
 use cosmwasm_std::{HumanAddr, StdResult, Api, CanonicalAddr};
 use crate::token_pair::TokenPair;
 use fadroma_scrt_addr::{Humanize, Canonize};
-use fadroma_scrt_callback::ContractInstance;
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
 
@@ -39,7 +38,7 @@ pub type ExchangeStored = Exchange<CanonicalAddr>;
 pub struct ExchangeSettings<A> {
     pub swap_fee:      Fee,
     pub sienna_fee:    Fee,
-    pub sienna_burner: Option<ContractInstance<A>>
+    pub sienna_burner: Option<A>
 }
 
 #[deprecated(note="please use ExchangeSettings<CanonicalAddr> instead")]

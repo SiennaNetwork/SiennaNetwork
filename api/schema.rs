@@ -3,7 +3,6 @@ use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
 use amm_shared::msg::exchange as exchange;
 use amm_shared::msg::factory as factory;
-use amm_shared::msg::sienna_burner as burner;
 use amm_shared::msg::ido as ido;
 use lp_token::msg as lp_token;
 use snip20_reference_impl::msg as snip20;
@@ -38,16 +37,6 @@ fn main() {
     export_schema(&schema_for!(ido::HandleMsg), &out_dir);
     export_schema(&schema_for!(ido::QueryMsg), &out_dir);
     export_schema(&schema_for!(ido::QueryResponse), &out_dir);
-
-    let mut out_dir = current_dir().unwrap();
-    out_dir.push("api");
-    out_dir.push("burner");
-    create_dir_all(&out_dir).unwrap();
-    remove_schemas(&out_dir).unwrap();
-    export_schema(&schema_for!(burner::InitMsg), &out_dir);
-    export_schema(&schema_for!(burner::HandleMsg), &out_dir);
-    export_schema(&schema_for!(burner::QueryMsg), &out_dir);
-    export_schema(&schema_for!(burner::QueryAnswer), &out_dir);
 
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");

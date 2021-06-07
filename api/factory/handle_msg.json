@@ -224,22 +224,6 @@
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
     },
-    "ContractInstance_for_HumanAddr": {
-      "description": "Info needed to talk to a contract instance.",
-      "type": "object",
-      "required": [
-        "address",
-        "code_hash"
-      ],
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
-        },
-        "code_hash": {
-          "type": "string"
-        }
-      }
-    },
     "ContractInstantiationInfo": {
       "description": "Info needed to instantiate a contract.",
       "type": "object",
@@ -277,7 +261,7 @@
         "sienna_burner": {
           "anyOf": [
             {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+              "$ref": "#/definitions/HumanAddr"
             },
             {
               "type": "null"

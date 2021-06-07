@@ -27,22 +27,6 @@
     }
   },
   "definitions": {
-    "ContractInstance_for_HumanAddr": {
-      "description": "Info needed to talk to a contract instance.",
-      "type": "object",
-      "required": [
-        "address",
-        "code_hash"
-      ],
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
-        },
-        "code_hash": {
-          "type": "string"
-        }
-      }
-    },
     "ContractInstantiationInfo": {
       "description": "Info needed to instantiate a contract.",
       "type": "object",
@@ -71,7 +55,7 @@
         "sienna_burner": {
           "anyOf": [
             {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+              "$ref": "#/definitions/HumanAddr"
             },
             {
               "type": "null"

@@ -1059,24 +1059,7 @@ dependencies = [
  "factory",
  "ido",
  "lp-token",
- "sienna-burner",
  "snip20-reference-impl",
-]
-
-[[package]]
-name = "sienna-burner"
-version = "0.1.0"
-dependencies = [
- "amm-shared",
- "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "fadroma-scrt-addr",
- "fadroma-scrt-callback",
- "fadroma-scrt-migrate",
- "fadroma-scrt-storage",
- "schemars",
- "serde",
- "snafu",
 ]
 
 [[package]]

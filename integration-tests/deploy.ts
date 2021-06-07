@@ -22,7 +22,7 @@ async function deploy() {
         exchange_settings: {
             swap_fee: {
                 nom: 28,
-                denom: 10000
+                denom: 1000
             },
             sienna_fee: {
                 nom: 2,

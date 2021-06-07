@@ -235,69 +235,6 @@ pub mod ido {
     }
 }
 
-pub mod sienna_burner {
-    use super::*;
-    use composable_admin::multi_admin::{
-        MultiAdminHandleMsg, MultiAdminQueryMsg, MultiAdminQueryResponse
-    };
-
-    #[derive(Serialize, Deserialize, JsonSchema)]
-    pub struct InitMsg {
-        /// SIENNA token
-        pub sienna_token: ContractInstance<HumanAddr>,
-        pub pairs: Option<Vec<HumanAddr>>,
-        /// The account to burn SIENNA from
-        pub burn_pool: HumanAddr,
-        /// Needs to be added as an admin in order to allow
-        /// it to add new pair addresses.
-        pub factory_address: HumanAddr,
-        pub admins: Option<Vec<HumanAddr>>
-    }
-    
-    #[derive(Serialize, Deserialize, JsonSchema)]
-    #[serde(rename_all = "snake_case")]
-    pub enum HandleMsg {
-        /// Set pause/migration status
-        SetStatus {
-            level:       ContractStatusLevel,
-            reason:      String,
-            new_address: Option<HumanAddr>
-        },
-        Burn,
-        AddToBurnPool  { amount: Uint128 },
-        AddPairs       { pairs: Vec<HumanAddr>, },
-        RemovePairs    { pairs: Vec<HumanAddr>, },
-        SetBurnPool    { address: HumanAddr },
-        SetSiennaToken { info: ContractInstance<HumanAddr> },
-        Admin(MultiAdminHandleMsg),
-    }
-    
-    #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-    #[serde(rename_all = "snake_case")]
-    pub enum QueryMsg {
-        /// Get pause/migration status
-        Status,
-        SiennaToken,
-        BurnPool,
-        Admin(MultiAdminQueryMsg),
-    }
-    
-    #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-    #[serde(rename_all = "snake_case")]
-    pub enum QueryAnswer {
-        SiennaToken { info: ContractInstance<HumanAddr> },
-        BurnPool { address: HumanAddr },
-        Admin(MultiAdminQueryResponse)
-    }
-    
-    #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-    #[serde(rename_all = "snake_case")]
-    pub enum ResponseStatus {
-        Success,
-        Failure,
-    }
-}
-
 pub mod snip20 {
     use super::*;
 

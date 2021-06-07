@@ -55,7 +55,7 @@ export interface Exchange {
 }
 
 export interface ExchangeSettings {
-    sienna_burner?: ContractInfo | undefined;
+    sienna_burner?: Address | undefined;
     sienna_fee: ExchangeFee;
     swap_fee: ExchangeFee;
 }

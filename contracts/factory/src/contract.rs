@@ -8,8 +8,7 @@ use amm_shared::{
     msg::{
         exchange::InitMsg as ExchangeInitMsg,
         ido::{InitMsg as IdoInitMsg, InitConfig as IdoInitConfig},
-        factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse},
-        sienna_burner::HandleMsg as BurnerHandleMsg
+        factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse}
     },
     admin::{
         require_admin,
@@ -19,13 +18,11 @@ use amm_shared::{
         }
     }
 };
-use fadroma_scrt_addr::Humanize;
 use fadroma_scrt_callback::{ContractInstance, Callback};
 use fadroma_scrt_storage::{load, save, remove};
 use crate::state::{
     save_config, load_config, Config, pair_exists, store_exchange,
-    get_address_for_pair, get_idos, store_ido_address, get_exchanges,
-    load_exchanges
+    get_address_for_pair, get_idos, store_ido_address, get_exchanges
 };
 use fadroma_scrt_migrate::get_status;
 
@@ -84,49 +81,18 @@ pub fn set_config<S: Storage, A: Api, Q: Querier>(
         snip20_contract, lp_token_contract, pair_contract, ido_contract,
         exchange_settings
     } = msg {
-        let mut config = load_config(deps)?;
-
-        let mut messages = Vec::with_capacity(1);
+        let mut config = load_config(&deps)?;
 
         if let Some(new_value) = snip20_contract   { config.snip20_contract   = new_value; }
         if let Some(new_value) = lp_token_contract { config.lp_token_contract = new_value; }
         if let Some(new_value) = pair_contract     { config.pair_contract     = new_value; }
         if let Some(new_value) = ido_contract      { config.ido_contract      = new_value; }
-        if let Some(new_value) = exchange_settings {
-            // Update the burner with any new pairs that might have been created.
-            if let Some(new_burner) = new_value.sienna_burner.clone() {
-                // The old address doesn't match the new one or was None
-                if config.exchange_settings.sienna_burner.is_none() || matches!(
-                    config.exchange_settings.sienna_burner,
-                    Some(x) if x != new_burner
-                ) {
-                    let exchanges = load_exchanges(&deps.storage)?;
-                    let mut pairs = Vec::with_capacity(exchanges.len());
-
-                    for pair in exchanges {
-                        pairs.push(pair.address.humanize(&deps.api)?)
-                    }
-
-                    messages.push(
-                        CosmosMsg::Wasm(WasmMsg::Execute {
-                            contract_addr: new_burner.address,
-                            callback_code_hash: new_burner.code_hash,
-                            msg: to_binary(&BurnerHandleMsg::AddPairs {
-                                pairs
-                            })?,
-                            send: vec![]
-                        })
-                    )
-                }
-            }
-
-            config.exchange_settings = new_value; 
-        }
+        if let Some(new_value) = exchange_settings { config.exchange_settings = new_value; }
 
         save_config(deps, &config)?;
 
         Ok(HandleResponse {
-            messages,
+            messages: vec![],
             log: vec![
                 log("action", "set_config")
             ],
@@ -140,10 +106,11 @@ pub fn set_config<S: Storage, A: Api, Q: Querier>(
 pub fn get_config<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
 ) -> StdResult<Binary> {
-    let Config::<HumanAddr> {
+    let Config {
         snip20_contract, lp_token_contract, pair_contract, ido_contract,
         exchange_settings, ..
     } = load_config(deps)?;
+
     to_binary(&QueryResponse::Config {
         snip20_contract, lp_token_contract, pair_contract, ido_contract,
         exchange_settings
@@ -229,24 +196,10 @@ fn register_exchange<S: Storage, A: Api, Q: Querier>(
     signature: Binary
 ) -> StdResult<HandleResponse> {
     ensure_correct_signature(&mut deps.storage, signature)?;
-
     store_exchange(deps, &pair, &env.message.sender)?;
 
-    let config = load_config(&deps)?;
-    let mut messages = vec![];
-
-    if let Some(info) = config.exchange_settings.sienna_burner {
-        let pairs = vec![ env.message.sender.clone() ];
-        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr:      info.address,
-            callback_code_hash: info.code_hash,
-            msg: to_binary(&BurnerHandleMsg::AddPairs { pairs })?,
-            send: vec![]
-        }))
-    }
-
     Ok(HandleResponse {
-        messages,
+        messages: vec![],
         log: vec![
             log("action", "register_exchange"),
             log("address", env.message.sender),
