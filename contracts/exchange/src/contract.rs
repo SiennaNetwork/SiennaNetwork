@@ -392,13 +392,12 @@ fn swap<S: Storage, A: Api, Q: Querier>(
         }
     }
 
-    // SIENNA needs to be burned on each swap in order to decrease the total supply
+    // Add a fraction of the swap amount to the SIENNA burn pool
     if let Some(info) = settings.sienna_burner {
-        let (result, decrease_amount) = percentage_decrease(U256::from(return_amount.u128()), settings.sienna_fee)?;
-        let decrease_amount = clamp(decrease_amount)?;
+        let (_result, decrease_amount) = percentage_decrease(U256::from(offer.amount.u128()), settings.sienna_fee)?;
 
         commission_amount = commission_amount + decrease_amount;
-        return_amount = clamp(result)?;
+        return_amount = (return_amount - decrease_amount)?;
 
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
             callback_code_hash: info.code_hash,
@@ -460,11 +459,10 @@ fn swap_simulation<S: Storage, A: Api, Q: Querier>(
     let (mut return_amount, spread_amount, mut commission_amount) = do_swap(deps, &mut config, &offer, settings.swap_fee, true)?;
 
     if let Some(_) = settings.sienna_burner {
-        let (result, decrease_amount) = percentage_decrease(U256::from(return_amount.u128()), settings.sienna_fee)?;
-        let decrease_amount = clamp(decrease_amount)?;
+        let (_result, decrease_amount) = percentage_decrease(U256::from(offer.amount.u128()), settings.sienna_fee)?;
 
         commission_amount += decrease_amount;
-        return_amount = clamp(result)?;
+        return_amount = (return_amount - decrease_amount)?;
     }
 
     Ok(SwapSimulationResponse { return_amount, spread_amount, commission_amount })
@@ -606,17 +604,17 @@ fn compute_swap(
     // commission_amount = return_amount * fee.nom / fee.denom
     let (return_amount, commission_amount) = percentage_decrease(return_amount, fee)?;
 
-    Ok((clamp(return_amount)?, clamp(spread_amount)?, clamp(commission_amount)?))
+    Ok((return_amount, clamp(spread_amount)?, commission_amount))
 }
 
-fn percentage_decrease(amount: U256, fee: Fee) -> StdResult<(U256, U256)> {
+fn percentage_decrease(amount: U256, fee: Fee) -> StdResult<(Uint128, Uint128)> {
     let amount = Some(amount);
     let nom = Some(U256::from(fee.nom));
     let denom = Some(U256::from(fee.denom));
 
     let decrease_amount = u256_math::div(u256_math::mul(amount, nom), denom,)
         .ok_or(StdError::generic_err(format!(
-            "Cannot calculate return_amount {} * commission_rate_nom {} / commission_rate_denom {}",
+            "Cannot calculate amount {} * fee.nom {} / fee.denom {}",
             amount.unwrap(),
             nom.unwrap(),
             denom.unwrap()
@@ -624,12 +622,12 @@ fn percentage_decrease(amount: U256, fee: Fee) -> StdResult<(U256, U256)> {
 
     let result = u256_math::sub(amount, Some(decrease_amount))
         .ok_or(StdError::generic_err(format!(
-            "Cannot calculate return_amount {} - commission_amount {}",
+            "Cannot calculate amount {} - decrease_amount {}",
             amount.unwrap(),
             decrease_amount
         )))?;
 
-    Ok((result, decrease_amount))
+    Ok((clamp(result)?, clamp(decrease_amount)?))
 }
 
 /// The amount the price moves in a trading pair between when a transaction is submitted and when it is executed.
@@ -678,12 +676,6 @@ fn query_exchange_settings (
         _ => Err(StdError::generic_err("An error occurred while trying to retrieve exchange settings."))
     }
 }
-
-/*
-#[cfg(test)]
-mod tests {
-    use super::*;
-*/
 
 fn clamp(val: U256) -> StdResult<Uint128> {
     if val > u128::MAX.into() {
