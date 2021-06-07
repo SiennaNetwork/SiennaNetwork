@@ -67,16 +67,20 @@ pub enum QueryMsg {
         /// Unix time in seconds.
         current_time: u64
     },
-    Pools,
     Accounts { 
         address: HumanAddr,
         viewing_key: String,
         /// The addresses of the LP tokens pools to get the accounts for.
         lp_tokens: Vec<HumanAddr>
     },
-    /// This is only here because of Keplr
+    Pools,
+
+    Admin(AdminQueryMsg),
+
+    /// Copy of SNIP20 message for Keplr support
     TokenInfo { },
-    Admin(AdminQueryMsg)
+    /// This is only here because of Keplr
+    Balance { address: HumanAddr, key: String, },
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, JsonSchema)]
@@ -85,12 +89,18 @@ pub enum QueryMsgResponse {
     ClaimSimulation(ClaimSimulationResult),
     Accounts(Vec<Account<HumanAddr>>),
     Pools(Vec<RewardPool<HumanAddr>>),
+
+    /// Copy of SNIP20 message for Keplr support
     TokenInfo {
         name: String,
         symbol: String,
         decimals: u8,
         total_supply: Option<Uint128>
-    }
+    },
+    /// Copy of SNIP20 message for Keplr support
+    Balance {
+        amount: Uint128,
+    },
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug)]

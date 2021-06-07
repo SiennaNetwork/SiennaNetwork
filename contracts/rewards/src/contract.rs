@@ -102,11 +102,22 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     match msg {
         QueryMsg::ClaimSimulation { lp_tokens, viewing_key, address, current_time } => 
             claim_simulation(deps, lp_tokens, address, ViewingKey(viewing_key), current_time),
-        QueryMsg::Pools => query_pools(deps),
         QueryMsg::Accounts { address, viewing_key, lp_tokens } =>
             query_accounts(deps, address, ViewingKey(viewing_key), lp_tokens),
-        QueryMsg::TokenInfo { } => query_token_info(),
-        QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl)
+        QueryMsg::Pools => query_pools(deps),
+
+        QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
+
+        // Keplr support:
+        QueryMsg::TokenInfo { } => to_binary(&QueryMsgResponse::TokenInfo {
+            name: "Sienna Rewards".into(),
+            symbol: "SRW".into(),
+            decimals: 1,
+            total_supply: None
+        }),
+        QueryMsg::Balance { .. } => to_binary(&QueryMsgResponse::Balance {
+            amount: Uint128::zero()
+        })
     }
 }
 
@@ -406,15 +417,6 @@ fn query_accounts<S: Storage, A: Api, Q: Querier>(
     }
 
     Ok(to_binary(&QueryMsgResponse::Accounts(result))?)
-}
-
-fn query_token_info() -> StdResult<Binary> {
-    Ok(to_binary(&QueryMsgResponse::TokenInfo {
-        name: "Sienna Rewards".into(),
-        symbol: "SRW".into(),
-        decimals: 1,
-        total_supply: None
-    })?)
 }
 
 fn calc_reward_share(
