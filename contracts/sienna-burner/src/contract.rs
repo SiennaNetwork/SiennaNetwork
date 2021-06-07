@@ -50,7 +50,8 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     with_status!(deps, env, match msg {
-        HandleMsg::Burn { amount } => burn(deps, env, amount),
+        HandleMsg::Burn => burn(deps, env),
+        HandleMsg::AddToBurnPool { amount } => add_to_burn_pool(deps, env, amount),
         HandleMsg::AddPairs { pairs } => add_pairs(deps, env, pairs),
         HandleMsg::RemovePairs { pairs } => remove_pairs(deps, env, pairs),
         HandleMsg::SetBurnPool {address } => set_burn_pool(deps, env, address),
@@ -71,7 +72,15 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     }
 }
 
+#[require_admin]
 fn burn<S: Storage, A: Api, Q: Querier>(
+    _deps: &mut Extern<S, A, Q>,
+    _env: Env
+) -> StdResult<HandleResponse> {
+    unimplemented!()
+}
+
+fn add_to_burn_pool<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     amount: Uint128

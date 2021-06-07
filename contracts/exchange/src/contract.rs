@@ -403,7 +403,7 @@ fn swap<S: Storage, A: Api, Q: Querier>(
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
             callback_code_hash: info.code_hash,
             contract_addr: info.address,
-            msg: to_binary(&BurnerHandleMsg::Burn {
+            msg: to_binary(&BurnerHandleMsg::AddToBurnPool {
                 amount: decrease_amount
             })?,
             send: vec![]

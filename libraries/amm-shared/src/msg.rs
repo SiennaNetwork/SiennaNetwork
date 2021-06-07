@@ -263,7 +263,8 @@ pub mod sienna_burner {
             reason:      String,
             new_address: Option<HumanAddr>
         },
-        Burn           { amount: Uint128 },
+        Burn,
+        AddToBurnPool  { amount: Uint128 },
         AddPairs       { pairs: Vec<HumanAddr>, },
         RemovePairs    { pairs: Vec<HumanAddr>, },
         SetBurnPool    { address: HumanAddr },
