@@ -1,4 +1,4 @@
-name: AMM
+name: Swap-AMM
 on: [push, pull_request]
 jobs:
   cargo:
@@ -17,7 +17,7 @@ jobs:
         with:
           submodules: true
       - name: Change directory
-        run: cd amm
+        run: cd swap
       - name: Run unit tests
         uses: actions-rs/cargo@v1
         with:

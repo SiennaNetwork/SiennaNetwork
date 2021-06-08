@@ -1,19 +1,19 @@
-[submodule "amm/token"]
-  update = rebase
-  path   = amm/contracts/snip20-reference-impl
-  url    = https://github.com/hackbg/snip20-reference-impl
-  branch = 21.04
-[submodule "amm/fadroma"]
-  update = rebase
-  path   = amm/libraries/fadroma
-  url    = git@github.com:hackbg/fadroma.git
-  branch = 21.06.1
-
 [submodule "rewards/fadroma"]
   update = rebase
   path   = rewards/libraries/fadroma
   url    = git@github.com:hackbg/fadroma.git
   branch = 21.04
+
+[submodule "swap/token"]
+  update = rebase
+  path   = swap/contracts/snip20-reference-impl
+  url    = https://github.com/hackbg/snip20-reference-impl
+  branch = 21.04
+[submodule "swap/fadroma"]
+  update = rebase
+  path   = swap/libraries/fadroma
+  url    = git@github.com:hackbg/fadroma.git
+  branch = 21.06.1
 
 [submodule "tge/token"]
   update = rebase
