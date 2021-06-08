@@ -15,7 +15,7 @@ members = [
   "contracts/lp-staking",      # TODO document
   "contracts/weight-master",   # TODO document
   "libraries/scrt-finance",    # TODO document
-  "contracts/snip20",          # SNIP20 reference impl
+  "contracts/snip20",          # SNIP20 reference impl by itzik@keytango.io
 
   # Swap + IDO
   "libraries/amm-shared",      # definitions that are shared between AMM and IDO

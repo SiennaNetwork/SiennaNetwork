@@ -6,7 +6,9 @@ import assert from 'assert'
 import { fileURLToPath } from 'url'
 import { resolve, dirname } from 'path'
 import bignum from 'bignumber.js'
-import { loadJSON, taskmaster, SecretNetwork } from '@hackbg/fadroma'
+import { loadJSON, taskmaster } from '@fadroma/utilities'
+import { SecretNetwork } from '@fadroma/scrt-agent'
+import ensureWallets from '@fadroma/scrt-agent/fund.js'
 // ## What you're looking at
 //
 // This script is intended to demonstrate correct behavior of the smart contracts
@@ -21,7 +23,7 @@ import { loadJSON, taskmaster, SecretNetwork } from '@hackbg/fadroma'
 // ## The following features are tested:
 
 // * 👷 **deploying** and **configuring** the token, mgmt, and rpt contracts.
-import { ensureWallets, fmtSIENNA } from './ops.js'
+import { fmtSIENNA } from './ops.js'
 
 // * ⚠️  **viewing unlocked funds for any known address** without having to make a claim
 // * 💸 **making claims** according to the initial **schedule** (sped up by a factor of 8400)

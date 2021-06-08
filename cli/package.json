@@ -4,6 +4,7 @@
   "type": "module",
   "dependencies": {
     "@fadroma/scrt-ops": "*",
+    "@fadroma/utilities": "*",
     "bignumber.js": "^9.0.1",
     "chokidar": "^3.5.1",
     "esm": "^3.2.25",

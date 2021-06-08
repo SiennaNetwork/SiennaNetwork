@@ -1,6 +1,6 @@
 {
-  "name": "@hackbg/schedule",
-  "version": "2.0.0-wip",
+  "name": "@sienna/schedule",
+  "version": "2.0.0",
   "main": "./js/index.js",
   "dependencies": {
     "json-bigint": "^1.0.0",

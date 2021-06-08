@@ -1,6 +1,6 @@
 import { writeFileSync } from 'fs'
-import { resolve, basename, extname, dirname, existsSync } from '@hackbg/fadroma/js/sys.js'
-import { scheduleFromSpreadsheet } from '@hackbg/schedule'
+import { resolve, basename, extname, dirname, existsSync } from '@fadroma/utilities/sys.js'
+import { scheduleFromSpreadsheet } from '@sienna/schedule'
 
 import { abs } from './root.js'
 import { cargo } from './run.js'

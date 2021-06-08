@@ -1,4 +1,4 @@
-import { resolve, dirname, fileURLToPath } from '@hackbg/fadroma/js/sys.js'
+import { resolve, dirname, fileURLToPath } from '@fadroma/utilities/sys.js'
 
 export const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 

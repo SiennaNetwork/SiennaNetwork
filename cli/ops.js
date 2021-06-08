@@ -9,12 +9,13 @@ import { render } from 'prettyjson'
 
 import { SNIP20Contract, MGMTContract, RPTContract, RewardsContract } from '../api/index.js'
 
-import { taskmaster, SecretNetwork } from '@hackbg/fadroma'
-import ContractEnsemble from '@hackbg/fadroma/js/SecretNetwork/Ensemble.js'
-import ensureWallets from '@hackbg/fadroma/js/SecretNetwork/ensureWallets.js'
-import { pull } from '@hackbg/fadroma/js/net.js'
+import { taskmaster } from '@fadroma/utilities'
 import { fileURLToPath, resolve, basename, extname, dirname
-       , readFile, writeFile } from '@hackbg/fadroma/js/sys.js'
+       , readFile, writeFile } from '@fadroma/utilities/sys.js'
+import { pull } from '@fadroma/utilities/net.js'
+
+import { SecretNetwork } from '@fadroma/scrt-agent'
+import Ensemble from '@fadroma/scrt-ops/ensemble.js'
 
 import { conformChainIdToNetwork, conformNetworkToChainId
        , pickNetwork, pickInstance, pickKey } from './pick.js'
@@ -34,8 +35,6 @@ export const SCRT_DECIMALS = 6
 export const ONE_SCRT = bignum(`1${[...Array(SCRT_DECIMALS)].map(()=>`0`).join('')}`)
 export const fmtSCRT = fmtDecimals(ONE_SCRT)
 
-export { ensureWallets }
-
 export const getDefaultSchedule = () => {
   const path = resolve(projectRoot, 'settings', 'schedule.json')
   try {
@@ -50,7 +49,7 @@ const prefix = new Date().toISOString().replace(/[-:\.]/g, '-').replace(/[TZ]/g,
 
 const prng_seed = randomBytes(36).toString('hex')
 
-export class TGEContracts extends ContractEnsemble {
+export class TGEContracts extends Ensemble {
 
   static workspace = abs()
 
@@ -190,7 +189,7 @@ export class TGEContracts extends ContractEnsemble {
 
 }
 
-export class RewardsContracts extends ContractEnsemble {
+export class RewardsContracts extends Ensemble {
 
   static workspace = abs()
 

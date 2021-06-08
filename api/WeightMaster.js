@@ -1,4 +1,5 @@
-import { SecretNetwork, loadSchemas } from '@fadroma/scrt-agent'
+import { SecretNetwork } from '@fadroma/scrt-agent'
+import { loadSchemas } from '@fadroma/utilities'
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg:      './weight-master/master_init_msg.json',

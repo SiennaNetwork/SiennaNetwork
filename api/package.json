@@ -4,6 +4,7 @@
   "main": "./schema/index.js",
   "type": "module",
   "dependencies": {
-    "@fadroma/scrt-agent": "*"
+    "@fadroma/scrt-agent": "*",
+    "@fadroma/utilities": "*"
   }
 }

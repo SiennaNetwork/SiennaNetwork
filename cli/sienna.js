@@ -10,13 +10,14 @@ import open from 'open'
 import yargs from 'yargs'
 
 // custom
-import { SecretNetwork } from '@hackbg/fadroma'
-import { scheduleFromSpreadsheet } from '@hackbg/schedule'
+import { SecretNetwork } from '@fadroma/scrt-agent'
+import ensureWallets from '@fadroma/scrt-agent/fund.js'
+import { scheduleFromSpreadsheet } from '@sienna/schedule'
 
 import { abs } from './root.js'
 import { clear, cargo, run, runTests, runDemo } from './run.js'
 import { genConfig, genCoverage, genSchema, genDocs } from './gen.js'
-import { stateBase, ensureWallets, TGEContracts, RewardsContracts } from './ops.js'
+import { stateBase, TGEContracts, RewardsContracts } from './ops.js'
 
 export default function main () {
   return yargs(process.argv.slice(2))
