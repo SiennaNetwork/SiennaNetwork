@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "dependencies": {
-    "@hackbg/fadroma": "*",
+    "@fadroma/scrt-ops": "*",
     "bignumber.js": "^9.0.1",
     "chokidar": "^3.5.1",
     "esm": "^3.2.25",

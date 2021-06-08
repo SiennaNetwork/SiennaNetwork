@@ -1,0 +1,22 @@
+{
+  "name": "@sienna/sienna",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "./api",
+    "./cli",
+    "./swap/libraries/fadroma/scrt-agent",
+    "./swap/libraries/fadroma/scrt-ops"
+  ],
+  "dependencies": {
+    "chai": "^4.3.4",
+    "docco": "^0.8.1",
+    "mocha": "^8.4.0",
+    "@sienna/api": "./api",
+    "@sienna/cli": "./cli"
+  },
+  "scripts": {
+    "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",
+    "test": "./sienna clean-localnet && mocha api/Rewards.spec.js"
+  }
+}
