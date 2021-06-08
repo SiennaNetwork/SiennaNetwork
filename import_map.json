@@ -5,7 +5,7 @@
     "crypto":        "https://deno.land/std/node/crypto.ts",
     "fs":            "https://deno.land/std/node/fs.ts",
     "fs/promises":   "https://deno.land/std/node/_fs/promises/mod.ts",
-    "net":           "./cli/net.ts",
+    "net":           "./ops/net.ts",
     "os":            "https://deno.land/std/node/os.ts",
     "path":          "https://deno.land/std/path/mod.ts",
     "process":       "https://deno.land/std/node/process.ts",

@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-node cli/sienna.js $@
+node ops/sienna.js $@
