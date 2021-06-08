@@ -1,0 +1,15 @@
+[package]
+name    = "sienna-rewards-schema"
+version = "0.0.0"
+authors = ["Adam A. <adam@hack.bg>"]
+edition = "2018"
+
+[dependencies]
+cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+gov-token       = { path = "../contracts/gov-token" }
+lp-staking      = { path = "../contracts/lp-staking" }
+weight-master   = { path = "../contracts/weight-master" }
+
+[[bin]]
+name = "schema"
+path = "schema.rs"

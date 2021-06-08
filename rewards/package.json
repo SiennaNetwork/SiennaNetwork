@@ -1,0 +1,29 @@
+{
+  "name": "@hackbg/sienna-rewards",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "./contracts/gov-token",
+    "./contracts/lp-staking",
+    "./contracts/weight-master",
+    "./librares/fadroma"
+  ],
+  "dependencies": {
+    "@hackbg/fadroma": "./libraries/fadroma",
+    "bignum": "^0.13.1",
+    "chokidar": "^3.5.1",
+    "docco": "^0.8.1",
+    "esm": "^3.2.25",
+    "node-notifier": "^9.0.1",
+    "open": "^8.0.2",
+    "prettyjson": "^1.2.1",
+    "prompts": "^2.4.1",
+    "secretjs": "^0.11.0",
+    "yargs": "^16.2.0"
+  },
+  "scripts": {
+    "start": "node sienna.js",
+    "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css"
+  }
+}

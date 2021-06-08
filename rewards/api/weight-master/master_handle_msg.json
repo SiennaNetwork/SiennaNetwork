@@ -1,0 +1,175 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MasterHandleMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "update_allocation"
+      ],
+      "properties": {
+        "update_allocation": {
+          "type": "object",
+          "required": [
+            "spy_addr",
+            "spy_hash"
+          ],
+          "properties": {
+            "hook": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Binary"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spy_addr": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "spy_hash": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_weights"
+      ],
+      "properties": {
+        "set_weights": {
+          "type": "object",
+          "required": [
+            "weights"
+          ],
+          "properties": {
+            "weights": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WeightInfo"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_schedule"
+      ],
+      "properties": {
+        "set_schedule": {
+          "type": "object",
+          "required": [
+            "schedule"
+          ],
+          "properties": {
+            "schedule": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ScheduleUnit"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_gov_token"
+      ],
+      "properties": {
+        "set_gov_token": {
+          "type": "object",
+          "required": [
+            "addr",
+            "hash"
+          ],
+          "properties": {
+            "addr": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "hash": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "change_admin"
+      ],
+      "properties": {
+        "change_admin": {
+          "type": "object",
+          "required": [
+            "addr"
+          ],
+          "properties": {
+            "addr": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "ScheduleUnit": {
+      "type": "object",
+      "required": [
+        "end_block",
+        "mint_per_block"
+      ],
+      "properties": {
+        "end_block": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "mint_per_block": {
+          "$ref": "#/definitions/Uint128"
+        }
+      }
+    },
+    "Uint128": {
+      "type": "string"
+    },
+    "WeightInfo": {
+      "type": "object",
+      "required": [
+        "address",
+        "hash",
+        "weight"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "hash": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    }
+  }
+}

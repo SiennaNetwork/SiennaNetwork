@@ -1,0 +1,135 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MasterQueryAnswer",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "gov_token"
+      ],
+      "properties": {
+        "gov_token": {
+          "type": "object",
+          "required": [
+            "token_addr",
+            "token_hash"
+          ],
+          "properties": {
+            "token_addr": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "token_hash": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "schedule"
+      ],
+      "properties": {
+        "schedule": {
+          "type": "object",
+          "required": [
+            "schedule"
+          ],
+          "properties": {
+            "schedule": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ScheduleUnit"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "spy_weight"
+      ],
+      "properties": {
+        "spy_weight": {
+          "type": "object",
+          "required": [
+            "weight"
+          ],
+          "properties": {
+            "weight": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "pending"
+      ],
+      "properties": {
+        "pending": {
+          "type": "object",
+          "required": [
+            "amount"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "HumanAddr": {
+      "type": "string"
+    },
+    "ScheduleUnit": {
+      "type": "object",
+      "required": [
+        "end_block",
+        "mint_per_block"
+      ],
+      "properties": {
+        "end_block": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "mint_per_block": {
+          "$ref": "#/definitions/Uint128"
+        }
+      }
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}
