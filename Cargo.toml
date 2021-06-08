@@ -28,20 +28,21 @@ members = [
                                # (swap/contracts/snip20-reference-impl)
 
   # Lending
-  "lend-experimental/contracts/atoken",        # TODO document
-  "lend-experimental/contracts/configuration", # TODO document
-  "lend-experimental/contracts/libraries",     # TODO document
-  "lend-experimental/packages/snip20",         # TODO document
-  #"lend/contracts/atoken",
-  #"lend/packages/snip20",
+
+  #"contracts/lend-atoken" # <- https://github.com/SiennaNetwork/sienna-lend/tree/master/contracts/atoken/src
+  #"contracts/snip20-lend" # <- https://github.com/SiennaNetwork/sienna-lend/tree/master/packages/snip20
+
+  "libraries/lend-experimental",        # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/libraries
+  "contracts/lend-atoken-experimental", # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/atoken
+  "contracts/lend-configuration",       # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/configuration
+  "contracts/snip20-lend-experimental", # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/packages/snip20
 
   # Framework
-  "libraries/fadroma-21.04",   # old versions of fadroma used here and there
-  "libraries/fadroma-21.05.1", # TODO this one is the only one that needs to be pinned (used by TGE)
-  "libraries/fadroma-21.06",   # the rest need to be updated to 21.06.1/21.07...
   "libraries/fadroma-21.06.1/scrt-admin/composable-admin", # proc macro for `require_admin` attribute
   "libraries/fadroma-21.06.1/scrt-admin/require-admin",    # implementation of admin check
+  "libraries/fadroma-21.06.1/scrt-contract",               # contract wrapper macro
   "libraries/fadroma-21.06.1/scrt-migrate",                # pause contracts and mark them for upgrade
+  "libraries/fadroma-21.06.1/scrt-storage",                # storage access shorthand functions
   "libraries/fadroma-21.06.1/scrt-utils",                  # grab bag of utility functions
   "libraries/migrate",  # migration flag - TODO replace with fadroma-21.06.1/scrt-migrate ?
   "libraries/kukumba",  # BDD testing framework

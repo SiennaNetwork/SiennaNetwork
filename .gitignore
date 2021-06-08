@@ -1,13 +1,28 @@
-node_modules
+# Binaries
 target
 *.wat
 *.wasm
 *.wasm.gz
 *.profraw
+
+# State
 .env
-node_modules
-.~*
-yarn-error.log
-.idea
 .fadroma
+
+# Node
+node_modules
+yarn-error.log
+
+# Cargo+Git helper file (https://github.com/rust-lang/cargo/blob/0.44.1/src/cargo/sources/git/utils.rs#L320-L327)
+.cargo-ok
+
+# Text file backups and locks
+**/*.rs.bk
+.~*
+
+# macOS
 .DS_Store
+
+# IDEs
+*.iml
+.idea
