@@ -1,3 +1,4 @@
+name: TGE-Rewards
 on: [push, pull_request]
 name: SIENNA CI
 jobs:
@@ -21,10 +22,6 @@ jobs:
     name: Unit tests and documentation
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-        with:
-          submodules: true
       - name: Install toolchain that allows macro backtrace
         uses: actions-rs/toolchain@v1
         with:
@@ -32,6 +29,12 @@ jobs:
           toolchain: nightly
           target: wasm32-unknown-unknown
           override: true
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Change directory
+        run: cd tge-rewards
       - name: Run unit tests
         uses: actions-rs/cargo@v1
         with:
@@ -51,10 +54,6 @@ jobs:
     name: Unit test coverage report
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-        with:
-          submodules: true
       - name: Install toolchain that works with Tarpaulin
         uses: actions-rs/toolchain@v1
         with:
@@ -69,6 +68,12 @@ jobs:
           args: cargo-tarpaulin
         env:
           RUST_BACKTRACE: 1
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Change directory
+        run: cd tge-rewards
       - name: Generate test coverage
         uses: actions-rs/cargo@v1
         with:

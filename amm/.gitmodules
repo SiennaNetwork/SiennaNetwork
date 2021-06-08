@@ -1,7 +1,0 @@
-[submodule "snip20-reference-impl"]
-	path = contracts/snip20-reference-impl
-	url = https://github.com/hackbg/snip20-reference-impl
-	branch = master
-[submodule "fadroma"]
-	path = libraries/fadroma
-	url = git@github.com:hackbg/fadroma.git

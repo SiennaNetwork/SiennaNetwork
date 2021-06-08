@@ -1,0 +1,58 @@
+[submodule "amm/token"]
+  update = rebase
+  path   = amm/contracts/snip20-reference-impl
+  url    = https://github.com/hackbg/snip20-reference-impl
+  branch = 21.04
+[submodule "amm/fadroma"]
+  update = rebase
+  path   = amm/libraries/fadroma
+  url    = git@github.com:hackbg/fadroma.git
+  branch = 21.06.1
+
+[submodule "rewards/fadroma"]
+  update = rebase
+  path   = rewards/libraries/fadroma
+  url    = git@github.com:hackbg/fadroma.git
+  branch = 21.04
+
+[submodule "tge/token"]
+  update = rebase
+  path   = tge/contracts/token
+  url    = git@github.com:hackbg/snip20-reference-impl.git
+  branch = 21.04+nodeposit+noredeem
+[submodule "tge/fadroma"]
+  update = rebase
+  path   = tge/libraries/fadroma
+  url    = git@github.com:hackbg/fadroma.git
+  branch = 21.05
+[submodule "tge/kukumba"]
+  update = rebase
+  path   = tge/libraries/kukumba
+  url    = git@github.com:hackbg/kukumba.git
+  branch = 21.04
+[submodule "tge/platform"]
+  update = rebase
+  path   = tge/platform
+  url    = git@github.com:hackbg/SecretNetwork.git
+  branch = 21.03
+
+[submodule "tge-rewards/token"]
+  update = rebase
+  path   = tge-rewards/contracts/token
+  url    = git@github.com:SiennaNetwork/snip20-reference-impl.git
+  branch = 21.04+nodeposit+noredeem
+[submodule "tge-rewards/fadroma"]
+  update = rebase
+  path   = tge-rewards/libraries/fadroma
+  url    = git@github.com:hackbg/fadroma.git
+  branch = 21.06
+[submodule "tge-rewards/kukumba"]
+  update = rebase
+  path   = tge-rewards/libraries/kukumba
+  url    = git@github.com:hackbg/kukumba.git
+  branch = 21.04
+[submodule "tge-rewards/platform"]
+  update = rebase
+  path   = tge-rewards/platform
+  url    = git@github.com:hackbg/SecretNetwork.git
+  branch = 21.03

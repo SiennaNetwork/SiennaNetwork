@@ -1,13 +1,10 @@
+name: AMM
 on: [push, pull_request]
 jobs:
   cargo:
     name: Unit tests and documentation
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-        with:
-          submodules: true
       - name: Install toolchain that allows macro backtrace
         uses: actions-rs/toolchain@v1
         with:
@@ -15,6 +12,12 @@ jobs:
           toolchain: nightly
           target: wasm32-unknown-unknown
           override: true
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Change directory
+        run: cd amm
       - name: Run unit tests
         uses: actions-rs/cargo@v1
         with:
@@ -29,3 +32,4 @@ jobs:
           command: doc
         env:
           RUST_BACKTRACE: 1
+
