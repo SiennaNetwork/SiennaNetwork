@@ -6,9 +6,9 @@ edition = "2018"
 
 [dependencies]
 cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
-gov-token       = { path = "../contracts/gov-token" }
-lp-staking      = { path = "../contracts/lp-staking" }
-weight-master   = { path = "../contracts/weight-master" }
+gov-token       = { path = "../rewards/contracts/gov-token" }
+lp-staking      = { path = "../rewards/contracts/lp-staking" }
+weight-master   = { path = "../rewards/contracts/weight-master" }
 
 [[bin]]
 name = "schema"

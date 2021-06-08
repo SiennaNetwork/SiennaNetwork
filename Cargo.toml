@@ -1,0 +1,57 @@
+[workspace]
+members = [
+  "api", # JSON schema exporter
+
+  #"lend/contracts/atoken",
+  #"lend/packages/snip20",
+  "lend-experimental/contracts/atoken",
+  "lend-experimental/contracts/configuration",
+  "lend-experimental/contracts/libraries",
+  "lend-experimental/packages/snip20",
+
+  "rewards/contracts/gov-token",
+  "rewards/contracts/lp-staking",
+  "rewards/contracts/weight-master",
+  "rewards/libraries/fadroma",
+  "rewards/packages/scrt-finance",
+  
+  "swap/contracts/exchange",              # uniswap exchange contract implementation
+  "swap/contracts/factory",               # factory contract for creating exchanges
+  "swap/contracts/ido",                   # Sienna IDO
+  "swap/contracts/lp-token",              # snip20 liquidity provider token
+  "swap/contracts/snip20-reference-impl", # snip20 token implementation with a modification to call back a contract after init
+
+  "swap/libraries/amm-shared",           # definitions that are shared between AMM and IDO
+  "swap/libraries/fadroma/scrt-admin/composable-admin", # proc macro for `require_admin` attribute
+  "swap/libraries/fadroma/scrt-admin/require-admin",    # implementation of admin check
+  "swap/libraries/fadroma/scrt-migrate", # pause contracts and mark them for upgrade
+  "swap/libraries/fadroma/scrt-utils",   # grab bag of utility functions
+
+  "tge/contracts/mgmt",     # smart contract that mints and vests tokens according to schedule
+  "tge/contracts/rpt",      # smart contract that claims from mgmt and splits the received funds among recipients
+  "tge/contracts/token",    # any token that implements SNIP20
+  "tge/libraries/fadroma",  # smart contract microframework
+  "tge/libraries/kukumba",  # bdd testing framework
+  "tge/libraries/migrate",  # migration flag
+  "tge/libraries/schedule", # model of SIENNA vesting logic
+
+  "tge-rewards/contracts/mgmt",     # smart contract that mints and vests tokens according to schedule
+  "tge-rewards/contracts/rpt",      # smart contract that claims from mgmt and splits the received funds among recipients
+  "tge-rewards/contracts/token",    # any token that implements SNIP20
+  "tge-rewards/contracts/rewards",  # TODO: leave only this and use MGMT and RPT from tge
+  "tge-rewards/libraries/fadroma",  # smart contract microframework
+  "tge-rewards/libraries/kukumba",  # bdd testing framework
+  "tge-rewards/libraries/migrate",  # migration flag
+  "tge-rewards/libraries/schedule", # model of SIENNA vesting logic
+]
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'
+incremental = false
+overflow-checks = true

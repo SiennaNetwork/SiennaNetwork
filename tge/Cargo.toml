@@ -1,22 +1,17 @@
-[workspace]
-members = [
-  "libraries/kukumba",  # bdd testing framework
-  "libraries/fadroma",  # smart contract microframework
-  "libraries/schedule", # model of SIENNA vesting logic
-  "libraries/migrate",  # migration flag
-  "contracts/mgmt",     # smart contract that mints and vests tokens according to schedule
-  "contracts/rpt",      # smart contract that claims from mgmt and splits the received funds among recipients
-  "contracts/token",    # any token that implements SNIP20
-  "api",                # generate API schema
-]
+[package]
+name    = "sienna-schema"
+version = "0.0.0"
+authors = ["Adam A. <adam@hack.bg>"]
+edition = "2018"
 
-[profile.release]
-opt-level = 3
-debug = false
-rpath = false
-lto = true
-debug-assertions = false
-codegen-units = 1
-panic = 'abort'
-incremental = false
-overflow-checks = true
+[dependencies]
+cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+snip20-reference-impl = { path = "../contracts/token" }
+sienna-mgmt  = { path = "../contracts/mgmt" }
+sienna-rpt   = { path = "../contracts/rpt" }
+sienna-rewards = { path = "../contracts/rewards" }
+
+[[bin]]
+name = "schema"
+path = "schema.rs"
+
