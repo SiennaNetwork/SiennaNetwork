@@ -15,7 +15,7 @@ cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0
 cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
 
-composable-admin      = { path = "../fadroma/scrt-admin/composable-admin" }
-fadroma-scrt-addr     = { path = "../fadroma/scrt-addr" }
-fadroma-scrt-callback = { path = "../fadroma/scrt-callback" }
-fadroma-scrt-migrate  = { path = "../fadroma/scrt-migrate" }
+composable-admin      = { path = "../fadroma-21.06.1/scrt-admin/composable-admin" }
+fadroma-scrt-addr     = { path = "../fadroma-21.06.1/scrt-addr" }
+fadroma-scrt-callback = { path = "../fadroma-21.06.1/scrt-callback" }
+fadroma-scrt-migrate  = { path = "../fadroma-21.06.1/scrt-migrate" }

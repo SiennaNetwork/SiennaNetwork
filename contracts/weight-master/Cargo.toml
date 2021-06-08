@@ -22,13 +22,15 @@ default = []
 backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
-secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
-cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-scrt-finance = { path = "../../packages/scrt-finance" }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
+
+secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
+cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+
+scrt-finance = { path = "../../libraries/scrt-finance" }
 fadroma = { path = "../../libraries/fadroma-21.04" }
 
 [dev-dependencies]

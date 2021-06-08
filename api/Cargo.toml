@@ -10,15 +10,15 @@ cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v
 amm-shared      = { path = "../libraries/amm-shared" }
 exchange        = { path = "../contracts/exchange" }
 factory         = { path = "../contracts/factory" }
-gov-token       = { path = "../rewards/contracts/gov-token" }
+gov-token       = { path = "../contracts/gov-token" }
 ido             = { path = "../contracts/ido" }
-lp-staking      = { path = "../rewards/contracts/lp-staking" }
+lp-staking      = { path = "../contracts/lp-staking" }
 lp-token        = { path = "../contracts/lp-token" }
 sienna-mgmt     = { path = "../contracts/mgmt" }
 sienna-rewards  = { path = "../contracts/rewards" }
 sienna-rpt      = { path = "../contracts/rpt" }
-snip20-reference-impl = { path = "../contracts/token" }
-weight-master   = { path = "../rewards/contracts/weight-master" }
+snip20-reference-impl = { path = "../contracts/snip20" }
+weight-master   = { path = "../contracts/weight-master" }
 
 [[bin]]
 name = "schema"

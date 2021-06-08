@@ -2,47 +2,49 @@
 members = [
   "api", # JSON schema exporter
 
+  # TGE
+  "libraries/schedule",        # model of TGE vesting logic
+  "libraries/linear-map",      # simple way of storing small number of addresses
+  "contracts/snip20-sienna",   # SNIP20 reference impl with deposit/redeem disabled
+  "contracts/mgmt",            # mints and vests tokens according to schedule
+  "contracts/rpt",             # claims from mgmt and splits the portion between recipients
+  "contracts/rewards",         # TODO: leave only this and use MGMT and RPT from tge
+
+  # Rewards
+  "contracts/gov-token",       # TODO document
+  "contracts/lp-staking",      # TODO document
+  "contracts/weight-master",   # TODO document
+  "libraries/scrt-finance",    # TODO document
+  "contracts/snip20",          # SNIP20 reference impl
+
+  # Swap + IDO
+  "libraries/amm-shared",      # definitions that are shared between AMM and IDO
+  "contracts/exchange",        # uniswap exchange contract implementation
+  "contracts/factory",         # factory contract for creating exchanges
+  "contracts/ido",             # Sienna IDO
+  "contracts/lp-token",        # snip20 liquidity provider token
+  "contracts/snip20-callback", # SNIP20 token implementation with a modification to call back a
+                               # contract after init: TODO re-add this from sienna-swap-amm
+                               # (swap/contracts/snip20-reference-impl)
+
+  # Lending
+  "lend-experimental/contracts/atoken",        # TODO document
+  "lend-experimental/contracts/configuration", # TODO document
+  "lend-experimental/contracts/libraries",     # TODO document
+  "lend-experimental/packages/snip20",         # TODO document
   #"lend/contracts/atoken",
   #"lend/packages/snip20",
-  "lend-experimental/contracts/atoken",
-  "lend-experimental/contracts/configuration",
-  "lend-experimental/contracts/libraries",
-  "lend-experimental/packages/snip20",
 
-  "rewards/contracts/gov-token",
-  "rewards/contracts/lp-staking",
-  "rewards/contracts/weight-master",
-  "rewards/libraries/fadroma",
-  "rewards/packages/scrt-finance",
-  
-  "swap/contracts/exchange",              # uniswap exchange contract implementation
-  "swap/contracts/factory",               # factory contract for creating exchanges
-  "swap/contracts/ido",                   # Sienna IDO
-  "swap/contracts/lp-token",              # snip20 liquidity provider token
-  "swap/contracts/snip20-reference-impl", # snip20 token implementation with a modification to call back a contract after init
-
-  "swap/libraries/amm-shared",           # definitions that are shared between AMM and IDO
-  "swap/libraries/fadroma/scrt-admin/composable-admin", # proc macro for `require_admin` attribute
-  "swap/libraries/fadroma/scrt-admin/require-admin",    # implementation of admin check
-  "swap/libraries/fadroma/scrt-migrate", # pause contracts and mark them for upgrade
-  "swap/libraries/fadroma/scrt-utils",   # grab bag of utility functions
-
-  "tge/contracts/mgmt",     # smart contract that mints and vests tokens according to schedule
-  "tge/contracts/rpt",      # smart contract that claims from mgmt and splits the received funds among recipients
-  "tge/contracts/token",    # any token that implements SNIP20
-  "tge/libraries/fadroma",  # smart contract microframework
-  "tge/libraries/kukumba",  # bdd testing framework
-  "tge/libraries/migrate",  # migration flag
-  "tge/libraries/schedule", # model of SIENNA vesting logic
-
-  "tge-rewards/contracts/mgmt",     # smart contract that mints and vests tokens according to schedule
-  "tge-rewards/contracts/rpt",      # smart contract that claims from mgmt and splits the received funds among recipients
-  "tge-rewards/contracts/token",    # any token that implements SNIP20
-  "tge-rewards/contracts/rewards",  # TODO: leave only this and use MGMT and RPT from tge
-  "tge-rewards/libraries/fadroma",  # smart contract microframework
-  "tge-rewards/libraries/kukumba",  # bdd testing framework
-  "tge-rewards/libraries/migrate",  # migration flag
-  "tge-rewards/libraries/schedule", # model of SIENNA vesting logic
+  # Framework
+  "libraries/fadroma-21.04",   # old versions of fadroma used here and there
+  "libraries/fadroma-21.05.1", # TODO this one is the only one that needs to be pinned (used by TGE)
+  "libraries/fadroma-21.06",   # the rest need to be updated to 21.06.1/21.07...
+  "libraries/fadroma-21.06.1/scrt-admin/composable-admin", # proc macro for `require_admin` attribute
+  "libraries/fadroma-21.06.1/scrt-admin/require-admin",    # implementation of admin check
+  "libraries/fadroma-21.06.1/scrt-migrate",                # pause contracts and mark them for upgrade
+  "libraries/fadroma-21.06.1/scrt-utils",                  # grab bag of utility functions
+  "libraries/migrate",  # migration flag - TODO replace with fadroma-21.06.1/scrt-migrate ?
+  "libraries/kukumba",  # BDD testing framework
 ]
 
 [profile.release]
