@@ -1,0 +1,41 @@
+{
+  "contractAddress": "secret1ccl2g2cr2h5xvljyqj75urew4dr2np4npa3s83",
+  "logs": [
+    {
+      "msg_index": 0,
+      "log": "",
+      "events": [
+        {
+          "type": "message",
+          "attributes": [
+            {
+              "key": "action",
+              "value": "instantiate"
+            },
+            {
+              "key": "module",
+              "value": "compute"
+            },
+            {
+              "key": "signer",
+              "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+            },
+            {
+              "key": "code_id",
+              "value": "28763"
+            },
+            {
+              "key": "contract_address",
+              "value": "secret1ccl2g2cr2h5xvljyqj75urew4dr2np4npa3s83"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "transactionHash": "FB6923F9E2DCE1415E896DA024CA932A826A3676FAD2249C9D6371E299419F34",
+  "data": "C63EA42B0355E8667E4404BD4E0F2EAB46A986B3",
+  "codeId": 28763,
+  "label": "2021-04-29_10-09-47-315_SIENNA_RPT",
+  "codeHash": "a9bfc78d182eb8d3cbb74d4269ef1f529a607f7842d755f00fef7df13c02c5b4"
+}

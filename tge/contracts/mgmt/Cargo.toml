@@ -1,0 +1,36 @@
+[package]
+name = "sienna-mgmt"
+version = "2.0.0-rc1"
+authors = ["Adam Avramov <adam@hack.bg>"]
+edition = "2018"
+
+exclude = [
+  # Those files are rust-optimizer artifacts. You might want to commit them for convenience but they should not be part of the source code publication.
+  "contract.wasm",
+  "hash.txt",
+]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[features]
+default = []
+backtraces = ["cosmwasm-std/backtraces"]
+
+[dependencies]
+cosmwasm-schema  = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+fadroma          = { path = "../../libraries/fadroma" }
+linear-map       = { path = "../../libraries/linear-map" }
+schemars         = "0.7"
+secret-toolkit   = { git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
+serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
+sienna-migrate   = { path = "../../libraries/migrate" }
+sienna-schedule  = { path = "../../libraries/schedule" }
+snafu            = { version = "0.6.3", features = ["backtraces"] }
+
+[dev-dependencies]
+kukumba = { path = "../../libraries/kukumba" }
+serde_json = "1.0"

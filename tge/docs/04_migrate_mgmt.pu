@@ -1,0 +1,46 @@
+@startuml
+skinparam backgroundColor #ccc
+skinparam sequence.LifeLineBorderColor #555
+actor Admin order 0
+entity SIENNA order 3
+entity MGMT order 2
+entity RPT order 4
+
+== Normal operation ==
+create actor Claimant order 1
+Admin -[hidden]-> Claimant
+Claimant -> MGMT : **tx** MGMT.Claim
+MGMT -> SIENNA : **tx** SNIP20.Transfer
+note right #00ff00: update balance
+MGMT -> Claimant : **res** (successful claim)
+Claimant -> SIENNA : **q** SNIP20.Balance
+SIENNA -> Claimant : **res** updated balance
+
+== Pausing MGMT ==
+Admin -> MGMT : **tx** MGMT.SetStatus(Paused)
+note right #ffaa00: state.status = Paused
+Claimant -x MGMT : **tx** MGMT.Claim
+note right #ff8888: can't claim when paused
+MGMT -> Claimant : **err** "Contract paused!"
+
+== Migrating MGMT ==
+Admin -> MGMT : **q** MGMT.Schedule
+MGMT -> Admin : **res** (current schedule)
+Admin -> MGMT : **q** MGMT.History
+MGMT -> Admin : **res** (current claim history)
+create entity newMGMT order 2
+Admin -> newMGMT : **init** MGMT.Init(schedule, history)
+note right #00ff00: new instance with config from previous one
+Admin -> MGMT : **tx** MGMT.SetStatus(Migrating, reason, newMGMT)
+note right #ffaa00: state.status = Migrating **(permanent!)**
+Claimant -x MGMT : **tx** MGMT.Claim
+note right #ff8888: can't claim from contract during migration
+MGMT -> Claimant : **err** "Use newMGMT instead!"
+Claimant -> newMGMT : **tx** MGMT.Claim!
+note right #00ff00: newMGMT takes over from MGMT
+newMGMT -> SIENNA : **tx** SNIP20.Transfer
+note right #00ff00: claim successful
+newMGMT -> Claimant : **res** (successful claim)
+Claimant -> SIENNA : **q** SNIP20.Balance?
+SIENNA -> Claimant : **res** updated balance
+@enduml
