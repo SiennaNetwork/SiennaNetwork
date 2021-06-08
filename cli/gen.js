@@ -4,7 +4,7 @@ import { scheduleFromSpreadsheet } from '@sienna/schedule'
 
 import { abs } from './root.js'
 import { cargo } from './run.js'
-import { TGEContracts } from './ops.js'
+import TGEContracts from './TGEContracts.js'
 
 const {stderr} = process
 
