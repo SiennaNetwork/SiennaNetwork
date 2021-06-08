@@ -1,4 +1,4 @@
-import { SecretNetwork, loadSchemas } from '@hackbg/fadroma'
+import { SecretNetwork, loadSchemas } from '@fadroma/scrt-agent'
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg:     './rpt/init.json',

@@ -1,11 +1,11 @@
-import { SecretNetwork, loadSchemas } from '@hackbg/fadroma'
+import { SecretNetwork, loadSchemas } from '@fadroma/scrt-agent'
 
 export const schema = loadSchemas(import.meta.url, {
-  initMsg:      './token/init_msg.json',
-  queryMsg:     './token/query_msg.json',
-  queryAnswer:  './token/query_answer.json',
-  handleMsg:    './token/handle_msg.json',
-  handleAnswer: './token/handle_answer.json'
+  initMsg:      './snip20/init_msg.json',
+  queryMsg:     './snip20/query_msg.json',
+  queryAnswer:  './snip20/query_answer.json',
+  handleMsg:    './snip20/handle_msg.json',
+  handleAnswer: './snip20/handle_answer.json'
 })
 
 const decoder = new TextDecoder()

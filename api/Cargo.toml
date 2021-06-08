@@ -1,13 +1,23 @@
 [package]
-name    = "sienna-rewards-schema"
+name    = "sienna-schema"
 version = "0.0.0"
 authors = ["Adam A. <adam@hack.bg>"]
 edition = "2018"
 
 [dependencies]
 cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+
+amm-shared      = { path = "../libraries/amm-shared" }
+exchange        = { path = "../contracts/exchange" }
+factory         = { path = "../contracts/factory" }
 gov-token       = { path = "../rewards/contracts/gov-token" }
+ido             = { path = "../contracts/ido" }
 lp-staking      = { path = "../rewards/contracts/lp-staking" }
+lp-token        = { path = "../contracts/lp-token" }
+sienna-mgmt     = { path = "../contracts/mgmt" }
+sienna-rewards  = { path = "../contracts/rewards" }
+sienna-rpt      = { path = "../contracts/rpt" }
+snip20-reference-impl = { path = "../contracts/token" }
 weight-master   = { path = "../rewards/contracts/weight-master" }
 
 [[bin]]

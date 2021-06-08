@@ -1,5 +1,5 @@
 {
-  "name": "@hackbg/sienna-rewards-api",
+  "name": "@hackbg/sienna-api",
   "version": "0.0.0",
   "main": "./schema/index.js",
   "type": "module",
