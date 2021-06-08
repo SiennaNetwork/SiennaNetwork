@@ -41,13 +41,8 @@
   url    = git@github.com:hackbg/kukumba.git
   branch = 21.04
 
-[submodule "tge/platform"]
+[submodule "platform"] # secret network with modifications to secretjs error handling
   update = rebase
-  path   = tge/platform
-  url    = git@github.com:hackbg/SecretNetwork.git
-  branch = 21.03
-[submodule "tge-rewards/platform"]
-  update = rebase
-  path   = tge-rewards/platform
+  path   = platform
   url    = git@github.com:hackbg/SecretNetwork.git
   branch = 21.03
