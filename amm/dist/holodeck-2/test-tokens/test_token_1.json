@@ -1,0 +1,12 @@
+{
+  "contract": {
+    "code_hash": "78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829",
+    "address": "secret1w9y0jala2yn4sh86dgwy3dcwg35s4qqjw932pc"
+  },
+  "info": {
+    "name": "test_token",
+    "symbol": "STEST",
+    "decimals": 6,
+    "prng_seed": "LnTW9C23Zt7OhvVZJeWykiRtVVxZgjilgn01clC0pus="
+  }
+}

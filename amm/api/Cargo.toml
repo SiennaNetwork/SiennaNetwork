@@ -1,0 +1,18 @@
+[package]
+name    = "sienna-amm-schema"
+version = "0.0.0"
+authors = ["Adam A. <adam@hack.bg>"]
+edition = "2018"
+
+[dependencies]
+cosmwasm-schema       = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+exchange              = { path = "../contracts/exchange" }
+factory               = { path = "../contracts/factory" }
+ido                   = { path = "../contracts/ido" }
+lp-token              = { path = "../contracts/lp-token" }
+snip20-reference-impl = { path = "../contracts/snip20-reference-impl" }
+amm-shared            = { path = "../libraries/amm-shared" }
+
+[[bin]]
+name = "schema"
+path = "schema.rs"

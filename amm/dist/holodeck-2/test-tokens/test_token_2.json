@@ -1,0 +1,12 @@
+{
+  "contract": {
+    "code_hash": "78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829",
+    "address": "secret129nq840d05a0tvkranw5xesq9k0uwmn8mg7ft5"
+  },
+  "info": {
+    "name": "test_token2",
+    "symbol": "SITOK",
+    "decimals": 6,
+    "prng_seed": "wGdhm2ThKFU9yzJ1FwkwxdcZS4nOxCHETA1HTPmQKIE="
+  }
+}
