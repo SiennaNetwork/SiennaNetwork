@@ -3,10 +3,10 @@ import { randomBytes } from 'crypto'
 import SNIP20 from './SNIP20.js'
 import Rewards from './Rewards.js'
 
-import {RewardsContracts} from '../cli/ops.js'
-import {abs} from '../cli/root.js'
-import {SecretNetwork} from '@hackbg/fadroma'
-import ensureWallets from '@hackbg/fadroma/js/SecretNetwork/ensureWallets.js'
+import {abs} from '../ops/root.js'
+import RewardsContracts from '../ops/RewardsContracts.js'
+import {SecretNetwork} from '@fadroma/scrt-agent'
+import ensureWallets from '@fadroma/scrt-agent/fund.js'
 
 describe('Rewards', () => {
 
@@ -21,8 +21,10 @@ describe('Rewards', () => {
   }
 
   before(setupAll(state))
-  beforeEach(setupEach(state))
+
   after(cleanupAll(state))
+
+  beforeEach(setupEach(state))
 
   it('can lock and return tokens', async function () {
     this.timeout(60000)

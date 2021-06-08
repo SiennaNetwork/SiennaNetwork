@@ -12,6 +12,7 @@ import yargs from 'yargs'
 // custom
 import { SecretNetwork } from '@fadroma/scrt-agent'
 import ensureWallets from '@fadroma/scrt-agent/fund.js'
+import Localnet from '@fadroma/scrt-ops/localnet.js'
 import { scheduleFromSpreadsheet } from '@sienna/schedule'
 
 import { abs, stateBase } from './root.js'
@@ -54,7 +55,7 @@ export default function main () {
       args.Spreadsheet, genConfig)
     .command('clean-localnet',
       '♻️  Try to terminate a loose localnet container and remove its state files',
-      () => new SecretNetwork.Node().terminate())
+      () => new Localnet().terminate())
 
     // deployment and configuration:
     .command('deploy-tge [network] [schedule]',
