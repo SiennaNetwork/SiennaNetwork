@@ -1,6 +1,6 @@
 [package]
 name = "sienna-rpt"
-version = "1.0.0-rc1"
+version = "1.0.0"
 authors = ["Adam Avramov <adam@hack.bg>"]
 edition = "2018"
 
@@ -27,4 +27,4 @@ snafu            = { version = "0.6.3", features = ["backtraces"] }
 
 [dev-dependencies]
 kukumba = { path = "../../libraries/kukumba" }
-snip20-reference-impl = { path = "../snip20-sienna" }
+snip20-sienna = { path = "../snip20-sienna" }

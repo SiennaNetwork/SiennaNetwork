@@ -22,7 +22,7 @@ use sienna_rpt::{
     ContractStatus, ContractStatusLevel
 };
 use sienna_mgmt::msg::{Query as MGMTQuery, Response as MGMTResponse, Handle as MGMTHandle};
-use snip20_reference_impl::msg::{HandleMsg as TokenHandle};
+use snip20_sienna::msg::{HandleMsg as TokenHandle};
 use linear_map::LinearMap;
 
 kukumba!(

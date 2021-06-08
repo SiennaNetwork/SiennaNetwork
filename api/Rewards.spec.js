@@ -8,6 +8,8 @@ import RewardsContracts from '../ops/RewardsContracts.js'
 import {SecretNetwork} from '@fadroma/scrt-agent'
 import ensureWallets from '@fadroma/scrt-agent/fund.js'
 
+const contracts = new RewardsContracts()
+
 describe('Rewards', () => {
 
   const state = {
@@ -83,13 +85,14 @@ describe('Rewards', () => {
   it('can be administrated', () => {})
 
   it('is protected by a viewing key', () => {})
+
 })
 
 function setupAll (state = {}) {
   return async function () {
     this.timeout(60000)
     // before each test run, compile fresh versions of the contracts
-    const {TOKEN: tokenBinary, REWARDS: rewardsBinary} = await RewardsContracts.build({
+    const {TOKEN: tokenBinary, REWARDS: rewardsBinary} = await contracts.build({
       workspace: abs(),
       parallel: false
     })
@@ -115,12 +118,12 @@ function setupEach (state = {}) {
       agent:   state.admin,
       label:   'token',
       codeId:  state.tokenCodeId,
-      initMsg: RewardsContracts.contracts.TOKEN.initMsg
+      initMsg: contracts.contracts.TOKEN.initMsg
     })
     console.log('\ndeploying instance of rewards')
     const reward_token = { address: state.token.address, code_hash: state.token.codeHash }
     const initMsg = {
-      ...RewardsContracts.contracts.REWARDS.initMsg,
+      ...contracts.contracts.REWARDS.initMsg,
       admin: state.admin.address,
       reward_token,
       entropy:   randomBytes(36).toString('base64'),

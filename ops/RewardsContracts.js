@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs'
+import { randomBytes } from 'crypto'
 import Ensemble from '@fadroma/scrt-ops/ensemble.js'
 import { abs } from './root.js'
 
@@ -10,7 +12,7 @@ export default class RewardsContracts extends Ensemble {
   contracts = {
 
     TOKEN: {
-      crate:   'snip20-reference-impl',
+      crate:   'snip20-sienna',
       schema:  'schema',
       label:   `${this.prefix}SIENNA_SNIP20`,
       initMsg: {

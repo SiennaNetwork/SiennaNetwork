@@ -1,6 +1,6 @@
 [package]
 name = "sienna-mgmt"
-version = "2.0.0-rc1"
+version = "2.0.0"
 authors = ["Adam Avramov <adam@hack.bg>"]
 edition = "2018"
 

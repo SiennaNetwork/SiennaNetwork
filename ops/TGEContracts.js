@@ -8,7 +8,7 @@ export default class TGEContracts extends Ensemble {
   contracts = {
 
     TOKEN: {
-      crate:   'snip20-reference-impl',
+      crate:   'snip20-sienna',
       schema:  'schema',
       label:   `${prefix}SIENNA_SNIP20`,
       initMsg: {
