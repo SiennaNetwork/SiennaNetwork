@@ -1,9 +1,0 @@
-{
-  "name": "@hackbg/sienna-docs",
-  "private": "true",
-  "version": "2.0.0-pre",
-  "dependencies": {
-    "colors": "^1.4.0",
-    "marked": "^2.0.1"
-  }
-}

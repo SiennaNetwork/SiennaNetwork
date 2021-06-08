@@ -29,7 +29,7 @@ scrt-finance = { path = "../../packages/scrt-finance" }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
-fadroma = { path = "../../libraries/fadroma" }
+fadroma = { path = "../../libraries/fadroma-21.04" }
 
 [dev-dependencies]
 cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }

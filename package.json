@@ -3,10 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "workspaces": [
+    "./libraries/fadroma-21.06.1/scrt-agent",
+    "./libraries/fadroma-21.06.1/scrt-ops",
     "./api",
-    "./cli",
-    "./swap/libraries/fadroma/scrt-agent",
-    "./swap/libraries/fadroma/scrt-ops"
+    "./cli"
   ],
   "dependencies": {
     "chai": "^4.3.4",

@@ -11,38 +11,33 @@
 
 [submodule "fadroma-21.04"]
   update = rebase
-  path   = rewards/libraries/fadroma
+  path   = libraries/fadroma-21.04
   url    = git@github.com:hackbg/fadroma.git
   branch = 21.04
 [submodule "fadroma-21.05"]
   update = rebase
-  path   = tge/libraries/fadroma
+  path   = libraries/fadroma-21.05.1
   url    = git@github.com:hackbg/fadroma.git
   branch = 21.05
 [submodule "fadroma-21.06"]
   update = rebase
-  path   = tge-rewards/libraries/fadroma
+  path   = libraries/fadroma-21.06
   url    = git@github.com:hackbg/fadroma.git
   branch = 21.06
 [submodule "fadroma-21.06.1"]
   update = rebase
-  path   = swap/libraries/fadroma
+  path   = libraries/fadroma-21.06.1
   url    = git@github.com:hackbg/fadroma.git
   branch = 21.06.1
-
-[submodule "tge/kukumba"]
-  update = rebase
-  path   = tge/libraries/kukumba
-  url    = git@github.com:hackbg/kukumba.git
-  branch = 21.04
-[submodule "tge-rewards/kukumba"]
-  update = rebase
-  path   = tge-rewards/libraries/kukumba
-  url    = git@github.com:hackbg/kukumba.git
-  branch = 21.04
 
 [submodule "platform"] # secret network with modifications to secretjs error handling
   update = rebase
   path   = platform
   url    = git@github.com:hackbg/SecretNetwork.git
   branch = 21.03
+
+[submodule "kukumba"] # BDD test helper
+  update = rebase
+  path   = libraries/kukumba
+  url    = git@github.com:hackbg/kukumba.git
+  branch = 21.04

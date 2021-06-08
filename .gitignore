@@ -1,1 +1,13 @@
 node_modules
+target
+*.wat
+*.wasm
+*.wasm.gz
+*.profraw
+.env
+node_modules
+.~*
+yarn-error.log
+.idea
+.fadroma
+.DS_Store
