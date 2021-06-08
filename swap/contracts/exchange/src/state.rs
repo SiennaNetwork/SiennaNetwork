@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    Api, CanonicalAddr, Extern, HumanAddr, Querier,
-    StdResult, Storage, Uint128, StdError
+    Api, CanonicalAddr, Extern, HumanAddr,
+    Querier, StdResult, Storage, StdError
 };
 use serde::{Serialize,Deserialize};
 
@@ -21,17 +21,6 @@ pub(crate) struct Config<A: Clone> {
     pub contract_addr: A,
     /// Viewing key used for custom SNIP20 tokens.
     pub viewing_key:   ViewingKey,
-    /// Typically, smart contracts which need tokens to perform some functionality
-    /// require callers to first make an approval on the token contract,
-    /// then call a function that in turn calls transferFrom on the token contract.
-    ///
-    /// This is not how Uniswap pairs accept tokens.
-    /// Instead, pairs check their token balances at the end of every interaction.
-    ///
-    /// Then, at the beginning of the next interaction, current balances are differenced
-    /// against the stored values to determine the amount of tokens that were sent by the
-    /// current interactor.
-    pub pool_cache: [Uint128; 2]
 }
 
 impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
@@ -41,8 +30,7 @@ impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
             lp_token_info: self.lp_token_info.canonize(api)?,
             pair:          self.pair.canonize(api)?,
             contract_addr: self.contract_addr.canonize(api)?,
-            viewing_key:   self.viewing_key.clone(),
-            pool_cache:    self.pool_cache
+            viewing_key:   self.viewing_key.clone()
         })
     }
 }
@@ -53,8 +41,7 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
             lp_token_info: self.lp_token_info.humanize(api)?,
             pair:          self.pair.humanize(api)?,
             contract_addr: self.contract_addr.humanize(api)?,
-            viewing_key:   self.viewing_key.clone(),
-            pool_cache:    self.pool_cache
+            viewing_key:   self.viewing_key.clone()
         })
     }
 }
@@ -105,8 +92,7 @@ mod tests {
                 }
             ),
             contract_addr: HumanAddr("this".into()),
-            viewing_key: ViewingKey("vk".into()),
-            pool_cache: [ Uint128::zero(), Uint128(123) ]
+            viewing_key: ViewingKey("vk".into())
         };
 
         store_config(&mut deps, &config)?;
