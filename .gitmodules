@@ -15,11 +15,12 @@
   url    = git@github.com:hackbg/fadroma.git
   branch = 21.06.1
 
-[submodule "tge/token"]
+[submodule "snip20-sienna"]
   update = rebase
-  path   = tge/contracts/token
+  path   = contracts/snip20-sienna
   url    = git@github.com:hackbg/snip20-reference-impl.git
   branch = 21.04+nodeposit+noredeem
+
 [submodule "tge/fadroma"]
   update = rebase
   path   = tge/libraries/fadroma
