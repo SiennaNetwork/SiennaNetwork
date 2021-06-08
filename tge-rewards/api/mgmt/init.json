@@ -1,0 +1,170 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Init",
+  "type": "object",
+  "required": [
+    "schedule",
+    "token"
+  ],
+  "properties": {
+    "history": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/LinearMap_for_HumanAddr_and_Uint128"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "schedule": {
+      "$ref": "#/definitions/Schedule_for_HumanAddr"
+    },
+    "token": {
+      "type": "array",
+      "items": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "maxItems": 2,
+      "minItems": 2
+    }
+  },
+  "definitions": {
+    "Account_for_HumanAddr": {
+      "description": "Individual vesting config. Immediate release is thought of as a special case of vesting where: * `head == total` * `duration == interval == 0`, * only `head_allocations` is considered.",
+      "type": "object",
+      "required": [
+        "address",
+        "amount",
+        "cliff",
+        "duration",
+        "interval",
+        "name",
+        "start_at"
+      ],
+      "properties": {
+        "address": {
+          "description": "Recipient address",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          ]
+        },
+        "amount": {
+          "description": "Funds that this account will release",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "cliff": {
+          "description": "If `> 0`, releases this much money the first time, pushing back the regular portions",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "duration": {
+          "description": "If `> 0`, vesting stops after this much seconds regardless of how much is left of `total`.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "interval": {
+          "description": "How many seconds to wait between portions",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "name": {
+          "description": "Human-readable name",
+          "type": "string"
+        },
+        "start_at": {
+          "description": "How many seconds after contract launch to begin vesting",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "LinearMap_for_HumanAddr_and_Uint128": {
+      "description": "Just a wrapped `Vec` with `get` and `insert` methods.\n\nActs as a KV map but serializes as an array of [K,V] pairs: * new keys are appended to the end, existing keys are updated in place * there is no check for keys being unique during deserialization * in case of duplicate keys, it's the 1st instance of a given key that \"counts\".\n\nIt's like this because `serde_json_wasm` doesn't serialize maps (`HashMap`, `BTreeMap`). This is true even in versions more recent than the default for SecretNetwork: the `serialize_map` method contains a single `unreachable!()` panic. It's not immediately obvious why this remains the case the case; perhaps iterating over of those is somehow more expensive on a blockchain? In any case, in the absence of gas benchmarks it's pointless to risk altering the default execution environment (of which `serde_json_wasm` is part), even though there's no obvious reason why that wouldn't work.",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "#/definitions/HumanAddr"
+          },
+          {
+            "$ref": "#/definitions/Uint128"
+          }
+        ],
+        "maxItems": 2,
+        "minItems": 2
+      }
+    },
+    "Pool_for_HumanAddr": {
+      "description": "Subdivision of `Schedule`, contains `Account`s, may be `partial`. If `partial == false`, they must add up to `total`.",
+      "type": "object",
+      "required": [
+        "accounts",
+        "name",
+        "partial",
+        "total"
+      ],
+      "properties": {
+        "accounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Account_for_HumanAddr"
+          }
+        },
+        "name": {
+          "type": "string"
+        },
+        "partial": {
+          "description": "if `true`, adding new `Account`s is allowed at runtime, up to `total`. otherwise, accounts must add up to `total` at creation.",
+          "type": "boolean"
+        },
+        "total": {
+          "$ref": "#/definitions/Uint128"
+        }
+      }
+    },
+    "Schedule_for_HumanAddr": {
+      "description": "Contains `Pool`s that must add up to `total`.",
+      "type": "object",
+      "required": [
+        "pools",
+        "total"
+      ],
+      "properties": {
+        "pools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Pool_for_HumanAddr"
+          }
+        },
+        "total": {
+          "$ref": "#/definitions/Uint128"
+        }
+      }
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}

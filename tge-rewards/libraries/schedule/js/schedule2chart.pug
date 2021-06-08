@@ -1,0 +1,69 @@
+doctype xml
+
+mixin line ({ key, points })
+  g(data-key=key)
+    polyline(points=points style="stroke:red;stroke-width:3")
+
+- let chartW = 2000
+- let chartH = 3000
+- let margin = 200
+- let viewBox = `${-margin} ${-margin} ${chartW+2*margin} ${chartH+2*margin}`
+- let Tscale = chartW / (Tmax - Tmin) // 0.---px = 1second
+
+- let y = 0
+
+mixin main ()
+  svg(
+    width="100%"
+    height=chartH
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox=viewBox
+    font-family="monospace"
+    font-size="20"
+    overflow="auto"
+  )
+    rect(width="120%" height="120%" x="-20%" y="-20%" fill="white")
+    +render_accounts(accounts)
+    - chartH = y
+    - let day_width = chartW / ((Tmax-Tmin)/(24*60*60))
+    - let week_width = 15 * day_width
+    - console.log(day_width, month_width)
+    g(id="grid")
+      rect(x=0 y=0 width=chartW height=chartH stroke="red" stroke-width="2" fill="none")
+      text(x=0 y=-15 text-anchor="end")= `T=${Tmin}`
+      - let n_weeks = 47
+      text(x=chartW y=-15 text-anchor="start")= `T=${Tmax}s`
+      //-text(x=n_weeks*week_width y=0 text-anchor="start")= `${total} SIENNA`
+      //-text(x=n_weeks*week_width y=chartH text-anchor="start")= `0 SIENNA`
+      each day, i in [...Array(n_weeks)]
+        - let x = i*week_width
+        line(x1=x x2=x y1=0 y2=chartH stroke="rgba(0,0,0,0.2)")
+      each day, i in [...Array(Math.ceil(n_weeks/6))]
+        - let x = i*6*week_width
+        line(x1=x x2=x y1=0 y2=chartH stroke="rgba(0,0,0,0.4)")
+
+mixin render_accounts (accts)
+  - console.log(accts)
+  each acct in accts
+    - const percent = acct.total / total
+    - const h = Math.log(percent * 10000) * 30
+    g.account(id=acct.addr transform=`translate(0,${y})` data-percent=percent data-h=h)
+      rect.stream-bg(
+        x=0 y=0
+        width=chartW height=h
+        fill=(acct.release==='immediate')?"rgba(64,255,64,0.2)":"rgba(0,0,0,0.0)")
+      line.stream-border(x1=0 y1=0 x2=chartW y2=0 stroke="#000" stroke-width="0.5")
+      text.stream-id(x=-10 y=h/2 text-anchor="end")= `${acct.addr}\n(${(acct.total/total*100).toFixed(2)}%)`
+      - let points = '', lastX = 0, lastY = 0
+      - for (let [T,V] of Object.entries(acct.balances)) {
+      -   console.log(acct.addr, T, V)
+      -   points += `${lastX=T*Tscale},${lastY} ${lastX},${lastY=h-h*(V/acct.total)} `
+      - }
+      - if (acct.release !== 'immediate') {
+      -   points += `${chartW+100},${lastY} ${chartW+100},${h} ${0},${h}`
+      - }
+      polyline(fill="rgba(64,255,64,0.2)" stroke="rgba(0,128,0,0.5)" stroke-width="0.5" points=points)
+      text.stream-amount(x=chartW+10 y=h/2 text-anchor="start")= acct.total
+    - y += h
+
++main()

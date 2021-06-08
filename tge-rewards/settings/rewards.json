@@ -1,0 +1,26 @@
+{
+  "admin": null,
+  "claim_interval": 300,
+  "entropy": "unsafe",
+  "prng_seed": "unsafe",
+  "reward_token": {
+    "address": "",
+    "code_hash": ""
+  },
+  "reward_pools": [
+    {
+      "lp_token": {
+        "address": "secret170fphu3n76rjme6uwdadf3tc757pcld5djpayy",
+        "code_hash": "44c2e325f1b08514c143a972197e70b071ad8246e971e2426f6925986692eca6"
+      },
+      "share": "500000000000000000000"
+    },
+    {
+      "lp_token": {
+        "address": "secret16cch2wtvg0vvuygs0yugyzwrqw4cgp0h9s2f8q",
+        "code_hash": "44c2e325f1b08514c143a972197e70b071ad8246e971e2426f6925986692eca6"
+      },
+      "share": "800000000000000000000"
+    }
+  ]
+}

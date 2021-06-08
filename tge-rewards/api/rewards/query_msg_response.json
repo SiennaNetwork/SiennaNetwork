@@ -1,0 +1,301 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsgResponse",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "claim_simulation"
+      ],
+      "properties": {
+        "claim_simulation": {
+          "$ref": "#/definitions/ClaimSimulationResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "accounts"
+      ],
+      "properties": {
+        "accounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Account_for_HumanAddr"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "pools"
+      ],
+      "properties": {
+        "pools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RewardPool_for_HumanAddr"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "token_info"
+      ],
+      "properties": {
+        "token_info": {
+          "type": "object",
+          "required": [
+            "decimals",
+            "name",
+            "symbol"
+          ],
+          "properties": {
+            "decimals": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0.0
+            },
+            "name": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "total_supply": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "Account_for_HumanAddr": {
+      "description": "Accounts are based on (user - LP token) pairs. This means that a single user can have multiple accounts - one for each LP token.",
+      "type": "object",
+      "required": [
+        "last_claimed",
+        "locked_amount",
+        "lp_token_addr",
+        "owner"
+      ],
+      "properties": {
+        "last_claimed": {
+          "description": "The last time that the user claimed their rewards.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "locked_amount": {
+          "description": "The amount of LP tokens the owner has locked into this contract.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "lp_token_addr": {
+          "description": "The address of the LP token that this account is for.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          ]
+        },
+        "owner": {
+          "description": "The owner of this account.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          ]
+        }
+      }
+    },
+    "ClaimError": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "pool_empty"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "account_zero_locked"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "account_zero_reward"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "time_to_wait",
+            "type"
+          ],
+          "properties": {
+            "time_to_wait": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "early_claim"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "ClaimResult": {
+      "type": "object",
+      "required": [
+        "lp_token_addr",
+        "reward_amount",
+        "reward_per_portion",
+        "success"
+      ],
+      "properties": {
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ClaimError"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lp_token_addr": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "reward_amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "reward_per_portion": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ClaimSimulationResult": {
+      "type": "object",
+      "required": [
+        "actual_claimed",
+        "results",
+        "total_rewards_amount"
+      ],
+      "properties": {
+        "actual_claimed": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ClaimResult"
+          }
+        },
+        "total_rewards_amount": {
+          "$ref": "#/definitions/Uint128"
+        }
+      }
+    },
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "RewardPool_for_HumanAddr": {
+      "description": "Represents a pair that is eligible for rewards.",
+      "type": "object",
+      "required": [
+        "lp_token",
+        "share",
+        "size"
+      ],
+      "properties": {
+        "lp_token": {
+          "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+        },
+        "share": {
+          "description": "The reward amount allocated to this pool.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "size": {
+          "description": "Total amount locked by all participants.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        }
+      }
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}

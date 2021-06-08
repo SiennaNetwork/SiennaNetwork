@@ -1,0 +1,41 @@
+{
+  "contractAddress": "secret1me5cq7e7dfzsnwc8hw429gsd9887xw0j404mk7",
+  "logs": [
+    {
+      "msg_index": 0,
+      "log": "",
+      "events": [
+        {
+          "type": "message",
+          "attributes": [
+            {
+              "key": "action",
+              "value": "instantiate"
+            },
+            {
+              "key": "module",
+              "value": "compute"
+            },
+            {
+              "key": "signer",
+              "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+            },
+            {
+              "key": "code_id",
+              "value": "28166"
+            },
+            {
+              "key": "contract_address",
+              "value": "secret1me5cq7e7dfzsnwc8hw429gsd9887xw0j404mk7"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "transactionHash": "1DD22324D536C122F3017FD6BF3E269EE1840E0F1B19C1657D583C6DB0C03C92",
+  "data": "DE69807B3E6A4509BB07BBAAA2A20D29CFE339F2",
+  "codeId": 28166,
+  "label": "2021-04-27_08-02-50-796_SIENNA_MGMT",
+  "codeHash": "eb1b7ca8dfde9876b47b3e8a77a105209b7aa018fc13c966685f5fe9ec0ce4d4"
+}

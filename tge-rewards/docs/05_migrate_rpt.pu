@@ -1,0 +1,43 @@
+@startuml
+skinparam backgroundColor #ccc
+skinparam sequence.LifeLineBorderColor #555
+actor Admin order 0
+entity RPT order 1
+entity MGMT order 2
+entity SIENNA order 3
+
+== Normal operation ==
+Admin -> RPT : Deploy
+Admin -> RPT : **tx** RPT.Vest!
+RPT -> MGMT : **tx** MGMT.Claim!
+MGMT -> SIENNA : **tx** SNIP20.Transfer!(from=MGMT,to=RPT)
+RPT -> SIENNA : **tx** SNIP20.Transfer!(from=RPT,to=TOKENPAIR1)
+RPT -> SIENNA : **tx** SNIP20.Transfer!(from=RPT,to=TOKENPAIR2)
+RPT -> SIENNA : **tx** SNIP20.Transfer!(from=RPT,to=TOKENPAIR3)
+
+== Pausing RPT ==
+Admin -> RPT : **tx** RPT.SetStatus!(Paused)
+note right #ffaa00: state.status = Paused
+Admin -x RPT : **tx** RPT.Vest!
+RPT -> Admin : **err** "Contract paused!"
+
+== Upgrading RPT ==
+Admin -> RPT : **q** RPT.Config
+RPT -> Admin : **res** (current RPT configuration)
+create entity newRPT order 1
+Admin -> newRPT : **init** RPT.Init(config)
+note right #00ff00: init new version with config from old version
+Admin -> RPT : **tx** RPT.SetStatus!(Migrating, reason, newRPT)
+note right #ffaa00: state.status = Migrating **(permanent!)**
+Admin -x RPT : **tx** RPT.Vest!
+note right #ff8888: user should call the new contract instead
+RPT -> Admin : **err** "Call newRPT instead!"
+Admin -> newRPT : **tx** RPT.Vest!
+note right #00ff00: newRPT takes over from RPT
+newRPT -> MGMT : **tx** MGMT.Claim!
+MGMT -> SIENNA : **tx** SNIP20.Transfer!(from=MGMT,to=newRPT)
+newRPT -> SIENNA : **tx** SNIP20.Transfer!(from=newRPT,to=TOKENPAIR1)
+newRPT -> SIENNA : **tx** SNIP20.Transfer!(from=newRPT,to=TOKENPAIR2)
+newRPT -> SIENNA : **tx** SNIP20.Transfer!(from=newRPT,to=TOKENPAIR3)
+
+@enduml

@@ -1,0 +1,39 @@
+[package]
+name = "sienna-rewards"
+version = "0.1.0"
+authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
+edition = "2018"
+
+exclude = [
+  # Those files are rust-optimizer artifacts. You might want to commit them for convenience but they should not be part of the source code publication.
+  "contract.wasm",
+  "hash.txt",
+]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+# for quicker tests, cargo test --lib
+# for more explicit tests, cargo test --features=backtraces
+backtraces = ["cosmwasm-std/backtraces"]
+debug-print = ["cosmwasm-std/debug-print"]
+
+[dependencies]
+cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+schemars = "0.7"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+snafu = { version = "0.6.3" }
+secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
+cosmwasm-utils = { git = "https://github.com/hackbg/fadroma", rev = "e2316f0" }
+composable-admin = { git = "https://github.com/hackbg/fadroma", rev = "e2316f0" }
+composable-auth = { git = "https://github.com/hackbg/fadroma", rev = "e2316f0" }
+fadroma-scrt-callback = { git = "https://github.com/hackbg/fadroma", rev = "e2316f0" }
+fadroma-scrt-addr = { git = "https://github.com/hackbg/fadroma", rev = "e2316f0" }
+fadroma-scrt-storage = { git = "https://github.com/hackbg/fadroma", rev = "e2316f0" }
+
+[dev-dependencies]
+rand = "0.8.0"

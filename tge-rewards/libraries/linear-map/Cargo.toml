@@ -1,0 +1,15 @@
+[package]
+name    = "linear-map"
+version = "1.0.0-rc1"
+authors = ["Adam A. <adam@hack.bg>"]
+edition = "2018"
+
+[lib]
+name = "linear_map"
+path = "lib/lib.rs"
+
+[dependencies]
+cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+snafu        = { version = "0.6.3", features = ["backtraces"] }
+serde        = { version = "1.0.103", default-features = false, features = ["derive"] }
+schemars     = "0.7"

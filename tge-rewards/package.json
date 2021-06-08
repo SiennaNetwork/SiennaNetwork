@@ -1,0 +1,22 @@
+{
+  "name": "@hackbg/sienna-tge",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "./libraries/fadroma",
+    "./libraries/schedule",
+    "./platform/cosmwasm-js",
+    "./platform/cosmwasm-js/packages/*",
+    "./api",
+    "./cli"
+  ],
+  "dependencies": {
+    "chai": "^4.3.4",
+    "docco": "^0.8.1",
+    "mocha": "^8.4.0"
+  },
+  "scripts": {
+    "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",
+    "test": "./sienna clean-localnet && mocha api/Rewards.spec.js"
+  }
+}
