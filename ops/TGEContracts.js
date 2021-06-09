@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto'
 import Ensemble from '@fadroma/scrt-ops/ensemble.js'
 import getDefaultSchedule from './getDefaultSchedule.js'
 import { abs } from './root.js'
+import { combine, args } from './args.js'
 
 export default class TGEContracts extends Ensemble {
 
@@ -20,9 +21,7 @@ export default class TGEContracts extends Ensemble {
         name:     "Sienna",
         symbol:   "SIENNA",
         decimals: 18,
-        config: {
-          public_total_supply: true
-        }
+        config: { public_total_supply: true }
       }
     },
 
@@ -117,7 +116,7 @@ export default class TGEContracts extends Ensemble {
     return contracts
   }
 
-  static async launch (options = {}) {
+  async launch (options = {}) {
     let { network
         , address
         } = options
@@ -138,11 +137,11 @@ export default class TGEContracts extends Ensemble {
     console.log(render(await MGMT.status))
   }
 
-  static async reallocate () { throw new Error('not implemented') }
+  async reallocate () { throw new Error('not implemented') }
 
-  static async addAccount () { throw new Error('not implemented') }
+  async addAccount () { throw new Error('not implemented') }
 
-  static async claim (options = {}) {
+  async claim (options = {}) {
     const { claimant = await pickKey()
           } = options
     let { network = 'localnet'
@@ -152,6 +151,49 @@ export default class TGEContracts extends Ensemble {
       network = await SecretNetwork[network]({stateBase})
     }
     console.log({network, claimant})
+  }
+
+  commands (yargs) {
+    return yargs
+      .command('build',
+        '👷 Compile contracts from working tree',
+        args.Sequential, () => this.build())
+      .command('deploy-tge [network] [schedule]',
+        '🚀 Build, init, and deploy the TGE',
+        combine(args.Network, args.Schedule),
+        x => this.deploy(x).then(console.info))
+      .command('upload <network>',
+        '📦 Upload compiled contracts to network',
+        args.Network,
+        () => this.upload())
+      .command('init <network> [<schedule>]',
+        '🚀 Just instantiate uploaded contracts',
+        combine(args.Network, args.Schedule),
+        x => this.initialize(x).then(console.info))
+      .command('launch <network> <address>',
+        '🚀 Launch deployed vesting contract',
+        combine(args.Network, args.Address),
+        () => this.launch())
+      .command('transfer <network> <address>',
+        '⚡ Transfer ownership to another address',
+        combine(args.Network, args.Address),
+        () => this.transfer())
+      .command('configure <deployment> <schedule>',
+        '⚡ Upload a JSON config to an initialized contract',
+        combine(args.Deployment, args.Schedule),
+        () => this.configure())
+      .command('reallocate <deployment> <allocations>',
+        '⚡ Update the allocations of the RPT tokens',
+        combine(args.Deployment, args.Allocations),
+        () => this.reallocate())
+      .command('add-account <deployment> <account>',
+        '⚡ Add a new account to a partial vesting pool',
+        combine(args.Deployment, args.Account),
+        () => this.addAccount())
+      .command('claim <network> <contract> [<claimant>]',
+        '⚡ Claim funds from a deployed contract',
+        combine(args.Network, args.Contract, args.Claimant),
+        () => this.claim())
   }
 
 }

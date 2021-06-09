@@ -2,6 +2,7 @@ import { readFileSync } from 'fs'
 import { randomBytes } from 'crypto'
 import Ensemble from '@fadroma/scrt-ops/ensemble.js'
 import { abs } from './root.js'
+import { combine, args } from './args.js'
 
 export default class RewardsContracts extends Ensemble {
 
@@ -79,6 +80,17 @@ export default class RewardsContracts extends Ensemble {
     ]))
 
     return instances
+  }
+
+  commands (yargs) {
+    return yargs
+      .command('build-rewards',
+        '👷 Compile contracts from working tree',
+        args.Sequential, () => this.build())
+      .command('deploy-rewards [network]',
+        '🚀 Build, init, and deploy the rewards component',
+        combine(args.Network, args.Schedule),
+        x => this.deploy(x).then(console.info))
   }
 
 }
