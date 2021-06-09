@@ -18,14 +18,16 @@ export interface UploadResult {
     ido: ContractInstantiationInfo
 }
 
-export async function upload(client: SigningCosmWasmClient, commit: string, writer: IJsonFileWriter): Promise<UploadResult> {
+export async function upload(client: SigningCosmWasmClient, writer: IJsonFileWriter): Promise<UploadResult> {
     const fee = create_fee('2500000')
+
+    const wasm_path = '../../../artifacts/'
   
-    const snip20_wasm = readFileSync(resolve(`../dist/${commit}-snip20-reference-impl.wasm`))
-    const exchange_wasm = readFileSync(resolve(`../dist/${commit}-exchange.wasm`))
-    const factory_wasm = readFileSync(resolve(`../dist/${commit}-factory.wasm`))
-    const lp_token_wasm = readFileSync(resolve(`../dist/${commit}-lp-token.wasm`))
-    const ido_wasm = readFileSync(resolve(`../dist/${commit}-ido.wasm`))
+    const snip20_wasm = readFileSync(resolve(`${wasm_path}amm-snip20@HEAD.wasm`))
+    const exchange_wasm = readFileSync(resolve(`${wasm_path}exchange@HEAD.wasm`))
+    const factory_wasm = readFileSync(resolve(`${wasm_path}factory@HEAD.wasm`))
+    const lp_token_wasm = readFileSync(resolve(`${wasm_path}lp-token@HEAD.wasm`))
+    const ido_wasm = readFileSync(resolve(`${wasm_path}ido@HEAD.wasm`))
 
     const exchange_upload = await client.upload(exchange_wasm, {}, undefined, fee)
     writer.write(exchange_upload, `uploads/exchange`)

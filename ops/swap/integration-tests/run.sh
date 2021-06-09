@@ -14,11 +14,9 @@ sudo docker start secretdev
 # try to increase this time
 sleep 8
 
-Commit=`git rev-parse --short HEAD`
-
 Keys=$(sudo docker exec secretdev /bin/bash -c "cat /root/the_keys.json")
 
-node --trace-warnings ./dist/index.js $Commit "$Keys"
+node --trace-warnings ./dist/index.js "$Keys"
 
 sudo docker kill secretdev
  

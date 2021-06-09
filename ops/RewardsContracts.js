@@ -89,7 +89,7 @@ export default class RewardsContracts extends Ensemble {
         args.Sequential, () => this.build())
       .command('deploy-rewards [network]',
         '🚀 Build, init, and deploy the rewards component',
-        combine(args.Network, args.Schedule),
+        combine(args.Network),
         x => this.deploy(x).then(console.info))
   }
 

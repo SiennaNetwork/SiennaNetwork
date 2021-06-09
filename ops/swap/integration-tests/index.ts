@@ -27,7 +27,7 @@ interface LocalAccount {
 
 const APIURL = 'http://localhost:1337'
 
-const ACC: object[] = JSON.parse(process.argv[3])
+const ACC: object[] = JSON.parse(process.argv[2])
 const ACC_A: LocalAccount = ACC[0] as LocalAccount
 const ACC_B: LocalAccount = ACC[1] as LocalAccount
 const ACC_C: LocalAccount = ACC[2] as LocalAccount
@@ -41,7 +41,7 @@ const analytics: TxAnalytics = new TxAnalytics(APIURL)
 async function run_tests() {
   const client_a = await build_client(ACC_A.mnemonic, APIURL)
   
-  const result = await upload(client_a, process.argv[2], new NullJsonFileWriter)
+  const result = await upload(client_a, new NullJsonFileWriter)
 
   const factory = await instantiate_factory(client_a, result)
   const sienna_token = await instantiate_sienna_token(client_a, result.snip20)

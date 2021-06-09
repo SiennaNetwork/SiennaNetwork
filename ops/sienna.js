@@ -15,6 +15,7 @@ import { abs, stateBase } from './root.js'
 import { clear, cargo, run, runTests, runDemo } from './run.js'
 import TGEContracts from './TGEContracts.js'
 import RewardsContracts from './RewardsContracts.js'
+import AMMContracts from './AMMContracts.js'
 
 export default function main () {
   let cmd = yargs(process.argv.slice(2))
@@ -54,6 +55,8 @@ export default function main () {
   cmd = new TGEContracts().commands(cmd)
 
   cmd = new RewardsContracts().commands(cmd)
+
+  cmd = new AMMContracts().commands(cmd)
 
   return cmd.argv
 }

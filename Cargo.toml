@@ -15,7 +15,8 @@ members = [
   "contracts/exchange",        # uniswap exchange contract implementation
   "contracts/factory",         # factory contract for creating exchanges
   "contracts/ido",             # Sienna IDO
-  "contracts/lp-token",        # snip20 liquidity provider token
+  "contracts/lp-token",        # snip20 liquidity provider token,
+  "contracts/amm-snip20",      # vanilla snip20 token, used when creating an IDO
 
   # Lending
 

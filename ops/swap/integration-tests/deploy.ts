@@ -8,10 +8,9 @@ dotenv.config()
 
 async function deploy() {
     const client = await build_client(process.env.MNEMONIC as string, process.env.SECRET_REST_URL as string)
-    const writer = new JsonFileWriter(`../dist/${process.env.SECRET_CHAIN_ID}/`)
+    const writer = new JsonFileWriter(`../../../artifacts/${process.env.SECRET_CHAIN_ID}/`)
 
-    const commit = process.argv[2];
-    const result = await upload(client, commit, writer)
+    const result = await upload(client, writer)
 
     // TODO: Pull from config file
     const factory_init_msg = {
@@ -30,8 +29,9 @@ async function deploy() {
             },
             sienna_burner: undefined
         }
-      }
-    
+    }
+
+    const commit = process.argv[2];
     const factory_instance = await client.instantiate(
         result.factory.id,
         factory_init_msg,
