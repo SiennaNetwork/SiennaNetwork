@@ -144,7 +144,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Redeem { .. } => /* try_redeem(deps, env, amount) */ cmd_unavailable(),
 
         // Base
-        HandleMsg::Transfer { .. } => /*try_transfer(deps, env, &recipient, amount)*/ cmd_unavailable(),
+        HandleMsg::Transfer { recipient, amount, .. } => try_transfer(deps, env, &recipient, amount),
         HandleMsg::Send { .. } => /* try_send(deps, env, &recipient, amount, msg)*/ cmd_unavailable(),
         HandleMsg::Burn { .. } => /* try_burn(deps, env, amount)*/ cmd_unavailable(),
         HandleMsg::RegisterReceive { code_hash, .. } => try_register_receive(deps, env, code_hash),
