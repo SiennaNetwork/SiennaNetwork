@@ -1,16 +1,20 @@
+import { randomBytes } from 'crypto'
 import Ensemble from '@fadroma/scrt-ops/ensemble.js'
 import getDefaultSchedule from './getDefaultSchedule.js'
+import { abs } from './root.js'
 
 export default class TGEContracts extends Ensemble {
 
   workspace = abs()
+
+  prefix = `${new Date().toISOString()} `
 
   contracts = {
 
     TOKEN: {
       crate:   'snip20-sienna',
       schema:  'schema',
-      label:   `${prefix}SIENNA_SNIP20`,
+      label:   `${this.prefix}SIENNA_SNIP20`,
       initMsg: {
         prng_seed: randomBytes(36).toString('hex'),
         name:     "Sienna",
@@ -25,14 +29,14 @@ export default class TGEContracts extends Ensemble {
     MGMT: {
       crate:   'sienna-mgmt',
       schema:  'mgmt_schema',
-      label:   `${prefix}SIENNA_MGMT`,
+      label:   `${this.prefix}SIENNA_MGMT`,
       initMsg: {}
     },
 
     RPT: {
       crate:   'sienna-rpt',
       schema:  'rpt_schema',
-      label:   `${prefix}SIENNA_RPT`,
+      label:   `${this.prefix}SIENNA_RPT`,
       initMsg: {}
     }
 

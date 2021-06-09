@@ -38,9 +38,6 @@ export default function main () {
       args.IsTestnet, runDemo)
 
     // artifacts:
-    .command('build',
-      '👷 Compile contracts from working tree',
-      args.Sequential, TGEContracts.build)
     .command('schema',
       `🤙 Regenerate JSON schema for each contract's API.`,
       genSchema)
@@ -57,49 +54,56 @@ export default function main () {
       '♻️  Try to terminate a loose localnet container and remove its state files',
       () => new Localnet().terminate())
 
-    // deployment and configuration:
+    // TGEContracts
+    .command('build',
+      '👷 Compile contracts from working tree',
+      args.Sequential, () => new TGEContracts().build())
     .command('deploy-tge [network] [schedule]',
       '🚀 Build, init, and deploy the TGE',
       combine(args.Network, args.Schedule),
-      x => TGEContracts.deploy(x).then(console.info))
+      x => new TGEContracts().deploy(x).then(console.info))
     .command('upload <network>',
       '📦 Upload compiled contracts to network',
       args.Network,
-      TGEContracts.upload)
+      () => new TGEContracts().upload)
     .command('init <network> [<schedule>]',
       '🚀 Just instantiate uploaded contracts',
       combine(args.Network, args.Schedule),
-      x => TGEContracts.initialize(x).then(console.info))
+      x => new TGEContracts().initialize(x).then(console.info))
     .command('launch <network> <address>',
       '🚀 Launch deployed vesting contract',
       combine(args.Network, args.Address),
-      TGEContracts.launch)
+      () => new TGEContracts().launch)
     .command('transfer <network> <address>',
       '⚡ Transfer ownership to another address',
       combine(args.Network, args.Address),
-      TGEContracts.transfer)
+      () => new TGEContracts().transfer)
     .command('configure <deployment> <schedule>',
       '⚡ Upload a JSON config to an initialized contract',
       combine(args.Deployment, args.Schedule),
-      TGEContracts.configure)
+      () => new TGEContracts().configure)
     .command('reallocate <deployment> <allocations>',
       '⚡ Update the allocations of the RPT tokens',
       combine(args.Deployment, args.Allocations),
-      TGEContracts.reallocate)
+      () => new TGEContracts().reallocate)
     .command('add-account <deployment> <account>',
       '⚡ Add a new account to a partial vesting pool',
       combine(args.Deployment, args.Account),
-      TGEContracts.addAccount)
+      () => new TGEContracts().addAccount)
 
+    // RewardsContracts
+    .command('build-rewards',
+      '👷 Compile contracts from working tree',
+      args.Sequential, () => new RewardsContracts().build())
     .command('deploy-rewards [network]',
       '🚀 Build, init, and deploy the rewards component',
       combine(args.Network, args.Schedule),
-      x => RewardsContracts.deploy(x).then(console.info))
+      x => new RewardsContracts().deploy(x).then(console.info))
 
     // claiming:
     .command('claim <network> <contract> [<claimant>]',
       '⚡ Claim funds from a deployed contract',
-      combine(args.Network, args.Contract, args.Claimant), TGEContracts.claim)
+      combine(args.Network, args.Contract, args.Claimant), () => new TGEContracts().claim)
 
     .argv
 }
