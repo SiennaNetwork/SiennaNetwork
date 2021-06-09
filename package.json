@@ -8,7 +8,7 @@
     "./libraries/fadroma-21.06.1/scrt-ops",
     "./libraries/schedule",
     "./api",
-    "./cli"
+    "./ops"
   ],
   "dependencies": {
     "chai": "^4.3.4",
