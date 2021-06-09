@@ -1,3 +1,5 @@
+import { abs } from './root.js'
+
 export const combine = (...args) =>
   yargs => args.reduce((yargs, argfn)=>argfn(yargs), yargs)
 
