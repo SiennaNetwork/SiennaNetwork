@@ -2,13 +2,6 @@
 /* vim: set ts=2 sts=2 sw=2 et cc=100 */
 // # SIENNA Vesting Contract Demo
 //
-import assert from 'assert'
-import { fileURLToPath } from 'url'
-import { resolve, dirname } from 'path'
-import bignum from 'bignumber.js'
-import { loadJSON, taskmaster } from '@fadroma/utilities'
-import { SecretNetwork } from '@fadroma/scrt-agent'
-import ensureWallets from '@fadroma/scrt-agent/fund.js'
 // ## What you're looking at
 //
 // This script is intended to demonstrate correct behavior of the smart contracts
@@ -21,15 +14,20 @@ import ensureWallets from '@fadroma/scrt-agent/fund.js'
 //   [Docker](https://docs.docker.com/get-docker/).
 //
 // ## The following features are tested:
-
 // * 👷 **deploying** and **configuring** the token, mgmt, and rpt contracts.
-import { fmtSIENNA } from './ops.js'
-
 // * ⚠️  **viewing unlocked funds for any known address** without having to make a claim
 // * 💸 **making claims** according to the initial **schedule** (sped up by a factor of 8400)
 // * 🤵 **allocating unassigned funds** from a pool to a **new account**
 // * 💰 **splitting the Remaining Pool Tokens** between multiple addresses
 // * 🍰 **reconfiguring that split**, preserving the **total portion size**
+import assert from 'assert'
+import { fileURLToPath } from 'url'
+import { resolve, dirname } from 'path'
+import bignum from 'bignumber.js'
+import { loadJSON, taskmaster } from '@fadroma/utilities'
+import { SecretNetwork } from '@fadroma/scrt-agent'
+import ensureWallets from '@fadroma/scrt-agent/fund.js'
+import { fmtSIENNA } from './decimals.js'
 import { SNIP20Contract, MGMTContract, RPTContract } from '../api/index.js'
 //
 // Required: access to a testnet (holodeck-2), or in absence of testnet,

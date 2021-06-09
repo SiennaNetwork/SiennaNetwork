@@ -3,7 +3,7 @@ import { env, stderr } from 'process'
 
 import {SecretNetwork} from '@fadroma/scrt-agent'
 
-import { stateBase } from './ops.js'
+import { stateBase } from './root.js'
 import demo from './demo.js'
 
 export const clear = () =>
