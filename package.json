@@ -13,9 +13,7 @@
   "dependencies": {
     "chai": "^4.3.4",
     "docco": "^0.8.1",
-    "mocha": "^8.4.0",
-    "@sienna/api": "./api",
-    "@sienna/cli": "./cli"
+    "mocha": "^8.4.0"
   },
   "scripts": {
     "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",

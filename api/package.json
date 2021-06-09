@@ -1,7 +1,7 @@
 {
-  "name": "@hackbg/sienna-api",
+  "name": "@sienna/api",
   "version": "0.0.0",
-  "main": "./schema/index.js",
+  "main": "./index.js",
   "type": "module",
   "dependencies": {
     "@fadroma/scrt-agent": "*",
