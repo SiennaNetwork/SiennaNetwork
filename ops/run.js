@@ -4,7 +4,7 @@ import { env, stderr } from 'process'
 import {SecretNetwork} from '@fadroma/scrt-agent'
 
 import { stateBase } from './root.js'
-import demo from './demo.js'
+import demo from './TGEContracts.demo.js'
 
 export const clear = () =>
   env.TMUX && run('sh', '-c', 'clear && tmux clear-history')

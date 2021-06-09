@@ -1,8 +1,10 @@
-import { readFileSync } from 'fs'
-import { randomBytes } from 'crypto'
+import { Console, readFileSync, randomBytes } from '@fadroma/utilities'
 import Ensemble from '@fadroma/scrt-ops/ensemble.js'
+import { SNIP20Contract, RewardsContract } from '@sienna/api'
 import { abs } from './root.js'
 import { combine, args } from './args.js'
+
+const console = Console(import.meta.url)
 
 export default class RewardsContracts extends Ensemble {
 
@@ -45,7 +47,7 @@ export default class RewardsContracts extends Ensemble {
       Object.assign(initMsg, {
         admin: agent.address
       })
-      instances.TOKEN = await SNIP20Contract.init({agent, codeId, label, initMsg})
+      instances.TOKEN = await agent.instantiate(new SNIP20Contract({codeId, label, initMsg}))
       report(instances.TOKEN.transactionHash)
     })
 
@@ -62,7 +64,7 @@ export default class RewardsContracts extends Ensemble {
           code_hash: instances.TOKEN.codeHash
         },
       })
-      instances.REWARDS = await RewardsContract.init({agent, codeId, label, initMsg})
+      instances.REWARDS = await agent.instantiate(new RewardsContract({codeId, label, initMsg}))
       report(instances.REWARDS.transactionHash)
     })
 
@@ -73,11 +75,11 @@ export default class RewardsContracts extends Ensemble {
 
     console.log(instances)
 
-    console.log(table([
+    console.table([
       ['Contract\nDescription',      'Address\nCode hash'],
       ['TOKEN\nSienna SNIP20 token', `${instances.TOKEN.address}\n${instances.TOKEN.codeHash}`],
       ['Rewards\n',                  `${instances.REWARDS.address}\n${instances.REWARDS.codeHash}`],
-    ]))
+    ])
 
     return instances
   }

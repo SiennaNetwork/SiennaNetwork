@@ -1,8 +1,15 @@
 import { randomBytes } from 'crypto'
 import Ensemble from '@fadroma/scrt-ops/ensemble.js'
+import { render, Console } from '@fadroma/utilities'
+
 import getDefaultSchedule from './getDefaultSchedule.js'
 import { abs } from './root.js'
 import { combine, args } from './args.js'
+import { genConfig } from './gen.js'
+
+import { SNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
+
+const { log, warn, info, table } = Console(import.meta.url)
 
 export default class TGEContracts extends Ensemble {
 
@@ -55,7 +62,7 @@ export default class TGEContracts extends Ensemble {
 
     // accepts schedule as string or struct
     if (typeof schedule === 'string') schedule = JSON.parse(await readFile(schedule, 'utf8'))
-    console.log(render(schedule))
+    //log(render(schedule))
 
     // if `network` is just the connection type, replace it with a real connection
     if (typeof network === 'string') {
@@ -73,12 +80,14 @@ export default class TGEContracts extends Ensemble {
           , initialRPTRecipient = agent.address
           } = options
 
-    // too many steps - mgmt could automatically instantiate token and rpt
+    // too many steps - mgmt could automatically instantiate token and rpt if it supported callbacks
     await task('initialize token', async report => {
       const {codeId} = receipts.TOKEN, {label, initMsg} = inits.TOKEN
       initMsg.admin = agent.address
-      contracts.TOKEN = await SNIP20Contract.init({agent, codeId, label, initMsg})
-      report(contracts.TOKEN.transactionHash) })
+      contracts.TOKEN = await agent.instantiate(new SNIP20Contract({codeId, label, initMsg}))
+      report(contracts.TOKEN.initTx.transactionHash)
+    })
+
     await task('initialize mgmt', async report => {
       const {codeId} = receipts.MGMT, {label, initMsg} = inits.MGMT
       initMsg.token    = [contracts.TOKEN.address, contracts.TOKEN.codeHash]
@@ -86,33 +95,43 @@ export default class TGEContracts extends Ensemble {
       schedule.pools.filter(x=>x.name==='MintingPool')[0]
               .accounts.filter(x=>x.name==='RPT')[0]
               .address = agent.address
-      contracts.MGMT = await MGMTContract.init({agent, codeId, label, initMsg})
-      report(contracts.MGMT.transactionHash) })
+      contracts.MGMT = await agent.instantiate(new MGMTContract({codeId, label, initMsg}))
+      report(contracts.MGMT.initTx.transactionHash)
+    })
+
     await task('make mgmt owner of token', async report => {
-      const {MGMT, TOKEN} = contracts, [tx1, tx2] = await MGMT.acquire(TOKEN)
+      const {MGMT, TOKEN} = contracts
+          , [tx1, tx2] = await MGMT.acquire(TOKEN)
       report(tx1.transactionHash)
-      report(tx2.transactionHash) })
+      report(tx2.transactionHash)
+    })
+
     await task('initialize rpt', async report => {
       const {codeId} = receipts.RPT, {label, initMsg} = inits.RPT, {MGMT, TOKEN} = contracts
       initMsg.token   = [TOKEN.address, TOKEN.codeHash]
       initMsg.mgmt    = [MGMT.address,  MGMT.codeHash ]
       initMsg.portion = "2500000000000000000000" // TODO get this from schedule!!!
       initMsg.config  = [[initialRPTRecipient, initMsg.portion]]
-      contracts.RPT = await RPTContract.init({ agent, codeId, label, initMsg })
-      report(contracts.RPT.transactionHash) })
+      contracts.RPT = await agent.instantiate(new RPTContract({ codeId, label, initMsg }))
+      report(contracts.RPT.initTx.transactionHash)
+    })
+
     await task('point rpt account in mgmt schedule to rpt contract', async report => {
       const {MGMT, RPT} = contracts
       schedule.pools.filter(x=>x.name==='MintingPool')[0]
               .accounts.filter(x=>x.name==='RPT')[0]
               .address = RPT.address
       const {transactionHash} = await MGMT.configure(schedule)
-      report(transactionHash) })
-    console.log(table([
+      report(transactionHash)
+    })
+
+    table([
       ['Contract\nDescription',      'Address\nCode hash'],
       ['TOKEN\nSienna SNIP20 token', `${contracts.TOKEN.address}\n${contracts.TOKEN.codeHash}`],
       ['MGMT\nVesting',              `${contracts.MGMT.address}\n${contracts.MGMT.codeHash}`],
       ['RPT\nRemaining pool tokens', `${contracts.RPT.address}\n${contracts.RPT.codeHash}`]
-    ]))
+    ])
+
     return contracts
   }
 
@@ -125,16 +144,16 @@ export default class TGEContracts extends Ensemble {
       network = (await SecretNetwork[network]({stateBase}))
     }
     const MGMT = network.network.getContract(MGMTContract, address, network.agent)
-    console.info(`⏳ launching contract ${address}...`)
+    info(`⏳ launching contract ${address}...`)
     try {
       await MGMT.launch()
-      console.info(`🟢 launch reported success`)
+      info(`🟢 launch reported success`)
     } catch (e) {
-      console.warn(e)
-      console.info(`🔴 launch reported a failure`)
+      warn(e)
+      info(`🔴 launch reported a failure`)
     }
-    console.info(`⏳ querying status...`)
-    console.log(render(await MGMT.status))
+    info(`⏳ querying status...`)
+    log(render(await MGMT.status))
   }
 
   async reallocate () { throw new Error('not implemented') }
@@ -150,7 +169,7 @@ export default class TGEContracts extends Ensemble {
       network = conformChainIdToNetwork(network)
       network = await SecretNetwork[network]({stateBase})
     }
-    console.log({network, claimant})
+    log({network, claimant})
   }
 
   commands (yargs) {
@@ -161,7 +180,7 @@ export default class TGEContracts extends Ensemble {
       .command('deploy-tge [network] [schedule]',
         '🚀 Build, init, and deploy the TGE',
         combine(args.Network, args.Schedule),
-        x => this.deploy(x).then(console.info))
+        x => this.deploy(x).then(info))
       .command('upload <network>',
         '📦 Upload compiled contracts to network',
         args.Network,
@@ -169,7 +188,7 @@ export default class TGEContracts extends Ensemble {
       .command('init <network> [<schedule>]',
         '🚀 Just instantiate uploaded contracts',
         combine(args.Network, args.Schedule),
-        x => this.initialize(x).then(console.info))
+        x => this.initialize(x).then(info))
       .command('launch <network> <address>',
         '🚀 Launch deployed vesting contract',
         combine(args.Network, args.Address),
@@ -194,6 +213,9 @@ export default class TGEContracts extends Ensemble {
         '⚡ Claim funds from a deployed contract',
         combine(args.Network, args.Contract, args.Claimant),
         () => this.claim())
+      .command('config [<spreadsheet>]',
+        '📅 Convert a spreadsheet into a JSON schedule',
+        args.Spreadsheet, genConfig)
   }
 
 }

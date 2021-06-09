@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@fadroma/scrt-agent": "*",
-    "@fadroma/utilities": "*"
+    "@fadroma/utilities": "*",
+    "mocha": "^8.4.0"
   }
 }

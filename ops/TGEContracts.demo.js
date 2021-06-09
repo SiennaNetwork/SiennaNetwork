@@ -21,13 +21,11 @@
 // * 💰 **splitting the Remaining Pool Tokens** between multiple addresses
 // * 🍰 **reconfiguring that split**, preserving the **total portion size**
 import assert from 'assert'
-import { fileURLToPath } from 'url'
-import { resolve, dirname } from 'path'
-import bignum from 'bignumber.js'
-import { loadJSON, taskmaster } from '@fadroma/utilities'
+import { loadJSON, taskmaster, bignum, fileURLToPath, resolve, dirname } from '@fadroma/utilities'
 import { SecretNetwork } from '@fadroma/scrt-agent'
 import ensureWallets from '@fadroma/scrt-agent/fund.js'
 import { fmtSIENNA } from './decimals.js'
+import TGEContracts from './TGEContracts.js'
 import { SNIP20Contract, MGMTContract, RPTContract } from '../api/index.js'
 //
 // Required: access to a testnet (holodeck-2), or in absence of testnet,
@@ -46,36 +44,42 @@ export default async function demo (environment) {
   // each operation took, and writes a report in `artifacts` with a Markdown table of events.
   const header = [ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ]
       , output = resolve(projectRoot, 'artifacts', network.chainId, 'profile-deploy.md')
-      , task = taskmaster({ header, output, agent })
+      , task   = taskmaster({ header, output, agent })
   // * Prepare **schedule** and **recipients**
   //   * The schedule is shortened by a factor of 86400 (number of seconds in a day)
   //     in order to run in  about 15 minutes. This is necessitated by the node being
   //     resistant to `libfaketime`.
   //   *  The recipient wallets are created if they don't exist -
   //      the admin sendings a gas budget to them (in uSCRT).
-  const schedule = loadJSON('../settings/schedule.json', import.meta.url)
-      , {wallets, recipients} = await prepare({task, network, agent, schedule})
+  const schedule   = loadJSON('../settings/schedule.json', import.meta.url)
+      , prepared   = await prepare({task, network, agent, schedule})
+      , wallets    = prepared.wallets
+      , recipients = prepared.recipients
   // * **Build**, **deploy**, and **initialize** contracts
-  const binaries = await TGEContracts.build({task, builder})
-      , receipts = await TGEContracts.upload({task, builder, binaries})
-      , initialRPTRecipient = agent.address
-      , initArgs = {task: task, agent, receipts, schedule}
-      , contracts = await TGEContracts.initialize({...initArgs, initialRPTRecipient})
+      , contracts  = new TGEContracts()
+      , binaries   = await contracts.build({task, builder})
+      , receipts   = await contracts.upload({task, builder, binaries})
+      , initArgs   = {task: task, agent, receipts, schedule}
+      , instances  = await contracts.initialize({
+        ...initArgs,
+        initialRPTRecipient: agent.address
+      })
   // * **Launch** the vesting and confirm that the **claims** and **mutations** work as specified.
-  await verify({task, agent, recipients, wallets, contracts, schedule})
+  await verify({task, agent, recipients, wallets, instances, schedule})
 }
 
 // # Preparation
 async function prepare ({task, network, agent, schedule}) {
+
   // * Let's delete the `AdvisorN` account from the schedule
   // to allow the `AddAccount` method to be tested.
-  // * TODO update spreadsheet! This account does not exist anymore
   await task('allow adding accounts to Advisors pool in place of AdvisorN', () => {
     for (const pool of schedule.pools) if (pool.name === 'Advisors') {
       pool.partial = true
       for (const i in pool.accounts) if (pool.accounts[i].name === 'AdvisorN') {
         pool.accounts.splice(i, 1)
         break } break } })
+
   // * And now, for my next trick, I'm gonna need some **wallets**!
   const recipientGasBudget = bignum(10000000) // uscrt
       , wallets    = []
@@ -95,6 +99,7 @@ async function prepare ({task, network, agent, schedule}) {
         account.start_at /= 86400
         account.interval /= 86400
         account.duration /= 86400 })))) })
+
   // * Some more wallets please. These will be used for the mutation tests.
   await task('create extra test accounts for reallocation tests', async () => {
     const extras = [ 'NewAdvisor', 'TokenPair1', 'TokenPair2', 'TokenPair3', ]
@@ -102,14 +107,17 @@ async function prepare ({task, network, agent, schedule}) {
       const extra = await network.getAgent(name) // create agent
       wallets.push([extra.address, recipientGasBudget.toString()])
       recipients[name] = {agent: extra, address: extra.address} } })
+
   // * Make sure the wallets exist on-chain.
   await ensureWallets({ task, connection: null, agent, wallets, recipients, recipientGasBudget })
-  return { wallets, recipients } }
+
+  return { wallets, recipients }
+}
 
 // # Verification
-export async function verify ({task, agent, recipients, wallets, contracts, schedule}) {
+export async function verify ({task, agent, recipients, wallets, instances, schedule}) {
 
-  const { TOKEN, MGMT, RPT } = contracts
+  const { TOKEN, MGMT, RPT } = instances
 
   // Let's just give every recipient an empty viewing key so we can check their balances.
   const VK = ""

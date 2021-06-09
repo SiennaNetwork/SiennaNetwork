@@ -1,5 +1,8 @@
+import { randomBytes } from 'crypto'
 import { SecretNetwork } from '@fadroma/scrt-agent'
 import { loadSchemas } from '@fadroma/utilities'
+
+const randomHex = bytes => randomBytes(bytes).toString('hex')
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg:      './snip20/init_msg.json',
@@ -14,36 +17,40 @@ const decode = buffer => decoder.decode(buffer).trim()
 
 export default class SNIP20 extends SecretNetwork.Contract.withSchema(schema) {
 
-  static init = (...args) => super.init(...args)
+  changeAdmin = (address, agent) =>
+    this.tx(agent)
+      .change_admin({ address })
 
-  setMinters = minters =>
-    this.tx.set_minters({minters})
+  setMinters = (minters, agent) =>
+    this.tx(agent)
+      .set_minters({ minters })
 
-  changeAdmin = address =>
-    this.tx.change_admin({address})
+  mint = (amount, agent = this.agent, recipient = agent.address) =>
+    this.tx(agent)
+      .mint({ amount: String(amount), recipient, padding: null })
+      .then(tx=>({tx, mint: JSON.parse(decode(tx.data)).mint}))
 
-  async createViewingKey (agent, entropy = "minimal", address = agent.address) {
-    const tx = await this.tx.create_viewing_key({key}, agent)
-    const {key} = JSON.parse(decode(tx.data)).create_viewing_key
-    return {tx, key}
-  }
+  balance = (address, key) =>
+    this.q()
+      .balance({ address, key })
+      .then(response=>response.balance.amount)
 
-  async setViewingKey (agent, key, address = agent.address) {
-    const tx = await this.tx.set_viewing_key({key}, agent)
-    const {status} = JSON.parse(decode(tx.data)).set_viewing_key
-    return {tx, status}
-  }
+  createViewingKey = (agent, entropy = '') =>//randomHex(32)) =>
+    this.tx(agent)
+      .create_viewing_key({ entropy })
+      .then(tx=>({tx, key: JSON.parse(decode(tx.data)).create_viewing_key.key}))
 
-  async balance (agent, key, address = agent.address) {
-    const {balance:{amount}} = await this.q.balance({key, address}, agent)
-    return amount
-  }
+  setViewingKey = (agent, key) =>
+    this.tx(agent)
+      .set_viewing_key({ key })
+      .then(tx=>({tx, status: JSON.parse(decode(tx.data)).set_viewing_key.key}))
 
-  async mint (agent, amount, recipient = agent.address) {
-    amount = String(amount)
-    const tx = await this.tx.mint({amount, recipient, padding: null}, agent)
-    const {mint} = JSON.parse(decode(tx.data)).mint
-    return {tx, mint}
-  }
+  increaseAllowance = (amount, spender, agent) =>
+    this.tx(agent)
+      .increase_allowance({ amount: String(amount), spender })
+
+  decreaseAllowance = (amount, spender, agent) =>
+    this.tx(agent)
+      .decrease_allowance({ amount: String(amount), spender })
 
 }

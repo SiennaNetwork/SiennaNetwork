@@ -22,14 +22,16 @@ backtraces = ["cosmwasm-std/backtraces"]
 cosmwasm-schema  = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
 cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
 cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
-fadroma          = { git = "https://github.com/hackbg/fadroma", branch = "21.05.1" }
-linear-map       = { path = "../../libraries/linear-map" }
+serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
+snafu            = { version = "0.6.3", features = ["backtraces"] }
 schemars         = "0.7"
 secret-toolkit   = { git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
-serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
+
+fadroma          = { git = "https://github.com/hackbg/fadroma", branch = "21.05.1" }
+
+linear-map       = { path = "../../libraries/linear-map" }
 sienna-migrate   = { path = "../../libraries/migrate" }
 sienna-schedule  = { path = "../../libraries/schedule" }
-snafu            = { version = "0.6.3", features = ["backtraces"] }
 
 [dev-dependencies]
 kukumba = { path = "../../libraries/kukumba" }
