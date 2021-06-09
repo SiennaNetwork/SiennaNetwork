@@ -1,13 +1,14 @@
-import { randomBytes } from 'crypto'
 import Ensemble from '@fadroma/scrt-ops/ensemble.js'
-import { render, Console } from '@fadroma/utilities'
-
-import getDefaultSchedule from './getDefaultSchedule.js'
-import { abs } from './root.js'
-import { combine, args } from './args.js'
-import { genConfig } from './gen.js'
-
+import {
+  Console, render,
+  readFileSync, randomBytes,
+  resolve, basename, extname, dirname,
+  stderr
+} from '@fadroma/utilities'
 import { SNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
+import { scheduleFromSpreadsheet } from '@sienna/schedule'
+import { projectRoot, abs } from './root.js'
+import { combine, args } from './args.js'
 
 const { log, warn, info, table } = Console(import.meta.url)
 
@@ -21,7 +22,6 @@ export default class TGEContracts extends Ensemble {
 
     TOKEN: {
       crate:   'snip20-sienna',
-      schema:  'schema',
       label:   `${this.prefix}SIENNA_SNIP20`,
       initMsg: {
         prng_seed: randomBytes(36).toString('hex'),
@@ -34,14 +34,12 @@ export default class TGEContracts extends Ensemble {
 
     MGMT: {
       crate:   'sienna-mgmt',
-      schema:  'mgmt_schema',
       label:   `${this.prefix}SIENNA_MGMT`,
       initMsg: {}
     },
 
     RPT: {
       crate:   'sienna-rpt',
-      schema:  'rpt_schema',
       label:   `${this.prefix}SIENNA_RPT`,
       initMsg: {}
     }
@@ -153,7 +151,7 @@ export default class TGEContracts extends Ensemble {
       info(`🔴 launch reported a failure`)
     }
     info(`⏳ querying status...`)
-    log(render(await MGMT.status))
+    debug(await MGMT.status)
   }
 
   async reallocate () { throw new Error('not implemented') }
@@ -218,4 +216,35 @@ export default class TGEContracts extends Ensemble {
         args.Spreadsheet, genConfig)
   }
 
+}
+
+export function getDefaultSchedule () {
+  const path = resolve(projectRoot, 'settings', 'schedule.json')
+  try {
+    JSON.parse(readFileSync(path, 'utf8'))
+  } catch (e) {
+    console.warn(`${path} does not exist - "./sienna.js config" should create it`)
+    return null
+  }
+}
+
+export function genConfig (options = {}) {
+  const { file = abs('settings', 'schedule.ods')
+        } = options
+
+  stderr.write(`\n⏳ Importing configuration from ${file}...\n\n`)
+  const name       = basename(file, extname(file)) // path without extension
+  const schedule   = scheduleFromSpreadsheet({ file })
+  const serialized = stringify(schedule)
+  const output     = resolve(dirname(file), `${name}.json`)
+  stderr.write(`⏳ Saving configuration to ${output}...\n\n`)
+
+  writeFileSync(output, stringify(schedule), 'utf8')
+  stderr.write(`🟢 Configuration saved to ${output}\n`)
+}
+
+function stringify (data) {
+  const indent = 2
+  const withBigInts = (k, v) => typeof v === 'bigint' ? v.toString() : v
+  return JSON.stringify(data, withBigInts, indent)
 }

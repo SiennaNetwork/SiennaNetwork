@@ -15,9 +15,8 @@ export default class RewardsContracts extends Ensemble {
   contracts = {
 
     TOKEN: {
-      crate:   'snip20-sienna',
-      schema:  'schema',
-      label:   `${this.prefix}SIENNA_SNIP20`,
+      crate: 'snip20-sienna',
+      label: `${this.prefix}SIENNA_SNIP20`,
       initMsg: {
         prng_seed: randomBytes(36).toString('hex'),
         name:      "Sienna",

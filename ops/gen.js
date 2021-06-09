@@ -1,33 +1,7 @@
-import { writeFileSync } from 'fs'
-import { resolve, basename, extname, dirname, existsSync } from '@fadroma/utilities/sys.js'
-import { scheduleFromSpreadsheet } from '@sienna/schedule'
-
+import { existsSync, stderr, writeFileSync } from '@fadroma/utilities'
+import TGEContracts from './TGEContracts.js'
 import { abs } from './root.js'
 import { cargo } from './run.js'
-import TGEContracts from './TGEContracts.js'
-
-const {stderr} = process
-
-const stringify = data => {
-  const indent = 2
-  const withBigInts = (k, v) => typeof v === 'bigint' ? v.toString() : v
-  return JSON.stringify(data, withBigInts, indent)
-}
-
-export function genConfig (options = {}) {
-  const { file = abs('settings', 'schedule.ods')
-        } = options
-
-  stderr.write(`\n⏳ Importing configuration from ${file}...\n\n`)
-  const name       = basename(file, extname(file)) // path without extension
-  const schedule   = scheduleFromSpreadsheet({ file })
-  const serialized = stringify(schedule)
-  const output     = resolve(dirname(file), `${name}.json`)
-  stderr.write(`⏳ Saving configuration to ${output}...\n\n`)
-
-  writeFileSync(output, stringify(schedule), 'utf8')
-  stderr.write(`🟢 Configuration saved to ${output}\n`)
-}
 
 export function genCoverage () {
   // fixed by https://github.com/rust-lang/cargo/issues/9220

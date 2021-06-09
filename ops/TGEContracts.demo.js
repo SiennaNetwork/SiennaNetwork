@@ -161,6 +161,7 @@ export async function verify ({task, agent, recipients, wallets, instances, sche
 
       // ⚠️  Vesting info is public!
       await task('query vesting progress', async report => {
+        process.env.NODEBUG = true
         console.info( `ACCOUNT`.padEnd(11)
                     , `CLAIMED`.padEnd(26), `  `
                     , `UNLOCKED`.padEnd(26), `  `
@@ -177,16 +178,19 @@ export async function verify ({task, agent, recipients, wallets, instances, sche
           if (name === 'RPT') continue
           // Every iteration, one random recipient
           // with newly unlocked balance will claim. Collect the names of such recipients:
-          if (progress.claimed < progress.unlocked) claimable.push(name) } })
+          if (progress.claimed < progress.unlocked) claimable.push(name)
+        }
+        process.env.NODEBUG = false
+      })
 
       if (claimable.length > 0) {
         await task('make one claim', async report => {
-          const claimant = claimable[Math.floor(Math.random() * claimable.length)]
-          console.info(`\n${claimant} claims...`)
           // * **Test claim.**
-          const recipient = recipients[claimant]
-          const tx = await MGMT.claim(recipient.agent)
-          const balance = String(await TOKEN.balance(recipient.agent, VK))
+          const claimant  = claimable[Math.floor(Math.random() * claimable.length)]
+              , _         = console.info(`\n${claimant} claims...`)
+              , recipient = recipients[claimant]
+              , tx        = await MGMT.claim(recipient.agent)
+              , balance   = String(await TOKEN.balance(recipient.address, VK))
           console.info(`balance of ${claimant} is now: ${fmtSIENNA(balance)} SIENNA`)
           report(tx.transactionHash) }) }
 
@@ -225,7 +229,7 @@ export async function verify ({task, agent, recipients, wallets, instances, sche
           if (name.startsWith('TokenPair')) {
             console.log(
               `${name}:`.padEnd(15),
-              fmtSIENNA(String(await TOKEN.balance(recipient.agent, VK))).padStart(30),
+              fmtSIENNA(String(await TOKEN.balance(recipient.address, VK))).padStart(30),
               'SIENNA') } } })
 
     } catch (e) {
