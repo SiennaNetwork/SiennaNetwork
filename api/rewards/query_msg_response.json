@@ -42,6 +42,7 @@
       }
     },
     {
+      "description": "Copy of SNIP20 message for Keplr support",
       "type": "object",
       "required": [
         "token_info"
@@ -75,6 +76,26 @@
                   "type": "null"
                 }
               ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Copy of SNIP20 message for Keplr support",
+      "type": "object",
+      "required": [
+        "balance"
+      ],
+      "properties": {
+        "balance": {
+          "type": "object",
+          "required": [
+            "amount"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
             }
           }
         }

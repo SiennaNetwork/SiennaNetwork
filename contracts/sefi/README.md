@@ -1,1 +1,0 @@
-SCRT Finance Ecosystem

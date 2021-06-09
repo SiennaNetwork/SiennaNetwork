@@ -78,7 +78,18 @@
       }
     },
     {
-      "description": "This is only here because of Keplr",
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/AdminQueryMsg"
+        }
+      }
+    },
+    {
+      "description": "Copy of SNIP20 message for Keplr support",
       "type": "object",
       "required": [
         "token_info"
@@ -90,13 +101,26 @@
       }
     },
     {
+      "description": "This is only here because of Keplr",
       "type": "object",
       "required": [
-        "admin"
+        "balance"
       ],
       "properties": {
-        "admin": {
-          "$ref": "#/definitions/AdminQueryMsg"
+        "balance": {
+          "type": "object",
+          "required": [
+            "address",
+            "key"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "key": {
+              "type": "string"
+            }
+          }
         }
       }
     }

@@ -10,22 +10,12 @@ members = [
   "contracts/rpt",             # claims from mgmt and splits the portion between recipients
   "contracts/rewards",         # TODO: leave only this and use MGMT and RPT from tge
 
-  # Rewards
-  "contracts/gov-token",       # TODO document
-  "contracts/lp-staking",      # TODO document
-  "contracts/weight-master",   # TODO document
-  "libraries/scrt-finance",    # TODO document
-  "contracts/snip20",          # SNIP20 reference impl by itzik@keytango.io
-
   # Swap + IDO
   "libraries/amm-shared",      # definitions that are shared between AMM and IDO
   "contracts/exchange",        # uniswap exchange contract implementation
   "contracts/factory",         # factory contract for creating exchanges
   "contracts/ido",             # Sienna IDO
   "contracts/lp-token",        # snip20 liquidity provider token
-  "contracts/snip20-callback", # SNIP20 token implementation with a modification to call back a
-                               # contract after init: TODO re-add this from sienna-swap-amm
-                               # (swap/contracts/snip20-reference-impl)
 
   # Lending
 
