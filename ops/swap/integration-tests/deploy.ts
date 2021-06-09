@@ -1,7 +1,7 @@
 import { upload, build_client } from './setup.js'
 import { JsonFileWriter } from './utils/json_file_writer.js'
 import * as dotenv from 'dotenv'
-import { ContractInfo } from './amm-lib/types'
+import { ContractInfo } from './amm-lib/types.js'
 import { create_fee } from './amm-lib/contract.js'
 
 dotenv.config()

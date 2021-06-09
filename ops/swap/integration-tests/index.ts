@@ -371,8 +371,10 @@ async function test_swap(
       analytics.add_tx('Exchange: Swap With Burner', result)
 
       const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
+      const burner_balance = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
 
       assert_equal(extract_log_value(result, 'sienna_commission'), '700')
+      assert(burner_balance === 700)
       assert(token_balance_before - amount_to_swap === token_balance_after)
     }
   )
