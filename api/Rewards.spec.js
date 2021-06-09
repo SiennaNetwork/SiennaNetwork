@@ -8,6 +8,8 @@ import RewardsContracts from '../ops/RewardsContracts.js'
 import {SecretNetwork} from '@fadroma/scrt-agent'
 import ensureWallets from '@fadroma/scrt-agent/fund.js'
 
+import {assert} from 'chai'
+
 const contracts = new RewardsContracts()
 
 describe('Rewards', () => {
@@ -17,67 +19,67 @@ describe('Rewards', () => {
     network:       null,
     tokenCodeId:   null,
     rewardsCodeId: null,
-    agent:         null,
+    admin:         null,
     token:         null,
     rewards:       null
   }
 
-  before(setupAll(state))
+  before(setupAll)
 
-  after(cleanupAll(state))
+  after(cleanupAll)
 
-  beforeEach(setupEach(state))
+  beforeEach(setupEach)
 
   it('can lock and return tokens', async function () {
     this.timeout(60000)
-    const {agent, token, rewards}=state
+    const {admin, token, rewards}=state
 
-    await token.mint(agent, 100)
-    assert(await token.balance(agent)   === 100)
+    await token.mint(admin, 100)
+    assert(await token.balance(admin)   === 100)
     assert(await token.balance(rewards) ===   0)
 
-    await rewards.lock(agent, 50)
-    assert(await token.balance(agent)   ===  50)
+    await rewards.lock(admin, 50)
+    assert(await token.balance(admin)   ===  50)
     assert(await token.balance(rewards) ===  50)
 
-    await rewards.unlock(agent, 50)
-    assert(await token.balance(agent)   === 100)
+    await rewards.unlock(admin, 50)
+    assert(await token.balance(admin)   === 100)
     assert(await token.balance(rewards) ===   0)
   })
 
   it('can process claims', async function () {
     this.timeout(60000)
-    const {agent, token, rewards}=state
+    const {admin, token, rewards}=state
 
-    await rewards.claim(agent)
-    expect(await token.balance(agent)   ===   0)
+    await rewards.claim(admin)
+    expect(await token.balance(admin)   ===   0)
 
-    await token.mint(agent, 100)
-    assert(await token.balance(agent)   === 100)
+    await token.mint(admin, 100)
+    assert(await token.balance(admin)   === 100)
     assert(await token.balance(rewards) ===   0)
-    await rewards.lock(agent, 100)
+    await rewards.lock(admin, 100)
 
     await token.interval()
-    await rewards.claim(agent)
-    expect(await token.balance(agent)   ===   2)
+    await rewards.claim(admin)
+    expect(await token.balance(admin)   ===   2)
 
     await token.interval()
-    await rewards.claim(agent)
-    expect(await token.balance(agent)   ===   4)
+    await rewards.claim(admin)
+    expect(await token.balance(admin)   ===   4)
 
-    await rewards.unlock(agent, 50)
-    expect(await token.balance(agent)   ===  54)
-
-    await token.interval()
-    await rewards.claim(agent)
-    expect(await token.balance(agent)   ===  55)
-
-    await rewards.unlock(agent, 50)
-    expect(await token.balance(agent)   === 105)
+    await rewards.unlock(admin, 50)
+    expect(await token.balance(admin)   ===  54)
 
     await token.interval()
-    await rewards.claim(agent)
-    expect(await token.balance(agent)   === 105)
+    await rewards.claim(admin)
+    expect(await token.balance(admin)   ===  55)
+
+    await rewards.unlock(admin, 50)
+    expect(await token.balance(admin)   === 105)
+
+    await token.interval()
+    await rewards.claim(admin)
+    expect(await token.balance(admin)   === 105)
   })
 
   it('can be configured', () => {})
@@ -86,10 +88,7 @@ describe('Rewards', () => {
 
   it('is protected by a viewing key', () => {})
 
-})
-
-function setupAll (state = {}) {
-  return async function () {
+  async function setupAll () {
     this.timeout(60000)
     // before each test run, compile fresh versions of the contracts
     const {TOKEN: tokenBinary, REWARDS: rewardsBinary} = await contracts.build({
@@ -107,10 +106,8 @@ function setupAll (state = {}) {
     const {codeId: rewardsCodeId} = await builder.uploadCached(rewardsBinary)
     Object.assign(state, { tokenCodeId, rewardsCodeId })
   }
-}
 
-function setupEach (state = {}) {
-  return async function () {
+  async function setupEach () {
     this.timeout(60000)
     //state.agent = await state.network.getAgent()
     console.log('\ndeploying instance of token')
@@ -138,10 +135,9 @@ function setupEach (state = {}) {
     })
     console.log('ready')
   }
-}
 
-function cleanupAll (state = {}) {
-  return async function () {
+  async function cleanupAll () {
     await state.node.terminate()
   }
-}
+
+})

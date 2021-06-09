@@ -19,6 +19,6 @@
   },
   "scripts": {
     "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",
-    "test": "./sienna clean-localnet && mocha api/Rewards.spec.js"
+    "test": "./sienna clean-localnet && mocha -p false api/Rewards.spec.js"
   }
 }
