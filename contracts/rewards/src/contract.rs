@@ -367,7 +367,7 @@ fn change_pools<S: Storage, A: Api, Q: Querier>(
     pools: Vec<RewardPool<HumanAddr>>,
     total_share: Uint128
 ) -> StdResult<HandleResponse>{
-    let mut sum_total = 0u128;
+    let mut sum_total: u128 = 0;
 
     for pool in pools.iter() {
         sum_total = sum_total.checked_add(pool.share.u128()).ok_or_else(||

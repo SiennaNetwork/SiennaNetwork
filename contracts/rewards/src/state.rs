@@ -64,7 +64,9 @@ pub(crate) fn replace_active_pools<S: Storage, A: Api, Q: Querier>(
         pools_stored.push(pool);
     }
 
-    // Delete all the current pools
+    // Delete all the current pools. The reason why they are not actually deleted
+    // is to allow users that still have locked their LP tokens into them to be
+    // able to withdraw them.
     set_current_pools_inactive(deps)?;
 
     // Finally, save/update the new ones and ensure they are not inactive
@@ -182,8 +184,8 @@ pub(crate) fn get_account<S: Storage, A: Api, Q: Querier>(
     address: &HumanAddr,
     lp_token_addr: &HumanAddr
 ) -> StdResult<Option<Account<HumanAddr>>> {
-    let addr_raw = deps.api.canonical_address(&address)?;
-    let lp_token_raw = deps.api.canonical_address(&lp_token_addr)?;
+    let addr_raw = deps.api.canonical_address(address)?;
+    let lp_token_raw = deps.api.canonical_address(lp_token_addr)?;
 
     let key = generate_account_key(&addr_raw, &lp_token_raw);
     let result: Option<Account<CanonicalAddr>> = ns_load(&deps.storage, ACCOUNTS_KEY, &key)?;
@@ -219,13 +221,19 @@ fn set_current_pools_inactive<S: Storage, A: Api, Q: Querier>(
 
     for addr in index {
         let mut pool: RewardPool<CanonicalAddr> = 
-            ns_load(&mut deps.storage, POOLS_KEY, &addr.as_slice())?
+            ns_load(&mut deps.storage, POOLS_KEY, addr.as_slice())?
             .ok_or_else(||
                 StdError::generic_err(
                     format!("Pool {} doesn't exist in active pool index.", addr)
                 )
             )?;
         
+        // The pool share will be provided in the configuration if the
+        // pool is restored, while the size is effectively being reset.
+        // We don't have to keep the size information in order to allow
+        // users to withdraw their LP tokens, because the specific amount
+        // for each user is stored in their account, for which, we only
+        // need the LP token address.
         pool.share = Uint128::zero();
         pool.size = Uint128::zero();
 
@@ -236,7 +244,7 @@ fn set_current_pools_inactive<S: Storage, A: Api, Q: Querier>(
             &pool
         )?;
             
-        ns_remove(&mut deps.storage, POOLS_KEY, &addr.as_slice());
+        ns_remove(&mut deps.storage, POOLS_KEY, addr.as_slice());
     }
 
     save(&mut deps.storage, POOL_INDEX, &Vec::<CanonicalAddr>::new())

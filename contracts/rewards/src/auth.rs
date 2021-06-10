@@ -19,7 +19,7 @@ impl AuthHandle for AuthImpl {
     ) -> StdResult<HandleResponse> {
         let config = load_config(deps)?;
 
-        let key = ViewingKey::new(&env, &config.prng_seed.as_slice(), &(entropy).as_ref());
+        let key = ViewingKey::new(&env, config.prng_seed.as_slice(), entropy.as_bytes());
         
         let address = deps.api.canonical_address(&env.message.sender)?;
         save_viewing_key(deps, address.as_slice(), &key)?;
