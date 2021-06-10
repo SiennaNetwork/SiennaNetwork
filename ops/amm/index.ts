@@ -343,19 +343,19 @@ async function test_swap(
       assert_equal(extract_log_value(result, 'sienna_commission'), '0')
     }
   )
-  
+
+  const client_burner = await build_client(BURN_POOL.mnemonic, APIURL)
+  const snip20_burner = new Snip20Contract(sienna_token.address, client_burner)
+
+  const key_burner = create_viewing_key()
+  await snip20_burner.set_viewing_key(key_burner)
+
   await execute_test(
     'test_swap_with_burner',
     async () => {
       let config = get_exchange_settings();
       config.sienna_burner = BURN_POOL.address
       await factory.set_config(undefined, undefined, undefined, undefined, config)
-
-      const client_burner = await build_client(BURN_POOL.mnemonic, APIURL)
-      const snip20_burner = new Snip20Contract(sienna_token.address, client_burner)
-
-      const key_burner = create_viewing_key()
-      await snip20_burner.set_viewing_key(key_burner)
 
       const token_balance_before = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
 
@@ -373,9 +373,44 @@ async function test_swap(
       const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
       const burner_balance = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
 
-      assert_equal(extract_log_value(result, 'sienna_commission'), '700')
-      assert(burner_balance === 700)
+      const expected_commission = 700
+
+      assert_equal(extract_log_value(result, 'sienna_commission'), expected_commission.toString())
+      assert(burner_balance === expected_commission)
       assert(token_balance_before - amount_to_swap === token_balance_after)
+    }
+  )
+
+  await execute_test(
+    'test_swap_from_native_with_burner',
+    async () => {
+      const native_balance_before = parseInt(await get_native_balance(client_burner))
+      const token_balance_before = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
+      const burner_balance_before = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
+
+      const allowance = await snip20_b.get_allowance(client_b.senderAddress, exchange.address, key)
+
+      const amount_to_swap = parseInt(offer_token.amount)
+
+      await snip20_b.increase_allowance(
+        exchange.address,
+        (amount_to_swap - parseInt(allowance.allowance)).toString()
+      )
+
+      const result = await exchange_b.swap(offer_token)
+      analytics.add_tx('Exchange: Native Swap With Burner', result)
+
+      const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
+      const burner_balance_after = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
+
+      const native_balance_after = parseInt(await get_native_balance(client_burner))
+
+      const expected_commission = 1200
+
+      assert_equal(extract_log_value(result, 'sienna_commission'), expected_commission.toString())
+      assert(burner_balance_after === burner_balance_before)
+      assert(native_balance_after === native_balance_before + expected_commission)
+      assert(token_balance_after > token_balance_before)
     }
   )
 }
