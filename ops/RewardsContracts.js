@@ -65,7 +65,7 @@ export default class RewardsContracts extends Ensemble {
     })
 
     await task('mint reward token', async report => {
-      const result = await instances.TOKEN.mint('390000000000000000000000', agent, instances.REWARDS.address)
+      const result = await instances.TOKEN.mint('540000000000000000000000', agent, instances.REWARDS.address)
       report(result)
     })
 

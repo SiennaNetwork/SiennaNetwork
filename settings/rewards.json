@@ -21,6 +21,13 @@
         "code_hash": "3c0dc12b15f22d0793f13f1f6a551e7dc0f0c113cc50f41eb8131f90517f385b"
       },
       "share": "800000000000000000000"
+    },
+    {
+      "lp_token": {
+        "address": "secret1c0dmzlywtfdwphp5eslxwenas7eg86ccsg6r5e",
+        "code_hash": "3c0dc12b15f22d0793f13f1f6a551e7dc0f0c113cc50f41eb8131f90517f385b"
+      },
+      "share": "500000000000000000000"
     }
   ]
 }
