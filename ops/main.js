@@ -1,24 +1,17 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs'
-import { resolve, basename, extname, dirname } from 'path'
-import { env, argv, stdout, stderr, exit } from 'process'
-import { fileURLToPath } from 'url'
-import open from 'open'
+import { argv } from 'process'
 import yargs from 'yargs'
-import { SecretNetwork } from '@fadroma/scrt-agent'
 import ensureWallets from '@fadroma/scrt-agent/fund.js'
 import Localnet from '@fadroma/scrt-ops/localnet.js'
-import { scheduleFromSpreadsheet } from '@sienna/schedule'
-import { args, combine } from './args.js'
+import { args } from './args.js'
 import { genCoverage, genSchema, genDocs } from './gen.js'
-import { abs, stateBase } from './root.js'
-import { clear, cargo, run, runTests, runDemo } from './run.js'
+import { runTests, runDemo } from './run.js'
 import TGEContracts from './TGEContracts.js'
 import RewardsContracts from './RewardsContracts.js'
 import AMMContracts from './AMMContracts.js'
 
-export default function main () {
-  let cmd = yargs(process.argv.slice(2))
+export default function main (argv) {
+  let cmd = yargs(argv.slice(2))
     .wrap(yargs().terminalWidth())
     .demandCommand(1, '')
     .command('docs [crate]',
@@ -53,7 +46,7 @@ export default function main () {
 }
 
 try {
-  main()
+  main(argv)
 } catch (e) {
   console.error(e)
   const ISSUES = `https://github.com/hackbg/sienna-secret-token/issues`

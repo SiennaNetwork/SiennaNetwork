@@ -1,4 +1,4 @@
-import { Console, readFileSync, randomBytes } from '@fadroma/utilities'
+import { Console, readFileSync, randomBytes, taskmaster } from '@fadroma/utilities'
 import Ensemble from '@fadroma/scrt-ops/ensemble.js'
 import { SNIP20Contract, RewardsContract } from '@sienna/api'
 import { abs } from './root.js'
