@@ -21,7 +21,7 @@ export interface UploadResult {
 export async function upload(client: SigningCosmWasmClient, writer: IJsonFileWriter): Promise<UploadResult> {
     const fee = create_fee('2500000')
 
-    const wasm_path = '../../../artifacts/'
+    const wasm_path = '../../artifacts/'
   
     const snip20_wasm = readFileSync(resolve(`${wasm_path}amm-snip20@HEAD.wasm`))
     const exchange_wasm = readFileSync(resolve(`${wasm_path}exchange@HEAD.wasm`))

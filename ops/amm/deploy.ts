@@ -8,7 +8,7 @@ dotenv.config()
 
 async function deploy() {
     const client = await build_client(process.env.MNEMONIC as string, process.env.SECRET_REST_URL as string)
-    const writer = new JsonFileWriter(`../../../artifacts/amm/${process.env.SECRET_CHAIN_ID}/`)
+    const writer = new JsonFileWriter(`../../artifacts/amm/${process.env.SECRET_CHAIN_ID}/`)
 
     const result = await upload(client, writer)
 
