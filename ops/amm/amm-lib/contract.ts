@@ -202,7 +202,7 @@ export class ExchangeContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('3000000')
+            fee = create_fee('320000')
         }
 
         const transfer = add_native_balance_pair(amount)
@@ -218,7 +218,7 @@ export class ExchangeContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('2500000')
+            fee = create_fee('300000')
         }
 
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
@@ -233,7 +233,7 @@ export class ExchangeContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('2400000')
+            fee = create_fee('380000')
         }
 
         const transfer = add_native_balance(amount)
@@ -444,7 +444,7 @@ export class RewardsContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('200000')
+            fee = create_fee('300000')
         }
 
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
@@ -478,7 +478,7 @@ export class RewardsContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('200000')
+            fee = create_fee('250000')
         }
 
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
@@ -493,7 +493,7 @@ export class RewardsContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('200000')
+            fee = create_fee('250000')
         }
 
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
