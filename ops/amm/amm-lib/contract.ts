@@ -427,6 +427,12 @@ interface GetPoolsResponse {
     pools: RewardPool[];
 }
 
+interface GetTotalRewardsSupply {
+    total_rewards_supply: {
+        amount: Uint128;
+    }
+}
+
 export class RewardsContract extends SmartContract {
     constructor(
         readonly address: Address,
@@ -456,7 +462,7 @@ export class RewardsContract extends SmartContract {
         current_time_secs: number,
         lp_tokens: Address[]
     ): Promise<ClaimSimulationResult> {
-        let msg = {
+        const msg = {
             claim_simulation: {
                 address,
                 current_time: current_time_secs,
@@ -465,12 +471,12 @@ export class RewardsContract extends SmartContract {
             }
         };
 
-        let result = await this.query_client().queryContractSmart(this.address, msg) as ClaimSimulationResponse;
+        const result = await this.query_client().queryContractSmart(this.address, msg) as ClaimSimulationResponse;
         return result.claim_simulation;
     }
 
     async lock_tokens(amount: Uint128, lp_token: Address, fee?: Fee | undefined): Promise<ExecuteResult> {
-        let msg = {
+        const msg = {
             lock_tokens: {
                 amount,
                 lp_token
@@ -485,7 +491,7 @@ export class RewardsContract extends SmartContract {
     }
 
     async retrieve_tokens(amount: Uint128, lp_token: Address, fee?: Fee | undefined): Promise<ExecuteResult> {
-        let msg = {
+        const msg = {
             retrieve_tokens: {
                 amount,
                 lp_token
@@ -502,7 +508,7 @@ export class RewardsContract extends SmartContract {
     async get_pools(): Promise<RewardPool[]> {
         const msg = 'pools' as unknown as object
 
-        let result = await this.query_client().queryContractSmart(this.address, msg) as GetPoolsResponse;
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetPoolsResponse;
         return result.pools;
     }
 
@@ -511,7 +517,7 @@ export class RewardsContract extends SmartContract {
         lp_tokens: Address[],
         viewing_key: ViewingKey
     ): Promise<RewardsAccount[]> {
-        let msg = {
+        const msg = {
             accounts: {
                 address,
                 lp_tokens,
@@ -519,8 +525,15 @@ export class RewardsContract extends SmartContract {
             }
         }
 
-        let result = await this.query_client().queryContractSmart(this.address, msg) as GetAccountsResponse;
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetAccountsResponse;
         return result.accounts;
+    }
+
+    async get_total_rewards_supply(): Promise<Uint128> {
+        const msg = 'total_rewards_supply' as unknown as object
+
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetTotalRewardsSupply;
+        return result.total_rewards_supply.amount;
     }
 }
 
