@@ -58,17 +58,14 @@ export default class RewardsContracts extends Ensemble {
         admin:     agent.address,
         entropy:   randomBytes(36).toString('base64'),
         prng_seed: randomBytes(36).toString('base64'),
-        reward_token: {
-          address:   instances.TOKEN.contractAddress,
-          code_hash: instances.TOKEN.codeHash
-        },
+        reward_token: instances.TOKEN.reference,
       })
       instances.REWARDS = await agent.instantiate(new RewardsContract({codeId, label, initMsg}))
       report(instances.REWARDS.transactionHash)
     })
 
     await task('mint reward token', async report => {
-      const result = await instances.TOKEN.mint(agent, '390000000000000000000000', instances.REWARDS.contractAddress)
+      const result = await instances.TOKEN.mint('390000000000000000000000', agent, instances.REWARDS.address)
       report(result)
     })
 

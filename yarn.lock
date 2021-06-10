@@ -233,7 +233,7 @@ bech32@^1.1.4:
   resolved "https://registry.yarnpkg.com/bech32/-/bech32-1.1.4.tgz#e38c9f37bf179b8eb16ae3a772b40c356d4832e9"
   integrity sha512-s0IrSOzLlbvX7yp4WBfPITzpAU8sqQcpsmwXDiKwrG4r491vwCO/XpejasRNl0piBMe/DvP4Tz0mIS/X1DPJBQ==
 
-bignumber.js@^9.0.0, bignumber.js@^9.0.1:
+bignumber.js@^9.0.0:
   version "9.0.1"
   resolved "https://registry.yarnpkg.com/bignumber.js/-/bignumber.js-9.0.1.tgz#8d7ba124c882bfd8e43260c67475518d0689e4e5"
   integrity sha512-IdZR9mh6ahOBv/hYGiXyVuyCetmGJhtYkqLBpTStdhEGjegpPlUawydyaF3pbIOFynJTpllEs+NP+CS9jKFLjA==
@@ -559,7 +559,7 @@ docker-modem@^3.0.0:
     split-ca "^1.0.1"
     ssh2 "^0.8.7"
 
-dockerode@^3.2.1:
+dockerode@^3.3.0:
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/dockerode/-/dockerode-3.3.0.tgz#bedaf48ef9fa9124275a54a9881a92374c51008e"
   integrity sha512-St08lfOjpYCOXEM8XA0VLu3B3hRjtddODphNW5GFoA0AS3JHgoPQKOz0Qmdzg3P+hUPxhb02g1o1Cu1G+U3lRg==
