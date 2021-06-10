@@ -91,7 +91,12 @@
               }
             },
             "total_share": {
-              "$ref": "#/definitions/Uint128"
+              "description": "The total share of all the pools provided. This is used as an additional correctness check.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                }
+              ]
             }
           }
         }
@@ -211,7 +216,12 @@
       ],
       "properties": {
         "lp_token": {
-          "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+          "description": "The LP token address that the pool will be associated with.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+            }
+          ]
         },
         "share": {
           "description": "The reward amount allocated to this pool.",

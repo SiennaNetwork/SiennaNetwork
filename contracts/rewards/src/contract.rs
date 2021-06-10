@@ -262,6 +262,8 @@ fn claim<S: Storage, A: Api, Q: Querier>(
         );
     }
 
+    // Claim the remaining rewards amount if the current rewards pool,
+    // is less than what should be claimed.
     let claim_amount = if total_rewards_amount > available_balance {
         available_balance
     } else {

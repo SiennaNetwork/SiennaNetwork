@@ -76,7 +76,12 @@
       ],
       "properties": {
         "lp_token": {
-          "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+          "description": "The LP token address that the pool will be associated with.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+            }
+          ]
         },
         "share": {
           "description": "The reward amount allocated to this pool.",

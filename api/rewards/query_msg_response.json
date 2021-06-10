@@ -167,6 +167,7 @@
     "ClaimError": {
       "anyOf": [
         {
+          "description": "Occurs when the rewards pool is currently empty.",
           "type": "object",
           "required": [
             "type"
@@ -181,6 +182,7 @@
           }
         },
         {
+          "description": "Occurs when the user has no tokens locked in this pool. In practice, this can occur when a wrong address was provided to the query.",
           "type": "object",
           "required": [
             "type"
@@ -195,6 +197,7 @@
           }
         },
         {
+          "description": "It is possible for the user's share to be so little, that the actual reward amount of rewards calculated to be zero. However, it is highly unlikely in practice.",
           "type": "object",
           "required": [
             "type"
@@ -209,6 +212,7 @@
           }
         },
         {
+          "description": "Occurs when the user tries to claim earlier than the designated claim interval.",
           "type": "object",
           "required": [
             "time_to_wait",
@@ -216,6 +220,7 @@
           ],
           "properties": {
             "time_to_wait": {
+              "description": "In Unix seconds.",
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
@@ -250,13 +255,28 @@
           ]
         },
         "lp_token_addr": {
-          "$ref": "#/definitions/HumanAddr"
+          "description": "The address of the LP token that the reward pool corresponds to.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          ]
         },
         "reward_amount": {
-          "$ref": "#/definitions/Uint128"
+          "description": "The total reward amount that would be claimed from this pool.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
         },
         "reward_per_portion": {
-          "$ref": "#/definitions/Uint128"
+          "description": "The reward amount that would be claimed for a single portion.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
         },
         "success": {
           "type": "boolean"
@@ -272,16 +292,27 @@
       ],
       "properties": {
         "actual_claimed": {
-          "$ref": "#/definitions/Uint128"
+          "description": "The actual amount of rewards that would be claimed from all the supplied pools.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
         },
         "results": {
+          "description": "Detailed info about the claim for each reward pool.",
           "type": "array",
           "items": {
             "$ref": "#/definitions/ClaimResult"
           }
         },
         "total_rewards_amount": {
-          "$ref": "#/definitions/Uint128"
+          "description": "The total amount of rewards that should be claimed from all the supplied pools.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
         }
       }
     },
