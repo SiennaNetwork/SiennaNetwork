@@ -5,7 +5,8 @@
     {
       "type": "string",
       "enum": [
-        "pools"
+        "pools",
+        "total_rewards_supply"
       ]
     },
     {

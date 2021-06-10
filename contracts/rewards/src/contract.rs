@@ -107,7 +107,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::Pools => query_pools(deps),
 
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
-
+        QueryMsg::TotalRewardsSupply => query_supply(deps),
         // Keplr support:
         QueryMsg::TokenInfo { } => to_binary(&QueryMsgResponse::TokenInfo {
             name: "Sienna Rewards".into(),
@@ -417,6 +417,17 @@ fn query_accounts<S: Storage, A: Api, Q: Querier>(
     }
 
     Ok(to_binary(&QueryMsgResponse::Accounts(result))?)
+}
+
+fn query_supply<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>
+) -> StdResult<Binary> {
+    let config = load_config(deps)?;
+    let balance = get_balance(&deps.querier, &config)?;
+
+    Ok(to_binary(&QueryMsgResponse::TotalRewardsSupply {
+        amount: Uint128(balance)
+    })?)
 }
 
 fn calc_reward_share(

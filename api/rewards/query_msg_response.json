@@ -42,6 +42,25 @@
       }
     },
     {
+      "type": "object",
+      "required": [
+        "total_rewards_supply"
+      ],
+      "properties": {
+        "total_rewards_supply": {
+          "type": "object",
+          "required": [
+            "amount"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
       "description": "Copy of SNIP20 message for Keplr support",
       "type": "object",
       "required": [

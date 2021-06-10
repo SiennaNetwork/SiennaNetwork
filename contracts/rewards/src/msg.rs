@@ -8,8 +8,8 @@ use crate::data::{RewardPool, Account};
 
 pub(crate) const OVERFLOW_MSG: &str = "Upper bound overflow detected.";
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, JsonSchema)]
 /// Represents a pair that is eligible for rewards.
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, JsonSchema)]
 pub struct RewardPoolConfig {
     pub lp_token: ContractInstance<HumanAddr>,
     /// The reward amount allocated to this pool.
@@ -74,9 +74,8 @@ pub enum QueryMsg {
         lp_tokens: Vec<HumanAddr>
     },
     Pools,
-
+    TotalRewardsSupply,
     Admin(AdminQueryMsg),
-
     /// Copy of SNIP20 message for Keplr support
     TokenInfo { },
     /// This is only here because of Keplr
@@ -89,7 +88,9 @@ pub enum QueryMsgResponse {
     ClaimSimulation(ClaimSimulationResult),
     Accounts(Vec<Account<HumanAddr>>),
     Pools(Vec<RewardPool<HumanAddr>>),
-
+    TotalRewardsSupply {
+        amount: Uint128
+    },
     /// Copy of SNIP20 message for Keplr support
     TokenInfo {
         name: String,
