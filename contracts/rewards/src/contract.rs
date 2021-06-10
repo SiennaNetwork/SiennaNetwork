@@ -437,7 +437,10 @@ fn calc_reward_share(
     pool: &RewardPool<HumanAddr>,
     reward_token_decimals: u8
 ) -> StdResult<u128> {
-    user_locked *= 100; // Multiply by 100 to get a non float percentage
+    // Multiply by 100 to get a non float percentage
+    user_locked = user_locked.checked_mul(100).ok_or_else(||
+        StdError::generic_err(OVERFLOW_MSG)
+    )?;
 
     // This error shouldn't really happen since the TX should already have failed.
     let share_percentage = user_locked.checked_div(pool.size.u128()).ok_or_else(|| 
