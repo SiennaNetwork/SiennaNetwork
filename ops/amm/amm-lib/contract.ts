@@ -18,13 +18,13 @@ export interface Fee {
     readonly gas: Uint128
 }
 
-/*
-interface GetExchangePairResponse {
-    get_exchange_pair: {
-        pair: TokenPair;
-    }
+export interface FactoryConfig {
+    exchange_settings: ExchangeSettings;
+    ido_contract: ContractInstantiationInfo;
+    lp_token_contract: ContractInstantiationInfo;
+    pair_contract: ContractInstantiationInfo;
+    snip20_contract: ContractInstantiationInfo;
 }
-*/
 
 interface GetExchangeAddressResponse {
     get_exchange_address: {
@@ -42,6 +42,10 @@ interface ListExchangesResponse {
     list_exchanges: {
         exchanges: Exchange[];
     }
+}
+
+interface FactoryGetConfigResponse {
+    config: FactoryConfig
 }
 
 function create_coin(amount: Uint128): Coin {
@@ -171,6 +175,15 @@ export class FactoryContract extends SmartContract {
 
         const result = await this.query_client().queryContractSmart(this.address, msg) as ListExchangesResponse
         return result.list_exchanges.exchanges
+    }
+
+    async get_config(): Promise<FactoryConfig> {
+        const msg = {
+            get_config: { }
+        }
+
+        const result = await this.query_client().queryContractSmart(this.address, msg) as FactoryGetConfigResponse
+        return result.config
     }
 }
 
