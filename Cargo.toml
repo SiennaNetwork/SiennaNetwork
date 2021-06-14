@@ -19,13 +19,11 @@ members = [
   "contracts/amm-snip20",      # vanilla snip20 token, used when creating an IDO
 
   # Lending
-
-  #"contracts/lend-atoken" # <- https://github.com/SiennaNetwork/sienna-lend/tree/master/contracts/atoken/src
-  #"contracts/snip20-lend" # <- https://github.com/SiennaNetwork/sienna-lend/tree/master/packages/snip20
-
   "libraries/lend-experimental",        # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/libraries
+  #"contracts/lend-atoken"              # <- https://github.com/SiennaNetwork/sienna-lend/tree/master/contracts/atoken/src
   "contracts/lend-atoken-experimental", # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/atoken
   "contracts/lend-configuration",       # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/configuration
+  #"contracts/snip20-lend"              # <- https://github.com/SiennaNetwork/sienna-lend/tree/master/packages/snip20
   "contracts/snip20-lend-experimental", # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/packages/snip20
 
   # Framework
@@ -35,7 +33,7 @@ members = [
   "libraries/fadroma-21.06.1/scrt-migrate",                # pause contracts and mark them for upgrade
   "libraries/fadroma-21.06.1/scrt-storage",                # storage access shorthand functions
   "libraries/fadroma-21.06.1/scrt-utils",                  # grab bag of utility functions
-  "libraries/migrate",  # migration flag - TODO replace with fadroma-21.06.1/scrt-migrate ?
+  "libraries/migrate",  # migration flag, as used by TGE before merging this feature into Fadroma
   "libraries/kukumba",  # BDD testing framework
 ]
 

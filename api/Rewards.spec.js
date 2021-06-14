@@ -7,7 +7,7 @@ import ensureWallets from '@fadroma/scrt-agent/fund.js'
 import SNIP20 from './SNIP20.js'
 import Rewards from './Rewards.js'
 
-import {abs} from '../ops/root.js'
+import {abs} from '../ops/lib/index.js'
 import RewardsContracts from '../ops/RewardsContracts.js'
 
 const ensemble = new RewardsContracts()

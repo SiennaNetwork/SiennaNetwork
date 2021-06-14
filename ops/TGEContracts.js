@@ -7,8 +7,7 @@ import {
 } from '@fadroma/utilities'
 import { SNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
 import { scheduleFromSpreadsheet } from '@sienna/schedule'
-import { projectRoot, abs } from './root.js'
-import { combine, args } from './args.js'
+import { projectRoot, abs, combine, args } from './lib/index.js'
 
 const { log, warn, info, table } = Console(import.meta.url)
 
@@ -170,50 +169,41 @@ export default class TGEContracts extends Ensemble {
     log({network, claimant})
   }
 
-  commands (yargs) {
-    return yargs
-      .command('build',
-        '👷 Compile contracts from working tree',
-        args.Sequential, () => this.build())
-      .command('deploy-tge [network] [schedule]',
-        '🚀 Build, init, and deploy the TGE',
-        combine(args.Network, args.Schedule),
-        x => this.deploy(x).then(info))
-      .command('upload <network>',
-        '📦 Upload compiled contracts to network',
-        args.Network,
-        () => this.upload())
-      .command('init <network> [<schedule>]',
-        '🚀 Just instantiate uploaded contracts',
-        combine(args.Network, args.Schedule),
-        x => this.initialize(x).then(info))
-      .command('launch <network> <address>',
-        '🚀 Launch deployed vesting contract',
-        combine(args.Network, args.Address),
-        () => this.launch())
-      .command('transfer <network> <address>',
-        '⚡ Transfer ownership to another address',
-        combine(args.Network, args.Address),
-        () => this.transfer())
-      .command('configure <deployment> <schedule>',
-        '⚡ Upload a JSON config to an initialized contract',
-        combine(args.Deployment, args.Schedule),
-        () => this.configure())
-      .command('reallocate <deployment> <allocations>',
-        '⚡ Update the allocations of the RPT tokens',
-        combine(args.Deployment, args.Allocations),
-        () => this.reallocate())
-      .command('add-account <deployment> <account>',
-        '⚡ Add a new account to a partial vesting pool',
-        combine(args.Deployment, args.Account),
-        () => this.addAccount())
-      .command('claim <network> <contract> [<claimant>]',
-        '⚡ Claim funds from a deployed contract',
-        combine(args.Network, args.Contract, args.Claimant),
-        () => this.claim())
-      .command('config [<spreadsheet>]',
-        '📅 Convert a spreadsheet into a JSON schedule',
-        args.Spreadsheet, genConfig)
+  get commands () {
+    return [
+      ["build",       '👷 Compile contracts from working tree',
+        (context, [sequential]) => this.build(sequential)],
+
+      ["deploy",      '🚀 Build, init, and deploy the TGE',
+        (context, [schedule]) => this.deploy(context.network, schedule).then(info)],
+
+      ["upload",      '📦 Upload compiled contracts to network',
+        (context, [network]) => this.upload()],
+
+      ["init",        '🚀 Init new instances of already uploaded contracts',
+        (context, [schedule]) => this.initialize(context.network, schedule).then(info)],
+
+      ["launch",      '🚀 Launch deployed vesting contract',
+        (context, [address]) =>  this.launch(context.network, address)],
+
+      ["transfer",    '⚡ Transfer ownership of contracts to another address',
+        (context, [address]) => this.transfer(context.network, address)],
+
+      ["configure",   '⚡ Upload a new JSON config to an already initialized contract',
+        (context, [deployment, schedule]) => this.configure(deployment, schedule)],
+
+      ['reallocate',  '⚡ Update the allocations of the RPT tokens',
+        (context, [deployment, allocations]) => this.reallocate(deployment, allocations)],
+
+      ['add-account', '⚡ Add a new account to a partial vesting pool',
+        (context, [deployment, account]) => this.addAccount(deployment, account)],
+
+      ['claim',       '⚡ Claim funds from a deployed contract',
+        (context, [contract, claimant]) => this.claim()],
+
+      ['config',      '📅 Convert a spreadsheet into a JSON schedule',
+        (context, [spreadsheet]) => genConfig(spreadshet)]
+    ]
   }
 
 }

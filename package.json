@@ -13,7 +13,9 @@
   "dependencies": {
     "chai": "^4.3.4",
     "docco": "^0.8.1",
-    "mocha": "^8.4.0"
+    "mocha": "^8.4.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.2"
   },
   "scripts": {
     "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",

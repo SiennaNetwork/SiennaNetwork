@@ -1,8 +1,7 @@
 import { Console, readFileSync, randomBytes, taskmaster } from '@fadroma/utilities'
 import Ensemble from '@fadroma/scrt-ops/ensemble.js'
 import { SNIP20Contract, RewardsContract } from '@sienna/api'
-import { abs } from './root.js'
-import { combine, args } from './args.js'
+import { abs, combine, args } from './lib/index.js'
 
 const console = Console(import.meta.url)
 
@@ -80,15 +79,13 @@ export default class RewardsContracts extends Ensemble {
     return instances
   }
 
-  commands (yargs) {
-    return yargs
-      .command('build-rewards',
-        '👷 Compile contracts from working tree',
-        args.Sequential, () => this.build())
-      .command('deploy-rewards [network]',
-        '🚀 Build, init, and deploy the rewards component',
-        combine(args.Network),
-        x => this.deploy(x).then(console.info))
+  get commands () {
+    return [
+      ["build",  '👷 Compile contracts from working tree',
+        (context, [sequential]) => this.build(sequential)],
+      ["deploy", '🚀 Build, init, and deploy the rewards component',
+        (context, [x]) => this.deploy(x).then(console.info)]
+    ]
   }
 
 }

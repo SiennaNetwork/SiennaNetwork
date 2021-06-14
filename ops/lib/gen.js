@@ -1,5 +1,5 @@
 import { existsSync, stderr, writeFileSync } from '@fadroma/utilities'
-import TGEContracts from './TGEContracts.js'
+import TGEContracts from '../TGEContracts.js'
 import { abs } from './root.js'
 import { cargo } from './run.js'
 

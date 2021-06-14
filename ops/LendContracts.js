@@ -8,21 +8,15 @@ export default class AMMContracts extends Ensemble {
   prefix = `${new Date().toISOString()} `
 
   contracts = {
-    FACTORY: {
-      crate: 'factory'
-    },
     SNIP20: {
-      crate: 'amm-snip20'
+      crate: 'snip20-lend'
     },
-    EXCHANGE: {
-      crate: 'exchange'
+    ATOKEN: {
+      crate: 'atoken'
     },
-    LP_TOKEN: {
-      crate: 'lp-token'
+    CONFIG: {
+      crate: 'configuration'
     },
-    IDO: {
-      crate: 'ido'
-    }
   }
 
   get commands () {
