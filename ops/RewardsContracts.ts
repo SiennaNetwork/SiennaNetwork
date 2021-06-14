@@ -35,21 +35,7 @@ export default class RewardsContracts extends Ensemble {
 
   }
 
-  get localCommands () {
-    return [
-      ["build",  '👷 Compile contracts from working tree',
-        (context, [sequential]) => this.build(sequential)],
-    ]
-  }
-
-  get remoteCommands () {
-    return [
-      ["deploy", '🚀 Build, init, and deploy the rewards component',
-        (context, [x]) => this.deploy(x).then(console.info)]
-    ]
-  }
-
-  async initialize ({ receipts, agent }) {
+  async initialize ({ network, receipts, agent = network.agent }) {
     const instances = {}
     const task = taskmaster()
 
