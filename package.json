@@ -11,6 +11,7 @@
     "./ops"
   ],
   "dependencies": {
+    "@k-foss/ts-esnode": "^2.0.2",
     "chai": "^4.3.4",
     "docco": "^0.8.1",
     "mocha": "^8.4.0",

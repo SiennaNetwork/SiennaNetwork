@@ -105,6 +105,11 @@
   dependencies:
     "@cosmjs/utils" "^0.20.0"
 
+"@k-foss/ts-esnode@^2.0.2":
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/@k-foss/ts-esnode/-/ts-esnode-2.0.2.tgz#9976d2a318ef56d5dda780bdb4b715edab52307a"
+  integrity sha512-ysEOUR7EkvSsmwNc3AWUL8Rk3IT4fM6GgXImEtIGLj8nO0PGLfAp4yCsJoC6ZqwfhnTxL6viaNqnk9yqpKmx3Q==
+
 "@tsconfig/node10@^1.0.7":
   version "1.0.8"
   resolved "https://registry.yarnpkg.com/@tsconfig/node10/-/node10-1.0.8.tgz#c1e4e80d6f964fbecb3359c43bd48b40f7cadad9"
