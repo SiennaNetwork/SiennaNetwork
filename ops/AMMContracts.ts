@@ -25,12 +25,17 @@ export default class AMMContracts extends Ensemble {
     }
   }
 
-  get commands () {
+  get localCommands () {
     return [
-      ["build", '👷 Compile contracts from working tree',
+      ["build",  '👷 Compile contracts from working tree',
         (context, [sequential]) => this.build(sequential)],
-      ["deploy", '🚀 Build, init, and deploy the Swap/AMM component',
-        () => console.log('Use scripts in ops/swap/integration-tests/ instead.')]
+    ]
+  }
+
+  get remoteCommands () {
+    return [
+      ["deploy", '🚀 Build, init, and deploy the rewards component',
+        (context, [x]) => this.deploy(x).then(console.info)]
     ]
   }
 

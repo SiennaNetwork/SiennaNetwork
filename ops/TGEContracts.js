@@ -17,6 +17,41 @@ export default class TGEContracts extends Ensemble {
 
   prefix = `${new Date().toISOString()} `
 
+  get localCommands () {
+    return [
+      ["build",       '👷 Compile contracts from working tree',
+        (context, [sequential]) => this.build(sequential)],
+      ['config',      '📅 Convert a spreadsheet into a JSON schedule',
+        (context, [spreadsheet]) => genConfig(spreadshet)]
+    ]
+  }
+
+  get remoteCommands () {
+    return [
+      ["deploy",      '🚀 Build, init, and deploy the TGE',
+        (context, [schedule]) => this.deploy(context.network, schedule).then(info)],
+      ["demo",        'Run the TGE demo (long-running integration test)',
+        runDemo],
+      ["upload",      '📦 Upload compiled contracts to network',
+        (context, [network]) => this.upload()],
+      ["init",        '🚀 Init new instances of already uploaded contracts',
+        (context, [schedule]) => this.initialize(context.network, schedule).then(info)],
+      ["launch",      '🚀 Launch deployed vesting contract',
+        (context, [address]) =>  this.launch(context.network, address)],
+      ["transfer",    '⚡ Transfer ownership of contracts to another address',
+        (context, [address]) => this.transfer(context.network, address)],
+      ["configure",   '⚡ Upload a new JSON config to an already initialized contract',
+        (context, [deployment, schedule]) => this.configure(deployment, schedule)],
+      ['claim',       '⚡ Claim funds from a deployed contract',
+        (context, [contract, claimant]) => this.claim()],
+      // not implemented:
+      //['reallocate',  '⚡ Update the allocations of the RPT tokens',
+        //(context, [deployment, allocations]) => this.reallocate(deployment, allocations)],
+      //['add-account', '⚡ Add a new account to a partial vesting pool',
+        //(context, [deployment, account]) => this.addAccount(deployment, account)],
+    ]
+  }
+
   contracts = {
 
     TOKEN: {
@@ -167,46 +202,6 @@ export default class TGEContracts extends Ensemble {
       network = await SecretNetwork[network]({stateBase})
     }
     log({network, claimant})
-  }
-
-  get commands () {
-    return [
-      ["build",       '👷 Compile contracts from working tree',
-        (context, [sequential]) => this.build(sequential)],
-
-      ["deploy",      '🚀 Build, init, and deploy the TGE',
-        (context, [schedule]) => this.deploy(context.network, schedule).then(info)],
-
-      ["demo",        'Run the TGE demo (long-running integration test)',
-        runDemo],
-
-      ["upload",      '📦 Upload compiled contracts to network',
-        (context, [network]) => this.upload()],
-
-      ["init",        '🚀 Init new instances of already uploaded contracts',
-        (context, [schedule]) => this.initialize(context.network, schedule).then(info)],
-
-      ["launch",      '🚀 Launch deployed vesting contract',
-        (context, [address]) =>  this.launch(context.network, address)],
-
-      ["transfer",    '⚡ Transfer ownership of contracts to another address',
-        (context, [address]) => this.transfer(context.network, address)],
-
-      ["configure",   '⚡ Upload a new JSON config to an already initialized contract',
-        (context, [deployment, schedule]) => this.configure(deployment, schedule)],
-
-      //['reallocate',  '⚡ Update the allocations of the RPT tokens',
-        //(context, [deployment, allocations]) => this.reallocate(deployment, allocations)],
-
-      //['add-account', '⚡ Add a new account to a partial vesting pool',
-        //(context, [deployment, account]) => this.addAccount(deployment, account)],
-
-      ['claim',       '⚡ Claim funds from a deployed contract',
-        (context, [contract, claimant]) => this.claim()],
-
-      ['config',      '📅 Convert a spreadsheet into a JSON schedule',
-        (context, [spreadsheet]) => genConfig(spreadshet)]
-    ]
   }
 
 }
