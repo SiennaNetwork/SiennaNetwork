@@ -7,14 +7,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-      with:
-        fetch-depth: 100
+      with: { fetch-depth: 100 }
     - name: Change directory
       run: cd wrapped-fixes
     - name: Fetch code and build using Nodejs 14.x
       uses: actions/setup-node@v2
-      with:
-        node-version: 14.x
+      with: { node-version: 14.x }
     - run: npm ci
     - run: npm run test
     - run: npm run coverage

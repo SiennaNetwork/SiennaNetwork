@@ -21,7 +21,7 @@ jobs:
         run: ./sienna docs
 
   test:
-    name: Unit test suites of contracts
+    name: Unit test suites of all contracts
     runs-on: ubuntu-latest
     steps:
       - name: Install Node and Yarn
@@ -57,7 +57,7 @@ jobs:
         run: ./sienna coverage
 
   schema:
-    name: Contract API schema
+    name: API schema of all contracts
     runs-on: ubuntu-latest
     steps:
       - name: Install Node and Yarn

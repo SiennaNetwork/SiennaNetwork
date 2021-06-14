@@ -171,14 +171,14 @@ export default class TGEContracts extends Ensemble {
 
   get commands () {
     return [
-      ["demo",        'Run the TGE demo (long-running integration test)',
-        runDemo],
-
       ["build",       '👷 Compile contracts from working tree',
         (context, [sequential]) => this.build(sequential)],
 
       ["deploy",      '🚀 Build, init, and deploy the TGE',
         (context, [schedule]) => this.deploy(context.network, schedule).then(info)],
+
+      ["demo",        'Run the TGE demo (long-running integration test)',
+        runDemo],
 
       ["upload",      '📦 Upload compiled contracts to network',
         (context, [network]) => this.upload()],
@@ -195,11 +195,11 @@ export default class TGEContracts extends Ensemble {
       ["configure",   '⚡ Upload a new JSON config to an already initialized contract',
         (context, [deployment, schedule]) => this.configure(deployment, schedule)],
 
-      ['reallocate',  '⚡ Update the allocations of the RPT tokens',
-        (context, [deployment, allocations]) => this.reallocate(deployment, allocations)],
+      //['reallocate',  '⚡ Update the allocations of the RPT tokens',
+        //(context, [deployment, allocations]) => this.reallocate(deployment, allocations)],
 
-      ['add-account', '⚡ Add a new account to a partial vesting pool',
-        (context, [deployment, account]) => this.addAccount(deployment, account)],
+      //['add-account', '⚡ Add a new account to a partial vesting pool',
+        //(context, [deployment, account]) => this.addAccount(deployment, account)],
 
       ['claim',       '⚡ Claim funds from a deployed contract',
         (context, [contract, claimant]) => this.claim()],
