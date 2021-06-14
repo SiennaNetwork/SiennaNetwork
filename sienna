@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # requires nodejs>=13.9
 # https://github.com/TypeStrong/ts-node/issues/935
 # https://github.com/K-FOSS/TS-ESNode

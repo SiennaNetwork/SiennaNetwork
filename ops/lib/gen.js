@@ -9,18 +9,7 @@ export function genCoverage () {
 }
 
 export function genSchema () {
-  throw new Error('not implemented')
-  //const cwd = process.cwd()
-  //try {
-    //for (const [name, {schema}] of Object.entries(TGEContracts.contracts)) {
-      //const contractDir = abs('contracts', name.toLowerCase() [>!!!<] )
-      //stderr.write(`Generating schema in ${contractDir}...`)
-      //process.chdir(contractDir)
-      //cargo('run', '--example', schema)
-    //}
-  //} finally {
-    //process.chdir(cwd)
-  //}
+  cargo('run', '--bin', 'schema')
 }
 
 export function genDocs (context, crate = '', dontOpen = false) {

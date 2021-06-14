@@ -28,7 +28,7 @@ export const runTests = () => {
   try {
     run('sh', '-c',
       'cargo test --color=always --no-fail-fast -- --nocapture --test-threads=1 2>&1'+
-      ' | less -R')
+      ' | less -R +F')
     stderr.write('\n🟢 Tests ran successfully.\n')
   } catch (e) {
     stderr.write('\n🔴 Tests failed.\n')

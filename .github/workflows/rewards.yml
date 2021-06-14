@@ -30,5 +30,3 @@ jobs:
           args: --locked
         env:
           RUST_BACKTRACE: 1
-  
-
