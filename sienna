@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-node ./ops $@
+node_modules/.bin/ts-node ./ops $@

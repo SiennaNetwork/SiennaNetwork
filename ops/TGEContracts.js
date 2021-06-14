@@ -7,7 +7,7 @@ import {
 } from '@fadroma/utilities'
 import { SNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
 import { scheduleFromSpreadsheet } from '@sienna/schedule'
-import { projectRoot, abs, combine, args } from './lib/index.js'
+import { projectRoot, abs, combine, args, runDemo } from './lib/index.js'
 
 const { log, warn, info, table } = Console(import.meta.url)
 
@@ -171,6 +171,9 @@ export default class TGEContracts extends Ensemble {
 
   get commands () {
     return [
+      ["demo",        'Run the TGE demo (long-running integration test)',
+        runDemo],
+
       ["build",       '👷 Compile contracts from working tree',
         (context, [sequential]) => this.build(sequential)],
 

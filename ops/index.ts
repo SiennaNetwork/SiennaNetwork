@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { argv } from 'process'
-import yargs from 'yargs'
 import ensureWallets from '@fadroma/scrt-agent/fund.js'
 import Localnet from '@fadroma/scrt-ops/localnet.js'
 import { table, noBorders, bold } from '@fadroma/utilities'
@@ -26,7 +25,16 @@ const selectMainnet  = () => {
 const openFaucet = () => {
 }
 
-export default function main (command, ...args) {
+type Command      = [CommandNames, CommandInfo, Function|null, ...any]
+type CommandList  = Array<Command|null>
+type CommandNames = string|Array<string>
+type CommandName  = string
+type CommandInfo  = string
+interface CommandContext {
+  command?: Array<CommandName>
+}
+
+export default function main (command: CommandName, ...args: any) {
 
   const context = { command: [ command ] }
 
@@ -37,7 +45,7 @@ export default function main (command, ...args) {
     ["lend",    "🏦 Contracts of Sienna Lend",     null, ...new Lend().commands],
   ]
 
-  const commands = [
+  const commands: CommandList = [
     [["help", "--help", "-h"], "❓ Print usage",
       () => printUsage({}, commands)],
 
@@ -71,65 +79,22 @@ export default function main (command, ...args) {
   ]
 
   runCommand(context, commands, command, ...args)
-
-    //[>* Deploy and run in a local container. <]
-    //"localnet": (...args) => {
-      //[>* '♻️  Try to terminate a loose localnet container and remove its state files <]
-      //if (cmd === 'reset') {
-        //return new Localnet().terminate()
-      //}
-    //},
-
-    //[>* Deploy and run on the holodeck-2 testnet. <]
-    //"testnet": (...args) => {}
-
-    //[>* Deploy and run on the holodeck-2 testnet. <]
-    //"mainnet": (...args) => {}
-  //}
-
-  //const subCommands = network => {
-    //[> ⚗️  Ensure there are testnet wallets for the demo. <]
-    //"fund": ensureWallets(args),
-
-    //"tge": new TGEContracts().commands2()
-
-    //"rewards": new RewardsContracts().commands2(cmd)
-
-    //"amm": new AMMContracts().commands2(cmd)
-
-    ////"lend": (...args) {}
-  //}
-
-  //let cmd = yargs(argv.slice(2))
-    //.scriptName('sienna')
-    //.wrap(yargs().terminalWidth())
-    //.demandCommand(1, '')
-    //.command('docs [crate]',
-      //'📖 Build the documentation and open it in a browser.',
-      //args.Crate, genDocs)
-    //.command('clean-localnet',
-      
-      //() => new Localnet().terminate())
-    //.command('demo [--testnet]',
-      //'⚗️  Run integration test/demo.',
-      //args.IsTestnet, runDemo)
-    //.command('ensure-wallets',
-      //,
-      //ensureWallets)
-    //.command('schema',
-      //,
-      //genSchema)
-
-  //return cmd.argv
 }
 
-function runCommand (context, commands, command, ...args) {
-  if (command) {
+function runCommand (
+  context:       CommandContext,
+  commands:      CommandList,
+  commandToRun:  CommandName,
+  ...args:       any
+) {
+  if (commandToRun) {
     let notFound = true
-    for (const [nameOrNames, info, fn, ...subcommands] of commands.filter(Boolean)) {
+    for (const command of commands.filter(Boolean)) {
+      if (!command) continue
+      const [nameOrNames, info, fn, ...rest] = command
       if (
-        nameOrNames === command ||
-        (nameOrNames instanceof Array && nameOrNames.indexOf(command) > -1)
+        (nameOrNames instanceof String && nameOrNames === commandToRun) ||
+        (nameOrNames instanceof Array  && nameOrNames.indexOf(commandToRun) > -1)
       ) {
         notFound = false
         let notImplemented = true
@@ -137,26 +102,32 @@ function runCommand (context, commands, command, ...args) {
           context = fn(context, ...args)
           notImplemented = false
         }
+        const subcommands = rest as Array<Command>
         if (subcommands && subcommands.length > 0) {
           runCommand(context, subcommands, args[0], ...args.slice(1))
           notImplemented = false
         }
         if (notImplemented) {
-          console.warn(`${command}: not implemented`)
+          console.warn(`${commandToRun}: not implemented`)
         }
       }
     }
     if (notFound) {
-      console.warn(`${command}: no such command`)
+      console.warn(`${commandToRun}: no such command`)
     }
   } else {
     printUsage(context, commands)
   }
 }
 
-function printUsage (context = { command: [] }, commands, tableData = [], depth = 0) {
+function printUsage (
+  context:   CommandContext,
+  commands:  CommandList,
+  tableData: Array<[string, string]> = [],
+  depth = 0
+) {
   if (depth === 0) {
-    console.log(`sienna ${context.command.join(' ')} [COMMAND...]\n`)
+    console.log(`sienna ${(context.command||[]).join(' ')} [COMMAND...]\n`)
   }
   for (const commandSpec of commands) {
     if (commandSpec) {
@@ -171,7 +142,7 @@ function printUsage (context = { command: [] }, commands, tableData = [], depth 
 }
 
 try {
-  main(...argv.slice(2))
+  main(argv[2], ...argv.slice(3))
 } catch (e) {
   console.error(e)
   const ISSUES = `https://github.com/hackbg/sienna-secret-token/issues`
