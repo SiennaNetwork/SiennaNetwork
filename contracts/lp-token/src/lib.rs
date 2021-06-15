@@ -7,7 +7,10 @@ use cosmwasm_std::{
 
 use amm_shared::snip20_impl as composable_snip20;
 
-use composable_snip20::{Snip20, snip20_init, snip20_handle, snip20_query, check_if_admin};
+use composable_snip20::{
+    Snip20, snip20_init, snip20_handle, snip20_query,
+    check_if_admin, SymbolValidation
+};
 use composable_snip20::state::{Config, Balances};
 use composable_snip20::transaction_history::store_burn;
 use composable_snip20::msg::{InitMsg, HandleMsg, QueryMsg, ResponseStatus, HandleAnswer};
@@ -38,8 +41,14 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
 struct LpTokenImpl;
 
 impl Snip20 for LpTokenImpl {
-    fn symbol_range(&self) -> RangeInclusive<usize> {
-        3..=12
+    fn symbol_validation(&self) -> SymbolValidation {
+        SymbolValidation {
+            length: 3..=12,
+            allow_upper: true,
+            allow_lower: true,
+            allow_numeric: false,
+            allowed_special: Some(vec![ b'-' ])
+        }
     }
 
     fn name_range(&self) -> RangeInclusive<usize> {
