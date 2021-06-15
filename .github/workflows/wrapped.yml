@@ -2,17 +2,17 @@
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 name: wSIENNA
 on: [push, pull_request]
+defaults: { run: { working-directory: contracts/wrapped } }
 jobs:
   main:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
       with: { fetch-depth: 100 }
-    - name: Change directory
-      run: cd wrapped
     - name: Fetch code and build using Nodejs 14.x
       uses: actions/setup-node@v2
       with: { node-version: 14.x }
-    - run: npm ci
-    - run: npm run test
-    - run: npm run coverage
+    - run:
+        npm ci
+        npm run test
+        npm run coverage
