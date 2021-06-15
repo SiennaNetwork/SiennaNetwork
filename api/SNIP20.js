@@ -53,4 +53,8 @@ export default class SNIP20 extends SecretNetwork.Contract.withSchema(schema) {
     this.tx(agent)
       .decrease_allowance({ amount: String(amount), spender })
 
+  checkAllowance = (spender, owner, key, agent) =>
+    this.q(agent)
+      .allowance({ owner, spender, key })
+
 }

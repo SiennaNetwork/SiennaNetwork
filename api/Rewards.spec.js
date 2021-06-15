@@ -9,6 +9,10 @@ import Rewards from './Rewards.js'
 
 import {abs} from '../ops/lib/index.js'
 import RewardsContracts from '../ops/RewardsContracts.js'
+import debug from 'debug'
+const log = debug('out')
+
+const wait = (n) => new Promise((done) => setTimeout(done, n * 1000))
 
 const ensemble = new RewardsContracts()
 
@@ -30,6 +34,10 @@ describe('Rewards', () => {
     key     = context.viewkey
   ) => context.token.balance(address, key)
 
+  const assertBalance = async (amount = 0, address, key) => {
+    assert.strictEqual(await balance(address, key), String(amount))
+  }
+
   before(setupAll)
 
   after(cleanupAll)
@@ -41,60 +49,90 @@ describe('Rewards', () => {
     const {admin, token, rewards}=context
 
     await token.mint(100)
-    assert.equal(await balance(), 100)
-    //assert(await token.balance(rewards) ===   0)
+    assertBalance(100)
 
     await token.increaseAllowance(100, rewards.address)
     await rewards.lock(50, token.address)
-    assert.equal(await balance(), 50)
-    //assert(await token.balance(rewards) ===  50)
+    assertBalance(50)
+    
     await token.decreaseAllowance(100, rewards.address)
 
     await rewards.retrieve(50, token.address)
-    assert.equal(await balance(), 100)
-    //assert(await token.balance(rewards) ===   0)
+    assertBalance(100)
   })
 
   it('can process claims', async function () {
     this.timeout(60000)
-    const {token, rewards, admin, viewkey}=context
+    const { token, rewards, admin, viewkey } = context
 
-    await rewards.claim(admin)
-    assert.equal(await balance(), 0)
+    await token.mint(100, admin)
+    assertBalance(100)
 
-    await token.mint(admin, 100)
-    assert(await balance(), 100)
-    //assert(await token.balance(rewards) ===   0)
+    await secondToken.mint(100, second)
+    assertBalance(100, second.address)
+
+    await token.increaseAllowance(100, rewards.address)
+
     await rewards.lock(100, token.address)
+    assertBalance(0)
 
-    await token.interval()
-    await rewards.claim(admin)
-    assert.equal(await balance(), 2)
+    await rewards.claim([token.address])
+    assertBalance(0)
 
-    await token.interval()
-    await rewards.claim(admin)
-    assert.equal(await balance(), 4)
 
-    await rewards.retrieve(50, token.address)
-    assert.equal(await balance(), 54)
+    await rewards.claim([token.address])
+    assertBalance(2)
 
-    await token.interval()
-    await rewards.claim(admin)
-    assert.equal(await balance(), 55)
+    await rewards.claim([token.address])
+    assertBalance(4)
 
     await rewards.retrieve(50, token.address)
-    assert.equal(await balance(), 105)
+    assertBalance(54)
 
-    await token.interval()
-    await rewards.claim(admin)
-    assert.equal(await balance(), 105)
+    await rewards.claim([token.address])
+    assertBalance(55)
+
+    await rewards.retrieve(50, token.address)
+    assertBalance(105)
   })
 
-  it('can be configured', () => {})
+  // it('can be configured', () => {})
 
-  it('can be administrated', () => {})
+  // it('can be administrated', () => {})
 
-  it('is protected by a viewing key', () => {})
+  it('is protected by a viewing key', async function () {
+    this.timeout(60000)
+    const { token, rewards, admin, viewkey } = context
+    
+    await token.mint(100, admin)
+    assertBalance(100)
+
+    await token.increaseAllowance(100, rewards.address)
+
+    await rewards.lock(100, token.address)
+    assertBalance(0)
+
+    // Create viewkey for admin rewards
+    const viewkeyNew = (await rewards.createViewingKey(admin)).key
+
+    const timestamp = parseInt((new Date()).valueOf() / 1000);
+    const res = await rewards.simulate(admin.address, timestamp, [token.address], viewkeyNew)
+    
+    const acc = await rewards.getAccounts(admin.address, [token.address], viewkeyNew)
+    const totalLocked = acc.accounts.map(i => parseInt(i.locked_amount)).reduce((t, i) => t + i, 0);
+    assert.strictEqual(totalLocked, 100)
+
+    try {
+      // I'm using the viewkey from context here because that one should get unauthorized error
+      await rewards.getAccounts(admin.address, [token.address], viewkey)
+
+      // this is supposed to fail because we didn't get error on the call abouve
+      assert.strictEqual(true, false)
+    }
+    catch (e) {
+      assert.strictEqual(e.message, 'query contract failed: encrypted: {"unauthorized":{}} (HTTP 500)')
+    }
+  })
 
   async function setupAll () {
     this.timeout(60000)
@@ -123,7 +161,7 @@ describe('Rewards', () => {
 
     // deploy token
     context.token = await context.admin.instantiate(new SNIP20({
-      label: 'token',
+      label: `token-${parseInt(Math.random() * 1000)}`,
       codeId: context.tokenCodeId,
       initMsg: ensemble.contracts.TOKEN.initMsg
     }))
@@ -141,7 +179,7 @@ describe('Rewards', () => {
 
     // deploy rewards manager
     context.rewards = await context.admin.instantiate(new Rewards({
-      label: 'rewards',
+      label: `rewards-${parseInt(Math.random() * 1000)}`,
       codeId: context.rewardsCodeId,
       initMsg
     }))
@@ -151,6 +189,7 @@ describe('Rewards', () => {
   }
 
   async function cleanupAll () {
+    this.timeout(60000)
     await context.node.terminate()
   }
 
