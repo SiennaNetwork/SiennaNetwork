@@ -20,9 +20,7 @@ jobs:
   cargo:
     name: Unit tests and documentation
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: contracts/mgmt
+    defaults: { run: { working-directory: contracts/mgmt } }
     steps:
       - name: Install toolchain that allows macro backtrace
         uses: actions-rs/toolchain@v1
@@ -39,34 +37,33 @@ jobs:
         with: { command: doc }
         env:  { RUST_BACKTRACE: 1 }
 
-  tarpaulin:
-    name: Unit test coverage report
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: contracts/mgmt
-    steps:
-      - name: Install toolchain that works with Tarpaulin
-        uses: actions-rs/toolchain@v1
-        with: { profile: minimal, toolchain: stable, target: wasm32-unknown-unknown, override: true }
-      - name: Install Tarpaulin
-        uses: actions-rs/cargo@v1
-        with: { command: install, args: cargo-tarpaulin }
-        env:  { RUST_BACKTRACE: 1 }
-      - name: Checkout sources
-        uses: actions/checkout@v2
-        with: { submodules: true }
-      - name: Generate test coverage
-        uses: actions-rs/cargo@v1
-        with: { command: tarpaulin, args: --out=Html --output-dir=docs --exclude-files=libraries/platform }
-        env:  { RUST_BACKTRACE: 1 }
-      - name: Commit coverage report
-        run: |
-          git checkout $(git symbolic-ref --short HEAD)
-          mv docs/tarpaulin-report.html docs/coverage.html
-          git add docs/coverage.html
-          git diff --cached
-          git config --global user.email "hack@hack.bg"
-          git config --global user.name "hack.bg"
-          git commit -m "🤖 updated docs/coverage.html @ $(date -u)" || true
-          git push
+  # TODO: move to global.yml
+  #tarpaulin:
+    #name: Unit test coverage report
+    #runs-on: ubuntu-latest
+    #defaults: { run: { working-directory: contracts/mgmt } }
+    #steps:
+      #- name: Install toolchain that works with Tarpaulin
+        #uses: actions-rs/toolchain@v1
+        #with: { profile: minimal, toolchain: stable, target: wasm32-unknown-unknown, override: true }
+      #- name: Install Tarpaulin
+        #uses: actions-rs/cargo@v1
+        #with: { command: install, args: cargo-tarpaulin }
+        #env:  { RUST_BACKTRACE: 1 }
+      #- name: Checkout sources
+        #uses: actions/checkout@v2
+        #with: { submodules: true }
+      #- name: Generate test coverage
+        #uses: actions-rs/cargo@v1
+        #with: { command: tarpaulin, args: --out=Html --output-dir=docs --exclude-files=libraries/platform }
+        #env:  { RUST_BACKTRACE: 1 }
+      #- name: Commit coverage report
+        #run: |
+          #git checkout $(git symbolic-ref --short HEAD)
+          #mv docs/tarpaulin-report.html docs/coverage.html
+          #git add docs/coverage.html
+          #git diff --cached
+          #git config --global user.email "hack@hack.bg"
+          #git config --global user.name "hack.bg"
+          #git commit -m "🤖 updated docs/coverage.html @ $(date -u)" || true
+          #git push
