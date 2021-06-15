@@ -1,28 +1,12 @@
 name: TGE
 on: [push, pull_request]
 jobs:
-  docco:
-    name: Documentation of demo.js
+  snip20-sienna:
+    name: contracts/snip20-sienna
     runs-on: ubuntu-latest
+    defaults: { run: { working-directory: contracts/snip20-sienna } }
     steps:
-      - name: Render and commit Docco documentation
-        run:
-          yarn
-          yarn docco
-          git checkout $(git symbolic-ref --short HEAD)
-          git add docs/demo.html
-          git diff --cached
-          git config --global user.email "hack@hack.bg"
-          git config --global user.name "hack.bg"
-          git commit -m "🤖 updated docs/demo.html @ $(date -u)" || true
-          git push
-
-  cargo:
-    name: Unit tests and documentation
-    runs-on: ubuntu-latest
-    defaults: { run: { working-directory: contracts/mgmt } }
-    steps:
-      - name: Install toolchain that allows macro backtrace
+      - name: Install nightly toolchain
         uses: actions-rs/toolchain@v1
         with: { profile: minimal, toolchain: nightly, target: wasm32-unknown-unknown, override: true }
       - name: Checkout sources
@@ -31,13 +15,38 @@ jobs:
       - name: Run unit tests
         uses: actions-rs/cargo@v1
         with: { command: test, args: --locked }
-        env:  { RUST_BACKTRACE: 1, RUSTFLAGS: -Zmacro-backtrace }
-      - name: Render Cargo documentation
+        env: { RUST_BACKTRACE: 1, RUSTFLAGS: -Zmacro-backtrace }
+  mgmt:
+    name: contracts/mgmt
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: contracts/mgmt } }
+    steps:
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with: { profile: minimal, toolchain: nightly, target: wasm32-unknown-unknown, override: true }
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with: { submodules: true }
+      - name: Run unit tests
         uses: actions-rs/cargo@v1
-        with: { command: doc }
-        env:  { RUST_BACKTRACE: 1 }
-
-  # TODO: move to global.yml
+        with: { command: test, args: --locked }
+        env: { RUST_BACKTRACE: 1, RUSTFLAGS: -Zmacro-backtrace }
+  rpt:
+    name: contracts/rpt
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: contracts/rpt } }
+    steps:
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with: { profile: minimal, toolchain: nightly, target: wasm32-unknown-unknown, override: true }
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with: { submodules: true }
+      - name: Run unit tests
+        uses: actions-rs/cargo@v1
+        with: { command: test, args: --locked }
+        env: { RUST_BACKTRACE: 1, RUSTFLAGS: -Zmacro-backtrace }
+  # TODO: move commit logic to global.yml
   #tarpaulin:
     #name: Unit test coverage report
     #runs-on: ubuntu-latest
@@ -66,4 +75,20 @@ jobs:
           #git config --global user.email "hack@hack.bg"
           #git config --global user.name "hack.bg"
           #git commit -m "🤖 updated docs/coverage.html @ $(date -u)" || true
+          #git push
+  # TODO bring this back online
+  #docco:
+    #name: Documentation of demo.js
+    #runs-on: ubuntu-latest
+    #steps:
+      #- name: Render and commit Docco documentation
+        #run:
+          #yarn
+          #yarn docco
+          #git checkout $(git symbolic-ref --short HEAD)
+          #git add docs/demo.html
+          #git diff --cached
+          #git config --global user.email "hack@hack.bg"
+          #git config --global user.name "hack.bg"
+          #git commit -m "🤖 updated docs/demo.html @ $(date -u)" || true
           #git push

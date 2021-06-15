@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: contracts/rewards } }
     steps:
-      - name: Install stable toolchain
+      - name: Install nightly toolchain
         uses: actions-rs/toolchain@v1
         with: { profile: minimal, toolchain: nightly, target: wasm32-unknown-unknown, override: true }
       - name: Checkout sources
