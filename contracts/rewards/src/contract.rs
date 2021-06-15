@@ -15,7 +15,8 @@ use cosmwasm_utils::convert::{convert_token, get_whole_token_representation};
 
 use crate::msg::{
     HandleMsg, InitMsg, QueryMsg, OVERFLOW_MSG, RewardPoolConfig,
-    QueryMsgResponse, ClaimSimulationResult, ClaimResult, ClaimError
+    QueryMsgResponse, ClaimSimulationResult, ClaimResult, ClaimError,
+    GetBalanceError
 };
 use crate::state::{
     save_config, Config, replace_active_pools, get_pool, get_account, save_account,
@@ -302,7 +303,32 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
     authenticate(&deps.storage, &key, canonical.as_slice())?;
 
     let config = load_config(deps)?;
-    let available_balance = get_balance(&deps.querier, &config)?;
+
+    let available_balance = match get_balance(&deps.querier, &config) {
+        Ok(balance) => balance,
+        Err(err) => {
+            match err {
+                GetBalanceError::StdError(std_err) => {
+                    return Err(std_err);
+                }
+                GetBalanceError::PoolEmpty => {
+                    let mut results = Vec::with_capacity(lp_tokens.len());
+
+                    for addr in lp_tokens {
+                        results.push(ClaimResult::error(addr, ClaimError::PoolEmpty))
+                    }
+                    
+                    return Ok(to_binary(&QueryMsgResponse::ClaimSimulation(
+                        ClaimSimulationResult {
+                            total_rewards_amount: Uint128::zero(),
+                            actual_claimed: Uint128::zero(),
+                            results
+                        }
+                    ))?);
+                }
+            }
+        }
+    };
     
     let mut total_rewards_amount: u128 = 0;
 
@@ -521,7 +547,7 @@ fn calc_portions(
     Ok(result)
 }
 
-fn get_balance(querier: &impl Querier, config: &Config<HumanAddr>) -> StdResult<u128> {
+fn get_balance(querier: &impl Querier, config: &Config<HumanAddr>) -> Result<u128, GetBalanceError> {
     let available_balance = snip20::balance_query(
         querier,
         config.this_contract.address.clone(),
@@ -534,9 +560,7 @@ fn get_balance(querier: &impl Querier, config: &Config<HumanAddr>) -> StdResult<
     let available_balance = available_balance.amount.u128();
 
     if available_balance == 0 {
-        return Err(StdError::generic_err(
-            "The reward token pool is currently empty."
-        ));
+        return Err(GetBalanceError::PoolEmpty);
     }
 
     Ok(available_balance)

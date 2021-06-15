@@ -1,4 +1,4 @@
-use cosmwasm_std::{Binary, HumanAddr, Uint128};
+use cosmwasm_std::{Binary, HumanAddr, Uint128, StdError};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use fadroma_scrt_callback::ContractInstance;
@@ -152,6 +152,30 @@ pub enum ClaimError {
     }
 }
 
+pub(crate) enum GetBalanceError {
+    PoolEmpty,
+    StdError(StdError)
+}
+
+impl From<StdError> for GetBalanceError {
+    fn from(err: StdError) -> Self {
+        GetBalanceError::StdError(err)
+    }
+}
+
+impl From<GetBalanceError> for StdError {
+    fn from(err: GetBalanceError) -> Self {
+        match err {
+            GetBalanceError::PoolEmpty => {
+                StdError::generic_err(
+                    "The reward token pool is currently empty."
+                )
+            },
+            GetBalanceError::StdError(std_err) => std_err
+        }
+    }
+}
+
 impl ClaimResult {
     pub fn success(lp_token_addr: HumanAddr, reward_amount: Uint128, reward_per_portion: Uint128) -> Self {
         Self {
@@ -174,8 +198,7 @@ impl ClaimResult {
     }
 }
 
-impl Into<RewardPool<HumanAddr
->> for RewardPoolConfig {
+impl Into<RewardPool<HumanAddr>> for RewardPoolConfig {
     fn into(self) -> RewardPool<HumanAddr> {
         RewardPool {
             lp_token: self.lp_token,
