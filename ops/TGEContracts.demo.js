@@ -24,7 +24,7 @@ import assert from 'assert'
 import { loadJSON, taskmaster, bignum, fileURLToPath, resolve, dirname } from '@fadroma/utilities'
 import { SecretNetwork } from '@fadroma/scrt-agent'
 import ensureWallets from '@fadroma/scrt-agent/fund.js'
-import { fmtSIENNA } from './decimals.js'
+import { fmtSIENNA } from './lib/index.js'
 import TGEContracts from './TGEContracts.js'
 import { SNIP20Contract, MGMTContract, RPTContract } from '../api/index.js'
 //

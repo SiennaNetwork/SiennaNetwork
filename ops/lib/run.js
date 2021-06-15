@@ -4,7 +4,7 @@ import { env, stderr } from 'process'
 import {SecretNetwork} from '@fadroma/scrt-agent'
 
 import { stateBase } from './root.js'
-import demo from './TGEContracts.demo.js'
+import demo from '../TGEContracts.demo.js'
 
 export const clear = () =>
   env.TMUX && run('sh', '-c', 'clear && tmux clear-history')
@@ -28,7 +28,7 @@ export const runTests = () => {
   try {
     run('sh', '-c',
       'cargo test --color=always --no-fail-fast -- --nocapture --test-threads=1 2>&1'+
-      ' | less -R')
+      ' | less -R +F')
     stderr.write('\n🟢 Tests ran successfully.\n')
   } catch (e) {
     stderr.write('\n🔴 Tests failed.\n')

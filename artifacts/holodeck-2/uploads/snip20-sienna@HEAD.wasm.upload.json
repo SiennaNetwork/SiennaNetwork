@@ -1,0 +1,37 @@
+{
+  "originalSize": 295674,
+  "originalChecksum": "a5989eba266a5cd2863ab30f8f49a87d762633142bc92da025844bba66e46a48",
+  "compressedSize": 92507,
+  "compressedChecksum": "57c2b9d8d77a0ae1b72f0a71343289ac3669dfcb53a1df911bece563aac086a0",
+  "codeId": 29437,
+  "logs": [
+    {
+      "msg_index": 0,
+      "log": "",
+      "events": [
+        {
+          "type": "message",
+          "attributes": [
+            {
+              "key": "action",
+              "value": "store-code"
+            },
+            {
+              "key": "module",
+              "value": "compute"
+            },
+            {
+              "key": "signer",
+              "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+            },
+            {
+              "key": "code_id",
+              "value": "29437"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "transactionHash": "663FE9F30C73C1A312864246B9C68D8C9F1A918F77A6998F20A31C69709EE6EB"
+}

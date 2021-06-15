@@ -1,6 +1,2 @@
-module.exports = {
-  scheduleFromSpreadsheet:      require('./table2schedule'),
-  portionsFromSchedule:         require('./schedule2portions'),
-  chartFromScheduleAndPortions: require('./schedule2chart'),
-  spreadsheetFromSchedule:      require('./schedule2table')
-}
+import scheduleFromSpreadsheet from './table2schedule'
+export { scheduleFromSpreadsheet }

@@ -1,0 +1,43 @@
+{
+  "label": "2021-06-10T10:09:09.560Z SIENNA_REWARDS",
+  "codeId": 29438,
+  "codeHash": "70a33c6c7d7ffae961de918be5d37ca0531b5a66a44916f24c62053cbb21d582",
+  "initTx": {
+    "contractAddress": "secret1q3pj249w82rxemvzk6n0udeuysy464e8mw62pl",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "29438"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret1q3pj249w82rxemvzk6n0udeuysy464e8mw62pl"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "49F0510B67B3A4C741CBFC860A09E87BD3D758F72B2B89E7D8AF433F1110178F",
+    "data": "04432554AE3A866CED82B6A6FE373C24095D5727"
+  }
+}

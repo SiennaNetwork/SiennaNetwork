@@ -1,8 +1,8 @@
-const JSON = require('json-bigint')
-const assert = require('assert')
-const XLSX = require('xlsx')
+import * as JSON from 'json-bigint'
+import * as assert from 'assert'
+import * as XLSX from 'xlsx'
 
-module.exports = function scheduleFromSpreadsheet ({
+export default function scheduleFromSpreadsheet ({
   file,                                   // pass a filename
   book  = XLSX.readFile(file),            // or pass a Sheet.js Workbook object
   sheet = book.Sheets[book.SheetNames[0]] // or a Sheet.js Sheet

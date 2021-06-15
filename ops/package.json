@@ -1,7 +1,7 @@
 {
   "name": "@sienna/ops",
   "version": "0.0.0",
-  "main": "main.js",
+  "main": "index.ts",
   "type": "module",
   "dependencies": {
     "@fadroma/scrt-ops": "*",

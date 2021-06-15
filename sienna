@@ -1,2 +1,9 @@
-#!/usr/bin/env bash
-node ./ops $@
+#!/bin/sh
+# requires nodejs>=13.9
+# https://github.com/TypeStrong/ts-node/issues/935
+# https://github.com/K-FOSS/TS-ESNode
+export NODE_NO_WARNINGS=1
+node \
+  --loader @k-foss/ts-esnode \
+  --experimental-specifier-resolution=node \
+  ./ops $@
