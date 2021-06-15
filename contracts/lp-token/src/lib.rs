@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::ops::RangeInclusive;
 use cosmwasm_std::{
     Extern, Storage, Api, Querier, StdResult, HumanAddr,
     InitResponse, Env, HandleResponse, Binary, Uint128,
@@ -38,12 +38,12 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
 struct LpTokenImpl;
 
 impl Snip20 for LpTokenImpl {
-    fn symbol_range(&self) -> Range<usize> {
-        3..13
+    fn symbol_range(&self) -> RangeInclusive<usize> {
+        3..=12
     }
 
-    fn name_range(&self) -> Range<usize> {
-        3..201
+    fn name_range(&self) -> RangeInclusive<usize> {
+        3..=200
     }
 
     fn burn_from<S: Storage, A: Api, Q: Querier>(
