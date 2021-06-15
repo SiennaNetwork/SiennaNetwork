@@ -1,7 +1,7 @@
 name: Rewards
 on: [push, pull_request]
 jobs:
-  test:
+  rewards:
     name: contracts/rewards
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: contracts/rewards } }
