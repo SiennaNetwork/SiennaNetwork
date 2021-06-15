@@ -47,7 +47,7 @@ jobs:
         with: { node-version: "14.x" }
       - name: Install toolchain that works with Tarpaulin
         uses: actions-rs/toolchain@v1
-        with: { profile: minimal, toolchain: 1.49.0, target: wasm32-unknown-unknown, override: true }
+        with: { profile: minimal, toolchain: stable, target: wasm32-unknown-unknown, override: true }
       - name: Install Tarpaulin
         uses: actions-rs/cargo@v1
         with: { command: install, args: cargo-tarpaulin }
