@@ -174,8 +174,7 @@ impl ClaimResult {
     }
 }
 
-impl Into<RewardPool<HumanAddr
->> for RewardPoolConfig {
+impl Into<RewardPool<HumanAddr>> for RewardPoolConfig {
     fn into(self) -> RewardPool<HumanAddr> {
         RewardPool {
             lp_token: self.lp_token,

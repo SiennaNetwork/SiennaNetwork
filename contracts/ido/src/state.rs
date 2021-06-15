@@ -3,9 +3,9 @@ use cosmwasm_std::{
     StdResult, Extern, Storage, Querier, Api, Uint128, CanonicalAddr,
     HumanAddr, StdError
 };
-use fadroma_scrt_callback::{ContractInstance, Callback};
-use fadroma_scrt_addr::{Canonize, Humanize};
-use fadroma_scrt_storage::{save, load};
+use amm_shared::fadroma::callback::{ContractInstance, Callback};
+use amm_shared::fadroma::address::{Canonize, Humanize};
+use amm_shared::fadroma::storage::{save, load};
 use amm_shared::TokenType;
 
 pub(crate) static CONFIG_KEY: &[u8] = b"config";

@@ -3,11 +3,11 @@ use cosmwasm_std::{
     Querier, QueryResult, StdError, StdResult, Storage, Uint128, WasmMsg, log, to_binary
 };
 use secret_toolkit::snip20;
-use fadroma_scrt_callback::{Callback, ContractInstance};
 use amm_shared::TokenType;
+use amm_shared::fadroma::callback::{ContractInstance, Callback};
 use amm_shared::msg::ido::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
-use amm_shared::msg::snip20::Snip20InitMsg;
-use cosmwasm_utils::convert::{convert_token, get_whole_token_representation};
+use amm_shared::msg::snip20::InitMsg as Snip20InitMsg;
+use amm_shared::fadroma::utils::convert::{convert_token, get_whole_token_representation};
 
 use crate::state::{Config, save_config, load_config, SwapConstants};
 

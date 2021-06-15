@@ -5,19 +5,20 @@ use cosmwasm_std::{
 };
 use secret_toolkit::snip20;
 use amm_shared::{
-    ExchangeSettings, Fee, TokenPairAmount, TokenType, TokenTypeAmount, 
-    create_send_msg, 
+    ExchangeSettings, Fee, TokenPairAmount, TokenType, TokenTypeAmount,
+    create_send_msg,
     msg::{
         exchange::{InitMsg, HandleMsg, QueryMsg, QueryMsgResponse, SwapSimulationResponse},
-        factory::{QueryMsg as FactoryQueryMsg, QueryResponse as FactoryResponse}, 
-        snip20::{Snip20InitConfig, Snip20InitMsg}
+        factory::{QueryMsg as FactoryQueryMsg, QueryResponse as FactoryResponse},
+        snip20::{InitConfig as Snip20InitConfig, InitMsg as Snip20InitMsg}
     }
 };
-use cosmwasm_utils::{u256_math, u256_math::U256, viewing_key::ViewingKey, crypto::Prng};
+use amm_shared::fadroma::utils::{u256_math, u256_math::U256, viewing_key::ViewingKey, crypto::Prng};
+use amm_shared::fadroma::callback::{Callback, ContractInstance};
+use amm_shared::fadroma::migrate as fadroma_scrt_migrate;
+use fadroma_scrt_migrate::{get_status, with_status};
 
 use crate::{state::{Config, store_config, load_config}, decimal_math};
-use fadroma_scrt_migrate::get_status;
-use fadroma_scrt_callback::{Callback, ContractInstance};
 
 struct SwapInfo {
     total_commission: Uint128,
@@ -26,7 +27,7 @@ struct SwapInfo {
     result: SwapResult
 }
 
-struct  SwapResult {
+struct SwapResult {
     return_amount: Uint128,
     spread_amount: Uint128
 }
@@ -78,9 +79,11 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             }),
             initial_balances: None,
             prng_seed: Binary::from(rng.rand_bytes()),
-            config: Some(Snip20InitConfig {
-                public_total_supply: Some(true)
-            })
+            config: Some(Snip20InitConfig::builder()
+                .public_total_supply()
+                .enable_mint()
+                .build()
+            )
         })?,
         send: vec![],
         label: format!(
@@ -91,7 +94,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         ),
         callback_code_hash: msg.lp_token_contract.code_hash.clone(),
     }));
-    
+
     // Execute the HandleMsg::RegisterExchange method of
     // the factory contract in order to register this address
     messages.push(
@@ -183,7 +186,7 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
         lp_token_info,
         ..
     } = config;
-    
+
     if pair != deposit.pair {
         return Err(StdError::generic_err("The provided tokens dont match those managed by the contract."));
     }
@@ -492,7 +495,7 @@ fn swap_simulation<S: Storage, A: Api, Q: Querier>(
 
     let swap = do_swap(deps, &config, &settings, &offer, true)?;
 
-    Ok(SwapSimulationResponse { 
+    Ok(SwapSimulationResponse {
         return_amount: swap.result.return_amount,
         spread_amount: swap.result.spread_amount,
         commission_amount: swap.total_commission
@@ -533,7 +536,7 @@ fn register_custom_token(
     token: &TokenType<HumanAddr>,
     viewing_key: &ViewingKey
 ) -> StdResult<()> {
-    if let TokenType::CustomToken { 
+    if let TokenType::CustomToken {
         contract_addr, token_code_hash, ..
     } = token {
         messages.push(snip20::set_viewing_key_msg(
@@ -580,7 +583,7 @@ fn do_swap<S: Storage, A: Api, Q: Querier>(
 
     let balances = config.pair.query_balances(&deps.querier, config.contract_addr.clone(), config.viewing_key.0.clone())?;
     let token_index = config.pair.get_token_index(&offer.token).unwrap(); //Safe because we checked above for existence
-    
+
     let mut offer_pool = balances[token_index];
 
     if !is_simulation {
@@ -646,7 +649,7 @@ fn compute_swap(
             offer_pool.unwrap()
         )))?
         .saturating_sub(return_amount);
-    
+
     Ok(SwapResult {
         return_amount: clamp(return_amount)?,
         spread_amount: clamp(spread_amount)?
@@ -672,10 +675,10 @@ fn percentage_decrease(amount: U256, fee: Fee) -> StdResult<PercentageDecreaseRe
             amount.unwrap(),
             decrease_amount
         )))?;
-    
+
     Ok(PercentageDecreaseResult {
         new_amount: clamp(result)?,
-        decrease_amount: clamp(decrease_amount)? 
+        decrease_amount: clamp(decrease_amount)?
     })
 }
 
@@ -696,7 +699,7 @@ fn assert_slippage_tolerance(
     if decimal_math::decimal_multiplication(
         Decimal::from_ratio(deposits[0], deposits[1]),
         one_minus_slippage_tolerance,
-    ) > Decimal::from_ratio(pools[0], pools[1]) || 
+    ) > Decimal::from_ratio(pools[0], pools[1]) ||
     decimal_math::decimal_multiplication(
         Decimal::from_ratio(deposits[1], deposits[0]),
         one_minus_slippage_tolerance,

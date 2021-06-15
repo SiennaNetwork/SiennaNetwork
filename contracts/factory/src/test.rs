@@ -9,9 +9,9 @@ pub use amm_shared::{
     Pagination,
     msg::factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse},
 };
-pub use fadroma_scrt_addr::{Humanize, Canonize};
-pub use fadroma_scrt_callback::ContractInstantiationInfo;
-pub use fadroma_scrt_storage::{load, save, remove};
+use amm_shared::fadroma::address::Canonize;
+use amm_shared::fadroma::callback::ContractInstantiationInfo;
+use amm_shared::fadroma::storage::{load, save};
 pub use crate::{contract::*, state::*};
 
 impl Into<InitMsg> for &Config<HumanAddr> {

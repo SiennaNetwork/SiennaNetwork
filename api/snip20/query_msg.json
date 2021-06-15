@@ -16,6 +16,17 @@
     {
       "type": "object",
       "required": [
+        "contract_status"
+      ],
+      "properties": {
+        "contract_status": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
         "exchange_rate"
       ],
       "properties": {
@@ -81,6 +92,43 @@
       ],
       "properties": {
         "transfer_history": {
+          "type": "object",
+          "required": [
+            "address",
+            "key",
+            "page_size"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "key": {
+              "type": "string"
+            },
+            "page": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "page_size": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "transaction_history"
+      ],
+      "properties": {
+        "transaction_history": {
           "type": "object",
           "required": [
             "address",
