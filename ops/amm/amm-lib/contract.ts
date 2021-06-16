@@ -281,6 +281,14 @@ interface GetBalanceResponse {
     }
 }
 
+interface GetExchangeRateResponse {
+    exchange_rate: ExchangeRate
+}
+
+interface GetTokenInfoResponse {
+    token_info: TokenInfo
+}
+
 export class Snip20Contract extends SmartContract {
     constructor(
         readonly address: Address,
@@ -340,27 +348,20 @@ export class Snip20Contract extends SmartContract {
 
     async get_token_info(): Promise<TokenInfo> {
         const msg = {
-            token_info: {}
+            token_info: { }
         }
 
-        const result = await this.query_client().queryContractSmart(this.address, msg)
-        return result as TokenInfo
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetTokenInfoResponse
+        return result.token_info
     }
 
-    get_exchange_rate(): ExchangeRate {
-        /*
+    async get_exchange_rate(): Promise<ExchangeRate> {
         const msg = {
             exchange_rate: { }
         }
 
-        const result = await this.client.queryContractSmart(this.address, msg)
-        return result as GetExchangeRateResponse
-        */
-        // This is hardcoded in the contract
-        return {
-            rate: "1",
-            denom: "uscrt"
-        }
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetExchangeRateResponse
+        return result.exchange_rate
     }
 
     async set_viewing_key(key: ViewingKey, padding?: string | null, fee?: Fee | undefined): Promise<ExecuteResult> {
