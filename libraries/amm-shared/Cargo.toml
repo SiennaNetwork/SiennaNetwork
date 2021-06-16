@@ -15,7 +15,10 @@ cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0
 cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
 
-composable-admin      = { path = "../fadroma-21.06.1/scrt-admin/composable-admin" }
-fadroma-scrt-addr     = { path = "../fadroma-21.06.1/scrt-addr" }
-fadroma-scrt-callback = { path = "../fadroma-21.06.1/scrt-callback" }
-fadroma-scrt-migrate  = { path = "../fadroma-21.06.1/scrt-migrate" }
+composable-snip20 = { git = "https://github.com/hackbg/fadroma", tag = "snip20-v1.1.0" }
+fadroma-scrt-callback = { git = "https://github.com/hackbg/fadroma", tag = "snip20-v1.1.0" }
+composable-admin = { git = "https://github.com/hackbg/fadroma", tag = "snip20-v1.1.0" }
+cosmwasm-utils = { git = "https://github.com/hackbg/fadroma", tag = "snip20-v1.1.0" }
+fadroma-scrt-addr = { git = "https://github.com/hackbg/fadroma", tag = "snip20-v1.1.0" }
+fadroma-scrt-migrate = { git = "https://github.com/hackbg/fadroma", tag = "snip20-v1.1.0" }
+fadroma-scrt-storage = { git = "https://github.com/hackbg/fadroma", tag = "snip20-v1.1.0" }

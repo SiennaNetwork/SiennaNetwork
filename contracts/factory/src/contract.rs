@@ -18,13 +18,14 @@ use amm_shared::{
         }
     }
 };
-use fadroma_scrt_callback::{ContractInstance, Callback};
-use fadroma_scrt_storage::{load, save, remove};
+use amm_shared::fadroma::callback::{ContractInstance, Callback};
+use amm_shared::fadroma::storage::{load, save, remove};
 use crate::state::{
     save_config, load_config, Config, pair_exists, store_exchange,
     get_address_for_pair, get_idos, store_ido_address, get_exchanges
 };
-use fadroma_scrt_migrate::get_status;
+use amm_shared::fadroma::migrate as fadroma_scrt_migrate;
+use fadroma_scrt_migrate::{get_status, with_status};
 
 pub const EPHEMERAL_STORAGE_KEY: &[u8] = b"ephemeral_storage";
 

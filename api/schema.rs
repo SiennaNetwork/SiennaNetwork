@@ -4,7 +4,7 @@ use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 use amm_shared::msg::exchange as exchange;
 use amm_shared::msg::factory as factory;
 use amm_shared::msg::ido as ido;
-use lp_token::msg as lp_token;
+use amm_shared::msg::snip20;
 use sienna_mgmt::msg as mgmt;
 use sienna_rewards::msg as rewards;
 use sienna_rpt::msg as rpt;
@@ -72,14 +72,14 @@ fn main() {
 
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");
-    out_dir.push("lp_token");
+    out_dir.push("snip20");
     create_dir_all(&out_dir).unwrap();
     remove_schemas(&out_dir).unwrap();
-    export_schema(&schema_for!(amm_shared::msg::snip20::Snip20InitMsg), &out_dir);
-    export_schema(&schema_for!(lp_token::HandleMsg), &out_dir);
-    export_schema(&schema_for!(lp_token::HandleAnswer), &out_dir);
-    export_schema(&schema_for!(lp_token::QueryMsg), &out_dir);
-    export_schema(&schema_for!(lp_token::QueryAnswer), &out_dir);
+    export_schema(&schema_for!(snip20::InitMsg), &out_dir);
+    export_schema(&schema_for!(snip20::HandleMsg), &out_dir);
+    export_schema(&schema_for!(snip20::HandleAnswer), &out_dir);
+    export_schema(&schema_for!(snip20::QueryMsg), &out_dir);
+    export_schema(&schema_for!(snip20::QueryAnswer), &out_dir);
 }
 //fn main() {
     ////let mut out_dir = current_dir().unwrap();

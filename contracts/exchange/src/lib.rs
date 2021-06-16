@@ -1,4 +1,3 @@
-#[macro_use] extern crate fadroma_scrt_migrate;
 pub mod contract;
 pub mod state;
 mod decimal_math;

@@ -38,7 +38,7 @@ export async function upload(client: SigningCosmWasmClient, writer: IJsonFileWri
     const factory_upload = await client.upload(factory_wasm, {}, undefined, fee)
     writer.write(factory_upload, `uploads/factory`)
 
-    const lp_token_upload = await client.upload(lp_token_wasm, {}, undefined, fee)
+    const lp_token_upload = await client.upload(lp_token_wasm, {}, undefined, create_fee('2600000'))
     writer.write(lp_token_upload, `uploads/lp_token`)
 
     const ido_upload = await client.upload(ido_wasm, {}, undefined, fee)
