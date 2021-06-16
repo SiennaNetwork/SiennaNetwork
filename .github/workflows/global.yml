@@ -1,7 +1,6 @@
 on: [push, pull_request]
 name: Project-wide tasks
 jobs:
-
   docs:
     name: Rust documentation
     runs-on: ubuntu-latest
@@ -19,7 +18,6 @@ jobs:
         run: yarn
       - name: Generate documentation
         run: ./sienna docs
-
   test:
     name: Unit test suites of all contracts
     runs-on: ubuntu-latest
@@ -37,7 +35,6 @@ jobs:
         run: yarn
       - name: Run tests
         run: ./sienna test
-
   coverage:
     name: Unit test coverage report
     runs-on: ubuntu-latest
@@ -59,7 +56,15 @@ jobs:
         run: yarn
       - name: Generate coverage report
         run: ./sienna coverage
-
+      - name: Commit coverage report
+        run: |
+          git checkout $(git symbolic-ref --short HEAD)
+          git add tarpaulin-report.html
+          git diff --cached
+          git config --global user.email "hack@hack.bg"
+          git config --global user.name "hack.bg"
+          git commit -m "🤖 update coverage @ $(date -u)" || true
+          git push
   schema:
     name: API schema of all contracts
     runs-on: ubuntu-latest
