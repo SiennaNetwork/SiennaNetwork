@@ -71,29 +71,16 @@ export default class TGEContracts extends Ensemble {
   }
  
   async initialize (options = {}) {
+    const { network, agent } = this
     // idempotency support
     // passing existing `contracts` to this makes it a no-op
     const { contracts = {} } = options
     if (Object.keys(contracts)>0) return contracts
 
-    // unwrap mutable options
-    let { agent
-        , network  = agent ? {network: agent.network} : await SecretNetwork.localnet({stateBase})
-        , schedule = getDefaultSchedule
-        } = options
-
     // accepts schedule as string or struct
+    let { schedule = getDefaultSchedule } = options
     if (typeof schedule === 'string') schedule = JSON.parse(await readFile(schedule, 'utf8'))
     //log(render(schedule))
-
-    // if `network` is just the connection type, replace it with a real connection
-    if (typeof network === 'string') {
-      network = conformChainIdToNetwork(network)
-      network = await SecretNetwork[network]({stateBase})
-    }
-
-    // if there's no agent, use the default one from the connection
-    if (!agent) agent = network.agent
 
     // unwrap remaining options
     const { task                = taskmaster()

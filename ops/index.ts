@@ -8,31 +8,30 @@ import {
   args, cargo, genCoverage, genSchema, genDocs, runTests, runDemo,
   ensureWallets, selectLocalnet, resetLocalnet, selectTestnet, openFaucet, selectMainnet
 } from './lib/index.js'
+import shell from './lib/shell.ts'
 import TGE from './TGEContracts.js'
 import Rewards from './RewardsContracts.ts'
-import AMM from './AMMContracts.ts'
+import Swap from './AMMContracts.ts'
 import Lend from './LendContracts.ts'
 
 // Components of the project. Consist of multiple contracts and associated commands.
 const tge     = new TGE()
 const rewards = new Rewards()
-const amm     = new AMM()
+const amm     = new Swap()
 const lend    = new Lend()
 
-const remoteCommands = [
-  ["tge",     "🚀 SIENNA token + vesting",         null, tge.remoteCommands],
-  ["rewards", "🏆 SIENNA token + staking rewards", null, new Rewards().remoteCommands],
-  ["amm",     "💱 Contracts of Sienna Swap/AMM",   null, new AMM().remoteCommands],
-  ["lend",    "🏦 Contracts of Sienna Lend",       null, new Lend().remoteCommands],
+const remoteCommands = network => [
+  ["tge",     "🚀 SIENNA token + vesting",         null, new TGE({network}).remoteCommands],
+  ["rewards", "🏆 SIENNA token + staking rewards", null, new Rewards({network}).remoteCommands],
+  ["amm",     "💱 Contracts of Sienna Swap/AMM",   null, new Swap({network}).remoteCommands],
+  ["lend",    "🏦 Contracts of Sienna Lend",       null, new Lend({network}).remoteCommands],
 ]
 
-const withNetwork = remoteCommands => [
-  ["mainnet",  "Deploy and run contracts on the mainnet with real money.", selectMainnet, [
-    ...remoteCommands]],
-  ["testnet",  "Deploy and run contracts on the holodeck-2 testnet.", selectTestnet, [
-    ...remoteCommands]],
-  ["localnet", "Deploy and run contracts in a local container.", selectLocalnet, [
-    ...remoteCommands]]]
+const withNetwork = commands => [
+  ["mainnet",  "Deploy and run contracts on the mainnet with real money.", selectMainnet,  commands],
+  ["testnet",  "Deploy and run contracts on the holodeck-2 testnet.",      selectTestnet,  commands],
+  ["localnet", "Deploy and run contracts in a local container.",           selectLocalnet, commands]
+]
 
 export const commands: CommandList = [
   [["help", "--help", "-h"], "❓ Print usage",
@@ -67,17 +66,18 @@ export const commands: CommandList = [
     ...withNetwork(lend.remoteCommands)]],
   null,
   ["mainnet",  "Deploy and run contracts on the mainnet with real money.", selectMainnet, [
-    ...remoteCommands]],
+    ...remoteCommands('mainnet')]],
   ["testnet",  "Deploy and run contracts on the holodeck-2 testnet.", selectTestnet, [
     ["faucet", "🚰 Open https://faucet.secrettestnet.io/ in your default browser", openFaucet],
-    ["fund",   "👛 Creating test wallets by sending SCRT to them.", ensureWallets],
+    ["fund",   "👛 Creating test wallets by sending SCRT to them.",                ensureWallets],
     null
-    ...remoteCommands]],
+    ...remoteCommands('testnet')]],
   ["localnet", "Deploy and run contracts in a local container.", selectLocalnet, [
-    ["reset",  "Remove the localnet container and clear its stored state", resetLocalnet],
-    ["fund",   "👛 Creating test wallets by sending SCRT to them.", ensureWallets],
+    ["shell",  "🐚 Launch a JavaScript REPL for talking to contracts directly", shell],
+    ["reset",  "Remove the localnet container and clear its stored state",      resetLocalnet],
+    ["fund",   "👛 Creating test wallets by sending SCRT to them.",             ensureWallets],
     null
-    ...remoteCommands]],
+    ...remoteCommands('localnet')]],
 ]
 
 export default async function main (command: CommandName, ...args: any) {
