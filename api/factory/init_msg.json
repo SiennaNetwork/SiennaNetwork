@@ -10,6 +10,16 @@
     "snip20_contract"
   ],
   "properties": {
+    "admin": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "exchange_settings": {
       "$ref": "#/definitions/ExchangeSettings_for_HumanAddr"
     },

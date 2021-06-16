@@ -34,8 +34,11 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
+    let admin = msg.admin.clone().unwrap_or(env.message.sender);
+    save_admin(deps, &admin)?;
+
     save_config(deps, &Config::from_init_msg(msg))?;
-    save_admin(deps, &env.message.sender)?;
+
     Ok(InitResponse::default())
 }
 

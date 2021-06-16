@@ -20,7 +20,8 @@ pub mod factory {
         pub lp_token_contract: ContractInstantiationInfo,
         pub pair_contract:     ContractInstantiationInfo,
         pub ido_contract:      ContractInstantiationInfo,
-        pub exchange_settings: ExchangeSettings<HumanAddr>
+        pub exchange_settings: ExchangeSettings<HumanAddr>,
+        pub admin: Option<HumanAddr>
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
