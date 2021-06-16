@@ -122,6 +122,9 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     }
 }
 
+/// Lock the provided `amount` of tokens associated with the given LP token address.
+/// Increases the total locked for the sender as well as the entire pool size by the given `amount`.
+/// Returns an error if the token address is not among the reward pools.
 fn lock_tokens<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -164,6 +167,8 @@ fn lock_tokens<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+/// Tranfer back the specified `amount` of LP tokens to the sender.
+/// Also works even if the pool is not eligible for rewards anymore.
 fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -216,6 +221,9 @@ fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+/// Calculate and transfer the reward token amount for the specified LP token addresses.
+/// If the calculated rewards amount exceeds the current rewards balance, the resulting
+/// amount is truncated to fit the available rewards balance.
 fn claim<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -292,6 +300,9 @@ fn claim<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+/// Dry runs the claim method providing a detailed result for each of
+/// the provided LP token addresses. Records the actual would be
+/// errors, if any, instead of terminating the function early.
 fn claim_simulation<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     lp_tokens: Vec<HumanAddr>,
@@ -388,6 +399,10 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
     ))?)
 }
 
+/// Admin only command. Replaces the current reward pools with the ones provided.
+/// Keeps the existing pool sizes for the ones that should remain. Instead of deleting
+/// any newly redundant pools, they are marked as inactive in order to allow liquidity providers
+/// to withdraw their shares using the `retrieve_tokens` method.
 #[require_admin]
 fn change_pools<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -420,6 +435,7 @@ fn change_pools<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+/// Returns all the currently active reward pools.
 fn query_pools<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
 ) -> StdResult<Binary> {
@@ -428,6 +444,10 @@ fn query_pools<S: Storage, A: Api, Q: Querier>(
     Ok(to_binary(&QueryMsgResponse::Pools(pools))?)
 }
 
+/// Authenticated command. Returns all the accounts that are
+/// associated with the provided `address` given the LP token
+/// addresses, since a single address can have multiple
+/// accounts - one for each reward pool.
 fn query_accounts<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: HumanAddr,
@@ -447,17 +467,33 @@ fn query_accounts<S: Storage, A: Api, Q: Querier>(
     Ok(to_binary(&QueryMsgResponse::Accounts(result))?)
 }
 
+/// Returns the available balance of reward tokens that
+/// this contract currently has to work with.
 fn query_supply<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>
 ) -> StdResult<Binary> {
     let config = load_config(deps)?;
-    let balance = get_balance(&deps.querier, &config)?;
+    
+    let balance = match get_balance(&deps.querier, &config) {
+        Ok(balance) => balance,
+        Err(err) => {
+            match err {
+                GetBalanceError::StdError(std_err) => {
+                    return Err(std_err);
+                }
+                GetBalanceError::PoolEmpty => {
+                    0
+                }
+            }
+        }
+    };
 
     Ok(to_binary(&QueryMsgResponse::TotalRewardsSupply {
         amount: Uint128(balance)
     })?)
 }
 
+/// Given a `pool`, calculates the amount of rewards for a single portion.
 fn calc_reward_share(
     mut user_locked: u128,
     pool: &RewardPool<HumanAddr>,
@@ -520,6 +556,10 @@ fn into_pools(mut vec: Vec<RewardPoolConfig>) -> Vec<RewardPool<HumanAddr>> {
     vec.drain(..).map(|p| p.into()).collect()
 }
 
+/// Calculates how many portions should be transferred. The amount of portions
+/// depends on when the `claim` method was last called. Ex. given a claim interval
+/// of 1 day and user who hasn't claimed their rewards for 3 days, then they should
+/// earn 3x of their reward share. So the resulting portions would be 3.
 fn calc_portions(
     last_claimed: u64,
     claim_interval: u64,
@@ -547,6 +587,10 @@ fn calc_portions(
     Ok(result)
 }
 
+/// Returns the available balance of reward tokens that
+/// this contract currently has to work with. Returns a 
+/// special error type to differentiate between a balance of 0
+/// or something else that went wrong.
 fn get_balance(querier: &impl Querier, config: &Config<HumanAddr>) -> Result<u128, GetBalanceError> {
     let available_balance = snip20::balance_query(
         querier,
