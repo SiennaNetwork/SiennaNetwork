@@ -322,19 +322,6 @@
         }
       }
     },
-    "Snip20InitConfig": {
-      "description": "This type represents optional configuration values which can be overridden. All values are optional and have defaults which are more private by default, but can be overridden if necessary",
-      "type": "object",
-      "properties": {
-        "public_total_supply": {
-          "description": "Indicates whether the total supply is public or should be kept secret. default: False",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        }
-      }
-    },
     "Snip20TokenInitInfo": {
       "description": "Used to provide only the essential info to an IDO that instantiates a snip20 token",
       "type": "object",
@@ -348,7 +335,7 @@
         "config": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Snip20InitConfig"
+              "$ref": "#/definitions/InitConfig"
             },
             {
               "type": "null"

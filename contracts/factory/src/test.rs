@@ -9,9 +9,9 @@ pub use amm_shared::{
     Pagination,
     msg::factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse},
 };
-pub use fadroma_scrt_addr::{Humanize, Canonize};
-pub use fadroma_scrt_callback::ContractInstantiationInfo;
-pub use fadroma_scrt_storage::{load, save, remove};
+use amm_shared::fadroma::address::Canonize;
+use amm_shared::fadroma::callback::ContractInstantiationInfo;
+use amm_shared::fadroma::storage::{load, save};
 pub use crate::{contract::*, state::*};
 
 impl Into<InitMsg> for &Config<HumanAddr> {
@@ -21,7 +21,8 @@ impl Into<InitMsg> for &Config<HumanAddr> {
             lp_token_contract: self.lp_token_contract.clone(),
             pair_contract:     self.pair_contract.clone(),
             ido_contract:      self.ido_contract.clone(),
-            exchange_settings: self.exchange_settings.clone()
+            exchange_settings: self.exchange_settings.clone(),
+            admin: None
         }
     }
 }
@@ -66,7 +67,8 @@ fn mkconfig (id: u64) -> Config<HumanAddr> {
             swap_fee: Fee::new(28, 10000),
             sienna_fee: Fee::new(2, 10000),
             sienna_burner: None
-        }
+        },
+        admin: None
     })
 }
 
@@ -359,7 +361,8 @@ mod test_state {
                 swap_fee: Fee::new(28, 10000),
                 sienna_fee: Fee::new(2, 10000),
                 sienna_burner: None
-            }
+            },
+            admin: None
         })
     }
 

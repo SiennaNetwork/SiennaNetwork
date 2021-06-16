@@ -41,8 +41,4 @@ cosmwasm-schema  = { git = "https://github.com/enigmampc/SecretNetwork", tag = "
 cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 
-fadroma-scrt-addr     = { path = "../../libraries/fadroma-21.06.1/scrt-addr" }
-fadroma-scrt-callback = { path = "../../libraries/fadroma-21.06.1/scrt-callback" }
-fadroma-scrt-migrate  = { path = "../../libraries/fadroma-21.06.1/scrt-migrate" }
-fadroma-scrt-storage  = { path = "../../libraries/fadroma-21.06.1/scrt-storage" }
 amm-shared            = { path = "../../libraries/amm-shared" }

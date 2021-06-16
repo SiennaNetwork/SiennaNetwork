@@ -1,11 +1,12 @@
+pub use crate::snip20_impl::msg as snip20;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use cosmwasm_std::{HumanAddr, Binary, Uint128, Decimal};
-
-use crate::{TokenPair, TokenType, TokenTypeAmount, TokenPairAmount};
-
 use fadroma_scrt_callback::{ContractInstantiationInfo, ContractInstance, Callback};
 use fadroma_scrt_migrate::types::ContractStatusLevel;
+
+use crate::{TokenPair, TokenType, TokenTypeAmount, TokenPairAmount};
 
 pub mod factory {
     use super::*;
@@ -19,7 +20,8 @@ pub mod factory {
         pub lp_token_contract: ContractInstantiationInfo,
         pub pair_contract:     ContractInstantiationInfo,
         pub ido_contract:      ContractInstantiationInfo,
-        pub exchange_settings: ExchangeSettings<HumanAddr>
+        pub exchange_settings: ExchangeSettings<HumanAddr>,
+        pub admin: Option<HumanAddr>
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -182,7 +184,6 @@ pub mod exchange {
 
 pub mod ido {
     use super::*;
-    use super::snip20::Snip20InitConfig;
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct InitMsg {
@@ -208,7 +209,7 @@ pub mod ido {
         pub prng_seed: Binary,
         pub symbol: String,
         pub decimals: u8,
-        pub config: Option<Snip20InitConfig>
+        pub config: Option<snip20::InitConfig>
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -231,50 +232,6 @@ pub mod ido {
     pub enum QueryResponse {
         GetRate { 
             rate: Uint128 
-        }
-    }
-}
-
-pub mod snip20 {
-    use super::*;
-
-    #[derive(Serialize, Deserialize, JsonSchema)]
-    pub struct Snip20InitMsg {
-        pub name: String,
-        pub admin: Option<HumanAddr>,
-        pub symbol: String,
-        pub decimals: u8,
-        pub initial_balances: Option<Vec<Snip20InitialBalance>>,
-        pub prng_seed: Binary,
-        pub config: Option<Snip20InitConfig>,
-        pub callback: Option<Callback<HumanAddr>>
-    }
-    
-    #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
-    pub struct Snip20InitialBalance {
-        pub address: HumanAddr,
-        pub amount: Uint128,
-    }
-    
-    /// This type represents optional configuration values which can be overridden.
-    /// All values are optional and have defaults which are more private by default,
-    /// but can be overridden if necessary
-    #[derive(Serialize, Deserialize, JsonSchema, Clone, Default, Debug)]
-    pub struct Snip20InitConfig {
-        /// Indicates whether the total supply is public or should be kept secret.
-        /// default: False
-        pub public_total_supply: Option<bool>,
-    }
-    
-    impl Snip20InitMsg {
-        pub fn config(&self) -> Snip20InitConfig {
-            self.config.clone().unwrap_or_default()
-        }
-    }
-    
-    impl Snip20InitConfig {
-        pub fn public_total_supply(&self) -> bool {
-            self.public_total_supply.unwrap_or(false)
         }
     }
 }

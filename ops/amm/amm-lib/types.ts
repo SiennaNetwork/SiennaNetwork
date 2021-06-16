@@ -46,7 +46,7 @@ export interface TokenInfo {
     name: string,
     symbol: string,
     decimals: number,
-    total_supply?: Uint128 | undefined
+    total_supply?: Uint128 | null
 }
 
 export interface Exchange {

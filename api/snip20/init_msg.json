@@ -19,6 +19,16 @@
         }
       ]
     },
+    "callback": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Callback_for_HumanAddr"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "config": {
       "anyOf": [
         {
@@ -58,6 +68,48 @@
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
     },
+    "Callback_for_HumanAddr": {
+      "description": "Info needed to have the other contract respond.",
+      "type": "object",
+      "required": [
+        "contract",
+        "msg"
+      ],
+      "properties": {
+        "contract": {
+          "description": "Info about the contract requesting the callback.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+            }
+          ]
+        },
+        "msg": {
+          "description": "The message to call.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
+        }
+      }
+    },
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
     "HumanAddr": {
       "type": "string"
     },
@@ -65,6 +117,34 @@
       "description": "This type represents optional configuration values which can be overridden. All values are optional and have defaults which are more private by default, but can be overridden if necessary",
       "type": "object",
       "properties": {
+        "enable_burn": {
+          "description": "Indicates whether burn functionality should be enabled default: False",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "enable_deposit": {
+          "description": "Indicates whether deposit functionality should be enabled default: False",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "enable_mint": {
+          "description": "Indicates whether mint functionality should be enabled default: False",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "enable_redeem": {
+          "description": "Indicates whether redeem functionality should be enabled default: False",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "public_total_supply": {
           "description": "Indicates whether the total supply is public or should be kept secret. default: False",
           "type": [

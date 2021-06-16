@@ -1,6 +1,7 @@
 import open from 'open'
 import { bold } from '@fadroma/utilities'
 import SecretNetwork from '@fadroma/scrt-agent/network.js'
+import Localnet from '@fadroma/scrt-ops/localnet.js'
 
 import { abs, projectRoot } from './root.js'
 import { args, combine } from './args.js'
@@ -12,23 +13,23 @@ export function ensureWallets (context = {}) {
   console.warn('not implemented')
 }
 
-export async function selectLocalnet (context = {}) {
+export function selectLocalnet (context = {}) {
   console.debug(`Running on ${bold('localnet')}:`)
-  context.network = await SecretNetwork.localnet()
+  context.network = 'localnet'
 }
 
 export function resetLocalnet (context = {}) {
   return new Localnet().terminate()
 }
 
-export async function selectTestnet (context = {}) {
+export function selectTestnet (context = {}) {
   console.debug(`Running on ${bold('testnet')}:`)
-  context.network = await SecretNetwork.testnet()
+  context.network = 'testnet'
 }
 
-export async function selectMainnet (context = {}) {
+export function selectMainnet (context = {}) {
   console.debug(`Running on ${bold('mainnet')}:`)
-  context.network = await SecretNetwork.localnet()
+  context.network = 'mainnet'
 }
 
 export function openFaucet () {

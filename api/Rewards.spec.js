@@ -31,7 +31,7 @@ describe('Rewards', () => {
 
   const balance = (
     address = context.admin.address,
-    key     = context.viewkey
+    key = context.viewkey,
   ) => context.token.balance(address, key)
 
   const assertBalance = async (amount = 0, address, key) => {
@@ -62,43 +62,65 @@ describe('Rewards', () => {
   })
 
   it('can process claims', async function () {
-    this.timeout(60000)
-    const { token, rewards, admin, viewkey } = context
+    this.timeout(120000)
+    const { node, network, token, rewards, admin, viewkey } = context
 
+    // Get the genesis account for ALICE and create its agent and viewkey for token
+    const { mnemonic, address } = node.genesisAccount('ALICE')
+    const alice = await network.getAgent("ALICE", { mnemonic, address })
+    const aliceViewkey = (await token.createViewingKey(alice)).key
+
+    // Mint 100 tokens for admin and alice
     await token.mint(100, admin)
-    assertBalance(100)
+    await token.addMinters([alice.address])
+    await token.mint(100, alice)
+    await assertBalance(100)
+    await assertBalance(100, alice.address, aliceViewkey)
 
-    await secondToken.mint(100, second)
-    assertBalance(100, second.address)
+    // Mint another 100 tokens for admin
+    await token.mint(100, admin)
+    await assertBalance(200)
 
-    await token.increaseAllowance(100, rewards.address)
+    // Increase allowance for admin and alice to allow them to send tokens to rewards
+    await token.increaseAllowance(200, rewards.address)
+    await token.increaseAllowance(100, rewards.address, alice)
 
+    // Lock 100 of admin tokens
     await rewards.lock(100, token.address)
-    assertBalance(0)
+    await assertBalance(100)
 
-    await rewards.claim([token.address])
-    assertBalance(0)
+    // Lock 100 alices tokens
+    await rewards.lock(100, token.address, alice)
+    await assertBalance(0, alice.address, aliceViewkey)
 
+    // Get total rewards supply that should be 200 now
+    const res = await rewards.getTotalRewardsSupply();
+    assert.strictEqual(res.total_rewards_supply.amount, '200')
 
-    await rewards.claim([token.address])
-    assertBalance(2)
-
-    await rewards.claim([token.address])
-    assertBalance(4)
-
-    await rewards.retrieve(50, token.address)
-    assertBalance(54)
-
-    await rewards.claim([token.address])
-    assertBalance(55)
-
-    await rewards.retrieve(50, token.address)
-    assertBalance(105)
+    // Make a claim from admin and expect admin to have 200 tokens
+    const res2 = await rewards.claim([token.address])
+    log(JSON.stringify(res2, null, 2))
+    // fails here, admin now has 300 tokens, which shouldn't happen, 100 is from alice
+    await assertBalance(200)
   })
 
   // it('can be configured', () => {})
 
-  // it('can be administrated', () => {})
+  it('can be administrated', async function () {
+    this.timeout(60000)
+    const { token, rewards, admin, viewkey, node, network } = context
+
+    const { mnemonic, address } = node.genesisAccount('ALICE')
+    const alice = await network.getAgent("ALICE", { mnemonic, address })
+
+    const res = await rewards.admin
+    assert.strictEqual(res.address, admin.address)
+    
+    await rewards.changeAdmin({ address: alice.address })
+
+    const res1 = await rewards.admin
+    assert.strictEqual(res1.address, alice.address)
+  })
 
   it('is protected by a viewing key', async function () {
     this.timeout(60000)
@@ -116,7 +138,7 @@ describe('Rewards', () => {
     const viewkeyNew = (await rewards.createViewingKey(admin)).key
 
     const timestamp = parseInt((new Date()).valueOf() / 1000);
-    const res = await rewards.simulate(admin.address, timestamp, [token.address], viewkeyNew)
+    await rewards.simulate(admin.address, timestamp, [token.address], viewkeyNew)
     
     const acc = await rewards.getAccounts(admin.address, [token.address], viewkeyNew)
     const totalLocked = acc.accounts.map(i => parseInt(i.locked_amount)).reduce((t, i) => t + i, 0);
@@ -161,15 +183,16 @@ describe('Rewards', () => {
 
     // deploy token
     context.token = await context.admin.instantiate(new SNIP20({
-      label: `token-${parseInt(Math.random() * 1000)}`,
+      label: `token-${parseInt(Math.random() * 100000)}`,
       codeId: context.tokenCodeId,
       initMsg: ensemble.contracts.TOKEN.initMsg
     }))
     const reward_token = context.token.reference
 
+
     // prepare rewards manager config
     const initMsg = {
-      ...ensemble.contracts.REWARDS.initMsg,
+      ...{...ensemble.contracts.REWARDS.initMsg, claim_interval: 300},
       admin:     context.admin.address,
       entropy:   '',//randomBytes(36).toString('base64'),
       prng_seed: '',//randomBytes(36).toString('base64'),
@@ -179,7 +202,7 @@ describe('Rewards', () => {
 
     // deploy rewards manager
     context.rewards = await context.admin.instantiate(new Rewards({
-      label: `rewards-${parseInt(Math.random() * 1000)}`,
+      label: `rewards-${parseInt(Math.random() * 100000)}`,
       codeId: context.rewardsCodeId,
       initMsg
     }))

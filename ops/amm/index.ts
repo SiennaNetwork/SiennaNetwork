@@ -462,16 +462,23 @@ async function instantiate_factory(client: SigningCosmWasmClient, result: Upload
 }
 
 async function instantiate_sienna_token(client: SigningCosmWasmClient, snip20: ContractInstantiationInfo): Promise<ContractInfo> {
-  const sienna_init_msg = {
+  const init_msg = {
     name: 'sienna',
     symbol: 'SIENNA',
     decimals: 18,
-    prng_seed: create_rand_base64()
+    prng_seed: create_rand_base64(),
+    config: {
+      enable_burn: false,
+      enable_deposit: true,
+      enable_mint: true,
+      enable_redeem: true,
+      public_total_supply: true
+    }
   }
 
   const sienna_contract = await client.instantiate(
     snip20.id,
-    sienna_init_msg,
+    init_msg,
     'SIENNA TOKEN',
     undefined,
     undefined,

@@ -25,6 +25,10 @@ export default class SNIP20 extends SecretNetwork.Contract.withSchema(schema) {
     this.tx(agent)
       .set_minters({ minters })
 
+  addMinters = (minters, agent) =>
+    this.tx(agent)
+      .add_minters({ minters, padding: null })
+
   mint = (amount, agent = this.agent, recipient = agent.address) =>
     this.tx(agent)
       .mint({ amount: String(amount), recipient, padding: null })
@@ -33,7 +37,7 @@ export default class SNIP20 extends SecretNetwork.Contract.withSchema(schema) {
   balance = (address, key) =>
     this.q()
       .balance({ address, key })
-      .then(response=>response.balance.amount)
+      .then(response => response.balance.amount)
 
   createViewingKey = (agent, entropy = '') =>//randomHex(32)) =>
     this.tx(agent)

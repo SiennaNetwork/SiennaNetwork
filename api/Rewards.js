@@ -17,14 +17,21 @@ export default class RewardsContract extends SecretNetwork.Contract.withSchema(s
   }
 
   get admin () {
-    return this.q().admin()
+    return this.q().admin('admin')
   }
 
+  getTotalRewardsSupply = () =>
+    this.q().total_rewards_supply()
+
   getAccounts = (address, lp_tokens, viewing_key) =>
-    this.query('accounts', { address, lp_tokens, viewing_key })
+    this.q().accounts({ address, lp_tokens, viewing_key })
 
   simulate = (address, current_time, lp_tokens, viewing_key) =>
-    this.query('claim_simulation', { address, current_time, lp_tokens, viewing_key })
+    this.q().claim_simulation({ address, current_time, lp_tokens, viewing_key })
+
+  changeAdmin = (address, agent) =>
+    this.tx(agent)
+      .admin({change_admin: address})
 
   lock = (amount, lp_token, agent) =>
     this.tx(agent)
@@ -50,6 +57,5 @@ export default class RewardsContract extends SecretNetwork.Contract.withSchema(s
   setViewingKey = (agent, key) =>
     this.tx(agent)
       .set_viewing_key({ key })
-      .then(tx=>({tx, status: JSON.parse(decode(tx.data)).set_viewing_key.key}))
 
 }

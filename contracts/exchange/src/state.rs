@@ -4,10 +4,10 @@ use cosmwasm_std::{
 };
 use serde::{Serialize,Deserialize};
 
-use fadroma_scrt_addr::{Humanize, Canonize};
-use fadroma_scrt_callback::ContractInstance;
-use fadroma_scrt_storage::{load, save};
-use cosmwasm_utils::viewing_key::ViewingKey;
+use amm_shared::fadroma::address::{Humanize, Canonize};
+use amm_shared::fadroma::callback::ContractInstance;
+use amm_shared::fadroma::storage::{load, save};
+use amm_shared::fadroma::utils::viewing_key::ViewingKey;
 use amm_shared::TokenPair;
 
 const CONFIG_KEY: &[u8] = b"config";

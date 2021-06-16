@@ -67,7 +67,6 @@ export const commands: CommandList = [
     ...withNetwork(lend.remoteCommands)]],
   null,
   ["mainnet",  "Deploy and run contracts on the mainnet with real money.", selectMainnet, [
-    null
     ...remoteCommands]],
   ["testnet",  "Deploy and run contracts on the holodeck-2 testnet.", selectTestnet, [
     ["faucet", "🚰 Open https://faucet.secrettestnet.io/ in your default browser", openFaucet],
