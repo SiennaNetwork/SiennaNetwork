@@ -78,7 +78,7 @@ export default class TGEContracts extends Ensemble {
     if (Object.keys(contracts)>0) return contracts
 
     // accepts schedule as string or struct
-    let { schedule = getDefaultSchedule } = options
+    let { schedule = getDefaultSchedule() } = options
     if (typeof schedule === 'string') schedule = JSON.parse(await readFile(schedule, 'utf8'))
     //log(render(schedule))
 
@@ -101,6 +101,7 @@ export default class TGEContracts extends Ensemble {
       const {codeId} = receipts.MGMT, {label, initMsg} = inits.MGMT
       initMsg.token    = [contracts.TOKEN.address, contracts.TOKEN.codeHash]
       initMsg.schedule = schedule
+      console.log({schedule})
       schedule.pools.filter(x=>x.name==='MintingPool')[0]
               .accounts.filter(x=>x.name==='RPT')[0]
               .address = agent.address
@@ -186,7 +187,7 @@ export default class TGEContracts extends Ensemble {
 export function getDefaultSchedule () {
   const path = resolve(projectRoot, 'settings', 'schedule.json')
   try {
-    JSON.parse(readFileSync(path, 'utf8'))
+    return JSON.parse(readFileSync(path, 'utf8'))
   } catch (e) {
     console.warn(`${path} does not exist - "./sienna.js config" should create it`)
     return null
