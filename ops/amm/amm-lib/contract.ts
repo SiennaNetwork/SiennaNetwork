@@ -215,7 +215,7 @@ export class ExchangeContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('370000')
+            fee = create_fee('390000')
         }
 
         const transfer = add_native_balance_pair(amount)
@@ -231,7 +231,7 @@ export class ExchangeContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('330000')
+            fee = create_fee('350000')
         }
 
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
@@ -246,7 +246,7 @@ export class ExchangeContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('380000')
+            fee = create_fee('450000')
         }
 
         const transfer = add_native_balance(amount)

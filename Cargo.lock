@@ -38,21 +38,8 @@ dependencies = [
 name = "amm-snip20"
 version = "0.1.0"
 dependencies = [
- "base64 0.12.3",
- "bincode2",
- "cosmwasm-schema 0.9.4",
- "cosmwasm-sgx-vm",
- "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
- "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
- "hex",
- "rand_chacha 0.2.2",
- "rand_core 0.5.1",
- "schemars",
- "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit?rev=6aa670f)",
- "serde",
- "sha2 0.9.5",
- "snafu",
- "subtle 2.4.0",
+ "amm-shared",
+ "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
 ]
 
 [[package]]

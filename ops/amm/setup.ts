@@ -20,6 +20,7 @@ export interface UploadResult {
 
 export async function upload(client: SigningCosmWasmClient, writer: IJsonFileWriter): Promise<UploadResult> {
     const fee = create_fee('2500000')
+    const snip20_fee = create_fee('2600000')
 
     const wasm_path = '../../artifacts/'
   
@@ -32,13 +33,13 @@ export async function upload(client: SigningCosmWasmClient, writer: IJsonFileWri
     const exchange_upload = await client.upload(exchange_wasm, {}, undefined, fee)
     writer.write(exchange_upload, `uploads/exchange`)
 
-    const snip20_upload = await client.upload(snip20_wasm, {}, undefined, fee)
+    const snip20_upload = await client.upload(snip20_wasm, {}, undefined, snip20_fee)
     writer.write(snip20_upload, `uploads/snip20`)
 
     const factory_upload = await client.upload(factory_wasm, {}, undefined, fee)
     writer.write(factory_upload, `uploads/factory`)
 
-    const lp_token_upload = await client.upload(lp_token_wasm, {}, undefined, create_fee('2600000'))
+    const lp_token_upload = await client.upload(lp_token_wasm, {}, undefined, snip20_fee)
     writer.write(lp_token_upload, `uploads/lp_token`)
 
     const ido_upload = await client.upload(ido_wasm, {}, undefined, fee)
