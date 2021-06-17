@@ -36,9 +36,9 @@ export default class TGEContracts extends Ensemble {
   get localCommands () {
     return [
       ["build",       '👷 Compile contracts from working tree',
-        (context, [sequential]) => this.build(sequential)],
+        (context, sequential) => this.build(sequential)],
       ['config',      '📅 Convert a spreadsheet into a JSON schedule',
-        (context, [spreadsheet]) => genConfig(spreadshet)]
+        (context, spreadsheet) => genConfig(spreadshet)]
     ]
   }
 
