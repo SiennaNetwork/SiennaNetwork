@@ -47,6 +47,7 @@ jobs:
       - name: Install toolchain that works with Tarpaulin
         uses: actions-rs/toolchain@v1
         with: { profile: minimal, toolchain: stable, target: wasm32-unknown-unknown, override: true }
+      - uses: Swatinem/rust-cache@v1
       - name: Install Tarpaulin
         uses: actions-rs/cargo@v1
         with: { command: install, args: cargo-tarpaulin }
@@ -54,7 +55,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
         with: { submodules: true }
-      - uses: Swatinem/rust-cache@v1
       - name: Install JS dependencies
         run: yarn
       - name: Generate coverage report
