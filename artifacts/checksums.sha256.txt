@@ -1,2 +1,2 @@
-c4aaad309fb93df258cf7fca53bf36973fec891c910d144cbaaadfffef1f4cfd *sienna-rewards@HEAD.wasm
-a5989eba266a5cd2863ab30f8f49a87d762633142bc92da025844bba66e46a48 *snip20-sienna@HEAD.wasm
+a232467207cba4b9d7012bf2c5e3479e9167e6563a654436bff7bd678d2a3f60 *amm-snip20@HEAD.wasm
+333386baeddfd828b144216647f79ec8a5409221d772f8ea9aa349f805a6cfd9 *sienna-rewards@HEAD.wasm

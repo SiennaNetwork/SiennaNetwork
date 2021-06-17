@@ -14,13 +14,13 @@ export default class RewardsContracts extends Ensemble {
   contracts = {
 
     TOKEN: {
-      crate: 'snip20-sienna',
+      crate: 'amm-snip20',
       label: `${this.prefix}SIENNA_SNIP20`,
       initMsg: {
         prng_seed: randomBytes(36).toString('hex'),
         name:      "Sienna",
         symbol:    "SIENNA",
-        decimals:  18,
+        decimals:  6,
         config:    { public_total_supply: true }
       }
     },

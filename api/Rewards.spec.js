@@ -157,7 +157,7 @@ describe('Rewards', () => {
   })
 
   async function setupAll () {
-    this.timeout(60000)
+    this.timeout(120000)
 
     // before each test run, compile fresh versions of the contracts
     const {TOKEN: tokenBinary, REWARDS: rewardsBinary} = await ensemble.build({
@@ -165,10 +165,12 @@ describe('Rewards', () => {
       parallel: false
     })
 
-    // run a clean localnet
-    const {node, network, agent, builder} = await SecretNetwork.localnet({
+    const localnet = await SecretNetwork.localnet({
       stateBase: abs('artifacts')
-    })
+    });
+
+    // run a clean localnet
+    const {node, network, agent, builder} = await localnet.connect()
     await agent.nextBlock
     Object.assign(context, { node, network, admin: agent, builder })
 
@@ -179,7 +181,7 @@ describe('Rewards', () => {
   }
 
   async function setupEach () {
-    this.timeout(60000)
+    this.timeout(120000)
 
     // deploy token
     context.token = await context.admin.instantiate(new SNIP20({
@@ -212,7 +214,7 @@ describe('Rewards', () => {
   }
 
   async function cleanupAll () {
-    this.timeout(60000)
+    this.timeout(120000)
     await context.node.terminate()
   }
 
