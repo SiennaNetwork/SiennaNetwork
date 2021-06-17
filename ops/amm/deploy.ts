@@ -3,21 +3,13 @@ import { JsonFileWriter } from './utils/json_file_writer.js'
 import * as dotenv from 'dotenv'
 import { ContractInfo } from './amm-lib/types.js'
 import { create_fee } from './amm-lib/contract.js'
+import { resolve } from 'path'
+import { readFileSync, writeFileSync } from 'fs'
 
 dotenv.config()
 
 async function deploy() {
-    const client = await build_client(process.env.MNEMONIC as string, process.env.SECRET_REST_URL as string)
-    const writer = new JsonFileWriter(`../../artifacts/amm/${process.env.SECRET_CHAIN_ID}/`)
-
-    const result = await upload(client, writer)
-
-    // TODO: Pull from config file
-    const factory_init_msg = {
-        snip20_contract: result.snip20,
-        lp_token_contract: result.lp_token,
-        pair_contract: result.exchange,
-        ido_contract: result.ido,
+    let config = {
         exchange_settings: {
             swap_fee: {
                 nom: 28,
@@ -27,9 +19,39 @@ async function deploy() {
                 nom: 2,
                 denom: 10000
             },
-            sienna_burner: undefined
-        }
+            sienna_burner: null
+        },
+        admin: null
     }
+
+    const file = resolve(`./settings/${process.env.SECRET_CHAIN_ID}.json`)
+
+    try {
+        config = JSON.parse(readFileSync(file).toString())   
+    } catch(e) {
+        if (e.message.includes('no such file or directory')) {
+            writeFileSync(file, JSON.stringify(config, null, 2))
+            console.log(`Couldn't find file "${file}". Created one with default values. Please configure it and run this script again.`)
+            
+            return
+        }
+
+        throw e
+    }
+
+    const client = await build_client(process.env.MNEMONIC as string, process.env.SECRET_REST_URL as string)
+    const writer = new JsonFileWriter(`../../artifacts/amm/${process.env.SECRET_CHAIN_ID}/`)
+
+    const result = await upload(client, writer)
+
+    const factory_init_msg = {
+        snip20_contract: result.snip20,
+        lp_token_contract: result.lp_token,
+        pair_contract: result.exchange,
+        ido_contract: result.ido
+    }
+
+    Object.assign(factory_init_msg, config)
 
     const commit = process.argv[2];
     const factory_instance = await client.instantiate(

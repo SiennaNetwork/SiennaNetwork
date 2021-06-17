@@ -36,9 +36,9 @@ export default class TGEContracts extends Ensemble {
   get localCommands () {
     return [
       ["build",       '👷 Compile contracts from working tree',
-        (context, [sequential]) => this.build(sequential)],
+        (context, sequential) => this.build(sequential)],
       ['config',      '📅 Convert a spreadsheet into a JSON schedule',
-        (context, [spreadsheet]) => genConfig(spreadshet)]
+        (context, spreadsheet) => genConfig(spreadshet)]
     ]
   }
 
@@ -71,29 +71,16 @@ export default class TGEContracts extends Ensemble {
   }
  
   async initialize (options = {}) {
+    const { network, agent } = this
     // idempotency support
     // passing existing `contracts` to this makes it a no-op
     const { contracts = {} } = options
     if (Object.keys(contracts)>0) return contracts
 
-    // unwrap mutable options
-    let { agent
-        , network  = agent ? {network: agent.network} : await SecretNetwork.localnet({stateBase})
-        , schedule = getDefaultSchedule
-        } = options
-
     // accepts schedule as string or struct
+    let { schedule = getDefaultSchedule() } = options
     if (typeof schedule === 'string') schedule = JSON.parse(await readFile(schedule, 'utf8'))
     //log(render(schedule))
-
-    // if `network` is just the connection type, replace it with a real connection
-    if (typeof network === 'string') {
-      network = conformChainIdToNetwork(network)
-      network = await SecretNetwork[network]({stateBase})
-    }
-
-    // if there's no agent, use the default one from the connection
-    if (!agent) agent = network.agent
 
     // unwrap remaining options
     const { task                = taskmaster()
@@ -114,6 +101,7 @@ export default class TGEContracts extends Ensemble {
       const {codeId} = receipts.MGMT, {label, initMsg} = inits.MGMT
       initMsg.token    = [contracts.TOKEN.address, contracts.TOKEN.codeHash]
       initMsg.schedule = schedule
+      console.log({schedule})
       schedule.pools.filter(x=>x.name==='MintingPool')[0]
               .accounts.filter(x=>x.name==='RPT')[0]
               .address = agent.address
@@ -199,7 +187,7 @@ export default class TGEContracts extends Ensemble {
 export function getDefaultSchedule () {
   const path = resolve(projectRoot, 'settings', 'schedule.json')
   try {
-    JSON.parse(readFileSync(path, 'utf8'))
+    return JSON.parse(readFileSync(path, 'utf8'))
   } catch (e) {
     console.warn(`${path} does not exist - "./sienna.js config" should create it`)
     return null
