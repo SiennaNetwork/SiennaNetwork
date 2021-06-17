@@ -13,15 +13,39 @@ export default class RewardsContracts extends Ensemble {
 
   contracts = {
 
-    TOKEN: {
+    SIENNA: {
       crate: 'amm-snip20',
-      label: `${this.prefix}SIENNA_SNIP20`,
+      label: `${this.prefix}AMM_SNIP20`,
       initMsg: {
         prng_seed: randomBytes(36).toString('hex'),
         name:      "Sienna",
         symbol:    "SIENNA",
         decimals:  6,
-        config:    { public_total_supply: true }
+        config: {
+          public_total_supply: true,
+          enable_deposit: true,
+          enable_redeem: true,
+          enable_mint: true,
+          enable_burn: true,
+        }
+      }
+    },
+
+    LPTOKEN: {
+      crate: 'lp-token',
+      label: `${this.prefix}LPTOKEN_SNIP20`,
+      initMsg: {
+        prng_seed: randomBytes(36).toString('hex'),
+        name:      "LpToken",
+        symbol:    "LPT",
+        decimals:  6,
+        config: {
+          public_total_supply: true,
+          enable_deposit: true,
+          enable_redeem: true,
+          enable_mint: true,
+          enable_burn: true,
+        }
       }
     },
 

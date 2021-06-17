@@ -34,10 +34,16 @@ export default class SNIP20 extends SecretNetwork.Contract.withSchema(schema) {
       .mint({ amount: String(amount), recipient, padding: null })
       .then(tx=>({tx, mint: JSON.parse(decode(tx.data)).mint}))
 
-  balance = (address, key) =>
-    this.q()
-      .balance({ address, key })
-      .then(response => response.balance.amount)
+  balance = async (address, key) => {
+    const response = await this.q().balance({ address, key })
+
+    if (response.balance && response.balance.amount) {
+      return response.balance.amount
+    }
+    else {
+      throw new Error(JSON.stringify(response))
+    }
+  }
 
   createViewingKey = (agent, entropy = '') =>//randomHex(32)) =>
     this.tx(agent)
