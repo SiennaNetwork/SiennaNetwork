@@ -14,6 +14,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
         with: { submodules: true }
+      - uses: Swatinem/rust-cache@v1
       - name: Install JS dependencies
         run: yarn
       - name: Generate documentation
@@ -31,6 +32,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
         with: { submodules: true }
+      - uses: Swatinem/rust-cache@v1
       - name: Install JS dependencies
         run: yarn
       - name: Run tests
@@ -52,6 +54,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
         with: { submodules: true }
+      - uses: Swatinem/rust-cache@v1
       - name: Install JS dependencies
         run: yarn
       - name: Generate coverage report
@@ -78,6 +81,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
         with: { submodules: true }
+      - uses: Swatinem/rust-cache@v1
       - name: Install JS dependencies
         run: yarn
       - name: Generate schema
