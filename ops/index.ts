@@ -29,9 +29,9 @@ const remoteCommands = network => [
 
 const withNetwork = Ensemble => [
   ["mainnet",  "Deploy and run contracts on the mainnet with real money.", selectMainnet,
-    new Ensemble({network:  'mainnet'}).remoteCommands],
+    new Ensemble({network: 'mainnet'}).remoteCommands],
   ["testnet",  "Deploy and run contracts on the holodeck-2 testnet.",      selectTestnet,
-    new Ensemble({network:  'testnet'}).remoteCommands],
+    new Ensemble({network: 'testnet'}).remoteCommands],
   ["localnet", "Deploy and run contracts in a local container.",           selectLocalnet,
     new Ensemble({network: 'localnet'}).remoteCommands],
 ]
