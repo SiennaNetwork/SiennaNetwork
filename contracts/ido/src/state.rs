@@ -8,7 +8,8 @@ use amm_shared::fadroma::address::{Canonize, Humanize};
 use amm_shared::fadroma::storage::{save, load};
 use amm_shared::TokenType;
 
-pub(crate) static CONFIG_KEY: &[u8] = b"config";
+const CONFIG_KEY: &[u8] = b"config";
+const CALLBACK_KEY: &[u8] = b"callback";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct Config<A> {
@@ -16,8 +17,7 @@ pub(crate) struct Config<A> {
     pub input_token: TokenType<A>,
     /// The token that this contract swaps to and instantiates
     pub swap_token: ContractInstance<A>,
-    pub swap_constants: SwapConstants,
-    pub callback: Option<Callback<A>>
+    pub swap_constants: SwapConstants
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -38,9 +38,25 @@ pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
     save(&mut deps.storage, CONFIG_KEY, &config.canonize(&deps.api)?)
 }
 
-pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Config<HumanAddr>> {
+pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>
+) -> StdResult<Config<HumanAddr>> {
     let result: Option<Config<CanonicalAddr>> = load(&deps.storage, CONFIG_KEY)?;
     result.ok_or(StdError::generic_err("Config doesn't exist in storage."))?.humanize(&deps.api)
+}
+
+pub(crate) fn save_callback(
+    storage: &mut impl Storage,
+    callback: &Callback<HumanAddr>
+) -> StdResult<()> {
+    save(storage, CALLBACK_KEY, callback)
+}
+
+pub(crate) fn pop_callback(storage: &mut impl Storage) -> StdResult<Option<Callback<HumanAddr>>> {
+    let result = load(storage, CALLBACK_KEY)?;
+    storage.remove(CALLBACK_KEY);
+
+    Ok(result)
 }
 
 impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
@@ -48,12 +64,7 @@ impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
         Ok(Config{
             input_token: self.input_token.canonize(api)?,
             swap_token: self.swap_token.canonize(api)?,
-            swap_constants: self.swap_constants.clone(),
-            callback: if let Some(c) = self.callback.clone() {
-                Some(c.canonize(api)?)
-            } else {
-                None
-            }
+            swap_constants: self.swap_constants.clone()
         })
     }
 }
@@ -63,12 +74,7 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
         Ok(Config{
             input_token: self.input_token.humanize(api)?,
             swap_token: self.swap_token.humanize(api)?,
-            swap_constants: self.swap_constants.clone(),
-            callback: if let Some(c) = self.callback.clone() {
-                Some(c.humanize(api)?)
-            } else {
-                None
-            }
+            swap_constants: self.swap_constants.clone()
         })
     }
 }

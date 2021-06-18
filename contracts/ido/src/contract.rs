@@ -1,6 +1,7 @@
 use cosmwasm_std::{
-    Api, CosmosMsg, Env, Extern, HandleResponse, HumanAddr, InitResponse,
-    Querier, QueryResult, StdError, StdResult, Storage, Uint128, WasmMsg, log, to_binary
+    Api, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
+    InitResponse, Querier, QueryResult, StdError, StdResult,
+    Storage, Uint128, WasmMsg, log, to_binary
 };
 use secret_toolkit::snip20;
 use amm_shared::TokenType;
@@ -9,7 +10,10 @@ use amm_shared::msg::ido::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
 use amm_shared::msg::snip20::InitMsg as Snip20InitMsg;
 use amm_shared::fadroma::utils::convert::{convert_token, get_whole_token_representation};
 
-use crate::state::{Config, save_config, load_config, SwapConstants};
+use crate::state::{
+    Config, SwapConstants, pop_callback, load_config, save_callback,
+    save_config
+};
 
 /// Pad handle responses and log attributes to blocks
 /// of 256 bytes to prevent leaking info based on response size
@@ -20,10 +24,6 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
-    if msg.info.snip20_init_info.decimals > 18 {
-        return Err(StdError::generic_err("Decimals must not exceed 18"));
-    }
-
     let input_token_decimals = match &msg.info.input_token {
         TokenType::NativeToken { .. } => 6,
         TokenType::CustomToken { contract_addr, token_code_hash } => {
@@ -50,11 +50,11 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         swap_token: ContractInstance {
             code_hash: msg.snip20_contract.code_hash.clone(),
             address: HumanAddr::default()
-        },
-        callback: Some(msg.callback)
+        }
     };
 
     save_config(deps, &config)?;
+    save_callback(&mut deps.storage, &msg.callback)?;
 
     let mut messages = vec![];
 
@@ -118,8 +118,6 @@ fn swap<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     let config = load_config(deps)?;
 
-    config.input_token.assert_sent_native_token_balance(&env, amount)?;
-
     let mint_amount = convert_token(
         amount.u128(),
         config.swap_constants.rate.u128(),
@@ -135,19 +133,21 @@ fn swap<S: Storage, A: Api, Q: Querier>(
 
     let mut messages = vec![];
 
-    // If native token, the balance has been increased already
-    if let TokenType::CustomToken { 
-        contract_addr, token_code_hash 
-    } = config.input_token {
-        messages.push(snip20::transfer_from_msg(
-            env.message.sender.clone(),     
-            env.contract.address,
-            amount,
-            None,
-            BLOCK_SIZE,
-            token_code_hash,
-            contract_addr
-        )?);
+    match config.input_token {
+        TokenType::CustomToken { contract_addr, token_code_hash } => {
+            messages.push(snip20::transfer_from_msg(
+                env.message.sender.clone(),     
+                env.contract.address,
+                amount,
+                None,
+                BLOCK_SIZE,
+                token_code_hash,
+                contract_addr
+            )?);
+        },
+        TokenType::NativeToken { .. } => {
+            config.input_token.assert_sent_native_token_balance(&env, amount)?;
+        }
     }
 
     // Mint new tokens and transfer to sender
@@ -166,8 +166,8 @@ fn swap<S: Storage, A: Api, Q: Querier>(
         messages,
         log: vec![
             log("action", "swap"),
-            log("input amount", amount),
-            log("mint amount", mint_amount)
+            log("input_amount", amount),
+            log("mint_amount", mint_amount)
         ],
         data: None
     })
@@ -194,7 +194,9 @@ fn on_snip20_init<S: Storage, A: Api, Q: Querier>(
         env.message.sender.clone()
     )?);
 
-    let callback = config.callback.unwrap(); // Safe, because this function is executed only once
+    // Safe, because this function is executed only once
+    let callback = pop_callback(&mut deps.storage)?.unwrap();
+
 
     // Register with factory
     messages.push(
@@ -210,13 +212,12 @@ fn on_snip20_init<S: Storage, A: Api, Q: Querier>(
         code_hash: config.swap_token.code_hash,
         address: env.message.sender.clone()
     };
-    config.callback = None;
 
     save_config(deps, &config)?;
 
     Ok(HandleResponse {
         messages,
-        log: vec![log("swapped_token address", env.message.sender.as_str())],
+        log: vec![log("swapped_token_address", env.message.sender)],
         data: None,
     })
 }
