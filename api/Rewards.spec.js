@@ -57,22 +57,22 @@ describe('Rewards', () => {
 
   beforeEach(setupEach)
 
-  // it('can lock and return tokens', async function () {
-  //   this.timeout(60000)
-  //   const {token, rewards}=context
+  it('can lock and return tokens', async function () {
+    this.timeout(60000)
+    const {token, rewards}=context
 
-  //   await token.mint(100)
-  //   assertAdminBalance(100)
+    await token.mint(100)
+    assertAdminBalance(100)
 
-  //   await token.increaseAllowance(100, rewards.address)
-  //   await rewards.lock(50, token.address)
-  //   assertAdminBalance(50)
+    await token.increaseAllowance(100, rewards.address)
+    await rewards.lock(50, token.address)
+    assertAdminBalance(50)
     
-  //   await token.decreaseAllowance(100, rewards.address)
+    await token.decreaseAllowance(100, rewards.address)
 
-  //   await rewards.retrieve(50, token.address)
-  //   assertAdminBalance(100)
-  // })
+    await rewards.retrieve(50, token.address)
+    assertAdminBalance(100)
+  })
 
   it('can process claims', async function () {
     this.timeout(120000)
@@ -95,6 +95,7 @@ describe('Rewards', () => {
 
     // const res = await rewards.getTotalRewardsSupply();
     // assert.strictEqual(res.total_rewards_supply.amount, '100')
+
     const viewkey = (await rewards.createViewingKey(admin)).key;
     const res3 = await rewards.simulate(admin.address, 0, [token.address], viewkey)
     log(JSON.stringify(res3, null, 2))
@@ -124,62 +125,59 @@ describe('Rewards', () => {
     assertAdminBalanceReward(100000000)
   })
 
-  // it('can be configured', () => {})
+  it('can be administrated and configured', async function () {
+    this.timeout(60000)
+    const { token, rewards, admin, viewkey, node, network } = context
 
-  // it('can be administrated', async function () {
-  //   this.timeout(60000)
-  //   const { token, rewards, admin, viewkey, node, network } = context
+    const { mnemonic, address } = node.genesisAccount('ALICE')
+    const alice = await network.getAgent("ALICE", { mnemonic, address })
 
-  //   const { mnemonic, address } = node.genesisAccount('ALICE')
-  //   const alice = await network.getAgent("ALICE", { mnemonic, address })
-
-  //   const res = await rewards.admin
-  //   assert.strictEqual(res.address, admin.address)
+    const res = await rewards.admin
+    assert.strictEqual(res.address, admin.address)
     
-  //   await rewards.changeAdmin({ address: alice.address })
+    await rewards.changeAdmin({ address: alice.address })
 
-  //   const res1 = await rewards.admin
-  //   assert.strictEqual(res1.address, alice.address)
-  // })
+    const res1 = await rewards.admin
+    assert.strictEqual(res1.address, alice.address)
+  })
 
-  // it('is protected by a viewing key', async function () {
-  //   this.timeout(60000)
-  //   const { token, rewards, admin, viewkey } = context
+  it('is protected by a viewing key', async function () {
+    this.timeout(60000)
+    const { token, rewards, admin, viewkey } = context
     
-  //   await token.mint(100, admin)
-  //   assertAdminBalance(100)
+    await token.mint(100, admin)
+    assertAdminBalance(100)
 
-  //   await token.increaseAllowance(100, rewards.address)
+    await token.increaseAllowance(100, rewards.address)
 
-  //   await rewards.lock(100, token.address)
-  //   assertAdminBalance(0)
+    await rewards.lock(100, token.address)
+    assertAdminBalance(0)
 
-  //   // Create viewkey for admin rewards
-  //   const viewkeyNew = (await rewards.createViewingKey(admin)).key
+    // Create viewkey for admin rewards
+    const viewkeyNew = (await rewards.createViewingKey(admin)).key
 
-  //   const timestamp = parseInt((new Date()).valueOf() / 1000);
-  //   await rewards.simulate(admin.address, timestamp, [token.address], viewkeyNew)
+    const timestamp = parseInt((new Date()).valueOf() / 1000);
+    await rewards.simulate(admin.address, timestamp, [token.address], viewkeyNew)
     
-  //   const acc = await rewards.getAccounts(admin.address, [token.address], viewkeyNew)
-  //   const totalLocked = acc.accounts.map(i => parseInt(i.locked_amount)).reduce((t, i) => t + i, 0);
-  //   assert.strictEqual(totalLocked, 100)
+    const acc = await rewards.getAccounts(admin.address, [token.address], viewkeyNew)
+    const totalLocked = acc.accounts.map(i => parseInt(i.locked_amount)).reduce((t, i) => t + i, 0);
+    assert.strictEqual(totalLocked, 100)
 
-  //   try {
-  //     // I'm using the viewkey from context here because that one should get unauthorized error
-  //     await rewards.getAccounts(admin.address, [token.address], viewkey)
+    try {
+      // I'm using the viewkey from context here because that one should get unauthorized error
+      await rewards.getAccounts(admin.address, [token.address], viewkey)
 
-  //     // this is supposed to fail because we didn't get error on the call abouve
-  //     assert.strictEqual(true, false)
-  //   }
-  //   catch (e) {
-  //     assert.strictEqual(e.message, 'query contract failed: encrypted: {"unauthorized":{}} (HTTP 500)')
-  //   }
-  // })
+      // this is supposed to fail because we didn't get error on the call abouve
+      assert.strictEqual(true, false)
+    }
+    catch (e) {
+      assert.strictEqual(e.message, 'query contract failed: encrypted: {"unauthorized":{}} (HTTP 500)')
+    }
+  })
 
   async function setupAll () {
     this.timeout(120000)
 
-    // before each test run, compile fresh versions of the contracts
     const {SIENNA: tokenBinary, LPTOKEN: rewardTokenBinary, REWARDS: rewardsBinary} = await ensemble.build({
       workspace: abs(),
       parallel: false
@@ -209,7 +207,6 @@ describe('Rewards', () => {
   async function setupEach () {
     this.timeout(120000)
 
-    // deploy token
     context.token = await context.admin.instantiate(new SNIP20({
       label: `token-${parseInt(Math.random() * 100000)}`,
       codeId: context.tokenCodeId,
@@ -225,10 +222,8 @@ describe('Rewards', () => {
 
     // prepare rewards manager config
     const initMsg = {
-      ...{
-        ...ensemble.contracts.REWARDS.initMsg,
-        claim_interval: 1,
-      },
+      ...ensemble.contracts.REWARDS.initMsg,
+      claim_interval: 1,
       admin:     context.admin.address,
       entropy:   '',//randomBytes(36).toString('base64'),
       prng_seed: '',//randomBytes(36).toString('base64'),
