@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto'
 
 import {SecretNetwork} from '@fadroma/scrt-agent'
 import ensureWallets from '@fadroma/scrt-agent/fund.js'
+import {gas} from '@fadroma/scrt-agent/gas.js'
 
 import SNIP20 from './SNIP20.js'
 import Rewards from './Rewards.js'
@@ -11,6 +12,13 @@ import {abs} from '../ops/lib/index.js'
 import RewardsContracts from '../ops/RewardsContracts.js'
 import debug from 'debug'
 const log = debug('out')
+
+const fees = {
+  upload: gas(20000000),
+  init:   gas(1000000),
+  exec:   gas(1000000),
+  send:   gas( 500000),
+}
 
 const wait = (n) => new Promise((done) => setTimeout(done, n * 1000))
 
@@ -78,49 +86,33 @@ describe('Rewards', () => {
     this.timeout(120000)
     const {
       token,
+      rewardToken,
       rewards,
       admin,
     } = context
-
+    // Mind lp token to admin and assert he has lp token balance and no reward token balance
     await token.mint(100000000)
     await assertAdminBalance(100000000)
     await assertAdminBalanceReward(0)
 
+    // Increase allowance and lock tokens for admin
     await token.increaseAllowance(100000000, rewards.address)
-
     await rewards.lock(100000000, token.address)
 
+    // Admin should now have zero balance on both tokens
     await assertAdminBalance(0)
     await assertAdminBalanceReward(0)
 
-    // const res = await rewards.getTotalRewardsSupply();
-    // assert.strictEqual(res.total_rewards_supply.amount, '100')
+    // Mint reward tokens into rewards contract
+    await rewardToken.mint(100000000, admin, rewards.address)
 
-    const viewkey = (await rewards.createViewingKey(admin)).key;
-    const res3 = await rewards.simulate(admin.address, 0, [token.address], viewkey)
-    log(JSON.stringify(res3, null, 2))
+    // Total rewards supply should be now the same as minted
+    const res = await rewards.getTotalRewardsSupply();
+    assert.strictEqual(res.total_rewards_supply.amount, '100000000')
 
-  //   {
-  //    "claim_simulation": {
-  //      "results": [
-  //        {
-  //          "lp_token_addr": "secret18vd8fpwxzck93qlwghaj6arh4p7c5n8978vsyg",
-  //          "reward_amount": "0",
-  //          "reward_per_portion": "0",
-  //          "success": false,
-  //          "error": {
-  //            "type": "pool_empty"
-  //          }
-  //        }
-  //      ],
-  //      "total_rewards_amount": "0",
-  //      "actual_claimed": "0"
-  //    }
-  //  }
-
-    const res2 = await rewards.claim([token.address])
-    log(JSON.stringify(res2, null, 2))
-    
+    // After claiming, admin should have balance in reward tokens 
+    // and still have zero balance in lp token
+    await rewards.claim([token.address])
     assertAdminBalance(0)
     assertAdminBalanceReward(100000000)
   })
@@ -178,7 +170,7 @@ describe('Rewards', () => {
   async function setupAll () {
     this.timeout(120000)
 
-    const {SIENNA: tokenBinary, LPTOKEN: rewardTokenBinary, REWARDS: rewardsBinary} = await ensemble.build({
+    const {SIENNA: rewardTokenBinary, LPTOKEN: tokenBinary, REWARDS: rewardsBinary} = await ensemble.build({
       workspace: abs(),
       parallel: false
     })
@@ -190,18 +182,20 @@ describe('Rewards', () => {
     // run a clean localnet
     const { node, network, builder, agent } = await localnet.connect()
     await agent.nextBlock
+    agent.API.fees = fees;
     Object.assign(context, { node, network, admin: agent, builder })
 
     // Get the genesis account for ALICE and create its agent and viewkey for token
     const { mnemonic, address } = node.genesisAccount('ALICE')
     const alice = await network.getAgent("ALICE", { mnemonic, address })
+    alice.API.fees = fees;
     Object.assign(context, { alice })
 
     // and upload them to it
     const {codeId: tokenCodeId}   = await builder.uploadCached(tokenBinary)
-    const {codeId: tokenCodeIdFoo}   = await builder.uploadCached(rewardTokenBinary)
+    const {codeId: rewardTokenCodeId}   = await builder.uploadCached(rewardTokenBinary)
     const {codeId: rewardsCodeId} = await builder.uploadCached(rewardsBinary)
-    Object.assign(context, { tokenCodeId, tokenCodeIdFoo, rewardsCodeId })
+    Object.assign(context, { tokenCodeId, rewardTokenCodeId, rewardsCodeId })
   }
 
   async function setupEach () {
@@ -215,7 +209,7 @@ describe('Rewards', () => {
 
     context.rewardToken = await context.admin.instantiate(new SNIP20({
       label: `reward-token-${parseInt(Math.random() * 100000)}`,
-      codeId: context.tokenCodeIdFoo,
+      codeId: context.rewardTokenCodeId,
       initMsg: ensemble.contracts.SIENNA.initMsg
     }))
 
