@@ -28,3 +28,4 @@ yarn-error.log
 .idea
 
 .fadroma_repl_history
+.yarn

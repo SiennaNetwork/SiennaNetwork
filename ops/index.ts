@@ -27,15 +27,17 @@ const remoteCommands = network => [
   ["lend",    "🏦 Contracts of Sienna Lend",       null, new Lend({network}).remoteCommands],
 ]
 
-const withNetwork = commands => [
-  ["mainnet",  "Deploy and run contracts on the mainnet with real money.", selectMainnet,  commands],
-  ["testnet",  "Deploy and run contracts on the holodeck-2 testnet.",      selectTestnet,  commands],
-  ["localnet", "Deploy and run contracts in a local container.",           selectLocalnet, commands]
+const withNetwork = Ensemble => [
+  ["mainnet",  "Deploy and run contracts on the mainnet with real money.", selectMainnet,
+    new Ensemble({network:  'mainnet'}).remoteCommands],
+  ["testnet",  "Deploy and run contracts on the holodeck-2 testnet.",      selectTestnet,
+    new Ensemble({network:  'testnet'}).remoteCommands],
+  ["localnet", "Deploy and run contracts in a local container.",           selectLocalnet,
+    new Ensemble({network: 'localnet'}).remoteCommands],
 ]
 
 export const commands: CommandList = [
-  [["help", "--help", "-h"], "❓ Print usage",
-    () => printUsage({}, commands)],
+  [["help", "--help", "-h"], "❓ Print usage", () => printUsage({}, commands)],
   null,
   ["docs",     "📖 Build the documentation and open it in a browser.",  genDocs],
   ["test",     "⚗️  Run test suites for all the individual components.", runTests],
@@ -48,22 +50,14 @@ export const commands: CommandList = [
     ["amm",     "amm-snip20, factory, exchange, lp-token",   () => amm.build()],
     ["lend",    "snip20-lend + lend-atoken + configuration", () => lend.build()]]],
   null,
-  ["tge",     "🚀 SIENNA token + vesting",         null, [
-    ...tge.localCommands,
-    null,
-    ...withNetwork(tge.remoteCommands)]],
-  ["rewards", "🏆 SIENNA token + staking rewards", null, [
-    ...rewards.localCommands,
-    null,
-    ...withNetwork(rewards.remoteCommands)]],
-  ["amm",     "💱 Contracts of Sienna Swap/AMM",   null, [
-    ...amm.localCommands,
-    null,
-    ...withNetwork(amm.remoteCommands)]],
-  ["lend",    "🏦 Contracts of Sienna Lend",       null, [
-    ...lend.localCommands,
-    null,
-    ...withNetwork(lend.remoteCommands)]],
+  ["tge",     "🚀 SIENNA token + vesting",         null,
+    [...tge.localCommands,     null, ...withNetwork(TGE)]],
+  ["rewards", "🏆 SIENNA token + staking rewards", null,
+    [...rewards.localCommands, null, ...withNetwork(Rewards)]],
+  ["amm",     "💱 Contracts of Sienna Swap/AMM",   null,
+    [...amm.localCommands,     null, ...withNetwork(Swap)]],
+  ["lend",    "🏦 Contracts of Sienna Lend",       null,
+    [...lend.localCommands,    null, ...withNetwork(Lend)]],
   null,
   ["mainnet",  "Deploy and run contracts on the mainnet with real money.", selectMainnet, [
     ...remoteCommands('mainnet')]],

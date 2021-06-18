@@ -7,7 +7,7 @@ import {
 } from '@fadroma/utilities'
 import { SNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
 import { scheduleFromSpreadsheet } from '@sienna/schedule'
-import { projectRoot, abs, combine, args, runDemo } from './lib/index.js'
+import { projectRoot, abs, runDemo } from './lib/index.js'
 
 const { log, warn, info, table } = Console(import.meta.url)
 
@@ -71,7 +71,7 @@ export default class TGEContracts extends Ensemble {
   }
  
   async initialize (options = {}) {
-    const { network, agent } = this
+    const { network, agent = await network.getAgent() } = this
     // idempotency support
     // passing existing `contracts` to this makes it a no-op
     const { contracts = {} } = options
@@ -170,17 +170,7 @@ export default class TGEContracts extends Ensemble {
 
   async addAccount () { throw new Error('not implemented') }
 
-  async claim (options = {}) {
-    const { claimant = await pickKey()
-          } = options
-    let { network = 'localnet'
-        } = options
-    if (typeof network === 'string') {
-      network = conformChainIdToNetwork(network)
-      network = await SecretNetwork[network]({stateBase})
-    }
-    log({network, claimant})
-  }
+  async claim (options = {}) { throw new Error('not implemented') }
 
 }
 
