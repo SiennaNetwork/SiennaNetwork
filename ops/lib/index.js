@@ -4,7 +4,6 @@ import SecretNetwork from '@fadroma/scrt-agent/network.js'
 import Localnet from '@fadroma/scrt-ops/localnet.js'
 
 import { abs, projectRoot } from './root.js'
-import { args, combine } from './args.js'
 import { fmtSIENNA } from './decimals.js'
 import { genCoverage, genSchema, genDocs } from './gen.js'
 import { cargo, runTests, runDemo } from './run.js'
@@ -40,9 +39,7 @@ export function openFaucet () {
 
 export {
   abs,
-  args,
   cargo,
-  combine,
   fmtSIENNA,
   projectRoot,
   genCoverage,

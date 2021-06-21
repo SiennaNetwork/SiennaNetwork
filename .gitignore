@@ -29,3 +29,12 @@ yarn.lock
 .idea
 
 .fadroma_repl_history
+
+# Yarn
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
