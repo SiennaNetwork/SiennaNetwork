@@ -60,8 +60,10 @@ export const commands: CommandList = [
     [...lend.localCommands,    null, ...withNetwork(Lend)]],
   null,
   ["mainnet",  "Deploy and run contracts on the mainnet with real money.", selectMainnet, [
+    ["shell",  "🐚 Launch a JavaScript REPL for talking to contracts directly", shell],
     ...remoteCommands('mainnet')]],
   ["testnet",  "Deploy and run contracts on the holodeck-2 testnet.", selectTestnet, [
+    ["shell",  "🐚 Launch a JavaScript REPL for talking to contracts directly", shell],
     ["faucet", "🚰 Open https://faucet.secrettestnet.io/ in your default browser", openFaucet],
     ["fund",   "👛 Creating test wallets by sending SCRT to them.",                ensureWallets],
     null
