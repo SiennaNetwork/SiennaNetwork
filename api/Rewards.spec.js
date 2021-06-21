@@ -170,7 +170,7 @@ describe('Rewards', () => {
   async function setupAll () {
     this.timeout(120000)
 
-    const {SIENNA: rewardTokenBinary, LPTOKEN: tokenBinary, REWARDS: rewardsBinary} = await ensemble.build({
+    const {SIENNA: tokenBinary, REWARDS: rewardsBinary} = await ensemble.build({
       workspace: abs(),
       parallel: false
     })
@@ -193,9 +193,8 @@ describe('Rewards', () => {
 
     // and upload them to it
     const {codeId: tokenCodeId}   = await builder.uploadCached(tokenBinary)
-    const {codeId: rewardTokenCodeId}   = await builder.uploadCached(rewardTokenBinary)
     const {codeId: rewardsCodeId} = await builder.uploadCached(rewardsBinary)
-    Object.assign(context, { tokenCodeId, rewardTokenCodeId, rewardsCodeId })
+    Object.assign(context, { tokenCodeId, rewardsCodeId })
   }
 
   async function setupEach () {
@@ -204,12 +203,16 @@ describe('Rewards', () => {
     context.token = await context.admin.instantiate(new SNIP20({
       label: `token-${parseInt(Math.random() * 100000)}`,
       codeId: context.tokenCodeId,
-      initMsg: ensemble.contracts.LPTOKEN.initMsg
+      initMsg: {
+        ...ensemble.contracts.SIENNA.initMsg,
+        name: "LpToken",
+        symbol: "LPT",
+      }
     }))
 
     context.rewardToken = await context.admin.instantiate(new SNIP20({
       label: `reward-token-${parseInt(Math.random() * 100000)}`,
-      codeId: context.rewardTokenCodeId,
+      codeId: context.tokenCodeId,
       initMsg: ensemble.contracts.SIENNA.initMsg
     }))
 

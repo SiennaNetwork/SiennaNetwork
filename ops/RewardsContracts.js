@@ -1,7 +1,7 @@
 import { Console, readFileSync, randomBytes, taskmaster } from '@fadroma/utilities'
 import Ensemble from '@fadroma/scrt-ops/ensemble.js'
 import { SNIP20Contract, RewardsContract } from '@sienna/api'
-import { abs, combine, args } from './lib/index.js'
+import { abs } from './lib/index.js'
 
 const console = Console(import.meta.url)
 
@@ -31,23 +31,23 @@ export default class RewardsContracts extends Ensemble {
       }
     },
 
-    LPTOKEN: {
-      crate: 'lp-token',
-      label: `${this.prefix}LPTOKEN_SNIP20`,
-      initMsg: {
-        prng_seed: randomBytes(36).toString('hex'),
-        name:      "LpToken",
-        symbol:    "LPT",
-        decimals:  6,
-        config: {
-          public_total_supply: true,
-          enable_deposit: true,
-          enable_redeem: true,
-          enable_mint: true,
-          enable_burn: true,
-        }
-      }
-    },
+    // LPTOKEN: {
+    //   crate: 'lp-token',
+    //   label: `${this.prefix}LPTOKEN_SNIP20`,
+    //   initMsg: {
+    //     prng_seed: randomBytes(36).toString('hex'),
+    //     name:      "LpToken",
+    //     symbol:    "LPT",
+    //     decimals:  6,
+    //     config: {
+    //       public_total_supply: true,
+    //       enable_deposit: true,
+    //       enable_redeem: true,
+    //       enable_mint: true,
+    //       enable_burn: true,
+    //     }
+    //   }
+    // },
 
     REWARDS: {
       crate: 'sienna-rewards',
