@@ -5,7 +5,7 @@ import { cargo } from './run.js'
 
 export function genCoverage () {
   // fixed by https://github.com/rust-lang/cargo/issues/9220
-  cargo('tarpaulin', '--out=Html', `--output-dir=${abs()}`)
+  cargo('tarpaulin', '--out=Html', `--output-dir=${abs()}`, '--locked', '--frozen')
 }
 
 export function genSchema () {
