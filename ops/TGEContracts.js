@@ -10,7 +10,7 @@ import { SNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
 import { scheduleFromSpreadsheet } from '@sienna/schedule'
 import { projectRoot, abs, runDemo } from './lib/index.js'
 
-const { log, warn, info, table } = Console(import.meta.url)
+const { debug, log, warn, error, info, table } = Console(import.meta.url)
 
 export default class TGEContracts extends Ensemble {
 
@@ -148,20 +148,28 @@ export default class TGEContracts extends Ensemble {
   }
 
   async launch (options = {}) {
-    const network = SecretNetwork.hydrate(options.network || this.network)
-    const agent = options.agent || this.agent || await network.getAgent()
     const address = options.address
-    const MGMT = network.network.getContract(MGMTContract, address, network.agent)
-    info(`⏳ launching contract ${address}...`)
+    if (!address) {
+      warn('TGE launch: needs address of deployed MGMT contract')
+      process.exit(1)
+      // TODO add `error.user = true` flag to errors
+      // to be able to discern between bugs and incorrect inputs
+    }
+
+    info(`⏳ launching vesting MGMT contract at ${address}...`)
+    const network = SecretNetwork.hydrate(options.network || this.network)
+    const { agent } = await network.connect()
+    const MGMT = network.getContract(MGMTContract, address, agent)
+
     try {
       await MGMT.launch()
       info(`🟢 launch reported success`)
+      info(`⏳ querying status...`)
+      debug(await MGMT.status)
     } catch (e) {
       warn(e)
       info(`🔴 launch reported a failure`)
     }
-    info(`⏳ querying status...`)
-    debug(await MGMT.status)
   }
 
   async reallocate () { throw new Error('not implemented') }
