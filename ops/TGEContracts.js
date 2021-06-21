@@ -1,3 +1,4 @@
+import { SecretNetwork } from '@fadroma/scrt-agent'
 import Ensemble from '@fadroma/scrt-ops/ensemble.js'
 import {
   Console, render,
@@ -7,7 +8,7 @@ import {
 } from '@fadroma/utilities'
 import { SNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
 import { scheduleFromSpreadsheet } from '@sienna/schedule'
-import { projectRoot, abs, combine, args, runDemo } from './lib/index.js'
+import { projectRoot, abs, runDemo } from './lib/index.js'
 
 const { log, warn, info, table } = Console(import.meta.url)
 
@@ -45,13 +46,13 @@ export default class TGEContracts extends Ensemble {
   get remoteCommands () {
     return [
       ["deploy",      '🚀 Build, init, and deploy the TGE',
-        (context, schedule) => this.deploy({...context, schedule}).then(info)],
+        (context, schedule) => this.deploy({...context, schedule}).then(process.exit)],
       ["demo",        'Run the TGE demo (long-running integration test)',
         runDemo],
       ["upload",      '📦 Upload compiled contracts to network',
         (context, network)  => this.upload(context)],
       ["init",        '🚀 Init new instances of already uploaded contracts',
-        (context, schedule) => this.initialize({...context, schedule}).then(info)],
+        (context, schedule) => this.initialize({...context, schedule})],
       ["launch",      '🚀 Launch deployed vesting contract',
         (context, address)  => this.launch({...context, address})],
       ["transfer",    '⚡ Transfer ownership of contracts to another address',
@@ -71,7 +72,8 @@ export default class TGEContracts extends Ensemble {
   }
  
   async initialize (options = {}) {
-    const { network, agent } = this
+    const network = SecretNetwork.hydrate(options.network || this.network)
+    const agent = options.agent || this.agent || await network.getAgent()
     // idempotency support
     // passing existing `contracts` to this makes it a no-op
     const { contracts = {} } = options
@@ -84,7 +86,7 @@ export default class TGEContracts extends Ensemble {
 
     // unwrap remaining options
     const { task                = taskmaster()
-          , receipts            = await upload({agent, network, task})
+          , receipts            = await this.upload({agent, network, task})
           , inits               = this.contracts
           , initialRPTRecipient = agent.address
           } = options
@@ -142,17 +144,13 @@ export default class TGEContracts extends Ensemble {
       ['RPT\nRemaining pool tokens', `${contracts.RPT.address}\n${contracts.RPT.codeHash}`]
     ])
 
-    return contracts
+    return {network, agent, contracts}
   }
 
   async launch (options = {}) {
-    let { network
-        , address
-        } = options
-    if (typeof network === 'string') {
-      network = conformChainIdToNetwork(network)
-      network = (await SecretNetwork[network]({stateBase}))
-    }
+    const network = SecretNetwork.hydrate(options.network || this.network)
+    const agent = options.agent || this.agent || await network.getAgent()
+    const address = options.address
     const MGMT = network.network.getContract(MGMTContract, address, network.agent)
     info(`⏳ launching contract ${address}...`)
     try {
@@ -170,17 +168,7 @@ export default class TGEContracts extends Ensemble {
 
   async addAccount () { throw new Error('not implemented') }
 
-  async claim (options = {}) {
-    const { claimant = await pickKey()
-          } = options
-    let { network = 'localnet'
-        } = options
-    if (typeof network === 'string') {
-      network = conformChainIdToNetwork(network)
-      network = await SecretNetwork[network]({stateBase})
-    }
-    log({network, claimant})
-  }
+  async claim (options = {}) { throw new Error('not implemented') }
 
 }
 

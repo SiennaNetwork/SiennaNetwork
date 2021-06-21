@@ -68,3 +68,22 @@ export async function build_client(mnemonic: string, api_url: string): Promise<S
         seed
     )
 }
+
+export function read_config(
+    chain: string,
+    on_file_not_found: (file: string) => void
+): any {
+    const file = resolve(`./settings/${chain}.json`)
+
+    try {
+        return JSON.parse(readFileSync(file).toString())   
+    } catch(e) {
+        if (e.message.includes('no such file or directory')) {
+            on_file_not_found(file)
+            
+            return
+        }
+
+        throw e
+    }
+}
