@@ -9,6 +9,10 @@ use amm_shared::fadroma::callback::{ContractInstance, Callback};
 use amm_shared::msg::ido::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
 use amm_shared::msg::snip20::InitMsg as Snip20InitMsg;
 use amm_shared::fadroma::utils::convert::{convert_token, get_whole_token_representation};
+use amm_shared::admin::admin::{
+    DefaultHandleImpl, DefaultQueryImpl, save_admin, admin_handle,
+    admin_query
+};
 
 use crate::state::{
     Config, SwapConstants, pop_callback, load_config, save_callback,
@@ -38,6 +42,8 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         }
     };
 
+    save_admin(deps, &msg.admin)?;
+
     let config = Config {
         input_token: msg.info.input_token,
         swap_constants: SwapConstants {
@@ -63,8 +69,8 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         callback_code_hash: msg.snip20_contract.code_hash,
         label: format!(
             "{}({})",
-            msg.info.snip20_init_info.name.clone(),
-            msg.info.snip20_init_info.symbol.clone()
+            msg.info.snip20_init_info.name,
+            msg.info.snip20_init_info.symbol
         ),
         msg: to_binary(&Snip20InitMsg {
             name: msg.info.snip20_init_info.name,
@@ -98,7 +104,8 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     match msg {
         HandleMsg::Swap { amount } => swap(deps, env, amount),
-        HandleMsg::OnSnip20Init => on_snip20_init(deps, env)
+        HandleMsg::OnSnip20Init => on_snip20_init(deps, env),
+        HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl)
     }
 }
 
@@ -107,7 +114,8 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     msg: QueryMsg,
 ) -> QueryResult {
     match msg {
-        QueryMsg::GetRate => get_rate(deps)
+        QueryMsg::GetRate => get_rate(deps),
+        QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl)
     }
 }
 

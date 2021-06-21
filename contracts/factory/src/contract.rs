@@ -55,7 +55,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::RegisterExchange { pair, signature } =>
             register_exchange(deps, env, pair, signature),
 
-        HandleMsg::Admin(msg) => admin_handle(deps, env, msg, AdminHandle),
+        HandleMsg::Admin(msg) => admin_handle(deps, env, msg, AdminHandle)
     })
 }
 
@@ -241,7 +241,7 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
         messages: vec![
             CosmosMsg::Wasm(WasmMsg::Instantiate {
                 code_id: config.ido_contract.id,
-                callback_code_hash: config.ido_contract.code_hash.clone(),
+                callback_code_hash: config.ido_contract.code_hash,
                 send: vec![],
                 label: format!(
                     "IDO for {}({}), id: {}",
@@ -250,6 +250,7 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
                     config.ido_contract.id
                 ),
                 msg: to_binary(&IdoInitMsg {
+                    admin: env.message.sender,
                     info,
                     snip20_contract: config.snip20_contract,
                     callback: Callback {
@@ -265,7 +266,7 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
             })
         ],
         log: vec![
-            log("action", "create_exchange")
+            log("action", "create_ido")
         ],
         data: None
     })
@@ -333,7 +334,7 @@ fn ensure_correct_signature(storage: &mut impl Storage, signature: Binary) -> St
         load(storage, EPHEMERAL_STORAGE_KEY)?.unwrap_or_default();
 
     if stored_signature != signature {
-        return  Err(StdError::unauthorized());
+        return Err(StdError::unauthorized());
     }
 
     remove(storage, EPHEMERAL_STORAGE_KEY);
