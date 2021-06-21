@@ -155,6 +155,7 @@ pub mod exchange {
         /// Get pause/migration status
         Status,
         PairInfo,
+        Version,
         SwapSimulation {
             /// The token type to swap from.
             offer: TokenTypeAmount<HumanAddr>
@@ -171,7 +172,8 @@ pub mod exchange {
             amount_0:        Uint128,
             amount_1:        Uint128,
             total_liquidity: Uint128
-        }
+        },
+        Version { version: u32 }
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]

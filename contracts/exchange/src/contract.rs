@@ -20,6 +20,9 @@ use fadroma_scrt_migrate::{get_status, with_status};
 
 use crate::{state::{Config, store_config, load_config}, decimal_math};
 
+// This should be incremented every time there is a change to the interface of the contract.
+const CONTRACT_VERSION: u32 = 1;
+
 struct SwapInfo {
     total_commission: Uint128,
     sienna_commission: PercentageDecreaseResult,
@@ -146,6 +149,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     msg: QueryMsg,
 ) -> QueryResult {
     match msg {
+        QueryMsg::Version => to_binary(&QueryMsgResponse::Version { version: CONTRACT_VERSION }),
         QueryMsg::Status => to_binary(&get_status(deps)?),
         QueryMsg::PairInfo => {
             let config = load_config(deps)?;
