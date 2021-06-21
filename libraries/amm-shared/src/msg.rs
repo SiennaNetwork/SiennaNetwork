@@ -184,11 +184,14 @@ pub mod exchange {
 
 pub mod ido {
     use super::*;
+    use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct InitMsg {
         pub snip20_contract: ContractInstantiationInfo,
         pub info: InitConfig,
+        /// Should be the address of the original sender, since this is initiated by the factory.
+        pub admin: HumanAddr,
         /// Used by the IDO to register itself with the factory.
         pub callback: Callback<HumanAddr>
     }
@@ -218,13 +221,15 @@ pub mod ido {
         OnSnip20Init,
         Swap {
             amount: Uint128
-        }
+        },
+        Admin(AdminHandleMsg)
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryMsg {
-        GetRate
+        GetRate,
+        Admin(AdminQueryMsg)
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]

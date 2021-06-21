@@ -12,12 +12,12 @@ export default class MGMT extends SecretNetwork.Contract.withSchema(schema) {
 
   /** query contract status */
   get status () {
-    return this.q().status()
+    return this.q().status({})
   }
 
   /** query current schedule */
   get schedule () {
-    return this.q().get_schedule()
+    return this.q().schedule({})
   }
 
   /** take over a SNIP20 token */
@@ -33,7 +33,7 @@ export default class MGMT extends SecretNetwork.Contract.withSchema(schema) {
 
   /** launch the vesting */
   launch = () =>
-    this.tx().launch()
+    this.tx().launch({})
 
   /** claim accumulated portions */
   claim = claimant =>

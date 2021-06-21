@@ -10,7 +10,7 @@ import { SNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
 import { scheduleFromSpreadsheet } from '@sienna/schedule'
 import { projectRoot, abs, runDemo } from './lib/index.js'
 
-const { log, warn, info, table } = Console(import.meta.url)
+const { debug, log, warn, error, info, table } = Console(import.meta.url)
 
 export default class TGEContracts extends Ensemble {
 
@@ -45,20 +45,22 @@ export default class TGEContracts extends Ensemble {
 
   get remoteCommands () {
     return [
-      ["deploy",      '🚀 Build, init, and deploy the TGE',
+      ["deploy",       '🚀 Build, init, and deploy the TGE',
         (context, schedule) => this.deploy({...context, schedule}).then(process.exit)],
-      ["demo",        'Run the TGE demo (long-running integration test)',
+      ["demo",         '🐒 Run the TGE demo (long-running integration test)',
         runDemo],
-      ["upload",      '📦 Upload compiled contracts to network',
+      ["upload",       '📦 Upload compiled contracts to network',
         (context, network)  => this.upload(context)],
-      ["init",        '🚀 Init new instances of already uploaded contracts',
+      ["init",         '🚀 Init new instances of already uploaded contracts',
         (context, schedule) => this.initialize({...context, schedule})],
-      ["launch",      '🚀 Launch deployed vesting contract',
+      ["launch",       '🚀 Launch deployed vesting contract',
         (context, address)  => this.launch({...context, address})],
-      ["transfer",    '⚡ Transfer ownership of contracts to another address',
+      ["transfer",     '⚡ Transfer ownership of contracts to another address',
         (context, address)  => this.transfer({...context, address})],
-      ['claim',       '⚡ Claim funds from a deployed contract',
-        (context, contract, claimant) => this.claim({...context, contract, claimant})],
+      ['claim',        '⚡ Claim funds from a deployed contract',
+        (context, address, claimant) => this.claim({...context, address, claimant})],
+      ['status',       '👀 Print the status and schedule of a contract.',
+        (context, address) => this.getStatus({...context, address})],
       //
       // not implemented:
       //
@@ -148,20 +150,45 @@ export default class TGEContracts extends Ensemble {
   }
 
   async launch (options = {}) {
-    const network = SecretNetwork.hydrate(options.network || this.network)
-    const agent = options.agent || this.agent || await network.getAgent()
     const address = options.address
-    const MGMT = network.network.getContract(MGMTContract, address, network.agent)
-    info(`⏳ launching contract ${address}...`)
+    if (!address) {
+      warn('TGE launch: needs address of deployed MGMT contract')
+      process.exit(1)
+      // TODO add `error.user = true` flag to errors
+      // to be able to discern between bugs and incorrect inputs
+    }
+
+    info(`⏳ launching vesting MGMT contract at ${address}...`)
+    const network = SecretNetwork.hydrate(options.network || this.network)
+    const { agent } = await network.connect()
+    const MGMT = network.getContract(MGMTContract, address, agent)
+
     try {
       await MGMT.launch()
       info(`🟢 launch reported success`)
+      info(`⏳ querying status...`)
+      debug(await MGMT.status)
     } catch (e) {
       warn(e)
       info(`🔴 launch reported a failure`)
     }
-    info(`⏳ querying status...`)
-    debug(await MGMT.status)
+  }
+
+  async getStatus (options = {}) {
+    const address = options.address
+    if (!address) {
+      warn('TGE launch: needs address of deployed MGMT contract')
+      process.exit(1)
+      // TODO add `error.user = true` flag to errors
+      // to be able to discern between bugs and incorrect inputs
+    }
+    info(`⏳ querying MGMT contract at ${address}...`)
+    const network = SecretNetwork.hydrate(options.network || this.network)
+    const { agent } = await network.connect()
+    const MGMT = network.getContract(MGMTContract, address, agent)
+    const [schedule, status] = await Promise.all([MGMT.schedule, MGMT.status])
+    console.log('\n'+render(schedule))
+    console.log('\n'+render(status))
   }
 
   async reallocate () { throw new Error('not implemented') }
