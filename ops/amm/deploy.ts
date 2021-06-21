@@ -26,6 +26,8 @@ async function deploy() {
     config = read_config(process.env.SECRET_CHAIN_ID as string, (file) => {
         writeFileSync(file, JSON.stringify(config, null, 2))
         console.log(`Couldn't find file "${file}". Created one with default values. Please configure it and run this script again.`)
+
+        process.exit(0)
     })
 
     const client = await build_client(process.env.MNEMONIC as string, process.env.SECRET_REST_URL as string)
