@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto'
-import { SecretNetwork } from '@fadroma/scrt-agent'
+import { SecretNetworkContractWithSchema } from '@fadroma/scrt-agent'
 import { loadSchemas } from '@fadroma/utilities'
 
 const randomHex = bytes => randomBytes(bytes).toString('hex')
@@ -15,23 +15,26 @@ export const schema = loadSchemas(import.meta.url, {
 const decoder = new TextDecoder()
 const decode = buffer => decoder.decode(buffer).trim()
 
-export default class SNIP20 extends SecretNetwork.Contract.withSchema(schema) {
+export default class SNIP20 extends SecretNetworkContractWithSchema {
+  constructor(options = {}) {
+    super(options, schema);
+  }
 
   changeAdmin = (address, agent) =>
-    this.tx(agent)
-      .change_admin({ address })
+    this.tx()
+      .change_admin({ address }, agent)
 
   setMinters = (minters, agent) =>
-    this.tx(agent)
-      .set_minters({ minters })
+    this.tx()
+      .set_minters({ minters }, agent)
 
   addMinters = (minters, agent) =>
-    this.tx(agent)
-      .add_minters({ minters, padding: null })
+    this.tx()
+      .add_minters({ minters, padding: null }, agent)
 
   mint = (amount, agent = this.agent, recipient = agent.address) =>
-    this.tx(agent)
-      .mint({ amount: String(amount), recipient, padding: null })
+    this.tx()
+      .mint({ amount: String(amount), recipient, padding: null }, agent)
       .then(tx=>({tx, mint: JSON.parse(decode(tx.data)).mint}))
 
   balance = async (address, key) => {
@@ -46,25 +49,25 @@ export default class SNIP20 extends SecretNetwork.Contract.withSchema(schema) {
   }
 
   createViewingKey = (agent, entropy = '') =>//randomHex(32)) =>
-    this.tx(agent)
-      .create_viewing_key({ entropy })
+    this.tx()
+      .create_viewing_key({ entropy, padding: null }, agent)
       .then(tx=>({tx, key: JSON.parse(decode(tx.data)).create_viewing_key.key}))
 
   setViewingKey = (agent, key) =>
-    this.tx(agent)
-      .set_viewing_key({ key })
+    this.tx()
+      .set_viewing_key({ key }, agent)
       .then(tx=>({tx, status: JSON.parse(decode(tx.data)).set_viewing_key.key}))
 
   increaseAllowance = (amount, spender, agent) =>
-    this.tx(agent)
-      .increase_allowance({ amount: String(amount), spender })
+    this.tx()
+      .increase_allowance({ amount: String(amount), spender }, agent)
 
   decreaseAllowance = (amount, spender, agent) =>
-    this.tx(agent)
-      .decrease_allowance({ amount: String(amount), spender })
+    this.tx()
+      .decrease_allowance({ amount: String(amount), spender }, agent)
 
   checkAllowance = (spender, owner, key, agent) =>
-    this.q(agent)
-      .allowance({ owner, spender, key })
+    this.q()
+      .allowance({ owner, spender, key }, agent)
 
 }

@@ -1,4 +1,4 @@
-import { SecretNetwork } from '@fadroma/scrt-agent'
+import { SecretNetworkContractWithSchema } from '@fadroma/scrt-agent'
 import { loadSchemas } from '@fadroma/utilities'
 
 export const schema = loadSchemas(import.meta.url, {
@@ -8,4 +8,8 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg:   './amm/handle_msg.json'
 })
 
-export default class AMM extends SecretNetwork.Contract.withSchema(schema) {}
+export default class AMM extends SecretNetworkContractWithSchema {
+  constructor(options) {
+    super(options, schema)
+  }
+}

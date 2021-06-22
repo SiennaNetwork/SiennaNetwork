@@ -1,4 +1,4 @@
-import { SecretNetwork } from '@fadroma/scrt-agent'
+import { SecretNetworkContractWithSchema } from '@fadroma/scrt-agent'
 import { loadSchemas } from '@fadroma/utilities'
 
 export const schema = loadSchemas(import.meta.url, {
@@ -8,11 +8,14 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg:   './rpt/handle.json'
 })
 
-export default class RPT extends SecretNetwork.Contract.withSchema(schema) {
+export default class RPT extends SecretNetworkContractWithSchema {
+  constructor(options = {}) {
+    super(options, schema);
+  }
 
   /** query contract status */
   get status () {
-    return this.q.status()
+    return this.q().status()
   }
 
   /** set the splitt proportions */
