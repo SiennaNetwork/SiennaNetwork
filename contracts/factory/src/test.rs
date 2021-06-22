@@ -339,6 +339,7 @@ mod test_state {
         Pagination { start, limit }
     }
 
+    /*
     fn mock_config() -> Config<HumanAddr> {
         Config::from_init_msg(InitMsg {
             snip20_contract: ContractInstantiationInfo {
@@ -365,6 +366,7 @@ mod test_state {
             admin: None
         })
     }
+    */
 
     #[test]
     fn generates_the_same_key_for_swapped_pairs() -> StdResult<()> {
@@ -446,7 +448,10 @@ mod test_state {
 
         let address = HumanAddr("ctrct_addr".into());
 
-        store_exchange(&mut deps, &pair, &address)?;
+        store_exchange(&mut deps, Exchange {
+            pair: pair.clone(),
+            address: address.clone()
+        })?;
 
         let retrieved_address = get_address_for_pair(&deps, &pair)?;
 
@@ -470,11 +475,17 @@ mod test_state {
             }
         );
 
-        store_exchange(deps, &pair, &"first_addr".into())?;
+        store_exchange(deps, Exchange {
+            pair: pair.clone(),
+            address: "first_addr".into()
+        })?;
 
         let swapped = swap_pair(&pair);
 
-        match store_exchange(deps, &swapped, &"other_addr".into()) {
+        match store_exchange(deps, Exchange{
+            pair: swapped,
+            address: "other_addr".into()
+        }) {
             Ok(_) => Err(StdError::generic_err("Exchange already exists")),
             Err(_) => Ok(())
         }
@@ -483,31 +494,25 @@ mod test_state {
     #[test]
     fn test_get_idos() -> StdResult<()> {
         let ref mut deps = mkdeps();
-        let mut config = mock_config();
-
-        save_config(deps, &config)?;
-
         let mut addresses = vec![];
 
         for i in 0..33 {
             let addr = HumanAddr::from(format!("addr_{}", i));
 
-            store_ido_address(deps, &addr, &mut config)?;
+            store_ido_address(deps, &addr)?;
             addresses.push(addr);
         }
 
-        let mut config = load_config(deps)?;
-
-        let result = get_idos(deps, &mut config, pagination(addresses.len() as u64, 20))?;
+        let result = get_idos(deps, pagination(addresses.len() as u64, 20))?;
         assert_eq!(result.len(), 0);
 
-        let result = get_idos(deps, &mut config, pagination((addresses.len() - 1) as u64, 20))?;
+        let result = get_idos(deps, pagination((addresses.len() - 1) as u64, 20))?;
         assert_eq!(result.len(), 1);
 
-        let result = get_idos(deps, &mut config, pagination(0, PAGINATION_LIMIT + 10))?;
+        let result = get_idos(deps, pagination(0, PAGINATION_LIMIT + 10))?;
         assert_eq!(result.len(), PAGINATION_LIMIT as usize);
 
-        let result = get_idos(deps, &mut config, pagination(3, PAGINATION_LIMIT))?;
+        let result = get_idos(deps, pagination(3, PAGINATION_LIMIT))?;
         assert_eq!(result, addresses[3..]);
 
         Ok(())
@@ -531,9 +536,13 @@ mod test_state {
             );
             let address = HumanAddr(format!("address_{}", i));
 
-            store_exchange(deps, &pair, &address)?;
+            let exchange = Exchange {
+                pair,
+                address
+            };
 
-            exchanges.push(Exchange { pair, address });
+            store_exchange(deps, exchange.clone())?;
+            exchanges.push(exchange);
         }
 
         let result = get_exchanges(deps, pagination(exchanges.len() as u64, 20))?;

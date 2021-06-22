@@ -34,6 +34,7 @@ struct SwapResult {
     return_amount: Uint128,
     spread_amount: Uint128
 }
+
 struct PercentageDecreaseResult {
     new_amount: Uint128,
     decrease_amount: Uint128

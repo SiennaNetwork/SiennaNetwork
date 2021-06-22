@@ -3,8 +3,7 @@ use cosmwasm_std::{
     Querier, StdError, StdResult, Storage, WasmMsg, log, to_binary, HumanAddr
 };
 use amm_shared::{
-    TokenPair,
-    Pagination,
+    TokenPair, Pagination, Exchange,
     msg::{
         exchange::InitMsg as ExchangeInitMsg,
         ido::{InitMsg as IdoInitMsg, InitConfig as IdoInitConfig},
@@ -200,7 +199,13 @@ fn register_exchange<S: Storage, A: Api, Q: Querier>(
     signature: Binary
 ) -> StdResult<HandleResponse> {
     ensure_correct_signature(&mut deps.storage, signature)?;
-    store_exchange(deps, &pair, &env.message.sender)?;
+
+    let exchange = Exchange {
+        pair: pair.clone(),
+        address: env.message.sender.clone()
+    };
+
+    store_exchange(deps, exchange)?;
 
     Ok(HandleResponse {
         messages: vec![],
@@ -279,9 +284,7 @@ fn register_ido<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     ensure_correct_signature(&mut deps.storage, signature)?;
 
-    let mut config = load_config(deps)?;
-
-    store_ido_address(deps, &env.message.sender, &mut config)?;
+    store_ido_address(deps, &env.message.sender)?;
 
     Ok(HandleResponse {
         messages: vec![],
@@ -296,8 +299,7 @@ fn list_idos<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     pagination: Pagination
 ) -> StdResult<Binary> {
-    let config = load_config(deps)?;
-    let idos = get_idos(deps, &config, pagination)?;
+    let idos = get_idos(deps, pagination)?;
 
     to_binary(&QueryResponse::ListIdos { idos })
 }
