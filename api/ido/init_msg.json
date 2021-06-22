@@ -3,11 +3,20 @@
   "title": "InitMsg",
   "type": "object",
   "required": [
+    "admin",
     "callback",
     "info",
     "snip20_contract"
   ],
   "properties": {
+    "admin": {
+      "description": "Should be the address of the original sender, since this is initiated by the factory.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        }
+      ]
+    },
     "callback": {
       "description": "Used by the IDO to register itself with the factory.",
       "allOf": [

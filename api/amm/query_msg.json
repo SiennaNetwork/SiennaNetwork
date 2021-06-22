@@ -6,7 +6,8 @@
       "type": "string",
       "enum": [
         "status",
-        "pair_info"
+        "pair_info",
+        "version"
       ]
     },
     {

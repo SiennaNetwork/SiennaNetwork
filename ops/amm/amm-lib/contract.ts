@@ -191,6 +191,10 @@ interface GetPairInfoResponse {
     pair_info: PairInfo
 }
 
+interface GetVersionResponse {
+    version: number
+}
+
 export interface SwapSimulationResponse {
     return_amount: Uint128,
     spread_amount: Uint128,
@@ -258,6 +262,13 @@ export class ExchangeContract extends SmartContract {
 
         const result = await this.query_client().queryContractSmart(this.address, msg) as GetPairInfoResponse
         return result.pair_info
+    }
+
+    async get_version(): Promise<number> {
+        const msg = 'version' as unknown as object
+
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetVersionResponse
+        return result.version
     }
 
     async simulate_swap(amount: TokenTypeAmount): Promise<SwapSimulationResponse> {
