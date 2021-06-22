@@ -96,6 +96,19 @@ pub(crate) fn store_exchange<S: Storage, A: Api, Q: Querier>(
     save_exchanges(&mut deps.storage, &exchanges)
 }
 
+pub(crate) fn store_exchanges<S: Storage, A: Api, Q: Querier>(
+    deps:    &mut Extern<S, A, Q>,
+    exchanges: Vec<Exchange<HumanAddr>>
+) -> StdResult<()> {
+    let mut list = load_exchanges(&deps.storage)?;
+
+    for exchange in exchanges {
+        store_exchange_impl(deps, exchange, &mut list)?;
+    }
+
+    save_exchanges(&mut deps.storage, &list)
+}
+
 /// Get the address of an exchange contract which manages the given pair.
 pub(crate) fn get_address_for_pair<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
@@ -117,6 +130,19 @@ pub(crate) fn store_ido_address<S: Storage, A: Api, Q: Querier>(
     let mut count = load_ido_count(&deps.storage)?;
 
     store_ido_address_impl(deps, address, &mut count)?;
+    save_ido_count(&mut deps.storage, count)
+}
+
+pub(crate) fn store_ido_addresses<S: Storage, A: Api, Q: Querier>(
+    deps:    &mut Extern<S, A, Q>,
+    addresses: Vec<HumanAddr>
+) -> StdResult<()> {
+    let mut count = load_ido_count(&deps.storage)?;
+
+    for addr in addresses {
+        store_ido_address_impl(deps, &addr, &mut count)?;
+    }
+
     save_ido_count(&mut deps.storage, count)
 }
 
@@ -166,7 +192,7 @@ pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
     let exchanges = exchanges
         .drain((pagination.start as usize)..(end as usize))
         .collect::<Vec<Exchange<CanonicalAddr>>>();
-
+    
     for exchange in exchanges {
         result.push(exchange.humanize(&deps.api)?)
     }

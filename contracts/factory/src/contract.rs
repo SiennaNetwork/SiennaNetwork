@@ -20,8 +20,8 @@ use amm_shared::{
 use amm_shared::fadroma::callback::{ContractInstance, Callback};
 use amm_shared::fadroma::storage::{load, save, remove};
 use crate::state::{
-    save_config, load_config, Config, pair_exists, store_exchange,
-    get_address_for_pair, get_idos, store_ido_address, get_exchanges
+    Config, get_address_for_pair, get_exchanges, get_idos, load_config, pair_exists,
+    save_config, store_exchange, store_exchanges, store_ido_address, store_ido_addresses
 };
 use amm_shared::fadroma::migrate as fadroma_scrt_migrate;
 use fadroma_scrt_migrate::{get_status, with_status};
@@ -53,7 +53,8 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::RegisterIdo { signature } => register_ido(deps, env, signature),
         HandleMsg::RegisterExchange { pair, signature } =>
             register_exchange(deps, env, pair, signature),
-
+        HandleMsg::AddExchanges { exchanges } => add_exchanges(deps, env, exchanges),
+        HandleMsg::AddIdos { idos } => add_idos(deps, env, idos),
         HandleMsg::Admin(msg) => admin_handle(deps, env, msg, AdminHandle)
     })
 }
@@ -289,7 +290,42 @@ fn register_ido<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse {
         messages: vec![],
         log: vec![
-            log("created IDO", env.message.sender)
+            log("action", "register_ido"),
+            log("address", env.message.sender)
+        ],
+        data: None
+    })
+}
+
+#[require_admin]
+fn add_exchanges<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    exchanges: Vec<Exchange<HumanAddr>>
+) -> StdResult<HandleResponse> {
+    store_exchanges(deps, exchanges)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("action", "add_exchanges")
+        ],
+        data: None
+    })
+}
+
+#[require_admin]
+fn add_idos<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    idos: Vec<HumanAddr>
+) -> StdResult<HandleResponse> {
+    store_ido_addresses(deps, idos)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("action", "add_idos")
         ],
         data: None
     })
@@ -323,7 +359,7 @@ fn query_exchange_settings<S: Storage, A: Api, Q: Querier>(
     })?)
 }
 
-pub fn create_signature(env: &Env) -> StdResult<Binary> {
+pub(crate) fn create_signature(env: &Env) -> StdResult<Binary> {
     to_binary(&[
         env.message.sender.0.as_bytes(),
         &env.block.height.to_be_bytes(),

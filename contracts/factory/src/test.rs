@@ -54,7 +54,7 @@ fn mkenv (sender: impl Into<HumanAddr>) -> Env {
 }
 
 fn mkdeps () -> Extern<impl Storage, impl Api, impl Querier> {
-    mock_dependencies(10, &[])
+    mock_dependencies(30, &[])
 }
 
 fn mkconfig (id: u64) -> Config<HumanAddr> {
@@ -73,9 +73,12 @@ fn mkconfig (id: u64) -> Config<HumanAddr> {
 }
 
 fn assert_unauthorized(response: StdResult<HandleResponse>) {
-    assert!(response.is_err());
     let err = response.unwrap_err();
     assert_eq!(err, StdError::unauthorized())
+}
+
+fn pagination(start: u64, limit: u8) -> Pagination {
+    Pagination { start, limit }
 }
 
 mod test_contract {
@@ -326,6 +329,96 @@ mod test_contract {
         
         Ok(())
     }
+
+    #[test]
+    fn test_add_exchanges()  {
+        let ref mut deps = mkdeps();
+        let env = mkenv("admin");
+        let config = mkconfig(0);
+
+        init(deps, env.clone(), (&config).into()).unwrap();
+
+        let mut exchanges = vec![];
+
+        for i in 0..5 {
+            exchanges.push(Exchange {
+                pair: TokenPair::<HumanAddr>(
+                    TokenType::CustomToken{
+                        contract_addr: format!("token_0_addr_{}", i).into(),
+                        token_code_hash: format!("token_0_hash_{}", i)
+                    },
+                    TokenType::CustomToken{
+                        contract_addr: format!("token_1_addr_{}", i).into(),
+                        token_code_hash: format!("token_1_hash_{}", i)
+                    }
+                ),
+                address: format!("pair_addr_{}", i).into()
+            });
+        }
+
+        store_exchange(deps, exchanges[0].clone()).unwrap();
+
+        let result = handle(deps, mkenv("unauthorized"), HandleMsg::AddExchanges {
+            exchanges: exchanges.clone()[1..].into()
+        });
+        assert_unauthorized(result);
+
+        handle(deps, env, HandleMsg::AddExchanges {
+            exchanges: exchanges.clone()[1..].into()
+        }).unwrap();
+
+        let result = query(deps, QueryMsg::ListExchanges {
+            pagination: pagination(0, PAGINATION_LIMIT)
+        }).unwrap();
+
+        let response: QueryResponse = from_binary(&result).unwrap();
+
+        match response {
+            QueryResponse::ListExchanges { exchanges: stored } => {
+                assert_eq!(exchanges, stored)
+            },
+            _ => panic!("QueryResponse::ListExchanges")
+        }
+    }
+
+    #[test]
+    fn test_add_idos() {
+        let ref mut deps = mkdeps();
+        let env = mkenv("admin");
+        let config = mkconfig(0);
+
+        init(deps, env.clone(), (&config).into()).unwrap();
+
+        let mut idos: Vec<HumanAddr> = vec![];
+
+        for i in 0..5 {
+            idos.push(format!("ido_addr_{}", i).into());
+        }
+
+        store_ido_address(deps, &idos[0]).unwrap();
+
+        let result = handle(deps, mkenv("unauthorized"), HandleMsg::AddIdos {
+            idos: idos.clone()[1..].into()
+        });
+        assert_unauthorized(result);
+
+        handle(deps, env, HandleMsg::AddIdos {
+            idos: idos.clone()[1..].into()
+        }).unwrap();
+
+        let result = query(deps, QueryMsg::ListIdos {
+            pagination: pagination(0, PAGINATION_LIMIT)
+        }).unwrap();
+
+        let response: QueryResponse = from_binary(&result).unwrap();
+
+        match response {
+            QueryResponse::ListIdos { idos: stored } => {
+                assert_eq!(idos, stored)
+            },
+            _ => panic!("QueryResponse::ListIdos")
+        }
+    }
 }
 
 mod test_state {
@@ -333,10 +426,6 @@ mod test_state {
 
     fn swap_pair<A: Clone> (pair: &TokenPair<A>) -> TokenPair<A> {
         TokenPair(pair.1.clone(), pair.0.clone())
-    }
-
-    fn pagination(start: u64, limit: u8) -> Pagination {
-        Pagination { start, limit }
     }
 
     /*
@@ -509,6 +598,9 @@ mod test_state {
         let result = get_idos(deps, pagination((addresses.len() - 1) as u64, 20))?;
         assert_eq!(result.len(), 1);
 
+        let result = get_idos(deps, pagination(0, 1))?;
+        assert_eq!(result.len(), 1);
+
         let result = get_idos(deps, pagination(0, PAGINATION_LIMIT + 10))?;
         assert_eq!(result.len(), PAGINATION_LIMIT as usize);
 
@@ -549,6 +641,9 @@ mod test_state {
         assert_eq!(result.len(), 0);
 
         let result = get_exchanges(deps, pagination((exchanges.len() - 1) as u64, 20))?;
+        assert_eq!(result.len(), 1);
+
+        let result = get_exchanges(deps, pagination(0, 1))?;
         assert_eq!(result.len(), 1);
 
         let result = get_exchanges(deps, pagination(0, PAGINATION_LIMIT + 10))?;

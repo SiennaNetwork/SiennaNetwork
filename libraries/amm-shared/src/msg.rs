@@ -33,7 +33,7 @@ pub mod factory {
             reason: String,
             new_address: Option<HumanAddr>
         },
-        /// Set contract templates and exchange settings
+        /// Set contract templates and exchange settings. Admin only command.
         SetConfig {
             snip20_contract:   Option<ContractInstantiationInfo>,
             lp_token_contract: Option<ContractInstantiationInfo>,
@@ -60,7 +60,14 @@ pub mod factory {
         RegisterIdo {
             signature: Binary
         },
-
+        /// Adds already created exchanges to the registry. Admin only command.
+        AddExchanges {
+            exchanges: Vec<Exchange<HumanAddr>>
+        },
+        /// Adds already created IDO addresses to the registry. Admin only command.
+        AddIdos {
+            idos: Vec<HumanAddr>
+        },
         Admin(AdminHandleMsg)
     }
 
