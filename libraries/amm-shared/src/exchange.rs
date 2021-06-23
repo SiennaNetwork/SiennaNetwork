@@ -6,7 +6,7 @@ use serde::{Serialize, Deserialize};
 
 /// Represents the address of an exchange and the pair that it manages
 #[derive(Serialize, Deserialize, JsonSchema, Clone, PartialEq, Debug)]
-pub struct Exchange <A: Clone> {
+pub struct Exchange<A: Clone> {
     /// The pair that the contract manages.
     pub pair:    TokenPair<A>,
     /// Address of the contract that manages the exchange.
