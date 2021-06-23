@@ -7,7 +7,7 @@ import {
   execute_test, execute_test_expect, assert_objects_equal, assert,
   assert_equal, assert_not_equal, extract_log_value, print_object
 } from './utils/test_helpers.js'
-import { upload, build_client, UploadResult } from './setup.js'
+import { upload_amm, build_client, UploadResult, create_rand_base64 } from './setup.js'
 import { NullJsonFileWriter } from './utils/json_file_writer.js'
 import { TxAnalytics } from './utils/tx_analytics.js'
 import { SigningCosmWasmClient, Account } from 'secretjs'
@@ -41,7 +41,7 @@ const analytics: TxAnalytics = new TxAnalytics(APIURL)
 async function run_tests() {
   const client_a = await build_client(ACC_A.mnemonic, APIURL)
   
-  const result = await upload(client_a, new NullJsonFileWriter)
+  const result = await upload_amm(client_a, new NullJsonFileWriter)
 
   const factory = await instantiate_factory(client_a, result)
   const sienna_token = await instantiate_sienna_token(client_a, result.snip20)
@@ -433,11 +433,6 @@ function create_viewing_key(): ViewingKey {
   const key = new Sha256(rand_bytes).digest()
 
   return Buffer.from(key).toString('base64')
-}
-
-function create_rand_base64(): string {
-  const rand_bytes = Random.getBytes(32)
-  return Buffer.from(rand_bytes).toString('base64')
 }
 
 async function instantiate_factory(client: SigningCosmWasmClient, result: UploadResult): Promise<FactoryContract> {

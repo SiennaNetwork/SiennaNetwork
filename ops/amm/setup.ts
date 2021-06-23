@@ -7,6 +7,8 @@ import {
     pubkeyToAddress, EnigmaUtils
 } from 'secretjs'
 
+import { Random } from "@iov/crypto"
+
 import { resolve } from 'path'
 import { readFileSync } from 'fs'
 
@@ -18,17 +20,17 @@ export interface UploadResult {
     ido: ContractInstantiationInfo
 }
 
-export async function upload(client: SigningCosmWasmClient, writer: IJsonFileWriter): Promise<UploadResult> {
+export const ARTIFACTS_PATH = '../../artifacts'
+
+export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFileWriter): Promise<UploadResult> {
     const fee = create_fee('2500000')
     const snip20_fee = create_fee('2600000')
-
-    const wasm_path = '../../artifacts/'
   
-    const snip20_wasm = readFileSync(resolve(`${wasm_path}amm-snip20@HEAD.wasm`))
-    const exchange_wasm = readFileSync(resolve(`${wasm_path}exchange@HEAD.wasm`))
-    const factory_wasm = readFileSync(resolve(`${wasm_path}factory@HEAD.wasm`))
-    const lp_token_wasm = readFileSync(resolve(`${wasm_path}lp-token@HEAD.wasm`))
-    const ido_wasm = readFileSync(resolve(`${wasm_path}ido@HEAD.wasm`))
+    const snip20_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/amm-snip20@HEAD.wasm`))
+    const exchange_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/exchange@HEAD.wasm`))
+    const factory_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/factory@HEAD.wasm`))
+    const lp_token_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/lp-token@HEAD.wasm`))
+    const ido_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/ido@HEAD.wasm`))
 
     const exchange_upload = await client.upload(exchange_wasm, {}, undefined, fee)
     writer.write(exchange_upload, `uploads/exchange`)
@@ -52,6 +54,11 @@ export async function upload(client: SigningCosmWasmClient, writer: IJsonFileWri
         lp_token: new ContractInstantiationInfo(lp_token_upload.originalChecksum, lp_token_upload.codeId),
         ido: new ContractInstantiationInfo(ido_upload.originalChecksum, ido_upload.codeId)
     }
+}
+
+export function create_rand_base64(): string {
+    const rand_bytes = Random.getBytes(32)
+    return Buffer.from(rand_bytes).toString('base64')
 }
 
 export async function build_client(mnemonic: string, api_url: string): Promise<SigningCosmWasmClient> {
