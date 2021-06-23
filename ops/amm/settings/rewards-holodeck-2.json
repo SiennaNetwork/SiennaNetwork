@@ -1,0 +1,38 @@
+{
+  "admin": null,
+  "claim_interval": 86400,
+  "reward_token": {
+    "address": "secret14kh0teacyyz8vfwavl823xyfcwplhhmq4rzayg",
+    "code_hash": "a5989eba266a5cd2863ab30f8f49a87d762633142bc92da025844bba66e46a48"
+  },
+  "reward_pools": [
+    {
+      "lp_token": {
+        "address": "secret1vs520ezvk703e00q4fm6x2a3r6l5lehpyv8ke4",
+        "code_hash": "f0257a1f5184c37807673904226e13227b997b8100673c9cadab08451d377e7d"
+      },
+      "share": "500000000000000000000"
+    },
+    {
+      "lp_token": {
+        "address": "secret13meqhhcmzj3ca9gk79clvm6maacf4cu0rwd0nr",
+        "code_hash": "f0257a1f5184c37807673904226e13227b997b8100673c9cadab08451d377e7d"
+      },
+      "share": "500000000000000000000"
+    },
+    {
+      "lp_token": {
+        "address": "secret1prpv6mgf0hg8uzyrh3thup6wf8tgjqn3lrdta7",
+        "code_hash": "f0257a1f5184c37807673904226e13227b997b8100673c9cadab08451d377e7d"
+      },
+      "share": "500000000000000000000"
+    },
+    {
+      "lp_token": {
+        "address": "secret1jcfujpkgmr4wxcy49pym0d8wlz590sfnfuku3w",
+        "code_hash": "f0257a1f5184c37807673904226e13227b997b8100673c9cadab08451d377e7d"
+      },
+      "share": "800000000000000000000"
+    }
+  ]
+}
