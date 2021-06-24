@@ -31,10 +31,13 @@ yarn.lock
 .fadroma_repl_history
 
 # Yarn
+# !!! using Yarn 2 with node_modules support for now
+# !!! make sure .yarnrc.yml contains nodeLinker: node-modules
+#.yarn
 .yarn/*
-!.yarn/patches
+#!.yarn/patches
 !.yarn/releases
-!.yarn/plugins
-!.yarn/sdks
-!.yarn/versions
-.pnp.*
+#!.yarn/plugins
+#!.yarn/sdks
+#!.yarn/versions
+#.pnp.*
