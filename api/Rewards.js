@@ -1,45 +1,61 @@
-import { SecretNetwork } from '@fadroma/scrt-agent'
-import { loadSchemas } from '@fadroma/utilities'
+import { SecretNetworkContractWithSchema } from "@fadroma/scrt-agent";
+import { loadSchemas } from "@fadroma/utilities";
 
 export const schema = loadSchemas(import.meta.url, {
-  initMsg:     './rewards/init_msg.json',
-  queryMsg:    './rewards/query_msg.json',
-  queryAnswer: './rewards/query_msg_response.json',
-  handleMsg:   './rewards/handle_msg.json'
-})
+  initMsg: "./rewards/init_msg.json",
+  queryMsg: "./rewards/query_msg.json",
+  queryAnswer: "./rewards/query_msg_response.json",
+  handleMsg: "./rewards/handle_msg.json",
+});
+const decoder = new TextDecoder();
+const decode = (buffer) => decoder.decode(buffer).trim();
 
-export default class RewardsContract extends SecretNetwork.Contract.withSchema(schema) {
-
-  get status () {
-    return this.q().status()
+export default class RewardsContract extends SecretNetworkContractWithSchema {
+  constructor(options = {}) {
+    super(options, schema);
   }
 
-  get admin () {
-    return this.q().admin()
+  get status() {
+    return this.q.status();
   }
 
-  getAccounts = (address, lp_tokens, viewing_key) =>
-    this.q()
-      .accounts({ address, lp_tokens, viewing_key })
+  get admin() {
+    return this.q.admin("admin");
+  }
 
-  simulate = (address, current_time, lp_tokens, viewing_key) =>
-    this.q()
-      .claim_simulation({ address, current_time, lp_tokens, viewing_key })
+  getTotalRewardsSupply = () => this.q.total_rewards_supply();
+
+  getAccounts = (address, lp_tokens, viewing_key, agent) =>
+    this.q.accounts({ address, lp_tokens, viewing_key }, agent);
+
+  simulate = (address, current_time, lp_tokens, viewing_key, agent) =>
+    this.q.claim_simulation(
+      { address, current_time, lp_tokens, viewing_key },
+      agent
+    );
+
+  changeAdmin = (address, agent) =>
+    this.tx.admin({ change_admin: address }, agent);
 
   lock = (amount, lp_token, agent) =>
-    this.tx(agent)
-      .lock_tokens({ amount: String(amount), lp_token })
+    this.tx.lock_tokens({ amount: String(amount), lp_token }, agent);
 
   retrieve = (amount, lp_token, agent) =>
-    this.tx(agent)
-      .retrieve_tokens({ amount: String(amount), lp_token })
+    this.tx.retrieve_tokens({ amount: String(amount), lp_token }, agent);
 
-  claim = (lp_tokens, agent) =>
-    this.tx(agent)
-      .claim({ lp_tokens })
+  claim = (lp_tokens, agent) => this.tx.claim({ lp_tokens }, agent);
 
   changePools = (pools, total_share, agent) =>
-    this.tx(agent)
-      .change_pools({ pools, total_share })
+    this.tx.change_pools({ pools, total_share }, agent);
 
+  createViewingKey = (
+    agent,
+    entropy = "" //randomHex(32)) =>
+  ) =>
+    this.tx.create_viewing_key({ entropy }, agent).then((tx) => ({
+      tx,
+      key: JSON.parse(decode(tx.data)).create_viewing_key.key,
+    }));
+
+  setViewingKey = (agent, key) => this.tx.set_viewing_key({ key }, agent);
 }

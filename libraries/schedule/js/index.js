@@ -1,2 +1,2 @@
-import scheduleFromSpreadsheet from './table2schedule'
+import scheduleFromSpreadsheet from './table2schedule.js'
 export { scheduleFromSpreadsheet }

@@ -1,19 +1,17 @@
-use std::ops::RangeInclusive;
 use cosmwasm_std::{
-    Extern, Storage, Api, Querier, StdResult, HumanAddr,
-    InitResponse, Env, HandleResponse, Binary, Uint128,
-    StdError, to_binary
+    to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
+    StdError, StdResult, Storage, Uint128,
 };
+use std::ops::RangeInclusive;
 
 use amm_shared::snip20_impl as composable_snip20;
 
-use composable_snip20::{
-    Snip20, snip20_init, snip20_handle, snip20_query,
-    check_if_admin, SymbolValidation
-};
-use composable_snip20::state::{Config, Balances};
+use composable_snip20::msg::{HandleAnswer, HandleMsg, InitMsg, QueryMsg, ResponseStatus};
+use composable_snip20::state::{Balances, Config};
 use composable_snip20::transaction_history::store_burn;
-use composable_snip20::msg::{InitMsg, HandleMsg, QueryMsg, ResponseStatus, HandleAnswer};
+use composable_snip20::{
+    check_if_admin, snip20_handle, snip20_init, snip20_query, Snip20, SymbolValidation,
+};
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -33,7 +31,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 
 pub fn query<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    msg: QueryMsg
+    msg: QueryMsg,
 ) -> StdResult<Binary> {
     snip20_query(deps, msg, LpTokenImpl)
 }
@@ -47,7 +45,7 @@ impl Snip20 for LpTokenImpl {
             allow_upper: true,
             allow_lower: true,
             allow_numeric: false,
-            allowed_special: Some(vec![ b'-' ])
+            allowed_special: Some(vec![b'-']),
         }
     }
 
@@ -61,7 +59,7 @@ impl Snip20 for LpTokenImpl {
         env: Env,
         owner: HumanAddr,
         amount: Uint128,
-        memo: Option<String>
+        memo: Option<String>,
     ) -> StdResult<HandleResponse> {
         let mut config = Config::from_storage(&mut deps.storage);
 
@@ -81,13 +79,11 @@ impl Snip20 for LpTokenImpl {
         }
 
         config.set_total_supply(total_supply);
-    
         // subtract from owner account
         let owner = deps.api.canonical_address(&owner)?;
 
         let mut balances = Balances::from_storage(&mut deps.storage);
         let mut account_balance = balances.balance(&owner);
-    
         if let Some(new_balance) = account_balance.checked_sub(raw_amount) {
             account_balance = new_balance;
         } else {
@@ -98,7 +94,6 @@ impl Snip20 for LpTokenImpl {
         }
 
         balances.set_account_balance(&owner, account_balance);
-    
         store_burn(
             &mut deps.storage,
             &owner,
@@ -108,17 +103,16 @@ impl Snip20 for LpTokenImpl {
             memo,
             &env.block,
         )?;
-    
         let res = HandleResponse {
             messages: vec![],
             log: vec![],
-            data: Some(to_binary(&HandleAnswer::BurnFrom { status: ResponseStatus::Success })?),
+            data: Some(to_binary(&HandleAnswer::BurnFrom {
+                status: ResponseStatus::Success,
+            })?),
         };
-    
         Ok(res)
     }
 }
-
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
