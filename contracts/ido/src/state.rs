@@ -1,22 +1,21 @@
 use serde::{ Deserialize, Serialize };
 use cosmwasm_std::{ 
-    StdResult, Extern, Storage, Querier, Api, Uint128, CanonicalAddr,
-    HumanAddr, StdError
+    StdResult, Extern, Storage, Querier, Api,
+    Uint128, CanonicalAddr, HumanAddr, StdError
 };
-use amm_shared::fadroma::callback::{ContractInstance, Callback};
+use amm_shared::fadroma::callback::{ContractInstance};
 use amm_shared::fadroma::address::{Canonize, Humanize};
 use amm_shared::fadroma::storage::{save, load};
 use amm_shared::TokenType;
 
 const CONFIG_KEY: &[u8] = b"config";
-const CALLBACK_KEY: &[u8] = b"callback";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct Config<A> {
-    /// The token that is used to buy the instantiated SNIP20
+    /// The token that is used to buy the sold SNIP20.
     pub input_token: TokenType<A>,
-    /// The token that this contract swaps to and instantiates
-    pub swap_token: ContractInstance<A>,
+    /// The token that is being sold.
+    pub sold_token: ContractInstance<A>,
     pub swap_constants: SwapConstants
 }
 
@@ -24,11 +23,9 @@ pub(crate) struct Config<A> {
 /// Used when calculating the swap. These do not change
 /// throughout the lifetime of the contract.
 pub(crate) struct SwapConstants {
-    /// The amount needed to represent 1 whole swap_token
-    pub whole_swap_token: Uint128,
     pub rate: Uint128,
     pub input_token_decimals: u8,
-    pub swap_token_decimals: u8
+    pub sold_token_decimals: u8
 }
 
 pub(crate) fn save_config<S: Storage, A: Api, Q: Querier>(
@@ -45,25 +42,11 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
     result.ok_or(StdError::generic_err("Config doesn't exist in storage."))?.humanize(&deps.api)
 }
 
-pub(crate) fn save_callback(
-    storage: &mut impl Storage,
-    callback: &Callback<HumanAddr>
-) -> StdResult<()> {
-    save(storage, CALLBACK_KEY, callback)
-}
-
-pub(crate) fn pop_callback(storage: &mut impl Storage) -> StdResult<Option<Callback<HumanAddr>>> {
-    let result = load(storage, CALLBACK_KEY)?;
-    storage.remove(CALLBACK_KEY);
-
-    Ok(result)
-}
-
 impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
     fn canonize (&self, api: &impl Api) -> StdResult<Config<CanonicalAddr>> {
         Ok(Config{
             input_token: self.input_token.canonize(api)?,
-            swap_token: self.swap_token.canonize(api)?,
+            sold_token: self.sold_token.canonize(api)?,
             swap_constants: self.swap_constants.clone()
         })
     }
@@ -73,7 +56,7 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
     fn humanize (&self, api: &impl Api) -> StdResult<Config<HumanAddr>> {
         Ok(Config{
             input_token: self.input_token.humanize(api)?,
-            swap_token: self.swap_token.humanize(api)?,
+            sold_token: self.sold_token.humanize(api)?,
             swap_constants: self.swap_constants.clone()
         })
     }

@@ -6,7 +6,7 @@ use amm_shared::{
     TokenPair, Pagination, Exchange,
     msg::{
         exchange::InitMsg as ExchangeInitMsg,
-        ido::{InitMsg as IdoInitMsg, InitConfig as IdoInitConfig},
+        ido::{InitMsg as IdoInitMsg, TokenSaleConfig},
         factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse}
     },
     admin::{
@@ -233,7 +233,7 @@ fn query_exchange_address<S: Storage, A: Api, Q: Querier>(
 fn create_ido<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    info: IdoInitConfig
+    info: TokenSaleConfig
 ) -> StdResult<HandleResponse> {
     let signature = create_signature(&env)?;
     save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
@@ -250,15 +250,13 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
                 callback_code_hash: config.ido_contract.code_hash,
                 send: vec![],
                 label: format!(
-                    "IDO for {}({}), id: {}",
-                    info.snip20_init_info.name,
-                    info.snip20_init_info.symbol,
-                    config.ido_contract.id
+                    "SIENNA IDO for token {}, created at {}",
+                    info.sold_token.address,
+                    env.block.time // Make sure the label is unique
                 ),
                 msg: to_binary(&IdoInitMsg {
                     admin: env.message.sender,
                     info,
-                    snip20_contract: config.snip20_contract,
                     callback: Callback {
                         contract: ContractInstance {
                             address:   env.contract.address,

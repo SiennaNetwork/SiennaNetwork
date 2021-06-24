@@ -10,7 +10,7 @@ use crate::{TokenPair, TokenType, TokenTypeAmount, TokenPairAmount};
 
 pub mod factory {
     use super::*;
-    use super::ido::InitConfig as IdoInitConfig;
+    use super::ido::TokenSaleConfig;
     use crate::{Pagination, Exchange, ExchangeSettings};
     use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
 
@@ -47,7 +47,7 @@ pub mod factory {
         },
         /// Instantiates an IDO contract
         CreateIdo {
-            info: IdoInitConfig
+            info: TokenSaleConfig
         },
         /// Used by a newly instantiated exchange contract to register
         /// itself with the factory
@@ -197,8 +197,7 @@ pub mod ido {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct InitMsg {
-        pub snip20_contract: ContractInstantiationInfo,
-        pub info: InitConfig,
+        pub info: TokenSaleConfig,
         /// Should be the address of the original sender, since this is initiated by the factory.
         pub admin: HumanAddr,
         /// Used by the IDO to register itself with the factory.
@@ -206,28 +205,26 @@ pub mod ido {
     }
     
     #[derive(Serialize, Deserialize, JsonSchema)]
-    pub struct InitConfig {
-        /// The token that will be used to buy the instantiated SNIP20
+    pub struct TokenSaleConfig {
+        /// The token that will be used to buy the SNIP20.
         pub input_token: TokenType<HumanAddr>,
+        /// The price for a single token.
         pub rate: Uint128,
-        pub snip20_init_info: Snip20TokenInitInfo
-    }
-    
-    #[derive(Serialize, Deserialize, JsonSchema)]
-    /// Used to provide only the essential info
-    /// to an IDO that instantiates a snip20 token
-    pub struct Snip20TokenInitInfo {
-        pub name: String,
-        pub prng_seed: Binary,
-        pub symbol: String,
-        pub decimals: u8,
-        pub config: Option<snip20::InitConfig>
+        // The address of the SNIP20 token beind sold.
+        pub sold_token: ContractInstance<HumanAddr>,
+        /// The addresses that are eligible to participate in the sale.
+        pub whitelist: Vec<HumanAddr>,
+        /// The maximum number of participants allowed.
+        pub max_seats: u32,
+        /// The total amount that each participant is allowed to buy.
+        pub max_allocation: Uint128,
+        /// The minimum amount that each participant is allowed to buy.
+        pub min_allocation: Uint128
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum HandleMsg {
-        OnSnip20Init,
         Swap {
             amount: Uint128
         },

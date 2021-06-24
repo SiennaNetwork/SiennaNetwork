@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter, Result};
-use crate::{TokenType, TokenTypeAmount, TokenPair, TokenPairAmount, msg::ido::InitConfig as IdoInitConfig};
+use crate::{TokenType, TokenTypeAmount, TokenPair, TokenPairAmount};
 
 impl<A: Display> Display for TokenType<A> {
     fn fmt(&self, f: &mut Formatter) -> Result {
@@ -27,17 +27,6 @@ impl<A: Display + Clone> Display for TokenPairAmount<A> {
         write!(
             f, "Token 1: {} {} \n Token 2: {} {}",
             self.pair.0, self.amount_0, self.pair.1, self.amount_1
-        )
-    }
-}
-
-impl Display for IdoInitConfig {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "Input token: {}, Rate: {}, Created token: {}({})",
-            self.input_token, self.rate,
-            self.snip20_init_info.name, self.snip20_init_info.symbol
         )
     }
 }

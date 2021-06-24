@@ -117,7 +117,7 @@ async function deploy_rewards(config: any) {
 
     const wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/sienna-rewards@HEAD.wasm`))
 
-    const upload = await client.upload(wasm, undefined, undefined, create_fee('2000000'))
+    const upload = await client.upload(wasm, undefined, undefined, create_fee('1800000'))
     writer.write(upload, `uploads/rewards`)
 
     const init_msg = {
@@ -134,7 +134,7 @@ async function deploy_rewards(config: any) {
         `${commit} - SIENNA REWARDS`,
         undefined,
         undefined,
-        create_fee('290000')
+        create_fee('270000')
     )
 
     writer.write(
