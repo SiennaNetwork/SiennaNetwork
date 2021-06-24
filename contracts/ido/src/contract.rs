@@ -13,14 +13,13 @@ use amm_shared::admin::admin::{
     admin_query
 };
 
-use crate::state::{
-    Config, SwapConstants, load_config,
-    save_config
-};
+use crate::data::*;
 
 /// Pad handle responses and log attributes to blocks
 /// of 256 bytes to prevent leaking info based on response size
 const BLOCK_SIZE: usize = 256;
+
+const OVERFLOW_MSG: &str = "Upper bound overflow detected.";
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -46,10 +45,12 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             sold_token_decimals: get_token_decimals(&deps.querier, msg.info.sold_token)?,
             rate: msg.info.rate,
             input_token_decimals
-        }
+        },
+        max_seats: msg.info.max_seats,
+        max_allocation: msg.info.max_allocation,
+        min_allocation: msg.info.min_allocation
     };
-
-    save_config(deps, &config)?;
+    config.save(deps)?;
 
     Ok(InitResponse{
         messages: vec![
@@ -92,7 +93,12 @@ fn swap<S: Storage, A: Api, Q: Querier>(
     env: Env,
     amount: Uint128
 ) -> StdResult<HandleResponse> {
-    let config = load_config(deps)?;
+    let mut account = Account::load(deps, &env.message.sender)?
+        .ok_or_else(||
+             StdError::generic_err("This address is not whitelisted.")
+        )?;
+
+    let config = Config::load(deps)?;
 
     let mint_amount = convert_token(
         amount.u128(),
@@ -101,14 +107,31 @@ fn swap<S: Storage, A: Api, Q: Querier>(
         config.swap_constants.sold_token_decimals
     )?;
 
-    if mint_amount == 0 {
+    if mint_amount < config.min_allocation.u128() {
         return Err(StdError::generic_err(format!(
-            "Insufficient amount provided: the swap did not succeed because 0 new tokens would be minted."
+            "Insufficient amount provided: the resulting amount fell short of the minimum purchase expected: {}",
+            config.min_allocation
         )));
     }
 
+    account.total_bought = account.total_bought.u128().checked_add(mint_amount)
+        .ok_or_else(||
+            StdError::generic_err(OVERFLOW_MSG)
+        )?
+        .into();
+
+    if account.total_bought > config.max_allocation {
+        return Err(StdError::generic_err(format!(
+            "This purchase exceeds the total maximum allowed amount for a single address: {}",
+            config.min_allocation
+        )));
+    }
+
+    account.save(deps)?;
+
     let mut messages = vec![];
 
+    // Retrieve the input amount from the sender's balance
     match config.input_token {
         TokenType::CustomToken { contract_addr, token_code_hash } => {
             messages.push(snip20::transfer_from_msg(
@@ -126,9 +149,9 @@ fn swap<S: Storage, A: Api, Q: Querier>(
         }
     }
 
-    // Mint new tokens and transfer to sender
+    // Transfer the resulting amount to the sender
     messages.push(
-        snip20::mint_msg(
+        snip20::transfer_msg(
             env.message.sender,
             Uint128(mint_amount),
             None,
@@ -143,14 +166,14 @@ fn swap<S: Storage, A: Api, Q: Querier>(
         log: vec![
             log("action", "swap"),
             log("input_amount", amount),
-            log("mint_amount", mint_amount)
+            log("purchased_amount", mint_amount)
         ],
         data: None
     })
 }
 
 fn get_rate<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> QueryResult {
-    let config = load_config(deps)?;
+    let config = Config::load(deps)?;
 
     Ok(to_binary(&QueryResponse::GetRate {
         rate: config.swap_constants.rate
