@@ -138,7 +138,8 @@ impl Account<HumanAddr> {
 
     /// Subtracts the specified `amount` from the account, starting from
     /// the pending balance and any remainder - from the actual locked amount.
-    pub fn subtract_balance(&mut self, mut amount: u128) -> StdResult<()> {
+    /// Returns the amount subtracted **ONLY** from the locked amount.
+    pub fn subtract_balance(&mut self, mut amount: u128) -> StdResult<u128> {
         if let Some(balances) = &mut self.pending_balances {
             let mut index = 0;
 
@@ -149,7 +150,7 @@ impl Account<HumanAddr> {
                     balance.amount = Uint128(balance.amount.u128() - amount);
 
                     if balance.amount > Uint128::zero() {
-                        return Ok(());
+                        return Ok(0);
                     }
 
                     break;
@@ -174,7 +175,11 @@ impl Account<HumanAddr> {
                         StdError::generic_err("Insufficient balance.")
                     )?
                     .into();
+
+                return Ok(amount);
             }
+
+            Ok(0)
         } else {
             self.locked_amount = self.locked_amount
                 .u128()
@@ -183,9 +188,9 @@ impl Account<HumanAddr> {
                     StdError::generic_err("Insufficient balance.")
                 )?
                 .into();
-        }
-
-        Ok(())
+            
+            Ok(amount)
+        }   
     }
 }
 

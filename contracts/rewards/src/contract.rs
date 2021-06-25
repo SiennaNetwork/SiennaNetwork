@@ -190,12 +190,14 @@ pub(crate) fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
     lp_token_addr: HumanAddr
 ) -> StdResult<HandleResponse> {
     let mut account = get_account_or_fail(deps, &env.message.sender, &lp_token_addr)?;
-    account.subtract_balance(amount.u128())?;
+    let subtracted = account.subtract_balance(amount.u128())?;
 
     save_account(deps, &account)?;
 
     let pool = if let Some(mut p) = get_pool(deps, &lp_token_addr)? {
-        p.size = p.size.u128().saturating_sub(amount.u128()).into();
+        // Subtract only by the amount that the actual locked amount was reduced
+        // by since this is the actual amount added to the pool size.
+        p.size = p.size.u128().saturating_sub(subtracted).into();
         save_pool(deps, &p)?;
 
         Some(p)
