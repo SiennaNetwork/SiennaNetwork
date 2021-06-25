@@ -22,7 +22,7 @@ use crate::state::{
     save_config, Config, replace_active_pools, get_pool, get_account, save_account,
     get_or_create_account, save_pool, load_config, get_pools, get_inactive_pool
 };
-use crate::data::{RewardPool, Account};
+use crate::data::{RewardPool, Account, PendingBalance};
 use crate::auth::AuthImpl;
 
 const BLOCK_SIZE: usize = 256;
@@ -102,8 +102,8 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     match msg {
         QueryMsg::ClaimSimulation { lp_tokens, viewing_key, address, current_time } => 
             claim_simulation(deps, lp_tokens, address, ViewingKey(viewing_key), current_time),
-        QueryMsg::Accounts { address, viewing_key, lp_tokens } =>
-            query_accounts(deps, address, ViewingKey(viewing_key), lp_tokens),
+        QueryMsg::Accounts { address, viewing_key } =>
+            query_accounts(deps, address, ViewingKey(viewing_key)),
         QueryMsg::Pools => query_pools(deps),
 
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
@@ -130,23 +130,33 @@ pub(crate) fn lock_tokens<S: Storage, A: Api, Q: Querier>(
     amount: Uint128,
     lp_token_addr: HumanAddr
 ) -> StdResult<HandleResponse> {
-    let mut pool = get_pool_or_fail(deps, &lp_token_addr)?;
+    if amount == Uint128::zero() {
+        return Err(StdError::generic_err("Lock amount is zero."));
+    }
+
+    let pool = get_pool_or_fail(deps, &lp_token_addr)?;
     let mut account = get_or_create_account(deps, &env.message.sender, &lp_token_addr)?;
 
-    // If creating a new account, prevent instant claiming.
-    if account.locked_amount == Uint128::zero() {
+    account.add_pending_balance(PendingBalance { 
+        amount,
+        submitted_at: env.block.time 
+    })?;
+
+    // Prevent instant claiming for new accounts
+    if account.last_claimed == 0 {
         account.last_claimed = env.block.time;
     }
 
-    account.locked_amount = 
-        account.locked_amount.u128().checked_add(amount.u128())
-        .ok_or_else(|| StdError::generic_err(OVERFLOW_MSG))?.into();
-
-    pool.size = pool.size.u128().checked_add(amount.u128())
-        .ok_or_else(|| StdError::generic_err(OVERFLOW_MSG))?.into();
+    // Check if the total size would overflow.
+    // Actually increase the size when these tokens are unlocked.
+    pool.size
+        .u128()
+        .checked_add(account.total_pending())
+        .ok_or_else(||
+            StdError::generic_err("Pool size overflow detected.")
+        )?;
 
     save_account(deps, &account)?;
-    save_pool(deps, &pool)?;
     
     Ok(HandleResponse{
         messages: vec![
@@ -171,7 +181,7 @@ pub(crate) fn lock_tokens<S: Storage, A: Api, Q: Querier>(
     })
 }
 
-/// Tranfer back the specified `amount` of LP tokens to the sender.
+/// Transfer back the specified `amount` of LP tokens to the sender.
 /// Also works even if the pool is not eligible for rewards anymore.
 pub(crate) fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -180,9 +190,7 @@ pub(crate) fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
     lp_token_addr: HumanAddr
 ) -> StdResult<HandleResponse> {
     let mut account = get_account_or_fail(deps, &env.message.sender, &lp_token_addr)?;
-
-    account.locked_amount = account.locked_amount.u128().checked_sub(amount.u128())
-        .ok_or_else(|| StdError::generic_err("Insufficient balance."))?.into();
+    account.subtract_balance(amount.u128())?;
 
     save_account(deps, &account)?;
 
@@ -232,14 +240,21 @@ pub(crate) fn claim<S: Storage, A: Api, Q: Querier>(
     let config = load_config(deps)?;
     let available_balance = get_balance(&deps.querier, &config)?;
 
-    let mut total_rewards_amount: u128 = 0;
+    let mut total_rewards_amount = 0u128;
 
     for addr in lp_tokens {
-        let pool = get_pool_or_fail(deps, &addr)?;
+        let mut pool = get_pool_or_fail(deps, &addr)?;
         let mut account = get_account_or_fail(deps, &env.message.sender, &addr)?;
 
+        let unlocked = account.unlock_pending(env.block.time, config.claim_interval)?;
+
+        if unlocked > 0 {
+            pool.size = pool.size.u128().saturating_add(unlocked).into();
+            save_pool(deps, &pool)?;
+        }
+
         let reward_amount = calc_reward_share(
-            account.locked_amount.u128(),
+            account.locked_amount().u128(),
             &pool,
             config.token_decimals
         )?;
@@ -341,21 +356,23 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
         }
     };
     
-    let mut total_rewards_amount: u128 = 0;
+    let mut total_rewards_amount = 0u128;
 
     let mut results = Vec::with_capacity(lp_tokens.len());
 
     for addr in lp_tokens {
         let pool = get_pool_or_fail(deps, &addr)?;
-        let account = get_or_create_account(deps, &sender, &addr)?;
 
-        if account.locked_amount == Uint128::zero() {
+        let mut account = get_account_or_fail(deps, &sender, &addr)?;
+        account.unlock_pending(current_time, config.claim_interval)?;
+
+        if account.locked_amount() == Uint128::zero() {
             results.push(ClaimResult::error(addr, ClaimError::AccountZeroLocked));
             continue;
         }
 
         let reward_per_portion = calc_reward_share(
-            account.locked_amount.u128(),
+            account.locked_amount().u128(),
             &pool,
             config.token_decimals
         )?;
@@ -410,7 +427,7 @@ fn change_pools<S: Storage, A: Api, Q: Querier>(
     pools: Vec<RewardPool<HumanAddr>>,
     total_share: Uint128
 ) -> StdResult<HandleResponse>{
-    let mut sum_total: u128 = 0;
+    let mut sum_total = 0u128;
 
     for pool in pools.iter() {
         sum_total = sum_total.checked_add(pool.share.u128()).ok_or_else(||
@@ -451,17 +468,20 @@ fn query_pools<S: Storage, A: Api, Q: Querier>(
 fn query_accounts<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: HumanAddr,
-    key: ViewingKey,
-    lp_tokens:Vec<HumanAddr>
+    key: ViewingKey
 ) -> StdResult<Binary> {
     let canonical = deps.api.canonical_address(&address)?;
     authenticate(&deps.storage, &key, canonical.as_slice())?;
 
-    let mut result = Vec::with_capacity(lp_tokens.len());
+    let pools = get_pools(deps)?;
+    let mut result = vec![];
 
-    for addr in lp_tokens {
-        let account = get_or_create_account(deps, &address, &addr)?;
-        result.push(account);
+    for token in pools.iter().map(|x| &x.lp_token) {
+        let account = get_account(deps, &address, &token.address)?;
+
+        if let Some(acc) = account {
+            result.push(acc);
+        }
     }
 
     Ok(to_binary(&QueryMsgResponse::Accounts(result))?)

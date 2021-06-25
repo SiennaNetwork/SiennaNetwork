@@ -236,6 +236,9 @@ fn test_calc_reward_share() {
     // Absorb the entire pool if owning 100% of pool share.
     let result = calc_reward_share(1000_000_000, &pool, 18).unwrap();
     assert_eq!(result, 500_000_000_000_000_000_000);
+
+    let result = calc_reward_share(0, &pool, 18).unwrap();
+    assert_eq!(result, 0);
 }
 
 #[test]

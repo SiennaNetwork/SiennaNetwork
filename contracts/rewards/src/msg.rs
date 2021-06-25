@@ -6,7 +6,8 @@ use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
 
 use crate::data::{RewardPool, Account};
 
-pub(crate) const OVERFLOW_MSG: &str = "Upper bound overflow detected.";
+pub(crate) const OVERFLOW_MSG: &str = "Overflow detected.";
+pub(crate) const UNDERFLOW_MSG: &str = "Underflow detected.";
 
 /// Represents a pair that is eligible for rewards.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, JsonSchema)]
@@ -72,9 +73,7 @@ pub enum QueryMsg {
     },
     Accounts { 
         address: HumanAddr,
-        viewing_key: String,
-        /// The addresses of the LP tokens pools to get the accounts for.
-        lp_tokens: Vec<HumanAddr>
+        viewing_key: String
     },
     Pools,
     TotalRewardsSupply,
