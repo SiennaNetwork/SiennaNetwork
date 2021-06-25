@@ -317,7 +317,7 @@ fn test_claim_with_lock_unlock() {
 
     init(deps, mock_env("admin", &[]), msg).unwrap();
 
-    let mut time = 0;
+    let mut time = claim_interval;
 
     let sender1 = HumanAddr::from("sender1");
     let sender2 = HumanAddr::from("sender2");
@@ -328,17 +328,19 @@ fn test_claim_with_lock_unlock() {
 
     lock_tokens(
         deps,
-        mock_env(sender1.clone(), &[]),
+        mock_env_with_time(sender1.clone(), time),
         Uint128(deposit_amount),
         pool_addr.clone()
     ).unwrap();
 
     lock_tokens(
         deps,
-        mock_env(sender2.clone(), &[]),
+        mock_env_with_time(sender2.clone(), time),
         Uint128(deposit_amount),
         pool_addr.clone()
     ).unwrap();
+
+    time += claim_interval;
 
     let (empty, amount) = execute_claim(deps, time, sender1.clone(), pool_addr.clone()).unwrap();
     assert_eq!(empty, false);
@@ -351,7 +353,7 @@ fn test_claim_with_lock_unlock() {
     // User locks tokens and claims while the pool is still empty
     lock_tokens(
         deps,
-        mock_env(sender3.clone(), &[]),
+        mock_env_with_time(sender3.clone(), time),
         Uint128(deposit_amount),
         pool_addr.clone()
     ).unwrap();
@@ -360,15 +362,15 @@ fn test_claim_with_lock_unlock() {
     assert_eq!(empty, true);
     assert_eq!(amount, 0);
 
-    deps.querier.reward_token_supply += Uint128(share);
-    time += claim_interval;
-
     lock_tokens(
         deps,
-        mock_env(sender4.clone(), &[]),
+        mock_env_with_time(sender4.clone(), time),
         Uint128(deposit_amount),
         pool_addr.clone()
     ).unwrap();
+
+    deps.querier.reward_token_supply += Uint128(share);
+    time += claim_interval;
 
     let (empty, amount) = execute_claim(deps, time, sender1.clone(), pool_addr.clone()).unwrap();
     assert_eq!(empty, false);
@@ -433,6 +435,77 @@ fn test_cant_claim_twice_by_retrieving_tokens() {
 
     let ref mut deps = mock_dependencies(20, reward_token.clone(), Uint128(share * 2), 18);
 
+    let claim_interval = 100;
+
+    init(deps, mock_env("admin", &[]), InitMsg {
+        claim_interval,
+        admin: None,
+        reward_token,
+        reward_pools: Some(vec![pool]),
+        prng_seed: to_binary(&"whatever").unwrap(),
+        entropy: to_binary(&"whatever").unwrap()
+    }).unwrap();
+
+    let user = HumanAddr("user".into());
+    let lp_amount = Uint128(100);
+
+    let mut time = claim_interval;
+
+    handle(deps, mock_env_with_time(user.clone(), time), HandleMsg::LockTokens {
+        amount: lp_amount,
+        lp_token: lp_token_addr.clone()
+    }).unwrap();
+
+    time += claim_interval;
+
+    let (_, amount) = execute_claim(deps, time, user.clone(), lp_token_addr.clone()).unwrap();
+    assert_eq!(amount, share);
+    assert_eq!(deps.querier.reward_token_supply, Uint128(share));
+
+    handle(deps, mock_env(user.clone(), &[]), HandleMsg::RetrieveTokens {
+        amount: lp_amount,
+        lp_token: lp_token_addr.clone()
+    }).unwrap();
+
+    handle(deps, mock_env_with_time(user.clone(), time), HandleMsg::LockTokens {
+        amount: lp_amount,
+        lp_token: lp_token_addr.clone()
+    }).unwrap();
+
+    time += claim_interval / 2;
+
+    let err = execute_claim(deps, time, user.clone(), lp_token_addr.clone()).unwrap_err();
+
+    match err {
+        StdError::GenericErr { msg, .. } => {
+            if !(msg == "Need to wait 50 more time before claiming.") {
+                panic!("Expecting early claim error")
+            }
+        },
+        _ => panic!("Expecting StdError::GenericErr")
+    }
+}
+
+#[test]
+fn test_cant_claim_instantly() {
+    let reward_token = ContractInstance {
+        address: "reward_token".into(),
+        code_hash: "reward_token_hash".into()
+    };
+
+    let lp_token_addr = HumanAddr("lp_token_hash".into());
+    let share = 500u128;
+
+    let pool = RewardPoolConfig {
+        share: Uint128(share),
+        lp_token: ContractInstance {
+            address: lp_token_addr.clone(),
+            code_hash: "lp_token_hash".into()
+        }
+    };
+
+    let ref mut deps = mock_dependencies(20, reward_token.clone(), Uint128(share * 2), 18);
+
     init(deps, mock_env("admin", &[]), InitMsg {
         claim_interval: 100,
         admin: None,
@@ -445,29 +518,20 @@ fn test_cant_claim_twice_by_retrieving_tokens() {
     let user = HumanAddr("user".into());
     let lp_amount = Uint128(100);
 
-    handle(deps, mock_env(user.clone(), &[]), HandleMsg::LockTokens {
+    let mut time = 100;
+
+    handle(deps, mock_env_with_time(user.clone(), time), HandleMsg::LockTokens {
         amount: lp_amount,
         lp_token: lp_token_addr.clone()
     }).unwrap();
 
-    let (_, amount) = execute_claim(deps, 100, user.clone(), lp_token_addr.clone()).unwrap();
-    assert_eq!(amount, share);
-    assert_eq!(deps.querier.reward_token_supply, Uint128(share));
+    time += 50;
 
-    handle(deps, mock_env(user.clone(), &[]), HandleMsg::RetrieveTokens {
-        amount: lp_amount,
-        lp_token: lp_token_addr.clone()
-    }).unwrap();
-
-    handle(deps, mock_env(user.clone(), &[]), HandleMsg::LockTokens {
-        amount: lp_amount,
-        lp_token: lp_token_addr.clone()
-    }).unwrap();
-
-    let err = execute_claim(deps, 150, user.clone(), lp_token_addr.clone()).unwrap_err();
+    let err = execute_claim(deps, time, user.clone(), lp_token_addr.clone()).unwrap_err();
 
     match err {
         StdError::GenericErr { msg, .. } => {
+            println!("{}", msg);
             if !(msg == "Need to wait 50 more time before claiming.") {
                 panic!("Expecting early claim error")
             }

@@ -133,6 +133,11 @@ pub(crate) fn lock_tokens<S: Storage, A: Api, Q: Querier>(
     let mut pool = get_pool_or_fail(deps, &lp_token_addr)?;
     let mut account = get_or_create_account(deps, &env.message.sender, &lp_token_addr)?;
 
+    // If creating a new account, prevent instant claiming.
+    if account.locked_amount == Uint128::zero() {
+        account.last_claimed = env.block.time;
+    }
+
     account.locked_amount = 
         account.locked_amount.u128().checked_add(amount.u128())
         .ok_or_else(|| StdError::generic_err(OVERFLOW_MSG))?.into();
@@ -533,10 +538,6 @@ pub(crate) fn calc_portions(
     claim_interval: u64,
     block_time: u64
 ) -> StdResult<u32> {
-    if last_claimed == 0 {
-        return Ok(1); // This account is claiming for the first time
-    }
-
     // Could do (current_time - last_claimed) / interval
     // but can't use floats so...
     let mut result = 0;
