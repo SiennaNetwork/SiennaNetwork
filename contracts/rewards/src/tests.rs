@@ -13,7 +13,7 @@ use crate::contract::*;
 use crate::msg::{
     HandleMsg, InitMsg, QueryMsg, RewardPoolConfig, QueryMsgResponse
 };
-use crate::state::{load_config, get_pools, get_inactive_pool};
+use crate::state::{get_inactive_pool, get_pools, load_config};
 use crate::data::RewardPool;
 use crate::test_helpers::{
     mock_dependencies, mock_env_with_time, MockSnip20Querier
@@ -413,6 +413,69 @@ fn test_claim_with_lock_unlock() {
     assert_eq!(amount, expected_amount);
 }
 
+#[test]
+fn test_cant_claim_twice_by_retrieving_tokens() {
+    let reward_token = ContractInstance {
+        address: "reward_token".into(),
+        code_hash: "reward_token_hash".into()
+    };
+
+    let lp_token_addr = HumanAddr("lp_token_hash".into());
+    let share = 500u128;
+
+    let pool = RewardPoolConfig {
+        share: Uint128(share),
+        lp_token: ContractInstance {
+            address: lp_token_addr.clone(),
+            code_hash: "lp_token_hash".into()
+        }
+    };
+
+    let ref mut deps = mock_dependencies(20, reward_token.clone(), Uint128(share * 2), 18);
+
+    init(deps, mock_env("admin", &[]), InitMsg {
+        claim_interval: 100,
+        admin: None,
+        reward_token,
+        reward_pools: Some(vec![pool]),
+        prng_seed: to_binary(&"whatever").unwrap(),
+        entropy: to_binary(&"whatever").unwrap()
+    }).unwrap();
+
+    let user = HumanAddr("user".into());
+    let lp_amount = Uint128(100);
+
+    handle(deps, mock_env(user.clone(), &[]), HandleMsg::LockTokens {
+        amount: lp_amount,
+        lp_token: lp_token_addr.clone()
+    }).unwrap();
+
+    let (_, amount) = execute_claim(deps, 100, user.clone(), lp_token_addr.clone()).unwrap();
+    assert_eq!(amount, share);
+    assert_eq!(deps.querier.reward_token_supply, Uint128(share));
+
+    handle(deps, mock_env(user.clone(), &[]), HandleMsg::RetrieveTokens {
+        amount: lp_amount,
+        lp_token: lp_token_addr.clone()
+    }).unwrap();
+
+    handle(deps, mock_env(user.clone(), &[]), HandleMsg::LockTokens {
+        amount: lp_amount,
+        lp_token: lp_token_addr.clone()
+    }).unwrap();
+
+    let err = execute_claim(deps, 150, user.clone(), lp_token_addr.clone()).unwrap_err();
+
+    match err {
+        StdError::GenericErr { msg, .. } => {
+            if !(msg == "Need to wait 50 more time before claiming.") {
+                panic!("Expecting early claim error")
+            }
+        },
+        _ => panic!("Expecting StdError::GenericErr")
+    }
+}
+
 fn create_pool(share: u128, size: u128) -> RewardPool<HumanAddr> {
     RewardPool {
         lp_token: ContractInstance {
@@ -447,7 +510,7 @@ fn execute_claim(
         mock_env_with_time(user.clone(), time),
         vec![ lp_token ]
     );
-
+    
     if result.is_err() { 
         let err = result.unwrap_err();
 

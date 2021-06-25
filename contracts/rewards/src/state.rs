@@ -197,22 +197,6 @@ pub(crate) fn get_account<S: Storage, A: Api, Q: Querier>(
     }
 }
 
-pub(crate) fn delete_account<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    account: &Account<HumanAddr>
-) -> StdResult<()> {
-    let account = account.canonize(&deps.api)?;
-    let key = generate_account_key(&account.owner, &account.lp_token_addr);
-
-    ns_remove(
-        &mut deps.storage,
-        ACCOUNTS_KEY,
-        &key
-    );
-
-    Ok(())
-}
-
 fn set_current_pools_inactive<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>
 ) -> StdResult<()> {

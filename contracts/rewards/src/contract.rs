@@ -20,8 +20,7 @@ use crate::msg::{
 };
 use crate::state::{
     save_config, Config, replace_active_pools, get_pool, get_account, save_account,
-    get_or_create_account, save_pool, delete_account, load_config, get_pools,
-    get_inactive_pool
+    get_or_create_account, save_pool, load_config, get_pools, get_inactive_pool
 };
 use crate::data::{RewardPool, Account};
 use crate::auth::AuthImpl;
@@ -180,11 +179,7 @@ pub(crate) fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
     account.locked_amount = account.locked_amount.u128().checked_sub(amount.u128())
         .ok_or_else(|| StdError::generic_err("Insufficient balance."))?.into();
 
-    if account.locked_amount == Uint128::zero() {
-        delete_account(deps, &account)?;
-    } else {
-        save_account(deps, &account)?;
-    }
+    save_account(deps, &account)?;
 
     let pool = if let Some(mut p) = get_pool(deps, &lp_token_addr)? {
         p.size = p.size.u128().saturating_sub(amount.u128()).into();
