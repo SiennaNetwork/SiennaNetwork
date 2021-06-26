@@ -1,5 +1,5 @@
 import { 
-    Address, TokenPair, IdoInitConfig, Pagination, TokenPairAmount,
+    Address, TokenPair, TokenSaleConfig, Pagination, TokenPairAmount,
     Decimal, Uint128, get_token_type, TypeOfToken, 
     TokenInfo, ViewingKey, TokenTypeAmount, Exchange, RewardPool,
     RewardsAccount, PairInfo, Allowance, ClaimSimulationResult,
@@ -105,10 +105,10 @@ export class FactoryContract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async create_ido(info: IdoInitConfig, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async create_ido(config: TokenSaleConfig, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             create_ido: {
-                info
+                info: config
             }
         }
 
@@ -539,13 +539,11 @@ export class RewardsContract extends SmartContract {
 
     async get_accounts(
         address: Address,
-        lp_tokens: Address[],
         viewing_key: ViewingKey
     ): Promise<RewardsAccount[]> {
         const msg = {
             accounts: {
                 address,
-                lp_tokens,
                 viewing_key
             }
         }

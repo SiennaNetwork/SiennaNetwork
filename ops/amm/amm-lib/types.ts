@@ -74,44 +74,34 @@ export interface PairInfo {
     total_liquidity: Uint128;
 }
 
-export class IdoInitConfig {
+export class TokenSaleConfig {
     constructor(
         /**
-         * This is the token that will be used to buy our token.
+         * The token that will be used to buy the SNIP20.
          */
         readonly input_token: TokenType,
         /**
-         * Check this to understand how the rate is set: https://github.com/SiennaNetwork/sienna-swap-amm/blob/b3dc9b21d8f6c11c32d9282ebc1ad5267aa1fa44/ido/src/contract.rs#L277
+         * The total amount that each participant is allowed to buy.
+         */
+        readonly max_allocation: Uint128,
+        /**
+         * The minimum amount that each participant is allowed to buy.
+         */
+        readonly min_allocation: Uint128,
+        /**
+         * The maximum number of participants allowed.
+         */
+        readonly max_seats: number,
+        /**
+         * The price for a single token.
          */
         readonly rate: Uint128,
-        readonly snip20_init_info: Snip20TokenInitInfo
-    ) { }
-}
-
-export class Snip20TokenInitInfo {
-    constructor(
+        readonly sold_token: ContractInfo,
         /**
-         * Must be between 3-200 chars length.
+         * The addresses that are eligible to participate in the sale.
          */
-        readonly name: string,
-        /**
-         * Must be between 3-12 chars length, letters only.
-         */
-        readonly symbol: string,
-        /**
-         * Must be a base64 encoded string. Otherwise, the tx will fail.
-         */
-        readonly prng_seed: string,
-        /**
-         * Max is 18
-         */
-        readonly decimals: number,
-        readonly config?: Snip20InitConfig | null
-    ) { }
-}
-
-export class Snip20InitConfig {
-    public_total_supply?: boolean | null;
+        readonly whitelist: Address[]
+    ) {}
 }
 
 export class Pagination {
@@ -165,6 +155,14 @@ export interface RewardPool {
 
 export interface RewardsAccount {
     /**
+     * The last time that the user claimed their rewards.
+     */
+    last_claimed: number;
+    /**
+     * The amount of LP tokens the owner has locked into this contract.
+     */
+    locked_amount: Uint128;
+    /**
      * The address of the LP token that this account is for.
      */
     lp_token_addr: Address;
@@ -173,13 +171,14 @@ export interface RewardsAccount {
      */
     owner: Address;
     /**
-     * The last time that the user claimed their rewards.
+     * A history of submitted tokens that aren't included in the rewards calculations yet.
      */
-    last_claimed: number;
-    /**
-     * The amount of LP tokens the owner has locked into this contract.
-     */
-    locked_amount: number;
+    pending_balances?: PendingBalance[] | null;
+}
+
+export interface PendingBalance {
+    amount: Uint128;
+    submitted_at: number;
 }
 
 export type ClaimError =
