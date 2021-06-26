@@ -61,8 +61,8 @@ impl Account<HumanAddr> {
         }
     }
 
-    pub fn locked_amount(&self) -> Uint128 {
-        self.locked_amount
+    pub fn locked_amount(&self) -> u128 {
+        self.locked_amount.u128()
     }
 
     pub fn total_pending(&self) -> u128 {
@@ -124,11 +124,11 @@ impl Account<HumanAddr> {
                 index = i;
             }
 
-            let remaining: Vec<PendingBalance> = balances
-                .drain(0..=index)
-                .collect();
+            for _ in 0..=index {
+                balances.remove(0);
+            }
 
-            if remaining.len() == 0 {
+            if balances.len() == 0 {
                 self.pending_balances = None;
             }
         }
@@ -139,52 +139,42 @@ impl Account<HumanAddr> {
     /// Subtracts the specified `amount` from the account, starting from
     /// the pending balance and any remainder - from the actual locked amount.
     pub fn subtract_balance(&mut self, mut amount: u128) -> StdResult<()> {
-        if let Some(balances) = &mut self.pending_balances {
-            let mut index = 0;
+        if amount > self.total_pending() + self.locked_amount.u128() {
+            return Err(StdError::generic_err("Insufficient balance."));
+        }
 
-            for (i, balance) in balances.iter_mut().rev().enumerate() {
+        if let Some(balances) = &mut self.pending_balances {
+            let mut to_remove = 0;
+
+            for balance in balances.iter_mut().rev() {
                 if balance.amount.u128() <= amount {
                     amount -= balance.amount.u128();
                 } else {
                     balance.amount = Uint128(balance.amount.u128() - amount);
-
-                    if balance.amount > Uint128::zero() {
-                        return Ok(());
-                    }
+                    amount = 0;
 
                     break;
                 }
 
-                index = i;
+                to_remove += 1;
             }
 
-            let remaining: Vec<PendingBalance> = balances
-                .drain(index..balances.len())
-                .collect();
+            while to_remove > 0 {
+                balances.pop();
+                to_remove -= 1;
+            }
 
-            if remaining.len() == 0 {
+            if balances.len() == 0 {
                 self.pending_balances = None;
             }
 
             if amount > 0 {
-                self.locked_amount = self.locked_amount
-                    .u128()
-                    .checked_sub(amount)
-                    .ok_or_else(||
-                        StdError::generic_err("Insufficient balance.")
-                    )?
-                    .into();
+                self.locked_amount = Uint128(self.locked_amount.u128() - amount);
             }
         } else {
-            self.locked_amount = self.locked_amount
-                .u128()
-                .checked_sub(amount)
-                .ok_or_else(||
-                    StdError::generic_err("Insufficient balance.")
-                )?
-                .into();
+            self.locked_amount = Uint128(self.locked_amount.u128() - amount);
         }
-
+        
         Ok(())
     }
 }
@@ -297,6 +287,7 @@ mod tests {
         }).unwrap();
 
         let unlocked = acc.unlock_pending(310, interval).unwrap();
+        assert_eq!(acc.locked_amount(), 150);
         assert_eq!(unlocked, 150);
         assert_eq!(acc.total_pending(), 20);
 
@@ -306,11 +297,64 @@ mod tests {
         }).unwrap();
 
         let unlocked = acc.unlock_pending(350, interval).unwrap();
+        assert_eq!(acc.locked_amount(), 150);
         assert_eq!(unlocked, 0);
         assert_eq!(acc.total_pending(), 70);
 
         let unlocked = acc.unlock_pending(440, interval).unwrap();
+        assert_eq!(acc.locked_amount(), 220);
         assert_eq!(unlocked, 70);
         assert_eq!(acc.total_pending(), 0);
+    }
+
+    #[test]
+    fn test_subtract_balance() {
+        let mut acc = create_account();
+
+        acc.add_pending_balance(PendingBalance {
+            amount: Uint128(100),
+            submitted_at: 100
+        }).unwrap();
+
+        acc.add_pending_balance(PendingBalance {
+            amount: Uint128(100),
+            submitted_at: 120
+        }).unwrap();
+
+        acc.subtract_balance(201).unwrap_err();
+        assert_eq!(acc.locked_amount(), 0);
+        assert_eq!(acc.total_pending(), 200);
+
+        acc.subtract_balance(199).unwrap();
+        assert_eq!(acc.locked_amount(), 0);
+        assert_eq!(acc.total_pending(), 1);
+
+        // Should start subtracting from the most recent entry
+        acc.unlock_pending(200, 100).unwrap();
+        assert_eq!(acc.locked_amount(), 1);
+        assert_eq!(acc.total_pending(), 0);
+
+        acc.add_pending_balance(PendingBalance {
+            amount: Uint128(100),
+            submitted_at: 100
+        }).unwrap();
+
+        acc.subtract_balance(101).unwrap();
+        assert_eq!(acc.locked_amount(), 0);
+        assert_eq!(acc.total_pending(), 0);
+
+        acc.add_pending_balance(PendingBalance {
+            amount: Uint128(100),
+            submitted_at: 100
+        }).unwrap();
+
+        acc.add_pending_balance(PendingBalance {
+            amount: Uint128(100),
+            submitted_at: 120
+        }).unwrap();
+
+        acc.subtract_balance(100).unwrap();
+        assert_eq!(acc.locked_amount(), 0);
+        assert_eq!(acc.total_pending(), 100);
     }
 }

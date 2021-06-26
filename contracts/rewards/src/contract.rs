@@ -134,7 +134,7 @@ pub(crate) fn lock_tokens<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err("Lock amount is zero."));
     }
 
-    let pool = get_pool_or_fail(deps, &lp_token_addr)?;
+    let mut pool = get_pool_or_fail(deps, &lp_token_addr)?;
     let mut account = get_or_create_account(deps, &env.message.sender, &lp_token_addr)?;
 
     account.add_pending_balance(PendingBalance { 
@@ -147,16 +147,16 @@ pub(crate) fn lock_tokens<S: Storage, A: Api, Q: Querier>(
         account.last_claimed = env.block.time;
     }
 
-    // Check if the total size would overflow.
-    // Actually increase the size when these tokens are unlocked.
-    pool.size
+    pool.size = pool.size
         .u128()
-        .checked_add(account.total_pending())
+        .checked_add(amount.u128())
         .ok_or_else(||
             StdError::generic_err("Pool size overflow detected.")
-        )?;
+        )?
+        .into();
 
     save_account(deps, &account)?;
+    save_pool(deps, &pool)?;
     
     Ok(HandleResponse{
         messages: vec![
@@ -243,18 +243,13 @@ pub(crate) fn claim<S: Storage, A: Api, Q: Querier>(
     let mut total_rewards_amount = 0u128;
 
     for addr in lp_tokens {
-        let mut pool = get_pool_or_fail(deps, &addr)?;
+        let pool = get_pool_or_fail(deps, &addr)?;
+
         let mut account = get_account_or_fail(deps, &env.message.sender, &addr)?;
-
-        let unlocked = account.unlock_pending(env.block.time, config.claim_interval)?;
-
-        if unlocked > 0 {
-            pool.size = pool.size.u128().saturating_add(unlocked).into();
-            save_pool(deps, &pool)?;
-        }
+        account.unlock_pending(env.block.time, config.claim_interval)?;
 
         let reward_amount = calc_reward_share(
-            account.locked_amount().u128(),
+            account.locked_amount(),
             &pool,
             config.token_decimals
         )?;
@@ -273,7 +268,7 @@ pub(crate) fn claim<S: Storage, A: Api, Q: Querier>(
 
         if portions == 0 {
             return Err(StdError::generic_err(format!(
-                "Need to wait {} more time before claiming.",
+                "Need to wait {} more seconds before claiming.",
                 config.claim_interval - (env.block.time - account.last_claimed)
             )));
         }
@@ -366,13 +361,13 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
         let mut account = get_account_or_fail(deps, &sender, &addr)?;
         account.unlock_pending(current_time, config.claim_interval)?;
 
-        if account.locked_amount() == Uint128::zero() {
+        if account.locked_amount() == 0 {
             results.push(ClaimResult::error(addr, ClaimError::AccountZeroLocked));
             continue;
         }
 
         let reward_per_portion = calc_reward_share(
-            account.locked_amount().u128(),
+            account.locked_amount(),
             &pool,
             config.token_decimals
         )?;

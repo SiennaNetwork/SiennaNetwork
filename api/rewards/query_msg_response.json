@@ -161,6 +161,16 @@
               "$ref": "#/definitions/HumanAddr"
             }
           ]
+        },
+        "pending_balances": {
+          "description": "A history of submitted tokens that aren't included in the rewards calculations yet.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/PendingBalance"
+          }
         }
       }
     },
@@ -334,6 +344,23 @@
     },
     "HumanAddr": {
       "type": "string"
+    },
+    "PendingBalance": {
+      "type": "object",
+      "required": [
+        "amount",
+        "submitted_at"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "submitted_at": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
     },
     "RewardPool_for_HumanAddr": {
       "description": "Represents a pair that is eligible for rewards.",

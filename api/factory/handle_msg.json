@@ -134,7 +134,7 @@
           ],
           "properties": {
             "info": {
-              "$ref": "#/definitions/InitConfig"
+              "$ref": "#/definitions/TokenSaleConfig"
             }
           }
         }
@@ -270,6 +270,22 @@
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
     },
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
     "ContractInstantiationInfo": {
       "description": "Info needed to instantiate a contract.",
       "type": "object",
@@ -370,66 +386,6 @@
     "HumanAddr": {
       "type": "string"
     },
-    "InitConfig": {
-      "type": "object",
-      "required": [
-        "input_token",
-        "rate",
-        "snip20_init_info"
-      ],
-      "properties": {
-        "input_token": {
-          "description": "The token that will be used to buy the instantiated SNIP20",
-          "allOf": [
-            {
-              "$ref": "#/definitions/TokenType_for_HumanAddr"
-            }
-          ]
-        },
-        "rate": {
-          "$ref": "#/definitions/Uint128"
-        },
-        "snip20_init_info": {
-          "$ref": "#/definitions/Snip20TokenInitInfo"
-        }
-      }
-    },
-    "Snip20TokenInitInfo": {
-      "description": "Used to provide only the essential info to an IDO that instantiates a snip20 token",
-      "type": "object",
-      "required": [
-        "decimals",
-        "name",
-        "prng_seed",
-        "symbol"
-      ],
-      "properties": {
-        "config": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/InitConfig"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "decimals": {
-          "type": "integer",
-          "format": "uint8",
-          "minimum": 0.0
-        },
-        "name": {
-          "type": "string"
-        },
-        "prng_seed": {
-          "$ref": "#/definitions/Binary"
-        },
-        "symbol": {
-          "type": "string"
-        }
-      }
-    },
     "TokenPair_for_HumanAddr": {
       "type": "array",
       "items": [
@@ -442,6 +398,68 @@
       ],
       "maxItems": 2,
       "minItems": 2
+    },
+    "TokenSaleConfig": {
+      "type": "object",
+      "required": [
+        "input_token",
+        "max_allocation",
+        "max_seats",
+        "min_allocation",
+        "rate",
+        "sold_token",
+        "whitelist"
+      ],
+      "properties": {
+        "input_token": {
+          "description": "The token that will be used to buy the SNIP20.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TokenType_for_HumanAddr"
+            }
+          ]
+        },
+        "max_allocation": {
+          "description": "The total amount that each participant is allowed to buy.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "max_seats": {
+          "description": "The maximum number of participants allowed.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "min_allocation": {
+          "description": "The minimum amount that each participant is allowed to buy.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "rate": {
+          "description": "The price for a single token.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "sold_token": {
+          "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+        },
+        "whitelist": {
+          "description": "The addresses that are eligible to participate in the sale.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HumanAddr"
+          }
+        }
+      }
     },
     "TokenType_for_HumanAddr": {
       "anyOf": [

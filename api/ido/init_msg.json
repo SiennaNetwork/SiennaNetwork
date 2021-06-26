@@ -5,8 +5,7 @@
   "required": [
     "admin",
     "callback",
-    "info",
-    "snip20_contract"
+    "info"
   ],
   "properties": {
     "admin": {
@@ -26,10 +25,7 @@
       ]
     },
     "info": {
-      "$ref": "#/definitions/InitConfig"
-    },
-    "snip20_contract": {
-      "$ref": "#/definitions/ContractInstantiationInfo"
+      "$ref": "#/definitions/TokenSaleConfig"
     }
   },
   "definitions": {
@@ -79,84 +75,68 @@
         }
       }
     },
-    "ContractInstantiationInfo": {
-      "description": "Info needed to instantiate a contract.",
-      "type": "object",
-      "required": [
-        "code_hash",
-        "id"
-      ],
-      "properties": {
-        "code_hash": {
-          "type": "string"
-        },
-        "id": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0.0
-        }
-      }
-    },
     "HumanAddr": {
       "type": "string"
     },
-    "InitConfig": {
+    "TokenSaleConfig": {
       "type": "object",
       "required": [
         "input_token",
+        "max_allocation",
+        "max_seats",
+        "min_allocation",
         "rate",
-        "snip20_init_info"
+        "sold_token",
+        "whitelist"
       ],
       "properties": {
         "input_token": {
-          "description": "The token that will be used to buy the instantiated SNIP20",
+          "description": "The token that will be used to buy the SNIP20.",
           "allOf": [
             {
               "$ref": "#/definitions/TokenType_for_HumanAddr"
             }
           ]
         },
-        "rate": {
-          "$ref": "#/definitions/Uint128"
-        },
-        "snip20_init_info": {
-          "$ref": "#/definitions/Snip20TokenInitInfo"
-        }
-      }
-    },
-    "Snip20TokenInitInfo": {
-      "description": "Used to provide only the essential info to an IDO that instantiates a snip20 token",
-      "type": "object",
-      "required": [
-        "decimals",
-        "name",
-        "prng_seed",
-        "symbol"
-      ],
-      "properties": {
-        "config": {
-          "anyOf": [
+        "max_allocation": {
+          "description": "The total amount that each participant is allowed to buy.",
+          "allOf": [
             {
-              "$ref": "#/definitions/InitConfig"
-            },
-            {
-              "type": "null"
+              "$ref": "#/definitions/Uint128"
             }
           ]
         },
-        "decimals": {
+        "max_seats": {
+          "description": "The maximum number of participants allowed.",
           "type": "integer",
-          "format": "uint8",
+          "format": "uint32",
           "minimum": 0.0
         },
-        "name": {
-          "type": "string"
+        "min_allocation": {
+          "description": "The minimum amount that each participant is allowed to buy.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
         },
-        "prng_seed": {
-          "$ref": "#/definitions/Binary"
+        "rate": {
+          "description": "The price for a single token.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
         },
-        "symbol": {
-          "type": "string"
+        "sold_token": {
+          "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+        },
+        "whitelist": {
+          "description": "The addresses that are eligible to participate in the sale.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HumanAddr"
+          }
         }
       }
     },

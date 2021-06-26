@@ -477,12 +477,16 @@ fn test_cant_claim_twice_by_retrieving_tokens() {
 
     time += claim_interval / 2;
 
-    let err = execute_claim(deps, time, user.clone(), lp_token_addr.clone()).unwrap_err();
+    let err = claim(
+        deps,
+        mock_env_with_time(user.clone(), time),
+        vec![ lp_token_addr.clone() ]
+    ).unwrap_err();
 
     match err {
         StdError::GenericErr { msg, .. } => {
-            if !(msg == "Need to wait 50 more time before claiming.") {
-                panic!("Expecting early claim error")
+            if !(msg == format!("Reward amount for {} is zero.", lp_token_addr)) {
+                panic!("Expecting reward amount to be 0.")
             }
         },
         _ => panic!("Expecting StdError::GenericErr")
@@ -530,13 +534,16 @@ fn test_cant_claim_instantly() {
 
     time += 50;
 
-    let err = execute_claim(deps, time, user.clone(), lp_token_addr.clone()).unwrap_err();
+    let err = claim(
+        deps,
+        mock_env_with_time(user.clone(), time),
+        vec![ lp_token_addr.clone() ]
+    ).unwrap_err();
 
     match err {
         StdError::GenericErr { msg, .. } => {
-            println!("{}", msg);
-            if !(msg == "Need to wait 50 more time before claiming.") {
-                panic!("Expecting early claim error")
+            if !(msg == format!("Reward amount for {} is zero.", lp_token_addr)) {
+                panic!("Expecting reward amount to be 0.")
             }
         },
         _ => panic!("Expecting StdError::GenericErr")
@@ -577,7 +584,7 @@ fn execute_claim(
         mock_env_with_time(user.clone(), time),
         vec![ lp_token ]
     );
-    
+
     if result.is_err() { 
         let err = result.unwrap_err();
 

@@ -57,19 +57,11 @@
           "type": "object",
           "required": [
             "address",
-            "lp_tokens",
             "viewing_key"
           ],
           "properties": {
             "address": {
               "$ref": "#/definitions/HumanAddr"
-            },
-            "lp_tokens": {
-              "description": "The addresses of the LP tokens pools to get the accounts for.",
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/HumanAddr"
-              }
             },
             "viewing_key": {
               "type": "string"
