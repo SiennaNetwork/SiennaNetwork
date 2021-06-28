@@ -5,6 +5,7 @@
   "required": [
     "claim_interval",
     "entropy",
+    "pool",
     "prng_seed",
     "reward_token"
   ],
@@ -27,17 +28,11 @@
     "entropy": {
       "$ref": "#/definitions/Binary"
     },
+    "pool": {
+      "$ref": "#/definitions/RewardPoolConfig"
+    },
     "prng_seed": {
       "$ref": "#/definitions/Binary"
-    },
-    "reward_pools": {
-      "type": [
-        "array",
-        "null"
-      ],
-      "items": {
-        "$ref": "#/definitions/RewardPoolConfig"
-      }
     },
     "reward_token": {
       "$ref": "#/definitions/ContractInstance_for_HumanAddr"

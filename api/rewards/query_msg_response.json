@@ -16,28 +16,22 @@
     {
       "type": "object",
       "required": [
-        "accounts"
+        "account"
       ],
       "properties": {
-        "accounts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Account_for_HumanAddr"
-          }
+        "account": {
+          "$ref": "#/definitions/Account_for_HumanAddr"
         }
       }
     },
     {
       "type": "object",
       "required": [
-        "pools"
+        "pool"
       ],
       "properties": {
-        "pools": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/RewardPool_for_HumanAddr"
-          }
+        "pool": {
+          "$ref": "#/definitions/RewardPool_for_HumanAddr"
         }
       }
     },
@@ -123,12 +117,11 @@
   ],
   "definitions": {
     "Account_for_HumanAddr": {
-      "description": "Accounts are based on (user - LP token) pairs. This means that a single user can have multiple accounts - one for each LP token.",
+      "description": "An account for a single user.",
       "type": "object",
       "required": [
         "last_claimed",
         "locked_amount",
-        "lp_token_addr",
         "owner"
       ],
       "properties": {
@@ -143,14 +136,6 @@
           "allOf": [
             {
               "$ref": "#/definitions/Uint128"
-            }
-          ]
-        },
-        "lp_token_addr": {
-          "description": "The address of the LP token that this account is for.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/HumanAddr"
             }
           ]
         },
@@ -245,15 +230,22 @@
         }
       ]
     },
-    "ClaimResult": {
+    "ClaimSimulationResult": {
       "type": "object",
       "required": [
-        "lp_token_addr",
+        "actual_claimed",
         "reward_amount",
-        "reward_per_portion",
-        "success"
+        "reward_per_portion"
       ],
       "properties": {
+        "actual_claimed": {
+          "description": "The actual amount of rewards that would be claimed.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
         "error": {
           "anyOf": [
             {
@@ -264,16 +256,8 @@
             }
           ]
         },
-        "lp_token_addr": {
-          "description": "The address of the LP token that the reward pool corresponds to.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/HumanAddr"
-            }
-          ]
-        },
         "reward_amount": {
-          "description": "The total reward amount that would be claimed from this pool.",
+          "description": "The total amount of rewards that should be claimed.",
           "allOf": [
             {
               "$ref": "#/definitions/Uint128"
@@ -282,42 +266,6 @@
         },
         "reward_per_portion": {
           "description": "The reward amount that would be claimed for a single portion.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Uint128"
-            }
-          ]
-        },
-        "success": {
-          "type": "boolean"
-        }
-      }
-    },
-    "ClaimSimulationResult": {
-      "type": "object",
-      "required": [
-        "actual_claimed",
-        "results",
-        "total_rewards_amount"
-      ],
-      "properties": {
-        "actual_claimed": {
-          "description": "The actual amount of rewards that would be claimed from all the supplied pools.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Uint128"
-            }
-          ]
-        },
-        "results": {
-          "description": "Detailed info about the claim for each reward pool.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ClaimResult"
-          }
-        },
-        "total_rewards_amount": {
-          "description": "The total amount of rewards that should be claimed from all the supplied pools.",
           "allOf": [
             {
               "$ref": "#/definitions/Uint128"

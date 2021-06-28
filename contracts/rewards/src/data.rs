@@ -17,13 +17,10 @@ pub struct RewardPool<A> {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-/// Accounts are based on (user - LP token) pairs. This means that a single
-/// user can have multiple accounts - one for each LP token.
+/// An account for a single user.
 pub struct Account<A> {
     /// The owner of this account.
     pub owner: A,
-    /// The address of the LP token that this account is for.
-    pub lp_token_addr: A,
     /// The last time that the user claimed their rewards.
     pub last_claimed: u64,
     /// The amount of LP tokens the owner has locked into this contract.
@@ -40,21 +37,14 @@ pub struct PendingBalance {
 
 impl PartialEq for Account<HumanAddr> {
     fn eq(&self, other: &Self) -> bool {
-        self.owner == other.owner && self.lp_token_addr == self.lp_token_addr
-    }
-}
-
-impl PartialEq for RewardPool<HumanAddr> {
-    fn eq(&self, other: &Self) -> bool {
-        self.lp_token.address == other.lp_token.address
+        self.owner == other.owner
     }
 }
 
 impl Account<HumanAddr> {
-    pub fn new(owner: HumanAddr, lp_token_addr: HumanAddr) -> Self {
+    pub fn new(owner: HumanAddr) -> Self {
         Account {
             owner,
-            lp_token_addr,
             locked_amount: Uint128::zero(),
             pending_balances: None,
             last_claimed: 0
@@ -183,7 +173,6 @@ impl Humanize<Account<HumanAddr>> for Account<CanonicalAddr> {
     fn humanize(&self, api: &impl Api) -> StdResult<Account<HumanAddr>> {
         Ok(Account {
             owner: self.owner.humanize(api)?,
-            lp_token_addr: self.lp_token_addr.humanize(api)?,
             locked_amount: self.locked_amount,
             pending_balances: self.pending_balances.clone(),
             last_claimed: self.last_claimed
@@ -195,7 +184,6 @@ impl Canonize<Account<CanonicalAddr>> for Account<HumanAddr> {
     fn canonize (&self, api: &impl Api) -> StdResult<Account<CanonicalAddr>> {
         Ok(Account {
             owner: self.owner.canonize(api)?,
-            lp_token_addr: self.lp_token_addr.canonize(api)?,
             locked_amount: self.locked_amount,
             pending_balances: self.pending_balances.clone(),
             last_claimed: self.last_claimed
@@ -228,7 +216,7 @@ mod tests {
     use super::*;
 
     fn create_account() -> Account<HumanAddr> {
-        Account::new("user".into(), "lp_token".into())
+        Account::new("user".into())
     }
 
     #[test]

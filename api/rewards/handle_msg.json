@@ -3,6 +3,12 @@
   "title": "HandleMsg",
   "anyOf": [
     {
+      "type": "string",
+      "enum": [
+        "claim"
+      ]
+    },
+    {
       "type": "object",
       "required": [
         "lock_tokens"
@@ -11,15 +17,11 @@
         "lock_tokens": {
           "type": "object",
           "required": [
-            "amount",
-            "lp_token"
+            "amount"
           ],
           "properties": {
             "amount": {
               "$ref": "#/definitions/Uint128"
-            },
-            "lp_token": {
-              "$ref": "#/definitions/HumanAddr"
             }
           }
         }
@@ -34,15 +36,11 @@
         "retrieve_tokens": {
           "type": "object",
           "required": [
-            "amount",
-            "lp_token"
+            "amount"
           ],
           "properties": {
             "amount": {
               "$ref": "#/definitions/Uint128"
-            },
-            "lp_token": {
-              "$ref": "#/definitions/HumanAddr"
             }
           }
         }
@@ -51,52 +49,17 @@
     {
       "type": "object",
       "required": [
-        "claim"
+        "change_pool_share"
       ],
       "properties": {
-        "claim": {
+        "change_pool_share": {
           "type": "object",
           "required": [
-            "lp_tokens"
+            "new_share"
           ],
           "properties": {
-            "lp_tokens": {
-              "description": "The addresses of the LP tokens pools to claim from.",
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/HumanAddr"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "change_pools"
-      ],
-      "properties": {
-        "change_pools": {
-          "type": "object",
-          "required": [
-            "pools",
-            "total_share"
-          ],
-          "properties": {
-            "pools": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/RewardPoolConfig"
-              }
-            },
-            "total_share": {
-              "description": "The total share of all the pools provided. This is used as an additional correctness check.",
-              "allOf": [
-                {
-                  "$ref": "#/definitions/Uint128"
-                }
-              ]
+            "new_share": {
+              "$ref": "#/definitions/Uint128"
             }
           }
         }
@@ -188,50 +151,8 @@
         }
       ]
     },
-    "ContractInstance_for_HumanAddr": {
-      "description": "Info needed to talk to a contract instance.",
-      "type": "object",
-      "required": [
-        "address",
-        "code_hash"
-      ],
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
-        },
-        "code_hash": {
-          "type": "string"
-        }
-      }
-    },
     "HumanAddr": {
       "type": "string"
-    },
-    "RewardPoolConfig": {
-      "description": "Represents a pair that is eligible for rewards.",
-      "type": "object",
-      "required": [
-        "lp_token",
-        "share"
-      ],
-      "properties": {
-        "lp_token": {
-          "description": "The LP token address that the pool will be associated with.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
-            }
-          ]
-        },
-        "share": {
-          "description": "The reward amount allocated to this pool.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Uint128"
-            }
-          ]
-        }
-      }
     },
     "Uint128": {
       "type": "string"

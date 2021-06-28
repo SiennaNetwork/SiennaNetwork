@@ -22,7 +22,7 @@ pub struct RewardPoolConfig {
 pub struct InitMsg {
     pub admin: Option<HumanAddr>,
     pub reward_token: ContractInstance<HumanAddr>,
-    pub reward_pools: Option<Vec<RewardPoolConfig>>,
+    pub pool: RewardPoolConfig,
     pub claim_interval: u64,
     pub prng_seed: Binary,
     pub entropy: Binary
@@ -32,22 +32,14 @@ pub struct InitMsg {
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
     LockTokens { 
-        amount: Uint128,
-        lp_token: HumanAddr
+        amount: Uint128
     },
     RetrieveTokens {
-        amount: Uint128,
-        lp_token: HumanAddr
+        amount: Uint128
     },
-    Claim {
-        /// The addresses of the LP tokens pools to claim from.
-        lp_tokens: Vec<HumanAddr>
-    },
-    ChangePools {
-        /// The total share of all the pools provided. This is used
-        /// as an additional correctness check.
-        total_share: Uint128, 
-        pools: Vec<RewardPoolConfig>
+    Claim,
+    ChangePoolShare {
+        new_share: Uint128
     },
     CreateViewingKey {
         entropy: String,
@@ -64,18 +56,16 @@ pub enum HandleMsg {
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     ClaimSimulation {
-        /// The addresses of the LP tokens pools to claim from.
-        lp_tokens: Vec<HumanAddr>,
         viewing_key: String,
         address: HumanAddr,
         /// Unix time in seconds.
         current_time: u64
     },
-    Accounts { 
+    Account { 
         address: HumanAddr,
         viewing_key: String
     },
-    Pools,
+    Pool,
     TotalRewardsSupply,
     Admin(AdminQueryMsg),
     /// Copy of SNIP20 message for Keplr support
@@ -84,12 +74,12 @@ pub enum QueryMsg {
     Balance { address: HumanAddr, key: String, },
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Debug, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsgResponse {
     ClaimSimulation(ClaimSimulationResult),
-    Accounts(Vec<Account<HumanAddr>>),
-    Pools(Vec<RewardPool<HumanAddr>>),
+    Account(Account<HumanAddr>),
+    Pool(RewardPool<HumanAddr>),
     TotalRewardsSupply {
         amount: Uint128
     },
@@ -108,27 +98,14 @@ pub enum QueryMsgResponse {
 
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug)]
 pub struct ClaimSimulationResult {
-    /// Detailed info about the claim for each reward pool.
-    pub results: Vec<ClaimResult>,
-    /// The total amount of rewards that should be claimed from all
-    /// the supplied pools.
-    pub total_rewards_amount: Uint128,
-    /// The actual amount of rewards that would be claimed from all
-    /// the supplied pools.
-    pub actual_claimed: Uint128
-}
-
-#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug)]
-pub struct ClaimResult {
-    /// The address of the LP token that the reward pool
-    /// corresponds to.
-    pub lp_token_addr: HumanAddr,
-    /// The total reward amount that would be claimed from this pool.
+    /// The total amount of rewards that should be claimed.
     pub reward_amount: Uint128,
     /// The reward amount that would be claimed for a single portion.
     pub reward_per_portion: Uint128,
-    pub success: bool,
+    /// The actual amount of rewards that would be claimed.
+    pub actual_claimed: Uint128,
     pub error: Option<ClaimError>
+
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, JsonSchema)]
@@ -175,23 +152,25 @@ impl From<GetBalanceError> for StdError {
     }
 }
 
-impl ClaimResult {
-    pub fn success(lp_token_addr: HumanAddr, reward_amount: Uint128, reward_per_portion: Uint128) -> Self {
+impl ClaimSimulationResult {
+    pub fn success(
+        reward_amount: Uint128,
+        reward_per_portion: Uint128,
+        actual_claimed: Uint128
+    ) -> Self {
         Self {
-            lp_token_addr,
             reward_amount,
             reward_per_portion,
-            success: true,
+            actual_claimed,
             error: None
         }
     }
 
-    pub fn error(lp_token_addr: HumanAddr, error: ClaimError) -> Self {
+    pub fn error(error: ClaimError) -> Self {
         Self {
-            lp_token_addr,
             reward_amount: Uint128::zero(),
             reward_per_portion: Uint128::zero(),
-            success: false,
+            actual_claimed: Uint128::zero(),
             error: Some(error)
         }
     }

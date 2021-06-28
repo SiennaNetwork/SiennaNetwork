@@ -14,13 +14,13 @@ use cosmwasm_utils::viewing_key::ViewingKey;
 use cosmwasm_utils::convert::{convert_token, get_whole_token_representation};
 
 use crate::msg::{
-    HandleMsg, InitMsg, QueryMsg, OVERFLOW_MSG, RewardPoolConfig,
-    QueryMsgResponse, ClaimSimulationResult, ClaimResult, ClaimError,
+    HandleMsg, InitMsg, QueryMsg, OVERFLOW_MSG,
+    QueryMsgResponse, ClaimSimulationResult, ClaimError,
     GetBalanceError
 };
 use crate::state::{
-    save_config, Config, replace_active_pools, get_pool, get_account, save_account,
-    get_or_create_account, save_pool, load_config, get_pools, get_inactive_pool
+    save_config, Config, load_pool, get_account, save_account,
+    get_or_create_account, save_pool, load_config
 };
 use crate::data::{RewardPool, Account, PendingBalance};
 use crate::auth::AuthImpl;
@@ -57,11 +57,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     };
 
     save_config(deps, &config)?;
-
-    if let Some(pools) = msg.reward_pools {
-        let pools = into_pools(pools);
-        replace_active_pools(deps, &pools)?;
-    }
+    save_pool(deps, &msg.pool.into())?;
 
     Ok(InitResponse {
         messages: vec![
@@ -83,10 +79,10 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     match msg {
-        HandleMsg::LockTokens { amount, lp_token } => lock_tokens(deps, env, amount, lp_token),
-        HandleMsg::RetrieveTokens { amount, lp_token } => retrieve_tokens(deps, env, amount, lp_token),
-        HandleMsg::Claim { lp_tokens } => claim(deps, env, lp_tokens),
-        HandleMsg::ChangePools { pools, total_share } => change_pools(deps, env, into_pools(pools), total_share),
+        HandleMsg::LockTokens { amount } => lock_tokens(deps, env, amount),
+        HandleMsg::RetrieveTokens { amount } => retrieve_tokens(deps, env, amount),
+        HandleMsg::Claim => claim(deps, env),
+        HandleMsg::ChangePoolShare { new_share } => change_pool_share(deps, env, new_share),
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultAdminHandle),
         HandleMsg::CreateViewingKey { entropy, .. } =>
             auth_handle(deps, env, AuthHandleMsg::CreateViewingKey { entropy, padding: None }, AuthImpl),
@@ -100,12 +96,11 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
-        QueryMsg::ClaimSimulation { lp_tokens, viewing_key, address, current_time } => 
-            claim_simulation(deps, lp_tokens, address, ViewingKey(viewing_key), current_time),
-        QueryMsg::Accounts { address, viewing_key } =>
-            query_accounts(deps, address, ViewingKey(viewing_key)),
-        QueryMsg::Pools => query_pools(deps),
-
+        QueryMsg::ClaimSimulation { viewing_key, address, current_time } => 
+            claim_simulation(deps, address, ViewingKey(viewing_key), current_time),
+        QueryMsg::Account { address, viewing_key } =>
+            query_account(deps, address, ViewingKey(viewing_key)),
+        QueryMsg::Pool => query_pool(deps),
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
         QueryMsg::TotalRewardsSupply => query_supply(deps),
         // Keplr support:
@@ -127,15 +122,14 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
 pub(crate) fn lock_tokens<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    amount: Uint128,
-    lp_token_addr: HumanAddr
+    amount: Uint128
 ) -> StdResult<HandleResponse> {
     if amount == Uint128::zero() {
         return Err(StdError::generic_err("Lock amount is zero."));
     }
 
-    let mut pool = get_pool_or_fail(deps, &lp_token_addr)?;
-    let mut account = get_or_create_account(deps, &env.message.sender, &lp_token_addr)?;
+    let mut pool = load_pool(&deps)?;
+    let mut account = get_or_create_account(deps, &env.message.sender)?;
 
     account.add_pending_balance(PendingBalance { 
         amount,
@@ -157,7 +151,7 @@ pub(crate) fn lock_tokens<S: Storage, A: Api, Q: Querier>(
 
     save_account(deps, &account)?;
     save_pool(deps, &pool)?;
-    
+
     Ok(HandleResponse{
         messages: vec![
             snip20::transfer_from_msg(
@@ -174,7 +168,6 @@ pub(crate) fn lock_tokens<S: Storage, A: Api, Q: Querier>(
             log("action", "lock_tokens"),
             log("amount_locked", amount),
             log("locked_by", account.owner),
-            log("lp_token", account.lp_token_addr),
             log("new_pool_size", pool.size)
         ],
         data: None
@@ -187,26 +180,17 @@ pub(crate) fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     amount: Uint128,
-    lp_token_addr: HumanAddr
 ) -> StdResult<HandleResponse> {
-    let mut account = get_account_or_fail(deps, &env.message.sender, &lp_token_addr)?;
+    let mut account = get_account_or_fail(deps, &env.message.sender)?;
     account.subtract_balance(amount.u128())?;
 
     save_account(deps, &account)?;
 
-    let pool = if let Some(mut p) = get_pool(deps, &lp_token_addr)? {
-        p.size = p.size.u128().saturating_sub(amount.u128()).into();
-        save_pool(deps, &p)?;
+    let mut pool = load_pool(&deps)?;
+    pool.size = pool.size.u128().saturating_sub(amount.u128()).into();
 
-        Some(p)
-    } else {
-        get_inactive_pool(deps, &lp_token_addr)?
-    }.ok_or_else(||
-        StdError::generic_err(
-            format!("Pool {} doesn't exist.", lp_token_addr)
-        )
-    )?;
-    
+    save_pool(deps, &pool)?;
+
     Ok(HandleResponse{
         messages: vec![
             snip20::transfer_msg(
@@ -222,7 +206,6 @@ pub(crate) fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
             log("action", "retrieve_tokens"),
             log("amount_retrieved", amount),
             log("retrieved_by", account.owner),
-            log("lp_token", account.lp_token_addr),
             log("new_pool_size", pool.size)
         ],
         data: None
@@ -234,59 +217,48 @@ pub(crate) fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
 /// amount is truncated to fit the available rewards balance.
 pub(crate) fn claim<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    env: Env,
-    lp_tokens: Vec<HumanAddr>
+    env: Env
 ) -> StdResult<HandleResponse> {
     let config = load_config(deps)?;
     let available_balance = get_balance(&deps.querier, &config)?;
 
-    let mut total_rewards_amount = 0u128;
+    let pool = load_pool(deps)?;
 
-    for addr in lp_tokens {
-        let pool = get_pool_or_fail(deps, &addr)?;
+    let mut account = get_account_or_fail(deps, &env.message.sender)?;
+    account.unlock_pending(env.block.time, config.claim_interval)?;
 
-        let mut account = get_account_or_fail(deps, &env.message.sender, &addr)?;
-        account.unlock_pending(env.block.time, config.claim_interval)?;
+    let reward_amount = calc_reward_share(
+        account.locked_amount(),
+        &pool,
+        config.token_decimals
+    )?;
 
-        let reward_amount = calc_reward_share(
-            account.locked_amount(),
-            &pool,
-            config.token_decimals
-        )?;
-
-        if reward_amount == 0 {
-            return Err(StdError::generic_err(format!(
-                "Reward amount for {} is zero.", &addr
-            )));
-        }
-
-        let portions = calc_portions(
-            account.last_claimed,
-            config.claim_interval,
-            env.block.time
-        )?;
-
-        if portions == 0 {
-            return Err(StdError::generic_err(format!(
-                "Need to wait {} more seconds before claiming.",
-                config.claim_interval - (env.block.time - account.last_claimed)
-            )));
-        }
-
-        account.last_claimed = env.block.time;
-        save_account(deps, &account)?;
-
-        total_rewards_amount = total_rewards_amount.saturating_add(
-            reward_amount.saturating_mul(portions as u128)
-        );
+    if reward_amount == 0 {
+        return Err(StdError::generic_err("Reward amount is currently zero."));
     }
+
+    let portions = calc_portions(
+        account.last_claimed,
+        config.claim_interval,
+        env.block.time
+    )?;
+
+    if portions == 0 {
+        return Err(StdError::generic_err(format!(
+            "Need to wait {} more seconds before claiming.",
+            config.claim_interval - (env.block.time - account.last_claimed)
+        )));
+    }
+
+    account.last_claimed = env.block.time;
+    save_account(deps, &account)?;
 
     // Claim the remaining rewards amount if the current rewards pool,
     // is less than what should be claimed.
-    let claim_amount = if total_rewards_amount > available_balance {
+    let claim_amount = if reward_amount > available_balance {
         available_balance
     } else {
-        total_rewards_amount
+        reward_amount
     };
 
     Ok(HandleResponse {
@@ -303,8 +275,29 @@ pub(crate) fn claim<S: Storage, A: Api, Q: Querier>(
         log: vec![
             log("action", "claim"),
             log("claimed_by", env.message.sender),
-            log("total_rewards_amount", total_rewards_amount),
+            log("reward_amount", reward_amount),
             log("claimed_amount", claim_amount)
+        ],
+        data: None
+    })
+}
+
+#[require_admin]
+pub(crate) fn change_pool_share<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    new_share: Uint128
+) -> StdResult<HandleResponse> {
+    let mut pool = load_pool(deps)?;
+    pool.share = new_share;
+
+    save_pool(deps, &pool)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("action", "change_pool_share"),
+            log("new_pool_share", new_share)
         ],
         data: None
     })
@@ -315,7 +308,6 @@ pub(crate) fn claim<S: Storage, A: Api, Q: Querier>(
 /// errors, if any, instead of terminating the function early.
 fn claim_simulation<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    lp_tokens: Vec<HumanAddr>,
     sender: HumanAddr,
     key: ViewingKey,
     current_time: u64
@@ -332,135 +324,81 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
                 GetBalanceError::StdError(std_err) => {
                     return Err(std_err);
                 }
-                GetBalanceError::PoolEmpty => {
-                    let mut results = Vec::with_capacity(lp_tokens.len());
-
-                    for addr in lp_tokens {
-                        results.push(ClaimResult::error(addr, ClaimError::PoolEmpty))
-                    }
-                    
+                GetBalanceError::PoolEmpty => {             
                     return Ok(to_binary(&QueryMsgResponse::ClaimSimulation(
-                        ClaimSimulationResult {
-                            total_rewards_amount: Uint128::zero(),
-                            actual_claimed: Uint128::zero(),
-                            results
-                        }
+                        ClaimSimulationResult::error(ClaimError::PoolEmpty)
                     ))?);
                 }
             }
         }
     };
-    
-    let mut total_rewards_amount = 0u128;
 
-    let mut results = Vec::with_capacity(lp_tokens.len());
+    let pool = load_pool(deps)?;
 
-    for addr in lp_tokens {
-        let pool = get_pool_or_fail(deps, &addr)?;
+    let mut account = get_account_or_fail(deps, &sender)?;
+    account.unlock_pending(current_time, config.claim_interval)?;
 
-        let mut account = get_account_or_fail(deps, &sender, &addr)?;
-        account.unlock_pending(current_time, config.claim_interval)?;
-
-        if account.locked_amount() == 0 {
-            results.push(ClaimResult::error(addr, ClaimError::AccountZeroLocked));
-            continue;
-        }
-
-        let reward_per_portion = calc_reward_share(
-            account.locked_amount(),
-            &pool,
-            config.token_decimals
-        )?;
-
-        if reward_per_portion == 0 {
-            results.push(ClaimResult::error(addr, ClaimError::AccountZeroReward));
-            continue;
-        }
-
-        let portions = calc_portions(
-            account.last_claimed,
-            config.claim_interval,
-            current_time
-        )?;
-
-        if portions == 0 {
-            results.push(ClaimResult::error(addr, ClaimError::EarlyClaim {
-                time_to_wait: config.claim_interval - (current_time - account.last_claimed)
-            }));
-            continue;
-        }
-
-        let reward_amount = reward_per_portion.saturating_mul(portions as u128);
-        results.push(ClaimResult::success(addr, Uint128(reward_amount), Uint128(reward_per_portion)));
-
-        total_rewards_amount = total_rewards_amount.saturating_add(reward_amount);
+    if account.locked_amount() == 0 {
+        return to_binary(&QueryMsgResponse::ClaimSimulation(
+            ClaimSimulationResult::error(ClaimError::AccountZeroLocked))
+        );
     }
 
-    let claim_amount = if total_rewards_amount > available_balance {
+    let reward_per_portion = calc_reward_share(
+        account.locked_amount(),
+        &pool,
+        config.token_decimals
+    )?;
+
+    if reward_per_portion == 0 {
+        return to_binary(&QueryMsgResponse::ClaimSimulation(
+            ClaimSimulationResult::error(ClaimError::AccountZeroReward))
+        );
+    }
+
+    let portions = calc_portions(
+        account.last_claimed,
+        config.claim_interval,
+        current_time
+    )?;
+
+    if portions == 0 {
+        return to_binary(&QueryMsgResponse::ClaimSimulation(
+            ClaimSimulationResult::error(ClaimError::EarlyClaim {
+                time_to_wait: config.claim_interval - (current_time - account.last_claimed)
+            }))
+        );
+    }
+
+    let reward_amount = reward_per_portion.saturating_mul(portions as u128);
+
+    let claim_amount = if reward_amount > available_balance {
         available_balance
     } else {
-        total_rewards_amount
+        reward_amount
     };
 
-    Ok(to_binary(&QueryMsgResponse::ClaimSimulation(
-        ClaimSimulationResult {
-            total_rewards_amount: Uint128(total_rewards_amount),
-            actual_claimed: Uint128(claim_amount),
-            results
-        }
-    ))?)
+    to_binary(&QueryMsgResponse::ClaimSimulation(
+            ClaimSimulationResult::success(
+                reward_amount.into(),
+                reward_per_portion.into(),
+                claim_amount.into()
+            )
+        )
+    )
 }
 
-/// Admin only command. Replaces the current reward pools with the ones provided.
-/// Keeps the existing pool sizes for the ones that should remain. Instead of deleting
-/// any newly redundant pools, they are marked as inactive in order to allow liquidity providers
-/// to withdraw their shares using the `retrieve_tokens` method.
-#[require_admin]
-fn change_pools<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    pools: Vec<RewardPool<HumanAddr>>,
-    total_share: Uint128
-) -> StdResult<HandleResponse>{
-    let mut sum_total = 0u128;
-
-    for pool in pools.iter() {
-        sum_total = sum_total.checked_add(pool.share.u128()).ok_or_else(||
-            StdError::generic_err(OVERFLOW_MSG)
-        )?;
-    }
-
-    if total_share.u128() != sum_total {
-        return Err(StdError::generic_err(
-            format!("Total pool share({}) doesn't match the expected total({}).", sum_total, total_share)
-        ))
-    }
-
-    replace_active_pools(deps, &pools)?;
-
-    Ok(HandleResponse {
-        messages: vec![],
-        log: vec![
-            log("action", "change_pools"),
-        ],
-        data: None
-    })
-}
-
-/// Returns all the currently active reward pools.
-fn query_pools<S: Storage, A: Api, Q: Querier>(
+fn query_pool<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
 ) -> StdResult<Binary> {
-    let pools = get_pools(deps)?;
+    let pool = load_pool(deps)?;
 
-    Ok(to_binary(&QueryMsgResponse::Pools(pools))?)
+    to_binary(&QueryMsgResponse::Pool(pool))
 }
 
-/// Authenticated command. Returns all the accounts that are
-/// associated with the provided `address` given the LP token
-/// addresses, since a single address can have multiple
-/// accounts - one for each reward pool.
-fn query_accounts<S: Storage, A: Api, Q: Querier>(
+/// Authenticated command. Returns the account for the
+/// provided user address.
+fn query_account<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: HumanAddr,
     key: ViewingKey
@@ -468,18 +406,9 @@ fn query_accounts<S: Storage, A: Api, Q: Querier>(
     let canonical = deps.api.canonical_address(&address)?;
     authenticate(&deps.storage, &key, canonical.as_slice())?;
 
-    let pools = get_pools(deps)?;
-    let mut result = vec![];
+    let result = get_account_or_fail(deps, &address)?;
 
-    for token in pools.iter().map(|x| &x.lp_token) {
-        let account = get_account(deps, &address, &token.address)?;
-
-        if let Some(acc) = account {
-            result.push(acc);
-        }
-    }
-
-    Ok(to_binary(&QueryMsgResponse::Accounts(result))?)
+    to_binary(&QueryMsgResponse::Account(result))
 }
 
 /// Returns the available balance of reward tokens that
@@ -521,7 +450,7 @@ pub(crate) fn calc_reward_share(
 
     // This error shouldn't really happen since the TX should already have failed.
     let share_percentage = user_locked.checked_div(pool.size.u128()).ok_or_else(|| 
-        StdError::generic_err(format!("Pool size for {} is zero.", pool.lp_token.address))
+        StdError::generic_err(format!("Pool size is currently zero."))
     )?;
 
     // Convert to actual amount of reward token
@@ -537,11 +466,6 @@ pub(crate) fn calc_reward_share(
         reward_token_decimals,
         reward_token_decimals
     )
-}
-
-#[inline]
-pub(crate) fn into_pools(mut vec: Vec<RewardPoolConfig>) -> Vec<RewardPool<HumanAddr>> {
-    vec.drain(..).map(|p| p.into()).collect()
 }
 
 /// Calculates how many portions should be transferred. The amount of portions
@@ -572,28 +496,14 @@ pub(crate) fn calc_portions(
 }
 
 #[inline]
-fn get_pool_or_fail<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    address: &HumanAddr
-) -> StdResult<RewardPool<HumanAddr>> { 
-    get_pool(deps, address)?.ok_or_else(||
-        StdError::generic_err(format!(
-            "LP token {} is not eligible for rewards.", address
-        ))
-    )
-}
-
-#[inline]
 fn get_account_or_fail<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: &HumanAddr,
-    lp_token: &HumanAddr
 ) -> StdResult<Account<HumanAddr>> { 
-    get_account(deps, address, lp_token)?.ok_or_else(||
+    get_account(deps, address)?.ok_or_else(||
         StdError::generic_err(format!(
-            "No account for {} exists for address {}.",
+            "No account for {} currently exists.",
             address,
-            lp_token
         ))
     )
 }
