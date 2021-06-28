@@ -191,7 +191,6 @@ pub(crate) fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
         )));
     }
 
-    account.unlock_pending(env.block.time, config.claim_interval)?;
     account.subtract_balance(amount.u128())?;
 
     save_account(deps, &account)?;
