@@ -153,6 +153,11 @@ export interface RewardPool {
     size: number;
 }
 
+export interface PoolContractInfo {
+    address: Address;
+    pool: RewardPool;
+}
+
 export interface RewardsAccount {
     /**
      * The last time that the user claimed their rewards.
