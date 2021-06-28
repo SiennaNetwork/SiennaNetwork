@@ -181,7 +181,17 @@ pub(crate) fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
     env: Env,
     amount: Uint128,
 ) -> StdResult<HandleResponse> {
+    let config = load_config(deps)?;
     let mut account = get_account_or_fail(deps, &env.message.sender)?;
+
+    if env.block.time - account.last_claimed < config.claim_interval {
+        return Err(StdError::generic_err(format!(
+            "Can only retrieve tokens if hasn't claimed in the past {} seconds.",
+            config.claim_interval
+        )));
+    }
+
+    account.unlock_pending(env.block.time, config.claim_interval)?;
     account.subtract_balance(amount.u128())?;
 
     save_account(deps, &account)?;

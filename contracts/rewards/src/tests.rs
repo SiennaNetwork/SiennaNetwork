@@ -388,6 +388,108 @@ fn test_cant_claim_instantly() {
     }
 }
 
+#[test]
+fn test_cant_retrieve_soon_after_claim() {
+    let reward_token = ContractInstance {
+        address: "reward_token".into(),
+        code_hash: "reward_token_hash".into()
+    };
+
+    let lp_token_addr = HumanAddr("lp_token_hash".into());
+    let share = 600u128;
+
+    let ref mut deps = mock_dependencies(20, reward_token.clone(), Uint128(share * 2), 18);
+    let claim_interval = 100;
+
+    init(deps, mock_env("admin", &[]), InitMsg {
+        claim_interval,
+        admin: None,
+        reward_token,
+        pool: RewardPoolConfig {
+            share: Uint128(share),
+            lp_token: ContractInstance {
+                address: lp_token_addr.clone(),
+                code_hash: "lp_token_hash".into()
+            }
+        },
+        prng_seed: to_binary(&"whatever").unwrap(),
+        entropy: to_binary(&"whatever").unwrap()
+    }).unwrap();
+
+    let lp_amount = Uint128(300);
+
+    let num_users = 3;
+    let mut users = Vec::with_capacity(num_users);
+
+    let mut time = claim_interval;
+
+    for i in 0..num_users {
+        let user = HumanAddr::from(format!("user_{}", i));
+        users.push(user.clone());
+
+        handle(deps, mock_env_with_time(user, time), HandleMsg::LockTokens {
+            amount: lp_amount
+        }).unwrap();
+    }
+
+    time += claim_interval;
+
+    let (empty, amount) = execute_claim(deps, time, users[0].clone()).unwrap();
+    assert_eq!(empty, false);
+    assert_eq!(amount, 198);
+
+    let err = retrieve_tokens(
+        deps,
+        mock_env_with_time(users[0].clone(), time),
+        lp_amount
+    ).unwrap_err();
+
+    match err {
+        StdError::GenericErr { msg, .. } => {
+            if !(msg == format!("Can only retrieve tokens if hasn't claimed in the past {} seconds.", claim_interval)) {
+                panic!("Expecting reward amount to be 0.")
+            }
+        },
+        _ => panic!("Expecting StdError::GenericErr")
+    }
+
+    for i in 1..users.len() {
+        let (empty, amount) = execute_claim(deps, time, users[i].clone()).unwrap();
+        assert_eq!(empty, false);
+        assert_eq!(amount, 198);
+    }
+
+    time += claim_interval;
+
+    retrieve_tokens(
+        deps,
+        mock_env_with_time(users[0].clone(), time),
+        lp_amount
+    ).unwrap();
+
+    let err = claim(
+        deps,
+        mock_env_with_time(users[0].clone(), time)
+    ).unwrap_err();
+
+    match err {
+        StdError::GenericErr { msg, .. } => {
+            if !(msg == "Reward amount is currently zero.") {
+                panic!("Expecting reward amount to be 0.")
+            }
+        },
+        _ => panic!("Expecting StdError::GenericErr")
+    }
+
+    for i in 1..users.len() {
+        let (empty, amount) = execute_claim(deps, time, users[i].clone()).unwrap();
+        assert_eq!(empty, false);
+        assert_eq!(amount, 300);
+    }
+
+    assert_eq!(deps.querier.reward_token_supply, Uint128(6));
+}
+
 fn create_pool(share: u128, size: u128) -> RewardPool<HumanAddr> {
     RewardPool {
         lp_token: ContractInstance {
