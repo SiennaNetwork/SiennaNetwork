@@ -9,6 +9,7 @@ members = [
   "contracts/mgmt",            # mints and vests tokens according to schedule
   "contracts/rpt",             # claims from mgmt and splits the portion between recipients
   "contracts/rewards",         # TODO: leave only this and use MGMT and RPT from tge
+  "contracts/rewards-factory", # instantiates and holds reward pool contracts
 
   # Swap + IDO
   "libraries/amm-shared",      # definitions that are shared between AMM and IDO

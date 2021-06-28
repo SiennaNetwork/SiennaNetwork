@@ -3,6 +3,7 @@
   "title": "InitMsg",
   "type": "object",
   "required": [
+    "callback",
     "claim_interval",
     "entropy",
     "pool",
@@ -19,6 +20,9 @@
           "type": "null"
         }
       ]
+    },
+    "callback": {
+      "$ref": "#/definitions/Callback_for_HumanAddr"
     },
     "claim_interval": {
       "type": "integer",
@@ -42,6 +46,32 @@
     "Binary": {
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
+    },
+    "Callback_for_HumanAddr": {
+      "description": "Info needed to have the other contract respond.",
+      "type": "object",
+      "required": [
+        "contract",
+        "msg"
+      ],
+      "properties": {
+        "contract": {
+          "description": "Info about the contract requesting the callback.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+            }
+          ]
+        },
+        "msg": {
+          "description": "The message to call.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
+        }
+      }
     },
     "ContractInstance_for_HumanAddr": {
       "description": "Info needed to talk to a contract instance.",

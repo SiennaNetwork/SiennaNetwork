@@ -1,6 +1,7 @@
 use cosmwasm_std::{
     Api, Binary, Env, Extern, HandleResponse, HumanAddr, InitResponse,
-    Querier, StdResult, Storage, Uint128, StdError, log, to_binary
+    Querier, StdResult, Storage, Uint128, StdError, log, to_binary,
+    CosmosMsg, WasmMsg
 };
 use composable_admin::require_admin;
 use composable_admin::admin::{
@@ -67,7 +68,15 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
                 BLOCK_SIZE,
                 config.reward_token.code_hash,
                 config.reward_token.address
-            )?
+            )?,
+            // Execute the HandleMsg::RegisterPool method of
+            // the factory contract in order to register this address
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: msg.callback.contract.address,
+                callback_code_hash: msg.callback.contract.code_hash,
+                msg: msg.callback.msg,
+                send: vec![],
+            })
         ],
         log: vec![]
     })

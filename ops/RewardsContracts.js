@@ -55,8 +55,12 @@ export default class RewardsContracts extends Ensemble {
       initMsg: JSON.parse(
         readFileSync(abs('settings/rewards.json'), 'utf8')
       )
-    }
+    },
 
+    REWARDS_FACTORY: {
+      crate: 'sienna-rewards-factory',
+      label: `${this.prefix}SIENNA_REWARDS_FACTORY`
+    }
   }
 
   async initialize ({ network, receipts, agent = network.agent }) {

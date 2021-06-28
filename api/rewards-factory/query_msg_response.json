@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsgResponse",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "pools"
+      ],
+      "properties": {
+        "pools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PoolContractInfo"
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "PoolContractInfo": {
+      "type": "object",
+      "required": [
+        "address",
+        "pool"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "pool": {
+          "$ref": "#/definitions/RewardPool_for_HumanAddr"
+        }
+      }
+    },
+    "RewardPool_for_HumanAddr": {
+      "description": "Represents a pair that is eligible for rewards.",
+      "type": "object",
+      "required": [
+        "lp_token",
+        "share",
+        "size"
+      ],
+      "properties": {
+        "lp_token": {
+          "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+        },
+        "share": {
+          "description": "The reward amount allocated to this pool.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "size": {
+          "description": "Total amount locked by all participants.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        }
+      }
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}

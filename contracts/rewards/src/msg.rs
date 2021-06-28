@@ -1,7 +1,7 @@
 use cosmwasm_std::{Binary, HumanAddr, Uint128, StdError};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use fadroma_scrt_callback::ContractInstance;
+use fadroma_scrt_callback::{ContractInstance, Callback};
 use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
 
 use crate::data::{RewardPool, Account};
@@ -25,7 +25,8 @@ pub struct InitMsg {
     pub pool: RewardPoolConfig,
     pub claim_interval: u64,
     pub prng_seed: Binary,
-    pub entropy: Binary
+    pub entropy: Binary,
+    pub callback: Callback<HumanAddr>
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, JsonSchema)]

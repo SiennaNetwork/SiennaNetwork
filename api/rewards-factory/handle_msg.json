@@ -1,0 +1,252 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HandleMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "create_pool"
+      ],
+      "properties": {
+        "create_pool": {
+          "type": "object",
+          "required": [
+            "info"
+          ],
+          "properties": {
+            "info": {
+              "$ref": "#/definitions/PoolInitInfo"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "register_pool"
+      ],
+      "properties": {
+        "register_pool": {
+          "type": "object",
+          "required": [
+            "signature"
+          ],
+          "properties": {
+            "signature": {
+              "$ref": "#/definitions/Binary"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "add_pool_addresses"
+      ],
+      "properties": {
+        "add_pool_addresses": {
+          "type": "object",
+          "required": [
+            "addresses"
+          ],
+          "properties": {
+            "addresses": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "remove_pool_addresses"
+      ],
+      "properties": {
+        "remove_pool_addresses": {
+          "type": "object",
+          "required": [
+            "addresses"
+          ],
+          "properties": {
+            "addresses": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "change_rewards_contract"
+      ],
+      "properties": {
+        "change_rewards_contract": {
+          "type": "object",
+          "required": [
+            "contract"
+          ],
+          "properties": {
+            "contract": {
+              "$ref": "#/definitions/ContractInstantiationInfo"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/AdminHandleMsg"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "AdminHandleMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "change_admin"
+          ],
+          "properties": {
+            "change_admin": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "ContractInstantiationInfo": {
+      "description": "Info needed to instantiate a contract.",
+      "type": "object",
+      "required": [
+        "code_hash",
+        "id"
+      ],
+      "properties": {
+        "code_hash": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "PoolInitInfo": {
+      "type": "object",
+      "required": [
+        "claim_interval",
+        "entropy",
+        "pool",
+        "prng_seed",
+        "reward_token"
+      ],
+      "properties": {
+        "admin": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "claim_interval": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "entropy": {
+          "$ref": "#/definitions/Binary"
+        },
+        "pool": {
+          "$ref": "#/definitions/RewardPoolConfig"
+        },
+        "prng_seed": {
+          "$ref": "#/definitions/Binary"
+        },
+        "reward_token": {
+          "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+        }
+      }
+    },
+    "RewardPoolConfig": {
+      "description": "Represents a pair that is eligible for rewards.",
+      "type": "object",
+      "required": [
+        "lp_token",
+        "share"
+      ],
+      "properties": {
+        "lp_token": {
+          "description": "The LP token address that the pool will be associated with.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+            }
+          ]
+        },
+        "share": {
+          "description": "The reward amount allocated to this pool.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        }
+      }
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}

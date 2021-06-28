@@ -6,7 +6,7 @@ use cosmwasm_std::{
 };
 use cosmwasm_std::testing::{mock_env, MockStorage, MockApi};
 use rand::{Rng, thread_rng};
-use fadroma_scrt_callback::ContractInstance;
+use fadroma_scrt_callback::{ContractInstance, Callback};
 use cosmwasm_utils::convert::get_whole_token_representation;
 
 use crate::contract::*;
@@ -46,7 +46,8 @@ fn test_init() {
         claim_interval,
         pool: pool.clone(),
         prng_seed: prng_seed.clone(),
-        entropy: to_binary(&"whatever").unwrap()
+        entropy: to_binary(&"whatever").unwrap(),
+        callback: create_callback()
     };
 
     init(deps, mock_env("admin", &[]), msg).unwrap();
@@ -168,7 +169,8 @@ fn test_claim_with_lock_unlock() {
         claim_interval,
         pool,
         prng_seed: to_binary(&"whatever").unwrap(),
-        entropy: to_binary(&"whatever").unwrap()
+        entropy: to_binary(&"whatever").unwrap(),
+        callback: create_callback()
     };
 
     init(deps, mock_env("admin", &[]), msg).unwrap();
@@ -292,7 +294,8 @@ fn test_cant_claim_twice_by_retrieving_tokens() {
             }
         },
         prng_seed: to_binary(&"whatever").unwrap(),
-        entropy: to_binary(&"whatever").unwrap()
+        entropy: to_binary(&"whatever").unwrap(),
+        callback: create_callback()
     }).unwrap();
 
     let user = HumanAddr("user".into());
@@ -359,7 +362,8 @@ fn test_cant_claim_instantly() {
             }
         },
         prng_seed: to_binary(&"whatever").unwrap(),
-        entropy: to_binary(&"whatever").unwrap()
+        entropy: to_binary(&"whatever").unwrap(),
+        callback: create_callback()
     }).unwrap();
 
     let user = HumanAddr("user".into());
@@ -413,7 +417,8 @@ fn test_cant_retrieve_soon_after_claim() {
             }
         },
         prng_seed: to_binary(&"whatever").unwrap(),
-        entropy: to_binary(&"whatever").unwrap()
+        entropy: to_binary(&"whatever").unwrap(),
+        callback: create_callback()
     }).unwrap();
 
     let lp_amount = Uint128(300);
@@ -584,7 +589,8 @@ fn claim_run() {
         pool,
         claim_interval,
         prng_seed: to_binary(&"whatever").unwrap(),
-        entropy: to_binary(&"whatever").unwrap()
+        entropy: to_binary(&"whatever").unwrap(),
+        callback: create_callback()
     }).unwrap();
 
     let mut users = Vec::with_capacity(num_users);
@@ -651,4 +657,14 @@ fn claim_run() {
     }
 
     assert_eq!(total_claimed, reward_token_supply);
+}
+
+fn create_callback() -> Callback<HumanAddr> {
+    Callback {
+        contract: ContractInstance {
+            address: "dummy_addr".into(),
+            code_hash: "dummy_code_hash".into(),
+        },
+        msg: to_binary(&"dummy_msg").unwrap()
+    }
 }
