@@ -444,12 +444,12 @@ interface ClaimSimulationResponse {
     claim_simulation: ClaimSimulationResult;
 }
 
-interface GetAccountsResponse {
-    accounts: RewardsAccount[];
+interface GetAccountResponse {
+    account: RewardsAccount;
 }
 
-interface GetPoolsResponse {
-    pools: RewardPool[];
+interface GetPoolResponse {
+    pool: RewardPool;
 }
 
 interface GetTotalRewardsSupply {
@@ -467,12 +467,9 @@ export class RewardsContract extends SmartContract {
         super(address, signing_client, client)
     }
 
-    async claim(lp_tokens: Address[], fee?: Fee | undefined): Promise<ExecuteResult> {
-        const msg = {
-            claim: {
-                lp_tokens
-            }
-        }
+    async claim(fee?: Fee | undefined): Promise<ExecuteResult> {
+        const msg = 'claim' as unknown as object
+
 
         if (fee === undefined) {
             fee = create_fee('300000')
@@ -484,14 +481,12 @@ export class RewardsContract extends SmartContract {
     async claim_simulation(
         address: Address,
         viewing_key: ViewingKey,
-        current_time_secs: number,
-        lp_tokens: Address[]
+        current_time_secs: number
     ): Promise<ClaimSimulationResult> {
         const msg = {
             claim_simulation: {
                 address,
                 current_time: current_time_secs,
-                lp_tokens,
                 viewing_key
             }
         };
@@ -500,11 +495,10 @@ export class RewardsContract extends SmartContract {
         return result.claim_simulation;
     }
 
-    async lock_tokens(amount: Uint128, lp_token: Address, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async lock_tokens(amount: Uint128, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             lock_tokens: {
-                amount,
-                lp_token
+                amount
             }
         }
 
@@ -515,11 +509,10 @@ export class RewardsContract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async retrieve_tokens(amount: Uint128, lp_token: Address, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async retrieve_tokens(amount: Uint128, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             retrieve_tokens: {
-                amount,
-                lp_token
+                amount
             }
         }
 
@@ -530,26 +523,26 @@ export class RewardsContract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async get_pools(): Promise<RewardPool[]> {
-        const msg = 'pools' as unknown as object
+    async get_pool(): Promise<RewardPool> {
+        const msg = 'pool' as unknown as object
 
-        const result = await this.query_client().queryContractSmart(this.address, msg) as GetPoolsResponse;
-        return result.pools;
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetPoolResponse;
+        return result.pool;
     }
 
-    async get_accounts(
+    async get_account(
         address: Address,
         viewing_key: ViewingKey
-    ): Promise<RewardsAccount[]> {
+    ): Promise<RewardsAccount> {
         const msg = {
-            accounts: {
+            account: {
                 address,
                 viewing_key
             }
         }
 
-        const result = await this.query_client().queryContractSmart(this.address, msg) as GetAccountsResponse;
-        return result.accounts;
+        const result = await this.query_client().queryContractSmart(this.address, msg) as GetAccountResponse;
+        return result.account;
     }
 
     async get_total_rewards_supply(): Promise<Uint128> {

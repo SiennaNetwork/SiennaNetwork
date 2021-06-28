@@ -163,10 +163,6 @@ export interface RewardsAccount {
      */
     locked_amount: Uint128;
     /**
-     * The address of the LP token that this account is for.
-     */
-    lp_token_addr: Address;
-    /**
      * The owner of this account.
      */
     owner: Address;
@@ -215,17 +211,19 @@ export type ClaimError =
     };
 
 export interface ClaimSimulationResult {
-    total_rewards_amount: Uint128;
-    actual_claimed: Uint128;
-    results: ClaimResult[];
-}
-
-export interface ClaimResult {
-    error?: ClaimError | null;
-    lp_token_addr: Address;
-    reward_amount: Uint128;
-    reward_per_portion: Uint128;
-    success: boolean;
+  /**
+   * The actual amount of rewards that would be claimed.
+   */
+   actual_claimed: Uint128;
+   error?: ClaimError | null;
+   /**
+    * The total amount of rewards that should be claimed.
+    */
+   reward_amount: Uint128;
+   /**
+    * The reward amount that would be claimed for a single portion.
+    */
+   reward_per_portion: Uint128;
 }
 
 export class ContractInfo {
