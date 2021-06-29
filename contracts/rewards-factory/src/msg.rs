@@ -22,10 +22,10 @@ pub enum HandleMsg {
     RegisterPool {
         signature: Binary
     },
-    AddPoolAddresses {
-        addresses: Vec<HumanAddr>
+    AddPools {
+        instances: Vec<ContractInstance<HumanAddr>>
     },
-    RemovePoolAddresses {
+    RemovePools {
         addresses: Vec<HumanAddr>
     },
     ChangeRewardsContract {

@@ -3,7 +3,7 @@ use cosmwasm_std::{
     Storage
 };
 use serde::{Deserialize, Serialize};
-use fadroma_scrt_callback::ContractInstantiationInfo;
+use fadroma_scrt_callback::{ContractInstantiationInfo, ContractInstance};
 use fadroma_scrt_addr::{Canonize, Humanize};
 use fadroma_scrt_storage::{load, save};
 
@@ -26,29 +26,29 @@ pub(crate) fn load_config(storage: &impl Storage) -> StdResult<Config> {
     load(storage, CONFIG_KEY)?.unwrap()
 }
 
-pub(crate) fn store_pool_addresses<S: Storage, A: Api, Q: Querier>(
+pub(crate) fn store_pools<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    addresses: Vec<HumanAddr>
+    instances: Vec<ContractInstance<HumanAddr>>
 ) -> StdResult<()>{
-    let mut index: Vec<CanonicalAddr> = load_pool_index(deps)?;
+    let mut index = load_pool_index(deps)?;
 
-    for addr in addresses {
-        let addr = addr.canonize(&deps.api)?;
-        index.push(addr);
+    for instance in instances {
+        let instance = instance.canonize(&deps.api)?;
+        index.push(instance);
     }
 
     save(&mut deps.storage, POOL_INDEX, &index)
 }
 
-pub(crate) fn delete_pool_addresses<S: Storage, A: Api, Q: Querier>(
+pub(crate) fn delete_pools<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     addresses: Vec<HumanAddr>
 ) -> StdResult<()>{
-    let mut index: Vec<CanonicalAddr> = load_pool_index(deps)?;
+    let mut index = load_pool_index(deps)?;
 
     for addr in addresses {
         let addr = addr.canonize(&deps.api)?;
-        let result = index.iter().position(|x| *x == addr);
+        let result = index.iter().position(|x| x.address == addr);
 
         if let Some(i) = result {
             index.swap_remove(i);
@@ -58,15 +58,15 @@ pub(crate) fn delete_pool_addresses<S: Storage, A: Api, Q: Querier>(
     save(&mut deps.storage, POOL_INDEX, &index)
 }
 
-pub(crate) fn load_pools_addresses<S: Storage, A: Api, Q: Querier>(
+pub(crate) fn load_pools<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-) -> StdResult<Vec<HumanAddr>> {
-    let index: Vec<CanonicalAddr> = load_pool_index(deps)?;
+) -> StdResult<Vec<ContractInstance<HumanAddr>>> {
+    let index = load_pool_index(deps)?;
     let mut result = Vec::with_capacity(index.len());
 
-    for addr in index {
-        let addr = addr.humanize(&deps.api)?;
-        result.push(addr);
+    for instance in index {
+        let instance = instance.humanize(&deps.api)?;
+        result.push(instance);
     }
 
     Ok(result)
@@ -75,6 +75,6 @@ pub(crate) fn load_pools_addresses<S: Storage, A: Api, Q: Querier>(
 #[inline]
 fn load_pool_index<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-) -> StdResult<Vec<CanonicalAddr>> {
+) -> StdResult<Vec<ContractInstance<CanonicalAddr>>> {
     load(&deps.storage, POOL_INDEX)?.unwrap_or(Ok(vec![]))
 }

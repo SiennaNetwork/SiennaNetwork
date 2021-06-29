@@ -41,12 +41,11 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     match msg {
         HandleMsg::CreatePool { info } => create_pool(deps, env, info),
         HandleMsg::RegisterPool { signature } => register_pool(deps, env, signature),
-        HandleMsg::AddPoolAddresses { addresses } => add_pool_addresses(deps, env, addresses),
-        HandleMsg::RemovePoolAddresses { addresses } => remove_pool_addresses(deps, env, addresses),
+        HandleMsg::AddPools { instances } => add_pools(deps, env, instances),
+        HandleMsg::RemovePools { addresses } => remove_pools(deps, env, addresses),
         HandleMsg::ChangeRewardsContract { contract } => change_rewards_contract(deps, env, contract),
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultAdminHandle)
     }
-
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(
@@ -124,7 +123,14 @@ fn register_pool<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     ensure_correct_signature(&mut deps.storage, signature)?;
 
-    store_pool_addresses(deps, vec![ env.message.sender.clone() ])?;
+    let config = load_config(&deps.storage)?;
+
+    store_pools(deps, vec![ 
+        ContractInstance {
+            address: env.message.sender.clone(),
+            code_hash: config.reward_contract.code_hash
+        }    
+    ])?;
 
     Ok(HandleResponse {
         messages: vec![],
@@ -137,23 +143,23 @@ fn register_pool<S: Storage, A: Api, Q: Querier>(
 }
 
 #[require_admin]
-fn add_pool_addresses<S: Storage, A: Api, Q: Querier>(
+fn add_pools<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    addresses: Vec<HumanAddr>
+    instances: Vec<ContractInstance<HumanAddr>>
 ) -> StdResult<HandleResponse> {
-    store_pool_addresses(deps, addresses)?;
+    store_pools(deps, instances)?;
 
     Ok(HandleResponse::default())
 }
 
 #[require_admin]
-fn remove_pool_addresses<S: Storage, A: Api, Q: Querier>(
+fn remove_pools<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     addresses: Vec<HumanAddr>
 ) -> StdResult<HandleResponse> {
-    delete_pool_addresses(deps, addresses)?;
+    delete_pools(deps, addresses)?;
 
     Ok(HandleResponse::default())
 }
@@ -175,15 +181,13 @@ fn change_rewards_contract<S: Storage, A: Api, Q: Querier>(
 fn query_pools<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>
 ) -> StdResult<Binary> {
-    let config = load_config(&deps.storage)?;
+    let instances = load_pools(deps)?;
+    let mut result = Vec::with_capacity(instances.len());
 
-    let addresses = load_pools_addresses(deps)?;
-    let mut result = Vec::with_capacity(addresses.len());
-
-    for addr in addresses {
+    for instance in instances {
         let resp: PoolQueryResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            callback_code_hash: config.reward_contract.code_hash.clone(),
-            contract_addr: addr.clone(),
+            callback_code_hash: instance.code_hash,
+            contract_addr: instance.address.clone(),
             msg: to_binary(&PoolQueryMsg::Pool)?
         }))?;
 
@@ -191,7 +195,7 @@ fn query_pools<S: Storage, A: Api, Q: Querier>(
             PoolQueryResponse::Pool(pool) => {
                 result.push(PoolContractInfo {
                     pool,
-                    address: addr
+                    address: instance.address
                 })
             },
             _ => return Err(StdError::generic_err("Pool contract returned an unexpected response."))
