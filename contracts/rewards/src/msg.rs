@@ -39,6 +39,7 @@ pub enum HandleMsg {
         amount: Uint128
     },
     Claim,
+    TakeSnapshot,
     ChangePoolShare {
         new_share: Uint128
     },
@@ -101,8 +102,6 @@ pub enum QueryMsgResponse {
 pub struct ClaimSimulationResult {
     /// The total amount of rewards that should be claimed.
     pub reward_amount: Uint128,
-    /// The reward amount that would be claimed for a single portion.
-    pub reward_per_portion: Uint128,
     /// The actual amount of rewards that would be claimed.
     pub actual_claimed: Uint128,
     pub error: Option<ClaimError>
@@ -115,9 +114,6 @@ pub struct ClaimSimulationResult {
 pub enum ClaimError {
     /// Occurs when the rewards pool is currently empty.
     PoolEmpty,
-    /// Occurs when the user has no tokens locked in this pool.
-    /// In practice, this can occur when a wrong address was provided to the query.
-    AccountZeroLocked,
     /// It is possible for the user's share to be so little, that
     /// the actual reward amount of rewards calculated to be zero.
     /// However, it is highly unlikely in practice.
@@ -156,12 +152,10 @@ impl From<GetBalanceError> for StdError {
 impl ClaimSimulationResult {
     pub fn success(
         reward_amount: Uint128,
-        reward_per_portion: Uint128,
         actual_claimed: Uint128
     ) -> Self {
         Self {
             reward_amount,
-            reward_per_portion,
             actual_claimed,
             error: None
         }
@@ -170,7 +164,6 @@ impl ClaimSimulationResult {
     pub fn error(error: ClaimError) -> Self {
         Self {
             reward_amount: Uint128::zero(),
-            reward_per_portion: Uint128::zero(),
             actual_claimed: Uint128::zero(),
             error: Some(error)
         }

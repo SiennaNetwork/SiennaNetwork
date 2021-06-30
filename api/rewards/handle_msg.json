@@ -5,7 +5,8 @@
     {
       "type": "string",
       "enum": [
-        "claim"
+        "claim",
+        "take_snapshot"
       ]
     },
     {

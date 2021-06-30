@@ -191,13 +191,6 @@ export type ClaimError =
     }
     | {
         /**
-         * Occurs when the user has no tokens locked in this pool. 
-         * In practice, this can occur when a wrong address was provided to the query.
-         */
-        type: "account_zero_locked";
-    }
-    | {
-        /**
          * It is possible for the user's share to be so little, that
          * the actual reward amount of rewards calculated to be zero.
          * However, it is highly unlikely in practice.
@@ -225,10 +218,6 @@ export interface ClaimSimulationResult {
     * The total amount of rewards that should be claimed.
     */
    reward_amount: Uint128;
-   /**
-    * The reward amount that would be claimed for a single portion.
-    */
-   reward_per_portion: Uint128;
 }
 
 export class ContractInfo {

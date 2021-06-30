@@ -43,19 +43,19 @@
     {
       "type": "object",
       "required": [
-        "add_pool_addresses"
+        "add_pools"
       ],
       "properties": {
-        "add_pool_addresses": {
+        "add_pools": {
           "type": "object",
           "required": [
-            "addresses"
+            "instances"
           ],
           "properties": {
-            "addresses": {
+            "instances": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/HumanAddr"
+                "$ref": "#/definitions/ContractInstance_for_HumanAddr"
               }
             }
           }
@@ -65,10 +65,10 @@
     {
       "type": "object",
       "required": [
-        "remove_pool_addresses"
+        "remove_pools"
       ],
       "properties": {
-        "remove_pool_addresses": {
+        "remove_pools": {
           "type": "object",
           "required": [
             "addresses"

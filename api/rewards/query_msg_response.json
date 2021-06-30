@@ -120,11 +120,28 @@
       "description": "An account for a single user.",
       "type": "object",
       "required": [
+        "claimed_at_snapshot",
         "last_claimed",
         "locked_amount",
         "owner"
       ],
       "properties": {
+        "balance_history": {
+          "description": "A history of any changes that occurred to `self.locked_amount` at a given snapshot index. It is reset upon claiming.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/Snapshot"
+          }
+        },
+        "claimed_at_snapshot": {
+          "description": "The snapshot that was last claimed at.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
         "last_claimed": {
           "description": "The last time that the user claimed their rewards.",
           "type": "integer",
@@ -148,7 +165,7 @@
           ]
         },
         "pending_balances": {
-          "description": "A history of submitted tokens that aren't included in the rewards calculations yet.",
+          "description": "A list of submitted tokens that aren't included in the rewards calculations yet.",
           "type": [
             "array",
             "null"
@@ -172,21 +189,6 @@
               "type": "string",
               "enum": [
                 "pool_empty"
-              ]
-            }
-          }
-        },
-        {
-          "description": "Occurs when the user has no tokens locked in this pool. In practice, this can occur when a wrong address was provided to the query.",
-          "type": "object",
-          "required": [
-            "type"
-          ],
-          "properties": {
-            "type": {
-              "type": "string",
-              "enum": [
-                "account_zero_locked"
               ]
             }
           }
@@ -234,8 +236,7 @@
       "type": "object",
       "required": [
         "actual_claimed",
-        "reward_amount",
-        "reward_per_portion"
+        "reward_amount"
       ],
       "properties": {
         "actual_claimed": {
@@ -258,14 +259,6 @@
         },
         "reward_amount": {
           "description": "The total amount of rewards that should be claimed.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Uint128"
-            }
-          ]
-        },
-        "reward_per_portion": {
-          "description": "The reward amount that would be claimed for a single portion.",
           "allOf": [
             {
               "$ref": "#/definitions/Uint128"
@@ -337,6 +330,23 @@
               "$ref": "#/definitions/Uint128"
             }
           ]
+        }
+      }
+    },
+    "Snapshot": {
+      "type": "object",
+      "required": [
+        "amount",
+        "index"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "index": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
         }
       }
     },

@@ -11,14 +11,19 @@ use cosmwasm_utils::viewing_key::ViewingKey;
 
 use crate::data::*;
 
+pub(crate) const MAX_PORTIONS: u64 = 30;
+
 const CONFIG_KEY: &[u8] = b"config";
 const POOL_KEY: &[u8] = b"pools";
 const ACCOUNTS_KEY: &[u8] = b"accounts";
+const SNAPSHOT_COUNT_KEY: &[u8] = b"snapshot_count";
+const SNAPSHOTS_PREFIX: &[u8] = b"snapshots";
 
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-pub struct Config<A> {
+pub(crate) struct Config<A> {
     pub reward_token: ContractInstance<A>,
     pub this_contract: ContractInstance<A>,
+    pub factory_address: A,
     pub token_decimals: u8,
     pub viewing_key: ViewingKey,
     pub prng_seed: Binary,
@@ -71,19 +76,6 @@ pub(crate) fn save_account<S: Storage, A: Api, Q: Querier>(
     )
 }
 
-pub(crate) fn get_or_create_account<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    address: &HumanAddr
-) -> StdResult<Account<HumanAddr>> {
-    let result: Option<Account<HumanAddr>> = get_account(deps, address)?;
-
-    if let Some(acc) = result {
-        Ok(acc)
-    } else {
-        Ok(Account::new(address.clone()))
-    }
-}
-
 pub(crate) fn get_account<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: &HumanAddr
@@ -99,15 +91,78 @@ pub(crate) fn get_account<S: Storage, A: Api, Q: Querier>(
     }
 }
 
+pub(crate) fn create_snapshot<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>
+) -> StdResult<()> {
+    let mut count = load_snapshot_count(&deps.storage)?;
+    count += 1;
+    save_snapshot_count(&mut deps.storage, count)?;
+
+    let pool = load_pool(deps)?;
+
+    let key = generate_snapshot_key(count);
+    let snapshot = Snapshot {
+        index: count,
+        amount: pool.size
+    };
+
+    save(&mut deps.storage, &key, &snapshot)
+}
+
+/// The last element of the resulting array is the latest snapshot.
+pub(crate) fn get_snapshots(
+    storage: &impl Storage,
+    mut from_index: u64
+) -> StdResult<Vec<Snapshot>> {
+    let mut result = vec![]; 
+    let count = load_snapshot_count(storage)?;
+    
+    from_index = from_index.min(count);
+
+    // Retrieve a maximum of `MAX_PORTIONS`
+    if count - from_index > MAX_PORTIONS {
+        from_index = count - MAX_PORTIONS;
+    }
+
+    for i in from_index..=count {
+        let key = generate_snapshot_key(i);
+        let snapshot: Option<Snapshot> = load(storage, &key)?;
+
+        if let Some(snapshot) = snapshot {
+            result.push(snapshot);
+        } else {
+            break;
+        }
+    }
+
+    Ok(result)
+}
+
+#[inline]
+pub(crate) fn load_snapshot_count(storage: &impl Storage) -> StdResult<u64> {
+    Ok(load(storage, SNAPSHOT_COUNT_KEY)?.unwrap_or(0))
+}
+
+#[inline]
+fn generate_snapshot_key(index: u64) -> Vec<u8> {
+    [ SNAPSHOTS_PREFIX, index.to_string().as_bytes() ].concat()
+}
+
+#[inline]
+fn save_snapshot_count(storage: &mut impl Storage, count: u64) -> StdResult<()> {
+    save(storage, SNAPSHOT_COUNT_KEY, &count)
+}
+
 impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
     fn humanize (&self, api: &impl Api) -> StdResult<Config<HumanAddr>> {
         Ok(Config {
             reward_token: self.reward_token.humanize(api)?,
             this_contract: self.this_contract.humanize(api)?,
+            factory_address: self.factory_address.humanize(api)?,
             token_decimals: self.token_decimals,
             viewing_key: self.viewing_key.clone(),
             prng_seed: self.prng_seed.clone(),
-            claim_interval: self.claim_interval
+            claim_interval: self.claim_interval,
         })
     }
 }
@@ -117,10 +172,11 @@ impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
         Ok(Config {
             reward_token: self.reward_token.canonize(api)?,
             this_contract: self.this_contract.canonize(api)?,
+            factory_address: self.factory_address.canonize(api)?,
             token_decimals: self.token_decimals,
             viewing_key: self.viewing_key.clone(),
             prng_seed: self.prng_seed.clone(),
-            claim_interval: self.claim_interval
+            claim_interval: self.claim_interval,
         })
     }
 }

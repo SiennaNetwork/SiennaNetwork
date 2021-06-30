@@ -40,6 +40,8 @@ fn test_init() {
 
     let ref mut deps = mock_dependencies(20, reward_token.clone(), Uint128(1), decimals);
 
+    let callback = create_callback();
+
     let msg = InitMsg {
         admin: None,
         reward_token: reward_token.clone(),
@@ -47,7 +49,7 @@ fn test_init() {
         pool: pool.clone(),
         prng_seed: prng_seed.clone(),
         entropy: to_binary(&"whatever").unwrap(),
-        callback: create_callback()
+        callback: callback.clone()
     };
 
     init(deps, mock_env("admin", &[]), msg).unwrap();
@@ -57,6 +59,7 @@ fn test_init() {
     assert_eq!(config.token_decimals, decimals);
     assert_eq!(config.claim_interval, claim_interval);
     assert_eq!(config.prng_seed, prng_seed);
+    assert_eq!(config.factory_address, callback.contract.address);
 
     let stored_pool = load_pool(deps).unwrap();
 
@@ -84,14 +87,14 @@ fn test_calc_reward_share() {
     );
 
     // If owning 15% of pool share, then receive 15% of 500 = 75
-    let result = calc_reward_share(150_000_000, &pool, 18).unwrap();
+    let result = calc_reward_share(150_000_000, pool.size.u128(), pool.share.u128(), 18).unwrap();
     assert_eq!(result, 75_000_000_000_000_000_000);
 
     // Absorb the entire pool if owning 100% of pool share.
-    let result = calc_reward_share(1000_000_000, &pool, 18).unwrap();
+    let result = calc_reward_share(1000_000_000, pool.size.u128(), pool.share.u128(), 18).unwrap();
     assert_eq!(result, 500_000_000_000_000_000_000);
 
-    let result = calc_reward_share(0, &pool, 18).unwrap();
+    let result = calc_reward_share(0, pool.size.u128(), pool.share.u128(), 18).unwrap();
     assert_eq!(result, 0);
 }
 

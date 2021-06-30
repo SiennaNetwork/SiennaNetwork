@@ -19,11 +19,8 @@ use crate::msg::{
     QueryMsgResponse, ClaimSimulationResult, ClaimError,
     GetBalanceError
 };
-use crate::state::{
-    save_config, Config, load_pool, get_account, save_account,
-    get_or_create_account, save_pool, load_config
-};
-use crate::data::{RewardPool, Account, PendingBalance};
+use crate::state::{Config, MAX_PORTIONS, create_snapshot, get_account, get_snapshots, load_config, load_pool, load_snapshot_count, save_account, save_config, save_pool};
+use crate::data::{Account, PendingBalance, Snapshot};
 use crate::auth::AuthImpl;
 
 const BLOCK_SIZE: usize = 256;
@@ -51,6 +48,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             address: env.contract.address,
             code_hash: env.contract_code_hash
         },
+        factory_address: msg.callback.contract.address.clone(),
         token_decimals: token_info.decimals,
         viewing_key,
         prng_seed: msg.prng_seed,
@@ -91,6 +89,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::LockTokens { amount } => lock_tokens(deps, env, amount),
         HandleMsg::RetrieveTokens { amount } => retrieve_tokens(deps, env, amount),
         HandleMsg::Claim => claim(deps, env),
+        HandleMsg::TakeSnapshot => take_snapshot(deps, env),
         HandleMsg::ChangePoolShare { new_share } => change_pool_share(deps, env, new_share),
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultAdminHandle),
         HandleMsg::CreateViewingKey { entropy, .. } =>
@@ -137,29 +136,26 @@ pub(crate) fn lock_tokens<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err("Lock amount is zero."));
     }
 
-    let mut pool = load_pool(&deps)?;
-    let mut account = get_or_create_account(deps, &env.message.sender)?;
+    let pool = load_pool(&deps)?;
+
+    if pool.size.u128().checked_add(amount.u128()).is_none() {
+        return Err(StdError::generic_err("Pool size overflow detected."));
+    }
+
+    let mut account = if let Some(acc) = get_account(deps, &env.message.sender)? {
+        acc
+    } else {
+        let count = load_snapshot_count(&deps.storage)?;
+
+        Account::new(env.message.sender.clone(), env.block.time, count)
+    };
 
     account.add_pending_balance(PendingBalance { 
         amount,
-        submitted_at: env.block.time 
+        submitted_at: env.block.time
     })?;
 
-    // Prevent instant claiming for new accounts
-    if account.last_claimed == 0 {
-        account.last_claimed = env.block.time;
-    }
-
-    pool.size = pool.size
-        .u128()
-        .checked_add(amount.u128())
-        .ok_or_else(||
-            StdError::generic_err("Pool size overflow detected.")
-        )?
-        .into();
-
     save_account(deps, &account)?;
-    save_pool(deps, &pool)?;
 
     Ok(HandleResponse{
         messages: vec![
@@ -193,6 +189,7 @@ pub(crate) fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
     let config = load_config(deps)?;
     let mut account = get_account_or_fail(deps, &env.message.sender)?;
 
+    // TODO: should probably remove this if
     if env.block.time - account.last_claimed < config.claim_interval {
         return Err(StdError::generic_err(format!(
             "Can only retrieve tokens if hasn't claimed in the past {} seconds.",
@@ -200,7 +197,14 @@ pub(crate) fn retrieve_tokens<S: Storage, A: Api, Q: Querier>(
         )));
     }
 
-    account.subtract_balance(amount.u128())?;
+    let count = load_snapshot_count(&deps.storage)?;
+
+    account.subtract_balance(
+        amount.u128(),
+        env.block.time,
+        config.claim_interval,
+        count
+    )?;
 
     save_account(deps, &account)?;
 
@@ -240,19 +244,20 @@ pub(crate) fn claim<S: Storage, A: Api, Q: Querier>(
     let config = load_config(deps)?;
     let available_balance = get_balance(&deps.querier, &config)?;
 
-    let pool = load_pool(deps)?;
+    let mut pool = load_pool(deps)?;
 
     let mut account = get_account_or_fail(deps, &env.message.sender)?;
-    account.unlock_pending(env.block.time, config.claim_interval)?;
 
-    let reward_amount = calc_reward_share(
-        account.locked_amount(),
-        &pool,
-        config.token_decimals
+    let count = load_snapshot_count(&deps.storage)?;
+    let unlocked_amount = account.unlock_pending(
+        env.block.time,
+        config.claim_interval,
+        count
     )?;
 
-    if reward_amount == 0 {
-        return Err(StdError::generic_err("Reward amount is currently zero."));
+    if unlocked_amount > 0 {
+        pool.size = pool.size.u128().saturating_add(unlocked_amount).into();
+        save_pool(deps, &pool)?;
     }
 
     let portions = calc_portions(
@@ -268,15 +273,36 @@ pub(crate) fn claim<S: Storage, A: Api, Q: Querier>(
         )));
     }
 
+    let snapshots = get_snapshots(&deps.storage, account.claimed_at_snapshot + 1)?;
+
+    if snapshots.len() == 0 {
+        return Err(StdError::generic_err("No snapshots have been recorded yet."));
+    }
+
+    let total_reward_amount = calc_rewards(
+        &account,
+        snapshots,
+        portions,
+        pool.share.u128(),
+        config.token_decimals
+    )?;
+
+    if total_reward_amount == 0 {
+        return Err(StdError::generic_err("Reward amount is currently zero."));
+    }
+
     account.last_claimed = env.block.time;
+    account.claimed_at_snapshot = count; 
+    account.clear_history();
+
     save_account(deps, &account)?;
 
-    // Claim the remaining rewards amount if the current rewards pool,
+    // Claim the remaining rewards amount if the current rewards pool
     // is less than what should be claimed.
-    let claim_amount = if reward_amount > available_balance {
+    let claim_amount = if total_reward_amount > available_balance {
         available_balance
     } else {
-        reward_amount
+        total_reward_amount
     };
 
     Ok(HandleResponse {
@@ -293,11 +319,26 @@ pub(crate) fn claim<S: Storage, A: Api, Q: Querier>(
         log: vec![
             log("action", "claim"),
             log("claimed_by", env.message.sender),
-            log("reward_amount", reward_amount),
+            log("reward_amount", total_reward_amount),
             log("claimed_amount", claim_amount)
         ],
         data: None
     })
+}
+
+fn take_snapshot<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env
+) -> StdResult<HandleResponse> {
+    let config = load_config(deps)?;
+
+    if env.message.sender != config.factory_address {
+        return Err(StdError::unauthorized());
+    }
+
+    create_snapshot(deps)?;
+
+    Ok(HandleResponse::default())
 }
 
 #[require_admin]
@@ -354,25 +395,9 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
     let pool = load_pool(deps)?;
 
     let mut account = get_account_or_fail(deps, &sender)?;
-    account.unlock_pending(current_time, config.claim_interval)?;
 
-    if account.locked_amount() == 0 {
-        return to_binary(&QueryMsgResponse::ClaimSimulation(
-            ClaimSimulationResult::error(ClaimError::AccountZeroLocked))
-        );
-    }
-
-    let reward_per_portion = calc_reward_share(
-        account.locked_amount(),
-        &pool,
-        config.token_decimals
-    )?;
-
-    if reward_per_portion == 0 {
-        return to_binary(&QueryMsgResponse::ClaimSimulation(
-            ClaimSimulationResult::error(ClaimError::AccountZeroReward))
-        );
-    }
+    let count = load_snapshot_count(&deps.storage)?;
+    account.unlock_pending(current_time, config.claim_interval, count)?;
 
     let portions = calc_portions(
         account.last_claimed,
@@ -388,18 +413,31 @@ fn claim_simulation<S: Storage, A: Api, Q: Querier>(
         );
     }
 
-    let reward_amount = reward_per_portion.saturating_mul(portions as u128);
+    let snapshots = get_snapshots(&deps.storage, account.claimed_at_snapshot + 1)?;
 
-    let claim_amount = if reward_amount > available_balance {
+    if snapshots.len() == 0 {
+        return Err(StdError::generic_err("No snapshots have been recorded yet."));
+    }
+
+    let total_reward_amount = calc_rewards(
+        &account,
+        snapshots,
+        portions,
+        pool.share.u128(),
+        config.token_decimals
+    )?;
+
+    // Claim the remaining rewards amount if the current rewards pool
+    // is less than what should be claimed.
+    let claim_amount = if total_reward_amount > available_balance {
         available_balance
     } else {
-        reward_amount
+        total_reward_amount
     };
 
     to_binary(&QueryMsgResponse::ClaimSimulation(
             ClaimSimulationResult::success(
-                reward_amount.into(),
-                reward_per_portion.into(),
+                total_reward_amount.into(),
                 claim_amount.into()
             )
         )
@@ -458,7 +496,8 @@ fn query_supply<S: Storage, A: Api, Q: Querier>(
 /// Given a `pool`, calculates the amount of rewards for a single portion.
 pub(crate) fn calc_reward_share(
     mut user_locked: u128,
-    pool: &RewardPool<HumanAddr>,
+    pool_size: u128,
+    pool_share: u128,
     reward_token_decimals: u8
 ) -> StdResult<u128> {
     // Multiply by 100 to get a non float percentage
@@ -466,10 +505,11 @@ pub(crate) fn calc_reward_share(
         StdError::generic_err(OVERFLOW_MSG)
     )?;
 
-    // This error shouldn't really happen since the TX should already have failed.
-    let share_percentage = user_locked.checked_div(pool.size.u128()).ok_or_else(|| 
-        StdError::generic_err(format!("Pool size is currently zero."))
-    )?;
+    let share_percentage = user_locked.checked_div(pool_size).unwrap_or(0);
+
+    if share_percentage == 0 {
+        return Ok(0);
+    }
 
     // Convert to actual amount of reward token
     let share = share_percentage.saturating_mul(
@@ -480,7 +520,7 @@ pub(crate) fn calc_reward_share(
     // share * pool.share / one reward token
     convert_token(
         share,
-        pool.share.u128(),
+        pool_share,
         reward_token_decimals,
         reward_token_decimals
     )
@@ -494,7 +534,7 @@ pub(crate) fn calc_portions(
     last_claimed: u64,
     claim_interval: u64,
     block_time: u64
-) -> StdResult<u32> {
+) -> StdResult<usize> {
     // Could do (current_time - last_claimed) / interval
     // but can't use floats so...
     let mut result = 0;
@@ -503,14 +543,74 @@ pub(crate) fn calc_portions(
         // Will happen if a wrong time has been provided in claim simulation
         StdError::generic_err("Invalid timestamp supplied.")
     )?;
+
     let mut acc = claim_interval;
 
     while gap >= acc {
         acc += claim_interval;
         result += 1;
+
+        if result == MAX_PORTIONS as usize {
+            break;
+        }
     }
 
     Ok(result)
+}
+
+pub(crate) fn calc_rewards(
+    account: &Account<HumanAddr>,
+    snapshots: Vec<Snapshot>,
+    portions: usize,
+    pool_share: u128,
+    reward_token_decimals: u8
+) -> StdResult<u128> {
+    let mut total_reward_amount = 0u128;
+
+    let history = account.history();
+
+    if let Some(history) = history {
+        for i in 0..portions {
+            // Should have the same number of snapshots as portions,
+            // but if something happened - use the latest.
+            let snap = snapshots.get(i).unwrap_or(&snapshots.last().unwrap());
+
+            // Get the latest balance for the given snapshot.
+            let balance = history
+                .iter()
+                .filter(|x| x.index == snap.index)
+                .last()
+                .map(|x| x.amount.u128());
+
+            let locked_amount = balance.unwrap_or(account.locked_amount());
+
+            let share = calc_reward_share(
+                locked_amount,
+                snap.amount.u128(),
+                pool_share,
+                reward_token_decimals
+            )?;
+
+            total_reward_amount = total_reward_amount.saturating_add(share);
+        }
+    } else {
+        for i in 0..portions {
+            // Should have the same number of snapshots as portions,
+            // but if something happened - use the latest.
+            let snap = snapshots.get(i).unwrap_or(&snapshots.last().unwrap());
+
+            let share = calc_reward_share(
+                account.locked_amount(),
+                snap.amount.u128(),
+                pool_share,
+                reward_token_decimals
+            )?;
+
+            total_reward_amount = total_reward_amount.saturating_add(share);
+        }
+    }
+
+    Ok(total_reward_amount)
 }
 
 #[inline]
