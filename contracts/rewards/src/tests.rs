@@ -2,7 +2,8 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 use cosmwasm_std::{
     Extern, HumanAddr, StdResult, Uint128,
-    StdError, to_binary, from_binary
+    StdError, to_binary, from_binary, Storage,
+    Api, Querier
 };
 use cosmwasm_std::testing::{mock_env, MockStorage, MockApi};
 use rand::{Rng, thread_rng};
@@ -18,6 +19,11 @@ use crate::data::RewardPool;
 use crate::test_helpers::{
     mock_dependencies, mock_env_with_time, MockSnip20Querier
 };
+
+const ADMIN_ADDR: &str = "admin";
+const FACTORY_ADDR: &str = "factory";
+const CLAIM_INTERVAL: u64 = 100;
+const REWARD_TOKEN_DECIMALS: u8 = 18;
 
 #[test]
 fn test_init() {
@@ -146,39 +152,10 @@ fn test_calc_portions() {
 
 #[test]
 fn test_claim_with_lock_unlock() {
-    let reward_token = ContractInstance {
-        address: "reward_token".into(),
-        code_hash: "reward_token_hash".into()
-    };
+    let share = 600 * get_whole_token_representation(REWARD_TOKEN_DECIMALS);
+    let ref mut deps = init_helper(share, share);
 
-    let lp_token_decimals = 6;
-
-    let share = get_whole_token_representation(lp_token_decimals) * 600;
-
-    let pool = RewardPoolConfig {
-        share: Uint128(share),
-        lp_token: ContractInstance {
-            address: "pool".into(),
-            code_hash: "pool_hash".into()
-        }
-    };
-
-    let ref mut deps = mock_dependencies(20, reward_token.clone(), pool.share, 18);
-
-    let claim_interval = 100;
-    let msg = InitMsg {
-        admin: None,
-        reward_token,
-        claim_interval,
-        pool,
-        prng_seed: to_binary(&"whatever").unwrap(),
-        entropy: to_binary(&"whatever").unwrap(),
-        callback: create_callback()
-    };
-
-    init(deps, mock_env("admin", &[]), msg).unwrap();
-
-    let mut time = claim_interval;
+    let mut time = CLAIM_INTERVAL;
 
     let sender1 = HumanAddr::from("sender1");
     let sender2 = HumanAddr::from("sender2");
@@ -199,7 +176,7 @@ fn test_claim_with_lock_unlock() {
         Uint128(deposit_amount),
     ).unwrap();
 
-    time += claim_interval;
+    time = snapshot(deps, time);
 
     let (empty, amount) = execute_claim(deps, time, sender1.clone()).unwrap();
     assert_eq!(empty, false);
@@ -227,7 +204,7 @@ fn test_claim_with_lock_unlock() {
     ).unwrap();
 
     deps.querier.reward_token_supply += Uint128(share);
-    time += claim_interval;
+    time = snapshot(deps, time);
 
     let (empty, amount) = execute_claim(deps, time, sender1.clone()).unwrap();
     assert_eq!(empty, false);
@@ -248,7 +225,7 @@ fn test_claim_with_lock_unlock() {
     assert_eq!(deps.querier.reward_token_supply.u128(), 0);
 
     deps.querier.reward_token_supply += Uint128(share);
-    time += claim_interval;
+    time = snapshot(deps, time);
 
     retrieve_tokens(
         deps,
@@ -256,7 +233,9 @@ fn test_claim_with_lock_unlock() {
         Uint128(deposit_amount)
     ).unwrap();
 
-    let expected_amount = 198000000u128;
+    time = snapshot(deps, time);
+
+    let expected_amount = 198 * get_whole_token_representation(REWARD_TOKEN_DECIMALS);
 
     let (empty, amount) = execute_claim(deps, time, sender2.clone()).unwrap();
     assert_eq!(empty, false);
@@ -498,6 +477,54 @@ fn test_cant_retrieve_soon_after_claim() {
     assert_eq!(deps.querier.reward_token_supply, Uint128(6));
 }
 
+fn init_helper(
+    share: u128,
+    reward_token_supply: u128
+) -> Extern<MockStorage, MockApi, MockSnip20Querier> {
+    let reward_token = ContractInstance {
+        address: "reward_token".into(),
+        code_hash: "reward_token_hash".into()
+    };
+
+    let mut deps = mock_dependencies(20, reward_token.clone(), reward_token_supply.into(), REWARD_TOKEN_DECIMALS);
+
+    init(&mut deps, mock_env(FACTORY_ADDR, &[]), InitMsg {
+        claim_interval: CLAIM_INTERVAL,
+        admin: None,
+        reward_token: ContractInstance {
+            address: "reward_token".into(),
+            code_hash: "reward_token_hash".into()
+        },
+        pool: RewardPoolConfig {
+            share: share.into(),
+            lp_token: ContractInstance {
+                address: "lp_token_addr".into(),
+                code_hash: "lp_token_hash".into()
+            }
+        },
+        prng_seed: to_binary(&"whatever").unwrap(),
+        entropy: to_binary(&"whatever").unwrap(),
+        callback: create_callback()
+    }).unwrap();
+
+    deps
+}
+
+fn snapshot<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    time: u64
+) -> u64 {
+    let time = time + CLAIM_INTERVAL;
+
+    handle(
+        deps,
+        mock_env_with_time(FACTORY_ADDR, time),
+        HandleMsg::TakeSnapshot
+    ).unwrap();
+
+    time
+}
+
 fn create_pool(share: u128, size: u128) -> RewardPool<HumanAddr> {
     RewardPool {
         lp_token: ContractInstance {
@@ -665,8 +692,8 @@ fn claim_run() {
 fn create_callback() -> Callback<HumanAddr> {
     Callback {
         contract: ContractInstance {
-            address: "dummy_addr".into(),
-            code_hash: "dummy_code_hash".into(),
+            address: FACTORY_ADDR.into(),
+            code_hash: "factory_code_hash".into(),
         },
         msg: to_binary(&"dummy_msg").unwrap()
     }
