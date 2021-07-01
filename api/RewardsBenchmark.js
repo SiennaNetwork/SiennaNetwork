@@ -19,6 +19,6 @@ export default class RewardsBenchmarkContract extends SecretNetworkContractWithS
   retrieve = (amount, agent) =>
     this.tx.retrieve({ amount: String(amount) }, agent);
 
-  claim = (lp_tokens, agent) =>
-    this.tx.claim({ lp_tokens }, agent);
+  claim = (agent) =>
+    this.tx.claim({}, agent);
 }
