@@ -25,9 +25,9 @@ dependencies = [
  "composable-snip20",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "cosmwasm-utils 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
+ "cosmwasm-utils",
  "fadroma-scrt-addr 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
- "fadroma-scrt-callback",
+ "fadroma-scrt-callback 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
  "fadroma-scrt-migrate 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
  "fadroma-scrt-storage 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
  "schemars",
@@ -326,13 +326,11 @@ dependencies = [
 name = "composable-admin"
 version = "0.1.0"
 dependencies = [
- "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "fadroma-scrt-storage 0.1.0",
  "require-admin 0.1.0",
  "schemars",
  "serde",
- "snafu",
 ]
 
 [[package]]
@@ -357,7 +355,7 @@ dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "cosmwasm-utils 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
+ "cosmwasm-utils",
  "schemars",
  "serde",
  "snafu",
@@ -371,8 +369,8 @@ dependencies = [
  "bincode2",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "cosmwasm-utils 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
- "fadroma-scrt-callback",
+ "cosmwasm-utils",
+ "fadroma-scrt-callback 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
  "schemars",
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit?rev=v0.1.1-debug-print)",
  "serde",
@@ -488,23 +486,6 @@ source = "git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print#
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "serde",
-]
-
-[[package]]
-name = "cosmwasm-utils"
-version = "0.1.0"
-dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "fadroma-scrt-storage 0.1.0",
- "primitive-types",
- "rand_chacha 0.2.2",
- "rand_core 0.5.1",
- "schemars",
- "serde",
- "sha2 0.9.5",
- "snafu",
- "subtle 2.4.0",
 ]
 
 [[package]]
@@ -644,6 +625,20 @@ version = "3.0.0-rc1"
 source = "git+https://github.com/hackbg/fadroma?branch=21.05.1#9492d8a44dfd875fb83a4c776d3003f2e7162504"
 
 [[package]]
+name = "fadroma"
+version = "21.7.0"
+dependencies = [
+ "fadroma-scrt-addr 0.1.0",
+ "fadroma-scrt-base",
+ "fadroma-scrt-callback 0.1.0",
+ "fadroma-scrt-contract",
+ "fadroma-scrt-migrate 0.1.0",
+ "fadroma-scrt-storage 0.1.0",
+ "fadroma-scrt-utils",
+ "secret-toolkit 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b)",
+]
+
+[[package]]
 name = "fadroma-scrt-addr"
 version = "0.1.0"
 dependencies = [
@@ -656,6 +651,29 @@ version = "0.1.0"
 source = "git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0#9dfcfc0422905ed63f6bc348a865b7bbe6e0f6f5"
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+]
+
+[[package]]
+name = "fadroma-scrt-base"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "schemars",
+ "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit?branch=debug-print)",
+ "snafu",
+]
+
+[[package]]
+name = "fadroma-scrt-callback"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "fadroma-scrt-addr 0.1.0",
+ "schemars",
+ "serde",
 ]
 
 [[package]]
@@ -680,8 +698,8 @@ version = "0.1.0"
 dependencies = [
  "composable-admin 0.1.0",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "cosmwasm-utils 0.1.0",
  "fadroma-scrt-addr 0.1.0",
+ "fadroma-scrt-utils",
  "schemars",
  "serde",
  "snafu",
@@ -694,7 +712,7 @@ source = "git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0#9dfcfc0422905e
 dependencies = [
  "composable-admin 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "cosmwasm-utils 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
+ "cosmwasm-utils",
  "fadroma-scrt-addr 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
  "schemars",
  "serde",
@@ -705,7 +723,7 @@ dependencies = [
 name = "fadroma-scrt-storage"
 version = "0.1.0"
 dependencies = [
- "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "fadroma-scrt-base",
  "serde",
 ]
 
@@ -716,6 +734,23 @@ source = "git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0#9dfcfc0422905e
 dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "serde",
+]
+
+[[package]]
+name = "fadroma-scrt-utils"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "fadroma-scrt-storage 0.1.0",
+ "primitive-types",
+ "rand_chacha 0.2.2",
+ "rand_core 0.5.1",
+ "schemars",
+ "serde",
+ "sha2 0.9.5",
+ "snafu",
+ "subtle 2.4.0",
 ]
 
 [[package]]
@@ -1717,7 +1752,7 @@ dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
- "fadroma",
+ "fadroma 3.0.0-rc1",
  "kukumba",
  "linear-map",
  "schemars",
@@ -1740,6 +1775,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "sienna-reward-schedule"
+version = "0.1.0"
+dependencies = [
+ "fadroma 21.7.0",
+ "schemars",
+ "serde",
+ "snafu",
+]
+
+[[package]]
 name = "sienna-rewards"
 version = "0.1.0"
 dependencies = [
@@ -1748,15 +1793,27 @@ dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "cosmwasm-utils 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
+ "cosmwasm-utils",
  "fadroma-scrt-addr 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
- "fadroma-scrt-callback",
+ "fadroma-scrt-callback 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
  "fadroma-scrt-storage 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
  "rand 0.8.4",
  "schemars",
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit?branch=debug-print)",
  "serde",
  "snafu",
+]
+
+[[package]]
+name = "sienna-rewards-benchmark"
+version = "1.0.0"
+dependencies = [
+ "fadroma 21.7.0",
+ "kukumba",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sienna-reward-schedule",
 ]
 
 [[package]]
@@ -1768,7 +1825,7 @@ dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "fadroma-scrt-addr 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
- "fadroma-scrt-callback",
+ "fadroma-scrt-callback 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
  "fadroma-scrt-storage 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
  "schemars",
  "serde",
@@ -1783,7 +1840,7 @@ dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
- "fadroma",
+ "fadroma 3.0.0-rc1",
  "kukumba",
  "linear-map",
  "schemars",

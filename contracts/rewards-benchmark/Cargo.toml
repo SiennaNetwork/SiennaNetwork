@@ -1,0 +1,28 @@
+[package]
+name = "sienna-rewards-benchmark"
+version = "1.0.0"
+authors = ["Adam Avramov <adam@hack.bg>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+path = "rewards.rs"
+
+[features]
+default = []
+
+[dependencies]
+serde    = { version = "1.0.103", default-features = false, features = ["derive"] }
+schemars = "0.7"
+fadroma  = { path = "../../libraries/fadroma-21.07/core", features = [
+  "scrt-addr",
+  "scrt-callback",
+  "scrt-contract",
+  "scrt-storage"
+] }
+sienna-reward-schedule = { path = "../../libraries/schedule-rewards" }
+
+[dev-dependencies]
+kukumba = { path = "../../libraries/kukumba" }
+serde_json = "1.0"

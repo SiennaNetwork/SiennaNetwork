@@ -3,13 +3,15 @@ members = [
   "api", # JSON schema exporter
 
   # TGE
-  "libraries/schedule",        # model of TGE vesting logic
-  "libraries/linear-map",      # simple way of storing small number of addresses
-  "contracts/snip20-sienna",   # SNIP20 reference impl with deposit/redeem disabled
-  "contracts/mgmt",            # mints and vests tokens according to schedule
-  "contracts/rpt",             # claims from mgmt and splits the portion between recipients
-  "contracts/rewards",         # TODO: leave only this and use MGMT and RPT from tge
-  "contracts/rewards-factory", # instantiates and holds reward pool contracts
+  "libraries/schedule",          # model of TGE vesting logic
+  "libraries/linear-map",        # simple way of storing small number of addresses
+  "contracts/snip20-sienna",     # SNIP20 reference impl with deposit/redeem disabled
+  "contracts/mgmt",              # mints and vests tokens according to schedule
+  "contracts/rpt",               # claims from mgmt and splits the portion between recipients
+  "contracts/rewards",           # TODO: leave only this and use MGMT and RPT from tge
+  "contracts/rewards-factory",   # instantiates and holds reward pool contracts
+  "libraries/schedule-rewards",  # experimental continuous rewards algorithm
+  "contracts/rewards-benchmark", # gas benchmark for continuous rewards
 
   # Swap + IDO
   "libraries/amm-shared",      # definitions that are shared between AMM and IDO
@@ -28,12 +30,12 @@ members = [
   "contracts/snip20-lend-experimental", # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/packages/snip20
 
   # Framework
-  "libraries/fadroma-21.06.1/scrt-admin/composable-admin", # proc macro for `require_admin` attribute
-  "libraries/fadroma-21.06.1/scrt-admin/require-admin",    # implementation of admin check
-  "libraries/fadroma-21.06.1/scrt-contract",               # contract wrapper macro
-  "libraries/fadroma-21.06.1/scrt-migrate",                # pause contracts and mark them for upgrade
-  "libraries/fadroma-21.06.1/scrt-storage",                # storage access shorthand functions
-  "libraries/fadroma-21.06.1/scrt-utils",                  # grab bag of utility functions
+  "libraries/fadroma-21.07/scrt-admin/composable-admin", # proc macro for `require_admin` attribute
+  "libraries/fadroma-21.07/scrt-admin/require-admin",    # implementation of admin check
+  "libraries/fadroma-21.07/scrt-contract",               # contract wrapper macro
+  "libraries/fadroma-21.07/scrt-migrate",                # pause contracts and mark them for upgrade
+  "libraries/fadroma-21.07/scrt-storage",                # storage access shorthand functions
+  "libraries/fadroma-21.07/scrt-utils",                  # grab bag of utility functions
   "libraries/migrate",  # migration flag, as used by TGE before merging this feature into Fadroma
   "libraries/kukumba",  # BDD testing framework
 ]
