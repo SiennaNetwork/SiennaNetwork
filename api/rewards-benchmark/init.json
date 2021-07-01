@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Init",
+  "type": "object",
+  "required": [
+    "provided_token",
+    "rewarded_token"
+  ],
+  "properties": {
+    "provided_token": {
+      "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+    },
+    "rewarded_token": {
+      "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+    }
+  },
+  "definitions": {
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    }
+  }
+}
