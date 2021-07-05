@@ -12,6 +12,10 @@ yarn
 ./sienna --help
 ```
 
+>⚠️ **NOTICE:** This requires Yarn 2
+
+>⚠️ **NOTICE:** If yarn fails, make sure you've initialized the submodules
+
 ## Integration testing
 
 Integration testing is done through javascript `mocha` tool, tests are located in the `api/` directory together with
