@@ -1,3 +1,4 @@
+import { execFileSync } from 'child_process'
 import { Console, readFileSync, randomBytes, taskmaster } from '@fadroma/utilities'
 import Ensemble from '@fadroma/scrt-ops/ensemble.js'
 import { SNIP20Contract, RewardsContract } from '@sienna/api'
@@ -37,6 +38,32 @@ export default class RewardsContracts extends Ensemble {
       crate: 'sienna-rewards-factory',
       label: `${this.prefix}SIENNA_REWARDS_FACTORY`
     }
+
+    REWARDS_BENCHMARK: {
+      crate: 'sienna-rewards-benchmark',
+      label: `${this.prefix}SIENNA_REWARDS_BENCHMARK`
+    }
+  }
+
+  get localCommands () {
+    return [
+      ...super.localCommands,
+      ["benchmark", '⛽ Measure gas costs', () => this.benchmark()]
+    ]
+  }
+
+  benchmark () {
+    /* stupid esmodule import issue when running mocha programmatically
+     * their CLI works fine though... нтар 🤦‍♂️
+    const mocha = new Mocha()
+    mocha.addFile(abs('api/RewardsBenchmark.spec.js'))
+    mocha.run(fail => process.exit(fail ? 1 : 0))*/
+    execFileSync(abs('node_modules/.bin/mocha'), [
+      '-p', 'false', // what was that
+      'api/RewardsBenchmark.spec.js'
+    ], {
+      stdio: 'inherit'
+    })
   }
 
   async initialize ({ network, receipts, agent = network.agent }) {

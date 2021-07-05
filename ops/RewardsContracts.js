@@ -1,3 +1,9 @@
+/* The CLI (ops/index.ts) imports the TypeScript version.
+ * This one is imported by the test suite in api/Rewards.spec.js
+ * The TypeScript conversion didn't really pan out - just added a few flimsy layers
+ * such as ts-node and ts-esnode - so it might be reasonable to just go back to JS and
+ * validate by writing more tests instead of relying on the type system. */
+
 import { Console, readFileSync, randomBytes, taskmaster } from '@fadroma/utilities'
 import Ensemble from '@fadroma/scrt-ops/ensemble.js'
 import { SNIP20Contract, RewardsContract } from '@sienna/api'
