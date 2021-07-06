@@ -9,14 +9,16 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 default = []
-# for quicker tests, cargo test --lib
-# for more explicit tests, cargo test --features=backtraces
-backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
-cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+fadroma = { git="https://github.com/hackbg/fadroma", branch="21.07", features=[
+    "scrt-addr",
+    "scrt-callback",
+    "scrt-contract",
+    "scrt-migrate",
+    "scrt-storage",
+    "scrt-utils",
+] }
 schemars = "0.7"
-serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
-
-amm-shared = { path = "../../libraries/amm-shared" }
+serde = { version="1.0.103", default-features=false, features=["derive"] }
+amm-shared = { path="../../libraries/amm-shared" }

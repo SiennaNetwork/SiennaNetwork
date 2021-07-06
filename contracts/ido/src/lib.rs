@@ -1,11 +1,11 @@
-pub mod contract;
-pub mod state;
-pub mod data;
+mod contract;
+mod data;
+mod storable;
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use super::contract;
-    use cosmwasm_std::{
+    use fadroma::scrt::cosmwasm_std::{
         do_handle, do_init, do_query, ExternalApi, ExternalQuerier, ExternalStorage,
     };
 
@@ -38,3 +38,6 @@ mod wasm {
     // Other C externs like cosmwasm_vm_version_1, allocate, deallocate are available
     // automatically because we `use cosmwasm_std`.
 }
+
+#[cfg(test)]
+mod test;
