@@ -4,6 +4,7 @@ use fadroma::scrt::{
     cosmwasm_std::{
         Uint128, CanonicalAddr, StdResult, StdError,
         Extern, Storage, Api, Querier,
+        to_vec
     },
     storage::{save, load, ns_save, ns_load}
 };
@@ -45,13 +46,13 @@ macro_rules! load { ($self:ident, $key:expr) => {
     load(&$self.deps.storage, $key.into()) }; }
 
 macro_rules! save { ($self:ident, $key:expr, $val:expr) => {
-    save(&mut $self.deps.storage, $key.into(), &$val.into()) }; }
+    $self.deps.storage.set(&$key, &to_vec(&$val)?); }; }
 
 macro_rules! ns_load { ($self:ident, $ns:expr, $key:expr) => {
     ns_load(&$self.deps.storage, $ns.into(), $key.as_slice()) }; }
 
 macro_rules! ns_save { ($self:ident, $ns:expr, $key:expr, $val:expr) => {
-    ns_save(&mut $self.deps.storage, $ns.into(), $key.as_slice(), &$val.into()) }; }
+    ns_save(&mut $self.deps.storage, $ns.into(), $key.as_slice(), &$val) }; }
 
 /// A monotonic time counter, such as env.block.time or env.block.height
 pub type Monotonic = u64;
@@ -86,15 +87,15 @@ impl <'a, S: Storage, A: Api, Q: Querier> RewardPoolController <'a, S, A, Q> {
             // the total of the liquidity ever provided
             (Some(volume), Some(total), Some(since)) => {
                 let total = so_far(total, now - since, volume);
-                save!(self, POOL_TOTAL, total)?;
+                save!(self, POOL_TOTAL, total);
                 Ok(volume)
             },
             // if any of the three vars is missing:
             // (re-)initialize the contract
             _ => {
-                save!(self, POOL_VOLUME, Uint128::zero())?;
-                save!(self, POOL_TOTAL,  Uint128::zero())?;
-                save!(self, POOL_SINCE,  now)?;
+                save!(self, POOL_VOLUME, Uint128::zero());
+                save!(self, POOL_TOTAL,  Uint128::zero());
+                save!(self, POOL_SINCE,  now);
                 Ok(Uint128::zero())
             }
         }
@@ -125,7 +126,8 @@ impl <'a, S: Storage, A: Api, Q: Querier> RewardPoolController <'a, S, A, Q> {
         }
         // if recording it in the user's balance went fine
         // tally the pool and update its current state
-        save!(self, POOL_VOLUME, self.update(now)? + increment);
+        let incremented = self.update(now)? + increment;
+        save!(self, POOL_VOLUME, incremented);
         save!(self, POOL_SINCE,  now);
         Ok(increment)
     }
@@ -141,7 +143,8 @@ impl <'a, S: Storage, A: Api, Q: Querier> RewardPoolController <'a, S, A, Q> {
                 if volume < decrement {
                     error!(format!("not enough balance ({} < {})", volume, decrement))
                 } else {
-                    save!(self, POOL_VOLUME, (self.update(now)? - decrement)?);
+                    let decremented = (self.update(now)? - decrement)?;
+                    save!(self, POOL_VOLUME, decremented);
                     save!(self, POOL_SINCE,  now);
                     Ok(decrement)
                 }
