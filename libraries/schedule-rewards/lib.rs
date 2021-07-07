@@ -1,6 +1,7 @@
+pub mod stateful;
+
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
-//use snafu::GenerateBacktrace;
 use fadroma::scrt::cosmwasm_std::{Uint128, CanonicalAddr, StdResult, StdError};
 
 /// Unit of time

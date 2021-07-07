@@ -5,13 +5,13 @@
  * validate by writing more tests instead of relying on the type system. */
 
 import { Console, readFileSync, randomBytes, taskmaster } from '@fadroma/utilities'
-import Ensemble from '@fadroma/scrt-ops/ensemble.js'
+import { ScrtEnsemble } from '@fadroma/scrt-ops'
 import { SNIP20Contract, RewardsContract } from '@sienna/api'
 import { abs } from './lib/index.js'
 
 const console = Console(import.meta.url)
 
-export default class RewardsContracts extends Ensemble {
+export default class SiennaRewards extends ScrtEnsemble {
 
   workspace = abs()
 

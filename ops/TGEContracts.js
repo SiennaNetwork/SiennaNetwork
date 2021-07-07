@@ -1,5 +1,5 @@
 import { SecretNetwork } from '@fadroma/scrt-agent'
-import Ensemble from '@fadroma/scrt-ops/ensemble.js'
+import { ScrtEnsemble } from '@fadroma/scrt-ops'
 import {
   Console, render,
   readFileSync, randomBytes,
@@ -12,7 +12,7 @@ import { projectRoot, abs, runDemo } from './lib/index.js'
 
 const { debug, log, warn, error, info, table } = Console(import.meta.url)
 
-export default class TGEContracts extends Ensemble {
+export default class TGEContracts extends ScrtEnsemble {
 
   workspace = abs()
 
@@ -37,9 +37,9 @@ export default class TGEContracts extends Ensemble {
   get localCommands () {
     return [
       ["build",       '👷 Compile contracts from working tree',
-        (context, sequential) => this.build(sequential)],
+        (_, sequential) => this.build(sequential)],
       ['config',      '📅 Convert a spreadsheet into a JSON schedule',
-        (context, spreadsheet) => genConfig(spreadsheet)]
+        (_, spreadsheet) => genConfig(spreadsheet)]
     ]
   }
 
@@ -50,7 +50,7 @@ export default class TGEContracts extends Ensemble {
       ["demo",         '🐒 Run the TGE demo (long-running integration test)',
         runDemo],
       ["upload",       '📦 Upload compiled contracts to network',
-        (context, network)  => this.upload(context)],
+        (context)           => this.upload(context)],
       ["init",         '🚀 Init new instances of already uploaded contracts',
         (context, schedule) => this.initialize({...context, schedule})],
       ["launch",       '🚀 Launch deployed vesting contract',

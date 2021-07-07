@@ -1,7 +1,7 @@
-import Ensemble from '@fadroma/scrt-ops/ensemble.js'
-import { abs, args, combine } from './lib/index.js'
+import { ScrtEnsemble } from '@fadroma/scrt-ops'
+import { abs } from './lib/index.js'
 
-export default class AMMContracts extends Ensemble {
+export default class SiennaSwap extends ScrtEnsemble {
 
   workspace = abs()
 

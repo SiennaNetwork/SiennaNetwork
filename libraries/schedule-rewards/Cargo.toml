@@ -9,7 +9,7 @@ name = "sienna_reward_schedule"
 path = "lib.rs"
 
 [dependencies]
-fadroma      = { path = "../fadroma-21.07/core", features = [ "scrt" ] }
+fadroma      = { path = "../fadroma-21.07/core", features = [ "scrt", "scrt-storage" ] }
 snafu        = { version = "0.6.3", features = ["backtraces"] }
 serde        = { version = "1.0.103", default-features = false, features = ["derive"] }
 schemars     = "0.7"
