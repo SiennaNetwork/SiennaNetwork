@@ -952,6 +952,7 @@ dependencies = [
  "fadroma 21.7.0",
  "schemars",
  "serde",
+ "serde-json-wasm",
 ]
 
 [[package]]
