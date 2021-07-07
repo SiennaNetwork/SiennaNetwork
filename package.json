@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "workspaces": [
-    "./libraries/fadroma-21.06.1/utilities",
-    "./libraries/fadroma-21.06.1/scrt-agent",
-    "./libraries/fadroma-21.06.1/scrt-ops",
+    "./libraries/fadroma-21.07/utilities",
+    "./libraries/fadroma-21.07/scrt-agent",
+    "./libraries/fadroma-21.07/scrt-ops",
     "./libraries/schedule",
     "./api",
     "./ops"
@@ -20,9 +20,9 @@
     "typescript": "^4.3.2"
   },
   "scripts": {
-    "docco":  "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",
-    "test":   "./sienna localnet reset && mocha -p false api/Rewards.spec.js",
-    "bench":  "./sienna localnet reset && mocha -p false api/RewardsBenchmark.spec.js",
+    "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",
+    "test": "./sienna localnet reset && mocha -p false api/Rewards.spec.js",
+    "bench": "./sienna localnet reset && mocha -p false api/RewardsBenchmark.spec.js",
     "sienna": "./sienna"
   }
 }

@@ -53,15 +53,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fadroma/scrt-agent@*, @fadroma/scrt-agent@workspace:libraries/fadroma-21.06.1/scrt-agent":
+"@fadroma/scrt-agent@*, @fadroma/scrt-agent@workspace:libraries/fadroma-21.07/scrt-agent":
   version: 0.0.0-use.local
-  resolution: "@fadroma/scrt-agent@workspace:libraries/fadroma-21.06.1/scrt-agent"
+  resolution: "@fadroma/scrt-agent@workspace:libraries/fadroma-21.07/scrt-agent"
   languageName: unknown
   linkType: soft
 
-"@fadroma/scrt-ops@*, @fadroma/scrt-ops@workspace:libraries/fadroma-21.06.1/scrt-ops":
+"@fadroma/scrt-ops@*, @fadroma/scrt-ops@workspace:libraries/fadroma-21.07/scrt-ops":
   version: 0.0.0-use.local
-  resolution: "@fadroma/scrt-ops@workspace:libraries/fadroma-21.06.1/scrt-ops"
+  resolution: "@fadroma/scrt-ops@workspace:libraries/fadroma-21.07/scrt-ops"
   dependencies:
     "@fadroma/scrt-agent": "*"
     "@fadroma/utilities": "*"
@@ -70,9 +70,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@fadroma/utilities@*, @fadroma/utilities@workspace:libraries/fadroma-21.06.1/utilities":
+"@fadroma/utilities@*, @fadroma/utilities@workspace:libraries/fadroma-21.07/utilities":
   version: 0.0.0-use.local
-  resolution: "@fadroma/utilities@workspace:libraries/fadroma-21.06.1/utilities"
+  resolution: "@fadroma/utilities@workspace:libraries/fadroma-21.07/utilities"
   dependencies:
     colors: ^1.4.0
     exponential-backoff: ^3.1.0

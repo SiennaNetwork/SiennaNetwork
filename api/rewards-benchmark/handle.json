@@ -5,6 +5,29 @@
     {
       "type": "object",
       "required": [
+        "set_provided_token"
+      ],
+      "properties": {
+        "set_provided_token": {
+          "type": "object",
+          "required": [
+            "address",
+            "code_hash"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "code_hash": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
         "lock"
       ],
       "properties": {
@@ -53,6 +76,9 @@
     }
   ],
   "definitions": {
+    "HumanAddr": {
+      "type": "string"
+    },
     "Uint128": {
       "type": "string"
     }

@@ -13,6 +13,9 @@ const decode  = (buffer) => decoder.decode(buffer).trim();
 export default class RewardsBenchmarkContract extends SecretNetworkContractWithSchema {
   constructor(options = {}) { super(options, schema) }
 
+  setProvidedToken = (address, code_hash, agent = this.agent) =>
+    this.tx.set_provided_token({address, code_hash}, agent);
+
   lock = (amount, agent) =>
     this.tx.lock({ amount: String(amount) }, agent);
 

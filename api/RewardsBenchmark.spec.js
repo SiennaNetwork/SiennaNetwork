@@ -76,39 +76,12 @@ describe("RewardsBenchmark", () => {
 
     const T0 = + new Date()
 
-    console.debug('init asset token:')
-    const asset = await context.agent.instantiate(new SNIP20({
-      codeId: context.token.id,
-      label:  'asset',
-      initMsg: { prng_seed: randomBytes(36).toString('hex')
-               , name:     "Asset"
-               , symbol:   "ASSET"
-               , decimals: 18
-               , initial_balances:
-                 [ { address: context.agent.address, amount: '1000000000000000000' }
-                 , ...context.agents.map(agent=>({
-                     address: agent.address,
-                     amount: '1000000000000000000'
-                   }))]
-               , initial_allowances:
-                 [ { address: context.agent.address, amount: '1000000000000000000' }
-                 , ...context.agents.map(agent=>({
-                     address: agent.address,
-                     amount: '1000000000000000000'
-                   }))]
-               , config:
-                 { public_total_supply: true
-                 , enable_deposit: true
-                 , enable_redeem: true
-                 , enable_mint: true
-                 , enable_burn: true } } }))
-
     console.debug('init reward token:')
-    const reward = await context.agent.instantiate(new SNIP20({
+    const rewardToken = await context.agent.instantiate(new SNIP20({
       codeId: context.token.id,
-      label:  'reward',
+      label:  'RewardToken',
       initMsg: { prng_seed: randomBytes(36).toString('hex')
-               , name:     "Reward"
+               , name:     "RewardToken"
                , symbol:   "REWARD"
                , decimals: 18
                , config:
@@ -119,15 +92,93 @@ describe("RewardsBenchmark", () => {
                  , enable_burn: true } } }))
 
     console.debug('init reward pool:')
-    const lending = await context.agent.instantiate(new RewardsBenchmark({
+    const rewardPool = await context.agent.instantiate(new RewardsBenchmark({
       codeId: context.pool.id,
-      label: 'lending',
-      initMsg: { provided_token: asset.reference
-               , rewarded_token: reward.reference } }))
+      label: 'RewardPool',
+      initMsg: { rewarded_token: rewardToken.reference } }))
+
+    console.debug('init asset token:')
+    const lpToken = await context.agent.instantiate(new SNIP20({
+      codeId: context.token.id,
+      label:  'LPToken',
+      initMsg: { prng_seed: randomBytes(36).toString('hex')
+               , name:     "LPToken"
+               , symbol:   "LPTOKE"
+               , decimals: 18
+               , initial_balances:
+                 [ { address: context.agent.address, amount: '1000000000000000000' }
+                 , ...context.agents.map(user=>({
+                     address: user.address,
+                     amount: '1000000000000000000'
+                   }))]
+               , initial_allowances:
+                 [ { owner: context.agent.address
+                   , spender: rewardPool.address
+                   , amount: '1000000000000000000' }
+                 , ...context.agents.map(user=>({
+                   owner:   user.address,
+                   spender: rewardPool.address,
+                   amount: '1000000000000000000'
+                 })) ]
+               , config:
+                 { public_total_supply: true
+                 , enable_deposit: true
+                 , enable_redeem: true
+                 , enable_mint: true
+                 , enable_burn: true } } }))
+
+    console.debug('set asset token in rewards pool:')
+    await rewardPool.setProvidedToken(lpToken.reference.address, lpToken.reference.code_hash)
 
     const T1 = + new Date()
     console.info(`instantiation took ${T1 - T0}msec`)
 
+    const getRandomAmount = () => bignum(String(Math.floor(Math.random()*1000000)))
+    await rewardPool.lock(getRandomAmount()).catch(console.error)
+    await rewardPool.claim().catch(console.error)
+    await rewardPool.retrieve(getRandomAmount()).catch(console.error)
+
+    const T2 = + new Date()
+
+    // K*N times have a random user do a random operation (lock/retrieve random amount or claim)
+    const actions = [
+      recipient => {
+        const amount = getRandomAmount()
+        console.debug(`${recipient}: lock ${amount}`)
+        return rewardPool.lock("100", recipient)
+      },
+      recipient => {
+        const amount = getRandomAmount()
+        console.debug(`${recipient.name}: retrieve ${amount}`)
+        return rewardPool.retrieve("1", recipient)
+      },
+      recipient => {
+        console.debug(`${recipient.name}: claim`)
+        return rewardPool.claim(recipient)
+      }
+    ]
+    const pickRandom = arr => arr[Math.floor(Math.random()*arr.length)]
+    for (let i = 0; i < 1000000; i++) {
+      const action    = pickRandom(actions)
+      const recipient = pickRandom(context.agents)
+      // track average and maximum gas cost
+      try {
+        console.debug(await action(recipient.address))
+      } catch (e) {
+        console.warn(e)
+      }
+    }
+
+    const T3 = + new Date()
+    console.info(`benchmark took ${T3 - T2}msec`)
+    
+  })
+
+  after(async function cleanupAll () {})
+
+})
+
+// scratchpad TODO put this in a gist or the kb or something
     // make N accounts and send them scrt
     //const N = 10
     //const recipients = await Promise.all(
@@ -141,10 +192,6 @@ describe("RewardsBenchmark", () => {
       //agent:      context.agent, // from the admin's genesis balance
       //recipients: recipients.reduce((recipients, agent)=>[>ugh<]
         //Object.assign(recipients, {[agent.address]:{agent, address:agent.address}}), {})})
-
-    const T2 = + new Date()
-    console.info(`creating agents took ${T2 - T1}msec`)
-
     // mint 'em random amount of ASSET
     ////await Promise.all(recipients.map(recipient=>{
       ////const amount = getRandomAmount()
@@ -154,46 +201,6 @@ describe("RewardsBenchmark", () => {
     //for (const recipient of recipients) {
       //const amount = getRandomAmount()
       //console.debug(`mint ${amount} to ${recipient.name}`)
-      //await asset.increaseAllowance(amount, lending.address, recipient)
+      //await asset.increaseAllowance(amount, rewardPool.address, recipient)
       //await asset.mint(amount, asset.agent, recipient.address)
     //}
-
-    const T3 = + new Date()
-    console.info(`minting assets took ${T3 - T2}msec`)
-    console.info(`total setup time: ${T3 - T0}msec`)
-
-    // K*N times have a random user do a random operation (lock/retrieve random amount or claim)
-    const actions = [
-      recipient => {
-        const amount = getRandomAmount()
-        console.debug(`${recipient.name}: lock ${amount}`)
-        return lending.lock(getRandomAmount(), recipient)
-      },
-      recipient => {
-        const amount = getRandomAmount()
-        console.debug(`${recipient.name}: retrieve ${amount}`)
-        return lending.retrieve(getRandomAmount(), recipient)
-      },
-      recipient => {
-        console.debug(`${recipient.name}: claim`)
-        return lending.claim(recipient)
-      }
-    ]
-    const pickRandom = arr => arr[Math.floor(Math.random()*arr.length)]
-    const getRandomAmount = () => bignum(String(Math.floor(Math.random()*1000000))+"000000000")
-    for (let i = 0; i < 1000000; i++) {
-      const action    = pickRandom(actions)
-      const recipient = pickRandom(context.agents)
-      // track average and maximum gas cost
-      try {
-        console.debug(await action(recipient.address))
-      } catch (e) {
-        console.warn(e)
-      }
-    }
-    
-  })
-
-  after(async function cleanupAll () {})
-
-})

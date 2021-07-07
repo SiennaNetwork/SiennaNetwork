@@ -44,6 +44,15 @@
       "format": "uint8",
       "minimum": 0.0
     },
+    "initial_allowances": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/InitialAllowance"
+      }
+    },
     "initial_balances": {
       "type": [
         "array",
@@ -151,6 +160,33 @@
             "boolean",
             "null"
           ]
+        }
+      }
+    },
+    "InitialAllowance": {
+      "type": "object",
+      "required": [
+        "amount",
+        "owner",
+        "spender"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "expiration": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "owner": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "spender": {
+          "$ref": "#/definitions/HumanAddr"
         }
       }
     },

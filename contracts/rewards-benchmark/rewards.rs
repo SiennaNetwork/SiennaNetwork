@@ -77,8 +77,7 @@ contract! {
             match state.provided_token {
                 Some(provided_token) => Ok(HandleResponse {
                     messages: vec![
-                        snip20::transfer_from_msg(
-                            env.contract.address,
+                        snip20::transfer_msg(
                             env.message.sender,
                             retrieved,
                             None,

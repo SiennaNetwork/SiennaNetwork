@@ -3,12 +3,18 @@
   "title": "Init",
   "type": "object",
   "required": [
-    "provided_token",
     "rewarded_token"
   ],
   "properties": {
     "provided_token": {
-      "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "rewarded_token": {
       "$ref": "#/definitions/ContractInstance_for_HumanAddr"
