@@ -37,7 +37,7 @@ export default class RewardsContracts extends Ensemble {
     REWARDS_FACTORY: {
       crate: 'sienna-rewards-factory',
       label: `${this.prefix}SIENNA_REWARDS_FACTORY`
-    }
+    },
 
     REWARDS_BENCHMARK: {
       crate: 'sienna-rewards-benchmark',

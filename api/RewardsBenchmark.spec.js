@@ -10,9 +10,9 @@ import RewardsBenchmark  from './RewardsBenchmark.js'
 describe("RewardsBenchmark", () => {
 
   const fees = { upload: gas(10000000)
-               , init:   gas(1000000)
-               , exec:   gas(1000000)
-               , send:   gas(500000) }
+               , init:   gas(10000000)
+               , exec:   gas(10000000)
+               , send:   gas(10000000) }
 
   const context = {}
 
@@ -39,7 +39,7 @@ describe("RewardsBenchmark", () => {
     // build the contracts
     const workspace = abs()
     const [ tokenBinary, poolBinary ] = await Promise.all([
-      builder.build({workspace, crate: 'snip20-sienna'           }),
+      builder.build({workspace, crate: 'amm-snip20'              }),
       builder.build({workspace, crate: 'sienna-rewards-benchmark'}), ])
 
     const T2 = + new Date()
@@ -85,6 +85,12 @@ describe("RewardsBenchmark", () => {
                , symbol:   "ASSET"
                , decimals: 18
                , initial_balances:
+                 [ { address: context.agent.address, amount: '1000000000000000000' }
+                 , ...context.agents.map(agent=>({
+                     address: agent.address,
+                     amount: '1000000000000000000'
+                   }))]
+               , initial_allowances:
                  [ { address: context.agent.address, amount: '1000000000000000000' }
                  , ...context.agents.map(agent=>({
                      address: agent.address,
@@ -140,7 +146,6 @@ describe("RewardsBenchmark", () => {
     console.info(`creating agents took ${T2 - T1}msec`)
 
     // mint 'em random amount of ASSET
-    //const getRandomAmount = () => bignum(String(Math.floor(Math.random()*1000000))+"000000000")
     ////await Promise.all(recipients.map(recipient=>{
       ////const amount = getRandomAmount()
       ////console.debug(`mint ${amount} to ${recipient.name}`)
@@ -157,7 +162,6 @@ describe("RewardsBenchmark", () => {
     console.info(`minting assets took ${T3 - T2}msec`)
     console.info(`total setup time: ${T3 - T0}msec`)
 
-    const K = 10
     // K*N times have a random user do a random operation (lock/retrieve random amount or claim)
     const actions = [
       recipient => {
@@ -176,7 +180,8 @@ describe("RewardsBenchmark", () => {
       }
     ]
     const pickRandom = arr => arr[Math.floor(Math.random()*arr.length)]
-    for (let i = 0; i < K*N; i++) {
+    const getRandomAmount = () => bignum(String(Math.floor(Math.random()*1000000))+"000000000")
+    for (let i = 0; i < 1000000; i++) {
       const action    = pickRandom(actions)
       const recipient = pickRandom(context.agents)
       // track average and maximum gas cost
