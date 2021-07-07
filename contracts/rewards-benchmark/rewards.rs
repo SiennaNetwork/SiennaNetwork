@@ -6,7 +6,7 @@ use fadroma::scrt::{
     toolkit::snip20,
     utils::viewing_key::ViewingKey
 };
-use sienna_reward_schedule::RewardPool;
+use sienna_reward_schedule::stateful::RewardPoolController;
 
 macro_rules! tx_ok {
     ($($msg:expr),*) => { Ok(HandleResponse { messages: vec![$($msg),*], log: vec![], data: None }) }
@@ -21,8 +21,7 @@ contract! {
     [State] {
         provided_token: Option<ContractInstance<CanonicalAddr>>,
         rewarded_token: ContractInstance<CanonicalAddr>,
-        viewing_key:    ViewingKey,
-        pool:           RewardPool
+        viewing_key:    ViewingKey
     }
 
     [Init] (deps, env, msg: {
@@ -41,7 +40,6 @@ contract! {
         save_state!(State {
             provided_token,
             rewarded_token: rewarded_token.canonize(&deps.api)?,
-            pool:           RewardPool::new(env.block.time),
             viewing_key:    viewing_key.clone()
         });
 
@@ -52,6 +50,7 @@ contract! {
             None, BLOCK_SIZE,
             rewarded_token.code_hash, rewarded_token.address
         )?;
+
         InitResponse { messages: vec![set_vk], log: vec![] }
     }
 
@@ -80,7 +79,8 @@ contract! {
             if state.provided_token.is_none() { return error!("not configured") }
             let provided_token = state.provided_token.clone().unwrap();
             let address  = deps.api.canonical_address(&env.message.sender)?;
-            let locked   = state.pool.lock(env.block.time, address, amount);
+            let mut pool = RewardPoolController::new(deps);
+            let locked   = pool.lock(env.block.height, address, amount)?;
             let transfer = snip20::transfer_from_msg(
                 env.message.sender,
                 env.contract.address,
@@ -98,9 +98,10 @@ contract! {
         Retrieve (amount: Uint128) {
             if state.provided_token.is_none() { return error!("not configured") }
             let provided_token = state.provided_token.clone().unwrap();
-            let address = deps.api.canonical_address(&env.message.sender)?;
-            let retrieved = state.pool.retrieve(env.block.time, address, amount)?;
-            let transfer = snip20::transfer_msg(
+            let address   = deps.api.canonical_address(&env.message.sender)?;
+            let mut pool  = RewardPoolController::new(deps);
+            let retrieved = pool.retrieve(env.block.height, address, amount)?;
+            let transfer  = snip20::transfer_msg(
                 env.message.sender,
                 retrieved,
                 None,
@@ -122,8 +123,9 @@ contract! {
                 state.rewarded_token.code_hash.clone(),
                 deps.api.human_address(&state.rewarded_token.address)?
             )?;
-            let address = deps.api.canonical_address(&env.message.sender)?;
-            let claimed = state.pool.claim(env.block.time, balance.amount, address)?;
+            let address  = deps.api.canonical_address(&env.message.sender)?;
+            let mut pool = RewardPoolController::new(deps);
+            let claimed  = pool.claim(env.block.height, address, balance.amount)?;
             let transfer = snip20::transfer_msg(
                 env.message.sender,
                 claimed,
