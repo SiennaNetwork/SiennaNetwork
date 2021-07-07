@@ -1,2 +1,2 @@
 91485989a8c6b29be659a5dc4c47a20c4982710a091e6b16cb9079818cac4fa4 *amm-snip20@HEAD.wasm
-9f083aa12a0cbbb3ad0949f3e75a31ee509a74af6f1be2a94afa22d6801097a0 *sienna-rewards-benchmark@HEAD.wasm
+d642a9d5cfd77f5ad6d20b583f3aa9969ecae304513dff40c40b01066de396bd *sienna-rewards-benchmark@HEAD.wasm

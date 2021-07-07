@@ -20,7 +20,7 @@ describe("RewardsBenchmark", () => {
     const T0 = + new Date()
 
     // connect to a localnet with a large number of predefined agents
-    const numberOfAgents = 100
+    const numberOfAgents = 80
     const agentNames = [...Array(numberOfAgents)].map((_,i)=>`Agent${i}`)
     const localnet = SecretNetwork.localnet({
       stateBase:       abs("artifacts"),
@@ -148,12 +148,22 @@ describe("RewardsBenchmark", () => {
     const T2 = + new Date()
 
     // K*N times have a random user do a random operation (lock/retrieve random amount or claim)
-    let transactions = [
+    const transactions = [
       // type,
       // { transactionHash }
     ]
 
     const known = new Set()
+
+    ;(async function checkGas () {
+      const txGasCheckResults = await Promise.all(transactions.map(async ([label, recipient, tx])=>{
+        const {transactionHash:txhash} = tx
+        const txdata = await context.agent.API.restClient.get(`/txs/${txhash}`) || {}
+        return [txhash, label, recipient.name, txdata.gas_used, known.size]
+      }))
+      console.table(txGasCheckResults)
+      setTimeout(checkGas, 5000)
+    })()
 
     const actions = [
       async recipient => {
@@ -184,18 +194,10 @@ describe("RewardsBenchmark", () => {
       //() => {} // skip turn
     ]
 
-    ;(async function checkGas () {
-      const txGasCheckResults = await Promise.all(transactions.map(async ([label, recipient, tx])=>{
-        const {transactionHash:txhash} = tx
-        const txdata = await context.agent.API.restClient.get(`/txs/${txhash}`) || {}
-        return [txhash, label, recipient.name, txdata.gas_used, known.size]
-      }))
-      console.table(txGasCheckResults)
-      setTimeout(checkGas, 5000)
-    })()
+    console.log('--------- PRELOCK BEGINS -----------')
 
     for (const agent of context.agents) {
-      await rewardPool.lock("100", agent).catch(console.error)
+      await actions[0](agent).catch(console.error)
     }
 
     console.log('---------PRELOCK COMPLETE-----------')
