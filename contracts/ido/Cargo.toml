@@ -21,4 +21,5 @@ fadroma = { git="https://github.com/hackbg/fadroma", branch="21.07", features=[
 ] }
 schemars = "0.7"
 serde = { version="1.0.103", default-features=false, features=["derive"] }
+serde-json-wasm = "*"
 amm-shared = { path="../../libraries/amm-shared" }

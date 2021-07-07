@@ -3,7 +3,8 @@ use amm_shared::TokenType;
 use fadroma::scrt::addr::{Canonize, Humanize};
 use fadroma::scrt::callback::ContractInstance;
 use fadroma::scrt::cosmwasm_std::{
-    to_vec, Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
+    from_slice, Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage,
+    Uint128,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -114,29 +115,62 @@ pub struct Account<A> {
     pub total_bought: Uint128,
 }
 
-impl<A> Storable for Account<A>
-where
-    A: Serialize + serde::de::DeserializeOwned,
-{
+impl Storable for Account<CanonicalAddr> {
+    /// Global accounts namespace
     fn namespace() -> Vec<u8> {
         b"accounts".to_vec()
     }
 
+    /// Individual account key
     fn key(&self) -> StdResult<Vec<u8>> {
-        to_vec(&self.owner)
+        Ok(self.owner.as_slice().to_vec())
     }
 }
 
-impl Account<HumanAddr> {
+impl Account<CanonicalAddr> {
+    pub fn new(address: &CanonicalAddr) -> Account<CanonicalAddr> {
+        Account {
+            owner: address.clone(),
+            total_bought: 0_u128.into(),
+        }
+    }
+}
+
+impl Account<CanonicalAddr> {
+    /// Load all the accounts within the namespace
+    pub fn load_all<S: Storage, A: Api, Q: Querier>(
+        deps: &Extern<S, A, Q>,
+    ) -> StdResult<Vec<Account<CanonicalAddr>>> {
+        let key = Account::<CanonicalAddr>::namespace();
+        let key = key.as_slice();
+
+        let results: Vec<Option<Account<CanonicalAddr>>> = from_slice(
+            &deps
+                .storage
+                .get(&key)
+                .ok_or(StdError::generic_err("Could not load all accounts"))?,
+        )?;
+
+        let mut accounts = Vec::new();
+        for item in results {
+            if let Some(account) = item {
+                accounts.push(account);
+            }
+        }
+
+        Ok(accounts)
+    }
+
+    /// Load only the account with provided address
     pub fn load_self<S: Storage, A: Api, Q: Querier>(
         deps: &Extern<S, A, Q>,
         address: &HumanAddr,
-    ) -> StdResult<Self> {
-        let address = address.canonize(&deps.api)?;
-        let result = Account::<CanonicalAddr>::load(&deps, address.as_slice())?;
+    ) -> StdResult<Account<CanonicalAddr>> {
+        let canonical_address = address.canonize(&deps.api)?;
+        let key = canonical_address.as_slice();
+        let result = Account::<CanonicalAddr>::load(&deps, key)?;
 
-        let account = result.ok_or(StdError::generic_err("This address is not whitelisted."))?;
-        account.humanize(&deps.api)
+        result.ok_or(StdError::generic_err("This address is not whitelisted."))
     }
 }
 

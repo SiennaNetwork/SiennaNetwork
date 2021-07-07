@@ -53,7 +53,9 @@ pub trait Storable: Serialize + DeserializeOwned {
         key: &[u8],
     ) -> StdResult<Option<Self>> {
         let key = Self::concat_key(key);
-        storage_load::<Self, _>(&deps.storage, &key.as_slice())
+
+        // println!("{:?} {:?}", key, String::from(key.as_slice()));
+        storage_load::<Self, _>(&deps.storage, key.as_slice())
     }
 
     /// Static: Save Self in the storage
