@@ -14,7 +14,6 @@ pub const ONE_SIENNA: u128 = 1000000000000000000u128;
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct RewardPool {
-    balance:     Uint128,
     providers:   Vec<Provider>,
     last_update: Seconds
 }
@@ -23,21 +22,15 @@ impl RewardPool {
     /// Create an empty reward pool
     pub fn new (now: Seconds) -> Self {
         RewardPool {
-            balance:     Uint128::zero(),
             providers:   vec![],
             last_update: now
         }
     }
 
-    /// Receive funds from the rewards budget
-    pub fn fund (&mut self, amount: Uint128) {
-        self.balance += amount
-    }
-
     /// Set the current amount of liquidity provided by an address
     pub fn set (&mut self, now: Seconds, address: CanonicalAddr, amount: Uint128) {
         let mut found = false;
-        // If this is a known provider, update it
+        // If self is a known provider, update it
         for provider in self.providers.iter_mut() {
             if provider.address == address {
                 provider.current = amount;
@@ -45,7 +38,7 @@ impl RewardPool {
                 break
             }
         }
-        // If this is the first time this address provides liquidity, append it.
+        // If self is the first time self address provides liquidity, append it.
         // Maybe prepending it to the list is more efficient, maybe not?
         // Different implementations can be tested using Cargo's "features" feature.
         if !found {
@@ -75,6 +68,7 @@ impl RewardPool {
                 address, since: now, current: amount, lifetime: amount, claimed: Uint128::zero()
             })
         }
+        self.update(now);
         return amount
     }
 
@@ -91,6 +85,7 @@ impl RewardPool {
                     })
                 }
                 provider.current = (provider.current - amount)?;
+                self.update(now);
                 return Ok(amount)
             }
         }
@@ -98,6 +93,32 @@ impl RewardPool {
             msg: "not a provider".into(),
             backtrace: None
         })
+    }
+
+    /// Calculate how much a provider can claim, subtract it from the total balance, and return it.
+    pub fn claim (
+        &mut self, now: Seconds, balance: Uint128, address: CanonicalAddr
+    ) -> StdResult<Uint128> {
+        let mut total = Uint128::zero();
+        let mut selected = None;
+        for provider in self.providers.iter_mut() {
+            total += provider.lifetime;
+            if provider.address == address {
+                selected = Some(provider)
+            }
+        }
+        match selected {
+            None => Err(StdError::GenericErr { msg: "not a provider".into(), backtrace: None }),
+            Some(mut provider) => {
+                // A minimum provider age might need to be enforced here,
+                // since it takes the contract 24h to achieve equilibrium.
+                let lifetime_reward = balance.multiply_ratio(provider.lifetime, total);
+                let reward = (lifetime_reward - provider.claimed)?;
+                provider.claimed = lifetime_reward;
+                self.update(now);
+                Ok(reward)
+            }
+        }
     }
 
     /// Update each provider's lifetime-provided liquidity by a multiple of elapsed seconds
@@ -114,30 +135,6 @@ impl RewardPool {
             // Or measure the interval in block height - but I don't know if multiple providers
             // claiming at different seconds during the same block would cause any problems.
             provider.lifetime += provider.current.multiply_ratio(elapsed, 1u128);
-        }
-    }
-
-    /// Calculate how much a provider can claim, subtract it from the total balance, and return it.
-    pub fn claim (&mut self, address: CanonicalAddr) -> StdResult<Uint128> {
-        let mut total = Uint128::zero();
-        let mut selected = None;
-        for provider in self.providers.iter_mut() {
-            total += provider.lifetime;
-            if provider.address == address {
-                selected = Some(provider)
-            }
-        }
-        match selected {
-            None => Err(StdError::GenericErr { msg: "not a provider".into(), backtrace: None }),
-            Some(mut provider) => {
-                // A minimum provider age might need to be enforced here,
-                // since it takes the contract 24h to achieve equilibrium.
-                let lifetime_reward = provider.lifetime.multiply_ratio(total, 1u128);
-                let reward = (lifetime_reward - provider.claimed)?;
-                provider.claimed = lifetime_reward;
-                self.balance = (self.balance - reward)?;
-                Ok(reward)
-            }
         }
     }
 

@@ -1,11 +1,10 @@
-import { randomBytes }   from 'crypto'
-import { SecretNetwork } from '@fadroma/scrt-agent'
-import { gas }           from '@fadroma/scrt-agent/gas.js'
-import { bignum }        from '@fadroma/utilities'
-//import fundAgents        from '@fadroma/scrt-agent/fund.js'
-import { abs }           from '../ops/lib/index.js'
-import SNIP20            from './SNIP20.js'
-import RewardsBenchmark  from './RewardsBenchmark.js'
+import { randomBytes }        from 'crypto'
+import { SecretNetwork }      from '@fadroma/scrt-agent'
+import { gas }                from '@fadroma/scrt-agent/gas.js'
+import { bignum, taskmaster } from '@fadroma/utilities'
+import { abs }                from '../ops/lib/index.js'
+import SNIP20                 from './SNIP20.js'
+import RewardsBenchmark       from './RewardsBenchmark.js'
 
 describe("RewardsBenchmark", () => {
 
@@ -21,7 +20,7 @@ describe("RewardsBenchmark", () => {
     const T0 = + new Date()
 
     // connect to a localnet with a large number of predefined agents
-    const numberOfAgents = 20
+    const numberOfAgents = 100
     const agentNames = [...Array(numberOfAgents)].map((_,i)=>`Agent${i}`)
     const localnet = SecretNetwork.localnet({
       stateBase:       abs("artifacts"),
@@ -75,6 +74,10 @@ describe("RewardsBenchmark", () => {
     this.timeout(600000)
 
     const T0 = + new Date()
+
+    const header = [ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ]
+        , output = abs('artifacts', "rewards", 'rewards-benchmark.md')
+        , task   = taskmaster({ header, output, agent: context.agent })
 
     console.debug('init reward token:')
     const rewardToken = await context.agent.instantiate(new SNIP20({
@@ -145,30 +148,65 @@ describe("RewardsBenchmark", () => {
     const T2 = + new Date()
 
     // K*N times have a random user do a random operation (lock/retrieve random amount or claim)
-    const actions = [
-      recipient => {
-        const amount = getRandomAmount()
-        console.debug(`${recipient}: lock ${amount}`)
-        return rewardPool.lock("100", recipient)
-      },
-      recipient => {
-        const amount = getRandomAmount()
-        console.debug(`${recipient.name}: retrieve ${amount}`)
-        return rewardPool.retrieve("1", recipient)
-      },
-      recipient => {
-        console.debug(`${recipient.name}: claim`)
-        return rewardPool.claim(recipient)
-      },
-      () => {}
+    let transactions = [
+      // type,
+      // { transactionHash }
     ]
+
+    const known = new Set()
+
+    const actions = [
+      async recipient => {
+        known.add(recipient)
+        console.log(`----- ${recipient.name}: lock 100`)
+        transactions.push([
+          'lock',
+          recipient,
+          (await rewardPool.lock("100", recipient.address))])},
+      async recipient => {
+        console.log(`----- ${recipient.name}: retrieve 5`)
+        transactions.push([
+          'retrieve',
+          recipient,
+          (await rewardPool.retrieve("5", recipient.address))])},
+      async recipient => {
+        console.log(`----- ${recipient.name}: claim`)
+        transactions.push([
+          'claim',
+          recipient,
+          (await rewardPool.claim(recipient.address))])},
+      //recipient => task(`${recipient}: lock 100`,
+        //() => rewardPool.lock("100", recipient)),
+      //recipient => task(`${recipient}: retrieve 5`,
+        //() => rewardPool.retrieve("5", recipient)),
+      //recipient => task(`${recipient}: claim`,
+        //() => rewardPool.claim(recipient)),
+      //() => {} // skip turn
+    ]
+
+    ;(async function checkGas () {
+      const txGasCheckResults = await Promise.all(transactions.map(async ([label, recipient, tx])=>{
+        const {transactionHash:txhash} = tx
+        const txdata = await context.agent.API.restClient.get(`/txs/${txhash}`) || {}
+        return [txhash, label, recipient.name, txdata.gas_used, known.size]
+      }))
+      console.table(txGasCheckResults)
+      setTimeout(checkGas, 5000)
+    })()
+
+    for (const agent of context.agents) {
+      await rewardPool.lock("100", agent).catch(console.error)
+    }
+
+    console.log('---------PRELOCK COMPLETE-----------')
+
     const pickRandom = arr => arr[Math.floor(Math.random()*arr.length)]
     for (let i = 0; i < 1000000; i++) {
       const action    = pickRandom(actions)
       const recipient = pickRandom(context.agents)
       // track average and maximum gas cost
       try {
-        console.debug(await action(recipient.address))
+        console.debug(await action(recipient))
       } catch (e) {
         console.warn(e)
       }

@@ -120,7 +120,7 @@ contract! {
                 deps.api.human_address(&state.rewarded_token.address)?
             )?;
             let address = deps.api.canonical_address(&env.message.sender)?;
-            let claimed = state.pool.claim(balance.amount, address)?;
+            let claimed = state.pool.claim(env.block.time, balance.amount, address)?;
             save_state!();
             Ok(HandleResponse {
                 messages: vec![
