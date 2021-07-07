@@ -95,7 +95,11 @@ describe("RewardsBenchmark", () => {
     const rewardPool = await context.agent.instantiate(new RewardsBenchmark({
       codeId: context.pool.id,
       label: 'RewardPool',
-      initMsg: { rewarded_token: rewardToken.reference } }))
+      initMsg: { rewarded_token: rewardToken.reference
+               , viewing_key:    "" } }))
+
+    console.debug('mint reward budget:')
+    await rewardToken.mint("500000000000000000000", undefined, rewardPool.address)
 
     console.debug('init asset token:')
     const lpToken = await context.agent.instantiate(new SNIP20({
@@ -155,7 +159,8 @@ describe("RewardsBenchmark", () => {
       recipient => {
         console.debug(`${recipient.name}: claim`)
         return rewardPool.claim(recipient)
-      }
+      },
+      () => {}
     ]
     const pickRandom = arr => arr[Math.floor(Math.random()*arr.length)]
     for (let i = 0; i < 1000000; i++) {

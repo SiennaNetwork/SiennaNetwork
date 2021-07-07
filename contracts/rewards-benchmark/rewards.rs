@@ -3,7 +3,8 @@ use fadroma::scrt::{
     contract::*,
     addr::Canonize,
     callback::ContractInstance,
-    toolkit::snip20
+    toolkit::snip20,
+    utils::viewing_key::ViewingKey
 };
 use sienna_reward_schedule::RewardPool;
 
@@ -12,12 +13,14 @@ contract! {
     [State] {
         provided_token: Option<ContractInstance<CanonicalAddr>>,
         rewarded_token: ContractInstance<CanonicalAddr>,
+        viewing_key:    ViewingKey,
         pool:           RewardPool
     }
 
     [Init] (deps, env, msg: {
         provided_token: Option<ContractInstance<HumanAddr>>,
-        rewarded_token: ContractInstance<HumanAddr>
+        rewarded_token: ContractInstance<HumanAddr>,
+        viewing_key:    ViewingKey
     }) {
         save_state!(State {
             provided_token: match provided_token {
@@ -25,8 +28,22 @@ contract! {
                 Some(provided_token) => Some(provided_token.canonize(&deps.api)?)
             },
             rewarded_token: rewarded_token.canonize(&deps.api)?,
-            pool: RewardPool::new(env.block.time)
-        })
+            pool: RewardPool::new(env.block.time),
+            viewing_key: viewing_key.clone()
+        });
+
+        InitResponse {
+            messages: vec![
+                snip20::set_viewing_key_msg(
+                    viewing_key.0,
+                    None,
+                    BLOCK_SIZE,
+                    rewarded_token.code_hash,
+                    rewarded_token.address
+                )?,
+            ],
+            log: vec![]
+        }
     }
 
     [Query] (_deps, _state, msg) -> Response {
@@ -94,13 +111,20 @@ contract! {
         }
 
         Claim () {
+            let balance = snip20::balance_query(
+                &deps.querier,
+                env.contract.address.clone(),
+                state.viewing_key.0.clone(),
+                BLOCK_SIZE,
+                state.rewarded_token.code_hash.clone(),
+                deps.api.human_address(&state.rewarded_token.address)?
+            )?;
             let address = deps.api.canonical_address(&env.message.sender)?;
-            let claimed = state.pool.claim(address)?;
+            let claimed = state.pool.claim(balance.amount, address)?;
             save_state!();
             Ok(HandleResponse {
                 messages: vec![
-                    snip20::transfer_from_msg(
-                        env.contract.address,
+                    snip20::transfer_msg(
                         env.message.sender,
                         claimed,
                         None,

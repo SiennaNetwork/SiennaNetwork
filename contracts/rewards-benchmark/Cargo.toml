@@ -19,7 +19,8 @@ fadroma  = { path = "../../libraries/fadroma-21.07/core", features = [
   "scrt-addr",
   "scrt-callback",
   "scrt-contract",
-  "scrt-storage"
+  "scrt-storage",
+  "scrt-utils"
 ] }
 sienna-reward-schedule = { path = "../../libraries/schedule-rewards" }
 
