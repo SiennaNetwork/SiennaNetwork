@@ -3,7 +3,7 @@ use amm_shared::TokenType;
 use fadroma::scrt::addr::{Canonize, Humanize};
 use fadroma::scrt::callback::ContractInstance;
 use fadroma::scrt::cosmwasm_std::{
-    from_slice, Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage,
+    Api, CanonicalAddr, Extern, HumanAddr, Querier, ReadonlyStorage, StdError, StdResult, Storage,
     Uint128,
 };
 use schemars::JsonSchema;
@@ -15,7 +15,10 @@ pub(crate) struct Config<A> {
     pub input_token: TokenType<A>,
     /// The token that is being sold.
     pub sold_token: ContractInstance<A>,
+    /// Token constants
     pub swap_constants: SwapConstants,
+    /// List of addresses that can swap tokens
+    pub whitelist: Vec<CanonicalAddr>,
     /// The maximum number of participants allowed.
     pub max_seats: u32,
     /// The total amount that each participant is allowed to buy.
@@ -84,7 +87,7 @@ impl<A> Config<A> {
     /// Check if the contract can be refunded
     pub fn is_refundable(&self, time: u64) -> StdResult<()> {
         if let Some(end) = self.end_time {
-            if time >= end {
+            if time <= end {
                 Err(StdError::generic_err(format!(
                     "Sale hasn't finished yet, come back in {} seconds",
                     end - time
@@ -97,6 +100,44 @@ impl<A> Config<A> {
                 "Cannot refund, sale is still active and will last until all the funds are swapped",
             ))
         }
+    }
+
+    /// Check if account is whitelisted and load it
+    pub fn load_account<S: Storage, T: Api, Q: Querier>(
+        &self,
+        deps: &Extern<S, T, Q>,
+        address: &HumanAddr,
+    ) -> StdResult<Account<CanonicalAddr>> {
+        let address = address.canonize(&deps.api)?;
+
+        // Makes sure the given address is whitelisted
+        if self.whitelist.iter().position(|a| a == &address).is_none() {
+            return Err(StdError::generic_err("This address is not whitelisted."));
+        }
+
+        if let Some(account) = Account::<CanonicalAddr>::load(&deps, address.as_slice())? {
+            Ok(account)
+        } else {
+            Ok(Account::<CanonicalAddr>::new(&address))
+        }
+    }
+
+    /// Check if account is whitelisted and load it
+    pub fn load_accounts<R: ReadonlyStorage + Storage, T: Api, Q: Querier>(
+        &self,
+        deps: &Extern<R, T, Q>,
+    ) -> StdResult<Vec<Account<CanonicalAddr>>> {
+        let mut accounts: Vec<Account<CanonicalAddr>> = vec![];
+
+        for address in &self.whitelist {
+            if let Some(account) = Account::<CanonicalAddr>::load(&deps, address.as_slice())? {
+                accounts.push(account);
+            } else {
+                accounts.push(Account::<CanonicalAddr>::new(&address));
+            }
+        }
+
+        Ok(accounts)
     }
 }
 
@@ -136,44 +177,6 @@ impl Account<CanonicalAddr> {
     }
 }
 
-impl Account<CanonicalAddr> {
-    /// Load all the accounts within the namespace
-    pub fn load_all<S: Storage, A: Api, Q: Querier>(
-        deps: &Extern<S, A, Q>,
-    ) -> StdResult<Vec<Account<CanonicalAddr>>> {
-        let key = Account::<CanonicalAddr>::namespace();
-        let key = key.as_slice();
-
-        let results: Vec<Option<Account<CanonicalAddr>>> = from_slice(
-            &deps
-                .storage
-                .get(&key)
-                .ok_or(StdError::generic_err("Could not load all accounts"))?,
-        )?;
-
-        let mut accounts = Vec::new();
-        for item in results {
-            if let Some(account) = item {
-                accounts.push(account);
-            }
-        }
-
-        Ok(accounts)
-    }
-
-    /// Load only the account with provided address
-    pub fn load_self<S: Storage, A: Api, Q: Querier>(
-        deps: &Extern<S, A, Q>,
-        address: &HumanAddr,
-    ) -> StdResult<Account<CanonicalAddr>> {
-        let canonical_address = address.canonize(&deps.api)?;
-        let key = canonical_address.as_slice();
-        let result = Account::<CanonicalAddr>::load(&deps, key)?;
-
-        result.ok_or(StdError::generic_err("This address is not whitelisted."))
-    }
-}
-
 impl Humanize<Account<HumanAddr>> for Account<CanonicalAddr> {
     fn humanize(&self, api: &impl Api) -> StdResult<Account<HumanAddr>> {
         Ok(Account {
@@ -198,6 +201,7 @@ impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
             input_token: self.input_token.canonize(api)?,
             sold_token: self.sold_token.canonize(api)?,
             swap_constants: self.swap_constants.clone(),
+            whitelist: self.whitelist.clone(),
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,
@@ -213,6 +217,7 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
             input_token: self.input_token.humanize(api)?,
             sold_token: self.sold_token.humanize(api)?,
             swap_constants: self.swap_constants.clone(),
+            whitelist: self.whitelist.clone(),
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,

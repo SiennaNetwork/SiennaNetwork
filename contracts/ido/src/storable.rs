@@ -13,38 +13,36 @@ use serde::{de::DeserializeOwned, Serialize};
 /// Optionally, you can define the namespace of your struct that
 /// will namespace it when storing.
 pub trait Storable: Serialize + DeserializeOwned {
-    /// Static: namespace for self
-    fn namespace() -> Vec<u8> {
-        Vec::new()
-    }
-
     /// Storage key used for saving Self
     fn key(&self) -> StdResult<Vec<u8>>;
-
-    /// Concat of namespace and key
-    fn concat_key(key: &[u8]) -> Vec<u8> {
-        let mut ns = Self::namespace();
-        ns.extend_from_slice(key);
-
-        ns
-    }
 
     /// Save Self in the storage
     fn save<S: Storage, A: Api, Q: Querier>(&self, deps: &mut Extern<S, A, Q>) -> StdResult<()> {
         let key = self.key()?;
         let key = key.as_slice();
-        let key = Self::concat_key(&key);
-        storage_save::<Self, _>(&mut deps.storage, &key.as_slice(), &self)
+
+        Self::static_save(deps, key, self)
     }
 
     /// Remove Self from storage
     fn remove<S: Storage, A: Api, Q: Querier>(self, deps: &mut Extern<S, A, Q>) -> StdResult<()> {
         let key = self.key()?;
         let key = key.as_slice();
-        let key = Self::concat_key(&key);
-        storage_remove(&mut deps.storage, &key.as_slice());
 
-        Ok(())
+        Self::static_remove(deps, key)
+    }
+
+    /// Static: namespace for self
+    fn namespace() -> Vec<u8> {
+        Vec::new()
+    }
+
+    /// Static: Concat of namespace and key
+    fn concat_key(key: &[u8]) -> Vec<u8> {
+        let mut ns = Self::namespace();
+        ns.extend_from_slice(key);
+
+        ns
     }
 
     /// Static: Load Self from the storage
@@ -54,8 +52,7 @@ pub trait Storable: Serialize + DeserializeOwned {
     ) -> StdResult<Option<Self>> {
         let key = Self::concat_key(key);
 
-        // println!("{:?} {:?}", key, String::from(key.as_slice()));
-        storage_load::<Self, _>(&deps.storage, key.as_slice())
+        storage_load::<Self, S>(&deps.storage, key.as_slice())
     }
 
     /// Static: Save Self in the storage
@@ -65,7 +62,7 @@ pub trait Storable: Serialize + DeserializeOwned {
         item: &Self,
     ) -> StdResult<()> {
         let key = Self::concat_key(key);
-        storage_save::<Self, _>(&mut deps.storage, &key.as_slice(), item)
+        storage_save::<Self, S>(&mut deps.storage, &key.as_slice(), item)
     }
 
     /// Static: Remove Self from storage

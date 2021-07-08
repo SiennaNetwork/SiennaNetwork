@@ -14,10 +14,10 @@ use fadroma::scrt::cosmwasm_std::{
 };
 use fadroma::scrt::toolkit::snip20;
 use fadroma::scrt::utils::convert::convert_token;
+use fadroma::scrt::BLOCK_SIZE;
 
 use crate::data::{Account, Config, SwapConstants};
 use crate::storable::Storable;
-use fadroma::scrt::BLOCK_SIZE;
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -42,6 +42,12 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 
     let start_time = msg.info.start_time.unwrap_or(env.block.time);
 
+    let mut whitelist: Vec<CanonicalAddr> = vec![];
+
+    for address in msg.info.whitelist {
+        whitelist.push(address.canonize(&deps.api)?);
+    }
+
     let config = Config {
         input_token: msg.info.input_token,
         sold_token: msg.info.sold_token.clone(),
@@ -50,6 +56,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             rate: msg.info.rate,
             input_token_decimals,
         },
+        whitelist,
         max_seats: msg.info.max_seats,
         max_allocation: msg.info.max_allocation,
         min_allocation: msg.info.min_allocation,
@@ -57,12 +64,6 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         end_time: msg.info.end_time,
     };
     config.save(deps)?;
-
-    for address in msg.info.whitelist {
-        let canonical_address = address.canonize(&deps.api)?;
-        let account = Account::new(&canonical_address);
-        account.save(deps)?;
-    }
 
     Ok(InitResponse {
         messages: vec![
@@ -88,6 +89,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Swap { amount } => swap(deps, env, amount),
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl),
         HandleMsg::Refund => refund(deps, env),
+        HandleMsg::Status => get_status(deps, env),
     }
 }
 
@@ -99,7 +101,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
 }
 
 /// Swap input token for sold token.
-/// Checks if the account exists
+/// Checks if the account is whitelisted
 /// Checks if the sold token is currently swapable (sale has started and has not yet ended)
 /// Checks if the account hasn't gone over the sale limit and is above the sale minimum.
 fn swap<S: Storage, A: Api, Q: Querier>(
@@ -107,8 +109,8 @@ fn swap<S: Storage, A: Api, Q: Querier>(
     env: Env,
     amount: Uint128,
 ) -> StdResult<HandleResponse> {
-    let config = Config::<HumanAddr>::load_self(&deps)?;
-    let mut account = Account::<CanonicalAddr>::load_self(deps, &env.message.sender)?;
+    let config = Config::<CanonicalAddr>::load_self(&deps)?;
+    let mut account = config.load_account(&deps, &env.message.sender)?;
     config.is_swapable(env.block.time)?;
 
     let mint_amount = convert_token(
@@ -160,12 +162,12 @@ fn refund<S: Storage, A: Api, Q: Querier>(
     env: Env,
 ) -> StdResult<HandleResponse> {
     assert_admin(&deps, &env)?;
-    let config = Config::<HumanAddr>::load_self(&deps)?;
+    let config = Config::<CanonicalAddr>::load_self(&deps)?;
     config.is_refundable(env.block.time)?;
 
     let mut refund_amount = Uint128::zero();
 
-    let accounts = Account::<CanonicalAddr>::load_all(&deps)?;
+    let accounts = config.load_accounts(&deps)?;
 
     for account in accounts {
         refund_amount += (config.max_allocation - account.total_bought)?;
@@ -236,6 +238,39 @@ fn swap_internal(
     })
 }
 
+/// Handle method that will return status
+fn get_status<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+) -> StdResult<HandleResponse> {
+    assert_admin(&deps, &env)?;
+    let config = Config::<HumanAddr>::load_self(&deps)?;
+
+    let mut sold_allocation = Uint128::zero();
+    let mut available_to_allocate = Uint128::zero();
+    let mut total_allocation = Uint128::zero();
+
+    let accounts = config.load_accounts(&deps)?;
+
+    for account in accounts {
+        sold_allocation += account.total_bought;
+        available_to_allocate += (config.max_allocation - account.total_bought)?;
+        total_allocation += config.max_allocation;
+    }
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("action", "status"),
+            log("sold_allocation", sold_allocation),
+            log("available_to_allocate", available_to_allocate),
+            log("total_allocation", total_allocation),
+        ],
+        data: None,
+    })
+}
+
+/// Return exchange rate for swap
 fn get_rate<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> QueryResult {
     let config = Config::<HumanAddr>::load_self(&deps)?;
 
@@ -244,6 +279,7 @@ fn get_rate<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> QueryResu
     })?)
 }
 
+/// Query the token for number of its decimals
 fn get_token_decimals(
     querier: &impl Querier,
     instance: ContractInstance<HumanAddr>,
@@ -325,10 +361,13 @@ mod tests {
         }
     }
 
-    fn init_contract() -> (Extern<MockStorage, MockApi, MockQuerier>, Env) {
+    fn init_contract(
+        start_time: Option<u64>,
+        end_time: Option<u64>,
+    ) -> (Extern<MockStorage, MockApi, MockQuerier>, Env) {
         let mut deps = internal_mock_deps(123, &[]);
         let env = mock_env("admin", &[]);
-        let msg = get_init(None, None, None, &env.message.sender);
+        let msg = get_init(start_time, end_time, None, &env.message.sender);
         init(&mut deps, env.clone(), msg).unwrap();
 
         (deps, env)
@@ -358,12 +397,12 @@ mod tests {
 
     #[test]
     fn test_init_contract() {
-        init_contract();
+        init_contract(None, None);
     }
 
     #[test]
-    fn get_rate_matches() {
-        let (deps, _) = init_contract();
+    fn query_get_rate_matches_init() {
+        let (deps, _) = init_contract(None, None);
         let res = query(&deps, QueryMsg::GetRate).unwrap();
         let res: QueryResponse = from_binary(&res).unwrap();
 
@@ -373,12 +412,9 @@ mod tests {
     }
 
     #[test]
-    fn attemt_swap_not_whitelisted() {
-        let (mut deps, _) = init_contract();
-        let env = mock_env(
-            "buyer-X",
-            &[Coin::new(500_000_000_000_000_000_u128, "uscrt")],
-        );
+    fn random_address_attempt_swap_gets_error() {
+        let (mut deps, _) = init_contract(None, None);
+        let env = mock_env("buyer-X", &[Coin::new(10000_u128, "uscrt")]);
 
         let res = handle(
             &mut deps,
@@ -395,12 +431,9 @@ mod tests {
     }
 
     #[test]
-    fn attempt_swap_below_minimum() {
-        let (mut deps, _) = init_contract();
-        let env = mock_env(
-            "buyer-1",
-            &[Coin::new(500_000_000_000_000_000_u128, "uscrt")],
-        );
+    fn buyer_attempt_swap_below_minimum_gets_error() {
+        let (mut deps, _) = init_contract(None, None);
+        let env = mock_env("buyer-1", &[Coin::new(99_000_000_u128, "uscrt")]);
 
         let res = handle(
             &mut deps,
@@ -422,9 +455,9 @@ mod tests {
     }
 
     #[test]
-    fn attempt_swap_above_maximum() {
-        let (mut deps, _) = init_contract();
-        let env = mock_env("buyer-1", &[Coin::new(100_000_000_u128, "uscrt")]);
+    fn buyer_attempt_swap_above_maximum_gets_error() {
+        let (mut deps, _) = init_contract(None, None);
+        let env = mock_env("buyer-1", &[Coin::new(501_000_000_u128, "uscrt")]);
 
         let res = handle(
             &mut deps,
@@ -444,9 +477,9 @@ mod tests {
     }
 
     #[test]
-    fn attempt_swap_success() {
-        let (mut deps, _) = init_contract();
-        let env = mock_env("buyer-1", &[Coin::new(100_000_000_u128, "uscrt")]);
+    fn buyer_swaps_success_gets_ok() {
+        let (mut deps, _) = init_contract(None, None);
+        let env = mock_env("buyer-1", &[Coin::new(250_000_000_u128, "uscrt")]);
 
         handle(
             &mut deps,
@@ -456,5 +489,119 @@ mod tests {
             },
         )
         .unwrap();
+    }
+
+    #[test]
+    fn buyer_attempt_swap_before_sale_start_gets_error() {
+        let block_time = 1_571_797_419;
+        let start_time = 1_571_797_500;
+        let (mut deps, _) = init_contract(Some(start_time), None);
+        let env = mock_env("buyer-1", &[Coin::new(250_000_000_u128, "uscrt")]);
+
+        let res = handle(
+            &mut deps,
+            env,
+            HandleMsg::Swap {
+                amount: Uint128(250_000_000_u128),
+            },
+        );
+
+        assert_eq!(
+            res,
+            Err(StdError::generic_err(format!(
+                "Sale hasn\'t started yet, come back in {} seconds",
+                start_time - block_time
+            )))
+        )
+    }
+
+    #[test]
+    fn buyer_attempt_swap_after_sale_end_gets_error() {
+        let _block_time = 1_571_797_419;
+        let start_time = 1_571_797_300;
+        let end_time = 1_571_797_400;
+        let (mut deps, _) = init_contract(Some(start_time), Some(end_time));
+        let env = mock_env("buyer-1", &[Coin::new(250_000_000_u128, "uscrt")]);
+
+        let res = handle(
+            &mut deps,
+            env,
+            HandleMsg::Swap {
+                amount: Uint128(250_000_000_u128),
+            },
+        );
+
+        assert_eq!(res, Err(StdError::generic_err("Sale has ended")))
+    }
+
+    #[test]
+    fn admin_attempt_refund_before_sale_end_gets_error() {
+        let block_time = 1_571_797_419;
+        let start_time = 1_571_797_300;
+        let end_time = 1_571_797_500;
+        let (mut deps, env) = init_contract(Some(start_time), Some(end_time));
+
+        let res = handle(&mut deps, env, HandleMsg::Refund);
+
+        assert_eq!(
+            res,
+            Err(StdError::generic_err(format!(
+                "Sale hasn\'t finished yet, come back in {} seconds",
+                end_time - block_time
+            )))
+        );
+    }
+
+    #[test]
+    fn admin_attempt_refund_on_sale_with_no_end_gets_error() {
+        let _block_time = 1_571_797_419;
+        let start_time = 1_571_797_300;
+        let (mut deps, env) = init_contract(Some(start_time), None);
+
+        let res = handle(&mut deps, env, HandleMsg::Refund);
+
+        assert_eq!(
+            res,
+            Err(StdError::generic_err(
+                "Cannot refund, sale is still active and will last until all the funds are swapped"
+            ))
+        );
+    }
+
+    #[test]
+    fn admin_performs_refund_after_sale_end() {
+        let _block_time = 1_571_797_419;
+        let start_time = 1_571_797_300;
+        let end_time = 1_571_797_400;
+        let (mut deps, env) = init_contract(Some(start_time), Some(end_time));
+
+        let res = handle(&mut deps, env.clone(), HandleMsg::Refund).unwrap();
+        let refunded_amount = &res.log[1].value;
+
+        assert_eq!(refunded_amount, "2000");
+    }
+
+    #[test]
+    fn admin_get_status_of_sale() {
+        let (mut deps, env) = init_contract(None, None);
+        let buyer_env = mock_env("buyer-1", &[Coin::new(250_000_000_u128, "uscrt")]);
+
+        handle(
+            &mut deps,
+            buyer_env,
+            HandleMsg::Swap {
+                amount: Uint128(250_000_000_u128),
+            },
+        )
+        .unwrap();
+
+        let res = handle(&mut deps, env, HandleMsg::Status).unwrap();
+        let sold_allocation = &res.log[1].value;
+        let available_to_allocate = &res.log[2].value;
+        let total_allocation = &res.log[3].value;
+
+        assert_eq!(sold_allocation, "250");
+        assert_eq!(available_to_allocate, "1750");
+        assert_eq!(total_allocation, "2000");
     }
 }
