@@ -21,7 +21,12 @@ kukumba! {
     then  "the instance is ready"
     and   "it goes live when someone locks funds" {
         assert_error!(test.q_status(1u64), "missing data");
-        let result = test.tx_lock(2, &admin, 1u128)?;
+        assert_eq!(
+            test.tx_lock(2, &admin, 1u128)?,
+            (vec![
+              "{\"transfer_from\":{\"owner\":\"admin\",\"recipient\":\"contract_addr\",\"amount\":\"1\",\"padding\":null}}".into()
+            ], 0, 0)
+        );
         let result = test.q_status(3u64)?;
     }
 
@@ -65,9 +70,12 @@ kukumba! {
     when  "someone requests to lock tokens"
     then  "the instance transfers them to itself"
     and   "the liquidity provider starts accruing a reward" {
-        let result = test.tx_lock(1, &alice, 100u128)?;
-        println!("{:?}", &result);
-        panic!();
+        assert_eq!(
+            test.tx_lock(1, &alice, 100u128)?,
+            (vec![
+              "{\"transfer_from\":{\"owner\":\"alice\",\"recipient\":\"contract_addr\",\"amount\":\"100\",\"padding\":null}}".into()
+            ], 0, 0)
+        );
         let result = test.q_status(2u64)?;
     }
     when  "a provider requests to retrieve tokens"
@@ -106,9 +114,9 @@ kukumba! {
     #[ok_claim]
     given "an instance" {
         let mut test = RewardsHarness::new();
-        let admin   = HumanAddr::from("admin");
-        let alice   = HumanAddr::from("alice");
-        let result  = test.init_configured(0, &admin)?;
+        let admin  = HumanAddr::from("admin");
+        let alice  = HumanAddr::from("alice");
+        let result = test.init_configured(0, &admin)?;
     }
     when  "a stranger tries to claim rewards"
     then  "they get an error" {

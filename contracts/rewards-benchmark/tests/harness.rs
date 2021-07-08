@@ -68,8 +68,8 @@ pub trait Harness {
         }, tx) {
             Ok(result) => {
                 let mut relevant = vec![];
-                let mut other     = 0;
-                let mut invalid   = 0;
+                let mut other    = 0;
+                let mut invalid  = 0;
                 for cosmos_msg in result.messages.iter() {
                     match cosmos_msg {
                         CosmosMsg::Wasm(wasm_msg) => match wasm_msg {
