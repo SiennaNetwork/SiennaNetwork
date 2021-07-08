@@ -1,6 +1,7 @@
+use std::str::{from_utf8, Utf8Error};
 use fadroma::scrt::{
     cosmwasm_std::{
-        HumanAddr, StdResult,
+        HumanAddr, StdResult, StdError,
         InitResponse, HandleResponse, Binary,
         Env, BlockInfo, MessageInfo, ContractInfo,
         Extern, MemoryStorage, Api, Querier,
@@ -27,7 +28,7 @@ use sienna_rewards_benchmark::{
 const ADDR_LEN: usize = 45;
 
 /// Successful transaction return a vector of relevant messages and a count of any others
-type TxResult = StdResult<(Vec<CosmosMsg>, usize)>;
+type TxResult = StdResult<(Vec<String>, usize, usize)>;
 
 pub struct RewardsHarness {
     _deps: Extern<MemoryStorage, MockApi, MockQuerier>
@@ -68,16 +69,28 @@ pub trait Harness {
             Ok(result) => {
                 let mut relevant = vec![];
                 let mut other     = 0;
+                let mut invalid   = 0;
                 for cosmos_msg in result.messages.iter() {
                     match cosmos_msg {
                         CosmosMsg::Wasm(wasm_msg) => match wasm_msg {
-                            WasmMsg::Execute { msg, .. } => relevant.push(from_binary(msg)?),
-                            _ => other += 1
+                            WasmMsg::Execute { msg, .. } => match from_utf8(msg.as_slice()) {
+                                Ok(msg) => {
+                                    relevant.push(msg.trim().into())
+                                },
+                                Err(e) => {
+                                    invalid += 1
+                                }
+                            },
+                            _ => {
+                                other += 1
+                            }
                         },
-                        _ => other += 1
+                        _ => {
+                            other += 1
+                        }
                     }
                 }
-                Ok((relevant, other))
+                Ok((relevant, other, invalid))
             },
             Err(e) => Err(e)
         }
