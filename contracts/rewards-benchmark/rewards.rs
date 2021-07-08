@@ -54,22 +54,29 @@ contract! {
         InitResponse { messages: vec![set_vk], log: vec![] }
     }
 
-    [Query] (_deps, _state, msg) -> Response {
-        Status () {
-            Ok(Response::Status {})
+    [Query] (deps, state, msg) -> Response {
+        Status (now: Uint128) {
+            if let Some(_) = state.provided_token {
+                let (volume, total, since) = RewardPoolController::status(deps)?;
+                Ok(Response::Status { volume, total, since })
+            } else {
+                error!("not configured")
+            }
         }
     }
 
-    [Response] { Status {} }
+    [Response] { Status { volume: Uint128, total: Uint128, since: u64 } }
 
-    [Handle] (deps, env /* it's not unused */, state, msg) -> Response {
+    [Handle] (deps, env /* it's not unused :( */, state, msg) -> Response {
 
         /// Set the active asset token.
         // Resolves circular reference in benchmark -
         // they need to know each other's addresses to use initial allowances
         SetProvidedToken (address: HumanAddr, code_hash: String) {
-            let address = deps.api.canonical_address(&address)?;
-            state.provided_token = Some(ContractInstance { address, code_hash });
+            state.provided_token = Some(ContractInstance {
+                address: deps.api.canonical_address(&address)?,
+                code_hash
+            });
             save_state!();
             Ok(HandleResponse::default())
         }

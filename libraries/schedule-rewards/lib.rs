@@ -1,4 +1,4 @@
-pub mod stateful;
+#[macro_export] pub mod stateful;
 
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};

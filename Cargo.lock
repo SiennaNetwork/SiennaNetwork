@@ -886,6 +886,11 @@ name = "kukumba"
 version = "1.0.1"
 
 [[package]]
+name = "kukumba"
+version = "1.0.1"
+source = "git+https://github.com/hackbg/kukumba?branch=21.04#a28697262a05e7c4cc35e2923f8dbbe6e689a11a"
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1734,7 +1739,7 @@ dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "fadroma 3.0.0-rc1",
- "kukumba",
+ "kukumba 1.0.1 (git+https://github.com/hackbg/kukumba?branch=21.04)",
  "linear-map",
  "schemars",
  "secret-toolkit 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b)",
@@ -1790,7 +1795,7 @@ name = "sienna-rewards-benchmark"
 version = "1.0.0"
 dependencies = [
  "fadroma 21.7.0",
- "kukumba",
+ "kukumba 1.0.1",
  "schemars",
  "serde",
  "serde_json",
@@ -1822,7 +1827,7 @@ dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "fadroma 3.0.0-rc1",
- "kukumba",
+ "kukumba 1.0.1",
  "linear-map",
  "schemars",
  "secret-toolkit 0.1.0 (git+https://github.com/enigmampc/secret-toolkit)",

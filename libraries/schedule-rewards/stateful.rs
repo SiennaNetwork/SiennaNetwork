@@ -1,12 +1,9 @@
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
-use fadroma::scrt::{
-    cosmwasm_std::{
-        Uint128, CanonicalAddr, StdResult, StdError,
-        Extern, Storage, Api, Querier,
-        to_vec
-    },
-    storage::{save, load, ns_save, ns_load}
+use fadroma::scrt::cosmwasm_std::{
+    Uint128, CanonicalAddr, StdResult, StdError,
+    Extern, Storage, Api, Querier,
+    to_vec
 };
 
 macro_rules! error {
@@ -42,17 +39,17 @@ const USER_SINCE:    &[u8] = b"user_since/";
 /// How much rewards has each user claimed so far
 const USER_CLAIMED:  &[u8] = b"user_claimed/";
 
-macro_rules! load { ($self:ident, $key:expr) => {
-    load(&$self.deps.storage, $key.into()) }; }
+#[macro_export] macro_rules! load { ($self:ident, $key:expr) => {
+    fadroma::scrt::storage::load(&$self.deps.storage, $key.into()) }; }
 
-macro_rules! save { ($self:ident, $key:expr, $val:expr) => {
+#[macro_export] macro_rules! save { ($self:ident, $key:expr, $val:expr) => {
     $self.deps.storage.set(&$key, &to_vec(&$val)?); }; }
 
-macro_rules! ns_load { ($self:ident, $ns:expr, $key:expr) => {
-    ns_load(&$self.deps.storage, $ns.into(), $key.as_slice()) }; }
+#[macro_export] macro_rules! ns_load { ($self:ident, $ns:expr, $key:expr) => {
+    fadroma::scrt::storage::ns_load(&$self.deps.storage, $ns.into(), $key.as_slice()) }; }
 
-macro_rules! ns_save { ($self:ident, $ns:expr, $key:expr, $val:expr) => {
-    ns_save(&mut $self.deps.storage, $ns.into(), $key.as_slice(), &$val) }; }
+#[macro_export] macro_rules! ns_save { ($self:ident, $ns:expr, $key:expr, $val:expr) => {
+    fadroma::scrt::storage::ns_save(&mut $self.deps.storage, $ns.into(), $key.as_slice(), &$val) }; }
 
 /// A monotonic time counter, such as env.block.time or env.block.height
 pub type Monotonic = u64;
@@ -67,10 +64,30 @@ fn so_far (total: Uint128, elapsed: Monotonic, volume: Uint128) -> Uint128 {
     total + volume.multiply_ratio(Uint128::from(elapsed), 1u128)
 }
 
+/// (volume, total, since)
+pub type Status = (Uint128, Uint128, u64);
+
 impl <'a, S: Storage, A: Api, Q: Querier> RewardPoolController <'a, S, A, Q> {
     /// Initialize the reward pool controller by giving it control to external dependencies.
     // Ideally that should be just `deps.storage` but I don't know how to pass it
     pub fn new (deps: &'a mut Extern<S, A, Q>) -> Self { Self { deps } }
+
+    /// Return a status report
+    pub fn status (deps: &Extern<S, A, Q>) -> StdResult<Status> {
+        use fadroma::scrt::storage::load;
+        if let (
+            Some(volume), Some(total), Some(since)
+        ) = (
+            load(&deps.storage, POOL_VOLUME)?,
+            load(&deps.storage, POOL_TOTAL)?,
+            load(&deps.storage, POOL_SINCE)?
+        ) {
+            Ok((volume, total, since))
+        } else {
+            error!("missing data")
+        }
+
+    }
 
     /// Called before each operation that changes the total amount of liquidity
     /// to tally it up so far (multiplying it by the moments of time it has been current,
