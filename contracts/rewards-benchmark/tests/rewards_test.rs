@@ -109,8 +109,11 @@ kukumba! {
     when  "someone inits with an asset token address" {
         let result = harness.init_configured(0, &admin)?;
     }
-    then  "the instance is ready" {
-        let result = harness.q_status(1u64)?;
+    then  "the instance is ready"
+    and   "it goes live when someone locks funds" {
+        assert_error!(harness.q_status(1u64), "missing data");
+        let result = harness.tx_lock(2, &admin, 1u128)?;
+        let result = harness.q_status(3u64)?;
     }
 
     #[ok_init_then_provide]
@@ -130,7 +133,7 @@ kukumba! {
         });
     }
     then  "the instance is not ready" {
-        let result = harness.q_status(1u64)?;
+        assert_error!(harness.q_status(1u64), "not configured");
     }
     when  "a stranger tries to provide an asset token address" {
         let result = harness.tx(2, &badman, TX::SetProvidedToken {
@@ -147,7 +150,10 @@ kukumba! {
             code_hash: "provided_token_hash".into(),
         })?;
     }
-    then  "the instance is ready" {
+    then  "the instance is ready"
+    and   "it goes live when someone locks funds" {
+        assert_error!(harness.q_status(1u64), "missing data");
+        let result = harness.tx_lock(2, &admin, 1u128)?;
         let result = harness.q_status(5u64)?;
     }
 
@@ -180,14 +186,14 @@ kukumba! {
     }
     when  "someone else requests to lock tokens"
     then  "the previous provider's share of the rewards begins to diminish" {
-        let result = harness.tx_lock(6, &bob, 100)?;
+        let result = harness.tx_lock(6, &bob, 500)?;
         let result = harness.q_status(7u64)?;
         let result = harness.q_status(8u64)?;
     }
     when  "a provider tries to retrieve too many tokens"
     then  "they get an error" {
         let result = harness.tx_retrieve(9, &bob, 1000u128);
-        assert_error!(result, "not enough balance ({} < {})");
+        assert_error!(result, "not enough balance (500 < 1000)");
     }
     when  "a stranger tries to retrieve any tokens"
     then  "they get an error" {
