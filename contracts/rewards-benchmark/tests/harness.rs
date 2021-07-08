@@ -5,12 +5,13 @@ use fadroma::scrt::{
         Env, BlockInfo, MessageInfo, ContractInfo,
         Extern, MemoryStorage, Api, Querier,
         testing::{mock_dependencies, MockApi, MockQuerier},
+        from_binary,
     },
     callback::{ContractInstance as ContractLink}
 };
 use sienna_rewards_benchmark::{
     init, handle, query,
-    msg::{Init, Handle as TX, Query as Q}
+    msg::{Init, Handle as TX, Query as Q, Response}
 };
 
 // See https://docs.rs/cosmwasm-std/0.10.1/cosmwasm_std/testing/fn.mock_dependencies_with_balances.html
@@ -67,10 +68,10 @@ impl Harness {
         })
     }
 
-    pub fn q (&self, q: Q) -> StdResult<Binary> {
-        query(&self.deps, q)
+    pub fn q (&self, q: Q) -> StdResult<Response> {
+        from_binary(&query(&self.deps, q)?)
     }
-    pub fn q_status (&self, now: u64) -> StdResult<Binary> {
+    pub fn q_status (&self, now: u64) -> StdResult<Response> {
         self.q(Q::Status { now })
     }
 
