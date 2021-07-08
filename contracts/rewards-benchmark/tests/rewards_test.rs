@@ -7,7 +7,9 @@ use fadroma::scrt::{
     cosmwasm_std::{
         HumanAddr, StdResult, StdError,
         InitResponse, HandleResponse, Binary,
-        Env, BlockInfo, MessageInfo, ContractInfo
+        Env, BlockInfo, MessageInfo, ContractInfo,
+        Extern, Storage, Api, Querier, MemoryStorage, 
+        testing::{mock_dependencies, MockApi, MockQuerier},
     },
     callback::{ContractInstance as ContractLink}
 };
@@ -21,7 +23,7 @@ const ADDR_LEN: usize = 45;
 
 macro_rules! assert_error {
     ($response:expr, $msg:expr) => {
-        assert_eq!(response, Err(StdError::GenericErr {
+        assert_eq!($response, Err(StdError::GenericErr {
             msg: $msg.into(),
             backtrace: None
         }))
@@ -29,12 +31,12 @@ macro_rules! assert_error {
 }
 
 struct Harness {
-    deps: Extern<S, A, Q>
+    deps: Extern<MemoryStorage, MockApi, MockQuerier>
 }
 
 impl Harness {
     pub fn new () -> Self {
-        Self { deps: mock_dependencies(ADDR_LEN, &[]); }
+        Self { deps: mock_dependencies(ADDR_LEN, &[]) }
     }
 
     pub fn init (&mut self, height: u64, agent: &HumanAddr, msg: Init) -> StdResult<InitResponse> {
@@ -64,7 +66,7 @@ impl Harness {
         query(&self.deps, q)
     }
     pub fn q_status (&self, now: u64) -> StdResult<Binary> {
-        self.q(Q::Status { now })?;
+        self.q(Q::Status { now })
     }
 
     pub fn tx (
@@ -78,15 +80,21 @@ impl Harness {
             contract_code_hash: "rewards_hash".into()
         }, tx)
     }
+
     pub fn tx_lock (
         &mut self, height: u64, agent: &HumanAddr, amount: u128
     ) -> StdResult<HandleResponse> {
-        self.tx(height, agent, TX::Lock { amount: amount.into() }
+        self.tx(height, agent, TX::Lock { amount: amount.into() })
     }
     pub fn tx_retrieve (
         &mut self, height: u64, agent: &HumanAddr, amount: u128
     ) -> StdResult<HandleResponse> {
-        self.tx(height, agent, TX::Retrieve { amount: amount.into() }
+        self.tx(height, agent, TX::Retrieve { amount: amount.into() })
+    }
+    pub fn tx_claim (
+        &mut self, height: u64, agent: &HumanAddr
+    ) -> StdResult<HandleResponse> {
+        self.tx(height, agent, TX::Claim {})
     }
 }
 
@@ -95,21 +103,21 @@ kukumba! {
 
     #[ok_init]
     given "no instance" {
-        let admin   = HumanAddr::from("admin");
-        let harness = Harness::new();
+        let mut harness = Harness::new();
+        let admin  = HumanAddr::from("admin");
     }
     when  "someone inits with an asset token address" {
-        let result  = harness.init_configured(0, &admin)?;
+        let result = harness.init_configured(0, &admin)?;
     }
     then  "the instance is ready" {
-        let result  = harness.q(Q::Status { now: 1u64.into() })?;
+        let result = harness.q_status(1u64)?;
     }
 
     #[ok_init_then_provide]
     given  "no instance" {
-        let admin   = HumanAddr::from("admin");
-        let badman  = HumanAddr::from("badman");
-        let harness = Harness:new();
+        let mut harness = Harness::new();
+        let admin  = HumanAddr::from("admin");
+        let badman = HumanAddr::from("badman");
     }
     when  "someone inits without providing an asset token address" {
         let result = harness.init(0, &admin, Init {
@@ -145,66 +153,59 @@ kukumba! {
 
     #[lock_and_retrieve]
     given "an instance" {
+        let mut harness = Harness::new();
         let admin   = HumanAddr::from("admin");
         let alice   = HumanAddr::from("alice");
         let bob     = HumanAddr::from("bob");
         let mallory = HumanAddr::from("mallory");
-        let harness = Harness:new();
-        let result  = harness.init_configured(0, admin);
+        let result  = harness.init_configured(0, &admin);
     }
-    when  "someone requests to lock tokens" {
+    when  "someone requests to lock tokens"
+    then  "the instance transfers them to itself"
+    and   "the liquidity provider starts accruing a reward" {
         let result = harness.tx_lock(1, &alice, 100u128)?;
-    }
-    then  "the instance transfers them to itself" {
-    }
-    and   "they start accruing a reward" {
         let result = harness.q_status(2u64)?;
     }
-    when  "a provider requests to retrieve tokens" {
-        let result = harness.tx_retrieve(3, &alice, 50u128)?;
-    }
-    then  "the instance transfers them to the provider" {
-    }
+    when  "a provider requests to retrieve tokens"
+    then  "the instance transfers them to the provider"
     and   "the reward now increases at a reduced rate" {
+        let result = harness.tx_retrieve(3, &alice, 50u128)?;
         let result = harness.q_status(4u64.into())?;
     }
-    when  "a provider requests to retrieve all their tokens" {
+    when  "a provider requests to retrieve all their tokens"
+    then  "the instance transfers them to the provider"
+    and   "their reward stops increasing" {
         let result = harness.tx_retrieve(5, &alice, 50u128.into())?;
-    }
-    then  "the instance transfers them to the provider" {
-    }
-    and   "the reward now increases at a reduced rate" {
         let result = harness.q_status(5u64)?;
     }
-    when  "someone else requests to lock tokens" {
-        let result = harness.tx_claim(6, &bob)?;
-    }
+    when  "someone else requests to lock tokens"
     then  "the previous provider's share of the rewards begins to diminish" {
+        let result = harness.tx_lock(6, &bob, 100)?;
         let result = harness.q_status(7u64)?;
         let result = harness.q_status(8u64)?;
     }
-    when  "a provider tries to retrieve too many tokens" {
-        let result = harness.tx_retrieve(9, &bob, 1000u64)?;
-    }
-    then  "the instance returns error" {
+    when  "a provider tries to retrieve too many tokens"
+    then  "they get an error" {
+        let result = harness.tx_retrieve(9, &bob, 1000u128);
         assert_error!(result, "not enough balance ({} < {})");
     }
-    when  "a stranger tries to retrieve any tokens" {
-        let result = harness.tx_retrieve(10, &mallory, 100u64)?;
-    }
-    then  "the instance returns error" {
-        assert_error!(result, "never provided liquidity");
+    when  "a stranger tries to retrieve any tokens"
+    then  "they get an error" {
+        assert_error!(
+            harness.tx_retrieve(10, &mallory, 100u128),
+            "never provided liquidity"
+        );
     }
 
     #[ok_claim]
     given "an instance" {
-        let harness = Harness::new(deps);
-        let alice   = HumanAddr::from("alice");
+        let mut harness = Harness::new();
+        let alice  = HumanAddr::from("alice");
     }
-    when  "a stranger tries to claim rewards" {
+    when  "a stranger tries to claim rewards"
+    then  "they get an error" {
         let result = harness.tx_claim(1, &alice)?;
     }
-    then  "they get an error" {}
     when  "a provider claims their rewards" {
         let result = harness.tx_claim(1, &alice)?;
     }

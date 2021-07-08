@@ -55,7 +55,7 @@ contract! {
     }
 
     [Query] (deps, state, msg) -> Response {
-        Status (now: Uint128) {
+        Status (now: u64) {
             if let Some(_) = state.provided_token {
                 let (volume, total, since) = RewardPoolController::status(deps)?;
                 Ok(Response::Status { volume, total, since })
