@@ -1,4 +1,3 @@
-use crate::storable::Storable;
 use amm_shared::TokenType;
 use fadroma::scrt::addr::{Canonize, Humanize};
 use fadroma::scrt::callback::ContractInstance;
@@ -6,6 +5,7 @@ use fadroma::scrt::cosmwasm_std::{
     Api, CanonicalAddr, Extern, HumanAddr, Querier, ReadonlyStorage, StdError, StdResult, Storage,
     Uint128,
 };
+use fadroma::scrt::storage::Storable;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

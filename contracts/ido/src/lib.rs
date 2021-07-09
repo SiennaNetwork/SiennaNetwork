@@ -1,6 +1,5 @@
 mod contract;
 mod data;
-mod storable;
 
 #[cfg(test)]
 mod querier;

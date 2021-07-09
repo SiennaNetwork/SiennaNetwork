@@ -237,9 +237,16 @@ pub mod ido {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum HandleMsg {
+        /// Swap custom or native coin for selling coin
         Swap { amount: Uint128 },
+        /// Change admin handle
         Admin(AdminHandleMsg),
-        Refund,
+        /// Ask for a refund after the sale is finished
+        AdminRefund,
+        /// Get status of the amount already claimed
+        AdminStatus,
+        /// Add new address to whitelist
+        AdminAddAddress { address: HumanAddr },
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]

@@ -12,12 +12,12 @@ use fadroma::scrt::cosmwasm_std::{
     InitResponse, LogAttribute, Querier, QueryResult, StdError, StdResult, Storage, Uint128,
     WasmMsg,
 };
+use fadroma::scrt::storage::Storable;
 use fadroma::scrt::toolkit::snip20;
 use fadroma::scrt::utils::convert::convert_token;
 use fadroma::scrt::BLOCK_SIZE;
 
 use crate::data::{Account, Config, SwapConstants};
-use crate::storable::Storable;
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -88,8 +88,9 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     match msg {
         HandleMsg::Swap { amount } => swap(deps, env, amount),
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl),
-        HandleMsg::Refund => refund(deps, env),
-        HandleMsg::Status => get_status(deps, env),
+        HandleMsg::AdminRefund => refund(deps, env),
+        HandleMsg::AdminStatus => get_status(deps, env),
+        HandleMsg::AdminAddAddress { address } => add_address(deps, env, address),
     }
 }
 
@@ -268,6 +269,40 @@ fn get_status<S: Storage, A: Api, Q: Querier>(
         ],
         data: None,
     })
+}
+
+/// Add new address to whitelist
+fn add_address<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    address: HumanAddr,
+) -> StdResult<HandleResponse> {
+    assert_admin(&deps, &env)?;
+    let mut config = Config::<CanonicalAddr>::load_self(&deps)?;
+    config.is_swapable(env.block.time)?;
+
+    let caonical_address = address.canonize(&deps.api)?;
+
+    if config
+        .whitelist
+        .iter()
+        .position(|a| a == &caonical_address)
+        .is_none()
+    {
+        config.whitelist.push(caonical_address);
+
+        config.save(deps)?;
+
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![log("action", "add_address"), log("added_address", address)],
+            data: None,
+        })
+    } else {
+        Err(StdError::generic_err(
+            "Address is already on the whitelist.",
+        ))
+    }
 }
 
 /// Return exchange rate for swap
@@ -541,7 +576,7 @@ mod tests {
         let end_time = 1_571_797_500;
         let (mut deps, env) = init_contract(Some(start_time), Some(end_time));
 
-        let res = handle(&mut deps, env, HandleMsg::Refund);
+        let res = handle(&mut deps, env, HandleMsg::AdminRefund);
 
         assert_eq!(
             res,
@@ -558,7 +593,7 @@ mod tests {
         let start_time = 1_571_797_300;
         let (mut deps, env) = init_contract(Some(start_time), None);
 
-        let res = handle(&mut deps, env, HandleMsg::Refund);
+        let res = handle(&mut deps, env, HandleMsg::AdminRefund);
 
         assert_eq!(
             res,
@@ -575,7 +610,7 @@ mod tests {
         let end_time = 1_571_797_400;
         let (mut deps, env) = init_contract(Some(start_time), Some(end_time));
 
-        let res = handle(&mut deps, env.clone(), HandleMsg::Refund).unwrap();
+        let res = handle(&mut deps, env.clone(), HandleMsg::AdminRefund).unwrap();
         let refunded_amount = &res.log[1].value;
 
         assert_eq!(refunded_amount, "2000");
@@ -595,7 +630,7 @@ mod tests {
         )
         .unwrap();
 
-        let res = handle(&mut deps, env, HandleMsg::Status).unwrap();
+        let res = handle(&mut deps, env, HandleMsg::AdminStatus).unwrap();
         let sold_allocation = &res.log[1].value;
         let available_to_allocate = &res.log[2].value;
         let total_allocation = &res.log[3].value;
@@ -603,5 +638,63 @@ mod tests {
         assert_eq!(sold_allocation, "250");
         assert_eq!(available_to_allocate, "1750");
         assert_eq!(total_allocation, "2000");
+    }
+
+    #[test]
+    fn admin_attempts_to_add_existing_address_to_whitelist_gets_error() {
+        let (mut deps, env) = init_contract(None, None);
+        let buyer_env = mock_env("buyer-1", &[Coin::new(250_000_000_u128, "uscrt")]);
+
+        let res = handle(
+            &mut deps,
+            env,
+            HandleMsg::AdminAddAddress {
+                address: buyer_env.message.sender,
+            },
+        );
+
+        assert_eq!(
+            res,
+            Err(StdError::generic_err(
+                "Address is already on the whitelist."
+            ))
+        );
+    }
+
+    #[test]
+    fn admin_adds_new_address_to_whitelist() {
+        let (mut deps, env) = init_contract(None, None);
+        let buyer_env = mock_env("buyer-5", &[Coin::new(250_000_000_u128, "uscrt")]);
+
+        let res = handle(
+            &mut deps,
+            buyer_env.clone(),
+            HandleMsg::Swap {
+                amount: Uint128(250_000_000_u128),
+            },
+        );
+
+        assert_eq!(
+            res,
+            Err(StdError::generic_err("This address is not whitelisted."))
+        );
+
+        handle(
+            &mut deps,
+            env,
+            HandleMsg::AdminAddAddress {
+                address: buyer_env.message.sender.clone(),
+            },
+        )
+        .unwrap();
+
+        handle(
+            &mut deps,
+            buyer_env,
+            HandleMsg::Swap {
+                amount: Uint128(250_000_000_u128),
+            },
+        )
+        .unwrap();
     }
 }
