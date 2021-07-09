@@ -9,9 +9,151 @@
       ],
       "properties": {
         "status": {
-          "type": "object"
+          "type": "object",
+          "required": [
+            "since",
+            "total",
+            "volume"
+          ],
+          "properties": {
+            "since": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "total": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "volume": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "token_info"
+      ],
+      "properties": {
+        "token_info": {
+          "type": "object",
+          "required": [
+            "decimals",
+            "name",
+            "symbol"
+          ],
+          "properties": {
+            "decimals": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0.0
+            },
+            "name": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "total_supply": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "pool"
+      ],
+      "properties": {
+        "pool": {
+          "type": "object",
+          "required": [
+            "lp_token",
+            "volume"
+          ],
+          "properties": {
+            "lp_token": {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+            },
+            "volume": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "balance"
+      ],
+      "properties": {
+        "balance": {
+          "type": "object",
+          "required": [
+            "amount"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "claim_simulation"
+      ],
+      "properties": {
+        "claim_simulation": {
+          "type": "object",
+          "required": [
+            "reward_amount"
+          ],
+          "properties": {
+            "reward_amount": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
         }
       }
     }
-  ]
+  ],
+  "definitions": {
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
 }

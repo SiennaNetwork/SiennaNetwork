@@ -3,7 +3,8 @@
   "title": "Init",
   "type": "object",
   "required": [
-    "rewarded_token"
+    "rewarded_token",
+    "viewing_key"
   ],
   "properties": {
     "provided_token": {
@@ -18,6 +19,9 @@
     },
     "rewarded_token": {
       "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+    },
+    "viewing_key": {
+      "$ref": "#/definitions/ViewingKey"
     }
   },
   "definitions": {
@@ -38,6 +42,9 @@
       }
     },
     "HumanAddr": {
+      "type": "string"
+    },
+    "ViewingKey": {
       "type": "string"
     }
   }

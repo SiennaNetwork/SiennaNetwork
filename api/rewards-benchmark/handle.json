@@ -3,6 +3,7 @@
   "title": "Handle",
   "anyOf": [
     {
+      "description": "Set the active asset token.",
       "type": "object",
       "required": [
         "set_provided_token"
@@ -26,6 +27,7 @@
       }
     },
     {
+      "description": "Provide some liquidity.",
       "type": "object",
       "required": [
         "lock"
@@ -45,6 +47,7 @@
       }
     },
     {
+      "description": "Get some tokens back.",
       "type": "object",
       "required": [
         "retrieve"
@@ -64,6 +67,7 @@
       }
     },
     {
+      "description": "Receive rewards.",
       "type": "object",
       "required": [
         "claim"
@@ -71,6 +75,56 @@
       "properties": {
         "claim": {
           "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "create_viewing_key"
+      ],
+      "properties": {
+        "create_viewing_key": {
+          "type": "object",
+          "required": [
+            "entropy"
+          ],
+          "properties": {
+            "entropy": {
+              "type": "string"
+            },
+            "padding": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_viewing_key"
+      ],
+      "properties": {
+        "set_viewing_key": {
+          "type": "object",
+          "required": [
+            "key"
+          ],
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "padding": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
         }
       }
     }

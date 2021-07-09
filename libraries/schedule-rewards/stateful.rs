@@ -1,5 +1,3 @@
-use schemars::JsonSchema;
-use serde::{Serialize, Deserialize};
 use fadroma::scrt::cosmwasm_std::{
     Uint128, CanonicalAddr, StdResult, StdError,
     Extern, Storage, Api, Querier,
@@ -21,7 +19,7 @@ const POOL_VOLUME:   &[u8] = b"pool_volume";
 const POOL_SINCE:    &[u8] = b"pool_since";
 
 /// When was liquidity last updated
-const POOL_CLAIMED:  &[u8] = b"pool_claimed";
+//const POOL_CLAIMED:  &[u8] = b"pool_claimed";
 
 /// When did each user first add liquidity
 const USER_BORN:     &[u8] = b"user_born/";
@@ -40,16 +38,16 @@ const USER_SINCE:    &[u8] = b"user_since/";
 const USER_CLAIMED:  &[u8] = b"user_claimed/";
 
 #[macro_export] macro_rules! load { ($self:ident, $key:expr) => {
-    fadroma::scrt::storage::load(&$self.deps.storage, $key.into()) }; }
+    fadroma::scrt::storage::load(&$self.deps.storage, $key) }; }
 
 #[macro_export] macro_rules! save { ($self:ident, $key:expr, $val:expr) => {
     $self.deps.storage.set(&$key, &to_vec(&$val)?); }; }
 
 #[macro_export] macro_rules! ns_load { ($self:ident, $ns:expr, $key:expr) => {
-    fadroma::scrt::storage::ns_load(&$self.deps.storage, $ns.into(), $key.as_slice()) }; }
+    fadroma::scrt::storage::ns_load(&$self.deps.storage, $ns, $key.as_slice()) }; }
 
 #[macro_export] macro_rules! ns_save { ($self:ident, $ns:expr, $key:expr, $val:expr) => {
-    fadroma::scrt::storage::ns_save(&mut $self.deps.storage, $ns.into(), $key.as_slice(), &$val) }; }
+    fadroma::scrt::storage::ns_save(&mut $self.deps.storage, $ns, $key.as_slice(), &$val) }; }
 
 /// A monotonic time counter, such as env.block.time or env.block.height
 pub type Monotonic = u64;
@@ -172,23 +170,68 @@ impl <'a, S: Storage, A: Api, Q: Querier> RewardPoolController <'a, S, A, Q> {
     /// Calculate how much a provider can claim,
     /// subtract it from the total balance, and return it.
     pub fn claim (
-        &mut self, now: Monotonic, address: CanonicalAddr, balance: Uint128
+        &mut self, address: &CanonicalAddr, balance: Uint128
     ) -> StdResult<Uint128> {
-        let pool_total: Option<Uint128> = load!(self, POOL_TOTAL)?;
-        let user_total: Option<Uint128> = ns_load!(self, USER_TOTAL, address)?;
-        let claimed:    Option<Uint128> = ns_load!(self, USER_CLAIMED, address)?;
+        let (amount, reward) = Self::calc_claim(&self.deps, address, balance)?;
+
+        if reward > Uint128::zero() {
+            ns_save!(self, USER_CLAIMED, address, reward)?;
+        }
+
+        Ok(amount)
+    }
+
+    pub fn get_claim_amount(
+        deps: &'a Extern<S, A, Q>,
+        address: &CanonicalAddr,
+        balance: Uint128
+    ) -> StdResult<Uint128> {
+        let (amount, _) = Self::calc_claim(deps, address, balance)?;
+
+        Ok(amount)
+    }
+
+    pub fn get_balance(
+        deps: &'a Extern<S, A, Q>,
+        address: &CanonicalAddr
+    ) -> StdResult<Uint128> {
+        use fadroma::scrt::storage::ns_load;
+
+        let balance = ns_load(&deps.storage, USER_VOLUME, address.as_slice())?
+            .unwrap_or(Uint128::zero());
+
+        Ok(balance)
+    }
+
+    pub fn get_volume(
+        deps: &'a Extern<S, A, Q>
+    ) -> StdResult<Uint128> {
+        use fadroma::scrt::storage::load;
+
+        Ok(load(&deps.storage, POOL_VOLUME)?.unwrap_or(Uint128::zero()))
+    }
+
+    fn calc_claim(
+        deps: &Extern<S, A, Q>,
+        address: &CanonicalAddr,
+        balance: Uint128
+    ) -> StdResult<(Uint128, Uint128)> {
+        use fadroma::scrt::storage::{load, ns_load};
+
+        let pool_total: Option<Uint128> = load(&deps.storage, POOL_TOTAL)?;
+        let user_total: Option<Uint128> = ns_load(&deps.storage, USER_TOTAL, address.as_slice())?;
+        let claimed:    Option<Uint128> = ns_load(&deps.storage, USER_CLAIMED, address.as_slice())?;
+
         match (pool_total, user_total, claimed) {
             (Some(pool_total), Some(user_total), Some(claimed)) => {
                 let reward: Uint128 = balance.multiply_ratio(user_total, pool_total);
                 if reward > claimed {
-                    ns_save!(self, USER_CLAIMED, address, reward)?;
-                    Ok((reward - claimed)?)
+                    Ok(((reward - claimed)?, reward))
                 } else {
-                    Ok(Uint128::zero())
+                    Ok((Uint128::zero(), Uint128::zero()))
                 }
             },
             _ => error!("missing data"),
         }
     }
-
 }

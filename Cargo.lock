@@ -350,6 +350,19 @@ dependencies = [
 [[package]]
 name = "composable-auth"
 version = "0.1.0"
+dependencies = [
+ "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
+ "fadroma-scrt-utils",
+ "schemars",
+ "serde",
+ "snafu",
+]
+
+[[package]]
+name = "composable-auth"
+version = "0.1.0"
 source = "git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0#9dfcfc0422905ed63f6bc348a865b7bbe6e0f6f5"
 dependencies = [
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
@@ -1775,7 +1788,7 @@ name = "sienna-rewards"
 version = "0.1.0"
 dependencies = [
  "composable-admin 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
- "composable-auth",
+ "composable-auth 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
  "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
@@ -1794,6 +1807,7 @@ dependencies = [
 name = "sienna-rewards-benchmark"
 version = "1.0.0"
 dependencies = [
+ "composable-auth 0.1.0",
  "fadroma 21.7.0",
  "kukumba 1.0.1",
  "schemars",

@@ -23,6 +23,7 @@ fadroma  = { path = "../../libraries/fadroma-21.07/core", features = [
   "scrt-utils"
 ] }
 sienna-reward-schedule = { path = "../../libraries/schedule-rewards" }
+composable-auth = { path = "../../libraries/fadroma-21.07/scrt-auth/composable-auth" }
 
 [dev-dependencies]
 kukumba = { path = "../../libraries/kukumba" }
