@@ -71,6 +71,7 @@ impl <S: Storage> Writable <S> for RewardPoolController <&mut S> {
 }
 
 /// It's ugly that this needs to be a trait.
+/// TODO: Need to find out how to abstract over mutability.
 pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
     /// Return a status report
     fn status (&self, now: Monotonic) -> StdResult<Status> {
@@ -106,14 +107,18 @@ pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
         address: &CanonicalAddr,
         now:     Monotonic
     ) -> StdResult<(Uint128, Uint128)> {
-        let user    = self.user_so_far(now, address)?;
-        let pool    = self.pool_so_far(now)?;
-        let claimed = self.get_user_claimed(address)?;
-        let reward  = budget.multiply_ratio(user, pool);
-        if reward > claimed {
-            Ok(((reward - claimed)?, reward))
+        let user = self.user_so_far(now, address)?;
+        let pool = self.pool_so_far(now)?;
+        if pool > Uint128::zero() {
+            let claimed = self.get_user_claimed(address)?;
+            let reward  = budget.multiply_ratio(user, pool);
+            if reward > claimed {
+                Ok(((reward - claimed)?, reward))
+            } else {
+                Ok((Uint128::zero(), Uint128::zero()))
+            }
         } else {
-            Ok((Uint128::zero(), Uint128::zero()))
+            error!("pool is empty")
         }
     }
 

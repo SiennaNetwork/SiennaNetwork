@@ -201,7 +201,7 @@ impl RewardsMockQuerier {
                     //panic!("MockSnip20Querier: Expected balance query for {:?}", self.reward_token)
                 //}
                 Snip20QueryAnswer::Balance {
-                    amount: Uint128::zero()
+                    amount: 100u128.into()
                 }
             },
             _ => unimplemented!()

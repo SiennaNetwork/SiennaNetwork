@@ -7,6 +7,29 @@ mod harness; use harness::RewardsHarness;
 use fadroma::scrt::cosmwasm_std::{Uint128, HumanAddr, StdError};
 use sienna_rewards_benchmark::msg::Response;
 
+struct Snip20;
+impl Snip20 {
+    pub fn set_viewing_key (key: &str) -> String {
+        format!(
+            "{{\"set_viewing_key\":{{\"key\":\"{}\",\"padding\":null}}}}",
+            key
+        ).into()
+    }
+    pub fn transfer_from (owner: &str, recipient: &str, amount: &str) -> String {
+        format!(
+            "{{\"transfer_from\":{{\"owner\":\"{}\",\"recipient\":\"{}\",\"amount\":\"{}\",\"padding\":null}}}}",
+            owner, recipient, amount
+        ).into()
+    }
+    pub fn transfer (recipient: &str, amount: &str) -> String {
+        format!(
+            "{{\"transfer\":{{\"recipient\":\"{}\",\"amount\":\"{}\",\"padding\":null}}}}",
+            recipient, amount
+        ).into()
+    }
+
+}
+
 kukumba! {
     StdError,
 
@@ -17,18 +40,16 @@ kukumba! {
     }
     when  "someone inits with an asset token address"
     then  "the instance configures a viewing key for itself" {
-        assert_eq!(
-            test.init_configured(0, &admin)?,
-            (vec!["{\"set_viewing_key\":{\"key\":\"\",\"padding\":null}}".into()], 0, 0),
-        );
+        assert_eq!(test.init_configured(0, &admin)?, (vec![
+            Snip20::set_viewing_key("")
+        ], 0, 0));
     }
     when  "someone locks funds"
     then  "the instance goes live" {
         assert_error!(test.q_status(1u64), "missing POOL_SINCE");
-        assert_eq!(
-            test.tx_lock(2, &admin, 1u128)?,
-            (vec!["{\"transfer_from\":{\"owner\":\"admin\",\"recipient\":\"contract_addr\",\"amount\":\"1\",\"padding\":null}}".into()], 0, 0)
-        );
+        assert_eq!(test.tx_lock(2, &admin, 1u128)?, (vec![
+            Snip20::transfer_from("admin", "contract_addr", "1")
+        ], 0, 0));
         assert_eq!(test.q_status(2u64)?, Response::Status {
             volume: Uint128::from(1u128),
             total:  Uint128::zero(),
@@ -57,10 +78,9 @@ kukumba! {
     }
     when  "someone inits without providing an asset token address"
     then  "the instance is not ready" {
-        assert_eq!(
-            test.init_partial(0, &admin)?,
-            (vec!["{\"set_viewing_key\":{\"key\":\"\",\"padding\":null}}".into()], 0, 0),
-        );
+        assert_eq!(test.init_partial(0, &admin)?, (vec![
+            Snip20::set_viewing_key(""),
+        ], 0, 0));
         assert_error!(test.q_status(1), "not configured");
     }
     when  "a stranger tries to provide an asset token address"
@@ -74,16 +94,11 @@ kukumba! {
     when  "the admin provides an asset token address"
     then  "the instance configures a viewing key for itself"
     and   "it goes live when someone locks funds" {
-        assert_eq!(
-            test.tx_set_token(4, &admin, "ok_addr", "ok_hash")?,
-            (vec![], 0, 0),
-        );
+        assert_eq!(test.tx_set_token(4, &admin, "ok_addr", "ok_hash")?, (vec![], 0, 0),);
         assert_error!(test.q_status(5), "missing POOL_SINCE");
-        assert_eq!(
-            test.tx_lock(6, &admin, 1)?,
-            (vec!["{\"transfer_from\":{\"owner\":\"admin\",\"recipient\":\"contract_addr\",\"amount\":\"1\",\"padding\":null}}".into()], 0, 0)
-        );
-        let result = test.q_status(7)?;
+        assert_eq!(test.tx_lock(6, &admin, 1)?, (vec![
+            Snip20::transfer_from("admin", "contract_addr", "1")
+        ], 0, 0));
         assert_eq!(test.q_status(6)?, Response::Status {
             volume: Uint128::from(1u128),
             total:  Uint128::zero(),
@@ -111,18 +126,16 @@ kukumba! {
         let alice   = HumanAddr::from("alice");
         let bob     = HumanAddr::from("bob");
         let mallory = HumanAddr::from("mallory");
-        assert_eq!(
-            test.init_configured(0, &admin)?,
-            (vec!["{\"set_viewing_key\":{\"key\":\"\",\"padding\":null}}".into()], 0, 0),
-        );
+        assert_eq!(test.init_configured(0, &admin)?, (vec![
+            Snip20::set_viewing_key(""),
+        ], 0, 0));
     }
     when  "someone requests to lock tokens"
     then  "the instance transfers them to itself"
     and   "the liquidity provider starts accruing a reward" {
-        assert_eq!(
-            test.tx_lock(1, &alice, 100u128)?,
-            (vec!["{\"transfer_from\":{\"owner\":\"alice\",\"recipient\":\"contract_addr\",\"amount\":\"100\",\"padding\":null}}".into()], 0, 0)
-        );
+        assert_eq!(test.tx_lock(1, &alice, 100u128)?, (vec![
+            Snip20::transfer_from("alice", "contract_addr", "100")
+        ], 0, 0));
         assert_eq!(test.q_status(2)?, Response::Status {
             volume: Uint128::from(100u128),
             total:  Uint128::from(100u128),
@@ -139,10 +152,9 @@ kukumba! {
             since:  1,
             now:    3
         });
-        assert_eq!(
-            test.tx_retrieve(3, &alice, 50u128)?,
-            (vec!["{\"transfer\":{\"recipient\":\"alice\",\"amount\":\"50\",\"padding\":null}}".into()], 0, 0)
-        );
+        assert_eq!(test.tx_retrieve(3, &alice, 50u128)?, (vec![
+            Snip20::transfer("alice", "50")
+        ], 0, 0));
         assert_eq!(test.q_status(4)?, Response::Status {
             volume: Uint128::from(50u128),
             total:  Uint128::from(250u128),
@@ -159,10 +171,9 @@ kukumba! {
             since:  3,
             now:    5
         });
-        assert_eq!(
-            test.tx_retrieve(5, &alice, 50u128)?,
-            (vec!["{\"transfer\":{\"recipient\":\"alice\",\"amount\":\"50\",\"padding\":null}}".into()], 0, 0)
-        );
+        assert_eq!(test.tx_retrieve(5, &alice, 50u128)?, (vec![
+            Snip20::transfer("alice", "50")
+        ], 0, 0));
         assert_eq!(test.q_status(6)?, Response::Status {
             volume: Uint128::from(0u128),
             total:  Uint128::from(300u128),
@@ -178,10 +189,9 @@ kukumba! {
             since:  5,
             now:    7
         });
-        assert_eq!(
-            test.tx_lock(7, &bob, 500u128)?,
-            (vec!["{\"transfer_from\":{\"owner\":\"bob\",\"recipient\":\"contract_addr\",\"amount\":\"500\",\"padding\":null}}".into()], 0, 0)
-        );
+        assert_eq!(test.tx_lock(7, &bob, 500u128)?, (vec![
+            Snip20::transfer_from("bob", "contract_addr", "500")
+        ], 0, 0));
         assert_eq!(test.q_status(8)?, Response::Status {
             volume: Uint128::from(500u128),
             total:  Uint128::from(800u128),
@@ -227,34 +237,46 @@ kukumba! {
         let mut test = RewardsHarness::new();
         let admin   = HumanAddr::from("admin");
         let alice   = HumanAddr::from("alice");
-        let mallory = HumanAddr::from("alice");
+        let bob     = HumanAddr::from("bob");
         let _ = test.init_configured(0, &admin)?;
-        let _ = test.tx_lock(0, &alice, 100)?;
     }
-    when  "a stranger tries to claim rewards"
+    when  "strangers tries to claim rewards"
     then  "they get an error" {
-        assert_error!(
-            test.tx_claim(1, &mallory),
-            "never provided liquidity"
-        );
+        assert_error!(test.tx_claim(1, &alice), "missing user liquidity data");
+        assert_error!(test.tx_claim(1, &bob),   "missing user liquidity data");
     }
-    when  "a provider claims their rewards"
-    then  "the instance sends them reward tokens" {
-        let result = test.tx_lock(2, &alice, 100)?;
-        let result = test.tx_claim(3, &alice)?;
+    when  "users provide liquidity" {
+        assert_eq!(test.tx_lock(2, &alice, 100)?, (vec![
+            Snip20::transfer_from("alice", "contract_addr", "100")
+        ], 0, 0));
+        assert_eq!(test.tx_lock(2, &bob, 100)?, (vec![
+            Snip20::transfer_from("bob", "contract_addr", "100")
+        ], 0, 0));
     }
-    when  "a provider claims their rewards twice"
-    then  "they are sent only once" {
-        let result = test.tx_claim(3, &alice)?;
+    and   "they weit for rewards to accumulate" {
+        assert_error!(test.tx_claim(2, &alice), "pool is empty");
+        assert_error!(test.tx_claim(2, &bob), "pool is empty");
     }
-    when  "a provider claims their rewards later"
-    then  "they receive an increment" {
-        let result = test.tx_claim(4, &alice)?;
+    and   "a provider claims rewards"
+    then  "that provider receives reward tokens" {
+        assert_eq!(test.tx_claim(3, &alice)?, (vec![Snip20::transfer("alice", "1")], 0, 0));
+    }
+    when  "a provider claims rewards twice"
+    then  "rewards are sent only once" {
+        assert_error!(test.tx_claim(3, &alice), "already claimed");
+    }
+    when  "a provider claims their rewards less often"
+    then  "they receive equivalent rewards as long as the liquidity balance hasn't changed" {
+        assert_eq!(test.tx_claim(4, &alice)?, (vec![Snip20::transfer("alice", "1")], 0, 0));
+        assert_eq!(test.tx_claim(4, &bob)?,   (vec![Snip20::transfer("bob",   "2")], 0, 0));
     }
 
     #[rewards_parallel_or_sequential]
-    given "todo" {}
-    when  "do"   {}
-    then  "done" {}
+    given "three users providing liquidity" {
+    }
+    when "they provide the liquidity simultaneously" {
+    }
+    then "it's the same as if they provided the liquidity sequentially as long as nobody claims" {
+    }
 
 }
