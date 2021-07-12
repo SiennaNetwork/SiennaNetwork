@@ -225,14 +225,16 @@ kukumba! {
     #[ok_claim]
     given "an instance" {
         let mut test = RewardsHarness::new();
-        let admin  = HumanAddr::from("admin");
-        let alice  = HumanAddr::from("alice");
-        let result = test.init_configured(0, &admin)?;
+        let admin   = HumanAddr::from("admin");
+        let alice   = HumanAddr::from("alice");
+        let mallory = HumanAddr::from("alice");
+        let _ = test.init_configured(0, &admin)?;
+        let _ = test.tx_lock(0, &alice, 100)?;
     }
     when  "a stranger tries to claim rewards"
     then  "they get an error" {
         assert_error!(
-            test.tx_claim(1, &alice),
+            test.tx_claim(1, &mallory),
             "never provided liquidity"
         );
     }

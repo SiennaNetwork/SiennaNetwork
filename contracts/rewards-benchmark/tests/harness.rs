@@ -178,11 +178,13 @@ impl RewardsHarness {
 struct RewardsMockQuerier {}
 
 #[derive(serde::Serialize,serde::Deserialize)]
+#[serde(rename_all="snake_case")]
 enum Snip20Query {
     Balance {}
 }
 
 #[derive(serde::Serialize,serde::Deserialize)]
+#[serde(rename_all="snake_case")]
 enum Snip20QueryAnswer {
     Balance { amount: Uint128 }
 }

@@ -8,7 +8,7 @@ use fadroma::scrt::{
     storage::{load, save},
     cosmwasm_std::ReadonlyStorage as Readonly
 };
-use sienna_reward_schedule::stateful::RewardPoolController as Pool;
+use sienna_reward_schedule::stateful::{RewardPoolController as Pool, RewardPoolCalculations};
 use composable_auth::{auth_handle, authenticate, AuthHandleMsg, DefaultHandleImpl};
 
 macro_rules! tx_ok {
@@ -71,32 +71,33 @@ contract! {
     [Query] (deps, state, msg) -> Response {
         Status (now: u64) {
             if let Some(_) = state.provided_token {
-                let (volume, total, since) = Pool::status(deps, now)?;
+                let (volume, total, since) = Pool::new(&deps.storage).status(now)?;
                 Ok(Response::Status { now, volume, total, since })
             } else {
                 error!("not configured")
             }
         }
 
-        Claimable (address: HumanAddr, key: String) {
+        Claimable (now: u64, address: HumanAddr, key: String) {
             let address = deps.api.canonical_address(&address)?;
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
             let this_contract = load_contract_info(deps)?;
             let token = state.rewarded_token.humanize(&deps.api)?;
-            Ok(Response::Claimable {
-                reward_amount: Pool::get_claim_amount(deps, &address, snip20::balance_query(
-                    &deps.querier,
-                    this_contract.address, state.viewing_key.0.clone(),
-                    BLOCK_SIZE,
-                    token.code_hash.clone(), token.address
-                )?.amount)?
-            })
+            let budget = snip20::balance_query(
+                &deps.querier,
+                this_contract.address, state.viewing_key.0.clone(),
+                BLOCK_SIZE,
+                token.code_hash.clone(), token.address
+            )?.amount;
+            let reward_amount = Pool::new(&deps.storage)
+                .get_claimable(budget, now, &address)?;
+            Ok(Response::Claimable { reward_amount })
         }
 
         Pool () {
             Ok(Response::Pool {
                 lp_token: get_provided_token(&state, &deps.api)?,
-                volume:   Pool::get_volume(deps)?
+                volume:   Pool::new(&deps.storage).get_pool_volume()?
             })
         }
 
@@ -120,7 +121,7 @@ contract! {
         Balance (address: HumanAddr, key: String) {
             let address = deps.api.canonical_address(&address)?;
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
-            Ok(Response::Balance { amount: Pool::get_balance(deps, &address)? })
+            Ok(Response::Balance { amount: Pool::new(&deps.storage).get_user_balance(&address)? })
         }
     }
 
@@ -151,8 +152,8 @@ contract! {
         Lock (amount: Uint128) {
             let token    = get_provided_token(&state, &deps.api)?;
             let address  = deps.api.canonical_address(&env.message.sender)?;
-            let mut pool = Pool::new(deps);
-            let locked   = pool.lock(env.block.height, address, amount)?;
+            let locked   = Pool::new(&mut deps.storage)
+                .lock(env.block.height, address, amount)?;
             let transfer = snip20::transfer_from_msg(
                 env.message.sender, env.contract.address, locked,
                 None, BLOCK_SIZE,
@@ -166,8 +167,8 @@ contract! {
         Retrieve (amount: Uint128) {
             let token     = get_provided_token(&state, &deps.api)?;
             let address   = deps.api.canonical_address(&env.message.sender)?;
-            let mut pool  = Pool::new(deps);
-            let retrieved = pool.retrieve(env.block.height, address, amount)?;
+            let retrieved = Pool::new(&mut deps.storage)
+                .retrieve(env.block.height, address, amount)?;
             let transfer  = snip20::transfer_msg(
                 env.message.sender, retrieved,
                 None, BLOCK_SIZE,
@@ -185,9 +186,11 @@ contract! {
                 BLOCK_SIZE,
                 token.code_hash.clone(), token.address.clone()
             )?;
-            let address  = deps.api.canonical_address(&env.message.sender)?;
+            let address   = deps.api.canonical_address(&env.message.sender)?;
+            let claimable = Pool::new(&mut deps.storage)
+                .claim(balance.amount, &address, env.block.height)?;
             let transfer = snip20::transfer_msg(
-                env.message.sender, Pool::new(deps).claim(&address, balance.amount)?,
+                env.message.sender, claimable,
                 None, BLOCK_SIZE,
                 token.code_hash.clone(), token.address.clone()
             )?;
