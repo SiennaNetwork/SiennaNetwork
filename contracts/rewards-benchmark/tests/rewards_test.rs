@@ -29,33 +29,24 @@ kukumba! {
             test.tx_lock(2, &admin, 1u128)?,
             (vec!["{\"transfer_from\":{\"owner\":\"admin\",\"recipient\":\"contract_addr\",\"amount\":\"1\",\"padding\":null}}".into()], 0, 0)
         );
-        assert_eq!(
-            test.q_status(2u64)?,
-            Response::Status {
-                volume: Uint128::from(1u128),
-                total:  Uint128::zero(),
-                since:  2,
-                now:    2
-            }
-        );
-        assert_eq!(
-            test.q_status(3u64)?,
-            Response::Status {
-                volume: Uint128::from(1u128),
-                total:  Uint128::from(1u128),
-                since:  2,
-                now:    3
-            }
-        );
-        assert_eq!(
-            test.q_status(4u64)?,
-            Response::Status {
-                volume: Uint128::from(1u128),
-                total:  Uint128::from(2u128),
-                since:  2,
-                now:    4
-            }
-        );
+        assert_eq!(test.q_status(2u64)?, Response::Status {
+            volume: Uint128::from(1u128),
+            total:  Uint128::zero(),
+            since:  2,
+            now:    2
+        });
+        assert_eq!(test.q_status(3u64)?, Response::Status {
+            volume: Uint128::from(1u128),
+            total:  Uint128::from(1u128),
+            since:  2,
+            now:    3
+        });
+        assert_eq!(test.q_status(4u64)?, Response::Status {
+            volume: Uint128::from(1u128),
+            total:  Uint128::from(2u128),
+            since:  2,
+            now:    4
+        });
     }
 
     #[ok_init_then_provide]
@@ -93,33 +84,24 @@ kukumba! {
             (vec!["{\"transfer_from\":{\"owner\":\"admin\",\"recipient\":\"contract_addr\",\"amount\":\"1\",\"padding\":null}}".into()], 0, 0)
         );
         let result = test.q_status(7)?;
-        assert_eq!(
-            test.q_status(6)?,
-            Response::Status {
-                volume: Uint128::from(1u128),
-                total:  Uint128::zero(),
-                since:  6,
-                now:    6
-            }
-        );
-        assert_eq!(
-            test.q_status(7)?,
-            Response::Status {
-                volume: Uint128::from(1u128),
-                total:  Uint128::from(1u128),
-                since:  6,
-                now:    7
-            }
-        );
-        assert_eq!(
-            test.q_status(8)?,
-            Response::Status {
-                volume: Uint128::from(1u128),
-                total:  Uint128::from(2u128),
-                since:  6,
-                now:    8
-            }
-        );
+        assert_eq!(test.q_status(6)?, Response::Status {
+            volume: Uint128::from(1u128),
+            total:  Uint128::zero(),
+            since:  6,
+            now:    6
+        });
+        assert_eq!(test.q_status(7)?, Response::Status {
+            volume: Uint128::from(1u128),
+            total:  Uint128::from(1u128),
+            since:  6,
+            now:    7
+        });
+        assert_eq!(test.q_status(8)?, Response::Status {
+            volume: Uint128::from(1u128),
+            total:  Uint128::from(2u128),
+            since:  6,
+            now:    8
+        });
     }
 
     #[ok_lock_and_retrieve]
@@ -141,82 +123,90 @@ kukumba! {
             test.tx_lock(1, &alice, 100u128)?,
             (vec!["{\"transfer_from\":{\"owner\":\"alice\",\"recipient\":\"contract_addr\",\"amount\":\"100\",\"padding\":null}}".into()], 0, 0)
         );
-        assert_eq!(
-            test.q_status(2)?,
-            Response::Status {
-                volume: Uint128::from(1u128),
-                total:  Uint128::from(2u128),
-                since:  1,
-                now:    2
-            }
-        );
+        assert_eq!(test.q_status(2)?, Response::Status {
+            volume: Uint128::from(100u128),
+            total:  Uint128::from(100u128),
+            since:  1,
+            now:    2
+        });
     }
     when  "a provider requests to retrieve tokens"
     then  "the instance transfers them to the provider"
     and   "the reward now increases at a reduced rate" {
+        assert_eq!(test.q_status(3)?, Response::Status {
+            volume: Uint128::from(100u128),
+            total:  Uint128::from(200u128),
+            since:  1,
+            now:    3
+        });
         assert_eq!(
             test.tx_retrieve(3, &alice, 50u128)?,
             (vec!["{\"transfer\":{\"recipient\":\"alice\",\"amount\":\"50\",\"padding\":null}}".into()], 0, 0)
         );
-        assert_eq!(
-            test.q_status(4)?,
-            Response::Status {
-                volume: Uint128::from(1u128),
-                total:  Uint128::from(2u128),
-                since:  3,
-                now:    4
-            }
-        );
+        assert_eq!(test.q_status(4)?, Response::Status {
+            volume: Uint128::from(50u128),
+            total:  Uint128::from(250u128),
+            since:  3,
+            now:    4
+        });
     }
     when  "a provider requests to retrieve all their tokens"
     then  "the instance transfers them to the provider"
     and   "their reward stops increasing" {
+        assert_eq!(test.q_status(5)?, Response::Status {
+            volume: Uint128::from(50u128),
+            total:  Uint128::from(300u128),
+            since:  3,
+            now:    5
+        });
         assert_eq!(
             test.tx_retrieve(5, &alice, 50u128)?,
             (vec!["{\"transfer\":{\"recipient\":\"alice\",\"amount\":\"50\",\"padding\":null}}".into()], 0, 0)
         );
-        assert_eq!(
-            test.q_status(6)?,
-            Response::Status {
-                volume: Uint128::from(1u128),
-                total:  Uint128::from(2u128),
-                since:  5,
-                now:    6
-            }
-        );
+        assert_eq!(test.q_status(6)?, Response::Status {
+            volume: Uint128::from(0u128),
+            total:  Uint128::from(300u128),
+            since:  5,
+            now:    6
+        });
     }
     when  "someone else requests to lock tokens"
     then  "the previous provider's share of the rewards begins to diminish" {
+        assert_eq!(test.q_status(7)?, Response::Status {
+            volume: Uint128::from(0u128),
+            total:  Uint128::from(300u128),
+            since:  5,
+            now:    7
+        });
         assert_eq!(
             test.tx_lock(7, &bob, 500u128)?,
             (vec!["{\"transfer_from\":{\"owner\":\"bob\",\"recipient\":\"contract_addr\",\"amount\":\"500\",\"padding\":null}}".into()], 0, 0)
         );
-        assert_eq!(
-            test.q_status(8)?,
-            Response::Status {
-                volume: Uint128::from(1u128),
-                total:  Uint128::from(2u128),
-                since:  7,
-                now:    8
-            }
-        );
-        let result = test.q_status(9u64)?;
-        assert_eq!(
-            test.q_status(9)?,
-            Response::Status {
-                volume: Uint128::from(1u128),
-                total:  Uint128::from(2u128),
-                since:  7,
-                now:    9
-            }
-        );
+        assert_eq!(test.q_status(8)?, Response::Status {
+            volume: Uint128::from(500u128),
+            total:  Uint128::from(800u128),
+            since:  7,
+            now:    8
+        });
     }
     when  "a provider tries to retrieve too many tokens"
     then  "they get an error" {
+        assert_eq!(test.q_status(9)?, Response::Status {
+            volume: Uint128::from(500u128),
+            total:  Uint128::from(1300u128),
+            since:  7,
+            now:    9
+        });
         assert_error!(
             test.tx_retrieve(9, &bob, 1000u128),
             "not enough balance (500 < 1000)"
         );
+        assert_eq!(test.q_status(10)?, Response::Status {
+            volume: Uint128::from(500u128),
+            total:  Uint128::from(1800u128),
+            since:  7,
+            now:    10
+        });
     }
     when  "a stranger tries to retrieve any tokens"
     then  "they get an error" {
@@ -224,6 +214,12 @@ kukumba! {
             test.tx_retrieve(10, &mallory, 100u128),
             "never provided liquidity"
         );
+        assert_eq!(test.q_status(11)?, Response::Status {
+            volume: Uint128::from(500u128),
+            total:  Uint128::from(2300u128),
+            since:  7,
+            now:    11
+        });
     }
 
     #[ok_claim]
