@@ -232,6 +232,10 @@ pub mod ido {
         pub start_time: Option<u64>,
         /// Time when the sale will end
         pub end_time: Option<u64>,
+        /// Seed for creating viewkey
+        pub prng_seed: Option<Binary>,
+        /// Entropy for creating viewkey
+        pub entropy: Option<Binary>,
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]

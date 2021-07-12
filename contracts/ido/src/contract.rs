@@ -3,19 +3,22 @@
 use amm_shared::admin::admin::{
     admin_handle, admin_query, assert_admin, save_admin, DefaultHandleImpl, DefaultQueryImpl,
 };
+use amm_shared::admin::require_admin;
 use amm_shared::msg::ido::{HandleMsg, InitMsg, QueryMsg, QueryResponse};
 use amm_shared::TokenType;
 use fadroma::scrt::addr::Canonize;
 use fadroma::scrt::callback::ContractInstance;
 use fadroma::scrt::cosmwasm_std::{
-    log, to_binary, Api, CanonicalAddr, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
-    InitResponse, LogAttribute, Querier, QueryResult, StdError, StdResult, Storage, Uint128,
-    WasmMsg,
+    log, to_binary, Api, Binary, CanonicalAddr, CosmosMsg, Decimal, Env, Extern, HandleResponse,
+    HumanAddr, InitResponse, LogAttribute, Querier, QueryResult, StdError, StdResult, Storage,
+    Uint128, WasmMsg,
 };
 use fadroma::scrt::storage::Storable;
 use fadroma::scrt::toolkit::snip20;
 use fadroma::scrt::utils::convert::convert_token;
+use fadroma::scrt::utils::viewing_key::ViewingKey;
 use fadroma::scrt::BLOCK_SIZE;
+use std::str::FromStr;
 
 use crate::data::{Account, Config, SwapConstants};
 
@@ -38,14 +41,25 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         )?,
     };
 
+    let viewing_key = ViewingKey::new(
+        &env,
+        msg.info
+            .prng_seed
+            .unwrap_or_else(|| Binary(vec![]))
+            .as_slice(),
+        msg.info
+            .entropy
+            .unwrap_or_else(|| Binary(vec![]))
+            .as_slice(),
+    );
+
     save_admin(deps, &msg.admin)?;
 
     let start_time = msg.info.start_time.unwrap_or(env.block.time);
-
-    let mut whitelist: Vec<CanonicalAddr> = vec![];
+    let taken_seats = msg.info.whitelist.len() as u32;
 
     for address in msg.info.whitelist {
-        whitelist.push(address.canonize(&deps.api)?);
+        Account::<CanonicalAddr>::new(&address.canonize(&deps.api)?).save(deps)?;
     }
 
     let config = Config {
@@ -56,13 +70,27 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             rate: msg.info.rate,
             input_token_decimals,
         },
-        whitelist,
+        taken_seats,
         max_seats: msg.info.max_seats,
         max_allocation: msg.info.max_allocation,
         min_allocation: msg.info.min_allocation,
         start_time,
         end_time: msg.info.end_time,
+        viewing_key,
     };
+
+    let token_balance = get_token_balance(&deps, &env, &config)?;
+    let mut total_allocation =
+        config.max_allocation * Decimal::from_str(&format!("{}", config.max_seats))?;
+
+    // Check that the allocated amount matches the balance of the token on for the contract
+    if token_balance != total_allocation {
+        return Err(StdError::generic_err(format!(
+            "Token balance of {} does not match expected allocation of {}",
+            token_balance, total_allocation
+        )));
+    }
+
     config.save(deps)?;
 
     Ok(InitResponse {
@@ -111,8 +139,8 @@ fn swap<S: Storage, A: Api, Q: Querier>(
     amount: Uint128,
 ) -> StdResult<HandleResponse> {
     let config = Config::<CanonicalAddr>::load_self(&deps)?;
-    let mut account = config.load_account(&deps, &env.message.sender)?;
     config.is_swapable(env.block.time)?;
+    let mut account = Account::<CanonicalAddr>::load_self(&deps, &env.message.sender)?;
 
     let mint_amount = convert_token(
         amount.u128(),
@@ -158,21 +186,15 @@ fn swap<S: Storage, A: Api, Q: Querier>(
 }
 
 /// After the contract has ended, admin can ask for a return of his tokens.
+#[require_admin]
 fn refund<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
 ) -> StdResult<HandleResponse> {
-    assert_admin(&deps, &env)?;
     let config = Config::<CanonicalAddr>::load_self(&deps)?;
     config.is_refundable(env.block.time)?;
 
-    let mut refund_amount = Uint128::zero();
-
-    let accounts = config.load_accounts(&deps)?;
-
-    for account in accounts {
-        refund_amount += (config.max_allocation - account.total_bought)?;
-    }
+    let mut refund_amount = get_token_balance(&deps, &env, &config)?;
 
     swap_internal(
         env,
@@ -184,6 +206,75 @@ fn refund<S: Storage, A: Api, Q: Querier>(
             log("refunded_amount", refund_amount),
         ],
     )
+}
+
+/// Handle method that will return status
+#[require_admin]
+fn get_status<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+) -> StdResult<HandleResponse> {
+    let config = Config::<HumanAddr>::load_self(&deps)?;
+
+    let mut total_allocation =
+        config.max_allocation * Decimal::from_str(&format!("{}", config.max_seats))?;
+    let mut available_for_sale = get_token_balance(&deps, &env, &config)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("action", "status"),
+            log("total_allocation", total_allocation),
+            log("available_for_sale", available_for_sale),
+        ],
+        data: None,
+    })
+}
+
+/// Add new address to whitelist
+#[require_admin]
+fn add_address<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    address: HumanAddr,
+) -> StdResult<HandleResponse> {
+    let mut config = Config::<CanonicalAddr>::load_self(&deps)?;
+    config.is_swapable(env.block.time)?;
+
+    let caonical_address = address.canonize(&deps.api)?;
+
+    config.taken_seats += 1;
+    if config.taken_seats > config.max_seats {
+        return Err(StdError::generic_err("All seats already taken."));
+    }
+
+    let response = Account::<CanonicalAddr>::load_self(&deps, &address);
+
+    // We will add new address only if we couldn't find it, meaning it hasn't been
+    // yet added to whitelisted addresses
+    if response.is_err() {
+        Account::<CanonicalAddr>::new(&caonical_address).save(deps)?;
+        config.save(deps)?;
+
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![log("action", "add_address"), log("added_address", address)],
+            data: None,
+        })
+    } else {
+        Err(StdError::generic_err(
+            "Address is already on the whitelist.",
+        ))
+    }
+}
+
+/// Return exchange rate for swap
+fn get_rate<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> QueryResult {
+    let config = Config::<HumanAddr>::load_self(&deps)?;
+
+    Ok(to_binary(&QueryResponse::GetRate {
+        rate: config.swap_constants.rate,
+    })?)
 }
 
 /// Performs internal swap of the amount
@@ -239,81 +330,6 @@ fn swap_internal(
     })
 }
 
-/// Handle method that will return status
-fn get_status<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-) -> StdResult<HandleResponse> {
-    assert_admin(&deps, &env)?;
-    let config = Config::<HumanAddr>::load_self(&deps)?;
-
-    let mut sold_allocation = Uint128::zero();
-    let mut available_to_allocate = Uint128::zero();
-    let mut total_allocation = Uint128::zero();
-
-    let accounts = config.load_accounts(&deps)?;
-
-    for account in accounts {
-        sold_allocation += account.total_bought;
-        available_to_allocate += (config.max_allocation - account.total_bought)?;
-        total_allocation += config.max_allocation;
-    }
-
-    Ok(HandleResponse {
-        messages: vec![],
-        log: vec![
-            log("action", "status"),
-            log("sold_allocation", sold_allocation),
-            log("available_to_allocate", available_to_allocate),
-            log("total_allocation", total_allocation),
-        ],
-        data: None,
-    })
-}
-
-/// Add new address to whitelist
-fn add_address<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    address: HumanAddr,
-) -> StdResult<HandleResponse> {
-    assert_admin(&deps, &env)?;
-    let mut config = Config::<CanonicalAddr>::load_self(&deps)?;
-    config.is_swapable(env.block.time)?;
-
-    let caonical_address = address.canonize(&deps.api)?;
-
-    if config
-        .whitelist
-        .iter()
-        .position(|a| a == &caonical_address)
-        .is_none()
-    {
-        config.whitelist.push(caonical_address);
-
-        config.save(deps)?;
-
-        Ok(HandleResponse {
-            messages: vec![],
-            log: vec![log("action", "add_address"), log("added_address", address)],
-            data: None,
-        })
-    } else {
-        Err(StdError::generic_err(
-            "Address is already on the whitelist.",
-        ))
-    }
-}
-
-/// Return exchange rate for swap
-fn get_rate<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> QueryResult {
-    let config = Config::<HumanAddr>::load_self(&deps)?;
-
-    Ok(to_binary(&QueryResponse::GetRate {
-        rate: config.swap_constants.rate,
-    })?)
-}
-
 /// Query the token for number of its decimals
 fn get_token_decimals(
     querier: &impl Querier,
@@ -323,6 +339,24 @@ fn get_token_decimals(
         snip20::token_info_query(querier, BLOCK_SIZE, instance.code_hash, instance.address)?;
 
     Ok(result.decimals)
+}
+
+/// Query the token for number of its decimals
+fn get_token_balance<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    env: &Env,
+    config: &Config<HumanAddr>,
+) -> StdResult<Uint128> {
+    let balance = snip20::balance_query(
+        &deps.querier,
+        env.contract.address.clone(),
+        config.viewing_key.to_string(),
+        BLOCK_SIZE,
+        config.sold_token.code_hash.clone(),
+        config.sold_token.address.clone(),
+    )?;
+
+    Ok(balance.amount)
 }
 
 #[cfg(test)]
@@ -350,7 +384,7 @@ mod tests {
         Extern {
             storage: MockStorage::default(),
             api: MockApi::new(len),
-            querier: MockQuerier::new(&[(&contract_addr, balance)]),
+            querier: MockQuerier::new(&[(&contract_addr, balance)], Uint128::from(2500 as u128)),
         }
     }
 
@@ -379,11 +413,13 @@ mod tests {
                     HumanAddr::from("buyer-3"),
                     HumanAddr::from("buyer-4"),
                 ],
-                max_seats: 4,
+                max_seats: 5,
                 max_allocation: MAX_ALLOCATION,
                 min_allocation: MIN_ALLOCATION,
                 start_time,
                 end_time,
+                prng_seed: None,
+                entropy: None,
             },
             admin: admin.clone(),
             callback: Callback {
@@ -613,7 +649,7 @@ mod tests {
         let res = handle(&mut deps, env.clone(), HandleMsg::AdminRefund).unwrap();
         let refunded_amount = &res.log[1].value;
 
-        assert_eq!(refunded_amount, "2000");
+        assert_eq!(refunded_amount, "2500");
     }
 
     #[test]
@@ -630,14 +666,15 @@ mod tests {
         )
         .unwrap();
 
-        let res = handle(&mut deps, env, HandleMsg::AdminStatus).unwrap();
-        let sold_allocation = &res.log[1].value;
-        let available_to_allocate = &res.log[2].value;
-        let total_allocation = &res.log[3].value;
+        deps.querier.sub_balance(Uint128(250 as u128)).unwrap();
 
-        assert_eq!(sold_allocation, "250");
-        assert_eq!(available_to_allocate, "1750");
-        assert_eq!(total_allocation, "2000");
+        let res = handle(&mut deps, env, HandleMsg::AdminStatus).unwrap();
+
+        let total_allocation = &res.log[1].value;
+        let available_for_sale = &res.log[2].value;
+
+        assert_eq!(total_allocation, "2500");
+        assert_eq!(available_for_sale, "2250");
     }
 
     #[test]
@@ -696,5 +733,31 @@ mod tests {
             },
         )
         .unwrap();
+    }
+
+    #[test]
+    fn admin_attempts_to_add_more_addresses_that_are_expected_to_be_on_whitelist_gets_error() {
+        let (mut deps, env) = init_contract(None, None);
+        let buyer_env = mock_env("buyer-5", &[Coin::new(250_000_000_u128, "uscrt")]);
+        let buyer_env2 = mock_env("buyer-6", &[Coin::new(250_000_000_u128, "uscrt")]);
+
+        handle(
+            &mut deps,
+            env.clone(),
+            HandleMsg::AdminAddAddress {
+                address: buyer_env.message.sender.clone(),
+            },
+        )
+        .unwrap();
+
+        let res = handle(
+            &mut deps,
+            env,
+            HandleMsg::AdminAddAddress {
+                address: buyer_env.message.sender.clone(),
+            },
+        );
+
+        assert_eq!(res, Err(StdError::generic_err("All seats already taken.")));
     }
 }

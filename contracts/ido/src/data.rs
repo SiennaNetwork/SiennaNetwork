@@ -2,10 +2,10 @@ use amm_shared::TokenType;
 use fadroma::scrt::addr::{Canonize, Humanize};
 use fadroma::scrt::callback::ContractInstance;
 use fadroma::scrt::cosmwasm_std::{
-    Api, CanonicalAddr, Extern, HumanAddr, Querier, ReadonlyStorage, StdError, StdResult, Storage,
-    Uint128,
+    Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
 };
 use fadroma::scrt::storage::Storable;
+use fadroma::scrt::utils::viewing_key::ViewingKey;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -17,8 +17,8 @@ pub(crate) struct Config<A> {
     pub sold_token: ContractInstance<A>,
     /// Token constants
     pub swap_constants: SwapConstants,
-    /// List of addresses that can swap tokens
-    pub whitelist: Vec<CanonicalAddr>,
+    /// Number of participants currently
+    pub taken_seats: u32,
     /// The maximum number of participants allowed.
     pub max_seats: u32,
     /// The total amount that each participant is allowed to buy.
@@ -29,6 +29,8 @@ pub(crate) struct Config<A> {
     pub start_time: u64,
     /// Time when the sale will end
     pub end_time: Option<u64>,
+    /// Viewkey for sold token
+    pub viewing_key: ViewingKey,
 }
 
 impl<A> Storable for Config<A>
@@ -101,44 +103,6 @@ impl<A> Config<A> {
             ))
         }
     }
-
-    /// Check if account is whitelisted and load it
-    pub fn load_account<S: Storage, T: Api, Q: Querier>(
-        &self,
-        deps: &Extern<S, T, Q>,
-        address: &HumanAddr,
-    ) -> StdResult<Account<CanonicalAddr>> {
-        let address = address.canonize(&deps.api)?;
-
-        // Makes sure the given address is whitelisted
-        if self.whitelist.iter().position(|a| a == &address).is_none() {
-            return Err(StdError::generic_err("This address is not whitelisted."));
-        }
-
-        if let Some(account) = Account::<CanonicalAddr>::load(&deps, address.as_slice())? {
-            Ok(account)
-        } else {
-            Ok(Account::<CanonicalAddr>::new(&address))
-        }
-    }
-
-    /// Check if account is whitelisted and load it
-    pub fn load_accounts<R: ReadonlyStorage + Storage, T: Api, Q: Querier>(
-        &self,
-        deps: &Extern<R, T, Q>,
-    ) -> StdResult<Vec<Account<CanonicalAddr>>> {
-        let mut accounts: Vec<Account<CanonicalAddr>> = vec![];
-
-        for address in &self.whitelist {
-            if let Some(account) = Account::<CanonicalAddr>::load(&deps, address.as_slice())? {
-                accounts.push(account);
-            } else {
-                accounts.push(Account::<CanonicalAddr>::new(&address));
-            }
-        }
-
-        Ok(accounts)
-    }
 }
 
 /// Used when calculating the swap. These do not change
@@ -175,6 +139,17 @@ impl Account<CanonicalAddr> {
             total_bought: 0_u128.into(),
         }
     }
+
+    /// Load the account if its whitelisted
+    pub fn load_self<S: Storage, T: Api, Q: Querier>(
+        deps: &Extern<S, T, Q>,
+        address: &HumanAddr,
+    ) -> StdResult<Account<CanonicalAddr>> {
+        let canonical_address = address.canonize(&deps.api)?;
+
+        Self::load(&deps, canonical_address.as_slice())?
+            .ok_or(StdError::generic_err("This address is not whitelisted."))
+    }
 }
 
 impl Humanize<Account<HumanAddr>> for Account<CanonicalAddr> {
@@ -201,12 +176,13 @@ impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
             input_token: self.input_token.canonize(api)?,
             sold_token: self.sold_token.canonize(api)?,
             swap_constants: self.swap_constants.clone(),
-            whitelist: self.whitelist.clone(),
+            taken_seats: self.taken_seats,
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,
             start_time: self.start_time,
             end_time: self.end_time,
+            viewing_key: self.viewing_key.clone(),
         })
     }
 }
@@ -217,12 +193,13 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
             input_token: self.input_token.humanize(api)?,
             sold_token: self.sold_token.humanize(api)?,
             swap_constants: self.swap_constants.clone(),
-            whitelist: self.whitelist.clone(),
+            taken_seats: self.taken_seats,
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,
             start_time: self.start_time,
             end_time: self.end_time,
+            viewing_key: self.viewing_key.clone(),
         })
     }
 }
