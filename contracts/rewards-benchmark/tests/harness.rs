@@ -1,4 +1,4 @@
-use std::str::{from_utf8, Utf8Error};
+use std::str::from_utf8;
 use fadroma::scrt::{
     cosmwasm_std::{
         Uint128, HumanAddr, StdResult,
@@ -102,7 +102,8 @@ pub trait Harness <Q: Querier> {
 }
 
 pub struct RewardsHarness {
-    _deps: Extern<MemoryStorage, MockApi, RewardsMockQuerier>
+    _deps: Extern<MemoryStorage, MockApi, RewardsMockQuerier>,
+    _lp_token: ContractLink<HumanAddr>
 }
 
 // trait fields WHEN?
@@ -120,19 +121,26 @@ const ADDR_LEN: usize = 45;
 
 impl RewardsHarness {
     pub fn new () -> Self {
-        Self { _deps: Extern {
-            storage: MemoryStorage::default(),
-            api:     MockApi::new(ADDR_LEN),
-            querier: RewardsMockQuerier {}
-        } }
+        Self {
+            _deps: Extern {
+                storage: MemoryStorage::default(),
+                api:     MockApi::new(ADDR_LEN),
+                querier: RewardsMockQuerier {}
+            },
+            _lp_token: ContractLink {
+                address:   "lp_token_address".into(),
+                code_hash: "lp_token_hash".into(),
+            }
+        }
+    }
+
+    pub fn lp_token (&self) -> ContractLink<HumanAddr> {
+        self._lp_token.clone()
     }
 
     pub fn init_configured (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
         self.init(height, agent, Init {
-            lp_token: Some(ContractLink {
-                address:   "lp_token_address".into(),
-                code_hash: "lp_token_hash".into(),
-            }),
+            lp_token: Some(self.lp_token()),
             reward_token: ContractLink {
                 address:   "reward_token_address".into(),
                 code_hash: "reward_token_hash".into(),
@@ -172,8 +180,8 @@ impl RewardsHarness {
         self.tx(height, agent, TX::Claim {})
     }
 
-    pub fn q_status (&self, now: u64) -> StdResult<Response> {
-        self.q(QQ::Status { now })
+    pub fn q_pool_info (&self, now: u64) -> StdResult<Response> {
+        self.q(QQ::PoolInfo { now })
     }
 }
 
@@ -194,8 +202,8 @@ enum Snip20QueryAnswer {
 impl RewardsMockQuerier {
     fn mock_query_dispatch (
         &self,
-        contract: &ContractLink<HumanAddr>,
-        msg:      &Snip20Query
+        _contract: &ContractLink<HumanAddr>,
+        msg:       &Snip20Query
     ) -> Snip20QueryAnswer {
         match msg {
             Snip20Query::Balance { .. } => {
@@ -213,7 +221,6 @@ impl RewardsMockQuerier {
 
 impl Querier for RewardsMockQuerier {
     fn raw_query (&self, bin_request: &[u8]) -> QuerierResult {
-        println!("{:?}", from_utf8(bin_request));
         let request: QueryRequest<Empty> = match from_slice(bin_request) {
             Ok(v) => v,
             Err(e) => {
@@ -231,5 +238,27 @@ impl Querier for RewardsMockQuerier {
             },
             _ => panic!("MockSnip20Querier: Expected WasmQuery::Smart.")
         }
+    }
+}
+
+pub struct Snip20;
+impl Snip20 {
+    pub fn set_viewing_key (key: &str) -> String {
+        format!(
+            "{{\"set_viewing_key\":{{\"key\":\"{}\",\"padding\":null}}}}",
+            key
+        ).into()
+    }
+    pub fn transfer_from (owner: &str, recipient: &str, amount: &str) -> String {
+        format!(
+            "{{\"transfer_from\":{{\"owner\":\"{}\",\"recipient\":\"{}\",\"amount\":\"{}\",\"padding\":null}}}}",
+            owner, recipient, amount
+        ).into()
+    }
+    pub fn transfer (recipient: &str, amount: &str) -> String {
+        format!(
+            "{{\"transfer\":{{\"recipient\":\"{}\",\"amount\":\"{}\",\"padding\":null}}}}",
+            recipient, amount
+        ).into()
     }
 }

@@ -1,13 +1,10 @@
-use core::borrow::BorrowMut;
 use fadroma::scrt::{
     cosmwasm_std::{
         Uint128, CanonicalAddr, StdResult, StdError,
         Storage, ReadonlyStorage,
-        to_vec, from_slice
     },
     storage::{Readonly, Writable}
 };
-use serde::{Serialize,de::DeserializeOwned};
 
 macro_rules! error {
     ($info:expr) => { Err(StdError::GenericErr { msg: $info.into(), backtrace: None }) };
@@ -45,6 +42,9 @@ const USER_CLAIMED:  &[u8] = b"user_claimed/";
 /// A monotonic time counter, such as env.block.time or env.block.height
 pub type Monotonic = u64;
 
+/// A ratio represented as tuple (nom, denom)
+pub type Ratio = (Uint128, Uint128);
+
 /// Calculate the current total based on the stored total and the time since last update.
 pub fn so_far (total: Uint128, elapsed: Monotonic, volume: Uint128) -> Uint128 {
     total + volume.multiply_ratio(Uint128::from(elapsed), 1u128)
@@ -55,19 +55,21 @@ pub type Status = (Uint128, Uint128, u64);
 
 /// A reward pool distributes rewards from its balance among liquidity providers
 /// depending on how much liquidity they have provided and for what duration.
-pub struct RewardPoolController <S> (S);
+pub struct RewardPoolController <S> {
+    storage: S
+}
 
 impl <S> RewardPoolController <S> {
-    pub fn new (storage: S) -> Self { Self(storage) }
+    pub fn new (storage: S) -> Self { Self { storage } }
 }
 impl <S: ReadonlyStorage> Readonly <S> for RewardPoolController <&S> {
-    fn storage (&self) -> &S { &self.0 }
+    fn storage (&self) -> &S { &self.storage }
 }
 impl <S: Storage> Readonly <S> for RewardPoolController <&mut S> {
-    fn storage (&self) -> &S { self.0 }
+    fn storage (&self) -> &S { self.storage }
 }
 impl <S: Storage> Writable <S> for RewardPoolController <&mut S> {
-    fn storage_mut (&mut self) -> &mut S { &mut *self.0 }
+    fn storage_mut (&mut self) -> &mut S { &mut *self.storage }
 }
 
 /// It's ugly that this needs to be a trait.
@@ -96,26 +98,22 @@ pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
         }
     }
 
-    fn get_claimable (&self, budget: Uint128, now: Monotonic, address: &CanonicalAddr) -> StdResult<Uint128> {
-        let (claimable, _) = self.calculate_reward(budget, address, now)?;
-        Ok(claimable)
-    }
-
     fn calculate_reward (
         &self,
+        now:     Monotonic,
         budget:  Uint128,
+        ratio:   Ratio,
         address: &CanonicalAddr,
-        now:     Monotonic
-    ) -> StdResult<(Uint128, Uint128)> {
+    ) -> StdResult<(Uint128, Uint128, Uint128)> {
         let user = self.user_so_far(now, address)?;
         let pool = self.pool_so_far(now)?;
         if pool > Uint128::zero() {
+            let unlocked = budget.multiply_ratio(user, pool).multiply_ratio(ratio.0, ratio.1);
             let claimed = self.get_user_claimed(address)?;
-            let reward  = budget.multiply_ratio(user, pool);
-            if reward > claimed {
-                Ok(((reward - claimed)?, reward))
+            if unlocked > claimed {
+                Ok((unlocked, claimed, (unlocked - claimed)?))
             } else {
-                Ok((Uint128::zero(), Uint128::zero()))
+                Ok((unlocked, claimed, Uint128::zero()))
             }
         } else {
             error!("pool is empty")
@@ -252,12 +250,19 @@ impl <S: Storage + ReadonlyStorage> RewardPoolController <&mut S> {
     /// Calculate how much a provider can claim,
     /// subtract it from the total balance, and return it.
     pub fn claim (
-        &mut self, budget: Uint128, address: &CanonicalAddr, now: Monotonic
+        &mut self, now: Monotonic, budget: Uint128, ratio: Ratio, address: &CanonicalAddr
     ) -> StdResult<Uint128> {
-        let (amount, reward) = self.calculate_reward(budget, address, now)?;
-        if reward > Uint128::zero() {
-            self.save_ns(USER_CLAIMED, address.as_slice(), &reward)?
+        let (unlocked, claimed, claimable) = self.calculate_reward(now, budget, ratio, address)?;
+        println!("U {} C {} C {}", &unlocked, &claimed, &claimable);
+        if claimable > Uint128::zero() {
+            // something to claim
+            self.save_ns(USER_CLAIMED, address.as_slice(), &unlocked)?;
+            Ok(claimable)
+        } else if unlocked > Uint128::zero() {
+            // everything claimed
+            error!("already claimed")
+        } else {
+            error!("nothing to claim")
         }
-        Ok(amount)
     }
 }

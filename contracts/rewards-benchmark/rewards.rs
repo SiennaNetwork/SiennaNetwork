@@ -8,7 +8,12 @@ use fadroma::scrt::{
     storage::{load, save},
     cosmwasm_std::ReadonlyStorage
 };
-use sienna_reward_schedule::stateful::{RewardPoolController as Pool, RewardPoolCalculations};
+use sienna_reward_schedule::stateful::{
+    RewardPoolController as Pool,
+    RewardPoolCalculations,
+    Monotonic,
+    Ratio
+};
 use composable_auth::{auth_handle, authenticate, AuthHandleMsg, DefaultHandleImpl};
 
 macro_rules! tx_ok {
@@ -72,13 +77,19 @@ contract! {
     }
 
     [Query] (deps, _state, msg) -> Response {
-        Status (now: u64) {
-            load_lp_token(&deps.storage, &deps.api)?;
+        PoolInfo (now: Monotonic) {
+            let lp_token = load_lp_token(&deps.storage, &deps.api)?;
             let (volume, total, since) = Pool::new(&deps.storage).status(now)?;
-            Ok(Response::Status { now, volume, total, since })
+            Ok(Response::PoolInfo {
+                lp_token,
+                volume,
+                total,
+                since,
+                now,
+            })
         }
 
-        Claimable (now: u64, address: HumanAddr, key: String) {
+        UserInfo (now: Monotonic, address: HumanAddr, key: String) {
             let address = deps.api.canonical_address(&address)?;
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
             let token = load_reward_token(&deps.storage, &deps.api)?;
@@ -89,15 +100,16 @@ contract! {
                 BLOCK_SIZE,
                 token.code_hash.clone(), token.address
             )?.amount;
-            let reward_amount = Pool::new(&deps.storage)
-                .get_claimable(budget, now, &address)?;
-            Ok(Response::Claimable { reward_amount })
-        }
-
-        Pool () {
-            Ok(Response::Pool {
-                lp_token: load_lp_token(&deps.storage, &deps.api)?,
-                volume:   Pool::new(&deps.storage).get_pool_volume()?
+            let ratio = load_reward_ratio(&deps.storage)?;
+            let (unlocked, claimed, claimable) = Pool::new(&deps.storage)
+                .calculate_reward(now, budget, ratio, &address)?;
+            Ok(Response::UserInfo {
+                age:      0,
+                volume:   Uint128::zero(),
+                lifetime: Uint128::zero(),
+                unlocked,
+                claimed,
+                claimable
             })
         }
 
@@ -109,11 +121,10 @@ contract! {
                 BLOCK_SIZE,
                 token.code_hash, token.address
             )?;
-
             Ok(Response::TokenInfo {
-                name: format!("Sienna Rewards: {}", info.name),
-                symbol: "SRW".into(),
-                decimals: 1,
+                name:         format!("Sienna Rewards: {}", info.name),
+                symbol:       "SRW".into(),
+                decimals:     1,
                 total_supply: None
             })
         }
@@ -121,16 +132,38 @@ contract! {
         Balance (address: HumanAddr, key: String) {
             let address = deps.api.canonical_address(&address)?;
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
-            Ok(Response::Balance { amount: Pool::new(&deps.storage).get_user_balance(&address)? })
+            Ok(Response::Balance {
+                amount: Pool::new(&deps.storage).get_user_balance(&address)?
+            })
         }
     }
 
     [Response] {
-        Status { now: u64, volume: Uint128, total: Uint128, since: u64 }
-        TokenInfo { name: String, symbol: String, decimals: u8, total_supply: Option<Uint128> }
-        Pool { lp_token: ContractInstance<HumanAddr>, volume: Uint128 }
-        Balance { amount: Uint128 } // Keplr integration
-        Claimable { reward_amount: Uint128 }
+        PoolInfo {
+            lp_token: ContractInstance<HumanAddr>,
+            volume:   Uint128,
+            total:    Uint128,
+            since:    Monotonic,
+            now:      Monotonic
+        }
+        UserInfo {
+            age:       Monotonic,
+            volume:    Uint128,
+            lifetime:  Uint128,
+            unlocked:  Uint128,
+            claimed:   Uint128,
+            claimable: Uint128
+        }
+        // Keplr integration
+        TokenInfo {
+            name:         String,
+            symbol:       String,
+            decimals:     u8,
+            total_supply: Option<Uint128>
+        }
+        Balance {
+            amount: Uint128
+        }
     }
 
     [Handle] (deps, env /* it's not unused :( */, _state, msg) -> Response {
@@ -147,49 +180,55 @@ contract! {
         /// Provide some liquidity.
         Lock (amount: Uint128) {
             let token    = load_lp_token(&deps.storage, &deps.api)?;
-            let address  = deps.api.canonical_address(&env.message.sender)?;
-            let locked   = Pool::new(&mut deps.storage)
-                .lock(env.block.height, address, amount)?;
             let transfer = snip20::transfer_from_msg(
-                env.message.sender, env.contract.address, locked,
-                None, BLOCK_SIZE,
-                token.code_hash, token.address
+                env.message.sender.clone(),
+                env.contract.address,
+                Pool::new(&mut deps.storage).lock(
+                    env.block.height,
+                    deps.api.canonical_address(&env.message.sender)?,
+                    amount
+                )?,
+                None, BLOCK_SIZE, token.code_hash, token.address
             )?;
             tx_ok!(transfer)
         }
 
         /// Get some tokens back.
         Retrieve (amount: Uint128) {
-            let token     = load_lp_token(&deps.storage, &deps.api)?;
-            let address   = deps.api.canonical_address(&env.message.sender)?;
-            let retrieved = Pool::new(&mut deps.storage)
-                .retrieve(env.block.height, address, amount)?;
-            let transfer  = snip20::transfer_msg(
-                env.message.sender, retrieved,
-                None, BLOCK_SIZE,
-                token.code_hash, token.address
+            let token    = load_lp_token(&deps.storage, &deps.api)?;
+            let transfer = snip20::transfer_msg(
+                env.message.sender.clone(),
+                Pool::new(&mut deps.storage).retrieve(
+                    env.block.height,
+                    deps.api.canonical_address(&env.message.sender)?,
+                    amount
+                )?,
+                None, BLOCK_SIZE, token.code_hash, token.address
             )?;
             tx_ok!(transfer)
         }
 
         /// User can receive rewards after having provided liquidity.
         Claim () {
-            let token   = load_reward_token(&deps.storage, &deps.api)?;
-            let viewkey = load_viewing_key(&deps.storage)?.0.clone();
-            let balance = snip20::balance_query(
-                &deps.querier, env.contract.address, viewkey,
+            let token = load_reward_token(&deps.storage, &deps.api)?;
+            let ratio = load_reward_ratio(&deps.storage)?;
+            let budget = snip20::balance_query(
+                &deps.querier, env.contract.address,
+                load_viewing_key(&deps.storage)?.0.clone(),
                 BLOCK_SIZE,
                 token.code_hash.clone(), token.address.clone()
+            )?.amount;
+            let claimable = Pool::new(&mut deps.storage).claim(
+                env.block.height,
+                budget,
+                ratio,
+                &deps.api.canonical_address(&env.message.sender)?
             )?;
-            let address   = deps.api.canonical_address(&env.message.sender)?;
-            let claimable = Pool::new(&mut deps.storage)
-                .claim(balance.amount, &address, env.block.height)?;
-            let transfer = snip20::transfer_msg(
-                env.message.sender, claimable,
-                None, BLOCK_SIZE,
-                token.code_hash.clone(), token.address.clone()
-            )?;
-            tx_ok!(transfer)
+            tx_ok!(snip20::transfer_msg(
+                env.message.sender,
+                claimable,
+                None, BLOCK_SIZE, token.code_hash, token.address
+            )?)
         }
 
         /// User can request a new viewing key for oneself.
@@ -317,8 +356,6 @@ fn save_viewing_key (
 
 const KEY_REWARD_RATIO: &[u8] = b"reward_ratio";
 
-type Ratio = (Uint128, Uint128);
-
 fn load_reward_ratio (
     storage: &impl ReadonlyStorage,
 ) -> StdResult<Ratio> {
@@ -333,5 +370,5 @@ fn save_reward_ratio (
     storage: &mut impl Storage,
     ratio:   &Ratio
 ) -> StdResult<()> {
-    save(storage, KEY_REWARD_TOKEN_VK, &ratio)
+    save(storage, KEY_REWARD_RATIO, &ratio)
 }
