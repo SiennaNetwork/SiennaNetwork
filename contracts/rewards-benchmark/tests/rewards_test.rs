@@ -13,7 +13,7 @@ kukumba! {
     #[ok_init_status]
     given "no instance" {
         let mut test = RewardsHarness::new();
-        let admin  = HumanAddr::from("admin");
+        let admin = HumanAddr::from("admin");
     }
     when  "someone inits with an asset token address"
     then  "the instance configures a viewing key for itself" {
@@ -252,7 +252,9 @@ kukumba! {
     }
     and   "a provider claims rewards"
     then  "that provider receives reward tokens" {
-        assert_eq!(test.tx_claim(3, &alice)?, (vec![Snip20::transfer("alice", "5")], 0, 0));
+        assert_eq!(test.tx_claim(3, &alice)?, (vec![
+            Snip20::transfer("alice", "250")
+        ], 0, 0));
     }
     when  "a provider claims rewards twice"
     then  "rewards are sent only once" {
@@ -262,7 +264,7 @@ kukumba! {
     then  "they receive equivalent rewards as long as the liquidity balance hasn't changed" {
         //assert_eq!(test.tx_claim(4, &alice)?, (vec![Snip20::transfer("alice",  "5")], 0, 0));
         //assert_eq!(test.tx_claim(4, &bob)?,   (vec![Snip20::transfer("bob",   "10")], 0, 0));
-        println!("{:#?}", test.tx_claim(4, &alice));
+        println!("{:#?}", test.tx_claim(10, &alice));
         //println!("{:#?}", test.tx_claim(4, &bob)?);
         //panic!()
     }

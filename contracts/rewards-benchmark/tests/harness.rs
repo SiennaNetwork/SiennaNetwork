@@ -83,7 +83,7 @@ pub trait Harness <Q: Querier> {
                 CosmosMsg::Wasm(wasm_msg) => match wasm_msg {
                     WasmMsg::Execute { msg, .. } => match from_utf8(msg.as_slice()) {
                         Ok(msg) => relevant.push(msg.trim().into()),
-                        Err(_) => invalid += 1,
+                        Err(_)  => invalid += 1,
                     },
                     _ => other += 1
                 },
@@ -146,7 +146,7 @@ impl RewardsHarness {
                 code_hash: "reward_token_hash".into(),
             },
             viewing_key: "".into(),
-            reward_ratio: (1u128.into(), 10u128.into())
+            reward_ratio: (5u128.into(), 1u128.into())
         })
     }
     pub fn init_partial (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
@@ -157,7 +157,7 @@ impl RewardsHarness {
                 code_hash:  "reward_token_hash".into(),
             },
             viewing_key: "".into(),
-            reward_ratio: (1u128.into(), 10u128.into())
+            reward_ratio: (5u128.into(), 1u128.into())
         })
     }
 
@@ -182,6 +182,9 @@ impl RewardsHarness {
 
     pub fn q_pool_info (&self, now: u64) -> StdResult<Response> {
         self.q(QQ::PoolInfo { now })
+    }
+    pub fn q_user_info (&self, now: u64, address: HumanAddr) -> StdResult<Response> {
+        self.q(QQ::UserInfo { now, address, key: "".into() })
     }
 }
 
