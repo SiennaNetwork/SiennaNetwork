@@ -6,7 +6,7 @@ use fadroma::scrt::{
     toolkit::snip20,
     utils::viewing_key::ViewingKey,
     storage::{load, save},
-    cosmwasm_std::ReadonlyStorage as Readonly
+    cosmwasm_std::ReadonlyStorage
 };
 use sienna_reward_schedule::stateful::{RewardPoolController as Pool, RewardPoolCalculations};
 use composable_auth::{auth_handle, authenticate, AuthHandleMsg, DefaultHandleImpl};
@@ -26,6 +26,7 @@ contract! {
     [Init] (deps, env, msg: {
         lp_token:     Option<ContractInstance<HumanAddr>>,
         reward_token: ContractInstance<HumanAddr>,
+        reward_ratio: Ratio,
         viewing_key:  ViewingKey
     }) {
         // TODO proposed action against the triple generic:
@@ -48,7 +49,9 @@ contract! {
             save_lp_token(&mut deps.storage, &deps.api, &lp_token)?;
         }
 
+        // save address of reward token and reward ratio
         save_reward_token(&mut deps.storage, &deps.api, &reward_token)?;
+        save_reward_ratio(&mut deps.storage, &reward_ratio)?;
 
         // set ourselves a viewing key in the reward token
         // so we can check our balance and distribute portions of it
@@ -59,13 +62,16 @@ contract! {
             reward_token.code_hash, reward_token.address
         )?;
 
-        // TODO remove global state
+        // TODO remove global state from scrt-contract
+        // define field! and addr_field! macros instead -
+        // problem here is identifier concatenation
+        // and making each field a module is ugly
         save_state!(NoGlobalState {});
 
         InitResponse { messages: vec![set_vk], log: vec![] }
     }
 
-    [Query] (deps, state, msg) -> Response {
+    [Query] (deps, _state, msg) -> Response {
         Status (now: u64) {
             load_lp_token(&deps.storage, &deps.api)?;
             let (volume, total, since) = Pool::new(&deps.storage).status(now)?;
@@ -127,7 +133,7 @@ contract! {
         Claimable { reward_amount: Uint128 }
     }
 
-    [Handle] (deps, env /* it's not unused :( */, state, msg) -> Response {
+    [Handle] (deps, env /* it's not unused :( */, _state, msg) -> Response {
 
         /// Set the active asset token.
         // Resolves circular reference in benchmark -
@@ -203,7 +209,7 @@ contract! {
 const KEY_ADMIN: &[u8] = b"admin";
 
 fn is_admin (
-    storage: &impl Readonly,
+    storage: &impl ReadonlyStorage,
     api: &impl Api,
     env: &Env
 ) -> StdResult<()> {
@@ -230,7 +236,7 @@ fn set_admin (
 const KEY_SELF_REFERENCE: &[u8] = b"self";
 
 fn load_self_reference(
-    storage: &impl Storage,
+    storage: &impl ReadonlyStorage,
     api:     &impl Api
 ) -> StdResult<ContractInstance<HumanAddr>> {
     let result: Option<ContractInstance<CanonicalAddr>> = load(storage, KEY_SELF_REFERENCE)?;
@@ -251,7 +257,7 @@ fn save_self_reference (
 const KEY_LP_TOKEN: &[u8] = b"lp_token";
 
 fn load_lp_token (
-    storage: &impl Storage,
+    storage: &impl ReadonlyStorage,
     api:     &impl Api
 ) -> StdResult<ContractInstance<HumanAddr>> {
     let result: Option<ContractInstance<CanonicalAddr>> = load(storage, KEY_LP_TOKEN)?;
@@ -272,7 +278,7 @@ fn save_lp_token (
 const KEY_REWARD_TOKEN: &[u8] = b"reward_token";
 
 fn load_reward_token (
-    storage: &impl Storage,
+    storage: &impl ReadonlyStorage,
     api:     &impl Api
 ) -> StdResult<ContractInstance<HumanAddr>> {
     let result: Option<ContractInstance<CanonicalAddr>> = load(storage, KEY_REWARD_TOKEN)?;
@@ -293,7 +299,7 @@ fn save_reward_token (
 const KEY_REWARD_TOKEN_VK: &[u8] = b"reward_token_vk";
 
 fn load_viewing_key (
-    storage: &impl Storage,
+    storage: &impl ReadonlyStorage,
 ) -> StdResult<ViewingKey> {
     let result: Option<ViewingKey> = load(storage, KEY_REWARD_TOKEN_VK)?;
     match result {
@@ -307,4 +313,25 @@ fn save_viewing_key (
     key:     &ViewingKey
 ) -> StdResult<()> {
     save(storage, KEY_REWARD_TOKEN_VK, &key)
+}
+
+const KEY_REWARD_RATIO: &[u8] = b"reward_ratio";
+
+type Ratio = (Uint128, Uint128);
+
+fn load_reward_ratio (
+    storage: &impl ReadonlyStorage,
+) -> StdResult<Ratio> {
+    let result: Option<Ratio> = load(storage, KEY_REWARD_RATIO)?;
+    match result {
+        Some(ratio) => Ok(ratio),
+        None => error!("missing reward ratio")
+    }
+}
+
+fn save_reward_ratio (
+    storage: &mut impl Storage,
+    ratio:   &Ratio
+) -> StdResult<()> {
+    save(storage, KEY_REWARD_TOKEN_VK, &ratio)
 }

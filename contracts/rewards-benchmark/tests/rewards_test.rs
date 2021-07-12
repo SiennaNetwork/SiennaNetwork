@@ -80,7 +80,7 @@ kukumba! {
         assert_eq!(test.init_partial(0, &admin)?, (vec![
             Snip20::set_viewing_key(""),
         ], 0, 0));
-        assert_error!(test.q_status(1), "not configured");
+        assert_error!(test.q_status(1), "missing liquidity provision token");
     }
     when  "a stranger tries to provide an asset token address"
     then  "an error is returned and nothing changes" {
@@ -88,7 +88,7 @@ kukumba! {
             test.tx_set_token(2, &badman, "bad_addr", "bad_hash"),
             Err(StdError::unauthorized())
         );
-        assert_error!(test.q_status(3), "not configured");
+        assert_error!(test.q_status(3), "missing liquidity provision token");
     }
     when  "the admin provides an asset token address"
     then  "the instance configures a viewing key for itself"
