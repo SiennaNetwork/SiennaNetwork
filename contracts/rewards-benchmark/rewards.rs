@@ -71,8 +71,8 @@ contract! {
     [Query] (deps, state, msg) -> Response {
         Status (now: u64) {
             if let Some(_) = state.provided_token {
-                let (volume, total, since) = Pool::status(deps)?;
-                Ok(Response::Status { volume, total, since })
+                let (volume, total, since) = Pool::status(deps, now)?;
+                Ok(Response::Status { now, volume, total, since })
             } else {
                 error!("not configured")
             }
@@ -125,7 +125,7 @@ contract! {
     }
 
     [Response] {
-        Status { volume: Uint128, total: Uint128, since: u64 }
+        Status { now: u64, volume: Uint128, total: Uint128, since: u64 }
         TokenInfo { name: String, symbol: String, decimals: u8, total_supply: Option<Uint128> }
         Pool { lp_token: ContractInstance<HumanAddr>, volume: Uint128 }
         Balance { amount: Uint128 } // Keplr integration

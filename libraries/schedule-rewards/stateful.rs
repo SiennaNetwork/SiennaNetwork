@@ -71,18 +71,26 @@ impl <'a, S: Storage, A: Api, Q: Querier> RewardPoolController <'a, S, A, Q> {
     pub fn new (deps: &'a mut Extern<S, A, Q>) -> Self { Self { deps } }
 
     /// Return a status report
-    pub fn status (deps: &Extern<S, A, Q>) -> StdResult<Status> {
+    pub fn status (deps: &Extern<S, A, Q>, now: Monotonic) -> StdResult<Status> {
         use fadroma::scrt::storage::load;
-        if let (
-            Some(volume), Some(total), Some(since)
-        ) = (
-            load(&deps.storage, POOL_VOLUME)?,
-            load(&deps.storage, POOL_TOTAL)?,
-            load(&deps.storage, POOL_SINCE)?
-        ) {
-            Ok((volume, total, since))
-        } else {
-            error!("missing data")
+        match load(&deps.storage, POOL_SINCE)? {
+            None => {
+                error!("missing POOL_SINCE")
+            },
+            Some(since) => {
+                if now < since {
+                    error!("can't query before last update")
+                } else {
+                    if let (Some(volume), Some(total)) = (
+                        load(&deps.storage, POOL_VOLUME)?,
+                        load(&deps.storage, POOL_TOTAL)?,
+                    ) {
+                        Ok((volume, so_far(total, now - since, volume), since))
+                    } else {
+                        error!("missing POOL_VOLUME or POOL_TOTAL")
+                    }
+                }
+            }
         }
 
     }

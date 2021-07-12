@@ -1,26 +1,24 @@
 use std::str::{from_utf8, Utf8Error};
 use fadroma::scrt::{
     cosmwasm_std::{
-        HumanAddr, StdResult, StdError,
-        InitResponse, HandleResponse, Binary,
+        Uint128, HumanAddr, StdResult,
+        InitResponse, HandleResponse,
         Env, BlockInfo, MessageInfo, ContractInfo,
-        Extern, MemoryStorage, Api, Querier,
-        testing::{mock_dependencies, MockApi, MockQuerier},
+        Extern, MemoryStorage, Querier, QuerierResult, testing::MockApi,
         from_binary, CosmosMsg, WasmMsg,
+        SystemError, from_slice, Empty, QueryRequest, WasmQuery, to_binary,
     },
-    callback::{ContractInstance as ContractLink}
+    callback::{ContractInstance as ContractLink},
+    //snip20 // todo work around circular dep ( via more reexports :( )
 };
 use sienna_rewards_benchmark::{
     init, handle, query,
-    msg::{Init, Handle as TX, Query as Q, Response}
+    msg::{Init, Handle as TX, Query as QQ, Response}
 };
 
 #[macro_export] macro_rules! assert_error {
     ($response:expr, $msg:expr) => { assert_eq!($response, Err(StdError::generic_err($msg))) }
 }
-
-/// See https://docs.rs/cosmwasm-std/0.10.1/cosmwasm_std/testing/fn.mock_dependencies_with_balances.html
-const ADDR_LEN: usize = 45;
 
 /// Successful transaction return a vector of relevant messages and a count of any others
 type TxResult = StdResult<(Vec<String>, usize, usize)>;
@@ -32,10 +30,10 @@ type TxResult = StdResult<(Vec<String>, usize, usize)>;
 
 /// Reusable test harness with overridable post processing
 /// for init and tx response messages.
-pub trait Harness {
+pub trait Harness <Q: Querier> {
 
-    fn deps     (&self)     -> &Extern<MemoryStorage, MockApi, MockQuerier>;
-    fn deps_mut (&mut self) -> &mut Extern<MemoryStorage, MockApi, MockQuerier>;
+    fn deps     (&self)     -> &Extern<MemoryStorage, MockApi, Q>;
+    fn deps_mut (&mut self) -> &mut Extern<MemoryStorage, MockApi, Q>;
 
     fn init (&mut self, height: u64, agent: &HumanAddr, msg: Init) -> TxResult {
         init(self.deps_mut(), Env {
@@ -95,7 +93,7 @@ pub trait Harness {
         Ok((relevant, other, invalid))
     }
 
-    fn q (&self, q: Q) -> StdResult<Response> {
+    fn q (&self, q: QQ) -> StdResult<Response> {
         match query(self.deps(), q) {
             Ok(response) => from_binary(&response),
             Err(e) => Err(e)
@@ -104,22 +102,29 @@ pub trait Harness {
 }
 
 pub struct RewardsHarness {
-    _deps: Extern<MemoryStorage, MockApi, MockQuerier>
+    _deps: Extern<MemoryStorage, MockApi, RewardsMockQuerier>
 }
 
 // trait fields WHEN?
-impl Harness for RewardsHarness {
-    fn deps (&self) -> &Extern<MemoryStorage, MockApi, MockQuerier> {
+impl Harness<RewardsMockQuerier> for RewardsHarness {
+    fn deps (&self) -> &Extern<MemoryStorage, MockApi, RewardsMockQuerier> {
         &self._deps
     }
-    fn deps_mut (&mut self) -> &mut Extern<MemoryStorage, MockApi, MockQuerier> {
+    fn deps_mut (&mut self) -> &mut Extern<MemoryStorage, MockApi, RewardsMockQuerier> {
         &mut self._deps
     }
 }
 
+/// See https://docs.rs/cosmwasm-std/0.10.1/cosmwasm_std/testing/fn.mock_dependencies_with_balances.html
+const ADDR_LEN: usize = 45;
+
 impl RewardsHarness {
     pub fn new () -> Self {
-        Self { _deps: mock_dependencies(ADDR_LEN, &[]) }
+        Self { _deps: Extern {
+            storage: MemoryStorage::default(),
+            api:     MockApi::new(ADDR_LEN),
+            querier: RewardsMockQuerier {}
+        } }
     }
 
     pub fn init_configured (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
@@ -145,9 +150,6 @@ impl RewardsHarness {
             viewing_key: "".into()
         })
     }
-    pub fn q_status (&self, now: u64) -> StdResult<Response> {
-        self.q(Q::Status { now })
-    }
 
     pub fn tx_set_token (
         &mut self, height: u64, agent: &HumanAddr,
@@ -166,5 +168,64 @@ impl RewardsHarness {
     }
     pub fn tx_claim (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
         self.tx(height, agent, TX::Claim {})
+    }
+
+    pub fn q_status (&self, now: u64) -> StdResult<Response> {
+        self.q(QQ::Status { now })
+    }
+}
+
+struct RewardsMockQuerier {}
+
+#[derive(serde::Serialize,serde::Deserialize)]
+enum Snip20Query {
+    Balance {}
+}
+
+#[derive(serde::Serialize,serde::Deserialize)]
+enum Snip20QueryAnswer {
+    Balance { amount: Uint128 }
+}
+
+impl RewardsMockQuerier {
+    fn mock_query_dispatch (
+        &self,
+        contract: &ContractLink<HumanAddr>,
+        msg:      &Snip20Query
+    ) -> Snip20QueryAnswer {
+        match msg {
+            Snip20Query::Balance { .. } => {
+                //if contract != self.reward_token {
+                    //panic!("MockSnip20Querier: Expected balance query for {:?}", self.reward_token)
+                //}
+                Snip20QueryAnswer::Balance {
+                    amount: Uint128::zero()
+                }
+            },
+            _ => unimplemented!()
+        }
+    }
+}
+
+impl Querier for RewardsMockQuerier {
+    fn raw_query (&self, bin_request: &[u8]) -> QuerierResult {
+        println!("{:?}", from_utf8(bin_request));
+        let request: QueryRequest<Empty> = match from_slice(bin_request) {
+            Ok(v) => v,
+            Err(e) => {
+                let error = format!("Parsing query request: {}", e);
+                let request = bin_request.into();
+                return Err(SystemError::InvalidRequest { error, request })
+            }
+        };
+        match request {
+            QueryRequest::Wasm(WasmQuery::Smart { callback_code_hash, contract_addr, msg }) => {
+                Ok(to_binary(&self.mock_query_dispatch(&ContractLink {
+                    code_hash: callback_code_hash,
+                    address: contract_addr
+                }, &from_binary(&msg).unwrap())))
+            },
+            _ => panic!("MockSnip20Querier: Expected WasmQuery::Smart.")
+        }
     }
 }

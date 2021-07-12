@@ -4,13 +4,13 @@
 
 #[macro_use] extern crate kukumba;
 mod harness; use harness::RewardsHarness;
-
-use fadroma::scrt::cosmwasm_std::{HumanAddr, StdError};
+use fadroma::scrt::cosmwasm_std::{Uint128, HumanAddr, StdError};
+use sienna_rewards_benchmark::msg::Response;
 
 kukumba! {
     StdError,
 
-    #[ok_init]
+    #[ok_init_status]
     given "no instance" {
         let mut test = RewardsHarness::new();
         let admin  = HumanAddr::from("admin");
@@ -24,12 +24,38 @@ kukumba! {
     }
     when  "someone locks funds"
     then  "the instance goes live" {
-        assert_error!(test.q_status(1u64), "missing data");
+        assert_error!(test.q_status(1u64), "missing POOL_SINCE");
         assert_eq!(
             test.tx_lock(2, &admin, 1u128)?,
             (vec!["{\"transfer_from\":{\"owner\":\"admin\",\"recipient\":\"contract_addr\",\"amount\":\"1\",\"padding\":null}}".into()], 0, 0)
         );
-        let result = test.q_status(3u64)?;
+        assert_eq!(
+            test.q_status(2u64)?,
+            Response::Status {
+                volume: Uint128::from(1u128),
+                total:  Uint128::zero(),
+                since:  2,
+                now:    2
+            }
+        );
+        assert_eq!(
+            test.q_status(3u64)?,
+            Response::Status {
+                volume: Uint128::from(1u128),
+                total:  Uint128::from(1u128),
+                since:  2,
+                now:    3
+            }
+        );
+        assert_eq!(
+            test.q_status(4u64)?,
+            Response::Status {
+                volume: Uint128::from(1u128),
+                total:  Uint128::from(2u128),
+                since:  2,
+                now:    4
+            }
+        );
     }
 
     #[ok_init_then_provide]
@@ -61,15 +87,42 @@ kukumba! {
             test.tx_set_token(4, &admin, "ok_addr", "ok_hash")?,
             (vec![], 0, 0),
         );
-        assert_error!(test.q_status(5), "missing data");
+        assert_error!(test.q_status(5), "missing POOL_SINCE");
         assert_eq!(
             test.tx_lock(6, &admin, 1)?,
             (vec!["{\"transfer_from\":{\"owner\":\"admin\",\"recipient\":\"contract_addr\",\"amount\":\"1\",\"padding\":null}}".into()], 0, 0)
         );
         let result = test.q_status(7)?;
+        assert_eq!(
+            test.q_status(6)?,
+            Response::Status {
+                volume: Uint128::from(1u128),
+                total:  Uint128::zero(),
+                since:  6,
+                now:    6
+            }
+        );
+        assert_eq!(
+            test.q_status(7)?,
+            Response::Status {
+                volume: Uint128::from(1u128),
+                total:  Uint128::from(1u128),
+                since:  6,
+                now:    7
+            }
+        );
+        assert_eq!(
+            test.q_status(8)?,
+            Response::Status {
+                volume: Uint128::from(1u128),
+                total:  Uint128::from(2u128),
+                since:  6,
+                now:    8
+            }
+        );
     }
 
-    #[lock_and_retrieve]
+    #[ok_lock_and_retrieve]
     given "an instance" {
         let mut test = RewardsHarness::new();
         let admin   = HumanAddr::from("admin");
@@ -88,7 +141,15 @@ kukumba! {
             test.tx_lock(1, &alice, 100u128)?,
             (vec!["{\"transfer_from\":{\"owner\":\"alice\",\"recipient\":\"contract_addr\",\"amount\":\"100\",\"padding\":null}}".into()], 0, 0)
         );
-        let result = test.q_status(2u64)?;
+        assert_eq!(
+            test.q_status(2)?,
+            Response::Status {
+                volume: Uint128::from(1u128),
+                total:  Uint128::from(2u128),
+                since:  1,
+                now:    2
+            }
+        );
     }
     when  "a provider requests to retrieve tokens"
     then  "the instance transfers them to the provider"
@@ -97,7 +158,15 @@ kukumba! {
             test.tx_retrieve(3, &alice, 50u128)?,
             (vec!["{\"transfer\":{\"recipient\":\"alice\",\"amount\":\"50\",\"padding\":null}}".into()], 0, 0)
         );
-        let result = test.q_status(4u64.into())?;
+        assert_eq!(
+            test.q_status(4)?,
+            Response::Status {
+                volume: Uint128::from(1u128),
+                total:  Uint128::from(2u128),
+                since:  3,
+                now:    4
+            }
+        );
     }
     when  "a provider requests to retrieve all their tokens"
     then  "the instance transfers them to the provider"
@@ -106,16 +175,41 @@ kukumba! {
             test.tx_retrieve(5, &alice, 50u128)?,
             (vec!["{\"transfer\":{\"recipient\":\"alice\",\"amount\":\"50\",\"padding\":null}}".into()], 0, 0)
         );
-        let result = test.q_status(5u64)?;
+        assert_eq!(
+            test.q_status(6)?,
+            Response::Status {
+                volume: Uint128::from(1u128),
+                total:  Uint128::from(2u128),
+                since:  5,
+                now:    6
+            }
+        );
     }
     when  "someone else requests to lock tokens"
     then  "the previous provider's share of the rewards begins to diminish" {
         assert_eq!(
-            test.tx_lock(6, &bob, 500u128)?,
+            test.tx_lock(7, &bob, 500u128)?,
             (vec!["{\"transfer_from\":{\"owner\":\"bob\",\"recipient\":\"contract_addr\",\"amount\":\"500\",\"padding\":null}}".into()], 0, 0)
         );
-        let result = test.q_status(7u64)?;
-        let result = test.q_status(8u64)?;
+        assert_eq!(
+            test.q_status(8)?,
+            Response::Status {
+                volume: Uint128::from(1u128),
+                total:  Uint128::from(2u128),
+                since:  7,
+                now:    8
+            }
+        );
+        let result = test.q_status(9u64)?;
+        assert_eq!(
+            test.q_status(9)?,
+            Response::Status {
+                volume: Uint128::from(1u128),
+                total:  Uint128::from(2u128),
+                since:  7,
+                now:    9
+            }
+        );
     }
     when  "a provider tries to retrieve too many tokens"
     then  "they get an error" {
