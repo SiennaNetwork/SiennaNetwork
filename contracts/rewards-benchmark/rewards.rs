@@ -21,71 +21,65 @@ macro_rules! error {
 
 contract! {
 
-    [GlobalState] {
-        provided_token: Option<ContractInstance<CanonicalAddr>>,
-        rewarded_token: ContractInstance<CanonicalAddr>,
-        viewing_key:    ViewingKey
-    }
+    [NoGlobalState] {}
 
     [Init] (deps, env, msg: {
-        provided_token: Option<ContractInstance<HumanAddr>>,
-        rewarded_token: ContractInstance<HumanAddr>,
-        viewing_key:    ViewingKey
+        lp_token:     Option<ContractInstance<HumanAddr>>,
+        reward_token: ContractInstance<HumanAddr>,
+        viewing_key:  ViewingKey
     }) {
         // TODO proposed action against the triple generic:
         // scrt-contract automatically aliases `storage`, `api`,
         // and `querier` (also maybe the contents of `env`?)
         // so that it becomes less verbose to pass just the ones you use
-        // (...that, or let's give contracts a `self` already.)
+        // (...that, or let's just give contracts a `self` already?)
+
+        // configure admin
         set_admin(&mut deps.storage, &deps.api, &env, &env.message.sender)?;
-        save_contract_info(deps, &ContractInstance {
+
+        // save self reference - used to check own balance
+        save_self_reference(&mut deps.storage, &deps.api, &ContractInstance {
             address: env.contract.address,
             code_hash: env.contract_code_hash
         })?;
 
-        // canonize the asset token if it is provided
-        // how do I unwrap option and result simultaneously?
-        let provided_token = match provided_token {
-            None                 => None,
-            Some(provided_token) => Some(provided_token.canonize(&deps.api)?)
-        };
+        // save address of liquidity provision token, if provided
+        if let Some(lp_token) = lp_token {
+            save_lp_token(&mut deps.storage, &deps.api, &lp_token)?;
+        }
 
-        // store the initial configuration
-        save_state!(GlobalState {
-            provided_token,
-            rewarded_token: rewarded_token.canonize(&deps.api)?,
-            viewing_key:    viewing_key.clone()
-        });
+        save_reward_token(&mut deps.storage, &deps.api, &reward_token)?;
 
         // set ourselves a viewing key in the reward token
         // so we can check our balance and distribute portions of it
+        save_viewing_key(&mut deps.storage, &viewing_key)?;
         let set_vk = snip20::set_viewing_key_msg(
             viewing_key.0,
             None, BLOCK_SIZE,
-            rewarded_token.code_hash, rewarded_token.address
+            reward_token.code_hash, reward_token.address
         )?;
+
+        // TODO remove global state
+        save_state!(NoGlobalState {});
 
         InitResponse { messages: vec![set_vk], log: vec![] }
     }
 
     [Query] (deps, state, msg) -> Response {
         Status (now: u64) {
-            if let Some(_) = state.provided_token {
-                let (volume, total, since) = Pool::new(&deps.storage).status(now)?;
-                Ok(Response::Status { now, volume, total, since })
-            } else {
-                error!("not configured")
-            }
+            load_lp_token(&deps.storage, &deps.api)?;
+            let (volume, total, since) = Pool::new(&deps.storage).status(now)?;
+            Ok(Response::Status { now, volume, total, since })
         }
 
         Claimable (now: u64, address: HumanAddr, key: String) {
             let address = deps.api.canonical_address(&address)?;
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
-            let this_contract = load_contract_info(deps)?;
-            let token = state.rewarded_token.humanize(&deps.api)?;
+            let token = load_reward_token(&deps.storage, &deps.api)?;
             let budget = snip20::balance_query(
                 &deps.querier,
-                this_contract.address, state.viewing_key.0.clone(),
+                load_self_reference(&deps.storage, &deps.api)?.address,
+                load_viewing_key(&deps.storage)?.0.clone(),
                 BLOCK_SIZE,
                 token.code_hash.clone(), token.address
             )?.amount;
@@ -96,14 +90,14 @@ contract! {
 
         Pool () {
             Ok(Response::Pool {
-                lp_token: get_provided_token(&state, &deps.api)?,
+                lp_token: load_lp_token(&deps.storage, &deps.api)?,
                 volume:   Pool::new(&deps.storage).get_pool_volume()?
             })
         }
 
         // Keplr integration
         TokenInfo () {
-            let token = get_provided_token(&state, &deps.api)?;
+            let token = load_lp_token(&deps.storage, &deps.api)?;
             let info = snip20::token_info_query(
                 &deps.querier,
                 BLOCK_SIZE,
@@ -140,17 +134,13 @@ contract! {
         // they need to know each other's addresses to use initial allowances
         SetProvidedToken (address: HumanAddr, code_hash: String) {
             is_admin(&deps.storage, &deps.api, &env)?;
-            state.provided_token = Some(ContractInstance {
-                address: deps.api.canonical_address(&address)?,
-                code_hash
-            });
-            save_state!();
+            save_lp_token(&mut deps.storage, &deps.api, &ContractInstance { address, code_hash })?;
             Ok(HandleResponse::default())
         }
 
         /// Provide some liquidity.
         Lock (amount: Uint128) {
-            let token    = get_provided_token(&state, &deps.api)?;
+            let token    = load_lp_token(&deps.storage, &deps.api)?;
             let address  = deps.api.canonical_address(&env.message.sender)?;
             let locked   = Pool::new(&mut deps.storage)
                 .lock(env.block.height, address, amount)?;
@@ -159,13 +149,12 @@ contract! {
                 None, BLOCK_SIZE,
                 token.code_hash, token.address
             )?;
-            save_state!();
             tx_ok!(transfer)
         }
 
         /// Get some tokens back.
         Retrieve (amount: Uint128) {
-            let token     = get_provided_token(&state, &deps.api)?;
+            let token     = load_lp_token(&deps.storage, &deps.api)?;
             let address   = deps.api.canonical_address(&env.message.sender)?;
             let retrieved = Pool::new(&mut deps.storage)
                 .retrieve(env.block.height, address, amount)?;
@@ -174,15 +163,15 @@ contract! {
                 None, BLOCK_SIZE,
                 token.code_hash, token.address
             )?;
-            save_state!();
             tx_ok!(transfer)
         }
 
         /// User can receive rewards after having provided liquidity.
         Claim () {
-            let token   = state.rewarded_token.humanize(&deps.api)?;
+            let token   = load_reward_token(&deps.storage, &deps.api)?;
+            let viewkey = load_viewing_key(&deps.storage)?.0.clone();
             let balance = snip20::balance_query(
-                &deps.querier, env.contract.address, state.viewing_key.0.clone(),
+                &deps.querier, env.contract.address, viewkey,
                 BLOCK_SIZE,
                 token.code_hash.clone(), token.address.clone()
             )?;
@@ -194,7 +183,6 @@ contract! {
                 None, BLOCK_SIZE,
                 token.code_hash.clone(), token.address.clone()
             )?;
-            save_state!();
             tx_ok!(transfer)
         }
 
@@ -215,7 +203,8 @@ contract! {
 const KEY_ADMIN: &[u8] = b"admin";
 
 fn is_admin (
-    storage: &impl Readonly, api: &impl Api,
+    storage: &impl Readonly,
+    api: &impl Api,
     env: &Env
 ) -> StdResult<()> {
     if load(storage, KEY_ADMIN)? == Some(api.canonical_address(&env.message.sender)?) {
@@ -226,7 +215,8 @@ fn is_admin (
 }
 
 fn set_admin (
-    storage: &mut impl Storage, api: &impl Api,
+    storage: &mut impl Storage,
+    api: &impl Api,
     env: &Env, new_admin: &HumanAddr
 ) -> StdResult<()> {
     let current_admin = load(storage, KEY_ADMIN)?;
@@ -237,32 +227,84 @@ fn set_admin (
     }
 }
 
-const KEY_THIS_CONTRACT: &[u8] = b"self";
+const KEY_SELF_REFERENCE: &[u8] = b"self";
 
-fn load_contract_info<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>
+fn load_self_reference(
+    storage: &impl Storage,
+    api:     &impl Api
 ) -> StdResult<ContractInstance<HumanAddr>> {
-    let result: ContractInstance<CanonicalAddr> =
-        load(&deps.storage, KEY_THIS_CONTRACT)?.unwrap();
-
-    Ok(result.humanize(&deps.api)?)
-}
-
-fn save_contract_info<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    this_contract: &ContractInstance<HumanAddr>
-) -> StdResult<()> {
-    let this_contract = this_contract.canonize(&deps.api)?;
-
-    save(&mut deps.storage, KEY_THIS_CONTRACT, &this_contract)
-}
-
-fn get_provided_token (
-    state: &GlobalState,
-    api:   &impl Api,
-) -> StdResult<ContractInstance<HumanAddr>> {
-    match &state.provided_token {
-        Some(token) => Ok(token.humanize(api)?),
-        None => error!("Contract hasn't been launched yet.")
+    let result: Option<ContractInstance<CanonicalAddr>> = load(storage, KEY_SELF_REFERENCE)?;
+    match result {
+        Some(link) => Ok(link.humanize(api)?),
+        None => error!("missing self reference")
     }
+}
+
+fn save_self_reference (
+    storage: &mut impl Storage,
+    api:     &impl Api,
+    link:    &ContractInstance<HumanAddr>
+) -> StdResult<()> {
+    save(storage, KEY_SELF_REFERENCE, &link.canonize(api)?)
+}
+
+const KEY_LP_TOKEN: &[u8] = b"lp_token";
+
+fn load_lp_token (
+    storage: &impl Storage,
+    api:     &impl Api
+) -> StdResult<ContractInstance<HumanAddr>> {
+    let result: Option<ContractInstance<CanonicalAddr>> = load(storage, KEY_LP_TOKEN)?;
+    match result {
+        Some(link) => Ok(link.humanize(api)?),
+        None => error!("missing liquidity provision token")
+    }
+}
+
+fn save_lp_token (
+    storage: &mut impl Storage,
+    api:     &impl Api,
+    link:    &ContractInstance<HumanAddr>
+) -> StdResult<()> {
+    save(storage, KEY_LP_TOKEN, &link.canonize(api)?)
+}
+
+const KEY_REWARD_TOKEN: &[u8] = b"reward_token";
+
+fn load_reward_token (
+    storage: &impl Storage,
+    api:     &impl Api
+) -> StdResult<ContractInstance<HumanAddr>> {
+    let result: Option<ContractInstance<CanonicalAddr>> = load(storage, KEY_REWARD_TOKEN)?;
+    match result {
+        Some(link) => Ok(link.humanize(api)?),
+        None => error!("missing liquidity provision token")
+    }
+}
+
+fn save_reward_token (
+    storage: &mut impl Storage,
+    api:     &impl Api,
+    link:    &ContractInstance<HumanAddr>
+) -> StdResult<()> {
+    save(storage, KEY_REWARD_TOKEN, &link.canonize(api)?)
+}
+
+const KEY_REWARD_TOKEN_VK: &[u8] = b"reward_token_vk";
+
+fn load_viewing_key (
+    storage: &impl Storage,
+) -> StdResult<ViewingKey> {
+    let result: Option<ViewingKey> = load(storage, KEY_REWARD_TOKEN_VK)?;
+    match result {
+        Some(key) => Ok(key),
+        None => error!("missing reward token viewing key")
+    }
+}
+
+fn save_viewing_key (
+    storage: &mut impl Storage,
+    key:     &ViewingKey
+) -> StdResult<()> {
+    save(storage, KEY_REWARD_TOKEN_VK, &key)
 }

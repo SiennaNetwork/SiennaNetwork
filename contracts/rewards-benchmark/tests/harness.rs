@@ -129,23 +129,23 @@ impl RewardsHarness {
 
     pub fn init_configured (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
         self.init(height, agent, Init {
-            provided_token: Some(ContractLink {
-                address:   HumanAddr::from("provided_token_address"),
-                code_hash: "provided_token_hash".into(),
+            lp_token: Some(ContractLink {
+                address:   HumanAddr::from("lp_token_address"),
+                code_hash: "lp_token_hash".into(),
             }),
-            rewarded_token: ContractLink {
-                address:   HumanAddr::from("rewarded_token_address"),
-                code_hash: "rewarded_token_hash".into(),
+            reward_token: ContractLink {
+                address:   HumanAddr::from("reward_token_address"),
+                code_hash: "reward_token_hash".into(),
             },
             viewing_key: "".into()
         })
     }
     pub fn init_partial (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
         self.init(height, agent, Init {
-            provided_token: None,
-            rewarded_token: ContractLink {
-                address:    HumanAddr::from("rewarded_token_address"),
-                code_hash:  "rewarded_token_hash".into(),
+            lp_token: None,
+            reward_token: ContractLink {
+                address:    HumanAddr::from("reward_token_address"),
+                code_hash:  "reward_token_hash".into(),
             },
             viewing_key: "".into()
         })

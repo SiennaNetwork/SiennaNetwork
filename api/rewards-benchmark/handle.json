@@ -67,7 +67,7 @@
       }
     },
     {
-      "description": "Receive rewards.",
+      "description": "User can receive rewards after having provided liquidity.",
       "type": "object",
       "required": [
         "claim"
@@ -79,6 +79,7 @@
       }
     },
     {
+      "description": "User can request a new viewing key for oneself.",
       "type": "object",
       "required": [
         "create_viewing_key"
@@ -104,6 +105,7 @@
       }
     },
     {
+      "description": "User can set own viewing key to a known value.",
       "type": "object",
       "required": [
         "set_viewing_key"

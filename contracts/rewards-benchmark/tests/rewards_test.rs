@@ -27,7 +27,6 @@ impl Snip20 {
             recipient, amount
         ).into()
     }
-
 }
 
 kukumba! {

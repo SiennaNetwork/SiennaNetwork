@@ -3,11 +3,11 @@
   "title": "Init",
   "type": "object",
   "required": [
-    "rewarded_token",
+    "reward_token",
     "viewing_key"
   ],
   "properties": {
-    "provided_token": {
+    "lp_token": {
       "anyOf": [
         {
           "$ref": "#/definitions/ContractInstance_for_HumanAddr"
@@ -17,7 +17,7 @@
         }
       ]
     },
-    "rewarded_token": {
+    "reward_token": {
       "$ref": "#/definitions/ContractInstance_for_HumanAddr"
     },
     "viewing_key": {

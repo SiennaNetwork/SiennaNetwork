@@ -26,14 +26,15 @@
     {
       "type": "object",
       "required": [
-        "claim_simulation"
+        "claimable"
       ],
       "properties": {
-        "claim_simulation": {
+        "claimable": {
           "type": "object",
           "required": [
             "address",
-            "key"
+            "key",
+            "now"
           ],
           "properties": {
             "address": {
@@ -41,6 +42,11 @@
             },
             "key": {
               "type": "string"
+            },
+            "now": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             }
           }
         }
