@@ -238,22 +238,21 @@ kukumba! {
         assert_error!(test.tx_claim(1, &alice), "missing user liquidity data");
         assert_error!(test.tx_claim(1, &bob),   "missing user liquidity data");
     }
-    when  "users provide liquidity" {
+    when  "users provide liquidity"
+    and   "they wait for rewards to accumulate" {
         assert_eq!(test.tx_lock(2, &alice, 100)?, (vec![
             Snip20::transfer_from("alice", "contract_addr", "100")
         ], 0, 0));
-        assert_eq!(test.tx_lock(2, &bob, 100)?, (vec![
+        assert_error!(test.tx_claim(2, &alice), "pool is empty");
+        assert_eq!(test.tx_lock(3, &bob, 100)?, (vec![
             Snip20::transfer_from("bob", "contract_addr", "100")
         ], 0, 0));
-    }
-    and   "they weit for rewards to accumulate" {
-        assert_error!(test.tx_claim(2, &alice), "pool is empty");
-        assert_error!(test.tx_claim(2, &bob), "pool is empty");
+        assert_error!(test.tx_claim(3, &bob),   "nothing to claim");
     }
     and   "a provider claims rewards"
     then  "that provider receives reward tokens" {
         assert_eq!(test.tx_claim(3, &alice)?, (vec![
-            Snip20::transfer("alice", "250")
+            Snip20::transfer("alice", "50")
         ], 0, 0));
     }
     when  "a provider claims rewards twice"
@@ -263,7 +262,9 @@ kukumba! {
     when  "a provider claims their rewards less often"
     then  "they receive equivalent rewards as long as the liquidity balance hasn't changed" {
         //assert_eq!(test.tx_claim(4, &alice)?, (vec![Snip20::transfer("alice",  "5")], 0, 0));
-        //assert_eq!(test.tx_claim(4, &bob)?,   (vec![Snip20::transfer("bob",   "10")], 0, 0));
+        assert_eq!(test.tx_claim(4, &bob)?, (vec![
+            Snip20::transfer("bob", "50")
+        ], 0, 0));
         println!("{:#?}", test.tx_claim(10, &alice));
         //println!("{:#?}", test.tx_claim(4, &bob)?);
         //panic!()

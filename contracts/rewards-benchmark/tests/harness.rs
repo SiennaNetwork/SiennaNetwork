@@ -101,17 +101,17 @@ pub trait Harness <Q: Querier> {
     }
 }
 
-pub struct RewardsHarness {
-    _deps: Extern<MemoryStorage, MockApi, RewardsMockQuerier>,
+pub struct RewardsHarness <Q: Querier> {
+    _deps: Extern<MemoryStorage, MockApi, Q>,
     _lp_token: ContractLink<HumanAddr>
 }
 
 // trait fields WHEN?
-impl Harness<RewardsMockQuerier> for RewardsHarness {
-    fn deps (&self) -> &Extern<MemoryStorage, MockApi, RewardsMockQuerier> {
+impl <Q: Querier> Harness <Q> for RewardsHarness<Q> {
+    fn deps (&self) -> &Extern<MemoryStorage, MockApi, Q> {
         &self._deps
     }
-    fn deps_mut (&mut self) -> &mut Extern<MemoryStorage, MockApi, RewardsMockQuerier> {
+    fn deps_mut (&mut self) -> &mut Extern<MemoryStorage, MockApi, Q> {
         &mut self._deps
     }
 }
@@ -119,13 +119,13 @@ impl Harness<RewardsMockQuerier> for RewardsHarness {
 /// See https://docs.rs/cosmwasm-std/0.10.1/cosmwasm_std/testing/fn.mock_dependencies_with_balances.html
 const ADDR_LEN: usize = 45;
 
-impl RewardsHarness {
+impl RewardsHarness<RewardsMockQuerier> {
     pub fn new () -> Self {
         Self {
             _deps: Extern {
                 storage: MemoryStorage::default(),
                 api:     MockApi::new(ADDR_LEN),
-                querier: RewardsMockQuerier {}
+                querier: RewardsMockQuerier { balance: 0u128.into() }
             },
             _lp_token: ContractLink {
                 address:   "lp_token_address".into(),
@@ -140,24 +140,26 @@ impl RewardsHarness {
 
     pub fn init_configured (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
         self.init(height, agent, Init {
-            lp_token: Some(self.lp_token()),
+            lp_token:     Some(self.lp_token()),
             reward_token: ContractLink {
                 address:   "reward_token_address".into(),
                 code_hash: "reward_token_hash".into(),
             },
-            viewing_key: "".into(),
-            reward_ratio: (5u128.into(), 1u128.into())
+            viewing_key:  "".into(),
+            ratio:        None,
+            threshold:    None
         })
     }
     pub fn init_partial (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
         self.init(height, agent, Init {
-            lp_token: None,
+            lp_token:     None,
             reward_token: ContractLink {
                 address:    "reward_token_address".into(),
                 code_hash:  "reward_token_hash".into(),
             },
-            viewing_key: "".into(),
-            reward_ratio: (5u128.into(), 1u128.into())
+            viewing_key:  "".into(),
+            ratio:        None,
+            threshold:    None
         })
     }
 
@@ -186,9 +188,18 @@ impl RewardsHarness {
     pub fn q_user_info (&self, now: u64, address: HumanAddr) -> StdResult<Response> {
         self.q(QQ::UserInfo { now, address, key: "".into() })
     }
+
+    pub fn fund (mut self, amount: Uint128) -> Self {
+        Self {
+            _lp_token: self._lp_token,
+            _deps: self._deps.change_querier(|q|RewardsMockQuerier { balance: q.balance + amount })
+        }
+    }
 }
 
-struct RewardsMockQuerier {}
+pub struct RewardsMockQuerier {
+    pub balance: Uint128
+}
 
 #[derive(serde::Serialize,serde::Deserialize)]
 #[serde(rename_all="snake_case")]
@@ -213,9 +224,7 @@ impl RewardsMockQuerier {
                 //if contract != self.reward_token {
                     //panic!("MockSnip20Querier: Expected balance query for {:?}", self.reward_token)
                 //}
-                Snip20QueryAnswer::Balance {
-                    amount: 100u128.into()
-                }
+                Snip20QueryAnswer::Balance { amount: self.balance }
             },
             _ => unimplemented!()
         }
