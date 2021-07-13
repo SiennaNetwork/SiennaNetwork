@@ -74,14 +74,16 @@ export default class TGEContracts extends ScrtEnsemble {
   }
  
   async initialize (options = {}) {
-    const network = SecretNetwork.hydrate(options.network || this.network)
-    const agent = options.agent || this.agent || await network.getAgent()
-    // idempotency support
+    // idempotency support:
     // passing existing `contracts` to this makes it a no-op
     const { contracts = {} } = options
     if (Object.keys(contracts)>0) return contracts
 
-    // accepts schedule as string or struct
+    // these may belong in the super-method
+    const network = SecretNetwork.hydrate(options.network || this.network)
+    const agent = options.agent || this.agent || await network.getAgent()
+
+    // accept schedule as string or struct
     let { schedule = getDefaultSchedule() } = options
     if (typeof schedule === 'string') schedule = JSON.parse(await readFile(schedule, 'utf8'))
     //log(render(schedule))
