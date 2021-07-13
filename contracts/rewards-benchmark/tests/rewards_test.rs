@@ -4,7 +4,10 @@
 
 #[macro_use] extern crate kukumba;
 mod harness; use harness::{RewardsHarness, Snip20};
-use fadroma::scrt::cosmwasm_std::{Uint128, HumanAddr, StdError};
+use fadroma::scrt::{
+    cosmwasm_std::{Uint128, HumanAddr, StdError},
+    utils::Uint256
+};
 use sienna_rewards_benchmark::msg::Response;
 
 kukumba! {
@@ -30,21 +33,21 @@ kukumba! {
         assert_eq!(test.q_pool_info(2u64)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(1u128),
-            total:  Uint128::zero(),
+            total:  Uint256::zero(),
             since:  2,
             now:    2
         });
         assert_eq!(test.q_pool_info(3u64)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(1u128),
-            total:  Uint128::from(1u128),
+            total:  Uint256::from(1u128),
             since:  2,
             now:    3
         });
         assert_eq!(test.q_pool_info(4u64)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(1u128),
-            total:  Uint128::from(2u128),
+            total:  Uint256::from(2u128),
             since:  2,
             now:    4
         });
@@ -82,21 +85,21 @@ kukumba! {
         assert_eq!(test.q_pool_info(6)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(1u128),
-            total:  Uint128::zero(),
+            total:  Uint256::zero(),
             since:  6,
             now:    6
         });
         assert_eq!(test.q_pool_info(7)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(1u128),
-            total:  Uint128::from(1u128),
+            total:  Uint256::from(1u128),
             since:  6,
             now:    7
         });
         assert_eq!(test.q_pool_info(8)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(1u128),
-            total:  Uint128::from(2u128),
+            total:  Uint256::from(2u128),
             since:  6,
             now:    8
         });
@@ -122,7 +125,7 @@ kukumba! {
         assert_eq!(test.q_pool_info(2)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(100u128),
-            total:  Uint128::from(100u128),
+            total:  Uint256::from(100u128),
             since:  1,
             now:    2
         });
@@ -133,7 +136,7 @@ kukumba! {
         assert_eq!(test.q_pool_info(3)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(100u128),
-            total:  Uint128::from(200u128),
+            total:  Uint256::from(200u128),
             since:  1,
             now:    3
         });
@@ -143,7 +146,7 @@ kukumba! {
         assert_eq!(test.q_pool_info(4)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(50u128),
-            total:  Uint128::from(250u128),
+            total:  Uint256::from(250u128),
             since:  3,
             now:    4
         });
@@ -154,7 +157,7 @@ kukumba! {
         assert_eq!(test.q_pool_info(5)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(50u128),
-            total:  Uint128::from(300u128),
+            total:  Uint256::from(300u128),
             since:  3,
             now:    5
         });
@@ -164,7 +167,7 @@ kukumba! {
         assert_eq!(test.q_pool_info(6)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(0u128),
-            total:  Uint128::from(300u128),
+            total:  Uint256::from(300u128),
             since:  5,
             now:    6
         });
@@ -174,7 +177,7 @@ kukumba! {
         assert_eq!(test.q_pool_info(7)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(0u128),
-            total:  Uint128::from(300u128),
+            total:  Uint256::from(300u128),
             since:  5,
             now:    7
         });
@@ -184,7 +187,7 @@ kukumba! {
         assert_eq!(test.q_pool_info(8)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(500u128),
-            total:  Uint128::from(800u128),
+            total:  Uint256::from(800u128),
             since:  7,
             now:    8
         });
@@ -194,7 +197,7 @@ kukumba! {
         assert_eq!(test.q_pool_info(9)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(500u128),
-            total:  Uint128::from(1300u128),
+            total:  Uint256::from(1300u128),
             since:  7,
             now:    9
         });
@@ -205,7 +208,7 @@ kukumba! {
         assert_eq!(test.q_pool_info(10)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(500u128),
-            total:  Uint128::from(1800u128),
+            total:  Uint256::from(1800u128),
             since:  7,
             now:    10
         });
@@ -219,7 +222,7 @@ kukumba! {
         assert_eq!(test.q_pool_info(11)?, Response::PoolInfo {
             lp_token: test.lp_token(),
             volume: Uint128::from(500u128),
-            total:  Uint128::from(2300u128),
+            total:  Uint256::from(2300u128),
             since:  7,
             now:    11
         });

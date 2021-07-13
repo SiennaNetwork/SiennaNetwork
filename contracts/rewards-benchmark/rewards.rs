@@ -4,6 +4,7 @@ use fadroma::scrt::{
     addr::{Humanize, Canonize},
     callback::ContractInstance,
     toolkit::snip20,
+    utils::Uint256,
     utils::viewing_key::ViewingKey,
     storage::{load, save},
     cosmwasm_std::ReadonlyStorage
@@ -113,7 +114,7 @@ contract! {
             Ok(Response::UserInfo {
                 age:      0,
                 volume:   Uint128::zero(),
-                lifetime: Uint128::zero(),
+                lifetime: Uint256::zero(),
                 unlocked,
                 claimed,
                 claimable
@@ -153,7 +154,7 @@ contract! {
         PoolInfo {
             lp_token: ContractInstance<HumanAddr>,
             volume:   Uint128,
-            total:    Uint128,
+            total:    Uint256,
             since:    Monotonic,
             now:      Monotonic
         }
@@ -162,10 +163,10 @@ contract! {
         UserInfo {
             age:       Monotonic,
             volume:    Uint128,
-            lifetime:  Uint128,
-            unlocked:  Uint128,
-            claimed:   Uint128,
-            claimable: Uint128
+            lifetime:  Uint256,
+            unlocked:  Uint256,
+            claimed:   Uint256,
+            claimable: Uint256
         }
 
         /// Keplr integration
@@ -241,7 +242,7 @@ contract! {
             )?;
             tx_ok!(snip20::transfer_msg(
                 env.message.sender,
-                claimable,
+                Uint128(claimable.low_u128()),
                 None, BLOCK_SIZE, token.code_hash, token.address
             )?)
         }

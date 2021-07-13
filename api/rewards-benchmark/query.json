@@ -3,12 +3,13 @@
   "title": "Query",
   "anyOf": [
     {
+      "description": "Overall pool status",
       "type": "object",
       "required": [
-        "status"
+        "pool_info"
       ],
       "properties": {
-        "status": {
+        "pool_info": {
           "type": "object",
           "required": [
             "now"
@@ -24,12 +25,13 @@
       }
     },
     {
+      "description": "Requires the user's viewing key.",
       "type": "object",
       "required": [
-        "claimable"
+        "user_info"
       ],
       "properties": {
-        "claimable": {
+        "user_info": {
           "type": "object",
           "required": [
             "address",
@@ -53,17 +55,7 @@
       }
     },
     {
-      "type": "object",
-      "required": [
-        "pool"
-      ],
-      "properties": {
-        "pool": {
-          "type": "object"
-        }
-      }
-    },
-    {
+      "description": "Keplr integration",
       "type": "object",
       "required": [
         "token_info"
@@ -75,6 +67,7 @@
       }
     },
     {
+      "description": "Keplr integration",
       "type": "object",
       "required": [
         "balance"
