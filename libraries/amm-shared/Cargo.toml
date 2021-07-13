@@ -22,3 +22,11 @@ fadroma-scrt-addr = { path = "../fadroma-21.07/scrt-addr" }
 fadroma-scrt-callback = { path = "../fadroma-21.07/scrt-callback" }
 fadroma-scrt-migrate = { path = "../fadroma-21.07/scrt-migrate" }
 fadroma-scrt-storage = { path = "../fadroma-21.07/scrt-storage" }
+
+fadroma = { path = "../fadroma-21.07/core", features = [
+    "scrt-addr",
+    "scrt-callback",
+    "scrt-contract",
+    "scrt-migrate",
+    "scrt-storage",
+] }
