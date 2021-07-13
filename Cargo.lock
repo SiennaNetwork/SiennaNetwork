@@ -646,6 +646,7 @@ dependencies = [
  "fadroma-scrt-callback 0.1.0",
  "fadroma-scrt-contract",
  "fadroma-scrt-migrate 0.1.0",
+ "fadroma-scrt-snip20-api",
  "fadroma-scrt-storage 0.1.0",
  "fadroma-scrt-utils",
  "secret-toolkit 0.1.0 (git+https://github.com/hackbg/secret-toolkit?rev=9a33d7b)",
@@ -730,6 +731,14 @@ dependencies = [
  "schemars",
  "serde",
  "snafu",
+]
+
+[[package]]
+name = "fadroma-scrt-snip20-api"
+version = "0.1.0"
+dependencies = [
+ "fadroma-scrt-base",
+ "fadroma-scrt-callback 0.1.0",
 ]
 
 [[package]]

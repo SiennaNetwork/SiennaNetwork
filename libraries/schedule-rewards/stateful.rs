@@ -33,6 +33,9 @@ const POOL_THRESHOLD: &[u8] = b"pool_threshold";
 /// When did each user first add liquidity
 const USER_BORN:      &[u8] = b"user_born/";
 
+/// When did each user first add liquidity
+const USER_AGE:       &[u8] = b"user_age/";
+
 /// How much liquidity has each user provided since they first appeared
 /// Incremented in intervals of (blocks since last update * current volume)
 const USER_TOTAL:     &[u8] = b"user_lifetime/";
@@ -155,16 +158,40 @@ pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
         Ok(self.load_ns(USER_VOLUME, address.as_slice())?.unwrap_or(Uint128::zero()))
     }
 
+    fn user_age (
+        &self, now: Monotonic, address: &CanonicalAddr
+    ) -> StdResult<Monotonic> {
+        if let (
+            Some(age), Some(volume), Some(since)
+        ) = (
+            self.load_ns(USER_AGE,    address.as_slice())? as Option<Monotonic>,
+            self.load_ns(USER_VOLUME, address.as_slice())? as Option<Uint128>,
+            self.load_ns(USER_SINCE,  address.as_slice())? as Option<Monotonic>
+        ) {
+            if volume > Uint128::zero() {
+                // if user is currently providing liquidity,
+                // the time since last update gets added to the age
+                let elapsed = now - since;
+                Ok(age + elapsed)
+            } else {
+                Ok(age)
+            }
+        } else {
+            error!("missing user age data")
+        }
+    }
+
     fn user_lifetime_liquidity (
         &self, now: Monotonic, address: &CanonicalAddr
     ) -> StdResult<Uint256> {
-        let user_total:  Option<Uint256>   = self.load_ns(USER_TOTAL, address.as_slice())?;
-        let user_volume: Option<Uint128>   = self.load_ns(USER_VOLUME, address.as_slice())?;
-        let user_since:  Option<Monotonic> = self.load_ns(USER_SINCE, address.as_slice())?;
         if let (
             Some(user_total), Some(user_volume), Some(user_since)
-        ) = (user_total, user_volume, user_since) {
-            lifetime_liquidity(user_total, now - user_since, user_volume.into())
+        ) = (
+            self.load_ns(USER_TOTAL,  address.as_slice())? as Option<Uint256>,
+            self.load_ns(USER_VOLUME, address.as_slice())? as Option<Uint128>,
+            self.load_ns(USER_SINCE,  address.as_slice())? as Option<Monotonic>
+        ) {
+            Ok(lifetime_liquidity(user_total, now - user_since, user_volume))
         } else {
             error!("missing user liquidity data")
         }
@@ -179,11 +206,10 @@ pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
         now:     Monotonic,
         balance: Uint128,
         address: &CanonicalAddr,
-    ) -> StdResult<(Uint256, Uint256, Uint256)> {
-        let budget = self.pool_lifetime_reward_budget(balance.into())?;
-        let user = self.user_lifetime_liquidity(now, address)?;
-        let pool = self.pool_lifetime_liquidity(now)?;
-        
+    ) -> StdResult<(Uint256, Uint128, Uint128)> {
+        let budget = self.pool_lifetime_reward_budget(balance)?;
+        let user   = self.user_lifetime_liquidity(now, address)?;
+        let pool   = self.pool_lifetime_liquidity(now)?;
         if pool > Uint256::zero() {
             let ratio    = self.pool_ratio()?;
             let unlocked = budget.multiply_ratio(user, pool)?.multiply_ratio(ratio.0, ratio.1)?;
@@ -250,30 +276,38 @@ impl <S: Storage + ReadonlyStorage> RewardPoolController <&mut S> {
     pub fn user_lock (
         &mut self, now: Monotonic, address: CanonicalAddr, increment: Uint128
     ) -> StdResult<Uint128> {
-        let volume: Option<Uint128>  = self.load_ns(USER_VOLUME, address.as_slice())?;
-        let since: Option<Monotonic> = self.load_ns(USER_SINCE,  address.as_slice())?;
-        let total: Option<Uint256>   = self.load_ns(USER_TOTAL,  address.as_slice())?;
-        match (volume, since, total) {
-            (Some(volume), Some(since), Some(total)) => {
+        let volume: Option<Uint128>   = self.load_ns(USER_VOLUME, address.as_slice())?;
+        let total:  Option<Uint256>   = self.load_ns(USER_TOTAL,  address.as_slice())?;
+        let since:  Option<Monotonic> = self.load_ns(USER_SINCE,  address.as_slice())?;
+        let age:    Option<Monotonic> = self.load_ns(USER_AGE,    address.as_slice())?;
+        match (volume, since, total, age) {
+            (Some(volume), Some(since), Some(total), Some(age)) => {
                 // if the user is known, update it
+                let elapsed = now - since;
+                let user_total = lifetime_liquidity(total, elapsed, volume);
                 self.save_ns(USER_SINCE,  address.as_slice(), now)?
-                    .save_ns(USER_TOTAL,  address.as_slice(), lifetime_liquidity(total, now - since, volume.into())?)?
+                    .save_ns(USER_TOTAL,  address.as_slice(), user_total)?
                     .save_ns(USER_VOLUME, address.as_slice(), volume + increment)?;
+                // if the user was already providing liquidity, update its age
+                if volume > Uint128::zero() {
+                    self.save_ns(USER_AGE, address.as_slice(), age + elapsed)?;
+                }
             },
             _ => {
                 // if the user is unknown, record it
                 self.save_ns(USER_BORN,    address.as_slice(), now)?
                     .save_ns(USER_CLAIMED, address.as_slice(), Uint256::zero())?
+                    .save_ns(USER_AGE,     address.as_slice(), 0u64)?
                     .save_ns(USER_SINCE,   address.as_slice(), now)?
                     .save_ns(USER_TOTAL,   address.as_slice(), Uint256::zero())?
                     .save_ns(USER_VOLUME,  address.as_slice(), increment)?;
             }
         }
-        // if recording it in the user's balance went fine
-        // tally the pool and update its current state
+        // if updating the user's balance went fine, update the pool
         let incremented = self.pool_update(now)? + increment;
         self.save(POOL_VOLUME, incremented)?
             .save(POOL_SINCE,  now)?;
+        // return the amount locked
         Ok(increment)
     }
 
@@ -302,20 +336,27 @@ impl <S: Storage + ReadonlyStorage> RewardPoolController <&mut S> {
     pub fn user_claim (
         &mut self, now: Monotonic, balance: Uint128, address: &CanonicalAddr
     ) -> StdResult<Uint256> {
-        let budget = self.pool_lifetime_reward_budget(balance.into())?;
-        println!("\n[Now: {} | Budget: {}/{} | Address: {}]", &now, &balance, &budget, &address);
-        let (unlocked, claimed, claimable) = self.user_reward(now, balance, address)?;
-        println!("[Unlocked: {} | Claimed: {} | Claimable: {}]", &unlocked, &claimed, &claimable);
-        if claimable > Uint256::zero() {
-            // something to claim
-            self.save_ns(USER_CLAIMED, address.as_slice(), &unlocked)?;
-
-            Ok(claimable)
-        } else if unlocked > Uint256::zero() {
-            // everything claimed
-            error!("already claimed")
+        let age       = self.user_age(now, address)?;
+        let threshold = self.pool_threshold()?;
+        if age > threshold {
+            println!("\n[Now: {} | Budget: {}/{} | Address: {}]",
+                &now, &balance, &self.pool_lifetime_reward_budget(balance)?, &address);
+            let (unlocked, claimed, claimable) =
+                self.user_reward(now, balance, address)?;
+            println!("[Unlocked: {} | Claimed: {} | Claimable: {}]",
+                &unlocked, &claimed, &claimable);
+            if claimable > Uint256::zero() {
+                // something to claim
+                self.save_ns(USER_CLAIMED, address.as_slice(), &unlocked)?;
+                Ok(claimable)
+            } else if unlocked > Uint128::zero() {
+                // everything claimed
+                error!("already claimed")
+            } else {
+                error!("nothing to claim")
+            }
         } else {
-            error!("nothing to claim")
+            error!(format!("{} blocks until eligible", threshold - age))
         }
     }
 }
