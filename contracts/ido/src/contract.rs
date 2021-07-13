@@ -80,7 +80,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     };
 
     let token_balance = get_token_balance(&deps, &env, &config)?;
-    let mut total_allocation =
+    let total_allocation =
         config.max_allocation * Decimal::from_str(&format!("{}", config.max_seats))?;
 
     // Check that the allocated amount matches the balance of the token on for the contract
@@ -194,7 +194,7 @@ fn refund<S: Storage, A: Api, Q: Querier>(
     let config = Config::<CanonicalAddr>::load_self(&deps)?;
     config.is_refundable(env.block.time)?;
 
-    let mut refund_amount = get_token_balance(&deps, &env, &config)?;
+    let refund_amount = get_token_balance(&deps, &env, &config)?;
 
     swap_internal(
         env,
@@ -216,9 +216,9 @@ fn get_status<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     let config = Config::<HumanAddr>::load_self(&deps)?;
 
-    let mut total_allocation =
+    let total_allocation =
         config.max_allocation * Decimal::from_str(&format!("{}", config.max_seats))?;
-    let mut available_for_sale = get_token_balance(&deps, &env, &config)?;
+    let available_for_sale = get_token_balance(&deps, &env, &config)?;
 
     Ok(HandleResponse {
         messages: vec![],
@@ -248,11 +248,9 @@ fn add_address<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err("All seats already taken."));
     }
 
-    let response = Account::<CanonicalAddr>::load_self(&deps, &address);
-
     // We will add new address only if we couldn't find it, meaning it hasn't been
     // yet added to whitelisted addresses
-    if response.is_err() {
+    if Account::<CanonicalAddr>::load_self(&deps, &address).is_err() {
         Account::<CanonicalAddr>::new(&caonical_address).save(deps)?;
         config.save(deps)?;
 
@@ -754,7 +752,7 @@ mod tests {
             &mut deps,
             env,
             HandleMsg::AdminAddAddress {
-                address: buyer_env.message.sender.clone(),
+                address: buyer_env2.message.sender.clone(),
             },
         );
 

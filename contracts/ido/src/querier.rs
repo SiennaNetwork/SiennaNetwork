@@ -91,7 +91,7 @@ impl InternalWasmQuerier {
     fn query(&self, request: &WasmQuery) -> QuerierResult {
         match request {
             WasmQuery::Smart {
-                callback_code_hash,
+                callback_code_hash: _,
                 contract_addr,
                 msg,
             } => {
