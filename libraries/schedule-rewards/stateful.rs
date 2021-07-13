@@ -81,6 +81,7 @@ impl <S: Storage> Writable <S> for RewardPoolController <&mut S> {
 /// It's ugly that this needs to be a trait.
 /// TODO: Need to find out how to abstract over mutability.
 pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
+
     /// Return a status report
     fn pool_status (&self, now: Monotonic) -> StdResult<Status> {
         match self.load(POOL_SINCE)? {
@@ -91,9 +92,10 @@ pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
                 if now < since {
                     error!("can't query before last update")
                 } else {
-                    if let (Some(volume), Some(total)) = (
-                        self.load(POOL_VOLUME)?,
-                        self.load(POOL_TOTAL)?,
+                    if let (
+                        Some(volume), Some(total)
+                    ) = (
+                        self.load(POOL_VOLUME)?, self.load(POOL_TOTAL)?,
                     ) {
                         Ok((volume, lifetime_liquidity(total, now - since, volume), since))
                     } else {
@@ -104,11 +106,13 @@ pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
         }
     }
 
+    /// Sum of currently locked LP tokens in this pool
     fn pool_volume (&self) -> StdResult<Uint128> {
         Ok(self.load(POOL_VOLUME)?.unwrap_or(Uint128::zero()))
     }
 
-    /// Configure the ratio between share of liquidity provided and amount of reward
+    /// Ratio between share of liquidity provided and amount of reward
+    /// Should be <= 1
     fn pool_ratio (&self) -> StdResult<Ratio> {
         match self.load(POOL_RATIO)? {
             Some(ratio) => Ok(ratio),
@@ -142,6 +146,7 @@ pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
         }
     }
 
+    /// Current amount of LP tokens locked by this user
     fn user_volume (&self, address: &CanonicalAddr) -> StdResult<Uint128> {
         Ok(self.load_ns(USER_VOLUME, address.as_slice())?.unwrap_or(Uint128::zero()))
     }
@@ -161,7 +166,7 @@ pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
         }
     }
 
-    fn user_claimed (&self, address: &CanonicalAddr) -> StdResult<Uint128> {
+    fn user_lifetime_rewards_claimed (&self, address: &CanonicalAddr) -> StdResult<Uint128> {
         Ok(self.load_ns(USER_CLAIMED, address.as_slice())?.unwrap_or(Uint128::zero()))
     }
 
@@ -177,7 +182,7 @@ pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
         if pool > Uint128::zero() {
             let ratio    = self.pool_ratio()?;
             let unlocked = budget.multiply_ratio(user, pool).multiply_ratio(ratio.0, ratio.1);
-            let claimed  = self.user_claimed(address)?;
+            let claimed  = self.user_lifetime_rewards_claimed(address)?;
             if unlocked > claimed {
                 Ok((unlocked, claimed, (unlocked - claimed)?))
             } else {
