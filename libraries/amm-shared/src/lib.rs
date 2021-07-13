@@ -8,7 +8,7 @@ pub mod fadroma {
     pub use fadroma_scrt_addr as address;
     pub use fadroma_scrt_migrate as migrate;
     pub use fadroma_scrt_storage as storage;
-    pub use fadroma_scrt_utils as utils;
+    pub use cosmwasm_utils as utils;
 }
 
 
