@@ -66,16 +66,16 @@
               "minimum": 0.0
             },
             "claimable": {
-              "$ref": "#/definitions/Uint256"
+              "$ref": "#/definitions/Uint128"
             },
             "claimed": {
-              "$ref": "#/definitions/Uint256"
+              "$ref": "#/definitions/Uint128"
             },
             "lifetime": {
               "$ref": "#/definitions/Uint256"
             },
             "unlocked": {
-              "$ref": "#/definitions/Uint256"
+              "$ref": "#/definitions/Uint128"
             },
             "volume": {
               "$ref": "#/definitions/Uint128"

@@ -143,81 +143,18 @@ export interface ExchangeRate {
 
 export interface RewardPool {
     lp_token: ContractInfo;
-    /**
-     * The reward amount allocated to this pool.
-     */
-    share: number;
-    /**
-     * Total amount locked by all participants.
-     */
-    size: number;
-}
-
-export interface PoolContractInfo {
-    address: Address;
-    pool: RewardPool;
+    since: number;
+    total: Uint128;
+    volume: Uint128;
 }
 
 export interface RewardsAccount {
-    /**
-     * The last time that the user claimed their rewards.
-     */
-    last_claimed: number;
-    /**
-     * The amount of LP tokens the owner has locked into this contract.
-     */
-    locked_amount: Uint128;
-    /**
-     * The owner of this account.
-     */
-    owner: Address;
-    /**
-     * A history of submitted tokens that aren't included in the rewards calculations yet.
-     */
-    pending_balances?: PendingBalance[] | null;
-}
-
-export interface PendingBalance {
-    amount: Uint128;
-    submitted_at: number;
-}
-
-export type ClaimError =
-    | {
-        /**
-         * Occurs when the rewards pool is currently empty.
-         */
-        type: "pool_empty";
-    }
-    | {
-        /**
-         * It is possible for the user's share to be so little, that
-         * the actual reward amount of rewards calculated to be zero.
-         * However, it is highly unlikely in practice.
-         */
-        type: "account_zero_reward";
-    }
-    | {
-        /**
-         * In Unix seconds.
-         */
-        time_to_wait: number;
-        /**
-         * Occurs when the user tries to claim earlier than the designated claim interval.
-         */
-        type: "early_claim";
-    };
-
-export interface ClaimSimulationResult {
-  /**
-   * The actual amount of rewards that would be claimed.
-   */
-   actual_claimed: Uint128;
-   error?: ClaimError | null;
-   /**
-    * The total amount of rewards that should be claimed.
-    */
-   reward_amount: Uint128;
+    age: number;
+    claimable: Uint128;
+    claimed: Uint128;
+    lifetime: Uint128;
+    unlocked: Uint128;
+    volume: Uint128;
 }
 
 export class ContractInfo {
