@@ -98,14 +98,13 @@ contract! {
         UserInfo (now: Monotonic, address: HumanAddr, key: String) {
             let address = deps.api.canonical_address(&address)?;
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
+
             let token = load_reward_token(&deps.storage, &deps.api)?;
-            let balance = snip20::balance_query(
-                &deps.querier,
-                load_self_reference(&deps.storage, &deps.api)?.address,
-                load_viewing_key(&deps.storage)?.0.clone(),
-                BLOCK_SIZE,
-                token.code_hash.clone(), token.address
-            )?.amount;
+            let balance = ISnip20::connect(token).query(&deps.querier).balance(
+                &load_self_reference(&deps.storage, &deps.api)?.address,
+                &load_viewing_key(&deps.storage)?.0,
+            )?;
+
             let (unlocked, claimed, claimable) = Pool::new(&deps.storage)
                 .user_reward(now, balance, &address)?;
             Ok(Response::UserInfo {
@@ -121,11 +120,7 @@ contract! {
         /// Keplr integration
         TokenInfo () {
             let token = load_lp_token(&deps.storage, &deps.api)?;
-            let info = snip20::token_info_query(
-                &deps.querier,
-                BLOCK_SIZE,
-                token.code_hash, token.address
-            )?;
+            let info  = ISnip20::connect(token).query(&deps.querier).token_info()?;
             Ok(Response::TokenInfo {
                 name:         format!("Sienna Rewards: {}", info.name),
                 symbol:       "SRW".into(),
