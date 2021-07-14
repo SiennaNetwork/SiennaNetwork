@@ -79,18 +79,6 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         viewing_key,
     };
 
-    let token_balance = get_token_balance(&deps, &env, &config)?;
-    let total_allocation =
-        config.max_allocation * Decimal::from_str(&format!("{}", config.max_seats))?;
-
-    // Check that the allocated amount matches the balance of the token on for the contract
-    if token_balance != total_allocation {
-        return Err(StdError::generic_err(format!(
-            "Token balance of {} does not match expected allocation of {}",
-            token_balance, total_allocation
-        )));
-    }
-
     config.save(deps)?;
 
     Ok(InitResponse {
