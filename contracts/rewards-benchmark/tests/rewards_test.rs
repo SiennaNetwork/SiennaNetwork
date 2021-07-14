@@ -259,7 +259,7 @@ kukumba! {
     }
     and   "a provider claims rewards"
     then  "that provider receives reward tokens" {
-        test = test.fund(100u128.into())
+        test = test.fund(100)
         assert_eq!(test.tx_claim(17282, &alice)?, (vec![
             Snip20::transfer("alice", "50")
         ], 0, 0));
@@ -271,7 +271,7 @@ kukumba! {
     when  "a provider claims their rewards less often"
     then  "they receive equivalent rewards as long as the liquidity balance hasn't changed" {
         //assert_eq!(test.tx_claim(4, &alice)?, (vec![Snip20::transfer("alice",  "5")], 0, 0));
-        test = test.fund(100u128.into())
+        test = test.fund(100)
         assert_eq!(test.tx_claim(3 + 17280 * 2, &alice)?, (vec![
             Snip20::transfer("alice", "50")
         ], 0, 0));
@@ -285,10 +285,57 @@ kukumba! {
 
     #[rewards_parallel_or_sequential]
     given "three users providing liquidity" {
+        let admin   = HumanAddr::from("admin");
+        let alice   = HumanAddr::from("alice");
+        let bob     = HumanAddr::from("bob");
+        let cyril   = HumanAddr::from("cyril");
     }
     when "they provide the liquidity simultaneously" {
+        let mut test = RewardsHarness::new().fund(100);
+        let _ = test.init_configured(0, &admin)?;
+        let _ = test.tx_set_vk(0, &alice, "")?;
+        let _ = test.tx_set_vk(0, &bob,   "")?;
+        let _ = test.tx_set_vk(0, &cyril, "")?;
+
+        let _ = test.tx_lock(0, &alice, 100)?;
+        let _ = test.tx_lock(0, &bob,   100)?;
+        let _ = test.tx_lock(0, &cyril, 100)?;
+        println!("{:#?}", test.q_pool_info(0));
+        assert_eq!(test.tx_claim(17280, &alice)?, (vec![Snip20::transfer("alice", "33")], 0, 0));
+        assert_eq!(test.tx_claim(17280, &bob  )?, (vec![Snip20::transfer("bob",   "33")], 0, 0));
+        assert_eq!(test.tx_claim(17280, &cyril)?, (vec![Snip20::transfer("cyril", "33")], 0, 0));
+        println!("{:#?}", test.q_pool_info(17280));
+        println!("{:#?}", test.q_user_info(17280, &alice));
+        println!("{:#?}", test.q_user_info(17280, &bob));
+        println!("{:#?}", test.q_user_info(17280, &cyril));
     }
-    then "it's the same as if they provided the liquidity sequentially as long as nobody claims" {
+    then "it's the same as if they provided the liquidity sequentially, as long as nobody claims" {
+        let mut test = RewardsHarness::new().fund(100);
+        let _ = test.init_configured(0, &admin)?;
+        let _ = test.tx_set_vk(0, &alice, "")?;
+        let _ = test.tx_set_vk(0, &bob,   "")?;
+        let _ = test.tx_set_vk(0, &cyril, "")?;
+
+        let _ = test.tx_lock(                2, &alice, 100)?;
+        let _ = test.tx_retrieve(17280 * 1 + 2, &alice, 100)?;
+
+        let _ = test.tx_lock(    17280 * 1 + 3, &bob,   100)?;
+        let _ = test.tx_retrieve(17280 * 2 + 3, &bob,   100)?;
+
+        let _ = test.tx_lock(    17280 * 2 + 4, &cyril, 100)?;
+        let _ = test.tx_retrieve(17280 * 3 + 4, &cyril, 100)?;
+        println!("{:#?}", test.q_pool_info(17280 * 4));
+        println!("{:#?}", test.q_user_info(17280 * 4, &alice));
+        println!("{:#?}", test.q_user_info(17280 * 4, &bob));
+        println!("{:#?}", test.q_user_info(17280 * 4, &cyril));
+        assert_eq!(test.tx_claim(17280 * 4, &alice)?, (vec![Snip20::transfer("alice", "33")], 0, 0));
+        assert_eq!(test.tx_claim(17280 * 4, &bob  )?, (vec![Snip20::transfer("bob",   "33")], 0, 0));
+        assert_eq!(test.tx_claim(17280 * 4, &cyril)?, (vec![Snip20::transfer("cyril", "33")], 0, 0));
+    }
+    when "one of the users claims when providing liquidity sequentially"
+    then "the remaining rewards are split between the late-comer and the late-claimer" {
+        let mut test = RewardsHarness::new();
+        let _ = test.init_configured(0, &admin)?;
     }
 
 }

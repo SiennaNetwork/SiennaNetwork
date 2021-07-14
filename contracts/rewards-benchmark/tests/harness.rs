@@ -1,14 +1,11 @@
 #![allow(unreachable_patterns)]
-#![allow(dead_code)]
 
 use fadroma::scrt::{
     cosmwasm_std::{
         Uint128, HumanAddr, StdResult,
-        InitResponse, HandleResponse,
-        Env, BlockInfo, MessageInfo, ContractInfo,
-        Extern, MemoryStorage, Querier, QuerierResult, testing::MockApi,
-        from_binary, CosmosMsg, WasmMsg,
-        SystemError, from_slice, Empty, QueryRequest, WasmQuery, to_binary,
+        Extern, testing::MockApi, MemoryStorage,
+        Querier, QueryRequest, Empty, WasmQuery, QuerierResult,
+        from_binary, to_binary, from_slice, SystemError,
     },
     callback::{ContractInstance as ContractLink},
     harness::{Harness, InitFn, HandleFn, QueryFn},
@@ -101,6 +98,9 @@ impl RewardsHarness<RewardsMockQuerier> {
             code_hash: code_hash.into(),
         })
     }
+    pub fn tx_set_vk (&mut self, height: u64, agent: &HumanAddr, key: &str) -> TxResult {
+        self.tx(height, agent, TX::SetViewingKey { key: key.into(), padding: None })
+    }
     pub fn tx_lock (&mut self, height: u64, agent: &HumanAddr, amount: u128) -> TxResult {
         self.tx(height, agent, TX::Lock { amount: amount.into() })
     }
@@ -114,15 +114,17 @@ impl RewardsHarness<RewardsMockQuerier> {
     pub fn q_pool_info (&self, now: u64) -> StdResult<Response> {
         self.q(QQ::PoolInfo { now })
     }
-    pub fn q_user_info (&self, now: u64, address: HumanAddr) -> StdResult<Response> {
-        self.q(QQ::UserInfo { now, address, key: "".into() })
+    pub fn q_user_info (&self, now: u64, address: &HumanAddr) -> StdResult<Response> {
+        self.q(QQ::UserInfo { now, address: address.clone(), key: "".into() })
     }
 
     pub fn fund (self, amount: u128) -> Self {
         Self {
             _lp_token: self._lp_token,
             _deps: self._deps
-                .change_querier(|q|RewardsMockQuerier { balance: q.balance + amount.into() })
+                .change_querier(|q|RewardsMockQuerier {
+                    balance: q.balance + amount.into()
+                })
         }
     }
 }
@@ -185,6 +187,7 @@ impl Querier for RewardsMockQuerier {
 }
 
 pub struct Snip20;
+
 impl Snip20 {
     pub fn set_viewing_key (key: &str) -> String {
         format!(
