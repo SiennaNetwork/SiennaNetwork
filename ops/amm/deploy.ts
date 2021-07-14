@@ -27,23 +27,21 @@ const configs = [
         }
     },
     {
-        rewards: {
-            admin: null,
-            claim_interval: 86400, // 1 day,
-            reward_token: {
-                address: '',
-                code_hash: ''
-            },
-            reward_pools: [
-                {
-                    lp_token: {
-                        address: '',
-                        code_hash: ''
-                    },
-                    share: ''
-                }
-            ]
-        }
+        rewards: [
+            {
+                admin: null,
+                reward_token: {
+                    address: '',
+                    code_hash: ''
+                },
+                lp_token: {
+                    address: '',
+                    code_hash: ''
+                },
+                ratio: [ 1, 1 ],
+                threshold: 17280 // ~24h @ 5s/block
+            }
+        ]
     }
 ]
 
@@ -99,7 +97,7 @@ async function deploy_amm(config: any) {
     const instance = await client.instantiate(
         result.factory.id,
         init_msg,
-        `${commit} - SIENNA AMM FACTORY`,
+        `SIENNA AMM FACTORY (${commit})`,
         undefined,
         undefined,
         create_fee('200000')
@@ -111,36 +109,39 @@ async function deploy_amm(config: any) {
     )
 }
 
-async function deploy_rewards(config: any) {
+async function deploy_rewards(config: any[]) {
     const client = await build_client(process.env.MNEMONIC as string, process.env.SECRET_REST_URL as string)
     const writer = new JsonFileWriter(`${ARTIFACTS_PATH}/rewards/${process.env.SECRET_CHAIN_ID}/`)
 
-    const wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/sienna-rewards@HEAD.wasm`))
+    const wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/sienna-rewards-benchmark@HEAD.wasm`))
 
     const upload = await client.upload(wasm, undefined, undefined, create_fee('1800000'))
     writer.write(upload, `uploads/rewards`)
 
-    const init_msg = {
-        entropy: create_rand_base64(),
-        prng_seed: create_rand_base64()
+    for(let obj of config) {
+        const init_msg = {
+            viewing_key: create_rand_base64()
+        }
+    
+        Object.assign(init_msg, obj)
+
+        const commit = process.argv[2];
+        const lp_token_addr = obj.lp_token.address;
+
+        const instance = await client.instantiate(
+            upload.codeId,
+            init_msg,
+            `SIENNA REWARDS - ${lp_token_addr} (${commit})`,
+            undefined,
+            undefined,
+            create_fee('270000')
+        )
+    
+        writer.write(
+            new ContractInfo(upload.originalChecksum, instance.contractAddress),
+            `addresses/rewards-${lp_token_addr}`
+        )
     }
-
-    Object.assign(init_msg, config)
-
-    const commit = process.argv[2];
-    const instance = await client.instantiate(
-        upload.codeId,
-        init_msg,
-        `${commit} - SIENNA REWARDS`,
-        undefined,
-        undefined,
-        create_fee('270000')
-    )
-
-    writer.write(
-        new ContractInfo(upload.originalChecksum, instance.contractAddress),
-        `addresses/rewards`
-    )
 }
 
 deploy().catch(console.log)

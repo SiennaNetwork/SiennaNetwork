@@ -7,6 +7,16 @@
     "viewing_key"
   ],
   "properties": {
+    "admin": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "lp_token": {
       "anyOf": [
         {
