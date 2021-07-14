@@ -10,7 +10,7 @@ use fadroma::scrt::{
     cosmwasm_std::ReadonlyStorage,
     snip20_api::ISnip20
 };
-use sienna_reward_schedule::stateful::{
+mod pool; use pool::{
     RewardPoolController as Pool,
     RewardPoolCalculations,
     Monotonic,

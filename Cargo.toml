@@ -8,9 +8,6 @@ members = [
   "contracts/snip20-sienna",     # SNIP20 reference impl with deposit/redeem disabled
   "contracts/mgmt",              # mints and vests tokens according to schedule
   "contracts/rpt",               # claims from mgmt and splits the portion between recipients
-  "contracts/rewards",           # TODO: leave only this and use MGMT and RPT from tge
-  "contracts/rewards-factory",   # instantiates and holds reward pool contracts
-  "libraries/schedule-rewards",  # experimental continuous rewards algorithm
   "contracts/rewards-benchmark", # gas benchmark for continuous rewards
 
   # Swap + IDO

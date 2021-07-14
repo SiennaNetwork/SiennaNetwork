@@ -1812,16 +1812,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sienna-reward-schedule"
-version = "0.1.0"
-dependencies = [
- "fadroma 21.7.0",
- "schemars",
- "serde",
- "snafu",
-]
-
-[[package]]
 name = "sienna-rewards"
 version = "0.1.0"
 dependencies = [
@@ -1851,7 +1841,6 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
- "sienna-reward-schedule",
 ]
 
 [[package]]
