@@ -66,6 +66,7 @@ impl RewardsHarness<RewardsMockQuerier> {
 
     pub fn init_configured (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
         self.init(height, agent, Init {
+            admin: None,
             lp_token:     Some(self.lp_token()),
             reward_token: ContractLink {
                 address:   "reward_token_address".into(),
@@ -78,6 +79,7 @@ impl RewardsHarness<RewardsMockQuerier> {
     }
     pub fn init_partial (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
         self.init(height, agent, Init {
+            admin: None,
             lp_token:     None,
             reward_token: ContractLink {
                 address:    "reward_token_address".into(),

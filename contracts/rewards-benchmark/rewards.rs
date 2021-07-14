@@ -14,7 +14,15 @@ mod pool; use pool::{
     Monotonic,
     Ratio
 };
-use composable_auth::{auth_handle, authenticate, AuthHandleMsg, DefaultHandleImpl};
+use composable_auth::{
+    auth_handle, authenticate, AuthHandleMsg,
+    DefaultHandleImpl as AuthHandle
+};
+use composable_admin::admin::{
+    DefaultHandleImpl as AdminHandle,
+    admin_handle, AdminHandleMsg, load_admin,
+    assert_admin, save_admin
+};
 
 macro_rules! tx_ok {
     ($($msg:expr),*) => { Ok(HandleResponse { messages: vec![$($msg),*], log: vec![], data: None }) }
@@ -29,6 +37,7 @@ contract! {
     [NoGlobalState] {}
 
     [Init] (deps, env, msg: {
+        admin:        Option<HumanAddr>,
         lp_token:     Option<ContractInstance<HumanAddr>>,
         reward_token: ContractInstance<HumanAddr>,
         viewing_key:  ViewingKey,
@@ -42,7 +51,8 @@ contract! {
         // (...that, or let's just give contracts a `self` already?)
 
         // configure admin
-        set_admin(&mut deps.storage, &deps.api, &env, &env.message.sender)?;
+        let admin = admin.unwrap_or(env.message.sender);
+        save_admin(deps, &admin)?;
 
         // save self reference - used to check own balance
 
@@ -136,6 +146,14 @@ contract! {
             })
         }
 
+        Admin () {
+            let address = load_admin(&deps)?;
+
+            Ok(Response::Admin {
+                address
+            })
+        }
+
     }
 
     [Response] {
@@ -159,6 +177,10 @@ contract! {
             claimable: Uint128
         }
 
+        Admin {
+            address: HumanAddr
+        }
+
         /// Keplr integration
         TokenInfo {
             name:         String,
@@ -180,7 +202,7 @@ contract! {
         // Resolves circular reference in benchmark -
         // they need to know each other's addresses to use initial allowances
         SetProvidedToken (address: HumanAddr, code_hash: String) {
-            is_admin(&deps.storage, &deps.api, &env)?;
+            assert_admin(&deps, &env)?;
             save_lp_token(&mut deps.storage, &deps.api, &ContractInstance { address, code_hash })?;
             Ok(HandleResponse::default())
         }
@@ -234,42 +256,20 @@ contract! {
         /// User can request a new viewing key for oneself.
         CreateViewingKey (entropy: String, padding: Option<String>) {
             let msg = AuthHandleMsg::CreateViewingKey { entropy, padding: None };
-            auth_handle(deps, env, msg, DefaultHandleImpl)
+            auth_handle(deps, env, msg, AuthHandle)
         }
 
         /// User can set own viewing key to a known value.
         SetViewingKey (key: String, padding: Option<String>) {
             let msg = AuthHandleMsg::SetViewingKey { key, padding: None };
-            auth_handle(deps, env, msg, DefaultHandleImpl)
+            auth_handle(deps, env, msg, AuthHandle)
         }
 
-    }
-}
+        ChangeAdmin (address: HumanAddr) {
+            let msg = AdminHandleMsg::ChangeAdmin { address };
+            admin_handle(deps, env, msg, AdminHandle)
+        }
 
-const POOL_ADMIN: &[u8] = b"admin";
-
-fn is_admin (
-    storage: &impl ReadonlyStorage,
-    api: &impl Api,
-    env: &Env
-) -> StdResult<()> {
-    if load(storage, POOL_ADMIN)? == Some(api.canonical_address(&env.message.sender)?) {
-        Ok(())
-    } else {
-        Err(StdError::unauthorized())
-    }
-}
-
-fn set_admin (
-    storage: &mut impl Storage,
-    api: &impl Api,
-    env: &Env, new_admin: &HumanAddr
-) -> StdResult<()> {
-    let current_admin = load(storage, POOL_ADMIN)?;
-    if current_admin == None || current_admin == Some(api.canonical_address(&env.message.sender)?) {
-        save(storage, POOL_ADMIN, &api.canonical_address(new_admin)?)
-    } else {
-        Err(StdError::unauthorized())
     }
 }
 

@@ -24,6 +24,7 @@ fadroma  = { path = "../../libraries/fadroma-21.07/core", features = [
   "scrt-utils"
 ] }
 composable-auth = { path = "../../libraries/fadroma-21.07/scrt-auth/composable-auth" }
+composable-admin = { path = "../../libraries/fadroma-21.07/scrt-admin/composable-admin", default-features = false }
 
 [dev-dependencies]
 fadroma = { path = "../../libraries/fadroma-21.07/core", features = [ "scrt-harness" ] }

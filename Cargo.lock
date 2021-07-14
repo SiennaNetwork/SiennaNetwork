@@ -1845,6 +1845,7 @@ dependencies = [
 name = "sienna-rewards-benchmark"
 version = "1.0.0"
 dependencies = [
+ "composable-admin 0.1.0",
  "composable-auth 0.1.0",
  "fadroma 21.7.0",
  "kukumba 1.0.1",
