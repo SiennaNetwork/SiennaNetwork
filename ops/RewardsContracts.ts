@@ -44,13 +44,13 @@ export default class SiennaRewards extends ScrtEnsemble {
 
   get localCommands () {
     return [ ...super.localCommands
-           , ["test",      '🥒 Run unit tests',    () => this.test()      ]
-           , ["benchmark", '⛽ Measure gas costs', () => this.benchmark() ] ]
+           , ["test",      '🥒 Run unit tests',    this.test.bind(this)      ]
+           , ["benchmark", '⛽ Measure gas costs', this.benchmark.bind(this) ] ]
   }
 
-  test () {
+  test (context, testName) {
     execFileSync('cargo', [
-      'test', '-p', 'sienna-rewards-benchmark'
+      'test', '-p', 'sienna-rewards-benchmark', ...[testName].filter(Boolean)
     ], {
       stdio: 'inherit'
     })
