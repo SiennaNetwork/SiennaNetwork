@@ -20,7 +20,7 @@ describe("RewardsBenchmark", () => {
     const T0 = + new Date()
 
     // connect to a localnet with a large number of predefined agents
-    const numberOfAgents = 80
+    const numberOfAgents = 20
     const agentNames = [...Array(numberOfAgents)].map((_,i)=>`Agent${i}`)
     const localnet = SecretNetwork.localnet({
       stateBase:       abs("artifacts"),
@@ -98,7 +98,7 @@ describe("RewardsBenchmark", () => {
     const rewardPool = await context.agent.instantiate(new RewardsBenchmark({
       codeId: context.pool.id,
       label: 'RewardPool',
-      initMsg: { rewarded_token: rewardToken.reference
+      initMsg: { reward_token: rewardToken.reference
                , viewing_key:    "" } }))
 
     console.debug('mint reward budget:')

@@ -7,7 +7,8 @@ use fadroma::scrt::{
     utils::Uint256,
     utils::viewing_key::ViewingKey,
     storage::{load, save},
-    cosmwasm_std::ReadonlyStorage
+    cosmwasm_std::ReadonlyStorage,
+    snip20_api::ISnip20
 };
 use sienna_reward_schedule::stateful::{
     RewardPoolController as Pool,
@@ -56,11 +57,7 @@ contract! {
         })?;
         save_reward_token(&mut deps.storage, &deps.api, &reward_token)?;
         save_viewing_key(&mut deps.storage, &viewing_key)?;
-        let set_vk = snip20::set_viewing_key_msg(
-            viewing_key.0,
-            None, BLOCK_SIZE,
-            reward_token.code_hash, reward_token.address
-        )?;
+        let set_vk = ISnip20::connect(reward_token).set_viewing_key(&viewing_key.0)?;
 
         // needed to start calculating rewards
         // but can be provided later
@@ -68,7 +65,7 @@ contract! {
             save_lp_token(&mut deps.storage, &deps.api, &lp_token)?;
         }
 
-        // save address of reward token, reward ratio, and minimum age
+        // save reward ratio and minimum liquidity provision duration
         Pool::new(&mut deps.storage)
             .save_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
             .save_threshold(&threshold.unwrap_or(17280u64))?; // ~24h @ 5s/block
@@ -197,53 +194,47 @@ contract! {
 
         /// Provide some liquidity.
         Lock (amount: Uint128) {
-            let token    = load_lp_token(&deps.storage, &deps.api)?;
-            let transfer = snip20::transfer_from_msg(
-                env.message.sender.clone(),
-                env.contract.address,
+            tx_ok!(ISnip20::connect(
+                load_lp_token(&deps.storage, &deps.api)?
+            ).transfer_from(
+                &env.message.sender,
+                &env.contract.address,
                 Pool::new(&mut deps.storage).user_lock(
                     env.block.height,
                     deps.api.canonical_address(&env.message.sender)?,
                     amount
-                )?,
-                None, BLOCK_SIZE, token.code_hash, token.address
-            )?;
-            tx_ok!(transfer)
+                )?
+            )?)
         }
 
         /// Get some tokens back.
         Retrieve (amount: Uint128) {
-            let token    = load_lp_token(&deps.storage, &deps.api)?;
-            let transfer = snip20::transfer_msg(
-                env.message.sender.clone(),
+            tx_ok!(ISnip20::connect(
+                load_lp_token(&deps.storage, &deps.api)?
+            ).transfer(
+                &env.message.sender,
                 Pool::new(&mut deps.storage).user_retrieve(
                     env.block.height,
                     deps.api.canonical_address(&env.message.sender)?,
                     amount
-                )?,
-                None, BLOCK_SIZE, token.code_hash, token.address
-            )?;
-            tx_ok!(transfer)
+                )?
+            )?)
         }
 
         /// User can receive rewards after having provided liquidity.
         Claim () {
-            let token = load_reward_token(&deps.storage, &deps.api)?;
-            let balance = snip20::balance_query(
-                &deps.querier, env.contract.address,
-                load_viewing_key(&deps.storage)?.0.clone(),
-                BLOCK_SIZE,
-                token.code_hash.clone(), token.address.clone()
-            )?.amount;
-            let claimable = Pool::new(&mut deps.storage).user_claim(
-                env.block.height,
-                balance,
-                &deps.api.canonical_address(&env.message.sender)?
+            let reward  = ISnip20::connect(load_reward_token(&deps.storage, &deps.api)?);
+            let balance = reward.query(&deps.querier).balance(
+                &env.contract.address,
+                &load_viewing_key(&deps.storage)?.0,
             )?;
-            tx_ok!(snip20::transfer_msg(
-                env.message.sender,
-                Uint128(claimable.low_u128()),
-                None, BLOCK_SIZE, token.code_hash, token.address
+            tx_ok!(reward.transfer(
+                &env.message.sender,
+                Uint128(Pool::new(&mut deps.storage).user_claim(
+                    env.block.height,
+                    balance,
+                    &deps.api.canonical_address(&env.message.sender)?
+                )?.low_u128())
             )?)
         }
 
