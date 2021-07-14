@@ -1,18 +1,18 @@
+pub mod pool; use pool::{
+    RewardPoolController as Pool,
+    RewardPoolCalculations,
+    Monotonic, Volume, Liquidity,
+    Ratio
+};
 use fadroma::scrt::{
     contract::*,
     addr::{Humanize, Canonize},
-    callback::ContractInstance,
-    utils::Uint256,
+    callback::{ContractInstance as ContractLink},
+    //utils::Uint256,
     utils::viewing_key::ViewingKey,
     storage::{load, save},
     cosmwasm_std::ReadonlyStorage,
     snip20_api::ISnip20
-};
-mod pool; use pool::{
-    RewardPoolController as Pool,
-    RewardPoolCalculations,
-    Monotonic,
-    Ratio
 };
 use composable_auth::{
     auth_handle, authenticate, AuthHandleMsg,
@@ -24,13 +24,13 @@ use composable_admin::admin::{
     assert_admin, save_admin
 };
 
-macro_rules! tx_ok {
-    ($($msg:expr),*) => { Ok(HandleResponse { messages: vec![$($msg),*], log: vec![], data: None }) }
-}
+macro_rules! tx_ok { ($($msg:expr),*) => {
+    Ok(HandleResponse { messages: vec![$($msg),*], log: vec![], data: None })
+} }
 
-macro_rules! error {
-    ($info:expr) => { Err(StdError::GenericErr { msg: $info.into(), backtrace: None }) }
-}
+macro_rules! error { ($info:expr) => {
+    Err(StdError::GenericErr { msg: $info.into(), backtrace: None })
+} }
 
 contract! {
 
@@ -38,8 +38,8 @@ contract! {
 
     [Init] (deps, env, msg: {
         admin:        Option<HumanAddr>,
-        lp_token:     Option<ContractInstance<HumanAddr>>,
-        reward_token: ContractInstance<HumanAddr>,
+        lp_token:     Option<ContractLink<HumanAddr>>,
+        reward_token: ContractLink<HumanAddr>,
         viewing_key:  ViewingKey,
         ratio:        Option<Ratio>,
         threshold:    Option<Monotonic>
@@ -54,12 +54,10 @@ contract! {
         let admin = admin.unwrap_or(env.message.sender);
         save_admin(deps, &admin)?;
 
-        // save self reference - used to check own balance
-
         // to check reward token balance:
         // save references to self and the reward token
         // and set ourselves a viewing key so we know how much we're dividing
-        save_self_reference(&mut deps.storage, &deps.api, &ContractInstance {
+        save_self_reference(&mut deps.storage, &deps.api, &ContractLink {
             address: env.contract.address,
             code_hash: env.contract_code_hash
         })?;
@@ -113,12 +111,12 @@ contract! {
                 &load_viewing_key(&deps.storage)?.0,
             )?;
 
-            let (unlocked, claimed, claimable) = Pool::new(&deps.storage)
-                .user_reward(now, balance, &address)?;
+            let pool = Pool::new(&deps.storage);
+            let (unlocked, claimed, claimable) = pool.user_reward(now, balance, &address)?;
             Ok(Response::UserInfo {
-                age:      0,
-                volume:   Uint128::zero(),
-                lifetime: Uint256::zero(),
+                age:      pool.user_age(now, &address)?,
+                volume:   pool.user_volume(&address)?,
+                lifetime: pool.user_lifetime_liquidity(now, &address)?,
                 unlocked,
                 claimed,
                 claimable
@@ -160,9 +158,9 @@ contract! {
 
         /// Response from `Query::PoolInfo`
         PoolInfo {
-            lp_token: ContractInstance<HumanAddr>,
-            volume:   Uint128,
-            total:    Uint256,
+            lp_token: ContractLink<HumanAddr>,
+            volume:   Volume,
+            total:    Liquidity,
             since:    Monotonic,
             now:      Monotonic
         }
@@ -170,11 +168,11 @@ contract! {
         /// Response from `Query::UserInfo`
         UserInfo {
             age:       Monotonic,
-            volume:    Uint128,
-            lifetime:  Uint256,
-            unlocked:  Uint128,
-            claimed:   Uint128,
-            claimable: Uint128
+            volume:    Volume,
+            lifetime:  Liquidity,
+            unlocked:  Volume,
+            claimed:   Volume,
+            claimable: Volume
         }
 
         Admin {
@@ -186,12 +184,12 @@ contract! {
             name:         String,
             symbol:       String,
             decimals:     u8,
-            total_supply: Option<Uint128>
+            total_supply: Option<Volume>
         }
 
         /// Keplr integration
         Balance {
-            amount: Uint128
+            amount: Volume
         }
 
     }
@@ -203,12 +201,12 @@ contract! {
         // they need to know each other's addresses to use initial allowances
         SetProvidedToken (address: HumanAddr, code_hash: String) {
             assert_admin(&deps, &env)?;
-            save_lp_token(&mut deps.storage, &deps.api, &ContractInstance { address, code_hash })?;
+            save_lp_token(&mut deps.storage, &deps.api, &ContractLink { address, code_hash })?;
             Ok(HandleResponse::default())
         }
 
         /// Provide some liquidity.
-        Lock (amount: Uint128) {
+        Lock (amount: Volume) {
             tx_ok!(ISnip20::connect(
                 load_lp_token(&deps.storage, &deps.api)?
             ).transfer_from(
@@ -223,7 +221,7 @@ contract! {
         }
 
         /// Get some tokens back.
-        Retrieve (amount: Uint128) {
+        Retrieve (amount: Volume) {
             tx_ok!(ISnip20::connect(
                 load_lp_token(&deps.storage, &deps.api)?
             ).transfer(
@@ -238,6 +236,7 @@ contract! {
 
         /// User can receive rewards after having provided liquidity.
         Claim () {
+            // TODO reset age on claim, so user can claim only once per reward period?
             let reward  = ISnip20::connect(load_reward_token(&deps.storage, &deps.api)?);
             let balance = reward.query(&deps.querier).balance(
                 &env.contract.address,
@@ -278,8 +277,8 @@ const POOL_SELF_REFERENCE: &[u8] = b"self";
 fn load_self_reference(
     storage: &impl ReadonlyStorage,
     api:     &impl Api
-) -> StdResult<ContractInstance<HumanAddr>> {
-    let result: Option<ContractInstance<CanonicalAddr>> = load(storage, POOL_SELF_REFERENCE)?;
+) -> StdResult<ContractLink<HumanAddr>> {
+    let result: Option<ContractLink<CanonicalAddr>> = load(storage, POOL_SELF_REFERENCE)?;
     match result {
         Some(link) => Ok(link.humanize(api)?),
         None => error!("missing self reference")
@@ -289,7 +288,7 @@ fn load_self_reference(
 fn save_self_reference (
     storage: &mut impl Storage,
     api:     &impl Api,
-    link:    &ContractInstance<HumanAddr>
+    link:    &ContractLink<HumanAddr>
 ) -> StdResult<()> {
     save(storage, POOL_SELF_REFERENCE, &link.canonize(api)?)
 }
@@ -299,8 +298,8 @@ const POOL_LP_TOKEN: &[u8] = b"lp_token";
 fn load_lp_token (
     storage: &impl ReadonlyStorage,
     api:     &impl Api
-) -> StdResult<ContractInstance<HumanAddr>> {
-    let result: Option<ContractInstance<CanonicalAddr>> = load(storage, POOL_LP_TOKEN)?;
+) -> StdResult<ContractLink<HumanAddr>> {
+    let result: Option<ContractLink<CanonicalAddr>> = load(storage, POOL_LP_TOKEN)?;
     match result {
         Some(link) => Ok(link.humanize(api)?),
         None => error!("missing liquidity provision token")
@@ -310,7 +309,7 @@ fn load_lp_token (
 fn save_lp_token (
     storage: &mut impl Storage,
     api:     &impl Api,
-    link:    &ContractInstance<HumanAddr>
+    link:    &ContractLink<HumanAddr>
 ) -> StdResult<()> {
     save(storage, POOL_LP_TOKEN, &link.canonize(api)?)
 }
@@ -320,8 +319,8 @@ const POOL_REWARD_TOKEN: &[u8] = b"reward_token";
 fn load_reward_token (
     storage: &impl ReadonlyStorage,
     api:     &impl Api
-) -> StdResult<ContractInstance<HumanAddr>> {
-    let result: Option<ContractInstance<CanonicalAddr>> = load(storage, POOL_REWARD_TOKEN)?;
+) -> StdResult<ContractLink<HumanAddr>> {
+    let result: Option<ContractLink<CanonicalAddr>> = load(storage, POOL_REWARD_TOKEN)?;
     match result {
         Some(link) => Ok(link.humanize(api)?),
         None => error!("missing liquidity provision token")
@@ -331,7 +330,7 @@ fn load_reward_token (
 fn save_reward_token (
     storage: &mut impl Storage,
     api:     &impl Api,
-    link:    &ContractInstance<HumanAddr>
+    link:    &ContractLink<HumanAddr>
 ) -> StdResult<()> {
     save(storage, POOL_REWARD_TOKEN, &link.canonize(api)?)
 }

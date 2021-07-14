@@ -48,9 +48,9 @@ export default class SiennaRewards extends ScrtEnsemble {
            , ["benchmark", '⛽ Measure gas costs', this.benchmark.bind(this) ] ]
   }
 
-  test (context, testName) {
+  test (context: object, ...args:any) {
     execFileSync('cargo', [
-      'test', '-p', 'sienna-rewards-benchmark', ...[testName].filter(Boolean)
+      'test', '-p', 'sienna-rewards-benchmark', ...args
     ], {
       stdio: 'inherit'
     })
