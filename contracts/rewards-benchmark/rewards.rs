@@ -161,9 +161,9 @@ contract! {
             age:       Monotonic,
             volume:    Uint128,
             lifetime:  Uint256,
-            unlocked:  Uint256,
-            claimed:   Uint256,
-            claimable: Uint256
+            unlocked:  Uint128,
+            claimed:   Uint128,
+            claimable: Uint128
         }
 
         /// Keplr integration
@@ -230,11 +230,11 @@ contract! {
             )?;
             tx_ok!(reward.transfer(
                 &env.message.sender,
-                Uint128(Pool::new(&mut deps.storage).user_claim(
+                Pool::new(&mut deps.storage).user_claim(
                     env.block.height,
                     balance,
                     &deps.api.canonical_address(&env.message.sender)?
-                )?.low_u128())
+                )?
             )?)
         }
 

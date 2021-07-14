@@ -36,8 +36,8 @@ const USER_BORN:      &[u8] = b"user_born/";
 /// When did each user first add liquidity
 const USER_AGE:       &[u8] = b"user_age/";
 
-/// How much liquidity has each user provided since they first appeared
-/// Incremented in intervals of (blocks since last update * current volume)
+/// How much liquidity has each user provided since they first appeared;
+/// incremented in intervals of (blocks since last update * current volume)
 const USER_TOTAL:     &[u8] = b"user_lifetime/";
 
 /// How much liquidity does each user currently provide
@@ -56,8 +56,10 @@ pub type Monotonic = u64;
 pub type Ratio = (Uint128, Uint128);
 
 /// Calculate the current total based on the stored total and the time since last update.
-pub fn lifetime_liquidity (previously: Uint256, elapsed: Monotonic, volume: Uint256) -> StdResult<Uint256> {
-    previously + volume.multiply_ratio(elapsed, 1u128)?
+pub fn lifetime_liquidity (
+    previously: Uint256, elapsed: Monotonic, volume: Uint128
+) -> StdResult<Uint256> {
+    previously + volume.multiply_ratio(elapsed, 1u128).into()
 }
 
 /// (volume, total, since)
@@ -136,8 +138,8 @@ pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
     }
 
     /// Sum of reward claimed + current balance of this contract in reward token
-    fn pool_lifetime_reward_budget (&self, balance: Uint256) -> StdResult<Uint256> {
-        self.load(POOL_CLAIMED)?.unwrap_or(Uint256::zero()) + balance
+    fn pool_lifetime_reward_budget (&self, balance: Uint128) -> StdResult<Uint128> {
+        Ok(self.load(POOL_CLAIMED)?.unwrap_or(Uint128::zero()) + balance)
     }
 
     fn pool_lifetime_liquidity (&self, now: Monotonic) -> StdResult<Uint256> {
@@ -191,14 +193,14 @@ pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
             self.load_ns(USER_VOLUME, address.as_slice())? as Option<Uint128>,
             self.load_ns(USER_SINCE,  address.as_slice())? as Option<Monotonic>
         ) {
-            Ok(lifetime_liquidity(user_total, now - user_since, user_volume))
+            lifetime_liquidity(user_total, now - user_since, user_volume)
         } else {
             error!("missing user liquidity data")
         }
     }
 
-    fn user_lifetime_rewards_claimed (&self, address: &CanonicalAddr) -> StdResult<Uint256> {
-        Ok(self.load_ns(USER_CLAIMED, address.as_slice())?.unwrap_or(Uint256::zero()))
+    fn user_lifetime_rewards_claimed (&self, address: &CanonicalAddr) -> StdResult<Uint128> {
+        Ok(self.load_ns(USER_CLAIMED, address.as_slice())?.unwrap_or(Uint128::zero()))
     }
 
     fn user_reward (
@@ -206,19 +208,21 @@ pub trait RewardPoolCalculations <S: ReadonlyStorage>: Readonly<S> {
         now:     Monotonic,
         balance: Uint128,
         address: &CanonicalAddr,
-    ) -> StdResult<(Uint256, Uint128, Uint128)> {
+    ) -> StdResult<(Uint128, Uint128, Uint128)> {
         let budget = self.pool_lifetime_reward_budget(balance)?;
         let user   = self.user_lifetime_liquidity(now, address)?;
         let pool   = self.pool_lifetime_liquidity(now)?;
         if pool > Uint256::zero() {
             let ratio    = self.pool_ratio()?;
-            let unlocked = budget.multiply_ratio(user, pool)?.multiply_ratio(ratio.0, ratio.1)?;
+            let unlocked = Uint256::from(budget)
+                .multiply_ratio(user, pool)?
+                .multiply_ratio(ratio.0, ratio.1)?
+                .low_u128().into();
             let claimed  = self.user_lifetime_rewards_claimed(address)?;
-
             if unlocked > claimed {
                 Ok((unlocked, claimed, (unlocked - claimed)?))
             } else {
-                Ok((unlocked, claimed, Uint256::zero()))
+                Ok((unlocked, claimed, Uint128::zero()))
             }
         } else {
             error!("pool is empty")
@@ -247,15 +251,15 @@ impl <S: Storage + ReadonlyStorage> RewardPoolController <&mut S> {
     /// (Current total is calculated from them using the `lifetime_liquidity` function).
     fn pool_update (&mut self, now: Monotonic) -> StdResult<Uint128> {
         // update balance so far
-        let since: Option<Monotonic> = self.load(POOL_SINCE)?;
-        let volume: Option<Uint128> = self.load(POOL_VOLUME)?;
-        let total: Option<Uint256> = self.load(POOL_TOTAL)?;
+        let since:  Option<Monotonic> = self.load(POOL_SINCE)?;
+        let volume: Option<Uint128>   = self.load(POOL_VOLUME)?;
+        let total:  Option<Uint256>   = self.load(POOL_TOTAL)?;
 
         match (volume, total, since) {
             // if all three are present: we can update
             // the total of the liquidity ever provided
             (Some(volume), Some(total), Some(since)) => {
-                let total = lifetime_liquidity(total, now - since, volume.into())?;
+                let total = lifetime_liquidity(total, now - since, volume)?;
                 self.save(POOL_TOTAL, total)?;
                 
                 Ok(volume)
@@ -335,7 +339,7 @@ impl <S: Storage + ReadonlyStorage> RewardPoolController <&mut S> {
     /// subtract it from the total balance, and return it.
     pub fn user_claim (
         &mut self, now: Monotonic, balance: Uint128, address: &CanonicalAddr
-    ) -> StdResult<Uint256> {
+    ) -> StdResult<Uint128> {
         let age       = self.user_age(now, address)?;
         let threshold = self.pool_threshold()?;
         if age > threshold {
@@ -345,7 +349,7 @@ impl <S: Storage + ReadonlyStorage> RewardPoolController <&mut S> {
                 self.user_reward(now, balance, address)?;
             println!("[Unlocked: {} | Claimed: {} | Claimable: {}]",
                 &unlocked, &claimed, &claimable);
-            if claimable > Uint256::zero() {
+            if claimable > Uint128::zero() {
                 // something to claim
                 self.save_ns(USER_CLAIMED, address.as_slice(), &unlocked)?;
                 Ok(claimable)
@@ -359,4 +363,5 @@ impl <S: Storage + ReadonlyStorage> RewardPoolController <&mut S> {
             error!(format!("{} blocks until eligible", threshold - age))
         }
     }
+
 }
