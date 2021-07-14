@@ -1,7 +1,6 @@
 #![allow(unreachable_patterns)]
 #![allow(dead_code)]
 
-use std::str::from_utf8;
 use fadroma::scrt::{
     cosmwasm_std::{
         Uint128, HumanAddr, StdResult,
@@ -12,8 +11,11 @@ use fadroma::scrt::{
         SystemError, from_slice, Empty, QueryRequest, WasmQuery, to_binary,
     },
     callback::{ContractInstance as ContractLink},
+    harness::{Harness, InitFn, HandleFn, QueryFn},
     //snip20 // todo work around circular dep ( via more reexports :( )
 };
+pub use fadroma::scrt::harness::TxResult;
+
 use sienna_rewards_benchmark::{
     init, handle, query,
     msg::{Init, Handle as TX, Query as QQ, Response}
@@ -23,86 +25,10 @@ use sienna_rewards_benchmark::{
     ($response:expr, $msg:expr) => { assert_eq!($response, Err(StdError::generic_err($msg))) }
 }
 
-/// Successful transaction return a vector of relevant messages and a count of any others
-type TxResult = StdResult<(Vec<String>, usize, usize)>;
-
 // CosmosMsg::Wasm(WasmMsg::Execute { msg: the_actual_message_as_binary })
 // loses type information. Thinking of genericizing it (hard, would require platform changes,
 // would also enable custom non-JSON serializers) and/or adding a response builder macro
 // (add_response_message!, add_response_log!, set_response_data!).
-
-/// Reusable test harness with overridable post processing
-/// for init and tx response messages.
-pub trait Harness <Q: Querier> {
-
-    fn deps     (&self)     -> &Extern<MemoryStorage, MockApi, Q>;
-    fn deps_mut (&mut self) -> &mut Extern<MemoryStorage, MockApi, Q>;
-
-    fn init (&mut self, height: u64, agent: &HumanAddr, msg: Init) -> TxResult {
-        init(self.deps_mut(), Env {
-            block:    BlockInfo    { height, time: height * 5, chain_id: "secret".into() },
-            message:  MessageInfo  { sender: agent.into(), sent_funds: vec![] },
-            contract: ContractInfo { address: "contract_addr".into() },
-            contract_key:       Some("contract_key".into()),
-            contract_code_hash: "contract_hash".into()
-        }, msg).map(|result|Self::postprocess_init(result))?
-    }
-
-    fn postprocess_init (result: InitResponse) -> TxResult {
-        let mut relevant = vec![];
-        let mut other    = 0;
-        let mut invalid  = 0;
-        for cosmos_msg in result.messages.iter() {
-            match cosmos_msg {
-                CosmosMsg::Wasm(wasm_msg) => match wasm_msg {
-                    WasmMsg::Execute { msg, .. } => match from_utf8(msg.as_slice()) {
-                        Ok(msg) => relevant.push(msg.trim().into()),
-                        Err(_) => invalid += 1,
-                    },
-                    _ => other += 1
-                },
-                _ => other += 1
-            }
-        }
-        Ok((relevant, other, invalid))
-    }
-
-    fn tx (&mut self, height: u64, agent: &HumanAddr, tx: TX) -> TxResult {
-        handle(self.deps_mut(), Env {
-            block:    BlockInfo    { height, time: height * 5, chain_id: "secret".into() },
-            message:  MessageInfo  { sender: agent.into(), sent_funds: vec![] },
-            contract: ContractInfo { address: "contract_addr".into() },
-            contract_key:       Some("contract_key".into()),
-            contract_code_hash: "contract_hash".into()
-        }, tx).map(|result|Self::postprocess_tx(result))?
-    }
-
-    fn postprocess_tx (result: HandleResponse) -> TxResult {
-        let mut relevant = vec![];
-        let mut other    = 0;
-        let mut invalid  = 0;
-        for cosmos_msg in result.messages.iter() {
-            match cosmos_msg {
-                CosmosMsg::Wasm(wasm_msg) => match wasm_msg {
-                    WasmMsg::Execute { msg, .. } => match from_utf8(msg.as_slice()) {
-                        Ok(msg) => relevant.push(msg.trim().into()),
-                        Err(_)  => invalid += 1,
-                    },
-                    _ => other += 1
-                },
-                _ => other += 1
-            }
-        }
-        Ok((relevant, other, invalid))
-    }
-
-    fn q (&self, q: QQ) -> StdResult<Response> {
-        match query(self.deps(), q) {
-            Ok(response) => from_binary(&response),
-            Err(e) => Err(e)
-        }
-    }
-}
 
 pub struct RewardsHarness <Q: Querier> {
     _deps: Extern<MemoryStorage, MockApi, Q>,
@@ -110,13 +36,13 @@ pub struct RewardsHarness <Q: Querier> {
 }
 
 // trait fields WHEN?
-impl <Q: Querier> Harness <Q> for RewardsHarness<Q> {
-    fn deps (&self) -> &Extern<MemoryStorage, MockApi, Q> {
-        &self._deps
-    }
-    fn deps_mut (&mut self) -> &mut Extern<MemoryStorage, MockApi, Q> {
-        &mut self._deps
-    }
+impl <Q: Querier> Harness <Q, Init, TX, QQ, Response> for RewardsHarness<Q> {
+    type Deps = Extern<MemoryStorage, MockApi, Q>;
+    fn deps       (&self)     -> &Self::Deps { &self._deps }
+    fn deps_mut   (&mut self) -> &mut Self::Deps { &mut self._deps }
+    fn get_init   (&mut self) -> InitFn<Self::Deps, Init> { init }
+    fn get_handle (&mut self) -> HandleFn<Self::Deps, TX> { handle }
+    fn get_query  (&self)     -> QueryFn<Self::Deps, QQ>  { query }
 }
 
 /// See https://docs.rs/cosmwasm-std/0.10.1/cosmwasm_std/testing/fn.mock_dependencies_with_balances.html
@@ -192,10 +118,11 @@ impl RewardsHarness<RewardsMockQuerier> {
         self.q(QQ::UserInfo { now, address, key: "".into() })
     }
 
-    pub fn fund (self, amount: Uint128) -> Self {
+    pub fn fund (self, amount: u128) -> Self {
         Self {
             _lp_token: self._lp_token,
-            _deps: self._deps.change_querier(|q|RewardsMockQuerier { balance: q.balance + amount })
+            _deps: self._deps
+                .change_querier(|q|RewardsMockQuerier { balance: q.balance + amount.into() })
         }
     }
 }

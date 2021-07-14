@@ -30,6 +30,7 @@ members = [
   "libraries/fadroma-21.07/scrt-admin/composable-admin", # proc macro for `require_admin` attribute
   "libraries/fadroma-21.07/scrt-admin/require-admin",    # implementation of admin check
   "libraries/fadroma-21.07/scrt-contract",               # contract wrapper macro
+  "libraries/fadroma-21.07/scrt-harness",                # reusable test harness for contracts
   "libraries/fadroma-21.07/scrt-migrate",                # pause contracts and mark them for upgrade
   "libraries/fadroma-21.07/scrt-snip20-api",             # interface to external snip20 token
   "libraries/fadroma-21.07/scrt-storage",                # storage access shorthand functions

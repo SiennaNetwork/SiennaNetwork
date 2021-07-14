@@ -26,5 +26,6 @@ fadroma  = { path = "../../libraries/fadroma-21.07/core", features = [
 composable-auth = { path = "../../libraries/fadroma-21.07/scrt-auth/composable-auth" }
 
 [dev-dependencies]
+fadroma = { path = "../../libraries/fadroma-21.07/core", features = [ "scrt-harness" ] }
 kukumba = { path = "../../libraries/kukumba" }
 serde_json = "1.0"

@@ -645,6 +645,7 @@ dependencies = [
  "fadroma-scrt-base",
  "fadroma-scrt-callback 0.1.0",
  "fadroma-scrt-contract",
+ "fadroma-scrt-harness",
  "fadroma-scrt-migrate 0.1.0",
  "fadroma-scrt-snip20-api",
  "fadroma-scrt-storage 0.1.0",
@@ -705,6 +706,15 @@ dependencies = [
 [[package]]
 name = "fadroma-scrt-contract"
 version = "0.1.0"
+
+[[package]]
+name = "fadroma-scrt-harness"
+version = "0.1.0"
+dependencies = [
+ "fadroma-scrt-base",
+ "fadroma-scrt-callback 0.1.0",
+ "serde",
+]
 
 [[package]]
 name = "fadroma-scrt-migrate"
