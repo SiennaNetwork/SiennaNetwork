@@ -77,7 +77,10 @@ kukumba! {
     when  "the admin provides an asset token address"
     then  "the instance configures a viewing key for itself"
     and   "it goes live when someone locks funds" {
-        assert_eq!(test.tx_set_token(4, &admin, "ok_addr", "ok_hash")?, (vec![], 0, 0),);
+        assert_eq!(
+            test.tx_set_token(4, &admin, "lp_token_address", "lp_token_hash")?,
+            (vec![], 0, 0)
+        );
         assert_error!(test.q_pool_info(5), "missing POOL_SINCE");
         assert_eq!(test.tx_lock(6, &admin, 1)?, (vec![
             Snip20::transfer_from("admin", "contract_addr", "1")
@@ -238,37 +241,44 @@ kukumba! {
     }
     when  "strangers try to claim rewards"
     then  "they get an error" {
-        assert_error!(test.tx_claim(1, &alice), "missing user liquidity data");
-        assert_error!(test.tx_claim(1, &bob),   "missing user liquidity data");
+        assert_error!(test.tx_claim(1, &alice), "missing user age data");
+        assert_error!(test.tx_claim(1, &bob),   "missing user age data");
     }
     when  "users provide liquidity"
     and   "they wait for rewards to accumulate" {
         assert_eq!(test.tx_lock(2, &alice, 100)?, (vec![
             Snip20::transfer_from("alice", "contract_addr", "100")
         ], 0, 0));
-        assert_error!(test.tx_claim(2, &alice), "pool is empty");
-        assert_eq!(test.tx_lock(3, &bob, 100)?, (vec![
+        assert_error!(test.tx_claim(2, &alice), "17280 blocks until eligible");
+        assert_eq!(test.tx_lock(2, &bob, 100)?, (vec![
             Snip20::transfer_from("bob", "contract_addr", "100")
         ], 0, 0));
-        assert_error!(test.tx_claim(3, &bob),   "nothing to claim");
+        assert_error!(test.tx_claim(2, &alice), "17280 blocks until eligible");
+        assert_error!(test.tx_claim(3, &bob),   "17279 blocks until eligible");
+        assert_error!(test.tx_claim(4, &alice), "17278 blocks until eligible");
     }
     and   "a provider claims rewards"
     then  "that provider receives reward tokens" {
-        assert_eq!(test.tx_claim(3, &alice)?, (vec![
+        test = test.fund(100u128.into())
+        assert_eq!(test.tx_claim(17282, &alice)?, (vec![
             Snip20::transfer("alice", "50")
         ], 0, 0));
     }
     when  "a provider claims rewards twice"
     then  "rewards are sent only once" {
-        assert_error!(test.tx_claim(3, &alice), "already claimed");
+        assert_error!(test.tx_claim(17282, &alice), "already claimed");
     }
     when  "a provider claims their rewards less often"
     then  "they receive equivalent rewards as long as the liquidity balance hasn't changed" {
         //assert_eq!(test.tx_claim(4, &alice)?, (vec![Snip20::transfer("alice",  "5")], 0, 0));
-        assert_eq!(test.tx_claim(4, &bob)?, (vec![
-            Snip20::transfer("bob", "50")
+        test = test.fund(100u128.into())
+        assert_eq!(test.tx_claim(3 + 17280 * 2, &alice)?, (vec![
+            Snip20::transfer("alice", "50")
         ], 0, 0));
-        println!("{:#?}", test.tx_claim(10, &alice));
+        assert_eq!(test.tx_claim(3 + 17280 * 2, &bob)?, (vec![
+            Snip20::transfer("bob", "100")
+        ], 0, 0));
+        //println!("{:#?}", test.tx_claim(10, &alice));
         //println!("{:#?}", test.tx_claim(4, &bob)?);
         //panic!()
     }

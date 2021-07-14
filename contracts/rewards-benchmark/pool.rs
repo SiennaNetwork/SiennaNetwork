@@ -342,7 +342,7 @@ impl <S: Storage + ReadonlyStorage> RewardPoolController <&mut S> {
     ) -> StdResult<Uint128> {
         let age       = self.user_age(now, address)?;
         let threshold = self.pool_threshold()?;
-        if age > threshold {
+        if age >= threshold {
             println!("\n[Now: {} | Budget: {}/{} | Address: {}]",
                 &now, &balance, &self.pool_lifetime_reward_budget(balance)?, &address);
             let (unlocked, claimed, claimable) =

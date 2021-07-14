@@ -1,9 +1,7 @@
 use fadroma::scrt::{
-    BLOCK_SIZE,
     contract::*,
     addr::{Humanize, Canonize},
     callback::ContractInstance,
-    toolkit::snip20,
     utils::Uint256,
     utils::viewing_key::ViewingKey,
     storage::{load, save},
@@ -244,6 +242,7 @@ contract! {
             let msg = AuthHandleMsg::SetViewingKey { key, padding: None };
             auth_handle(deps, env, msg, DefaultHandleImpl)
         }
+
     }
 }
 

@@ -1,3 +1,6 @@
+#![allow(unreachable_patterns)]
+#![allow(dead_code)]
+
 use std::str::from_utf8;
 use fadroma::scrt::{
     cosmwasm_std::{
@@ -189,7 +192,7 @@ impl RewardsHarness<RewardsMockQuerier> {
         self.q(QQ::UserInfo { now, address, key: "".into() })
     }
 
-    pub fn fund (mut self, amount: Uint128) -> Self {
+    pub fn fund (self, amount: Uint128) -> Self {
         Self {
             _lp_token: self._lp_token,
             _deps: self._deps.change_querier(|q|RewardsMockQuerier { balance: q.balance + amount })
@@ -226,6 +229,7 @@ impl RewardsMockQuerier {
                 //}
                 Snip20QueryAnswer::Balance { amount: self.balance }
             },
+
             _ => unimplemented!()
         }
     }
