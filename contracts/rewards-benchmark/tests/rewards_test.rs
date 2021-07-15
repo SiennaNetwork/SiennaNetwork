@@ -54,7 +54,7 @@ macro_rules! test {
     };
 
     ($T:ident = $now:expr ; retr($who:expr, $amount:expr) -> [ $($msg:expr),* ]) => {
-        assert_eq!($T.tx_lock($now, &$who, ($amount as u128).into())?, (vec![ $($msg,)* ], 0, 0))
+        assert_eq!($T.tx_retrieve($now, &$who, ($amount as u128).into())?, (vec![ $($msg,)* ], 0, 0))
     };
 
     ($T:ident = $now:expr ; claim($who:expr) -> [ $($msg:expr),* ]) => {
@@ -134,15 +134,15 @@ kukumba! {
     }
     when "one retrieves half of the tokens," {
         test!(T =  4 ; user(alice)      -> { age:     3, volume: 100, lifetime: 300, unlocked: 0, claimed: 0, claimable: 0 });
-        test!(T =  4 ; retr(alice,  50) -> [ Snip20::transfer_from("alice", "contract_addr",  "50") ]);
+        test!(T =  4 ; retr(alice,  50) -> [ Snip20::transfer("alice",  "50") ]);
     }
     then "one's age keeps incrementing;" {
         test!(T =  4 ; user(alice)      -> { age:     3, volume:  50, lifetime: 300, unlocked: 0, claimed: 0, claimable: 0 });
     }
-    when "one retreives all of the tokens," {
+    when "one retrieves all of the tokens," {
         test!(T =  5 ; user(alice)      -> { age:     4, volume:  50, lifetime: 350, unlocked: 0, claimed: 0, claimable: 0 });
         test!(T =  6 ; user(alice)      -> { age:     5, volume:  50, lifetime: 400, unlocked: 0, claimed: 0, claimable: 0 });
-        test!(T =  6 ; retr(alice,  50) -> [ Snip20::transfer_from("alice", "contract_addr",  "50") ]);
+        test!(T =  6 ; retr(alice,  50) -> [ Snip20::transfer("alice", "50") ]);
     }
     then "one's age stops incrementing;" {
         test!(T =  6 ; user(alice)      -> { age:     5, volume:   0, lifetime: 400, unlocked: 0, claimed: 0, claimable: 0 });
@@ -151,7 +151,7 @@ kukumba! {
     }
     when "one locks tokens again," {
         test!(T =  9 ; user(alice)      -> { age:     5, volume:   0, lifetime: 400, unlocked: 0, claimed: 0, claimable: 0 });
-        test!(T =  9 ; lock(alice,  1)  -> [ Snip20::transfer_from("alice", "contract_addr", "1") ]);
+        test!(T =  9 ; lock(alice,   1) -> [ Snip20::transfer_from("alice", "contract_addr", "1") ]);
     }
     then "one's age resumes incrementing;" {
         test!(T =  9 ; user(alice)      -> { age:     5, volume:   1, lifetime: 400, unlocked: 0, claimed: 0, claimable: 0 });

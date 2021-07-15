@@ -1,8 +1,6 @@
-pub mod pool; use pool::{
-    RewardPoolController as Pool,
-    RewardPoolCalculations,
-    Monotonic, Volume, Liquidity,
-    Ratio
+pub mod pool_user; use pool_user::{
+    Monotonic, Amount, Volume, Ratio,
+    Pool
 };
 use fadroma::scrt::{
     contract::*,
@@ -89,13 +87,10 @@ contract! {
 
         /// Overall pool status
         PoolInfo (now: Monotonic) {
-            let lp_token = load_lp_token(&deps.storage, &deps.api)?;
-            let (volume, total, since) = Pool::new(&deps.storage).pool_status(now)?;
+            let (balance, lifetime, updated) = Pool::new(&deps.storage).at(now).status()?;
             Ok(Response::PoolInfo {
-                lp_token,
-                volume,
-                total,
-                since,
+                lp_token: load_lp_token(&deps.storage, &deps.api)?,
+                balance, lifetime, updated,
                 now,
             })
         }
@@ -104,19 +99,18 @@ contract! {
         UserInfo (now: Monotonic, address: HumanAddr, key: String) {
             let address = deps.api.canonical_address(&address)?;
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
-
             let token = load_reward_token(&deps.storage, &deps.api)?;
             let balance = ISnip20::connect(token).query(&deps.querier).balance(
                 &load_self_reference(&deps.storage, &deps.api)?.address,
                 &load_viewing_key(&deps.storage)?.0,
             )?;
-
-            let pool = Pool::new(&deps.storage);
-            let (unlocked, claimed, claimable) = pool.user_reward(now, balance, &address)?;
+            let pool = Pool::new(&deps.storage).at(now);
+            let user = pool.user(&address);
+            let (unlocked, claimed, claimable) = user.reward(balance)?;
             Ok(Response::UserInfo {
-                age:      pool.user_age(now, &address)?,
-                volume:   pool.user_volume(&address)?,
-                lifetime: pool.user_lifetime_liquidity(now, &address)?,
+                age:      user.age()?,
+                balance:  user.balance()?,
+                lifetime: user.liquidity()?,
                 unlocked,
                 claimed,
                 claimable
@@ -140,7 +134,9 @@ contract! {
             let address = deps.api.canonical_address(&address)?;
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
             Ok(Response::Balance {
-                amount: Pool::new(&deps.storage).user_volume(&address)?
+                amount: Pool::new(&deps.storage)
+                    .user(address)
+                    .balance()?
             })
         }
 
@@ -159,20 +155,20 @@ contract! {
         /// Response from `Query::PoolInfo`
         PoolInfo {
             lp_token: ContractLink<HumanAddr>,
-            volume:   Volume,
-            total:    Liquidity,
-            since:    Monotonic,
+            balance:  Amount,
+            lifetime: Volume,
+            updated:  Monotonic,
             now:      Monotonic
         }
 
         /// Response from `Query::UserInfo`
         UserInfo {
             age:       Monotonic,
-            volume:    Volume,
-            lifetime:  Liquidity,
-            unlocked:  Volume,
-            claimed:   Volume,
-            claimable: Volume
+            balance:   Amount,
+            lifetime:  Volume,
+            unlocked:  Amount,
+            claimed:   Amount,
+            claimable: Amount
         }
 
         Admin {
@@ -184,12 +180,12 @@ contract! {
             name:         String,
             symbol:       String,
             decimals:     u8,
-            total_supply: Option<Volume>
+            total_supply: Option<Amount>
         }
 
         /// Keplr integration
         Balance {
-            amount: Volume
+            amount: Amount
         }
 
     }
@@ -206,49 +202,37 @@ contract! {
         }
 
         /// Provide some liquidity.
-        Lock (amount: Volume) {
-            tx_ok!(ISnip20::connect(
-                load_lp_token(&deps.storage, &deps.api)?
-            ).transfer_from(
+        Lock (amount: Amount) {
+            tx_ok!(ISnip20::connect(load_lp_token(&deps.storage, &deps.api)?).transfer_from(
                 &env.message.sender,
                 &env.contract.address,
-                Pool::new(&mut deps.storage).user_lock(
-                    env.block.height,
-                    deps.api.canonical_address(&env.message.sender)?,
-                    amount
-                )?
-            )?)
-        }
+                Pool::new(&mut deps.storage)
+                    .at(env.block.height)
+                    .user(deps.api.canonical_address(&env.message.sender)?)
+                    .lock(amount)?)?) }
 
         /// Get some tokens back.
-        Retrieve (amount: Volume) {
-            tx_ok!(ISnip20::connect(
-                load_lp_token(&deps.storage, &deps.api)?
-            ).transfer(
+        Retrieve (amount: Amount) {
+            tx_ok!(ISnip20::connect(load_lp_token(&deps.storage, &deps.api)?).transfer(
                 &env.message.sender,
-                Pool::new(&mut deps.storage).user_retrieve(
-                    env.block.height,
-                    deps.api.canonical_address(&env.message.sender)?,
-                    amount
-                )?
-            )?)
-        }
+                Pool::new(&mut deps.storage)
+                    .at(env.block.height)
+                    .user(deps.api.canonical_address(&env.message.sender)?)
+                    .lock(amount)? )?) }
 
         /// User can receive rewards after having provided liquidity.
         Claim () {
             // TODO reset age on claim, so user can claim only once per reward period?
-            let reward  = ISnip20::connect(load_reward_token(&deps.storage, &deps.api)?);
-            let balance = reward.query(&deps.querier).balance(
-                &env.contract.address,
-                &load_viewing_key(&deps.storage)?.0,
-            )?;
+            let reward = ISnip20::connect(load_reward_token(&deps.storage, &deps.api)?);
             tx_ok!(reward.transfer(
                 &env.message.sender,
-                Pool::new(&mut deps.storage).user_claim(
-                    env.block.height,
-                    balance,
-                    &deps.api.canonical_address(&env.message.sender)?
-                )?
+                Pool::new(&mut deps.storage)
+                    .at(env.block.height)
+                    .user(deps.api.canonical_address(&env.message.sender)?)
+                    .claim(reward.query(&deps.querier).balance(
+                        &env.contract.address,
+                        &load_viewing_key(&deps.storage)?.0,
+                    )?),
             )?)
         }
 

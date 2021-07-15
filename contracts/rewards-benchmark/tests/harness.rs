@@ -210,3 +210,57 @@ impl Snip20 {
         ).into()
     }
 }
+
+#[macro_export] macro_rules! test {
+
+    ($T:ident = $now:expr ; pool_unprepared -> {
+        volume: $volume:expr, total: $total:expr, since: $since:expr
+    }) => {
+        assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
+            lp_token: None,
+            volume:   Amount::from($volume as u128),
+            total:    Volume::zero($total  as u128),
+            since:    $since as u64,
+            now:      $now   as u64,
+        });
+    };
+
+    ($T:ident = $now:expr ; pool -> {
+        volume: $volume:expr, total: $total:expr, since: $since:expr
+    }) => {
+        assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
+            lp_token: $T.lp_token(),
+            volume:   Amount::from($volume as u128),
+            total:    Volume::from($total  as u128),
+            since:    $since as u64,
+            now:      $now   as u64,
+        });
+    };
+
+    ($T:ident = $now:expr ; user($who:expr) -> {
+        age: $age:expr, volume: $volume:expr, lifetime: $lifetime:expr,
+        unlocked: $unlocked:expr, claimed: $claimed:expr, claimable: $claimable:expr
+    }) => {
+        assert_eq!($T.q_user_info($now as u64, &$who)?, Response::UserInfo {
+            age:       $age as u64,
+            volume:    Amount::from($volume    as u128),
+            lifetime:  Volume::from($lifetime  as u128),
+            unlocked:  Amount::from($unlocked  as u128),
+            claimed:   Amount::from($claimed   as u128),
+            claimable: Amount::from($claimable as u128)
+        });
+    };
+
+    ($T:ident = $now:expr ; lock($who:expr, $amount:expr) -> [ $($msg:expr),* ]) => {
+        assert_eq!($T.tx_lock($now, &$who, ($amount as u128).into())?, (vec![ $($msg,)* ], 0, 0))
+    };
+
+    ($T:ident = $now:expr ; retr($who:expr, $amount:expr) -> [ $($msg:expr),* ]) => {
+        assert_eq!($T.tx_retrieve($now, &$who, ($amount as u128).into())?, (vec![ $($msg,)* ], 0, 0))
+    };
+
+    ($T:ident = $now:expr ; claim($who:expr) -> [ $($msg:expr),* ]) => {
+        assert_eq!($T.tx_claim($now, &$who)?, (vec![ $($msg,)* ], 0, 0))
+    };
+
+}
