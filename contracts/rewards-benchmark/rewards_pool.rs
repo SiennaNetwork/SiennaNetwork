@@ -20,8 +20,8 @@ const THRESHOLD: &[u8] = b"pool_threshold";
 
 /// Reward pool
 pub struct Pool <S> {
-    storage: S,
-    now:     Option<Monotonic>
+    pub storage: S,
+    now: Option<Monotonic>
 }
 
 impl <S> Pool<S> {
@@ -33,6 +33,10 @@ impl <S> Pool<S> {
     pub fn at (self, now: Monotonic) -> Self {
         Self { storage: self.storage, now: Some(now) }
     }
+    /// Get the current time or fail
+    pub fn now (&self) -> StdResult<Monotonic> {
+        self.now.ok_or(StdError::generic_err("current time not set"))
+    }
     /// Get an individual user from the pool
     pub fn user (&self, address: CanonicalAddr) -> User<S> {
         // variant: existed check here; new_user for first lock?
@@ -40,27 +44,13 @@ impl <S> Pool<S> {
     }
 }
 
-impl<S: ReadonlyStorage> Readonly<S> for Pool<&S> {
-    fn storage (&self) -> &S { self.storage }
+impl<S: ReadonlyStorage> Readonly<S> for Pool<S> {
+    fn storage (&self) -> &S { &self.storage }
 }
 
-impl<S: ReadonlyStorage> PoolReadonly<S> for Pool<&S> {
-    fn now (&self) -> StdResult<Monotonic> {
-        self.now.ok_or(StdError::generic_err("current time not set"))
-    }
-}
+impl<S: ReadonlyStorage> Pool<S> {
 
-impl<S: Storage> Writable<S> for Pool<&S> {
-    fn storage_mut (&mut self) -> &mut S { &mut *self.storage }
-}
-
-impl<S: Storage> PoolWritable<S> for Pool<&S> {}
-
-pub trait PoolReadonly<S: ReadonlyStorage>: Readonly<S> {
-
-    fn now (&self) -> StdResult<Monotonic>;
-
-    fn status (&self) -> StdResult<(Amount, Volume, Monotonic)> {
+    pub fn status (&self) -> StdResult<(Amount, Volume, Monotonic)> {
         if let Some(last_update) = self.load(UPDATED)? {
             if self.now()? >= last_update {
                 let balance  = self.load(BALANCE)? as Option<Amount>;
@@ -74,13 +64,13 @@ pub trait PoolReadonly<S: ReadonlyStorage>: Readonly<S> {
     }
 
     /// Amount of currently locked LP tokens in this pool
-    fn balance (&self) -> StdResult<Amount> {
+    pub fn balance (&self) -> StdResult<Amount> {
         Ok(self.load(BALANCE)?.unwrap_or(Amount::zero()))
     }
 
     /// Ratio between share of liquidity provided and amount of reward
     /// Should be <= 1 to make sure rewards budget is sufficient. 
-    fn ratio (&self) -> StdResult<Ratio> {
+    pub fn ratio (&self) -> StdResult<Ratio> {
         match self.load(RATIO)? {
             Some(ratio) => Ok(ratio),
             None        => error!("missing reward ratio")
@@ -89,7 +79,7 @@ pub trait PoolReadonly<S: ReadonlyStorage>: Readonly<S> {
 
     /// For how many blocks does the user need to have provided liquidity
     /// in order to be eligible for rewards
-    fn threshold (&self) -> StdResult<Monotonic> {
+    pub fn threshold (&self) -> StdResult<Monotonic> {
         match self.load(THRESHOLD)? {
             Some(ratio) => Ok(ratio),
             None        => error!("missing reward threshold")
@@ -97,12 +87,12 @@ pub trait PoolReadonly<S: ReadonlyStorage>: Readonly<S> {
     }
 
     /// The full reward budget = rewards claimed + current balance of this contract in reward token
-    fn budget (&self, balance: Amount) -> StdResult<Amount> {
+    pub fn budget (&self, balance: Amount) -> StdResult<Amount> {
         Ok(self.load(CLAIMED)?.unwrap_or(Amount::zero()) + balance)
     }
 
     /// The total liquidity ever contained in this pool.
-    fn lifetime (&self) -> StdResult<Volume> {
+    pub fn lifetime (&self) -> StdResult<Volume> {
         let previous:     Option<Volume>    = self.load(TALLIED)?;
         let balance:      Option<Amount>    = self.load(BALANCE)?;
         let last_updated: Option<Monotonic> = self.load(UPDATED)?;
@@ -117,18 +107,22 @@ pub trait PoolReadonly<S: ReadonlyStorage>: Readonly<S> {
 
 }
 
-pub trait PoolWritable<S: Storage>: Writable<S> + PoolReadonly<S> {
+impl<S: Storage> Writable<S> for Pool<S> {
+    fn storage_mut (&mut self) -> &mut S { &mut self.storage }
+}
 
-    fn set_ratio (&mut self, ratio: &Ratio) -> StdResult<&mut Self> {
+impl<S: Storage> Pool<S> {
+
+    pub fn set_ratio (&mut self, ratio: &Ratio) -> StdResult<&mut Self> {
         self.save(RATIO, ratio)
     }
 
-    fn set_threshold (&mut self, threshold: &Monotonic) -> StdResult<&mut Self> {
+    pub fn set_threshold (&mut self, threshold: &Monotonic) -> StdResult<&mut Self> {
         self.save(THRESHOLD, threshold)
     }
 
-    fn update (&mut self, new_balance: Amount) -> StdResult<&mut Self> {
-        self.save(UPDATED, self.pool().now()?)?
+    pub fn update (&mut self, new_balance: Amount) -> StdResult<&mut Self> {
+        self.save(UPDATED, self.now()?)?
             .save(BALANCE, new_balance)
     }
 
