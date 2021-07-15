@@ -118,7 +118,7 @@ pub trait PoolReadonly<S: ReadonlyStorage>: Readonly<S> {
 
     /// For how many blocks does the user need to have provided liquidity
     /// in order to be eligible for rewards
-    fn threshold (&self) -> StdResult<Ratio> {
+    fn threshold (&self) -> StdResult<Monotonic> {
         match self.load(POOL_THRESHOLD)? {
             Some(ratio) => Ok(ratio),
             None        => error!("missing reward threshold")
@@ -173,34 +173,35 @@ impl<S: ReadonlyStorage> Readonly<S> for User<&S> {
     fn storage (&self) -> &S { &self.pool.storage }
 }
 
-impl<S: Storage> Writable<S> for User<&S> {
-    fn storage_mut (&mut self) -> &mut S { &mut self.pool.storage }
-}
-
 impl<S: ReadonlyStorage> UserReadonly<S> for User<&S> {
     fn pool (&self) -> &Pool<&S> {
         &self.pool
     }
-    fn address (&self) -> CanonicalAddr {
-        self.address
+    fn address (&self) -> &[u8] {
+        self.address.as_slice()
     }
     // trait fields WHEN???
 }
 
-impl<S: Storage> UserWritable<S> for User<&S> {}
-
 pub trait UserReadonly<S: ReadonlyStorage>: Readonly<S> {
 
     fn pool    (&self) -> &Pool<&S>;
-    fn address (&self) -> CanonicalAddr;
+    fn address (&self) -> &[u8];
+
+    fn updated (&self) -> StdResult<Monotonic> {
+        match self.load_ns(USER_UPDATED, self.address())? {
+            Some(x) => Ok(x),
+            None    => error!("USER_UPDATED missing")
+        }
+    }
 
     fn balance (&self) -> StdResult<Amount> {
-        Ok(self.load_ns(USER_BALANCE, self.address().as_slice())?
+        Ok(self.load_ns(USER_BALANCE, self.address())?
             .unwrap_or(Amount::zero()))
     }
 
     fn age (&self) -> StdResult<Monotonic> {
-        let address = self.address().as_slice();
+        let address = self.address();
         let existed = self.load_ns(USER_EXISTED, address)?
             .unwrap_or(0 as Monotonic);
         let balance = self.load_ns(USER_BALANCE, address)?
@@ -216,28 +217,24 @@ pub trait UserReadonly<S: ReadonlyStorage>: Readonly<S> {
             Ok(existed)
         }
     }
-
     fn lifetime (&self) -> StdResult<Volume> {
-        let address = self.address().as_slice();
+        let address = self.address();
         tally(
-            self.load_ns(USER_TALLIED, address)?
-                .unwrap_or(Volume::zero()),
-            self.pool().now()? - self.load_ns(USER_UPDATED, address)?
-                .ok_or(error!("USER_UPDATED missing"))?,
-            self.load_ns(USER_BALANCE, address)?
-                .unwrap_or(Amount::zero()))
+            self.load_ns(USER_TALLIED, address)?.unwrap_or(Volume::zero()),
+            self.pool().now()? - self.updated()?,
+            self.balance()?)
     }
 
     fn claimed (&self) -> StdResult<Amount> {
-        Ok(self.load_ns(USER_CLAIMED, self.address().as_slice())?
+        Ok(self.load_ns(USER_CLAIMED, self.address())?
             .unwrap_or(Amount::zero()))
     }
 
     fn reward (&self, balance: Amount) -> StdResult<(Amount, Amount, Amount)> {
-        let budget = self.pool().budget(balance)?;
-        let user   = self.tally()?;
-        let pool   = self.pool().tally()?;
+        let pool = self.pool().lifetime()?;
         if pool > Volume::zero() {
+            let user     = self.lifetime()?;
+            let budget   = self.pool().budget(balance)?;
             let ratio    = self.pool().ratio()?;
             let unlocked = Volume::from(budget)
                 .multiply_ratio(user, pool)?
@@ -256,40 +253,59 @@ pub trait UserReadonly<S: ReadonlyStorage>: Readonly<S> {
 
 }
 
+impl<S: ReadonlyStorage> Readonly<S> for User<&mut S> {
+    fn storage (&self) -> &S { &self.pool.storage }
+}
+
+impl<S: Storage + ReadonlyStorage> Writable<S> for User<&mut S> {
+    fn storage_mut (&mut self) -> &mut S { &mut self.pool.storage }
+}
+
+impl<S: ReadonlyStorage> UserReadonly<S> for User<&mut S> {
+    fn pool (&self) -> &Pool<&mut S> {
+        &self.pool
+    }
+    fn address (&self) -> &[u8] {
+        self.address.as_slice()
+    }
+    // trait fields WHEN???
+}
+
+impl<S: Storage + ReadonlyStorage> UserWritable<S> for User<&mut S> {}
+
 pub trait UserWritable<S: Storage>: Writable<S> + UserReadonly<S> {
 
-    fn lock (
-        &mut self, now: Monotonic, address: CanonicalAddr, increment: Amount
-    ) {
-        match self.load_ns(USER_UPDATED, address.as_slice())? as Option<Amount> {
+    fn lock (&mut self, increment: Amount) -> StdResult<Amount> {
+        let address = self.address();
+        let balance = self.balance()? + increment;
+        self.save_ns(USER_BALANCE, address, balance)?;
+
+        match self.load_ns(USER_UPDATED, address)? as Option<Amount> {
             None => {
                 // First time lock - set liquidity
-                self.save_ns(USER_BALANCE, address.as_slice(), increment)?;
-                self.save_ns(USER_CLAIMED, address.as_slice(), Amount::zero())?;
-                self.save_ns(USER_EXISTED, address.as_slice(), Amount::zero())?;
+                self.save_ns(USER_BALANCE, address, increment)?;
+                self.save_ns(USER_CLAIMED, address, Amount::zero())?;
+                self.save_ns(USER_EXISTED, address, Amount::zero())?;
             },
             Some(since) => {
                 // Increment liquidity of user
-                let balance = self.load_ns(USER_BALANCE, address.as_slice())?;
-                self.save_ns(USER_BALANCE, address.as_slice(), balance + increment)?;
             }
         }
 
-        self.save_ns(USER_UPDATED, address.as_slice(), now)?;
+        self.save_ns(USER_UPDATED, address, self.pool().now())?;
 
         // Increment liquidity in pool
-        let new_pool_balance = self.pool().tally()? + increment;
-        self.save(POOL_BALANCE, new_pool_balance)?
-            .save(POOL_UPDATED, now)?;
+        let new_pool_balance = self.pool().lifetime()? + increment.into();
+        self.save(POOL_UPDATED, self.pool().now()?)?
+            .save(POOL_BALANCE, new_pool_balance)?;
 
         // Return the amount to lock
         Ok(increment)
     }
 
-    fn retrieve (
-        &mut self, now: Monotonic, address: CanonicalAddr, decrement: Amount
-    ) {
-        match self.load_ns(USER_BALANCE, address.as_slice())? as Option<Amount> {
+    fn retrieve (&mut self, decrement: Amount) -> StdResult<Amount> {
+        let address = self.address();
+        match self.load_ns(USER_BALANCE, address)? as Option<Amount> {
             None => error!("never provided liquidity"),
             Some(balance) => {
                 if balance < decrement {
@@ -297,12 +313,12 @@ pub trait UserWritable<S: Storage>: Writable<S> + UserReadonly<S> {
                 } else {
                     // Remove liquidity from user
                     let new_user_balance = (balance - decrement)?;
-                    self.save_ns(USER_BALANCE, address.as_slice(), new_user_balance)?;
+                    self.save_ns(USER_BALANCE, address, new_user_balance)?;
 
                     // Remove liquidity from pool
-                    let new_pool_balance = (self.pool_tally(now)? - decrement)?;
-                    self.save(POOL_BALANCE, new_pool_balance)?
-                        .save(POOL_UPDATED,  now)?;
+                    let new_pool_balance = (self.pool().lifetime()? - decrement.into())?;
+                    self.save(POOL_UPDATED, self.pool().now()?)?
+                        .save(POOL_BALANCE, new_pool_balance)?;
 
                     // Return the amount to return
                     Ok(decrement)
@@ -313,13 +329,13 @@ pub trait UserWritable<S: Storage>: Writable<S> + UserReadonly<S> {
 
     fn claim (&mut self, balance: Amount) -> StdResult<Amount> {
         let age       = self.age()?;
-        let threshold = self.pool.threshold()?;
+        let threshold = self.pool().threshold()?;
         if age >= threshold {
             let (unlocked, _claimed, claimable) =
                 self.reward(balance)?;
             if claimable > Amount::zero() {
                 // something to claim
-                self.save_ns(USER_CLAIMED, self.address.as_slice(), &unlocked)?;
+                self.save_ns(USER_CLAIMED, self.address(), &unlocked)?;
                 Ok(claimable)
             } else if unlocked > Amount::zero() {
                 // everything claimed

@@ -1,16 +1,15 @@
 pub mod pool_user; use pool_user::{
     Monotonic, Amount, Volume, Ratio,
-    Pool
+    Pool, PoolReadonly, PoolWritable, UserReadonly, UserWritable
 };
 use fadroma::scrt::{
-    contract::*,
     addr::{Humanize, Canonize},
     callback::{ContractInstance as ContractLink},
-    //utils::Uint256,
-    utils::viewing_key::ViewingKey,
-    storage::{load, save},
+    contract::*,
     cosmwasm_std::ReadonlyStorage,
-    snip20_api::ISnip20
+    snip20_api::ISnip20,
+    storage::{load, save},
+    utils::viewing_key::ViewingKey,
 };
 use composable_auth::{
     auth_handle, authenticate, AuthHandleMsg,
@@ -105,12 +104,12 @@ contract! {
                 &load_viewing_key(&deps.storage)?.0,
             )?;
             let pool = Pool::new(&deps.storage).at(now);
-            let user = pool.user(&address);
+            let user = pool.user(address);
             let (unlocked, claimed, claimable) = user.reward(balance)?;
             Ok(Response::UserInfo {
                 age:      user.age()?,
                 balance:  user.balance()?,
-                lifetime: user.liquidity()?,
+                lifetime: user.lifetime()?,
                 unlocked,
                 claimed,
                 claimable
@@ -198,8 +197,7 @@ contract! {
         SetProvidedToken (address: HumanAddr, code_hash: String) {
             assert_admin(&deps, &env)?;
             save_lp_token(&mut deps.storage, &deps.api, &ContractLink { address, code_hash })?;
-            Ok(HandleResponse::default())
-        }
+            Ok(HandleResponse::default()) }
 
         /// Provide some liquidity.
         Lock (amount: Amount) {
@@ -209,7 +207,7 @@ contract! {
                 Pool::new(&mut deps.storage)
                     .at(env.block.height)
                     .user(deps.api.canonical_address(&env.message.sender)?)
-                    .lock(amount)?)?) }
+                    .lock(amount)? )? ) }
 
         /// Get some tokens back.
         Retrieve (amount: Amount) {
@@ -231,10 +229,7 @@ contract! {
                     .user(deps.api.canonical_address(&env.message.sender)?)
                     .claim(reward.query(&deps.querier).balance(
                         &env.contract.address,
-                        &load_viewing_key(&deps.storage)?.0,
-                    )?),
-            )?)
-        }
+                        &load_viewing_key(&deps.storage)?.0 )?)? )?) }
 
         /// User can request a new viewing key for oneself.
         CreateViewingKey (entropy: String, padding: Option<String>) {
