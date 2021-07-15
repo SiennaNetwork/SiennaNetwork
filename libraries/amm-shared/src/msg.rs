@@ -2,9 +2,11 @@ pub use crate::snip20_impl::msg as snip20;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::{HumanAddr, Binary, Uint128, Decimal};
-use fadroma_scrt_callback::{ContractInstantiationInfo, ContractInstance, Callback};
-use fadroma_scrt_migrate::types::ContractStatusLevel;
+use fadroma::scrt::{
+    cosmwasm_std::{HumanAddr, Binary, Uint128, Decimal},
+    callback::{ContractInstantiationInfo, ContractInstance, Callback},
+    migrate::types::ContractStatusLevel
+};
 
 use crate::{TokenPair, TokenType, TokenTypeAmount, TokenPairAmount};
 

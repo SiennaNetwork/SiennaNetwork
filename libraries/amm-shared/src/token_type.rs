@@ -1,7 +1,13 @@
-use cosmwasm_std::{HumanAddr, CanonicalAddr, Api, StdResult, Querier, Uint128, StdError, Env};
-use fadroma_scrt_addr::{Canonize, Humanize};
+use fadroma::scrt::{
+    cosmwasm_std::{
+        HumanAddr, CanonicalAddr, Api, StdResult,
+        Querier, Uint128, StdError, Env, CosmosMsg,
+        WasmMsg, BankMsg, Coin, to_binary
+    },
+    addr::{Canonize, Humanize},
+    toolkit::snip20
+};
 use schemars::JsonSchema;
-use secret_toolkit::snip20;
 use serde::{Deserialize, Serialize};
 
 const BLOCK_SIZE: usize = 256;
@@ -100,7 +106,7 @@ impl TokenType<HumanAddr> {
             TokenType::CustomToken { contract_addr, token_code_hash } => {
                 let result = snip20::balance_query(
                     querier,
-                    exchange_addr.clone(),
+                    exchange_addr,
                     viewing_key,
                     BLOCK_SIZE,
                     token_code_hash.clone(),
@@ -109,5 +115,40 @@ impl TokenType<HumanAddr> {
                 Ok(result.amount)
             }
         }
+    }
+
+    pub fn create_send_msg (
+        &self,
+        sender: HumanAddr,
+        recipient: HumanAddr,
+        amount: Uint128
+    ) -> StdResult<CosmosMsg> {
+        let msg = match self {
+            TokenType::CustomToken { contract_addr, token_code_hash } => {
+                CosmosMsg::Wasm(WasmMsg::Execute {
+                    contract_addr: contract_addr.clone(),
+                    callback_code_hash: token_code_hash.to_string(),
+                    msg: to_binary(&snip20::HandleMsg::Send {   
+                        recipient,
+                        amount,
+                        padding: None,
+                        msg: None,
+                    })?,
+                    send: vec![]
+                })
+            },
+            TokenType::NativeToken { denom } => {            
+                CosmosMsg::Bank(BankMsg::Send {
+                    from_address: sender,
+                    to_address: recipient,
+                    amount: vec![Coin {
+                        denom: denom.clone(),
+                        amount
+                    }],
+                })
+            }
+        };
+    
+        Ok(msg)
     }
 }

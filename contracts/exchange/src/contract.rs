@@ -1,21 +1,22 @@
-use cosmwasm_std::{
-    to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier,
-    StdError, Binary, StdResult, Storage, QueryResult, CosmosMsg, WasmMsg,
-    Uint128, log, HumanAddr, Decimal, QueryRequest, WasmQuery, BankMsg, Coin
-};
-use secret_toolkit::snip20;
 use amm_shared::{
     ExchangeSettings, Fee, TokenPairAmount, TokenType, TokenTypeAmount,
-    create_send_msg,
     msg::{
         exchange::{InitMsg, HandleMsg, QueryMsg, QueryMsgResponse, SwapSimulationResponse},
         factory::{QueryMsg as FactoryQueryMsg, QueryResponse as FactoryResponse},
         snip20::{InitConfig as Snip20InitConfig, InitMsg as Snip20InitMsg}
+    },
+    fadroma::scrt::{
+        cosmwasm_std::{
+            to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier,
+            StdError, Binary, StdResult, Storage, QueryResult, CosmosMsg, WasmMsg,
+            Uint128, log, HumanAddr, Decimal, QueryRequest, WasmQuery, BankMsg, Coin
+        },
+        toolkit::snip20,
+        utils::{Uint256, viewing_key::ViewingKey, crypto::Prng},
+        callback::{ContractInstance, Callback},
+        migrate as fadroma_scrt_migrate
     }
 };
-use amm_shared::fadroma::utils::{u256_math, u256_math::U256, viewing_key::ViewingKey, crypto::Prng};
-use amm_shared::fadroma::callback::{Callback, ContractInstance};
-use amm_shared::fadroma::migrate as fadroma_scrt_migrate;
 use fadroma_scrt_migrate::{get_status, with_status};
 
 use crate::{state::{Config, store_config, load_config}, decimal_math};
@@ -82,6 +83,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
                 }
             }),
             initial_balances: None,
+            initial_allowances: None,
             prng_seed: Binary::from(rng.rand_bytes()),
             config: Some(Snip20InitConfig::builder()
                 .public_total_supply()
@@ -238,51 +240,32 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
         // If the provider is minting a new pool, the number of liquidity tokens they will
         // receive will equal sqrt(x * y), where x and y represent the amount of each token provided.
 
-        let amount_0 = U256::from(deposit.amount_0.u128());
-        let amount_1 = U256::from(deposit.amount_1.u128());
+        let amount_0 = Uint256::from(deposit.amount_0);
+        let amount_1 = Uint256::from(deposit.amount_1);
 
-        let initial_liquidity = u256_math::mul(Some(amount_0), Some(amount_1))
-            .and_then(u256_math::sqrt)
-            .ok_or(StdError::generic_err(format!(
-                "Cannot calculate sqrt(deposit_0 {} * deposit_1 {})",
-                amount_0, amount_1
-            )))?;
-
-        clamp(initial_liquidity)?
+        (amount_0 * amount_1)?.sqrt()?.clamp_u128()?
     } else {
         // When adding to an existing pool, an equal amount of each token, proportional to the
         // current price, must be deposited. So, determine how many LP tokens are minted.
 
-        let total_share = Some(U256::from(liquidity_supply.u128()));
+        let total_share = Uint256::from(liquidity_supply);
 
-        let amount_0 = Some(U256::from(deposit.amount_0.u128()));
-        let pool_0 = Some(U256::from(pool_balances[0].u128()));
+        let amount_0 = Uint256::from(deposit.amount_0);
+        let pool_0 = Uint256::from(pool_balances[0]);
 
-        let share_0 = u256_math::div(u256_math::mul(amount_0, total_share), pool_0)
-            .ok_or(StdError::generic_err(format!(
-                "Cannot calculate deposits[0] {} * total_share {} / pools[0].amount {}",
-                amount_0.unwrap(),
-                total_share.unwrap(),
-                pool_0.unwrap()
-            )))?;
+        let share_0 = ((amount_0 * total_share)? / pool_0)?;
 
-        let amount_1 = Some(U256::from(deposit.amount_1.u128()));
-        let pool_1 = Some(U256::from(pool_balances[1].u128()));
+        let amount_1 = Uint256::from(deposit.amount_1);
+        let pool_1 = Uint256::from(pool_balances[1]);
 
-        let share_1 = u256_math::div(u256_math::mul(amount_1, total_share), pool_1)
-            .ok_or(StdError::generic_err(format!(
-                "Cannot calculate deposits[1] {} * total_share {} / pools[1].amount {}",
-                amount_1.unwrap(),
-                total_share.unwrap(),
-                pool_1.unwrap()
-            )))?;
+        let share_1 = ((amount_1 * total_share)? / pool_1)?;
 
-        clamp(std::cmp::min(share_0, share_1))?
+        std::cmp::min(share_0, share_1).clamp_u128()?
     };
 
     messages.push(snip20::mint_msg(
         env.message.sender,
-        lp_tokens,
+        Uint128(lp_tokens),
         None,
         BLOCK_SIZE,
         lp_token_info.code_hash,
@@ -322,32 +305,21 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
     // Calculate the withdrawn amount for each token in the pair - for each token X
     // amount of X withdrawn = amount in pool for X * amount of LP tokens being burned / total liquidity pool amount
 
-    let withdraw_amount = Some(U256::from(amount.u128()));
-    let total_liquidity = Some(U256::from(liquidity_supply.u128()));
+    let withdraw_amount = Uint256::from(amount);
+    let total_liquidity = Uint256::from(liquidity_supply);
 
     let mut pool_withdrawn: [Uint128; 2] = [ Uint128::zero(), Uint128::zero() ];
 
     for (i, pool_amount) in pool_balances.iter().enumerate() {
-        let pool_amount = Some(U256::from(pool_amount.u128()));
-
-        let withdrawn_token_amount = u256_math::div(
-            u256_math::mul(pool_amount, withdraw_amount),
-            total_liquidity,
-        ).ok_or(StdError::generic_err(format!(
-            "Cannot calculate current_pool_amount {} * withdrawn_share_amount {} / total_share {}",
-            pool_amount.unwrap(),
-            withdraw_amount.unwrap(),
-            total_liquidity.unwrap()
-        )))?;
-
-        pool_withdrawn[i] = clamp(withdrawn_token_amount)?;
+        let pool_amount = Uint256::from(*pool_amount);
+        pool_withdrawn[i] = ((pool_amount * withdraw_amount)? / total_liquidity)?.clamp_u128()?.into();
     }
 
-    let mut messages: Vec<CosmosMsg> = Vec::with_capacity(2);
+    let mut messages: Vec<CosmosMsg> = Vec::with_capacity(3);
 
     for (i, token) in pair.into_iter().enumerate() {
         messages.push(
-            create_send_msg(&token, env.contract.address.clone(), recipient.clone(), pool_withdrawn[i])?
+            token.create_send_msg(env.contract.address.clone(), recipient.clone(), pool_withdrawn[i])?
         );
     }
 
@@ -390,7 +362,7 @@ fn swap<S: Storage, A: Api, Q: Querier>(
         }
     }
 
-    let mut messages = vec![];
+    let mut messages = Vec::with_capacity(3);
 
     // Transfer a small fee to the burner address
     if let Some(burner_address) = settings.sienna_burner {
@@ -454,7 +426,7 @@ fn swap<S: Storage, A: Api, Q: Querier>(
     let index = config.pair.get_token_index(&offer.token).unwrap(); // Safe, checked in do_swap
     let token = config.pair.get_token(index ^ 1).unwrap();
 
-    messages.push(create_send_msg(&token, env.contract.address, env.message.sender, swap.result.return_amount)?);
+    messages.push(token.create_send_msg(env.contract.address, env.message.sender, swap.result.return_amount)?);
 
     Ok(HandleResponse{
         messages,
@@ -574,7 +546,7 @@ fn do_swap<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err(format!("The supplied token {}, is not managed by this contract.", offer.token)));
     }
 
-    let offer_amount = U256::from(offer.amount.u128());
+    let offer_amount = Uint256::from(offer.amount);
     let swap_commission = percentage_decrease(offer_amount, settings.swap_fee)?;
 
     let sienna_commission = if settings.sienna_burner.is_some() {
@@ -594,10 +566,7 @@ fn do_swap<S: Storage, A: Api, Q: Querier>(
     if !is_simulation {
         // If offer.token is not native, the balance hasn't been increased yet
         if let TokenType::NativeToken { .. } = offer.token {
-            let result = U256::from(offer_pool.u128()).checked_sub(U256::from(offer.amount.u128()))
-                .ok_or_else(|| StdError::generic_err("This can't really happen."))?;
-
-            offer_pool = clamp(result)?
+            offer_pool = (offer_pool - offer.amount)?;
         }
     }
 
@@ -616,74 +585,40 @@ fn do_swap<S: Storage, A: Api, Q: Querier>(
     })
 }
 
-// Copied from https://github.com/enigmampc/SecretSwap/blob/ffd72d1c94096ac3a78aaf8e576f22584f49fe7a/contracts/secretswap_pair/src/contract.rs#L768
+// Based on https://github.com/enigmampc/SecretSwap/blob/ffd72d1c94096ac3a78aaf8e576f22584f49fe7a/contracts/secretswap_pair/src/contract.rs#L768
 fn compute_swap(
     offer_pool: Uint128,
     ask_pool: Uint128,
     offer_amount: Uint128
 ) -> StdResult<SwapResult> {
     // offer => ask
-    let offer_pool = Some(U256::from(offer_pool.u128()));
-    let ask_pool = Some(U256::from(ask_pool.u128()));
-    let offer_amount = Some(U256::from(offer_amount.u128()));
+    let offer_pool = Uint256::from(offer_pool);
+    let ask_pool = Uint256::from(ask_pool);
+    let offer_amount = Uint256::from(offer_amount);
 
-    // total_pool = offer_pool * ask_pool
-    let total_pool = u256_math::mul(offer_pool, ask_pool).ok_or(StdError::generic_err(format!(
-        "Cannot calculate total_pool = offer_pool {} * ask_pool {}",
-        offer_pool.unwrap(),
-        ask_pool.unwrap()
-    )))?;
+    let total_pool = (offer_pool * ask_pool)?;
+    let return_amount = (ask_pool - (total_pool / (offer_pool + offer_amount)?)?)?;
 
-    // return_amount = (ask_pool - total_pool / (offer_pool + offer_amount))
-    let return_amount = u256_math::sub(ask_pool, u256_math::div(Some(total_pool), u256_math::add(offer_pool, offer_amount)))
-        .ok_or(StdError::generic_err(format!(
-            "Cannot calculate return_amount = (ask_pool {} - total_pool {} / (offer_pool {} + offer_amount {}))",
-            ask_pool.unwrap(),
-            total_pool,
-            offer_pool.unwrap(),
-            offer_amount.unwrap(),
-        )))?;
-
-    // calculate spread
     // spread = offer_amount * ask_pool / offer_pool - return_amount
-    let spread_amount = u256_math::div(u256_math::mul(offer_amount, ask_pool), offer_pool)
-        .ok_or(StdError::generic_err(format!(
-            "Cannot calculate offer_amount {} * ask_pool {} / offer_pool {}",
-            offer_amount.unwrap(),
-            ask_pool.unwrap(),
-            offer_pool.unwrap()
-        )))?
-        .saturating_sub(return_amount);
+    let spread_amount = ((offer_amount * ask_pool)? / offer_pool)?;
+    let spread_amount = (spread_amount - return_amount).unwrap_or(Uint256::zero());
 
     Ok(SwapResult {
-        return_amount: clamp(return_amount)?,
-        spread_amount: clamp(spread_amount)?
+        return_amount: return_amount.clamp_u128()?.into(),
+        spread_amount: spread_amount.clamp_u128()?.into()
     })
 }
 
-fn percentage_decrease(amount: U256, fee: Fee) -> StdResult<PercentageDecreaseResult> {
-    let amount = Some(amount);
-    let nom = Some(U256::from(fee.nom));
-    let denom = Some(U256::from(fee.denom));
+fn percentage_decrease(amount: Uint256, fee: Fee) -> StdResult<PercentageDecreaseResult> {
+    let nom = Uint256::from(fee.nom);
+    let denom = Uint256::from(fee.denom);
 
-    let decrease_amount = u256_math::div(u256_math::mul(amount, nom), denom,)
-        .ok_or(StdError::generic_err(format!(
-            "Cannot calculate amount {} * fee.nom {} / fee.denom {}",
-            amount.unwrap(),
-            nom.unwrap(),
-            denom.unwrap()
-        )))?;
-
-    let result = u256_math::sub(amount, Some(decrease_amount))
-        .ok_or(StdError::generic_err(format!(
-            "Cannot calculate amount {} - decrease_amount {}",
-            amount.unwrap(),
-            decrease_amount
-        )))?;
+    let decrease_amount = ((amount * nom)? / denom)?;
+    let new_amount = (amount - decrease_amount)?;
 
     Ok(PercentageDecreaseResult {
-        new_amount: clamp(result)?,
-        decrease_amount: clamp(decrease_amount)?
+        new_amount: new_amount.clamp_u128()?.into(),
+        decrease_amount: decrease_amount.clamp_u128()?.into()
     })
 }
 
@@ -731,13 +666,5 @@ fn query_exchange_settings (
     match result {
         FactoryResponse::GetExchangeSettings { settings } => Ok(settings),
         _ => Err(StdError::generic_err("An error occurred while trying to retrieve exchange settings."))
-    }
-}
-
-fn clamp(val: U256) -> StdResult<Uint128> {
-    if val > u128::MAX.into() {
-        Err(StdError::generic_err(format!("cannot represent {} in 128 bits", &val)))
-    } else {
-        Ok(Uint128(val.low_u128()))
     }
 }

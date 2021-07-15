@@ -1,8 +1,8 @@
-use cosmwasm_std::{
+use std::ops::RangeInclusive;
+use amm_shared::fadroma::scrt::cosmwasm_std::{
     to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
     StdError, StdResult, Storage, Uint128,
 };
-use std::ops::RangeInclusive;
 
 use amm_shared::snip20_impl as composable_snip20;
 

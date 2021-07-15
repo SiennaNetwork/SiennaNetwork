@@ -1,7 +1,8 @@
-use cosmwasm_std::{Uint128, Env, StdResult};
-use crate::token_type::TokenType;
+use fadroma::scrt::cosmwasm_std::{Uint128, Env, StdResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use crate::token_type::TokenType;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct TokenTypeAmount<A> {

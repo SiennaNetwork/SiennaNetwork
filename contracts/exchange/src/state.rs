@@ -1,14 +1,16 @@
-use cosmwasm_std::{
-    Api, CanonicalAddr, Extern, HumanAddr,
-    Querier, StdResult, Storage, StdError
-};
-use serde::{Serialize,Deserialize};
-
-use amm_shared::fadroma::address::{Humanize, Canonize};
-use amm_shared::fadroma::callback::ContractInstance;
-use amm_shared::fadroma::storage::{load, save};
-use amm_shared::fadroma::utils::viewing_key::ViewingKey;
 use amm_shared::TokenPair;
+use amm_shared::fadroma::scrt::{
+    cosmwasm_std::{
+        Api, CanonicalAddr, Extern, HumanAddr,
+        Querier, StdResult, Storage, StdError
+    },
+    addr::{Canonize, Humanize},
+    callback::ContractInstance,
+    storage::{load, save},
+    utils::viewing_key::ViewingKey
+};
+
+use serde::{Serialize,Deserialize};
 
 const CONFIG_KEY: &[u8] = b"config";
 
@@ -65,7 +67,7 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::testing::mock_dependencies;
+    use amm_shared::fadroma::scrt::cosmwasm_std::testing::mock_dependencies;
     use amm_shared::TokenType;
 
     #[test]

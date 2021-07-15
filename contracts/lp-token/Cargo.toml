@@ -8,5 +8,4 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 amm-shared = { path = "../../libraries/amm-shared" }

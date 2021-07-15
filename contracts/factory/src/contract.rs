@@ -1,8 +1,13 @@
-use cosmwasm_std::{
-    Api, Binary, CosmosMsg, Env, Extern, HandleResponse, InitResponse,
-    Querier, StdError, StdResult, Storage, WasmMsg, log, to_binary, HumanAddr
-};
 use amm_shared::{
+    fadroma::scrt::{
+        cosmwasm_std::{
+            Api, Binary, CosmosMsg, Env, Extern, HandleResponse, InitResponse,
+            Querier, StdError, StdResult, Storage, WasmMsg, log, to_binary, HumanAddr
+        },
+        storage::{load, save, remove},
+        callback::{ContractInstance, Callback},
+        migrate as fadroma_scrt_migrate
+    },
     TokenPair, Pagination, Exchange,
     msg::{
         exchange::InitMsg as ExchangeInitMsg,
@@ -17,13 +22,11 @@ use amm_shared::{
         }
     }
 };
-use amm_shared::fadroma::callback::{ContractInstance, Callback};
-use amm_shared::fadroma::storage::{load, save, remove};
+
 use crate::state::{
     Config, get_address_for_pair, get_exchanges, get_idos, load_config, pair_exists,
     save_config, store_exchange, store_exchanges, store_ido_address, store_ido_addresses
 };
-use amm_shared::fadroma::migrate as fadroma_scrt_migrate;
 use fadroma_scrt_migrate::{get_status, with_status};
 
 pub const EPHEMERAL_STORAGE_KEY: &[u8] = b"ephemeral_storage";

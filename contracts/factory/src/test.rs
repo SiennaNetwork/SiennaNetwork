@@ -1,17 +1,20 @@
-pub use cosmwasm_std::{
-    StdResult, StdError, Extern, Storage, Api, Querier, Env, Binary, to_binary,
-    HandleResponse, from_binary, HumanAddr,
-    testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage}
-};
 pub use amm_shared::{
     Exchange, ExchangeSettings, Fee,
     TokenPair, TokenType,
     Pagination,
     msg::factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse},
+    fadroma::scrt::{
+        cosmwasm_std::{
+            StdResult, StdError, Extern, Storage, Api, Querier,
+            Env, Binary, to_binary, HandleResponse, from_binary, HumanAddr,
+            testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage}
+        },
+        addr::Canonize,
+        callback::ContractInstantiationInfo,
+        storage::{load, save}
+    }
 };
-use amm_shared::fadroma::address::Canonize;
-use amm_shared::fadroma::callback::ContractInstantiationInfo;
-use amm_shared::fadroma::storage::{load, save};
+
 pub use crate::{contract::*, state::*};
 
 impl Into<InitMsg> for &Config<HumanAddr> {

@@ -1,7 +1,9 @@
-use cosmwasm_std::{HumanAddr, CanonicalAddr, Uint128, Api, StdResult};
-use amm_shared::fadroma::address::{Canonize, Humanize};
-use amm_shared::fadroma::callback::ContractInstance;
 use amm_shared::TokenType;
+use amm_shared::fadroma::scrt::{
+    cosmwasm_std::{HumanAddr, CanonicalAddr, Uint128, Api, StdResult},
+    addr::{Canonize, Humanize},
+    callback::ContractInstance
+};
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 

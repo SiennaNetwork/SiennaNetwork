@@ -1,9 +1,11 @@
-use cosmwasm_std::{ 
-    StdResult, Extern, Storage, Querier, Api,
-    CanonicalAddr, HumanAddr, StdError
+use amm_shared::fadroma::scrt::{
+    cosmwasm_std::{ 
+        StdResult, Extern, Storage, Querier, Api,
+        CanonicalAddr, HumanAddr, StdError
+    },
+    addr::{Canonize, Humanize},
+    storage::{save, load, ns_save, ns_load}
 };
-use amm_shared::fadroma::address::{Canonize, Humanize};
-use amm_shared::fadroma::storage::{save, load, ns_save, ns_load};
 
 use crate::data::{Config, Account};
 

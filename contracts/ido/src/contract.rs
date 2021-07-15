@@ -1,16 +1,20 @@
-use cosmwasm_std::{
-    Api, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
-    InitResponse, Querier, QueryResult, StdError, StdResult,
-    Storage, Uint128, WasmMsg, log, to_binary
-};
-use secret_toolkit::snip20;
-use amm_shared::TokenType;
-use amm_shared::fadroma::callback::{ContractInstance};
-use amm_shared::msg::ido::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
-use amm_shared::fadroma::utils::convert::convert_token;
-use amm_shared::admin::admin::{
-    DefaultHandleImpl, DefaultQueryImpl, save_admin, admin_handle,
-    admin_query
+use amm_shared::{
+    TokenType,
+    fadroma::scrt::{
+        cosmwasm_std::{
+            Api, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
+            InitResponse, Querier, QueryResult, StdError, StdResult,
+            Storage, Uint128, WasmMsg, log, to_binary
+        },
+        toolkit::snip20,
+        callback::ContractInstance,
+        utils::convert::convert_token
+    },
+    msg::ido::{InitMsg, HandleMsg, QueryMsg, QueryResponse},
+    admin::admin::{
+        DefaultHandleImpl, DefaultQueryImpl,
+        save_admin, admin_handle, admin_query
+    }
 };
 
 use crate::data::*;

@@ -1,12 +1,17 @@
-use cosmwasm_std::{Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage};
-use amm_shared::fadroma::address::{Humanize, Canonize};
-use amm_shared::fadroma::callback::ContractInstantiationInfo;
-use amm_shared::fadroma::storage::{save, load};
-use serde::{Deserialize, Serialize};
 use amm_shared::{
     Exchange, ExchangeSettings, TokenPair, TokenType, Pagination,
-    msg::factory::InitMsg
+    fadroma::scrt::{
+        cosmwasm_std::{
+            Api, CanonicalAddr, Extern, HumanAddr,
+            Querier, StdError, StdResult, Storage
+        },
+        addr::{Humanize, Canonize},
+        callback::ContractInstantiationInfo,
+        storage::{save, load}
+    },
+    msg::factory::InitMsg,
 };
+use serde::{Deserialize, Serialize};
 use std::usize;
 
 const CONFIG_KEY: &[u8] = b"config";

@@ -7,16 +7,8 @@ edition = "2018"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[features]
-default = []
-# for quicker tests, cargo test --lib
-# for more explicit tests, cargo test --features=backtraces
-backtraces = ["cosmwasm-std/backtraces"]
-
 [dependencies]
-cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
 
 amm-shared = { path = "../../libraries/amm-shared" }
