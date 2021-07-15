@@ -1,10 +1,6 @@
 use crate::rewards_math::*;
 use crate::rewards_user::*;
-
-use fadroma::scrt::{
-    cosmwasm_std::{StdResult, StdError, Storage, ReadonlyStorage},
-    storage::traits2::*,
-};
+use fadroma::scrt::{cosmwasm_std::{StdError, CanonicalAddr}, storage::traits2::*,};
 
 macro_rules! error { ($info:expr) => { Err(StdError::generic_err($info)) }; }
 

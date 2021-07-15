@@ -1,10 +1,7 @@
 use crate::rewards_math::*;
 use crate::rewards_pool::*;
 
-use fadroma::scrt::{
-    cosmwasm_std::{StdResult, StdError, CanonicalAddr},
-    storage::traits2::*,
-};
+use fadroma::scrt::{cosmwasm_std::{StdError, CanonicalAddr}, storage::traits2::*};
 
 macro_rules! error { ($info:expr) => { Err(StdError::generic_err($info)) }; }
 
@@ -17,7 +14,6 @@ const BALANCE:   &[u8] = b"user_current/";
 const UPDATED:   &[u8] = b"user_updated/";
 /// How much rewards has each user claimed so far
 const CLAIMED:   &[u8] = b"user_claimed/";
-
 /// For how many units of time has this user provided liquidity
 const EXISTED:   &[u8] = b"user_existed/";
 
@@ -43,6 +39,7 @@ impl<S: ReadonlyStorage> UserReadonly<S> for User<&S> {
 pub trait UserReadonly <S: ReadonlyStorage>: Readonly<S> {
 
     fn pool    (&self) -> &Pool<&S>;
+
     fn address (&self) -> &[u8];
 
     fn updated (&self) -> StdResult<Monotonic> {
@@ -52,8 +49,12 @@ pub trait UserReadonly <S: ReadonlyStorage>: Readonly<S> {
         }
     }
 
-    fn existed (&self) -> StdResult<Amount> {
+    fn existed (&self) -> StdResult<Monotonic> {
         Ok(self.load_ns(EXISTED, self.address())?.unwrap_or(0 as Monotonic))
+    }
+
+    fn elapsed (&self) -> StdResult<Monotonic> {
+        Ok(self.pool().now()? - self.updated()?)
     }
 
     fn balance (&self) -> StdResult<Amount> {
@@ -64,18 +65,14 @@ pub trait UserReadonly <S: ReadonlyStorage>: Readonly<S> {
         Ok(self.load_ns(CLAIMED, self.address())?.unwrap_or(Amount::zero()))
     }
 
-    fn elapsed (&self) -> StdResult<Amount> {
-        self.pool().now()? - self.updated()
-    }
-
     fn age (&self) -> StdResult<Monotonic> {
         let address = self.address();
-        let existed = self.existed();
-        let balance = self.balance();
+        let existed = self.existed()?;
+        let balance = self.balance()?;
         if balance > Amount::zero() {
             // if user is currently providing liquidity,
             // the time since last update gets added to the age
-            Ok(existed + self.elapsed())
+            Ok(existed + self.elapsed()?)
         } else {
             Ok(existed)
         }
