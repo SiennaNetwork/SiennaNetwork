@@ -1,7 +1,8 @@
-pub mod pool_user; use pool_user::{
-    Monotonic, Amount, Volume, Ratio,
-    Pool, PoolReadonly, PoolWritable, UserReadonly, UserWritable
-};
+mod rewards_math;
+mod rewards_pool;
+mod rewards_user;
+pub mod rewards_model; use rewards_model::*;
+
 use fadroma::scrt::{
     addr::{Humanize, Canonize},
     callback::{ContractInstance as ContractLink},

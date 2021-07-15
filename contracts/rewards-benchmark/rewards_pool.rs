@@ -1,0 +1,101 @@
+use crate::rewards_math::*;
+use crate::rewards_model::*;
+
+use fadroma::scrt::{
+    cosmwasm_std::{StdResult, StdError, Storage, ReadonlyStorage},
+    storage::{Readonly, Writable},
+};
+
+macro_rules! error { ($info:expr) => { Err(StdError::generic_err($info)) }; }
+
+/// How much liquidity has this pool contained up to this point
+/// Incremented in intervals of (moments since last update * current balance)
+const TALLIED:   &[u8] = b"pool_lifetime";
+/// How much liquidity is there in the whole pool right now
+const BALANCE:   &[u8] = b"pool_balance";
+/// When was liquidity last updated
+const UPDATED:   &[u8] = b"pool_updated";
+/// Rewards claimed by everyone so far
+const CLAIMED:   &[u8] = b"pool_claimed";
+/// Ratio of liquidity provided to rewards received
+const RATIO:     &[u8] = b"pool_ratio";
+/// Ratio of liquidity provided to rewards received
+const THRESHOLD: &[u8] = b"pool_threshold";
+
+pub trait PoolReadonly<S: ReadonlyStorage>: Readonly<S> {
+
+    fn now (&self) -> StdResult<Monotonic>;
+
+    fn status (&self) -> StdResult<(Amount, Volume, Monotonic)> {
+        if let Some(last_update) = self.load(UPDATED)? {
+            if self.now()? >= last_update {
+                let balance  = self.load(BALANCE)? as Option<Amount>;
+                let lifetime = self.load(TALLIED)? as Option<Volume>;
+                if let (Some(balance), Some(lifetime)) = (balance, lifetime) {
+                    let elapsed = self.now()? - last_update;
+                    Ok((balance, tally(lifetime, elapsed, balance.into())?, last_update))
+                } else { error!("missing BALANCE or TALLIED") }
+            } else { error!("can't query before last update") }
+        } else { error!("missing UPDATED") }
+    }
+
+    /// Amount of currently locked LP tokens in this pool
+    fn balance (&self) -> StdResult<Amount> {
+        Ok(self.load(BALANCE)?.unwrap_or(Amount::zero()))
+    }
+
+    /// Ratio between share of liquidity provided and amount of reward
+    /// Should be <= 1 to make sure rewards budget is sufficient. 
+    fn ratio (&self) -> StdResult<Ratio> {
+        match self.load(RATIO)? {
+            Some(ratio) => Ok(ratio),
+            None        => error!("missing reward ratio")
+        }
+    }
+
+    /// For how many blocks does the user need to have provided liquidity
+    /// in order to be eligible for rewards
+    fn threshold (&self) -> StdResult<Monotonic> {
+        match self.load(THRESHOLD)? {
+            Some(ratio) => Ok(ratio),
+            None        => error!("missing reward threshold")
+        }
+    }
+
+    /// The full reward budget = rewards claimed + current balance of this contract in reward token
+    fn budget (&self, balance: Amount) -> StdResult<Amount> {
+        Ok(self.load(CLAIMED)?.unwrap_or(Amount::zero()) + balance)
+    }
+
+    /// The total liquidity ever contained in this pool.
+    fn lifetime (&self) -> StdResult<Volume> {
+        let previous:     Option<Volume>    = self.load(TALLIED)?;
+        let balance:      Option<Amount>    = self.load(BALANCE)?;
+        let last_updated: Option<Monotonic> = self.load(UPDATED)?;
+        if let (
+            Some(previous), Some(balance), Some(last_updated)
+        ) = (previous, balance, last_updated) {
+            tally(previous, self.now()? - last_updated, balance.into())
+        } else {
+            error!("missing pool liquidity data")
+        }
+    }
+
+}
+
+pub trait PoolWritable<S: Storage>: Writable<S> + PoolReadonly<S> {
+
+    fn set_ratio (&mut self, ratio: &Ratio) -> StdResult<&mut Self> {
+        self.save(RATIO, ratio)
+    }
+
+    fn set_threshold (&mut self, threshold: &Monotonic) -> StdResult<&mut Self> {
+        self.save(THRESHOLD, threshold)
+    }
+
+    fn update (&mut self, new_balance: Amount) -> StdResult<Self> {
+        self.save(UPDATED, self.pool().now()?)?
+            .save(BALANCE, new_balance)?
+    }
+
+}
