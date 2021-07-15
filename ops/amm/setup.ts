@@ -24,7 +24,7 @@ export const ARTIFACTS_PATH = '../../artifacts'
 
 export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFileWriter): Promise<UploadResult> {
     const fee = create_fee('2500000')
-    const snip20_fee = create_fee('2600000')
+    const snip20_fee = create_fee('2700000')
   
     const snip20_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/amm-snip20@HEAD.wasm`))
     const exchange_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/exchange@HEAD.wasm`))
