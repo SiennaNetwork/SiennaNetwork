@@ -5,6 +5,9 @@ import { abs } from "../ops/lib/index.js";
 import SNIP20 from "./SNIP20.js";
 import IDO from "./IDO.js";
 import Factory from "./Factory.js";
+import debug from "debug";
+
+const log = debug("out");
 
 describe("IDO", () => {
   const fees = {
@@ -59,9 +62,9 @@ describe("IDO", () => {
       await builder.uploadCached(idoBinary);
     await agent.nextBlock;
 
-    // const { codeId: factoryCodeId, originalChecksum: factoryCodeHash } =
-    //   await builder.uploadCached(factoryBinary);
-    // await agent.nextBlock;
+    const { codeId: factoryCodeId, originalChecksum: factoryCodeHash } =
+      await builder.uploadCached(factoryBinary);
+    await agent.nextBlock;
 
     const T3 = +new Date();
     console.debug(`uploading took ${T3 - T2}msec`);
@@ -75,13 +78,36 @@ describe("IDO", () => {
       agents,
       token: { id: tokenCodeId, code_hash: tokenCodeHash },
       ido: { id: idoCodeId, code_hash: idoCodeHash },
-      //   factory: { id: factoryCodeId, code_hash: factoryCodeHash },
+      factory: { id: factoryCodeId, code_hash: factoryCodeHash },
     });
   });
 
   beforeEach(async function setupEach() {
     this.timeout(0);
-    // context.factory = await context.agent.instantiate();
+    context.factory = await context.agent.instantiate(
+      new Factory({
+        codeId: context.factory.id,
+        label: `factory-${parseInt(Math.random() * 100000)}`,
+        initMsg: {
+          snip20_contract: context.token,
+          lp_token_contract: context.token,
+          pair_contract: context.token,
+          ido_contract: context.ido,
+          exchange_settings: {
+            swap_fee: {
+              nom: 1,
+              denom: 1,
+            },
+            sienna_fee: {
+              nom: 1,
+              denom: 1,
+            },
+            //   sienna_burner: null
+          },
+        },
+      })
+    );
+
     context.sellingToken = await context.agent.instantiate(
       new SNIP20({
         codeId: context.token.id,
@@ -102,26 +128,26 @@ describe("IDO", () => {
       })
     );
 
-    context.buyingToken = await context.agent.instantiate(
-      new SNIP20({
-        codeId: context.token.id,
-        label: `buy-token-${parseInt(Math.random() * 100000)}`,
-        initMsg: {
-          prng_seed: randomBytes(36).toString("hex"),
-          name: "BuyToken",
-          symbol: "BYT",
-          decimals: 6,
-          config: {
-            public_total_supply: true,
-            enable_deposit: true,
-            enable_redeem: true,
-            enable_mint: true,
-            enable_burn: true,
-          },
-        },
-      })
-    );
-      
+    // context.buyingToken = await context.agent.instantiate(
+    //   new SNIP20({
+    //     codeId: context.token.id,
+    //     label: `buy-token-${parseInt(Math.random() * 100000)}`,
+    //     initMsg: {
+    //       prng_seed: randomBytes(36).toString("hex"),
+    //       name: "BuyToken",
+    //       symbol: "BYT",
+    //       decimals: 6,
+    //       config: {
+    //         public_total_supply: true,
+    //         enable_deposit: true,
+    //         enable_redeem: true,
+    //         enable_mint: true,
+    //         enable_burn: true,
+    //       },
+    //     },
+    //   })
+    // );
+
     context.ido = await context.agent.instantiate(
       new IDO({
         codeId: context.ido.id,
@@ -139,7 +165,7 @@ describe("IDO", () => {
                 denom: "uscrt",
               },
             },
-            rate: '1',
+            rate: "1",
             sold_token: {
               address: context.sellingToken.address,
               code_hash: context.sellingToken.codeHash,
@@ -148,8 +174,8 @@ describe("IDO", () => {
               .map((a, i) => (i == 0 || i > 4 ? null : a.address)) // allow only first 4 agents excluding the admin
               .filter((v) => v !== null),
             max_seats: 5,
-            max_allocation: "500",
-            min_allocation: "100",
+            max_allocation: "5",
+            min_allocation: "1",
             start_time: null,
             end_time: parseInt(new Date().valueOf() / 1000 + 60 * 60), // after one minute
             prng_seed: randomBytes(36).toString("hex"),
@@ -157,19 +183,39 @@ describe("IDO", () => {
           },
           admin: context.agent.address,
           callback: {
-            msg: "",
+            msg: Buffer.from(
+              JSON.stringify({
+                register_ido: {
+                  signature: "",
+                },
+              }),
+              "utf8"
+            ).toString("base64"),
             contract: {
-              address: context.sellingToken.address,
-              code_hash: context.sellingToken.codeHash,
+              address: context.factory.address,
+              code_hash: context.factory.codeHash,
             },
           },
         },
       })
     );
+
+    await context.sellingToken.mint(25, undefined, context.ido.address);
   });
 
   it("Does something", async function () {
+    const amount = 1_000_000;
     this.timeout(0);
+    const buyer = context.agents[1];
+
+    const res = await context.ido.tx.swap(
+      { amount: `${amount}` },
+      buyer,
+      undefined,
+        [{ amount: `${amount}`, denom: "uscrt" }],
+      "some-fees"
+    );
+    log(res);
   });
 
   after(async function cleanupAll() {

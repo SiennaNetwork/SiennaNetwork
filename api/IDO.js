@@ -12,4 +12,13 @@ export default class IDO extends SecretNetworkContractWithSchema {
   constructor(options) {
     super(options, schema);
   }
+
+  swap(amount, agent) {
+    return this.tx.swap(
+      { amount: `${amount}` },
+      agent,
+      undefined,
+      JSON.stringify([{ amount: `${amount}`, denom: "uscrt" }])
+    );
+  }
 }
