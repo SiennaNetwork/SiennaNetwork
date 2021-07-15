@@ -1,9 +1,9 @@
 use crate::rewards_math::*;
-use crate::rewards_model::*;
+use crate::rewards_pool::*;
 
 use fadroma::scrt::{
-    cosmwasm_std::{Uint128, StdResult, StdError, Storage, ReadonlyStorage},
-    storage::{Readonly, Writable},
+    cosmwasm_std::{StdResult, StdError, CanonicalAddr},
+    storage::traits2::*,
 };
 
 macro_rules! error { ($info:expr) => { Err(StdError::generic_err($info)) }; }
@@ -21,7 +21,26 @@ const CLAIMED:   &[u8] = b"user_claimed/";
 /// For how many units of time has this user provided liquidity
 const EXISTED:   &[u8] = b"user_existed/";
 
-pub trait UserReadonly<S: ReadonlyStorage>: Readonly<S> {
+pub struct User <S> {
+    pool:    Pool<S>,
+    address: CanonicalAddr
+}
+
+impl<S: ReadonlyStorage> Readonly<S> for User<&S> {
+    fn storage (&self) -> &S { &self.pool.storage() }
+}
+
+impl<S: ReadonlyStorage> UserReadonly<S> for User<&S> {
+    fn pool (&self) -> &Pool<&S> {
+        &self.pool
+    }
+    fn address (&self) -> &[u8] {
+        self.address.as_slice()
+    }
+    // trait fields WHEN???
+}
+
+pub trait UserReadonly <S: ReadonlyStorage>: Readonly<S> {
 
     fn pool    (&self) -> &Pool<&S>;
     fn address (&self) -> &[u8];
@@ -93,6 +112,26 @@ pub trait UserReadonly<S: ReadonlyStorage>: Readonly<S> {
 
 }
 
+impl <S: ReadonlyStorage> Readonly<S> for User<&mut S> {
+    fn storage (&self) -> &S { &self.pool().storage() }
+}
+
+impl <S: Storage> Writable<S> for User<&mut S> {
+    fn storage_mut (&mut self) -> &mut S { &mut self.pool().storage_mut() }
+}
+
+impl <S: ReadonlyStorage> UserReadonly<S> for User<&mut S> {
+    fn pool (&mut self) -> &mut Pool<&mut S> {
+        &mut self.pool
+    }
+    fn address (&self) -> &[u8] {
+        self.address.as_slice()
+    }
+    // trait fields WHEN???
+}
+
+impl <S: Storage + Writable<S>> UserWritable<S> for User<&mut S> {}
+
 pub trait UserWritable<S: Storage>: Writable<S> + UserReadonly<S> {
 
     fn lock (&mut self, increment: Amount) -> StdResult<Amount> {
@@ -103,7 +142,7 @@ pub trait UserWritable<S: Storage>: Writable<S> + UserReadonly<S> {
         self.save_ns(EXISTED, address, self.age()?);
 
         // Increment liquidity from user
-        self.save_ns(BALANCE, address, self.balance() + increment)?;
+        self.save_ns(BALANCE, address, self.balance()? + increment)?;
 
         // Remember when the user was last updated, i.e. now
         self.save_ns(UPDATED, address, self.pool().now())?;
@@ -127,7 +166,7 @@ pub trait UserWritable<S: Storage>: Writable<S> + UserReadonly<S> {
             self.save_ns(BALANCE, self.address(), new_user_balance)?;
 
             // Remove liquidity from pool
-            self.pool().update(self.pool().balance()? - decrement.into());
+            self.pool().update((self.pool().balance()? - decrement.into())?);
 
             // Return the amount to return
             Ok(decrement)

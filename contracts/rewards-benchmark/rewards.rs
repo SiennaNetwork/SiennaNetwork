@@ -1,7 +1,6 @@
-mod rewards_math;
-mod rewards_pool;
-mod rewards_user;
-pub mod rewards_model; use rewards_model::*;
+mod rewards_math; use rewards_math::*;
+mod rewards_pool; use rewards_pool::*;
+mod rewards_user; use rewards_user::*;
 
 use fadroma::scrt::{
     addr::{Humanize, Canonize},

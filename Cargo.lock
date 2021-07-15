@@ -495,7 +495,7 @@ dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "fadroma-scrt-storage 0.1.0 (git+https://github.com/hackbg/fadroma?tag=snip20-v1.1.0)",
- "primitive-types 0.9.1",
+ "primitive-types",
  "rand_chacha 0.2.2",
  "rand_core 0.5.1",
  "schemars",
@@ -740,7 +740,7 @@ dependencies = [
  "cosmwasm-std 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
  "fadroma-scrt-storage 0.1.0",
- "primitive-types 0.10.1",
+ "primitive-types",
  "rand_chacha 0.2.2",
  "rand_core 0.5.1",
  "schemars",
@@ -1089,16 +1089,6 @@ name = "primitive-types"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06345ee39fbccfb06ab45f3a1a5798d9dafa04cb8921a76d227040003a234b0e"
-dependencies = [
- "fixed-hash",
- "uint",
-]
-
-[[package]]
-name = "primitive-types"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05e4722c697a58a99d5d06a08c30821d7c082a4632198de1eaa5a6c22ef42373"
 dependencies = [
  "fixed-hash",
  "uint",

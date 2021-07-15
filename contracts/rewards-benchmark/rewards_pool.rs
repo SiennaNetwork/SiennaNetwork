@@ -1,9 +1,9 @@
 use crate::rewards_math::*;
-use crate::rewards_model::*;
+use crate::rewards_user::*;
 
 use fadroma::scrt::{
     cosmwasm_std::{StdResult, StdError, Storage, ReadonlyStorage},
-    storage::{Readonly, Writable},
+    storage::traits2::*,
 };
 
 macro_rules! error { ($info:expr) => { Err(StdError::generic_err($info)) }; }
@@ -21,6 +21,44 @@ const CLAIMED:   &[u8] = b"pool_claimed";
 const RATIO:     &[u8] = b"pool_ratio";
 /// Ratio of liquidity provided to rewards received
 const THRESHOLD: &[u8] = b"pool_threshold";
+
+/// Reward pool
+pub struct Pool <S> {
+    storage: S,
+    now:     Option<Monotonic>
+}
+
+impl <S> Pool<S> {
+    /// Create a new pool with a storage handle
+    pub fn new (storage: S) -> Self {
+        Self { storage, now: None }
+    }
+    /// Add the current time to the pool for operations that need it
+    pub fn at (self, now: Monotonic) -> Self {
+        Self { storage: self.storage, now: Some(now) }
+    }
+    /// Get an individual user from the pool
+    pub fn user (&self, address: CanonicalAddr) -> User<S> {
+        // variant: existed check here; new_user for first lock?
+        User { pool: *self, address }
+    }
+}
+
+impl<S: ReadonlyStorage> Readonly<S> for Pool<&S> {
+    fn storage (&self) -> &S { self.storage }
+}
+
+impl<S: ReadonlyStorage> PoolReadonly<S> for Pool<&S> {
+    fn now (&self) -> StdResult<Monotonic> {
+        self.now.ok_or(StdError::generic_err("current time not set"))
+    }
+}
+
+impl<S: Storage> Writable<S> for Pool<&S> {
+    fn storage_mut (&mut self) -> &mut S { &mut *self.storage }
+}
+
+impl<S: Storage> PoolWritable<S> for Pool<&S> {}
 
 pub trait PoolReadonly<S: ReadonlyStorage>: Readonly<S> {
 
@@ -93,9 +131,9 @@ pub trait PoolWritable<S: Storage>: Writable<S> + PoolReadonly<S> {
         self.save(THRESHOLD, threshold)
     }
 
-    fn update (&mut self, new_balance: Amount) -> StdResult<Self> {
+    fn update (&mut self, new_balance: Amount) -> StdResult<&mut Self> {
         self.save(UPDATED, self.pool().now()?)?
-            .save(BALANCE, new_balance)?
+            .save(BALANCE, new_balance)
     }
 
 }
