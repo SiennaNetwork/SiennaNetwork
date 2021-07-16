@@ -5,7 +5,7 @@
 #[macro_use] extern crate kukumba;
 mod harness; use harness::{RewardsHarness, Snip20};
 use fadroma::scrt::cosmwasm_std::{HumanAddr, StdError};
-use sienna_rewards_benchmark::{msg::Response, pool::{Monotonic, Volume, Liquidity}};
+use sienna_rewards_benchmark::{msg::Response, rewards_math::{Monotonic, Volume, Liquidity}};
 
 const DAY: Monotonic = 17280; // blocks
 

@@ -1,6 +1,5 @@
-mod rewards_math; use rewards_math::*;
-mod rewards_pool; use rewards_pool::*;
-mod rewards_user; use rewards_user::*;
+pub mod rewards_math; use rewards_math::*;
+mod rewards_algo; use rewards_algo::*;
 
 use fadroma::scrt::{
     addr::{Humanize, Canonize},
@@ -70,8 +69,8 @@ contract! {
 
         // save reward ratio and minimum liquidity provision duration
         Pool::new(&mut deps.storage)
-            .save_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
-            .save_threshold(&threshold.unwrap_or(17280u64))?; // ~24h @ 5s/block
+            .pool_set_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
+            .pool_set_threshold(&threshold.unwrap_or(17280u64))?; // ~24h @ 5s/block
 
         // TODO remove global state from scrt-contract
         // define field! and addr_field! macros instead -
@@ -86,7 +85,9 @@ contract! {
 
         /// Overall pool status
         PoolInfo (now: Monotonic) {
-            let (balance, lifetime, updated) = Pool::new(&deps.storage).at(now).status()?;
+            let (balance, lifetime, updated) = Pool::new(&deps.storage)
+                .at(now)
+                .pool_status()?;
             Ok(Response::PoolInfo {
                 lp_token: load_lp_token(&deps.storage, &deps.api)?,
                 balance, lifetime, updated,
@@ -103,13 +104,12 @@ contract! {
                 &load_self_reference(&deps.storage, &deps.api)?.address,
                 &load_viewing_key(&deps.storage)?.0,
             )?;
-            let pool = Pool::new(&deps.storage).at(now);
-            let user = pool.user(address);
-            let (unlocked, claimed, claimable) = user.reward(balance)?;
+            let user = Pool::new(&deps.storage).at(now).user(address);
+            let (unlocked, claimed, claimable) = user.user_reward(balance)?;
             Ok(Response::UserInfo {
-                age:      user.age()?,
-                balance:  user.balance()?,
-                lifetime: user.lifetime()?,
+                age:      user.user_age()?,
+                balance:  user.user_balance()?,
+                lifetime: user.user_lifetime()?,
                 unlocked,
                 claimed,
                 claimable
@@ -135,7 +135,7 @@ contract! {
             Ok(Response::Balance {
                 amount: Pool::new(&deps.storage)
                     .user(address)
-                    .balance()?
+                    .user_balance()?
             })
         }
 
@@ -207,7 +207,7 @@ contract! {
                 Pool::new(&mut deps.storage)
                     .at(env.block.height)
                     .user(deps.api.canonical_address(&env.message.sender)?)
-                    .lock(amount)? )? ) }
+                    .user_lock(amount)? )? ) }
 
         /// Get some tokens back.
         Retrieve (amount: Amount) {
@@ -216,20 +216,21 @@ contract! {
                 Pool::new(&mut deps.storage)
                     .at(env.block.height)
                     .user(deps.api.canonical_address(&env.message.sender)?)
-                    .lock(amount)? )?) }
+                    .user_retrieve(amount)? )?) }
 
         /// User can receive rewards after having provided liquidity.
         Claim () {
             // TODO reset age on claim, so user can claim only once per reward period?
             let reward = ISnip20::connect(load_reward_token(&deps.storage, &deps.api)?);
+            let vk = load_viewing_key(&deps.storage)?.0;
             tx_ok!(reward.transfer(
                 &env.message.sender,
                 Pool::new(&mut deps.storage)
                     .at(env.block.height)
                     .user(deps.api.canonical_address(&env.message.sender)?)
-                    .claim(reward.query(&deps.querier).balance(
+                    .user_claim(reward.query(&deps.querier).balance(
                         &env.contract.address,
-                        &load_viewing_key(&deps.storage)?.0 )?)? )?) }
+                        &vk )?)? )?) }
 
         /// User can request a new viewing key for oneself.
         CreateViewingKey (entropy: String, padding: Option<String>) {

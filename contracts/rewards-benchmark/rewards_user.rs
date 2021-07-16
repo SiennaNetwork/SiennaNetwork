@@ -115,31 +115,31 @@ impl<S: ReadonlyStorage> User<S> {
 
 // and now the same for when the pool gets passed a mutable version of deps
 
-//impl <S: ReadonlyStorage> Readonly<S> for User<&mut S> {
-    //fn storage (&self) -> &S {
-        //&self.pool.storage
-    //}
-//}
+impl <S: Storage + ReadonlyStorage> Readonly<S> for User<&mut S> {
+    fn storage (&self) -> &S {
+        &self.pool.storage
+    }
+}
 
-//impl <S: Storage> UserReadonly<S> for User<&mut S> {
-    //fn pool (&self) -> &Pool<S> {
-        //self.pool
-    //}
-    //fn address (&self) -> &[u8] {
-        //self.address.as_slice()
-    //}
-    //// trait fields WHEN???
-//}
+impl <S: Storage + ReadonlyStorage> UserReadonly<S> for User<&mut S> {
+    fn pool (&self) -> &Pool<S> {
+        self.pool
+    }
+    fn address (&self) -> &[u8] {
+        self.address.as_slice()
+    }
+    // trait fields WHEN???
+}
 
 // and then some more
 
-impl <S: Storage> Writable<S> for User<S> {
+impl <S: Storage + ReadonlyStorage> Writable<S> for User<S> {
     fn storage_mut (&mut self) -> &mut S {
         &mut self.pool.storage
     }
 }
 
-impl <S: Storage> User <S> {
+impl <S: Storage + ReadonlyStorage> User <S> {
 
     pub fn lock (&mut self, increment: Amount) -> StdResult<Amount> {
         let address = self.address.as_slice();
