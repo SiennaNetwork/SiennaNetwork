@@ -155,6 +155,11 @@ readonly!(Pool { // pool readonly operations
         Ok(self.now()? - self.user_updated()?)
     }
 
+    pub fn user_tallied (&self) -> StdResult<Volume> {
+        Ok(self.load_ns(USER_TALLIED, self.address()?.as_slice())?
+            .unwrap_or(Volume::zero()))
+    }
+
     pub fn user_balance (&self) -> StdResult<Amount> {
         Ok(self.load_ns(USER_BALANCE, self.address()?.as_slice())?
             .unwrap_or(Amount::zero()))
@@ -178,11 +183,7 @@ readonly!(Pool { // pool readonly operations
     }
 
     pub fn user_lifetime (&self) -> StdResult<Volume> {
-        tally(
-            self.load_ns(USER_TALLIED, self.address()?.as_slice())?
-                .unwrap_or(Volume::zero()),
-            self.now()? - self.user_updated()?,
-            self.user_balance()?)
+        tally(self.user_tallied()?, self.user_elapsed()?, self.user_balance()?)
     }
 
     pub fn user_reward (&self, balance: Amount) -> StdResult<(Amount, Amount, Amount)> {
@@ -227,15 +228,22 @@ impl<S: Storage> Pool<&mut S> {
     }
 
     pub fn user_lock (&mut self, increment: Amount) -> StdResult<Amount> {
+        // Remember when the user was last updated, i.e. now
+        self.save_ns(USER_UPDATED, self.address()?.as_slice(),
+            self.now()?)?;
+
+        // Save the user's lifetime liquidity so far
+        self.save_ns(USER_TALLIED, self.address()?.as_slice(),
+            self.user_lifetime()?)?;
+
         // If current balance is > 0, increment the user's age
         // with the time since the last update
-        self.save_ns(USER_EXISTED, self.address()?.as_slice(), self.user_age()?)?;
+        self.save_ns(USER_EXISTED, self.address()?.as_slice(),
+            self.user_age()?)?;
 
         // Increment liquidity from user
-        self.save_ns(USER_BALANCE, self.address()?.as_slice(), self.user_balance()? + increment)?;
-
-        // Remember when the user was last updated, i.e. now
-        self.save_ns(USER_UPDATED, self.address()?.as_slice(), self.now()?)?;
+        self.save_ns(USER_BALANCE, self.address()?.as_slice(),
+            self.user_balance()? + increment)?;
 
         // Increment liquidity in pool
         self.pool_update(self.pool_balance()? + increment.into())?;
@@ -245,15 +253,29 @@ impl<S: Storage> Pool<&mut S> {
     }
 
     pub fn user_retrieve (&mut self, decrement: Amount) -> StdResult<Amount> {
+
         let balance = self.user_balance()?;
 
         // Must have enough balance to retrieve
         if balance < decrement {
             error!(format!("not enough balance ({} < {})", balance, decrement))
         } else {
+            // Save the user's lifetime liquidity so far
+            self.save_ns(USER_TALLIED, self.address()?.as_slice(),
+                self.user_lifetime()?)?;
+
+            // If current balance is > 0, increment the user's age
+            // with the time since the last update
+            self.save_ns(USER_EXISTED, self.address()?.as_slice(),
+                self.user_age()?)?;
+
+            // Remember when the user was last updated, i.e. now
+            self.save_ns(USER_UPDATED, self.address()?.as_slice(),
+            self.now()?)?;
+
             // Remove liquidity from user
-            let new_user_balance = (balance - decrement)?;
-            self.save_ns(USER_BALANCE, self.address()?.as_slice(), new_user_balance)?;
+            self.save_ns(USER_BALANCE, self.address()?.as_slice(),
+                (balance - decrement)?)?;
 
             // Remove liquidity from pool
             self.pool_update((self.pool_balance()? - decrement.into())?)?;
@@ -285,6 +307,5 @@ impl<S: Storage> Pool<&mut S> {
             error!(format!("{} blocks until eligible", threshold - age))
         }
     }
-
 
 }

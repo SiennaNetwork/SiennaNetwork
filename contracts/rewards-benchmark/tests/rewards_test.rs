@@ -12,36 +12,36 @@ const DAY: Monotonic = 17280; // blocks
 macro_rules! test {
 
     ($T:ident = $now:expr ; pool_unprepared -> {
-        volume: $volume:expr, total: $total:expr, since: $since:expr
+        balance: $balance:expr, lifetime: $lifetime:expr, updated: $updated:expr
     }) => {
         assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
             lp_token: None,
-            balance:  Amount::from($volume   as u128),
-            lifetime: Volume::zero($total as u128),
-            updated:  $since as u64,
+            balance:  Amount::from($balance   as u128),
+            lifetime: Volume::zero($lifetime as u128),
+            updated:  $updated as u64,
             now:      $now   as u64,
         });
     };
 
     ($T:ident = $now:expr ; pool -> {
-        volume: $volume:expr, total: $total:expr, since: $since:expr
+        balance: $balance:expr, lifetime: $lifetime:expr, updated: $updated:expr
     }) => {
         assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
             lp_token: $T.lp_token(),
-            balance:  Amount::from($volume   as u128),
-            lifetime: Volume::from($total as u128),
-            updated:  $since as u64,
+            balance:  Amount::from($balance   as u128),
+            lifetime: Volume::from($lifetime as u128),
+            updated:  $updated as u64,
             now:      $now   as u64,
         });
     };
 
     ($T:ident = $now:expr ; user($who:expr) -> {
-        age: $age:expr, volume: $volume:expr, lifetime: $lifetime:expr,
+        age: $age:expr, balance: $balance:expr, lifetime: $lifetime:expr,
         unlocked: $unlocked:expr, claimed: $claimed:expr, claimable: $claimable:expr
     }) => {
         assert_eq!($T.q_user_info($now as u64, &$who)?, Response::UserInfo {
             age:       $age as u64,
-            balance:   Amount::from($volume      as u128),
+            balance:   Amount::from($balance      as u128),
             lifetime:  Volume::from($lifetime as u128),
             unlocked:  Amount::from($unlocked    as u128),
             claimed:   Amount::from($claimed     as u128),
@@ -78,13 +78,13 @@ kukumba! {
     when  "someone locks funds"
     then  "the instance goes live" {
         assert_error!(T.q_pool_info(1u64), "missing POOL_SINCE");
-        test!(T=2 ; pool -> { volume: 0, total: 0, since: 1 });
-        test!(T=3 ; pool -> { volume: 0, total: 0, since: 1 });
-        test!(T=4 ; pool -> { volume: 0, total: 0, since: 1 });
+        test!(T=2 ; pool -> { balance: 0, lifetime: 0, updated: 1 });
+        test!(T=3 ; pool -> { balance: 0, lifetime: 0, updated: 1 });
+        test!(T=4 ; pool -> { balance: 0, lifetime: 0, updated: 1 });
         test!(T=4 ; lock(admin, 1) -> [Snip20::transfer_from("admin", "contract_addr", "1")]);
-        test!(T=4 ; pool -> { volume: 1, total: 0, since: 4 });
-        test!(T=5 ; pool -> { volume: 1, total: 1, since: 4 });
-        test!(T=6 ; pool -> { volume: 1, total: 2, since: 4 });
+        test!(T=4 ; pool -> { balance: 1, lifetime: 0, updated: 4 });
+        test!(T=5 ; pool -> { balance: 1, lifetime: 1, updated: 4 });
+        test!(T=6 ; pool -> { balance: 1, lifetime: 2, updated: 4 });
     }
 
     #[ok_pool_init_then_set_lp_token]
@@ -109,9 +109,9 @@ kukumba! {
         assert_eq!(T.tx_set_token(4, &admin, "lp_token_address", "lp_token_hash")?, (vec![], 0, 0));
         assert_error!(T.q_pool_info(5), "missing POOL_SINCE");
         test!(T=6 ; lock(admin, 1) -> [ Snip20::transfer_from("admin", "contract_addr", "1") ]);
-        test!(T=6 ; pool -> { volume: 1, total: 0, since: 6 })
-        test!(T=7 ; pool -> { volume: 1, total: 1, since: 6 })
-        test!(T=8 ; pool -> { volume: 1, total: 2, since: 6 })
+        test!(T=6 ; pool -> { balance: 1, lifetime: 0, updated: 6 })
+        test!(T=7 ; pool -> { balance: 1, lifetime: 1, updated: 6 })
+        test!(T=8 ; pool -> { balance: 1, lifetime: 2, updated: 6 })
     }
 
     #[ok_one]
@@ -124,43 +124,43 @@ kukumba! {
         let _ = T.tx_set_vk(0, &alice, "")?;
     }
     when "one first locks lp tokens," {
-        //test!(T =  1 ; user(alice)      -> { age:     0, volume:   0, lifetime:   0, unlocked: 0, claimed: 0, claimable: 0 });
+        //test!(T =  1 ; user(alice)      -> { age:     0, balance:   0, lifetime:   0, unlocked: 0, claimed: 0, claimable: 0 });
         test!(T =  1 ; lock(alice, 100) -> [ Snip20::transfer_from("alice", "contract_addr", "100") ]);
-        //test!(T =  1 ; user(alice)      -> { age:     0, volume: 100, lifetime:   0, unlocked: 0, claimed: 0, claimable: 0 });
+        //test!(T =  1 ; user(alice)      -> { age:     0, balance: 100, lifetime:   0, unlocked: 0, claimed: 0, claimable: 0 });
     }
     then "one's age starts incrementing;" {
-        test!(T =  2 ; user(alice)      -> { age:     1, volume: 100, lifetime: 100, unlocked: 0, claimed: 0, claimable: 0 });
-        test!(T =  3 ; user(alice)      -> { age:     2, volume: 100, lifetime: 200, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T =  2 ; user(alice)      -> { age:     1, balance: 100, lifetime:   100, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T =  3 ; user(alice)      -> { age:     2, balance: 100, lifetime:   200, unlocked: 0, claimed: 0, claimable: 0 });
     }
     when "one retrieves half of the tokens," {
-        test!(T =  4 ; user(alice)      -> { age:     3, volume: 100, lifetime: 300, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T =  4 ; user(alice)      -> { age:     3, balance: 100, lifetime:   300, unlocked: 0, claimed: 0, claimable: 0 });
         test!(T =  4 ; retr(alice,  50) -> [ Snip20::transfer("alice",  "50") ]);
     }
     then "one's age keeps incrementing;" {
-        test!(T =  4 ; user(alice)      -> { age:     3, volume:  50, lifetime: 300, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T =  4 ; user(alice)      -> { age:     3, balance:  50, lifetime:   300, unlocked: 0, claimed: 0, claimable: 0 });
     }
     when "one retrieves all of the tokens," {
-        test!(T =  5 ; user(alice)      -> { age:     4, volume:  50, lifetime: 350, unlocked: 0, claimed: 0, claimable: 0 });
-        test!(T =  6 ; user(alice)      -> { age:     5, volume:  50, lifetime: 400, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T =  5 ; user(alice)      -> { age:     4, balance:  50, lifetime:   350, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T =  6 ; user(alice)      -> { age:     5, balance:  50, lifetime:   400, unlocked: 0, claimed: 0, claimable: 0 });
         test!(T =  6 ; retr(alice,  50) -> [ Snip20::transfer("alice", "50") ]);
     }
     then "one's age stops incrementing;" {
-        test!(T =  6 ; user(alice)      -> { age:     5, volume:   0, lifetime: 400, unlocked: 0, claimed: 0, claimable: 0 });
-        test!(T =  7 ; user(alice)      -> { age:     5, volume:   0, lifetime: 400, unlocked: 0, claimed: 0, claimable: 0 });
-        test!(T =  8 ; user(alice)      -> { age:     5, volume:   0, lifetime: 400, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T =  6 ; user(alice)      -> { age:     5, balance:   0, lifetime:   400, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T =  7 ; user(alice)      -> { age:     5, balance:   0, lifetime:   400, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T =  8 ; user(alice)      -> { age:     5, balance:   0, lifetime:   400, unlocked: 0, claimed: 0, claimable: 0 });
     }
     when "one locks tokens again," {
-        test!(T =  9 ; user(alice)      -> { age:     5, volume:   0, lifetime: 400, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T =  9 ; user(alice)      -> { age:     5, balance:   0, lifetime:   400, unlocked: 0, claimed: 0, claimable: 0 });
         test!(T =  9 ; lock(alice,   1) -> [ Snip20::transfer_from("alice", "contract_addr", "1") ]);
     }
     then "one's age resumes incrementing;" {
-        test!(T =  9 ; user(alice)      -> { age:     5, volume:   1, lifetime: 400, unlocked: 0, claimed: 0, claimable: 0 });
-        test!(T = 10 ; user(alice)      -> { age:     6, volume:   1, lifetime: 401, unlocked: 0, claimed: 0, claimable: 0 });
-        test!(T = 11 ; user(alice)      -> { age:     7, volume:   1, lifetime: 402, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T =  9 ; user(alice)      -> { age:     5, balance:   1, lifetime:   400, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T = 10 ; user(alice)      -> { age:     6, balance:   1, lifetime:   401, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T = 11 ; user(alice)      -> { age:     7, balance:   1, lifetime:   402, unlocked: 0, claimed: 0, claimable: 0 });
     }
     when "one's age reaches the configured threshold,"
     then "one is eligible to claim the whole pool" {
-        test!(T = DAY+1 ; user(alice)   -> { age: DAY+1, volume:    1, lifetime: 500, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T = DAY+4 ; user(alice)   -> { age:   DAY, balance:   1, lifetime: 17675, unlocked: 0, claimed: 0, claimable: 0 });
     }
 
     #[ok_two_simultaneous]
