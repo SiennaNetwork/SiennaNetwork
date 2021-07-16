@@ -27,6 +27,17 @@ const POOL_CLAIMED:   &[u8] = b"pool_claimed";
 const POOL_RATIO:     &[u8] = b"pool_ratio";
 /// Ratio of liquidity provided to rewards received
 const POOL_THRESHOLD: &[u8] = b"pool_threshold";
+/// How much liquidity has each user provided since they first appeared;
+/// incremented in intervals of (blocks since last update * current balance)
+const USER_TALLIED: &[u8] = b"user_lifetime/";
+/// How much liquidity does each user currently provide
+const USER_BALANCE: &[u8] = b"user_current/";
+/// When did each user's liquidity amount last change
+const USER_UPDATED: &[u8] = b"user_updated/";
+/// How much rewards has each user claimed so far
+const USER_CLAIMED: &[u8] = b"user_claimed/";
+/// For how many units of time has this user provided liquidity
+const USER_EXISTED: &[u8] = b"user_existed/";
 
 /// Reward pool
 pub struct Pool <S> {
@@ -73,7 +84,7 @@ impl<S: Storage> Writable<S> for Pool<&mut S> {
     fn storage_mut (&mut self) -> &mut S { &mut self.storage }
 }
 
-readonly!(Pool {
+readonly!(Pool { // pool readonly operations
 
     pub fn pool_status (&self) -> StdResult<(Amount, Volume, Monotonic)> {
         if let Some(last_update) = self.load(POOL_UPDATED)? {
@@ -118,50 +129,15 @@ readonly!(Pool {
 
     /// The total liquidity ever contained in this pool.
     pub fn pool_lifetime (&self) -> StdResult<Volume> {
+        let balance = self.pool_balance()?;
         let previous:     Option<Volume>    = self.load(POOL_TALLIED)?;
-        let balance:      Option<Amount>    = self.load(POOL_BALANCE)?;
         let last_updated: Option<Monotonic> = self.load(POOL_UPDATED)?;
-        if let (
-            Some(previous), Some(balance), Some(last_updated)
-        ) = (previous, balance, last_updated) {
+        if let (Some(previous), Some(last_updated)) = (previous, last_updated) {
             tally(previous, self.now()? - last_updated, balance.into())
         } else {
-            error!("missing pool liquidity data")
+            Ok(Volume::zero())
         }
     }
-
-});
-
-impl<S: Storage> Pool<&mut S> {
-
-    pub fn pool_set_ratio (&mut self, ratio: &Ratio) -> StdResult<&mut Self> {
-        self.save(POOL_RATIO, ratio)
-    }
-
-    pub fn pool_set_threshold (&mut self, threshold: &Monotonic) -> StdResult<&mut Self> {
-        self.save(POOL_THRESHOLD, threshold)
-    }
-
-    pub fn pool_update (&mut self, new_balance: Amount) -> StdResult<&mut Self> {
-        self.save(POOL_UPDATED, self.now()?)?
-            .save(POOL_BALANCE, new_balance)
-    }
-
-}
-
-/// How much liquidity has each user provided since they first appeared;
-/// incremented in intervals of (blocks since last update * current balance)
-const USER_TALLIED: &[u8] = b"user_lifetime/";
-/// How much liquidity does each user currently provide
-const USER_BALANCE: &[u8] = b"user_current/";
-/// When did each user's liquidity amount last change
-const USER_UPDATED: &[u8] = b"user_updated/";
-/// How much rewards has each user claimed so far
-const USER_CLAIMED: &[u8] = b"user_claimed/";
-/// For how many units of time has this user provided liquidity
-const USER_EXISTED: &[u8] = b"user_existed/";
-
-readonly!(Pool {
 
     pub fn user_updated (&self) -> StdResult<Monotonic> {
         match self.load_ns(USER_UPDATED, self.address()?.as_slice())? {
@@ -232,7 +208,23 @@ readonly!(Pool {
 
 });
 
-impl <S: Storage + ReadonlyStorage> Pool <&mut S> {
+impl<S: Storage> Pool<&mut S> {
+
+    pub fn pool_set_ratio (&mut self, ratio: &Ratio) -> StdResult<&mut Self> {
+        self.save(POOL_RATIO, ratio)
+    }
+
+    pub fn pool_set_threshold (&mut self, threshold: &Monotonic) -> StdResult<&mut Self> {
+        self.save(POOL_THRESHOLD, threshold)
+    }
+
+    pub fn pool_update (&mut self, new_balance: Amount) -> StdResult<&mut Self> {
+        let tallied = self.pool_lifetime()?;
+        let now     = self.now()?;
+        self.save(POOL_TALLIED, tallied)?
+            .save(POOL_UPDATED, now)?
+            .save(POOL_BALANCE, new_balance)
+    }
 
     pub fn user_lock (&mut self, increment: Amount) -> StdResult<Amount> {
         // If current balance is > 0, increment the user's age
@@ -243,7 +235,7 @@ impl <S: Storage + ReadonlyStorage> Pool <&mut S> {
         self.save_ns(USER_BALANCE, self.address()?.as_slice(), self.user_balance()? + increment)?;
 
         // Remember when the user was last updated, i.e. now
-        self.save_ns(USER_UPDATED, self.address()?.as_slice(), self.now())?;
+        self.save_ns(USER_UPDATED, self.address()?.as_slice(), self.now()?)?;
 
         // Increment liquidity in pool
         self.pool_update(self.pool_balance()? + increment.into())?;
@@ -264,7 +256,7 @@ impl <S: Storage + ReadonlyStorage> Pool <&mut S> {
             self.save_ns(USER_BALANCE, self.address()?.as_slice(), new_user_balance)?;
 
             // Remove liquidity from pool
-            self.pool_update((self.pool_balance()? - decrement.into())?);
+            self.pool_update((self.pool_balance()? - decrement.into())?)?;
 
             // Return the amount to return
             Ok(decrement)
@@ -293,5 +285,6 @@ impl <S: Storage + ReadonlyStorage> Pool <&mut S> {
             error!(format!("{} blocks until eligible", threshold - age))
         }
     }
+
 
 }

@@ -5,7 +5,7 @@
 #[macro_use] extern crate kukumba;
 mod harness; use harness::{RewardsHarness, Snip20};
 use fadroma::scrt::cosmwasm_std::{HumanAddr, StdError};
-use sienna_rewards_benchmark::{msg::Response, rewards_math::{Monotonic, Volume, Liquidity}};
+use sienna_rewards_benchmark::{msg::Response, rewards_math::{Monotonic, Amount, Volume}};
 
 const DAY: Monotonic = 17280; // blocks
 
@@ -16,9 +16,9 @@ macro_rules! test {
     }) => {
         assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
             lp_token: None,
-            volume:   Volume::from($volume   as u128),
-            total:    Liquidity::zero($total as u128),
-            since:    $since as u64,
+            balance:  Amount::from($volume   as u128),
+            lifetime: Volume::zero($total as u128),
+            updated:  $since as u64,
             now:      $now   as u64,
         });
     };
@@ -28,9 +28,9 @@ macro_rules! test {
     }) => {
         assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
             lp_token: $T.lp_token(),
-            volume:   Volume::from($volume   as u128),
-            total:    Liquidity::from($total as u128),
-            since:    $since as u64,
+            balance:  Amount::from($volume   as u128),
+            lifetime: Volume::from($total as u128),
+            updated:  $since as u64,
             now:      $now   as u64,
         });
     };
@@ -41,11 +41,11 @@ macro_rules! test {
     }) => {
         assert_eq!($T.q_user_info($now as u64, &$who)?, Response::UserInfo {
             age:       $age as u64,
-            volume:    Volume::from($volume      as u128),
-            lifetime:  Liquidity::from($lifetime as u128),
-            unlocked:  Volume::from($unlocked    as u128),
-            claimed:   Volume::from($claimed     as u128),
-            claimable: Volume::from($claimable   as u128)
+            balance:   Amount::from($volume      as u128),
+            lifetime:  Volume::from($lifetime as u128),
+            unlocked:  Amount::from($unlocked    as u128),
+            claimed:   Amount::from($claimed     as u128),
+            claimable: Amount::from($claimable   as u128)
         });
     };
 
@@ -213,9 +213,9 @@ kukumba! {
         ], 0, 0));
         assert_eq!(T.q_pool_info(2)?, Response::PoolInfo {
             lp_token: T.lp_token(),
-            volume: Volume::from(100u128),
-            total:  Liquidity::from(100u128),
-            since:  1,
+            balance: Amount::from(100u128),
+            lifetime: Volume::from(100u128),
+            updated:  1,
             now:    2
         });
     }
@@ -224,9 +224,9 @@ kukumba! {
     and   "the reward now increases at a reduced rate" {
         assert_eq!(T.q_pool_info(3)?, Response::PoolInfo {
             lp_token: T.lp_token(),
-            volume: Volume::from(100u128),
-            total:  Liquidity::from(200u128),
-            since:  1,
+            balance: Amount::from(100u128),
+            lifetime: Volume::from(200u128),
+            updated:  1,
             now:    3
         });
         assert_eq!(T.tx_retrieve(3, &alice, 50u128)?, (vec![
@@ -234,9 +234,9 @@ kukumba! {
         ], 0, 0));
         assert_eq!(T.q_pool_info(4)?, Response::PoolInfo {
             lp_token: T.lp_token(),
-            volume: Volume::from(50u128),
-            total:  Liquidity::from(250u128),
-            since:  3,
+            balance: Amount::from(50u128),
+            lifetime: Volume::from(250u128),
+            updated:  3,
             now:    4
         });
     }
@@ -245,9 +245,9 @@ kukumba! {
     and   "their reward stops increasing" {
         assert_eq!(T.q_pool_info(5)?, Response::PoolInfo {
             lp_token: T.lp_token(),
-            volume: Volume::from(50u128),
-            total:  Liquidity::from(300u128),
-            since:  3,
+            balance: Amount::from(50u128),
+            lifetime: Volume::from(300u128),
+            updated:  3,
             now:    5
         });
         assert_eq!(T.tx_retrieve(5, &alice, 50u128)?, (vec![
@@ -255,9 +255,9 @@ kukumba! {
         ], 0, 0));
         assert_eq!(T.q_pool_info(6)?, Response::PoolInfo {
             lp_token: T.lp_token(),
-            volume: Volume::from(0u128),
-            total:  Liquidity::from(300u128),
-            since:  5,
+            balance: Amount::from(0u128),
+            lifetime: Volume::from(300u128),
+            updated:  5,
             now:    6
         });
     }
@@ -265,9 +265,9 @@ kukumba! {
     then  "the previous provider's share of the rewards begins to diminish" {
         assert_eq!(T.q_pool_info(7)?, Response::PoolInfo {
             lp_token: T.lp_token(),
-            volume: Volume::from(0u128),
-            total:  Liquidity::from(300u128),
-            since:  5,
+            balance: Amount::from(0u128),
+            lifetime: Volume::from(300u128),
+            updated:  5,
             now:    7
         });
         assert_eq!(T.tx_lock(7, &bob, 500u128)?, (vec![
@@ -275,9 +275,9 @@ kukumba! {
         ], 0, 0));
         assert_eq!(T.q_pool_info(8)?, Response::PoolInfo {
             lp_token: T.lp_token(),
-            volume: Volume::from(500u128),
-            total:  Liquidity::from(800u128),
-            since:  7,
+            balance: Amount::from(500u128),
+            lifetime: Volume::from(800u128),
+            updated:  7,
             now:    8
         });
     }
@@ -285,9 +285,9 @@ kukumba! {
     then  "they get an error" {
         assert_eq!(T.q_pool_info(9)?, Response::PoolInfo {
             lp_token: T.lp_token(),
-            volume: Volume::from(500u128),
-            total:  Liquidity::from(1300u128),
-            since:  7,
+            balance: Amount::from(500u128),
+            lifetime: Volume::from(1300u128),
+            updated:  7,
             now:    9
         });
         assert_error!(
@@ -296,9 +296,9 @@ kukumba! {
         );
         assert_eq!(T.q_pool_info(10)?, Response::PoolInfo {
             lp_token: T.lp_token(),
-            volume: Volume::from(500u128),
-            total:  Liquidity::from(1800u128),
-            since:  7,
+            balance: Amount::from(500u128),
+            lifetime: Volume::from(1800u128),
+            updated:  7,
             now:    10
         });
     }
@@ -310,9 +310,9 @@ kukumba! {
         );
         assert_eq!(T.q_pool_info(11)?, Response::PoolInfo {
             lp_token: T.lp_token(),
-            volume: Volume::from(500u128),
-            total:  Liquidity::from(2300u128),
-            since:  7,
+            balance: Amount::from(500u128),
+            lifetime: Volume::from(2300u128),
+            updated:  7,
             now:    11
         });
     }
