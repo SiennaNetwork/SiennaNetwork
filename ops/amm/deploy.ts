@@ -88,7 +88,8 @@ async function deploy_amm(config: any) {
         snip20_contract: result.snip20,
         lp_token_contract: result.lp_token,
         pair_contract: result.exchange,
-        ido_contract: result.ido
+        ido_contract: result.ido,
+        prng_seed: create_rand_base64()
     }
 
     Object.assign(init_msg, config)
