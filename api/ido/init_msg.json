@@ -90,6 +90,26 @@
         "whitelist"
       ],
       "properties": {
+        "end_time": {
+          "description": "Time when the sale will end",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "entropy": {
+          "description": "Entropy for creating viewkey",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "input_token": {
           "description": "The token that will be used to buy the SNIP20.",
           "allOf": [
@@ -120,6 +140,17 @@
             }
           ]
         },
+        "prng_seed": {
+          "description": "Seed for creating viewkey",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "rate": {
           "description": "The price for a single token.",
           "allOf": [
@@ -130,6 +161,15 @@
         },
         "sold_token": {
           "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+        },
+        "start_time": {
+          "description": "Time when the sale will start (if None, it will start immediately)",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
         },
         "whitelist": {
           "description": "The addresses that are eligible to participate in the sale.",

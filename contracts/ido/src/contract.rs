@@ -76,13 +76,23 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         min_allocation: msg.info.min_allocation,
         start_time,
         end_time: msg.info.end_time,
-        viewing_key,
+        viewing_key: viewing_key.clone(),
     };
 
     config.save(deps)?;
 
     Ok(InitResponse {
         messages: vec![
+            // Set viewing key from IDO contract onto the sold token contract
+            // so that we can query the balance of the sold token transfered
+            // to the IDO contract
+            snip20::set_viewing_key_msg(
+                viewing_key.to_string(),
+                None,
+                BLOCK_SIZE,
+                config.sold_token.code_hash.clone(),
+                config.sold_token.address.clone(),
+            )?,
             // Execute the HandleMsg::RegisterIdo method of
             // the factory contract in order to register this address
             CosmosMsg::Wasm(WasmMsg::Execute {

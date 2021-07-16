@@ -3,6 +3,14 @@
   "title": "HandleMsg",
   "anyOf": [
     {
+      "type": "string",
+      "enum": [
+        "admin_refund",
+        "admin_status"
+      ]
+    },
+    {
+      "description": "Swap custom or native coin for selling coin",
       "type": "object",
       "required": [
         "swap"
@@ -22,6 +30,7 @@
       }
     },
     {
+      "description": "Change admin handle",
       "type": "object",
       "required": [
         "admin"
@@ -29,6 +38,26 @@
       "properties": {
         "admin": {
           "$ref": "#/definitions/AdminHandleMsg"
+        }
+      }
+    },
+    {
+      "description": "Add new address to whitelist",
+      "type": "object",
+      "required": [
+        "admin_add_address"
+      ],
+      "properties": {
+        "admin_add_address": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
         }
       }
     }
