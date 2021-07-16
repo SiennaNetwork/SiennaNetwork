@@ -74,14 +74,14 @@ impl<A: Clone> TokenType<A> {
                     if amount == coin.amount {
                         Ok(())
                     } else {
-                        Err(StdError::generic_err("Native token balance missmatch between the argument and the transferred"))
+                        Err(StdError::generic_err("Native token balance mismatch between the argument and the transferred"))
                     }
                 }
                 None => {
                     if amount.is_zero() {
                         Ok(())
                     } else {
-                        Err(StdError::generic_err("Native token balance missmatch between the argument and the transferred"))
+                        Err(StdError::generic_err("Native token balance mismatch between the argument and the transferred"))
                     }
                 }
             }
