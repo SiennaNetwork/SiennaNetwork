@@ -1,5 +1,10 @@
+#[cfg(test)] #[macro_use] extern crate kukumba;
+#[cfg(test)] mod rewards_harness;
+#[cfg(test)] mod rewards_test;
+
 pub mod rewards_math; use rewards_math::*;
 mod rewards_algo; use rewards_algo::*;
+
 
 use fadroma::scrt::{
     addr::{Humanize, Canonize},

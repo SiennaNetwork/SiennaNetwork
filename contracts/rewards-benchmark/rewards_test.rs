@@ -1,13 +1,19 @@
-#![cfg(test)]
 #![allow(unused_macros)]
 #![allow(non_snake_case)]
 
-#[macro_use] extern crate kukumba;
-mod harness; use harness::{RewardsHarness, Snip20};
 use fadroma::scrt::cosmwasm_std::{HumanAddr, StdError};
-use sienna_rewards_benchmark::{msg::Response, rewards_math::{Monotonic, Amount, Volume}};
+use crate::{
+    test,
+    msg::Response,
+    rewards_math::{Monotonic, Amount, Volume},
+    rewards_harness::{RewardsHarness, Snip20}
+};
 
 const DAY: Monotonic = 17280; // blocks
+
+macro_rules! assert_error {
+    ($response:expr, $msg:expr) => { assert_eq!($response, Err(StdError::generic_err($msg))) }
+}
 
 kukumba! {
     StdError,

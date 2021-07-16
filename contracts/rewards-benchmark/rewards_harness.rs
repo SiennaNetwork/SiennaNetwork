@@ -12,15 +12,10 @@ use fadroma::scrt::{
     //snip20 // todo work around circular dep ( via more reexports :( )
 };
 pub use fadroma::scrt::harness::TxResult;
-
-use sienna_rewards_benchmark::{
+use crate::{
     init, handle, query,
     msg::{Init, Handle as TX, Query as QQ, Response}
 };
-
-#[macro_export] macro_rules! assert_error {
-    ($response:expr, $msg:expr) => { assert_eq!($response, Err(StdError::generic_err($msg))) }
-}
 
 // CosmosMsg::Wasm(WasmMsg::Execute { msg: the_actual_message_as_binary })
 // loses type information. Thinking of genericizing it (hard, would require platform changes,
@@ -209,6 +204,10 @@ impl Snip20 {
             recipient, amount
         ).into()
     }
+}
+
+#[macro_export] macro_rules! assert_error {
+    ($response:expr, $msg:expr) => { assert_eq!($response, Err(StdError::generic_err($msg))) }
 }
 
 #[macro_export] macro_rules! test {
