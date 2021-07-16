@@ -9,60 +9,6 @@ use sienna_rewards_benchmark::{msg::Response, rewards_math::{Monotonic, Amount, 
 
 const DAY: Monotonic = 17280; // blocks
 
-macro_rules! test {
-
-    ($T:ident = $now:expr ; pool_unprepared -> {
-        balance: $balance:expr, lifetime: $lifetime:expr, updated: $updated:expr
-    }) => {
-        assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
-            lp_token: None,
-            balance:  Amount::from($balance   as u128),
-            lifetime: Volume::zero($lifetime as u128),
-            updated:  $updated as u64,
-            now:      $now   as u64,
-        });
-    };
-
-    ($T:ident = $now:expr ; pool -> {
-        balance: $balance:expr, lifetime: $lifetime:expr, updated: $updated:expr
-    }) => {
-        assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
-            lp_token: $T.lp_token(),
-            balance:  Amount::from($balance   as u128),
-            lifetime: Volume::from($lifetime as u128),
-            updated:  $updated as u64,
-            now:      $now   as u64,
-        });
-    };
-
-    ($T:ident = $now:expr ; user($who:expr) -> {
-        age: $age:expr, balance: $balance:expr, lifetime: $lifetime:expr,
-        unlocked: $unlocked:expr, claimed: $claimed:expr, claimable: $claimable:expr
-    }) => {
-        assert_eq!($T.q_user_info($now as u64, &$who)?, Response::UserInfo {
-            age:       $age as u64,
-            balance:   Amount::from($balance      as u128),
-            lifetime:  Volume::from($lifetime as u128),
-            unlocked:  Amount::from($unlocked    as u128),
-            claimed:   Amount::from($claimed     as u128),
-            claimable: Amount::from($claimable   as u128)
-        });
-    };
-
-    ($T:ident = $now:expr ; lock($who:expr, $amount:expr) -> [ $($msg:expr),* ]) => {
-        assert_eq!($T.tx_lock($now, &$who, ($amount as u128).into())?, (vec![ $($msg,)* ], 0, 0))
-    };
-
-    ($T:ident = $now:expr ; retr($who:expr, $amount:expr) -> [ $($msg:expr),* ]) => {
-        assert_eq!($T.tx_retrieve($now, &$who, ($amount as u128).into())?, (vec![ $($msg,)* ], 0, 0))
-    };
-
-    ($T:ident = $now:expr ; claim($who:expr) -> [ $($msg:expr),* ]) => {
-        assert_eq!($T.tx_claim($now, &$who)?, (vec![ $($msg,)* ], 0, 0))
-    };
-
-}
-
 kukumba! {
     StdError,
 
@@ -77,10 +23,10 @@ kukumba! {
     }
     when  "someone locks funds"
     then  "the instance goes live" {
-        assert_error!(T.q_pool_info(1u64), "missing POOL_SINCE");
-        test!(T=2 ; pool -> { balance: 0, lifetime: 0, updated: 1 });
-        test!(T=3 ; pool -> { balance: 0, lifetime: 0, updated: 1 });
-        test!(T=4 ; pool -> { balance: 0, lifetime: 0, updated: 1 });
+        test!(T=1 ; pool -> { balance: 0, lifetime: 0, updated: 0 });
+        test!(T=2 ; pool -> { balance: 0, lifetime: 0, updated: 0 });
+        test!(T=3 ; pool -> { balance: 0, lifetime: 0, updated: 0 });
+        test!(T=4 ; pool -> { balance: 0, lifetime: 0, updated: 0 });
         test!(T=4 ; lock(admin, 1) -> [Snip20::transfer_from("admin", "contract_addr", "1")]);
         test!(T=4 ; pool -> { balance: 1, lifetime: 0, updated: 4 });
         test!(T=5 ; pool -> { balance: 1, lifetime: 1, updated: 4 });
@@ -107,7 +53,7 @@ kukumba! {
     then  "the instance configures a viewing key for itself"
     and   "it goes live when someone locks funds" {
         assert_eq!(T.tx_set_token(4, &admin, "lp_token_address", "lp_token_hash")?, (vec![], 0, 0));
-        assert_error!(T.q_pool_info(5), "missing POOL_SINCE");
+        test!(T=6 ; pool -> { balance: 0, lifetime: 0, updated: 0 })
         test!(T=6 ; lock(admin, 1) -> [ Snip20::transfer_from("admin", "contract_addr", "1") ]);
         test!(T=6 ; pool -> { balance: 1, lifetime: 0, updated: 6 })
         test!(T=7 ; pool -> { balance: 1, lifetime: 1, updated: 6 })
@@ -211,7 +157,7 @@ kukumba! {
     }
     when "one locks lp tokens,"
     and "one retrieves them after reaching the threshold;"
-    then "one is eligible to claim the whole pool"{
+    then "one is eligible to claim the whole pool" {
         T = T.fund(100)
         test!(T =       1 ; user(alice)      -> { age:     0, balance:   0, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =       1 ; lock(alice, 100) -> [ Snip20::transfer_from("alice", "contract_addr", "100") ]);
@@ -225,7 +171,7 @@ kukumba! {
         test!(T =   DAY+2 ; lock(bob,   100) -> [ Snip20::transfer_from("bob", "contract_addr", "100") ]);
         test!(T =   DAY+2 ; user(bob)        -> { age:     0, balance: 100, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T = 2*DAY+2 ; user(bob)        -> { age:   DAY, balance: 100, lifetime: DAY * 100, unlocked:  50, claimed: 0, claimable:  50 });
-        test!(T =   DAY+1 ; retr(bob,   100) -> [ Snip20::transfer("bob", "100") ]);
+        test!(T = 2*DAY+2 ; retr(bob,   100) -> [ Snip20::transfer("bob", "100") ]);
         test!(T = 2*DAY+2 ; user(bob)        -> { age:   DAY, balance:   0, lifetime: DAY * 100, unlocked:  50, claimed: 0, claimable:  50 });
         test!(T = 2*DAY+2 ; user(alice)      -> { age:   DAY, balance:   0, lifetime: DAY * 100, unlocked:  50, claimed: 0, claimable:  50 });
     }

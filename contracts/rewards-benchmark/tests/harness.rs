@@ -214,36 +214,36 @@ impl Snip20 {
 #[macro_export] macro_rules! test {
 
     ($T:ident = $now:expr ; pool_unprepared -> {
-        volume: $volume:expr, total: $total:expr, since: $since:expr
+        balance: $balance:expr, lifetime: $lifetime:expr, updated: $updated:expr
     }) => {
         assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
             lp_token: None,
-            volume:   Amount::from($volume as u128),
-            total:    Volume::zero($total  as u128),
-            since:    $since as u64,
-            now:      $now   as u64,
+            balance:  Amount::from($balance  as u128),
+            lifetime: Volume::zero($lifetime as u128),
+            updated:  $updated as u64,
+            now:      $now     as u64,
         });
     };
 
     ($T:ident = $now:expr ; pool -> {
-        volume: $volume:expr, total: $total:expr, since: $since:expr
+        balance: $balance:expr, lifetime: $lifetime:expr, updated: $updated:expr
     }) => {
         assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
             lp_token: $T.lp_token(),
-            volume:   Amount::from($volume as u128),
-            total:    Volume::from($total  as u128),
-            since:    $since as u64,
-            now:      $now   as u64,
+            balance:  Amount::from($balance  as u128),
+            lifetime: Volume::from($lifetime as u128),
+            updated:  $updated as u64,
+            now:      $now     as u64,
         });
     };
 
     ($T:ident = $now:expr ; user($who:expr) -> {
-        age: $age:expr, volume: $volume:expr, lifetime: $lifetime:expr,
+        age: $age:expr, balance: $balance:expr, lifetime: $lifetime:expr,
         unlocked: $unlocked:expr, claimed: $claimed:expr, claimable: $claimable:expr
     }) => {
         assert_eq!($T.q_user_info($now as u64, &$who)?, Response::UserInfo {
             age:       $age as u64,
-            volume:    Amount::from($volume    as u128),
+            balance:   Amount::from($balance   as u128),
             lifetime:  Volume::from($lifetime  as u128),
             unlocked:  Amount::from($unlocked  as u128),
             claimed:   Amount::from($claimed   as u128),

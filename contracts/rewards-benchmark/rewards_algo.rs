@@ -96,7 +96,7 @@ readonly!(Pool { // pool readonly operations
                     Ok((balance, tally(lifetime, elapsed, balance.into())?, last_update))
                 } else { error!("missing BALANCE or TALLIED") }
             } else { error!("can't query before last update") }
-        } else { error!("missing UPDATED") }
+        } else { Ok((Amount::zero(), Volume::zero(), 0 as Monotonic)) }
     }
 
     /// Amount of currently locked LP tokens in this pool
@@ -152,10 +152,16 @@ readonly!(Pool { // pool readonly operations
     }
 
     pub fn user_elapsed (&self) -> StdResult<Monotonic> {
-        Ok(match self.user_updated() {
-            Ok(updated) => self.now()? - updated,
-            Err(_) => 0 as Monotonic
-        })
+        let now = self.now()?;
+        match self.user_updated() {
+            Ok(updated) => if now >= updated {
+                Ok(now - updated)
+            } else {
+                error!(format!("tried to query at {}, last update is {}", &now, &updated))
+            },
+            // default to 0
+            Err(_) => Ok(0 as Monotonic)
+        }
     }
 
     pub fn user_tallied (&self) -> StdResult<Volume> {
