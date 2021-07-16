@@ -3,17 +3,6 @@ use fadroma::scrt::{cosmwasm_std::{StdError, CanonicalAddr}, storage::traits2::*
 
 macro_rules! error { ($info:expr) => { Err(StdError::generic_err($info)) }; }
 
-macro_rules! readonly {
-    ($Pool:ident { $($body:tt)* } ) => {
-        impl<S: ReadonlyStorage> $Pool<&S> {
-            $($body)*
-        }
-        impl<S: ReadonlyStorage> $Pool<&mut S> {
-            $($body)*
-        }
-    };
-}
-
 /// How much liquidity has this pool contained up to this point
 /// Incremented in intervals of (moments since last update * current balance)
 const POOL_TALLIED:   &[u8] = b"pool_lifetime";
@@ -82,6 +71,17 @@ impl<S: ReadonlyStorage> Readonly<S> for Pool<&mut S> {
 
 impl<S: Storage> Writable<S> for Pool<&mut S> {
     fn storage_mut (&mut self) -> &mut S { &mut self.storage }
+}
+
+macro_rules! readonly {
+    ($Pool:ident { $($body:tt)* } ) => {
+        impl<S: ReadonlyStorage> $Pool<&S> {
+            $($body)*
+        }
+        impl<S: ReadonlyStorage> $Pool<&mut S> {
+            $($body)*
+        }
+    };
 }
 
 readonly!(Pool { // pool readonly operations

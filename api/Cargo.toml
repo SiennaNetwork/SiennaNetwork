@@ -13,9 +13,9 @@ factory         = { path = "../contracts/factory" }
 ido             = { path = "../contracts/ido" }
 lp-token        = { path = "../contracts/lp-token" }
 sienna-mgmt     = { path = "../contracts/mgmt" }
-sienna-rewards  = { path = "../contracts/rewards" }
+#sienna-rewards  = { path = "../contracts/rewards" }
 sienna-rewards-benchmark = { path = "../contracts/rewards-benchmark" }
-sienna-rewards-factory = { path = "../contracts/rewards-factory" }
+#sienna-rewards-factory = { path = "../contracts/rewards-factory" }
 sienna-rpt      = { path = "../contracts/rpt" }
 
 [[bin]]

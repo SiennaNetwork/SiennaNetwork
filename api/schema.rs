@@ -7,9 +7,9 @@ use amm_shared::msg::ido      as ido;
 use amm_shared::msg::snip20;
 
 use sienna_mgmt::msg              as mgmt;
-use sienna_rewards::msg           as rewards;
+//use sienna_rewards::msg           as rewards;
 use sienna_rewards_benchmark::msg as rewards_benchmark;
-use sienna_rewards_factory::msg   as rewards_factory;
+//use sienna_rewards_factory::msg   as rewards_factory;
 use sienna_rpt::msg               as rpt;
 
 fn main() {
@@ -33,25 +33,25 @@ fn main() {
     export_schema(&schema_for!(rpt::Query), &out_dir);
     export_schema(&schema_for!(rpt::Response), &out_dir);
 
-    let mut out_dir = current_dir().unwrap();
-    out_dir.push("api");
-    out_dir.push("rewards");
-    create_dir_all(&out_dir).unwrap();
-    remove_schemas(&out_dir).unwrap();
-    export_schema(&schema_for!(rewards::InitMsg), &out_dir);
-    export_schema(&schema_for!(rewards::HandleMsg), &out_dir);
-    export_schema(&schema_for!(rewards::QueryMsg), &out_dir);
-    export_schema(&schema_for!(rewards::QueryMsgResponse), &out_dir);
+    //let mut out_dir = current_dir().unwrap();
+    //out_dir.push("api");
+    //out_dir.push("rewards");
+    //create_dir_all(&out_dir).unwrap();
+    //remove_schemas(&out_dir).unwrap();
+    //export_schema(&schema_for!(rewards::InitMsg), &out_dir);
+    //export_schema(&schema_for!(rewards::HandleMsg), &out_dir);
+    //export_schema(&schema_for!(rewards::QueryMsg), &out_dir);
+    //export_schema(&schema_for!(rewards::QueryMsgResponse), &out_dir);
 
-    let mut out_dir = current_dir().unwrap();
-    out_dir.push("api");
-    out_dir.push("rewards-factory");
-    create_dir_all(&out_dir).unwrap();
-    remove_schemas(&out_dir).unwrap();
-    export_schema(&schema_for!(rewards_factory::InitMsg), &out_dir);
-    export_schema(&schema_for!(rewards_factory::HandleMsg), &out_dir);
-    export_schema(&schema_for!(rewards_factory::QueryMsg), &out_dir);
-    export_schema(&schema_for!(rewards_factory::QueryMsgResponse), &out_dir);
+    //let mut out_dir = current_dir().unwrap();
+    //out_dir.push("api");
+    //out_dir.push("rewards-factory");
+    //create_dir_all(&out_dir).unwrap();
+    //remove_schemas(&out_dir).unwrap();
+    //export_schema(&schema_for!(rewards_factory::InitMsg), &out_dir);
+    //export_schema(&schema_for!(rewards_factory::HandleMsg), &out_dir);
+    //export_schema(&schema_for!(rewards_factory::QueryMsg), &out_dir);
+    //export_schema(&schema_for!(rewards_factory::QueryMsgResponse), &out_dir);
 
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");
