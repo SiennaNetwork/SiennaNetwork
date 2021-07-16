@@ -58,11 +58,10 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     let mut messages = vec![];
 
     let mut rng = Prng::new(&env.message.sender.0.as_bytes(), &env.block.time.to_be_bytes());
+    let viewing_key = ViewingKey::new(&env, msg.prng_seed.as_slice(), &rng.rand_bytes());
 
-    let viewing_key = ViewingKey::new(&env, &rng.rand_bytes(), &rng.rand_bytes());
-
-    register_custom_token(&env, &mut messages, &msg.pair.0, &viewing_key)?;
-    register_custom_token(&env, &mut messages, &msg.pair.1, &viewing_key)?;
+    register_custom_token(&mut messages, &msg.pair.0, &viewing_key)?;
+    register_custom_token(&mut messages, &msg.pair.1, &viewing_key)?;
 
     // Create LP token
     messages.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
@@ -508,7 +507,6 @@ fn register_lp_token<S: Storage, A: Api, Q: Querier>(
 }
 
 fn register_custom_token(
-    env: &Env,
     messages: &mut Vec<CosmosMsg>,
     token: &TokenType<HumanAddr>,
     viewing_key: &ViewingKey
@@ -518,13 +516,6 @@ fn register_custom_token(
     } = token {
         messages.push(snip20::set_viewing_key_msg(
             viewing_key.0.clone(),
-            None,
-            BLOCK_SIZE,
-            token_code_hash.clone(),
-            contract_addr.clone(),
-        )?);
-        messages.push(snip20::register_receive_msg(
-            env.contract_code_hash.clone(),
             None,
             BLOCK_SIZE,
             token_code_hash.clone(),

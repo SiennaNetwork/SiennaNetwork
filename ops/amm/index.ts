@@ -441,7 +441,8 @@ async function instantiate_factory(client: SigningCosmWasmClient, result: Upload
     lp_token_contract: result.lp_token,
     pair_contract: result.exchange,
     ido_contract: result.ido,
-    exchange_settings: get_exchange_settings()
+    exchange_settings: get_exchange_settings(),
+    prng_seed: create_rand_base64()
   }
 
   const factory_instance = await client.instantiate(

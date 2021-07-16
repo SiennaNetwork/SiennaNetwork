@@ -23,7 +23,8 @@ pub mod factory {
         pub pair_contract:     ContractInstantiationInfo,
         pub ido_contract:      ContractInstantiationInfo,
         pub exchange_settings: ExchangeSettings<HumanAddr>,
-        pub admin: Option<HumanAddr>
+        pub admin:             Option<HumanAddr>,
+        pub prng_seed:         Binary
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -125,7 +126,8 @@ pub mod exchange {
         /// Used by the exchange contract to
         /// send back its address to the factory on init
         pub factory_info: ContractInstance<HumanAddr>,
-        pub callback: Callback<HumanAddr>
+        pub callback: Callback<HumanAddr>,
+        pub prng_seed: Binary
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]

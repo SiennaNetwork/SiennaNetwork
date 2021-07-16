@@ -24,8 +24,10 @@ use amm_shared::{
 };
 
 use crate::state::{
-    Config, get_address_for_pair, get_exchanges, get_idos, load_config, pair_exists,
-    save_config, store_exchange, store_exchanges, store_ido_address, store_ido_addresses
+    Config, get_address_for_pair, get_exchanges, get_idos,
+    load_config, pair_exists, save_config, store_exchange,
+    store_exchanges, store_ido_address, store_ido_addresses,
+    save_prng_seed, load_prng_seed
 };
 use fadroma_scrt_migrate::{get_status, with_status};
 
@@ -39,6 +41,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     let admin = msg.admin.clone().unwrap_or(env.message.sender);
     save_admin(deps, &admin)?;
 
+    save_prng_seed(&mut deps.storage, &msg.prng_seed)?;
     save_config(deps, &Config::from_init_msg(msg))?;
 
     Ok(InitResponse::default())
@@ -182,7 +185,8 @@ pub fn create_exchange<S: Storage, A: Api, Q: Querier>(
                                     pair: pair.clone(),
                                     signature
                                 })?,
-                            }
+                            },
+                            prng_seed: load_prng_seed(&deps.storage)?
                         }
                     )?
                 }
