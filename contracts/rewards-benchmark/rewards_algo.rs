@@ -152,7 +152,10 @@ readonly!(Pool { // pool readonly operations
     }
 
     pub fn user_elapsed (&self) -> StdResult<Monotonic> {
-        Ok(self.now()? - self.user_updated()?)
+        Ok(match self.user_updated() {
+            Ok(updated) => self.now()? - updated,
+            Err(_) => 0 as Monotonic
+        })
     }
 
     pub fn user_tallied (&self) -> StdResult<Volume> {
@@ -203,7 +206,7 @@ readonly!(Pool { // pool readonly operations
                 Ok((unlocked, claimed, Amount::zero()))
             }
         } else {
-            error!("pool is empty")
+            Ok((Amount::zero(), Amount::zero(), Amount::zero()))
         }
     }
 

@@ -122,11 +122,11 @@ kukumba! {
         let alice = HumanAddr::from("alice");
         let _ = T.init_configured(0, &admin)?;
         let _ = T.tx_set_vk(0, &alice, "")?;
+        test!(T =  1 ; user(alice)      -> { age:     0, balance:   0, lifetime:   0, unlocked: 0, claimed: 0, claimable: 0 });
     }
     when "one first locks lp tokens," {
-        //test!(T =  1 ; user(alice)      -> { age:     0, balance:   0, lifetime:   0, unlocked: 0, claimed: 0, claimable: 0 });
         test!(T =  1 ; lock(alice, 100) -> [ Snip20::transfer_from("alice", "contract_addr", "100") ]);
-        //test!(T =  1 ; user(alice)      -> { age:     0, balance: 100, lifetime:   0, unlocked: 0, claimed: 0, claimable: 0 });
+        test!(T =  1 ; user(alice)      -> { age:     0, balance: 100, lifetime:   0, unlocked: 0, claimed: 0, claimable: 0 });
     }
     then "one's age starts incrementing;" {
         test!(T =  2 ; user(alice)      -> { age:     1, balance: 100, lifetime:   100, unlocked: 0, claimed: 0, claimable: 0 });
