@@ -142,7 +142,7 @@ readonly!(Pool { // pool readonly operations
     pub fn user_updated (&self) -> StdResult<Monotonic> {
         match self.load_ns(USER_UPDATED, self.address()?.as_slice())? {
             Some(x) => Ok(x),
-            None    => error!("UPDATED missing")
+            None    => error!("missing USER_UPDATED")
         }
     }
 
@@ -264,7 +264,6 @@ impl<S: Storage> Pool<&mut S> {
     }
 
     pub fn user_retrieve (&mut self, decrement: Amount) -> StdResult<Amount> {
-
         let balance = self.user_balance()?;
 
         // Must have enough balance to retrieve
@@ -315,7 +314,7 @@ impl<S: Storage> Pool<&mut S> {
                 error!("nothing to claim")
             }
         } else {
-            error!(format!("{} blocks until eligible", threshold - age))
+            error!(format!("lock tokens for {} more blocks to be eligible", threshold - age))
         }
     }
 

@@ -291,7 +291,7 @@ kukumba! {
     then  "they get an error" {
         assert_error!(
             T.tx_retrieve(10, &mallory, 100u128),
-            "never provided liquidity"
+            "not enough balance (0 < 100)"
         );
         assert_eq!(T.q_pool_info(11)?, Response::PoolInfo {
             lp_token: T.lp_token(),
@@ -312,28 +312,23 @@ kukumba! {
     }
     when  "strangers try to claim rewards"
     then  "they get an error" {
-        assert_error!(T.tx_claim(1, &alice), "missing user age data");
-        assert_error!(T.tx_claim(1, &bob),   "missing user age data");
+        assert_error!(T.tx_claim(1, &alice), "lock tokens for 17280 more blocks to be eligible");
+        assert_error!(T.tx_claim(1, &bob),   "lock tokens for 17280 more blocks to be eligible");
     }
     when  "users provide liquidity"
     and   "they wait for rewards to accumulate" {
-        assert_eq!(T.tx_lock(2, &alice, 100)?, (vec![
-            Snip20::transfer_from("alice", "contract_addr", "100")
-        ], 0, 0));
-        assert_error!(T.tx_claim(2, &alice), "17280 blocks until eligible");
-        assert_eq!(T.tx_lock(2, &bob, 100)?, (vec![
-            Snip20::transfer_from("bob", "contract_addr", "100")
-        ], 0, 0));
-        assert_error!(T.tx_claim(2, &alice), "17280 blocks until eligible");
-        assert_error!(T.tx_claim(3, &bob),   "17279 blocks until eligible");
-        assert_error!(T.tx_claim(4, &alice), "17278 blocks until eligible");
+        assert_eq!(T.tx_lock(2, &alice, 100)?, (vec![Snip20::transfer_from("alice", "contract_addr", "100")], 0, 0));
+        assert_error!(T.tx_claim(2, &alice), "lock tokens for 17280 more blocks to be eligible");
+        assert_eq!(T.tx_lock(2, &bob, 100)?, (vec![Snip20::transfer_from("bob", "contract_addr", "100")], 0, 0));
+        assert_error!(T.tx_claim(2, &alice), "lock tokens for 17280 more blocks to be eligible");
+        assert_error!(T.tx_claim(3, &bob),   "lock tokens for 17279 more blocks to be eligible");
+        assert_error!(T.tx_claim(4, &alice), "lock tokens for 17278 more blocks to be eligible");
+        assert_error!(T.tx_claim(5, &bob),   "lock tokens for 17277 more blocks to be eligible");
     }
     and   "a provider claims rewards"
     then  "that provider receives reward tokens" {
         T = T.fund(100)
-        assert_eq!(T.tx_claim(17282, &alice)?, (vec![
-            Snip20::transfer("alice", "50")
-        ], 0, 0));
+        assert_eq!(T.tx_claim(17282, &alice)?, (vec![Snip20::transfer("alice", "50")], 0, 0));
     }
     when  "a provider claims rewards twice"
     then  "rewards are sent only once" {
@@ -343,12 +338,8 @@ kukumba! {
     then  "they receive equivalent rewards as long as the liquidity balance hasn't changed" {
         //assert_eq!(T.tx_claim(4, &alice)?, (vec![Snip20::transfer("alice",  "5")], 0, 0));
         T = T.fund(100)
-        assert_eq!(T.tx_claim(3 + DAY * 2, &alice)?, (vec![
-            Snip20::transfer("alice", "50")
-        ], 0, 0));
-        assert_eq!(T.tx_claim(3 + DAY * 2, &bob)?, (vec![
-            Snip20::transfer("bob", "100")
-        ], 0, 0));
+        assert_eq!(T.tx_claim(3 + DAY * 2, &alice)?, (vec![Snip20::transfer("alice", "50")], 0, 0));
+        assert_eq!(T.tx_claim(3 + DAY * 2, &bob)?,   (vec![Snip20::transfer("bob", "100")], 0, 0));
         //println!("{:#?}", T.tx_claim(10, &alice));
         //println!("{:#?}", T.tx_claim(4, &bob)?);
         //panic!()
