@@ -32,33 +32,31 @@ const USER_EXISTED: &[u8] = b"user_existed/";
 pub struct Pool <S> {
     pub storage: S,
     now:         Option<Monotonic>,
-    address:     Option<CanonicalAddr>
 }
 
 /// User account
 pub struct User <S> {
     pub storage: S,
     now:         Option<Monotonic>,
-    address:     Option<CanonicalAddr>
+    address:     CanonicalAddr
 }
 
 impl <S> Pool<S> {
     /// Create a new pool with a storage handle
     pub fn new (storage: S) -> Self {
-        Self { storage, now: None, address: None }
+        Self { storage, now: None }
     }
     /// Add the current time to the pool for operations that need it
     pub fn at (self, now: Monotonic) -> Self {
-        Self { storage: self.storage, address: self.address, now: Some(now) }
+        Self { storage: self.storage, now: Some(now) }
     }
     /// Get an individual user from the pool
-    pub fn user (self, address: CanonicalAddr) -> Self {
-        Pool { storage: self.storage, address: Some(address), now: self.now }
+    pub fn user (self, address: CanonicalAddr) -> User<S> {
+        User { storage: self.storage, now: self.now, address }
     }
 }
 
-
-macro_rules! readonly {
+macro_rules! stateful {
     (
         $Obj:ident { $($accessors:tt)* }
         $ObjReadonly:ident { $($readonlies:tt)* }
@@ -88,24 +86,16 @@ macro_rules! readonly {
     };
 }
 
-readonly!(Pool {
+stateful!(Pool {
 
     /// Get the current time or fail
     fn now (&self) -> StdResult<Monotonic> {
         self.now.ok_or(StdError::generic_err("current time not set"))
     }
-    /// Get the selected user or fail
-    fn address (&self) -> StdResult<CanonicalAddr> {
-        match &self.address {
-            Some(address) => Ok(address.clone()),
-            None => Err(StdError::generic_err("address not set"))
-        }
-    }
 
-} PoolReadonly { // pool readonly operations
+} PoolReadonly { // pool stateful operations
 
     fn now (&self) -> StdResult<Monotonic>; 
-    fn address (&self) -> StdResult<CanonicalAddr>; 
 
     fn pool_status (&self) -> StdResult<(Amount, Volume, Monotonic)> {
         if let Some(last_update) = self.load(POOL_UPDATED)? {
@@ -160,15 +150,53 @@ readonly!(Pool {
         }
     }
 
+} PoolWritable {
+
+    pub fn pool_set_ratio (&mut self, ratio: &Ratio) -> StdResult<&mut Self> {
+        self.save(POOL_RATIO, ratio)
+    }
+
+    pub fn pool_set_threshold (&mut self, threshold: &Monotonic) -> StdResult<&mut Self> {
+        self.save(POOL_THRESHOLD, threshold)
+    }
+
+    pub fn pool_update (&mut self, new_balance: Amount) -> StdResult<&mut Self> {
+        let tallied = self.pool_lifetime()?;
+        let now     = self.now()?;
+        self.save(POOL_TALLIED, tallied)?
+            .save(POOL_UPDATED, now)?
+            .save(POOL_BALANCE, new_balance)
+    }
+
+});
+
+stateful!(User {
+
+    fn address (&self) -> &CanonicalAddr {
+        &self.address
+    }
+    fn now (&self) -> StdResult<Monotonic> {
+        match self.now { Some(now) => Ok(now), None => error!("missing now") }
+    }
+    fn pool (&self) -> Pool<&S> {
+        Pool { storage: self.storage, now: self.now }
+    }
+
+} UserReadonly {
+
+    fn pool (&self) -> Pool<&S>;
+    fn now (&self) -> StdResult<Monotonic>;
+    fn address (&self) -> &CanonicalAddr;
+
     fn user_updated (&self) -> StdResult<Monotonic> {
-        match self.load_ns(USER_UPDATED, self.address()?.as_slice())? {
+        match self.load_ns(USER_UPDATED, self.address().as_slice())? {
             Some(x) => Ok(x),
             None    => error!("missing USER_UPDATED")
         }
     }
 
     fn user_existed (&self) -> StdResult<Monotonic> {
-        Ok(self.load_ns(USER_EXISTED, self.address()?.as_slice())?
+        Ok(self.load_ns(USER_EXISTED, self.address().as_slice())?
             .unwrap_or(0 as Monotonic))
     }
 
@@ -186,17 +214,17 @@ readonly!(Pool {
     }
 
     fn user_tallied (&self) -> StdResult<Volume> {
-        Ok(self.load_ns(USER_TALLIED, self.address()?.as_slice())?
+        Ok(self.load_ns(USER_TALLIED, self.address().as_slice())?
             .unwrap_or(Volume::zero()))
     }
 
     fn user_balance (&self) -> StdResult<Amount> {
-        Ok(self.load_ns(USER_BALANCE, self.address()?.as_slice())?
+        Ok(self.load_ns(USER_BALANCE, self.address().as_slice())?
             .unwrap_or(Amount::zero()))
     }
 
     fn user_claimed (&self) -> StdResult<Amount> {
-        Ok(self.load_ns(USER_CLAIMED, self.address()?.as_slice())?
+        Ok(self.load_ns(USER_CLAIMED, self.address().as_slice())?
             .unwrap_or(Amount::zero()))
     }
 
@@ -232,15 +260,15 @@ readonly!(Pool {
     /// 
     /// Since a user's total reward can diminish, it may happen that the amount remaining
     /// in the pool after a user has claimed is insufficient to pay out the next user's reward.
-    /// In that case, 
+    /// In that case, https://google.github.io/filament/webgl/suzanne.html
     fn user_reward (&self, balance: Amount) -> StdResult<(Amount, Amount, Amount)> {
         let age       = self.user_age()?;
-        let threshold = self.pool_threshold()?;
-        let pool      = self.pool_lifetime()?;
+        let threshold = self.pool().pool_threshold()?;
+        let pool      = self.pool().pool_lifetime()?;
         if age >= threshold && pool > Volume::zero() {
             let user     = self.user_lifetime()?;
-            let budget   = self.pool_budget(balance)?;
-            let ratio    = self.pool_ratio()?;
+            let budget   = self.pool().pool_budget(balance)?;
+            let ratio    = self.pool().pool_ratio()?;
             let unlocked = Volume::from(budget)
                 .multiply_ratio(user, pool)?
                 .multiply_ratio(ratio.0, ratio.1)?
@@ -256,50 +284,38 @@ readonly!(Pool {
         }
     }
 
-} PoolWritable {
+} UserWritable {
 
-    pub fn pool_set_ratio (&mut self, ratio: &Ratio) -> StdResult<&mut Self> {
-        self.save(POOL_RATIO, ratio)
-    }
-
-    pub fn pool_set_threshold (&mut self, threshold: &Monotonic) -> StdResult<&mut Self> {
-        self.save(POOL_THRESHOLD, threshold)
-    }
-
-    pub fn pool_update (&mut self, new_balance: Amount) -> StdResult<&mut Self> {
-        let tallied = self.pool_lifetime()?;
-        let now     = self.now()?;
-        self.save(POOL_TALLIED, tallied)?
-            .save(POOL_UPDATED, now)?
-            .save(POOL_BALANCE, new_balance)
+    pub fn pool_mut (&mut self) -> Pool<&mut S> {
+        Pool { storage: self.storage, now: self.now }
     }
 
     pub fn user_lock (&mut self, increment: Amount) -> StdResult<Amount> {
+        let address = self.address.clone();
+
         // Remember when the user was last updated, i.e. now
-        self.save_ns(USER_UPDATED, self.address()?.as_slice(),
-            self.now()?)?;
+        self.save_ns(USER_UPDATED, address.as_slice(), self.now()?)?;
 
         // Save the user's lifetime liquidity so far
-        self.save_ns(USER_TALLIED, self.address()?.as_slice(),
-            self.user_lifetime()?)?;
+        self.save_ns(USER_TALLIED, address.as_slice(), self.user_lifetime()?)?;
 
         // If current balance is > 0, increment the user's age
         // with the time since the last update
-        self.save_ns(USER_EXISTED, self.address()?.as_slice(),
-            self.user_age()?)?;
+        self.save_ns(USER_EXISTED, address.as_slice(), self.user_age()?)?;
 
         // Increment liquidity from user
-        self.save_ns(USER_BALANCE, self.address()?.as_slice(),
-            self.user_balance()? + increment)?;
+        self.save_ns(USER_BALANCE, address.as_slice(), self.user_balance()? + increment)?;
 
         // Increment liquidity in pool
-        self.pool_update(self.pool_balance()? + increment.into())?;
+        let next_balance = self.pool().pool_balance()? + increment.into();
+        self.pool_mut().pool_update(next_balance)?;
 
         // Return the amount to lock
         Ok(increment)
     }
 
     pub fn user_retrieve (&mut self, decrement: Amount) -> StdResult<Amount> {
+        let address = self.address.clone();
         let balance = self.user_balance()?;
 
         // Must have enough balance to retrieve
@@ -307,24 +323,22 @@ readonly!(Pool {
             error!(format!("not enough balance ({} < {})", balance, decrement))
         } else {
             // Save the user's lifetime liquidity so far
-            self.save_ns(USER_TALLIED, self.address()?.as_slice(),
-                self.user_lifetime()?)?;
+            self.save_ns(USER_TALLIED, address.as_slice(), self.user_lifetime()?)?;
 
             // If current balance is > 0, increment the user's age
             // with the time since the last update
-            self.save_ns(USER_EXISTED, self.address()?.as_slice(),
-                self.user_age()?)?;
+            self.save_ns(USER_EXISTED, address.as_slice(), self.user_age()?)?;
 
             // Remember when the user was last updated, i.e. now
-            self.save_ns(USER_UPDATED, self.address()?.as_slice(),
+            self.save_ns(USER_UPDATED, address.as_slice(),
             self.now()?)?;
 
             // Remove liquidity from user
-            self.save_ns(USER_BALANCE, self.address()?.as_slice(),
-                (balance - decrement)?)?;
+            self.save_ns(USER_BALANCE, address.as_slice(), (balance - decrement)?)?;
 
             // Remove liquidity from pool
-            self.pool_update((self.pool_balance()? - decrement.into())?)?;
+            let next_balance = (self.pool().pool_balance()? - decrement.into())?;
+            self.pool_mut().pool_update(next_balance)?;
 
             // Return the amount to return
             Ok(decrement)
@@ -333,14 +347,15 @@ readonly!(Pool {
 
     pub fn user_claim (&mut self, balance: Amount) -> StdResult<Amount> {
         let age       = self.user_age()?;
-        let threshold = self.pool_threshold()?;
+        let threshold = self.pool().pool_threshold()?;
 
         // Age must be above the threshold to claim
         if age >= threshold {
             let (unlocked, _claimed, claimable) = self.user_reward(balance)?;
             if claimable > Amount::zero() {
                 // If there is some new reward amount to claim:
-                self.save_ns(USER_CLAIMED, self.address()?.as_slice(), &unlocked)?;
+                let address = self.address.clone();
+                self.save_ns(USER_CLAIMED, address.as_slice(), &unlocked)?;
                 Ok(claimable)
             } else if unlocked > Amount::zero() {
                 // If this user has claimed all its rewards so far:
