@@ -154,8 +154,6 @@ kukumba! {
         let _ = T.init_configured(0, &admin)?;
         let _ = T.tx_set_vk(0, &alice, "")?;
         let _ = T.tx_set_vk(0, &bob,   "")?;
-        let _ = T.tx_set_vk(0, &alice, "")?;
-        let _ = T.tx_set_vk(0, &bob,   "")?;
     }
     when "alice locks lp tokens,"
     and  "alice retrieves them after reaching the threshold;"
@@ -192,120 +190,43 @@ kukumba! {
         let alice   = HumanAddr::from("alice");
         let bob     = HumanAddr::from("bob");
         let mallory = HumanAddr::from("mallory");
-        assert_eq!(T.init_configured(0, &admin)?, (vec![
-            Snip20::set_viewing_key(""),
-        ], 0, 0));
+        assert_eq!(T.init_configured(0, &admin)?, (vec![ Snip20::set_viewing_key("") ], 0, 0));
     }
     when  "someone requests to lock tokens"
     then  "the instance transfers them to itself"
     and   "the liquidity provider starts accruing a reward" {
-        assert_eq!(T.tx_lock(1, &alice, 100u128)?, (vec![
-            Snip20::transfer_from("alice", "contract_addr", "100")
-        ], 0, 0));
-        assert_eq!(T.q_pool_info(2)?, Response::PoolInfo {
-            lp_token: T.lp_token(),
-            balance: Amount::from(100u128),
-            lifetime: Volume::from(100u128),
-            updated:  1,
-            now:    2
-        });
+        test!(T = 1; lock(alice, 100) -> [ Snip20::transfer_from("alice", "contract_addr", "100") ]);
+        test!(T = 2; pool -> { balance: 100, lifetime: 100, updated: 1 })
     }
     when  "a provider requests to retrieve tokens"
     then  "the instance transfers them to the provider"
     and   "the reward now increases at a reduced rate" {
-        assert_eq!(T.q_pool_info(3)?, Response::PoolInfo {
-            lp_token: T.lp_token(),
-            balance: Amount::from(100u128),
-            lifetime: Volume::from(200u128),
-            updated:  1,
-            now:    3
-        });
-        assert_eq!(T.tx_retrieve(3, &alice, 50u128)?, (vec![
-            Snip20::transfer("alice", "50")
-        ], 0, 0));
-        assert_eq!(T.q_pool_info(4)?, Response::PoolInfo {
-            lp_token: T.lp_token(),
-            balance: Amount::from(50u128),
-            lifetime: Volume::from(250u128),
-            updated:  3,
-            now:    4
-        });
+        test!(T = 3; pool -> { balance: 100, lifetime: 200, updated: 1 })
+        test!(T = 4; retr(alice,  50) -> [ Snip20::transfer("alice", "50") ]);
     }
     when  "a provider requests to retrieve all their tokens"
     then  "the instance transfers them to the provider"
     and   "their reward stops increasing" {
-        assert_eq!(T.q_pool_info(5)?, Response::PoolInfo {
-            lp_token: T.lp_token(),
-            balance: Amount::from(50u128),
-            lifetime: Volume::from(300u128),
-            updated:  3,
-            now:    5
-        });
-        assert_eq!(T.tx_retrieve(5, &alice, 50u128)?, (vec![
-            Snip20::transfer("alice", "50")
-        ], 0, 0));
-        assert_eq!(T.q_pool_info(6)?, Response::PoolInfo {
-            lp_token: T.lp_token(),
-            balance: Amount::from(0u128),
-            lifetime: Volume::from(300u128),
-            updated:  5,
-            now:    6
-        });
+        test!(T = 5; pool -> { balance:  50, lifetime: 350, updated: 4 })
+        test!(T = 5; retr(alice,  50) -> [ Snip20::transfer("alice", "50") ]);
+        test!(T = 6; pool -> { balance:   0, lifetime: 350, updated: 5 })
     }
     when  "someone else requests to lock tokens"
     then  "the previous provider's share of the rewards begins to diminish" {
-        assert_eq!(T.q_pool_info(7)?, Response::PoolInfo {
-            lp_token: T.lp_token(),
-            balance: Amount::from(0u128),
-            lifetime: Volume::from(300u128),
-            updated:  5,
-            now:    7
-        });
-        assert_eq!(T.tx_lock(7, &bob, 500u128)?, (vec![
-            Snip20::transfer_from("bob", "contract_addr", "500")
-        ], 0, 0));
-        assert_eq!(T.q_pool_info(8)?, Response::PoolInfo {
-            lp_token: T.lp_token(),
-            balance: Amount::from(500u128),
-            lifetime: Volume::from(800u128),
-            updated:  7,
-            now:    8
-        });
+        test!(T = 7; pool -> { balance:   0, lifetime: 350, updated: 5 })
+        test!(T = 7; lock(bob,   500) -> [ Snip20::transfer_from("bob", "contract_addr", "500") ]);
+        test!(T = 8; pool -> { balance: 500, lifetime: 850, updated: 7 })
     }
     when  "a provider tries to retrieve too many tokens"
     then  "they get an error" {
-        assert_eq!(T.q_pool_info(9)?, Response::PoolInfo {
-            lp_token: T.lp_token(),
-            balance: Amount::from(500u128),
-            lifetime: Volume::from(1300u128),
-            updated:  7,
-            now:    9
-        });
-        assert_error!(
-            T.tx_retrieve(9, &bob, 1000u128),
-            "not enough balance (500 < 1000)"
-        );
-        assert_eq!(T.q_pool_info(10)?, Response::PoolInfo {
-            lp_token: T.lp_token(),
-            balance: Amount::from(500u128),
-            lifetime: Volume::from(1800u128),
-            updated:  7,
-            now:    10
-        });
+        test!(T = 9; pool -> { balance: 500, lifetime: 1350, updated: 7 })
+        assert_error!(T.tx_retrieve(9, &bob, 1000u128), "not enough balance (500 < 1000)");
+        test!(T = 10; pool -> { balance: 500, lifetime: 1850, updated: 7 })
     }
     when  "a stranger tries to retrieve any tokens"
     then  "they get an error" {
-        assert_error!(
-            T.tx_retrieve(10, &mallory, 100u128),
-            "not enough balance (0 < 100)"
-        );
-        assert_eq!(T.q_pool_info(11)?, Response::PoolInfo {
-            lp_token: T.lp_token(),
-            balance: Amount::from(500u128),
-            lifetime: Volume::from(2300u128),
-            updated:  7,
-            now:    11
-        });
+        assert_error!(T.tx_retrieve(10, &mallory, 100u128), "not enough balance (0 < 100)");
+        test!(T = 11; pool -> { balance: 500, lifetime: 2350, updated: 7 })
     }
 
     #[ok_claim]
