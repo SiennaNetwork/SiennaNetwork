@@ -3,17 +3,13 @@
 
 use fadroma::scrt::cosmwasm_std::{HumanAddr, StdError};
 use crate::{
-    test,
+    test, assert_error,
     msg::Response,
     rewards_math::{Monotonic, Amount, Volume},
     rewards_harness::{RewardsHarness, Snip20}
 };
 
 const DAY: Monotonic = 17280; // blocks
-
-macro_rules! assert_error {
-    ($response:expr, $msg:expr) => { assert_eq!($response, Err(StdError::generic_err($msg))) }
-}
 
 kukumba! {
     StdError,
@@ -23,12 +19,12 @@ kukumba! {
         let mut T = RewardsHarness::new();
         let admin = HumanAddr::from("admin");
     }
-    when  "someone inits with an asset token address"
+    when  "admin inits with an asset token address"
     then  "the instance configures a viewing key for itself" {
         assert_eq!(T.init_configured(1, &admin)?, (vec![Snip20::set_viewing_key("")], 0, 0));
     }
-    when  "someone locks funds"
-    then  "the instance goes live" {
+    when  "admin locks funds"
+    then  "the instance starts counting the liquidity that accumulates" {
         test!(T=1 ; pool -> { balance: 0, lifetime: 0, updated: 0 });
         test!(T=2 ; pool -> { balance: 0, lifetime: 0, updated: 0 });
         test!(T=3 ; pool -> { balance: 0, lifetime: 0, updated: 0 });
@@ -45,19 +41,19 @@ kukumba! {
         let admin  = HumanAddr::from("admin");
         let badman = HumanAddr::from("badman");
     }
-    when  "someone inits without providing an asset token address"
+    when  "admin inits without providing an asset token address"
     then  "the instance is not ready" {
         assert_eq!(T.init_partial(0, &admin)?, (vec![Snip20::set_viewing_key(""),], 0, 0));
         assert_error!(T.q_pool_info(1), "missing liquidity provision token");
     }
-    when  "a stranger tries to provide an asset token address"
+    when  "badman tries to provide an asset token address"
     then  "an error is returned and nothing changes" {
         assert_eq!(T.tx_set_token(2, &badman, "bad_addr", "bad_hash"), Err(StdError::unauthorized()));
         assert_error!(T.q_pool_info(3), "missing liquidity provision token");
     }
-    when  "the admin provides an asset token address"
+    when  "admin provides an asset token address"
     then  "the instance configures a viewing key for itself"
-    and   "it goes live when someone locks funds" {
+    and   "it starts counting when someone locks funds" {
         assert_eq!(T.tx_set_token(4, &admin, "lp_token_address", "lp_token_hash")?, (vec![], 0, 0));
         test!(T=6 ; pool -> { balance: 0, lifetime: 0, updated: 0 })
         test!(T=6 ; lock(admin, 1) -> [ Snip20::transfer_from("admin", "contract_addr", "1") ]);
@@ -77,43 +73,43 @@ kukumba! {
         T = T.fund(100)
         test!(T =  0 ; user(alice)      -> { age:     0, balance:   0, lifetime:     0, unlocked:   0, claimed: 0, claimable:   0 });
     }
-    when "one first locks lp tokens," {
+    when "alice first locks lp tokens," {
         test!(T =  1 ; user(alice)      -> { age:     0, balance:   0, lifetime:     0, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =  1 ; lock(alice, 100) -> [ Snip20::transfer_from("alice", "contract_addr", "100") ]);
         test!(T =  1 ; user(alice)      -> { age:     0, balance: 100, lifetime:     0, unlocked:   0, claimed: 0, claimable:   0 });
     }
-    then "one's age starts incrementing;" {
+    then "alice's age starts incrementing;" {
         test!(T =  2 ; user(alice)      -> { age:     1, balance: 100, lifetime:   100, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =  3 ; user(alice)      -> { age:     2, balance: 100, lifetime:   200, unlocked:   0, claimed: 0, claimable:   0 });
     }
-    when "one retrieves half of the tokens," {
+    when "alice retrieves half of the tokens," {
         test!(T =  4 ; user(alice)      -> { age:     3, balance: 100, lifetime:   300, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =  4 ; retr(alice,  50) -> [ Snip20::transfer("alice",  "50") ]);
     }
-    then "one's age keeps incrementing;" {
+    then "alice's age keeps incrementing;" {
         test!(T =  4 ; user(alice)      -> { age:     3, balance:  50, lifetime:   300, unlocked:   0, claimed: 0, claimable:   0 });
     }
-    when "one retrieves all of the tokens," {
+    when "alice retrieves all of the tokens," {
         test!(T =  5 ; user(alice)      -> { age:     4, balance:  50, lifetime:   350, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =  6 ; user(alice)      -> { age:     5, balance:  50, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =  6 ; retr(alice,  50) -> [ Snip20::transfer("alice", "50") ]);
     }
-    then "one's age stops incrementing;" {
+    then "alice's age stops incrementing;" {
         test!(T =  6 ; user(alice)      -> { age:     5, balance:   0, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =  7 ; user(alice)      -> { age:     5, balance:   0, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =  8 ; user(alice)      -> { age:     5, balance:   0, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
     }
-    when "one locks tokens again," {
+    when "alice locks tokens again," {
         test!(T =  9 ; user(alice)      -> { age:     5, balance:   0, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =  9 ; lock(alice,   1) -> [ Snip20::transfer_from("alice", "contract_addr", "1") ]);
     }
-    then "one's age resumes incrementing;" {
+    then "alice's age resumes incrementing;" {
         test!(T =  9 ; user(alice)      -> { age:     5, balance:   1, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T = 10 ; user(alice)      -> { age:     6, balance:   1, lifetime:   401, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T = 11 ; user(alice)      -> { age:     7, balance:   1, lifetime:   402, unlocked:   0, claimed: 0, claimable:   0 });
     }
-    when "one's age reaches the configured threshold,"
-    then "one is eligible to claim the whole pool" {
+    when "alice's age reaches the configured threshold,"
+    then "alice is eligible to claim the whole pool" {
         test!(T = DAY+4 ; user(alice)   -> { age:   DAY, balance:   1, lifetime: 17675, unlocked: 100, claimed: 0, claimable: 100 });
     }
 
@@ -130,7 +126,7 @@ kukumba! {
         test!(T =  0 ; user(alice)      -> { age:     0, balance:   0, lifetime:         0, unlocked:  0, claimed: 0, claimable:  0 });
         test!(T =  0 ; user(bob)        -> { age:     0, balance:   0, lifetime:         0, unlocked:  0, claimed: 0, claimable:  0 });
     }
-    when "two first lock lp tokens simultaneously,"
+    when "alice and bob first lock lp tokens simultaneously,"
     then "their ages start incrementing simultaneously;" {
         test!(T =  1 ; user(alice)      -> { age:     0, balance:   0, lifetime:         0, unlocked:  0, claimed: 0, claimable:  0 });
         test!(T =  1 ; user(bob)        -> { age:     0, balance:   0, lifetime:         0, unlocked:  0, claimed: 0, claimable:  0 });
@@ -143,7 +139,7 @@ kukumba! {
         test!(T =  3 ; user(alice)      -> { age:     2, balance: 100, lifetime:       200, unlocked:  0, claimed: 0, claimable:  0 });
         test!(T =  3 ; user(bob)        -> { age:     2, balance: 100, lifetime:       200, unlocked:  0, claimed: 0, claimable:  0 });
     }
-    when "their ages reach the configured threshold,"
+    when "alice and bob's ages reach the configured threshold,"
     then "each is eligible to claim half of the pool" {
         test!(T =  DAY+1 ; user(alice)  -> { age:   DAY, balance: 100, lifetime: DAY * 100, unlocked: 50, claimed: 0, claimable: 50 });
         test!(T =  DAY+1 ; user(bob)    -> { age:   DAY, balance: 100, lifetime: DAY * 100, unlocked: 50, claimed: 0, claimable: 50 });
@@ -161,9 +157,9 @@ kukumba! {
         let _ = T.tx_set_vk(0, &alice, "")?;
         let _ = T.tx_set_vk(0, &bob,   "")?;
     }
-    when "one locks lp tokens,"
-    and "one retrieves them after reaching the threshold;"
-    then "one is eligible to claim the whole pool" {
+    when "alice locks lp tokens,"
+    and  "alice retrieves them after reaching the threshold;"
+    then "alice is eligible to claim the whole pool" {
         T = T.fund(100)
         test!(T =       1 ; user(alice)      -> { age:     0, balance:   0, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =       1 ; lock(alice, 100) -> [ Snip20::transfer_from("alice", "contract_addr", "100") ]);
@@ -171,19 +167,21 @@ kukumba! {
         test!(T =   DAY+1 ; retr(alice, 100) -> [ Snip20::transfer("alice", "100") ]);
         test!(T =   DAY+1 ; user(alice)      -> { age:   DAY, balance:   0, lifetime: DAY * 100, unlocked: 100, claimed: 0, claimable: 100 });
     }
-    when "another locks the same amount of tokens and keeps them for the same duration,"
-    then "each is eligible to claim half of the pool" {
+    when "bob locks the same amount of tokens" {
         test!(T =   DAY+2 ; user(bob)        -> { age:     0, balance:   0, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =   DAY+2 ; lock(bob,   100) -> [ Snip20::transfer_from("bob", "contract_addr", "100") ]);
         test!(T =   DAY+2 ; user(bob)        -> { age:     0, balance: 100, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
+    }
+    then "alice's rewards start decreasing proportionally" {
+        test!(T = DAY+2+DAY/2 ; user(alice)  -> { age:   DAY, balance:   0, lifetime:         0, unlocked:   0, claimed: 0, claimable:   66 });
+    }
+    when "bob reaches the age threshold"
+    then "each is eligible to claim half of the pool" {
         test!(T = 2*DAY+2 ; user(bob)        -> { age:   DAY, balance: 100, lifetime: DAY * 100, unlocked:  50, claimed: 0, claimable:  50 });
         test!(T = 2*DAY+2 ; retr(bob,   100) -> [ Snip20::transfer("bob", "100") ]);
         test!(T = 2*DAY+2 ; user(bob)        -> { age:   DAY, balance:   0, lifetime: DAY * 100, unlocked:  50, claimed: 0, claimable:  50 });
         test!(T = 2*DAY+2 ; user(alice)      -> { age:   DAY, balance:   0, lifetime: DAY * 100, unlocked:  50, claimed: 0, claimable:  50 });
     }
-
-    #[ok_partial_overlap]
-    given "an instance" {}
 
     #[ok_lock_and_retrieve]
     given "an instance" {
