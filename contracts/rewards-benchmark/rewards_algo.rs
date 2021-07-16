@@ -97,7 +97,7 @@ stateful!(Pool {
 
     fn now (&self) -> StdResult<Monotonic>; 
 
-    fn pool_status (&self) -> StdResult<(Amount, Volume, Monotonic)> {
+    fn status (&self) -> StdResult<(Amount, Volume, Monotonic)> {
         if let Some(last_update) = self.load(POOL_UPDATED)? {
             if self.now()? >= last_update {
                 let balance  = self.load(POOL_BALANCE)? as Option<Amount>;
@@ -111,13 +111,13 @@ stateful!(Pool {
     }
 
     /// Amount of currently locked LP tokens in this pool
-    fn pool_balance (&self) -> StdResult<Amount> {
+    fn balance (&self) -> StdResult<Amount> {
         Ok(self.load(POOL_BALANCE)?.unwrap_or(Amount::zero()))
     }
 
     /// Ratio between share of liquidity provided and amount of reward
     /// Should be <= 1 to make sure rewards budget is sufficient. 
-    fn pool_ratio (&self) -> StdResult<Ratio> {
+    fn ratio (&self) -> StdResult<Ratio> {
         match self.load(POOL_RATIO)? {
             Some(ratio) => Ok(ratio),
             None        => error!("missing reward ratio")
@@ -126,7 +126,7 @@ stateful!(Pool {
 
     /// For how many blocks does the user need to have provided liquidity
     /// in order to be eligible for rewards
-    fn pool_threshold (&self) -> StdResult<Monotonic> {
+    fn threshold (&self) -> StdResult<Monotonic> {
         match self.load(POOL_THRESHOLD)? {
             Some(ratio) => Ok(ratio),
             None        => error!("missing reward threshold")
@@ -134,13 +134,13 @@ stateful!(Pool {
     }
 
     /// The full reward budget = rewards claimed + current balance of this contract in reward token
-    fn pool_budget (&self, balance: Amount) -> StdResult<Amount> {
+    fn budget (&self, balance: Amount) -> StdResult<Amount> {
         Ok(self.load(POOL_CLAIMED)?.unwrap_or(Amount::zero()) + balance)
     }
 
     /// The total liquidity ever contained in this pool.
-    fn pool_lifetime (&self) -> StdResult<Volume> {
-        let balance = self.pool_balance()?;
+    fn lifetime (&self) -> StdResult<Volume> {
+        let balance = self.balance()?;
         let previous:     Option<Volume>    = self.load(POOL_TALLIED)?;
         let last_updated: Option<Monotonic> = self.load(POOL_UPDATED)?;
         if let (Some(previous), Some(last_updated)) = (previous, last_updated) {
@@ -152,16 +152,16 @@ stateful!(Pool {
 
 } PoolWritable {
 
-    pub fn pool_set_ratio (&mut self, ratio: &Ratio) -> StdResult<&mut Self> {
+    pub fn set_ratio (&mut self, ratio: &Ratio) -> StdResult<&mut Self> {
         self.save(POOL_RATIO, ratio)
     }
 
-    pub fn pool_set_threshold (&mut self, threshold: &Monotonic) -> StdResult<&mut Self> {
+    pub fn set_threshold (&mut self, threshold: &Monotonic) -> StdResult<&mut Self> {
         self.save(POOL_THRESHOLD, threshold)
     }
 
-    pub fn pool_update (&mut self, new_balance: Amount) -> StdResult<&mut Self> {
-        let tallied = self.pool_lifetime()?;
+    pub fn update (&mut self, new_balance: Amount) -> StdResult<&mut Self> {
+        let tallied = self.lifetime()?;
         let now     = self.now()?;
         self.save(POOL_TALLIED, tallied)?
             .save(POOL_UPDATED, now)?
@@ -188,21 +188,21 @@ stateful!(User {
     fn now (&self) -> StdResult<Monotonic>;
     fn address (&self) -> &CanonicalAddr;
 
-    fn user_updated (&self) -> StdResult<Monotonic> {
+    fn updated (&self) -> StdResult<Monotonic> {
         match self.load_ns(USER_UPDATED, self.address().as_slice())? {
             Some(x) => Ok(x),
             None    => error!("missing USER_UPDATED")
         }
     }
 
-    fn user_existed (&self) -> StdResult<Monotonic> {
+    fn existed (&self) -> StdResult<Monotonic> {
         Ok(self.load_ns(USER_EXISTED, self.address().as_slice())?
             .unwrap_or(0 as Monotonic))
     }
 
-    fn user_elapsed (&self) -> StdResult<Monotonic> {
+    fn elapsed (&self) -> StdResult<Monotonic> {
         let now = self.now()?;
-        match self.user_updated() {
+        match self.updated() {
             Ok(updated) => if now >= updated {
                 Ok(now - updated)
             } else {
@@ -213,35 +213,35 @@ stateful!(User {
         }
     }
 
-    fn user_tallied (&self) -> StdResult<Volume> {
+    fn tallied (&self) -> StdResult<Volume> {
         Ok(self.load_ns(USER_TALLIED, self.address().as_slice())?
             .unwrap_or(Volume::zero()))
     }
 
-    fn user_balance (&self) -> StdResult<Amount> {
+    fn balance (&self) -> StdResult<Amount> {
         Ok(self.load_ns(USER_BALANCE, self.address().as_slice())?
             .unwrap_or(Amount::zero()))
     }
 
-    fn user_claimed (&self) -> StdResult<Amount> {
+    fn claimed (&self) -> StdResult<Amount> {
         Ok(self.load_ns(USER_CLAIMED, self.address().as_slice())?
             .unwrap_or(Amount::zero()))
     }
 
-    fn user_age (&self) -> StdResult<Monotonic> {
-        let existed = self.user_existed()?;
-        let balance = self.user_balance()?;
+    fn age (&self) -> StdResult<Monotonic> {
+        let existed = self.existed()?;
+        let balance = self.balance()?;
         if balance > Amount::zero() {
             // if user is currently providing liquidity,
             // the time since last update gets added to the age
-            Ok(existed + self.user_elapsed()?)
+            Ok(existed + self.elapsed()?)
         } else {
             Ok(existed)
         }
     }
 
-    fn user_lifetime (&self) -> StdResult<Volume> {
-        tally(self.user_tallied()?, self.user_elapsed()?, self.user_balance()?)
+    fn lifetime (&self) -> StdResult<Volume> {
+        tally(self.tallied()?, self.elapsed()?, self.balance()?)
     }
 
     /// After first locking LP tokens, users must reach a configurable age threshold,
@@ -261,19 +261,19 @@ stateful!(User {
     /// Since a user's total reward can diminish, it may happen that the amount remaining
     /// in the pool after a user has claimed is insufficient to pay out the next user's reward.
     /// In that case, https://google.github.io/filament/webgl/suzanne.html
-    fn user_reward (&self, balance: Amount) -> StdResult<(Amount, Amount, Amount)> {
-        let age       = self.user_age()?;
-        let threshold = self.pool().pool_threshold()?;
-        let pool      = self.pool().pool_lifetime()?;
+    fn reward (&self, balance: Amount) -> StdResult<(Amount, Amount, Amount)> {
+        let age       = self.age()?;
+        let threshold = self.pool().threshold()?;
+        let pool      = self.pool().lifetime()?;
         if age >= threshold && pool > Volume::zero() {
-            let user     = self.user_lifetime()?;
-            let budget   = self.pool().pool_budget(balance)?;
-            let ratio    = self.pool().pool_ratio()?;
+            let user     = self.lifetime()?;
+            let budget   = self.pool().budget(balance)?;
+            let ratio    = self.pool().ratio()?;
             let unlocked = Volume::from(budget)
                 .multiply_ratio(user, pool)?
                 .multiply_ratio(ratio.0, ratio.1)?
                 .low_u128().into();
-            let claimed  = self.user_claimed()?;
+            let claimed  = self.claimed()?;
             if unlocked > claimed {
                 Ok((unlocked, claimed, (unlocked - claimed)?))
             } else {
@@ -290,44 +290,44 @@ stateful!(User {
         Pool { storage: self.storage, now: self.now }
     }
 
-    pub fn user_lock (&mut self, increment: Amount) -> StdResult<Amount> {
+    pub fn lock (&mut self, increment: Amount) -> StdResult<Amount> {
         let address = self.address.clone();
 
         // Remember when the user was last updated, i.e. now
         self.save_ns(USER_UPDATED, address.as_slice(), self.now()?)?;
 
         // Save the user's lifetime liquidity so far
-        self.save_ns(USER_TALLIED, address.as_slice(), self.user_lifetime()?)?;
+        self.save_ns(USER_TALLIED, address.as_slice(), self.lifetime()?)?;
 
         // If current balance is > 0, increment the user's age
         // with the time since the last update
-        self.save_ns(USER_EXISTED, address.as_slice(), self.user_age()?)?;
+        self.save_ns(USER_EXISTED, address.as_slice(), self.age()?)?;
 
         // Increment liquidity from user
-        self.save_ns(USER_BALANCE, address.as_slice(), self.user_balance()? + increment)?;
+        self.save_ns(USER_BALANCE, address.as_slice(), self.balance()? + increment)?;
 
         // Increment liquidity in pool
-        let next_balance = self.pool().pool_balance()? + increment.into();
-        self.pool_mut().pool_update(next_balance)?;
+        let next_balance = self.pool().balance()? + increment.into();
+        self.pool_mut().update(next_balance)?;
 
         // Return the amount to lock
         Ok(increment)
     }
 
-    pub fn user_retrieve (&mut self, decrement: Amount) -> StdResult<Amount> {
+    pub fn retrieve (&mut self, decrement: Amount) -> StdResult<Amount> {
         let address = self.address.clone();
-        let balance = self.user_balance()?;
+        let balance = self.balance()?;
 
         // Must have enough balance to retrieve
         if balance < decrement {
             error!(format!("not enough balance ({} < {})", balance, decrement))
         } else {
             // Save the user's lifetime liquidity so far
-            self.save_ns(USER_TALLIED, address.as_slice(), self.user_lifetime()?)?;
+            self.save_ns(USER_TALLIED, address.as_slice(), self.lifetime()?)?;
 
             // If current balance is > 0, increment the user's age
             // with the time since the last update
-            self.save_ns(USER_EXISTED, address.as_slice(), self.user_age()?)?;
+            self.save_ns(USER_EXISTED, address.as_slice(), self.age()?)?;
 
             // Remember when the user was last updated, i.e. now
             self.save_ns(USER_UPDATED, address.as_slice(),
@@ -337,21 +337,21 @@ stateful!(User {
             self.save_ns(USER_BALANCE, address.as_slice(), (balance - decrement)?)?;
 
             // Remove liquidity from pool
-            let next_balance = (self.pool().pool_balance()? - decrement.into())?;
-            self.pool_mut().pool_update(next_balance)?;
+            let next_balance = (self.pool().balance()? - decrement.into())?;
+            self.pool_mut().update(next_balance)?;
 
             // Return the amount to return
             Ok(decrement)
         }
     }
 
-    pub fn user_claim (&mut self, balance: Amount) -> StdResult<Amount> {
-        let age       = self.user_age()?;
-        let threshold = self.pool().pool_threshold()?;
+    pub fn claim (&mut self, balance: Amount) -> StdResult<Amount> {
+        let age       = self.age()?;
+        let threshold = self.pool().threshold()?;
 
         // Age must be above the threshold to claim
         if age >= threshold {
-            let (unlocked, _claimed, claimable) = self.user_reward(balance)?;
+            let (unlocked, _claimed, claimable) = self.reward(balance)?;
             if claimable > Amount::zero() {
                 // If there is some new reward amount to claim:
                 let address = self.address.clone();

@@ -75,8 +75,8 @@ contract! {
 
         // save reward ratio and minimum liquidity provision duration
         Pool::new(&mut deps.storage)
-            .pool_set_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
-            .pool_set_threshold(&threshold.unwrap_or(DAY))?;
+            .set_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
+            .set_threshold(&threshold.unwrap_or(DAY))?;
 
         // TODO remove global state from scrt-contract
         // define field! and addr_field! macros instead -
@@ -93,7 +93,7 @@ contract! {
         PoolInfo (now: Monotonic) {
             let (balance, lifetime, updated) = Pool::new(&deps.storage)
                 .at(now)
-                .pool_status()?;
+                .status()?;
             Ok(Response::PoolInfo {
                 lp_token: load_lp_token(&deps.storage, &deps.api)?,
                 balance, lifetime, updated,
@@ -111,11 +111,11 @@ contract! {
                 &load_viewing_key(&deps.storage)?.0,
             )?;
             let user = Pool::new(&deps.storage).at(now).user(address);
-            let (unlocked, claimed, claimable) = user.user_reward(balance)?;
+            let (unlocked, claimed, claimable) = user.reward(balance)?;
             Ok(Response::UserInfo {
-                age:      user.user_age()?,
-                balance:  user.user_balance()?,
-                lifetime: user.user_lifetime()?,
+                age:      user.age()?,
+                balance:  user.balance()?,
+                lifetime: user.lifetime()?,
                 unlocked,
                 claimed,
                 claimable
@@ -139,9 +139,7 @@ contract! {
             let address = deps.api.canonical_address(&address)?;
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
             Ok(Response::Balance {
-                amount: Pool::new(&deps.storage)
-                    .user(address)
-                    .user_balance()?
+                amount: Pool::new(&deps.storage).user(address).balance()?
             })
         }
 
@@ -210,19 +208,17 @@ contract! {
             tx_ok!(ISnip20::connect(load_lp_token(&deps.storage, &deps.api)?).transfer_from(
                 &env.message.sender,
                 &env.contract.address,
-                Pool::new(&mut deps.storage)
-                    .at(env.block.height)
+                Pool::new(&mut deps.storage).at(env.block.height)
                     .user(deps.api.canonical_address(&env.message.sender)?)
-                    .user_lock(amount)? )? ) }
+                    .lock(amount)? )? ) }
 
         /// Get some tokens back.
         Retrieve (amount: Amount) {
             tx_ok!(ISnip20::connect(load_lp_token(&deps.storage, &deps.api)?).transfer(
                 &env.message.sender,
-                Pool::new(&mut deps.storage)
-                    .at(env.block.height)
+                Pool::new(&mut deps.storage).at(env.block.height)
                     .user(deps.api.canonical_address(&env.message.sender)?)
-                    .user_retrieve(amount)? )?) }
+                    .retrieve(amount)? )?) }
 
         /// User can receive rewards after having provided liquidity.
         Claim () {
@@ -231,10 +227,9 @@ contract! {
             let vk = load_viewing_key(&deps.storage)?.0;
             tx_ok!(reward.transfer(
                 &env.message.sender,
-                Pool::new(&mut deps.storage)
-                    .at(env.block.height)
+                Pool::new(&mut deps.storage).at(env.block.height)
                     .user(deps.api.canonical_address(&env.message.sender)?)
-                    .user_claim(reward.query(&deps.querier).balance(
+                    .claim(reward.query(&deps.querier).balance(
                         &env.contract.address,
                         &vk )?)? )?) }
 
