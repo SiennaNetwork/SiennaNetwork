@@ -24,9 +24,6 @@ impl Humanize<TokenPair<HumanAddr>> for TokenPair<CanonicalAddr> {
     }
 }
 
-#[deprecated(note="please use TokenPair<CanonicalAddr> instead")]
-pub type TokenPairStored = TokenPair<CanonicalAddr>;
-
 pub struct TokenPairIterator<'a, A> {
     pair: &'a TokenPair<A>,
     index: u8
@@ -108,13 +105,10 @@ impl<'a, A: Clone> Iterator for TokenPairIterator<'a, A> {
 
 // These are only used for serde, because it doesn't work with struct tuples.
 #[derive(Serialize, Deserialize)]
-pub struct TokenPairSerde<A: Clone> {
+struct TokenPairSerde<A: Clone> {
     token_0: TokenType<A>,
     token_1: TokenType<A>,
 }
-
-#[deprecated(note="please use TokenPairStoredSerde<CanonicalAddr> instead")]
-pub type TokenPairStoredSerde = TokenPairSerde<CanonicalAddr>;
 
 impl<A: Clone + Serialize> Serialize for TokenPair<A> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
