@@ -173,7 +173,9 @@ kukumba! {
         test!(T =   DAY+2 ; user(bob)        -> { age:     0, balance: 100, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
     }
     then "alice's rewards start decreasing proportionally" {
-        test!(T = DAY+2+DAY/2 ; user(alice)  -> { age:   DAY, balance:   0, lifetime:         0, unlocked:   0, claimed: 0, claimable:   66 });
+        test!(T = DAY+2+1 ; user(alice)       -> { age:    DAY, balance:  0, lifetime: DAY * 100, unlocked:  99, claimed: 0, claimable:   99 });
+        test!(T = DAY+2+DAY/2 ; user(alice)   -> { age:    DAY, balance:  0, lifetime: DAY * 100, unlocked:  66, claimed: 0, claimable:   66 });
+        test!(T = DAY+2+DAY/2+1000 ; user(alice) -> { age: DAY, balance:  0, lifetime: DAY * 100, unlocked:  64, claimed: 0, claimable:   64 });
     }
     when "bob reaches the age threshold"
     then "each is eligible to claim half of the pool" {

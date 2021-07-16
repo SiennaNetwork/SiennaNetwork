@@ -61,26 +61,27 @@ impl <S> Pool<S> {
     }
 }
 
-impl<S: ReadonlyStorage> Readonly<S> for Pool<&S> {
-    fn storage (&self) -> &S { &self.storage }
-}
-
-impl<S: ReadonlyStorage> Readonly<S> for Pool<&mut S> {
-    fn storage (&self) -> &S { &self.storage }
-}
-
 impl<S: Storage> Writable<S> for Pool<&mut S> {
     fn storage_mut (&mut self) -> &mut S { &mut self.storage }
 }
 
 macro_rules! readonly {
     ($Pool:ident { $($body:tt)* } ) => {
+        impl<S: ReadonlyStorage> Readonly<S> for Pool<&S> {
+            fn storage (&self) -> &S { &self.storage }
+        }
+        impl<S: ReadonlyStorage> Readonly<S> for Pool<&mut S> {
+            fn storage (&self) -> &S { &self.storage }
+        }
         impl<S: ReadonlyStorage> $Pool<&S> {
             $($body)*
         }
         impl<S: ReadonlyStorage> $Pool<&mut S> {
             $($body)*
         }
+        // can't do it with a trait because I also need to define accessors
+        // could make for a nice macro that encompesses readonly and writable
+        // if we start it for the struct definition
     };
 }
 
