@@ -190,8 +190,10 @@ readonly!(Pool { // pool readonly operations
     }
 
     pub fn user_reward (&self, balance: Amount) -> StdResult<(Amount, Amount, Amount)> {
-        let pool = self.pool_lifetime()?;
-        if pool > Volume::zero() {
+        let age       = self.user_age()?;
+        let threshold = self.pool_threshold()?;
+        let pool      = self.pool_lifetime()?;
+        if age >= threshold && pool > Volume::zero() {
             let user     = self.user_lifetime()?;
             let budget   = self.pool_budget(balance)?;
             let ratio    = self.pool_ratio()?;
