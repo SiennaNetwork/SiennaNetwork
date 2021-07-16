@@ -6,10 +6,11 @@ use crate::{
     test, assert_error,
     msg::Response,
     rewards_math::{Monotonic, Amount, Volume},
-    rewards_harness::{RewardsHarness, Snip20}
+    rewards_harness::{RewardsHarness, Snip20},
+    DAY
 };
 
-const DAY: Monotonic = 17280; // blocks
+const RPT: u128 = 100;
 
 kukumba! {
     StdError,
@@ -64,13 +65,12 @@ kukumba! {
 
     #[ok_one]
     given "an instance:" {
-        let VOL   = 100u128;
         let mut T = RewardsHarness::new();
         let admin = HumanAddr::from("admin");
         let alice = HumanAddr::from("alice");
         let _ = T.init_configured(0, &admin)?;
         let _ = T.tx_set_vk(0, &alice, "")?;
-        T = T.fund(100)
+        T = T.fund(RPT)
         test!(T =  0 ; user(alice)      -> { age:     0, balance:   0, lifetime:     0, unlocked:   0, claimed: 0, claimable:   0 });
     }
     when "alice first locks lp tokens," {
@@ -122,7 +122,7 @@ kukumba! {
         let _ = T.init_configured(0, &admin)?;
         let _ = T.tx_set_vk(0, &alice, "")?;
         let _ = T.tx_set_vk(0, &bob,   "")?;
-        T = T.fund(100)
+        T = T.fund(RPT)
         test!(T =  0 ; user(alice)      -> { age:     0, balance:   0, lifetime:         0, unlocked:  0, claimed: 0, claimable:  0 });
         test!(T =  0 ; user(bob)        -> { age:     0, balance:   0, lifetime:         0, unlocked:  0, claimed: 0, claimable:  0 });
     }
@@ -158,29 +158,70 @@ kukumba! {
     when "alice locks lp tokens,"
     and  "alice retrieves them after reaching the threshold;"
     then "alice is eligible to claim the whole pool" {
-        T = T.fund(100)
-        test!(T =       1 ; user(alice)      -> { age:     0, balance:   0, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
-        test!(T =       1 ; lock(alice, 100) -> [ Snip20::transfer_from("alice", "contract_addr", "100") ]);
-        test!(T =   DAY+1 ; user(alice)      -> { age:   DAY, balance: 100, lifetime: DAY * 100, unlocked: 100, claimed: 0, claimable: 100 });
-        test!(T =   DAY+1 ; retr(alice, 100) -> [ Snip20::transfer("alice", "100") ]);
-        test!(T =   DAY+1 ; user(alice)      -> { age:   DAY, balance:   0, lifetime: DAY * 100, unlocked: 100, claimed: 0, claimable: 100 });
+        T = T.fund(RPT)
+        test!(T =       1 ; user(alice)          -> { age:   0, balance:   0, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T =       1 ; lock(alice, 100)     -> [ Snip20::transfer_from("alice", "contract_addr", "100") ]);
+        test!(T =   DAY+1 ; user(alice)          -> { age: DAY, balance: 100, lifetime: DAY * 100, unlocked: 100, claimed: 0, claimable: 100 });
+        test!(T =   DAY+1 ; retr(alice, 100)     -> [ Snip20::transfer("alice", "100") ]);
+        test!(T =   DAY+1 ; user(alice)          -> { age: DAY, balance:   0, lifetime: DAY * 100, unlocked: 100, claimed: 0, claimable: 100 });
     }
     when "bob locks the same amount of tokens" {
-        test!(T =   DAY+2 ; user(bob)        -> { age:     0, balance:   0, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
-        test!(T =   DAY+2 ; lock(bob,   100) -> [ Snip20::transfer_from("bob", "contract_addr", "100") ]);
-        test!(T =   DAY+2 ; user(bob)        -> { age:     0, balance: 100, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T =   DAY+2 ; user(bob)            -> { age:   0, balance:   0, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T =   DAY+2 ; lock(bob,   100)     -> [ Snip20::transfer_from("bob", "contract_addr", "100") ]);
+        test!(T =   DAY+2 ; user(bob)            -> { age:   0, balance: 100, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
     }
     then "alice's rewards start decreasing proportionally" {
-        test!(T = DAY+2+1 ; user(alice)       -> { age:    DAY, balance:  0, lifetime: DAY * 100, unlocked:  99, claimed: 0, claimable:   99 });
-        test!(T = DAY+2+DAY/2 ; user(alice)   -> { age:    DAY, balance:  0, lifetime: DAY * 100, unlocked:  66, claimed: 0, claimable:   66 });
-        test!(T = DAY+2+DAY/2+1000 ; user(alice) -> { age: DAY, balance:  0, lifetime: DAY * 100, unlocked:  64, claimed: 0, claimable:   64 });
+        test!(T = DAY+2+1 ; user(alice)          -> { age: DAY, balance:   0, lifetime: DAY * 100, unlocked:  99, claimed: 0, claimable:   99 });
+        test!(T = DAY+2+DAY/2 ; user(alice)      -> { age: DAY, balance:   0, lifetime: DAY * 100, unlocked:  66, claimed: 0, claimable:   66 });
+        test!(T = DAY+2+DAY/2+1000 ; user(alice) -> { age: DAY, balance:   0, lifetime: DAY * 100, unlocked:  64, claimed: 0, claimable:   64 });
     }
     when "bob reaches the age threshold"
     then "each is eligible to claim half of the pool" {
-        test!(T = 2*DAY+2 ; user(bob)        -> { age:   DAY, balance: 100, lifetime: DAY * 100, unlocked:  50, claimed: 0, claimable:  50 });
-        test!(T = 2*DAY+2 ; retr(bob,   100) -> [ Snip20::transfer("bob", "100") ]);
-        test!(T = 2*DAY+2 ; user(bob)        -> { age:   DAY, balance:   0, lifetime: DAY * 100, unlocked:  50, claimed: 0, claimable:  50 });
-        test!(T = 2*DAY+2 ; user(alice)      -> { age:   DAY, balance:   0, lifetime: DAY * 100, unlocked:  50, claimed: 0, claimable:  50 });
+        test!(T = 2*DAY+2 ; user(bob)            -> { age: DAY, balance: 100, lifetime: DAY * 100, unlocked:  50, claimed: 0, claimable:  50 });
+        test!(T = 2*DAY+2 ; retr(bob,   100)     -> [ Snip20::transfer("bob", "100") ]);
+        test!(T = 2*DAY+2 ; user(bob)            -> { age: DAY, balance:   0, lifetime: DAY * 100, unlocked:  50, claimed: 0, claimable:  50 });
+        test!(T = 2*DAY+2 ; user(alice)          -> { age: DAY, balance:   0, lifetime: DAY * 100, unlocked:  50, claimed: 0, claimable:  50 });
+    }
+
+    #[ok_two_sequential_with_claim]
+    given "an instance" {
+        let mut T = RewardsHarness::new();
+        let admin = HumanAddr::from("admin");
+        let alice = HumanAddr::from("alice");
+        let bob   = HumanAddr::from("bob");
+        let _ = T.init_configured(0, &admin)?;
+        let _ = T.tx_set_vk(0, &alice, "")?;
+        let _ = T.tx_set_vk(0, &bob,   "")?;
+    }
+    when "alice locks lp tokens,"
+    and  "alice retrieves them after reaching the threshold;"
+    then "alice is eligible to claim the whole pool" {
+        T = T.fund(RPT)
+        test!(T =       1 ; user(alice)          -> { age:   0, balance:   0, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T =       1 ; lock(alice, 100)     -> [ Snip20::transfer_from("alice", "contract_addr", "100") ]);
+        test!(T =   DAY+1 ; user(alice)          -> { age: DAY, balance: 100, lifetime: DAY * 100, unlocked: 100, claimed: 0, claimable: 100 });
+        test!(T =   DAY+1 ; retr(alice, 100)     -> [ Snip20::transfer("alice", "100") ]);
+        test!(T =   DAY+1 ; user(alice)          -> { age: DAY, balance:   0, lifetime: DAY * 100, unlocked: 100, claimed: 0, claimable: 100 });
+    }
+    when "bob locks the same amount of tokens" {
+        test!(T =   DAY+2 ; user(bob)            -> { age:   0, balance:   0, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T =   DAY+2 ; lock(bob,   100)     -> [ Snip20::transfer_from("bob", "contract_addr", "100") ]);
+        test!(T =   DAY+2 ; user(bob)            -> { age:   0, balance: 100, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
+    }
+    then "alice's rewards start decreasing proportionally" {
+        test!(T = DAY+2+1 ; user(alice)          -> { age: DAY, balance:   0, lifetime: DAY * 100, unlocked:  99, claimed: 0, claimable:   99 });
+    }
+    when "alice claims some time after maturing" {
+        test!(T = DAY+2+DAY/2 ; user(alice)      -> { age: DAY, balance:   0, lifetime: DAY * 100, unlocked:  66, claimed: 0, claimable:   66 });
+        test!(T = DAY+2+DAY/2 ; claim(alice)     -> [ Snip20::transfer("alice", "66") ]);
+        test!(T = DAY+2+DAY/2+1000 ; user(alice) -> { age: DAY, balance:   0, lifetime: DAY * 100, unlocked:  64, claimed: 66, claimable:   0 });
+    }
+    when "bob reaches the age threshold"
+    then "each is eligible to claim half of the pool" {
+        test!(T = 2*DAY+2 ; user(bob)            -> { age: DAY, balance: 100, lifetime: DAY * 100, unlocked:  50, claimed:  0, claimable:  50 });
+        test!(T = 2*DAY+2 ; retr(bob,   100)     -> [ Snip20::transfer("bob", "100") ]);
+        test!(T = 2*DAY+2 ; user(bob)            -> { age: DAY, balance:   0, lifetime: DAY * 100, unlocked:  50, claimed:  0, claimable:  50 });
+        test!(T = 2*DAY+2 ; user(alice)          -> { age: DAY, balance:   0, lifetime: DAY * 100, unlocked:  50, claimed: 66, claimable:   0 });
     }
 
     #[ok_lock_and_retrieve]
@@ -254,7 +295,7 @@ kukumba! {
     }
     and   "a provider claims rewards"
     then  "that provider receives reward tokens" {
-        T = T.fund(100)
+        T = T.fund(RPT)
         assert_eq!(T.tx_claim(17282, &alice)?, (vec![Snip20::transfer("alice", "50")], 0, 0));
     }
     when  "a provider claims rewards twice"
@@ -264,7 +305,7 @@ kukumba! {
     when  "a provider claims their rewards less often"
     then  "they receive equivalent rewards as long as the liquidity balance hasn't changed" {
         //assert_eq!(T.tx_claim(4, &alice)?, (vec![Snip20::transfer("alice",  "5")], 0, 0));
-        T = T.fund(100)
+        T = T.fund(RPT)
         assert_eq!(T.tx_claim(3 + DAY * 2, &alice)?, (vec![Snip20::transfer("alice", "50")], 0, 0));
         assert_eq!(T.tx_claim(3 + DAY * 2, &bob)?,   (vec![Snip20::transfer("bob", "100")], 0, 0));
         //println!("{:#?}", T.tx_claim(10, &alice));
@@ -280,7 +321,7 @@ kukumba! {
         let cyril   = HumanAddr::from("cyril");
     }
     when "they provide the liquidity simultaneously" {
-        let mut T = RewardsHarness::new().fund(100);
+        let mut T = RewardsHarness::new().fund(RPT);
         let _ = T.init_configured(0, &admin)?;
         let _ = T.tx_set_vk(0, &alice, "")?;
         let _ = T.tx_set_vk(0, &bob,   "")?;
@@ -299,7 +340,7 @@ kukumba! {
         println!("{:#?}", T.q_user_info(DAY, &cyril));
     }
     then "it's the same as if they provided the liquidity sequentially, as long as nobody claims" {
-        let mut T = RewardsHarness::new().fund(100);
+        let mut T = RewardsHarness::new().fund(RPT);
         let _ = T.init_configured(0, &admin)?;
         let _ = T.tx_set_vk(0, &alice, "")?;
         let _ = T.tx_set_vk(0, &bob,   "")?;

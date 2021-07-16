@@ -5,7 +5,6 @@
 pub mod rewards_math; use rewards_math::*;
 mod rewards_algo; use rewards_algo::*;
 
-
 use fadroma::scrt::{
     addr::{Humanize, Canonize},
     callback::{ContractInstance as ContractLink},
@@ -32,6 +31,8 @@ macro_rules! tx_ok { ($($msg:expr),*) => {
 macro_rules! error { ($info:expr) => {
     Err(StdError::GenericErr { msg: $info.into(), backtrace: None })
 } }
+
+pub const DAY: Monotonic = 17280; // blocks over ~24h @ 5s/block
 
 contract! {
 
@@ -75,7 +76,7 @@ contract! {
         // save reward ratio and minimum liquidity provision duration
         Pool::new(&mut deps.storage)
             .pool_set_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
-            .pool_set_threshold(&threshold.unwrap_or(17280u64))?; // ~24h @ 5s/block
+            .pool_set_threshold(&threshold.unwrap_or(DAY))?;
 
         // TODO remove global state from scrt-contract
         // define field! and addr_field! macros instead -
@@ -197,7 +198,7 @@ contract! {
     [Handle] (deps, env /* it's not unused :( */, _state, msg) -> Response {
 
         /// Set the active asset token.
-        // Resolves circular reference in benchmark -
+        // Resolves circular reference when initializing the benchmark -
         // they need to know each other's addresses to use initial allowances
         SetProvidedToken (address: HumanAddr, code_hash: String) {
             assert_admin(&deps, &env)?;

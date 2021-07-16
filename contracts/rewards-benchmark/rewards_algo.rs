@@ -35,11 +35,61 @@ pub struct Pool <S> {
     address:     Option<CanonicalAddr>
 }
 
+/// User account
+pub struct User <S> {
+    pub storage: S,
+    now:         Option<Monotonic>,
+    address:     Option<CanonicalAddr>
+}
+
 impl <S> Pool<S> {
     /// Create a new pool with a storage handle
     pub fn new (storage: S) -> Self {
         Self { storage, now: None, address: None }
     }
+    /// Add the current time to the pool for operations that need it
+    pub fn at (self, now: Monotonic) -> Self {
+        Self { storage: self.storage, address: self.address, now: Some(now) }
+    }
+    /// Get an individual user from the pool
+    pub fn user (self, address: CanonicalAddr) -> Self {
+        Pool { storage: self.storage, address: Some(address), now: self.now }
+    }
+}
+
+
+macro_rules! readonly {
+    (
+        $Obj:ident { $($accessors:tt)* }
+        $ObjReadonly:ident { $($readonlies:tt)* }
+        $ObjWritable:ident { $($writables:tt)* }
+    ) => {
+        impl<S: ReadonlyStorage> Readonly<S> for $Obj<&S> {
+            fn storage (&self) -> &S { &self.storage }
+        }
+        impl<S: ReadonlyStorage> Readonly<S> for $Obj<&mut S> {
+            fn storage (&self) -> &S { &self.storage }
+        }
+        pub trait $ObjReadonly<S: ReadonlyStorage>: Readonly<S> { // now its with a trait
+            $($readonlies)*
+        }
+        impl<S: ReadonlyStorage> $ObjReadonly<S> for $Obj<&S> {
+            $($accessors)*
+        }
+        impl<S: ReadonlyStorage> $ObjReadonly<S> for $Obj<&mut S> {
+            $($accessors)*
+        }
+        impl<S: Storage> Writable<S> for $Obj<&mut S> {
+            fn storage_mut (&mut self) -> &mut S { &mut self.storage }
+        }
+        impl<S: Storage> $Obj<&mut S> {
+            $($writables)*
+        }
+    };
+}
+
+readonly!(Pool {
+
     /// Get the current time or fail
     fn now (&self) -> StdResult<Monotonic> {
         self.now.ok_or(StdError::generic_err("current time not set"))
@@ -51,43 +101,13 @@ impl <S> Pool<S> {
             None => Err(StdError::generic_err("address not set"))
         }
     }
-    /// Add the current time to the pool for operations that need it
-    pub fn at (self, now: Monotonic) -> Self {
-        Self { storage: self.storage, address: self.address, now: Some(now) }
-    }
-    /// Get an individual user from the pool
-    pub fn user (self, address: CanonicalAddr) -> Self {
-        Self { storage: self.storage, address: Some(address), now: self.now }
-    }
-}
 
-impl<S: Storage> Writable<S> for Pool<&mut S> {
-    fn storage_mut (&mut self) -> &mut S { &mut self.storage }
-}
+} PoolReadonly { // pool readonly operations
 
-macro_rules! readonly {
-    ($Pool:ident { $($body:tt)* } ) => {
-        impl<S: ReadonlyStorage> Readonly<S> for Pool<&S> {
-            fn storage (&self) -> &S { &self.storage }
-        }
-        impl<S: ReadonlyStorage> Readonly<S> for Pool<&mut S> {
-            fn storage (&self) -> &S { &self.storage }
-        }
-        impl<S: ReadonlyStorage> $Pool<&S> {
-            $($body)*
-        }
-        impl<S: ReadonlyStorage> $Pool<&mut S> {
-            $($body)*
-        }
-        // can't do it with a trait because I also need to define accessors
-        // could make for a nice macro that encompesses readonly and writable
-        // if we start it for the struct definition
-    };
-}
+    fn now (&self) -> StdResult<Monotonic>; 
+    fn address (&self) -> StdResult<CanonicalAddr>; 
 
-readonly!(Pool { // pool readonly operations
-
-    pub fn pool_status (&self) -> StdResult<(Amount, Volume, Monotonic)> {
+    fn pool_status (&self) -> StdResult<(Amount, Volume, Monotonic)> {
         if let Some(last_update) = self.load(POOL_UPDATED)? {
             if self.now()? >= last_update {
                 let balance  = self.load(POOL_BALANCE)? as Option<Amount>;
@@ -101,13 +121,13 @@ readonly!(Pool { // pool readonly operations
     }
 
     /// Amount of currently locked LP tokens in this pool
-    pub fn pool_balance (&self) -> StdResult<Amount> {
+    fn pool_balance (&self) -> StdResult<Amount> {
         Ok(self.load(POOL_BALANCE)?.unwrap_or(Amount::zero()))
     }
 
     /// Ratio between share of liquidity provided and amount of reward
     /// Should be <= 1 to make sure rewards budget is sufficient. 
-    pub fn pool_ratio (&self) -> StdResult<Ratio> {
+    fn pool_ratio (&self) -> StdResult<Ratio> {
         match self.load(POOL_RATIO)? {
             Some(ratio) => Ok(ratio),
             None        => error!("missing reward ratio")
@@ -116,7 +136,7 @@ readonly!(Pool { // pool readonly operations
 
     /// For how many blocks does the user need to have provided liquidity
     /// in order to be eligible for rewards
-    pub fn pool_threshold (&self) -> StdResult<Monotonic> {
+    fn pool_threshold (&self) -> StdResult<Monotonic> {
         match self.load(POOL_THRESHOLD)? {
             Some(ratio) => Ok(ratio),
             None        => error!("missing reward threshold")
@@ -124,12 +144,12 @@ readonly!(Pool { // pool readonly operations
     }
 
     /// The full reward budget = rewards claimed + current balance of this contract in reward token
-    pub fn pool_budget (&self, balance: Amount) -> StdResult<Amount> {
+    fn pool_budget (&self, balance: Amount) -> StdResult<Amount> {
         Ok(self.load(POOL_CLAIMED)?.unwrap_or(Amount::zero()) + balance)
     }
 
     /// The total liquidity ever contained in this pool.
-    pub fn pool_lifetime (&self) -> StdResult<Volume> {
+    fn pool_lifetime (&self) -> StdResult<Volume> {
         let balance = self.pool_balance()?;
         let previous:     Option<Volume>    = self.load(POOL_TALLIED)?;
         let last_updated: Option<Monotonic> = self.load(POOL_UPDATED)?;
@@ -140,19 +160,19 @@ readonly!(Pool { // pool readonly operations
         }
     }
 
-    pub fn user_updated (&self) -> StdResult<Monotonic> {
+    fn user_updated (&self) -> StdResult<Monotonic> {
         match self.load_ns(USER_UPDATED, self.address()?.as_slice())? {
             Some(x) => Ok(x),
             None    => error!("missing USER_UPDATED")
         }
     }
 
-    pub fn user_existed (&self) -> StdResult<Monotonic> {
+    fn user_existed (&self) -> StdResult<Monotonic> {
         Ok(self.load_ns(USER_EXISTED, self.address()?.as_slice())?
             .unwrap_or(0 as Monotonic))
     }
 
-    pub fn user_elapsed (&self) -> StdResult<Monotonic> {
+    fn user_elapsed (&self) -> StdResult<Monotonic> {
         let now = self.now()?;
         match self.user_updated() {
             Ok(updated) => if now >= updated {
@@ -165,22 +185,22 @@ readonly!(Pool { // pool readonly operations
         }
     }
 
-    pub fn user_tallied (&self) -> StdResult<Volume> {
+    fn user_tallied (&self) -> StdResult<Volume> {
         Ok(self.load_ns(USER_TALLIED, self.address()?.as_slice())?
             .unwrap_or(Volume::zero()))
     }
 
-    pub fn user_balance (&self) -> StdResult<Amount> {
+    fn user_balance (&self) -> StdResult<Amount> {
         Ok(self.load_ns(USER_BALANCE, self.address()?.as_slice())?
             .unwrap_or(Amount::zero()))
     }
 
-    pub fn user_claimed (&self) -> StdResult<Amount> {
+    fn user_claimed (&self) -> StdResult<Amount> {
         Ok(self.load_ns(USER_CLAIMED, self.address()?.as_slice())?
             .unwrap_or(Amount::zero()))
     }
 
-    pub fn user_age (&self) -> StdResult<Monotonic> {
+    fn user_age (&self) -> StdResult<Monotonic> {
         let existed = self.user_existed()?;
         let balance = self.user_balance()?;
         if balance > Amount::zero() {
@@ -192,11 +212,28 @@ readonly!(Pool { // pool readonly operations
         }
     }
 
-    pub fn user_lifetime (&self) -> StdResult<Volume> {
+    fn user_lifetime (&self) -> StdResult<Volume> {
         tally(self.user_tallied()?, self.user_elapsed()?, self.user_balance()?)
     }
 
-    pub fn user_reward (&self, balance: Amount) -> StdResult<(Amount, Amount, Amount)> {
+    /// After first locking LP tokens, users must reach a configurable age threshold,
+    /// i.e. keep LP tokens locked for at least X blocks. During that time, their portion of
+    /// the total liquidity ever provided increases.
+    ///
+    /// The total reward for an user with an age under the threshold is zero.
+    ///
+    /// The total reward for a user with an age above the threshold is
+    /// (claimed_rewards + budget) * user_lifetime_liquidity / pool_lifetime_liquidity
+    ///
+    /// Since a user's total reward can diminish, it may happen that the amount claimed
+    /// by a user so far is larger than the current total reward for that user.
+    /// In that case the user's claimable amount remains zero until they unlock more
+    /// rewards than they've already claimed.
+    /// 
+    /// Since a user's total reward can diminish, it may happen that the amount remaining
+    /// in the pool after a user has claimed is insufficient to pay out the next user's reward.
+    /// In that case, 
+    fn user_reward (&self, balance: Amount) -> StdResult<(Amount, Amount, Amount)> {
         let age       = self.user_age()?;
         let threshold = self.pool_threshold()?;
         let pool      = self.pool_lifetime()?;
@@ -219,9 +256,7 @@ readonly!(Pool { // pool readonly operations
         }
     }
 
-});
-
-impl<S: Storage> Pool<&mut S> {
+} PoolWritable {
 
     pub fn pool_set_ratio (&mut self, ratio: &Ratio) -> StdResult<&mut Self> {
         self.save(POOL_RATIO, ratio)
@@ -319,4 +354,4 @@ impl<S: Storage> Pool<&mut S> {
         }
     }
 
-}
+});
