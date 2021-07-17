@@ -99,7 +99,8 @@ describe("RewardsBenchmark", () => {
       codeId: context.pool.id,
       label: 'RewardPool',
       initMsg: { reward_token: rewardToken.reference
-               , viewing_key:    "" } }))
+               , viewing_key:  ""
+               , threshold:    24} }))
 
     console.debug('mint reward budget:')
     await rewardToken.mint("500000000000000000000", undefined, rewardPool.address)
