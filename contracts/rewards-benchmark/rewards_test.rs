@@ -5,7 +5,7 @@ use fadroma::scrt::cosmwasm_std::{HumanAddr, StdError};
 use crate::{
     test, assert_error,
     msg::Response,
-    rewards_math::{Monotonic, Amount, Volume},
+    rewards_math::{Time, Amount, Volume},
     rewards_harness::{RewardsHarness, Snip20},
     DAY
 };

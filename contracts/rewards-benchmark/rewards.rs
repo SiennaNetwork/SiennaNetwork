@@ -32,7 +32,7 @@ macro_rules! error { ($info:expr) => {
     Err(StdError::GenericErr { msg: $info.into(), backtrace: None })
 } }
 
-pub const DAY: Monotonic = 17280; // blocks over ~24h @ 5s/block
+pub const DAY: Time = 17280; // blocks over ~24h @ 5s/block
 
 contract! {
 
@@ -44,39 +44,37 @@ contract! {
         reward_token: ContractLink<HumanAddr>,
         viewing_key:  ViewingKey,
         ratio:        Option<Ratio>,
-        threshold:    Option<Monotonic>
+        threshold:    Option<Time>
     }) {
-        // TODO proposed action against the triple generic:
-        // scrt-contract automatically aliases `storage`, `api`,
-        // and `querier` (also maybe the contents of `env`?)
-        // so that it becomes less verbose to pass just the ones you use
-        // (...that, or let's just give contracts a `self` already?)
 
-        // configure admin
-        let admin = admin.unwrap_or(env.message.sender);
-        save_admin(deps, &admin)?;
+        // Contract has an admin who can do admin stuff.
+        save_admin(deps, &admin.unwrap_or(env.message.sender))?;
 
-        // to check reward token balance:
-        // save references to self and the reward token
-        // and set ourselves a viewing key so we know how much we're dividing
-        save_self_reference(&mut deps.storage, &deps.api, &ContractLink {
-            address: env.contract.address,
-            code_hash: env.contract_code_hash
-        })?;
-        save_reward_token(&mut deps.storage, &deps.api, &reward_token)?;
-        save_viewing_key(&mut deps.storage, &viewing_key)?;
-        let set_vk = ISnip20::connect(reward_token).set_viewing_key(&viewing_key.0)?;
-
-        // needed to start calculating rewards
-        // but can be provided later
+        // Contract accepts transactions in `lp_token`s.
+        // The address of the `lp_token` can be provided later
+        // to avoid a circular dependency during deployment.
         if let Some(lp_token) = lp_token {
             save_lp_token(&mut deps.storage, &deps.api, &lp_token)?;
         }
 
-        // save reward ratio and minimum liquidity provision duration
+        // Contract distributes rewards in Reward Tokens.
+        // For this, it must know its own balance in the `reward_token`s.
+        // For that, it needs a reference to its own address+code_hash
+        // and a viewing key in `reward_token`.
+        let set_vk = ISnip20::connect(reward_token).set_viewing_key(&viewing_key.0)?;
+        save_reward_token(&mut deps.storage, &deps.api, &reward_token)?;
+        save_viewing_key(&mut deps.storage, &viewing_key)?;
+        save_self_reference(&mut deps.storage, &deps.api, &ContractLink {
+            address: env.contract.address,
+            code_hash: env.contract_code_hash
+        })?;
+
+        // Reward pool has configurable parameters:
+        // - Ratio (to reduce everyone's rewards equally)
+        // - Threshold (to incentivize users to lock tokens for longer)
         Pool::new(&mut deps.storage)
-            .set_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
-            .set_threshold(&threshold.unwrap_or(DAY))?;
+            .save_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
+            .save_threshold(&threshold.unwrap_or(DAY))?;
 
         // TODO remove global state from scrt-contract
         // define field! and addr_field! macros instead -
@@ -89,38 +87,51 @@ contract! {
 
     [Query] (deps, _state, msg) -> Response {
 
+        /// Who is admin? TODO do we need this in prod?
+        Admin () {
+            Ok(Response::Admin { address: load_admin(&deps)? }) }
+
         /// Overall pool status
-        PoolInfo (now: Monotonic) {
-            let (balance, lifetime, updated) = Pool::new(&deps.storage)
-                .at(now)
-                .status()?;
+        PoolInfo (at: Time) {
+            let (pool_balance, pool_lifetime, pool_last_update) = Pool::new(&deps.storage).at(at).status()?;
             Ok(Response::PoolInfo {
                 lp_token: load_lp_token(&deps.storage, &deps.api)?,
-                balance, lifetime, updated,
-                now,
+
+                it_is_now: at,
+
+                pool_last_update,
+                pool_lifetime,
+                pool_balance
             })
         }
 
         /// Requires the user's viewing key.
-        UserInfo (now: Monotonic, address: HumanAddr, key: String) {
+        UserInfo (at: Time, address: HumanAddr, key: String) {
             let address = deps.api.canonical_address(&address)?;
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
             let token = load_reward_token(&deps.storage, &deps.api)?;
-            let balance = ISnip20::connect(token).query(&deps.querier).balance(
+            let user = Pool::new(&deps.storage).at(now).with_balance(ISnip20::connect(token).query(&deps.querier).balance(
                 &load_self_reference(&deps.storage, &deps.api)?.address,
                 &load_viewing_key(&deps.storage)?.0,
-            )?;
-            let user = Pool::new(&deps.storage).at(now).user(address);
-            let (unlocked, claimed, claimable) = user.reward(balance)?;
+            )?).user(address);
+            let user_age = user.age();
+            let (user_unlocked, user_claimed, user_claimable) = user.reward(reward_balance)?;
             Ok(Response::UserInfo {
-                age:      user.age()?,
-                balance:  user.balance()?,
-                lifetime: user.lifetime()?,
-                unlocked,
-                claimed,
-                claimable
-            })
-        }
+                it_is_now: at,
+
+                pool_last_update,
+                pool_lifetime,
+                pool_balance,
+
+                user_last_update,
+                user_lifetime,
+                user_balance,
+
+                user_age,
+                user_unlocked,
+                user_claimed,
+                user_claimable
+            }) }
 
         /// Keplr integration
         TokenInfo () {
@@ -130,26 +141,13 @@ contract! {
                 name:         format!("Sienna Rewards: {}", info.name),
                 symbol:       "SRW".into(),
                 decimals:     1,
-                total_supply: None
-            })
-        }
+                total_supply: None }) }
 
         /// Keplr integration
         Balance (address: HumanAddr, key: String) {
             let address = deps.api.canonical_address(&address)?;
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
-            Ok(Response::Balance {
-                amount: Pool::new(&deps.storage).user(address).balance()?
-            })
-        }
-
-        Admin () {
-            let address = load_admin(&deps)?;
-
-            Ok(Response::Admin {
-                address
-            })
-        }
+            Ok(Response::Balance { amount: Pool::new(&deps.storage).user(address).balance()? }) }
 
     }
 
@@ -158,20 +156,30 @@ contract! {
         /// Response from `Query::PoolInfo`
         PoolInfo {
             lp_token: ContractLink<HumanAddr>,
-            balance:  Amount,
-            lifetime: Volume,
-            updated:  Monotonic,
-            now:      Monotonic
+
+            it_is_now: Time,
+
+            pool_last_update: Time,
+            pool_lifetime:    Volume,
+            pool_balance:     Amount
         }
 
         /// Response from `Query::UserInfo`
         UserInfo {
-            age:       Monotonic,
-            balance:   Amount,
-            lifetime:  Volume,
-            unlocked:  Amount,
-            claimed:   Amount,
-            claimable: Amount
+            it_is_now: Time,
+
+            pool_last_update: Time,
+            pool_lifetime:    Volume,
+            pool_balance:     Amount,
+
+            user_last_update: Time,
+            user_lifetime:    Volume,
+            user_balance:     Amount,
+
+            user_age:         Time,
+            user_unlocked:    Amount,
+            user_claimed:     Amount,
+            user_claimable:   Amount
         }
 
         Admin {
@@ -195,6 +203,13 @@ contract! {
 
     [Handle] (deps, env /* it's not unused :( */, _state, msg) -> Response {
 
+        // Admin transactions
+
+        /// Set the contract admin.
+        ChangeAdmin (address: HumanAddr) {
+            let msg = AdminHandleMsg::ChangeAdmin { address };
+            admin_handle(deps, env, msg, AdminHandle) }
+
         /// Set the active asset token.
         // Resolves circular reference when initializing the benchmark -
         // they need to know each other's addresses to use initial allowances
@@ -203,22 +218,34 @@ contract! {
             save_lp_token(&mut deps.storage, &deps.api, &ContractLink { address, code_hash })?;
             Ok(HandleResponse::default()) }
 
-        /// Provide some liquidity.
+        // User transactions
+
+        /// User can request a new viewing key for oneself.
+        CreateViewingKey (entropy: String, padding: Option<String>) {
+            let msg = AuthHandleMsg::CreateViewingKey { entropy, padding: None };
+            auth_handle(deps, env, msg, AuthHandle) }
+
+        /// User can set own viewing key to a known value.
+        SetViewingKey (key: String, padding: Option<String>) {
+            let msg = AuthHandleMsg::SetViewingKey { key, padding: None };
+            auth_handle(deps, env, msg, AuthHandle) }
+
+        /// User can lock some liquidity provision tokens.
         Lock (amount: Amount) {
             tx_ok!(ISnip20::connect(load_lp_token(&deps.storage, &deps.api)?).transfer_from(
                 &env.message.sender,
                 &env.contract.address,
                 Pool::new(&mut deps.storage).at(env.block.height)
                     .user(deps.api.canonical_address(&env.message.sender)?)
-                    .lock(amount)? )? ) }
+                    .lock_tokens(amount)? )? ) }
 
-        /// Get some tokens back.
+        /// User can always get their liquidity provision tokens back.
         Retrieve (amount: Amount) {
             tx_ok!(ISnip20::connect(load_lp_token(&deps.storage, &deps.api)?).transfer(
                 &env.message.sender,
                 Pool::new(&mut deps.storage).at(env.block.height)
                     .user(deps.api.canonical_address(&env.message.sender)?)
-                    .retrieve(amount)? )?) }
+                    .retrieve_tokens(amount)? )?) }
 
         /// User can receive rewards after having provided liquidity.
         Claim () {
@@ -229,26 +256,9 @@ contract! {
                 &env.message.sender,
                 Pool::new(&mut deps.storage).at(env.block.height)
                     .user(deps.api.canonical_address(&env.message.sender)?)
-                    .claim(reward.query(&deps.querier).balance(
+                    .claim_reward(reward.query(&deps.querier).balance(
                         &env.contract.address,
                         &vk )?)? )?) }
-
-        /// User can request a new viewing key for oneself.
-        CreateViewingKey (entropy: String, padding: Option<String>) {
-            let msg = AuthHandleMsg::CreateViewingKey { entropy, padding: None };
-            auth_handle(deps, env, msg, AuthHandle)
-        }
-
-        /// User can set own viewing key to a known value.
-        SetViewingKey (key: String, padding: Option<String>) {
-            let msg = AuthHandleMsg::SetViewingKey { key, padding: None };
-            auth_handle(deps, env, msg, AuthHandle)
-        }
-
-        ChangeAdmin (address: HumanAddr) {
-            let msg = AdminHandleMsg::ChangeAdmin { address };
-            admin_handle(deps, env, msg, AdminHandle)
-        }
 
     }
 }

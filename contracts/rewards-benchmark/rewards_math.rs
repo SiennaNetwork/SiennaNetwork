@@ -12,7 +12,7 @@
 use fadroma::scrt::{cosmwasm_std::{StdResult, Uint128}, utils::Uint256};
 
 /// A monotonic time counter, such as env.block.time or env.block.height
-pub type Monotonic = u64;
+pub type Time = u64;
 
 /// Amount of funds
 pub type Amount    = Uint128;
@@ -24,12 +24,12 @@ pub type Volume    = Uint256;
 pub type Ratio     = (Uint128, Uint128);
 
 /// (balance, lifetime, last update)
-pub type Status    = (Amount, Volume, Monotonic);
+pub type Status    = (Amount, Volume, Time);
 
 /// Calculate the current total based on the stored total and the time since last update.
 pub fn tally (
     total_before_last_update: Volume,
-    time_updated_last_update: Monotonic,
+    time_updated_last_update: Time,
     value_after_last_update:  Amount
 ) -> StdResult<Volume> {
     total_before_last_update + Volume::from(value_after_last_update)

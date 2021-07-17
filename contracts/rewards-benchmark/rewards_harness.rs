@@ -216,11 +216,11 @@ impl Snip20 {
         balance: $balance:expr, lifetime: $lifetime:expr, updated: $updated:expr
     }) => {
         assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
-            lp_token: None,
-            balance:  Amount::from($balance  as u128),
-            lifetime: Volume::zero($lifetime as u128),
-            updated:  $updated as u64,
-            now:      $now     as u64,
+            it_is_now:        $now     as u64,
+            lp_token:         None,
+            pool_last_update: $updated as u64,
+            pool_lifetime:    Volume::zero($lifetime as u128),
+            pool_balance:     Amount::from($balance  as u128),
         });
     };
 
@@ -228,11 +228,11 @@ impl Snip20 {
         balance: $balance:expr, lifetime: $lifetime:expr, updated: $updated:expr
     }) => {
         assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
-            lp_token: $T.lp_token(),
-            balance:  Amount::from($balance  as u128),
-            lifetime: Volume::from($lifetime as u128),
-            updated:  $updated as u64,
-            now:      $now     as u64,
+            it_is_now:        $now     as u64,
+            lp_token:         $T.lp_token(),
+            pool_last_update: $updated as u64,
+            pool_lifetime:    Volume::from($lifetime as u128),
+            pool_balance:     Amount::from($balance  as u128),
         });
     };
 
@@ -241,12 +241,20 @@ impl Snip20 {
         unlocked: $unlocked:expr, claimed: $claimed:expr, claimable: $claimable:expr
     }) => {
         assert_eq!($T.q_user_info($now as u64, &$who)?, Response::UserInfo {
-            age:       $age as u64,
-            balance:   Amount::from($balance   as u128),
-            lifetime:  Volume::from($lifetime  as u128),
-            unlocked:  Amount::from($unlocked  as u128),
-            claimed:   Amount::from($claimed   as u128),
-            claimable: Amount::from($claimable as u128)
+            it_is_now:        $now     as u64,
+
+            pool_last_update: $pool_updated as u64,
+            pool_lifetime:    Volume::from($pool_lifetime as u128),
+            pool_balance:     Amount::from($pool_balance  as u128),
+
+            user_last_update: $user_updated as u64,
+            user_lifetime:  Volume::from($lifetime  as u128),
+            user_balance:   Amount::from($balance   as u128),
+
+            user_age:       $age as u64,
+            user_unlocked:  Amount::from($unlocked  as u128),
+            user_claimed:   Amount::from($claimed   as u128),
+            user_claimable: Amount::from($claimable as u128)
         });
     };
 

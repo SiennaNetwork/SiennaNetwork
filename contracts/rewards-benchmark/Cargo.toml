@@ -19,6 +19,7 @@ fadroma  = { path = "../../libraries/fadroma-21.07/core", features = [
   "scrt-addr",
   "scrt-callback",
   "scrt-contract",
+  "scrt-migrate",
   "scrt-snip20-api",
   "scrt-storage",
   "scrt-utils"
