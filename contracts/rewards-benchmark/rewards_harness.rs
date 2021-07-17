@@ -108,11 +108,11 @@ impl RewardsHarness<RewardsMockQuerier> {
         self.tx(height, agent, TX::Claim {})
     }
 
-    pub fn q_pool_info (&self, now: u64) -> StdResult<Response> {
-        self.q(QQ::PoolInfo { now })
+    pub fn q_pool_info (&self, at: u64) -> StdResult<Response> {
+        self.q(QQ::PoolInfo { at })
     }
-    pub fn q_user_info (&self, now: u64, address: &HumanAddr) -> StdResult<Response> {
-        self.q(QQ::UserInfo { now, address: address.clone(), key: "".into() })
+    pub fn q_user_info (&self, at: u64, address: &HumanAddr) -> StdResult<Response> {
+        self.q(QQ::UserInfo { at, address: address.clone(), key: "".into() })
     }
 
     pub fn fund (self, amount: u128) -> Self {
@@ -225,48 +225,56 @@ impl Snip20 {
     };
 
     ($T:ident = $now:expr ; pool -> {
-        balance: $balance:expr, lifetime: $lifetime:expr, updated: $updated:expr
+        locked:   $locked:expr,
+        lifetime: $lifetime:expr,
+        updated:  $updated:expr
     }) => {
         assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
             it_is_now:        $now     as u64,
             lp_token:         $T.lp_token(),
             pool_last_update: $updated as u64,
             pool_lifetime:    Volume::from($lifetime as u128),
-            pool_balance:     Amount::from($balance  as u128),
+            pool_balance:     Amount::from($locked  as u128),
         });
     };
 
     ($T:ident = $now:expr ; user($who:expr) -> {
-        age: $age:expr, balance: $balance:expr, lifetime: $lifetime:expr,
-        unlocked: $unlocked:expr, claimed: $claimed:expr, claimable: $claimable:expr
+        age:       $age:expr,
+        locked:    $locked:expr,
+        lifetime:  $lifetime:expr,
+        unlocked:  $unlocked:expr,
+        claimed:   $claimed:expr,
+        claimable: $claimable:expr
     }) => {
-        assert_eq!($T.q_user_info($now as u64, &$who)?, Response::UserInfo {
-            it_is_now:        $now     as u64,
-
-            pool_last_update: $pool_updated as u64,
-            pool_lifetime:    Volume::from($pool_lifetime as u128),
-            pool_balance:     Amount::from($pool_balance  as u128),
-
-            user_last_update: $user_updated as u64,
-            user_lifetime:  Volume::from($lifetime  as u128),
-            user_balance:   Amount::from($balance   as u128),
-
-            user_age:       $age as u64,
-            user_unlocked:  Amount::from($unlocked  as u128),
-            user_claimed:   Amount::from($claimed   as u128),
-            user_claimable: Amount::from($claimable as u128)
-        });
+        match $T.q_user_info($now as u64, &$who)? {
+            Response::UserInfo {
+                it_is_now,
+                /*user_last_update,*/ user_lifetime, user_balance,
+                user_age, user_unlocked, user_claimed, user_claimable, ..
+            } => {
+                assert_eq!(it_is_now,        $now as u64);
+                // ignore pool fields
+                //assert_eq!(user_last_update, $updated as u64);
+                assert_eq!(user_lifetime,    Volume::from($lifetime  as u128));
+                assert_eq!(user_balance,     Amount::from($locked   as u128));
+                assert_eq!(user_age,         $age as u64);
+                assert_eq!(user_unlocked,    Amount::from($unlocked  as u128));
+                assert_eq!(user_claimed,     Amount::from($claimed   as u128));
+                assert_eq!(user_claimable,   Amount::from($claimable as u128));
+            }
+            _ => unreachable!()
+        }
     };
 
-    ($T:ident = $now:expr ; lock($who:expr, $amount:expr) -> [ $($msg:expr),* ]) => {
+    ($T:ident = $now:expr ; $who:ident locks $amount:literal -> [ $($msg:expr),* ]) => {
         assert_eq!($T.tx_lock($now, &$who, ($amount as u128).into())?, (vec![ $($msg,)* ], 0, 0))
     };
 
-    ($T:ident = $now:expr ; retr($who:expr, $amount:expr) -> [ $($msg:expr),* ]) => {
+    ($T:ident = $now:expr ; $who:ident retrieves $amount:literal -> [ $($msg:expr),* ]) => {
         assert_eq!($T.tx_retrieve($now, &$who, ($amount as u128).into())?, (vec![ $($msg,)* ], 0, 0))
     };
 
-    ($T:ident = $now:expr ; claim($who:expr) -> [ $($msg:expr),* ]) => {
+    ($T:ident = $now:expr ; $who:ident claims -> [ $($msg:expr),* ]) => {
         assert_eq!($T.tx_claim($now, &$who)?, (vec![ $($msg,)* ], 0, 0))
     };
 
