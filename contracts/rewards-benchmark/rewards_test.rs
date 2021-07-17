@@ -24,10 +24,10 @@ kukumba! {
         assert_eq!(T.init_configured(1, &admin)?, (vec![Snip20::set_viewing_key("")], 0, 0)); }
     when  "admin locks funds"
     then  "the instance starts counting the liquidity that accumulates" {
-        test!(T=1 ; pool -> { locked: 0, lifetime: 0, updated: 0 });
-        test!(T=2 ; pool -> { locked: 0, lifetime: 0, updated: 0 });
-        test!(T=3 ; pool -> { locked: 0, lifetime: 0, updated: 0 });
-        test!(T=4 ; pool -> { locked: 0, lifetime: 0, updated: 0 });
+        test!(T=1 ; pool -> { locked: 0, lifetime: 0, updated: 1 });
+        test!(T=2 ; pool -> { locked: 0, lifetime: 0, updated: 2 });
+        test!(T=3 ; pool -> { locked: 0, lifetime: 0, updated: 3 });
+        test!(T=4 ; pool -> { locked: 0, lifetime: 0, updated: 4 });
         test!(T=4 ; admin locks 1 -> [Snip20::transfer_from("admin", "contract_addr", "1")]);
         test!(T=4 ; pool -> { locked: 1, lifetime: 0, updated: 4 });
         test!(T=5 ; pool -> { locked: 1, lifetime: 1, updated: 4 });
@@ -50,11 +50,11 @@ kukumba! {
     then  "the instance configures a viewing key for itself"
     and   "it starts counting when someone locks funds" {
         assert_eq!(T.tx_set_token(4, &admin, "lp_token_address", "lp_token_hash")?, (vec![], 0, 0));
-        test!(T=6 ; pool -> { locked: 0, lifetime: 0, updated: 0 })
-        test!(T=6 ; admin locks 1 -> [ Snip20::transfer_from("admin", "contract_addr", "1") ]);
-        test!(T=6 ; pool -> { locked: 1, lifetime: 0, updated: 6 })
-        test!(T=7 ; pool -> { locked: 1, lifetime: 1, updated: 6 })
-        test!(T=8 ; pool -> { locked: 1, lifetime: 2, updated: 6 }) }
+        test!(T=7 ; pool -> { locked: 0, lifetime: 0, updated: 7 })
+        test!(T=7 ; admin locks 1 -> [ Snip20::transfer_from("admin", "contract_addr", "1") ]);
+        test!(T=7 ; pool -> { locked: 1, lifetime: 0, updated: 7 })
+        test!(T=8 ; pool -> { locked: 1, lifetime: 1, updated: 7 })
+        test!(T=9 ; pool -> { locked: 1, lifetime: 2, updated: 7 }) }
 
     #[ok_one]
     given "an instance:" {
@@ -64,37 +64,37 @@ kukumba! {
         let _ = T.init_configured(0, &admin)?;
         let _ = T.tx_set_vk(0, &alice, "")?;
         T = T.fund(RPT)
-        test!(T =  0 ; user(alice)      -> { age:     0, locked:   0, lifetime:     0, unlocked:   0, claimed: 0, claimable:   0 }); }
+        test!(T =  0 ; user(alice)      -> { age:   0, locked:   0, lifetime:     0, unlocked:   0, claimed: 0, claimable:   0 }); }
     when "alice first locks lp tokens," {
-        test!(T =  1 ; user(alice)      -> { age:     0, locked:   0, lifetime:     0, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T =  1 ; user(alice)      -> { age:   0, locked:   0, lifetime:     0, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =  1 ; alice locks 100    -> [ Snip20::transfer_from("alice", "contract_addr", "100") ]);
-        test!(T =  1 ; user(alice)      -> { age:     0, locked: 100, lifetime:     0, unlocked:   0, claimed: 0, claimable:   0 }); }
+        test!(T =  1 ; user(alice)      -> { age:   0, locked: 100, lifetime:     0, unlocked:   0, claimed: 0, claimable:   0 }); }
     then "alice's age starts incrementing;" {
-        test!(T =  2 ; user(alice)      -> { age:     1, locked: 100, lifetime:   100, unlocked:   0, claimed: 0, claimable:   0 });
-        test!(T =  3 ; user(alice)      -> { age:     2, locked: 100, lifetime:   200, unlocked:   0, claimed: 0, claimable:   0 }); }
+        test!(T =  2 ; user(alice)      -> { age:   1, locked: 100, lifetime:   100, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T =  3 ; user(alice)      -> { age:   2, locked: 100, lifetime:   200, unlocked:   0, claimed: 0, claimable:   0 }); }
     when "alice retrieves half of the tokens," {
-        test!(T =  4 ; user(alice)      -> { age:     3, locked: 100, lifetime:   300, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T =  4 ; user(alice)      -> { age:   3, locked: 100, lifetime:   300, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =  4 ; alice retrieves 50 -> [ Snip20::transfer("alice",  "50") ]); }
     then "alice's age keeps incrementing;" {
-        test!(T =  4 ; user(alice)      -> { age:     3, locked:  50, lifetime:   300, unlocked:   0, claimed: 0, claimable:   0 }); }
+        test!(T =  4 ; user(alice)      -> { age:   3, locked:  50, lifetime:   300, unlocked:   0, claimed: 0, claimable:   0 }); }
     when "alice retrieves all of the tokens," {
-        test!(T =  5 ; user(alice)      -> { age:     4, locked:  50, lifetime:   350, unlocked:   0, claimed: 0, claimable:   0 });
-        test!(T =  6 ; user(alice)      -> { age:     5, locked:  50, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T =  5 ; user(alice)      -> { age:   4, locked:  50, lifetime:   350, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T =  6 ; user(alice)      -> { age:   5, locked:  50, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =  6 ; alice retrieves 50 -> [ Snip20::transfer("alice", "50") ]); }
     then "alice's age stops incrementing;" {
-        test!(T =  6 ; user(alice)      -> { age:     5, locked:   0, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
-        test!(T =  7 ; user(alice)      -> { age:     5, locked:   0, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
-        test!(T =  8 ; user(alice)      -> { age:     5, locked:   0, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 }); }
+        test!(T =  6 ; user(alice)      -> { age:   5, locked:   0, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T =  7 ; user(alice)      -> { age:   5, locked:   0, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T =  8 ; user(alice)      -> { age:   5, locked:   0, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 }); }
     when "alice locks tokens again," {
-        test!(T =  9 ; user(alice)      -> { age:     5, locked:   0, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T =  9 ; user(alice)      -> { age:   5, locked:   0, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =  9 ; alice locks 1      -> [ Snip20::transfer_from("alice", "contract_addr", "1") ]); }
     then "alice's age resumes incrementing;" {
-        test!(T =  9 ; user(alice)      -> { age:     5, locked:   1, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
-        test!(T = 10 ; user(alice)      -> { age:     6, locked:   1, lifetime:   401, unlocked:   0, claimed: 0, claimable:   0 });
-        test!(T = 11 ; user(alice)      -> { age:     7, locked:   1, lifetime:   402, unlocked:   0, claimed: 0, claimable:   0 }); }
+        test!(T =  9 ; user(alice)      -> { age:   5, locked:   1, lifetime:   400, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T = 10 ; user(alice)      -> { age:   6, locked:   1, lifetime:   401, unlocked:   0, claimed: 0, claimable:   0 });
+        test!(T = 11 ; user(alice)      -> { age:   7, locked:   1, lifetime:   402, unlocked:   0, claimed: 0, claimable:   0 }); }
     when "alice's age reaches the configured threshold,"
     then "alice is eligible to claim the whole pool" {
-        test!(T = DAY+4 ; user(alice)   -> { age:   DAY, locked:   1, lifetime: 17675, unlocked: 100, claimed: 0, claimable: 100 }); }
+        test!(T = DAY+4 ; user(alice)   -> { age: DAY, locked:   1, lifetime: 17675, unlocked: 100, claimed: 0, claimable: 100 }); }
 
     #[ok_two_simultaneous]
     given "an instance:" {
@@ -174,7 +174,7 @@ kukumba! {
         test!(T =       1 ; user(alice)     -> { age:   0, locked:   0, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
         test!(T =       1 ; alice locks 100 -> [ Snip20::transfer_from("alice", "contract_addr", "100") ]);
         test!(T =   DAY+1 ; user(alice)     -> { age: DAY, locked: 100, lifetime: DAY * 100, unlocked: 100, claimed: 0, claimable: 100 });
-        test!(T =   DAY+1 ; alice locks 100 -> [ Snip20::transfer("alice", "100") ]);
+        test!(T =   DAY+1 ; alice retrieves 100 -> [ Snip20::transfer("alice", "100") ]);
         test!(T =   DAY+1 ; user(alice)     -> { age: DAY, locked:   0, lifetime: DAY * 100, unlocked: 100, claimed: 0, claimable: 100 }); }
     when "bob locks the same amount of tokens" {
         test!(T =   DAY+2 ; user(bob)     -> { age:   0, locked:   0, lifetime:         0, unlocked:   0, claimed: 0, claimable:   0 });
@@ -204,7 +204,7 @@ kukumba! {
     when  "someone requests to lock tokens"
     then  "the instance transfers them to itself"
     and   "the liquidity provider starts accruing a reward" {
-        test!(T = 1; bob locks 100 -> [ Snip20::transfer_from("alice", "contract_addr", "100") ]);
+        test!(T = 1; alice locks 100 -> [ Snip20::transfer_from("alice", "contract_addr", "100") ]);
         test!(T = 2; pool -> { locked: 100, lifetime: 100, updated: 1 }) }
     when  "a provider requests to retrieve tokens"
     then  "the instance transfers them to the provider"

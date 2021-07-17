@@ -80,15 +80,20 @@ contract! {
         /// Overall pool status
         PoolInfo (at: Time) {
             let pool = Pool::new(&deps.storage).at(at);
+            let pool_last_update = pool.last_update()?;
+            if at < pool_last_update {
+                return Err(StdError::generic_err("this contract does not store history"))
+            }
             Ok(Response::PoolInfo {
                 it_is_now: at,
 
-                // todo add balance/claimed/total in rewards token
-
                 lp_token: load_lp_token(&deps.storage, &deps.api)?,
-                pool_last_update: pool.last_update()?,
+
+                pool_last_update,
                 pool_lifetime:    pool.lifetime()?,
                 pool_balance:     pool.locked()?
+
+                // todo add balance/claimed/total in rewards token
             }) }
 
         /// Requires the user's viewing key.
@@ -105,11 +110,17 @@ contract! {
 
             let pool = Pool::new(&deps.storage).at(at).with_balance(reward_balance);
             let pool_last_update = pool.last_update()?;
+            if at < pool_last_update {
+                return Err(StdError::generic_err("this contract does not store history"))
+            }
             let pool_lifetime    = pool.lifetime()?;
             let pool_balance     = pool.locked()?;
 
             let user = pool.user(address);
             let user_last_update = user.last_update()?;
+            if at < pool_last_update {
+                return Err(StdError::generic_err("this contract does not store history"))
+            }
             let user_lifetime    = user.lifetime()?;
             let user_balance     = user.locked()?;
             let user_age         = user.age()?;

@@ -98,7 +98,7 @@ stateful!(Pool (storage):
         pub fn last_lifetime (&self) -> StdResult<Volume> {
             Ok(self.load(POOL_LIFETIME)?.unwrap_or(Volume::zero())) }
 
-        /// Get the time since last update
+        /// Get the time since last update (0 if no last update)
         pub fn elapsed (&self) -> StdResult<Time> {
             Ok(self.now()? - self.last_update()?) }
 
@@ -106,11 +106,12 @@ stateful!(Pool (storage):
         pub fn now (&self) -> StdResult<Time> {
             self.now.ok_or(StdError::generic_err("current time not set")) }
 
-        /// Load the last update timestamp or fail
+        /// Load the last update timestamp or default to current time
+        /// (this has the useful property of keeping `elapsed` zero for strangers)
         pub fn last_update (&self) -> StdResult<Time> {
             match self.load(POOL_UPDATED)? {
-                Some(ratio) => Ok(ratio),
-                None        => error!("missing pool update timestamp") } }
+                Some(time) => Ok(time),
+                None       => Ok(self.now()?) } }
 
         /// Amount of currently locked LP tokens in this pool
         pub fn locked (&self) -> StdResult<Amount> {
@@ -197,7 +198,8 @@ stateful!(User (pool.storage):
 
         pub fn last_update (&self) -> StdResult<Time> {
             match self.load_ns(USER_UPDATED, self.address.as_slice())? {
-                Some(x) => Ok(x), None => error!("missing user update timestamp") } }
+                Some(x) => Ok(x),
+                None    => Ok(self.pool.now()?) } }
 
         /// After first locking LP tokens, users must reach a configurable age threshold,
         /// i.e. keep LP tokens locked for at least X blocks. During that time, their portion of
