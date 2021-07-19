@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@waiting/base64": "^4.2.9",
     "dotenv": "^8.2.0",
     "secretjs": "^0.11.0",
     "table": "^6.7.1",

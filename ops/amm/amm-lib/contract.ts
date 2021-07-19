@@ -1,11 +1,12 @@
 import { 
     Address, TokenPair, TokenSaleConfig, Pagination, TokenPairAmount,
-    Decimal, Uint128, get_token_type, TypeOfToken, 
-    TokenInfo, ViewingKey, TokenTypeAmount, Exchange, RewardPool,
-    RewardsAccount, PairInfo, Allowance, ExchangeRate,
-    ContractInstantiationInfo, ExchangeSettings
+    Decimal, Uint128, TokenInfo, ViewingKey, TokenTypeAmount, Exchange,
+    RewardPool, RewardsAccount, PairInfo, Allowance, ExchangeRate,
+    ContractInstantiationInfo, ExchangeSettings, TypeOfToken,
+    get_token_type
 } from './types.js'
 import { ExecuteResult, SigningCosmWasmClient, CosmWasmClient } from 'secretjs'
+import { b64encode } from '@waiting/base64'
 
 // These two are not exported in secretjs...
 export interface Coin {
@@ -99,7 +100,7 @@ export class FactoryContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('700000')
+            fee = create_fee('630000')
         }
 
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
@@ -229,32 +230,54 @@ export class ExchangeContract extends SmartContract {
     async withdraw_liquidity(amount: Uint128, recipient: Address, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             remove_liquidity: {
-                amount,
                 recipient
             }
         }
 
         if (fee === undefined) {
-            fee = create_fee('350000')
+            fee = create_fee('490000')
         }
 
-        return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
+        const info = await this.get_pair_info()
+
+        const snip20 = new Snip20Contract(info.liquidity_token.address, this.signing_client)
+        return await snip20.send(this.address, amount, create_base64_msg(msg), null, fee)
     }
 
-    async swap(amount: TokenTypeAmount, expected_return?: Decimal | null, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async swap(
+        amount: TokenTypeAmount,
+        recipient?: Address | null,
+        expected_return?: Decimal | null,
+        fee?: Fee | undefined
+    ): Promise<ExecuteResult> {
+        if (fee === undefined) {
+            fee = create_fee('410000')
+        }
+
+        if (get_token_type(amount.token) == TypeOfToken.Native) {
+            const msg = {
+                swap: {
+                    offer: amount,
+                    recipient,
+                    expected_return
+                }
+            }
+
+            const transfer = add_native_balance(amount)
+            return await this.signing_client.execute(this.address, msg, undefined, transfer, fee)
+        }
+
         const msg = {
             swap: {
-                offer: amount,
+                recipient,
                 expected_return
             }
         }
 
-        if (fee === undefined) {
-            fee = create_fee('450000')
-        }
+        const token_addr = (amount.token as any).custom_token.contract_addr;
+        const snip20 = new Snip20Contract(token_addr, this.signing_client)
 
-        const transfer = add_native_balance(amount)
-        return await this.signing_client.execute(this.address, msg, undefined, transfer, fee)
+        return await snip20.send(this.address, amount.amount, create_base64_msg(msg), null, fee)
     }
 
     async get_pair_info(): Promise<PairInfo> {
@@ -423,6 +446,29 @@ export class Snip20Contract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
+    async send(
+        recipient: Address,
+        amount: Uint128,
+        msg: string | null,
+        padding?: string | null,
+        fee?: Fee | undefined
+    ): Promise<ExecuteResult> {
+        const message = {
+            send: {
+                recipient,
+                amount,
+                padding,
+                msg
+            }
+        }
+
+        if (fee === undefined) {
+            fee = create_fee('200000')
+        }
+
+        return await this.signing_client.execute(this.address, message, undefined, undefined, fee)
+    }
+
     async mint(recipient: Address, amount: Uint128, padding?: string | null, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             mint: {
@@ -524,6 +570,10 @@ export class RewardsContract extends SmartContract {
         const result = await this.query_client().queryContractSmart(this.address, msg) as GetAccountResponse;
         return result.user_info;
     }
+}
+
+function create_base64_msg(msg: object): string {
+    return b64encode(JSON.stringify(msg))
 }
 
 function add_native_balance_pair(amount: TokenPairAmount): Coin[] | undefined {

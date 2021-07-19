@@ -188,32 +188,30 @@ async function test_get_pair_info(exchange: ExchangeContract, pair: TokenPair, f
 async function test_liquidity(exchange: ExchangeContract, sienna_token: ContractInfo, pair: TokenPair) {
   const amount = '5000000'
 
-  // TODO: The current snip20 implementation doesn't implement
-  // decimal conversion, so providing only a single amount for now
-  //const amount1 = '5000000000000000000'
-
   const snip20 = new Snip20Contract(sienna_token.address, exchange.signing_client)
-  await snip20_deposit(snip20, amount, exchange.address)
+  await snip20.deposit(amount)
+  await sleep(SLEEP_TIME)
 
   const token_amount = new TokenPairAmount(pair, amount, amount)
 
   await execute_test(
     'test_provide_liquidity',
     async () => {
+      await snip20.deposit(amount)
+      await sleep(SLEEP_TIME)
+    
+      await snip20.increase_allowance(exchange.address, amount)
+      await sleep(SLEEP_TIME)
+
       const result = await exchange.provide_liquidity(token_amount)
       analytics.add_tx('Exchange: Provide Liquidity', result)
 
       assert_equal(extract_log_value(result, 'share'), amount) //LP tokens
-    }
-  )
 
-  await execute_test(
-    'test_provide_liquidity_pool_not_empty',
-    async () => {
-      const result = await exchange.get_pair_info()
+      const info = await exchange.get_pair_info()
 
-      assert_equal(result.amount_0, amount)
-      assert_equal(result.amount_1, amount)
+      assert_equal(info.amount_0, amount)
+      assert_equal(info.amount_1, amount)
     }
   )
 
@@ -253,7 +251,11 @@ async function test_swap(
 
   // Setup liquidity pool
   const snip20_a = new Snip20Contract(sienna_token.address, exchange.signing_client)
-  await snip20_deposit(snip20_a, amount, exchange.address)
+  await snip20_a.deposit(amount)
+  await sleep(SLEEP_TIME)
+
+  await snip20_a.increase_allowance(exchange.address, amount)
+  await sleep(SLEEP_TIME)
 
   const pair_amount = new TokenPairAmount(pair, amount, amount)
   await exchange.provide_liquidity(pair_amount)
@@ -302,27 +304,12 @@ async function test_swap(
       assert(amnt - return_amount === amount_1)
     }
   )
-
-  await snip20_deposit(snip20_b, amount, exchange.address)
+  
+  await snip20_b.deposit(amount)
+  await sleep(SLEEP_TIME)
   
   const key = create_viewing_key()
   await snip20_b.set_viewing_key(key)
-
-  await execute_test(
-    'test_get_allowance',
-    async () => {
-      const result = await snip20_b.get_allowance(client_b.senderAddress, exchange.address, key)
-      assert_equal(result.allowance, amount)
-    }
-  )
-
-  await execute_test_expect(
-    'test_swap_from_snip20_insufficient_allowance',
-    async () => {
-      await exchange_b.swap(new TokenTypeAmount(pair.token_1, '99999999999999'))
-    },
-    'insufficient allowance:'
-  )
 
   await execute_test(
     'test_swap_from_snip20',
@@ -337,7 +324,7 @@ async function test_swap(
 
       const native_balance_after = parseInt(await get_native_balance(client_b))
       const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
-      
+
       assert(native_balance_after > native_balance_before)
       assert(token_balance_before - parseInt(swap_amount) === token_balance_after)
       assert_equal(extract_log_value(result, 'sienna_commission'), '0')
@@ -360,12 +347,6 @@ async function test_swap(
       const token_balance_before = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
 
       const amount_to_swap = 3500000;
-      const allowance = await snip20_b.get_allowance(client_b.senderAddress, exchange.address, key)
-
-      await snip20_b.increase_allowance(
-        exchange.address,
-        (amount_to_swap - parseInt(allowance.allowance)).toString()
-      )
 
       const result = await exchange_b.swap(new TokenTypeAmount(pair.token_1, amount_to_swap.toString()))
       analytics.add_tx('Exchange: Swap With Burner', result)
@@ -388,15 +369,6 @@ async function test_swap(
       const token_balance_before = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
       const burner_balance_before = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
 
-      const allowance = await snip20_b.get_allowance(client_b.senderAddress, exchange.address, key)
-
-      const amount_to_swap = parseInt(offer_token.amount)
-
-      await snip20_b.increase_allowance(
-        exchange.address,
-        (amount_to_swap - parseInt(allowance.allowance)).toString()
-      )
-
       const result = await exchange_b.swap(offer_token)
       analytics.add_tx('Exchange: Native Swap With Burner', result)
 
@@ -413,14 +385,6 @@ async function test_swap(
       assert(token_balance_after > token_balance_before)
     }
   )
-}
-
-async function snip20_deposit(snip20: Snip20Contract, amount: Uint128, exchange_address: Address) {
-  await snip20.deposit(amount)
-  await sleep(SLEEP_TIME)
-
-  await snip20.increase_allowance(exchange_address, amount)
-  await sleep(SLEEP_TIME)
 }
 
 async function get_native_balance(client: SigningCosmWasmClient): Promise<string> {
