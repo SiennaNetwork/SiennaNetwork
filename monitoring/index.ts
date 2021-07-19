@@ -1,5 +1,8 @@
 import './style.css'
 
+// root of time ------------------------------------------------------------------------------------
+let T = 0
+
 // log of all modeled events -----------------------------------------------------------------------
 export class History {
   root = h('div', { className: 'history' })
@@ -12,15 +15,20 @@ export class History {
 const log = new History()
 
 // the rewards contract and its participants -------------------------------------------------------
+const fundInterval = 24
+const fundPortion  = 2500
 class Pool {
   last_update = 0
   lifetime    = 0
   locked      = 0
-  balance     = 0 }
+  balance     = 0
+  update () {
+    this.lifetime += this.locked
+    if (T % fundInterval == 0) this.balance += fundPortion
+  }}
 const pool = new Pool()
 
 class User {
-  pool: Pool;
   name: string;
   balance: number;
 
@@ -32,19 +40,20 @@ class User {
   claimed     = 0
   claimable   = 0
 
-  constructor (pool: Pool, name: string, balance: number) {
-    this.pool = pool
+  constructor (name: string, balance: number) {
     this.name = name
     this.balance = balance }
   lock (amount: number) {
+    this.last_update = T
     this.locked += amount
-    this.pool.locked += amount
+    pool.locked += amount
     log.add('locks', this.name, amount)
     current.add(this)
     lifetime.add(this)
     earned.add(this) }
   unlock (amount: number) {
     if (this.locked < amount) return
+    this.last_update = T
     this.locked -= amount
     log.add('unlocks', this.name, amount)
     if (this.locked === 0) current.remove(this) }
@@ -57,10 +66,14 @@ class User {
       this.claimed = this.earned
       claimed.add(this) } }
   update () {
-    this.lifetime += this.balance
+    this.lifetime += this.locked
     if (this.locked > 0) this.age++
     this.earned = pool.balance * this.lifetime / pool.lifetime
-    table.rows[this.name].locked.textContent = String(this.locked) }
+    table.rows[this.name].last_update.textContent = String(this.last_update)
+    table.rows[this.name].locked.textContent      = String(this.locked)
+    table.rows[this.name].lifetime.textContent    = String(this.lifetime)
+    table.rows[this.name].age.textContent         = String(this.age)
+    table.rows[this.name].earned.textContent      = String(this.earned) }
   colorize (context: CanvasRenderingContext2D) {
     if (this.age == threshold) {
       context.fillStyle   = '#b8bb26'
@@ -84,7 +97,7 @@ const numberOfAccounts = 100
 for (let i = 0; i < numberOfAccounts; i++) {
   const name    = `User${i}`
   const balance = Math.floor(Math.random()*1000000)
-  users[name]   = new User(pool, name, balance) }
+  users[name]   = new User(name, balance) }
 
 // table of current state
 interface Columns {
@@ -208,13 +221,8 @@ const claimed   = new PieChart('Claimed',  'claimed')
 
 // pool globals
 const threshold    = 24
-const fundInterval = 24
-const fundPortion  = 2500
-let   poolBalance  = 2500
 
 ;(function start () {
-
-  let T = 0
 
   // add components
   for (const el of [ current
@@ -243,8 +251,8 @@ let   poolBalance  = 2500
     // advance time
     T++
 
-    // periodically fund pool
-    if (T % fundInterval == 0) poolBalance += fundPortion
+    // periodically fund pool and increment its lifetime
+    pool.update()
 
     // increment lifetimes and ages
     for (const user of Object.values(users)) user.update()
