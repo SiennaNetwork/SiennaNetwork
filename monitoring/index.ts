@@ -1,30 +1,65 @@
 import './style.css'
+import Gruvbox from './gruvbox'
 
 // root of time ------------------------------------------------------------------------------------
 let T = 0
 
+// optimization toggles ----------------------------------------------------------------------------
+//
+/* reset user age on claim, effectively implementing a cooldown
+ * equal to the threshold period */
+const RESET_AGE = true
+
+/* additional cooldown after claiming*/
+const COOLDOWN = false
+
+const numberOfAccounts = 100
+const initialUserBalance = 1000
+
 // log of all modeled events -----------------------------------------------------------------------
 export class History {
-  root = h('div', { className: 'history' })
-  body = addTo(this.root, h('ol'))
+  root    = h('div', { className: 'history' })
+  now       = addTo(this.root, h('h1'))
+  balance   = addTo(this.root, h('h1'))
+  remaining = addTo(this.root, h('h1'))
+  body      = addTo(this.root, h('ol'))
   add (event: string, name: string, amount: number|undefined) {
     if (amount) {
-      this.body.innerHTML = `<div><b>${name}</b> ${event} ${amount} LP</div>` + this.body.innerHTML }
+      this.body.insertBefore(
+        h('div', { innerHTML: `<b>${name}</b> ${event} ${amount}LP` }),
+        this.body.firstChild) }
     else {
-      this.body.innerHTML = `<div><b>${name}</b> ${event}</div>` + this.body.innerHTML } } }
+      this.body.insertBefore(
+        h('div', { innerHTML: `<b>${name}</b> ${event}` }),
+        this.body.firstChild) } } }
 const log = new History()
 
 // the rewards contract and its participants -------------------------------------------------------
-const fundInterval = 24
-const fundPortion  = 2500
 class Pool {
+
+  // in reward token
+  interval    = 24
+  portion     = 2500
+  remaining   = 120
+  balance     = this.portion
+
+  // in lp token
   last_update = 0
   lifetime    = 0
   locked      = 0
-  balance     = 0
+
   update () {
+    log.now.textContent = `T=${T}`
+    log.balance.textContent = `reward budget: ${this.balance}`
     this.lifetime += this.locked
-    if (T % fundInterval == 0) this.balance += fundPortion
+    if (T % this.interval == 0) {
+      console.log('fund', this.portion, this.remaining)
+      if (this.remaining > 0) {
+        this.balance += this.portion
+        this.remaining -= 1
+        log.remaining.textContent = `${this.remaining} days remaining`
+      }
+    }
   }}
 const pool = new Pool()
 
@@ -58,45 +93,57 @@ class User {
     log.add('unlocks', this.name, amount)
     if (this.locked === 0) current.remove(this) }
   claim () {
-    if (this.locked === 0) return
-    if (this.age < threshold) return
-    if (this.claimed < this.earned) {
-      const reward = this.earned - this.claimed
-      log.add('claim', this.name, reward)
-      this.claimed = this.earned
-      claimed.add(this) } }
-  update () {
+    if (this.locked === 0)
+      return
+    if (this.age < threshold)
+      return
+    if (this.claimed > this.earned) {
+      log.add('crowded out A', this.name, undefined)
+      return }
+    const reward = this.earned - this.claimed
+    if (reward > pool.balance) {
+      log.add('crowded out B', this.name, undefined)
+      return }
+    log.add('claim', this.name, reward)
+    this.claimed = this.earned
+    pool.balance -= reward
+    claimed.add(this)
+    if (RESET_AGE) this.age = 0 }
+  update () { // WARNING assumes elapsed=1 !
     this.lifetime += this.locked
     if (this.locked > 0) this.age++
     this.earned = pool.balance * this.lifetime / pool.lifetime
+    this.claimable = this.earned - this.claimed
     table.rows[this.name].last_update.textContent = String(this.last_update)
     table.rows[this.name].locked.textContent      = String(this.locked)
     table.rows[this.name].lifetime.textContent    = String(this.lifetime)
     table.rows[this.name].age.textContent         = String(this.age)
-    table.rows[this.name].earned.textContent      = String(this.earned) }
-  colorize (context: CanvasRenderingContext2D) {
-    if (this.age == threshold) {
-      context.fillStyle   = '#b8bb26'
-      context.strokeStyle = '#b8bb26' }
-    else if (this.age > threshold) {
-      context.fillStyle   = '#98971a'
-      context.strokeStyle = '#b8bb26' }
-    else {
-      context.fillStyle   = '#d79921'
-      context.strokeStyle = '#fabd2f' }
-    if (this.claimed > this.earned) {
-      context.fillStyle   = '#cc241d'
-      context.strokeStyle = '#fb4934' } } }
+    table.rows[this.name].earned.textContent      = String(this.earned)
+    table.rows[this.name].claimed.textContent     = String(this.claimed)
+    table.rows[this.name].claimable.textContent   = String(this.claimable)
+    const [fill, stroke] = this.colors()
+    table.rows[this.name].claimable.style.color = stroke
+  }
+  colors () {
+    switch (true) {
+      case this.claimable > pool.balance:
+        return [Gruvbox.fadedRed,    Gruvbox.brightRed]
+      case this.claimed > this.earned:
+        return [Gruvbox.fadedOrange, Gruvbox.brightOrange]
+      case this.age == threshold:
+        return [Gruvbox.brightAqua,  Gruvbox.brightAqua]
+      case this.age >  threshold:
+        return [Gruvbox.fadedAqua,   Gruvbox.brightAqua]
+      default:
+        return [Gruvbox.dark0,       Gruvbox.light0] } } }
 
 type Users  = Record<string, User>
 
 const users: Users = {}
 
-const numberOfAccounts = 100
-
 for (let i = 0; i < numberOfAccounts; i++) {
   const name    = `User${i}`
-  const balance = Math.floor(Math.random()*1000000)
+  const balance = Math.floor(Math.random()*initialUserBalance)
   users[name]   = new User(name, balance) }
 
 // table of current state
@@ -128,7 +175,7 @@ export class Table {
       this.addRow(name) } }
   addRow (name: string) {
     const row = addTo(this.root, h('tr'))
-    this.rows[name] = {
+    const rows = this.rows[name] = {
       name:        addTo(row, h('td', { style: 'font-weight:bold', textContent: name })),
       last_update: addTo(row, h('td')),
       lifetime:    addTo(row, h('td')),
@@ -137,8 +184,9 @@ export class Table {
       earned:      addTo(row, h('td')),
       claimed:     addTo(row, h('td')),
       claimable:   addTo(row, h('td')) }
+    rows.claimable.style.fontWeight = 'bold'
     addTo(this.root, row)
-    return this.rows[name] } }
+    return rows } }
 const table = new Table()
 
 // pie chart (TODO replace with streamgraph, difficulty might be multiple colors in same stream) ---
@@ -209,7 +257,9 @@ export class PieChart {
         context.beginPath()
         context.moveTo(centerX, centerY)
         context.arc(centerX, centerY, radius, start * Math.PI, end * Math.PI)
-        users[name].colorize(context)
+        const [fillStyle, strokeStyle] = users[name].colors()
+        context.fillStyle = fillStyle
+        context.strokeStyle = strokeStyle
         context.fill()
         context.stroke()
         start = end } } } }
@@ -220,7 +270,7 @@ const earned    = new PieChart('Earned',   'earned')
 const claimed   = new PieChart('Claimed',  'claimed')
 
 // pool globals
-const threshold    = 24
+const threshold    = 240
 
 ;(function start () {
 
@@ -258,11 +308,11 @@ const threshold    = 24
     for (const user of Object.values(users)) user.update()
 
     // perform random action from random account for random amount
-    const action  = Object.values(actions)[Math.floor(Math.random()*3)]
-    const name    = Object.keys(users)[Math.floor(Math.random()*Object.keys(users).length)]
-    const account = users[name]
-    const amount  = Math.floor(Math.random()*account.balance)
-    action(account, amount)
+    const action = Object.values(actions)[Math.floor(Math.random()*3)]
+    const name   = Object.keys(users)[Math.floor(Math.random()*Object.keys(users).length)]
+    const user   = users[name]
+    const amount = Math.floor(Math.random()*user.balance)
+    action(user, amount)
 
     // update charts
     for (const chart of [current
