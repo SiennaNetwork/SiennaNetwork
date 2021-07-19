@@ -174,7 +174,6 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     msg: QueryMsg,
 ) -> QueryResult {
     match msg {
-        QueryMsg::Version => to_binary(&QueryMsgResponse::Version { version: CONTRACT_VERSION }),
         QueryMsg::Status => to_binary(&get_status(deps)?),
         QueryMsg::PairInfo => {
             let config = load_config(deps)?;
@@ -188,7 +187,8 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
                 pair: config.pair,
                 amount_0: balances[0],
                 amount_1: balances[1],
-                total_liquidity
+                total_liquidity,
+                contract_version: CONTRACT_VERSION
             })
         },
         QueryMsg::SwapSimulation { offer } => {

@@ -3,7 +3,7 @@ import {
     Decimal, Uint128, TokenInfo, ViewingKey, TokenTypeAmount, Exchange,
     RewardPool, RewardsAccount, PairInfo, Allowance, ExchangeRate,
     ContractInstantiationInfo, ExchangeSettings, TypeOfToken,
-    get_token_type
+    CustomToken, get_token_type
 } from './types.js'
 import { ExecuteResult, SigningCosmWasmClient, CosmWasmClient } from 'secretjs'
 import { b64encode } from '@waiting/base64'
@@ -65,6 +65,10 @@ export function create_fee(amount: Uint128, gas?: Uint128 | undefined): Fee {
         amount: [{ amount, denom: "uscrt" }],
         gas,
     }
+}
+
+export function create_base64_msg(msg: object): string {
+    return b64encode(JSON.stringify(msg))
 }
 
 export class SmartContract {
@@ -274,7 +278,7 @@ export class ExchangeContract extends SmartContract {
             }
         }
 
-        const token_addr = (amount.token as any).custom_token.contract_addr;
+        const token_addr = (amount.token as CustomToken).custom_token.contract_addr;
         const snip20 = new Snip20Contract(token_addr, this.signing_client)
 
         return await snip20.send(this.address, amount.amount, create_base64_msg(msg), null, fee)
@@ -570,10 +574,6 @@ export class RewardsContract extends SmartContract {
         const result = await this.query_client().queryContractSmart(this.address, msg) as GetAccountResponse;
         return result.user_info;
     }
-}
-
-function create_base64_msg(msg: object): string {
-    return b64encode(JSON.stringify(msg))
 }
 
 function add_native_balance_pair(amount: TokenPairAmount): Coin[] | undefined {

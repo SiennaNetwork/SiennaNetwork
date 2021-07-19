@@ -72,6 +72,7 @@ export interface PairInfo {
     liquidity_token: ContractInfo;
     pair: TokenPair;
     total_liquidity: Uint128;
+    contract_version: number;
 }
 
 export class TokenSaleConfig {

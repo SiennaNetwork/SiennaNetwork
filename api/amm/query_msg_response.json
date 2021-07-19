@@ -13,6 +13,7 @@
           "required": [
             "amount_0",
             "amount_1",
+            "contract_version",
             "factory",
             "liquidity_token",
             "pair",
@@ -25,6 +26,11 @@
             "amount_1": {
               "$ref": "#/definitions/Uint128"
             },
+            "contract_version": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
             "factory": {
               "$ref": "#/definitions/ContractInstance_for_HumanAddr"
             },
@@ -36,27 +42,6 @@
             },
             "total_liquidity": {
               "$ref": "#/definitions/Uint128"
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "version"
-      ],
-      "properties": {
-        "version": {
-          "type": "object",
-          "required": [
-            "version"
-          ],
-          "properties": {
-            "version": {
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0.0
             }
           }
         }
