@@ -1,0 +1,58 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-size: 1rem;
+  list-style: none;
+}
+
+html, body {
+  height:  100%;
+  margin:  0;
+  padding: 0;
+  font-family: sans-serif;
+}
+
+body {
+  background: #282828;
+  color:      #ebdbb2;
+  display:    flex;
+}
+
+@media (orientation: landscape) {
+  flex-flow: row nowrap;
+}
+
+@media (orientation: portrait) {
+  flex-flow: column nowrap;
+}
+
+.sparkline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 20vh;
+}
+
+h1 {
+  font-weight: bold;
+  margin: 0;
+}
+h2 {
+  font-weight: normal;
+}
+
+.pie, .history {
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 100%;
+}
+
+.pie {
+  text-align: left;
+}
+
+h1, h2, ol {
+  padding: 0 0.5em;
+}

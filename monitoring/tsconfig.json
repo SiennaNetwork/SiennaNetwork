@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "strict": true,
+    "module": "es2020",
+    "moduleResolution": "node",
+    "downlevelIteration": true,
+    "incremental": true,
+    "sourceMap": true
+  }
+}
