@@ -291,6 +291,7 @@ fn swap_internal(
                 contract_addr,
                 token_code_hash,
             } => {
+                // Create message for sending the required amount to this contract
                 messages.push(snip20::transfer_from_msg(
                     env.message.sender.clone(),
                     env.contract.address,
