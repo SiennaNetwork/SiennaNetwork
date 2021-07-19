@@ -62,6 +62,7 @@ fn main() {
     export_schema(&schema_for!(exchange::HandleMsg), &out_dir);
     export_schema(&schema_for!(exchange::QueryMsg), &out_dir);
     export_schema(&schema_for!(exchange::QueryMsgResponse), &out_dir);
+    export_schema(&schema_for!(exchange::ReceiverCallbackMsg), &out_dir);
 
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");

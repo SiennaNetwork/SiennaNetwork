@@ -3,6 +3,26 @@
   "title": "Handle",
   "anyOf": [
     {
+      "description": "Set the contract admin.",
+      "type": "object",
+      "required": [
+        "change_admin"
+      ],
+      "properties": {
+        "change_admin": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
       "description": "Set the active asset token.",
       "type": "object",
       "required": [
@@ -23,58 +43,6 @@
               "type": "string"
             }
           }
-        }
-      }
-    },
-    {
-      "description": "Provide some liquidity.",
-      "type": "object",
-      "required": [
-        "lock"
-      ],
-      "properties": {
-        "lock": {
-          "type": "object",
-          "required": [
-            "amount"
-          ],
-          "properties": {
-            "amount": {
-              "$ref": "#/definitions/Uint128"
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "Get some tokens back.",
-      "type": "object",
-      "required": [
-        "retrieve"
-      ],
-      "properties": {
-        "retrieve": {
-          "type": "object",
-          "required": [
-            "amount"
-          ],
-          "properties": {
-            "amount": {
-              "$ref": "#/definitions/Uint128"
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "User can receive rewards after having provided liquidity.",
-      "type": "object",
-      "required": [
-        "claim"
-      ],
-      "properties": {
-        "claim": {
-          "type": "object"
         }
       }
     },
@@ -131,21 +99,54 @@
       }
     },
     {
+      "description": "User can lock some liquidity provision tokens.",
       "type": "object",
       "required": [
-        "change_admin"
+        "lock"
       ],
       "properties": {
-        "change_admin": {
+        "lock": {
           "type": "object",
           "required": [
-            "address"
+            "amount"
           ],
           "properties": {
-            "address": {
-              "$ref": "#/definitions/HumanAddr"
+            "amount": {
+              "$ref": "#/definitions/Uint128"
             }
           }
+        }
+      }
+    },
+    {
+      "description": "User can always get their liquidity provision tokens back.",
+      "type": "object",
+      "required": [
+        "retrieve"
+      ],
+      "properties": {
+        "retrieve": {
+          "type": "object",
+          "required": [
+            "amount"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "User can receive rewards after having provided liquidity.",
+      "type": "object",
+      "required": [
+        "claim"
+      ],
+      "properties": {
+        "claim": {
+          "type": "object"
         }
       }
     }

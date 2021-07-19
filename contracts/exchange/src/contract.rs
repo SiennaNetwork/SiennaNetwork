@@ -86,6 +86,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             config: Some(Snip20InitConfig::builder()
                 .public_total_supply()
                 .enable_mint()
+                .enable_burn()
                 .build()
             )
         })?,

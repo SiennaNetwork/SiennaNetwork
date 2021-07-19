@@ -12,31 +12,31 @@
         "pool_info": {
           "type": "object",
           "required": [
+            "it_is_now",
             "lp_token",
-            "now",
-            "since",
-            "total",
-            "volume"
+            "pool_balance",
+            "pool_last_update",
+            "pool_lifetime"
           ],
           "properties": {
+            "it_is_now": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
             "lp_token": {
               "$ref": "#/definitions/ContractInstance_for_HumanAddr"
             },
-            "now": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "since": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "total": {
-              "$ref": "#/definitions/Uint256"
-            },
-            "volume": {
+            "pool_balance": {
               "$ref": "#/definitions/Uint128"
+            },
+            "pool_last_update": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "pool_lifetime": {
+              "$ref": "#/definitions/Uint256"
             }
           }
         }
@@ -52,32 +52,58 @@
         "user_info": {
           "type": "object",
           "required": [
-            "age",
-            "claimable",
-            "claimed",
-            "lifetime",
-            "unlocked",
-            "volume"
+            "it_is_now",
+            "pool_balance",
+            "pool_last_update",
+            "pool_lifetime",
+            "user_age",
+            "user_balance",
+            "user_claimable",
+            "user_claimed",
+            "user_last_update",
+            "user_lifetime",
+            "user_unlocked"
           ],
           "properties": {
-            "age": {
+            "it_is_now": {
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
             },
-            "claimable": {
+            "pool_balance": {
               "$ref": "#/definitions/Uint128"
             },
-            "claimed": {
-              "$ref": "#/definitions/Uint128"
+            "pool_last_update": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             },
-            "lifetime": {
+            "pool_lifetime": {
               "$ref": "#/definitions/Uint256"
             },
-            "unlocked": {
+            "user_age": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "user_balance": {
               "$ref": "#/definitions/Uint128"
             },
-            "volume": {
+            "user_claimable": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "user_claimed": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "user_last_update": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "user_lifetime": {
+              "$ref": "#/definitions/Uint256"
+            },
+            "user_unlocked": {
               "$ref": "#/definitions/Uint128"
             }
           }

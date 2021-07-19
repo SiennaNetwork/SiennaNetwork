@@ -3,6 +3,18 @@
   "title": "Query",
   "anyOf": [
     {
+      "description": "Who is admin? TODO do we need this in prod?",
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "type": "object"
+        }
+      }
+    },
+    {
       "description": "Overall pool status",
       "type": "object",
       "required": [
@@ -12,10 +24,10 @@
         "pool_info": {
           "type": "object",
           "required": [
-            "now"
+            "at"
           ],
           "properties": {
-            "now": {
+            "at": {
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
@@ -35,20 +47,20 @@
           "type": "object",
           "required": [
             "address",
-            "key",
-            "now"
+            "at",
+            "key"
           ],
           "properties": {
             "address": {
               "$ref": "#/definitions/HumanAddr"
             },
-            "key": {
-              "type": "string"
-            },
-            "now": {
+            "at": {
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
+            },
+            "key": {
+              "type": "string"
             }
           }
         }
@@ -87,17 +99,6 @@
               "type": "string"
             }
           }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "admin"
-      ],
-      "properties": {
-        "admin": {
-          "type": "object"
         }
       }
     }

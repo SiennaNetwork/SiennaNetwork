@@ -6,7 +6,8 @@
     "callback",
     "factory_info",
     "lp_token_contract",
-    "pair"
+    "pair",
+    "prng_seed"
   ],
   "properties": {
     "callback": {
@@ -35,6 +36,9 @@
           "$ref": "#/definitions/TokenPair_for_HumanAddr"
         }
       ]
+    },
+    "prng_seed": {
+      "$ref": "#/definitions/Binary"
     }
   },
   "definitions": {
