@@ -16,24 +16,13 @@ html, body {
 body {
   background: #282828;
   color:      #ebdbb2;
-  display:    flex;
+  display:    grid;
+  grid-template-columns: 20% 20% 20% 20% 20%;
+  grid-template-rows: 50% 50%
 }
 
-@media (orientation: landscape) {
-  flex-flow: row nowrap;
-}
-
-@media (orientation: portrait) {
-  flex-flow: column nowrap;
-}
-
-.sparkline {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 20vh;
-}
+@media (orientation: landscape) {}
+@media (orientation: portrait) {}
 
 h1 {
   font-weight: bold;
@@ -51,8 +40,48 @@ h2 {
 
 .pie {
   text-align: left;
+  padding: 1rem;
+}
+
+.pie canvas {
+  margin: 1rem 0;
+}
+
+table {
+  grid-row-start: 2;
+  grid-column-start: 1;
+  grid-column-end: 5;
+  background: #32302f;
+  border-collapse: collapse;
+}
+
+td {
+  padding: 0.25rem;
+  text-align: center;
+}
+thead {
+  background: #504945;
+}
+th {
+  padding: 0.5rem;
+}
+
+.history {
+  grid-row-start: 1;
+  grid-row-end: 3;
+  grid-column-start: 5;
+  padding: 1em;
+  background: #3c3836;
 }
 
 h1, h2, ol {
   padding: 0 0.5em;
 }
+
+/*.sparkline {*/
+  /*position: absolute;*/
+  /*left: 0;*/
+  /*right: 0;*/
+  /*bottom: 0;*/
+  /*height: 20vh;*/
+/*}*/
