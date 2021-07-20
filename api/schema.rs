@@ -33,26 +33,6 @@ fn main() {
     export_schema(&schema_for!(rpt::Query), &out_dir);
     export_schema(&schema_for!(rpt::Response), &out_dir);
 
-    //let mut out_dir = current_dir().unwrap();
-    //out_dir.push("api");
-    //out_dir.push("rewards");
-    //create_dir_all(&out_dir).unwrap();
-    //remove_schemas(&out_dir).unwrap();
-    //export_schema(&schema_for!(rewards::InitMsg), &out_dir);
-    //export_schema(&schema_for!(rewards::HandleMsg), &out_dir);
-    //export_schema(&schema_for!(rewards::QueryMsg), &out_dir);
-    //export_schema(&schema_for!(rewards::QueryMsgResponse), &out_dir);
-
-    //let mut out_dir = current_dir().unwrap();
-    //out_dir.push("api");
-    //out_dir.push("rewards-factory");
-    //create_dir_all(&out_dir).unwrap();
-    //remove_schemas(&out_dir).unwrap();
-    //export_schema(&schema_for!(rewards_factory::InitMsg), &out_dir);
-    //export_schema(&schema_for!(rewards_factory::HandleMsg), &out_dir);
-    //export_schema(&schema_for!(rewards_factory::QueryMsg), &out_dir);
-    //export_schema(&schema_for!(rewards_factory::QueryMsgResponse), &out_dir);
-
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");
     out_dir.push("amm");
@@ -105,54 +85,3 @@ fn main() {
     export_schema(&schema_for!(rewards_benchmark::Query), &out_dir);
     export_schema(&schema_for!(rewards_benchmark::Response), &out_dir);
 }
-//fn main() {
-    ////let mut out_dir = current_dir().unwrap();
-    ////out_dir.push("schema");
-    ////create_dir_all(&out_dir).unwrap();
-    ////remove_schemas(&out_dir).unwrap();
-
-    ////export_schema(&schema_for!(InitMsg), &out_dir);
-    ////export_schema(&schema_for!(HandleMsg), &out_dir);
-    ////export_schema(&schema_for!(QueryMsg), &out_dir);
-    ////export_schema(&schema_for!(State), &out_dir);
-    ////export_schema(&schema_for!(CountResponse), &out_dir);
-//}
-
-//fn main() {
-    //let mut out_dir = current_dir().unwrap();
-    //out_dir.push("schema");
-    //create_dir_all(&out_dir).unwrap();
-    //remove_schemas(&out_dir).unwrap();
-
-    //export_schema(&schema_for!(InitMsg), &out_dir);
-    //export_schema(&schema_for!(HandleMsg), &out_dir);
-    //export_schema(&schema_for!(HandleAnswer), &out_dir);
-    //export_schema(&schema_for!(QueryMsg), &out_dir);
-    //export_schema(&schema_for!(QueryAnswer), &out_dir);
-//}
-
-//fn main() {
-    //// let mut out_dir = current_dir().unwrap();
-    //// out_dir.push("schema");
-    //// create_dir_all(&out_dir).unwrap();
-    //// remove_schemas(&out_dir).unwrap();
-    ////
-    //// export_schema(&schema_for!(InitMsg), &out_dir);
-    //// export_schema(&schema_for!(HandleMsg), &out_dir);
-    //// export_schema(&schema_for!(QueryMsg), &out_dir);
-    //// export_schema(&schema_for!(State), &out_dir);
-    //// export_schema(&schema_for!(CountResponse), &out_dir);
-//}
-
-//fn main() {
-    //let mut out_dir = current_dir().unwrap();
-    //out_dir.push("schema");
-    //create_dir_all(&out_dir).unwrap();
-    //remove_schemas(&out_dir).unwrap();
-
-    //export_schema(&schema_for!(InitMsg), &out_dir);
-    //export_schema(&schema_for!(HandleMsg), &out_dir);
-    //export_schema(&schema_for!(QueryMsg), &out_dir);
-    //export_schema(&schema_for!(State), &out_dir);
-    //export_schema(&schema_for!(CountResponse), &out_dir);
-//}
