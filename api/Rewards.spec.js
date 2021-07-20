@@ -4,9 +4,9 @@ import { gas }                from '@fadroma/scrt-agent/gas.js'
 import { bignum, taskmaster } from '@fadroma/utilities'
 import { abs }                from '../ops/lib/index.js'
 import SNIP20                 from './SNIP20.js'
-import Reward       from './Reward.js'
+import Rewards       from './Rewards.js'
 
-describe("RewardsBenchmark", () => {
+describe("Rewards", () => {
 
   const fees = { upload: gas(10000000)
                , init:   gas(10000000)

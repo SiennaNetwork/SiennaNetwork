@@ -4,6 +4,7 @@ import IDOContract from './IDO.js'
 import MGMTContract from './MGMT.js'
 import RPTContract from './RPT.js'
 import SNIP20Contract from './SNIP20.js'
+import RewardsContract from './Rewards.js'
 
 export {
   AMMContract,
@@ -11,5 +12,6 @@ export {
   IDOContract,
   MGMTContract,
   RPTContract,
-  SNIP20Contract
+  SNIP20Contract,
+  RewardsContract
 }
