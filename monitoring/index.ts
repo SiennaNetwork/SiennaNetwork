@@ -1,5 +1,6 @@
 import './style.css'
 import Gruvbox from './gruvbox'
+import * as RewardsBenchmark from '../contracts/rewards-benchmark/pkg/rewards-benchmark_bg.wasm'
 
 // root of time ------------------------------------------------------------------------------------
 let T = 0

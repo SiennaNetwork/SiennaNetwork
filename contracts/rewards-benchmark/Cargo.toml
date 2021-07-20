@@ -29,6 +29,7 @@ fadroma  = { path = "../../libraries/fadroma-21.07/core", features = [
 ] }
 composable-auth = { path = "../../libraries/fadroma-21.07/scrt-auth/composable-auth" }
 composable-admin = { path = "../../libraries/fadroma-21.07/scrt-admin/composable-admin", default-features = false }
+wasm-bindgen = "0.2"
 
 [dev-dependencies]
 fadroma = { path = "../../libraries/fadroma-21.07/core", features = [
