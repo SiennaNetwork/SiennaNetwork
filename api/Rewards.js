@@ -10,7 +10,7 @@ export const schema = loadSchemas(import.meta.url, {
 const decoder = new TextDecoder();
 const decode  = (buffer) => decoder.decode(buffer).trim();
 
-export default class RewardsBenchmarkContract extends SecretNetworkContractWithSchema {
+export default class RewardsContract extends SecretNetworkContractWithSchema {
   constructor(options = {}) { super(options, schema) }
 
   setProvidedToken = (address, code_hash, agent = this.agent) =>

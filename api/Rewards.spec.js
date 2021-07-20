@@ -4,7 +4,7 @@ import { gas }                from '@fadroma/scrt-agent/gas.js'
 import { bignum, taskmaster } from '@fadroma/utilities'
 import { abs }                from '../ops/lib/index.js'
 import SNIP20                 from './SNIP20.js'
-import RewardsBenchmark       from './RewardsBenchmark.js'
+import Reward       from './Reward.js'
 
 describe("RewardsBenchmark", () => {
 
