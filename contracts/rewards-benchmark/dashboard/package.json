@@ -13,6 +13,6 @@
   },
   "scripts": {
     "start": "webpack serve",
-    "build-wasm": "cd ../contracts/rewards-benchmark && wasm-pack build --target web --out-name rewards-benchmark"
+    "wasm": "cd .. && wasm-pack build --dev --target web --out-name rewards-benchmark -- --features browser"
   }
 }

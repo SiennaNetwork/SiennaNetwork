@@ -628,6 +628,9 @@ dependencies = [
 [[package]]
 name = "fadroma-scrt-contract"
 version = "0.1.0"
+dependencies = [
+ "wasm-bindgen",
+]
 
 [[package]]
 name = "fadroma-scrt-harness"
@@ -1702,14 +1705,11 @@ dependencies = [
 name = "sienna-rewards-benchmark"
 version = "1.0.0"
 dependencies = [
- "composable-admin",
- "composable-auth",
  "fadroma 21.7.0",
  "kukumba 1.0.1",
  "schemars",
  "serde",
  "serde_json",
- "wasm-bindgen",
 ]
 
 [[package]]
