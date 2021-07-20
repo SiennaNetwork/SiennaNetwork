@@ -1,6 +1,6 @@
 import './style.css'
 import Gruvbox from './gruvbox'
-import * as RewardsBenchmark from './rewards-benchmark/sienna_rewards_benchmark_bg.wasm'
+import * as RewardsBenchmark from './web/sienna_rewards_benchmark_bg.wasm'
 ;((RewardsBenchmark as unknown as Function)()).then(console.info)
 //console.log(RewardsBenchmark())
 //console.log(new RewardsBenchmark())
