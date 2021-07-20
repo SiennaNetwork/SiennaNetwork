@@ -49,7 +49,7 @@ interface FactoryGetConfigResponse {
     config: FactoryConfig
 }
 
-function create_coin(amount: Uint128): Coin {
+export function create_coin(amount: Uint128): Coin {
     return {
         denom: 'uscrt',
         amount

@@ -1,4 +1,4 @@
-import { ContractInstantiationInfo } from './amm-lib/types.js'
+import { ContractInstantiationInfo, Address } from './amm-lib/types.js'
 import { create_fee } from './amm-lib/contract.js'
 import { IJsonFileWriter } from './utils/json_file_writer.js'
 
@@ -7,7 +7,7 @@ import {
     pubkeyToAddress, EnigmaUtils
 } from 'secretjs'
 
-import { Random } from "@iov/crypto"
+import { Random, Bip39 } from "@iov/crypto"
 
 import { resolve } from 'path'
 import { readFileSync } from 'fs'
@@ -93,4 +93,14 @@ export function read_config(
 
         throw e
     }
+}
+
+export async function create_account(): Promise<Address> {
+    const key_pair = EnigmaUtils.GenerateNewKeyPair()
+    const mnemonic = Bip39.encode(key_pair.privkey).toString()
+    const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
+
+    const pubkey = encodeSecp256k1Pubkey(pen.pubkey)
+
+    return pubkeyToAddress(pubkey, 'secret')
 }

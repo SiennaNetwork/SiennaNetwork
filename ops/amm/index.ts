@@ -11,9 +11,10 @@ import {
   execute_test, execute_test_expect, assert_objects_equal, assert,
   assert_equal, assert_not_equal, extract_log_value, print_object
 } from './utils/test_helpers.js'
-import { upload_amm, build_client, UploadResult, create_rand_base64 } from './setup.js'
+import { upload_amm, build_client, create_rand_base64 } from './setup.js'
 import { NullJsonFileWriter } from './utils/json_file_writer.js'
 import { TxAnalytics } from './utils/tx_analytics.js'
+import { APIURL, ACC, instantiate_factory, get_exchange_settings } from './localnet.js'
 import { SigningCosmWasmClient, Account } from 'secretjs'
 import { Sha256, Random } from "@iov/crypto"
 import { Buffer } from 'buffer'
@@ -21,17 +22,6 @@ import { table } from 'table';
 
 import.meta.url
 
-interface LocalAccount {
-  name: string,
-  type: string,
-  address: string,
-  pubkey: string,
-  mnemonic: string
-}
-
-const APIURL = 'http://localhost:1337'
-
-const ACC: LocalAccount[] = JSON.parse(process.argv[2])
 const ACC_A = ACC[0]
 const ACC_B = ACC[1]
 const ACC_C = ACC[2]
@@ -502,28 +492,6 @@ function create_viewing_key(): ViewingKey {
   return Buffer.from(key).toString('base64')
 }
 
-async function instantiate_factory(client: SigningCosmWasmClient, result: UploadResult): Promise<FactoryContract> {
-  const factory_init_msg = {
-    snip20_contract: result.snip20,
-    lp_token_contract: result.lp_token,
-    pair_contract: result.exchange,
-    ido_contract: result.ido,
-    exchange_settings: get_exchange_settings(),
-    prng_seed: create_rand_base64()
-  }
-
-  const factory_instance = await client.instantiate(
-    result.factory.id,
-    factory_init_msg,
-    'SIENNA AMM FACTORY',
-    undefined,
-    undefined,
-    create_fee('200000')
-  )
-
-  return new FactoryContract(factory_instance.contractAddress, client)
-}
-
 async function instantiate_sienna_token(client: SigningCosmWasmClient, snip20: ContractInstantiationInfo): Promise<ContractInfo> {
   const init_msg = {
     name: 'sienna',
@@ -558,20 +526,6 @@ async function display_analytics() {
   gas.forEach(x => gas_table.push([ x.name, x.gas_wanted, x.gas_used ]))
 
   console.log(`\n Gas Usage:\n${table(gas_table)}`)
-}
-
-function get_exchange_settings(): ExchangeSettings {
-  return {
-    swap_fee: {
-      nom: 28,
-      denom: 1000
-    },
-    sienna_fee: {
-        nom: 2,
-        denom: 10000
-    },
-    sienna_burner: undefined
-  }
 }
 
 run_tests().catch(console.log)
