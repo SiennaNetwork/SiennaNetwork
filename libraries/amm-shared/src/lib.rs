@@ -7,11 +7,11 @@ pub use token_pair::*;
 pub use token_pair_amount::*;
 pub use token_type::*;
 pub use token_type_amount::*;
+pub mod exchange;
 
 pub mod msg;
 
 mod display;
-mod exchange;
 mod token_pair;
 mod token_pair_amount;
 mod token_type;

@@ -1,79 +1,91 @@
 pub use amm_shared::{
-    Exchange, ExchangeSettings, Fee,
-    TokenPair, TokenType,
-    Pagination,
-    msg::factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse},
+    exchange::{Exchange, ExchangeSettings, Fee},
     fadroma::scrt::{
-        cosmwasm_std::{
-            StdResult, StdError, Extern, Storage, Api, Querier,
-            Env, Binary, to_binary, HandleResponse, from_binary, HumanAddr,
-            testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage}
-        },
         addr::Canonize,
         callback::ContractInstantiationInfo,
-        storage::{load, save}
-    }
+        cosmwasm_std::{
+            from_binary,
+            testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage},
+            to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr, Querier, StdError,
+            StdResult, Storage,
+        },
+        storage::{load, save},
+    },
+    msg::factory::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
+    Pagination, TokenPair, TokenType,
 };
 
 pub use crate::{contract::*, state::*};
 
 impl Into<InitMsg> for &Config<HumanAddr> {
-    fn into (self) -> InitMsg {
+    fn into(self) -> InitMsg {
         InitMsg {
-            snip20_contract:   self.snip20_contract.clone(),
+            snip20_contract: self.snip20_contract.clone(),
             lp_token_contract: self.lp_token_contract.clone(),
-            pair_contract:     self.pair_contract.clone(),
-            ido_contract:      self.ido_contract.clone(),
+            pair_contract: self.pair_contract.clone(),
+            ido_contract: self.ido_contract.clone(),
             exchange_settings: self.exchange_settings.clone(),
             admin: None,
-            prng_seed: to_binary(&"prng").unwrap()
+            prng_seed: to_binary(&"prng").unwrap(),
         }
     }
 }
 impl Into<HandleMsg> for &Config<HumanAddr> {
-    fn into (self) -> HandleMsg {
+    fn into(self) -> HandleMsg {
         HandleMsg::SetConfig {
-            snip20_contract:   Some(self.snip20_contract.clone()),
+            snip20_contract: Some(self.snip20_contract.clone()),
             lp_token_contract: Some(self.lp_token_contract.clone()),
-            pair_contract:     Some(self.pair_contract.clone()),
-            ido_contract:      Some(self.ido_contract.clone()),
-            exchange_settings: Some(self.exchange_settings.clone())
+            pair_contract: Some(self.pair_contract.clone()),
+            ido_contract: Some(self.ido_contract.clone()),
+            exchange_settings: Some(self.exchange_settings.clone()),
         }
     }
 }
 impl Into<QueryResponse> for &Config<HumanAddr> {
-    fn into (self) -> QueryResponse {
+    fn into(self) -> QueryResponse {
         QueryResponse::Config {
-            snip20_contract:   self.snip20_contract.clone(),
+            snip20_contract: self.snip20_contract.clone(),
             lp_token_contract: self.lp_token_contract.clone(),
-            pair_contract:     self.pair_contract.clone(),
-            ido_contract:      self.ido_contract.clone(),
-            exchange_settings: self.exchange_settings.clone()
+            pair_contract: self.pair_contract.clone(),
+            ido_contract: self.ido_contract.clone(),
+            exchange_settings: self.exchange_settings.clone(),
         }
     }
 }
 
-fn mkenv (sender: impl Into<HumanAddr>) -> Env {
+fn mkenv(sender: impl Into<HumanAddr>) -> Env {
     mock_env(sender, &[])
 }
 
-fn mkdeps () -> Extern<impl Storage, impl Api, impl Querier> {
+fn mkdeps() -> Extern<impl Storage, impl Api, impl Querier> {
     mock_dependencies(30, &[])
 }
 
-fn mkconfig (id: u64) -> Config<HumanAddr> {
+fn mkconfig(id: u64) -> Config<HumanAddr> {
     Config::from_init_msg(InitMsg {
-        snip20_contract:   ContractInstantiationInfo { id, code_hash: "snip20".into() },
-        lp_token_contract: ContractInstantiationInfo { id, code_hash: "lptoken".into(), },
-        pair_contract:     ContractInstantiationInfo { id, code_hash: "2341586789".into(), },
-        ido_contract:      ContractInstantiationInfo { id,  code_hash: "348534835".into(), },
+        snip20_contract: ContractInstantiationInfo {
+            id,
+            code_hash: "snip20".into(),
+        },
+        lp_token_contract: ContractInstantiationInfo {
+            id,
+            code_hash: "lptoken".into(),
+        },
+        pair_contract: ContractInstantiationInfo {
+            id,
+            code_hash: "2341586789".into(),
+        },
+        ido_contract: ContractInstantiationInfo {
+            id,
+            code_hash: "348534835".into(),
+        },
         exchange_settings: ExchangeSettings {
             swap_fee: Fee::new(28, 10000),
             sienna_fee: Fee::new(2, 10000),
-            sienna_burner: None
+            sienna_burner: None,
         },
         admin: None,
-        prng_seed: to_binary(&"prng").unwrap()
+        prng_seed: to_binary(&"prng").unwrap(),
     })
 }
 
@@ -89,19 +101,23 @@ fn pagination(start: u64, limit: u8) -> Pagination {
 mod test_contract {
     use super::*;
 
-    #[test] fn ok_init () -> StdResult<()> {
+    #[test]
+    fn ok_init() -> StdResult<()> {
         let ref mut deps = mkdeps();
         let env = mkenv("admin");
         let config = mkconfig(0);
-        
         assert!(init(deps, env, (&config).into()).is_ok());
         assert_eq!(config, load_config(deps)?);
-        assert_eq!(load_prng_seed(&deps.storage).unwrap(), to_binary("prng").unwrap());
+        assert_eq!(
+            load_prng_seed(&deps.storage).unwrap(),
+            to_binary("prng").unwrap()
+        );
 
         Ok(())
     }
 
-    #[test] fn ok_get_set_config () -> StdResult<()> {
+    #[test]
+    fn ok_get_set_config() -> StdResult<()> {
         let ref mut deps = mkdeps();
         let config1 = mkconfig(1);
         let env = mkenv("admin");
@@ -119,7 +135,8 @@ mod test_contract {
         Ok(())
     }
 
-    #[test] fn no_unauthorized_set_config () -> StdResult<()> {
+    #[test]
+    fn no_unauthorized_set_config() -> StdResult<()> {
         let ref mut deps = mkdeps();
         let config1 = mkconfig(1);
         let env = mkenv("admin");
@@ -135,17 +152,18 @@ mod test_contract {
         Ok(())
     }
 
-    #[test] fn create_exchange_for_the_same_tokens_returns_error() -> StdResult<()> {
+    #[test]
+    fn create_exchange_for_the_same_tokens_returns_error() -> StdResult<()> {
         let ref mut deps = mkdeps();
 
-        let pair = TokenPair (
+        let pair = TokenPair(
             TokenType::CustomToken {
                 contract_addr: HumanAddr("token_addr".into()),
-                token_code_hash: "13123adasd".into()
+                token_code_hash: "13123adasd".into(),
             },
             TokenType::CustomToken {
                 contract_addr: HumanAddr("token_addr".into()),
-                token_code_hash: "13123adasd".into()
+                token_code_hash: "13123adasd".into(),
             },
         );
 
@@ -161,17 +179,17 @@ mod test_contract {
                     false
                 }
             }
-            _ => false
+            _ => false,
         };
 
         assert!(result);
 
-        let pair = TokenPair (
+        let pair = TokenPair(
             TokenType::NativeToken {
-                denom: "test1".into()
+                denom: "test1".into(),
             },
             TokenType::NativeToken {
-                denom: "test1".into()
+                denom: "test1".into(),
             },
         );
 
@@ -187,159 +205,152 @@ mod test_contract {
                     false
                 }
             }
-            _ => false
+            _ => false,
         };
 
         assert!(result);
 
-        Ok(())
-    }
-
-    #[test] fn test_register_exchange() -> StdResult<()> {
-        let ref mut deps = mkdeps();
-
-        let pair = TokenPair (
-            TokenType::CustomToken {
-                contract_addr: HumanAddr("token_addr".into()),
-                token_code_hash: "13123adasd".into()
-            },
-            TokenType::NativeToken {
-                denom: "test1".into()
-            },
-        );
-
-        let sender_addr = HumanAddr("sender1111".into());
-
-        let result = handle(
-            deps,
-            mkenv(sender_addr.clone()),
-            HandleMsg::RegisterExchange {
-                pair: pair.clone(),
-                signature: to_binary("whatever")?
-            }
-        );
-
-        assert_unauthorized(result);
-
-        let config = mkconfig(0);
-        save_config(deps, &config)?;
-
-        let env = mkenv(sender_addr.clone());
-
-        let signature = create_signature(&env)?;
-        save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
-
-        handle(
-            deps,
-            env,
-            HandleMsg::RegisterExchange {
-                pair: pair.clone(),
-                signature
-            }
-        )?;
-
-        //Ensure that the ephemeral storage is empty after the message
-        let result: Option<Binary> = load(&deps.storage, EPHEMERAL_STORAGE_KEY)?;
-        
-        match result {
-            None => { },
-            _ => panic!("Ephemeral storage should be empty!")
-        }
-
-        Ok(())
-    }
-
-    #[test] fn test_register_ido() -> StdResult<()> {
-        let ref mut deps = mkdeps();
-
-        let sender_addr = HumanAddr("sender1111".into());
-
-        let result = handle(
-            deps,
-            mkenv(sender_addr.clone()),
-            HandleMsg::RegisterIdo {
-                signature: to_binary("whatever")?
-            }
-        );
-
-        assert_unauthorized(result);
-
-        let config = mkconfig(0);
-        save_config(deps, &config)?;
-
-        let env = mkenv(sender_addr.clone());
-
-        let signature = create_signature(&env)?;
-        save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
-
-        handle(
-            deps,
-            env,
-            HandleMsg::RegisterIdo {
-                signature
-            }
-        )?;
-        //Ensure that the ephemeral storage is empty after the message
-        let result: Option<Binary> = load(&deps.storage, EPHEMERAL_STORAGE_KEY)?;
-        
-        match result {
-            None => { },
-            _ => panic!("Ephemeral storage should be empty!")
-        }
-
-        Ok(())
-    }
-
-    #[test] fn query_exchange() -> StdResult<()> {
-        let ref mut deps = mkdeps();
-
-        let pair = TokenPair (
-            TokenType::CustomToken {
-                contract_addr: HumanAddr("token_addr".into()),
-                token_code_hash: "13123adasd".into()
-            },
-            TokenType::NativeToken {
-                denom: "test1".into()
-            },
-        );
-
-        let config = mkconfig(0);
-        save_config(deps, &config)?;
-
-        let sender_addr = HumanAddr("sender1111".into());
-        let env = mkenv(sender_addr.clone());
-
-        let signature = create_signature(&env)?;
-        save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
-
-        handle(
-            deps,
-            env,
-            HandleMsg::RegisterExchange {
-                pair: pair.clone(),
-                signature
-            }
-        ).unwrap();
-        
-        let result = query(
-            deps,
-            QueryMsg::GetExchangeAddress {
-                pair: pair.clone()
-            }
-        )?;
-
-        let response: QueryResponse = from_binary(&result)?;
-
-        match response {
-            QueryResponse::GetExchangeAddress { address } => assert_eq!(sender_addr, address),
-            _ => return Err(StdError::generic_err("Wrong response. Expected: QueryResponse::GetExchangeAddress."))
-        };
-        
         Ok(())
     }
 
     #[test]
-    fn test_add_exchanges()  {
+    fn test_register_exchange() -> StdResult<()> {
+        let ref mut deps = mkdeps();
+
+        let pair = TokenPair(
+            TokenType::CustomToken {
+                contract_addr: HumanAddr("token_addr".into()),
+                token_code_hash: "13123adasd".into(),
+            },
+            TokenType::NativeToken {
+                denom: "test1".into(),
+            },
+        );
+
+        let sender_addr = HumanAddr("sender1111".into());
+
+        let result = handle(
+            deps,
+            mkenv(sender_addr.clone()),
+            HandleMsg::RegisterExchange {
+                pair: pair.clone(),
+                signature: to_binary("whatever")?,
+            },
+        );
+
+        assert_unauthorized(result);
+
+        let config = mkconfig(0);
+        save_config(deps, &config)?;
+
+        let env = mkenv(sender_addr.clone());
+
+        let signature = create_signature(&env)?;
+        save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
+
+        handle(
+            deps,
+            env,
+            HandleMsg::RegisterExchange {
+                pair: pair.clone(),
+                signature,
+            },
+        )?;
+
+        //Ensure that the ephemeral storage is empty after the message
+        let result: Option<Binary> = load(&deps.storage, EPHEMERAL_STORAGE_KEY)?;
+        match result {
+            None => {}
+            _ => panic!("Ephemeral storage should be empty!"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_register_ido() -> StdResult<()> {
+        let ref mut deps = mkdeps();
+
+        let sender_addr = HumanAddr("sender1111".into());
+
+        let result = handle(
+            deps,
+            mkenv(sender_addr.clone()),
+            HandleMsg::RegisterIdo {
+                signature: to_binary("whatever")?,
+            },
+        );
+
+        assert_unauthorized(result);
+
+        let config = mkconfig(0);
+        save_config(deps, &config)?;
+
+        let env = mkenv(sender_addr.clone());
+
+        let signature = create_signature(&env)?;
+        save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
+
+        handle(deps, env, HandleMsg::RegisterIdo { signature })?;
+        //Ensure that the ephemeral storage is empty after the message
+        let result: Option<Binary> = load(&deps.storage, EPHEMERAL_STORAGE_KEY)?;
+        match result {
+            None => {}
+            _ => panic!("Ephemeral storage should be empty!"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn query_exchange() -> StdResult<()> {
+        let ref mut deps = mkdeps();
+
+        let pair = TokenPair(
+            TokenType::CustomToken {
+                contract_addr: HumanAddr("token_addr".into()),
+                token_code_hash: "13123adasd".into(),
+            },
+            TokenType::NativeToken {
+                denom: "test1".into(),
+            },
+        );
+
+        let config = mkconfig(0);
+        save_config(deps, &config)?;
+
+        let sender_addr = HumanAddr("sender1111".into());
+        let env = mkenv(sender_addr.clone());
+
+        let signature = create_signature(&env)?;
+        save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
+
+        handle(
+            deps,
+            env,
+            HandleMsg::RegisterExchange {
+                pair: pair.clone(),
+                signature,
+            },
+        )
+        .unwrap();
+
+        let result = query(deps, QueryMsg::GetExchangeAddress { pair: pair.clone() })?;
+        let response: QueryResponse = from_binary(&result)?;
+
+        match response {
+            QueryResponse::GetExchangeAddress { address } => assert_eq!(sender_addr, address),
+            _ => {
+                return Err(StdError::generic_err(
+                    "Wrong response. Expected: QueryResponse::GetExchangeAddress.",
+                ))
+            }
+        };
+        Ok(())
+    }
+
+    #[test]
+    fn test_add_exchanges() {
         let ref mut deps = mkdeps();
         let env = mkenv("admin");
         let config = mkconfig(0);
@@ -351,41 +362,54 @@ mod test_contract {
         for i in 0..5 {
             exchanges.push(Exchange {
                 pair: TokenPair::<HumanAddr>(
-                    TokenType::CustomToken{
+                    TokenType::CustomToken {
                         contract_addr: format!("token_0_addr_{}", i).into(),
-                        token_code_hash: format!("token_0_hash_{}", i)
+                        token_code_hash: format!("token_0_hash_{}", i),
                     },
-                    TokenType::CustomToken{
+                    TokenType::CustomToken {
                         contract_addr: format!("token_1_addr_{}", i).into(),
-                        token_code_hash: format!("token_1_hash_{}", i)
-                    }
+                        token_code_hash: format!("token_1_hash_{}", i),
+                    },
                 ),
-                address: format!("pair_addr_{}", i).into()
+                address: format!("pair_addr_{}", i).into(),
             });
         }
 
         store_exchange(deps, exchanges[0].clone()).unwrap();
 
-        let result = handle(deps, mkenv("unauthorized"), HandleMsg::AddExchanges {
-            exchanges: exchanges.clone()[1..].into()
-        });
+        let result = handle(
+            deps,
+            mkenv("unauthorized"),
+            HandleMsg::AddExchanges {
+                exchanges: exchanges.clone()[1..].into(),
+            },
+        );
         assert_unauthorized(result);
 
-        handle(deps, env, HandleMsg::AddExchanges {
-            exchanges: exchanges.clone()[1..].into()
-        }).unwrap();
+        handle(
+            deps,
+            env,
+            HandleMsg::AddExchanges {
+                exchanges: exchanges.clone()[1..].into(),
+            },
+        )
+        .unwrap();
 
-        let result = query(deps, QueryMsg::ListExchanges {
-            pagination: pagination(0, PAGINATION_LIMIT)
-        }).unwrap();
+        let result = query(
+            deps,
+            QueryMsg::ListExchanges {
+                pagination: pagination(0, PAGINATION_LIMIT),
+            },
+        )
+        .unwrap();
 
         let response: QueryResponse = from_binary(&result).unwrap();
 
         match response {
             QueryResponse::ListExchanges { exchanges: stored } => {
                 assert_eq!(exchanges, stored)
-            },
-            _ => panic!("QueryResponse::ListExchanges")
+            }
+            _ => panic!("QueryResponse::ListExchanges"),
         }
     }
 
@@ -405,26 +429,39 @@ mod test_contract {
 
         store_ido_address(deps, &idos[0]).unwrap();
 
-        let result = handle(deps, mkenv("unauthorized"), HandleMsg::AddIdos {
-            idos: idos.clone()[1..].into()
-        });
+        let result = handle(
+            deps,
+            mkenv("unauthorized"),
+            HandleMsg::AddIdos {
+                idos: idos.clone()[1..].into(),
+            },
+        );
         assert_unauthorized(result);
 
-        handle(deps, env, HandleMsg::AddIdos {
-            idos: idos.clone()[1..].into()
-        }).unwrap();
+        handle(
+            deps,
+            env,
+            HandleMsg::AddIdos {
+                idos: idos.clone()[1..].into(),
+            },
+        )
+        .unwrap();
 
-        let result = query(deps, QueryMsg::ListIdos {
-            pagination: pagination(0, PAGINATION_LIMIT)
-        }).unwrap();
+        let result = query(
+            deps,
+            QueryMsg::ListIdos {
+                pagination: pagination(0, PAGINATION_LIMIT),
+            },
+        )
+        .unwrap();
 
         let response: QueryResponse = from_binary(&result).unwrap();
 
         match response {
             QueryResponse::ListIdos { idos: stored } => {
                 assert_eq!(idos, stored)
-            },
-            _ => panic!("QueryResponse::ListIdos")
+            }
+            _ => panic!("QueryResponse::ListIdos"),
         }
     }
 }
@@ -432,7 +469,7 @@ mod test_contract {
 mod test_state {
     use super::*;
 
-    fn swap_pair<A: Clone> (pair: &TokenPair<A>) -> TokenPair<A> {
+    fn swap_pair<A: Clone>(pair: &TokenPair<A>) -> TokenPair<A> {
         TokenPair(pair.1.clone(), pair.0.clone())
     }
 
@@ -469,7 +506,7 @@ mod test_state {
     fn generates_the_same_key_for_swapped_pairs() -> StdResult<()> {
         fn cmp_pair<S: Storage, A: Api, Q: Querier>(
             deps: &Extern<S, A, Q>,
-            pair: TokenPair<HumanAddr>
+            pair: TokenPair<HumanAddr>,
         ) -> StdResult<()> {
             let stored_pair = pair.canonize(&deps.api)?;
             let key = generate_pair_key(&stored_pair);
@@ -491,38 +528,38 @@ mod test_state {
             TokenPair(
                 TokenType::CustomToken {
                     contract_addr: HumanAddr("first_addr".into()),
-                    token_code_hash: "13123adasd".into()
+                    token_code_hash: "13123adasd".into(),
                 },
                 TokenType::CustomToken {
                     contract_addr: HumanAddr("scnd_addr".into()),
-                    token_code_hash: "4534qwerqqw".into()
-                }
-            )
+                    token_code_hash: "4534qwerqqw".into(),
+                },
+            ),
         )?;
 
         cmp_pair(
             deps,
             TokenPair(
                 TokenType::NativeToken {
-                    denom: "test1".into()
+                    denom: "test1".into(),
                 },
                 TokenType::NativeToken {
-                    denom: "test2".into()
+                    denom: "test2".into(),
                 },
-            )
+            ),
         )?;
 
         cmp_pair(
             deps,
             TokenPair(
                 TokenType::NativeToken {
-                    denom: "test3".into()
+                    denom: "test3".into(),
                 },
                 TokenType::CustomToken {
                     contract_addr: HumanAddr("third_addr".into()),
-                    token_code_hash: "asd21312asd".into()
-                }
-            )
+                    token_code_hash: "asd21312asd".into(),
+                },
+            ),
         )?;
 
         Ok(())
@@ -532,23 +569,26 @@ mod test_state {
     fn query_correct_exchange_info() -> StdResult<()> {
         let mut deps = mkdeps();
 
-        let pair = TokenPair (
+        let pair = TokenPair(
             TokenType::CustomToken {
                 contract_addr: HumanAddr("first_addr".into()),
-                token_code_hash: "13123adasd".into()
+                token_code_hash: "13123adasd".into(),
             },
             TokenType::CustomToken {
                 contract_addr: HumanAddr("scnd_addr".into()),
-                token_code_hash: "4534qwerqqw".into()
-            }
+                token_code_hash: "4534qwerqqw".into(),
+            },
         );
 
         let address = HumanAddr("ctrct_addr".into());
 
-        store_exchange(&mut deps, Exchange {
-            pair: pair.clone(),
-            address: address.clone()
-        })?;
+        store_exchange(
+            &mut deps,
+            Exchange {
+                pair: pair.clone(),
+                address: address.clone(),
+            },
+        )?;
 
         let retrieved_address = get_address_for_pair(&deps, &pair)?;
 
@@ -561,30 +601,36 @@ mod test_state {
     #[test]
     fn only_one_exchange_per_factory() -> StdResult<()> {
         let ref mut deps = mkdeps();
-        let pair = TokenPair (
+        let pair = TokenPair(
             TokenType::CustomToken {
                 contract_addr: HumanAddr("first_addr".into()),
-                token_code_hash: "13123adasd".into()
+                token_code_hash: "13123adasd".into(),
             },
             TokenType::CustomToken {
                 contract_addr: HumanAddr("scnd_addr".into()),
-                token_code_hash: "4534qwerqqw".into()
-            }
+                token_code_hash: "4534qwerqqw".into(),
+            },
         );
 
-        store_exchange(deps, Exchange {
-            pair: pair.clone(),
-            address: "first_addr".into()
-        })?;
+        store_exchange(
+            deps,
+            Exchange {
+                pair: pair.clone(),
+                address: "first_addr".into(),
+            },
+        )?;
 
         let swapped = swap_pair(&pair);
 
-        match store_exchange(deps, Exchange{
-            pair: swapped,
-            address: "other_addr".into()
-        }) {
+        match store_exchange(
+            deps,
+            Exchange {
+                pair: swapped,
+                address: "other_addr".into(),
+            },
+        ) {
             Ok(_) => Err(StdError::generic_err("Exchange already exists")),
-            Err(_) => Ok(())
+            Err(_) => Ok(()),
         }
     }
 
@@ -625,21 +671,18 @@ mod test_state {
         let mut exchanges = vec![];
 
         for i in 0..33 {
-            let pair = TokenPair (
+            let pair = TokenPair(
                 TokenType::CustomToken {
                     contract_addr: HumanAddr(format!("addr_{}", i)),
-                    token_code_hash: format!("code_hash_{}", i)
+                    token_code_hash: format!("code_hash_{}", i),
                 },
                 TokenType::NativeToken {
-                    denom: format!("denom_{}", i)
+                    denom: format!("denom_{}", i),
                 },
             );
             let address = HumanAddr(format!("address_{}", i));
 
-            let exchange = Exchange {
-                pair,
-                address
-            };
+            let exchange = Exchange { pair, address };
 
             store_exchange(deps, exchange.clone())?;
             exchanges.push(exchange);
