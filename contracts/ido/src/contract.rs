@@ -58,6 +58,21 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     save_admin(deps, &msg.admin)?;
 
     let start_time = msg.info.start_time.unwrap_or(env.block.time);
+    let end_time = msg.info.end_time;
+
+    if start_time >= end_time {
+        return Err(StdError::generic_err(format!(
+            "End time of the sale has to be after {}.",
+            start_time
+        )));
+    }
+
+    if end_time <= env.block.time {
+        return Err(StdError::generic_err(
+            "End time of the sale must be any time after now.",
+        ));
+    }
+
     let taken_seats = msg.info.whitelist.len() as u32;
 
     for address in msg.info.whitelist {
@@ -374,6 +389,7 @@ mod tests {
 
     use crate::querier::MockQuerier;
 
+    const BLOCK_TIME: u64 = 1_571_797_419;
     const RATE: Uint128 = Uint128(1_u128);
     const MIN_ALLOCATION: Uint128 = Uint128(100_u128);
     const MAX_ALLOCATION: Uint128 = Uint128(500_u128);
@@ -402,6 +418,9 @@ mod tests {
             code_hash: "".to_string(),
         });
 
+        let start_time = start_time.unwrap_or(BLOCK_TIME);
+        let end_time = end_time.unwrap_or(start_time + 60);
+
         InitMsg {
             info: TokenSaleConfig {
                 input_token: TokenType::NativeToken {
@@ -418,7 +437,7 @@ mod tests {
                 max_seats: 5,
                 max_allocation: MAX_ALLOCATION,
                 min_allocation: MIN_ALLOCATION,
-                start_time,
+                start_time: Some(start_time),
                 end_time,
                 prng_seed: None,
                 entropy: None,
@@ -471,6 +490,24 @@ mod tests {
     #[test]
     fn test_init_contract() {
         init_contract(None, None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_init_contract_same_start_and_end() {
+        let start_time = BLOCK_TIME + 1;
+        let end_time = start_time;
+
+        init_contract(Some(start_time), Some(end_time));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_init_contract_end_before_block_time() {
+        let start_time = BLOCK_TIME - 200;
+        let end_time = BLOCK_TIME - 100;
+
+        init_contract(Some(start_time), Some(end_time));
     }
 
     #[test]
@@ -566,7 +603,6 @@ mod tests {
 
     #[test]
     fn buyer_attempt_swap_before_sale_start_gets_error() {
-        let block_time = 1_571_797_419;
         let start_time = 1_571_797_500;
         let (mut deps, _) = init_contract(Some(start_time), None);
         let env = mock_env("buyer-1", &[Coin::new(250_000_000_u128, "uscrt")]);
@@ -583,18 +619,19 @@ mod tests {
             res,
             Err(StdError::generic_err(format!(
                 "Sale hasn\'t started yet, come back in {} seconds",
-                start_time - block_time
+                start_time - BLOCK_TIME
             )))
         )
     }
 
     #[test]
     fn buyer_attempt_swap_after_sale_end_gets_error() {
-        let _block_time = 1_571_797_419;
-        let start_time = 1_571_797_300;
-        let end_time = 1_571_797_400;
+        let start_time = BLOCK_TIME;
+        let end_time = BLOCK_TIME + 100;
         let (mut deps, _) = init_contract(Some(start_time), Some(end_time));
-        let env = mock_env("buyer-1", &[Coin::new(250_000_000_u128, "uscrt")]);
+        let mut env = mock_env("buyer-1", &[Coin::new(250_000_000_u128, "uscrt")]);
+
+        env.block.time = env.block.time + 200;
 
         let res = handle(
             &mut deps,
@@ -609,7 +646,6 @@ mod tests {
 
     #[test]
     fn admin_attempt_refund_before_sale_end_gets_error() {
-        let block_time = 1_571_797_419;
         let start_time = 1_571_797_300;
         let end_time = 1_571_797_500;
         let (mut deps, env) = init_contract(Some(start_time), Some(end_time));
@@ -620,33 +656,18 @@ mod tests {
             res,
             Err(StdError::generic_err(format!(
                 "Sale hasn\'t finished yet, come back in {} seconds",
-                end_time - block_time
+                end_time - BLOCK_TIME
             )))
         );
     }
 
     #[test]
-    fn admin_attempt_refund_on_sale_with_no_end_gets_error() {
-        let _block_time = 1_571_797_419;
-        let start_time = 1_571_797_300;
-        let (mut deps, env) = init_contract(Some(start_time), None);
-
-        let res = handle(&mut deps, env, HandleMsg::AdminRefund);
-
-        assert_eq!(
-            res,
-            Err(StdError::generic_err(
-                "Cannot refund, sale is still active and will last until all the funds are swapped"
-            ))
-        );
-    }
-
-    #[test]
     fn admin_performs_refund_after_sale_end() {
-        let _block_time = 1_571_797_419;
-        let start_time = 1_571_797_300;
-        let end_time = 1_571_797_400;
-        let (mut deps, env) = init_contract(Some(start_time), Some(end_time));
+        let start_time = BLOCK_TIME;
+        let end_time = BLOCK_TIME + 1;
+        let (mut deps, mut env) = init_contract(Some(start_time), Some(end_time));
+
+        env.block.time = env.block.time + 60;
 
         let res = handle(&mut deps, env.clone(), HandleMsg::AdminRefund).unwrap();
         let refunded_amount = &res.log[1].value;

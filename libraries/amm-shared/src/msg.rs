@@ -248,7 +248,7 @@ pub mod ido {
         /// Time when the sale will start (if None, it will start immediately)
         pub start_time: Option<u64>,
         /// Time when the sale will end
-        pub end_time: Option<u64>,
+        pub end_time: u64,
         /// Seed for creating viewkey
         pub prng_seed: Option<Binary>,
         /// Entropy for creating viewkey

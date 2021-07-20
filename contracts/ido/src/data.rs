@@ -30,7 +30,7 @@ pub(crate) struct Config<A> {
     /// Time when the sale will start (if None, it will start immediately)
     pub start_time: u64,
     /// Time when the sale will end
-    pub end_time: Option<u64>,
+    pub end_time: u64,
     /// Viewkey for sold token
     pub viewing_key: ViewingKey,
 }
@@ -65,11 +65,7 @@ impl<A> Config<A> {
 
     /// Check if the contract has ended
     pub fn has_ended(&self, time: u64) -> bool {
-        if let Some(end) = self.end_time {
-            time >= end
-        } else {
-            false
-        }
+        time >= self.end_time
     }
 
     /// Check if tokens can be swaped
@@ -90,19 +86,13 @@ impl<A> Config<A> {
 
     /// Check if the contract can be refunded
     pub fn is_refundable(&self, time: u64) -> StdResult<()> {
-        if let Some(end) = self.end_time {
-            if time <= end {
-                Err(StdError::generic_err(format!(
-                    "Sale hasn't finished yet, come back in {} seconds",
-                    end - time
-                )))
-            } else {
-                Ok(())
-            }
+        if time <= self.end_time {
+            Err(StdError::generic_err(format!(
+                "Sale hasn't finished yet, come back in {} seconds",
+                self.end_time - time
+            )))
         } else {
-            Err(StdError::generic_err(
-                "Cannot refund, sale is still active and will last until all the funds are swapped",
-            ))
+            Ok(())
         }
     }
 }
