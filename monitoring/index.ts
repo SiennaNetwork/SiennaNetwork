@@ -4,41 +4,43 @@ import Gruvbox from './gruvbox'
 // root of time ------------------------------------------------------------------------------------
 let T = 0
 
+// source of integer randomness --------------------------------------------------------------------
+const random = (max: number) => Math.floor(Math.random()*max)
+const pickRandom = (x: any) => x[random(x.length)]
+
 // optimization toggles ----------------------------------------------------------------------------
-//
-/* reset user age on claim, effectively implementing a cooldown
- * equal to the threshold period */
-const RESET_AGE = true
-
-/* additional cooldown after claiming*/
-const COOLDOWN = false
-
-const numberOfAccounts = 100
-const initialUserBalance = 1000
+const NO_TABLE        = true
+const RESET_AGE       = true
+const COOLDOWN        = 0
+const FUND_INTERVAL   = 240
+const THRESHOLD       = 240
+const MAX_USERS       = 1000
+const MAX_INITIAL     = 100
+const UPDATE_INTERVAL = 1
 
 // log of all modeled events -----------------------------------------------------------------------
-export class History {
+class History {
   root    = h('div', { className: 'history' })
   now       = addTo(this.root, h('h1'))
   balance   = addTo(this.root, h('h1'))
-  remaining = addTo(this.root, h('h1'))
+  remaining = addTo(this.root, h('h2'))
   body      = addTo(this.root, h('ol'))
-  add (event: string, name: string, amount: number|undefined) {
-    if (amount) {
-      this.body.insertBefore(
-        h('div', { innerHTML: `<b>${name}</b> ${event} ${amount}LP` }),
-        this.body.firstChild) }
-    else {
-      this.body.insertBefore(
-        h('div', { innerHTML: `<b>${name}</b> ${event}` }),
-        this.body.firstChild) } } }
+  add (event: string, name: string, amount: number|undefined) {} }
+    //if (amount) {
+      //this.body.insertBefore(
+        //h('div', { innerHTML: `<b>${name}</b> ${event} ${amount}LP` }),
+        //this.body.firstChild) }
+    //else {
+      //this.body.insertBefore(
+        //h('div', { innerHTML: `<b>${name}</b> ${event}` }),
+        //this.body.firstChild) } } }
 const log = new History()
 
 // the rewards contract and its participants -------------------------------------------------------
 class Pool {
 
   // in reward token
-  interval    = 24
+  interval    = FUND_INTERVAL
   portion     = 2500
   remaining   = 120
   balance     = this.portion
@@ -50,14 +52,14 @@ class Pool {
 
   update () {
     log.now.textContent = `T=${T}`
-    log.balance.textContent = `reward budget: ${this.balance}`
+    log.balance.textContent = `reward budget: ${this.balance.toFixed(3)}`
+    log.remaining.textContent = `${this.remaining} days remaining`
     this.lifetime += this.locked
     if (T % this.interval == 0) {
-      console.log('fund', this.portion, this.remaining)
+      console.info('fund', this.portion, this.remaining)
       if (this.remaining > 0) {
         this.balance += this.portion
         this.remaining -= 1
-        log.remaining.textContent = `${this.remaining} days remaining`
       }
     }
   }}
@@ -84,18 +86,19 @@ class User {
     pool.locked += amount
     log.add('locks', this.name, amount)
     current.add(this)
-    lifetime.add(this)
-    earned.add(this) }
-  unlock (amount: number) {
+    stacked.add(this) }
+    //lifetime.add(this)
+    //earned.add(this) }
+  retrieve (amount: number) {
     if (this.locked < amount) return
     this.last_update = T
     this.locked -= amount
-    log.add('unlocks', this.name, amount)
+    log.add('retrieves', this.name, amount)
     if (this.locked === 0) current.remove(this) }
   claim () {
     if (this.locked === 0)
       return
-    if (this.age < threshold)
+    if (this.age < THRESHOLD)
       return
     if (this.claimed > this.earned) {
       log.add('crowded out A', this.name, undefined)
@@ -107,32 +110,33 @@ class User {
     log.add('claim', this.name, reward)
     this.claimed = this.earned
     pool.balance -= reward
-    claimed.add(this)
+    //claimed.add(this)
     if (RESET_AGE) this.age = 0 }
   update () { // WARNING assumes elapsed=1 !
     this.lifetime += this.locked
     if (this.locked > 0) this.age++
     this.earned = pool.balance * this.lifetime / pool.lifetime
     this.claimable = this.earned - this.claimed
+    if (NO_TABLE) return
     table.rows[this.name].last_update.textContent = String(this.last_update)
     table.rows[this.name].locked.textContent      = String(this.locked)
     table.rows[this.name].lifetime.textContent    = String(this.lifetime)
     table.rows[this.name].age.textContent         = String(this.age)
-    table.rows[this.name].earned.textContent      = String(this.earned)
-    table.rows[this.name].claimed.textContent     = String(this.claimed)
-    table.rows[this.name].claimable.textContent   = String(this.claimable)
+    table.rows[this.name].earned.textContent      = this.earned.toFixed(3)
+    table.rows[this.name].claimed.textContent     = this.claimed.toFixed(3)
+    table.rows[this.name].claimable.textContent   = this.claimable.toFixed(3)
     const [fill, stroke] = this.colors()
-    table.rows[this.name].claimable.style.color = stroke
-  }
+    table.rows[this.name].claimable.style.backgroundColor = fill
+    table.rows[this.name].claimable.style.color           = stroke }
   colors () {
     switch (true) {
       case this.claimable > pool.balance:
         return [Gruvbox.fadedRed,    Gruvbox.brightRed]
       case this.claimed > this.earned:
         return [Gruvbox.fadedOrange, Gruvbox.brightOrange]
-      case this.age == threshold:
+      case this.age == THRESHOLD:
         return [Gruvbox.brightAqua,  Gruvbox.brightAqua]
-      case this.age >  threshold:
+      case this.age >  THRESHOLD:
         return [Gruvbox.fadedAqua,   Gruvbox.brightAqua]
       default:
         return [Gruvbox.dark0,       Gruvbox.light0] } } }
@@ -141,9 +145,9 @@ type Users  = Record<string, User>
 
 const users: Users = {}
 
-for (let i = 0; i < numberOfAccounts; i++) {
+for (let i = 0; i < MAX_USERS; i++) {
   const name    = `User${i}`
-  const balance = Math.floor(Math.random()*initialUserBalance)
+  const balance = Math.floor(Math.random()*MAX_INITIAL)
   users[name]   = new User(name, balance) }
 
 // table of current state
@@ -157,11 +161,12 @@ interface Columns {
   claimed:     HTMLElement
   claimable:   HTMLElement }
 type Rows = Record<string, Columns>
-export class Table {
+class Table {
   root: HTMLElement;
   rows: Rows = {};
   constructor () {
     this.root = document.createElement('table')
+    if (NO_TABLE) return
     addTo(this.root, h('thead', {},
       h('th', { textContent: 'name'        }),
       h('th', { textContent: 'last_update' }),
@@ -174,6 +179,7 @@ export class Table {
     for (const name of Object.keys(users)) {
       this.addRow(name) } }
   addRow (name: string) {
+    if (NO_TABLE) return
     const row = addTo(this.root, h('tr'))
     const rows = this.rows[name] = {
       name:        addTo(row, h('td', { style: 'font-weight:bold', textContent: name })),
@@ -191,12 +197,11 @@ const table = new Table()
 
 // pie chart (TODO replace with streamgraph, difficulty might be multiple colors in same stream) ---
 type Values = Record<string, number>
-export class PieChart {
+class PieChart {
   root:   HTMLElement;
   title:  HTMLElement;
   label:  HTMLElement;
   canvas: HTMLCanvasElement;
-  list:   HTMLElement;
 
   users: Users = {};
   total: number = 0;
@@ -207,8 +212,7 @@ export class PieChart {
     this.root   = h('div', { className: `pie ${field}` })
     this.title  = addTo(this.root, h('h1', { textContent: name }))
     this.label  = addTo(this.root, h('h2'))
-    this.canvas = addTo(this.root, h('canvas', { width: 1, height: 1 })) as HTMLCanvasElement
-    this.list   = addTo(this.root, h('ol')) }
+    this.canvas = addTo(this.root, h('canvas', { width: 1, height: 1 })) as HTMLCanvasElement }
 
   add (user: User) {
     this.users[user.name] = user }
@@ -231,7 +235,7 @@ export class PieChart {
       if (value) {
         total += value
         values[user.name] = value } }
-    this.label.textContent = String(total)
+    this.label.textContent = total.toFixed(3)
     if (total === 0) return
 
     // prepare canvas
@@ -259,44 +263,94 @@ export class PieChart {
         context.arc(centerX, centerY, radius, start * Math.PI, end * Math.PI)
         const [fillStyle, strokeStyle] = users[name].colors()
         context.fillStyle = fillStyle
-        context.strokeStyle = strokeStyle
+        context.strokeStyle = fillStyle//strokeStyle
         context.fill()
         context.stroke()
         start = end } } } }
 
-const current   = new PieChart('Current',  'locked')
-const lifetime  = new PieChart('Lifetime', 'lifetime')
-const earned    = new PieChart('Earned',   'earned')
-const claimed   = new PieChart('Claimed',  'claimed')
+class StackedPieChart {
+  root:   HTMLElement;
+  //title:  HTMLElement;
+  //label:  HTMLElement;
+  canvas: HTMLCanvasElement;
 
-// pool globals
-const threshold    = 240
+  users: Users = {};
+  add (user: User) {
+    this.users[user.name] = user }
+  remove (user: User) {
+    delete this.users[user.name] }
+
+  constructor () {
+    this.root   = h('div', { className: `pie stacked` })
+    //this.title  = addTo(this.root, h('h1', { textContent: name }))
+    //this.label  = addTo(this.root, h('h2'))
+    this.canvas = addTo(this.root, h('canvas', { width: 1, height: 1 })) as HTMLCanvasElement }
+
+  resize () {
+    this.canvas.width = this.canvas.height = 1
+    const size = Math.min(this.root.offsetWidth, this.root.offsetHeight)
+    this.canvas.width = this.canvas.height = size
+    this.render() }
+
+  render () {
+    // extract needed datum from user list
+    // and sum the total
+    let total: number = 0
+    for (const user of Object.values(this.users)) {
+      total += user.lifetime }
+    if (total === 0) return
+
+    // prepare canvas
+    const {width, height} = this.canvas
+    const context = this.canvas.getContext('2d') as CanvasRenderingContext2D;
+
+    // clear
+    context.fillStyle = '#282828'
+    context.fillRect(1, 1, width-2, height-2)
+
+    // define center
+    const centerX = width  / 2
+    const centerY = height / 2
+    const radius  = centerX * 0.95
+
+    // loop over segments
+    let start = 0
+    for (const name of Object.keys(this.users).sort()) {
+      const user = this.users[name]
+      if (user.lifetime === 0) continue
+      const portion = user.lifetime / total
+      const end     = start + (2*portion)
+      context.beginPath()
+      context.moveTo(centerX, centerY)
+      context.arc(centerX, centerY, radius, start * Math.PI, end * Math.PI)
+      const [fillStyle, strokeStyle] = users[name].colors()
+      context.fillStyle = fillStyle
+      context.strokeStyle = fillStyle//strokeStyle
+      context.fill()
+      context.stroke()
+      start = end } } }
+
+const current = new PieChart('Current amounts locked',  'locked')
+const stacked = new StackedPieChart()
+//const lifetime  = new PieChart('Lifetime', 'lifetime')
+//const earned    = new PieChart('Earned',   'earned')
+//const claimed   = new PieChart('Claimed',  'claimed')
 
 ;(function start () {
-
   // add components
   for (const el of [ current
-                   , lifetime
-                   , earned
-                   , claimed
+                   , stacked
+                   //, lifetime
+                   //, earned
+                   //, claimed
                    , log
                    , table /*,sparkline*/]) {
     addTo(document.body, el.root) }
-
-  // one of these actions will be picked each turn
-  const actions = {
-    lock (user: User, amount: number) {
-      user.lock(amount) },
-    unlock (user: User, amount: number) {
-      user.unlock(amount) },
-    claim  (user: User) {
-      user.claim() } }
 
   resize()
   window.addEventListener('resize', throttle(100, resize))
 
   update()
-
   function update () {
     // advance time
     T++
@@ -304,30 +358,42 @@ const threshold    = 240
     // periodically fund pool and increment its lifetime
     pool.update()
 
-    // increment lifetimes and ages
-    for (const user of Object.values(users)) user.update()
+    // increment lifetimes and ages; collect eligible claimants
+    const eligible: Array<User> = []
+    for (const user of Object.values(users)) {
+      user.update()
+      if (user.claimable > 0) eligible.push(user)
+    }
 
-    // perform random action from random account for random amount
-    const action = Object.values(actions)[Math.floor(Math.random()*3)]
-    const name   = Object.keys(users)[Math.floor(Math.random()*Object.keys(users).length)]
-    const user   = users[name]
-    const amount = Math.floor(Math.random()*user.balance)
-    action(user, amount)
+    // perform random lock/retrieve from random account for random amount
+    const user   = pickRandom(Object.values(users))//Object.keys(users)[Math.floor(Math.random()*Object.keys(users).length)]
+    const action = pickRandom([(amount:number)=>user.lock(amount)
+                              ,(amount:number)=>user.retrieve(amount)])//Object.values(actions)[random(actions.length)]
+    action(random(user.balance))
+
+    // perform random claim
+    if (eligible.length > 0) {
+      const claimant = pickRandom(eligible)
+      claimant.claim()
+    }
 
     // update charts
     for (const chart of [current
-                        ,lifetime
-                        ,earned
-                        ,claimed]) { chart.render() }
+                        ,stacked
+                        //,lifetime
+                        //,earned
+                        //,claimed
+                        ]) { chart.render() }
 
     // rinse and repeat
-    setTimeout(update, 100) }
-
+    setTimeout(update, UPDATE_INTERVAL) }
   function resize () {
     current.resize()
-    lifetime.resize()
-    earned.resize()
-    claimed.resize() } })()
+    stacked.resize()
+    //lifetime.resize()
+    //earned.resize()
+    //claimed.resize()
+  } })()
 
 // helpers
 function throttle (t: number, fn: Function) {

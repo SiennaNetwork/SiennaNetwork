@@ -10,16 +10,16 @@ use fadroma::scrt::{
     callback::{ContractInstance as ContractLink},
     contract::*,
     snip20_api::ISnip20,
-    utils::viewing_key::ViewingKey,
-};
-use composable_auth::{
-    auth_handle, authenticate, AuthHandleMsg,
-    DefaultHandleImpl as AuthHandle
-};
-use composable_admin::admin::{
-    DefaultHandleImpl as AdminHandle,
-    admin_handle, AdminHandleMsg, load_admin,
-    assert_admin, save_admin
+    vk::{
+        ViewingKey,
+        auth_handle, authenticate, AuthHandleMsg,
+        DefaultHandleImpl as AuthHandle
+    },
+    admin::{
+        DefaultHandleImpl as AdminHandle,
+        admin_handle, AdminHandleMsg, load_admin,
+        assert_admin, save_admin
+    }
 };
 
 macro_rules! tx_ok { ($($msg:expr),*) => {
