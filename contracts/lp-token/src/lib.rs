@@ -1,16 +1,15 @@
-use cosmwasm_std::{
-    to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
+use std::ops::RangeInclusive;
+use amm_shared::fadroma::scrt::cosmwasm_std::{
+    Api, Binary, Env, Extern, HandleResponse,
+    HumanAddr, InitResponse, Querier,
     StdError, StdResult, Storage, Uint128,
 };
-use std::ops::RangeInclusive;
 
 use amm_shared::snip20_impl as composable_snip20;
 
-use composable_snip20::msg::{HandleAnswer, HandleMsg, InitMsg, QueryMsg, ResponseStatus};
-use composable_snip20::state::{Balances, Config};
-use composable_snip20::transaction_history::store_burn;
+use composable_snip20::msg::{HandleMsg, InitMsg, QueryMsg};
 use composable_snip20::{
-    check_if_admin, snip20_handle, snip20_init, snip20_query, Snip20, SymbolValidation,
+    snip20_handle, snip20_init, snip20_query, Snip20, SymbolValidation,
 };
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
@@ -55,68 +54,19 @@ impl Snip20 for LpTokenImpl {
 
     fn burn_from<S: Storage, A: Api, Q: Querier>(
         &self,
-        deps: &mut Extern<S, A, Q>,
-        env: Env,
-        owner: HumanAddr,
-        amount: Uint128,
-        memo: Option<String>,
+        _deps: &mut Extern<S, A, Q>,
+        _env: Env,
+        _owner: HumanAddr,
+        _amount: Uint128,
+        _memo: Option<String>,
     ) -> StdResult<HandleResponse> {
-        let mut config = Config::from_storage(&mut deps.storage);
-
-        check_if_admin(&config, &env.message.sender)?;
-
-        let symbol = config.constants()?.symbol;
-        let raw_amount = amount.u128();
-
-        // remove from supply
-        let mut total_supply = config.total_supply();
-        if let Some(new_total_supply) = total_supply.checked_sub(raw_amount) {
-            total_supply = new_total_supply;
-        } else {
-            return Err(StdError::generic_err(
-                "You're trying to burn more than is available in the total supply",
-            ));
-        }
-
-        config.set_total_supply(total_supply);
-        // subtract from owner account
-        let owner = deps.api.canonical_address(&owner)?;
-
-        let mut balances = Balances::from_storage(&mut deps.storage);
-        let mut account_balance = balances.balance(&owner);
-        if let Some(new_balance) = account_balance.checked_sub(raw_amount) {
-            account_balance = new_balance;
-        } else {
-            return Err(StdError::generic_err(format!(
-                "insufficient funds to burn: balance={}, required={}",
-                account_balance, raw_amount
-            )));
-        }
-
-        balances.set_account_balance(&owner, account_balance);
-        store_burn(
-            &mut deps.storage,
-            &owner,
-            &deps.api.canonical_address(&env.message.sender)?,
-            amount,
-            symbol,
-            memo,
-            &env.block,
-        )?;
-        let res = HandleResponse {
-            messages: vec![],
-            log: vec![],
-            data: Some(to_binary(&HandleAnswer::BurnFrom {
-                status: ResponseStatus::Success,
-            })?),
-        };
-        Ok(res)
+        Err(StdError::generic_err("This method has been disabled."))
     }
 }
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
-    use cosmwasm_std::{
+    use amm_shared::fadroma::scrt::cosmwasm_std::{
         do_handle, do_init, do_query, ExternalApi, ExternalQuerier, ExternalStorage,
     };
 

@@ -26,5 +26,5 @@ sienna-migrate   = { path = "../../libraries/migrate" }
 snafu            = { version = "0.6.3", features = ["backtraces"] }
 
 [dev-dependencies]
-kukumba = { path = "../../libraries/kukumba" }
+kukumba = { git = "https://github.com/hackbg/kukumba", branch = "21.04" }
 snip20-sienna = { path = "../snip20-sienna" }

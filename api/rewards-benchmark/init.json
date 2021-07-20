@@ -7,6 +7,16 @@
     "viewing_key"
   ],
   "properties": {
+    "admin": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "lp_token": {
       "anyOf": [
         {
@@ -17,8 +27,32 @@
         }
       ]
     },
+    "ratio": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": [
+        {
+          "$ref": "#/definitions/Uint128"
+        },
+        {
+          "$ref": "#/definitions/Uint128"
+        }
+      ],
+      "maxItems": 2,
+      "minItems": 2
+    },
     "reward_token": {
       "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+    },
+    "threshold": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0.0
     },
     "viewing_key": {
       "$ref": "#/definitions/ViewingKey"
@@ -42,6 +76,9 @@
       }
     },
     "HumanAddr": {
+      "type": "string"
+    },
+    "Uint128": {
       "type": "string"
     },
     "ViewingKey": {

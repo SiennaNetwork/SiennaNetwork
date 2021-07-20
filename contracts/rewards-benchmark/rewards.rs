@@ -1,149 +1,158 @@
+#[cfg(test)] #[macro_use] extern crate kukumba;
+#[cfg(test)] mod rewards_harness;
+#[cfg(test)] mod rewards_test;
+
+pub mod rewards_math; use rewards_math::*;
+mod rewards_algo;     use rewards_algo::*;
+mod rewards_config;   use rewards_config::*;
+
 use fadroma::scrt::{
-    BLOCK_SIZE,
+    callback::{ContractInstance as ContractLink},
     contract::*,
-    addr::{Humanize, Canonize},
-    callback::ContractInstance,
-    toolkit::snip20,
+    snip20_api::ISnip20,
     utils::viewing_key::ViewingKey,
-    storage::{load, save},
-    cosmwasm_std::ReadonlyStorage
 };
-use sienna_reward_schedule::stateful::{
-    RewardPoolController as Pool,
-    RewardPoolCalculations,
-    Monotonic,
-    Ratio
+use composable_auth::{
+    auth_handle, authenticate, AuthHandleMsg,
+    DefaultHandleImpl as AuthHandle
 };
-use composable_auth::{auth_handle, authenticate, AuthHandleMsg, DefaultHandleImpl};
+use composable_admin::admin::{
+    DefaultHandleImpl as AdminHandle,
+    admin_handle, AdminHandleMsg, load_admin,
+    assert_admin, save_admin
+};
 
-macro_rules! tx_ok {
-    ($($msg:expr),*) => { Ok(HandleResponse { messages: vec![$($msg),*], log: vec![], data: None }) }
-}
+macro_rules! tx_ok { ($($msg:expr),*) => {
+    Ok(HandleResponse { messages: vec![$($msg),*], log: vec![], data: None })
+} }
 
-macro_rules! error {
-    ($info:expr) => { Err(StdError::GenericErr { msg: $info.into(), backtrace: None }) }
-}
+pub const DAY: Time = 17280; // blocks over ~24h @ 5s/block
 
 contract! {
 
     [NoGlobalState] {}
 
     [Init] (deps, env, msg: {
-        lp_token:     Option<ContractInstance<HumanAddr>>,
-        reward_token: ContractInstance<HumanAddr>,
+        admin:        Option<HumanAddr>,
+        lp_token:     Option<ContractLink<HumanAddr>>,
+        reward_token: ContractLink<HumanAddr>,
         viewing_key:  ViewingKey,
         ratio:        Option<Ratio>,
-        threshold:    Option<Monotonic>
+        threshold:    Option<Time>
     }) {
-        // TODO proposed action against the triple generic:
-        // scrt-contract automatically aliases `storage`, `api`,
-        // and `querier` (also maybe the contents of `env`?)
-        // so that it becomes less verbose to pass just the ones you use
-        // (...that, or let's just give contracts a `self` already?)
-
-        // configure admin
-        set_admin(&mut deps.storage, &deps.api, &env, &env.message.sender)?;
-
-        // save self reference - used to check own balance
-
-        // to check reward token balance:
-        // save references to self and the reward token
-        // and set ourselves a viewing key so we know how much we're dividing
-        save_self_reference(&mut deps.storage, &deps.api, &ContractInstance {
-            address: env.contract.address,
-            code_hash: env.contract_code_hash
-        })?;
+        // Contract has an admin who can do admin stuff.
+        save_admin(deps, &admin.unwrap_or(env.message.sender))?;
+        // Contract accepts transactions in `lp_token`s.
+        // The address of the `lp_token` can be provided later
+        // to avoid a circular dependency during deployment.
+        if let Some(lp_token) = lp_token {
+            save_lp_token(&mut deps.storage, &deps.api, &lp_token)?; }
+        // Contract distributes rewards in Reward Tokens.
+        // For this, it must know its own balance in the `reward_token`s.
+        // For that, it needs a reference to its own address+code_hash
+        // and a viewing key in `reward_token`.
+        let set_vk = ISnip20::attach(&reward_token).set_viewing_key(&viewing_key.0)?;
         save_reward_token(&mut deps.storage, &deps.api, &reward_token)?;
         save_viewing_key(&mut deps.storage, &viewing_key)?;
-        let set_vk = snip20::set_viewing_key_msg(
-            viewing_key.0,
-            None, BLOCK_SIZE,
-            reward_token.code_hash, reward_token.address
-        )?;
-
-        // needed to start calculating rewards
-        // but can be provided later
-        if let Some(lp_token) = lp_token {
-            save_lp_token(&mut deps.storage, &deps.api, &lp_token)?;
-        }
-
-        // save address of reward token, reward ratio, and minimum age
+        save_self_reference(&mut deps.storage, &deps.api, &ContractLink {
+            address: env.contract.address,
+            code_hash: env.contract_code_hash })?;
+        // Reward pool has configurable parameters:
+        // - Ratio (to reduce everyone's rewards equally)
+        // - Threshold (to incentivize users to lock tokens for longer)
         Pool::new(&mut deps.storage)
-            .save_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
-            .save_threshold(&threshold.unwrap_or(17280u64))?; // ~24h @ 5s/block
-
+            .configure_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
+            .configure_threshold(&threshold.unwrap_or(DAY))?;
         // TODO remove global state from scrt-contract
         // define field! and addr_field! macros instead -
         // problem here is identifier concatenation
         // and making each field a module is ugly
         save_state!(NoGlobalState {});
-
         InitResponse { messages: vec![set_vk], log: vec![] }
     }
 
     [Query] (deps, _state, msg) -> Response {
 
+        /// Who is admin? TODO do we need this in prod?
+        Admin () {
+            Ok(Response::Admin { address: load_admin(&deps)? }) }
+
         /// Overall pool status
-        PoolInfo (now: Monotonic) {
-            let lp_token = load_lp_token(&deps.storage, &deps.api)?;
-            let (volume, total, since) = Pool::new(&deps.storage).pool_status(now)?;
+        PoolInfo (at: Time) {
+            let pool = Pool::new(&deps.storage).at(at);
+            let pool_last_update = pool.last_update()?;
+            if at < pool_last_update {
+                return Err(StdError::generic_err("this contract does not store history"))
+            }
             Ok(Response::PoolInfo {
-                lp_token,
-                volume,
-                total,
-                since,
-                now,
-            })
-        }
+                it_is_now: at,
+
+                lp_token: load_lp_token(&deps.storage, &deps.api)?,
+
+                pool_last_update,
+                pool_lifetime:    pool.lifetime()?,
+                pool_balance:     pool.locked()?
+
+                // todo add balance/claimed/total in rewards token
+            }) }
 
         /// Requires the user's viewing key.
-        UserInfo (now: Monotonic, address: HumanAddr, key: String) {
+        UserInfo (at: Time, address: HumanAddr, key: String) {
             let address = deps.api.canonical_address(&address)?;
+
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
-            let token = load_reward_token(&deps.storage, &deps.api)?;
-            let balance = snip20::balance_query(
-                &deps.querier,
-                load_self_reference(&deps.storage, &deps.api)?.address,
-                load_viewing_key(&deps.storage)?.0.clone(),
-                BLOCK_SIZE,
-                token.code_hash.clone(), token.address
-            )?.amount;
-            let (unlocked, claimed, claimable) = Pool::new(&deps.storage)
-                .user_reward(now, balance, &address)?;
+
+            let reward_token_link = load_reward_token(&deps.storage, &deps.api)?;
+            let reward_token      = ISnip20::attach(&reward_token_link);
+            let reward_balance    = reward_token.query(&deps.querier).balance(
+                &load_self_reference(&deps.storage, &deps.api)?.address,
+                &load_viewing_key(&deps.storage)?.0, )?;
+
+            let pool = Pool::new(&deps.storage).at(at).with_balance(reward_balance);
+            let pool_last_update = pool.last_update()?;
+            if at < pool_last_update {
+                return Err(StdError::generic_err("this contract does not store history"))
+            }
+            let pool_lifetime    = pool.lifetime()?;
+            let pool_balance     = pool.locked()?;
+
+            let user = pool.user(address);
+            let user_last_update = user.last_update()?;
+            if at < pool_last_update {
+                return Err(StdError::generic_err("this contract does not store history"))
+            }
+            let user_lifetime    = user.lifetime()?;
+            let user_balance     = user.locked()?;
+            let user_age         = user.age()?;
+
+            let (user_unlocked, user_claimed, user_claimable) = user.reward()?;
+
             Ok(Response::UserInfo {
-                age:      0,
-                volume:   Uint128::zero(),
-                lifetime: Uint128::zero(),
-                unlocked,
-                claimed,
-                claimable
-            })
-        }
+                it_is_now: at,
+                pool_last_update, pool_lifetime, pool_balance,
+                user_last_update, user_lifetime, user_balance,
+                user_age, user_unlocked, user_claimed, user_claimable
+            }) }
 
         /// Keplr integration
         TokenInfo () {
-            let token = load_lp_token(&deps.storage, &deps.api)?;
-            let info = snip20::token_info_query(
-                &deps.querier,
-                BLOCK_SIZE,
-                token.code_hash, token.address
-            )?;
+            let lp_token      = load_lp_token(&deps.storage, &deps.api)?;
+            let lp_token_info = ISnip20::attach(&lp_token).query(&deps.querier).token_info()?;
+            let lp_token_name = format!("Sienna Rewards: {}", lp_token_info.name);
             Ok(Response::TokenInfo {
-                name:         format!("Sienna Rewards: {}", info.name),
+                name:         lp_token_name,
                 symbol:       "SRW".into(),
                 decimals:     1,
                 total_supply: None
-            })
-        }
+            }) }
 
         /// Keplr integration
         Balance (address: HumanAddr, key: String) {
             let address = deps.api.canonical_address(&address)?;
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
             Ok(Response::Balance {
-                amount: Pool::new(&deps.storage).user_volume(&address)?
-            })
-        }
+                amount: Pool::new(&deps.storage).user(address).locked()?
+            }) }
 
     }
 
@@ -151,21 +160,35 @@ contract! {
 
         /// Response from `Query::PoolInfo`
         PoolInfo {
-            lp_token: ContractInstance<HumanAddr>,
-            volume:   Uint128,
-            total:    Uint128,
-            since:    Monotonic,
-            now:      Monotonic
+            lp_token: ContractLink<HumanAddr>,
+
+            it_is_now: Time,
+
+            pool_last_update: Time,
+            pool_lifetime:    Volume,
+            pool_balance:     Amount
         }
 
         /// Response from `Query::UserInfo`
         UserInfo {
-            age:       Monotonic,
-            volume:    Uint128,
-            lifetime:  Uint128,
-            unlocked:  Uint128,
-            claimed:   Uint128,
-            claimable: Uint128
+            it_is_now: Time,
+
+            pool_last_update: Time,
+            pool_lifetime:    Volume,
+            pool_balance:     Amount,
+
+            user_last_update: Time,
+            user_lifetime:    Volume,
+            user_balance:     Amount,
+
+            user_age:         Time,
+            user_unlocked:    Amount,
+            user_claimed:     Amount,
+            user_claimable:   Amount
+        }
+
+        Admin {
+            address: HumanAddr
         }
 
         /// Keplr integration
@@ -173,198 +196,79 @@ contract! {
             name:         String,
             symbol:       String,
             decimals:     u8,
-            total_supply: Option<Uint128>
+            total_supply: Option<Amount>
         }
 
         /// Keplr integration
         Balance {
-            amount: Uint128
+            amount: Amount
         }
 
     }
 
     [Handle] (deps, env /* it's not unused :( */, _state, msg) -> Response {
 
+        // Admin transactions
+
+        /// Set the contract admin.
+        ChangeAdmin (address: HumanAddr) {
+            let msg = AdminHandleMsg::ChangeAdmin { address };
+            admin_handle(deps, env, msg, AdminHandle) }
+
         /// Set the active asset token.
-        // Resolves circular reference in benchmark -
+        // Resolves circular reference when initializing the benchmark -
         // they need to know each other's addresses to use initial allowances
         SetProvidedToken (address: HumanAddr, code_hash: String) {
-            is_admin(&deps.storage, &deps.api, &env)?;
-            save_lp_token(&mut deps.storage, &deps.api, &ContractInstance { address, code_hash })?;
-            Ok(HandleResponse::default())
-        }
+            assert_admin(&deps, &env)?;
+            save_lp_token(&mut deps.storage, &deps.api, &ContractLink { address, code_hash })?;
+            Ok(HandleResponse::default()) }
 
-        /// Provide some liquidity.
-        Lock (amount: Uint128) {
-            let token    = load_lp_token(&deps.storage, &deps.api)?;
-            let transfer = snip20::transfer_from_msg(
-                env.message.sender.clone(),
-                env.contract.address,
-                Pool::new(&mut deps.storage).user_lock(
-                    env.block.height,
-                    deps.api.canonical_address(&env.message.sender)?,
-                    amount
-                )?,
-                None, BLOCK_SIZE, token.code_hash, token.address
-            )?;
-            tx_ok!(transfer)
-        }
-
-        /// Get some tokens back.
-        Retrieve (amount: Uint128) {
-            let token    = load_lp_token(&deps.storage, &deps.api)?;
-            let transfer = snip20::transfer_msg(
-                env.message.sender.clone(),
-                Pool::new(&mut deps.storage).user_retrieve(
-                    env.block.height,
-                    deps.api.canonical_address(&env.message.sender)?,
-                    amount
-                )?,
-                None, BLOCK_SIZE, token.code_hash, token.address
-            )?;
-            tx_ok!(transfer)
-        }
-
-        /// User can receive rewards after having provided liquidity.
-        Claim () {
-            let token = load_reward_token(&deps.storage, &deps.api)?;
-            let balance = snip20::balance_query(
-                &deps.querier, env.contract.address,
-                load_viewing_key(&deps.storage)?.0.clone(),
-                BLOCK_SIZE,
-                token.code_hash.clone(), token.address.clone()
-            )?.amount;
-            let claimable = Pool::new(&mut deps.storage).user_claim(
-                env.block.height,
-                balance,
-                &deps.api.canonical_address(&env.message.sender)?
-            )?;
-            tx_ok!(snip20::transfer_msg(
-                env.message.sender,
-                claimable,
-                None, BLOCK_SIZE, token.code_hash, token.address
-            )?)
-        }
+        // User transactions
 
         /// User can request a new viewing key for oneself.
         CreateViewingKey (entropy: String, padding: Option<String>) {
             let msg = AuthHandleMsg::CreateViewingKey { entropy, padding: None };
-            auth_handle(deps, env, msg, DefaultHandleImpl)
-        }
+            auth_handle(deps, env, msg, AuthHandle) }
 
         /// User can set own viewing key to a known value.
         SetViewingKey (key: String, padding: Option<String>) {
             let msg = AuthHandleMsg::SetViewingKey { key, padding: None };
-            auth_handle(deps, env, msg, DefaultHandleImpl)
-        }
+            auth_handle(deps, env, msg, AuthHandle) }
+
+        /// User can lock some liquidity provision tokens.
+        Lock (amount: Amount) {
+            tx_ok!(ISnip20::attach(&load_lp_token(&deps.storage, &deps.api)?).transfer_from(
+                &env.message.sender,
+                &env.contract.address,
+                Pool::new(&mut deps.storage)
+                    .at(env.block.height)
+                    .user(deps.api.canonical_address(&env.message.sender)?)
+                    .lock_tokens(amount)? )? ) }
+
+        /// User can always get their liquidity provision tokens back.
+        Retrieve (amount: Amount) {
+            tx_ok!(ISnip20::attach(&load_lp_token(&deps.storage, &deps.api)?).transfer(
+                &env.message.sender,
+                Pool::new(&mut deps.storage)
+                    .at(env.block.height)
+                    .user(deps.api.canonical_address(&env.message.sender)?)
+                    .retrieve_tokens(amount)? )?) }
+
+        /// User can receive rewards after having provided liquidity.
+        Claim () {
+            // TODO reset age on claim, so user can claim only once per reward period?
+            let reward_token_link = load_reward_token(&deps.storage, &deps.api)?;
+            let reward_token      = ISnip20::attach(&reward_token_link);
+            let reward_vk         = load_viewing_key(&deps.storage)?.0;
+            tx_ok!(reward_token.transfer(
+                &env.message.sender,
+                Pool::new(&mut deps.storage)
+                    .at(env.block.height)
+                    .with_balance(reward_token
+                        .query(&deps.querier)
+                        .balance(&env.contract.address, &reward_vk)?)
+                    .user(deps.api.canonical_address(&env.message.sender)?)
+                    .claim_reward()? )?) }
+
     }
-}
-
-const POOL_ADMIN: &[u8] = b"admin";
-
-fn is_admin (
-    storage: &impl ReadonlyStorage,
-    api: &impl Api,
-    env: &Env
-) -> StdResult<()> {
-    if load(storage, POOL_ADMIN)? == Some(api.canonical_address(&env.message.sender)?) {
-        Ok(())
-    } else {
-        Err(StdError::unauthorized())
-    }
-}
-
-fn set_admin (
-    storage: &mut impl Storage,
-    api: &impl Api,
-    env: &Env, new_admin: &HumanAddr
-) -> StdResult<()> {
-    let current_admin = load(storage, POOL_ADMIN)?;
-    if current_admin == None || current_admin == Some(api.canonical_address(&env.message.sender)?) {
-        save(storage, POOL_ADMIN, &api.canonical_address(new_admin)?)
-    } else {
-        Err(StdError::unauthorized())
-    }
-}
-
-const POOL_SELF_REFERENCE: &[u8] = b"self";
-
-fn load_self_reference(
-    storage: &impl ReadonlyStorage,
-    api:     &impl Api
-) -> StdResult<ContractInstance<HumanAddr>> {
-    let result: Option<ContractInstance<CanonicalAddr>> = load(storage, POOL_SELF_REFERENCE)?;
-    match result {
-        Some(link) => Ok(link.humanize(api)?),
-        None => error!("missing self reference")
-    }
-}
-
-fn save_self_reference (
-    storage: &mut impl Storage,
-    api:     &impl Api,
-    link:    &ContractInstance<HumanAddr>
-) -> StdResult<()> {
-    save(storage, POOL_SELF_REFERENCE, &link.canonize(api)?)
-}
-
-const POOL_LP_TOKEN: &[u8] = b"lp_token";
-
-fn load_lp_token (
-    storage: &impl ReadonlyStorage,
-    api:     &impl Api
-) -> StdResult<ContractInstance<HumanAddr>> {
-    let result: Option<ContractInstance<CanonicalAddr>> = load(storage, POOL_LP_TOKEN)?;
-    match result {
-        Some(link) => Ok(link.humanize(api)?),
-        None => error!("missing liquidity provision token")
-    }
-}
-
-fn save_lp_token (
-    storage: &mut impl Storage,
-    api:     &impl Api,
-    link:    &ContractInstance<HumanAddr>
-) -> StdResult<()> {
-    save(storage, POOL_LP_TOKEN, &link.canonize(api)?)
-}
-
-const POOL_REWARD_TOKEN: &[u8] = b"reward_token";
-
-fn load_reward_token (
-    storage: &impl ReadonlyStorage,
-    api:     &impl Api
-) -> StdResult<ContractInstance<HumanAddr>> {
-    let result: Option<ContractInstance<CanonicalAddr>> = load(storage, POOL_REWARD_TOKEN)?;
-    match result {
-        Some(link) => Ok(link.humanize(api)?),
-        None => error!("missing liquidity provision token")
-    }
-}
-
-fn save_reward_token (
-    storage: &mut impl Storage,
-    api:     &impl Api,
-    link:    &ContractInstance<HumanAddr>
-) -> StdResult<()> {
-    save(storage, POOL_REWARD_TOKEN, &link.canonize(api)?)
-}
-
-const POOL_REWARD_TOKEN_VK: &[u8] = b"reward_token_vk";
-
-fn load_viewing_key (
-    storage: &impl ReadonlyStorage,
-) -> StdResult<ViewingKey> {
-    let result: Option<ViewingKey> = load(storage, POOL_REWARD_TOKEN_VK)?;
-    match result {
-        Some(key) => Ok(key),
-        None => error!("missing reward token viewing key")
-    }
-}
-
-fn save_viewing_key (
-    storage: &mut impl Storage,
-    key:     &ViewingKey
-) -> StdResult<()> {
-    save(storage, POOL_REWARD_TOKEN_VK, &key)
 }

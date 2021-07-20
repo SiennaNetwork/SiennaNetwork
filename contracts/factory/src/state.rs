@@ -1,15 +1,22 @@
-use cosmwasm_std::{Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage};
-use amm_shared::fadroma::address::{Humanize, Canonize};
-use amm_shared::fadroma::callback::ContractInstantiationInfo;
-use amm_shared::fadroma::storage::{save, load};
-use serde::{Deserialize, Serialize};
 use amm_shared::{
     Exchange, ExchangeSettings, TokenPair, TokenType, Pagination,
-    msg::factory::InitMsg
+    fadroma::scrt::{
+        cosmwasm_std::{
+            Api, CanonicalAddr, Extern, HumanAddr,
+            Querier, StdError, StdResult, Storage,
+            Binary
+        },
+        addr::{Humanize, Canonize},
+        callback::ContractInstantiationInfo,
+        storage::{save, load}
+    },
+    msg::factory::InitMsg,
 };
+use serde::{Deserialize, Serialize};
 use std::usize;
 
 const CONFIG_KEY: &[u8] = b"config";
+const PRNG_KEY: &[u8] = b"prng_seed";
 const IDO_PREFIX: &[u8; 1] = b"I";
 const IDO_COUNT_KEY: &[u8] = b"ido_count";
 const EXCHANGES_KEY: &[u8] = b"exchanges";
@@ -22,8 +29,9 @@ pub(crate) struct Config<A> {
     pub lp_token_contract: ContractInstantiationInfo,
     pub pair_contract:     ContractInstantiationInfo,
     pub ido_contract:      ContractInstantiationInfo,
-    pub exchange_settings: ExchangeSettings<A>
+    pub exchange_settings: ExchangeSettings<A>,
 }
+
 impl Config<HumanAddr> {
     pub fn from_init_msg(msg: InitMsg) -> Self {
         Self {
@@ -72,6 +80,20 @@ pub(crate) fn load_config <S: Storage, A: Api, Q: Querier> (
 ) -> StdResult<Config<HumanAddr>> {
     let config: Option<Config<CanonicalAddr>> = load(&deps.storage, CONFIG_KEY)?;
     config.ok_or(StdError::generic_err("Config doesn't exist in storage."))?.humanize(&deps.api)
+}
+
+pub(crate) fn save_prng_seed(
+    storage: &mut impl Storage,
+    prng_seed: &Binary
+) -> StdResult<()> {
+    save(storage, PRNG_KEY, prng_seed)
+}
+
+pub(crate) fn load_prng_seed(
+    storage: &impl Storage
+) -> StdResult<Binary> {
+    let prng_seed: Option<Binary> = load(storage, PRNG_KEY)?;
+    prng_seed.ok_or(StdError::generic_err("Prng seed doesn't exist in storage."))
 }
 
 /// Returns StdResult<bool> indicating whether a pair has been created before or not.

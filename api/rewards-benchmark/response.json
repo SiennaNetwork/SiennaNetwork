@@ -3,34 +3,107 @@
   "title": "Response",
   "anyOf": [
     {
+      "description": "Response from `Query::PoolInfo`",
       "type": "object",
       "required": [
-        "status"
+        "pool_info"
       ],
       "properties": {
-        "status": {
+        "pool_info": {
           "type": "object",
           "required": [
-            "now",
-            "since",
-            "total",
-            "volume"
+            "it_is_now",
+            "lp_token",
+            "pool_balance",
+            "pool_last_update",
+            "pool_lifetime"
           ],
           "properties": {
-            "now": {
+            "it_is_now": {
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
             },
-            "since": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
+            "lp_token": {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
             },
-            "total": {
+            "pool_balance": {
               "$ref": "#/definitions/Uint128"
             },
-            "volume": {
+            "pool_last_update": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "pool_lifetime": {
+              "$ref": "#/definitions/Uint256"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Response from `Query::UserInfo`",
+      "type": "object",
+      "required": [
+        "user_info"
+      ],
+      "properties": {
+        "user_info": {
+          "type": "object",
+          "required": [
+            "it_is_now",
+            "pool_balance",
+            "pool_last_update",
+            "pool_lifetime",
+            "user_age",
+            "user_balance",
+            "user_claimable",
+            "user_claimed",
+            "user_last_update",
+            "user_lifetime",
+            "user_unlocked"
+          ],
+          "properties": {
+            "it_is_now": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "pool_balance": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "pool_last_update": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "pool_lifetime": {
+              "$ref": "#/definitions/Uint256"
+            },
+            "user_age": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "user_balance": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "user_claimable": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "user_claimed": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "user_last_update": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "user_lifetime": {
+              "$ref": "#/definitions/Uint256"
+            },
+            "user_unlocked": {
               "$ref": "#/definitions/Uint128"
             }
           }
@@ -38,6 +111,26 @@
       }
     },
     {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Keplr integration",
       "type": "object",
       "required": [
         "token_info"
@@ -77,29 +170,7 @@
       }
     },
     {
-      "type": "object",
-      "required": [
-        "pool"
-      ],
-      "properties": {
-        "pool": {
-          "type": "object",
-          "required": [
-            "lp_token",
-            "volume"
-          ],
-          "properties": {
-            "lp_token": {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
-            },
-            "volume": {
-              "$ref": "#/definitions/Uint128"
-            }
-          }
-        }
-      }
-    },
-    {
+      "description": "Keplr integration",
       "type": "object",
       "required": [
         "balance"
@@ -112,25 +183,6 @@
           ],
           "properties": {
             "amount": {
-              "$ref": "#/definitions/Uint128"
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "claimable"
-      ],
-      "properties": {
-        "claimable": {
-          "type": "object",
-          "required": [
-            "reward_amount"
-          ],
-          "properties": {
-            "reward_amount": {
               "$ref": "#/definitions/Uint128"
             }
           }
@@ -159,6 +211,9 @@
       "type": "string"
     },
     "Uint128": {
+      "type": "string"
+    },
+    "Uint256": {
       "type": "string"
     }
   }

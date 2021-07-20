@@ -1,11 +1,13 @@
-use amm_shared::TokenType;
-use fadroma::scrt::addr::{Canonize, Humanize};
-use fadroma::scrt::callback::ContractInstance;
-use fadroma::scrt::cosmwasm_std::{
-    Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
+use amm_shared::fadroma::scrt::{
+    addr::{Canonize, Humanize},
+    callback::ContractInstance,
+    cosmwasm_std::{
+        Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
+    },
+    storage::Storable,
+    utils::viewing_key::ViewingKey,
 };
-use fadroma::scrt::storage::Storable;
-use fadroma::scrt::utils::viewing_key::ViewingKey;
+use amm_shared::TokenType;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

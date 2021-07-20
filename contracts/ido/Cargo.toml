@@ -10,18 +10,8 @@ edition = "2018"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[features]
-default = []
-
 [dependencies]
-fadroma = { path = "../../libraries/fadroma-21.07/core", features = [
-    "scrt-addr",
-    "scrt-callback",
-    "scrt-contract",
-    "scrt-migrate",
-    "scrt-storage",
-] }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-serde-json-wasm = "*"
+
 amm-shared = { path = "../../libraries/amm-shared" }

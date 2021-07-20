@@ -1,23 +1,25 @@
 #![allow(dead_code)]
-#![allow(unused_imports)]
-use amm_shared::admin::admin::{
-    admin_handle, admin_query, assert_admin, save_admin, DefaultHandleImpl, DefaultQueryImpl,
-};
 use amm_shared::admin::require_admin;
-use amm_shared::msg::ido::{HandleMsg, InitMsg, QueryMsg, QueryResponse};
-use amm_shared::TokenType;
-use fadroma::scrt::addr::Canonize;
-use fadroma::scrt::callback::ContractInstance;
-use fadroma::scrt::cosmwasm_std::{
-    log, to_binary, Api, Binary, CanonicalAddr, CosmosMsg, Decimal, Env, Extern, HandleResponse,
-    HumanAddr, InitResponse, LogAttribute, Querier, QueryResult, StdError, StdResult, Storage,
-    Uint128, WasmMsg,
+use amm_shared::{
+    admin::admin::{
+        admin_handle, admin_query, assert_admin, save_admin, DefaultHandleImpl, DefaultQueryImpl,
+    },
+    fadroma::scrt::{
+        addr::Canonize,
+        callback::ContractInstance,
+        cosmwasm_std::{
+            log, to_binary, Api, Binary, CanonicalAddr, CosmosMsg, Decimal, Env, Extern,
+            HandleResponse, HumanAddr, InitResponse, LogAttribute, Querier, QueryResult, StdError,
+            StdResult, Storage, Uint128, WasmMsg,
+        },
+        storage::Storable,
+        toolkit::snip20,
+        utils::{convert::convert_token, viewing_key::ViewingKey},
+        BLOCK_SIZE,
+    },
+    msg::ido::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
+    TokenType,
 };
-use fadroma::scrt::storage::Storable;
-use fadroma::scrt::toolkit::snip20;
-use fadroma::scrt::utils::convert::convert_token;
-use fadroma::scrt::utils::viewing_key::ViewingKey;
-use fadroma::scrt::BLOCK_SIZE;
 use std::str::FromStr;
 
 use crate::data::{Account, Config, SwapConstants};
@@ -359,13 +361,16 @@ fn get_token_balance<S: Storage, A: Api, Q: Querier>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use amm_shared::msg::ido::{HandleMsg, InitMsg, QueryMsg, QueryResponse, TokenSaleConfig};
-    use amm_shared::TokenType;
-    use fadroma::scrt::callback::Callback;
-    use fadroma::scrt::cosmwasm_std::testing::{mock_dependencies, mock_env, MockApi, MockStorage};
-    use fadroma::scrt::cosmwasm_std::Binary;
-    use fadroma::scrt::cosmwasm_std::{from_binary, to_binary};
-    use fadroma::scrt::cosmwasm_std::{Coin, Env, Extern};
+    use amm_shared::{
+        fadroma::scrt::callback::Callback,
+        fadroma::scrt::cosmwasm_std::{
+            from_binary,
+            testing::{mock_env, MockApi, MockStorage},
+            Binary, Coin, Env, Extern,
+        },
+        msg::ido::{HandleMsg, InitMsg, QueryMsg, QueryResponse, TokenSaleConfig},
+        TokenType,
+    };
 
     use crate::querier::MockQuerier;
 

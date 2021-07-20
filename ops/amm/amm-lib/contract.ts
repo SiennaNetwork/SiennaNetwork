@@ -1,12 +1,12 @@
 import { 
     Address, TokenPair, TokenSaleConfig, Pagination, TokenPairAmount,
-    Decimal, Uint128, get_token_type, TypeOfToken, 
-    TokenInfo, ViewingKey, TokenTypeAmount, Exchange, RewardPool,
-    RewardsAccount, PairInfo, Allowance, ClaimSimulationResult,
-    ExchangeRate, ContractInstantiationInfo, ExchangeSettings,
-    PoolContractInfo
+    Decimal, Uint128, TokenInfo, ViewingKey, TokenTypeAmount, Exchange,
+    RewardPool, RewardsAccount, PairInfo, Allowance, ExchangeRate,
+    ContractInstantiationInfo, ExchangeSettings, TypeOfToken,
+    CustomToken, get_token_type
 } from './types.js'
 import { ExecuteResult, SigningCosmWasmClient, CosmWasmClient } from 'secretjs'
+import { b64encode } from '@waiting/base64'
 
 // These two are not exported in secretjs...
 export interface Coin {
@@ -67,6 +67,10 @@ export function create_fee(amount: Uint128, gas?: Uint128 | undefined): Fee {
     }
 }
 
+export function create_base64_msg(msg: object): string {
+    return b64encode(JSON.stringify(msg))
+}
+
 export class SmartContract {
     constructor(
         readonly address: Address,
@@ -100,7 +104,7 @@ export class FactoryContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('700000')
+            fee = create_fee('630000')
         }
 
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
@@ -230,32 +234,54 @@ export class ExchangeContract extends SmartContract {
     async withdraw_liquidity(amount: Uint128, recipient: Address, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             remove_liquidity: {
-                amount,
                 recipient
             }
         }
 
         if (fee === undefined) {
-            fee = create_fee('350000')
+            fee = create_fee('490000')
         }
 
-        return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
+        const info = await this.get_pair_info()
+
+        const snip20 = new Snip20Contract(info.liquidity_token.address, this.signing_client)
+        return await snip20.send(this.address, amount, create_base64_msg(msg), null, fee)
     }
 
-    async swap(amount: TokenTypeAmount, expected_return?: Decimal | null, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async swap(
+        amount: TokenTypeAmount,
+        recipient?: Address | null,
+        expected_return?: Decimal | null,
+        fee?: Fee | undefined
+    ): Promise<ExecuteResult> {
+        if (fee === undefined) {
+            fee = create_fee('410000')
+        }
+
+        if (get_token_type(amount.token) == TypeOfToken.Native) {
+            const msg = {
+                swap: {
+                    offer: amount,
+                    recipient,
+                    expected_return
+                }
+            }
+
+            const transfer = add_native_balance(amount)
+            return await this.signing_client.execute(this.address, msg, undefined, transfer, fee)
+        }
+
         const msg = {
             swap: {
-                offer: amount,
+                recipient,
                 expected_return
             }
         }
 
-        if (fee === undefined) {
-            fee = create_fee('450000')
-        }
+        const token_addr = (amount.token as CustomToken).custom_token.contract_addr;
+        const snip20 = new Snip20Contract(token_addr, this.signing_client)
 
-        const transfer = add_native_balance(amount)
-        return await this.signing_client.execute(this.address, msg, undefined, transfer, fee)
+        return await snip20.send(this.address, amount.amount, create_base64_msg(msg), null, fee)
     }
 
     async get_pair_info(): Promise<PairInfo> {
@@ -424,6 +450,29 @@ export class Snip20Contract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
+    async send(
+        recipient: Address,
+        amount: Uint128,
+        msg: string | null,
+        padding?: string | null,
+        fee?: Fee | undefined
+    ): Promise<ExecuteResult> {
+        const message = {
+            send: {
+                recipient,
+                amount,
+                padding,
+                msg
+            }
+        }
+
+        if (fee === undefined) {
+            fee = create_fee('200000')
+        }
+
+        return await this.signing_client.execute(this.address, message, undefined, undefined, fee)
+    }
+
     async mint(recipient: Address, amount: Uint128, padding?: string | null, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             mint: {
@@ -441,22 +490,12 @@ export class Snip20Contract extends SmartContract {
     }
 }
 
-interface ClaimSimulationResponse {
-    claim_simulation: ClaimSimulationResult;
-}
-
 interface GetAccountResponse {
-    account: RewardsAccount;
+    user_info: RewardsAccount;
 }
 
 interface GetPoolResponse {
-    pool: RewardPool;
-}
-
-interface GetTotalRewardsSupply {
-    total_rewards_supply: {
-        amount: Uint128;
-    }
+    pool_info: RewardPool;
 }
 
 export class RewardsContract extends SmartContract {
@@ -469,8 +508,9 @@ export class RewardsContract extends SmartContract {
     }
 
     async claim(fee?: Fee | undefined): Promise<ExecuteResult> {
-        const msg = 'claim' as unknown as object
-
+        const msg = {
+            claim: { }
+        }
 
         if (fee === undefined) {
             fee = create_fee('300000')
@@ -479,32 +519,15 @@ export class RewardsContract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async claim_simulation(
-        address: Address,
-        viewing_key: ViewingKey,
-        current_time_secs: number
-    ): Promise<ClaimSimulationResult> {
-        const msg = {
-            claim_simulation: {
-                address,
-                current_time: current_time_secs,
-                viewing_key
-            }
-        };
-
-        const result = await this.query_client().queryContractSmart(this.address, msg) as ClaimSimulationResponse;
-        return result.claim_simulation;
-    }
-
     async lock_tokens(amount: Uint128, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
-            lock_tokens: {
+            lock: {
                 amount
             }
         }
 
         if (fee === undefined) {
-            fee = create_fee('250000')
+            fee = create_fee('280000')
         }
 
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
@@ -512,66 +535,44 @@ export class RewardsContract extends SmartContract {
 
     async retrieve_tokens(amount: Uint128, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
-            retrieve_tokens: {
+            retrieve: {
                 amount
             }
         }
 
         if (fee === undefined) {
-            fee = create_fee('250000')
+            fee = create_fee('260000')
         }
 
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async get_pool(): Promise<RewardPool> {
-        const msg = 'pool' as unknown as object
+    async get_pool(now: number): Promise<RewardPool> {
+        const msg = {
+            pool_info: {
+                now
+            }
+        }
 
         const result = await this.query_client().queryContractSmart(this.address, msg) as GetPoolResponse;
-        return result.pool;
+        return result.pool_info;
     }
 
     async get_account(
         address: Address,
-        viewing_key: ViewingKey
+        key: ViewingKey,
+        now: number
     ): Promise<RewardsAccount> {
         const msg = {
-            account: {
+            user_info: {
                 address,
-                viewing_key
+                key,
+                now
             }
         }
 
         const result = await this.query_client().queryContractSmart(this.address, msg) as GetAccountResponse;
-        return result.account;
-    }
-
-    async get_total_rewards_supply(): Promise<Uint128> {
-        const msg = 'total_rewards_supply' as unknown as object
-
-        const result = await this.query_client().queryContractSmart(this.address, msg) as GetTotalRewardsSupply;
-        return result.total_rewards_supply.amount;
-    }
-}
-
-interface GetPoolsResponse {
-    pools: PoolContractInfo[];
-}
-
-export class RewardsFactoryContract extends SmartContract {
-    constructor(
-        readonly address: Address,
-        readonly signing_client: SigningCosmWasmClient,
-        readonly client?: CosmWasmClient | undefined
-    ) {
-        super(address, signing_client, client)
-    }
-
-    async get_pools(): Promise<PoolContractInfo[]> {
-        const msg = 'pools' as unknown as object
-
-        const result = await this.query_client().queryContractSmart(this.address, msg) as GetPoolsResponse;
-        return result.pools;
+        return result.user_info;
     }
 }
 

@@ -1,8 +1,10 @@
 pub use crate::snip20_impl::msg as snip20;
 
-use cosmwasm_std::{Binary, Decimal, HumanAddr, Uint128};
-use fadroma::scrt::callback::{Callback, ContractInstance, ContractInstantiationInfo};
-use fadroma::scrt::migrate::types::ContractStatusLevel;
+use fadroma::scrt::{
+    callback::{Callback, ContractInstance, ContractInstantiationInfo},
+    cosmwasm_std::{Binary, Decimal, HumanAddr, Uint128},
+    migrate::types::ContractStatusLevel,
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +13,10 @@ use crate::{TokenPair, TokenPairAmount, TokenType, TokenTypeAmount};
 pub mod factory {
     use super::ido::TokenSaleConfig;
     use super::*;
-    use crate::{Exchange, ExchangeSettings, Pagination};
+    use crate::{
+        exchange::{Exchange, ExchangeSettings},
+        Pagination,
+    };
     use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -22,6 +27,7 @@ pub mod factory {
         pub ido_contract: ContractInstantiationInfo,
         pub exchange_settings: ExchangeSettings<HumanAddr>,
         pub admin: Option<HumanAddr>,
+        pub prng_seed: Binary,
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -130,6 +136,7 @@ pub mod exchange {
         /// send back its address to the factory on init
         pub factory_info: ContractInstance<HumanAddr>,
         pub callback: Callback<HumanAddr>,
+        pub prng_seed: Binary,
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -147,19 +154,32 @@ pub mod exchange {
             /// Transactions that exceed this threshold will be rejected.
             slippage_tolerance: Option<Decimal>,
         },
-        RemoveLiquidity {
-            /// The amount of LP tokens burned.
-            amount: Uint128,
-            /// The account to refund the tokens to.
-            recipient: HumanAddr,
-        },
         Swap {
             /// The token type to swap from.
             offer: TokenTypeAmount<HumanAddr>,
             expected_return: Option<Uint128>,
+            recipient: Option<HumanAddr>,
+        },
+        // SNIP20 receiver interface
+        Receive {
+            from: HumanAddr,
+            msg: Option<Binary>,
+            amount: Uint128,
         },
         /// Sent by the LP token contract so that we can record its address.
         OnLpTokenInit,
+    }
+
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum ReceiverCallbackMsg {
+        Swap {
+            expected_return: Option<Uint128>,
+            recipient: Option<HumanAddr>,
+        },
+        RemoveLiquidity {
+            recipient: HumanAddr,
+        },
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -168,7 +188,6 @@ pub mod exchange {
         /// Get pause/migration status
         Status,
         PairInfo,
-        Version,
         SwapSimulation {
             /// The token type to swap from.
             offer: TokenTypeAmount<HumanAddr>,
@@ -185,9 +204,7 @@ pub mod exchange {
             amount_0: Uint128,
             amount_1: Uint128,
             total_liquidity: Uint128,
-        },
-        Version {
-            version: u32,
+            contract_version: u32,
         },
     }
 

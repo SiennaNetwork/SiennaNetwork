@@ -1,6 +1,8 @@
+use fadroma::scrt::{
+    cosmwasm_std::{HumanAddr, StdResult, Api, CanonicalAddr},
+    addr::{Canonize, Humanize}
+};
 use crate::token_pair::TokenPair;
-use fadroma::scrt::addr::{Canonize, Humanize};
-use fadroma::scrt::cosmwasm_std::{Api, CanonicalAddr, HumanAddr, StdResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -31,18 +33,12 @@ impl Humanize<Exchange<HumanAddr>> for Exchange<CanonicalAddr> {
     }
 }
 
-#[deprecated(note = "please use Exchange<CanonicalAddr> instead")]
-pub type ExchangeStored = Exchange<CanonicalAddr>;
-
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
 pub struct ExchangeSettings<A> {
     pub swap_fee: Fee,
     pub sienna_fee: Fee,
     pub sienna_burner: Option<A>,
 }
-
-#[deprecated(note = "please use ExchangeSettings<CanonicalAddr> instead")]
-pub type ExchangeSettingsStored = ExchangeSettings<CanonicalAddr>;
 
 impl ExchangeSettings<HumanAddr> {
     pub fn canonize(&self, api: &impl Api) -> StdResult<ExchangeSettings<CanonicalAddr>> {

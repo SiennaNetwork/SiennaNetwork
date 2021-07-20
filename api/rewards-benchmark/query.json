@@ -3,67 +3,71 @@
   "title": "Query",
   "anyOf": [
     {
+      "description": "Who is admin? TODO do we need this in prod?",
       "type": "object",
       "required": [
-        "status"
+        "admin"
       ],
       "properties": {
-        "status": {
-          "type": "object",
-          "required": [
-            "now"
-          ],
-          "properties": {
-            "now": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "claimable"
-      ],
-      "properties": {
-        "claimable": {
-          "type": "object",
-          "required": [
-            "address",
-            "key",
-            "now"
-          ],
-          "properties": {
-            "address": {
-              "$ref": "#/definitions/HumanAddr"
-            },
-            "key": {
-              "type": "string"
-            },
-            "now": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "pool"
-      ],
-      "properties": {
-        "pool": {
+        "admin": {
           "type": "object"
         }
       }
     },
     {
+      "description": "Overall pool status",
+      "type": "object",
+      "required": [
+        "pool_info"
+      ],
+      "properties": {
+        "pool_info": {
+          "type": "object",
+          "required": [
+            "at"
+          ],
+          "properties": {
+            "at": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Requires the user's viewing key.",
+      "type": "object",
+      "required": [
+        "user_info"
+      ],
+      "properties": {
+        "user_info": {
+          "type": "object",
+          "required": [
+            "address",
+            "at",
+            "key"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "at": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "key": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Keplr integration",
       "type": "object",
       "required": [
         "token_info"
@@ -75,6 +79,7 @@
       }
     },
     {
+      "description": "Keplr integration",
       "type": "object",
       "required": [
         "balance"

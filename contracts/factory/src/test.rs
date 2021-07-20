@@ -1,17 +1,20 @@
-pub use cosmwasm_std::{
-    StdResult, StdError, Extern, Storage, Api, Querier, Env, Binary, to_binary,
-    HandleResponse, from_binary, HumanAddr,
-    testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage}
-};
 pub use amm_shared::{
     Exchange, ExchangeSettings, Fee,
     TokenPair, TokenType,
     Pagination,
     msg::factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse},
+    fadroma::scrt::{
+        cosmwasm_std::{
+            StdResult, StdError, Extern, Storage, Api, Querier,
+            Env, Binary, to_binary, HandleResponse, from_binary, HumanAddr,
+            testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage}
+        },
+        addr::Canonize,
+        callback::ContractInstantiationInfo,
+        storage::{load, save}
+    }
 };
-use amm_shared::fadroma::address::Canonize;
-use amm_shared::fadroma::callback::ContractInstantiationInfo;
-use amm_shared::fadroma::storage::{load, save};
+
 pub use crate::{contract::*, state::*};
 
 impl Into<InitMsg> for &Config<HumanAddr> {
@@ -22,7 +25,8 @@ impl Into<InitMsg> for &Config<HumanAddr> {
             pair_contract:     self.pair_contract.clone(),
             ido_contract:      self.ido_contract.clone(),
             exchange_settings: self.exchange_settings.clone(),
-            admin: None
+            admin: None,
+            prng_seed: to_binary(&"prng").unwrap()
         }
     }
 }
@@ -68,7 +72,8 @@ fn mkconfig (id: u64) -> Config<HumanAddr> {
             sienna_fee: Fee::new(2, 10000),
             sienna_burner: None
         },
-        admin: None
+        admin: None,
+        prng_seed: to_binary(&"prng").unwrap()
     })
 }
 
@@ -88,8 +93,11 @@ mod test_contract {
         let ref mut deps = mkdeps();
         let env = mkenv("admin");
         let config = mkconfig(0);
+        
         assert!(init(deps, env, (&config).into()).is_ok());
         assert_eq!(config, load_config(deps)?);
+        assert_eq!(load_prng_seed(&deps.storage).unwrap(), to_binary("prng").unwrap());
+
         Ok(())
     }
 

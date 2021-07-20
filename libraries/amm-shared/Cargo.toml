@@ -9,24 +9,12 @@ edition = "2018"
 [dependencies]
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-snafu = { version = "0.6.3" }
-
-cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
-
-composable-admin = { path = "../fadroma-21.07/scrt-admin/composable-admin" }
-composable-snip20 = { path = "../fadroma-21.07/scrt-snip20" }
-fadroma-scrt-utils = { path = "../fadroma-21.07/scrt-utils" }
-fadroma-scrt-addr = { path = "../fadroma-21.07/scrt-addr" }
-fadroma-scrt-callback = { path = "../fadroma-21.07/scrt-callback" }
-fadroma-scrt-migrate = { path = "../fadroma-21.07/scrt-migrate" }
-fadroma-scrt-storage = { path = "../fadroma-21.07/scrt-storage" }
-
 fadroma = { path = "../fadroma-21.07/core", features = [
-    "scrt-addr",
-    "scrt-callback",
-    "scrt-contract",
-    "scrt-migrate",
-    "scrt-storage",
+  "scrt-addr",
+  "scrt-callback",
+  "scrt-contract",
+  "scrt-migrate",
+  "scrt-storage",
 ] }
+composable-snip20 = { path = "../fadroma-21.07/scrt-snip20" }
+composable-admin = { path = "../fadroma-21.07/scrt-admin/composable-admin" }

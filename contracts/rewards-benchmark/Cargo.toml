@@ -19,13 +19,15 @@ fadroma  = { path = "../../libraries/fadroma-21.07/core", features = [
   "scrt-addr",
   "scrt-callback",
   "scrt-contract",
-  #"scrt-snip20",
+  "scrt-migrate",
+  "scrt-snip20-api",
   "scrt-storage",
   "scrt-utils"
 ] }
-sienna-reward-schedule = { path = "../../libraries/schedule-rewards" }
 composable-auth = { path = "../../libraries/fadroma-21.07/scrt-auth/composable-auth" }
+composable-admin = { path = "../../libraries/fadroma-21.07/scrt-admin/composable-admin", default-features = false }
 
 [dev-dependencies]
+fadroma = { path = "../../libraries/fadroma-21.07/core", features = [ "scrt-harness" ] }
 kukumba = { path = "../../libraries/kukumba" }
 serde_json = "1.0"

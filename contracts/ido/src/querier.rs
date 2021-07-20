@@ -1,10 +1,12 @@
-use fadroma::scrt::callback::ContractInstance;
-use fadroma::scrt::cosmwasm_std::testing::MockQuerier as StdMockQuerier;
-use fadroma::scrt::cosmwasm_std::{
-    from_binary, from_slice, to_binary, Coin, Empty, HumanAddr, Querier, QuerierResult,
-    QueryRequest, StdResult, SystemError, Uint128, WasmQuery,
+use amm_shared::{
+    fadroma::scrt::callback::ContractInstance,
+    fadroma::scrt::cosmwasm_std::{
+        from_binary, from_slice, testing::MockQuerier as StdMockQuerier, to_binary, Coin, Empty,
+        HumanAddr, Querier, QuerierResult, QueryRequest, StdResult, SystemError, Uint128,
+        WasmQuery,
+    },
+    fadroma::scrt::toolkit::snip20::{Balance, TokenInfo},
 };
-use fadroma::scrt::toolkit::snip20::{Balance, TokenInfo};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 // Redefine here, so we can deserialize

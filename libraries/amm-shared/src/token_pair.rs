@@ -1,6 +1,11 @@
+use fadroma::scrt::{
+    cosmwasm_std::{
+        Api, StdResult, Querier,
+        HumanAddr, Uint128, CanonicalAddr
+    },
+    addr::{Canonize, Humanize}
+};
 use crate::token_type::TokenType;
-use fadroma::scrt::addr::{Canonize, Humanize};
-use fadroma::scrt::cosmwasm_std::{Api, CanonicalAddr, HumanAddr, Querier, StdResult, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -18,9 +23,6 @@ impl Humanize<TokenPair<HumanAddr>> for TokenPair<CanonicalAddr> {
         Ok(TokenPair(self.0.humanize(api)?, self.1.humanize(api)?))
     }
 }
-
-#[deprecated(note = "please use TokenPair<CanonicalAddr> instead")]
-pub type TokenPairStored = TokenPair<CanonicalAddr>;
 
 pub struct TokenPairIterator<'a, A> {
     pair: &'a TokenPair<A>,
@@ -108,13 +110,10 @@ impl<'a, A: Clone> Iterator for TokenPairIterator<'a, A> {
 
 // These are only used for serde, because it doesn't work with struct tuples.
 #[derive(Serialize, Deserialize)]
-pub struct TokenPairSerde<A: Clone> {
+struct TokenPairSerde<A: Clone> {
     token_0: TokenType<A>,
     token_1: TokenType<A>,
 }
-
-#[deprecated(note = "please use TokenPairStoredSerde<CanonicalAddr> instead")]
-pub type TokenPairStoredSerde = TokenPairSerde<CanonicalAddr>;
 
 impl<A: Clone + Serialize> Serialize for TokenPair<A> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
