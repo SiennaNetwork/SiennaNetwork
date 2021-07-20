@@ -2,10 +2,10 @@ import { SecretNetworkContractWithSchema } from "@fadroma/scrt-agent";
 import { loadSchemas } from "@fadroma/utilities";
 
 export const schema = loadSchemas(import.meta.url, {
-  initMsg:     "./rewards-benchmark/init.json",
-  queryMsg:    "./rewards-benchmark/query.json",
-  queryAnswer: "./rewards-benchmark/response.json",
-  handleMsg:   "./rewards-benchmark/handle.json",
+  initMsg:     "./rewards/init.json",
+  queryMsg:    "./rewards/query.json",
+  queryAnswer: "./rewards/response.json",
+  handleMsg:   "./rewards/handle.json",
 });
 const decoder = new TextDecoder();
 const decode  = (buffer) => decoder.decode(buffer).trim();

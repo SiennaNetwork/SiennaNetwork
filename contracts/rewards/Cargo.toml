@@ -1,5 +1,5 @@
 [package]
-name = "sienna-rewards-benchmark"
+name = "sienna-rewards"
 version = "1.0.0"
 authors = ["Adam Avramov <adam@hack.bg>"]
 edition = "2018"

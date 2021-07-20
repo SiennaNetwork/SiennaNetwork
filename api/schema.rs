@@ -77,7 +77,7 @@ fn main() {
 
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");
-    out_dir.push("rewards-benchmark");
+    out_dir.push("rewards");
     create_dir_all(&out_dir).unwrap();
     remove_schemas(&out_dir).unwrap();
     export_schema(&schema_for!(rewards_benchmark::Init), &out_dir);

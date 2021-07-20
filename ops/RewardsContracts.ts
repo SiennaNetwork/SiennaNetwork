@@ -37,7 +37,7 @@ export default class SiennaRewards extends ScrtEnsemble {
                                  , enable_redeem:       true
                                  , enable_mint:         true
                                  , enable_burn:         true } } }
-  , POOL:   { crate:   'sienna-rewards-benchmark'
+  , POOL:   { crate:   'sienna-rewards'
             , label:   `${this.prefix} REWARDS`
             , initMsg: {}},
   }
@@ -50,7 +50,7 @@ export default class SiennaRewards extends ScrtEnsemble {
 
   test (context: object, ...args:any) {
     execFileSync('cargo', [
-      'test', '-p', 'sienna-rewards-benchmark', ...args
+      'test', '-p', 'sienna-rewards', ...args
     ], {
       stdio: 'inherit'
     })
