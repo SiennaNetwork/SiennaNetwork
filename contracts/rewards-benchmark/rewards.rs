@@ -91,7 +91,7 @@ contract! {
 
                 pool_last_update,
                 pool_lifetime:    pool.lifetime()?,
-                pool_balance:     pool.locked()?
+                pool_locked:      pool.locked()?,
 
                 // todo add balance/claimed/total in rewards token
             }) }
@@ -113,25 +113,25 @@ contract! {
             if at < pool_last_update {
                 return Err(StdError::generic_err("this contract does not store history"))
             }
-            let pool_lifetime    = pool.lifetime()?;
-            let pool_balance     = pool.locked()?;
+            let pool_lifetime = pool.lifetime()?;
+            let pool_locked   = pool.locked()?;
 
             let user = pool.user(address);
             let user_last_update = user.last_update()?;
             if at < pool_last_update {
                 return Err(StdError::generic_err("this contract does not store history"))
             }
-            let user_lifetime    = user.lifetime()?;
-            let user_balance     = user.locked()?;
-            let user_age         = user.age()?;
+            let user_lifetime = user.lifetime()?;
+            let user_locked   = user.locked()?;
+            let user_age      = user.age()?;
 
-            let (user_unlocked, user_claimed, user_claimable) = user.reward()?;
+            let (user_earned, user_claimed, user_claimable) = user.reward()?;
 
             Ok(Response::UserInfo {
                 it_is_now: at,
-                pool_last_update, pool_lifetime, pool_balance,
-                user_last_update, user_lifetime, user_balance,
-                user_age, user_unlocked, user_claimed, user_claimable
+                pool_last_update, pool_lifetime, pool_locked,
+                user_last_update, user_lifetime, user_locked,
+                user_age, user_earned, user_claimed, user_claimable
             }) }
 
         /// Keplr integration
@@ -166,7 +166,7 @@ contract! {
 
             pool_last_update: Time,
             pool_lifetime:    Volume,
-            pool_balance:     Amount
+            pool_locked:      Amount
         }
 
         /// Response from `Query::UserInfo`
@@ -175,14 +175,14 @@ contract! {
 
             pool_last_update: Time,
             pool_lifetime:    Volume,
-            pool_balance:     Amount,
+            pool_locked:      Amount,
 
             user_last_update: Time,
             user_lifetime:    Volume,
-            user_balance:     Amount,
+            user_locked:      Amount,
 
             user_age:         Time,
-            user_unlocked:    Amount,
+            user_earned:      Amount,
             user_claimed:     Amount,
             user_claimable:   Amount
         }
