@@ -1,3 +1,4 @@
+#[cfg(browser)] #[macro_use] extern crate wasm_bindgen;
 #[cfg(test)] #[macro_use] extern crate kukumba;
 #[cfg(test)] mod rewards_harness;
 #[cfg(test)] mod rewards_test;

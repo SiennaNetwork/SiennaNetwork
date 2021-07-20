@@ -1,6 +1,9 @@
 import './style.css'
 import Gruvbox from './gruvbox'
-import * as RewardsBenchmark from '../contracts/rewards-benchmark/pkg/rewards-benchmark_bg.wasm'
+import * as RewardsBenchmark from './rewards-benchmark/sienna_rewards_benchmark_bg.wasm'
+;((RewardsBenchmark as unknown as Function)()).then(console.info)
+//console.log(RewardsBenchmark())
+//console.log(new RewardsBenchmark())
 
 // root of time ------------------------------------------------------------------------------------
 let T = 0
@@ -21,7 +24,7 @@ const UPDATE_INTERVAL = 1
 
 // log of all modeled events -----------------------------------------------------------------------
 class History {
-  root    = h('div', { className: 'history' })
+  root      = h('div', { className: 'history' })
   now       = addTo(this.root, h('h1'))
   balance   = addTo(this.root, h('h1'))
   remaining = addTo(this.root, h('h2'))
@@ -60,10 +63,7 @@ class Pool {
       console.info('fund', this.portion, this.remaining)
       if (this.remaining > 0) {
         this.balance += this.portion
-        this.remaining -= 1
-      }
-    }
-  }}
+        this.remaining -= 1 } } } }
 const pool = new Pool()
 
 class User {

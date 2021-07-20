@@ -8,10 +8,10 @@ use fadroma::scrt::{
         from_binary, to_binary, from_slice, SystemError,
     },
     callback::{ContractInstance as ContractLink},
-    harness::{Harness, InitFn, HandleFn, QueryFn},
+    harness::{Harness, InitFn, HandleFn, QueryFn, TxResult},
     //snip20 // todo work around circular dep ( via more reexports :( )
 };
-pub use fadroma::scrt::harness::TxResult;
+
 use crate::{
     init, handle, query,
     msg::{Init, Handle as TX, Query as QQ, Response}
