@@ -6,11 +6,9 @@ use amm_shared::msg::factory  as factory;
 use amm_shared::msg::ido      as ido;
 use amm_shared::msg::snip20;
 
-use sienna_mgmt::msg              as mgmt;
-//use sienna_rewards::msg           as rewards;
-use sienna_rewards_benchmark::msg as rewards_benchmark;
-//use sienna_rewards_factory::msg   as rewards_factory;
-use sienna_rpt::msg               as rpt;
+use sienna_mgmt::msg    as mgmt;
+use sienna_rewards::msg as rewards;
+use sienna_rpt::msg     as rpt;
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
@@ -80,8 +78,8 @@ fn main() {
     out_dir.push("rewards");
     create_dir_all(&out_dir).unwrap();
     remove_schemas(&out_dir).unwrap();
-    export_schema(&schema_for!(rewards_benchmark::Init), &out_dir);
-    export_schema(&schema_for!(rewards_benchmark::Handle), &out_dir);
-    export_schema(&schema_for!(rewards_benchmark::Query), &out_dir);
-    export_schema(&schema_for!(rewards_benchmark::Response), &out_dir);
+    export_schema(&schema_for!(rewards::Init), &out_dir);
+    export_schema(&schema_for!(rewards::Handle), &out_dir);
+    export_schema(&schema_for!(rewards::Query), &out_dir);
+    export_schema(&schema_for!(rewards::Response), &out_dir);
 }

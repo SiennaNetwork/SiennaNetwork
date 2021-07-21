@@ -13,6 +13,6 @@
   },
   "scripts": {
     "start": "webpack serve",
-    "wasm": "cd .. && wasm-pack build --dev --target web --out-name web -- --features browser"
+    "wasm": "wasm-pack build --dev --target web --out-dir target/web --out-name rewards -- --features browser"
   }
 }
