@@ -9,7 +9,7 @@
     "./libraries/schedule",
     "./api",
     "./ops",
-    "./contracts/rewards/dashboard"
+    "./contracts/rewards"
   ],
   "dependencies": {
     "@k-foss/ts-esnode": "^2.0.2",

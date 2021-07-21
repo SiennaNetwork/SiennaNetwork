@@ -1710,6 +1710,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "wasm-bindgen",
 ]
 
 [[package]]
