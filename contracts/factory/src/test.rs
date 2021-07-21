@@ -365,7 +365,7 @@ mod test_contract {
             });
         }
 
-        store_exchange(deps, exchanges[0].clone()).unwrap();
+        store_exchanges(deps, vec![ exchanges[0].clone() ]).unwrap();
 
         let result = handle(deps, mkenv("unauthorized"), HandleMsg::AddExchanges {
             exchanges: exchanges.clone()[1..].into()
@@ -404,7 +404,7 @@ mod test_contract {
             idos.push(format!("ido_addr_{}", i).into());
         }
 
-        store_ido_address(deps, &idos[0]).unwrap();
+        store_ido_addresses(deps, vec![ idos[0].clone() ]).unwrap();
 
         let result = handle(deps, mkenv("unauthorized"), HandleMsg::AddIdos {
             idos: idos.clone()[1..].into()
@@ -563,10 +563,10 @@ mod test_state {
 
         let address = HumanAddr("ctrct_addr".into());
 
-        store_exchange(&mut deps, Exchange {
+        store_exchanges(&mut deps, vec![ Exchange {
             pair: pair.clone(),
             address: address.clone()
-        })?;
+        }])?;
 
         let retrieved_address = get_address_for_pair(&deps, &pair)?;
 
@@ -590,17 +590,17 @@ mod test_state {
             }
         );
 
-        store_exchange(deps, Exchange {
+        store_exchanges(deps, vec![ Exchange {
             pair: pair.clone(),
             address: "first_addr".into()
-        })?;
+        }])?;
 
         let swapped = swap_pair(&pair);
 
-        match store_exchange(deps, Exchange{
+        match store_exchanges(deps, vec![ Exchange{
             pair: swapped,
             address: "other_addr".into()
-        }) {
+        }]) {
             Ok(_) => Err(StdError::generic_err("Exchange already exists")),
             Err(_) => Ok(())
         }
@@ -614,7 +614,7 @@ mod test_state {
         for i in 0..33 {
             let addr = HumanAddr::from(format!("addr_{}", i));
 
-            store_ido_address(deps, &addr)?;
+            store_ido_addresses(deps, vec![ addr.clone() ])?;
             addresses.push(addr);
         }
 
@@ -659,7 +659,7 @@ mod test_state {
                 address
             };
 
-            store_exchange(deps, exchange.clone())?;
+            store_exchanges(deps, vec![ exchange.clone() ])?;
             exchanges.push(exchange);
         }
 

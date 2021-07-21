@@ -104,7 +104,7 @@ export class FactoryContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('630000')
+            fee = create_fee('750000')
         }
 
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
@@ -224,7 +224,7 @@ export class ExchangeContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('390000')
+            fee = create_fee('530000')
         }
 
         const transfer = add_native_balance_pair(amount)
@@ -239,7 +239,7 @@ export class ExchangeContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('490000')
+            fee = create_fee('650000')
         }
 
         const info = await this.get_pair_info()
@@ -254,11 +254,11 @@ export class ExchangeContract extends SmartContract {
         expected_return?: Decimal | null,
         fee?: Fee | undefined
     ): Promise<ExecuteResult> {
-        if (fee === undefined) {
-            fee = create_fee('410000')
-        }
-
         if (get_token_type(amount.token) == TypeOfToken.Native) {
+            if (fee === undefined) {
+                fee = create_fee('280000')
+            }
+
             const msg = {
                 swap: {
                     offer: amount,
@@ -269,6 +269,10 @@ export class ExchangeContract extends SmartContract {
 
             const transfer = add_native_balance(amount)
             return await this.signing_client.execute(this.address, msg, undefined, transfer, fee)
+        }
+
+        if (fee === undefined) {
+            fee = create_fee('410000')
         }
 
         const msg = {

@@ -25,10 +25,9 @@ use amm_shared::{
 
 use crate::state::{
     Config, get_address_for_pair, get_exchanges, get_idos,
-    load_config, pair_exists, save_config, store_exchange,
-    store_exchanges, store_ido_address, store_ido_addresses,
-    save_prng_seed, load_prng_seed, ido_whitelist_remove,
-    ido_whitelist_add, is_ido_whitelisted
+    load_config, pair_exists, save_config, store_exchanges,
+    store_ido_addresses, save_prng_seed, load_prng_seed,
+    ido_whitelist_remove, ido_whitelist_add, is_ido_whitelisted
 };
 use fadroma_scrt_migrate::{get_status, with_status};
 
@@ -214,7 +213,7 @@ fn register_exchange<S: Storage, A: Api, Q: Querier>(
         address: env.message.sender.clone()
     };
 
-    store_exchange(deps, exchange)?;
+    store_exchanges(deps, vec![ exchange ])?;
 
     Ok(HandleResponse {
         messages: vec![],
@@ -297,7 +296,7 @@ fn register_ido<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     ensure_correct_signature(&mut deps.storage, signature)?;
 
-    store_ido_address(deps, &env.message.sender)?;
+    store_ido_addresses(deps, vec![ env.message.sender.clone() ])?;
 
     Ok(HandleResponse {
         messages: vec![],
