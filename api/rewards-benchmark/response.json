@@ -14,9 +14,9 @@
           "required": [
             "it_is_now",
             "lp_token",
-            "pool_balance",
             "pool_last_update",
-            "pool_lifetime"
+            "pool_lifetime",
+            "pool_locked"
           ],
           "properties": {
             "it_is_now": {
@@ -27,9 +27,6 @@
             "lp_token": {
               "$ref": "#/definitions/ContractInstance_for_HumanAddr"
             },
-            "pool_balance": {
-              "$ref": "#/definitions/Uint128"
-            },
             "pool_last_update": {
               "type": "integer",
               "format": "uint64",
@@ -37,6 +34,9 @@
             },
             "pool_lifetime": {
               "$ref": "#/definitions/Uint256"
+            },
+            "pool_locked": {
+              "$ref": "#/definitions/Uint128"
             }
           }
         }
@@ -53,25 +53,22 @@
           "type": "object",
           "required": [
             "it_is_now",
-            "pool_balance",
             "pool_last_update",
             "pool_lifetime",
+            "pool_locked",
             "user_age",
-            "user_balance",
             "user_claimable",
             "user_claimed",
+            "user_earned",
             "user_last_update",
             "user_lifetime",
-            "user_unlocked"
+            "user_locked"
           ],
           "properties": {
             "it_is_now": {
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
-            },
-            "pool_balance": {
-              "$ref": "#/definitions/Uint128"
             },
             "pool_last_update": {
               "type": "integer",
@@ -81,18 +78,21 @@
             "pool_lifetime": {
               "$ref": "#/definitions/Uint256"
             },
+            "pool_locked": {
+              "$ref": "#/definitions/Uint128"
+            },
             "user_age": {
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
             },
-            "user_balance": {
-              "$ref": "#/definitions/Uint128"
-            },
             "user_claimable": {
               "$ref": "#/definitions/Uint128"
             },
             "user_claimed": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "user_earned": {
               "$ref": "#/definitions/Uint128"
             },
             "user_last_update": {
@@ -103,7 +103,7 @@
             "user_lifetime": {
               "$ref": "#/definitions/Uint256"
             },
-            "user_unlocked": {
+            "user_locked": {
               "$ref": "#/definitions/Uint128"
             }
           }

@@ -8,7 +8,7 @@ use amm_shared::{
         },
         addr::{Humanize, Canonize},
         callback::ContractInstantiationInfo,
-        storage::{save, load}
+        storage::{save, load, ns_save, ns_load, ns_remove}
     },
     msg::factory::InitMsg,
 };
@@ -19,6 +19,7 @@ const CONFIG_KEY: &[u8] = b"config";
 const PRNG_KEY: &[u8] = b"prng_seed";
 const IDO_PREFIX: &[u8; 1] = b"I";
 const IDO_COUNT_KEY: &[u8] = b"ido_count";
+const NS_IDO_WHITELIST: &[u8] = b"ido_whitelist";
 const EXCHANGES_KEY: &[u8] = b"exchanges";
 
 pub const PAGINATION_LIMIT: u8 = 30;
@@ -225,6 +226,37 @@ pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
 #[inline]
 pub(crate) fn load_exchanges(storage: &impl Storage) -> StdResult<Vec<Exchange<CanonicalAddr>>> {
     Ok(load(storage, EXCHANGES_KEY)?.unwrap_or(vec![]))
+}
+
+pub(crate) fn ido_whitelist_add<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    addresses: Vec<HumanAddr>
+) -> StdResult<()> {
+    for address in addresses {
+        let address = deps.api.canonical_address(&address)?;
+        ns_save(&mut deps.storage, NS_IDO_WHITELIST, address.as_slice(), &1u8)?;
+    }
+
+    Ok(())
+}
+
+pub(crate) fn ido_whitelist_remove<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    address: &HumanAddr
+) -> StdResult<()> {
+    let address = deps.api.canonical_address(address)?;
+
+    Ok(ns_remove(&mut deps.storage, NS_IDO_WHITELIST, address.as_slice()))
+}
+
+pub(crate) fn is_ido_whitelisted<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    address: &HumanAddr
+) -> StdResult<bool> {
+    let address = deps.api.canonical_address(address)?;
+    let result: Option<u8> = ns_load(&deps.storage, NS_IDO_WHITELIST, address.as_slice())?;
+
+    Ok(result.is_some())
 }
 
 pub(crate) fn generate_pair_key(

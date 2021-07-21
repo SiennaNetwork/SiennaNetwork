@@ -141,6 +141,29 @@
       }
     },
     {
+      "description": "Add addresses that are allowed to create IDOs",
+      "type": "object",
+      "required": [
+        "ido_whitelist"
+      ],
+      "properties": {
+        "ido_whitelist": {
+          "type": "object",
+          "required": [
+            "addresses"
+          ],
+          "properties": {
+            "addresses": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "description": "Used by a newly instantiated exchange contract to register itself with the factory",
       "type": "object",
       "required": [

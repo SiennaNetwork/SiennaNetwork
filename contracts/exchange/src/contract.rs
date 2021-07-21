@@ -128,7 +128,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     Ok(InitResponse {
         messages,
         log: vec![
-            log("created_exchange_address", env.contract.address.as_str())
+            log("created_exchange_address", env.contract.address)
         ]
     })
 }

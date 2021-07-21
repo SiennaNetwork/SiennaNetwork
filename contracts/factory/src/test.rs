@@ -3,14 +3,15 @@ pub use amm_shared::{
     TokenPair, TokenType,
     Pagination,
     msg::factory::{InitMsg, HandleMsg, QueryMsg, QueryResponse},
+    msg::ido::TokenSaleConfig,
     fadroma::scrt::{
         cosmwasm_std::{
-            StdResult, StdError, Extern, Storage, Api, Querier,
+            StdResult, StdError, Extern, Storage, Api, Querier, Uint128,
             Env, Binary, to_binary, HandleResponse, from_binary, HumanAddr,
             testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage}
         },
         addr::Canonize,
-        callback::ContractInstantiationInfo,
+        callback::{ContractInstantiationInfo, ContractInstance},
         storage::{load, save}
     }
 };
@@ -64,9 +65,9 @@ fn mkdeps () -> Extern<impl Storage, impl Api, impl Querier> {
 fn mkconfig (id: u64) -> Config<HumanAddr> {
     Config::from_init_msg(InitMsg {
         snip20_contract:   ContractInstantiationInfo { id, code_hash: "snip20".into() },
-        lp_token_contract: ContractInstantiationInfo { id, code_hash: "lptoken".into(), },
-        pair_contract:     ContractInstantiationInfo { id, code_hash: "2341586789".into(), },
-        ido_contract:      ContractInstantiationInfo { id,  code_hash: "348534835".into(), },
+        lp_token_contract: ContractInstantiationInfo { id, code_hash: "lptoken".into() },
+        pair_contract:     ContractInstantiationInfo { id, code_hash: "23415867".into() },
+        ido_contract:      ContractInstantiationInfo { id, code_hash: "348534835".into() },
         exchange_settings: ExchangeSettings {
             swap_fee: Fee::new(28, 10000),
             sienna_fee: Fee::new(2, 10000),
@@ -427,6 +428,52 @@ mod test_contract {
             _ => panic!("QueryResponse::ListIdos")
         }
     }
+
+    #[test]
+    fn test_ido_whitelist() {
+        let ref mut deps = mkdeps();
+        let admin = "admin";
+
+        let env = mkenv(admin);
+        let config = mkconfig(0);
+
+        init(deps, env.clone(), (&config).into()).unwrap();
+
+        let ido_creator = HumanAddr::from("ido_creator");
+
+        let result = handle(deps, mkenv("rando"), HandleMsg::IdoWhitelist {
+            addresses: vec![ ido_creator.clone() ]
+        });
+        assert_unauthorized(result);
+
+        handle(deps, mkenv(admin), HandleMsg::IdoWhitelist {
+            addresses: vec![ ido_creator.clone() ]
+        }).unwrap();
+
+        let sale_config = TokenSaleConfig {
+            input_token: TokenType::NativeToken { denom: "whatever".into() },
+            rate: Uint128(100),
+            sold_token: ContractInstance {
+                address: "token".into(),
+                code_hash: "token_code_hash".into()
+            },
+            whitelist: vec![],
+            max_allocation: Uint128(100),
+            max_seats: 20,
+            min_allocation: Uint128(10)
+        };
+
+        let result = handle(deps, mkenv("rando"), HandleMsg::CreateIdo {
+            info: sale_config.clone()
+        });
+        assert_unauthorized(result);
+
+        handle(deps, mkenv(ido_creator.clone()), HandleMsg::CreateIdo {
+            info: sale_config
+        }).unwrap();
+
+        assert!(!is_ido_whitelisted(deps, &ido_creator).unwrap())
+    }
 }
 
 mod test_state {
@@ -435,35 +482,6 @@ mod test_state {
     fn swap_pair<A: Clone> (pair: &TokenPair<A>) -> TokenPair<A> {
         TokenPair(pair.1.clone(), pair.0.clone())
     }
-
-    /*
-    fn mock_config() -> Config<HumanAddr> {
-        Config::from_init_msg(InitMsg {
-            snip20_contract: ContractInstantiationInfo {
-                id: 1,
-                code_hash: "snip20_contract".into()
-            },
-            lp_token_contract: ContractInstantiationInfo {
-                id: 2,
-                code_hash: "lp_token_contract".into()
-            },
-            ido_contract: ContractInstantiationInfo {
-                id: 3,
-                code_hash: "ido_contract".into()
-            },
-            pair_contract: ContractInstantiationInfo {
-                id: 4,
-                code_hash: "pair_contract".into()
-            },
-            exchange_settings: ExchangeSettings {
-                swap_fee: Fee::new(28, 10000),
-                sienna_fee: Fee::new(2, 10000),
-                sienna_burner: None
-            },
-            admin: None
-        })
-    }
-    */
 
     #[test]
     fn generates_the_same_key_for_swapped_pairs() -> StdResult<()> {

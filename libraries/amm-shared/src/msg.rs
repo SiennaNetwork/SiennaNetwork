@@ -52,6 +52,10 @@ pub mod factory {
         CreateIdo {
             info: TokenSaleConfig
         },
+        /// Add addresses that are allowed to create IDOs
+        IdoWhitelist {
+            addresses: Vec<HumanAddr>
+        },
         /// Used by a newly instantiated exchange contract to register
         /// itself with the factory
         RegisterExchange {
@@ -220,7 +224,7 @@ pub mod ido {
         pub callback: Callback<HumanAddr>
     }
     
-    #[derive(Serialize, Deserialize, JsonSchema)]
+    #[derive(Serialize, Deserialize, JsonSchema, Clone)]
     pub struct TokenSaleConfig {
         /// The token that will be used to buy the SNIP20.
         pub input_token: TokenType<HumanAddr>,
