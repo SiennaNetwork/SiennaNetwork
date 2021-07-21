@@ -1,25 +1,27 @@
 import './dashboard/style.css'
 import { Log, Table, PieChart, StackedPieChart } from './dashboard/widgets'
-import { T, Pool, User } from './dashboard/contract_mock'
+import { T, User } from './dashboard/contract_mock'
 import { random, pickRandom, throttle, after, addTo } from './dashboard/helpers'
 import initMock from './dashboard/contract_mock'
+import initReal from './dashboard/contract_real'
 
 // settings ----------------------------------------------------------------------------------------
 const UPDATE_INTERVAL = 0
 
 // dashboard components ----------------------------------------------------------------------------
-const log     = new Log()
-const table   = new Table()
-const current = new PieChart('Current amounts locked',  'locked')
-const stacked = new StackedPieChart()
-const ui = { log, table, current, stacked }
+const ui = {
+  log:     new Log(),
+  table:   new Table(),
+  current: new PieChart('Current amounts locked',  'locked'),
+  stacked: new StackedPieChart()
+}
 
 // the rewards contract and its participants -------------------------------------------------------
 const {pool, users} = initMock(ui)
-table.init(users)
+initReal(ui)
+ui.table.init(users)
 
 // start on click ----------------------------------------------------------------------------------
-
 document.body.onclick = () => {
   start()
   document.body.onclick = null
@@ -27,18 +29,15 @@ document.body.onclick = () => {
 
 function start () {
   // add components
-  for (const el of [ current
-                   , stacked
-                   //, lifetime
-                   //, earned
-                   //, claimed
-                   , log
-                   , table /*,sparkline*/]) {
-    addTo(document.body, el.root) }
+  for (const el of Object.values(ui)) {
+    addTo(document.body, el.root)
+  }
 
+  // add resize handler
   resize()
   window.addEventListener('resize', throttle(100, resize))
 
+  // start updating
   update()
   function update () {
     // advance time
@@ -67,19 +66,16 @@ function start () {
     }
 
     // update charts
-    for (const chart of [current
-                        ,stacked
-                        //,lifetime
-                        //,earned
-                        //,claimed
-                        ]) { chart.render() }
+    for (const chart of [ui.current,ui.stacked]) {
+      chart.render()
+    }
 
     // rinse and repeat
-    after(UPDATE_INTERVAL, update) }
+    after(UPDATE_INTERVAL, update)
+  }
+
   function resize () {
-    current.resize()
-    stacked.resize()
-    //lifetime.resize()
-    //earned.resize()
-    //claimed.resize()
-  } }
+    ui.current.resize()
+    ui.stacked.resize()
+  }
+}
