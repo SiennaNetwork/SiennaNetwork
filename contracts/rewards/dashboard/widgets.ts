@@ -17,11 +17,13 @@ export class Log {
     if (amount) {
       this.body.insertBefore(
         h('div', { innerHTML: `<b>${name}</b> ${event} ${amount}LP` }),
-        this.body.firstChild) }
-    else {
+        this.body.firstChild
+      )
+    } else {
       this.body.insertBefore(
         h('div', { innerHTML: `<b>${name}</b> ${event}` }),
-        this.body.firstChild)
+        this.body.firstChild
+      )
     }
   }
 }
@@ -110,7 +112,7 @@ export class Table {
       user.claimed.toFixed(3)
     this.rows[user.name].claimable.textContent =
       user.claimable.toFixed(3)
-    const [fill, stroke] = user.colors()
+    const [fill, _stroke] = user.colors()[0]
     this.rows[user.name].claimable.style.backgroundColor =
       fill
     //table.rows[user.name].claimable.style.color           = stroke
@@ -133,7 +135,7 @@ export class PieChart {
   total: number = 0;
   field: string;
 
-  constructor (name: string, field: string) {
+  constructor (_name: string, field: string) {
     this.field  = field
     this.root   = h('div', { className: `pie ${field}` })
     this.canvas = addTo(this.root, h('canvas', { width: 1, height: 1 })) as HTMLCanvasElement
@@ -189,7 +191,7 @@ export class PieChart {
         context.beginPath()
         context.moveTo(centerX, centerY)
         context.arc(centerX, centerY, radius, start * Math.PI, end * Math.PI)
-        const [fillStyle, strokeStyle] = this.users[name].colors()
+        const [fillStyle, _strokeStyle] = this.users[name].colors()
         context.fillStyle = fillStyle
         context.lineWidth = 0.25
         context.strokeStyle = '#000'//rgba(255,255,255,0.5)'
@@ -253,7 +255,7 @@ export class StackedPieChart {
       context.beginPath()
       context.moveTo(centerX, centerY)
       context.arc(centerX, centerY, radius, start * Math.PI, end * Math.PI)
-      const [fillStyle, strokeStyle] = user.colors()
+      const [fillStyle, _strokeStyle] = user.colors()
       context.fillStyle = fillStyle
       context.strokeStyle = 'rgba(255,255,255,0.5)'
       //context.strokeStyle = fillStyle//strokeStyle

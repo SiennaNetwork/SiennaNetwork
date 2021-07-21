@@ -36,6 +36,7 @@ export class Pool {
     this.log.now.textContent = `block ${T.T}`
     this.log.balance.textContent = `reward budget: ${this.balance.toFixed(3)}`
     this.log.remaining.textContent = `${this.remaining} days remaining`
+
     this.lifetime += this.locked
     if (T.T % this.interval == 0) {
       console.info('fund', this.portion, this.remaining)
@@ -47,7 +48,7 @@ export class Pool {
   }
 }
 
-export interface UserContext {
+export interface UIContext {
   log:     Log
   table:   Table
   current: PieChart
@@ -76,7 +77,7 @@ export class User {
   waited = 0
   last_claimed = 0
 
-  constructor (ui: UserContext, pool: Pool, name: string, balance: number) {
+  constructor (ui: UIContext, pool: Pool, name: string, balance: number) {
     this.pool = pool
 
     this.log     = ui.log
@@ -160,7 +161,7 @@ export class User {
 export type Users = Record<string, User>
 
 // entry point -------------------------------------------------------------------------------------
-export default function initMock (ui: UserContext) {
+export default function initMock (ui: UIContext) {
   const pool = new Pool(ui.log)
   const users: Users = {}
   for (let i = 0; i < MAX_USERS; i++) {
