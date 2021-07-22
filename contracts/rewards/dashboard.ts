@@ -42,52 +42,56 @@ initReal().then(()=>{
 })
 
 function start () {
-  // add components
+  // add components --------------------------------------------------------------------------------
   for (const el of Object.values(ui)) {
     addTo(document.body, el.root)
   }
 
-  // add resize handler
+  // add resize handler ----------------------------------------------------------------------------
   resize()
   window.addEventListener('resize', throttle(100, resize))
 
-  // start updating
+  // start updating --------------------------------------------------------------------------------
   update()
   function update () {
-    // advance time
+    // advance time --------------------------------------------------------------------------------
     T.T++
 
-    // periodically fund pool and increment its lifetime
+    // periodically fund pool and increment its lifetime -------------------------------------------
     pool.update()
 
-    // increment lifetimes and ages; collect eligible claimants
+    // increment lifetimes and ages; collect eligible claimants ------------------------------------
     const eligible: Array<User> = []
     for (const user of Object.values(users)) {
       user.update()
       if (user.claimable > 0) eligible.push(user as User)
     }
 
-    // perform random lock/retrieve from random account for random amount
-    const user   = pickRandom(Object.values(users))//Object.keys(users)[Math.floor(Math.random()*Object.keys(users).length)]
-    const action = pickRandom([(amount:number)=>user.lock(amount)
-                              ,(amount:number)=>user.retrieve(amount)])//Object.values(actions)[random(actions.length)]
+    // perform random lock/retrieve from random account for random amount --------------------------
+    const user   = pickRandom(Object.values(users))
+    const action = pickRandom([
+      (amount:number)=>user.lock(amount),
+      (amount:number)=>user.retrieve(amount)
+    ])
+
     action(random(user.balance))
 
-    // perform random claim
+    // perform random claim ------------------------------------------------------------------------
     if (eligible.length > 0) {
       const claimant = pickRandom(eligible)
       claimant.claim()
     }
 
-    // update charts
+    // update charts -------------------------------------------------------------------------------
     for (const chart of [ui.current,ui.stacked]) {
       chart.render()
     }
 
-    // rinse and repeat
+    // rinse and repeat ----------------------------------------------------------------------------
     after(UPDATE_INTERVAL, update)
   }
 
+  // resize handler --------------------------------------------------------------------------------
   function resize () {
     ui.current.resize()
     ui.stacked.resize()
