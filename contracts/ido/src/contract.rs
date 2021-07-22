@@ -8,9 +8,9 @@ use amm_shared::{
         addr::Canonize,
         callback::ContractInstance,
         cosmwasm_std::{
-            log, to_binary, Api, Binary, CanonicalAddr, CosmosMsg, Decimal, Env, Extern,
-            HandleResponse, HumanAddr, InitResponse, LogAttribute, Querier, QueryResult, StdError,
-            StdResult, Storage, Uint128, WasmMsg,
+            log, to_binary, Api, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Decimal, Env,
+            Extern, HandleResponse, HumanAddr, InitResponse, LogAttribute, Querier, QueryResult,
+            StdError, StdResult, Storage, Uint128, WasmMsg,
         },
         storage::Storable,
         toolkit::snip20,
@@ -24,25 +24,14 @@ use std::str::FromStr;
 
 use crate::data::{Account, Config, SwapConstants};
 
+type CodeHash = String;
+
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
-    let input_token_decimals = match &msg.info.input_token {
-        TokenType::NativeToken { .. } => 6,
-        TokenType::CustomToken {
-            contract_addr,
-            token_code_hash,
-        } => get_token_decimals(
-            &deps.querier,
-            ContractInstance {
-                address: contract_addr.clone(),
-                code_hash: token_code_hash.clone(),
-            },
-        )?,
-    };
-
+    let mut input_token_decimals = 6;
     let viewing_key = ViewingKey::new(
         &env,
         msg.info
@@ -55,7 +44,53 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             .as_slice(),
     );
 
-    save_admin(deps, &msg.admin)?;
+    let mut messages = vec![];
+    // Set viewing key from IDO contract onto the sold token contract
+    // so that we can query the balance of the sold token transfered
+    // to the IDO contract
+    messages.push(snip20::set_viewing_key_msg(
+        viewing_key.to_string(),
+        None,
+        BLOCK_SIZE,
+        msg.info.sold_token.code_hash.clone(),
+        msg.info.sold_token.address.clone(),
+    )?);
+
+    match &msg.info.input_token {
+        TokenType::CustomToken {
+            contract_addr,
+            token_code_hash,
+        } => {
+            // Update the token decimals based on the custom token number of decimals
+            input_token_decimals = get_token_decimals(
+                &deps.querier,
+                ContractInstance {
+                    address: contract_addr.clone(),
+                    code_hash: token_code_hash.clone(),
+                },
+            )?;
+
+            // Set viewing key from IDO contract onto the custom input token
+            // so we can query the balance later
+            messages.push(snip20::set_viewing_key_msg(
+                viewing_key.to_string(),
+                None,
+                BLOCK_SIZE,
+                token_code_hash.clone(),
+                contract_addr.clone(),
+            )?);
+        }
+        _ => (),
+    };
+
+    // Execute the HandleMsg::RegisterIdo method of
+    // the factory contract in order to register this address
+    messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: msg.callback.contract.address,
+        callback_code_hash: msg.callback.contract.code_hash,
+        msg: msg.callback.msg,
+        send: vec![],
+    }));
 
     let start_time = msg.info.start_time.unwrap_or(env.block.time);
     let end_time = msg.info.end_time;
@@ -96,29 +131,11 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         viewing_key: viewing_key.clone(),
     };
 
+    save_admin(deps, &msg.admin)?;
     config.save(deps)?;
 
     Ok(InitResponse {
-        messages: vec![
-            // Set viewing key from IDO contract onto the sold token contract
-            // so that we can query the balance of the sold token transfered
-            // to the IDO contract
-            snip20::set_viewing_key_msg(
-                viewing_key.to_string(),
-                None,
-                BLOCK_SIZE,
-                config.sold_token.code_hash.clone(),
-                config.sold_token.address.clone(),
-            )?,
-            // Execute the HandleMsg::RegisterIdo method of
-            // the factory contract in order to register this address
-            CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: msg.callback.contract.address,
-                callback_code_hash: msg.callback.contract.code_hash,
-                msg: msg.callback.msg,
-                send: vec![],
-            }),
-        ],
+        messages,
         log: vec![],
     })
 }
@@ -131,7 +148,8 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     match msg {
         HandleMsg::Swap { amount } => swap(deps, env, amount),
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl),
-        HandleMsg::AdminRefund => refund(deps, env),
+        HandleMsg::AdminRefund { address } => refund(deps, env, address),
+        HandleMsg::AdminClaim { address } => claim(deps, env, address),
         HandleMsg::AdminStatus => get_status(deps, env),
         HandleMsg::AdminAddAddress { address } => add_address(deps, env, address),
     }
@@ -187,8 +205,11 @@ fn swap<S: Storage, A: Api, Q: Querier>(
 
     account.save(deps)?;
 
+    let output_address = env.message.sender.clone();
+
     swap_internal(
         env,
+        output_address,
         Some(amount),
         Uint128(mint_amount),
         config,
@@ -205,14 +226,23 @@ fn swap<S: Storage, A: Api, Q: Querier>(
 fn refund<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
+    address: Option<HumanAddr>,
 ) -> StdResult<HandleResponse> {
     let config = Config::<CanonicalAddr>::load_self(&deps)?;
     config.is_refundable(env.block.time)?;
 
-    let refund_amount = get_token_balance(&deps, &env, &config)?;
+    let refund_amount = get_token_balance(
+        &deps,
+        &env,
+        config.sold_token.code_hash.clone(),
+        config.sold_token.address.clone(),
+        config.viewing_key.to_string(),
+    )?;
+    let output_address = address.unwrap_or_else(|| env.message.sender.clone());
 
     swap_internal(
         env,
+        output_address,
         None,
         refund_amount,
         config,
@@ -221,6 +251,61 @@ fn refund<S: Storage, A: Api, Q: Querier>(
             log("refunded_amount", refund_amount),
         ],
     )
+}
+
+/// After the sale has ended, admin will claim any profits that were generated by the sale
+#[require_admin]
+fn claim<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    address: Option<HumanAddr>,
+) -> StdResult<HandleResponse> {
+    let config = Config::<CanonicalAddr>::load_self(&deps)?;
+    config.is_refundable(env.block.time)?;
+    let output_address = address.unwrap_or_else(|| env.message.sender.clone());
+    let balance = config.input_token.query_balance(
+        &deps.querier,
+        env.contract.address.clone(),
+        config.viewing_key.to_string(),
+    )?;
+
+    let mut messages = vec![];
+
+    match config.input_token {
+        TokenType::CustomToken {
+            contract_addr,
+            token_code_hash,
+        } => {
+            // Create message for sending the required amount to this contract
+            messages.push(snip20::transfer_from_msg(
+                env.contract.address,
+                output_address.clone(),
+                balance,
+                None,
+                BLOCK_SIZE,
+                token_code_hash,
+                contract_addr,
+            )?);
+        }
+        TokenType::NativeToken { denom } => messages.push(
+            BankMsg::Send {
+                from_address: env.contract.address,
+                to_address: output_address.clone(),
+                amount: vec![Coin::new(balance.u128(), &denom)],
+            }
+            .into(),
+        ),
+    }
+
+    Ok(HandleResponse {
+        messages,
+        log: vec![
+            log("action", "claim"),
+            log("claimed_amount", balance),
+            log("output_address", output_address),
+        ],
+        data: None,
+    })
 }
 
 /// Handle method that will return status
@@ -233,7 +318,13 @@ fn get_status<S: Storage, A: Api, Q: Querier>(
 
     let total_allocation =
         config.max_allocation * Decimal::from_str(&format!("{}", config.max_seats))?;
-    let available_for_sale = get_token_balance(&deps, &env, &config)?;
+    let available_for_sale = get_token_balance(
+        &deps,
+        &env,
+        config.sold_token.code_hash.clone(),
+        config.sold_token.address.clone(),
+        config.viewing_key.to_string(),
+    )?;
 
     Ok(HandleResponse {
         messages: vec![],
@@ -293,6 +384,7 @@ fn get_rate<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> QueryResu
 /// Performs internal swap of the amount
 fn swap_internal(
     env: Env,
+    output_address: HumanAddr,
     input_amount: Option<Uint128>,
     output_amount: Uint128,
     config: Config<HumanAddr>,
@@ -329,7 +421,7 @@ fn swap_internal(
 
     // Transfer the resulting amount to the sender
     messages.push(snip20::transfer_msg(
-        env.message.sender,
+        output_address.clone(),
         output_amount,
         None,
         BLOCK_SIZE,
@@ -359,15 +451,17 @@ fn get_token_decimals(
 fn get_token_balance<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     env: &Env,
-    config: &Config<HumanAddr>,
+    code_hash: CodeHash,
+    address: HumanAddr,
+    viewing_key: String,
 ) -> StdResult<Uint128> {
     let balance = snip20::balance_query(
         &deps.querier,
         env.contract.address.clone(),
-        config.viewing_key.to_string(),
+        viewing_key,
         BLOCK_SIZE,
-        config.sold_token.code_hash.clone(),
-        config.sold_token.address.clone(),
+        code_hash,
+        address,
     )?;
 
     Ok(balance.amount)
@@ -650,7 +744,7 @@ mod tests {
         let end_time = 1_571_797_500;
         let (mut deps, env) = init_contract(Some(start_time), Some(end_time));
 
-        let res = handle(&mut deps, env, HandleMsg::AdminRefund);
+        let res = handle(&mut deps, env, HandleMsg::AdminRefund { address: None });
 
         assert_eq!(
             res,
@@ -669,10 +763,51 @@ mod tests {
 
         env.block.time = env.block.time + 60;
 
-        let res = handle(&mut deps, env.clone(), HandleMsg::AdminRefund).unwrap();
+        let res = handle(
+            &mut deps,
+            env.clone(),
+            HandleMsg::AdminRefund { address: None },
+        )
+        .unwrap();
         let refunded_amount = &res.log[1].value;
 
         assert_eq!(refunded_amount, "2500");
+    }
+
+    #[test]
+    fn admin_attempt_claim_before_sale_end_gets_error() {
+        let start_time = 1_571_797_300;
+        let end_time = 1_571_797_500;
+        let (mut deps, env) = init_contract(Some(start_time), Some(end_time));
+
+        let res = handle(&mut deps, env, HandleMsg::AdminClaim { address: None });
+
+        assert_eq!(
+            res,
+            Err(StdError::generic_err(format!(
+                "Sale hasn\'t finished yet, come back in {} seconds",
+                end_time - BLOCK_TIME
+            )))
+        );
+    }
+
+    #[test]
+    fn admin_performs_claim_after_sale_end() {
+        let start_time = BLOCK_TIME;
+        let end_time = BLOCK_TIME + 1;
+        let (mut deps, mut env) = init_contract(Some(start_time), Some(end_time));
+
+        env.block.time = env.block.time + 60;
+
+        let res = handle(
+            &mut deps,
+            env.clone(),
+            HandleMsg::AdminClaim { address: None },
+        )
+        .unwrap();
+        let claimed_amount = &res.log[1].value;
+
+        assert_eq!(claimed_amount, "0");
     }
 
     #[test]

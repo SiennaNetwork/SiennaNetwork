@@ -5,7 +5,6 @@
     {
       "type": "string",
       "enum": [
-        "admin_refund",
         "admin_status"
       ]
     },
@@ -38,6 +37,54 @@
       "properties": {
         "admin": {
           "$ref": "#/definitions/AdminHandleMsg"
+        }
+      }
+    },
+    {
+      "description": "Ask for a refund after the sale is finished",
+      "type": "object",
+      "required": [
+        "admin_refund"
+      ],
+      "properties": {
+        "admin_refund": {
+          "type": "object",
+          "properties": {
+            "address": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Admin can claim profits from sale after the sale finishes",
+      "type": "object",
+      "required": [
+        "admin_claim"
+      ],
+      "properties": {
+        "admin_claim": {
+          "type": "object",
+          "properties": {
+            "address": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
         }
       }
     },

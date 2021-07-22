@@ -81,6 +81,7 @@
     "TokenSaleConfig": {
       "type": "object",
       "required": [
+        "end_time",
         "input_token",
         "max_allocation",
         "max_seats",
@@ -92,10 +93,7 @@
       "properties": {
         "end_time": {
           "description": "Time when the sale will end",
-          "type": [
-            "integer",
-            "null"
-          ],
+          "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },

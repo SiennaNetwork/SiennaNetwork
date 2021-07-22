@@ -334,8 +334,8 @@ describe("IDO", () => {
         label: `ido-${parseInt(Math.random() * 100000)}`,
         initMsg: getIDOInitMsg(
           context,
-          parseInt(new Date().valueOf() / 1000) - 120,
-          parseInt(new Date().valueOf() / 1000) - 60
+          parseInt(new Date().valueOf() / 1000),
+          parseInt(new Date().valueOf() / 1000) + 2
         ),
       })
     );
@@ -346,6 +346,7 @@ describe("IDO", () => {
     const buyer = context.agents[1];
 
     try {
+      await (new Promise(ok => setTimeout(ok, 10000)));
       await context.ido1.tx.swap({ amount: `${amount}` }, buyer, undefined, [
         { amount: `${amount}`, denom: "uscrt" },
       ]);
@@ -371,7 +372,7 @@ describe("IDO", () => {
     ]);
   });
 
-  it("Admin can refund amounts after the sale has ended", async function () {
+  it("Admin can refund and claim amounts after the sale has ended", async function () {
     this.timeout(0);
 
     context.ido1 = await context.agent.instantiate(
@@ -404,7 +405,7 @@ describe("IDO", () => {
 
     await new Promise((ok) => setTimeout(ok, 60000));
 
-    await context.ido.tx.admin_refund();
+    await context.ido.tx.admin_refund({ address: null });
 
     const balanceAfter = await context.sellingToken.balance(
       context.agent.address,
@@ -412,13 +413,22 @@ describe("IDO", () => {
     );
 
     assert.strictEqual(balanceAfter, "20");
+
+    const nativeBalanceBefore = await context.agent.balance;
+    await context.ido.tx.admin_claim({ address: null });
+    const nativeBalanceAfter = await context.agent.balance;
+
+    const approxBalance = Math.abs(parseInt((parseInt(nativeBalanceAfter) - parseInt(nativeBalanceBefore)) / 1_000_000));
+
+    // Approximate balance is 4-5 after dividing by 1mil because of the fees.
+    assert.strictEqual([4, 5].indexOf(approxBalance) != -1, true); 
   });
 
   it("Admin cannot refund before sale ends", async function () {
     this.timeout(0);
 
     try {
-      await context.ido.tx.admin_refund();
+      await context.ido.tx.admin_refund({ address: null });
     } catch (e) {
       assert.strictEqual(e.message.includes("Sale hasn't finished yet"), true);
     }

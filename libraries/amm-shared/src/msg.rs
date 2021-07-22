@@ -263,7 +263,9 @@ pub mod ido {
         /// Change admin handle
         Admin(AdminHandleMsg),
         /// Ask for a refund after the sale is finished
-        AdminRefund,
+        AdminRefund { address: Option<HumanAddr> },
+        /// Admin can claim profits from sale after the sale finishes
+        AdminClaim { address: Option<HumanAddr> },
         /// Get status of the amount already claimed
         AdminStatus,
         /// Add new address to whitelist
