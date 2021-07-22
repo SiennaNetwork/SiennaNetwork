@@ -64,7 +64,7 @@ function start () {
     const eligible: Array<User> = []
     for (const user of Object.values(users)) {
       user.update()
-      if (user.claimable > 0) eligible.push(user)
+      if (user.claimable > 0) eligible.push(user as User)
     }
 
     // perform random lock/retrieve from random account for random amount

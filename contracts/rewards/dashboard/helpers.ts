@@ -1,11 +1,12 @@
-import Gruvbox from './gruvbox'
-import { Pool, User } from './contract_base'
+// randomness helpers ------------------------------------------------------------------------------
 
 export const random = (max: number) =>
   Math.floor(Math.random()*max)
 
 export const pickRandom = (x: any) =>
   x[random(x.length)]
+
+// timing helpers ----------------------------------------------------------------------------------
 
 export function throttle (t: number, fn: Function) {
   // todo replacing t with a function allows for implementing exponential backoff
@@ -18,6 +19,8 @@ export function throttle (t: number, fn: Function) {
 export function after (t: number, fn: Function) {
   return setTimeout(fn, t) }
 
+// DOM helpers -------------------------------------------------------------------------------------
+
 export function h (element: string, attributes={}, ...content:any) {
   const el = Object.assign(document.createElement(element), attributes)
   for (const el2 of content) el.appendChild(el2)
@@ -26,27 +29,10 @@ export function h (element: string, attributes={}, ...content:any) {
 export function addTo (parent: HTMLElement, child: HTMLElement) {
   return parent.appendChild(child) }
 
-export const COLORS = Object.assign(
-  function getColor (pool: Pool, user: User) {
-    switch (true) {
-      case user.claimable > 0 && user.cooldown == 1: // have rewards to claim
-        return COLORS.READY
-      //case user.claimable > 0 && user.cooldown > 0: // just claimed, cooling down
-        //return COLORS.ALL_OK
-      case user.cooldown > 0:                       // waiting for age threshold
-        return COLORS.COOLDOWN
-      case user.claimable > pool.balance:           // not enough money in pool
-        return COLORS.BLOCKED 
-      case user.claimed > user.earned:              // crowded out
-        return COLORS.CROWDED
-      default:
-        return COLORS.DEFAULT
-    }
-  }, {
-    DEFAULT:  [Gruvbox.fadedAqua,   Gruvbox.light0],
-    READY:    [Gruvbox.brightAqua,  Gruvbox.brightAqua],
-    BLOCKED:  [Gruvbox.fadedOrange, Gruvbox.brightOrange],
-    CROWDED:  [Gruvbox.fadedPurple, Gruvbox.brightPurple],
-    COOLDOWN: [Gruvbox.fadedBlue,   Gruvbox.brightBlue],
-    ALL_OK:   [Gruvbox.fadedAqua,   Gruvbox.brightAqua]
-  })
+// convert from string to Utf8Array ----------------------------------------------------------------
+
+const enc = new TextEncoder()
+export const encode = (x: any) => enc.encode(JSON.stringify(x))
+
+const dec = new TextDecoder()
+export const decode = (x: any) => JSON.parse(dec.decode(x))

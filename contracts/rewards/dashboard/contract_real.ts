@@ -1,36 +1,26 @@
+import { encode, decode } from './helpers'
 import { UIContext } from './widgets'
 import { User, Pool } from './contract_base'
 import initRewards, {
-  Contract      as NativeRewards,
-  InitMsg       as NativeInitMsg,
-  QueryMsg      as NativeQueryMsg,
-  QueryResponse as NativeQueryResponse,
-  HandleMsg     as NativeHandleMsg,
+  Contract as NativeRewards,
+  InitMsg,
+  QueryMsg,
+  //QueryResponse,
+  HandleMsg,
   Env,
 } from '../target/web/rewards.js'
 
-// convert from string to Utf8Array ----------------------------------------------------------------
-const enc = new TextEncoder()
-const encode = (x: any) => enc.encode(JSON.stringify(x))
-const dec = new TextDecoder()
-const decode = (x: any) => JSON.parse(dec.decode(x))
-
 // wrapper classes on the js side too... -----------------------------------------------------------
 class Rewards extends NativeRewards {
-}
-class InitMsg extends NativeInitMsg {
-  constructor (msg: object) {
-    super(encode(JSON.stringify(msg)))
+  env: Env = new Env(BigInt(0))
+  init (msg: object) {
+    return decode(super.init(this.env, new InitMsg(encode(JSON.stringify(msg)))).json)
   }
-}
-class QueryMsg extends NativeQueryMsg {
-  constructor (msg: object) {
-    super(encode(JSON.stringify(msg)))
+  query (msg: object) {
+    return decode(super.query(new QueryMsg(encode(JSON.stringify(msg)))).json)
   }
-}
-class HandleMsg extends NativeHandleMsg {
-  constructor (msg: object) {
-    super(encode(JSON.stringify(msg)))
+  handle (msg: object) {
+    return decode(super.handle(this.env, new HandleMsg(encode(JSON.stringify(msg)))).json)
   }
 }
 
@@ -46,25 +36,23 @@ export default async function initReal () {
 
 export class RealPool extends Pool {
   contract: Rewards = new Rewards()
-  env:      Env     = new Env(BigInt(0))
   constructor (ui: UIContext) {
     super(ui)
-    console.debug('init rewards', decode(this.contract.init(this.env, new InitMsg({
+    console.debug('init rewards', this.contract.init({
       reward_token: { address: "", code_hash: "" },
       lp_token:     { address: "", code_hash: "" },
       viewing_key:  ""
-    })).json))
+    }))
   }
-  get info () {
-    return decode(this.contract.query(
-      new QueryMsg({ pool_info: { at: 0 } })
-    ).json)
+  get_info () {
+    return this.contract.query({ pool_info: { at: 0 } })
   }
   update () {
+    const info = this.get_info()
     this.balance     = 0 // TODO in contract
-    this.last_update = this.info.pool_last_update
-    this.lifetime    = this.info.pool_lifetime
-    this.locked      = this.info.pool_locked
+    this.last_update = info.pool_last_update
+    this.lifetime    = info.pool_lifetime
+    this.locked      = info.pool_locked
   }
 }
 
@@ -77,18 +65,18 @@ export class RealPool extends Pool {
 //})).json))
 
 export class RealUser extends User {
+
+  get contract () {
+    return (this.pool as RealPool).contract
+  }
+
   constructor (ui: UIContext, pool: Pool, name: string, balance: number) {
     super(ui, pool, name, balance)
-    const { contract, env } = this.pool as RealPool
-    console.debug('set user vk', decode(contract.handle(env,
-      new HandleMsg({ set_viewing_key: { key: "" } })
-    ).json))
+    console.debug('set user vk', this.contract.handle({ set_viewing_key: { key: "" } }))
   }
 
   update () {
-    const { contract } = this.pool as RealPool
-    const msg = new QueryMsg({user_info: { at: 0, address: "", key: "" }})
-    const info = decode(contract.query(msg))
+    const info = this.contract.query({user_info: { at: 0, address: "", key: "" }})
     this.last_update = info.user_last_update
     this.lifetime    = info.user_lifetime
     this.locked      = info.user_locked
@@ -100,16 +88,18 @@ export class RealUser extends User {
   }
 
   lock (amount: number) {
+    console.debug('lock', this.contract.handle({ lock: { amount: String(amount) } }))
     super.lock(amount)
   }
 
   retrieve (amount: number) {
-    if (this.locked < amount) return
+    console.debug('retrieve', this.contract.handle({ retrieve: { amount: String(amount) } }))
     super.retrieve(amount)
   }
 
   claim () {
     const reward = super.claim()
+    console.debug('claim', this.contract.handle({ claim: {} }))
     return reward
   }
 }
