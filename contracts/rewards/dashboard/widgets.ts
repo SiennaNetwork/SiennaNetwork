@@ -5,6 +5,15 @@ import { T, User, Users } from './contract_mock'
 export const NO_HISTORY = true
 export const NO_TABLE   = false
 
+// handles to dashboard components that can be passed into User/Pool objects -----------------------
+// normally we'd do this with events but this way is simpler
+export interface UIContext {
+  log:     Log
+  table:   Table
+  current: PieChart
+  stacked: StackedPieChart
+}
+
 // log of all modeled events -----------------------------------------------------------------------
 export class Log {
   root      = h('div', { className: 'history' })

@@ -628,9 +628,6 @@ dependencies = [
 [[package]]
 name = "fadroma-scrt-contract"
 version = "0.1.0"
-dependencies = [
- "wasm-bindgen",
-]
 
 [[package]]
 name = "fadroma-scrt-harness"
