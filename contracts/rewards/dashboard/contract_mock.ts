@@ -1,5 +1,6 @@
 import { COLORS } from './helpers'
-import { Table, Log, PieChart, StackedPieChart } from './widgets'
+import { UIContext, Table, Log, PieChart, StackedPieChart } from './widgets'
+import { Pool, User } from './contract_base'
 
 // settings ----------------------------------------------------------------------------------------
 const TIME_SCALE          = 30
@@ -14,7 +15,7 @@ const MAX_INITIAL         = 1000
 export const T = { T: 0 }
 
 // reward pool  ------------------------------------------------------------------------------------
-export class Pool {
+export class MockPool extends Pool {
 
   // in reward token
   interval    = FUND_INTERVAL
@@ -48,18 +49,8 @@ export class Pool {
   }
 }
 
-export interface UIContext {
-  log:     Log
-  table:   Table
-  current: PieChart
-  stacked: StackedPieChart
-}
-
-export class User {
-  log:     Log
-  table:   Table
-  current: PieChart
-  stacked: StackedPieChart
+export class MockUser extends User {
+  ui: UIContext
 
   pool:    Pool
   name:    string
@@ -78,13 +69,9 @@ export class User {
   last_claimed = 0
 
   constructor (ui: UIContext, pool: Pool, name: string, balance: number) {
-    this.pool = pool
-
-    this.log     = ui.log
-    this.table   = ui.table
-    this.current = ui.current
-    this.stacked = ui.stacked
-
+    super(ui, pool, name, balance)
+    this.ui      = ui
+    this.pool    = pool
     this.name    = name
     this.balance = balance
   }
@@ -97,9 +84,10 @@ export class User {
     this.last_update = T.T
     this.locked += amount
     this.pool.locked += amount
-    this.log.add('locks', this.name, amount)
-    this.current.add(this)
-    this.stacked.add(this)
+
+    this.ui.log.add('locks', this.name, amount)
+    this.ui.current.add(this)
+    this.ui.stacked.add(this)
   }
 
   retrieve (amount: number) {
@@ -107,9 +95,10 @@ export class User {
 
     this.last_update = T.T
     this.locked -= amount
-    this.log.add('retrieves', this.name, amount)
 
-    if (this.locked === 0) this.current.remove(this)
+    this.ui.log.add('retrieves', this.name, amount)
+
+    if (this.locked === 0) this.ui.current.remove(this)
   }
 
   claim () {
@@ -118,18 +107,18 @@ export class User {
     if (this.cooldown > 0) return
 
     if (this.claimed > this.earned) {
-      this.log.add('crowded out A', this.name, undefined)
+      this.ui.log.add('crowded out A', this.name, undefined)
       return
     }
 
     const reward = this.earned - this.claimed
 
     if (reward > this.pool.balance) {
-      this.log.add('crowded out B', this.name, undefined)
+      this.ui.log.add('crowded out B', this.name, undefined)
       return
     }
 
-    this.log.add('claim', this.name, reward)
+    this.ui.log.add('claim', this.name, reward)
     this.claimed = this.earned
     this.pool.balance -= reward
     this.cooldown = COOLDOWN
@@ -154,7 +143,7 @@ export class User {
       }
     }
 
-    this.table.update(this)
+    this.ui.table.update(this)
   }
 }
 
@@ -162,12 +151,12 @@ export type Users = Record<string, User>
 
 // entry point -------------------------------------------------------------------------------------
 export default function initMock (ui: UIContext) {
-  const pool = new Pool(ui.log)
+  const pool = new MockPool(ui.log)
   const users: Users = {}
   for (let i = 0; i < MAX_USERS; i++) {
     const name    = `User${i}`
     const balance = Math.floor(Math.random()*MAX_INITIAL)
-    users[name]   = new User(ui, pool, name, balance)
+    users[name]   = new MockUser(ui, pool, name, balance)
   }
   return {pool, users}
 }
