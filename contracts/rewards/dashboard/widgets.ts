@@ -1,5 +1,5 @@
 import { h, addTo } from './helpers'
-import { T, User, Users } from './contract_mock'
+import { T, User, Users } from './contract_base'
 
 // killswitches for gui components -----------------------------------------------------------------
 export const NO_HISTORY = true

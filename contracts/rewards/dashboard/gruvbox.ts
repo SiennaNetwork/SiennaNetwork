@@ -43,7 +43,7 @@ const fadedPurple = '#8f3f71'
 const fadedAqua = '#427b58'
 const fadedOrange = '#af3a03'
 
-export default {
+const Gruvbox = {
   dark0Hard,
   dark0Soft,
   dark0,
@@ -136,6 +136,8 @@ export default {
     orange: fadedOrange
   }
 }
+
+export default Gruvbox
 
 import { Pool, User } from './contract_base'
 export const COLORS = Object.assign(

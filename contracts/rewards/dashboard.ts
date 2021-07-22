@@ -1,8 +1,9 @@
 import './dashboard/style.css'
 import { Log, Table, PieChart, StackedPieChart } from './dashboard/widgets'
-import { T, User } from './dashboard/contract_mock'
+import { T, Users, MAX_USERS, MAX_INITIAL } from './dashboard/contract_base'
+import { RealPool as Pool, RealUser as User } from './dashboard/contract_real'
 import { random, pickRandom, throttle, after, addTo } from './dashboard/helpers'
-import initMock from './dashboard/contract_mock'
+//import initMock from './dashboard/contract_mock'
 import initReal from './dashboard/contract_real'
 
 // settings ----------------------------------------------------------------------------------------
@@ -17,15 +18,28 @@ const ui = {
 }
 
 // the rewards contract and its participants -------------------------------------------------------
-const {pool, users} = initMock(ui)
-initReal(ui)
-ui.table.init(users)
+//const {pool, users} = initMock(ui)
+let pool: Pool
+let users: Users = {}
+initReal().then(()=>{
+  pool = new Pool(ui)
 
-// start on click ----------------------------------------------------------------------------------
-document.body.onclick = () => {
-  start()
-  document.body.onclick = null
-}
+  // create a number of test users with random balances --------------------------------------------
+  for (let i = 0; i < MAX_USERS; i++) {
+    const name    = `User${i}`
+    const balance = Math.floor(Math.random()*MAX_INITIAL)
+    users[name]   = new User(ui, pool, name, balance)
+  }
+
+  // create dom elements for all users - then only update the content ------------------------------
+  ui.table.init(users)
+
+  // start on click --------------------------------------------------------------------------------
+  document.body.onclick = () => {
+    start()
+    document.body.onclick = null
+  }
+})
 
 function start () {
   // add components

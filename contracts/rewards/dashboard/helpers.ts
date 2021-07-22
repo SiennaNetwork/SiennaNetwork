@@ -1,5 +1,5 @@
 import Gruvbox from './gruvbox'
-import { Pool, User } from './contract_mock'
+import { Pool, User } from './contract_base'
 
 export const random = (max: number) =>
   Math.floor(Math.random()*max)
