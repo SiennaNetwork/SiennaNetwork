@@ -117,7 +117,7 @@ async function test_create_exchange(factory: FactoryContract, token_info: Contra
     'create_exchange',
     async () => { 
       let result = await factory.create_exchange(pair)
-      analytics.add_tx('Factory: Create Exchange', result)
+      analytics.add_tx(result.transactionHash, 'Factory: Create Exchange')
     }
   )
 
@@ -199,7 +199,7 @@ async function test_liquidity(exchange: ExchangeContract, sienna_token: Contract
       await sleep(SLEEP_TIME)
 
       const result = await exchange.provide_liquidity(token_amount)
-      analytics.add_tx('Exchange: Provide Liquidity', result)
+      analytics.add_tx(result.transactionHash, 'Exchange: Provide Liquidity')
 
       assert_equal(extract_log_value(result, 'share'), amount) //LP tokens
 
@@ -216,7 +216,7 @@ async function test_liquidity(exchange: ExchangeContract, sienna_token: Contract
     'withdraw_liquidity',
     async () => {
       const result = await exchange.withdraw_liquidity(amount, exchange.signing_client.senderAddress)
-      analytics.add_tx('Exchange: Withdraw Liquidity', result)
+      analytics.add_tx(result.transactionHash, 'Exchange: Withdraw Liquidity')
 
       assert_equal(extract_log_value(result, 'withdrawn_share'), amount)
       assert_equal(result.logs[0].events[1].attributes[0].value, exchange.signing_client.senderAddress)
@@ -282,7 +282,7 @@ async function test_swap(
       const result = await exchange_b.swap(offer_token)
       const balance_after = parseInt(await get_native_balance(client_b));
 
-      analytics.add_tx('Exchange: Native Swap', result)
+      analytics.add_tx(result.transactionHash, 'Exchange: Native Swap')
       
       assert(balance_before > balance_after) // TODO: calculate exact amount after adding gas parameters
 
@@ -315,7 +315,7 @@ async function test_swap(
       const swap_amount = '3000000'    
 
       const result = await exchange_b.swap(new TokenTypeAmount(pair.token_1, swap_amount))
-      analytics.add_tx('Exchange: SNIP20 Swap', result)
+      analytics.add_tx(result.transactionHash, 'Exchange: SNIP20 Swap')
 
       const native_balance_after = parseInt(await get_native_balance(client_b))
       const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
@@ -347,7 +347,7 @@ async function test_swap(
       const result = await exchange_b.swap(new TokenTypeAmount(pair.token_1, amount_to_swap.toString()), ACC_C.address)
       const recipient_balance_after = parseInt(await get_native_balance(client_b, ACC_C.address))
 
-      analytics.add_tx('Exchange: Swap With Burner', result)
+      analytics.add_tx(result.transactionHash, 'Exchange: Swap With Burner')
 
       const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
       const burner_balance = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
@@ -373,7 +373,7 @@ async function test_swap(
 
       const result = await exchange_b.swap(offer_token)
 
-      analytics.add_tx('Exchange: Native Swap With Burner', result)
+      analytics.add_tx(result.transactionHash, 'Exchange: Native Swap With Burner')
 
       const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
       const burner_balance_after = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
@@ -520,7 +520,7 @@ async function instantiate_sienna_token(client: SigningCosmWasmClient, snip20: C
 }
 
 async function display_analytics() {
-  const gas = await analytics.get_gas_usage()
+  const gas = await analytics.get_gas_report()
 
   const gas_table = [ [ 'TX Name', 'Gas Wanted', 'Gas Used' ] ]
   gas.forEach(x => gas_table.push([ x.name, x.gas_wanted, x.gas_used ]))
