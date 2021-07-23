@@ -26,8 +26,8 @@ class NamedTxResponse {
 }
 
 export class TxAnalytics {
-    private readonly outstanding = new Map<string, string>()
-    private readonly resolved = new Map<string, NamedTxResponse>()
+    private readonly outstanding = new Map<TxHash, string>()
+    private readonly resolved = new Map<TxHash, NamedTxResponse>()
     private readonly rest: RestClient
 
     constructor(apiUrl: string) {
@@ -52,7 +52,7 @@ export class TxAnalytics {
         });
     }
 
-    async get_gas_usage(hash: string): Promise<GasUsage> {
+    async get_gas_usage(hash: TxHash): Promise<GasUsage> {
         let resp = this.resolved.get(hash)
 
         if (resp === undefined) {
@@ -90,7 +90,7 @@ export class TxAnalytics {
         this.outstanding.clear()
     }
 
-    private async query_tx(hash: string): Promise<TxsResponse> {
+    private async query_tx(hash: TxHash): Promise<TxsResponse> {
         return await this.rest.get(`/txs/${hash}`) as TxsResponse
     }
 }
