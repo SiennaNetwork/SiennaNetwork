@@ -5,9 +5,15 @@
 //! which entitles them to an equal percent of the total rewards,
 //! which are distributed daily and the user can claim one per day.
 //!
-//! This lifetime share may diminish as a result of other users
-//! providing greater amounts of liquidity. This means users with
-//! low lifetime shares will be able to claim rewards less frequently.
+//! This lifetime share fluctuates as a result of the other users
+//! locking and unlocking amounts of funds for different amounts of time.
+//! If it remains constant or increases, users are guaranteed a new reward
+//! every day. If they fall behind, they may be able to claim rewards
+//! less frequently, and need to lock more tokens to restore their place
+//! in the queue.
+
+// Endgame mode: give exactly this many tokens to the contract to
+// pay out remaining rewards.
 
 #[cfg(browser)] #[macro_use] extern crate wasm_bindgen;
 #[cfg(test)] #[macro_use] extern crate kukumba;

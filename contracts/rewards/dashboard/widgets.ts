@@ -78,11 +78,11 @@ export class Table {
       h('th', { textContent: 'last_claimed' })
     ))
     for (const name of Object.keys(users)) {
-      this.addRow(name)
+      this.addRow(name, users[name])
     }
   }
 
-  addRow (name: string) {
+  addRow (name: string, user: User) {
     if (NO_TABLE) return
     const row = addTo(this.root, h('tr'))
     const rows = this.rows[name] = {
@@ -94,7 +94,7 @@ export class Table {
       share:        addTo(row, h('td')),
       earned:       addTo(row, h('td')),
       claimed:      addTo(row, h('td')),
-      claimable:    addTo(row, h('td')),
+      claimable:    addTo(row, h('td', { className: 'claimable', onclick: () => {user.claim()} })),
       cooldown:     addTo(row, h('td')),
       last_claimed: addTo(row, h('td'))
     }

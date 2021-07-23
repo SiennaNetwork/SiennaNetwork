@@ -144,12 +144,11 @@ export class RealUser extends User {
   claim () {
     this.contract.sender = this.address
     try {
-      this.contract.handle({ claim: {} })
       const reward = super.claim()
-      console.debug('claim', reward)
+      this.contract.handle({ claim: {} })
       return reward
     } catch (e) {
-      //console.error(e)
+      console.error(e)
       return 0
     }
   }

@@ -10,6 +10,7 @@ document.body.innerHTML = '<center>loading</center>'
 
 // settings ----------------------------------------------------------------------------------------
 const UPDATE_INTERVAL = 1
+const AUTO_CLAIM = false
 
 initReal().then(()=>{ // load then start on click --------------------------------------------------
   document.body.onclick = () => {
@@ -78,7 +79,7 @@ function start () {
     action(random(user.balance))
 
     // perform random claim ------------------------------------------------------------------------
-    if (eligible.length > 0) {
+    if (AUTO_CLAIM && eligible.length > 0) {
       const claimant = pickRandom(eligible)
       claimant.claim()
     }

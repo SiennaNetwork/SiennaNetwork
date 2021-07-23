@@ -67,6 +67,11 @@ td {
   padding: 0.25rem;
   text-align: center;
 }
+td.claimable:hover {
+  color: white !important;
+  cursor: pointer;
+  text-decoration: underline;
+}
 thead {
   background: #504945;
 }

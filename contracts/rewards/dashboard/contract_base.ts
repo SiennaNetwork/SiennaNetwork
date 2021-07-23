@@ -11,8 +11,8 @@ export const TIME_SCALE          = 60
            , COOLDOWN            = FUND_INTERVAL
            , THRESHOLD           = FUND_INTERVAL
            , USER_GIVES_UP_AFTER = Infinity
-           , MAX_USERS           = 20
-           , MAX_INITIAL         = 1000
+           , MAX_USERS           = 15
+           , MAX_INITIAL         = 10000
 
 // root of time (warning, singleton!) --------------------------------------------------------------
 export const T = { T: 0 }
@@ -88,9 +88,10 @@ export class User {
     if (this.locked === 0) this.ui.current.remove(this)
   }
   claim () {
+    console.debug('claim')
     if (this.locked === 0) return 0
 
-    if (this.cooldown > 0) return 0
+    if (this.cooldown > 0 || this.age < THRESHOLD) return 0
 
     if (this.claimed > this.earned) {
       this.ui.log.add('crowded out A', this.name, undefined)
@@ -105,6 +106,7 @@ export class User {
 
     this.pool.balance -= reward
     this.ui.log.add('claim', this.name, reward)
+    console.debug('claimed:', reward)
     return reward
   }
 
