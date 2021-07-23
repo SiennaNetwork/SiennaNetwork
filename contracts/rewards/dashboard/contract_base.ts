@@ -2,39 +2,53 @@ import { UIContext } from './widgets'
 import { COLORS } from './gruvbox'
 
 // settings ----------------------------------------------------------------------------------------
-export const TIME_SCALE          = 30
+export const TIME_SCALE          = 60
            , FUND_PORTIONS       = 120
            , FUND_PORTION        = 2500
            , FUND_INTERVAL       = 17280/TIME_SCALE
            , COOLDOWN            = FUND_INTERVAL
            , THRESHOLD           = FUND_INTERVAL
            , USER_GIVES_UP_AFTER = Infinity
-           , MAX_USERS           = 100
+           , MAX_USERS           = 20
            , MAX_INITIAL         = 1000
 
-// root of time ------------------------------------------------------------------------------------
+// root of time (warning, singleton!) --------------------------------------------------------------
 export const T = { T: 0 }
 
 class RPT {
   interval  = FUND_INTERVAL
   portion   = FUND_PORTION
   remaining = FUND_PORTIONS
+  vest () {
+    if (T.T % this.interval == 0) {
+      console.info('fund', this.portion, this.remaining)
+      if (this.remaining > 0) {
+        this.portion
+        this.remaining -= 1
+        return this.portion
+      }
+    }
+    return 0
+  }
 }
 
 export class Pool {
+  rpt = new RPT()
+
   ui:          UIContext
-  balance:     number = 0
   last_update: number = 0
   lifetime:    number = 0
   locked:      number = 0
-  remaining:   number = 0
+  balance:     number = this.rpt.vest()
+
   constructor (ui: UIContext) {
     this.ui = ui
   }
   update () {
+    this.balance += this.rpt.vest()
     this.ui.log.now.textContent       = `block ${T.T}`
     this.ui.log.balance.textContent   = `reward budget: ${this.balance.toFixed(3)}`
-    this.ui.log.remaining.textContent = `${this.remaining} days remaining`
+    this.ui.log.remaining.textContent = `${this.rpt.remaining} days remaining`
   }
 }
 

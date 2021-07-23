@@ -1,6 +1,6 @@
 import { encode, decode } from './helpers'
 import { UIContext } from './widgets'
-import { User, Pool } from './contract_base'
+import { T, User, Pool, THRESHOLD } from './contract_base'
 import initRewards, * as Bound from '../target/web/rewards.js'
 
 // wrapper classes on the js side too... -----------------------------------------------------------
@@ -28,6 +28,15 @@ class Rewards {
     const res = decode(this.contract.handle(encode(msg)))
     if (this.debug) console.debug(`<handle ${this.index}`, res)
     return res
+  }
+  set next_query_response (response: object) {
+    this.contract.next_query_response = encode(response)
+  }
+  set sender (address: string) {
+    this.contract.sender = encode(address)
+  }
+  set block (height: number) {
+    this.contract.block = BigInt(height)
   }
 }
 
@@ -57,15 +66,17 @@ export class RealPool extends Pool {
     this.contract.init({
       reward_token: { address: "", code_hash: "" },
       lp_token:     { address: "", code_hash: "" },
-      viewing_key:  ""
+      viewing_key:  "",
+      threshold:    THRESHOLD
     })
   }
   get_info () {
-    return this.contract.query({ pool_info: { at: 0 } })
   }
   update () {
-    const info = this.get_info()
-    this.balance     = 0 // TODO in contract
+    super.update()
+    this.contract.next_query_response = {balance:{amount:String(this.balance)}}
+    const info = this.contract.query({ pool_info: { at: T.T } }).pool_info
+    console.log(info)
     this.last_update = info.pool_last_update
     this.lifetime    = info.pool_lifetime
     this.locked      = info.pool_locked
@@ -89,8 +100,13 @@ export class RealUser extends User {
   }
 
   update () {
-    this.contract.contract.next_query_response = encode({balance:{amount:String(this.balance)}})
-    const info = this.contract.query({user_info: { at: 0, address: this.address, key: "" }}).user_info
+    // mock the user's balance - actually stored on this same object
+    // because we don't have a snip20 contract to maintain it
+    this.contract.next_query_response = {balance:{amount:String(this.balance)}}
+
+    // get the user's info as stored and calculated by the rewards contract
+    // presuming the above mock balance
+    const info = this.contract.query({user_info: { at: T.T, address: this.address, key: "" }}).user_info
     this.last_update = info.user_last_update
     this.lifetime    = Number(info.user_lifetime)
     this.locked      = Number(info.user_locked)
@@ -103,7 +119,7 @@ export class RealUser extends User {
   }
 
   lock (amount: number) {
-    this.contract.contract.sender = encode(this.address)
+    this.contract.sender = this.address
     try {
       console.debug('lock', amount, this.contract.handle({ lock: { amount: String(amount) } }))
       super.lock(amount)
@@ -113,7 +129,7 @@ export class RealUser extends User {
   }
 
   retrieve (amount: number) {
-    this.contract.contract.sender = encode(this.address)
+    this.contract.sender = this.address
     try {
       console.debug('retrieve', amount, this.contract.handle({ retrieve: { amount: String(amount) } }))
       super.retrieve(amount)
@@ -123,7 +139,7 @@ export class RealUser extends User {
   }
 
   claim () {
-    this.contract.contract.sender = encode(this.address)
+    this.contract.sender = this.address
     try {
       console.debug('claim', this.contract.handle({ claim: {} }))
       const reward = super.claim()

@@ -94,3 +94,14 @@ h1, h2, ol {
   /*bottom: 0;*/
   /*height: 20vh;*/
 /*}*/
+
+center {
+  grid-column-start: 1;
+  grid-column-end: 6;
+  grid-row-start: 1;
+  grid-row-end: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+}

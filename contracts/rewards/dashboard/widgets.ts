@@ -166,51 +166,48 @@ export class PieChart {
   }
 
   render () {
-    // extract needed datum from user list
-    // and sum the total
-    const values: Values = {}
-    let total: number = 0
-    for (const user of Object.values(this.users)) {
-      const value = (user as any)[this.field]
-      if (value) {
-        total += value
-        values[user.name] = value } }
-    if (total === 0) return
+    requestAnimationFrame(()=>{
+      // extract needed datum from user list
+      // and sum the total
+      const values: Values = {}
+      let total: number = 0
+      for (const user of Object.values(this.users)) {
+        const value = (user as any)[this.field]
+        if (value) {
+          total += value
+          values[user.name] = value } }
+      if (total === 0) return
 
-    // prepare canvas
-    const {width, height} = this.canvas
-    const context = this.canvas.getContext('2d') as CanvasRenderingContext2D;
+      // prepare canvas
+      const {width, height} = this.canvas
+      const context = this.canvas.getContext('2d') as CanvasRenderingContext2D;
 
-    // clear
-    context.fillStyle = '#282828'
-    context.fillRect(1, 1, width-2, height-2)
+      // clear
+      context.fillStyle = '#282828'
+      context.fillRect(1, 1, width-2, height-2)
 
-    // define center
-    const centerX = width  / 2
-    const centerY = height / 2
-    const radius  = centerX * 0.95
+      // define center
+      const centerX = width  / 2
+      const centerY = height / 2
+      const radius  = centerX * 0.95
 
-    // loop over segments
-    let start = 0
-    for (const name of Object.keys(this.users).sort()) {
-      const value = values[name]
-      if (value) {
-        const portion = value / total
-        const end     = start + (2*portion)
-        context.beginPath()
-        context.moveTo(centerX, centerY)
-        context.arc(centerX, centerY, radius, start * Math.PI, end * Math.PI)
-        const [fillStyle, _strokeStyle] = this.users[name].colors()
-        context.fillStyle = fillStyle
-        context.lineWidth = 0.25
-        context.strokeStyle = '#000'//rgba(255,255,255,0.5)'
-        context.fill()
-        context.stroke()
-        start = end
-      }
-    }
-  }
-}
+      // loop over segments
+      let start = 0
+      for (const name of Object.keys(this.users).sort()) {
+        const value = values[name]
+        if (value) {
+          const portion = value / total
+          const end     = start + (2*portion)
+          context.beginPath()
+          context.moveTo(centerX, centerY)
+          context.arc(centerX, centerY, radius, start * Math.PI, end * Math.PI)
+          const [fillStyle, _strokeStyle] = this.users[name].colors()
+          context.fillStyle = fillStyle
+          context.lineWidth = 0.25
+          context.strokeStyle = '#000'//rgba(255,255,255,0.5)'
+          context.fill()
+          context.stroke()
+          start = end } } }) } }
 
 export class StackedPieChart {
   root:   HTMLElement;
@@ -233,46 +230,46 @@ export class StackedPieChart {
     this.render() }
 
   render () {
-    // extract needed datum from user list
-    // and sum the total
-    let total: number = 0
-    for (const user of Object.values(this.users)) {
-      total += user.lifetime
-    }
-    if (total === 0) return
+    requestAnimationFrame(()=>{
+      // extract needed datum from user list
+      // and sum the total
+      let total: number = 0
+      for (const user of Object.values(this.users)) {
+        total += user.lifetime
+      }
+      if (total === 0) return
 
-    // prepare canvas
-    const {width, height} = this.canvas
-    const context = this.canvas.getContext('2d') as CanvasRenderingContext2D;
+      // prepare canvas
+      const {width, height} = this.canvas
+      const context = this.canvas.getContext('2d') as CanvasRenderingContext2D;
 
-    // clear
-    context.fillStyle = '#282828'
-    context.fillRect(1, 1, width-2, height-2)
+      // clear
+      context.fillStyle = '#282828'
+      context.fillRect(1, 1, width-2, height-2)
 
-    // define center
-    const centerX = width  / 2
-    const centerY = height / 2
-    const radius  = centerX * 0.95
+      // define center
+      const centerX = width  / 2
+      const centerY = height / 2
+      const radius  = centerX * 0.95
 
-    // loop over segments
-    let start = 0
-    for (const name of Object.keys(this.users).sort()) {
-      const user = this.users[name]
-      if (user.lifetime === 0) continue
-      const portion = user.lifetime / total
-      const end     = start + (2*portion)
-      context.beginPath()
-      context.moveTo(centerX, centerY)
-      context.arc(centerX, centerY, radius, start * Math.PI, end * Math.PI)
-      const [fillStyle, _strokeStyle] = user.colors()
-      context.fillStyle = fillStyle
-      context.strokeStyle = 'rgba(255,255,255,0.5)'
-      //context.strokeStyle = fillStyle//strokeStyle
-      context.lineWidth = 0.25
-      context.strokeStyle = '#000'//rgba(255,255,255,0.5)'
-      context.fill()
-      context.stroke()
-      start = end
-    }
-  }
+      // loop over segments
+      let start = 0
+      for (const name of Object.keys(this.users).sort()) {
+        const user = this.users[name]
+        if (user.lifetime === 0) continue
+        const portion = user.lifetime / total
+        const end     = start + (2*portion)
+        context.beginPath()
+        context.moveTo(centerX, centerY)
+        context.arc(centerX, centerY, radius, start * Math.PI, end * Math.PI)
+        const [fillStyle, _strokeStyle] = user.colors()
+        context.fillStyle = fillStyle
+        context.strokeStyle = 'rgba(255,255,255,0.5)'
+        //context.strokeStyle = fillStyle//strokeStyle
+        context.lineWidth = 0.25
+        context.strokeStyle = '#000'//rgba(255,255,255,0.5)'
+        context.fill()
+        context.stroke()
+        start = end } }) }
+
 }

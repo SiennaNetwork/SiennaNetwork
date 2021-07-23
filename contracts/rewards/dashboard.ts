@@ -6,46 +6,46 @@ import { random, pickRandom, throttle, after, addTo } from './dashboard/helpers'
 //import initMock from './dashboard/contract_mock'
 import initReal from './dashboard/contract_real'
 
+document.body.innerHTML = '<center>loading</center>'
+
 // settings ----------------------------------------------------------------------------------------
 const UPDATE_INTERVAL = 1
 
-// dashboard components ----------------------------------------------------------------------------
-const ui = {
-  log:     new Log(),
-  table:   new Table(),
-  current: new PieChart('Current amounts locked',  'locked'),
-  stacked: new StackedPieChart()
-}
+initReal().then(()=>{ // load then start on click --------------------------------------------------
+  document.body.onclick = () => {
+    document.body.innerHTML = ''
+    document.body.onclick = null
+    start()
+  }
+  document.body.innerHTML = '<center>click to start</center>'
+})
 
-// the rewards contract and its participants -------------------------------------------------------
-//const {pool, users} = initMock(ui)
-let pool: Pool
-let users: Users = {}
-initReal().then(()=>{
-  pool = new Pool(ui)
+function start () {
 
-  // create a number of test users with random balances --------------------------------------------
+  // create the dashboard --------------------------------------------------------------------------
+  const ui = {
+    log:     new Log(),
+    table:   new Table(),
+    current: new PieChart('Current amounts locked',  'locked'),
+    stacked: new StackedPieChart()
+  }
+
+  // create a pool and some of test users with random balances -------------------------------------
+  const pool = new Pool(ui)
+  const users: Users = {}
   for (let i = 0; i < MAX_USERS; i++) {
     const name    = `User${i}`
     const balance = Math.floor(Math.random()*MAX_INITIAL)
     users[name]   = new User(ui, pool, name, balance)
   }
 
-  // create dom elements for all users - then only update the content ------------------------------
-  ui.table.init(users)
-
-  // start on click --------------------------------------------------------------------------------
-  document.body.onclick = () => {
-    start()
-    document.body.onclick = null
-  }
-})
-
-function start () {
   // add components --------------------------------------------------------------------------------
   for (const el of Object.values(ui)) {
     addTo(document.body, el.root)
   }
+
+  // create dom elements for all users - then only update the content ------------------------------
+  ui.table.init(users)
 
   // add resize handler ----------------------------------------------------------------------------
   resize()
@@ -56,6 +56,7 @@ function start () {
   function update () {
     // advance time --------------------------------------------------------------------------------
     T.T++
+    pool.contract.block = T.T
 
     // periodically fund pool and increment its lifetime -------------------------------------------
     pool.update()

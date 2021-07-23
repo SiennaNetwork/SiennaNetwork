@@ -12,28 +12,9 @@ const MAX_INITIAL         = 1000
 
 // reward pool  ------------------------------------------------------------------------------------
 export class MockPool extends Pool {
-
-  // in reward token
-  interval    = FUND_INTERVAL
-  portion     = 2500
-  remaining   = 120
-  balance     = this.portion
-
-  // in lp token
-  last_update = 0
-  lifetime    = 0
-  locked      = 0
-
   update () {
     super.update()
     this.lifetime += this.locked
-    if (T.T % this.interval == 0) {
-      console.info('fund', this.portion, this.remaining)
-      if (this.remaining > 0) {
-        this.balance += this.portion
-        this.remaining -= 1
-      }
-    }
   }
 }
 
