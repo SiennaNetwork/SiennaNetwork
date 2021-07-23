@@ -167,9 +167,8 @@ stateful!(User (pool.storage):
 
         pub fn age (&self) -> StdResult<Time> {
             let existed = self.last_age()?;
-            let balance = self.locked()?;
             // if user is currently providing liquidity,
-            if balance > Amount::zero() {
+            if self.locked()? > Amount::zero() {
                 // the time since last update is added to the stored age to get the up-to-date age
                 Ok(existed + self.elapsed()?) }
             else { Ok(existed) } }
@@ -223,11 +222,6 @@ stateful!(User (pool.storage):
             let pool = self.pool.lifetime()?;
             if pool == Volume::zero() {
                 return Ok((Amount::zero(), Amount::zero(), Amount::zero())) }
-            // you must lock for this long to claim
-            let age       = self.age()?;
-            let threshold = self.pool.threshold()?;
-            if age < threshold {
-                return Ok((Amount::zero(), Amount::zero(), Amount::zero())) }
             // compute the unlocked reward
             // as a portion of the total reward `balance`
             // optionally diminished by the global `ratio`
@@ -240,6 +234,9 @@ stateful!(User (pool.storage):
             // if already claimed this much or more...
             // stake more tokens next time?
             if unlocked <= claimed {
+                return Ok((unlocked, claimed, Amount::zero())) }
+            // you must lock for this long to claim
+            if self.age()? < self.pool.threshold()? {
                 return Ok((unlocked, claimed, Amount::zero())) }
             // if there is something more to claim, let em know
             Ok((unlocked, claimed, (unlocked - claimed)?)) }
@@ -261,6 +258,10 @@ stateful!(User (pool.storage):
             let address = self.address.clone();
             self.save_ns(USER_EXISTED,  address.as_slice(), self.age()?) }
 
+        fn reset_age (&mut self) -> StdResult<&mut Self> {
+            let address = self.address.clone();
+            self.save_ns(USER_EXISTED,  address.as_slice(), 0u64) }
+
         fn update_locked (&mut self, locked: Amount) -> StdResult<&mut Self> {
             let address = self.address.clone();
             self.save_ns(USER_LOCKED,   address.as_slice(), locked) }
@@ -268,9 +269,9 @@ stateful!(User (pool.storage):
         pub fn lock_tokens (&mut self, increment: Amount) -> StdResult<Amount> {
             let new_user_balance = self.locked()? + increment;
             let new_pool_balance = self.pool.locked()? + increment.into();
-            self.update_timestamp()? // Set user's time of last update to now
-                .update_lifetime()?  // Store the user's lifetime liquidity until now
+            self.update_lifetime()?  // Store the user's lifetime liquidity until now
                 .update_age()?       // If already providing liquidity, increases age
+                .update_timestamp()? // Set user's time of last update to now
                 .update_locked(new_user_balance)? // Increment locked of user
                 .pool.update_locked(new_pool_balance)?; // Update pool
             // Return the amount to be transferred from the user to the contract
@@ -300,7 +301,8 @@ stateful!(User (pool.storage):
             if claimable > Amount::zero() {
                 // If there is some new reward amount to claim:
                 let address = self.address.clone();
-                self.save_ns(USER_CLAIMED, address.as_slice(), &unlocked)?;
+                self.save_ns(USER_CLAIMED, address.as_slice(), &unlocked)?
+                    .reset_age()?;
                 Ok(claimable) }
             else if unlocked > Amount::zero() {
                 // If this user has claimed all its rewards so far:
