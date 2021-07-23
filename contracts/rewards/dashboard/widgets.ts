@@ -1,5 +1,5 @@
 import { h, addTo } from './helpers'
-import { T, User, Users } from './contract_base'
+import { T, User, Users, DIGITS } from './contract_base'
 
 // killswitches for gui components -----------------------------------------------------------------
 export const NO_HISTORY = true
@@ -116,15 +116,16 @@ export class Table {
     this.rows[user.name].age.textContent =
       String(user.age)
     this.rows[user.name].earned.textContent =
-      user.earned.toFixed(3)
+      (user.earned/DIGITS).toFixed(3)
     this.rows[user.name].claimed.textContent =
-      user.claimed.toFixed(3)
+      (user.claimed/DIGITS).toFixed(3)
     this.rows[user.name].claimable.textContent =
-      user.claimable.toFixed(3)
-    const [fill, _stroke] = user.colors()[0]
+      (user.claimable/DIGITS).toFixed(3)
+    const [fill, stroke] = user.colors()
     this.rows[user.name].claimable.style.backgroundColor =
       fill
-    //table.rows[user.name].claimable.style.color           = stroke
+    this.rows[user.name].claimable.style.color =
+      stroke
     //table.rows[user.name].waited.textContent = user.age === 0 ? '' : (100*user.waited/user.age).toFixed(1) + '%'
     this.rows[user.name].cooldown.textContent =
       String(user.cooldown)

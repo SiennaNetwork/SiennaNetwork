@@ -72,7 +72,7 @@ function start () {
     const user   = pickRandom(Object.values(users))
     const action = pickRandom([
       (amount:number)=>user.lock(amount),
-      (amount:number)=>user.retrieve(amount)
+      //(amount:number)=>user.retrieve(amount)
     ])
 
     action(random(user.balance))

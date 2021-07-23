@@ -4,7 +4,8 @@ import { COLORS } from './gruvbox'
 // settings ----------------------------------------------------------------------------------------
 export const TIME_SCALE          = 60
            , FUND_PORTIONS       = 120
-           , FUND_PORTION        = 2500
+           , DIGITS              = 1000
+           , FUND_PORTION        = 2500 * DIGITS
            , FUND_INTERVAL       = 17280/TIME_SCALE
            , COOLDOWN            = FUND_INTERVAL
            , THRESHOLD           = FUND_INTERVAL
@@ -48,7 +49,7 @@ export class Pool {
     this.balance += this.rpt.vest()
     this.ui.log.now.textContent       = `block ${T.T}`
     this.ui.log.balance.textContent   = `reward budget: ${this.balance.toFixed(3)}`
-    this.ui.log.remaining.textContent = `${this.rpt.remaining} days remaining`
+    this.ui.log.remaining.textContent = `${this.rpt.remaining} days of ${this.rpt.interval} blocks remaining (timescale 1:${TIME_SCALE})`
   }
 }
 
@@ -101,8 +102,8 @@ export class User {
       return 0
     }
 
+    this.pool.balance -= reward
     this.ui.log.add('claim', this.name, reward)
-
     return reward
   }
 

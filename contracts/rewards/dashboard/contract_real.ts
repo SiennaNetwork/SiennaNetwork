@@ -10,6 +10,7 @@ class Rewards {
   debug = false
   init (msg: object) {
     this.index += 1
+    this.block = T.T
     if (this.debug) console.debug(`init> ${this.index}`, msg)
     const res = decode(this.contract.init(encode(msg)))
     if (this.debug) console.debug(`<init ${this.index}`, res)
@@ -17,6 +18,7 @@ class Rewards {
   }
   query (msg: object) {
     this.index += 1
+    this.block = T.T
     if (this.debug) console.debug(`query> ${this.index}`, msg)
     const res = decode(this.contract.query(encode(msg)))
     if (this.debug) console.debug(`<query ${this.index}`, res)
@@ -24,6 +26,7 @@ class Rewards {
   }
   handle (msg: object) {
     this.index += 1
+    this.block = T.T
     if (this.debug) console.debug(`handle> ${this.index}`, msg)
     const res = decode(this.contract.handle(encode(msg)))
     if (this.debug) console.debug(`<handle ${this.index}`, res)
@@ -70,12 +73,10 @@ export class RealPool extends Pool {
       threshold:    THRESHOLD
     })
   }
-  get_info () {
-  }
   update () {
     super.update()
     this.contract.next_query_response = {balance:{amount:String(this.balance)}}
-    const info = this.contract.query({ pool_info: { at: T.T } }).pool_info
+    const info = this.contract.query({pool_info:{at:T.T}}).pool_info
     console.log(info)
     this.last_update = info.pool_last_update
     this.lifetime    = info.pool_lifetime
