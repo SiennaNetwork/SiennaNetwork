@@ -1,3 +1,14 @@
+//! Since there is a limited amount of rewards for each day,
+//! they need to be distributed among the top liquidity providers.
+//!
+//! By locking funds, the user starts accruing a lifetime share of the pool
+//! which entitles them to an equal percent of the total rewards,
+//! which are distributed daily and the user can claim one per day.
+//!
+//! This lifetime share may diminish as a result of other users
+//! providing greater amounts of liquidity. This means users with
+//! low lifetime shares will be able to claim rewards less frequently.
+
 #[cfg(browser)] #[macro_use] extern crate wasm_bindgen;
 #[cfg(test)] #[macro_use] extern crate kukumba;
 #[cfg(any(test, browser))] mod rewards_harness;

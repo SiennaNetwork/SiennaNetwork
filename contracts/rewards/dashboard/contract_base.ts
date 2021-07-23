@@ -3,8 +3,9 @@ import { COLORS } from './gruvbox'
 
 // settings ----------------------------------------------------------------------------------------
 export const TIME_SCALE          = 60
-           , FUND_PORTIONS       = 120
-           , DIGITS              = 1000
+           , FUND_PORTIONS       = 7
+           , DIGITS              = 1000000
+           , DIGITS_INV          = Math.log10(DIGITS)
            , FUND_PORTION        = 2500 * DIGITS
            , FUND_INTERVAL       = 17280/TIME_SCALE
            , COOLDOWN            = FUND_INTERVAL

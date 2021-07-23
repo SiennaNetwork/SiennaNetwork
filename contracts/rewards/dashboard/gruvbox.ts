@@ -146,21 +146,23 @@ export const COLORS = Object.assign(
       case user.age < THRESHOLD:                       // waiting for age threshold
         return COLORS.COOLDOWN
       case user.claimable > 0 && user.cooldown == 1: // have rewards to claim
-        return COLORS.READY
+        return COLORS.CLAIMING
       //case user.claimable > 0 && user.cooldown > 0: // just claimed, cooling down
         //return COLORS.ALL_OK
       case user.claimable > pool.balance:           // not enough money in pool
         return COLORS.BLOCKED 
       case user.claimed > user.earned:              // crowded out
         return COLORS.CROWDED
+      case user.claimable === 0:
+        return COLORS.NOTHING
       default:
-        return COLORS.DEFAULT
+        return COLORS.CLAIMABLE
     }
   }, {
-    DEFAULT:  [Gruvbox.fadedAqua,   Gruvbox.light0],
-    READY:    [Gruvbox.brightAqua,  Gruvbox.brightAqua],
-    BLOCKED:  [Gruvbox.fadedOrange, Gruvbox.brightOrange],
-    CROWDED:  [Gruvbox.fadedPurple, Gruvbox.brightPurple],
-    COOLDOWN: [Gruvbox.fadedBlue,   Gruvbox.brightBlue],
-    ALL_OK:   [Gruvbox.fadedAqua,   Gruvbox.brightAqua]
+    CLAIMABLE: [Gruvbox.fadedAqua,   Gruvbox.brightAqua],
+    CLAIMING:  [Gruvbox.brightAqua,  Gruvbox.brightAqua],
+    BLOCKED:   [Gruvbox.fadedOrange, Gruvbox.brightOrange],
+    CROWDED:   [Gruvbox.fadedPurple, Gruvbox.brightPurple],
+    COOLDOWN:  [Gruvbox.fadedBlue,   Gruvbox.brightBlue],
+    NOTHING:   [Gruvbox.dark0,       Gruvbox.brightYellow]
   })

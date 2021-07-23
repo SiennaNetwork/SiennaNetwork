@@ -11,25 +11,25 @@ class Rewards {
   init (msg: object) {
     this.index += 1
     this.block = T.T
-    if (this.debug) console.debug(`init> ${this.index}`, msg)
+    //if (this.debug) console.debug(`init> ${this.index}`, msg)
     const res = decode(this.contract.init(encode(msg)))
-    if (this.debug) console.debug(`<init ${this.index}`, res)
+    //if (this.debug) console.debug(`<init ${this.index}`, res)
     return res
   }
   query (msg: object) {
     this.index += 1
     this.block = T.T
-    if (this.debug) console.debug(`query> ${this.index}`, msg)
+    //if (this.debug) console.debug(`query> ${this.index}`, msg)
     const res = decode(this.contract.query(encode(msg)))
-    if (this.debug) console.debug(`<query ${this.index}`, res)
+    //if (this.debug) console.debug(`<query ${this.index}`, res)
     return res
   }
   handle (msg: object) {
     this.index += 1
     this.block = T.T
-    if (this.debug) console.debug(`handle> ${this.index}`, msg)
+    //if (this.debug) console.debug(`handle> ${this.index}`, msg)
     const res = decode(this.contract.handle(encode(msg)))
-    if (this.debug) console.debug(`<handle ${this.index}`, res)
+    //if (this.debug) console.debug(`<handle ${this.index}`, res)
     return res
   }
   set next_query_response (response: object) {
@@ -77,7 +77,7 @@ export class RealPool extends Pool {
     super.update()
     this.contract.next_query_response = {balance:{amount:String(this.balance)}}
     const info = this.contract.query({pool_info:{at:T.T}}).pool_info
-    console.log(info)
+    //console.log(info)
     this.last_update = info.pool_last_update
     this.lifetime    = info.pool_lifetime
     this.locked      = info.pool_locked
@@ -122,31 +122,34 @@ export class RealUser extends User {
   lock (amount: number) {
     this.contract.sender = this.address
     try {
-      console.debug('lock', amount, this.contract.handle({ lock: { amount: String(amount) } }))
+      //console.debug('lock', amount)
+      this.contract.handle({ lock: { amount: String(amount) } })
       super.lock(amount)
     } catch (e) {
-      console.error(e)
+      //console.error(e)
     }
   }
 
   retrieve (amount: number) {
     this.contract.sender = this.address
     try {
-      console.debug('retrieve', amount, this.contract.handle({ retrieve: { amount: String(amount) } }))
+      //console.debug('retrieve', amount)
+      this.contract.handle({ retrieve: { amount: String(amount) } })
       super.retrieve(amount)
     } catch (e) {
-      console.error(e)
+      //console.error(e)
     }
   }
 
   claim () {
     this.contract.sender = this.address
     try {
-      console.debug('claim', this.contract.handle({ claim: {} }))
+      this.contract.handle({ claim: {} })
       const reward = super.claim()
+      console.debug('claim', reward)
       return reward
     } catch (e) {
-      console.error(e)
+      //console.error(e)
       return 0
     }
   }

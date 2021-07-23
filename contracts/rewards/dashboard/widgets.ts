@@ -1,5 +1,5 @@
 import { h, addTo } from './helpers'
-import { T, User, Users, DIGITS } from './contract_base'
+import { T, User, Users, DIGITS, DIGITS_INV } from './contract_base'
 
 // killswitches for gui components -----------------------------------------------------------------
 export const NO_HISTORY = true
@@ -116,11 +116,11 @@ export class Table {
     this.rows[user.name].age.textContent =
       String(user.age)
     this.rows[user.name].earned.textContent =
-      (user.earned/DIGITS).toFixed(3)
+      (user.earned/DIGITS).toFixed(DIGITS_INV)
     this.rows[user.name].claimed.textContent =
-      (user.claimed/DIGITS).toFixed(3)
+      (user.claimed/DIGITS).toFixed(DIGITS_INV)
     this.rows[user.name].claimable.textContent =
-      (user.claimable/DIGITS).toFixed(3)
+      (user.claimable/DIGITS).toFixed(DIGITS_INV)
     const [fill, stroke] = user.colors()
     this.rows[user.name].claimable.style.backgroundColor =
       fill
@@ -202,10 +202,11 @@ export class PieChart {
           context.beginPath()
           context.moveTo(centerX, centerY)
           context.arc(centerX, centerY, radius, start * Math.PI, end * Math.PI)
-          const [fillStyle, _strokeStyle] = this.users[name].colors()
+          //context.moveTo(centerX, centerY)
+          const [fillStyle, strokeStyle] = this.users[name].colors()
           context.fillStyle = fillStyle
-          context.lineWidth = 0.25
-          context.strokeStyle = '#000'//rgba(255,255,255,0.5)'
+          context.lineWidth = 0.8
+          context.strokeStyle = strokeStyle// '#000'//rgba(255,255,255,0.5)'
           context.fill()
           context.stroke()
           start = end } } }) } }
@@ -263,12 +264,12 @@ export class StackedPieChart {
         context.beginPath()
         context.moveTo(centerX, centerY)
         context.arc(centerX, centerY, radius, start * Math.PI, end * Math.PI)
-        const [fillStyle, _strokeStyle] = user.colors()
+        //context.moveTo(centerX, centerY)
+        const [fillStyle, strokeStyle] = user.colors()
         context.fillStyle = fillStyle
-        context.strokeStyle = 'rgba(255,255,255,0.5)'
+        context.strokeStyle = strokeStyle//'#000'//'rgba(255,255,255,0.5)'
         //context.strokeStyle = fillStyle//strokeStyle
-        context.lineWidth = 0.25
-        context.strokeStyle = '#000'//rgba(255,255,255,0.5)'
+        context.lineWidth = 0.8
         context.fill()
         context.stroke()
         start = end } }) }
