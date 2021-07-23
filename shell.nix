@@ -12,6 +12,7 @@
     rustup
     wabt
     yarn
+    wasm-pack
   ];
   shellHook = ''
     export PS1='\n\e[0;35msɪᴇɴɴᴀ ⬢ \w\e[0m '

@@ -30,22 +30,28 @@ h1 {
 }
 h2 {
   font-weight: normal;
+  text-align: right;
+  margin-bottom: 1rem;
 }
 
 .pie, .history {
-  flex-grow: 1;
-  flex-shrink: 1;
-  flex-basis: 100%;
+  /*flex-grow: 1;*/
+  /*flex-shrink: 1;*/
+  /*flex-basis: 100%;*/
 }
 
 .pie {
   text-align: left;
-  padding: 1rem;
 }
-
-.pie canvas {
-  margin: 1rem 0;
+.pie.stacked {
+  grid-column-start: 2;
+  grid-column-end: 5;
 }
+  .pie h1 {
+    margin: 1em 1em 0 1em;
+  }
+  .pie canvas {
+  }
 
 table {
   grid-row-start: 2;
@@ -72,6 +78,7 @@ th {
   grid-column-start: 5;
   padding: 1em;
   background: #3c3836;
+  overflow: auto;
 }
 
 h1, h2, ol {

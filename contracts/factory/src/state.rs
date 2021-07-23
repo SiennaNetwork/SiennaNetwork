@@ -6,7 +6,7 @@ use amm_shared::{
         cosmwasm_std::{
             Api, Binary, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage,
         },
-        storage::{load, save},
+        storage::{load, ns_load, ns_remove, ns_save, save},
     },
     msg::factory::InitMsg,
     Pagination, TokenPair, TokenType,
@@ -16,9 +16,13 @@ use std::usize;
 
 const CONFIG_KEY: &[u8] = b"config";
 const PRNG_KEY: &[u8] = b"prng_seed";
-const IDO_PREFIX: &[u8; 1] = b"I";
 const IDO_COUNT_KEY: &[u8] = b"ido_count";
-const EXCHANGES_KEY: &[u8] = b"exchanges";
+const EXCHANGE_COUNT_KEY: &[u8] = b"exchange_count";
+
+const NS_IDO_WHITELIST: &[u8] = b"ido_whitelist";
+const NS_IDOS: &[u8] = b"idos";
+const NS_EXCHANGES: &[u8] = b"exchanges";
+const NS_EXCHANGE_ADDR: &[u8] = b"exchange_addr";
 
 pub const PAGINATION_LIMIT: u8 = 30;
 
@@ -99,32 +103,40 @@ pub(crate) fn pair_exists<S: Storage, A: Api, Q: Querier>(
     pair: &TokenPair<HumanAddr>,
 ) -> StdResult<bool> {
     let key = generate_pair_key(&pair.canonize(&deps.api)?);
-    Ok(deps.storage.get(&key).is_some())
-}
+    let result: Option<CanonicalAddr> = ns_load(&deps.storage, NS_EXCHANGE_ADDR, &key)?;
 
-/// Stores information about an exchange contract. Returns an `StdError` if the exchange
-/// already exists or if something else goes wrong.
-pub(crate) fn store_exchange<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    exchange: Exchange<HumanAddr>,
-) -> StdResult<()> {
-    let mut exchanges = load_exchanges(&deps.storage)?;
-
-    store_exchange_impl(deps, exchange, &mut exchanges)?;
-    save_exchanges(&mut deps.storage, &exchanges)
+    Ok(result.is_some())
 }
 
 pub(crate) fn store_exchanges<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     exchanges: Vec<Exchange<HumanAddr>>,
 ) -> StdResult<()> {
-    let mut list = load_exchanges(&deps.storage)?;
+    let mut count = load_exchange_count(&deps.storage)?;
 
     for exchange in exchanges {
-        store_exchange_impl(deps, exchange, &mut list)?;
+        let exchange = exchange.canonize(&deps.api)?;
+        let key = generate_pair_key(&exchange.pair);
+
+        let result: Option<CanonicalAddr> = ns_load(&deps.storage, NS_EXCHANGE_ADDR, &key)?;
+        if result.is_some() {
+            return Err(StdError::generic_err(format!(
+                "Exchange ({}) already exists",
+                exchange.pair
+            )));
+        }
+        ns_save(&mut deps.storage, NS_EXCHANGE_ADDR, &key, &exchange.address)?;
+        ns_save(
+            &mut deps.storage,
+            NS_EXCHANGES,
+            count.to_string().as_bytes(),
+            &exchange,
+        )?;
+
+        count += 1;
     }
 
-    save_exchanges(&mut deps.storage, &list)
+    save_exchange_count(&mut deps.storage, count)
 }
 
 /// Get the address of an exchange contract which manages the given pair.
@@ -134,20 +146,10 @@ pub(crate) fn get_address_for_pair<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HumanAddr> {
     let key = generate_pair_key(&pair.canonize(&deps.api)?);
 
-    let canonical = load(&deps.storage, &key)?
+    let canonical = ns_load(&deps.storage, NS_EXCHANGE_ADDR, &key)?
         .ok_or_else(|| StdError::generic_err("Address doesn't exist in storage."))?;
 
     deps.api.human_address(&canonical)
-}
-
-pub(crate) fn store_ido_address<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    address: &HumanAddr,
-) -> StdResult<()> {
-    let mut count = load_ido_count(&deps.storage)?;
-
-    store_ido_address_impl(deps, address, &mut count)?;
-    save_ido_count(&mut deps.storage, count)
 }
 
 pub(crate) fn store_ido_addresses<S: Storage, A: Api, Q: Querier>(
@@ -156,8 +158,16 @@ pub(crate) fn store_ido_addresses<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<()> {
     let mut count = load_ido_count(&deps.storage)?;
 
-    for addr in addresses {
-        store_ido_address_impl(deps, &addr, &mut count)?;
+    for address in addresses {
+        let address = deps.api.canonical_address(&address)?;
+        ns_save(
+            &mut deps.storage,
+            NS_IDOS,
+            count.to_string().as_bytes(),
+            &address,
+        )?;
+
+        count += 1;
     }
 
     save_ido_count(&mut deps.storage, count)
@@ -167,20 +177,19 @@ pub(crate) fn get_idos<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     pagination: Pagination,
 ) -> StdResult<Vec<HumanAddr>> {
-    let ido_count = load_ido_count(&deps.storage)?;
+    let count = load_ido_count(&deps.storage)?;
 
-    if pagination.start >= ido_count {
+    if pagination.start >= count {
         return Ok(vec![]);
     }
 
     let limit = pagination.limit.min(PAGINATION_LIMIT);
-    let end = (pagination.start + limit as u64).min(ido_count);
+    let end = (pagination.start + limit as u64).min(count);
 
     let mut result = Vec::with_capacity((end - pagination.start) as usize);
 
     for i in pagination.start..end {
-        let index = generate_ido_index(i);
-        let addr: CanonicalAddr = load(&deps.storage, index.as_slice())?
+        let addr: CanonicalAddr = ns_load(&deps.storage, NS_IDOS, i.to_string().as_bytes())?
             .ok_or_else(|| StdError::generic_err("IDO address doesn't exist in storage."))?;
 
         let human_addr = deps.api.human_address(&addr)?;
@@ -194,30 +203,66 @@ pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     pagination: Pagination,
 ) -> StdResult<Vec<Exchange<HumanAddr>>> {
-    let mut exchanges = load_exchanges(&deps.storage)?;
+    let count = load_exchange_count(&deps.storage)?;
 
-    if pagination.start as usize >= exchanges.len() {
+    if pagination.start >= count {
         return Ok(vec![]);
     }
 
     let limit = pagination.limit.min(PAGINATION_LIMIT);
-    let end = (pagination.start + limit as u64).min(exchanges.len() as u64);
+    let end = (pagination.start + limit as u64).min(count);
 
     let mut result = Vec::with_capacity((end - pagination.start) as usize);
 
-    let exchanges = exchanges
-        .drain((pagination.start as usize)..(end as usize))
-        .collect::<Vec<Exchange<CanonicalAddr>>>();
-    for exchange in exchanges {
-        result.push(exchange.humanize(&deps.api)?)
+    for i in pagination.start..end {
+        let exchange: Exchange<CanonicalAddr> =
+            ns_load(&deps.storage, NS_EXCHANGES, i.to_string().as_bytes())?
+                .ok_or_else(|| StdError::generic_err("Exchange doesn't exist in storage."))?;
+
+        result.push(exchange.humanize(&deps.api)?);
     }
 
     Ok(result)
 }
 
-#[inline]
-pub(crate) fn load_exchanges(storage: &impl Storage) -> StdResult<Vec<Exchange<CanonicalAddr>>> {
-    Ok(load(storage, EXCHANGES_KEY)?.unwrap_or(vec![]))
+pub(crate) fn ido_whitelist_add<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    addresses: Vec<HumanAddr>,
+) -> StdResult<()> {
+    for address in addresses {
+        let address = deps.api.canonical_address(&address)?;
+        ns_save(
+            &mut deps.storage,
+            NS_IDO_WHITELIST,
+            address.as_slice(),
+            &1u8,
+        )?;
+    }
+
+    Ok(())
+}
+
+pub(crate) fn ido_whitelist_remove<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    address: &HumanAddr,
+) -> StdResult<()> {
+    let address = deps.api.canonical_address(address)?;
+
+    Ok(ns_remove(
+        &mut deps.storage,
+        NS_IDO_WHITELIST,
+        address.as_slice(),
+    ))
+}
+
+pub(crate) fn is_ido_whitelisted<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    address: &HumanAddr,
+) -> StdResult<bool> {
+    let address = deps.api.canonical_address(address)?;
+    let result: Option<u8> = ns_load(&deps.storage, NS_IDO_WHITELIST, address.as_slice())?;
+
+    Ok(result.is_some())
 }
 
 pub(crate) fn generate_pair_key(pair: &TokenPair<CanonicalAddr>) -> Vec<u8> {
@@ -238,56 +283,6 @@ pub(crate) fn generate_pair_key(pair: &TokenPair<CanonicalAddr>) -> Vec<u8> {
     bytes.concat()
 }
 
-fn store_exchange_impl<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    exchange: Exchange<HumanAddr>,
-    exchanges: &mut Vec<Exchange<CanonicalAddr>>,
-) -> StdResult<()> {
-    let exchange = exchange.canonize(&deps.api)?;
-    let key = generate_pair_key(&exchange.pair);
-
-    if deps.storage.get(&key).is_some() {
-        return Err(StdError::generic_err(format!(
-            "Exchange ({}) already exists",
-            exchange.pair
-        )));
-    }
-
-    save(&mut deps.storage, &key, &exchange.address)?;
-
-    if exchanges.iter().any(|e| e.address == exchange.address) {
-        return Err(StdError::generic_err(format!(
-            "Exchange address ({}) already exists",
-            exchange.address
-        )));
-    }
-
-    exchanges.push(exchange);
-
-    Ok(())
-}
-
-fn store_ido_address_impl<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    address: &HumanAddr,
-    count: &mut u64,
-) -> StdResult<()> {
-    let address = deps.api.canonical_address(&address)?;
-    let index = generate_ido_index(*count);
-
-    *count += 1;
-
-    save(&mut deps.storage, index.as_slice(), &address)
-}
-
-#[inline]
-fn save_exchanges(
-    storage: &mut impl Storage,
-    exchanges: &Vec<Exchange<CanonicalAddr>>,
-) -> StdResult<()> {
-    save(storage, EXCHANGES_KEY, exchanges)
-}
-
 #[inline]
 fn load_ido_count(storage: &impl Storage) -> StdResult<u64> {
     Ok(load(storage, IDO_COUNT_KEY)?.unwrap_or(0))
@@ -299,6 +294,11 @@ fn save_ido_count(storage: &mut impl Storage, count: u64) -> StdResult<()> {
 }
 
 #[inline]
-fn generate_ido_index(index: u64) -> Vec<u8> {
-    [IDO_PREFIX, index.to_string().as_bytes()].concat()
+fn load_exchange_count(storage: &impl Storage) -> StdResult<u64> {
+    Ok(load(storage, EXCHANGE_COUNT_KEY)?.unwrap_or(0))
+}
+
+#[inline]
+fn save_exchange_count(storage: &mut impl Storage, count: u64) -> StdResult<()> {
+    save(storage, EXCHANGE_COUNT_KEY, &count)
 }

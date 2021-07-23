@@ -24,9 +24,9 @@ use amm_shared::{
 use amm_shared::admin::require_admin;
 
 use crate::state::{
-    get_address_for_pair, get_exchanges, get_idos, load_config, load_prng_seed, pair_exists,
-    save_config, save_prng_seed, store_exchange, store_exchanges, store_ido_address,
-    store_ido_addresses, Config,
+    get_address_for_pair, get_exchanges, get_idos, ido_whitelist_add, ido_whitelist_remove,
+    is_ido_whitelisted, load_config, load_prng_seed, pair_exists, save_config, save_prng_seed,
+    store_exchanges, store_ido_addresses, Config,
 };
 use fadroma_scrt_migrate::{get_status, with_status};
 
@@ -56,6 +56,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         env,
         match msg {
             HandleMsg::SetConfig { .. } => set_config(deps, env, msg),
+            HandleMsg::IdoWhitelist { addresses } => ido_whitelist(deps, env, addresses),
             HandleMsg::CreateExchange { pair } => create_exchange(deps, env, pair),
             HandleMsg::CreateIdo { info } => create_ido(deps, env, info),
             HandleMsg::RegisterIdo { signature } => register_ido(deps, env, signature),
@@ -218,18 +219,17 @@ fn register_exchange<S: Storage, A: Api, Q: Querier>(
     ensure_correct_signature(&mut deps.storage, signature)?;
 
     let exchange = Exchange {
-        pair: pair.clone(),
+        pair,
         address: env.message.sender.clone(),
     };
 
-    store_exchange(deps, exchange)?;
+    store_exchanges(deps, vec![exchange])?;
 
     Ok(HandleResponse {
         messages: vec![],
         log: vec![
             log("action", "register_exchange"),
             log("address", env.message.sender),
-            log("pair", pair),
         ],
         data: None,
     })
@@ -249,6 +249,13 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
     env: Env,
     info: TokenSaleConfig,
 ) -> StdResult<HandleResponse> {
+    if !is_ido_whitelisted(deps, &env.message.sender)? {
+        return Err(StdError::unauthorized());
+    }
+
+    // Remove to allow only 1 IDO created
+    ido_whitelist_remove(deps, &env.message.sender)?;
+
     let signature = create_signature(&env)?;
     save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
     // Again, creating the IDO happens when the instantiated contract calls
@@ -289,7 +296,7 @@ fn register_ido<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     ensure_correct_signature(&mut deps.storage, signature)?;
 
-    store_ido_address(deps, &env.message.sender)?;
+    store_ido_addresses(deps, vec![env.message.sender.clone()])?;
 
     Ok(HandleResponse {
         messages: vec![],
@@ -297,6 +304,21 @@ fn register_ido<S: Storage, A: Api, Q: Querier>(
             log("action", "register_ido"),
             log("address", env.message.sender),
         ],
+        data: None,
+    })
+}
+
+#[require_admin]
+fn ido_whitelist<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    addresses: Vec<HumanAddr>,
+) -> StdResult<HandleResponse> {
+    ido_whitelist_add(deps, addresses)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![log("action", "ido_whitelist")],
         data: None,
     })
 }

@@ -9,7 +9,8 @@ use amm_shared::snip20_impl as composable_snip20;
 
 use composable_snip20::msg::{HandleMsg, InitMsg, QueryMsg};
 use composable_snip20::{
-    snip20_handle, snip20_init, snip20_query, Snip20, SymbolValidation,
+    snip20_handle, snip20_init, snip20_query,
+    Snip20, SymbolValidation, batch
 };
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
@@ -59,6 +60,15 @@ impl Snip20 for LpTokenImpl {
         _owner: HumanAddr,
         _amount: Uint128,
         _memo: Option<String>,
+    ) -> StdResult<HandleResponse> {
+        Err(StdError::generic_err("This method has been disabled."))
+    }
+
+    fn batch_burn_from<S: Storage, A: Api, Q: Querier>(
+        &self,
+        _deps: &mut Extern<S, A, Q>,
+        _env: Env,
+        _actions: Vec<batch::BurnFromAction>
     ) -> StdResult<HandleResponse> {
         Err(StdError::generic_err("This method has been disabled."))
     }

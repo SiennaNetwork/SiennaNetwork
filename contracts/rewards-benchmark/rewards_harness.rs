@@ -220,7 +220,7 @@ impl Snip20 {
             lp_token:         None,
             pool_last_update: $updated as u64,
             pool_lifetime:    Volume::zero($lifetime as u128),
-            pool_balance:     Amount::from($balance  as u128),
+            pool_locked:      Amount::from($balance  as u128),
         });
     };
 
@@ -234,7 +234,7 @@ impl Snip20 {
             lp_token:         $T.lp_token(),
             pool_last_update: $updated as u64,
             pool_lifetime:    Volume::from($lifetime as u128),
-            pool_balance:     Amount::from($locked  as u128),
+            pool_locked:      Amount::from($locked  as u128),
         });
     };
 
@@ -242,25 +242,25 @@ impl Snip20 {
         age:       $age:expr,
         locked:    $locked:expr,
         lifetime:  $lifetime:expr,
-        unlocked:  $unlocked:expr,
+        earned:    $earned:expr,
         claimed:   $claimed:expr,
         claimable: $claimable:expr
     }) => {
         match $T.q_user_info($now as u64, &$who)? {
             Response::UserInfo {
                 it_is_now,
-                /*user_last_update,*/ user_lifetime, user_balance,
-                user_age, user_unlocked, user_claimed, user_claimable, ..
+                /*user_last_update,*/ user_lifetime, user_locked,
+                user_age, user_earned, user_claimed, user_claimable, ..
             } => {
                 assert_eq!(it_is_now,        $now as u64);
                 // ignore pool fields
                 //assert_eq!(user_last_update, $updated as u64);
-                assert_eq!(user_lifetime,    Volume::from($lifetime  as u128));
-                assert_eq!(user_balance,     Amount::from($locked   as u128));
-                assert_eq!(user_age,         $age as u64);
-                assert_eq!(user_unlocked,    Amount::from($unlocked  as u128));
-                assert_eq!(user_claimed,     Amount::from($claimed   as u128));
-                assert_eq!(user_claimable,   Amount::from($claimable as u128));
+                assert_eq!(user_lifetime,  Volume::from($lifetime  as u128));
+                assert_eq!(user_locked,    Amount::from($locked   as u128));
+                assert_eq!(user_age,       $age as u64);
+                assert_eq!(user_earned,    Amount::from($earned  as u128));
+                assert_eq!(user_claimed,   Amount::from($claimed   as u128));
+                assert_eq!(user_claimable, Amount::from($claimable as u128));
             }
             _ => unreachable!()
         }

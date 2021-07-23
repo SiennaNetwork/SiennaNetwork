@@ -2,16 +2,17 @@ pub use amm_shared::{
     exchange::{Exchange, ExchangeSettings, Fee},
     fadroma::scrt::{
         addr::Canonize,
-        callback::ContractInstantiationInfo,
+        callback::{ContractInstance, ContractInstantiationInfo},
         cosmwasm_std::{
             from_binary,
             testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage},
             to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr, Querier, StdError,
-            StdResult, Storage,
+            StdResult, Storage, Uint128,
         },
         storage::{load, save},
     },
     msg::factory::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
+    msg::ido::TokenSaleConfig,
     Pagination, TokenPair, TokenType,
 };
 
@@ -375,7 +376,7 @@ mod test_contract {
             });
         }
 
-        store_exchange(deps, exchanges[0].clone()).unwrap();
+        store_exchanges(deps, vec![exchanges[0].clone()]).unwrap();
 
         let result = handle(
             deps,
@@ -427,7 +428,7 @@ mod test_contract {
             idos.push(format!("ido_addr_{}", i).into());
         }
 
-        store_ido_address(deps, &idos[0]).unwrap();
+        store_ido_addresses(deps, vec![idos[0].clone()]).unwrap();
 
         let result = handle(
             deps,
@@ -464,6 +465,74 @@ mod test_contract {
             _ => panic!("QueryResponse::ListIdos"),
         }
     }
+
+    #[test]
+    fn test_ido_whitelist() {
+        let ref mut deps = mkdeps();
+        let admin = "admin";
+
+        let env = mkenv(admin);
+        let config = mkconfig(0);
+
+        init(deps, env.clone(), (&config).into()).unwrap();
+
+        let ido_creator = HumanAddr::from("ido_creator");
+
+        let result = handle(
+            deps,
+            mkenv("rando"),
+            HandleMsg::IdoWhitelist {
+                addresses: vec![ido_creator.clone()],
+            },
+        );
+        assert_unauthorized(result);
+
+        handle(
+            deps,
+            mkenv(admin),
+            HandleMsg::IdoWhitelist {
+                addresses: vec![ido_creator.clone()],
+            },
+        )
+        .unwrap();
+
+        let sale_config = TokenSaleConfig {
+            input_token: TokenType::NativeToken {
+                denom: "whatever".into(),
+            },
+            rate: Uint128(100),
+            sold_token: ContractInstance {
+                address: "token".into(),
+                code_hash: "token_code_hash".into(),
+            },
+            whitelist: vec![],
+            max_allocation: Uint128(100),
+            max_seats: 20,
+            min_allocation: Uint128(10),
+            prng_seed: None,
+            entropy: None,
+            start_time: None,
+            end_time: 1_571_797_419 + 60,
+        };
+
+        let result = handle(
+            deps,
+            mkenv("rando"),
+            HandleMsg::CreateIdo {
+                info: sale_config.clone(),
+            },
+        );
+        assert_unauthorized(result);
+
+        handle(
+            deps,
+            mkenv(ido_creator.clone()),
+            HandleMsg::CreateIdo { info: sale_config },
+        )
+        .unwrap();
+
+        assert!(!is_ido_whitelisted(deps, &ido_creator).unwrap())
+    }
 }
 
 mod test_state {
@@ -472,35 +541,6 @@ mod test_state {
     fn swap_pair<A: Clone>(pair: &TokenPair<A>) -> TokenPair<A> {
         TokenPair(pair.1.clone(), pair.0.clone())
     }
-
-    /*
-    fn mock_config() -> Config<HumanAddr> {
-        Config::from_init_msg(InitMsg {
-            snip20_contract: ContractInstantiationInfo {
-                id: 1,
-                code_hash: "snip20_contract".into()
-            },
-            lp_token_contract: ContractInstantiationInfo {
-                id: 2,
-                code_hash: "lp_token_contract".into()
-            },
-            ido_contract: ContractInstantiationInfo {
-                id: 3,
-                code_hash: "ido_contract".into()
-            },
-            pair_contract: ContractInstantiationInfo {
-                id: 4,
-                code_hash: "pair_contract".into()
-            },
-            exchange_settings: ExchangeSettings {
-                swap_fee: Fee::new(28, 10000),
-                sienna_fee: Fee::new(2, 10000),
-                sienna_burner: None
-            },
-            admin: None
-        })
-    }
-    */
 
     #[test]
     fn generates_the_same_key_for_swapped_pairs() -> StdResult<()> {
@@ -582,12 +622,12 @@ mod test_state {
 
         let address = HumanAddr("ctrct_addr".into());
 
-        store_exchange(
+        store_exchanges(
             &mut deps,
-            Exchange {
+            vec![Exchange {
                 pair: pair.clone(),
                 address: address.clone(),
-            },
+            }],
         )?;
 
         let retrieved_address = get_address_for_pair(&deps, &pair)?;
@@ -612,22 +652,22 @@ mod test_state {
             },
         );
 
-        store_exchange(
+        store_exchanges(
             deps,
-            Exchange {
+            vec![Exchange {
                 pair: pair.clone(),
                 address: "first_addr".into(),
-            },
+            }],
         )?;
 
         let swapped = swap_pair(&pair);
 
-        match store_exchange(
+        match store_exchanges(
             deps,
-            Exchange {
+            vec![Exchange {
                 pair: swapped,
                 address: "other_addr".into(),
-            },
+            }],
         ) {
             Ok(_) => Err(StdError::generic_err("Exchange already exists")),
             Err(_) => Ok(()),
@@ -642,7 +682,7 @@ mod test_state {
         for i in 0..33 {
             let addr = HumanAddr::from(format!("addr_{}", i));
 
-            store_ido_address(deps, &addr)?;
+            store_ido_addresses(deps, vec![addr.clone()])?;
             addresses.push(addr);
         }
 
@@ -684,7 +724,7 @@ mod test_state {
 
             let exchange = Exchange { pair, address };
 
-            store_exchange(deps, exchange.clone())?;
+            store_exchanges(deps, vec![exchange.clone()])?;
             exchanges.push(exchange);
         }
 

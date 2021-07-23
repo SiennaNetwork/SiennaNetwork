@@ -11,9 +11,10 @@ import {
   execute_test, execute_test_expect, assert_objects_equal, assert,
   assert_equal, assert_not_equal, extract_log_value, print_object
 } from './utils/test_helpers.js'
-import { upload_amm, build_client, UploadResult, create_rand_base64 } from './setup.js'
+import { upload_amm, build_client, create_rand_base64 } from './setup.js'
 import { NullJsonFileWriter } from './utils/json_file_writer.js'
 import { TxAnalytics } from './utils/tx_analytics.js'
+import { APIURL, ACC, instantiate_factory, get_exchange_settings } from './localnet.js'
 import { SigningCosmWasmClient, Account } from 'secretjs'
 import { Sha256, Random } from "@iov/crypto"
 import { Buffer } from 'buffer'
@@ -21,17 +22,6 @@ import { table } from 'table';
 
 import.meta.url
 
-interface LocalAccount {
-  name: string,
-  type: string,
-  address: string,
-  pubkey: string,
-  mnemonic: string
-}
-
-const APIURL = 'http://localhost:1337'
-
-const ACC: LocalAccount[] = JSON.parse(process.argv[2])
 const ACC_A = ACC[0]
 const ACC_B = ACC[1]
 const ACC_C = ACC[2]
@@ -127,7 +117,7 @@ async function test_create_exchange(factory: FactoryContract, token_info: Contra
     'create_exchange',
     async () => { 
       let result = await factory.create_exchange(pair)
-      analytics.add_tx('Factory: Create Exchange', result)
+      analytics.add_tx(result.transactionHash, 'Factory: Create Exchange')
     }
   )
 
@@ -209,7 +199,7 @@ async function test_liquidity(exchange: ExchangeContract, sienna_token: Contract
       await sleep(SLEEP_TIME)
 
       const result = await exchange.provide_liquidity(token_amount)
-      analytics.add_tx('Exchange: Provide Liquidity', result)
+      analytics.add_tx(result.transactionHash, 'Exchange: Provide Liquidity')
 
       assert_equal(extract_log_value(result, 'share'), amount) //LP tokens
 
@@ -226,7 +216,7 @@ async function test_liquidity(exchange: ExchangeContract, sienna_token: Contract
     'withdraw_liquidity',
     async () => {
       const result = await exchange.withdraw_liquidity(amount, exchange.signing_client.senderAddress)
-      analytics.add_tx('Exchange: Withdraw Liquidity', result)
+      analytics.add_tx(result.transactionHash, 'Exchange: Withdraw Liquidity')
 
       assert_equal(extract_log_value(result, 'withdrawn_share'), amount)
       assert_equal(result.logs[0].events[1].attributes[0].value, exchange.signing_client.senderAddress)
@@ -292,7 +282,7 @@ async function test_swap(
       const result = await exchange_b.swap(offer_token)
       const balance_after = parseInt(await get_native_balance(client_b));
 
-      analytics.add_tx('Exchange: Native Swap', result)
+      analytics.add_tx(result.transactionHash, 'Exchange: Native Swap')
       
       assert(balance_before > balance_after) // TODO: calculate exact amount after adding gas parameters
 
@@ -325,7 +315,7 @@ async function test_swap(
       const swap_amount = '3000000'    
 
       const result = await exchange_b.swap(new TokenTypeAmount(pair.token_1, swap_amount))
-      analytics.add_tx('Exchange: SNIP20 Swap', result)
+      analytics.add_tx(result.transactionHash, 'Exchange: SNIP20 Swap')
 
       const native_balance_after = parseInt(await get_native_balance(client_b))
       const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
@@ -357,7 +347,7 @@ async function test_swap(
       const result = await exchange_b.swap(new TokenTypeAmount(pair.token_1, amount_to_swap.toString()), ACC_C.address)
       const recipient_balance_after = parseInt(await get_native_balance(client_b, ACC_C.address))
 
-      analytics.add_tx('Exchange: Swap With Burner', result)
+      analytics.add_tx(result.transactionHash, 'Exchange: Swap With Burner')
 
       const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
       const burner_balance = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
@@ -383,7 +373,7 @@ async function test_swap(
 
       const result = await exchange_b.swap(offer_token)
 
-      analytics.add_tx('Exchange: Native Swap With Burner', result)
+      analytics.add_tx(result.transactionHash, 'Exchange: Native Swap With Burner')
 
       const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
       const burner_balance_after = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
@@ -502,28 +492,6 @@ function create_viewing_key(): ViewingKey {
   return Buffer.from(key).toString('base64')
 }
 
-async function instantiate_factory(client: SigningCosmWasmClient, result: UploadResult): Promise<FactoryContract> {
-  const factory_init_msg = {
-    snip20_contract: result.snip20,
-    lp_token_contract: result.lp_token,
-    pair_contract: result.exchange,
-    ido_contract: result.ido,
-    exchange_settings: get_exchange_settings(),
-    prng_seed: create_rand_base64()
-  }
-
-  const factory_instance = await client.instantiate(
-    result.factory.id,
-    factory_init_msg,
-    'SIENNA AMM FACTORY',
-    undefined,
-    undefined,
-    create_fee('200000')
-  )
-
-  return new FactoryContract(factory_instance.contractAddress, client)
-}
-
 async function instantiate_sienna_token(client: SigningCosmWasmClient, snip20: ContractInstantiationInfo): Promise<ContractInfo> {
   const init_msg = {
     name: 'sienna',
@@ -552,26 +520,12 @@ async function instantiate_sienna_token(client: SigningCosmWasmClient, snip20: C
 }
 
 async function display_analytics() {
-  const gas = await analytics.get_gas_usage()
+  const gas = await analytics.get_gas_report()
 
   const gas_table = [ [ 'TX Name', 'Gas Wanted', 'Gas Used' ] ]
   gas.forEach(x => gas_table.push([ x.name, x.gas_wanted, x.gas_used ]))
 
   console.log(`\n Gas Usage:\n${table(gas_table)}`)
-}
-
-function get_exchange_settings(): ExchangeSettings {
-  return {
-    swap_fee: {
-      nom: 28,
-      denom: 1000
-    },
-    sienna_fee: {
-        nom: 2,
-        denom: 10000
-    },
-    sienna_burner: undefined
-  }
 }
 
 run_tests().catch(console.log)
