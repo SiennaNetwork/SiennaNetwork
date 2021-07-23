@@ -255,9 +255,9 @@ impl Snip20 {
                 assert_eq!(it_is_now,        $now as u64);
                 // ignore pool fields
                 //assert_eq!(user_last_update, $updated as u64);
-                assert_eq!(user_lifetime,  Volume::from($lifetime  as u128));
-                assert_eq!(user_locked,    Amount::from($locked   as u128));
                 assert_eq!(user_age,       $age as u64);
+                assert_eq!(user_locked,    Amount::from($locked   as u128));
+                assert_eq!(user_lifetime,  Volume::from($lifetime  as u128));
                 assert_eq!(user_earned,    Amount::from($earned  as u128));
                 assert_eq!(user_claimed,   Amount::from($claimed   as u128));
                 assert_eq!(user_claimable, Amount::from($claimable as u128));

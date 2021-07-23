@@ -32,7 +32,7 @@ export function addTo (parent: HTMLElement, child: HTMLElement) {
 // convert from string to Utf8Array ----------------------------------------------------------------
 
 const enc = new TextEncoder()
-export const encode = (x: any) => enc.encode(JSON.stringify(x))
+export const encode = (x: object) => enc.encode(JSON.stringify(x))
 
 const dec = new TextDecoder()
-export const decode = (x: any) => JSON.parse(dec.decode(x))
+export const decode = (x: Uint8Array) => JSON.parse(dec.decode(x.buffer))

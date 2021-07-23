@@ -6,18 +6,17 @@ import initRewards, * as Bound from '../target/web/rewards.js'
 // wrapper classes on the js side too... -----------------------------------------------------------
 class Rewards {
   contract = new Bound.Contract()
-  env: Bound.Env = new Bound.Env(BigInt(0))
   init (msg: object) {
     console.debug('init', msg)
-    return decode(this.contract.init(this.env, encode(JSON.stringify(msg))).json)
+    return decode(this.contract.init(encode(msg)))
   }
   query (msg: object) {
     console.debug('query', msg)
-    return decode(this.contract.query(encode(JSON.stringify(msg))).json)
+    return decode(this.contract.query(encode(msg)))
   }
   handle (msg: object) {
     console.debug('handle', msg)
-    return decode(this.contract.handle(this.env, encode(JSON.stringify(msg))).json)
+    return decode(this.contract.handle(encode(msg)))
   }
 }
 
