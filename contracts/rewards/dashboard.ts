@@ -7,7 +7,7 @@ import { random, pickRandom, throttle, after, addTo } from './dashboard/helpers'
 import initReal from './dashboard/contract_real'
 
 // settings ----------------------------------------------------------------------------------------
-const UPDATE_INTERVAL = 0
+const UPDATE_INTERVAL = 1
 
 // dashboard components ----------------------------------------------------------------------------
 const ui = {

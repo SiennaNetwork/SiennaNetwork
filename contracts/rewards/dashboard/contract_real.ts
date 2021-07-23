@@ -5,18 +5,29 @@ import initRewards, * as Bound from '../target/web/rewards.js'
 
 // wrapper classes on the js side too... -----------------------------------------------------------
 class Rewards {
+  index = 0
   contract = new Bound.Contract()
+  debug = false
   init (msg: object) {
-    console.debug('init', msg)
-    return decode(this.contract.init(encode(msg)))
+    this.index += 1
+    if (this.debug) console.debug(`init> ${this.index}`, msg)
+    const res = decode(this.contract.init(encode(msg)))
+    if (this.debug) console.debug(`<init ${this.index}`, res)
+    return res
   }
   query (msg: object) {
-    console.debug('query', msg)
-    return decode(this.contract.query(encode(msg)))
+    this.index += 1
+    if (this.debug) console.debug(`query> ${this.index}`, msg)
+    const res = decode(this.contract.query(encode(msg)))
+    if (this.debug) console.debug(`<query ${this.index}`, res)
+    return res
   }
   handle (msg: object) {
-    console.debug('handle', msg)
-    return decode(this.contract.handle(encode(msg)))
+    this.index += 1
+    if (this.debug) console.debug(`handle> ${this.index}`, msg)
+    const res = decode(this.contract.handle(encode(msg)))
+    if (this.debug) console.debug(`<handle ${this.index}`, res)
+    return res
   }
 }
 
@@ -45,8 +56,7 @@ export class RealPool extends Pool {
     super(ui)
     this.contract.init({
       reward_token: { address: "", code_hash: "" },
-
-      //lp_token:     { address: "", code_hash: "" },
+      lp_token:     { address: "", code_hash: "" },
       viewing_key:  ""
     })
   }
@@ -65,40 +75,62 @@ export class RealPool extends Pool {
 // user api ----------------------------------------------------------------------------------------
 export class RealUser extends User {
 
+  address: string
+
   get contract () {
     return (this.pool as RealPool).contract
   }
 
   constructor (ui: UIContext, pool: Pool, name: string, balance: number) {
     super(ui, pool, name, balance)
+    this.address = this.name
+    this.contract.contract.sender = encode(this.address)
     this.contract.handle({ set_viewing_key: { key: "" } })
   }
 
   update () {
-    const info = this.contract.query({user_info: { at: 0, address: "", key: "" }})
+    this.contract.contract.next_query_response = encode({balance:{amount:String(this.balance)}})
+    const info = this.contract.query({user_info: { at: 0, address: this.address, key: "" }}).user_info
     this.last_update = info.user_last_update
-    this.lifetime    = info.user_lifetime
-    this.locked      = info.user_locked
+    this.lifetime    = Number(info.user_lifetime)
+    this.locked      = Number(info.user_locked)
     this.age         = info.user_age
     this.cooldown    = 0
-    this.earned      = info.user_earned
-    this.claimed     = info.user_claimed
-    this.claimable   = info.user_claimable
+    this.earned      = Number(info.user_earned)
+    this.claimed     = Number(info.user_claimed)
+    this.claimable   = Number(info.user_claimable)
+    super.update()
   }
 
   lock (amount: number) {
-    console.debug('lock', this.contract.handle({ lock: { amount: String(amount) } }))
-    super.lock(amount)
+    this.contract.contract.sender = encode(this.address)
+    try {
+      console.debug('lock', amount, this.contract.handle({ lock: { amount: String(amount) } }))
+      super.lock(amount)
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   retrieve (amount: number) {
-    console.debug('retrieve', this.contract.handle({ retrieve: { amount: String(amount) } }))
-    super.retrieve(amount)
+    this.contract.contract.sender = encode(this.address)
+    try {
+      console.debug('retrieve', amount, this.contract.handle({ retrieve: { amount: String(amount) } }))
+      super.retrieve(amount)
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   claim () {
-    const reward = super.claim()
-    console.debug('claim', this.contract.handle({ claim: {} }))
-    return reward
+    this.contract.contract.sender = encode(this.address)
+    try {
+      console.debug('claim', this.contract.handle({ claim: {} }))
+      const reward = super.claim()
+      return reward
+    } catch (e) {
+      console.error(e)
+      return 0
+    }
   }
 }
