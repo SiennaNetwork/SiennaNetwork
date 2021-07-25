@@ -48,9 +48,12 @@ export class Pool {
   }
   update () {
     this.balance += this.rpt.vest()
-    this.ui.log.now.textContent       = `block ${T.T}`
-    this.ui.log.balance.textContent   = `reward budget: ${this.balance.toFixed(3)}`
-    this.ui.log.remaining.textContent = `${this.rpt.remaining} days of ${this.rpt.interval} blocks remaining (timescale 1:${TIME_SCALE})`
+    this.ui.log.now.setValue(
+      T.T)
+    this.ui.log.balance.setValue(
+      (this.balance/DIGITS).toFixed(DIGITS_INV))
+    this.ui.log.remaining.setValue(
+      this.rpt.remaining)
   }
 }
 

@@ -110,3 +110,15 @@ center {
   justify-content: center;
   font-size: 3rem;
 }
+
+.field {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0,0,0,0.5);
+  margin-bottom: 1rem;
+}
+.field label {
+  font-weight: bold;
+}
+.field > div {
+  text-align: right
+}

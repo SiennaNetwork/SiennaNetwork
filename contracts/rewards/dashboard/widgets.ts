@@ -14,12 +14,30 @@ export interface UIContext {
   stacked: StackedPieChart
 }
 
+// Label + value
+export class Field {
+  root = h('div', { className: 'field' })
+  label = addTo(this.root, h('label'))
+  value = addTo(this.root, h('div'))
+  constructor (name: string, value?: any) {
+    this.label.textContent = name
+    this.value.textContent = String(value)
+  }
+  addTo (parent: HTMLElement) {
+    parent.appendChild(this.root)
+    return this
+  }
+  setValue (value: any) {
+    this.value.textContent = String(value)
+  }
+}
+
 // log of all modeled events -----------------------------------------------------------------------
 export class Log {
   root      = h('div', { className: 'history' })
-  now       = addTo(this.root, h('h1'))
-  balance   = addTo(this.root, h('h1'))
-  remaining = addTo(this.root, h('h2'))
+  now       = new Field('block').addTo(this.root)
+  balance   = new Field('rewards').addTo(this.root)
+  remaining = new Field('remaining').addTo(this.root)
   body      = addTo(this.root, h('ol'))
   add (event: string, name: string, amount: number|undefined) {
     if (NO_HISTORY) return
