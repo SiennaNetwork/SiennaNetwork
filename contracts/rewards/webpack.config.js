@@ -1,7 +1,7 @@
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 export default 
 { mode:      "development"
-, entry:     "./dashboard.ts"
+, entry:     "./rewards_dashboard.ts"
 , module:    { rules:
   [ { test: /\.tsx?$/, use: 'ts-loader', exclude: /node_modules/ }
   , { test: /\.css$/i, use: ["style-loader", "css-loader"], }
