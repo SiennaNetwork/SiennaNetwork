@@ -2,7 +2,7 @@ import './dashboard/style.css'
 import { Log, Table, PieChart, StackedPieChart } from './dashboard/widgets'
 import { T, Users, MAX_USERS, MAX_INITIAL } from './dashboard/contract_base'
 import { RealPool as Pool, RealUser as User } from './dashboard/contract_real'
-import { random, pickRandom, throttle, after, addTo } from './dashboard/helpers'
+import { random, pickRandom, throttle, after, append } from './dashboard/helpers'
 //import initMock from './dashboard/contract_mock'
 import initReal from './dashboard/contract_real'
 
@@ -43,7 +43,7 @@ function start () {
 
   // add components --------------------------------------------------------------------------------
   for (const el of Object.values(ui)) {
-    addTo(document.body, el.root)
+    append(document.body, el.root)
   }
 
   // create dom elements for all users - then only update the content ------------------------------

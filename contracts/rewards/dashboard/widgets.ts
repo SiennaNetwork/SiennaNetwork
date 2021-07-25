@@ -1,4 +1,4 @@
-import { h, addTo } from './helpers'
+import { h, append, prepend } from './helpers'
 import { T, User, Users, DIGITS, DIGITS_INV } from './contract_base'
 
 // killswitches for gui components -----------------------------------------------------------------
@@ -17,13 +17,13 @@ export interface UIContext {
 // Label + value
 export class Field {
   root = h('div', { className: 'field' })
-  label = addTo(this.root, h('label'))
-  value = addTo(this.root, h('div'))
+  label = append(this.root, h('label'))
+  value = append(this.root, h('div'))
   constructor (name: string, value?: any) {
     this.label.textContent = name
     this.value.textContent = String(value)
   }
-  addTo (parent: HTMLElement) {
+  append (parent: HTMLElement) {
     parent.appendChild(this.root)
     return this
   }
@@ -32,25 +32,19 @@ export class Field {
   }
 }
 
-// log of all modeled events -----------------------------------------------------------------------
+// global values + log of all modeled events -------------------------------------------------------
 export class Log {
   root      = h('div', { className: 'history' })
-  now       = new Field('block').addTo(this.root)
-  balance   = new Field('rewards').addTo(this.root)
-  remaining = new Field('remaining').addTo(this.root)
-  body      = addTo(this.root, h('ol'))
+  now       = new Field('block').append(this.root)
+  balance   = new Field('total rewards budget').append(this.root)
+  remaining = new Field('remaining funding portions').append(this.root)
+  body      = append(this.root, h('ol'))
   add (event: string, name: string, amount: number|undefined) {
     if (NO_HISTORY) return
     if (amount) {
-      this.body.insertBefore(
-        h('div', { innerHTML: `<b>${name}</b> ${event} ${amount}LP` }),
-        this.body.firstChild
-      )
+      prepend(this.body, h('div', { innerHTML: `<b>${name}</b> ${event} ${amount}LP` }))
     } else {
-      this.body.insertBefore(
-        h('div', { innerHTML: `<b>${name}</b> ${event}` }),
-        this.body.firstChild
-      )
+      prepend(this.body, h('div', { innerHTML: `<b>${name}</b> ${event}` }))
     }
   }
 }
@@ -62,6 +56,9 @@ interface Columns {
   lifetime:     HTMLElement
   share:        HTMLElement
   locked:       HTMLElement
+  lockedMinus:  HTMLElement
+  lockedValue:  HTMLElement
+  lockedPlus:   HTMLElement
   age:          HTMLElement
   earned:       HTMLElement
   claimed:      HTMLElement
@@ -80,7 +77,7 @@ export class Table {
   }
 
   init (users: Users) {
-    addTo(this.root, h('thead', {},
+    append(this.root, h('thead', {},
       h('th', { textContent: 'name'         }),
       h('th', { textContent: 'last_update'  }),
       h('th', { textContent: 'age'          }),
@@ -98,20 +95,33 @@ export class Table {
 
   addRow (name: string, user: User) {
     if (NO_TABLE) return
-    const row = addTo(this.root, h('tr'))
+    const row = append(this.root, h('tr'))
+    const locked      = h('td', { className: 'locked' })
+        , lockedMinus = append(locked, h('button', {
+                          textContent: '-',
+                          onclick: () => user.retrieve(100)
+                        }))
+        , lockedValue = append(locked, h('span', {
+                          textContent: ''
+                        }))
+        , lockedPlus  = append(locked, h('button', {
+                          textContent: '+',
+                          onclick: () => user.lock(100)
+                        }))
     const rows = this.rows[name] = {
-      name:         addTo(row, h('td', { style: 'font-weight:bold', textContent: name })),
-      last_update:  addTo(row, h('td')),
-      age:          addTo(row, h('td')),
-      locked:       addTo(row, h('td')),
-      lifetime:     addTo(row, h('td')),
-      share:        addTo(row, h('td')),
-      earned:       addTo(row, h('td')),
-      claimed:      addTo(row, h('td')),
-      claimable:    addTo(row, h('td', { className: 'claimable', onclick: () => {user.claim()} })),
+      name:         append(row, h('td', { style: 'font-weight:bold', textContent: name })),
+      last_update:  append(row, h('td')),
+      age:          append(row, h('td')),
+      locked:       append(row, locked),
+      lockedMinus, lockedValue, lockedPlus,
+      lifetime:     append(row, h('td')),
+      share:        append(row, h('td')),
+      earned:       append(row, h('td')),
+      claimed:      append(row, h('td')),
+      claimable:    append(row, h('td', { className: 'claimable', onclick: () => {user.claim()} })),
     }
     rows.claimable.style.fontWeight = 'bold'
-    addTo(this.root, row)
+    append(this.root, row)
     return rows
   }
 
@@ -119,7 +129,7 @@ export class Table {
     if (NO_TABLE) return
     this.rows[user.name].last_update.textContent =
       String(user.last_update)
-    this.rows[user.name].locked.textContent =
+    this.rows[user.name].lockedValue.textContent =
       String(user.locked)
     this.rows[user.name].lifetime.textContent =
       String(user.lifetime)
@@ -134,6 +144,8 @@ export class Table {
     this.rows[user.name].claimable.textContent =
       (user.claimable/DIGITS).toFixed(DIGITS_INV)
     const [fill, stroke] = user.colors()
+    this.rows[user.name].earned.style.backgroundColor =
+    this.rows[user.name].claimed.style.backgroundColor =
     this.rows[user.name].claimable.style.backgroundColor =
       fill
     this.rows[user.name].claimable.style.color =
@@ -153,7 +165,7 @@ export class PieChart {
   constructor (_name: string, field: string) {
     this.field  = field
     this.root   = h('div', { className: `pie ${field}` })
-    this.canvas = addTo(this.root, h('canvas', { width: 1, height: 1 })) as HTMLCanvasElement
+    this.canvas = append(this.root, h('canvas', { width: 1, height: 1 })) as HTMLCanvasElement
   }
 
   add (user: User) {
@@ -228,7 +240,7 @@ export class StackedPieChart {
 
   constructor () {
     this.root   = h('div', { className: `pie stacked` })
-    this.canvas = addTo(this.root, h('canvas', { width: 1, height: 1 })) as HTMLCanvasElement }
+    this.canvas = append(this.root, h('canvas', { width: 1, height: 1 })) as HTMLCanvasElement }
 
   resize () {
     this.canvas.width = this.canvas.height = 1

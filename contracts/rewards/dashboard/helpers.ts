@@ -26,8 +26,11 @@ export function h (element: string, attributes={}, ...content:any) {
   for (const el2 of content) el.appendChild(el2)
   return el }
 
-export function addTo (parent: HTMLElement, child: HTMLElement) {
+export function append (parent: HTMLElement, child: HTMLElement) {
   return parent.appendChild(child) }
+
+export function prepend (parent: HTMLElement, child: HTMLElement) {
+  return parent.insertBefore(child, parent.firstChild) }
 
 // convert from string to Utf8Array ----------------------------------------------------------------
 
