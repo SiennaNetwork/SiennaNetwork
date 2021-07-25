@@ -9,8 +9,9 @@ import initReal from './dashboard/contract_real'
 document.body.innerHTML = '<center>loading</center>'
 
 // settings ----------------------------------------------------------------------------------------
-const UPDATE_INTERVAL = 1
-const AUTO_CLAIM = false
+const UPDATE_INTERVAL  = 1
+const AUTO_CLAIM       = false
+const AUTO_LOCK_UNLOCK = false
 
 initReal().then(()=>{ // load then start on click --------------------------------------------------
   document.body.onclick = () => {
@@ -70,13 +71,13 @@ function start () {
     }
 
     // perform random lock/retrieve from random account for random amount --------------------------
-    const user   = pickRandom(Object.values(users))
-    const action = pickRandom([
-      (amount:number)=>user.lock(amount),
-      //(amount:number)=>user.retrieve(amount)
-    ])
-
-    action(random(user.balance))
+    if (AUTO_LOCK_UNLOCK) {
+      const user = pickRandom(Object.values(users))
+      pickRandom([
+        (amount:number)=>user.lock(amount),
+        (amount:number)=>user.retrieve(amount)
+      ])(random(user.balance))
+    }
 
     // perform random claim ------------------------------------------------------------------------
     if (AUTO_CLAIM && eligible.length > 0) {
