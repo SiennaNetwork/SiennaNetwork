@@ -48,8 +48,6 @@ interface Columns {
   earned:       HTMLElement
   claimed:      HTMLElement
   claimable:    HTMLElement
-  cooldown:     HTMLElement
-  last_claimed: HTMLElement
 }
 
 type Rows = Record<string, Columns>
@@ -74,8 +72,6 @@ export class Table {
       h('th', { textContent: 'earned'       }),
       h('th', { textContent: 'claimed'      }),
       h('th', { textContent: 'claimable'    }),
-      h('th', { textContent: 'cooldown'     }),
-      h('th', { textContent: 'last_claimed' })
     ))
     for (const name of Object.keys(users)) {
       this.addRow(name, users[name])
@@ -95,8 +91,6 @@ export class Table {
       earned:       addTo(row, h('td')),
       claimed:      addTo(row, h('td')),
       claimable:    addTo(row, h('td', { className: 'claimable', onclick: () => {user.claim()} })),
-      cooldown:     addTo(row, h('td')),
-      last_claimed: addTo(row, h('td'))
     }
     rows.claimable.style.fontWeight = 'bold'
     addTo(this.root, row)
@@ -126,13 +120,6 @@ export class Table {
       fill
     this.rows[user.name].claimable.style.color =
       stroke
-    //table.rows[user.name].waited.textContent = user.age === 0 ? '' : (100*user.waited/user.age).toFixed(1) + '%'
-    this.rows[user.name].cooldown.textContent =
-      String(user.cooldown)
-    this.rows[user.name].last_claimed.textContent =
-      (user.cooldown === 0 && user.claimable < 0)
-        ? String(user.last_claimed - T.T)
-        : ''
   }
 }
 
