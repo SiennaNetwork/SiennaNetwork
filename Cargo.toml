@@ -3,20 +3,20 @@ members = [
   "api", # JSON schema exporter
 
   # TGE
-  "libraries/schedule",          # model of TGE vesting logic
-  "libraries/linear-map",        # simple way of storing small number of addresses
-  "contracts/snip20-sienna",     # SNIP20 reference impl with deposit/redeem disabled
-  "contracts/mgmt",              # mints and vests tokens according to schedule
-  "contracts/rpt",               # claims from mgmt and splits the portion between recipients
-  "contracts/rewards-benchmark", # gas benchmark for continuous rewards
+  "libraries/schedule",      # model of TGE vesting logic
+  "libraries/linear-map",    # simple way of storing small number of addresses
+  "contracts/snip20-sienna", # SNIP20 reference impl with deposit/redeem disabled
+  "contracts/mgmt",          # mints and vests tokens according to schedule
+  "contracts/rpt",           # claims from mgmt and splits the portion between recipients
+  "contracts/rewards",       # liquidity provision rewards
 
   # Swap + IDO
-  "libraries/amm-shared",      # definitions that are shared between AMM and IDO
-  "contracts/exchange",        # uniswap exchange contract implementation
-  "contracts/factory",         # factory contract for creating exchanges
-  "contracts/ido",             # Sienna IDO
-  "contracts/lp-token",        # snip20 liquidity provider token,
-  "contracts/amm-snip20",      # vanilla snip20 token, used when creating an IDO
+  "libraries/amm-shared", # definitions that are shared between AMM and IDO
+  "contracts/exchange",   # uniswap exchange contract implementation
+  "contracts/factory",    # factory contract for creating exchanges
+  "contracts/ido",        # Sienna IDO
+  "contracts/lp-token",   # snip20 liquidity provider token,
+  "contracts/amm-snip20", # vanilla snip20 token, used when creating an IDO
 
   # Lending
   "libraries/lend-experimental",        # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/libraries

@@ -114,7 +114,7 @@ async function deploy_rewards(config: any[]) {
     const client = await build_client(process.env.MNEMONIC as string, process.env.SECRET_REST_URL as string)
     const writer = new JsonFileWriter(`${ARTIFACTS_PATH}/rewards/${process.env.SECRET_CHAIN_ID}/`)
 
-    const wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/sienna-rewards-benchmark@HEAD.wasm`))
+    const wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/sienna-rewards@HEAD.wasm`))
 
     const upload = await client.upload(wasm, undefined, undefined, create_fee('1800000'))
     writer.write(upload, `uploads/rewards`)

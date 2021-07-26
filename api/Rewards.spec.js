@@ -39,7 +39,7 @@ describe("Rewards", () => {
     const workspace = abs()
     const [ tokenBinary, poolBinary ] = await Promise.all([
       builder.build({workspace, crate: 'amm-snip20'              }),
-      builder.build({workspace, crate: 'sienna-rewards-benchmark'}), ])
+      builder.build({workspace, crate: 'sienna-rewards'}), ])
 
     const T2 = + new Date()
     console.debug(`building took ${T2 - T1}msec`)
@@ -76,7 +76,7 @@ describe("Rewards", () => {
     const T0 = + new Date()
 
     const header = [ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ]
-        , output = abs('artifacts', "rewards", 'rewards-benchmark.md')
+        , output = abs('artifacts', 'rewards-benchmark.md')
         , task   = taskmaster({ header, output, agent: context.agent })
 
     console.debug('init reward token:')

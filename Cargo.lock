@@ -1737,11 +1737,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "sienna-rewards-benchmark"
+name = "sienna-rewards"
 version = "1.0.0"
 dependencies = [
- "composable-admin",
- "composable-auth",
  "fadroma 21.7.0",
  "kukumba 1.0.1",
  "schemars",
@@ -1795,7 +1793,7 @@ dependencies = [
  "ido",
  "lp-token",
  "sienna-mgmt",
- "sienna-rewards-benchmark",
+ "sienna-rewards",
  "sienna-rpt",
 ]
 
