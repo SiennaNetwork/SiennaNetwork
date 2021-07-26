@@ -105,7 +105,7 @@ contract! {
         /// Overall pool status
         PoolInfo (at: Time) {
             let pool = Pool::new(&deps.storage).at(at);
-            let pool_last_update = pool.last_update()?;
+            let pool_last_update = pool.timestamp()?;
             if at < pool_last_update {
                 return Err(StdError::generic_err("this contract does not store history"))
             }
@@ -120,6 +120,8 @@ contract! {
                 pool_locked:      pool.locked()?,
                 pool_claimed:     pool.claimed()?,
                 pool_balance:     pool.balance(),
+                pool_threshold:   pool.threshold()?,
+                pool_cooldown:    pool.cooldown()?,
 
                 // todo add balance/claimed/total in rewards token
             }) }
@@ -137,7 +139,7 @@ contract! {
                 &load_viewing_key(&deps.storage)?.0, )?;
 
             let pool = Pool::new(&deps.storage).at(at).with_balance(reward_balance);
-            let pool_last_update = pool.last_update()?;
+            let pool_last_update = pool.timestamp()?;
             if at < pool_last_update {
                 return Err(StdError::generic_err("no data"))
             }
@@ -145,7 +147,7 @@ contract! {
             let pool_locked = pool.locked()?;
 
             let user = pool.user(address);
-            let user_last_update = user.last_update()?;
+            let user_last_update = user.timestamp()?;
             if at < pool_last_update {
                 return Err(StdError::generic_err("no data"))
             }
@@ -168,8 +170,8 @@ contract! {
 
                 user_last_update,
                 user_lifetime,
-                user_locked:  user.locked()?,
-                user_age:     user.age()?,
+                user_locked:    user.locked()?,
+                user_age:       user.age()?,
                 user_share,
                 user_earned:    user.earned()?,
                 user_claimed:   user.claimed()?,
@@ -203,28 +205,31 @@ contract! {
 
         /// Response from `Query::PoolInfo`
         PoolInfo {
-            lp_token:     ContractLink<HumanAddr>,
-            reward_token: ContractLink<HumanAddr>,
+            lp_token:         ContractLink<HumanAddr>,
+            reward_token:     ContractLink<HumanAddr>,
 
-            it_is_now: Time,
+            it_is_now:        Time,
 
             pool_last_update: Time,
             pool_lifetime:    Volume,
             pool_locked:      Amount,
 
             pool_balance:     Amount,
-            pool_claimed:     Amount
+            pool_claimed:     Amount,
+
+            pool_threshold:   Time,
+            pool_cooldown:    Time
         }
 
         /// Response from `Query::UserInfo`
         UserInfo {
-            it_is_now: Time,
+            it_is_now:        Time,
 
             pool_last_update: Time,
             pool_lifetime:    Volume,
             pool_locked:      Amount,
 
-            user_last_update: Time,
+            user_last_update: Option<Time>,
             user_lifetime:    Volume,
             user_locked:      Amount,
             user_share:       Amount,

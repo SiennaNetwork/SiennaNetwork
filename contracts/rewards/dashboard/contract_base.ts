@@ -49,6 +49,8 @@ export class Pool {
   locked:      number = 0
   balance:     number = this.rpt.vest()
   claimed:     number = 0
+  cooldown:    number = 0
+  threshold:   number = 0
 
   constructor (ui: UIContext) {
     this.ui = ui
@@ -63,6 +65,9 @@ export class Pool {
     this.ui.log.balance.setValue(format.decimal(this.balance))
     this.ui.log.claimed.setValue(format.decimal(this.claimed))
     this.ui.log.remaining.setValue(this.rpt.remaining)
+
+    this.ui.log.cooldown.setValue(this.cooldown)
+    this.ui.log.threshold.setValue(this.threshold)
   }
 }
 

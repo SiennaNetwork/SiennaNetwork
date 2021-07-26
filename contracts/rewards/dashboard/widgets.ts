@@ -46,6 +46,9 @@ export class Log {
   claimed   = new Field('rewards claimed by users').append(this.root)
   remaining = new Field('remaining funding portions').append(this.root)
 
+  threshold = new Field('initial age threshold').append(this.root)
+  cooldown  = new Field('cooldown after claim').append(this.root)
+
   add (event: string, name: string, amount: number|undefined) {
     if (NO_HISTORY) return
     if (amount) {
