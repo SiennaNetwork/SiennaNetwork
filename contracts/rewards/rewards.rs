@@ -61,7 +61,8 @@ contract! {
         reward_token: ContractLink<HumanAddr>,
         viewing_key:  ViewingKey,
         ratio:        Option<Ratio>,
-        threshold:    Option<Time>
+        threshold:    Option<Time>,
+        cooldown:     Option<Time>
     }) {
         // Contract has an admin who can do admin stuff.
         save_admin(deps, &admin.unwrap_or(env.message.sender))?;
@@ -85,7 +86,8 @@ contract! {
         // - Threshold (to incentivize users to lock tokens for longer)
         Pool::new(&mut deps.storage)
             .configure_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
-            .configure_threshold(&threshold.unwrap_or(DAY))?;
+            .configure_threshold(&threshold.unwrap_or(DAY))?
+            .configure_cooldown(&cooldown.unwrap_or(DAY))?;
         // TODO remove global state from scrt-contract
         // define field! and addr_field! macros instead -
         // problem here is identifier concatenation
@@ -137,7 +139,7 @@ contract! {
             let pool = Pool::new(&deps.storage).at(at).with_balance(reward_balance);
             let pool_last_update = pool.last_update()?;
             if at < pool_last_update {
-                return Err(StdError::generic_err("this contract does not store history"))
+                return Err(StdError::generic_err("no data"))
             }
             let pool_lifetime = pool.lifetime()?;
             let pool_locked = pool.locked()?;
@@ -145,11 +147,10 @@ contract! {
             let user = pool.user(address);
             let user_last_update = user.last_update()?;
             if at < pool_last_update {
-                return Err(StdError::generic_err("this contract does not store history"))
+                return Err(StdError::generic_err("no data"))
             }
 
             let user_lifetime = user.lifetime()?;
-            let (user_earned, user_claimed, user_claimable) = user.reward()?;
             let user_share = if pool_lifetime > Volume::zero() {
                 Volume::from(100000000u128)
                     .multiply_ratio(user_lifetime, pool_lifetime)?
@@ -170,9 +171,10 @@ contract! {
                 user_locked:  user.locked()?,
                 user_age:     user.age()?,
                 user_share,
-                user_earned:  user.earned()?,
-                user_claimed,
-                user_claimable
+                user_earned:    user.earned()?,
+                user_claimed:   user.claimed()?,
+                user_claimable: user.claimable()?,
+                user_cooldown:  user.cooldown()?
             }) }
 
         /// Keplr integration
@@ -229,7 +231,8 @@ contract! {
             user_age:         Time,
             user_earned:      Amount,
             user_claimed:     Amount,
-            user_claimable:   Amount
+            user_claimable:   Amount,
+            user_cooldown:    Time
         }
 
         Admin {

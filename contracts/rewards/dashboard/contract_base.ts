@@ -3,7 +3,7 @@ import { COLORS } from './gruvbox'
 
 // settings ----------------------------------------------------------------------------------------
 export const TIME_SCALE          = 60
-           , FUND_PORTIONS       = 7
+           , FUND_PORTIONS       = 140
            , DIGITS              = 1000000
            , DIGITS_INV          = Math.log10(DIGITS)
            , FUND_PORTION        = 2500 * DIGITS
@@ -48,6 +48,7 @@ export class Pool {
   lifetime:    number = 0
   locked:      number = 0
   balance:     number = this.rpt.vest()
+  claimed:     number = 0
 
   constructor (ui: UIContext) {
     this.ui = ui
@@ -55,10 +56,13 @@ export class Pool {
   update () {
     this.balance += this.rpt.vest()
     this.ui.log.now.setValue(T.T)
-    this.ui.log.balance.setValue((this.balance/DIGITS).toFixed(DIGITS_INV))
-    this.ui.log.remaining.setValue(this.rpt.remaining)
+
     this.ui.log.lifetime.setValue(this.lifetime)
     this.ui.log.locked.setValue(this.locked)
+
+    this.ui.log.balance.setValue(format.decimal(this.balance))
+    this.ui.log.claimed.setValue(format.decimal(this.claimed))
+    this.ui.log.remaining.setValue(this.rpt.remaining)
   }
 }
 

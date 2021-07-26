@@ -1,6 +1,6 @@
 import { encode, decode } from './helpers'
 import { UIContext } from './widgets'
-import { T, User, Pool, THRESHOLD } from './contract_base'
+import { T, User, Pool, THRESHOLD, COOLDOWN } from './contract_base'
 import initRewards, * as Bound from '../target/web/rewards.js'
 
 // wrapper classes on the js side too... -----------------------------------------------------------
@@ -82,7 +82,8 @@ export class RealPool extends Pool {
       reward_token: { address: "", code_hash: "" },
       lp_token:     { address: "", code_hash: "" },
       viewing_key:  "",
-      threshold:    THRESHOLD
+      threshold:    THRESHOLD,
+      cooldown:     COOLDOWN
     })
   }
   update () {
@@ -92,6 +93,7 @@ export class RealPool extends Pool {
     this.last_update = info.pool_last_update
     this.lifetime    = info.pool_lifetime
     this.locked      = info.pool_locked
+    this.claimed     = info.pool_claimed
     super.update()
   }
 }
@@ -128,6 +130,7 @@ export class RealUser extends User {
     this.earned      = Number(info.user_earned)
     this.claimed     = Number(info.user_claimed)
     this.claimable   = Number(info.user_claimable)
+    this.cooldown    = Number(info.user_cooldown)
     super.update()
   }
 

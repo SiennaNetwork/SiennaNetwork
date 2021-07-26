@@ -16,7 +16,7 @@ export interface UIContext {
 
 // Label + value
 export class Field {
-  root = h('div', { className: 'field' })
+  root  = h('div', { className: 'field' })
   label = append(this.root, h('label'))
   value = append(this.root, h('div'))
   constructor (name: string, value?: any) {
@@ -35,12 +35,17 @@ export class Field {
 // global values + log of all modeled events -------------------------------------------------------
 export class Log {
   root      = h('div', { className: 'history' })
+  body      = append(this.root, h('ol'))
+
   now       = new Field('block').append(this.root)
+
   locked    = new Field('liquidity now in pool').append(this.root)
   lifetime  = new Field('all liquidity ever in pool').append(this.root)
+
   balance   = new Field('available reward balance').append(this.root)
+  claimed   = new Field('rewards claimed by users').append(this.root)
   remaining = new Field('remaining funding portions').append(this.root)
-  body      = append(this.root, h('ol'))
+
   add (event: string, name: string, amount: number|undefined) {
     if (NO_HISTORY) return
     if (amount) {
@@ -65,6 +70,7 @@ interface Columns {
   earned:       HTMLElement
   claimed:      HTMLElement
   claimable:    HTMLElement
+  cooldown:     HTMLElement
 }
 
 type Rows = Record<string, Columns>
@@ -89,6 +95,7 @@ export class Table {
       h('th', { textContent: 'earned'       }),
       h('th', { textContent: 'claimed'      }),
       h('th', { textContent: 'claimable'    }),
+      h('th', { textContent: 'cooldown'     }),
     ))
     for (const name of Object.keys(users)) {
       this.addRow(name, users[name])
@@ -121,6 +128,7 @@ export class Table {
       earned:       append(row, h('td')),
       claimed:      append(row, h('td')),
       claimable:    append(row, h('td', { className: 'claimable', onclick: () => {user.claim()} })),
+      cooldown:     append(row, h('td')),
     }
     rows.claimable.style.fontWeight = 'bold'
     append(this.root, row)
@@ -145,6 +153,8 @@ export class Table {
       format.decimal(user.claimed)
     this.rows[user.name].claimable.textContent =
       format.decimal(user.claimable)
+    this.rows[user.name].cooldown.textContent =
+      format.integer(user.cooldown)
 
     const [fill, stroke] = user.colors()
     this.rows[user.name].earned.style.backgroundColor =
