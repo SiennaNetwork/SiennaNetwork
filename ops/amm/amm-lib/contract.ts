@@ -239,7 +239,7 @@ export class ExchangeContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('650000')
+            fee = create_fee('610000')
         }
 
         const info = await this.get_pair_info()
@@ -272,7 +272,7 @@ export class ExchangeContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('510000')
+            fee = create_fee('530000')
         }
 
         const msg = {
