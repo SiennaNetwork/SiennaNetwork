@@ -226,7 +226,7 @@ export interface RewardsAccount {
     user_locked: Uint128;
     /**
      * The user's current share of the pool as a percentage
-     * with 8 decimals of precision.
+     * with 6 decimals of precision.
      */
     user_share: Uint128;
 }
