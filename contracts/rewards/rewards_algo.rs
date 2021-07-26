@@ -352,7 +352,7 @@ stateful!(User (pool.storage):
             
             // Update the user timestamp, and the other things that may be synced to it
             // Sacrifices gas cost for avoidance of hidden dependencies
-            self.update(self.locked()?, self.pool.locked()?);
+            self.update(self.locked()?, self.pool.locked()?)?;
 
             // Reset the user cooldown, though
             self.reset_cooldown()?;
