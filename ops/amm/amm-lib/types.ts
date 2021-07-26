@@ -144,18 +144,22 @@ export interface ExchangeRate {
 
 export interface RewardPool {
     lp_token: ContractInfo;
-    since: number;
-    total: Uint128;
-    volume: Uint128;
+    pool_last_update: number;
+    pool_lifetime: Uint128;
+    pool_locked: Uint128;
 }
 
 export interface RewardsAccount {
-    age: number;
-    claimable: Uint128;
-    claimed: Uint128;
-    lifetime: Uint128;
-    unlocked: Uint128;
-    volume: Uint128;
+    pool_last_update: number;
+    pool_lifetime: Uint128;
+    pool_locked: Uint128;
+    user_age: number;
+    user_claimable: Uint128;
+    user_claimed: Uint128;
+    user_earned: Uint128;
+    user_last_update: number;
+    user_lifetime: Uint128;
+    user_locked: Uint128;
 }
 
 export class ContractInfo {
