@@ -55,12 +55,12 @@ export class MockUser extends User {
   }
 
   claim () {
-    const reward = super.claim()
-    this.claimed = this.earned
-    this.pool.balance -= reward
-    this.cooldown = COOLDOWN
-    this.last_claimed = T.T
-    return reward
+    const reward = this.doClaim(this.earned - this.claimed)
+    if (reward > 0) {
+      this.claimed += reward
+      this.cooldown = COOLDOWN
+      this.last_claimed = T.T
+    }
   }
 }
 

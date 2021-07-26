@@ -1,33 +1,36 @@
 use crate::rewards_math::*;
-use fadroma::scrt::{cosmwasm_std::{StdError, CanonicalAddr}, storage::traits2::*,};
+use fadroma::scrt::{
+    cosmwasm_std::{StdError, CanonicalAddr},
+    storage::*
+};
 
 macro_rules! error { ($info:expr) => { Err(StdError::generic_err($info)) }; }
 
 /// How much liquidity has this pool contained up to this point
 /// Incremented in intervals of (moments since last update * current balance)
-const POOL_LIFETIME:  &[u8] = b"pool_lifetime";
+const POOL_LIFETIME:  &[u8] = b"/pool/lifetime";
 /// How much liquidity is there in the whole pool right now
-const POOL_LOCKED:    &[u8] = b"pool_balance";
+const POOL_LOCKED:    &[u8] = b"/pool/balance";
 /// When was liquidity last updated
-const POOL_UPDATED:   &[u8] = b"pool_updated";
+const POOL_UPDATED:   &[u8] = b"/pool/updated";
 /// Rewards claimed by everyone so far
-const POOL_CLAIMED:   &[u8] = b"pool_claimed";
+const POOL_CLAIMED:   &[u8] = b"/pool/claimed";
 /// Ratio of liquidity provided to rewards received
-const POOL_RATIO:     &[u8] = b"pool_ratio";
+const POOL_RATIO:     &[u8] = b"/pool/ratio";
 /// Ratio of liquidity provided to rewards received
-const POOL_THRESHOLD: &[u8] = b"pool_threshold";
+const POOL_THRESHOLD: &[u8] = b"/pool/threshold";
 
 /// How much liquidity has each user provided since they first appeared;
 /// incremented in intervals of (blocks since last update * current balance)
-const USER_LIFETIME:  &[u8] = b"user_lifetime/";
+const USER_LIFETIME:  &[u8] = b"/user/lifetime/";
 /// How much liquidity does each user currently provide
-const USER_LOCKED:    &[u8] = b"user_current/";
+const USER_LOCKED:    &[u8] = b"/user/current/";
 /// When did each user's liquidity amount last change
-const USER_UPDATED:   &[u8] = b"user_updated/";
+const USER_UPDATED:   &[u8] = b"/user/updated/";
 /// How much rewards has each user claimed so far
-const USER_CLAIMED:   &[u8] = b"user_claimed/";
+const USER_CLAIMED:   &[u8] = b"/user/claimed/";
 /// For how many units of time has this user provided liquidity
-const USER_EXISTED:   &[u8] = b"user_existed/";
+const USER_AGE:       &[u8] = b"/user/age/";
 
 /// Reward pool
 pub struct Pool <S> {
@@ -61,31 +64,6 @@ impl <S> Pool<S> {
     }
 }
 
-macro_rules! stateful {
-    (
-        $Obj:ident ($($storage:tt)+): /*{ $($accessors:tt)* } no traits no accessors */
-        $Readonly:ident { $($readonlies:tt)* }
-        $Writable:ident { $($writables:tt)* }
-    ) => {
-        impl<S: ReadonlyStorage> $Readonly<S> for $Obj<&S> {
-            fn storage (&self) -> &S { &self.$($storage)+ }
-        }
-        impl<S: ReadonlyStorage> $Readonly<S> for $Obj<&mut S> {
-            fn storage (&self) -> &S { &self.$($storage)+ }
-        }
-        impl<S: Storage> $Writable<S> for $Obj<&mut S> {
-            fn storage_mut (&mut self) -> &mut S { &mut self.$($storage)+ }
-        }
-        impl<S: ReadonlyStorage> $Obj<&S> {
-            $($readonlies)*
-        }
-        impl<S: Storage> $Obj<&mut S> {
-            $($readonlies)*
-            $($writables)*
-        }
-    };
-}
-
 stateful!(Pool (storage):
 
     Readonly {
@@ -117,12 +95,16 @@ stateful!(Pool (storage):
         pub fn locked (&self) -> StdResult<Amount> {
             Ok(self.load(POOL_LOCKED)?.unwrap_or(Amount::zero())) }
 
+        /// Amount of rewards already claimed
+        pub fn claimed (&self) -> StdResult<Amount> {
+            Ok(self.load(POOL_CLAIMED)?.unwrap_or(Amount::zero())) }
+
         /// The full reward budget = rewards claimed + current balance of this contract in reward token
         pub fn budget (&self) -> StdResult<Amount> {
-            Ok(self.load(POOL_CLAIMED)?.unwrap_or(Amount::zero()) + self.balance()) }
+            Ok(self.claimed()? + self.balance()) }
 
         /// Current balance in reward token, or zero.
-        fn balance (&self) -> Amount {
+        pub fn balance (&self) -> Amount {
             self.balance.unwrap_or(Amount::zero()) }
 
         /// Ratio between share of liquidity provided and amount of reward
@@ -174,7 +156,7 @@ stateful!(User (pool.storage):
             else { Ok(existed) } }
 
         pub fn last_age (&self) -> StdResult<Time> {
-            Ok(self.load_ns(USER_EXISTED, self.address.as_slice())?
+            Ok(self.load_ns(USER_AGE, self.address.as_slice())?
                 .unwrap_or(0 as Time)) }
 
         pub fn lifetime (&self) -> StdResult<Volume> {
@@ -218,28 +200,36 @@ stateful!(User (pool.storage):
         /// in the pool after a user has claimed is insufficient to pay out the next user's reward.
         /// In that case, https://google.github.io/filament/webgl/suzanne.html
         pub fn reward (&self) -> StdResult<(Amount, Amount, Amount)> {
-            // new empty pool - rewards for everyone are zero
+            let earned  = self.earned()?;
+            if earned == Amount::zero() {
+                // in a new empty pool - rewards for everyone are zero
+                return Ok((Amount::zero(), Amount::zero(), Amount::zero())) }
+
+            let claimed = self.claimed()?;
+            if earned <= claimed {
+                // if already claimed this much or more...
+                // stake more tokens next time?
+                return Ok((earned, claimed, Amount::zero())) }
+
+            if self.age()? < self.pool.threshold()? {
+                // you must lock for this long to claim
+                return Ok((earned, claimed, Amount::zero())) }
+
+            // if there is something to claim, let em know
+            Ok((earned, claimed, (earned - claimed)?)) }
+
+        pub fn earned (&self) -> StdResult<Amount> {
             let pool = self.pool.lifetime()?;
             if pool == Volume::zero() {
-                return Ok((Amount::zero(), Amount::zero(), Amount::zero())) }
-            // compute the unlocked reward
-            // as a portion of the total reward `balance`
-            // optionally diminished by the global `ratio`
+                return Ok(Amount::zero()) }
             let ratio = self.pool.ratio()?;
-            let unlocked = Volume::from(self.pool.budget()?)
+            // compute the earned reward
+            Ok(Volume::from(self.pool.budget()?)
+                // as a portion of the reward budget
                 .multiply_ratio(self.lifetime()?, pool)?
-                .multiply_ratio(ratio.0, ratio.1)?
-                .low_u128().into();
-            let claimed = self.claimed()?;
-            // if already claimed this much or more...
-            // stake more tokens next time?
-            if unlocked <= claimed {
-                return Ok((unlocked, claimed, Amount::zero())) }
-            // you must lock for this long to claim
-            if self.age()? < self.pool.threshold()? {
-                return Ok((unlocked, claimed, Amount::zero())) }
-            // if there is something more to claim, let em know
-            Ok((unlocked, claimed, (unlocked - claimed)?)) }
+                // diminished by the optional global `ratio`
+                .multiply_ratio(ratio.0, ratio.1)?       
+                .low_u128().into()) }
 
         pub fn claimed (&self) -> StdResult<Amount> {
             Ok(self.load_ns(USER_CLAIMED, self.address.as_slice())?.unwrap_or(Amount::zero())) } }
@@ -256,11 +246,11 @@ stateful!(User (pool.storage):
 
         fn update_age (&mut self) -> StdResult<&mut Self> {
             let address = self.address.clone();
-            self.save_ns(USER_EXISTED,  address.as_slice(), self.age()?) }
+            self.save_ns(USER_AGE,  address.as_slice(), self.age()?) }
 
         fn reset_age (&mut self) -> StdResult<&mut Self> {
             let address = self.address.clone();
-            self.save_ns(USER_EXISTED,  address.as_slice(), 0u64) }
+            self.save_ns(USER_AGE,  address.as_slice(), 0u64) }
 
         fn update_locked (&mut self, locked: Amount) -> StdResult<&mut Self> {
             let address = self.address.clone();
@@ -297,14 +287,14 @@ stateful!(User (pool.storage):
             let threshold = self.pool.threshold()?;
             if age < threshold {
                 return error!(format!("lock tokens for {} more blocks to be eligible", threshold - age)) }
-            let (unlocked, _claimed, claimable) = self.reward()?;
+            let (earned, _claimed, claimable) = self.reward()?;
             if claimable > Amount::zero() {
                 // If there is some new reward amount to claim:
                 let address = self.address.clone();
-                self.save_ns(USER_CLAIMED, address.as_slice(), &unlocked)?
+                self.save_ns(USER_CLAIMED, address.as_slice(), &earned)?
                     .reset_age()?;
                 Ok(claimable) }
-            else if unlocked > Amount::zero() {
+            else if earned > Amount::zero() {
                 // If this user has claimed all its rewards so far:
                 error!("already claimed") }
             else {

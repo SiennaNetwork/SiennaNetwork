@@ -4,6 +4,15 @@ import { T, User, Pool, THRESHOLD } from './contract_base'
 import initRewards, * as Bound from '../target/web/rewards.js'
 
 // wrapper classes on the js side too... -----------------------------------------------------------
+interface LogAttribute {
+  key:   string,
+  value: string
+}
+interface HandleResponse {
+  messages: Array<object>,
+  log:      any,
+  data:     any
+}
 class Rewards {
   index = 0
   contract = new Bound.Contract()
@@ -28,7 +37,10 @@ class Rewards {
     this.index += 1
     this.block = T.T
     //if (this.debug) console.debug(`handle> ${this.index}`, msg)
-    const res = decode(this.contract.handle(encode(msg)))
+    const res: HandleResponse = decode(this.contract.handle(encode(msg)))
+    res.log = Object.fromEntries(Object
+      .values(res.log as object)
+      .map(({key, value})=>[key, value]))
     //if (this.debug) console.debug(`<handle ${this.index}`, res)
     return res
   }
@@ -74,13 +86,13 @@ export class RealPool extends Pool {
     })
   }
   update () {
-    super.update()
     this.contract.next_query_response = {balance:{amount:String(this.balance)}}
     const info = this.contract.query({pool_info:{at:T.T}}).pool_info
     //console.log(info)
     this.last_update = info.pool_last_update
     this.lifetime    = info.pool_lifetime
     this.locked      = info.pool_locked
+    super.update()
   }
 }
 
@@ -103,7 +115,7 @@ export class RealUser extends User {
   update () {
     // mock the user's balance - actually stored on this same object
     // because we don't have a snip20 contract to maintain it
-    this.contract.next_query_response = {balance:{amount:String(this.balance)}}
+    this.contract.next_query_response = {balance:{amount:String(this.pool.balance)}}
 
     // get the user's info as stored and calculated by the rewards contract
     // presuming the above mock balance
@@ -111,8 +123,8 @@ export class RealUser extends User {
     this.last_update = info.user_last_update
     this.lifetime    = Number(info.user_lifetime)
     this.locked      = Number(info.user_locked)
-    this.age         = info.user_age
-    this.cooldown    = 0
+    this.share       = Number(info.user_share)
+    this.age         = Number(info.user_age)
     this.earned      = Number(info.user_earned)
     this.claimed     = Number(info.user_claimed)
     this.claimable   = Number(info.user_claimable)
@@ -144,9 +156,9 @@ export class RealUser extends User {
   claim () {
     this.contract.sender = this.address
     try {
-      const reward = super.claim()
-      this.contract.handle({ claim: {} })
-      return reward
+      const result = this.contract.handle({ claim: {} })
+      const reward = Number(result.log.reward)
+      return this.doClaim(reward)
     } catch (e) {
       console.error(e)
       return 0

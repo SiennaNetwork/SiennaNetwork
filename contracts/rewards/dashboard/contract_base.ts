@@ -14,6 +14,12 @@ export const TIME_SCALE          = 60
            , MAX_USERS           = 15
            , MAX_INITIAL         = 10000
 
+export const format = {
+  integer:    (x:number) => String(x),
+  decimal:    (x:number) => (x/DIGITS).toFixed(DIGITS_INV),
+  percentage: (x:number) => `${format.decimal(x)}%`
+}
+
 // root of time (warning, singleton!) --------------------------------------------------------------
 export const T = { T: 0 }
 
@@ -48,12 +54,11 @@ export class Pool {
   }
   update () {
     this.balance += this.rpt.vest()
-    this.ui.log.now.setValue(
-      T.T)
-    this.ui.log.balance.setValue(
-      (this.balance/DIGITS).toFixed(DIGITS_INV))
-    this.ui.log.remaining.setValue(
-      this.rpt.remaining)
+    this.ui.log.now.setValue(T.T)
+    this.ui.log.balance.setValue((this.balance/DIGITS).toFixed(DIGITS_INV))
+    this.ui.log.remaining.setValue(this.rpt.remaining)
+    this.ui.log.lifetime.setValue(this.lifetime)
+    this.ui.log.locked.setValue(this.locked)
   }
 }
 
@@ -72,6 +77,7 @@ export class User {
   cooldown:     number = 0
   waited:       number = 0
   last_claimed: number = 0
+  share:        number = 0
   constructor (ui: UIContext, pool: Pool, name: string, balance: number) {
     this.ui      = ui
     this.pool    = pool
@@ -91,7 +97,12 @@ export class User {
     if (this.locked === 0) this.ui.current.remove(this)
   }
   claim () {
-    console.debug('claim')
+    throw new Error('not implemented')
+  }
+  doClaim (reward: number) { // stupid typescript inheritance constraints
+    console.debug(this.name, 'claim', reward)
+    if (reward <= 0) return 0
+
     if (this.locked === 0) return 0
 
     if (this.cooldown > 0 || this.age < THRESHOLD) return 0
@@ -101,7 +112,6 @@ export class User {
       return 0
     }
 
-    const reward = this.earned - this.claimed
     if (reward > this.pool.balance) {
       this.ui.log.add('crowded out B', this.name, undefined)
       return 0

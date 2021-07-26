@@ -1,5 +1,5 @@
 import { h, append, prepend } from './helpers'
-import { T, User, Users, DIGITS, DIGITS_INV } from './contract_base'
+import { T, User, Users, format } from './contract_base'
 
 // killswitches for gui components -----------------------------------------------------------------
 export const NO_HISTORY = true
@@ -36,7 +36,9 @@ export class Field {
 export class Log {
   root      = h('div', { className: 'history' })
   now       = new Field('block').append(this.root)
-  balance   = new Field('total rewards budget').append(this.root)
+  locked    = new Field('liquidity now in pool').append(this.root)
+  lifetime  = new Field('all liquidity ever in pool').append(this.root)
+  balance   = new Field('available reward balance').append(this.root)
   remaining = new Field('remaining funding portions').append(this.root)
   body      = append(this.root, h('ol'))
   add (event: string, name: string, amount: number|undefined) {
@@ -128,21 +130,22 @@ export class Table {
   update (user: User) {
     if (NO_TABLE) return
     this.rows[user.name].last_update.textContent =
-      String(user.last_update)
+      format.integer(user.last_update)
     this.rows[user.name].lockedValue.textContent =
-      String(user.locked)
+      format.integer(user.locked)
     this.rows[user.name].lifetime.textContent =
-      String(user.lifetime)
+      format.integer(user.lifetime)
     this.rows[user.name].share.textContent =
-      (100 * user.lifetime / user.pool.lifetime).toFixed(3) + '%'
+      format.percentage(user.share)
     this.rows[user.name].age.textContent =
-      String(user.age)
+      format.integer(user.age)
     this.rows[user.name].earned.textContent =
-      (user.earned/DIGITS).toFixed(DIGITS_INV)
+      format.decimal(user.earned)
     this.rows[user.name].claimed.textContent =
-      (user.claimed/DIGITS).toFixed(DIGITS_INV)
+      format.decimal(user.claimed)
     this.rows[user.name].claimable.textContent =
-      (user.claimable/DIGITS).toFixed(DIGITS_INV)
+      format.decimal(user.claimable)
+
     const [fill, stroke] = user.colors()
     this.rows[user.name].earned.style.backgroundColor =
     this.rows[user.name].claimed.style.backgroundColor =

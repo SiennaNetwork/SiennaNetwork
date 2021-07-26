@@ -40,9 +40,14 @@ use fadroma::scrt::{
     }
 };
 
-macro_rules! tx_ok { ($($msg:expr),*) => {
-    Ok(HandleResponse { messages: vec![$($msg),*], log: vec![], data: None })
-} }
+macro_rules! tx_ok {
+    () => {
+        Ok(HandleResponse::default())
+    };
+    ($($msg:expr),*) => {
+        Ok(HandleResponse { messages: vec![$($msg),*], log: vec![], data: None })
+    };
+}
 
 pub const DAY: Time = 17280; // blocks over ~24h @ 5s/block
 
@@ -106,10 +111,13 @@ contract! {
                 it_is_now: at,
 
                 lp_token: load_lp_token(&deps.storage, &deps.api)?,
+                reward_token: load_reward_token(&deps.storage, &deps.api)?,
 
                 pool_last_update,
                 pool_lifetime:    pool.lifetime()?,
                 pool_locked:      pool.locked()?,
+                pool_claimed:     pool.claimed()?,
+                pool_balance:     pool.balance(),
 
                 // todo add balance/claimed/total in rewards token
             }) }
@@ -132,24 +140,39 @@ contract! {
                 return Err(StdError::generic_err("this contract does not store history"))
             }
             let pool_lifetime = pool.lifetime()?;
-            let pool_locked   = pool.locked()?;
+            let pool_locked = pool.locked()?;
 
             let user = pool.user(address);
             let user_last_update = user.last_update()?;
             if at < pool_last_update {
                 return Err(StdError::generic_err("this contract does not store history"))
             }
-            let user_lifetime = user.lifetime()?;
-            let user_locked   = user.locked()?;
-            let user_age      = user.age()?;
 
+            let user_lifetime = user.lifetime()?;
             let (user_earned, user_claimed, user_claimable) = user.reward()?;
+            let user_share = if pool_lifetime > Volume::zero() {
+                Volume::from(100000000u128)
+                    .multiply_ratio(user_lifetime, pool_lifetime)?
+                    .low_u128()
+            } else {
+                0u128
+            }.into();
 
             Ok(Response::UserInfo {
                 it_is_now: at,
-                pool_last_update, pool_lifetime, pool_locked,
-                user_last_update, user_lifetime, user_locked,
-                user_age, user_earned, user_claimed, user_claimable
+
+                pool_last_update,
+                pool_lifetime,
+                pool_locked,
+
+                user_last_update,
+                user_lifetime,
+                user_locked:  user.locked()?,
+                user_age:     user.age()?,
+                user_share,
+                user_earned:  user.earned()?,
+                user_claimed,
+                user_claimable
             }) }
 
         /// Keplr integration
@@ -178,13 +201,17 @@ contract! {
 
         /// Response from `Query::PoolInfo`
         PoolInfo {
-            lp_token: ContractLink<HumanAddr>,
+            lp_token:     ContractLink<HumanAddr>,
+            reward_token: ContractLink<HumanAddr>,
 
             it_is_now: Time,
 
             pool_last_update: Time,
             pool_lifetime:    Volume,
-            pool_locked:      Amount
+            pool_locked:      Amount,
+
+            pool_balance:     Amount,
+            pool_claimed:     Amount
         }
 
         /// Response from `Query::UserInfo`
@@ -198,7 +225,7 @@ contract! {
             user_last_update: Time,
             user_lifetime:    Volume,
             user_locked:      Amount,
-
+            user_share:       Amount,
             user_age:         Time,
             user_earned:      Amount,
             user_claimed:     Amount,
@@ -226,7 +253,7 @@ contract! {
 
     [Handle] (deps, env /* it's not unused :( */, _state, msg) -> Response {
 
-        // Admin transactions
+        // actions that can only be performed by an admin -----------------------------------------
 
         /// Set the contract admin.
         ChangeAdmin (address: HumanAddr) {
@@ -239,9 +266,9 @@ contract! {
         SetProvidedToken (address: HumanAddr, code_hash: String) {
             assert_admin(&deps, &env)?;
             save_lp_token(&mut deps.storage, &deps.api, &ContractLink { address, code_hash })?;
-            Ok(HandleResponse::default()) }
+            tx_ok!() }
 
-        // User transactions
+        // actions that are performed by users ----------------------------------------------------
 
         /// User can request a new viewing key for oneself.
         CreateViewingKey (entropy: String, padding: Option<String>) {
@@ -276,17 +303,15 @@ contract! {
         Claim () {
             // TODO reset age on claim, so user can claim only once per reward period?
             let reward_token_link = load_reward_token(&deps.storage, &deps.api)?;
-            let reward_token      = ISnip20::attach(&reward_token_link);
-            let reward_vk         = load_viewing_key(&deps.storage)?.0;
-            tx_ok!(reward_token.transfer(
-                &env.message.sender,
-                Pool::new(&mut deps.storage)
-                    .at(env.block.height)
-                    .with_balance(reward_token
-                        .query(&deps.querier)
-                        .balance(&env.contract.address, &reward_vk)?)
-                    .user(deps.api.canonical_address(&env.message.sender)?)
-                    .claim_reward()? )?) }
-
-    }
-}
+            let reward_token = ISnip20::attach(&reward_token_link);
+            let reward_vk = load_viewing_key(&deps.storage)?.0;
+            let reward_balance = reward_token.query(&deps.querier)
+                .balance(&env.contract.address, &reward_vk)?;
+            let reward = Pool::new(&mut deps.storage)
+                .at(env.block.height)
+                .with_balance(reward_balance)
+                .user(deps.api.canonical_address(&env.message.sender)?)
+                .claim_reward()?;
+            let messages = vec![reward_token.transfer(&env.message.sender, reward)?];
+            let log = vec![LogAttribute { key: "reward".into(), value: reward.into() }];
+            Ok(HandleResponse { messages, log, data: None }) } } }
