@@ -7,7 +7,7 @@ const COOLDOWN            = 17280/TIME_SCALE
 const FUND_INTERVAL       = 17280/TIME_SCALE
 const THRESHOLD           = 17280/TIME_SCALE
 const USER_GIVES_UP_AFTER = Infinity
-const MAX_USERS           = 100
+const MAX_USERS           = 25
 const MAX_INITIAL         = 1000
 
 // reward pool  ------------------------------------------------------------------------------------
@@ -55,12 +55,12 @@ export class MockUser extends User {
   }
 
   claim () {
-    const reward = super.claim()
-    this.claimed = this.earned
-    this.pool.balance -= reward
-    this.cooldown = COOLDOWN
-    this.last_claimed = T.T
-    return reward
+    const reward = this.doClaim(this.earned - this.claimed)
+    if (reward > 0) {
+      this.claimed += reward
+      this.cooldown = COOLDOWN
+      this.last_claimed = T.T
+    }
   }
 }
 

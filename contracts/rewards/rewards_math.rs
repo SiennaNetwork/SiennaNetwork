@@ -12,19 +12,19 @@
 use fadroma::scrt::{cosmwasm_std::{StdResult, Uint128}, utils::Uint256};
 
 /// A monotonic time counter, such as env.block.time or env.block.height
-pub type Time = u64;
+pub type Time   = u64;
 
 /// Amount of funds
-pub type Amount    = Uint128;
+pub type Amount = Uint128;
 
 /// Liquidity = amount (u128) * time (u64)
-pub type Volume    = Uint256;
+pub type Volume = Uint256;
 
 /// A ratio represented as tuple (nom, denom)
-pub type Ratio     = (Uint128, Uint128);
+pub type Ratio  = (Uint128, Uint128);
 
-/// (balance, lifetime, last update)
-pub type Status    = (Amount, Volume, Time);
+/// 100% with 6 digits after the decimal
+pub const HUNDRED_PERCENT: u128 = 100000000u128;
 
 /// Calculate the current total based on the stored total and the time since last update.
 pub fn tally (

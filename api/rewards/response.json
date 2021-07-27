@@ -14,9 +14,14 @@
           "required": [
             "it_is_now",
             "lp_token",
+            "pool_balance",
+            "pool_claimed",
+            "pool_cooldown",
             "pool_last_update",
             "pool_lifetime",
-            "pool_locked"
+            "pool_locked",
+            "pool_threshold",
+            "reward_token"
           ],
           "properties": {
             "it_is_now": {
@@ -26,6 +31,17 @@
             },
             "lp_token": {
               "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+            },
+            "pool_balance": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "pool_claimed": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "pool_cooldown": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             },
             "pool_last_update": {
               "type": "integer",
@@ -37,6 +53,14 @@
             },
             "pool_locked": {
               "$ref": "#/definitions/Uint128"
+            },
+            "pool_threshold": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "reward_token": {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
             }
           }
         }
@@ -59,10 +83,11 @@
             "user_age",
             "user_claimable",
             "user_claimed",
+            "user_cooldown",
             "user_earned",
-            "user_last_update",
             "user_lifetime",
-            "user_locked"
+            "user_locked",
+            "user_share"
           ],
           "properties": {
             "it_is_now": {
@@ -92,11 +117,19 @@
             "user_claimed": {
               "$ref": "#/definitions/Uint128"
             },
+            "user_cooldown": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
             "user_earned": {
               "$ref": "#/definitions/Uint128"
             },
             "user_last_update": {
-              "type": "integer",
+              "type": [
+                "integer",
+                "null"
+              ],
               "format": "uint64",
               "minimum": 0.0
             },
@@ -104,6 +137,9 @@
               "$ref": "#/definitions/Uint256"
             },
             "user_locked": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "user_share": {
               "$ref": "#/definitions/Uint128"
             }
           }

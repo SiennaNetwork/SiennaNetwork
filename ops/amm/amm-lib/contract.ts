@@ -239,7 +239,7 @@ export class ExchangeContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('650000')
+            fee = create_fee('610000')
         }
 
         const info = await this.get_pair_info()
@@ -272,7 +272,7 @@ export class ExchangeContract extends SmartContract {
         }
 
         if (fee === undefined) {
-            fee = create_fee('510000')
+            fee = create_fee('530000')
         }
 
         const msg = {
@@ -551,10 +551,10 @@ export class RewardsContract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async get_pool(now: number): Promise<RewardPool> {
+    async get_pool(at: number): Promise<RewardPool> {
         const msg = {
             pool_info: {
-                now
+                at
             }
         }
 
@@ -565,13 +565,13 @@ export class RewardsContract extends SmartContract {
     async get_account(
         address: Address,
         key: ViewingKey,
-        now: number
+        at: number
     ): Promise<RewardsAccount> {
         const msg = {
             user_info: {
                 address,
                 key,
-                now
+                at
             }
         }
 

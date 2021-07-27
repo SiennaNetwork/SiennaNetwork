@@ -15,19 +15,19 @@ export default class SiennaRewards extends ScrtEnsemble {
   // TODO: make tokens "pluggable"
   // i.e. allow attaching the rewards to an existing deployment
   contracts =
-  { LP:     { crate:   'amm-snip20'
-            , label:   `${this.prefix} LP`
-            , initMsg: { prng_seed: randomBytes(36).toString('hex')
-                       , name:     "LPToken"
-                       , symbol:   "LP"
-                       , decimals: 18
-                       , config: { public_total_supply: true
-                                 , enable_deposit:      true
-                                 , enable_redeem:       true
-                                 , enable_mint:         true
-                                 , enable_burn:         true } } }
+  { LP: { crate:   'amm-snip20'
+        , label:   `${this.prefix}/lp_token`
+        , initMsg: { prng_seed: randomBytes(36).toString('hex')
+                   , name:     "LPToken"
+                   , symbol:   "LP"
+                   , decimals: 18
+                   , config: { public_total_supply: true
+                             , enable_deposit:      true
+                             , enable_redeem:       true
+                             , enable_mint:         true
+                             , enable_burn:         true } } }
   , REWARD: { crate:   'amm-snip20'
-            , label:   `${this.prefix} ASSET`
+            , label:   `${this.prefix}/reward_token`
             , initMsg: { prng_seed: randomBytes(36).toString('hex')
                        , name:     "RewardToken"
                        , symbol:   "REWARD"
@@ -37,9 +37,18 @@ export default class SiennaRewards extends ScrtEnsemble {
                                  , enable_redeem:       true
                                  , enable_mint:         true
                                  , enable_burn:         true } } }
-  , POOL:   { crate:   'sienna-rewards'
-            , label:   `${this.prefix} REWARDS`
-            , initMsg: {}},
+
+  , POOL: { crate:   'sienna-rewards'
+          , label:   `${this.prefix}/reward_pool`
+          , initMsg: {}}
+
+  , FACTORY: { crate:   'factory'
+             , label:   `${this.prefix}/amm_factory`
+             , initMsg: {}}
+
+  , EXCHANGE: { crate:   'exchange'
+              , label:   `${this.prefix}/amm_exchange`
+              , initMsg: {}}
   }
 
   get localCommands () {

@@ -1738,7 +1738,7 @@ dependencies = [
 
 [[package]]
 name = "sienna-rewards"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "fadroma 21.7.0",
  "kukumba 1.0.1",
