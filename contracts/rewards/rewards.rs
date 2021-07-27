@@ -132,24 +132,26 @@ contract! {
 
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
 
+            let pool = Pool::new(&deps.storage).at(at);
+            let pool_last_update = pool.timestamp()?;
+            if at < pool_last_update {
+                return Err(StdError::generic_err("no data"))
+            }
+            let pool_lifetime = pool.lifetime()?;
+            let pool_locked   = pool.locked()?;
+
             let reward_token_link = load_reward_token(&deps.storage, &deps.api)?;
             let reward_token      = ISnip20::attach(&reward_token_link);
             let reward_balance    = reward_token.query(&deps.querier).balance(
                 &load_self_reference(&deps.storage, &deps.api)?.address,
                 &load_viewing_key(&deps.storage)?.0, )?;
 
-            let pool = Pool::new(&deps.storage).at(at).with_balance(reward_balance);
-            let pool_last_update = pool.timestamp()?;
-            if at < pool_last_update {
-                return Err(StdError::generic_err("no data"))
-            }
-            let pool_lifetime = pool.lifetime()?;
-            let pool_locked = pool.locked()?;
-
-            let user = pool.user(address);
+            let user = pool.with_balance(reward_balance).user(address);
             let user_last_update = user.timestamp()?;
-            if at < user_last_update {
-                return Err(StdError::generic_err("no data"))
+            if let Some(user_last_update) = user_last_update {
+                if at < user_last_update {
+                    return Err(StdError::generic_err("no data"))
+                }
             }
 
             Ok(Response::UserInfo {
