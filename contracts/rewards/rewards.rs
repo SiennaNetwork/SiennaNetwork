@@ -166,7 +166,7 @@ contract! {
                 user_last_update,
                 user_lifetime:  user.lifetime()?,
                 user_locked:    user.locked()?,
-                user_age:       user.existed()?,
+                user_age:       user.present()?,
                 user_share:     user.share()?,
                 user_earned:    user.earned()?,
                 user_claimed:   user.claimed()?,

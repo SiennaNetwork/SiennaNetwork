@@ -287,7 +287,7 @@ stateful!(User (pool.storage):
                 .unwrap_or(0 as Time)) }
 
         pub fn cooldown (&self) -> StdResult<Time> {
-            Ok(Time::saturating_sub(self.last_cooldown()?, self.elapsed_present()?)) }
+            Ok(Time::saturating_sub(self.last_cooldown()?, self.elapsed()?)) }
 
         fn last_cooldown (&self) -> StdResult<Time> {
             Ok(self.load_ns(USER_COOLDOWN, self.address.as_slice())?
