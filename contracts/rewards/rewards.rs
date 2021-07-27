@@ -148,7 +148,7 @@ contract! {
 
             let user = pool.user(address);
             let user_last_update = user.timestamp()?;
-            if at < pool_last_update {
+            if at < user_last_update {
                 return Err(StdError::generic_err("no data"))
             }
 
