@@ -152,15 +152,6 @@ contract! {
                 return Err(StdError::generic_err("no data"))
             }
 
-            let user_lifetime = user.lifetime()?;
-            let user_share = if pool_lifetime > Volume::zero() {
-                Volume::from(100000000u128)
-                    .multiply_ratio(user_lifetime, pool_lifetime)?
-                    .low_u128()
-            } else {
-                0u128
-            }.into();
-
             Ok(Response::UserInfo {
                 it_is_now: at,
 
@@ -169,10 +160,10 @@ contract! {
                 pool_locked,
 
                 user_last_update,
-                user_lifetime,
+                user_lifetime:  user.lifetime()?,
                 user_locked:    user.locked()?,
-                user_age:       user.age()?,
-                user_share,
+                user_age:       user.existed()?,
+                user_share:     user.share()?,
                 user_earned:    user.earned()?,
                 user_claimed:   user.claimed()?,
                 user_claimable: user.claimable()?,

@@ -8,10 +8,10 @@ export const TIME_SCALE          = 60
            , DIGITS_INV          = Math.log10(DIGITS)
            , FUND_PORTION        = 2500 * DIGITS
            , FUND_INTERVAL       = 17280/TIME_SCALE
-           , COOLDOWN            = FUND_INTERVAL
+           , COOLDOWN            = FUND_INTERVAL/24
            , THRESHOLD           = FUND_INTERVAL
            , USER_GIVES_UP_AFTER = Infinity
-           , MAX_USERS           = 15
+           , MAX_USERS           = 100
            , MAX_INITIAL         = 10000
 
 export const format = {
