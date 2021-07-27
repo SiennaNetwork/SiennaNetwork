@@ -232,6 +232,8 @@ pub mod ido {
         pub admin: HumanAddr,
         /// Used by the IDO to register itself with the factory.
         pub callback: Callback<HumanAddr>,
+        /// Seed for creating viewkey
+        pub prng_seed: Binary,
     }
     #[derive(Serialize, Deserialize, JsonSchema, Clone)]
     pub struct TokenSaleConfig {
@@ -253,10 +255,6 @@ pub mod ido {
         pub start_time: Option<u64>,
         /// Time when the sale will end
         pub end_time: u64,
-        /// Seed for creating viewkey
-        pub prng_seed: Option<Binary>,
-        /// Entropy for creating viewkey
-        pub entropy: Option<Binary>,
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]

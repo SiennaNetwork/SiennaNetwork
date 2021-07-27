@@ -1,29 +1,32 @@
 use amm_shared::{
-    ExchangeSettings, Fee, TokenPairAmount, TokenType, TokenTypeAmount,
+    exchange::{ExchangeSettings, Fee},
+    fadroma::scrt::{
+        callback::{Callback, ContractInstance},
+        cosmwasm_std::{
+            from_binary, log, to_binary, Api, BankMsg, Binary, Coin, CosmosMsg, Decimal, Env,
+            Extern, HandleResponse, HumanAddr, InitResponse, Querier, QueryRequest, QueryResult,
+            StdError, StdResult, Storage, Uint128, WasmMsg, WasmQuery,
+        },
+        migrate as fadroma_scrt_migrate,
+        toolkit::snip20,
+        utils::{crypto::Prng, viewing_key::ViewingKey, Uint256},
+    },
     msg::{
         exchange::{
-            InitMsg, HandleMsg, QueryMsg, QueryMsgResponse,
-            SwapSimulationResponse, ReceiverCallbackMsg
+            HandleMsg, InitMsg, QueryMsg, QueryMsgResponse, ReceiverCallbackMsg,
+            SwapSimulationResponse,
         },
         factory::{QueryMsg as FactoryQueryMsg, QueryResponse as FactoryResponse},
-        snip20::{InitConfig as Snip20InitConfig, InitMsg as Snip20InitMsg}
+        snip20::{InitConfig as Snip20InitConfig, InitMsg as Snip20InitMsg},
     },
-    fadroma::scrt::{
-        cosmwasm_std::{
-            to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier,
-            StdError, Binary, StdResult, Storage, QueryResult, CosmosMsg, WasmMsg,
-            Uint128, log, HumanAddr, Decimal, QueryRequest, WasmQuery, BankMsg, Coin,
-            from_binary
-        },
-        toolkit::snip20,
-        utils::{Uint256, viewing_key::ViewingKey, crypto::Prng},
-        callback::{ContractInstance, Callback},
-        migrate as fadroma_scrt_migrate
-    }
+    TokenPairAmount, TokenType, TokenTypeAmount,
 };
 use fadroma_scrt_migrate::{get_status, with_status};
 
-use crate::{state::{Config, store_config, load_config}, decimal_math};
+use crate::{
+    decimal_math,
+    state::{load_config, store_config, Config},
+};
 
 // This should be incremented every time there is a change to the interface of the contract.
 const CONTRACT_VERSION: u32 = 1;
@@ -32,12 +35,12 @@ struct SwapInfo {
     total_commission: Uint128,
     sienna_commission: Uint128,
     swap_commission: Uint128,
-    result: SwapResult
+    result: SwapResult,
 }
 
 struct SwapResult {
     return_amount: Uint128,
-    spread_amount: Uint128
+    spread_amount: Uint128,
 }
 
 /// Pad handle responses and log attributes to blocks
@@ -49,14 +52,18 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
-
     if msg.pair.0 == msg.pair.1 {
-        return Err(StdError::generic_err("Trying to create an exchange with the same token."));
+        return Err(StdError::generic_err(
+            "Trying to create an exchange with the same token.",
+        ));
     }
 
     let mut messages = vec![];
 
-    let mut rng = Prng::new(&env.message.sender.0.as_bytes(), &env.block.time.to_be_bytes());
+    let mut rng = Prng::new(
+        &env.message.sender.0.as_bytes(),
+        &env.block.time.to_be_bytes(),
+    );
     let viewing_key = ViewingKey::new(&env, msg.prng_seed.as_slice(), &rng.rand_bytes());
 
     register_custom_token(&env, &mut messages, &msg.pair.0, &viewing_key)?;
@@ -77,59 +84,54 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
                 msg: to_binary(&HandleMsg::OnLpTokenInit)?,
                 contract: ContractInstance {
                     address: env.contract.address.clone(),
-                    code_hash: env.contract_code_hash
-                }
+                    code_hash: env.contract_code_hash,
+                },
             }),
             initial_balances: None,
             initial_allowances: None,
             prng_seed: Binary::from(rng.rand_bytes()),
-            config: Some(Snip20InitConfig::builder()
-                .public_total_supply()
-                .enable_mint()
-                .enable_burn()
-                .build()
-            )
+            config: Some(
+                Snip20InitConfig::builder()
+                    .public_total_supply()
+                    .enable_mint()
+                    .enable_burn()
+                    .build(),
+            ),
         })?,
         send: vec![],
         label: format!(
             "{}-{}-SiennaSwap-LP-Token-{}",
-            &msg.pair.0,
-            &msg.pair.1,
-            &env.contract.address
+            &msg.pair.0, &msg.pair.1, &env.contract.address
         ),
         callback_code_hash: msg.lp_token_contract.code_hash.clone(),
     }));
 
     // Execute the HandleMsg::RegisterExchange method of
     // the factory contract in order to register this address
-    messages.push(
-        CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: msg.callback.contract.address,
-            callback_code_hash: msg.callback.contract.code_hash,
-            msg: msg.callback.msg,
-            send: vec![],
-        })
-    );
+    messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: msg.callback.contract.address,
+        callback_code_hash: msg.callback.contract.code_hash,
+        msg: msg.callback.msg,
+        send: vec![],
+    }));
 
     let config = Config {
         factory_info: msg.factory_info,
         lp_token_info: ContractInstance {
             code_hash: msg.lp_token_contract.code_hash,
             // We get the address when the instantiated LP token calls OnLpTokenInit
-            address: HumanAddr::default()
+            address: HumanAddr::default(),
         },
         pair: msg.pair,
         contract_addr: env.contract.address.clone(),
-        viewing_key
+        viewing_key,
     };
 
     store_config(deps, &config)?;
 
     Ok(InitResponse {
         messages,
-        log: vec![
-            log("created_exchange_address", env.contract.address)
-        ]
+        log: vec![log("created_exchange_address", env.contract.address)],
     })
 }
 
@@ -138,47 +140,61 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
-    with_status!(deps, env, match msg {
-        HandleMsg::Receive{ from, amount, msg, .. } => receiver_callback(deps, env, from, amount, msg),
-        HandleMsg::AddLiquidity { deposit, slippage_tolerance } => add_liquidity(deps, env, deposit, slippage_tolerance),
-        HandleMsg::OnLpTokenInit => register_lp_token(deps, env),
-        HandleMsg::Swap { offer, expected_return, recipient } => {
-            // Can only be called directly when the offer token is SCRT, otherwise
-            // has to be called through the SNIP20 receiver interface by sending
-            // the amount to the pair's account in the SNIP20 token
-
-            if !offer.token.is_native_token() {
-                return Err(StdError::unauthorized());
-            }
-
-            offer.assert_sent_native_token_balance(&env)?;
-
-            let config = load_config(deps)?;
-            let sender = env.message.sender.clone();
-
-            swap(
-                &deps.querier,
-                env,
-                config,
-                sender,
-                recipient,
+    with_status!(
+        deps,
+        env,
+        match msg {
+            HandleMsg::Receive {
+                from, amount, msg, ..
+            } => receiver_callback(deps, env, from, amount, msg),
+            HandleMsg::AddLiquidity {
+                deposit,
+                slippage_tolerance,
+            } => add_liquidity(deps, env, deposit, slippage_tolerance),
+            HandleMsg::OnLpTokenInit => register_lp_token(deps, env),
+            HandleMsg::Swap {
                 offer,
-                expected_return
-            )
+                expected_return,
+                recipient,
+            } => {
+                // Can only be called directly when the offer token is SCRT, otherwise
+                // has to be called through the SNIP20 receiver interface by sending
+                // the amount to the pair's account in the SNIP20 token
+
+                if !offer.token.is_native_token() {
+                    return Err(StdError::unauthorized());
+                }
+
+                offer.assert_sent_native_token_balance(&env)?;
+
+                let config = load_config(deps)?;
+                let sender = env.message.sender.clone();
+
+                swap(
+                    &deps.querier,
+                    env,
+                    config,
+                    sender,
+                    recipient,
+                    offer,
+                    expected_return,
+                )
+            }
         }
-    })
+    )
 }
 
-pub fn query<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    msg: QueryMsg,
-) -> QueryResult {
+pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
         QueryMsg::Status => to_binary(&get_status(deps)?),
         QueryMsg::PairInfo => {
             let config = load_config(deps)?;
 
-            let balances = config.pair.query_balances(&deps.querier, config.contract_addr, config.viewing_key.0)?;
+            let balances = config.pair.query_balances(
+                &deps.querier,
+                config.contract_addr,
+                config.viewing_key.0,
+            )?;
             let total_liquidity = query_liquidity(&deps.querier, &config.lp_token_info)?;
 
             to_binary(&QueryMsgResponse::PairInfo {
@@ -188,9 +204,9 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
                 amount_0: balances[0],
                 amount_1: balances[1],
                 total_liquidity,
-                contract_version: CONTRACT_VERSION
+                contract_version: CONTRACT_VERSION,
             })
-        },
+        }
         QueryMsg::SwapSimulation { offer } => {
             let config = load_config(deps)?;
             to_binary(&swap_simulation(deps, config, offer)?)
@@ -206,23 +222,26 @@ fn receiver_callback<S: Storage, A: Api, Q: Querier>(
     env: Env,
     from: HumanAddr,
     amount: Uint128,
-    msg: Option<Binary>
+    msg: Option<Binary>,
 ) -> StdResult<HandleResponse> {
-    let msg = msg.ok_or_else(||
+    let msg = msg.ok_or_else(|| {
         StdError::generic_err("Receiver callback \"msg\" parameter cannot be empty.")
-    )?;
+    })?;
 
     let config = load_config(deps)?;
 
     match from_binary(&msg)? {
-        ReceiverCallbackMsg::Swap { recipient, expected_return } => {
+        ReceiverCallbackMsg::Swap {
+            recipient,
+            expected_return,
+        } => {
             for token in config.pair.into_iter() {
                 match token {
                     TokenType::CustomToken { contract_addr, .. } => {
                         if *contract_addr == env.message.sender {
                             let offer = TokenTypeAmount {
                                 token: token.clone(),
-                                amount
+                                amount,
                             };
 
                             return swap(
@@ -232,19 +251,19 @@ fn receiver_callback<S: Storage, A: Api, Q: Querier>(
                                 from,
                                 recipient,
                                 offer,
-                                expected_return
+                                expected_return,
                             );
                         }
-                    },
-                    _ => continue
+                    }
+                    _ => continue,
                 }
             }
 
             Err(StdError::unauthorized())
-        },
+        }
         ReceiverCallbackMsg::RemoveLiquidity { recipient } => {
             if config.lp_token_info.address != env.message.sender {
-                return Err(StdError::unauthorized());    
+                return Err(StdError::unauthorized());
             }
 
             remove_liquidity(deps, env, amount, recipient)
@@ -256,7 +275,7 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     deposit: TokenPairAmount<HumanAddr>,
-    slippage: Option<Decimal>
+    slippage: Option<Decimal>,
 ) -> StdResult<HandleResponse> {
     let config = load_config(&deps)?;
 
@@ -269,7 +288,9 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
     } = config;
 
     if pair != deposit.pair {
-        return Err(StdError::generic_err("The provided tokens dont match those managed by the contract."));
+        return Err(StdError::generic_err(
+            "The provided tokens dont match those managed by the contract.",
+        ));
     }
 
     // Because we asserted that the provided pair and the one that is managed by the contract
@@ -279,11 +300,17 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
 
     let mut messages: Vec<CosmosMsg> = vec![];
 
-    let mut pool_balances = deposit.pair.query_balances(&deps.querier, contract_addr, viewing_key.0)?;
+    let mut pool_balances =
+        deposit
+            .pair
+            .query_balances(&deps.querier, contract_addr, viewing_key.0)?;
 
     for (i, (amount, token)) in deposit.into_iter().enumerate() {
         match &token {
-            TokenType::CustomToken { contract_addr, token_code_hash } => {
+            TokenType::CustomToken {
+                contract_addr,
+                token_code_hash,
+            } => {
                 messages.push(snip20::transfer_from_msg(
                     env.message.sender.clone(),
                     env.contract.address.clone(),
@@ -291,9 +318,9 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
                     None,
                     BLOCK_SIZE,
                     token_code_hash.clone(),
-                    contract_addr.clone())?
-                );
-            },
+                    contract_addr.clone(),
+                )?);
+            }
             TokenType::NativeToken { .. } => {
                 // If the asset is native token, balance is already increased.
                 // To calculate properly we should subtract user deposit from the pool.
@@ -305,8 +332,8 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
 
     assert_slippage_tolerance(
         slippage,
-        &[ deposit.amount_0, deposit.amount_1 ],
-        &pool_balances
+        &[deposit.amount_0, deposit.amount_1],
+        &pool_balances,
     )?;
 
     let liquidity_supply = query_liquidity(&deps.querier, &lp_token_info)?;
@@ -366,7 +393,7 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     amount: Uint128,
-    recipient: HumanAddr
+    recipient: HumanAddr,
 ) -> StdResult<HandleResponse> {
     let config = load_config(&deps)?;
 
@@ -387,19 +414,23 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
     let withdraw_amount = Uint256::from(amount);
     let total_liquidity = Uint256::from(liquidity_supply);
 
-    let mut pool_withdrawn: [Uint128; 2] = [ Uint128::zero(), Uint128::zero() ];
+    let mut pool_withdrawn: [Uint128; 2] = [Uint128::zero(), Uint128::zero()];
 
     for (i, pool_amount) in pool_balances.iter().enumerate() {
         let pool_amount = Uint256::from(*pool_amount);
-        pool_withdrawn[i] = ((pool_amount * withdraw_amount)? / total_liquidity)?.clamp_u128()?.into();
+        pool_withdrawn[i] = ((pool_amount * withdraw_amount)? / total_liquidity)?
+            .clamp_u128()?
+            .into();
     }
 
     let mut messages: Vec<CosmosMsg> = Vec::with_capacity(3);
 
     for (i, token) in pair.into_iter().enumerate() {
-        messages.push(
-            token.create_send_msg(env.contract.address.clone(), recipient.clone(), pool_withdrawn[i])?
-        );
+        messages.push(token.create_send_msg(
+            env.contract.address.clone(),
+            recipient.clone(),
+            pool_withdrawn[i],
+        )?);
     }
 
     messages.push(snip20::burn_msg(
@@ -407,7 +438,7 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
         None,
         BLOCK_SIZE,
         lp_token_info.code_hash,
-        lp_token_info.address
+        lp_token_info.address,
     )?);
 
     Ok(HandleResponse {
@@ -417,7 +448,7 @@ fn remove_liquidity<S: Storage, A: Api, Q: Querier>(
             log("withdrawn_share", amount),
             log("refund_assets", format!("{}, {}", &pair.0, &pair.1)),
         ],
-        data: None
+        data: None,
     })
 }
 
@@ -452,16 +483,19 @@ fn swap(
     if let Some(burner_address) = settings.sienna_burner {
         if swap.sienna_commission > Uint128::zero() {
             match &offer.token {
-                TokenType::CustomToken { contract_addr, token_code_hash } => {
+                TokenType::CustomToken {
+                    contract_addr,
+                    token_code_hash,
+                } => {
                     messages.push(snip20::transfer_msg(
                         burner_address,
                         swap.sienna_commission,
                         None,
                         BLOCK_SIZE,
                         token_code_hash.clone(),
-                        contract_addr.clone()
+                        contract_addr.clone(),
                     )?);
-                },
+                }
                 TokenType::NativeToken { denom } => {
                     offer.assert_sent_native_token_balance(&env)?;
 
@@ -470,8 +504,8 @@ fn swap(
                         to_address: burner_address,
                         amount: vec![Coin {
                             denom: denom.clone(),
-                            amount: swap.sienna_commission
-                        }]
+                            amount: swap.sienna_commission,
+                        }],
                     }));
                 }
             }
@@ -483,9 +517,13 @@ fn swap(
     let token = config.pair.get_token(index ^ 1).unwrap();
 
     let recipient = recipient.unwrap_or(sender);
-    messages.push(token.create_send_msg(env.contract.address, recipient, swap.result.return_amount)?);
+    messages.push(token.create_send_msg(
+        env.contract.address,
+        recipient,
+        swap.result.return_amount,
+    )?);
 
-    Ok(HandleResponse{
+    Ok(HandleResponse {
         messages,
         log: vec![
             log("action", "swap"),
@@ -495,21 +533,21 @@ fn swap(
             log("spread_amount", swap.result.spread_amount),
             log("sienna_commission", swap.sienna_commission),
             log("swap_commission", swap.swap_commission),
-            log("commission_amount", swap.total_commission)
+            log("commission_amount", swap.total_commission),
         ],
-        data: None
+        data: None,
     })
 }
 
 fn query_liquidity(
     querier: &impl Querier,
-    lp_token_info: &ContractInstance<HumanAddr>
+    lp_token_info: &ContractInstance<HumanAddr>,
 ) -> StdResult<Uint128> {
     let result = snip20::token_info_query(
         querier,
         BLOCK_SIZE,
         lp_token_info.code_hash.clone(),
-        lp_token_info.address.clone()
+        lp_token_info.address.clone(),
     )?;
 
     //If this happens, the LP token has been incorrectly configured
@@ -523,7 +561,7 @@ fn query_liquidity(
 fn swap_simulation<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     config: Config<HumanAddr>,
-    offer: TokenTypeAmount<HumanAddr>
+    offer: TokenTypeAmount<HumanAddr>,
 ) -> StdResult<SwapSimulationResponse> {
     let settings = query_exchange_settings(&deps.querier, config.factory_info.clone())?;
 
@@ -532,13 +570,13 @@ fn swap_simulation<S: Storage, A: Api, Q: Querier>(
     Ok(SwapSimulationResponse {
         return_amount: swap.result.return_amount,
         spread_amount: swap.result.spread_amount,
-        commission_amount: swap.total_commission
+        commission_amount: swap.total_commission,
     })
 }
 
 fn register_lp_token<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    env: Env
+    env: Env,
 ) -> StdResult<HandleResponse> {
     let mut config = load_config(&deps)?;
 
@@ -568,11 +606,14 @@ fn register_custom_token(
     env: &Env,
     messages: &mut Vec<CosmosMsg>,
     token: &TokenType<HumanAddr>,
-    viewing_key: &ViewingKey
+    viewing_key: &ViewingKey,
 ) -> StdResult<()> {
     if let TokenType::CustomToken {
-        contract_addr, token_code_hash, ..
-    } = token {
+        contract_addr,
+        token_code_hash,
+        ..
+    } = token
+    {
         messages.push(snip20::set_viewing_key_msg(
             viewing_key.0.clone(),
             None,
@@ -597,10 +638,13 @@ fn do_swap(
     config: &Config<HumanAddr>,
     settings: &ExchangeSettings<HumanAddr>,
     offer: &TokenTypeAmount<HumanAddr>,
-    is_simulation: bool
+    is_simulation: bool,
 ) -> StdResult<SwapInfo> {
     if !config.pair.contains(&offer.token) {
-        return Err(StdError::generic_err(format!("The supplied token {}, is not managed by this contract.", offer.token)));
+        return Err(StdError::generic_err(format!(
+            "The supplied token {}, is not managed by this contract.",
+            offer.token
+        )));
     }
 
     let offer_amount = Uint256::from(offer.amount);
@@ -612,7 +656,11 @@ fn do_swap(
         Uint128::zero()
     };
 
-    let balances = config.pair.query_balances(querier, config.contract_addr.clone(), config.viewing_key.0.clone())?;
+    let balances = config.pair.query_balances(
+        querier,
+        config.contract_addr.clone(),
+        config.viewing_key.0.clone(),
+    )?;
     let token_index = config.pair.get_token_index(&offer.token).unwrap(); //Safe because we checked above for existence
 
     let mut offer_pool = balances[token_index];
@@ -630,11 +678,7 @@ fn do_swap(
         total_commission,
         swap_commission,
         sienna_commission,
-        result: compute_swap(
-            offer_pool,
-            balances[token_index ^ 1],
-            offer_amount
-        )?
+        result: compute_swap(offer_pool, balances[token_index ^ 1], offer_amount)?,
     })
 }
 
@@ -642,7 +686,7 @@ fn do_swap(
 fn compute_swap(
     offer_pool: Uint128,
     ask_pool: Uint128,
-    offer_amount: Uint128
+    offer_amount: Uint128,
 ) -> StdResult<SwapResult> {
     // offer => ask
     let offer_pool = Uint256::from(offer_pool);
@@ -658,7 +702,7 @@ fn compute_swap(
 
     Ok(SwapResult {
         return_amount: return_amount.clamp_u128()?.into(),
-        spread_amount: spread_amount.clamp_u128()?.into()
+        spread_amount: spread_amount.clamp_u128()?.into(),
     })
 }
 
@@ -676,23 +720,24 @@ fn percentage_decrease(amount: Uint256, fee: Fee) -> StdResult<Uint128> {
 fn assert_slippage_tolerance(
     slippage: Option<Decimal>,
     deposits: &[Uint128; 2],
-    pools: &[Uint128; 2]
+    pools: &[Uint128; 2],
 ) -> StdResult<()> {
     if slippage.is_none() {
         return Ok(());
     }
 
-    let one_minus_slippage_tolerance = decimal_math::decimal_subtraction(Decimal::one(), slippage.unwrap())?;
+    let one_minus_slippage_tolerance =
+        decimal_math::decimal_subtraction(Decimal::one(), slippage.unwrap())?;
 
     // Ensure each prices are not dropped as much as slippage tolerance rate
     if decimal_math::decimal_multiplication(
         Decimal::from_ratio(deposits[0], deposits[1]),
         one_minus_slippage_tolerance,
-    ) > Decimal::from_ratio(pools[0], pools[1]) ||
-    decimal_math::decimal_multiplication(
-        Decimal::from_ratio(deposits[1], deposits[0]),
-        one_minus_slippage_tolerance,
-    ) > Decimal::from_ratio(pools[1], pools[0])
+    ) > Decimal::from_ratio(pools[0], pools[1])
+        || decimal_math::decimal_multiplication(
+            Decimal::from_ratio(deposits[1], deposits[0]),
+            one_minus_slippage_tolerance,
+        ) > Decimal::from_ratio(pools[1], pools[0])
     {
         return Err(StdError::generic_err(
             "Operation exceeds max slippage tolerance",
@@ -702,18 +747,20 @@ fn assert_slippage_tolerance(
     Ok(())
 }
 
-fn query_exchange_settings (
+fn query_exchange_settings(
     querier: &impl Querier,
-    factory: ContractInstance<HumanAddr>
+    factory: ContractInstance<HumanAddr>,
 ) -> StdResult<ExchangeSettings<HumanAddr>> {
     let result: FactoryResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         callback_code_hash: factory.code_hash,
         contract_addr: factory.address,
-        msg: to_binary(&FactoryQueryMsg::GetExchangeSettings)?
+        msg: to_binary(&FactoryQueryMsg::GetExchangeSettings)?,
     }))?;
 
     match result {
         FactoryResponse::GetExchangeSettings { settings } => Ok(settings),
-        _ => Err(StdError::generic_err("An error occurred while trying to retrieve exchange settings."))
+        _ => Err(StdError::generic_err(
+            "An error occurred while trying to retrieve exchange settings.",
+        )),
     }
 }

@@ -8,13 +8,13 @@ use amm_shared::{
         addr::Canonize,
         callback::ContractInstance,
         cosmwasm_std::{
-            log, to_binary, Api, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Decimal, Env,
-            Extern, HandleResponse, HumanAddr, InitResponse, Querier, QueryResult, StdError,
-            StdResult, Storage, Uint128, WasmMsg,
+            log, to_binary, Api, BankMsg, CanonicalAddr, Coin, CosmosMsg, Decimal, Env, Extern,
+            HandleResponse, HumanAddr, InitResponse, Querier, QueryResult, StdError, StdResult,
+            Storage, Uint128, WasmMsg,
         },
         storage::Storable,
         toolkit::snip20,
-        utils::{convert::convert_token, viewing_key::ViewingKey},
+        utils::{convert::convert_token, crypto::Prng, viewing_key::ViewingKey},
         BLOCK_SIZE,
     },
     msg::ido::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
@@ -31,18 +31,11 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
-    let mut input_token_decimals = 6;
-    let viewing_key = ViewingKey::new(
-        &env,
-        msg.info
-            .prng_seed
-            .unwrap_or_else(|| Binary(vec![]))
-            .as_slice(),
-        msg.info
-            .entropy
-            .unwrap_or_else(|| Binary(vec![]))
-            .as_slice(),
+    let mut rng = Prng::new(
+        &env.message.sender.0.as_bytes(),
+        &env.block.time.to_be_bytes(),
     );
+    let viewing_key = ViewingKey::new(&env, msg.prng_seed.as_slice(), &rng.rand_bytes());
 
     let mut messages = vec![];
     // Set viewing key from IDO contract onto the sold token contract
@@ -56,20 +49,11 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         msg.info.sold_token.address.clone(),
     )?);
 
-    match &msg.info.input_token {
+    let input_token_decimals = match &msg.info.input_token {
         TokenType::CustomToken {
             contract_addr,
             token_code_hash,
         } => {
-            // Update the token decimals based on the custom token number of decimals
-            input_token_decimals = get_token_decimals(
-                &deps.querier,
-                ContractInstance {
-                    address: contract_addr.clone(),
-                    code_hash: token_code_hash.clone(),
-                },
-            )?;
-
             // Set viewing key from IDO contract onto the custom input token
             // so we can query the balance later
             messages.push(snip20::set_viewing_key_msg(
@@ -79,8 +63,17 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
                 token_code_hash.clone(),
                 contract_addr.clone(),
             )?);
+
+            // Update the token decimals based on the custom token number of decimals
+            get_token_decimals(
+                &deps.querier,
+                ContractInstance {
+                    address: contract_addr.clone(),
+                    code_hash: token_code_hash.clone(),
+                },
+            )?
         }
-        _ => (),
+        TokenType::NativeToken { .. } => 6,
     };
 
     // Execute the HandleMsg::RegisterIdo method of
@@ -306,8 +299,7 @@ fn claim<S: Storage, A: Api, Q: Querier>(
             token_code_hash,
         } => {
             // Create message for sending the required amount to this contract
-            messages.push(snip20::transfer_from_msg(
-                env.contract.address,
+            messages.push(snip20::transfer_msg(
                 output_address.clone(),
                 balance,
                 None,
@@ -505,9 +497,8 @@ mod tests {
                 min_allocation: MIN_ALLOCATION,
                 start_time: Some(start_time),
                 end_time,
-                prng_seed: None,
-                entropy: None,
             },
+            prng_seed: Binary::from(&[]),
             admin: admin.clone(),
             callback: Callback {
                 msg: Binary::from(&[]),

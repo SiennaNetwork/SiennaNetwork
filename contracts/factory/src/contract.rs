@@ -275,6 +275,7 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
             msg: to_binary(&IdoInitMsg {
                 admin: env.message.sender,
                 info,
+                prng_seed: load_prng_seed(&deps.storage)?,
                 callback: Callback {
                     contract: ContractInstance {
                         address: env.contract.address,

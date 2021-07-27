@@ -86,7 +86,7 @@ impl<A> Config<A> {
 
     /// Check if the contract can be refunded
     pub fn is_refundable(&self, time: u64) -> StdResult<()> {
-        if time <= self.end_time {
+        if !self.has_ended(time) {
             Err(StdError::generic_err(format!(
                 "Sale hasn't finished yet, come back in {} seconds",
                 self.end_time - time

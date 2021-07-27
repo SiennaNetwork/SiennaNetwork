@@ -42,9 +42,8 @@ const getIDOInitMsg = function (context, start, end) {
       min_allocation: "1",
       start_time,
       end_time,
-      prng_seed: randomBytes(36).toString("hex"),
-      entropy: "",
     },
+    prng_seed: randomBytes(36).toString("hex"),
     admin: context.agent.address,
     callback: {
       msg: Buffer.from(
@@ -346,7 +345,7 @@ describe("IDO", () => {
     const buyer = context.agents[1];
 
     try {
-      await (new Promise(ok => setTimeout(ok, 10000)));
+      await new Promise((ok) => setTimeout(ok, 10000));
       await context.ido1.tx.swap({ amount: `${amount}` }, buyer, undefined, [
         { amount: `${amount}`, denom: "uscrt" },
       ]);
@@ -418,10 +417,15 @@ describe("IDO", () => {
     await context.ido.tx.admin_claim({ address: null });
     const nativeBalanceAfter = await context.agent.balance;
 
-    const approxBalance = Math.abs(parseInt((parseInt(nativeBalanceAfter) - parseInt(nativeBalanceBefore)) / 1_000_000));
+    const approxBalance = Math.abs(
+      parseInt(
+        (parseInt(nativeBalanceAfter) - parseInt(nativeBalanceBefore)) /
+          1_000_000
+      )
+    );
 
     // Approximate balance is 4-5 after dividing by 1mil because of the fees.
-    assert.strictEqual([4, 5].indexOf(approxBalance) != -1, true); 
+    assert.strictEqual([4, 5].indexOf(approxBalance) != -1, true);
   });
 
   it("Admin cannot refund before sale ends", async function () {

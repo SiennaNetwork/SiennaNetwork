@@ -509,8 +509,6 @@ mod test_contract {
             max_allocation: Uint128(100),
             max_seats: 20,
             min_allocation: Uint128(10),
-            prng_seed: None,
-            entropy: None,
             start_time: None,
             end_time: 1_571_797_419 + 60,
         };
