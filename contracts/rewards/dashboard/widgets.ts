@@ -48,6 +48,7 @@ export class Log {
 
   threshold = new Field('initial age threshold').append(this.root)
   cooldown  = new Field('cooldown after claim').append(this.root)
+  liquid    = new Field('pool liquidity ratio').append(this.root)
 
   add (event: string, name: string, amount: number|undefined) {
     if (NO_HISTORY) return

@@ -8,7 +8,7 @@ export const TIME_SCALE          = 60
            , DIGITS_INV          = Math.log10(DIGITS)
            , FUND_PORTION        = 2500 * DIGITS
            , FUND_INTERVAL       = 17280/TIME_SCALE
-           , COOLDOWN            = FUND_INTERVAL/24
+           , COOLDOWN            = FUND_INTERVAL
            , THRESHOLD           = FUND_INTERVAL
            , USER_GIVES_UP_AFTER = Infinity
            , MAX_USERS           = 20
@@ -51,6 +51,7 @@ export class Pool {
   claimed:     number = 0
   cooldown:    number = 0
   threshold:   number = 0
+  liquid:      number = 0
 
   constructor (ui: UIContext) {
     this.ui = ui
@@ -68,6 +69,7 @@ export class Pool {
 
     this.ui.log.cooldown.setValue(this.cooldown)
     this.ui.log.threshold.setValue(this.threshold)
+    this.ui.log.liquid.setValue(format.percentage(this.liquid))
   }
 }
 

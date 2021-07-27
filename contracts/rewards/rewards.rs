@@ -85,6 +85,7 @@ contract! {
         // - Ratio (to reduce everyone's rewards equally)
         // - Threshold (to incentivize users to lock tokens for longer)
         Pool::new(&mut deps.storage)
+            .configure_created(&env.block.height)?
             .configure_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
             .configure_threshold(&threshold.unwrap_or(DAY))?
             .configure_cooldown(&cooldown.unwrap_or(DAY))?;
@@ -122,6 +123,7 @@ contract! {
                 pool_balance:     pool.balance(),
                 pool_threshold:   pool.threshold()?,
                 pool_cooldown:    pool.cooldown()?,
+                pool_liquid:      pool.liquidity_ratio()?,
 
                 // todo add balance/claimed/total in rewards token
             }) }
@@ -211,7 +213,8 @@ contract! {
             pool_claimed:     Amount,
 
             pool_threshold:   Time,
-            pool_cooldown:    Time
+            pool_cooldown:    Time,
+            pool_liquid:      Amount
         }
 
         /// Response from `Query::UserInfo`
