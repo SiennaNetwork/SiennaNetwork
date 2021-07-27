@@ -11,7 +11,7 @@ export const TIME_SCALE          = 60
            , COOLDOWN            = FUND_INTERVAL/24
            , THRESHOLD           = FUND_INTERVAL
            , USER_GIVES_UP_AFTER = Infinity
-           , MAX_USERS           = 100
+           , MAX_USERS           = 20
            , MAX_INITIAL         = 10000
 
 export const format = {

@@ -1,14 +1,8 @@
 import { UIContext } from './widgets'
-import { T, Pool, User, Users } from './contract_base'
-
-// settings ----------------------------------------------------------------------------------------
-const TIME_SCALE          = 30
-const COOLDOWN            = 17280/TIME_SCALE
-const FUND_INTERVAL       = 17280/TIME_SCALE
-const THRESHOLD           = 17280/TIME_SCALE
-const USER_GIVES_UP_AFTER = Infinity
-const MAX_USERS           = 25
-const MAX_INITIAL         = 1000
+import {
+  T, Pool, User, Users,
+  COOLDOWN, THRESHOLD, USER_GIVES_UP_AFTER, MAX_USERS, MAX_INITIAL
+} from './contract_base'
 
 // reward pool  ------------------------------------------------------------------------------------
 export class MockPool extends Pool {
