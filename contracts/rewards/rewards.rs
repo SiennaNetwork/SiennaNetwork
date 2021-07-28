@@ -295,6 +295,21 @@ contract! {
             let msg = AdminHandleMsg::ChangeAdmin { address };
             admin_handle(deps, env, msg, AdminHandle) }
 
+        #[cfg(feature="global_ratio")]
+        ChangeRatio (numerator: Amount, denominator: Amount) {
+            Pool::new(&mut deps.storage).configure_ratio(&(numerator, denominator))?;
+            tx_ok!() }
+
+        #[cfg(feature="age_threshold")]
+        ChangeThreshold (threshold: Time) {
+            Pool::new(&mut deps.storage).configure_threshold(&threshold)?;
+            tx_ok!() }
+
+        #[cfg(feature="claim_cooldown")]
+        ChangeCooldown (cooldown: Time) {
+            Pool::new(&mut deps.storage).configure_cooldown(&cooldown)?;
+            tx_ok!() }
+
         /// Set the active asset token.
         // Resolves circular reference when initializing the benchmark -
         // they need to know each other's addresses to use initial allowances

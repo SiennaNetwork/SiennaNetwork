@@ -69,7 +69,7 @@ const USER_CLAIMED:   &[u8] = b"/user/claimed/";
 #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))]
 /// For how many units of time has this user provided liquidity
 /// On lock/unlock, if locked was > 0 before the operation,
-/// this is incremented by time elasped since last update.
+/// this is incremented by time elapsed since last update.
 const USER_PRESENT:   &[u8] = b"/user/present/";
 
 #[cfg(feature="user_liquidity_ratio")]
@@ -236,8 +236,7 @@ stateful!(Pool (storage):
 
             #[cfg(feature="pool_liquidity_ratio")] {
                 let liquid = self.liquid()?;
-                self.save(POOL_LIQUID, liquid)?;
-            }
+                self.save(POOL_LIQUID, liquid)?; }
 
             self.save(POOL_LIFETIME,  lifetime)?
                 .save(POOL_TIMESTAMP, now)?
@@ -271,6 +270,7 @@ stateful!(User (pool.storage):
         pub fn timestamp (&self) -> StdResult<Option<Time>> {
             Ok(self.load_ns(USER_TIMESTAMP, self.address.as_slice())?) }
 
+        #[cfg(any(feature="claim_cooldown", feature="user_liquidity_ratio"))]
         /// Time that progresses always. Used to increment existence.
         pub fn elapsed (&self) -> StdResult<Time> {
             let now = self.pool.now()?;
@@ -351,8 +351,7 @@ stateful!(User (pool.storage):
             #[cfg(feature="user_liquidity_ratio")]
             let locked = locked.multiply_ratio(self.present()?, existed);
 
-            tally(self.last_lifetime()?, self.elapsed_present()?, locked)
-        }
+            tally(self.last_lifetime()?, self.elapsed_present()?, locked) }
 
         fn last_lifetime (&self) -> StdResult<Volume> {
             Ok(self.load_ns(USER_LIFETIME, self.address.as_slice())?.unwrap_or(Volume::zero())) }
@@ -378,27 +377,32 @@ stateful!(User (pool.storage):
         // In that case, https://google.github.io/filament/webgl/suzanne.html
 
         pub fn share (&self, basis: u128) -> StdResult<Volume> {
-            let share = Volume::from(basis);
+            let pool_lifetime = self.pool.lifetime()?;
+            if pool_lifetime == Volume::zero() {
+                return Ok(Volume::zero())
+            }
 
-            let share = share.multiply_ratio(self.lifetime()?, self.pool.lifetime()?)?;
+            let mut share = Volume::from(basis);
 
-            #[cfg(feature="user_liquidity_ratio")]
-            let share = share.multiply_ratio(self.present()?, self.existed()?)?;
+            share = share.multiply_ratio(self.lifetime()?, pool_lifetime)?;
 
-            Ok(share)
-        }
+            #[cfg(feature="user_liquidity_ratio")] {
+                share = share.multiply_ratio(self.present()?, self.existed()?)?;
+            }
+
+            Ok(share) }
 
         pub fn earned (&self) -> StdResult<Amount> {
-            let budget = self.pool.budget()?;
+            let mut budget = self.pool.budget()?;
 
-            #[cfg(feature="pool_liquidity_ratio")]
-            let budget = budget.multiply_ratio(self.pool.liquid()?, self.pool.existed()?);
+            #[cfg(feature="pool_liquidity_ratio")] {
+                budget = budget.multiply_ratio(self.pool.liquid()?, self.pool.existed()?);
+            }
 
-            #[cfg(feature="global_ratio")]
-            let ratio = self.pool.ratio()?;
-
-            #[cfg(feature="global_ratio")]
-            let budget = budget.multiply_ratio(ratio.0, ratio.1);
+            #[cfg(feature="global_ratio")] {
+                let ratio = self.pool.ratio()?;
+                budget = budget.multiply_ratio(ratio.0, ratio.1);
+            }
 
             Ok(self.share(budget.u128())?.low_u128().into()) }
 
@@ -457,25 +461,22 @@ stateful!(User (pool.storage):
 
             #[cfg(feature="user_liquidity_ratio")] {
                 // Increment existence
-                let existed  = self.existed()?;
-                self.save_ns(USER_EXISTED, address.as_slice(), existed)?;
-            }
+                let existed = self.existed()?;
+                self.save_ns(USER_EXISTED, address.as_slice(), existed)?; }
 
             #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))] {
                 // Increment presence if user has currently locked tokens
-                let present  = self.present()?;
-                self.save_ns(USER_PRESENT, address.as_slice(), present)?;
-            }
+                let present = self.present()?;
+                self.save_ns(USER_PRESENT, address.as_slice(), present)?; }
 
             #[cfg(feature="claim_cooldown")] {
                 // Cooldown is calculated since the timestamp.
                 // Since we'll be updating the timestamp, commit the current cooldown
                 let cooldown = self.cooldown()?;
-                self.save_ns(USER_COOLDOWN, address.as_slice(), cooldown)?;
-            }
+                self.save_ns(USER_COOLDOWN, address.as_slice(), cooldown)?; }
 
             let lifetime = self.lifetime()?;
-            self// Always increment existence
+            self// Always increment lifetime
                 .save_ns(USER_LIFETIME,  address.as_slice(), lifetime)?
                 // Set user's time of last update to now
                 .save_ns(USER_TIMESTAMP, address.as_slice(), now)?
@@ -513,11 +514,11 @@ stateful!(User (pool.storage):
 
         pub fn claim_reward (&mut self) -> StdResult<Amount> {
             #[cfg(feature="age_threshold")]
-            // Age must be above threshold to claim
+            // If user must wait before their first claim, enforce that here.
             enforce_cooldown(self.present()?, self.pool.threshold()?)?;
 
             #[cfg(feature="claim_cooldown")]
-            // User must wait between claims
+            // If user must wait between claims, enforce that here.
             enforce_cooldown(0, self.cooldown()?)?;
 
             // See if there is some unclaimed reward amount:
@@ -526,19 +527,34 @@ stateful!(User (pool.storage):
                 return error!(
                     "You've already received as much as your share of the reward pool allows. \
                     Keep your liquidity tokens locked and wait for more rewards to be vested, \
-                    and/or lock more liquidity provision tokens to grow your share.") }
+                    and/or lock more liquidity tokens to grow your share of the reward pool.") }
 
-            // Update the user timestamp, and the other things that may be synced to it
-            // Sacrifices efficiency (gas cost) for avoidance of hidden dependencies
-            self.update(self.locked()?, self.pool.locked()?)?;
-
-            #[cfg(feature="claim_cooldown")]
-            // Reset the user cooldown
-            self.reset_cooldown()?;
-
-            // And keep track of how much was just claimed
+            // Update how much has been claimed.
             self.increment_claimed(claimable)?;
             self.pool.increment_claimed(claimable)?;
+
+            // Optionally, reset the cooldown so that the user has to wait before claiming again.
+            #[cfg(feature="claim_cooldown")]
+            self.reset_cooldown()?; // Reset the user cooldown
+
+            // Now we need the user's liquidity token balance for two things:
+            let locked = self.locked()?;
+
+            // 1. Update the user timestamp, and the other things that may be synced to it.
+            //    Sacrifices efficiency (gas cost for a few more load/save operations than
+            //    the absolute minimum) for an avoidance of hidden dependencies.
+            self.update(locked, self.pool.locked()?)?;
+
+            // 2. Optionally, erase the user from memory contract.
+            //    This resets their liquidity share.
+            //    The `forgotten` liquidity share gets incremented
+            //    to keep the total liquidity share at 100%;
+            #[cfg(feature="selective_memory")] {
+                if locked == Amount::zero() {
+                    let address = self.address.clone();
+                    self.save_ns(USER_LIFETIME, address.as_slice(), Volume::zero())?;
+                }
+            }
 
             // Return the amount that the contract will send to the user
             Ok(claimable)
@@ -546,6 +562,7 @@ stateful!(User (pool.storage):
     }
 );
 
+#[cfg(any(feature="claim_cooldown", feature="age_threshold"))]
 fn enforce_cooldown (elapsed: Time, cooldown: Time) -> StdResult<()> {
     if elapsed >= cooldown {
         Ok(())
