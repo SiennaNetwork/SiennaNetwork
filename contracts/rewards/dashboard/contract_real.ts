@@ -96,6 +96,7 @@ export class RealPool extends Pool {
     this.claimed     = info.pool_claimed
     this.threshold   = info.pool_threshold
     this.cooldown    = info.pool_cooldown
+    this.liquid      = info.pool_liquid
     super.update()
   }
 }

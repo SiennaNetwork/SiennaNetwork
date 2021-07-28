@@ -245,7 +245,7 @@ export class ExchangeContract extends SmartContract {
         const info = await this.get_pair_info()
 
         const snip20 = new Snip20Contract(info.liquidity_token.address, this.signing_client)
-        return await snip20.send(this.address, amount, create_base64_msg(msg), null, fee)
+        return await snip20.send(this.address, amount, msg, null, fee)
     }
 
     async swap(
@@ -285,7 +285,7 @@ export class ExchangeContract extends SmartContract {
         const token_addr = (amount.token as CustomToken).custom_token.contract_addr;
         const snip20 = new Snip20Contract(token_addr, this.signing_client)
 
-        return await snip20.send(this.address, amount.amount, create_base64_msg(msg), null, fee)
+        return await snip20.send(this.address, amount.amount, msg, null, fee)
     }
 
     async get_pair_info(): Promise<PairInfo> {
@@ -457,7 +457,7 @@ export class Snip20Contract extends SmartContract {
     async send(
         recipient: Address,
         amount: Uint128,
-        msg: string | null,
+        msg?: object | null,
         padding?: string | null,
         fee?: Fee | undefined
     ): Promise<ExecuteResult> {
@@ -466,7 +466,7 @@ export class Snip20Contract extends SmartContract {
                 recipient,
                 amount,
                 padding,
-                msg
+                msg: msg ? create_base64_msg(msg) : null
             }
         }
 

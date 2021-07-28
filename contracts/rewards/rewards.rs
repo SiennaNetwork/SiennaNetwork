@@ -85,6 +85,7 @@ contract! {
         // - Ratio (to reduce everyone's rewards equally)
         // - Threshold (to incentivize users to lock tokens for longer)
         Pool::new(&mut deps.storage)
+            .configure_created(&env.block.height)?
             .configure_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
             .configure_threshold(&threshold.unwrap_or(DAY))?
             .configure_cooldown(&cooldown.unwrap_or(DAY))?;
@@ -122,6 +123,7 @@ contract! {
                 pool_balance:     pool.balance(),
                 pool_threshold:   pool.threshold()?,
                 pool_cooldown:    pool.cooldown()?,
+                pool_liquid:      pool.liquidity_ratio()?,
 
                 // todo add balance/claimed/total in rewards token
             }) }
@@ -132,24 +134,26 @@ contract! {
 
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
 
+            let pool = Pool::new(&deps.storage).at(at);
+            let pool_last_update = pool.timestamp()?;
+            if at < pool_last_update {
+                return Err(StdError::generic_err("no data"))
+            }
+            let pool_lifetime = pool.lifetime()?;
+            let pool_locked   = pool.locked()?;
+
             let reward_token_link = load_reward_token(&deps.storage, &deps.api)?;
             let reward_token      = ISnip20::attach(&reward_token_link);
             let reward_balance    = reward_token.query(&deps.querier).balance(
                 &load_self_reference(&deps.storage, &deps.api)?.address,
                 &load_viewing_key(&deps.storage)?.0, )?;
 
-            let pool = Pool::new(&deps.storage).at(at).with_balance(reward_balance);
-            let pool_last_update = pool.timestamp()?;
-            if at < pool_last_update {
-                return Err(StdError::generic_err("no data"))
-            }
-            let pool_lifetime = pool.lifetime()?;
-            let pool_locked = pool.locked()?;
-
-            let user = pool.user(address);
+            let user = pool.with_balance(reward_balance).user(address);
             let user_last_update = user.timestamp()?;
-            if at < pool_last_update {
-                return Err(StdError::generic_err("no data"))
+            if let Some(user_last_update) = user_last_update {
+                if at < user_last_update {
+                    return Err(StdError::generic_err("no data"))
+                }
             }
 
             Ok(Response::UserInfo {
@@ -162,7 +166,7 @@ contract! {
                 user_last_update,
                 user_lifetime:  user.lifetime()?,
                 user_locked:    user.locked()?,
-                user_age:       user.existed()?,
+                user_age:       user.present()?,
                 user_share:     user.share()?,
                 user_earned:    user.earned()?,
                 user_claimed:   user.claimed()?,
@@ -209,7 +213,8 @@ contract! {
             pool_claimed:     Amount,
 
             pool_threshold:   Time,
-            pool_cooldown:    Time
+            pool_cooldown:    Time,
+            pool_liquid:      Amount
         }
 
         /// Response from `Query::UserInfo`

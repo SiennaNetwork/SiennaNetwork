@@ -89,7 +89,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             }),
             initial_balances: None,
             initial_allowances: None,
-            prng_seed: Binary::from(rng.rand_bytes()),
+            prng_seed: msg.prng_seed,
             config: Some(
                 Snip20InitConfig::builder()
                     .public_total_supply()

@@ -421,7 +421,7 @@ async function test_swap_interface(exchange: ExchangeContract, pair: TokenPair) 
       const token_addr = (pair.token_1 as CustomToken).custom_token.contract_addr;
       const snip20 = new Snip20Contract(token_addr, exchange.signing_client)
 
-      await snip20.send(exchange.address, '3000000', create_base64_msg(msg), undefined, create_fee('410000'))
+      await snip20.send(exchange.address, '3000000', msg, undefined, create_fee('410000'))
     },
     'unknown variant'
   )
