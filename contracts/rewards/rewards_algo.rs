@@ -129,6 +129,12 @@ stateful!(Pool (storage):
 
         /// Get the time since last update (0 if no last update)
         pub fn elapsed (&self) -> StdResult<Time> {
+            // stop time when closing pool
+            #[cfg(feature="pool_closes")]
+            if let Some(_) = self.closed()? {
+                return Ok(0 as Time)
+            }
+
             Ok(self.now()? - self.timestamp()?) }
 
         /// Get the current time or fail
@@ -292,6 +298,12 @@ stateful!(User (pool.storage):
         #[cfg(any(feature="claim_cooldown", feature="user_liquidity_ratio"))]
         /// Time that progresses always. Used to increment existence.
         pub fn elapsed (&self) -> StdResult<Time> {
+            // stop time when closing pool
+            #[cfg(feature="pool_closes")]
+            if let Some(_) = self.pool.closed()? {
+                return Ok(0 as Time)
+            }
+
             let now = self.pool.now()?;
             if let Ok(Some(timestamp)) = self.timestamp() {
                 if now < timestamp { // prevent replay
@@ -307,15 +319,8 @@ stateful!(User (pool.storage):
         /// Time that progresses only when the user has some tokens locked.
         /// Used to increment presence and lifetime.
         pub fn elapsed_present (&self) -> StdResult<Time> {
-            let now = self.pool.now()?;
-            if let Ok(Some(timestamp)) = self.timestamp() {
-                if now < timestamp { // prevent replay
-                    return error!("no data")
-                } else if self.locked()? > Amount::zero() {
-                    Ok(now - timestamp)
-                } else {
-                    Ok(0 as Time)
-                }
+            if self.locked()? > Amount::zero() {
+                self.elapsed()
             } else {
                 Ok(0 as Time)
             }
@@ -358,17 +363,15 @@ stateful!(User (pool.storage):
             Ok(self.load_ns(USER_LOCKED, self.address.as_slice())?.unwrap_or(Amount::zero())) }
 
         pub fn lifetime (&self) -> StdResult<Volume> {
-            let locked = self.locked()?;
+            let mut locked = self.locked()?;
 
-            #[cfg(feature="pool_liquidity_ratio")] {
+            #[cfg(feature="user_liquidity_ratio")] {
                 let existed = self.existed()?;
                 if existed == 0u64 {
-                    return Volume::zero()
+                    return Ok(Volume::zero())
                 }
+                locked = locked.multiply_ratio(self.present()?, existed);
             }
-
-            #[cfg(feature="user_liquidity_ratio")]
-            let locked = locked.multiply_ratio(self.present()?, existed);
 
             tally(self.last_lifetime()?, self.elapsed_present()?, locked) }
 
@@ -406,8 +409,9 @@ stateful!(User (pool.storage):
             share = share.multiply_ratio(self.lifetime()?, pool_lifetime)?;
 
             #[cfg(feature="user_liquidity_ratio")] {
-                share = share.multiply_ratio(self.present()?, self.existed()?)?;
-            }
+                let existed = self.existed()?;
+                if existed == 0u64 { return Ok(Volume::zero()) }
+                share = share.multiply_ratio(self.present()?, self.existed()?)?; }
 
             Ok(share) }
 
@@ -415,13 +419,14 @@ stateful!(User (pool.storage):
             let mut budget = self.pool.budget()?;
 
             #[cfg(feature="pool_liquidity_ratio")] {
-                budget = budget.multiply_ratio(self.pool.liquid()?, self.pool.existed()?);
-            }
+                let existed = self.pool.existed()?;
+                if existed == 0u64 { return Ok(Amount::zero()) }
+                budget = budget.multiply_ratio(self.pool.liquid()?, existed); }
 
             #[cfg(feature="global_ratio")] {
                 let ratio = self.pool.ratio()?;
-                budget = budget.multiply_ratio(ratio.0, ratio.1);
-            }
+                if ratio.1 == Amount::zero() { return Ok(Amount::zero()) }
+                budget = budget.multiply_ratio(ratio.0, ratio.1); }
 
             Ok(self.share(budget.u128())?.low_u128().into()) }
 
@@ -524,11 +529,6 @@ stateful!(User (pool.storage):
                 (self.pool.locked()? - decrement.into())?)?;
             // Return the amount to be transferred back to the user
             Ok(decrement) }
-
-        pub fn close_account (&mut self) -> StdResult<Amount> {
-            let locked = self.locked()?;
-            self.retrieve_tokens(locked)
-        }
 
         // reward-related mutations ----------------------------------------------------------------
 

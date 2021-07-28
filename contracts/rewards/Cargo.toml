@@ -45,15 +45,15 @@ claim_cooldown = []
 # by an admin-configurable percentage.
 global_ratio = []
 
+# Makes it so that if the pool has been empty for some time
+# all users' rewards are diminished by the percent of time the pool's been empty.
+pool_liquidity_ratio = []
+
 # Makes it so that if a user has provided liquidity
 # for less that 100% of the time they've been in the pool
 # (i.e. they unlock all their tokens for some time then come back)
 # their rewards are diminished by the percent of time they've been absent.
 user_liquidity_ratio = []
-
-# Makes it so that if the pool has been empty for some time
-# all users' rewards are diminished by the percent of time the pool's been empty.
-pool_liquidity_ratio = []
 
 # Makes it so that when a user retrieves all their tokens from the pool,
 # they are allowed to claim their last reward and are then forgotten about,
@@ -83,6 +83,8 @@ default = [
   "age_threshold",
   "claim_cooldown",
   "global_ratio",
+  "pool_liquidity_ratio",
+  "user_liquidity_ratio",
   "selective_memory",
   "pool_closes"
 ]
