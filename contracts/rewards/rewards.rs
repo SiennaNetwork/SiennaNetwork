@@ -84,11 +84,23 @@ contract! {
         // Reward pool has configurable parameters:
         // - Ratio (to reduce everyone's rewards equally)
         // - Threshold (to incentivize users to lock tokens for longer)
+        //
+        #[cfg(feature="pool_liquidity_ratio")]
         Pool::new(&mut deps.storage)
-            .configure_created(&env.block.height)?
-            .configure_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
-            .configure_threshold(&threshold.unwrap_or(DAY))?
+            .configure_created(&env.block.height)?;
+
+        #[cfg(feature="global_ratio")]
+        Pool::new(&mut deps.storage)
+            .configure_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?;
+
+        #[cfg(feature="age_threshold")]
+        Pool::new(&mut deps.storage)
+            .configure_threshold(&threshold.unwrap_or(DAY))?;
+
+        #[cfg(feature="claim_cooldown")]
+        Pool::new(&mut deps.storage)
             .configure_cooldown(&cooldown.unwrap_or(DAY))?;
+
         // TODO remove global state from scrt-contract
         // define field! and addr_field! macros instead -
         // problem here is identifier concatenation
@@ -121,7 +133,11 @@ contract! {
                 pool_locked:      pool.locked()?,
                 pool_claimed:     pool.claimed()?,
                 pool_balance:     pool.balance(),
+
+                #[cfg(feature="age_threshold")]
                 pool_threshold:   pool.threshold()?,
+
+                #[cfg(feature="claim_cooldown")]
                 pool_cooldown:    pool.cooldown()?,
 
                 #[cfg(feature="pool_liquidity_ratio")]
@@ -168,11 +184,15 @@ contract! {
                 user_last_update,
                 user_lifetime:  user.lifetime()?,
                 user_locked:    user.locked()?,
-                user_age:       user.present()?,
                 user_share:     user.share(HUNDRED_PERCENT)?.low_u128().into(),
                 user_earned:    user.earned()?,
                 user_claimed:   user.claimed()?,
                 user_claimable: user.claimable()?,
+
+                #[cfg(feature="age_threshold")]
+                user_age:       user.present()?,
+
+                #[cfg(feature="claim_cooldown")]
                 user_cooldown:  user.cooldown()?
             }) }
 
@@ -214,7 +234,10 @@ contract! {
             pool_balance:     Amount,
             pool_claimed:     Amount,
 
+            #[cfg(feature="age_threshold")]
             pool_threshold:   Time,
+
+            #[cfg(feature="claim_cooldown")]
             pool_cooldown:    Time,
 
             #[cfg(feature="pool_liquidity_ratio")]
@@ -233,10 +256,14 @@ contract! {
             user_lifetime:    Volume,
             user_locked:      Amount,
             user_share:       Amount,
-            user_age:         Time,
             user_earned:      Amount,
             user_claimed:     Amount,
             user_claimable:   Amount,
+
+            #[cfg(feature="age_threshold")]
+            user_age:         Time,
+
+            #[cfg(feature="claim_cooldown")]
             user_cooldown:    Time
         }
 

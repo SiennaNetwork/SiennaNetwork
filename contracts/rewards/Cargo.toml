@@ -31,7 +31,36 @@ kukumba = { path = "../../libraries/kukumba" }
 serde_json = "1.0"
 
 [features]
-default = []
-browser = ["fadroma/browser", "wasm-bindgen"]
+default = [
+  "age_threshold",
+  "claim_cooldown",
+  "global_ratio"
+]
+
+# makes it so that after first providing liquidity,
+# users must wait for a configurable amount of time
+# before they can claim their unlocked rewards
+age_threshold = []
+
+# makes it so that after claiming,
+# users must wait for a configurable amount of time
+# before that can claim again
+claim_cooldown = []
+
+# makes it so that all rewards are diminished
+# by an admin-configurable percentage
+global_ratio = []
+
+# makes it so that if a user has provided liquidity
+# for less that 100% of the time they've been in the pool
+# (i.e. they unlock all their tokens for some time then come back)
+# their rewards are diminished by the percent of time they've been absent
 user_liquidity_ratio = []
+
+# makes it so that if the pool has been empty for some time
+# all users' rewards are diminished by the percent of time the pool's been empty
 pool_liquidity_ratio = []
+
+# this allows the contract to be build for a mock environment
+# that is hosted in a browser. allows dashboard and fast integration tests
+browser = ["fadroma/browser", "wasm-bindgen"]
