@@ -10,6 +10,7 @@ macro_rules! error { ($info:expr) => { Err(StdError::generic_err($info)) }; }
 /// Set on init.
 const POOL_CREATED:   &[u8] = b"/pool/created";
 
+#[cfg(feature="pool_liquidity_ratio")]
 /// Used to compute what portion of the time the pool was not empty.
 /// On lock/unlock, if the pool was not empty, this is incremented
 /// by the time elapsed since the last update.
@@ -119,6 +120,7 @@ stateful!(Pool (storage):
                 Some(created) => Ok(created),
                 None => Err(StdError::generic_err("missing creation date")) } }
 
+        #[cfg(feature="pool_liquidity_ratio")]
         /// Time for which the pool was not empty.
         pub fn liquid (&self) -> StdResult<Time> {
             Ok(self.last_liquid()? + if self.locked()? > Amount::zero() {
@@ -127,11 +129,13 @@ stateful!(Pool (storage):
                 0 as Time
             }) }
 
+        #[cfg(feature="pool_liquidity_ratio")]
         fn last_liquid (&self) -> StdResult<Time> {
             match self.load(POOL_LIQUID)? {
                 Some(created) => Ok(created),
                 None => Ok(0 as Time) } }
 
+        #[cfg(feature="pool_liquidity_ratio")]
         pub fn liquidity_ratio (&self) -> StdResult<Amount> {
             Ok(Volume::from(HUNDRED_PERCENT)
                 .multiply_ratio(self.liquid()?, self.existed()?)?
@@ -220,10 +224,14 @@ stateful!(Pool (storage):
         /// This is the only user-triggered input to the pool.
         pub fn update_locked (&mut self, balance: Amount) -> StdResult<&mut Self> {
             let lifetime = self.lifetime()?;
-            let liquid   = self.liquid()?;
             let now      = self.now()?;
+
+            #[cfg(feature="pool_liquidity_ratio")] {
+                let liquid = self.liquid()?;
+                self.save(POOL_LIQUID, liquid)?;
+            }
+
             self.save(POOL_LIFETIME,  lifetime)?
-                .save(POOL_LIQUID,    liquid)?
                 .save(POOL_TIMESTAMP, now)?
                 .save(POOL_LOCKED,    balance) } } );
 
@@ -298,10 +306,12 @@ stateful!(User (pool.storage):
         pub fn lifetime (&self) -> StdResult<Volume> {
             let existed = self.existed()?;
             Ok(if existed > 0u64 {
-                tally(
-                    self.last_lifetime()?,
-                    self.elapsed_present()?,
-                    self.locked()?.multiply_ratio(self.present()?, existed))?
+                let locked = self.locked()?;
+
+                #[cfg(feature="user_liquidity_ratio")]
+                let locked = locked.multiply_ratio(self.present()?, existed);
+
+                tally(self.last_lifetime()?, self.elapsed_present()?, locked)?
             } else {
                 Volume::zero()
             })
@@ -333,37 +343,29 @@ stateful!(User (pool.storage):
         // in the pool after a user has claimed is insufficient to pay out the next user's reward.
         // In that case, https://google.github.io/filament/webgl/suzanne.html
 
-        pub fn share (&self) -> StdResult<Amount> {
+        pub fn share (&self, basis: u128) -> StdResult<Volume> {
             let pool    = self.pool.lifetime()?;
             let existed = self.pool.existed()?;
             Ok(if pool > Volume::zero() && existed > 0u64 {
-                Volume::from(HUNDRED_PERCENT)
-                    .multiply_ratio(self.pool.liquid()?, existed)?
-                    .multiply_ratio(self.lifetime()?, pool)?
-                    .low_u128()
+                let share = Volume::from(basis);
+
+                let share = share.multiply_ratio(self.lifetime()?, pool)?;
+
+                #[cfg(feature="pool_liquidity_ratio")]
+                let share = share.multiply_ratio(self.pool.liquid()?, existed)?;
+
+                share
             } else {
-                0u128
-            }.into())
+                0.into()
+            })
         }
 
         pub fn earned (&self) -> StdResult<Amount> {
-            let pool    = self.pool.lifetime()?;
-            let existed = self.pool.existed()?;
-            Ok(if pool > Volume::zero() && existed > 0u64 {
-                let ratio = self.pool.ratio()?;
-                // compute the earned reward
-                Volume::from(self.pool.budget()?)
-                    // as diminished by the pool liquidity ratio
-                    .multiply_ratio(self.pool.liquid()?, existed)?
-                    // as a portion of the reward budget
-                    .multiply_ratio(self.lifetime()?, pool)?
-                    // diminished by the optional global `ratio`
-                    .multiply_ratio(ratio.0, ratio.1)?
-                    .low_u128().into()
-            } else {
-                Amount::zero()
-            })
-        }
+            let budget = self.pool.budget()?;
+            let ratio = self.pool.ratio()?;
+            Ok(self.share(budget.u128())?
+                .multiply_ratio(ratio.0, ratio.1)?
+                .low_u128().into()) }
 
         pub fn claimed (&self) -> StdResult<Amount> {
             Ok(self.load_ns(USER_CLAIMED, self.address.as_slice())?.unwrap_or(Amount::zero())) }

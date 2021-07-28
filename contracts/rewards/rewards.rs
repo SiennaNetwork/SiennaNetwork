@@ -123,6 +123,8 @@ contract! {
                 pool_balance:     pool.balance(),
                 pool_threshold:   pool.threshold()?,
                 pool_cooldown:    pool.cooldown()?,
+
+                #[cfg(feature="pool_liquidity_ratio")]
                 pool_liquid:      pool.liquidity_ratio()?,
 
                 // todo add balance/claimed/total in rewards token
@@ -167,7 +169,7 @@ contract! {
                 user_lifetime:  user.lifetime()?,
                 user_locked:    user.locked()?,
                 user_age:       user.present()?,
-                user_share:     user.share()?,
+                user_share:     user.share(HUNDRED_PERCENT)?.low_u128().into(),
                 user_earned:    user.earned()?,
                 user_claimed:   user.claimed()?,
                 user_claimable: user.claimable()?,
@@ -214,6 +216,8 @@ contract! {
 
             pool_threshold:   Time,
             pool_cooldown:    Time,
+
+            #[cfg(feature="pool_liquidity_ratio")]
             pool_liquid:      Amount
         }
 
