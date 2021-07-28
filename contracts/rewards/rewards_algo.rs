@@ -553,6 +553,7 @@ stateful!(User (pool.storage):
                 if locked == Amount::zero() {
                     let address = self.address.clone();
                     self.save_ns(USER_LIFETIME, address.as_slice(), Volume::zero())?;
+                    self.save_ns(USER_CLAIMED,  address.as_slice(), Volume::zero())?;
                 }
             }
 
