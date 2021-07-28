@@ -1,10 +1,9 @@
 use crate::rewards_math::*;
-use fadroma::scrt::{
-    cosmwasm_std::{StdError, CanonicalAddr},
-    storage::*
-};
+use fadroma::scrt::{cosmwasm_std::{StdError, CanonicalAddr}, storage::*};
 
-macro_rules! error { ($info:expr) => { Err(StdError::generic_err($info)) }; }
+macro_rules! error { ($info:expr) => { Err(StdError::generic_err($info)) }; } // just a shorthand
+
+// storage keys for pool fields --------------------------------------------------------------------
 
 /// How much liquidity has this pool contained up to this point.
 /// On lock/unlock, if locked > 0 before the operation, this is incremented
@@ -49,6 +48,12 @@ const POOL_CREATED:   &[u8] = b"/pool/created";
 /// by the time elapsed since the last update.
 const POOL_LIQUID:    &[u8] = b"/pool/not_empty";
 
+#[cfg(feature="pool_closes")]
+/// Whether this pool is closed
+const POOL_CLOSED:    &[u8] = b"/pool_closed";
+
+// storage keys for user fields --------------------------------------------------------------------
+
 /// How much liquidity has this user provided since they first appeared.
 /// On lock/unlock, if the pool was not empty, this is incremented
 /// in intervals of (moments since last update * current balance)
@@ -81,6 +86,8 @@ const USER_EXISTED:   &[u8] = b"/user/existed/";
 /// For how many units of time has this user provided liquidity
 /// Decremented on lock/unlock, reset to configured cooldown on claim.
 const USER_COOLDOWN:  &[u8] = b"/user/cooldown/";
+
+// structs implementing the rewards algorithm -----------------------------------------------------
 
 /// Reward pool
 pub struct Pool <S> {
@@ -219,7 +226,13 @@ stateful!(Pool (storage):
         fn created (&self) -> StdResult<Time> {
             match self.load(POOL_CREATED)? {
                 Some(created) => Ok(created),
-                None => Err(StdError::generic_err("missing creation date")) } } }
+                None => Err(StdError::generic_err("missing creation date")) } }
+
+        #[cfg(feature="pool_closes")]
+        pub fn closed (&self) -> StdResult<Option<String>> {
+            self.load(POOL_CLOSED) }
+
+    }
 
     Writable {
 
@@ -258,7 +271,13 @@ stateful!(Pool (storage):
 
         #[cfg(feature="pool_liquidity_ratio")]
         pub fn configure_created (&mut self, time: &Time) -> StdResult<&mut Self> {
-            self.save(POOL_CREATED, time) } } );
+            self.save(POOL_CREATED, time) }
+
+        #[cfg(feature="pool_closes")]
+        pub fn close (&mut self, message: String) -> StdResult<&mut Self> {
+            self.save(POOL_CLOSED, Some(message)) }
+
+    } );
 
 stateful!(User (pool.storage):
 
@@ -506,6 +525,11 @@ stateful!(User (pool.storage):
             // Return the amount to be transferred back to the user
             Ok(decrement) }
 
+        pub fn close_account (&mut self) -> StdResult<Amount> {
+            let locked = self.locked()?;
+            self.retrieve_tokens(locked)
+        }
+
         // reward-related mutations ----------------------------------------------------------------
 
         fn increment_claimed (&mut self, reward: Amount) -> StdResult<&mut Self> {
@@ -529,14 +553,6 @@ stateful!(User (pool.storage):
                     Keep your liquidity tokens locked and wait for more rewards to be vested, \
                     and/or lock more liquidity tokens to grow your share of the reward pool.") }
 
-            // Update how much has been claimed.
-            self.increment_claimed(claimable)?;
-            self.pool.increment_claimed(claimable)?;
-
-            // Optionally, reset the cooldown so that the user has to wait before claiming again.
-            #[cfg(feature="claim_cooldown")]
-            self.reset_cooldown()?; // Reset the user cooldown
-
             // Now we need the user's liquidity token balance for two things:
             let locked = self.locked()?;
 
@@ -545,10 +561,21 @@ stateful!(User (pool.storage):
             //    the absolute minimum) for an avoidance of hidden dependencies.
             self.update(locked, self.pool.locked()?)?;
 
-            // 2. Optionally, erase the user from memory contract.
-            //    This resets their liquidity share.
-            //    The `forgotten` liquidity share gets incremented
-            //    to keep the total liquidity share at 100%;
+            // (In the meantime, update how much has been claimed...
+            self.increment_claimed(claimable)?;
+            self.pool.increment_claimed(claimable)?;
+
+            // ...and, optionally, reset the cooldown so that
+            // the user has to wait before claiming again)
+            #[cfg(feature="claim_cooldown")]
+            self.reset_cooldown()?; // Reset the user cooldown
+
+            // 2. Optionally, reset the user's `lifetime` and `share` if they have currently
+            //    0 tokens locked. The intent is for this to be the user's last reward claim
+            //    after they've left the pool completely. If they provide exactly 0 liquidity
+            //    at some point, when they come back they have to start over, which is OK
+            //    because they can then start claiming rewards immediately, without waiting
+            //    for threshold, only cooldown.
             #[cfg(feature="selective_memory")] {
                 if locked == Amount::zero() {
                     let address = self.address.clone();

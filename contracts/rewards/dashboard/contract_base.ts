@@ -2,8 +2,8 @@ import { UIContext } from './widgets'
 import { COLORS } from './gruvbox'
 
 // settings ----------------------------------------------------------------------------------------
-export const TIME_SCALE          = 60
-           , FUND_PORTIONS       = 140
+export const TIME_SCALE          = 120
+           , FUND_PORTIONS       = 7
            , DIGITS              = 1000000
            , DIGITS_INV          = Math.log10(DIGITS)
            , FUND_PORTION        = 2500 * DIGITS

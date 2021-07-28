@@ -73,12 +73,18 @@ pool_liquidity_ratio = []
 #   in the pool.
 selective_memory = []
 
+# Makes it so that the admin can close the pool, returning all tokens to the stakers
+# and preventing everyone from locking more tokens. Outstanding reward balance
+# to pay out rewards to remaining users can be transferred manually.
+pool_closes = []
+
 # default contract feature set:
 default = [
   "age_threshold",
   "claim_cooldown",
   "global_ratio",
-  "selective_memory"
+  "selective_memory",
+  "pool_closes"
 ]
 
 # this allows the contract to be build for a mock environment
