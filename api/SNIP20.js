@@ -69,4 +69,25 @@ export default class SNIP20 extends SecretNetworkContractWithSchema {
 
   checkAllowance = (spender, owner, key, agent) =>
     this.q.allowance({ owner, spender, key }, agent);
+  
+  /**
+   * Perform send with a callback message that will be sent to IDO contract
+   * 
+   * @param {string} contractAddress Address of the IDO contract where we will send this amount
+   * @param {string} amount Amount to send
+   * @param {string} [recipient] Recipient of the bought funds from IDO contract
+   * @param {SecretNetworkAgent} [agent] 
+   * @returns 
+   */
+  sendIdo = (contractAddress, amount, recipient = null, agent) => this.tx.send(
+      {
+        recipient: contractAddress,
+        amount: `${amount}`,
+        msg: Buffer.from(
+          JSON.stringify({ swap: { recipient } }),
+          "utf8"
+        ).toString("base64"),
+      },
+      agent
+    )
 }

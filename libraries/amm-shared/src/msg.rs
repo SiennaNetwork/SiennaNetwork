@@ -260,6 +260,12 @@ pub mod ido {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum HandleMsg {
+        // SNIP20 receiver interface
+        Receive {
+            from: HumanAddr,
+            msg: Option<Binary>,
+            amount: Uint128,
+        },
         /// Swap custom or native coin for selling coin
         Swap { amount: Uint128 },
         /// Change admin handle
@@ -285,5 +291,11 @@ pub mod ido {
     #[serde(rename_all = "snake_case")]
     pub enum QueryResponse {
         GetRate { rate: Uint128 },
+    }
+
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum ReceiverCallbackMsg {
+        Swap { recipient: Option<HumanAddr> },
     }
 }

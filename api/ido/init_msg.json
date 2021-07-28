@@ -5,7 +5,8 @@
   "required": [
     "admin",
     "callback",
-    "info"
+    "info",
+    "prng_seed"
   ],
   "properties": {
     "admin": {
@@ -26,6 +27,14 @@
     },
     "info": {
       "$ref": "#/definitions/TokenSaleConfig"
+    },
+    "prng_seed": {
+      "description": "Seed for creating viewkey",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Binary"
+        }
+      ]
     }
   },
   "definitions": {
@@ -97,17 +106,6 @@
           "format": "uint64",
           "minimum": 0.0
         },
-        "entropy": {
-          "description": "Entropy for creating viewkey",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Binary"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "input_token": {
           "description": "The token that will be used to buy the SNIP20.",
           "allOf": [
@@ -135,17 +133,6 @@
           "allOf": [
             {
               "$ref": "#/definitions/Uint128"
-            }
-          ]
-        },
-        "prng_seed": {
-          "description": "Seed for creating viewkey",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Binary"
-            },
-            {
-              "type": "null"
             }
           ]
         },

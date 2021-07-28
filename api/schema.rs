@@ -1,14 +1,14 @@
-use std::{env::current_dir,fs::create_dir_all};
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
+use std::{env::current_dir, fs::create_dir_all};
 
-use amm_shared::msg::exchange as exchange;
-use amm_shared::msg::factory  as factory;
-use amm_shared::msg::ido      as ido;
+use amm_shared::msg::exchange;
+use amm_shared::msg::factory;
+use amm_shared::msg::ido;
 use amm_shared::msg::snip20;
 
-use sienna_mgmt::msg    as mgmt;
+use sienna_mgmt::msg as mgmt;
 use sienna_rewards::msg as rewards;
-use sienna_rpt::msg     as rpt;
+use sienna_rpt::msg as rpt;
 
 fn main() {
     let mut out_dir = current_dir().unwrap();

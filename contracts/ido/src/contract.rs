@@ -8,16 +8,16 @@ use amm_shared::{
         addr::Canonize,
         callback::ContractInstance,
         cosmwasm_std::{
-            log, to_binary, Api, BankMsg, CanonicalAddr, Coin, CosmosMsg, Decimal, Env, Extern,
-            HandleResponse, HumanAddr, InitResponse, Querier, QueryResult, StdError, StdResult,
-            Storage, Uint128, WasmMsg,
+            from_binary, log, to_binary, Api, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg,
+            Decimal, Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier, QueryResult,
+            StdError, StdResult, Storage, Uint128, WasmMsg,
         },
         storage::Storable,
         toolkit::snip20,
         utils::{convert::convert_token, crypto::Prng, viewing_key::ViewingKey},
         BLOCK_SIZE,
     },
-    msg::ido::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
+    msg::ido::{HandleMsg, InitMsg, QueryMsg, QueryResponse, ReceiverCallbackMsg},
     TokenType,
 };
 use std::str::FromStr;
@@ -58,6 +58,19 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             // so we can query the balance later
             messages.push(snip20::set_viewing_key_msg(
                 viewing_key.to_string(),
+                None,
+                BLOCK_SIZE,
+                token_code_hash.clone(),
+                contract_addr.clone(),
+            )?);
+
+            // Register this contract as a receiver of the callback messages
+            // from the custom input token. This will allow us to receive
+            // message after the tokens have been sent and will make the swap
+            // happen in a single transaction
+            // Note: This will make the `msg` field on snip20 `send` mandatory.
+            messages.push(snip20::register_receive_msg(
+                env.contract_code_hash,
                 None,
                 BLOCK_SIZE,
                 token_code_hash.clone(),
@@ -139,6 +152,9 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     match msg {
+        HandleMsg::Receive {
+            from, amount, msg, ..
+        } => receiver_callback(deps, env, from, amount, msg),
         HandleMsg::Swap { amount } => swap(deps, env, amount),
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl),
         HandleMsg::AdminRefund { address } => refund(deps, env, address),
@@ -152,6 +168,78 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
     match msg {
         QueryMsg::GetRate => get_rate(deps),
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
+    }
+}
+
+fn receiver_callback<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    from: HumanAddr,
+    amount: Uint128,
+    msg: Option<Binary>,
+) -> StdResult<HandleResponse> {
+    let msg = msg.ok_or_else(|| {
+        StdError::generic_err("Receiver callback \"msg\" parameter cannot be empty.")
+    })?;
+
+    let config = Config::<CanonicalAddr>::load_self(&deps)?;
+
+    // Unwrap the recipient that is supposed to receive the tokens
+    // that were sold to him
+    let recipient: HumanAddr = match from_binary(&msg)? {
+        ReceiverCallbackMsg::Swap { recipient } => recipient.unwrap_or_else(|| from.clone()),
+    };
+
+    // Match if we are even accepting the SNIP20 token as input token
+    match config.input_token {
+        TokenType::CustomToken { contract_addr, .. } => {
+            // If the incorrect input token has called this action, deny it
+            if contract_addr != env.message.sender {
+                return Err(StdError::unauthorized());
+            }
+
+            // Load the account of the sender regardles of who will be recipient
+            let mut account = Account::<CanonicalAddr>::load_self(&deps, &from)?;
+
+            let mint_amount = convert_token(
+                amount.u128(),
+                config.swap_constants.rate.u128(),
+                config.swap_constants.input_token_decimals,
+                config.swap_constants.sold_token_decimals,
+            )?;
+
+            if mint_amount < config.min_allocation.u128() {
+                return Err(StdError::generic_err(format!(
+                        "Insufficient amount provided: the resulting amount fell short of the minimum purchase expected: {}",
+                        config.min_allocation
+                    )));
+            }
+
+            account.total_bought = account
+                .total_bought
+                .u128()
+                .checked_add(mint_amount)
+                .ok_or(StdError::generic_err("Upper bound overflow detected."))?
+                .into();
+
+            Ok(HandleResponse {
+                messages: vec![snip20::transfer_msg(
+                    recipient,
+                    Uint128(mint_amount),
+                    None,
+                    BLOCK_SIZE,
+                    config.sold_token.code_hash,
+                    config.sold_token.address,
+                )?],
+                log: vec![
+                    log("action", "receiver_callback"),
+                    log("input_amount", amount),
+                    log("purchased_amount", mint_amount),
+                ],
+                data: None,
+            })
+        }
+        _ => Err(StdError::unauthorized()),
     }
 }
 
