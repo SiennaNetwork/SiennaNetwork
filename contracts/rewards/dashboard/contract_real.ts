@@ -41,6 +41,7 @@ class Rewards {
     res.log = Object.fromEntries(Object
       .values(res.log as object)
       .map(({key, value})=>[key, value]))
+    if (Object.keys(res.log).length > 0) console.log(res.log)
     //if (this.debug) console.debug(`<handle ${this.index}`, res)
     return res
   }
@@ -54,14 +55,6 @@ class Rewards {
     this.contract.block = BigInt(height)
   }
 }
-
-  //rewards.next_query_response = encode(JSON.stringify({
-    //balance: { amount: "0" }
-  //}))
-
-  //console.log(decode(rewards.query(new QueryMsg({
-    //user_info: { at: 0, address: "", key: "" }
-  //})).json))
 
 // wasm module load & init -------------------------------------------------------------------------
 export default async function initReal () {
@@ -85,6 +78,7 @@ export class RealPool extends Pool {
       threshold:    THRESHOLD,
       cooldown:     COOLDOWN
     })
+    this.ui.log.close.onclick = this.close.bind(this)
   }
   update () {
     this.contract.next_query_response = {balance:{amount:String(this.balance)}}
@@ -98,6 +92,10 @@ export class RealPool extends Pool {
     this.cooldown    = info.pool_cooldown
     this.liquid      = info.pool_liquid
     super.update()
+  }
+  close () {
+    this.contract.sender = ""
+    this.contract.handle({close_pool:{message:"pool closed"}})
   }
 }
 
@@ -113,7 +111,7 @@ export class RealUser extends User {
   constructor (ui: UIContext, pool: Pool, name: string, balance: number) {
     super(ui, pool, name, balance)
     this.address = this.name
-    this.contract.contract.sender = encode(this.address)
+    this.contract.sender = this.address
     this.contract.handle({ set_viewing_key: { key: "" } })
   }
 

@@ -50,6 +50,8 @@ export class Log {
   cooldown  = new Field('cooldown after claim').append(this.root)
   liquid    = new Field('pool liquidity ratio').append(this.root)
 
+  close = append(this.root, h('button', { textContent: 'close pool' }))
+
   add (event: string, name: string, amount: number|undefined) {
     if (NO_HISTORY) return
     if (amount) {
