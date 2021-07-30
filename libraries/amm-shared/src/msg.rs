@@ -295,7 +295,25 @@ pub mod ido {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
-    pub enum ReceiverCallbackMsg {
-        Swap { recipient: Option<HumanAddr> },
+    pub enum ActivateCallbackMsg {
+        Activate {
+            /// Time when the contract will start, if None, the already set time in config
+            /// will be used
+            start_time: Option<u64>,
+            /// Time when the sale will end, if None the time already
+            /// set in the config will be used
+            end_time: Option<u64>,
+        },
+    }
+
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum SwapCallbackMsg {
+        Swap {
+            /// If the recipient of the funds
+            /// is going to be someone different
+            /// then the sender
+            recipient: Option<HumanAddr>,
+        },
     }
 }

@@ -27,6 +27,17 @@ pub(crate) struct Config<A> {
     pub max_allocation: Uint128,
     /// The minimum amount that each participant is allowed to buy.
     pub min_allocation: Uint128,
+    /// This is a flag that lets us know if this contract is active,
+    /// contract only becomes active once the sold_token funds
+    /// are sent to it:
+    /// Amount has to be exact to max_seats * max_allocation
+    ///
+    /// This also means that the sold_token cannot be minted directly to
+    /// this contract, it will have to be minted to the owner and then
+    /// the owner will have to send funds to IDO contract. This limitation
+    /// is due the mint message not having the means to sent the receive
+    /// callback to IDO contract.
+    pub active: bool,
     /// Time when the sale will start (if None, it will start immediately)
     pub start_time: u64,
     /// Time when the sale will end
@@ -58,6 +69,11 @@ impl<A> Config<A> {
         Ok(result)
     }
 
+    /// Check if the contract is active
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
+
     /// Check if the contract has started
     pub fn has_started(&self, time: u64) -> bool {
         self.start_time <= time
@@ -70,6 +86,10 @@ impl<A> Config<A> {
 
     /// Check if tokens can be swaped
     pub fn is_swapable(&self, time: u64) -> StdResult<()> {
+        if !self.is_active() {
+            return Err(StdError::generic_err("Contract is not yet active"));
+        }
+
         if !self.has_started(time) {
             return Err(StdError::generic_err(format!(
                 "Sale hasn't started yet, come back in {} seconds",
@@ -172,6 +192,7 @@ impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,
+            active: self.active,
             start_time: self.start_time,
             end_time: self.end_time,
             viewing_key: self.viewing_key.clone(),
@@ -189,6 +210,7 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,
+            active: self.active,
             start_time: self.start_time,
             end_time: self.end_time,
             viewing_key: self.viewing_key.clone(),
