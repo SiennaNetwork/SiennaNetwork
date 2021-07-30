@@ -182,6 +182,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
     }
 }
 
+/// Universal handler for receive callback from snip20 interface of sold token and possibly custom input token
 fn handle_receive_callback<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -202,6 +203,10 @@ fn handle_receive_callback<S: Storage, A: Api, Q: Querier>(
 
 /// Handle receive callback from the sold token that will activate
 /// the start of the IDO sale
+///
+/// ## Cases
+///  - Send full required amount after the contract is instantiated and it will activate the contract
+///  - Mint required amount onto IDO contract and then send 0 sell tokens to contract to activate it
 fn activate_callback<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
