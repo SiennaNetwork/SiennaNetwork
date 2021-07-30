@@ -3,3 +3,4 @@
 cd8a5c1369ba830ee48682b0dafcec21b14f54c7e9c272f4ec98fdc484d6324e *factory@HEAD.wasm
 e47ab9f023e89fd89d46a0c753172ab08243acc575120477d802ea373aed3504 *ido@HEAD.wasm
 46a9393164ac3124dde38206b595c8f21f7c64c6a6c6c83fb0c14dc57f7bf755 *lp-token@HEAD.wasm
+f6063735d52a973dcef5e0fc31da988e5a8fe883d61321ef995aa2571e71cfbd *sienna-rewards@HEAD.wasm
