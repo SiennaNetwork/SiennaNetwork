@@ -1,6 +1,6 @@
 [package]
 name = "sienna-rewards"
-version = "2.0.0"
+version = "2.1.0"
 authors = ["Adam Avramov <adam@hack.bg>"]
 edition = "2018"
 
@@ -31,5 +31,67 @@ kukumba = { path = "../../libraries/kukumba" }
 serde_json = "1.0"
 
 [features]
-default = []
-browser = ["fadroma/browser", "wasm-bindgen"]
+# Makes it so that after first providing liquidity,
+# users must wait for a configurable amount of time
+# before they can claim their unlocked rewards.
+age_threshold = []
+
+# Makes it so that after claiming,
+# users must wait for a configurable amount of time
+# before that can claim again.
+claim_cooldown = []
+
+# Makes it so that all rewards are diminished
+# by an admin-configurable percentage.
+global_ratio = []
+
+# Makes it so that if the pool has been empty for some time
+# all users' rewards are diminished by the percent of time the pool's been empty.
+pool_liquidity_ratio = []
+
+# Makes it so that if a user has provided liquidity
+# for less that 100% of the time they've been in the pool
+# (i.e. they unlock all their tokens for some time then come back)
+# their rewards are diminished by the percent of time they've been absent.
+user_liquidity_ratio = []
+
+# Makes it so that when a user retrieves all their tokens from the pool,
+# they are allowed to claim their last reward and are then forgotten about,
+# thus losing their lifetime liquidity share.
+#
+# * This nudges users to stay in the pool.
+#
+# If they have negative claimable, however, they are not forgotten about.
+#
+# * This prevents users from resetting a negative claimable
+#   and thus disrupting the liquidity/reward balance.
+# * This nudges users to stake a lot of liquidity tokens early,
+#   as there is a chance of a small "pension" for former large
+#   liquidity providers.
+# * However this "pension" can't be claimed unless users have locked
+#   some tokens in the pool. So again this incentivizes users to stay
+#   in the pool.
+selective_memory = []
+
+# Makes it so that the admin can close the pool, returning all tokens to the stakers
+# and preventing everyone from locking more tokens. Outstanding reward balance
+# to pay out rewards to remaining users can be transferred manually.
+pool_closes = []
+
+# default contract feature set:
+default = [
+  "age_threshold",
+  "claim_cooldown",
+  "global_ratio",
+  "pool_liquidity_ratio",
+  "user_liquidity_ratio",
+  "selective_memory",
+  "pool_closes"
+]
+
+# this allows the contract to be build for a mock environment
+# that is hosted in a browser. allows dashboard and fast integration tests
+browser = [
+  "fadroma/browser",
+  "wasm-bindgen"
+]

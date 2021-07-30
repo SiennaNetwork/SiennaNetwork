@@ -84,11 +84,23 @@ contract! {
         // Reward pool has configurable parameters:
         // - Ratio (to reduce everyone's rewards equally)
         // - Threshold (to incentivize users to lock tokens for longer)
+        //
+        #[cfg(feature="pool_liquidity_ratio")]
         Pool::new(&mut deps.storage)
-            .configure_created(&env.block.height)?
-            .configure_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?
-            .configure_threshold(&threshold.unwrap_or(DAY))?
+            .configure_created(&env.block.height)?;
+
+        #[cfg(feature="global_ratio")]
+        Pool::new(&mut deps.storage)
+            .configure_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?;
+
+        #[cfg(feature="age_threshold")]
+        Pool::new(&mut deps.storage)
+            .configure_threshold(&threshold.unwrap_or(DAY))?;
+
+        #[cfg(feature="claim_cooldown")]
+        Pool::new(&mut deps.storage)
             .configure_cooldown(&cooldown.unwrap_or(DAY))?;
+
         // TODO remove global state from scrt-contract
         // define field! and addr_field! macros instead -
         // problem here is identifier concatenation
@@ -121,8 +133,14 @@ contract! {
                 pool_locked:      pool.locked()?,
                 pool_claimed:     pool.claimed()?,
                 pool_balance:     pool.balance(),
+
+                #[cfg(feature="age_threshold")]
                 pool_threshold:   pool.threshold()?,
+
+                #[cfg(feature="claim_cooldown")]
                 pool_cooldown:    pool.cooldown()?,
+
+                #[cfg(feature="pool_liquidity_ratio")]
                 pool_liquid:      pool.liquidity_ratio()?,
 
                 // todo add balance/claimed/total in rewards token
@@ -166,11 +184,15 @@ contract! {
                 user_last_update,
                 user_lifetime:  user.lifetime()?,
                 user_locked:    user.locked()?,
-                user_age:       user.present()?,
-                user_share:     user.share()?,
+                user_share:     user.share(HUNDRED_PERCENT)?.low_u128().into(),
                 user_earned:    user.earned()?,
                 user_claimed:   user.claimed()?,
                 user_claimable: user.claimable()?,
+
+                #[cfg(feature="age_threshold")]
+                user_age:       user.present()?,
+
+                #[cfg(feature="claim_cooldown")]
                 user_cooldown:  user.cooldown()?
             }) }
 
@@ -212,8 +234,13 @@ contract! {
             pool_balance:     Amount,
             pool_claimed:     Amount,
 
+            #[cfg(feature="age_threshold")]
             pool_threshold:   Time,
+
+            #[cfg(feature="claim_cooldown")]
             pool_cooldown:    Time,
+
+            #[cfg(feature="pool_liquidity_ratio")]
             pool_liquid:      Amount
         }
 
@@ -229,10 +256,14 @@ contract! {
             user_lifetime:    Volume,
             user_locked:      Amount,
             user_share:       Amount,
-            user_age:         Time,
             user_earned:      Amount,
             user_claimed:     Amount,
             user_claimable:   Amount,
+
+            #[cfg(feature="age_threshold")]
+            user_age:         Time,
+
+            #[cfg(feature="claim_cooldown")]
             user_cooldown:    Time
         }
 
@@ -272,6 +303,30 @@ contract! {
             save_lp_token(&mut deps.storage, &deps.api, &ContractLink { address, code_hash })?;
             tx_ok!() }
 
+        #[cfg(feature="global_ratio")]
+        ChangeRatio (numerator: Amount, denominator: Amount) {
+            assert_admin(&deps, &env)?;
+            Pool::new(&mut deps.storage).configure_ratio(&(numerator, denominator))?;
+            tx_ok!() }
+
+        #[cfg(feature="age_threshold")]
+        ChangeThreshold (threshold: Time) {
+            assert_admin(&deps, &env)?;
+            Pool::new(&mut deps.storage).configure_threshold(&threshold)?;
+            tx_ok!() }
+
+        #[cfg(feature="claim_cooldown")]
+        ChangeCooldown (cooldown: Time) {
+            assert_admin(&deps, &env)?;
+            Pool::new(&mut deps.storage).configure_cooldown(&cooldown)?;
+            tx_ok!() }
+
+        #[cfg(feature="pool_closes")]
+        ClosePool (message: String) {
+            assert_admin(&deps, &env)?;
+            Pool::new(&mut deps.storage).close(message)?;
+            tx_ok!() }
+
         // actions that are performed by users ----------------------------------------------------
 
         /// User can request a new viewing key for oneself.
@@ -286,6 +341,12 @@ contract! {
 
         /// User can lock some liquidity provision tokens.
         Lock (amount: Amount) {
+            // If the pool is closed, users can only retrieve all their liquidity tokens
+            #[cfg(feature="pool_closes")]
+            if let Some(closed_response) = close_handler(deps, &env)? {
+                return Ok(closed_response)
+            }
+
             tx_ok!(ISnip20::attach(&load_lp_token(&deps.storage, &deps.api)?).transfer_from(
                 &env.message.sender,
                 &env.contract.address,
@@ -296,6 +357,12 @@ contract! {
 
         /// User can always get their liquidity provision tokens back.
         Retrieve (amount: Amount) {
+            // If the pool is closed, users can only retrieve all their liquidity tokens
+            #[cfg(feature="pool_closes")]
+            if let Some(closed_response) = close_handler(deps, &env)? {
+                return Ok(closed_response)
+            }
+
             tx_ok!(ISnip20::attach(&load_lp_token(&deps.storage, &deps.api)?).transfer(
                 &env.message.sender,
                 Pool::new(&mut deps.storage)
@@ -305,17 +372,58 @@ contract! {
 
         /// User can receive rewards after having provided liquidity.
         Claim () {
-            // TODO reset age on claim, so user can claim only once per reward period?
+            let mut response = HandleResponse { messages: vec![], log: vec![], data: None };
+
+            // If the pool has been closed, also return the user their liquidity tokens
+            #[cfg(feature="pool_closes")]
+            if let Some(mut closed_response) = close_handler(deps, &env)? {
+                response.messages.append(&mut closed_response.messages);
+                response.log.append(&mut closed_response.log);
+            }
+
+            // Get the reward token
             let reward_token_link = load_reward_token(&deps.storage, &deps.api)?;
-            let reward_token = ISnip20::attach(&reward_token_link);
-            let reward_vk = load_viewing_key(&deps.storage)?.0;
-            let reward_balance = reward_token.query(&deps.querier)
-                .balance(&env.contract.address, &reward_vk)?;
+            let reward_token      = ISnip20::attach(&reward_token_link);
+
+            // Get the reward balance of the contract
+            let reward_balance = reward_token
+                .query(&deps.querier)
+                .balance(
+                    &env.contract.address,
+                    &load_viewing_key(&deps.storage)?.0)?;
+
+            // Compute the reward portion for this user.
+            // May return error if portion is zero.
             let reward = Pool::new(&mut deps.storage)
                 .at(env.block.height)
                 .with_balance(reward_balance)
                 .user(deps.api.canonical_address(&env.message.sender)?)
                 .claim_reward()?;
-            let messages = vec![reward_token.transfer(&env.message.sender, reward)?];
-            let log = vec![LogAttribute { key: "reward".into(), value: reward.into() }];
-            Ok(HandleResponse { messages, log, data: None }) } } }
+
+            // Add the reward to the response
+            response.messages.push(reward_token.transfer(&env.message.sender, reward)?);
+            response.log.push(LogAttribute { key: "reward".into(), value: reward.into() });
+
+            Ok(response) } } }
+
+pub fn close_handler <S: Storage, A: Api, Q: Querier> (
+    deps: &mut Extern<S, A, Q>,
+    env:  &Env
+) -> StdResult<Option<HandleResponse>> {
+    let closed = Pool::new(&deps.storage).closed()?;
+    Ok(if let Some(close_message) = closed {
+        let mut user = Pool::new(&mut deps.storage).at(env.block.height).user(
+            deps.api.canonical_address(&env.message.sender)?);
+        let mut messages = vec![];
+        let locked = user.retrieve_tokens(user.locked()?)?;
+        if locked > Amount::zero() {
+            let lp_token = &load_lp_token(&deps.storage, &deps.api)?;
+            messages.push(
+                ISnip20::attach(&lp_token).transfer(&env.message.sender, locked)?); }
+        let log = vec![
+            LogAttribute { key: "closed".into(), value: close_message.into() }];
+        Some(HandleResponse { messages, log, data: None })
+    } else {
+        None
+    })
+}

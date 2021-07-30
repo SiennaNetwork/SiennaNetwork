@@ -69,7 +69,8 @@ impl RewardsHarness<RewardsMockQuerier> {
             },
             viewing_key:  "".into(),
             ratio:        None,
-            threshold:    None
+            threshold:    None,
+            cooldown:     None
         })
     }
     pub fn init_partial (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
@@ -82,7 +83,8 @@ impl RewardsHarness<RewardsMockQuerier> {
             },
             viewing_key:  "".into(),
             ratio:        None,
-            threshold:    None
+            threshold:    None,
+            cooldown:     None
         })
     }
 
@@ -215,13 +217,18 @@ impl Snip20 {
     ($T:ident = $now:expr ; pool_unprepared -> {
         balance: $balance:expr, lifetime: $lifetime:expr, updated: $updated:expr
     }) => {
-        assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
-            it_is_now:        $now     as u64,
-            lp_token:         None,
-            pool_last_update: $updated as u64,
-            pool_lifetime:    Volume::zero($lifetime as u128),
-            pool_locked:      Amount::from($balance  as u128),
-        });
+        match $T.q_pool_info($now as u64)? {
+            Response::PoolInfo {
+                it_is_now, lp_token, pool_last_update, pool_lifetime, pool_locked, ..
+            } => {
+                assert_eq!(it_is_now,        $now     as u64);
+                assert_eq!(lp_token,         None);
+                assert_eq!(pool_last_update, $updated as u64);
+                assert_eq!(pool_lifetime,    Volume::from($lifetime as u128));
+                assert_eq!(pool_locked,      Amount::from($locked  as u128));
+            },
+            _ => unreachable!()
+        }
     };
 
     ($T:ident = $now:expr ; pool -> {
@@ -229,13 +236,18 @@ impl Snip20 {
         lifetime: $lifetime:expr,
         updated:  $updated:expr
     }) => {
-        assert_eq!($T.q_pool_info($now as u64)?, Response::PoolInfo {
-            it_is_now:        $now     as u64,
-            lp_token:         $T.lp_token(),
-            pool_last_update: $updated as u64,
-            pool_lifetime:    Volume::from($lifetime as u128),
-            pool_locked:      Amount::from($locked  as u128),
-        });
+        match $T.q_pool_info($now as u64)? {
+            Response::PoolInfo {
+                it_is_now, lp_token, pool_last_update, pool_lifetime, pool_locked, ..
+            } => {
+                assert_eq!(it_is_now,        $now     as u64);
+                assert_eq!(lp_token,         $T.lp_token());
+                assert_eq!(pool_last_update, $updated as u64);
+                assert_eq!(pool_lifetime,    Volume::from($lifetime as u128));
+                assert_eq!(pool_locked,      Amount::from($locked  as u128));
+            },
+            _ => unreachable!()
+        }
     };
 
     ($T:ident = $now:expr ; user($who:expr) -> {

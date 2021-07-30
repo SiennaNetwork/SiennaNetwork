@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "workspaces": [
+    "./libraries/fadroma-21.07/",
     "./libraries/fadroma-21.07/utilities",
     "./libraries/fadroma-21.07/scrt-agent",
     "./libraries/fadroma-21.07/scrt-ops",

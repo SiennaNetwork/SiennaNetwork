@@ -15,7 +15,7 @@ export default class SiennaRewards extends ScrtEnsemble {
   // TODO: make tokens "pluggable"
   // i.e. allow attaching the rewards to an existing deployment
   contracts =
-  { LP: { crate:   'amm-snip20'
+  { LP: { crate:   'lp-token'
         , label:   `${this.prefix}/lp_token`
         , initMsg: { prng_seed: randomBytes(36).toString('hex')
                    , name:     "LPToken"
