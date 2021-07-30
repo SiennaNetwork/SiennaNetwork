@@ -175,6 +175,10 @@ export interface RewardPool {
      * in order to be eligible for rewards.
      */
     pool_threshold: number;
+    /**
+     * The time for which the pool was not empty.
+     */
+    pool_liquid: Uint128;
 }
 
 export interface RewardsAccount {
