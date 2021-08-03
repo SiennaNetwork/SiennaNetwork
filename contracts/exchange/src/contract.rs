@@ -9,7 +9,7 @@ use amm_shared::{
         },
         migrate as fadroma_scrt_migrate,
         toolkit::snip20,
-        utils::{crypto::Prng, viewing_key::ViewingKey, Uint256},
+        utils::{viewing_key::ViewingKey, Uint256},
     },
     msg::{
         exchange::{
@@ -60,11 +60,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 
     let mut messages = vec![];
 
-    let mut rng = Prng::new(
-        &env.message.sender.0.as_bytes(),
-        &env.block.time.to_be_bytes(),
-    );
-    let viewing_key = ViewingKey::new(&env, msg.prng_seed.as_slice(), &rng.rand_bytes());
+    let viewing_key = ViewingKey::new(&env, msg.prng_seed.as_slice(), msg.entropy.as_slice());
 
     register_custom_token(&env, &mut messages, &msg.pair.0, &viewing_key)?;
     register_custom_token(&env, &mut messages, &msg.pair.1, &viewing_key)?;

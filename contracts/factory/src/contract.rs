@@ -57,8 +57,8 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         match msg {
             HandleMsg::SetConfig { .. } => set_config(deps, env, msg),
             HandleMsg::IdoWhitelist { addresses } => ido_whitelist(deps, env, addresses),
-            HandleMsg::CreateExchange { pair } => create_exchange(deps, env, pair),
-            HandleMsg::CreateIdo { info } => create_ido(deps, env, info),
+            HandleMsg::CreateExchange { pair, entropy } => create_exchange(deps, env, pair, entropy),
+            HandleMsg::CreateIdo { info, entropy } => create_ido(deps, env, info, entropy),
             HandleMsg::RegisterIdo { signature } => register_ido(deps, env, signature),
             HandleMsg::RegisterExchange { pair, signature } =>
                 register_exchange(deps, env, pair, signature),
@@ -152,6 +152,7 @@ pub fn create_exchange<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     pair: TokenPair<HumanAddr>,
+    entropy: Binary
 ) -> StdResult<HandleResponse> {
     if pair.0 == pair.1 {
         return Err(StdError::generic_err(
@@ -202,6 +203,7 @@ pub fn create_exchange<S: Storage, A: Api, Q: Querier>(
                         signature,
                     })?,
                 },
+                entropy,
                 prng_seed: load_prng_seed(&deps.storage)?,
             })?,
         })],
@@ -248,6 +250,7 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     info: TokenSaleConfig,
+    entropy: Binary
 ) -> StdResult<HandleResponse> {
     if !is_ido_whitelisted(deps, &env.message.sender)? {
         return Err(StdError::unauthorized());
@@ -276,6 +279,7 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
                 admin: env.message.sender,
                 info,
                 prng_seed: load_prng_seed(&deps.storage)?,
+                entropy,
                 callback: Callback {
                     contract: ContractInstance {
                         address: env.contract.address,

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use amm_shared::admin::require_admin;
 use amm_shared::{
     admin::admin::{
@@ -15,7 +14,7 @@ use amm_shared::{
         },
         storage::Storable,
         toolkit::snip20,
-        utils::{convert::convert_token, crypto::Prng, viewing_key::ViewingKey},
+        utils::{convert::convert_token, viewing_key::ViewingKey},
         BLOCK_SIZE,
     },
     msg::ido::{ActivateCallbackMsg, HandleMsg, InitMsg, QueryMsg, QueryResponse, SwapCallbackMsg},
@@ -24,18 +23,12 @@ use amm_shared::{
 
 use crate::data::{Account, Config, SwapConstants};
 
-type CodeHash = String;
-
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
-    let mut rng = Prng::new(
-        &env.message.sender.0.as_bytes(),
-        &env.block.time.to_be_bytes(),
-    );
-    let viewing_key = ViewingKey::new(&env, msg.prng_seed.as_slice(), &rng.rand_bytes());
+    let viewing_key = ViewingKey::new(&env, msg.prng_seed.as_slice(), msg.entropy.as_slice());
 
     let mut messages = vec![];
     // Set viewing key from IDO contract onto the sold token contract
@@ -699,7 +692,8 @@ mod tests {
                 start_time: Some(start_time),
                 end_time,
             },
-            prng_seed: Binary::from(&[]),
+            prng_seed: to_binary(&"whatever").unwrap(),
+            entropy: to_binary(&"whatever").unwrap(),
             admin: admin.clone(),
             callback: Callback {
                 msg: Binary::from(&[]),

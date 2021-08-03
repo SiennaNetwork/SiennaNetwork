@@ -5,7 +5,7 @@ import {
     ContractInstantiationInfo, ExchangeSettings, TypeOfToken,
     CustomToken, get_token_type
 } from './types.js'
-import { ExecuteResult, SigningCosmWasmClient, CosmWasmClient } from 'secretjs'
+import { ExecuteResult, SigningCosmWasmClient, CosmWasmClient, EnigmaUtils } from 'secretjs'
 import { b64encode } from '@waiting/base64'
 
 // These two are not exported in secretjs...
@@ -99,10 +99,11 @@ export class FactoryContract extends SmartContract {
     async create_exchange(pair: TokenPair, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             create_exchange: {
-                pair
+                pair,
+                entropy: create_entropy()
             }
         }
-
+        
         if (fee === undefined) {
             fee = create_fee('750000')
         }
@@ -113,7 +114,8 @@ export class FactoryContract extends SmartContract {
     async create_ido(config: TokenSaleConfig, fee?: Fee | undefined): Promise<ExecuteResult> {
         const msg = {
             create_ido: {
-                info: config
+                info: config,
+                entropy: create_entropy()
             }
         }
 
@@ -615,4 +617,9 @@ function add_native_balance(amount: TokenTypeAmount): Coin[] | undefined {
     }
 
     return result
+}
+
+function create_entropy(): string {
+    const rand = EnigmaUtils.GenerateNewSeed().toString()
+    return b64encode(rand)
 }

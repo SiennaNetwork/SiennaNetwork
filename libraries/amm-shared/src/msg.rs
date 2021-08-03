@@ -50,10 +50,12 @@ pub mod factory {
         /// Instantiates an exchange pair contract
         CreateExchange {
             pair: TokenPair<HumanAddr>,
+            entropy: Binary
         },
         /// Instantiates an IDO contract
         CreateIdo {
             info: TokenSaleConfig,
+            entropy: Binary
         },
         /// Add addresses that are allowed to create IDOs
         IdoWhitelist {
@@ -141,6 +143,7 @@ pub mod exchange {
         pub factory_info: ContractInstance<HumanAddr>,
         pub callback: Callback<HumanAddr>,
         pub prng_seed: Binary,
+        pub entropy: Binary
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -234,6 +237,7 @@ pub mod ido {
         pub callback: Callback<HumanAddr>,
         /// Seed for creating viewkey
         pub prng_seed: Binary,
+        pub entropy: Binary
     }
     #[derive(Serialize, Deserialize, JsonSchema, Clone)]
     pub struct TokenSaleConfig {

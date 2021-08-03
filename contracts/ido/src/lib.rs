@@ -1,5 +1,5 @@
-mod contract;
-mod data;
+pub mod contract;
+pub mod data;
 
 #[cfg(test)]
 mod querier;

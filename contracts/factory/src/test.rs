@@ -168,7 +168,7 @@ mod test_contract {
             },
         );
 
-        let result = create_exchange(deps, mkenv("sender"), pair);
+        let result = create_exchange(deps, mkenv("sender"), pair, to_binary(&"entropy").unwrap());
 
         let error: StdError = result.unwrap_err();
 
@@ -194,7 +194,7 @@ mod test_contract {
             },
         );
 
-        let result = create_exchange(deps, mkenv("sender"), pair);
+        let result = create_exchange(deps, mkenv("sender"), pair, to_binary(&"entropy").unwrap());
 
         let error: StdError = result.unwrap_err();
 
@@ -518,6 +518,7 @@ mod test_contract {
             mkenv("rando"),
             HandleMsg::CreateIdo {
                 info: sale_config.clone(),
+                entropy: to_binary(&"whatever").unwrap()
             },
         );
         assert_unauthorized(result);
@@ -525,7 +526,10 @@ mod test_contract {
         handle(
             deps,
             mkenv(ido_creator.clone()),
-            HandleMsg::CreateIdo { info: sale_config },
+            HandleMsg::CreateIdo {
+                info: sale_config,
+                entropy: to_binary(&"whatever").unwrap()
+            }
         )
         .unwrap();
 
