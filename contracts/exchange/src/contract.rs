@@ -493,8 +493,6 @@ fn swap(
                     )?);
                 }
                 TokenType::NativeToken { denom } => {
-                    offer.assert_sent_native_token_balance(&env)?;
-
                     messages.push(CosmosMsg::Bank(BankMsg::Send {
                         from_address: env.contract.address.clone(),
                         to_address: burner_address,
