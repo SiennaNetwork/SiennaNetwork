@@ -1,5 +1,14 @@
+<<<<<<< HEAD
 8f533e68482099bc816d0b73d244b25bb6eab742a723e729c70bff39aabec368 *amm-snip20@HEAD.wasm
 2b1eb221439956fa63140cb195f0b64637c39e18bdb2bf5bdaacc2c2ab9cec45 *factory@HEAD.wasm
 6062dc9579aa2a91900de3857cfbc649f02c308797a3f92f78862fb50886f202 *ido@HEAD.wasm
 eec58412042cb5918c863231e3e8d37d174118ca437f1be567013a2072555d33 *sienna-rewards-benchmark@HEAD.wasm
 31da00bc923c4cf78b91b7efb06db6239e6c13f254790e1cb8a1b8978be629bd *sienna-rewards@HEAD.wasm
+=======
+7536621f5ba32eeddde858143acd6d993e9e36b98df4588df58ae718891090a6 *amm-snip20@HEAD.wasm
+0aa7d03ba96b11dc6eaee04ad33a6d3f50510129cb8eafbbbaf095732d92db20 *exchange@HEAD.wasm
+cd8a5c1369ba830ee48682b0dafcec21b14f54c7e9c272f4ec98fdc484d6324e *factory@HEAD.wasm
+e47ab9f023e89fd89d46a0c753172ab08243acc575120477d802ea373aed3504 *ido@HEAD.wasm
+46a9393164ac3124dde38206b595c8f21f7c64c6a6c6c83fb0c14dc57f7bf755 *lp-token@HEAD.wasm
+f6063735d52a973dcef5e0fc31da988e5a8fe883d61321ef995aa2571e71cfbd *sienna-rewards@HEAD.wasm
+>>>>>>> distributed-rewards

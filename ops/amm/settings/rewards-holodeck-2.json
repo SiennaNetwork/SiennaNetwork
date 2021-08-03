@@ -1,0 +1,19 @@
+[
+  {
+    "admin": null,
+    "reward_token": {
+      "address": "secret1jc66xmwg0jgnwup3chpg6m3y8ek4pmxsvkqkml",
+      "code_hash": "a5989eba266a5cd2863ab30f8f49a87d762633142bc92da025844bba66e46a48"
+    },
+    "lp_token": {
+      "address": "secret1x326ygktvz3kgtnx6gmmcxhzlxfgry2ak4wt4c",
+      "code_hash": "46a9393164ac3124dde38206b595c8f21f7c64c6a6c6c83fb0c14dc57f7bf755"
+    },
+    "ratio": [
+      "1",
+      "1"
+    ],
+    "threshold": 17280,
+    "cooldown": null
+  }
+]

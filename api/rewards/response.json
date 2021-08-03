@@ -19,6 +19,7 @@
             "pool_cooldown",
             "pool_last_update",
             "pool_lifetime",
+            "pool_liquid",
             "pool_locked",
             "pool_threshold",
             "reward_token"
@@ -50,6 +51,9 @@
             },
             "pool_lifetime": {
               "$ref": "#/definitions/Uint256"
+            },
+            "pool_liquid": {
+              "$ref": "#/definitions/Uint128"
             },
             "pool_locked": {
               "$ref": "#/definitions/Uint128"

@@ -47,6 +47,90 @@
       }
     },
     {
+      "type": "object",
+      "required": [
+        "change_ratio"
+      ],
+      "properties": {
+        "change_ratio": {
+          "type": "object",
+          "required": [
+            "denominator",
+            "numerator"
+          ],
+          "properties": {
+            "denominator": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "numerator": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "change_threshold"
+      ],
+      "properties": {
+        "change_threshold": {
+          "type": "object",
+          "required": [
+            "threshold"
+          ],
+          "properties": {
+            "threshold": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "change_cooldown"
+      ],
+      "properties": {
+        "change_cooldown": {
+          "type": "object",
+          "required": [
+            "cooldown"
+          ],
+          "properties": {
+            "cooldown": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "close_pool"
+      ],
+      "properties": {
+        "close_pool": {
+          "type": "object",
+          "required": [
+            "message"
+          ],
+          "properties": {
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
       "description": "User can request a new viewing key for oneself.",
       "type": "object",
       "required": [

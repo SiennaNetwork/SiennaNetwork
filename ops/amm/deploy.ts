@@ -38,7 +38,7 @@ const configs = [
                     address: '',
                     code_hash: ''
                 },
-                ratio: [ 1, 1 ],
+                ratio: [ "1", "1" ],
                 threshold: 17280, // ~24h @ 5s/block,
                 cooldown: null
             }
