@@ -374,14 +374,14 @@ describe("IDO", () => {
       assert.strictEqual(e.message.includes('"Sale has ended"'), true);
     }
   });
-
+  
   it("Admin can add another buyer that can then swap funds", async function () {
     this.timeout(0);
 
     const buyer = context.agents[5];
 
-    await context.ido.tx.admin_add_address({
-      address: buyer.address,
+    await context.ido.tx.admin_add_addresses({
+      addresses: [ buyer.address ],
     });
 
     const amount = 1_000_000;

@@ -136,17 +136,20 @@
       "description": "Add new address to whitelist",
       "type": "object",
       "required": [
-        "admin_add_address"
+        "admin_add_addresses"
       ],
       "properties": {
-        "admin_add_address": {
+        "admin_add_addresses": {
           "type": "object",
           "required": [
-            "address"
+            "addresses"
           ],
           "properties": {
-            "address": {
-              "$ref": "#/definitions/HumanAddr"
+            "addresses": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
             }
           }
         }

@@ -158,7 +158,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::AdminRefund { address } => refund(deps, env, address),
         HandleMsg::AdminClaim { address } => claim(deps, env, address),
         HandleMsg::AdminStatus => get_status(deps, env),
-        HandleMsg::AdminAddAddress { address } => add_address(deps, env, address),
+        HandleMsg::AdminAddAddresses { addresses } => add_addresses(deps, env, addresses),
     }
 }
 
@@ -429,37 +429,49 @@ fn get_status<S: Storage, A: Api, Q: Querier>(
 
 /// Add new address to whitelist
 #[require_admin]
-fn add_address<S: Storage, A: Api, Q: Querier>(
+fn add_addresses<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    address: HumanAddr,
+    addresses: Vec<HumanAddr>,
 ) -> StdResult<HandleResponse> {
     let mut config = Config::<CanonicalAddr>::load_self(&deps)?;
-    config.is_swapable(env.block.time)?;
 
-    let caonical_address = address.canonize(&deps.api)?;
-
-    config.taken_seats += 1;
-    if config.taken_seats > config.max_seats {
-        return Err(StdError::generic_err("All seats already taken."));
+    if let Some(schedule) = config.schedule {
+        if schedule.has_ended(env.block.time) {
+            return Err(StdError::generic_err(
+                "Cannot whitelist addresses after the sale has finished."
+            ));
+        }
     }
 
-    // We will add new address only if we couldn't find it, meaning it hasn't been
-    // yet added to whitelisted addresses
-    if Account::<CanonicalAddr>::load_self(&deps, &address).is_err() {
-        Account::<CanonicalAddr>::new(&caonical_address).save(deps)?;
-        config.save(deps)?;
+    let mut added_count = 0;
 
-        Ok(HandleResponse {
-            messages: vec![],
-            log: vec![log("action", "add_address"), log("added_address", address)],
-            data: None,
-        })
-    } else {
-        Err(StdError::generic_err(
-            "Address is already on the whitelist.",
-        ))
+    for address in addresses {
+        let caonical_address = address.canonize(&deps.api)?;
+
+        config.taken_seats += 1;
+        if config.taken_seats > config.max_seats {
+            return Err(StdError::generic_err("All seats already taken."));
+        }
+
+        let account = Account::<CanonicalAddr>::load_self(&deps, &address);
+
+        if account.is_err() {
+            Account::<CanonicalAddr>::new(&caonical_address).save(deps)?;
+            added_count += 1;
+        }
     }
+
+    config.save(deps)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("action", "add_addresses"),
+            log("new_addresses", added_count)
+        ],
+        data: None,
+    })
 }
 
 /// Return exchange rate for swap
@@ -887,23 +899,21 @@ mod tests {
     }
 
     #[test]
-    fn admin_attempts_to_add_existing_address_to_whitelist_gets_error() {
+    fn admin_attempts_to_add_existing_address_to_whitelist() {
         let (mut deps, env) = init_contract(None, None);
         let buyer_env = mock_env("buyer-1", &[Coin::new(250_000_000_u128, "uscrt")]);
 
         let res = handle(
             &mut deps,
             env,
-            HandleMsg::AdminAddAddress {
-                address: buyer_env.message.sender,
-            },
-        );
+            HandleMsg::AdminAddAddresses {
+                addresses: vec![ buyer_env.message.sender ],
+            }
+        ).unwrap();
 
         assert_eq!(
-            res,
-            Err(StdError::generic_err(
-                "Address is already on the whitelist."
-            ))
+            String::from("0"),
+            res.log[1].value
         );
     }
 
@@ -929,8 +939,8 @@ mod tests {
         handle(
             &mut deps,
             env,
-            HandleMsg::AdminAddAddress {
-                address: buyer_env.message.sender.clone(),
+            HandleMsg::AdminAddAddresses {
+                addresses: vec![ buyer_env.message.sender.clone() ],
             },
         )
         .unwrap();
@@ -955,8 +965,8 @@ mod tests {
         handle(
             &mut deps,
             env.clone(),
-            HandleMsg::AdminAddAddress {
-                address: buyer_env.message.sender.clone(),
+            HandleMsg::AdminAddAddresses {
+                addresses: vec![ buyer_env.message.sender.clone() ],
             },
         )
         .unwrap();
@@ -964,8 +974,8 @@ mod tests {
         let res = handle(
             &mut deps,
             env,
-            HandleMsg::AdminAddAddress {
-                address: buyer_env2.message.sender.clone(),
+            HandleMsg::AdminAddAddresses {
+                addresses: vec![ buyer_env2.message.sender.clone() ],
             },
         );
 

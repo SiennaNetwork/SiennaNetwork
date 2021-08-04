@@ -283,7 +283,7 @@ pub mod ido {
         /// Get status of the amount already claimed
         AdminStatus,
         /// Add new address to whitelist
-        AdminAddAddress { address: HumanAddr },
+        AdminAddAddresses { addresses: Vec<HumanAddr> },
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
