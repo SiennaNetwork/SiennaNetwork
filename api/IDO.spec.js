@@ -461,7 +461,7 @@ describe("IDO", () => {
       assert.strictEqual(e.message.includes("Sale hasn't finished yet"), true);
     }
   });
-
+  
   it("Admin can get correct status of the ido contract", async function () {
     this.timeout(0);
 
@@ -472,10 +472,10 @@ describe("IDO", () => {
       { amount: `${amount}`, denom: "uscrt" },
     ]);
 
-    const res = await context.ido.tx.admin_status();
-
-    assert.strictEqual(res.logs[0].events[1].attributes[2].value, "25"); // total allocation
-    assert.strictEqual(res.logs[0].events[1].attributes[3].value, "20"); // available for sale
+    const res = await context.ido.q.status();
+    
+    assert.strictEqual(res.status.total_allocation, "25"); // total allocation
+    assert.strictEqual(res.status.available_for_sale, "20"); // available for sale
   });
   
   it("Attempt instantiate and swap with a custom buying token", async function () {
@@ -524,10 +524,10 @@ describe("IDO", () => {
       })
     );
 
-    const statusBefore = await context.idoB.tx.admin_status();
+    const statusBefore = await context.idoB.q.status();
     assert.strictEqual(
-      statusBefore.logs[0].events[1].attributes[4].value,
-      "false"
+      statusBefore.status.is_active,
+      false
     );
 
     await context.sellingToken.mint(25);
@@ -540,10 +540,10 @@ describe("IDO", () => {
       )
     });
 
-    const statusAfter = await context.idoB.tx.admin_status();
+    const statusAfter = await context.idoB.q.status();
     assert.strictEqual(
-      statusAfter.logs[0].events[1].attributes[4].value,
-      "true"
+      statusAfter.status.is_active,
+      true
     );
 
     const buyer = context.agents[1];
@@ -613,10 +613,10 @@ describe("IDO", () => {
       })
     );
 
-    const statusBefore = await context.idoB.tx.admin_status();
+    const statusBefore = await context.idoB.q.status();
     assert.strictEqual(
-      statusBefore.logs[0].events[1].attributes[4].value,
-      "false"
+      statusBefore.status.is_active,
+      false
     );
 
     await context.sellingToken.mint(25, undefined, context.idoB.address);
@@ -629,10 +629,10 @@ describe("IDO", () => {
       )
     });
 
-    const statusAfter = await context.idoB.tx.admin_status();
+    const statusAfter = await context.idoB.q.status();
     assert.strictEqual(
-      statusAfter.logs[0].events[1].attributes[4].value,
-      "true"
+      statusAfter.status.is_active,
+      true
     );
   });
   

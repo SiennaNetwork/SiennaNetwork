@@ -20,6 +20,33 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "object",
+          "required": [
+            "available_for_sale",
+            "is_active",
+            "total_allocation"
+          ],
+          "properties": {
+            "available_for_sale": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "is_active": {
+              "type": "boolean"
+            },
+            "total_allocation": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
     }
   ],
   "definitions": {

@@ -4,12 +4,14 @@ use amm_shared::fadroma::scrt::{
     cosmwasm_std::{
         Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
     },
-    storage::Storable,
+    storage::{Storable, load, save},
     utils::viewing_key::ViewingKey,
 };
 use amm_shared::TokenType;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+const KEY_CONTRACT_ADDR: &[u8] = b"this_contract";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct Config<A> {
@@ -40,6 +42,23 @@ pub(crate) struct Config<A> {
     pub schedule: Option<SaleSchedule>,
     /// Viewkey for sold token
     pub viewing_key: ViewingKey,
+}
+
+pub(crate) fn load_contract_address<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>
+) -> StdResult<HumanAddr> {
+    let address: CanonicalAddr = load(&deps.storage, KEY_CONTRACT_ADDR)?.unwrap();
+
+    address.humanize(&deps.api)
+}
+
+pub(crate) fn save_contract_address<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    address: &HumanAddr
+) -> StdResult<()> {
+    let address = address.canonize(&deps.api)?;
+
+    save(&mut deps.storage, KEY_CONTRACT_ADDR, &address)
 }
 
 impl<A> Storable for Config<A>

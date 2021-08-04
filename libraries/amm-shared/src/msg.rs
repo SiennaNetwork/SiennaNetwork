@@ -280,8 +280,6 @@ pub mod ido {
         AdminRefund { address: Option<HumanAddr> },
         /// Admin can claim profits from sale after the sale finishes
         AdminClaim { address: Option<HumanAddr> },
-        /// Get status of the amount already claimed
-        AdminStatus,
         /// Add new address to whitelist
         AdminAddAddresses { addresses: Vec<HumanAddr> },
     }
@@ -291,12 +289,18 @@ pub mod ido {
     pub enum QueryMsg {
         GetRate,
         Admin(AdminQueryMsg),
+        Status,
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryResponse {
         GetRate { rate: Uint128 },
+        Status {
+            total_allocation: Uint128,
+            available_for_sale: Uint128,
+            is_active: bool
+        }
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]

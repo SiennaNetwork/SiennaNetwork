@@ -21,13 +21,18 @@ use amm_shared::{
     TokenType,
 };
 
-use crate::data::{Account, Config, SwapConstants, SaleSchedule};
+use crate::data::{
+    Account, Config, SwapConstants, SaleSchedule,
+    save_contract_address, load_contract_address
+};
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
+    save_contract_address(deps, &env.contract.address)?;
+
     let viewing_key = ViewingKey::new(&env, msg.prng_seed.as_slice(), msg.entropy.as_slice());
 
     let mut messages = vec![];
@@ -157,7 +162,6 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl),
         HandleMsg::AdminRefund { address } => refund(deps, env, address),
         HandleMsg::AdminClaim { address } => claim(deps, env, address),
-        HandleMsg::AdminStatus => get_status(deps, env),
         HandleMsg::AdminAddAddresses { addresses } => add_addresses(deps, env, addresses),
     }
 }
@@ -165,6 +169,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
         QueryMsg::GetRate => get_rate(deps),
+        QueryMsg::Status => get_status(deps),
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
     }
 }
@@ -225,7 +230,7 @@ fn activate<S: Storage, A: Api, Q: Querier>(
     let required_amount = Uint128(config.max_allocation.u128() * config.max_seats as u128);
     let token_balance = get_token_balance(
         &deps,
-        &env,
+        env.contract.address,
         config.sold_token.clone(),
         config.viewing_key.to_string(),
     )?;
@@ -326,7 +331,7 @@ fn refund<S: Storage, A: Api, Q: Querier>(
 
     let refund_amount = get_token_balance(
         &deps,
-        &env,
+        env.contract.address.clone(),
         config.sold_token.clone(),
         config.viewing_key.to_string(),
     )?;
@@ -399,31 +404,23 @@ fn claim<S: Storage, A: Api, Q: Querier>(
     })
 }
 
-/// Handle method that will return status
-#[require_admin]
 fn get_status<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-) -> StdResult<HandleResponse> {
+    deps: &Extern<S, A, Q>
+) -> QueryResult {
     let config = Config::<HumanAddr>::load_self(&deps)?;
 
     let total_allocation = Uint128(config.max_allocation.u128() * config.max_seats as u128);
     let available_for_sale = get_token_balance(
         &deps,
-        &env,
+        load_contract_address(deps)?,
         config.sold_token.clone(),
         config.viewing_key.to_string(),
     )?;
 
-    Ok(HandleResponse {
-        messages: vec![],
-        log: vec![
-            log("action", "status"),
-            log("total_allocation", total_allocation),
-            log("available_for_sale", available_for_sale),
-            log("is_active", config.is_active()),
-        ],
-        data: None,
+    to_binary(&QueryResponse::Status {
+        total_allocation,
+        available_for_sale,
+        is_active: config.is_active()
     })
 }
 
@@ -478,9 +475,9 @@ fn add_addresses<S: Storage, A: Api, Q: Querier>(
 fn get_rate<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> QueryResult {
     let config = Config::<HumanAddr>::load_self(&deps)?;
 
-    Ok(to_binary(&QueryResponse::GetRate {
+    to_binary(&QueryResponse::GetRate {
         rate: config.swap_constants.rate,
-    })?)
+    })
 }
 
 /// Query the token for number of its decimals
@@ -497,13 +494,13 @@ fn get_token_decimals(
 /// Query the token for number of its decimals
 fn get_token_balance<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    env: &Env,
+    this_contract: HumanAddr,
     instance: ContractInstance<HumanAddr>,
     viewing_key: String,
 ) -> StdResult<Uint128> {
     let balance = snip20::balance_query(
         &deps.querier,
-        env.contract.address.clone(),
+        this_contract,
         viewing_key,
         BLOCK_SIZE,
         instance.code_hash,
@@ -668,6 +665,7 @@ mod tests {
 
         match res {
             QueryResponse::GetRate { rate } => assert_eq!(rate, RATE),
+            _ => panic!("Expected QueryResponse::GetRate")
         };
     }
 
@@ -874,7 +872,7 @@ mod tests {
 
     #[test]
     fn admin_get_status_of_sale() {
-        let (mut deps, env) = init_contract(None, None);
+        let (mut deps, _) = init_contract(None, None);
         let buyer_env = mock_env("buyer-1", &[Coin::new(250_000_000_u128, "uscrt")]);
 
         handle(
@@ -889,13 +887,16 @@ mod tests {
 
         deps.querier.sub_balance(Uint128(250 as u128)).unwrap();
 
-        let res = handle(&mut deps, env, HandleMsg::AdminStatus).unwrap();
+        let res = query(&deps, QueryMsg::Status).unwrap();
+        let res: QueryResponse = from_binary(&res).unwrap();
 
-        let total_allocation = &res.log[1].value;
-        let available_for_sale = &res.log[2].value;
-
-        assert_eq!(total_allocation, "2500");
-        assert_eq!(available_for_sale, "2250");
+        match res {
+            QueryResponse::Status { available_for_sale, total_allocation, .. } => {
+                assert_eq!(total_allocation, Uint128(2500));
+                assert_eq!(available_for_sale, Uint128(2250));
+            },
+            _ => panic!("Expected QueryResponse::Status")
+        }
     }
 
     #[test]
