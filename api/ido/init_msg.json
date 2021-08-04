@@ -5,6 +5,7 @@
   "required": [
     "admin",
     "callback",
+    "entropy",
     "info",
     "prng_seed"
   ],
@@ -24,6 +25,9 @@
           "$ref": "#/definitions/Callback_for_HumanAddr"
         }
       ]
+    },
+    "entropy": {
+      "$ref": "#/definitions/Binary"
     },
     "info": {
       "$ref": "#/definitions/TokenSaleConfig"
@@ -90,7 +94,6 @@
     "TokenSaleConfig": {
       "type": "object",
       "required": [
-        "end_time",
         "input_token",
         "max_allocation",
         "max_seats",
@@ -100,12 +103,6 @@
         "whitelist"
       ],
       "properties": {
-        "end_time": {
-          "description": "Time when the sale will end",
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0.0
-        },
         "input_token": {
           "description": "The token that will be used to buy the SNIP20.",
           "allOf": [
@@ -146,15 +143,6 @@
         },
         "sold_token": {
           "$ref": "#/definitions/ContractInstance_for_HumanAddr"
-        },
-        "start_time": {
-          "description": "Time when the sale will start (if None, it will start immediately)",
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint64",
-          "minimum": 0.0
         },
         "whitelist": {
           "description": "The addresses that are eligible to participate in the sale.",

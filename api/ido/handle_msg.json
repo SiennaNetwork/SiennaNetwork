@@ -56,6 +56,17 @@
           "properties": {
             "amount": {
               "$ref": "#/definitions/Uint128"
+            },
+            "recipient": {
+              "description": "If the recipient of the funds is going to be someone different then the sender",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           }
         }

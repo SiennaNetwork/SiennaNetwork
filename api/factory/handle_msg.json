@@ -110,9 +110,13 @@
         "create_exchange": {
           "type": "object",
           "required": [
+            "entropy",
             "pair"
           ],
           "properties": {
+            "entropy": {
+              "$ref": "#/definitions/Binary"
+            },
             "pair": {
               "$ref": "#/definitions/TokenPair_for_HumanAddr"
             }
@@ -130,9 +134,13 @@
         "create_ido": {
           "type": "object",
           "required": [
+            "entropy",
             "info"
           ],
           "properties": {
+            "entropy": {
+              "$ref": "#/definitions/Binary"
+            },
             "info": {
               "$ref": "#/definitions/TokenSaleConfig"
             }

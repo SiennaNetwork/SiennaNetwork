@@ -508,9 +508,7 @@ mod test_contract {
             whitelist: vec![],
             max_allocation: Uint128(100),
             max_seats: 20,
-            min_allocation: Uint128(10),
-            start_time: None,
-            end_time: 1_571_797_419 + 60,
+            min_allocation: Uint128(10)
         };
 
         let result = handle(

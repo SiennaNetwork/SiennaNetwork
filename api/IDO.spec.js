@@ -12,10 +12,7 @@ const log = function () {
   debug("out")(JSON.stringify(arguments, null, 2));
 };
 
-const getIDOInitMsg = function (context, start, end) {
-  const start_time = start || parseInt(new Date().valueOf() / 1000);
-  const end_time = end || parseInt(new Date().valueOf() / 1000 + 5);
-
+const getIDOInitMsg = function (context) {
   return {
     info: {
       // input_token: {
@@ -39,11 +36,10 @@ const getIDOInitMsg = function (context, start, end) {
         .filter((v) => v !== null),
       max_seats: 5,
       max_allocation: "5",
-      min_allocation: "1",
-      start_time,
-      end_time,
+      min_allocation: "1"
     },
     prng_seed: randomBytes(36).toString("hex"),
+    entropy: randomBytes(36).toString("hex"),
     admin: context.agent.address,
     callback: {
       msg: Buffer.from(
@@ -61,6 +57,21 @@ const getIDOInitMsg = function (context, start, end) {
     },
   };
 };
+
+const activate_msg = function(start, end) {
+  const start_time = start || parseInt(new Date().valueOf() / 1000);
+  const end_time = end || parseInt(new Date().valueOf() / 1000 + 5);
+
+  return Buffer.from(
+    JSON.stringify({
+      activate: {
+        start_time,
+        end_time
+      }
+    }),
+    "utf8"
+  ).toString("base64")
+}
 
 describe("IDO", () => {
   const fees = {
@@ -190,11 +201,7 @@ describe("IDO", () => {
       new IDO({
         codeId: context.idoInfo.id,
         label: `ido-${parseInt(Math.random() * 100000)}`,
-        initMsg: getIDOInitMsg(
-          context,
-          undefined,
-          parseInt(new Date().valueOf() / 1000) + 60
-        ),
+        initMsg: getIDOInitMsg(context),
       })
     );
 
@@ -202,9 +209,10 @@ describe("IDO", () => {
     await context.sellingToken.tx.send({
       recipient: context.ido.address,
       amount: "25",
+      msg: activate_msg(undefined, parseInt(new Date().valueOf() / 1000) + 60)
     });
   });
-
+  
   it("Does a swap successfully", async function () {
     this.timeout(0);
     const amount = 1_000_000;
@@ -303,11 +311,7 @@ describe("IDO", () => {
       new IDO({
         codeId: context.idoInfo.id,
         label: `ido-${parseInt(Math.random() * 100000)}`,
-        initMsg: getIDOInitMsg(
-          context,
-          parseInt(new Date().valueOf() / 1000) + 60,
-          parseInt(new Date().valueOf() / 1000) + 120
-        ),
+        initMsg: getIDOInitMsg(context),
       })
     );
 
@@ -315,6 +319,10 @@ describe("IDO", () => {
     await context.sellingToken.tx.send({
       recipient: context.ido1.address,
       amount: "25",
+      msg: activate_msg(
+        parseInt(new Date().valueOf() / 1000) + 60,
+        parseInt(new Date().valueOf() / 1000) + 120
+      )
     });
 
     const amount = 2_500_000;
@@ -339,11 +347,7 @@ describe("IDO", () => {
       new IDO({
         codeId: context.idoInfo.id,
         label: `ido-${parseInt(Math.random() * 100000)}`,
-        initMsg: getIDOInitMsg(
-          context,
-          parseInt(new Date().valueOf() / 1000),
-          parseInt(new Date().valueOf() / 1000) + 60
-        ),
+        initMsg: getIDOInitMsg(context),
       })
     );
 
@@ -351,6 +355,10 @@ describe("IDO", () => {
     await context.sellingToken.tx.send({
       recipient: context.ido1.address,
       amount: "25",
+      msg: activate_msg(
+        parseInt(new Date().valueOf() / 1000),
+        parseInt(new Date().valueOf() / 1000) + 60
+      )
     });
 
     const amount = 2_500_000;
@@ -382,7 +390,7 @@ describe("IDO", () => {
       { amount: `${amount}`, denom: "uscrt" },
     ]);
   });
-
+  
   it("Admin can refund and claim amounts after the sale has ended", async function () {
     this.timeout(0);
 
@@ -390,15 +398,19 @@ describe("IDO", () => {
       new IDO({
         codeId: context.idoInfo.id,
         label: `ido-${parseInt(Math.random() * 100000)}`,
-        initMsg: getIDOInitMsg(
-          context,
-          parseInt(new Date().valueOf() / 1000),
-          parseInt(new Date().valueOf() / 1000) + 20
-        ),
+        initMsg: getIDOInitMsg(context),
       })
     );
 
-    await context.sellingToken.mint(25, undefined, context.ido1.address);
+    await context.sellingToken.mint(25);
+    await context.sellingToken.tx.send({
+      recipient: context.ido1.address,
+      amount: "25",
+      msg: activate_msg(
+        parseInt(new Date().valueOf() / 1000),
+        parseInt(new Date().valueOf() / 1000) + 20
+      )
+    });
 
     const balance = await context.sellingToken.balance(
       context.agent.address,
@@ -439,7 +451,7 @@ describe("IDO", () => {
     // Approximate balance is 4-5 after dividing by 1mil because of the fees.
     assert.strictEqual([4, 5].indexOf(approxBalance) != -1, true);
   });
-
+  
   it("Admin cannot refund before sale ends", async function () {
     this.timeout(0);
 
@@ -465,8 +477,15 @@ describe("IDO", () => {
     assert.strictEqual(res.logs[0].events[1].attributes[2].value, "25"); // total allocation
     assert.strictEqual(res.logs[0].events[1].attributes[3].value, "20"); // available for sale
   });
-
+  
   it("Attempt instantiate and swap with a custom buying token", async function () {
+    const swap_msg = function() {
+      return Buffer.from(
+        JSON.stringify({ swap: { } }),
+        "utf8"
+      ).toString("base64")
+    };
+
     this.timeout(0);
 
     context.buyingToken = await context.agent.instantiate(
@@ -489,11 +508,7 @@ describe("IDO", () => {
       })
     );
 
-    const initMsg = getIDOInitMsg(
-      context,
-      undefined,
-      parseInt(new Date().valueOf() / 1000) + 60
-    );
+    const initMsg = getIDOInitMsg(context);
     initMsg.info.input_token = {
       custom_token: {
         contract_addr: context.buyingToken.address,
@@ -519,6 +534,10 @@ describe("IDO", () => {
     await context.sellingToken.tx.send({
       recipient: context.idoB.address,
       amount: "25",
+      msg: activate_msg(
+        undefined,
+        parseInt(new Date().valueOf() / 1000) + 60
+      )
     });
 
     const statusAfter = await context.idoB.tx.admin_status();
@@ -536,23 +555,11 @@ describe("IDO", () => {
 
     await context.buyingToken.mint(10_000_000, undefined, buyer.address);
 
-    // Deprecated way of doing a swap:
-    // await context.buyingToken.increaseAllowance(
-    //   10_000_000,
-    //   context.idoB.address,
-    //   buyer
-    // );
-
-    // await context.idoB.tx.swap({ amount: `${amount}` }, buyer);
-
     await context.buyingToken.tx.send(
       {
         recipient: context.idoB.address,
         amount: `${amount}`,
-        // msg: Buffer.from(
-        //   JSON.stringify({ swap: { recipient: null } }),
-        //   "utf8"
-        // ).toString("base64"),
+        msg: swap_msg()
       },
       buyer
     );
@@ -574,10 +581,7 @@ describe("IDO", () => {
         {
           recipient: context.idoB.address,
           amount: `${amount}`,
-          // msg: Buffer.from(
-          //   JSON.stringify({ swap: { recipient: null } }),
-          //   "utf8"
-          // ).toString("base64"),
+          msg: swap_msg()
         },
         buyer
       );
@@ -597,7 +601,7 @@ describe("IDO", () => {
     assert.strictEqual(buyBalanceAfterFail, "5000000");
     assert.strictEqual(sellBalanceAfterFail, "5");
   });
-
+  
   it("Try minting selling token onto IDO contract and then sending 0 tokens to activate the contract", async function () {
     this.timeout(0);
 
@@ -605,11 +609,7 @@ describe("IDO", () => {
       new IDO({
         codeId: context.idoInfo.id,
         label: `ido-${parseInt(Math.random() * 100000)}`,
-        initMsg: getIDOInitMsg(
-          context,
-          undefined,
-          parseInt(new Date().valueOf() / 1000) + 60
-        ),
+        initMsg: getIDOInitMsg(context),
       })
     );
 
@@ -623,6 +623,10 @@ describe("IDO", () => {
     await context.sellingToken.tx.send({
       recipient: context.idoB.address,
       amount: "0",
+      msg: activate_msg(
+        undefined,
+        parseInt(new Date().valueOf() / 1000) + 60
+      )
     });
 
     const statusAfter = await context.idoB.tx.admin_status();
@@ -631,7 +635,7 @@ describe("IDO", () => {
       "true"
     );
   });
-
+  
   after(async function cleanupAll() {
     this.timeout(0);
     await context.node.terminate();

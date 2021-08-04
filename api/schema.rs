@@ -61,6 +61,7 @@ fn main() {
     export_schema(&schema_for!(ido::HandleMsg), &out_dir);
     export_schema(&schema_for!(ido::QueryMsg), &out_dir);
     export_schema(&schema_for!(ido::QueryResponse), &out_dir);
+    export_schema(&schema_for!(ido::ReceiverCallbackMsg), &out_dir);
 
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");

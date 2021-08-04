@@ -254,11 +254,7 @@ pub mod ido {
         /// The total amount that each participant is allowed to buy.
         pub max_allocation: Uint128,
         /// The minimum amount that each participant is allowed to buy.
-        pub min_allocation: Uint128,
-        /// Time when the sale will start (if None, it will start immediately)
-        pub start_time: Option<u64>,
-        /// Time when the sale will end
-        pub end_time: u64,
+        pub min_allocation: Uint128
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -271,7 +267,13 @@ pub mod ido {
             amount: Uint128,
         },
         /// Swap custom or native coin for selling coin
-        Swap { amount: Uint128 },
+        Swap {
+            amount: Uint128,
+            /// If the recipient of the funds
+            /// is going to be someone different
+            /// then the sender
+            recipient: Option<HumanAddr>
+        },
         /// Change admin handle
         Admin(AdminHandleMsg),
         /// Ask for a refund after the sale is finished
@@ -299,25 +301,18 @@ pub mod ido {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
-    pub enum ActivateCallbackMsg {
+    pub enum ReceiverCallbackMsg {
         Activate {
-            /// Time when the contract will start, if None, the already set time in config
-            /// will be used
+            /// Time when the sale will start (if None, it will start immediately)
             start_time: Option<u64>,
-            /// Time when the sale will end, if None the time already
-            /// set in the config will be used
-            end_time: Option<u64>,
+            /// Time when the sale will end
+            end_time: u64
         },
-    }
-
-    #[derive(Serialize, Deserialize, JsonSchema)]
-    #[serde(rename_all = "snake_case")]
-    pub enum SwapCallbackMsg {
         Swap {
             /// If the recipient of the funds
             /// is going to be someone different
             /// then the sender
-            recipient: Option<HumanAddr>,
+            recipient: Option<HumanAddr>
         },
     }
 }

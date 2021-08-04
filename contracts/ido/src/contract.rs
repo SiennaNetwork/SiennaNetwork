@@ -17,11 +17,11 @@ use amm_shared::{
         utils::{convert::convert_token, viewing_key::ViewingKey},
         BLOCK_SIZE,
     },
-    msg::ido::{ActivateCallbackMsg, HandleMsg, InitMsg, QueryMsg, QueryResponse, SwapCallbackMsg},
+    msg::ido::{HandleMsg, InitMsg, QueryMsg, QueryResponse, ReceiverCallbackMsg},
     TokenType,
 };
 
-use crate::data::{Account, Config, SwapConstants};
+use crate::data::{Account, Config, SwapConstants, SaleSchedule};
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -101,22 +101,6 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         send: vec![],
     }));
 
-    let start_time = msg.info.start_time.unwrap_or(env.block.time);
-    let end_time = msg.info.end_time;
-
-    if start_time >= end_time {
-        return Err(StdError::generic_err(format!(
-            "End time of the sale has to be after {}.",
-            start_time
-        )));
-    }
-
-    if end_time <= env.block.time {
-        return Err(StdError::generic_err(
-            "End time of the sale must be any time after now.",
-        ));
-    }
-
     let taken_seats = msg.info.whitelist.len() as u32;
 
     for address in msg.info.whitelist {
@@ -135,9 +119,8 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         max_seats: msg.info.max_seats,
         max_allocation: msg.info.max_allocation,
         min_allocation: msg.info.min_allocation,
-        active: false,
-        start_time,
-        end_time: msg.info.end_time,
+        // Configured in when activating
+        schedule: None,
         viewing_key: viewing_key.clone(),
     };
 
@@ -158,8 +141,19 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     match msg {
         HandleMsg::Receive {
             from, amount, msg, ..
-        } => handle_receive_callback(deps, env, from, amount, msg),
-        HandleMsg::Swap { amount } => swap(deps, env, amount),
+        } => receive_callback(deps, env, from, amount, msg),
+        HandleMsg::Swap { amount, recipient } => {
+            // Can be called directly only when the input token is SCRT
+            let config = Config::<CanonicalAddr>::load_self(&deps)?;
+
+            if !config.input_token.is_native_token() {
+                return Err(StdError::generic_err("Use the SNIP20 receiver interface instead."));
+            }
+
+            config.input_token.assert_sent_native_token_balance(&env, amount)?;
+
+            swap(deps, env.block.time, config, amount, env.message.sender, recipient)
+        },
         HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl),
         HandleMsg::AdminRefund { address } => refund(deps, env, address),
         HandleMsg::AdminClaim { address } => claim(deps, env, address),
@@ -176,22 +170,37 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
 }
 
 /// Universal handler for receive callback from snip20 interface of sold token and possibly custom input token
-fn handle_receive_callback<S: Storage, A: Api, Q: Querier>(
+fn receive_callback<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     from: HumanAddr,
     amount: Uint128,
     msg: Option<Binary>,
 ) -> StdResult<HandleResponse> {
+    let msg = msg.ok_or_else(|| {
+        StdError::generic_err("Receiver callback \"msg\" parameter cannot be empty.")
+    })?;
+
     let config = Config::<CanonicalAddr>::load_self(&deps)?;
 
-    // If the sender is sold_token, we will treat this like activation
-    // handle call that will activate the contract if enough funds is sent
-    if &env.message.sender == &config.sold_token.address {
-        activate_callback(deps, env, from, amount, config, msg)
-    } else {
-        swap_callback(deps, env, from, amount, config, msg)
+    match from_binary(&msg)? {
+        ReceiverCallbackMsg::Activate { start_time, end_time } => {
+            // If the sender is sold_token, we will treat this like activation
+            // handle call that will activate the contract if enough funds is sent
+            if env.message.sender == config.sold_token.address {
+                return activate(deps, env, from, amount, config, start_time, end_time);
+            }
+        },
+        ReceiverCallbackMsg::Swap { recipient } => {
+            if let TokenType::CustomToken { contract_addr, .. } = &config.input_token {
+                if env.message.sender == *contract_addr {
+                    return swap(deps, env.block.time, config, amount, from, recipient);
+                }
+            }
+        }
     }
+
+    Err(StdError::unauthorized())
 }
 
 /// Handle receive callback from the sold token that will activate
@@ -200,43 +209,17 @@ fn handle_receive_callback<S: Storage, A: Api, Q: Querier>(
 /// ## Cases
 ///  - Send full required amount after the contract is instantiated and it will activate the contract
 ///  - Mint required amount onto IDO contract and then send 0 sell tokens to contract to activate it
-fn activate_callback<S: Storage, A: Api, Q: Querier>(
+fn activate<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     from: HumanAddr,
     amount: Uint128,
     mut config: Config<HumanAddr>,
-    msg: Option<Binary>,
+    start: Option<u64>,
+    end: u64
 ) -> StdResult<HandleResponse> {
     if load_admin(deps)? != from {
         return Err(StdError::unauthorized());
-    }
-
-    // Get the start and end times from the msg
-    let (start_time, end_time) = match msg {
-        Some(msg) => match from_binary(&msg)? {
-            ActivateCallbackMsg::Activate {
-                start_time,
-                end_time,
-            } => (
-                start_time.unwrap_or_else(|| config.start_time),
-                end_time.unwrap_or_else(|| config.end_time),
-            ),
-        },
-        None => (config.start_time, config.end_time),
-    };
-
-    if start_time >= end_time {
-        return Err(StdError::generic_err(format!(
-            "End time of the sale has to be after {}.",
-            start_time
-        )));
-    }
-
-    if end_time <= env.block.time {
-        return Err(StdError::generic_err(
-            "End time of the sale must be any time after now.",
-        ));
     }
 
     let required_amount = Uint128(config.max_allocation.u128() * config.max_seats as u128);
@@ -254,98 +237,14 @@ fn activate_callback<S: Storage, A: Api, Q: Querier>(
         )));
     }
 
-    config.start_time = start_time;
-    config.end_time = end_time;
-    config.active = true;
+    config.schedule = Some(SaleSchedule::new(env.block.time, start, end)?);
     config.save(deps)?;
 
     Ok(HandleResponse {
         messages: vec![],
-        log: vec![log("action", "activate_callback")],
+        log: vec![log("action", "activate")],
         data: None,
     })
-}
-
-/// Handle receive callback from custom buy token that will initiate the swap
-/// for amount that was sent to this contract automatically
-fn swap_callback<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    from: HumanAddr,
-    amount: Uint128,
-    config: Config<HumanAddr>,
-    msg: Option<Binary>,
-) -> StdResult<HandleResponse> {
-    config.is_swapable(env.block.time)?;
-    let mut account = Account::<CanonicalAddr>::load_self(&deps, &from)?;
-
-    // Get the recipient from the message if there is message,
-    // and try to unwrap it from the message itself.
-    let recipient: HumanAddr = match msg {
-        Some(msg) => match from_binary(&msg)? {
-            SwapCallbackMsg::Swap { recipient } => recipient.unwrap_or_else(|| from.clone()),
-        },
-        None => from.clone(),
-    };
-
-    // Match if we are even accepting the SNIP20 token as input token
-    match config.input_token {
-        TokenType::CustomToken { contract_addr, .. } => {
-            // If the incorrect input token has called this action, deny it
-            if contract_addr != env.message.sender {
-                return Err(StdError::unauthorized());
-            }
-
-            let mint_amount = convert_token(
-                amount.u128(),
-                config.swap_constants.rate.u128(),
-                config.swap_constants.input_token_decimals,
-                config.swap_constants.sold_token_decimals,
-            )?;
-
-            if mint_amount < config.min_allocation.u128() {
-                return Err(StdError::generic_err(format!(
-                        "Insufficient amount provided: the resulting amount fell short of the minimum purchase expected: {}",
-                        config.min_allocation
-                    )));
-            }
-
-            account.total_bought = account
-                .total_bought
-                .u128()
-                .checked_add(mint_amount)
-                .ok_or(StdError::generic_err("Upper bound overflow detected."))?
-                .into();
-
-            if account.total_bought > config.max_allocation {
-                return Err(StdError::generic_err(format!(
-                    "This purchase exceeds the total maximum allowed amount for a single address: {}",
-                    config.max_allocation
-                )));
-            }
-
-            account.save(deps)?;
-
-            Ok(HandleResponse {
-                messages: vec![snip20::transfer_msg(
-                    recipient,
-                    Uint128(mint_amount),
-                    None,
-                    BLOCK_SIZE,
-                    config.sold_token.code_hash,
-                    config.sold_token.address,
-                )?],
-                log: vec![
-                    log("action", "receiver_callback"),
-                    log("input_amount", amount),
-                    log("purchased_amount", mint_amount),
-                    log("account_total_bought", account.total_bought),
-                ],
-                data: None,
-            })
-        }
-        _ => Err(StdError::unauthorized()),
-    }
 }
 
 /// Swap input token for sold token.
@@ -354,12 +253,15 @@ fn swap_callback<S: Storage, A: Api, Q: Querier>(
 /// Checks if the account hasn't gone over the sale limit and is above the sale minimum.
 fn swap<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    env: Env,
+    now: u64,
+    config: Config<HumanAddr>,
     amount: Uint128,
+    from: HumanAddr,
+    recipient: Option<HumanAddr>
 ) -> StdResult<HandleResponse> {
-    let config = Config::<CanonicalAddr>::load_self(&deps)?;
-    config.is_swapable(env.block.time)?;
-    let mut account = Account::<CanonicalAddr>::load_self(&deps, &env.message.sender)?;
+    config.is_swapable(now)?;
+
+    let mut account = Account::<CanonicalAddr>::load_self(&deps, &from)?;
 
     let mint_amount = convert_token(
         amount.u128(),
@@ -391,43 +293,17 @@ fn swap<S: Storage, A: Api, Q: Querier>(
 
     account.save(deps)?;
 
-    let mut messages = vec![];
-
-    match config.input_token {
-        TokenType::CustomToken {
-            contract_addr,
-            token_code_hash,
-        } => {
-            // Create message for sending the required amount to this contract
-            messages.push(snip20::transfer_from_msg(
-                env.message.sender.clone(),
-                env.contract.address,
-                amount,
-                None,
-                BLOCK_SIZE,
-                token_code_hash,
-                contract_addr,
-            )?);
-        }
-        TokenType::NativeToken { .. } => {
-            config
-                .input_token
-                .assert_sent_native_token_balance(&env, amount)?;
-        }
-    }
-
-    // Transfer the resulting amount to the sender
-    messages.push(snip20::transfer_msg(
-        env.message.sender,
-        Uint128(mint_amount),
-        None,
-        BLOCK_SIZE,
-        config.sold_token.code_hash,
-        config.sold_token.address,
-    )?);
+    let recipient = recipient.unwrap_or(from);
 
     Ok(HandleResponse {
-        messages,
+        messages: vec![snip20::transfer_msg(
+            recipient,
+            Uint128(mint_amount),
+            None,
+            BLOCK_SIZE,
+            config.sold_token.code_hash,
+            config.sold_token.address,
+        )?],
         log: vec![
             log("action", "swap"),
             log("input_amount", amount),
@@ -660,8 +536,6 @@ mod tests {
 
     /// Get init message for initialization of the token.
     fn get_init(
-        start_time: Option<u64>,
-        end_time: Option<u64>,
         sold_token: Option<ContractInstance<HumanAddr>>,
         admin: &HumanAddr,
     ) -> InitMsg {
@@ -669,9 +543,6 @@ mod tests {
             address: HumanAddr::from("sold-token"),
             code_hash: "".to_string(),
         });
-
-        let start_time = start_time.unwrap_or(BLOCK_TIME);
-        let end_time = end_time.unwrap_or(start_time + 60);
 
         InitMsg {
             info: TokenSaleConfig {
@@ -688,9 +559,7 @@ mod tests {
                 ],
                 max_seats: 5,
                 max_allocation: MAX_ALLOCATION,
-                min_allocation: MIN_ALLOCATION,
-                start_time: Some(start_time),
-                end_time,
+                min_allocation: MIN_ALLOCATION
             },
             prng_seed: to_binary(&"whatever").unwrap(),
             entropy: to_binary(&"whatever").unwrap(),
@@ -711,10 +580,13 @@ mod tests {
     ) -> (Extern<MockStorage, MockApi, MockQuerier>, Env) {
         let mut deps = internal_mock_deps(123, &[]);
         let env = mock_env("admin", &[]);
-        let msg = get_init(start_time, end_time, None, &env.message.sender);
+        let msg = get_init(None, &env.message.sender);
         init(&mut deps, env.clone(), msg).unwrap();
 
         let sold_env = mock_env("sold-token", &[]);
+
+        let start_time = start_time.unwrap_or(BLOCK_TIME);
+        let end_time = end_time.unwrap_or(start_time + 60);
 
         handle(
             &mut deps,
@@ -722,7 +594,10 @@ mod tests {
             HandleMsg::Receive {
                 from: env.message.sender.clone(),
                 amount: Uint128(5 as u128 * MAX_ALLOCATION.u128()),
-                msg: None,
+                msg: Some(to_binary(&ReceiverCallbackMsg::Activate {
+                    start_time: Some(start_time),
+                    end_time
+                }).unwrap()),
             },
         )
         .unwrap();
@@ -735,8 +610,6 @@ mod tests {
         let mut deps = internal_mock_deps(123, &[]);
         let env = mock_env("admin", &[]);
         let msg = get_init(
-            None,
-            None,
             Some(ContractInstance::<HumanAddr> {
                 address: HumanAddr::from("random-token"),
                 code_hash: "".to_string(),
@@ -796,6 +669,7 @@ mod tests {
             env,
             HandleMsg::Swap {
                 amount: Uint128(10000_u128),
+                recipient: None
             },
         );
 
@@ -815,6 +689,7 @@ mod tests {
             env,
             HandleMsg::Swap {
                 amount: Uint128(99_000_000_u128),
+                recipient: None
             },
         );
 
@@ -839,6 +714,7 @@ mod tests {
             env,
             HandleMsg::Swap {
                 amount: Uint128(501_000_000_u128),
+                recipient: None
             },
         );
 
@@ -861,6 +737,7 @@ mod tests {
             env,
             HandleMsg::Swap {
                 amount: Uint128(250_000_000_u128),
+                recipient: None
             },
         )
         .unwrap();
@@ -877,6 +754,7 @@ mod tests {
             env,
             HandleMsg::Swap {
                 amount: Uint128(250_000_000_u128),
+                recipient: None
             },
         );
 
@@ -903,6 +781,7 @@ mod tests {
             env,
             HandleMsg::Swap {
                 amount: Uint128(250_000_000_u128),
+                recipient: None
             },
         );
 
@@ -991,6 +870,7 @@ mod tests {
             buyer_env,
             HandleMsg::Swap {
                 amount: Uint128(250_000_000_u128),
+                recipient: None
             },
         )
         .unwrap();
@@ -1037,6 +917,7 @@ mod tests {
             buyer_env.clone(),
             HandleMsg::Swap {
                 amount: Uint128(250_000_000_u128),
+                recipient: None
             },
         );
 
@@ -1059,6 +940,7 @@ mod tests {
             buyer_env,
             HandleMsg::Swap {
                 amount: Uint128(250_000_000_u128),
+                recipient: None
             },
         )
         .unwrap();

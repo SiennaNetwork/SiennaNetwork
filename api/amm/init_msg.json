@@ -4,6 +4,7 @@
   "type": "object",
   "required": [
     "callback",
+    "entropy",
     "factory_info",
     "lp_token_contract",
     "pair",
@@ -12,6 +13,9 @@
   "properties": {
     "callback": {
       "$ref": "#/definitions/Callback_for_HumanAddr"
+    },
+    "entropy": {
+      "$ref": "#/definitions/Binary"
     },
     "factory_info": {
       "description": "Used by the exchange contract to send back its address to the factory on init",

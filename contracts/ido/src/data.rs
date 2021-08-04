@@ -27,7 +27,7 @@ pub(crate) struct Config<A> {
     pub max_allocation: Uint128,
     /// The minimum amount that each participant is allowed to buy.
     pub min_allocation: Uint128,
-    /// This is a flag that lets us know if this contract is active,
+    /// The Option<> lets us know if this contract is active,
     /// contract only becomes active once the sold_token funds
     /// are sent to it:
     /// Amount has to be exact to max_seats * max_allocation
@@ -37,11 +37,7 @@ pub(crate) struct Config<A> {
     /// the owner will have to send funds to IDO contract. This limitation
     /// is due the mint message not having the means to sent the receive
     /// callback to IDO contract.
-    pub active: bool,
-    /// Time when the sale will start (if None, it will start immediately)
-    pub start_time: u64,
-    /// Time when the sale will end
-    pub end_time: u64,
+    pub schedule: Option<SaleSchedule>,
     /// Viewkey for sold token
     pub viewing_key: ViewingKey,
 }
@@ -71,49 +67,85 @@ impl<A> Config<A> {
 
     /// Check if the contract is active
     pub fn is_active(&self) -> bool {
-        self.active
-    }
-
-    /// Check if the contract has started
-    pub fn has_started(&self, time: u64) -> bool {
-        self.start_time <= time
-    }
-
-    /// Check if the contract has ended
-    pub fn has_ended(&self, time: u64) -> bool {
-        time >= self.end_time
+        self.schedule.is_some()
     }
 
     /// Check if tokens can be swaped
     pub fn is_swapable(&self, time: u64) -> StdResult<()> {
-        if !self.is_active() {
-            return Err(StdError::generic_err("Contract is not yet active"));
+        if let Some(schedule) = self.schedule {
+            if !schedule.has_started(time) {
+                return Err(StdError::generic_err(format!(
+                    "Sale hasn't started yet, come back in {} seconds",
+                    schedule.start - time
+                )));
+            }
+    
+            if schedule.has_ended(time) {
+                return Err(StdError::generic_err("Sale has ended"));
+            }
+
+            return Ok(());
         }
 
-        if !self.has_started(time) {
-            return Err(StdError::generic_err(format!(
-                "Sale hasn't started yet, come back in {} seconds",
-                self.start_time - time
-            )));
-        }
-
-        if self.has_ended(time) {
-            return Err(StdError::generic_err("Sale has ended"));
-        }
-
-        Ok(())
+        Err(StdError::generic_err("Contract is not yet active"))
     }
 
     /// Check if the contract can be refunded
     pub fn is_refundable(&self, time: u64) -> StdResult<()> {
-        if !self.has_ended(time) {
-            Err(StdError::generic_err(format!(
-                "Sale hasn't finished yet, come back in {} seconds",
-                self.end_time - time
-            )))
-        } else {
-            Ok(())
+        if let Some(schedule) = self.schedule {
+            if !schedule.has_ended(time) {
+                return Err(StdError::generic_err(format!(
+                    "Sale hasn't finished yet, come back in {} seconds",
+                    schedule.end - time
+                )))
+            }
+
+            return Ok(());
         }
+
+        Err(StdError::generic_err("Contract is not yet active"))
+    }
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, Clone, Copy, Debug)]
+pub(crate) struct SaleSchedule {
+    /// Time when the sale will start
+    pub start: u64,
+    /// Time when the sale will end
+    pub end: u64,
+}
+
+impl SaleSchedule {
+    pub fn new(now: u64, start: Option<u64>, end: u64) -> StdResult<Self> {
+        let start = start.unwrap_or(now);
+        
+        if start >= end {
+            return Err(StdError::generic_err(format!(
+                "End time of the sale has to be after {}.",
+                start
+            )));
+        }
+    
+        if end <= now {
+            return Err(StdError::generic_err(
+                "End time of the sale must be any time after now.",
+            ));
+        }
+
+        Ok(Self {
+            start,
+            end
+        })
+    }
+
+    /// Check if the contract has started
+    pub fn has_started(&self, time: u64) -> bool {
+        self.start <= time
+    }
+
+    /// Check if the contract has ended
+    pub fn has_ended(&self, time: u64) -> bool {
+        time >= self.end
     }
 }
 
@@ -192,9 +224,7 @@ impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,
-            active: self.active,
-            start_time: self.start_time,
-            end_time: self.end_time,
+            schedule: self.schedule,
             viewing_key: self.viewing_key.clone(),
         })
     }
@@ -210,9 +240,7 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,
-            active: self.active,
-            start_time: self.start_time,
-            end_time: self.end_time,
+            schedule: self.schedule,
             viewing_key: self.viewing_key.clone(),
         })
     }
