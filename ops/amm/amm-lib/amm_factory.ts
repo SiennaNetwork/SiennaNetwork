@@ -54,7 +54,7 @@ export class FactoryContract extends SmartContract {
         super(address, signing_client, client)
     }
 
-    async create_exchange(pair: TokenPair, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async create_exchange(pair: TokenPair, fee?: Fee): Promise<ExecuteResult> {
         const msg = {
             create_exchange: {
                 pair,
@@ -69,7 +69,7 @@ export class FactoryContract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async create_ido(config: TokenSaleConfig, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async create_ido(config: TokenSaleConfig, fee?: Fee): Promise<ExecuteResult> {
         const msg = {
             create_ido: {
                 info: config,
@@ -90,7 +90,7 @@ export class FactoryContract extends SmartContract {
         pair_contract: ContractInstantiationInfo | undefined,
         ido_contract: ContractInstantiationInfo | undefined,
         exchange_settings: ExchangeSettings | undefined,
-        fee?: Fee | undefined
+        fee?: Fee
     ): Promise<ExecuteResult> {
         const msg = {
             set_config: {

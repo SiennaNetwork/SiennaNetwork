@@ -310,7 +310,7 @@ async function test_swap(
     'swap_from_snip20',
     async () => {
       const native_balance_before = parseInt(await get_native_balance(client_b))
-      const token_balance_before = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
+      const token_balance_before = parseInt(await snip20_b.get_balance(key))
 
       const swap_amount = '3000000'    
 
@@ -318,7 +318,7 @@ async function test_swap(
       analytics.add_tx(result.transactionHash, 'Exchange: SNIP20 Swap')
 
       const native_balance_after = parseInt(await get_native_balance(client_b))
-      const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
+      const token_balance_after = parseInt(await snip20_b.get_balance(key))
 
       assert(native_balance_after > native_balance_before)
       assert(token_balance_before - parseInt(swap_amount) === token_balance_after)
@@ -338,7 +338,7 @@ async function test_swap(
       let config = get_exchange_settings(BURN_POOL.address);
       await factory.set_config(undefined, undefined, undefined, undefined, config)
 
-      const token_balance_before = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
+      const token_balance_before = parseInt(await snip20_b.get_balance(key))
 
       const amount_to_swap = 3500000;
 
@@ -348,8 +348,8 @@ async function test_swap(
 
       analytics.add_tx(result.transactionHash, 'Exchange: Swap With Burner')
 
-      const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
-      const burner_balance = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
+      const token_balance_after = parseInt(await snip20_b.get_balance(key))
+      const burner_balance = parseInt(await snip20_burner.get_balance(key_burner))
 
       const expected_commission = 700
 
@@ -367,15 +367,15 @@ async function test_swap(
     'swap_from_native_with_burner',
     async () => {
       const native_balance_before = parseInt(await get_native_balance(client_burner))
-      const token_balance_before = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
-      const burner_balance_before = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
+      const token_balance_before = parseInt(await snip20_b.get_balance(key))
+      const burner_balance_before = parseInt(await snip20_burner.get_balance(key_burner))
 
       const result = await exchange_b.swap(offer_token)
 
       analytics.add_tx(result.transactionHash, 'Exchange: Native Swap With Burner')
 
-      const token_balance_after = parseInt(await snip20_b.get_balance(client_b.senderAddress, key))
-      const burner_balance_after = parseInt(await snip20_burner.get_balance(client_burner.senderAddress, key_burner))
+      const token_balance_after = parseInt(await snip20_b.get_balance(key))
+      const burner_balance_after = parseInt(await snip20_burner.get_balance(key_burner))
 
       const native_balance_after = parseInt(await get_native_balance(client_burner))
 

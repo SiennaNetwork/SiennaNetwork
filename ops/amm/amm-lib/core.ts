@@ -81,16 +81,10 @@ export function add_native_balance_pair(amount: TokenPairAmount): Coin[] | undef
     let result: Coin[] | undefined = []
 
     if (get_token_type(amount.pair.token_0) == TypeOfToken.Native) {
-        result.push({
-            denom: 'uscrt',
-            amount: amount.amount_0
-        })
+        result.push(create_coin(amount.amount_0))
     }
     else if (get_token_type(amount.pair.token_1) == TypeOfToken.Native) {
-        result.push({
-            denom: 'uscrt',
-            amount: amount.amount_1
-        })
+        result.push(create_coin(amount.amount_1))
     } else {
         result = undefined
     }
@@ -102,10 +96,7 @@ export function add_native_balance(amount: TokenTypeAmount): Coin[] | undefined 
     let result: Coin[] | undefined = []
 
     if (get_token_type(amount.token) == TypeOfToken.Native) {
-        result.push({
-            denom: 'uscrt',
-            amount: amount.amount
-        })
+        result.push(create_coin(amount.amount))
     }
     else {
         result = undefined

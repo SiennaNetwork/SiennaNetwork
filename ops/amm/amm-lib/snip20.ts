@@ -39,7 +39,7 @@ export class Snip20Contract extends SmartContract {
         amount: Uint128,
         expiration?: number | null,
         padding?: string | null,
-        fee?: Fee | undefined
+        fee?: Fee
     ): Promise<ExecuteResult> {
         const msg = {
             increase_allowance: {
@@ -70,7 +70,11 @@ export class Snip20Contract extends SmartContract {
         return result.allowance
     }
 
-    async get_balance(address: Address, key: ViewingKey): Promise<Uint128> {
+    async get_balance(key: ViewingKey, address?: Address): Promise<Uint128> {
+        if (address === undefined) {
+            address = this.signing_client.senderAddress
+        }
+
         const msg = {
             balance: {
                 address,
@@ -100,7 +104,7 @@ export class Snip20Contract extends SmartContract {
         return result.exchange_rate
     }
 
-    async set_viewing_key(key: ViewingKey, padding?: string | null, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async set_viewing_key(key: ViewingKey, padding?: string | null, fee?: Fee): Promise<ExecuteResult> {
         const msg = {
             set_viewing_key: {
                 key,
@@ -116,7 +120,7 @@ export class Snip20Contract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async deposit(amount: Uint128, padding?: string | null, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async deposit(amount: Uint128, padding?: string | null, fee?: Fee): Promise<ExecuteResult> {
         const msg = {
             deposit: {
                 padding
@@ -132,7 +136,7 @@ export class Snip20Contract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, transfer, fee)
     }
 
-    async transfer(recipient: Address, amount: Uint128, padding?: string | null, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async transfer(recipient: Address, amount: Uint128, padding?: string | null, fee?: Fee): Promise<ExecuteResult> {
         const msg = {
             transfer: {
                 recipient,
@@ -153,7 +157,7 @@ export class Snip20Contract extends SmartContract {
         amount: Uint128,
         msg?: object | null,
         padding?: string | null,
-        fee?: Fee | undefined
+        fee?: Fee
     ): Promise<ExecuteResult> {
         const message = {
             send: {
@@ -171,7 +175,7 @@ export class Snip20Contract extends SmartContract {
         return await this.signing_client.execute(this.address, message, undefined, undefined, fee)
     }
 
-    async mint(recipient: Address, amount: Uint128, padding?: string | null, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async mint(recipient: Address, amount: Uint128, padding?: string | null, fee?: Fee): Promise<ExecuteResult> {
         const msg = {
             mint: {
                 recipient,

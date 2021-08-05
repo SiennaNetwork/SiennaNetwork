@@ -105,7 +105,7 @@ export class RewardsContract extends SmartContract {
         super(address, signing_client, client)
     }
 
-    async claim(fee?: Fee | undefined): Promise<ExecuteResult> {
+    async claim(fee?: Fee): Promise<ExecuteResult> {
         const msg = {
             claim: { }
         }
@@ -117,7 +117,7 @@ export class RewardsContract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async lock_tokens(amount: Uint128, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async lock_tokens(amount: Uint128, fee?: Fee): Promise<ExecuteResult> {
         const msg = {
             lock: {
                 amount
@@ -131,7 +131,7 @@ export class RewardsContract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, undefined, fee)
     }
 
-    async retrieve_tokens(amount: Uint128, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async retrieve_tokens(amount: Uint128, fee?: Fee): Promise<ExecuteResult> {
         const msg = {
             retrieve: {
                 amount

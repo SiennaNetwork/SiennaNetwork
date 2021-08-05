@@ -33,7 +33,7 @@ export class ExchangeContract extends SmartContract {
         super(address, signing_client, client)
     }
 
-    async provide_liquidity(amount: TokenPairAmount, tolerance?: Decimal | null, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async provide_liquidity(amount: TokenPairAmount, tolerance?: Decimal | null, fee?: Fee): Promise<ExecuteResult> {
         const msg = {
             add_liquidity: {
                 deposit: amount,
@@ -49,7 +49,7 @@ export class ExchangeContract extends SmartContract {
         return await this.signing_client.execute(this.address, msg, undefined, transfer, fee)
     }
 
-    async withdraw_liquidity(amount: Uint128, recipient: Address, fee?: Fee | undefined): Promise<ExecuteResult> {
+    async withdraw_liquidity(amount: Uint128, recipient: Address, fee?: Fee): Promise<ExecuteResult> {
         const msg = {
             remove_liquidity: {
                 recipient
@@ -70,7 +70,7 @@ export class ExchangeContract extends SmartContract {
         amount: TokenTypeAmount,
         recipient?: Address | null,
         expected_return?: Decimal | null,
-        fee?: Fee | undefined
+        fee?: Fee
     ): Promise<ExecuteResult> {
         if (get_token_type(amount.token) == TypeOfToken.Native) {
             if (fee === undefined) {
