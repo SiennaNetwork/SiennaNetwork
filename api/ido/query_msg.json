@@ -12,6 +12,17 @@
     {
       "type": "object",
       "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/AdminQueryMsg"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
         "balance"
       ],
       "properties": {
@@ -35,11 +46,11 @@
     {
       "type": "object",
       "required": [
-        "admin"
+        "token_info"
       ],
       "properties": {
-        "admin": {
-          "$ref": "#/definitions/AdminQueryMsg"
+        "token_info": {
+          "type": "object"
         }
       }
     }
