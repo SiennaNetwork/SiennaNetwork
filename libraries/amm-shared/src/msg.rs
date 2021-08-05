@@ -297,12 +297,13 @@ pub mod ido {
     pub enum QueryMsg {
         SaleInfo,
         Status,
-        // Do not change this signature. Needs to work with Keplr.
+        Admin(AdminQueryMsg),
+        // Do not change the signatures below. They need to work with Keplr.
         Balance {
             address: HumanAddr,
             key: String,
         },
-        Admin(AdminQueryMsg)
+        TokenInfo {}
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -333,9 +334,15 @@ pub mod ido {
             available_for_sale: Uint128,
             is_active: bool
         },
-        // Do not change this signature. Needs to work with Keplr.
+        // Do not change the signatures below. They need to work with Keplr.
         Balance {
             amount: Uint128,
+        },
+        TokenInfo {
+            name: String,
+            symbol: String,
+            decimals: u8,
+            total_supply: Option<Uint128>,
         }
     }
 

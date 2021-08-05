@@ -181,6 +181,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
         QueryMsg::SaleInfo => get_sale_info(deps),
         QueryMsg::Status => get_status(deps),
         QueryMsg::Balance { address, key } => get_balance(deps, address, key),
+        QueryMsg::TokenInfo {} => get_token_info(deps),
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
     }
 }
@@ -447,6 +448,26 @@ fn get_balance<S: Storage, A: Api, Q: Querier>(
 
     to_binary(&QueryResponse::Balance {
         amount: account.total_bought
+    })
+}
+
+fn get_token_info<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>
+) -> QueryResult {
+    let config = Config::<CanonicalAddr>::load_self(deps)?;
+
+    let info = snip20::token_info_query(
+        &deps.querier,
+        BLOCK_SIZE,
+        config.sold_token.code_hash,
+        config.sold_token.address
+    )?;
+
+    to_binary(&QueryResponse::TokenInfo {
+        name: format!("IDO for {}", info.name),
+        symbol: format!("IDO:{}", info.symbol),
+        decimals: 0,
+        total_supply: None
     })
 }
 
