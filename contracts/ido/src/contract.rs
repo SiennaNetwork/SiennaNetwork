@@ -1,9 +1,10 @@
 use amm_shared::admin::require_admin;
 use amm_shared::{
     admin::admin::{
-        admin_handle, admin_query, assert_admin, load_admin, save_admin, DefaultHandleImpl,
-        DefaultQueryImpl,
+        admin_handle, admin_query, assert_admin, load_admin,
+        save_admin, DefaultHandleImpl, DefaultQueryImpl
     },
+    auth::{auth_handle, authenticate, AuthHandleMsg, DefaultHandleImpl as AuthHandle},
     fadroma::scrt::{
         addr::Canonize,
         callback::ContractInstance,
@@ -126,7 +127,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         max_seats: msg.info.max_seats,
         max_allocation: msg.info.max_allocation,
         min_allocation: msg.info.min_allocation,
-        // Configured in when activating
+        // Configured when activating
         schedule: None
     };
 
@@ -164,6 +165,14 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::AdminRefund { address } => refund(deps, env, address),
         HandleMsg::AdminClaim { address } => claim(deps, env, address),
         HandleMsg::AdminAddAddresses { addresses } => add_addresses(deps, env, addresses),
+        HandleMsg::CreateViewingKey { entropy, padding } => {
+            let msg = AuthHandleMsg::CreateViewingKey { entropy, padding };
+            auth_handle(deps, env, msg, AuthHandle)
+        },
+        HandleMsg::SetViewingKey { key, padding } => {
+            let msg = AuthHandleMsg::SetViewingKey { key, padding };
+            auth_handle(deps, env, msg, AuthHandle)
+        }
     }
 }
 
@@ -171,6 +180,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
     match msg {
         QueryMsg::SaleInfo => get_sale_info(deps),
         QueryMsg::Status => get_status(deps),
+        QueryMsg::Balance { address, key } => get_balance(deps, address, key),
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
     }
 }
@@ -422,6 +432,21 @@ fn get_status<S: Storage, A: Api, Q: Querier>(
         total_allocation,
         available_for_sale,
         is_active: config.is_active()
+    })
+}
+
+fn get_balance<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    address: HumanAddr,
+    key: String
+) -> QueryResult {
+    let canonical = address.canonize(&deps.api)?;
+    authenticate(&deps.storage, &ViewingKey(key), canonical.as_slice())?;
+
+    let account = Account::<CanonicalAddr>::load_self(&deps, &address)?;
+
+    to_binary(&QueryResponse::Balance {
+        amount: account.total_bought
     })
 }
 
@@ -779,19 +804,49 @@ mod tests {
     }
 
     #[test]
-    fn buyer_swaps_success_gets_ok() {
+    fn buyer_swaps_and_views_balance() {
         let (mut deps, _) = init_contract(None, None);
-        let env = mock_env("buyer-1", &[Coin::new(250_000_000_u128, "uscrt")]);
+        let buyer = "buyer-1";
+        let env = mock_env(buyer, &[Coin::new(250_000_000_u128, "uscrt")]);
 
-        handle(
+        let resp = handle(
             &mut deps,
-            env,
+            env.clone(),
             HandleMsg::Swap {
                 amount: Uint128(250_000_000_u128),
                 recipient: None
             },
         )
         .unwrap();
+
+        let bought = resp.log[2].value.parse::<u128>().unwrap();
+        let key = String::from("key");
+
+        let resp = query(
+            &deps,
+            QueryMsg::Balance { address: buyer.into(), key: key.clone() }
+        ).unwrap_err();
+
+        assert_eq!(resp, StdError::unauthorized());
+        
+        handle(
+            &mut deps,
+            env,
+            HandleMsg::SetViewingKey { key: key.clone(), padding: None }
+        ).unwrap();
+
+        let resp = query(
+            &deps,
+            QueryMsg::Balance { address: buyer.into(), key }
+        ).unwrap();
+        let resp: QueryResponse = from_binary(&resp).unwrap();
+
+        match resp {
+            QueryResponse::Balance { amount } => {
+                assert_eq!(amount.u128(), bought);
+            },
+            _ => panic!("Expected QueryResponse::Balance")
+        }
     }
 
     #[test]

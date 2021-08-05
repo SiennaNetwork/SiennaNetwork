@@ -282,6 +282,14 @@ pub mod ido {
         AdminClaim { address: Option<HumanAddr> },
         /// Add new address to whitelist
         AdminAddAddresses { addresses: Vec<HumanAddr> },
+        CreateViewingKey {
+            entropy: String,
+            padding: Option<String>,
+        },
+        SetViewingKey {
+            key: String,
+            padding: Option<String>,
+        }
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -289,6 +297,11 @@ pub mod ido {
     pub enum QueryMsg {
         SaleInfo,
         Status,
+        // Do not change this signature. Needs to work with Keplr.
+        Balance {
+            address: HumanAddr,
+            key: String,
+        },
         Admin(AdminQueryMsg)
     }
 
@@ -319,6 +332,10 @@ pub mod ido {
             total_allocation: Uint128,
             available_for_sale: Uint128,
             is_active: bool
+        },
+        // Do not change this signature. Needs to work with Keplr.
+        Balance {
+            amount: Uint128,
         }
     }
 

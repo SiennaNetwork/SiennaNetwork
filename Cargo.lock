@@ -22,6 +22,7 @@ name = "amm-shared"
 version = "0.1.0"
 dependencies = [
  "composable-admin",
+ "composable-auth",
  "composable-snip20",
  "fadroma 21.7.0",
  "schemars",

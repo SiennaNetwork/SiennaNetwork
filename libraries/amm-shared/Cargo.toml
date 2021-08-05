@@ -18,3 +18,4 @@ fadroma = { path = "../fadroma-21.07/core", features = [
 ] }
 composable-snip20 = { path = "../fadroma-21.07/scrt-snip20" }
 composable-admin = { path = "../fadroma-21.07/scrt-admin/composable-admin" }
+composable-auth = { path = "../fadroma-21.07/scrt-auth/composable-auth" }

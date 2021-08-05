@@ -12,6 +12,29 @@
     {
       "type": "object",
       "required": [
+        "balance"
+      ],
+      "properties": {
+        "balance": {
+          "type": "object",
+          "required": [
+            "address",
+            "key"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "key": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
         "admin"
       ],
       "properties": {
@@ -27,6 +50,9 @@
       "enum": [
         "admin"
       ]
+    },
+    "HumanAddr": {
+      "type": "string"
     }
   }
 }
