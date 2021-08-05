@@ -2,7 +2,8 @@ use amm_shared::fadroma::scrt::{
     addr::{Canonize, Humanize},
     callback::ContractInstance,
     cosmwasm_std::{
-        Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
+        Api, CanonicalAddr, Extern, HumanAddr, Querier,
+        StdError, StdResult, Storage, Uint128,
     },
     storage::{Storable, load, save},
     utils::viewing_key::ViewingKey,
@@ -12,6 +13,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 const KEY_CONTRACT_ADDR: &[u8] = b"this_contract";
+const KEY_VIEWING_KEY: &[u8] = b"viewing_key";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct Config<A> {
@@ -39,9 +41,7 @@ pub(crate) struct Config<A> {
     /// the owner will have to send funds to IDO contract. This limitation
     /// is due the mint message not having the means to sent the receive
     /// callback to IDO contract.
-    pub schedule: Option<SaleSchedule>,
-    /// Viewkey for sold token
-    pub viewing_key: ViewingKey,
+    pub schedule: Option<SaleSchedule>
 }
 
 pub(crate) fn load_contract_address<S: Storage, A: Api, Q: Querier>(
@@ -59,6 +59,19 @@ pub(crate) fn save_contract_address<S: Storage, A: Api, Q: Querier>(
     let address = address.canonize(&deps.api)?;
 
     save(&mut deps.storage, KEY_CONTRACT_ADDR, &address)
+}
+
+pub(crate) fn load_viewing_key(storage: &impl Storage) -> StdResult<ViewingKey> {
+    let vk: ViewingKey = load(storage, KEY_VIEWING_KEY)?.unwrap();
+
+    Ok(vk)
+}
+
+pub(crate) fn save_viewing_key(
+    storage: &mut impl Storage,
+    vk: &ViewingKey
+) -> StdResult<()> {
+    save(storage, KEY_VIEWING_KEY, vk)
 }
 
 impl<A> Storable for Config<A>
@@ -243,8 +256,7 @@ impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,
-            schedule: self.schedule,
-            viewing_key: self.viewing_key.clone(),
+            schedule: self.schedule
         })
     }
 }
@@ -259,8 +271,7 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,
-            schedule: self.schedule,
-            viewing_key: self.viewing_key.clone(),
+            schedule: self.schedule
         })
     }
 }

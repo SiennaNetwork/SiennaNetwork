@@ -5,7 +5,7 @@
     {
       "type": "string",
       "enum": [
-        "get_rate",
+        "sale_info",
         "status"
       ]
     },

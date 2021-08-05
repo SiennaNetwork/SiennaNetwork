@@ -287,15 +287,34 @@ pub mod ido {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryMsg {
-        GetRate,
-        Admin(AdminQueryMsg),
+        SaleInfo,
         Status,
+        Admin(AdminQueryMsg)
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryResponse {
-        GetRate { rate: Uint128 },
+        SaleInfo {
+            /// The token that is used to buy the sold SNIP20.
+            input_token: TokenType<HumanAddr>,
+            /// The token that is being sold.
+            sold_token: ContractInstance<HumanAddr>,
+            /// The conversion rate at which the token is sold.
+            rate: Uint128,
+            /// Number of participants currently.
+            taken_seats: u32,
+            /// The maximum number of participants allowed.
+            max_seats: u32,
+            /// The total amount that each participant is allowed to buy.
+            max_allocation: Uint128,
+            /// The minimum amount that each participant is allowed to buy.
+            min_allocation: Uint128,
+            /// Sale start time.
+            start: Option<u64>,
+            /// Sale end time.
+            end: Option<u64>
+        },
         Status {
             total_allocation: Uint128,
             available_for_sale: Uint128,

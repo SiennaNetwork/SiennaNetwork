@@ -23,7 +23,8 @@ use amm_shared::{
 
 use crate::data::{
     Account, Config, SwapConstants, SaleSchedule,
-    save_contract_address, load_contract_address
+    save_contract_address, load_contract_address,
+    save_viewing_key, load_viewing_key
 };
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
@@ -34,6 +35,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     save_contract_address(deps, &env.contract.address)?;
 
     let viewing_key = ViewingKey::new(&env, msg.prng_seed.as_slice(), msg.entropy.as_slice());
+    save_viewing_key(&mut deps.storage, &viewing_key)?;
 
     let mut messages = vec![];
     // Set viewing key from IDO contract onto the sold token contract
@@ -125,8 +127,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         max_allocation: msg.info.max_allocation,
         min_allocation: msg.info.min_allocation,
         // Configured in when activating
-        schedule: None,
-        viewing_key: viewing_key.clone(),
+        schedule: None
     };
 
     save_admin(deps, &msg.admin)?;
@@ -168,7 +169,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 
 pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
-        QueryMsg::GetRate => get_rate(deps),
+        QueryMsg::SaleInfo => get_sale_info(deps),
         QueryMsg::Status => get_status(deps),
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
     }
@@ -232,7 +233,7 @@ fn activate<S: Storage, A: Api, Q: Querier>(
         &deps,
         env.contract.address,
         config.sold_token.clone(),
-        config.viewing_key.to_string(),
+        load_viewing_key(&deps.storage)?
     )?;
 
     if (token_balance + amount) < required_amount {
@@ -333,7 +334,7 @@ fn refund<S: Storage, A: Api, Q: Querier>(
         &deps,
         env.contract.address.clone(),
         config.sold_token.clone(),
-        config.viewing_key.to_string(),
+        load_viewing_key(&deps.storage)?
     )?;
 
     Ok(HandleResponse {
@@ -363,7 +364,7 @@ fn claim<S: Storage, A: Api, Q: Querier>(
     let balance = config.input_token.query_balance(
         &deps.querier,
         env.contract.address.clone(),
-        config.viewing_key.to_string(),
+        load_viewing_key(&deps.storage)?.to_string()
     )?;
 
     let mut messages = vec![];
@@ -414,7 +415,7 @@ fn get_status<S: Storage, A: Api, Q: Querier>(
         &deps,
         load_contract_address(deps)?,
         config.sold_token.clone(),
-        config.viewing_key.to_string(),
+        load_viewing_key(&deps.storage)?
     )?;
 
     to_binary(&QueryResponse::Status {
@@ -471,12 +472,26 @@ fn add_addresses<S: Storage, A: Api, Q: Querier>(
     })
 }
 
-/// Return exchange rate for swap
-fn get_rate<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> QueryResult {
+/// Return info about the token sale
+fn get_sale_info<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> QueryResult {
     let config = Config::<HumanAddr>::load_self(&deps)?;
 
-    to_binary(&QueryResponse::GetRate {
+    let (start, end) = if let Some(schedule) = config.schedule {
+        (Some(schedule.start), Some(schedule.end))
+    } else {
+        (None, None)
+    };
+
+    to_binary(&QueryResponse::SaleInfo {
+        input_token: config.input_token,
+        sold_token: config.sold_token,
         rate: config.swap_constants.rate,
+        taken_seats: config.taken_seats,
+        max_seats: config.max_seats,
+        max_allocation: config.max_allocation,
+        min_allocation: config.min_allocation,
+        end,
+        start
     })
 }
 
@@ -485,8 +500,12 @@ fn get_token_decimals(
     querier: &impl Querier,
     instance: ContractInstance<HumanAddr>,
 ) -> StdResult<u8> {
-    let result =
-        snip20::token_info_query(querier, BLOCK_SIZE, instance.code_hash, instance.address)?;
+    let result = snip20::token_info_query(
+        querier,
+        BLOCK_SIZE,
+        instance.code_hash,
+        instance.address
+    )?;
 
     Ok(result.decimals)
 }
@@ -496,12 +515,12 @@ fn get_token_balance<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     this_contract: HumanAddr,
     instance: ContractInstance<HumanAddr>,
-    viewing_key: String,
+    viewing_key: ViewingKey,
 ) -> StdResult<Uint128> {
     let balance = snip20::balance_query(
         &deps.querier,
         this_contract,
-        viewing_key,
+        viewing_key.0,
         BLOCK_SIZE,
         instance.code_hash,
         instance.address,
@@ -658,13 +677,35 @@ mod tests {
     }
 
     #[test]
-    fn query_get_rate_matches_init() {
+    fn query_get_info_matches_init() {
         let (deps, _) = init_contract(None, None);
-        let res = query(&deps, QueryMsg::GetRate).unwrap();
+        let res = query(&deps, QueryMsg::SaleInfo).unwrap();
         let res: QueryResponse = from_binary(&res).unwrap();
 
         match res {
-            QueryResponse::GetRate { rate } => assert_eq!(rate, RATE),
+            QueryResponse::SaleInfo {
+                input_token,
+                sold_token,
+                rate,
+                taken_seats,
+                max_seats,
+                min_allocation,
+                max_allocation,
+                start,
+                end
+            } => {
+                let config = Config::<CanonicalAddr>::load_self(&deps).unwrap();
+
+                assert_eq!(input_token, config.input_token);
+                assert_eq!(sold_token, config.sold_token);
+                assert_eq!(rate, config.swap_constants.rate);
+                assert_eq!(taken_seats, config.taken_seats);
+                assert_eq!(max_seats, config.max_seats);
+                assert_eq!(min_allocation, config.min_allocation);
+                assert_eq!(max_allocation, config.max_allocation);
+                assert_eq!(start.unwrap(), BLOCK_TIME);
+                assert_eq!(end.unwrap(), BLOCK_TIME + 60)
+            },
             _ => panic!("Expected QueryResponse::GetRate")
         };
     }
