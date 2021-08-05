@@ -1,8 +1,7 @@
 import { upload_amm, build_client, read_config, ARTIFACTS_PATH, create_rand_base64 } from './setup.js'
 import { JsonFileWriter } from './utils/json_file_writer.js'
 import * as dotenv from 'dotenv'
-import { ContractInfo } from './amm-lib/types.js'
-import { create_fee } from './amm-lib/contract.js'
+import { ContractInfo, create_fee } from './amm-lib/core.js'
 
 import { writeFileSync, readFileSync } from 'fs'
 import { resolve } from 'path'

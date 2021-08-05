@@ -1,16 +1,16 @@
 import { 
   ContractInfo, TokenPair, Address, TokenPairAmount, CustomToken,
-  ViewingKey, TokenTypeAmount, Pagination, ContractInstantiationInfo,
-  ExchangeSettings
-} from './amm-lib/types.js'
-import {
-  FactoryContract, ExchangeContract, Snip20Contract, create_fee,
+  ViewingKey, TokenTypeAmount, ContractInstantiationInfo, create_fee,
   create_base64_msg
-} from './amm-lib/contract.js'
+} from './amm-lib/core.js'
+import { ExchangeContract } from './amm-lib/exchange.js'
+import { Snip20Contract } from './amm-lib/snip20.js'
+import { FactoryContract, Pagination } from './amm-lib/amm_factory.js'
 import { 
   execute_test, execute_test_expect, assert_objects_equal, assert,
   assert_equal, assert_not_equal, extract_log_value, print_object
 } from './utils/test_helpers.js'
+
 import { upload_amm, build_client, create_rand_base64 } from './setup.js'
 import { NullJsonFileWriter } from './utils/json_file_writer.js'
 import { TxAnalytics } from './utils/tx_analytics.js'

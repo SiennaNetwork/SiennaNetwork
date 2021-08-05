@@ -1,5 +1,5 @@
 import { build_client, read_config } from './setup.js'
-import { FactoryContract } from './amm-lib/contract.js'
+import { FactoryContract } from './amm-lib/amm_factory.js'
 import * as dotenv from 'dotenv'
 
 dotenv.config()

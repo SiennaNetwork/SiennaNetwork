@@ -1,5 +1,4 @@
-import { ContractInstantiationInfo, Address } from './amm-lib/types.js'
-import { create_fee } from './amm-lib/contract.js'
+import { ContractInstantiationInfo, Address, create_fee } from './amm-lib/core.js'
 import { IJsonFileWriter } from './utils/json_file_writer.js'
 import { TxAnalytics } from './utils/tx_analytics.js'
 
@@ -42,7 +41,7 @@ export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFil
     const ido_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/ido@HEAD.wasm`))
 
     process.stdout.write(`Uploading exchange contract...\r`)
-    const exchange_upload = await client.upload(exchange_wasm, {}, undefined, create_fee('2500000'))
+    const exchange_upload = await client.upload(exchange_wasm, {}, undefined, create_fee('2400000'))
     analytics.add_tx(exchange_upload.transactionHash, 'Exchange')
     writer.write(exchange_upload, `uploads/exchange`)
     process.stdout.write(`Uploading exchange contract...done\r\n`)
@@ -66,7 +65,7 @@ export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFil
     process.stdout.write(`Uploading LP token contract...done\r\n`)
 
     process.stdout.write(`Uploading IDO contract...\r`)
-    const ido_upload = await client.upload(ido_wasm, {}, undefined, create_fee('2000000'))
+    const ido_upload = await client.upload(ido_wasm, {}, undefined, create_fee('2035000'))
     analytics.add_tx(ido_upload.transactionHash, 'IDO')
     writer.write(ido_upload, `uploads/ido`)
     process.stdout.write(`Uploading IDO contract...done\r\n`)

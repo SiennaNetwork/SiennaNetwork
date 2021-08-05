@@ -1,11 +1,11 @@
+import { create_coin, create_fee } from './amm-lib/core.js'
+import { FactoryContract } from './amm-lib/amm_factory.js'
+import { ExchangeContract, PairInfo } from './amm-lib/exchange.js'
+import { Snip20Contract, TokenInfo } from './amm-lib/snip20.js'
 import {
-    FactoryContract, create_coin, create_fee, ExchangeContract,
-    Snip20Contract
-} from './amm-lib/contract.js'
-import {
-    Address, ContractInstantiationInfo, TokenPair, TokenInfo,
-    TokenPairAmount, TokenType, CustomToken, Uint128, TokenTypeAmount, PairInfo
-} from './amm-lib/types.js'
+    Address, ContractInstantiationInfo, TokenPair, TokenPairAmount,
+    TokenType, CustomToken, Uint128, TokenTypeAmount
+} from './amm-lib/core.js'
 import {
     upload_amm, build_client, create_rand_base64, create_account
 } from './setup.js'

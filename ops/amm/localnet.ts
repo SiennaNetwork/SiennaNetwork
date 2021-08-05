@@ -1,6 +1,7 @@
-import { FactoryContract, create_fee } from './amm-lib/contract.js'
-import { ExchangeSettings, Address } from './amm-lib/types.js'
+import { create_fee, Address } from './amm-lib/core.js'
+import { FactoryContract, ExchangeSettings } from './amm-lib/amm_factory.js'
 import { create_rand_base64, UploadResult } from './setup.js'
+
 import { SigningCosmWasmClient } from 'secretjs'
 
 export interface LocalAccount {
