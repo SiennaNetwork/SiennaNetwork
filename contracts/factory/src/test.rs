@@ -525,13 +525,24 @@ mod test_contract {
             deps,
             mkenv(ido_creator.clone()),
             HandleMsg::CreateIdo {
-                info: sale_config,
+                info: sale_config.clone(),
                 entropy: to_binary(&"whatever").unwrap()
             }
         )
         .unwrap();
 
-        assert!(!is_ido_whitelisted(deps, &ido_creator).unwrap())
+        assert!(!is_ido_whitelisted(deps, &ido_creator).unwrap());
+
+        // Admin can always create
+        handle(
+            deps,
+            mkenv(admin),
+            HandleMsg::CreateIdo {
+                info: sale_config,
+                entropy: to_binary(&"whatever").unwrap()
+            }
+        )
+        .unwrap();
     }
 }
 

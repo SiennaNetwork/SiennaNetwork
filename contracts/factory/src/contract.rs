@@ -1,9 +1,10 @@
 use amm_shared::{
+    Pagination, TokenPair,
     admin::admin::{
-        admin_handle, admin_query, assert_admin, save_admin, DefaultHandleImpl as AdminHandle,
-        DefaultQueryImpl as AdminQuery,
+        DefaultHandleImpl as AdminHandle, DefaultQueryImpl as AdminQuery,
+        admin_handle, admin_query, assert_admin, load_admin, save_admin
     },
-    exchange::Exchange,
+    exchange::Exchange, 
     fadroma::scrt::{
         callback::{Callback, ContractInstance},
         cosmwasm_std::{
@@ -11,14 +12,13 @@ use amm_shared::{
             InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
         migrate as fadroma_scrt_migrate,
-        storage::{load, remove, save},
+        storage::{load, remove, save}
     },
     msg::{
         exchange::InitMsg as ExchangeInitMsg,
         factory::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
         ido::{InitMsg as IdoInitMsg, TokenSaleConfig},
-    },
-    Pagination, TokenPair,
+    }
 };
 
 use amm_shared::admin::require_admin;
@@ -252,12 +252,17 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
     info: TokenSaleConfig,
     entropy: Binary
 ) -> StdResult<HandleResponse> {
-    if !is_ido_whitelisted(deps, &env.message.sender)? {
+    let whitelisted = is_ido_whitelisted(deps, &env.message.sender)?;
+    let is_admin = load_admin(deps)? == env.message.sender;
+
+    if !whitelisted && !is_admin {
         return Err(StdError::unauthorized());
     }
 
     // Remove to allow only 1 IDO created
-    ido_whitelist_remove(deps, &env.message.sender)?;
+    if whitelisted {
+        ido_whitelist_remove(deps, &env.message.sender)?;
+    }
 
     let signature = create_signature(&env)?;
     save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
