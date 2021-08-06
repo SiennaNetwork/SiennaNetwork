@@ -214,7 +214,7 @@ export class IdoContract extends SmartContract {
     }
 
     async get_sale_status(): Promise<SaleStatus> {
-        const msg = 'status' as unknown as object
+        const msg = 'sale_status' as unknown as object
 
         const result = await this.query_client().queryContractSmart(this.address, msg) as SaleStatusResponse
         return result.status

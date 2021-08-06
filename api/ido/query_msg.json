@@ -5,8 +5,9 @@
     {
       "type": "string",
       "enum": [
+        "status",
         "sale_info",
-        "status"
+        "sale_status"
       ]
     },
     {

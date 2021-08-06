@@ -472,7 +472,7 @@ describe("IDO", () => {
       { amount: `${amount}`, denom: "uscrt" },
     ]);
 
-    const res = await context.ido.q.status();
+    const res = await context.ido.q.sale_status();
     
     assert.strictEqual(res.status.total_allocation, "25"); // total allocation
     assert.strictEqual(res.status.available_for_sale, "20"); // available for sale
@@ -524,7 +524,7 @@ describe("IDO", () => {
       })
     );
 
-    const statusBefore = await context.idoB.q.status();
+    const statusBefore = await context.idoB.q.sale_status();
     assert.strictEqual(
       statusBefore.status.is_active,
       false
@@ -540,7 +540,7 @@ describe("IDO", () => {
       )
     });
 
-    const statusAfter = await context.idoB.q.status();
+    const statusAfter = await context.idoB.q.sale_status();
     assert.strictEqual(
       statusAfter.status.is_active,
       true
@@ -613,7 +613,7 @@ describe("IDO", () => {
       })
     );
 
-    const statusBefore = await context.idoB.q.status();
+    const statusBefore = await context.idoB.q.sale_status();
     assert.strictEqual(
       statusBefore.status.is_active,
       false
@@ -629,7 +629,7 @@ describe("IDO", () => {
       )
     });
 
-    const statusAfter = await context.idoB.q.status();
+    const statusAfter = await context.idoB.q.sale_status();
     assert.strictEqual(
       statusAfter.status.is_active,
       true

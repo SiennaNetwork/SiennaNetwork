@@ -3,6 +3,40 @@
   "title": "HandleMsg",
   "anyOf": [
     {
+      "description": "Set pause/migration status",
+      "type": "object",
+      "required": [
+        "set_status"
+      ],
+      "properties": {
+        "set_status": {
+          "type": "object",
+          "required": [
+            "level",
+            "reason"
+          ],
+          "properties": {
+            "level": {
+              "$ref": "#/definitions/ContractStatusLevel"
+            },
+            "new_address": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
       "type": "object",
       "required": [
         "receive"
@@ -227,6 +261,15 @@
     "Binary": {
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
+    },
+    "ContractStatusLevel": {
+      "description": "Possible states of a contract.",
+      "type": "string",
+      "enum": [
+        "Operational",
+        "Paused",
+        "Migrating"
+      ]
     },
     "HumanAddr": {
       "type": "string"

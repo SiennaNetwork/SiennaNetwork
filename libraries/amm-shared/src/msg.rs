@@ -260,6 +260,12 @@ pub mod ido {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum HandleMsg {
+        /// Set pause/migration status
+        SetStatus {
+            level: ContractStatusLevel,
+            reason: String,
+            new_address: Option<HumanAddr>,
+        },
         // SNIP20 receiver interface
         Receive {
             from: HumanAddr,
@@ -295,8 +301,10 @@ pub mod ido {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryMsg {
-        SaleInfo,
+        /// Get pause/migration status
         Status,
+        SaleInfo,
+        SaleStatus,
         Admin(AdminQueryMsg),
         // Do not change the signatures below. They need to work with Keplr.
         Balance {

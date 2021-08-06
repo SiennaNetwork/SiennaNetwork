@@ -13,6 +13,7 @@ use amm_shared::{
             Extern, HandleResponse, HumanAddr, InitResponse, Querier, QueryResult, StdError,
             StdResult, Storage, Uint128, WasmMsg,
         },
+        migrate as fadroma_scrt_migrate,
         storage::Storable,
         toolkit::snip20,
         utils::{convert::convert_token, viewing_key::ViewingKey},
@@ -21,6 +22,7 @@ use amm_shared::{
     msg::ido::{HandleMsg, InitMsg, QueryMsg, QueryResponse, ReceiverCallbackMsg},
     TokenType,
 };
+use fadroma_scrt_migrate::{get_status, with_status};
 
 use crate::data::{
     Account, Config, SwapConstants, SaleSchedule,
@@ -151,41 +153,46 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
-    match msg {
-        HandleMsg::Receive {
-            from, amount, msg, ..
-        } => receive_callback(deps, env, from, amount, msg),
-        HandleMsg::Swap { amount, recipient } => {
-            // Can be called directly only when the input token is SCRT
-            let config = Config::<CanonicalAddr>::load_self(&deps)?;
+    with_status!(
+        deps,
+        env,
+        match msg {
+            HandleMsg::Receive {
+                from, amount, msg, ..
+            } => receive_callback(deps, env, from, amount, msg),
+            HandleMsg::Swap { amount, recipient } => {
+                // Can be called directly only when the input token is SCRT
+                let config = Config::<CanonicalAddr>::load_self(&deps)?;
 
-            if !config.input_token.is_native_token() {
-                return Err(StdError::generic_err("Use the SNIP20 receiver interface instead."));
+                if !config.input_token.is_native_token() {
+                    return Err(StdError::generic_err("Use the SNIP20 receiver interface instead."));
+                }
+
+                config.input_token.assert_sent_native_token_balance(&env, amount)?;
+
+                swap(deps, env.block.time, config, amount, env.message.sender, recipient)
+            },
+            HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl),
+            HandleMsg::AdminRefund { address } => refund(deps, env, address),
+            HandleMsg::AdminClaim { address } => claim(deps, env, address),
+            HandleMsg::AdminAddAddresses { addresses } => add_addresses(deps, env, addresses),
+            HandleMsg::CreateViewingKey { entropy, padding } => {
+                let msg = AuthHandleMsg::CreateViewingKey { entropy, padding };
+                auth_handle(deps, env, msg, AuthHandle)
+            },
+            HandleMsg::SetViewingKey { key, padding } => {
+                let msg = AuthHandleMsg::SetViewingKey { key, padding };
+                auth_handle(deps, env, msg, AuthHandle)
             }
-
-            config.input_token.assert_sent_native_token_balance(&env, amount)?;
-
-            swap(deps, env.block.time, config, amount, env.message.sender, recipient)
-        },
-        HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl),
-        HandleMsg::AdminRefund { address } => refund(deps, env, address),
-        HandleMsg::AdminClaim { address } => claim(deps, env, address),
-        HandleMsg::AdminAddAddresses { addresses } => add_addresses(deps, env, addresses),
-        HandleMsg::CreateViewingKey { entropy, padding } => {
-            let msg = AuthHandleMsg::CreateViewingKey { entropy, padding };
-            auth_handle(deps, env, msg, AuthHandle)
-        },
-        HandleMsg::SetViewingKey { key, padding } => {
-            let msg = AuthHandleMsg::SetViewingKey { key, padding };
-            auth_handle(deps, env, msg, AuthHandle)
         }
-    }
+    )
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
+        QueryMsg::Status => to_binary(&get_status(deps)?),
         QueryMsg::SaleInfo => get_sale_info(deps),
-        QueryMsg::Status => get_status(deps),
+        QueryMsg::SaleStatus => get_sale_status(deps),
         QueryMsg::Balance { address, key } => get_balance(deps, address, key),
         QueryMsg::TokenInfo {} => get_token_info(deps),
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
@@ -422,7 +429,7 @@ fn claim<S: Storage, A: Api, Q: Querier>(
     })
 }
 
-fn get_status<S: Storage, A: Api, Q: Querier>(
+fn get_sale_status<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>
 ) -> QueryResult {
     let config = Config::<HumanAddr>::load_self(&deps)?;
@@ -1009,7 +1016,7 @@ mod tests {
 
         deps.querier.sub_balance(Uint128(250 as u128)).unwrap();
 
-        let res = query(&deps, QueryMsg::Status).unwrap();
+        let res = query(&deps, QueryMsg::SaleStatus).unwrap();
         let res: QueryResponse = from_binary(&res).unwrap();
 
         match res {
