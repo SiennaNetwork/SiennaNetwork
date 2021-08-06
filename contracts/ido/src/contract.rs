@@ -16,7 +16,7 @@ use amm_shared::{
         storage::Storable,
         toolkit::snip20,
         utils::{convert::convert_token, viewing_key::ViewingKey},
-        BLOCK_SIZE,
+        BLOCK_SIZE
     },
     msg::ido::{HandleMsg, InitMsg, QueryMsg, QueryResponse, ReceiverCallbackMsg},
     TokenType,
@@ -33,6 +33,12 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
+    if msg.info.min_allocation.u128()
+        .checked_mul(msg.info.max_seats as u128)
+        .is_none() {
+        return Err(StdError::generic_err("The total amount required for the sale is too big."));
+    }
+
     save_contract_address(deps, &env.contract.address)?;
 
     let viewing_key = ViewingKey::new(&env, msg.prng_seed.as_slice(), msg.entropy.as_slice());
@@ -239,7 +245,7 @@ fn activate<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::unauthorized());
     }
 
-    let required_amount = Uint128(config.max_allocation.u128() * config.max_seats as u128);
+    let required_amount = config.total_allocation();
     let token_balance = get_token_balance(
         &deps,
         env.contract.address,
@@ -421,7 +427,6 @@ fn get_status<S: Storage, A: Api, Q: Querier>(
 ) -> QueryResult {
     let config = Config::<HumanAddr>::load_self(&deps)?;
 
-    let total_allocation = Uint128(config.max_allocation.u128() * config.max_seats as u128);
     let available_for_sale = get_token_balance(
         &deps,
         load_contract_address(deps)?,
@@ -430,7 +435,7 @@ fn get_status<S: Storage, A: Api, Q: Querier>(
     )?;
 
     to_binary(&QueryResponse::Status {
-        total_allocation,
+        total_allocation: config.total_allocation(),
         available_for_sale,
         is_active: config.is_active()
     })

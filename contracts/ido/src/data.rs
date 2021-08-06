@@ -137,6 +137,12 @@ impl<A> Config<A> {
 
         Err(StdError::generic_err("Contract is not yet active"))
     }
+
+    /// Returns the total amount required for the sale to take place.
+    /// Overflow checking needs to be performed at init time.
+    pub fn total_allocation(&self) -> Uint128 {
+        Uint128(self.max_allocation.u128() * self.max_seats as u128)
+    }
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Copy, Debug)]
