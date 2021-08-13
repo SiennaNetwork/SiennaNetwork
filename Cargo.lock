@@ -638,6 +638,8 @@ dependencies = [
  "fadroma-scrt-base",
  "fadroma-scrt-callback",
  "serde",
+ "tabwriter",
+ "yansi",
 ]
 
 [[package]]
@@ -659,6 +661,7 @@ version = "0.1.0"
 dependencies = [
  "fadroma-scrt-base",
  "fadroma-scrt-callback",
+ "serde",
 ]
 
 [[package]]
@@ -1745,7 +1748,9 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "tabwriter",
  "wasm-bindgen",
+ "yansi",
 ]
 
 [[package]]
@@ -1942,6 +1947,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-xid",
+]
+
+[[package]]
+name = "tabwriter"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36205cfc997faadcc4b0b87aaef3fbedafe20d38d4959a7ca6ff803564051111"
+dependencies = [
+ "unicode-width",
 ]
 
 [[package]]
@@ -2177,6 +2191,12 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "yansi"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fc79f4a1e39857fc00c3f662cbf2651c771f00e9c15fe2abc341806bd46bd71"
 
 [[package]]
 name = "zip"

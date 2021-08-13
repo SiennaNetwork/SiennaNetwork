@@ -1,21 +1,24 @@
 #![allow(unreachable_patterns)]
 
-use fadroma::scrt::{
-    cosmwasm_std::{
-        Uint128, HumanAddr, StdResult,
-        Extern, testing::MockApi, MemoryStorage,
-        Querier, QueryRequest, Empty, WasmQuery, QuerierResult,
-        from_binary, to_binary, from_slice, SystemError,
-    },
-    callback::{ContractInstance as ContractLink},
-    harness::{Harness, InitFn, HandleFn, QueryFn, TxResult},
-    //snip20 // todo work around circular dep ( via more reexports :( )
-};
+/// Unit testing harness for Sienna Rewards.
 
-use crate::{
-    init, handle, query,
-    msg::{Init, Handle as TX, Query as QQ, Response}
-};
+use fadroma::scrt::cosmwasm_std::{
+    Uint128, HumanAddr, StdResult, StdError,
+    Extern, testing::MockApi, MemoryStorage,
+    Querier, QueryRequest, Empty, WasmQuery, QuerierResult,
+    from_binary, to_binary, from_slice, SystemError};
+use fadroma::scrt::callback::{
+    ContractInstance as ContractLink};
+use fadroma::scrt::harness::{
+    Harness, InitFn, HandleFn, QueryFn, TxResult, assert_error};
+use fadroma::scrt::snip20_api::mock::*;
+
+use crate::{init, handle, query};
+use crate::msg::{Init, Handle as TX, Query as QQ, Response};
+
+pub use crate::{DAY, rewards_math::{Amount, Time, Volume}};
+pub use fadroma::scrt::snip20_api::mock::Snip20;
+pub use fadroma::scrt::harness::assert_fields;
 
 // CosmosMsg::Wasm(WasmMsg::Execute { msg: the_actual_message_as_binary })
 // loses type information. Thinking of genericizing it (hard, would require platform changes,
@@ -23,6 +26,7 @@ use crate::{
 // (add_response_message!, add_response_log!, set_response_data!).
 
 pub struct RewardsHarness <Q: Querier> {
+    now: Time,
     _deps: Extern<MemoryStorage, MockApi, Q>,
     _lp_token: ContractLink<HumanAddr>
 }
@@ -43,6 +47,7 @@ const ADDR_LEN: usize = 45;
 impl RewardsHarness<RewardsMockQuerier> {
     pub fn new () -> Self {
         Self {
+            now: 0,
             _deps: Extern {
                 storage: MemoryStorage::default(),
                 api:     MockApi::new(ADDR_LEN),
@@ -55,12 +60,13 @@ impl RewardsHarness<RewardsMockQuerier> {
         }
     }
 
-    pub fn lp_token (&self) -> ContractLink<HumanAddr> {
-        self._lp_token.clone()
+    pub fn at (mut self, t: Time) -> Self {
+        self.now = t;
+        self
     }
 
-    pub fn init_configured (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
-        self.init(height, agent, Init {
+    pub fn init_configured (mut self, admin: &HumanAddr) -> StdResult<Self> {
+        let result = self.init(self.now, admin, Init {
             admin: None,
             lp_token:     Some(self.lp_token()),
             reward_token: ContractLink {
@@ -71,10 +77,14 @@ impl RewardsHarness<RewardsMockQuerier> {
             ratio:        None,
             threshold:    None,
             cooldown:     None
-        })
+        })?;
+        assert_eq!(result,
+            (vec![Snip20::set_viewing_key("")], 0, 0));
+        Ok(self)
     }
-    pub fn init_partial (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
-        self.init(height, agent, Init {
+
+    pub fn init_partial (mut self, admin: &HumanAddr) -> StdResult<Self> {
+        let result = self.init(self.now, admin, Init {
             admin: None,
             lp_token:     None,
             reward_token: ContractLink {
@@ -85,11 +95,30 @@ impl RewardsHarness<RewardsMockQuerier> {
             ratio:        None,
             threshold:    None,
             cooldown:     None
-        })
+        })?;
+        assert_error!(self.q(QQ::PoolInfo { at: self.now })?,
+            "missing liquidity provision token");
+        assert_error!(self.q(QQ::UserInfo { at: self.now, address: admin.clone(), key: "".into() }),
+            "missing liquidity provision token");
+        Ok(self)
+    }
+
+    pub fn set_token_fails (
+        self, badman: &HumanAddr, bad_addr: &str, bad_hash: &str
+    ) -> StdResult<Self> {
+        assert_eq!(self.tx_set_token(self.now, badman, bad_addr, bad_hash),
+            Err(StdError::unauthorized()));
+        assert_error!(self.q(QQ::PoolInfo { at: self.now })?,
+            "missing liquidity provision token");
+        Ok(self)
+    }
+
+    pub fn lp_token (&self) -> ContractLink<HumanAddr> {
+        self._lp_token.clone()
     }
 
     pub fn tx_set_token (
-        &mut self, height: u64, agent: &HumanAddr,
+        &mut self, height: Time, agent: &HumanAddr,
         address: &str, code_hash: &str
     ) -> TxResult {
         self.tx(height, agent, TX::SetProvidedToken {
@@ -97,51 +126,91 @@ impl RewardsHarness<RewardsMockQuerier> {
             code_hash: code_hash.into(),
         })
     }
-    pub fn tx_set_vk (&mut self, height: u64, agent: &HumanAddr, key: &str) -> TxResult {
+
+    pub fn pool (
+        self, locked: u128, lifetime: u128, last_update: Time
+    ) -> StdResult<Self> {
+        if let Response::PoolInfo {
+            pool_locked, pool_lifetime, pool_last_update, ..
+        } = self.q(QQ::PoolInfo { at: self.now })? {
+            assert_eq!(Amount::from(locked),   pool_locked);
+            assert_eq!(Volume::from(lifetime), pool_lifetime);
+            assert_eq!(last_update,            pool_last_update);
+            Ok(self)
+        } else {
+            unreachable!()
+        }
+    }
+
+    pub fn user (
+        mut self, user: &HumanAddr,
+        age: u64, locked: u128, lifetime: u128,
+        earned: u128, claimed: u128, claimable: u128
+    ) -> StdResult<Self> {
+        if let Response::UserInfo {
+            user_age, user_locked, user_lifetime,
+            user_earned, user_claimed, user_claimable, ..
+        } = self.q(QQ::UserInfo { at: self.now, address: user.clone(), key: "".into() })? {
+            assert_eq!(age,   user_age);
+            assert_eq!(Amount::from(locked),    user_locked);
+            assert_eq!(Volume::from(lifetime),  user_lifetime);
+            assert_eq!(Amount::from(earned),    user_earned);
+            assert_eq!(Amount::from(claimed),   user_claimed);
+            assert_eq!(Amount::from(claimable), user_claimable);
+            Ok(self)
+        } else {
+            unreachable!()
+        }
+    }
+
+    pub fn set_vk (mut self, agent: &HumanAddr, key: &str) -> StdResult<Self> {
+        self.tx_set_vk(self.now, agent, key)?;
+        Ok(self)
+    }
+    pub fn tx_set_vk (&mut self, height: Time, agent: &HumanAddr, key: &str) -> TxResult {
         self.tx(height, agent, TX::SetViewingKey { key: key.into(), padding: None })
     }
-    pub fn tx_lock (&mut self, height: u64, agent: &HumanAddr, amount: u128) -> TxResult {
+
+    pub fn lock (
+        mut self, user: &HumanAddr, amount: u128
+    ) -> StdResult<Self> {
+        assert_eq!(
+            self.tx_lock(self.now, user, amount.into())?,
+            (vec![ Snip20::transfer_from("admin", "contract_addr", "1") ], 0, 0)
+        );
+        Ok(self)
+    }
+    pub fn tx_lock (&mut self, height: Time, agent: &HumanAddr, amount: u128) -> TxResult {
         self.tx(height, agent, TX::Lock { amount: amount.into() })
     }
-    pub fn tx_retrieve (&mut self, height: u64, agent: &HumanAddr, amount: u128) -> TxResult {
+
+    pub fn retrieve (
+        mut self, user: &HumanAddr, amount: u128
+    ) -> StdResult<Self> {
+        assert_eq!(
+            self.tx_retrieve(self.now, user, amount.into())?,
+            (vec![ Snip20::transfer("admin", "1") ], 0, 0)
+        );
+        Ok(self)
+    }
+    pub fn tx_retrieve (&mut self, height: Time, agent: &HumanAddr, amount: u128) -> TxResult {
         self.tx(height, agent, TX::Retrieve { amount: amount.into() })
     }
-    pub fn tx_claim (&mut self, height: u64, agent: &HumanAddr) -> TxResult {
+
+    pub fn tx_claim (&mut self, height: Time, agent: &HumanAddr) -> TxResult {
         self.tx(height, agent, TX::Claim {})
     }
 
-    pub fn q_pool_info (&self, at: u64) -> StdResult<Response> {
-        self.q(QQ::PoolInfo { at })
-    }
-    pub fn q_user_info (&self, at: u64, address: &HumanAddr) -> StdResult<Response> {
-        self.q(QQ::UserInfo { at, address: address.clone(), key: "".into() })
-    }
-
-    pub fn fund (self, amount: u128) -> Self {
-        Self {
-            _lp_token: self._lp_token,
-            _deps: self._deps
-                .change_querier(|q|RewardsMockQuerier {
-                    balance: q.balance + amount.into()
-                })
-        }
+    pub fn fund (mut self, amount: u128) -> Self {
+        self._deps = self._deps.change_querier(|q|RewardsMockQuerier {
+            balance: q.balance + amount.into()
+        });
+        self
     }
 }
 
 pub struct RewardsMockQuerier {
     pub balance: Uint128
-}
-
-#[derive(serde::Serialize,serde::Deserialize)]
-#[serde(rename_all="snake_case")]
-enum Snip20Query {
-    Balance {}
-}
-
-#[derive(serde::Serialize,serde::Deserialize)]
-#[serde(rename_all="snake_case")]
-enum Snip20QueryAnswer {
-    Balance { amount: Uint128 }
 }
 
 impl RewardsMockQuerier {
@@ -185,109 +254,84 @@ impl Querier for RewardsMockQuerier {
     }
 }
 
-pub struct Snip20;
+//#[macro_export] macro_rules! test {
 
-impl Snip20 {
-    pub fn set_viewing_key (key: &str) -> String {
-        format!(
-            "{{\"set_viewing_key\":{{\"key\":\"{}\",\"padding\":null}}}}",
-            key
-        ).into()
-    }
-    pub fn transfer_from (owner: &str, recipient: &str, amount: &str) -> String {
-        format!(
-            "{{\"transfer_from\":{{\"owner\":\"{}\",\"recipient\":\"{}\",\"amount\":\"{}\",\"padding\":null}}}}",
-            owner, recipient, amount
-        ).into()
-    }
-    pub fn transfer (recipient: &str, amount: &str) -> String {
-        format!(
-            "{{\"transfer\":{{\"recipient\":\"{}\",\"amount\":\"{}\",\"padding\":null}}}}",
-            recipient, amount
-        ).into()
-    }
-}
+    //// pool info before lp token address is configured --------------------------------------------
+    //($T:ident = $now:expr ; pool_unprepared -> {
+        //locked:   $locked:expr,
+        //lifetime: $lifetime:expr,
+        //updated:  $updated:expr
+    //} ) => { assert_fields!(
+        //$T.q_pool_info($now as Time)? ;
+        //Response::PoolInfo {
+            //it_is_now: $now as Time,
+            //lp_token:  None,
+            //pool_last_update: $updated as Time,
+            //pool_lifetime:    Volume::from($lifetime as u128),
+            //pool_locked:      Amount::from($locked  as u128) } ); };
 
-#[macro_export] macro_rules! assert_error {
-    ($response:expr, $msg:expr) => { assert_eq!($response, Err(StdError::generic_err($msg))) }
-}
+    //// pool info when lp token is configured ------------------------------------------------------
+    //($T:ident = $now:expr ; pool -> {
+        //locked:   $locked:expr,
+        //lifetime: $lifetime:expr,
+        //updated:  $updated:expr
+    //}) => { assert_fields!(
+        //$T.q_pool_info($now as Time)? ;
+        //Response::PoolInfo {
+            //it_is_now: $now as Time,
+            //lp_token:  $T.lp_token(),
+            //pool_last_update: $updated as Time,
+            //pool_lifetime:    Volume::from($lifetime as u128),
+            //pool_locked:      Amount::from($locked   as u128) } ); };
 
-#[macro_export] macro_rules! test {
+    //// user info ----------------------------------------------------------------------------------
+    //($T:ident = $now:expr ; user($who:expr) -> {
+        //age:       $age:expr,
+        //locked:    $locked:expr,
+        //lifetime:  $lifetime:expr,
+        //earned:    $earned:expr,
+        //claimed:   $claimed:expr,
+        //claimable: $claimable:expr
+    //} ) => { assert_fields!(
+        //$T.q_user_info($now as Time, &$who)? ;
+        //Response::UserInfo {
+            //it_is_now: $now as Time,
+            //// ignore pool fields
+            ////assert_eq!(user_last_update, $updated as Time);
+            //user_age: $age as Time,
+            //user_locked:    Amount::from($locked    as u128),
+            //user_lifetime:  Volume::from($lifetime  as u128),
+            //user_earned:    Amount::from($earned    as u128),
+            //user_claimed:   Amount::from($claimed   as u128),
+            //user_claimable: Amount::from($claimable as u128) } ); };
 
-    ($T:ident = $now:expr ; pool_unprepared -> {
-        balance: $balance:expr, lifetime: $lifetime:expr, updated: $updated:expr
-    }) => {
-        match $T.q_pool_info($now as u64)? {
-            Response::PoolInfo {
-                it_is_now, lp_token, pool_last_update, pool_lifetime, pool_locked, ..
-            } => {
-                assert_eq!(it_is_now,        $now     as u64);
-                assert_eq!(lp_token,         None);
-                assert_eq!(pool_last_update, $updated as u64);
-                assert_eq!(pool_lifetime,    Volume::from($lifetime as u128));
-                assert_eq!(pool_locked,      Amount::from($locked  as u128));
-            },
-            _ => unreachable!()
-        }
-    };
+    //// user actions -------------------------------------------------------------------------------
 
-    ($T:ident = $now:expr ; pool -> {
-        locked:   $locked:expr,
-        lifetime: $lifetime:expr,
-        updated:  $updated:expr
-    }) => {
-        match $T.q_pool_info($now as u64)? {
-            Response::PoolInfo {
-                it_is_now, lp_token, pool_last_update, pool_lifetime, pool_locked, ..
-            } => {
-                assert_eq!(it_is_now,        $now     as u64);
-                assert_eq!(lp_token,         $T.lp_token());
-                assert_eq!(pool_last_update, $updated as u64);
-                assert_eq!(pool_lifetime,    Volume::from($lifetime as u128));
-                assert_eq!(pool_locked,      Amount::from($locked  as u128));
-            },
-            _ => unreachable!()
-        }
-    };
+    //($T:ident = $now:expr ; $who:ident locks $amount:literal -> [
+        //$($msg:expr),*
+    //]) => {
+        //assert_eq!(
+            //$T.tx_lock($now, &$who, ($amount as u128).into())?,
+            //(vec![ $($msg,)* ], 0, 0)
+        //)
+    //};
 
-    ($T:ident = $now:expr ; user($who:expr) -> {
-        age:       $age:expr,
-        locked:    $locked:expr,
-        lifetime:  $lifetime:expr,
-        earned:    $earned:expr,
-        claimed:   $claimed:expr,
-        claimable: $claimable:expr
-    }) => {
-        match $T.q_user_info($now as u64, &$who)? {
-            Response::UserInfo {
-                it_is_now,
-                /*user_last_update,*/ user_lifetime, user_locked,
-                user_age, user_earned, user_claimed, user_claimable, ..
-            } => {
-                assert_eq!(it_is_now,        $now as u64);
-                // ignore pool fields
-                //assert_eq!(user_last_update, $updated as u64);
-                assert_eq!(user_age,       $age as u64);
-                assert_eq!(user_locked,    Amount::from($locked   as u128));
-                assert_eq!(user_lifetime,  Volume::from($lifetime  as u128));
-                assert_eq!(user_earned,    Amount::from($earned  as u128));
-                assert_eq!(user_claimed,   Amount::from($claimed   as u128));
-                assert_eq!(user_claimable, Amount::from($claimable as u128));
-            }
-            _ => unreachable!()
-        }
-    };
+    //($T:ident = $now:expr ; $who:ident retrieves $amount:literal -> [
+        //$($msg:expr),*
+    //]) => {
+        //assert_eq!(
+            //$T.tx_retrieve($now, &$who, ($amount as u128).into())?,
+            //(vec![ $($msg,)* ], 0, 0)
+        //)
+    //};
 
-    ($T:ident = $now:expr ; $who:ident locks $amount:literal -> [ $($msg:expr),* ]) => {
-        assert_eq!($T.tx_lock($now, &$who, ($amount as u128).into())?, (vec![ $($msg,)* ], 0, 0))
-    };
+    //($T:ident = $now:expr ; $who:ident claims -> [
+        //$($msg:expr),*
+    //]) => {
+        //assert_eq!(
+            //$T.tx_claim($now, &$who)?,
+            //(vec![ $($msg,)* ], 0, 0)
+        //)
+    //};
 
-    ($T:ident = $now:expr ; $who:ident retrieves $amount:literal -> [ $($msg:expr),* ]) => {
-        assert_eq!($T.tx_retrieve($now, &$who, ($amount as u128).into())?, (vec![ $($msg,)* ], 0, 0))
-    };
-
-    ($T:ident = $now:expr ; $who:ident claims -> [ $($msg:expr),* ]) => {
-        assert_eq!($T.tx_claim($now, &$who)?, (vec![ $($msg,)* ], 0, 0))
-    };
-
-}
+//}
