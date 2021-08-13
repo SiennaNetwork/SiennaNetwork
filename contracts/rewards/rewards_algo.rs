@@ -205,10 +205,10 @@ stateful!(Pool (storage):
         #[cfg(feature="pool_liquidity_ratio")]
         /// Time for which the pool was not empty.
         pub fn liquid (&self) -> StdResult<Time> {
-            Ok(self.last_liquid()? + if self.locked()? > Amount::zero() {
-                self.elapsed()?
+            Ok(if self.locked()? > Amount::zero() {
+                self.last_liquid()? + self.elapsed()?
             } else {
-                0 as Time
+                self.last_liquid()?
             }) }
 
         #[cfg(feature="pool_liquidity_ratio")]
@@ -219,9 +219,14 @@ stateful!(Pool (storage):
 
         #[cfg(feature="pool_liquidity_ratio")]
         pub fn liquidity_ratio (&self) -> StdResult<Amount> {
-            Ok(Volume::from(HUNDRED_PERCENT)
-                .multiply_ratio(self.liquid()?, self.existed()?)?
-                .low_u128().into()) }
+            let existed = self.existed()?;
+            Ok(if existed > 0 {
+                Volume::from(HUNDRED_PERCENT)
+                    .multiply_ratio(self.liquid()?, existed)?
+                    .low_u128().into()
+            } else {
+                Amount::from(HUNDRED_PERCENT)
+            }) }
 
         #[cfg(feature="pool_liquidity_ratio")]
         /// Time since the pool was created
