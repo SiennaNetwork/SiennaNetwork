@@ -131,7 +131,7 @@ stateful!(Pool (storage):
         pub fn elapsed (&self) -> StdResult<Time> {
             // stop time when closing pool
             #[cfg(feature="pool_closes")]
-            if let Some(_) = self.closed()? {
+            if self.closed()?.is_some() {
                 return Ok(0 as Time)
             }
 
@@ -300,7 +300,7 @@ stateful!(User (pool.storage):
         pub fn elapsed (&self) -> StdResult<Time> {
             // stop time when closing pool
             #[cfg(feature="pool_closes")]
-            if let Some(_) = self.pool.closed()? {
+            if self.pool.closed()?.is_some() {
                 return Ok(0 as Time)
             }
 
