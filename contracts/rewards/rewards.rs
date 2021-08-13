@@ -20,9 +20,9 @@
 #[cfg(any(test, browser))] mod rewards_harness;
 #[cfg(test)] mod rewards_test;
 
-pub mod rewards_math; use rewards_math::*;
-mod rewards_algo;     use rewards_algo::*;
-mod rewards_config;   use rewards_config::*;
+pub mod rewards_math;   use rewards_math::*;
+pub mod rewards_algo;   use rewards_algo::*;
+pub mod rewards_config; use rewards_config::*;
 
 use fadroma::scrt::{
     callback::{ContractInstance as ContractLink},
@@ -343,7 +343,7 @@ contract! {
         Lock (amount: Amount) {
             // If the pool is closed, users can only retrieve all their liquidity tokens
             #[cfg(feature="pool_closes")]
-            if let Some(closed_response) = close_handler(deps, &env)? {
+            if let Some(closed_response) = close_handler(&mut deps.storage, &deps.api, &env)? {
                 return Ok(closed_response)
             }
 
@@ -359,7 +359,7 @@ contract! {
         Retrieve (amount: Amount) {
             // If the pool is closed, users can only retrieve all their liquidity tokens
             #[cfg(feature="pool_closes")]
-            if let Some(closed_response) = close_handler(deps, &env)? {
+            if let Some(closed_response) = close_handler(&mut deps.storage, &deps.api, &env)? {
                 return Ok(closed_response)
             }
 
@@ -376,7 +376,7 @@ contract! {
 
             // If the pool has been closed, also return the user their liquidity tokens
             #[cfg(feature="pool_closes")]
-            if let Some(mut closed_response) = close_handler(deps, &env)? {
+            if let Some(mut closed_response) = close_handler(&mut deps.storage, &deps.api, &env)? {
                 response.messages.append(&mut closed_response.messages);
                 response.log.append(&mut closed_response.log);
             }
@@ -406,23 +406,35 @@ contract! {
 
             Ok(response) } } }
 
-pub fn close_handler <S: Storage, A: Api, Q: Querier> (
-    deps: &mut Extern<S, A, Q>,
-    env:  &Env
+#[cfg(feature="pool_closes")]
+/// Returns either a "pool closed" HandleResponse
+/// (containing a LP Token transaction to return
+/// all of the user's locked LP the first time)
+/// or None if the pool isn't closed.
+pub fn close_handler (
+    storage: &mut impl Storage,
+    api:     &impl Api,
+    env:     &Env
 ) -> StdResult<Option<HandleResponse>> {
-    let closed = Pool::new(&deps.storage).closed()?;
-    Ok(if let Some(close_message) = closed {
-        let mut user = Pool::new(&mut deps.storage).at(env.block.height).user(
-            deps.api.canonical_address(&env.message.sender)?);
+    Ok(if let Some(close_message) = Pool::new(&*storage).closed()? {
         let mut messages = vec![];
+        let mut log = vec![LogAttribute { key: "closed".into(), value: close_message.into() }];
+
+        let mut user = Pool::new(&mut*storage)
+            .at(env.block.height)
+            .user(api.canonical_address(&env.message.sender)?);
+
         let locked = user.retrieve_tokens(user.locked()?)?;
+
         if locked > Amount::zero() {
-            let lp_token = &load_lp_token(&deps.storage, &deps.api)?;
             messages.push(
-                ISnip20::attach(&lp_token).transfer(&env.message.sender, locked)?); }
-        let log = vec![
-            LogAttribute { key: "closed".into(), value: close_message.into() }];
-        Some(HandleResponse { messages, log, data: None })
+                ISnip20::attach(&load_lp_token(&*storage, api)?)
+                    .transfer(&env.message.sender, locked)?
+            );
+            log.push(LogAttribute { key: "retrieved".into(), value: locked.into() });
+        };
+
+        Some(HandleResponse { messages, log, ..HandleResponse::default() })
     } else {
         None
     })
