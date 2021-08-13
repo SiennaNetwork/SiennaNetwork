@@ -16,7 +16,7 @@ use fadroma::scrt::snip20_api::mock::*;
 use crate::{init, handle, query};
 use crate::msg::{Init, Handle as TX, Query as QQ, Response};
 
-pub use crate::{DAY, rewards_math::{Amount, Time, Volume}};
+pub use crate::rewards_math::{Amount, Time, Volume};
 pub use fadroma::scrt::snip20_api::mock::Snip20;
 pub use fadroma::scrt::harness::assert_fields;
 
@@ -40,6 +40,9 @@ impl RewardsMockQuerier {
 
             _ => unimplemented!()
         }
+    }
+    pub fn increment_balance (&mut self, amount: u128) {
+        self.balance = self.balance + amount.into();
     }
 }
 
@@ -66,7 +69,7 @@ impl Querier for RewardsMockQuerier {
 }
 
 pub struct RewardsHarness <Q: Querier> {
-    now: Time,
+    _now: u128,
     _deps: Extern<MemoryStorage, MockApi, Q>,
     _lp_token: ContractLink<HumanAddr>
 }
@@ -88,7 +91,7 @@ impl RewardsHarness<RewardsMockQuerier> {
 
     pub fn new () -> Self {
         Self {
-            now: 0,
+            _now: 0,
             _deps: Extern {
                 storage: MemoryStorage::default(),
                 api:     MockApi::new(ADDR_LEN),
@@ -103,22 +106,24 @@ impl RewardsHarness<RewardsMockQuerier> {
 
     // mocked external state ----------------------------------------------------------------------
 
-    pub fn at (mut self, t: Time) -> Self {
-        self.now = t;
+    pub fn at (&mut self, t: u128) -> &mut Self {
+        self._now = t;
         self
     }
 
-    pub fn fund (mut self, amount: u128) -> Self {
-        self._deps = self._deps.change_querier(|q|RewardsMockQuerier {
-            balance: q.balance + amount.into()
-        });
+    fn now (&self) -> u64 {
+        self._now as u64
+    }
+
+    pub fn fund <'a> (&'a mut self, amount: u128) -> &'a mut Self {
+        self._deps.querier.increment_balance(amount);
         self
     }
 
     // init and provide LP token address ----------------------------------------------------------
 
-    pub fn init_configured (mut self, admin: &HumanAddr) -> StdResult<Self> {
-        let result = self.init(self.now, admin, Init {
+    pub fn init_configured (&mut self, admin: &HumanAddr) -> StdResult<&mut Self> {
+        let result = self.init(self.now(), admin, Init {
             admin: None,
             lp_token:     Some(self.lp_token()),
             reward_token: ContractLink {
@@ -135,8 +140,8 @@ impl RewardsHarness<RewardsMockQuerier> {
         Ok(self)
     }
 
-    pub fn init_partial (mut self, admin: &HumanAddr) -> StdResult<Self> {
-        let result = self.init(self.now, admin, Init {
+    pub fn init_partial (&mut self, admin: &HumanAddr) -> StdResult<&mut Self> {
+        let result = self.init(self.now(), admin, Init {
             admin: None,
             lp_token:     None,
             reward_token: ContractLink {
@@ -148,28 +153,30 @@ impl RewardsHarness<RewardsMockQuerier> {
             threshold:    None,
             cooldown:     None
         })?;
-        assert_error!(self.q_pool_info()?,
+        assert_eq!(result,
+            (vec![Snip20::set_viewing_key("")], 0, 0));
+        assert_error!(self.q_pool_info(),
             "missing liquidity provision token");
-        assert_error!(self.q_user_info(admin)?,
+        assert_error!(self.q_user_info(admin),
             "missing liquidity provision token");
         Ok(self)
     }
 
     pub fn set_token (
-        self, admin: &HumanAddr, addr: &str, hash: &str
-    ) -> StdResult<Self> {
+        &mut self, admin: &HumanAddr, addr: &str, hash: &str
+    ) -> StdResult<&mut Self> {
         assert_eq!(self.tx_set_token(admin, addr, hash)?,
             (vec![], 0, 0));
         Ok(self)
     }
 
     pub fn set_token_fails (
-        self, badman: &HumanAddr, bad_addr: &str, bad_hash: &str
-    ) -> StdResult<Self> {
+        &mut self, badman: &HumanAddr, bad_addr: &str, bad_hash: &str
+    ) -> StdResult<&mut Self> {
         assert_eq!(self.tx_set_token(badman, bad_addr, bad_hash),
             Err(StdError::unauthorized()));
-        assert_eq!(self.q_pool_info()?,
-            Err(StdError::generic_err("missing liquidity provision token")));
+        assert_error!(self.q_pool_info(),
+            "missing liquidity provision token");
         Ok(self)
     }
 
@@ -180,36 +187,36 @@ impl RewardsHarness<RewardsMockQuerier> {
     // pool and user status -----------------------------------------------------------------------
 
     pub fn pool (
-        self, locked: u128, lifetime: u128, last_update: Time
-    ) -> StdResult<Self> {
+        &mut self, locked: u128, lifetime: u128, last_update: u128
+    ) -> StdResult<&mut Self> {
         if let Response::PoolInfo {
             pool_locked, pool_lifetime, pool_last_update, ..
         } = self.q_pool_info()? {
             assert_eq!(Amount::from(locked),   pool_locked);
             assert_eq!(Volume::from(lifetime), pool_lifetime);
-            assert_eq!(last_update,            pool_last_update);
-            Ok(self)
+            assert_eq!(last_update as u64, pool_last_update);
+            Ok(&mut *self)
         } else {
             unreachable!()
         }
     }
 
     pub fn user (
-        mut self, user: &HumanAddr,
-        age: u64, locked: u128, lifetime: u128,
+        &mut self, user: &HumanAddr,
+        age: u128, locked: u128, lifetime: u128,
         earned: u128, claimed: u128, claimable: u128
-    ) -> StdResult<Self> {
+    ) -> StdResult<&mut Self> {
         if let Response::UserInfo {
             user_age, user_locked, user_lifetime,
             user_earned, user_claimed, user_claimable, ..
         } = self.q_user_info(user)? {
-            assert_eq!(age,   user_age);
+            assert_eq!(age as u64, user_age);
             assert_eq!(Amount::from(locked),    user_locked);
             assert_eq!(Volume::from(lifetime),  user_lifetime);
             assert_eq!(Amount::from(earned),    user_earned);
             assert_eq!(Amount::from(claimed),   user_claimed);
             assert_eq!(Amount::from(claimable), user_claimable);
-            Ok(self)
+            Ok(&mut *self)
         } else {
             unreachable!()
         }
@@ -217,14 +224,16 @@ impl RewardsHarness<RewardsMockQuerier> {
 
     // user actions -------------------------------------------------------------------------------
 
-    pub fn set_vk (mut self, agent: &HumanAddr, key: &str) -> StdResult<Self> {
+    pub fn set_vk (
+        &mut self, agent: &HumanAddr, key: &str
+    ) -> StdResult<&mut Self> {
         self.tx_set_vk(agent, key)?;
         Ok(self)
     }
 
     pub fn lock (
-        mut self, user: &HumanAddr, amount: u128
-    ) -> StdResult<Self> {
+        &mut self, user: &HumanAddr, amount: u128
+    ) -> StdResult<&mut Self> {
         assert_eq!(
             self.tx_lock(user, amount.into())?,
             (vec![ Snip20::transfer_from("admin", "contract_addr", "1") ], 0, 0)
@@ -233,8 +242,8 @@ impl RewardsHarness<RewardsMockQuerier> {
     }
 
     pub fn retrieve (
-        mut self, user: &HumanAddr, amount: u128
-    ) -> StdResult<Self> {
+        &mut self, user: &HumanAddr, amount: u128
+    ) -> StdResult<&mut Self> {
         assert_eq!(
             self.tx_retrieve(user, amount.into())?,
             (vec![ Snip20::transfer("admin", "1") ], 0, 0)
@@ -245,29 +254,42 @@ impl RewardsHarness<RewardsMockQuerier> {
     // private query and transaction helpers ------------------------------------------------------
 
     fn q_pool_info (&self) -> StdResult<Response> {
-        self.q(QQ::PoolInfo { at: self.now })
+        self.q(QQ::PoolInfo {
+            at: self.now()
+        })
     }
     fn q_user_info (&self, address: &HumanAddr) -> StdResult<Response> {
-        self.q(QQ::UserInfo { at: self.now, address: address.clone(), key: "".into() })
+        self.q(QQ::UserInfo {
+            at: self.now(),
+            address: address.clone(),
+            key: "".into()
+        })
     }
     fn tx_set_token (
         &mut self, agent: &HumanAddr, address: &str, code_hash: &str
     ) -> TxResult {
-        self.tx(self.now, agent, TX::SetProvidedToken {
+        self.tx(self.now(), agent, TX::SetProvidedToken {
             address:   HumanAddr::from(address),
             code_hash: code_hash.into(),
         })
     }
     fn tx_set_vk (&mut self, agent: &HumanAddr, key: &str) -> TxResult {
-        self.tx(self.now, agent, TX::SetViewingKey { key: key.into(), padding: None })
+        self.tx(self.now(), agent, TX::SetViewingKey {
+            key: key.into(),
+            padding: None
+        })
     }
     fn tx_lock (&mut self, agent: &HumanAddr, amount: u128) -> TxResult {
-        self.tx(self.now, agent, TX::Lock { amount: amount.into() })
+        self.tx(self.now(), agent, TX::Lock {
+            amount: amount.into()
+        })
     }
     fn tx_retrieve (&mut self, agent: &HumanAddr, amount: u128) -> TxResult {
-        self.tx(self.now, agent, TX::Retrieve { amount: amount.into() })
+        self.tx(self.now(), agent, TX::Retrieve {
+            amount: amount.into()
+        })
     }
     fn tx_claim (&mut self, agent: &HumanAddr) -> TxResult {
-        self.tx(self.now, agent, TX::Claim {})
+        self.tx(self.now(), agent, TX::Claim {})
     }
 }
