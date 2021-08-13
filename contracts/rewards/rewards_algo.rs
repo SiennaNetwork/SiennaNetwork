@@ -109,11 +109,11 @@ impl <S> Pool<S> {
     }
     /// Set the current time
     pub fn at (self, now: Time) -> Self {
-        Self { storage: self.storage, balance: self.balance, now: Some(now) }
+        Self { now: Some(now), ..self }
     }
     /// Set the current balance
     pub fn with_balance (self, balance: Amount) -> Self {
-        Self { storage: self.storage, now: self.now, balance: Some(balance) }
+        Self { balance: Some(balance), ..self }
     }
     /// Get an individual user from the pool
     pub fn user (self, address: CanonicalAddr) -> User<S> {
