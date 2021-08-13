@@ -6,17 +6,17 @@ use crate::{rewards_harness::*};
 
 const PORTION: u128 = 100;
 
-kukumba! {
-    StdError,
+kukumba! { StdError,
 
     #[ok_pool_init]
+
     given "no instance"
     when  "admin inits with an asset token address"
     then  "the instance configures a viewing key for itself" {
         let admin = HumanAddr::from("admin");
         let mut T = RewardsHarness::new()
-            .at(1)
-                .init_configured(&admin)?; }
+            .at(1).init_configured(&admin)?; }
+
     when  "admin locks funds"
     then  "the instance starts counting the liquidity that accumulates" {
         T = T
@@ -36,6 +36,7 @@ kukumba! {
                 .pool(1, 2, 4)?; }
 
     #[ok_pool_init_then_set_lp_token]
+
     given  "no instance"
     when  "admin inits without providing an asset token address"
     then  "the instance is not ready" {
@@ -44,16 +45,19 @@ kukumba! {
         let mut T  = RewardsHarness::new()
             .at(1)
                 .init_partial(&admin)?; }
+
     when  "badman tries to provide an asset token address"
     then  "an error is returned and nothing changes" {
         T = T
             .at(2)
                 .set_token_fails(&badman, "bad_addr", "bad_hash")? }
+
     when  "admin provides an asset token address"
     then  "the instance configures a viewing key for itself"
     and   "it starts counting when someone locks funds" {
-        assert_eq!(T.tx_set_token(4, &admin, "lp_token_address", "lp_token_hash")?, (vec![], 0, 0));
         T = T
+            .at(4)
+                .set_token(&admin, "lp_token_address", "lp_token_hash")?
             .at(7)
                 .pool(0, 0, 7)?
                 .lock(&admin, 1)?
@@ -64,6 +68,7 @@ kukumba! {
                 .pool(1, 2, 7)?; }
 
     #[ok_one]
+
     given "an instance:" {
         let mut T = RewardsHarness::new();
         let admin = HumanAddr::from("admin");
@@ -74,6 +79,7 @@ kukumba! {
                 .set_vk(&alice, "")?
                 .fund(PORTION)
                 .user(&alice, 0, 0, 0,   0, 0, 0)?; }
+
     when "alice first locks lp tokens,"
     then "alice's age and lifetime share starts incrementing;" {
         T = T
@@ -85,6 +91,7 @@ kukumba! {
                 .user(&alice,   1, 100, 100, 0, 0, 0)?
             .at(3)
                 .user(&alice,   2, 100, 200, 0, 0, 0)?; }
+
     when "alice retrieves half of the tokens,"
     then "alice's age keeps incrementing;" {
         T = T
@@ -92,6 +99,7 @@ kukumba! {
                 .user(&alice,   3, 100, 300, 0, 0, 0)?
                 .retrieve(&alice, 50)?
                 .user(&alice,   3,  50, 300, 0, 0, 0)?; }
+
     when "alice retrieves all of the tokens,"
     then "alice's age stops incrementing;" {
         T = T
@@ -105,6 +113,7 @@ kukumba! {
                 .user(&alice,   5,   0, 400, 0, 0, 0)?
             .at(8)
                 .user(&alice,   5,   0, 400, 0, 0, 0)?; }
+
     when "alice locks tokens again,"
     then "alice's age resumes incrementing;" {
         T = T.at(9)
@@ -115,6 +124,7 @@ kukumba! {
                 .user(&alice,   6,   1, 401, 0, 0, 0)?
             .at(11)
                 .user(&alice,   7,   1, 402, 0, 0, 0)?; }
+
     when "alice's age reaches the configured threshold,"
     then "alice is eligible to claim the whole pool" {
         T = T
