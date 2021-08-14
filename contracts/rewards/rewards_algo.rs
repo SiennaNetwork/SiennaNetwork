@@ -46,7 +46,7 @@ const POOL_CREATED:   &[u8] = b"/pool/created";
 /// The first time a user locks liquidity,
 /// this is set to the current time.
 /// Used to calculate pool's liquidity ratio.
-const POOL_POPULATED:   &[u8] = b"/pool/created";
+const POOL_SEEDED:   &[u8] = b"/pool/created";
 
 #[cfg(feature="pool_liquidity_ratio")]
 /// Used to compute what portion of the time the pool was not empty.
@@ -225,7 +225,7 @@ stateful!(Pool (storage):
 
         #[cfg(feature="pool_liquidity_ratio")]
         pub fn liquidity_ratio (&self) -> StdResult<Amount> {
-            let existed = self.now()? - self.populated()?;
+            let existed = self.now()? - self.seeded()?;
             if existed == 0 {
                 return Ok(Amount::from(HUNDRED_PERCENT)) }
             Ok(Volume::from(HUNDRED_PERCENT)
@@ -234,12 +234,12 @@ stateful!(Pool (storage):
 
         #[cfg(feature="pool_liquidity_ratio")]
         pub fn existed (&self) -> StdResult<Time> {
-            Ok(self.now()? - self.populated()?) }
+            Ok(self.now()? - self.seeded()?) }
 
         #[cfg(feature="pool_liquidity_ratio")]
-        fn populated (&self) -> StdResult<Time> {
-            match self.load(POOL_POPULATED)? {
-                Some(populated) => Ok(populated),
+        fn seeded (&self) -> StdResult<Time> {
+            match self.load(POOL_SEEDED)? {
+                Some(seeded) => Ok(seeded),
                 None => Err(StdError::generic_err("nobody has locked any tokens yet")) } }
 
         #[cfg(feature="pool_liquidity_ratio")]
@@ -268,9 +268,9 @@ stateful!(Pool (storage):
             // store the timestamp. this is used to start
             // the liquidity ratio calculation from the time
             // of first lock instead of contract init
-            match self.load(POOL_POPULATED)? as Option<Time> {
-                None    => { self.save(POOL_POPULATED, self.now)?; },
-                Some(0) => { self.save(POOL_POPULATED, self.now)?; },
+            match self.load(POOL_SEEDED)? as Option<Time> {
+                None    => { self.save(POOL_SEEDED, self.now)?; },
+                Some(0) => { self.save(POOL_SEEDED, self.now)?; },
                 _ => {} };
 
             let lifetime = self.lifetime()?;
@@ -299,11 +299,11 @@ stateful!(Pool (storage):
             self.save(POOL_RATIO, ratio) }
 
         #[cfg(feature="pool_liquidity_ratio")]
-        pub fn configure_populated (&mut self, time: &Time) -> StdResult<&mut Self> {
-            self.save(POOL_POPULATED, time) }
+        pub fn set_seeded (&mut self, time: &Time) -> StdResult<&mut Self> {
+            self.save(POOL_SEEDED, time) }
 
         #[cfg(feature="pool_liquidity_ratio")]
-        pub fn configure_created (&mut self, time: &Time) -> StdResult<&mut Self> {
+        pub fn set_created (&mut self, time: &Time) -> StdResult<&mut Self> {
             self.save(POOL_CREATED, time) }
 
         #[cfg(feature="pool_closes")]

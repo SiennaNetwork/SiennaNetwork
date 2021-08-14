@@ -88,7 +88,7 @@ contract! {
         //
         #[cfg(feature="pool_liquidity_ratio")]
         Pool::new(&mut deps.storage)
-            .configure_created(&env.block.height)?;
+            .set_created(&env.block.height)?;
 
         #[cfg(feature="global_ratio")]
         Pool::new(&mut deps.storage)
