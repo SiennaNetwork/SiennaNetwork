@@ -35,7 +35,6 @@ kukumba_harnessed! {
                 .at(6).pool(1, 2, 4)? } }
 
     ok_pool_init_then_set_lp_token {
-
         given  "no instance"
         when  "admin inits without providing an asset token address"
         then  "the instance is not ready" {
@@ -56,7 +55,6 @@ kukumba_harnessed! {
                 .at(9).pool(1, 2, 7)? } }
 
     ok_one {
-
         given "an instance:" {
             let admin = HumanAddr::from("admin");
             let alice = HumanAddr::from("alice");
@@ -97,7 +95,6 @@ kukumba_harnessed! {
             Test.at(DAY+4).user(&alice, DAY, 1, 17675, 100, 0, 100)? } }
 
     ok_two_simultaneous {
-
         given "an instance:" {
             let admin = HumanAddr::from("admin");
             let alice = HumanAddr::from("alice");
@@ -127,7 +124,6 @@ kukumba_harnessed! {
                           .user(&bob,   DAY, 100, DAY * 100, 50, 0, 50)? } }
 
     ok_two_sequential {
-
         given "an instance" {
             let admin = HumanAddr::from("admin");
             let alice = HumanAddr::from("alice");
@@ -159,7 +155,6 @@ kukumba_harnessed! {
                                      .user(&alice, DAY,   0, DAY * 100, 50, 0, 50)? } }
 
     ok_two_sequential_with_claim {
-
         given "an instance" {
             let admin = HumanAddr::from("admin");
             let alice = HumanAddr::from("alice");
@@ -201,7 +196,6 @@ kukumba_harnessed! {
                 .user(&alice, DAY,   0, DAY * 100, 50, 66,  0)? } }
 
     ok_lock_and_retrieve {
-
         given "an instance" {
             let admin   = HumanAddr::from("admin");
             let alice   = HumanAddr::from("alice");
@@ -244,7 +238,6 @@ kukumba_harnessed! {
                 .at(11).pool(500, 2350, 7)? } }
 
     ok_claim {
-
         given "an instance" {
             let admin = HumanAddr::from("admin");
             let alice = HumanAddr::from("alice");
@@ -284,7 +277,6 @@ kukumba_harnessed! {
                 .at(3 + DAY * 2).claim(&alice, 50)?.claim(&bob, 100)? } }
 
     rewards_parallel_or_sequential {
-
         given "three users providing liquidity" {
             let admin = HumanAddr::from("admin");
             let alice = HumanAddr::from("alice");

@@ -19,6 +19,7 @@
 #[cfg(test)] #[macro_use] extern crate kukumba;
 #[cfg(any(test, browser))] mod rewards_harness;
 #[cfg(test)] mod rewards_test;
+#[cfg(test)] mod rewards_test_2;
 
 pub mod rewards_math;   use rewards_math::*;
 pub mod rewards_algo;   use rewards_algo::*;

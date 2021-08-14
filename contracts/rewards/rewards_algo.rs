@@ -371,7 +371,7 @@ stateful!(User (pool.storage):
 
         #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))]
         /// Load last value of user present
-        fn last_present (&self) -> StdResult<Time> {
+        pub fn last_present (&self) -> StdResult<Time> {
             Ok(self.load_ns(USER_PRESENT, self.address.as_slice())?
                 .unwrap_or(0 as Time)) }
 
