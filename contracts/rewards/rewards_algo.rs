@@ -43,6 +43,12 @@ const POOL_COOLDOWN:  &[u8] = b"/pool/cooldown";
 const POOL_CREATED:   &[u8] = b"/pool/created";
 
 #[cfg(feature="pool_liquidity_ratio")]
+/// The first time a user locks liquidity,
+/// this is set to the current time.
+/// Used to calculate pool's liquidity ratio.
+const POOL_POPULATED:   &[u8] = b"/pool/created";
+
+#[cfg(feature="pool_liquidity_ratio")]
 /// Used to compute what portion of the time the pool was not empty.
 /// On lock/unlock, if the pool was not empty, this is incremented
 /// by the time elapsed since the last update.
@@ -214,24 +220,27 @@ stateful!(Pool (storage):
         #[cfg(feature="pool_liquidity_ratio")]
         fn last_liquid (&self) -> StdResult<Time> {
             match self.load(POOL_LIQUID)? {
-                Some(created) => Ok(created),
+                Some(liquid) => Ok(liquid),
                 None => Ok(0 as Time) } }
 
         #[cfg(feature="pool_liquidity_ratio")]
         pub fn liquidity_ratio (&self) -> StdResult<Amount> {
-            let existed = self.existed()?;
-            Ok(if existed > 0 {
-                Volume::from(HUNDRED_PERCENT)
-                    .multiply_ratio(self.liquid()?, existed)?
-                    .low_u128().into()
-            } else {
-                Amount::from(HUNDRED_PERCENT)
-            }) }
+            let existed = self.now()? - self.populated()?;
+            if existed == 0 {
+                return Ok(Amount::from(HUNDRED_PERCENT)) }
+            Ok(Volume::from(HUNDRED_PERCENT)
+                .multiply_ratio(self.liquid()?, existed)?
+                .low_u128().into()) }
 
         #[cfg(feature="pool_liquidity_ratio")]
-        /// Time since the pool was created
         pub fn existed (&self) -> StdResult<Time> {
-            Ok(self.now()? - self.created()?) }
+            Ok(self.now()? - self.populated()?) }
+
+        #[cfg(feature="pool_liquidity_ratio")]
+        fn populated (&self) -> StdResult<Time> {
+            match self.load(POOL_POPULATED)? {
+                Some(populated) => Ok(populated),
+                None => Err(StdError::generic_err("nobody has locked any tokens yet")) } }
 
         #[cfg(feature="pool_liquidity_ratio")]
         fn created (&self) -> StdResult<Time> {
@@ -255,6 +264,15 @@ stateful!(Pool (storage):
         /// the pool's lifetime liquidity is tallied and and the timestamp is updated.
         /// This is the only user-triggered input to the pool.
         pub fn update_locked (&mut self, balance: Amount) -> StdResult<&mut Self> {
+            // if this is the first time someone is locking tokens
+            // store the timestamp. this is used to start
+            // the liquidity ratio calculation from the time
+            // of first lock instead of contract init
+            match self.load(POOL_POPULATED)? as Option<Time> {
+                None    => { self.save(POOL_POPULATED, self.now)?; },
+                Some(0) => { self.save(POOL_POPULATED, self.now)?; },
+                _ => {} };
+
             let lifetime = self.lifetime()?;
             let now      = self.now()?;
 
@@ -279,6 +297,10 @@ stateful!(Pool (storage):
         #[cfg(feature="global_ratio")]
         pub fn configure_ratio (&mut self, ratio: &Ratio) -> StdResult<&mut Self> {
             self.save(POOL_RATIO, ratio) }
+
+        #[cfg(feature="pool_liquidity_ratio")]
+        pub fn configure_populated (&mut self, time: &Time) -> StdResult<&mut Self> {
+            self.save(POOL_POPULATED, time) }
 
         #[cfg(feature="pool_liquidity_ratio")]
         pub fn configure_created (&mut self, time: &Time) -> StdResult<&mut Self> {
@@ -373,10 +395,8 @@ stateful!(User (pool.storage):
             #[cfg(feature="user_liquidity_ratio")] {
                 let existed = self.existed()?;
                 if existed == 0u64 {
-                    return Ok(Volume::zero())
-                }
-                locked = locked.multiply_ratio(self.present()?, existed);
-            }
+                    return Ok(Volume::zero()) }
+                locked = locked.multiply_ratio(self.present()?, existed); }
 
             tally(self.last_lifetime()?, self.elapsed_present()?, locked) }
 
@@ -406,8 +426,7 @@ stateful!(User (pool.storage):
         pub fn share (&self, basis: u128) -> StdResult<Volume> {
             let pool_lifetime = self.pool.lifetime()?;
             if pool_lifetime == Volume::zero() {
-                return Ok(Volume::zero())
-            }
+                return Ok(Volume::zero()) }
 
             let mut share = Volume::from(basis);
 

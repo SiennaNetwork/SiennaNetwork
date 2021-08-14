@@ -61,13 +61,14 @@ export default class SiennaRewards extends ScrtEnsemble {
     execFileSync('cargo', [
       'test', '-p', 'sienna-rewards', ...args
     ], {
-      stdio: 'inherit'
+      stdio: 'inherit',
+      env: { ...process.env, RUST_BACKTRACE: 'full' }
     })
   }
 
   benchmark () {
     /* stupid esmodule import issue when running mocha programmatically
-     * their CLI works fine though... нтар 🤦‍♂️
+     * their CLI works fine though...
     const mocha = new Mocha()
     mocha.addFile(abs('api/RewardsBenchmark.spec.js'))
     mocha.run(fail => process.exit(fail ? 1 : 0))*/

@@ -157,8 +157,6 @@ impl RewardsHarness<RewardsMockQuerier> {
             (vec![Snip20::set_viewing_key("")], 0, 0));
         assert_error!(self.q_pool_info(),
             "missing liquidity provision token");
-        assert_error!(self.q_user_info(admin),
-            "missing liquidity provision token");
         Ok(self)
     }
 
@@ -192,9 +190,9 @@ impl RewardsHarness<RewardsMockQuerier> {
         if let Response::PoolInfo {
             pool_locked, pool_lifetime, pool_last_update, ..
         } = self.q_pool_info()? {
-            assert_eq!(Amount::from(locked),   pool_locked);
-            assert_eq!(Volume::from(lifetime), pool_lifetime);
-            assert_eq!(last_update as u64, pool_last_update);
+            assert_eq!(Amount::from(locked),   pool_locked,   "locked");
+            assert_eq!(Volume::from(lifetime), pool_lifetime, "lifetime");
+            assert_eq!(last_update as u64, pool_last_update,  "last_update");
             Ok(&mut *self)
         } else {
             unreachable!()
@@ -210,12 +208,12 @@ impl RewardsHarness<RewardsMockQuerier> {
             user_age, user_locked, user_lifetime,
             user_earned, user_claimed, user_claimable, ..
         } = self.q_user_info(user)? {
-            assert_eq!(age as u64, user_age);
-            assert_eq!(Amount::from(locked),    user_locked);
-            assert_eq!(Volume::from(lifetime),  user_lifetime);
-            assert_eq!(Amount::from(earned),    user_earned);
-            assert_eq!(Amount::from(claimed),   user_claimed);
-            assert_eq!(Amount::from(claimable), user_claimable);
+            assert_eq!(age as u64,              user_age,       "age");
+            assert_eq!(Amount::from(locked),    user_locked,    "locked");
+            assert_eq!(Volume::from(lifetime),  user_lifetime,  "lifetime");
+            assert_eq!(Amount::from(earned),    user_earned,    "earned");
+            assert_eq!(Amount::from(claimed),   user_claimed,   "claimed");
+            assert_eq!(Amount::from(claimable), user_claimable, "claimable");
             Ok(&mut *self)
         } else {
             unreachable!()
@@ -234,20 +232,40 @@ impl RewardsHarness<RewardsMockQuerier> {
     pub fn lock (
         &mut self, user: &HumanAddr, amount: u128
     ) -> StdResult<&mut Self> {
-        assert_eq!(
-            self.tx_lock(user, amount.into())?,
-            (vec![ Snip20::transfer_from("admin", "contract_addr", "1") ], 0, 0)
-        );
+        assert_eq!(self.tx_lock(user, amount.into())?, (vec![
+            Snip20::transfer_from(user.as_str(), "contract_addr", &format!("{}", &amount))], 0, 0));
         Ok(self)
     }
 
     pub fn retrieve (
         &mut self, user: &HumanAddr, amount: u128
     ) -> StdResult<&mut Self> {
+        assert_eq!(self.tx_retrieve(user, amount.into())?, (vec![
+            Snip20::transfer(user.as_str(), &format!("{}", &amount))], 0, 0));
+        Ok(self)
+    }
+
+    pub fn retrieve_too_much (
+        &mut self, user: &HumanAddr, amount: u128, msg: &str
+    ) -> StdResult<&mut Self> {
         assert_eq!(
-            self.tx_retrieve(user, amount.into())?,
-            (vec![ Snip20::transfer("admin", "1") ], 0, 0)
-        );
+            self.tx_retrieve(user, amount.into()),
+            Err(StdError::generic_err(msg)));
+        Ok(self)
+    }
+
+    pub fn claim (
+        &mut self, user: &HumanAddr, amount: u128
+    ) -> StdResult<&mut Self> {
+        assert_eq!( self.tx_claim(user)?, (vec![
+            Snip20::transfer(user.as_str(), &format!("{}", &amount)) ], 0, 0));
+        Ok(self)
+    }
+
+    pub fn claim_must_wait (
+        &mut self, user: &HumanAddr, msg: &str
+    ) -> StdResult<&mut Self> {
+        assert_eq!(self.tx_claim(user), Err(StdError::generic_err(msg)));
         Ok(self)
     }
 
