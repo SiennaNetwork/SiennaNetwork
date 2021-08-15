@@ -494,8 +494,7 @@ stateful!(User (pool.storage):
                     if claimable > balance {
                         Ok(balance) }
                     else {
-                        Ok(claimable) } } }
-        }
+                        Ok(claimable) } } } }
 
     }
 

@@ -252,10 +252,8 @@ kukumba_harnessed! {
         when  "users provide liquidity"
         and   "they wait for rewards to accumulate" {
             Test.at(2)
-                .lock(&alice, 100)?
-                .claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
-                .lock(&bob,   100)?
-                .claim_must_wait(&bob, "lock tokens for 17280 more blocks to be eligible")?
+                .lock(&alice, 100)?.claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
+                .lock(&bob,   100)?.claim_must_wait(&bob, "lock tokens for 17280 more blocks to be eligible")?
                 .at(3).claim_must_wait(&alice, "lock tokens for 17279 more blocks to be eligible")?
                 .at(4).claim_must_wait(&bob,   "lock tokens for 17278 more blocks to be eligible")?
                 .at(5).claim_must_wait(&alice, "lock tokens for 17277 more blocks to be eligible")?
@@ -264,17 +262,17 @@ kukumba_harnessed! {
         and   "a provider claims rewards"
         then  "that provider receives reward tokens" {
             Test.fund(PORTION)
-                .at(17282).claim(&alice, 50)? }
+                .at(2 + DAY).claim(&alice, 50)? }
 
         when  "a provider claims rewards twice within a period"
         then  "rewards are sent only the first time" {
-            Test.at(17282).claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
-                .at(17283).claim_must_wait(&alice, "lock tokens for 17279 more blocks to be eligible")? }
+            Test.at(2 + DAY).claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
+                .at(3 + DAY).claim_must_wait(&alice, "lock tokens for 17279 more blocks to be eligible")? }
 
         when  "a provider claims their rewards less often"
         then  "they receive equivalent rewards as long as the liquidity locked hasn't changed" {
             Test.fund(PORTION)
-                .at(3 + DAY * 2).claim(&alice, 50)?.claim(&bob, 100)? } }
+                .at(2 + DAY * 2).claim(&alice, 50)?.claim(&bob, 100)? } }
 
     rewards_parallel_or_sequential {
         given "three users providing liquidity" {

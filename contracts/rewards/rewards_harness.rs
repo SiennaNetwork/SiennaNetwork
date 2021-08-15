@@ -44,6 +44,10 @@ impl RewardsMockQuerier {
     pub fn increment_balance (&mut self, amount: u128) {
         self.balance = self.balance + amount.into();
     }
+    pub fn decrement_balance (&mut self, amount: u128) -> StdResult<()> {
+        self.balance = (self.balance - amount.into())?;
+        Ok(())
+    }
 }
 
 impl Querier for RewardsMockQuerier {
@@ -259,6 +263,7 @@ impl RewardsHarness<RewardsMockQuerier> {
     ) -> StdResult<&mut Self> {
         assert_eq!( self.tx_claim(user)?, (vec![
             Snip20::transfer(user.as_str(), &format!("{}", &amount)) ], 0, 0));
+        self._deps.querier.decrement_balance(amount)?;
         Ok(self)
     }
 
