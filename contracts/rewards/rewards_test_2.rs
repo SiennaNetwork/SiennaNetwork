@@ -189,28 +189,13 @@ kukumba_harnessed! {
 
         when "a user is eligible to claim rewards"
         then "the rewards are diminished by the pool liquidity ratio" {
-            let mut pool = Pool::new(&mut s).at(90000);
-            println!("pool.liquidity_ratio{}", pool.liquidity_ratio()?);
-            println!("pool.lifetime {}", pool.lifetime()?);
-            let mut user = Pool::new(&mut s).at(90000).user(addr.clone());
-            println!("user.lifetime {}", user.lifetime()?);
-            println!("{} {} {} {}",
-                user.existed()?, user.last_existed()?,
-                user.present()?, user.last_present()?);
+            let mut pool = Pool::new(&mut s).with_balance(100u128.into()).at(90000);
+            let mut user = pool.user(addr.clone());
             user.retrieve_tokens(50u128.into())?;
-            println!("{} {} {} {}",
-                user.existed()?, user.last_existed()?,
-                user.present()?, user.last_present()?);
             // mock away the user liquidity ratio:
             let never_left = user.last_existed()?;
-            let address = user.address.as_slice();
-            let mut user = Pool::new(&mut s).at(90000).with_balance(100u128.into())
-                .user(addr.clone());
-            user.save_ns(crate::rewards_algo::USER_PRESENT, address, never_left)?;
-            println!("{} {} {} {}",
-                user.existed()?, user.last_existed()?,
-                user.present()?, user.last_present()?);
-            println!("user.lifetime {}", user.lifetime()?);
+            let address = user.address.clone();
+            user.save_ns(crate::rewards_algo::USER_PRESENT, address.as_slice(), never_left)?;
             assert_eq!(user.claim_reward()?, 75u128.into()); } }
 
     feature_user_liquidity_ratio {
