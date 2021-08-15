@@ -8,90 +8,90 @@ macro_rules! error { ($info:expr) => { Err(StdError::generic_err($info)) }; } //
 /// How much liquidity has this pool contained up to this point.
 /// On lock/unlock, if locked > 0 before the operation, this is incremented
 /// in intervals of (moments since last update * current balance)
-const POOL_LIFETIME:  &[u8] = b"/pool/lifetime";
+pub const POOL_LIFETIME:  &[u8] = b"/pool/lifetime";
 
 /// How much liquidity is there in the whole pool right now.
 /// Incremented/decremented on lock/unlock.
-const POOL_LOCKED:    &[u8] = b"/pool/balance";
+pub const POOL_LOCKED:    &[u8] = b"/pool/balance";
 
 /// When was liquidity last updated.
 /// Set to current time on lock/unlock.
-const POOL_TIMESTAMP: &[u8] = b"/pool/updated";
+pub const POOL_TIMESTAMP: &[u8] = b"/pool/updated";
 
 /// Rewards claimed by everyone so far.
 /// Incremented on claim.
-const POOL_CLAIMED:   &[u8] = b"/pool/claimed";
+pub const POOL_CLAIMED:   &[u8] = b"/pool/claimed";
 
 #[cfg(feature="global_ratio")]
 /// Ratio of liquidity provided to rewards received.
 /// Configured on init.
-const POOL_RATIO:     &[u8] = b"/pool/ratio";
+pub const POOL_RATIO:     &[u8] = b"/pool/ratio";
 
 #[cfg(feature="age_threshold")]
 /// How much the user needs to wait before they can claim for the first time.
 /// Configured on init.
-const POOL_THRESHOLD: &[u8] = b"/pool/threshold";
+pub const POOL_THRESHOLD: &[u8] = b"/pool/threshold";
 
 #[cfg(feature="claim_cooldown")]
 /// How much the user must wait between claims.
 /// Configured on init.
-const POOL_COOLDOWN:  &[u8] = b"/pool/cooldown";
+pub const POOL_COOLDOWN:  &[u8] = b"/pool/cooldown";
 
 #[cfg(feature="pool_liquidity_ratio")]
 /// Store the moment the user is created to compute total pool existence.
 /// Set on init.
-const POOL_CREATED:   &[u8] = b"/pool/created";
+pub const POOL_CREATED:   &[u8] = b"/pool/created";
 
 #[cfg(feature="pool_liquidity_ratio")]
 /// The first time a user locks liquidity,
 /// this is set to the current time.
 /// Used to calculate pool's liquidity ratio.
-const POOL_SEEDED:   &[u8] = b"/pool/created";
+pub const POOL_SEEDED:   &[u8] = b"/pool/created";
 
 #[cfg(feature="pool_liquidity_ratio")]
 /// Used to compute what portion of the time the pool was not empty.
 /// On lock/unlock, if the pool was not empty, this is incremented
 /// by the time elapsed since the last update.
-const POOL_LIQUID:    &[u8] = b"/pool/not_empty";
+pub const POOL_LIQUID:    &[u8] = b"/pool/not_empty";
 
 #[cfg(feature="pool_closes")]
 /// Whether this pool is closed
-const POOL_CLOSED:    &[u8] = b"/pool_closed";
+pub const POOL_CLOSED:    &[u8] = b"/pool_closed";
 
 // storage keys for user fields --------------------------------------------------------------------
 
 /// How much liquidity has this user provided since they first appeared.
 /// On lock/unlock, if the pool was not empty, this is incremented
 /// in intervals of (moments since last update * current balance)
-const USER_LIFETIME:  &[u8] = b"/user/lifetime/";
+pub const USER_LIFETIME:  &[u8] = b"/user/lifetime/";
 
 /// How much liquidity does this user currently provide.
 /// Incremented/decremented on lock/unlock.
-const USER_LOCKED:    &[u8] = b"/user/current/";
+pub const USER_LOCKED:    &[u8] = b"/user/current/";
 
 /// When did this user's liquidity amount last change
 /// Set to current time on lock/unlock.
-const USER_TIMESTAMP: &[u8] = b"/user/updated/";
+pub const USER_TIMESTAMP: &[u8] = b"/user/updated/";
 
 /// How much rewards has each user claimed so far.
 /// Incremented on claim.
-const USER_CLAIMED:   &[u8] = b"/user/claimed/";
+pub const USER_CLAIMED:   &[u8] = b"/user/claimed/";
 
 #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))]
 /// For how many units of time has this user provided liquidity
 /// On lock/unlock, if locked was > 0 before the operation,
 /// this is incremented by time elapsed since last update.
-const USER_PRESENT:   &[u8] = b"/user/present/";
+pub const USER_PRESENT:   &[u8] = b"/user/present/";
 
 #[cfg(feature="user_liquidity_ratio")]
 /// For how many units of time has this user been known to the contract.
 /// Incremented on lock/unlock by time elapsed since last update.
-const USER_EXISTED:   &[u8] = b"/user/existed/";
+pub const USER_EXISTED:   &[u8] = b"/user/existed/";
 
 #[cfg(feature="claim_cooldown")]
 /// For how many units of time has this user provided liquidity
 /// Decremented on lock/unlock, reset to configured cooldown on claim.
-const USER_COOLDOWN:  &[u8] = b"/user/cooldown/";
+pub const USER_COOLDOWN:  &[u8] = b"/user/cooldown/";
 
 // structs implementing the rewards algorithm -----------------------------------------------------
 
@@ -105,7 +105,7 @@ pub struct Pool <S> {
 /// User account
 pub struct User <S> {
     pool:    Pool<S>,
-    address: CanonicalAddr
+    pub address: CanonicalAddr
 }
 
 impl <S> Pool<S> {
@@ -211,11 +211,10 @@ stateful!(Pool (storage):
         #[cfg(feature="pool_liquidity_ratio")]
         /// Time for which the pool was not empty.
         pub fn liquid (&self) -> StdResult<Time> {
-            Ok(if self.locked()? > Amount::zero() {
-                self.last_liquid()? + self.elapsed()?
-            } else {
-                self.last_liquid()?
-            }) }
+            if self.locked()? > Amount::zero() {
+                Ok(self.last_liquid()? + self.elapsed()?) }
+            else {
+                Ok(self.last_liquid()?) } }
 
         #[cfg(feature="pool_liquidity_ratio")]
         fn last_liquid (&self) -> StdResult<Time> {
@@ -360,7 +359,7 @@ stateful!(User (pool.storage):
 
         #[cfg(feature="user_liquidity_ratio")]
         /// Load last value of user existence
-        fn last_existed (&self) -> StdResult<Time> {
+        pub fn last_existed (&self) -> StdResult<Time> {
             Ok(self.load_ns(USER_EXISTED, self.address.as_slice())?
                 .unwrap_or(0 as Time)) }
 
@@ -387,21 +386,15 @@ stateful!(User (pool.storage):
         // lp-related getters ----------------------------------------------------------------------
 
         pub fn locked (&self) -> StdResult<Amount> {
-            Ok(self.load_ns(USER_LOCKED, self.address.as_slice())?.unwrap_or(Amount::zero())) }
+            Ok(self.load_ns(USER_LOCKED, self.address.as_slice())?
+                .unwrap_or(Amount::zero())) }
 
         pub fn lifetime (&self) -> StdResult<Volume> {
-            let mut locked = self.locked()?;
-
-            #[cfg(feature="user_liquidity_ratio")] {
-                let existed = self.existed()?;
-                if existed == 0u64 {
-                    return Ok(Volume::zero()) }
-                locked = locked.multiply_ratio(self.present()?, existed); }
-
-            tally(self.last_lifetime()?, self.elapsed_present()?, locked) }
+            tally(self.last_lifetime()?, self.elapsed_present()?, self.locked()?) }
 
         fn last_lifetime (&self) -> StdResult<Volume> {
-            Ok(self.load_ns(USER_LIFETIME, self.address.as_slice())?.unwrap_or(Volume::zero())) }
+            Ok(self.load_ns(USER_LIFETIME, self.address.as_slice())?
+                .unwrap_or(Volume::zero())) }
 
         // reward-related getters ------------------------------------------------------------------
 
@@ -429,13 +422,16 @@ stateful!(User (pool.storage):
                 return Ok(Volume::zero()) }
 
             let mut share = Volume::from(basis);
-
-            share = share.multiply_ratio(self.lifetime()?, pool_lifetime)?;
-
+            let mut lifetime = self.lifetime()?;
             #[cfg(feature="user_liquidity_ratio")] {
                 let existed = self.existed()?;
-                if existed == 0u64 { return Ok(Volume::zero()) }
-                share = share.multiply_ratio(self.present()?, self.existed()?)?; }
+                if existed == 0u64 {
+                    lifetime = Volume::zero(); }
+                else {
+                    lifetime = lifetime.multiply_ratio(
+                        self.present()?, self.existed()?)?; } }
+
+            share = share.multiply_ratio(lifetime, pool_lifetime)?;
 
             Ok(share) }
 

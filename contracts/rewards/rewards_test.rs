@@ -268,8 +268,8 @@ kukumba_harnessed! {
 
         when  "a provider claims rewards twice within a period"
         then  "rewards are sent only the first time" {
-            Test.at(17282).claim_must_wait(&alice, "lock tokens for 17279 more blocks to be eligible")?
-                .at(17283).claim_must_wait(&alice, "lock tokens for 17278 more blocks to be eligible")? }
+            Test.at(17282).claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
+                .at(17283).claim_must_wait(&alice, "lock tokens for 17279 more blocks to be eligible")? }
 
         when  "a provider claims their rewards less often"
         then  "they receive equivalent rewards as long as the liquidity locked hasn't changed" {

@@ -1,8 +1,12 @@
 #![allow(unused_macros)]
 #![allow(non_snake_case)]
 
-use fadroma::scrt::{cosmwasm_std::{HumanAddr, StdError, MemoryStorage, CanonicalAddr as Addr}};
-use crate::{rewards_harness::*, rewards_algo::{User, Pool}};
+use fadroma::scrt::{
+    cosmwasm_std::{StdError, MemoryStorage, CanonicalAddr},
+    storage::Writable
+};
+
+use crate::{rewards_harness::*, rewards_algo::Pool};
 
 const PORTION: u128 = 100;
 
@@ -21,6 +25,7 @@ kukumba_harnessed! {
     feature_age_threshold {
 
         given "a pool" {
+            let addr = CanonicalAddr::default();
             let mut s = MemoryStorage::new(); }
 
         when  "the age threshold is first queried"
@@ -38,22 +43,22 @@ kukumba_harnessed! {
                        crate::DAY); }
 
         when  "a user locks LP tokens" {
-            let mut user = Pool::new(&mut s).at(10).user(Addr::default());
+            let mut user = Pool::new(&mut s).at(10).user(addr.clone());
             user.lock_tokens(100u128.into())?;
             assert_eq!(
                 user.locked()?,
                 100u128.into()); }
 
         then  "their age starts incrementing" {
-            let mut user = Pool::new(&mut s).at( 10).user(Addr::default());
+            let mut user = Pool::new(&mut s).at( 10).user(addr.clone());
             assert_eq!((user.present()?,
                         user.last_present()?,
                         user.elapsed_present()?), ( 0, 0,  0));
-            let mut user = Pool::new(&mut s).at( 50).user(Addr::default());
+            let mut user = Pool::new(&mut s).at( 50).user(addr.clone());
             assert_eq!((user.present()?,
                         user.last_present()?,
                         user.elapsed_present()?), (40, 0, 40));
-            let mut user = Pool::new(&mut s).at(100).user(Addr::default());
+            let mut user = Pool::new(&mut s).at(100).user(addr.clone());
             assert_eq!((user.present()?,
                         user.last_present()?,
                         user.elapsed_present()?), (90, 0, 90)); }
@@ -61,19 +66,18 @@ kukumba_harnessed! {
         when  "a user's balance is updated"
         then  "their current age is committed"
         and   "their age keeps incrementing" {
-            Pool::new(&mut s)
-                .at(110)
-                .user(Addr::default())
+            Pool::new(&mut s).at(110)
+                .user(addr.clone())
                 .retrieve_tokens(50u128.into())?;
-            let mut user = Pool::new(&mut s).at(110).user(Addr::default());
+            let mut user = Pool::new(&mut s).at(110).user(addr.clone());
             assert_eq!((user.present()?,
                         user.last_present()?,
                         user.elapsed_present()?), (100, 100, 0));
-            let mut user = Pool::new(&mut s).at(150).user(Addr::default());
+            let mut user = Pool::new(&mut s).at(150).user(addr.clone());
             assert_eq!((user.present()?,
                         user.last_present()?,
                         user.elapsed_present()?), (140, 100, 40));
-            let mut user = Pool::new(&mut s).at(200).user(Addr::default());
+            let mut user = Pool::new(&mut s).at(200).user(addr.clone());
             assert_eq!((user.present()?,
                         user.last_present()?,
                         user.elapsed_present()?), (190, 100, 90)); }
@@ -81,19 +85,18 @@ kukumba_harnessed! {
         when  "a user unlocks all their LP tokens"
         then  "their current age is committed"
         and   "their age stops incrementing until they lock again" {
-            Pool::new(&mut s)
-                .at(210)
-                .user(Addr::default())
+            Pool::new(&mut s).at(210)
+                .user(addr.clone())
                 .retrieve_tokens(50u128.into())?;
-            let mut user = Pool::new(&mut s).at(210).user(Addr::default());
+            let mut user = Pool::new(&mut s).at(210).user(addr.clone());
             assert_eq!((user.present()?,
                         user.last_present()?,
                         user.elapsed_present()?), (200, 200, 0));
-            let mut user = Pool::new(&mut s).at(250).user(Addr::default());
+            let mut user = Pool::new(&mut s).at(250).user(addr.clone());
             assert_eq!((user.present()?,
                         user.last_present()?,
                         user.elapsed_present()?), (200, 200, 0));
-            let mut user = Pool::new(&mut s).at(300).user(Addr::default());
+            let mut user = Pool::new(&mut s).at(300).user(addr.clone());
             assert_eq!((user.present()?,
                         user.last_present()?,
                         user.elapsed_present()?), (200, 200, 0)); }
@@ -105,14 +108,13 @@ kukumba_harnessed! {
 
         when  "a user claims after reaching the age threshold"
         then  "the claim is fulfilled" {
-            Pool::new(&mut s)
-                .at(310)
-                .user(Addr::default())
+            Pool::new(&mut s).at(310)
+                .user(addr.clone())
                 .lock_tokens(50u128.into())?;
             assert_eq!(
                 Pool::new(&mut s).at(crate::DAY * 2)
                                  .with_balance(100u128.into())
-                                 .user(Addr::default())
+                                 .user(addr.clone())
                                  .claim_reward()?, Amount::from(100u128)); } }
 
     feature_claim_cooldown {
@@ -137,6 +139,7 @@ kukumba_harnessed! {
     feature_pool_liquidity_ratio {
 
         given "a pool" {
+            let addr = CanonicalAddr::default();
             let mut s = MemoryStorage::new(); }
 
         when "LP tokens have never been locked"
@@ -152,7 +155,7 @@ kukumba_harnessed! {
         then "the pool liquidity ratio is 1" {
             assert!(Pool::new(&mut s).at(10000).liquidity_ratio()
                 .is_err());
-            Pool::new(&mut s).at(10000).user(Addr::default())
+            Pool::new(&mut s).at(10000).user(addr.clone())
                 .lock_tokens(100u128.into())?;
             assert_eq!(Pool::new(&mut s).at(10000)
                 .liquidity_ratio()?, 100000000u128.into()); }
@@ -161,7 +164,7 @@ kukumba_harnessed! {
         then "the pool liquidity ratio remains 1" {
             assert_eq!(Pool::new(&mut s).at(20000)
                 .liquidity_ratio()?, 100000000u128.into());
-            Pool::new(&mut s).at(20000).user(Addr::default())
+            Pool::new(&mut s).at(20000).user(addr.clone())
                 .retrieve_tokens(50u128.into())?;
             assert_eq!(Pool::new(&mut s).at(20000)
                 .liquidity_ratio()?, 100000000u128.into()); }
@@ -170,7 +173,7 @@ kukumba_harnessed! {
         then "the pool liquidity ratio begins to decrease toward 0" {
             assert_eq!(Pool::new(&mut s).at(30000)
                 .liquidity_ratio()?, 100000000u128.into());
-            Pool::new(&mut s).at(30000).user(Addr::default())
+            Pool::new(&mut s).at(30000).user(addr.clone())
                 .retrieve_tokens(50u128.into())?;
             assert_eq!(Pool::new(&mut s).at(30000)
                 .liquidity_ratio()?, 100000000u128.into());
@@ -179,15 +182,36 @@ kukumba_harnessed! {
 
         when "some LP tokens are locked again"
         then "the pool liquidity ratio begins to increase toward 1" {
-            Pool::new(&mut s).at(50000).user(Addr::default())
+            Pool::new(&mut s).at(50000).user(addr.clone())
                 .lock_tokens(50u128.into())?;
             assert_eq!(Pool::new(&mut s).at(90000)
                 .liquidity_ratio()?, 75000000u128.into()); }
 
         when "a user is eligible to claim rewards"
         then "the rewards are diminished by the pool liquidity ratio" {
-            assert_eq!(Pool::new(&mut s).at(90000).with_balance(100u128.into())
-                .user(Addr::default()).claim_reward()?, 75u128.into()); } }
+            let mut pool = Pool::new(&mut s).at(90000);
+            println!("pool.liquidity_ratio{}", pool.liquidity_ratio()?);
+            println!("pool.lifetime {}", pool.lifetime()?);
+            let mut user = Pool::new(&mut s).at(90000).user(addr.clone());
+            println!("user.lifetime {}", user.lifetime()?);
+            println!("{} {} {} {}",
+                user.existed()?, user.last_existed()?,
+                user.present()?, user.last_present()?);
+            user.retrieve_tokens(50u128.into())?;
+            println!("{} {} {} {}",
+                user.existed()?, user.last_existed()?,
+                user.present()?, user.last_present()?);
+            // mock away the user liquidity ratio:
+            let never_left = user.last_existed()?;
+            let address = user.address.as_slice();
+            let mut user = Pool::new(&mut s).at(90000).with_balance(100u128.into())
+                .user(addr.clone());
+            user.save_ns(crate::rewards_algo::USER_PRESENT, address, never_left)?;
+            println!("{} {} {} {}",
+                user.existed()?, user.last_existed()?,
+                user.present()?, user.last_present()?);
+            println!("user.lifetime {}", user.lifetime()?);
+            assert_eq!(user.claim_reward()?, 75u128.into()); } }
 
     feature_user_liquidity_ratio {
         given "nothing" { unimplemented!() }

@@ -29,17 +29,12 @@ use fadroma::scrt::{
     callback::{ContractInstance as ContractLink},
     contract::*,
     snip20_api::ISnip20,
-    vk::{
-        ViewingKey,
-        auth_handle, authenticate, AuthHandleMsg,
-        DefaultHandleImpl as AuthHandle
-    },
-    admin::{
-        DefaultHandleImpl as AdminHandle,
-        admin_handle, AdminHandleMsg, load_admin,
-        assert_admin, save_admin
-    }
-};
+    vk::{ViewingKey,
+         auth_handle, authenticate, AuthHandleMsg,
+         DefaultHandleImpl as AuthHandle},
+    admin::{DefaultHandleImpl as AdminHandle,
+            admin_handle, AdminHandleMsg, load_admin,
+            assert_admin, save_admin}};
 
 macro_rules! tx_ok {
     () => {
@@ -107,8 +102,7 @@ contract! {
         // problem here is identifier concatenation
         // and making each field a module is ugly
         save_state!(NoGlobalState {});
-        InitResponse { messages: vec![set_vk], log: vec![] }
-    }
+        InitResponse { messages: vec![set_vk], log: vec![] } }
 
     [Query] (deps, _state, msg) -> Response {
 
@@ -121,31 +115,29 @@ contract! {
             let pool = Pool::new(&deps.storage).at(at);
             let pool_last_update = pool.timestamp()?;
             if at < pool_last_update {
-                return Err(StdError::generic_err("this contract does not store history"))
-            }
+                return Err(StdError::generic_err("this contract does not store history")) }
             Ok(Response::PoolInfo {
                 it_is_now: at,
 
-                lp_token: load_lp_token(&deps.storage, &deps.api)?,
+                lp_token:     load_lp_token(&deps.storage, &deps.api)?,
                 reward_token: load_reward_token(&deps.storage, &deps.api)?,
 
                 pool_last_update,
-                pool_lifetime:    pool.lifetime()?,
-                pool_locked:      pool.locked()?,
-                pool_claimed:     pool.claimed()?,
-                pool_balance:     pool.balance(),
+                pool_lifetime:  pool.lifetime()?,
+                pool_locked:    pool.locked()?,
+                pool_claimed:   pool.claimed()?,
+                pool_balance:   pool.balance(),
 
                 #[cfg(feature="age_threshold")]
-                pool_threshold:   pool.threshold()?,
+                pool_threshold: pool.threshold()?,
 
                 #[cfg(feature="claim_cooldown")]
-                pool_cooldown:    pool.cooldown()?,
+                pool_cooldown:  pool.cooldown()?,
 
                 #[cfg(feature="pool_liquidity_ratio")]
-                pool_liquid:      pool.liquidity_ratio()?,
+                pool_liquid:    pool.liquidity_ratio()?,
 
-                // todo add balance/claimed/total in rewards token
-            }) }
+                /* todo add balance/claimed/total in rewards token */ }) }
 
         /// Requires the user's viewing key.
         UserInfo (at: Time, address: HumanAddr, key: String) {
@@ -156,8 +148,7 @@ contract! {
             let pool = Pool::new(&deps.storage).at(at);
             let pool_last_update = pool.timestamp()?;
             if at < pool_last_update {
-                return Err(StdError::generic_err("no data"))
-            }
+                return Err(StdError::generic_err("no data")) }
             let pool_lifetime = pool.lifetime()?;
             let pool_locked   = pool.locked()?;
 
@@ -171,9 +162,7 @@ contract! {
             let user_last_update = user.timestamp()?;
             if let Some(user_last_update) = user_last_update {
                 if at < user_last_update {
-                    return Err(StdError::generic_err("no data"))
-                }
-            }
+                    return Err(StdError::generic_err("no data")) } }
 
             Ok(Response::UserInfo {
                 it_is_now: at,
@@ -194,8 +183,7 @@ contract! {
                 user_age:       user.present()?,
 
                 #[cfg(feature="claim_cooldown")]
-                user_cooldown:  user.cooldown()?
-            }) }
+                user_cooldown:  user.cooldown()? }) }
 
         /// Keplr integration
         TokenInfo () {
@@ -206,18 +194,14 @@ contract! {
                 name:         lp_token_name,
                 symbol:       "SRW".into(),
                 decimals:     1,
-                total_supply: None
-            }) }
+                total_supply: None }) }
 
         /// Keplr integration
         Balance (address: HumanAddr, key: String) {
             let address = deps.api.canonical_address(&address)?;
             authenticate(&deps.storage, &ViewingKey(key), address.as_slice())?;
             Ok(Response::Balance {
-                amount: Pool::new(&deps.storage).user(address).locked()?
-            }) }
-
-    }
+                amount: Pool::new(&deps.storage).user(address).locked()? }) } }
 
     [Response] {
 
@@ -242,8 +226,7 @@ contract! {
             pool_cooldown:    Time,
 
             #[cfg(feature="pool_liquidity_ratio")]
-            pool_liquid:      Amount
-        }
+            pool_liquid:      Amount }
 
         /// Response from `Query::UserInfo`
         UserInfo {
@@ -265,27 +248,21 @@ contract! {
             user_age:         Time,
 
             #[cfg(feature="claim_cooldown")]
-            user_cooldown:    Time
-        }
+            user_cooldown:    Time }
 
         Admin {
-            address: HumanAddr
-        }
+            address: HumanAddr }
 
         /// Keplr integration
         TokenInfo {
             name:         String,
             symbol:       String,
             decimals:     u8,
-            total_supply: Option<Amount>
-        }
+            total_supply: Option<Amount> }
 
         /// Keplr integration
         Balance {
-            amount: Amount
-        }
-
-    }
+            amount: Amount } }
 
     [Handle] (deps, env /* it's not unused :( */, _state, msg) -> Response {
 
@@ -379,8 +356,7 @@ contract! {
             #[cfg(feature="pool_closes")]
             if let Some(mut closed_response) = close_handler(&mut deps.storage, &deps.api, &env)? {
                 response.messages.append(&mut closed_response.messages);
-                response.log.append(&mut closed_response.log);
-            }
+                response.log.append(&mut closed_response.log); }
 
             // Get the reward token
             let reward_token_link = load_reward_token(&deps.storage, &deps.api)?;
