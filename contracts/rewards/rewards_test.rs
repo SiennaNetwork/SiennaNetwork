@@ -296,11 +296,9 @@ kukumba_harnessed! {
                         .claim(&cyril, 33)? }
 
         then "it's the same as if they provided the liquidity sequentially, as long as nobody claims" {
-            let Test = RewardsHarness::new()
-                .at(0)
-                .init_configured(&admin)?
-                .fund(PORTION)
+            RewardsHarness::new()
                 .set_vk(&alice, "")?.set_vk(&bob,   "")?.set_vk(&cyril, "")?
+                .at(          0).init_configured(&admin)?.fund(PORTION)
                 .at(          2).lock(&alice,     100)?
                 .at(DAY * 1 + 2).retrieve(&alice, 100)?
                 .at(DAY * 1 + 3).lock(&bob,       100)?

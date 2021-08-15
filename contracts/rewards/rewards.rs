@@ -398,22 +398,18 @@ pub fn close_handler (
 ) -> StdResult<Option<HandleResponse>> {
     Ok(if let Some(close_message) = Pool::new(&*storage).closed()? {
         let mut messages = vec![];
-        let mut log = vec![LogAttribute { key: "closed".into(), value: close_message.into() }];
-
-        let mut user = Pool::new(&mut*storage)
-            .at(env.block.height)
+        let mut log = vec![LogAttribute {
+            key: "closed".into(), value: close_message.into() }];
+        let mut user = Pool::new(&mut *storage).at(env.block.height)
             .user(api.canonical_address(&env.message.sender)?);
-
-        let locked = user.retrieve_tokens(user.locked()?)?;
-
+        let locked = user.retrieve_tokens(
+            user.locked()?)?;
         if locked > Amount::zero() {
             messages.push(
                 ISnip20::attach(&load_lp_token(&*storage, api)?)
-                    .transfer(&env.message.sender, locked)?
-            );
-            log.push(LogAttribute { key: "retrieved".into(), value: locked.into() });
-        };
-
+                    .transfer(&env.message.sender, locked)?);
+            log.push(LogAttribute {
+                key: "retrieved".into(), value: locked.into() });};
         Some(HandleResponse { messages, log, ..HandleResponse::default() })
     } else {
         None

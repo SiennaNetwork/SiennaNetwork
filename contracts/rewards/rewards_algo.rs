@@ -104,7 +104,7 @@ pub struct Pool <S> {
 
 /// User account
 pub struct User <S> {
-    pool:    Pool<S>,
+    pub pool:    Pool<S>,
     pub address: CanonicalAddr
 }
 
@@ -113,17 +113,30 @@ impl <S> Pool<S> {
     pub fn new (storage: S) -> Self {
         Self { storage, now: None, balance: None }
     }
-    /// Set the current time
+    /// Return a new Pool at given time
     pub fn at (self, now: Time) -> Self {
         Self { now: Some(now), ..self }
     }
-    /// Set the current balance
+    /// Return a new Pool with given balance
     pub fn with_balance (self, balance: Amount) -> Self {
         Self { balance: Some(balance), ..self }
     }
     /// Get an individual user from the pool
     pub fn user (self, address: CanonicalAddr) -> User<S> {
         User { pool: self, address }
+    }
+
+    #[cfg(test)]
+    /// Mutate the current time
+    pub fn set_time<'a> (&'a mut self, now: Time) -> &'a mut Self {
+        self.now = Some(now);
+        self
+    }
+    #[cfg(test)]
+    /// Mutate the current balance
+    pub fn set_balance<'a> (&'a mut self, balance: Amount) -> &'a mut Self {
+        self.balance = Some(balance);
+        self
     }
 }
 
@@ -138,8 +151,7 @@ stateful!(Pool (storage):
             // stop time when closing pool
             #[cfg(feature="pool_closes")]
             if self.closed()?.is_some() {
-                return Ok(0 as Time)
-            }
+                return Ok(0 as Time) }
 
             Ok(self.now()? - self.timestamp()?) }
 
@@ -301,6 +313,12 @@ stateful!(Pool (storage):
         #[cfg(feature="pool_liquidity_ratio")]
         pub fn set_created (&mut self, time: &Time) -> StdResult<&mut Self> {
             self.save(POOL_CREATED, time) }
+
+        #[cfg(all(test, feature="pool_liquidity_ratio"))]
+        pub fn reset_liquidity_ratio (&mut self) -> StdResult<&mut Self> {
+            let existed = self.existed()?;
+            self.update_locked(self.balance())?
+                .save(POOL_LIQUID, existed) }
 
         #[cfg(feature="pool_closes")]
         pub fn close (&mut self, message: String) -> StdResult<&mut Self> {
@@ -492,7 +510,7 @@ stateful!(User (pool.storage):
 
         // lp-related mutations -------------------------------------------------------------------
 
-        fn update (&mut self, user_balance: Amount, pool_balance: Amount) -> StdResult<()> {
+        fn update (&mut self, user_locked: Amount, pool_locked: Amount) -> StdResult<&mut Self> {
             // Prevent replay
             let now = self.pool.now()?;
             if let Some(timestamp) = self.timestamp()? {
@@ -525,11 +543,11 @@ stateful!(User (pool.storage):
                 // Set user's time of last update to now
                 .save_ns(USER_TIMESTAMP, address.as_slice(), now)?
                 // Update amount locked
-                .save_ns(USER_LOCKED,    address.as_slice(), user_balance)?
+                .save_ns(USER_LOCKED,    address.as_slice(), user_locked)?
                 // Update total amount locked in pool
-                .pool.update_locked(pool_balance)?;
+                .pool.update_locked(pool_locked)?;
 
-            Ok(()) }
+            Ok(self) }
 
         pub fn lock_tokens (&mut self, increment: Amount) -> StdResult<Amount> {
             let locked = self.locked()?;
@@ -554,6 +572,7 @@ stateful!(User (pool.storage):
 
         fn increment_claimed (&mut self, reward: Amount) -> StdResult<&mut Self> {
             let address = self.address.clone();
+            self.pool.increment_claimed(reward)?;
             self.save_ns(USER_CLAIMED, address.as_slice(), self.claimed()? + reward) }
 
         pub fn claim_reward (&mut self) -> StdResult<Amount> {
@@ -583,7 +602,6 @@ stateful!(User (pool.storage):
 
             // (In the meantime, update how much has been claimed...
             self.increment_claimed(claimable)?;
-            self.pool.increment_claimed(claimable)?;
 
             // ...and, optionally, reset the cooldown so that
             // the user has to wait before claiming again)
@@ -605,8 +623,14 @@ stateful!(User (pool.storage):
                         Volume::zero())?; } }
 
             // Return the amount that the contract will send to the user
-            Ok(claimable)
-        }
+            Ok(claimable) }
+
+        #[cfg(all(test, feature="user_liquidity_ratio"))]
+        pub fn reset_liquidity_ratio (&mut self) -> StdResult<&mut Self> {
+            let address = self.address.clone();
+            let existed = self.existed()?;
+            self.update(self.locked()?, self.pool.locked()?)?
+                .save_ns(USER_PRESENT, address.as_slice(), existed) }
     }
 );
 
