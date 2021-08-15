@@ -217,18 +217,15 @@ stateful!(Pool (storage):
                 Ok(self.last_liquid()?) } }
 
         #[cfg(feature="pool_liquidity_ratio")]
-        fn last_liquid (&self) -> StdResult<Time> {
+        pub fn last_liquid (&self) -> StdResult<Time> {
             match self.load(POOL_LIQUID)? {
                 Some(liquid) => Ok(liquid),
                 None => Ok(0 as Time) } }
 
         #[cfg(feature="pool_liquidity_ratio")]
         pub fn liquidity_ratio (&self) -> StdResult<Amount> {
-            let existed = self.existed()?;
-            if existed == 0 {
-                return Ok(Amount::from(HUNDRED_PERCENT)) }
             Ok(Volume::from(HUNDRED_PERCENT)
-                .multiply_ratio(self.liquid()?, existed)?
+                .diminish_or_max(self.liquid()?, self.existed()?)?
                 .low_u128().into()) }
 
         #[cfg(feature="pool_liquidity_ratio")]
@@ -327,30 +324,26 @@ stateful!(User (pool.storage):
             // stop time when closing pool
             #[cfg(feature="pool_closes")]
             if self.pool.closed()?.is_some() {
-                return Ok(0 as Time)
-            }
+                return Ok(0 as Time) }
 
             let now = self.pool.now()?;
             if let Ok(Some(timestamp)) = self.timestamp() {
                 if now < timestamp { // prevent replay
-                    return error!("no data")
-                } else {
-                    Ok(now - timestamp)
-                }
-            } else {
-                Ok(0 as Time)
-            }
-        }
+                    return error!("no data") }
+                else {
+                    Ok(now - timestamp) } }
+            else {
+                Ok(0 as Time) } }
 
         /// Time that progresses only when the user has some tokens locked.
         /// Used to increment presence and lifetime.
         pub fn elapsed_present (&self) -> StdResult<Time> {
             if self.locked()? > Amount::zero() {
-                self.elapsed()
-            } else {
-                Ok(0 as Time)
-            }
-        }
+                self.elapsed() }
+            else {
+                Ok(0 as Time) } }
+
+        // user existence = time since this user first locked tokens -------------------------------
 
         #[cfg(feature="user_liquidity_ratio")]
         /// Up-to-date time for which the user has existed
@@ -365,13 +358,11 @@ stateful!(User (pool.storage):
 
         #[cfg(feature="user_liquidity_ratio")]
         pub fn liquidity_ratio (&self) -> StdResult<Amount> {
-            let present = self.present()?;
-            let ratio = if present == 0u64 {
-                Volume::from(HUNDRED_PERCENT) }
-            else {
-                Volume::from(HUNDRED_PERCENT)
-                    .multiply_ratio(present, self.existed()?)? };
-            Ok(ratio.low_u128().into()) }
+            Ok(Volume::from(HUNDRED_PERCENT)
+                .diminish_or_max(self.present()?, self.existed()?)?
+                .low_u128().into()) }
+
+        // user presence = time the user has had >0 LP tokens locked in the pool -------------------
 
         #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))]
         /// Up-to-date time for which the user has provided liquidity
@@ -383,6 +374,8 @@ stateful!(User (pool.storage):
         pub fn last_present (&self) -> StdResult<Time> {
             Ok(self.load_ns(USER_PRESENT, self.address.as_slice())?
                 .unwrap_or(0 as Time)) }
+
+        // cooldown - reset on claim, decremented towards 0 as time advances -----------------------
 
         #[cfg(feature="claim_cooldown")]
         pub fn cooldown (&self) -> StdResult<Time> {
@@ -427,66 +420,59 @@ stateful!(User (pool.storage):
         // In that case, https://google.github.io/filament/webgl/suzanne.html
 
         pub fn share (&self, basis: u128) -> StdResult<Volume> {
-            let pool_lifetime = self.pool.lifetime()?;
-            if pool_lifetime == Volume::zero() {
-                return Ok(Volume::zero()) }
+            let share = Volume::from(basis);
 
-            let mut share = Volume::from(basis);
-            let mut lifetime = self.lifetime()?;
-            #[cfg(feature="user_liquidity_ratio")] {
-                let existed = self.existed()?;
-                if existed == 0u64 {
-                    lifetime = Volume::zero(); }
-                else {
-                    lifetime = lifetime.multiply_ratio(
-                        self.present()?, self.existed()?)?; } }
+            // reduce lifetime by normal lifetime ratio
+            let share = share.diminish_or_zero(self.lifetime()?, self.pool.lifetime()?)?;
 
-            share = share.multiply_ratio(lifetime, pool_lifetime)?;
+            // reduce lifetime by liquidity ratio
+            #[cfg(feature="user_liquidity_ratio")]
+            let share = share.diminish_or_zero(self.present()?, self.existed()?)?;
 
             Ok(share) }
 
         pub fn earned (&self) -> StdResult<Amount> {
-            let mut budget = self.pool.budget()?;
+            let mut budget = Amount::from(self.pool.budget()?);
 
             #[cfg(feature="pool_liquidity_ratio")] {
-                let existed = self.pool.existed()?;
-                if existed == 0u64 { return Ok(Amount::zero()) }
-                budget = budget.multiply_ratio(self.pool.liquid()?, existed); }
+                budget = budget.diminish_or_zero(self.pool.liquid()?, self.pool.existed()?)?; }
 
             #[cfg(feature="global_ratio")] {
                 let ratio = self.pool.ratio()?;
-                if ratio.1 == Amount::zero() { return Ok(Amount::zero()) }
-                budget = budget.multiply_ratio(ratio.0, ratio.1); }
+                budget = budget.diminish_or_zero(ratio.0, ratio.1)? }
 
             Ok(self.share(budget.u128())?.low_u128().into()) }
 
         pub fn claimed (&self) -> StdResult<Amount> {
-            Ok(self.load_ns(USER_CLAIMED, self.address.as_slice())?.unwrap_or(Amount::zero())) }
+            Ok(self.load_ns(USER_CLAIMED, self.address.as_slice())?
+                .unwrap_or(Amount::zero())) }
 
         pub fn claimable (&self) -> StdResult<Amount> {
             #[cfg(feature="age_threshold")]
-            // you must lock for this long to claim
+            // can only claim after age threshold
             if self.present()? < self.pool.threshold()? {
                 return Ok(Amount::zero()) }
 
+            // can only claim if earned something
             let earned = self.earned()?;
             if earned == Amount::zero() {
                 return Ok(Amount::zero()) }
 
+            // can only claim if earned > claimed
             let claimed = self.claimed()?;
             if earned <= claimed {
                 return Ok(Amount::zero()) }
 
-            if let Some(balance) = self.pool.balance {
-                let claimable = (earned - claimed)?;
-                if claimable > balance {
-                    return Ok(balance)
-                } else {
-                    return Ok(claimable)
-                }
-            } else {
-                return Ok(Amount::zero())
-            }
+            // can only claim if the pool has balance
+            match self.pool.balance {
+                None => Ok(Amount::zero()),
+                Some(balance) => {
+                    let claimable = (earned - claimed)?;
+                    // not possible to claim more than the remaining pool balance
+                    if claimable > balance {
+                        Ok(balance) }
+                    else {
+                        Ok(claimable) } } }
         }
 
     }

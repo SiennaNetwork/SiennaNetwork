@@ -284,19 +284,22 @@ contract! {
         #[cfg(feature="global_ratio")]
         ChangeRatio (numerator: Amount, denominator: Amount) {
             assert_admin(&deps, &env)?;
-            Pool::new(&mut deps.storage).configure_ratio(&(numerator, denominator))?;
+            Pool::new(&mut deps.storage)
+                .configure_ratio(&(numerator.into(), denominator.into()))?;
             tx_ok!() }
 
         #[cfg(feature="age_threshold")]
         ChangeThreshold (threshold: Time) {
             assert_admin(&deps, &env)?;
-            Pool::new(&mut deps.storage).configure_threshold(&threshold)?;
+            Pool::new(&mut deps.storage)
+                .configure_threshold(&threshold)?;
             tx_ok!() }
 
         #[cfg(feature="claim_cooldown")]
         ChangeCooldown (cooldown: Time) {
             assert_admin(&deps, &env)?;
-            Pool::new(&mut deps.storage).configure_cooldown(&cooldown)?;
+            Pool::new(&mut deps.storage)
+                .configure_cooldown(&cooldown)?;
             tx_ok!() }
 
         #[cfg(feature="pool_closes")]

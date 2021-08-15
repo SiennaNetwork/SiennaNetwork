@@ -9,7 +9,7 @@
 //! then, during read-only queries the new "current" can be computes based on
 //! the stored value and the elapsed time since the last such transaction.
 
-use fadroma::scrt::{cosmwasm_std::{StdResult, Uint128}, utils::Uint256};
+use fadroma::scrt::{cosmwasm_std::{StdResult, StdError, Uint128}, utils::Uint256};
 
 /// A monotonic time counter, such as env.block.time or env.block.height
 pub type Time   = u64;
@@ -33,5 +33,72 @@ pub fn tally (
     value_after_last_update:  Amount
 ) -> StdResult<Volume> {
     total_before_last_update + Volume::from(value_after_last_update)
-        .multiply_ratio(time_updated_last_update, 1u128)?
-}
+        .multiply_ratio(time_updated_last_update, 1u128)? }
+
+pub trait Diminish<
+    T: From<u64> + From<Self>,
+    N: Eq + From<u64
+>>: Copy {
+    /// Divide self on num/denom; throw if num > denom or if denom == 0
+    fn diminish         (self, num: N, denom: N) -> StdResult<T>;
+    /// Diminish, but return 0 if denom == 0
+    fn diminish_or_max (self, num: N, denom: N) -> StdResult<T> {
+        if denom == 0u64.into() {
+            Ok(self.into()) }
+        else {
+            self.diminish(num, denom) } }
+    /// Diminish, but return self if denom == 0
+    fn diminish_or_zero (self, num: N, denom: N) -> StdResult<T> {
+        if denom == 0u64.into() {
+            Ok(0u64.into()) }
+        else {
+            self.diminish(num, denom) } } }
+
+impl Diminish<Self, Time> for Volume {
+    fn diminish (self, num: Time, denom: Time) -> StdResult<Self> {
+        if num > denom {
+            Err(StdError::generic_err("num > denom in diminish function")) }
+        else {
+            Ok(self.multiply_ratio(num, denom)?) } } }
+
+impl Diminish<Self, Amount> for Volume {
+    fn diminish (self, num: Amount, denom: Amount) -> StdResult<Self> {
+        if num > denom {
+            Err(StdError::generic_err("num > denom in diminish function")) }
+        else {
+            Ok(self.multiply_ratio(num, denom)?) } } }
+
+impl Diminish<Self, u128> for Volume {
+    fn diminish (self, num: u128, denom: u128) -> StdResult<Self> {
+        if num > denom {
+            Err(StdError::generic_err("num > denom in diminish function")) }
+        else {
+            Ok(self.multiply_ratio(num, denom)?) } } }
+
+impl Diminish<Self, Volume> for Volume {
+    fn diminish (self, num: Uint256, denom: Uint256) -> StdResult<Self> {
+        if num > denom {
+            Err(StdError::generic_err("num > denom in diminish function")) }
+        else {
+            Ok(self.multiply_ratio(num, denom)?) } } }
+
+impl Diminish<Self, Amount> for Amount {
+    fn diminish (self, num: Amount, denom: Amount) -> StdResult<Self> {
+        if num > denom {
+            Err(StdError::generic_err("num > denom in diminish function")) }
+        else {
+            Ok(self.multiply_ratio(num, denom)) } } }
+
+impl Diminish<Self, u128> for Amount {
+    fn diminish (self, num: u128, denom: u128) -> StdResult<Self> {
+        if num > denom {
+            Err(StdError::generic_err("num > denom in diminish function")) }
+        else {
+            Ok(self.multiply_ratio(num, denom)) } } }
+
+impl Diminish<Self, Time> for Amount {
+    fn diminish (self, num: Time, denom: Time) -> StdResult<Self> {
+        if num > denom {
+            Err(StdError::generic_err("num > denom in diminish function")) }
+        else {
+            Ok(self.multiply_ratio(num, denom)) } } }
