@@ -234,12 +234,18 @@ kukumba_harnessed! {
             let mut user = pool.user(addr.clone());
             user.retrieve_tokens(50u128.into())?;
             assert_eq!(user.liquidity_ratio()?, 100000000u128.into());
-            let mut pool = Pool::new(&mut s).at(50000);
+
+            let mut pool = Pool::new(&mut s).at(40000);
             let mut user = pool.user(addr.clone());
-            assert_eq!(user.liquidity_ratio()?,  50000000u128.into()); }
+            assert_eq!(user.liquidity_ratio()?,  66666666u128.into()); }
 
         when "LP tokens are locked again by this user"
         then "the user's liquidity ratio begins to increase toward 1" {
+            let mut pool = Pool::new(&mut s).at(50000);
+            let mut user = pool.user(addr.clone());
+            user.lock_tokens(50u128.into())?;
+            assert_eq!(user.liquidity_ratio()?,  50000000u128.into());
+
             let mut pool = Pool::new(&mut s).at(90000);
             let mut user = pool.user(addr.clone());
             assert_eq!(user.liquidity_ratio()?,  75000000u128.into()); }
@@ -247,10 +253,12 @@ kukumba_harnessed! {
         when "the user is eligible to claim rewards"
         then "the rewards are diminished by the user's liquidity ratio" {
             let mut pool = Pool::new(&mut s).with_balance(100u128.into()).at(90000);
+
             // mock away the pool liquidity ratio if applied:
             #[cfg(feature="pool_liquidity_ratio")] {
                 let never_empty = pool.existed()?;
                 pool.save(crate::rewards_algo::POOL_LIQUID, never_empty)?; }
+
             let mut user = pool.user(addr.clone());
             user.retrieve_tokens(50u128.into())?;
             assert_eq!(user.claim_reward()?, 75u128.into()); } }
