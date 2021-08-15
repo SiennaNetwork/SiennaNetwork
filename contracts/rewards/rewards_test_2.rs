@@ -177,6 +177,7 @@ kukumba_harnessed! {
         then "the rewards are diminished by the pool liquidity ratio" {
             user.pool.set_balance(100u128.into());
             user.retrieve_tokens(50u128.into())?;
+            #[cfg(feature="user_liquidity_ratio")] user.reset_liquidity_ratio()?;
             assert_eq!(user.claim_reward()?, 75u128.into()); } }
 
     feature_user_liquidity_ratio {
