@@ -178,14 +178,14 @@ kukumba_harnessed! {
             assert_eq!(Pool::new(&mut s).at(30000)
                 .liquidity_ratio()?, 100000000u128.into());
             assert_eq!(Pool::new(&mut s).at(50000)
-                .liquidity_ratio()?,   50000000u128.into()); }
+                .liquidity_ratio()?,  50000000u128.into()); }
 
         when "some LP tokens are locked again"
         then "the pool liquidity ratio begins to increase toward 1" {
             Pool::new(&mut s).at(50000).user(addr.clone())
                 .lock_tokens(50u128.into())?;
             assert_eq!(Pool::new(&mut s).at(90000)
-                .liquidity_ratio()?, 75000000u128.into()); }
+                .liquidity_ratio()?,  75000000u128.into()); }
 
         when "a user is eligible to claim rewards"
         then "the rewards are diminished by the pool liquidity ratio" {
@@ -211,39 +211,49 @@ kukumba_harnessed! {
 
         when "LP tokens have never been locked by this user"
         then "the user's liquidity ratio is 1" {
-            let user = pool.user(addr.clone());
-            println!("{:?}",user.liquidity_ratio());
-            println!("{:?}",user.liquidity_ratio());
-            assert!(user.liquidity_ratio()?, 100000000u128.into()); }
+            let mut user = pool.user(addr.clone());
+            assert_eq!(user.liquidity_ratio()?, 100000000u128.into()); }
 
         when "LP tokens are locked by this user"
-        then "the user's liquidity ratio is still 1" {
-            unimplemented!() }
+        then "the user's liquidity ratio remains 1" {
+            let mut pool = Pool::new(&mut s).at(10000);
+            let mut user = pool.user(addr.clone());
+            user.lock_tokens(100u128.into())?;
+            assert_eq!(user.liquidity_ratio()?, 100000000u128.into()); }
 
         when "some LP tokens are unlocked by this user"
-        then "the user's liquidity ratio begins to decrease toward 0" {
-            unimplemented!() }
+        then "the user's liquidity ratio remains 1" {
+            let mut pool = Pool::new(&mut s).at(20000);
+            let mut user = pool.user(addr.clone());
+            user.retrieve_tokens(50u128.into())?;
+            assert_eq!(user.liquidity_ratio()?, 100000000u128.into()); }
 
         when "all LP tokens are unlocked by this user"
         then "the user's liquidity ratio begins to decrease toward 0" {
-            unimplemented!() }
+            let mut pool = Pool::new(&mut s).at(30000);
+            let mut user = pool.user(addr.clone());
+            user.retrieve_tokens(50u128.into())?;
+            assert_eq!(user.liquidity_ratio()?, 100000000u128.into());
+            let mut pool = Pool::new(&mut s).at(50000);
+            let mut user = pool.user(addr.clone());
+            assert_eq!(user.liquidity_ratio()?,  50000000u128.into()); }
 
         when "LP tokens are locked again by this user"
         then "the user's liquidity ratio begins to increase toward 1" {
-            unimplemented!() }
+            let mut pool = Pool::new(&mut s).at(90000);
+            let mut user = pool.user(addr.clone());
+            assert_eq!(user.liquidity_ratio()?,  75000000u128.into()); }
 
         when "the user is eligible to claim rewards"
         then "the rewards are diminished by the user's liquidity ratio" {
-            unimplemented!() }
-
-        //user.existed
-        //user.last_existed
-        //user.present
-        //user.last_present
-        //user.lifetime
-        //user.share
-        //user.update
-    }
+            let mut pool = Pool::new(&mut s).with_balance(100u128.into()).at(90000);
+            // mock away the pool liquidity ratio if applied:
+            #[cfg(feature="pool_liquidity_ratio")] {
+                let never_empty = pool.existed()?;
+                pool.save(crate::rewards_algo::POOL_LIQUID, never_empty)?; }
+            let mut user = pool.user(addr.clone());
+            user.retrieve_tokens(50u128.into())?;
+            assert_eq!(user.claim_reward()?, 75u128.into()); } }
 
     feature_selective_memory {
         given "nothing" { unimplemented!() }

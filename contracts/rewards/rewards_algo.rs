@@ -224,7 +224,7 @@ stateful!(Pool (storage):
 
         #[cfg(feature="pool_liquidity_ratio")]
         pub fn liquidity_ratio (&self) -> StdResult<Amount> {
-            let existed = self.now()? - self.seeded()?;
+            let existed = self.existed()?;
             if existed == 0 {
                 return Ok(Amount::from(HUNDRED_PERCENT)) }
             Ok(Volume::from(HUNDRED_PERCENT)
