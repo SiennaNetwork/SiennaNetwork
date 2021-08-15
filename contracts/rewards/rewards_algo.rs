@@ -363,6 +363,16 @@ stateful!(User (pool.storage):
             Ok(self.load_ns(USER_EXISTED, self.address.as_slice())?
                 .unwrap_or(0 as Time)) }
 
+        #[cfg(feature="pool_liquidity_ratio")]
+        pub fn liquidity_ratio (&self) -> StdResult<Amount> {
+            let present = self.present()?;
+            let ratio = if present == 0u64 {
+                Volume::from(HUNDRED_PERCENT) }
+            else {
+                Volume::from(HUNDRED_PERCENT)
+                    .multiply_ratio(self.existed()?, present)? };
+            Ok(ratio.low_u128().into()) }
+
         #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))]
         /// Up-to-date time for which the user has provided liquidity
         pub fn present (&self) -> StdResult<Time> {

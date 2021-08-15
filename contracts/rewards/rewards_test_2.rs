@@ -139,15 +139,15 @@ kukumba_harnessed! {
     feature_pool_liquidity_ratio {
 
         given "a pool" {
-            let addr = CanonicalAddr::default();
-            let mut s = MemoryStorage::new(); }
-
-        when "LP tokens have never been locked"
-        then "the pool liquidity ratio is unknown" {
+            let addr     = CanonicalAddr::default();
+            let mut s    = MemoryStorage::new();
             let mut pool = Pool::new(&mut s).at(0);
             pool.configure_threshold(&crate::DAY)?
                 .configure_cooldown(&0)?
-                .configure_ratio(&(1u128.into(), 1u128.into()))?;
+                .configure_ratio(&(1u128.into(), 1u128.into()))?; }
+
+        when "LP tokens have never been locked"
+        then "the pool liquidity ratio is unknown" {
             assert!(pool.liquidity_ratio()
                 .is_err()); }
 
@@ -192,32 +192,50 @@ kukumba_harnessed! {
             let mut pool = Pool::new(&mut s).with_balance(100u128.into()).at(90000);
             let mut user = pool.user(addr.clone());
             user.retrieve_tokens(50u128.into())?;
-            // mock away the user liquidity ratio:
-            let never_left = user.last_existed()?;
-            let address = user.address.clone();
-            user.save_ns(crate::rewards_algo::USER_PRESENT, address.as_slice(), never_left)?;
+            // mock away the user liquidity ratio if applied:
+            #[cfg(feature="user_liquidity_ratio")] {
+                let never_left = user.last_existed()?;
+                let address = user.address.clone();
+                user.save_ns(crate::rewards_algo::USER_PRESENT, address.as_slice(), never_left)?; }
             assert_eq!(user.claim_reward()?, 75u128.into()); } }
 
     feature_user_liquidity_ratio {
-        given "nothing" { unimplemented!() }
 
         given "a pool" {
-            let mut s = MemoryStorage::new(); }
+            let addr     = CanonicalAddr::default();
+            let mut s    = MemoryStorage::new();
+            let mut pool = Pool::new(&mut s).at(0);
+            pool.configure_threshold(&crate::DAY)?
+                .configure_cooldown(&0)?
+                .configure_ratio(&(1u128.into(), 1u128.into()))?; }
 
         when "LP tokens have never been locked by this user"
-        then "the user's liquidity ratio is 1" {}
+        then "the user's liquidity ratio is 1" {
+            let user = pool.user(addr.clone());
+            println!("{:?}",user.liquidity_ratio());
+            println!("{:?}",user.liquidity_ratio());
+            assert!(user.liquidity_ratio()?, 100000000u128.into()); }
 
         when "LP tokens are locked by this user"
-        then "the user's liquidity ratio is still 1" {}
+        then "the user's liquidity ratio is still 1" {
+            unimplemented!() }
 
-        when "LP tokens are unlocked by this user"
-        then "the user's liquidity ratio begins to decrease toward 0" {}
+        when "some LP tokens are unlocked by this user"
+        then "the user's liquidity ratio begins to decrease toward 0" {
+            unimplemented!() }
+
+        when "all LP tokens are unlocked by this user"
+        then "the user's liquidity ratio begins to decrease toward 0" {
+            unimplemented!() }
 
         when "LP tokens are locked again by this user"
-        then "the user's liquidity ratio begins to increase toward 1" {}
+        then "the user's liquidity ratio begins to increase toward 1" {
+            unimplemented!() }
 
         when "the user is eligible to claim rewards"
-        then "the rewards are diminished by their liquidity ratio" {}
+        then "the rewards are diminished by the user's liquidity ratio" {
+            unimplemented!() }
+
         //user.existed
         //user.last_existed
         //user.present
