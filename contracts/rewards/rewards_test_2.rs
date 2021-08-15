@@ -189,7 +189,8 @@ kukumba_harnessed! {
 
         when "a user is eligible to claim rewards"
         then "the rewards are diminished by the pool liquidity ratio" {
-            let mut pool = Pool::new(&mut s).with_balance(100u128.into()).at(90000);
+            let mut pool = Pool::new(&mut s).at(90000)
+                .with_balance(100u128.into());
             let mut user = pool.user(addr.clone());
             user.retrieve_tokens(50u128.into())?;
             // mock away the user liquidity ratio if applied:
@@ -252,15 +253,14 @@ kukumba_harnessed! {
 
         when "the user is eligible to claim rewards"
         then "the rewards are diminished by the user's liquidity ratio" {
+            user.retrieve_tokens(50u128.into())?;
             let mut pool = Pool::new(&mut s).with_balance(100u128.into()).at(90000);
 
             // mock away the pool liquidity ratio if applied:
             #[cfg(feature="pool_liquidity_ratio")] {
-                let never_empty = pool.existed()?;
-                pool.save(crate::rewards_algo::POOL_LIQUID, never_empty)?; }
+                pool.save(crate::rewards_algo::POOL_LIQUID, &pool.existed()?)?; }
 
             let mut user = pool.user(addr.clone());
-            user.retrieve_tokens(50u128.into())?;
             assert_eq!(user.claim_reward()?, 75u128.into()); } }
 
     feature_selective_memory {

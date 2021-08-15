@@ -203,7 +203,7 @@ stateful!(Pool (storage):
         #[cfg(feature="global_ratio")]
         /// Ratio between share of liquidity provided and amount of reward
         /// Should be <= 1 to make sure rewards budget is sufficient.
-        pub fn ratio (&self) -> StdResult<Ratio> {
+        pub fn global_ratio (&self) -> StdResult<Ratio> {
             match self.load(POOL_RATIO)? {
                 Some(ratio) => Ok(ratio),
                 None        => error!("missing reward ratio") } }
@@ -423,11 +423,13 @@ stateful!(User (pool.storage):
             let share = Volume::from(basis);
 
             // reduce lifetime by normal lifetime ratio
-            let share = share.diminish_or_zero(self.lifetime()?, self.pool.lifetime()?)?;
+            let share = share.diminish_or_zero(
+                self.lifetime()?, self.pool.lifetime()?)?;
 
             // reduce lifetime by liquidity ratio
             #[cfg(feature="user_liquidity_ratio")]
-            let share = share.diminish_or_zero(self.present()?, self.existed()?)?;
+            let share = share.diminish_or_zero(
+                self.present()?, self.existed()?)?;
 
             Ok(share) }
 
@@ -435,11 +437,13 @@ stateful!(User (pool.storage):
             let mut budget = Amount::from(self.pool.budget()?);
 
             #[cfg(feature="pool_liquidity_ratio")] {
-                budget = budget.diminish_or_zero(self.pool.liquid()?, self.pool.existed()?)?; }
+                budget = budget.diminish_or_zero(
+                    self.pool.liquid()?, self.pool.existed()?)?; }
 
             #[cfg(feature="global_ratio")] {
-                let ratio = self.pool.ratio()?;
-                budget = budget.diminish_or_zero(ratio.0, ratio.1)? }
+                let ratio = self.pool.global_ratio()?;
+                budget = budget.diminish_or_zero(
+                    ratio.0, ratio.1)? }
 
             Ok(self.share(budget.u128())?.low_u128().into()) }
 
@@ -595,10 +599,10 @@ stateful!(User (pool.storage):
             #[cfg(feature="selective_memory")] {
                 if locked == Amount::zero() {
                     let address = self.address.clone();
-                    self.save_ns(USER_LIFETIME, address.as_slice(), Volume::zero())?;
-                    self.save_ns(USER_CLAIMED,  address.as_slice(), Volume::zero())?;
-                }
-            }
+                    self.save_ns(USER_LIFETIME, address.as_slice(),
+                        Volume::zero())?;
+                    self.save_ns(USER_CLAIMED,  address.as_slice(),
+                        Volume::zero())?; } }
 
             // Return the amount that the contract will send to the user
             Ok(claimable)
