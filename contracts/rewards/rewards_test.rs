@@ -42,55 +42,60 @@ kukumba_harnessed! {
                 .init_configured(&admin)?
                 .fund(PORTION)
                 .set_vk(&alice, "")?
-                .user(&alice,       0,   0,             0,   0,   0,   0)? }
+                .user(&alice,     0,   0,       0,   0,   0,   0)? }
 
         when  "pool is closed by admin after some activity" {
             Test.at(1)
                 .lock(&alice, 100u128.into())?
-                .user(&alice,       0, 100,             0,   0,   0,   0)?;
+                .user(&alice,     0, 100,       0,   0,   0,   0)?;
 
             Test.after(DAY)
-                .user(&alice, 1 * DAY, 100, 100 * DAY, 100,   0, 100)?
+                .user(&alice, 1*DAY, 100, 100*DAY, 100,   0, 100)?
                 .claim(&alice, 100)?
-                .user(&alice, 1 * DAY, 100, 100 * DAY, 100, 100,   0)?;
+                .user(&alice, 1*DAY, 100, 100*DAY, 100, 100,   0)?;
 
             Test.after(DAY)
                 .retrieve(&alice, 100)?
-                .fund(100)
-                .user(&alice, 2 * DAY,   0, 200 * DAY, 200, 100, 100)?;
+                .fund(PORTION)
+                .user(&alice, 2*DAY,   0, 200*DAY, 200, 100, 100)?;
 
             Test.after(DAY)
-                .user(&alice, 2 * DAY,   0, 200 * DAY,  88, 100,   0)?
-                .fund(100)
-                .user(&alice, 2 * DAY,   0, 200 * DAY, 133, 100,  33)?
+                .user(&alice, 2*DAY,   0, 200*DAY,  88, 100,   0)?
+                .fund(PORTION)
+                .user(&alice, 2*DAY,   0, 200*DAY, 133, 100,  33)?
                 .lock(&alice, 50)?;
 
-            println!("0");
             Test.after(DAY)
-                .user(&alice, 3 * DAY,  50, 250 * DAY, 168, 100,  68)?;
+                .user(&alice, 3*DAY,  50, 250*DAY, 168, 100,  68)?;
 
-            println!("1");
             Test.after(DAY)
-                .user(&alice, 4 * DAY,  50, 300 * DAY, 192, 100,  92)?
+                .user(&alice, 4*DAY,  50, 300*DAY, 192, 100,  92)?
                 .close(&admin)?
-                .user(&alice, 4 * DAY,  50, 300 * DAY, 192, 100,  92)?; }
+                .user(&alice, 4*DAY,  50, 300*DAY, 192, 100,  92)?; }
 
         then  "time stops" {
-            println!("2");
             Test.after(DAY)
-                .user(&alice, 4 * DAY,  50, 300 * DAY, 192, 100,  92)?;
-            println!("3");
+                .user(&alice, 4*DAY,  50, 300*DAY, 192, 100,  92)?;
             Test.after(DAY)
-                .user(&alice, 4 * DAY,  50, 300 * DAY, 192, 100,  92)?; }
+                .user(&alice, 4*DAY,  50, 300*DAY, 192, 100,  92)?; }
 
+        given "a closed pool"
         when  "user with locked tokens performs any action"
-        then  "user gets all locked tokens back" {
-            //user.lock_tokens(100u128.into());
-            unimplemented!() }
+        then  "user gets all locked tokens back instead"
+        and   "user can't do anything else" {
+            assert_eq!(Test.after(DAY).tx_lock(&alice, 1000)?,
+                      (vec![Snip20::transfer(&alice.as_str(), "50") ], 0, 0));
+            assert_eq!(Test.after(DAY).tx_lock(&alice, 1000)?,
+                      (vec![], 0, 0)); }
 
         when  "user claims rewards"
         then  "user can earn no more rewards" {
-            unimplemented!() } }
+            Test.after(DAY)
+                .user(&alice, 4*DAY,   0, 300*DAY, 192, 100,  92)?;
+            Test.claim(&alice, 92)?
+                .user(&alice, 4*DAY,   0,       0,   0,   0,   0)?;
+            Test.fund(PORTION)
+                .user(&alice, 4*DAY,   0,       0,   0,   0,   0)? } }
 
     init_then_set_lp_token {
         given "no instance"

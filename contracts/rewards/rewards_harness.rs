@@ -282,7 +282,7 @@ impl RewardsHarness<RewardsMockQuerier> {
             key: key.into(),
             padding: None }) }
 
-    fn tx_lock (&mut self, agent: &HumanAddr, amount: u128) -> TxResult {
+    pub fn tx_lock (&mut self, agent: &HumanAddr, amount: u128) -> TxResult {
         self.tx(self.now(), agent, TX::Lock {
             amount: amount.into() }) }
 
