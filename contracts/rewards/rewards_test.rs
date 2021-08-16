@@ -76,23 +76,23 @@ kukumba_harnessed! {
                        .user(&alice,   3,  50, 300, 100, 0, 0)? }
 
         when "alice retrieves all of the tokens,"
-        then "alice's age stops incrementing;" {
-            Test.at( 5).user(&alice,   4,  50, 350, 100, 0, 0)?
-                .at( 6).user(&alice,   5,  50, 400, 100, 0, 0)?.retrieve(&alice, 50)?
-                       .user(&alice,   5,   0, 400, 100, 0, 0)?
-                .at( 7).user(&alice,   5,   0, 400, 100, 0, 0)?
-                .at( 8).user(&alice,   5,   0, 400, 100, 0, 0)? }
+        then "alice's age start decrementing;" {
+            Test.at( 5).user(&alice,   4,  50, 350, 100, 0, 0)?;
+            Test.at( 6).user(&alice,   5,  50, 400, 100, 0, 0)?.retrieve(&alice, 50)?;
+            Test.at( 6).user(&alice,   5,   0, 400, 100, 0, 0)?;
+            Test.at( 7).user(&alice,   5,   0, 400,  69, 0, 0)?;
+            Test.at( 8).user(&alice,   5,   0, 400,  50, 0, 0)? }
 
         when "alice locks tokens again,"
-        then "alice's age resumes incrementing;" {
-            Test.at( 9).user(&alice,   5,   0, 400, 100, 0, 0)?.lock(&alice,   1)?
-                       .user(&alice,   5,   1, 400, 100, 0, 0)?
-                .at(10).user(&alice,   6,   1, 401, 100, 0, 0)?
-                .at(11).user(&alice,   7,   1, 402, 100, 0, 0)? }
+        then "alice's age starts incrementing again;" {
+            Test.at( 9).user(&alice,   5,   0, 400,  38, 0, 0)?.lock(&alice,   1)?
+                       .user(&alice,   5,   1, 400,  38, 0, 0)?
+                .at(10).user(&alice,   6,   1, 401,  44, 0, 0)?
+                .at(11).user(&alice,   7,   1, 402,  49, 0, 0)? }
 
         when "alice's age reaches the configured threshold,"
-        then "alice is eligible to claim the whole pool" {
-            Test.at(DAY+4).user(&alice, DAY, 1, 17675, 100, 0, 100)? } }
+        then "alice is eligible to claim rewards" {
+            Test.at(DAY+4).user(&alice, DAY, 1, 17675, 98, 0, 98)? } }
 
     ok_two_simultaneous {
         given "an instance:" {
@@ -108,15 +108,15 @@ kukumba_harnessed! {
              .user(&bob,   0, 0, 0, 0, 0, 0)? }
 
         when "alice and bob first lock lp tokens simultaneously,"
-        then "their ages start incrementing simultaneously;" {
-            Test.at(1).user(&alice, 0,   0,   0, 0, 0, 0)?.lock(&alice, 100)?
-                      .user(&bob,   0,   0,   0, 0, 0, 0)?.lock(&bob,   100)?
-                      .user(&alice, 0, 100,   0, 0, 0, 0)?
-                      .user(&bob,   0, 100,   0, 0, 0, 0)?
-                .at(2).user(&alice, 1, 100, 100, 0, 0, 0)?
-                      .user(&bob,   1, 100, 100, 0, 0, 0)?
-                .at(3).user(&alice, 2, 100, 200, 0, 0, 0)?
-                      .user(&bob,   2, 100, 200, 0, 0, 0)? }
+        then "their ages and earnings start incrementing simultaneously;" {
+            Test.at(1).user(&alice, 0,   0,   0, 0,  0, 0)?.lock(&alice, 100)?;
+            Test.at(1).user(&bob,   0,   0,   0, 0,  0, 0)?.lock(&bob,   100)?;
+            Test.at(1).user(&alice, 0, 100,   0, 0,  0, 0)?;
+            Test.at(1).user(&bob,   0, 100,   0, 0,  0, 0)?;
+            Test.at(2).user(&alice, 1, 100, 100, 50, 0, 0)?;
+            Test.at(2).user(&bob,   1, 100, 100, 50, 0, 0)?;
+            Test.at(3).user(&alice, 2, 100, 200, 50, 0, 0)?;
+            Test.at(3).user(&bob,   2, 100, 200, 50, 0, 0)?; }
 
         when "alice and bob's ages reach the configured threshold,"
         then "each is eligible to claim half of the pool" {
@@ -144,15 +144,15 @@ kukumba_harnessed! {
         then "alice's rewards start decreasing proportionally" {
             Test.at(           DAY+2).user(&bob,     0,   0,         0,  0, 0,  0)?.lock(&bob, 100)?
                                      .user(&bob,     0, 100,         0,  0, 0,  0)?
-                .at(         DAY+2+1).user(&alice, DAY,   0, DAY * 100, 99, 0, 99)?
-                .at(     DAY+2+DAY/2).user(&alice, DAY,   0, DAY * 100, 66, 0, 66)?
-                .at(DAY+2+DAY/2+1000).user(&alice, DAY,   0, DAY * 100, 64, 0, 64)? }
+                .at(         DAY+2+1).user(&alice, DAY,   0, DAY * 100, 97, 0, 97)?
+                .at(     DAY+2+DAY/2).user(&alice, DAY,   0, DAY * 100, 43, 0, 43)?
+                .at(DAY+2+DAY/2+1000).user(&alice, DAY,   0, DAY * 100, 40, 0, 40)? }
 
         when "bob reaches the age threshold"
-        then "each is eligible to claim half of the pool" {
-            Test.at(         2*DAY+2).user(&bob,   DAY, 100, DAY * 100, 50, 0, 50)?.retrieve(&bob, 100)?
-                                     .user(&bob,   DAY,   0, DAY * 100, 50, 0, 50)?
-                                     .user(&alice, DAY,   0, DAY * 100, 50, 0, 50)? } }
+        then "each is eligible to claim some rewards" {
+            Test.at(         2*DAY+2).user(&bob,   DAY, 100, DAY * 100, 49, 0, 49)?.retrieve(&bob, 100)?
+                                     .user(&bob,   DAY,   0, DAY * 100, 49, 0, 49)?
+                                     .user(&alice, DAY,   0, DAY * 100, 24, 0, 24)? } }
 
     ok_two_sequential_with_claim {
         given "an instance" {
@@ -180,20 +180,21 @@ kukumba_harnessed! {
 
         then "alice's rewards start decreasing proportionally" {
             Test.at(DAY+2+1)
-                .user(&alice, DAY, 0, DAY * 100, 99, 0, 99)? }
+                .user(&alice, DAY, 0, DAY * 100, 97, 0, 97)? }
 
-        when "alice claims some time after maturing" {
+        when "alice claims some time after maturing"
+        then "alice's state is reset because of selective_memory" {
             Test.at(DAY+2+DAY/2)
-                .user(&alice, DAY, 0, DAY * 100, 66, 0, 66 )?.claim(&alice, 66)?
+                .user(&alice, DAY, 0, DAY * 100, 43, 0, 43 )?.claim(&alice, 43)?
                 .at(DAY+2+DAY/2+1000)
-                .user(&alice, DAY, 0, DAY * 100, 64, 66, 0) }
+                .user(&alice, DAY, 0, 0, 0, 0, 0) }
 
         when "bob reaches the age threshold"
-        then "each is eligible to claim half of the pool" {
+        then "bob is eligible to claim a comparable amount of rewards" {
             Test.at(2*DAY+2)
-                .user(&bob,   DAY, 100, DAY * 100, 50,  0, 50)?.retrieve(&bob, 100)?
-                .user(&bob,   DAY,   0, DAY * 100, 50,  0, 50)?
-                .user(&alice, DAY,   0, DAY * 100, 50, 66,  0)? } }
+                .user(&bob,   DAY, 100, DAY * 100, 49,  0, 49)?.retrieve(&bob, 100)?
+                .user(&bob,   DAY,   0, DAY * 100, 49,  0, 49)?
+                .user(&alice, DAY,   0, 0, 0, 0, 0)? } }
 
     ok_lock_and_retrieve {
         given "an instance" {
@@ -273,39 +274,5 @@ kukumba_harnessed! {
         then  "they receive equivalent rewards as long as the liquidity locked hasn't changed" {
             Test.fund(PORTION)
                 .at(2 + DAY * 2).claim(&alice, 50)?.claim(&bob, 100)? } }
-
-    rewards_parallel_or_sequential {
-        given "three users providing liquidity" {
-            let admin = HumanAddr::from("admin");
-            let alice = HumanAddr::from("alice");
-            let bob   = HumanAddr::from("bob");
-            let cyril = HumanAddr::from("cyril");
-            Test.at(0)
-                .init_configured(&admin)?
-                .fund(PORTION)
-                .set_vk(&alice, "")?.set_vk(&bob,   "")?.set_vk(&cyril, "")? }
-
-        when "they provide the liquidity simultaneously" {
-            Test.at(  0).lock(&alice, 100)?
-                        .lock(&bob,   100)?
-                        .lock(&cyril, 100)?
-                .at(DAY).claim(&alice, 33)?
-                        .claim(&bob,   33)?
-                        .claim(&cyril, 33)? }
-
-        then "it's the same as if they provided the liquidity sequentially, as long as nobody claims" {
-            RewardsHarness::new()
-                .set_vk(&alice, "")?.set_vk(&bob,   "")?.set_vk(&cyril, "")?
-                .at(          0).init_configured(&admin)?.fund(PORTION)
-                .at(          2).lock(&alice,     100)?
-                .at(DAY * 1 + 2).retrieve(&alice, 100)?
-                .at(DAY * 1 + 3).lock(&bob,       100)?
-                .at(DAY * 2 + 3).retrieve(&bob,   100)?
-                .at(DAY * 2 + 4).lock(&cyril,     100)?
-                .at(DAY * 3 + 4).retrieve(&cyril, 100)? }
-
-        when "one of the users claims when providing liquidity sequentially"
-        then "the remaining rewards are split between the late-comer and the late-claimer" {
-            /* TODO */ } }
 
 }

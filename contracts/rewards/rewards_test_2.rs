@@ -1,20 +1,15 @@
 #![allow(unused_macros)]
 #![allow(non_snake_case)]
-
-use fadroma::scrt::{
-    cosmwasm_std::{StdError, MemoryStorage, CanonicalAddr},
-    storage::Writable
-};
-
+use fadroma::scrt::{cosmwasm_std::{StdError, MemoryStorage, CanonicalAddr, Binary}};
 use crate::{rewards_harness::*, rewards_algo::Pool};
-
-const PORTION: u128 = 100;
 
 // duration of rewards period as u128 instead of u64
 // to allow in-place (DAY * Amount) volume calculations
 // (volume is also represented as u128 instead of u256)
 // i.e. need to call .into(), harness up/downcasts accordingly
 const DAY: u128 = crate::DAY as u128;
+
+const PORTION: u128 = 100;
 
 kukumba_harnessed! {
 
@@ -238,29 +233,86 @@ kukumba_harnessed! {
             assert_eq!(user.claim_reward()?, 75u128.into()); } }
 
     feature_selective_memory {
-        given "a pool and a user" { unimplemented!() }
 
-        when  "user locks tokens"
-        and   "user first claims rewards and then then unlocks all tokens"
+        given "a pool and a user" {
+            let addr1    = CanonicalAddr(Binary(vec![0,0,0,1]));
+            let addr2    = CanonicalAddr(Binary(vec![0,0,0,2]));
+            let mut s    = MemoryStorage::new();
+            let mut pool = Pool::new(&mut s);
+            pool.set_time(0).set_balance(100u128.into())
+                .configure_threshold(&crate::DAY)?
+                .configure_cooldown(&crate::DAY)?
+                .configure_ratio(&(1u128.into(), 1u128.into()))?;
+            let mut user1 = pool.user(addr1.clone());}
+
+        when  "user locks tokens and becomes eligible for rewards" {
+            user1.pool.set_time(1);
+            user1.lock_tokens(100u128.into())?;
+            user1.pool.set_time(1 + crate::DAY);
+            let lifetime = user1.lifetime()?; }
+        and   "user first claims rewards and then then unlocks all tokens" {
+            user1.claim_reward()?;
+            user1.retrieve_tokens(100u128.into())?; }
         then  "user's lifetime is preserved"
-        and   "user can continue accumulating lifetime later" { unimplemented!() }
+        and   "user can continue accumulating lifetime later" {
+            assert_eq!(user1.lifetime()?, lifetime); }
 
-        when  "a user locks tokens"
-        and   "user first unlocks all tokens and then claims rewards"
+        when  "user locks tokens and becomes eligible for rewards" {
+            user1.pool.set_time(1 + crate::DAY*2).set_balance(200u128.into());
+            user1.lock_tokens(100u128.into())?;
+            user1.pool.set_time(1 + crate::DAY*3); }
+        and   "user first unlocks all tokens and then claims rewards" {
+            user1.retrieve_tokens(100u128.into())?;
+            user1.claim_reward()?; }
         then  "user's lifetime is erased"
-        and   "former stakers don't get a continual pension" { unimplemented!() }
+        and   "former stakers don't get a continual pension" {
+            assert_eq!(user1.lifetime()?, Volume::zero()); }
 
-        given "a user is crowded out"
+        when  "share of user who has previously claimed rewards diminishes"
+        then  "user is crowded out"
+        and   "user can't claim" {
+            user1.lock_tokens(100u128.into())?;
+            user1.pool.set_time(1 + crate::DAY*4);
+            user1.claim_reward()?;
+            let mut user2 = user1.pool.user(addr2.clone());
+            user2.lock_tokens(1000u128.into())?;
+            user2.pool.set_time(1 + crate::DAY*5);
+            let mut user1 = user2.pool.user(addr1.clone());
+            assert!(user1.earned()? < user1.claimed()?);
+            assert_eq!(user1.claimable()?, Amount::zero()); }
+
         when  "user unlocks all tokens"
         then  "user's lifetime is preserved"
-        and   "crowded out users can't reset their negative claimable" { unimplemented!() } }
+        and   "crowded out users can't reset their negative claimable" {
+            user1.retrieve_tokens(100u128.into())?;
+            assert!(user1.earned()? < user1.claimed()?); } }
 
     feature_pool_closes {
-        given "a pool" { unimplemented!() }
-        when  "it is closed by the admin" { unimplemented!() }
-        then  "every tallied variable is committed to storage" { unimplemented!() }
-        and   "time stops" { unimplemented!() }
-        when  "an eligible user claims their rewards" { unimplemented!() }
-        then  "they do not accrue any more rewards" { unimplemented!() } }
+
+        given "a pool and a user" {
+            let addr     = CanonicalAddr::default();
+            let mut s    = MemoryStorage::new();
+            let mut pool = Pool::new(&mut s);
+            pool.set_time(0);
+            pool.configure_threshold(&crate::DAY)?
+                .configure_cooldown(&0)?
+                .configure_ratio(&(1u128.into(), 1u128.into()))?;
+            let mut user = pool.user(addr.clone()); }
+
+        when  "pool is closed by admin after some activity" {
+            unimplemented!();
+            user.pool.close("".into())?; }
+        then  "every tallied variable is committed to storage"
+        and   "time stops" {
+            unimplemented!() }
+
+        when  "user with locked tokens performs any action"
+        then  "user gets all locked tokens back" {
+            unimplemented!() }
+
+        when  "user claims rewards" {
+            unimplemented!() }
+        then  "user can earn no more rewards" {
+            unimplemented!() } }
 
 }

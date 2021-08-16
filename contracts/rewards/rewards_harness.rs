@@ -194,8 +194,8 @@ impl RewardsHarness<RewardsMockQuerier> {
         if let Response::PoolInfo {
             pool_locked, pool_lifetime, pool_last_update, ..
         } = self.q_pool_info()? {
-            assert_eq!(Amount::from(locked),   pool_locked,   "locked");
             assert_eq!(Volume::from(lifetime), pool_lifetime, "lifetime");
+            assert_eq!(Amount::from(locked),   pool_locked,   "locked");
             assert_eq!(last_update as u64, pool_last_update,  "last_update");
             Ok(&mut *self)
         } else {
@@ -212,12 +212,12 @@ impl RewardsHarness<RewardsMockQuerier> {
             user_age, user_locked, user_lifetime,
             user_earned, user_claimed, user_claimable, ..
         } = self.q_user_info(user)? {
-            assert_eq!(age as u64,              user_age,       "age");
-            assert_eq!(Amount::from(locked),    user_locked,    "locked");
-            assert_eq!(Volume::from(lifetime),  user_lifetime,  "lifetime");
-            assert_eq!(Amount::from(earned),    user_earned,    "earned");
-            assert_eq!(Amount::from(claimed),   user_claimed,   "claimed");
             assert_eq!(Amount::from(claimable), user_claimable, "claimable");
+            assert_eq!(Amount::from(claimed),   user_claimed,   "claimed");
+            assert_eq!(Amount::from(earned),    user_earned,    "earned");
+            assert_eq!(Volume::from(lifetime),  user_lifetime,  "lifetime");
+            assert_eq!(Amount::from(locked),    user_locked,    "locked");
+            assert_eq!(age as u64,              user_age,       "age");
             Ok(&mut *self)
         } else {
             unreachable!()
