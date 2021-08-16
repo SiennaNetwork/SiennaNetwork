@@ -20,9 +20,9 @@ class Rewards {
   init (msg: object) {
     this.index += 1
     this.block = T.T
-    //if (this.debug) console.debug(`init> ${this.index}`, msg)
+    if (this.debug) console.debug(`init> ${this.index}`, msg)
     const res = decode(this.contract.init(encode(msg)))
-    //if (this.debug) console.debug(`<init ${this.index}`, res)
+    if (this.debug) console.debug(`<init ${this.index}`, res)
     return res }
   query (msg: object) {
     this.index += 1
@@ -30,6 +30,7 @@ class Rewards {
     if (this.debug) console.debug(`query> ${this.index}`, msg)
     const res = decode(this.contract.query(encode(msg)))
     if (this.debug) console.debug(`<query ${this.index}`, res)
+    if (res.pool_info) console.log(this.index, res.pool_info)
     return res }
   handle (msg: object) {
     this.index += 1

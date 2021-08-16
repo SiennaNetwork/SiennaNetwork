@@ -12,7 +12,7 @@
     "webpack-dev-server": "^3.11.2"
   },
   "scripts": {
-    "start": "webpack serve",
+    "start": "yarn wasm; webpack serve",
     "wasm": "wasm-pack build --dev --target web --out-dir target/web --out-name rewards -- --features browser"
   }
 }

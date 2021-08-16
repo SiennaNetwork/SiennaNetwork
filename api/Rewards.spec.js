@@ -4,7 +4,7 @@ import { gas }                from '@fadroma/scrt-agent/gas.js'
 import { bignum, taskmaster } from '@fadroma/utilities'
 import { abs }                from '../ops/lib/index.js'
 import SNIP20                 from './SNIP20.js'
-import Rewards       from './Rewards.js'
+import Rewards                from './Rewards.js'
 
 describe("Rewards", () => {
 
@@ -38,7 +38,7 @@ describe("Rewards", () => {
     // build the contracts
     const workspace = abs()
     const [ tokenBinary, poolBinary ] = await Promise.all([
-      builder.build({workspace, crate: 'amm-snip20'              }),
+      builder.build({workspace, crate: 'amm-snip20'    }),
       builder.build({workspace, crate: 'sienna-rewards'}), ])
 
     const T2 = + new Date()
@@ -95,7 +95,7 @@ describe("Rewards", () => {
                  , enable_burn: true } } }))
 
     console.debug('init reward pool:')
-    const rewardPool = await context.agent.instantiate(new RewardsBenchmark({
+    const rewardPool = await context.agent.instantiate(new Rewards({
       codeId: context.pool.id,
       label: 'RewardPool',
       initMsg: { reward_token: rewardToken.reference

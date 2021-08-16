@@ -70,11 +70,11 @@ export default class SiennaRewards extends ScrtEnsemble {
     /* stupid esmodule import issue when running mocha programmatically
      * their CLI works fine though...
     const mocha = new Mocha()
-    mocha.addFile(abs('api/RewardsBenchmark.spec.js'))
+    mocha.addFile(abs('api/Rewards.spec.js'))
     mocha.run(fail => process.exit(fail ? 1 : 0))*/
     execFileSync(abs('node_modules/.bin/mocha'), [
       '-p', 'false', // what was that
-      'api/RewardsBenchmark.spec.js'
+      'api/Rewards.spec.js'
     ], {
       stdio: 'inherit'
     })

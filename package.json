@@ -23,8 +23,6 @@
   },
   "scripts": {
     "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",
-    "test": "./sienna localnet reset && mocha -p false api/Rewards.spec.js",
-    "bench": "./sienna localnet reset && mocha -p false api/RewardsBenchmark.spec.js",
     "sienna": "./sienna"
   }
 }
