@@ -17,7 +17,7 @@ kukumba_harnessed! {
 
     let Test: RewardsHarness<RewardsMockQuerier>;
 
-    feature_age_threshold {
+    age_threshold {
 
         given "a pool"
         when  "the age threshold is first queried"
@@ -41,42 +41,42 @@ kukumba_harnessed! {
 
         then  "their age starts incrementing" {
             user.pool.set_time(10);
-            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
-                       ( 0, 0,  0));
+            assert_eq!(( 0, 0,  0),
+                (user.present()?, user.last_present()?, user.elapsed_present()?));
             user.pool.set_time(50);
-            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
-                       (40, 0, 40));
+            assert_eq!((40, 0, 40),
+                (user.present()?, user.last_present()?, user.elapsed_present()?));
             user.pool.set_time(100);
-            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
-                       (90, 0, 90)); }
+            assert_eq!((90, 0, 90),
+                (user.present()?, user.last_present()?, user.elapsed_present()?)); }
 
         when  "a user's balance is updated"
         then  "their current age is committed"
         and   "their age keeps incrementing" {
             user.pool.set_time(110);
             user.retrieve_tokens(50u128.into())?;
-            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
-                       (100, 100, 0));
+            assert_eq!((100, 100, 0),
+                (user.present()?, user.last_present()?, user.elapsed_present()?));
             user.pool.set_time(150);
-            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
-                       (140, 100, 40));
+            assert_eq!((140, 100, 40),
+                (user.present()?, user.last_present()?, user.elapsed_present()?));
             user.pool.set_time(200);
-            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
-                       (190, 100, 90)); }
+            assert_eq!((190, 100, 90),
+                (user.present()?, user.last_present()?, user.elapsed_present()?)); }
 
         when  "a user unlocks all their LP tokens"
         then  "their current age is committed"
         and   "their age stops incrementing until they lock again" {
             user.pool.set_time(210);
             user.retrieve_tokens(50u128.into())?;
-            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
-                       (200, 200, 0));
+            assert_eq!((200, 200, 0),
+                (user.present()?, user.last_present()?, user.elapsed_present()?));
             user.pool.set_time(250);
-            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
-                       (200, 200, 0));
+            assert_eq!((200, 200, 0),
+                (user.present()?, user.last_present()?, user.elapsed_present()?));
             user.pool.set_time(300);
-            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
-                       (200, 200, 0)); }
+            assert_eq!((200, 200, 0),
+                (user.present()?, user.last_present()?, user.elapsed_present()?)); }
 
         when  "a user claims before reaching the age threshold"
         then  "the claim is refused" {
@@ -93,13 +93,13 @@ kukumba_harnessed! {
             #[cfg(feature="user_liquidity_ratio")] user.reset_liquidity_ratio()?;
             assert_eq!(user.claim_reward()?, Amount::from(100u128)); } }
 
-    feature_claim_cooldown {
+    claim_cooldown {
 
         given "a pool and a user" {
             let addr     = CanonicalAddr::default();
             let mut s    = MemoryStorage::new();
             let mut pool = Pool::new(&mut s);
-            pool.set_time(0)
+            pool.set_time(1)
                 .set_balance(100u128.into())
                 .configure_threshold(&0)?
                 .configure_cooldown(&1000)?
@@ -121,14 +121,13 @@ kukumba_harnessed! {
             assert_eq!(user.claim_reward(), Err(StdError::generic_err(
                 "lock tokens for 1000 more blocks to be eligible")));} }
 
-    feature_global_ratio {
+    global_ratio {
 
         given "a pool and a user" {
             let addr     = CanonicalAddr::default();
             let mut s    = MemoryStorage::new();
             let mut pool = Pool::new(&mut s);
-            pool.set_time(0)
-                .set_balance(100u128.into())
+            pool.set_time(0).set_balance(100u128.into())
                 .configure_threshold(&0)?
                 .configure_cooldown(&0)?
                 .configure_ratio(&(1u128.into(), 2u128.into()))?; }
@@ -140,14 +139,14 @@ kukumba_harnessed! {
             user.pool.set_time(100000);
             assert_eq!(user.claimable()?, 50u128.into()); } }
 
-    feature_pool_liquidity_ratio {
+    pool_liquidity_ratio {
 
         given "a pool and a user" {
             let addr     = CanonicalAddr::default();
             let mut s    = MemoryStorage::new();
             let mut pool = Pool::new(&mut s);
-            pool.set_time(0);
-            pool.configure_threshold(&crate::DAY)?
+            pool.set_time(0)
+                .configure_threshold(&crate::DAY)?
                 .configure_cooldown(&0)?
                 .configure_ratio(&(1u128.into(), 1u128.into()))?;
             let mut user = pool.user(addr.clone()); }
@@ -192,15 +191,14 @@ kukumba_harnessed! {
             #[cfg(feature="user_liquidity_ratio")] user.reset_liquidity_ratio()?;
             assert_eq!(user.claim_reward()?, 75u128.into()); } }
 
-    feature_user_liquidity_ratio {
+    user_liquidity_ratio {
 
         given "a pool and a user" {
             let addr     = CanonicalAddr::default();
             let mut s    = MemoryStorage::new();
             let mut pool = Pool::new(&mut s);
-            pool.set_time(0);
-            pool.configure_threshold(&crate::DAY)?
-                .configure_cooldown(&0)?
+            pool.set_time(0)
+                .configure_threshold(&crate::DAY)?.configure_cooldown(&0)?
                 .configure_ratio(&(1u128.into(), 1u128.into()))?;
             let mut user = pool.user(addr.clone()); }
 
@@ -249,7 +247,7 @@ kukumba_harnessed! {
 
             assert_eq!(user.claim_reward()?, 75u128.into()); } }
 
-    feature_selective_memory {
+    selective_memory {
 
         given "a pool and a user" {
             let addr1    = CanonicalAddr(Binary(vec![0,0,0,1]));
@@ -257,8 +255,7 @@ kukumba_harnessed! {
             let mut s    = MemoryStorage::new();
             let mut pool = Pool::new(&mut s);
             pool.set_time(0).set_balance(100u128.into())
-                .configure_threshold(&crate::DAY)?
-                .configure_cooldown(&crate::DAY)?
+                .configure_threshold(&crate::DAY)?.configure_cooldown(&crate::DAY)?
                 .configure_ratio(&(1u128.into(), 1u128.into()))?;
             let mut user1 = pool.user(addr1.clone());}
 
@@ -303,33 +300,5 @@ kukumba_harnessed! {
         and   "crowded out users can't reset their negative claimable" {
             user1.retrieve_tokens(100u128.into())?;
             assert!(user1.earned()? < user1.claimed()?); } }
-
-    feature_pool_closes {
-
-        given "a pool and a user" {
-            let addr     = CanonicalAddr::default();
-            let mut s    = MemoryStorage::new();
-            let mut pool = Pool::new(&mut s);
-            pool.set_time(0);
-            pool.configure_threshold(&crate::DAY)?
-                .configure_cooldown(&0)?
-                .configure_ratio(&(1u128.into(), 1u128.into()))?;
-            let mut user = pool.user(addr.clone()); }
-
-        when  "pool is closed by admin after some activity" {
-            unimplemented!();
-            user.pool.close("".into())?; }
-        then  "every tallied variable is committed to storage"
-        and   "time stops" {
-            unimplemented!() }
-
-        when  "user with locked tokens performs any action"
-        then  "user gets all locked tokens back" {
-            unimplemented!() }
-
-        when  "user claims rewards" {
-            unimplemented!() }
-        then  "user can earn no more rewards" {
-            unimplemented!() } }
 
 }

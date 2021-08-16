@@ -305,7 +305,9 @@ contract! {
         #[cfg(feature="pool_closes")]
         ClosePool (message: String) {
             assert_admin(&deps, &env)?;
-            Pool::new(&mut deps.storage).close(message)?;
+            Pool::new(&mut deps.storage)
+                .at(env.block.height)
+                .close(message)?;
             tx_ok!() }
 
         // actions that are performed by users ----------------------------------------------------
@@ -396,10 +398,10 @@ pub fn close_handler (
     api:     &impl Api,
     env:     &Env
 ) -> StdResult<Option<HandleResponse>> {
-    Ok(if let Some(close_message) = Pool::new(&*storage).closed()? {
+    Ok(if let Some((_, close_message)) = Pool::new(&*storage).closed()? {
         let mut messages = vec![];
         let mut log = vec![LogAttribute {
-            key: "closed".into(), value: close_message.into() }];
+            key: "closed".into(), value: close_message }];
         let mut user = Pool::new(&mut *storage).at(env.block.height)
             .user(api.canonical_address(&env.message.sender)?);
         let locked = user.retrieve_tokens(

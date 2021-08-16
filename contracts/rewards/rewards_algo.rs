@@ -148,16 +148,20 @@ stateful!(Pool (storage):
 
         /// Get the time since last update (0 if no last update)
         pub fn elapsed (&self) -> StdResult<Time> {
-            // stop time when closing pool
-            #[cfg(feature="pool_closes")]
-            if self.closed()?.is_some() {
-                return Ok(0 as Time) }
-
             Ok(self.now()? - self.timestamp()?) }
 
         /// Get the current time or fail
         pub fn now (&self) -> StdResult<Time> {
-            self.now.ok_or(StdError::generic_err("current time not set")) }
+            let mut now = self.now.ok_or(StdError::generic_err("current time not set"))?;
+
+            // stop time when closing pool
+            #[cfg(feature="pool_closes")]
+            if let Some((t_closed, _)) = self.closed()? {
+                if now < t_closed {
+                    return Err(StdError::generic_err("no time travel")); }
+                now = t_closed }
+
+            Ok(now) }
 
         /// Load the last update timestamp or default to current time
         /// (this has the useful property of keeping `elapsed` zero for strangers)
@@ -257,7 +261,7 @@ stateful!(Pool (storage):
                 None => Err(StdError::generic_err("missing creation date")) } }
 
         #[cfg(feature="pool_closes")]
-        pub fn closed (&self) -> StdResult<Option<String>> {
+        pub fn closed (&self) -> StdResult<Option<(Time, String)>> {
             self.load(POOL_CLOSED) }
 
     }
@@ -325,7 +329,8 @@ stateful!(Pool (storage):
 
         #[cfg(feature="pool_closes")]
         pub fn close (&mut self, message: String) -> StdResult<&mut Self> {
-            self.save(POOL_CLOSED, Some(message)) }
+            let now = self.now()?;
+            self.save(POOL_CLOSED, Some((now, message))) }
 
     } );
 
@@ -342,12 +347,8 @@ stateful!(User (pool.storage):
         #[cfg(any(feature="claim_cooldown", feature="user_liquidity_ratio"))]
         /// Time that progresses always. Used to increment existence.
         pub fn elapsed (&self) -> StdResult<Time> {
-            // stop time when closing pool
-            #[cfg(feature="pool_closes")]
-            if self.pool.closed()?.is_some() {
-                return Ok(0 as Time) }
-
             let now = self.pool.now()?;
+
             if let Ok(Some(timestamp)) = self.timestamp() {
                 if now < timestamp { // prevent replay
                     return error!("no data") }

@@ -18,7 +18,7 @@ kukumba_harnessed! {
 
     let Test: RewardsHarness<RewardsMockQuerier>;
 
-    ok_pool_init {
+    init {
         given "no instance"
         when  "admin inits with an asset token address"
         then  "the instance configures a viewing key for itself" {
@@ -34,8 +34,66 @@ kukumba_harnessed! {
                 .at(5).pool(1, 1, 4)?
                 .at(6).pool(1, 2, 4)? } }
 
-    ok_pool_init_then_set_lp_token {
-        given  "no instance"
+    close {
+        given "an instance:" {
+            let admin = HumanAddr::from("admin");
+            let alice = HumanAddr::from("alice");
+            Test.at(1)
+                .init_configured(&admin)?
+                .fund(PORTION)
+                .set_vk(&alice, "")?
+                .user(&alice,       0,   0,             0,   0,   0,   0)? }
+
+        when  "pool is closed by admin after some activity" {
+            Test.at(1)
+                .lock(&alice, 100u128.into())?
+                .user(&alice,       0, 100,             0,   0,   0,   0)?;
+
+            Test.after(DAY)
+                .user(&alice, 1 * DAY, 100, 100 * DAY, 100,   0, 100)?
+                .claim(&alice, 100)?
+                .user(&alice, 1 * DAY, 100, 100 * DAY, 100, 100,   0)?;
+
+            Test.after(DAY)
+                .retrieve(&alice, 100)?
+                .fund(100)
+                .user(&alice, 2 * DAY,   0, 200 * DAY, 200, 100, 100)?;
+
+            Test.after(DAY)
+                .user(&alice, 2 * DAY,   0, 200 * DAY,  88, 100,   0)?
+                .fund(100)
+                .user(&alice, 2 * DAY,   0, 200 * DAY, 133, 100,  33)?
+                .lock(&alice, 50)?;
+
+            println!("0");
+            Test.after(DAY)
+                .user(&alice, 3 * DAY,  50, 250 * DAY, 168, 100,  68)?;
+
+            println!("1");
+            Test.after(DAY)
+                .user(&alice, 4 * DAY,  50, 300 * DAY, 192, 100,  92)?
+                .close(&admin)?
+                .user(&alice, 4 * DAY,  50, 300 * DAY, 192, 100,  92)?; }
+
+        then  "time stops" {
+            println!("2");
+            Test.after(DAY)
+                .user(&alice, 4 * DAY,  50, 300 * DAY, 192, 100,  92)?;
+            println!("3");
+            Test.after(DAY)
+                .user(&alice, 4 * DAY,  50, 300 * DAY, 192, 100,  92)?; }
+
+        when  "user with locked tokens performs any action"
+        then  "user gets all locked tokens back" {
+            //user.lock_tokens(100u128.into());
+            unimplemented!() }
+
+        when  "user claims rewards"
+        then  "user can earn no more rewards" {
+            unimplemented!() } }
+
+    init_then_set_lp_token {
+        given "no instance"
         when  "admin inits without providing an asset token address"
         then  "the instance is not ready" {
             let admin  = HumanAddr::from("admin");
@@ -54,7 +112,7 @@ kukumba_harnessed! {
                 .at(8).pool(1, 1, 7)?
                 .at(9).pool(1, 2, 7)? } }
 
-    ok_one {
+    one_user {
         given "an instance:" {
             let admin = HumanAddr::from("admin");
             let alice = HumanAddr::from("alice");
@@ -94,108 +152,7 @@ kukumba_harnessed! {
         then "alice is eligible to claim rewards" {
             Test.at(DAY+4).user(&alice, DAY, 1, 17675, 98, 0, 98)? } }
 
-    ok_two_simultaneous {
-        given "an instance:" {
-            let admin = HumanAddr::from("admin");
-            let alice = HumanAddr::from("alice");
-            let bob   = HumanAddr::from("bob");
-            Test.at(1).init_configured(&admin)?
-                      .fund(PORTION)
-                      .set_vk(&alice, "")?
-                      .set_vk(&bob,   "")?
-                      .user(&alice, 0, 0, 0, 0, 0, 0)?
-                      .user(&bob,   0, 0, 0, 0, 0, 0)? }
-
-        when "alice and bob first lock lp tokens simultaneously,"
-        then "their ages and earnings start incrementing simultaneously;" {
-            Test.at(1).user(&alice, 0,   0,   0, 0,  0, 0)?.lock(&alice, 100)?;
-            Test.at(1).user(&bob,   0,   0,   0, 0,  0, 0)?.lock(&bob,   100)?;
-            Test.at(1).user(&alice, 0, 100,   0, 0,  0, 0)?;
-            Test.at(1).user(&bob,   0, 100,   0, 0,  0, 0)?;
-            Test.at(2).user(&alice, 1, 100, 100, 50, 0, 0)?;
-            Test.at(2).user(&bob,   1, 100, 100, 50, 0, 0)?;
-            Test.at(3).user(&alice, 2, 100, 200, 50, 0, 0)?;
-            Test.at(3).user(&bob,   2, 100, 200, 50, 0, 0)?; }
-
-        when "alice and bob's ages reach the configured threshold,"
-        then "each is eligible to claim half of the available rewards" {
-            Test.at(DAY+1).user(&alice, DAY, 100, DAY * 100, 50, 0, 50)?
-                          .user(&bob,   DAY, 100, DAY * 100, 50, 0, 50)? } }
-
-    ok_two_sequential {
-        given "an instance" {
-            let admin = HumanAddr::from("admin");
-            let alice = HumanAddr::from("alice");
-            let bob   = HumanAddr::from("bob");
-            Test.at(1).init_configured(&admin)?
-                      .set_vk(&alice, "")?
-                      .set_vk(&bob,   "")?
-                      .fund(PORTION) }
-
-        when "alice locks lp tokens,"
-        and  "alice retrieves them after reaching the threshold;"
-        then "alice is eligible to claim the whole pool" {
-            Test.at(    1).user(&alice,   0,   0,         0,   0, 0,   0)?.lock(&alice, 100)?
-                .at(DAY+1).user(&alice, DAY, 100, DAY * 100, 100, 0, 100)?.retrieve(&alice, 100)?
-                          .user(&alice, DAY,   0, DAY * 100, 100, 0, 100)? }
-
-        when "bob locks the same amount of tokens"
-        then "alice's rewards start decreasing proportionally" {
-            Test.at(           DAY+2).user(&bob,     0,   0,         0,  0, 0,  0)?.lock(&bob, 100)?
-                                     .user(&bob,     0, 100,         0,  0, 0,  0)?
-                .at(         DAY+2+1).user(&alice, DAY,   0, DAY * 100, 97, 0, 97)?
-                .at(     DAY+2+DAY/2).user(&alice, DAY,   0, DAY * 100, 43, 0, 43)?
-                .at(DAY+2+DAY/2+1000).user(&alice, DAY,   0, DAY * 100, 40, 0, 40)? }
-
-        when "bob reaches the age threshold"
-        then "each is eligible to claim some rewards" {
-            Test.at(         2*DAY+2).user(&bob,   DAY, 100, DAY * 100, 49, 0, 49)?.retrieve(&bob, 100)?
-                                     .user(&bob,   DAY,   0, DAY * 100, 49, 0, 49)?
-                                     .user(&alice, DAY,   0, DAY * 100, 24, 0, 24)? } }
-
-    ok_two_sequential_with_claim {
-        given "an instance" {
-            let admin = HumanAddr::from("admin");
-            let alice = HumanAddr::from("alice");
-            let bob   = HumanAddr::from("bob");
-            Test.at(1).init_configured(&admin)?
-                      .set_vk(&alice, "")?
-                      .set_vk(&bob,   "")? }
-
-        when "alice locks lp tokens,"
-        and  "alice retrieves them after reaching the threshold;"
-        then "alice is eligible to claim the whole pool" {
-            Test.fund(PORTION)
-                .at(1)
-                .user(&alice, 0, 0, 0, 0, 0, 0)?.lock(&alice, 100)?
-                .at(DAY+1)
-                .user(&alice, DAY, 100, DAY * 100, 100, 0, 100)?.retrieve(&alice, 100)?
-                .user(&alice, DAY,   0, DAY * 100, 100, 0, 100)? }
-
-        when "bob locks the same amount of tokens" {
-            Test.at(DAY+2)
-                .user(&bob,    0,   0, 0, 0, 0, 0)?.lock(&bob, 100)?
-                .user(&bob,    0, 100, 0, 0, 0, 0)? }
-
-        then "alice's rewards start decreasing proportionally" {
-            Test.at(DAY+2+1)
-                .user(&alice, DAY, 0, DAY * 100, 97, 0, 97)? }
-
-        when "alice claims some time after maturing"
-        then "alice's state is reset because of selective_memory" {
-            Test.at(DAY+2+DAY/2)
-                .user(&alice, DAY, 0, DAY * 100, 43, 0, 43 )?.claim(&alice, 43)?
-                .at(DAY+2+DAY/2+1000)
-                .user(&alice, DAY, 0, 0, 0, 0, 0) }
-
-        when "bob reaches the age threshold"
-        then "bob is eligible to claim a comparable amount of rewards" {
-            Test.at(2*DAY+2)
-                .user(&bob,   DAY, 100, DAY * 100, 49,  0, 49)?.retrieve(&bob, 100)?
-                .user(&bob,   DAY,   0, DAY * 100, 49,  0, 49)?
-                .user(&alice, DAY,   0, 0, 0, 0, 0)? } }
-
-    ok_lock_and_retrieve {
+    lock_and_retrieve {
         given "an instance" {
             let admin   = HumanAddr::from("admin");
             let alice   = HumanAddr::from("alice");
@@ -237,7 +194,7 @@ kukumba_harnessed! {
             Test.at(10).retrieve_too_much(&mallory, 100u128, "not enough locked (0 < 100)")?
                 .at(11).pool(500, 2350, 7)? } }
 
-    ok_claim {
+    claim {
         given "an instance" {
             let admin = HumanAddr::from("admin");
             let alice = HumanAddr::from("alice");
@@ -274,5 +231,99 @@ kukumba_harnessed! {
         then  "they receive equivalent rewards as long as the liquidity locked hasn't changed" {
             Test.fund(PORTION)
                 .at(3 + DAY * 2).claim(&alice, 50)?.claim(&bob, 100)? } }
+
+    two_parallel_users {
+        given "an instance:" {
+            let admin = HumanAddr::from("admin");
+            let alice = HumanAddr::from("alice");
+            let bob   = HumanAddr::from("bob");
+            Test.at(1).init_configured(&admin)?
+                      .fund(PORTION)
+                      .set_vk(&alice, "")?
+                      .set_vk(&bob,   "")?
+                      .user(&alice, 0, 0, 0, 0, 0, 0)?
+                      .user(&bob,   0, 0, 0, 0, 0, 0)? }
+
+        when "alice and bob first lock lp tokens simultaneously,"
+        then "their ages and earnings start incrementing simultaneously;" {
+            Test.at(1).user(&alice, 0,   0,   0, 0,  0, 0)?.lock(&alice, 100)?;
+            Test.at(1).user(&bob,   0,   0,   0, 0,  0, 0)?.lock(&bob,   100)?;
+            Test.at(1).user(&alice, 0, 100,   0, 0,  0, 0)?;
+            Test.at(1).user(&bob,   0, 100,   0, 0,  0, 0)?;
+            Test.at(2).user(&alice, 1, 100, 100, 50, 0, 0)?;
+            Test.at(2).user(&bob,   1, 100, 100, 50, 0, 0)?;
+            Test.at(3).user(&alice, 2, 100, 200, 50, 0, 0)?;
+            Test.at(3).user(&bob,   2, 100, 200, 50, 0, 0)?; }
+
+        when "alice and bob's ages reach the configured threshold,"
+        then "each is eligible to claim half of the available rewards" {
+            Test.at(DAY+1).user(&alice, DAY, 100, DAY * 100, 50, 0, 50)?
+                          .user(&bob,   DAY, 100, DAY * 100, 50, 0, 50)? } }
+
+    two_sequential_users {
+        given "an instance" {
+            let admin = HumanAddr::from("admin");
+            let alice = HumanAddr::from("alice");
+            let bob   = HumanAddr::from("bob");
+            Test.at(1).init_configured(&admin)?
+                      .set_vk(&alice, "")?
+                      .set_vk(&bob,   "")?
+                      .fund(PORTION) }
+
+        when "alice locks lp tokens,"
+        and  "alice retrieves them after reaching the threshold;"
+        then "alice is eligible to claim the whole pool" {
+            Test.at(    1).user(&alice,   0,   0,         0,   0, 0,   0)?.lock(&alice, 100)?
+                .at(DAY+1).user(&alice, DAY, 100, DAY * 100, 100, 0, 100)?.retrieve(&alice, 100)?
+                          .user(&alice, DAY,   0, DAY * 100, 100, 0, 100)? }
+
+        when "bob locks the same amount of tokens"
+        then "alice's rewards start decreasing proportionally" {
+            Test.at(           DAY+2).user(&bob,     0,   0,         0,  0, 0,  0)?.lock(&bob, 100)?
+                                     .user(&bob,     0, 100,         0,  0, 0,  0)?
+                .at(         DAY+2+1).user(&alice, DAY,   0, DAY * 100, 97, 0, 97)?
+                .at(     DAY+2+DAY/2).user(&alice, DAY,   0, DAY * 100, 43, 0, 43)?
+                .at(DAY+2+DAY/2+1000).user(&alice, DAY,   0, DAY * 100, 40, 0, 40)? }
+
+        when "bob reaches the age threshold"
+        then "each is eligible to claim some rewards" {
+            Test.at(         2*DAY+2).user(&bob,   DAY, 100, DAY * 100, 49, 0, 49)?.retrieve(&bob, 100)?
+                                     .user(&bob,   DAY,   0, DAY * 100, 49, 0, 49)?
+                                     .user(&alice, DAY,   0, DAY * 100, 24, 0, 24)? } }
+
+    two_sequential_users_and_claim {
+        given "an instance" {
+            let admin = HumanAddr::from("admin");
+            let alice = HumanAddr::from("alice");
+            let bob   = HumanAddr::from("bob");
+            Test.at(1).init_configured(&admin)?
+                      .set_vk(&alice, "")?
+                      .set_vk(&bob,   "")? }
+
+        when "alice locks lp tokens,"
+        and  "alice retrieves them after reaching the threshold;"
+        then "alice is eligible to claim the whole pool" {
+            Test.fund(PORTION)
+                .at(    1).user(&alice, 0, 0, 0, 0, 0, 0)?.lock(&alice, 100)?
+                .at(DAY+1).user(&alice, DAY, 100, DAY * 100, 100, 0, 100)?.retrieve(&alice, 100)?
+                          .user(&alice, DAY,   0, DAY * 100, 100, 0, 100)? }
+
+        when "bob locks the same amount of tokens" {
+            Test.at(DAY+2).user(&bob,    0,   0, 0, 0, 0, 0)?.lock(&bob, 100)?
+                          .user(&bob,    0, 100, 0, 0, 0, 0)? }
+
+        then "alice's rewards start decreasing proportionally" {
+            Test.at(DAY+2+1).user(&alice, DAY, 0, DAY * 100, 97, 0, 97)? }
+
+        when "alice claims some time after maturing"
+        then "alice's state is reset because of selective_memory" {
+            Test.at(     DAY+2+DAY/2).user(&alice, DAY, 0, DAY * 100, 43, 0, 43 )?.claim(&alice, 43)?
+                .at(1000+DAY+2+DAY/2).user(&alice, DAY, 0, 0, 0, 0, 0) }
+
+        when "bob reaches the age threshold"
+        then "bob is eligible to claim a comparable amount of rewards" {
+            Test.at(2*DAY+2).user(&bob,   DAY, 100, DAY * 100, 49,  0, 49)?.retrieve(&bob, 100)?
+                            .user(&bob,   DAY,   0, DAY * 100, 49,  0, 49)?
+                            .user(&alice, DAY,   0, 0, 0, 0, 0)? } }
 
 }
