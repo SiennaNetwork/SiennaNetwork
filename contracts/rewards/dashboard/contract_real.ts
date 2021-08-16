@@ -23,38 +23,31 @@ class Rewards {
     //if (this.debug) console.debug(`init> ${this.index}`, msg)
     const res = decode(this.contract.init(encode(msg)))
     //if (this.debug) console.debug(`<init ${this.index}`, res)
-    return res
-  }
+    return res }
   query (msg: object) {
     this.index += 1
     this.block = T.T
-    //if (this.debug) console.debug(`query> ${this.index}`, msg)
+    if (this.debug) console.debug(`query> ${this.index}`, msg)
     const res = decode(this.contract.query(encode(msg)))
-    //if (this.debug) console.debug(`<query ${this.index}`, res)
-    return res
-  }
+    if (this.debug) console.debug(`<query ${this.index}`, res)
+    return res }
   handle (msg: object) {
     this.index += 1
     this.block = T.T
-    //if (this.debug) console.debug(`handle> ${this.index}`, msg)
+    if (this.debug) console.debug(`handle> ${this.index}`, msg)
     const res: HandleResponse = decode(this.contract.handle(encode(msg)))
     res.log = Object.fromEntries(Object
       .values(res.log as object)
       .map(({key, value})=>[key, value]))
     if (Object.keys(res.log).length > 0) console.log(res.log)
-    //if (this.debug) console.debug(`<handle ${this.index}`, res)
-    return res
-  }
+    if (this.debug) console.debug(`<handle ${this.index}`, res)
+    return res }
   set next_query_response (response: object) {
-    this.contract.next_query_response = encode(response)
-  }
+    this.contract.next_query_response = encode(response) }
   set sender (address: string) {
-    this.contract.sender = encode(address)
-  }
+    this.contract.sender = encode(address) }
   set block (height: number) {
-    this.contract.block = BigInt(height)
-  }
-}
+    this.contract.block = BigInt(height) } }
 
 // wasm module load & init -------------------------------------------------------------------------
 export default async function initReal () {
@@ -63,8 +56,7 @@ export default async function initReal () {
   const url = new URL('rewards_bg.wasm', location.href)
       , res = await fetch(url.toString())
       , buf = await res.arrayBuffer()
-  await initRewards(buf)
-}
+  await initRewards(buf) }
 
 // pool api ----------------------------------------------------------------------------------------
 export class RealPool extends Pool {
@@ -78,8 +70,7 @@ export class RealPool extends Pool {
       threshold:    THRESHOLD,
       cooldown:     COOLDOWN
     })
-    this.ui.log.close.onclick = this.close.bind(this)
-  }
+    this.ui.log.close.onclick = this.close.bind(this) }
   update () {
     this.contract.next_query_response = {balance:{amount:String(this.balance)}}
     const info = this.contract.query({pool_info:{at:T.T}}).pool_info
@@ -91,13 +82,10 @@ export class RealPool extends Pool {
     this.threshold   = info.pool_threshold
     this.cooldown    = info.pool_cooldown
     this.liquid      = info.pool_liquid
-    super.update()
-  }
+    super.update() }
   close () {
     this.contract.sender = ""
-    this.contract.handle({close_pool:{message:"pool closed"}})
-  }
-}
+    this.contract.handle({close_pool:{message:"pool closed"}}) } }
 
 // user api ----------------------------------------------------------------------------------------
 export class RealUser extends User {
@@ -105,15 +93,13 @@ export class RealUser extends User {
   address: string
 
   get contract () {
-    return (this.pool as RealPool).contract
-  }
+    return (this.pool as RealPool).contract }
 
   constructor (ui: UIContext, pool: Pool, name: string, balance: number) {
     super(ui, pool, name, balance)
     this.address = this.name
     this.contract.sender = this.address
-    this.contract.handle({ set_viewing_key: { key: "" } })
-  }
+    this.contract.handle({ set_viewing_key: { key: "" } }) }
 
   update () {
     // mock the user's balance - actually stored on this same object
@@ -132,19 +118,17 @@ export class RealUser extends User {
     this.claimed     = Number(info.user_claimed)
     this.claimable   = Number(info.user_claimable)
     this.cooldown    = Number(info.user_cooldown)
-    super.update()
-  }
+    super.update() }
 
   lock (amount: number) {
     this.contract.sender = this.address
     try {
       //console.debug('lock', amount)
       this.contract.handle({ lock: { amount: String(amount) } })
-      super.lock(amount)
-    } catch (e) {
+      super.lock(amount) }
+    catch (e) {
       //console.error(e)
-    }
-  }
+    } }
 
   retrieve (amount: number) {
     this.contract.sender = this.address
@@ -154,18 +138,14 @@ export class RealUser extends User {
       super.retrieve(amount)
     } catch (e) {
       //console.error(e)
-    }
-  }
+    } }
 
   claim () {
     this.contract.sender = this.address
     try {
       const result = this.contract.handle({ claim: {} })
       const reward = Number(result.log.reward)
-      return this.doClaim(reward)
-    } catch (e) {
+      return this.doClaim(reward) }
+    catch (e) {
       console.error(e)
-      return 0
-    }
-  }
-}
+      return 0 } } }

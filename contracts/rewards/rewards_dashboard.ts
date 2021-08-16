@@ -17,10 +17,8 @@ initReal().then(()=>{ // load then start on click ------------------------------
   document.body.onclick = () => {
     document.body.innerHTML = ''
     document.body.onclick = null
-    start()
-  }
-  document.body.innerHTML = '<center>click to start</center>'
-})
+    start() }
+  document.body.innerHTML = '<center>click to start</center>' })
 
 function start () {
 
@@ -29,8 +27,7 @@ function start () {
     log:     new Log(),
     table:   new Table(),
     current: new PieChart('Current amounts locked',  'locked'),
-    stacked: new StackedPieChart()
-  }
+    stacked: new StackedPieChart() }
 
   // create a pool and some of test users with random balances -------------------------------------
   const pool = new Pool(ui)
@@ -38,13 +35,11 @@ function start () {
   for (let i = 0; i < MAX_USERS; i++) {
     const name    = `User${i}`
     const balance = Math.floor(Math.random()*MAX_INITIAL)
-    users[name]   = new User(ui, pool, name, balance)
-  }
+    users[name]   = new User(ui, pool, name, balance) }
 
   // add components --------------------------------------------------------------------------------
   for (const el of Object.values(ui)) {
-    append(document.body, el.root)
-  }
+    append(document.body, el.root) }
 
   // create dom elements for all users - then only update the content ------------------------------
   ui.table.init(users)
@@ -67,8 +62,7 @@ function start () {
     const eligible: Array<User> = []
     for (const user of Object.values(users)) {
       user.update()
-      if (user.claimable > 0) eligible.push(user as User)
-    }
+      if (user.claimable > 0) eligible.push(user as User) }
 
     // perform random lock/retrieve from random account for random amount --------------------------
     if (AUTO_LOCK_UNLOCK) {
@@ -76,27 +70,21 @@ function start () {
       pickRandom([
         (amount:number)=>user.lock(amount),
         (amount:number)=>user.retrieve(amount)
-      ])(random(user.balance))
-    }
+      ])(random(user.balance)) }
 
     // perform random claim ------------------------------------------------------------------------
     if (AUTO_CLAIM && eligible.length > 0) {
       const claimant = pickRandom(eligible)
-      claimant.claim()
-    }
+      claimant.claim() }
 
     // update charts -------------------------------------------------------------------------------
     for (const chart of [ui.current,ui.stacked]) {
-      chart.render()
-    }
+      chart.render() }
 
     // rinse and repeat ----------------------------------------------------------------------------
-    after(UPDATE_INTERVAL, update)
-  }
+    after(UPDATE_INTERVAL, update) }
 
   // resize handler --------------------------------------------------------------------------------
   function resize () {
     ui.current.resize()
-    ui.stacked.resize()
-  }
-}
+    ui.stacked.resize() } }

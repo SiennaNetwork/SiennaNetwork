@@ -11,8 +11,7 @@ export interface UIContext {
   log:     Log
   table:   Table
   current: PieChart
-  stacked: StackedPieChart
-}
+  stacked: StackedPieChart }
 
 // Label + value
 export class Field {
@@ -21,16 +20,12 @@ export class Field {
   value = append(this.root, h('div'))
   constructor (name: string, value?: any) {
     this.label.textContent = name
-    this.value.textContent = String(value)
-  }
+    this.value.textContent = String(value) }
   append (parent: HTMLElement) {
     parent.appendChild(this.root)
-    return this
-  }
+    return this }
   setValue (value: any) {
-    this.value.textContent = String(value)
-  }
-}
+    this.value.textContent = String(value) } }
 
 // global values + log of all modeled events -------------------------------------------------------
 export class Log {
@@ -55,12 +50,9 @@ export class Log {
   add (event: string, name: string, amount: number|undefined) {
     if (NO_HISTORY) return
     if (amount) {
-      prepend(this.body, h('div', { innerHTML: `<b>${name}</b> ${event} ${amount}LP` }))
-    } else {
-      prepend(this.body, h('div', { innerHTML: `<b>${name}</b> ${event}` }))
-    }
-  }
-}
+      prepend(this.body, h('div', { innerHTML: `<b>${name}</b> ${event} ${amount}LP` })) }
+    else {
+      prepend(this.body, h('div', { innerHTML: `<b>${name}</b> ${event}` })) } } }
 
 // table of current state --------------------------------------------------------------------------
 interface Columns {
@@ -87,8 +79,7 @@ export class Table {
 
   constructor () {
     this.root = document.createElement('table')
-    if (NO_TABLE) return
-  }
+    if (NO_TABLE) return }
 
   init (users: Users) {
     append(this.root, h('thead', {},
@@ -101,12 +92,9 @@ export class Table {
       h('th', { textContent: 'earned'       }),
       h('th', { textContent: 'claimed'      }),
       h('th', { textContent: 'claimable'    }),
-      h('th', { textContent: 'cooldown'     }),
-    ))
+      h('th', { textContent: 'cooldown'     }), ))
     for (const name of Object.keys(users)) {
-      this.addRow(name, users[name])
-    }
-  }
+      this.addRow(name, users[name]) } }
 
   addRow (name: string, user: User) {
     if (NO_TABLE) return
@@ -134,12 +122,10 @@ export class Table {
       earned:       append(row, h('td')),
       claimed:      append(row, h('td')),
       claimable:    append(row, h('td', { className: 'claimable', onclick: () => {user.claim()} })),
-      cooldown:     append(row, h('td')),
-    }
+      cooldown:     append(row, h('td')), }
     rows.claimable.style.fontWeight = 'bold'
     append(this.root, row)
-    return rows
-  }
+    return rows }
 
   update (user: User) {
     if (NO_TABLE) return
@@ -168,9 +154,7 @@ export class Table {
     this.rows[user.name].claimable.style.backgroundColor =
       fill
     this.rows[user.name].claimable.style.color =
-      stroke
-  }
-}
+      stroke } }
 
 type Values = Record<string, number>
 export class PieChart {
@@ -224,8 +208,8 @@ export class PieChart {
       context.fillRect(1, 1, width-2, height-2)
 
       // define center
-      const centerX = width  / 2
-      const centerY = height / 2
+      const centerX = width   / 2
+      const centerY = height  / 2
       const radius  = centerX * 0.95
 
       // loop over segments
@@ -273,8 +257,7 @@ export class StackedPieChart {
       // and sum the total
       let total: number = 0
       for (const user of Object.values(this.users)) {
-        total += user.lifetime
-      }
+        total += user.lifetime }
       if (total === 0) return
 
       // prepare canvas
@@ -286,8 +269,8 @@ export class StackedPieChart {
       context.fillRect(1, 1, width-2, height-2)
 
       // define center
-      const centerX = width  / 2
-      const centerY = height / 2
+      const centerX = width   / 2
+      const centerY = height  / 2
       const radius  = centerX * 0.95
 
       // loop over segments
@@ -308,6 +291,4 @@ export class StackedPieChart {
         context.lineWidth = 0.8
         context.fill()
         context.stroke()
-        start = end } }) }
-
-}
+        start = end } }) } }
