@@ -61,20 +61,6 @@ impl Diminish<Self, Time> for Volume {
         else {
             Ok(self.multiply_ratio(num, denom)?) } } }
 
-impl Diminish<Self, Amount> for Volume {
-    fn diminish (self, num: Amount, denom: Amount) -> StdResult<Self> {
-        if num > denom {
-            Err(StdError::generic_err("num > denom in diminish function")) }
-        else {
-            Ok(self.multiply_ratio(num, denom)?) } } }
-
-impl Diminish<Self, u128> for Volume {
-    fn diminish (self, num: u128, denom: u128) -> StdResult<Self> {
-        if num > denom {
-            Err(StdError::generic_err("num > denom in diminish function")) }
-        else {
-            Ok(self.multiply_ratio(num, denom)?) } } }
-
 impl Diminish<Self, Volume> for Volume {
     fn diminish (self, num: Uint256, denom: Uint256) -> StdResult<Self> {
         if num > denom {
@@ -84,13 +70,6 @@ impl Diminish<Self, Volume> for Volume {
 
 impl Diminish<Self, Amount> for Amount {
     fn diminish (self, num: Amount, denom: Amount) -> StdResult<Self> {
-        if num > denom {
-            Err(StdError::generic_err("num > denom in diminish function")) }
-        else {
-            Ok(self.multiply_ratio(num, denom)) } } }
-
-impl Diminish<Self, u128> for Amount {
-    fn diminish (self, num: u128, denom: u128) -> StdResult<Self> {
         if num > denom {
             Err(StdError::generic_err("num > denom in diminish function")) }
         else {
