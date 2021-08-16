@@ -351,7 +351,7 @@ stateful!(User (pool.storage):
 
             if let Ok(Some(timestamp)) = self.timestamp() {
                 if now < timestamp { // prevent replay
-                    return error!("no data") }
+                    return error!("no time travel") }
                 else {
                     Ok(now - timestamp) } }
             else {
@@ -518,7 +518,7 @@ stateful!(User (pool.storage):
             let now = self.pool.now()?;
             if let Some(timestamp) = self.timestamp()? {
                 if timestamp > now {
-                    return error!("no data") } }
+                    return error!("no time travel") } }
 
             // Commit rolling values to storage:
 

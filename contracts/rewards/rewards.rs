@@ -148,7 +148,7 @@ contract! {
             let pool = Pool::new(&deps.storage).at(at);
             let pool_last_update = pool.timestamp()?;
             if at < pool_last_update {
-                return Err(StdError::generic_err("no data")) }
+                return Err(StdError::generic_err("no time travel")) }
             let pool_lifetime = pool.lifetime()?;
             let pool_locked   = pool.locked()?;
 
@@ -162,7 +162,7 @@ contract! {
             let user_last_update = user.timestamp()?;
             if let Some(user_last_update) = user_last_update {
                 if at < user_last_update {
-                    return Err(StdError::generic_err("no data")) } }
+                    return Err(StdError::generic_err("no time travel")) } }
 
             Ok(Response::UserInfo {
                 it_is_now: at,
