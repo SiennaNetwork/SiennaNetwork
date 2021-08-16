@@ -272,13 +272,16 @@ stateful!(Pool (storage):
         /// the pool's lifetime liquidity is tallied and and the timestamp is updated.
         /// This is the only user-triggered input to the pool.
         pub fn update_locked (&mut self, balance: Amount) -> StdResult<&mut Self> {
-            // if this is the first time someone is locking tokens
-            // store the timestamp. this is used to start
-            // the liquidity ratio calculation from the time
-            // of first lock instead of contract init
+            // If this is the first time someone is locking tokens in this pool.
+            // store the timestamp. This is used to start the pool liquidity ratio
+            // calculation from the time of first lock instead of from the time
+            // of contract init.
+            // * Using is_none here fails type inference.
+            // * Zero timestamp is special-cased - apparently cosmwasm 0.10
+            //   can't tell the difference between None and the 1970s.
             match self.load(POOL_SEEDED)? as Option<Time> {
-                None    => { self.save(POOL_SEEDED, self.now)?; },
-                Some(0) => { self.save(POOL_SEEDED, self.now)?; },
+                None => { self.save(POOL_SEEDED, self.now)?; },
+                Some(0) => { return Err(StdError::generic_err("you jivin' yet?")); },
                 _ => {} };
 
             let lifetime = self.lifetime()?;

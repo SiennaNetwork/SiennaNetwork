@@ -58,7 +58,7 @@ kukumba_harnessed! {
         given "an instance:" {
             let admin = HumanAddr::from("admin");
             let alice = HumanAddr::from("alice");
-            Test.at(0).init_configured(&admin)?
+            Test.at(1).init_configured(&admin)?
                       .set_vk(&alice, "")?
                       .fund(PORTION)
                       .user(&alice,    0,   0,   0, 0, 0, 0)? }
@@ -99,13 +99,12 @@ kukumba_harnessed! {
             let admin = HumanAddr::from("admin");
             let alice = HumanAddr::from("alice");
             let bob   = HumanAddr::from("bob");
-            Test.at(0)
-             .init_configured(&admin)?
-             .fund(PORTION)
-             .set_vk(&alice, "")?
-             .set_vk(&bob,   "")?
-             .user(&alice, 0, 0, 0, 0, 0, 0)?
-             .user(&bob,   0, 0, 0, 0, 0, 0)? }
+            Test.at(1).init_configured(&admin)?
+                      .fund(PORTION)
+                      .set_vk(&alice, "")?
+                      .set_vk(&bob,   "")?
+                      .user(&alice, 0, 0, 0, 0, 0, 0)?
+                      .user(&bob,   0, 0, 0, 0, 0, 0)? }
 
         when "alice and bob first lock lp tokens simultaneously,"
         then "their ages and earnings start incrementing simultaneously;" {
@@ -119,7 +118,7 @@ kukumba_harnessed! {
             Test.at(3).user(&bob,   2, 100, 200, 50, 0, 0)?; }
 
         when "alice and bob's ages reach the configured threshold,"
-        then "each is eligible to claim half of the pool" {
+        then "each is eligible to claim half of the available rewards" {
             Test.at(DAY+1).user(&alice, DAY, 100, DAY * 100, 50, 0, 50)?
                           .user(&bob,   DAY, 100, DAY * 100, 50, 0, 50)? } }
 
@@ -128,7 +127,7 @@ kukumba_harnessed! {
             let admin = HumanAddr::from("admin");
             let alice = HumanAddr::from("alice");
             let bob   = HumanAddr::from("bob");
-            Test.at(0).init_configured(&admin)?
+            Test.at(1).init_configured(&admin)?
                       .set_vk(&alice, "")?
                       .set_vk(&bob,   "")?
                       .fund(PORTION) }
@@ -159,7 +158,7 @@ kukumba_harnessed! {
             let admin = HumanAddr::from("admin");
             let alice = HumanAddr::from("alice");
             let bob   = HumanAddr::from("bob");
-            Test.at(0).init_configured(&admin)?
+            Test.at(1).init_configured(&admin)?
                       .set_vk(&alice, "")?
                       .set_vk(&bob,   "")? }
 
@@ -202,7 +201,7 @@ kukumba_harnessed! {
             let alice   = HumanAddr::from("alice");
             let bob     = HumanAddr::from("bob");
             let mallory = HumanAddr::from("mallory");
-            Test.at(0).init_configured(&admin)? }
+            Test.at(1).init_configured(&admin)? }
 
         when  "someone requests to lock tokens"
         then  "the instance transfers them to itself"
@@ -243,7 +242,7 @@ kukumba_harnessed! {
             let admin = HumanAddr::from("admin");
             let alice = HumanAddr::from("alice");
             let bob   = HumanAddr::from("bob");
-            Test.at(0).init_configured(&admin)? }
+            Test.at(1).init_configured(&admin)? }
 
         when  "strangers try to claim rewards"
         then  "they get an error" {
@@ -252,27 +251,28 @@ kukumba_harnessed! {
 
         when  "users provide liquidity"
         and   "they wait for rewards to accumulate" {
-            Test.at(2)
+            Test.at(1)
                 .lock(&alice, 100)?.claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
                 .lock(&bob,   100)?.claim_must_wait(&bob, "lock tokens for 17280 more blocks to be eligible")?
-                .at(3).claim_must_wait(&alice, "lock tokens for 17279 more blocks to be eligible")?
-                .at(4).claim_must_wait(&bob,   "lock tokens for 17278 more blocks to be eligible")?
-                .at(5).claim_must_wait(&alice, "lock tokens for 17277 more blocks to be eligible")?
-                .at(6).claim_must_wait(&bob,   "lock tokens for 17276 more blocks to be eligible")? }
+                .at(2).claim_must_wait(&alice, "lock tokens for 17279 more blocks to be eligible")?
+                .at(3).claim_must_wait(&bob,   "lock tokens for 17278 more blocks to be eligible")?
+                .at(4).claim_must_wait(&alice, "lock tokens for 17277 more blocks to be eligible")?
+                .at(5).claim_must_wait(&bob,   "lock tokens for 17276 more blocks to be eligible")? }
 
         and   "a provider claims rewards"
         then  "that provider receives reward tokens" {
             Test.fund(PORTION)
-                .at(2 + DAY).claim(&alice, 50)? }
+                .at(1 + DAY).claim(&alice, 50)? }
 
         when  "a provider claims rewards twice within a period"
         then  "rewards are sent only the first time" {
-            Test.at(2 + DAY).claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
-                .at(3 + DAY).claim_must_wait(&alice, "lock tokens for 17279 more blocks to be eligible")? }
+            Test.at(1 + DAY).claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
+                .at(2 + DAY).claim_must_wait(&alice, "lock tokens for 17279 more blocks to be eligible")?
+                .at(3 + DAY).claim_must_wait(&alice, "lock tokens for 17278 more blocks to be eligible")? }
 
         when  "a provider claims their rewards less often"
         then  "they receive equivalent rewards as long as the liquidity locked hasn't changed" {
             Test.fund(PORTION)
-                .at(2 + DAY * 2).claim(&alice, 50)?.claim(&bob, 100)? } }
+                .at(3 + DAY * 2).claim(&alice, 50)?.claim(&bob, 100)? } }
 
 }

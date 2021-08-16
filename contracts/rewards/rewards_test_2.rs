@@ -32,62 +32,51 @@ kukumba_harnessed! {
             pool.configure_threshold(&crate::DAY)?
                 .configure_cooldown(&0)?
                 .configure_ratio(&(1u128.into(), 1u128.into()))?;
-            assert_eq!(Pool::new(&mut s).threshold()?,
-                       crate::DAY); }
+            assert_eq!(Pool::new(&mut s).threshold()?, crate::DAY); }
 
         when  "a user locks LP tokens" {
             let mut user = Pool::new(&mut s).at(10).user(addr.clone());
             user.lock_tokens(100u128.into())?;
-            assert_eq!(user.locked()?,
-                       100u128.into()); }
+            assert_eq!(user.locked()?, 100u128.into()); }
 
         then  "their age starts incrementing" {
             user.pool.set_time(10);
-            assert_eq!((user.present()?,
-                        user.last_present()?,
-                        user.elapsed_present()?), ( 0, 0,  0));
+            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
+                       ( 0, 0,  0));
             user.pool.set_time(50);
-            assert_eq!((user.present()?,
-                        user.last_present()?,
-                        user.elapsed_present()?), (40, 0, 40));
+            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
+                       (40, 0, 40));
             user.pool.set_time(100);
-            assert_eq!((user.present()?,
-                        user.last_present()?,
-                        user.elapsed_present()?), (90, 0, 90)); }
+            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
+                       (90, 0, 90)); }
 
         when  "a user's balance is updated"
         then  "their current age is committed"
         and   "their age keeps incrementing" {
             user.pool.set_time(110);
             user.retrieve_tokens(50u128.into())?;
-            assert_eq!((user.present()?,
-                        user.last_present()?,
-                        user.elapsed_present()?), (100, 100, 0));
+            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
+                       (100, 100, 0));
             user.pool.set_time(150);
-            assert_eq!((user.present()?,
-                        user.last_present()?,
-                        user.elapsed_present()?), (140, 100, 40));
+            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
+                       (140, 100, 40));
             user.pool.set_time(200);
-            assert_eq!((user.present()?,
-                        user.last_present()?,
-                        user.elapsed_present()?), (190, 100, 90)); }
+            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
+                       (190, 100, 90)); }
 
         when  "a user unlocks all their LP tokens"
         then  "their current age is committed"
         and   "their age stops incrementing until they lock again" {
             user.pool.set_time(210);
             user.retrieve_tokens(50u128.into())?;
-            assert_eq!((user.present()?,
-                        user.last_present()?,
-                        user.elapsed_present()?), (200, 200, 0));
+            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
+                       (200, 200, 0));
             user.pool.set_time(250);
-            assert_eq!((user.present()?,
-                        user.last_present()?,
-                        user.elapsed_present()?), (200, 200, 0));
+            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
+                       (200, 200, 0));
             user.pool.set_time(300);
-            assert_eq!((user.present()?,
-                        user.last_present()?,
-                        user.elapsed_present()?), (200, 200, 0)); }
+            assert_eq!((user.present()?, user.last_present()?, user.elapsed_present()?),
+                       (200, 200, 0)); }
 
         when  "a user claims before reaching the age threshold"
         then  "the claim is refused" {
@@ -105,23 +94,51 @@ kukumba_harnessed! {
             assert_eq!(user.claim_reward()?, Amount::from(100u128)); } }
 
     feature_claim_cooldown {
-        given "nothing" { unimplemented!() }
-        //pool.cooldown
-        //pool.configure_cooldown
-        //user.elapsed
-        //user.cooldown
-        //user.last_cooldown
-        //user.reset_cooldown
-        //user.update
-        //user.claim_reward
-    }
+
+        given "a pool and a user" {
+            let addr     = CanonicalAddr::default();
+            let mut s    = MemoryStorage::new();
+            let mut pool = Pool::new(&mut s);
+            pool.set_time(0)
+                .set_balance(100u128.into())
+                .configure_threshold(&0)?
+                .configure_cooldown(&1000)?
+                .configure_ratio(&(1u128.into(), 1u128.into()))?; }
+
+        when "user claims rewards"
+        then "user must wait the cooldown amount before claiming again" {
+            let mut user = pool.user(addr.clone());
+            user.lock_tokens(100u128.into())?;
+            user.pool.set_time(100000);
+            assert_eq!(user.claim_reward()?, 100u128.into());
+            assert_eq!(user.claim_reward(), Err(StdError::generic_err(
+                "lock tokens for 1000 more blocks to be eligible")));
+            user.pool.set_time(100500);
+            assert_eq!(user.claim_reward(), Err(StdError::generic_err(
+                "lock tokens for 500 more blocks to be eligible")));
+            user.pool.set_time(101000);
+            assert_eq!(user.claim_reward()?, 100u128.into());
+            assert_eq!(user.claim_reward(), Err(StdError::generic_err(
+                "lock tokens for 1000 more blocks to be eligible")));} }
 
     feature_global_ratio {
-        given "nothing" { unimplemented!() }
-        //pool.ratio
-        //pool.configure_ratio
-        //pool.earned
-    }
+
+        given "a pool and a user" {
+            let addr     = CanonicalAddr::default();
+            let mut s    = MemoryStorage::new();
+            let mut pool = Pool::new(&mut s);
+            pool.set_time(0)
+                .set_balance(100u128.into())
+                .configure_threshold(&0)?
+                .configure_cooldown(&0)?
+                .configure_ratio(&(1u128.into(), 2u128.into()))?; }
+
+        when "user becomes eligible for rewards"
+        then "rewards are diminished by the global rewards ratio" {
+            let mut user = pool.user(addr.clone());
+            user.lock_tokens(100u128.into())?;
+            user.pool.set_time(100000);
+            assert_eq!(user.claimable()?, 50u128.into()); } }
 
     feature_pool_liquidity_ratio {
 
