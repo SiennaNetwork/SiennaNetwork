@@ -401,6 +401,9 @@ stateful!(User (pool.storage):
 
         #[cfg(feature="claim_cooldown")]
         pub fn cooldown (&self) -> StdResult<Time> {
+            #[cfg(feature="pool_closes")]
+            if self.pool.closed()?.is_some() {
+                return Ok(0u64) }
             Ok(Time::saturating_sub(self.last_cooldown()?, self.elapsed()?)) }
 
         #[cfg(feature="claim_cooldown")]
