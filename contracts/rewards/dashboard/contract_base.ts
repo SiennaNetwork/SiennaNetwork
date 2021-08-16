@@ -21,7 +21,7 @@ export const format = {
 }
 
 // root of time (warning, singleton!) --------------------------------------------------------------
-export const T = { T: 0 }
+export const T = { T: 1 }
 
 class RPT {
   interval  = FUND_INTERVAL
