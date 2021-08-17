@@ -236,7 +236,7 @@ stateful!(Pool (storage):
         pub fn last_liquid (&self) -> StdResult<Time> {
             match self.load(POOL_LIQUID)? {
                 Some(liquid) => Ok(liquid),
-                None => Ok(0 as Time) } }
+                None => Ok(self.existed()?) } }
 
         #[cfg(feature="pool_liquidity_ratio")]
         pub fn liquidity_ratio (&self) -> StdResult<Amount> {
