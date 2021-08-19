@@ -1,5 +1,4 @@
-import { SecretNetworkContractWithSchema } from "@fadroma/scrt-agent";
-import { loadSchemas } from "@fadroma/utilities";
+import { ContractWithSchema, loadSchemas } from "@fadroma/contract"
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./mgmt/init.json",
@@ -8,7 +7,7 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg: "./mgmt/handle.json",
 });
 
-export default class MGMT extends SecretNetworkContractWithSchema {
+export default class MGMT extends ContractWithSchema {
   constructor(options) {
     super(options, schema);
   }

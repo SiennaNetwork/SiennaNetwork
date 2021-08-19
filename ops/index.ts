@@ -1,18 +1,12 @@
 #!/usr/bin/env node
 import { argv } from 'process'
-import ensureWallets from '@fadroma/scrt-agent/fund.js'
-import SecretNetwork from '@fadroma/scrt-agent/network.js'
-import Localnet from '@fadroma/scrt-ops/localnet.js'
-import {
-  basename, extname, resolve,
-  readdirSync, readFile,
-  table, noBorders, bold,
-  runCommand, printUsage,
-} from '@fadroma/utilities'
-import {
-  args, cargo, genCoverage, genSchema, genDocs, runTests, runDemo,
-  ensureWallets, selectLocalnet, resetLocalnet, selectTestnet, openFaucet, selectMainnet
-} from './lib/index.js'
+import ensureWallets from '@fadroma/agent/scrt_fund.js'
+import { Scrt } from '@fadroma/agent'
+import { basename, extname, resolve, readdirSync, readFile } from '@fadroma/util-sys'
+import { bold, table, noBorders, printUsage, runCommand } from '@fadroma/cli'
+import { args, cargo, genCoverage, genSchema, genDocs, runTests, runDemo,
+         selectLocalnet, selectTestnet, selectMainnet,
+         resetLocalnet, openFaucet } from './lib/index.js'
 import shell from './lib/shell.ts'
 import TGE from './TGEContracts.js'
 import Rewards from './RewardsContracts.ts'
@@ -26,7 +20,7 @@ const amm     = new Swap()
 const lend    = new Lend()
 
 const printStatus = async ({network}) => {
-  const { receipts, instances } = SecretNetwork.hydrate(network)
+  const { receipts, instances } = Scrt.hydrate(network)
 
   const idToName = {}
 

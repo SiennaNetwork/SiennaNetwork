@@ -1,4 +1,4 @@
-import { bignum } from '@fadroma/utilities'
+import { bignum } from '@fadroma/util-sys'
 
 export const fmtDecimals = d => x => {
   const a = bignum(x).div(d).toString()

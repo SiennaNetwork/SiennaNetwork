@@ -1,5 +1,5 @@
 import open from 'open'
-import { existsSync, stderr, writeFileSync } from '@fadroma/utilities'
+import { existsSync, stderr } from '@fadroma/util-sys'
 import { abs } from './root.js'
 import { cargo } from './run.js'
 

@@ -1,8 +1,6 @@
 import { execFileSync } from 'child_process'
 import { env, stderr } from 'process'
-
-import {SecretNetwork} from '@fadroma/scrt-agent'
-
+import { Scrt } from '@fadroma/agent'
 import { stateBase } from './root.js'
 import demo from '../TGEContracts.demo.js'
 
@@ -42,10 +40,10 @@ export const runDemo = async ({testnet}) => {
     let environment
     if (testnet) {
       console.info(`⏳ running demo on testnet...`)
-      environment = await SecretNetwork.testnet({stateBase})
+      environment = await Scrt.testnet({stateBase})
     } else {
       console.info(`⏳ running demo on localnet...`)
-      environment = await SecretNetwork.localnet({stateBase})
+      environment = await Scrt.localnet({stateBase})
     }
     await demo(environment)
     console.info('\n🟢 Demo executed successfully.\n')

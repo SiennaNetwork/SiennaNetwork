@@ -4,8 +4,9 @@
   "main": "./index.js",
   "type": "module",
   "dependencies": {
-    "@fadroma/scrt-agent": "*",
-    "@fadroma/utilities": "*",
+    "@fadroma/agent": "*",
+    "@fadroma/contract": "*",
+    "@fadroma/util-sys": "*",
     "mocha": "^8.4.0"
   }
 }

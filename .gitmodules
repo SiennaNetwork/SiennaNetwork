@@ -24,3 +24,7 @@
 	path = libraries/fadroma-21.07
 	url = git@github.com:hackbg/fadroma.git
 	branch = 21.07
+[submodule "libraries/fadroma-21.08"]
+	path = libraries/fadroma-21.08
+	url = git@github.com:hackbg/fadroma.git
+	branch = 21.08

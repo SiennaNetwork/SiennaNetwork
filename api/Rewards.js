@@ -1,5 +1,4 @@
-import { SecretNetworkContractWithSchema } from "@fadroma/scrt-agent";
-import { loadSchemas } from "@fadroma/utilities";
+import { ContractWithSchema, loadSchemas } from "@fadroma/contract"
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg:     "./rewards/init.json",
@@ -7,10 +6,8 @@ export const schema = loadSchemas(import.meta.url, {
   queryAnswer: "./rewards/response.json",
   handleMsg:   "./rewards/handle.json",
 });
-const decoder = new TextDecoder();
-const decode  = (buffer) => decoder.decode(buffer).trim();
 
-export default class Rewards extends SecretNetworkContractWithSchema {
+export default class Rewards extends ContractWithSchema {
   constructor(options = {}) { super(options, schema) }
 
   setProvidedToken = (address, code_hash, agent = this.agent) =>

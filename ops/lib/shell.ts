@@ -1,8 +1,8 @@
-import { abs } from './index.js'
-import { bold, render } from '@fadroma/utilities'
-import { SecretNetwork } from '@fadroma/scrt-agent'
 import * as repl from 'repl'
 import * as vm from 'vm'
+import { bold } from '@fadroma/cli'
+import { Scrt } from '@fadroma/agent'
+import { abs } from './index.js'
 
 import {
   AMMContract,
@@ -36,7 +36,7 @@ const Ensembles = {
 }
 
 export default async function shell (context = {}) {
-  const {network, agent, builder} = await SecretNetwork[context.network]().connect()
+  const {network, agent, builder} = await Scrt[context.network]().connect()
   console.info(`Launching shell...`)
   if (Object.keys(Contracts).length > 0) {
     console.info(bold(`Available contracts:`))

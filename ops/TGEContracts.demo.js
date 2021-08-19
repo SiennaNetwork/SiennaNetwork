@@ -20,17 +20,15 @@
 // * 🤵 **allocating unassigned funds** from a pool to a **new account**
 // * 💰 **splitting the Remaining Pool Tokens** between multiple addresses
 // * 🍰 **reconfiguring that split**, preserving the **total portion size**
-import assert from 'assert'
-import { loadJSON, taskmaster, bignum, fileURLToPath, resolve, dirname } from '@fadroma/utilities'
-import { SecretNetwork } from '@fadroma/scrt-agent'
-import ensureWallets from '@fadroma/scrt-agent/fund.js'
+import { loadJSON, bignum, fileURLToPath, resolve, dirname } from '@fadroma/util-sys'
+import { taskmaster } from '@fadroma/cli'
+import ensureWallets from '@fadroma/agent/scrt_fund.js'
 import { fmtSIENNA } from './lib/index.js'
 import TGEContracts from './TGEContracts.js'
-import { SNIP20Contract, MGMTContract, RPTContract } from '../api/index.js'
-//
-// Required: access to a testnet (holodeck-2), or in absence of testnet,
-// a handle to a localnet (automatically instantiated
-// in a Docker container from `sienna.js`)
+
+// Requires either:
+// * access to a testnet (holodeck-2), or
+// * a handle to a localnet (automatically instantiated in a Docker container from `sienna.js`)
 
 const projectRoot = resolve(fileURLToPath(dirname(import.meta.url)), '..')
 

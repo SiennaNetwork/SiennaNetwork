@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
-import { SecretNetwork } from "@fadroma/scrt-agent";
-import { gas } from "@fadroma/scrt-agent/gas.js";
+import { Scrt } from "@fadroma/agent";
+import { gas } from "@fadroma/agent/gas.js";
 import { abs } from "../ops/lib/index.js";
 import SNIP20 from "./SNIP20.js";
 import IDO from "./IDO.js";
@@ -90,7 +90,7 @@ describe("IDO", () => {
     // connect to a localnet with a large number of predefined agents
     const numberOfAgents = 10;
     const agentNames = [...Array(numberOfAgents)].map((_, i) => `Agent${i}`);
-    const localnet = SecretNetwork.localnet({
+    const localnet = Scrt.localnet({
       stateBase: abs("artifacts"),
       genesisAccounts: ["ADMIN", ...agentNames],
     });

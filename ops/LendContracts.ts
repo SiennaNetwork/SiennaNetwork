@@ -1,7 +1,7 @@
-import { ScrtEnsemble } from '@fadroma/scrt-ops'
+import { Ensemble } from '@fadroma/ensemble'
 import { abs } from './lib/index.js'
 
-export default class SiennaLend extends ScrtEnsemble {
+export default class SiennaLend extends Ensemble {
 
   workspace = abs()
 

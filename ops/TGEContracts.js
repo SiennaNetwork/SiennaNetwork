@@ -1,18 +1,17 @@
-import { SecretNetwork } from '@fadroma/scrt-agent'
-import { ScrtEnsemble } from '@fadroma/scrt-ops'
-import {
-  Console, render,
-  readFileSync, randomBytes,
-  resolve, basename, extname, dirname,
-  stderr
-} from '@fadroma/utilities'
+import { Scrt } from '@fadroma/agent'
+import { Ensemble } from '@fadroma/ensemble'
+import { render } from '@fadroma/cli'
+import { Console, stderr,
+         readFileSync, randomBytes,
+         resolve, basename, extname, dirname } from '@fadroma/util-sys'
 import { SNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
 import { scheduleFromSpreadsheet } from '@sienna/schedule'
 import { projectRoot, abs, runDemo } from './lib/index.js'
+import { taskmaster } from '@fadroma/cli'
 
 const { debug, log, warn, error, info, table } = Console(import.meta.url)
 
-export default class TGEContracts extends ScrtEnsemble {
+export default class TGEContracts extends Ensemble {
 
   workspace = abs()
 
@@ -80,7 +79,7 @@ export default class TGEContracts extends ScrtEnsemble {
     if (Object.keys(contracts)>0) return contracts
 
     // these may belong in the super-method
-    const network = SecretNetwork.hydrate(options.network || this.network)
+    const network = Scrt.hydrate(options.network || this.network)
     const agent = options.agent || this.agent || await network.getAgent()
 
     // accept schedule as string or struct
@@ -161,7 +160,7 @@ export default class TGEContracts extends ScrtEnsemble {
     }
 
     info(`⏳ launching vesting MGMT contract at ${address}...`)
-    const network = SecretNetwork.hydrate(options.network || this.network)
+    const network = Scrt.hydrate(options.network || this.network)
     const { agent } = await network.connect()
     const MGMT = network.getContract(MGMTContract, address, agent)
 
@@ -185,7 +184,7 @@ export default class TGEContracts extends ScrtEnsemble {
       // to be able to discern between bugs and incorrect inputs
     }
     info(`⏳ querying MGMT contract at ${address}...`)
-    const network = SecretNetwork.hydrate(options.network || this.network)
+    const network = Scrt.hydrate(options.network || this.network)
     const { agent } = await network.connect()
     const MGMT = network.getContract(MGMTContract, address, agent)
     const [schedule, status] = await Promise.all([MGMT.schedule, MGMT.status])

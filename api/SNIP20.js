@@ -1,8 +1,5 @@
-import { randomBytes } from "crypto";
-import { SecretNetworkContractWithSchema } from "@fadroma/scrt-agent";
-import { loadSchemas } from "@fadroma/utilities";
-
-const randomHex = (bytes) => randomBytes(bytes).toString("hex");
+import { ContractWithSchema, loadSchemas } from "@fadroma/contract";
+import { randomHex } from '@fadroma/util-sys'
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./snip20/init_msg.json",
@@ -15,7 +12,7 @@ export const schema = loadSchemas(import.meta.url, {
 const decoder = new TextDecoder();
 const decode = (buffer) => decoder.decode(buffer).trim();
 
-export default class SNIP20 extends SecretNetworkContractWithSchema {
+export default class SNIP20 extends ContractWithSchema {
   constructor(options = {}) {
     super(options, schema);
   }
@@ -76,7 +73,7 @@ export default class SNIP20 extends SecretNetworkContractWithSchema {
    * @param {string} contractAddress Address of the IDO contract where we will send this amount
    * @param {string} amount Amount to send
    * @param {string} [recipient] Recipient of the bought funds from IDO contract
-   * @param {SecretNetworkAgent} [agent] 
+   * @param {Agent} [agent] 
    * @returns 
    */
   sendIdo = (contractAddress, amount, recipient = null, agent) => this.tx.send(

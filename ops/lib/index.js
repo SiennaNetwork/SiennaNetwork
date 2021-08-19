@@ -1,6 +1,6 @@
 import open from 'open'
-import { bold } from '@fadroma/utilities'
-import { ScrtNode } from '@fadroma/scrt-ops'
+import { bold } from '@fadroma/cli'
+import { ScrtNode } from '@fadroma/localnet'
 
 import { abs, projectRoot } from './root.js'
 import { fmtSIENNA } from './decimals.js'

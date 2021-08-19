@@ -1,7 +1,7 @@
 import { randomBytes }        from 'crypto'
-import { SecretNetwork }      from '@fadroma/scrt-agent'
-import { gas }                from '@fadroma/scrt-agent/gas.js'
-import { bignum, taskmaster } from '@fadroma/utilities'
+import { Scrt }               from '@fadroma/agent'
+import { gas }                from '@fadroma/agent/gas.js'
+import { bignum, taskmaster } from '@fadroma/util-sys'
 import { abs }                from '../ops/lib/index.js'
 import SNIP20                 from './SNIP20.js'
 import Rewards                from './Rewards.js'
@@ -22,7 +22,7 @@ describe("Rewards", () => {
     // connect to a localnet with a large number of predefined agents
     const numberOfAgents = 20
     const agentNames = [...Array(numberOfAgents)].map((_,i)=>`Agent${i}`)
-    const localnet = SecretNetwork.localnet({
+    const localnet = Scrt.localnet({
       stateBase:       abs("artifacts"),
       genesisAccounts: ["ADMIN", ...agentNames]
     })
