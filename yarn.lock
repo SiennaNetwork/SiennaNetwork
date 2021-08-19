@@ -313,6 +313,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@fadroma/agent@workspace:libraries/fadroma-21.08/js/agent"
   dependencies:
+    "@fadroma/builder": "*"
+    "@fadroma/localnet": "*"
     "@fadroma/util-sys": "*"
   languageName: unknown
   linkType: soft
@@ -320,6 +322,9 @@ __metadata:
 "@fadroma/builder@*, @fadroma/builder@workspace:libraries/fadroma-21.08/js/builder":
   version: 0.0.0-use.local
   resolution: "@fadroma/builder@workspace:libraries/fadroma-21.08/js/builder"
+  dependencies:
+    "@fadroma/util-net": "*"
+    "@fadroma/util-sys": "*"
   languageName: unknown
   linkType: soft
 
@@ -332,6 +337,8 @@ __metadata:
 "@fadroma/contract@*, @fadroma/contract@workspace:libraries/fadroma-21.08/js/contract":
   version: 0.0.0-use.local
   resolution: "@fadroma/contract@workspace:libraries/fadroma-21.08/js/contract"
+  dependencies:
+    "@fadroma/util-sys": "*"
   languageName: unknown
   linkType: soft
 
@@ -349,9 +356,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@fadroma/util-net@*, @fadroma/util-net@workspace:libraries/fadroma-21.08/js/util/net":
+"@fadroma/util-net@*, @fadroma/util-net@workspace:libraries/fadroma-21.08/js/util-net":
   version: 0.0.0-use.local
-  resolution: "@fadroma/util-net@workspace:libraries/fadroma-21.08/js/util/net"
+  resolution: "@fadroma/util-net@workspace:libraries/fadroma-21.08/js/util-net"
   dependencies:
     "@fadroma/util-sys": "*"
     dockerode: ^3.3.0
@@ -359,9 +366,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@fadroma/util-sys@*, @fadroma/util-sys@workspace:libraries/fadroma-21.08/js/util/sys":
+"@fadroma/util-sys@*, @fadroma/util-sys@workspace:libraries/fadroma-21.08/js/util-sys":
   version: 0.0.0-use.local
-  resolution: "@fadroma/util-sys@workspace:libraries/fadroma-21.08/js/util/sys"
+  resolution: "@fadroma/util-sys@workspace:libraries/fadroma-21.08/js/util-sys"
   dependencies:
     colors: ^1.4.0
     exponential-backoff: ^3.1.0
@@ -420,6 +427,7 @@ __metadata:
   resolution: "@sienna/api@workspace:api"
   dependencies:
     "@fadroma/agent": "*"
+    "@fadroma/contract": "*"
     "@fadroma/util-sys": "*"
     mocha: ^8.4.0
   languageName: unknown

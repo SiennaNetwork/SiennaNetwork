@@ -1,5 +1,6 @@
 import open from 'open'
-import { bold } from '@fadroma/cli'
+import colors from 'colors/safe.js'
+const { bold } = colors
 import { ScrtNode } from '@fadroma/localnet'
 
 import { abs, projectRoot } from './root.js'

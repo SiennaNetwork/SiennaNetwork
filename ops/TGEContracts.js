@@ -1,8 +1,7 @@
 import { Scrt } from '@fadroma/agent'
 import { Ensemble } from '@fadroma/ensemble'
-import { render } from '@fadroma/cli'
-import { Console, stderr,
-         readFileSync, randomBytes,
+import { Console, render } from '@fadroma/cli'
+import { stderr, readFileSync, randomBytes,
          resolve, basename, extname, dirname } from '@fadroma/util-sys'
 import { SNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
 import { scheduleFromSpreadsheet } from '@sienna/schedule'
@@ -26,51 +25,49 @@ export default class TGEContracts extends Ensemble {
         name:     "Sienna",
         symbol:   "SIENNA",
         decimals: 18,
-        config: { public_total_supply: true }
-      }
-    },
-    MGMT: { crate: 'sienna-mgmt', label: `${this.prefix}SIENNA_MGMT`, initMsg: {} },
-    RPT:  { crate: 'sienna-rpt',  label: `${this.prefix}SIENNA_RPT`,  initMsg: {} }
-  }
+        config: { public_total_supply: true } } },
+    MGMT: {
+      crate: 'sienna-mgmt',
+      label: `${this.prefix}SIENNA_MGMT`,
+      initMsg: {} },
+    RPT:  {
+      crate: 'sienna-rpt',
+      label: `${this.prefix}SIENNA_RPT`,
+      initMsg: {} } }
 
-  get localCommands () {
-    return [
-      ["build",       '👷 Compile contracts from working tree',
-        (_, sequential) => this.build(sequential)],
-      ['config',      '📅 Convert a spreadsheet into a JSON schedule',
-        (_, spreadsheet) => genConfig(spreadsheet)]
-    ]
-  }
+  localCommands = () => [
+    ["build",       '👷 Compile contracts from working tree',
+      (_, sequential) => this.build(sequential)],
+    ['config',      '📅 Convert a spreadsheet into a JSON schedule',
+      (_, spreadsheet) => genConfig(spreadsheet)]]
 
-  get remoteCommands () {
-    return [
-      ["deploy",       '🚀 Build, init, and deploy the TGE',
-        (context, schedule) => this.deploy({...context, schedule}).then(process.exit)],
-      ["demo",         '🐒 Run the TGE demo (long-running integration test)',
-        runDemo],
-      ["upload",       '📦 Upload compiled contracts to network',
-        (context)           => this.upload(context)],
-      ["init",         '🚀 Init new instances of already uploaded contracts',
-        (context, schedule) => this.initialize({...context, schedule})],
-      ["launch",       '🚀 Launch deployed vesting contract',
-        (context, address)  => this.launch({...context, address})],
-      ["transfer",     '⚡ Transfer ownership of contracts to another address',
-        (context, address)  => this.transfer({...context, address})],
-      ['claim',        '⚡ Claim funds from a deployed contract',
-        (context, address, claimant) => this.claim({...context, address, claimant})],
-      ['status',       '👀 Print the status and schedule of a contract.',
-        (context, address) => this.getStatus({...context, address})],
-      //
-      // not implemented:
-      //
-      //["configure",   '⚡ Upload a new JSON config to an already initialized contract',
-        //(context, deployment, schedule) => this.configure(deployment, schedule)],
-      //['reallocate',  '⚡ Update the allocations of the RPT tokens',
-        //(context, [deployment, allocations]) => this.reallocate(deployment, allocations)],
-      //['add-account', '⚡ Add a new account to a partial vesting pool',
-        //(context, [deployment, account]) => this.addAccount(deployment, account)],
-    ]
-  }
+  remoteCommands = () => [
+    ["deploy",       '🚀 Build, init, and deploy the TGE',
+      (context, schedule) => this.deploy({...context, schedule}).then(process.exit)],
+    ["demo",         '🐒 Run the TGE demo (long-running integration test)',
+      runDemo],
+    ["upload",       '📦 Upload compiled contracts to network',
+      (context)           => this.upload(context)],
+    ["init",         '🚀 Init new instances of already uploaded contracts',
+      (context, schedule) => this.initialize({...context, schedule})],
+    ["launch",       '🚀 Launch deployed vesting contract',
+      (context, address)  => this.launch({...context, address})],
+    ["transfer",     '⚡ Transfer ownership of contracts to another address',
+      (context, address)  => this.transfer({...context, address})],
+    ['claim',        '⚡ Claim funds from a deployed contract',
+      (context, address, claimant) => this.claim({...context, address, claimant})],
+    ['status',       '👀 Print the status and schedule of a contract.',
+      (context, address) => this.getStatus({...context, address})],
+    //
+    // not implemented:
+    //
+    //["configure",   '⚡ Upload a new JSON config to an already initialized contract',
+      //(context, deployment, schedule) => this.configure(deployment, schedule)],
+    //['reallocate',  '⚡ Update the allocations of the RPT tokens',
+      //(context, [deployment, allocations]) => this.reallocate(deployment, allocations)],
+    //['add-account', '⚡ Add a new account to a partial vesting pool',
+      //(context, [deployment, account]) => this.addAccount(deployment, account)],
+  ]
  
   async initialize (options = {}) {
     // idempotency support:
