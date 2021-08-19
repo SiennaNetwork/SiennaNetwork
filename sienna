@@ -11,4 +11,4 @@
   #--experimental-specifier-resolution=node \
   #./ops $@
 
-node_modules/.bin/esmo ./ops/index.ts $@
+node_modules/.bin/esmo --enable-source-maps ./ops/index.ts $@
