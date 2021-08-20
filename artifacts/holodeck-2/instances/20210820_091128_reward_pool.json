@@ -1,0 +1,43 @@
+{
+  "label": "20210820_091128_reward_pool",
+  "codeId": 30355,
+  "codeHash": "63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6",
+  "initTx": {
+    "contractAddress": "secret1y2avmrj3ejxw66utz6q7sxkt2slkx9px5yxnu4",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "30355"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret1y2avmrj3ejxw66utz6q7sxkt2slkx9px5yxnu4"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "8E4A747F30EDC76242BFAAC27D1DCC0541C97E93ADCC6E116028DA378E4E4F4F",
+    "data": "22BACD8E51CC8CED6B8B1681E81ACB543F631426"
+  }
+}

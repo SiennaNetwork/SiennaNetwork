@@ -1,5 +1,5 @@
 import { execFileSync } from 'child_process'
-import { taskmaster } from '@fadroma/cli'
+import { taskmaster, table } from '@fadroma/cli'
 import { Ensemble, InitArgs } from '@fadroma/ensemble'
 import { randomHex } from '@fadroma/util-sys'
 import { SNIP20Contract, RewardsContract } from '@sienna/api'
@@ -72,47 +72,44 @@ export default class SiennaRewards extends Ensemble {
     //throw new Error('todo!')
     const instances: Record<string, any> = {}
     const task = taskmaster()
-    await task('initialize token',   initTokenTask.bind(this))
-    await task('initialize rewards', initRewardsTask.bind(this))
-    await task('mint some rewards',  mintRewardsTask.bind(this))
+    await task('initialize LP token',     initTokenTask.bind(this, 'TOKEN_LP'))
+    await task('initialize reward token', initTokenTask.bind(this, 'TOKEN_REWARD'))
+    await task('initialize rewards',      initRewardsTask.bind(this))
+    await task('mint some rewards',       mintRewardsTask.bind(this))
     console.log(instances)
-    console.table([
+    console.log(table([
       [ 'Contract\nDescription',
         'Address\nCode hash' ],
       [ 'TOKEN_LP\nLiquidity provision',
-        `${instances.TOKEN_REWARD.address}\n${instances.TOKEN.codeHash}`],
+        `${instances.TOKEN_REWARD.address}\n${instances.TOKEN_REWARD.codeHash}`],
       [ 'TOKEN_REWARD\nSienna SNIP20 token',
-        `${instances.TOKEN_REWARD.address}\n${instances.TOKEN.codeHash}`],
+        `${instances.TOKEN_REWARD.address}\n${instances.TOKEN_REWARD.codeHash}`],
       [ 'Rewards\n',
-        `${instances.REWARD_POOL.address}\n${instances.REWARD_POOL.codeHash}`]])
+        `${instances.REWARD_POOL.address}\n${instances.REWARD_POOL.codeHash}`]]))
     return instances
 
-    async function initTokenTask (report: Function) {
-      const {codeId} = receipts.TOKEN_LP
-      const {label} = this.contracts.TOKEN_LP
-      const initMsg = {
-        ...this.contracts.TOKEN_LP.initMsg,
-        admin: agent.address }
-      instances.TOKEN = await agent.instantiate(
-        new SNIP20Contract({
-          codeId, label: `${this.prefix}_${label}`, initMsg}))
-      report(instances.TOKEN.transactionHash) }
+    async function initTokenTask (key: string, report: Function) {
+      const {codeId} = receipts[key]
+          , {label}  = this.contracts[key]
+          , initMsg  = { ...this.contracts[key].initMsg
+                       , admin: agent.address }
+      instances[key] = await agent.instantiate(
+        new SNIP20Contract({codeId, label: `${this.prefix}_${label}`, initMsg}))
+      report(instances.TOKEN_LP.transactionHash) }
 
     async function initRewardsTask (report: Function) {
       const {codeId} = receipts.REWARD_POOL
-      const {label} = this.contracts.REWARD_POOL
-      const initMsg = {
-        ...this.contracts.REWARD_POOL.initMsg,
-        admin: agent.address,
-        reward_token: instances.TOKEN.reference }
+          , {label}  = this.contracts.REWARD_POOL
+          , initMsg  = { ...this.contracts.REWARD_POOL.initMsg
+                       , admin:        agent.address
+                       , reward_token: instances.TOKEN_REWARD.reference }
       instances.REWARD_POOL = await agent.instantiate(
-        new RewardsContract(
-          {codeId, label: `${this.prefix}_${label}`, initMsg}))
+        new RewardsContract({codeId, label: `${this.prefix}_${label}`, initMsg}))
       report(instances.REWARD_POOL.transactionHash) }
 
     async function mintRewardsTask (report: Function) {
       const amount = '540000000000000000000000'
-      const result = await instances.TOKEN.mint(amount, agent, instances.REWARD_POOL.address)
+      const result = await instances.TOKEN_REWARD.mint(amount, agent, instances.REWARD_POOL.address)
       report(result) } }
 
   /** Attach reward pool to existing deployment. */

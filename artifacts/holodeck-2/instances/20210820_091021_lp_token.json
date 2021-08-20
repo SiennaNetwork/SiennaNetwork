@@ -1,0 +1,60 @@
+{
+  "label": "20210820_091021_lp_token",
+  "codeId": 30343,
+  "codeHash": "61e403652ab26c1e91fb84513d425a9a77c00cbc804a6f1a8527d8f24bb66091",
+  "initTx": {
+    "contractAddress": "secret1lxqn85dvdc99xy0ayu6rmf0ch2jwcmmmf2j4c7",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "30343"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret1lxqn85dvdc99xy0ayu6rmf0ch2jwcmmmf2j4c7"
+              }
+            ]
+          },
+          {
+            "type": "wasm",
+            "attributes": [
+              {
+                "key": "contract_address",
+                "value": "secret1lxqn85dvdc99xy0ayu6rmf0ch2jwcmmmf2j4c7"
+              },
+              {
+                "key": "token_address",
+                "value": "secret1lxqn85dvdc99xy0ayu6rmf0ch2jwcmmmf2j4c7"
+              },
+              {
+                "key": "token_code_hash",
+                "value": "61e403652ab26c1e91fb84513d425a9a77c00cbc804a6f1a8527d8f24bb66091"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "A2864C9842EB951CDC80BB0608BACB034A6145B27D90072DF2EB350D162C284E",
+    "data": "F98133D1AC6E0A5311FD27343DA5F8BAA4EC6F7B"
+  }
+}
