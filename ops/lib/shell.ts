@@ -1,8 +1,9 @@
 import * as repl from 'repl'
 import * as vm from 'vm'
+
 import { bold } from '@fadroma/cli'
 import { Scrt } from '@fadroma/agent'
-import { abs } from './index.js'
+import { abs } from './root'
 
 import {
   AMMContract,
@@ -14,10 +15,11 @@ import {
   SNIP20Contract,
 } from '@sienna/api'
 
-import TGE from '../TGEContracts.js'
-import Rewards from '../RewardsContracts.ts'
-import Swap from '../AMMContracts.ts'
-import Lend from '../LendContracts.ts'
+import {
+  SiennaTGE     as TGE,
+  SiennaSwap    as Swap,
+  SiennaRewards as Rewards,
+  SiennaLend    as Lend } from '../ensembles'
 
 const Contracts = {
   AMM:     AMMContract,
@@ -26,14 +28,13 @@ const Contracts = {
   MGMT:    MGMTContract,
   RPT:     RPTContract,
   Rewards: RewardsContract,
-  SNIP20:  SNIP20Contract
-}
+  SNIP20:  SNIP20Contract }
+
 const Ensembles = {
   TGE,
   Rewards,
   Swap,
-  Lend
-}
+  Lend }
 
 export default async function shell (context = {}) {
   const {network, agent, builder} = await Scrt[context.network]().connect()

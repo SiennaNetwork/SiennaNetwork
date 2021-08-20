@@ -1,8 +1,8 @@
 import { execFileSync } from 'child_process'
 import { env, stderr } from 'process'
 import { Scrt } from '@fadroma/agent'
-import { stateBase } from './root.js'
-import demo from '../TGEContracts.demo.js'
+import { stateBase } from './root'
+import demo from '../tge.demo.js'
 
 export const clear = () =>
   env.TMUX && run('sh', '-c', 'clear && tmux clear-history')

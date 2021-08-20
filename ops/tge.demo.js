@@ -23,8 +23,8 @@
 import { loadJSON, bignum, fileURLToPath, resolve, dirname } from '@fadroma/util-sys'
 import { taskmaster } from '@fadroma/cli'
 import ensureWallets from '@fadroma/agent/scrt_fund.js'
-import { fmtSIENNA } from './lib/index.js'
-import TGEContracts from './TGEContracts.js'
+import { fmtSIENNA } from './lib/index'
+import { SiennaTGE as TGEContracts } from './ensembles.ts'
 
 // Requires either:
 // * access to a testnet (holodeck-2), or
