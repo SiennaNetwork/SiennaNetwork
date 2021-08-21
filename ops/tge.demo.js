@@ -20,9 +20,10 @@
 // * 🤵 **allocating unassigned funds** from a pool to a **new account**
 // * 💰 **splitting the Remaining Pool Tokens** between multiple addresses
 // * 🍰 **reconfiguring that split**, preserving the **total portion size**
-import { loadJSON, bignum, fileURLToPath, resolve, dirname } from '@fadroma/util-sys'
+import { loadJSON, fileURLToPath, resolve, dirname } from '@fadroma/sys'
 import { taskmaster } from '@fadroma/cli'
-import ensureWallets from '@fadroma/agent/scrt_fund.js'
+import { prefund } from '@fadroma/agent'
+
 import { fmtSIENNA } from './lib/index'
 import { SiennaTGE as TGEContracts } from './ensembles.ts'
 
@@ -79,7 +80,7 @@ async function prepare ({task, network, agent, schedule}) {
         break } break } })
 
   // * And now, for my next trick, I'm gonna need some **wallets**!
-  const recipientGasBudget = bignum(10000000) // uscrt
+  const recipientGasBudget = BigInt(10000000) // uscrt
       , wallets    = []
       , recipients = {}
   await task('shorten schedule and replace placeholders with test accounts', async () => {
@@ -107,7 +108,7 @@ async function prepare ({task, network, agent, schedule}) {
       recipients[name] = {agent: extra, address: extra.address} } })
 
   // * Make sure the wallets exist on-chain.
-  await ensureWallets({ task, connection: null, agent, wallets, recipients, recipientGasBudget })
+  await prefund({ task, connection: null, agent, wallets, recipients, recipientGasBudget })
 
   return { wallets, recipients }
 }

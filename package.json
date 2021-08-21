@@ -3,14 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "workspaces": [
-    "./libraries/fadroma-21.08/js/*",
-    "./libraries/fadroma-21.08/js/util/*",
-    "./libraries/fadroma-21.08/ui/cli",
-    "./libraries/schedule",
     "./api",
-    "./ops",
     "./contracts/rewards",
-    "."
+    "./libraries/fadroma-21.08/js/*",
+    "./libraries/schedule",
+    "./ops"
   ],
   "dependencies": {
     "chai": "^4.3.4",

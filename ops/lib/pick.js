@@ -1,5 +1,5 @@
 import prompts from 'prompts'
-import { resolve } from '@fadroma/util-sys'
+import { resolve } from '@fadroma/sys'
 import { outputOf } from './run.js'
 
 export const conformNetworkToChainId = network => {

@@ -6,7 +6,7 @@
   "dependencies": {
     "@fadroma/agent": "*",
     "@fadroma/contract": "*",
-    "@fadroma/util-sys": "*",
+    "@fadroma/sys": "*",
     "mocha": "^8.4.0"
   }
 }

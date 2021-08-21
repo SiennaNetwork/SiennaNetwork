@@ -1,5 +1,5 @@
 import { Scrt } from '@fadroma/agent'
-import { basename, resolve, readdirSync, readFile } from '@fadroma/util-sys'
+import { basename, resolve, readdirSync, readFile } from '@fadroma/sys'
 import { bold, table, noBorders } from '@fadroma/cli'
 
 export default async function printStatus ({network}) {

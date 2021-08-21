@@ -1,5 +1,5 @@
 import { ContractWithSchema, loadSchemas } from "@fadroma/contract";
-import { randomHex } from '@fadroma/util-sys'
+import { randomHex } from '@fadroma/sys'
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./snip20/init_msg.json",
@@ -41,7 +41,7 @@ export default class SNIP20 extends ContractWithSchema {
 
   createViewingKey = (
     agent,
-    entropy = "" //randomHex(32)) =>
+    entropy = randomHex(32)
   ) =>
     this.tx
       .create_viewing_key({ entropy, padding: null }, agent)

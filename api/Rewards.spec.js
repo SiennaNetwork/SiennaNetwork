@@ -1,10 +1,11 @@
-import { randomBytes }        from 'crypto'
-import { Scrt }               from '@fadroma/agent'
-import { gas }                from '@fadroma/agent/gas.js'
-import { bignum, taskmaster } from '@fadroma/util-sys'
-import { abs }                from '../ops/lib/index.js'
-import SNIP20                 from './SNIP20.js'
-import Rewards                from './Rewards.js'
+import { Scrt, gas }  from '@fadroma/agent'
+import { taskmaster } from '@fadroma/cli'
+import { randomHex }  from '@fadroma/sys'
+
+import { abs } from '../ops/lib/index.js'
+
+import SNIP20  from './SNIP20.js'
+import Rewards from './Rewards.js'
 
 describe("Rewards", () => {
 
@@ -83,7 +84,7 @@ describe("Rewards", () => {
     const rewardToken = await context.agent.instantiate(new SNIP20({
       codeId: context.token.id,
       label:  'RewardToken',
-      initMsg: { prng_seed: randomBytes(36).toString('hex')
+      initMsg: { prng_seed: randomHex
                , name:     "RewardToken"
                , symbol:   "REWARD"
                , decimals: 18
@@ -109,7 +110,7 @@ describe("Rewards", () => {
     const lpToken = await context.agent.instantiate(new SNIP20({
       codeId: context.token.id,
       label:  'LPToken',
-      initMsg: { prng_seed: randomBytes(36).toString('hex')
+      initMsg: { prng_seed: randomHex
                , name:     "LPToken"
                , symbol:   "LPTOKE"
                , decimals: 18
@@ -141,7 +142,7 @@ describe("Rewards", () => {
     const T1 = + new Date()
     console.info(`instantiation took ${T1 - T0}msec`)
 
-    const getRandomAmount = () => bignum(String(Math.floor(Math.random()*1000000)))
+    const getRandomAmount = () => BigInt(String(Math.floor(Math.random()*1000000)))
     await rewardPool.lock(getRandomAmount()).catch(console.error)
     await rewardPool.claim().catch(console.error)
     await rewardPool.retrieve(getRandomAmount()).catch(console.error)
