@@ -4,9 +4,9 @@
   "main": "./index.js",
   "type": "module",
   "dependencies": {
-    "@fadroma/agent": "*",
-    "@fadroma/contract": "*",
-    "@fadroma/sys": "*",
+    "@hackbg/fadroma": "*"
+  },
+  "devDependencies": {
     "mocha": "^8.4.0"
   }
 }

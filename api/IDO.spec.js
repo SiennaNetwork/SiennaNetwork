@@ -1,12 +1,14 @@
+import debug from "debug";
+import { assert } from "chai";
 import { randomBytes } from "crypto";
-import { Scrt } from "@fadroma/agent";
-import { gas } from "@fadroma/agent/gas.js";
+import { Scrt, gas } from "@hackbg/fadroma";
+
 import { abs } from "../ops/lib/index.js";
+
 import SNIP20 from "./SNIP20.js";
 import IDO from "./IDO.js";
 import Factory from "./Factory.js";
-import debug from "debug";
-import { assert } from "chai";
+
 
 const log = function () {
   debug("out")(JSON.stringify(arguments, null, 2));

@@ -1,6 +1,4 @@
-import { Scrt, gas }  from '@fadroma/agent'
-import { taskmaster } from '@fadroma/cli'
-import { randomHex }  from '@fadroma/sys'
+import { Scrt, gas, taskmaster, randomHex }  from "@hackbg/fadroma"
 
 import { abs } from '../ops/lib/index.js'
 

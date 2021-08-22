@@ -1,6 +1,4 @@
-import { execFileSync } from 'child_process'
-import { env, stderr } from 'process'
-import { Scrt } from '@fadroma/agent'
+import { Scrt, env, stderr, execFileSync } from '@hackbg/fadroma'
 import { stateBase } from './root'
 import demo from '../tge.demo.js'
 

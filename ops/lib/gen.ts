@@ -3,7 +3,7 @@ import open from 'open'
 import { scheduleFromSpreadsheet } from '@sienna/schedule'
 
 import { stderr, existsSync, readFileSync, writeFileSync,
-         resolve, basename, extname, dirname, } from '@fadroma/sys'
+         resolve, basename, extname, dirname } from '@hackbg/fadroma'
 
 import { abs, projectRoot } from './root'
 import { cargo } from './run'

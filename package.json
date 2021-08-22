@@ -5,11 +5,12 @@
   "workspaces": [
     "./api",
     "./contracts/rewards",
-    "./libraries/fadroma-21.08/js/*",
+    "./libraries/fadroma-21.08/",
     "./libraries/schedule",
     "./ops"
   ],
   "dependencies": {
+    "@hackbg/fadroma": "*",
     "chai": "^4.3.4",
     "docco": "^0.8.1",
     "esmo": "^0.9.1",

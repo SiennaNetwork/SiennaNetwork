@@ -1,8 +1,8 @@
-import { Scrt } from '@fadroma/agent'
-import { basename, resolve, readdirSync, readFile } from '@fadroma/sys'
-import { bold, table, noBorders } from '@fadroma/cli'
+import { Scrt,
+         basename, resolve, readdirSync, readFile,
+         bold, table, noBorders } from '@hackbg/fadroma'
 
-export default async function printStatus ({network}) {
+export async function printStatus ({network}) {
   const { receipts, instances } = Scrt.hydrate(network)
 
   const idToName = {}

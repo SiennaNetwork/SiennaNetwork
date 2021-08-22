@@ -1,8 +1,7 @@
 import * as repl from 'repl'
 import * as vm from 'vm'
 
-import { bold } from '@fadroma/cli'
-import { Scrt } from '@fadroma/agent'
+import { Scrt, bold } from '@hackbg/fadroma'
 import { abs } from './root'
 
 import {
@@ -36,7 +35,7 @@ const Ensembles = {
   Swap,
   Lend }
 
-export default async function shell (context = {}) {
+export async function shell (context = {}) {
   const {network, agent, builder} = await Scrt[context.network]().connect()
   console.info(`Launching shell...`)
   if (Object.keys(Contracts).length > 0) {
@@ -65,5 +64,4 @@ export default async function shell (context = {}) {
   await new Promise((resolve, reject)=>
     loop.setupHistory('.fadroma_repl_history',
       (err, repl) => err ? reject(err) : resolve(repl)))
-  Object.assign(loop.context, { Contracts, Ensembles, network, agent, builder, workspace: abs() })
-}
+  Object.assign(loop.context, { Contracts, Ensembles, network, agent, builder, workspace: abs() }) }

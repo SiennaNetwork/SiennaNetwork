@@ -1,14 +1,10 @@
-import { execFileSync } from 'child_process'
-
-import { Scrt } from '@fadroma/agent'
-import { Contract } from '@fadroma/contract'
-import { Ensemble, InitArgs } from '@fadroma/ensemble'
-import { Commands, Console, render, taskmaster, table } from '@fadroma/cli'
-import { readFile } from '@fadroma/sys'
+import { Scrt, Contract, Ensemble, EnsembleInit,
+         Commands, Console, render, taskmaster, table,
+         readFile, execFileSync } from '@hackbg/fadroma'
 
 import { SNIP20Contract, MGMTContract, RPTContract, RewardsContract } from '@sienna/api'
-import { abs, runDemo } from './lib/index'
-import { genConfig, getDefaultSchedule } from './lib/gen'
+
+import { abs, runDemo, genConfig, getDefaultSchedule } from './lib/index'
 
 const { debug, warn, info } = Console(import.meta.url)
 
@@ -17,7 +13,7 @@ import { SIENNA_SNIP20, MGMT, RPT,
          LP_SNIP20, REWARD_POOL,
          IDO } from './contracts'
 
-type TGEInitArgs = InitArgs & {
+type TGEInit = EnsembleInit & {
   schedule?: string|Record<any, any>
   initialRPTRecipient?: string
 }
@@ -27,7 +23,7 @@ type TGECommandArgs = {
   network?: any
 }
 
-export class SiennaTGE extends Ensemble<Scrt> {
+export class SiennaTGE extends Ensemble {
   workspace = abs()
   contracts = { SIENNA_SNIP20, MGMT, RPT }
 
@@ -78,7 +74,7 @@ export class SiennaTGE extends Ensemble<Scrt> {
       //(context, [deployment, account]) => this.addAccount(deployment, account)],
   ]
 
-  async initialize (options: TGEInitArgs = {}) {
+  async initialize (options: TGEInit = {}) {
     const network = Scrt.hydrate(options.network || this.network)
         , agent   = options.agent   || this.agent || await network.getAgent()
         , task    = options.task    || taskmaster()
@@ -197,17 +193,20 @@ export class SiennaTGE extends Ensemble<Scrt> {
 
   async claim (_: any) { throw new Error('not implemented') } }
 
-export class SiennaSwap extends Ensemble<Scrt> {
+export class SiennaSwap extends Ensemble {
   workspace = abs()
   contracts = { AMM_FACTORY, AMM_EXCHANGE, AMM_SNIP20, LP_SNIP20, IDO }
 
-  async initialize (args: InitArgs) {}
+  async initialize (args: InitArgs) {
+    return {}
+  }
 
-  async attachTo (tge: SiennaTGE) {}
+  async attachTo (tge: SiennaTGE) {
+  }
 
 }
 
-export class SiennaRewards extends Ensemble<Scrt> {
+export class SiennaRewards extends Ensemble {
   workspace = abs()
   contracts = { SIENNA_SNIP20, LP_SNIP20, REWARD_POOL }
 
@@ -282,7 +281,7 @@ export class SiennaRewards extends Ensemble<Scrt> {
     const args = ['-p', 'false', 'api/Rewards.spec.js']
     execFileSync(abs('node_modules/.bin/mocha'), args, { stdio: 'inherit' }) } }
 
-export class SiennaLend extends Ensemble<Scrt> {
+export class SiennaLend extends Ensemble {
   workspace = abs()
   contracts = { SNIP20: { crate: 'snip20-lend' }
               , ATOKEN: { crate: 'atoken' }

@@ -1,4 +1,4 @@
-import { randomHex } from '@fadroma/sys'
+import { randomHex } from '@hackbg/fadroma'
 
 export const SIENNA_SNIP20 =
   { crate: 'snip20-sienna'

@@ -1,5 +1,4 @@
-import { ContractWithSchema, loadSchemas } from "@fadroma/contract";
-import { randomHex } from '@fadroma/sys'
+import { ContractWithSchema, loadSchemas, randomHex } from "@hackbg/fadroma"
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./snip20/init_msg.json",

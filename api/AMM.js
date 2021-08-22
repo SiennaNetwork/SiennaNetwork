@@ -1,4 +1,4 @@
-import { ContractWithSchema, loadSchemas } from "@fadroma/contract"
+import { ContractWithSchema, loadSchemas } from "@hackbg/fadroma"
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg:     "./amm/init_msg.json",

@@ -20,12 +20,10 @@
 // * 🤵 **allocating unassigned funds** from a pool to a **new account**
 // * 💰 **splitting the Remaining Pool Tokens** between multiple addresses
 // * 🍰 **reconfiguring that split**, preserving the **total portion size**
-import { loadJSON, fileURLToPath, resolve, dirname } from '@fadroma/sys'
-import { taskmaster } from '@fadroma/cli'
-import { prefund } from '@fadroma/agent'
+import { loadJSON, fileURLToPath, resolve, dirname, taskmaster, prefund } from '@hackbg/fadroma'
 
-import { fmtSIENNA } from './lib/index'
-import { SiennaTGE as TGEContracts } from './ensembles.ts'
+import { fmtSIENNA } from './lib/index.ts'
+import { SiennaTGE as TGEContracts } from './ensembles'
 
 // Requires either:
 // * access to a testnet (holodeck-2), or
