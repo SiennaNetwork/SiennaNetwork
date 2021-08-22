@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { Chain, Scrt, prefund,
-         CommandName, Commands, runCommand, printUsage } from '@hackbg/fadroma'
+         CommandName, Commands, runCommand, printUsage,
+         on, onChain, resetLocalnet, openFaucet } from '@hackbg/fadroma'
 
-import { on, cargo, genCoverage, genSchema, genDocs, runTests, runDemo,
-         resetLocalnet, openFaucet, onChain, shell, printStatus } from './lib/index'
+import { cargo, genCoverage, genSchema, genDocs, runTests, runDemo,
+         shell, printStatus } from './lib/index'
 
 import { SiennaTGE, SiennaSwap, SiennaRewards, SiennaLend } from './ensembles'
 

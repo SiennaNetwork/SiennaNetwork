@@ -1,4 +1,4 @@
-import { Scrt, Contract, Ensemble, EnsembleInit,
+import { Chain, Scrt, Contract, ContractEnsemble, EnsembleInit,
          Commands, Console, render, taskmaster, table,
          readFile, execFileSync } from '@hackbg/fadroma'
 
@@ -20,10 +20,10 @@ type TGEInit = EnsembleInit & {
 
 type TGECommandArgs = {
   address?: string
-  network?: any
+  chain?: any
 }
 
-export class SiennaTGE extends Ensemble {
+export class SiennaTGE extends ContractEnsemble {
   workspace = abs()
   contracts = { SIENNA_SNIP20, MGMT, RPT }
 
@@ -32,7 +32,7 @@ export class SiennaTGE extends Ensemble {
     CONFIG:      '📅 Convert a spreadsheet into a JSON schedule',
     DEPLOY:      '🚀 Build, init, and deploy the TGE',
     DEMO:        '🐒 Run the TGE demo (long-running integration test)',
-    UPLOAD:      '📦 Upload compiled contracts to network',
+    UPLOAD:      '📦 Upload compiled contracts to chain',
     INIT:        '🚀 Init new instances of already uploaded contracts',
     LAUNCH:      '🚀 Launch deployed vesting contract',
     CLAIM:       '⚡ Claim funds from a deployed contract',
@@ -75,10 +75,10 @@ export class SiennaTGE extends Ensemble {
   ]
 
   async initialize (options: TGEInit = {}) {
-    const network = Scrt.hydrate(options.network || this.network)
-        , agent   = options.agent   || this.agent || await network.getAgent()
+    const chain = Scrt.hydrate(options.chain || this.chain)
+        , agent   = options.agent   || this.agent || await chain.getAgent()
         , task    = options.task    || taskmaster()
-        , uploads = options.uploads || await this.upload({agent, network, task})
+        , uploads = options.uploads || await this.upload({agent, chain, task})
         , initialRPTRecipient = options.initialRPTRecipient || agent.address
 
     const instances: Record<string, Contract> = {}
@@ -146,7 +146,7 @@ export class SiennaTGE extends Ensemble {
       , [ 'MGMT\nVesting',                      `${MGMT.address}\n${MGMT.codeHash}`]
       , [ 'RPT\nRemaining pool tokens',         `${RPT.address}\n${RPT.codeHash}`] ]))
 
-    return {network, agent, contracts: instances} }
+    return {chain, agent, contracts: instances} }
 
   async launch (options: TGECommandArgs = {}) {
     const address = options.address
@@ -158,9 +158,9 @@ export class SiennaTGE extends Ensemble {
       process.exit(1) }
 
     info(`⏳ launching vesting MGMT contract at ${address}...`)
-    const network = Scrt.hydrate(options.network || this.network)
-    const { agent } = await network.connect()
-    const MGMT = network.getContract(MGMTContract, address, agent)
+    const chain = Scrt.hydrate(options.chain || this.chain)
+    const { agent } = await chain.connect()
+    const MGMT = chain.getContract(MGMTContract, address, agent)
 
     try {
       await MGMT.launch()
@@ -180,9 +180,9 @@ export class SiennaTGE extends Ensemble {
       // to be able to discern between bugs and incorrect inputs
     }
     info(`⏳ querying MGMT contract at ${address}...`)
-    const network = Scrt.hydrate(options.network || this.network)
-    const { agent } = await network.connect()
-    const MGMT = network.getContract(MGMTContract, address, agent)
+    const chain = Scrt.hydrate(options.chain || this.chain)
+    const { agent } = await chain.connect()
+    const MGMT = chain.getContract(MGMTContract, address, agent)
     const [schedule, status] = await Promise.all([MGMT.schedule, MGMT.status])
     console.log('\n'+render(schedule))
     console.log('\n'+render(status)) }
@@ -193,11 +193,11 @@ export class SiennaTGE extends Ensemble {
 
   async claim (_: any) { throw new Error('not implemented') } }
 
-export class SiennaSwap extends Ensemble {
+export class SiennaSwap extends ContractEnsemble {
   workspace = abs()
   contracts = { AMM_FACTORY, AMM_EXCHANGE, AMM_SNIP20, LP_SNIP20, IDO }
 
-  async initialize (args: InitArgs) {
+  async initialize (args: EnsembleInit) {
     return {}
   }
 
@@ -206,7 +206,7 @@ export class SiennaSwap extends Ensemble {
 
 }
 
-export class SiennaRewards extends Ensemble {
+export class SiennaRewards extends ContractEnsemble {
   workspace = abs()
   contracts = { SIENNA_SNIP20, LP_SNIP20, REWARD_POOL }
 
@@ -215,11 +215,11 @@ export class SiennaRewards extends Ensemble {
       ["test",      '🥒 Run unit tests',    this.test.bind(this)     ],
       ["benchmark", '⛽ Measure gas costs', this.benchmark.bind(this)]] }
 
-  async initialize (options: InitArgs) {
-    const network = Scrt.hydrate(options.network || this.network)
-        , agent   = options.agent   || this.agent || await network.getAgent()
+  async initialize (options: EnsembleInit) {
+    const chain   = options.chain
+        , agent   = options.agent   || this.agent || await chain.getAgent()
         , task    = options.task    || taskmaster()
-        , uploads = options.uploads || await this.upload({agent, network, task})
+        , uploads = options.uploads || await this.upload({agent, chain, task})
         , instances: Record<string, any> = {}
 
     await task('initialize LP token',     initTokenTask.bind(this, 'LP_SNIP20'))
@@ -281,7 +281,7 @@ export class SiennaRewards extends Ensemble {
     const args = ['-p', 'false', 'api/Rewards.spec.js']
     execFileSync(abs('node_modules/.bin/mocha'), args, { stdio: 'inherit' }) } }
 
-export class SiennaLend extends Ensemble {
+export class SiennaLend extends ContractEnsemble {
   workspace = abs()
   contracts = { SNIP20: { crate: 'snip20-lend' }
               , ATOKEN: { crate: 'atoken' }

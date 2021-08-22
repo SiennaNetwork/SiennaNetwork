@@ -1,4 +1,3 @@
-export * from './chain'
 export * from './decimals'
 export * from './gen'
 export * from './pick'
