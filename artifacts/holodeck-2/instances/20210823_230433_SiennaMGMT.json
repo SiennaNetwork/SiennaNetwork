@@ -1,9 +1,9 @@
 {
-  "label": "2021-06-10T10:11:51.598Z SIENNA_SNIP20",
-  "codeId": 29437,
-  "codeHash": "a5989eba266a5cd2863ab30f8f49a87d762633142bc92da025844bba66e46a48",
+  "label": "20210823_230433_SiennaMGMT",
+  "codeId": 30429,
+  "codeHash": "bfd67c2fb628473ebd5dc6431ee84ad51455f8344916af2c10b567eb60a6e71b",
   "initTx": {
-    "contractAddress": "secret1srv538p3a0742cdxc4aqackq6tcaa8pc6nq57y",
+    "contractAddress": "secret15fac6p4we7nddkwxexkvkgen328kljxn4jf08s",
     "logs": [
       {
         "msg_index": 0,
@@ -26,18 +26,18 @@
               },
               {
                 "key": "code_id",
-                "value": "29437"
+                "value": "30429"
               },
               {
                 "key": "contract_address",
-                "value": "secret1srv538p3a0742cdxc4aqackq6tcaa8pc6nq57y"
+                "value": "secret15fac6p4we7nddkwxexkvkgen328kljxn4jf08s"
               }
             ]
           }
         ]
       }
     ],
-    "transactionHash": "3865203096D45E6DD6197381DE1321FC549D06ADB3E3CE769496989CFF9129B8",
-    "data": "80D9489C31EBFD5561A6C57A0EE2C0D2F1DE9C38"
+    "transactionHash": "BCC60C44B907F60ACE38490C03ED8BA35079E2172E098015F34FCE418F9B9511",
+    "data": "A27B8D06AECFA6D6D9C6C9ACCB23338A8F6FC8D3"
   }
 }

@@ -405,8 +405,10 @@ __metadata:
   resolution: "@hackbg/fadroma@workspace:libraries/fadroma-21.08"
   dependencies:
     "@cosmjs/crypto": ^0.24.1
+    "@types/mkdirp": ^1.0.2
     "@types/mocha": ^9.0.0
     "@types/prettyjson": ^0.0.30
+    "@types/rimraf": ^3.0.2
     ajv: ^8.6.0
     bignumber.js: ^9.0.1
     chai: ^4.3.4
@@ -569,7 +571,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/glob@npm:^7.1.1":
+"@types/glob@npm:*, @types/glob@npm:^7.1.1":
   version: 7.1.4
   resolution: "@types/glob@npm:7.1.4"
   dependencies:
@@ -616,6 +618,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/mkdirp@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "@types/mkdirp@npm:1.0.2"
+  dependencies:
+    "@types/node": "*"
+  checksum: 72dedfb2d250f0e44ec964ac68ff6a4a03d7d9d6e83ae1d5ba6d212791af69cf051a5fac59846826242d099de56a18c8e0581861792fae8b845b3c9ad67ecdeb
+  languageName: node
+  linkType: hard
+
 "@types/mocha@npm:^9.0.0":
   version: 9.0.0
   resolution: "@types/mocha@npm:9.0.0"
@@ -657,6 +668,16 @@ __metadata:
   version: 0.0.30
   resolution: "@types/prettyjson@npm:0.0.30"
   checksum: bc012fe807b6c9386576ba33d3c4cce6ecd9900ef1cc98eb386f5cd90a1ad0818e94ee35b6debf955ebeaa692952a9e08dc533f75561bc50b505fecdb5a93318
+  languageName: node
+  linkType: hard
+
+"@types/rimraf@npm:^3.0.2":
+  version: 3.0.2
+  resolution: "@types/rimraf@npm:3.0.2"
+  dependencies:
+    "@types/glob": "*"
+    "@types/node": "*"
+  checksum: b47fa302f46434cba704d20465861ad250df79467d3d289f9d6490d3aeeb41e8cb32dd80bd1a8fd833d1e185ac719fbf9be12e05ad9ce9be094d8ee8f1405347
   languageName: node
   linkType: hard
 

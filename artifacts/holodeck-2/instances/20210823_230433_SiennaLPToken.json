@@ -1,9 +1,9 @@
 {
-  "label": "20210820_091021_reward_token",
-  "codeId": 30344,
-  "codeHash": "5774e9b98f1d97cc298a9ed4f45f89fa10c2a72e9a1928ec1ea5c4f4cefe4c19",
+  "label": "20210823_230433_SiennaLPToken",
+  "codeId": 30431,
+  "codeHash": "61e403652ab26c1e91fb84513d425a9a77c00cbc804a6f1a8527d8f24bb66091",
   "initTx": {
-    "contractAddress": "secret13uaz27w7yq02nhszytqulwt9l0vjn37nh4a69d",
+    "contractAddress": "secret1f2eeehe8p35q0esrz99fuvsnkx90zzljycv6jk",
     "logs": [
       {
         "msg_index": 0,
@@ -26,11 +26,11 @@
               },
               {
                 "key": "code_id",
-                "value": "30344"
+                "value": "30431"
               },
               {
                 "key": "contract_address",
-                "value": "secret13uaz27w7yq02nhszytqulwt9l0vjn37nh4a69d"
+                "value": "secret1f2eeehe8p35q0esrz99fuvsnkx90zzljycv6jk"
               }
             ]
           },
@@ -39,22 +39,22 @@
             "attributes": [
               {
                 "key": "contract_address",
-                "value": "secret13uaz27w7yq02nhszytqulwt9l0vjn37nh4a69d"
+                "value": "secret1f2eeehe8p35q0esrz99fuvsnkx90zzljycv6jk"
               },
               {
                 "key": "token_address",
-                "value": "secret13uaz27w7yq02nhszytqulwt9l0vjn37nh4a69d"
+                "value": "secret1f2eeehe8p35q0esrz99fuvsnkx90zzljycv6jk"
               },
               {
                 "key": "token_code_hash",
-                "value": "5774e9b98f1d97cc298a9ed4f45f89fa10c2a72e9a1928ec1ea5c4f4cefe4c19"
+                "value": "61e403652ab26c1e91fb84513d425a9a77c00cbc804a6f1a8527d8f24bb66091"
               }
             ]
           }
         ]
       }
     ],
-    "transactionHash": "FB5D1CD09757F224D9AB9E29D1E69875758BC518FA5BBF493FB8A95649AD2B82",
-    "data": "8F3A2579DE201EA9DE0222C1CFB965FBD929C7D3"
+    "transactionHash": "D2586AFE4293BE6A32B02659B86BCE70BFD790D6F32F45DA7B3777F6EF641830",
+    "data": "4AB39CDF270C6807E603114A9E3213B18AF10BF2"
   }
 }

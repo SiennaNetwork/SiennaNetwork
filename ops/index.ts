@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 import { Chain, Scrt, prefund,
          CommandName, Commands, runCommand, printUsage,
-         on, onChain, resetLocalnet, openFaucet } from '@hackbg/fadroma'
+         on, resetLocalnet, openFaucet } from '@hackbg/fadroma'
 
-import { cargo, genCoverage, genSchema, genDocs, runTests, runDemo,
-         shell, printStatus } from './lib/index'
-
+import { cargo, genCoverage, genSchema, genDocs, runTests, shell /*runDemo,*/ } from './lib/index'
 import { SiennaTGE, SiennaSwap, SiennaRewards, SiennaLend } from './ensembles'
 
 export default async function main (command: CommandName, ...args: any) {
@@ -17,63 +15,83 @@ export default async function main (command: CommandName, ...args: any) {
 
   function remoteCommands (chain: Chain): Commands {
     return [
-      ["status", "Show stored receipts.", printStatus],
+      ["status",  HELP.STATUS,  () => chain.printStatusTables()],
       null,
-      ["tge",     "🚀 SIENNA token + vesting",
-        null, new SiennaTGE({chain}).remoteCommands()],
-      ["amm",     "💱 Contracts of Sienna Swap/AMM",
-        null, new SiennaSwap({chain}).remoteCommands()],
-      ["rewards", "🏆 SIENNA token + staking rewards",
-        null, new SiennaRewards({chain}).remoteCommands()],
-      ["lend",    "🏦 Contracts of Sienna Lend",
-        null, new SiennaLend({chain}).remoteCommands()]] }
+      ["tge",     HELP.TGE,     null, new SiennaTGE({chain}).remoteCommands()],
+      ["amm",     HELP.AMM,     null, new SiennaSwap({chain}).remoteCommands()],
+      ["rewards", HELP.REWARDS, null, new SiennaRewards({chain}).remoteCommands()],
+      ["lend",    HELP.LEND,    null, new SiennaLend({chain}).remoteCommands()]] }
 
   const commands: Commands = [
-    [["help", "--help", "-h"], "❓ Print usage", () => printUsage({}, commands)],
+    [["help", "--help", "-h"], HELP.USAGE, () => printUsage({}, commands)],
 
     null,
 
-    ["docs",     "📖 Build the documentation and open it in a browser.",  genDocs],
-    ["test",     "⚗️  Run test suites for all the individual components.", runTests],
-    ["coverage", "📔 Generate test coverage and open it in a browser.",   genCoverage],
-    ["schema",   "🤙 Regenerate JSON schema for each contract's API.",    genSchema],
-    ["build", "👷 Compile contracts from source", null, [
-      ["all",     "all contracts in workspace",                () => cargo('build')],
-      ["tge",     "snip20-sienna, mgmt, rpt",                  () => tge.build()],
-      ["rewards", "snip20-sienna, rewards",                    () => rewards.build()],
-      ["amm",     "amm-snip20, factory, exchange, lp-token",   () => amm.build()],
-      ["lend",    "snip20-lend + lend-atoken + configuration", () => lend.build()]]],
+    ["docs",     HELP.DOCS,     genDocs],
+    ["test",     HELP.TEST,     runTests],
+    ["coverage", HELP.COVERAGE, genCoverage],
+    ["schema",   HELP.SCHEMA,   genSchema],
+    ["build",    HELP.BUILD, null, [
+      ["all",     HELP.BUILD_ALL,     () => cargo('build')],
+      ["tge",     HELP.BUILD_TGE,     () => tge.build()],
+      ["rewards", HELP.BUILD_REWARDS, () => rewards.build()],
+      ["amm",     HELP.BUILD_AMM,     () => amm.build()],
+      ["lend",    HELP.BUILD_LEND,    () => lend.build()]]],
 
     null,
 
-    ["tge",     "🚀 SIENNA token + vesting",         null,
-      [...tge.localCommands(),     null, ...onChain(SiennaTGE)] as Commands],
-
-    ["amm",     "💱 Contracts of Sienna Swap/AMM",   null,
-      [...amm.localCommands(),     null, ...onChain(SiennaSwap)] as Commands],
-
-    ["rewards", "🏆 SIENNA token + staking rewards", null,
-      [...rewards.localCommands(), null, ...onChain(SiennaRewards)] as Commands],
-
-    ["lend",    "🏦 Contracts of Sienna Lend",       null,
-      [...lend.localCommands(),    null, ...onChain(SiennaLend)] as Commands],
+    ["tge",     HELP.TGE,     null,
+      [...tge.localCommands(),     null, ...Scrt.chainSelector(SiennaTGE)    ] as Commands],
+    ["amm",     HELP.AMM,     null,
+      [...amm.localCommands(),     null, ...Scrt.chainSelector(SiennaSwap)   ] as Commands],
+    ["rewards", HELP.REWARDS, null,
+      [...rewards.localCommands(), null, ...Scrt.chainSelector(SiennaRewards)] as Commands],
+    ["lend",    HELP.LEND,    null,
+      [...lend.localCommands(),    null, ...Scrt.chainSelector(SiennaLend)   ] as Commands],
 
     null,
 
-    ["mainnet",  "Deploy and run contracts on the mainnet with real money.", on.mainnet,  [
-      ["shell",  "🐚 Launch a JavaScript REPL for talking to contracts directly",    shell],
+    ["mainnet",  HELP.MAINNET, on.mainnet,   [
+      ["shell",  HELP.SHELL,   shell],
       ...remoteCommands(Scrt.mainnet())]],
-
-    ["testnet",  "Deploy and run contracts on the holodeck-2 testnet.",      on.testnet,  [
-      ["shell",  "🐚 Launch a JavaScript REPL for talking to contracts directly",    shell],
-      ["faucet", "🚰 Open https://faucet.secrettestnet.io/ in your default browser", openFaucet],
-      ["fund",   "👛 Creating test wallets by sending SCRT to them.",                prefund],
+    ["testnet",  HELP.TESTNET, on.testnet,   [
+      ["shell",  HELP.SHELL,   shell],
+      ["faucet", HELP.FAUCET,  openFaucet],
+      ["fund",   HELP.FUND,    prefund],
       ...remoteCommands(Scrt.testnet())]],
-
-    ["localnet", "Deploy and run contracts in a local container.",           on.localnet, [
-      ["shell",  "🐚 Launch a JavaScript REPL for talking to contracts directly",    shell],
-      ["reset",  "Remove the localnet container and clear its stored state",         resetLocalnet],
-      ["fund",   "👛 Create test wallets by sending SCRT to them.",                  prefund],
+    ["localnet", HELP.LOCALNET, on.localnet, [
+      ["shell",  HELP.SHELL,   shell],
+      ["reset",  HELP.FAUCET,  resetLocalnet],
+      ["fund",   HELP.FUND,    prefund],
       ...remoteCommands(Scrt.localnet())]]]
 
   return await runCommand({ command: [ command ] }, commands, command, ...args) }
+
+export const HELP = {
+  USAGE:    "❓ Print usage info",
+  STATUS:   "Show stored receipts from uploads and instantiations.",
+
+  TGE:      "🚀 SIENNA token + vesting",
+  AMM:      "💱 Contracts of Sienna Swap/AMM",
+  REWARDS:  "🏆 SIENNA token + staking rewards",
+  LEND:     "🏦 Contracts of Sienna Lend",
+
+  DOCS:     "📖 Build the documentation and open it in a browser.",
+  TEST:     "⚗️  Run test suites for all the individual components.",
+  COVERAGE: "📔 Generate test coverage and open it in a browser.",
+  SCHEMA:   "🤙 Regenerate JSON schema for each contract's API.",
+
+  BUILD:         "👷 Compile contracts from source",
+  BUILD_ALL:     "all contracts in workspace",
+  BUILD_TGE:     "snip20-sienna, mgmt, rpt",
+  BUILD_REWARDS: "snip20-sienna, rewards",
+  BUILD_AMM:     "amm-snip20, factory, exchange, lp-token",
+  BUILD_LEND:    "snip20-lend + lend-atoken + configuration",
+
+  MAINNET:  "Interact with the Secret Network mainnet.",
+  TESTNET:  "Deploy and run contracts on the holodeck-2 testnet.",
+  LOCALNET: "Run a Secret Network instance in a local container.",
+
+  SHELL:  "🐚 Launch a JavaScript REPL for talking to contracts directly",
+  FAUCET: "🚰 Open https://faucet.secrettestnet.io/ in your default browser",
+  FUND:   "👛 Creating test wallets by sending SCRT to them."}
