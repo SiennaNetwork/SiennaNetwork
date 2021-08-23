@@ -35,8 +35,8 @@ const Ensembles = {
   Swap,
   Lend }
 
-export async function shell (context = {}) {
-  const {network, agent, builder} = await Scrt[context.network]().connect()
+export async function shell (context: any) {
+  const {chain, agent, builder} = await Scrt[context.chain]().connect()
   console.info(`Launching shell...`)
   if (Object.keys(Contracts).length > 0) {
     console.info(bold(`Available contracts:`))
@@ -47,11 +47,11 @@ export async function shell (context = {}) {
     console.info('  '+Object.keys(Ensembles).map(x=>`Ensembles.${x}`).join('\n  '))
   }
   console.info(bold(`Other entities:`))
-  console.info('  '+['network', 'agent', 'builder', 'workspace'].join('\n  '))
+  console.info('  '+['chain', 'agent', 'builder', 'workspace'].join('\n  '))
   const loop = repl.start({
-    prompt: `${context.network}> `,
+    prompt: `${context.chain}> `,
     //writer: x => render(x),
-    async eval (cmd, context, filename, callback) {
+    async eval (cmd, context, _, callback) {
       try {
         const result = await Promise.resolve(vm.runInContext(cmd, context))
         return callback(null, result)
@@ -64,4 +64,4 @@ export async function shell (context = {}) {
   await new Promise((resolve, reject)=>
     loop.setupHistory('.fadroma_repl_history',
       (err, repl) => err ? reject(err) : resolve(repl)))
-  Object.assign(loop.context, { Contracts, Ensembles, network, agent, builder, workspace: abs() }) }
+  Object.assign(loop.context, { Contracts, Ensembles, chain, agent, builder, workspace: abs() }) }

@@ -1,29 +1,27 @@
-import { Chain, Scrt, Contract, ContractEnsemble, EnsembleInit,
-         Commands, Console, render, taskmaster, table,
-         readFile, execFileSync } from '@hackbg/fadroma'
+import {
+  Contract, ScrtEnsemble, EnsembleInit,
+  Commands, Console, render, taskmaster, table,
+  readFile, execFileSync } from '@hackbg/fadroma'
 
-import { SNIP20Contract, MGMTContract, RPTContract, RewardsContract } from '@sienna/api'
+import {
+  SNIP20Contract, MGMTContract, RPTContract, RewardsContract } from '@sienna/api'
 
-import { abs, runDemo, genConfig, getDefaultSchedule } from './lib/index'
+import {
+  abs, runDemo, genConfig, getDefaultSchedule } from './lib/index'
 
 const { debug, warn, info } = Console(import.meta.url)
 
-import { SIENNA_SNIP20, MGMT, RPT,
-         AMM_FACTORY, AMM_EXCHANGE, AMM_SNIP20,
-         LP_SNIP20, REWARD_POOL,
-         IDO } from './contracts'
+import {
+  SIENNA_SNIP20, MGMT, RPT,
+  AMM_FACTORY, AMM_EXCHANGE, AMM_SNIP20,
+  LP_SNIP20, REWARD_POOL,
+  IDO } from './contracts'
 
-type TGEInit = EnsembleInit & {
-  schedule?: string|Record<any, any>
-  initialRPTRecipient?: string
-}
+type TGESchedule    = string|Record<any, any>
+type TGEInit        = EnsembleInit & { schedule?: TGESchedule, initialRPTRecipient?: string }
+type TGECommandArgs = { address?: string, chain?: any }
 
-type TGECommandArgs = {
-  address?: string
-  chain?: any
-}
-
-export class SiennaTGE extends ContractEnsemble {
+export class SiennaTGE extends ScrtEnsemble {
   workspace = abs()
   contracts = { SIENNA_SNIP20, MGMT, RPT }
 
@@ -75,7 +73,7 @@ export class SiennaTGE extends ContractEnsemble {
   ]
 
   async initialize (options: TGEInit = {}) {
-    const chain = Scrt.hydrate(options.chain || this.chain)
+    const chain   = options.chain
         , agent   = options.agent   || this.agent || await chain.getAgent()
         , task    = options.task    || taskmaster()
         , uploads = options.uploads || await this.upload({agent, chain, task})
@@ -158,9 +156,8 @@ export class SiennaTGE extends ContractEnsemble {
       process.exit(1) }
 
     info(`⏳ launching vesting MGMT contract at ${address}...`)
-    const chain = Scrt.hydrate(options.chain || this.chain)
-    const { agent } = await chain.connect()
-    const MGMT = chain.getContract(MGMTContract, address, agent)
+    const { agent } = await options.chain.connect()
+        , MGMT = options.chain.getContract(MGMTContract, address, agent)
 
     try {
       await MGMT.launch()
@@ -180,10 +177,9 @@ export class SiennaTGE extends ContractEnsemble {
       // to be able to discern between bugs and incorrect inputs
     }
     info(`⏳ querying MGMT contract at ${address}...`)
-    const chain = Scrt.hydrate(options.chain || this.chain)
-    const { agent } = await chain.connect()
-    const MGMT = chain.getContract(MGMTContract, address, agent)
-    const [schedule, status] = await Promise.all([MGMT.schedule, MGMT.status])
+    const { agent } = await options.chain.connect()
+        , MGMT = options.chain.getContract(MGMTContract, address, agent)
+        , [schedule, status] = await Promise.all([MGMT.schedule, MGMT.status])
     console.log('\n'+render(schedule))
     console.log('\n'+render(status)) }
 
@@ -193,7 +189,7 @@ export class SiennaTGE extends ContractEnsemble {
 
   async claim (_: any) { throw new Error('not implemented') } }
 
-export class SiennaSwap extends ContractEnsemble {
+export class SiennaSwap extends ScrtEnsemble {
   workspace = abs()
   contracts = { AMM_FACTORY, AMM_EXCHANGE, AMM_SNIP20, LP_SNIP20, IDO }
 
@@ -206,7 +202,7 @@ export class SiennaSwap extends ContractEnsemble {
 
 }
 
-export class SiennaRewards extends ContractEnsemble {
+export class SiennaRewards extends ScrtEnsemble {
   workspace = abs()
   contracts = { SIENNA_SNIP20, LP_SNIP20, REWARD_POOL }
 
@@ -281,7 +277,7 @@ export class SiennaRewards extends ContractEnsemble {
     const args = ['-p', 'false', 'api/Rewards.spec.js']
     execFileSync(abs('node_modules/.bin/mocha'), args, { stdio: 'inherit' }) } }
 
-export class SiennaLend extends ContractEnsemble {
+export class SiennaLend extends ScrtEnsemble {
   workspace = abs()
   contracts = { SNIP20: { crate: 'snip20-lend' }
               , ATOKEN: { crate: 'atoken' }

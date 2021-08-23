@@ -416,6 +416,7 @@ __metadata:
     exponential-backoff: ^3.1.0
     mkdirp: ^1.0.4
     mocha: ^8.0.1
+    open: ^8.0.2
     prettyjson: ^1.2.1
     rimraf: ^3.0.2
     secretjs: ^0.11.0
@@ -491,7 +492,6 @@ __metadata:
     chokidar: ^3.5.1
     esm: ^3.2.25
     node-notifier: ^9.0.1
-    open: ^8.0.2
     prettyjson: ^1.2.1
     prompts: ^2.4.1
     secretjs: ^0.11.0
