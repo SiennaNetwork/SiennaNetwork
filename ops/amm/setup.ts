@@ -65,7 +65,7 @@ export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFil
     process.stdout.write(`Uploading LP token contract...done\r\n`)
 
     process.stdout.write(`Uploading IDO contract...\r`)
-    const ido_upload = await client.upload(ido_wasm, {}, undefined, create_fee('2035000'))
+    const ido_upload = await client.upload(ido_wasm, {}, undefined, create_fee('2200000'))
     analytics.add_tx(ido_upload.transactionHash, 'IDO')
     writer.write(ido_upload, `uploads/ido`)
     process.stdout.write(`Uploading IDO contract...done\r\n`)

@@ -46,6 +46,11 @@ const configs = [
 ]
 
 async function deploy() {
+    if (process.env.SECRET_CHAIN_ID === undefined) {
+        console.log(`Couldn't find .env file.`)
+        return
+    }
+
     const options = configs.flatMap(x => Object.keys(x))
     const selected = process.argv[3]
     
