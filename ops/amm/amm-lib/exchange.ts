@@ -113,13 +113,6 @@ export class ExchangeContract extends SmartContract {
         return result.pair_info
     }
 
-    async get_version(): Promise<number> {
-        const msg = 'version' as unknown as object
-
-        const result = await this.query_client().queryContractSmart(this.address, msg) as GetVersionResponse
-        return result.version
-    }
-
     async simulate_swap(amount: TokenTypeAmount): Promise<SwapSimulationResponse> {
         const msg = {
             swap_simulation: {
