@@ -1,10 +1,26 @@
 #!/usr/bin/env node
 import { Chain, Scrt, prefund,
-         CommandName, Commands, runCommand, printUsage,
+         CommandName, Commands, runCommand, printUsage, REPL, open, prompts,
          on, resetLocalnet, openFaucet } from '@hackbg/fadroma'
 
-import { cargo, genCoverage, genSchema, genDocs, runTests, shell /*runDemo,*/ } from './lib/index'
+import { env, stderr, existsSync, readFileSync, writeFileSync,
+         resolve, basename, extname, dirname, fileURLToPath } from '@hackbg/fadroma'
+
+import { SNIP20Contract,
+         MGMTContract, RPTContract,
+         RewardsContract,
+         AMMContract, FactoryContract,
+         IDOContract } from '@sienna/api'
+
+import { scheduleFromSpreadsheet } from '@sienna/schedule'
+
 import { SiennaTGE, SiennaSwap, SiennaRewards, SiennaLend } from './ensembles'
+
+import { CLIHelp as Help } from './help'
+
+export const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+           , abs         = (...args: Array<string>) => resolve(projectRoot, ...args)
+           , stateBase   = abs('artifacts')
 
 export default async function main (command: CommandName, ...args: any) {
 
@@ -15,83 +31,228 @@ export default async function main (command: CommandName, ...args: any) {
 
   function remoteCommands (chain: Chain): Commands {
     return [
-      ["status",  HELP.STATUS,  () => chain.printStatusTables()],
+      ["status",  Help.STATUS,  () => chain.printStatusTables()],
       null,
-      ["tge",     HELP.TGE,     null, new SiennaTGE({chain}).remoteCommands()],
-      ["amm",     HELP.AMM,     null, new SiennaSwap({chain}).remoteCommands()],
-      ["rewards", HELP.REWARDS, null, new SiennaRewards({chain}).remoteCommands()],
-      ["lend",    HELP.LEND,    null, new SiennaLend({chain}).remoteCommands()]] }
+      ["tge",     Help.TGE,     null, new SiennaTGE({chain}).remoteCommands()],
+      ["amm",     Help.AMM,     null, new SiennaSwap({chain}).remoteCommands()],
+      ["rewards", Help.REWARDS, null, new SiennaRewards({chain}).remoteCommands()],
+      ["lend",    Help.LEND,    null, new SiennaLend({chain}).remoteCommands()]] }
 
   const commands: Commands = [
-    [["help", "--help", "-h"], HELP.USAGE, () => printUsage({}, commands)],
+    [["help", "--help", "-h"], Help.USAGE, () => printUsage({}, commands)],
 
     null,
 
-    ["docs",     HELP.DOCS,     genDocs],
-    ["test",     HELP.TEST,     runTests],
-    ["coverage", HELP.COVERAGE, genCoverage],
-    ["schema",   HELP.SCHEMA,   genSchema],
-    ["build",    HELP.BUILD, null, [
-      ["all",     HELP.BUILD_ALL,     () => cargo('build')],
-      ["tge",     HELP.BUILD_TGE,     () => tge.build()],
-      ["rewards", HELP.BUILD_REWARDS, () => rewards.build()],
-      ["amm",     HELP.BUILD_AMM,     () => amm.build()],
-      ["lend",    HELP.BUILD_LEND,    () => lend.build()]]],
+    ["docs",     Help.DOCS,     genDocs],
+    ["test",     Help.TEST,     runTests],
+    ["coverage", Help.COVERAGE, genCoverage],
+    ["schema",   Help.SCHEMA,   genSchema],
+    ["build",    Help.BUILD, null, [
+      ["all",     Help.BUILD_ALL,     () => cargo('build')],
+      ["tge",     Help.BUILD_TGE,     () => tge.build()],
+      ["rewards", Help.BUILD_REWARDS, () => rewards.build()],
+      ["amm",     Help.BUILD_AMM,     () => amm.build()],
+      ["lend",    Help.BUILD_LEND,    () => lend.build()]]],
 
     null,
 
-    ["tge",     HELP.TGE,     null,
+    ["tge",     Help.TGE,     null,
       [...tge.localCommands(),     null, ...Scrt.chainSelector(SiennaTGE)    ] as Commands],
-    ["amm",     HELP.AMM,     null,
+    ["amm",     Help.AMM,     null,
       [...amm.localCommands(),     null, ...Scrt.chainSelector(SiennaSwap)   ] as Commands],
-    ["rewards", HELP.REWARDS, null,
+    ["rewards", Help.REWARDS, null,
       [...rewards.localCommands(), null, ...Scrt.chainSelector(SiennaRewards)] as Commands],
-    ["lend",    HELP.LEND,    null,
+    ["lend",    Help.LEND,    null,
       [...lend.localCommands(),    null, ...Scrt.chainSelector(SiennaLend)   ] as Commands],
 
     null,
 
-    ["mainnet",  HELP.MAINNET, on.mainnet,   [
-      ["shell",  HELP.SHELL,   shell],
+    ["mainnet",  Help.MAINNET, on.mainnet,   [
+      ["shell",  Help.SHELL,   runShell],
       ...remoteCommands(Scrt.mainnet())]],
-    ["testnet",  HELP.TESTNET, on.testnet,   [
-      ["shell",  HELP.SHELL,   shell],
-      ["faucet", HELP.FAUCET,  openFaucet],
-      ["fund",   HELP.FUND,    prefund],
+    ["testnet",  Help.TESTNET, on.testnet,   [
+      ["shell",  Help.SHELL,   runShell],
+      ["faucet", Help.FAUCET,  openFaucet],
+      ["fund",   Help.FUND,    prefund],
       ...remoteCommands(Scrt.testnet())]],
-    ["localnet", HELP.LOCALNET, on.localnet, [
-      ["shell",  HELP.SHELL,   shell],
-      ["reset",  HELP.FAUCET,  resetLocalnet],
-      ["fund",   HELP.FUND,    prefund],
+    ["localnet", Help.LOCALNET, on.localnet, [
+      ["shell",  Help.SHELL,   runShell],
+      ["reset",  Help.FAUCET,  resetLocalnet],
+      ["fund",   Help.FUND,    prefund],
       ...remoteCommands(Scrt.localnet())]]]
 
   return await runCommand({ command: [ command ] }, commands, command, ...args) }
 
-export const HELP = {
-  USAGE:    "❓ Print usage info",
-  STATUS:   "Show stored receipts from uploads and instantiations.",
+export async function runShell ({
+  chain, agent, builder,
+}: Record<string, any>) {
+  return await new REPL({
+    workspace: abs(),
+    chain,
+    agent,
+    builder,
+    Contracts: {
+      AMM:     AMMContract,
+      Factory: FactoryContract,
+      IDO:     IDOContract,
+      MGMT:    MGMTContract,
+      RPT:     RPTContract,
+      Rewards: RewardsContract,
+      SNIP20:  SNIP20Contract },
+    Ensembles: {
+      TGE:     SiennaTGE,
+      Rewards: SiennaRewards,
+      Swap:    SiennaSwap,
+      Lend:    SiennaLend } }).run() }
 
-  TGE:      "🚀 SIENNA token + vesting",
-  AMM:      "💱 Contracts of Sienna Swap/AMM",
-  REWARDS:  "🏆 SIENNA token + staking rewards",
-  LEND:     "🏦 Contracts of Sienna Lend",
+export function genCoverage () {
+  // fixed by https://github.com/rust-lang/cargo/issues/9220
+  cargo('tarpaulin', '--out=Html', `--output-dir=${abs()}`, '--locked', '--frozen') }
 
-  DOCS:     "📖 Build the documentation and open it in a browser.",
-  TEST:     "⚗️  Run test suites for all the individual components.",
-  COVERAGE: "📔 Generate test coverage and open it in a browser.",
-  SCHEMA:   "🤙 Regenerate JSON schema for each contract's API.",
+export function genSchema () {
+  cargo('run', '--bin', 'schema') }
 
-  BUILD:         "👷 Compile contracts from source",
-  BUILD_ALL:     "all contracts in workspace",
-  BUILD_TGE:     "snip20-sienna, mgmt, rpt",
-  BUILD_REWARDS: "snip20-sienna, rewards",
-  BUILD_AMM:     "amm-snip20, factory, exchange, lp-token",
-  BUILD_LEND:    "snip20-lend + lend-atoken + configuration",
+export function genDocs (_:any, crate = '', dontOpen = false) {
+  const entryPoint = crate
+    ? abs('target', 'doc', crate, 'index.html')
+    : abs('target', 'doc')
+  try {
+    process.stderr.write(`⏳ Building documentation...\n\n`)
+    cargo('doc') }
+  catch (e) {
+    process.stderr.write('\n🤔 Building documentation failed.')
+    if (!dontOpen) {
+      if (existsSync(entryPoint)) {
+        process.stderr.write(`\n⏳ Opening what exists at ${entryPoint}...`) }
+      else {
+        process.stderr.write(`\n⏳ ${entryPoint} does not exist, opening nothing.`)
+        return } } }
+  if (!dontOpen) {
+    open(`file://${entryPoint}`) } }
 
-  MAINNET:  "Interact with the Secret Network mainnet.",
-  TESTNET:  "Deploy and run contracts on the holodeck-2 testnet.",
-  LOCALNET: "Run a Secret Network instance in a local container.",
+export function getDefaultSchedule () {
+  const path = resolve(projectRoot, 'settings', 'schedule.json')
+  try {
+    return JSON.parse(readFileSync(path, 'utf8')) }
+  catch (e) {
+    console.warn(`${path} does not exist - "./sienna tge config" should create it`)
+    return null } }
 
-  SHELL:  "🐚 Launch a JavaScript REPL for talking to contracts directly",
-  FAUCET: "🚰 Open https://faucet.secrettestnet.io/ in your default browser",
-  FUND:   "👛 Creating test wallets by sending SCRT to them."}
+export function genConfig (
+  { file = abs('settings', 'schedule.ods') } = {}
+) {
+  stderr.write(`\n⏳ Importing configuration from ${file}...\n\n`)
+  const name     = basename(file, extname(file)) // path without extension
+      , schedule = scheduleFromSpreadsheet({ file })
+      , output   = resolve(dirname(file), `${name}.json`)
+  stderr.write(`⏳ Saving configuration to ${output}...\n\n`)
+  writeFileSync(output, stringify(schedule), 'utf8')
+  stderr.write(`🟢 Configuration saved to ${output}\n`) }
+
+function stringify (data: any) {
+  const indent = 2
+  const withBigInts = (_:any, v:any) => typeof v === 'bigint' ? v.toString() : v
+  return JSON.stringify(data, withBigInts, indent) }
+
+export const runTests = () => {
+  clear()
+  stderr.write(`⏳ Running tests...\n\n`)
+  try {
+    run('sh', '-c',
+      'cargo test --color=always --no-fail-fast -- --nocapture --test-threads=1 2>&1'+
+      ' | less -R +F')
+    stderr.write('\n🟢 Tests ran successfully.\n') }
+  catch (e) {
+    stderr.write('\n🔴 Tests failed.\n') } }
+
+export const fmtDecimals = (d: number|string) => (x: number|string) => {
+  const a = (BigInt(x) / BigInt(d)).toString()
+  const b = (BigInt(x) % BigInt(d)).toString()
+  return `${a}.${b.padEnd(18, '0')}` }
+
+export const
+  SCRT_DECIMALS = 6,
+  ONE_SCRT = BigInt(`1${[...Array(SCRT_DECIMALS)].map(()=>`0`).join('')}`),
+  fmtSCRT  = fmtDecimals(ONE_SCRT.toString())
+
+export const
+  SIENNA_DECIMALS = 18,
+  ONE_SIENNA = BigInt(`1${[...Array(SIENNA_DECIMALS)].map(()=>`0`).join('')}`),
+  fmtSIENNA  = fmtDecimals(ONE_SIENNA.toString())
+
+export const conformNetworkToChainId = network => {
+  switch (network) {
+    case 'secret-2': case 'holodeck-2': case 'enigma-pub-testnet-3': return network
+    case 'mainnet': return 'secret-2'
+    case 'testnet': return 'holodeck-2'
+    case 'localnet': return 'enigma-pub-testnet-3'
+    default:
+      console.log(`🔴 ${network} is not a known chain id or category.`)
+      process.exit(1)
+  }
+}
+
+export const conformChainIdToNetwork = network => {
+  switch (network) {
+    case 'mainnet': case 'testnet': case 'localnet': return network
+    case 'secret-2': return 'mainnet'
+    case 'holodeck-2': return 'testnet'
+    case 'enigma-pub-testnet-3': return 'localnet'
+    default:
+      console.log(`🔴 ${network} is not a known chain id or category.`)
+      process.exit(1)
+  }
+}
+
+export async function pickInstance (network) {
+  network = conformNetworkToChainId(network)
+  const instanceDir = resolve(projectRoot, 'artifacts', network, 'instances')
+  if (!existsSync(instanceDir)) {
+    console.log(`🔴 ${instanceDir} does not exist - can't pick a contract to call.`)
+    process.exit(1)
+  }
+  const message = 'Select a contract to transfer:'
+  const {result} =
+    await prompts({ type: 'select', name: 'result', message, choices: readdirSync(instanceDir)
+    .filter(x=>x.endsWith('.json')).sort().reverse()
+    .map(instance=>{
+      const title = instance
+      const value = resolve(instanceDir, instance)
+      try {
+        const {contractAddress} = JSON.parse(readFileSync(value, 'utf8'))
+        return {title, value, description: contractAddress}
+      } catch (e) {
+        return {title, value: null, description: 'could not parse this instance file'}
+      }
+    }) })
+  if (typeof result === 'string') {
+    return result
+  } else {
+    console.log(`🔴 picked an invalid instance file - can't proceed`)
+    process.exit(1)
+  }
+}
+
+export async function pickNetwork () {
+  return await prompts(
+    { type: 'select'
+    , name: 'network'
+    , message: 'Select network'
+    , initial: 0
+    , choices:
+      [ {title: 'localnet', value: 'localnet', description: 'local docker container'}
+      , {title: 'testnet',  value: 'testnet',  description: 'holodeck-2'}
+      , {title: 'mainnet',  value: 'mainnet',  description: 'secret network mainnet' } ] })
+}
+
+export async function pickKey () {
+  const keys = JSON.parse(outputOf('secretcli', 'keys', 'list'))
+  const keyToChoice = ({name, address})=>({title:name,value:{name,address},description:address})
+  const chosen = await prompts(
+    { type: 'select'
+    , name: 'key'
+    , message: 'Select key from secretcli keyring'
+    , initial: 0
+    , choices: keys.map(keyToChoice) })
+  return chosen.key
+}

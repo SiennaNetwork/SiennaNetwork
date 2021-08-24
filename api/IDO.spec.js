@@ -3,7 +3,7 @@ import { assert } from "chai";
 import { randomBytes } from "crypto";
 import { Scrt, gas } from "@hackbg/fadroma";
 
-import { abs } from "../ops/lib/index.js";
+import { abs } from "../ops/index";
 
 import SNIP20 from "./SNIP20.js";
 import IDO from "./IDO.js";

@@ -1,4 +1,33 @@
-const Help = {
+export const CLIHelp = {
+  USAGE:    "❓ Print usage info",
+  STATUS:   "Show stored receipts from uploads and instantiations.",
+
+  TGE:      "🚀 SIENNA token + vesting",
+  AMM:      "💱 Contracts of Sienna Swap/AMM",
+  REWARDS:  "🏆 SIENNA token + staking rewards",
+  LEND:     "🏦 Contracts of Sienna Lend",
+
+  DOCS:     "📖 Build the documentation and open it in a browser.",
+  TEST:     "⚗️  Run test suites for all the individual components.",
+  COVERAGE: "📔 Generate test coverage and open it in a browser.",
+  SCHEMA:   "🤙 Regenerate JSON schema for each contract's API.",
+
+  BUILD:         "👷 Compile contracts from source",
+  BUILD_ALL:     "all contracts in workspace",
+  BUILD_TGE:     "snip20-sienna, mgmt, rpt",
+  BUILD_REWARDS: "snip20-sienna, rewards",
+  BUILD_AMM:     "amm-snip20, factory, exchange, lp-token",
+  BUILD_LEND:    "snip20-lend + lend-atoken + configuration",
+
+  MAINNET:  "Interact with the Secret Network mainnet.",
+  TESTNET:  "Deploy and run contracts on the holodeck-2 testnet.",
+  LOCALNET: "Run a Secret Network instance in a local container.",
+
+  SHELL:  "🐚 Launch a JavaScript REPL for talking to contracts directly",
+  FAUCET: "🚰 Open https://faucet.secrettestnet.io/ in your default browser",
+  FUND:   "👛 Creating test wallets by sending SCRT to them."}
+
+export const EnsemblesHelp = {
   TGE: {
     BUILD:       '👷 Compile contracts from working tree',
     CONFIG:      '📅 Convert a spreadsheet into a JSON schedule',
@@ -12,16 +41,11 @@ const Help = {
     /*TRANSFER:    '⚡ Transfer ownership of contracts to another address',
       CONFIGURE:   '⚡ Upload a new JSON config to an already initialized contract',
       REALLOCATE:  '⚡ Update the allocations of the RPT tokens',
-      ADD_ACCOUNT: '⚡ Add a new account to a partial vesting pool'*/
-  },
+      ADD_ACCOUNT: '⚡ Add a new account to a partial vesting pool'*/ },
   Rewards: {
     TEST:        '🥒 Run unit tests',
     BENCHMARK:   '⛽ Measure gas costs',
     DEPLOY:      '🚀 Deploy TGE + Rewards, or attach Rewards to existing TGE',
     DEPLOY_ALL:  '🚀 Deploy new TGE + Rewards (needs TGE schedule)',
     DEPLOY_THIS: '🚀 Deploy just the Rewards',
-    ATTACH_TO:   '🚀 Deploy Rewards attached to this TGE',
-  }
-}
-
-export default Help
+    ATTACH_TO:   '🚀 Deploy Rewards attached to this TGE', } }

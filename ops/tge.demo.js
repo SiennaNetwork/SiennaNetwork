@@ -22,7 +22,7 @@
 // * 🍰 **reconfiguring that split**, preserving the **total portion size**
 import { loadJSON, fileURLToPath, resolve, dirname, taskmaster, prefund } from '@hackbg/fadroma'
 
-import { fmtSIENNA } from './lib/index.ts'
+import { fmtSIENNA } from './index.ts'
 import { SiennaTGE as TGEContracts } from './ensembles'
 
 // Requires either:
@@ -240,3 +240,21 @@ export async function verify ({task, agent, recipients, wallets, instances, sche
   await task.done() // save the runtime profile even on error
   if (error) throw error
 }
+
+export const runDemo = async ({testnet}) => {
+  clear()
+  //script = abs('integration', script)
+  try {
+    let environment
+    if (testnet) {
+      console.info(`⏳ running demo on testnet...`)
+      environment = await Scrt.testnet({stateBase})
+    } else {
+      console.info(`⏳ running demo on localnet...`)
+      environment = await Scrt.localnet({stateBase})
+    }
+    await demo(environment)
+    console.info('\n🟢 Demo executed successfully.\n') }
+  catch (e) {
+    console.error(e)
+    console.info('\n🔴 Demo failed.\n') } }

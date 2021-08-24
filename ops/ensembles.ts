@@ -4,8 +4,11 @@ import { Contract, ScrtEnsemble, EnsembleInit, Agent,
 
 import { SNIP20Contract, MGMTContract, RPTContract, RewardsContract } from '@sienna/api'
 
-import { abs, runDemo, genConfig, getDefaultSchedule } from './lib/index'
-import Help from './help'
+import { abs, genConfig, getDefaultSchedule } from './index'
+
+import { runDemo } from './tge.demo.js'
+
+import { EnsemblesHelp as Help } from './help'
 
 const { debug, warn, info } = Console(import.meta.url)
 
