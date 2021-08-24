@@ -127,7 +127,3 @@ export class ExchangeContract extends SmartContract {
 interface GetPairInfoResponse {
     pair_info: PairInfo
 }
-
-interface GetVersionResponse {
-    version: number
-}
