@@ -3,7 +3,7 @@
   "originalChecksum": "cff919daacd29e374083a49e79dcd6d7157afea124635513b8c8b67c9a8fb748",
   "compressedSize": 144505,
   "compressedChecksum": "40e35e9a04c5e2483aeb3a8da3d3b6a3dc7ece60ac11ce9fb7d72258c5701453",
-  "codeId": 30435,
+  "codeId": 30466,
   "logs": [
     {
       "msg_index": 0,
@@ -22,16 +22,16 @@
             },
             {
               "key": "signer",
-              "value": "secret13cm0zgf23jcs4fcv9kfsa3y2gk0mhra3z9n44p"
+              "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
             },
             {
               "key": "code_id",
-              "value": "30435"
+              "value": "30466"
             }
           ]
         }
       ]
     }
   ],
-  "transactionHash": "112C68C8FBEDEB3D9584958EF1A4A000B6C8283C141479DE03CA8FC37CEC72E1"
+  "transactionHash": "B2D30D1DA1AB0531B49E8CFDB6451DFE48B4D526FA2ED9C9C4C21AB0DA912F53"
 }
