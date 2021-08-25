@@ -1,6 +1,6 @@
 import { Contract, ScrtEnsemble, EnsembleInit, Agent,
          Commands, Command, Console, render, taskmaster, table,
-         readFile, execFileSync, timestamp } from '@hackbg/fadroma'
+         readFile, execFileSync, timestamp, decode } from '@hackbg/fadroma'
 
 import { SNIP20Contract, MGMTContract, RPTContract, RewardsContract } from '@sienna/api'
 
@@ -192,6 +192,8 @@ export class SiennaRewards extends ScrtEnsemble {
   /** Deploy a single Sienna Rewards Pool + LP Token + an instance of the TGE.
     * Use the TGE's token as the reward token. */
   private async deployAll (context: any, schedule: any) {
+    if (context.options['premint.reward']) this.shouldPremintReward = true
+    if (context.options['premint.admin'])  this.shouldPremintAdmin  = true
     const {chain} = context
     await chain.init()
     const TGE = await new SiennaTGE({chain}).deploy({...context, schedule})
@@ -201,6 +203,8 @@ export class SiennaRewards extends ScrtEnsemble {
 
   /** Deploy a single Sienna Rewards Pool + LP Token + Reward Token. */
   private async deployThis (context: any) {
+    if (context.options['premint.reward']) this.shouldPremintReward = true
+    if (context.options['premint.admin'])  this.shouldPremintAdmin  = true
     Object.assign(this.contracts, { SIENNA_SNIP20 })
     await this.deploy(context)
     process.exit() }
@@ -208,6 +212,8 @@ export class SiennaRewards extends ScrtEnsemble {
   /** Deploy a single Sienna Rewards Pool + LP Token.
     * Use an existing SNIP20 token as the reward token. */
   private async deployAttach (context: any) {
+    if (context.options['premint.reward']) this.shouldPremintReward = true
+    if (context.options['premint.admin'])  this.shouldPremintAdmin  = true
     await this.deploy(context)
     process.exit() }
 
@@ -229,8 +235,14 @@ export class SiennaRewards extends ScrtEnsemble {
     deployed.push(await task(
       'initialize rewards',
       this.initRewards.bind(this, uploads, agent)))
-    if (this.contracts['SIENNA_SNIP20']) {
-      await task('mint some rewards', this.mintRewards.bind(this)) }
+    if (this.instances['SIENNA_SNIP20']) {
+      if (this.shouldPremintAdmin || this.shouldPremintReward) {
+        await task('allow admin to mint tokens',
+          this.allowMintingByAdmin.bind(this, agent)) }
+      this.shouldPremintAdmin && await task('mint test balance to admin account',
+        this.premintAdmin.bind(this, agent))
+      this.shouldPremintReward && await task('mint test balance to rewards contract',
+        this.premintReward.bind(this, agent)) }
     console.log(table(deployed))
     return this.instances }
 
@@ -242,8 +254,8 @@ export class SiennaRewards extends ScrtEnsemble {
   ) {
     const {address, codeHash} = this.instances[key] =
       await agent.instantiate(new SNIP20Contract({
-        codeId: uploads[key].codeId,
-        label: `${this.prefix}_${this.contracts[key].label}`,
+        codeId:  uploads[key].codeId,
+        label:   `${this.prefix}_${this.contracts[key].label}`,
         initMsg: { ...this.contracts[key].initMsg,
                    admin: agent.address }}))
     report(this.instances[key].transactionHash)
@@ -264,14 +276,26 @@ export class SiennaRewards extends ScrtEnsemble {
     report(this.instances.REWARD_POOL.transactionHash)
     return ['REWARD_POOL\nReward pool', `${address}\n${codeHash}`]}
 
-  private async mintRewards (
-    agent:  Agent,
-    report: Function
-  ) {
-    const amount = '540000000000000000000000'
-    const result = await this.instances.SIENNA_SNIP20.mint(
-      amount, agent, this.instances.REWARD_POOL.address)
-    report(result.transactionHash) }
+  shouldPremintAdmin  = false
+  shouldPremintReward = false
+  private async allowMintingByAdmin (agent: Agent, report: Function) {
+    const address = this.instances.REWARD_POOL.address
+        , result  = await this.instances.SIENNA_SNIP20.addMinters([address], agent)
+    //console.log(decode(Buffer.from(Object.values(result.data) as any)))
+    report(result.transactionHash)
+    return result }
+  private async premintAdmin (agent: Agent, report: Function) {
+    const amount  = '540000000000000000000000'
+        , address = agent.address
+        , result  = await this.instances.SIENNA_SNIP20.mint(amount, agent, address)
+    report(result.transactionHash)
+    return result }
+  private async premintReward (agent: Agent, report: Function) {
+    const amount  = '540000000000000000000000'
+        , address = this.instances.REWARD_POOL.address
+        , result  = await this.instances.SIENNA_SNIP20.mint(amount, agent, address)
+    report(result.transactionHash)
+    return result }
 
   test (_: any, ...args: any) {
     args = ['test', '-p', 'sienna-rewards', ...args]
