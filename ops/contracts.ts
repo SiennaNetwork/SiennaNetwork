@@ -61,11 +61,11 @@ export class RewardPool extends Base {
     super(agent)
     this.init.label = `${name} reward pool` }}
 
-export function rewardPools (agent: Agent, tokens: Array<string>) {
+export function rewardPools (agent: Agent, pairs: Array<string>) {
   const pools = {}
-  for (const token of tokens) {
-    pools[`lp${token}`] = new LPToken(agent, token)
-    pools[`rp${token}`] = new RewardPool(agent, token) }
+  for (const pair of pairs) {
+    pools[`lp${pair}`] = new LPToken(agent, pair)
+    pools[`rp${pair}`] = new RewardPool(agent, pair) }
   return pools }
 
 // IDO /////////////////////////////////////////////////////////////////////////////////////////////

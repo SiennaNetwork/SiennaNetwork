@@ -4,14 +4,12 @@ import { Contract, ScrtEnsemble, EnsembleInit, ScrtCLIAgent, Agent,
 import { abs, genConfig, getDefaultSchedule } from './index'
 import { runDemo } from './tge.demo.js'
 import { EnsemblesHelp as Help } from './help'
-import { SiennaSNIP20, MGMT as MGMTConfig, RPT as RPTConfig,
+import { SiennaSNIP20, MGMT as MGMTContract, RPT as RPTContract,
          AMMFactory, AMMExchange, AMMSNIP20,
-         RewardPool, rewardPools,
+         LPToken, RewardPool, rewardPools,
          IDO } from './contracts'
 
 const { debug, warn, info } = Console(import.meta.url)
-
-type TGESchedule = string|Record<any, any>
 
 type TGECommandArgs = { address?: string, chain?: any }
 
@@ -19,11 +17,10 @@ export class SiennaTGE extends ScrtEnsemble {
 
   contracts = {
     SIENNA: new SiennaSNIP20(this.agent),
-    MGMT:   new MGMTConfig(this.agent),
-    RPT:    new RPTConfig(this.agent)
-  }
+    MGMT:   new MGMTContract(this.agent),
+    RPT:    new RPTContract(this.agent)}
 
-  schedule: TGESchedule
+  schedule = getDefaultSchedule()
 
   localCommands = (): Commands => [
 
@@ -35,8 +32,7 @@ export class SiennaTGE extends ScrtEnsemble {
 
   remoteCommands = (): Commands => [
 
-    ['deploy', Help.TGE.DEPLOY, async (_: any, schedule: any) => {
-      this.schedule = schedule
+    ['deploy', Help.TGE.DEPLOY, async (_: any) => {
       await this.deploy()
       process.exit(0) }],
 
@@ -46,8 +42,7 @@ export class SiennaTGE extends ScrtEnsemble {
     ['upload', Help.TGE.UPLOAD, (_: any) =>
       this.upload()],
 
-    ['init',   Help.TGE.INIT,   (_: any, schedule: any) => {
-      this.schedule = schedule
+    ['init',   Help.TGE.INIT,   (_: any) => {
       return this.initialize() }],
 
     ['launch', Help.TGE.LAUNCH, (context: any, address: any) =>
@@ -60,73 +55,71 @@ export class SiennaTGE extends ScrtEnsemble {
       this.getStatus({...context, address})] ]
 
   async initialize () {
-    await this.chain.init()
-    this.agent = await this.chain.getAgent()
+    await super.initialize()
 
+    // Deploy SIENNA token /////////////////////////////////////////////////////////////////////////
     // mgmt could automatically instantiate token and rpt if it supported callbacks
     const {SIENNA} = this.contracts
     await this.task('initialize token',
       async (report: Function) => {
+        await SIENNA.upload(this.agent)
         SIENNA.init.label = `${this.prefix}_${SIENNA.label}`
         Object.assign(SIENNA.init.msg, { admin: this.agent.address })
-        await SIENNA.upload(this.agent)
         await SIENNA.instantiate(this.agent)
         report(SIENNA.initTx.transactionHash) })
 
-    // accept schedule as string or struct
-    const schedule = getDefaultSchedule()
-
+    // Deploy MGMT vesting contract ////////////////////////////////////////////////////////////////
     // use placeholder RPT address in schedule
     // updated after RPT is deployed
     const initialRPTRecipient = this.agent.address
     const setRPTAddress = (address: string) => {
-      schedule.pools.filter((x:any)=>x.name==='MintingPool')[0]
-              .accounts.filter((x:any)=>x.name==='RPT')[0]
-              .address = address }
+      this.schedule.pools.filter((x:any)=>x.name==='MintingPool')[0]
+                   .accounts.filter((x:any)=>x.name==='RPT')[0]
+                   .address = address }
     const {MGMT} = this.contracts
     console.log(SIENNA.linkPair, SIENNA)
     await this.task('initialize mgmt',
       async (report: Function) => {
+        console.log(this.schedule)
         setRPTAddress(initialRPTRecipient)
+        await MGMT.upload(this.agent)
         MGMT.init.label = `${this.prefix}_${MGMT.init.label}`
         Object.assign(MGMT.init.msg, {
-          admin: this.agent.address,
-          token: SIENNA.linkPair,
-          schedule })
-        await MGMT.upload(this.agent)
+          admin:    this.agent.address,
+          token:    SIENNA.linkPair,
+          schedule: this.schedule })
         await MGMT.instantiate(this.agent)
         report(MGMT.initTx.transactionHash)})
-
     await this.task('make mgmt owner of token', async (report: Function) => {
       const [tx1, tx2] = await MGMT.acquire(SIENNA)
       report(tx1.transactionHash)
       report(tx2.transactionHash) })
 
+    // Deploy RPT splitter contract ////////////////////////////////////////////////////////////////
     const {RPT} = this.contracts
     await this.task('initialize rpt',
       async (report: Function) => {
-      RPT.init.label = `${this.prefix}_${RPT.label}`
-      Object.assign(RPT.init.msg, {
-        token:   SIENNA.linkPair,
-        mgmt:    MGMT.linkPair,
-        portion: "2500000000000000000000", // TODO get this from schedule!!!
-        config:  [[initialRPTRecipient, "2500000000000000000000"]] })
-      await RPT.upload(this.agent)
-      await RPT.instantiate(this.agent)
-      report(RPT.initTx.transactionHash)})
-
+        await RPT.upload(this.agent)
+        RPT.init.label = `${this.prefix}_${RPT.label}`
+        Object.assign(RPT.init.msg, {
+          token:   SIENNA.linkPair,
+          mgmt:    MGMT.linkPair,
+          portion: "2500000000000000000000", // TODO get this from schedule!!!
+          config:  [[initialRPTRecipient, "2500000000000000000000"]] })
+        await RPT.instantiate(this.agent)
+        report(RPT.initTx.transactionHash)})
     await this.task('point rpt account in mgmt schedule to rpt contract',
       async (report: Function) => {
         setRPTAddress(RPT.address)
-        const {transactionHash} = await MGMT.configure(schedule)
+        const {transactionHash} = await MGMT.configure(this.schedule)
         report(transactionHash) })
 
+    // And we're done //////////////////////////////////////////////////////////////////////////////
     console.log(table(
       [ [ 'Contract\nDescription',             'Address\nCode hash'                    ]
       , [ 'SiennaSNIP20\nSienna SNIP20 token', `${SIENNA.address}\n${SIENNA.codeHash}` ]
       , [ 'MGMT\nVesting',                     `${MGMT.address}\n${MGMT.codeHash}`     ]
       , [ 'RPT\nRemaining pool tokens',        `${RPT.address}\n${RPT.codeHash}`       ] ]))
-
     return {
       chain:     this.chain,
       agent:     this.agent,
@@ -175,29 +168,45 @@ export class SiennaTGE extends ScrtEnsemble {
 export class SiennaSwap extends ScrtEnsemble {
   prefix: string = `${timestamp()}`
   workspace = abs()
-  contracts = { /*AMMFactory, AMMExchange, AMMSNIP20, LPSNIP20, IDO*/ }
-  async initialize (_: EnsembleInit) { throw new Error('TODO!'); return {} } }
+  contracts = {
+    FACTORY:  new AMMFactory(this.agent),
+    EXCHANGE: new AMMExchange(this.agent),
+    AMMTOKEN: new AMMSNIP20(this.agent),
+    LPTOKEN:  new LPToken(this.agent, `${this.prefix}_LPToken`),
+    IDO:      new IDO(this.agent) }
+  async initialize () { throw new Error('TODO!'); return {} } }
 
 export class SiennaRewards extends ScrtEnsemble {
 
-  contracts = rewardPools(this.agent, [
+  pairs = [
     'SIENNA',
     'SIENNA_sSCRT',
     'SITOK_STEST',
     'SIENNA_STEST',
     'SIENNA_SITORK',
     'SIENNA_sETH',
-    'sSCRT_SITEST' ])
+    'sSCRT_SITEST']
+
+  contracts = {
+    SIENNA: new SiennaSNIP20(this.agent),
+    ...rewardPools(this.agent, this.pairs)
+  }
 
   localCommands = (): Commands => [...super.localCommands(),
+
     ["test",      Help.Rewards.TEST,      this.test.bind(this)     ],
+
     ["benchmark", Help.Rewards.BENCHMARK, this.benchmark.bind(this)]]
 
   remoteCommands = (): Commands => [
+
     ['deploy', Help.Rewards.DEPLOY, null, [
+
       ['all',  Help.Rewards.DEPLOY_ALL,  this.deployAll.bind(this)  ],
+
       ['this', Help.Rewards.DEPLOY_THIS, this.deployThis.bind(this) ],
-      ...[].map((instance):Command=>
+
+      ...[].map((instance):Command =>
         [instance, Help.Rewards.ATTACH_TO, this.deployAttach.bind(this)])]]]
 
   private async parseOptions (options?: Record<string, any>) {
@@ -208,11 +217,11 @@ export class SiennaRewards extends ScrtEnsemble {
 
   /** Deploy a single Sienna Rewards Pool + LP Token + an instance of the TGE.
     * Use the TGE's token as the reward token. */
-  private async deployAll (context: any, schedule: any) {
+  private async deployAll (context: any) {
     await this.parseOptions(context.options)
     const {chain} = context
     await chain.init()
-    const TGE = await new SiennaTGE({chain}).deploy({...context, schedule})
+    const TGE = await new SiennaTGE({chain}).deploy()
     this.instances.SiennaSNIP20 = TGE.contracts.SiennaSNIP20
     await this.deploy()
     process.exit() }
@@ -232,82 +241,75 @@ export class SiennaRewards extends ScrtEnsemble {
     process.exit() }
 
   async initialize () {
+    await super.initialize()
+
     const deployed = [[ 'Contract\nDescription', 'Address\nCode hash' ]]
-    const { chain,
-            agent   = this.agent || await chain.getAgent(),
-            task    = taskmaster(),
-            uploads = await this.upload({agent, chain, task}) } = options
+
     // The reward token is pluggable: if rewardToken is not provided
     // (by deployAttach) a SNIP20 is automatically deployed
     if (this.contracts['SiennaSNIP20']) {
-      deployed.push(await this.task(
-        'initialize reward token',
-        this.initToken.bind(this, uploads, 'SiennaSNIP20', agent))) }
+      deployed.push(await this.task('initialize reward token',
+        this.initToken.bind(this, 'SiennaSNIP20'))) }
+
     // reward token is pluggable - existing token can be passed to the deployment
-    deployed.push(await this.task('initialize LP token',
-      this.initToken.bind(this, uploads, 'LPSNIP20', agent)))
-    deployed.push(await this.task(
-      'initialize rewards',
-      this.initRewards.bind(this, uploads, agent)))
+    for (const pair of this.pairs) {
+      deployed.push(await this.task(`initialize LP token for ${pair}`,
+        this.initToken.bind(this, pair)))
+      deployed.push(await this.task(`initialize reward pool for ${pair}`,
+        this.initRewards.bind(this, pair)))
+      if (this.shouldPremintReward) {
+        await this.task(`mint test balance to reward pool for ${pair}`,
+          this.premintReward.bind(this)) } }
+
     if (this.instances['SiennaSNIP20']) {
       if (this.shouldPremintAdmin || this.shouldPremintReward) {
         await this.task('allow admin to mint tokens',
-          this.allowMintingByAdmin.bind(this, agent)) }
-      this.shouldPremintAdmin && await this.task('mint test balance to admin account',
-        this.premintAdmin.bind(this, agent))
-      this.shouldPremintReward && await this.task('mint test balance to rewards contract',
-        this.premintReward.bind(this, agent)) }
+          this.allowMintingByAdmin.bind(this)) }
+      if (this.shouldPremintAdmin) {
+        await this.task('mint test balance to admin account',
+          this.premintAdmin.bind(this)) } }
+
     console.log(table(deployed))
+
     return this.instances }
 
-  private async initToken (
-    uploads: Record<string, any>,
-    key:     string,
-    agent:   Agent,
-    report:  Function
-  ) {
-    const {address, codeHash} = this.instances[key] =
-      await agent.instantiate(new SNIP20Contract({
-        codeId:  uploads[key].codeId,
-        label:   `${this.prefix}_${this.contracts[key].label}`,
-        initMsg: { ...this.contracts[key].initMsg,
-                   admin: agent.address }}))
-    report(this.instances[key].transactionHash)
-    return [`${key}\nToken`, `${address}\n${codeHash}`]}
+  private async initToken (pair: string, report: Function) {
+    const LPTOKEN = this.contracts[`lp${pair}`]
+    await LPTOKEN.upload(this.agent)
+    LPTOKEN.init.label = `${this.prefix}_${LPTOKEN.init.label}`
+    LPTOKEN.init.msg.admin = this.agent.address
+    await LPTOKEN.init(this.agent)
+    report(LPTOKEN.initReceipt.transactionHash)
+    return [`${pair}\nLP Token`, `${LPTOKEN.address}\n${LPTOKEN.codeHash}`] }
 
-  private async initRewards (
-    uploads: Record<string, any>,
-    agent:   Agent,
-    report:  Function
-  ) {
-    const {address, codeHash} = this.instances.RewardPool =
-      await agent.instantiate(new RewardsContract({
-        codeId: uploads.RewardPool.codeId,
-        label: `${this.prefix}_${this.contracts.RewardPool.label}`,
-        initMsg: { ...this.contracts.RewardPool.initMsg,
-                   admin:        agent.address,
-                   reward_token: this.instances.SiennaSNIP20.reference }}))
-    report(this.instances.RewardPool.transactionHash)
-    return ['RewardPool\nReward pool', `${address}\n${codeHash}`]}
+  private async initRewards (pair: string, report: Function) {
+    const REWARDS = this.contracts[`rp${pair}`]
+    await REWARDS.upload(this.agent)
+    REWARDS.init.label            = `${this.prefix}_${REWARDS.init.label}`
+    REWARDS.init.msg.admin        = this.agent.address
+    REWARDS.init.msg.reward_token = this.contracts.SIENNA.link
+    REWARDS.init.msg.lp_token     = this.contracts[`lp${pair}`].link
+    await REWARDS.init(this.agent)
+    report(REWARDS.initReceipt.transactionHash)
+    return [`${pair}\nReward pool`, `${REWARDS.address}\n${REWARDS.codeHash}`] }
 
   shouldPremintAdmin  = false
   shouldPremintReward = false
-  private async allowMintingByAdmin (agent: Agent, report: Function) {
-    const address = this.instances.RewardPool.address
-        , result  = await this.instances.SiennaSNIP20.addMinters([address], agent)
+  private async allowMintingByAdmin (report: Function) {
+    const result = await (this.instances.SIENNA as SiennaSNIP20).addMinters([this.agent.address], this.agent)
     //console.log(decode(Buffer.from(Object.values(result.data) as any)))
     report(result.transactionHash)
     return result }
-  private async premintAdmin (agent: Agent, report: Function) {
+  private async premintAdmin (report: Function) {
     const amount  = '540000000000000000000000'
-        , address = agent.address
-        , result  = await this.instances.SiennaSNIP20.mint(amount, agent, address)
+        , address = this.agent.address
+        , result  = await this.contracts.SIENNA.mint(amount, this.agent, address)
     report(result.transactionHash)
     return result }
-  private async premintReward (agent: Agent, report: Function) {
+  private async premintReward (pair: string, report: Function) {
     const amount  = '540000000000000000000000'
-        , address = this.instances.RewardPool.address
-        , result  = await this.instances.SiennaSNIP20.mint(amount, agent, address)
+        , address = this.contracts[`rp${pair}`].address
+        , result  = await this.contracts.SIENNA.mint(amount, this.agent, address)
     report(result.transactionHash)
     return result }
 
@@ -327,6 +329,6 @@ export class SiennaRewards extends ScrtEnsemble {
     execFileSync(abs('node_modules/.bin/mocha'), args, { stdio: 'inherit' }) } }
 
 export class SiennaLend extends ScrtEnsemble {
-  contracts = { SNIP20: { crate: 'snip20-lend' }
+  contracts = {/* SNIP20: { crate: 'snip20-lend' }
               , ATOKEN: { crate: 'atoken' }
-              , CONFIG: { crate: 'configuration' } } }
+              , CONFIG: { crate: 'configuration' } */} }
