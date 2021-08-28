@@ -42,13 +42,14 @@ export class LPToken extends Base {
   code = { workspace: abs(), crate: 'lp-token' }
   init = { label: `LP`, msg: {
     get prng_seed () { return randomHex(36) },
-    name: "Liquidity Provision Token",
-    symbol: "LP", decimals: 18,
-    config: { ...lpTokenDefaultConfig } } }
+    name:     "Liquidity Provision Token",
+    symbol:   "LP",
+    decimals: 18,
+    config:   { ...lpTokenDefaultConfig } } }
   constructor (agent: Agent, name: string) {
     super(agent)
     this.init.label      = name
-    this.init.msg.symbol = name
+    this.init.msg.symbol = `LP-${name}`
     this.init.msg.name   = `${name} liquidity provision token` }}
 
 const BLOCK_TIME = 6 // seconds (on average)
@@ -56,16 +57,19 @@ const threshold  = 24 * 60 * 60 / BLOCK_TIME
 const cooldown   = 24 * 60 * 60 / BLOCK_TIME
 export class RewardPool extends Base {
   code = { workspace: abs(), crate: 'sienna-rewards' }
-  init = { label: 'Rewards', msg: { threshold, cooldown } }
+  init = { label: 'Rewards', msg: {
+    threshold,
+    cooldown,
+    get viewing_key () { return randomHex(36) } } }
   constructor (agent: Agent, name: string) {
     super(agent)
-    this.init.label = `${name} reward pool` }}
+    this.init.label = `${name}_RewardPool` }}
 
 export function rewardPools (agent: Agent, pairs: Array<string>) {
   const pools = {}
   for (const pair of pairs) {
-    pools[`lp${pair}`] = new LPToken(agent, pair)
-    pools[`rp${pair}`] = new RewardPool(agent, pair) }
+    pools[`LP_${pair}`] = new LPToken(agent, pair)
+    pools[`RP_${pair}`] = new RewardPool(agent, pair) }
   return pools }
 
 // IDO /////////////////////////////////////////////////////////////////////////////////////////////
