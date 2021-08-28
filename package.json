@@ -3,10 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "workspaces": [
-    "./api",
     "./contracts/rewards",
     "./libraries/fadroma-21.08/",
     "./libraries/schedule",
+    "./api",
     "./ops"
   ],
   "dependencies": {

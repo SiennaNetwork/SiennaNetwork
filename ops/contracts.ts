@@ -1,10 +1,11 @@
-import { BaseContractAPI as Base } from '@hackbg/fadroma'
+import { Agent, ContractCaller as Base, ContractAPI } from '@hackbg/fadroma'
 import { randomHex } from '@hackbg/fadroma'
+import { SNIP20Contract, MGMTContract } from '@sienna/api'
 import { abs } from './index'
 
 // TGE /////////////////////////////////////////////////////////////////////////////////////////////
 
-export class SiennaSNIP20 extends Base {
+export class SiennaSNIP20 extends SNIP20Contract {
   code = { workspace: abs(), crate: 'snip20-sienna' }
   init = { label: 'SiennaSNIP20', msg: {
     get prng_seed () { return randomHex(36) },
@@ -12,7 +13,7 @@ export class SiennaSNIP20 extends Base {
     symbol:   "SIENNA",
     decimals: 18,
     config:   { public_total_supply: true } } } }
-export class MGMT extends Base {
+export class MGMT extends MGMTContract {
   code = { workspace: abs(), crate: 'sienna-mgmt' }
   init = { label: 'SiennaMGMT', msg: {} } }
 export class RPT extends Base {
@@ -37,94 +38,35 @@ const lpTokenDefaultConfig = {
   enable_deposit: true, enable_redeem: true,
   enable_mint: true, enable_burn: true,
   public_total_supply: true }
-export abstract class LPToken extends Base {
-  code = { workspace: abs(), crate: 'lp-token' } }
-export abstract class RewardPool extends Base {
-  code = { workspace: abs(), crate: 'sienna-rewards' } }
-
-export class LP_SIENNA extends LPToken {
-  init = { label: `LP_SIENNA`, msg: {
+export class LPToken extends Base {
+  code = { workspace: abs(), crate: 'lp-token' }
+  init = { label: `LP`, msg: {
     get prng_seed () { return randomHex(36) },
-    name: "SIENNA Liquidity Provision Token",
-    symbol: "LP_SIENNA", decimals: 18,
-    config: { ...lpTokenDefaultConfig } } } }
-export class RewardPool_SIENNA extends RewardPool {
-  init = { label: `RewardPool_SIENNA`, msg: {
-    get entropy     () { return randomHex(36) },
-    get prng_seed   () { return randomHex(36) },
-    get viewing_key () { return randomHex(36) } } } }
+    name: "Liquidity Provision Token",
+    symbol: "LP", decimals: 18,
+    config: { ...lpTokenDefaultConfig } } }
+  constructor (agent: Agent, name: string) {
+    super(agent)
+    this.init.label      = name
+    this.init.msg.symbol = name
+    this.init.msg.name   = `${name} liquidity provision token` }}
 
-export class LP_SIENNA_sSCRT extends LPToken {
-  init = { label: `LP_SIENNA_sSCRT`, msg: {
-    get prng_seed () { return randomHex(36) },
-    name: "SIENNA/sSCRT Liquidity Provision Token",
-    symbol: "LP_SIENNA_sSCRT", decimals: 18,
-    config: { ...lpTokenDefaultConfig } } } }
-export class RewardPool_SIENNA_sSCRT extends RewardPool {
-  init = { label: `RewardPool_SIENNA_sSCRT`, msg: {
-    get entropy     () { return randomHex(36) },
-    get prng_seed   () { return randomHex(36) },
-    get viewing_key () { return randomHex(36) } } } }
+const BLOCK_TIME = 6 // seconds (on average)
+const threshold  = 24 * 60 * 60 / BLOCK_TIME
+const cooldown   = 24 * 60 * 60 / BLOCK_TIME
+export class RewardPool extends Base {
+  code = { workspace: abs(), crate: 'sienna-rewards' }
+  init = { label: 'Rewards', msg: { threshold, cooldown } }
+  constructor (agent: Agent, name: string) {
+    super(agent)
+    this.init.label = `${name} reward pool` }}
 
-export class LP_SITOK_STEST extends LPToken {
-  init = { label: `LP_SITOK_STEST`, msg: {
-    get prng_seed () { return randomHex(36) },
-    name: "SITOK/STEST Liquidity Provision Token",
-    symbol: "LP_SITOK_STEST", decimals: 18,
-    config: { ...lpTokenDefaultConfig } } } }
-export class RewardPool_SITOK_STEST extends RewardPool {
-  init = { label: `RewardPool_SITOK_STEST`, msg: {
-    get entropy     () { return randomHex(36) },
-    get prng_seed   () { return randomHex(36) },
-    get viewing_key () { return randomHex(36) } } } }
-
-export class LP_SIENNA_STEST extends LPToken {
-  init = { label: `LP_SIENNA_STEST`, msg: {
-    get prng_seed () { return randomHex(36) },
-    name: "SIENNA/STEST Liquidity Provision Token",
-    symbol: "LP_SIENNA_STEST", decimals: 18,
-    config: { ...lpTokenDefaultConfig } } } }
-export class RewardPool_SIENNA_STEST extends RewardPool {
-  init = { label: `RewardPool_SIENNA_STEST`, msg: {
-    get entropy     () { return randomHex(36) },
-    get prng_seed   () { return randomHex(36) },
-    get viewing_key () { return randomHex(36) } } } }
-
-export class LP_SIENNA_SITOK extends LPToken {
-  init = { label: `LP_SIENNA_SITOK`, msg: {
-    get prng_seed () { return randomHex(36) },
-    name: "SIENNA_SITOK Liquidity Provision Token",
-    symbol: "LP_SIENNA_SITOK", decimals: 18,
-    config: { ...lpTokenDefaultConfig } } } }
-export class RewardPool_SIENNA_SITOK extends RewardPool {
-  init = { label: `RewardPool_SIENNA_SITOK`, msg: {
-    get entropy     () { return randomHex(36) },
-    get prng_seed   () { return randomHex(36) },
-    get viewing_key () { return randomHex(36) } } } }
-
-export class LP_SIENNA_sETH extends LPToken {
-  init = { label: `LP_SIENNA_sETH`, msg: {
-    get prng_seed () { return randomHex(36) },
-    name: "LP_SIENNA_sETH Liquidity Provision Token",
-    symbol: "LP_SIENNA_sETH", decimals: 18,
-    config: { ...lpTokenDefaultConfig } } } }
-export class RewardPool_SIENNA_sETH extends RewardPool {
-  init = { label: `RewardPool_SIENNA_sETH`, msg: {
-    get entropy     () { return randomHex(36) },
-    get prng_seed   () { return randomHex(36) },
-    get viewing_key () { return randomHex(36) } } } }
-
-export class LP_sSCRT_SITEST extends LPToken {
-  init = { label: `LP_sSCRT_SITEST`, msg: {
-    get prng_seed () { return randomHex(36) },
-    name: "LP_sSCRT_SITEST Liquidity Provision Token",
-    symbol: "LP_sSCRT_SITEST", decimals: 18,
-    config: { ...lpTokenDefaultConfig } } } }
-export class RewardPool_sSCRT_SITEST extends RewardPool {
-  init = { label: `RewardPool_SIENNA_sSCRT`, msg: {
-    get entropy     () { return randomHex(36) },
-    get prng_seed   () { return randomHex(36) },
-    get viewing_key () { return randomHex(36) } } } }
+export function rewardPools (agent: Agent, tokens: Array<string>) {
+  const pools = {}
+  for (const token of tokens) {
+    pools[`lp${token}`] = new LPToken(agent, token)
+    pools[`rp${token}`] = new RewardPool(agent, token) }
+  return pools }
 
 // IDO /////////////////////////////////////////////////////////////////////////////////////////////
 

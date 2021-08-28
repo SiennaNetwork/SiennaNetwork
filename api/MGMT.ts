@@ -1,15 +1,17 @@
-import { ContractWithSchema, loadSchemas } from "@hackbg/fadroma"
+import type { Agent } from "@hackbg/fadroma"
+import { ContractAPI, loadSchemas } from "@hackbg/fadroma"
 
-export const schema = loadSchemas(import.meta.url, {
-  initMsg: "./mgmt/init.json",
-  queryMsg: "./mgmt/query.json",
+const schema = loadSchemas(import.meta.url, {
+  initMsg:     "./mgmt/init.json",
+  queryMsg:    "./mgmt/query.json",
   queryAnswer: "./mgmt/response.json",
-  handleMsg: "./mgmt/handle.json",
-});
+  handleMsg:   "./mgmt/handle.json",
+})
 
-export default class MGMT extends ContractWithSchema {
-  constructor(options) {
-    super(options, schema);
+export default class MGMT extends ContractAPI {
+
+  constructor(agent: Agent) {
+    super(schema, agent);
   }
 
   /** query contract status */
@@ -23,31 +25,31 @@ export default class MGMT extends ContractWithSchema {
   }
 
   /** take over a SNIP20 token */
-  acquire = async (snip20) => {
+  acquire = async (snip20: any) => {
     const tx1 = await snip20.setMinters([this.address]);
     const tx2 = await snip20.changeAdmin(this.address);
     return [tx1, tx2];
   };
 
   /** load a schedule */
-  configure = (schedule) => this.tx.configure({ schedule });
+  configure = (schedule: any) => this.tx.configure({ schedule });
 
   /** launch the vesting */
   launch = () => this.tx.launch({});
 
   /** claim accumulated portions */
-  claim = (claimant) => this.tx(claimant).claim({});
+  claim = (claimant: any) => this.tx.claim({});
 
   /** see how much is claimable by someone at a certain time */
-  progress = (address, time = +new Date()) =>
+  progress = (address: any, time = +new Date()) =>
     this.q.progress({
       address,
       time: Math.floor(time / 1000) /* JS msec -> CosmWasm seconds */,
     });
 
   /** add a new account to a pool */
-  add = (pool_name, account) => this.tx.add_account({ pool_name, account });
+  add = (pool_name: any, account: any) => this.tx.add_account({ pool_name, account });
 
   /** set the admin */
-  setOwner = (new_admin) => this.tx.set_owner({ new_admin });
+  setOwner = (new_admin: any) => this.tx.set_owner({ new_admin });
 }

@@ -1,4 +1,4 @@
-import { ContractWithSchema, loadSchemas } from "@hackbg/fadroma"
+import { ContractAPI, loadSchemas } from "@hackbg/fadroma"
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg:     "./amm/init_msg.json",
@@ -7,7 +7,7 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg:   "./amm/handle_msg.json",
 });
 
-export default class AMM extends ContractWithSchema {
+export default class AMM extends ContractAPI {
   constructor(options) {
     super(options, schema);
   }

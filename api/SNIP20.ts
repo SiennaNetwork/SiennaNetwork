@@ -1,4 +1,5 @@
-import { ContractWithSchema, loadSchemas, randomHex } from "@hackbg/fadroma"
+import type { Agent } from "@hackbg/fadroma"
+import { ContractAPI, loadSchemas, randomHex } from "@hackbg/fadroma"
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./snip20/init_msg.json",
@@ -11,9 +12,9 @@ export const schema = loadSchemas(import.meta.url, {
 const decoder = new TextDecoder();
 const decode = (buffer) => decoder.decode(buffer).trim();
 
-export default class SNIP20 extends ContractWithSchema {
-  constructor(options = {}) {
-    super(options, schema);
+export default class SNIP20 extends ContractAPI {
+  constructor(agent: Agent) {
+    super(schema, agent);
   }
 
   changeAdmin = (address, agent) => this.tx.change_admin({ address }, agent);

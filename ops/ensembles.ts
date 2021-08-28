@@ -6,7 +6,7 @@ import { runDemo } from './tge.demo.js'
 import { EnsemblesHelp as Help } from './help'
 import { SiennaSNIP20, MGMT as MGMTConfig, RPT as RPTConfig,
          AMMFactory, AMMExchange, AMMSNIP20,
-         LPSNIP20, RewardPool,
+         RewardPool, rewardPools,
          IDO } from './contracts'
 
 const { debug, warn, info } = Console(import.meta.url)
@@ -17,10 +17,10 @@ type TGECommandArgs = { address?: string, chain?: any }
 
 export class SiennaTGE extends ScrtEnsemble {
 
-  contracts: {
-    SIENNA: SiennaSNIP20
-    MGMT:   MGMTConfig
-    RPT:    RPTConfig
+  contracts = {
+    SIENNA: new SiennaSNIP20(this.agent),
+    MGMT:   new MGMTConfig(this.agent),
+    RPT:    new RPTConfig(this.agent)
   }
 
   schedule: TGESchedule
@@ -60,51 +60,49 @@ export class SiennaTGE extends ScrtEnsemble {
       this.getStatus({...context, address})] ]
 
   async initialize () {
-
-    const initialRPTRecipient = this.agent.address
+    await this.chain.init()
+    this.agent = await this.chain.getAgent()
 
     // mgmt could automatically instantiate token and rpt if it supported callbacks
-    const SIENNA = new SiennaSNIP20(this.agent)
+    const {SIENNA} = this.contracts
     await this.task('initialize token',
       async (report: Function) => {
         SIENNA.init.label = `${this.prefix}_${SIENNA.label}`
         Object.assign(SIENNA.init.msg, { admin: this.agent.address })
-        await SIENNA.upload()
-        await SIENNA.instantiate()
-        report(SIENNA.initTx.transactionHash)
-        this.contracts.SIENNA = SIENNA })
+        await SIENNA.upload(this.agent)
+        await SIENNA.instantiate(this.agent)
+        report(SIENNA.initTx.transactionHash) })
 
     // accept schedule as string or struct
-    let { schedule = getDefaultSchedule() } = options
-    if (typeof schedule === 'string') {
-      schedule = JSON.parse(await readFile(schedule, 'utf8')) }
+    const schedule = getDefaultSchedule()
 
-    // use placeholder RPT address in schedule - updated after RPT is deployed
+    // use placeholder RPT address in schedule
+    // updated after RPT is deployed
+    const initialRPTRecipient = this.agent.address
     const setRPTAddress = (address: string) => {
       schedule.pools.filter((x:any)=>x.name==='MintingPool')[0]
               .accounts.filter((x:any)=>x.name==='RPT')[0]
               .address = address }
-
-    const MGMT = new MGMTConfig(this.agent)
+    const {MGMT} = this.contracts
+    console.log(SIENNA.linkPair, SIENNA)
     await this.task('initialize mgmt',
       async (report: Function) => {
         setRPTAddress(initialRPTRecipient)
-        MGMT.init.label = `${this.prefix}_${MGMT.label}`
+        MGMT.init.label = `${this.prefix}_${MGMT.init.label}`
         Object.assign(MGMT.init.msg, {
           admin: this.agent.address,
           token: SIENNA.linkPair,
           schedule })
-        await MGMT.upload()
-        await MGMT.instantiate()
-        report(MGMT.initTx.transactionHash)
-        this.contracts.MGMT = MGMT })
+        await MGMT.upload(this.agent)
+        await MGMT.instantiate(this.agent)
+        report(MGMT.initTx.transactionHash)})
 
     await this.task('make mgmt owner of token', async (report: Function) => {
-      const [tx1, tx2] = await (MGMT as MGMTConfig).acquire(SIENNA)
+      const [tx1, tx2] = await MGMT.acquire(SIENNA)
       report(tx1.transactionHash)
       report(tx2.transactionHash) })
 
-    const RPT = new RPTConfig(this.agent)
+    const {RPT} = this.contracts
     await this.task('initialize rpt',
       async (report: Function) => {
       RPT.init.label = `${this.prefix}_${RPT.label}`
@@ -113,21 +111,26 @@ export class SiennaTGE extends ScrtEnsemble {
         mgmt:    MGMT.linkPair,
         portion: "2500000000000000000000", // TODO get this from schedule!!!
         config:  [[initialRPTRecipient, "2500000000000000000000"]] })
-      report(RPT.initTx.transactionHash) })
+      await RPT.upload(this.agent)
+      await RPT.instantiate(this.agent)
+      report(RPT.initTx.transactionHash)})
 
     await this.task('point rpt account in mgmt schedule to rpt contract',
       async (report: Function) => {
-        setRPTAddress(instances.RPT.address)
-        const {transactionHash} = await (instances.MGMT as MGMTConfig).configure(schedule)
+        setRPTAddress(RPT.address)
+        const {transactionHash} = await MGMT.configure(schedule)
         report(transactionHash) })
 
     console.log(table(
-      [ [ 'Contract\nDescription',              'Address\nCode hash' ]
-      , [ 'SiennaSNIP20\nSienna SNIP20 token', `${SiennaSNIP20.address}\n${SiennaSNIP20.codeHash}` ]
-      , [ 'MGMT\nVesting',                      `${MGMT.address}\n${MGMT.codeHash}`]
-      , [ 'RPT\nRemaining pool tokens',         `${RPT.address}\n${RPT.codeHash}`] ]))
+      [ [ 'Contract\nDescription',             'Address\nCode hash'                    ]
+      , [ 'SiennaSNIP20\nSienna SNIP20 token', `${SIENNA.address}\n${SIENNA.codeHash}` ]
+      , [ 'MGMT\nVesting',                     `${MGMT.address}\n${MGMT.codeHash}`     ]
+      , [ 'RPT\nRemaining pool tokens',        `${RPT.address}\n${RPT.codeHash}`       ] ]))
 
-    return {chain, agent, contracts: instances} }
+    return {
+      chain:     this.chain,
+      agent:     this.agent,
+      contracts: this.contracts } }
 
   async launch (options: TGECommandArgs = {}) {
     const address = options.address
@@ -172,14 +175,19 @@ export class SiennaTGE extends ScrtEnsemble {
 export class SiennaSwap extends ScrtEnsemble {
   prefix: string = `${timestamp()}`
   workspace = abs()
-  contracts = { AMMFactory, AMMExchange, AMMSNIP20, LPSNIP20, IDO }
+  contracts = { /*AMMFactory, AMMExchange, AMMSNIP20, LPSNIP20, IDO*/ }
   async initialize (_: EnsembleInit) { throw new Error('TODO!'); return {} } }
-
-type RewardsInit = EnsembleInit & { rewardToken?: SNIP20Contract }
 
 export class SiennaRewards extends ScrtEnsemble {
 
-  contracts = { LPSNIP20, RewardPool }
+  contracts = rewardPools(this.agent, [
+    'SIENNA',
+    'SIENNA_sSCRT',
+    'SITOK_STEST',
+    'SIENNA_STEST',
+    'SIENNA_SITORK',
+    'SIENNA_sETH',
+    'sSCRT_SITEST' ])
 
   localCommands = (): Commands => [...super.localCommands(),
     ["test",      Help.Rewards.TEST,      this.test.bind(this)     ],
@@ -192,38 +200,38 @@ export class SiennaRewards extends ScrtEnsemble {
       ...[].map((instance):Command=>
         [instance, Help.Rewards.ATTACH_TO, this.deployAttach.bind(this)])]]]
 
-  private parseOptions (options?: Record<string, any>) {
+  private async parseOptions (options?: Record<string, any>) {
     if (!options) return
-    if (options['agent'] === 'secretcli') this.agent = ScrtCLIAgent.create(this.agent)
+    if (options['agent'] === 'secretcli') this.agent = await ScrtCLIAgent.create(this.agent)
     if (options['premint.reward']) this.shouldPremintReward = true
     if (options['premint.admin'])  this.shouldPremintAdmin  = true }
 
   /** Deploy a single Sienna Rewards Pool + LP Token + an instance of the TGE.
     * Use the TGE's token as the reward token. */
   private async deployAll (context: any, schedule: any) {
-    this.parseOptions(context.options)
+    await this.parseOptions(context.options)
     const {chain} = context
     await chain.init()
     const TGE = await new SiennaTGE({chain}).deploy({...context, schedule})
     this.instances.SiennaSNIP20 = TGE.contracts.SiennaSNIP20
-    await this.deploy(context)
+    await this.deploy()
     process.exit() }
 
   /** Deploy a single Sienna Rewards Pool + LP Token + Reward Token. */
   private async deployThis (context: any) {
-    this.parseOptions(context.options)
+    await this.parseOptions(context.options)
     Object.assign(this.contracts, { SiennaSNIP20 })
-    await this.deploy(context)
+    await this.deploy()
     process.exit() }
 
   /** Deploy a single Sienna Rewards Pool + LP Token.
     * Use an existing SNIP20 token as the reward token. */
   private async deployAttach (context: any) {
-    this.parseOptions(context.options)
-    await this.deploy(context)
+    await this.parseOptions(context.options)
+    await this.deploy()
     process.exit() }
 
-  async initialize (options: RewardsInit) {
+  async initialize () {
     const deployed = [[ 'Contract\nDescription', 'Address\nCode hash' ]]
     const { chain,
             agent   = this.agent || await chain.getAgent(),

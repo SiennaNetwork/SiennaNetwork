@@ -1,4 +1,4 @@
-import { ContractWithSchema, loadSchemas } from "@hackbg/fadroma"
+import { ContractAPI, loadSchemas } from "@hackbg/fadroma"
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg:     "./rewards/init.json",
@@ -7,7 +7,7 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg:   "./rewards/handle.json",
 });
 
-export default class Rewards extends ContractWithSchema {
+export default class Rewards extends ContractAPI {
   constructor(options = {}) { super(options, schema) }
 
   setProvidedToken = (address, code_hash, agent = this.agent) =>
