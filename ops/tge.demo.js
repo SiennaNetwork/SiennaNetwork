@@ -58,9 +58,9 @@ export default async function demo (environment) {
       , receipts   = await contracts.upload({task, builder, binaries})
       , initArgs   = {task: task, agent, receipts, schedule}
       , instances  = await contracts.initialize({
-        ...initArgs,
-        initialRPTRecipient: agent.address
-      })
+          ...initArgs,
+          initialRPTRecipient: agent.address
+        })
   // * **Launch** the vesting and confirm that the **claims** and **mutations** work as specified.
   await verify({task, agent, recipients, wallets, instances, schedule})
 }

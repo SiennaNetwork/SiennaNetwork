@@ -53,7 +53,6 @@ export class SiennaTGE extends ScrtEnsemble {
     const {SIENNA} = this.contracts
     await this.task('initialize token',
       async (report: Function) => {
-        SIENNA.init.label = `${this.prefix}_${SIENNA.label}`
         Object.assign(SIENNA.init.msg, { admin: this.agent.address })
         await SIENNA.instantiate(this.agent)
         report(SIENNA.initTx.transactionHash) })
@@ -71,7 +70,6 @@ export class SiennaTGE extends ScrtEnsemble {
       async (report: Function) => {
         console.log(this.schedule)
         RPTAccount.address = initialRPTRecipient
-        MGMT.init.label = `${this.prefix}_${MGMT.init.label}`
         Object.assign(MGMT.init.msg, {
           admin:    this.agent.address,
           token:    SIENNA.linkPair,
@@ -87,7 +85,6 @@ export class SiennaTGE extends ScrtEnsemble {
     const {RPT} = this.contracts
     await this.task('initialize rpt',
       async (report: Function) => {
-        RPT.init.label = `${this.prefix}_${RPT.label}`
         Object.assign(RPT.init.msg, {
           token:   SIENNA.linkPair,
           mgmt:    MGMT.linkPair,
@@ -169,11 +166,12 @@ export class SiennaRewards extends SiennaTGE {
     ["test",      Help.Rewards.TEST,      this.test.bind(this)     ],
     ["benchmark", Help.Rewards.BENCHMARK, this.benchmark.bind(this)]]
 
-  remoteCommands = (): Commands => {console.log(this.chain.instances.list());return [
+  remoteCommands = (): Commands => {console.log(123,this.chain.instances,this.chain.instances.list());return [
     ['deploy', Help.Rewards.DEPLOY, null, [
       ['all',  Help.Rewards.DEPLOY_ALL,  this.deployAll.bind(this)  ],
       ['this', Help.Rewards.DEPLOY_THIS, this.deployThis.bind(this) ],
-      ...[].map((instance):Command=>[instance, Help.Rewards.ATTACH_TO, this.deployAttach.bind(this)])]]]}
+      ...this.chain.instances.subdirs().map((instance):Command=>
+        [instance, Help.Rewards.ATTACH_TO, this.deployAttach.bind(this)])]]]}
 
   private async parseOptions (options?: Record<string, any>) {
     if (!options) return
@@ -233,7 +231,6 @@ export class SiennaRewards extends SiennaTGE {
       const token = (pair === 'SIENNA') ? this.contracts.SIENNA :
         await this.task(`initialize LP token for ${pair}`, async (report: Function) => {
           const token = this.contracts[`LP_${pair}`]
-          token.init.label = `${this.prefix}_${token.init.label}`
           token.init.msg.admin = this.agent.address
           await token.instantiate(this.agent)
           report(token.initReceipt.transactionHash)
@@ -242,7 +239,6 @@ export class SiennaRewards extends SiennaTGE {
 
       await this.task(`initialize reward pool for ${pair}`, async (report: Function) => {
         const rewardPool = this.contracts[`RP_${pair}`]
-        rewardPool.init.label = `${this.prefix}_${rewardPool.init.label}`
         rewardPool.init.msg.admin = this.agent.address
         rewardPool.init.msg.reward_token = this.contracts.SIENNA.link
         rewardPool.init.msg.lp_token = token.link

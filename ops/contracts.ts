@@ -28,7 +28,7 @@ export class AMMFactory extends Base {
 export class AMMExchange extends Base {
   code = { workspace: abs(), crate: 'exchange' }
   init = { label: 'SiennaAMMExchange', msg: {} } }
-export class AMMSNIP20 extends Base {
+export class AMMSNIP20 extends SNIP20Contract {
   code = { workspace: abs(), crate: 'amm-snip20' }
   init = { label: 'ExchangedSnip20', msg: {} } }
 
@@ -38,7 +38,7 @@ const lpTokenDefaultConfig = {
   enable_deposit: true, enable_redeem: true,
   enable_mint: true, enable_burn: true,
   public_total_supply: true }
-export class LPToken extends Base {
+export class LPToken extends SNIP20Contract {
   code = { workspace: abs(), crate: 'lp-token' }
   init = { label: `LP`, msg: {
     get prng_seed () { return randomHex(36) },

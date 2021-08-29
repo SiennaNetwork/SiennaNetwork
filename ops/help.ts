@@ -46,6 +46,6 @@ export const EnsemblesHelp = {
     TEST:        '🥒 Run unit tests',
     BENCHMARK:   '⛽ Measure gas costs',
     DEPLOY:      '🚀 Deploy TGE + Rewards, or attach Rewards to existing TGE',
-    DEPLOY_ALL:  '🚀 Deploy new TGE + Rewards (needs TGE schedule)',
-    DEPLOY_THIS: '🚀 Deploy just the Rewards',
-    ATTACH_TO:   '🚀 Deploy Rewards attached to this TGE', } }
+    DEPLOY_ALL:  '🚀 Deploy new Sienna TGE + Rewards (needs TGE schedule)',
+    DEPLOY_THIS: '🚀 Deploy just Sienna Rewards',
+    ATTACH_TO:   '🚀 Deploy Sienna Rewards attached to this TGE', } }
