@@ -1,3 +1,4 @@
+import type { Agent } from "@hackbg/fadroma"
 import { ContractAPI, loadSchemas } from "@hackbg/fadroma"
 
 export const schema = loadSchemas(import.meta.url, {
@@ -8,8 +9,8 @@ export const schema = loadSchemas(import.meta.url, {
 });
 
 export default class RPT extends ContractAPI {
-  constructor(options = {}) {
-    super(options, schema);
+  constructor(agent: Agent) {
+    super(schema, agent);
   }
 
   /** query contract status */

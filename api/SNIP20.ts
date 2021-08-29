@@ -17,19 +17,21 @@ export default class SNIP20 extends ContractAPI {
     super(schema, agent);
   }
 
-  changeAdmin = (address, agent) => this.tx.change_admin({ address }, agent);
+  changeAdmin = (address: string, agent?: Agent) =>
+    this.tx.change_admin({ address }, agent);
 
-  setMinters = (minters, agent) => this.tx.set_minters({ minters }, agent);
+  setMinters = (minters: Array<string>, agent?: Agent) =>
+    this.tx.set_minters({ minters }, agent);
 
-  addMinters = (minters, agent) =>
+  addMinters = (minters: Array<string>, agent?: Agent) =>
     this.tx.add_minters({ minters, padding: null }, agent);
 
-  mint = (amount, agent = this.agent, recipient = agent.address) =>
+  mint = (amount: string, agent = this.agent, recipient = agent.address) =>
     this.tx
       .mint({ amount: String(amount), recipient, padding: null }, agent)
       .then((tx) => ({ tx, mint: JSON.parse(decode(tx.data)).mint }));
 
-  balance = async (address, key) => {
+  balance = async (address: string, key: string) => {
     const response = await this.q.balance({ address, key });
 
     if (response.balance && response.balance.amount) {
@@ -40,7 +42,7 @@ export default class SNIP20 extends ContractAPI {
   };
 
   createViewingKey = (
-    agent,
+    agent: Agent,
     entropy = randomHex(32)
   ) =>
     this.tx
@@ -50,7 +52,7 @@ export default class SNIP20 extends ContractAPI {
         key: JSON.parse(decode(tx.data)).create_viewing_key.key,
       }));
 
-  setViewingKey = (agent, key) =>
+  setViewingKey = (agent: Agent, key: string) =>
     this.tx
       .set_viewing_key({ key }, agent)
       .then((tx) => ({
@@ -58,13 +60,13 @@ export default class SNIP20 extends ContractAPI {
         status: JSON.parse(decode(tx.data)).set_viewing_key.key,
       }));
 
-  increaseAllowance = (amount, spender, agent) =>
+  increaseAllowance = (amount: string, spender: string, agent: Agent) =>
     this.tx.increase_allowance({ amount: String(amount), spender }, agent);
 
-  decreaseAllowance = (amount, spender, agent) =>
+  decreaseAllowance = (amount: string, spender: string, agent: Agent) =>
     this.tx.decrease_allowance({ amount: String(amount), spender }, agent);
 
-  checkAllowance = (spender, owner, key, agent) =>
+  checkAllowance = (spender: string, owner: string, key: string, agent: Agent) =>
     this.q.allowance({ owner, spender, key }, agent);
   
   /**
@@ -76,7 +78,8 @@ export default class SNIP20 extends ContractAPI {
    * @param {Agent} [agent] 
    * @returns 
    */
-  sendIdo = (contractAddress, amount, recipient = null, agent) => this.tx.send(
+  sendIdo = (contractAddress, amount, recipient = null, agent) =>
+    this.tx.send(
       {
         recipient: contractAddress,
         amount: `${amount}`,

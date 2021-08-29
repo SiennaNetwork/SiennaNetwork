@@ -1,6 +1,6 @@
 import { Agent, ContractCaller as Base, ContractAPI } from '@hackbg/fadroma'
 import { randomHex } from '@hackbg/fadroma'
-import { SNIP20Contract, MGMTContract } from '@sienna/api'
+import { SNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
 import { abs } from './index'
 
 // TGE /////////////////////////////////////////////////////////////////////////////////////////////
@@ -16,7 +16,7 @@ export class SiennaSNIP20 extends SNIP20Contract {
 export class MGMT extends MGMTContract {
   code = { workspace: abs(), crate: 'sienna-mgmt' }
   init = { label: 'SiennaMGMT', msg: {} } }
-export class RPT extends Base {
+export class RPT extends RPTContract {
   code = { workspace: abs(), crate: 'sienna-rpt' }
   init = { label: 'SiennaRPT', msg: {} } }
 
@@ -48,7 +48,7 @@ export class LPToken extends SNIP20Contract {
     config:   { ...lpTokenDefaultConfig } } }
   constructor (agent: Agent, name: string) {
     super(agent)
-    this.init.label      = name
+    this.init.label      = `SiennaRewards_${name}_LPToken`
     this.init.msg.symbol = `LP-${name}`
     this.init.msg.name   = `${name} liquidity provision token` }}
 
@@ -63,7 +63,7 @@ export class RewardPool extends Base {
     get viewing_key () { return randomHex(36) } } }
   constructor (agent: Agent, name: string) {
     super(agent)
-    this.init.label = `${name}_RewardPool` }}
+    this.init.label = `SiennaRewards_${name}_Pool` }}
 
 export function rewardPools (agent: Agent, pairs: Array<string>) {
   const pools = {}

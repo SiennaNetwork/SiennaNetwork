@@ -62,18 +62,18 @@ export default async function main (command: CommandName, ...args: any) {
 
     null,
 
-    ["mainnet",  Help.MAINNET, on.mainnet,   [
-      ["shell",  Help.SHELL,   runShell],
+    ["mainnet",  Help.MAINNET,  on.mainnet,  [
+      ["shell",  Help.SHELL,    runShell],
       ...remoteCommands(Scrt.mainnet())]],
-    ["testnet",  Help.TESTNET, on.testnet,   [
-      ["shell",  Help.SHELL,   runShell],
-      ["faucet", Help.FAUCET,  openFaucet],
-      ["fund",   Help.FUND,    prefund],
+    ["testnet",  Help.TESTNET,  on.testnet,  [
+      ["shell",  Help.SHELL,    runShell],
+      ["faucet", Help.FAUCET,   openFaucet],
+      ["fund",   Help.FUND,     prefund],
       ...remoteCommands(Scrt.testnet())]],
     ["localnet", Help.LOCALNET, on.localnet, [
-      ["shell",  Help.SHELL,   runShell],
-      ["reset",  Help.FAUCET,  resetLocalnet],
-      ["fund",   Help.FUND,    prefund],
+      ["shell",  Help.SHELL,    runShell],
+      ["reset",  Help.FAUCET,   resetLocalnet],
+      ["fund",   Help.FUND,     prefund],
       ...remoteCommands(Scrt.localnet())]]]
 
   return await runCommand({ command: [ command ] }, commands, command, ...args) }
