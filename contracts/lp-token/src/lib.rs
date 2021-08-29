@@ -41,7 +41,7 @@ struct LpTokenImpl;
 impl Snip20 for LpTokenImpl {
     fn symbol_validation(&self) -> SymbolValidation {
         SymbolValidation {
-            length: 3..=12,
+            length: 3..=18,
             allow_upper: true,
             allow_lower: true,
             allow_numeric: false,
