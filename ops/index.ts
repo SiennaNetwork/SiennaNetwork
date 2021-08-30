@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Chain, Scrt, prefund,
          CommandName, Commands, runCommand, printUsage, REPL, open, prompts,
-         on, resetLocalnet, openFaucet } from '@hackbg/fadroma'
+         on, resetLocalnet, openFaucet, clear, schemaToTypes } from '@hackbg/fadroma'
 import { env, stderr, existsSync, readFileSync, writeFileSync,
          resolve, basename, extname, dirname, fileURLToPath, cargo } from '@hackbg/fadroma'
 import { SNIP20Contract,
@@ -104,8 +104,40 @@ export function genCoverage () {
   // fixed by https://github.com/rust-lang/cargo/issues/9220
   cargo('tarpaulin', '--out=Html', `--output-dir=${abs()}`, '--locked', '--frozen') }
 
-export function genSchema () {
-  cargo('run', '--bin', 'schema') }
+export async function genSchema () {
+  cargo('run', '--bin', 'schema')
+  await schemaToTypes(...[
+    'amm/handle_msg.json',
+    'amm/init_msg.json',
+    'amm/query_msg.json',
+    'amm/query_msg_response.json',
+    'amm/receiver_callback_msg.json',
+    'factory/handle_msg.json',
+    'factory/init_msg.json',
+    'factory/query_msg.json',
+    'factory/query_response.json',
+    'ido/handle_msg.json',
+    'ido/init_msg.json',
+    'ido/query_msg.json',
+    'ido/query_response.json',
+    'ido/receiver_callback_msg.json',
+    'mgmt/handle.json',
+    'mgmt/init.json',
+    'mgmt/query.json',
+    'mgmt/response.json',
+    'rewards/handle.json',
+    'rewards/init.json',
+    'rewards/query.json',
+    'rewards/response.json',
+    'rpt/handle.json',
+    'rpt/init.json',
+    'rpt/query.json',
+    'rpt/response.json',
+    'snip20/handle_answer.json',
+    'snip20/handle_msg.json',
+    'snip20/init_msg.json',
+    'snip20/query_answer.json',
+    'snip20/query_msg.json'].map(x=>abs('api', x))) }
 
 export function genDocs (_:any, crate = '', dontOpen = false) {
   const entryPoint = crate
