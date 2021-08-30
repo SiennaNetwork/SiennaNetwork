@@ -48,4 +48,4 @@ export const EnsemblesHelp = {
     DEPLOY:      '🚀 Deploy TGE + Rewards, or attach Rewards to existing TGE',
     DEPLOY_ALL:  '🚀 Deploy new Sienna TGE + Rewards (needs TGE schedule)',
     DEPLOY_THIS: '🚀 Deploy just Sienna Rewards',
-    ATTACH_TO:   '🚀 Add Sienna Rewards attached to this TGE deployment', } }
+    ATTACH_TO:   '🚀 Add Sienna Rewards to this TGE deployment', } }

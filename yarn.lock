@@ -410,6 +410,7 @@ __metadata:
     "@types/prettyjson": ^0.0.30
     "@types/rimraf": ^3.0.2
     ajv: ^8.6.0
+    backoff: ^2.5.0
     bignumber.js: ^9.0.1
     chai: ^4.3.4
     colors: ^1.4.0
@@ -1413,6 +1414,15 @@ __metadata:
   bin:
     babylon: ./bin/babylon.js
   checksum: f6ce13f2549d4770fe6de9a5e5bb86744600f45db59fc8d206758474933ed8294d55bfb237148180dd1c62c9a3f21054a52ffb5fc74a3b45b906b676dbc899b5
+  languageName: node
+  linkType: hard
+
+"backoff@npm:^2.5.0":
+  version: 2.5.0
+  resolution: "backoff@npm:2.5.0"
+  dependencies:
+    precond: 0.2
+  checksum: ccdcf2a26acd9379d0d4f09e3fb3b7ee34dee94f07ab74d1e38b38f89a3675d9f3cbebb142d9c61c655f4c9eb63f1d6ec28cebeb3dc9215efd8fe7cef92725b9
   languageName: node
   linkType: hard
 
@@ -7577,6 +7587,13 @@ fsevents@^1.2.7:
     nanoid: ^3.1.23
     source-map-js: ^0.6.2
   checksum: ff55b91bea21f42c2a94d77fd05c3f66dd15889c68506cf1dbb9cdee8c3b9e9d0e219bcbc6e61a107bd63e3cac0670176486e2a5794c106a4e1b9babceb79317
+  languageName: node
+  linkType: hard
+
+"precond@npm:0.2":
+  version: 0.2.3
+  resolution: "precond@npm:0.2.3"
+  checksum: c613e7d68af3e0b43a294a994bf067cc2bc44b03fd17bc4fb133e30617a4f5b49414b08e9b392d52d7c6822d8a71f66a7fe93a8a1e7d02240177202cff3f63ef
   languageName: node
   linkType: hard
 

@@ -192,6 +192,7 @@ export class SiennaRewards extends ScrtEnsemble {
   /** Deploy a single Sienna Rewards Pool + LP Token.
     * Use an existing SNIP20 token as the reward token. */
   private async deployAttach (context: any) {
+    console.log(context)
     await this.parseOptions(context.options)
     await this.deploy()
     process.exit() }
@@ -224,9 +225,9 @@ export class SiennaRewards extends ScrtEnsemble {
           return token })
       await this.task(`Initialize a reward pool for ${pair}`, async (report: Function) => {
         const rewardPool = this.contracts[`RP_${pair}`]
-        rewardPool.init.msg.admin = this.agent.address
+        rewardPool.init.msg.admin        = this.agent.address
         rewardPool.init.msg.reward_token = SIENNA.link
-        rewardPool.init.msg.lp_token = token.link
+        rewardPool.init.msg.lp_token     = token.link
         await rewardPool.instantiate(this.agent)
         report(rewardPool.initReceipt.transactionHash)
         deployed.push([`${pair}\nReward pool`, `${rewardPool.address}\n${rewardPool.codeHash}`])
