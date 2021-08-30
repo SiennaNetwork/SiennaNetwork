@@ -1,0 +1,43 @@
+{
+  "label": "20210830_105508/SiennaRewards_SIENNA-sSCRT_Pool",
+  "codeId": 30432,
+  "codeHash": "63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6",
+  "initTx": {
+    "contractAddress": "secret189h7esjt77n24n48pa50hzdjpkprf4ha95q0lc",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "30432"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret189h7esjt77n24n48pa50hzdjpkprf4ha95q0lc"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "8FF7D119AD5920C8689EE8C9D6E631EA155A07BF1CBC43DCE7D0C47E2E7B8868",
+    "data": "396FECC24BF7A6AACEA70F68FB89B20D8234D6FD"
+  }
+}
