@@ -1,6 +1,6 @@
 import { ScrtEnsemble, ScrtCLIAgent,
          Commands, Command, Console, render, table,
-         execFileSync, timestamp, JSONDirectory } from '@hackbg/fadroma'
+         execFileSync, timestamp, JSONDirectory, randomHex } from '@hackbg/fadroma'
 import { abs, genConfig, getDefaultSchedule, ONE_SIENNA } from './index'
 import { runDemo } from './tge.demo.js'
 import { EnsemblesHelp as Help } from './help'
@@ -291,8 +291,55 @@ export class SiennaSwap extends ScrtEnsemble {
     EXCHANGE: new AMMExchange(this.agent),
     AMMTOKEN: new AMMSNIP20(this.agent),
     LPTOKEN:  new LPToken(this.agent, `${this.prefix}_LPToken`),
-    IDO:      new IDO(this.agent) }
-  async initialize () { throw new Error('TODO!'); return {} } }
+    IDO:      new IDO(this.agent)
+  }
+
+  //sienna_burner: string
+
+  async initialize () {
+    super.initialize()
+
+    this.agent = await this.chain.getAgent()
+
+    const instance = await this.task('instanitate AMM factory', async (report: Function) => {
+      const {
+        FACTORY,
+        EXCHANGE,
+        AMMTOKEN,
+        LPTOKEN,
+        IDO
+      } = this.contracts;
+  
+      const initMsg = {
+        snip20_contract: { code_hash: AMMTOKEN.codeHash, id: AMMTOKEN.codeId },
+        pair_contract: { code_hash: EXCHANGE.codeHash, id: EXCHANGE.codeId },
+        lp_token_contract: { code_hash: LPTOKEN.codeHash, id: LPTOKEN.codeId },
+        ido_contract: { code_hash: IDO.codeHash, id: IDO.codeId },
+        exchange_settings: {
+          swap_fee: {
+              nom: 28,
+              denom: 1000
+          },
+          sienna_fee: {
+              nom: 2,
+              denom: 10000
+          },
+          sienna_burner: null
+        },
+        prng_seed: randomHex(36)
+      }
+
+      const result = await this.agent.instantiate(FACTORY.codeId, FACTORY.label, initMsg)
+      report(result.transactionHash)
+
+      return result
+    })
+
+    return {
+      instance
+    }
+  }
+}
 
 export class SiennaLend extends ScrtEnsemble {
   contracts = {/* SNIP20: { crate: 'snip20-lend' }
