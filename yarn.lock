@@ -615,6 +615,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@fadroma/scrt@workspace:libraries/fadroma-next/ops-scrt"
   dependencies:
+    "@cosmjs/crypto": ^0.24.1
     "@fadroma/ops": "*"
   languageName: unknown
   linkType: soft
@@ -640,7 +641,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hackbg/fadroma@workspace:libraries/fadroma-next"
   dependencies:
-    "@cosmjs/crypto": ^0.24.1
     "@types/mkdirp": ^1.0.2
     "@types/mocha": ^9.0.0
     "@types/prettyjson": ^0.0.30

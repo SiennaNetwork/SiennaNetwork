@@ -1,4 +1,4 @@
-import { ContractAPI, loadSchemas } from "@fadroma/scrt"
+import { ScrtContract, loadSchemas } from "@fadroma/scrt"
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg:     "./rewards/init.json",
@@ -7,7 +7,7 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg:   "./rewards/handle.json",
 });
 
-export default class Rewards extends ContractAPI {
+export default class Rewards extends ScrtContract {
   constructor(options = {}) { super(options, schema) }
 
   setProvidedToken = (address, code_hash, agent = this.agent) =>

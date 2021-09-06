@@ -1,4 +1,4 @@
-import { ContractAPI, loadSchemas } from "@fadroma/scrt"
+import { ScrtContract, loadSchemas } from "@fadroma/scrt"
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./ido/init_msg.json",
@@ -7,7 +7,7 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg: "./ido/handle_msg.json",
 });
 
-export default class IDO extends ContractAPI {
+export default class IDO extends ScrtContract {
   constructor(options) {
     super(options, schema);
   }

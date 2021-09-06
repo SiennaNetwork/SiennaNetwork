@@ -1,5 +1,5 @@
 import type { Agent } from "@fadroma/scrt"
-import { ContractAPI, loadSchemas } from "@fadroma/scrt"
+import { ScrtContract, loadSchemas } from "@fadroma/scrt"
 import { randomHex } from "@fadroma/tools"
 
 export const schema = loadSchemas(import.meta.url, {
@@ -13,7 +13,7 @@ export const schema = loadSchemas(import.meta.url, {
 const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
-export default class SNIP20 extends ContractAPI {
+export default class SNIP20 extends ScrtContract {
   constructor(agent: Agent) {
     super(schema, agent);
   }

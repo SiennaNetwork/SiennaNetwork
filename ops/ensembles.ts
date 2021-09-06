@@ -144,6 +144,64 @@ export class SiennaTGE extends BaseEnsemble {
   async addAccount ()  { throw new Error('TODO') }
   async claim (_: any) { throw new Error('TODO') } }
 
+export class SiennaSwap extends BaseEnsemble {
+  prefix: string = `${timestamp()}`
+  workspace = abs()
+  contracts = {
+    FACTORY:  new AMMFactory(this.agent),
+    EXCHANGE: new AMMExchange(this.agent),
+    AMMTOKEN: new AMMSNIP20(this.agent),
+    LPTOKEN:  new LPToken(this.agent, `${this.prefix}_LPToken`),
+    IDO:      new IDO(this.agent)
+  }
+
+  //sienna_burner: string
+
+  async initialize () {
+    super.initialize()
+
+    this.agent = await this.chain.getAgent()
+
+    const instance = await this.task('instanitate AMM factory', async (report: Function) => {
+      const {
+        FACTORY,
+        EXCHANGE,
+        AMMTOKEN,
+        LPTOKEN,
+        IDO
+      } = this.contracts;
+  
+      const initMsg = {
+        snip20_contract: { code_hash: AMMTOKEN.codeHash, id: AMMTOKEN.codeId },
+        pair_contract: { code_hash: EXCHANGE.codeHash, id: EXCHANGE.codeId },
+        lp_token_contract: { code_hash: LPTOKEN.codeHash, id: LPTOKEN.codeId },
+        ido_contract: { code_hash: IDO.codeHash, id: IDO.codeId },
+        exchange_settings: {
+          swap_fee: {
+              nom: 28,
+              denom: 1000
+          },
+          sienna_fee: {
+              nom: 2,
+              denom: 10000
+          },
+          sienna_burner: null
+        },
+        prng_seed: randomHex(36)
+      }
+
+      const result = await this.agent.instantiate(FACTORY.codeId, FACTORY.label, initMsg)
+      report(result.transactionHash)
+
+      return result
+    })
+
+    return {
+      instance
+    }
+  }
+}
+
 export class SiennaRewards extends BaseEnsemble {
 
   TGE = new SiennaTGE({chain: this.chain})
@@ -281,64 +339,6 @@ export class SiennaRewards extends BaseEnsemble {
     mocha.run(fail => process.exit(fail ? 1 : 0))*/
     const args = ['-p', 'false', 'api/Rewards.spec.js']
     execFileSync(abs('node_modules/.bin/mocha'), args, { stdio: 'inherit' }) } }
-
-export class SiennaSwap extends BaseEnsemble {
-  prefix: string = `${timestamp()}`
-  workspace = abs()
-  contracts = {
-    FACTORY:  new AMMFactory(this.agent),
-    EXCHANGE: new AMMExchange(this.agent),
-    AMMTOKEN: new AMMSNIP20(this.agent),
-    LPTOKEN:  new LPToken(this.agent, `${this.prefix}_LPToken`),
-    IDO:      new IDO(this.agent)
-  }
-
-  //sienna_burner: string
-
-  async initialize () {
-    super.initialize()
-
-    this.agent = await this.chain.getAgent()
-
-    const instance = await this.task('instanitate AMM factory', async (report: Function) => {
-      const {
-        FACTORY,
-        EXCHANGE,
-        AMMTOKEN,
-        LPTOKEN,
-        IDO
-      } = this.contracts;
-  
-      const initMsg = {
-        snip20_contract: { code_hash: AMMTOKEN.codeHash, id: AMMTOKEN.codeId },
-        pair_contract: { code_hash: EXCHANGE.codeHash, id: EXCHANGE.codeId },
-        lp_token_contract: { code_hash: LPTOKEN.codeHash, id: LPTOKEN.codeId },
-        ido_contract: { code_hash: IDO.codeHash, id: IDO.codeId },
-        exchange_settings: {
-          swap_fee: {
-              nom: 28,
-              denom: 1000
-          },
-          sienna_fee: {
-              nom: 2,
-              denom: 10000
-          },
-          sienna_burner: null
-        },
-        prng_seed: randomHex(36)
-      }
-
-      const result = await this.agent.instantiate(FACTORY.codeId, FACTORY.label, initMsg)
-      report(result.transactionHash)
-
-      return result
-    })
-
-    return {
-      instance
-    }
-  }
-}
 
 export class SiennaLend extends BaseEnsemble {
   contracts = {/* SNIP20: { crate: 'snip20-lend' }
