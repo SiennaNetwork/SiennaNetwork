@@ -11,7 +11,7 @@
 
 [submodule "platform"] # secret network with modifications to secretjs error handling
   update = rebase
-  path   = platform
+	path = libraries/scrt-1.0
   url    = git@github.com:hackbg/SecretNetwork.git
   branch = 21.03
 
@@ -25,6 +25,6 @@
 	url = git@github.com:hackbg/fadroma.git
 	branch = 21.07
 [submodule "libraries/fadroma-21.08"]
-	path = libraries/fadroma-21.08
+	path = libraries/fadroma-next
 	url = git@github.com:hackbg/fadroma.git
 	branch = 21.08

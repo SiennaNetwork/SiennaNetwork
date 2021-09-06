@@ -1,9 +1,3 @@
 {
-  "compilerOptions": {
-    "target": "es2020",
-    "module": "es2020",
-    "moduleResolution": "node",
-    "inlineSourceMap": true,
-    "allowSyntheticDefaultImports": true
-  }
+  "extends": "./libraries/fadroma-next/tsconfig.json"
 }

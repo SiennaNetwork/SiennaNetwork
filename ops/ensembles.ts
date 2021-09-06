@@ -1,19 +1,18 @@
-import { ScrtEnsemble, ScrtCLIAgent,
-         Commands, Command, Console, render, table,
-         execFileSync, timestamp, JSONDirectory, randomHex } from '@hackbg/fadroma'
+import { BaseEnsemble, ScrtCLIAgent } from '@fadroma/scrt'
+import { Commands, Command, Console, render, table,
+         execFileSync, timestamp, JSONDirectory, randomHex } from '@fadroma/tools'
 import { abs, genConfig, getDefaultSchedule, ONE_SIENNA } from './index'
 import { runDemo } from './tge.demo.js'
 import { EnsemblesHelp as Help } from './help'
 import { SiennaSNIP20, MGMT as MGMTContract, RPT as RPTContract,
          AMMFactory, AMMExchange, AMMSNIP20,
-         LPToken, RewardPool, rewardPools,
-         IDO } from './contracts'
+         LPToken, rewardPools, IDO } from './contracts'
 
 const { debug, warn, info } = Console(import.meta.url)
 
 type TGECommandArgs = { address?: string, chain?: any }
 
-export class SiennaTGE extends ScrtEnsemble {
+export class SiennaTGE extends BaseEnsemble {
 
   contracts = {
     SIENNA: new SiennaSNIP20(this.agent),
@@ -145,7 +144,7 @@ export class SiennaTGE extends ScrtEnsemble {
   async addAccount ()  { throw new Error('TODO') }
   async claim (_: any) { throw new Error('TODO') } }
 
-export class SiennaRewards extends ScrtEnsemble {
+export class SiennaRewards extends BaseEnsemble {
 
   TGE = new SiennaTGE({chain: this.chain})
 
@@ -283,7 +282,7 @@ export class SiennaRewards extends ScrtEnsemble {
     const args = ['-p', 'false', 'api/Rewards.spec.js']
     execFileSync(abs('node_modules/.bin/mocha'), args, { stdio: 'inherit' }) } }
 
-export class SiennaSwap extends ScrtEnsemble {
+export class SiennaSwap extends BaseEnsemble {
   prefix: string = `${timestamp()}`
   workspace = abs()
   contracts = {
@@ -341,7 +340,7 @@ export class SiennaSwap extends ScrtEnsemble {
   }
 }
 
-export class SiennaLend extends ScrtEnsemble {
+export class SiennaLend extends BaseEnsemble {
   contracts = {/* SNIP20: { crate: 'snip20-lend' }
               , ATOKEN: { crate: 'atoken' }
               , CONFIG: { crate: 'configuration' } */} }

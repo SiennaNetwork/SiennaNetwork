@@ -1,0 +1,43 @@
+{
+  "label": "20210905_095017/SiennaSNIP20",
+  "codeId": 30428,
+  "codeHash": "9f55f7bb6f738258ac37219f1a045d07f1332b17ec550cd8ac73b10cc2ec9e50",
+  "initTx": {
+    "contractAddress": "secret12ljmg4uhjr5gcjacc7h003ah6warwxzs6n7pct",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "30428"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret12ljmg4uhjr5gcjacc7h003ah6warwxzs6n7pct"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "6D278FFC9C6A9E855235CD014DDA7000D12942614485B78A709C6F8B6DC14E9F",
+    "data": "57E5B4579790E88C4BB8C7AEF7C7B7D3BA371850"
+  }
+}

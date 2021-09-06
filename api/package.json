@@ -4,7 +4,7 @@
   "main": "./index.ts",
   "type": "module",
   "dependencies": {
-    "@hackbg/fadroma": "*"
+    "@fadroma/scrt": "*"
   },
   "devDependencies": {
     "mocha": "^8.4.0"

@@ -1,5 +1,5 @@
-import type { Agent } from "@hackbg/fadroma"
-import { ContractAPI, loadSchemas } from "@hackbg/fadroma"
+import type { Agent } from "@fadroma/scrt"
+import { ContractAPI, loadSchemas } from "@fadroma/scrt"
 
 const schema = loadSchemas(import.meta.url, {
   initMsg:     "./mgmt/init.json",

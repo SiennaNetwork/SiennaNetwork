@@ -1,0 +1,43 @@
+{
+  "label": "20210901_145113/SiennaMGMT",
+  "codeId": 30429,
+  "codeHash": "bfd67c2fb628473ebd5dc6431ee84ad51455f8344916af2c10b567eb60a6e71b",
+  "initTx": {
+    "contractAddress": "secret1zlc4cda4vzw6d690yc87ygh2de35h528d9aw94",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "30429"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret1zlc4cda4vzw6d690yc87ygh2de35h528d9aw94"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "AD584C2EC99FAB651FB94710158D514B4EEB66F5B5D69105555BA38F512F2BB4",
+    "data": "17F15C37B5609DA6E8AF260FE222EA6E634BD147"
+  }
+}

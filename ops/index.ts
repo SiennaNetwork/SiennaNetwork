@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-import { Chain, Scrt, prefund,
-         CommandName, Commands, runCommand, printUsage, REPL, open, prompts,
-         on, resetLocalnet, openFaucet, clear, schemaToTypes } from '@hackbg/fadroma'
-import { env, stderr, existsSync, readFileSync, writeFileSync,
-         resolve, basename, extname, dirname, fileURLToPath, cargo } from '@hackbg/fadroma'
+import { Chain, Scrt, prefund, resetLocalnet, openFaucet, schemaToTypes, on } from '@fadroma/scrt'
+import { stderr, existsSync, readFileSync, writeFileSync,
+         CommandName, Commands, runCommand, printUsage, REPL,
+         clear, resolve, basename, extname, dirname, fileURLToPath, cargo } from '@fadroma/tools'
 import { SNIP20Contract,
          MGMTContract, RPTContract,
          RewardsContract,

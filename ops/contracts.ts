@@ -1,5 +1,5 @@
-import { Agent, ContractCaller as Base, ContractAPI } from '@hackbg/fadroma'
-import { randomHex } from '@hackbg/fadroma'
+import { Agent, ContractCaller as Base, ContractAPI } from '@fadroma/ops'
+import { randomHex } from '@fadroma/tools'
 import { SNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
 import { abs } from './index'
 

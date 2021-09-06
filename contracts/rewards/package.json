@@ -1,4 +1,7 @@
 {
+  "name": "@sienna/rewards",
+  "version": "0.0.0",
+  "private": true,
   "type": "module",
   "dependencies": {
     "css-loader": "^5.2.6",
