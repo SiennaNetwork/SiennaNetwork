@@ -53,7 +53,7 @@ export async function execute_test_expect(
     try {
         await test()
         print_error(`${test_name}(expected error)`)
-    } catch (e) {
+    } catch (e: any) {
         if (e.message.includes(expected_error)) {
             print_success(test_name)
             return

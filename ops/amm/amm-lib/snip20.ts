@@ -1,8 +1,8 @@
 import {
     Address, Uint128, Fee, create_fee,
     ViewingKey, create_coin, create_base64_msg
-} from './core.js'
-import { SmartContract } from './contract.js'
+} from './core'
+import { SmartContract } from './contract'
 
 import { ExecuteResult, SigningCosmWasmClient, CosmWasmClient } from 'secretjs'
 

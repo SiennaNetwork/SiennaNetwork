@@ -1,6 +1,6 @@
-import { ContractInstantiationInfo, Address, create_fee } from './amm-lib/core.js'
-import { IJsonFileWriter } from './utils/json_file_writer.js'
-import { TxAnalytics } from './utils/tx_analytics.js'
+import { ContractInstantiationInfo, Address, create_fee } from './amm-lib/core'
+import { IJsonFileWriter } from './utils/json_file_writer'
+import { TxAnalytics } from './utils/tx_analytics'
 
 import { 
     SigningCosmWasmClient, Secp256k1Pen, encodeSecp256k1Pubkey,
@@ -113,7 +113,7 @@ export function read_config(
 
     try {
         return JSON.parse(readFileSync(file).toString())   
-    } catch(e) {
+    } catch(e: any) {
         if (e.message.includes('no such file or directory')) {
             on_file_not_found(file)
             

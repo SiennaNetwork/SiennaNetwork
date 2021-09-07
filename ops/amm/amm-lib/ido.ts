@@ -1,9 +1,9 @@
 import {
     Address, Uint128, ContractInfo, TokenType, Fee, create_fee,
     get_token_type, TypeOfToken, CustomToken, create_coin, ViewingKey
-} from './core.js'
-import { SmartContract } from './contract.js'
-import { Snip20Contract } from './snip20.js'
+} from './core'
+import { SmartContract } from './contract'
+import { Snip20Contract } from './snip20'
 
 import { SigningCosmWasmClient, CosmWasmClient, ExecuteResult } from 'secretjs'
 

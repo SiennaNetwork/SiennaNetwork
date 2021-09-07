@@ -16,6 +16,6 @@ sleep 8
 
 Keys=$(docker exec secretdev /bin/bash -c "cat /root/the_keys.json")
 
-node --trace-warnings ./dist/index.js "$Keys"
+node_modules/.bin/esmo --enable-source-maps ./index.ts "$Keys"
 
 docker kill secretdev

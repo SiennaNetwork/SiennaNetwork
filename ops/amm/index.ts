@@ -2,19 +2,19 @@ import {
   ContractInfo, TokenPair, Address, TokenPairAmount, CustomToken,
   ViewingKey, TokenTypeAmount, ContractInstantiationInfo, create_fee,
   create_base64_msg
-} from './amm-lib/core.js'
-import { ExchangeContract } from './amm-lib/exchange.js'
-import { Snip20Contract } from './amm-lib/snip20.js'
-import { FactoryContract, Pagination } from './amm-lib/amm_factory.js'
+} from './amm-lib/core'
+import { ExchangeContract } from './amm-lib/exchange'
+import { Snip20Contract } from './amm-lib/snip20'
+import { FactoryContract, Pagination } from './amm-lib/amm_factory'
 import { 
   execute_test, execute_test_expect, assert_objects_equal, assert,
   assert_equal, assert_not_equal, extract_log_value, print_object
-} from './utils/test_helpers.js'
+} from './utils/test_helpers'
 
-import { upload_amm, build_client, create_rand_base64 } from './setup.js'
-import { NullJsonFileWriter } from './utils/json_file_writer.js'
-import { TxAnalytics } from './utils/tx_analytics.js'
-import { APIURL, ACC, instantiate_factory, get_exchange_settings } from './localnet.js'
+import { upload_amm, build_client, create_rand_base64 } from './setup'
+import { NullJsonFileWriter } from './utils/json_file_writer'
+import { TxAnalytics } from './utils/tx_analytics'
+import { APIURL, ACC, instantiate_factory, get_exchange_settings } from './localnet'
 import { SigningCosmWasmClient, Account } from 'secretjs'
 import { Sha256, Random } from "@iov/crypto"
 import { Buffer } from 'buffer'

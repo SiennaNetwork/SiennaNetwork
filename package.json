@@ -7,7 +7,8 @@
     "./libraries/fadroma-21.08/",
     "./libraries/schedule",
     "./api",
-    "./ops"
+    "./ops",
+    "./ops/amm"
   ],
   "dependencies": {
     "@hackbg/fadroma": "*",
