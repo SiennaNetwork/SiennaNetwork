@@ -1,7 +1,7 @@
-import { ScrtEnsemble, ScrtCLIAgent,
-         Commands, Command, Console, render, table,
+import { ScrtEnsemble, ScrtCLIAgent, resolve, readFileSync,
+         Commands, Command, Console, render, table, writeFileSync,
          execFileSync, timestamp, JSONDirectory, randomHex } from '@hackbg/fadroma'
-import { abs, genConfig, getDefaultSchedule, ONE_SIENNA } from './index'
+import { abs, genConfig, getDefaultSchedule, ONE_SIENNA, projectRoot, stringify } from './index'
 import { runDemo } from './tge.demo.js'
 import { EnsemblesHelp as Help } from './help'
 import { SiennaSNIP20, MGMT as MGMTContract, RPT as RPTContract,
@@ -294,12 +294,40 @@ export class SiennaSwap extends ScrtEnsemble {
     IDO:      new IDO(this.agent)
   }
 
-  //sienna_burner: string
+  private loadConfig(): any {
+    const path = resolve(projectRoot, 'settings', `amm-${this.chain.chainId}.json`)
+
+    try {
+      return JSON.parse(readFileSync(path, 'utf8'))
+    }
+    catch (e) {
+      const config = {
+        exchange_settings: {
+          swap_fee: {
+            nom: 28,
+            denom: 1000
+          },
+          sienna_fee: {
+            nom: 2,
+            denom: 10000
+          },
+          sienna_burner: null
+        },
+        admin: null,
+      }
+
+      writeFileSync(path, stringify(config), 'utf8')
+
+      console.warn(`Created ${path}. Configure the file and re-run this command.`)
+      process.exit(0)
+    }
+  }
 
   async initialize () {
     super.initialize()
 
     this.agent = await this.chain.getAgent()
+    const config = this.loadConfig()
 
     const instance = await this.task('instanitate AMM factory', async (report: Function) => {
       const {
@@ -315,17 +343,8 @@ export class SiennaSwap extends ScrtEnsemble {
         pair_contract: { code_hash: EXCHANGE.codeHash, id: EXCHANGE.codeId },
         lp_token_contract: { code_hash: LPTOKEN.codeHash, id: LPTOKEN.codeId },
         ido_contract: { code_hash: IDO.codeHash, id: IDO.codeId },
-        exchange_settings: {
-          swap_fee: {
-              nom: 28,
-              denom: 1000
-          },
-          sienna_fee: {
-              nom: 2,
-              denom: 10000
-          },
-          sienna_burner: null
-        },
+        exchange_settings: config.exchange_settings,
+        admin: config.admin,
         prng_seed: randomHex(36)
       }
 

@@ -176,7 +176,7 @@ export function genConfig (
   writeFileSync(output, stringify(schedule), 'utf8')
   stderr.write(`🟢 Configuration saved to ${output}\n`) }
 
-function stringify (data: any) {
+export function stringify (data: any) {
   const indent = 2
   const withBigInts = (_:any, v:any) => typeof v === 'bigint' ? v.toString() : v
   return JSON.stringify(data, withBigInts, indent) }
