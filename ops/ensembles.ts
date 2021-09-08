@@ -1,13 +1,17 @@
-import { ScrtEnsemble, ScrtCLIAgent, resolve, readFileSync,
+import { ScrtEnsemble, ScrtCLIAgent, resolve, readFileSync, existsSync,
          Commands, Command, Console, render, table, writeFileSync,
-         execFileSync, timestamp, JSONDirectory, randomHex } from '@hackbg/fadroma'
+         execFileSync, timestamp, JSONDirectory, randomHex, ScrtJSAgent } from '@hackbg/fadroma'
 import { abs, genConfig, getDefaultSchedule, ONE_SIENNA, projectRoot, stringify } from './index'
 import { runDemo } from './tge.demo.js'
 import { EnsemblesHelp as Help } from './help'
 import { SiennaSNIP20, MGMT as MGMTContract, RPT as RPTContract,
          AMMFactory, AMMExchange, AMMSNIP20,
-         LPToken, RewardPool, rewardPools,
+         LPToken, rewardPools,
          IDO } from './contracts'
+import { FactoryContract, Pagination } from './amm/amm-lib/amm_factory'
+import { CustomToken, get_token_type, TokenType, TypeOfToken } from './amm/amm-lib/core'
+import { Snip20Contract } from './amm/amm-lib/snip20'
+import { unlinkSync } from 'fs'
 
 const { debug, warn, info } = Console(import.meta.url)
 
@@ -145,19 +149,15 @@ export class SiennaTGE extends ScrtEnsemble {
   async addAccount ()  { throw new Error('TODO') }
   async claim (_: any) { throw new Error('TODO') } }
 
-export class SiennaRewards extends ScrtEnsemble {
+type RewardPairs = Record<string, number>
 
+export class SiennaRewards extends ScrtEnsemble {
   TGE = new SiennaTGE({chain: this.chain})
 
-  pairs = {'SIENNA':       500,
-           'SIENNA-sSCRT': 400,
-           'SITOK-STEST':  500,
-           'SIENNA-STEST': 300,
-           'SIENNA-SITOK': 300,
-           'SIENNA-sETH':  200,
-           'sSCRT-SITEST': 300}
+  pairs: RewardPairs = { }
+  factoryAddress = ''
 
-  contracts = rewardPools(this.agent, Object.keys(this.pairs))
+  contracts = { }
 
   shouldPremintAdmin  = false
   shouldPremintReward = false
@@ -168,12 +168,15 @@ export class SiennaRewards extends ScrtEnsemble {
 
   remoteCommands = (): Commands => [
     ['deploy', Help.Rewards.DEPLOY, null, [
-      ['new-tge',  Help.Rewards.DEPLOY_ALL, this.deployAll.bind(this)  ],
+      ['new-tge',  Help.Rewards.DEPLOY_ALL, this.deployAll.bind(this)],
       null,
       ...this.chain.instances.subdirs()
         .filter(this.canAttach.bind(this))
         .map((instance):Command=>
-          [instance, Help.Rewards.ATTACH_TO, this.deployAttach.bind(this)])]]]
+          [instance, Help.Rewards.ATTACH_TO, this.deployAttach.bind(this)])
+      ]
+    ]
+  ]
 
   private canAttach (prefix: string) {
     const dir = this.chain.instances.subdir(prefix, JSONDirectory)
@@ -186,28 +189,110 @@ export class SiennaRewards extends ScrtEnsemble {
   private async deployAll (context: any) {
     await this.parseOptions(context.options)
     await this.TGE.deploy()
+
+    await this.initPairs()
     await this.deploy()
     process.exit() }
 
   /** Deploy a single Sienna Rewards Pool + LP Token.
     * Use an existing SNIP20 token as the reward token. */
   private async deployAttach (context: any) {
-    console.log(context)
     await this.parseOptions(context.options)
+
+    await this.initPairs()
     await this.deploy()
     process.exit() }
 
   private async parseOptions (options?: Record<string, any>) {
     if (!options) return
+
+    this.factoryAddress = options['factory']
+
     if (options['agent'] === 'secretcli') this.agent = await ScrtCLIAgent.create(this.agent)
     if (options['premint.reward']) this.shouldPremintReward = true
     if (options['premint.admin'])  this.shouldPremintAdmin  = true }
+
+  private async initPairs() {
+    if (!this.factoryAddress) {
+      this.pairs = this.pairs = {
+        'SIENNA':       500,
+        'SIENNA-sSCRT': 400,
+        'SITOK-STEST':  500,
+        'SIENNA-STEST': 300,
+        'SIENNA-SITOK': 300,
+        'SIENNA-sETH':  200,
+        'sSCRT-SITEST': 300
+      }
+    } else {
+      const path = resolve(projectRoot, 'settings', `rewards-${this.factoryAddress}.json`)
+
+      if (existsSync(path)) {
+        this.pairs = JSON.parse(readFileSync(path, 'utf8'))
+        unlinkSync(path) // delete because we don't need to persist this as it might not be up-to-date later
+      } else {
+        info(`Querying pairs from factory(${this.factoryAddress})...`)
+        const pairs = await this.queryPairs()
+
+        writeFileSync(path, stringify(pairs), 'utf8')
+
+        info(`Created ${path}. Configure the file and re-run this command.`)
+        process.exit(0)
+      }
+    }
+
+    this.contracts = rewardPools(this.agent, Object.keys(this.pairs))
+  }
+
+  private async queryPairs(): Promise<RewardPairs> {
+    if (!this.agent) {
+      this.agent = await this.chain.getAgent()
+    }
+
+    const factory = new FactoryContract(this.factoryAddress, (this.agent as ScrtJSAgent).API)
+    const pairs: RewardPairs = { }
+
+    let index = 0
+    const limit = 30
+
+    while(true) {
+      const resp = await factory.list_exchanges(new Pagination(index, limit))
+
+      if (resp.length === 0)
+        break
+
+      index += limit
+
+      for(const pair of resp) {
+        const name_0 = await this.getTokenName(pair.pair.token_0)
+        const name_1 = await this.getTokenName(pair.pair.token_1)
+
+        const key = `${name_0}-${name_1}`
+        pairs[key] = 100
+      }
+    }
+
+    return pairs
+  }
+
+  private async getTokenName(token: TokenType): Promise<string> {
+    if (get_token_type(token) === TypeOfToken.Native) {
+      return 'scrt'
+    } else {
+      const snip20 = (token as CustomToken).custom_token
+      const contract = new Snip20Contract(snip20.contract_addr, (this.agent as ScrtJSAgent).API)
+
+      const info = await contract.get_token_info()
+
+      return info.name
+    }
+  }
 
   /** Deploys reward pairs (reward pool + LP token), as well as a reward pool for staking SIENNA.
     * Configures the RPT contract to route funds to the correct reward pools.
     * Can also premint SIENNA for testing. */
   async initialize () {
     await super.initialize()
+
     const SIENNA    = this?.TGE?.contracts?.SIENNA
         , RPT       = this?.TGE?.contracts?.RPT
         , deployed  = [[ 'Contract\nDescription', 'Address\nCode hash' ]]
@@ -318,7 +403,7 @@ export class SiennaSwap extends ScrtEnsemble {
 
       writeFileSync(path, stringify(config), 'utf8')
 
-      console.warn(`Created ${path}. Configure the file and re-run this command.`)
+      info(`Created ${path}. Configure the file and re-run this command.`)
       process.exit(0)
     }
   }
