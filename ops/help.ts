@@ -3,7 +3,7 @@ export const CLIHelp = {
   STATUS:   "Show stored receipts from uploads and instantiations.",
 
   TGE:      "🚀 SIENNA token + vesting",
-  AMM:      "💱 Contracts of Sienna Swap/AMM",
+  SWAP:     "💱 Contracts of Sienna Swap/SWAP",
   REWARDS:  "🏆 SIENNA token + staking rewards",
   LEND:     "🏦 Contracts of Sienna Lend",
 
@@ -16,7 +16,7 @@ export const CLIHelp = {
   BUILD_ALL:     "all contracts in workspace",
   BUILD_TGE:     "snip20-sienna, mgmt, rpt",
   BUILD_REWARDS: "snip20-sienna, rewards",
-  BUILD_AMM:     "amm-snip20, factory, exchange, lp-token",
+  BUILD_SWAP:    "amm-snip20, factory, exchange, lp-token",
   BUILD_LEND:    "snip20-lend + lend-atoken + configuration",
 
   SHELL:  "🐚 Launch a JavaScript REPL for talking to contracts directly"}

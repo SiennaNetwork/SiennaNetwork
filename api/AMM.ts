@@ -1,4 +1,4 @@
-import { ScrtContract, loadSchemas } from "@fadroma/scrt"
+import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt"
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg:     "./amm/init_msg.json",
@@ -8,7 +8,5 @@ export const schema = loadSchemas(import.meta.url, {
 });
 
 export default class AMM extends ScrtContract {
-  constructor(options) {
-    super(options, schema);
-  }
+  constructor (agent: Agent) { super(schema, agent) }
 }

@@ -1,6 +1,9 @@
 import { Agent, ContractCaller as Base, ContractAPI } from '@fadroma/ops'
 import { randomHex } from '@fadroma/tools'
-import { SNIP20Contract, MGMTContract, RPTContract } from '@sienna/api'
+import { SNIP20Contract, MGMTContract, RPTContract
+       , FactoryContract, AMMContract
+       , RewardsContract
+       , IDOContract } from '@sienna/api'
 import { abs } from './index'
 
 // TGE /////////////////////////////////////////////////////////////////////////////////////////////
@@ -22,12 +25,18 @@ export class RPT extends RPTContract {
 
 // Swap ////////////////////////////////////////////////////////////////////////////////////////////
 
-export class AMMFactory extends Base {
+export class AMMFactory extends FactoryContract {
   code = { workspace: abs(), crate: 'factory' }
-  init = { label: 'SiennaAMMFactory', msg: {} } }
-export class AMMExchange extends Base {
+  init = { label: 'SiennaAMMFactory', msg: {
+    get prng_seed () { return randomHex(36) },
+    exchange_settings: { swap_fee:   { nom: 28, denom: 1000 }
+                       , sienna_fee: { nom: 2, denom: 10000 }
+                       , sienna_burner: null } } } }
+
+export class AMMExchange extends AMMContract {
   code = { workspace: abs(), crate: 'exchange' }
   init = { label: 'SiennaAMMExchange', msg: {} } }
+
 export class AMMSNIP20 extends SNIP20Contract {
   code = { workspace: abs(), crate: 'amm-snip20' }
   init = { label: 'ExchangedSnip20', msg: {} } }
@@ -55,7 +64,7 @@ export class LPToken extends SNIP20Contract {
 const BLOCK_TIME = 6 // seconds (on average)
 const threshold  = 24 * 60 * 60 / BLOCK_TIME
 const cooldown   = 24 * 60 * 60 / BLOCK_TIME
-export class RewardPool extends Base {
+export class RewardPool extends RewardsContract {
   code = { workspace: abs(), crate: 'sienna-rewards' }
   init = { label: 'Rewards', msg: {
     threshold,
@@ -74,6 +83,6 @@ export function rewardPools (agent: Agent, pairs: Array<string>) {
 
 // IDO /////////////////////////////////////////////////////////////////////////////////////////////
 
-export class IDO extends Base {
+export class IDO extends IDOContract {
   code = { workspace: abs(), crate: 'ido' }
   init = { label: 'SiennaIDO', msg: {} } }

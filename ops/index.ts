@@ -21,7 +21,7 @@ export default async function main (command: CommandName, ...args: any) {
 
   const tge     = new SiennaTGE()
       , rewards = new SiennaRewards()
-      , amm     = new SiennaSwap()
+      , swap     = new SiennaSwap()
       , lend    = new SiennaLend()
 
   function remoteCommands (chain: Chain): Commands {
@@ -30,7 +30,7 @@ export default async function main (command: CommandName, ...args: any) {
       ["shell",   Help.SHELL,  runShell],
       null,
       ["tge",     Help.TGE,     null, new SiennaTGE({chain}).remoteCommands()],
-      ["amm",     Help.AMM,     null, new SiennaSwap({chain}).remoteCommands()],
+      ["swap",    Help.SWAP,    null, new SiennaSwap({chain}).remoteCommands()],
       ["rewards", Help.REWARDS, null, new SiennaRewards({chain}).remoteCommands()],
       ["lend",    Help.LEND,    null, new SiennaLend({chain}).remoteCommands()]] }
 
@@ -47,15 +47,15 @@ export default async function main (command: CommandName, ...args: any) {
       ["all",     Help.BUILD_ALL,     () => cargo('build')],
       ["tge",     Help.BUILD_TGE,     () => tge.build()],
       ["rewards", Help.BUILD_REWARDS, () => rewards.build()],
-      ["amm",     Help.BUILD_AMM,     () => amm.build()],
+      ["swap",    Help.BUILD_SWAP,    () => swap.build()],
       ["lend",    Help.BUILD_LEND,    () => lend.build()]]],
 
     null,
 
     ["tge",     Help.TGE,     null,
       [...tge.localCommands(),     null, ...ScrtEnsemble.chainSelector(SiennaTGE)    ] as Commands],
-    ["amm",     Help.AMM,     null,
-      [...amm.localCommands(),     null, ...ScrtEnsemble.chainSelector(SiennaSwap)   ] as Commands],
+    ["swap",     Help.SWAP,     null,
+      [...swap.localCommands(),    null, ...ScrtEnsemble.chainSelector(SiennaSwap)   ] as Commands],
     ["rewards", Help.REWARDS, null,
       [...rewards.localCommands(), null, ...ScrtEnsemble.chainSelector(SiennaRewards)] as Commands],
     ["lend",    Help.LEND,    null,

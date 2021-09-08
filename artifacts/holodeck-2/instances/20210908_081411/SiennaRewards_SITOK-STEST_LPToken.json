@@ -1,0 +1,59 @@
+{
+  "label": "20210908_081411/SiennaRewards_SITOK-STEST_LPToken",
+  "codeId": 30500,
+  "codeHash": "610910bed31038f2dddfe3cabb4a23ca92ff7b02cfd85302af0c0fd1d9b1b604",
+  "initTx": {
+    "contractAddress": "secret1p58df28gqc4q7hnxf0p038l22tx7lth3x0zdrr",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "30500"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret1p58df28gqc4q7hnxf0p038l22tx7lth3x0zdrr"
+              }
+            ]
+          },
+          {
+            "type": "wasm",
+            "attributes": [
+              {
+                "key": "contract_address",
+                "value": "secret1p58df28gqc4q7hnxf0p038l22tx7lth3x0zdrr"
+              },
+              {
+                "key": "token_address",
+                "value": "secret1p58df28gqc4q7hnxf0p038l22tx7lth3x0zdrr"
+              },
+              {
+                "key": "token_code_hash",
+                "value": "610910bed31038f2dddfe3cabb4a23ca92ff7b02cfd85302af0c0fd1d9b1b604"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "data": "0D0ED4A8E8062A0F5E664BC2F89FEA52CDEFAEF1"
+  }
+}

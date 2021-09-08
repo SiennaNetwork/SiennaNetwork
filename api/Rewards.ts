@@ -1,4 +1,4 @@
-import { ScrtContract, loadSchemas } from "@fadroma/scrt"
+import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt"
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg:     "./rewards/init.json",
@@ -8,17 +8,17 @@ export const schema = loadSchemas(import.meta.url, {
 });
 
 export default class Rewards extends ScrtContract {
-  constructor(options = {}) { super(options, schema) }
+  constructor (agent: Agent) { super(schema, agent) }
 
-  setProvidedToken = (address, code_hash, agent = this.agent) =>
+  setProvidedToken = (address: string, code_hash: string, agent = this.instantiator) =>
     this.tx.set_provided_token({address, code_hash}, agent);
 
-  lock = (amount, agent) =>
+  lock = (amount: string, agent: Agent) =>
     this.tx.lock({ amount: String(amount) }, agent);
 
-  retrieve = (amount, agent) =>
+  retrieve = (amount: string, agent: Agent) =>
     this.tx.retrieve({ amount: String(amount) }, agent);
 
-  claim = (agent) =>
+  claim = (agent: string) =>
     this.tx.claim({}, agent);
 }
