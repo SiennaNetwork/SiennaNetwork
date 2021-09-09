@@ -146,6 +146,7 @@ export class SiennaSwap extends BaseEnsemble {
     await this.parseOptions(context.options)
     let deployed = []
     deployed = [...deployed, ...await this.TGE.deploy()]
+    this.pairableTokens.SIENNA.contract_addr = this.TGE.contracts.SIENNA.address
     deployed = [...deployed, ...await this.deploy()]
     console.log(table(deployed))
     process.exit() }
@@ -161,6 +162,24 @@ export class SiennaSwap extends BaseEnsemble {
     AMMTOKEN: new AMMSNIP20(this.agent),
     LPTOKEN:  new LPToken(this.agent, `${this.prefix}_LPToken`),
     IDO:      new IDO(this.agent) }
+
+  pairableTokens = {
+    SIENNA: {
+      contract_addr:    undefined,
+      token_code_hash: 'bdc309d73213e445caa161691546e596ab6994a48634ef9702448f1ef9cdf71a' },
+    sSCRT: {
+      contract_addr:   'secret1s7c6xp9wltthk5r6mmavql4xld5me3g37guhsx',
+      token_code_hash: 'cd400fb73f5c99edbc6aab22c2593332b8c9f2ea806bf9b42e3a523f3ad06f62' },
+    STEST: {
+      contract_addr:   'secret1w9y0jala2yn4sh86dgwy3dcwg35s4qqjw932pc',
+      token_code_hash: '78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829' },
+    SITOK: {
+      contract_addr:   'secret129nq840d05a0tvkranw5xesq9k0uwmn8mg7ft5',
+      token_code_hash: '78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829' },
+    sETH: {
+      contract_addr:   'secret1kpkh83pjff8zf42njqhasvpa4spg7rjuemucf7',
+      token_code_hash: '2da545ebc441be05c9fa6338f3353f35ac02ec4b02454bc49b1a66f4b9866aed' } }
+
   async initialize () {
     await super.initialize()
     const { FACTORY, EXCHANGE, AMMTOKEN, LPTOKEN, IDO } = this.contracts
@@ -182,7 +201,7 @@ export class SiennaRewards extends BaseEnsemble {
     ["benchmark", Help.Rewards.BENCHMARK, this.benchmark.bind(this)]]
   remoteCommands = (): Commands => [
     ['deploy', Help.Rewards.DEPLOY, null, [
-      ['new-tge',  Help.Rewards.DEPLOY_ALL, this.deployAll.bind(this)  ],
+      ['new-tge',  Help.Rewards.DEPLOY_ALL, this.deployAll.bind(this) ],
       null,
       ...this.chain.instances.subdirs()
         .filter(this.canAttach.bind(this))
@@ -203,7 +222,28 @@ export class SiennaRewards extends BaseEnsemble {
   async deployAll (context: any) {
     await this.parseOptions(context.options)
     let deployed = []
-    deployed = [...deployed, ...await this.Swap.deployAll()]
+    deployed = [...deployed, ...await this.TGE.deploy()]
+    deployed = [...deployed, ...await this.Swap.deploy()]
+    for (const pair of Object.keys(this.pairs)) {
+      const [tokenName1, tokenName2] = pair.split('-')
+      if (!tokenName2) continue
+      await this.task(`Create ${pair} exchange pair`, async () => {
+        const token1 = this.Swap.pairableTokens[tokenName1]
+            , token2 = this.Swap.pairableTokens[tokenName2]
+        if (tokenName1 === 'SIENNA') token1.contract_addr = this.TGE.contracts.SIENNA.address
+        if (tokenName2 === 'SIENNA') token2.contract_addr = this.TGE.contracts.SIENNA.address
+        const result = await this.Swap.contracts.FACTORY.createExchange(token1, token2)
+        console.log('AAAAAAA', result)
+      })
+      //process.exit(123)
+      //this.Swap.contracts.FACTORY.createExchange()
+    }
+    const exchanges = await this.task(`List exchanges`, async () => {
+      const result = await this.Swap.contracts.FACTORY.listExchanges()
+      console.info({result})
+      process.exit(123)
+      return result
+    })
     deployed = [...deployed, ...await this.deploy()]
     console.log(table(deployed))
     process.exit() }
@@ -222,7 +262,7 @@ export class SiennaRewards extends BaseEnsemble {
            'SIENNA-STEST': 300,
            'SIENNA-SITOK': 300,
            'SIENNA-sETH':  200,
-           'sSCRT-SITEST': 300}
+           'sSCRT-STEST':  300}
 
   contracts = rewardPools(this.agent, Object.keys(this.pairs))
 

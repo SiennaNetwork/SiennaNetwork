@@ -751,6 +751,7 @@ __metadata:
   resolution: "@sienna/api@workspace:api"
   dependencies:
     "@fadroma/scrt": "*"
+    "@waiting/base64": ^4.2.9
     mocha: ^8.4.0
   languageName: unknown
   linkType: soft
@@ -1073,6 +1074,13 @@ __metadata:
   version: 3.2.9
   resolution: "@vue/shared@npm:3.2.9"
   checksum: 06f68ffcfb97691eccffe36a9301242fecc38d28f28b44eb41c51dd2dd3e369820cd15fb78e261cb7a4d67bd1b3fffafbf3586aff47b0a181481fe3fdb8424f4
+  languageName: node
+  linkType: hard
+
+"@waiting/base64@npm:^4.2.9":
+  version: 4.2.9
+  resolution: "@waiting/base64@npm:4.2.9"
+  checksum: f91e0f19318bbf5fc04f98d4be172ee5c681b2fb5c6dac1caf8ddba0342b25c81b724fd3bc5e1e80292e8e2636ded4b1a748b33d31721b51e8256b165e9f00c7
   languageName: node
   linkType: hard
 
