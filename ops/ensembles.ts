@@ -273,7 +273,7 @@ export class SiennaRewards extends BaseEnsemble {
   async deployAll (context: any) {
     await this.parseOptions(context.options)
     await this.initPairs()
-    process.exit(0)
+    
     let deployed = []
     deployed = [...deployed, ...await this.TGE.deploy()]
 
