@@ -1,12 +1,17 @@
-import { BaseEnsemble, ScrtCLIAgent } from '@fadroma/scrt'
+import { BaseEnsemble, ScrtCLIAgent, ScrtAgentJS } from '@fadroma/scrt'
 import { Commands, Command, Console, render, table,
-         execFileSync, timestamp, JSONDirectory, randomHex } from '@fadroma/tools'
-import { abs, genConfig, getDefaultSchedule, ONE_SIENNA } from './index'
+         execFileSync, existsSync, JSONDirectory, randomHex,
+         readFileSync, resolve, writeFileSync } from '@fadroma/tools'
+import { abs, genConfig, getDefaultSchedule, ONE_SIENNA, projectRoot, stringify } from './index'
 import { runDemo } from './tge.demo.js'
 import { EnsemblesHelp as Help } from './help'
 import { SiennaSNIP20, MGMT as MGMTContract, RPT as RPTContract,
          AMMFactory, AMMExchange, AMMSNIP20,
          LPToken, rewardPools, IDO } from './contracts'
+import { FactoryContract, Pagination } from './amm/amm-lib/amm_factory'
+import { CustomToken, get_token_type, TokenType, TypeOfToken } from './amm/amm-lib/core'
+import { Snip20Contract } from './amm/amm-lib/snip20'
+import { unlinkSync } from 'fs'
 
 const { debug, warn, info } = Console(import.meta.url)
 
@@ -130,9 +135,11 @@ export class SiennaSwap extends BaseEnsemble {
         .filter(this.canAttach.bind(this))
         .map((instance):Command=>
           [instance, Help.Rewards.ATTACH_TO, this.deployAttach.bind(this)])]]]
+
   private canAttach (prefix: string) {
     const dir = this.chain.instances.subdir(prefix, JSONDirectory)
     return (dir.has('SiennaSNIP20') && dir.has('SiennaMGMT') && dir.has('SiennaRPT')) }
+
   /** Deploy a single Sienna Rewards Pool + LP Token.
     * Use an existing SNIP20 token as the reward token. */
   async deployAttach (context: any) {
@@ -140,6 +147,7 @@ export class SiennaSwap extends BaseEnsemble {
     await this.parseOptions(context.options)
     await this.deploy()
     process.exit() }
+
   /** Deploy a single Sienna Rewards Pool + LP Token + an instance of the TGE.
     * Use the TGE's token as the reward token. */
   async deployAll (context: any) {
@@ -150,12 +158,13 @@ export class SiennaSwap extends BaseEnsemble {
     deployed = [...deployed, ...await this.deploy()]
     console.log(table(deployed))
     process.exit() }
+
   private async parseOptions (options?: Record<string, any>) {
     if (!options) return
     if (options['agent'] === 'secretcli') this.agent = await ScrtCLIAgent.create(this.agent) }
 
   TGE = new SiennaTGE({chain: this.chain})
-  //sienna_burner: string
+
   contracts = {
     FACTORY:  new AMMFactory(this.agent),
     EXCHANGE: new AMMExchange(this.agent),
@@ -180,20 +189,61 @@ export class SiennaSwap extends BaseEnsemble {
       contract_addr:   'secret1kpkh83pjff8zf42njqhasvpa4spg7rjuemucf7',
       token_code_hash: '2da545ebc441be05c9fa6338f3353f35ac02ec4b02454bc49b1a66f4b9866aed' } }
 
+  private loadConfig(): any {
+    const path = resolve(projectRoot, 'settings', `amm-${this.chain.chainId}.json`)
+
+    try {
+      return JSON.parse(readFileSync(path, 'utf8'))
+    }
+    catch (e) {
+      const config = {
+        exchange_settings: {
+          swap_fee: {
+            nom: 28,
+            denom: 1000
+          },
+          sienna_fee: {
+            nom: 2,
+            denom: 10000
+          },
+          sienna_burner: null
+        },
+        admin: null,
+      }
+
+      writeFileSync(path, stringify(config), 'utf8')
+
+      info(`Created ${path}. Configure the file and re-run this command.`)
+      process.exit(0)
+    }
+  }
+
   async initialize () {
     await super.initialize()
+
+    this.agent = await this.chain.getAgent()
+    const config = this.loadConfig()
+
     const { FACTORY, EXCHANGE, AMMTOKEN, LPTOKEN, IDO } = this.contracts
     const factory = await this.task('instanitate AMM factory', async (report: Function) => {
-      Object.assign(FACTORY.init.msg, {
-        snip20_contract:   { code_hash: AMMTOKEN.codeHash, id: AMMTOKEN.codeId },
-        pair_contract:     { code_hash: EXCHANGE.codeHash, id: EXCHANGE.codeId },
-        lp_token_contract: { code_hash: LPTOKEN.codeHash,  id: LPTOKEN.codeId },
-        ido_contract:      { code_hash: IDO.codeHash,      id: IDO.codeId } })
-      const result = await FACTORY.instantiate(this.agent)
+      const initMsg = {
+        snip20_contract: { code_hash: AMMTOKEN.codeHash, id: AMMTOKEN.codeId },
+        pair_contract: { code_hash: EXCHANGE.codeHash, id: EXCHANGE.codeId },
+        lp_token_contract: { code_hash: LPTOKEN.codeHash, id: LPTOKEN.codeId },
+        ido_contract: { code_hash: IDO.codeHash, id: IDO.codeId },
+        exchange_settings: config.exchange_settings,
+        admin: config.admin,
+        prng_seed: randomHex(36)
+      }
+
+      const result = await this.agent.instantiate(FACTORY.codeId, FACTORY.label, initMsg)
       report(result.transactionHash)
+
       return result })
     // And we're done //////////////////////////////////////////////////////////////////////////////
     return [[ 'Sienna Swap\nFactory',  `${FACTORY.address}\n${FACTORY.codeHash}` ]] } }
+
+type RewardPairs = Record<string, number>
 
 export class SiennaRewards extends BaseEnsemble {
   localCommands = (): Commands => [...super.localCommands(),
@@ -215,40 +265,52 @@ export class SiennaRewards extends BaseEnsemble {
   async deployAttach (context: any) {
     console.log(context)
     await this.parseOptions(context.options)
+    await this.initPairs()
     await this.deploy()
     process.exit() }
   /** Deploy a single Sienna Rewards Pool + LP Token + an instance of the TGE.
     * Use the TGE's token as the reward token. */
   async deployAll (context: any) {
     await this.parseOptions(context.options)
+    await this.initPairs()
+    process.exit(0)
     let deployed = []
     deployed = [...deployed, ...await this.TGE.deploy()]
-    deployed = [...deployed, ...await this.Swap.deploy()]
-    for (const pair of Object.keys(this.pairs)) {
-      const [tokenName1, tokenName2] = pair.split('-')
-      if (!tokenName2) continue
-      await this.task(`Create ${pair} exchange pair`, async () => {
-        const token1 = this.Swap.pairableTokens[tokenName1]
-            , token2 = this.Swap.pairableTokens[tokenName2]
-        if (tokenName1 === 'SIENNA') token1.contract_addr = this.TGE.contracts.SIENNA.address
-        if (tokenName2 === 'SIENNA') token2.contract_addr = this.TGE.contracts.SIENNA.address
-        const result = await this.Swap.contracts.FACTORY.createExchange(token1, token2)
-        console.log('AAAAAAA', result)
+
+    if (!this.factoryAddress) {
+      deployed = [...deployed, ...await this.Swap.deploy()]
+      for (const pair of Object.keys(this.pairs)) {
+        const [tokenName1, tokenName2] = pair.split('-')
+        if (!tokenName2) continue
+        await this.task(`Create ${pair} exchange pair`, async () => {
+          const token1 = this.Swap.pairableTokens[tokenName1]
+              , token2 = this.Swap.pairableTokens[tokenName2]
+          if (tokenName1 === 'SIENNA') token1.contract_addr = this.TGE.contracts.SIENNA.address
+          if (tokenName2 === 'SIENNA') token2.contract_addr = this.TGE.contracts.SIENNA.address
+          const result = await this.Swap.contracts.FACTORY.createExchange(token1, token2)
+          console.log('AAAAAAA', result)
+        })
+        //process.exit(123)
+        //this.Swap.contracts.FACTORY.createExchange()
+      }
+
+      const exchanges = await this.task(`List exchanges`, async () => {
+        const result = await this.Swap.contracts.FACTORY.listExchanges()
+        console.info({result})
+        process.exit(123)
+        return result
       })
-      //process.exit(123)
-      //this.Swap.contracts.FACTORY.createExchange()
     }
-    const exchanges = await this.task(`List exchanges`, async () => {
-      const result = await this.Swap.contracts.FACTORY.listExchanges()
-      console.info({result})
-      process.exit(123)
-      return result
-    })
+
     deployed = [...deployed, ...await this.deploy()]
     console.log(table(deployed))
     process.exit() }
+
   private async parseOptions (options?: Record<string, any>) {
     if (!options) return
+
+    this.factoryAddress = options['factory']
+
     if (options['agent'] === 'secretcli') this.agent = await ScrtCLIAgent.create(this.agent)
     if (options['premint.reward']) this.shouldPremintReward = true
     if (options['premint.admin'])  this.shouldPremintAdmin  = true }
@@ -256,18 +318,89 @@ export class SiennaRewards extends BaseEnsemble {
   TGE  = new SiennaTGE({chain: this.chain})
   Swap = new SiennaSwap({chain: this.chain})
 
-  pairs = {'SIENNA':       500,
-           'SIENNA-sSCRT': 400,
-           'SITOK-STEST':  500,
-           'SIENNA-STEST': 300,
-           'SIENNA-SITOK': 300,
-           'SIENNA-sETH':  200,
-           'sSCRT-STEST':  300}
+  pairs: RewardPairs = { }
+  factoryAddress = ''
 
-  contracts = rewardPools(this.agent, Object.keys(this.pairs))
+  contracts = { }
 
   shouldPremintAdmin  = false
   shouldPremintReward = false
+
+  private async initPairs() {
+    if (!this.factoryAddress) {
+      this.pairs = this.pairs = {
+        'SIENNA':       500,
+        'SIENNA-sSCRT': 400,
+        'SITOK-STEST':  500,
+        'SIENNA-STEST': 300,
+        'SIENNA-SITOK': 300,
+        'SIENNA-sETH':  200,
+        'sSCRT-SITEST': 300
+      }
+    } else {
+      const path = resolve(projectRoot, 'settings', `rewards-${this.factoryAddress}.json`)
+
+      if (existsSync(path)) {
+        this.pairs = JSON.parse(readFileSync(path, 'utf8'))
+        unlinkSync(path) // delete because we don't need to persist this as it might not be up-to-date later
+      } else {
+        info(`Querying pairs from factory(${this.factoryAddress})...`)
+        const pairs = await this.queryPairs()
+
+        writeFileSync(path, stringify(pairs), 'utf8')
+
+        info(`Created ${path}. Configure the file and re-run this command.`)
+        process.exit(0)
+      }
+    }
+
+    this.contracts = rewardPools(this.agent, Object.keys(this.pairs))
+  }
+
+  private async queryPairs(): Promise<RewardPairs> {
+    if (!this.agent) {
+      this.agent = await this.chain.getAgent()
+    }
+
+    const factory = new FactoryContract(this.factoryAddress, (this.agent as ScrtAgentJS).API)
+    const pairs: RewardPairs = { }
+
+    let index = 0
+    const limit = 30
+
+    while(true) {
+      const resp = await factory.list_exchanges(new Pagination(index, limit))
+
+      if (resp.length === 0)
+        break
+
+      index += limit
+
+      for(const pair of resp) {
+        const name_0 = await this.getTokenName(pair.pair.token_0)
+        const name_1 = await this.getTokenName(pair.pair.token_1)
+
+        const key = `${name_0}-${name_1}`
+        pairs[key] = 100
+      }
+    }
+
+    return pairs
+  }
+
+  private async getTokenName(token: TokenType): Promise<string> {
+    if (get_token_type(token) === TypeOfToken.Native) {
+      return 'scrt'
+    } else {
+      const snip20 = (token as CustomToken).custom_token
+      const contract = new Snip20Contract(snip20.contract_addr, (this.agent as ScrtAgentJS).API)
+
+      const info = await contract.get_token_info()
+
+      return info.name
+    }
+  }
+
   /** Deploys reward pairs (reward pool + LP token), as well as a reward pool for staking SIENNA.
     * Configures the RPT contract to route funds to the correct reward pools.
     * Can also premint SIENNA for testing. */

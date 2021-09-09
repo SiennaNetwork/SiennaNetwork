@@ -12,7 +12,8 @@
     "./libraries/fadroma-next/tools",
     "./libraries/schedule",
     "./api",
-    "./ops"
+    "./ops",
+    "./ops/amm"
   ],
   "dependencies": {
     "@fadroma/scrt-1.0": "*",

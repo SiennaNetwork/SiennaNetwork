@@ -1,5 +1,5 @@
-import { Address, Uint128, Fee, create_fee, ContractInfo, ViewingKey } from './core.js'
-import { SmartContract } from './contract.js'
+import { Address, Uint128, Fee, create_fee, ContractInfo, ViewingKey } from './core'
+import { SmartContract } from './contract'
 
 import { ExecuteResult, SigningCosmWasmClient, CosmWasmClient } from 'secretjs'
 

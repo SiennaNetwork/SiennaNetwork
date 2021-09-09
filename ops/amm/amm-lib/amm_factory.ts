@@ -1,9 +1,9 @@
 import { 
     Address, TokenPair, Fee, create_fee,
     ContractInstantiationInfo,
-} from './core.js'
-import { SmartContract } from './contract.js'
-import { TokenSaleConfig } from './ido.js'
+} from './core'
+import { SmartContract } from './contract'
+import { TokenSaleConfig } from './ido'
 
 import {
     ExecuteResult, SigningCosmWasmClient,

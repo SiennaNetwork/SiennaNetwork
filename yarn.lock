@@ -953,6 +953,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/node@npm:^14.14.37":
+  version: 14.17.15
+  resolution: "@types/node@npm:14.17.15"
+  checksum: e0840304db236027e822ef1e149de433afd20d2553699cdc2ce651d107a77646c6eaaeaec8c348eabdc05169440dbc2cf069791bef65ca4b6e5ee4412e69c898
+  languageName: node
+  linkType: hard
+
 "@types/normalize-package-data@npm:^2.4.0":
   version: 2.4.1
   resolution: "@types/normalize-package-data@npm:2.4.1"
@@ -3608,6 +3615,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"dotenv@npm:^8.2.0":
+  version: 8.6.0
+  resolution: "dotenv@npm:8.6.0"
+  checksum: 38e902c80b0666ab59e9310a3d24ed237029a7ce34d976796349765ac96b8d769f6df19090f1f471b77a25ca391971efde8a1ea63bb83111bd8bec8e5cc9b2cd
+  languageName: node
+  linkType: hard
+
 "dotgitignore@npm:^2.1.0":
   version: 2.1.0
   resolution: "dotgitignore@npm:2.1.0"
@@ -5342,6 +5356,20 @@ fsevents@^1.2.7:
   checksum: dfd98b0ca3a4fc1e323e38a6c8eb8936e31a97a918d3b377649ea15bdb15d481207a0dda1021efbd86b464cae29a0d33c1d7dcaf6c5672bee17fa849bc50a1b3
   languageName: node
   linkType: hard
+
+"integration-tests@workspace:ops/amm":
+  version: 0.0.0-use.local
+  resolution: "integration-tests@workspace:ops/amm"
+  dependencies:
+    "@types/node": ^14.14.37
+    "@waiting/base64": ^4.2.9
+    dotenv: ^8.2.0
+    esmo: ^0.9.1
+    secretjs: ^0.11.0
+    table: ^6.7.1
+    typescript: ^4.2.3
+  languageName: unknown
+  linkType: soft
 
 "internal-ip@npm:^4.3.0":
   version: 4.3.0
@@ -9835,7 +9863,7 @@ resolve@1.1.7:
   languageName: node
   linkType: hard
 
-"table@npm:^6.6.0":
+"table@npm:^6.6.0, table@npm:^6.7.1":
   version: 6.7.1
   resolution: "table@npm:6.7.1"
   dependencies:
@@ -10245,6 +10273,16 @@ resolve@1.1.7:
   languageName: node
   linkType: hard
 
+typescript@^4.2.3:
+  version: 4.4.2
+  resolution: "typescript@npm:4.4.2"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 194e08e9d1971d667d6fd1a0554616b7022312a2319d70e81a64e502a265992061ee7817ed9a69b52bbabe7a9b85e7938cb8c11c433e40a516b277f8c4dacd51
+  languageName: node
+  linkType: hard
+
 "typescript@^4.3.2, typescript@^4.3.5":
   version: 4.3.5
   resolution: "typescript@npm:4.3.5"
@@ -10252,6 +10290,16 @@ resolve@1.1.7:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: bab033b5e2b0790dd35b77fd005df976ef80b8d84fd2c6e63cc31808151875beae9216e5a315fe7068e8499905c3c354248fe83272cdfc13b7705635f0c66c97
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@^4.2.3#~builtin<compat/typescript>":
+  version: 4.4.2
+  resolution: "typescript@patch:typescript@npm%3A4.4.2#~builtin<compat/typescript>::version=4.4.2&hash=d8b4e7"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 11d6ab6e868117908c388401e2ac06d503c5c8709115ab80ee69a1a6352c1f98471d1e595636bfe6a2d6b20b03a44df6bb2d3d198cea97c0c328968cd18d2b70
   languageName: node
   linkType: hard
 

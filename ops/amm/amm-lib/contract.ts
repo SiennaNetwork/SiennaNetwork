@@ -1,4 +1,4 @@
-import { Address } from './core.js'
+import { Address } from './core'
 import { SigningCosmWasmClient, CosmWasmClient } from 'secretjs'
 
 export class SmartContract {
