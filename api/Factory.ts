@@ -15,11 +15,12 @@ export default class Factory extends ScrtContract {
     super(schema, agent) }
   createExchange = (
     token_0: TokenTypeFor_HumanAddr,
-    token_1: TokenTypeFor_HumanAddr
+    token_1: TokenTypeFor_HumanAddr,
+    agent = this.instantiator
   ) => this.execute('create_exchange', {
     pair: { token_0: { custom_token: token_0 }
           , token_1: { custom_token: token_1 } },
-    entropy: b64encode(EnigmaUtils.GenerateNewSeed().toString()) })
+    entropy: b64encode(EnigmaUtils.GenerateNewSeed().toString()) }, '', [], undefined, agent)
   /*this.tx.createExchange({
     pair:    { token_0, token_1 },
     entropy: b64encode(EnigmaUtils.GenerateNewSeed().toString()) })*/

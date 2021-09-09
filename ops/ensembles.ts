@@ -287,7 +287,7 @@ export class SiennaRewards extends BaseEnsemble {
               , token2 = this.Swap.pairableTokens[tokenName2]
           if (tokenName1 === 'SIENNA') token1.contract_addr = this.TGE.contracts.SIENNA.address
           if (tokenName2 === 'SIENNA') token2.contract_addr = this.TGE.contracts.SIENNA.address
-          const result = await this.Swap.contracts.FACTORY.createExchange(token1, token2)
+          const result = await this.Swap.contracts.FACTORY.createExchange(token1, token2, await this.chain.getAgent())
           console.log('AAAAAAA', result)
         })
         //process.exit(123)
