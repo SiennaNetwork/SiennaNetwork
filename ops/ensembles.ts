@@ -12,6 +12,7 @@ import { FactoryContract, Pagination } from './amm/amm-lib/amm_factory'
 import { CustomToken, get_token_type, TokenType, TypeOfToken } from './amm/amm-lib/core'
 import { Snip20Contract } from './amm/amm-lib/snip20'
 import { unlinkSync } from 'fs'
+import { BroadcastMode } from 'secretjs'
 
 const { debug, warn, info } = Console(import.meta.url)
 
@@ -26,9 +27,9 @@ export class SiennaTGE extends BaseEnsemble {
     ['demo',   Help.TGE.DEMO,   runDemo],
     ['upload', Help.TGE.UPLOAD, (_: any) => this.upload()],
     ['init',   Help.TGE.INIT,   (_: any) => this.initialize()],
-    ['launch', Help.TGE.LAUNCH, (_: any, a: any) => this.launch({...context, address})],
-    ['claim',  Help.TGE.CLAIM,  (_: any, a: any, c: any) => this.claim({...context, address: a, claimant: c})],
-    ['status', Help.TGE.STATUS, (_: any, a: any) => this.getStatus({...context, address})] ]
+    ['launch', Help.TGE.LAUNCH, (ctx: any, a: any) => this.launch({...ctx, address: a})],
+    ['claim',  Help.TGE.CLAIM,  (ctx: any, a: any, c: any) => this.claim({...ctx, address: a, claimant: c})],
+    ['status', Help.TGE.STATUS, (ctx: any, a: any) => this.getStatus({...ctx, address: a})] ]
   contracts = {
     SIENNA: new SiennaSNIP20(this.agent),
     MGMT:   new MGMTContract(this.agent),
@@ -226,19 +227,15 @@ export class SiennaSwap extends BaseEnsemble {
 
     const { FACTORY, EXCHANGE, AMMTOKEN, LPTOKEN, IDO } = this.contracts
     const factory = await this.task('instanitate AMM factory', async (report: Function) => {
-      const initMsg = {
+      Object.assign(FACTORY.init.msg, {
         snip20_contract: { code_hash: AMMTOKEN.codeHash, id: AMMTOKEN.codeId },
         pair_contract: { code_hash: EXCHANGE.codeHash, id: EXCHANGE.codeId },
         lp_token_contract: { code_hash: LPTOKEN.codeHash, id: LPTOKEN.codeId },
         ido_contract: { code_hash: IDO.codeHash, id: IDO.codeId },
         exchange_settings: config.exchange_settings,
-        admin: config.admin,
-        prng_seed: randomHex(36)
-      }
-
-      const result = await this.agent.instantiate(FACTORY.codeId, FACTORY.label, initMsg)
+        admin: config.admin })
+      const result = await FACTORY.instantiate(this.agent)
       report(result.transactionHash)
-
       return result })
     // And we're done //////////////////////////////////////////////////////////////////////////////
     return [[ 'Sienna Swap\nFactory',  `${FACTORY.address}\n${FACTORY.codeHash}` ]] } }
@@ -287,7 +284,9 @@ export class SiennaRewards extends BaseEnsemble {
               , token2 = this.Swap.pairableTokens[tokenName2]
           if (tokenName1 === 'SIENNA') token1.contract_addr = this.TGE.contracts.SIENNA.address
           if (tokenName2 === 'SIENNA') token2.contract_addr = this.TGE.contracts.SIENNA.address
-          const result = await this.Swap.contracts.FACTORY.createExchange(token1, token2, await this.chain.getAgent())
+          const agent = await this.chain.getAgent()
+          ;(agent as any).API.restClient.broadcastMode = BroadcastMode.Block
+          const result = await this.Swap.contracts.FACTORY.createExchange(token1, token2, agent)
           console.log('AAAAAAA', result)
         })
         //process.exit(123)
