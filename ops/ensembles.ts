@@ -1,7 +1,10 @@
+import { Contract } from '@fadroma/ops'
 import { BaseEnsemble, ScrtCLIAgent, ScrtAgentJS } from '@fadroma/scrt'
 import { Commands, Command, Console, render, table,
          execFileSync, existsSync, JSONDirectory, randomHex,
          readFileSync, resolve, writeFileSync } from '@fadroma/tools'
+import { SNIP20Contract } from '@sienna/api'
+
 import { abs, genConfig, getDefaultSchedule, ONE_SIENNA, projectRoot, stringify } from './index'
 import { runDemo } from './tge.demo.js'
 import { EnsemblesHelp as Help } from './help'
@@ -155,7 +158,6 @@ export class SiennaSwap extends BaseEnsemble {
     await this.parseOptions(context.options)
     let deployed = []
     deployed = [...deployed, ...await this.TGE.deploy()]
-    this.pairableTokens.SIENNA.contract_addr = this.TGE.contracts.SIENNA.address
     deployed = [...deployed, ...await this.deploy()]
     console.log(table(deployed))
     process.exit() }
@@ -173,22 +175,57 @@ export class SiennaSwap extends BaseEnsemble {
     LPTOKEN:  new LPToken(this.agent, `${this.prefix}_LPToken`),
     IDO:      new IDO(this.agent) }
 
-  pairableTokens = {
-    SIENNA: {
-      contract_addr:    undefined,
-      token_code_hash: 'bdc309d73213e445caa161691546e596ab6994a48634ef9702448f1ef9cdf71a' },
-    sSCRT: {
-      contract_addr:   'secret1s7c6xp9wltthk5r6mmavql4xld5me3g37guhsx',
-      token_code_hash: 'cd400fb73f5c99edbc6aab22c2593332b8c9f2ea806bf9b42e3a523f3ad06f62' },
-    STEST: {
-      contract_addr:   'secret1w9y0jala2yn4sh86dgwy3dcwg35s4qqjw932pc',
-      token_code_hash: '78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829' },
-    SITOK: {
-      contract_addr:   'secret129nq840d05a0tvkranw5xesq9k0uwmn8mg7ft5',
-      token_code_hash: '78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829' },
-    sETH: {
-      contract_addr:   'secret1kpkh83pjff8zf42njqhasvpa4spg7rjuemucf7',
-      token_code_hash: '2da545ebc441be05c9fa6338f3353f35ac02ec4b02454bc49b1a66f4b9866aed' } }
+  tokenContracts = this.chain ? this.getTokens() : {}
+
+  private getTokens () {
+    const tokens: Record<string, Contract> = {}
+    if (this.chain.chainId === 'enigma-pub-testnet-3') {
+      tokens.sSCRT = new AMMSNIP20(this.agent)
+      tokens.sSCRT.init.prefix        = this.prefix
+      tokens.sSCRT.init.label         = `placeholder_sSCRT`
+      tokens.sSCRT.init.msg.name      = 'SecretSCRT'
+      tokens.sSCRT.init.msg.symbol    = 'SSCRT'
+      tokens.sSCRT.init.msg.decimals  = 6
+      tokens.sSCRT.init.msg.prng_seed = randomHex(36)
+      tokens.STEST = new AMMSNIP20(this.agent)
+      tokens.STEST.init.prefix        = this.prefix
+      tokens.STEST.init.label         = `placeholder_STEST`
+      tokens.STEST.init.msg.name      = 'STEST'
+      tokens.STEST.init.msg.symbol    = 'STEST'
+      tokens.STEST.init.msg.decimals  = 9
+      tokens.STEST.init.msg.prng_seed = randomHex(36)
+      tokens.SITOK = new AMMSNIP20(this.agent)
+      tokens.SITOK.init.prefix        = this.prefix
+      tokens.SITOK.init.label         = `placeholder_SITOK`
+      tokens.SITOK.init.msg.name      = 'SITOK'
+      tokens.SITOK.init.msg.symbol    = 'SITOK'
+      tokens.SITOK.init.msg.decimals  = 12
+      tokens.SITOK.init.msg.prng_seed = randomHex(36)
+      tokens.sETH = new AMMSNIP20(this.agent)
+      tokens.sETH.init.prefix         = this.prefix
+      tokens.sETH.init.label          = `placeholder_sETH`
+      tokens.sETH.init.msg.name       = 'SecretETH'
+      tokens.sETH.init.msg.symbol     = 'SETH'
+      tokens.sETH.init.msg.decimals   = 15
+      tokens.sETH.init.msg.prng_seed  = randomHex(36) }
+    else if (this.chain.chainId === 'holodeck-2') {
+      tokens.SIENNA = this.TGE.contracts.SIENNA
+      tokens.sSCRT = AMMSNIP20.attach(this.agent,
+        'secret1s7c6xp9wltthk5r6mmavql4xld5me3g37guhsx',
+        'cd400fb73f5c99edbc6aab22c2593332b8c9f2ea806bf9b42e3a523f3ad06f62')
+      tokens.sSCRT = AMMSNIP20.attach(this.agent,
+        'secret1s7c6xp9wltthk5r6mmavql4xld5me3g37guhsx',
+        'cd400fb73f5c99edbc6aab22c2593332b8c9f2ea806bf9b42e3a523f3ad06f62')
+      tokens.STEST = AMMSNIP20.attach(this.agent,
+        'secret1w9y0jala2yn4sh86dgwy3dcwg35s4qqjw932pc',
+        '78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829')
+      tokens.SITOK = AMMSNIP20.attach(this.agent,
+        'secret129nq840d05a0tvkranw5xesq9k0uwmn8mg7ft5',
+        '78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829')
+      tokens.sETH = AMMSNIP20.attach(this.agent,
+        'secret1kpkh83pjff8zf42njqhasvpa4spg7rjuemucf7',
+        '2da545ebc441be05c9fa6338f3353f35ac02ec4b02454bc49b1a66f4b9866aed') }
+      return tokens }
 
   private loadConfig(): any {
     const path = resolve(projectRoot, 'settings', `amm-${this.chain.chainId}.json`)
@@ -221,24 +258,34 @@ export class SiennaSwap extends BaseEnsemble {
 
   async initialize () {
     await super.initialize()
-
-    this.agent = await this.chain.getAgent()
     const config = this.loadConfig()
-
     const { FACTORY, EXCHANGE, AMMTOKEN, LPTOKEN, IDO } = this.contracts
-    const factory = await this.task('instanitate AMM factory', async (report: Function) => {
+    const results = []
+    const factory = await this.task('instantiate AMM factory', async (report: Function) => {
       Object.assign(FACTORY.init.msg, {
-        snip20_contract: { code_hash: AMMTOKEN.codeHash, id: AMMTOKEN.codeId },
-        pair_contract: { code_hash: EXCHANGE.codeHash, id: EXCHANGE.codeId },
+        snip20_contract:   { code_hash: AMMTOKEN.codeHash, id: AMMTOKEN.codeId },
+        pair_contract:     { code_hash: EXCHANGE.codeHash, id: EXCHANGE.codeId },
         lp_token_contract: { code_hash: LPTOKEN.codeHash, id: LPTOKEN.codeId },
-        ido_contract: { code_hash: IDO.codeHash, id: IDO.codeId },
+        ido_contract:      { code_hash: IDO.codeHash, id: IDO.codeId },
         exchange_settings: config.exchange_settings,
         admin: config.admin })
       const result = await FACTORY.instantiate(this.agent)
       report(result.transactionHash)
+      results.push([ 'Sienna Swap\nFactory',  `${FACTORY.address}\n${FACTORY.codeHash}` ])
       return result })
-    // And we're done //////////////////////////////////////////////////////////////////////////////
-    return [[ 'Sienna Swap\nFactory',  `${FACTORY.address}\n${FACTORY.codeHash}` ]] } }
+    if (this.chain && this.chain.chainId === 'enigma-pub-testnet-3') {
+      for (const [name, TOKEN] of Object.entries(this.tokenContracts)) {
+        await this.task(`upload code for placeholder token: ${name}`, async (report: Function) => {
+          const result = await TOKEN.upload(this.agent)
+          report(result.transactionHash)
+          return result })
+        await this.task(`deploy placeholder token: ${name}`, async (report: Function) => {
+          console.log(TOKEN.init)
+          const result = await TOKEN.instantiate(this.agent)
+          report(result.transactionHash)
+          results.push([`${name}\nPlaceholder SNIP20 token`, `${TOKEN.address}\n${TOKEN.codeHash}`])
+          return result }) } }
+    return [] } }
 
 type RewardPairs = Record<string, number>
 
@@ -270,46 +317,45 @@ export class SiennaRewards extends BaseEnsemble {
   async deployAll (context: any) {
     await this.parseOptions(context.options)
     await this.initPairs()
-    
     let deployed = []
     deployed = [...deployed, ...await this.TGE.deploy()]
-
     if (!this.factoryAddress) {
       deployed = [...deployed, ...await this.Swap.deploy()]
+      const agent = await this.chain.getAgent()
       for (const pair of Object.keys(this.pairs)) {
         const [tokenName1, tokenName2] = pair.split('-')
         if (!tokenName2) continue
         await this.task(`Create ${pair} exchange pair`, async () => {
-          const token1 = this.Swap.pairableTokens[tokenName1]
-              , token2 = this.Swap.pairableTokens[tokenName2]
-          if (tokenName1 === 'SIENNA') token1.contract_addr = this.TGE.contracts.SIENNA.address
-          if (tokenName2 === 'SIENNA') token2.contract_addr = this.TGE.contracts.SIENNA.address
-          const agent = await this.chain.getAgent()
-          ;(agent as any).API.restClient.broadcastMode = BroadcastMode.Block
-          const result = await this.Swap.contracts.FACTORY.createExchange(token1, token2, agent)
-          console.log('AAAAAAA', result)
-        })
-        //process.exit(123)
-        //this.Swap.contracts.FACTORY.createExchange()
-      }
-
-      const exchanges = await this.task(`List exchanges`, async () => {
-        const result = await this.Swap.contracts.FACTORY.listExchanges()
-        console.info({result})
-        process.exit(123)
-        return result
-      })
-    }
-
+          const token0 = tokenName1 === 'SIENNA' ? this.TGE.contracts.SIENNA : this.Swap.tokenContracts[tokenName1]
+              , token1 = this.Swap.tokenContracts[tokenName2]
+          //;(agent as any).API.restClient.broadcastMode = BroadcastMode.Block
+          const result = await this.Swap.contracts.FACTORY.createExchange(
+            { contract_addr: token0.address, token_code_hash: token0.codeHash },
+            { contract_addr: token1.address, token_code_hash: token1.codeHash }, agent)
+          const exchanges = await this.task(`List exchanges`, async () => {
+            const result = await this.Swap.contracts.FACTORY.listExchanges()
+            return result.list_exchanges.exchanges })
+          const exchangeAddr = exchanges.filter(({pair})=>(
+            pair.token_0.custom_token.contract_addr === token0.address &&
+            pair.token_1.custom_token.contract_addr === token1.address))[0].address
+          if (!exchangeAddr) {
+            throw new Error(`could not retrieve address of exchange pair ${pair} from factory`) }
+          const EXCHANGE = new AMMExchange(this.agent)
+          deployed.push([`Exchange ${pair}\nSienna Swap Pair`, `${EXCHANGE.address}\n${EXCHANGE.codeHash}`])
+          EXCHANGE.init.address = exchangeAddr
+          EXCHANGE.init.agent = agent
+          const exchangeInfo = await EXCHANGE.pairInfo()
+          console.log(pair, exchangeInfo)
+          const LPTOKEN = this.lpTokenContracts[`LP_${pair}`] = new SNIP20Contract(agent)
+          LPTOKEN.init.address = exchangeInfo.pair_info.liquidity_token
+          LPTOKEN.init.agent = agent 
+          deployed.push([`LP ${pair}\nLiquidity Provision Token`, `${LPTOKEN.address}\n${LPTOKEN.codeHash}`]) }) } }
     deployed = [...deployed, ...await this.deploy()]
     console.log(table(deployed))
     process.exit() }
-
   private async parseOptions (options?: Record<string, any>) {
     if (!options) return
-
     this.factoryAddress = options['factory']
-
     if (options['agent'] === 'secretcli') this.agent = await ScrtCLIAgent.create(this.agent)
     if (options['premint.reward']) this.shouldPremintReward = true
     if (options['premint.admin'])  this.shouldPremintAdmin  = true }
@@ -321,21 +367,89 @@ export class SiennaRewards extends BaseEnsemble {
   factoryAddress = ''
 
   contracts = { }
+  lpTokenContracts: Record<string, Contract> = {}
 
   shouldPremintAdmin  = false
   shouldPremintReward = false
 
+  /** Deploys reward pairs (reward pool + LP token), as well as a reward pool for staking SIENNA.
+    * Configures the RPT contract to route funds to the correct reward pools.
+    * Can also premint SIENNA for testing. */
+  async initialize () {
+    await super.initialize()
+    const SIENNA    = this?.TGE?.contracts?.SIENNA
+        , RPT       = this?.TGE?.contracts?.RPT
+        , deployed  = []
+        , rptConfig = []
+    if (!SIENNA || !RPT) throw new Error("Unable to find SIENNA or RPT contract.")
+    if (this.shouldPremintAdmin||this.shouldPremintReward) await this.premint()
+    for (const [pair, amount] of Object.entries(this.pairs)) {
+      await this.task(`Initialize a reward pool for ${pair}`, async (report: Function) => {
+        const rewardPool = this.contracts[`RP_${pair}`]
+        rewardPool.init.msg.admin = this.agent.address
+        rewardPool.init.msg.reward_token = SIENNA.link
+        rewardPool.init.msg.lp_token = ((pair === 'SIENNA')
+          ? this.TGE.contracts.SIENNA
+          : this.lpTokenContracts[`LP_${pair}`]).link
+        await rewardPool.instantiate(this.agent)
+        report(rewardPool.initReceipt.transactionHash)
+        deployed.push([`${pair}\nReward pool`, `${rewardPool.address}\n${rewardPool.codeHash}`])
+        rptConfig.push([rewardPool.address, String(BigInt(amount) * ONE_SIENNA)]) }) }
+    await this.task(`Configure RPT to route funds to reward pools`, async (report: Function) => {
+      const result = RPT.configure(rptConfig)
+      report(result.transactionHash) })
+    return deployed }
+  async premint () {
+    const agent = this.agent
+    const SIENNA = this.TGE.contracts.SIENNA as SiennaSNIP20
+    await this.task('allow admin to mint reward tokens',
+      async (report: Function) => {
+        const result = await SIENNA.addMinters(
+          [agent.address], agent)
+        //console.log(decode(Buffer.from(Object.values(result.data) as any)))
+        report(result.transactionHash)
+        return result })
+    if (this.shouldPremintAdmin) {
+      await this.task('mint test balance to admin account',
+        async (report: Function) => {
+          const amount  = '540000000000000000000000'
+              , address = agent.address
+              , result  = await SIENNA.mint(amount, agent, address)
+          report(result.transactionHash)
+          return result }) }
+    if (this.shouldPremintReward) {
+      for (const [pair, amount] of Object.entries(this.pairs)) {
+        await this.task(`mint test balance to reward pool for ${pair}`,
+          async (report: Function) => {
+            const amount  = '540000000000000000000000'
+                , address = this.contracts[`rp${pair}`].address
+                , result  = await SIENNA.mint(amount, agent, address)
+            report(result.transactionHash)
+            return result }) } } }
+  test (_: any, ...args: any) {
+    args = ['test', '-p', 'sienna-rewards', ...args]
+    execFileSync('cargo', args, {
+      stdio: 'inherit',
+      env: { ...process.env, RUST_BACKTRACE: 'full' } }) }
+  benchmark () {
+    /* stupid esmodule import issue when running mocha programmatically
+     * their CLI works fine though...
+    const mocha = new Mocha()
+    mocha.addFile(abs('api/Rewards.spec.js'))
+    mocha.run(fail => process.exit(fail ? 1 : 0))*/
+    const args = ['-p', 'false', 'api/Rewards.spec.js']
+    execFileSync(abs('node_modules/.bin/mocha'), args, { stdio: 'inherit' }) }
+
   private async initPairs() {
     if (!this.factoryAddress) {
-      this.pairs = this.pairs = {
+      this.pairs = {
         'SIENNA':       500,
         'SIENNA-sSCRT': 400,
         'SITOK-STEST':  500,
         'SIENNA-STEST': 300,
         'SIENNA-SITOK': 300,
         'SIENNA-sETH':  200,
-        'sSCRT-SITEST': 300
-      }
+        'sSCRT-STEST':  300 }
     } else {
       const path = resolve(projectRoot, 'settings', `rewards-${this.factoryAddress}.json`)
 
@@ -399,80 +513,7 @@ export class SiennaRewards extends BaseEnsemble {
       return info.name
     }
   }
-
-  /** Deploys reward pairs (reward pool + LP token), as well as a reward pool for staking SIENNA.
-    * Configures the RPT contract to route funds to the correct reward pools.
-    * Can also premint SIENNA for testing. */
-  async initialize () {
-    await super.initialize()
-    const SIENNA    = this?.TGE?.contracts?.SIENNA
-        , RPT       = this?.TGE?.contracts?.RPT
-        , deployed  = []
-        , rptConfig = []
-    if (!SIENNA || !RPT) throw new Error("Unable to find SIENNA or RPT contract.")
-    if (this.shouldPremintAdmin||this.shouldPremintReward) await this.premint()
-    for (const [pair, amount] of Object.entries(this.pairs)) {
-      const token = (pair === 'SIENNA') ? this.TGE.contracts.SIENNA :
-        await this.task(`Initialize a liquidity provision token for ${pair}`, async (report: Function) => {
-          const token = this.contracts[`LP_${pair}`]
-          token.init.msg.admin = this.agent.address
-          await token.instantiate(this.agent)
-          report(token.initReceipt.transactionHash)
-          deployed.push([`${pair}\nLP Token`, `${token.address}\n${token.codeHash}`])
-          return token })
-      await this.task(`Initialize a reward pool for ${pair}`, async (report: Function) => {
-        const rewardPool = this.contracts[`RP_${pair}`]
-        rewardPool.init.msg.admin        = this.agent.address
-        rewardPool.init.msg.reward_token = SIENNA.link
-        rewardPool.init.msg.lp_token     = token.link
-        await rewardPool.instantiate(this.agent)
-        report(rewardPool.initReceipt.transactionHash)
-        deployed.push([`${pair}\nReward pool`, `${rewardPool.address}\n${rewardPool.codeHash}`])
-        rptConfig.push([rewardPool.address, String(BigInt(amount) * ONE_SIENNA)]) }) }
-    await this.task(`Configure RPT to route funds to reward pools`, async (report: Function) => {
-      const result = RPT.configure(rptConfig)
-      report(result.transactionHash) })
-    return deployed }
-  async premint () {
-    const agent = this.agent
-    const SIENNA = this.TGE.contracts.SIENNA as SiennaSNIP20
-    await this.task('allow admin to mint reward tokens',
-      async (report: Function) => {
-        const result = await SIENNA.addMinters(
-          [agent.address], agent)
-        //console.log(decode(Buffer.from(Object.values(result.data) as any)))
-        report(result.transactionHash)
-        return result })
-    if (this.shouldPremintAdmin) {
-      await this.task('mint test balance to admin account',
-        async (report: Function) => {
-          const amount  = '540000000000000000000000'
-              , address = agent.address
-              , result  = await SIENNA.mint(amount, agent, address)
-          report(result.transactionHash)
-          return result }) }
-    if (this.shouldPremintReward) {
-      for (const [pair, amount] of Object.entries(this.pairs)) {
-        await this.task(`mint test balance to reward pool for ${pair}`,
-          async (report: Function) => {
-            const amount  = '540000000000000000000000'
-                , address = this.contracts[`rp${pair}`].address
-                , result  = await SIENNA.mint(amount, agent, address)
-            report(result.transactionHash)
-            return result }) } } }
-  test (_: any, ...args: any) {
-    args = ['test', '-p', 'sienna-rewards', ...args]
-    execFileSync('cargo', args, {
-      stdio: 'inherit',
-      env: { ...process.env, RUST_BACKTRACE: 'full' } }) }
-  benchmark () {
-    /* stupid esmodule import issue when running mocha programmatically
-     * their CLI works fine though...
-    const mocha = new Mocha()
-    mocha.addFile(abs('api/Rewards.spec.js'))
-    mocha.run(fail => process.exit(fail ? 1 : 0))*/
-    const args = ['-p', 'false', 'api/Rewards.spec.js']
-    execFileSync(abs('node_modules/.bin/mocha'), args, { stdio: 'inherit' }) } }
+}
 
 export class SiennaLend extends BaseEnsemble {
   contracts = {/* SNIP20: { crate: 'snip20-lend' }

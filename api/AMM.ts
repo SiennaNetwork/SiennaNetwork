@@ -8,5 +8,8 @@ export const schema = loadSchemas(import.meta.url, {
 });
 
 export default class AMM extends ScrtContract {
-  constructor (agent: Agent) { super(schema, agent) }
+  constructor (agent: Agent) {
+    super(schema, agent) }
+  pairInfo = () =>
+    this.q.pairInfo()
 }

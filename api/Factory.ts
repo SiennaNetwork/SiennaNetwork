@@ -14,8 +14,8 @@ export default class Factory extends ScrtContract {
   constructor (agent: Agent) {
     super(schema, agent) }
   createExchange = (
-    token_0: TokenTypeFor_HumanAddr,
-    token_1: TokenTypeFor_HumanAddr,
+    token_0: any,
+    token_1: any,
     agent = this.instantiator
   ) => this.execute('create_exchange', {
     pair: { token_0: { custom_token: token_0 }
