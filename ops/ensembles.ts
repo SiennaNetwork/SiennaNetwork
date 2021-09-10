@@ -341,13 +341,14 @@ export class SiennaRewards extends BaseEnsemble {
           if (!exchangeAddr) {
             throw new Error(`could not retrieve address of exchange pair ${pair} from factory`) }
           const EXCHANGE = new AMMExchange(this.agent)
-          deployed.push([`Exchange ${pair}\nSienna Swap Pair`, `${EXCHANGE.address}\n${EXCHANGE.codeHash}`])
           EXCHANGE.init.address = exchangeAddr
           EXCHANGE.init.agent = agent
+          deployed.push([`Exchange ${pair}\nSienna Swap Pair`, `${EXCHANGE.address}\n${EXCHANGE.codeHash}`])
           const exchangeInfo = await EXCHANGE.pairInfo()
           console.log(pair, exchangeInfo)
           const LPTOKEN = this.lpTokenContracts[`LP_${pair}`] = new SNIP20Contract(agent)
-          LPTOKEN.init.address = exchangeInfo.pair_info.liquidity_token
+          LPTOKEN.init.address = exchangeInfo.pair_info.liquidity_token.address
+          LPTOKEN.blob.codeHash = this.Swap.contracts.LPTOKEN.codeHash
           LPTOKEN.init.agent = agent 
           deployed.push([`LP ${pair}\nLiquidity Provision Token`, `${LPTOKEN.address}\n${LPTOKEN.codeHash}`]) }) } }
     deployed = [...deployed, ...await this.deploy()]
@@ -388,9 +389,9 @@ export class SiennaRewards extends BaseEnsemble {
         const rewardPool = this.contracts[`RP_${pair}`]
         rewardPool.init.msg.admin = this.agent.address
         rewardPool.init.msg.reward_token = SIENNA.link
-        rewardPool.init.msg.lp_token = ((pair === 'SIENNA')
-          ? this.TGE.contracts.SIENNA
-          : this.lpTokenContracts[`LP_${pair}`]).link
+        rewardPool.init.msg.lp_token = (pair === 'SIENNA')
+          ? this.TGE.contracts.SIENNA.link
+          : this.lpTokenContracts[`LP_${pair}`].link
         await rewardPool.instantiate(this.agent)
         report(rewardPool.initReceipt.transactionHash)
         deployed.push([`${pair}\nReward pool`, `${rewardPool.address}\n${rewardPool.codeHash}`])
