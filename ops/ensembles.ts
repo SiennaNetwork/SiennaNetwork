@@ -180,6 +180,7 @@ export class SiennaSwap extends BaseEnsemble {
   private getTokens () {
     const tokens: Record<string, Contract> = {}
     if (this.chain.chainId === 'enigma-pub-testnet-3') {
+      // create dummy tokens
       tokens.sSCRT = new AMMSNIP20(this.agent)
       tokens.sSCRT.init.prefix        = this.prefix
       tokens.sSCRT.init.label         = `placeholder_sSCRT`
@@ -209,22 +210,24 @@ export class SiennaSwap extends BaseEnsemble {
       tokens.sETH.init.msg.decimals   = 15
       tokens.sETH.init.msg.prng_seed  = randomHex(36) }
     else if (this.chain.chainId === 'holodeck-2') {
+      // attach to pre-existing testnet tokens
       tokens.SIENNA = this.TGE.contracts.SIENNA
-      tokens.sSCRT = AMMSNIP20.attach(this.agent,
-        'secret1s7c6xp9wltthk5r6mmavql4xld5me3g37guhsx',
-        'cd400fb73f5c99edbc6aab22c2593332b8c9f2ea806bf9b42e3a523f3ad06f62')
-      tokens.sSCRT = AMMSNIP20.attach(this.agent,
-        'secret1s7c6xp9wltthk5r6mmavql4xld5me3g37guhsx',
-        'cd400fb73f5c99edbc6aab22c2593332b8c9f2ea806bf9b42e3a523f3ad06f62')
-      tokens.STEST = AMMSNIP20.attach(this.agent,
-        'secret1w9y0jala2yn4sh86dgwy3dcwg35s4qqjw932pc',
-        '78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829')
-      tokens.SITOK = AMMSNIP20.attach(this.agent,
-        'secret129nq840d05a0tvkranw5xesq9k0uwmn8mg7ft5',
-        '78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829')
-      tokens.sETH = AMMSNIP20.attach(this.agent,
-        'secret1kpkh83pjff8zf42njqhasvpa4spg7rjuemucf7',
-        '2da545ebc441be05c9fa6338f3353f35ac02ec4b02454bc49b1a66f4b9866aed') }
+      tokens.sSCRT = new AMMSNIP20(this.agent)
+      tokens.sSCRT.init.agent    = this.agent
+      tokens.sSCRT.init.address  = 'secret1s7c6xp9wltthk5r6mmavql4xld5me3g37guhsx'
+      tokens.sSCRT.blob.codeHash = 'cd400fb73f5c99edbc6aab22c2593332b8c9f2ea806bf9b42e3a523f3ad06f62'
+      tokens.STEST = new AMMSNIP20(this.agent)
+      tokens.STEST.init.agent    = this.agent
+      tokens.STEST.init.address  = 'secret1w9y0jala2yn4sh86dgwy3dcwg35s4qqjw932pc'
+      tokens.STEST.blob.codeHash = '78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829'
+      tokens.SITOK = new AMMSNIP20(this.agent)
+      tokens.SITOK.init.agent    = this.agent
+      tokens.SITOK.init.address  = 'secret129nq840d05a0tvkranw5xesq9k0uwmn8mg7ft5'
+      tokens.SITOK.blob.codeHash = '78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829'
+      tokens.sETH  = new AMMSNIP20(this.agent)
+      tokens.sETH.init.agent     = this.agent
+      tokens.sETH.init.address   = 'secret1ttg5cn3mv5n9qv8r53stt6cjx8qft8ut9d66ed'
+      tokens.sETH.blob.codeHash  = '2da545ebc441be05c9fa6338f3353f35ac02ec4b02454bc49b1a66f4b9866aed' }
       return tokens }
 
   private loadConfig(): any {

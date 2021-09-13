@@ -1,0 +1,43 @@
+{
+  "label": "20210913_105304/SiennaAMMFactory",
+  "codeId": 30690,
+  "codeHash": "c3d1e37bf7570d36c1d4e8fd50fd6361c67260e02942ba6b5522d8402d4de823",
+  "initTx": {
+    "contractAddress": "secret1skyefjxax439n04ayxqsgycxly32ypej8a0tum",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "30690"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret1skyefjxax439n04ayxqsgycxly32ypej8a0tum"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "3375EA06F3CD6898894A22D779009E275BC8FE45BF2A8C4EE2311D3725C13E19",
+    "data": "858994C8DD356259BEBD2181041306F922A20732"
+  }
+}

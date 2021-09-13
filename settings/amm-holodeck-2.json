@@ -1,0 +1,14 @@
+{
+  "exchange_settings": {
+    "swap_fee": {
+      "nom": 28,
+      "denom": 1000
+    },
+    "sienna_fee": {
+      "nom": 2,
+      "denom": 10000
+    },
+    "sienna_burner": null
+  },
+  "admin": null
+}
