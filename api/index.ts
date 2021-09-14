@@ -1,5 +1,6 @@
 import AMMContract from './AMM'
 import FactoryContract from './Factory'
+import LaunchpadContract from './Launchpad'
 import IDOContract from './IDO'
 import MGMTContract from './MGMT'
 import RPTContract from './RPT'
@@ -9,6 +10,7 @@ import RewardsContract from './Rewards'
 export {
   AMMContract,
   FactoryContract,
+  LaunchpadContract,
   IDOContract,
   MGMTContract,
   RPTContract,

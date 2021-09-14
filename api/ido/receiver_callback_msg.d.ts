@@ -21,6 +21,12 @@ export type ReceiverCallbackMsg =
       [k: string]: unknown;
     }
   | {
+      pre_lock: {
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
       swap: {
         /**
          * If the recipient of the funds is going to be someone different then the sender

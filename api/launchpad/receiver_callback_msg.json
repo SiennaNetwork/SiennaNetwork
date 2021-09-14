@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ReceiverCallbackMsg",
+  "anyOf": [
+    {
+      "description": "Perform locking of the funds into the launchpad contract Amount sent through the snip20 will be floored to closest segment and the rest will be sent back to sender.",
+      "type": "object",
+      "required": [
+        "lock"
+      ],
+      "properties": {
+        "lock": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "description": "Perform unlocking of the funds, for any token that is not native user will have to send 0 amount to launchpad with unlock message and send how many entries he wants to unlock",
+      "type": "object",
+      "required": [
+        "unlock"
+      ],
+      "properties": {
+        "unlock": {
+          "type": "object",
+          "required": [
+            "entries"
+          ],
+          "properties": {
+            "entries": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    }
+  ]
+}

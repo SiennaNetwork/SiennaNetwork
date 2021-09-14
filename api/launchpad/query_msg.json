@@ -6,28 +6,8 @@
       "type": "string",
       "enum": [
         "status",
-        "sale_info",
-        "sale_status"
+        "launchpad_info"
       ]
-    },
-    {
-      "type": "object",
-      "required": [
-        "eligibility_info"
-      ],
-      "properties": {
-        "eligibility_info": {
-          "type": "object",
-          "required": [
-            "address"
-          ],
-          "properties": {
-            "address": {
-              "$ref": "#/definitions/HumanAddr"
-            }
-          }
-        }
-      }
     },
     {
       "type": "object",
@@ -41,12 +21,13 @@
       }
     },
     {
+      "description": "Get information about the users account",
       "type": "object",
       "required": [
-        "balance"
+        "user_info"
       ],
       "properties": {
-        "balance": {
+        "user_info": {
           "type": "object",
           "required": [
             "address",
@@ -60,17 +41,6 @@
               "type": "string"
             }
           }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "token_info"
-      ],
-      "properties": {
-        "token_info": {
-          "type": "object"
         }
       }
     }

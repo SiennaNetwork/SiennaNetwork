@@ -4,6 +4,7 @@ use std::{env::current_dir, fs::create_dir_all};
 use amm_shared::msg::exchange;
 use amm_shared::msg::factory;
 use amm_shared::msg::ido;
+use amm_shared::msg::launchpad;
 use amm_shared::msg::snip20;
 
 use sienna_mgmt::msg as mgmt;
@@ -51,6 +52,17 @@ fn main() {
     export_schema(&schema_for!(factory::HandleMsg), &out_dir);
     export_schema(&schema_for!(factory::QueryMsg), &out_dir);
     export_schema(&schema_for!(factory::QueryResponse), &out_dir);
+
+    let mut out_dir = current_dir().unwrap();
+    out_dir.push("api");
+    out_dir.push("launchpad");
+    create_dir_all(&out_dir).unwrap();
+    remove_schemas(&out_dir).unwrap();
+    export_schema(&schema_for!(launchpad::InitMsg), &out_dir);
+    export_schema(&schema_for!(launchpad::HandleMsg), &out_dir);
+    export_schema(&schema_for!(launchpad::QueryMsg), &out_dir);
+    export_schema(&schema_for!(launchpad::QueryResponse), &out_dir);
+    export_schema(&schema_for!(launchpad::ReceiverCallbackMsg), &out_dir);
 
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");

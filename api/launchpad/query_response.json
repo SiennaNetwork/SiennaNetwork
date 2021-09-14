@@ -1,0 +1,157 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryResponse",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "launchpad_info"
+      ],
+      "properties": {
+        "launchpad_info": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/QueryTokenConfig"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "user_info"
+      ],
+      "properties": {
+        "user_info": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/QueryAccountToken"
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "HumanAddr": {
+      "type": "string"
+    },
+    "QueryAccountToken": {
+      "description": "Account token representation that holds all the entries for this token",
+      "type": "object",
+      "required": [
+        "balance",
+        "entries",
+        "token_type"
+      ],
+      "properties": {
+        "balance": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0.0
+          }
+        },
+        "last_draw": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "token_type": {
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
+        }
+      }
+    },
+    "QueryTokenConfig": {
+      "description": "Token configuration that holds the configuration for each token",
+      "type": "object",
+      "required": [
+        "active",
+        "bounding_period",
+        "locked_balance",
+        "segment",
+        "token_decimals",
+        "token_type"
+      ],
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "bounding_period": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "locked_balance": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "segment": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "token_decimals": {
+          "type": "integer",
+          "format": "uint8",
+          "minimum": 0.0
+        },
+        "token_type": {
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
+        }
+      }
+    },
+    "TokenType_for_HumanAddr": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "custom_token"
+          ],
+          "properties": {
+            "custom_token": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "token_code_hash"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "token_code_hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "native_token"
+          ],
+          "properties": {
+            "native_token": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}

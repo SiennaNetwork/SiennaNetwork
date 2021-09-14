@@ -6,8 +6,8 @@
     "admin",
     "callback",
     "entropy",
-    "info",
-    "prng_seed"
+    "prng_seed",
+    "tokens"
   ],
   "properties": {
     "admin": {
@@ -19,7 +19,7 @@
       ]
     },
     "callback": {
-      "description": "Used by the IDO to register itself with the factory.",
+      "description": "Used by the Launchpad to register itself with the factory.",
       "allOf": [
         {
           "$ref": "#/definitions/Callback_for_HumanAddr"
@@ -29,20 +29,6 @@
     "entropy": {
       "$ref": "#/definitions/Binary"
     },
-    "info": {
-      "$ref": "#/definitions/TokenSaleConfig"
-    },
-    "launchpad": {
-      "description": "Used by the IDO to fill the whitelist spots with random pics",
-      "anyOf": [
-        {
-          "$ref": "#/definitions/WhitelistRequest"
-        },
-        {
-          "type": "null"
-        }
-      ]
-    },
     "prng_seed": {
       "description": "Seed for creating viewkey",
       "allOf": [
@@ -50,6 +36,12 @@
           "$ref": "#/definitions/Binary"
         }
       ]
+    },
+    "tokens": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/TokenSettings"
+      }
     }
   },
   "definitions": {
@@ -102,84 +94,25 @@
     "HumanAddr": {
       "type": "string"
     },
-    "SaleType": {
-      "type": "string",
-      "enum": [
-        "PreLockAndSwap",
-        "PreLockOnly",
-        "SwapOnly"
-      ]
-    },
-    "TokenSaleConfig": {
+    "TokenSettings": {
+      "description": "Configuration for single token that can be locked into the launchpad",
       "type": "object",
       "required": [
-        "input_token",
-        "max_allocation",
-        "max_seats",
-        "min_allocation",
-        "rate",
-        "sold_token",
-        "whitelist"
+        "bounding_period",
+        "segment",
+        "token_type"
       ],
       "properties": {
-        "input_token": {
-          "description": "The token that will be used to buy the SNIP20.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/TokenType_for_HumanAddr"
-            }
-          ]
-        },
-        "max_allocation": {
-          "description": "The total amount that each participant is allowed to buy.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Uint128"
-            }
-          ]
-        },
-        "max_seats": {
-          "description": "The maximum number of participants allowed.",
+        "bounding_period": {
           "type": "integer",
-          "format": "uint32",
+          "format": "uint64",
           "minimum": 0.0
         },
-        "min_allocation": {
-          "description": "The minimum amount that each participant is allowed to buy.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Uint128"
-            }
-          ]
+        "segment": {
+          "$ref": "#/definitions/Uint128"
         },
-        "rate": {
-          "description": "The price for a single token.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Uint128"
-            }
-          ]
-        },
-        "sale_type": {
-          "description": "Sale type settings",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/SaleType"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "sold_token": {
-          "$ref": "#/definitions/ContractInstance_for_HumanAddr"
-        },
-        "whitelist": {
-          "description": "The addresses that are eligible to participate in the sale.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/HumanAddr"
-          }
+        "token_type": {
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
         }
       }
     },
@@ -231,37 +164,6 @@
     },
     "Uint128": {
       "type": "string"
-    },
-    "WhitelistRequest": {
-      "type": "object",
-      "required": [
-        "launchpad",
-        "tokens"
-      ],
-      "properties": {
-        "launchpad": {
-          "description": "Launchpad contract instance information",
-          "allOf": [
-            {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
-            }
-          ]
-        },
-        "tokens": {
-          "description": "Vector of tokens address needs to have locked in order to be considered for a draw. Tokens need to be configured in the Launchpad as eligible. Option<> is because if None that will represent a native token.",
-          "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/definitions/HumanAddr"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        }
-      }
     }
   }
 }

@@ -45,6 +45,7 @@ pub mod factory {
             snip20_contract: Option<ContractInstantiationInfo>,
             lp_token_contract: Option<ContractInstantiationInfo>,
             pair_contract: Option<ContractInstantiationInfo>,
+            launchpad_contract: Option<ContractInstantiationInfo>,
             ido_contract: Option<ContractInstantiationInfo>,
             exchange_settings: Option<ExchangeSettings<HumanAddr>>,
         },

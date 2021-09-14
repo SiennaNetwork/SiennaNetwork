@@ -38,6 +38,7 @@ impl Into<HandleMsg> for &Config<HumanAddr> {
             snip20_contract: Some(self.snip20_contract.clone()),
             lp_token_contract: Some(self.lp_token_contract.clone()),
             pair_contract: Some(self.pair_contract.clone()),
+            launchpad_contract: Some(self.launchpad_contract.clone()),
             ido_contract: Some(self.ido_contract.clone()),
             exchange_settings: Some(self.exchange_settings.clone()),
         }
@@ -49,6 +50,7 @@ impl Into<QueryResponse> for &Config<HumanAddr> {
             snip20_contract: self.snip20_contract.clone(),
             lp_token_contract: self.lp_token_contract.clone(),
             pair_contract: self.pair_contract.clone(),
+            launchpad_contract: self.launchpad_contract.clone(),
             ido_contract: self.ido_contract.clone(),
             exchange_settings: self.exchange_settings.clone(),
         }

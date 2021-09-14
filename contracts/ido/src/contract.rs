@@ -135,7 +135,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
                         code_hash: env.contract_code_hash,
                     },
                     tokens: request.tokens.clone(),
-                    number: (msg.info.max_seats - taken_seats) as usize,
+                    number: (msg.info.max_seats - taken_seats) as u32,
                 })?,
                 send: vec![],
             }));

@@ -34,6 +34,18 @@
       }
     },
     {
+      "description": "Pre lock sent funds before the sale has started, and then claim them after the sale starts.",
+      "type": "object",
+      "required": [
+        "pre_lock"
+      ],
+      "properties": {
+        "pre_lock": {
+          "type": "object"
+        }
+      }
+    },
+    {
       "type": "object",
       "required": [
         "swap"

@@ -25,46 +25,44 @@ export type HandleMsg =
       [k: string]: unknown;
     }
   | {
-      pre_lock: {
+      lock: {
         amount: Uint128;
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
-      swap: {
-        amount: Uint128;
-        /**
-         * If the recipient of the funds is going to be someone different then the sender
-         */
-        recipient?: HumanAddr | null;
+      unlock: {
+        entries: number;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      draw: {
+        callback: ContractInstanceFor_HumanAddr;
+        number: number;
+        tokens: (HumanAddr | null)[];
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      admin_add_token: {
+        config: TokenSettings;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      admin_remove_token: {
+        index: number;
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
       admin: AdminHandleMsg;
-      [k: string]: unknown;
-    }
-  | {
-      admin_refund: {
-        address?: HumanAddr | null;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      admin_claim: {
-        address?: HumanAddr | null;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      admin_add_addresses: {
-        addresses: HumanAddr[];
-        [k: string]: unknown;
-      };
       [k: string]: unknown;
     }
   | {
@@ -95,6 +93,22 @@ export type Uint128 = string;
  * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
  */
 export type Binary = string;
+export type TokenTypeFor_HumanAddr =
+  | {
+      custom_token: {
+        contract_addr: HumanAddr;
+        token_code_hash: string;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      native_token: {
+        denom: string;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    };
 export type AdminHandleMsg = {
   change_admin: {
     address: HumanAddr;
@@ -102,3 +116,21 @@ export type AdminHandleMsg = {
   };
   [k: string]: unknown;
 };
+
+/**
+ * Info needed to talk to a contract instance.
+ */
+export interface ContractInstanceFor_HumanAddr {
+  address: HumanAddr;
+  code_hash: string;
+  [k: string]: unknown;
+}
+/**
+ * Configuration for single token that can be locked into the launchpad
+ */
+export interface TokenSettings {
+  bounding_period: number;
+  segment: Uint128;
+  token_type: TokenTypeFor_HumanAddr;
+  [k: string]: unknown;
+}

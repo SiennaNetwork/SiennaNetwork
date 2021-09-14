@@ -17,6 +17,7 @@ export interface InitMsg {
   admin?: HumanAddr | null;
   exchange_settings: ExchangeSettingsFor_HumanAddr;
   ido_contract: ContractInstantiationInfo;
+  launchpad_contract: ContractInstantiationInfo;
   lp_token_contract: ContractInstantiationInfo;
   pair_contract: ContractInstantiationInfo;
   prng_seed: Binary;

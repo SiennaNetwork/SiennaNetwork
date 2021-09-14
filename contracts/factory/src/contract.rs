@@ -106,6 +106,7 @@ pub fn set_config<S: Storage, A: Api, Q: Querier>(
         snip20_contract,
         lp_token_contract,
         pair_contract,
+        launchpad_contract,
         ido_contract,
         exchange_settings,
     } = msg
@@ -120,6 +121,9 @@ pub fn set_config<S: Storage, A: Api, Q: Querier>(
         }
         if let Some(new_value) = pair_contract {
             config.pair_contract = new_value;
+        }
+        if let Some(new_value) = launchpad_contract {
+            config.launchpad_contract = new_value;
         }
         if let Some(new_value) = ido_contract {
             config.ido_contract = new_value;
@@ -145,6 +149,7 @@ pub fn get_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> Std
         snip20_contract,
         lp_token_contract,
         pair_contract,
+        launchpad_contract,
         ido_contract,
         exchange_settings,
         ..
@@ -154,6 +159,7 @@ pub fn get_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> Std
         snip20_contract,
         lp_token_contract,
         pair_contract,
+        launchpad_contract,
         ido_contract,
         exchange_settings,
     })

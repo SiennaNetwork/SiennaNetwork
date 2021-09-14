@@ -12,6 +12,7 @@ export type HumanAddr = string;
  * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
  */
 export type Binary = string;
+export type Uint128 = string;
 export type TokenTypeFor_HumanAddr =
   | {
       custom_token: {
@@ -28,8 +29,6 @@ export type TokenTypeFor_HumanAddr =
       };
       [k: string]: unknown;
     };
-export type Uint128 = string;
-export type SaleType = "PreLockAndSwap" | "PreLockOnly" | "SwapOnly";
 
 export interface InitMsg {
   /**
@@ -37,19 +36,15 @@ export interface InitMsg {
    */
   admin: HumanAddr;
   /**
-   * Used by the IDO to register itself with the factory.
+   * Used by the Launchpad to register itself with the factory.
    */
   callback: CallbackFor_HumanAddr;
   entropy: Binary;
-  info: TokenSaleConfig;
-  /**
-   * Used by the IDO to fill the whitelist spots with random pics
-   */
-  launchpad?: WhitelistRequest | null;
   /**
    * Seed for creating viewkey
    */
   prng_seed: Binary;
+  tokens: TokenSettings[];
   [k: string]: unknown;
 }
 /**
@@ -74,46 +69,12 @@ export interface ContractInstanceFor_HumanAddr {
   code_hash: string;
   [k: string]: unknown;
 }
-export interface TokenSaleConfig {
-  /**
-   * The token that will be used to buy the SNIP20.
-   */
-  input_token: TokenTypeFor_HumanAddr;
-  /**
-   * The total amount that each participant is allowed to buy.
-   */
-  max_allocation: Uint128;
-  /**
-   * The maximum number of participants allowed.
-   */
-  max_seats: number;
-  /**
-   * The minimum amount that each participant is allowed to buy.
-   */
-  min_allocation: Uint128;
-  /**
-   * The price for a single token.
-   */
-  rate: Uint128;
-  /**
-   * Sale type settings
-   */
-  sale_type?: SaleType | null;
-  sold_token: ContractInstanceFor_HumanAddr;
-  /**
-   * The addresses that are eligible to participate in the sale.
-   */
-  whitelist: HumanAddr[];
-  [k: string]: unknown;
-}
-export interface WhitelistRequest {
-  /**
-   * Launchpad contract instance information
-   */
-  launchpad: ContractInstanceFor_HumanAddr;
-  /**
-   * Vector of tokens address needs to have locked in order to be considered for a draw. Tokens need to be configured in the Launchpad as eligible. Option<> is because if None that will represent a native token.
-   */
-  tokens: (HumanAddr | null)[];
+/**
+ * Configuration for single token that can be locked into the launchpad
+ */
+export interface TokenSettings {
+  bounding_period: number;
+  segment: Uint128;
+  token_type: TokenTypeFor_HumanAddr;
   [k: string]: unknown;
 }

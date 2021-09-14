@@ -6,31 +6,18 @@
  */
 
 export type QueryMsg =
-  | ("status" | "sale_info" | "sale_status")
-  | {
-      eligibility_info: {
-        address: HumanAddr;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
+  | ("status" | "launchpad_info")
   | {
       admin: AdminQueryMsg;
       [k: string]: unknown;
     }
   | {
-      balance: {
+      user_info: {
         address: HumanAddr;
         key: string;
         [k: string]: unknown;
       };
       [k: string]: unknown;
-    }
-  | {
-      token_info: {
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
     };
-export type HumanAddr = string;
 export type AdminQueryMsg = "admin";
+export type HumanAddr = string;

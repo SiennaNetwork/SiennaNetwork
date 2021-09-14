@@ -37,6 +37,7 @@
       }
     },
     {
+      "description": "SNIP20 receiver interface",
       "type": "object",
       "required": [
         "receive"
@@ -70,13 +71,13 @@
       }
     },
     {
-      "description": "Pre lock funds before the sale has started, and then claim them after the sale starts.",
+      "description": "Lock for native token, amount set for locking will be floored to the closest segment, the rest will be sent back.",
       "type": "object",
       "required": [
-        "pre_lock"
+        "lock"
       ],
       "properties": {
-        "pre_lock": {
+        "lock": {
           "type": "object",
           "required": [
             "amount"
@@ -90,31 +91,102 @@
       }
     },
     {
-      "description": "Swap custom or native coin for selling coin",
+      "description": "Perform unlocking of native token",
       "type": "object",
       "required": [
-        "swap"
+        "unlock"
       ],
       "properties": {
-        "swap": {
+        "unlock": {
           "type": "object",
           "required": [
-            "amount"
+            "entries"
           ],
           "properties": {
-            "amount": {
-              "$ref": "#/definitions/Uint128"
+            "entries": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Call to draw whitelist addresses, contract calling this needs to provide list of snip20 token addresses that will decided the whitelist participation users. If None is provided it means we are taking in consideration native token. Tokens put here must be configured as launchpad lockable tokens.\n\nCallback should be the information about the IDO contract calling it",
+      "type": "object",
+      "required": [
+        "draw"
+      ],
+      "properties": {
+        "draw": {
+          "type": "object",
+          "required": [
+            "callback",
+            "number",
+            "tokens"
+          ],
+          "properties": {
+            "callback": {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
             },
-            "recipient": {
-              "description": "If the recipient of the funds is going to be someone different then the sender",
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/HumanAddr"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+            "number": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "tokens": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/HumanAddr"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin_add_token"
+      ],
+      "properties": {
+        "admin_add_token": {
+          "type": "object",
+          "required": [
+            "config"
+          ],
+          "properties": {
+            "config": {
+              "$ref": "#/definitions/TokenSettings"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin_remove_token"
+      ],
+      "properties": {
+        "admin_remove_token": {
+          "type": "object",
+          "required": [
+            "index"
+          ],
+          "properties": {
+            "index": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
             }
           }
         }
@@ -129,77 +201,6 @@
       "properties": {
         "admin": {
           "$ref": "#/definitions/AdminHandleMsg"
-        }
-      }
-    },
-    {
-      "description": "Ask for a refund after the sale is finished",
-      "type": "object",
-      "required": [
-        "admin_refund"
-      ],
-      "properties": {
-        "admin_refund": {
-          "type": "object",
-          "properties": {
-            "address": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/HumanAddr"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "Admin can claim profits from sale after the sale finishes",
-      "type": "object",
-      "required": [
-        "admin_claim"
-      ],
-      "properties": {
-        "admin_claim": {
-          "type": "object",
-          "properties": {
-            "address": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/HumanAddr"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "Add new address to whitelist",
-      "type": "object",
-      "required": [
-        "admin_add_addresses"
-      ],
-      "properties": {
-        "admin_add_addresses": {
-          "type": "object",
-          "required": [
-            "addresses"
-          ],
-          "properties": {
-            "addresses": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/HumanAddr"
-              }
-            }
-          }
         }
       }
     },
@@ -282,6 +283,22 @@
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
     },
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
     "ContractStatusLevel": {
       "description": "Possible states of a contract.",
       "type": "string",
@@ -293,6 +310,74 @@
     },
     "HumanAddr": {
       "type": "string"
+    },
+    "TokenSettings": {
+      "description": "Configuration for single token that can be locked into the launchpad",
+      "type": "object",
+      "required": [
+        "bounding_period",
+        "segment",
+        "token_type"
+      ],
+      "properties": {
+        "bounding_period": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "segment": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "token_type": {
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
+        }
+      }
+    },
+    "TokenType_for_HumanAddr": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "custom_token"
+          ],
+          "properties": {
+            "custom_token": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "token_code_hash"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "token_code_hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "native_token"
+          ],
+          "properties": {
+            "native_token": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "Uint128": {
       "type": "string"
