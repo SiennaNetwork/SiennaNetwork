@@ -156,6 +156,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
         QueryMsg::Status => to_binary(&get_status(deps)?),
         QueryMsg::LaunchpadInfo => crate::query::launchpad_info(deps),
         QueryMsg::UserInfo { address, key } => crate::query::user_info(deps, address, key),
+        QueryMsg::Draw { tokens, number } => crate::query::draw_addresses(deps, tokens, number),
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
     }
 }

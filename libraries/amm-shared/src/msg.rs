@@ -337,6 +337,10 @@ pub mod launchpad {
             address: HumanAddr,
             key: String,
         },
+        Draw {
+            tokens: Vec<Option<HumanAddr>>,
+            number: u32,
+        },
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -358,6 +362,7 @@ pub mod launchpad {
     pub enum QueryResponse {
         LaunchpadInfo(Vec<QueryTokenConfig>),
         UserInfo(Vec<QueryAccountToken>),
+        DrawnAddresses(Vec<HumanAddr>),
     }
 
     /// Token configuration that holds the configuration for each token

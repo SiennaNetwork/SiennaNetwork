@@ -9,7 +9,6 @@ use amm_shared::{
     msg::ido::HandleMsg as IDOHandleMsg,
     msg::launchpad::ReceiverCallbackMsg,
 };
-use rand::{thread_rng, Rng};
 
 use crate::data::{
     load_or_create_account, save_account, AccounTokenEntry, Account, Accounts, Config, TokenConfig,
@@ -157,13 +156,12 @@ pub(crate) fn draw_addresses<S: Storage, A: Api, Q: Querier>(
     entries.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
     let mut addresses: Vec<HumanAddr> = vec![];
-    let mut rng = thread_rng();
 
     // Run the loop while we don't fill the whitelist with addresses
     // or while we don't run out of entries to pick from
     while addresses.len() < number as usize && entries.len() > 0 {
         // Randomly generate index to get from entry list
-        let index: usize = rng.gen_range(0, entries.len());
+        let index: usize = gen_rand_range(0, (entries.len() - 1) as u64, Some(env.block.time));
 
         match &entries.get(index) {
             Some((address, _)) => {
