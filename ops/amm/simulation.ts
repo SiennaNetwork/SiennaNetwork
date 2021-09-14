@@ -1,18 +1,18 @@
-import { create_coin, create_fee } from './amm-lib/core.js'
-import { FactoryContract } from './amm-lib/amm_factory.js'
-import { ExchangeContract, PairInfo } from './amm-lib/exchange.js'
-import { Snip20Contract, TokenInfo } from './amm-lib/snip20.js'
+import { create_coin, create_fee } from './amm-lib/core'
+import { FactoryContract } from './amm-lib/amm_factory'
+import { ExchangeContract, PairInfo } from './amm-lib/exchange'
+import { Snip20Contract, TokenInfo } from './amm-lib/snip20'
 import {
     Address, ContractInstantiationInfo, TokenPair, TokenPairAmount,
     TokenType, CustomToken, Uint128, TokenTypeAmount
-} from './amm-lib/core.js'
+} from './amm-lib/core'
 import {
     upload_amm, build_client, create_rand_base64, create_account
-} from './setup.js'
-import { NullJsonFileWriter } from './utils/json_file_writer.js'
-import { extract_log_value } from './utils/test_helpers.js'
-import { APIURL, ACC, instantiate_factory } from './localnet.js'
-import { TxAnalytics } from './utils/tx_analytics.js'
+} from './setup'
+import { NullJsonFileWriter } from './utils/json_file_writer'
+import { extract_log_value } from './utils/test_helpers'
+import { APIURL, ACC, instantiate_factory } from './localnet'
+import { TxAnalytics } from './utils/tx_analytics'
 
 import { SigningCosmWasmClient, CosmWasmClient } from 'secretjs'
 import { table } from 'table';
