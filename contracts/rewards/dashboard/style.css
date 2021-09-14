@@ -1,0 +1,133 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-size: 1rem;
+  list-style: none;
+}
+
+html, body {
+  height:  100%;
+  margin:  0;
+  padding: 0;
+  font-family: sans-serif;
+}
+
+body {
+  background: #282828;
+  color:      #ebdbb2;
+  display:    grid;
+  grid-template-columns: 20% 20% 20% 20% 20%;
+  grid-template-rows: 50% 50%
+}
+
+@media (orientation: landscape) {}
+@media (orientation: portrait) {}
+
+h1 {
+  font-weight: bold;
+  margin: 0;
+}
+h2 {
+  font-weight: normal;
+  text-align: right;
+  margin-bottom: 1rem;
+}
+
+.pie, .history {
+  /*flex-grow: 1;*/
+  /*flex-shrink: 1;*/
+  /*flex-basis: 100%;*/
+}
+
+.pie {
+  text-align: left;
+  grid-column-start: 1;
+  grid-column-end:   3;
+}
+.pie.stacked {
+  grid-column-start: 3;
+  grid-column-end:   5;
+}
+  .pie h1 {
+    margin: 1em 1em 0 1em;
+  }
+  .pie canvas {
+  }
+
+table {
+  grid-row-start: 2;
+  grid-column-start: 1;
+  grid-column-end: 5;
+  background: #32302f;
+  border-collapse: collapse;
+}
+
+td {
+  padding: 0.25rem;
+  text-align: center;
+}
+td.claimable:hover {
+  color: white !important;
+  cursor: pointer;
+  text-decoration: underline;
+}
+thead {
+  background: #504945;
+}
+th {
+  padding: 0.5rem;
+}
+
+.history {
+  grid-row-start: 1;
+  grid-row-end: 3;
+  grid-column-start: 5;
+  padding: 1em;
+  background: #3c3836;
+  overflow: auto;
+}
+
+h1, h2, ol {
+  padding: 0 0.5em;
+}
+
+/*.sparkline {*/
+  /*position: absolute;*/
+  /*left: 0;*/
+  /*right: 0;*/
+  /*bottom: 0;*/
+  /*height: 20vh;*/
+/*}*/
+
+center {
+  grid-column-start: 1;
+  grid-column-end: 6;
+  grid-row-start: 1;
+  grid-row-end: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+}
+
+.field {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0,0,0,0.5);
+  margin-bottom: 1rem;
+}
+.field label {
+  font-weight: bold;
+}
+.field > div {
+  text-align: right
+}
+
+td.locked {
+  display: flex;
+  justify-content: space-between;
+  background: rgba(0,0,0,0.2)
+}
+.locked button {
+  padding: 0 1rem;
+}

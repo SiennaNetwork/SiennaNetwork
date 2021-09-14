@@ -110,9 +110,13 @@
         "create_exchange": {
           "type": "object",
           "required": [
+            "entropy",
             "pair"
           ],
           "properties": {
+            "entropy": {
+              "$ref": "#/definitions/Binary"
+            },
             "pair": {
               "$ref": "#/definitions/TokenPair_for_HumanAddr"
             }
@@ -130,11 +134,38 @@
         "create_ido": {
           "type": "object",
           "required": [
+            "entropy",
             "info"
           ],
           "properties": {
+            "entropy": {
+              "$ref": "#/definitions/Binary"
+            },
             "info": {
               "$ref": "#/definitions/TokenSaleConfig"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Add addresses that are allowed to create IDOs",
+      "type": "object",
+      "required": [
+        "ido_whitelist"
+      ],
+      "properties": {
+        "ido_whitelist": {
+          "type": "object",
+          "required": [
+            "addresses"
+          ],
+          "properties": {
+            "addresses": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
             }
           }
         }

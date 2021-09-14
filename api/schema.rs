@@ -1,10 +1,11 @@
-use std::{env::current_dir,fs::create_dir_all};
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
+use std::{env::current_dir, fs::create_dir_all};
 
-use amm_shared::msg::exchange as exchange;
-use amm_shared::msg::factory as factory;
-use amm_shared::msg::ido as ido;
+use amm_shared::msg::exchange;
+use amm_shared::msg::factory;
+use amm_shared::msg::ido;
 use amm_shared::msg::snip20;
+
 use sienna_mgmt::msg as mgmt;
 use sienna_rewards::msg as rewards;
 use sienna_rpt::msg as rpt;
@@ -32,16 +33,6 @@ fn main() {
 
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");
-    out_dir.push("rewards");
-    create_dir_all(&out_dir).unwrap();
-    remove_schemas(&out_dir).unwrap();
-    export_schema(&schema_for!(rewards::InitMsg), &out_dir);
-    export_schema(&schema_for!(rewards::HandleMsg), &out_dir);
-    export_schema(&schema_for!(rewards::QueryMsg), &out_dir);
-    export_schema(&schema_for!(rewards::QueryMsgResponse), &out_dir);
-
-    let mut out_dir = current_dir().unwrap();
-    out_dir.push("api");
     out_dir.push("amm");
     create_dir_all(&out_dir).unwrap();
     remove_schemas(&out_dir).unwrap();
@@ -49,6 +40,7 @@ fn main() {
     export_schema(&schema_for!(exchange::HandleMsg), &out_dir);
     export_schema(&schema_for!(exchange::QueryMsg), &out_dir);
     export_schema(&schema_for!(exchange::QueryMsgResponse), &out_dir);
+    export_schema(&schema_for!(exchange::ReceiverCallbackMsg), &out_dir);
 
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");
@@ -69,6 +61,7 @@ fn main() {
     export_schema(&schema_for!(ido::HandleMsg), &out_dir);
     export_schema(&schema_for!(ido::QueryMsg), &out_dir);
     export_schema(&schema_for!(ido::QueryResponse), &out_dir);
+    export_schema(&schema_for!(ido::ReceiverCallbackMsg), &out_dir);
 
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");
@@ -80,55 +73,14 @@ fn main() {
     export_schema(&schema_for!(snip20::HandleAnswer), &out_dir);
     export_schema(&schema_for!(snip20::QueryMsg), &out_dir);
     export_schema(&schema_for!(snip20::QueryAnswer), &out_dir);
+
+    let mut out_dir = current_dir().unwrap();
+    out_dir.push("api");
+    out_dir.push("rewards");
+    create_dir_all(&out_dir).unwrap();
+    remove_schemas(&out_dir).unwrap();
+    export_schema(&schema_for!(rewards::Init), &out_dir);
+    export_schema(&schema_for!(rewards::Handle), &out_dir);
+    export_schema(&schema_for!(rewards::Query), &out_dir);
+    export_schema(&schema_for!(rewards::Response), &out_dir);
 }
-//fn main() {
-    ////let mut out_dir = current_dir().unwrap();
-    ////out_dir.push("schema");
-    ////create_dir_all(&out_dir).unwrap();
-    ////remove_schemas(&out_dir).unwrap();
-
-    ////export_schema(&schema_for!(InitMsg), &out_dir);
-    ////export_schema(&schema_for!(HandleMsg), &out_dir);
-    ////export_schema(&schema_for!(QueryMsg), &out_dir);
-    ////export_schema(&schema_for!(State), &out_dir);
-    ////export_schema(&schema_for!(CountResponse), &out_dir);
-//}
-
-//fn main() {
-    //let mut out_dir = current_dir().unwrap();
-    //out_dir.push("schema");
-    //create_dir_all(&out_dir).unwrap();
-    //remove_schemas(&out_dir).unwrap();
-
-    //export_schema(&schema_for!(InitMsg), &out_dir);
-    //export_schema(&schema_for!(HandleMsg), &out_dir);
-    //export_schema(&schema_for!(HandleAnswer), &out_dir);
-    //export_schema(&schema_for!(QueryMsg), &out_dir);
-    //export_schema(&schema_for!(QueryAnswer), &out_dir);
-//}
-
-//fn main() {
-    //// let mut out_dir = current_dir().unwrap();
-    //// out_dir.push("schema");
-    //// create_dir_all(&out_dir).unwrap();
-    //// remove_schemas(&out_dir).unwrap();
-    ////
-    //// export_schema(&schema_for!(InitMsg), &out_dir);
-    //// export_schema(&schema_for!(HandleMsg), &out_dir);
-    //// export_schema(&schema_for!(QueryMsg), &out_dir);
-    //// export_schema(&schema_for!(State), &out_dir);
-    //// export_schema(&schema_for!(CountResponse), &out_dir);
-//}
-
-//fn main() {
-    //let mut out_dir = current_dir().unwrap();
-    //out_dir.push("schema");
-    //create_dir_all(&out_dir).unwrap();
-    //remove_schemas(&out_dir).unwrap();
-
-    //export_schema(&schema_for!(InitMsg), &out_dir);
-    //export_schema(&schema_for!(HandleMsg), &out_dir);
-    //export_schema(&schema_for!(QueryMsg), &out_dir);
-    //export_schema(&schema_for!(State), &out_dir);
-    //export_schema(&schema_for!(CountResponse), &out_dir);
-//}

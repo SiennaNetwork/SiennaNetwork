@@ -5,17 +5,175 @@
     {
       "type": "object",
       "required": [
-        "get_rate"
+        "sale_info"
       ],
       "properties": {
-        "get_rate": {
+        "sale_info": {
           "type": "object",
           "required": [
-            "rate"
+            "input_token",
+            "max_allocation",
+            "max_seats",
+            "min_allocation",
+            "rate",
+            "sold_token",
+            "taken_seats"
           ],
           "properties": {
+            "end": {
+              "description": "Sale end time.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "input_token": {
+              "description": "The token that is used to buy the sold SNIP20.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/TokenType_for_HumanAddr"
+                }
+              ]
+            },
+            "max_allocation": {
+              "description": "The total amount that each participant is allowed to buy.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                }
+              ]
+            },
+            "max_seats": {
+              "description": "The maximum number of participants allowed.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "min_allocation": {
+              "description": "The minimum amount that each participant is allowed to buy.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                }
+              ]
+            },
             "rate": {
+              "description": "The conversion rate at which the token is sold.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                }
+              ]
+            },
+            "sold_token": {
+              "description": "The token that is being sold.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+                }
+              ]
+            },
+            "start": {
+              "description": "Sale start time.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "taken_seats": {
+              "description": "Number of participants currently.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "object",
+          "required": [
+            "available_for_sale",
+            "is_active",
+            "total_allocation"
+          ],
+          "properties": {
+            "available_for_sale": {
               "$ref": "#/definitions/Uint128"
+            },
+            "is_active": {
+              "type": "boolean"
+            },
+            "total_allocation": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "balance"
+      ],
+      "properties": {
+        "balance": {
+          "type": "object",
+          "required": [
+            "amount"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "token_info"
+      ],
+      "properties": {
+        "token_info": {
+          "type": "object",
+          "required": [
+            "decimals",
+            "name",
+            "symbol"
+          ],
+          "properties": {
+            "decimals": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0.0
+            },
+            "name": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "total_supply": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           }
         }
@@ -23,6 +181,71 @@
     }
   ],
   "definitions": {
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "TokenType_for_HumanAddr": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "custom_token"
+          ],
+          "properties": {
+            "custom_token": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "token_code_hash"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "token_code_hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "native_token"
+          ],
+          "properties": {
+            "native_token": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
     "Uint128": {
       "type": "string"
     }

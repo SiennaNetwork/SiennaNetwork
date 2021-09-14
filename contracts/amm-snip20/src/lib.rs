@@ -1,4 +1,4 @@
-use cosmwasm_std::{
+use amm_shared::fadroma::scrt::cosmwasm_std::{
     Extern, Storage, Api, Querier, StdResult,
     InitResponse, Env, HandleResponse, Binary
 };
@@ -32,7 +32,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
-    use cosmwasm_std::{
+    use amm_shared::fadroma::scrt::cosmwasm_std::{
         do_handle, do_init, do_query, ExternalApi, ExternalQuerier, ExternalStorage,
     };
 

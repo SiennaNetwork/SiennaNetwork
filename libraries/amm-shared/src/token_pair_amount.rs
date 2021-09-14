@@ -1,7 +1,10 @@
-use cosmwasm_std::{Uint128, Env, StdResult};
-use crate::{token_type::TokenType, token_pair::TokenPair};
+use fadroma::scrt::{
+    cosmwasm_std::{Uint128, Env, StdResult}
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use crate::{token_type::TokenType, token_pair::TokenPair};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct TokenPairAmount<A: Clone> {

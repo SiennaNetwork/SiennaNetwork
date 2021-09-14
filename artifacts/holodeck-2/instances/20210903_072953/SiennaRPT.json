@@ -1,0 +1,43 @@
+{
+  "label": "20210903_072953/SiennaRPT",
+  "codeId": 30430,
+  "codeHash": "7941e1cd03f42977e010137c6bcef7fc70fae7c46199855f9cc3a4b1088c1481",
+  "initTx": {
+    "contractAddress": "secret16rppw4h3g2ne0z67rnhdkupw43pcq6c0833vvz",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "30430"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret16rppw4h3g2ne0z67rnhdkupw43pcq6c0833vvz"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "E04200AC2D1FB21C2136DD29CBA3624BF430DFC6D5AF85F80D3903D6EFC9F654",
+    "data": "D0C21756F142A7978B5E1CEEDB702EAC43806B0F"
+  }
+}

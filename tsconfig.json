@@ -1,7 +1,3 @@
 {
-  "compilerOptions": {
-    "target": "es6",
-    "module": "es6",
-    "inlineSourceMap": true
-  }
+  "extends": "./libraries/fadroma-next/tsconfig.json"
 }

@@ -1,27 +1,33 @@
 pub use crate::snip20_impl::msg as snip20;
 
+use fadroma::scrt::{
+    callback::{Callback, ContractInstance, ContractInstantiationInfo},
+    cosmwasm_std::{Binary, Decimal, HumanAddr, Uint128},
+    migrate::types::ContractStatusLevel,
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::{HumanAddr, Binary, Uint128, Decimal};
-use fadroma_scrt_callback::{ContractInstantiationInfo, ContractInstance, Callback};
-use fadroma_scrt_migrate::types::ContractStatusLevel;
 
-use crate::{TokenPair, TokenType, TokenTypeAmount, TokenPairAmount};
+use crate::{TokenPair, TokenPairAmount, TokenType, TokenTypeAmount};
 
 pub mod factory {
-    use super::*;
     use super::ido::TokenSaleConfig;
-    use crate::{Pagination, Exchange, ExchangeSettings};
+    use super::*;
+    use crate::{
+        exchange::{Exchange, ExchangeSettings},
+        Pagination,
+    };
     use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
     pub struct InitMsg {
-        pub snip20_contract:   ContractInstantiationInfo,
+        pub snip20_contract: ContractInstantiationInfo,
         pub lp_token_contract: ContractInstantiationInfo,
-        pub pair_contract:     ContractInstantiationInfo,
-        pub ido_contract:      ContractInstantiationInfo,
+        pub pair_contract: ContractInstantiationInfo,
+        pub ido_contract: ContractInstantiationInfo,
         pub exchange_settings: ExchangeSettings<HumanAddr>,
-        pub admin: Option<HumanAddr>
+        pub admin: Option<HumanAddr>,
+        pub prng_seed: Binary,
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -31,44 +37,50 @@ pub mod factory {
         SetStatus {
             level: ContractStatusLevel,
             reason: String,
-            new_address: Option<HumanAddr>
+            new_address: Option<HumanAddr>,
         },
         /// Set contract templates and exchange settings. Admin only command.
         SetConfig {
-            snip20_contract:   Option<ContractInstantiationInfo>,
+            snip20_contract: Option<ContractInstantiationInfo>,
             lp_token_contract: Option<ContractInstantiationInfo>,
-            pair_contract:     Option<ContractInstantiationInfo>,
-            ido_contract:      Option<ContractInstantiationInfo>,
-            exchange_settings: Option<ExchangeSettings<HumanAddr>>
+            pair_contract: Option<ContractInstantiationInfo>,
+            ido_contract: Option<ContractInstantiationInfo>,
+            exchange_settings: Option<ExchangeSettings<HumanAddr>>,
         },
         /// Instantiates an exchange pair contract
         CreateExchange {
-            pair: TokenPair<HumanAddr>
+            pair: TokenPair<HumanAddr>,
+            entropy: Binary
         },
         /// Instantiates an IDO contract
         CreateIdo {
-            info: TokenSaleConfig
+            info: TokenSaleConfig,
+            entropy: Binary
+        },
+        /// Add addresses that are allowed to create IDOs
+        IdoWhitelist {
+            addresses: Vec<HumanAddr>,
         },
         /// Used by a newly instantiated exchange contract to register
         /// itself with the factory
         RegisterExchange {
             pair: TokenPair<HumanAddr>,
-            signature: Binary
+            signature: Binary,
         },
         /// Used by a newly instantiated IDO contract to register
         /// itself with the factory
         RegisterIdo {
-            signature: Binary
+            signature: Binary,
         },
         /// Adds already created exchanges to the registry. Admin only command.
         AddExchanges {
-            exchanges: Vec<Exchange<HumanAddr>>
+            exchanges: Vec<Exchange<HumanAddr>>,
         },
         /// Adds already created IDO addresses to the registry. Admin only command.
         AddIdos {
-            idos: Vec<HumanAddr>
+            idos: Vec<HumanAddr>,
         },
-        Admin(AdminHandleMsg)
+        Admin(AdminHandleMsg),
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -78,36 +90,42 @@ pub mod factory {
         Status,
         /// Get configuration (contract templates and exchange settings)
         GetConfig {},
-        GetExchangeAddress { pair: TokenPair<HumanAddr> },
-        ListIdos { pagination: Pagination },
-        ListExchanges { pagination: Pagination },
+        GetExchangeAddress {
+            pair: TokenPair<HumanAddr>,
+        },
+        ListIdos {
+            pagination: Pagination,
+        },
+        ListExchanges {
+            pagination: Pagination,
+        },
         GetExchangeSettings,
 
-        Admin(AdminQueryMsg)
+        Admin(AdminQueryMsg),
     }
 
     #[derive(Serialize, Deserialize, Debug, JsonSchema, PartialEq)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryResponse {
         GetExchangeAddress {
-            address: HumanAddr
+            address: HumanAddr,
         },
         ListIdos {
-            idos: Vec<HumanAddr>
+            idos: Vec<HumanAddr>,
         },
         ListExchanges {
-            exchanges: Vec<Exchange<HumanAddr>>
+            exchanges: Vec<Exchange<HumanAddr>>,
         },
         GetExchangeSettings {
-            settings: ExchangeSettings<HumanAddr>
+            settings: ExchangeSettings<HumanAddr>,
         },
         Config {
-            snip20_contract:   ContractInstantiationInfo,
+            snip20_contract: ContractInstantiationInfo,
             lp_token_contract: ContractInstantiationInfo,
-            pair_contract:     ContractInstantiationInfo,
-            ido_contract:      ContractInstantiationInfo,
-            exchange_settings: ExchangeSettings<HumanAddr>
-        }
+            pair_contract: ContractInstantiationInfo,
+            ido_contract: ContractInstantiationInfo,
+            exchange_settings: ExchangeSettings<HumanAddr>,
+        },
     }
 }
 
@@ -123,7 +141,9 @@ pub mod exchange {
         /// Used by the exchange contract to
         /// send back its address to the factory on init
         pub factory_info: ContractInstance<HumanAddr>,
-        pub callback: Callback<HumanAddr>
+        pub callback: Callback<HumanAddr>,
+        pub prng_seed: Binary,
+        pub entropy: Binary
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -133,27 +153,40 @@ pub mod exchange {
         SetStatus {
             level: ContractStatusLevel,
             reason: String,
-            new_address: Option<HumanAddr>
+            new_address: Option<HumanAddr>,
         },
         AddLiquidity {
             deposit: TokenPairAmount<HumanAddr>,
             /// The amount the price moves in a trading pair between when a transaction is submitted and when it is executed.
             /// Transactions that exceed this threshold will be rejected.
-            slippage_tolerance: Option<Decimal>
-        },
-        RemoveLiquidity {
-            /// The amount of LP tokens burned.
-            amount: Uint128,
-            /// The account to refund the tokens to.
-            recipient: HumanAddr
+            slippage_tolerance: Option<Decimal>,
         },
         Swap {
             /// The token type to swap from.
             offer: TokenTypeAmount<HumanAddr>,
             expected_return: Option<Uint128>,
+            recipient: Option<HumanAddr>,
+        },
+        // SNIP20 receiver interface
+        Receive {
+            from: HumanAddr,
+            msg: Option<Binary>,
+            amount: Uint128,
         },
         /// Sent by the LP token contract so that we can record its address.
-        OnLpTokenInit
+        OnLpTokenInit,
+    }
+
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum ReceiverCallbackMsg {
+        Swap {
+            expected_return: Option<Uint128>,
+            recipient: Option<HumanAddr>,
+        },
+        RemoveLiquidity {
+            recipient: HumanAddr,
+        },
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -162,11 +195,10 @@ pub mod exchange {
         /// Get pause/migration status
         Status,
         PairInfo,
-        Version,
         SwapSimulation {
             /// The token type to swap from.
-            offer: TokenTypeAmount<HumanAddr>
-        }
+            offer: TokenTypeAmount<HumanAddr>,
+        },
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -174,13 +206,13 @@ pub mod exchange {
     pub enum QueryMsgResponse {
         PairInfo {
             liquidity_token: ContractInstance<HumanAddr>,
-            factory:         ContractInstance<HumanAddr>,
-            pair:            TokenPair<HumanAddr>,
-            amount_0:        Uint128,
-            amount_1:        Uint128,
-            total_liquidity: Uint128
+            factory: ContractInstance<HumanAddr>,
+            pair: TokenPair<HumanAddr>,
+            amount_0: Uint128,
+            amount_1: Uint128,
+            total_liquidity: Uint128,
+            contract_version: u32,
         },
-        Version { version: u32 }
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -194,6 +226,7 @@ pub mod exchange {
 pub mod ido {
     use super::*;
     use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
+    use fadroma::scrt::callback::ContractInstance;
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct InitMsg {
@@ -201,10 +234,12 @@ pub mod ido {
         /// Should be the address of the original sender, since this is initiated by the factory.
         pub admin: HumanAddr,
         /// Used by the IDO to register itself with the factory.
-        pub callback: Callback<HumanAddr>
+        pub callback: Callback<HumanAddr>,
+        /// Seed for creating viewkey
+        pub prng_seed: Binary,
+        pub entropy: Binary
     }
-    
-    #[derive(Serialize, Deserialize, JsonSchema)]
+    #[derive(Serialize, Deserialize, JsonSchema, Clone)]
     pub struct TokenSaleConfig {
         /// The token that will be used to buy the SNIP20.
         pub input_token: TokenType<HumanAddr>,
@@ -225,24 +260,114 @@ pub mod ido {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum HandleMsg {
-        Swap {
-            amount: Uint128
+        /// Set pause/migration status
+        SetStatus {
+            level: ContractStatusLevel,
+            reason: String,
+            new_address: Option<HumanAddr>,
         },
-        Admin(AdminHandleMsg)
+        // SNIP20 receiver interface
+        Receive {
+            from: HumanAddr,
+            msg: Option<Binary>,
+            amount: Uint128,
+        },
+        /// Swap custom or native coin for selling coin
+        Swap {
+            amount: Uint128,
+            /// If the recipient of the funds
+            /// is going to be someone different
+            /// then the sender
+            recipient: Option<HumanAddr>
+        },
+        /// Change admin handle
+        Admin(AdminHandleMsg),
+        /// Ask for a refund after the sale is finished
+        AdminRefund { address: Option<HumanAddr> },
+        /// Admin can claim profits from sale after the sale finishes
+        AdminClaim { address: Option<HumanAddr> },
+        /// Add new address to whitelist
+        AdminAddAddresses { addresses: Vec<HumanAddr> },
+        CreateViewingKey {
+            entropy: String,
+            padding: Option<String>,
+        },
+        SetViewingKey {
+            key: String,
+            padding: Option<String>,
+        }
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryMsg {
-        GetRate,
-        Admin(AdminQueryMsg)
+        /// Get pause/migration status
+        Status,
+        SaleInfo,
+        SaleStatus,
+        Admin(AdminQueryMsg),
+        // Do not change the signatures below. They need to work with Keplr.
+        Balance {
+            address: HumanAddr,
+            key: String,
+        },
+        TokenInfo {}
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryResponse {
-        GetRate { 
-            rate: Uint128 
+        SaleInfo {
+            /// The token that is used to buy the sold SNIP20.
+            input_token: TokenType<HumanAddr>,
+            /// The token that is being sold.
+            sold_token: ContractInstance<HumanAddr>,
+            /// The conversion rate at which the token is sold.
+            rate: Uint128,
+            /// Number of participants currently.
+            taken_seats: u32,
+            /// The maximum number of participants allowed.
+            max_seats: u32,
+            /// The total amount that each participant is allowed to buy.
+            max_allocation: Uint128,
+            /// The minimum amount that each participant is allowed to buy.
+            min_allocation: Uint128,
+            /// Sale start time.
+            start: Option<u64>,
+            /// Sale end time.
+            end: Option<u64>
+        },
+        Status {
+            total_allocation: Uint128,
+            available_for_sale: Uint128,
+            is_active: bool
+        },
+        // Do not change the signatures below. They need to work with Keplr.
+        Balance {
+            amount: Uint128,
+        },
+        TokenInfo {
+            name: String,
+            symbol: String,
+            decimals: u8,
+            total_supply: Option<Uint128>,
         }
+    }
+
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum ReceiverCallbackMsg {
+        Activate {
+            /// Time when the sale will start (if None, it will start immediately)
+            start_time: Option<u64>,
+            /// Time when the sale will end
+            end_time: u64
+        },
+        Swap {
+            /// If the recipient of the funds
+            /// is going to be someone different
+            /// then the sender
+            recipient: Option<HumanAddr>
+        },
     }
 }

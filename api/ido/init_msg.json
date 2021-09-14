@@ -5,7 +5,9 @@
   "required": [
     "admin",
     "callback",
-    "info"
+    "entropy",
+    "info",
+    "prng_seed"
   ],
   "properties": {
     "admin": {
@@ -24,8 +26,19 @@
         }
       ]
     },
+    "entropy": {
+      "$ref": "#/definitions/Binary"
+    },
     "info": {
       "$ref": "#/definitions/TokenSaleConfig"
+    },
+    "prng_seed": {
+      "description": "Seed for creating viewkey",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Binary"
+        }
+      ]
     }
   },
   "definitions": {

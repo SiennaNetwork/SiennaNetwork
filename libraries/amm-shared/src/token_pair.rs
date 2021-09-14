@@ -1,30 +1,32 @@
-use cosmwasm_std::{Api, StdResult, Querier, HumanAddr, Uint128, CanonicalAddr};
+use fadroma::scrt::{
+    cosmwasm_std::{
+        Api, StdResult, Querier,
+        HumanAddr, Uint128, CanonicalAddr
+    },
+    addr::{Canonize, Humanize}
+};
 use crate::token_type::TokenType;
-use fadroma_scrt_addr::{Canonize, Humanize};
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize, Deserializer, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Debug, JsonSchema)]
 pub struct TokenPair<A>(pub TokenType<A>, pub TokenType<A>);
 
 impl Canonize<TokenPair<CanonicalAddr>> for TokenPair<HumanAddr> {
-    fn canonize (&self, api: &impl Api) -> StdResult<TokenPair<CanonicalAddr>> {
+    fn canonize(&self, api: &impl Api) -> StdResult<TokenPair<CanonicalAddr>> {
         Ok(TokenPair(self.0.canonize(api)?, self.1.canonize(api)?))
     }
 }
 
 impl Humanize<TokenPair<HumanAddr>> for TokenPair<CanonicalAddr> {
-    fn humanize (&self, api: &impl Api) -> StdResult<TokenPair<HumanAddr>> {
+    fn humanize(&self, api: &impl Api) -> StdResult<TokenPair<HumanAddr>> {
         Ok(TokenPair(self.0.humanize(api)?, self.1.humanize(api)?))
     }
 }
 
-#[deprecated(note="please use TokenPair<CanonicalAddr> instead")]
-pub type TokenPairStored = TokenPair<CanonicalAddr>;
-
 pub struct TokenPairIterator<'a, A> {
     pair: &'a TokenPair<A>,
-    index: u8
+    index: u8,
 }
 
 impl<A: Clone + PartialEq> TokenPair<A> {
@@ -49,7 +51,7 @@ impl<A: Clone + PartialEq> TokenPair<A> {
         match index {
             0 => Some(&self.0),
             1 => Some(&self.1),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -61,9 +63,11 @@ impl TokenPair<HumanAddr> {
         &self,
         querier: &impl Querier,
         exchange_addr: HumanAddr,
-        viewing_key: String
+        viewing_key: String,
     ) -> StdResult<[Uint128; 2]> {
-        let amount_0 = self.0.query_balance(querier, exchange_addr.clone(), viewing_key.clone())?;
+        let amount_0 = self
+            .0
+            .query_balance(querier, exchange_addr.clone(), viewing_key.clone())?;
         let amount_1 = self.1.query_balance(querier, exchange_addr, viewing_key)?;
 
         // order is important
@@ -81,7 +85,10 @@ impl<'a, A: Clone> IntoIterator for &'a TokenPair<A> {
     type Item = &'a TokenType<A>;
     type IntoIter = TokenPairIterator<'a, A>;
     fn into_iter(self) -> Self::IntoIter {
-        TokenPairIterator { pair: self, index: 0 }
+        TokenPairIterator {
+            pair: self,
+            index: 0,
+        }
     }
 }
 
@@ -92,7 +99,7 @@ impl<'a, A: Clone> Iterator for TokenPairIterator<'a, A> {
         let result = match self.index {
             0 => Some(&self.pair.0),
             1 => Some(&self.pair.1),
-            _ => None
+            _ => None,
         };
 
         self.index += 1;
@@ -103,20 +110,21 @@ impl<'a, A: Clone> Iterator for TokenPairIterator<'a, A> {
 
 // These are only used for serde, because it doesn't work with struct tuples.
 #[derive(Serialize, Deserialize)]
-pub struct TokenPairSerde<A: Clone> {
+struct TokenPairSerde<A: Clone> {
     token_0: TokenType<A>,
     token_1: TokenType<A>,
 }
-
-#[deprecated(note="please use TokenPairStoredSerde<CanonicalAddr> instead")]
-pub type TokenPairStoredSerde = TokenPairSerde<CanonicalAddr>;
 
 impl<A: Clone + Serialize> Serialize for TokenPair<A> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        TokenPairSerde { token_0: self.0.clone(), token_1: self.1.clone() }.serialize(serializer)
+        TokenPairSerde {
+            token_0: self.0.clone(),
+            token_1: self.1.clone(),
+        }
+        .serialize(serializer)
     }
 }
 
@@ -139,11 +147,11 @@ mod tests {
         let pair: TokenPair<HumanAddr> = TokenPair(
             TokenType::CustomToken {
                 contract_addr: "address".into(),
-                token_code_hash: "hash".into()
+                token_code_hash: "hash".into(),
             },
             TokenType::NativeToken {
-                denom: "denom".into()
-            }
+                denom: "denom".into(),
+            },
         );
 
         let pair2 = TokenPair(pair.1.clone(), pair.0.clone());

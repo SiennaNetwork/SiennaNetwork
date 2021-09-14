@@ -1,0 +1,42 @@
+{
+  "label": "20210907_081416/SiennaRewards_sSCRT-SITEST_Pool",
+  "codeId": 30432,
+  "codeHash": "63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6",
+  "initTx": {
+    "contractAddress": "secret1yn9zaah7pkdkdpukt309d8878q543mrvs7el24",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "30432"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret1yn9zaah7pkdkdpukt309d8878q543mrvs7el24"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "data": "24CA2EF6FE0D9B6687965C5E569CFE382958EC6C"
+  }
+}

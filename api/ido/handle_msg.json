@@ -3,6 +3,74 @@
   "title": "HandleMsg",
   "anyOf": [
     {
+      "description": "Set pause/migration status",
+      "type": "object",
+      "required": [
+        "set_status"
+      ],
+      "properties": {
+        "set_status": {
+          "type": "object",
+          "required": [
+            "level",
+            "reason"
+          ],
+          "properties": {
+            "level": {
+              "$ref": "#/definitions/ContractStatusLevel"
+            },
+            "new_address": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "receive"
+      ],
+      "properties": {
+        "receive": {
+          "type": "object",
+          "required": [
+            "amount",
+            "from"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "from": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "msg": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Binary"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Swap custom or native coin for selling coin",
       "type": "object",
       "required": [
         "swap"
@@ -16,6 +84,100 @@
           "properties": {
             "amount": {
               "$ref": "#/definitions/Uint128"
+            },
+            "recipient": {
+              "description": "If the recipient of the funds is going to be someone different then the sender",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Change admin handle",
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/AdminHandleMsg"
+        }
+      }
+    },
+    {
+      "description": "Ask for a refund after the sale is finished",
+      "type": "object",
+      "required": [
+        "admin_refund"
+      ],
+      "properties": {
+        "admin_refund": {
+          "type": "object",
+          "properties": {
+            "address": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Admin can claim profits from sale after the sale finishes",
+      "type": "object",
+      "required": [
+        "admin_claim"
+      ],
+      "properties": {
+        "admin_claim": {
+          "type": "object",
+          "properties": {
+            "address": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Add new address to whitelist",
+      "type": "object",
+      "required": [
+        "admin_add_addresses"
+      ],
+      "properties": {
+        "admin_add_addresses": {
+          "type": "object",
+          "required": [
+            "addresses"
+          ],
+          "properties": {
+            "addresses": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
             }
           }
         }
@@ -24,11 +186,50 @@
     {
       "type": "object",
       "required": [
-        "admin"
+        "create_viewing_key"
       ],
       "properties": {
-        "admin": {
-          "$ref": "#/definitions/AdminHandleMsg"
+        "create_viewing_key": {
+          "type": "object",
+          "required": [
+            "entropy"
+          ],
+          "properties": {
+            "entropy": {
+              "type": "string"
+            },
+            "padding": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_viewing_key"
+      ],
+      "properties": {
+        "set_viewing_key": {
+          "type": "object",
+          "required": [
+            "key"
+          ],
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "padding": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
         }
       }
     }
@@ -55,6 +256,19 @@
             }
           }
         }
+      ]
+    },
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "ContractStatusLevel": {
+      "description": "Possible states of a contract.",
+      "type": "string",
+      "enum": [
+        "Operational",
+        "Paused",
+        "Migrating"
       ]
     },
     "HumanAddr": {

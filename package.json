@@ -3,25 +3,30 @@
   "version": "0.0.0",
   "private": true,
   "workspaces": [
-    "./libraries/fadroma-21.06.1/utilities",
-    "./libraries/fadroma-21.06.1/scrt-agent",
-    "./libraries/fadroma-21.06.1/scrt-ops",
+    "./contracts/rewards",
+    "./libraries/fadroma-next",
+    "./libraries/fadroma-next/ops",
+    "./libraries/fadroma-next/ops-scrt",
+    "./libraries/fadroma-next/ops-scrt-1.0",
+    "./libraries/fadroma-next/ops-scrt-1.2",
+    "./libraries/fadroma-next/tools",
     "./libraries/schedule",
     "./api",
-    "./ops"
+    "./ops",
+    "./ops/amm"
   ],
   "dependencies": {
-    "@k-foss/ts-esnode": "^2.0.2",
+    "@fadroma/scrt-1.0": "*",
+    "@fadroma/scrt-1.2": "*",
     "chai": "^4.3.4",
     "docco": "^0.8.1",
+    "esmo": "^0.9.1",
     "mocha": "^8.4.0",
     "source-map-support": "^0.5.19",
-    "ts-node": "^10.0.0",
     "typescript": "^4.3.2"
   },
   "scripts": {
     "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",
-    "test": "./sienna clean-localnet && mocha -p false api/Rewards.spec.js",
     "sienna": "./sienna"
   }
 }

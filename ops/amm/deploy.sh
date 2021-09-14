@@ -4,4 +4,4 @@ fi
 
 Commit=`git rev-parse --short HEAD`
 
-node --trace-warnings ./dist/deploy.js $Commit $1
+node_modules/.bin/esmo --enable-source-maps ./deploy.ts $Commit $1

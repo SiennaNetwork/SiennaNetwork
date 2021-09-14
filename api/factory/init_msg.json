@@ -7,6 +7,7 @@
     "ido_contract",
     "lp_token_contract",
     "pair_contract",
+    "prng_seed",
     "snip20_contract"
   ],
   "properties": {
@@ -32,11 +33,18 @@
     "pair_contract": {
       "$ref": "#/definitions/ContractInstantiationInfo"
     },
+    "prng_seed": {
+      "$ref": "#/definitions/Binary"
+    },
     "snip20_contract": {
       "$ref": "#/definitions/ContractInstantiationInfo"
     }
   },
   "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
     "ContractInstantiationInfo": {
       "description": "Info needed to instantiate a contract.",
       "type": "object",

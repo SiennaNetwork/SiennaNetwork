@@ -1,39 +1,104 @@
 [package]
 name = "sienna-rewards"
-version = "0.1.0"
-authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
+version = "2.1.2"
+authors = ["Adam Avramov <adam@hack.bg>"]
 edition = "2018"
-
-exclude = [
-  # Those files are rust-optimizer artifacts. You might want to commit them for convenience but they should not be part of the source code publication.
-  "contract.wasm",
-  "hash.txt",
-]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
-
-[features]
-default = []
-# for quicker tests, cargo test --lib
-# for more explicit tests, cargo test --features=backtraces
-backtraces = ["cosmwasm-std/backtraces"]
-debug-print = ["cosmwasm-std/debug-print"]
+doctest = false
+path = "rewards.rs"
 
 [dependencies]
-cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+fadroma = { path = "../../libraries/fadroma-21.07/core", features = [
+  "scrt-addr",
+  "scrt-admin",
+  "scrt-callback",
+  "scrt-contract",
+  "scrt-migrate",
+  "scrt-snip20-api",
+  "scrt-storage",
+  "scrt-utils",
+  "scrt-vk"
+] }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-snafu = { version = "0.6.3" }
-secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
-cosmwasm-utils = { git = "https://github.com/hackbg/fadroma", tag = "snip20-v1.1.0" }
-composable-admin = { git = "https://github.com/hackbg/fadroma", tag = "snip20-v1.1.0" }
-composable-auth = { git = "https://github.com/hackbg/fadroma", tag = "snip20-v1.1.0" }
-fadroma-scrt-callback = { git = "https://github.com/hackbg/fadroma", tag = "snip20-v1.1.0" }
-fadroma-scrt-addr = { git = "https://github.com/hackbg/fadroma", tag = "snip20-v1.1.0" }
-fadroma-scrt-storage = { git = "https://github.com/hackbg/fadroma", tag = "snip20-v1.1.0" }
+wasm-bindgen = { optional = true, version = "0.2" }
 
 [dev-dependencies]
-rand = "0.8.0"
+fadroma = { path = "../../libraries/fadroma-21.07/core", features = [
+  "scrt-harness",
+  "backtraces"
+] }
+kukumba = { path = "../../libraries/kukumba" }
+serde_json = "1.0"
+tabwriter = "1.2.1"
+yansi = "0.5.0"
+backtrace = "0.3.61"
+color-backtrace = "0.5.1"
+
+[features]
+# Makes it so that after first providing liquidity,
+# users must wait for a configurable amount of time
+# before they can claim their unlocked rewards.
+age_threshold = []
+
+# Makes it so that after claiming,
+# users must wait for a configurable amount of time
+# before that can claim again.
+claim_cooldown = []
+
+# Makes it so that all rewards are diminished
+# by an admin-configurable percentage.
+global_ratio = []
+
+# Makes it so that if the pool has been empty for some time
+# all users' rewards are diminished by the percent of time the pool's been empty.
+pool_liquidity_ratio = []
+
+# Makes it so that if a user has provided liquidity
+# for less that 100% of the time they've been in the pool
+# (i.e. they unlock all their tokens for some time then come back)
+# their rewards are diminished by the percent of time they've been absent.
+user_liquidity_ratio = []
+
+# Makes it so that when a user retrieves all their tokens from the pool,
+# they are allowed to claim their last reward and are then forgotten about,
+# thus losing their lifetime liquidity share.
+#
+# * This nudges users to stay in the pool.
+#
+# If they have negative claimable, however, they are not forgotten about.
+#
+# * This prevents users from resetting a negative claimable
+#   and thus disrupting the liquidity/reward balance.
+# * This nudges users to stake a lot of liquidity tokens early,
+#   as there is a chance of a small "pension" for former large
+#   liquidity providers.
+# * However this "pension" can't be claimed unless users have locked
+#   some tokens in the pool. So again this incentivizes users to stay
+#   in the pool.
+selective_memory = []
+
+# Makes it so that the admin can close the pool, returning all tokens to the stakers
+# and preventing everyone from locking more tokens. Outstanding reward balance
+# to pay out rewards to remaining users can be transferred manually.
+pool_closes = []
+
+# default contract feature set:
+default = [
+  "age_threshold",
+  "claim_cooldown",
+  "global_ratio",
+  "pool_liquidity_ratio",
+  "user_liquidity_ratio",
+  "selective_memory",
+  "pool_closes"
+]
+
+# this allows the contract to be build for a mock environment
+# that is hosted in a browser. allows dashboard and fast integration tests
+browser = [
+  "fadroma/browser",
+  "wasm-bindgen"
+]

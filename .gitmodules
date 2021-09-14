@@ -8,16 +8,10 @@
   path   = contracts/snip20-sienna
   url    = git@github.com:hackbg/snip20-reference-impl.git
   branch = 21.04+nodeposit+noredeem
-  
-[submodule "fadroma-21.06.1"]
-  update = rebase
-  path   = libraries/fadroma-21.06.1
-  url    = git@github.com:hackbg/fadroma.git
-  branch = 21.06.1
 
 [submodule "platform"] # secret network with modifications to secretjs error handling
   update = rebase
-  path   = platform
+	path = libraries/scrt-1.0
   url    = git@github.com:hackbg/SecretNetwork.git
   branch = 21.03
 
@@ -26,3 +20,11 @@
   path   = libraries/kukumba
   url    = git@github.com:hackbg/kukumba.git
   branch = 21.04
+[submodule "fadroma-21.07"]
+	path = libraries/fadroma-21.07
+	url = git@github.com:hackbg/fadroma.git
+	branch = 21.07
+[submodule "libraries/fadroma-21.08"]
+	path = libraries/fadroma-next
+	url = git@github.com:hackbg/fadroma.git
+	branch = 21.08

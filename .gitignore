@@ -41,3 +41,6 @@ yarn.lock
 #!.yarn/sdks
 #!.yarn/versions
 #.pnp.*
+
+artifacts/enigma-pub-testnet-3/*
+artifacts/supernova-1-localnet/*

@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ReceiverCallbackMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "activate"
+      ],
+      "properties": {
+        "activate": {
+          "type": "object",
+          "required": [
+            "end_time"
+          ],
+          "properties": {
+            "end_time": {
+              "description": "Time when the sale will end",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "start_time": {
+              "description": "Time when the sale will start (if None, it will start immediately)",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "swap"
+      ],
+      "properties": {
+        "swap": {
+          "type": "object",
+          "properties": {
+            "recipient": {
+              "description": "If the recipient of the funds is going to be someone different then the sender",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "HumanAddr": {
+      "type": "string"
+    }
+  }
+}

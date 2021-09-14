@@ -1,148 +1,199 @@
 #!/usr/bin/env node
-import { argv } from 'process'
-import ensureWallets from '@fadroma/scrt-agent/fund.js'
-import SecretNetwork from '@fadroma/scrt-agent/network.js'
-import Localnet from '@fadroma/scrt-ops/localnet.js'
-import {
-  basename, extname, resolve,
-  readdirSync, readFile,
-  table, noBorders, bold,
-  runCommand, printUsage,
-} from '@fadroma/utilities'
-import {
-  args, cargo, genCoverage, genSchema, genDocs, runTests, runDemo,
-  ensureWallets, selectLocalnet, resetLocalnet, selectTestnet, openFaucet, selectMainnet
-} from './lib/index.js'
-import shell from './lib/shell.ts'
-import TGE from './TGEContracts.js'
-import Rewards from './RewardsContracts.ts'
-import Swap from './AMMContracts.ts'
-import Lend from './LendContracts.ts'
+import { Chain, Scrt, prefund, resetLocalnet, openFaucet, schemaToTypes, on,
+         ScrtEnsemble } from '@fadroma/scrt'
+import { stderr, existsSync, readFileSync, writeFileSync,
+         CommandName, Commands, runCommand, printUsage, REPL,
+         clear, resolve, basename, extname, dirname, fileURLToPath, cargo } from '@fadroma/tools'
+import { SNIP20Contract,
+         MGMTContract, RPTContract,
+         RewardsContract,
+         AMMContract, FactoryContract,
+         IDOContract } from '@sienna/api'
+import { scheduleFromSpreadsheet } from '@sienna/schedule'
+import { SiennaTGE, SiennaSwap, SiennaRewards, SiennaLend } from './ensembles'
+import { CLIHelp as Help } from './help'
 
-// Components of the project. Consist of multiple contracts and associated commands.
-const tge     = new TGE()
-const rewards = new Rewards()
-const amm     = new Swap()
-const lend    = new Lend()
-
-const printStatus = async ({network}) => {
-  const { receipts, instances } = SecretNetwork.hydrate(network)
-
-  const idToName = {}
-
-  const uploadReceipts = [[
-    bold('  code id'), bold('name\n'), bold('size'), bold('hash')
-  ]].concat(await Promise.all(readdirSync(receipts).map(async x=>{
-    x = resolve(receipts, x)
-    const {codeId, originalSize, compressedSize, originalChecksum, compressedChecksum} = JSON.parse(await readFile(x))
-    const name = idToName[codeId] = basename(x, '.upload.json')
-    return [
-      `  ${codeId}`,
-      `${bold(name)}\ncompressed:\n`,
-      `${originalSize}\n${String(compressedSize).padStart(String(originalSize).length)}`,
-      `${originalChecksum}\n${compressedChecksum}`]
-  })))
-
-  if (uploadReceipts.length > 1) {
-    console.log(`\nUploaded binaries on ${bold(network)}:`)
-    console.log('\n'+table(uploadReceipts, noBorders))
-  } else {
-    console.log(`\n  No known uploaded binaries on ${bold(network)}`)
-  }
-
-  const initReceipts = [[
-    bold('  label')+'\n  address', '(code id) binary name\ncode hash\ninit tx\n'
-  ]].concat(await Promise.all(readdirSync(instances).map(async x=>{
-    x = resolve(instances, x)
-    const name = basename(x, '.json')
-    const {codeId, codeHash, initTx} = await JSON.parse(await readFile(x))
-    const {contractAddress, transactionHash} = initTx
-    return [
-      `  ${bold(name)}\n  ${contractAddress}`,
-      `(${codeId}) ${idToName[codeId]||''}\n${codeHash}\n${transactionHash}\n`,
-      //`${contractAddress}\n${transactionHash}`,
-    ]
-  })))
-
-  if (initReceipts.length > 1) {
-    console.log(`Instantiated contracts on ${bold(network)}:`)
-    console.log('\n'+table(initReceipts, noBorders))
-  } else {
-    console.log(`\n  No known contracts on ${bold(network)}`)
-  }
-
-}
-
-const remoteCommands = network => [
-  ["status", "Show stored receipts.", printStatus],
-  null,
-  ["tge",     "🚀 SIENNA token + vesting",         null, new TGE({network}).remoteCommands],
-  ["rewards", "🏆 SIENNA token + staking rewards", null, new Rewards({network}).remoteCommands],
-  ["amm",     "💱 Contracts of Sienna Swap/AMM",   null, new Swap({network}).remoteCommands],
-  ["lend",    "🏦 Contracts of Sienna Lend",       null, new Lend({network}).remoteCommands],
-]
-
-const withNetwork = Ensemble => [
-  ["mainnet",  "Deploy and run contracts on the mainnet with real money.", selectMainnet,
-    new Ensemble({network: 'mainnet'}).remoteCommands],
-  ["testnet",  "Deploy and run contracts on the holodeck-2 testnet.",      selectTestnet,
-    new Ensemble({network: 'testnet'}).remoteCommands],
-  ["localnet", "Deploy and run contracts in a local container.",           selectLocalnet,
-    new Ensemble({network: 'localnet'}).remoteCommands],
-]
-
-export const commands: CommandList = [
-  [["help", "--help", "-h"], "❓ Print usage", () => printUsage({}, commands)],
-  null,
-  ["docs",     "📖 Build the documentation and open it in a browser.",  genDocs],
-  ["test",     "⚗️  Run test suites for all the individual components.", runTests],
-  ["coverage", "📔 Generate test coverage and open it in a browser.",   genCoverage],
-  ["schema",   "🤙 Regenerate JSON schema for each contract's API.",    genSchema],
-  ["build", "👷 Compile contracts from source", null, [
-    ["all",     "all contracts in workspace",                () => cargo('build')],
-    ["tge",     "snip20-sienna, mgmt, rpt",                  () => tge.build()],
-    ["rewards", "snip20-sienna, rewards",                    () => rewards.build()],
-    ["amm",     "amm-snip20, factory, exchange, lp-token",   () => amm.build()],
-    ["lend",    "snip20-lend + lend-atoken + configuration", () => lend.build()]]],
-  null,
-  ["tge",     "🚀 SIENNA token + vesting",         null,
-    [...tge.localCommands,     null, ...withNetwork(TGE)]],
-  ["rewards", "🏆 SIENNA token + staking rewards", null,
-    [...rewards.localCommands, null, ...withNetwork(Rewards)]],
-  ["amm",     "💱 Contracts of Sienna Swap/AMM",   null,
-    [...amm.localCommands,     null, ...withNetwork(Swap)]],
-  ["lend",    "🏦 Contracts of Sienna Lend",       null,
-    [...lend.localCommands,    null, ...withNetwork(Lend)]],
-  null,
-  ["mainnet",  "Deploy and run contracts on the mainnet with real money.", selectMainnet, [
-    ["shell",  "🐚 Launch a JavaScript REPL for talking to contracts directly", shell],
-    ...remoteCommands('mainnet')]],
-  ["testnet",  "Deploy and run contracts on the holodeck-2 testnet.", selectTestnet, [
-    ["shell",  "🐚 Launch a JavaScript REPL for talking to contracts directly", shell],
-    ["faucet", "🚰 Open https://faucet.secrettestnet.io/ in your default browser", openFaucet],
-    ["fund",   "👛 Creating test wallets by sending SCRT to them.",                ensureWallets],
-    ...remoteCommands('testnet')]],
-  ["localnet", "Deploy and run contracts in a local container.", selectLocalnet, [
-    ["shell",  "🐚 Launch a JavaScript REPL for talking to contracts directly", shell],
-    ["reset",  "Remove the localnet container and clear its stored state",      resetLocalnet],
-    ["fund",   "👛 Creating test wallets by sending SCRT to them.",             ensureWallets],
-    ...remoteCommands('localnet')]],
-]
+export const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+           , abs         = (...args: Array<string>) => resolve(projectRoot, ...args)
+           , stateBase   = abs('artifacts')
 
 export default async function main (command: CommandName, ...args: any) {
-  return await runCommand({ command: [ command ] }, commands, command, ...args)
-}
 
-try {
-  process.on('unhandledRejection', onerror)
-  main(argv[2], ...argv.slice(3))
-} catch (e) {
-  onerror(e)
-}
+  const tge     = new SiennaTGE()
+      , rewards = new SiennaRewards()
+      , swap     = new SiennaSwap()
+      , lend    = new SiennaLend()
 
-function onerror (e: Error) {
-  console.error(e)
-  const ISSUES = `https://github.com/SiennaNetwork/sienna/issues`
-  console.info(`🦋 That was a bug! Report it at ${ISSUES}`)
-  process.exit(1)
-}
+  function remoteCommands (chain: Chain): Commands {
+    return [
+      ["status",  Help.STATUS, () => chain.printStatusTables()],
+      ["shell",   Help.SHELL,  runShell],
+      null,
+      ["tge",     Help.TGE,     null, new SiennaTGE({chain}).remoteCommands()],
+      ["swap",    Help.SWAP,    null, new SiennaSwap({chain}).remoteCommands()],
+      ["rewards", Help.REWARDS, null, new SiennaRewards({chain}).remoteCommands()],
+      ["lend",    Help.LEND,    null, new SiennaLend({chain}).remoteCommands()]] }
+
+  const commands: Commands = [
+    [["help", "--help", "-h"], Help.USAGE, () => printUsage({}, commands)],
+
+    null,
+
+    ["docs",     Help.DOCS,     genDocs],
+    ["test",     Help.TEST,     runTests],
+    ["coverage", Help.COVERAGE, genCoverage],
+    ["schema",   Help.SCHEMA,   genSchema],
+    ["build",    Help.BUILD, null, [
+      ["all",     Help.BUILD_ALL,     () => cargo('build')],
+      ["tge",     Help.BUILD_TGE,     () => tge.build()],
+      ["rewards", Help.BUILD_REWARDS, () => rewards.build()],
+      ["swap",    Help.BUILD_SWAP,    () => swap.build()],
+      ["lend",    Help.BUILD_LEND,    () => lend.build()]]],
+
+    null,
+
+    ["tge",     Help.TGE,     null,
+      [...tge.localCommands(),     null, ...ScrtEnsemble.chainSelector(SiennaTGE)    ] as Commands],
+    ["swap",     Help.SWAP,     null,
+      [...swap.localCommands(),    null, ...ScrtEnsemble.chainSelector(SiennaSwap)   ] as Commands],
+    ["rewards", Help.REWARDS, null,
+      [...rewards.localCommands(), null, ...ScrtEnsemble.chainSelector(SiennaRewards)] as Commands],
+    ["lend",    Help.LEND,    null,
+      [...lend.localCommands(),    null, ...ScrtEnsemble.chainSelector(SiennaLend)   ] as Commands],
+
+    null,
+
+    ...Scrt.mainnetCommands(remoteCommands),
+    ...Scrt.testnetCommands(remoteCommands),
+    ...Scrt.localnetCommands(remoteCommands)]
+
+  return await runCommand({ command: [ command ] }, commands, command, ...args) }
+
+export async function runShell ({
+  chain, agent, builder,
+}: Record<string, any>) {
+  return await new REPL({
+    workspace: abs(),
+    chain,
+    agent,
+    builder,
+    Contracts: {
+      AMM:     AMMContract,
+      Factory: FactoryContract,
+      IDO:     IDOContract,
+      MGMT:    MGMTContract,
+      RPT:     RPTContract,
+      Rewards: RewardsContract,
+      SNIP20:  SNIP20Contract },
+    Ensembles: {
+      TGE:     SiennaTGE,
+      Rewards: SiennaRewards,
+      Swap:    SiennaSwap,
+      Lend:    SiennaLend } }).run() }
+
+export function genCoverage () {
+  // fixed by https://github.com/rust-lang/cargo/issues/9220
+  cargo('tarpaulin', '--out=Html', `--output-dir=${abs()}`, '--locked', '--frozen') }
+
+export async function genSchema () {
+  cargo('run', '--bin', 'schema')
+  await schemaToTypes(...[
+    'amm/handle_msg.json',
+    'amm/init_msg.json',
+    'amm/query_msg.json',
+    'amm/query_msg_response.json',
+    'amm/receiver_callback_msg.json',
+    'factory/handle_msg.json',
+    'factory/init_msg.json',
+    'factory/query_msg.json',
+    'factory/query_response.json',
+    'ido/handle_msg.json',
+    'ido/init_msg.json',
+    'ido/query_msg.json',
+    'ido/query_response.json',
+    'ido/receiver_callback_msg.json',
+    'mgmt/handle.json',
+    'mgmt/init.json',
+    'mgmt/query.json',
+    'mgmt/response.json',
+    'rewards/handle.json',
+    'rewards/init.json',
+    'rewards/query.json',
+    'rewards/response.json',
+    'rpt/handle.json',
+    'rpt/init.json',
+    'rpt/query.json',
+    'rpt/response.json',
+    'snip20/handle_answer.json',
+    'snip20/handle_msg.json',
+    'snip20/init_msg.json',
+    'snip20/query_answer.json',
+    'snip20/query_msg.json'].map(x=>abs('api', x))) }
+
+export function genDocs (_:any, crate = '', dontOpen = false) {
+  const entryPoint = crate
+    ? abs('target', 'doc', crate, 'index.html')
+    : abs('target', 'doc')
+  try {
+    process.stderr.write(`⏳ Building documentation...\n\n`)
+    cargo('doc') }
+  catch (e) {
+    process.stderr.write('\n🤔 Building documentation failed.')
+    if (!dontOpen) {
+      if (existsSync(entryPoint)) {
+        process.stderr.write(`\n⏳ Opening what exists at ${entryPoint}...`) }
+      else {
+        process.stderr.write(`\n⏳ ${entryPoint} does not exist, opening nothing.`)
+        return } } }
+  if (!dontOpen) {
+    open(`file://${entryPoint}`) } }
+
+export function getDefaultSchedule () {
+  const path = resolve(projectRoot, 'settings', 'schedule.json')
+  try {
+    return JSON.parse(readFileSync(path, 'utf8')) }
+  catch (e) {
+    console.warn(`${path} does not exist - "./sienna tge config" should create it`)
+    return null } }
+
+export function genConfig (
+  { file = abs('settings', 'schedule.ods') } = {}
+) {
+  stderr.write(`\n⏳ Importing configuration from ${file}...\n\n`)
+  const name     = basename(file, extname(file)) // path without extension
+      , schedule = scheduleFromSpreadsheet({ file })
+      , output   = resolve(dirname(file), `${name}.json`)
+  stderr.write(`⏳ Saving configuration to ${output}...\n\n`)
+  writeFileSync(output, stringify(schedule), 'utf8')
+  stderr.write(`🟢 Configuration saved to ${output}\n`) }
+
+export function stringify (data: any) {
+  const indent = 2
+  const withBigInts = (_:any, v:any) => typeof v === 'bigint' ? v.toString() : v
+  return JSON.stringify(data, withBigInts, indent) }
+
+export const runTests = () => {
+  clear()
+  stderr.write(`⏳ Running tests...\n\n`)
+  try {
+    run('sh', '-c',
+      'cargo test --color=always --no-fail-fast -- --nocapture --test-threads=1 2>&1'+
+      ' | less -R +F')
+    stderr.write('\n🟢 Tests ran successfully.\n') }
+  catch (e) {
+    stderr.write('\n🔴 Tests failed.\n') } }
+
+export const fmtDecimals = (d: number|string) => (x: number|string) => {
+  const a = (BigInt(x) / BigInt(d)).toString()
+  const b = (BigInt(x) % BigInt(d)).toString()
+  return `${a}.${b.padEnd(18, '0')}` }
+
+export const
+  SCRT_DECIMALS = 6,
+  ONE_SCRT = BigInt(`1${[...Array(SCRT_DECIMALS)].map(()=>`0`).join('')}`),
+  fmtSCRT  = fmtDecimals(ONE_SCRT.toString())
+
+export const
+  SIENNA_DECIMALS = 18,
+  ONE_SIENNA = BigInt(`1${[...Array(SIENNA_DECIMALS)].map(()=>`0`).join('')}`),
+  fmtSIENNA  = fmtDecimals(ONE_SIENNA.toString())

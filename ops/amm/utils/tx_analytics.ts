@@ -1,4 +1,8 @@
-import { ExecuteResult, RestClient, BroadcastMode, TxsResponse } from 'secretjs'
+import { RestClient, BroadcastMode, TxsResponse } from 'secretjs'
+
+const MISSING_VALUE = 'N/A'
+
+type TxHash = string
 
 export interface GasUsage {
     name: string,
@@ -6,60 +10,87 @@ export interface GasUsage {
     gas_used: string
 }
 
-interface NamedTx {
-    name: string,
-    tx: ExecuteResult
+class NamedTxResponse {
+    constructor(
+        readonly name: string,
+        readonly data: TxsResponse
+    ) { }
+
+    gas(): GasUsage {
+        return {
+            name: this.name,
+            gas_wanted: this.data.gas_wanted || MISSING_VALUE,
+            gas_used: this.data.gas_used || MISSING_VALUE
+        }
+    }
 }
 
-const MISSING_VALUE = 'N/A'
-
 export class TxAnalytics {
-    private readonly txs: Map<string, NamedTx> = new Map<string, NamedTx>()
+    private readonly outstanding = new Map<TxHash, string>()
+    private readonly resolved = new Map<TxHash, NamedTxResponse>()
     private readonly rest: RestClient
-    private cache: TxsResponse[] | null = null
 
     constructor(apiUrl: string) {
         this.rest = new RestClient(apiUrl, BroadcastMode.Block)
     }
 
-    add_tx(name: string, tx: ExecuteResult) {
-        this.txs.set(tx.transactionHash, {
-            name,
-            tx
-        })
+    add_tx(hash: TxHash, name?: string | undefined) {
+        if (name === undefined) {
+            name = hash
+        }
 
-        this.cache = null
+        this.outstanding.set(hash, name)
     }
 
-    async get_gas_usage(): Promise<GasUsage[]> {
-        const result = await this.get_txs()
+    async get_gas_report(): Promise<GasUsage[]> {
+        await this.get_txs()
 
-        return result.map(tx => {
-            const named_tx = this.txs.get(tx.txhash)
+        const values = Array.from(this.resolved.values())
 
-            return { 
-                name: named_tx ? named_tx.name : tx.txhash,
-                gas_wanted: tx.gas_wanted || MISSING_VALUE,
-                gas_used: tx.gas_used || MISSING_VALUE
-            }
+        return values.map(val => {
+            return val.gas()
         });
     }
 
-    private async get_txs(): Promise<TxsResponse[]> {
-        if (this.cache != null) {
-            return this.cache
+    async get_gas_usage(hash: TxHash): Promise<GasUsage> {
+        let resp = this.resolved.get(hash)
+
+        if (resp === undefined) {
+            const name = this.outstanding.get(hash)
+
+            const data = await this.query_tx(hash)
+
+            if (name) {
+                this.outstanding.delete(hash)
+                resp = new NamedTxResponse(name, data)
+            } else {
+                resp = new NamedTxResponse(hash, data)
+            }
+
+            this.resolved.set(hash, resp)
         }
 
-        const values = Array.from(this.txs.values())
+        return resp.gas()
+    }
 
-        const result = await Promise.all(
-            values
-                .map(x => x.tx.transactionHash)
-                .map(id => this.rest.get(`/txs/${id}`) as any)
-        )
+    private async get_txs() {
+        if (this.outstanding.size === 0) {
+            return
+        }
 
-        this.cache = result
+        for(let val of this.outstanding.entries()) {
+            const data = await this.query_tx(val[0])
 
-        return result
+            this.resolved.set(
+                val[0],
+                new NamedTxResponse(val[1], data)
+            )
+        }
+
+        this.outstanding.clear()
+    }
+
+    private async query_tx(hash: TxHash): Promise<TxsResponse> {
+        return await this.rest.get(`/txs/${hash}`) as TxsResponse
     }
 }
