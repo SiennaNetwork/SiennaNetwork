@@ -75,7 +75,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             ),
             admin: Some(env.contract.address.clone()),
             symbol: "SWAP-LP".to_string(),
-            decimals: 6,
+            decimals: 18,
             callback: Some(Callback {
                 msg: to_binary(&HandleMsg::OnLpTokenInit)?,
                 contract: ContractInstance {

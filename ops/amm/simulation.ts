@@ -272,7 +272,7 @@ async function withdraw_liquidity() {
     const pair = pairs[pair_index]
 
     const lp_amount = lp.liquidity.get(pair) as bigint
-    let rand_amount = BigInt(raw_amount(rand(MIN_AMOUNT, MAX_AMOUNT), 6)) // LP tokens has 6 decimals
+    let rand_amount = BigInt(raw_amount(rand(MIN_AMOUNT, MAX_AMOUNT), 18)) // LP tokens has 18 decimals
     
     if (rand_amount >= lp_amount) {
         rand_amount = lp_amount
