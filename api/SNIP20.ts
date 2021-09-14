@@ -1,5 +1,6 @@
-import type { Agent } from "@hackbg/fadroma"
-import { ContractAPI, loadSchemas, randomHex } from "@hackbg/fadroma"
+import type { Agent } from "@fadroma/scrt"
+import { ScrtContract, loadSchemas } from "@fadroma/scrt"
+import { randomHex } from "@fadroma/tools"
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./snip20/init_msg.json",
@@ -10,9 +11,18 @@ export const schema = loadSchemas(import.meta.url, {
 });
 
 const decoder = new TextDecoder();
-const decode = (buffer) => decoder.decode(buffer).trim();
+const decode = (buffer: any) => decoder.decode(buffer).trim();
 
-export default class SNIP20 extends ContractAPI {
+export default class SNIP20 extends ScrtContract {
+
+  /* Get an API wrapper for an existing contract */
+  static attach (agent: Agent, address: string, codeHash: string) {
+    const instance = new this(agent)
+    instance.code.codeHash = codeHash
+    instance.init.address  = address
+    return instance
+  }
+
   constructor(agent: Agent) {
     super(schema, agent);
   }
@@ -26,7 +36,7 @@ export default class SNIP20 extends ContractAPI {
   addMinters = (minters: Array<string>, agent?: Agent) =>
     this.tx.add_minters({ minters, padding: null }, agent);
 
-  mint = (amount: string, agent = this.agent, recipient = agent.address) =>
+  mint = (amount: string, agent = this.instantiator, recipient = agent.address) =>
     this.tx
       .mint({ amount: String(amount), recipient, padding: null }, agent)
       .then((tx) => ({ tx, mint: JSON.parse(decode(tx.data)).mint }));

@@ -4,7 +4,8 @@
   "main": "index.ts",
   "type": "module",
   "dependencies": {
-    "@hackbg/fadroma": "*",
+    "@fadroma/scrt": "*",
+    "@fadroma/tools": "*",
     "@sienna/api": "*",
     "chokidar": "^3.5.1",
     "esm": "^3.2.25",

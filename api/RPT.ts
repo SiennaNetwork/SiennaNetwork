@@ -1,5 +1,5 @@
-import type { Agent } from "@hackbg/fadroma"
-import { ContractAPI, loadSchemas } from "@hackbg/fadroma"
+import type { Agent } from "@fadroma/scrt"
+import { ScrtContract, loadSchemas } from "@fadroma/scrt"
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./rpt/init.json",
@@ -8,7 +8,7 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg: "./rpt/handle.json",
 });
 
-export default class RPT extends ContractAPI {
+export default class RPT extends ScrtContract {
   constructor(agent: Agent) {
     super(schema, agent);
   }

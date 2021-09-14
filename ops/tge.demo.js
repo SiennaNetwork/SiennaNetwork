@@ -20,7 +20,8 @@
 // * 🤵 **allocating unassigned funds** from a pool to a **new account**
 // * 💰 **splitting the Remaining Pool Tokens** between multiple addresses
 // * 🍰 **reconfiguring that split**, preserving the **total portion size**
-import { loadJSON, fileURLToPath, resolve, dirname, taskmaster, prefund } from '@hackbg/fadroma'
+import { prefund } from '@fadroma/scrt'
+import { loadJSON, fileURLToPath, resolve, dirname, taskmaster } from '@fadroma/tools'
 
 import { fmtSIENNA } from './index.ts'
 import { SiennaTGE as TGEContracts } from './ensembles'

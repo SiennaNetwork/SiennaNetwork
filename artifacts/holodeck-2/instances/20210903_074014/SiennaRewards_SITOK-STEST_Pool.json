@@ -1,0 +1,43 @@
+{
+  "label": "20210903_074014/SiennaRewards_SITOK-STEST_Pool",
+  "codeId": 30432,
+  "codeHash": "63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6",
+  "initTx": {
+    "contractAddress": "secret14l98f54597gmtxqlplmnu5jwhyg3t6tp7jum7c",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "30432"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret14l98f54597gmtxqlplmnu5jwhyg3t6tp7jum7c"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "88808EFD9A98C2E59A517AE9791E03DDFB5E90D364D36CF461A02C75096A47BA",
+    "data": "AFCA74D2B42F91B5981F0FF73E524EB91115E961"
+  }
+}

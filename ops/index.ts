@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import { Chain, Scrt, prefund,
-         CommandName, Commands, runCommand, printUsage, REPL, open, prompts,
-         on, resetLocalnet, openFaucet, clear, schemaToTypes } from '@hackbg/fadroma'
-import { env, stderr, existsSync, readFileSync, writeFileSync,
-         resolve, basename, extname, dirname, fileURLToPath, cargo } from '@hackbg/fadroma'
+import { Chain, Scrt, prefund, resetLocalnet, openFaucet, schemaToTypes, on,
+         ScrtEnsemble } from '@fadroma/scrt'
+import { stderr, existsSync, readFileSync, writeFileSync,
+         CommandName, Commands, runCommand, printUsage, REPL,
+         clear, resolve, basename, extname, dirname, fileURLToPath, cargo } from '@fadroma/tools'
 import { SNIP20Contract,
          MGMTContract, RPTContract,
          RewardsContract,
@@ -21,15 +21,16 @@ export default async function main (command: CommandName, ...args: any) {
 
   const tge     = new SiennaTGE()
       , rewards = new SiennaRewards()
-      , amm     = new SiennaSwap()
+      , swap     = new SiennaSwap()
       , lend    = new SiennaLend()
 
   function remoteCommands (chain: Chain): Commands {
     return [
-      ["status",  Help.STATUS,  () => chain.printStatusTables()],
+      ["status",  Help.STATUS, () => chain.printStatusTables()],
+      ["shell",   Help.SHELL,  runShell],
       null,
       ["tge",     Help.TGE,     null, new SiennaTGE({chain}).remoteCommands()],
-      ["amm",     Help.AMM,     null, new SiennaSwap({chain}).remoteCommands()],
+      ["swap",    Help.SWAP,    null, new SiennaSwap({chain}).remoteCommands()],
       ["rewards", Help.REWARDS, null, new SiennaRewards({chain}).remoteCommands()],
       ["lend",    Help.LEND,    null, new SiennaLend({chain}).remoteCommands()]] }
 
@@ -46,35 +47,25 @@ export default async function main (command: CommandName, ...args: any) {
       ["all",     Help.BUILD_ALL,     () => cargo('build')],
       ["tge",     Help.BUILD_TGE,     () => tge.build()],
       ["rewards", Help.BUILD_REWARDS, () => rewards.build()],
-      ["amm",     Help.BUILD_AMM,     () => amm.build()],
+      ["swap",    Help.BUILD_SWAP,    () => swap.build()],
       ["lend",    Help.BUILD_LEND,    () => lend.build()]]],
 
     null,
 
     ["tge",     Help.TGE,     null,
-      [...tge.localCommands(),     null, ...Scrt.chainSelector(SiennaTGE)    ] as Commands],
-    ["amm",     Help.AMM,     null,
-      [...amm.localCommands(),     null, ...Scrt.chainSelector(SiennaSwap)   ] as Commands],
+      [...tge.localCommands(),     null, ...ScrtEnsemble.chainSelector(SiennaTGE)    ] as Commands],
+    ["swap",     Help.SWAP,     null,
+      [...swap.localCommands(),    null, ...ScrtEnsemble.chainSelector(SiennaSwap)   ] as Commands],
     ["rewards", Help.REWARDS, null,
-      [...rewards.localCommands(), null, ...Scrt.chainSelector(SiennaRewards)] as Commands],
+      [...rewards.localCommands(), null, ...ScrtEnsemble.chainSelector(SiennaRewards)] as Commands],
     ["lend",    Help.LEND,    null,
-      [...lend.localCommands(),    null, ...Scrt.chainSelector(SiennaLend)   ] as Commands],
+      [...lend.localCommands(),    null, ...ScrtEnsemble.chainSelector(SiennaLend)   ] as Commands],
 
     null,
 
-    ["mainnet",  Help.MAINNET,  on.mainnet,  [
-      ["shell",  Help.SHELL,    runShell],
-      ...remoteCommands(Scrt.mainnet())]],
-    ["testnet",  Help.TESTNET,  on.testnet,  [
-      ["shell",  Help.SHELL,    runShell],
-      ["faucet", Help.FAUCET,   openFaucet],
-      ["fund",   Help.FUND,     prefund],
-      ...remoteCommands(Scrt.testnet())]],
-    ["localnet", Help.LOCALNET, on.localnet, [
-      ["shell",  Help.SHELL,    runShell],
-      ["reset",  Help.FAUCET,   resetLocalnet],
-      ["fund",   Help.FUND,     prefund],
-      ...remoteCommands(Scrt.localnet())]]]
+    ...Scrt.mainnetCommands(remoteCommands),
+    ...Scrt.testnetCommands(remoteCommands),
+    ...Scrt.localnetCommands(remoteCommands)]
 
   return await runCommand({ command: [ command ] }, commands, command, ...args) }
 

@@ -1,7 +1,7 @@
 import debug from "debug";
 import { assert } from "chai";
 import { randomBytes } from "crypto";
-import { Scrt, gas } from "@hackbg/fadroma";
+import { Scrt, gas } from "@fadroma/scrt";
 
 import { abs } from "../ops/index";
 

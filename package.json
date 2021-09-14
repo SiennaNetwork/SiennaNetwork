@@ -4,14 +4,20 @@
   "private": true,
   "workspaces": [
     "./contracts/rewards",
-    "./libraries/fadroma-21.08/",
+    "./libraries/fadroma-next",
+    "./libraries/fadroma-next/ops",
+    "./libraries/fadroma-next/ops-scrt",
+    "./libraries/fadroma-next/ops-scrt-1.0",
+    "./libraries/fadroma-next/ops-scrt-1.2",
+    "./libraries/fadroma-next/tools",
     "./libraries/schedule",
     "./api",
     "./ops",
     "./ops/amm"
   ],
   "dependencies": {
-    "@hackbg/fadroma": "*",
+    "@fadroma/scrt-1.0": "*",
+    "@fadroma/scrt-1.2": "*",
     "chai": "^4.3.4",
     "docco": "^0.8.1",
     "esmo": "^0.9.1",
