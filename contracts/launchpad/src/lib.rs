@@ -1,8 +1,13 @@
+extern crate rand;
+
 pub mod contract;
 pub mod data;
-pub(crate) mod handle;
-pub(crate) mod helpers;
-pub(crate) mod query;
+pub mod handle;
+pub mod helpers;
+pub mod query;
+
+#[cfg(test)]
+mod test;
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {

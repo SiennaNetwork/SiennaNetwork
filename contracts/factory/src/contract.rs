@@ -1,10 +1,9 @@
 use amm_shared::{
-    Pagination, TokenPair,
     admin::admin::{
+        admin_handle, admin_query, assert_admin, load_admin, save_admin,
         DefaultHandleImpl as AdminHandle, DefaultQueryImpl as AdminQuery,
-        admin_handle, admin_query, assert_admin, load_admin, save_admin
     },
-    exchange::Exchange, 
+    exchange::Exchange,
     fadroma::scrt::{
         callback::{Callback, ContractInstance},
         cosmwasm_std::{
@@ -12,21 +11,24 @@ use amm_shared::{
             InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
         migrate as fadroma_scrt_migrate,
-        storage::{load, remove, save}
+        storage::{load, remove, save},
     },
     msg::{
         exchange::InitMsg as ExchangeInitMsg,
         factory::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
-        ido::{InitMsg as IdoInitMsg, TokenSaleConfig},
-    }
+        ido::{InitMsg as IdoInitMsg, TokenSaleConfig, WhitelistRequest},
+        launchpad::{InitMsg as LaunchpadInitMsg, TokenSettings},
+    },
+    Pagination, TokenPair,
 };
 
 use amm_shared::admin::require_admin;
 
 use crate::state::{
     get_address_for_pair, get_exchanges, get_idos, ido_whitelist_add, ido_whitelist_remove,
-    is_ido_whitelisted, load_config, load_prng_seed, pair_exists, save_config, save_prng_seed,
-    store_exchanges, store_ido_addresses, Config,
+    is_ido_whitelisted, load_config, load_launchpad_instance, load_prng_seed, pair_exists,
+    save_config, save_launchpad_instance, save_prng_seed, store_exchanges, store_ido_addresses,
+    Config,
 };
 use fadroma_scrt_migrate::{get_status, with_status};
 
@@ -57,8 +59,16 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         match msg {
             HandleMsg::SetConfig { .. } => set_config(deps, env, msg),
             HandleMsg::IdoWhitelist { addresses } => ido_whitelist(deps, env, addresses),
-            HandleMsg::CreateExchange { pair, entropy } => create_exchange(deps, env, pair, entropy),
-            HandleMsg::CreateIdo { info, entropy } => create_ido(deps, env, info, entropy),
+            HandleMsg::CreateExchange { pair, entropy } =>
+                create_exchange(deps, env, pair, entropy),
+            HandleMsg::CreateLaunchpad { tokens, entropy } =>
+                create_launchpad(deps, env, tokens, entropy),
+            HandleMsg::RegisterLaunchpad { signature } => register_launchpad(deps, env, signature),
+            HandleMsg::CreateIdo {
+                info,
+                tokens,
+                entropy,
+            } => create_ido(deps, env, info, tokens, entropy),
             HandleMsg::RegisterIdo { signature } => register_ido(deps, env, signature),
             HandleMsg::RegisterExchange { pair, signature } =>
                 register_exchange(deps, env, pair, signature),
@@ -79,6 +89,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::GetExchangeAddress { pair } => query_exchange_address(deps, pair),
         QueryMsg::ListExchanges { pagination } => list_exchanges(deps, pagination),
         QueryMsg::ListIdos { pagination } => list_idos(deps, pagination),
+        QueryMsg::GetLaunchpadAddress => get_launchpad_address(deps),
         QueryMsg::GetExchangeSettings => query_exchange_settings(deps),
 
         QueryMsg::Admin(msg) => admin_query(deps, msg, AdminQuery),
@@ -152,7 +163,7 @@ pub fn create_exchange<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     pair: TokenPair<HumanAddr>,
-    entropy: Binary
+    entropy: Binary,
 ) -> StdResult<HandleResponse> {
     if pair.0 == pair.1 {
         return Err(StdError::generic_err(
@@ -246,11 +257,97 @@ fn query_exchange_address<S: Storage, A: Api, Q: Querier>(
     to_binary(&QueryResponse::GetExchangeAddress { address })
 }
 
+/// Instantiate a launchpad contract
+fn create_launchpad<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    tokens: Vec<TokenSettings>,
+    entropy: Binary,
+) -> StdResult<HandleResponse> {
+    let is_admin = load_admin(deps)? == env.message.sender;
+
+    if !is_admin {
+        return Err(StdError::unauthorized());
+    }
+
+    if load_launchpad_instance(&deps.storage)?.is_some() {
+        return Err(StdError::generic_err(
+            "Launchpad contract is already created",
+        ));
+    }
+
+    let signature = create_signature(&env)?;
+    save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
+    // Again, creating the IDO happens when the instantiated contract calls
+    // us back via the HandleMsg::RegisterIdo so that we can get its address.
+    let config = load_config(deps)?;
+
+    Ok(HandleResponse {
+        messages: vec![CosmosMsg::Wasm(WasmMsg::Instantiate {
+            code_id: config.launchpad_contract.id,
+            callback_code_hash: config.launchpad_contract.code_hash,
+            send: vec![],
+            label: format!(
+                "SIENNA Launchpad for IDOs, created at {}",
+                env.block.time // Make sure the label is unique
+            ),
+            msg: to_binary(&LaunchpadInitMsg {
+                tokens,
+                admin: env.message.sender,
+                prng_seed: load_prng_seed(&deps.storage)?,
+                entropy,
+                callback: Callback {
+                    contract: ContractInstance {
+                        address: env.contract.address,
+                        code_hash: env.contract_code_hash,
+                    },
+                    msg: to_binary(&HandleMsg::RegisterLaunchpad { signature })?,
+                },
+            })?,
+        })],
+        log: vec![log("action", "create_launchpad")],
+        data: None,
+    })
+}
+
+fn register_launchpad<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    signature: Binary,
+) -> StdResult<HandleResponse> {
+    ensure_correct_signature(&mut deps.storage, signature)?;
+    let config = load_config(deps)?;
+
+    if load_launchpad_instance(&deps.storage)?.is_some() {
+        return Err(StdError::generic_err(
+            "Launchpad contract is already created",
+        ));
+    }
+
+    save_launchpad_instance(
+        &mut deps.storage,
+        &ContractInstance {
+            address: env.message.sender.clone(),
+            code_hash: config.launchpad_contract.code_hash,
+        },
+    )?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("action", "register_launchpad"),
+            log("address", env.message.sender),
+        ],
+        data: None,
+    })
+}
+
 fn create_ido<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     info: TokenSaleConfig,
-    entropy: Binary
+    tokens: Option<Vec<Option<HumanAddr>>>,
+    entropy: Binary,
 ) -> StdResult<HandleResponse> {
     let whitelisted = is_ido_whitelisted(deps, &env.message.sender)?;
     let is_admin = load_admin(deps)? == env.message.sender;
@@ -269,6 +366,20 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
     // Again, creating the IDO happens when the instantiated contract calls
     // us back via the HandleMsg::RegisterIdo so that we can get its address.
     let config = load_config(deps)?;
+    let maybe_launchpad = load_launchpad_instance(&deps.storage)?;
+    let mut whitelist_request: Option<WhitelistRequest> = None;
+
+    // IDO can be created without a launchpad, but it won't be able to fill in
+    // the remaining seats if not all were filled in the init msg of IDO.
+    // Here we will check if launchpad has been created and will create a
+    // whitelist request if tokens were provided from which locking we will
+    // determine winners of an address draw.
+    if let Some(launchpad) = maybe_launchpad {
+        whitelist_request = tokens.map(|t| WhitelistRequest {
+            launchpad,
+            tokens: t,
+        });
+    }
 
     Ok(HandleResponse {
         messages: vec![CosmosMsg::Wasm(WasmMsg::Instantiate {
@@ -285,6 +396,7 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
                 info,
                 prng_seed: load_prng_seed(&deps.storage)?,
                 entropy,
+                launchpad: whitelist_request,
                 callback: Callback {
                     contract: ContractInstance {
                         address: env.contract.address,
@@ -370,6 +482,18 @@ fn list_idos<S: Storage, A: Api, Q: Querier>(
     let idos = get_idos(deps, pagination)?;
 
     to_binary(&QueryResponse::ListIdos { idos })
+}
+
+fn get_launchpad_address<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+) -> StdResult<Binary> {
+    let launchpad = load_launchpad_instance(&deps.storage)?.ok_or(StdError::generic_err(
+        "Launchpad contract hasn't been created yet",
+    ))?;
+
+    to_binary(&QueryResponse::GetLaunchpadAddress {
+        address: launchpad.address,
+    })
 }
 
 fn list_exchanges<S: Storage, A: Api, Q: Querier>(

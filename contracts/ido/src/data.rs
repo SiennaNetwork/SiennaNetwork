@@ -2,18 +2,18 @@ use amm_shared::fadroma::scrt::{
     addr::{Canonize, Humanize},
     callback::ContractInstance,
     cosmwasm_std::{
-        Api, CanonicalAddr, Extern, HumanAddr, Querier,
-        StdError, StdResult, Storage, Uint128,
+        Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
     },
-    storage::{Storable, load, save},
+    storage::{load, save, Storable},
     utils::viewing_key::ViewingKey,
 };
-use amm_shared::TokenType;
+use amm_shared::{msg::ido::SaleType, TokenType};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 const KEY_CONTRACT_ADDR: &[u8] = b"this_contract";
 const KEY_VIEWING_KEY: &[u8] = b"viewing_key";
+const TOTAL_PRE_LOCK_AMOUNT: &[u8] = b"total_pre_lock_amount";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct Config<A> {
@@ -31,6 +31,11 @@ pub(crate) struct Config<A> {
     pub max_allocation: Uint128,
     /// The minimum amount that each participant is allowed to buy.
     pub min_allocation: Uint128,
+    /// Configuration of sale type options (PreLockOnly, SwapOnly, PreLockAndSwap)
+    pub sale_type: SaleType,
+    /// Info of the launchpad contract that will post whitelisted
+    /// addresses to IDO contract after it has been initialized
+    pub launchpad: Option<ContractInstance<A>>,
     /// The Option<> lets us know if this contract is active,
     /// contract only becomes active once the sold_token funds
     /// are sent to it:
@@ -41,11 +46,11 @@ pub(crate) struct Config<A> {
     /// the owner will have to send funds to IDO contract. This limitation
     /// is due the mint message not having the means to sent the receive
     /// callback to IDO contract.
-    pub schedule: Option<SaleSchedule>
+    pub schedule: Option<SaleSchedule>,
 }
 
 pub(crate) fn load_contract_address<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>
+    deps: &Extern<S, A, Q>,
 ) -> StdResult<HumanAddr> {
     let address: CanonicalAddr = load(&deps.storage, KEY_CONTRACT_ADDR)?.unwrap();
 
@@ -54,11 +59,32 @@ pub(crate) fn load_contract_address<S: Storage, A: Api, Q: Querier>(
 
 pub(crate) fn save_contract_address<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    address: &HumanAddr
+    address: &HumanAddr,
 ) -> StdResult<()> {
     let address = address.canonize(&deps.api)?;
 
     save(&mut deps.storage, KEY_CONTRACT_ADDR, &address)
+}
+
+pub(crate) fn increment_total_pre_lock_amount<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    add_amount: Uint128,
+) -> StdResult<()> {
+    let mut amount: Uint128 =
+        load(&deps.storage, TOTAL_PRE_LOCK_AMOUNT)?.unwrap_or_else(|| Uint128(0_u128));
+
+    amount += add_amount;
+
+    save(&mut deps.storage, TOTAL_PRE_LOCK_AMOUNT, &amount)
+}
+
+pub(crate) fn load_total_pre_lock_amount<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+) -> StdResult<Uint128> {
+    let amount: Uint128 =
+        load(&deps.storage, TOTAL_PRE_LOCK_AMOUNT)?.unwrap_or_else(|| Uint128(0_u128));
+
+    Ok(amount)
 }
 
 pub(crate) fn load_viewing_key(storage: &impl Storage) -> StdResult<ViewingKey> {
@@ -67,10 +93,7 @@ pub(crate) fn load_viewing_key(storage: &impl Storage) -> StdResult<ViewingKey> 
     Ok(vk)
 }
 
-pub(crate) fn save_viewing_key(
-    storage: &mut impl Storage,
-    vk: &ViewingKey
-) -> StdResult<()> {
+pub(crate) fn save_viewing_key(storage: &mut impl Storage, vk: &ViewingKey) -> StdResult<()> {
     save(storage, KEY_VIEWING_KEY, vk)
 }
 
@@ -92,7 +115,8 @@ impl<A> Config<A> {
         deps: &Extern<S, T, Q>,
     ) -> StdResult<Config<HumanAddr>> {
         let result = Config::<HumanAddr>::load(deps, b"")?;
-        let result = result.ok_or(StdError::generic_err("Config doesn't exist in storage."))?;
+        let result =
+            result.ok_or_else(|| StdError::generic_err("Config doesn't exist in storage."))?;
 
         Ok(result)
     }
@@ -111,7 +135,6 @@ impl<A> Config<A> {
                     schedule.start - time
                 )));
             }
-    
             if schedule.has_ended(time) {
                 return Err(StdError::generic_err("Sale has ended"));
             }
@@ -129,7 +152,7 @@ impl<A> Config<A> {
                 return Err(StdError::generic_err(format!(
                     "Sale hasn't finished yet, come back in {} seconds",
                     schedule.end - time
-                )))
+                )));
             }
 
             return Ok(());
@@ -156,24 +179,19 @@ pub(crate) struct SaleSchedule {
 impl SaleSchedule {
     pub fn new(now: u64, start: Option<u64>, end: u64) -> StdResult<Self> {
         let start = start.unwrap_or(now);
-        
         if start >= end {
             return Err(StdError::generic_err(format!(
                 "End time of the sale has to be after {}.",
                 start
             )));
         }
-    
         if end <= now {
             return Err(StdError::generic_err(
                 "End time of the sale must be any time after now.",
             ));
         }
 
-        Ok(Self {
-            start,
-            end
-        })
+        Ok(Self { start, end })
     }
 
     /// Check if the contract has started
@@ -200,6 +218,7 @@ pub(crate) struct SwapConstants {
 pub struct Account<A> {
     pub owner: A,
     pub total_bought: Uint128,
+    pub pre_lock_amount: Uint128,
 }
 
 impl Storable for Account<CanonicalAddr> {
@@ -219,6 +238,7 @@ impl Account<CanonicalAddr> {
         Account {
             owner: address.clone(),
             total_bought: 0_u128.into(),
+            pre_lock_amount: 0_u128.into(),
         }
     }
 
@@ -230,7 +250,7 @@ impl Account<CanonicalAddr> {
         let canonical_address = address.canonize(&deps.api)?;
 
         Self::load(&deps, canonical_address.as_slice())?
-            .ok_or(StdError::generic_err("This address is not whitelisted."))
+            .ok_or_else(|| StdError::generic_err("This address is not whitelisted."))
     }
 }
 
@@ -239,6 +259,7 @@ impl Humanize<Account<HumanAddr>> for Account<CanonicalAddr> {
         Ok(Account {
             owner: self.owner.humanize(api)?,
             total_bought: self.total_bought,
+            pre_lock_amount: self.pre_lock_amount,
         })
     }
 }
@@ -248,12 +269,18 @@ impl Canonize<Account<CanonicalAddr>> for Account<HumanAddr> {
         Ok(Account {
             owner: self.owner.canonize(api)?,
             total_bought: self.total_bought,
+            pre_lock_amount: self.pre_lock_amount,
         })
     }
 }
 
 impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
     fn canonize(&self, api: &impl Api) -> StdResult<Config<CanonicalAddr>> {
+        let launchpad = match &self.launchpad {
+            Some(l) => Some(l.canonize(api)?),
+            None => None,
+        };
+
         Ok(Config {
             input_token: self.input_token.canonize(api)?,
             sold_token: self.sold_token.canonize(api)?,
@@ -262,13 +289,20 @@ impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,
-            schedule: self.schedule
+            sale_type: self.sale_type.clone(),
+            launchpad,
+            schedule: self.schedule,
         })
     }
 }
 
 impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
     fn humanize(&self, api: &impl Api) -> StdResult<Config<HumanAddr>> {
+        let launchpad = match &self.launchpad {
+            Some(l) => Some(l.humanize(api)?),
+            None => None,
+        };
+
         Ok(Config {
             input_token: self.input_token.humanize(api)?,
             sold_token: self.sold_token.humanize(api)?,
@@ -277,7 +311,9 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
             max_seats: self.max_seats,
             max_allocation: self.max_allocation,
             min_allocation: self.min_allocation,
-            schedule: self.schedule
+            sale_type: self.sale_type.clone(),
+            launchpad,
+            schedule: self.schedule,
         })
     }
 }
