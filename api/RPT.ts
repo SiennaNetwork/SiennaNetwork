@@ -12,8 +12,9 @@ export const schema = loadSchemas(import.meta.url, {
 export class RPT extends ScrtContract {
   constructor(options: ContractAPIOptions = {}) { super({ ...options, schema }) }
 
-  code = { ...super.code, workspace: abs(), crate: 'sienna-rpt' }
-  init = { ...super.init, label: 'SiennaRPT', msg: {} }
+  code = { ...this.code, workspace: abs(), crate: 'sienna-rpt' }
+
+  init = { ...this.init, label: 'SiennaRPT', msg: {} }
 
   /** query contract status */
   get status() {

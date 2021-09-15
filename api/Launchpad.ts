@@ -12,7 +12,7 @@ export const schema = loadSchemas(import.meta.url, {
 export class Launchpad extends ScrtContract {
   constructor (options: ContractAPIOptions = {}) { super({ ...options, schema }) }
 
-  code = { ...super.code, workspace: abs(), crate: 'launchpad' }
+  code = { ...this.code, workspace: abs(), crate: 'launchpad' }
 
   /**
    * This method will perform the native token lock.

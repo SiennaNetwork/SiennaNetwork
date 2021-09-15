@@ -14,8 +14,9 @@ export const schema = loadSchemas(import.meta.url, {
 export class Factory extends ScrtContract {
   constructor (options: ContractAPIOptions = {}) { super({ ...options, schema }) }
 
-  code = { ...super.code, workspace: abs(), crate: 'factory' }
-  init = { ...super.init, label: 'SiennaAMMFactory', msg: {
+  code = { ...this.code, workspace: abs(), crate: 'factory' }
+
+  init = { ...this.init, label: 'SiennaAMMFactory', msg: {
     get prng_seed () { return randomHex(36) },
     exchange_settings: { swap_fee:   { nom: 28, denom: 1000 }
                        , sienna_fee: { nom: 2, denom: 10000 }

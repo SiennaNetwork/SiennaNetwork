@@ -11,8 +11,9 @@ export const schema = loadSchemas(import.meta.url, {
 export class AMM extends ScrtContract {
   constructor (options: ContractAPIOptions = {}) { super({ ...options, schema }) }
 
-  code = { ...super.code, workspace: abs(), crate: 'exchange' }
-  init = { ...super.init, label: 'SiennaAMMExchange', msg: {} }
+  code = { ...this.code, workspace: abs(), crate: 'exchange' }
+
+  init = { ...this.init, label: 'SiennaAMMExchange', msg: {} }
 
   pairInfo = () => this.q.pairInfo()
 }

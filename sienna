@@ -1,2 +1,5 @@
 #!/bin/sh
-node_modules/.bin/esmo --enable-source-maps ./ops/main.ts $@
+node_modules/.bin/esmo \
+  --enable-source-maps \
+  --stack-trace-limit=1000 \
+  ./ops/main.ts $@

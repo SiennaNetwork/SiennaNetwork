@@ -12,8 +12,9 @@ export const schema = loadSchemas(import.meta.url, {
 export class IDO extends ScrtContract {
   constructor (options: ContractAPIOptions = {}) { super({ ...options, schema }) }
 
-  code = { ...super.code, workspace: abs(), crate: 'ido' }
-  init = { ...super.init, label: 'SiennaIDO', msg: {} }
+  code = { ...this.code, workspace: abs(), crate: 'ido' }
+
+  init = { ...this.init, label: 'SiennaIDO', msg: {} }
 
   /**
    * Check if the address can participate in an IDO

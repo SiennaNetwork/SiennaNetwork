@@ -15,11 +15,6 @@ const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
 export class SNIP20 extends ScrtContract {
-  /* Get an API wrapper for an existing contract */
-  static attach (agent: Agent, address: string, codeHash: string) {
-    return new this({agent, address, codeHash})
-  }
-
   constructor (options: ContractAPIOptions = {}) { super({ ...options, schema }) }
 
   changeAdmin = (address: string, agent?: Agent) =>
@@ -103,8 +98,8 @@ export class SNIP20 extends ScrtContract {
 }
 
 export class SiennaSNIP20 extends SNIP20 {
-  code = { ...super.code, workspace: abs(), crate: 'snip20-sienna' }
-  init = { ...super.init, label: 'SiennaSNIP20', msg: {
+  code = { ...this.code, workspace: abs(), crate: 'snip20-sienna' }
+  init = { ...this.init, label: this.init.label||'SiennaSNIP20', msg: {
     get prng_seed () { return randomHex(36) },
     name:     "Sienna",
     symbol:   "SIENNA",
@@ -112,8 +107,8 @@ export class SiennaSNIP20 extends SNIP20 {
     config:   { public_total_supply: true } } } }
 
 export class AMMSNIP20 extends SNIP20 {
-  code = { ...super.code, workspace: abs(), crate: 'amm-snip20' }
-  init = { ...super.init, label: 'ExchangedSnip20', msg: {} } }
+  code = { ...this.code, workspace: abs(), crate: 'amm-snip20' }
+  init = { ...this.init, label: this.init.label||'AMMSNIP20' } }
 
 const lpTokenDefaultConfig = {
   enable_deposit: true, enable_redeem: true,
@@ -121,8 +116,8 @@ const lpTokenDefaultConfig = {
   public_total_supply: true }
 
 export class LPToken extends SNIP20 {
-  code = { ...super.code, workspace: abs(), crate: 'lp-token' }
-  init = { ...super.init, label: `LP`, msg: {
+  code = { ...this.code, workspace: abs(), crate: 'lp-token' }
+  init = { ...this.init, label: this.init.label||`LP`, msg: {
     get prng_seed () { return randomHex(36) },
     name:     "Liquidity Provision Token",
     symbol:   "LP",

@@ -12,8 +12,9 @@ const schema = loadSchemas(import.meta.url, {
 export class MGMT extends ScrtContract {
   constructor (options: ContractAPIOptions) { super({ ...options, schema }) }
 
-  code = { ...super.code, workspace: abs(), crate: 'sienna-mgmt' }
-  init = { ...super.init, label: 'SiennaMGMT', msg: {} }
+  code = { ...this.code, workspace: abs(), crate: 'sienna-mgmt' }
+
+  init = { ...this.init, label: 'SiennaMGMT', msg: {} }
 
   /** query contract status */
   get status() {

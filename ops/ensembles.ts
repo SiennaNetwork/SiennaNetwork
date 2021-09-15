@@ -59,10 +59,8 @@ export class SiennaTGE extends BaseEnsemble {
       .filter((x:any)=>x.name==='MintingPool')[0].accounts
       .filter((x:any)=>x.name==='RPT')[0]
     const {MGMT} = this.contracts
-    console.log(SIENNA.linkPair, SIENNA)
     await this.task('Initialize MGMT (TGE vesting contract)',
       async (report: Function) => {
-        console.log(this.schedule)
         RPTAccount.address = initialRPTRecipient
         Object.assign(MGMT.init.msg, {
           admin:    this.agent.address,
@@ -171,13 +169,14 @@ export class SiennaSwap extends BaseEnsemble {
   TGE = new SiennaTGE({chain: this.chain})
 
   contracts = {
-    FACTORY:  new AMMFactory(this.agent),
-    EXCHANGE: new AMMExchange(this.agent),
-    AMMTOKEN: new AMMSNIP20(this.agent),
-    LPTOKEN:  new LPToken(this.agent, `${this.prefix}_LPToken`),
-    IDO:      new IDO(this.agent) }
+    FACTORY:  new AMMFactory({  agent: this.agent }),
+    EXCHANGE: new AMMExchange({ agent: this.agent }),
+    AMMTOKEN: new AMMSNIP20({   agent: this.agent }),
+    LPTOKEN:  new LPToken({     agent: this.agent }, `${this.prefix}_LPToken`),
+    IDO:      new IDO({         agent: this.agent }) }
 
-  tokenContracts = this.chain ? this.getTokens() : {}
+  tokenContracts: Record<string, Contract> =
+    this.chain ? this.getTokens() : {}
 
   private getTokens () {
     switch (this.chain.chainId) {
@@ -188,64 +187,41 @@ export class SiennaSwap extends BaseEnsemble {
       case 'supernova-1':
         return this.getTestnetTokens()
       default:
-        throw new Error('mainnet deploy not supported yet') } }
+        return {} } }
 
   private getLocalnetTokens () {
     return {
       sSCRT: new AMMSNIP20({
-        agent:  this.agent,
         prefix: this.prefix,
         label:  `placeholder_sSCRT`,
-        initMsg: {
-          name:      'SecretSCRT',
-          symbol:    'SSCRT',
-          decimals:  6,
-          prng_seed: randomHex(36)}}),
+        initMsg: { name: 'SecretSCRT', symbol: 'SSCRT', decimals: 6, prng_seed: randomHex(36)}}),
       STEST: new AMMSNIP20({
-        agent:  this.agent,
         prefix: this.prefix,
         label:  `placeholder_STEST`,
-        initMsg: {
-          name:      'STEST',
-          symbol:    'STEST',
-          decimals:  9,
-          prng_seed: randomHex(36)}}),
+        initMsg: { name: 'STEST', symbol: 'STEST', decimals: 9, prng_seed: randomHex(36)}}),
       SITOK: new AMMSNIP20({
-        agent:  this.agent,
         prefix: this.prefix,
         label:  `placeholder_SITOK`,
-        initMsg: {
-          name:      'SITOK',
-          symbol:    'SITOK',
-          decimals:  12,
-          prng_seed: randomHex(36)}}),
+        initMsg: { name: 'SITOK', symbol: 'SITOK', decimals: 12, prng_seed: randomHex(36)}}),
       sETH: new AMMSNIP20({
-        agent:  this.agent,
         prefix: this.prefix,
         label:  `placeholder_sETH`,
-        initMsg: {
-          name:      'SecretETH',
-          symbol:    'SETH',
-          decimals:  15,
-          prng_seed: randomHex(36)}})} }
+        initMsg: { name: 'SecretETH', symbol: 'SETH', decimals: 15, prng_seed: randomHex(36)}})} }
 
   private getTestnetTokens () {
     return {
-      SIENNA: this.TGE.contracts.SIENNA,
+      SIENNA:
+        this.TGE.contracts.SIENNA,
       sSCRT: new AMMSNIP20({
-        agent:    this.agent,
         address:  'secret1s7c6xp9wltthk5r6mmavql4xld5me3g37guhsx',
         codeHash: 'cd400fb73f5c99edbc6aab22c2593332b8c9f2ea806bf9b42e3a523f3ad06f62' }),
       STEST: new AMMSNIP20({
-        agent:    this.agent,
         address:  'secret1w9y0jala2yn4sh86dgwy3dcwg35s4qqjw932pc',
         codeHash: '78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829' }),
       SITOK: new AMMSNIP20({
-        agent:    this.agent,
         address:  'secret129nq840d05a0tvkranw5xesq9k0uwmn8mg7ft5',
         codeHash: '78cb50a550d579eb671e05e868d26ba48f5201a2d23250c635269c889c7db829' }),
       sETH: new AMMSNIP20({
-        agent:    this.agent,
         address:  'secret1ttg5cn3mv5n9qv8r53stt6cjx8qft8ut9d66ed',
         codeHash: '2da545ebc441be05c9fa6338f3353f35ac02ec4b02454bc49b1a66f4b9866aed' }) } }
 
@@ -302,7 +278,6 @@ export class SiennaSwap extends BaseEnsemble {
           report(result.transactionHash)
           return result })
         await this.task(`deploy placeholder token: ${name}`, async (report: Function) => {
-          console.log(TOKEN.init)
           const result = await TOKEN.instantiate(this.agent)
           report(result.transactionHash)
           results.push([`${name}\nPlaceholder SNIP20 token`, `${TOKEN.address}\n${TOKEN.codeHash}`])
@@ -329,7 +304,6 @@ export class SiennaRewards extends BaseEnsemble {
   /** Deploy a single Sienna Rewards Pool + LP Token.
     * Use an existing SNIP20 token as the reward token. */
   async deployAttach (context: any) {
-    console.log(context)
     await this.parseOptions(context.options)
     await this.initPairs()
     await this.deploy()
@@ -367,7 +341,6 @@ export class SiennaRewards extends BaseEnsemble {
           EXCHANGE.init.agent = agent
           deployed.push([`Exchange ${pair}\nSienna Swap Pair`, `${EXCHANGE.address}\n${EXCHANGE.codeHash}`])
           const exchangeInfo = await EXCHANGE.pairInfo()
-          console.log(pair, exchangeInfo)
           const LPTOKEN = this.lpTokenContracts[`LP_${pair}`] = new SNIP20Contract(agent)
           LPTOKEN.init.address = exchangeInfo.pair_info.liquidity_token.address
           LPTOKEN.blob.codeHash = this.Swap.contracts.LPTOKEN.codeHash
@@ -429,7 +402,6 @@ export class SiennaRewards extends BaseEnsemble {
       async (report: Function) => {
         const result = await SIENNA.addMinters(
           [agent.address], agent)
-        //console.log(decode(Buffer.from(Object.values(result.data) as any)))
         report(result.transactionHash)
         return result })
     if (this.shouldPremintAdmin) {

@@ -18,8 +18,9 @@ export class Rewards extends ScrtContract {
   constructor (options: ContractAPIOptions = {}, name: string = '???') {
     super({ ...options, schema, label: `SiennaRewards_${name}_Pool` }) }
 
-  code = { ...super.code, workspace: abs(), crate: 'sienna-rewards' }
-  init = { ...super.init, label: 'Rewards', msg: {
+  code = { ...this.code, workspace: abs(), crate: 'sienna-rewards' }
+
+  init = { ...this.init, label: this.init.label||'SiennaRewards', msg: {
     threshold,
     cooldown,
     get viewing_key () { return randomHex(36) } } }
