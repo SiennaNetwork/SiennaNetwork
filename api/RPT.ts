@@ -1,5 +1,6 @@
 import type { Agent } from "@fadroma/scrt"
 import { ScrtContract, loadSchemas } from "@fadroma/scrt"
+import { abs } from '../ops/index'
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./rpt/init.json",
@@ -8,7 +9,10 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg: "./rpt/handle.json",
 });
 
-export default class RPT extends ScrtContract {
+export class RPT extends ScrtContract {
+  code = { ...super.code, workspace: abs(), crate: 'sienna-rpt' }
+  init = { ...super.init, label: 'SiennaRPT', msg: {} }
+
   constructor(agent: Agent) {
     super(schema, agent);
   }

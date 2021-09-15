@@ -6,7 +6,7 @@ import { Scrt, ScrtGas } from "@fadroma/scrt";
 import { abs } from "../ops/index";
 
 import Launchpad from "./Launchpad";
-import SNIP20 from "./SNIP20";
+import { AMMSNIP20 } from "./SNIP20";
 import IDO from "./IDO";
 import Factory from "./Factory";
 
@@ -28,6 +28,10 @@ describe("Launchpad", () => {
     this.timeout(0);
     const T0 = +new Date();
 
+    context.AMMSNIP20 = new AMMSNIP20();
+    context.Launchpad = new Launchpad();
+    context.Factory   = new Factory();
+
     // connect to a localnet with a large number of predefined agents
     const numberOfAgents = 10;
     const agentNames = [...Array(numberOfAgents)].map((_, i) => `Agent${i}`);
@@ -36,7 +40,6 @@ describe("Launchpad", () => {
     context.node = context.chain.node;
     context.agent = await context.chain.getAgent(context.node.genesisAccount("ADMIN"));
 
-    const builder = await context.chain.getBuilder(context.agent);
     const agents = await Promise.all(
       agentNames.map((name) =>
         context.chain.getAgent(name, { mnemonic: context.node.genesisAccount(name).mnemonic })
@@ -49,28 +52,26 @@ describe("Launchpad", () => {
     console.debug(`connecting took ${T1 - T0}msec`);
 
     // build the contracts
-    const workspace = abs();
-    const [tokenBinary, launchpadBinary, factoryBinary] =
-      await Promise.all([
-        builder.build({ workspace, crate: "amm-snip20" }),
-        builder.build({ workspace, crate: "launchpad" }),
-        builder.build({ workspace, crate: "factory" }),
-      ]);
+    await Promise.all([
+      context.AMMSNIP20.build(),
+      context.Launchpad.build(),
+      context.Factory.build(),
+    ]);
 
     const T2 = +new Date();
     console.debug(`building took ${T2 - T1}msec`);
 
     // upload the contracts
     const { codeId: tokenCodeId, originalChecksum: tokenCodeHash } =
-      await builder.uploadCached(tokenBinary);
+      await context.AMMSNIP20.uploadCached();
     await context.agent.nextBlock;
 
     const { codeId: launchpadCodeId, originalChecksum: launchpadCodeHash } =
-      await builder.uploadCached(launchpadBinary);
+      await context.Launchpad.uploadCached();
     await context.agent.nextBlock;
 
     const { codeId: factoryCodeId, originalChecksum: factoryCodeHash } =
-      await builder.uploadCached(factoryBinary);
+      await context.Factory.uploadCached();
     await context.agent.nextBlock;
 
     const T3 = +new Date();

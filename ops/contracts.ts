@@ -1,6 +1,6 @@
 import { Agent, ContractCaller as Base, ContractAPI } from '@fadroma/ops'
 import { randomHex } from '@fadroma/tools'
-import { SNIP20Contract, MGMTContract, RPTContract
+import { SNIP20Contract
        , FactoryContract, AMMContract
        , RewardsContract
        , IDOContract } from '@sienna/api'
@@ -8,20 +8,9 @@ import { abs } from './index'
 
 // TGE /////////////////////////////////////////////////////////////////////////////////////////////
 
-export class SiennaSNIP20 extends SNIP20Contract {
-  code = { ...super.code, workspace: abs(), crate: 'snip20-sienna' }
-  init = { ...super.init, label: 'SiennaSNIP20', msg: {
-    get prng_seed () { return randomHex(36) },
-    name:     "Sienna",
-    symbol:   "SIENNA",
-    decimals: 18,
-    config:   { public_total_supply: true } } } }
-export class MGMT extends MGMTContract {
-  code = { ...super.code, workspace: abs(), crate: 'sienna-mgmt' }
-  init = { ...super.init, label: 'SiennaMGMT', msg: {} } }
-export class RPT extends RPTContract {
-  code = { ...super.code, workspace: abs(), crate: 'sienna-rpt' }
-  init = { ...super.init, label: 'SiennaRPT', msg: {} } }
+export { SiennaSNIP20 } from '../api/SNIP20'
+export { MGMT } from '../api/MGMT'
+export { RPT } from '../api/RPT'
 
 // Swap ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -37,9 +26,7 @@ export class AMMExchange extends AMMContract {
   code = { ...super.code, workspace: abs(), crate: 'exchange' }
   init = { ...super.init, label: 'SiennaAMMExchange', msg: {} } }
 
-export class AMMSNIP20 extends SNIP20Contract {
-  code = { ...super.code, workspace: abs(), crate: 'amm-snip20' }
-  init = { ...super.init, label: 'ExchangedSnip20', msg: {} } }
+export { AMMSNIP20 } from '../api/SNIP20'
 
 // Rewards /////////////////////////////////////////////////////////////////////////////////////////
 

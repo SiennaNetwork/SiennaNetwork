@@ -2,9 +2,9 @@ import AMMContract from './AMM'
 import FactoryContract from './Factory'
 import LaunchpadContract from './Launchpad'
 import IDOContract from './IDO'
-import MGMTContract from './MGMT'
-import RPTContract from './RPT'
-import SNIP20Contract from './SNIP20'
+import { MGMT as MGMTContract } from './MGMT'
+import { RPT as RPTContract } from './RPT'
+import { SNIP20 as SNIP20Contract } from './SNIP20'
 import RewardsContract from './Rewards'
 
 export {

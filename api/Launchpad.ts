@@ -1,4 +1,5 @@
 import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt"
+import { abs } from '../ops/index'
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./launchpad/init_msg.json",
@@ -8,6 +9,12 @@ export const schema = loadSchemas(import.meta.url, {
 });
 
 export default class Launchpad extends ScrtContract {
+  code = {
+    ...super.code,
+    workspace: abs(),
+    crate: 'launchpad'
+  }
+
   constructor (agent: Agent) { super(schema, agent) }
 
   /**

@@ -1,6 +1,7 @@
 import type { Agent } from "@fadroma/scrt"
 import { ScrtContract, loadSchemas } from "@fadroma/scrt"
 import { randomHex } from "@fadroma/tools"
+import { abs } from '../ops/index'
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./snip20/init_msg.json",
@@ -13,7 +14,7 @@ export const schema = loadSchemas(import.meta.url, {
 const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
-export default class SNIP20 extends ScrtContract {
+export class SNIP20 extends ScrtContract {
 
   /* Get an API wrapper for an existing contract */
   static attach (agent: Agent, address: string, codeHash: string) {
@@ -101,3 +102,16 @@ export default class SNIP20 extends ScrtContract {
       agent
     )
 }
+
+export class SiennaSNIP20 extends SNIP20 {
+  code = { ...super.code, workspace: abs(), crate: 'snip20-sienna' }
+  init = { ...super.init, label: 'SiennaSNIP20', msg: {
+    get prng_seed () { return randomHex(36) },
+    name:     "Sienna",
+    symbol:   "SIENNA",
+    decimals: 18,
+    config:   { public_total_supply: true } } } }
+
+export class AMMSNIP20 extends SNIP20 {
+  code = { ...super.code, workspace: abs(), crate: 'amm-snip20' }
+  init = { ...super.init, label: 'ExchangedSnip20', msg: {} } }
