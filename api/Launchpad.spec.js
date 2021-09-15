@@ -1,7 +1,7 @@
 import debug from "debug";
 import { assert } from "chai";
 import { randomBytes } from "crypto";
-import { Scrt, gas } from "@fadroma/scrt";
+import { Scrt, ScrtGas, DockerizedScrtNode_1_0 } from "@fadroma/scrt";
 
 import { abs } from "../ops/index";
 
@@ -16,10 +16,10 @@ const log = function () {
 
 describe("Launchpad", () => {
   const fees = {
-    upload: gas(10000000),
-    init: gas(100000000),
-    exec: gas(10000000),
-    send: gas(10000000),
+    upload: new ScrtGas(10000000),
+    init: new ScrtGas(100000000),
+    exec: new ScrtGas(10000000),
+    send: new ScrtGas(10000000),
   };
 
   const context = {};
@@ -31,14 +31,15 @@ describe("Launchpad", () => {
     // connect to a localnet with a large number of predefined agents
     const numberOfAgents = 10;
     const agentNames = [...Array(numberOfAgents)].map((_, i) => `Agent${i}`);
-    const localnet = SecretNetwork.localnet({
-      stateBase: abs("artifacts"),
-      genesisAccounts: ["ADMIN", ...agentNames],
-    });
-    const { node, network, builder, agent } = await localnet.connect();
+    context.chain = Scrt.localnet_1_2();
+    await context.chain.node.respawn();
+    context.node = context.chain.node;
+    context.agent = await context.chain.getAgent(context.node.genesisAccount("ADMIN"));
+
+    const builder = await context.chain.getBuilder(context.agent);
     const agents = await Promise.all(
       agentNames.map((name) =>
-        network.getAgent(name, { mnemonic: node.genesisAccount(name).mnemonic })
+        context.chain.getAgent(name, { mnemonic: context.node.genesisAccount(name).mnemonic })
       )
     );
     console.log({ agents });
@@ -62,25 +63,22 @@ describe("Launchpad", () => {
     // upload the contracts
     const { codeId: tokenCodeId, originalChecksum: tokenCodeHash } =
       await builder.uploadCached(tokenBinary);
-    await agent.nextBlock;
+    await context.agent.nextBlock;
 
     const { codeId: launchpadCodeId, originalChecksum: launchpadCodeHash } =
       await builder.uploadCached(launchpadBinary);
-    await agent.nextBlock;
+    await context.agent.nextBlock;
 
     const { codeId: factoryCodeId, originalChecksum: factoryCodeHash } =
       await builder.uploadCached(factoryBinary);
-    await agent.nextBlock;
+    await context.agent.nextBlock;
 
     const T3 = +new Date();
     console.debug(`uploading took ${T3 - T2}msec`);
     console.debug(`total preparation time: ${T3 - T0}msec`);
 
     Object.assign(context, {
-      node,
-      network,
       builder,
-      agent,
       agents,
       tokenInfo: { id: tokenCodeId, code_hash: tokenCodeHash },
       launchpadInfo: { id: launchpadCodeId, code_hash: launchpadCodeHash },
@@ -197,6 +195,6 @@ describe("Launchpad", () => {
 
   after(async function cleanupAll() {
     this.timeout(0);
-    await context.node.terminate();
+    await context.node.kill();
   });
 });

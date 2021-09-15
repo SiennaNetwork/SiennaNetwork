@@ -1,0 +1,2 @@
+#!/bin/sh
+DEBUG=out node_modules/.bin/esmo --async-stack-traces --enable-source-maps ./api/.test.mjs $@
