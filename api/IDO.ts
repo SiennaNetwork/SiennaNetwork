@@ -1,3 +1,4 @@
+import type { ContractAPIOptions } from '@fadroma/scrt'
 import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt"
 import { abs } from '../ops/index'
 
@@ -9,9 +10,10 @@ export const schema = loadSchemas(import.meta.url, {
 });
 
 export class IDO extends ScrtContract {
+  constructor (options: ContractAPIOptions = {}) { super({ ...options, schema }) }
+
   code = { ...super.code, workspace: abs(), crate: 'ido' }
   init = { ...super.init, label: 'SiennaIDO', msg: {} }
-  constructor (agent: Agent) { super(schema, agent) }
 
   /**
    * Check if the address can participate in an IDO

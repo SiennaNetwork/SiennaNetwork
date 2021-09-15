@@ -1,4 +1,4 @@
-import type { Agent } from "@fadroma/scrt"
+import type { ContractAPIOptions } from "@fadroma/scrt"
 import { ScrtContract, loadSchemas } from "@fadroma/scrt"
 import { abs } from '../ops/index'
 
@@ -10,13 +10,10 @@ const schema = loadSchemas(import.meta.url, {
 })
 
 export class MGMT extends ScrtContract {
+  constructor (options: ContractAPIOptions) { super({ ...options, schema }) }
 
   code = { ...super.code, workspace: abs(), crate: 'sienna-mgmt' }
   init = { ...super.init, label: 'SiennaMGMT', msg: {} }
-
-  constructor(agent: Agent) {
-    super(schema, agent);
-  }
 
   /** query contract status */
   get status() {

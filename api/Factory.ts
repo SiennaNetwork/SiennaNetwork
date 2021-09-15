@@ -1,6 +1,5 @@
-import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt"
+import { ScrtContract, loadSchemas, ContractAPIOptions } from "@fadroma/scrt"
 import { TokenTypeFor_HumanAddr } from './factory/handle_msg.d'
-import { randomBase64 } from '@fadroma/tools'
 import { EnigmaUtils } from 'secretjs'
 import { b64encode } from '@waiting/base64'
 import { abs } from '../ops/index'
@@ -13,14 +12,14 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg:   "./factory/handle_msg.json", })
 
 export class Factory extends ScrtContract {
+  constructor (options: ContractAPIOptions = {}) { super({ ...options, schema }) }
+
   code = { ...super.code, workspace: abs(), crate: 'factory' }
   init = { ...super.init, label: 'SiennaAMMFactory', msg: {
     get prng_seed () { return randomHex(36) },
     exchange_settings: { swap_fee:   { nom: 28, denom: 1000 }
                        , sienna_fee: { nom: 2, denom: 10000 }
                        , sienna_burner: null } } }
-  constructor (agent: Agent) {
-    super(schema, agent) }
   createExchange = (
     token_0: any,
     token_1: any,

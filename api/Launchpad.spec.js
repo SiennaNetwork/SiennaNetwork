@@ -40,7 +40,7 @@ describe("Launchpad", () => {
     context.node = context.chain.node;
     context.agent = await context.chain.getAgent(context.node.genesisAccount("ADMIN"));
 
-    const agents = await Promise.all(
+    const agents = context.agents = await Promise.all(
       agentNames.map((name) =>
         context.chain.getAgent(name, { mnemonic: context.node.genesisAccount(name).mnemonic })
       )
@@ -62,29 +62,16 @@ describe("Launchpad", () => {
     console.debug(`building took ${T2 - T1}msec`);
 
     // upload the contracts
-    const { codeId: tokenCodeId, originalChecksum: tokenCodeHash } =
-      await context.AMMSNIP20.uploadCached();
+    await context.AMMSNIP20.uploadCached();
     await context.agent.nextBlock;
-
-    const { codeId: launchpadCodeId, originalChecksum: launchpadCodeHash } =
-      await context.Launchpad.uploadCached();
+    await context.Launchpad.uploadCached();
     await context.agent.nextBlock;
-
-    const { codeId: factoryCodeId, originalChecksum: factoryCodeHash } =
-      await context.Factory.uploadCached();
+    await context.Factory.uploadCached();
     await context.agent.nextBlock;
 
     const T3 = +new Date();
     console.debug(`uploading took ${T3 - T2}msec`);
     console.debug(`total preparation time: ${T3 - T0}msec`);
-
-    Object.assign(context, {
-      builder,
-      agents,
-      tokenInfo: { id: tokenCodeId, code_hash: tokenCodeHash },
-      launchpadInfo: { id: launchpadCodeId, code_hash: launchpadCodeHash },
-      factoryInfo: { id: factoryCodeId, code_hash: factoryCodeHash },
-    });
   });
 
   beforeEach(async function setupEach() {

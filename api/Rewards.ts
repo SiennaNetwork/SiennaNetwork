@@ -1,3 +1,4 @@
+import { ContractAPIOptions } from '@fadroma/scrt'
 import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt"
 import { abs } from '../ops/index'
 import { randomHex } from '@fadroma/tools'
@@ -14,15 +15,14 @@ const threshold  = 24 * 60 * 60 / BLOCK_TIME
 const cooldown   = 24 * 60 * 60 / BLOCK_TIME
 
 export class Rewards extends ScrtContract {
+  constructor (options: ContractAPIOptions = {}, name: string = '???') {
+    super({ ...options, schema, label: `SiennaRewards_${name}_Pool` }) }
+
   code = { ...super.code, workspace: abs(), crate: 'sienna-rewards' }
   init = { ...super.init, label: 'Rewards', msg: {
     threshold,
     cooldown,
     get viewing_key () { return randomHex(36) } } }
-
-  constructor (agent: Agent, name: string) {
-    super(schema, agent)
-    this.init.label = `SiennaRewards_${name}_Pool` }
 
   setProvidedToken = (address: string, code_hash: string, agent = this.instantiator) =>
     this.tx.set_provided_token({address, code_hash}, agent);

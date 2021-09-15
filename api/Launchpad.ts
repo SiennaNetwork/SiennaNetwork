@@ -1,3 +1,4 @@
+import type { ContractAPIOptions } from '@fadroma/scrt'
 import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt"
 import { abs } from '../ops/index'
 
@@ -9,13 +10,9 @@ export const schema = loadSchemas(import.meta.url, {
 });
 
 export class Launchpad extends ScrtContract {
-  code = {
-    ...super.code,
-    workspace: abs(),
-    crate: 'launchpad'
-  }
+  constructor (options: ContractAPIOptions = {}) { super({ ...options, schema }) }
 
-  constructor (agent: Agent) { super(schema, agent) }
+  code = { ...super.code, workspace: abs(), crate: 'launchpad' }
 
   /**
    * This method will perform the native token lock.

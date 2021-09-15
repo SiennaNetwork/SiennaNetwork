@@ -1,4 +1,4 @@
-import type { Agent } from "@fadroma/scrt"
+import type { Agent, ContractAPIOptions } from "@fadroma/scrt"
 import { ScrtContract, loadSchemas } from "@fadroma/scrt"
 import { randomHex } from "@fadroma/tools"
 import { abs } from '../ops/index'
@@ -15,18 +15,12 @@ const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
 export class SNIP20 extends ScrtContract {
-
   /* Get an API wrapper for an existing contract */
   static attach (agent: Agent, address: string, codeHash: string) {
-    const instance = new this(agent)
-    instance.code.codeHash = codeHash
-    instance.init.address  = address
-    return instance
+    return new this({agent, address, codeHash})
   }
 
-  constructor(agent: Agent) {
-    super(schema, agent);
-  }
+  constructor (options: ContractAPIOptions = {}) { super({ ...options, schema }) }
 
   changeAdmin = (address: string, agent?: Agent) =>
     this.tx.change_admin({ address }, agent);
@@ -89,7 +83,12 @@ export class SNIP20 extends ScrtContract {
    * @param {Agent} [agent] 
    * @returns 
    */
-  sendIdo = (contractAddress, amount, recipient = null, agent) =>
+  sendIdo = (
+    contractAddress: string,
+    amount: string,
+    recipient: string|null = null,
+    agent: Agent
+  ) =>
     this.tx.send(
       {
         recipient: contractAddress,
@@ -129,8 +128,12 @@ export class LPToken extends SNIP20 {
     symbol:   "LP",
     decimals: 18,
     config:   { ...lpTokenDefaultConfig } } }
-  constructor (agent: Agent, name: string) {
-    super(agent)
-    this.init.label      = `SiennaRewards_${name}_LPToken`
-    this.init.msg.symbol = `LP-${name}`
-    this.init.msg.name   = `${name} liquidity provision token` }}
+  constructor (options: ContractAPIOptions = {}, name: string = '???') {
+    super({
+      ...options||{},
+      label: `SiennaRewards_${name}_LPToken`,
+      initMsg: {
+        ...options?.initMsg||{},
+        symbol: `LP-${name}`,
+        name:   `${name} liquidity provision token`
+      }}) } }
