@@ -1,7 +1,7 @@
 import debug from "debug";
 import { assert } from "chai";
 import { randomBytes } from "crypto";
-import { Scrt, ScrtGas, DockerizedScrtNode_1_0 } from "@fadroma/scrt";
+import { Scrt, ScrtGas } from "@fadroma/scrt";
 
 import { abs } from "../ops/index";
 
@@ -31,7 +31,7 @@ describe("Launchpad", () => {
     // connect to a localnet with a large number of predefined agents
     const numberOfAgents = 10;
     const agentNames = [...Array(numberOfAgents)].map((_, i) => `Agent${i}`);
-    context.chain = Scrt.localnet_1_2();
+    context.chain = Scrt.localnet_1_0();
     await context.chain.node.respawn();
     context.node = context.chain.node;
     context.agent = await context.chain.getAgent(context.node.genesisAccount("ADMIN"));
