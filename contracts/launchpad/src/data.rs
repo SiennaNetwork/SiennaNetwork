@@ -1,5 +1,6 @@
 use amm_shared::fadroma::scrt::{
     addr::{Canonize, Humanize},
+    callback::ContractInstance,
     cosmwasm_std::{
         Api, CanonicalAddr, Decimal, Extern, HumanAddr, Querier, StdError, StdResult, Storage,
         Uint128,
@@ -7,7 +8,7 @@ use amm_shared::fadroma::scrt::{
     storage::{load, save, Storable},
     utils::viewing_key::ViewingKey,
 };
-use amm_shared::TokenType;
+use amm_shared::{msg::launchpad::TokenSettings, TokenType};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -146,6 +147,47 @@ impl Config {
         }
 
         Err(StdError::generic_err("Token not supported"))
+    }
+
+    /// Add new token in the config
+    pub fn add_token(&mut self, querier: &impl Querier, new_token: TokenSettings) -> StdResult<()> {
+        for token in &self.tokens {
+            if token.token_type == new_token.token_type {
+                return Err(StdError::generic_err("Token already exists"));
+            }
+        }
+
+        let token_decimals = match &new_token.token_type {
+            TokenType::CustomToken {
+                contract_addr,
+                token_code_hash,
+            } => get_token_decimals(
+                querier,
+                ContractInstance {
+                    address: contract_addr.clone(),
+                    code_hash: token_code_hash.clone(),
+                },
+            )?,
+            _ => 6,
+        };
+
+        self.tokens.push(TokenConfig {
+            token_type: new_token.token_type,
+            segment: new_token.segment,
+            bounding_period: new_token.bounding_period,
+            active: true,
+            token_decimals,
+        });
+
+        Ok(())
+    }
+
+    /// Remove the token from the config
+    pub fn remove_token(&mut self, index: u32) -> StdResult<TokenConfig> {
+        if self.tokens.len() <= index as usize {
+            return Err(StdError::generic_err("Token not found"));
+        }
+        Ok(self.tokens.remove(index as usize))
     }
 }
 
@@ -351,6 +393,11 @@ impl Account {
         }
 
         return Err(StdError::generic_err("Invalid token provided"));
+    }
+
+    pub fn unlock_all(&mut self, token_config: &TokenConfig) -> StdResult<(Uint128, u32)> {
+        let entries = self.get_entries(&vec![token_config.clone()], 9999999999_u64);
+        self.unlock(&token_config, entries.len() as u32)
     }
 }
 

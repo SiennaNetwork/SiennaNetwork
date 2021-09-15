@@ -287,13 +287,9 @@ pub mod launchpad {
         /// Lock for native token, amount set for locking
         /// will be floored to the closest segment, the rest
         /// will be sent back.
-        Lock {
-            amount: Uint128,
-        },
+        Lock { amount: Uint128 },
         /// Perform unlocking of native token
-        Unlock {
-            entries: u32,
-        },
+        Unlock { entries: u32 },
         /// Call to draw whitelist addresses,
         /// contract calling this needs to provide list of
         /// snip20 token addresses that will decided the whitelist
@@ -307,12 +303,11 @@ pub mod launchpad {
             tokens: Vec<Option<HumanAddr>>,
             number: u32,
         },
-        AdminAddToken {
-            config: TokenSettings,
-        },
-        AdminRemoveToken {
-            index: u32,
-        },
+        /// Add additional token for locking into launchpad
+        AdminAddToken { config: TokenSettings },
+        /// Remove token from the launchpad, this will send all the previously
+        /// locked funds back to their owners
+        AdminRemoveToken { index: u32 },
         /// Change admin handle
         Admin(AdminHandleMsg),
         CreateViewingKey {

@@ -1,3 +1,4 @@
+use amm_shared::admin::{admin::assert_admin, require_admin};
 use amm_shared::{
     fadroma::scrt::{
         callback::ContractInstance,
@@ -5,9 +6,10 @@ use amm_shared::{
             from_binary, log, to_binary, Api, Binary, CosmosMsg, Env, Extern, HandleResponse,
             HumanAddr, Querier, StdError, StdResult, Storage, Uint128, WasmMsg,
         },
+        storage::Storable,
     },
     msg::ido::HandleMsg as IDOHandleMsg,
-    msg::launchpad::ReceiverCallbackMsg,
+    msg::launchpad::{ReceiverCallbackMsg, TokenSettings},
 };
 
 use crate::data::{
@@ -161,7 +163,8 @@ pub(crate) fn draw_addresses<S: Storage, A: Api, Q: Querier>(
     // or while we don't run out of entries to pick from
     while addresses.len() < number as usize && entries.len() > 0 {
         // Randomly generate index to get from entry list
-        let index: usize = gen_rand_range(0, (entries.len() - 1) as u64, Some(env.block.time));
+        let index: usize =
+            gen_rand_range(0, (entries.len() - 1) as u64, Some(env.block.time)) as usize;
 
         match &entries.get(index) {
             Some((address, _)) => {
@@ -195,6 +198,73 @@ pub(crate) fn draw_addresses<S: Storage, A: Api, Q: Querier>(
             send: vec![],
         })],
         log: vec![log("action", "draw"), log("number", number)],
+        data: None,
+    })
+}
+
+/// Admin can add new token to the list of tokens that can be locked in the launchpad contract
+#[require_admin]
+pub(crate) fn admin_add_token<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    token: TokenSettings,
+) -> StdResult<HandleResponse> {
+    let mut config = Config::load_self(deps)?;
+
+    config.add_token(&deps.querier, token)?;
+    config.save(deps)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![log("action", "admin_add_token")],
+        data: None,
+    })
+}
+
+/// Admin can remove the token from the lanchpad. This will disable its feature to be locked.
+/// It will also send all the locked funds from all the accounts back to their owners.
+#[require_admin]
+pub(crate) fn admin_remove_token<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    index: u32,
+) -> StdResult<HandleResponse> {
+    let mut config = Config::load_self(deps)?;
+
+    let token_config = config.remove_token(index)?;
+    let accounts = Accounts::load(deps)?;
+    let mut messages = vec![];
+    let mut total_amount = Uint128::zero();
+    let mut total_entries = 0;
+
+    for mut account in accounts.accounts {
+        let (amount, entries) = account.unlock_all(&token_config)?;
+
+        if amount.u128() > 0_u128 && entries > 0 {
+            total_amount += amount;
+            total_entries += entries;
+
+            create_transfer_message(
+                &token_config,
+                &mut messages,
+                env.contract.address.clone(),
+                account.owner.clone(),
+                amount,
+            )?;
+
+            save_account(deps, account)?;
+        }
+    }
+
+    config.save(deps)?;
+
+    Ok(HandleResponse {
+        messages,
+        log: vec![
+            log("action", "admin_remove_token"),
+            log("total_amount", total_amount),
+            log("total_entries", total_entries),
+        ],
         data: None,
     })
 }

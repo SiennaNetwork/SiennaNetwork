@@ -121,7 +121,7 @@ pub(crate) fn draw_addresses<S: Storage, A: Api, Q: Querier>(
     // Run the loop while we don't fill the whitelist with addresses
     // or while we don't run out of entries to pick from
     while addresses.len() < number as usize && entries.len() > 0 {
-        let index: usize = gen_rand_range(0, (entries.len() - 1) as u64, None);
+        let index: usize = gen_rand_range(0, (entries.len() - 1) as u64, None) as usize;
 
         match &entries.get(index as usize) {
             Some((address, _)) => {

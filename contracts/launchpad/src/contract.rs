@@ -5,7 +5,7 @@ use amm_shared::{
         callback::ContractInstance,
         cosmwasm_std::{
             log, to_binary, Api, CosmosMsg, Env, Extern, HandleResponse, InitResponse, Querier,
-            QueryResult, StdError, StdResult, Storage, WasmMsg,
+            QueryResult, StdResult, Storage, WasmMsg,
         },
         migrate as fadroma_scrt_migrate,
         storage::Storable,
@@ -137,6 +137,10 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
                 tokens,
                 number,
             } => crate::handle::draw_addresses(deps, env, callback, tokens, number),
+            HandleMsg::AdminAddToken { config } =>
+                crate::handle::admin_add_token(deps, env, config),
+            HandleMsg::AdminRemoveToken { index } =>
+                crate::handle::admin_remove_token(deps, env, index),
             HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl),
             HandleMsg::CreateViewingKey { entropy, padding } => {
                 let msg = AuthHandleMsg::CreateViewingKey { entropy, padding };
@@ -146,7 +150,6 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
                 let msg = AuthHandleMsg::SetViewingKey { key, padding };
                 auth_handle(deps, env, msg, AuthHandle)
             }
-            _ => Err(StdError::unauthorized()),
         }
     )
 }
