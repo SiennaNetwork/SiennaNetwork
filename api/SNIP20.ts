@@ -115,3 +115,22 @@ export class SiennaSNIP20 extends SNIP20 {
 export class AMMSNIP20 extends SNIP20 {
   code = { ...super.code, workspace: abs(), crate: 'amm-snip20' }
   init = { ...super.init, label: 'ExchangedSnip20', msg: {} } }
+
+const lpTokenDefaultConfig = {
+  enable_deposit: true, enable_redeem: true,
+  enable_mint: true, enable_burn: true,
+  public_total_supply: true }
+
+export class LPToken extends SNIP20 {
+  code = { ...super.code, workspace: abs(), crate: 'lp-token' }
+  init = { ...super.init, label: `LP`, msg: {
+    get prng_seed () { return randomHex(36) },
+    name:     "Liquidity Provision Token",
+    symbol:   "LP",
+    decimals: 18,
+    config:   { ...lpTokenDefaultConfig } } }
+  constructor (agent: Agent, name: string) {
+    super(agent)
+    this.init.label      = `SiennaRewards_${name}_LPToken`
+    this.init.msg.symbol = `LP-${name}`
+    this.init.msg.name   = `${name} liquidity provision token` }}

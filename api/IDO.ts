@@ -1,4 +1,5 @@
 import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt"
+import { abs } from '../ops/index'
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./ido/init_msg.json",
@@ -7,7 +8,9 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg: "./ido/handle_msg.json",
 });
 
-export default class IDO extends ScrtContract {
+export class IDO extends ScrtContract {
+  code = { ...super.code, workspace: abs(), crate: 'ido' }
+  init = { ...super.init, label: 'SiennaIDO', msg: {} }
   constructor (agent: Agent) { super(schema, agent) }
 
   /**

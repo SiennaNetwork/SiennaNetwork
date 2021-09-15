@@ -5,10 +5,10 @@ import { Scrt, ScrtGas } from "@fadroma/scrt";
 
 import { abs } from "../ops/index";
 
-import Launchpad from "./Launchpad";
+import { Launchpad } from "./Launchpad";
 import { AMMSNIP20 } from "./SNIP20";
-import IDO from "./IDO";
-import Factory from "./Factory";
+import { IDO } from "./IDO";
+import { Factory } from "./Factory";
 
 const log = function () {
   debug("out")(JSON.stringify(arguments, null, 2));

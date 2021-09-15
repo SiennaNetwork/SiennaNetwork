@@ -8,11 +8,9 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg:   "./amm/handle_msg.json",
 });
 
-export default class AMM extends ScrtContract {
-  code = {
-    ...super.code,
-    workspace: abs(),
-    crate: 'exchange' }
+export class AMM extends ScrtContract {
+  code = { ...super.code, workspace: abs(), crate: 'exchange' }
+  init = { ...super.init, label: 'SiennaAMMExchange', msg: {} }
   constructor (agent: Agent) {
     super(schema, agent) }
   pairInfo = () =>

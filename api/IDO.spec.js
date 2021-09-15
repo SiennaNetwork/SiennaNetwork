@@ -5,9 +5,9 @@ import { Scrt, gas } from "@fadroma/scrt";
 
 import { abs } from "../ops/index";
 
-import SNIP20 from "./SNIP20.js";
-import IDO from "./IDO.js";
-import Factory from "./Factory.js";
+import { SNIP20 } from "./SNIP20.js";
+import { IDO } from "./IDO.js";
+import { Factory } from "./Factory.js";
 
 
 const log = function () {

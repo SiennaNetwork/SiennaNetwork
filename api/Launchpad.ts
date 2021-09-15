@@ -8,7 +8,7 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg: "./launchpad/handle_msg.json",
 });
 
-export default class Launchpad extends ScrtContract {
+export class Launchpad extends ScrtContract {
   code = {
     ...super.code,
     workspace: abs(),

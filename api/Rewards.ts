@@ -1,4 +1,6 @@
 import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt"
+import { abs } from '../ops/index'
+import { randomHex } from '@fadroma/tools'
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg:     "./rewards/init.json",
@@ -7,8 +9,20 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg:   "./rewards/handle.json",
 });
 
-export default class Rewards extends ScrtContract {
-  constructor (agent: Agent) { super(schema, agent) }
+const BLOCK_TIME = 6 // seconds (on average)
+const threshold  = 24 * 60 * 60 / BLOCK_TIME
+const cooldown   = 24 * 60 * 60 / BLOCK_TIME
+
+export class Rewards extends ScrtContract {
+  code = { ...super.code, workspace: abs(), crate: 'sienna-rewards' }
+  init = { ...super.init, label: 'Rewards', msg: {
+    threshold,
+    cooldown,
+    get viewing_key () { return randomHex(36) } } }
+
+  constructor (agent: Agent, name: string) {
+    super(schema, agent)
+    this.init.label = `SiennaRewards_${name}_Pool` }
 
   setProvidedToken = (address: string, code_hash: string, agent = this.instantiator) =>
     this.tx.set_provided_token({address, code_hash}, agent);
