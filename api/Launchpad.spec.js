@@ -60,7 +60,7 @@ describe("Launchpad", () => {
 
     // upload the contracts
     for (const contract of Object.values(context.templates)) {
-      await contract.uploadCached();
+      await contract.upload(context.agent);
       await context.agent.nextBlock;
     };
 
