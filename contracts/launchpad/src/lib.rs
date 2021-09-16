@@ -1,4 +1,4 @@
-extern crate rand;
+// extern crate rand;
 
 pub mod contract;
 pub mod data;

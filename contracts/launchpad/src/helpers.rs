@@ -12,26 +12,27 @@ use amm_shared::{
     },
     TokenType,
 };
-use chrono::Utc;
-use rand::{rngs::SmallRng, RngCore, SeedableRng};
+// use chrono::Utc;
+// use rand::{rngs::SmallRng, RngCore, SeedableRng};
 
 /// Wasm safe random number generator in a given range
 pub(crate) fn gen_rand_range(mut min: u64, mut max: u64, seed: Option<u64>) -> u64 {
-    if min == max {
-        return min;
-    }
+    max
+    // if min == max {
+    //     return min;
+    // }
 
-    if min > max {
-        let temp = min;
-        max = min;
-        min = temp;
-    }
-    let mut small_rng =
-        SmallRng::seed_from_u64(seed.unwrap_or_else(|| Utc::now().timestamp_millis() as u64));
-    let picked_random: u64 = small_rng.next_u32() as u64;
+    // if min > max {
+    //     let temp = min;
+    //     max = min;
+    //     min = temp;
+    // }
+    // let mut small_rng =
+    //     SmallRng::seed_from_u64(seed.unwrap_or_else(|| Utc::now().timestamp_millis() as u64));
+    // let picked_random: u64 = small_rng.next_u32() as u64;
 
-    let percentage: u64 = (picked_random * 100_u64) / u32::MAX as u64;
-    (percentage * (max - min) / 100_u64) + min
+    // let percentage: u64 = (picked_random * 100_u64) / u32::MAX as u64;
+    // (percentage * (max - min) / 100_u64) + min
 }
 
 /// Query the token for number of its decimals
