@@ -28,10 +28,6 @@ describe("Launchpad", () => {
     this.timeout(0);
     const T0 = +new Date();
 
-    context.AMMSNIP20 = new AMMSNIP20();
-    context.Launchpad = new Launchpad();
-    context.Factory   = new Factory();
-
     // connect to a localnet with a large number of predefined agents
     const agentNames = ['ALICE', 'BOB', 'CHARLIE', 'MALLORY'];
     context.chain = Scrt.localnet_1_0();
@@ -50,13 +46,23 @@ describe("Launchpad", () => {
     const T1 = +new Date();
     console.debug(`connecting took ${T1 - T0}msec`);
 
+    context.templates = {
+      AMMSNIP20: new AMMSNIP20(),
+      Launchpad: new Launchpad(),
+      Factory: new Factory()
+    };
+
+    // build the contracts
+    await Promise.all(Object.values(context.templates).map(contract=>contract.build()));
+
+    const T2 = +new Date();
+    console.debug(`building took ${T2 - T1}msec`);
+
     // upload the contracts
-    await context.AMMSNIP20.upload(context.agent);
-    await context.agent.nextBlock;
-    await context.Launchpad.upload(context.agent);
-    await context.agent.nextBlock;
-    await context.Factory.upload(context.agent);
-    await context.agent.nextBlock;
+    for (const contract of Object.values(context.templates)) {
+      await contract.uploadCached();
+      await context.agent.nextBlock;
+    };
 
     const T3 = +new Date();
     console.debug(`uploading took ${T3 - T2}msec`);
@@ -65,96 +71,94 @@ describe("Launchpad", () => {
 
   beforeEach(async function setupEach() {
     this.timeout(0);
-    context.factory = await context.agent.instantiate(
-      new Factory({
-        codeId: context.factoryInfo.id,
-        label: `factory-${parseInt(Math.random() * 100000)}`,
-        initMsg: {
-          prng_seed: randomBytes(36).toString("hex"),
-          snip20_contract: context.tokenInfo,
-          lp_token_contract: context.tokenInfo,
-          pair_contract: context.tokenInfo,
-          launchpad_contract: context.launchpadInfo,
-          ido_contract: context.tokenInfo, // dummy so we don't have to build it
-          exchange_settings: {
-            swap_fee: {
-              nom: 1,
-              denom: 1,
-            },
-            sienna_fee: {
-              nom: 1,
-              denom: 1,
-            },
-            //   sienna_burner: null,
+    context.factory = new Factory({
+      agent: context.agent,
+      codeId: context.templates.Factory.codeId,
+      label: `factory-${parseInt(Math.random() * 100000)}`,
+      initMsg: {
+        prng_seed: randomBytes(36).toString("hex"),
+        snip20_contract: context.tokenInfo,
+        lp_token_contract: context.tokenInfo,
+        pair_contract: context.tokenInfo,
+        launchpad_contract: context.launchpadInfo,
+        ido_contract: context.tokenInfo, // dummy so we don't have to build it
+        exchange_settings: {
+          swap_fee: {
+            nom: 1,
+            denom: 1,
           },
+          sienna_fee: {
+            nom: 1,
+            denom: 1,
+          },
+          //   sienna_burner: null,
         },
-      })
-    );
+      },
+    });
+    await context.factory.instantiate();
 
-    context.token = await context.agent.instantiate(
-      new SNIP20({
-        codeId: context.tokenInfo.id,
-        label: `token-${parseInt(Math.random() * 100000)}`,
-        initMsg: {
-          prng_seed: randomBytes(36).toString("hex"),
-          name: "Token",
-          symbol: "TKN",
-          decimals: 18,
-          config: {
-            public_total_supply: true,
-            enable_deposit: true,
-            enable_redeem: true,
-            enable_mint: true,
-            enable_burn: true,
-          },
+    context.token = new SNIP20({
+      codeId: context.templates.SNIP20.codeId,
+      label: `token-${parseInt(Math.random() * 100000)}`,
+      initMsg: {
+        prng_seed: randomBytes(36).toString("hex"),
+        name: "Token",
+        symbol: "TKN",
+        decimals: 18,
+        config: {
+          public_total_supply: true,
+          enable_deposit: true,
+          enable_redeem: true,
+          enable_mint: true,
+          enable_burn: true,
         },
-      })
-    );
+      },
+    })
+    await context.token.instantiate();
 
     context.viewkey = (await context.token.createViewingKey(context.agent)).key;
 
-    context.launchpad = await context.agent.instantiate(
-      new Launchpad({
-        codeId: context.launchpadInfo.id,
-        label: `launchpad-${parseInt(Math.random() * 100000)}`,
-        initMsg: {
-          tokens: [
-            {
-              token_type: { native_token: { denom: "uscrt" } },
-              segment: "25",
-              bounding_period: 10,
-            },
-            {
-              token_type: {
-                custom_token: {
-                  contract_addr: context.token.address,
-                  token_code_hash: context.token.codeHash,
-                },
+    context.launchpad = new Launchpad({
+      codeId: context.templates.Launchpad.codeId,
+      label: `launchpad-${parseInt(Math.random() * 100000)}`,
+      initMsg: {
+        tokens: [
+          {
+            token_type: { native_token: { denom: "uscrt" } },
+            segment: "25",
+            bounding_period: 10,
+          },
+          {
+            token_type: {
+              custom_token: {
+                contract_addr: context.token.address,
+                token_code_hash: context.token.codeHash,
               },
-              segment: "25",
-              bounding_period: 10,
             },
-          ],
-          prng_seed: randomBytes(36).toString("hex"),
-          entropy: randomBytes(36).toString("hex"),
-          admin: context.agent.address,
-          callback: {
-            msg: Buffer.from(
-              JSON.stringify({
-                register_launchpad: {
-                  signature: "",
-                },
-              }),
-              "utf8"
-            ).toString("base64"),
-            contract: {
-              address: context.factory.address,
-              code_hash: context.factory.codeHash,
-            },
+            segment: "25",
+            bounding_period: 10,
+          },
+        ],
+        prng_seed: randomBytes(36).toString("hex"),
+        entropy: randomBytes(36).toString("hex"),
+        admin: context.agent.address,
+        callback: {
+          msg: Buffer.from(
+            JSON.stringify({
+              register_launchpad: {
+                signature: "",
+              },
+            }),
+            "utf8"
+          ).toString("base64"),
+          contract: {
+            address: context.factory.address,
+            code_hash: context.factory.codeHash,
           },
         },
-      })
-    );
+      },
+    });
+    await context.launchpad.instantiate();
   });
 
   it("Has instantiated launchpad successfully", async function () {
