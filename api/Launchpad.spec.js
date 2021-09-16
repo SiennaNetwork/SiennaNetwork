@@ -50,22 +50,12 @@ describe("Launchpad", () => {
     const T1 = +new Date();
     console.debug(`connecting took ${T1 - T0}msec`);
 
-    // build the contracts
-    await Promise.all([
-      context.AMMSNIP20.build(),
-      context.Launchpad.build(),
-      context.Factory.build(),
-    ]);
-
-    const T2 = +new Date();
-    console.debug(`building took ${T2 - T1}msec`);
-
     // upload the contracts
-    await context.AMMSNIP20.uploadCached();
+    await context.AMMSNIP20.upload(context.agent);
     await context.agent.nextBlock;
-    await context.Launchpad.uploadCached();
+    await context.Launchpad.upload(context.agent);
     await context.agent.nextBlock;
-    await context.Factory.uploadCached();
+    await context.Factory.upload(context.agent);
     await context.agent.nextBlock;
 
     const T3 = +new Date();
