@@ -33,8 +33,7 @@ describe("Launchpad", () => {
     context.Factory   = new Factory();
 
     // connect to a localnet with a large number of predefined agents
-    const numberOfAgents = 10;
-    const agentNames = [...Array(numberOfAgents)].map((_, i) => `Agent${i}`);
+    const agentNames = ['ALICE', 'BOB', 'CHARLIE', 'MALLORY'];
     context.chain = Scrt.localnet_1_0();
     await context.chain.node.respawn();
     context.node = context.chain.node;
@@ -42,11 +41,11 @@ describe("Launchpad", () => {
 
     const agents = context.agents = await Promise.all(
       agentNames.map((name) =>
-        context.chain.getAgent(name, { mnemonic: context.node.genesisAccount(name).mnemonic })
+        context.chain.getAgent(context.node.genesisAccount(name))
       )
     );
     console.log({ agents });
-    agent.API.fees = fees;
+    context.agent.API.fees = fees;
 
     const T1 = +new Date();
     console.debug(`connecting took ${T1 - T0}msec`);
