@@ -108,7 +108,7 @@ export class SiennaSNIP20 extends SNIP20 {
 
 export class AMMSNIP20 extends SNIP20 {
   code = { ...this.code, workspace: abs(), crate: 'amm-snip20' }
-  init = { ...this.init, label: this.init.label||'AMMSNIP20' } }
+  init = { ...this.init, label: this.init.label || 'AMMSNIP20' } }
 
 const lpTokenDefaultConfig = {
   enable_deposit: true, enable_redeem: true,

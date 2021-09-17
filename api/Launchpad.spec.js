@@ -3,11 +3,8 @@ import { assert } from "chai";
 import { randomBytes } from "crypto";
 import { Scrt, ScrtGas } from "@fadroma/scrt";
 
-import { abs } from "../ops/index";
-
 import { Launchpad } from "./Launchpad";
-import { AMMSNIP20 } from "./SNIP20";
-import { IDO } from "./IDO";
+import { SiennaSNIP20 } from "./SNIP20";
 import { Factory } from "./Factory";
 
 const log = function () {
@@ -46,7 +43,7 @@ describe("Launchpad", () => {
     console.debug(`connecting took ${T1 - T0}msec`);
 
     context.templates = {
-      AMMSNIP20: new AMMSNIP20(),
+      SiennaSNIP20: new SiennaSNIP20(),
       Launchpad: new Launchpad(),
       Factory: new Factory()
     };
@@ -71,16 +68,30 @@ describe("Launchpad", () => {
   beforeEach(async function setupEach() {
     this.timeout(0);
     context.factory = new Factory({
-      agent: context.agent,
       codeId: context.templates.Factory.codeId,
       label: `factory-${parseInt(Math.random() * 100000)}`,
       initMsg: {
         prng_seed: randomBytes(36).toString("hex"),
-        snip20_contract: context.tokenInfo,
-        lp_token_contract: context.tokenInfo,
-        pair_contract: context.tokenInfo,
-        launchpad_contract: context.launchpadInfo,
-        ido_contract: context.tokenInfo, // dummy so we don't have to build it
+        snip20_contract: {
+          id: context.templates.SiennaSNIP20.codeId,
+          code_hash: context.templates.SiennaSNIP20.codeHash 
+        },
+        lp_token_contract: {
+          id: context.templates.SiennaSNIP20.codeId,
+          code_hash: context.templates.SiennaSNIP20.codeHash 
+        },
+        pair_contract: {
+          id: context.templates.SiennaSNIP20.codeId,
+          code_hash: context.templates.SiennaSNIP20.codeHash 
+        },
+        launchpad_contract: {
+          id: context.templates.Launchpad.codeId,
+          code_hash: context.templates.Launchpad.codeHash 
+        },
+        ido_contract: {
+          id: context.templates.SiennaSNIP20.codeId,
+          code_hash: context.templates.SiennaSNIP20.codeHash 
+        }, // dummy so we don't have to build it
         exchange_settings: {
           swap_fee: {
             nom: 1,
@@ -94,10 +105,10 @@ describe("Launchpad", () => {
         },
       },
     });
-    await context.factory.instantiate();
+    await context.factory.instantiate(context.agent);
 
-    context.token = new SNIP20({
-      codeId: context.templates.SNIP20.codeId,
+    context.token = new SiennaSNIP20({
+      codeId: context.templates.SiennaSNIP20.codeId,
       label: `token-${parseInt(Math.random() * 100000)}`,
       initMsg: {
         prng_seed: randomBytes(36).toString("hex"),
@@ -113,7 +124,9 @@ describe("Launchpad", () => {
         },
       },
     })
-    await context.token.instantiate();
+    await context.token.instantiate(context.agent);
+
+    console.log(context.token, context.token.link)
 
     context.viewkey = (await context.token.createViewingKey(context.agent)).key;
 
@@ -130,8 +143,8 @@ describe("Launchpad", () => {
           {
             token_type: {
               custom_token: {
-                contract_addr: context.token.address,
-                token_code_hash: context.token.codeHash,
+                contract_addr: context.token.init.address,
+                token_code_hash: context.templates.Launchpad.codeHash,
               },
             },
             segment: "25",
@@ -151,13 +164,13 @@ describe("Launchpad", () => {
             "utf8"
           ).toString("base64"),
           contract: {
-            address: context.factory.address,
-            code_hash: context.factory.codeHash,
+            address: context.factory.init.address,
+            code_hash: context.templates.Factory.codeHash,
           },
         },
       },
     });
-    await context.launchpad.instantiate();
+    await context.launchpad.instantiate(context.agent);
   });
 
   it("Has instantiated launchpad successfully", async function () {
@@ -175,6 +188,6 @@ describe("Launchpad", () => {
 
   after(async function cleanupAll() {
     this.timeout(0);
-    await context.node.kill();
+    await context.node.terminate();
   });
 });
