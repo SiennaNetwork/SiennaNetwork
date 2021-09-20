@@ -126,8 +126,6 @@ describe("Launchpad", () => {
     })
     await context.token.instantiate(context.agent);
 
-    console.log(context.token, context.token.link)
-
     context.viewkey = (await context.token.createViewingKey(context.agent)).key;
 
     context.launchpad = new Launchpad({
@@ -144,7 +142,7 @@ describe("Launchpad", () => {
             token_type: {
               custom_token: {
                 contract_addr: context.token.init.address,
-                token_code_hash: context.templates.Launchpad.codeHash,
+                token_code_hash: context.templates.SiennaSNIP20.codeHash,
               },
             },
             segment: "25",

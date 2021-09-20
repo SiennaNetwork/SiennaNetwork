@@ -863,6 +863,7 @@ name = "launchpad"
 version = "0.1.0"
 dependencies = [
  "amm-shared",
+ "rand 0.8.4",
  "schemars",
  "serde",
  "serde_json",
