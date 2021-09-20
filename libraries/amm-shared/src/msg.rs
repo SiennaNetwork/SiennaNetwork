@@ -149,12 +149,6 @@ pub mod exchange {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum HandleMsg {
-        /// Set pause/migration status
-        SetStatus {
-            level: ContractStatusLevel,
-            reason: String,
-            new_address: Option<HumanAddr>,
-        },
         AddLiquidity {
             deposit: TokenPairAmount<HumanAddr>,
             /// The amount the price moves in a trading pair between when a transaction is submitted and when it is executed.
@@ -192,8 +186,6 @@ pub mod exchange {
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryMsg {
-        /// Get pause/migration status
-        Status,
         PairInfo,
         SwapSimulation {
             /// The token type to swap from.
