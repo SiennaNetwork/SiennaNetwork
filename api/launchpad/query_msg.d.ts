@@ -18,6 +18,14 @@ export type QueryMsg =
         [k: string]: unknown;
       };
       [k: string]: unknown;
+    }
+  | {
+      draw: {
+        number: number;
+        tokens: (HumanAddr | null)[];
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
     };
 export type AdminQueryMsg = "admin";
 export type HumanAddr = string;

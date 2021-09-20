@@ -153,6 +153,7 @@
       }
     },
     {
+      "description": "Add additional token for locking into launchpad",
       "type": "object",
       "required": [
         "admin_add_token"
@@ -172,6 +173,7 @@
       }
     },
     {
+      "description": "Remove token from the launchpad, this will send all the previously locked funds back to their owners",
       "type": "object",
       "required": [
         "admin_remove_token"

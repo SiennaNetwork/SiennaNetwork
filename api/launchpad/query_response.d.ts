@@ -13,6 +13,10 @@ export type QueryResponse =
   | {
       user_info: QueryAccountToken[];
       [k: string]: unknown;
+    }
+  | {
+      drawn_addresses: HumanAddr[];
+      [k: string]: unknown;
     };
 export type Uint128 = string;
 export type TokenTypeFor_HumanAddr =

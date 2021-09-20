@@ -80,8 +80,8 @@ export class SNIP20 extends ScrtContract {
   /**
    * Create viewing key for the agent
    * 
-   * @param agent 
-   * @param key 
+   * @param {Agent} agent 
+   * @param {string} entropy 
    * @returns 
    */
   createViewingKey = (
@@ -98,8 +98,8 @@ export class SNIP20 extends ScrtContract {
   /**
    * Set viewing key for the agent
    * 
-   * @param agent 
-   * @param key 
+   * @param {Agent} agent 
+   * @param {string} key 
    * @returns 
    */
   setViewingKey = (agent: Agent, key: string) =>

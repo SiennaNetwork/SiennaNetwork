@@ -29,6 +29,20 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "drawn_addresses"
+      ],
+      "properties": {
+        "drawn_addresses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HumanAddr"
+          }
+        }
+      }
     }
   ],
   "definitions": {

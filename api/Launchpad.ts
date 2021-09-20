@@ -1,5 +1,6 @@
 import type { ContractAPIOptions } from '@fadroma/scrt'
 import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt"
+import { randomHex } from "@fadroma/tools"
 import { abs } from '../ops/index'
 
 export const schema = loadSchemas(import.meta.url, {
@@ -8,6 +9,10 @@ export const schema = loadSchemas(import.meta.url, {
   queryAnswer: "./launchpad/query_response.json",
   handleMsg: "./launchpad/handle_msg.json",
 });
+
+// @ts-ignore
+const decoder = new TextDecoder();
+const decode = (buffer: any) => decoder.decode(buffer).trim();
 
 export class Launchpad extends ScrtContract {
   constructor (options: ContractAPIOptions = {}) { super({ ...options, schema }) }
@@ -78,4 +83,48 @@ export class Launchpad extends ScrtContract {
       key,
     });
   }
+
+  /**
+   * Get the configuration information about the Launchpad contract
+   *
+   * @param {number} number
+   * @param {string[]} tokens
+   * @returns Promise<any>
+   */
+  async draw(number: number, tokens: string[]) {
+    return this.q.draw({ number, tokens });
+  }
+
+  /**
+   * Create viewing key for the agent
+   * 
+   * @param {Agent} agent 
+   * @param {string} entropy 
+   * @returns 
+   */
+  createViewingKey = (
+    agent: Agent,
+    entropy = randomHex(32)
+  ) =>
+    this.tx
+      .create_viewing_key({ entropy, padding: null }, agent)
+      .then((tx) => ({
+        tx,
+        key: JSON.parse(decode(tx.data)).create_viewing_key.key,
+      }));
+
+  /**
+   * Set viewing key for the agent
+   * 
+   * @param {Agent} agent 
+   * @param {string} key 
+   * @returns 
+   */
+  setViewingKey = (agent: Agent, key: string) =>
+    this.tx
+      .set_viewing_key({ key }, agent)
+      .then((tx) => ({
+        tx,
+        status: JSON.parse(decode(tx.data)).set_viewing_key.key,
+      }));
 }

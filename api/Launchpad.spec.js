@@ -173,6 +173,10 @@ describe("Launchpad", () => {
 
   it("Has instantiated launchpad successfully", async function () {
     this.timeout(0);
+  });
+
+  it("User can lock tokens and will have proper number of entries", async function () {
+    this.timeout(0);
 
     const buyer = context.agents[1];
 
@@ -181,7 +185,35 @@ describe("Launchpad", () => {
     await context.token.lockLaunchpad(context.launchpad.address, 50, buyer);
 
     const res = await context.launchpad.info();
-    log(res);
+
+    assert.strictEqual(res.launchpad_info[1].locked_balance, "50");
+
+    const viewkey = (await context.launchpad.createViewingKey(buyer)).key;
+    
+    const userRes = await context.launchpad.userInfo(buyer.address, viewkey);
+
+    assert.strictEqual(userRes.user_info[0].balance, "50");
+    assert.strictEqual(userRes.user_info[0].entries.length, 2);
+  });
+
+  it("User can lock tokens and will have proper number of entries", async function () {
+    this.timeout(0);
+    for (const a of context.agents) {
+      await context.token.mint(100, undefined, a.address);
+      await context.token.lockLaunchpad(context.launchpad.address, 50, a);
+
+      const viewkey = (await context.launchpad.createViewingKey(a)).key;
+      const userRes = await context.launchpad.userInfo(a.address, viewkey);
+
+      assert.strictEqual(userRes.user_info[0].balance, "50");
+      assert.strictEqual(userRes.user_info[0].entries.length, 2);
+    }
+    
+    const res = await context.launchpad.draw(4, [context.token.address]);
+    
+    for (const a of context.agents) {
+      assert.strictEqual(res.drawn_addresses.includes(a.address), true);
+    }
   });
 
   after(async function cleanupAll() {

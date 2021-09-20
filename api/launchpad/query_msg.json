@@ -43,6 +43,41 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "draw"
+      ],
+      "properties": {
+        "draw": {
+          "type": "object",
+          "required": [
+            "number",
+            "tokens"
+          ],
+          "properties": {
+            "number": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "tokens": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/HumanAddr"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "definitions": {
