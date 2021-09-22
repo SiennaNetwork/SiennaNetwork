@@ -14,8 +14,6 @@ export class IDO extends ScrtContract {
 
   code = { ...this.code, workspace: abs(), crate: 'ido' }
 
-  init = { ...this.init, label: 'SiennaIDO', msg: {} }
-
   /**
    * Check if the address can participate in an IDO
    * 
