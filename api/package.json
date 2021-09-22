@@ -5,7 +5,9 @@
   "type": "module",
   "dependencies": {
     "@fadroma/scrt": "*",
-    "@waiting/base64": "^4.2.9"
+    "@fadroma/tools": "*",
+    "@waiting/base64": "^4.2.9",
+    "secretjs": "workspace:*"
   },
   "devDependencies": {
     "mocha": "^8.4.0"

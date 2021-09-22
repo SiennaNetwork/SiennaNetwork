@@ -1,6 +1,6 @@
 import { ScrtContract, loadSchemas, ContractAPIOptions } from "@fadroma/scrt";
 import { TokenTypeFor_HumanAddr } from "./factory/handle_msg.d";
-import { EnigmaUtils } from "secretjs";
+import { EnigmaUtils } from "secretjs/src/index.ts";
 import { b64encode } from "@waiting/base64";
 import { abs } from "../ops/index";
 import { randomHex } from "@fadroma/tools";

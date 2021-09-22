@@ -27,11 +27,15 @@ importers:
   api:
     specifiers:
       '@fadroma/scrt': '*'
+      '@fadroma/tools': '*'
       '@waiting/base64': ^4.2.9
       mocha: ^8.4.0
+      secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../libraries/fadroma-next/ops-scrt
+      '@fadroma/tools': link:../libraries/fadroma-next/tools
       '@waiting/base64': 4.2.9
+      secretjs: link:../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
     devDependencies:
       mocha: 8.4.0
 
@@ -59,9 +63,6 @@ importers:
       webpack: 5.53.0_webpack-cli@4.8.0
       webpack-cli: 4.8.0_54159a174ab32b03d40d3fca8c5d8363
       webpack-dev-server: 3.11.2_webpack-cli@4.8.0+webpack@5.53.0
-
-  contracts/rewards/target/web:
-    specifiers: {}
 
   contracts/snip20-sienna:
     specifiers: {}
@@ -129,7 +130,6 @@ importers:
       documentation: ^13.2.1
       mocha: ^8.0.1
       secretjs: ^0.11.0
-      typedoc: ^0.21.6
     dependencies:
       '@cosmjs/crypto': 0.24.1
       ajv: 8.6.3
@@ -139,7 +139,6 @@ importers:
       chai: 4.3.4
       documentation: 13.2.5
       mocha: 8.4.0
-      typedoc: 0.21.9_typescript@4.4.3
 
   libraries/fadroma-21.07/example:
     specifiers: {}
@@ -151,13 +150,11 @@ importers:
     specifiers:
       '@fadroma/scrt-agent': '*'
       '@fadroma/utilities': '*'
-      '@types/dockerode': ^3.2.7
       dockerode: ^3.3.0
       wait-port: ^0.2.9
     dependencies:
       '@fadroma/scrt-agent': link:../scrt-agent
       '@fadroma/utilities': link:../utilities
-      '@types/dockerode': 3.2.7
       dockerode: 3.3.1
       wait-port: 0.2.9
 
@@ -225,10 +222,12 @@ importers:
 
   libraries/fadroma-next/ops:
     specifiers:
+      '@fadroma/tools': workspace:*
       ajv: ^8.6.0
       exponential-backoff: ^3.1.0
       json-schema-to-typescript: ^10.1.4
     dependencies:
+      '@fadroma/tools': link:../tools
       ajv: 8.6.3
       exponential-backoff: 3.1.0
       json-schema-to-typescript: 10.1.5
@@ -236,10 +235,14 @@ importers:
   libraries/fadroma-next/ops-scrt:
     specifiers:
       '@cosmjs/crypto': ^0.24.1
-      '@fadroma/ops': '*'
+      '@fadroma/ops': workspace:*
+      '@fadroma/tools': workspace:*
+      secretjs: workspace:*
     dependencies:
       '@cosmjs/crypto': 0.24.1
       '@fadroma/ops': link:../ops
+      '@fadroma/tools': link:../tools
+      secretjs: link:../platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
   libraries/fadroma-next/ops-scrt-1.0:
     specifiers:
@@ -702,6 +705,7 @@ importers:
       mkdirp: ^1.0.4
       open: ^8.0.2
       prettyjson: ^1.2.1
+      prompts: ^2.4.1
       rimraf: ^3.0.2
       signal-exit: ^3.0.3
       table: ^6.6.0
@@ -713,6 +717,7 @@ importers:
       mkdirp: 1.0.4
       open: 8.2.1
       prettyjson: 1.2.1
+      prompts: 2.4.1
       rimraf: 3.0.2
       signal-exit: 3.0.4
       table: 6.7.1
@@ -726,197 +731,12 @@ importers:
       json-bigint: 1.0.0
       xlsx: 0.16.9
 
-  libraries/scrt-1.0:
-    specifiers:
-      vuepress: ^1.5.1
-    devDependencies:
-      vuepress: 1.8.2
-
-  libraries/scrt-1.0/cosmwasm-js:
-    specifiers:
-      '@types/jasmine': ^3.3.7
-      '@typescript-eslint/eslint-plugin': ^2.19.2
-      '@typescript-eslint/parser': ^2.19.2
-      eslint: ^6.8.0
-      eslint-config-prettier: ^6.11.0
-      eslint-plugin-functional: ^3.0.1
-      eslint-plugin-import: ^2.20.1
-      eslint-plugin-prettier: ^3.1.3
-      eslint-plugin-simple-import-sort: ^5.0.1
-      jasmine: ^3.3.1
-      jasmine-spec-reporter: ^4.2.1
-      karma: ^5
-      karma-chrome-launcher: ^3
-      karma-firefox-launcher: ^1.1.0
-      karma-jasmine: ^3
-      karma-jasmine-html-reporter: ^1.4
-      lerna: ^3.20.2
-      prettier: ^2.0.5
-      shx: ^0.3.2
-      source-map-support: ^0.5.6
-      typescript: ~3.7
-      webpack: ^4.12.0
-      webpack-cli: ^3.3.8
-    devDependencies:
-      '@types/jasmine': 3.9.1
-      '@typescript-eslint/eslint-plugin': 2.34.0_82af9fd0d0c58dde3baf13ff7e56e299
-      '@typescript-eslint/parser': 2.34.0_eslint@6.8.0+typescript@3.7.7
-      eslint: 6.8.0
-      eslint-config-prettier: 6.15.0_eslint@6.8.0
-      eslint-plugin-functional: 3.7.2_eslint@6.8.0+typescript@3.7.7
-      eslint-plugin-import: 2.24.2_eslint@6.8.0
-      eslint-plugin-prettier: 3.4.1_02841629d9bffe027635e9ced1bbc03e
-      eslint-plugin-simple-import-sort: 5.0.3_eslint@6.8.0
-      jasmine: 3.9.0
-      jasmine-spec-reporter: 4.2.1
-      karma: 5.2.3
-      karma-chrome-launcher: 3.1.0
-      karma-firefox-launcher: 1.3.0
-      karma-jasmine: 3.3.1_karma@5.2.3
-      karma-jasmine-html-reporter: 1.7.0_karma-jasmine@3.3.1+karma@5.2.3
-      lerna: 3.22.1
-      prettier: 2.4.1
-      shx: 0.3.3
-      source-map-support: 0.5.20
-      typescript: 3.7.7
-      webpack: 4.46.0_webpack-cli@3.3.12
-      webpack-cli: 3.3.12_webpack@4.46.0
-
-  libraries/scrt-1.0/cosmwasm-js/packages/bcp:
-    specifiers:
-      '@cosmwasm/sdk': ^0.8.0-alpha.0
-      '@iov/bcp': ^2.1.0
-      '@iov/crypto': ^2.1.0
-      '@iov/encoding': ^2.1.0
-      '@iov/keycontrol': ^2.1.0
-      '@iov/stream': ^2.0.2
-      '@iov/utils': ^2.0.2
-      '@types/bn.js': ^4.11.6
-      bn.js: ^5.1.1
-      fast-deep-equal: ^3.1.1
-      readonly-date: ^1.0.0
-      xstream: ^11.11.0
-    dependencies:
-      '@cosmwasm/sdk': 0.8.1
-      '@iov/bcp': 2.5.0
-      '@iov/crypto': 2.5.0
-      '@iov/encoding': 2.5.0
-      '@iov/stream': 2.3.2
-      '@iov/utils': 2.5.0
-      bn.js: 5.2.0
-      fast-deep-equal: 3.1.3
-      readonly-date: 1.0.0
-      xstream: 11.14.0
-    devDependencies:
-      '@iov/keycontrol': 2.5.0
-      '@types/bn.js': 4.11.6
-
-  libraries/scrt-1.0/cosmwasm-js/packages/cli:
-    specifiers:
-      '@cosmwasm/sdk': ^0.8.0-alpha.0
-      '@iov/crypto': ^2.1.0
-      '@iov/encoding': ^2.1.0
-      '@iov/utils': ^2.0.2
-      '@types/babylon': ^6.16.3
-      '@types/diff': ^4
-      '@types/yargs': ^15.0.4
-      axios: ^0.19.2
-      babylon: ^6.18.0
-      colors: ^1.3.3
-      diff: ^4
-      recast: ^0.18.0
-      ts-node: ^8
-      typescript: ~3.7
-      yargs: ^15.3.1
-    dependencies:
-      '@cosmwasm/sdk': 0.8.1
-      '@iov/crypto': 2.5.0
-      '@iov/encoding': 2.5.0
-      '@iov/utils': 2.5.0
-      axios: 0.19.2
-      babylon: 6.18.0
-      colors: 1.4.0
-      diff: 4.0.2
-      recast: 0.18.10
-      ts-node: 8.10.2_typescript@3.7.7
-      typescript: 3.7.7
-      yargs: 15.4.1
-    devDependencies:
-      '@types/babylon': 6.16.6
-      '@types/diff': 4.0.2
-      '@types/yargs': 15.0.14
-
-  libraries/scrt-1.0/cosmwasm-js/packages/faucet:
-    specifiers:
-      '@cosmwasm/bcp': ^0.8.0-alpha.0
-      '@iov/bcp': ^2.1.0
-      '@iov/crypto': ^2.1.0
-      '@iov/encoding': ^2.1.0
-      '@iov/keycontrol': ^2.1.0
-      '@iov/utils': ^2.0.2
-      '@koa/cors': ^3.0.0
-      '@types/koa': ^2.11.0
-      '@types/koa__cors': ^3.0.1
-      '@types/koa-bodyparser': ^4.3.0
-      axios: ^0.19.0
-      koa: ^2.11.0
-      koa-bodyparser: ^4.2.1
-      readonly-date: ^1.0.0
-      xstream: ^11.11.0
-    dependencies:
-      '@cosmwasm/bcp': 0.8.1
-      '@iov/bcp': 2.5.0
-      '@iov/crypto': 2.5.0
-      '@iov/encoding': 2.5.0
-      '@iov/keycontrol': 2.5.0
-      '@iov/utils': 2.5.0
-      '@koa/cors': 3.1.0
-      axios: 0.19.2
-      koa: 2.13.1
-      koa-bodyparser: 4.3.0
-      readonly-date: 1.0.0
-      xstream: 11.14.0
-    devDependencies:
-      '@types/koa': 2.13.4
-      '@types/koa__cors': 3.0.3
-      '@types/koa-bodyparser': 4.3.3
-
-  libraries/scrt-1.0/cosmwasm-js/packages/sdk:
-    specifiers:
-      '@iov/crypto': ^2.1.0
-      '@iov/encoding': ^2.1.0
-      '@iov/utils': ^2.0.2
-      '@types/node-localstorage': 1.3.0
-      '@types/pako': ^1.0.1
-      axios: ^0.19.0
-      curve25519-js: 0.0.4
-      fast-deep-equal: ^3.1.1
-      js-crypto-hkdf: 0.7.3
-      miscreant: 0.3.2
-      pako: ^1.0.11
-      readonly-date: ^1.0.0
-      secure-random: 1.1.2
-    dependencies:
-      '@iov/crypto': 2.5.0
-      '@iov/encoding': 2.5.0
-      '@iov/utils': 2.5.0
-      '@types/node-localstorage': 1.3.0
-      axios: 0.19.2
-      curve25519-js: 0.0.4
-      fast-deep-equal: 3.1.3
-      js-crypto-hkdf: 0.7.3
-      miscreant: 0.3.2
-      pako: 1.0.11
-      secure-random: 1.1.2
-    devDependencies:
-      '@types/pako': 1.0.2
-      readonly-date: 1.0.0
-
   ops:
     specifiers:
       '@fadroma/scrt': '*'
       '@fadroma/tools': '*'
       '@sienna/api': '*'
+      '@sienna/schedule': '*'
       chokidar: ^3.5.1
       esm: ^3.2.25
       node-notifier: ^9.0.1
@@ -927,6 +747,7 @@ importers:
       '@fadroma/scrt': link:../libraries/fadroma-next/ops-scrt
       '@fadroma/tools': link:../libraries/fadroma-next/tools
       '@sienna/api': link:../api
+      '@sienna/schedule': link:../libraries/schedule
       chokidar: 3.5.2
       esm: 3.2.25
       node-notifier: 9.0.1
@@ -5424,20 +5245,6 @@ packages:
     resolution: {integrity: sha512-mIenTfsIe586/yzsyfql69KRnA75S8SVXQbTLpDejRrjH0QSJcpu3AUOi/Vjnt9IOsXKxPhJfGpQUNMueIU1fQ==}
     dev: true
 
-  /@types/docker-modem/3.0.1:
-    resolution: {integrity: sha512-ZUXPF0WNnvs7AxoQRijt+DW2jsXnWCk8ac28tTYzTpBNnOEIAw83A+pYkCXjTFdJHMTc+wUmwNr71Zy2TRjlWg==}
-    dependencies:
-      '@types/node': 16.9.6
-      '@types/ssh2': 0.5.48
-    dev: false
-
-  /@types/dockerode/3.2.7:
-    resolution: {integrity: sha512-Y8hMRQTwsOjz4qm6yilZKKjB/Y7+2EOiY3RPN1Xtu63wEUEDVv+3Ou+sgiisPE9+pVe3bmwhnF+E1Iwj/o4J6w==}
-    dependencies:
-      '@types/docker-modem': 3.0.1
-      '@types/node': 16.9.6
-    dev: false
-
   /@types/ed2curve/0.2.2:
     resolution: {integrity: sha512-G1sTX5xo91ydevQPINbL2nfgVAj/s1ZiqZxC8OCWduwu+edoNGUm5JXtTkg9F3LsBZbRI46/0HES4CPUE2wc9g==}
     dependencies:
@@ -5645,10 +5452,6 @@ packages:
     resolution: {integrity: sha512-GdZbRSJ3Cv5fiwT6I0SQ3ckeN2PWNqxd26W9Z2fCK1tGrrasGy4puvNFtnddqH9UJFMQYXxEuuB7B8UK+LLwSg==}
     dev: true
 
-  /@types/pako/1.0.2:
-    resolution: {integrity: sha512-8UJl2MjkqqS6ncpLZqRZ5LmGiFBkbYxocD4e4jmBqGvfRG1RS23gKsBQbdtV9O9GvRyjFTiRHRByjSlKCLlmZw==}
-    dev: true
-
   /@types/pbkdf2/3.1.0:
     resolution: {integrity: sha512-Cf63Rv7jCQ0LaL8tNXmEyqTHuIJxRdlS5vMh1mj5voN4+QFhVZnlZruezqpWYDiJ8UTzhP0VmeLXCmBk66YrMQ==}
     dependencies:
@@ -5696,19 +5499,6 @@ packages:
     dependencies:
       '@types/mime': 1.3.2
       '@types/node': 16.9.6
-
-  /@types/ssh2-streams/0.1.9:
-    resolution: {integrity: sha512-I2J9jKqfmvXLR5GomDiCoHrEJ58hAOmFrekfFqmCFd+A6gaEStvWnPykoWUwld1PNg4G5ag1LwdA+Lz1doRJqg==}
-    dependencies:
-      '@types/node': 16.9.6
-    dev: false
-
-  /@types/ssh2/0.5.48:
-    resolution: {integrity: sha512-cmQu0gp/6RtDXe1r2xXGgi0V0TeCdueDSRMEvBX8cTRT/sSREkUpgCYZLyh+iI8Ql+VNV8Az9toQoYa/IdgHbQ==}
-    dependencies:
-      '@types/node': 16.9.6
-      '@types/ssh2-streams': 0.1.9
-    dev: false
 
   /@types/tap/15.0.5:
     resolution: {integrity: sha512-MaP+EgZNFAGRvVjHWv8ldrLvYBn4PnmAlzY7IL3/RPAPkOXdggTSTgLFONbnTpdQTe8+ixYGAySKAm9ESlZm1A==}
