@@ -373,8 +373,6 @@ impl Account {
         token_config: &TokenConfig,
         entries: u32,
     ) -> StdResult<(Uint128, u32)> {
-        let amount = token_config.segment * Decimal::from_str(&entries.to_string())?;
-
         // We'll try to find the token in the account
         for mut account_token in &mut self.tokens {
             if account_token.token_type == token_config.token_type {
@@ -382,21 +380,28 @@ impl Account {
                     return Err(StdError::generic_err("Insufficient entries in the account"));
                 }
 
+                let mut removed = 0;
+
                 for _n in 0..entries {
-                    account_token.entries.remove(0);
+                    if !account_token.entries.is_empty() {
+                        account_token.entries.remove(0);
+                        removed += 1;
+                    }
                 }
 
+                let amount = token_config.segment * Decimal::from_str(&removed.to_string())?;
                 account_token.balance = (account_token.balance - amount)?;
 
-                return Ok((amount, account_token.entries.len() as u32));
+                return Ok((amount, removed));
             }
         }
 
         return Err(StdError::generic_err("Invalid token provided"));
     }
 
+    /// Remove all entries for a single token
     pub fn unlock_all(&mut self, token_config: &TokenConfig) -> StdResult<(Uint128, u32)> {
-        let entries = self.get_entries(&vec![token_config.clone()], 9999999999_u64);
+        let entries = self.get_entries(&vec![token_config.clone()], 99999999999_u64);
         self.unlock(&token_config, entries.len() as u32)
     }
 }

@@ -26,16 +26,18 @@ describe("Launchpad", () => {
     const T0 = +new Date();
 
     // connect to a localnet with a large number of predefined agents
-    const agentNames = ['ALICE', 'BOB', 'CHARLIE', 'MALLORY'];
+    const agentNames = ["ALICE", "BOB", "CHARLIE", "MALLORY"];
     context.chain = await Scrt.localnet_1_0().init();
     context.node = context.chain.node;
-    context.agent = await context.chain.getAgent(context.node.genesisAccount("ADMIN"));
+    context.agent = await context.chain.getAgent(
+      context.node.genesisAccount("ADMIN")
+    );
 
-    const agents = context.agents = await Promise.all(
+    const agents = (context.agents = await Promise.all(
       agentNames.map((name) =>
         context.chain.getAgent(context.node.genesisAccount(name))
       )
-    );
+    ));
     console.log({ agents });
     context.agent.API.fees = fees;
 
@@ -45,11 +47,13 @@ describe("Launchpad", () => {
     context.templates = {
       SiennaSNIP20: new SiennaSNIP20(),
       Launchpad: new Launchpad(),
-      Factory: new Factory()
+      Factory: new Factory(),
     };
 
     // build the contracts
-    await Promise.all(Object.values(context.templates).map(contract=>contract.build()));
+    await Promise.all(
+      Object.values(context.templates).map((contract) => contract.build())
+    );
 
     const T2 = +new Date();
     console.debug(`building took ${T2 - T1}msec`);
@@ -58,7 +62,7 @@ describe("Launchpad", () => {
     for (const contract of Object.values(context.templates)) {
       await contract.upload(context.agent);
       await context.agent.nextBlock;
-    };
+    }
 
     const T3 = +new Date();
     console.debug(`uploading took ${T3 - T2}msec`);
@@ -74,23 +78,23 @@ describe("Launchpad", () => {
         prng_seed: randomBytes(36).toString("hex"),
         snip20_contract: {
           id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash 
+          code_hash: context.templates.SiennaSNIP20.codeHash,
         },
         lp_token_contract: {
           id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash 
+          code_hash: context.templates.SiennaSNIP20.codeHash,
         },
         pair_contract: {
           id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash 
+          code_hash: context.templates.SiennaSNIP20.codeHash,
         },
         launchpad_contract: {
           id: context.templates.Launchpad.codeId,
-          code_hash: context.templates.Launchpad.codeHash 
+          code_hash: context.templates.Launchpad.codeHash,
         },
         ido_contract: {
           id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash 
+          code_hash: context.templates.SiennaSNIP20.codeHash,
         }, // dummy so we don't have to build it
         exchange_settings: {
           swap_fee: {
@@ -123,7 +127,7 @@ describe("Launchpad", () => {
           enable_burn: true,
         },
       },
-    })
+    });
     await context.token.instantiate(context.agent);
 
     context.viewkey = (await context.token.createViewingKey(context.agent)).key;
@@ -189,7 +193,7 @@ describe("Launchpad", () => {
     assert.strictEqual(res.launchpad_info[1].locked_balance, "50");
 
     const viewkey = (await context.launchpad.createViewingKey(buyer)).key;
-    
+
     const userRes = await context.launchpad.userInfo(buyer.address, viewkey);
 
     assert.strictEqual(userRes.user_info[0].balance, "50");
@@ -208,11 +212,60 @@ describe("Launchpad", () => {
       assert.strictEqual(userRes.user_info[0].balance, "50");
       assert.strictEqual(userRes.user_info[0].entries.length, 2);
     }
-    
-    const res = await context.launchpad.draw(4, [context.token.address]);
-    
+
+    const res = await context.launchpad.testDraw(4, [context.token.address]);
+
     for (const a of context.agents) {
       assert.strictEqual(res.drawn_addresses.includes(a.address), true);
+    }
+  });
+
+  it("User can unlock tokens", async function () {
+    this.timeout(0);
+    const buyer = context.agents[0];
+
+    await context.token.mint(100, undefined, buyer.address);
+    await context.token.lockLaunchpad(context.launchpad.address, 50, buyer);
+
+    const viewkey = (await context.launchpad.createViewingKey(buyer)).key;
+    const userRes = await context.launchpad.userInfo(buyer.address, viewkey);
+
+    assert.strictEqual(userRes.user_info[0].balance, "50");
+    assert.strictEqual(userRes.user_info[0].entries.length, 2);
+
+    const res = await context.token.unlockLaunchpad(
+      context.launchpad.address,
+      1,
+      buyer
+    );
+
+    assert.strictEqual(res.logs[0].events[1].attributes[2].value, "1"); // unlocked entries
+    assert.strictEqual(res.logs[0].events[1].attributes[3].value, "25"); // amount unlocked
+    assert.strictEqual(res.logs[0].events[1].attributes[4].value, "1"); // left entries in the launchpad
+  });
+
+  it("Attempt to remove the token and verify the balances of users are sent back", async function () {
+    this.timeout(0);
+    for (const a of context.agents) {
+      await context.token.mint(100, undefined, a.address);
+      await context.token.lockLaunchpad(context.launchpad.address, 50, a);
+
+      const viewkey = (await context.launchpad.createViewingKey(a)).key;
+      a.tokenViewkey = (await context.token.createViewingKey(a)).key;
+
+      const userRes = await context.launchpad.userInfo(a.address, viewkey);
+      const balance = await context.token.balance(a.address, a.tokenViewkey);
+
+      assert.strictEqual(userRes.user_info[0].balance, "50");
+      assert.strictEqual(userRes.user_info[0].entries.length, 2);
+      assert.strictEqual(balance, "50");
+    }
+
+    await context.launchpad.adminRemoveToken(1);
+
+    for (const a of context.agents) {
+      const balance = await context.token.balance(a.address, a.tokenViewkey);
+      assert.strictEqual(balance, "100");
     }
   });
 

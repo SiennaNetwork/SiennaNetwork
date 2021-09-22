@@ -25,11 +25,12 @@ pub(crate) fn gen_rand_range(mut min: u64, mut max: u64, seed: Option<u64>) -> u
         max = min;
         min = temp;
     }
-    let mut small_rng =
-        SmallRng::seed_from_u64(seed.unwrap_or_else(|| 999999999_u64);
+
+    let mut small_rng = SmallRng::seed_from_u64(seed.unwrap_or(999999999_u64));
     let picked_random: u64 = small_rng.next_u32() as u64;
 
     let percentage: u64 = (picked_random * 100_u64) / u32::MAX as u64;
+
     (percentage * (max - min) / 100_u64) + min
 }
 

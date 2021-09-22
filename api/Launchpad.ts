@@ -20,6 +20,18 @@ export class Launchpad extends ScrtContract {
   code = { ...this.code, workspace: abs(), crate: 'launchpad' }
 
   /**
+   * This action will remove the token from the contract
+   * and will refund all locked balances back to users
+   *
+   * @param {number} amount
+   * @param {Agent} [agent]
+   * @returns
+   */
+  async adminRemoveToken(index: number, agent?: Agent) {
+    return this.tx.admin_remove_token({ index }, agent);
+  }
+
+  /**
    * This method will perform the native token lock.
    *
    * @param {string|number|bigint} amount
@@ -89,9 +101,16 @@ export class Launchpad extends ScrtContract {
    *
    * @param {number} number
    * @param {string[]} tokens
-   * @returns Promise<any>
+   * @returns Promise<{
+   *  "drawn_addresses": [
+   *    "secret1h9we43xcfyljvadjj6wfw6444t8kty4kmajdhl",
+   *    "secret1tld98vmz8gq0j738cwvu2feccfwl8wz3tnuu9e",
+   *    "secret1avs82agh6g46xna6qklmjnnaj7yq3974ur8qpe",
+   *    "secret1udwpspt6czruhrhadtchsjzgznrq8yq9emu6m4"
+   *  ]
+   * }>
    */
-  async draw(number: number, tokens: string[]) {
+  async testDraw(number: number, tokens: string[]) {
     return this.q.draw({ number, tokens });
   }
 
