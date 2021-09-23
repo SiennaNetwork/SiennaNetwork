@@ -197,6 +197,8 @@ pub(crate) fn swap<S: Storage, A: Api, Q: Querier>(
     from: HumanAddr,
     recipient: Option<HumanAddr>,
 ) -> StdResult<HandleResponse> {
+    // TODO: remove this after debugging 'unmarshal' error
+    return Err(StdError::generic_err("WHAAAAAT"));
     config.is_swapable(now)?;
 
     let mut account = Account::<CanonicalAddr>::load_self(&deps, &from)?;

@@ -81,15 +81,15 @@ export class IDO extends ScrtContract {
    * 
    * @param {string|number|bigint} amount 
    * @param {Agent} [agent] 
-   * @param {string} [receiver] 
+   * @param {string|null} [receiver] 
    * @returns 
    */
-  swap(amount: string|number|bigint, agent?: Agent, receiver?: string) {
+  swap(amount: string|number|bigint, agent?: Agent, receiver: string|null = null) {
     return this.tx.swap(
       { amount: `${amount}`, receiver },
       agent,
       undefined,
-      JSON.stringify([{ amount: `${amount}`, denom: "uscrt" }])
+      [{ denom: "uscrt", amount: `${amount}` }]
     );
   }
 

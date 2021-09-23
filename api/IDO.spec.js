@@ -1,14 +1,14 @@
-import debug from "debug";
+// import debug from "debug";
 import { assert } from "chai";
 import { randomBytes } from "crypto";
 import { Scrt, ScrtGas } from "@fadroma/scrt";
 
-import { SiennaSNIP20 } from "./SNIP20";
-import { IDO } from "./IDO";
-import { Factory } from "./Factory";
+import { SiennaSNIP20 } from "./SNIP20.ts";
+import { IDO } from "./IDO.ts";
+import { Factory } from "./Factory.ts";
 
 const log = function () {
-  debug("out")(JSON.stringify(arguments, null, 2));
+  console.log(JSON.stringify(arguments, null, 2));
 };
 
 const getIDOInitMsg = function (context) {
@@ -31,7 +31,7 @@ const getIDOInitMsg = function (context) {
         code_hash: context.templates.SiennaSNIP20.codeHash,
       },
       whitelist: context.agents
-        .map((a, i) => (i == 0 || i > 4 ? null : a.address)) // allow only first 4 agents excluding the admin
+        .map((a, i) => (i > 3 ? null : a.address)) // allow only first 4 agents excluding the admin
         .filter((v) => v !== null),
       max_seats: 5,
       max_allocation: "5",
