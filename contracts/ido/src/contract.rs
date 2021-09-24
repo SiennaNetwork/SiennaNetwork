@@ -207,10 +207,9 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
                     ));
                 }
 
-                // TODO: uncomment lines below after debugging 'unmarshal' error
-                // config
-                //     .input_token
-                //     .assert_sent_native_token_balance(&env, amount)?;
+                config
+                    .input_token
+                    .assert_sent_native_token_balance(&env, amount)?;
 
                 crate::handle::swap(
                     deps,

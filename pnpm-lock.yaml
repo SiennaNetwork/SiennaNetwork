@@ -29,12 +29,14 @@ importers:
       '@fadroma/scrt': '*'
       '@fadroma/tools': '*'
       '@waiting/base64': ^4.2.9
+      debug: ^4.3.2
       mocha: ^8.4.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../libraries/fadroma-next/ops-scrt
       '@fadroma/tools': link:../libraries/fadroma-next/tools
       '@waiting/base64': 4.2.9
+      debug: 4.3.2
       secretjs: link:../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
     devDependencies:
       mocha: 8.4.0
@@ -284,6 +286,9 @@ importers:
       tree-sitter-markdown: github.com/egasimus/tree-sitter-markdown/18c3f1ccd3e27051273caa6d721d1c033e63741d
     devDependencies:
       tap: 15.0.10_ts-node@10.2.1+typescript@4.4.3
+
+  libraries/fadroma-next/platforms/ganesha/examples/example:
+    specifiers: {}
 
   libraries/fadroma-next/platforms/scrt-1.0:
     specifiers:
