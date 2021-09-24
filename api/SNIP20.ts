@@ -241,6 +241,9 @@ export class SiennaSNIP20 extends SNIP20 {
       config: { public_total_supply: true },
     },
   };
+  constructor (admin: Agent) {
+    super({ agent: admin })
+  }
 }
 
 export class AMMSNIP20 extends SNIP20 {
