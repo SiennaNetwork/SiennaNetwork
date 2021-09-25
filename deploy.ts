@@ -30,10 +30,11 @@ export async function deployVesting (options: VestingOptions = {}): Promise<Swap
           schedule = getDefaultSchedule() } = options
 
   const RPTAccount = getRPTAccount(schedule)
+      , portion    = RPTAccount.portion_size
 
   const SIENNA = new SiennaSNIP20({ prefix, admin })
       , MGMT   = new MGMTContract({ prefix, admin, schedule, SIENNA })
-      , RPT    = new RPTContract({ prefix, admin, MGMT, SIENNA, portion: RPTAccount.portion })
+      , RPT    = new RPTContract({ prefix, admin, MGMT, SIENNA, portion })
 
   await buildAndUpload([SIENNA, MGMT, RPT])
 
@@ -47,12 +48,8 @@ export async function deployVesting (options: VestingOptions = {}): Promise<Swap
   await MGMT.launch()
   await RPT.vest()
 
-  return { prefix, chain, admin, MGMT }
+  return { prefix, chain, admin, SIENNA, MGMT, RPT }
 }
-
-export function getSelectedVesting (chain: Chain) {}
-export function selectVesting (chain: Chain, id: string) {}
-export function printVestingInstances (chain: Chain) {}
 
 
 /// ## Sienna Swap
@@ -63,7 +60,9 @@ export type SwapOptions = {
   prefix:  string,
   chain?:  Chain,
   admin?:  Agent,
+  SIENNA?: SiennaSNIP20
   MGMT?:   MGMTContract
+  RPT?:    RPTContract
   config?: any,
   pairs?:  Record<string,string|number>
 }
@@ -72,15 +71,10 @@ export async function deploySwap (options: SwapOptions) {
     prefix,
     chain  = await new Scrt().ready,
     admin  = await chain.getAgent(),
-    MGMT,
+    SIENNA, MGMT, RPT,
     config      = settings[`amm-${chain.chainId}`],
     rewardPairs = settings[`rewardPairs-${chain.chainId}`]
   } = options
-
-  const tokenAddr = (await MGMT.status()).token
-      , SIENNA    = SiennaSNIP20.attach(tokenAddr.address)
-      , rptAddr   = getRPTAccount(await MGMT.schedule())
-      , RPT       = RPTContract.attach(rptAddr.address)
 
   const EXCHANGE = new AMMContract({ prefix, admin })
       , AMMTOKEN = new AMMSNIP20({ prefix, admin })
@@ -92,12 +86,11 @@ export async function deploySwap (options: SwapOptions) {
   await buildAndUpload([EXCHANGE, AMMTOKEN, LPTOKEN, IDO, FACTORY, REWARDS])
 
   await FACTORY.instantiate()
-  let tokens: Record<string, SNIP20>
-  if (chain.isLocalnet) {
-    tokens = await deployPlaceholderTokens()
-  } else if (chain.isTestnet) {
-    tokens = getTestnetTokens()
-  }
+  let tokens = {
+    SIENNA,
+    ...chain.isLocalnet
+      ? await deployPlaceholderTokens()
+      : hydrateTokens(settings[`swapTokens-${chain.chainId}`]) }
 
   async function deploySwapPair (name: string) {}
 
@@ -110,9 +103,9 @@ export async function deploySwap (options: SwapOptions) {
     return tokens
   }
 
-  function getTestnetTokens () {
+  function hydrateTokens (links: Record<string, { address: string, codeHash: string }>) {
     const tokens = {}
-    for (const [name, token] of Object.entries(settings.testnetTokens)) {
+    for (const [name, token] of Object.entries(links)) {
       tokens[name] = AMMSNIP20.attach(token)
     }
     return tokens
