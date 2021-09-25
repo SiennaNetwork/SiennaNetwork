@@ -16,7 +16,8 @@
     "./libraries/schedule",
     "./api",
     "./ops",
-    "./ops/amm"
+    "./ops/amm",
+    "./settings"
   ],
   "dependencies": {
     "@sienna/api": "workspace:*",
