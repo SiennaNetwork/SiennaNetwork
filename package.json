@@ -19,6 +19,9 @@
     "./ops/amm"
   ],
   "dependencies": {
+    "@sienna/api": "workspace:*",
+    "@fadroma/ops": "workspace:*",
+    "@fadroma/scrt": "workspace:*",
     "@fadroma/scrt-1.0": "workspace:*",
     "@fadroma/scrt-1.2": "workspace:*",
     "@fadroma/tools": "workspace:*",
@@ -33,6 +36,6 @@
   "scripts": {
     "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",
     "sienna": "./sienna",
-    "deploy": "ganesha run-module ops/deploy.ts"
+    "deploy": "ganesha run-module --unhandled-rejections=strict deploy.ts"
   }
 }

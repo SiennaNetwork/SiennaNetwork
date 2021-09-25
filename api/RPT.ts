@@ -1,4 +1,7 @@
-import type { ContractAPIOptions } from "@fadroma/scrt"
+import type { Agent } from '@fadroma/ops'
+import type { MGMT } from './MGMT'
+import type { SiennaSNIP20 } from "./SNIP20"
+import type { LinearMapFor_HumanAddrAnd_Uint128, Uint128 } from './rpt/init'
 import { ScrtContract, loadSchemas } from "@fadroma/scrt"
 import { abs } from '../ops/index'
 
@@ -10,7 +13,22 @@ export const schema = loadSchemas(import.meta.url, {
 });
 
 export class RPT extends ScrtContract {
-  constructor(options: ContractAPIOptions = {}) { super({ ...options, schema }) }
+
+  constructor (options: {
+    admin:   Agent,
+    config:  LinearMapFor_HumanAddrAnd_Uint128,
+    portion: Uint128,
+    SIENNA:  SiennaSNIP20
+    MGMT:    MGMT
+  }) {
+    super({ agent: options.admin, schema })
+    Object.assign(this.init.msg, {
+      token: options.SIENNA.linkPair,
+      mgmt: options.MGMT.linkPair,
+      portion: options.portion,
+      config: [[options.admin.address, options.portion]]
+    })
+  }
 
   code = { ...this.code, workspace: abs(), crate: 'sienna-rpt' }
 

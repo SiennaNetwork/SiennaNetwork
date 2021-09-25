@@ -5,6 +5,10 @@ import { b64encode } from "@waiting/base64";
 import { abs } from "../ops/index";
 import { randomHex } from "@fadroma/tools";
 
+import { AMM } from './AMM'
+import { AMMSNIP20, LPToken } from './SNIP20'
+import { IDO } from './IDO'
+
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./factory/init_msg.json",
   queryMsg: "./factory/query_msg.json",
@@ -12,8 +16,18 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg: "./factory/handle_msg.json",
 });
 
+type FactoryConstructorOptions = ContractAPIOptions & {
+  admin:      Agent,
+  swapConfig: any,
+  EXCHANGE:   AMM,
+  AMMTOKEN:   AMMSNIP20,
+  LPTOKEN:    LPToken,
+  IDO:        IDO
+}
+
 export class Factory extends ScrtContract {
   constructor(options: ContractAPIOptions = {}) {
+    const { admin, swapConfig, EXCHANGE, AMMTOKEN, LPTOKEN, IDO, ...rest } = options
     super({ ...options, schema });
     
     if (options.initMsg) {

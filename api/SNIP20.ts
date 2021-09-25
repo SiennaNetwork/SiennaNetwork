@@ -227,7 +227,13 @@ export class SNIP20 extends ScrtContract {
 }
 
 export class SiennaSNIP20 extends SNIP20 {
-  code = { ...this.code, workspace: abs(), crate: "snip20-sienna" };
+
+  code = {
+    ...this.code,
+    workspace: abs(),
+    crate: "snip20-sienna"
+  };
+
   init = {
     ...this.init,
     label: this.init.label || "SiennaSNIP20",
@@ -241,9 +247,11 @@ export class SiennaSNIP20 extends SNIP20 {
       config: { public_total_supply: true },
     },
   };
-  constructor (admin: Agent) {
-    super({ agent: admin })
+
+  constructor (options: { admin: Agent }) {
+    super({ agent: options.admin })
   }
+
 }
 
 export class AMMSNIP20 extends SNIP20 {

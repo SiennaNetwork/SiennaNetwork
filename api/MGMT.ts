@@ -1,4 +1,7 @@
+import type { Agent } from '@fadroma/ops'
 import type { ContractAPIOptions } from "@fadroma/scrt"
+import type { ScheduleFor_HumanAddr } from './mgmt/init'
+import type { SNIP20 } from './SNIP20'
 import { ScrtContract, loadSchemas } from "@fadroma/scrt"
 import { abs } from '../ops/index'
 
@@ -10,7 +13,19 @@ const schema = loadSchemas(import.meta.url, {
 })
 
 export class MGMT extends ScrtContract {
-  constructor (options: ContractAPIOptions) { super({ ...options, schema }) }
+
+  constructor (options: {
+    admin:    Agent,
+    schedule: ScheduleFor_HumanAddr,
+    SIENNA:   SNIP20
+  }) {
+    super({ agent: options.admin, schema })
+    Object.assign(this.init.msg, {
+      admin:    options.admin.address,
+      token:    options.SIENNA.linkPair,
+      schedule: options.schedule,
+    })
+  }
 
   code = { ...this.code, workspace: abs(), crate: 'sienna-mgmt' }
 
