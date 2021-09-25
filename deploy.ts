@@ -7,7 +7,7 @@ import { Scrt } from '@fadroma/scrt'
 import { bold, timestamp, symlinkDir, randomHex } from '@fadroma/tools'
 import process from 'process'
 import { fileURLToPath } from 'url'
-import { getDefaultSchedule } from './ops/index'
+import { getDefaultSchedule, ONE_SIENNA } from './ops/index'
 
 
 /// ## Sienna TGE
@@ -63,8 +63,6 @@ export type SwapOptions = {
   SIENNA?: SiennaSNIP20
   MGMT?:   MGMTContract
   RPT?:    RPTContract
-  config?: any,
-  pairs?:  Record<string,string|number>
 }
 export async function deploySwap (options: SwapOptions) {
   const {
@@ -72,16 +70,17 @@ export async function deploySwap (options: SwapOptions) {
     chain  = await new Scrt().ready,
     admin  = await chain.getAgent(),
     SIENNA, MGMT, RPT,
-    config      = settings[`amm-${chain.chainId}`],
-    rewardPairs = settings[`rewardPairs-${chain.chainId}`]
   } = options
 
   const EXCHANGE = new AMMContract({ prefix, admin })
       , AMMTOKEN = new AMMSNIP20({ prefix, admin })
       , LPTOKEN  = new LPToken({ prefix, admin })
       , IDO      = new IDOContract({ prefix, admin })
-      , FACTORY  = new FactoryContract({ prefix, admin, config, EXCHANGE, AMMTOKEN, LPTOKEN, IDO })
       , REWARDS  = new RewardsContract({ prefix, admin })
+      , FACTORY  = new FactoryContract({
+          prefix, admin, config: settings[`amm-${chain.chainId}`],
+          EXCHANGE, AMMTOKEN, LPTOKEN, IDO
+        })
 
   await buildAndUpload([EXCHANGE, AMMTOKEN, LPTOKEN, IDO, FACTORY, REWARDS])
 
@@ -90,20 +89,40 @@ export async function deploySwap (options: SwapOptions) {
     SIENNA,
     ...chain.isLocalnet
       ? await deployPlaceholderTokens()
-      : hydrateTokens(settings[`swapTokens-${chain.chainId}`]) }
+      : getSwapTokens(settings[`swapTokens-${chain.chainId}`])
+  }
+  await deployRewardPool(SIENNA, SIENNA)
+  const rptConfig = []
+  for (const name of settings[`swapPairs-${chain.chainId}`]) {
+    const [token0, token1] = await deploySwapPair(name)
+    const rewardAllocation = settings[`rewardPairs-${chain.chainId}`]
+    if (rewardAllocation) {
+      const lpToken = await getLPToken(token0, token1)
+      const pool = await deployRewardPool(lpToken, SIENNA)
+      rptConfig.push([pool.address, String(BigInt(rewardAllocation * ONE_SIENNA))])
+    }
+  }
+  await RPT.configure(rptConfig)
 
-  async function deploySwapPair (name: string) {}
+
+  /// On localnet, placeholder tokens need to be deployed.
+
+
 
   async function deployPlaceholderTokens () {
     const tokens = {}
-    for (const token of settings.placeholders) {
+    for (const token of settings[`placeholderTokens-${chain.chainId}`]) {
       tokens[token.symbol] = new AMMSNIP20({ prefix, ...token })
       await tokens[token.symbol].instantiate(admin)
     }
     return tokens
   }
 
-  function hydrateTokens (links: Record<string, { address: string, codeHash: string }>) {
+
+  /// On testnet and mainnet, interoperate with preexisting token contracts.
+
+
+  function getSwapTokens (links: Record<string, { address: string, codeHash: string }>) {
     const tokens = {}
     for (const [name, token] of Object.entries(links)) {
       tokens[name] = AMMSNIP20.attach(token)
@@ -111,7 +130,36 @@ export async function deploySwap (options: SwapOptions) {
     return tokens
   }
 
-  async function getMainnetTokens () {}
+  async function deploySwapPair (name: string) {
+    const [tokenName0, tokenName1] = name.split('-')
+    const token0 = tokens[tokenName0]
+        , token1 = tokens[tokenName1]
+    await FACTORY.createExchange(
+      { contract_addr: token0.address, token_code_hash: token0.codeHash },
+      { contract_addr: token1.address, token_code_hash: token1.codeHash }
+    )
+    return [token0, token1]
+  }
+
+  async function getLPToken (token0: SNIP20, token1: SNIP20) {
+    return LPToken.attach(
+      await AMMContract.attach({
+        agent:   admin,
+        address: (await this.Swap.contracts.FACTORY.listExchanges()).list_exchanges.exchanges
+          .filter(({pair})=>(
+            pair.token_0.custom_token.contract_addr === token0.address &&
+            pair.token_1.custom_token.contract_addr === token1.address
+          ))[0].address
+      }).pairInfo().pair_info.liquidity_token.address,
+      LPTOKEN.codeHash,
+      admin)
+  }
+
+  async function deployRewardPool (lpToken: SNIP20, rewardToken: SNIP20) {
+    const rewardPool = new RewardsContract({ prefix, admin, lpToken, rewardToken })
+    await rewardPool.instantiate(this.agent)
+    return rewardPool
+  }
 
   async function addRewardPool () {}
 

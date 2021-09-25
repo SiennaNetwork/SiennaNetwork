@@ -210,8 +210,7 @@ export class SiennaSwap extends BaseEnsemble {
 
   private getTestnetTokens () {
     return {
-      SIENNA:
-        this.TGE.contracts.SIENNA,
+      SIENNA,
       sSCRT: new AMMSNIP20({
         address:  'secret1s7c6xp9wltthk5r6mmavql4xld5me3g37guhsx',
         codeHash: 'cd400fb73f5c99edbc6aab22c2593332b8c9f2ea806bf9b42e3a523f3ad06f62' }),
