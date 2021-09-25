@@ -11,6 +11,7 @@ importers:
       '@fadroma/tools': workspace:*
       '@hackbg/ganesha': workspace:*
       '@sienna/api': workspace:*
+      '@sienna/settings': workspace:*
       chai: ^4.3.4
       docco: ^0.8.1
       mocha: ^8.4.0
@@ -25,6 +26,7 @@ importers:
       '@fadroma/tools': link:libraries/fadroma-next/tools
       '@hackbg/ganesha': link:libraries/fadroma-next/platforms/ganesha
       '@sienna/api': link:api
+      '@sienna/settings': link:settings
       chai: 4.3.4
       docco: 0.8.1
       mocha: 8.4.0
@@ -782,6 +784,9 @@ importers:
     devDependencies:
       '@types/node': 14.17.18
       esmo: 0.9.1
+
+  settings:
+    specifiers: {}
 
 packages:
 

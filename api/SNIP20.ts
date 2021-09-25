@@ -226,34 +226,6 @@ export class SNIP20 extends ScrtContract {
     );
 }
 
-export class SiennaSNIP20 extends SNIP20 {
-
-  code = {
-    ...this.code,
-    workspace: abs(),
-    crate: "snip20-sienna"
-  };
-
-  init = {
-    ...this.init,
-    label: this.init.label || "SiennaSNIP20",
-    msg: {
-      get prng_seed() {
-        return randomHex(36);
-      },
-      name: "Sienna",
-      symbol: "SIENNA",
-      decimals: 18,
-      config: { public_total_supply: true },
-    },
-  };
-
-  constructor (options: { admin: Agent }) {
-    super({ agent: options.admin })
-  }
-
-}
-
 export class AMMSNIP20 extends SNIP20 {
   code = { ...this.code, workspace: abs(), crate: "amm-snip20" };
   init = { ...this.init, label: this.init.label || "AMMSNIP20" };

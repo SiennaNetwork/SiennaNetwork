@@ -1,34 +1,42 @@
-import type { Chain, Agent } from '@fadroma/ops'
+/// # Sienna Deployment
+
+
+import settings from '@sienna/settings'
+import type { Chain, Agent, ContractUpload } from '@fadroma/ops'
 import { Scrt } from '@fadroma/scrt'
-import { bold, symlinkDir } from '@fadroma/tools'
+import { bold, timestamp, symlinkDir, randomHex } from '@fadroma/tools'
 import process from 'process'
 import { fileURLToPath } from 'url'
 import { getDefaultSchedule } from './ops/index'
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  main(process.argv.slice(2)).then(()=>process.exit(0))
-}
 
-/// ------------------------------------------------------------------------------------------------
+/// ## Sienna TGE
+/// This contains the Sienna SNIP20 token and the vesting contracts (MGMT and RPT).
+
 
 import type { ScheduleFor_HumanAddr } from '@sienna/api/mgmt/handle'
+import type { SNIP20Contract as SNIP20 } from '@sienna/api'
 import { SiennaSNIP20, MGMTContract, RPTContract } from '@sienna/api'
 export type VestingOptions = {
+  prefix?:   string
   chain?:    Chain,
   admin?:    Agent,
   schedule?: ScheduleFor_HumanAddr
 }
 export async function deployVesting (options: VestingOptions = {}): Promise<SwapOptions> {
-  const { chain = await new Scrt().ready,
-          admin = await chain.getAgent(),
+  const { prefix   = timestamp(),
+          chain    = await new Scrt().ready,
+          admin    = await chain.getAgent(),
           schedule = getDefaultSchedule() } = options
-  const SIENNA = new SiennaSNIP20({ admin })
-      , MGMT   = new MGMTContract({ admin, schedule, SIENNA })
-      , RPT    = new RPTContract({ admin, MGMT, SIENNA })
-      , RPTAccount = getRPTAccount(schedule)
-  await Promise.all([SIENNA, MGMT, RPT].map(contract=>contract.build()))
-  console.log(admin)
-  await Promise.all([SIENNA, MGMT, RPT].map(contract=>contract.upload(admin)))
+
+  const RPTAccount = getRPTAccount(schedule)
+
+  const SIENNA = new SiennaSNIP20({ prefix, admin })
+      , MGMT   = new MGMTContract({ prefix, admin, schedule, SIENNA })
+      , RPT    = new RPTContract({ prefix, admin, MGMT, SIENNA, portion: RPTAccount.portion })
+
+  await buildAndUpload([SIENNA, MGMT, RPT])
+
   await SIENNA.instantiate()
   RPTAccount.address = admin.address
   await MGMT.instantiate()
@@ -38,8 +46,107 @@ export async function deployVesting (options: VestingOptions = {}): Promise<Swap
   await MGMT.configure(schedule)
   await MGMT.launch()
   await RPT.vest()
-  return { chain, admin, SIENNA, MGMT, RPT }
+
+  return { prefix, chain, admin, MGMT }
 }
+
+export function getSelectedVesting (chain: Chain) {}
+export function selectVesting (chain: Chain, id: string) {}
+export function printVestingInstances (chain: Chain) {}
+
+
+/// ## Sienna Swap
+
+
+import { FactoryContract, AMMContract, AMMSNIP20, LPToken, RewardsContract, IDOContract } from '@sienna/api'
+export type SwapOptions = {
+  prefix:  string,
+  chain?:  Chain,
+  admin?:  Agent,
+  MGMT?:   MGMTContract
+  config?: any,
+  pairs?:  Record<string,string|number>
+}
+export async function deploySwap (options: SwapOptions) {
+  const {
+    prefix,
+    chain  = await new Scrt().ready,
+    admin  = await chain.getAgent(),
+    MGMT,
+    config      = settings[`amm-${chain.chainId}`],
+    rewardPairs = settings[`rewardPairs-${chain.chainId}`]
+  } = options
+
+  const tokenAddr = (await MGMT.status()).token
+      , SIENNA    = SiennaSNIP20.attach(tokenAddr.address)
+      , rptAddr   = getRPTAccount(await MGMT.schedule())
+      , RPT       = RPTContract.attach(rptAddr.address)
+
+  const EXCHANGE = new AMMContract({ prefix, admin })
+      , AMMTOKEN = new AMMSNIP20({ prefix, admin })
+      , LPTOKEN  = new LPToken({ prefix, admin })
+      , IDO      = new IDOContract({ prefix, admin })
+      , FACTORY  = new FactoryContract({ prefix, admin, config, EXCHANGE, AMMTOKEN, LPTOKEN, IDO })
+      , REWARDS  = new RewardsContract({ prefix, admin })
+
+  await buildAndUpload([EXCHANGE, AMMTOKEN, LPTOKEN, IDO, FACTORY, REWARDS])
+
+  await FACTORY.instantiate()
+  let tokens: Record<string, SNIP20>
+  if (chain.isLocalnet) {
+    tokens = await deployPlaceholderTokens()
+  } else if (chain.isTestnet) {
+    tokens = getTestnetTokens()
+  }
+
+  async function deploySwapPair (name: string) {}
+
+  async function deployPlaceholderTokens () {
+    const tokens = {}
+    for (const token of settings.placeholders) {
+      tokens[token.symbol] = new AMMSNIP20({ prefix, ...token })
+      await tokens[token.symbol].instantiate(admin)
+    }
+    return tokens
+  }
+
+  function getTestnetTokens () {
+    const tokens = {}
+    for (const [name, token] of Object.entries(settings.testnetTokens)) {
+      tokens[name] = AMMSNIP20.attach(token)
+    }
+    return tokens
+  }
+
+  async function getMainnetTokens () {}
+
+  async function addRewardPool () {}
+
+  async function replaceRewardPool () {}
+}
+
+
+/// ## Helper functions
+
+/// ### Build and upload
+/// Contracts can be built in parallel, but have to be uploaded in separate blocks.
+
+
+async function buildAndUpload (contracts: Array<ContractUpload>) {
+  await Promise.all(contracts.map(contract=>contract.build()))
+  for (const contract of contracts) {
+    await contract.upload()
+    await contract.uploader.nextBlock
+  }
+}
+
+
+/// ### Get the RPT account from the schedule
+/// This is a special entry in MGMT's schedule that must be made to point to
+/// the RPT contract's address - but that's only possible after deploying
+/// the RPT contract. To prevent the circular dependency, the RPT account
+/// starts as pointing to the admin's address.
+
 
 function getRPTAccount (schedule: ScheduleFor_HumanAddr) {
   return schedule.pools
@@ -47,56 +154,33 @@ function getRPTAccount (schedule: ScheduleFor_HumanAddr) {
     .filter((x:any)=>x.name==='RPT')[0]
 }
 
-export function getSelectedVesting (chain: Chain) {}
-export function selectVesting (chain: Chain, id: string) {}
-export function printVestingInstances (chain: Chain) {}
 
-/// ------------------------------------------------------------------------------------------------
+/// ## Entry point
 
-import { FactoryContract, AMMContract, AMMSNIP20, LPToken, RewardsContract, IDOContract } from '@sienna/api'
-export type SwapOptions = {
-  chain?:  Chain,
-  admin?:  Agent,
-  config?: any,
-  MGMT?:   MGMTContract,
-  SIENNA?: SiennaSNIP20,
-  RPT?:    RPTContract
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main(process.argv.slice(2)).then(()=>process.exit(0))
 }
-export async function deploySwap (options: SwapOptions = {}) {
-  const { chain  = await new Scrt().ready,
-          admin  = await chain.getAgent(),
-          config = loadSwapConfig(),
-          MGMT,
-          SIENNA = SiennaSNIP20.attach((await MGMT.status()).token),
-          RPT    = RPTContract.attach(getRPTAccount(await MGMT.schedule())) } = options
-  const EXCHANGE = new AMMContract({ admin })
-      , AMMTOKEN = new AMMSNIP20({ admin })
-      , LPTOKEN  = new LPToken({ admin })
-      , IDO      = new IDOContract({ admin })
-      , FACTORY  = new FactoryContract({ admin, swapConfig, EXCHANGE, AMMTOKEN, LPTOKEN, IDO })
-      , REWARDS  = new RewardsContract({ admin })
-  await Promise.all([EXCHANGE, AMMTOKEN, LPTOKEN, IDO, FACTORY, REWARDS].map(contract=>contract.build()))
-  await Promise.all([EXCHANGE, AMMTOKEN, LPTOKEN, IDO, FACTORY, REWARDS].map(contract=>contract.upload()))
-  await FACTORY.instantiate()
-}
-
-export async function loadSwapConfig () {}
-
-export async function addRewardPool () {}
-
-export async function replaceRewardPool () {}
-
-export function getSelectedSwap (chain: Chain) {}
-export function selectSwap (chain: Chain, id: string) {}
-export function printSwapInstances (chain: Chain) {}
-
-/// ------------------------------------------------------------------------------------------------
 
 export default async function main ([chainName, ...words]: Array<string>) {
 
-  const { chain, admin } = await init(chainName)
+  let chain: Chain
+  let admin: Agent
+
+
+  /// Prefix is used to identify the instance.
+
+
+  let prefix = timestamp()
 
   return await runCommands(words, {
+
+    reset () {
+      if (!chain.node) {
+        throw new Error(`${bold(chainName)}: not a localnet`)
+      }
+      return chain.node.terminate()
+    },
 
     select (id?: string) {
       if (id) {
@@ -108,22 +192,26 @@ export default async function main ([chainName, ...words]: Array<string>) {
 
     deploy: {
       all () {
-        console.log('deploy all')
+        return deployVesting({prefix, chain, admin}).then(deploySwap)
       },
       vesting () {
         console.log('deploy vesting')
-        return deployVesting({ chain, admin })
+        return deployVesting({prefix, chain, admin})
       },
       swap () {
         console.log('deploy swap')
         const MGMT = getSelectedVesting()
-        return deploySwap({ chain, admin, MGMT })
+        return deploySwap({prefix, chain, admin, MGMT})
       }
     },
 
     migrate: {}
 
   })
+
+
+  /// Get an interface to the chain, and a deployment agent
+
 
   async function init (chainName: string) {
     const chains: Record<string, Function> = {
@@ -145,24 +233,34 @@ export default async function main ([chainName, ...words]: Array<string>) {
     return { chain, admin }
   }
 
-  function runCommands (words: Array<string>, commands: Record<string, any>) {
+
+  /// Command parser
+
+
+  async function runCommands (words: Array<string>, commands: Record<string, any>) {
     let command = commands
-    let fragment: string|undefined
-    do {
-      fragment = words.shift()
-      if (command[fragment] instanceof Function) break
-      try {
-        command = command[fragment]
-      } catch (e) {
-        throw new Error(`invalid command: ${fragment}`)
-      }
-    } while (fragment)
-    if (command[fragment] instanceof Function) {
-      return command[fragment](...words)
+    let i: number
+    for (i = 0; i < words.length; i++) {
+      const word = words[i]
+      if (typeof command === 'object' && command[word]) command = command[word]
+      if (command instanceof Function) break
+    }
+    if (command instanceof Function) {
+      const context = await init(chainName)
+      chain = context.chain
+      admin = context.admin
+      return command(words.slice(i + 1))
     } else {
-      throw new Error(`invalid command: ${fragment}`)
+      console.log(`\nAvailable commands:`)
+      for (const key of Object.keys(command)) {
+        console.log(`  ${bold(key)}`)
+      }
     }
   }
+
+
+  /// Instance picker
+
 
   function getActiveInstance () {
     if (chain.activeInstance) {

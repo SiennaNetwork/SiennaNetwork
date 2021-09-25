@@ -1,13 +1,15 @@
+import type { Agent } from '@fadroma/ops'
 import { ScrtContract, loadSchemas, ContractAPIOptions } from "@fadroma/scrt";
 import { TokenTypeFor_HumanAddr } from "./factory/handle_msg.d";
 import { EnigmaUtils } from "secretjs/src/index.ts";
 import { b64encode } from "@waiting/base64";
-import { abs } from "../ops/index";
 import { randomHex } from "@fadroma/tools";
 
 import { AMM } from './AMM'
 import { AMMSNIP20, LPToken } from './SNIP20'
 import { IDO } from './IDO'
+
+import { abs } from "../ops/index";
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./factory/init_msg.json",
@@ -26,16 +28,24 @@ type FactoryConstructorOptions = ContractAPIOptions & {
 }
 
 export class Factory extends ScrtContract {
-  constructor(options: ContractAPIOptions = {}) {
-    const { admin, swapConfig, EXCHANGE, AMMTOKEN, LPTOKEN, IDO, ...rest } = options
-    super({ ...options, schema });
-    
-    if (options.initMsg) {
-      this.init.msg = options.initMsg;
-    }
-    if (options.label) {
-      this.init.label = options.label;
-    }
+
+  constructor(options: {
+    admin: Agent
+    config: any
+    EXCHANGE: AMM
+    AMMTOKEN: AMMSNIP20
+    LPTOKEN:  LPToken
+    IDO:      IDO
+  }) {
+    super({ agent: options.admin, schema })
+    Object.assign(this.init.msg, {
+      snip20_contract:   options.AMMTOKEN.template,
+      pair_contract:     options.EXCHANGE.template,
+      lp_token_contract: options.LPTOKEN.template,
+      ido_contract:      options.IDO.template,
+      exchange_settings: options.config,
+      admin:             options.admin.address
+    })
   }
 
   code = { ...this.code, workspace: abs(), crate: "factory" };
