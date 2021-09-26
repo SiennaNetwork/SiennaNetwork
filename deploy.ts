@@ -241,10 +241,7 @@ export default async function main ([chainName, ...words]: Array<string>) {
           console.log(`  ${instance}`)
         }
       }
-      if (chain.instances.active) {
-        console.log(`\nActive instance:`)
-        console.log(`  ${chain.instances.active.name}`)
-      }
+      printActiveInstance()
     },
 
     deploy: {
@@ -257,8 +254,12 @@ export default async function main ([chainName, ...words]: Array<string>) {
       },
       swap () {
         console.log('deploy swap')
-        const MGMT = getSelectedVesting()
-        return deploySwap({prefix, chain, admin, MGMT})
+        const { name: prefix, contracts } = chain.instances.active
+        const { initTx: { contractAddress }, codeHash } = contracts['SiennaMGMT']
+        return deploySwap({
+          chain, admin, prefix,
+          MGMT: MGMTContract.attach(contractAddress, codeHash, admin),
+        })
       }
     },
 
@@ -302,12 +303,13 @@ export default async function main ([chainName, ...words]: Array<string>) {
       if (typeof command === 'object' && command[word]) command = command[word]
       if (command instanceof Function) break
     }
+    const context = await init(chainName)
+    chain = context.chain
+    admin = context.admin
     if (command instanceof Function) {
-      const context = await init(chainName)
-      chain = context.chain
-      admin = context.admin
       return await Promise.resolve(command(...words.slice(i + 1)))
     } else {
+      printActiveInstance()
       console.log(`\nAvailable commands:`)
       for (const key of Object.keys(command)) {
         console.log(`  ${bold(key)}`)
@@ -318,6 +320,13 @@ export default async function main ([chainName, ...words]: Array<string>) {
 
   /// Instance picker
 
+
+  function printActiveInstance () {
+    if (chain && chain.instances.active) {
+      console.log(`\nActive instance:`)
+      console.log(`  ${bold(chain.instances.active.name)}`)
+    }
+  }
 
   function getActiveInstance () {
     if (chain.activeInstance) {
