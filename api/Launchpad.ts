@@ -15,7 +15,19 @@ const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
 export class Launchpad extends ScrtContract {
-  constructor (options: ContractAPIOptions = {}) { super({ ...options, schema }) }
+  constructor ({ prefix, admin, label, codeId, initMsg }: {
+    prefix?:  string,
+    admin?:   Agent,
+    label?:   string,
+    codeId?:  number
+    initMsg?: any
+  }) {
+    super({ agent: admin, schema })
+    if (codeId)  this.blob.codeId = codeId
+    if (prefix)  this.init.prefix = prefix
+    if (label)   this.init.label  = label
+    if (initMsg) this.init.msg    = initMsg
+  }
 
   code = { ...this.code, workspace: abs(), crate: 'launchpad' }
 

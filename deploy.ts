@@ -228,11 +228,22 @@ export default async function main ([chainName, ...words]: Array<string>) {
       return chain.node.terminate()
     },
 
-    select (id?: string) {
+    async select (id?: string) {
+      const list = await chain.instances.list()
+      if (list.length < 1) {
+        console.log('\nNo deployed instances.')
+      }
       if (id) {
-        return chain.getInstance(id)
-      } else {
-        return chain.instances.list()
+        chain.instances.select(id)
+      } else if (list.length > 0) {
+        console.log(`\nKnown instances:`)
+        for (const instance of await chain.instances.list()) {
+          console.log(`  ${instance}`)
+        }
+      }
+      if (chain.instances.active) {
+        console.log(`\nActive instance:`)
+        console.log(`  ${chain.instances.active.name}`)
       }
     },
 
@@ -295,7 +306,7 @@ export default async function main ([chainName, ...words]: Array<string>) {
       const context = await init(chainName)
       chain = context.chain
       admin = context.admin
-      return command(words.slice(i + 1))
+      return await Promise.resolve(command(...words.slice(i + 1)))
     } else {
       console.log(`\nAvailable commands:`)
       for (const key of Object.keys(command)) {
