@@ -11,12 +11,12 @@ export const schema = loadSchemas(import.meta.url, {
 
 export class AMM extends ScrtContract {
   constructor (options: {
-    admin:    Agent,
-    prefix:   string,
-    label:    string,
-    name:     string,
-    symbol:   string,
-    decimals: number,
+    admin:     Agent,
+    prefix?:   string,
+    label?:    string,
+    name?:     string,
+    symbol?:   string,
+    decimals?: number,
   }) {
     super({ agent: options.admin, schema })
     if (options.prefix) this.init.prefix = options.prefix
@@ -34,4 +34,16 @@ export class AMM extends ScrtContract {
   init = { ...this.init, label: 'SiennaAMMExchange', msg: {} }
 
   pairInfo = () => this.q.pairInfo()
+
+  static attach = (
+    address:  string,
+    codeHash: string,
+    agent:    Agent
+  ) => {
+    const instance = new this({ admin: agent })
+    instance.init.agent = agent
+    instance.init.address = address
+    instance.blob.codeHash = codeHash
+    return instance
+  }
 }

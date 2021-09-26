@@ -2,28 +2,59 @@ import { ContractAPIOptions } from '@fadroma/scrt'
 import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt"
 import { abs } from '../ops/index'
 import { randomHex } from '@fadroma/tools'
-
-export const schema = loadSchemas(import.meta.url, {
-  initMsg:     "./rewards/init.json",
-  queryMsg:    "./rewards/query.json",
-  queryAnswer: "./rewards/response.json",
-  handleMsg:   "./rewards/handle.json",
-});
+import { SNIP20 } from './SNIP20'
 
 const BLOCK_TIME = 6 // seconds (on average)
 const threshold  = 24 * 60 * 60 / BLOCK_TIME
 const cooldown   = 24 * 60 * 60 / BLOCK_TIME
 
+export type RewardsOptions = {
+  prefix?:      string
+  name?:        string
+  admin?:       Agent
+  lpToken?:     SNIP20
+  rewardToken?: SNIP20
+}
+
 export class Rewards extends ScrtContract {
-  constructor (options: ContractAPIOptions = {}, name: string = '???') {
-    super({ ...options, schema, label: `SiennaRewards_${name}_Pool` }) }
 
-  code = { ...this.code, workspace: abs(), crate: 'sienna-rewards' }
+  static schema = loadSchemas(import.meta.url, {
+    initMsg:     "./rewards/init.json",
+    queryMsg:    "./rewards/query.json",
+    queryAnswer: "./rewards/response.json",
+    handleMsg:   "./rewards/handle.json",
+  })
 
-  init = { ...this.init, label: this.init.label||'SiennaRewards', msg: {
-    threshold,
-    cooldown,
-    get viewing_key () { return randomHex(36) } } }
+  constructor ({ prefix, name, admin, lpToken, rewardToken }: RewardsOptions) {
+    super({
+      agent:  admin,
+      schema: Rewards.schema,
+      prefix,
+      label:  `SiennaRewards_${name}_Pool`
+    })
+    Object.assign(this.init.msg, {
+      admin:        admin.address,
+      lp_token:     lpToken?.link,
+      reward_token: rewardToken?.link,
+      viewing_key:  ""
+    })
+  }
+
+  code = {
+    ...this.code,
+    workspace: abs(),
+    crate: 'sienna-rewards'
+  }
+
+  init = {
+    ...this.init,
+    label: this.init.label||'SiennaRewards',
+    msg: {
+      threshold,
+      cooldown,
+      viewing_key: randomHex(36)
+    }
+  }
 
   setProvidedToken = (address: string, code_hash: string, agent = this.instantiator) =>
     this.tx.set_provided_token({address, code_hash}, agent);

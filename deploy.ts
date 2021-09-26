@@ -55,7 +55,9 @@ export async function deployVesting (options: VestingOptions = {}): Promise<Swap
 /// ## Sienna Swap
 
 
-import { FactoryContract, AMMContract, AMMSNIP20, LPToken, RewardsContract, IDOContract } from '@sienna/api'
+import {
+  FactoryContract, AMMContract, AMMSNIP20, LPToken, RewardsContract, IDOContract, LaunchpadContract
+} from '@sienna/api'
 export type SwapOptions = {
   prefix:  string,
   chain?:  Chain,
@@ -72,27 +74,32 @@ export async function deploySwap (options: SwapOptions) {
     SIENNA, MGMT, RPT,
   } = options
 
-  const EXCHANGE = new AMMContract({ prefix, admin })
-      , AMMTOKEN = new AMMSNIP20({ prefix, admin })
-      , LPTOKEN  = new LPToken({ prefix, admin })
-      , IDO      = new IDOContract({ prefix, admin })
-      , REWARDS  = new RewardsContract({ prefix, admin })
-      , FACTORY  = new FactoryContract({
+  const EXCHANGE  = new AMMContract({ prefix, admin })
+      , AMMTOKEN  = new AMMSNIP20({ prefix, admin })
+      , LPTOKEN   = new LPToken({ prefix, admin })
+      , IDO       = new IDOContract({ prefix, admin })
+      , REWARDS   = new RewardsContract({ prefix, admin })
+      , LAUNCHPAD = new LaunchpadContract({ prefix, admin })
+      , FACTORY   = new FactoryContract({
           prefix, admin, config: settings[`amm-${chain.chainId}`],
-          EXCHANGE, AMMTOKEN, LPTOKEN, IDO
+          EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD
         })
 
-  await buildAndUpload([EXCHANGE, AMMTOKEN, LPTOKEN, IDO, FACTORY, REWARDS])
+  await buildAndUpload([EXCHANGE, AMMTOKEN, LPTOKEN, IDO, FACTORY, REWARDS, LAUNCHPAD])
 
   await FACTORY.instantiate()
+
   let tokens = {
     SIENNA,
     ...chain.isLocalnet
       ? await deployPlaceholderTokens()
       : getSwapTokens(settings[`swapTokens-${chain.chainId}`])
   }
+
   await deployRewardPool(SIENNA, SIENNA)
+
   const rptConfig = []
+
   for (const name of settings[`swapPairs-${chain.chainId}`]) {
     const [token0, token1] = await deploySwapPair(name)
     const rewardAllocation = settings[`rewardPairs-${chain.chainId}`]
@@ -102,11 +109,11 @@ export async function deploySwap (options: SwapOptions) {
       rptConfig.push([pool.address, String(BigInt(rewardAllocation * ONE_SIENNA))])
     }
   }
+
   await RPT.configure(rptConfig)
 
 
   /// On localnet, placeholder tokens need to be deployed.
-
 
 
   async function deployPlaceholderTokens () {
@@ -145,7 +152,7 @@ export async function deploySwap (options: SwapOptions) {
     return LPToken.attach(
       await AMMContract.attach({
         agent:   admin,
-        address: (await this.Swap.contracts.FACTORY.listExchanges()).list_exchanges.exchanges
+        address: (await FACTORY.listExchanges()).list_exchanges.exchanges
           .filter(({pair})=>(
             pair.token_0.custom_token.contract_addr === token0.address &&
             pair.token_1.custom_token.contract_addr === token1.address
@@ -160,8 +167,6 @@ export async function deploySwap (options: SwapOptions) {
     await rewardPool.instantiate(this.agent)
     return rewardPool
   }
-
-  async function addRewardPool () {}
 
   async function replaceRewardPool () {}
 }

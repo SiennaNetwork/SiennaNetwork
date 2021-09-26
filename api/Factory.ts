@@ -8,6 +8,7 @@ import { randomHex } from "@fadroma/tools";
 import { AMM } from './AMM'
 import { AMMSNIP20, LPToken } from './SNIP20'
 import { IDO } from './IDO'
+import { Launchpad } from './Launchpad'
 
 import { abs } from "../ops/index";
 
@@ -30,21 +31,25 @@ type FactoryConstructorOptions = ContractAPIOptions & {
 export class Factory extends ScrtContract {
 
   constructor(options: {
-    admin: Agent
-    config: any
-    EXCHANGE: AMM
-    AMMTOKEN: AMMSNIP20
-    LPTOKEN:  LPToken
-    IDO:      IDO
+    admin:     Agent
+    config:    any
+    EXCHANGE:  AMM
+    AMMTOKEN:  AMMSNIP20
+    LPTOKEN:   LPToken
+    IDO:       IDO
+    LAUNCHPAD: Launchpad
   }) {
     super({ agent: options.admin, schema })
     Object.assign(this.init.msg, {
-      snip20_contract:   options.AMMTOKEN.template,
-      pair_contract:     options.EXCHANGE.template,
-      lp_token_contract: options.LPTOKEN.template,
-      ido_contract:      options.IDO.template,
-      exchange_settings: options.config,
-      admin:             options.admin.address
+      ...options.config,
+      admin: options.admin.address,
+    })
+    Object.defineProperties(this.init.msg, {
+      snip20_contract:    { enumerable: true, get () { return options.AMMTOKEN.template } },
+      pair_contract:      { enumerable: true, get () { return options.EXCHANGE.template } },
+      lp_token_contract:  { enumerable: true, get () { return options.LPTOKEN.template } },
+      ido_contract:       { enumerable: true, get () { return options.IDO.template } },
+      launchpad_contract: { enumerable: true, get () { return options.LAUNCHPAD.template } },
     })
   }
 
