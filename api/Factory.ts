@@ -70,14 +70,16 @@ export class Factory extends ScrtContract {
       },
     },
   };
-  createExchange = (token_0: any, token_1: any, agent = this.instantiator) =>
+
+  createExchange = (
+    token_0: TokenTypeFor_HumanAddr,
+    token_1: TokenTypeFor_HumanAddr,
+    agent = this.instantiator
+  ) =>
     this.execute(
       "create_exchange",
       {
-        pair: {
-          token_0: { custom_token: token_0 },
-          token_1: { custom_token: token_1 },
-        },
+        pair: { token_0, token_1 },
         entropy: b64encode(EnigmaUtils.GenerateNewSeed().toString()),
       },
       "",
@@ -85,9 +87,7 @@ export class Factory extends ScrtContract {
       undefined,
       agent
     );
-  /*this.tx.createExchange({
-    pair:    { token_0, token_1 },
-    entropy: b64encode(EnigmaUtils.GenerateNewSeed().toString()) })*/
+
   listExchanges = () => {
     console.trace('listExchanges')
     return this.q.listExchanges({ pagination: { start: 0, limit: 100 } });
