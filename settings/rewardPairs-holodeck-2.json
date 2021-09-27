@@ -1,9 +1,4 @@
 {
-  "SIENNA":       500,
-  "SIENNA-sSCRT": 400,
-  "SITOK-STEST":  500,
-  "SIENNA-STEST": 300,
-  "SIENNA-SITOK": 300,
-  "SIENNA-sETH":  200,
-  "sSCRT-STEST":  300
+  "SIENNA":       1500,
+  "SIENNA-sSCRT": 1000
 }
