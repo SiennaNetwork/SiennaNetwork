@@ -165,8 +165,8 @@ export async function deploySwap (options: SwapOptions) {
 
   function getSwapTokens (links: Record<string, { address: string, codeHash: string }>) {
     const tokens = {}
-    for (const [name, token] of Object.entries(links)) {
-      tokens[name] = AMMSNIP20.attach(token)
+    for (const [name, {address, codeHash}] of Object.entries(links)) {
+      tokens[name] = AMMSNIP20.attach(address, codeHash, admin)
     }
     return tokens
   }
@@ -185,8 +185,8 @@ export async function deploySwap (options: SwapOptions) {
       }
     }
     await FACTORY.createExchange(
-      { contract_addr: token0.address, token_code_hash: token0.codeHash },
-      { contract_addr: token1.address, token_code_hash: token1.codeHash }
+      { custom_token: { contract_addr: token0.address, token_code_hash: token0.codeHash } },
+      { custom_token: { contract_addr: token1.address, token_code_hash: token1.codeHash } }
     )
     return [token0, token1]
   }
@@ -261,8 +261,7 @@ export default async function main ([chainName, ...words]: Array<string>) {
 
 
   let prefix = timestamp()
-
-  return await runCommands(words, {
+  const commands = {
 
     reset () {
       if (!chain.node) {
@@ -277,7 +276,7 @@ export default async function main ([chainName, ...words]: Array<string>) {
         console.log('\nNo deployed instances.')
       }
       if (id) {
-        chain.instances.select(id)
+        await chain.instances.select(id)
       } else if (list.length > 0) {
         console.log(`\nKnown instances:`)
         for (let instance of await chain.instances.list()) {
@@ -301,6 +300,7 @@ export default async function main ([chainName, ...words]: Array<string>) {
         printActiveInstance()
       },
       async swap () {
+        if (!chain.instances.active) await commands.deploy.vesting()
         const { name: prefix, contracts } = chain.instances.active
         const { initTx: { contractAddress }, codeHash } = contracts['SiennaMGMT']
         await deploySwap({
@@ -313,7 +313,9 @@ export default async function main ([chainName, ...words]: Array<string>) {
 
     migrate: {}
 
-  })
+  }
+
+  return await runCommands(words, commands)
 
 
   /// Get an interface to the chain, and a deployment agent
