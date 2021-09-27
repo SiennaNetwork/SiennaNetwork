@@ -9,6 +9,8 @@ const threshold  = 24 * 60 * 60 / BLOCK_TIME
 const cooldown   = 24 * 60 * 60 / BLOCK_TIME
 
 export type RewardsOptions = {
+  codeId?:      number
+  codeHash?:    string
   prefix?:      string
   name?:        string
   admin?:       Agent
@@ -25,18 +27,30 @@ export class Rewards extends ScrtContract {
     handleMsg:   "./rewards/handle.json",
   })
 
-  constructor ({ prefix, name, admin, lpToken, rewardToken }: RewardsOptions) {
+  constructor ({
+    codeId,
+    codeHash,
+    prefix,
+    name,
+    admin,
+    lpToken,
+    rewardToken,
+  }: RewardsOptions) {
     super({
       agent:  admin,
       schema: Rewards.schema,
       prefix,
       label:  `SiennaRewards_${name}_Pool`
     })
+    if (codeId)   this.blob.codeId = codeId
+    if (codeHash) this.blob.codeHash = codeHash
     Object.assign(this.init.msg, {
-      admin:        admin.address,
-      lp_token:     lpToken?.link,
-      reward_token: rewardToken?.link,
+      admin: admin.address,
       viewing_key:  ""
+    })
+    Object.defineProperties(this.init.msg, {
+      lp_token:     { enumerable: true, get () { return lpToken?.link } },
+      reward_token: { enumerable: true, get () { return rewardToken?.link } }
     })
   }
 

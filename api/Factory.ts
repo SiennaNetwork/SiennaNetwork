@@ -40,11 +40,10 @@ export class Factory extends ScrtContract {
     IDO:       IDO
     LAUNCHPAD: Launchpad
   }) {
-    super({ agent: options.admin, schema })
+    super({ agent: options.admin, prefix: options.prefix, schema })
     Object.assign(this.init.msg, {
       ...options.config,
-      prefix: options.prefix,
-      admin:  options.admin.address,
+      admin: options.admin.address,
     })
     Object.defineProperties(this.init.msg, {
       snip20_contract:    { enumerable: true, get () { return options.AMMTOKEN.template } },
@@ -89,6 +88,8 @@ export class Factory extends ScrtContract {
   /*this.tx.createExchange({
     pair:    { token_0, token_1 },
     entropy: b64encode(EnigmaUtils.GenerateNewSeed().toString()) })*/
-  listExchanges = () =>
-    this.q.listExchanges({ pagination: { start: 0, limit: 100 } });
+  listExchanges = () => {
+    console.trace('listExchanges')
+    return this.q.listExchanges({ pagination: { start: 0, limit: 100 } });
+  }
 }

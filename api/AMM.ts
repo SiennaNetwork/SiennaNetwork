@@ -40,7 +40,7 @@ export class AMM extends ScrtContract {
     codeHash: string,
     agent:    Agent
   ) => {
-    const instance = new this({ admin: agent })
+    const instance = new AMM({ admin: agent })
     instance.init.agent = agent
     instance.init.address = address
     instance.blob.codeHash = codeHash

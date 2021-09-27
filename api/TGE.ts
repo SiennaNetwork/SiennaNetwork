@@ -7,8 +7,10 @@ import { abs } from '../ops/index'
 import { randomHex } from '@fadroma/tools'
 
 export class SiennaSNIP20 extends SNIP20 {
+
   code = {
     ...this.code, workspace: abs(), crate: "snip20-sienna" }
+
   init = {
     ...this.init,
     label: this.init.label || "SiennaSNIP20",
@@ -16,9 +18,25 @@ export class SiennaSNIP20 extends SNIP20 {
            symbol: "SIENNA",
            decimals: 18,
            config: { public_total_supply: true } } }
+
   constructor (options: { prefix: string, admin: Agent }) {
-    super({ prefix: options.prefix, agent:  options.admin })
-    this.init.msg.prng_seed = randomHex(36) } }
+    super({ prefix: options.prefix, agent: options.admin })
+    this.init.msg.prng_seed = randomHex(36)
+  }
+
+  static attach = (
+    address:  string,
+    codeHash: string,
+    agent:    Agent
+  ) => {
+    const instance = new SiennaSNIP20({ admin: agent })
+    instance.init.agent = agent
+    instance.init.address = address
+    instance.blob.codeHash = codeHash
+    return instance
+  }
+
+}
 
 export class MGMTContract extends ScrtContract {
   static schema = loadSchemas(import.meta.url, {
@@ -78,16 +96,20 @@ export class MGMTContract extends ScrtContract {
 }
 
 export class RPTContract extends ScrtContract {
+
   static schema = loadSchemas(import.meta.url, {
     initMsg:     "./rpt/init.json",
     queryMsg:    "./rpt/query.json",
     queryAnswer: "./rpt/response.json",
     handleMsg:   "./rpt/handle.json"
   })
+
   code = {
     ...this.code, workspace: abs(), crate: 'sienna-rpt' }
+
   init = {
     ...this.init, label: 'SiennaRPT', msg: {} }
+
   constructor (options: {
     prefix:  string
     admin:   Agent
@@ -96,22 +118,45 @@ export class RPTContract extends ScrtContract {
     SIENNA:  SiennaSNIP20
     MGMT:    MGMTContract
   }) {
-    super({ prefix: options.prefix, agent: options.admin, schema: RPTContract.schema })
+    super({
+      prefix: options.prefix,
+      agent:  options.admin,
+      schema: RPTContract.schema
+    })
     Object.assign(this.init.msg, {
-      token:   options.SIENNA.linkPair,
-      mgmt:    options.MGMT.linkPair,
+      token:   options.SIENNA?.linkPair,
+      mgmt:    options.MGMT?.linkPair,
       portion: options.portion,
-      config:  [[options.admin.address, options.portion]] })
+      config:  [[options.admin.address, options.portion]]
+    })
     Object.defineProperties(this.init.msg, {
-      token: { enumerable: true, get () { return options.SIENNA.linkPair } },
-      mgmt:  { enumerable: true, get () { return options.MGMT.linkPair   } }
-    })}
+      token: { enumerable: true, get () { return options.SIENNA?.linkPair } },
+      mgmt:  { enumerable: true, get () { return options.MGMT?.linkPair   } }
+    })
+  }
+
   /** query contract status */
   get status() { return this.q.status() }
+
   /** set the splitt proportions */
   configure = (config = []) => this.tx.configure({ config })
+
   /** claim portions from mgmt and distribute them to recipients */
   vest = () => this.tx.vest()
+
   /** set the admin */
   setOwner = (new_admin) => this.tx.set_owner({ new_admin })
+
+  static attach = (
+    address:  string,
+    codeHash: string,
+    agent:    Agent
+  ) => {
+    const instance = new RPTContract({ admin: agent })
+    instance.init.agent = agent
+    instance.init.address = address
+    instance.blob.codeHash = codeHash
+    return instance
+  }
+
 }

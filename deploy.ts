@@ -4,7 +4,7 @@
 import settings from '@sienna/settings'
 import type { Chain, Agent, ContractUpload } from '@fadroma/ops'
 import { Scrt } from '@fadroma/scrt'
-import { bold, timestamp, symlinkDir, randomHex } from '@fadroma/tools'
+import { bold, colors, timestamp, symlinkDir, randomHex } from '@fadroma/tools'
 import process from 'process'
 import { fileURLToPath } from 'url'
 import { getDefaultSchedule, ONE_SIENNA } from './ops/index'
@@ -39,12 +39,15 @@ export async function deployVesting (options: VestingOptions = {}): Promise<Swap
   await buildAndUpload([SIENNA, MGMT, RPT])
 
   await SIENNA.instantiate()
+
   RPTAccount.address = admin.address
   await MGMT.instantiate()
   await MGMT.acquire(SIENNA)
+
   await RPT.instantiate()
   RPTAccount.address = RPT.address
   await MGMT.configure(schedule)
+
   await MGMT.launch()
   await RPT.vest()
 
@@ -71,8 +74,20 @@ export async function deploySwap (options: SwapOptions) {
     prefix,
     chain  = await new Scrt().ready,
     admin  = await chain.getAgent(),
-    SIENNA, MGMT, RPT,
+    MGMT,
   } = options
+
+  const existingSienna = chain.instances.active.contracts['SiennaSNIP20']
+      , SIENNA = SiennaSNIP20.attach(
+          existingSienna.initTx.contractAddress,
+          existingSienna.codeHash,
+          admin)
+
+  const existingRPT = chain.instances.active.contracts['SiennaRPT']
+      , RPT = RPTContract.attach(
+          existingRPT.initTx.contractAddress,
+          existingRPT.codeHash,
+          admin)
 
   const EXCHANGE  = new AMMContract({ prefix, admin })
       , AMMTOKEN  = new AMMSNIP20({ prefix, admin })
@@ -87,7 +102,7 @@ export async function deploySwap (options: SwapOptions) {
 
   await buildAndUpload([EXCHANGE, AMMTOKEN, LPTOKEN, IDO, FACTORY, REWARDS, LAUNCHPAD])
 
-  await FACTORY.instantiate()
+  await FACTORY.instantiateOrExisting(chain.instances.active.contracts['SiennaAMMFactory'])
 
   let tokens = {
     SIENNA,
@@ -96,31 +111,50 @@ export async function deploySwap (options: SwapOptions) {
       : getSwapTokens(settings[`swapTokens-${chain.chainId}`])
   }
 
-  await deployRewardPool(SIENNA, SIENNA)
-
   const rptConfig = []
+
+  const siennaStakingRewards = await deployRewardPool('SIENNA', SIENNA, SIENNA)
+  rptConfig.push([
+    siennaStakingRewards.address,
+    String(BigInt(settings[`rewardPairs-${chain.chainId}`].SIENNA) * ONE_SIENNA)
+  ])
+
+  const existingExchanges = (await FACTORY.listExchanges())
+    .list_exchanges.exchanges
 
   for (const name of settings[`swapPairs-${chain.chainId}`]) {
     const [token0, token1] = await deploySwapPair(name)
-    const rewardAllocation = settings[`rewardPairs-${chain.chainId}`]
-    if (rewardAllocation) {
+
+    const rewards = settings[`rewardPairs-${chain.chainId}`]
+    if (rewards) {
       const lpToken = await getLPToken(token0, token1)
-      const pool = await deployRewardPool(lpToken, SIENNA)
-      rptConfig.push([pool.address, String(BigInt(rewardAllocation * ONE_SIENNA))])
+      const reward  = BigInt(rewards[name])
+      const pool    = await deployRewardPool(name, lpToken, SIENNA)
+      rptConfig.push([pool.address, String(reward * ONE_SIENNA)])
     }
   }
 
   await RPT.configure(rptConfig)
-
 
   /// On localnet, placeholder tokens need to be deployed.
 
 
   async function deployPlaceholderTokens () {
     const tokens = {}
-    for (const token of settings[`placeholderTokens-${chain.chainId}`]) {
-      tokens[token.symbol] = new AMMSNIP20({ prefix, ...token })
-      await tokens[token.symbol].instantiate(admin)
+    for (
+      const [symbol, {label, initMsg}]
+      of Object.entries(settings[`placeholderTokens-${chain.chainId}`])
+    ) {
+      tokens[symbol] = new AMMSNIP20({ admin })
+      tokens[symbol].blob.codeId = AMMTOKEN.codeId
+      tokens[symbol].blob.codeHash = AMMTOKEN.codeHash
+      tokens[symbol].init.prefix = prefix
+      tokens[symbol].init.label = label
+      tokens[symbol].init.msg = initMsg
+      tokens[symbol].init.msg.prng_seed = randomHex(36)
+      await tokens[symbol].instantiateOrExisting(
+        chain.instances.active.contracts[label]
+      )
     }
     return tokens
   }
@@ -141,6 +175,15 @@ export async function deploySwap (options: SwapOptions) {
     const [tokenName0, tokenName1] = name.split('-')
     const token0 = tokens[tokenName0]
         , token1 = tokens[tokenName1]
+    for (const {pair} of existingExchanges) {
+      if (
+        pair.token_0.custom_token.contract_addr === token0.address &&
+        pair.token_1.custom_token.contract_addr === token1.address
+      ) {
+        console.info(`Exchange exists: ${token0.init.label}/${token1.init.label}`)
+        return [token0, token1]
+      }
+    }
     await FACTORY.createExchange(
       { contract_addr: token0.address, token_code_hash: token0.codeHash },
       { contract_addr: token1.address, token_code_hash: token1.codeHash }
@@ -149,22 +192,23 @@ export async function deploySwap (options: SwapOptions) {
   }
 
   async function getLPToken (token0: SNIP20, token1: SNIP20) {
-    return LPToken.attach(
-      await AMMContract.attach({
-        agent:   admin,
-        address: (await FACTORY.listExchanges()).list_exchanges.exchanges
-          .filter(({pair})=>(
-            pair.token_0.custom_token.contract_addr === token0.address &&
-            pair.token_1.custom_token.contract_addr === token1.address
-          ))[0].address
-      }).pairInfo().pair_info.liquidity_token.address,
-      LPTOKEN.codeHash,
-      admin)
+    const {exchanges} = (await FACTORY.listExchanges()).list_exchanges
+    const {address: pairAddress} = exchanges.filter(({pair})=>(
+      pair.token_0.custom_token.contract_addr === token0.address &&
+      pair.token_1.custom_token.contract_addr === token1.address
+    ))[0]
+    const {pair_info} = await AMMContract.attach(pairAddress, EXCHANGE.codeHash, admin).pairInfo()
+    const {address, code_hash} = pair_info.liquidity_token
+    return LPToken.attach(address, code_hash, admin)
   }
 
-  async function deployRewardPool (lpToken: SNIP20, rewardToken: SNIP20) {
-    const rewardPool = new RewardsContract({ prefix, admin, lpToken, rewardToken })
-    await rewardPool.instantiate(this.agent)
+  async function deployRewardPool (name: string, lpToken: SNIP20, rewardToken: SNIP20) {
+    const { codeId, codeHash } = REWARDS
+        , rewardPool = new RewardsContract({
+            codeId, codeHash, prefix, name, admin, lpToken, rewardToken,
+          })
+    const receipt = chain.instances.active.contracts[rewardPool.init.label]
+    await rewardPool.instantiateOrExisting(receipt)
     return rewardPool
   }
 
@@ -182,7 +226,6 @@ async function buildAndUpload (contracts: Array<ContractUpload>) {
   await Promise.all(contracts.map(contract=>contract.build()))
   for (const contract of contracts) {
     await contract.upload()
-    await contract.uploader.nextBlock
   }
 }
 
@@ -237,7 +280,8 @@ export default async function main ([chainName, ...words]: Array<string>) {
         chain.instances.select(id)
       } else if (list.length > 0) {
         console.log(`\nKnown instances:`)
-        for (const instance of await chain.instances.list()) {
+        for (let instance of await chain.instances.list()) {
+          if (instance === chain.instances.active.name) instance = bold(instance)
           console.log(`  ${instance}`)
         }
       }
@@ -245,21 +289,25 @@ export default async function main ([chainName, ...words]: Array<string>) {
     },
 
     deploy: {
-      all () {
-        return deployVesting({prefix, chain, admin}).then(deploySwap)
+      async all () {
+        const vesting = await deployVesting({prefix, chain, admin})
+        await chain.instances.select(vesting.prefix)
+        await deploySwap(vesting)
+        printActiveInstance()
       },
-      vesting () {
-        console.log('deploy vesting')
-        return deployVesting({prefix, chain, admin})
+      async vesting () {
+        const vesting = await deployVesting({prefix, chain, admin})
+        await chain.instances.select(vesting.prefix)
+        printActiveInstance()
       },
-      swap () {
-        console.log('deploy swap')
+      async swap () {
         const { name: prefix, contracts } = chain.instances.active
         const { initTx: { contractAddress }, codeHash } = contracts['SiennaMGMT']
-        return deploySwap({
+        await deploySwap({
           chain, admin, prefix,
           MGMT: MGMTContract.attach(contractAddress, codeHash, admin),
         })
+        printActiveInstance()
       }
     },
 
@@ -325,6 +373,9 @@ export default async function main ([chainName, ...words]: Array<string>) {
     if (chain && chain.instances.active) {
       console.log(`\nActive instance:`)
       console.log(`  ${bold(chain.instances.active.name)}`)
+      for (const contract of Object.keys(chain.instances.active.contracts)) {
+        console.log(`    ${colors.green('✓')}  ${contract}`)
+      }
     }
   }
 

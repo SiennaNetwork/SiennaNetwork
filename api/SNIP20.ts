@@ -245,7 +245,7 @@ export class AMMSNIP20 extends SNIP20 {
     codeHash: string,
     agent:    Agent
   ) => {
-    const instance = new this({ admin: agent })
+    const instance = new AMMSNIP20({ admin: agent })
     instance.init.agent = agent
     instance.init.address = address
     instance.blob.codeHash = codeHash
@@ -292,7 +292,7 @@ export class LPToken extends SNIP20 {
     codeHash: string,
     agent:    Agent
   ) => {
-    const instance = new this({ admin: agent })
+    const instance = new LPToken({ admin: agent })
     instance.init.agent = agent
     instance.init.address = address
     instance.blob.codeHash = codeHash
