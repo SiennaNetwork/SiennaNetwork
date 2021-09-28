@@ -104,11 +104,11 @@ export async function deploySwap (options: SwapOptions) {
 
   await FACTORY.instantiateOrExisting(chain.instances.active.contracts['SiennaAMMFactory'])
 
-  let tokens = {
-    SIENNA,
-    ...chain.isLocalnet
-      ? await deployPlaceholderTokens()
-      : getSwapTokens(settings[`swapTokens-${chain.chainId}`])
+  const tokens = { SIENNA }
+  if (chain.isLocalnet) {
+    Object.assign(tokens, await deployPlaceholderTokens())
+  } else {
+    Object.assign(getSwapTokens(settings[`swapTokens-${chain.chainId}`]))
   }
 
   const rptConfig = []
@@ -145,16 +145,12 @@ export async function deploySwap (options: SwapOptions) {
       const [symbol, {label, initMsg}]
       of Object.entries(settings[`placeholderTokens-${chain.chainId}`])
     ) {
-      tokens[symbol] = new AMMSNIP20({ admin })
-      tokens[symbol].blob.codeId = AMMTOKEN.codeId
-      tokens[symbol].blob.codeHash = AMMTOKEN.codeHash
-      tokens[symbol].init.prefix = prefix
-      tokens[symbol].init.label = label
-      tokens[symbol].init.msg = initMsg
-      tokens[symbol].init.msg.prng_seed = randomHex(36)
-      await tokens[symbol].instantiateOrExisting(
-        chain.instances.active.contracts[label]
-      )
+      const token = tokens[symbol] = new AMMSNIP20({ admin })
+      Object.assign(token.blob, { codeId: AMMTOKEN.codeId, codeHash: AMMTOKEN.codeHash })
+      Object.assign(token.init, { prefix, label, msg: initMsg })
+      Object.assign(token.init.msg, { prng_seed: randomHex(36) })
+      const existing = chain.instances.active.contracts[label]
+      await tokens[symbol].instantiateOrExisting(existing)
     }
     return tokens
   }
@@ -311,7 +307,15 @@ export default async function main ([chainName, ...words]: Array<string>) {
       }
     },
 
-    migrate: {}
+    upgrade: {
+      async rewards (id?: string) {
+        if (id) {
+          await upgradeRewards(id)
+        } else {
+          printRewardsContracts()
+        }
+      }
+    }
 
   }
 
@@ -330,14 +334,17 @@ export default async function main ([chainName, ...words]: Array<string>) {
       'secret-2':     Scrt.secret_2,
       'secret-3':     Scrt.secret_3
     }
+
     if (!chainName) {
       console.log(`Select target chain:`)
       for (const chain of Object.keys(chains)) console.log(`  ${bold(chain)}`)
       process.exit(1)
     }
+
     const chain = await chains[chainName]().ready
-        , admin = await chain.getAgent()
+    const admin = await chain.getAgent()
     console.log(`\nOperating on ${bold(chainName)} as ${bold(admin.address)}`)
+
     return { chain, admin }
   }
 
@@ -368,7 +375,7 @@ export default async function main ([chainName, ...words]: Array<string>) {
   }
 
 
-  /// Instance picker
+  /// Select an instance or a reward contract
 
 
   function printActiveInstance () {
@@ -381,29 +388,22 @@ export default async function main ([chainName, ...words]: Array<string>) {
     }
   }
 
-  function getActiveInstance () {
-    if (chain.activeInstance) {
-      console.log(`Active instance: ${bold(chain.activeInstance)}`)
-      console.log(`Run ${bold("pnpm deploy select")} to pick another.`)
-      return chain.activeInstance
+  function printRewardsContracts () {
+    if (chain && chain.instances.active) {
+      const {name, contracts} = chain.instances.active
+      const isRewardPool = (x: string) => x.startsWith('SiennaRewards_')
+      const rewardsContracts = Object.keys(contracts).filter(isRewardPool)
+      if (rewardsContracts.length > 0) {
+        console.log(`\nRewards contracts in ${bold(name)}:`)
+        for (const name of rewardsContracts) {
+          console.log(`    ${colors.green('✓')}  ${name}`)
+        }
+      } else {
+        console.log(`\nNo rewards contracts.`)
+      }
     } else {
-      const instances = chain.instances.list()
-      console.log(`\nNo target instance selected.`)
-      if (instances.length > 0) {
-        console.log(
-          `Select target instance by running:` +
-          `\n  ${bold(`pnpm deploy ${chainName} select INSTANCE`)}` +
-          `\nwhere INSTANCE is one of the following:`)
-        for (const instance of Object.keys(chain.instances.list()))
-          console.log(`  ${bold(instance)}`) }
-      console.log(
-        `\nDeploy a new instance by running ${bold(`pnpm deploy ${chainName} deploy vesting`)}, ` +
-        `which will also set it as the selected instance.\n`)
-      process.exit(1)
+      console.log(`\nSelect an instance to pick a reward contract.`)
     }
   }
 
-  function printInstances (chain: Chain) {
-    console.log(chain.instances)
-  }
 }
