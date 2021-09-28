@@ -155,8 +155,9 @@ pub(crate) fn pre_lock<S: Storage, A: Api, Q: Querier>(
 
     if single_amount < config.min_allocation.u128() {
         return Err(StdError::generic_err(format!(
-            "Insufficient amount provided: the resulting amount fell short of the minimum purchase expected: {}",
-            config.min_allocation
+            "Insufficient amount provided: the resulting amount fell short of the minimum purchase expected: {}, got: {}",
+            config.min_allocation,
+            single_amount
         )));
     }
 
@@ -221,8 +222,13 @@ pub(crate) fn swap<S: Storage, A: Api, Q: Querier>(
 
     if mint_amount < config.min_allocation.u128() {
         return Err(StdError::generic_err(format!(
-            "Insufficient amount provided: the resulting amount fell short of the minimum purchase expected: {}",
-            config.min_allocation
+            "Insufficient amount provided: the resulting amount fell short of the minimum purchase expected: {}, got: {} for {}. Rate: {}. Input decimals: {}. Sold decimals: {}",
+            config.min_allocation,
+            mint_amount,
+            amount,
+            config.swap_constants.rate.u128(),
+            config.swap_constants.input_token_decimals,
+            config.swap_constants.sold_token_decimals,
         )));
     }
 

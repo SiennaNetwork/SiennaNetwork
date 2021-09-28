@@ -239,6 +239,7 @@ export class SiennaSNIP20 extends SNIP20 {
       symbol: "SIENNA",
       decimals: 18,
       config: { public_total_supply: true },
+      
     },
   };
 }

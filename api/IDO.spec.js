@@ -3,7 +3,7 @@ import { assert } from "chai";
 import { randomBytes } from "crypto";
 import { Scrt, ScrtGas } from "@fadroma/scrt";
 
-import { SiennaSNIP20 } from "./SNIP20.ts";
+import { SiennaSNIP20, SNIP20 } from "./SNIP20.ts";
 import { IDO } from "./IDO.ts";
 import { Factory } from "./Factory.ts";
 
@@ -173,7 +173,7 @@ describe("IDO", () => {
     });
     await context.factory.instantiate(context.agent);
 
-    context.sellingToken = new SiennaSNIP20({
+    context.sellingToken = new SNIP20({
       codeId: context.templates.SiennaSNIP20.codeId,
       label: `token-${parseInt(Math.random() * 100000)}`,
       initMsg: {
@@ -474,7 +474,7 @@ describe("IDO", () => {
     };
 
     this.timeout(0);
-    context.buyingToken = new SiennaSNIP20({
+    context.buyingToken = new SNIP20({
       codeId: context.templates.SiennaSNIP20.codeId,
       label: `token-${parseInt(Math.random() * 100000)}`,
       initMsg: {
@@ -529,14 +529,7 @@ describe("IDO", () => {
 
     await context.buyingToken.mint(10_000_000, undefined, buyer.address);
 
-    await context.buyingToken.tx.send(
-      {
-        recipient: context.idoB.address,
-        amount: `${amount}`,
-        msg: swap_msg(),
-      },
-      buyer
-    );
+    await context.buyingToken.sendIdo(context.idoB.address, amount, undefined, buyer);
 
     const buyBalanceAfter = await context.buyingToken.balance(
       buyer.address,
@@ -547,7 +540,7 @@ describe("IDO", () => {
       sellingViewkey
     );
 
-    assert.strictEqual(buyBalanceAfter, "5000000");
+    assert.strictEqual(buyBalanceAfter, `${5_000_000}`);
     assert.strictEqual(sellBalanceAfter, "5");
 
     try {
@@ -560,7 +553,7 @@ describe("IDO", () => {
         buyer
       );
     } catch (e) {
-      debug("out")(e);
+      log(e);
     }
 
     const buyBalanceAfterFail = await context.buyingToken.balance(

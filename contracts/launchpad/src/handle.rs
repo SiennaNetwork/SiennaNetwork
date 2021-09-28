@@ -262,7 +262,6 @@ pub(crate) fn admin_remove_token<S: Storage, A: Api, Q: Querier>(
         messages,
         log: vec![
             log("action", "admin_remove_token"),
-            log("details", details),
             log("total_amount", total_amount),
             log("total_entries", total_entries),
         ],

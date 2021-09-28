@@ -21,7 +21,7 @@ export class Launchpad extends ScrtContract {
 
   /**
    * This action will remove the token from the contract
-   * and will refund all locked balances back to users
+   * and will refund all locked balances on that token back to users
    *
    * @param {number} amount
    * @param {Agent} [agent]
@@ -33,6 +33,8 @@ export class Launchpad extends ScrtContract {
 
   /**
    * This method will perform the native token lock.
+   * 
+   * NOTE: For any other token, use snip20 receiver interface
    *
    * @param {string|number|bigint} amount
    * @param {string} [denom]
@@ -47,6 +49,8 @@ export class Launchpad extends ScrtContract {
 
   /**
    * This method will perform the native token unlock
+   * 
+   * NOTE: For any other token, use snip20 receiver interface
    *
    * @param {string|number|bigint} entries
    * @param {Agent} [agent]
@@ -59,14 +63,14 @@ export class Launchpad extends ScrtContract {
   /**
    * Get the configuration information about the Launchpad contract
    *
-   * @returns Promise<{
+   * @returns Promise<Array<{
    *  "token_type": { "native_token": { "denom": "uscrt" } },
    *  "segment": "25000000000",
    *  "bounding_period": 604800,
    *  "active": true,
    *  "token_decimals": 6,
    *  "locked_balance": "100000000000"
-   * }[]>
+   * }>>
    */
   async info() {
     return this.q.launchpad_info();
@@ -77,7 +81,7 @@ export class Launchpad extends ScrtContract {
    *
    * @param {string} address
    * @param {string} key
-   * @returns Promise<{
+   * @returns Promise<Array<{
    *  "token_type": { "native_token": { "denom": "uscrt" } },
    *  "balance": "100000000000",
    *  "entries": [
@@ -87,7 +91,7 @@ export class Launchpad extends ScrtContract {
    *    "1629402109",
    *  ],
    *  "last_draw": null,
-   * }[]>
+   * }>>
    */
   async userInfo(address: string, key: string) {
     return this.q.user_info({
@@ -97,7 +101,7 @@ export class Launchpad extends ScrtContract {
   }
 
   /**
-   * Get the configuration information about the Launchpad contract
+   * Do a test draw of the addresses
    *
    * @param {number} number
    * @param {string[]} tokens
