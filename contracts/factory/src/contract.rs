@@ -264,18 +264,13 @@ fn query_exchange_address<S: Storage, A: Api, Q: Querier>(
 }
 
 /// Instantiate a launchpad contract
+#[require_admin]
 fn create_launchpad<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     tokens: Vec<TokenSettings>,
     entropy: Binary,
 ) -> StdResult<HandleResponse> {
-    let is_admin = load_admin(deps)? == env.message.sender;
-
-    if !is_admin {
-        return Err(StdError::unauthorized());
-    }
-
     if load_launchpad_instance(&deps.storage)?.is_some() {
         return Err(StdError::generic_err(
             "Launchpad contract is already created",
@@ -284,8 +279,8 @@ fn create_launchpad<S: Storage, A: Api, Q: Querier>(
 
     let signature = create_signature(&env)?;
     save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
-    // Again, creating the IDO happens when the instantiated contract calls
-    // us back via the HandleMsg::RegisterIdo so that we can get its address.
+    // Again, creating the Launchpad happens when the instantiated contract calls
+    // us back via the HandleMsg::RegisterLaunchpad so that we can get its address.
     let config = load_config(deps)?;
 
     Ok(HandleResponse {
@@ -293,10 +288,7 @@ fn create_launchpad<S: Storage, A: Api, Q: Querier>(
             code_id: config.launchpad_contract.id,
             callback_code_hash: config.launchpad_contract.code_hash,
             send: vec![],
-            label: format!(
-                "SIENNA Launchpad for IDOs, created at {}",
-                env.block.time // Make sure the label is unique
-            ),
+            label: format!("SIENNA Launchpad for IDOs, created at {}", env.block.time),
             msg: to_binary(&LaunchpadInitMsg {
                 tokens,
                 admin: env.message.sender,
@@ -323,12 +315,6 @@ fn register_launchpad<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     ensure_correct_signature(&mut deps.storage, signature)?;
     let config = load_config(deps)?;
-
-    if load_launchpad_instance(&deps.storage)?.is_some() {
-        return Err(StdError::generic_err(
-            "Launchpad contract is already created",
-        ));
-    }
 
     save_launchpad_instance(
         &mut deps.storage,

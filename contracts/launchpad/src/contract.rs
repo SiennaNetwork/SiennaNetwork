@@ -4,7 +4,7 @@ use amm_shared::{
     fadroma::scrt::{
         callback::ContractInstance,
         cosmwasm_std::{
-            log, to_binary, Api, CosmosMsg, Env, Extern, HandleResponse, InitResponse, Querier,
+            to_binary, Api, CosmosMsg, Env, Extern, HandleResponse, InitResponse, Querier,
             QueryResult, StdResult, Storage, WasmMsg,
         },
         migrate as fadroma_scrt_migrate,
@@ -104,7 +104,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 
     Ok(InitResponse {
         messages,
-        log: vec![log("viewkey", viewing_key.to_string())],
+        log: vec![],
     })
 }
 
