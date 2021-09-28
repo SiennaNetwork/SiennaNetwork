@@ -7,7 +7,6 @@ use amm_shared::{
             Extern, HandleResponse, HumanAddr, InitResponse, Querier, QueryRequest, QueryResult,
             StdError, StdResult, Storage, Uint128, WasmMsg, WasmQuery,
         },
-        migrate as fadroma_scrt_migrate,
         toolkit::snip20,
         utils::{viewing_key::ViewingKey, Uint256},
     },
@@ -21,7 +20,6 @@ use amm_shared::{
     },
     TokenPairAmount, TokenType, TokenTypeAmount,
 };
-use fadroma_scrt_migrate::{get_status, with_status};
 
 use crate::{
     decimal_math,
@@ -136,53 +134,48 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
-    with_status!(
-        deps,
-        env,
-        match msg {
-            HandleMsg::Receive {
-                from, amount, msg, ..
-            } => receiver_callback(deps, env, from, amount, msg),
-            HandleMsg::AddLiquidity {
-                deposit,
-                slippage_tolerance,
-            } => add_liquidity(deps, env, deposit, slippage_tolerance),
-            HandleMsg::OnLpTokenInit => register_lp_token(deps, env),
-            HandleMsg::Swap {
+    match msg {
+        HandleMsg::Receive {
+            from, amount, msg, ..
+        } => receiver_callback(deps, env, from, amount, msg),
+        HandleMsg::AddLiquidity {
+            deposit,
+            slippage_tolerance,
+        } => add_liquidity(deps, env, deposit, slippage_tolerance),
+        HandleMsg::OnLpTokenInit => register_lp_token(deps, env),
+        HandleMsg::Swap {
+            offer,
+            expected_return,
+            recipient,
+        } => {
+            // Can only be called directly when the offer token is SCRT, otherwise
+            // has to be called through the SNIP20 receiver interface by sending
+            // the amount to the pair's account in the SNIP20 token
+
+            if !offer.token.is_native_token() {
+                return Err(StdError::unauthorized());
+            }
+
+            offer.assert_sent_native_token_balance(&env)?;
+
+            let config = load_config(deps)?;
+            let sender = env.message.sender.clone();
+
+            swap(
+                &deps.querier,
+                env,
+                config,
+                sender,
+                recipient,
                 offer,
                 expected_return,
-                recipient,
-            } => {
-                // Can only be called directly when the offer token is SCRT, otherwise
-                // has to be called through the SNIP20 receiver interface by sending
-                // the amount to the pair's account in the SNIP20 token
-
-                if !offer.token.is_native_token() {
-                    return Err(StdError::unauthorized());
-                }
-
-                offer.assert_sent_native_token_balance(&env)?;
-
-                let config = load_config(deps)?;
-                let sender = env.message.sender.clone();
-
-                swap(
-                    &deps.querier,
-                    env,
-                    config,
-                    sender,
-                    recipient,
-                    offer,
-                    expected_return,
-                )
-            }
+            )
         }
-    )
+    }
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
-        QueryMsg::Status => to_binary(&get_status(deps)?),
         QueryMsg::PairInfo => {
             let config = load_config(deps)?;
 
