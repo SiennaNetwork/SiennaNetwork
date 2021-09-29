@@ -136,7 +136,7 @@ export class RPTContract extends ScrtContract {
   }
 
   /** query contract status */
-  get status() { return this.q.status() }
+  get status() { return this.q.status().then(({status})=>status) }
 
   /** set the splitt proportions */
   configure = (config = []) => this.tx.configure({ config })

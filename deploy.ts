@@ -10,6 +10,18 @@ import { fileURLToPath } from 'url'
 import { getDefaultSchedule, ONE_SIENNA } from './ops/index'
 
 
+/// ## Build and upload
+/// Contracts can be built in parallel, but have to be uploaded in separate blocks.
+
+
+async function buildAndUpload (contracts: Array<ContractUpload>) {
+  await Promise.all(contracts.map(contract=>contract.build()))
+  for (const contract of contracts) {
+    await contract.upload()
+  }
+}
+
+
 /// ## Sienna TGE
 /// This contains the Sienna SNIP20 token and the vesting contracts (MGMT and RPT).
 
@@ -17,12 +29,14 @@ import { getDefaultSchedule, ONE_SIENNA } from './ops/index'
 import type { ScheduleFor_HumanAddr } from '@sienna/api/mgmt/handle'
 import type { SNIP20Contract as SNIP20 } from '@sienna/api'
 import { SiennaSNIP20, MGMTContract, RPTContract } from '@sienna/api'
+
 export type VestingOptions = {
   prefix?:   string
   chain?:    Chain,
   admin?:    Agent,
   schedule?: ScheduleFor_HumanAddr
 }
+
 export async function deployVesting (options: VestingOptions = {}): Promise<SwapOptions> {
   const { prefix   = timestamp(),
           chain    = await new Scrt().ready,
@@ -52,6 +66,18 @@ export async function deployVesting (options: VestingOptions = {}): Promise<Swap
   await RPT.vest()
 
   return { prefix, chain, admin, SIENNA, MGMT, RPT }
+
+  /// ### Get the RPT account from the schedule
+  /// This is a special entry in MGMT's schedule that must be made to point to
+  /// the RPT contract's address - but that's only possible after deploying
+  /// the RPT contract. To prevent the circular dependency, the RPT account
+  /// starts as pointing to the admin's address.
+
+  function getRPTAccount (schedule: ScheduleFor_HumanAddr) {
+    return schedule.pools
+      .filter((x:any)=>x.name==='MintingPool')[0].accounts
+      .filter((x:any)=>x.name==='RPT')[0] }
+
 }
 
 
@@ -77,25 +103,15 @@ export async function deploySwap (options: SwapOptions) {
     MGMT,
   } = options
 
-  const existingSienna = chain.instances.active.contracts['SiennaSNIP20']
-      , SIENNA = SiennaSNIP20.attach(
-          existingSienna.initTx.contractAddress,
-          existingSienna.codeHash,
-          admin)
-
-  const existingRPT = chain.instances.active.contracts['SiennaRPT']
-      , RPT = RPTContract.attach(
-          existingRPT.initTx.contractAddress,
-          existingRPT.codeHash,
-          admin)
-
-  const EXCHANGE  = new AMMContract({ prefix, admin })
-      , AMMTOKEN  = new AMMSNIP20({ prefix, admin })
-      , LPTOKEN   = new LPToken({ prefix, admin })
-      , IDO       = new IDOContract({ prefix, admin })
-      , REWARDS   = new RewardsContract({ prefix, admin })
+  const SIENNA = chain.instances.active.getContract(SiennaSNIP20, 'SiennaSNIP20', admin)
+      , RPT = chain.instances.active.getContract(RPTContract, 'SiennaRPT', admin)
+      , EXCHANGE = new AMMContract({ prefix, admin })
+      , AMMTOKEN = new AMMSNIP20({ prefix, admin })
+      , LPTOKEN = new LPToken({ prefix, admin })
+      , IDO = new IDOContract({ prefix, admin })
+      , REWARDS = new RewardsContract({ prefix, admin })
       , LAUNCHPAD = new LaunchpadContract({ prefix, admin })
-      , FACTORY   = new FactoryContract({
+      , FACTORY = new FactoryContract({
           prefix, admin, config: settings[`amm-${chain.chainId}`],
           EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD
         })
@@ -135,6 +151,7 @@ export async function deploySwap (options: SwapOptions) {
   }
 
   await RPT.configure(rptConfig)
+
 
   /// On localnet, placeholder tokens need to be deployed.
 
@@ -199,7 +216,7 @@ export async function deploySwap (options: SwapOptions) {
   }
 
   async function deployRewardPool (name: string, lpToken: SNIP20, rewardToken: SNIP20) {
-    const { codeId, codeHash } = REWARDS
+    const {codeId, codeHash} = REWARDS
         , rewardPool = new RewardsContract({
             codeId, codeHash, prefix, name, admin, lpToken, rewardToken,
           })
@@ -208,35 +225,67 @@ export async function deploySwap (options: SwapOptions) {
     return rewardPool
   }
 
-  async function replaceRewardPool () {}
 }
 
 
-/// ## Helper functions
-
-/// ### Build and upload
-/// Contracts can be built in parallel, but have to be uploaded in separate blocks.
+/// ## Upgrading reward pools
 
 
-async function buildAndUpload (contracts: Array<ContractUpload>) {
-  await Promise.all(contracts.map(contract=>contract.build()))
-  for (const contract of contracts) {
-    await contract.upload()
+export async function replaceRewardPool (
+  chain: Chain,
+  admin: Agent,
+  label: string
+) {
+
+  const { name: prefix, getContract } = chain.instances.active
+
+  console.log(
+    `Upgrading reward pool ${bold(label)}` +
+    `\nin deployment ${bold(prefix)}` +
+    `\non ${bold(chain.chainId)}` +
+    `\nas ${bold(admin.address)}\n`
+  )
+
+  const OLD_POOL = getContract(RewardsContract, label, admin)
+      , RPT      = getContract(RPTContract, 'SiennaRPT', admin)
+
+  const {config} = await RPT.status
+  let found: number = NaN
+  for (let i = 0; i < config.length; i++) {
+    console.log(config[i])
+    if (config[i][0] === OLD_POOL.address) {
+      if (!isNaN(found)) {
+        console.log(`Address ${bold(OLD_POOL.address)} found in RPT config twice.`)
+        process.exit(1)
+      }
+      found = i
+    }
   }
-}
 
+  if (isNaN(found)) {
+    console.log(`Reward pool ${bold(OLD_POOL.address)} not found in RPT ${bold(RPT.address)}`)
+    process.exit(1)
+  }
 
-/// ### Get the RPT account from the schedule
-/// This is a special entry in MGMT's schedule that must be made to point to
-/// the RPT contract's address - but that's only possible after deploying
-/// the RPT contract. To prevent the circular dependency, the RPT account
-/// starts as pointing to the admin's address.
+  console.log(`Replacing reward pool ${OLD_POOL.address}`)
 
+  const [LP_TOKEN, REWARD_TOKEN] = await Promise.all([
+    OLD_POOL.getLPToken(admin),
+    OLD_POOL.getRewardToken(admin)
+  ])
 
-function getRPTAccount (schedule: ScheduleFor_HumanAddr) {
-  return schedule.pools
-    .filter((x:any)=>x.name==='MintingPool')[0].accounts
-    .filter((x:any)=>x.name==='RPT')[0]
+  const NEW_POOL = new RewardsContract({
+    prefix, label: `${label}@${timestamp()}`, admin,
+    lpToken:     LP_TOKEN,
+    rewardToken: REWARD_TOKEN
+  })
+  await buildAndUpload([NEW_POOL])
+  await NEW_POOL.instantiate()
+
+  config[found][0] = NEW_POOL.address
+  await RPT.configure(config)
+
+  await OLD_POOL.close(`Moved to ${NEW_POOL.address}`)
 }
 
 
@@ -284,33 +333,34 @@ export default async function main ([chainName, ...words]: Array<string>) {
     },
 
     deploy: {
+
       async all () {
         const vesting = await deployVesting({prefix, chain, admin})
         await chain.instances.select(vesting.prefix)
         await deploySwap(vesting)
         printActiveInstance()
       },
+
       async vesting () {
         const vesting = await deployVesting({prefix, chain, admin})
         await chain.instances.select(vesting.prefix)
         printActiveInstance()
       },
+
       async swap () {
         if (!chain.instances.active) await commands.deploy.vesting()
-        const { name: prefix, contracts } = chain.instances.active
-        const { initTx: { contractAddress }, codeHash } = contracts['SiennaMGMT']
-        await deploySwap({
-          chain, admin, prefix,
-          MGMT: MGMTContract.attach(contractAddress, codeHash, admin),
-        })
+        const { name: prefix, getContract } = chain.instances.active
+        const MGMT = getContract(MGMTContract, 'SiennaMGMT', admin)
+        await deploySwap({ chain, admin, prefix, MGMT })
         printActiveInstance()
       }
+
     },
 
     upgrade: {
       async rewards (id?: string) {
         if (id) {
-          await upgradeRewards(id)
+          await replaceRewardPool(chain, admin, id)
         } else {
           printRewardsContracts()
         }
