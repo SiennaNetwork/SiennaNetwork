@@ -446,7 +446,7 @@ export default async function main ([chainName, ...words]: Array<string>) {
       if (rewardsContracts.length > 0) {
         console.log(`\nRewards contracts in ${bold(name)}:`)
         for (const name of rewardsContracts) {
-          console.log(`    ${colors.green('✓')}  ${name}`)
+          console.log(`  ${colors.green('✓')}  ${name}`)
         }
       } else {
         console.log(`\nNo rewards contracts.`)
