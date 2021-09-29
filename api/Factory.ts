@@ -43,7 +43,7 @@ export class Factory extends ScrtContract {
     super({ agent: options.admin, prefix: options.prefix, schema })
     Object.assign(this.init.msg, {
       ...options.config,
-      admin: options.admin.address,
+      admin: options.admin?.address,
     })
     Object.defineProperties(this.init.msg, {
       snip20_contract:    { enumerable: true, get () { return options.AMMTOKEN.template } },

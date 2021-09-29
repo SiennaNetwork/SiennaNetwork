@@ -63,7 +63,7 @@ export class MGMTContract extends ScrtContract {
   }) {
     super({ prefix: options.prefix, agent: options.admin, schema: MGMTContract.schema })
     Object.assign(this.init.msg, {
-      admin:    options.admin.address,
+      admin:    options.admin?.address,
       schedule: options.schedule, })
     // auto get token address after it's deployed
     Object.defineProperty(this.init.msg, 'token', {
@@ -127,7 +127,7 @@ export class RPTContract extends ScrtContract {
       token:   options.SIENNA?.linkPair,
       mgmt:    options.MGMT?.linkPair,
       portion: options.portion,
-      config:  [[options.admin.address, options.portion]]
+      config:  [[options.admin?.address, options.portion]]
     })
     Object.defineProperties(this.init.msg, {
       token: { enumerable: true, get () { return options.SIENNA?.linkPair } },

@@ -36,9 +36,9 @@ export class SiennaTGE extends BaseEnsemble {
     ['claim',  Help.TGE.CLAIM,  (ctx: any, a: any, c: any) => this.claim({...ctx, address: a, claimant: c})],
     ['status', Help.TGE.STATUS, (ctx: any, a: any) => this.getStatus({...ctx, address: a})] ]
   contracts = {
-    SIENNA: new SiennaSNIP20(this.agent),
-    MGMT:   new MGMTContract(this.agent),
-    RPT:    new RPTContract(this.agent)}
+    SIENNA: new SiennaSNIP20({ admin: this.agent }),
+    MGMT:   new MGMTContract({ admin: this.agent }),
+    RPT:    new RPTContract({ admin: this.agent })}
   schedule =
     getDefaultSchedule()
   async initialize () {
@@ -210,7 +210,7 @@ export class SiennaSwap extends BaseEnsemble {
 
   private getTestnetTokens () {
     return {
-      SIENNA,
+      SIENNA: this.TGE.contracts.SIENNA,
       sSCRT: new AMMSNIP20({
         address:  'secret1s7c6xp9wltthk5r6mmavql4xld5me3g37guhsx',
         codeHash: 'cd400fb73f5c99edbc6aab22c2593332b8c9f2ea806bf9b42e3a523f3ad06f62' }),

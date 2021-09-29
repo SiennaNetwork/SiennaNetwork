@@ -21,7 +21,7 @@ export default async function main (command: CommandName, ...args: any) {
 
   const tge     = new SiennaTGE()
       , rewards = new SiennaRewards()
-      , swap     = new SiennaSwap()
+      , swap    = new SiennaSwap()
       , lend    = new SiennaLend()
 
   function remoteCommands (chain: Chain): Commands {
