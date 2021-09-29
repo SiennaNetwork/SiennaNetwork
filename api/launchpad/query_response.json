@@ -86,7 +86,6 @@
       "description": "Token configuration that holds the configuration for each token",
       "type": "object",
       "required": [
-        "active",
         "bounding_period",
         "locked_balance",
         "segment",
@@ -94,9 +93,6 @@
         "token_type"
       ],
       "properties": {
-        "active": {
-          "type": "boolean"
-        },
         "bounding_period": {
           "type": "integer",
           "format": "uint64",

@@ -96,6 +96,13 @@ export type HandleMsg =
       [k: string]: unknown;
     }
   | {
+      add_launchpad: {
+        launchpad: ContractInstanceFor_HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
       admin: AdminHandleMsg;
       [k: string]: unknown;
     };

@@ -74,6 +74,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
                 register_exchange(deps, env, pair, signature),
             HandleMsg::AddExchanges { exchanges } => add_exchanges(deps, env, exchanges),
             HandleMsg::AddIdos { idos } => add_idos(deps, env, idos),
+            HandleMsg::AddLaunchpad { launchpad } => add_launchpad(deps, env, launchpad),
             HandleMsg::Admin(msg) => admin_handle(deps, env, msg, AdminHandle),
         }
     )
@@ -463,6 +464,27 @@ fn add_idos<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse {
         messages: vec![],
         log: vec![log("action", "add_idos")],
+        data: None,
+    })
+}
+
+#[require_admin]
+fn add_launchpad<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    launchpad: ContractInstance<HumanAddr>,
+) -> StdResult<HandleResponse> {
+    if load_launchpad_instance(&deps.storage)?.is_some() {
+        return Err(StdError::generic_err(
+            "Launchpad contract is already created",
+        ));
+    }
+
+    save_launchpad_instance(&mut deps.storage, &launchpad)?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![log("action", "add_launchpad")],
         data: None,
     })
 }

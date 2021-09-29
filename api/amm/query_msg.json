@@ -5,7 +5,6 @@
     {
       "type": "string",
       "enum": [
-        "status",
         "pair_info"
       ]
     },

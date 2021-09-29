@@ -15,7 +15,7 @@ use amm_shared::{
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 
 /// Wasm safe random number generator in a given range
-pub(crate) fn gen_rand_range(mut min: u64, mut max: u64, seed: Option<u64>) -> u64 {
+pub(crate) fn gen_rand_range(mut min: u64, mut max: u64, seed: u64) -> u64 {
     if min == max {
         return min;
     }
@@ -26,7 +26,8 @@ pub(crate) fn gen_rand_range(mut min: u64, mut max: u64, seed: Option<u64>) -> u
         min = temp;
     }
 
-    let mut small_rng = SmallRng::seed_from_u64(seed.unwrap_or(999999999_u64));
+    // If we don't get seed we'll do it from a lot of 9's
+    let mut small_rng = SmallRng::seed_from_u64(seed);
     let picked_random: u64 = small_rng.next_u32() as u64;
 
     let percentage: u64 = (picked_random * 100_u64) / u32::MAX as u64;
@@ -90,28 +91,26 @@ pub(crate) fn create_transfer_message(
     to_address: HumanAddr,
     amount: Uint128,
 ) -> StdResult<()> {
-    if !amount.is_zero() {
-        match &token_config.token_type {
-            TokenType::CustomToken {
-                contract_addr,
-                token_code_hash,
-            } => messages.push(snip20::transfer_msg(
+    match &token_config.token_type {
+        TokenType::CustomToken {
+            contract_addr,
+            token_code_hash,
+        } => messages.push(snip20::transfer_msg(
+            to_address,
+            amount,
+            None,
+            BLOCK_SIZE,
+            token_code_hash.clone(),
+            contract_addr.clone(),
+        )?),
+        TokenType::NativeToken { denom } => messages.push(
+            BankMsg::Send {
+                from_address,
                 to_address,
-                amount,
-                None,
-                BLOCK_SIZE,
-                token_code_hash.clone(),
-                contract_addr.clone(),
-            )?),
-            TokenType::NativeToken { denom } => messages.push(
-                BankMsg::Send {
-                    from_address,
-                    to_address,
-                    amount: vec![Coin::new(amount.u128(), &denom)],
-                }
-                .into(),
-            ),
-        }
+                amount: vec![Coin::new(amount.u128(), &denom)],
+            }
+            .into(),
+        ),
     }
 
     Ok(())
@@ -141,7 +140,7 @@ mod test {
         ];
 
         for i in from_to {
-            let num = gen_rand_range(i.0 as u64, i.1 as u64, None);
+            let num = gen_rand_range(i.0 as u64, i.1 as u64, 999999_u64);
             println!("{} >= ({} as u64) && {} <= ({} as u64)", num, i.0, num, i.1);
             assert!(num >= (i.0 as u64) && num <= (i.1 as u64));
         }

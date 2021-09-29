@@ -1,7 +1,7 @@
-import type { ContractAPIOptions } from '@fadroma/scrt'
-import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt"
-import { randomHex } from "@fadroma/tools"
-import { abs } from '../ops/index'
+import type { ContractAPIOptions } from "@fadroma/scrt";
+import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt";
+import { randomHex } from "@fadroma/tools";
+import { abs } from "../ops/index";
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./launchpad/init_msg.json",
@@ -15,9 +15,11 @@ const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
 export class Launchpad extends ScrtContract {
-  constructor (options: ContractAPIOptions = {}) { super({ ...options, schema }) }
+  constructor(options: ContractAPIOptions = {}) {
+    super({ ...options, schema });
+  }
 
-  code = { ...this.code, workspace: abs(), crate: 'launchpad' }
+  code = { ...this.code, workspace: abs(), crate: "launchpad" };
 
   /**
    * This action will remove the token from the contract
@@ -33,7 +35,7 @@ export class Launchpad extends ScrtContract {
 
   /**
    * This method will perform the native token lock.
-   * 
+   *
    * NOTE: For any other token, use snip20 receiver interface
    *
    * @param {string|number|bigint} amount
@@ -41,7 +43,11 @@ export class Launchpad extends ScrtContract {
    * @param {Agent} [agent]
    * @returns
    */
-  async lock(amount: string|number|bigint, denom: string = "uscrt", agent?: Agent) {
+  async lock(
+    amount: string | number | bigint,
+    denom: string = "uscrt",
+    agent?: Agent
+  ) {
     return this.tx.lock({ amount: `${amount}` }, agent, undefined, [
       { amount: `${amount}`, denom },
     ]);
@@ -49,14 +55,14 @@ export class Launchpad extends ScrtContract {
 
   /**
    * This method will perform the native token unlock
-   * 
+   *
    * NOTE: For any other token, use snip20 receiver interface
    *
    * @param {string|number|bigint} entries
    * @param {Agent} [agent]
    * @returns
    */
-  async unlock(entries: string|number|bigint, agent?: Agent) {
+  async unlock(entries: string | number | bigint, agent?: Agent) {
     return this.tx.unlock({ entries }, agent);
   }
 
@@ -115,20 +121,22 @@ export class Launchpad extends ScrtContract {
    * }>
    */
   async testDraw(number: number, tokens: string[]) {
-    return this.q.draw({ number, tokens });
+    return this.q.draw({
+      number,
+      tokens,
+      // @ts-ignore
+      timestamp: parseInt(new Date().valueOf() / 1000),
+    });
   }
 
   /**
    * Create viewing key for the agent
-   * 
-   * @param {Agent} agent 
-   * @param {string} entropy 
-   * @returns 
+   *
+   * @param {Agent} agent
+   * @param {string} entropy
+   * @returns
    */
-  createViewingKey = (
-    agent: Agent,
-    entropy = randomHex(32)
-  ) =>
+  createViewingKey = (agent: Agent, entropy = randomHex(32)) =>
     this.tx
       .create_viewing_key({ entropy, padding: null }, agent)
       .then((tx) => ({
@@ -138,16 +146,14 @@ export class Launchpad extends ScrtContract {
 
   /**
    * Set viewing key for the agent
-   * 
-   * @param {Agent} agent 
-   * @param {string} key 
-   * @returns 
+   *
+   * @param {Agent} agent
+   * @param {string} key
+   * @returns
    */
   setViewingKey = (agent: Agent, key: string) =>
-    this.tx
-      .set_viewing_key({ key }, agent)
-      .then((tx) => ({
-        tx,
-        status: JSON.parse(decode(tx.data)).set_viewing_key.key,
-      }));
+    this.tx.set_viewing_key({ key }, agent).then((tx) => ({
+      tx,
+      status: JSON.parse(decode(tx.data)).set_viewing_key.key,
+    }));
 }

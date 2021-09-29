@@ -22,6 +22,7 @@ export type QueryMsg =
   | {
       draw: {
         number: number;
+        timestamp: number;
         tokens: (HumanAddr | null)[];
         [k: string]: unknown;
       };

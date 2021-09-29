@@ -306,20 +306,7 @@ fn lock_token_with_bounding_period_and_check_if_draw_works() {
     )
     .unwrap();
 
-    let ido_handle_msg: IDOHandleMsg = match response.messages.get(0).unwrap() {
-        CosmosMsg::Wasm(msg) => match msg {
-            WasmMsg::Execute { msg, .. } => from_binary(&msg).unwrap(),
-            _ => panic!("Wrong WasmMsg in response"),
-        },
-        _ => panic!("Wrong CosmosMsg in response"),
-    };
-
-    match ido_handle_msg {
-        IDOHandleMsg::AdminAddAddresses { addresses } => {
-            assert_eq!(addresses.len(), 0);
-        }
-        _ => panic!("Draw sent wrong message for IDO"),
-    };
+    assert_eq!(response.messages.len(), 0_usize);
 
     let mut env = mock_env("dummy-ido-contract", &[]);
     env.block.time = env.block.time + (24 * 60 * 60) + 1;

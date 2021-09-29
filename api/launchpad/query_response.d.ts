@@ -41,7 +41,6 @@ export type HumanAddr = string;
  * Token configuration that holds the configuration for each token
  */
 export interface QueryTokenConfig {
-  active: boolean;
   bounding_period: number;
   locked_balance: Uint128;
   segment: Uint128;

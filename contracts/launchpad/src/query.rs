@@ -11,8 +11,8 @@ use amm_shared::{
 };
 
 use crate::data::{
-    load_account, load_contract_address, load_viewing_key, AccounTokenEntry, Accounts, Config,
-    TokenConfig,
+    load_account, load_all_accounts, load_contract_address, load_viewing_key, AccounTokenEntry,
+    Config, TokenConfig,
 };
 use crate::helpers::*;
 
@@ -47,7 +47,6 @@ pub fn launchpad_info<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) ->
             token_type: token.token_type.clone(),
             segment: token.segment,
             bounding_period: token.bounding_period,
-            active: token.active,
             token_decimals: token.token_decimals,
             locked_balance,
         });
@@ -92,6 +91,7 @@ pub(crate) fn draw_addresses<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     tokens: Vec<Option<HumanAddr>>,
     number: u32,
+    timestamp: u64,
 ) -> StdResult<Binary> {
     let config = Config::load_self(deps)?;
 
@@ -100,11 +100,11 @@ pub(crate) fn draw_addresses<S: Storage, A: Api, Q: Querier>(
         token_configs.push(config.get_token_config(token.clone())?);
     }
 
-    let accounts = Accounts::load(deps)?;
+    let accounts = load_all_accounts(deps)?;
     let mut entries: Vec<(HumanAddr, AccounTokenEntry)> = vec![];
 
-    for account in &accounts.accounts {
-        let account_entries = account.get_entries(&token_configs, 9999999999);
+    for account in &accounts {
+        let account_entries = account.get_entries(&token_configs, timestamp);
         for account_entry in account_entries {
             entries.push(account_entry);
         }
@@ -121,7 +121,7 @@ pub(crate) fn draw_addresses<S: Storage, A: Api, Q: Querier>(
     // Run the loop while we don't fill the whitelist with addresses
     // or while we don't run out of entries to pick from
     while addresses.len() < number as usize && entries.len() > 0 {
-        let index: usize = gen_rand_range(0, (entries.len() - 1) as u64, None) as usize;
+        let index: usize = gen_rand_range(0, (entries.len() - 1) as u64, timestamp) as usize;
 
         match &entries.get(index as usize) {
             Some((address, _)) => {

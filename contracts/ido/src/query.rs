@@ -22,10 +22,7 @@ pub(crate) fn get_eligibility_info<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     address: HumanAddr,
 ) -> QueryResult {
-    let can_participate = match Account::load_self(deps, &address) {
-        Ok(_) => true,
-        Err(_) => false,
-    };
+    let can_participate = Account::load_self(deps, &address).is_ok();
 
     to_binary(&QueryResponse::Eligibility { can_participate })
 }

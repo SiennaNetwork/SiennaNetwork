@@ -802,6 +802,11 @@ mod tests {
             },
         );
 
-        assert_eq!(res, Err(StdError::generic_err("All seats already taken.")));
+        assert_eq!(
+            res,
+            Err(StdError::generic_err(
+                "Cannot fill more seats then left (0)"
+            ))
+        );
     }
 }

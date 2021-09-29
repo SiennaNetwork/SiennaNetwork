@@ -7,13 +7,17 @@ use amm_shared::{
             HumanAddr, Querier, StdError, StdResult, Storage, Uint128, WasmMsg,
         },
         storage::Storable,
+        toolkit::snip20,
+        BLOCK_SIZE,
     },
     msg::ido::HandleMsg as IDOHandleMsg,
     msg::launchpad::{ReceiverCallbackMsg, TokenSettings},
+    TokenType,
 };
 
 use crate::data::{
-    load_or_create_account, save_account, AccounTokenEntry, Account, Accounts, Config, TokenConfig,
+    load_all_accounts, load_or_create_account, load_viewing_key, save_account, AccounTokenEntry,
+    Account, Config, TokenConfig,
 };
 
 use crate::helpers::*;
@@ -58,13 +62,15 @@ pub(crate) fn lock<S: Storage, A: Api, Q: Querier>(
 
     // If the amount sent is more then a round number of segments we return the rest back
     // to the sender. We won't lock partial amounts of tokens in the launchpad
-    create_transfer_message(
-        &token_config,
-        &mut messages,
-        env.contract.address,
-        from,
-        change_amount,
-    )?;
+    if !change_amount.is_zero() {
+        create_transfer_message(
+            &token_config,
+            &mut messages,
+            env.contract.address,
+            from,
+            change_amount,
+        )?;
+    }
 
     save_account(deps, account)?;
 
@@ -97,13 +103,15 @@ pub(crate) fn unlock<S: Storage, A: Api, Q: Querier>(
 
     let (amount, remaining_number_of_entry) = account.unlock(&token_config, entries)?;
 
-    create_transfer_message(
-        &token_config,
-        &mut messages,
-        env.contract.address,
-        from,
-        amount,
-    )?;
+    if !amount.is_zero() {
+        create_transfer_message(
+            &token_config,
+            &mut messages,
+            env.contract.address,
+            from,
+            amount,
+        )?;
+    }
 
     save_account(deps, account)?;
 
@@ -119,13 +127,7 @@ pub(crate) fn unlock<S: Storage, A: Api, Q: Querier>(
     })
 }
 
-/// Handler that will return list of addresses
-/// TODO: This is just a working approximate logic for getting the whitelist, its not really efficient
-/// and it doesn't mark the account being last drawn.. do we even need that?
-///
-/// Note: This call is a handle call because we are marking the drawn accounts with
-/// last drawn timestamp. This is due to anticipating a feature where we will implement
-/// some sort of a cooldown period for accounts. This is based on researching Polkastarter launchpad.
+/// Handler that will send message to callback IDO contract and will fill it up with drawn addresses
 pub(crate) fn draw_addresses<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -140,10 +142,10 @@ pub(crate) fn draw_addresses<S: Storage, A: Api, Q: Querier>(
         token_configs.push(config.get_token_config(token)?);
     }
 
-    let accounts = Accounts::load(deps)?;
+    let accounts = load_all_accounts(deps)?;
     let mut entries: Vec<(HumanAddr, AccounTokenEntry)> = vec![];
 
-    for account in &accounts.accounts {
+    for account in &accounts {
         let account_entries = account.get_entries(&token_configs, env.block.time);
         for account_entry in account_entries {
             entries.push(account_entry);
@@ -163,8 +165,7 @@ pub(crate) fn draw_addresses<S: Storage, A: Api, Q: Querier>(
     // or while we don't run out of entries to pick from
     while addresses.len() < number as usize && entries.len() > 0 {
         // Randomly generate index to get from entry list
-        let index: usize =
-            gen_rand_range(0, (entries.len() - 1) as u64, Some(env.block.time)) as usize;
+        let index: usize = gen_rand_range(0, (entries.len() - 1) as u64, env.block.time) as usize;
 
         match &entries.get(index) {
             Some((address, _)) => {
@@ -181,7 +182,7 @@ pub(crate) fn draw_addresses<S: Storage, A: Api, Q: Querier>(
 
     // Loop through the accounts and update the drawn accounts so they are marked with
     // last drawn timestamp. This is the actual reason we are doing this as a handle, and not query
-    for mut account in accounts.accounts.into_iter() {
+    for mut account in accounts.into_iter() {
         if addresses.iter().position(|a| a == &account.owner).is_some() {
             account.mark_as_drawn(&token_configs, env.block.time);
 
@@ -189,15 +190,27 @@ pub(crate) fn draw_addresses<S: Storage, A: Api, Q: Querier>(
         }
     }
 
-    // Send callback response to IDO contract and set the addresses as whitelisted
-    Ok(HandleResponse {
-        messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
+    let mut messages = vec![];
+    let addresses_len = addresses.len();
+
+    // If we have drawn any addresses we will create a callback message for the IDO
+    // that will deliver them there and fill the empty seats
+    if addresses_len > 0 {
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: callback.address,
             callback_code_hash: callback.code_hash,
             msg: to_binary(&IDOHandleMsg::AdminAddAddresses { addresses })?,
             send: vec![],
-        })],
-        log: vec![log("action", "draw"), log("number", number)],
+        }));
+    }
+
+    Ok(HandleResponse {
+        messages,
+        log: vec![
+            log("action", "draw"),
+            log("number", number),
+            log("addresses_len", addresses_len),
+        ],
         data: None,
     })
 }
@@ -210,12 +223,43 @@ pub(crate) fn admin_add_token<S: Storage, A: Api, Q: Querier>(
     token: TokenSettings,
 ) -> StdResult<HandleResponse> {
     let mut config = Config::load_self(deps)?;
+    let viewing_key = load_viewing_key(&deps.storage)?;
+    let mut messages = vec![];
+
+    match &token.token_type {
+        TokenType::CustomToken {
+            contract_addr,
+            token_code_hash,
+        } => {
+            // Set created viewing key onto the contract so we can check the balance later
+            messages.push(snip20::set_viewing_key_msg(
+                viewing_key.to_string(),
+                None,
+                BLOCK_SIZE,
+                token_code_hash.clone(),
+                contract_addr.clone(),
+            )?);
+
+            // Register this contract as a receiver of the callback messages
+            // from the custom input token. This will allow us to receive
+            // message after the tokens have been sent and will make the lock
+            // happen in a single transaction
+            messages.push(snip20::register_receive_msg(
+                env.contract_code_hash.clone(),
+                None,
+                BLOCK_SIZE,
+                token_code_hash.clone(),
+                contract_addr.clone(),
+            )?);
+        }
+        _ => (),
+    };
 
     config.add_token(&deps.querier, token)?;
     config.save(deps)?;
 
     Ok(HandleResponse {
-        messages: vec![],
+        messages,
         log: vec![log("action", "admin_add_token")],
         data: None,
     })
@@ -232,12 +276,12 @@ pub(crate) fn admin_remove_token<S: Storage, A: Api, Q: Querier>(
     let mut config = Config::load_self(deps)?;
 
     let token_config = config.remove_token(index)?;
-    let accounts = Accounts::load(deps)?;
+    let accounts = load_all_accounts(deps)?;
     let mut messages = vec![];
     let mut total_amount = Uint128::zero();
     let mut total_entries = 0;
 
-    for mut account in accounts.accounts {
+    for mut account in accounts {
         let (amount, entries) = account.unlock_all(&token_config)?;
 
         if amount.u128() > 0_u128 && entries > 0 {

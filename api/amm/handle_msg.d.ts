@@ -8,15 +8,6 @@
 export type HandleMsg =
   | "on_lp_token_init"
   | {
-      set_status: {
-        level: ContractStatusLevel;
-        new_address?: HumanAddr | null;
-        reason: string;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
       add_liquidity: {
         deposit: TokenPairAmountFor_HumanAddr;
         /**
@@ -48,11 +39,6 @@ export type HandleMsg =
       };
       [k: string]: unknown;
     };
-/**
- * Possible states of a contract.
- */
-export type ContractStatusLevel = "Operational" | "Paused" | "Migrating";
-export type HumanAddr = string;
 export type Uint128 = string;
 export type TokenPairFor_HumanAddr = [TokenTypeFor_HumanAddr, TokenTypeFor_HumanAddr];
 export type TokenTypeFor_HumanAddr =
@@ -71,6 +57,7 @@ export type TokenTypeFor_HumanAddr =
       };
       [k: string]: unknown;
     };
+export type HumanAddr = string;
 /**
  * A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0
  *

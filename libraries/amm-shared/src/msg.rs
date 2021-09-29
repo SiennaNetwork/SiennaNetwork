@@ -95,6 +95,10 @@ pub mod factory {
         AddIdos {
             idos: Vec<HumanAddr>,
         },
+        /// Adds already existing launchpad contract, admin only command.
+        AddLaunchpad {
+            launchpad: ContractInstance<HumanAddr>,
+        },
         Admin(AdminHandleMsg),
     }
 
@@ -327,6 +331,7 @@ pub mod launchpad {
         Draw {
             tokens: Vec<Option<HumanAddr>>,
             number: u32,
+            timestamp: u64,
         },
     }
 
@@ -358,7 +363,6 @@ pub mod launchpad {
         pub token_type: TokenType<HumanAddr>,
         pub segment: Uint128,
         pub bounding_period: u64,
-        pub active: bool,
         pub token_decimals: u8,
         pub locked_balance: Uint128,
     }

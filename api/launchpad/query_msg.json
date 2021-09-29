@@ -54,12 +54,18 @@
           "type": "object",
           "required": [
             "number",
+            "timestamp",
             "tokens"
           ],
           "properties": {
             "number": {
               "type": "integer",
               "format": "uint32",
+              "minimum": 0.0
+            },
+            "timestamp": {
+              "type": "integer",
+              "format": "uint64",
               "minimum": 0.0
             },
             "tokens": {

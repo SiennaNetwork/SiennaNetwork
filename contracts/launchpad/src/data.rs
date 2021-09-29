@@ -5,7 +5,7 @@ use amm_shared::fadroma::scrt::{
         Api, CanonicalAddr, Decimal, Extern, HumanAddr, Querier, StdError, StdResult, Storage,
         Uint128,
     },
-    storage::{load, save, Storable},
+    storage::{load, ns_load, ns_save, save, Storable},
     utils::viewing_key::ViewingKey,
 };
 use amm_shared::{msg::launchpad::TokenSettings, TokenType};
@@ -18,6 +18,7 @@ use crate::helpers::*;
 const KEY_CONTRACT_ADDR: &[u8] = b"this_contract";
 const KEY_VIEWING_KEY: &[u8] = b"launchpad_viewing_key";
 const KEY_ACCOUNTS_VEC_LENGTH: &[u8] = b"accounts:vec_length";
+const NS_ACCOUNTS: &[u8] = b"accounts";
 
 pub(crate) fn load_contract_address<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
@@ -49,30 +50,30 @@ pub(crate) fn save_viewing_key(storage: &mut impl Storage, vk: &ViewingKey) -> S
 /// Save account after it has been updated or created
 pub(crate) fn save_account<S: Storage, T: Api, Q: Querier>(
     deps: &mut Extern<S, T, Q>,
-    mut account: Account,
+    account: Account,
 ) -> StdResult<()> {
-    // If the account doesn't have its num_in_vec we'll set it to the end of len
-    // and we'll increment the vec_length for next time.
-    if account.num_in_vec.is_none() {
-        let mut vec_length: u32 = load(&deps.storage, KEY_ACCOUNTS_VEC_LENGTH)?.unwrap_or(0);
-        account.num_in_vec = Some(vec_length);
-        vec_length += 1;
+    // Match the possible index to get index even if it doesn't exist
+    let index_in_vec = match load_account_index(&deps, &account.owner)? {
+        Some(i) => i,
+        None => {
+            // Load the vec length
+            let i = load(&deps.storage, KEY_ACCOUNTS_VEC_LENGTH)?.unwrap_or(0);
 
-        // Increment accounts vec length
-        save(&mut deps.storage, KEY_ACCOUNTS_VEC_LENGTH, &vec_length)?;
+            // Save the index for account
+            save_account_index(deps, &account.owner, i)?;
 
-        // Store the address together with its index in Vec
-        let canonical_address = account.owner.canonize(&deps.api)?;
-        save(
-            &mut deps.storage,
-            canonical_address.as_slice(),
-            &account.num_in_vec,
-        )?;
-    }
+            // Increment accounts vec length
+            save(&mut deps.storage, KEY_ACCOUNTS_VEC_LENGTH, &(i + 1))?;
 
-    save(
+            i
+        }
+    };
+
+    // Finally, save the account
+    ns_save(
         &mut deps.storage,
-        format!("accounts:{}", account.num_in_vec.unwrap()).as_bytes(),
+        NS_ACCOUNTS,
+        &index_in_vec.to_be_bytes(),
         &account,
     )
 }
@@ -88,19 +89,57 @@ pub(crate) fn load_or_create_account<S: Storage, T: Api, Q: Querier>(
     }
 }
 
+/// Load the account address index where its saved
+pub(crate) fn load_account_index<S: Storage, T: Api, Q: Querier>(
+    deps: &Extern<S, T, Q>,
+    address: &HumanAddr,
+) -> StdResult<Option<u32>> {
+    let canonical_address = address.canonize(&deps.api)?;
+    let index_in_vec: Option<u32> = load(&deps.storage, canonical_address.as_slice())?;
+
+    Ok(index_in_vec)
+}
+
+/// Map the address with an index
+pub(crate) fn save_account_index<S: Storage, T: Api, Q: Querier>(
+    deps: &mut Extern<S, T, Q>,
+    address: &HumanAddr,
+    index: u32,
+) -> StdResult<()> {
+    let canonical_address = address.canonize(&deps.api)?;
+    save(&mut deps.storage, canonical_address.as_slice(), &index)
+}
+
 /// Load account or create a new one
 pub(crate) fn load_account<S: Storage, T: Api, Q: Querier>(
     deps: &Extern<S, T, Q>,
     address: &HumanAddr,
 ) -> StdResult<Account> {
-    let canonical_address = address.canonize(&deps.api)?;
-    let index_in_vec: Option<u32> = load(&deps.storage, canonical_address.as_slice())?;
+    let index_in_vec = load_account_index(deps, address)?;
 
     match index_in_vec {
-        Some(i) => load(&deps.storage, format!("accounts:{}", i).as_bytes())?
+        Some(i) => ns_load(&deps.storage, NS_ACCOUNTS, &i.to_be_bytes())?
             .ok_or_else(|| StdError::generic_err("Account not found")),
         None => Err(StdError::generic_err("Account not found")),
     }
+}
+
+/// Load the full hash map where we need to get all the values of the data vec
+pub fn load_all_accounts<S: Storage, T: Api, Q: Querier>(
+    deps: &Extern<S, T, Q>,
+) -> StdResult<Vec<Account>> {
+    let vec_length: u32 = load(&deps.storage, KEY_ACCOUNTS_VEC_LENGTH)?.unwrap_or(0);
+    let mut accounts: Vec<Account> = Vec::with_capacity(vec_length as usize);
+
+    for n in 0..vec_length {
+        // We will unwrap the account and create a dummy account, just so we don't have
+        // to have an error here that would put us in contract unrecoverable state,
+        // we will filter those with an if statement below.
+        let account = ns_load(&deps.storage, NS_ACCOUNTS, &n.to_be_bytes())?.unwrap();
+        accounts.push(account);
+    }
+
+    Ok(accounts)
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
@@ -175,7 +214,6 @@ impl Config {
             token_type: new_token.token_type,
             segment: new_token.segment,
             bounding_period: new_token.bounding_period,
-            active: true,
             token_decimals,
         });
 
@@ -208,49 +246,7 @@ pub struct TokenConfig {
     pub token_type: TokenType<HumanAddr>,
     pub segment: Uint128,
     pub bounding_period: u64,
-    pub active: bool,
     pub token_decimals: u8,
-}
-
-impl TokenConfig {
-    pub fn activate(&mut self) {
-        self.active = true;
-    }
-    pub fn disable(&mut self) {
-        self.active = false;
-    }
-}
-
-/// Holder of all the accounts that have participated in the launchpad,
-/// this holder is just an internal struct that is never saved as it is.
-pub struct Accounts {
-    pub accounts: Vec<Account>,
-    pub vec_length: u32,
-}
-
-impl Accounts {
-    /// Load the full hash map where we need to get all the values of the data vec
-    pub fn load<S: Storage, T: Api, Q: Querier>(deps: &Extern<S, T, Q>) -> StdResult<Accounts> {
-        let vec_length: u32 = load(&deps.storage, KEY_ACCOUNTS_VEC_LENGTH)?.unwrap_or(0);
-        let mut accounts: Vec<Account> = vec![];
-
-        for n in 0..vec_length {
-            // We will unwrap the account and create a dummy account, just so we don't have
-            // to have an error here that would put us in contract unrecoverable state,
-            // we will filter those with an if statement below.
-            let account = load(&deps.storage, format!("accounts:{}", n).as_bytes())?
-                .unwrap_or_else(|| Account::new(&HumanAddr::from("")));
-
-            if account.num_in_vec.is_some() {
-                accounts.push(account);
-            }
-        }
-
-        Ok(Accounts {
-            vec_length,
-            accounts,
-        })
-    }
 }
 
 /// Single account that has participated in the launchpad
@@ -258,7 +254,6 @@ impl Accounts {
 pub struct Account {
     pub owner: HumanAddr,
     pub tokens: Vec<AccountToken>,
-    pub num_in_vec: Option<u32>,
 }
 
 impl Account {
@@ -266,7 +261,6 @@ impl Account {
         Account {
             owner: address.clone(),
             tokens: vec![],
-            num_in_vec: None,
         }
     }
 

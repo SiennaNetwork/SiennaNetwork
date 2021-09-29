@@ -335,6 +335,26 @@
       }
     },
     {
+      "description": "Adds already existing launchpad contract, admin only command.",
+      "type": "object",
+      "required": [
+        "add_launchpad"
+      ],
+      "properties": {
+        "add_launchpad": {
+          "type": "object",
+          "required": [
+            "launchpad"
+          ],
+          "properties": {
+            "launchpad": {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
       "type": "object",
       "required": [
         "admin"

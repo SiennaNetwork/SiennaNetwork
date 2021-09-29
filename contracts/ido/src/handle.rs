@@ -172,7 +172,7 @@ pub(crate) fn pre_lock<S: Storage, A: Api, Q: Querier>(
     account.save(deps)?;
 
     // Save the amount that was pre locked
-    increment_total_pre_lock_amount(deps, Uint128(single_amount))?;
+    increment_total_pre_lock_amount(deps, single_amount)?;
 
     Ok(HandleResponse {
         messages: vec![],
@@ -203,7 +203,7 @@ pub(crate) fn swap<S: Storage, A: Api, Q: Querier>(
 
     if SaleType::PreLockAndSwap != config.sale_type
         && SaleType::SwapOnly != config.sale_type
-        && amount.u128() > 0 as u128
+        && amount.u128() > 0_u128
     {
         return Err(StdError::generic_err(
             "This sale was only a pre-lock sale, please send 0 amount and you will get tokens for your pre-locked amount.",
@@ -378,12 +378,17 @@ pub(crate) fn add_addresses<S: Storage, A: Api, Q: Querier>(
 
     let mut added_count = 0;
 
+    let seats_left = config.max_seats - config.taken_seats;
+
     for address in addresses {
         let caonical_address = address.canonize(&deps.api)?;
 
         config.taken_seats += 1;
         if config.taken_seats > config.max_seats {
-            return Err(StdError::generic_err("All seats already taken."));
+            return Err(StdError::generic_err(format!(
+                "Cannot fill more seats then left ({})",
+                seats_left
+            )));
         }
 
         let account = Account::<CanonicalAddr>::load_self(&deps, &address);

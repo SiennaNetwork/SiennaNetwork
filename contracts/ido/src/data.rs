@@ -68,12 +68,15 @@ pub(crate) fn save_contract_address<S: Storage, A: Api, Q: Querier>(
 
 pub(crate) fn increment_total_pre_lock_amount<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    add_amount: Uint128,
+    add_amount: u128,
 ) -> StdResult<()> {
-    let mut amount: Uint128 =
-        load(&deps.storage, TOTAL_PRE_LOCK_AMOUNT)?.unwrap_or_else(|| Uint128(0_u128));
+    let mut amount: Uint128 = load_total_pre_lock_amount(&deps)?;
 
-    amount += add_amount;
+    amount = amount
+        .u128()
+        .checked_add(add_amount)
+        .ok_or_else(|| StdError::generic_err("Upper bound overflow detected."))?
+        .into();
 
     save(&mut deps.storage, TOTAL_PRE_LOCK_AMOUNT, &amount)
 }
@@ -81,8 +84,7 @@ pub(crate) fn increment_total_pre_lock_amount<S: Storage, A: Api, Q: Querier>(
 pub(crate) fn load_total_pre_lock_amount<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
 ) -> StdResult<Uint128> {
-    let amount: Uint128 =
-        load(&deps.storage, TOTAL_PRE_LOCK_AMOUNT)?.unwrap_or_else(|| Uint128(0_u128));
+    let amount: Uint128 = load(&deps.storage, TOTAL_PRE_LOCK_AMOUNT)?.unwrap_or_default();
 
     Ok(amount)
 }
@@ -237,8 +239,8 @@ impl Account<CanonicalAddr> {
     pub fn new(address: &CanonicalAddr) -> Account<CanonicalAddr> {
         Account {
             owner: address.clone(),
-            total_bought: 0_u128.into(),
-            pre_lock_amount: 0_u128.into(),
+            total_bought: Uint128::zero(),
+            pre_lock_amount: Uint128::zero(),
         }
     }
 

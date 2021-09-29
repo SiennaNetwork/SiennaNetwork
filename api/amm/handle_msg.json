@@ -9,40 +9,6 @@
       ]
     },
     {
-      "description": "Set pause/migration status",
-      "type": "object",
-      "required": [
-        "set_status"
-      ],
-      "properties": {
-        "set_status": {
-          "type": "object",
-          "required": [
-            "level",
-            "reason"
-          ],
-          "properties": {
-            "level": {
-              "$ref": "#/definitions/ContractStatusLevel"
-            },
-            "new_address": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/HumanAddr"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "reason": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    {
       "type": "object",
       "required": [
         "add_liquidity"
@@ -154,15 +120,6 @@
     "Binary": {
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
-    },
-    "ContractStatusLevel": {
-      "description": "Possible states of a contract.",
-      "type": "string",
-      "enum": [
-        "Operational",
-        "Paused",
-        "Migrating"
-      ]
     },
     "Decimal": {
       "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
