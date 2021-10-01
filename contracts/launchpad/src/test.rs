@@ -4,10 +4,11 @@ use amm_shared::{
     fadroma::scrt::cosmwasm_std::{
         from_binary,
         testing::{mock_env, MockApi, MockStorage},
-        to_binary, Binary, Coin, CosmosMsg, Extern, HumanAddr, StdError, Uint128, WasmMsg,
+        to_binary, Binary, Coin, Extern, HumanAddr, StdError, Uint128,
     },
-    msg::ido::HandleMsg as IDOHandleMsg,
-    msg::launchpad::{HandleMsg, InitMsg, QueryMsg, ReceiverCallbackMsg, TokenSettings},
+    msg::launchpad::{
+        HandleMsg, InitMsg, QueryMsg, QueryResponse, ReceiverCallbackMsg, TokenSettings,
+    },
     querier::{MockContractInstance, MockQuerier},
     TokenType,
 };
@@ -292,66 +293,59 @@ fn lock_token_with_bounding_period_and_check_if_draw_works() {
     }
 
     let env = mock_env("dummy-ido-contract", &[]);
-    let response = handle(
-        &mut deps,
-        env,
-        HandleMsg::Draw {
-            callback: ContractInstance {
-                address: HumanAddr::from("dummy"),
-                code_hash: "".to_string(),
-            },
+    let response = query(
+        &deps,
+        QueryMsg::Draw {
             tokens: vec![None],
             number: 4,
+            timestamp: env.block.time,
         },
     )
     .unwrap();
+    let response: QueryResponse = from_binary(&response).unwrap();
 
-    assert_eq!(response.messages.len(), 0_usize);
+    match response {
+        QueryResponse::DrawnAddresses(addresses) => {
+            assert_eq!(addresses.len(), 0_usize);
+        }
+        _ => {
+            panic!("Wrong type of response returned when trying to draw addresses")
+        }
+    };
 
     let mut env = mock_env("dummy-ido-contract", &[]);
     env.block.time = env.block.time + (24 * 60 * 60) + 1;
 
-    let response = handle(
-        &mut deps,
-        env,
-        HandleMsg::Draw {
-            callback: ContractInstance {
-                address: HumanAddr::from("dummy"),
-                code_hash: "".to_string(),
-            },
+    let response = query(
+        &deps,
+        QueryMsg::Draw {
             tokens: vec![None],
             number: 4,
+            timestamp: env.block.time,
         },
     )
     .unwrap();
+    let response: QueryResponse = from_binary(&response).unwrap();
 
-    let ido_handle_msg: IDOHandleMsg = match response.messages.get(0).unwrap() {
-        CosmosMsg::Wasm(msg) => match msg {
-            WasmMsg::Execute { msg, .. } => from_binary(&msg).unwrap(),
-            _ => panic!("Wrong WasmMsg in response"),
-        },
-        _ => panic!("Wrong CosmosMsg in response"),
+    let addresses = match response {
+        QueryResponse::DrawnAddresses(addresses) => addresses,
+        _ => panic!("Wrong type of response returned when trying to draw addresses"),
     };
 
-    match ido_handle_msg {
-        IDOHandleMsg::AdminAddAddresses { addresses } => {
-            assert!(addresses
-                .iter()
-                .position(|a| a == &HumanAddr::from("account-0"))
-                .is_some());
-            assert!(addresses
-                .iter()
-                .position(|a| a == &HumanAddr::from("account-1"))
-                .is_some());
-            assert!(addresses
-                .iter()
-                .position(|a| a == &HumanAddr::from("account-2"))
-                .is_some());
-            assert!(addresses
-                .iter()
-                .position(|a| a == &HumanAddr::from("account-3"))
-                .is_some());
-        }
-        _ => panic!("Draw sent wrong message for IDO"),
-    };
+    assert!(addresses
+        .iter()
+        .position(|a| a == &HumanAddr::from("account-0"))
+        .is_some());
+    assert!(addresses
+        .iter()
+        .position(|a| a == &HumanAddr::from("account-1"))
+        .is_some());
+    assert!(addresses
+        .iter()
+        .position(|a| a == &HumanAddr::from("account-2"))
+        .is_some());
+    assert!(addresses
+        .iter()
+        .position(|a| a == &HumanAddr::from("account-3"))
+        .is_some());
 }

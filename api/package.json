@@ -8,7 +8,8 @@
     "@fadroma/tools": "*",
     "@waiting/base64": "^4.2.9",
     "secretjs": "workspace:*",
-    "debug": "^4.3.2"
+    "debug": "^4.3.2",
+    "bip39": "^3.0.4"
   },
   "devDependencies": {
     "mocha": "^8.4.0"

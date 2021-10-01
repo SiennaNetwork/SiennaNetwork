@@ -6,7 +6,8 @@ use amm_shared::{
         callback::ContractInstance,
         cosmwasm_std::{
             to_binary, Api, CanonicalAddr, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
-            InitResponse, Querier, QueryResult, StdError, StdResult, Storage, WasmMsg,
+            InitResponse, Querier, QueryRequest, QueryResult, StdError, StdResult, Storage,
+            WasmMsg, WasmQuery,
         },
         migrate as fadroma_scrt_migrate,
         storage::Storable,
@@ -15,7 +16,8 @@ use amm_shared::{
         BLOCK_SIZE,
     },
     msg::ido::{HandleMsg, InitMsg, QueryMsg},
-    msg::launchpad::HandleMsg as LaunchpadHandleMsg,
+    msg::launchpad::QueryMsg as LaunchpadQueryMsg,
+    msg::launchpad::QueryResponse as LaunchpadQueryResponse,
     TokenType,
 };
 use fadroma_scrt_migrate::{get_status, with_status};
@@ -117,7 +119,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         send: vec![],
     }));
 
-    let taken_seats = msg.info.whitelist.len() as u32;
+    let mut taken_seats = msg.info.whitelist.len() as u32;
 
     for address in msg.info.whitelist {
         Account::<CanonicalAddr>::new(&address.canonize(&deps.api)?).save(deps)?;
@@ -126,19 +128,30 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     // Call the launchpad contract and request whitelist addresses
     if taken_seats < msg.info.max_seats {
         if let Some(request) = &msg.launchpad {
-            messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: request.launchpad.address.clone(),
-                callback_code_hash: request.launchpad.code_hash.clone(),
-                msg: to_binary(&LaunchpadHandleMsg::Draw {
-                    callback: ContractInstance::<HumanAddr> {
-                        address: env.contract.address,
-                        code_hash: env.contract_code_hash,
-                    },
-                    tokens: request.tokens.clone(),
-                    number: (msg.info.max_seats - taken_seats) as u32,
-                })?,
-                send: vec![],
-            }));
+            let response: LaunchpadQueryResponse =
+                deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+                    contract_addr: request.launchpad.address.clone(),
+                    callback_code_hash: request.launchpad.code_hash.clone(),
+                    msg: to_binary(&LaunchpadQueryMsg::Draw {
+                        tokens: request.tokens.clone(),
+                        number: (msg.info.max_seats - taken_seats) as u32,
+                        timestamp: env.block.time,
+                    })?,
+                }))?;
+
+            match response {
+                LaunchpadQueryResponse::DrawnAddresses(addresses) => {
+                    for address in addresses {
+                        Account::<CanonicalAddr>::new(&address.canonize(&deps.api)?).save(deps)?;
+                        taken_seats = taken_seats + 1;
+                    }
+                }
+                _ => {
+                    return Err(StdError::generic_err(
+                        "QueryResponse from Launchpad return unexpected result",
+                    ));
+                }
+            };
         }
     }
 

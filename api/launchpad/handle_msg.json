@@ -113,46 +113,6 @@
       }
     },
     {
-      "description": "Call to draw whitelist addresses, contract calling this needs to provide list of snip20 token addresses that will decided the whitelist participation users. If None is provided it means we are taking in consideration native token. Tokens put here must be configured as launchpad lockable tokens.\n\nCallback should be the information about the IDO contract calling it",
-      "type": "object",
-      "required": [
-        "draw"
-      ],
-      "properties": {
-        "draw": {
-          "type": "object",
-          "required": [
-            "callback",
-            "number",
-            "tokens"
-          ],
-          "properties": {
-            "callback": {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
-            },
-            "number": {
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0.0
-            },
-            "tokens": {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "$ref": "#/definitions/HumanAddr"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    {
       "description": "Add additional token for locking into launchpad",
       "type": "object",
       "required": [
@@ -284,22 +244,6 @@
     "Binary": {
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
-    },
-    "ContractInstance_for_HumanAddr": {
-      "description": "Info needed to talk to a contract instance.",
-      "type": "object",
-      "required": [
-        "address",
-        "code_hash"
-      ],
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
-        },
-        "code_hash": {
-          "type": "string"
-        }
-      }
     },
     "ContractStatusLevel": {
       "description": "Possible states of a contract.",

@@ -39,15 +39,6 @@ export type HandleMsg =
       [k: string]: unknown;
     }
   | {
-      draw: {
-        callback: ContractInstanceFor_HumanAddr;
-        number: number;
-        tokens: (HumanAddr | null)[];
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
       admin_add_token: {
         config: TokenSettings;
         [k: string]: unknown;
@@ -117,14 +108,6 @@ export type AdminHandleMsg = {
   [k: string]: unknown;
 };
 
-/**
- * Info needed to talk to a contract instance.
- */
-export interface ContractInstanceFor_HumanAddr {
-  address: HumanAddr;
-  code_hash: string;
-  [k: string]: unknown;
-}
 /**
  * Configuration for single token that can be locked into the launchpad
  */

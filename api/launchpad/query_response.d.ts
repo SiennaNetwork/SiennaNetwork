@@ -54,7 +54,6 @@ export interface QueryTokenConfig {
 export interface QueryAccountToken {
   balance: Uint128;
   entries: number[];
-  last_draw?: number | null;
   token_type: TokenTypeFor_HumanAddr;
   [k: string]: unknown;
 }

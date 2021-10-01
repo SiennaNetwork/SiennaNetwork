@@ -1,23 +1,21 @@
 use amm_shared::admin::{admin::assert_admin, require_admin};
 use amm_shared::{
     fadroma::scrt::{
-        callback::ContractInstance,
         cosmwasm_std::{
-            from_binary, log, to_binary, Api, Binary, CosmosMsg, Env, Extern, HandleResponse,
-            HumanAddr, Querier, StdError, StdResult, Storage, Uint128, WasmMsg,
+            from_binary, log, Api, Binary, Env, Extern, HandleResponse, HumanAddr, Querier,
+            StdError, StdResult, Storage, Uint128,
         },
         storage::Storable,
         toolkit::snip20,
         BLOCK_SIZE,
     },
-    msg::ido::HandleMsg as IDOHandleMsg,
     msg::launchpad::{ReceiverCallbackMsg, TokenSettings},
     TokenType,
 };
 
 use crate::data::{
-    load_all_accounts, load_or_create_account, load_viewing_key, save_account, AccounTokenEntry,
-    Account, Config, TokenConfig,
+    load_all_accounts, load_or_create_account, load_viewing_key, save_account, Account, Config,
+    TokenConfig,
 };
 
 use crate::helpers::*;
@@ -122,94 +120,6 @@ pub(crate) fn unlock<S: Storage, A: Api, Q: Querier>(
             log("unlocked_entries", entries),
             log("unlocked_amount", amount),
             log("remaining_number_of_entry", remaining_number_of_entry),
-        ],
-        data: None,
-    })
-}
-
-/// Handler that will send message to callback IDO contract and will fill it up with drawn addresses
-pub(crate) fn draw_addresses<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    callback: ContractInstance<HumanAddr>,
-    tokens: Vec<Option<HumanAddr>>,
-    number: u32,
-) -> StdResult<HandleResponse> {
-    let config = Config::load_self(deps)?;
-
-    let mut token_configs: Vec<TokenConfig> = vec![];
-    for token in tokens {
-        token_configs.push(config.get_token_config(token)?);
-    }
-
-    let accounts = load_all_accounts(deps)?;
-    let mut entries: Vec<(HumanAddr, AccounTokenEntry)> = vec![];
-
-    for account in &accounts {
-        let account_entries = account.get_entries(&token_configs, env.block.time);
-        for account_entry in account_entries {
-            entries.push(account_entry);
-        }
-    }
-
-    // Sort entries based on the timestamp they were locked,
-    // this can be used as a weighted rand select where we will use biased
-    // random number generation when picking entries.
-    // Bias can be towards to begining of the list making the entries
-    // locked longer more likely to be drawn.
-    entries.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-
-    let mut addresses: Vec<HumanAddr> = vec![];
-
-    // Run the loop while we don't fill the whitelist with addresses
-    // or while we don't run out of entries to pick from
-    while addresses.len() < number as usize && entries.len() > 0 {
-        // Randomly generate index to get from entry list
-        let index: usize = gen_rand_range(0, (entries.len() - 1) as u64, env.block.time) as usize;
-
-        match &entries.get(index) {
-            Some((address, _)) => {
-                let addr = address.clone();
-                // After the address is picked, we will remove it from the list of entries
-                // so we make sure we are creating a whitelist of unique addresses, thats
-                // why we are cloning it above.
-                entries = entries.into_iter().filter(|(a, _)| a != &addr).collect();
-                addresses.push(addr);
-            }
-            None => (),
-        };
-    }
-
-    // Loop through the accounts and update the drawn accounts so they are marked with
-    // last drawn timestamp. This is the actual reason we are doing this as a handle, and not query
-    for mut account in accounts.into_iter() {
-        if addresses.iter().position(|a| a == &account.owner).is_some() {
-            account.mark_as_drawn(&token_configs, env.block.time);
-
-            save_account(deps, account)?;
-        }
-    }
-
-    let mut messages = vec![];
-    let addresses_len = addresses.len();
-
-    // If we have drawn any addresses we will create a callback message for the IDO
-    // that will deliver them there and fill the empty seats
-    if addresses_len > 0 {
-        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: callback.address,
-            callback_code_hash: callback.code_hash,
-            msg: to_binary(&IDOHandleMsg::AdminAddAddresses { addresses })?,
-            send: vec![],
-        }));
-    }
-
-    Ok(HandleResponse {
-        messages,
-        log: vec![
-            log("action", "draw"),
-            log("number", number),
-            log("addresses_len", addresses_len),
         ],
         data: None,
     })

@@ -243,7 +243,6 @@ pub mod launchpad {
 
     use super::*;
     use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
-    use fadroma::scrt::callback::ContractInstance;
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct InitMsg {
@@ -286,19 +285,6 @@ pub mod launchpad {
         Lock { amount: Uint128 },
         /// Perform unlocking of native token
         Unlock { entries: u32 },
-        /// Call to draw whitelist addresses,
-        /// contract calling this needs to provide list of
-        /// snip20 token addresses that will decided the whitelist
-        /// participation users. If None is provided it means we are
-        /// taking in consideration native token.
-        /// Tokens put here must be configured as launchpad lockable tokens.
-        ///
-        /// Callback should be the information about the IDO contract calling it
-        Draw {
-            callback: ContractInstance<HumanAddr>,
-            tokens: Vec<Option<HumanAddr>>,
-            number: u32,
-        },
         /// Add additional token for locking into launchpad
         AdminAddToken { config: TokenSettings },
         /// Remove token from the launchpad, this will send all the previously
@@ -328,6 +314,8 @@ pub mod launchpad {
             address: HumanAddr,
             key: String,
         },
+        /// Get a list of addresses that are drawm
+        /// as potential participants in an IDO
         Draw {
             tokens: Vec<Option<HumanAddr>>,
             number: u32,
@@ -373,7 +361,6 @@ pub mod launchpad {
         pub token_type: TokenType<HumanAddr>,
         pub balance: Uint128,
         pub entries: Vec<u64>,
-        pub last_draw: Option<u64>,
     }
 }
 

@@ -45,6 +45,7 @@
       }
     },
     {
+      "description": "Get a list of addresses that are drawm as potential participants in an IDO",
       "type": "object",
       "required": [
         "draw"

@@ -29,6 +29,7 @@ importers:
       '@fadroma/scrt': '*'
       '@fadroma/tools': '*'
       '@waiting/base64': ^4.2.9
+      bip39: ^3.0.4
       debug: ^4.3.2
       mocha: ^8.4.0
       secretjs: workspace:*
@@ -36,6 +37,7 @@ importers:
       '@fadroma/scrt': link:../libraries/fadroma-next/ops-scrt
       '@fadroma/tools': link:../libraries/fadroma-next/tools
       '@waiting/base64': 4.2.9
+      bip39: 3.0.4
       debug: 4.3.2
       secretjs: link:../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
     devDependencies:

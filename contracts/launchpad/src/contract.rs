@@ -130,11 +130,6 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
                 let token_config = Config::load_self(deps)?.get_token_config(None)?;
                 crate::handle::unlock(deps, env, None, token_config, entries)
             }
-            HandleMsg::Draw {
-                callback,
-                tokens,
-                number,
-            } => crate::handle::draw_addresses(deps, env, callback, tokens, number),
             HandleMsg::AdminAddToken { config } =>
                 crate::handle::admin_add_token(deps, env, config),
             HandleMsg::AdminRemoveToken { index } =>

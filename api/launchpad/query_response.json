@@ -69,14 +69,6 @@
             "minimum": 0.0
           }
         },
-        "last_draw": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint64",
-          "minimum": 0.0
-        },
         "token_type": {
           "$ref": "#/definitions/TokenType_for_HumanAddr"
         }

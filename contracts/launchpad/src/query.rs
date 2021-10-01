@@ -78,7 +78,6 @@ pub fn user_info<S: Storage, A: Api, Q: Querier>(
             token_type: t.token_type,
             balance: t.balance,
             entries: t.entries,
-            last_draw: t.last_draw,
         })
         .collect::<Vec<QueryAccountToken>>();
 

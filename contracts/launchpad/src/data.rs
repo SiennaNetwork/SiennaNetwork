@@ -19,6 +19,7 @@ const KEY_CONTRACT_ADDR: &[u8] = b"this_contract";
 const KEY_VIEWING_KEY: &[u8] = b"launchpad_viewing_key";
 const KEY_ACCOUNTS_VEC_LENGTH: &[u8] = b"accounts:vec_length";
 const NS_ACCOUNTS: &[u8] = b"accounts";
+const NS_ACCOUNT_INDEXES: &[u8] = b"account_indexes";
 
 pub(crate) fn load_contract_address<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
@@ -95,7 +96,11 @@ pub(crate) fn load_account_index<S: Storage, T: Api, Q: Querier>(
     address: &HumanAddr,
 ) -> StdResult<Option<u32>> {
     let canonical_address = address.canonize(&deps.api)?;
-    let index_in_vec: Option<u32> = load(&deps.storage, canonical_address.as_slice())?;
+    let index_in_vec: Option<u32> = ns_load(
+        &deps.storage,
+        NS_ACCOUNT_INDEXES,
+        canonical_address.as_slice(),
+    )?;
 
     Ok(index_in_vec)
 }
@@ -107,7 +112,12 @@ pub(crate) fn save_account_index<S: Storage, T: Api, Q: Querier>(
     index: u32,
 ) -> StdResult<()> {
     let canonical_address = address.canonize(&deps.api)?;
-    save(&mut deps.storage, canonical_address.as_slice(), &index)
+    ns_save(
+        &mut deps.storage,
+        NS_ACCOUNT_INDEXES,
+        canonical_address.as_slice(),
+        &index,
+    )
 }
 
 /// Load account or create a new one
@@ -230,17 +240,8 @@ impl Config {
 }
 
 /// Configuration for single token that can be locked into the launchpad
-/// Token configuration, once set cannot be updated, only enabled/disabled.
-///
-/// Reason for no update is that we have to hold each tokens entry representation
-/// in the users account so we can keep track of the bounding time so those entries
-/// are not really fungible to be scaled up or down easily.
-///
-/// TBD: maybe we could add removing of the token config and then re-adding it in order
-/// to give it some extra options, but then the removing option would have to re-calculate
-/// everything for all the addresses that were participating and their amounts... Or even
-/// send those tokens back to users and then they can lock them again to participate in the
-/// future...
+/// Token configuration, once set cannot be updated, only can be removed.
+/// Once it is removed it will refund all its locked tokens back to users.
 #[derive(Serialize, Deserialize, JsonSchema, Clone)]
 pub struct TokenConfig {
     pub token_type: TokenType<HumanAddr>,
@@ -274,15 +275,6 @@ impl Account {
 
         for token_config in token_configs {
             for token in &self.tokens {
-                // Logic that will exclude draws that are in the cooldown period if this
-                // option is enabled some time in the future.
-                // if let Some(time) = token.last_draw {
-                //     if let Some(cooldown) = token_config.cooldown_period {
-                //         if time > (token.last_draw + cooldown_period) && !token.cooldown_disabled {
-                //             continue;
-                //         }
-                //     }
-                // }
                 if token.token_type == token_config.token_type {
                     for entry in &token.entries {
                         // Entry is acutally only a timestamp when it was added, so we add bonding time
@@ -297,17 +289,6 @@ impl Account {
         }
 
         entries
-    }
-
-    /// Mark account tokens with last draw timestamp
-    pub fn mark_as_drawn(&mut self, token_configs: &Vec<TokenConfig>, timestamp: u64) {
-        for token_config in token_configs {
-            for token in &mut self.tokens {
-                if token.token_type == token_config.token_type {
-                    token.last_draw = Some(timestamp);
-                }
-            }
-        }
     }
 
     /// Lock funds in the account
@@ -353,7 +334,6 @@ impl Account {
             token_type: token_config.token_type.clone(),
             balance: (amount - change_amount)?,
             entries,
-            last_draw: None,
         };
 
         self.tokens.push(account_token);
@@ -406,7 +386,6 @@ pub struct AccountToken {
     pub token_type: TokenType<HumanAddr>,
     pub balance: Uint128,
     pub entries: Vec<AccounTokenEntry>,
-    pub last_draw: Option<u64>,
 }
 
 /// Token entry type is a representation of u64 timestamp
