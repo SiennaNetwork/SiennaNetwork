@@ -28,13 +28,12 @@ describe("Launchpad", () => {
     const T0 = +new Date();
 
     // connect to a localnet with a large number of predefined agents
-    const agentNames = new Array(100);
-
-    context.chain = await Scrt.localnet_1_0().init();
-    context.node = context.chain.node;
-    context.agent = await context.chain.getAgent(
-      context.node.genesisAccount("ADMIN")
-    );
+    const numberOfAgents = 20;
+    const identities = [...Array(numberOfAgents)].map((_,i)=>`Agent${i}`);
+    identities.unshift('ADMIN');
+    context.chain = await Scrt.localnet_1_0({ identities }).ready
+    context.node  = context.chain.node;
+    context.agent = await context.chain.getAgent(context.node.genesisAccount("ADMIN"));
 
     const test = context.chain.getAgent(context.node.genesisAccount(`Agent0`));
 
@@ -43,7 +42,7 @@ describe("Launchpad", () => {
     process.kill()
 
     const agents = (context.agents = await Promise.all(
-      agentNames.map((name, i) =>
+      identities.map((name, i) =>
         context.chain.getAgent(context.node.genesisAccount(`Agent${i}`))
       )
     ));
