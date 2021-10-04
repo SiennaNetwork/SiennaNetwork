@@ -40,8 +40,29 @@ export class Factory extends ScrtContract {
       },
     },
   };
-  createExchange = (token_0: any, token_1: any, agent = this.instantiator) =>
-    this.execute(
+
+  /**
+   * Create launchpad contract
+   * 
+   * @param {object[]} tokens 
+   * @param {Agent} agent 
+   * @returns 
+   */
+  createLaunchpad(tokens: object[], agent = this.instantiator) {
+    return this.tx.create_launchpad({
+      tokens,
+    }, agent);
+  }
+
+  /**
+   * 
+   * @param {object} token_0 
+   * @param {object} token_1 
+   * @param {Agent} agent 
+   * @returns 
+   */
+  createExchange(token_0: any, token_1: any, agent = this.instantiator) {
+    return this.execute(
       "create_exchange",
       {
         pair: {
@@ -55,9 +76,12 @@ export class Factory extends ScrtContract {
       undefined,
       agent
     );
-  /*this.tx.createExchange({
-    pair:    { token_0, token_1 },
-    entropy: b64encode(EnigmaUtils.GenerateNewSeed().toString()) })*/
-  listExchanges = () =>
+  }
+  
+  /**
+   * List all the exchanges present in the factory
+   */
+  listExchanges() {
     this.q.listExchanges({ pagination: { start: 0, limit: 100 } });
+  }
 }

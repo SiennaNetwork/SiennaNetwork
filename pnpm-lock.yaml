@@ -680,6 +680,7 @@ importers:
       '@fadroma/scrt': workspace:*
       '@fadroma/scrt-1.0': workspace:*
       '@fadroma/scrt-1.2': workspace:*
+      '@fadroma/tools': workspace:*
       '@hackbg/ganesha': workspace:*
       '@iov/encoding': ^2.1.0
       '@types/express': ^4.17.13
@@ -694,6 +695,7 @@ importers:
       '@fadroma/scrt': link:../ops-scrt
       '@fadroma/scrt-1.0': link:../ops-scrt-1.0
       '@fadroma/scrt-1.2': link:../ops-scrt-1.2
+      '@fadroma/tools': link:../tools
       '@hackbg/ganesha': link:../platforms/ganesha
       '@iov/encoding': 2.5.0
       '@types/express': 4.17.13
@@ -711,10 +713,11 @@ importers:
       exponential-backoff: ^3.1.0
       mkdirp: ^1.0.4
       open: ^8.0.2
-      prettyjson: ^1.2.1
+      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       prompts: ^2.4.1
       rimraf: ^3.0.2
       signal-exit: ^3.0.3
+      symlink-dir: ^5.0.1
       table: ^6.6.0
       wait-port: ^0.2.9
     dependencies:
@@ -723,10 +726,11 @@ importers:
       exponential-backoff: 3.1.0
       mkdirp: 1.0.4
       open: 8.2.1
-      prettyjson: 1.2.1
+      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       prompts: 2.4.1
       rimraf: 3.0.2
       signal-exit: 3.0.4
+      symlink-dir: 5.0.1
       table: 6.7.1
       wait-port: 0.2.9
 
@@ -6360,6 +6364,11 @@ packages:
       mz: 2.7.0
     dev: true
 
+  /@zkochan/rimraf/2.1.1:
+    resolution: {integrity: sha512-TgiZpFi4XSvS8wY2/JzoJQYqgpOeBfVMPLC93cRXjbqYSXr1PGyQagS1Wyztuq1uMA1Cqd+EYLa5HESrJwH0Kw==}
+    engines: {node: '>=12.10'}
+    dev: false
+
   /@zxing/text-encoding/0.9.0:
     resolution: {integrity: sha512-U/4aVJ2mxI0aDNI8Uq0wEhMgY+u4CNtEb0om3+y3+niDAsoTCOB33UF0sxpzqzdqXLqmvc+vZyAt4O8pPdfkwA==}
     requiresBuild: true
@@ -8108,6 +8117,13 @@ packages:
       leven: 3.1.0
     dev: true
     optional: true
+
+  /better-path-resolve/1.0.0:
+    resolution: {integrity: sha512-pbnl5XzGBdrFU/wT4jqmJVPn2B6UHPBOhzMQkY/SPUPB6QtUXtmBHBIwCbXJol93mOpGMnQyP/+BB19q04xj7g==}
+    engines: {node: '>=4'}
+    dependencies:
+      is-windows: 1.0.2
+    dev: false
 
   /big-integer/1.6.36:
     resolution: {integrity: sha512-t70bfa7HYEA1D9idDbmuv7YbsbVkQ+Hp+8KFSul4aE5e/i1bjCNIRYJZlA8Q8p0r9T8cF/RVvwUgRA//FydEyg==}
@@ -21782,6 +21798,13 @@ packages:
   /remove-trailing-separator/1.1.0:
     resolution: {integrity: sha1-wkvOKig62tW8P1jg1IJJuSN52O8=}
 
+  /rename-overwrite/4.0.0:
+    resolution: {integrity: sha512-GZxPjarpxu2DGD6xHE8L4GdJhWz2+2i2x6N1I7VEof2p5M/x/LDNxNXA547k8xOpPmHnijXBE1ofmj7NDGP20g==}
+    engines: {node: '>=12.10'}
+    dependencies:
+      '@zkochan/rimraf': 2.1.1
+    dev: false
+
   /renderkid/2.0.7:
     resolution: {integrity: sha512-oCcFyxaMrKsKcTY59qnCAtmDVSLfPbrv6A3tVbPdFMMrv5jaK10V6m40cKsoPNhAqN6rmHW9sswW4o3ruSrwUQ==}
     dependencies:
@@ -23615,6 +23638,15 @@ packages:
     resolution: {integrity: sha1-O5hzuKkB5Hxu/iFSajrDcu8ou8c=}
     dev: true
     optional: true
+
+  /symlink-dir/5.0.1:
+    resolution: {integrity: sha512-MeXygPBopo8AmyObuCJIpXKT+mw54d2Kp6SBuxq0uXZGDkHwHDQExpSg5+TK8BA5kCGyktawu5DJG0QWYO6acw==}
+    engines: {node: '>=12.10'}
+    hasBin: true
+    dependencies:
+      better-path-resolve: 1.0.0
+      rename-overwrite: 4.0.0
+    dev: false
 
   /sync-fetch/0.3.0:
     resolution: {integrity: sha512-dJp4qg+x4JwSEW1HibAuMi0IIrBI3wuQr2GimmqB7OXR50wmwzfdusG+p39R9w3R6aFtZ2mzvxvWKQ3Bd/vx3g==}
@@ -27436,3 +27468,13 @@ packages:
       bn.js: 4.12.0
       ethereumjs-util: 6.2.1
     dev: true
+
+  github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f:
+    resolution: {tarball: https://codeload.github.com/slavaGanzin/prettyjson/tar.gz/d880b8af2973a1a1b277944c3b573d7d6a93ba8f}
+    name: prettyjson
+    version: 1.2.1
+    hasBin: true
+    dependencies:
+      colors: 1.4.0
+      minimist: 1.2.5
+    dev: false
