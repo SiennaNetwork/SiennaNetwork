@@ -213,7 +213,7 @@ describe("Launchpad", () => {
       assert.strictEqual(userRes.user_info[0].entries.length, 2);
     }
 
-    const res = await context.launchpad.testDraw(4, [context.token.address]);
+    const res = await context.launchpad.draw(4, [context.token.address]);
 
     for (const a of context.agents) {
       assert.strictEqual(res.drawn_addresses.includes(a.address), true);

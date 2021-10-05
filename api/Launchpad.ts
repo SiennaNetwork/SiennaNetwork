@@ -120,7 +120,7 @@ export class Launchpad extends ScrtContract {
    *  ]
    * }>
    */
-  async testDraw(number: number, tokens: string[]) {
+  async draw(number: number, tokens: string[]) {
     return this.q.draw({
       number,
       tokens,

@@ -79,11 +79,7 @@ describe("Launchpad", () => {
 
     const T3 = +new Date();
     console.debug(`uploading took ${T3 - T2}msec`);
-    console.debug(`total preparation time: ${T3 - T0}msec`);
-  });
 
-  beforeEach(async function setupEach() {
-    this.timeout(0);
     context.factory = new Factory({
       codeId: context.templates.Factory.codeId,
       label: `factory-${parseInt(Math.random() * 100000)}`,
@@ -216,9 +212,13 @@ describe("Launchpad", () => {
       await context.launchpad.lock(100, "uscrt", a);
       i++;
     }
+
+    const T4 = +new Date();
+    console.debug(`preparing contracts took ${T4 - T3}msec`);
+    console.debug(`total preparation time: ${T4 - T0}msec`);
   });
 
-  it("Has instantiated launchpad successfully", async function () {
+  it("Benchmark the gas usage when IDO does a query call to get whitelist", async function () {
     this.timeout(0);
 
     const beforeInitBalance = await context.agent.balance;
@@ -263,22 +263,91 @@ describe("Launchpad", () => {
         launchpad: {
           launchpad: {
             address: context.launchpad.address,
-            code_hash: context.templates.Launchpad.codeHash
+            code_hash: context.templates.Launchpad.codeHash,
           },
-          tokens: [null, context.token.address]
-        }
+          tokens: [null, context.token.address],
+        },
       },
     });
-    const initResponse = await context.ido.instantiate(context.agent);
-
-    log(initResponse);
+    await context.ido.instantiate(context.agent);
 
     const afterInitBalance = await context.agent.balance;
+    context.results1 = beforeInitBalance - afterInitBalance;
 
     console.debug(
+      "QUERY BY ITSELF:",
       `Balance before: ${beforeInitBalance}, Balance after: ${afterInitBalance}, spent on init: ${
         beforeInitBalance - afterInitBalance
       }`
+    );
+  });
+
+  it("Benchmark gas usage when IDO is given a whitelist", async function () {
+    this.timeout(0);
+
+    const { drawn_addresses: whitelist } = await context.launchpad.draw(100, [
+      null,
+      context.token.address,
+    ]);
+
+    const beforeInitBalance = await context.agent.balance;
+
+    new String();
+    context.ido = new IDO({
+      codeId: context.templates.IDO.codeId,
+      label: `ido-${parseInt(Math.random() * 100000)}`,
+      initMsg: {
+        info: {
+          input_token: {
+            native_token: {
+              denom: "uscrt",
+            },
+          },
+          rate: "1",
+          sold_token: {
+            address: context.sellingToken.address,
+            code_hash: context.templates.SiennaSNIP20.codeHash,
+          },
+          whitelist,
+          max_seats: 100,
+          max_allocation: "5",
+          min_allocation: "1",
+        },
+        prng_seed: randomBytes(36).toString("hex"),
+        entropy: randomBytes(36).toString("hex"),
+        admin: context.agent.address,
+        callback: {
+          msg: Buffer.from(
+            JSON.stringify({
+              register_ido: {
+                signature: "",
+              },
+            }),
+            "utf8"
+          ).toString("base64"),
+          contract: {
+            address: context.factory.address,
+            code_hash: context.templates.Factory.codeHash,
+          },
+        },
+      },
+    });
+    await context.ido.instantiate(context.agent);
+
+    const afterInitBalance = await context.agent.balance;
+    context.results2 = beforeInitBalance - afterInitBalance;
+
+    console.debug(
+      "GETS WHITELIST:",
+      `Balance before: ${beforeInitBalance}, Balance after: ${afterInitBalance}, spent on init: ${
+        beforeInitBalance - afterInitBalance
+      }`
+    );
+
+    console.debug(
+      `Query on its own: ${context.results1}, gets whitelist: ${
+        context.results2
+      }. Difference: ${context.results1 - context.results2}`
     );
   });
 
