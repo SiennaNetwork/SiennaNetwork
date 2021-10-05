@@ -146,7 +146,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Swap {
             offer,
             expected_return,
-            recipient,
+            to,
         } => {
             // Can only be called directly when the offer token is SCRT, otherwise
             // has to be called through the SNIP20 receiver interface by sending
@@ -166,7 +166,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
                 env,
                 config,
                 sender,
-                recipient,
+                to,
                 offer,
                 expected_return,
             )
@@ -221,7 +221,7 @@ fn receiver_callback<S: Storage, A: Api, Q: Querier>(
 
     match from_binary(&msg)? {
         ReceiverCallbackMsg::Swap {
-            recipient,
+            to,
             expected_return,
         } => {
             for token in config.pair.into_iter() {
@@ -238,7 +238,7 @@ fn receiver_callback<S: Storage, A: Api, Q: Querier>(
                                 env,
                                 config,
                                 from,
-                                recipient,
+                                to,
                                 offer,
                                 expected_return,
                             );

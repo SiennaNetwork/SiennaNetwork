@@ -183,7 +183,7 @@ pub mod exchange {
             /// The token type to swap from.
             offer: TokenTypeAmount<HumanAddr>,
             expected_return: Option<Uint128>,
-            recipient: Option<HumanAddr>,
+            to: Option<HumanAddr>,
         },
         // SNIP20 receiver interface
         Receive {
@@ -192,7 +192,7 @@ pub mod exchange {
             amount: Uint128,
         },
         /// Sent by the LP token contract so that we can record its address.
-        OnLpTokenInit,
+        OnLpTokenInit
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -200,7 +200,7 @@ pub mod exchange {
     pub enum ReceiverCallbackMsg {
         Swap {
             expected_return: Option<Uint128>,
-            recipient: Option<HumanAddr>,
+            to: Option<HumanAddr>,
         },
         RemoveLiquidity {
             recipient: HumanAddr,
