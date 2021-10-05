@@ -88,8 +88,22 @@ export class Factory extends ScrtContract {
       agent
     );
 
-  listExchanges = () => {
-    console.trace('listExchanges')
-    return this.q.listExchanges({ pagination: { start: 0, limit: 100 } });
+  listExchanges = async () => {
+    const result = []
+
+    const limit = 30
+    let start = 0
+
+    while(true) {
+      const response = await this.q.listExchanges({ pagination: { start, limit } })
+
+      if (response.length == 0)
+        break
+
+      start += limit
+      result.push.apply(result, response)
+    }
+
+    return result
   }
 }

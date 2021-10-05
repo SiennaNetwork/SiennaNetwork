@@ -135,26 +135,28 @@ export async function deploySwap (options: SwapOptions) {
     String(BigInt(settings[`rewardPairs-${chain.chainId}`].SIENNA) * ONE_SIENNA)
   ])
 
-  const existingExchanges = (await FACTORY.listExchanges())
-    .list_exchanges.exchanges
+  const swapPairs = settings[`swapPairs-${chain.chainId}`]
 
-  for (const name of settings[`swapPairs-${chain.chainId}`]) {
-    const [token0, token1] = await deploySwapPair(name)
+  if (swapPairs.length > 0) {
+    const existingExchanges = (await FACTORY.listExchanges())
+      .list_exchanges.exchanges
 
-    const rewards = settings[`rewardPairs-${chain.chainId}`]
-    if (rewards) {
-      const lpToken = await getLPToken(token0, token1)
-      const reward  = BigInt(rewards[name])
-      const pool    = await deployRewardPool(name, lpToken, SIENNA)
-      rptConfig.push([pool.address, String(reward * ONE_SIENNA)])
+    for (const name of swapPairs) {
+      const [token0, token1] = await deploySwapPair(name, existingExchanges)
+
+      const rewards = settings[`rewardPairs-${chain.chainId}`]
+      if (rewards) {
+        const lpToken = await getLPToken(token0, token1)
+        const reward  = BigInt(rewards[name])
+        const pool    = await deployRewardPool(name, lpToken, SIENNA)
+        rptConfig.push([pool.address, String(reward * ONE_SIENNA)])
+      }
     }
   }
 
   await RPT.configure(rptConfig)
 
-
   /// On localnet, placeholder tokens need to be deployed.
-
 
   async function deployPlaceholderTokens () {
     const tokens = {}
@@ -184,14 +186,16 @@ export async function deploySwap (options: SwapOptions) {
     return tokens
   }
 
-  async function deploySwapPair (name: string) {
+  async function deploySwapPair (name: string, existingExchanges: any[]) {
     const [tokenName0, tokenName1] = name.split('-')
     const token0 = tokens[tokenName0]
         , token1 = tokens[tokenName1]
     for (const {pair} of existingExchanges) {
       if (
-        pair.token_0.custom_token.contract_addr === token0.address &&
-        pair.token_1.custom_token.contract_addr === token1.address
+        (pair.token_0.custom_token.contract_addr === token0.address &&
+        pair.token_1.custom_token.contract_addr === token1.address) ||
+        (pair.token_0.custom_token.contract_addr === token1.address &&
+        pair.token_1.custom_token.contract_addr === token0.address)
       ) {
         console.info(`Exchange exists: ${token0.init.label}/${token1.init.label}`)
         return [token0, token1]
