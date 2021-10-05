@@ -1,4 +1,4 @@
-use amm_shared::{
+use crate::{
     fadroma::scrt::callback::ContractInstance,
     fadroma::scrt::cosmwasm_std::{
         from_binary, from_slice, testing::MockQuerier as StdMockQuerier, to_binary, Coin, Empty,
@@ -37,23 +37,20 @@ pub struct MockQuerier<C: DeserializeOwned = Empty> {
 }
 
 impl<C: DeserializeOwned> MockQuerier<C> {
-    pub fn new(balances: &[(&HumanAddr, &[Coin])], supply: Uint128) -> Self {
+    pub fn new(balances: &[(&HumanAddr, &[Coin])], tokens: Vec<MockContractInstance>) -> Self {
         MockQuerier {
             std_mock_querier: StdMockQuerier::new(balances),
-            wasm: InternalWasmQuerier {
-                sold_token_decimals: 8,
-                sold_token_supply: supply,
-                sold_token: ContractInstance::<HumanAddr> {
-                    address: HumanAddr::from("sold-token"),
-                    code_hash: "".to_string(),
-                },
-            },
+            wasm: InternalWasmQuerier { tokens },
         }
     }
 
     /// Subtract amount from balance displayed after spending it.
-    pub fn sub_balance(&mut self, amount: Uint128) -> StdResult<()> {
-        self.wasm.sold_token_supply = (self.wasm.sold_token_supply - amount)?;
+    pub fn sub_balance(&mut self, amount: Uint128, address: &HumanAddr) -> StdResult<()> {
+        for mut token in &mut self.wasm.tokens {
+            if &token.instance.address == address {
+                token.token_supply = (token.token_supply - amount)?;
+            }
+        }
 
         Ok(())
     }
@@ -84,9 +81,13 @@ impl<C: DeserializeOwned> MockQuerier<C> {
 }
 
 pub struct InternalWasmQuerier {
-    pub sold_token: ContractInstance<HumanAddr>,
-    pub sold_token_decimals: u8,
-    pub sold_token_supply: Uint128,
+    pub tokens: Vec<MockContractInstance>,
+}
+
+pub struct MockContractInstance {
+    pub instance: ContractInstance<HumanAddr>,
+    pub token_decimals: u8,
+    pub token_supply: Uint128,
 }
 
 impl InternalWasmQuerier {
@@ -99,29 +100,33 @@ impl InternalWasmQuerier {
             } => {
                 let msg: QueryMsg = from_binary(&msg).unwrap();
 
-                match msg {
-                    QueryMsg::Balance { .. } => Ok(to_binary(&IntBalanceResponse {
-                        balance: Balance {
-                            amount: self.sold_token_supply,
-                        },
-                    })),
-                    QueryMsg::TokenInfo {} => {
-                        if contract_addr.to_string().as_str() == "sold-token" {
-                            Ok(to_binary(&IntTokenInfoResponse {
-                                token_info: TokenInfo {
-                                    name: "Sold token".to_string(),
-                                    symbol: "SDT".to_string(),
-                                    decimals: self.sold_token_decimals,
-                                    total_supply: None,
-                                },
-                            }))
-                        } else {
-                            Err(SystemError::NoSuchContract {
-                                addr: HumanAddr::from(format!("{}", contract_addr)),
-                            })
+                for token in &self.tokens {
+                    if &token.instance.address == contract_addr {
+                        match msg {
+                            QueryMsg::Balance { .. } => {
+                                return Ok(to_binary(&IntBalanceResponse {
+                                    balance: Balance {
+                                        amount: token.token_supply,
+                                    },
+                                }));
+                            }
+                            QueryMsg::TokenInfo {} => {
+                                return Ok(to_binary(&IntTokenInfoResponse {
+                                    token_info: TokenInfo {
+                                        name: token.instance.address.to_string(),
+                                        symbol: token.instance.address.to_string(),
+                                        decimals: token.token_decimals,
+                                        total_supply: None,
+                                    },
+                                }))
+                            }
                         }
                     }
                 }
+
+                Err(SystemError::NoSuchContract {
+                    addr: HumanAddr::from(format!("{}", contract_addr)),
+                })
             }
             _ => panic!("MockQuerier: Expected WasmQuery::Smart."),
         }

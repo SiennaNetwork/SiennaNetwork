@@ -66,6 +66,16 @@
                 }
               ]
             },
+            "launchpad_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContractInstantiationInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "lp_token_contract": {
               "anyOf": [
                 {
@@ -125,6 +135,33 @@
       }
     },
     {
+      "description": "Create the launchpad contract",
+      "type": "object",
+      "required": [
+        "create_launchpad"
+      ],
+      "properties": {
+        "create_launchpad": {
+          "type": "object",
+          "required": [
+            "entropy",
+            "tokens"
+          ],
+          "properties": {
+            "entropy": {
+              "$ref": "#/definitions/Binary"
+            },
+            "tokens": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/TokenSettings"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "description": "Instantiates an IDO contract",
       "type": "object",
       "required": [
@@ -143,6 +180,22 @@
             },
             "info": {
               "$ref": "#/definitions/TokenSaleConfig"
+            },
+            "tokens": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/HumanAddr"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
             }
           }
         }
@@ -188,6 +241,26 @@
             "pair": {
               "$ref": "#/definitions/TokenPair_for_HumanAddr"
             },
+            "signature": {
+              "$ref": "#/definitions/Binary"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Used by the launchpad to register itself",
+      "type": "object",
+      "required": [
+        "register_launchpad"
+      ],
+      "properties": {
+        "register_launchpad": {
+          "type": "object",
+          "required": [
+            "signature"
+          ],
+          "properties": {
             "signature": {
               "$ref": "#/definitions/Binary"
             }
@@ -256,6 +329,26 @@
               "items": {
                 "$ref": "#/definitions/HumanAddr"
               }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Adds already existing launchpad contract, admin only command.",
+      "type": "object",
+      "required": [
+        "add_launchpad"
+      ],
+      "properties": {
+        "add_launchpad": {
+          "type": "object",
+          "required": [
+            "launchpad"
+          ],
+          "properties": {
+            "launchpad": {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
             }
           }
         }
@@ -417,6 +510,14 @@
     "HumanAddr": {
       "type": "string"
     },
+    "SaleType": {
+      "type": "string",
+      "enum": [
+        "PreLockAndSwap",
+        "PreLockOnly",
+        "SwapOnly"
+      ]
+    },
     "TokenPair_for_HumanAddr": {
       "type": "array",
       "items": [
@@ -480,6 +581,17 @@
             }
           ]
         },
+        "sale_type": {
+          "description": "Sale type settings",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SaleType"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "sold_token": {
           "$ref": "#/definitions/ContractInstance_for_HumanAddr"
         },
@@ -489,6 +601,28 @@
           "items": {
             "$ref": "#/definitions/HumanAddr"
           }
+        }
+      }
+    },
+    "TokenSettings": {
+      "description": "Configuration for single token that can be locked into the launchpad",
+      "type": "object",
+      "required": [
+        "bounding_period",
+        "segment",
+        "token_type"
+      ],
+      "properties": {
+        "bounding_period": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "segment": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "token_type": {
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
         }
       }
     },

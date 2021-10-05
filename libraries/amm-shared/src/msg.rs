@@ -24,6 +24,7 @@ pub mod factory {
         pub snip20_contract: ContractInstantiationInfo,
         pub lp_token_contract: ContractInstantiationInfo,
         pub pair_contract: ContractInstantiationInfo,
+        pub launchpad_contract: ContractInstantiationInfo,
         pub ido_contract: ContractInstantiationInfo,
         pub exchange_settings: ExchangeSettings<HumanAddr>,
         pub admin: Option<HumanAddr>,
@@ -44,18 +45,28 @@ pub mod factory {
             snip20_contract: Option<ContractInstantiationInfo>,
             lp_token_contract: Option<ContractInstantiationInfo>,
             pair_contract: Option<ContractInstantiationInfo>,
+            launchpad_contract: Option<ContractInstantiationInfo>,
             ido_contract: Option<ContractInstantiationInfo>,
             exchange_settings: Option<ExchangeSettings<HumanAddr>>,
         },
         /// Instantiates an exchange pair contract
         CreateExchange {
             pair: TokenPair<HumanAddr>,
-            entropy: Binary
+            entropy: Binary,
+        },
+        /// Create the launchpad contract
+        CreateLaunchpad {
+            tokens: Vec<super::launchpad::TokenSettings>,
+            entropy: Binary,
         },
         /// Instantiates an IDO contract
         CreateIdo {
             info: TokenSaleConfig,
-            entropy: Binary
+            // If whitelist addresses will be filled from the launchpad, you'll have to provide
+            // list of tokens that will be used for gathering whitelist addresses.
+            // For native token None is used.
+            tokens: Option<Vec<Option<HumanAddr>>>,
+            entropy: Binary,
         },
         /// Add addresses that are allowed to create IDOs
         IdoWhitelist {
@@ -65,6 +76,10 @@ pub mod factory {
         /// itself with the factory
         RegisterExchange {
             pair: TokenPair<HumanAddr>,
+            signature: Binary,
+        },
+        /// Used by the launchpad to register itself
+        RegisterLaunchpad {
             signature: Binary,
         },
         /// Used by a newly instantiated IDO contract to register
@@ -80,6 +95,10 @@ pub mod factory {
         AddIdos {
             idos: Vec<HumanAddr>,
         },
+        /// Adds already existing launchpad contract, admin only command.
+        AddLaunchpad {
+            launchpad: ContractInstance<HumanAddr>,
+        },
         Admin(AdminHandleMsg),
     }
 
@@ -90,6 +109,7 @@ pub mod factory {
         Status,
         /// Get configuration (contract templates and exchange settings)
         GetConfig {},
+        GetLaunchpadAddress,
         GetExchangeAddress {
             pair: TokenPair<HumanAddr>,
         },
@@ -110,6 +130,9 @@ pub mod factory {
         GetExchangeAddress {
             address: HumanAddr,
         },
+        GetLaunchpadAddress {
+            address: HumanAddr,
+        },
         ListIdos {
             idos: Vec<HumanAddr>,
         },
@@ -123,6 +146,7 @@ pub mod factory {
             snip20_contract: ContractInstantiationInfo,
             lp_token_contract: ContractInstantiationInfo,
             pair_contract: ContractInstantiationInfo,
+            launchpad_contract: ContractInstantiationInfo,
             ido_contract: ContractInstantiationInfo,
             exchange_settings: ExchangeSettings<HumanAddr>,
         },
@@ -143,7 +167,7 @@ pub mod exchange {
         pub factory_info: ContractInstance<HumanAddr>,
         pub callback: Callback<HumanAddr>,
         pub prng_seed: Binary,
-        pub entropy: Binary
+        pub entropy: Binary,
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -215,6 +239,131 @@ pub mod exchange {
     }
 }
 
+pub mod launchpad {
+
+    use super::*;
+    use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
+
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    pub struct InitMsg {
+        pub tokens: Vec<TokenSettings>,
+        /// Should be the address of the original sender, since this is initiated by the factory.
+        pub admin: HumanAddr,
+        /// Seed for creating viewkey
+        pub prng_seed: Binary,
+        pub entropy: Binary,
+        /// Used by the Launchpad to register itself with the factory.
+        pub callback: Callback<HumanAddr>,
+    }
+
+    /// Configuration for single token that can be locked into the launchpad
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    pub struct TokenSettings {
+        pub token_type: TokenType<HumanAddr>,
+        pub segment: Uint128,
+        pub bounding_period: u64,
+    }
+
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum HandleMsg {
+        /// Set pause/migration status
+        SetStatus {
+            level: ContractStatusLevel,
+            reason: String,
+            new_address: Option<HumanAddr>,
+        },
+        /// SNIP20 receiver interface
+        Receive {
+            from: HumanAddr,
+            msg: Option<Binary>,
+            amount: Uint128,
+        },
+        /// Lock for native token, amount set for locking
+        /// will be floored to the closest segment, the rest
+        /// will be sent back.
+        Lock { amount: Uint128 },
+        /// Perform unlocking of native token
+        Unlock { entries: u32 },
+        /// Add additional token for locking into launchpad
+        AdminAddToken { config: TokenSettings },
+        /// Remove token from the launchpad, this will send all the previously
+        /// locked funds back to their owners
+        AdminRemoveToken { index: u32 },
+        /// Change admin handle
+        Admin(AdminHandleMsg),
+        CreateViewingKey {
+            entropy: String,
+            padding: Option<String>,
+        },
+        SetViewingKey {
+            key: String,
+            padding: Option<String>,
+        },
+    }
+
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum QueryMsg {
+        /// Get pause/migration status
+        Status,
+        Admin(AdminQueryMsg),
+        LaunchpadInfo,
+        /// Get information about the users account
+        UserInfo {
+            address: HumanAddr,
+            key: String,
+        },
+        /// Get a list of addresses that are drawm
+        /// as potential participants in an IDO
+        Draw {
+            tokens: Vec<Option<HumanAddr>>,
+            number: u32,
+            timestamp: u64,
+        },
+    }
+
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum ReceiverCallbackMsg {
+        /// Perform locking of the funds into the launchpad contract
+        /// Amount sent through the snip20 will be floored to closest
+        /// segment and the rest will be sent back to sender.
+        Lock {},
+
+        /// Perform unlocking of the funds, for any token that is not
+        /// native user will have to send 0 amount to launchpad with unlock
+        /// message and send how many entries he wants to unlock
+        Unlock { entries: u32 },
+    }
+
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum QueryResponse {
+        LaunchpadInfo(Vec<QueryTokenConfig>),
+        UserInfo(Vec<QueryAccountToken>),
+        DrawnAddresses(Vec<HumanAddr>),
+    }
+
+    /// Token configuration that holds the configuration for each token
+    #[derive(Serialize, Deserialize, JsonSchema, Clone)]
+    pub struct QueryTokenConfig {
+        pub token_type: TokenType<HumanAddr>,
+        pub segment: Uint128,
+        pub bounding_period: u64,
+        pub token_decimals: u8,
+        pub locked_balance: Uint128,
+    }
+
+    /// Account token representation that holds all the entries for this token
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    pub struct QueryAccountToken {
+        pub token_type: TokenType<HumanAddr>,
+        pub balance: Uint128,
+        pub entries: Vec<u64>,
+    }
+}
+
 pub mod ido {
     use super::*;
     use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
@@ -227,10 +376,23 @@ pub mod ido {
         pub admin: HumanAddr,
         /// Used by the IDO to register itself with the factory.
         pub callback: Callback<HumanAddr>,
+        /// Used by the IDO to fill the whitelist spots with random pics
+        pub launchpad: Option<WhitelistRequest>,
         /// Seed for creating viewkey
         pub prng_seed: Binary,
-        pub entropy: Binary
+        pub entropy: Binary,
     }
+
+    #[derive(Serialize, Deserialize, JsonSchema)]
+    pub struct WhitelistRequest {
+        /// Launchpad contract instance information
+        pub launchpad: ContractInstance<HumanAddr>,
+        /// Vector of tokens address needs to have locked in order to be considered
+        /// for a draw. Tokens need to be configured in the Launchpad as eligible.
+        /// Option<> is because if None that will represent a native token.
+        pub tokens: Vec<Option<HumanAddr>>,
+    }
+
     #[derive(Serialize, Deserialize, JsonSchema, Clone)]
     pub struct TokenSaleConfig {
         /// The token that will be used to buy the SNIP20.
@@ -246,7 +408,38 @@ pub mod ido {
         /// The total amount that each participant is allowed to buy.
         pub max_allocation: Uint128,
         /// The minimum amount that each participant is allowed to buy.
-        pub min_allocation: Uint128
+        pub min_allocation: Uint128,
+        /// Sale type settings
+        pub sale_type: Option<SaleType>,
+    }
+
+    #[derive(Clone, Serialize, Deserialize, Eq, PartialEq, JsonSchema, Debug)]
+    pub enum SaleType {
+        PreLockAndSwap,
+        PreLockOnly,
+        SwapOnly,
+    }
+
+    impl Default for SaleType {
+        fn default() -> SaleType {
+            SaleType::PreLockAndSwap
+        }
+    }
+
+    impl From<&str> for SaleType {
+        fn from(source: &str) -> SaleType {
+            match source {
+                "pre_lock_only" => SaleType::PreLockOnly,
+                "swap_only" => SaleType::SwapOnly,
+                _ => SaleType::PreLockAndSwap,
+            }
+        }
+    }
+
+    impl From<String> for SaleType {
+        fn from(source: String) -> SaleType {
+            SaleType::from(source.as_str())
+        }
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -264,13 +457,15 @@ pub mod ido {
             msg: Option<Binary>,
             amount: Uint128,
         },
+        /// Pre lock funds before the sale has started, and then claim them after the sale starts.
+        PreLock { amount: Uint128 },
         /// Swap custom or native coin for selling coin
         Swap {
             amount: Uint128,
             /// If the recipient of the funds
             /// is going to be someone different
             /// then the sender
-            recipient: Option<HumanAddr>
+            recipient: Option<HumanAddr>,
         },
         /// Change admin handle
         Admin(AdminHandleMsg),
@@ -287,7 +482,7 @@ pub mod ido {
         SetViewingKey {
             key: String,
             padding: Option<String>,
-        }
+        },
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -295,6 +490,9 @@ pub mod ido {
     pub enum QueryMsg {
         /// Get pause/migration status
         Status,
+        EligibilityInfo {
+            address: HumanAddr,
+        },
         SaleInfo,
         SaleStatus,
         Admin(AdminQueryMsg),
@@ -303,12 +501,15 @@ pub mod ido {
             address: HumanAddr,
             key: String,
         },
-        TokenInfo {}
+        TokenInfo {},
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
     pub enum QueryResponse {
+        Eligibility {
+            can_participate: bool,
+        },
         SaleInfo {
             /// The token that is used to buy the sold SNIP20.
             input_token: TokenType<HumanAddr>,
@@ -327,23 +528,25 @@ pub mod ido {
             /// Sale start time.
             start: Option<u64>,
             /// Sale end time.
-            end: Option<u64>
+            end: Option<u64>,
         },
         Status {
             total_allocation: Uint128,
             available_for_sale: Uint128,
-            is_active: bool
+            sold_in_pre_lock: Uint128,
+            is_active: bool,
         },
         // Do not change the signatures below. They need to work with Keplr.
         Balance {
-            amount: Uint128,
+            pre_lock_amount: Uint128,
+            total_bought: Uint128,
         },
         TokenInfo {
             name: String,
             symbol: String,
             decimals: u8,
             total_supply: Option<Uint128>,
-        }
+        },
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -353,13 +556,15 @@ pub mod ido {
             /// Time when the sale will start (if None, it will start immediately)
             start_time: Option<u64>,
             /// Time when the sale will end
-            end_time: u64
+            end_time: u64,
         },
+        /// Pre lock sent funds before the sale has started, and then claim them after the sale starts.
+        PreLock {},
         Swap {
             /// If the recipient of the funds
             /// is going to be someone different
             /// then the sender
-            recipient: Option<HumanAddr>
+            recipient: Option<HumanAddr>,
         },
     }
 }

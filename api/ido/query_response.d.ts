@@ -7,6 +7,13 @@
 
 export type QueryResponse =
   | {
+      eligibility: {
+        can_participate: boolean;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
       sale_info: {
         /**
          * Sale end time.
@@ -52,6 +59,7 @@ export type QueryResponse =
       status: {
         available_for_sale: Uint128;
         is_active: boolean;
+        sold_in_pre_lock: Uint128;
         total_allocation: Uint128;
         [k: string]: unknown;
       };
@@ -59,7 +67,8 @@ export type QueryResponse =
     }
   | {
       balance: {
-        amount: Uint128;
+        pre_lock_amount: Uint128;
+        total_bought: Uint128;
         [k: string]: unknown;
       };
       [k: string]: unknown;

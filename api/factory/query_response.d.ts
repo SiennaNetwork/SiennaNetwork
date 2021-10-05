@@ -14,6 +14,13 @@ export type QueryResponse =
       [k: string]: unknown;
     }
   | {
+      get_launchpad_address: {
+        address: HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
       list_idos: {
         idos: HumanAddr[];
         [k: string]: unknown;
@@ -38,6 +45,7 @@ export type QueryResponse =
       config: {
         exchange_settings: ExchangeSettingsFor_HumanAddr;
         ido_contract: ContractInstantiationInfo;
+        launchpad_contract: ContractInstantiationInfo;
         lp_token_contract: ContractInstantiationInfo;
         pair_contract: ContractInstantiationInfo;
         snip20_contract: ContractInstantiationInfo;

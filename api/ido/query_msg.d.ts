@@ -8,6 +8,13 @@
 export type QueryMsg =
   | ("status" | "sale_info" | "sale_status")
   | {
+      eligibility_info: {
+        address: HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
       admin: AdminQueryMsg;
       [k: string]: unknown;
     }
@@ -25,5 +32,5 @@ export type QueryMsg =
       };
       [k: string]: unknown;
     };
-export type AdminQueryMsg = "admin";
 export type HumanAddr = string;
+export type AdminQueryMsg = "admin";

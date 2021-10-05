@@ -24,6 +24,25 @@
     {
       "type": "object",
       "required": [
+        "get_launchpad_address"
+      ],
+      "properties": {
+        "get_launchpad_address": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
         "list_idos"
       ],
       "properties": {
@@ -95,6 +114,7 @@
           "required": [
             "exchange_settings",
             "ido_contract",
+            "launchpad_contract",
             "lp_token_contract",
             "pair_contract",
             "snip20_contract"
@@ -104,6 +124,9 @@
               "$ref": "#/definitions/ExchangeSettings_for_HumanAddr"
             },
             "ido_contract": {
+              "$ref": "#/definitions/ContractInstantiationInfo"
+            },
+            "launchpad_contract": {
               "$ref": "#/definitions/ContractInstantiationInfo"
             },
             "lp_token_contract": {

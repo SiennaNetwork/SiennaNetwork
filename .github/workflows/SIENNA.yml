@@ -10,13 +10,19 @@ jobs:
         with: { node-version: "14.x" }
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
-        with: { profile: minimal, toolchain: 1.49.0, target: wasm32-unknown-unknown, override: true }
+        with:
+          {
+            profile: minimal,
+            toolchain: 1.49.0,
+            target: wasm32-unknown-unknown,
+            override: true,
+          }
       - name: Checkout sources
         uses: actions/checkout@v2
         with: { submodules: true }
       - uses: Swatinem/rust-cache@v1
       - name: Install JS dependencies
-        run: yarn
+        run: npm install -g pnpm && pnpm install
       - name: Generate documentation
         run: ./sienna docs
   test:
@@ -28,13 +34,19 @@ jobs:
         with: { node-version: "14.x" }
       - name: Install toolchain that allows macro backtrace
         uses: actions-rs/toolchain@v1
-        with: { profile: minimal, toolchain: nightly, target: wasm32-unknown-unknown, override: true }
+        with:
+          {
+            profile: minimal,
+            toolchain: nightly,
+            target: wasm32-unknown-unknown,
+            override: true,
+          }
       - name: Checkout sources
         uses: actions/checkout@v2
         with: { submodules: true }
       - uses: Swatinem/rust-cache@v1
       - name: Install JS dependencies
-        run: yarn
+        run: npm install -g pnpm && pnpm install
       - name: Run tests
         run: ./sienna test
   coverage:
@@ -46,17 +58,23 @@ jobs:
         with: { node-version: "14.x" }
       - name: Install toolchain that works with Tarpaulin
         uses: actions-rs/toolchain@v1
-        with: { profile: minimal, toolchain: stable, target: wasm32-unknown-unknown, override: true }
+        with:
+          {
+            profile: minimal,
+            toolchain: stable,
+            target: wasm32-unknown-unknown,
+            override: true,
+          }
       - uses: Swatinem/rust-cache@v1
       - name: Install Tarpaulin
         uses: actions-rs/cargo@v1
         with: { command: install, args: cargo-tarpaulin }
-        env:  { RUST_BACKTRACE: 1 }
+        env: { RUST_BACKTRACE: 1 }
       - name: Checkout sources
         uses: actions/checkout@v2
         with: { submodules: true }
       - name: Install JS dependencies
-        run: yarn
+        run: npm install -g pnpm && pnpm install
       - name: Generate coverage report
         run: ./sienna coverage
       - name: Commit coverage report
@@ -77,12 +95,18 @@ jobs:
         with: { node-version: "14.x" }
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
-        with: { profile: minimal, toolchain: 1.49.0, target: wasm32-unknown-unknown, override: true }
+        with:
+          {
+            profile: minimal,
+            toolchain: 1.49.0,
+            target: wasm32-unknown-unknown,
+            override: true,
+          }
       - name: Checkout sources
         uses: actions/checkout@v2
         with: { submodules: true }
       - uses: Swatinem/rust-cache@v1
       - name: Install JS dependencies
-        run: yarn
+        run: npm install -g pnpm && pnpm install
       - name: Generate schema
         run: ./sienna schema

@@ -24,6 +24,7 @@ impl Into<InitMsg> for &Config<HumanAddr> {
             snip20_contract: self.snip20_contract.clone(),
             lp_token_contract: self.lp_token_contract.clone(),
             pair_contract: self.pair_contract.clone(),
+            launchpad_contract: self.launchpad_contract.clone(),
             ido_contract: self.ido_contract.clone(),
             exchange_settings: self.exchange_settings.clone(),
             admin: None,
@@ -37,6 +38,7 @@ impl Into<HandleMsg> for &Config<HumanAddr> {
             snip20_contract: Some(self.snip20_contract.clone()),
             lp_token_contract: Some(self.lp_token_contract.clone()),
             pair_contract: Some(self.pair_contract.clone()),
+            launchpad_contract: Some(self.launchpad_contract.clone()),
             ido_contract: Some(self.ido_contract.clone()),
             exchange_settings: Some(self.exchange_settings.clone()),
         }
@@ -48,6 +50,7 @@ impl Into<QueryResponse> for &Config<HumanAddr> {
             snip20_contract: self.snip20_contract.clone(),
             lp_token_contract: self.lp_token_contract.clone(),
             pair_contract: self.pair_contract.clone(),
+            launchpad_contract: self.launchpad_contract.clone(),
             ido_contract: self.ido_contract.clone(),
             exchange_settings: self.exchange_settings.clone(),
         }
@@ -75,6 +78,10 @@ fn mkconfig(id: u64) -> Config<HumanAddr> {
         pair_contract: ContractInstantiationInfo {
             id,
             code_hash: "2341586789".into(),
+        },
+        launchpad_contract: ContractInstantiationInfo {
+            id,
+            code_hash: "2312325346".into(),
         },
         ido_contract: ContractInstantiationInfo {
             id,
@@ -508,7 +515,8 @@ mod test_contract {
             whitelist: vec![],
             max_allocation: Uint128(100),
             max_seats: 20,
-            min_allocation: Uint128(10)
+            min_allocation: Uint128(10),
+            sale_type: None,
         };
 
         let result = handle(
@@ -516,7 +524,8 @@ mod test_contract {
             mkenv("rando"),
             HandleMsg::CreateIdo {
                 info: sale_config.clone(),
-                entropy: to_binary(&"whatever").unwrap()
+                tokens: None,
+                entropy: to_binary(&"whatever").unwrap(),
             },
         );
         assert_unauthorized(result);
@@ -526,8 +535,9 @@ mod test_contract {
             mkenv(ido_creator.clone()),
             HandleMsg::CreateIdo {
                 info: sale_config.clone(),
-                entropy: to_binary(&"whatever").unwrap()
-            }
+                tokens: None,
+                entropy: to_binary(&"whatever").unwrap(),
+            },
         )
         .unwrap();
 
@@ -539,8 +549,9 @@ mod test_contract {
             mkenv(admin),
             HandleMsg::CreateIdo {
                 info: sale_config,
-                entropy: to_binary(&"whatever").unwrap()
-            }
+                tokens: None,
+                entropy: to_binary(&"whatever").unwrap(),
+            },
         )
         .unwrap();
     }

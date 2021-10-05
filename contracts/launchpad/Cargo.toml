@@ -1,0 +1,16 @@
+[package]
+name = "launchpad"
+version = "0.1.0"
+authors = ["Tibor Hudik <tibor@barrage.net>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+schemars = "0.7"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+serde_json = "*"
+rand = { version = "0.8.3", features = ["small_rng"], default-features = false }
+
+amm-shared = { path = "../../libraries/amm-shared" }

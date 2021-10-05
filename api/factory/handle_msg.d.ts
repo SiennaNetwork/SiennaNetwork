@@ -19,6 +19,7 @@ export type HandleMsg =
       set_config: {
         exchange_settings?: ExchangeSettingsFor_HumanAddr | null;
         ido_contract?: ContractInstantiationInfo | null;
+        launchpad_contract?: ContractInstantiationInfo | null;
         lp_token_contract?: ContractInstantiationInfo | null;
         pair_contract?: ContractInstantiationInfo | null;
         snip20_contract?: ContractInstantiationInfo | null;
@@ -35,9 +36,18 @@ export type HandleMsg =
       [k: string]: unknown;
     }
   | {
+      create_launchpad: {
+        entropy: Binary;
+        tokens: TokenSettings[];
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
       create_ido: {
         entropy: Binary;
         info: TokenSaleConfig;
+        tokens?: (HumanAddr | null)[] | null;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -52,6 +62,13 @@ export type HandleMsg =
   | {
       register_exchange: {
         pair: TokenPairFor_HumanAddr;
+        signature: Binary;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      register_launchpad: {
         signature: Binary;
         [k: string]: unknown;
       };
@@ -74,6 +91,13 @@ export type HandleMsg =
   | {
       add_idos: {
         idos: HumanAddr[];
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      add_launchpad: {
+        launchpad: ContractInstanceFor_HumanAddr;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -111,6 +135,7 @@ export type TokenTypeFor_HumanAddr =
       [k: string]: unknown;
     };
 export type Uint128 = string;
+export type SaleType = "PreLockAndSwap" | "PreLockOnly" | "SwapOnly";
 export type AdminHandleMsg = {
   change_admin: {
     address: HumanAddr;
@@ -138,6 +163,15 @@ export interface ContractInstantiationInfo {
   id: number;
   [k: string]: unknown;
 }
+/**
+ * Configuration for single token that can be locked into the launchpad
+ */
+export interface TokenSettings {
+  bounding_period: number;
+  segment: Uint128;
+  token_type: TokenTypeFor_HumanAddr;
+  [k: string]: unknown;
+}
 export interface TokenSaleConfig {
   /**
    * The token that will be used to buy the SNIP20.
@@ -159,6 +193,10 @@ export interface TokenSaleConfig {
    * The price for a single token.
    */
   rate: Uint128;
+  /**
+   * Sale type settings
+   */
+  sale_type?: SaleType | null;
   sold_token: ContractInstanceFor_HumanAddr;
   /**
    * The addresses that are eligible to participate in the sale.

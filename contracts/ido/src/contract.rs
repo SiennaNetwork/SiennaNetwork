@@ -1,44 +1,46 @@
-use amm_shared::admin::require_admin;
 use amm_shared::{
-    admin::admin::{
-        admin_handle, admin_query, assert_admin, load_admin,
-        save_admin, DefaultHandleImpl, DefaultQueryImpl
-    },
-    auth::{auth_handle, authenticate, AuthHandleMsg, DefaultHandleImpl as AuthHandle},
+    admin::admin::{admin_handle, admin_query, save_admin, DefaultHandleImpl, DefaultQueryImpl},
+    auth::{auth_handle, AuthHandleMsg, DefaultHandleImpl as AuthHandle},
     fadroma::scrt::{
         addr::Canonize,
         callback::ContractInstance,
         cosmwasm_std::{
-            from_binary, log, to_binary, Api, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Env,
-            Extern, HandleResponse, HumanAddr, InitResponse, Querier, QueryResult, StdError,
-            StdResult, Storage, Uint128, WasmMsg,
+            to_binary, Api, CanonicalAddr, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
+            InitResponse, Querier, QueryRequest, QueryResult, StdError, StdResult, Storage,
+            WasmMsg, WasmQuery,
         },
         migrate as fadroma_scrt_migrate,
         storage::Storable,
         toolkit::snip20,
-        utils::{convert::convert_token, viewing_key::ViewingKey},
-        BLOCK_SIZE
+        utils::viewing_key::ViewingKey,
+        BLOCK_SIZE,
     },
-    msg::ido::{HandleMsg, InitMsg, QueryMsg, QueryResponse, ReceiverCallbackMsg},
+    msg::ido::{HandleMsg, InitMsg, QueryMsg},
+    msg::launchpad::QueryMsg as LaunchpadQueryMsg,
+    msg::launchpad::QueryResponse as LaunchpadQueryResponse,
     TokenType,
 };
 use fadroma_scrt_migrate::{get_status, with_status};
 
-use crate::data::{
-    Account, Config, SwapConstants, SaleSchedule,
-    save_contract_address, load_contract_address,
-    save_viewing_key, load_viewing_key
-};
+use crate::data::{save_contract_address, save_viewing_key, Account, Config, SwapConstants};
+
+use crate::helpers::*;
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
-    if msg.info.min_allocation.u128()
+    if msg
+        .info
+        .min_allocation
+        .u128()
         .checked_mul(msg.info.max_seats as u128)
-        .is_none() {
-        return Err(StdError::generic_err("The total amount required for the sale is too big."));
+        .is_none()
+    {
+        return Err(StdError::generic_err(
+            "The total amount required for the sale is too big.",
+        ));
     }
 
     save_contract_address(deps, &env.contract.address)?;
@@ -46,28 +48,28 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     let viewing_key = ViewingKey::new(&env, msg.prng_seed.as_slice(), msg.entropy.as_slice());
     save_viewing_key(&mut deps.storage, &viewing_key)?;
 
-    let mut messages = vec![];
-    // Set viewing key from IDO contract onto the sold token contract
-    // so that we can query the balance of the sold token transfered
-    // to the IDO contract
-    messages.push(snip20::set_viewing_key_msg(
-        viewing_key.to_string(),
-        None,
-        BLOCK_SIZE,
-        msg.info.sold_token.code_hash.clone(),
-        msg.info.sold_token.address.clone(),
-    )?);
-
-    // Register this contract as a receiver of the callback messages
-    // from the buy token so we can trigger back start of the sale after
-    // the required amount of funds has been sent to this contract
-    messages.push(snip20::register_receive_msg(
-        env.contract_code_hash.clone(),
-        None,
-        BLOCK_SIZE,
-        msg.info.sold_token.code_hash.clone(),
-        msg.info.sold_token.address.clone(),
-    )?);
+    let mut messages = vec![
+        // Set viewing key from IDO contract onto the sold token contract
+        // so that we can query the balance of the sold token transfered
+        // to the IDO contract
+        snip20::set_viewing_key_msg(
+            viewing_key.to_string(),
+            None,
+            BLOCK_SIZE,
+            msg.info.sold_token.code_hash.clone(),
+            msg.info.sold_token.address.clone(),
+        )?,
+        // Register this contract as a receiver of the callback messages
+        // from the buy token so we can trigger back start of the sale after
+        // the required amount of funds has been sent to this contract
+        snip20::register_receive_msg(
+            env.contract_code_hash.clone(),
+            None,
+            BLOCK_SIZE,
+            msg.info.sold_token.code_hash.clone(),
+            msg.info.sold_token.address.clone(),
+        )?,
+    ];
 
     let input_token_decimals = match &msg.info.input_token {
         TokenType::CustomToken {
@@ -89,7 +91,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             // message after the tokens have been sent and will make the swap
             // happen in a single transaction
             messages.push(snip20::register_receive_msg(
-                env.contract_code_hash,
+                env.contract_code_hash.clone(),
                 None,
                 BLOCK_SIZE,
                 token_code_hash.clone(),
@@ -117,10 +119,40 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         send: vec![],
     }));
 
-    let taken_seats = msg.info.whitelist.len() as u32;
+    let mut taken_seats = msg.info.whitelist.len() as u32;
 
     for address in msg.info.whitelist {
         Account::<CanonicalAddr>::new(&address.canonize(&deps.api)?).save(deps)?;
+    }
+
+    // Call the launchpad contract and request whitelist addresses
+    if taken_seats < msg.info.max_seats {
+        if let Some(request) = &msg.launchpad {
+            let response: LaunchpadQueryResponse =
+                deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+                    contract_addr: request.launchpad.address.clone(),
+                    callback_code_hash: request.launchpad.code_hash.clone(),
+                    msg: to_binary(&LaunchpadQueryMsg::Draw {
+                        tokens: request.tokens.clone(),
+                        number: (msg.info.max_seats - taken_seats) as u32,
+                        timestamp: env.block.time,
+                    })?,
+                }))?;
+
+            match response {
+                LaunchpadQueryResponse::DrawnAddresses(addresses) => {
+                    for address in addresses {
+                        Account::<CanonicalAddr>::new(&address.canonize(&deps.api)?).save(deps)?;
+                        taken_seats = taken_seats + 1;
+                    }
+                }
+                _ => {
+                    return Err(StdError::generic_err(
+                        "QueryResponse from Launchpad return unexpected result",
+                    ));
+                }
+            };
+        }
     }
 
     let config = Config {
@@ -135,8 +167,10 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         max_seats: msg.info.max_seats,
         max_allocation: msg.info.max_allocation,
         min_allocation: msg.info.min_allocation,
+        sale_type: msg.info.sale_type.unwrap_or_default(),
+        launchpad: msg.launchpad.map(|l| l.launchpad),
         // Configured when activating
-        schedule: None
+        schedule: None,
     };
 
     save_admin(deps, &msg.admin)?;
@@ -159,27 +193,55 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         match msg {
             HandleMsg::Receive {
                 from, amount, msg, ..
-            } => receive_callback(deps, env, from, amount, msg),
+            } => crate::handle::receive_callback(deps, env, from, amount, msg),
+            HandleMsg::PreLock { amount } => {
+                // Can be called directly only when the input token is SCRT
+                let config = Config::<CanonicalAddr>::load_self(&deps)?;
+
+                if !config.input_token.is_native_token() {
+                    return Err(StdError::generic_err(
+                        "Use the SNIP20 receiver interface instead.",
+                    ));
+                }
+
+                config
+                    .input_token
+                    .assert_sent_native_token_balance(&env, amount)?;
+
+                crate::handle::pre_lock(deps, env.block.time, config, amount, env.message.sender)
+            }
             HandleMsg::Swap { amount, recipient } => {
                 // Can be called directly only when the input token is SCRT
                 let config = Config::<CanonicalAddr>::load_self(&deps)?;
 
                 if !config.input_token.is_native_token() {
-                    return Err(StdError::generic_err("Use the SNIP20 receiver interface instead."));
+                    return Err(StdError::generic_err(
+                        "Use the SNIP20 receiver interface instead.",
+                    ));
                 }
 
-                config.input_token.assert_sent_native_token_balance(&env, amount)?;
+                config
+                    .input_token
+                    .assert_sent_native_token_balance(&env, amount)?;
 
-                swap(deps, env.block.time, config, amount, env.message.sender, recipient)
-            },
+                crate::handle::swap(
+                    deps,
+                    env.block.time,
+                    config,
+                    amount,
+                    env.message.sender,
+                    recipient,
+                )
+            }
             HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl),
-            HandleMsg::AdminRefund { address } => refund(deps, env, address),
-            HandleMsg::AdminClaim { address } => claim(deps, env, address),
-            HandleMsg::AdminAddAddresses { addresses } => add_addresses(deps, env, addresses),
+            HandleMsg::AdminRefund { address } => crate::handle::refund(deps, env, address),
+            HandleMsg::AdminClaim { address } => crate::handle::claim(deps, env, address),
+            HandleMsg::AdminAddAddresses { addresses } =>
+                crate::handle::add_addresses(deps, env, addresses),
             HandleMsg::CreateViewingKey { entropy, padding } => {
                 let msg = AuthHandleMsg::CreateViewingKey { entropy, padding };
                 auth_handle(deps, env, msg, AuthHandle)
-            },
+            }
             HandleMsg::SetViewingKey { key, padding } => {
                 let msg = AuthHandleMsg::SetViewingKey { key, padding };
                 auth_handle(deps, env, msg, AuthHandle)
@@ -191,400 +253,13 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
         QueryMsg::Status => to_binary(&get_status(deps)?),
-        QueryMsg::SaleInfo => get_sale_info(deps),
-        QueryMsg::SaleStatus => get_sale_status(deps),
-        QueryMsg::Balance { address, key } => get_balance(deps, address, key),
-        QueryMsg::TokenInfo {} => get_token_info(deps),
+        QueryMsg::EligibilityInfo { address } => crate::query::get_eligibility_info(deps, address),
+        QueryMsg::SaleInfo => crate::query::get_sale_info(deps),
+        QueryMsg::SaleStatus => crate::query::get_sale_status(deps),
+        QueryMsg::Balance { address, key } => crate::query::get_balance(deps, address, key),
+        QueryMsg::TokenInfo {} => crate::query::get_token_info(deps),
         QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
     }
-}
-
-/// Universal handler for receive callback from snip20 interface of sold token and possibly custom input token
-fn receive_callback<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    from: HumanAddr,
-    amount: Uint128,
-    msg: Option<Binary>,
-) -> StdResult<HandleResponse> {
-    let msg = msg.ok_or_else(|| {
-        StdError::generic_err("Receiver callback \"msg\" parameter cannot be empty.")
-    })?;
-
-    let config = Config::<CanonicalAddr>::load_self(&deps)?;
-
-    match from_binary(&msg)? {
-        ReceiverCallbackMsg::Activate { start_time, end_time } => {
-            // If the sender is sold_token, we will treat this like activation
-            // handle call that will activate the contract if enough funds is sent
-            if env.message.sender == config.sold_token.address {
-                return activate(deps, env, from, amount, config, start_time, end_time);
-            }
-        },
-        ReceiverCallbackMsg::Swap { recipient } => {
-            if let TokenType::CustomToken { contract_addr, .. } = &config.input_token {
-                if env.message.sender == *contract_addr {
-                    return swap(deps, env.block.time, config, amount, from, recipient);
-                }
-            }
-        }
-    }
-
-    Err(StdError::unauthorized())
-}
-
-/// Handle receive callback from the sold token that will activate
-/// the start of the IDO sale
-///
-/// ## Cases
-///  - Send full required amount after the contract is instantiated and it will activate the contract
-///  - Mint required amount onto IDO contract and then send 0 sell tokens to contract to activate it
-fn activate<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    from: HumanAddr,
-    amount: Uint128,
-    mut config: Config<HumanAddr>,
-    start: Option<u64>,
-    end: u64
-) -> StdResult<HandleResponse> {
-    if load_admin(deps)? != from {
-        return Err(StdError::unauthorized());
-    }
-
-    let required_amount = config.total_allocation();
-    let token_balance = get_token_balance(
-        &deps,
-        env.contract.address,
-        config.sold_token.clone(),
-        load_viewing_key(&deps.storage)?
-    )?;
-
-    if (token_balance + amount) < required_amount {
-        return Err(StdError::generic_err(format!(
-            "Token balance + amount sent is not enough to cover the sale, contract needs {} tokens, has on balance {}",
-            required_amount, token_balance
-        )));
-    }
-
-    config.schedule = Some(SaleSchedule::new(env.block.time, start, end)?);
-    config.save(deps)?;
-
-    Ok(HandleResponse {
-        messages: vec![],
-        log: vec![log("action", "activate")],
-        data: None,
-    })
-}
-
-/// Swap input token for sold token.
-/// Checks if the account is whitelisted
-/// Checks if the sold token is currently swapable (sale has started and has not yet ended)
-/// Checks if the account hasn't gone over the sale limit and is above the sale minimum.
-fn swap<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    now: u64,
-    config: Config<HumanAddr>,
-    amount: Uint128,
-    from: HumanAddr,
-    recipient: Option<HumanAddr>
-) -> StdResult<HandleResponse> {
-    config.is_swapable(now)?;
-
-    let mut account = Account::<CanonicalAddr>::load_self(&deps, &from)?;
-
-    let mint_amount = convert_token(
-        amount.u128(),
-        config.swap_constants.rate.u128(),
-        config.swap_constants.input_token_decimals,
-        config.swap_constants.sold_token_decimals,
-    )?;
-
-    if mint_amount < config.min_allocation.u128() {
-        return Err(StdError::generic_err(format!(
-            "Insufficient amount provided: the resulting amount fell short of the minimum purchase expected: {}",
-            config.min_allocation
-        )));
-    }
-
-    account.total_bought = account
-        .total_bought
-        .u128()
-        .checked_add(mint_amount)
-        .ok_or(StdError::generic_err("Upper bound overflow detected."))?
-        .into();
-
-    if account.total_bought > config.max_allocation {
-        return Err(StdError::generic_err(format!(
-            "This purchase exceeds the total maximum allowed amount for a single address: {}",
-            config.max_allocation
-        )));
-    }
-
-    account.save(deps)?;
-
-    let recipient = recipient.unwrap_or(from);
-
-    Ok(HandleResponse {
-        messages: vec![snip20::transfer_msg(
-            recipient,
-            Uint128(mint_amount),
-            None,
-            BLOCK_SIZE,
-            config.sold_token.code_hash,
-            config.sold_token.address,
-        )?],
-        log: vec![
-            log("action", "swap"),
-            log("input_amount", amount),
-            log("purchased_amount", mint_amount),
-            log("account_total_bought", account.total_bought),
-        ],
-        data: None,
-    })
-}
-
-/// After the contract has ended, admin can ask for a return of his tokens.
-#[require_admin]
-fn refund<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    address: Option<HumanAddr>,
-) -> StdResult<HandleResponse> {
-    let config = Config::<CanonicalAddr>::load_self(&deps)?;
-    config.is_refundable(env.block.time)?;
-
-    let refund_amount = get_token_balance(
-        &deps,
-        env.contract.address.clone(),
-        config.sold_token.clone(),
-        load_viewing_key(&deps.storage)?
-    )?;
-
-    Ok(HandleResponse {
-        messages: vec![snip20::transfer_msg(
-            address.unwrap_or_else(|| env.message.sender.clone()),
-            refund_amount,
-            None,
-            BLOCK_SIZE,
-            config.sold_token.code_hash,
-            config.sold_token.address,
-        )?],
-        log: vec![log("action", "refund"), log("refund_amount", refund_amount)],
-        data: None,
-    })
-}
-
-/// After the sale has ended, admin will claim any profits that were generated by the sale
-#[require_admin]
-fn claim<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    address: Option<HumanAddr>,
-) -> StdResult<HandleResponse> {
-    let config = Config::<CanonicalAddr>::load_self(&deps)?;
-    config.is_refundable(env.block.time)?;
-    let output_address = address.unwrap_or_else(|| env.message.sender.clone());
-    let balance = config.input_token.query_balance(
-        &deps.querier,
-        env.contract.address.clone(),
-        load_viewing_key(&deps.storage)?.to_string()
-    )?;
-
-    let mut messages = vec![];
-
-    match config.input_token {
-        TokenType::CustomToken {
-            contract_addr,
-            token_code_hash,
-        } => {
-            // Create message for sending the required amount to this contract
-            messages.push(snip20::transfer_msg(
-                output_address.clone(),
-                balance,
-                None,
-                BLOCK_SIZE,
-                token_code_hash,
-                contract_addr,
-            )?);
-        }
-        TokenType::NativeToken { denom } => messages.push(
-            BankMsg::Send {
-                from_address: env.contract.address,
-                to_address: output_address.clone(),
-                amount: vec![Coin::new(balance.u128(), &denom)],
-            }
-            .into(),
-        ),
-    }
-
-    Ok(HandleResponse {
-        messages,
-        log: vec![
-            log("action", "claim"),
-            log("claimed_amount", balance),
-            log("output_address", output_address),
-        ],
-        data: None,
-    })
-}
-
-fn get_sale_status<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>
-) -> QueryResult {
-    let config = Config::<HumanAddr>::load_self(&deps)?;
-
-    let available_for_sale = get_token_balance(
-        &deps,
-        load_contract_address(deps)?,
-        config.sold_token.clone(),
-        load_viewing_key(&deps.storage)?
-    )?;
-
-    to_binary(&QueryResponse::Status {
-        total_allocation: config.total_allocation(),
-        available_for_sale,
-        is_active: config.is_active()
-    })
-}
-
-fn get_balance<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    address: HumanAddr,
-    key: String
-) -> QueryResult {
-    let canonical = address.canonize(&deps.api)?;
-    authenticate(&deps.storage, &ViewingKey(key), canonical.as_slice())?;
-
-    let account = Account::<CanonicalAddr>::load_self(&deps, &address)?;
-
-    to_binary(&QueryResponse::Balance {
-        amount: account.total_bought
-    })
-}
-
-fn get_token_info<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>
-) -> QueryResult {
-    let config = Config::<CanonicalAddr>::load_self(deps)?;
-
-    let info = snip20::token_info_query(
-        &deps.querier,
-        BLOCK_SIZE,
-        config.sold_token.code_hash,
-        config.sold_token.address
-    )?;
-
-    to_binary(&QueryResponse::TokenInfo {
-        name: format!("IDO for {}", info.name),
-        symbol: format!("IDO:{}", info.symbol),
-        decimals: 0,
-        total_supply: None
-    })
-}
-
-/// Add new address to whitelist
-#[require_admin]
-fn add_addresses<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    addresses: Vec<HumanAddr>,
-) -> StdResult<HandleResponse> {
-    let mut config = Config::<CanonicalAddr>::load_self(&deps)?;
-
-    if let Some(schedule) = config.schedule {
-        if schedule.has_ended(env.block.time) {
-            return Err(StdError::generic_err(
-                "Cannot whitelist addresses after the sale has finished."
-            ));
-        }
-    }
-
-    let mut added_count = 0;
-
-    for address in addresses {
-        let caonical_address = address.canonize(&deps.api)?;
-
-        config.taken_seats += 1;
-        if config.taken_seats > config.max_seats {
-            return Err(StdError::generic_err("All seats already taken."));
-        }
-
-        let account = Account::<CanonicalAddr>::load_self(&deps, &address);
-
-        if account.is_err() {
-            Account::<CanonicalAddr>::new(&caonical_address).save(deps)?;
-            added_count += 1;
-        }
-    }
-
-    config.save(deps)?;
-
-    Ok(HandleResponse {
-        messages: vec![],
-        log: vec![
-            log("action", "add_addresses"),
-            log("new_addresses", added_count)
-        ],
-        data: None,
-    })
-}
-
-/// Return info about the token sale
-fn get_sale_info<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> QueryResult {
-    let config = Config::<HumanAddr>::load_self(&deps)?;
-
-    let (start, end) = if let Some(schedule) = config.schedule {
-        (Some(schedule.start), Some(schedule.end))
-    } else {
-        (None, None)
-    };
-
-    to_binary(&QueryResponse::SaleInfo {
-        input_token: config.input_token,
-        sold_token: config.sold_token,
-        rate: config.swap_constants.rate,
-        taken_seats: config.taken_seats,
-        max_seats: config.max_seats,
-        max_allocation: config.max_allocation,
-        min_allocation: config.min_allocation,
-        end,
-        start
-    })
-}
-
-/// Query the token for number of its decimals
-fn get_token_decimals(
-    querier: &impl Querier,
-    instance: ContractInstance<HumanAddr>,
-) -> StdResult<u8> {
-    let result = snip20::token_info_query(
-        querier,
-        BLOCK_SIZE,
-        instance.code_hash,
-        instance.address
-    )?;
-
-    Ok(result.decimals)
-}
-
-/// Query the token for number of its decimals
-fn get_token_balance<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    this_contract: HumanAddr,
-    instance: ContractInstance<HumanAddr>,
-    viewing_key: ViewingKey,
-) -> StdResult<Uint128> {
-    let balance = snip20::balance_query(
-        &deps.querier,
-        this_contract,
-        viewing_key.0,
-        BLOCK_SIZE,
-        instance.code_hash,
-        instance.address,
-    )?;
-
-    Ok(balance.amount)
 }
 
 #[cfg(test)]
@@ -595,13 +270,14 @@ mod tests {
         fadroma::scrt::cosmwasm_std::{
             from_binary,
             testing::{mock_env, MockApi, MockStorage},
-            Binary, Coin, Env, Extern,
+            Binary, Coin, Env, Extern, HumanAddr, Uint128,
         },
-        msg::ido::{HandleMsg, InitMsg, QueryMsg, QueryResponse, TokenSaleConfig},
+        msg::ido::{
+            HandleMsg, InitMsg, QueryMsg, QueryResponse, ReceiverCallbackMsg, TokenSaleConfig,
+        },
+        querier::{MockContractInstance, MockQuerier},
         TokenType,
     };
-
-    use crate::querier::MockQuerier;
 
     const BLOCK_TIME: u64 = 1_571_797_419;
     const RATE: Uint128 = Uint128(1_u128);
@@ -616,15 +292,22 @@ mod tests {
         Extern {
             storage: MockStorage::default(),
             api: MockApi::new(len),
-            querier: MockQuerier::new(&[(&contract_addr, balance)], Uint128::from(2500 as u128)),
+            querier: MockQuerier::new(
+                &[(&contract_addr, balance)],
+                vec![MockContractInstance {
+                    instance: ContractInstance {
+                        address: HumanAddr::from("sold-token"),
+                        code_hash: "".to_string(),
+                    },
+                    token_decimals: 18,
+                    token_supply: Uint128::from(2500_u128),
+                }],
+            ),
         }
     }
 
     /// Get init message for initialization of the token.
-    fn get_init(
-        sold_token: Option<ContractInstance<HumanAddr>>,
-        admin: &HumanAddr,
-    ) -> InitMsg {
+    fn get_init(sold_token: Option<ContractInstance<HumanAddr>>, admin: &HumanAddr) -> InitMsg {
         let sold_token = sold_token.unwrap_or_else(|| ContractInstance::<HumanAddr> {
             address: HumanAddr::from("sold-token"),
             code_hash: "".to_string(),
@@ -645,8 +328,10 @@ mod tests {
                 ],
                 max_seats: 5,
                 max_allocation: MAX_ALLOCATION,
-                min_allocation: MIN_ALLOCATION
+                min_allocation: MIN_ALLOCATION,
+                sale_type: None,
             },
+            launchpad: None,
             prng_seed: to_binary(&"whatever").unwrap(),
             entropy: to_binary(&"whatever").unwrap(),
             admin: admin.clone(),
@@ -680,10 +365,13 @@ mod tests {
             HandleMsg::Receive {
                 from: env.message.sender.clone(),
                 amount: Uint128(5 as u128 * MAX_ALLOCATION.u128()),
-                msg: Some(to_binary(&ReceiverCallbackMsg::Activate {
-                    start_time: Some(start_time),
-                    end_time
-                }).unwrap()),
+                msg: Some(
+                    to_binary(&ReceiverCallbackMsg::Activate {
+                        start_time: Some(start_time),
+                        end_time,
+                    })
+                    .unwrap(),
+                ),
             },
         )
         .unwrap();
@@ -750,7 +438,7 @@ mod tests {
                 min_allocation,
                 max_allocation,
                 start,
-                end
+                end,
             } => {
                 let config = Config::<CanonicalAddr>::load_self(&deps).unwrap();
 
@@ -763,8 +451,8 @@ mod tests {
                 assert_eq!(max_allocation, config.max_allocation);
                 assert_eq!(start.unwrap(), BLOCK_TIME);
                 assert_eq!(end.unwrap(), BLOCK_TIME + 60)
-            },
-            _ => panic!("Expected QueryResponse::GetRate")
+            }
+            _ => panic!("Expected QueryResponse::GetRate"),
         };
     }
 
@@ -778,7 +466,7 @@ mod tests {
             env,
             HandleMsg::Swap {
                 amount: Uint128(10000_u128),
-                recipient: None
+                recipient: None,
             },
         );
 
@@ -798,7 +486,7 @@ mod tests {
             env,
             HandleMsg::Swap {
                 amount: Uint128(99_000_000_u128),
-                recipient: None
+                recipient: None,
             },
         );
 
@@ -823,7 +511,7 @@ mod tests {
             env,
             HandleMsg::Swap {
                 amount: Uint128(501_000_000_u128),
-                recipient: None
+                recipient: None,
             },
         );
 
@@ -847,7 +535,7 @@ mod tests {
             env.clone(),
             HandleMsg::Swap {
                 amount: Uint128(250_000_000_u128),
-                recipient: None
+                recipient: None,
             },
         )
         .unwrap();
@@ -857,28 +545,42 @@ mod tests {
 
         let resp = query(
             &deps,
-            QueryMsg::Balance { address: buyer.into(), key: key.clone() }
-        ).unwrap_err();
+            QueryMsg::Balance {
+                address: buyer.into(),
+                key: key.clone(),
+            },
+        )
+        .unwrap_err();
 
         assert_eq!(resp, StdError::unauthorized());
-        
         handle(
             &mut deps,
             env,
-            HandleMsg::SetViewingKey { key: key.clone(), padding: None }
-        ).unwrap();
+            HandleMsg::SetViewingKey {
+                key: key.clone(),
+                padding: None,
+            },
+        )
+        .unwrap();
 
         let resp = query(
             &deps,
-            QueryMsg::Balance { address: buyer.into(), key }
-        ).unwrap();
+            QueryMsg::Balance {
+                address: buyer.into(),
+                key,
+            },
+        )
+        .unwrap();
         let resp: QueryResponse = from_binary(&resp).unwrap();
 
         match resp {
-            QueryResponse::Balance { amount } => {
-                assert_eq!(amount.u128(), bought);
-            },
-            _ => panic!("Expected QueryResponse::Balance")
+            QueryResponse::Balance {
+                pre_lock_amount: _,
+                total_bought,
+            } => {
+                assert_eq!(total_bought.u128(), bought);
+            }
+            _ => panic!("Expected QueryResponse::Balance"),
         }
     }
 
@@ -893,7 +595,7 @@ mod tests {
             env,
             HandleMsg::Swap {
                 amount: Uint128(250_000_000_u128),
-                recipient: None
+                recipient: None,
             },
         );
 
@@ -920,7 +622,7 @@ mod tests {
             env,
             HandleMsg::Swap {
                 amount: Uint128(250_000_000_u128),
-                recipient: None
+                recipient: None,
             },
         );
 
@@ -1009,22 +711,28 @@ mod tests {
             buyer_env,
             HandleMsg::Swap {
                 amount: Uint128(250_000_000_u128),
-                recipient: None
+                recipient: None,
             },
         )
         .unwrap();
 
-        deps.querier.sub_balance(Uint128(250 as u128)).unwrap();
+        deps.querier
+            .sub_balance(Uint128(250 as u128), &HumanAddr::from("sold-token"))
+            .unwrap();
 
         let res = query(&deps, QueryMsg::SaleStatus).unwrap();
         let res: QueryResponse = from_binary(&res).unwrap();
 
         match res {
-            QueryResponse::Status { available_for_sale, total_allocation, .. } => {
+            QueryResponse::Status {
+                available_for_sale,
+                total_allocation,
+                ..
+            } => {
                 assert_eq!(total_allocation, Uint128(2500));
                 assert_eq!(available_for_sale, Uint128(2250));
-            },
-            _ => panic!("Expected QueryResponse::Status")
+            }
+            _ => panic!("Expected QueryResponse::Status"),
         }
     }
 
@@ -1037,14 +745,12 @@ mod tests {
             &mut deps,
             env,
             HandleMsg::AdminAddAddresses {
-                addresses: vec![ buyer_env.message.sender ],
-            }
-        ).unwrap();
+                addresses: vec![buyer_env.message.sender],
+            },
+        )
+        .unwrap();
 
-        assert_eq!(
-            String::from("0"),
-            res.log[1].value
-        );
+        assert_eq!(String::from("0"), res.log[1].value);
     }
 
     #[test]
@@ -1057,7 +763,7 @@ mod tests {
             buyer_env.clone(),
             HandleMsg::Swap {
                 amount: Uint128(250_000_000_u128),
-                recipient: None
+                recipient: None,
             },
         );
 
@@ -1070,7 +776,7 @@ mod tests {
             &mut deps,
             env,
             HandleMsg::AdminAddAddresses {
-                addresses: vec![ buyer_env.message.sender.clone() ],
+                addresses: vec![buyer_env.message.sender.clone()],
             },
         )
         .unwrap();
@@ -1080,7 +786,7 @@ mod tests {
             buyer_env,
             HandleMsg::Swap {
                 amount: Uint128(250_000_000_u128),
-                recipient: None
+                recipient: None,
             },
         )
         .unwrap();
@@ -1096,7 +802,7 @@ mod tests {
             &mut deps,
             env.clone(),
             HandleMsg::AdminAddAddresses {
-                addresses: vec![ buyer_env.message.sender.clone() ],
+                addresses: vec![buyer_env.message.sender.clone()],
             },
         )
         .unwrap();
@@ -1105,10 +811,15 @@ mod tests {
             &mut deps,
             env,
             HandleMsg::AdminAddAddresses {
-                addresses: vec![ buyer_env2.message.sender.clone() ],
+                addresses: vec![buyer_env2.message.sender.clone()],
             },
         );
 
-        assert_eq!(res, Err(StdError::generic_err("All seats already taken.")));
+        assert_eq!(
+            res,
+            Err(StdError::generic_err(
+                "Cannot fill more seats then left (0)"
+            ))
+        );
     }
 }

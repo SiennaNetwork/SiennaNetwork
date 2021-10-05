@@ -5,6 +5,25 @@
     {
       "type": "object",
       "required": [
+        "eligibility"
+      ],
+      "properties": {
+        "eligibility": {
+          "type": "object",
+          "required": [
+            "can_participate"
+          ],
+          "properties": {
+            "can_participate": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
         "sale_info"
       ],
       "properties": {
@@ -105,6 +124,7 @@
           "required": [
             "available_for_sale",
             "is_active",
+            "sold_in_pre_lock",
             "total_allocation"
           ],
           "properties": {
@@ -113,6 +133,9 @@
             },
             "is_active": {
               "type": "boolean"
+            },
+            "sold_in_pre_lock": {
+              "$ref": "#/definitions/Uint128"
             },
             "total_allocation": {
               "$ref": "#/definitions/Uint128"
@@ -130,10 +153,14 @@
         "balance": {
           "type": "object",
           "required": [
-            "amount"
+            "pre_lock_amount",
+            "total_bought"
           ],
           "properties": {
-            "amount": {
+            "pre_lock_amount": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "total_bought": {
               "$ref": "#/definitions/Uint128"
             }
           }

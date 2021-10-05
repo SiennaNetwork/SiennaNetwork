@@ -2,31 +2,42 @@
   "name": "@sienna/sienna",
   "version": "0.0.0",
   "private": true,
-  "workspaces": [
+  "workspace": true,
+  "packages": [
     "./contracts/rewards",
-    "./libraries/fadroma-next",
     "./libraries/fadroma-next/ops",
     "./libraries/fadroma-next/ops-scrt",
     "./libraries/fadroma-next/ops-scrt-1.0",
     "./libraries/fadroma-next/ops-scrt-1.2",
+    "./libraries/fadroma-next/platforms/ganesha",
+    "./libraries/fadroma-next/platforms/scrt-1.0/cosmwasm-js/packages/sdk",
+    "./libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk",
     "./libraries/fadroma-next/tools",
     "./libraries/schedule",
     "./api",
     "./ops",
-    "./ops/amm"
+    "./ops/amm",
+    "./settings"
   ],
   "dependencies": {
-    "@fadroma/scrt-1.0": "*",
-    "@fadroma/scrt-1.2": "*",
+    "@sienna/api": "workspace:*",
+    "@sienna/settings": "workspace:*",
+    "@fadroma/ops": "workspace:*",
+    "@fadroma/scrt": "workspace:*",
+    "@fadroma/scrt-1.0": "workspace:*",
+    "@fadroma/scrt-1.2": "workspace:*",
+    "@fadroma/tools": "workspace:*",
+    "@hackbg/ganesha": "workspace:*",
     "chai": "^4.3.4",
     "docco": "^0.8.1",
-    "esmo": "^0.9.1",
     "mocha": "^8.4.0",
     "source-map-support": "^0.5.19",
+    "ts-node": "^10.2.1",
     "typescript": "^4.3.2"
   },
   "scripts": {
     "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",
-    "sienna": "./sienna"
+    "sienna": "./sienna",
+    "ops": "ganesha run-module --unhandled-rejections=strict deploy.ts"
   }
 }

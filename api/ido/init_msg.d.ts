@@ -29,6 +29,7 @@ export type TokenTypeFor_HumanAddr =
       [k: string]: unknown;
     };
 export type Uint128 = string;
+export type SaleType = "PreLockAndSwap" | "PreLockOnly" | "SwapOnly";
 
 export interface InitMsg {
   /**
@@ -41,6 +42,10 @@ export interface InitMsg {
   callback: CallbackFor_HumanAddr;
   entropy: Binary;
   info: TokenSaleConfig;
+  /**
+   * Used by the IDO to fill the whitelist spots with random pics
+   */
+  launchpad?: WhitelistRequest | null;
   /**
    * Seed for creating viewkey
    */
@@ -90,10 +95,25 @@ export interface TokenSaleConfig {
    * The price for a single token.
    */
   rate: Uint128;
+  /**
+   * Sale type settings
+   */
+  sale_type?: SaleType | null;
   sold_token: ContractInstanceFor_HumanAddr;
   /**
    * The addresses that are eligible to participate in the sale.
    */
   whitelist: HumanAddr[];
+  [k: string]: unknown;
+}
+export interface WhitelistRequest {
+  /**
+   * Launchpad contract instance information
+   */
+  launchpad: ContractInstanceFor_HumanAddr;
+  /**
+   * Vector of tokens address needs to have locked in order to be considered for a draw. Tokens need to be configured in the Launchpad as eligible. Option<> is because if None that will represent a native token.
+   */
+  tokens: (HumanAddr | null)[];
   [k: string]: unknown;
 }

@@ -1,8 +1,8 @@
 pub mod contract;
 pub mod data;
-
-#[cfg(test)]
-mod querier;
+pub(crate) mod handle;
+pub(crate) mod helpers;
+pub(crate) mod query;
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {

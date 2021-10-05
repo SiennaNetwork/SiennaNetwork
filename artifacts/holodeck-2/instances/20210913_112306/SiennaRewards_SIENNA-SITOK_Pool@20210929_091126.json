@@ -1,0 +1,43 @@
+{
+  "label": "20210913_112306/SiennaRewards_SIENNA-SITOK_Pool@20210929_091126",
+  "codeId": 30432,
+  "codeHash": "63c6e414179eca219fac72c4587295d6fb382abb04f359999f5f74bf27cb52a6",
+  "initTx": {
+    "contractAddress": "secret180e3l2fhzw5j2xu5t9ld6p6hgrlk9hzzewf56n",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "30432"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret180e3l2fhzw5j2xu5t9ld6p6hgrlk9hzzewf56n"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "EBAAEA66CF6139F9DA3E347A0A990D795B54F9EAA29360344981AA45C5943BEF",
+    "data": "3BF31FA93713A9251B94597EDD075740FF62DC42"
+  }
+}

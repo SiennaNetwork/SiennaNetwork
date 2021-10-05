@@ -116,11 +116,22 @@ contract! {
             let pool_last_update = pool.timestamp()?;
             if at < pool_last_update {
                 return Err(StdError::generic_err("this contract does not store history")) }
+
+            #[cfg(feature="pool_closes")]
+            let pool_closed =
+                if let Some((_, close_message)) = Pool::new(&deps.storage).closed()? {
+                    Some(close_message) }
+                else {
+                    None };
+
             Ok(Response::PoolInfo {
                 it_is_now: at,
 
                 lp_token:     load_lp_token(&deps.storage, &deps.api)?,
                 reward_token: load_reward_token(&deps.storage, &deps.api)?,
+
+                #[cfg(feature="pool_closes")]
+                pool_closed,
 
                 pool_last_update,
                 pool_lifetime:  pool.lifetime()?,
@@ -152,20 +163,25 @@ contract! {
             let pool_lifetime = pool.lifetime()?;
             let pool_locked   = pool.locked()?;
 
-            let reward_token_link = load_reward_token(&deps.storage, &deps.api)?;
-            let reward_token      = ISnip20::attach(&reward_token_link);
-            let reward_balance    = reward_token.query(&deps.querier).balance(
-                &load_self_reference(&deps.storage, &deps.api)?.address,
-                &load_viewing_key(&deps.storage)?.0, )?;
-
+            let reward_balance = load_reward_balance(&deps)?;
             let user = pool.with_balance(reward_balance).user(address);
             let user_last_update = user.timestamp()?;
             if let Some(user_last_update) = user_last_update {
                 if at < user_last_update {
                     return Err(StdError::generic_err("no time travel")) } }
 
+            #[cfg(feature="pool_closes")]
+            let pool_closed =
+                if let Some((_, close_message)) = Pool::new(&deps.storage).closed()? {
+                    Some(close_message) }
+                else {
+                    None };
+
             Ok(Response::UserInfo {
                 it_is_now: at,
+
+                #[cfg(feature="pool_closes")]
+                pool_closed,
 
                 pool_last_update,
                 pool_lifetime,
@@ -216,6 +232,9 @@ contract! {
             pool_lifetime:    Volume,
             pool_locked:      Amount,
 
+            #[cfg(feature="pool_closes")]
+            pool_closed:      Option<String>,
+
             pool_balance:     Amount,
             pool_claimed:     Amount,
 
@@ -235,6 +254,9 @@ contract! {
             pool_last_update: Time,
             pool_lifetime:    Volume,
             pool_locked:      Amount,
+
+            #[cfg(feature="pool_closes")]
+            pool_closed:      Option<String>,
 
             user_last_update: Option<Time>,
             user_lifetime:    Volume,
@@ -327,8 +349,7 @@ contract! {
             // If the pool is closed, users can only retrieve all their liquidity tokens
             #[cfg(feature="pool_closes")]
             if let Some(closed_response) = close_handler(&mut deps.storage, &deps.api, &env)? {
-                return Ok(closed_response)
-            }
+                return Ok(closed_response) }
 
             tx_ok!(ISnip20::attach(&load_lp_token(&deps.storage, &deps.api)?).transfer_from(
                 &env.message.sender,
@@ -343,8 +364,7 @@ contract! {
             // If the pool is closed, users can only retrieve all their liquidity tokens
             #[cfg(feature="pool_closes")]
             if let Some(closed_response) = close_handler(&mut deps.storage, &deps.api, &env)? {
-                return Ok(closed_response)
-            }
+                return Ok(closed_response) }
 
             tx_ok!(ISnip20::attach(&load_lp_token(&deps.storage, &deps.api)?).transfer(
                 &env.message.sender,
@@ -363,16 +383,8 @@ contract! {
                 response.messages.append(&mut closed_response.messages);
                 response.log.append(&mut closed_response.log); }
 
-            // Get the reward token
-            let reward_token_link = load_reward_token(&deps.storage, &deps.api)?;
-            let reward_token      = ISnip20::attach(&reward_token_link);
-
             // Get the reward balance of the contract
-            let reward_balance = reward_token
-                .query(&deps.querier)
-                .balance(
-                    &env.contract.address,
-                    &load_viewing_key(&deps.storage)?.0)?;
+            let reward_balance = load_reward_balance(&deps)?;
 
             // Compute the reward portion for this user.
             // May return error if portion is zero.
@@ -383,10 +395,28 @@ contract! {
                 .claim_reward()?;
 
             // Add the reward to the response
+            let reward_token_link = load_reward_token(&deps.storage, &deps.api)?;
+            let reward_token      = ISnip20::attach(&reward_token_link);
             response.messages.push(reward_token.transfer(&env.message.sender, reward)?);
             response.log.push(LogAttribute { key: "reward".into(), value: reward.into() });
 
             Ok(response) } } }
+
+pub fn load_reward_balance (
+    deps: &Extern<impl Storage, impl Api, impl Querier>
+) -> StdResult<Uint128> {
+    let reward_token_link  = load_reward_token(&deps.storage, &deps.api)?;
+    let reward_token       = ISnip20::attach(&reward_token_link);
+    let mut reward_balance = reward_token.query(&deps.querier).balance(
+        &load_self_reference(&deps.storage, &deps.api)?.address,
+        &load_viewing_key(&deps.storage)?.0)?;
+
+    let lp_token_link = load_lp_token(&deps.storage, &deps.api)?;
+    if lp_token_link == reward_token_link {
+        let lp_balance = Pool::new(&deps.storage).locked()?;
+        reward_balance = (reward_balance - lp_balance)?; }
+
+    Ok(reward_balance) }
 
 #[cfg(feature="pool_closes")]
 /// Returns either a "pool closed" HandleResponse

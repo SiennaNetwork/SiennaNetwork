@@ -2,7 +2,7 @@ use amm_shared::{
     exchange::{Exchange, ExchangeSettings},
     fadroma::scrt::{
         addr::{Canonize, Humanize},
-        callback::ContractInstantiationInfo,
+        callback::{ContractInstance, ContractInstantiationInfo},
         cosmwasm_std::{
             Api, Binary, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage,
         },
@@ -16,6 +16,7 @@ use std::usize;
 
 const CONFIG_KEY: &[u8] = b"config";
 const PRNG_KEY: &[u8] = b"prng_seed";
+const LAUNCHPAD_KEY: &[u8] = b"launchpad_instance";
 const IDO_COUNT_KEY: &[u8] = b"ido_count";
 const EXCHANGE_COUNT_KEY: &[u8] = b"exchange_count";
 
@@ -31,6 +32,7 @@ pub(crate) struct Config<A> {
     pub snip20_contract: ContractInstantiationInfo,
     pub lp_token_contract: ContractInstantiationInfo,
     pub pair_contract: ContractInstantiationInfo,
+    pub launchpad_contract: ContractInstantiationInfo,
     pub ido_contract: ContractInstantiationInfo,
     pub exchange_settings: ExchangeSettings<A>,
 }
@@ -41,6 +43,7 @@ impl Config<HumanAddr> {
             snip20_contract: msg.snip20_contract,
             lp_token_contract: msg.lp_token_contract,
             pair_contract: msg.pair_contract,
+            launchpad_contract: msg.launchpad_contract,
             ido_contract: msg.ido_contract,
             exchange_settings: msg.exchange_settings,
         }
@@ -52,6 +55,7 @@ impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
             snip20_contract: self.snip20_contract.clone(),
             lp_token_contract: self.lp_token_contract.clone(),
             pair_contract: self.pair_contract.clone(),
+            launchpad_contract: self.launchpad_contract.clone(),
             ido_contract: self.ido_contract.clone(),
             exchange_settings: self.exchange_settings.canonize(api)?,
         })
@@ -63,6 +67,7 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
             snip20_contract: self.snip20_contract.clone(),
             lp_token_contract: self.lp_token_contract.clone(),
             pair_contract: self.pair_contract.clone(),
+            launchpad_contract: self.launchpad_contract.clone(),
             ido_contract: self.ido_contract.clone(),
             exchange_settings: self.exchange_settings.clone().humanize(api)?,
         })
@@ -94,6 +99,19 @@ pub(crate) fn save_prng_seed(storage: &mut impl Storage, prng_seed: &Binary) -> 
 pub(crate) fn load_prng_seed(storage: &impl Storage) -> StdResult<Binary> {
     let prng_seed: Option<Binary> = load(storage, PRNG_KEY)?;
     prng_seed.ok_or(StdError::generic_err("Prng seed doesn't exist in storage."))
+}
+
+pub(crate) fn save_launchpad_instance(
+    storage: &mut impl Storage,
+    instance: &ContractInstance<HumanAddr>,
+) -> StdResult<()> {
+    save(storage, LAUNCHPAD_KEY, instance)
+}
+
+pub(crate) fn load_launchpad_instance(
+    storage: &impl Storage,
+) -> StdResult<Option<ContractInstance<HumanAddr>>> {
+    load(storage, LAUNCHPAD_KEY)
 }
 
 /// Returns StdResult<bool> indicating whether a pair has been created before or not.

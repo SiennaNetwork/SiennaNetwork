@@ -14,12 +14,13 @@ members = [
   "libraries/amm-shared", # definitions that are shared between AMM and IDO
   "contracts/exchange",   # uniswap exchange contract implementation
   "contracts/factory",    # factory contract for creating exchanges
+  "contracts/launchpad",  # Launchpad contract
   "contracts/ido",        # Sienna IDO
   "contracts/lp-token",   # snip20 liquidity provider token,
   "contracts/amm-snip20", # vanilla snip20 token, used when creating an IDO
 
   # Lending
-  "libraries/lend-experimental",        # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/libraries
+  "libraries/lend-experimental", # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/libraries
   #"contracts/lend-atoken"              # <- https://github.com/SiennaNetwork/sienna-lend/tree/master/contracts/atoken/src
   "contracts/lend-atoken-experimental", # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/atoken
   "contracts/lend-configuration",       # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/configuration
@@ -35,8 +36,8 @@ members = [
   "libraries/fadroma-21.07/scrt-snip20-api",             # interface to external snip20 token
   "libraries/fadroma-21.07/scrt-storage",                # storage access shorthand functions
   "libraries/fadroma-21.07/scrt-utils",                  # grab bag of utility functions
-  "libraries/migrate",  # migration flag, as used by TGE before merging this feature into Fadroma
-  "libraries/kukumba",  # BDD testing framework
+  "libraries/migrate",                                   # migration flag, as used by TGE before merging this feature into Fadroma
+  "libraries/kukumba",                                   # BDD testing framework
 ]
 
 [profile.release]

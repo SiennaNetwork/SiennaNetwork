@@ -21,7 +21,7 @@ export default async function main (command: CommandName, ...args: any) {
 
   const tge     = new SiennaTGE()
       , rewards = new SiennaRewards()
-      , swap     = new SiennaSwap()
+      , swap    = new SiennaSwap()
       , lend    = new SiennaLend()
 
   function remoteCommands (chain: Chain): Commands {
@@ -112,6 +112,11 @@ export async function genSchema () {
     'ido/query_msg.json',
     'ido/query_response.json',
     'ido/receiver_callback_msg.json',
+    'launchpad/handle_msg.json',
+    'launchpad/init_msg.json',
+    'launchpad/query_msg.json',
+    'launchpad/query_response.json',
+    'launchpad/receiver_callback_msg.json',
     'mgmt/handle.json',
     'mgmt/init.json',
     'mgmt/query.json',

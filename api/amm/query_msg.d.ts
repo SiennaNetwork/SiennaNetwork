@@ -6,7 +6,7 @@
  */
 
 export type QueryMsg =
-  | ("status" | "pair_info")
+  | "pair_info"
   | {
       swap_simulation: {
         /**

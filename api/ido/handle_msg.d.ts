@@ -25,6 +25,13 @@ export type HandleMsg =
       [k: string]: unknown;
     }
   | {
+      pre_lock: {
+        amount: Uint128;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
       swap: {
         amount: Uint128;
         /**

@@ -70,6 +70,26 @@
       }
     },
     {
+      "description": "Pre lock funds before the sale has started, and then claim them after the sale starts.",
+      "type": "object",
+      "required": [
+        "pre_lock"
+      ],
+      "properties": {
+        "pre_lock": {
+          "type": "object",
+          "required": [
+            "amount"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
       "description": "Swap custom or native coin for selling coin",
       "type": "object",
       "required": [

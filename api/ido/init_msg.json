@@ -32,6 +32,17 @@
     "info": {
       "$ref": "#/definitions/TokenSaleConfig"
     },
+    "launchpad": {
+      "description": "Used by the IDO to fill the whitelist spots with random pics",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WhitelistRequest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "prng_seed": {
       "description": "Seed for creating viewkey",
       "allOf": [
@@ -91,6 +102,14 @@
     "HumanAddr": {
       "type": "string"
     },
+    "SaleType": {
+      "type": "string",
+      "enum": [
+        "PreLockAndSwap",
+        "PreLockOnly",
+        "SwapOnly"
+      ]
+    },
     "TokenSaleConfig": {
       "type": "object",
       "required": [
@@ -138,6 +157,17 @@
           "allOf": [
             {
               "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "sale_type": {
+          "description": "Sale type settings",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SaleType"
+            },
+            {
+              "type": "null"
             }
           ]
         },
@@ -201,6 +231,37 @@
     },
     "Uint128": {
       "type": "string"
+    },
+    "WhitelistRequest": {
+      "type": "object",
+      "required": [
+        "launchpad",
+        "tokens"
+      ],
+      "properties": {
+        "launchpad": {
+          "description": "Launchpad contract instance information",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+            }
+          ]
+        },
+        "tokens": {
+          "description": "Vector of tokens address needs to have locked in order to be considered for a draw. Tokens need to be configured in the Launchpad as eligible. Option<> is because if None that will represent a native token.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/HumanAddr"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
     }
   }
 }

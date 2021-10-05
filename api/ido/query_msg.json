@@ -13,6 +13,25 @@
     {
       "type": "object",
       "required": [
+        "eligibility_info"
+      ],
+      "properties": {
+        "eligibility_info": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
         "admin"
       ],
       "properties": {

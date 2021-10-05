@@ -1,6 +1,6 @@
 // Modules re-export
-pub use composable_auth as auth;
 pub use composable_admin as admin;
+pub use composable_auth as auth;
 pub use composable_snip20 as snip20_impl;
 pub use fadroma;
 
@@ -11,6 +11,10 @@ pub use token_type_amount::*;
 pub mod exchange;
 
 pub mod msg;
+
+#[cfg(not(target_arch = "wasm32"))]
+// This is instead of declaring it as a testing package due to limit of re-exporting testing packages
+pub mod querier;
 
 mod display;
 mod token_pair;

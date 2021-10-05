@@ -1,17 +1,8 @@
-import AMMContract from './AMM'
-import FactoryContract from './Factory'
-import IDOContract from './IDO'
-import MGMTContract from './MGMT'
-import RPTContract from './RPT'
-import SNIP20Contract from './SNIP20'
-import RewardsContract from './Rewards'
+export { AMM as AMMContract } from './AMM.ts'
+export { Factory as FactoryContract } from './Factory.ts'
+export { IDO as IDOContract } from './IDO.ts'
+export { Launchpad as LaunchpadContract } from './Launchpad.ts'
+export { Rewards as RewardsContract } from './Rewards.ts'
+export { SNIP20 as SNIP20Contract, AMMSNIP20, LPToken } from './SNIP20.ts'
 
-export {
-  AMMContract,
-  FactoryContract,
-  IDOContract,
-  MGMTContract,
-  RPTContract,
-  SNIP20Contract,
-  RewardsContract
-}
+export { SiennaSNIP20, MGMTContract, RPTContract } from './TGE.ts'
