@@ -3,21 +3,23 @@ import { ScrtContract, loadSchemas } from "@fadroma/scrt";
 import { randomHex } from "@fadroma/tools";
 import { abs } from "../ops/index";
 
-export const schema = loadSchemas(import.meta.url, {
-  initMsg: "./snip20/init_msg.json",
-  queryMsg: "./snip20/query_msg.json",
-  queryAnswer: "./snip20/query_answer.json",
-  handleMsg: "./snip20/handle_msg.json",
-  handleAnswer: "./snip20/handle_answer.json",
-});
-
 // @ts-ignore
 const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
 export class SNIP20 extends ScrtContract {
+  code = {...this.code, workspace: abs(), crate: "amm-snip20" };
+
+  static schema = loadSchemas(import.meta.url, {
+    initMsg:      "./snip20/init_msg.json",
+    queryMsg:     "./snip20/query_msg.json",
+    queryAnswer:  "./snip20/query_answer.json",
+    handleMsg:    "./snip20/handle_msg.json",
+    handleAnswer: "./snip20/handle_answer.json",
+  });
+
   constructor(options: ContractAPIOptions = {}) {
-    super({ ...options, schema });
+    super({ ...options, schema: SNIP20.schema });
   }
 
   /**
@@ -226,8 +228,12 @@ export class SNIP20 extends ScrtContract {
     );
 }
 
-export class SiennaSNIP20 extends SNIP20 {
-  code = { ...this.code, workspace: abs(), crate: "snip20-sienna" };
+export class AMMSNIP20 extends SNIP20 {
+  code = {
+    ...this.code,
+    workspace: abs(),
+    crate: "amm-snip20"
+  };
   init = {
     ...this.init,
     label: this.init.label || "SiennaSNIP20",
@@ -242,11 +248,20 @@ export class SiennaSNIP20 extends SNIP20 {
       
     },
   };
-}
-
-export class AMMSNIP20 extends SNIP20 {
-  code = { ...this.code, workspace: abs(), crate: "amm-snip20" };
-  init = { ...this.init, label: this.init.label || "AMMSNIP20" };
+  constructor ({ admin }: { admin: Agent }) {
+    super({ agent: admin })
+  }
+  static attach = (
+    address:  string,
+    codeHash: string,
+    agent:    Agent
+  ) => {
+    const instance = new AMMSNIP20({ admin: agent })
+    instance.init.agent = agent
+    instance.init.address = address
+    instance.blob.codeHash = codeHash
+    return instance
+  }
 }
 
 const lpTokenDefaultConfig = {
@@ -258,7 +273,8 @@ const lpTokenDefaultConfig = {
 };
 
 export class LPToken extends SNIP20 {
-  code = { ...this.code, workspace: abs(), crate: "lp-token" };
+  code = {
+    ...this.code, workspace: abs(), crate: "lp-token" };
   init = {
     ...this.init,
     label: this.init.label || `LP`,
@@ -272,15 +288,25 @@ export class LPToken extends SNIP20 {
       config: { ...lpTokenDefaultConfig },
     },
   };
-  constructor(options: ContractAPIOptions = {}, name: string = "???") {
+  constructor({ admin, name }: { admin: Agent, name?: string }) {
     super({
-      ...(options || {}),
+      agent: admin,
       label: `SiennaRewards_${name}_LPToken`,
       initMsg: {
-        ...(options?.initMsg || {}),
         symbol: `LP-${name}`,
         name: `${name} liquidity provision token`,
       },
     });
+  }
+  static attach = (
+    address:  string,
+    codeHash: string,
+    agent:    Agent
+  ) => {
+    const instance = new LPToken({ admin: agent })
+    instance.init.agent = agent
+    instance.init.address = address
+    instance.blob.codeHash = codeHash
+    return instance
   }
 }

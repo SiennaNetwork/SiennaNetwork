@@ -4,7 +4,8 @@
 use fadroma::scrt::{cosmwasm_std::{HumanAddr, StdError}};
 use crate::{rewards_harness::*};
 
-const PORTION: u128 = 100;
+const REWARD: u128 = 100;
+const STAKE:  u128 = 100;
 
 // duration of rewards period as u128 instead of u64
 // to allow in-place (DAY * Amount) volume calculations
@@ -40,28 +41,28 @@ kukumba_harnessed! {
             let alice = HumanAddr::from("alice");
             Test.at(1)
                 .init_configured(&admin)?
-                .fund(PORTION)
+                .fund(REWARD)
                 .set_vk(&alice, "")?
                 .user(&alice,     0,   0,       0,   0,   0,   0)? }
 
         when  "pool is closed by admin after some activity" {
             Test.at(1)
-                .lock(&alice, 100u128.into())?
-                .user(&alice,     0, 100,       0,   0,   0,   0)?;
+                .lock(&alice, STAKE)?
+                .user(&alice,     0, STAKE,       0,   0,   0,   0)?;
 
             Test.after(DAY)
-                .user(&alice, 1*DAY, 100, 100*DAY, 100,   0, 100)?
-                .claim(&alice, 100)?
-                .user(&alice, 1*DAY, 100, 100*DAY, 100, 100,   0)?;
+                .user(&alice, 1*DAY, STAKE, STAKE*DAY, REWARD,      0, REWARD)?
+                .claim(&alice, REWARD)?
+                .user(&alice, 1*DAY, STAKE, STAKE*DAY, REWARD, REWARD,      0)?;
 
             Test.after(DAY)
-                .retrieve(&alice, 100)?
-                .fund(PORTION)
+                .retrieve(&alice, REWARD)?
+                .fund(REWARD)
                 .user(&alice, 2*DAY,   0, 200*DAY, 200, 100, 100)?;
 
             Test.after(DAY)
                 .user(&alice, 2*DAY,   0, 200*DAY,  88, 100,   0)?
-                .fund(PORTION)
+                .fund(REWARD)
                 .user(&alice, 2*DAY,   0, 200*DAY, 133, 100,  33)?
                 .lock(&alice, 50)?;
 
@@ -94,7 +95,7 @@ kukumba_harnessed! {
                 .user(&alice, 4*DAY,   0, 300*DAY, 192, 100,  92)?;
             Test.claim(&alice, 92)?
                 .user(&alice, 4*DAY,   0,       0,   0,   0,   0)?;
-            Test.fund(PORTION)
+            Test.fund(REWARD)
                 .user(&alice, 4*DAY,   0,       0,   0,   0,   0)? } }
 
     init_then_set_lp_token {
@@ -123,7 +124,7 @@ kukumba_harnessed! {
             let alice = HumanAddr::from("alice");
             Test.at(1).init_configured(&admin)?
                       .set_vk(&alice, "")?
-                      .fund(PORTION)
+                      .fund(REWARD)
                       .user(&alice,    0,   0,   0, 0, 0, 0)? }
 
         when "alice first locks lp tokens,"
@@ -223,7 +224,7 @@ kukumba_harnessed! {
 
         and   "a provider claims rewards"
         then  "that provider receives reward tokens" {
-            Test.fund(PORTION)
+            Test.fund(REWARD)
                 .at(1 + DAY).claim(&alice, 50)? }
 
         when  "a provider claims rewards twice within a period"
@@ -234,7 +235,7 @@ kukumba_harnessed! {
 
         when  "a provider claims their rewards less often"
         then  "they receive equivalent rewards as long as the liquidity locked hasn't changed" {
-            Test.fund(PORTION)
+            Test.fund(REWARD)
                 .at(3 + DAY * 2).claim(&alice, 50)?.claim(&bob, 100)? } }
 
     two_parallel_users {
@@ -243,7 +244,7 @@ kukumba_harnessed! {
             let alice = HumanAddr::from("alice");
             let bob   = HumanAddr::from("bob");
             Test.at(1).init_configured(&admin)?
-                      .fund(PORTION)
+                      .fund(REWARD)
                       .set_vk(&alice, "")?
                       .set_vk(&bob,   "")?
                       .user(&alice, 0, 0, 0, 0, 0, 0)?
@@ -273,7 +274,7 @@ kukumba_harnessed! {
             Test.at(1).init_configured(&admin)?
                       .set_vk(&alice, "")?
                       .set_vk(&bob,   "")?
-                      .fund(PORTION) }
+                      .fund(REWARD) }
 
         when "alice locks lp tokens,"
         and  "alice retrieves them after reaching the threshold;"
@@ -308,7 +309,7 @@ kukumba_harnessed! {
         when "alice locks lp tokens,"
         and  "alice retrieves them after reaching the threshold;"
         then "alice is eligible to claim the whole pool" {
-            Test.fund(PORTION)
+            Test.fund(REWARD)
                 .at(    1).user(&alice, 0, 0, 0, 0, 0, 0)?.lock(&alice, 100)?
                 .at(DAY+1).user(&alice, DAY, 100, DAY * 100, 100, 0, 100)?.retrieve(&alice, 100)?
                           .user(&alice, DAY,   0, DAY * 100, 100, 0, 100)? }
@@ -330,5 +331,31 @@ kukumba_harnessed! {
             Test.at(2*DAY+2).user(&bob,   DAY, 100, DAY * 100, 49,  0, 49)?.retrieve(&bob, 100)?
                             .user(&bob,   DAY,   0, DAY * 100, 49,  0, 49)?
                             .user(&alice, DAY,   0, 0, 0, 0, 0)? } }
+
+    single_sided_staking {
+        given "an instance where the lp token and the reward token are the same" {
+            let admin = HumanAddr::from("admin");
+            let alice = HumanAddr::from("alice");
+            Test.at(1).init_partial(&admin)?
+                      .set_token(&admin, "reward_token_address", "reward_token_hash")?
+                      .set_vk(&alice, "")?; }
+
+        when "alice locks tokens"
+        and "alice becomes eligible for rewards" {
+            Test.fund(REWARD)
+                .at(    1).user(&alice,   0,     0,           0,      0, 0,      0)?
+                .lock(&alice, STAKE)?.fund(STAKE) // because it gets added to the same balance
+                .at(DAY+1).user(&alice, DAY, STAKE, DAY * STAKE, REWARD, 0, REWARD)?; }
+
+        when "alice claims rewards"
+        then "they are calculated from the reward balance" {
+            Test.claim(&alice, REWARD)?;
+        }
+
+        when "alice retrieves tokens"
+        then "alice gets back the original amount" {
+            Test.retrieve(&alice, 100)?;
+        }
+    }
 
 }

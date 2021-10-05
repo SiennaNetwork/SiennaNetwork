@@ -9,8 +9,12 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg: "./ido/handle_msg.json",
 });
 
+export type IDOOptions = ContractAPIOptions & { admin?: Agent }
+
 export class IDO extends ScrtContract {
-  constructor (options: ContractAPIOptions = {}) { super({ ...options, schema }) }
+  constructor (options: IDOOptions = {}) {
+    super({ ...options, agent: options.admin, schema })
+  }
 
   code = { ...this.code, workspace: abs(), crate: 'ido' }
 

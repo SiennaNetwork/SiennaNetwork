@@ -73,9 +73,10 @@ impl Querier for RewardsMockQuerier {
 }
 
 pub struct RewardsHarness <Q: Querier> {
-    _now: u128,
+    _now:  u128,
     _deps: Extern<MemoryStorage, MockApi, Q>,
-    _lp_token: ContractLink<HumanAddr>
+    _lp_token:     ContractLink<HumanAddr>,
+    _reward_token: ContractLink<HumanAddr>
 }
 
 // trait fields WHEN?
@@ -95,14 +96,17 @@ impl RewardsHarness<RewardsMockQuerier> {
 
     pub fn new () -> Self {
         Self {
-            _now: 0,
+            _now:  0,
             _deps: Extern {
-                storage: MemoryStorage::default(),
-                api:     MockApi::new(ADDR_LEN),
-                querier: RewardsMockQuerier { balance: 0u128.into() } },
-            _lp_token: ContractLink {
+                storage:   MemoryStorage::default(),
+                api:       MockApi::new(ADDR_LEN),
+                querier:   RewardsMockQuerier { balance: 0u128.into() } },
+            _lp_token:     ContractLink {
                 address:   "lp_token_address".into(),
-                code_hash: "lp_token_hash".into(), } } }
+                code_hash: "lp_token_hash".into(), },
+            _reward_token: ContractLink {
+                address:   "reward_token_address".into(),
+                code_hash: "reward_token_hash".into(), } } }
 
     // mocked external state ----------------------------------------------------------------------
 
@@ -127,9 +131,7 @@ impl RewardsHarness<RewardsMockQuerier> {
         let result = self.init(self.now(), admin, Init {
             admin:         None,
             lp_token:      Some(self.lp_token()),
-            reward_token:  ContractLink {
-                address:   "reward_token_address".into(),
-                code_hash: "reward_token_hash".into(), },
+            reward_token:  self.reward_token(),
             viewing_key:   "".into(),
             ratio:         None,
             threshold:     None,
@@ -142,9 +144,7 @@ impl RewardsHarness<RewardsMockQuerier> {
         let result = self.init(self.now(), admin, Init {
             admin:         None,
             lp_token:      None,
-            reward_token:  ContractLink {
-                address:   "reward_token_address".into(),
-                code_hash: "reward_token_hash".into(), },
+            reward_token:  self.reward_token(),
             viewing_key:   "".into(),
             ratio:         None,
             threshold:     None,
@@ -173,6 +173,9 @@ impl RewardsHarness<RewardsMockQuerier> {
 
     pub fn lp_token (&self) -> ContractLink<HumanAddr> {
         self._lp_token.clone() }
+
+    pub fn reward_token (&self) -> ContractLink<HumanAddr> {
+        self._reward_token.clone() }
 
     // pool and user status -----------------------------------------------------------------------
 

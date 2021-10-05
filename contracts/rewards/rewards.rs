@@ -116,11 +116,22 @@ contract! {
             let pool_last_update = pool.timestamp()?;
             if at < pool_last_update {
                 return Err(StdError::generic_err("this contract does not store history")) }
+
+            #[cfg(feature="pool_closes")]
+            let pool_closed =
+                if let Some((_, close_message)) = Pool::new(&deps.storage).closed()? {
+                    Some(close_message) }
+                else {
+                    None };
+
             Ok(Response::PoolInfo {
                 it_is_now: at,
 
                 lp_token:     load_lp_token(&deps.storage, &deps.api)?,
                 reward_token: load_reward_token(&deps.storage, &deps.api)?,
+
+                #[cfg(feature="pool_closes")]
+                pool_closed,
 
                 pool_last_update,
                 pool_lifetime:  pool.lifetime()?,
@@ -159,8 +170,18 @@ contract! {
                 if at < user_last_update {
                     return Err(StdError::generic_err("no time travel")) } }
 
+            #[cfg(feature="pool_closes")]
+            let pool_closed =
+                if let Some((_, close_message)) = Pool::new(&deps.storage).closed()? {
+                    Some(close_message) }
+                else {
+                    None };
+
             Ok(Response::UserInfo {
                 it_is_now: at,
+
+                #[cfg(feature="pool_closes")]
+                pool_closed,
 
                 pool_last_update,
                 pool_lifetime,
@@ -211,6 +232,9 @@ contract! {
             pool_lifetime:    Volume,
             pool_locked:      Amount,
 
+            #[cfg(feature="pool_closes")]
+            pool_closed:      Option<String>,
+
             pool_balance:     Amount,
             pool_claimed:     Amount,
 
@@ -230,6 +254,9 @@ contract! {
             pool_last_update: Time,
             pool_lifetime:    Volume,
             pool_locked:      Amount,
+
+            #[cfg(feature="pool_closes")]
+            pool_closed:      Option<String>,
 
             user_last_update: Option<Time>,
             user_lifetime:    Volume,
@@ -322,8 +349,7 @@ contract! {
             // If the pool is closed, users can only retrieve all their liquidity tokens
             #[cfg(feature="pool_closes")]
             if let Some(closed_response) = close_handler(&mut deps.storage, &deps.api, &env)? {
-                return Ok(closed_response)
-            }
+                return Ok(closed_response) }
 
             tx_ok!(ISnip20::attach(&load_lp_token(&deps.storage, &deps.api)?).transfer_from(
                 &env.message.sender,
@@ -338,8 +364,7 @@ contract! {
             // If the pool is closed, users can only retrieve all their liquidity tokens
             #[cfg(feature="pool_closes")]
             if let Some(closed_response) = close_handler(&mut deps.storage, &deps.api, &env)? {
-                return Ok(closed_response)
-            }
+                return Ok(closed_response) }
 
             tx_ok!(ISnip20::attach(&load_lp_token(&deps.storage, &deps.api)?).transfer(
                 &env.message.sender,

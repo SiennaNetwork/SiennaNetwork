@@ -135,7 +135,7 @@ describe("Rewards", () => {
                  , enable_burn: true } } }))
 
     console.debug('set asset token in rewards pool:')
-    await rewardPool.setProvidedToken(lpToken.reference.address, lpToken.reference.code_hash)
+    await rewardPool.setLPToken(lpToken.reference.address, lpToken.reference.code_hash)
 
     const T1 = + new Date()
     console.info(`instantiation took ${T1 - T0}msec`)

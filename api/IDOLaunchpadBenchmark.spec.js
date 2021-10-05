@@ -4,7 +4,7 @@ import { randomBytes } from "crypto";
 import { Scrt, ScrtGas } from "@fadroma/scrt";
 
 import { Launchpad } from "./Launchpad";
-import { SiennaSNIP20, SNIP20 } from "./SNIP20";
+import { SNIP20 } from "./SNIP20";
 import { Factory } from "./Factory";
 import { IDO } from "./IDO";
 import { generateMnemonic } from "bip39";
@@ -53,18 +53,14 @@ describe("Launchpad", () => {
     console.debug(`connecting took ${T1 - T0}msec`);
 
     context.templates = {
-      SiennaSNIP20: new SiennaSNIP20(),
+      SNIP20: new SNIP20(),
       Launchpad: new Launchpad(),
       Factory: new Factory(),
       IDO: new IDO(),
     };
 
-    // build the contracts
-    // await Promise.all(
-    //   Object.values(context.templates).map((contract) => contract.build())
-    // );
-
     for (const template in context.templates) {
+      console.debug(`Buidling ${template}`);
       await context.templates[template].build();
     }
 
@@ -72,8 +68,9 @@ describe("Launchpad", () => {
     console.debug(`building took ${T2 - T1}msec`);
 
     // upload the contracts
-    for (const contract of Object.values(context.templates)) {
-      await contract.upload(context.agent);
+    for (const template in context.templates) {
+      console.debug(`Uploading ${template}`);
+      await context.templates[template].upload(context.agent);
       await context.agent.nextBlock;
     }
 
@@ -86,16 +83,16 @@ describe("Launchpad", () => {
       initMsg: {
         prng_seed: randomBytes(36).toString("hex"),
         snip20_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
+          id: context.templates.SNIP20.codeId,
+          code_hash: context.templates.SNIP20.codeHash,
         },
         lp_token_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
+          id: context.templates.SNIP20.codeId,
+          code_hash: context.templates.SNIP20.codeHash,
         },
         pair_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
+          id: context.templates.SNIP20.codeId,
+          code_hash: context.templates.SNIP20.codeHash,
         },
         launchpad_contract: {
           id: context.templates.Launchpad.codeId,
@@ -120,8 +117,8 @@ describe("Launchpad", () => {
     });
     await context.factory.instantiate(context.agent);
 
-    context.token = new SiennaSNIP20({
-      codeId: context.templates.SiennaSNIP20.codeId,
+    context.token = new SNIP20({
+      codeId: context.templates.SNIP20.codeId,
       label: `token-${parseInt(Math.random() * 100000)}`,
       initMsg: {
         prng_seed: randomBytes(36).toString("hex"),
@@ -155,7 +152,7 @@ describe("Launchpad", () => {
             token_type: {
               custom_token: {
                 contract_addr: context.token.init.address,
-                token_code_hash: context.templates.SiennaSNIP20.codeHash,
+                token_code_hash: context.templates.SNIP20.codeHash,
               },
             },
             segment: "25",
@@ -184,7 +181,7 @@ describe("Launchpad", () => {
     await context.launchpad.instantiate(context.agent);
 
     context.sellingToken = new SNIP20({
-      codeId: context.templates.SiennaSNIP20.codeId,
+      codeId: context.templates.SNIP20.codeId,
       label: `token-${parseInt(Math.random() * 100000)}`,
       initMsg: {
         prng_seed: randomBytes(36).toString("hex"),
@@ -236,7 +233,7 @@ describe("Launchpad", () => {
           rate: "1",
           sold_token: {
             address: context.sellingToken.address,
-            code_hash: context.templates.SiennaSNIP20.codeHash,
+            code_hash: context.templates.SNIP20.codeHash,
           },
           whitelist: [],
           max_seats: 100,
@@ -285,14 +282,17 @@ describe("Launchpad", () => {
   it("Benchmark gas usage when IDO is given a whitelist", async function () {
     this.timeout(0);
 
-    const { drawn_addresses: whitelist } = await context.launchpad.draw(100, [
-      null,
-      context.token.address,
-    ]);
+    // const { drawn_addresses: whitelist } = await context.launchpad.draw(100, [
+    //   null,
+    //   context.token.address,
+    // ]);
 
+    const whitelist = [];
     const beforeInitBalance = await context.agent.balance;
 
-    new String();
+    
+
+
     context.ido = new IDO({
       codeId: context.templates.IDO.codeId,
       label: `ido-${parseInt(Math.random() * 100000)}`,
@@ -306,7 +306,7 @@ describe("Launchpad", () => {
           rate: "1",
           sold_token: {
             address: context.sellingToken.address,
-            code_hash: context.templates.SiennaSNIP20.codeHash,
+            code_hash: context.templates.SNIP20.codeHash,
           },
           whitelist,
           max_seats: 100,
