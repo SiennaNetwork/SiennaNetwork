@@ -138,8 +138,7 @@ export async function deploySwap (options: SwapOptions) {
   const swapPairs = settings[`swapPairs-${chain.chainId}`]
 
   if (swapPairs.length > 0) {
-    const existingExchanges = (await FACTORY.listExchanges())
-      .list_exchanges.exchanges
+    const existingExchanges = await FACTORY.listExchanges()
 
     for (const name of swapPairs) {
       const [token0, token1] = await deploySwapPair(name, existingExchanges)
@@ -209,7 +208,7 @@ export async function deploySwap (options: SwapOptions) {
   }
 
   async function getLPToken (token0: SNIP20, token1: SNIP20) {
-    const {exchanges} = (await FACTORY.listExchanges()).list_exchanges
+    const exchanges = await FACTORY.listExchanges()
     const {address: pairAddress} = exchanges.filter(({pair})=>(
       pair.token_0.custom_token.contract_addr === token0.address &&
       pair.token_1.custom_token.contract_addr === token1.address

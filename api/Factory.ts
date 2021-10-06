@@ -116,14 +116,15 @@ export class Factory extends ScrtContract {
 
     while(true) {
       const response = await this.q.listExchanges({ pagination: { start, limit } })
+      const list = response.list_exchanges.exchanges
 
-      if (response.length == 0)
+      if (list.length == 0)
         break
 
+      result.push.apply(result, list)
       start += limit
-      result.push.apply(result, response)
     }
-
+    
     return result
   }
 }
