@@ -28,7 +28,7 @@ export class ExchangeContract extends SmartContract<ExchangeExecutor, ExchangeQu
     exec(fee?: Fee, memo?: string): ExchangeExecutor {
         return new ExchangeExecutor(
             this.address,
-            this.query,
+            () => this.query.apply(this),
             this.execute_client,
             fee,
             memo

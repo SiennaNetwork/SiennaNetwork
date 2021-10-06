@@ -86,7 +86,7 @@ export class IdoContract extends SmartContract<IdoExecutor, IdoQuerier> {
     exec(fee?: Fee, memo?: string): IdoExecutor {
         return new IdoExecutor(
             this.address,
-            this.query,
+            () => this.query.apply(this),
             this.execute_client,
             fee,
             memo
