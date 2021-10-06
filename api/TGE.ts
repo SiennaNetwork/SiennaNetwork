@@ -19,8 +19,14 @@ export class SiennaSNIP20 extends SNIP20 {
            decimals: 18,
            config: { public_total_supply: true } } }
 
-  constructor (options: { prefix: string, admin: Agent }) {
-    super({ prefix: options.prefix, agent: options.admin })
+  constructor (options: {
+    prefix?: string,
+    admin?: Agent
+  } = {}) {
+    super({
+      prefix: options?.prefix,
+      agent:  options?.admin
+    })
     this.init.msg.prng_seed = randomHex(36)
   }
 
@@ -51,24 +57,30 @@ export class MGMTContract extends ScrtContract {
     contract.init.address  = address
     contract.blob.codeHash = codeHash
   }
-  code = {
-    ...this.code, workspace: abs(), crate: 'sienna-mgmt' }
-  init = {
-    ...this.init, label: 'SiennaMGMT', msg: {} }
+  code = { ...this.code, workspace: abs(), crate: 'sienna-mgmt' }
+  init = { ...this.init, label: 'SiennaMGMT', msg: {} }
   constructor (options: {
-    prefix:   string
-    admin:    Agent
-    schedule: ScheduleFor_HumanAddr
-    SIENNA:   SNIP20
-  }) {
-    super({ prefix: options.prefix, agent: options.admin, schema: MGMTContract.schema })
+    prefix?:   string
+    admin?:    Agent
+    schedule?: ScheduleFor_HumanAddr
+    SIENNA?:   SNIP20
+  } = {}) {
+    super({
+      prefix: options?.prefix,
+      agent: options?.admin,
+      schema: MGMTContract.schema
+    })
     Object.assign(this.init.msg, {
       admin:    options.admin?.address,
-      schedule: options.schedule, })
+      schedule: options.schedule,
+    })
     // auto get token address after it's deployed
     Object.defineProperty(this.init.msg, 'token', {
       enumerable: true,
-      get () { return options.SIENNA.linkPair } }) }
+      get () { return options.SIENNA.linkPair }
+    })
+  }
+
   /** query contract status */
   get status() { return this.q.status({}) }
   /** query current schedule */
@@ -104,34 +116,32 @@ export class RPTContract extends ScrtContract {
     handleMsg:   "./rpt/handle.json"
   })
 
-  code = {
-    ...this.code, workspace: abs(), crate: 'sienna-rpt' }
+  code = { ...this.code, workspace: abs(), crate: 'sienna-rpt' }
 
-  init = {
-    ...this.init, label: 'SiennaRPT', msg: {} }
+  init = { ...this.init, label: 'SiennaRPT', msg: {} }
 
   constructor (options: {
-    prefix:  string
-    admin:   Agent
-    config:  LinearMapFor_HumanAddrAnd_Uint128
-    portion: Uint128
-    SIENNA:  SiennaSNIP20
-    MGMT:    MGMTContract
-  }) {
+    prefix?:  string
+    admin?:   Agent
+    config?:  LinearMapFor_HumanAddrAnd_Uint128
+    portion?: Uint128
+    SIENNA?:  SiennaSNIP20
+    MGMT?:    MGMTContract
+  } = {}) {
     super({
-      prefix: options.prefix,
-      agent:  options.admin,
+      prefix: options?.prefix,
+      agent:  options?.admin,
       schema: RPTContract.schema
     })
     Object.assign(this.init.msg, {
-      token:   options.SIENNA?.linkPair,
-      mgmt:    options.MGMT?.linkPair,
+      token:   options?.SIENNA?.linkPair,
+      mgmt:    options?.MGMT?.linkPair,
       portion: options.portion,
       config:  [[options.admin?.address, options.portion]]
     })
     Object.defineProperties(this.init.msg, {
-      token: { enumerable: true, get () { return options.SIENNA?.linkPair } },
-      mgmt:  { enumerable: true, get () { return options.MGMT?.linkPair   } }
+      token: { enumerable: true, get () { return options?.SIENNA?.linkPair } },
+      mgmt:  { enumerable: true, get () { return options?.MGMT?.linkPair   } }
     })
   }
 

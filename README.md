@@ -58,11 +58,7 @@ SecretNetwork's fork of `cosmwasm-std 0.10.*`.
 
 TODO
 
-### Sienna Swap
-
-TODO
-
-### Sienna Rewards
+### Sienna Swap + Rewards
 
 To obtain a production build of Sienna Rewards:
 
@@ -81,11 +77,7 @@ for iterating on contracts.
 
 TODO
 
-### Sienna Swap
-
-TODO
-
-### Sienna Rewards
+### Sienna Swap + Rewards
 
 In the case of Sienna Rewards, the unit tests are two-tiered:
 `rewards_test.rs` tests the contract through its public API, while

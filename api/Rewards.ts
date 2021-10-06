@@ -49,7 +49,7 @@ export class Rewards extends ScrtContract {
     admin,
     lpToken,
     rewardToken,
-  }: RewardsOptions) {
+  }: RewardsOptions = {}) {
     super({
       agent:  admin,
       schema: Rewards.schema,
@@ -59,7 +59,7 @@ export class Rewards extends ScrtContract {
     if (codeId)   this.blob.codeId = codeId
     if (codeHash) this.blob.codeHash = codeHash
     Object.assign(this.init.msg, {
-      admin: admin.address,
+      admin: admin?.address,
       viewing_key: randomHex(36)
     })
     Object.defineProperties(this.init.msg, {
