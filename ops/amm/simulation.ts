@@ -1,11 +1,11 @@
-import { create_coin, create_fee } from './amm-lib/core'
-import { FactoryContract } from './amm-lib/amm_factory'
-import { ExchangeContract, PairInfo } from './amm-lib/exchange'
-import { Snip20Contract, TokenInfo } from './amm-lib/snip20'
+import { AmmFactoryContract } from '../../api/siennajs/lib/amm_factory'
+import { ExchangeContract } from '../../api/siennajs/lib/exchange'
+import { Snip20Contract, TokenInfo } from '../../api/siennajs/lib/snip20'
 import {
     Address, ContractInstantiationInfo, TokenPair, TokenPairAmount,
-    TokenType, CustomToken, Uint128, TokenTypeAmount
-} from './amm-lib/core'
+    TokenType, CustomToken, Uint128, TokenTypeAmount, create_coin,
+    create_fee
+} from '../../api/siennajs/lib/core'
 import {
     upload_amm, build_client, create_rand_base64, create_account
 } from './setup'
@@ -95,7 +95,7 @@ async function create_users(client: SigningCosmWasmClient) {
 async function create_pairs(
     client: SigningCosmWasmClient,
     info: ContractInstantiationInfo,
-    factory: FactoryContract
+    factory: AmmFactoryContract
 ) {
     const tokens: Address[][] = []
 
@@ -169,7 +169,7 @@ async function create_pairs(
             }
         )
 
-        const result = await factory.create_exchange(pair)
+        const result = await factory.exec().create_exchange(pair)
 
         const info_0 = TOKENS.get(addresses[0]) as TokenInfo
         const info_1 = TOKENS.get(addresses[1]) as TokenInfo
@@ -218,10 +218,10 @@ async function provide_liquidity(user: User, pair: PairContract, amount: number)
     const amount_0 = raw_amount(amount, get_decimals(pair.pair.token_0))
     const amount_1 = raw_amount(amount, get_decimals(pair.pair.token_1))
 
-    await snip20_contract_0.increase_allowance(pair.address, amount_0)
-    await snip20_contract_1.increase_allowance(pair.address, amount_1)
+    await snip20_contract_0.exec().increase_allowance(pair.address, amount_0)
+    await snip20_contract_1.exec().increase_allowance(pair.address, amount_1)
 
-    const result = await contract.provide_liquidity(new TokenPairAmount(
+    const result = await contract.exec().provide_liquidity(new TokenPairAmount(
         pair.pair,
         amount_0,
         amount_1
@@ -286,7 +286,7 @@ async function withdraw_liquidity() {
     }
 
     const contract = new ExchangeContract(pair.address, lp.info.client)
-    const result = await contract.withdraw_liquidity(rand_amount.toString(), lp.info.client.senderAddress)
+    const result = await contract.exec().withdraw_liquidity(rand_amount.toString(), lp.info.client.senderAddress)
 
     await log_action(
         'Withdraw',
@@ -311,7 +311,7 @@ async function swap() {
     const amount = raw_amount(rand(MIN_AMOUNT, MAX_AMOUNT), info.decimals)
 
     const contract = new ExchangeContract(pair.address, user.client)
-    const result = await contract.swap(new TokenTypeAmount(token, amount))
+    const result = await contract.exec().swap(new TokenTypeAmount(token, amount))
 
     await log_action(
         'Swap',
@@ -343,12 +343,9 @@ async function log_action(
     hash: string,
     pair: PairContract
 ) {
-    const resp = await QUERY_CLIENT.queryContractSmart(
-        pair.address,
-        'pair_info' as any as object
-    )
+    const contract = new ExchangeContract(pair.address, undefined, QUERY_CLIENT)
     
-    const pool = resp.pair_info as PairInfo
+    const pool = await contract.query().get_pair_info()
     const name_0 = get_token_info(pool.pair.token_0).name
     const name_1 = get_token_info(pool.pair.token_1).name
 

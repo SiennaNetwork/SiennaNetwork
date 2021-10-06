@@ -2,10 +2,10 @@ import {
   ContractInfo, TokenPair, Address, TokenPairAmount, CustomToken,
   ViewingKey, TokenTypeAmount, ContractInstantiationInfo, create_fee,
   create_base64_msg
-} from './amm-lib/core'
-import { ExchangeContract } from './amm-lib/exchange'
-import { Snip20Contract } from './amm-lib/snip20'
-import { FactoryContract, Pagination } from './amm-lib/amm_factory'
+} from '../../api/siennajs/lib/core'
+import { ExchangeContract } from '../../api/siennajs/lib/exchange'
+import { Snip20Contract } from '../../api/siennajs/lib/snip20'
+import { AmmFactoryContract, Pagination } from '../../api/siennajs/lib/amm_factory'
 import { 
   execute_test, execute_test_expect, assert_objects_equal, assert,
   assert_equal, assert_not_equal, extract_log_value, print_object
@@ -59,7 +59,7 @@ async function run_tests() {
   await display_analytics()
 }
 
-async function test_create_exchange(factory: FactoryContract, token_info: ContractInfo): Promise<TokenPair> {
+async function test_create_exchange(factory: AmmFactoryContract, token_info: ContractInfo): Promise<TokenPair> {
   const pair = new TokenPair({
       native_token: {
         denom: 'uscrt'
@@ -108,7 +108,7 @@ async function test_create_exchange(factory: FactoryContract, token_info: Contra
           assert_unauthorized
         )
       
-      await factory.signing_client.execute(factory.address, msg, undefined, undefined, fee)
+      await factory.execute_client?.execute(factory.address, msg, undefined, undefined, fee)
     },
     'unauthorized'
   )
@@ -116,7 +116,7 @@ async function test_create_exchange(factory: FactoryContract, token_info: Contra
   await execute_test(
     'create_exchange',
     async () => { 
-      let result = await factory.create_exchange(pair)
+      let result = await factory.exec().create_exchange(pair)
       analytics.add_tx(result.transactionHash, 'Factory: Create Exchange')
     }
   )
@@ -124,10 +124,10 @@ async function test_create_exchange(factory: FactoryContract, token_info: Contra
   return pair
 }
 
-async function test_create_existing_pair_error(factory: FactoryContract, pair: TokenPair) {
+async function test_create_existing_pair_error(factory: AmmFactoryContract, pair: TokenPair) {
   await execute_test_expect(
     'create_existing_pair_error',
-    async () => { await factory.create_exchange(pair) },
+    async () => { await factory.exec().create_exchange(pair) },
     'Pair already exists'
   )
 
@@ -137,18 +137,18 @@ async function test_create_existing_pair_error(factory: FactoryContract, pair: T
 
   await execute_test_expect(
     'create_existing_pair_swapped_error',
-    async () => { await factory.create_exchange(swapped) },
+    async () => { await factory.exec().create_exchange(swapped) },
     'Pair already exists'
   )
 }
 
-async function test_query_exchanges(factory: FactoryContract, pair: TokenPair): Promise<Address> {
+async function test_query_exchanges(factory: AmmFactoryContract, pair: TokenPair): Promise<Address> {
   let address = '';
 
   await execute_test(
     'get_exchange_address',
     async () => { 
-      const result = await factory.get_exchange_address(pair)
+      const result = await factory.query().get_exchange_address(pair)
       address = result
     }
   )
@@ -156,7 +156,7 @@ async function test_query_exchanges(factory: FactoryContract, pair: TokenPair): 
   await execute_test(
     'list_exchanges',
     async () => { 
-      const result = await factory.list_exchanges(new Pagination(0, 30))
+      const result = await factory.query().list_exchanges(new Pagination(0, 30))
       assert_equal(result.length, 1)
       assert_equal(result[0].address, address)
       assert_objects_equal(result[0].pair, pair)
@@ -170,7 +170,7 @@ async function test_get_pair_info(exchange: ExchangeContract, pair: TokenPair, f
   await execute_test(
     'get_pair_info',
     async () => {
-      const result = await exchange.get_pair_info()
+      const result = await exchange.query().get_pair_info()
       assert_objects_equal(pair, result.pair)
       assert_equal(result.amount_0, '0')
       assert_equal(result.amount_1, '0')
@@ -183,8 +183,8 @@ async function test_get_pair_info(exchange: ExchangeContract, pair: TokenPair, f
 async function test_liquidity(exchange: ExchangeContract, sienna_token: ContractInfo, pair: TokenPair) {
   const amount = '5000000'
 
-  const snip20 = new Snip20Contract(sienna_token.address, exchange.signing_client)
-  await snip20.deposit(amount)
+  const snip20 = new Snip20Contract(sienna_token.address, exchange.execute_client)
+  await snip20.exec().deposit(amount)
   await sleep(SLEEP_TIME)
 
   const token_amount = new TokenPairAmount(pair, amount, amount)
@@ -192,18 +192,18 @@ async function test_liquidity(exchange: ExchangeContract, sienna_token: Contract
   await execute_test(
     'provide_liquidity',
     async () => {
-      await snip20.deposit(amount)
+      await snip20.exec().deposit(amount)
       await sleep(SLEEP_TIME)
     
-      await snip20.increase_allowance(exchange.address, amount)
+      await snip20.exec().increase_allowance(exchange.address, amount)
       await sleep(SLEEP_TIME)
 
-      const result = await exchange.provide_liquidity(token_amount)
+      const result = await exchange.exec().provide_liquidity(token_amount)
       analytics.add_tx(result.transactionHash, 'Exchange: Provide Liquidity')
 
       assert_equal(extract_log_value(result, 'share'), amount) //LP tokens
 
-      const info = await exchange.get_pair_info()
+      const info = await exchange.query().get_pair_info()
 
       assert_equal(info.amount_0, amount)
       assert_equal(info.amount_1, amount)
@@ -215,11 +215,11 @@ async function test_liquidity(exchange: ExchangeContract, sienna_token: Contract
   await execute_test(
     'withdraw_liquidity',
     async () => {
-      const result = await exchange.withdraw_liquidity(amount, exchange.signing_client.senderAddress)
+      const result = await exchange.exec().withdraw_liquidity(amount, exchange.execute_client?.senderAddress as string)
       analytics.add_tx(result.transactionHash, 'Exchange: Withdraw Liquidity')
 
       assert_equal(extract_log_value(result, 'withdrawn_share'), amount)
-      assert_equal(result.logs[0].events[1].attributes[0].value, exchange.signing_client.senderAddress)
+      assert_equal(result.logs[0].events[1].attributes[0].value, exchange.execute_client?.senderAddress as string)
     }
   )
 
@@ -228,7 +228,7 @@ async function test_liquidity(exchange: ExchangeContract, sienna_token: Contract
   await execute_test(
     'pool_empty_after_withdraw',
     async () => {
-      const result = await exchange.get_pair_info()
+      const result = await exchange.query().get_pair_info()
       
       assert_equal(result.amount_0, '0')
       assert_equal(result.amount_1, '0')
@@ -238,22 +238,22 @@ async function test_liquidity(exchange: ExchangeContract, sienna_token: Contract
 
 async function test_swap(
   exchange: ExchangeContract,
-  factory: FactoryContract,
+  factory: AmmFactoryContract,
   sienna_token: ContractInfo,
   pair: TokenPair
 ) {
   const amount = '5000000'
 
   // Setup liquidity pool
-  const snip20_a = new Snip20Contract(sienna_token.address, exchange.signing_client)
-  await snip20_a.deposit(amount)
+  const snip20_a = new Snip20Contract(sienna_token.address, exchange.execute_client)
+  await snip20_a.exec().deposit(amount)
   await sleep(SLEEP_TIME)
 
-  await snip20_a.increase_allowance(exchange.address, amount)
+  await snip20_a.exec().increase_allowance(exchange.address, amount)
   await sleep(SLEEP_TIME)
 
   const pair_amount = new TokenPairAmount(pair, amount, amount)
-  await exchange.provide_liquidity(pair_amount)
+  await exchange.exec().provide_liquidity(pair_amount)
 
   await sleep(SLEEP_TIME)
 
@@ -266,9 +266,9 @@ async function test_swap(
   await execute_test(
     'swap_simulation',
     async () => {
-      exchange_b.simulate_swap(offer_token)
+      exchange_b.query().simulate_swap(offer_token)
 
-      const pool = await exchange_b.get_pair_info()
+      const pool = await exchange_b.query().get_pair_info()
       
       assert_equal(pool.amount_0, amount)
       assert_equal(pool.amount_1, amount)
@@ -279,14 +279,14 @@ async function test_swap(
     'swap_from_native',
     async () => {
       const balance_before = parseInt(await get_native_balance(client_b));
-      const result = await exchange_b.swap(offer_token)
+      const result = await exchange_b.exec().swap(offer_token)
       const balance_after = parseInt(await get_native_balance(client_b));
 
       analytics.add_tx(result.transactionHash, 'Exchange: Native Swap')
       
       assert(balance_before > balance_after) // TODO: calculate exact amount after adding gas parameters
 
-      const pool = await exchange_b.get_pair_info()
+      const pool = await exchange_b.query().get_pair_info()
 
       const amnt = parseInt(amount)
       const amount_0 = parseInt(pool.amount_0)
@@ -300,25 +300,25 @@ async function test_swap(
     }
   )
 
-  await snip20_b.deposit(amount)
+  await snip20_b.exec().deposit(amount)
   await sleep(SLEEP_TIME)
   
   const key = create_viewing_key()
-  await snip20_b.set_viewing_key(key)
+  await snip20_b.exec().set_viewing_key(key)
 
   await execute_test(
     'swap_from_snip20',
     async () => {
       const native_balance_before = parseInt(await get_native_balance(client_b))
-      const token_balance_before = parseInt(await snip20_b.get_balance(key))
+      const token_balance_before = parseInt(await snip20_b.query().get_balance(key, snip20_b.execute_client?.senderAddress as string))
 
       const swap_amount = '3000000'    
 
-      const result = await exchange_b.swap(new TokenTypeAmount(pair.token_1, swap_amount))
+      const result = await exchange_b.exec().swap(new TokenTypeAmount(pair.token_1, swap_amount))
       analytics.add_tx(result.transactionHash, 'Exchange: SNIP20 Swap')
 
       const native_balance_after = parseInt(await get_native_balance(client_b))
-      const token_balance_after = parseInt(await snip20_b.get_balance(key))
+      const token_balance_after = parseInt(await snip20_b.query().get_balance(key, snip20_b.execute_client?.senderAddress as string))
 
       assert(native_balance_after > native_balance_before)
       assert(token_balance_before - parseInt(swap_amount) === token_balance_after)
@@ -330,26 +330,26 @@ async function test_swap(
   const snip20_burner = new Snip20Contract(sienna_token.address, client_burner)
 
   const key_burner = create_viewing_key()
-  await snip20_burner.set_viewing_key(key_burner)
+  await snip20_burner.exec().set_viewing_key(key_burner)
 
   await execute_test(
     'swap_with_burner',
     async () => {
       let config = get_exchange_settings(BURN_POOL.address);
-      await factory.set_config(undefined, undefined, undefined, undefined, config)
+      await factory.exec().set_config(undefined, undefined, undefined, undefined, config)
 
-      const token_balance_before = parseInt(await snip20_b.get_balance(key))
+      const token_balance_before = parseInt(await snip20_b.query().get_balance(key, snip20_b.execute_client?.senderAddress as string))
 
       const amount_to_swap = 3500000;
 
       const recipient_balance_before = parseInt(await get_native_balance(client_b, ACC_C.address))
-      const result = await exchange_b.swap(new TokenTypeAmount(pair.token_1, amount_to_swap.toString()), ACC_C.address)
+      const result = await exchange_b.exec().swap(new TokenTypeAmount(pair.token_1, amount_to_swap.toString()), ACC_C.address)
       const recipient_balance_after = parseInt(await get_native_balance(client_b, ACC_C.address))
 
       analytics.add_tx(result.transactionHash, 'Exchange: Swap With Burner')
 
-      const token_balance_after = parseInt(await snip20_b.get_balance(key))
-      const burner_balance = parseInt(await snip20_burner.get_balance(key_burner))
+      const token_balance_after = parseInt(await snip20_b.query().get_balance(key, snip20_b.execute_client?.senderAddress as string))
+      const burner_balance = parseInt(await snip20_burner.query().get_balance(key_burner, snip20_burner.execute_client?.senderAddress as string))
 
       const expected_commission = 700
 
@@ -367,15 +367,15 @@ async function test_swap(
     'swap_from_native_with_burner',
     async () => {
       const native_balance_before = parseInt(await get_native_balance(client_burner))
-      const token_balance_before = parseInt(await snip20_b.get_balance(key))
-      const burner_balance_before = parseInt(await snip20_burner.get_balance(key_burner))
+      const token_balance_before = parseInt(await snip20_b.query().get_balance(key, snip20_b.execute_client?.senderAddress as string))
+      const burner_balance_before = parseInt(await snip20_burner.query().get_balance(key_burner, snip20_burner.execute_client?.senderAddress as string))
 
-      const result = await exchange_b.swap(offer_token)
+      const result = await exchange_b.exec().swap(offer_token)
 
       analytics.add_tx(result.transactionHash, 'Exchange: Native Swap With Burner')
 
-      const token_balance_after = parseInt(await snip20_b.get_balance(key))
-      const burner_balance_after = parseInt(await snip20_burner.get_balance(key_burner))
+      const token_balance_after = parseInt(await snip20_b.query().get_balance(key, snip20_b.execute_client?.senderAddress as string))
+      const burner_balance_after = parseInt(await snip20_burner.query().get_balance(key_burner, snip20_burner.execute_client?.senderAddress as string))
 
       const native_balance_after = parseInt(await get_native_balance(client_burner))
 
@@ -403,7 +403,7 @@ async function test_swap_interface(exchange: ExchangeContract, pair: TokenPair) 
         }
       }
 
-      await exchange.signing_client.execute(exchange.address, msg, undefined, undefined, create_fee('410000'))
+      await exchange.execute_client?.execute(exchange.address, msg, undefined, undefined, create_fee('410000'))
     },
     'unauthorized'
   )
@@ -419,9 +419,9 @@ async function test_swap_interface(exchange: ExchangeContract, pair: TokenPair) 
       }
 
       const token_addr = (pair.token_1 as CustomToken).custom_token.contract_addr;
-      const snip20 = new Snip20Contract(token_addr, exchange.signing_client)
+      const snip20 = new Snip20Contract(token_addr, exchange.execute_client)
 
-      await snip20.send(exchange.address, '3000000', msg, undefined, create_fee('410000'))
+      await snip20.exec(create_fee('410000')).send(exchange.address, '3000000', msg, undefined)
     },
     'unknown variant'
   )
@@ -439,12 +439,12 @@ async function test_swap_interface(exchange: ExchangeContract, pair: TokenPair) 
       const receive_msg = {
         receive: {
           amount: '200000',
-          from: exchange.signing_client.senderAddress,
+          from: exchange.execute_client?.senderAddress,
           msg: create_base64_msg(msg)
         }
       }
 
-      await exchange.signing_client.execute(exchange.address, receive_msg, undefined, undefined, create_fee('410000'))
+      await exchange.execute_client?.execute(exchange.address, receive_msg, undefined, undefined, create_fee('410000'))
     },
     'unauthorized'
   )
@@ -454,7 +454,7 @@ async function test_swap_interface(exchange: ExchangeContract, pair: TokenPair) 
     async () => {
       const msg = {
         remove_liquidity: {
-          recipient: exchange.signing_client.senderAddress,
+          recipient: exchange.execute_client?.senderAddress,
         }
       }
 
@@ -466,7 +466,7 @@ async function test_swap_interface(exchange: ExchangeContract, pair: TokenPair) 
         }
       }
 
-      await exchange.signing_client.execute(exchange.address, receive_msg, undefined, undefined, create_fee('410000'))
+      await exchange.execute_client?.execute(exchange.address, receive_msg, undefined, undefined, create_fee('410000'))
     },
     'unauthorized'
   )
