@@ -13,9 +13,9 @@ import {
 import { abs, genConfig, getDefaultSchedule, ONE_SIENNA, projectRoot, stringify } from './index'
 import { runDemo } from './tge.demo.js'
 import { EnsemblesHelp as Help } from './help'
-import { FactoryContract, Pagination } from './amm/amm-lib/amm_factory'
-import { CustomToken, get_token_type, TokenType, TypeOfToken } from './amm/amm-lib/core'
-import { Snip20Contract } from './amm/amm-lib/snip20'
+import { AmmFactoryContract, Pagination } from '../api/siennajs/lib/amm_factory'
+import { CustomToken, get_token_type, TokenType, TypeOfToken } from '../api/siennajs/lib/core'
+import { Snip20Contract } from '../api/siennajs/lib/snip20'
 import { unlinkSync } from 'fs'
 import { BroadcastMode } from 'secretjs'
 
@@ -469,14 +469,14 @@ export class SiennaRewards extends BaseEnsemble {
       this.agent = await this.chain.getAgent()
     }
 
-    const factory = new FactoryContract(this.factoryAddress, (this.agent as ScrtAgentJS).API)
+    const factory = new AmmFactoryContract(this.factoryAddress, (this.agent as ScrtAgentJS).API)
     const pairs: RewardPairs = { }
 
     let index = 0
     const limit = 30
 
     while(true) {
-      const resp = await factory.list_exchanges(new Pagination(index, limit))
+      const resp = await factory.query().list_exchanges(new Pagination(index, limit))
 
       if (resp.length === 0)
         break
@@ -502,7 +502,7 @@ export class SiennaRewards extends BaseEnsemble {
       const snip20 = (token as CustomToken).custom_token
       const contract = new Snip20Contract(snip20.contract_addr, (this.agent as ScrtAgentJS).API)
 
-      const info = await contract.get_token_info()
+      const info = await contract.query().get_token_info()
 
       return info.name
     }
