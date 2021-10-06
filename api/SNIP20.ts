@@ -248,8 +248,8 @@ export class AMMSNIP20 extends SNIP20 {
       
     },
   };
-  constructor ({ admin }: { admin: Agent }) {
-    super({ agent: admin })
+  constructor (options: { admin?: Agent } = {}) {
+    super({ agent: options?.admin })
   }
   static attach = (
     address:  string,
@@ -288,13 +288,16 @@ export class LPToken extends SNIP20 {
       config: { ...lpTokenDefaultConfig },
     },
   };
-  constructor({ admin, name }: { admin: Agent, name?: string }) {
+  constructor(options: {
+    admin: Agent,
+    name?: string
+  } = {}) {
     super({
-      agent: admin,
-      label: `SiennaRewards_${name}_LPToken`,
+      agent: options?.admin,
+      label: `SiennaRewards_${options?.name}_LPToken`,
       initMsg: {
-        symbol: `LP-${name}`,
-        name: `${name} liquidity provision token`,
+        symbol: `LP-${options?.name}`,
+        name: `${options?.name} liquidity provision token`,
       },
     });
   }

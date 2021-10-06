@@ -11,20 +11,20 @@ export const schema = loadSchemas(import.meta.url, {
 
 export class AMM extends ScrtContract {
   constructor (options: {
-    admin:     Agent,
+    admin?:    Agent,
     prefix?:   string,
     label?:    string,
     name?:     string,
     symbol?:   string,
     decimals?: number,
-  }) {
-    super({ agent: options.admin, schema })
+  } = {}) {
+    super({ agent: options?.admin, schema })
     if (options.prefix) this.init.prefix = options.prefix
-    this.init.label = options.label
+    this.init.label = options?.label
     Object.assign(this.init.msg, {
-      name:      options.name,
-      symbol:    options.symbol,
-      decimals:  options.decimals,
+      name:      options?.name,
+      symbol:    options?.symbol,
+      decimals:  options?.decimals,
       prng_seed: randomHex(36)
     })
   }

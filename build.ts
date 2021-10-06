@@ -32,6 +32,19 @@ export default async function main (words: Array<string>) {
 
     build: {
 
+      all: () => Promise.all([
+        new SiennaSNIP20().build(),
+        new MGMTContract().build(),
+        new RPTContract().build(),
+        new AMMContract().build(),
+        new AMMSNIP20().build(),
+        new LPToken().build(),
+        new FactoryContract().build(),
+        new RewardsContract().build(),
+        new IDOContract().build(),
+        new LaunchpadContract().build()
+      ]),
+
       tge: () => Promise.all([
         new SiennaSNIP20().build(),
         new MGMTContract().build(),
