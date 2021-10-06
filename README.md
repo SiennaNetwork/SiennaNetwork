@@ -23,25 +23,11 @@
 
 ## Obtaining the code
 
-This is the canonical way to fetch the code
-and install all dependencies.
+This project is connected to some of its dependencies via [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
+This means that to get everything you need to get started, you need to clone this repo **recursively**:
 
 ```sh
 git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git
-```
-
-### Fetching Git submodules manually
-
-This project is connected to its dependencies via [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
-If you forget `--recurse-submodules` on initial checkout, go into the repo and run this to fetch
-the submodules:
-
-```sh
-git submodule init
-git submodule update
-cd libraries/fadroma-next
-git submodule init
-git submodule update
 ```
 
 ## Entering the development environment
@@ -63,19 +49,18 @@ To install the dependencies of the management scripts, run:
 pnpm i
 ```
 
-### Troubleshooting
-
-If you see this error, you may need to update all submodules (see above).
-
-```
-ERR_PNPM_NO_MATCHING_VERSION_INSIDE_WORKSPACE  In libraries/fadroma-next:
-No matching version found for @hackbg/ganesha@* inside the workspace
-```
-
 ## Building the code
 
 The smart contracts are written in Rust, targeting
 SecretNetwork's fork of `cosmwasm-std 0.10.*`.
+
+### Sienna TGE
+
+TODO
+
+### Sienna Swap
+
+TODO
 
 ### Sienna Rewards
 
@@ -85,7 +70,7 @@ To obtain a production build of Sienna Rewards:
 ./sienna rewards build
 ```
 
-## Running the test suite
+## Running the tests
 
 These tests cover the business logic of the contract
 in a mocked out environment. They run relatively quickly,
@@ -97,9 +82,45 @@ In the case of Sienna Rewards, the unit tests are two-tiered:
 `rewards_test_2.rs` tests the underlying business logic implementation
 by calling the internal methods directly. To run both:
 
+### Sienna TGE
+
+TODO
+
+### Sienna Swap
+
+TODO
+
+### Sienna Rewards
+
 ```sh
 ./sienna rewards test
 ```
+
+## Deployment
+
+TODO
+
+## Post-deployment configuration
+
+### Sienna TGE
+
+* MGMT can't be reconfigured after launch
+* RPT can be configured by its admin
+
+### Sienna Swap
+
+TODO
+
+### Sienna Rewards
+
+TODO
+
+## Usage
+
+* To claim funds from MGMT, send it `{"claim":{}}`
+* To make RPT send funds to the reward pools, send it `{"vest":{}}`
+* Swap: TODO
+* Rewards: TODO
 
 ## Extras
 
@@ -128,3 +149,24 @@ To run the Sienna Rewards benchmark:
 
 Located under `api/SNIP20.js` you'll find the wrapper for any `snip20` contract
 that will expose all the required methods to call on the contract.
+
+## Troubleshooting
+
+If you forget `--recurse-submodules` on initial checkout,
+or something goes wrong with your Git repo (both happen)
+you may see this error:
+
+```
+ERR_PNPM_NO_MATCHING_VERSION_INSIDE_WORKSPACE  In libraries/fadroma-next:
+No matching version found for @hackbg/ganesha@* inside the workspace
+```
+
+To fetch the missing submodules, go to the root of the repo and do this:
+
+```sh
+git submodule init
+git submodule update
+cd libraries/fadroma-next
+git submodule init
+git submodule update
+```
