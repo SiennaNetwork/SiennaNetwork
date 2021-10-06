@@ -77,11 +77,6 @@ in a mocked out environment. They run relatively quickly,
 and output any compilation errors, which makes them perfect
 for iterating on contracts.
 
-In the case of Sienna Rewards, the unit tests are two-tiered:
-`rewards_test.rs` tests the contract through its public API, while
-`rewards_test_2.rs` tests the underlying business logic implementation
-by calling the internal methods directly. To run both:
-
 ### Sienna TGE
 
 TODO
@@ -91,6 +86,11 @@ TODO
 TODO
 
 ### Sienna Rewards
+
+In the case of Sienna Rewards, the unit tests are two-tiered:
+`rewards_test.rs` tests the contract through its public API, while
+`rewards_test_2.rs` tests the underlying business logic implementation
+by calling the internal methods directly. To run both:
 
 ```sh
 ./sienna rewards test
