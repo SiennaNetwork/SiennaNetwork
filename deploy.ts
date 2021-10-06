@@ -124,7 +124,7 @@ export async function deploySwap (options: SwapOptions) {
   if (chain.isLocalnet) {
     Object.assign(tokens, await deployPlaceholderTokens())
   } else {
-    Object.assign(getSwapTokens(settings[`swapTokens-${chain.chainId}`]))
+    Object.assign(tokens, getSwapTokens(settings[`swapTokens-${chain.chainId}`]))
   }
 
   const rptConfig = []
@@ -189,6 +189,7 @@ export async function deploySwap (options: SwapOptions) {
     const [tokenName0, tokenName1] = name.split('-')
     const token0 = tokens[tokenName0]
         , token1 = tokens[tokenName1]
+
     for (const {pair} of existingExchanges) {
       if (
         (pair.token_0.custom_token.contract_addr === token0.address &&
