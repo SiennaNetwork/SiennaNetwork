@@ -7,27 +7,8 @@
 |**SIENNA**|**`secret1rgm2m5t530tdzyd99775n6vzumxa5luxcllml4`**<br>`c1dc8261059fee1de9f1873cd1359ccd7a6bc5623772661fa3d55332eb652084`|
 |**MGMT**  |**`secret1kn6kvc97nvu69dqten0w9p9e95dw6d6luv3dfx`**<br>`b1e4c4d76a5aedd180d08d8fec99ad84ed1a8a08d6d8a32a30c8c0f9835f4fab`|
 |**RPT**   |**`secret107j8czcysrkvxsllvhqj4mhmcegt9hx2ra3x42`**<br>`a9bfc78d182eb8d3cbb74d4269ef1f529a607f7842d755f00fef7df13c02c5b4`|
-|**SIENNA on BSC**|**0x130F6E4d338BFD8304F5342D759ABE5C6Bd7bA9b**|N/A|
-|**wSIENNA on ETH**|**0x9b00e6E8D787b13756eb919786c9745054DB64f9**|N/A|
-
-## Quick start
-
-Here's how to fetch the code, install JS dependencies,
-and obtain a list of the actions you can perform:
-
-```sh
-git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git sienna
-cd sienna
-yarn
-./sienna --help
-```
-
->⚠️ **NOTICE:** This requires **Yarn 2** (Berry). Switching between Yarn versions
->may overwrite `.yarnrc.yml`; use `git checkout yarnrc.yml` to restore it.
-
->⚠️ **NOTICE:** If Yarn fails, make sure you've initialized the **submodules**.
->If you didn't clone with `--recurse-submodules`, you can use
->`git submodule init && git submodule update`.
+|**SIENNA on BSC** |**`0x130F6E4d338BFD8304F5342D759ABE5C6Bd7bA9b`**|N/A|
+|**wSIENNA on ETH**|**`0x9b00e6E8D787b13756eb919786c9745054DB64f9`**|N/A|
 
 ## Contents
 
@@ -40,10 +21,63 @@ yarn
 |JS  |Gas benchmark        |    |   |✔️      | ? | ? |
 |JS  |Dashboard            |    |   |✔️      | ? | ? |
 
-### Smart contracts
+## Obtaining the code
 
-The smart contracts are written in Rust targeting
+This is the canonical way to fetch the code
+and install all dependencies.
+
+```sh
+git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git
+```
+
+### Fetching Git submodules manually
+
+This project is connected to its dependencies via [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
+If you forget `--recurse-submodules` on initial checkout, go into the repo and run this to fetch
+the submodules:
+
+```sh
+git submodule init
+git submodule update
+cd libraries/fadroma-next
+git submodule init
+git submodule update
+```
+
+## Entering the development environment
+
+The file `shell.nix` contains a reproducible description of the development environment.
+
+```sh
+nix-shell
+```
+
+This requires the [Nix package manager](https://nixos.org/download.html#nix-quick-install),
+and should provide you with Rust Nightly, Node.js, and PNPM.
+
+## Installing dependencies
+
+To install the dependencies of the management scripts, run:
+
+```sh
+pnpm i
+```
+
+### Troubleshooting
+
+If you see this error, you may need to update all submodules (see above).
+
+```
+ERR_PNPM_NO_MATCHING_VERSION_INSIDE_WORKSPACE  In libraries/fadroma-next:
+No matching version found for @hackbg/ganesha@* inside the workspace
+```
+
+## Building the code
+
+The smart contracts are written in Rust, targeting
 SecretNetwork's fork of `cosmwasm-std 0.10.*`.
+
+### Sienna Rewards
 
 To obtain a production build of Sienna Rewards:
 
@@ -51,7 +85,7 @@ To obtain a production build of Sienna Rewards:
 ./sienna rewards build
 ```
 
-### Unit tests
+## Running the test suite
 
 These tests cover the business logic of the contract
 in a mocked out environment. They run relatively quickly,
@@ -66,6 +100,8 @@ by calling the internal methods directly. To run both:
 ```sh
 ./sienna rewards test
 ```
+
+## Extras
 
 ### API wrappers, integration tests, and benchmarks
 
@@ -87,10 +123,6 @@ To run the Sienna Rewards benchmark:
 ```
 
 ### Dashboard
-
-TODO more info
-
-## See also
 
 ### SNIP20
 
