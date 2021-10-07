@@ -168,14 +168,16 @@ export async function deploySwap (options: SwapOptions) {
     }
   }
 
-  const rptConfigPath = instance.resolve(`RPTConfig.json`)
-  writeFileSync(rptConfigPath, JSON.stringify({config: rptConfig}, null, 2), 'utf8')
-  console.info(
-    `\n\nWrote ${bold(rptConfigPath)}. `+
-    `You can use this file as the basis of a multisig transaction.`
-  )
-
-  await RPT.configure(rptConfig)
+  if (chain.isMainnet) {
+    const rptConfigPath = instance.resolve(`RPTConfig.json`)
+    writeFileSync(rptConfigPath, JSON.stringify({config: rptConfig}, null, 2), 'utf8')
+    console.info(
+      `\n\nWrote ${bold(rptConfigPath)}. `+
+      `You should use this file as the basis of a multisig transaction.`
+    )
+  } else {
+    await RPT.configure(rptConfig)
+  }
 
   async function deployLiquidityPool (name: string, existingExchanges: any[]) {
     const [tokenName0, tokenName1] = name.split('-')
@@ -326,7 +328,17 @@ export async function replaceRewardPool (
   await NEW_POOL.instantiate()
 
   config[found][0] = NEW_POOL.address
-  await RPT.configure(config)
+
+  if (chain.isMainnet) {
+    const rptConfigPath = instance.resolve(`RPTConfig.json`)
+    writeFileSync(rptConfigPath, JSON.stringify({config}, null, 2), 'utf8')
+    console.info(
+      `\n\nWrote ${bold(rptConfigPath)}. `+
+      `You should use this file as the basis of a multisig transaction.`
+    )
+  } else {
+    await RPT.configure(config)
+  }
 
   await OLD_POOL.close(`Moved to ${NEW_POOL.address}`)
 }
