@@ -30,14 +30,18 @@ const BURN_POOL = ACC[3]
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 const SLEEP_TIME = 1000
 
-const analytics = new TxAnalytics(APIURL)
+const ANALYTICS = new TxAnalytics(APIURL)
 
 async function run_tests() {
   const client_a = await build_client(ACC_A.mnemonic, APIURL)
   
   const result = await upload_amm(client_a, new NullJsonFileWriter)
 
-  const factory = await instantiate_factory(client_a, result)
+  const instance = await instantiate_factory(client_a, result)
+  ANALYTICS.add_tx(instance.transactionHash, 'Factory Instantiate')
+  
+  const factory = new AmmFactoryContract(instance.contractAddress, client_a)
+
   const sienna_token = await instantiate_sienna_token(client_a, result.snip20)
 
   const created_pair = await test_create_exchange(factory, sienna_token)
@@ -117,7 +121,7 @@ async function test_create_exchange(factory: AmmFactoryContract, token_info: Con
     'create_exchange',
     async () => { 
       let result = await factory.exec().create_exchange(pair)
-      analytics.add_tx(result.transactionHash, 'Factory: Create Exchange')
+      ANALYTICS.add_tx(result.transactionHash, 'Factory: Create Exchange')
     }
   )
 
@@ -199,7 +203,7 @@ async function test_liquidity(exchange: ExchangeContract, sienna_token: Contract
       await sleep(SLEEP_TIME)
 
       const result = await exchange.exec().provide_liquidity(token_amount)
-      analytics.add_tx(result.transactionHash, 'Exchange: Provide Liquidity')
+      ANALYTICS.add_tx(result.transactionHash, 'Exchange: Provide Liquidity')
 
       assert_equal(extract_log_value(result, 'share'), amount) //LP tokens
 
@@ -216,7 +220,7 @@ async function test_liquidity(exchange: ExchangeContract, sienna_token: Contract
     'withdraw_liquidity',
     async () => {
       const result = await exchange.exec().withdraw_liquidity(amount, exchange.execute_client?.senderAddress as string)
-      analytics.add_tx(result.transactionHash, 'Exchange: Withdraw Liquidity')
+      ANALYTICS.add_tx(result.transactionHash, 'Exchange: Withdraw Liquidity')
 
       assert_equal(extract_log_value(result, 'withdrawn_share'), amount)
       assert_equal(result.logs[0].events[1].attributes[0].value, exchange.execute_client?.senderAddress as string)
@@ -282,7 +286,7 @@ async function test_swap(
       const result = await exchange_b.exec().swap(offer_token)
       const balance_after = parseInt(await get_native_balance(client_b));
 
-      analytics.add_tx(result.transactionHash, 'Exchange: Native Swap')
+      ANALYTICS.add_tx(result.transactionHash, 'Exchange: Native Swap')
       
       assert(balance_before > balance_after) // TODO: calculate exact amount after adding gas parameters
 
@@ -315,7 +319,7 @@ async function test_swap(
       const swap_amount = '3000000'    
 
       const result = await exchange_b.exec().swap(new TokenTypeAmount(pair.token_1, swap_amount))
-      analytics.add_tx(result.transactionHash, 'Exchange: SNIP20 Swap')
+      ANALYTICS.add_tx(result.transactionHash, 'Exchange: SNIP20 Swap')
 
       const native_balance_after = parseInt(await get_native_balance(client_b))
       const token_balance_after = parseInt(await snip20_b.query().get_balance(key, snip20_b.execute_client?.senderAddress as string))
@@ -346,7 +350,7 @@ async function test_swap(
       const result = await exchange_b.exec().swap(new TokenTypeAmount(pair.token_1, amount_to_swap.toString()), ACC_C.address)
       const recipient_balance_after = parseInt(await get_native_balance(client_b, ACC_C.address))
 
-      analytics.add_tx(result.transactionHash, 'Exchange: Swap With Burner')
+      ANALYTICS.add_tx(result.transactionHash, 'Exchange: Swap With Burner')
 
       const token_balance_after = parseInt(await snip20_b.query().get_balance(key, snip20_b.execute_client?.senderAddress as string))
       const burner_balance = parseInt(await snip20_burner.query().get_balance(key_burner, snip20_burner.execute_client?.senderAddress as string))
@@ -372,7 +376,7 @@ async function test_swap(
 
       const result = await exchange_b.exec().swap(offer_token)
 
-      analytics.add_tx(result.transactionHash, 'Exchange: Native Swap With Burner')
+      ANALYTICS.add_tx(result.transactionHash, 'Exchange: Native Swap With Burner')
 
       const token_balance_after = parseInt(await snip20_b.query().get_balance(key, snip20_b.execute_client?.senderAddress as string))
       const burner_balance_after = parseInt(await snip20_burner.query().get_balance(key_burner, snip20_burner.execute_client?.senderAddress as string))
@@ -519,7 +523,7 @@ async function instantiate_sienna_token(client: SigningCosmWasmClient, snip20: C
 }
 
 async function display_analytics() {
-  const gas = await analytics.get_gas_report()
+  const gas = await ANALYTICS.get_gas_report()
 
   const gas_table = [ [ 'TX Name', 'Gas Wanted', 'Gas Used' ] ]
   gas.forEach(x => gas_table.push([ x.name, x.gas_wanted, x.gas_used ]))
