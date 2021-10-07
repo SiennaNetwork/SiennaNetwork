@@ -1,0 +1,43 @@
+{
+  "label": "prod/SiennaRewards_sXMR-sSCRT_Pool",
+  "codeId": 116,
+  "codeHash": "7a3f39c50a8ab5f3db1ffdeeab3bf548ef22888161392541bdea7ace543c9433",
+  "initTx": {
+    "contractAddress": "secret16ste6yxdytk8dccjucqq0s5qsf9uv59ay4cvcc",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1d7j3w709w3ewg7mrlmlzsvn3jdht3083e6ym2k"
+              },
+              {
+                "key": "code_id",
+                "value": "116"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret16ste6yxdytk8dccjucqq0s5qsf9uv59ay4cvcc"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "FCDBD2D83C1D18D08D1D45C078ABC8090D807D81EE0B0EB16233638DF1D038EB",
+    "data": "D4179D10CD22EC76E312E60007C280824BC650BD"
+  }
+}

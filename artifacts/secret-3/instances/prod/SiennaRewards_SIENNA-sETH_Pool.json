@@ -1,0 +1,43 @@
+{
+  "label": "prod/SiennaRewards_SIENNA-sETH_Pool",
+  "codeId": 116,
+  "codeHash": "7a3f39c50a8ab5f3db1ffdeeab3bf548ef22888161392541bdea7ace543c9433",
+  "initTx": {
+    "contractAddress": "secret170mhhnqqjzg2a2dt4tcwxhvtp42u3yk4xx0kcr",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1d7j3w709w3ewg7mrlmlzsvn3jdht3083e6ym2k"
+              },
+              {
+                "key": "code_id",
+                "value": "116"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret170mhhnqqjzg2a2dt4tcwxhvtp42u3yk4xx0kcr"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "4574092ED785C2B9B27F331BC8472611E0CF60CD3CD84DE3BDD19797A164B759",
+    "data": "F3F77BCC009090AEA9ABAAF0E35D8B0D55C892D5"
+  }
+}

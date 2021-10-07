@@ -1,0 +1,43 @@
+{
+  "label": "prod/SiennaRewards_SIENNA-sUSDT_ERC20_Pool",
+  "codeId": 116,
+  "codeHash": "7a3f39c50a8ab5f3db1ffdeeab3bf548ef22888161392541bdea7ace543c9433",
+  "initTx": {
+    "contractAddress": "secret1s6dj8rgv9vt83y62yxnkh2g8dr4gya4gyg7urq",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1d7j3w709w3ewg7mrlmlzsvn3jdht3083e6ym2k"
+              },
+              {
+                "key": "code_id",
+                "value": "116"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret1s6dj8rgv9vt83y62yxnkh2g8dr4gya4gyg7urq"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "CCBDBF580BD79323C41AB50976A2BE2309614941F6122C2F1CDFF047E9999FD3",
+    "data": "869B238D0C2B1678934A21A76BA90768EA8276A8"
+  }
+}
