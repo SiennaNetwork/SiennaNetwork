@@ -1,4 +1,4 @@
-import { Address, Fee, Coin, create_fee } from './core'
+import { Address, Fee, Coin, create_fee, create_entropy, ViewingKey } from './core'
 import { SigningCosmWasmClient, CosmWasmClient, ExecuteResult } from 'secretjs'
 
 export abstract class SmartContract<E extends Executor, Q extends Querier> {
@@ -49,6 +49,39 @@ export abstract class Executor {
         const fee = this.fee || create_fee(defaultGas)
 
         return this.client.execute(this.address, msg, this.memo, funds, fee)
+    }
+
+    async create_viewing_key(
+        padding?: string | null,
+    ): Promise<ExecuteResult> {
+        const msg = {
+            create_viewing_key: {
+                entropy: create_entropy(),
+                padding,
+            },
+        };
+
+        return await this.run(
+            msg,
+            "200000",
+        );
+    }
+
+    async set_viewing_key(
+        key: ViewingKey,
+        padding?: string | null,
+    ): Promise<ExecuteResult> {
+        const msg = {
+            set_viewing_key: {
+                key,
+                padding,
+            },
+        };
+
+        return await this.run(
+            msg,
+            "200000",
+        );
     }
 }
 
