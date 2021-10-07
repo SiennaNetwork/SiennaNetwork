@@ -151,9 +151,11 @@ export class Factory extends ScrtContract {
           , {value:action_2}
           , {value:address} ] = attributes
 
+    console.log({token_0, token_1})
+
     const title =
-      `Token 1: ${token_0.custom_token.address} \\n `+
-      `Token 2: ${token_1.custom_token.address}`
+      `Token 1: ${token_0.custom_token.contract_addr} \\n `+
+      `Token 2: ${token_1.custom_token.contract_addr}`
 
     for (const [a, b] of [
       [pair, title],
@@ -170,21 +172,19 @@ export class Factory extends ScrtContract {
       [register_status_3, 'success'],
 
       [contract_address_2, created_exchange_address],
-      [address,            created_exchange_address]
+      [address,            created_exchange_address],
 
-      [contract_address_3, token_0.custom_token.address],
-
-      [contract_address_4, token_1.custom_token.address],
+      [contract_address_3, token_0.custom_token.contract_addr],
+      [contract_address_4, token_1.custom_token.contract_addr],
 
       [contract_address_5,   token_address],
       [liquidity_token_addr, token_address],
 
-      [token_address,        liquidity_token_addr],
-      [contract_address_7,   liquidity_token_addr],
+      [token_address,      liquidity_token_addr],
+      [contract_address_7, liquidity_token_addr],
+      [token_code_hash,    this.dependencies.LPTOKEN.codeHash],
 
-      [token_code_hash,      this.dependencies.LPTOKEN.codeHash],
-
-      [contract_address_6,   created_exchange_address],
+      [contract_address_6, created_exchange_address],
     ]) {
       assert.equal(
         a, b,
@@ -197,7 +197,9 @@ export class Factory extends ScrtContract {
 
     return {
       exchange: { address: created_exchange_address },
-      lp_token: { address: liquidity_token_addr, code_hash: token_code_hash }
+      lp_token: { address: liquidity_token_addr, code_hash: token_code_hash },
+      token_0,
+      token_1,
     }
   }
 

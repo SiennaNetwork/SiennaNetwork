@@ -183,8 +183,6 @@ export async function deploySwap (options: SwapOptions) {
         , token1 = tokens[tokenName1]
 
     console.log(`\nLiquidity pool ${bold(name)}...`)
-    console.log(tokenName0, token0.init.label, token0.address, token0.asCustomToken)
-    console.log(tokenName1, token1.init.label, token1.address, token1.asCustomToken)
 
     for (const {pair} of existingExchanges) {
       if ((
@@ -199,7 +197,14 @@ export async function deploySwap (options: SwapOptions) {
       }
     }
 
-    const deployed = await FACTORY.createExchange(token0.asCustomToken, token1.asCustomToken)
+    const deployed = await FACTORY.createExchange(
+      token0.asCustomToken,
+      token1.asCustomToken
+    )
+
+    const exchangeReceiptPath = instance.resolve(`SiennaSwap_${name}.json`)
+    writeFileSync(exchangeReceiptPath, JSON.stringify(deployed, null, 2), 'utf8')
+    console.info(`\nWrote ${bold(exchangeReceiptPath)}.`)
 
     console.info(bold('Deployed.'), deployed)
 
