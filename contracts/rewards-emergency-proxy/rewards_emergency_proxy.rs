@@ -1,3 +1,5 @@
+#[cfg(test)] mod rewards_emergency_proxy_test;
+
 use fadroma::scrt::{
     BLOCK_SIZE,
     cosmwasm_std::{to_vec, from_slice, QueryRequest, WasmQuery},
@@ -27,6 +29,7 @@ contract! {
         deps.storage.set(ADMIN,        &to_vec(&env.message.sender)?);
         deps.storage.set(COLLECTOR,    &to_vec(&collector)?);
         deps.storage.set(REWARD_TOKEN, &to_vec(&reward_token)?);
+        save_state!(NoGlobalState {});
         InitResponse { messages: vec![], log: vec![] }
     }
 
@@ -56,6 +59,7 @@ contract! {
             let reward_token = ISnip20::attach(&reward_token_link);
             let receivable = claimable.multiply_ratio(  1u128, 159u128);
             let returnable = claimable.multiply_ratio(158u128, 159u128);
+            deps.storage.set(&to_vec(&env.message.sender)?, &to_vec(&true)?);
             Ok(HandleResponse {
                 messages: vec![
                     claim(
