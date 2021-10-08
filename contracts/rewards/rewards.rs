@@ -112,7 +112,7 @@ contract! {
 
         /// Overall pool status
         PoolInfo (at: Time) {
-            let pool = Pool::new(&deps.storage).at(at);
+            let pool = Pool::new(&deps.storage).at(at).with_balance(load_reward_balance(&deps)?);
             let pool_last_update = pool.timestamp()?;
             if at < pool_last_update {
                 return Err(StdError::generic_err("this contract does not store history")) }
