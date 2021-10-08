@@ -3,18 +3,12 @@ use fadroma::scrt::{
     cosmwasm_std::{to_vec, from_slice, QueryRequest, WasmQuery},
     callback::{ContractInstance as ContractLink},
     contract::*,
-    snip20_api::ISnip20,
-    vk::{ViewingKey,
-         auth_handle, authenticate, AuthHandleMsg,
-         DefaultHandleImpl as AuthHandle},
-    admin::{DefaultHandleImpl as AdminHandle,
-            admin_handle, AdminHandleMsg, load_admin,
-            assert_admin, save_admin}};
+    snip20_api::ISnip20
+};
 
 use sienna_rewards::msg::{
-    Query    as RewardsQuery,
-    Response as RewardsResponse,
-    Handle   as RewardsHandle
+    Query  as RewardsQuery,
+    Handle as RewardsHandle
 };
 
 pub const ADMIN:        &[u8] = b"/admin";
@@ -35,16 +29,22 @@ contract! {
         InitResponse { messages: vec![], log: vec![] }
     }
 
-    [Query] (deps, _state, msg) -> Response {}
+    [Query] (_deps, _state, msg) -> Response {
+        Status () {
+            Ok(Response::Status{})
+        }
+    }
 
-    [Response] {}
+    [Response] {
+        Status {}
+    }
 
-    [Handle] (deps, env, state, msg) -> Response {
+    [Handle] (deps, env, _state, msg) -> Response {
         Claim (pool: ContractLink<HumanAddr>, key: String) {
             let reward_token_link: ContractLink<HumanAddr> =
-                from_slice(&deps.storage.get(REWARD_TOKEN)?)?;
+                from_slice(&deps.storage.get(REWARD_TOKEN).unwrap())?;
             let collector: HumanAddr =
-                from_slice(&deps.storage.get(COLLECTOR)?)?;
+                from_slice(&deps.storage.get(COLLECTOR).unwrap())?;
             let reward_token = ISnip20::attach(&reward_token_link);
             let claimable = get_claimable(
                 &deps.querier, &pool,
@@ -56,15 +56,15 @@ contract! {
                 messages: vec![
                     claim(
                         &pool
-                    ),
+                    )?,
                     reward_token.transfer(
                         &env.message.sender,
                         receivable
                     )?,
                     reward_token.transfer_from(
                         &env.message.sender,
-                        &deps.storage.get(COLLECTOR)?,
-                        receivable
+                        &collector,
+                        returnable
                     )?
                 ],
                 log: vec![],
@@ -85,8 +85,8 @@ pub fn get_claimable (
     })?;
     space_pad(&mut msg.0, BLOCK_SIZE);
     querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-        contract_addr:      pool.address,
-        callback_code_hash: pool.code_hash,
+        contract_addr:      pool.address.clone(),
+        callback_code_hash: pool.code_hash.clone(),
         msg,
     }))
 }
@@ -97,8 +97,8 @@ pub fn claim (
     let mut msg = to_binary(&RewardsHandle::Claim {})?;
     space_pad(&mut msg.0, BLOCK_SIZE);
     let execute = WasmMsg::Execute {
-        contract_addr:      pool.address,
-        callback_code_hash: pool.code_hash,
+        contract_addr:      pool.address.clone(),
+        callback_code_hash: pool.code_hash.clone(),
         msg,
         send: vec![],
     };
