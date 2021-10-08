@@ -87,7 +87,7 @@ impl Querier for MockQuerier {
         storage: MemoryStorage::default(),
         api:     MockApi::new(ADDR_LEN),
         querier: MockQuerier {
-            balance: 159u128.into(),
+            balance: 397500u128.into(),
         },
     };
 
@@ -132,7 +132,7 @@ impl Querier for MockQuerier {
     assert_eq!(handle_result_1.messages.len(), 2);
     for (index, expected) in vec![
         (0, "{\"claim\":{}}"),
-        (1, "{\"transfer_from\":{\"owner\":\"AGENT\",\"recipient\":\"COLLECTOR\",\"amount\":\"158\",\"padding\":null}}")
+        (1, "{\"transfer_from\":{\"owner\":\"AGENT\",\"recipient\":\"COLLECTOR\",\"amount\":\"395000\",\"padding\":null}}")
     ] {
         match handle_result_1.messages.get(index) {
             Some(CosmosMsg::Wasm(WasmMsg::Execute { msg, .. })) => {
@@ -143,6 +143,8 @@ impl Querier for MockQuerier {
             _ => unimplemented!()
         }
     }
+
+    deps.querier.balance = 2500u128.into();
 
     let handle_result_2 = crate::handle(&mut deps, Env {
         block:    BlockInfo    { height: 0u64, time: 0u64, chain_id: "secret".into() },
