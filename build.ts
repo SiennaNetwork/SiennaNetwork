@@ -1,9 +1,12 @@
 /// # Sienna Development
 
-
+import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { execFileSync } from 'child_process'
+import process from 'process'
 import { bold } from '@fadroma/tools'
+import { schemaToTypes } from '@fadroma/scrt'
+import { cargo } from '@fadroma/tools'
 import {
   SiennaSNIP20,
   MGMTContract,
@@ -13,9 +16,14 @@ import {
   AMMSNIP20,
   LPToken,
   RewardsContract,
+  RewardsEmergencyProxyContract,
   IDOContract,
   LaunchpadContract
 } from '@sienna/api'
+
+const
+  projectRoot = resolve(dirname(fileURLToPath(import.meta.url))),
+  abs         = (...args: Array<string>) => resolve(projectRoot, ...args)
 
 
 /// ## Entry point
@@ -41,6 +49,7 @@ export default async function main (words: Array<string>) {
         new LPToken().build(),
         new FactoryContract().build(),
         new RewardsContract().build(),
+        new RewardsEmergencyProxyContract().build(),
         new IDOContract().build(),
         new LaunchpadContract().build()
       ]),
@@ -59,7 +68,8 @@ export default async function main (words: Array<string>) {
       ]),
 
       rewards: () => Promise.all([
-        new RewardsContract().build()
+        new RewardsContract().build(),
+        new RewardsEmergencyProxyContract().build(),
       ]),
 
       ido: () => Promise.all([
@@ -82,6 +92,48 @@ export default async function main (words: Array<string>) {
       ido: testCommandsFor(
         'launchpad', 'ido'
       )
+    },
+
+    async schema () {
+      cargo('run', '--bin', 'schema')
+      await schemaToTypes(...[
+        'amm/handle_msg.json',
+        'amm/init_msg.json',
+        'amm/query_msg.json',
+        'amm/query_msg_response.json',
+        'amm/receiver_callback_msg.json',
+        'factory/handle_msg.json',
+        'factory/init_msg.json',
+        'factory/query_msg.json',
+        'factory/query_response.json',
+        'ido/handle_msg.json',
+        'ido/init_msg.json',
+        'ido/query_msg.json',
+        'ido/query_response.json',
+        'ido/receiver_callback_msg.json',
+        'launchpad/handle_msg.json',
+        'launchpad/init_msg.json',
+        'launchpad/query_msg.json',
+        'launchpad/query_response.json',
+        'launchpad/receiver_callback_msg.json',
+        'mgmt/handle.json',
+        'mgmt/init.json',
+        'mgmt/query.json',
+        'mgmt/response.json',
+        'rewards/handle.json',
+        'rewards/init.json',
+        'rewards/query.json',
+        'rewards/response.json',
+        'rpt/handle.json',
+        'rpt/init.json',
+        'rpt/query.json',
+        'rpt/response.json',
+        'snip20/handle_answer.json',
+        'snip20/handle_msg.json',
+        'snip20/init_msg.json',
+        'snip20/query_answer.json',
+        'snip20/query_msg.json'
+      ].map(x=>abs('api', x)))
     },
 
     bench: {

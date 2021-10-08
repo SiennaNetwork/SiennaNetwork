@@ -68,7 +68,7 @@
                 }
               ]
             },
-            "recipient": {
+            "to": {
               "anyOf": [
                 {
                   "$ref": "#/definitions/HumanAddr"

@@ -12,6 +12,7 @@ export type Response =
         lp_token: ContractInstanceFor_HumanAddr;
         pool_balance: Uint128;
         pool_claimed: Uint128;
+        pool_closed?: string | null;
         pool_cooldown: number;
         pool_last_update: number;
         pool_lifetime: Uint256;
@@ -26,6 +27,7 @@ export type Response =
   | {
       user_info: {
         it_is_now: number;
+        pool_closed?: string | null;
         pool_last_update: number;
         pool_lifetime: Uint256;
         pool_locked: Uint128;
