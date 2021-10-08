@@ -7,8 +7,9 @@ use fadroma::scrt::{
 };
 
 use sienna_rewards::msg::{
-    Query  as RewardsQuery,
-    Handle as RewardsHandle
+    Query    as RewardsQuery,
+    Response as RewardsResponse,
+    Handle   as RewardsHandle
 };
 
 pub const ADMIN:        &[u8] = b"/admin";
@@ -41,15 +42,18 @@ contract! {
 
     [Handle] (deps, env, _state, msg) -> Response {
         Claim (pool: ContractLink<HumanAddr>, key: String) {
+            let claimable = get_claimable(
+                &deps.querier, &pool,
+                env.block.height, &env.message.sender, &key
+            )?;
+            if claimable == Uint128::zero() {
+                return Err(StdError::generic_err("nothing to claim right now"))
+            }
             let reward_token_link: ContractLink<HumanAddr> =
                 from_slice(&deps.storage.get(REWARD_TOKEN).unwrap())?;
             let collector: HumanAddr =
                 from_slice(&deps.storage.get(COLLECTOR).unwrap())?;
             let reward_token = ISnip20::attach(&reward_token_link);
-            let claimable = get_claimable(
-                &deps.querier, &pool,
-                env.block.height, &env.message.sender, &key
-            )?;
             let receivable = claimable.multiply_ratio(  1u128, 159u128);
             let returnable = claimable.multiply_ratio(158u128, 159u128);
             Ok(HandleResponse {
@@ -84,11 +88,15 @@ pub fn get_claimable (
         key:     key.to_string()
     })?;
     space_pad(&mut msg.0, BLOCK_SIZE);
-    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr:      pool.address.clone(),
         callback_code_hash: pool.code_hash.clone(),
         msg,
-    }))
+    }))?;
+    match result {
+        RewardsResponse::UserInfo { user_claimable, .. } => Ok(user_claimable),
+        _ => Err(StdError::generic_err(""))
+    }
 }
 
 pub fn claim (
