@@ -26,27 +26,38 @@
 
 ## Obtaining the code
 
-This project is connected to some of its dependencies via [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
-This means that to get everything you need to get started, you need to clone this repo **recursively**:
+This project is connected to some of its dependencies
+via [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
+This means that to get everything you need to get started,
+you need to clone this repo **recursively**:
 
 ```sh
 git clone --recurse-submodules git@github.com:hackbg/sienna-secret-token.git
 ```
 
+See [the troubleshooting section](#troubleshooting) if you forget to do that.
+
 ## Entering the development environment
 
-The file `shell.nix` contains a reproducible description of the development environment.
+The file `shell.nix` contains a reproducible
+description of the development environment.
+To enter the development environment,
+run this in the project root:
 
 ```sh
 nix-shell
 ```
 
 This requires the [Nix package manager](https://nixos.org/download.html#nix-quick-install),
-and should provide you with Rust Nightly, Node.js, and PNPM.
+and contains Rust Nightly, Node.js, and PNPM.
+Alternatively, you are free to bring
+your own toolchain for your convenience
+(and this project's portability).
 
 ## Installing dependencies
 
-To install the dependencies of the management scripts, run:
+To install the dependencies of the management scripts,
+run this in the project root:
 
 ```sh
 pnpm i
@@ -107,14 +118,19 @@ TODO
 
 ## Post-deployment configuration
 
-After deployment the contracts should be transferred to the master multisig account.
-The CLI and API wrappers in this repo do not support generating multisig transactions.
-Configuration transactions
+After deployment the contracts should be
+transferred to the master multisig account.
+The CLI and API wrappers in this repo
+do not support generating multisig transactions.
+See [hackbg/motika](https://github.com/hackbg/motika)
+for a GUI-based multisig transaction signer.
 
 ### Sienna TGE
 
-* MGMT can't be reconfigured after launch
-* RPT can be configured by its admin
+* MGMT can be reconfigured by its admin after deployment
+  as long as it hasn't been launched yet.
+* RPT can be freely reconfigured by its admin
+  as long as the budget adds up to the original amount (2500 SIENNA).
 
 ### Sienna Swap
 
@@ -122,13 +138,20 @@ TODO
 
 ### Sienna Rewards
 
-* A reward pool can be closed by sending it `{"close_pool":{"message":"Here the admin should provide info on why the pool was closed."}}`.
-  * If upgrading a pool, please write the message in this format: `Moved to secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (because...)`.
-  * A closed reward pool returns each user's LP tokens the next time the user interacts with the pool.
-    No more locking is allowed, and time stops (liquidity shares stop changing, even though sending
-    more SIENNA to the pool will allocate more rewards according to current liquidity shares).
-    Eligible users are able to claim rewards from a closed pool one last time, after which their LP
-    tokens will be returned and their liquidity share reset to 0.
+* A reward pool can be closed by sending it
+  `{"close_pool":{"message":"Here the admin should provide info on why the pool was closed."}}`.
+  * If upgrading a pool, please write the message in this format:
+    `Moved to secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (because...)`.
+  * A closed reward pool returns each user's LP tokens
+    the next time the user interacts with the pool.
+    No more locking is allowed, and time stops
+    (this means liquidity shares will stop changing,
+    even though sending more SIENNA to the pool will allocate
+    more rewards according to current liquidity shares).
+    Eligible users are able to claim rewards
+    from a closed pool one last time.
+    Afterwards, their LP tokens will be returned
+    and their liquidity share reset to 0.
 
 ## Usage
 
