@@ -10,8 +10,8 @@
 |**MGMT**<br>The [main vesting contract](./contracts/mgmt) that distributes pre-defined amounts of SIENNA over time|[**`secret1kn6kvc97nvu69dqten0w9p9e95dw6d6luv3dfx`**](https://secretnodes.com/secret/chains/secret-3/accounts/secret1kn6kvc97nvu69dqten0w9p9e95dw6d6luv3dfx)<br>`b1e4c4d76a5aedd180d08d8fec99ad84ed1a8a08d6d8a32a30c8c0f9835f4fab`|
 |**RPT**<br>The [remaining pool token](./contracts/rpt) distribution contract that funds the reward pools|[**`secret107j8czcysrkvxsllvhqj4mhmcegt9hx2ra3x42`**](https://secretnodes.com/secret/chains/secret-3/accounts/secret107j8czcysrkvxsllvhqj4mhmcegt9hx2ra3x42)<br>`a9bfc78d182eb8d3cbb74d4269ef1f529a607f7842d755f00fef7df13c02c5b4`|
 |**Factory**<br>The [hub of Sienna Swap](./contracts/factory).|[**`secret1zvk7pvhtme6j8yw3ryv0jdtgg937w0g0ggu8yy`**](https://secretnodes.com/secret/chains/secret-3/accounts/secret1zvk7pvhtme6j8yw3ryv0jdtgg937w0g0ggu8yy)<br>`b1f8a2086c7ca3bf8a0866275885b21462829158927a2a757064ccd65a593b36`|
-|**Exchanges**<br>Initial [liquidity pools](./contracts/exchange) created via the Factory|See **./artifacts/secret-3/prod/SiennaSwap_**<br>and [settings/swapPairs-secret-3.json](./settings/swapPairs-secret-3.json)|
-|**Rewards**<br>[Reward pools](./contracts/rewards) corresponding to select liquidity pools|See **./artifacts/secret-3/prod/SiennaRewards_**<br>and [settings/rewardPairs-secret-3.json](./settings/rewardPairs-secret-3.json)|
+|**Exchanges**<br>Initial [liquidity pools](./contracts/exchange) created via the Factory|See **./artifacts/secret-3/prod/SiennaSwap_\***<br>and [settings/swapPairs-secret-3.json](./settings/swapPairs-secret-3.json)|
+|**Rewards**<br>[Reward pools](./contracts/rewards) corresponding to select liquidity pools|See **./artifacts/secret-3/prod/SiennaRewards_\***<br>and [settings/rewardPairs-secret-3.json](./settings/rewardPairs-secret-3.json)|
 
 ## Contents
 
