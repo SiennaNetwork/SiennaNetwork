@@ -52,32 +52,30 @@ contract! {
             if claimable == Uint128::zero() {
                 return Err(StdError::generic_err("nothing to claim right now"))
             }
-            let reward_token_link: ContractLink<HumanAddr> =
-                from_slice(&deps.storage.get(REWARD_TOKEN).unwrap())?;
-            let collector: HumanAddr =
-                from_slice(&deps.storage.get(COLLECTOR).unwrap())?;
-            let reward_token = ISnip20::attach(&reward_token_link);
-            let receivable = claimable.multiply_ratio(  1u128, 159u128);
-            let returnable = claimable.multiply_ratio(158u128, 159u128);
-            deps.storage.set(&to_vec(&env.message.sender)?, &to_vec(&true)?);
-            Ok(HandleResponse {
-                messages: vec![
-                    claim(
-                        &pool
-                    )?,
-                    reward_token.transfer(
-                        &env.message.sender,
-                        receivable
-                    )?,
-                    reward_token.transfer_from(
+            let mut messages = vec![claim(&pool)?];
+            let mut log = vec![];
+            match deps.storage.get(&to_vec(&env.message.sender)?) {
+                Some(_) => { /* already returned extra rewards */ },
+                None => {
+                    let reward_token_link: ContractLink<HumanAddr> =
+                        from_slice(&deps.storage.get(REWARD_TOKEN).unwrap())?;
+                    let collector: HumanAddr =
+                        from_slice(&deps.storage.get(COLLECTOR).unwrap())?;
+                    let reward_token = ISnip20::attach(&reward_token_link);
+                    let receivable = claimable.multiply_ratio(  1u128, 159u128);
+                    let returnable = claimable.multiply_ratio(158u128, 159u128);
+                    deps.storage.set(&to_vec(&env.message.sender)?, &to_vec(&true)?);
+                    messages.push(reward_token.transfer_from(
                         &env.message.sender,
                         &collector,
                         returnable
-                    )?
-                ],
-                log: vec![],
-                data: None
-            })
+                    )?);
+                    log.push(LogAttribute { key: "received".to_string(), value: claimable.into()  });
+                    log.push(LogAttribute { key: "eligible".to_string(), value: receivable.into() });
+                    log.push(LogAttribute { key: "returned".to_string(), value: returnable.into() });
+                }
+            }
+            Ok(HandleResponse { messages, log, data: None })
         }
     }
 }

@@ -3,26 +3,36 @@ use fadroma::scrt::cosmwasm_std::{
     Extern, testing::MockApi, MemoryStorage,
     Querier, QueryRequest, Empty, WasmQuery, QuerierResult,
     from_binary, to_binary, from_slice, SystemError,
-    BlockInfo, MessageInfo, ContractInfo, Env
+    BlockInfo, MessageInfo, ContractInfo, Env,
+    CosmosMsg, WasmMsg
 };
 
 use fadroma::scrt::callback::{ContractInstance as ContractLink};
 
-use fadroma::scrt::snip20_api::mock::*;
+use sienna_rewards::msg::Response as RewardsResponse;
 
 const ADDR_LEN: usize = 45;
 
+#[derive(Debug, serde::Serialize,serde::Deserialize)]
+#[serde(rename_all="snake_case")]
+pub enum Snip20QueryAnswer {
+    Balance { amount: Uint128 }
+}
+
+#[derive(Debug, serde::Serialize,serde::Deserialize)]
+#[serde(rename_all="snake_case")]
+pub enum RewardsQueryAnswer {
+    UserInfo { claimable: Uint128 }
+}
+
 struct MockQuerier {
-    balance: Uint128
+    pub balance: Uint128,
 }
 
 impl Querier for MockQuerier {
+
     fn raw_query (&self, bin_request: &[u8]) -> QuerierResult {
-        let s = match std::str::from_utf8(&bin_request) {
-            Ok(v) => v,
-            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-        };
-        println!("raw_query: {}", &s);
+
         let request: QueryRequest<Empty> = match from_slice(bin_request) {
             Ok(v) => v,
             Err(e) => {
@@ -31,58 +41,54 @@ impl Querier for MockQuerier {
                 return Err(SystemError::InvalidRequest { error, request })
             }
         };
+
         match request {
-            QueryRequest::Wasm(WasmQuery::Smart { callback_code_hash, contract_addr, msg }) => {
-                println!("raw_query.wasm.msg: {:#?}", &std::str::from_utf8(&msg.as_slice())?);
-                Ok(to_binary(&self.mock_query_dispatch(&ContractLink {
-                    code_hash: callback_code_hash,
-                    address: contract_addr
-                }, &msg)))
+            QueryRequest::Wasm(WasmQuery::Smart {
+                callback_code_hash,
+                contract_addr,
+                msg
+            }) => {
+                let decoded = std::str::from_utf8(&msg.as_slice()).unwrap();
+                println!("raw_query.wasm.msg: {:#?}", &decoded.trim());
+                if decoded.contains("user_info") {
+                    Ok(to_binary(&RewardsResponse::UserInfo {
+                        it_is_now:        0u64,
+                        pool_closed:      None,
+                        pool_last_update: 0u64,
+                        pool_lifetime:    0u128.into(),
+                        pool_locked:      0u128.into(),
+                        user_last_update: Some(0u64),
+                        user_lifetime:    0u128.into(),
+                        user_locked:      0u128.into(),
+                        user_share:       0u128.into(),
+                        user_earned:      0u128.into(),
+                        user_claimed:     0u128.into(),
+                        user_claimable:   self.balance,
+                        user_age:         0u64,
+                        user_cooldown:    0u64
+                    }))
+                } else if decoded.contains("balance") {
+                    Ok(to_binary(&Snip20QueryAnswer::Balance {
+                        amount: self.balance
+                    }))
+                } else {
+                    unimplemented!()
+                }
             },
             _ => panic!("MockSnip20Querier: Expected WasmQuery::Smart.")
         }
-    }
-}
 
-impl MockQuerier {
-    fn mock_query_dispatch (
-        &self,
-        link: &ContractLink<HumanAddr>,
-        msg:  &Binary
-    ) -> StdResult<Binary> {
-        if link.address == HumanAddr::from("POOL") {
-            let query: Snip20Query = from_binary(&msg)?;
-            println!("POOL->{:#?}", &query);
-        } else {
-            println!("{:#?}->{:#?}", &link, &msg);
-        }
-        unimplemented!();
-        //match msg {
-            //Snip20Query::Balance { .. } => {
-                ////if contract != self.reward_token {
-                    ////panic!("MockSnip20Querier: Expected balance query for {:?}", self.reward_token)
-                ////}
-                //Snip20QueryAnswer::Balance { amount: self.balance }
-            //},
-
-            //_ => unimplemented!()
-        //}
-    }
-    pub fn increment_balance (&mut self, amount: u128) {
-        self.balance = self.balance + amount.into();
-    }
-    pub fn decrement_balance (&mut self, amount: u128) -> StdResult<()> {
-        self.balance = (self.balance - amount.into())?;
-        Ok(())
     }
 }
 
 #[test] fn test_rewards_emergency_proxy () -> StdResult<()> {
 
     let mut deps = Extern {
-        storage:   MemoryStorage::default(),
-        api:       MockApi::new(ADDR_LEN),
-        querier:   MockQuerier { balance: 0u128.into() },
+        storage: MemoryStorage::default(),
+        api:     MockApi::new(ADDR_LEN),
+        querier: MockQuerier {
+            balance: 159u128.into(),
+        },
     };
 
     let agent = HumanAddr::from("AGENT");
@@ -123,7 +129,20 @@ impl MockQuerier {
         key:  "".into()
     })?;
 
-    println!("{:#?}", &handle_result_1);
+    assert_eq!(handle_result_1.messages.len(), 2);
+    for (index, expected) in vec![
+        (0, "{\"claim\":{}}"),
+        (1, "{\"transfer_from\":{\"owner\":\"AGENT\",\"recipient\":\"COLLECTOR\",\"amount\":\"158\",\"padding\":null}}")
+    ] {
+        match handle_result_1.messages.get(index) {
+            Some(CosmosMsg::Wasm(WasmMsg::Execute { msg, .. })) => {
+                let decoded = std::str::from_utf8(&msg.as_slice()).unwrap();
+                println!("handle_result_1.msg[{}]: {:#?}", index, &decoded.trim());
+                assert_eq!(decoded.trim(), expected);
+            },
+            _ => unimplemented!()
+        }
+    }
 
     let handle_result_2 = crate::handle(&mut deps, Env {
         block:    BlockInfo    { height: 0u64, time: 0u64, chain_id: "secret".into() },
@@ -136,7 +155,19 @@ impl MockQuerier {
         key:  "".into()
     })?;
 
-    println!("{:#?}", &handle_result_2);
+    assert_eq!(handle_result_2.messages.len(), 1);
+    for (index, expected) in vec![
+        (0, "{\"claim\":{}}"),
+    ] {
+        match handle_result_2.messages.get(index) {
+            Some(CosmosMsg::Wasm(WasmMsg::Execute { msg, .. })) => {
+                let decoded = std::str::from_utf8(&msg.as_slice()).unwrap();
+                println!("handle_result_1.msg[{}]: {:#?}", index, &decoded.trim());
+                assert_eq!(decoded.trim(), expected);
+            },
+            _ => unimplemented!()
+        }
+    }
 
     Ok(())
 
