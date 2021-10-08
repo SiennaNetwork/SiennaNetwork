@@ -1,6 +1,7 @@
 import { Address, TokenPair, Fee, ContractInstantiationInfo, create_entropy } from './core'
 import { SmartContract, Executor, Querier } from './contract'
 import { TokenSaleConfig } from './ido'
+import { TokenSettings } from './launchpad'
 
 import { ExecuteResult } from 'secretjs'
 
@@ -73,10 +74,22 @@ export class AmmFactoryExecutor extends Executor {
         return this.run(msg, '200000')
     }
 
+    async create_launchpad(tokens: TokenSettings[]): Promise<ExecuteResult> {
+        const msg = {
+            create_launchpad: {
+                tokens,
+                entropy: create_entropy()
+            }
+        }
+
+        return this.run(msg, '200000')
+    }
+
     async set_config(
         snip20_contract: ContractInstantiationInfo | undefined,
         lp_token_contract: ContractInstantiationInfo | undefined,
         pair_contract: ContractInstantiationInfo | undefined,
+        launchpad_contract: ContractInstantiationInfo | undefined,
         ido_contract: ContractInstantiationInfo | undefined,
         exchange_settings: ExchangeSettings | undefined
     ): Promise<ExecuteResult> {
@@ -85,6 +98,7 @@ export class AmmFactoryExecutor extends Executor {
                 snip20_contract,
                 lp_token_contract,
                 pair_contract,
+                launchpad_contract,
                 ido_contract,
                 exchange_settings
             }
@@ -104,6 +118,13 @@ export class AmmFactoryQuerier extends Querier {
 
         const result = await this.run(msg) as GetExchangeAddressResponse
         return result.get_exchange_address.address
+    }
+
+    async get_launchpad_address(): Promise<Address> {
+        const msg = "get_launchpad_address" as unknown as object
+
+        const result = await this.run(msg) as GetLaunchpadAddressResponse
+        return result.get_launchpad_address.address
     }
 
     async list_idos(pagination: Pagination): Promise<Address[]> {
@@ -143,6 +164,12 @@ interface GetExchangeAddressResponse {
         address: Address;
     }
 }
+
+interface GetLaunchpadAddressResponse {
+    get_launchpad_address: {
+        address: Address;
+    }
+} 
 
 interface ListIdosResponse {
     list_idos: {
