@@ -10,19 +10,19 @@
 |**MGMT**<br>The [main vesting contract](./contracts/mgmt) that distributes pre-defined amounts of SIENNA over time|[**`secret1kn6kvc97nvu69dqten0w9p9e95dw6d6luv3dfx`**](https://secretnodes.com/secret/chains/secret-3/accounts/secret1kn6kvc97nvu69dqten0w9p9e95dw6d6luv3dfx)<br>`b1e4c4d76a5aedd180d08d8fec99ad84ed1a8a08d6d8a32a30c8c0f9835f4fab`|
 |**RPT**<br>The [remaining pool token](./contracts/rpt) distribution contract that funds the reward pools|[**`secret107j8czcysrkvxsllvhqj4mhmcegt9hx2ra3x42`**](https://secretnodes.com/secret/chains/secret-3/accounts/secret107j8czcysrkvxsllvhqj4mhmcegt9hx2ra3x42)<br>`a9bfc78d182eb8d3cbb74d4269ef1f529a607f7842d755f00fef7df13c02c5b4`|
 |**Factory**<br>The [hub of Sienna Swap](./contracts/factory).|[**`secret1zvk7pvhtme6j8yw3ryv0jdtgg937w0g0ggu8yy`**](https://secretnodes.com/secret/chains/secret-3/accounts/secret1zvk7pvhtme6j8yw3ryv0jdtgg937w0g0ggu8yy)<br>`b1f8a2086c7ca3bf8a0866275885b21462829158927a2a757064ccd65a593b36`|
-|**Exchanges**<br>Initial [liquidity pools](./contracts/exchange) created via the Factory|See **./artifacts/secret-3/prod/SiennaSwap_** and [settings/swapPairs-secret-3.json](./settings/swapPairs-secret-3.json)|
-|**Rewards**<br>[Reward pools](./contracts/rewards) corresponding to select liquidity pools|See **./artifacts/secret-3/prod/SiennaRewards_** and [settings/rewardPairs-secret-3.json](./settings/rewardPairs-secret-3.json)|
+|**Exchanges**<br>Initial [liquidity pools](./contracts/exchange) created via the Factory|See **./artifacts/secret-3/prod/SiennaSwap_**<br>and [settings/swapPairs-secret-3.json](./settings/swapPairs-secret-3.json)|
+|**Rewards**<br>[Reward pools](./contracts/rewards) corresponding to select liquidity pools|See **./artifacts/secret-3/prod/SiennaRewards_**<br>and [settings/rewardPairs-secret-3.json](./settings/rewardPairs-secret-3.json)|
 
 ## Contents
 
-|Environment|Component     |MGMT|RPT|Rewards|AMM|IDO|Lend|
-|----|---------------------|----|---|-------|---|---|----|
-|Rust|Smart contract(s)    |✔️   |✔️  |✔️      |✔️  |✔️  | ?  |
-|Rust|Unit tests           |    |   |✔️      | ? | ? | ?  |
-|JS  |API wrapper(s)       |✔️   |✔️  |✔️      |✔️  |✔️  | ?  |
-|JS  |API integration tests|✔️   |✔️  |       | ? | ? | ?  |
-|JS  |Gas benchmark        |    |   |✔️      | ? | ? | ?  |
-|JS  |Dashboard            |    |   |✔️      | ? | ? | ?  |
+|Environment|Component     |TGE |Swap|Rewards|IDO|Lend|
+|----|---------------------|----|----|-------|---|----|
+|Rust|Smart contract(s)    |✔️   |✔️   |✔️      |✔️  | ?  |
+|Rust|Unit tests           |    | ?  |✔️      | ? | ?  |
+|JS  |API wrapper(s)       |✔️   |✔️   |✔️      |✔️  | ?  |
+|JS  |API integration tests|✔️   | ?  |       | ? | ?  |
+|JS  |Gas benchmark        |    | ?  |✔️      | ? | ?  |
+|JS  |Dashboard            |    | ?  |✔️      | ? | ?  |
 
 ## Obtaining the code
 
@@ -66,7 +66,7 @@ TODO
 To obtain a production build of Sienna Rewards:
 
 ```sh
-./sienna rewards build
+pnpm dev build rewards
 ```
 
 ## Running the tests
@@ -93,9 +93,23 @@ by calling the internal methods directly. To run both:
 
 ## Deployment
 
+There is some support for resuming deployments that were interrupted halfway.
+
+### Full local deployment
+
+```
+pnpm ops localnet-1.0 deploy all
+```
+
+### Remote and multi-stage deployment
+
 TODO
 
 ## Post-deployment configuration
+
+After deployment the contracts should be transferred to the master multisig account.
+The CLI and API wrappers in this repo do not support generating multisig transactions.
+Configuration transactions
 
 ### Sienna TGE
 
@@ -108,11 +122,17 @@ TODO
 
 ### Sienna Rewards
 
-TODO
+* A reward pool can be closed by sending it `{"close_pool":{"message":"Here the admin should provide info on why the pool was closed."}}`.
+  * If upgrading a pool, please write the message in this format: `Moved to secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (because...)`.
+  * A closed reward pool returns each user's LP tokens the next time the user interacts with the pool.
+    No more locking is allowed, and time stops (liquidity shares stop changing, even though sending
+    more SIENNA to the pool will allocate more rewards according to current liquidity shares).
+    Eligible users are able to claim rewards from a closed pool one last time, after which their LP
+    tokens will be returned and their liquidity share reset to 0.
 
 ## Usage
 
-* To claim funds from MGMT, send it `{"claim":{}}`
+* To claim funds from MGMT, send it `{"claim":{}}`.
 * To make RPT send funds to the reward pools, send it `{"vest":{}}`
 * Swap: TODO
 * Rewards: TODO
