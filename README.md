@@ -13,6 +13,10 @@
 |**Exchanges**<br>Initial [liquidity pools](./contracts/exchange) created via the Factory|See **./artifacts/secret-3/prod/SiennaSwap_\***<br>and [settings/swapPairs-secret-3.json](./settings/swapPairs-secret-3.json)|
 |**Rewards**<br>[Reward pools](./contracts/rewards) corresponding to select liquidity pools|See **./artifacts/secret-3/prod/SiennaRewards_\***<br>and [settings/rewardPairs-secret-3.json](./settings/rewardPairs-secret-3.json)|
 
+## Architecture overview
+
+![](./docs/Sienna.drawio.png)
+
 ## Contents
 
 |Environment|Component     |TGE |Swap|Rewards|IDO|Lend|
