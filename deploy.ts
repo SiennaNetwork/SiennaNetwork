@@ -119,7 +119,7 @@ export async function deploySwap (options: SwapOptions) {
   const
     factoryDeps    = { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD },
     factoryConfig  = settings[`amm-${chain.chainId}`],
-    factoryOptions = { prefix, admin, config: factoryConfig, ...factoryDeps },
+    factoryOptions = { prefix, admin: factoryConfig.admin, config: factoryConfig, ...factoryDeps },
     FACTORY        = new FactoryContract(factoryOptions)
 
   await buildAndUpload([FACTORY, EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD, REWARDS])
