@@ -171,6 +171,13 @@ impl RewardsHarness<RewardsMockQuerier> {
             "missing liquidity provision token");
         Ok(self) }
 
+    pub fn set_ratio (
+        &mut self, admin: &HumanAddr, num: u128, denom: u128
+    ) -> StdResult<&mut Self> {
+        assert_eq!(self.tx_set_ratio(admin, num, denom)?,
+            (vec![], 0, 0));
+        Ok(self) }
+
     pub fn lp_token (&self) -> ContractLink<HumanAddr> {
         self._lp_token.clone() }
 
@@ -250,9 +257,12 @@ impl RewardsHarness<RewardsMockQuerier> {
         Ok(self) }
 
     pub fn claim_must_wait (
-        &mut self, user: &HumanAddr, msg: &str
+        &mut self, user: &HumanAddr, expected_msg: &str
     ) -> StdResult<&mut Self> {
-        assert_eq!(self.tx_claim(user), Err(StdError::generic_err(msg)));
+        match self.tx_claim(user) {
+            Err(StdError::GenericErr { msg, .. }) => assert_eq!(msg, expected_msg),
+            x => panic!("expected error, got: {:#?}", &x)
+        }
         Ok(self) }
 
     pub fn close (
@@ -279,6 +289,13 @@ impl RewardsHarness<RewardsMockQuerier> {
         self.tx(self.now(), agent, TX::SetProvidedToken {
             address:   HumanAddr::from(address),
             code_hash: code_hash.into(), }) }
+
+    fn tx_set_ratio (
+        &mut self, agent: &HumanAddr, num: u128, denom: u128
+    ) -> TxResult {
+        self.tx(self.now(), agent, TX::ChangeRatio {
+            numerator:   num.into(),
+            denominator: denom.into(), }) }
 
     fn tx_set_vk (&mut self, agent: &HumanAddr, key: &str) -> TxResult {
         self.tx(self.now(), agent, TX::SetViewingKey {
