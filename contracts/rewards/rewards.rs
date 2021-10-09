@@ -342,6 +342,14 @@ contract! {
 
             let recipient = recipient.unwrap_or(env.message.sender);
 
+            let reward_token = load_reward_token(&deps.storage, &deps.api)?;
+
+            // Update the viewing key if the supplied
+            // token info for is the reward token
+            if reward_token == snip20 {
+                save_viewing_key(&mut deps.storage, &ViewingKey(key.clone()))?
+            }
+
             tx_ok!(
                 snip20::increase_allowance_msg(
                     recipient,

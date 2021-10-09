@@ -1,8 +1,16 @@
 #![allow(unused_macros)]
 #![allow(non_snake_case)]
 
-use fadroma::scrt::{cosmwasm_std::{HumanAddr, StdError}};
-use crate::{rewards_harness::*};
+use fadroma::scrt::{
+    cosmwasm_std::{HumanAddr, StdError},
+    callback::ContractInstance,
+    harness::Harness
+};
+use crate::{
+    rewards_harness::*,
+    msg,
+    rewards_config::load_viewing_key
+};
 
 const REWARD: u128 = 100;
 const STAKE:  u128 = 100;
@@ -422,5 +430,35 @@ kukumba_harnessed! {
             Test.fund(REWARD)
                 .set_ratio(&admin, 1u128, 1u128)?
                 .at(3 + DAY * 2).claim(&alice, 100)?.claim(&bob, 100)? } }
+
+    release_snip20 {
+        given "an instance" {
+            let admin = HumanAddr::from("admin");
+            let alice = HumanAddr::from("alice");
+
+            let key = "key";
+
+            let msg = msg::Handle::ReleaseSnip20 {
+                snip20: Test.reward_token(),
+                key: key.into(),
+                recipient: None
+            };
+
+            Test.at(1).init_configured(&admin)? }
+
+        when "non admin-tries to call release"
+        then "gets rejected" {
+            assert!(Test.tx(20, &alice, msg.clone()).is_err());
+        }
+
+        when "calling with reward token info"
+        then "the viewing key changes" {
+            assert!(Test.tx(20, &admin, msg).is_ok());
+            let deps = Test.deps();
+            let vk = load_viewing_key(&deps.storage)?;
+
+            assert_eq!(vk.0, String::from(key));
+        }
+    }
 
 }
