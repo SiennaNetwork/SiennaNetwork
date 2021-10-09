@@ -1782,6 +1782,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "sienna-rewards-emergency-proxy"
+version = "0.1.0"
+dependencies = [
+ "backtrace",
+ "color-backtrace",
+ "fadroma 21.7.0",
+ "kukumba 1.0.1",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sienna-rewards",
+ "tabwriter",
+ "wasm-bindgen",
+ "yansi",
+]
+
+[[package]]
 name = "sienna-rpt"
 version = "1.0.0"
 dependencies = [
@@ -1827,6 +1844,7 @@ dependencies = [
  "lp-token",
  "sienna-mgmt",
  "sienna-rewards",
+ "sienna-rewards-emergency-proxy",
  "sienna-rpt",
 ]
 

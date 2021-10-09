@@ -131,6 +131,39 @@
       }
     },
     {
+      "type": "object",
+      "required": [
+        "release_snip20"
+      ],
+      "properties": {
+        "release_snip20": {
+          "type": "object",
+          "required": [
+            "key",
+            "snip20"
+          ],
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "recipient": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "snip20": {
+              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
       "description": "User can request a new viewing key for oneself.",
       "type": "object",
       "required": [
@@ -236,6 +269,22 @@
     }
   ],
   "definitions": {
+    "ContractInstance_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
     "HumanAddr": {
       "type": "string"
     },
