@@ -1,43 +1,38 @@
 {
-  "label": "prod/SiennaRewards_SIENNA-sSCRT_Pool",
-  "codeId": 116,
-  "codeHash": "7a3f39c50a8ab5f3db1ffdeeab3bf548ef22888161392541bdea7ace543c9433",
-  "initTx": {
-    "contractAddress": "secret1ansj9erlu3wl5r6kg9dpjt5nejs6q4r80p7f2h",
-    "logs": [
-      {
-        "msg_index": 0,
-        "log": "",
-        "events": [
-          {
-            "type": "message",
-            "attributes": [
-              {
-                "key": "action",
-                "value": "instantiate"
-              },
-              {
-                "key": "module",
-                "value": "compute"
-              },
-              {
-                "key": "signer",
-                "value": "secret1d7j3w709w3ewg7mrlmlzsvn3jdht3083e6ym2k"
-              },
-              {
-                "key": "code_id",
-                "value": "116"
-              },
-              {
-                "key": "contract_address",
-                "value": "secret1ansj9erlu3wl5r6kg9dpjt5nejs6q4r80p7f2h"
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    "transactionHash": "92C959FF50AC013444411C68D9141A42D501149313DBEB9B0B3F053CBF6E19E2",
-    "data": "ECE122E47FE45DFA0F56415A192E93CCA1A05467"
-  }
+  "contractAddress": "secret1qd6mh5tlnnl6an66ymv0023ancf2jte9sn4ut0",
+  "logs": [
+    {
+      "msg_index": 0,
+      "log": "",
+      "events": [
+        {
+          "type": "message",
+          "attributes": [
+            {
+              "key": "action",
+              "value": "instantiate"
+            },
+            {
+              "key": "module",
+              "value": "compute"
+            },
+            {
+              "key": "signer",
+              "value": "secret1d7j3w709w3ewg7mrlmlzsvn3jdht3083e6ym2k"
+            },
+            {
+              "key": "code_id",
+              "value": "119"
+            },
+            {
+              "key": "contract_address",
+              "value": "secret1qd6mh5tlnnl6an66ymv0023ancf2jte9sn4ut0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "transactionHash": "265ED2A8FAA1233A218BF380FB03F19CAF307290FBB31D82F192E356FFD48D89",
+  "data": "0375BBD17F9CFFAECF5A26D8F7AA3D9E12A92F25"
 }

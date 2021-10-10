@@ -1,0 +1,43 @@
+{
+  "label": "prod/SiennaRewards_SIENNA-WBTC_Pool",
+  "codeId": 116,
+  "codeHash": "7a3f39c50a8ab5f3db1ffdeeab3bf548ef22888161392541bdea7ace543c9433",
+  "initTx": {
+    "contractAddress": "secret19zrgvu0e5m0twqclzwrz8nrrur6vw0ukmw3gxe",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1d7j3w709w3ewg7mrlmlzsvn3jdht3083e6ym2k"
+              },
+              {
+                "key": "code_id",
+                "value": "116"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret19zrgvu0e5m0twqclzwrz8nrrur6vw0ukmw3gxe"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "8BEB43894487193F9BBC6DDBACC8B83BC6CD52FDAED638F56073F95A58B8C588",
+    "data": "28868671F9A6DEB7031F138623CC63E0F4C73F96"
+  }
+}

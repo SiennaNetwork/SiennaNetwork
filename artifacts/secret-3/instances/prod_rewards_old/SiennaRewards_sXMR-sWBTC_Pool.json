@@ -1,0 +1,43 @@
+{
+  "label": "prod/SiennaRewards_sXMR-sWBTC_Pool",
+  "codeId": 116,
+  "codeHash": "7a3f39c50a8ab5f3db1ffdeeab3bf548ef22888161392541bdea7ace543c9433",
+  "initTx": {
+    "contractAddress": "secret1elz6q8w5dnfqzd5w4kuatk3ea82402m5me482d",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1d7j3w709w3ewg7mrlmlzsvn3jdht3083e6ym2k"
+              },
+              {
+                "key": "code_id",
+                "value": "116"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret1elz6q8w5dnfqzd5w4kuatk3ea82402m5me482d"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "8B12FE3199D6C4E9B4359576CCC46BD904BB60DF0A86C1264FEA7D62C01B37EC",
+    "data": "CFC5A01DD46CD201368EADB9D5DA39E9D557AB74"
+  }
+}
