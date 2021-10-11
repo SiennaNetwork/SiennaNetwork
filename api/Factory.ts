@@ -38,9 +38,11 @@ export class Factory extends ScrtContract {
     AMMTOKEN?:  AMMSNIP20
     LPTOKEN?:   LPToken
     IDO?:       IDO
-    LAUNCHPAD?: Launchpad
+    LAUNCHPAD?: Launchpad,
+    codeId?: number,
+    label?: string,
   } = {}) {
-    super({ agent: options.admin, prefix: options.prefix, schema, workspace: abs() })
+    super({ codeId: options.codeId, agent: options.admin, prefix: options.prefix, schema, workspace: abs() })
     Object.assign(this.init.msg, {
       ...(options.config || {}),
       admin: options.admin?.address,
@@ -52,6 +54,10 @@ export class Factory extends ScrtContract {
       ido_contract:       { enumerable: true, get () { return options.IDO.template } },
       launchpad_contract: { enumerable: true, get () { return options.LAUNCHPAD.template } },
     })
+
+    if (options.label) {
+      this.init.label = options.label;
+    }
   }
 
   code = { ...this.code, workspace: abs(), crate: "factory" };

@@ -7,7 +7,6 @@ import { Launchpad } from "./Launchpad";
 import { SNIP20 } from "./SNIP20";
 import { Factory } from "./Factory";
 import { IDO } from "./IDO";
-import { generateMnemonic } from "bip39";
 
 const log = function () {
   debug("out")(JSON.stringify(arguments, null, 2));
@@ -47,7 +46,7 @@ describe("Launchpad", () => {
     ).filter((i) => i !== null));
 
     console.log({ agents });
-    context.agent.API.fees = fees;
+    // context.agent.API.fees = fees;
 
     const T1 = +new Date();
     console.debug(`connecting took ${T1 - T0}msec`);
@@ -79,41 +78,12 @@ describe("Launchpad", () => {
 
     context.factory = new Factory({
       codeId: context.templates.Factory.codeId,
+      AMMTOKEN: context.templates.SNIP20,
+      LPTOKEN: context.templates.SNIP20,
+      IDO: context.templates.SNIP20,
+      EXCHANGE: context.templates.SNIP20,
+      LAUNCHPAD: context.templates.Launchpad,
       label: `factory-${parseInt(Math.random() * 100000)}`,
-      initMsg: {
-        prng_seed: randomBytes(36).toString("hex"),
-        snip20_contract: {
-          id: context.templates.SNIP20.codeId,
-          code_hash: context.templates.SNIP20.codeHash,
-        },
-        lp_token_contract: {
-          id: context.templates.SNIP20.codeId,
-          code_hash: context.templates.SNIP20.codeHash,
-        },
-        pair_contract: {
-          id: context.templates.SNIP20.codeId,
-          code_hash: context.templates.SNIP20.codeHash,
-        },
-        launchpad_contract: {
-          id: context.templates.Launchpad.codeId,
-          code_hash: context.templates.Launchpad.codeHash,
-        },
-        ido_contract: {
-          id: context.templates.IDO.codeId,
-          code_hash: context.templates.IDO.codeHash,
-        }, // dummy so we don't have to build it
-        exchange_settings: {
-          swap_fee: {
-            nom: 1,
-            denom: 1,
-          },
-          sienna_fee: {
-            nom: 1,
-            denom: 1,
-          },
-          //   sienna_burner: null,
-        },
-      },
     });
     await context.factory.instantiate(context.agent);
 
@@ -308,7 +278,7 @@ describe("Launchpad", () => {
             address: context.sellingToken.address,
             code_hash: context.templates.SNIP20.codeHash,
           },
-          whitelist,
+          whitelist: [],
           max_seats: 100,
           max_allocation: "5",
           min_allocation: "1",

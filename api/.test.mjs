@@ -9,7 +9,7 @@ const mocha = new Mocha()
 let args = process.argv.slice(2, process.argv.length)
 
 if (!args.length) {
-  args = fs.readdirSync(root).filter(f => f.endsWith('spec.js') || f.endsWith('spec.mjs'));
+  args = fs.readdirSync(root).filter(f => f.endsWith('spec.js') || f.endsWith('spec.ts') || f.endsWith('spec.mjs'));
 }
 
 for (const a of args) {

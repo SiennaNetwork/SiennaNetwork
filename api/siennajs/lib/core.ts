@@ -56,10 +56,14 @@ export interface Fee {
     readonly gas: Uint128
 }
 
+export function decode(source: BufferSource): object {
+    return JSON.parse((new TextDecoder()).decode(source).trim());
+}
+
 export function create_coin(amount: Uint128): Coin {
     return {
         denom: 'uscrt',
-        amount
+        amount: `${amount}`
     }
 }
 
@@ -69,8 +73,8 @@ export function create_fee(amount: Uint128, gas?: Uint128 | undefined): Fee {
     }
 
     return {
-        amount: [{ amount, denom: "uscrt" }],
-        gas,
+        amount: [{ amount: `${amount}`, denom: "uscrt" }],
+        gas: `${gas}`,
     }
 }
 

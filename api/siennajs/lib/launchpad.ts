@@ -147,9 +147,7 @@ export class LaunchpadExecutor extends Executor {
 
 export class LaunchpadQuerier extends Querier {
     async info(): Promise<QueryTokenConfig[]> {
-        const msg = {
-            launchpad_info: {},
-        }
+        const msg = "launchpad_info" as unknown as object
 
         const result = await this.run(msg) as LaunchpadInfoResponse
 

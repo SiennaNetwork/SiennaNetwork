@@ -1,3 +1,5 @@
 {
-  "extends": "./libraries/fadroma-next/tsconfig.json"
+  "extends": "./libraries/fadroma-next/tsconfig.json",
+  "target": "esnext",
+  "module": "commonjs"
 }
