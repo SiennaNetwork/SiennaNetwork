@@ -1,8 +1,9 @@
 import {
-    Address, Uint128, ContractInfo, TokenType, Fee, create_fee,
-    get_token_type, TypeOfToken, CustomToken, create_coin, ViewingKey
+    Address, Uint128, TokenType, Fee, create_fee,
+    get_token_type, TypeOfToken, CustomToken, create_coin,
 } from './core'
-import { SmartContract, Executor, Querier } from './contract'
+import { SmartContract, Querier } from './contract'
+import { ViewingKeyExecutor } from './executors/viewing_key_executor'
 import { Snip20Contract } from './snip20'
 
 import { SigningCosmWasmClient, ExecuteResult } from 'secretjs'
@@ -45,7 +46,7 @@ export class LaunchpadContract extends SmartContract<LaunchpadExecutor, Launchpa
     }
 }
 
-export class LaunchpadExecutor extends Executor {
+export class LaunchpadExecutor extends ViewingKeyExecutor {
     tokens?: TokenType[];
 
     constructor(

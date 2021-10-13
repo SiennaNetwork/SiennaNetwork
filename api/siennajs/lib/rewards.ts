@@ -1,5 +1,6 @@
 import { Address, Uint128, Fee, ContractInfo, ViewingKey } from './core'
-import { SmartContract, Executor, Querier } from './contract'
+import { SmartContract, Querier } from './contract'
+import { ViewingKeyExecutor } from './executors/viewing_key_executor'
 
 import { ExecuteResult } from 'secretjs'
 
@@ -106,7 +107,7 @@ export class RewardsContract extends SmartContract<RewardsExecutor, RewardsQueri
     }
 }
 
-export class RewardsExecutor extends Executor {
+export class RewardsExecutor extends ViewingKeyExecutor {
     async claim(): Promise<ExecuteResult> {
         const msg = {
             claim: { }

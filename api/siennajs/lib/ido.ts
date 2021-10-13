@@ -2,7 +2,8 @@ import {
     Address, Uint128, ContractInfo, TokenType, Fee, create_fee,
     get_token_type, TypeOfToken, CustomToken, create_coin, ViewingKey
 } from './core'
-import { SmartContract, Executor, Querier } from './contract'
+import { SmartContract, Querier } from './contract'
+import { ViewingKeyExecutor } from './executors/viewing_key_executor'
 import { Snip20Contract } from './snip20'
 
 import { SigningCosmWasmClient, ExecuteResult } from 'secretjs'
@@ -117,7 +118,7 @@ export class IdoContract extends SmartContract<IdoExecutor, IdoQuerier> {
     }
 }
 
-export class IdoExecutor extends Executor {
+export class IdoExecutor extends ViewingKeyExecutor {
     constructor(
         address: Address,
         private querier: () => IdoQuerier,

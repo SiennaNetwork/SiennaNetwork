@@ -2,7 +2,8 @@ import {
     Address, Uint128, Fee, ViewingKey,
     create_coin, create_base64_msg
 } from './core'
-import { SmartContract, Executor, Querier } from './contract'
+import { SmartContract, Querier } from './contract'
+import { ViewingKeyExecutor } from './executors/viewing_key_executor'
 
 import { ExecuteResult } from 'secretjs'
 
@@ -35,7 +36,7 @@ export class Snip20Contract extends SmartContract<Snip20Executor, Snip20Querier>
     }
 }
 
-export class Snip20Executor extends Executor {
+export class Snip20Executor extends ViewingKeyExecutor {
     async increase_allowance(
         spender: Address,
         amount: Uint128,

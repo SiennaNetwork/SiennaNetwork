@@ -1,5 +1,5 @@
 import { b64encode } from "@waiting/base64";
-import { EnigmaUtils } from "secretjs";
+import { EnigmaUtils, ExecuteResult, InstantiateResult } from "secretjs";
 
 export type Uint128 = string;
 export type Address = string;
@@ -56,8 +56,10 @@ export interface Fee {
     readonly gas: Uint128
 }
 
-export function decode(source: BufferSource): object {
-    return JSON.parse((new TextDecoder()).decode(source).trim());
+export function decode_data<T>(result: ExecuteResult | InstantiateResult): T {
+    const data = new TextDecoder().decode(result.data).trim()
+    
+    return JSON.parse(data)
 }
 
 export function create_coin(amount: Uint128): Coin {
