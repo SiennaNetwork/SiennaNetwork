@@ -4,8 +4,10 @@ import { randomBytes } from "crypto";
 import { Scrt, ScrtGas } from "@fadroma/scrt";
 
 import { Launchpad } from "./Launchpad";
-import { SiennaSNIP20 } from "./SNIP20";
+import { SNIP20 } from "./SNIP20";
 import { Factory } from "./Factory";
+
+import * as siennajs from "./siennajs/index";
 
 const log = function () {
   debug("out")(JSON.stringify(arguments, null, 2));
@@ -45,7 +47,7 @@ describe("Launchpad", () => {
     console.debug(`connecting took ${T1 - T0}msec`);
 
     context.templates = {
-      SiennaSNIP20: new SiennaSNIP20(),
+      SNIP20: new SNIP20(),
       Launchpad: new Launchpad(),
       Factory: new Factory(),
     };
@@ -73,46 +75,17 @@ describe("Launchpad", () => {
     this.timeout(0);
     context.factory = new Factory({
       codeId: context.templates.Factory.codeId,
+      AMMTOKEN: context.templates.SNIP20,
+      LPTOKEN: context.templates.SNIP20,
+      IDO: context.templates.SNIP20,
+      EXCHANGE: context.templates.SNIP20,
+      LAUNCHPAD: context.templates.Launchpad,
       label: `factory-${parseInt(Math.random() * 100000)}`,
-      initMsg: {
-        prng_seed: randomBytes(36).toString("hex"),
-        snip20_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
-        },
-        lp_token_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
-        },
-        pair_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
-        },
-        launchpad_contract: {
-          id: context.templates.Launchpad.codeId,
-          code_hash: context.templates.Launchpad.codeHash,
-        },
-        ido_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
-        }, // dummy so we don't have to build it
-        exchange_settings: {
-          swap_fee: {
-            nom: 1,
-            denom: 1,
-          },
-          sienna_fee: {
-            nom: 1,
-            denom: 1,
-          },
-          //   sienna_burner: null,
-        },
-      },
     });
     await context.factory.instantiate(context.agent);
 
-    context.token = new SiennaSNIP20({
-      codeId: context.templates.SiennaSNIP20.codeId,
+    context.token = new SNIP20({
+      codeId: context.templates.SNIP20.codeId,
       label: `token-${parseInt(Math.random() * 100000)}`,
       initMsg: {
         prng_seed: randomBytes(36).toString("hex"),
@@ -146,7 +119,7 @@ describe("Launchpad", () => {
             token_type: {
               custom_token: {
                 contract_addr: context.token.init.address,
-                token_code_hash: context.templates.SiennaSNIP20.codeHash,
+                token_code_hash: context.templates.SNIP20.codeHash,
               },
             },
             segment: "25",

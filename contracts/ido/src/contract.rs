@@ -5,9 +5,8 @@ use amm_shared::{
         addr::Canonize,
         callback::ContractInstance,
         cosmwasm_std::{
-            to_binary, Api, CanonicalAddr, CosmosMsg, Env, Extern, HandleResponse,
-            InitResponse, Querier, QueryRequest, QueryResult, StdError, StdResult,
-            Storage, WasmMsg, WasmQuery,
+            to_binary, Api, CanonicalAddr, CosmosMsg, Env, Extern, HandleResponse, InitResponse,
+            Querier, QueryRequest, QueryResult, StdError, StdResult, Storage, WasmMsg, WasmQuery,
         },
         migrate as fadroma_scrt_migrate,
         storage::Storable,

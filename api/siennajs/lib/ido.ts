@@ -7,6 +7,12 @@ import { Snip20Contract } from './snip20'
 
 import { SigningCosmWasmClient, ExecuteResult } from 'secretjs'
 
+export enum SaleType {
+    PreLockAndSwap = "PreLockAndSwap",
+    PreLockOnly = "PreLockOnly",
+    SwapOnly = "SwapOnly",
+}
+
 export class TokenSaleConfig {
     constructor(
         /**
@@ -33,7 +39,11 @@ export class TokenSaleConfig {
         /**
          * The addresses that are eligible to participate in the sale.
          */
-        readonly whitelist: Address[]
+        readonly whitelist: Address[],
+        /**
+         * Sale type settings
+         */
+        readonly sale_type: SaleType | null
     ) {}
 }
 
@@ -80,6 +90,15 @@ export interface SaleStatus {
     available_for_sale: Uint128;
     is_active: boolean;
     total_allocation: Uint128;
+}
+
+export interface Balance {
+    pre_lock_amount: Uint128;
+    total_bought: Uint128;
+}
+
+export interface EligibilityInfo {
+    can_participate: boolean;
 }
 
 export class IdoContract extends SmartContract<IdoExecutor, IdoQuerier> {
@@ -189,10 +208,16 @@ export class IdoExecutor extends Executor {
 }
 
 export class IdoQuerier extends Querier {
-    async get_balance(key: ViewingKey, address: Address): Promise<Uint128> {
-        // It's the same interface as SNIP20
-        const snip20 = new Snip20Contract(this.address, undefined, this.client)
-        return snip20.query().get_balance(key, address)
+    async get_balance(key: ViewingKey, address: Address): Promise<Balance> {
+        const msg = {
+            balance: {
+                address,
+                key,
+            },
+        };
+
+        const result = await this.run(msg) as BalanceResponse
+        return result.balance
     }
 
     async get_sale_info(): Promise<SaleInfo> {
@@ -208,6 +233,16 @@ export class IdoQuerier extends Querier {
         const result = await this.run(msg) as SaleStatusResponse
         return result.status
     }
+
+    async get_eligibility_info(address: Address): Promise<EligibilityInfo> {
+        const msg = {
+            eligibility_info: { address },
+        };
+
+        const result = await this.run(msg) as EligibilityInfoResponse;
+
+        return result.eligibility;
+    }
 }
 
 interface SaleInfoResponse {
@@ -216,4 +251,12 @@ interface SaleInfoResponse {
 
 interface SaleStatusResponse {
     status: SaleStatus
+}
+
+interface BalanceResponse {
+    balance: Balance;
+}
+
+interface EligibilityInfoResponse {
+    eligibility: EligibilityInfo;
 }

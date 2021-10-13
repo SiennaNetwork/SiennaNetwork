@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "workspace": true,
+  "type": "module",
   "packages": [
     "./contracts/rewards",
     "./libraries/fadroma-next/ops",

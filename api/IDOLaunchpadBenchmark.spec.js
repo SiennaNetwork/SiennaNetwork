@@ -7,7 +7,6 @@ import { Launchpad } from "./Launchpad";
 import { SNIP20 } from "./SNIP20";
 import { Factory } from "./Factory";
 import { IDO } from "./IDO";
-import { generateMnemonic } from "bip39";
 
 const log = function () {
   debug("out")(JSON.stringify(arguments, null, 2));
@@ -47,7 +46,7 @@ describe("Launchpad", () => {
     ).filter((i) => i !== null));
 
     console.log({ agents });
-    context.agent.API.fees = fees;
+    // context.agent.API.fees = fees;
 
     const T1 = +new Date();
     console.debug(`connecting took ${T1 - T0}msec`);
@@ -79,41 +78,12 @@ describe("Launchpad", () => {
 
     context.factory = new Factory({
       codeId: context.templates.Factory.codeId,
+      AMMTOKEN: context.templates.SNIP20,
+      LPTOKEN: context.templates.SNIP20,
+      IDO: context.templates.SNIP20,
+      EXCHANGE: context.templates.SNIP20,
+      LAUNCHPAD: context.templates.Launchpad,
       label: `factory-${parseInt(Math.random() * 100000)}`,
-      initMsg: {
-        prng_seed: randomBytes(36).toString("hex"),
-        snip20_contract: {
-          id: context.templates.SNIP20.codeId,
-          code_hash: context.templates.SNIP20.codeHash,
-        },
-        lp_token_contract: {
-          id: context.templates.SNIP20.codeId,
-          code_hash: context.templates.SNIP20.codeHash,
-        },
-        pair_contract: {
-          id: context.templates.SNIP20.codeId,
-          code_hash: context.templates.SNIP20.codeHash,
-        },
-        launchpad_contract: {
-          id: context.templates.Launchpad.codeId,
-          code_hash: context.templates.Launchpad.codeHash,
-        },
-        ido_contract: {
-          id: context.templates.IDO.codeId,
-          code_hash: context.templates.IDO.codeHash,
-        }, // dummy so we don't have to build it
-        exchange_settings: {
-          swap_fee: {
-            nom: 1,
-            denom: 1,
-          },
-          sienna_fee: {
-            nom: 1,
-            denom: 1,
-          },
-          //   sienna_burner: null,
-        },
-      },
     });
     await context.factory.instantiate(context.agent);
 
@@ -213,6 +183,12 @@ describe("Launchpad", () => {
     const T4 = +new Date();
     console.debug(`preparing contracts took ${T4 - T3}msec`);
     console.debug(`total preparation time: ${T4 - T0}msec`);
+
+    context.gasUsage = {
+      first: 0,
+      second: 0,
+      third: 0,
+    };
   });
 
   it("Benchmark the gas usage when IDO does a query call to get whitelist", async function () {
@@ -277,17 +253,17 @@ describe("Launchpad", () => {
         beforeInitBalance - afterInitBalance
       }`
     );
+
+    context.gasUsage.first = beforeInitBalance - afterInitBalance;
   });
 
   it("Benchmark gas usage when IDO is given a whitelist", async function () {
     this.timeout(0);
 
-    // const { drawn_addresses: whitelist } = await context.launchpad.draw(100, [
-    //   null,
-    //   context.token.address,
-    // ]);
-
-    const whitelist = [];
+    const { drawn_addresses: whitelist } = await context.launchpad.draw(100, [
+      null,
+      context.token.address,
+    ]);
     const beforeInitBalance = await context.agent.balance;
 
     
@@ -349,10 +325,81 @@ describe("Launchpad", () => {
         context.results2
       }. Difference: ${context.results1 - context.results2}`
     );
+
+    context.gasUsage.second = beforeInitBalance - afterInitBalance;
+  });
+
+  it("Benchmark gas usage when IDO is given no whitelist", async function () {
+    this.timeout(0);
+    
+    const beforeInitBalance = await context.agent.balance;
+
+    
+
+
+    context.ido = new IDO({
+      codeId: context.templates.IDO.codeId,
+      label: `ido-${parseInt(Math.random() * 100000)}`,
+      initMsg: {
+        info: {
+          input_token: {
+            native_token: {
+              denom: "uscrt",
+            },
+          },
+          rate: "1",
+          sold_token: {
+            address: context.sellingToken.address,
+            code_hash: context.templates.SNIP20.codeHash,
+          },
+          whitelist: [],
+          max_seats: 100,
+          max_allocation: "5",
+          min_allocation: "1",
+        },
+        prng_seed: randomBytes(36).toString("hex"),
+        entropy: randomBytes(36).toString("hex"),
+        admin: context.agent.address,
+        callback: {
+          msg: Buffer.from(
+            JSON.stringify({
+              register_ido: {
+                signature: "",
+              },
+            }),
+            "utf8"
+          ).toString("base64"),
+          contract: {
+            address: context.factory.address,
+            code_hash: context.templates.Factory.codeHash,
+          },
+        },
+      },
+    });
+    await context.ido.instantiate(context.agent);
+
+    const afterInitBalance = await context.agent.balance;
+    context.results2 = beforeInitBalance - afterInitBalance;
+
+    console.debug(
+      "GETS WHITELIST:",
+      `Balance before: ${beforeInitBalance}, Balance after: ${afterInitBalance}, spent on init: ${
+        beforeInitBalance - afterInitBalance
+      }`
+    );
+
+    console.debug(
+      `Query on its own: ${context.results1}, gets whitelist: ${
+        context.results2
+      }. Difference: ${context.results1 - context.results2}`
+    );
+
+    context.gasUsage.third = beforeInitBalance - afterInitBalance;
   });
 
   after(async function cleanupAll() {
     this.timeout(0);
+    console.debug(`First: ${context.gasUsage.first}, Second: ${context.gasUsage.second}, Third: ${context.gasUsage.third}`);
     await context.node.terminate();
   });
 });

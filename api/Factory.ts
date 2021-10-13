@@ -39,9 +39,11 @@ export class Factory extends ScrtContract {
     AMMTOKEN?:  AMMSNIP20
     LPTOKEN?:   LPToken
     IDO?:       IDO
-    LAUNCHPAD?: Launchpad
+    LAUNCHPAD?: Launchpad,
+    codeId?: number,
+    label?: string,
   } = {}) {
-    super({ agent: options.admin, prefix: options.prefix, schema, workspace: abs() })
+    super({ codeId: options.codeId, agent: options.admin, prefix: options.prefix, schema, workspace: abs() })
 
     Object.assign(this.init.msg, {
       ...(options.config || {}),
@@ -74,6 +76,10 @@ export class Factory extends ScrtContract {
         get () { return self.dependencies.LAUNCHPAD.template }
       },
     })
+
+    if (options.label) {
+      this.init.label = options.label;
+    }
   }
 
   dependencies: Record<string, ScrtContract> = {}
