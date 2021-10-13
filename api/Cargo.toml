@@ -14,6 +14,7 @@ ido             = { path = "../contracts/ido" }
 lp-token        = { path = "../contracts/lp-token" }
 sienna-mgmt     = { path = "../contracts/mgmt" }
 sienna-rewards  = { path = "../contracts/rewards" }
+sienna-rewards-emergency-proxy = { path = "../contracts/rewards-emergency-proxy" }
 sienna-rpt      = { path = "../contracts/rpt" }
 
 [[bin]]

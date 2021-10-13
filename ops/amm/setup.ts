@@ -18,7 +18,8 @@ export interface UploadResult {
     snip20: ContractInstantiationInfo,
     exchange: ContractInstantiationInfo,
     lp_token: ContractInstantiationInfo,
-    ido: ContractInstantiationInfo
+    ido: ContractInstantiationInfo,
+    launchpad: ContractInstantiationInfo
 }
 
 export interface ScrtAccount {
@@ -39,6 +40,7 @@ export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFil
     const factory_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/factory@HEAD.wasm`))
     const lp_token_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/lp-token@HEAD.wasm`))
     const ido_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/ido@HEAD.wasm`))
+    const launchpad_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/launchpad@HEAD.wasm`))
 
     process.stdout.write(`Uploading exchange contract...\r`)
     const exchange_upload = await client.upload(exchange_wasm, {}, undefined, create_fee('2400000'))
@@ -53,7 +55,7 @@ export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFil
     process.stdout.write(`Uploading SNIP20 contract...done\r\n`)
 
     process.stdout.write(`Uploading factory contract...\r`)
-    const factory_upload = await client.upload(factory_wasm, {}, undefined, create_fee('1900000'))
+    const factory_upload = await client.upload(factory_wasm, {}, undefined, create_fee('2100000'))
     analytics.add_tx(factory_upload.transactionHash, 'Factory')
     writer.write(factory_upload, `uploads/factory`)
     process.stdout.write(`Uploading factory contract...done\r\n`)
@@ -65,10 +67,16 @@ export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFil
     process.stdout.write(`Uploading LP token contract...done\r\n`)
 
     process.stdout.write(`Uploading IDO contract...\r`)
-    const ido_upload = await client.upload(ido_wasm, {}, undefined, create_fee('2200000'))
+    const ido_upload = await client.upload(ido_wasm, {}, undefined, create_fee('2500000'))
     analytics.add_tx(ido_upload.transactionHash, 'IDO')
     writer.write(ido_upload, `uploads/ido`)
     process.stdout.write(`Uploading IDO contract...done\r\n`)
+
+    process.stdout.write(`Uploading launchpad contract...\r`)
+    const launchpad_upload = await client.upload(launchpad_wasm, {}, undefined, create_fee('2500000'))
+    analytics.add_tx(launchpad_upload.transactionHash, 'Launchpad')
+    writer.write(launchpad_upload, `uploads/launchpad`)
+    process.stdout.write(`Uploading launchpad contract...done\r\n`)
 
     const gas = await analytics.get_gas_report()
     const gas_table = [ [ 'Uploaded Contract', 'Gas Wanted', 'Gas Used' ] ]
@@ -81,7 +89,8 @@ export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFil
         snip20: new ContractInstantiationInfo(snip20_upload.originalChecksum, snip20_upload.codeId),
         exchange: new ContractInstantiationInfo(exchange_upload.originalChecksum, exchange_upload.codeId),
         lp_token: new ContractInstantiationInfo(lp_token_upload.originalChecksum, lp_token_upload.codeId),
-        ido: new ContractInstantiationInfo(ido_upload.originalChecksum, ido_upload.codeId)
+        ido: new ContractInstantiationInfo(ido_upload.originalChecksum, ido_upload.codeId),
+        launchpad: new ContractInstantiationInfo(launchpad_upload.originalChecksum, launchpad_upload.codeId)
     }
 }
 

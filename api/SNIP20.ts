@@ -226,6 +226,19 @@ export class SNIP20 extends ScrtContract {
       },
       agent
     );
+
+  /**
+   * Return the address and code hash of this token in the format
+   * required by the Factory to create a swap pair with this token
+   */
+  get asCustomToken () {
+    return {
+      custom_token: {
+        contract_addr:   this.address,
+        token_code_hash: this.codeHash
+      }
+    }
+  }
 }
 
 export class AMMSNIP20 extends SNIP20 {

@@ -9,7 +9,7 @@ export type ReceiverCallbackMsg =
   | {
       swap: {
         expected_return?: Uint128 | null;
-        recipient?: HumanAddr | null;
+        to?: HumanAddr | null;
         [k: string]: unknown;
       };
       [k: string]: unknown;

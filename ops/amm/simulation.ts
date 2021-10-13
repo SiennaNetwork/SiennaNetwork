@@ -61,8 +61,10 @@ async function simulation() {
     const result = await upload_amm(client, new NullJsonFileWriter)
 
     process.stdout.write(`Instantiating factory...\r`)
-    const factory = await instantiate_factory(client, result, ACC[1].address)
+    const instance = await instantiate_factory(client, result, ACC[1].address)
     process.stdout.write(`Instantiating factory...done\r\n\n`)
+
+    const factory = new AmmFactoryContract(instance.contractAddress, client)
 
     await create_users(client)
     await create_pairs(client, result.snip20, factory)

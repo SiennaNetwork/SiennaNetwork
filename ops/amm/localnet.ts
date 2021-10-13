@@ -2,7 +2,7 @@ import { create_fee, Address } from '../../api/siennajs/lib/core'
 import { AmmFactoryContract, ExchangeSettings } from '../../api/siennajs/lib/amm_factory'
 import { create_rand_base64, UploadResult } from './setup'
 
-import { SigningCosmWasmClient } from 'secretjs'
+import { SigningCosmWasmClient, InstantiateResult } from 'secretjs'
 
 export interface LocalAccount {
     name: string,
@@ -19,26 +19,27 @@ export async function instantiate_factory(
     client: SigningCosmWasmClient,
     result: UploadResult,
     burner?: Address | undefined
-): Promise<AmmFactoryContract> {
+): Promise<InstantiateResult> {
     const factory_init_msg = {
         snip20_contract: result.snip20,
         lp_token_contract: result.lp_token,
         pair_contract: result.exchange,
         ido_contract: result.ido,
+        launchpad_contract: result.launchpad,
         exchange_settings: get_exchange_settings(burner),
         prng_seed: create_rand_base64()
     }
   
-    const factory_instance = await client.instantiate(
+    const instance = await client.instantiate(
         result.factory.id,
         factory_init_msg,
         'SIENNA AMM FACTORY',
         undefined,
         undefined,
-        create_fee('200000')
+        create_fee('165000')
     )
   
-    return new AmmFactoryContract(factory_instance.contractAddress, client)
+    return instance
 }
 
 export function get_exchange_settings(sienna_burner?: Address | undefined): ExchangeSettings {

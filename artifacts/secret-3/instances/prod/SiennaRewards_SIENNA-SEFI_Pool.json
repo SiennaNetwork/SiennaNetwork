@@ -1,0 +1,38 @@
+{
+  "contractAddress": "secret1f6pfxup7xp9auvafcu9ftsc6090h843rdt7cxc",
+  "logs": [
+    {
+      "msg_index": 0,
+      "log": "",
+      "events": [
+        {
+          "type": "message",
+          "attributes": [
+            {
+              "key": "action",
+              "value": "instantiate"
+            },
+            {
+              "key": "module",
+              "value": "compute"
+            },
+            {
+              "key": "signer",
+              "value": "secret1d7j3w709w3ewg7mrlmlzsvn3jdht3083e6ym2k"
+            },
+            {
+              "key": "code_id",
+              "value": "119"
+            },
+            {
+              "key": "contract_address",
+              "value": "secret1f6pfxup7xp9auvafcu9ftsc6090h843rdt7cxc"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "transactionHash": "1631F667CF10C2A9CFFE304D33E5870C6D5D609D83B067929401578B94DEF3EF",
+  "data": "4E8293703E304BDE33A9C70A95C31A795F73D623"
+}

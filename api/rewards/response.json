@@ -39,6 +39,12 @@
             "pool_claimed": {
               "$ref": "#/definitions/Uint128"
             },
+            "pool_closed": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "pool_cooldown": {
               "type": "integer",
               "format": "uint64",
@@ -98,6 +104,12 @@
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
+            },
+            "pool_closed": {
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "pool_last_update": {
               "type": "integer",

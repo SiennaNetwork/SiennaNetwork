@@ -1,8 +1,16 @@
 #![allow(unused_macros)]
 #![allow(non_snake_case)]
 
-use fadroma::scrt::{cosmwasm_std::{HumanAddr, StdError}};
-use crate::{rewards_harness::*};
+use fadroma::scrt::{
+    cosmwasm_std::{HumanAddr, StdError},
+    callback::ContractInstance,
+    harness::Harness
+};
+use crate::{
+    rewards_harness::*,
+    msg,
+    rewards_config::load_viewing_key
+};
 
 const REWARD: u128 = 100;
 const STAKE:  u128 = 100;
@@ -12,6 +20,8 @@ const STAKE:  u128 = 100;
 // (volume is also represented as u128 instead of u256)
 // i.e. need to call .into(), harness up/downcasts accordingly
 const DAY: u128 = crate::DAY as u128;
+
+const NO_REWARDS: &str = "You've already received as much as your share of the reward pool allows. Keep your liquidity tokens locked and wait for more rewards to be vested, and/or lock more liquidity tokens to grow your share of the reward pool.";
 
 kukumba_harnessed! {
 
@@ -355,6 +365,99 @@ kukumba_harnessed! {
         when "alice retrieves tokens"
         then "alice gets back the original amount" {
             Test.retrieve(&alice, 100)?;
+        }
+    }
+
+    global_ratio_zero {
+
+        given "an instance with 0/1 ratio" {
+            let admin = HumanAddr::from("admin");
+            let alice = HumanAddr::from("alice");
+            Test.at(1)
+                .init_configured(&admin)?
+                .set_ratio(&admin, 0u128, 1u128)?
+                .fund(REWARD)
+                .set_vk(&alice, "")?
+                .user(&alice,     0,   0,       0,   0,   0,   0)? }
+
+        when "user becomes eligible for rewards"
+        then "rewards are zero" {
+            Test.at(DAY+1)
+                .user(&alice,     0,   0,       0,   0,   0,   0)? }
+
+        when "ratio is set to 1/1"
+        then "rewards can be claimed" {
+            Test.at(DAY+2)
+                .set_ratio(&admin, 1u128, 1u128)?
+                .user(&alice,     0,   0,       0,   0,   0,   0)? } }
+
+    claim_ratio_zero {
+        given "an instance" {
+            let admin = HumanAddr::from("admin");
+            let alice = HumanAddr::from("alice");
+            let bob   = HumanAddr::from("bob");
+            Test.at(1).init_configured(&admin)? }
+
+        when  "strangers try to claim rewards"
+        then  "they get an error" {
+            Test.at(1).claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
+                      .claim_must_wait(&bob,   "lock tokens for 17280 more blocks to be eligible")? }
+
+        when  "users provide liquidity"
+        and   "they wait for rewards to accumulate" {
+            Test.at(1)
+                .lock(&alice, 100)?.claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
+                .lock(&bob,   100)?.claim_must_wait(&bob, "lock tokens for 17280 more blocks to be eligible")?
+                .at(2).claim_must_wait(&alice, "lock tokens for 17279 more blocks to be eligible")?
+                .at(3).claim_must_wait(&bob,   "lock tokens for 17278 more blocks to be eligible")?
+                .at(4).claim_must_wait(&alice, "lock tokens for 17277 more blocks to be eligible")?
+                .at(5).claim_must_wait(&bob,   "lock tokens for 17276 more blocks to be eligible")? }
+
+        and   "a provider claims rewards"
+        then  "that provider receives reward tokens" {
+            Test.fund(REWARD)
+                .set_ratio(&admin, 0u128, 1u128)?
+                .at(1 + DAY).claim_must_wait(&alice, NO_REWARDS)? }
+
+        when  "a provider claims rewards twice within a period"
+        then  "rewards are sent only the first time" {
+            Test.at(1 + DAY).claim_must_wait(&alice, NO_REWARDS)?
+                .at(2 + DAY).claim_must_wait(&alice, NO_REWARDS)?
+                .at(3 + DAY).claim_must_wait(&alice, NO_REWARDS)? }
+
+        when  "a provider claims their rewards less often"
+        then  "they receive equivalent rewards as long as the liquidity locked hasn't changed" {
+            Test.fund(REWARD)
+                .set_ratio(&admin, 1u128, 1u128)?
+                .at(3 + DAY * 2).claim(&alice, 100)?.claim(&bob, 100)? } }
+
+    release_snip20 {
+        given "an instance" {
+            let admin = HumanAddr::from("admin");
+            let alice = HumanAddr::from("alice");
+
+            let key = "key";
+
+            let msg = msg::Handle::ReleaseSnip20 {
+                snip20: Test.reward_token(),
+                key: key.into(),
+                recipient: None
+            };
+
+            Test.at(1).init_configured(&admin)? }
+
+        when "non admin-tries to call release"
+        then "gets rejected" {
+            assert!(Test.tx(20, &alice, msg.clone()).is_err());
+        }
+
+        when "calling with reward token info"
+        then "the viewing key changes" {
+            assert!(Test.tx(20, &admin, msg).is_ok());
+            let deps = Test.deps();
+            let vk = load_viewing_key(&deps.storage)?;
+
+            assert_eq!(vk.0, String::from(key));
         }
     }
 

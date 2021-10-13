@@ -25,7 +25,7 @@ export type HandleMsg =
          * The token type to swap from.
          */
         offer: TokenTypeAmountFor_HumanAddr;
-        recipient?: HumanAddr | null;
+        to?: HumanAddr | null;
         [k: string]: unknown;
       };
       [k: string]: unknown;

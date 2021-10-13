@@ -1,0 +1,43 @@
+{
+  "label": "prod/SiennaRewards_SIENNA-SEFI_Pool",
+  "codeId": 116,
+  "codeHash": "7a3f39c50a8ab5f3db1ffdeeab3bf548ef22888161392541bdea7ace543c9433",
+  "initTx": {
+    "contractAddress": "secret1pxu8v03t0azdu6j8ldd9aar2vu06e3ndk2kfru",
+    "logs": [
+      {
+        "msg_index": 0,
+        "log": "",
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1d7j3w709w3ewg7mrlmlzsvn3jdht3083e6ym2k"
+              },
+              {
+                "key": "code_id",
+                "value": "116"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret1pxu8v03t0azdu6j8ldd9aar2vu06e3ndk2kfru"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "transactionHash": "55779B1276010D4ABE74ABF15408DF2EC1A9FC9E11391FBF754E2DB0BD989B29",
+    "data": "09B8763E2B7F44DE6A47FB5A5EF46A671FACC66D"
+  }
+}

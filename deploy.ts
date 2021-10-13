@@ -7,6 +7,8 @@ import { Scrt } from '@fadroma/scrt'
 import { bold, colors, timestamp, symlinkDir, randomHex } from '@fadroma/tools'
 import process from 'process'
 import { fileURLToPath } from 'url'
+import { writeFileSync } from 'fs'
+import assert from 'assert'
 import { getDefaultSchedule, ONE_SIENNA } from './ops/index'
 
 
@@ -88,37 +90,44 @@ import {
   FactoryContract, AMMContract, AMMSNIP20, LPToken, RewardsContract, IDOContract, LaunchpadContract
 } from '@sienna/api'
 export type SwapOptions = {
-  prefix:  string,
   chain?:  Chain,
   admin?:  Agent,
-  SIENNA?: SiennaSNIP20
-  MGMT?:   MGMTContract
-  RPT?:    RPTContract
+  prefix:  string,
 }
 export async function deploySwap (options: SwapOptions) {
+
   const {
+    chain = await new Scrt().ready,
+    admin = await chain.getAgent(),
     prefix,
-    chain  = await new Scrt().ready,
-    admin  = await chain.getAgent(),
-    MGMT,
   } = options
 
-  const SIENNA = chain.instances.active.getContract(SiennaSNIP20, 'SiennaSNIP20', admin)
-      , RPT = chain.instances.active.getContract(RPTContract, 'SiennaRPT', admin)
-      , EXCHANGE = new AMMContract({ prefix, admin })
-      , AMMTOKEN = new AMMSNIP20({ prefix, admin })
-      , LPTOKEN = new LPToken({ prefix, admin })
-      , IDO = new IDOContract({ prefix, admin })
-      , REWARDS = new RewardsContract({ prefix, admin })
-      , LAUNCHPAD = new LaunchpadContract({ prefix, admin })
-      , FACTORY = new FactoryContract({
-          prefix, admin, config: settings[`amm-${chain.chainId}`],
-          EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD
-        })
+  const
+    instance = chain.instances.active,
+    SIENNA   = instance.getContract(SiennaSNIP20, 'SiennaSNIP20', admin),
+    MGMT     = instance.getContract(MGMTContract, 'SiennaMGMT',   admin),
+    RPT      = instance.getContract(RPTContract,  'SiennaRPT',    admin)
 
-  await buildAndUpload([EXCHANGE, AMMTOKEN, LPTOKEN, IDO, FACTORY, REWARDS, LAUNCHPAD])
+  const
+    EXCHANGE  = new AMMContract({ prefix, admin }),
+    AMMTOKEN  = new AMMSNIP20({ prefix, admin }),
+    LPTOKEN   = new LPToken({ prefix, admin }),
+    IDO       = new IDOContract({ prefix, admin }),
+    LAUNCHPAD = new LaunchpadContract({ prefix, admin }),
+    REWARDS   = new RewardsContract({ prefix, admin })
 
-  await FACTORY.instantiateOrExisting(chain.instances.active.contracts['SiennaAMMFactory'])
+  const
+    factoryDeps    = { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD },
+    factoryConfig  = settings[`amm-${chain.chainId}`],
+    factoryOptions = { prefix, admin, config: factoryConfig, ...factoryDeps },
+    FACTORY        = new FactoryContract(factoryOptions)
+
+  await buildAndUpload([FACTORY, EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD, REWARDS])
+  await FACTORY.instantiateOrExisting(instance.contracts['SiennaAMMFactory'])
+
+
+  /// Obtain a list of token addr/hash pairs for creating liquidity pools
+
 
   const tokens = { SIENNA }
   if (chain.isLocalnet) {
@@ -127,23 +136,29 @@ export async function deploySwap (options: SwapOptions) {
     Object.assign(tokens, getSwapTokens(settings[`swapTokens-${chain.chainId}`]))
   }
 
-  const rptConfig = []
 
-  const siennaStakingRewards = await deployRewardPool('SIENNA', SIENNA, SIENNA)
-  rptConfig.push([
-    siennaStakingRewards.address,
-    String(BigInt(settings[`rewardPairs-${chain.chainId}`].SIENNA) * ONE_SIENNA)
-  ])
+  /// Define RPT configuration, starting with single-sided staking
+
+
+  const rptConfig = [
+    [
+      (await deployRewardPool('SIENNA', SIENNA, SIENNA)).address,
+      String(BigInt(settings[`rewardPairs-${chain.chainId}`].SIENNA) * ONE_SIENNA)
+    ]
+  ]
+
+
+  /// Create or retrieve liquidity pools,
+  /// create their corresponding reward pools,
+  /// and add the latter to the RPT configuration.
+
 
   const swapPairs = settings[`swapPairs-${chain.chainId}`]
-
   if (swapPairs.length > 0) {
     const existingExchanges = await FACTORY.listExchanges()
-
+    const rewards = settings[`rewardPairs-${chain.chainId}`]
     for (const name of swapPairs) {
-      const [token0, token1] = await deploySwapPair(name, existingExchanges)
-
-      const rewards = settings[`rewardPairs-${chain.chainId}`]
+      const [token0, token1] = await deployLiquidityPool(name, existingExchanges)
       if (rewards) {
         const lpToken = await getLPToken(token0, token1)
         const reward  = BigInt(rewards[name])
@@ -153,9 +168,91 @@ export async function deploySwap (options: SwapOptions) {
     }
   }
 
-  await RPT.configure(rptConfig)
+  if (chain.isMainnet) {
+    const rptConfigPath = instance.resolve(`RPTConfig.json`)
+    writeFileSync(rptConfigPath, JSON.stringify({config: rptConfig}, null, 2), 'utf8')
+    console.info(
+      `\n\nWrote ${bold(rptConfigPath)}. `+
+      `You should use this file as the basis of a multisig transaction.`
+    )
+  } else {
+    await RPT.configure(rptConfig)
+  }
+
+  async function deployLiquidityPool (name: string, existingExchanges: any[]) {
+    const [tokenName0, tokenName1] = name.split('-')
+    const token0 = tokens[tokenName0]
+        , token1 = tokens[tokenName1]
+
+    console.log(`\nLiquidity pool ${bold(name)}...`)
+
+    for (const {pair} of existingExchanges) {
+      if ((
+        pair.token_0.custom_token.contract_addr === token0.address &&
+        pair.token_1.custom_token.contract_addr === token1.address
+      ) || (
+        pair.token_0.custom_token.contract_addr === token1.address &&
+        pair.token_1.custom_token.contract_addr === token0.address
+      )) {
+        console.info(bold('Already exists.'))
+        return [token0, token1]
+      }
+    }
+
+    const deployed = await FACTORY.createExchange(
+      token0.asCustomToken,
+      token1.asCustomToken
+    )
+
+    const exchangeReceiptPath = instance.resolve(`SiennaSwap_${name}.json`)
+    writeFileSync(exchangeReceiptPath, JSON.stringify(deployed, null, 2), 'utf8')
+    console.info(`\nWrote ${bold(exchangeReceiptPath)}.`)
+
+    console.info(bold('Deployed.'), deployed)
+
+    return [token0, token1]
+  }
+
+  async function getLiquidityPoolInfo (token0: SNIP20, token1: SNIP20) {
+    const exchanges = await FACTORY.listExchanges()
+    const {address: pairAddress} = exchanges.filter(({pair})=>(
+      pair.token_0.custom_token.contract_addr === token0.address &&
+      pair.token_1.custom_token.contract_addr === token1.address
+    ))[0]
+    const {pair_info} = await AMMContract.attach(pairAddress, EXCHANGE.codeHash, admin).pairInfo()
+    return pair_info
+  }
+
+  async function getLPToken (token0: SNIP20, token1: SNIP20) {
+    const {liquidity_token:{address, code_hash}} = await getLiquidityPoolInfo(token0, token1)
+    return LPToken.attach(address, code_hash, admin)
+  }
+
+  async function deployRewardPool (name: string, lpToken: SNIP20, rewardToken: SNIP20) {
+    const {codeId, codeHash} = REWARDS
+        , options    = { codeId, codeHash, prefix, name, admin, lpToken, rewardToken, }
+        , rewardPool = new RewardsContract(options)
+        , receipt    = instance.contracts[rewardPool.init.label]
+    await rewardPool.instantiateOrExisting(receipt)
+    return rewardPool
+  }
+
+
+  /// On testnet and mainnet, interoperate with preexisting token contracts.
+
+
+  function getSwapTokens (links: Record<string, { address: string, codeHash: string }>) {
+    const tokens = {}
+    for (const [name, {address, codeHash}] of Object.entries(links)) {
+      tokens[name] = AMMSNIP20.attach(address, codeHash, admin)
+      console.log('getSwapToken', name, address, codeHash)
+    }
+    return tokens
+  }
+
 
   /// On localnet, placeholder tokens need to be deployed.
+
 
   async function deployPlaceholderTokens () {
     const tokens = {}
@@ -167,66 +264,10 @@ export async function deploySwap (options: SwapOptions) {
       Object.assign(token.blob, { codeId: AMMTOKEN.codeId, codeHash: AMMTOKEN.codeHash })
       Object.assign(token.init, { prefix, label, msg: initMsg })
       Object.assign(token.init.msg, { prng_seed: randomHex(36) })
-      const existing = chain.instances.active.contracts[label]
+      const existing = instance.contracts[label]
       await tokens[symbol].instantiateOrExisting(existing)
     }
     return tokens
-  }
-
-
-  /// On testnet and mainnet, interoperate with preexisting token contracts.
-
-
-  function getSwapTokens (links: Record<string, { address: string, codeHash: string }>) {
-    const tokens = {}
-    for (const [name, {address, codeHash}] of Object.entries(links)) {
-      tokens[name] = AMMSNIP20.attach(address, codeHash, admin)
-    }
-    return tokens
-  }
-
-  async function deploySwapPair (name: string, existingExchanges: any[]) {
-    const [tokenName0, tokenName1] = name.split('-')
-    const token0 = tokens[tokenName0]
-        , token1 = tokens[tokenName1]
-
-    for (const {pair} of existingExchanges) {
-      if (
-        (pair.token_0.custom_token.contract_addr === token0.address &&
-        pair.token_1.custom_token.contract_addr === token1.address) ||
-        (pair.token_0.custom_token.contract_addr === token1.address &&
-        pair.token_1.custom_token.contract_addr === token0.address)
-      ) {
-        console.info(`Exchange exists: ${token0.init.label}/${token1.init.label}`)
-        return [token0, token1]
-      }
-    }
-    await FACTORY.createExchange(
-      { custom_token: { contract_addr: token0.address, token_code_hash: token0.codeHash } },
-      { custom_token: { contract_addr: token1.address, token_code_hash: token1.codeHash } }
-    )
-    return [token0, token1]
-  }
-
-  async function getLPToken (token0: SNIP20, token1: SNIP20) {
-    const exchanges = await FACTORY.listExchanges()
-    const {address: pairAddress} = exchanges.filter(({pair})=>(
-      pair.token_0.custom_token.contract_addr === token0.address &&
-      pair.token_1.custom_token.contract_addr === token1.address
-    ))[0]
-    const {pair_info} = await AMMContract.attach(pairAddress, EXCHANGE.codeHash, admin).pairInfo()
-    const {address, code_hash} = pair_info.liquidity_token
-    return LPToken.attach(address, code_hash, admin)
-  }
-
-  async function deployRewardPool (name: string, lpToken: SNIP20, rewardToken: SNIP20) {
-    const {codeId, codeHash} = REWARDS
-        , rewardPool = new RewardsContract({
-            codeId, codeHash, prefix, name, admin, lpToken, rewardToken,
-          })
-    const receipt = chain.instances.active.contracts[rewardPool.init.label]
-    await rewardPool.instantiateOrExisting(receipt)
-    return rewardPool
   }
 
 }
@@ -287,7 +328,17 @@ export async function replaceRewardPool (
   await NEW_POOL.instantiate()
 
   config[found][0] = NEW_POOL.address
-  await RPT.configure(config)
+
+  if (chain.isMainnet) {
+    const rptConfigPath = instance.resolve(`RPTConfig.json`)
+    writeFileSync(rptConfigPath, JSON.stringify({config}, null, 2), 'utf8')
+    console.info(
+      `\n\nWrote ${bold(rptConfigPath)}. `+
+      `You should use this file as the basis of a multisig transaction.`
+    )
+  } else {
+    await RPT.configure(config)
+  }
 
   await OLD_POOL.close(`Moved to ${NEW_POOL.address}`)
 }
@@ -395,9 +446,18 @@ export default async function main ([chainName, ...words]: Array<string>) {
       process.exit(1)
     }
 
-    const chain = await chains[chainName]().ready
-    const admin = await chain.getAgent()
+    chain = await chains[chainName]().ready
+    admin = await chain.getAgent()
     console.log(`\nOperating on ${bold(chainName)} as ${bold(admin.address)}`)
+
+    const initialBalance = await admin.balance
+    console.log(`\nBalance: ${bold(initialBalance)}uscrt`)
+    process.on('beforeExit', async () => {
+      const finalBalance = await admin.balance
+      console.log(`\nInitial balance: ${bold(initialBalance)}uscrt`)
+      console.log(`\nFinal balance: ${bold(finalBalance)}uscrt`)
+      console.log(`\nConsumed gas: ${bold(initialBalance - finalBalance)}uscrt`)
+    })
 
     return { chain, admin }
   }
@@ -414,9 +474,7 @@ export default async function main ([chainName, ...words]: Array<string>) {
       if (typeof command === 'object' && command[word]) command = command[word]
       if (command instanceof Function) break
     }
-    const context = await init(chainName)
-    chain = context.chain
-    admin = context.admin
+    await init(chainName)
     if (command instanceof Function) {
       return await Promise.resolve(command(...words.slice(i + 1)))
     } else {

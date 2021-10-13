@@ -26,8 +26,10 @@ pub mod rewards_algo;   use rewards_algo::*;
 pub mod rewards_config; use rewards_config::*;
 
 use fadroma::scrt::{
-    callback::{ContractInstance as ContractLink},
+    BLOCK_SIZE,
+    callback::ContractInstance as ContractLink,
     contract::*,
+    toolkit::snip20,
     snip20_api::ISnip20,
     vk::{ViewingKey,
          auth_handle, authenticate, AuthHandleMsg,
@@ -112,7 +114,7 @@ contract! {
 
         /// Overall pool status
         PoolInfo (at: Time) {
-            let pool = Pool::new(&deps.storage).at(at);
+            let pool = Pool::new(&deps.storage).at(at).with_balance(load_reward_balance(&deps)?);
             let pool_last_update = pool.timestamp()?;
             if at < pool_last_update {
                 return Err(StdError::generic_err("this contract does not store history")) }
@@ -331,6 +333,42 @@ contract! {
                 .at(env.block.height)
                 .close(message)?;
             tx_ok!() }
+
+        // Snip20 tokens sent to this contract can be transferred
+        // The goal is allow the contract to not act as burner for
+        // snip20 tokens in case sent here. 
+        ReleaseSnip20 (snip20: ContractLink<HumanAddr>, recipient: Option<HumanAddr>, key: String) {
+            assert_admin(&deps, &env)?;
+
+            let recipient = recipient.unwrap_or(env.message.sender);
+
+            let reward_token = load_reward_token(&deps.storage, &deps.api)?;
+
+            // Update the viewing key if the supplied
+            // token info for is the reward token
+            if reward_token == snip20 {
+                save_viewing_key(&mut deps.storage, &ViewingKey(key.clone()))?
+            }
+
+            tx_ok!(
+                snip20::increase_allowance_msg(
+                    recipient,
+                    Uint128(u128::MAX),
+                    Some(env.block.time + 86400000), // One day duration
+                    None,
+                    BLOCK_SIZE,
+                    snip20.code_hash.clone(),
+                    snip20.address.clone()
+                )?,
+                snip20::set_viewing_key_msg(
+                    key,
+                    None,
+                    BLOCK_SIZE,
+                    snip20.code_hash,
+                    snip20.address
+                )?
+            )
+        }
 
         // actions that are performed by users ----------------------------------------------------
 

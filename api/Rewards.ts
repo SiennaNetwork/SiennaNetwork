@@ -138,3 +138,19 @@ export class Rewards extends ScrtContract {
     this.tx.closePool({ message }, agent);
 
 }
+
+export class RewardsEmergencyProxy extends ScrtContract {
+
+  static schema = loadSchemas(import.meta.url, {
+    initMsg:     "./rewards_emergency_proxy/init.json",
+    queryMsg:    "./rewards_emergency_proxy/query.json",
+    queryAnswer: "./rewards_emergency_proxy/response.json",
+    handleMsg:   "./rewards_emergency_proxy/handle.json",
+  })
+
+  code = {
+    ...this.code,
+    workspace: abs(),
+    crate: 'sienna-rewards-emergency-proxy'
+  }
+}

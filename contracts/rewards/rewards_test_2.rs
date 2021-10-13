@@ -139,6 +139,43 @@ kukumba_harnessed! {
             user.pool.set_time(100000);
             assert_eq!(user.claimable()?, 50u128.into()); } }
 
+    global_ratio_zero {
+
+        given "a pool with 0/1 ratio, and a user" {
+            let addr     = CanonicalAddr::default();
+            let mut s    = MemoryStorage::new();
+            let mut pool = Pool::new(&mut s);
+            pool.set_time(1).set_balance(100u128.into())
+                .configure_threshold(&0)?
+                .configure_cooldown(&0)?
+                .configure_ratio(&(0u128.into(), 1u128.into()))?; }
+
+        when "user becomes eligible for rewards"
+        then "rewards are zero" {
+            let mut user = pool.user(addr.clone());
+            user.lock_tokens(100u128.into())?;
+            user.pool.set_time(100000);
+            assert_eq!(user.claimable()?,    0u128.into());
+            user.pool.set_balance(200u128.into());
+            assert_eq!(user.claimable()?,    0u128.into()); }
+
+        when "ratio is set to 1/1"
+        then "rewards can be claimed" {
+            user.pool.configure_ratio(&(1u128.into(), 1u128.into()))?;
+            user.pool.set_time(100000);
+            assert_eq!(user.claimable()?,    200u128.into());
+            assert_eq!(user.claim_reward()?, 200u128.into());
+            user.pool.set_balance(0u128.into());
+            assert_eq!(user.claimable()?,      0u128.into());
+            assert_eq!(user.claimed()?,      200u128.into());
+            user.pool.set_balance(300u128.into());
+            assert_eq!(user.claimable()?,    300u128.into());
+            assert_eq!(user.claim_reward()?, 300u128.into());
+            user.pool.set_balance(0u128.into());
+            assert_eq!(user.claimable()?,      0u128.into());
+            assert_eq!(user.claimed()?,      500u128.into());
+        } }
+
     pool_liquidity_ratio {
 
         given "a pool and a user" {
