@@ -54,17 +54,6 @@ export class Snip20Executor extends Executor {
         return this.run(msg, '200000')
     }
 
-    async set_viewing_key(key: ViewingKey, padding?: string | null): Promise<ExecuteResult> {
-        const msg = {
-            set_viewing_key: {
-                key,
-                padding
-            }
-        }
-
-        return this.run(msg, '200000')
-    }
-
     async deposit(amount: Uint128, padding?: string | null): Promise<ExecuteResult> {
         const msg = {
             deposit: {
@@ -96,8 +85,8 @@ export class Snip20Executor extends Executor {
     ): Promise<ExecuteResult> {
         const message = {
             send: {
-                recipient,
                 amount,
+                recipient,
                 padding,
                 msg: msg ? create_base64_msg(msg) : null
             }
