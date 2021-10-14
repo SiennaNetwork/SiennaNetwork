@@ -8,6 +8,7 @@ import { SNIP20 } from "./SNIP20";
 import { Factory } from "./Factory";
 import { IDO } from "./IDO";
 
+const DIVIDER = 100000;
 const log = function () {
   debug("out")(JSON.stringify(arguments, null, 2));
 };
@@ -22,8 +23,24 @@ describe("Launchpad", () => {
 
   const context = {};
 
-  before(async function setupAll() {
+  before(async function () {
+    context.templates = {
+      SNIP20: new SNIP20(),
+      Launchpad: new Launchpad(),
+      Factory: new Factory(),
+      IDO: new IDO(),
+    };
+
+    context.gasUsage = {
+      first: 0,
+      second: 0,
+      third: 0,
+    };
+  });
+
+  beforeEach(async function setupAll() {
     this.timeout(0);
+
     const T0 = +new Date();
 
     // connect to a localnet with a large number of predefined agents
@@ -50,13 +67,6 @@ describe("Launchpad", () => {
 
     const T1 = +new Date();
     console.debug(`connecting took ${T1 - T0}msec`);
-
-    context.templates = {
-      SNIP20: new SNIP20(),
-      Launchpad: new Launchpad(),
-      Factory: new Factory(),
-      IDO: new IDO(),
-    };
 
     for (const template in context.templates) {
       console.debug(`Buidling ${template}`);
@@ -183,12 +193,6 @@ describe("Launchpad", () => {
     const T4 = +new Date();
     console.debug(`preparing contracts took ${T4 - T3}msec`);
     console.debug(`total preparation time: ${T4 - T0}msec`);
-
-    context.gasUsage = {
-      first: 0,
-      second: 0,
-      third: 0,
-    };
   });
 
   it("Benchmark the gas usage when IDO does a query call to get whitelist", async function () {
@@ -245,7 +249,6 @@ describe("Launchpad", () => {
     await context.ido.instantiate(context.agent);
 
     const afterInitBalance = await context.agent.balance;
-    context.results1 = beforeInitBalance - afterInitBalance;
 
     console.debug(
       "QUERY BY ITSELF:",
@@ -254,152 +257,139 @@ describe("Launchpad", () => {
       }`
     );
 
-    context.gasUsage.first = beforeInitBalance - afterInitBalance;
+    context.gasUsage.first = beforeInitBalance - afterInitBalance; // 999936
   });
 
-  it("Benchmark gas usage when IDO is given a whitelist", async function () {
+  // it("Benchmark gas usage when IDO is given a whitelist", async function () {
+  //   this.timeout(0);
+
+  //   const { drawn_addresses: whitelist } = await context.launchpad.draw(100, [
+  //     null,
+  //     context.token.address,
+  //   ]);
+  //   const beforeInitBalance = await context.agent.balance;
+
+  //   context.ido = new IDO({
+  //     codeId: context.templates.IDO.codeId,
+  //     label: `ido-${parseInt(Math.random() * 100000)}`,
+  //     initMsg: {
+  //       info: {
+  //         input_token: {
+  //           native_token: {
+  //             denom: "uscrt",
+  //           },
+  //         },
+  //         rate: "1",
+  //         sold_token: {
+  //           address: context.sellingToken.address,
+  //           code_hash: context.templates.SNIP20.codeHash,
+  //         },
+  //         whitelist,
+  //         max_seats: 100,
+  //         max_allocation: "5",
+  //         min_allocation: "1",
+  //       },
+  //       prng_seed: randomBytes(36).toString("hex"),
+  //       entropy: randomBytes(36).toString("hex"),
+  //       admin: context.agent.address,
+  //       callback: {
+  //         msg: Buffer.from(
+  //           JSON.stringify({
+  //             register_ido: {
+  //               signature: "",
+  //             },
+  //           }),
+  //           "utf8"
+  //         ).toString("base64"),
+  //         contract: {
+  //           address: context.factory.address,
+  //           code_hash: context.templates.Factory.codeHash,
+  //         },
+  //       },
+  //     },
+  //   });
+  //   await context.ido.instantiate(context.agent);
+
+  //   const afterInitBalance = await context.agent.balance;
+
+  //   console.debug(
+  //     "GETS WHITELIST:",
+  //     `Balance before: ${beforeInitBalance}, Balance after: ${afterInitBalance}, spent on init: ${
+  //       beforeInitBalance - afterInitBalance
+  //     }`
+  //   );
+  //   context.gasUsage.second = beforeInitBalance - afterInitBalance;
+  // });
+
+  // it("Benchmark gas usage when IDO is given no whitelist", async function () {
+  //   this.timeout(0);
+
+  //   const beforeInitBalance = await context.agent.balance;
+
+  //   context.ido = new IDO({
+  //     codeId: context.templates.IDO.codeId,
+  //     label: `ido-${parseInt(Math.random() * 100000)}`,
+  //     initMsg: {
+  //       info: {
+  //         input_token: {
+  //           native_token: {
+  //             denom: "uscrt",
+  //           },
+  //         },
+  //         rate: "1",
+  //         sold_token: {
+  //           address: context.sellingToken.address,
+  //           code_hash: context.templates.SNIP20.codeHash,
+  //         },
+  //         whitelist: [],
+  //         max_seats: 100,
+  //         max_allocation: "5",
+  //         min_allocation: "1",
+  //       },
+  //       prng_seed: randomBytes(36).toString("hex"),
+  //       entropy: randomBytes(36).toString("hex"),
+  //       admin: context.agent.address,
+  //       callback: {
+  //         msg: Buffer.from(
+  //           JSON.stringify({
+  //             register_ido: {
+  //               signature: "",
+  //             },
+  //           }),
+  //           "utf8"
+  //         ).toString("base64"),
+  //         contract: {
+  //           address: context.factory.address,
+  //           code_hash: context.templates.Factory.codeHash,
+  //         },
+  //       },
+  //     },
+  //   });
+  //   await context.ido.instantiate(context.agent);
+
+  //   const afterInitBalance = await context.agent.balance;
+
+  //   console.debug(
+  //     "GETS WHITELIST:",
+  //     `Balance before: ${beforeInitBalance}, Balance after: ${afterInitBalance}, spent on init: ${
+  //       beforeInitBalance - afterInitBalance
+  //     }`
+  //   );
+
+  //   context.gasUsage.third = beforeInitBalance - afterInitBalance;
+  // });
+
+  afterEach(async function () {
     this.timeout(0);
-
-    const { drawn_addresses: whitelist } = await context.launchpad.draw(100, [
-      null,
-      context.token.address,
-    ]);
-    const beforeInitBalance = await context.agent.balance;
-
-    
-
-
-    context.ido = new IDO({
-      codeId: context.templates.IDO.codeId,
-      label: `ido-${parseInt(Math.random() * 100000)}`,
-      initMsg: {
-        info: {
-          input_token: {
-            native_token: {
-              denom: "uscrt",
-            },
-          },
-          rate: "1",
-          sold_token: {
-            address: context.sellingToken.address,
-            code_hash: context.templates.SNIP20.codeHash,
-          },
-          whitelist,
-          max_seats: 100,
-          max_allocation: "5",
-          min_allocation: "1",
-        },
-        prng_seed: randomBytes(36).toString("hex"),
-        entropy: randomBytes(36).toString("hex"),
-        admin: context.agent.address,
-        callback: {
-          msg: Buffer.from(
-            JSON.stringify({
-              register_ido: {
-                signature: "",
-              },
-            }),
-            "utf8"
-          ).toString("base64"),
-          contract: {
-            address: context.factory.address,
-            code_hash: context.templates.Factory.codeHash,
-          },
-        },
-      },
-    });
-    await context.ido.instantiate(context.agent);
-
-    const afterInitBalance = await context.agent.balance;
-    context.results2 = beforeInitBalance - afterInitBalance;
-
-    console.debug(
-      "GETS WHITELIST:",
-      `Balance before: ${beforeInitBalance}, Balance after: ${afterInitBalance}, spent on init: ${
-        beforeInitBalance - afterInitBalance
-      }`
-    );
-
-    console.debug(
-      `Query on its own: ${context.results1}, gets whitelist: ${
-        context.results2
-      }. Difference: ${context.results1 - context.results2}`
-    );
-
-    context.gasUsage.second = beforeInitBalance - afterInitBalance;
-  });
-
-  it("Benchmark gas usage when IDO is given no whitelist", async function () {
-    this.timeout(0);
-    
-    const beforeInitBalance = await context.agent.balance;
-
-    
-
-
-    context.ido = new IDO({
-      codeId: context.templates.IDO.codeId,
-      label: `ido-${parseInt(Math.random() * 100000)}`,
-      initMsg: {
-        info: {
-          input_token: {
-            native_token: {
-              denom: "uscrt",
-            },
-          },
-          rate: "1",
-          sold_token: {
-            address: context.sellingToken.address,
-            code_hash: context.templates.SNIP20.codeHash,
-          },
-          whitelist: [],
-          max_seats: 100,
-          max_allocation: "5",
-          min_allocation: "1",
-        },
-        prng_seed: randomBytes(36).toString("hex"),
-        entropy: randomBytes(36).toString("hex"),
-        admin: context.agent.address,
-        callback: {
-          msg: Buffer.from(
-            JSON.stringify({
-              register_ido: {
-                signature: "",
-              },
-            }),
-            "utf8"
-          ).toString("base64"),
-          contract: {
-            address: context.factory.address,
-            code_hash: context.templates.Factory.codeHash,
-          },
-        },
-      },
-    });
-    await context.ido.instantiate(context.agent);
-
-    const afterInitBalance = await context.agent.balance;
-    context.results2 = beforeInitBalance - afterInitBalance;
-
-    console.debug(
-      "GETS WHITELIST:",
-      `Balance before: ${beforeInitBalance}, Balance after: ${afterInitBalance}, spent on init: ${
-        beforeInitBalance - afterInitBalance
-      }`
-    );
-
-    console.debug(
-      `Query on its own: ${context.results1}, gets whitelist: ${
-        context.results2
-      }. Difference: ${context.results1 - context.results2}`
-    );
-
-    context.gasUsage.third = beforeInitBalance - afterInitBalance;
+    await context.node.terminate();
   });
 
   after(async function cleanupAll() {
     this.timeout(0);
-    console.debug(`First: ${context.gasUsage.first}, Second: ${context.gasUsage.second}, Third: ${context.gasUsage.third}`);
-    await context.node.terminate();
+    // console.debug(
+    //   `First: ${context.gasUsage.first / DIVIDER}, Second: ${
+    //     context.gasUsage.second / DIVIDER
+    //   }, Third: ${context.gasUsage.third / DIVIDER}`
+    // );
   });
 });
