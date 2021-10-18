@@ -10,7 +10,7 @@ doctest = false
 path = "rewards.rs"
 
 [dependencies]
-fadroma = { path = "../../libraries/fadroma-21.07/core", features = [
+fadroma = { path = "../../libraries/fadroma-next/lib", features = [
   "scrt-addr",
   "scrt-admin",
   "scrt-callback",
@@ -26,7 +26,7 @@ serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 wasm-bindgen = { optional = true, version = "0.2" }
 
 [dev-dependencies]
-fadroma = { path = "../../libraries/fadroma-21.07/core", features = [
+fadroma = { path = "../../libraries/fadroma-next/lib", features = [
   "scrt-harness",
   "backtraces"
 ] }

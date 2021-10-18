@@ -96,15 +96,15 @@ pub const USER_COOLDOWN:  &[u8] = b"/user/cooldown/";
 // structs implementing the rewards algorithm -----------------------------------------------------
 
 /// Reward pool
-pub struct Pool <S: Storage> {
-    pub storage: S,
+pub struct Pool <'s, S: Storage> {
+    pub storage: &'s S,
     now:         Option<Time>,
     balance:     Option<Amount>
 }
 
 /// User account
-pub struct User <S: Storage> {
-    pub pool:    Pool<S>,
+pub struct User <'s, S: Storage> {
+    pub pool:    &'s Pool<'s, S>,
     pub address: CanonicalAddr
 }
 
@@ -113,7 +113,7 @@ pub trait StorageClient<S: Storage> {
     fn storage (&self) -> S;
 }
 
-impl <S: Storage> Pool<S> {
+impl <'s, S: Storage> Pool<'s, S> {
 
     fn load <T: DeserializeOwned> (&self, key: &[u8]) -> StdResult<Option<T>> {
         match self.storage.get(key) {
@@ -134,7 +134,7 @@ impl <S: Storage> Pool<S> {
     }
 
     /// Create a new pool with a storage handle
-    pub fn new (storage: S) -> Self {
+    pub fn new (storage: &'s S) -> Self {
         Self { storage, now: None, balance: None }
     }
 
@@ -149,8 +149,8 @@ impl <S: Storage> Pool<S> {
     }
 
     /// Get an individual user from the pool
-    pub fn user (self, address: CanonicalAddr) -> User<S> {
-        User { pool: self, address }
+    pub fn user (self, address: CanonicalAddr) -> User<'s, S> {
+        User { pool: &self, address }
     }
 
     #[cfg(test)]
@@ -406,7 +406,7 @@ impl <S: Storage> Pool<S> {
 
 }
 
-impl <S: Storage> User <S> {
+impl <'s, S: Storage> User <'s, S> {
 
     fn load <T: DeserializeOwned> (&self, key: &[u8]) -> StdResult<Option<T>> {
         match self.pool.storage.get(key) {
