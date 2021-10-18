@@ -160,7 +160,7 @@ export class Factory extends ScrtContract {
     console.log({token_0, token_1})
 
     const title =
-      `Token 1: ${token_0.custom_token.contract_addr} \\n `+
+      `Token 1: ${token_0.custom_token.contract_addr} \n `+
       `Token 2: ${token_1.custom_token.contract_addr}`
 
     for (const [a, b] of [
@@ -192,7 +192,7 @@ export class Factory extends ScrtContract {
 
       [contract_address_6, created_exchange_address],
     ]) {
-      assert.equal(
+      assert.strictEqual(
         a, b,
         '@sienna/api (Factory#createExchange): '+
         'Could not parse logs from exchange pair creation. ' +

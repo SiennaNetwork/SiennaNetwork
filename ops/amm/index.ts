@@ -340,7 +340,7 @@ async function test_swap(
     'swap_with_burner',
     async () => {
       let config = get_exchange_settings(BURN_POOL.address);
-      await factory.exec().set_config(undefined, undefined, undefined, undefined, config)
+      await factory.exec().set_config(undefined, undefined, undefined, undefined, undefined, config)
 
       const token_balance_before = parseInt(await snip20_b.query().get_balance(key, snip20_b.execute_client?.senderAddress as string))
 
