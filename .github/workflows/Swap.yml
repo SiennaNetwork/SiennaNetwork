@@ -20,7 +20,7 @@ jobs:
         with: { submodules: true }
       - uses: Swatinem/rust-cache@v1
       - name: Run tests
-        run: cargo test -p sienna-factory
+        run: cargo test -p factory
 
   exchange:
     name: Unit test suite of SIENNA Exchange
