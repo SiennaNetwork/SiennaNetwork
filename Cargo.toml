@@ -19,14 +19,6 @@ members = [
   "contracts/lp-token",   # snip20 liquidity provider token,
   "contracts/amm-snip20", # vanilla snip20 token, used when creating an IDO
 
-  # Lending
-  "libraries/lend-experimental", # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/libraries
-  #"contracts/lend-atoken"              # <- https://github.com/SiennaNetwork/sienna-lend/tree/master/contracts/atoken/src
-  "contracts/lend-atoken-experimental", # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/atoken
-  "contracts/lend-configuration",       # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/contracts/configuration
-  #"contracts/snip20-lend"              # <- https://github.com/SiennaNetwork/sienna-lend/tree/master/packages/snip20
-  "contracts/snip20-lend-experimental", # <- https://github.com/SiennaNetwork/sienna-lend/tree/future-atoken-experimental/packages/snip20
-
   # Framework
   "libraries/fadroma-21.07/scrt-admin/composable-admin", # proc macro for `require_admin` attribute
   "libraries/fadroma-21.07/scrt-admin/require-admin",    # implementation of admin check
