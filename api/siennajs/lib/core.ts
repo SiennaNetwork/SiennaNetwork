@@ -1,4 +1,4 @@
-import { b64encode } from "@waiting/base64";
+import { b64encode, b64decode, b64fromBuffer } from "@waiting/base64";
 import { EnigmaUtils, ExecuteResult, InstantiateResult } from "secretjs";
 
 export type Uint128 = string;
@@ -57,9 +57,9 @@ export interface Fee {
 }
 
 export function decode_data<T>(result: ExecuteResult | InstantiateResult): T {
-    const data = new TextDecoder().decode(result.data).trim()
-    
-    return JSON.parse(data)
+    const b64string = b64fromBuffer(result.data)
+
+    return JSON.parse(b64decode(b64string))
 }
 
 export function create_coin(amount: Uint128): Coin {
