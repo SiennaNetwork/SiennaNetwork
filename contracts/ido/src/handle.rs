@@ -2,7 +2,6 @@ use amm_shared::admin::require_admin;
 use amm_shared::{
     admin::admin::{assert_admin, load_admin},
     fadroma::scrt::{
-        addr::Canonize,
         cosmwasm_std::{
             from_binary, log, Api, BankMsg, Binary, CanonicalAddr, Coin, Env, Extern,
             HandleResponse, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
@@ -137,7 +136,7 @@ pub(crate) fn pre_lock<S: Storage, A: Api, Q: Querier>(
         ));
     }
 
-    let mut account = Account::<CanonicalAddr>::load_self(&deps, &from)?;
+    let mut account = Account::load_self(&deps, &from)?;
 
     let single_amount = convert_token(
         amount.u128(),
@@ -199,7 +198,7 @@ pub(crate) fn swap<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     config.is_swapable(now)?;
 
-    let mut account = Account::<CanonicalAddr>::load_self(&deps, &from)?;
+    let mut account = Account::load_self(&deps, &from)?;
 
     if SaleType::PreLockAndSwap != config.sale_type
         && SaleType::SwapOnly != config.sale_type
@@ -381,8 +380,6 @@ pub(crate) fn add_addresses<S: Storage, A: Api, Q: Querier>(
     let seats_left = config.max_seats - config.taken_seats;
 
     for address in addresses {
-        let caonical_address = address.canonize(&deps.api)?;
-
         config.taken_seats += 1;
         if config.taken_seats > config.max_seats {
             return Err(StdError::generic_err(format!(
@@ -391,10 +388,10 @@ pub(crate) fn add_addresses<S: Storage, A: Api, Q: Querier>(
             )));
         }
 
-        let account = Account::<CanonicalAddr>::load_self(&deps, &address);
+        let account = Account::load_self(&deps, &address);
 
         if account.is_err() {
-            Account::<CanonicalAddr>::new(&caonical_address).save(deps)?;
+            Account::new(address).save(deps)?;
             added_count += 1;
         }
     }

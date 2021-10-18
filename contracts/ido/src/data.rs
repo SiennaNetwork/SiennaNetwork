@@ -217,13 +217,13 @@ pub(crate) struct SwapConstants {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-pub struct Account<A> {
-    pub owner: A,
+pub struct Account {
+    pub owner: HumanAddr,
     pub total_bought: Uint128,
     pub pre_lock_amount: Uint128,
 }
 
-impl Storable for Account<CanonicalAddr> {
+impl Storable for Account {
     /// Global accounts namespace
     fn namespace() -> Vec<u8> {
         b"accounts".to_vec()
@@ -231,14 +231,14 @@ impl Storable for Account<CanonicalAddr> {
 
     /// Individual account key
     fn key(&self) -> StdResult<Vec<u8>> {
-        Ok(self.owner.as_slice().to_vec())
+        Ok(self.owner.to_string().as_bytes().to_vec())
     }
 }
 
-impl Account<CanonicalAddr> {
-    pub fn new(address: &CanonicalAddr) -> Account<CanonicalAddr> {
+impl Account {
+    pub fn new(owner: HumanAddr) -> Account {
         Account {
-            owner: address.clone(),
+            owner,
             total_bought: Uint128::zero(),
             pre_lock_amount: Uint128::zero(),
         }
@@ -248,31 +248,9 @@ impl Account<CanonicalAddr> {
     pub fn load_self<S: Storage, T: Api, Q: Querier>(
         deps: &Extern<S, T, Q>,
         address: &HumanAddr,
-    ) -> StdResult<Account<CanonicalAddr>> {
-        let canonical_address = address.canonize(&deps.api)?;
-
-        Self::load(&deps, canonical_address.as_slice())?
+    ) -> StdResult<Account> {
+        Self::load(&deps, address.to_string().as_bytes())?
             .ok_or_else(|| StdError::generic_err("This address is not whitelisted."))
-    }
-}
-
-impl Humanize<Account<HumanAddr>> for Account<CanonicalAddr> {
-    fn humanize(&self, api: &impl Api) -> StdResult<Account<HumanAddr>> {
-        Ok(Account {
-            owner: self.owner.humanize(api)?,
-            total_bought: self.total_bought,
-            pre_lock_amount: self.pre_lock_amount,
-        })
-    }
-}
-
-impl Canonize<Account<CanonicalAddr>> for Account<HumanAddr> {
-    fn canonize(&self, api: &impl Api) -> StdResult<Account<CanonicalAddr>> {
-        Ok(Account {
-            owner: self.owner.canonize(api)?,
-            total_bought: self.total_bought,
-            pre_lock_amount: self.pre_lock_amount,
-        })
     }
 }
 

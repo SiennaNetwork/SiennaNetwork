@@ -83,7 +83,7 @@ pub(crate) fn get_balance<S: Storage, A: Api, Q: Querier>(
     let canonical = address.canonize(&deps.api)?;
     authenticate(&deps.storage, &ViewingKey(key), canonical.as_slice())?;
 
-    let account = Account::<CanonicalAddr>::load_self(&deps, &address)?;
+    let account = Account::load_self(&deps, &address)?;
 
     to_binary(&QueryResponse::Balance {
         pre_lock_amount: account.pre_lock_amount,

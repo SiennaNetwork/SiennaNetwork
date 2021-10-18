@@ -2,7 +2,6 @@ use amm_shared::{
     admin::admin::{admin_handle, admin_query, save_admin, DefaultHandleImpl, DefaultQueryImpl},
     auth::{auth_handle, AuthHandleMsg, DefaultHandleImpl as AuthHandle},
     fadroma::scrt::{
-        addr::Canonize,
         callback::ContractInstance,
         cosmwasm_std::{
             to_binary, Api, CanonicalAddr, CosmosMsg, Env, Extern, HandleResponse, InitResponse,
@@ -121,7 +120,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     let mut taken_seats = msg.info.whitelist.len() as u32;
 
     for address in msg.info.whitelist {
-        Account::<CanonicalAddr>::new(&address.canonize(&deps.api)?).save(deps)?;
+        Account::new(address).save(deps)?;
     }
 
     // Call the launchpad contract and request whitelist addresses
@@ -141,8 +140,8 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             match response {
                 LaunchpadQueryResponse::DrawnAddresses(addresses) => {
                     for address in addresses {
-                        Account::<CanonicalAddr>::new(&address.canonize(&deps.api)?).save(deps)?;
-                        taken_seats = taken_seats + 1;
+                        Account::new(address).save(deps)?;
+                        taken_seats += 1;
                     }
                 }
                 _ => {

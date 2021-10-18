@@ -1,26 +1,17 @@
 import debug from "debug";
 import { assert } from "chai";
 import { randomBytes } from "crypto";
-import { Scrt, ScrtGas } from "@fadroma/scrt";
+import { Scrt } from "@fadroma/scrt";
 
 import { Launchpad } from "./Launchpad";
 import { SNIP20 } from "./SNIP20";
 import { Factory } from "./Factory";
 import { IDO } from "./IDO";
-
-const DIVIDER = 100000;
 const log = function () {
   debug("out")(JSON.stringify(arguments, null, 2));
 };
 
 describe("Launchpad", () => {
-  const fees = {
-    upload: new ScrtGas(10000000),
-    init: new ScrtGas(100000000),
-    exec: new ScrtGas(10000000),
-    send: new ScrtGas(10000000),
-  };
-
   const context = {};
 
   before(async function () {
@@ -44,7 +35,7 @@ describe("Launchpad", () => {
     const T0 = +new Date();
 
     // connect to a localnet with a large number of predefined agents
-    const numberOfAgents = 100;
+    const numberOfAgents = 10;
     const identities = [...Array(numberOfAgents)].map((_, i) => `Agent${i}`);
     identities.unshift("ADMIN");
     context.chain = await Scrt.localnet_1_0({ identities }).init();
@@ -63,7 +54,6 @@ describe("Launchpad", () => {
     ).filter((i) => i !== null));
 
     console.log({ agents });
-    // context.agent.API.fees = fees;
 
     const T1 = +new Date();
     console.debug(`connecting took ${T1 - T0}msec`);
