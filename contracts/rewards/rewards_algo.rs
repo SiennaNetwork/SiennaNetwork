@@ -124,11 +124,11 @@ impl <'s, S: Storage> Pool<'s, S> {
     fn load_ns <T: DeserializeOwned> (&self, ns: &[u8], key: &[u8]) -> StdResult<Option<T>> {
         self.load(&concat(ns, key))
     }
-    fn save <T: Serialize> (mut self, key: &[u8], val: T) -> StdResult<()> {
+    fn save <T: Serialize> (&mut self, key: &[u8], val: T) -> StdResult<()> {
         self.storage.set(&key, &to_vec(&val)?);
         Ok(())
     }
-    fn save_ns <T: Serialize> (self, ns: &[u8], key: &[u8], val: T) -> StdResult<()> {
+    fn save_ns <T: Serialize> (&mut self, ns: &[u8], key: &[u8], val: T) -> StdResult<()> {
         self.save(&concat(ns, key), val)?;
         Ok(())
     }
@@ -360,37 +360,37 @@ impl <'s, S: Storage> Pool<'s, S> {
     // balancing features config ---------------------------------------------------------------
 
     #[cfg(feature="age_threshold")]
-    pub fn configure_threshold (self, threshold: &Time) -> StdResult<()> {
+    pub fn configure_threshold (&mut self, threshold: &Time) -> StdResult<()> {
         self.save(POOL_THRESHOLD, threshold)?;
         Ok(())
     }
 
     #[cfg(feature="claim_cooldown")]
-    pub fn configure_cooldown (self, cooldown: &Time) -> StdResult<()> {
+    pub fn configure_cooldown (&mut self, cooldown: &Time) -> StdResult<()> {
         self.save(POOL_COOLDOWN, cooldown)?;
         Ok(())
     }
 
     #[cfg(feature="global_ratio")]
-    pub fn configure_ratio (self, ratio: &Ratio) -> StdResult<()> {
+    pub fn configure_ratio (&mut self, ratio: &Ratio) -> StdResult<()> {
         self.save(POOL_RATIO, ratio)?;
         Ok(())
     }
 
     #[cfg(feature="pool_liquidity_ratio")]
-    pub fn set_seeded (self, time: &Time) -> StdResult<()> {
+    pub fn set_seeded (&mut self, time: &Time) -> StdResult<()> {
         self.save(POOL_SEEDED, time)?;
         Ok(())
     }
 
     #[cfg(feature="pool_liquidity_ratio")]
-    pub fn set_created (self, time: &Time) -> StdResult<()> {
+    pub fn set_created (&mut self, time: &Time) -> StdResult<()> {
         self.save(POOL_CREATED, time)?;
         Ok(())
     }
 
     #[cfg(all(test, feature="pool_liquidity_ratio"))]
-    pub fn reset_liquidity_ratio (&self) -> StdResult<()> {
+    pub fn reset_liquidity_ratio (&mut self) -> StdResult<()> {
         let existed = self.existed()?;
         self.update_locked(self.balance())?;
         self.save(POOL_LIQUID, existed)?;
@@ -398,7 +398,7 @@ impl <'s, S: Storage> Pool<'s, S> {
     }
 
     #[cfg(feature="pool_closes")]
-    pub fn close (self, message: String) -> StdResult<()> {
+    pub fn close (&mut self, message: String) -> StdResult<()> {
         let now = self.now()?;
         self.save(POOL_CLOSED, Some((now, message)))?;
         Ok(())

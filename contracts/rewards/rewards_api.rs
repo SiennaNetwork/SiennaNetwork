@@ -2,9 +2,9 @@ use fadroma::scrt::{
     contract::{message, messages},
     cosmwasm_std::{HumanAddr, Uint128},
     callback::ContractInstance as ContractLink,
-    vk::ViewingKey
 };
 use crate::rewards_math::*;
+use crate::rewards_vk::ViewingKey;
 
 message!(Init {
     admin:        Option<HumanAddr>,
