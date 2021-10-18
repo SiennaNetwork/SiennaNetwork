@@ -645,6 +645,6 @@ fn enforce_cooldown (elapsed: Time, cooldown: Time) -> StdResult<()> {
     if elapsed >= cooldown {
         Ok(())
     } else {
-        error!(format!("lock tokens for {} more blocks to be eligible", cooldown - elapsed))
+        error!(format!("lock tokens for {} more seconds to be eligible", cooldown - elapsed))
     }
 }
