@@ -1,14 +1,14 @@
-use amm_shared::{
-    auth::authenticate,
-    fadroma::scrt::{
-        addr::Canonize,
-        callback::ContractInstance,
-        cosmwasm_std::{to_binary, Api, Binary, Extern, HumanAddr, Querier, StdResult, Storage},
-        utils::viewing_key::ViewingKey,
+use amm_shared::fadroma::{
+    scrt::{
+        to_binary, Api, Binary, Extern, HumanAddr, Querier, StdResult, Storage
     },
-    msg::launchpad::{QueryAccountToken, QueryResponse, QueryTokenConfig},
-    TokenType,
+    scrt_vk_auth::authenticate,
+    scrt_addr::Canonize,
+    scrt_link::ContractLink,
+    scrt_vk::ViewingKey
 };
+use amm_shared::TokenType;
+use amm_shared::msg::launchpad::{QueryAccountToken, QueryResponse, QueryTokenConfig};
 
 use crate::data::{
     load_account, load_all_accounts, load_contract_address, load_viewing_key, AccounTokenEntry,
@@ -32,7 +32,7 @@ pub fn launchpad_info<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) ->
             } => get_token_balance(
                 deps,
                 address.clone(),
-                ContractInstance {
+                ContractLink {
                     address: contract_addr.clone(),
                     code_hash: token_code_hash.clone(),
                 },

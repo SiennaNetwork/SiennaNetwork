@@ -1,10 +1,9 @@
 #![allow(unused_macros)]
 #![allow(non_snake_case)]
 
-use fadroma::scrt::{
-    cosmwasm_std::{HumanAddr, StdError},
-    callback::ContractInstance,
-    harness::Harness
+use fadroma::{
+    scrt::{HumanAddr, StdError},
+    scrt_contract_harness::Harness
 };
 use crate::{
     rewards_harness::*,

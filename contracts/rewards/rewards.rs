@@ -25,18 +25,38 @@ pub mod rewards_math;   use rewards_math::*;
 pub mod rewards_algo;   use rewards_algo::*;
 pub mod rewards_config; use rewards_config::*;
 
-use fadroma::scrt::{
-    BLOCK_SIZE,
-    callback::ContractInstance as ContractLink,
-    contract::*,
-    toolkit::snip20,
-    snip20_api::ISnip20,
-    vk::{ViewingKey,
-         auth_handle, authenticate, AuthHandleMsg,
-         DefaultHandleImpl as AuthHandle},
-    admin::{DefaultHandleImpl as AdminHandle,
-            admin_handle, AdminHandleMsg, load_admin,
-            assert_admin, save_admin}};
+use fadroma::{
+    contract,
+    prelude,
+    define_init_message,
+    define_q_messages,
+    define_state_singleton,
+    define_tx_messages,
+    implement_init,
+    implement_queries,
+    implement_transactions,
+    message,
+    messages,
+    scrt::{
+        BLOCK_SIZE,
+        secret_toolkit::snip20
+    },
+    scrt_link::ContractLink,
+    scrt_snip20_api::ISnip20,
+    scrt_vk::ViewingKey,
+    scrt_vk_auth::{
+        handle as auth_handle,
+        HandleMsg as AuthHandleMsg,
+        authenticate,
+        DefaultImpl as AuthHandle
+    },
+    admin::{
+        DefaultImpl as AdminHandle,
+        handle as admin_handle,
+        HandleMsg as AdminHandleMsg,
+        load_admin, assert_admin, save_admin
+    }
+};
 
 macro_rules! tx_ok {
     () => {
@@ -212,7 +232,7 @@ contract! {
                 name:         lp_token_name,
                 symbol:       "SRW".into(),
                 decimals:     1,
-                total_supply: None }) }
+                total_supply: Option::<Amount>::None }) }
 
         /// Keplr integration
         Balance (address: HumanAddr, key: String) {

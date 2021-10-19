@@ -1,11 +1,10 @@
-use crate::{
-    fadroma::scrt::callback::ContractInstance,
-    fadroma::scrt::cosmwasm_std::{
+use fadroma::{
+    scrt::{
         from_binary, from_slice, testing::MockQuerier as StdMockQuerier, to_binary, Coin, Empty,
-        HumanAddr, Querier, QuerierResult, QueryRequest, StdResult, SystemError, Uint128,
-        WasmQuery,
+        HumanAddr, Querier, QuerierResult, QueryRequest, StdResult, SystemError, Uint128, WasmQuery,
+        secret_toolkit::snip20::{Balance, TokenInfo}
     },
-    fadroma::scrt::toolkit::snip20::{Balance, TokenInfo},
+    scrt_link::ContractLink,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
@@ -85,7 +84,7 @@ pub struct InternalWasmQuerier {
 }
 
 pub struct MockContractInstance {
-    pub instance: ContractInstance<HumanAddr>,
+    pub instance: ContractLink<HumanAddr>,
     pub token_decimals: u8,
     pub token_supply: Uint128,
 }

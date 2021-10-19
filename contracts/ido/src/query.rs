@@ -1,16 +1,14 @@
-use amm_shared::{
-    auth::authenticate,
-    fadroma::scrt::{
-        addr::Canonize,
-        cosmwasm_std::{
-            to_binary, Api, CanonicalAddr, Extern, HumanAddr, Querier, QueryResult, Storage,
-        },
-        toolkit::snip20,
-        utils::viewing_key::ViewingKey,
+use amm_shared::fadroma::{
+    scrt::{
+        to_binary, Api, CanonicalAddr, Extern, HumanAddr, Querier, QueryResult, Storage,
+        secret_toolkit::snip20,
         BLOCK_SIZE,
     },
-    msg::ido::QueryResponse,
+    scrt_vk::ViewingKey,
+    scrt_addr::Canonize,
+    scrt_vk_auth::authenticate,
 };
+use amm_shared::msg::ido::QueryResponse;
 
 use crate::data::{
     load_contract_address, load_total_pre_lock_amount, load_viewing_key, Account, Config,

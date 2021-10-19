@@ -1,19 +1,17 @@
-use amm_shared::admin::require_admin;
-use amm_shared::{
-    admin::admin::{assert_admin, load_admin},
-    fadroma::scrt::{
-        cosmwasm_std::{
-            from_binary, log, Api, BankMsg, Binary, CanonicalAddr, Coin, Env, Extern,
-            HandleResponse, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
-        },
-        storage::Storable,
-        toolkit::snip20,
-        utils::convert::convert_token,
+use amm_shared::fadroma::{
+    scrt::{
+        from_binary, log, Api, BankMsg, Binary, CanonicalAddr, Coin, Env, Extern,
+        HandleResponse, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
+        secret_toolkit::snip20,
         BLOCK_SIZE,
     },
-    msg::ido::{ReceiverCallbackMsg, SaleType},
-    TokenType,
+    scrt_storage_traits::Storable,
+    admin::{assert_admin, load_admin},
+    require_admin::require_admin,
+    scrt_decimal::convert_token
 };
+use amm_shared::TokenType;
+use amm_shared::msg::ido::{ReceiverCallbackMsg, SaleType};
 
 use crate::data::{
     increment_total_pre_lock_amount, load_viewing_key, Account, Config, SaleSchedule,

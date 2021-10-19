@@ -1,11 +1,12 @@
-use amm_shared::fadroma::scrt::{
-    addr::{Canonize, Humanize},
-    callback::ContractInstance,
-    cosmwasm_std::{
+use amm_shared::fadroma::{
+    scrt_addr::{Canonize, Humanize},
+    scrt_link::ContractLink,
+    scrt::{
         Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
     },
-    storage::{load, save, Storable},
-    utils::viewing_key::ViewingKey,
+    scrt_storage::{load, save},
+    scrt_storage_traits::Storable,
+    scrt_vk::ViewingKey,
 };
 use amm_shared::{msg::ido::SaleType, TokenType};
 use schemars::JsonSchema;
@@ -20,7 +21,7 @@ pub(crate) struct Config<A> {
     /// The token that is used to buy the sold SNIP20.
     pub input_token: TokenType<A>,
     /// The token that is being sold.
-    pub sold_token: ContractInstance<A>,
+    pub sold_token: ContractLink<A>,
     /// Token constants
     pub swap_constants: SwapConstants,
     /// Number of participants currently
@@ -35,7 +36,7 @@ pub(crate) struct Config<A> {
     pub sale_type: SaleType,
     /// Info of the launchpad contract that will post whitelisted
     /// addresses to IDO contract after it has been initialized
-    pub launchpad: Option<ContractInstance<A>>,
+    pub launchpad: Option<ContractLink<A>>,
     /// The Option<> lets us know if this contract is active,
     /// contract only becomes active once the sold_token funds
     /// are sent to it:

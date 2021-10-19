@@ -1,6 +1,4 @@
 // Modules re-export
-pub use composable_admin as admin;
-pub use composable_auth as auth;
 pub use composable_snip20 as snip20_impl;
 pub use fadroma;
 
