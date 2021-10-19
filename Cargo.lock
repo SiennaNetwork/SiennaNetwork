@@ -1806,6 +1806,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
+name = "struct-contract-field"
+version = "2.1.2"
+dependencies = [
+ "backtrace",
+ "color-backtrace",
+ "fadroma 21.7.0",
+ "kukumba 1.0.1",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tabwriter",
+ "wasm-bindgen",
+ "yansi",
+]
+
+[[package]]
 name = "subtle"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

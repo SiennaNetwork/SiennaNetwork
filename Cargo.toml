@@ -30,6 +30,8 @@ members = [
   "libraries/fadroma-21.07/scrt-utils",                  # grab bag of utility functions
   "libraries/migrate",                                   # migration flag, as used by TGE before merging this feature into Fadroma
   "libraries/kukumba",                                   # BDD testing framework
+
+  "demos/struct-contract-field"
 ]
 
 [profile.release]
