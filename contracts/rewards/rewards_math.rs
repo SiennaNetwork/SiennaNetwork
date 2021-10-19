@@ -26,6 +26,9 @@ pub type Ratio  = (Uint128, Uint128);
 /// 100% with 6 digits after the decimal
 pub const HUNDRED_PERCENT: u128 = 100000000u128;
 
+/// Seconds in 24 hours
+pub const DAY: Time = 86400;
+
 /// Calculate the current total based on the stored total and the time since last update.
 pub fn tally (
     total_before_last_update: Volume,
@@ -42,7 +45,7 @@ pub trait Diminish<
     /// Divide self on num/denom; throw if num > denom or if denom == 0
     fn diminish         (self, num: N, denom: N) -> StdResult<T>;
     /// Diminish, but return 0 if denom == 0
-    fn diminish_or_max (self, num: N, denom: N) -> StdResult<T> {
+    fn diminish_or_max  (self, num: N, denom: N) -> StdResult<T> {
         if denom == 0u64.into() {
             Ok(self.into()) }
         else {

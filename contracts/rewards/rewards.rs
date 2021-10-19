@@ -17,12 +17,17 @@
 #[cfg(any(test, browser))] mod rewards_harness;
 #[cfg(test)] mod rewards_test;
 #[cfg(test)] mod rewards_test_2;
+pub mod rewards_admin;
 pub mod rewards_api;
 pub mod rewards_contract;
+pub mod rewards_errors;
+pub mod rewards_field;
 pub mod rewards_math;
 pub mod rewards_pool;
 pub mod rewards_user;
-pub mod rewards_field;
+pub mod rewards_vk;
+
+use std::{rc::Rc, cell::RefCell};
 
 use crate::{
     rewards_api::*,
@@ -37,6 +42,7 @@ pub fn init <S: Storage, A: Api, Q: Querier> (
     msg:  Init
 ) -> StdResult<InitResponse> {
     let Extern { storage, api, querier } = deps;
+    let storage = Rc::new(RefCell::new(storage));
     Contract { storage, api, querier, env }.init(msg)
 }
 
@@ -46,6 +52,7 @@ pub fn handle <S: Storage, A: Api, Q: Querier> (
     msg:  Handle
 ) -> StdResult<HandleResponse> {
     let Extern { storage, api, querier } = deps;
+    let storage = Rc::new(RefCell::new(storage));
     Contract { storage, api, querier, env }.handle(msg)
 }
 
@@ -54,5 +61,6 @@ pub fn query <S: Storage, A: Api, Q: Querier> (
     msg:  Query
 ) -> StdResult<Binary> {
     let Extern { storage, api, querier } = deps;
+    let storage = Rc::new(RefCell::new(storage));
     to_binary(&(Contract { storage, api, querier, env: () }.query(msg)?))
 }

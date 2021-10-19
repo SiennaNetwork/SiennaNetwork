@@ -2,8 +2,8 @@ use std::{rc::Rc, cell::RefCell};
 
 use crate::{
     rewards_math::{Time, Amount, Volume, Ratio, HUNDRED_PERCENT, tally},
-    rewards_field::Field,
-    rewards_user::User
+    rewards_field::{Field, FieldFactory},
+    rewards_user::User,
 };
 
 use fadroma::scrt::{
@@ -48,7 +48,7 @@ pub struct Pool <S> {
     #[cfg(feature="global_ratio")]
     /// Ratio of liquidity provided to rewards received.
     /// Configured on init.
-    global_ratio:  Field<S, Time>,
+    global_ratio:  Field<S, Ratio>,
 
     #[cfg(feature="pool_liquidity_ratio")]
     /// Used to compute what portion of the time the pool was not empty.
@@ -80,16 +80,31 @@ impl<S> Pool<S> {
             now:     None,
             balance: None,
 
-            last_lifetime: Field::new(storage.clone(), "/pool/lifetime"),
-            locked:        Field::new(storage.clone(), "/pool/locked"),
-            claimed:       Field::new(storage.clone(), "/pool/claimed"),
-            threshold:     Field::new(storage.clone(), "/pool/threshold"),
-            cooldown:      Field::new(storage.clone(), "/pool/cooldown"),
-            global_ratio:  Field::new(storage.clone(), "/pool/global_ratio"),
-            last_liquid:   Field::new(storage.clone(), "/pool/last_liquid"),
-            seeded:        Field::new(storage.clone(), "/pool/seeded"),
-            created:       Field::new(storage.clone(), "/pool/created"),
-            closed:        Field::new(storage.clone(), "/pool/closed"),
+            last_lifetime: storage.field(b"/pool/lifetime"),
+            locked:        storage.field(b"/pool/locked"),
+            timestamp:     storage.field(b"/pool/locked"),
+            claimed:       storage.field(b"/pool/claimed"),
+
+            #[cfg(feature="age_threshold")]
+            threshold:     storage.field(b"/pool/threshold"),
+
+            #[cfg(feature="claim_cooldown")]
+            cooldown:      storage.field(b"/pool/cooldown"),
+
+            #[cfg(feature="global_ratio")]
+            global_ratio:  storage.field(b"/pool/global_ratio"),
+
+            #[cfg(feature="pool_liquidity_ratio")]
+            last_liquid:   storage.field(b"/pool/last_liquid"),
+
+            #[cfg(feature="pool_liquidity_ratio")]
+            seeded:        storage.field(b"/pool/seeded"),
+
+            #[cfg(feature="pool_liquidity_ratio")]
+            created:       storage.field(b"/pool/created"),
+
+            #[cfg(feature="pool_closes")]
+            closed:        storage.field(b"/pool/closed"),
         }
     }
 
@@ -119,15 +134,11 @@ impl<S> Pool<S> {
 
     /// Get an individual user from the pool
     pub fn user (self, address: CanonicalAddr) -> User<S> {
-        User::new(
-            storage: self.storage.clone(),
-            pool:    self,
-            address
-        )
+        User::new(self, address)
     }
 }
 
-impl <S: Storage> Pool<S> {
+impl <S: ReadonlyStorage> Pool<S> {
 
     // time-related getters --------------------------------------------------------------------
 
@@ -197,21 +208,21 @@ impl <S: Storage> Pool<S> {
     /// For how many blocks does the user need to have provided liquidity
     /// in order to be eligible for rewards
     pub fn threshold (&self) -> StdResult<Time> {
-        self.threshold.value_or_err("missing lock threshold");
+        self.threshold.value_or_err("missing lock threshold")
     }
 
     #[cfg(feature="claim_cooldown")]
     /// For how many blocks does the user need to wait
     /// after claiming rewards before being able to claim them again
     pub fn cooldown (&self) -> StdResult<Time> {
-        self.threshold.value_or_err("missing claim cooldown");
+        self.threshold.value_or_err("missing claim cooldown")
     }
 
     #[cfg(feature="global_ratio")]
     /// Ratio between share of liquidity provided and amount of reward
     /// Should be <= 1 to make sure rewards budget is sufficient.
     pub fn global_ratio (&self) -> StdResult<Ratio> {
-        self.threshold.value_or_err("missing reward ratio");
+        self.global_ratio.value_or_err("missing reward ratio")
     }
 
     #[cfg(feature="pool_liquidity_ratio")]
@@ -233,7 +244,8 @@ impl <S: Storage> Pool<S> {
     pub fn liquidity_ratio (&self) -> StdResult<Amount> {
         Ok(Volume::from(HUNDRED_PERCENT)
             .diminish_or_max(self.liquid()?, self.existed()?)?
-            .low_u128().into())
+            .low_u128().into()
+        )
     }
 
     #[cfg(feature="pool_liquidity_ratio")]
@@ -257,7 +269,7 @@ impl <S: Storage> Pool<S> {
     }
 }
 
-impl <S: Storage> Pool<S> {
+impl <S: ReadonlyStorage + Storage> Pool<S> {
 
     /// Increment the total amount of claimed rewards for all users.
     pub fn increment_claimed (mut self, reward: Amount) -> StdResult<()> {
@@ -303,27 +315,27 @@ impl <S: Storage> Pool<S> {
     // balancing features config ---------------------------------------------------------------
 
     #[cfg(feature="age_threshold")]
-    pub fn configure_threshold (&mut self, threshold: &Time) -> StdResult<()> {
+    pub fn configure_threshold (self, threshold: &Time) -> StdResult<()> {
         self.threshold.store(threshold)
     }
 
     #[cfg(feature="claim_cooldown")]
-    pub fn configure_cooldown (&mut self, cooldown: &Time) -> StdResult<()> {
+    pub fn configure_cooldown (self, cooldown: &Time) -> StdResult<()> {
         self.cooldown.store(cooldown)
     }
 
     #[cfg(feature="global_ratio")]
-    pub fn configure_ratio (&mut self, ratio: &Ratio) -> StdResult<()> {
+    pub fn configure_ratio (self, ratio: &Ratio) -> StdResult<()> {
         self.ratio.store(ratio)
     }
 
     #[cfg(feature="pool_liquidity_ratio")]
-    pub fn set_seeded (&mut self, time: &Time) -> StdResult<()> {
+    pub fn set_seeded (self, time: &Time) -> StdResult<()> {
         self.seeded.store(time)
     }
 
     #[cfg(feature="pool_liquidity_ratio")]
-    pub fn set_created (&mut self, time: &Time) -> StdResult<()> {
+    pub fn set_created (self, time: &Time) -> StdResult<()> {
         self.created.store(time)
     }
 

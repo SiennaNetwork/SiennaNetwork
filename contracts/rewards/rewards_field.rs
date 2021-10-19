@@ -2,6 +2,16 @@ use fadroma::scrt::cosmwasm_std::*;
 use serde::{Serialize, de::DeserializeOwned};
 use std::{rc::Rc, cell::{RefCell, RefMut}};
 
+pub trait FieldFactory <S> {
+    fn field <V> (self, key: &[u8]) -> Field<S, V>;
+}
+
+impl<S> FieldFactory<S> for Rc<RefCell<S>> {
+    fn field <V> (self, key: &[u8]) -> Field<S, V> {
+        Field::new(self.clone(), key.to_vec())
+    }
+}
+
 pub struct Field <S, V> {
     storage: Rc<RefCell<S>>,
     key:     Vec<u8>,
@@ -9,8 +19,8 @@ pub struct Field <S, V> {
 }
 
 impl<S, V> Field<S, V> {
-    pub fn new (storage: Rc<RefCell<S>>, key: String) -> Self {
-        Self { storage, key: key.into(), value: None }
+    pub fn new (storage: Rc<RefCell<S>>, key: Vec<u8>) -> Self {
+        Self { storage, key, value: None }
     }
 }
 
@@ -67,10 +77,10 @@ impl<S: ReadonlyStorage, V: Copy + DeserializeOwned> Field<S, V> {
 }
 
 impl<S: ReadonlyStorage + Storage, V: Serialize> Field<S, V> {
-    pub fn store (mut self, value: V) -> StdResult<()> {
+    pub fn store (mut self, value: &V) -> StdResult<()> {
         {
             let mut storage: RefMut<_> = self.storage.borrow_mut();
-            storage.set(&self.key, &to_vec(&value)?);
+            storage.set(&self.key, &to_vec(value)?);
         }
         self.value = Some(value);
         Ok(())

@@ -2,7 +2,7 @@ use std::{rc::Rc, cell::RefCell};
 
 use crate::{
     rewards_math::*,
-    rewards_field::Field,
+    rewards_field::{Field, FieldFactory},
     rewards_pool::Pool
 };
 
@@ -60,19 +60,19 @@ impl <S: Storage> User <S> {
             pool:    pool,
             address,
 
-            last_lifetime: Field::new(storage.clone(), concat(b"/user/lifetime/", address.as_slice())),
-            locked:        Field::new(storage.clone(), concat(b"/user/current/",  address.as_slice())),
-            timestamp:     Field::new(storage.clone(), concat(b"/user/updated/",  address.as_slice())),
-            claimed:       Field::new(storage.clone(), concat(b"/user/claimed/",  address.as_slice())),
+            last_lifetime: storage.field(&concat(b"/user/lifetime/", address.as_slice())),
+            locked:        storage.field(&concat(b"/user/current/",  address.as_slice())),
+            timestamp:     storage.field(&concat(b"/user/updated/",  address.as_slice())),
+            claimed:       storage.field(&concat(b"/user/claimed/",  address.as_slice())),
 
             #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))]
-            present:       Field::new(storage.clone(), concat(b"/user/present/",  address.as_slice())),
+            present:       storage.field(&concat(b"/user/present/",  address.as_slice())),
 
             #[cfg(feature="user_liquidity_ratio")]
-            last_existed:  Field::new(storage.clone(), concat(b"/user/existed/",  address.as_slice())),
+            last_existed:  storage.field(&concat(b"/user/existed/",  address.as_slice())),
 
             #[cfg(feature="claim_cooldown")]
-            cooldown:      Field::new(storage.clone(), concat(b"/user/cooldown/", address.as_slice())),
+            cooldown:      storage.field(&concat(b"/user/cooldown/", address.as_slice())),
         }
     }
 
@@ -245,17 +245,12 @@ impl <S: Storage> User <S> {
         }
 
         // can only claim if the pool has balance
-        match self.pool.balance {
-            None => Ok(Amount::zero()),
-            Some(balance) => {
-                let claimable = (earned - claimed)?;
-                // not possible to claim more than the remaining pool balance
-                if claimable > balance {
-                    Ok(balance)
-                } else {
-                    Ok(claimable)
-                }
-            }
+        let claimable = (earned - claimed)?;
+        // not possible to claim more than the remaining pool balance
+        if claimable > self.pool.balance() {
+            Ok(balance)
+        } else {
+            Ok(claimable)
         }
     }
 
@@ -264,7 +259,7 @@ impl <S: Storage> User <S> {
     #[cfg(feature="claim_cooldown")]
     fn reset_cooldown (&mut self) -> StdResult<()> {
         let address = self.address.clone();
-        self.cooldown.store(self.pool.cooldown()?)?;
+        self.cooldown.store(&self.pool.cooldown()?)?;
         Ok(())
     }
 
@@ -285,25 +280,25 @@ impl <S: Storage> User <S> {
 
         #[cfg(feature="user_liquidity_ratio")] {
             // Increment existence
-            self.last_existed.store(self.existed()?)?;
+            self.last_existed.store(&self.existed()?)?;
         }
 
         #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))] {
             // Increment presence if user has currently locked tokens
-            self.present.store(self.present()?)?;
+            self.present.store(&self.present()?)?;
         }
 
         #[cfg(feature="claim_cooldown")] {
             // Cooldown is calculated since the timestamp.
             // Since we'll be updating the timestamp, commit the current cooldown
             let cooldown = self.cooldown()?;
-            self.cooldown.store(cooldown)?;
+            self.cooldown.store(&cooldown)?;
         }
 
         let lifetime = self.lifetime()?;
-        self.last_lifetime.store(lifetime)?;// Always increment lifetime
-        self.timestamp.store(now)?;// Set user's time of last update to now
-        self.locked.store(user_locked)?;// Update amount locked
+        self.last_lifetime.store(&lifetime)?;// Always increment lifetime
+        self.timestamp.store(&now)?;// Set user's time of last update to now
+        self.locked.store(&user_locked)?;// Update amount locked
         self.pool.update_locked(pool_locked)?;// Update total amount locked in pool
 
         Ok(self)
@@ -337,7 +332,7 @@ impl <S: Storage> User <S> {
     fn increment_claimed (&mut self, reward: Amount) -> StdResult<()> {
         let address = self.address.clone();
         self.pool.increment_claimed(reward)?;
-        self.claimed.store(self.claimed()? + reward)?;
+        self.claimed.store(&(self.claimed()? + reward))?;
         Ok(())
     }
 
@@ -385,8 +380,8 @@ impl <S: Storage> User <S> {
         #[cfg(feature="selective_memory")] {
             if locked == Amount::zero() {
                 let address = self.address.clone();
-                self.last_lifetime.store(Volume::zero())?;
-                self.claimed.store(Amount::zero())?;
+                self.last_lifetime.store(&Volume::zero())?;
+                self.claimed.store(&Amount::zero())?;
             }
         }
 

@@ -1,3 +1,5 @@
+use std::{rc::Rc, cell::{RefCell, RefMut}};
+
 use fadroma::scrt::{
     cosmwasm_std::*,
     BLOCK_SIZE,
@@ -11,6 +13,7 @@ use fadroma::scrt::{
 use crate::{
     rewards_api::*,
     rewards_math::*,
+    rewards_errors::*,
     rewards_pool::Pool,
     rewards_admin::{
         DefaultHandleImpl as AdminHandle,
@@ -42,13 +45,11 @@ const POOL_REWARD_TOKEN: &[u8] = b"reward_token";
 const POOL_REWARD_TOKEN_VK: &[u8] = b"reward_token_vk";
 
 pub struct Contract <S, A, Q, E> {
-    storage: S,
+    storage: Rc<RefCell<S>>,
     api:     A,
     querier: Q,
     env:     E
 }
-
-pub const DAY: Time = 86400; // seconds in 24 hours
 
 type InitResult   = StdResult<InitResponse>;
 type HandleResult = StdResult<HandleResponse>;
@@ -59,27 +60,16 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&mut S, &mut A, &mut Q, Env> {
 
         self.save_self_reference()?;
 
-        let Init {
-            admin,
-            lp_token,
-            reward_token,
-            viewing_key,
-            ratio,
-            threshold,
-            cooldown
-        } = msg;
-
-        // Contract has an admin who can do admin stuff.
         save_admin(
-            self.storage,
+            *self.storage.borrow_mut(),
             self.api,
-            &admin.unwrap_or(self.env.message.sender.clone())
-        )?;
+            &msg.admin.unwrap_or(self.env.message.sender.clone())
+        );
 
         // Contract accepts transactions in `lp_token`s.
         // The address of the `lp_token` can be provided later
         // to avoid a circular dependency during deployment.
-        if let Some(lp_token) = lp_token {
+        if let Some(lp_token) = msg.lp_token {
             self.save_lp_token(&lp_token)?;
         }
 
@@ -88,25 +78,25 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&mut S, &mut A, &mut Q, Env> {
         // For that, it needs a reference to its own address+code_hash
         // and a viewing key in `reward_token`.
 
-        self.save_reward_token(&reward_token)?;
+        self.save_reward_token(&msg.reward_token)?;
 
-        let set_vk = ISnip20::attach(&reward_token).set_viewing_key(&viewing_key.0)?;
-        self.save_viewing_key(&viewing_key)?;
+        let set_vk = ISnip20::attach(&msg.reward_token).set_viewing_key(&msg.viewing_key.0)?;
+        self.save_viewing_key(&msg.viewing_key)?;
 
         // Reward pool has configurable parameters:
-        let mut pool = Pool::writable(self.storage);
+        let mut pool = Pool::new(self.storage);
 
         #[cfg(feature="pool_liquidity_ratio")]
         pool.set_created(&self.env.block.time)?;
 
         #[cfg(feature="global_ratio")]
-        pool.configure_ratio(&ratio.unwrap_or((1u128.into(), 1u128.into())))?;
+        pool.configure_ratio(&msg.ratio.unwrap_or((1u128.into(), 1u128.into())))?;
 
         #[cfg(feature="age_threshold")]
-        pool.configure_threshold(&threshold.unwrap_or(DAY))?;
+        pool.configure_threshold(&msg.threshold.unwrap_or(DAY))?;
 
         #[cfg(feature="claim_cooldown")]
-        pool.configure_cooldown(&cooldown.unwrap_or(DAY))?;
+        pool.configure_cooldown(&msg.cooldown.unwrap_or(DAY))?;
 
         // TODO remove global state from scrt-contract
         // define field! and addr_field! macros instead -
@@ -119,21 +109,21 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&mut S, &mut A, &mut Q, Env> {
         &mut self,
         link: &ContractLink<HumanAddr>
     ) -> StdResult<()> {
-        save(self.storage, POOL_LP_TOKEN, &link.canonize(self.api)?)
+        save(*self.storage.borrow_mut(), POOL_LP_TOKEN, &link.canonize(self.api)?)
     }
 
     pub fn save_reward_token (
         &mut self,
         link: &ContractLink<HumanAddr>
     ) -> StdResult<()> {
-        save(self.storage, POOL_REWARD_TOKEN, &link.canonize(self.api)?)
+        save(*self.storage.borrow_mut(), POOL_REWARD_TOKEN, &link.canonize(self.api)?)
     }
 
     pub fn save_viewing_key (
         &mut self,
         key: &ViewingKey
     ) -> StdResult<()> {
-        save(self.storage, POOL_REWARD_TOKEN_VK, &key)
+        save(*self.storage.borrow_mut(), POOL_REWARD_TOKEN_VK, &key)
     }
 
     fn save_self_reference (
@@ -143,7 +133,7 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&mut S, &mut A, &mut Q, Env> {
             address:   self.env.contract.address.clone(),
             code_hash: self.env.contract_code_hash.clone()
         };
-        save(self.storage, POOL_SELF_REFERENCE, &link.canonize(self.api)?)
+        save(*self.storage.borrow_mut(), POOL_SELF_REFERENCE, &link.canonize(self.api)?)
     }
 
     pub fn handle (&mut self, msg: Handle) -> HandleResult {
@@ -162,7 +152,7 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&mut S, &mut A, &mut Q, Env> {
     pub fn change_admin (&mut self, address: HumanAddr) -> HandleResult {
         let msg = AdminHandleMsg::ChangeAdmin { address };
         admin_handle(
-            self.storage,
+            *self.storage.borrow_mut(),
             self.api,
             &self.env,
             msg,
@@ -171,7 +161,7 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&mut S, &mut A, &mut Q, Env> {
     }
 
     fn assert_admin (&mut self) -> StdResult<()> {
-        assert_admin(self.storage, self.api, &self.env)
+        assert_admin(*self.storage.borrow(), self.api, &self.env)
     }
 
     /// Set the active asset token.
@@ -186,28 +176,28 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&mut S, &mut A, &mut Q, Env> {
     #[cfg(feature="global_ratio")]
     pub fn change_ratio (&mut self, numerator: Amount, denominator: Amount) -> HandleResult {
         self.assert_admin()?;
-        Pool::writable(self.storage).configure_ratio(&(numerator.into(), denominator.into()))?;
+        Pool::new(self.storage).configure_ratio(&(numerator.into(), denominator.into()))?;
         tx_ok!()
     }
 
     #[cfg(feature="age_threshold")]
     pub fn change_threshold (&mut self, threshold: Time) -> HandleResult {
         self.assert_admin()?;
-        Pool::writable(self.storage).configure_threshold(&threshold)?;
+        Pool::new(self.storage).configure_threshold(&threshold)?;
         tx_ok!()
     }
 
     #[cfg(feature="claim_cooldown")]
     pub fn change_cooldown (&mut self, cooldown: Time) -> HandleResult {
         self.assert_admin()?;
-        Pool::writable(self.storage).configure_cooldown(&cooldown)?;
+        Pool::new(self.storage).configure_cooldown(&cooldown)?;
         tx_ok!()
     }
 
     #[cfg(feature="pool_closes")]
     pub fn close_pool (&mut self, message: String) -> HandleResult {
         self.assert_admin()?;
-        Pool::writable(self.storage).at(self.env.block.time).close(message)?;
+        Pool::new(self.storage).at(self.env.block.time).close(message)?;
         tx_ok!()
     }
 
@@ -285,7 +275,7 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&mut S, &mut A, &mut Q, Env> {
         tx_ok!(ISnip20::attach(&load_lp_token(self.storage, self.api)?).transfer_from(
             &self.env.message.sender,
             &self.env.contract.address,
-            Pool::writable(self.storage)
+            Pool::new(self.storage)
                 .at(self.env.block.time)
                 .user(self.api.canonical_address(&self.env.message.sender)?)
                 .lock_tokens(amount)?)?)
@@ -301,7 +291,7 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&mut S, &mut A, &mut Q, Env> {
 
         tx_ok!(ISnip20::attach(&load_lp_token(self.storage, self.api)?).transfer(
             &self.env.message.sender,
-            Pool::writable(self.storage)
+            Pool::new(self.storage)
                 .at(self.env.block.time)
                 .user(self.api.canonical_address(&self.env.message.sender)?)
                 .retrieve_tokens(amount)?)?)
@@ -324,7 +314,7 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&mut S, &mut A, &mut Q, Env> {
 
         // Compute the reward portion for this user.
         // May return error if portion is zero.
-        let reward = Pool::writable(self.storage)
+        let reward = Pool::new(self.storage)
             .at(self.env.block.time)
             .with_balance(reward_balance)
             .user(self.api.canonical_address(&self.env.message.sender)?)
@@ -346,7 +336,7 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&mut S, &mut A, &mut Q, Env> {
     /// or None if the pool isn't closed.
     pub fn close_handler (&mut self) -> StdResult<Option<HandleResponse>> {
 
-        let pool = Pool::writable(self.storage);
+        let pool = Pool::new(self.storage);
 
         Ok(if let Some((_, close_message)) = pool.closed()? {
 
@@ -411,7 +401,7 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&S, &A, &Q, ()> {
         at: Time
     ) -> StdResult<Response> {
 
-        let pool = Pool::readonly(self.storage).at(at)
+        let pool = Pool::new(self.storage).at(at)
             .with_balance(load_reward_balance(self.storage, self.api, self.querier)?);
 
         let pool_last_update = pool.timestamp()?;
@@ -464,7 +454,7 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&S, &A, &Q, ()> {
 
         authenticate(self.storage, &ViewingKey(key), address.as_slice())?;
 
-        let pool = Pool::readonly(self.storage).at(at);
+        let pool = Pool::new(self.storage).at(at);
         let pool_last_update = pool.timestamp()?;
         if at < pool_last_update {
             return Err(StdError::generic_err("no time travel")) }
@@ -480,7 +470,7 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&S, &A, &Q, ()> {
 
         #[cfg(feature="pool_closes")]
         let pool_closed =
-            if let Some((_, close_message)) = Pool::readonly(self.storage).closed()? {
+            if let Some((_, close_message)) = Pool::new(self.storage).closed()? {
                 Some(close_message) }
             else {
                 None };
@@ -533,7 +523,7 @@ impl <S: Storage, A: Api, Q: Querier> Contract<&S, &A, &Q, ()> {
         let address = self.api.canonical_address(&address)?;
         authenticate(self.storage, &ViewingKey(key), address.as_slice())?;
         Ok(Response::Balance {
-            amount: Pool::readonly(self.storage).user(address).locked()?
+            amount: Pool::new(self.storage).user(address).locked()?
         })
     }
 
@@ -544,10 +534,7 @@ fn load_reward_token (
     api:     &impl Api
 ) -> StdResult<ContractLink<HumanAddr>> {
     let result: Option<ContractLink<CanonicalAddr>> = load(storage, POOL_REWARD_TOKEN)?;
-    match result {
-        Some(link) => Ok(link.humanize(api)?),
-        None => error!("missing reward token")
-    }
+    result.ok_or(missing_reward_token())
 }
 
 fn load_lp_token (
@@ -555,10 +542,7 @@ fn load_lp_token (
     api:     &impl Api
 ) -> StdResult<ContractLink<HumanAddr>> {
     let result: Option<ContractLink<CanonicalAddr>> = load(storage, POOL_LP_TOKEN)?;
-    match result {
-        Some(link) => Ok(link.humanize(api)?),
-        None => error!("missing liquidity provision token")
-    }
+    result.ok_or(missing_lp_token())
 }
 
 fn load_reward_balance <S: Storage> (
@@ -574,7 +558,7 @@ fn load_reward_balance <S: Storage> (
 
     let lp_token_link = load_lp_token(storage, api)?;
     if lp_token_link == reward_token_link {
-        let lp_balance = Pool::readonly(storage).locked()?;
+        let lp_balance = Pool::new(storage).locked()?;
         reward_balance = (reward_balance - lp_balance)?;
     }
 
@@ -588,7 +572,7 @@ pub fn load_self_reference (
     let result: Option<ContractLink<CanonicalAddr>> = load(storage, POOL_SELF_REFERENCE)?;
     match result {
         Some(link) => Ok(link.humanize(api)?),
-        None => error!("missing self reference")
+        None => missing_self_reference()
     }
 }
 
@@ -598,6 +582,6 @@ pub fn load_viewing_key (
     let result: Option<ViewingKey> = load(storage, POOL_REWARD_TOKEN_VK)?;
     match result {
         Some(key) => Ok(key),
-        None => error!("missing reward token viewing key")
+        None => missing_viewing_key()
     }
 }
