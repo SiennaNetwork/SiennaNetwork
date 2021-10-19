@@ -8,47 +8,51 @@ use serde::{Serialize, Deserialize};
 
 const ADMIN_KEY: &[u8] = b"ltp5P6sFZT";
 
-pub fn admin_handle<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    msg: AdminHandleMsg,
-    handle: impl AdminHandle,
+pub fn admin_handle(
+    storage: &mut impl Storage,
+    api:     &impl Api,
+    env:     &Env,
+    msg:     AdminHandleMsg,
+    handle:  impl AdminHandle,
 ) -> StdResult<HandleResponse> {
     match msg {
-        AdminHandleMsg::ChangeAdmin { address } => handle.change_admin(deps, env, address)
+        AdminHandleMsg::ChangeAdmin { address } => handle.change_admin(storage, api, env, address)
     }
 }
 
 pub fn admin_query<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    msg: AdminQueryMsg,
-    query: impl AdminQuery,
+    storage: &mut impl Storage,
+    api:     &impl Api,
+    msg:     AdminQueryMsg,
+    query:   impl AdminQuery,
 ) -> StdResult<Binary> {
     match msg {
-        AdminQueryMsg::Admin => query.query_admin(deps)
+        AdminQueryMsg::Admin => query.query_admin(storage, api)
     }
 }
 
 pub trait AdminHandle {
-    fn change_admin<S: Storage, A: Api, Q: Querier>(
+    fn change_admin(
         &self,
-        deps: &mut Extern<S, A, Q>,
-        env: Env,
+        storage: &mut impl Storage,
+        api: &impl Api,
+        env: &Env,
         address: HumanAddr,
     ) -> StdResult<HandleResponse> {
-        assert_admin(deps, &env)?;
-        save_admin(deps, &address)?;
+        assert_admin(storage, api, env)?;
+        save_admin(storage, api, &address)?;
     
         Ok(HandleResponse::default())
     }
 }
 
 pub trait AdminQuery {
-    fn query_admin<S: Storage, A: Api, Q: Querier>(
+    fn query_admin(
         &self,
-        deps: &Extern<S, A, Q>
+        storage: &impl Storage,
+        api: &impl Api,
     )-> StdResult<Binary> {
-        let address = load_admin(deps)?;
+        let address = load_admin(storage, api)?;
     
         to_binary(&AdminQueryResponse { 
             address
@@ -84,35 +88,36 @@ pub struct AdminQueryResponse {
     pub address: HumanAddr
 }
 
-pub fn load_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>
+pub fn load_admin(
+    storage: &impl Storage,
+    api:     &impl Api
 ) -> StdResult<HumanAddr> {
-    let result = deps.storage.get(ADMIN_KEY);
-
+    let result = storage.get(ADMIN_KEY);
     if let Some(bytes) = result {
         let admin = CanonicalAddr::from(bytes);
-
-        deps.api.human_address(&admin)
+        api.human_address(&admin)
     } else {
         Ok(HumanAddr::default())
     }
 }
 
-pub fn save_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+pub fn save_admin(
+    storage: &mut impl Storage,
+    api:     &impl Api,
     address: &HumanAddr
 ) -> StdResult<()> {
-    let admin = deps.api.canonical_address(address)?;
-    deps.storage.set(ADMIN_KEY, &admin.as_slice());
+    let admin = api.canonical_address(address)?;
+    storage.set(ADMIN_KEY, &admin.as_slice());
 
     Ok(())
 }
 
-pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
+pub fn assert_admin(
+    storage: &impl Storage,
+    api: &impl Api,
     env: &Env
 ) -> StdResult<()> {
-    let admin = load_admin(deps)?;
+    let admin = load_admin(storage, api)?;
 
     if admin == env.message.sender {
         return Ok(());
@@ -132,7 +137,7 @@ mod tests {
         let ref mut deps = mock_dependencies(10, &[]);
 
         let admin = HumanAddr::from("admin");
-        save_admin(deps, &admin).unwrap();
+        save_admin(deps.storage, deps.api, &admin).unwrap();
 
         let msg = AdminHandleMsg::ChangeAdmin { 
             address: HumanAddr::from("will fail")
@@ -163,7 +168,7 @@ mod tests {
             DefaultHandleImpl
         ).unwrap();
 
-        assert!(load_admin(deps).unwrap() == new_admin);
+        assert!(load_admin(deps.storage, deps.api).unwrap() == new_admin);
     }
 
     #[test]
@@ -176,7 +181,7 @@ mod tests {
         assert!(response.address == HumanAddr::default());
 
         let admin = HumanAddr::from("admin");
-        save_admin(deps, &admin).unwrap();
+        save_admin(deps.storage, deps.api, &admin).unwrap();
 
         let result = admin_query(deps, AdminQueryMsg::Admin, DefaultQueryImpl).unwrap();
 

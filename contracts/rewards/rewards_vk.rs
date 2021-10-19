@@ -13,25 +13,27 @@ use serde::{Serialize, Deserialize};
 
 const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
 
-pub fn auth_handle<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
+pub fn auth_handle(
+    storage: &mut impl Storage,
+    api: &impl Api,
+    env: &Env,
     msg: AuthHandleMsg,
     handle: impl AuthHandle,
 ) -> StdResult<HandleResponse> {
     match msg {
         AuthHandleMsg::CreateViewingKey { entropy, .. } =>
-            handle.create_viewing_key(deps, env, entropy),
+            handle.create_viewing_key(storage, api, env, entropy),
         AuthHandleMsg::SetViewingKey { key, .. } => 
-            handle.set_viewing_key(deps, env, key)
+            handle.set_viewing_key(storage, api, env, key)
     }
 }
 
 pub trait AuthHandle {
-    fn create_viewing_key<S: Storage, A: Api, Q: Querier>(
+    fn create_viewing_key(
         &self,
-        deps: &mut Extern<S, A, Q>,
-        env: Env,
+        storage: &mut impl Storage,
+        api: &impl Api,
+        env: &Env,
         entropy: String
     ) -> StdResult<HandleResponse> {
         let prng_seed = [ 
@@ -40,8 +42,8 @@ pub trait AuthHandle {
         ].concat();
 
         let key = ViewingKey::new(&env, &prng_seed, &(entropy).as_ref());
-        let address = deps.api.canonical_address(&env.message.sender)?;
-        save_viewing_key(deps, address.as_slice(), &key)?;
+        let address = api.canonical_address(&env.message.sender)?;
+        save_viewing_key(storage, address.as_slice(), &key)?;
 
         Ok(HandleResponse {
             messages: vec![],
@@ -52,15 +54,16 @@ pub trait AuthHandle {
         })
     }
 
-    fn set_viewing_key<S: Storage, A: Api, Q: Querier>(
+    fn set_viewing_key(
         &self,
-        deps: &mut Extern<S, A, Q>,
-        env: Env,
+        storage: &mut impl Storage,
+        api: &impl Api,
+        env: &Env,
         key: String
     ) -> StdResult<HandleResponse> {
         let key = ViewingKey(key);
-        let address = deps.api.canonical_address(&env.message.sender)?;
-        save_viewing_key(deps, address.as_slice(), &key)?;
+        let address = api.canonical_address(&env.message.sender)?;
+        save_viewing_key(storage, address.as_slice(), &key)?;
 
         Ok(HandleResponse::default())
     }
@@ -93,20 +96,20 @@ pub struct DefaultHandleImpl;
 impl AuthHandle for DefaultHandleImpl { }
 
 #[inline]
-pub fn save_viewing_key<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    key: &[u8],
+pub fn save_viewing_key(
+    storage:     &mut impl Storage,
+    key:         &[u8],
     viewing_key: &ViewingKey
 ) -> StdResult<()> {
-    ns_save(&mut deps.storage, VIEWING_KEYS, key, &viewing_key)
+    ns_save(storage, VIEWING_KEYS, key, &viewing_key)
 }
 
 #[inline]
 pub fn load_viewing_key<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    key: &[u8],
+    storage: &impl Storage,
+    key:     &[u8],
 ) -> StdResult<Option<ViewingKey>> {
-    ns_load(&deps.storage, VIEWING_KEYS, key)
+    ns_load(storage, VIEWING_KEYS, key)
 }
 
 pub fn authenticate(
