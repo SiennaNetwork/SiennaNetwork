@@ -1,5 +1,5 @@
 use fadroma::scrt::cosmwasm_std::{
-    HumanAddr, CanonicalAddr, StdResult, Extern, Env,
+    HumanAddr, CanonicalAddr, StdResult, Env,
     Api, Querier, Storage, StdError, HandleResponse,
     Binary, to_binary
 };

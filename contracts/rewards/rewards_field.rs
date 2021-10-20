@@ -24,8 +24,8 @@ impl<S, V> Field<S, V> {
     }
 }
 
-impl<S: ReadonlyStorage, V: Copy + DeserializeOwned> Field<S, V> {
-    pub fn value (mut self) -> StdResult<V> {
+impl<S: ReadonlyStorage, V: DeserializeOwned> Field<S, V> {
+    pub fn get (mut self) -> StdResult<V> {
         match self.value {
             Some(value) => Ok(value),
             None => {
@@ -40,7 +40,7 @@ impl<S: ReadonlyStorage, V: Copy + DeserializeOwned> Field<S, V> {
             }
         }
     }
-    pub fn value_or_default (mut self, default: V) -> StdResult<V> {
+    pub fn get_or_default (mut self, default: V) -> StdResult<V> {
         match self.value {
             Some(value) => Ok(value),
             None => {
@@ -51,14 +51,14 @@ impl<S: ReadonlyStorage, V: Copy + DeserializeOwned> Field<S, V> {
                         Ok(value)
                     },
                     None => {
-                        self.value = default;
+                        self.value = Some(default);
                         Ok(default)
                     }
                 }
             }
         }
     }
-    pub fn value_or_err (mut self, message: &str) -> StdResult<V> {
+    pub fn get_or_err (mut self, message: &str) -> StdResult<V> {
         match self.value {
             Some(value) => Ok(value),
             None => {
@@ -77,7 +77,7 @@ impl<S: ReadonlyStorage, V: Copy + DeserializeOwned> Field<S, V> {
 }
 
 impl<S: ReadonlyStorage + Storage, V: Serialize> Field<S, V> {
-    pub fn store (mut self, value: &V) -> StdResult<()> {
+    pub fn set (mut self, value: &V) -> StdResult<()> {
         {
             let mut storage: RefMut<_> = self.storage.borrow_mut();
             storage.set(&self.key, &to_vec(value)?);

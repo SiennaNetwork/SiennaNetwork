@@ -41,9 +41,7 @@ pub fn init <S: Storage, A: Api, Q: Querier> (
     env:  Env,
     msg:  Init
 ) -> StdResult<InitResponse> {
-    let Extern { storage, api, querier } = deps;
-    let storage = Rc::new(RefCell::new(storage));
-    Contract { storage, api, querier, env }.init(msg)
+    Contract::new_rw(deps, env).init(msg)
 }
 
 pub fn handle <S: Storage, A: Api, Q: Querier> (
@@ -51,16 +49,13 @@ pub fn handle <S: Storage, A: Api, Q: Querier> (
     env:  Env,
     msg:  Handle
 ) -> StdResult<HandleResponse> {
-    let Extern { storage, api, querier } = deps;
-    let storage = Rc::new(RefCell::new(storage));
-    Contract { storage, api, querier, env }.handle(msg)
+    Contract::new_rw(deps, env).handle(msg)
 }
 
 pub fn query <S: Storage, A: Api, Q: Querier> (
     deps: &Extern<S, A, Q>,
     msg:  Query
 ) -> StdResult<Binary> {
-    let Extern { storage, api, querier } = deps;
-    let storage = Rc::new(RefCell::new(storage));
-    to_binary(&(Contract { storage, api, querier, env: () }.query(msg)?))
+    let response = Contract::new_ro(deps).query(msg)?;
+    to_binary(&response)
 }
