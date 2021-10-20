@@ -1,11 +1,11 @@
-use fadroma::scrt::{
-    cosmwasm_std::{
+use fadroma::{
+    scrt::{
         HumanAddr, CanonicalAddr, Api, StdResult,
         Querier, Uint128, StdError, Env, CosmosMsg,
-        WasmMsg, BankMsg, Coin, to_binary
+        WasmMsg, BankMsg, Coin, to_binary,
+        secret_toolkit::snip20
     },
-    addr::{Canonize, Humanize},
-    toolkit::snip20
+    scrt_addr::{Canonize, Humanize}
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

@@ -25,18 +25,38 @@ pub mod rewards_math;   use rewards_math::*;
 pub mod rewards_algo;   use rewards_algo::*;
 pub mod rewards_config; use rewards_config::*;
 
-use fadroma::scrt::{
-    BLOCK_SIZE,
-    callback::ContractInstance as ContractLink,
-    contract::*,
-    toolkit::snip20,
-    snip20_api::ISnip20,
-    vk::{ViewingKey,
-         auth_handle, authenticate, AuthHandleMsg,
-         DefaultHandleImpl as AuthHandle},
-    admin::{DefaultHandleImpl as AdminHandle,
-            admin_handle, AdminHandleMsg, load_admin,
-            assert_admin, save_admin}};
+use fadroma::{
+    contract,
+    prelude,
+    define_init_message,
+    define_q_messages,
+    define_state_singleton,
+    define_tx_messages,
+    implement_init,
+    implement_queries,
+    implement_transactions,
+    message,
+    messages,
+    scrt::{
+        BLOCK_SIZE,
+        secret_toolkit::snip20
+    },
+    scrt_link::ContractLink,
+    scrt_snip20_api::ISnip20,
+    scrt_vk::ViewingKey,
+    scrt_vk_auth::{
+        handle as auth_handle,
+        HandleMsg as AuthHandleMsg,
+        authenticate,
+        DefaultImpl as AuthHandle
+    },
+    admin::{
+        DefaultImpl as AdminHandle,
+        handle as admin_handle,
+        HandleMsg as AdminHandleMsg,
+        load_admin, assert_admin, save_admin
+    }
+};
 
 macro_rules! tx_ok {
     () => {
@@ -47,7 +67,7 @@ macro_rules! tx_ok {
     };
 }
 
-pub const DAY: Time = 17280; // blocks over ~24h @ 5s/block
+pub const DAY: Time = 86400; // seconds in 24 hours
 
 contract! {
 
@@ -85,7 +105,7 @@ contract! {
         //
         #[cfg(feature="pool_liquidity_ratio")]
         Pool::new(&mut deps.storage)
-            .set_created(&env.block.height)?;
+            .set_created(&env.block.time)?;
 
         #[cfg(feature="global_ratio")]
         Pool::new(&mut deps.storage)
@@ -212,7 +232,7 @@ contract! {
                 name:         lp_token_name,
                 symbol:       "SRW".into(),
                 decimals:     1,
-                total_supply: None }) }
+                total_supply: Option::<Amount>::None }) }
 
         /// Keplr integration
         Balance (address: HumanAddr, key: String) {
@@ -330,7 +350,7 @@ contract! {
         ClosePool (message: String) {
             assert_admin(&deps, &env)?;
             Pool::new(&mut deps.storage)
-                .at(env.block.height)
+                .at(env.block.time)
                 .close(message)?;
             tx_ok!() }
 
@@ -393,7 +413,7 @@ contract! {
                 &env.message.sender,
                 &env.contract.address,
                 Pool::new(&mut deps.storage)
-                    .at(env.block.height)
+                    .at(env.block.time)
                     .user(deps.api.canonical_address(&env.message.sender)?)
                     .lock_tokens(amount)? )? ) }
 
@@ -407,7 +427,7 @@ contract! {
             tx_ok!(ISnip20::attach(&load_lp_token(&deps.storage, &deps.api)?).transfer(
                 &env.message.sender,
                 Pool::new(&mut deps.storage)
-                    .at(env.block.height)
+                    .at(env.block.time)
                     .user(deps.api.canonical_address(&env.message.sender)?)
                     .retrieve_tokens(amount)? )?) }
 
@@ -427,7 +447,7 @@ contract! {
             // Compute the reward portion for this user.
             // May return error if portion is zero.
             let reward = Pool::new(&mut deps.storage)
-                .at(env.block.height)
+                .at(env.block.time)
                 .with_balance(reward_balance)
                 .user(deps.api.canonical_address(&env.message.sender)?)
                 .claim_reward()?;
@@ -470,7 +490,7 @@ pub fn close_handler (
         let mut messages = vec![];
         let mut log = vec![LogAttribute {
             key: "closed".into(), value: close_message }];
-        let mut user = Pool::new(&mut *storage).at(env.block.height)
+        let mut user = Pool::new(&mut *storage).at(env.block.time)
             .user(api.canonical_address(&env.message.sender)?);
         let locked = user.retrieve_tokens(
             user.locked()?)?;

@@ -1,13 +1,13 @@
-use fadroma::scrt::cosmwasm_std::{
-    Uint128, HumanAddr, StdResult, StdError, Binary,
+use fadroma::scrt::{
+    Uint128, HumanAddr, StdResult,
     Extern, testing::MockApi, MemoryStorage,
     Querier, QueryRequest, Empty, WasmQuery, QuerierResult,
-    from_binary, to_binary, from_slice, SystemError,
+    to_binary, from_slice, SystemError,
     BlockInfo, MessageInfo, ContractInfo, Env,
     CosmosMsg, WasmMsg
 };
 
-use fadroma::scrt::callback::{ContractInstance as ContractLink};
+use fadroma::scrt_link::ContractLink;
 
 use sienna_rewards::msg::Response as RewardsResponse;
 

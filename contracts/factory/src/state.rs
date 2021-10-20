@@ -1,18 +1,20 @@
+use std::usize;
+
 use amm_shared::{
     exchange::{Exchange, ExchangeSettings},
-    fadroma::scrt::{
-        addr::{Canonize, Humanize},
-        callback::{ContractInstance, ContractInstantiationInfo},
-        cosmwasm_std::{
-            Api, Binary, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage,
+    fadroma::{
+        scrt_addr::{Canonize, Humanize},
+        scrt_link::{ContractLink, ContractInstantiationInfo},
+        scrt::{
+            Api, Binary, CanonicalAddr, Extern, HumanAddr,
+            Querier, StdError, StdResult, Storage,
         },
-        storage::{load, ns_load, ns_remove, ns_save, save},
+        scrt_storage::{load, ns_load, ns_remove, ns_save, save},
     },
     msg::factory::InitMsg,
     Pagination, TokenPair, TokenType,
 };
 use serde::{Deserialize, Serialize};
-use std::usize;
 
 const CONFIG_KEY: &[u8] = b"config";
 const PRNG_KEY: &[u8] = b"prng_seed";
@@ -103,14 +105,14 @@ pub(crate) fn load_prng_seed(storage: &impl Storage) -> StdResult<Binary> {
 
 pub(crate) fn save_launchpad_instance(
     storage: &mut impl Storage,
-    instance: &ContractInstance<HumanAddr>,
+    instance: &ContractLink<HumanAddr>,
 ) -> StdResult<()> {
     save(storage, LAUNCHPAD_KEY, instance)
 }
 
 pub(crate) fn load_launchpad_instance(
     storage: &impl Storage,
-) -> StdResult<Option<ContractInstance<HumanAddr>>> {
+) -> StdResult<Option<ContractLink<HumanAddr>>> {
     load(storage, LAUNCHPAD_KEY)
 }
 

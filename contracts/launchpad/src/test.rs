@@ -1,16 +1,18 @@
 use crate::contract::*;
-use amm_shared::{
-    fadroma::scrt::callback::{Callback, ContractInstance},
-    fadroma::scrt::cosmwasm_std::{
+use amm_shared::fadroma::{
+    scrt_callback::Callback,
+    scrt_link::ContractLink,
+    scrt::{
         from_binary,
         testing::{mock_env, MockApi, MockStorage},
         to_binary, Binary, Coin, Extern, HumanAddr, StdError, Uint128,
-    },
-    msg::launchpad::{
-        HandleMsg, InitMsg, QueryMsg, QueryResponse, ReceiverCallbackMsg, TokenSettings,
-    },
-    querier::{MockContractInstance, MockQuerier},
-    TokenType,
+    }
+};
+use amm_shared::TokenType;
+use amm_shared::querier::{MockContractInstance, MockQuerier};
+use amm_shared::msg::launchpad::{
+    HandleMsg, InitMsg, QueryMsg, QueryResponse,
+    ReceiverCallbackMsg, TokenSettings,
 };
 
 fn mock_deps() -> Extern<MockStorage, MockApi, MockQuerier> {
@@ -21,7 +23,7 @@ fn mock_deps() -> Extern<MockStorage, MockApi, MockQuerier> {
             &[],
             vec![
                 MockContractInstance {
-                    instance: ContractInstance {
+                    instance: ContractLink {
                         address: HumanAddr::from("snip20-token-1"),
                         code_hash: "".to_string(),
                     },
@@ -29,7 +31,7 @@ fn mock_deps() -> Extern<MockStorage, MockApi, MockQuerier> {
                     token_supply: Uint128::from(2500_u128),
                 },
                 MockContractInstance {
-                    instance: ContractInstance {
+                    instance: ContractLink {
                         address: HumanAddr::from("snip20-token-2"),
                         code_hash: "".to_string(),
                     },
@@ -55,7 +57,7 @@ fn get_deps_after_init(tokens: Vec<TokenSettings>) -> Extern<MockStorage, MockAp
             entropy: to_binary(&"whatever").unwrap(),
             callback: Callback {
                 msg: Binary::from(&[]),
-                contract: ContractInstance {
+                contract: ContractLink {
                     address: HumanAddr::from("callback-address"),
                     code_hash: "code-hash-of-callback-contract".to_string(),
                 },

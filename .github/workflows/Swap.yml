@@ -1,0 +1,63 @@
+on: [push, pull_request]
+name: SIENNA Swap
+jobs:
+
+  factory:
+    name: Unit test suite of SIENNA Factory
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install toolchain that allows macro backtrace
+        uses: actions-rs/toolchain@v1
+        with:
+          {
+            profile: minimal,
+            toolchain: nightly,
+            target: wasm32-unknown-unknown,
+            override: true,
+          }
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with: { submodules: true }
+      - uses: Swatinem/rust-cache@v1
+      - name: Run tests
+        run: cargo test -p factory
+
+  exchange:
+    name: Unit test suite of SIENNA Exchange
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install toolchain that allows macro backtrace
+        uses: actions-rs/toolchain@v1
+        with:
+          {
+            profile: minimal,
+            toolchain: nightly,
+            target: wasm32-unknown-unknown,
+            override: true,
+          }
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with: { submodules: true }
+      - uses: Swatinem/rust-cache@v1
+      - name: Run tests
+        run: cargo test -p exchange
+
+  rewards:
+    name: Unit test suite of SIENNA Rewards
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install toolchain that allows macro backtrace
+        uses: actions-rs/toolchain@v1
+        with:
+          {
+            profile: minimal,
+            toolchain: nightly,
+            target: wasm32-unknown-unknown,
+            override: true,
+          }
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with: { submodules: true }
+      - uses: Swatinem/rust-cache@v1
+      - name: Run tests
+        run: cargo test -p rewards

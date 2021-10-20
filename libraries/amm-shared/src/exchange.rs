@@ -1,6 +1,6 @@
-use fadroma::scrt::{
-    cosmwasm_std::{HumanAddr, StdResult, Api, CanonicalAddr},
-    addr::{Canonize, Humanize}
+use fadroma::{
+    scrt::{HumanAddr, StdResult, Api, CanonicalAddr},
+    scrt_addr::{Canonize, Humanize}
 };
 use crate::token_pair::TokenPair;
 use schemars::JsonSchema;

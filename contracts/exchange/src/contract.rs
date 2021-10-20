@@ -1,14 +1,16 @@
 use amm_shared::{
     exchange::{ExchangeSettings, Fee},
-    fadroma::scrt::{
-        callback::{Callback, ContractInstance},
-        cosmwasm_std::{
+    fadroma::{
+        scrt::{
             from_binary, log, to_binary, Api, BankMsg, Binary, Coin, CosmosMsg, Decimal, Env,
             Extern, HandleResponse, HumanAddr, InitResponse, Querier, QueryRequest, QueryResult,
             StdError, StdResult, Storage, Uint128, WasmMsg, WasmQuery,
+            secret_toolkit::snip20,
         },
-        toolkit::snip20,
-        utils::{viewing_key::ViewingKey, Uint256},
+        scrt_callback::Callback,
+        scrt_link::ContractLink,
+        scrt_vk::ViewingKey,
+        scrt_uint256::Uint256
     },
     msg::{
         exchange::{
@@ -76,7 +78,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             decimals: 18,
             callback: Some(Callback {
                 msg: to_binary(&HandleMsg::OnLpTokenInit)?,
-                contract: ContractInstance {
+                contract: ContractLink {
                     address: env.contract.address.clone(),
                     code_hash: env.contract_code_hash,
                 },
@@ -111,7 +113,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 
     let config = Config {
         factory_info: msg.factory_info,
-        lp_token_info: ContractInstance {
+        lp_token_info: ContractLink {
             code_hash: msg.lp_token_contract.code_hash,
             // We get the address when the instantiated LP token calls OnLpTokenInit
             address: HumanAddr::default(),
@@ -528,7 +530,7 @@ fn swap(
 
 fn query_liquidity(
     querier: &impl Querier,
-    lp_token_info: &ContractInstance<HumanAddr>,
+    lp_token_info: &ContractLink<HumanAddr>,
 ) -> StdResult<Uint128> {
     let result = snip20::token_info_query(
         querier,
@@ -736,7 +738,7 @@ fn assert_slippage_tolerance(
 
 fn query_exchange_settings(
     querier: &impl Querier,
-    factory: ContractInstance<HumanAddr>,
+    factory: ContractLink<HumanAddr>,
 ) -> StdResult<ExchangeSettings<HumanAddr>> {
     let result: FactoryResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         callback_code_hash: factory.code_hash,
