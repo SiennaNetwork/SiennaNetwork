@@ -3,7 +3,8 @@ import { assert } from "chai";
 import { randomBytes } from "crypto";
 import { Scrt, ScrtGas } from "@fadroma/scrt";
 
-import { SiennaSNIP20, SNIP20 } from "./SNIP20.ts";
+import { SiennaSNIP20 } from "./index";
+import { SNIP20 } from "./SNIP20.ts";
 import { IDO } from "./IDO.ts";
 import { Factory } from "./Factory.ts";
 
@@ -136,40 +137,11 @@ describe("IDO", () => {
     context.factory = new Factory({
       codeId: context.templates.Factory.codeId,
       label: `factory-${parseInt(Math.random() * 100000)}`,
-      initMsg: {
-        prng_seed: randomBytes(36).toString("hex"),
-        snip20_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
-        },
-        lp_token_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
-        },
-        pair_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
-        },
-        launchpad_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
-        },
-        ido_contract: {
-          id: context.templates.IDO.codeId,
-          code_hash: context.templates.IDO.codeHash,
-        }, // dummy so we don't have to build it
-        exchange_settings: {
-          swap_fee: {
-            nom: 1,
-            denom: 1,
-          },
-          sienna_fee: {
-            nom: 1,
-            denom: 1,
-          },
-          //   sienna_burner: null,
-        },
-      },
+      EXCHANGE: context.templates.SiennaSNIP20,
+      AMMTOKEN: context.templates.SiennaSNIP20,
+      LPTOKEN: context.templates.SiennaSNIP20,
+      IDO: context.templates.IDO,
+      LAUNCHPAD: context.templates.SiennaSNIP20,
     });
     await context.factory.instantiate(context.agent);
 
