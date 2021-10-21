@@ -1,19 +1,22 @@
-use std::{rc::Rc, cell::RefCell};
+use std::{
+    rc::Rc,
+    cell::RefCell
+};
+
+use fadroma::scrt::{
+    cosmwasm_std::*,
+    storage::*
+};
 
 use crate::{
     rewards_math::*,
     rewards_field::*,
-    rewards_user::User,
-};
-
-use fadroma::scrt::{
-    cosmwasm_std::{StdError, CanonicalAddr},
-    storage::*
+    rewards_user::*,
 };
 
 /// Reward pool
-pub struct Pool <S> {
-    pub storage: Rc<RefCell<S>>,
+pub struct Pool <S: Storage, A: Api, Q: Querier> {
+    pub deps: Rc<RefCell<Extern<S, A, Q>>>,
 
     now:     Option<Time>,
     balance: Option<Amount>,
@@ -21,113 +24,113 @@ pub struct Pool <S> {
     /// How much liquidity has this pool contained up to this point.
     /// On lock/unlock, if locked > 0 before the operation, this is incremented
     /// in intervals of (moments since last update * current balance)
-    last_lifetime:     Field<S, Volume>,
+    last_lifetime:     Field<S, A, Q, Volume>,
 
     /// How much liquidity is there in the whole pool right now.
     /// Incremented/decremented on lock/unlock.
-    pub locked:        Field<S, Amount>,
+    pub locked:        Field<S, A, Q, Amount>,
 
     /// Load the last update timestamp or default to current time
     /// (this has the useful property of keeping `elapsed` zero for strangers)
     /// When was liquidity last updated.
     /// Set to current time on lock/unlock.
-    pub timestamp:     Field<S, Time>,
+    pub timestamp:     Field<S, A, Q, Time>,
 
     /// Rewards claimed by everyone so far.
     /// Amount of rewards already claimed
     /// Incremented on claim.
-    pub claimed:       Field<S, Amount>,
+    pub claimed:       Field<S, A, Q, Amount>,
 
     #[cfg(feature="age_threshold")]
     /// How much the user needs to wait before they can claim for the first time.
     /// Configured on init.
     /// For how many blocks does the user need to have provided liquidity
     /// in order to be eligible for rewards
-    pub threshold:     Field<S, Time>,
+    pub threshold:     Field<S, A, Q, Time>,
 
     #[cfg(feature="claim_cooldown")]
     /// How much the user must wait between claims.
     /// Configured on init.
     /// For how many blocks does the user need to wait
     /// after claiming rewards before being able to claim them again
-    pub cooldown:      Field<S, Time>,
+    pub cooldown:      Field<S, A, Q, Time>,
 
     #[cfg(feature="global_ratio")]
     /// Ratio of liquidity provided to rewards received.
     /// Configured on init.
     /// Ratio between share of liquidity provided and amount of reward
     /// Should be <= 1 to make sure rewards budget is sufficient.
-    pub global_ratio:  Field<S, Ratio>,
+    pub global_ratio:  Field<S, A, Q, Ratio>,
 
     #[cfg(feature="pool_liquidity_ratio")]
     /// Used to compute what portion of the time the pool was not empty.
     /// On lock/unlock, if the pool was not empty, this is incremented
     /// by the time elapsed since the last update.
-    last_liquid:       Field<S, Time>,
+    last_liquid:       Field<S, A, Q, Time>,
 
     #[cfg(feature="pool_liquidity_ratio")]
     /// The first time a user locks liquidity,
     /// this is set to the current time.
     /// Used to calculate pool's liquidity ratio.
-    seeded:            Field<S, Option<Time>>,
+    seeded:            Field<S, A, Q, Option<Time>>,
 
     #[cfg(feature="pool_liquidity_ratio")]
     /// Store the moment the user is created to compute total pool existence.
     /// Set on init.
-    pub created:       Field<S, Time>,
+    pub created:       Field<S, A, Q, Time>,
 
     #[cfg(feature="pool_closes")]
     /// Whether this pool is closed
-    pub closed:        Field<S, Option<(Time, String)>>
+    pub closed:        Field<S, A, Q, Option<(Time, String)>>
 }
 
-impl<S: Storage> Pool<S> {
+impl<S: Storage, A: Api, Q: Querier> Pool<S, A, Q> {
 
-    pub fn new (storage: Rc<RefCell<S>>) -> Self {
+    pub fn new (deps: Rc<RefCell<Extern<S, A, Q>>>) -> Self {
         Self {
-            storage,
+            deps,
 
             now:     None,
             balance: None,
 
-            last_lifetime: storage.field(b"/pool/lifetime")
+            last_lifetime: deps.field(b"/pool/lifetime")
                                   .or(Volume::zero()),
 
-            locked:        storage.field(b"/pool/locked")
+            locked:        deps.field(b"/pool/locked")
                                   .or(Amount::zero()),
 
-            timestamp:     storage.field(b"/pool/locked")
+            timestamp:     deps.field(b"/pool/locked")
                                   .required("missing timestamp"),
 
-            claimed:       storage.field(b"/pool/claimed")
+            claimed:       deps.field(b"/pool/claimed")
                                   .or(Amount::zero()),
 
             #[cfg(feature="age_threshold")]
-            threshold:     storage.field(b"/pool/threshold")
+            threshold:     deps.field(b"/pool/threshold")
                                   .required("missing lock threshold"),
 
             #[cfg(feature="claim_cooldown")]
-            cooldown:      storage.field(b"/pool/cooldown")
+            cooldown:      deps.field(b"/pool/cooldown")
                                   .required("missing claim cooldown"),
 
             #[cfg(feature="global_ratio")]
-            global_ratio:  storage.field(b"/pool/global_ratio")
+            global_ratio:  deps.field(b"/pool/global_ratio")
                                   .required("missing reward ratio"),
 
             #[cfg(feature="pool_liquidity_ratio")]
-            last_liquid:   storage.field(b"/pool/last_liquid")
+            last_liquid:   deps.field(b"/pool/last_liquid")
                                   .required("missing last liquid"),
 
             #[cfg(feature="pool_liquidity_ratio")]
-            seeded:        storage.field(b"/pool/seeded")
+            seeded:        deps.field(b"/pool/seeded")
                                   .required("nobody has locked any tokens yet"),
 
             #[cfg(feature="pool_liquidity_ratio")]
-            created:       storage.field(b"/pool/created")
+            created:       deps.field(b"/pool/created")
                                   .required("missing creation date"),
 
             #[cfg(feature="pool_closes")]
-            closed:        storage.field(b"/pool/closed"),
+            closed:        deps.field(b"/pool/closed"),
         }
     }
 
@@ -138,11 +141,11 @@ impl<S: Storage> Pool<S> {
             now: Some(now),
 
             #[cfg(feature="age_threshold")]
-            threshold:   self.storage.field(b"/pool/threshold")
+            threshold:   self.deps.field(b"/pool/threshold")
                                      .or(now),
 
             #[cfg(feature="pool_liquidity_ratio")]
-            last_liquid: self.storage.field(b"/pool/last_liquid")
+            last_liquid: self.deps.field(b"/pool/last_liquid")
                                      .or(self.existed()?),
 
             ..self
@@ -168,7 +171,7 @@ impl<S: Storage> Pool<S> {
         self
     }
 
-    pub fn user <'p> (mut self, address: CanonicalAddr) -> User<'p, S> {
+    pub fn user <'p> (mut self, address: CanonicalAddr) -> User<'p, S, A, Q> {
         User::new(&mut self, address)
     }
 

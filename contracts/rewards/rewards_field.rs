@@ -2,29 +2,30 @@ use fadroma::scrt::cosmwasm_std::*;
 use serde::{Serialize, de::DeserializeOwned};
 use std::{rc::Rc, cell::RefCell};
 
-pub trait FieldFactory <S> {
-    fn field <V> (self, key: &[u8]) -> Field<S, V>;
+pub trait FieldFactory <S: Storage, A: Api, Q: Querier> {
+    fn field <V> (&self, key: &[u8]) -> Field<S, A, Q, V>;
 }
 
-impl<S> FieldFactory<S> for Rc<RefCell<S>> {
-    fn field <V> (self, key: &[u8]) -> Field<S, V> {
+impl<S: Storage, A: Api, Q: Querier> FieldFactory<S, A, Q>
+for Rc<RefCell<Extern<S, A, Q>>> {
+    fn field <V> (&self, key: &[u8]) -> Field<S, A, Q, V> {
         Field::new(self.clone(), key.to_vec())
     }
 }
 
-pub struct Field <S, V> {
-    storage:  Rc<RefCell<S>>,
+pub struct Field <S: Storage, A: Api, Q: Querier, V> {
+    deps:     Rc<RefCell<Extern<S, A, Q>>>,
     key:      Vec<u8>,
     value:    Option<V>,
     default:  Option<V>,
     required: Option<String>
 }
 
-impl<S, V> Field<S, V> {
+impl<S: Storage, A: Api, Q: Querier, V> Field<S, A, Q, V> {
 
     /// Define a new field
-    pub fn new (storage: Rc<RefCell<S>>, key: Vec<u8>) -> Self {
-        Self { storage, key, value: None, default: None, required: None }
+    pub fn new (deps: Rc<RefCell<S>>, key: Vec<u8>) -> Self {
+        Self { deps, key, value: None, default: None, required: None }
     }
 
     /// Define a default value
@@ -41,12 +42,13 @@ impl<S, V> Field<S, V> {
 
 }
 
-impl<S: ReadonlyStorage, V: DeserializeOwned> Field<S, V> {
+impl<S: Storage, A: Api, Q: Querier, V: DeserializeOwned>
+Field<S, A, Q, V> {
 
     pub fn get (mut self) -> StdResult<V> {
         if let Some(value) = self.value {
             Ok(value)
-        } else if let Some(data) = self.storage.borrow().get(&self.key) {
+        } else if let Some(data) = self.deps.borrow().storage.get(&self.key) {
             let value = from_slice(&data)?;
             self.value = Some(value);
             Ok(value)
@@ -62,10 +64,11 @@ impl<S: ReadonlyStorage, V: DeserializeOwned> Field<S, V> {
 
 }
 
-impl<S: Storage, V: Serialize> Field<S, V> {
+impl<S: Storage, A: Api, Q: Querier, V: Serialize>
+Field<S, A, Q, V> {
 
     pub fn set (mut self, value: &V) -> StdResult<()> {
-        self.storage.borrow_mut().set(&self.key, &to_vec(value)?);
+        self.deps.borrow_mut().storage.set(&self.key, &to_vec(value)?);
         self.value = Some(*value);
         Ok(())
     }

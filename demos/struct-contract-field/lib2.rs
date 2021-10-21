@@ -1,4 +1,13 @@
-use fadroma::scrt::{cosmwasm_std::*, contract::{message, messages}};
+use fadroma::scrt::{
+    cosmwasm_std::*,
+    contract::{message, messages},
+    BLOCK_SIZE,
+    callback::ContractInstance as ContractLink,
+    toolkit::snip20,
+    snip20_api::ISnip20,
+    addr::{Humanize, Canonize},
+    storage::{load, save},
+};
 use serde::{Serialize, de::DeserializeOwned};
 use std::{rc::Rc, cell::{RefCell, RefMut}};
 
@@ -43,12 +52,11 @@ trait Transactions<I, H> {
 impl<S: Storage, A: Api, Q: Querier>
 Transactions<Init, Handle> for Contract<&mut S, &mut A, &mut Q, Env> {
     fn init (&mut self, msg: Init) -> InitResult {
+        let model = Model::new(self.storage);
         Ok(InitResponse { messages: vec![], log: vec![] })
     }
     fn handle (&mut self, msg: Handle) -> HandleResult {
-        Ok(HandleResponse { messages: vec![
-            Model::new(self).submodel("foo".to_string())
-        ], log: vec![], data: None })
+        Ok(HandleResponse { messages: vec![], log: vec![], data: None })
     }
 }
 
@@ -153,8 +161,7 @@ mod tests {
     use fadroma::scrt::cosmwasm_std::from_binary;
     use fadroma::scrt::cosmwasm_std::testing::{mock_dependencies, mock_env};
 
-    #[test]
-    fn test () {
+    #[test] fn test () {
         let mut deps = mock_dependencies(10, &[]);
         let env  = mock_env("", &[]);
         println!("{:?}", init(&mut deps, env, Init {}));

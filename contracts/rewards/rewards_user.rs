@@ -2,89 +2,89 @@ use std::{rc::Rc, cell::RefCell};
 
 use crate::{
     rewards_math::*,
-    rewards_field::{Field, FieldFactory},
-    rewards_pool::Pool
+    rewards_field::*,
+    rewards_pool::*
 };
 
 use fadroma::scrt::{
-    cosmwasm_std::{StdError, CanonicalAddr},
+    cosmwasm_std::*,
     storage::*
 };
 
 /// User account
-pub struct User <'p, S> {
-    pub pool:    &'p mut Pool<S>,
-    pub storage: Rc<RefCell<S>>,
+pub struct User <'p, S: Storage, A: Api, Q: Querier> {
+    pub pool:    &'p mut Pool<S, A, Q>,
+    pub deps:    Rc<RefCell<Extern<S, A, Q>>>,
     pub address: CanonicalAddr,
 
     /// How much liquidity does this user currently provide?
     /// Incremented/decremented on lock/unlock.
-    pub locked:    Field<S, Amount>,
+    pub locked:    Field<S, A, Q, Amount>,
 
     /// When did this user's liquidity amount last change?
     /// Set to current time on lock/unlock.
-    pub timestamp:     Field<S, Time>,
+    pub timestamp: Field<S, A, Q, Time>,
 
     /// How much rewards has this user claimed so far?
     /// Incremented on claim.
-    pub claimed:   Field<S, Amount>,
+    pub claimed:   Field<S, A, Q, Amount>,
 
     /// How much liquidity has this user provided since they first appeared.
     /// On lock/unlock, if the pool was not empty, this is incremented
     /// in intervals of (moments since last update * current balance)
-    last_lifetime: Field<S, Volume>,
+    last_lifetime: Field<S, A, Q, Volume>,
 
     #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))]
     /// For how many units of time has this user provided liquidity
     /// On lock/unlock, if locked was > 0 before the operation,
     /// this is incremented by time elapsed since last update.
-    last_present:  Field<S, Time>,
+    last_present:  Field<S, A, Q, Time>,
 
     #[cfg(feature="user_liquidity_ratio")]
     /// For how many units of time has this user been known to the contract.
     /// Incremented on lock/unlock by time elapsed since last update.
-    last_existed:  Field<S, Time>,
+    last_existed:  Field<S, A, Q, Time>,
 
     #[cfg(feature="claim_cooldown")]
     /// For how many units of time has this user provided liquidity
     /// Decremented on lock/unlock, reset to configured cooldown on claim.
-    last_cooldown: Field<S, Time>
+    last_cooldown: Field<S, A, Q, Time>
 }
 
-impl <'p, S: Storage> User <'p, S> {
+impl <'p, S: Storage, A: Api, Q: Querier> User <'p, S, A, Q> {
 
     pub fn new (
-        pool:    &'p mut Pool<S>,
+        pool:    &'p mut Pool<S, A, Q>,
         address: CanonicalAddr
     ) -> Self {
-        let storage = pool.storage;
+        let deps = pool.deps;
         User {
-            storage: storage.clone(),
-            pool:    pool,
+            deps: deps.clone(),
+            pool: pool,
             address,
 
-            last_lifetime: storage.field(&concat(b"/user/lifetime/", address.as_slice()))
+            last_lifetime: deps.field(&concat(b"/user/lifetime/", address.as_slice()))
                                   .or(Volume::zero()),
 
-            locked:        storage.field(&concat(b"/user/current/",  address.as_slice()))
+            locked:        deps.field(&concat(b"/user/current/",  address.as_slice()))
                                   .or(Amount::zero()),
 
-            timestamp:     storage.field(&concat(b"/user/updated/",  address.as_slice()))
+            timestamp:     deps.field(&concat(b"/user/updated/",  address.as_slice()))
                                   .or(pool.now().unwrap()),
 
-            claimed:       storage.field(&concat(b"/user/claimed/",  address.as_slice()))
+            claimed:       deps.field(&concat(b"/user/claimed/",  address.as_slice()))
                                   .or(Amount::zero()),
 
             #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))]
-            last_present:  storage.field(&concat(b"/user/present/",  address.as_slice()))
+            last_present:  deps.field(&concat(b"/user/present/",  address.as_slice()))
                                   .or(0u64),
 
             #[cfg(feature="user_liquidity_ratio")]
-            last_existed:  storage.field(&concat(b"/user/existed/",  address.as_slice()))
+            last_existed:  deps.field(&concat(b"/user/existed/",  address.as_slice()))
                                   .or(0u64),
 
             #[cfg(feature="claim_cooldown")]
-            last_cooldown: storage.field(&concat(b"/user/cooldown/", address.as_slice()))
+            last_cooldown: deps.field(&concat(b"/user/cooldown/", address.as_slice()))
                                   .or(pool.cooldown.get().unwrap()),
         }
     }
@@ -332,7 +332,7 @@ impl <'p, S: Storage> User <'p, S> {
         Ok(())
     }
 
-    /// Commit rolling values to storage
+    /// Commit rolling values to deps
     fn update (&mut self, user_locked: Amount, pool_locked: Amount) -> StdResult<&mut Self> {
         // Prevent replay
         let now = self.pool.now()?;
