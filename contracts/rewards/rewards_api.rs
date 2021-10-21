@@ -41,13 +41,27 @@ messages!(Handle {
     ClosePool {
         message: String
     }
-    ReleaseSnip20 {}
+    ReleaseSnip20 {
+        snip20:    ContractLink<HumanAddr>,
+        recipient: Option<HumanAddr>,
+        key:       String
+    }
 
-    CreateViewingKey {}
-    SetViewingKey {}
+    CreateViewingKey {
+        entropy: String,
+        padding: Option<String>
+    }
+    SetViewingKey {
+        key:     String,
+        padding: Option<String>
+    }
 
-    Lock {}
-    Retrieve {}
+    Lock {
+        amount: Amount
+    }
+    Retrieve {
+        amount: Amount
+    }
     Claim {}
 });
 
@@ -117,7 +131,7 @@ messages!(Response {
         #[cfg(feature="pool_closes")]
         pool_closed:      Option<String>,
 
-        user_last_update: Option<Time>,
+        user_last_update: Time,
         user_lifetime:    Volume,
         user_locked:      Amount,
         user_share:       Amount,

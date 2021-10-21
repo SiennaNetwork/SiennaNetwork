@@ -7,7 +7,7 @@ use crate::{
 };
 
 use fadroma::scrt::{
-    cosmwasm_std::StdError,
+    cosmwasm_std::{StdError, CanonicalAddr},
     storage::*
 };
 
@@ -168,8 +168,8 @@ impl<S: Storage> Pool<S> {
         self
     }
 
-    pub fn user (self, address: HumanAddr) -> User<S> {
-        User::new(self, address)
+    pub fn user <'p> (mut self, address: CanonicalAddr) -> User<'p, S> {
+        User::new(&mut self, address)
     }
 
     /// Get the time since last update (0 if no last update)
@@ -232,7 +232,11 @@ impl<S: Storage> Pool<S> {
 
     #[cfg(feature="pool_liquidity_ratio")]
     pub fn existed (&self) -> StdResult<Time> {
-        Ok(self.now()? - self.seeded.get()?) 
+        if let Some(seeded) = self.seeded.get()? {
+            Ok(self.now()? - seeded) 
+        } else {
+            Err(StdError::generic_err("missing time of first lock"))
+        }
     }
 
     /// Increment the total amount of claimed rewards for all users.
@@ -272,16 +276,16 @@ impl<S: Storage> Pool<S> {
         Ok(())
     }
 
+    #[cfg(feature="pool_closes")]
+    pub fn close (&mut self, message: String) -> StdResult<()> {
+        self.closed.set(&Some((self.now()?, message)))
+    }
+
     #[cfg(all(test, feature="pool_liquidity_ratio"))]
     pub fn reset_liquidity_ratio (&mut self) -> StdResult<()> {
         let existed = self.existed()?;
         self.update_locked(self.balance())?;
         self.existed.set(existed)
-    }
-
-    #[cfg(feature="pool_closes")]
-    pub fn close (&mut self, message: String) -> StdResult<()> {
-        self.closed.set(&Some((self.now()?, message)))
     }
 
 }

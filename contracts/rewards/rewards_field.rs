@@ -16,7 +16,7 @@ pub struct Field <S, V> {
     storage:  Rc<RefCell<S>>,
     key:      Vec<u8>,
     value:    Option<V>,
-    default:  Option<Box<fn()->StdResult<V>>>,
+    default:  Option<V>,
     required: Option<String>
 }
 
@@ -29,14 +29,7 @@ impl<S, V> Field<S, V> {
 
     /// Define a default value
     pub fn or (mut self, default: V) -> Self {
-        let get_default = ||Ok(default);
-        self.default = Some(Box::new(get_default));
-        self
-    }
-
-    /// Define a default value
-    pub fn or_else (mut self, get_default: fn()->StdResult<V>) -> Self {
-        self.default = Some(Box::new(get_default));
+        self.default = Some(default);
         self
     }
 
@@ -58,7 +51,7 @@ impl<S: ReadonlyStorage, V: DeserializeOwned> Field<S, V> {
             self.value = Some(value);
             Ok(value)
         } else if let Some(default) = self.default {
-            self.value = Some(default()?);
+            self.value = Some(default);
             Ok(default)
         } else if let Some(message) = self.required {
             Err(StdError::generic_err(&message))

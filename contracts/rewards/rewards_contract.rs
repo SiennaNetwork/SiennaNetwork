@@ -7,19 +7,16 @@ use fadroma::scrt::{
     toolkit::snip20,
     snip20_api::ISnip20,
     addr::{Humanize, Canonize},
-    storage::{load, save},
 };
 
 use crate::{
     rewards_api::*,
     rewards_math::*,
-    rewards_errors::*,
     rewards_field::*,
     rewards_pool::Pool,
     rewards_admin::{
         DefaultHandleImpl as AdminHandle,
-        admin_handle, AdminHandleMsg, load_admin,
-        assert_admin, save_admin
+        admin_handle, AdminHandleMsg, assert_admin,
     },
     rewards_vk::{
         ViewingKey,
@@ -43,7 +40,7 @@ pub struct Contract <S, A, Q, E> {
     querier: Q,
     env:     E,
 
-    admin:          Field<S, HumanAddr>,
+    admin:          Field<S, CanonicalAddr>,
 
     /// Used to check own balance.
     self_reference: Field<S, ContractLink<CanonicalAddr>>,
@@ -133,7 +130,8 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
             address:   self.env.contract.address.clone(),
             code_hash: self.env.contract_code_hash.clone()
         }.canonize(&self.api)?);
-        self.admin.set(&msg.admin.unwrap_or(self.env.message.sender.clone()))?;
+        let admin = msg.admin.unwrap_or(self.env.message.sender.clone());
+        self.admin.set(&self.api.canonical_address(&admin)?)?;
         self.reward_token.set(&msg.reward_token.canonize(&self.api)?);
         self.viewing_key.set(&msg.viewing_key)?;
         if let Some(lp_token) = msg.lp_token {
@@ -148,17 +146,11 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
         })
     }
 
-    fn save_lp_token (
-        &mut self,
-        link: &ContractLink<HumanAddr>
-    ) -> StdResult<()> {
+    fn save_lp_token (&mut self, link: &ContractLink<HumanAddr>) -> StdResult<()> {
         self.lp_token.set(&link.canonize(&self.api)?)
     }
 
-    pub fn save_initial_pool_config (
-        &mut self,
-        msg: &Init
-    ) -> StdResult<()> {
+    fn save_initial_pool_config (&mut self, msg: &Init) -> StdResult<()> {
         // Reward pool has configurable parameters:
         let mut pool = Pool::new(self.storage.clone());
 
@@ -222,7 +214,21 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
                 tx_ok!()
             }
 
-            _ => Err(StdError::generic_err("not implemented"))
+            Handle::ReleaseSnip20 { snip20, recipient, key } =>
+                self.release_snip20(snip20, recipient, key),
+
+            Handle::CreateViewingKey { entropy, padding } =>
+                self.create_viewing_key(entropy, padding),
+            Handle::SetViewingKey { key, padding } =>
+                self.set_viewing_key(key, padding),
+
+            Handle::Lock { amount } =>
+                self.lock(amount),
+            Handle::Retrieve { amount } =>
+                self.retrieve(amount),
+            Handle::Claim {} =>
+                self.claim()
+
         }
     }
 
@@ -271,7 +277,13 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
         )
     }
 
-    // actions that are performed by users ----------------------------------------------------
+    pub fn create_viewing_key (&mut self, entropy: String, padding: Option<String>) -> HandleResult {
+        self.auth_handle(AuthHandleMsg::CreateViewingKey { entropy, padding })
+    }
+
+    pub fn set_viewing_key (&mut self, key: String, padding: Option<String>) -> HandleResult {
+        self.auth_handle(AuthHandleMsg::SetViewingKey { key, padding })
+    }
 
     fn auth_handle (&mut self, msg: AuthHandleMsg) -> HandleResult {
         auth_handle(
@@ -281,16 +293,6 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
             msg,
             AuthHandle
         )
-    }
-
-    /// User can request a new viewing key for oneself.
-    pub fn create_viewing_key (&mut self, entropy: String, padding: Option<String>) -> HandleResult {
-        self.auth_handle(AuthHandleMsg::CreateViewingKey { entropy, padding })
-    }
-
-    /// User can set own viewing key to a known value.
-    pub fn set_viewing_key (&mut self, key: String, padding: Option<String>) -> HandleResult {
-        self.auth_handle(AuthHandleMsg::SetViewingKey { key, padding })
     }
 
     /// User can lock some liquidity provision tokens.
@@ -373,7 +375,7 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
             let mut user = pool
                 .at(self.env.block.time)?
                 .user(self.api.canonical_address(&self.env.message.sender)?);
-            let locked = user.retrieve_tokens(user.locked()?)?;
+            let locked = user.retrieve_tokens(user.locked.get()?)?;
             if locked > Amount::zero() {
                 response.messages.push(
                     ISnip20::attach(&self.lp_token.get()?.humanize(&self.api)?).transfer(
@@ -415,7 +417,9 @@ impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q, ()> {
     }
 
     pub fn admin (self) -> StdResult<Response> {
-        Ok(Response::Admin { address: self.admin.get()?.humanize(&self.api) })
+        Ok(Response::Admin {
+            address: self.api.human_address(&self.admin.get()?)?
+        })
     }
 
     pub fn pool_info (self, at: Time) -> StdResult<Response> {
@@ -473,11 +477,9 @@ impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q, ()> {
 
         let reward_balance = self.load_reward_balance()?;
         let user = pool.with_balance(reward_balance).user(address);
-        let user_last_update = user.timestamp()?;
-        if let Some(user_last_update) = user_last_update {
-            if at < user_last_update {
-                return Err(StdError::generic_err("no time travel"))
-            }
+        let user_last_update = user.timestamp.get()?;
+        if at < user_last_update {
+            return Err(StdError::generic_err("no time travel"))
         }
 
         Ok(Response::UserInfo {
@@ -492,10 +494,10 @@ impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q, ()> {
 
             user_last_update,
             user_lifetime:  user.lifetime()?,
-            user_locked:    user.locked()?,
+            user_locked:    user.locked.get()?,
             user_share:     user.share(HUNDRED_PERCENT)?.low_u128().into(),
             user_earned:    user.earned()?,
-            user_claimed:   user.claimed()?,
+            user_claimed:   user.claimed.get()?,
             user_claimable: user.claimable()?,
 
             #[cfg(feature="age_threshold")]
@@ -530,7 +532,7 @@ impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q, ()> {
         let address = self.api.canonical_address(&address)?;
         authenticate(&*self.storage.borrow(), &ViewingKey(key), address.as_slice())?;
         Ok(Response::Balance {
-            amount: Pool::new(self.storage).user(address).locked()?
+            amount: Pool::new(self.storage).user(address).locked.get()?
         })
     }
 

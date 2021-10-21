@@ -20,7 +20,6 @@
 pub mod rewards_admin;
 pub mod rewards_api;
 pub mod rewards_contract;
-pub mod rewards_errors;
 pub mod rewards_field;
 pub mod rewards_math;
 pub mod rewards_pool;
