@@ -37,14 +37,6 @@ macro_rules! tx_ok {
     };
 }
 
-const POOL_SELF_REFERENCE: &[u8] = b"self";
-
-const POOL_LP_TOKEN: &[u8] = b"lp_token";
-
-const POOL_REWARD_TOKEN: &[u8] = b"reward_token";
-
-const POOL_REWARD_TOKEN_VK: &[u8] = b"reward_token_vk";
-
 pub struct Contract <S, A, Q, E> {
     storage: Rc<RefCell<S>>,
     api:     A,
@@ -54,19 +46,18 @@ pub struct Contract <S, A, Q, E> {
     admin:          Field<S, HumanAddr>,
 
     /// Used to check own balance.
-    self_reference: Field<S, ContractLink<HumanAddr>>,
+    self_reference: Field<S, ContractLink<CanonicalAddr>>,
 
     /// Contract accepts transactions in `lp_token`s.
     /// The address of the `lp_token` can be provided later
     /// to avoid a circular dependency during deployment.
-    lp_token:       Field<S, ContractLink<HumanAddr>>,
+    lp_token:       Field<S, ContractLink<CanonicalAddr>>,
 
     /// Contract distributes rewards in Reward Tokens.
     /// For this, it must know its own balance in the `reward_token`s.
     /// For that, it needs a reference to its own address+code_hash
     /// and a viewing key in `reward_token`.
-    reward_token:   Field<S, ContractLink<HumanAddr>>,
-
+    reward_token:   Field<S, ContractLink<CanonicalAddr>>,
 
     viewing_key:    Field<S, ViewingKey>,
 }
@@ -110,52 +101,24 @@ impl <S: Storage, A: Api, Q: Querier> Contract <S, A, Q, Env> {
     }
 }
 
-pub fn load_self_reference (
-    storage: &impl Storage,
-    api:     &impl Api
-) -> StdResult<ContractLink<HumanAddr>> {
-    let result: Option<ContractLink<CanonicalAddr>> = load(storage, POOL_SELF_REFERENCE)?;
-    match result {
-        Some(link) => Ok(link.humanize(api)?),
-        None => missing_self_reference()
-    }
-}
-
-fn load_lp_token (
-    storage: &impl Storage,
-    api:     &impl Api
-) -> StdResult<ContractLink<HumanAddr>> {
-    let result: Option<ContractLink<CanonicalAddr>> = load(storage, POOL_LP_TOKEN)?;
-    result.ok_or(missing_lp_token())
-}
-
-pub fn load_viewing_key (
-    storage: &impl Storage
-) -> StdResult<ViewingKey> {
-    let result: Option<ViewingKey> = load(storage, POOL_REWARD_TOKEN_VK)?;
-    match result {
-        Some(key) => Ok(key),
-        None => missing_viewing_key()
-    }
-}
-
 type InitResult   = StdResult<InitResponse>;
 type HandleResult = StdResult<HandleResponse>;
 
 impl <S: Storage, A: Api, Q: Querier, E> Contract <S, A, Q, E> {
+
     fn load_reward_balance (&self) -> StdResult<Uint128> {
         let reward_token_link = self.reward_token.get()?;
-        let reward_token = ISnip20::attach(&reward_token_link);
+        let reward_token = ISnip20::attach(&reward_token_link.humanize(&self.api)?);
         let mut reward_balance = reward_token
             .query(&self.querier)
             .balance(
-                &self.self_reference.get()?.address,
+                &self.self_reference.get()?.humanize(&self.api)?.address,
                 &self.viewing_key.get()?.0
             )?;
 
         let lp_token_link = self.lp_token.get()?;
         if lp_token_link == reward_token_link {
-            let lp_balance = Pool::new(self.storage).locked()?;
+            let lp_balance = Pool::new(self.storage).locked.get()?;
             reward_balance = (reward_balance - lp_balance)?;
         }
 
@@ -170,18 +133,13 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
             address:   self.env.contract.address.clone(),
             code_hash: self.env.contract_code_hash.clone()
         }.canonize(&self.api)?);
-
         self.admin.set(&msg.admin.unwrap_or(self.env.message.sender.clone()))?;
-
+        self.reward_token.set(&msg.reward_token.canonize(&self.api)?);
+        self.viewing_key.set(&msg.viewing_key)?;
         if let Some(lp_token) = msg.lp_token {
             self.save_lp_token(&lp_token)?;
         }
-
-        self.save_reward_token(&msg.reward_token)?;
-        self.viewing_key.set(&msg.viewing_key)?;
-
         self.save_initial_pool_config(&msg)?;
-
         Ok(InitResponse {
             log:      vec![],
             messages: vec![
@@ -190,29 +148,11 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
         })
     }
 
-    fn save_self_reference (&mut self) -> StdResult<()> {
-        self.self_reference.set(&ContractLink {
-            address:   self.env.contract.address.clone(),
-            code_hash: self.env.contract_code_hash.clone()
-        }.canonize(&self.api)?)
-    }
-
-    fn save_admin (&mut self, admin: &HumanAddr) -> StdResult<()> {
-        save_admin(&mut *self.storage.borrow_mut(), &self.api, admin)
-    }
-
     fn save_lp_token (
         &mut self,
         link: &ContractLink<HumanAddr>
     ) -> StdResult<()> {
-        save(&mut *self.storage.borrow_mut(), POOL_LP_TOKEN, &link.canonize(&self.api)?)
-    }
-
-    fn save_reward_token (
-        &mut self,
-        link: &ContractLink<HumanAddr>
-    ) -> StdResult<()> {
-        save(&mut *self.storage.borrow_mut(), POOL_REWARD_TOKEN, &link.canonize(&self.api)?)
+        self.lp_token.set(&link.canonize(&self.api)?)
     }
 
     pub fn save_initial_pool_config (
@@ -221,84 +161,73 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
     ) -> StdResult<()> {
         // Reward pool has configurable parameters:
         let mut pool = Pool::new(self.storage.clone());
-        #[cfg(feature="pool_liquidity_ratio")] {
-            pool.created.set(&self.env.block.time)?;
-        }
-        #[cfg(feature="global_ratio")] {
-            pool.global_ratio.set(&msg.ratio.unwrap_or((1u128.into(), 1u128.into())))?;
-        }
-        #[cfg(feature="age_threshold")] {
-            pool.threshold.set(&msg.threshold.unwrap_or(DAY))?;
-        }
-        #[cfg(feature="claim_cooldown")] {
-            pool.cooldown.set(&msg.cooldown.unwrap_or(DAY))?;
-        }
+
+        #[cfg(feature="pool_liquidity_ratio")]
+        pool.created.set(&self.env.block.time)?;
+
+        #[cfg(feature="global_ratio")]
+        pool.global_ratio.set(&msg.ratio.unwrap_or((1u128.into(), 1u128.into())))?;
+
+        #[cfg(feature="age_threshold")]
+        pool.threshold.set(&msg.threshold.unwrap_or(DAY))?;
+
+        #[cfg(feature="claim_cooldown")]
+        pool.cooldown.set(&msg.cooldown.unwrap_or(DAY))?;
+
         Ok(())
     }
 
     pub fn handle (&mut self, msg: Handle) -> HandleResult {
         match msg {
-            Handle::ChangeAdmin { address } =>
-                self.change_admin(address),
-            Handle::SetProvidedToken { address, code_hash } =>
-                self.set_provided_token(address, code_hash),
-            Handle::ChangeRatio { numerator, denominator } =>
-                self.change_ratio(numerator, denominator),
+
+            Handle::ChangeAdmin { address } => admin_handle(
+                &mut *self.storage.borrow_mut(),
+                &self.api,
+                &self.env,
+                AdminHandleMsg::ChangeAdmin { address },
+                AdminHandle
+            ),
+
+            Handle::SetProvidedToken { address, code_hash } => {
+                self.assert_admin()?;
+                self.save_lp_token(&ContractLink { address, code_hash })?;
+                tx_ok!()
+            },
+
+            #[cfg(feature="global_ratio")]
+            Handle::ChangeRatio { numerator, denominator } => {
+                self.assert_admin()?;
+                Pool::new(self.storage).global_ratio.set(&(numerator.into(), denominator.into()))?;
+                tx_ok!()
+            },
+
+            #[cfg(feature="age_threshold")]
+            Handle::ChangeThreshold { threshold } => {
+                self.assert_admin()?;
+                Pool::new(self.storage).threshold.set(&threshold)?;
+                tx_ok!()
+            },
+
+            #[cfg(feature="claim_cooldown")]
+            Handle::ChangeCooldown { cooldown } => {
+                self.assert_admin()?;
+                Pool::new(self.storage).cooldown.set(&cooldown)?;
+                tx_ok!()
+            },
+
+            #[cfg(feature="pool_closes")]
+            Handle::ClosePool { message } => {
+                self.assert_admin()?;
+                Pool::new(self.storage).at(self.env.block.time)?.close(message)?;
+                tx_ok!()
+            }
+
             _ => Err(StdError::generic_err("not implemented"))
         }
     }
 
-    /// Set the contract admin.
-    pub fn change_admin (&mut self, address: HumanAddr) -> HandleResult {
-        let msg = AdminHandleMsg::ChangeAdmin { address };
-        admin_handle(
-            &mut *self.storage.borrow_mut(),
-            &self.api,
-            &self.env,
-            msg,
-            AdminHandle
-        )
-    }
-
     fn assert_admin (&mut self) -> StdResult<()> {
         assert_admin(&mut *self.storage.borrow(), &self.api, &self.env)
-    }
-
-    /// Set the active asset token.
-    // Resolves circular reference when initializing the benchmark -
-    // they need to know each other's addresses to use initial allowances
-    pub fn set_provided_token (&mut self, address: HumanAddr, code_hash: String) -> HandleResult {
-        self.assert_admin()?;
-        self.save_lp_token(&ContractLink { address, code_hash })?;
-        tx_ok!()
-    }
-
-    #[cfg(feature="global_ratio")]
-    pub fn change_ratio (&mut self, numerator: Amount, denominator: Amount) -> HandleResult {
-        self.assert_admin()?;
-        Pool::new(self.storage).global_ratio.set(&(numerator.into(), denominator.into()))?;
-        tx_ok!()
-    }
-
-    #[cfg(feature="age_threshold")]
-    pub fn change_threshold (&mut self, threshold: Time) -> HandleResult {
-        self.assert_admin()?;
-        Pool::new(self.storage).threshold.set(&threshold)?;
-        tx_ok!()
-    }
-
-    #[cfg(feature="claim_cooldown")]
-    pub fn change_cooldown (&mut self, cooldown: Time) -> HandleResult {
-        self.assert_admin()?;
-        Pool::new(self.storage).cooldown.set(&cooldown)?;
-        tx_ok!()
-    }
-
-    #[cfg(feature="pool_closes")]
-    pub fn close_pool (&mut self, message: String) -> HandleResult {
-        self.assert_admin()?;
-        Pool::new(self.storage).at(self.env.block.time).close(message)?;
-        tx_ok!()
     }
 
     // Snip20 tokens sent to this contract can be transferred
@@ -314,10 +243,10 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
 
         let recipient = recipient.unwrap_or(self.env.message.sender.clone());
 
-        let reward_token = self.reward_token.get()?;
+        let reward_token = self.reward_token.get()?.humanize(&self.api)?;
 
         // Update the viewing key if the supplied
-        // token info for is the reward token
+        // token info is for the reward token
         if reward_token == snip20 {
             self.viewing_key.set(&ViewingKey(key.clone()))?;
         }
@@ -372,11 +301,11 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
             return Ok(closed_response)
         }
 
-        tx_ok!(ISnip20::attach(&self.lp_token.get()?).transfer_from(
+        tx_ok!(ISnip20::attach(&self.lp_token.get()?.humanize(&self.api)?).transfer_from(
             &self.env.message.sender,
             &self.env.contract.address,
             Pool::new(self.storage)
-                .at(self.env.block.time)
+                .at(self.env.block.time)?
                 .user(self.api.canonical_address(&self.env.message.sender)?)
                 .lock_tokens(amount)?)?)
     }
@@ -389,10 +318,10 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
             return Ok(closed_response)
         }
 
-        tx_ok!(ISnip20::attach(&self.lp_token.get()?).transfer(
+        tx_ok!(ISnip20::attach(&self.lp_token.get()?.humanize(&self.api)?).transfer(
             &self.env.message.sender,
             Pool::new(self.storage)
-                .at(self.env.block.time)
+                .at(self.env.block.time)?
                 .user(self.api.canonical_address(&self.env.message.sender)?)
                 .retrieve_tokens(amount)?)?)
     }
@@ -415,14 +344,13 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
         // Compute the reward portion for this user.
         // May return error if portion is zero.
         let reward = Pool::new(self.storage)
-            .at(self.env.block.time)
+            .at(self.env.block.time)?
             .with_balance(reward_balance)
             .user(self.api.canonical_address(&self.env.message.sender)?)
             .claim_reward()?;
 
         // Add the reward to the response
-        let reward_token_link = self.reward_token.get()?;
-        let reward_token      = ISnip20::attach(&reward_token_link);
+        let reward_token = ISnip20::attach(&self.reward_token.get()?.humanize(&self.api)?);
         response.messages.push(reward_token.transfer(&self.env.message.sender, reward)?);
         response.log.push(LogAttribute { key: "reward".into(), value: reward.into() });
 
@@ -435,37 +363,30 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
     /// all of the user's locked LP the first time)
     /// or None if the pool isn't closed.
     pub fn close_handler (&mut self) -> StdResult<Option<HandleResponse>> {
-
         let pool = Pool::new(self.storage);
-
-        Ok(if let Some((_, close_message)) = pool.closed()? {
-
-            let mut messages = vec![];
-
-            let mut log = vec![
-                LogAttribute { key: "closed".into(), value: close_message }
-            ];
-
-            let mut user = pool.at(self.env.block.time).user(
-                self.api.canonical_address(&self.env.message.sender)?
-            );
-
+        Ok(if let Some((_, close_message)) = pool.closed.get()? {
+            let mut response = HandleResponse::default();
+            response.log.push(LogAttribute {
+                key:  "closed".into(),
+                value: close_message
+            });
+            let mut user = pool
+                .at(self.env.block.time)?
+                .user(self.api.canonical_address(&self.env.message.sender)?);
             let locked = user.retrieve_tokens(user.locked()?)?;
-
             if locked > Amount::zero() {
-                messages.push(
-                    ISnip20::attach(&self.lp_token.get()?).transfer(
+                response.messages.push(
+                    ISnip20::attach(&self.lp_token.get()?.humanize(&self.api)?).transfer(
                         &self.env.message.sender,
                         locked
                     )?
                 );
-                log.push(
-                    LogAttribute { key: "retrieved".into(), value: locked.into() }
-                );
+                response.log.push(LogAttribute {
+                    key:  "retrieved".into(),
+                    value: locked.into()
+                });
             };
-
-            Some(HandleResponse { messages, log, ..HandleResponse::default() })
-
+            Some(response)
         } else {
             None
         })
@@ -473,59 +394,60 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
 
 }
 
-impl<S: ReadonlyStorage, A: Api, Q: Querier> Contract<S, A, Q, ()> {
+impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q, ()> {
 
     pub fn query (
         self,
         msg: Query
     ) -> StdResult<Response> {
         match msg {
-            Query::Admin    {}     => self.admin(),
-            Query::PoolInfo { at } => self.pool_info(at),
-            _ => Err(StdError::generic_err("not implemented"))
+            Query::Admin {} =>
+                self.admin(),
+            Query::PoolInfo { at } =>
+                self.pool_info(at),
+            Query::UserInfo { at, address, key } =>
+                self.user_info(at, address, key),
+            Query::TokenInfo {} =>
+                self.token_info(),
+            Query::Balance { address, key } =>
+                self.balance(address, key),
         }
     }
 
     pub fn admin (self) -> StdResult<Response> {
-        Ok(Response::Admin { address: self.api.humanize(admin.get()?) })
+        Ok(Response::Admin { address: self.admin.get()?.humanize(&self.api) })
     }
 
     pub fn pool_info (self, at: Time) -> StdResult<Response> {
 
         let balance = self.load_reward_balance()?;
-        let pool = Pool::new(self.storage).at(at).with_balance(balance);
+        let pool = Pool::new(self.storage).at(at)?.with_balance(balance);
         let pool_last_update = pool.timestamp.get()?;
         if at < pool_last_update {
             return Err(StdError::generic_err("this contract does not store history"))
         }
 
-        #[cfg(feature="pool_closes")]
-        let pool_closed = if let Some((_, close_message)) = pool.closed()? {
-            Some(close_message)
-        } else {
-            None
-        };
-
         Ok(Response::PoolInfo {
             it_is_now: at,
 
-            lp_token:     self.lp_token.get()?,
-            reward_token: self.reward_token.get()?,
+            lp_token:       self.lp_token.get()?.humanize(&self.api)?,
+            reward_token:   self.reward_token.get()?.humanize(&self.api)?,
 
             #[cfg(feature="pool_closes")]
-            pool_closed,
+            pool_closed:    self.close_message(&pool)?,
 
             pool_last_update,
             pool_lifetime:  pool.lifetime()?,
-            pool_locked:    pool.locked()?,
-            pool_claimed:   pool.claimed()?,
+            pool_locked:    pool.locked.get()?,
+
+            pool_claimed:   pool.claimed.get()?,
             pool_balance:   pool.balance(),
 
             #[cfg(feature="age_threshold")]
-            pool_threshold: pool.threshold()?,
+            pool_threshold: pool.threshold.get()?,
 
             #[cfg(feature="claim_cooldown")]
-            pool_cooldown:  pool.cooldown()?,
+            pool_cooldown:  pool.cooldown.get()?,
 
             #[cfg(feature="pool_liquidity_ratio")]
             pool_liquid:    pool.liquidity_ratio()?,
@@ -543,12 +465,11 @@ impl<S: ReadonlyStorage, A: Api, Q: Querier> Contract<S, A, Q, ()> {
         let address = self.api.canonical_address(&address)?;
         authenticate(&*self.storage.borrow(), &ViewingKey(key), address.as_slice())?;
 
-        let pool = Pool::new(self.storage).at(at);
-        let pool_last_update = pool.timestamp()?;
+        let pool = Pool::new(self.storage).at(at)?;
+        let pool_last_update = pool.timestamp.get()?;
         if at < pool_last_update {
-            return Err(StdError::generic_err("no time travel")) }
-        let pool_lifetime = pool.lifetime()?;
-        let pool_locked   = pool.locked()?;
+            return Err(StdError::generic_err("no time travel"))
+        }
 
         let reward_balance = self.load_reward_balance()?;
         let user = pool.with_balance(reward_balance).user(address);
@@ -559,22 +480,15 @@ impl<S: ReadonlyStorage, A: Api, Q: Querier> Contract<S, A, Q, ()> {
             }
         }
 
-        #[cfg(feature="pool_closes")]
-        let pool_closed = if let Some((_, close_message)) = Pool::new(self.storage).closed()? {
-            Some(close_message)
-        } else {
-            None
-        };
-
         Ok(Response::UserInfo {
             it_is_now: at,
 
-            #[cfg(feature="pool_closes")]
-            pool_closed,
-
             pool_last_update,
-            pool_lifetime,
-            pool_locked,
+            pool_lifetime:  pool.lifetime()?,
+            pool_locked:    pool.locked.get()?,
+
+            #[cfg(feature="pool_closes")]
+            pool_closed:    self.close_message(&pool)?,
 
             user_last_update,
             user_lifetime:  user.lifetime()?,
@@ -592,28 +506,29 @@ impl<S: ReadonlyStorage, A: Api, Q: Querier> Contract<S, A, Q, ()> {
         })
     }
 
-    pub fn token_info (
-        self
-    ) -> StdResult<Response> {
-        let lp_token      = self.load_lp_token()?;
-        let lp_token_info = ISnip20::attach(&lp_token).query(&self.querier).token_info()?;
-        let lp_token_name = format!("Sienna Rewards: {}", lp_token_info.name);
+    #[cfg(feature="pool_closes")]
+    fn close_message (self, pool: &Pool<S>) -> StdResult<Option<String>> {
+        Ok(if let Some((_, close_message)) = pool.closed.get()? {
+            Some(close_message)
+        } else {
+            None
+        })
+    }
+
+    pub fn token_info (self) -> StdResult<Response> {
+        let link = self.lp_token.get()?.humanize(&self.api)?;
+        let info = ISnip20::attach(&link).query(&self.querier).token_info()?;
         Ok(Response::TokenInfo {
-            name:         lp_token_name,
+            name:         format!("Sienna Rewards: {}", info.name),
             symbol:       "SRW".into(),
             decimals:     1,
             total_supply: None
         })
     }
 
-    pub fn balance (
-        self,
-        address: HumanAddr,
-        key:     String
-    ) -> StdResult<Response> {
+    pub fn balance (self, address: HumanAddr, key: String) -> StdResult<Response> {
         let address = self.api.canonical_address(&address)?;
         authenticate(&*self.storage.borrow(), &ViewingKey(key), address.as_slice())?;
-
         Ok(Response::Balance {
             amount: Pool::new(self.storage).user(address).locked()?
         })

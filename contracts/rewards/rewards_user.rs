@@ -38,7 +38,7 @@ pub struct User <S> {
     /// For how many units of time has this user provided liquidity
     /// On lock/unlock, if locked was > 0 before the operation,
     /// this is incremented by time elapsed since last update.
-    present:       Field<S, Time>,
+    last_present:  Field<S, Time>,
 
     #[cfg(feature="user_liquidity_ratio")]
     /// For how many units of time has this user been known to the contract.
@@ -48,7 +48,7 @@ pub struct User <S> {
     #[cfg(feature="claim_cooldown")]
     /// For how many units of time has this user provided liquidity
     /// Decremented on lock/unlock, reset to configured cooldown on claim.
-    cooldown:      Field<S, Time>
+    last_cooldown: Field<S, Time>
 }
 
 impl <S: Storage> User <S> {
@@ -63,19 +63,29 @@ impl <S: Storage> User <S> {
             pool:    pool,
             address,
 
-            last_lifetime: storage.field(&concat(b"/user/lifetime/", address.as_slice())),
-            locked:        storage.field(&concat(b"/user/current/",  address.as_slice())),
-            timestamp:     storage.field(&concat(b"/user/updated/",  address.as_slice())),
-            claimed:       storage.field(&concat(b"/user/claimed/",  address.as_slice())),
+            last_lifetime: storage.field(&concat(b"/user/lifetime/", address.as_slice()))
+                                  .or(Volume::zero()),
+
+            locked:        storage.field(&concat(b"/user/current/",  address.as_slice()))
+                                  .or(Amount::zero()),
+
+            timestamp:     storage.field(&concat(b"/user/updated/",  address.as_slice()))
+                                  .or(pool.borrow().now().unwrap()),
+
+            claimed:       storage.field(&concat(b"/user/claimed/",  address.as_slice()))
+                                  .or(Amount::zero()),
 
             #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))]
-            present:       storage.field(&concat(b"/user/present/",  address.as_slice())),
+            last_present:  storage.field(&concat(b"/user/present/",  address.as_slice()))
+                                  .or(0u64),
 
             #[cfg(feature="user_liquidity_ratio")]
-            last_existed:  storage.field(&concat(b"/user/existed/",  address.as_slice())),
+            last_existed:  storage.field(&concat(b"/user/existed/",  address.as_slice()))
+                                  .or(0u64),
 
             #[cfg(feature="claim_cooldown")]
-            cooldown:      storage.field(&concat(b"/user/cooldown/", address.as_slice())),
+            last_cooldown: storage.field(&concat(b"/user/cooldown/", address.as_slice()))
+                                  .or(pool.borrow().cooldown.get().unwrap()),
         }
     }
 
@@ -86,7 +96,6 @@ impl <S: Storage> User <S> {
     /// Time that progresses always. Used to increment existence.
     pub fn elapsed (&self) -> StdResult<Time> {
         let now = self.pool.borrow().now()?;
-
         if let Ok(timestamp) = self.timestamp.get() {
             if now < timestamp { // prevent replay
                 return Err(StdError::generic_err("no time travel"))
@@ -100,8 +109,8 @@ impl <S: Storage> User <S> {
 
     /// Time that progresses only when the user has some tokens locked.
     /// Used to increment presence and lifetime.
-    pub fn elapsed_present (&self) -> StdResult<Time> {
-        if self.locked()? > Amount::zero() {
+    pub fn elapsed_while_present (&self) -> StdResult<Time> {
+        if self.locked.get()? > Amount::zero() {
             self.elapsed()
         } else {
             Ok(0 as Time)
@@ -113,20 +122,16 @@ impl <S: Storage> User <S> {
     #[cfg(feature="user_liquidity_ratio")]
     /// Up-to-date time for which the user has existed
     pub fn existed (&self) -> StdResult<Time> {
-        Ok(self.last_existed()? + self.elapsed()?)
-    }
-
-    #[cfg(feature="user_liquidity_ratio")]
-    /// Load last value of user existence
-    pub fn last_existed (&self) -> StdResult<Time> {
-        self.last_existed.get_or_default(0 as Time)
+        Ok(self.last_existed.get()? + self.elapsed()?)
     }
 
     #[cfg(feature="user_liquidity_ratio")]
     pub fn liquidity_ratio (&self) -> StdResult<Amount> {
-        Ok(Volume::from(HUNDRED_PERCENT)
+        Ok(
+            Volume::from(HUNDRED_PERCENT)
             .diminish_or_max(self.present()?, self.existed()?)?
-            .low_u128().into())
+            .low_u128().into()
+        )
     }
 
     // user presence = time the user has had >0 LP tokens locked in the pool -------------------
@@ -134,13 +139,7 @@ impl <S: Storage> User <S> {
     #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))]
     /// Up-to-date time for which the user has provided liquidity
     pub fn present (&self) -> StdResult<Time> {
-        Ok(self.last_present()? + self.elapsed_present()?)
-    }
-
-    #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))]
-    /// Load last value of user present
-    pub fn last_present (&self) -> StdResult<Time> {
-        self.present.get_or_default(0 as Time)
+        Ok(self.last_present.get()? + self.elapsed_while_present()?)
     }
 
     // cooldown - reset on claim, decremented towards 0 as time advances -----------------------
@@ -148,28 +147,23 @@ impl <S: Storage> User <S> {
     #[cfg(feature="claim_cooldown")]
     pub fn cooldown (&self) -> StdResult<Time> {
         #[cfg(feature="pool_closes")]
-        if self.pool.borrow().closed()?.is_some() {
-            return Ok(0u64) }
-        Ok(Time::saturating_sub(self.last_cooldown()?, self.elapsed()?))
-    }
-
-    #[cfg(feature="claim_cooldown")]
-    fn last_cooldown (&self) -> StdResult<Time> {
-        self.cooldown.get_or_default(self.pool.borrow().cooldown()?)
+        if self.pool.borrow().closed.get()?.is_some() {
+            return Ok(0u64)
+        }
+        Ok(Time::saturating_sub(
+            self.last_cooldown.get()?,
+            self.elapsed()?
+        ))
     }
 
     // lp-related getters ----------------------------------------------------------------------
 
-    pub fn locked (&self) -> StdResult<Amount> {
-        self.locked.get_or_default(Amount::zero())
-    }
-
     pub fn lifetime (&self) -> StdResult<Volume> {
-        tally(self.last_lifetime()?, self.elapsed_present()?, self.locked()?)
-    }
-
-    fn last_lifetime (&self) -> StdResult<Volume> {
-        self.last_lifetime.get_or_default(Volume::zero())
+        tally(
+            self.last_lifetime.get()?,
+            self.elapsed_while_present()?,
+            self.locked.get()?
+        )
     }
 
     // reward-related getters ------------------------------------------------------------------
@@ -213,21 +207,17 @@ impl <S: Storage> User <S> {
         }
 
         #[cfg(feature="global_ratio")] {
-            let ratio = self.pool.borrow().global_ratio()?;
+            let ratio = self.pool.borrow().global_ratio.get()?;
             budget = budget.diminish_or_zero(ratio.0, ratio.1)?
         }
 
         Ok(self.share(budget.u128())?.low_u128().into())
     }
 
-    pub fn claimed (&self) -> StdResult<Amount> {
-        self.claimed.get_or_default(Amount::zero())
-    }
-
     pub fn claimable (&self) -> StdResult<Amount> {
         #[cfg(feature="age_threshold")]
         // can only claim after age threshold
-        if self.present()? < self.pool.borrow().threshold()? {
+        if self.present()? < self.pool.borrow().threshold.get()? {
             return Ok(Amount::zero())
         }
 
@@ -238,7 +228,7 @@ impl <S: Storage> User <S> {
         }
 
         // can only claim if earned > claimed
-        let claimed = self.claimed()?;
+        let claimed = self.claimed.get()?;
         if earned <= claimed {
             return Ok(Amount::zero())
         }
@@ -254,95 +244,37 @@ impl <S: Storage> User <S> {
         }
     }
 
-    // time-related mutations ------------------------------------------------------------------
-
-    #[cfg(feature="claim_cooldown")]
-    fn reset_cooldown (&mut self) -> StdResult<()> {
-        let address = self.address.clone();
-        self.cooldown.set(&self.pool.borrow().cooldown()?)?;
-        Ok(())
-    }
-
-    // lp-related mutations -------------------------------------------------------------------
-
-    fn update (&mut self, user_locked: Amount, pool_locked: Amount) -> StdResult<&mut Self> {
-        // Prevent replay
-        let now = self.pool.borrow().now()?;
-        if let Ok(timestamp) = self.timestamp.get() {
-            if timestamp > now {
-                return Err(StdError::generic_err("no time travel"))
-            }
-        }
-
-        // Commit rolling values to storage:
-
-        let address = self.address.clone();
-
-        #[cfg(feature="user_liquidity_ratio")] {
-            // Increment existence
-            self.last_existed.set(&self.existed()?)?;
-        }
-
-        #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))] {
-            // Increment presence if user has currently locked tokens
-            self.present.set(&self.present()?)?;
-        }
-
-        #[cfg(feature="claim_cooldown")] {
-            // Cooldown is calculated since the timestamp.
-            // Since we'll be updating the timestamp, commit the current cooldown
-            let cooldown = self.cooldown()?;
-            self.cooldown.set(&cooldown)?;
-        }
-
-        let lifetime = self.lifetime()?;
-        self.last_lifetime.set(&lifetime)?;// Always increment lifetime
-        self.timestamp.set(&now)?;// Set user's time of last update to now
-        self.locked.set(&user_locked)?;// Update amount locked
-        self.pool.borrow_mut().update_locked(pool_locked)?;// Update total amount locked in pool
-
-        Ok(self)
-    }
-
     pub fn lock_tokens (&mut self, increment: Amount) -> StdResult<Amount> {
-        let locked = self.locked()?;
         self.update(
-            locked + increment,
-            self.pool.borrow().locked()? + increment.into())?;
+            self.locked.get()? + increment,
+            self.pool.borrow().locked.get()? + increment.into()
+        )?;
         // Return the amount to be transferred from the user to the contract
         Ok(increment)
     }
 
     pub fn retrieve_tokens (&mut self, decrement: Amount) -> StdResult<Amount> {
         // Must have enough locked to retrieve
-        let locked = self.locked()?;
+        let locked = self.locked.get()?;
         if locked < decrement {
             return Err(StdError::generic_err(format!("not enough locked ({} < {})", locked, decrement)))
         }
         self.update(
-            (self.locked()? - decrement)?,
-            (self.pool.borrow().locked()? - decrement.into())?
+            (locked - decrement)?,
+            (self.pool.borrow().locked.get()? - decrement.into())?
         )?;
         // Return the amount to be transferred back to the user
         Ok(decrement)
     }
 
-    // reward-related mutations ----------------------------------------------------------------
-
-    fn increment_claimed (&mut self, reward: Amount) -> StdResult<()> {
-        let address = self.address.clone();
-        self.pool.borrow_mut().increment_claimed(reward)?;
-        self.claimed.set(&(self.claimed()? + reward))?;
-        Ok(())
-    }
-
     pub fn claim_reward (&mut self) -> StdResult<Amount> {
-        #[cfg(feature="age_threshold")]
-        // If user must wait before their first claim, enforce that here.
-        enforce_cooldown(self.present()?, self.pool.borrow().threshold()?)?;
 
-        #[cfg(feature="claim_cooldown")]
+        // If user must wait before first claim, enforce that here.
+        #[cfg(feature="age_threshold")]
+        enforce_cooldown(self.present()?, self.pool.borrow().threshold.get()?)?;
+
         // If user must wait between claims, enforce that here.
+        #[cfg(feature="claim_cooldown")]
         enforce_cooldown(0, self.cooldown()?)?;
 
         // See if there is some unclaimed reward amount:
@@ -356,20 +288,18 @@ impl <S: Storage> User <S> {
         }
 
         // Now we need the user's liquidity token balance for two things:
-        let locked = self.locked()?;
+        let locked = self.locked.get()?;
 
-        // 1. Update the user timestamp, and the other things that may be synced to it.
-        //    Sacrifices efficiency (gas cost for a few more load/save operations than
-        //    the absolute minimum) for an avoidance of hidden dependencies.
-        self.update(locked, self.pool.borrow().locked()?)?;
+        // Update user timestamp, and the things synced to it.
+        self.update(locked, self.pool.borrow().locked.get()?)?;
 
-        // (In the meantime, update how much has been claimed...
+        // Update how much has been claimed
         self.increment_claimed(claimable)?;
 
         // ...and, optionally, reset the cooldown so that
         // the user has to wait before claiming again)
         #[cfg(feature="claim_cooldown")]
-        self.reset_cooldown()?; // Reset the user cooldown
+        self.last_cooldown.set(&self.pool.borrow().cooldown.get()?)?;
 
         // 2. Optionally, reset the user's `lifetime` and `share` if they have currently
         //    0 tokens locked. The intent is for this to be the user's last reward claim
@@ -377,25 +307,67 @@ impl <S: Storage> User <S> {
         //    at some point, when they come back they have to start over, which is OK
         //    because they can then start claiming rewards immediately, without waiting
         //    for threshold, only cooldown.
-        #[cfg(feature="selective_memory")] {
-            if locked == Amount::zero() {
-                let address = self.address.clone();
-                self.last_lifetime.set(&Volume::zero())?;
-                self.claimed.set(&Amount::zero())?;
-            }
+        #[cfg(feature="selective_memory")]
+        if locked == Amount::zero() {
+            self.last_lifetime.set(&Volume::zero())?;
+            self.claimed.set(&Amount::zero())?;
         }
 
         // Return the amount that the contract will send to the user
         Ok(claimable)
+
+    }
+
+    fn increment_claimed (&mut self, reward: Amount) -> StdResult<()> {
+        self.pool.borrow_mut().increment_claimed(reward)?;
+        self.claimed.set(&(self.claimed.get()? + reward))?;
+        Ok(())
     }
 
     #[cfg(all(test, feature="user_liquidity_ratio"))]
     pub fn reset_liquidity_ratio (&self) -> StdResult<()> {
-        let address = self.address.clone();
         let existed = self.existed()?;
-        self.update(self.locked()?, self.pool.borrow().locked()?)?;
+        self.update(self.locked()?, self.pool.borrow().locked.get()?)?;
         self.present.set(existed)?;
         Ok(())
+    }
+
+    /// Commit rolling values to storage
+    fn update (&mut self, user_locked: Amount, pool_locked: Amount) -> StdResult<&mut Self> {
+        // Prevent replay
+        let now = self.pool.borrow().now()?;
+        if let Ok(timestamp) = self.timestamp.get() {
+            if timestamp > now {
+                return Err(StdError::generic_err("no time travel"))
+            }
+        }
+
+        // Increment existence
+        #[cfg(feature="user_liquidity_ratio")]
+        self.last_existed.set(&self.existed()?)?;
+
+        // Increment presence if user has currently locked tokens
+        #[cfg(any(feature="age_threshold", feature="user_liquidity_ratio"))]
+        self.last_present.set(&self.present()?)?;
+
+        // Cooldown is calculated since the timestamp.
+        // Since we'll be updating the timestamp, commit the current cooldown
+        #[cfg(feature="claim_cooldown")]
+        self.last_cooldown.set(&self.cooldown()?)?;
+
+        // Always increment lifetime
+        self.last_lifetime.set(&self.lifetime()?)?;
+
+        // Set user's time of last update to now
+        self.timestamp.set(&now)?;
+
+        // Update amount locked
+        self.locked.set(&user_locked)?;
+
+        // Update total amount locked in pool
+        self.pool.borrow_mut().update_locked(pool_locked)?;
+
+        Ok(self)
     }
 
 }

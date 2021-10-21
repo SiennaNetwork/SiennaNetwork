@@ -17,23 +17,30 @@ message!(Init {
 });
 
 messages!(Handle {
+    /// Set the contract admin.
     ChangeAdmin {
         address: HumanAddr
     }
-
+    /// Set the active asset token.
+    /// Resolves circular reference when initializing the benchmark -
+    /// they need to know each other's addresses to use initial allowances
     SetProvidedToken {
         address:   HumanAddr,
         code_hash: String
     }
-
     ChangeRatio {
         numerator:   Uint128,
         denominator: Uint128
     }
-    ChangeThreshold {}
-    ChangeCooldown {}
-
-    ClosePool {}
+    ChangeThreshold {
+        threshold: Time
+    }
+    ChangeCooldown {
+        cooldown: Time
+    }
+    ClosePool {
+        message: String
+    }
     ReleaseSnip20 {}
 
     CreateViewingKey {}
@@ -63,7 +70,10 @@ messages!(Query {
     TokenInfo {}
 
     /// For Keplr integration
-    Balance {}
+    Balance {
+        address: HumanAddr,
+        key:     String
+    }
 
 });
 
