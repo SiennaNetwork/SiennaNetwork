@@ -2,11 +2,11 @@ use fadroma::scrt::cosmwasm_std::*;
 use serde::{Serialize, de::DeserializeOwned};
 use std::{rc::Rc, cell::RefCell};
 
-pub trait FieldFactory <S: Storage, A: Api, Q: Querier> {
+pub trait FieldFactory <S: Storage + AsRef<S>, A: Api, Q: Querier> {
     fn field <V> (&self, key: &[u8]) -> Field<S, A, Q, V>;
 }
 
-impl<S: Storage, A: Api, Q: Querier> FieldFactory<S, A, Q>
+impl<S: Storage + AsRef<S>, A: Api, Q: Querier> FieldFactory<S, A, Q>
 for Rc<RefCell<Extern<S, A, Q>>> {
     fn field <V> (&self, key: &[u8]) -> Field<S, A, Q, V> {
         Field::new(self.clone(), key.to_vec())
@@ -24,7 +24,7 @@ pub struct Field <S: Storage, A: Api, Q: Querier, V> {
 impl<S: Storage, A: Api, Q: Querier, V> Field<S, A, Q, V> {
 
     /// Define a new field
-    pub fn new (deps: Rc<RefCell<S>>, key: Vec<u8>) -> Self {
+    pub fn new (deps: Extern<S, A, Q>, key: Vec<u8>) -> Self {
         Self { deps, key, value: None, default: None, required: None }
     }
 

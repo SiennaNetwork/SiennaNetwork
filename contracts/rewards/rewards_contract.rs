@@ -25,18 +25,11 @@ use crate::{
     },
 };
 
-macro_rules! tx_ok {
-    () => {
-        Ok(HandleResponse::default())
-    };
-    ($($msg:expr),*) => {
-        Ok(HandleResponse { messages: vec![$($msg),*], log: vec![], data: None })
-    };
-}
-
-pub struct Contract <S: Storage, A: Api, Q: Querier, E> {
-    deps: Rc<RefCell<Extern<S, A, Q>>>,
-    env:  E,
+pub struct Contract <S: Storage + AsRef<S>, A: Api, Q: Querier, E> {
+    storage: S,
+    api:     A,
+    querier: Q,
+    env:     E,
 
     admin:          Field<S, A, Q, CanonicalAddr>,
 
@@ -57,19 +50,22 @@ pub struct Contract <S: Storage, A: Api, Q: Querier, E> {
     viewing_key:    Field<S, A, Q, ViewingKey>,
 }
 
-impl <S: Storage, A: Api, Q: Querier> Contract <S, A, Q, Env> {
-    pub fn new_ro (
-        deps: &Extern<S, A, Q>
+impl <S: Storage + AsRef<S>, A: Api, Q: Querier> Contract <S, A, Q, Env> {
+    pub fn new <'d> (
+        deps: &'d Extern<S, A, Q>,
+        env:  Option<Env>
     ) -> Contract<S, A, Q, ()> {
-        let deps = Rc::new(RefCell::new(*deps));
+        let Extern { storage, api, querier } = deps;
         Contract {
             env: (),
-            deps,
-            admin:        deps.field(b"/admin"),
-            self_link:    deps.field(b"/self"),
-            lp_token:     deps.field(b"/lp_token"),
-            reward_token: deps.field(b"/reward_token"),
-            viewing_key:  deps.field(b"/viewing_key")
+            storage: *storage,
+            api:     *api,
+            querier: *querier,
+            admin:        storage.field(b"/admin"),
+            self_link:    storage.field(b"/self"),
+            lp_token:     storage.field(b"/lp_token"),
+            reward_token: storage.field(b"/reward_token"),
+            viewing_key:  storage.field(b"/viewing_key")
         }
     }
 
@@ -77,15 +73,17 @@ impl <S: Storage, A: Api, Q: Querier> Contract <S, A, Q, Env> {
         deps: &mut Extern<S, A, Q>,
         env:  Env
     ) -> Contract<S, A, Q, Env> {
-        let deps = Rc::new(RefCell::new(*deps));
+        let Extern { storage, api, querier } = deps;
         Contract {
             env,
-            deps,
-            admin:        deps.field(b"/admin"),
-            self_link:    deps.field(b"/self"),
-            lp_token:     deps.field(b"/lp_token"),
-            reward_token: deps.field(b"/reward_token"),
-            viewing_key:  deps.field(b"/viewing_key")
+            storage: *storage,
+            api: *api,
+            querier: *querier,
+            admin:        storage.field(b"/admin"),
+            self_link:    storage.field(b"/self"),
+            lp_token:     storage.field(b"/lp_token"),
+            reward_token: storage.field(b"/reward_token"),
+            viewing_key:  storage.field(b"/viewing_key")
         }
     }
 }
@@ -93,29 +91,16 @@ impl <S: Storage, A: Api, Q: Querier> Contract <S, A, Q, Env> {
 type InitResult   = StdResult<InitResponse>;
 type HandleResult = StdResult<HandleResponse>;
 
-impl <S: Storage, A: Api, Q: Querier, E> Contract <S, A, Q, E> {
-
-    fn load_reward_balance (&self) -> StdResult<Uint128> {
-        let reward_token_link = self.reward_token.get()?;
-        let reward_token = ISnip20::attach(&reward_token_link.humanize(&self.deps.api)?);
-        let mut reward_balance = reward_token
-            .query(&self.deps.querier)
-            .balance(
-                &self.self_link.get()?.humanize(&self.deps.api)?.address,
-                &self.viewing_key.get()?.0
-            )?;
-
-        let lp_token_link = self.lp_token.get()?;
-        if lp_token_link == reward_token_link {
-            let lp_balance = Pool::new(self.deps).locked.get()?;
-            reward_balance = (reward_balance - lp_balance)?;
-        }
-
-        Ok(reward_balance)
-    }
+macro_rules! tx_ok {
+    () => {
+        Ok(HandleResponse::default())
+    };
+    ($($msg:expr),*) => {
+        Ok(HandleResponse { messages: vec![$($msg),*], log: vec![], data: None })
+    };
 }
 
-impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
+impl <S: Storage + AsRef<S> + AsMut<S>, A: Api, Q: Querier> Contract<S, A, Q, Env> {
 
     pub fn init (&mut self, msg: Init) -> InitResult {
         self.self_link.set(&ContractLink {
@@ -388,7 +373,29 @@ impl <S: Storage, A: Api, Q: Querier> Contract<S, A, Q, Env> {
 
 }
 
-impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q, ()> {
+impl <S: Storage + AsRef<S>, A: Api, Q: Querier, E> Contract <S, A, Q, E> {
+
+    fn load_reward_balance (&self) -> StdResult<Uint128> {
+        let reward_token_link = self.reward_token.get()?;
+        let reward_token = ISnip20::attach(&reward_token_link.humanize(&self.deps.api)?);
+        let mut reward_balance = reward_token
+            .query(&self.deps.querier)
+            .balance(
+                &self.self_link.get()?.humanize(&self.deps.api)?.address,
+                &self.viewing_key.get()?.0
+            )?;
+
+        let lp_token_link = self.lp_token.get()?;
+        if lp_token_link == reward_token_link {
+            let lp_balance = Pool::new(self.deps).locked.get()?;
+            reward_balance = (reward_balance - lp_balance)?;
+        }
+
+        Ok(reward_balance)
+    }
+}
+
+impl<S: Storage + AsRef<S>, A: Api, Q: Querier> Contract<S, A, Q, ()> {
 
     pub fn query (
         self,
