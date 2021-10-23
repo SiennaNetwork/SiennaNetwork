@@ -7,7 +7,7 @@ edition = "2018"
 [lib]
 crate-type = ["cdylib", "rlib"]
 doctest = false
-path = "rewards.rs"
+path = "lib.rs"
 
 [dependencies]
 fadroma = { path = "../../libraries/fadroma-21.07/core", features = [
