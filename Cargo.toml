@@ -20,7 +20,7 @@ members = [
   "contracts/amm-snip20", # vanilla snip20 token, used when creating an IDO
 
   # Framework
-  "libraries/fadroma-next",
+  "libraries/fadroma-next/lib",
   "libraries/migrate", # migration flag, as used by TGE before merging this feature into Fadroma
   "libraries/kukumba", # BDD testing framework
 

@@ -1708,7 +1708,7 @@ version = "2.1.2"
 dependencies = [
  "backtrace",
  "color-backtrace",
- "fadroma 21.7.0",
+ "fadroma 0.1.0",
  "kukumba 1.0.1",
  "schemars",
  "serde",
