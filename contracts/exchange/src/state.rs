@@ -1,13 +1,13 @@
 use amm_shared::TokenPair;
-use amm_shared::fadroma::scrt::{
-    cosmwasm_std::{
+use amm_shared::fadroma::{
+    scrt::{
         Api, CanonicalAddr, Extern, HumanAddr,
         Querier, StdResult, Storage, StdError
     },
-    addr::{Canonize, Humanize},
-    callback::ContractInstance,
-    storage::{load, save},
-    utils::viewing_key::ViewingKey
+    scrt_addr::{Canonize, Humanize},
+    scrt_link::ContractLink,
+    scrt_storage::{load, save},
+    scrt_vk::ViewingKey
 };
 
 use serde::{Serialize,Deserialize};
@@ -16,8 +16,8 @@ const CONFIG_KEY: &[u8] = b"config";
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub(crate) struct Config<A: Clone> {
-    pub factory_info:  ContractInstance<A>,
-    pub lp_token_info: ContractInstance<A>,
+    pub factory_info:  ContractLink<A>,
+    pub lp_token_info: ContractLink<A>,
     pub pair:          TokenPair<A>,
     /// The address of the current contract.
     pub contract_addr: A,
@@ -67,7 +67,7 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use amm_shared::fadroma::scrt::cosmwasm_std::testing::mock_dependencies;
+    use amm_shared::fadroma::scrt::testing::mock_dependencies;
     use amm_shared::TokenType;
 
     #[test]
@@ -75,11 +75,11 @@ mod tests {
         let mut deps = mock_dependencies(10, &[]);
 
         let config = Config {
-            factory_info: ContractInstance {
+            factory_info: ContractLink {
                 code_hash: "factory_hash".into(),
                 address: HumanAddr("factory".into())
             },
-            lp_token_info: ContractInstance {
+            lp_token_info: ContractLink {
                 code_hash: "token_hash".into(),
                 address: HumanAddr("lp_token".into())
             },

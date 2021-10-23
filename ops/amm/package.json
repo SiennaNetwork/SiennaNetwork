@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@iov/crypto": "^2.5.0",
     "dotenv": "^8.2.0",
     "secretjs": "^0.16.7",
     "table": "^6.7.1"

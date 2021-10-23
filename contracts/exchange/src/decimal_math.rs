@@ -1,6 +1,6 @@
 // Copied from https://github.com/enigmampc/SecretSwap/blob/master/contracts/secretswap_pair/src/math.rs
 
-use amm_shared::fadroma::scrt::cosmwasm_std::{Decimal, StdResult, Uint128};
+use amm_shared::fadroma::scrt::{Decimal, StdResult, Uint128};
 
 const DECIMAL_FRACTIONAL: Uint128 = Uint128(1_000_000_000u128);
 /*

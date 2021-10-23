@@ -1,24 +1,32 @@
-use amm_shared::{
-    admin::admin::{admin_handle, admin_query, save_admin, DefaultHandleImpl, DefaultQueryImpl},
-    auth::{auth_handle, AuthHandleMsg, DefaultHandleImpl as AuthHandle},
-    fadroma::scrt::{
-        callback::ContractInstance,
-        cosmwasm_std::{
-            to_binary, Api, CanonicalAddr, CosmosMsg, Env, Extern, HandleResponse, InitResponse,
-            Querier, QueryRequest, QueryResult, StdError, StdResult, Storage, WasmMsg, WasmQuery,
-        },
-        migrate as fadroma_scrt_migrate,
-        storage::Storable,
-        toolkit::snip20,
-        utils::viewing_key::ViewingKey,
+use amm_shared::fadroma::{
+    with_status,
+    scrt::{
+        to_binary, Api, CanonicalAddr, CosmosMsg, Env, Extern, HandleResponse, InitResponse,
+        Querier, QueryRequest, QueryResult, StdError, StdResult, Storage, WasmMsg, WasmQuery,
+        secret_toolkit::snip20,
         BLOCK_SIZE,
     },
-    msg::ido::{HandleMsg, InitMsg, QueryMsg},
-    msg::launchpad::QueryMsg as LaunchpadQueryMsg,
-    msg::launchpad::QueryResponse as LaunchpadQueryResponse,
-    TokenType,
+    scrt_link::ContractLink,
+    admin::{
+        handle as admin_handle,
+        query as admin_query,
+        DefaultImpl as AdminImpl,
+        save_admin
+    },
+    scrt_migrate,
+    scrt_migrate::get_status,
+    scrt_storage_traits::Storable,
+    scrt_vk::ViewingKey,
+    scrt_vk_auth::{
+        HandleMsg as AuthHandleMsg,
+        handle as auth_handle,
+        DefaultImpl as AuthImpl
+    }
 };
-use fadroma_scrt_migrate::{get_status, with_status};
+use amm_shared::TokenType;
+use amm_shared::msg::ido::{HandleMsg, InitMsg, QueryMsg};
+use amm_shared::msg::launchpad::QueryMsg as LaunchpadQueryMsg;
+use amm_shared::msg::launchpad::QueryResponse as LaunchpadQueryResponse;
 
 use crate::data::{save_contract_address, save_viewing_key, Account, Config, SwapConstants};
 
@@ -99,7 +107,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             // Update the token decimals based on the custom token number of decimals
             get_token_decimals(
                 &deps.querier,
-                ContractInstance {
+                ContractLink {
                     address: contract_addr.clone(),
                     code_hash: token_code_hash.clone(),
                 },
@@ -231,18 +239,18 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
                     recipient,
                 )
             }
-            HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl),
+            HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, AdminImpl),
             HandleMsg::AdminRefund { address } => crate::handle::refund(deps, env, address),
             HandleMsg::AdminClaim { address } => crate::handle::claim(deps, env, address),
             HandleMsg::AdminAddAddresses { addresses } =>
                 crate::handle::add_addresses(deps, env, addresses),
             HandleMsg::CreateViewingKey { entropy, padding } => {
                 let msg = AuthHandleMsg::CreateViewingKey { entropy, padding };
-                auth_handle(deps, env, msg, AuthHandle)
+                auth_handle(deps, env, msg, AuthImpl)
             }
             HandleMsg::SetViewingKey { key, padding } => {
                 let msg = AuthHandleMsg::SetViewingKey { key, padding };
-                auth_handle(deps, env, msg, AuthHandle)
+                auth_handle(deps, env, msg, AuthImpl)
             }
         }
     )
@@ -256,20 +264,22 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
         QueryMsg::SaleStatus => crate::query::get_sale_status(deps),
         QueryMsg::Balance { address, key } => crate::query::get_balance(deps, address, key),
         QueryMsg::TokenInfo {} => crate::query::get_token_info(deps),
-        QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
+        QueryMsg::Admin(admin_msg) => to_binary(&admin_query(deps, admin_msg, AdminImpl)?),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use amm_shared::{
-        fadroma::scrt::callback::Callback,
-        fadroma::scrt::cosmwasm_std::{
+    use amm_shared::fadroma::{
+        scrt::{
             from_binary,
             testing::{mock_env, MockApi, MockStorage},
             Binary, Coin, Env, Extern, HumanAddr, Uint128,
         },
+        scrt_callback::Callback
+    };
+    use amm_shared::{
         msg::ido::{
             HandleMsg, InitMsg, QueryMsg, QueryResponse, ReceiverCallbackMsg, TokenSaleConfig,
         },
@@ -293,7 +303,7 @@ mod tests {
             querier: MockQuerier::new(
                 &[(&contract_addr, balance)],
                 vec![MockContractInstance {
-                    instance: ContractInstance {
+                    instance: ContractLink {
                         address: HumanAddr::from("sold-token"),
                         code_hash: "".to_string(),
                     },
@@ -305,8 +315,8 @@ mod tests {
     }
 
     /// Get init message for initialization of the token.
-    fn get_init(sold_token: Option<ContractInstance<HumanAddr>>, admin: &HumanAddr) -> InitMsg {
-        let sold_token = sold_token.unwrap_or_else(|| ContractInstance::<HumanAddr> {
+    fn get_init(sold_token: Option<ContractLink<HumanAddr>>, admin: &HumanAddr) -> InitMsg {
+        let sold_token = sold_token.unwrap_or_else(|| ContractLink::<HumanAddr> {
             address: HumanAddr::from("sold-token"),
             code_hash: "".to_string(),
         });
@@ -335,7 +345,7 @@ mod tests {
             admin: admin.clone(),
             callback: Callback {
                 msg: Binary::from(&[]),
-                contract: ContractInstance {
+                contract: ContractLink {
                     address: HumanAddr::from("callback-address"),
                     code_hash: "code-hash-of-callback-contract".to_string(),
                 },
@@ -382,7 +392,7 @@ mod tests {
         let mut deps = internal_mock_deps(123, &[]);
         let env = mock_env("admin", &[]);
         let msg = get_init(
-            Some(ContractInstance::<HumanAddr> {
+            Some(ContractLink::<HumanAddr> {
                 address: HumanAddr::from("random-token"),
                 code_hash: "".to_string(),
             }),

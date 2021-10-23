@@ -1,5 +1,5 @@
 use std::ops::RangeInclusive;
-use amm_shared::fadroma::scrt::cosmwasm_std::{
+use amm_shared::fadroma::scrt::{
     Api, Binary, Env, Extern, HandleResponse,
     HumanAddr, InitResponse, Querier,
     StdError, StdResult, Storage, Uint128,

@@ -1,4 +1,4 @@
-use amm_shared::fadroma::scrt::cosmwasm_std::{
+use amm_shared::fadroma::scrt::{
     Extern, Storage, Api, Querier, StdResult,
     InitResponse, Env, HandleResponse, Binary
 };

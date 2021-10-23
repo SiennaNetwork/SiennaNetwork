@@ -1,12 +1,13 @@
-use amm_shared::fadroma::scrt::{
-    addr::{Canonize, Humanize},
-    callback::ContractInstance,
-    cosmwasm_std::{
-        Api, CanonicalAddr, Decimal, Extern, HumanAddr, Querier, StdError, StdResult, Storage,
-        Uint128,
+use amm_shared::fadroma::{
+    scrt_addr::{Canonize, Humanize},
+    scrt_link::ContractLink,
+    scrt::{
+        Api, CanonicalAddr, Decimal, Extern, HumanAddr,
+        Querier, StdError, StdResult, Storage, Uint128
     },
-    storage::{load, ns_load, ns_save, save, Storable},
-    utils::viewing_key::ViewingKey,
+    scrt_storage::{load, ns_load, ns_save, save},
+    scrt_storage_traits::Storable,
+    scrt_vk::ViewingKey,
 };
 use amm_shared::{msg::launchpad::TokenSettings, TokenType};
 use schemars::JsonSchema;
@@ -212,7 +213,7 @@ impl Config {
                 token_code_hash,
             } => get_token_decimals(
                 querier,
-                ContractInstance {
+                ContractLink {
                     address: contract_addr.clone(),
                     code_hash: token_code_hash.clone(),
                 },

@@ -1,6 +1,6 @@
 #![allow(unused_macros)]
 #![allow(non_snake_case)]
-use fadroma::scrt::{cosmwasm_std::{StdError, MemoryStorage, CanonicalAddr, Binary}};
+use fadroma::scrt::{StdError, MemoryStorage, CanonicalAddr, Binary};
 use crate::{rewards_harness::*, rewards_algo::Pool};
 
 // duration of rewards period as u128 instead of u64

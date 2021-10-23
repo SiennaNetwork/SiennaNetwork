@@ -20,16 +20,9 @@ members = [
   "contracts/amm-snip20", # vanilla snip20 token, used when creating an IDO
 
   # Framework
-  "libraries/fadroma-next/scrt-admin/composable-admin", # proc macro for `require_admin` attribute
-  "libraries/fadroma-next/scrt-admin/require-admin",    # implementation of admin check
-  "libraries/fadroma-next/scrt-contract",               # contract wrapper macro
-  "libraries/fadroma-next/scrt-harness",                # reusable test harness for contracts
-  "libraries/fadroma-next/scrt-migrate",                # pause contracts and mark them for upgrade
-  "libraries/fadroma-next/scrt-snip20-api",             # interface to external snip20 token
-  "libraries/fadroma-next/scrt-storage",                # storage access shorthand functions
-  "libraries/fadroma-next/scrt-utils",                  # grab bag of utility functions
-  "libraries/migrate",                                   # migration flag, as used by TGE before merging this feature into Fadroma
-  "libraries/kukumba",                                   # BDD testing framework
+  "libraries/fadroma-next",
+  "libraries/migrate", # migration flag, as used by TGE before merging this feature into Fadroma
+  "libraries/kukumba", # BDD testing framework
 
   "demos/struct-contract-field"
 ]

@@ -1,13 +1,14 @@
-use fadroma::scrt::{
-    cosmwasm_std::{
+use fadroma::{
+    scrt::{
         Api, StdResult, Querier,
         HumanAddr, Uint128, CanonicalAddr
     },
-    addr::{Canonize, Humanize}
+    scrt_addr::{Canonize, Humanize}
 };
-use crate::token_type::TokenType;
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+use crate::token_type::TokenType;
 
 #[derive(Clone, Debug, JsonSchema)]
 pub struct TokenPair<A>(pub TokenType<A>, pub TokenType<A>);

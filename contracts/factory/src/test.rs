@@ -1,15 +1,15 @@
 pub use amm_shared::{
     exchange::{Exchange, ExchangeSettings, Fee},
-    fadroma::scrt::{
-        addr::Canonize,
-        callback::{ContractInstance, ContractInstantiationInfo},
-        cosmwasm_std::{
+    fadroma::{
+        scrt_addr::Canonize,
+        scrt_link::{ContractLink, ContractInstantiationInfo},
+        scrt::{
             from_binary,
             testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage},
             to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr, Querier, StdError,
             StdResult, Storage, Uint128,
         },
-        storage::{load, save},
+        scrt_storage::{load, save},
     },
     msg::factory::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
     msg::ido::TokenSaleConfig,
@@ -508,7 +508,7 @@ mod test_contract {
                 denom: "whatever".into(),
             },
             rate: Uint128(100),
-            sold_token: ContractInstance {
+            sold_token: ContractLink {
                 address: "token".into(),
                 code_hash: "token_code_hash".into(),
             },
