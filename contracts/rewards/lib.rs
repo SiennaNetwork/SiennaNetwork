@@ -101,7 +101,6 @@ messages!(Response {
     Balance {
         amount: Amount
     }
-
 });
 
 pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>

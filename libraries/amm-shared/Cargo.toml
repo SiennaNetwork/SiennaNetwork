@@ -9,13 +9,13 @@ edition = "2018"
 [dependencies]
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-fadroma = { path = "../fadroma-21.07/core", features = [
+fadroma = { path = "../fadroma-next/core", features = [
   "scrt-addr",
   "scrt-callback",
   "scrt-contract",
   "scrt-migrate",
   "scrt-storage",
 ] }
-composable-snip20 = { path = "../fadroma-21.07/scrt-snip20" }
-composable-admin = { path = "../fadroma-21.07/scrt-admin/composable-admin" }
-composable-auth = { path = "../fadroma-21.07/scrt-auth/composable-auth" }
+composable-snip20 = { path = "../fadroma-next/scrt-snip20" }
+composable-admin = { path = "../fadroma-next/scrt-admin/composable-admin" }
+composable-auth = { path = "../fadroma-next/scrt-auth/composable-auth" }
