@@ -1,12 +1,10 @@
-pub use fadroma::scrt::{
-    contract::{message, messages},
-    cosmwasm_std::*,
-}
+pub use fadroma::*;
+pub use fadroma::messages;
 
 use crate::core::Composable;
 
 messages!(MigrationHandleMsg {
-    MigrateTo   { contract: ContractLink<HumanAddr> },
+    MigrateTo   { contract: ContractLink<HumanAddr> }
     MigrateFrom { contract: ContractLink<HumanAddr> }
 });
 

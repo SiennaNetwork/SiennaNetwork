@@ -23,12 +23,14 @@ pub mod core;
 pub mod math;
 pub mod migration;
 
-use crate::{core::*, auth::*, algo::*, math::*};
+use fadroma::*;
+use fadroma::{message, messages};
 
-use fadroma::scrt::{
-    cosmwasm_std::*,
-    callback::ContractInstance as ContractLink,
-    snip20_api::ISnip20
+use crate::{
+    core::*,
+    auth::{Auth, AuthHandle, AuthQuery},
+    algo::*,
+    math::*
 };
 
 message!(Init {
@@ -69,8 +71,8 @@ pub fn handle <S: Storage + AsRef<S> + AsMut<S>, A: Api, Q: Querier> (
 }
 
 messages!(Query {
-    Auth(AuthQuery),
-    Rewards(RewardsQuery),
+    Auth(AuthQuery)
+    Rewards(RewardsQuery)
 
     /// For Keplr integration
     TokenInfo {}
@@ -86,8 +88,8 @@ pub fn query <S: Storage + AsRef<S>, A: Api, Q: Querier> (
 }
 
 messages!(Response {
-    Auth(AuthResponse),
-    Rewards(RewardsResponse),
+    Auth(AuthResponse)
+    Rewards(RewardsResponse)
 
     /// Keplr integration
     TokenInfo {

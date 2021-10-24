@@ -1,4 +1,4 @@
-use fadroma::scrt::cosmwasm_std::*;
+use fadroma::scrt::*;
 use serde::{Serialize, de::DeserializeOwned};
 
 pub trait Composable<S: Storage, A: Api, Q: Querier> {

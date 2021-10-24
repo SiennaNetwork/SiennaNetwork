@@ -1,12 +1,8 @@
-pub use fadroma::scrt::{
-    contract::{message, messages},
-    cosmwasm_std::*,
-    utils::{
-        viewing_key::{ViewingKey, VIEWING_KEY_SIZE},
-        storage::{ns_save, ns_load}
-    },
-};
-use crate::core::ExternHook;
+use fadroma::*;
+use fadroma::messages;
+pub use fadroma::ViewingKey;
+
+use crate::core::Composable;
 
 const ADMIN_KEY:    &[u8] = b"ltp5P6sFZT";
 const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
@@ -30,7 +26,7 @@ messages!(AuthResponse {
     }
 });
 
-pub trait Auth<S: Storage, A: Api, Q: Querier>: ExternHook<S, A, Q> {
+pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn init (&mut self, env: &Env, admin: &Option<HumanAddr>) -> StdResult<()> {
         let admin = admin.unwrap_or(env.message.sender.clone());

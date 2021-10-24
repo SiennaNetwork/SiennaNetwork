@@ -374,7 +374,6 @@ impl <S: Storage + AsRef<S> + AsMut<S>, A: Api, Q: Querier> Contract<S, A, Q, En
 }
 
 impl <S: Storage + AsRef<S>, A: Api, Q: Querier, E> Contract <S, A, Q, E> {
-
     fn load_reward_balance (&self) -> StdResult<Uint128> {
         let reward_token_link = self.reward_token.get()?;
         let reward_token = ISnip20::attach(&reward_token_link.humanize(&self.deps.api)?);
