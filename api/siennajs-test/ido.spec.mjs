@@ -3,9 +3,15 @@ import { assert } from "chai";
 import { randomBytes } from "crypto";
 import { Scrt, ScrtGas } from "@fadroma/scrt";
 
-import { SiennaSNIP20, SNIP20 } from "./SNIP20.ts";
-import { IDO } from "./IDO.ts";
-import { Factory } from "./Factory.ts";
+import { SiennaSNIP20 } from "../index";
+import { SNIP20 } from "../SNIP20.ts";
+import { IDO } from "../IDO.ts";
+import { Factory } from "../Factory.ts";
+
+import siennajs from "../siennajs/index";
+
+const IdoContract = siennajs.ido.IdoContract;
+const Snip20Contract = siennajs.snip20.Snip20Contract;
 
 const log = function () {
   debug(JSON.stringify(arguments, null, 2));
@@ -82,6 +88,15 @@ describe("IDO", () => {
 
   const context = {};
 
+  context.getIdo = (agent) =>
+    new IdoContract(context.ido.address, (agent || context.agent).API);
+
+  context.getToken = (agent) =>
+    new Snip20Contract(
+      context.sellingToken.address,
+      (agent || context.agent).API
+    );
+
   before(async function setupAll() {
     this.timeout(0);
     const T0 = +new Date();
@@ -136,40 +151,11 @@ describe("IDO", () => {
     context.factory = new Factory({
       codeId: context.templates.Factory.codeId,
       label: `factory-${parseInt(Math.random() * 100000)}`,
-      initMsg: {
-        prng_seed: randomBytes(36).toString("hex"),
-        snip20_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
-        },
-        lp_token_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
-        },
-        pair_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
-        },
-        launchpad_contract: {
-          id: context.templates.SiennaSNIP20.codeId,
-          code_hash: context.templates.SiennaSNIP20.codeHash,
-        },
-        ido_contract: {
-          id: context.templates.IDO.codeId,
-          code_hash: context.templates.IDO.codeHash,
-        }, // dummy so we don't have to build it
-        exchange_settings: {
-          swap_fee: {
-            nom: 1,
-            denom: 1,
-          },
-          sienna_fee: {
-            nom: 1,
-            denom: 1,
-          },
-          //   sienna_burner: null,
-        },
-      },
+      EXCHANGE: context.templates.SiennaSNIP20,
+      AMMTOKEN: context.templates.SiennaSNIP20,
+      LPTOKEN: context.templates.SiennaSNIP20,
+      IDO: context.templates.IDO,
+      LAUNCHPAD: context.templates.SiennaSNIP20,
     });
     await context.factory.instantiate(context.agent);
 
@@ -216,7 +202,8 @@ describe("IDO", () => {
     const amount = 1_000_000;
     const buyer = context.agents[1];
 
-    const res = await context.ido.swap(amount, buyer);
+    const ido = context.getIdo(buyer);
+    const res = await ido.exec().swap(`${amount}`);
 
     assert.strictEqual(
       res.logs[0].events[1].attributes[1].value,
@@ -229,11 +216,10 @@ describe("IDO", () => {
     this.timeout(0);
     const amount = 1_000_000;
     const buyer = context.agents[3];
+    const ido = context.getIdo(buyer);
 
     try {
-      await context.ido.tx.swap({ amount: `${amount}` }, buyer, undefined, [
-        { amount: `${amount}`, denom: "uscrt" },
-      ]);
+      await ido.exec().swap(`${amount}`);
 
       assert.strictEqual("shouldn't have passed!", false);
     } catch (e) {}
@@ -244,19 +230,16 @@ describe("IDO", () => {
     const lowAmount = 999_999;
     const highAmount = 6_000_000;
     const buyer = context.agents[1];
+    const ido = context.getIdo(buyer);
 
     try {
-      await context.ido.tx.swap({ amount: `${lowAmount}` }, buyer, undefined, [
-        { amount: `${lowAmount}`, denom: "uscrt" },
-      ]);
+      await ido.exec().swap(`${lowAmount}`);
 
       assert.strictEqual("shouldn't have passed, lowAmount!", false);
     } catch (e) {}
 
     try {
-      await context.ido.tx.swap({ amount: `${highAmount}` }, buyer, undefined, [
-        { amount: `${highAmount}`, denom: "uscrt" },
-      ]);
+      await ido.exec().swap(`${highAmount}`);
 
       assert.strictEqual("shouldn't have passed, highAmount!", false);
     } catch (e) {}
@@ -267,18 +250,12 @@ describe("IDO", () => {
     const amount = 5_000_000;
     const secondAmount = 1_000_000;
     const buyer = context.agents[1];
+    const ido = context.getIdo(buyer);
 
-    await context.ido.tx.swap({ amount: `${amount}` }, buyer, undefined, [
-      { amount: `${amount}`, denom: "uscrt" },
-    ]);
+    await ido.exec().swap(`${amount}`);
 
     try {
-      await context.ido.tx.swap(
-        { amount: `${secondAmount}` },
-        buyer,
-        undefined,
-        [{ amount: `${secondAmount}`, denom: "uscrt" }]
-      );
+      await ido.exec().swap(`${secondAmount}`);
 
       assert.strictEqual("shouldn't have passed, secondAmount!", false);
     } catch (e) {}
@@ -288,14 +265,10 @@ describe("IDO", () => {
     this.timeout(0);
     const amount = 2_500_000;
     const buyer = context.agents[1];
+    const ido = context.getIdo(buyer);
 
-    await context.ido.tx.swap({ amount: `${amount}` }, buyer, undefined, [
-      { amount: `${amount}`, denom: "uscrt" },
-    ]);
-
-    await context.ido.tx.swap({ amount: `${amount}` }, buyer, undefined, [
-      { amount: `${amount}`, denom: "uscrt" },
-    ]);
+    await ido.exec().swap(`${amount}`);
+    await ido.exec().swap(`${amount}`);
   });
 
   it("Cannot swap before sale starts", async function () {
@@ -307,21 +280,22 @@ describe("IDO", () => {
     });
     await context.ido1.instantiate(context.agent);
 
+    const ido = new IdoContract(context.ido1.address, context.agent.API);
+
     await context.sellingToken.mint(25);
-    await context.sellingToken.tx.send({
-      recipient: context.ido1.address,
-      amount: "25",
-      msg: activate_msg(
-        parseInt(new Date().valueOf() / 1000) + 240,
-        parseInt(new Date().valueOf() / 1000) + 480
-      ),
-    });
+
+    const start = parseInt(new Date().valueOf() / 1000) + 240;
+    const end = parseInt(new Date().valueOf() / 1000) + 480;
+
+    await ido.exec().activate("25", end, start);
 
     const amount = 2_500_000;
     const buyer = context.agents[1];
 
+    const buyerIdo = new IdoContract(context.ido1.address, buyer.API);
+
     try {
-      await context.ido1.swap(amount, buyer, buyer.address);
+      await buyerIdo.exec().swap(`${amount}`);
       assert.strictEqual(
         "Shouldn't get here, swap is before sale starts",
         false
@@ -341,25 +315,26 @@ describe("IDO", () => {
     await context.ido1.instantiate(context.agent);
 
     await context.sellingToken.mint(25);
-    await context.sellingToken.tx.send({
-      recipient: context.ido1.address,
-      amount: "25",
-      msg: activate_msg(
-        parseInt(new Date().valueOf() / 1000),
-        parseInt(new Date().valueOf() / 1000) + 60
-      ),
-    });
+    
+    const ido = new IdoContract(context.ido1.address, context.agent.API);
+
+    await context.sellingToken.mint(25);
+
+    const start = parseInt(new Date().valueOf() / 1000);
+    const end = parseInt(new Date().valueOf() / 1000) + 60;
+
+    await ido.exec().activate("25", end, start);
 
     const amount = 2_500_000;
     const buyer = context.agents[1];
+    const buyerIdo = new IdoContract(context.ido1.address, buyer.API);
 
     try {
       await new Promise((ok) => setTimeout(ok, 120000));
-      await context.ido1.tx.swap({ amount: `${amount}` }, buyer, undefined, [
-        { amount: `${amount}`, denom: "uscrt" },
-      ]);
+      await buyerIdo.exec().swap(`${amount}`);
       assert.strictEqual("Shouldn't get here, swap is after sale ends", false);
     } catch (e) {
+      log(e)
       assert.strictEqual(e.message.includes('"Sale has ended"'), true);
     }
   });
@@ -368,16 +343,15 @@ describe("IDO", () => {
     this.timeout(0);
 
     const buyer = context.agents[2];
+    const ido = context.getIdo();
 
-    await context.ido.tx.admin_add_addresses({
-      addresses: [buyer.address],
-    });
-
+    await ido.exec().admin_add_addresses([buyer.address]);
+    
     const amount = 1_000_000;
 
-    await context.ido.tx.swap({ amount: `${amount}` }, buyer, undefined, [
-      { amount: `${amount}`, denom: "uscrt" },
-    ]);
+    const buyerIdo = new IdoContract(context.ido.address, buyer.API);
+
+    await buyerIdo.exec().swap(`${amount}`);
   });
 
   it("Admin can refund and claim amounts after the sale has ended", async function () {
@@ -391,14 +365,12 @@ describe("IDO", () => {
     await context.ido1.instantiate(context.agent);
 
     await context.sellingToken.mint(25);
-    await context.sellingToken.tx.send({
-      recipient: context.ido1.address,
-      amount: "25",
-      msg: activate_msg(
-        parseInt(new Date().valueOf() / 1000),
-        parseInt(new Date().valueOf() / 1000) + 20
-      ),
-    });
+
+    const ido = new IdoContract(context.ido1.address, context.agent.API);
+    const start = parseInt(new Date().valueOf() / 1000);
+    const end = parseInt(new Date().valueOf() / 1000) + 20;
+
+    await ido.exec().activate("25", end, start);
 
     const balance = await context.sellingToken.balance(
       context.agent.address,
@@ -409,14 +381,13 @@ describe("IDO", () => {
 
     const buyer = context.agents[1];
     const amount = 5_000_000;
+    const buyerIdo = new IdoContract(context.ido1.address, buyer.API);
 
-    await context.ido.tx.swap({ amount: `${amount}` }, buyer, undefined, [
-      { amount: `${amount}`, denom: "uscrt" },
-    ]);
+    await buyerIdo.exec().swap(`${amount}`);
 
     await new Promise((ok) => setTimeout(ok, 60000));
 
-    await context.ido.tx.admin_refund({ address: null });
+    await ido.exec().admin_refund();
 
     const balanceAfter = await context.sellingToken.balance(
       context.agent.address,
@@ -426,7 +397,7 @@ describe("IDO", () => {
     assert.strictEqual(balanceAfter, "20");
 
     const nativeBalanceBefore = await context.agent.balance;
-    await context.ido.tx.admin_claim({ address: null });
+    await ido.exec().admin_claim();
     const nativeBalanceAfter = await context.agent.balance;
 
     const approxBalance = Math.abs(
@@ -444,8 +415,9 @@ describe("IDO", () => {
     this.timeout(0);
 
     try {
-      await context.ido.tx.admin_refund({ address: null });
+      await context.getIdo().exec().admin_refund();
     } catch (e) {
+      console.log(e)
       assert.strictEqual(e.message.includes("Sale hasn't finished yet"), true);
     }
   });
@@ -456,14 +428,12 @@ describe("IDO", () => {
     const buyer = context.agents[1];
     const amount = 5_000_000;
 
-    await context.ido.tx.swap({ amount: `${amount}` }, buyer, undefined, [
-      { amount: `${amount}`, denom: "uscrt" },
-    ]);
+    await context.getIdo(buyer).exec().swap(`${amount}`);
 
-    const res = await context.ido.q.sale_status();
+    const res = await context.getIdo().query().get_sale_status();
 
-    assert.strictEqual(res.status.total_allocation, "25"); // total allocation
-    assert.strictEqual(res.status.available_for_sale, "20"); // available for sale
+    assert.strictEqual(res.total_allocation, "25"); // total allocation
+    assert.strictEqual(res.available_for_sale, "20"); // available for sale
   });
 
   it("Attempt instantiate and swap with a custom buying token", async function () {
@@ -529,7 +499,12 @@ describe("IDO", () => {
 
     await context.buyingToken.mint(10_000_000, undefined, buyer.address);
 
-    await context.buyingToken.sendIdo(context.idoB.address, amount, undefined, buyer);
+    await context.buyingToken.sendIdo(
+      context.idoB.address,
+      amount,
+      undefined,
+      buyer
+    );
 
     const buyBalanceAfter = await context.buyingToken.balance(
       buyer.address,
@@ -579,18 +554,16 @@ describe("IDO", () => {
     });
     await context.idoB.instantiate(context.agent);
 
-    const statusBefore = await context.idoB.q.sale_status();
-    assert.strictEqual(statusBefore.status.is_active, false);
+    const ido = new IdoContract(context.idoB.address, context.agent.API);
+
+    const statusBefore = await ido.query().get_sale_status();
+    assert.strictEqual(statusBefore.is_active, false);
 
     await context.sellingToken.mint(25, undefined, context.idoB.address);
-    await context.sellingToken.tx.send({
-      recipient: context.idoB.address,
-      amount: "0",
-      msg: activate_msg(undefined, parseInt(new Date().valueOf() / 1000) + 60),
-    });
+    await ido.exec().activate("0", parseInt(new Date().valueOf() / 1000) + 60);
 
-    const statusAfter = await context.idoB.q.sale_status();
-    assert.strictEqual(statusAfter.status.is_active, true);
+    const statusAfter = await ido.query().get_sale_status();
+    assert.strictEqual(statusAfter.is_active, true);
   });
 
   after(async function cleanupAll() {
