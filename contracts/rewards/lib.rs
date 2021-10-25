@@ -20,6 +20,7 @@
 pub mod algo;
 pub mod auth;
 pub mod core;
+pub mod keys;
 pub mod math;
 pub mod migration;
 
@@ -43,7 +44,6 @@ use crate::{
         RewardsHandle,
         RewardsQuery,
         RewardsResponse,
-        Pool
     },
     math::*,
     migration::*
@@ -216,10 +216,7 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 }
 
-impl<S: Storage, A: Api, Q: Querier> Auth<S, A, Q> for Extern<S, A, Q> {}
-
-impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for Extern<S, A, Q> {}
-
 impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q> for Extern<S, A, Q> {}
-
+impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for Extern<S, A, Q> {}
+impl<S: Storage, A: Api, Q: Querier> Auth<S, A, Q> for Extern<S, A, Q> {}
 impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for Extern<S, A, Q> {}
