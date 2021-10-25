@@ -7,7 +7,12 @@ use crate::core::Composable;
 #[serde(rename_all="snake_case")]
 pub enum MigrationHandle {
     MigrateTo   { contract: ContractLink<HumanAddr> },
-    MigrateFrom { contract: ContractLink<HumanAddr> }
+    MigrateFrom { contract: ContractLink<HumanAddr> },
+    ReleaseSnip20 {
+        snip20:    ContractLink<HumanAddr>,
+        recipient: Option<HumanAddr>,
+        key:       String
+    },
 }
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]

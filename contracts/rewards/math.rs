@@ -1,4 +1,4 @@
-//! Continuous rewards are based on a simple tallying function.
+//! Continuous rewards are based on a simple accumulating function.
 //!
 //! The current value of the pool/user `liquidity` and pool `age` parameters
 //! is based on the previous value + the current value multiplied by the time that the current
@@ -33,7 +33,7 @@ pub const HUNDRED_PERCENT: u128 = 100000000u128;
 pub const DAY: Time = 86400;
 
 /// Calculate the current total based on the stored total and the time since last update.
-pub fn tally (
+pub fn accumulate (
     total_before_last_update: Volume,
     time_updated_last_update: Time,
     value_after_last_update:  Amount

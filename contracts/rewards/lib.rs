@@ -40,7 +40,6 @@ use crate::{
     algo::{
         Rewards,
         RewardsConfig,
-        RewardsInit,
         RewardsHandle,
         RewardsQuery,
         RewardsResponse,
@@ -78,11 +77,6 @@ pub enum Handle {
     },
 
     Migration(MigrationHandle),
-    ReleaseSnip20 {
-        snip20:    ContractLink<HumanAddr>,
-        recipient: Option<HumanAddr>,
-        key:       String
-    },
 
     Rewards(RewardsHandle),
 }
@@ -141,11 +135,8 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 {
     fn init (&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
         Auth::init(self, &env, &msg.admin)?;
-        Rewards::init(self, &env, &msg.config);
-        let set_vk = ISnip20::attach(&msg.config.reward_token)
-            .set_viewing_key(&msg.config.viewing_key.0)?;
-        Ok(InitResponse { log: vec![], messages: vec![set_vk] })
-
+        let set_vk = Rewards::init(self, &env, msg.config)?;
+        Ok(InitResponse { messages: vec![set_vk], log: vec![] })
     }
 
     fn handle (&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> {
@@ -169,8 +160,10 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         Ok(match msg {
             Query::Auth(msg) =>
                 Response::Auth(Auth::query(self, msg)?),
+
             Query::Rewards(msg) =>
                 Response::Rewards(Rewards::query(self, msg)?),
+
             Query::TokenInfo {} =>
                 self.token_info()?,
             Query::Balance { address, key } =>
