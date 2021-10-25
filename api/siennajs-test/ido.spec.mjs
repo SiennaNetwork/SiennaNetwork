@@ -3,12 +3,12 @@ import { assert } from "chai";
 import { randomBytes } from "crypto";
 import { Scrt, ScrtGas } from "@fadroma/scrt";
 
-import { SiennaSNIP20 } from "./index";
-import { SNIP20 } from "./SNIP20.ts";
-import { IDO } from "./IDO.ts";
-import { Factory } from "./Factory.ts";
+import { SiennaSNIP20 } from "../index";
+import { SNIP20 } from "../SNIP20.ts";
+import { IDO } from "../IDO.ts";
+import { Factory } from "../Factory.ts";
 
-import siennajs from "./siennajs/index";
+import siennajs from "../siennajs/index";
 
 const IdoContract = siennajs.ido.IdoContract;
 const Snip20Contract = siennajs.snip20.Snip20Contract;

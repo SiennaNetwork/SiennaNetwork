@@ -3,11 +3,11 @@ import { assert } from "chai";
 import { randomBytes } from "crypto";
 import { Scrt, ScrtGas } from "@fadroma/scrt";
 
-import { Launchpad } from "./Launchpad";
-import { SNIP20 } from "./SNIP20";
-import { Factory } from "./Factory";
+import { Launchpad } from "../Launchpad";
+import { SNIP20 } from "../SNIP20";
+import { Factory } from "../Factory";
 
-import siennajs from "./siennajs/index";
+import siennajs from "../siennajs/index";
 
 const LaunchpadContract = siennajs.launchpad.LaunchpadContract;
 const Snip20Contract = siennajs.snip20.Snip20Contract;
