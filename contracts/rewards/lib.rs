@@ -52,13 +52,8 @@ use crate::{
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub struct Init {
-    admin:        Option<HumanAddr>,
-    lp_token:     Option<ContractLink<HumanAddr>>,
-    reward_token: ContractLink<HumanAddr>,
-    viewing_key:  ViewingKey,
-    ratio:        Option<Ratio>,
-    threshold:    Option<Time>,
-    cooldown:     Option<Time>
+    admin:  Option<HumanAddr>,
+    config: RewardsConfig
 }
 
 pub fn init <S: Storage + AsRef<S> + AsMut<S>, A: Api, Q: Querier> (
@@ -145,23 +140,10 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Migration<S, A, Q>
 {
     fn init (&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
-
         Auth::init(self, &env, &msg.admin)?;
-
-        let set_vk =  ISnip20::attach(&msg.reward_token)
-            .set_viewing_key(&msg.viewing_key.0)?;
-
-        Rewards::init(self, &env, &RewardsInit {
-            reward_token: msg.reward_token,
-            viewing_key:  msg.viewing_key,
-            config: RewardsConfig {
-                lp_token:  msg.lp_token,
-                ratio:     msg.ratio,
-                threshold: msg.threshold,
-                cooldown:  msg.cooldown
-            }
-        })?;
-
+        Rewards::init(self, &env, &msg.config);
+        let set_vk = ISnip20::attach(&msg.config.reward_token)
+            .set_viewing_key(&msg.config.viewing_key.0)?;
         Ok(InitResponse { log: vec![], messages: vec![set_vk] })
 
     }
@@ -208,11 +190,11 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     fn balance (&self, address: HumanAddr, key: ViewingKey) -> StdResult<Response> {
-        let address = self.canonize(address)?;
-        Auth::check_viewing_key(self, &key, address.as_slice())?;
-        let user = Pool::new().user(&self.storage(), address);
-        let amount = user.locked.get(&self.storage())?;
-        Ok(Response::Balance { amount })
+        let id = self.canonize(address)?;
+        Auth::check_viewing_key(self, &key, id.as_slice())?;
+        Ok(Response::Balance {
+            amount: self.get_ns(keys::user::LOCKED, id.as_slice())?
+        })
     }
 }
 
