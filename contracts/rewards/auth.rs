@@ -7,33 +7,40 @@ use crate::core::Composable;
 const ADMIN_KEY:    &[u8] = b"ltp5P6sFZT";
 const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
 
-messages!(AuthHandle {
-    ChangeAdmin      { address: HumanAddr }
-    CreateViewingKey { entropy: String, padding: Option<String> }
+#[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
+#[serde(rename_all="snake_case")]
+pub enum AuthHandle {
+    ChangeAdmin      { address: HumanAddr },
+    CreateViewingKey { entropy: String, padding: Option<String> },
     SetViewingKey    { key:     String, padding: Option<String> }
-});
+}
 
-messages!(AuthQuery {
+#[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
+#[serde(rename_all="snake_case")]
+pub enum AuthQuery {
     Admin
-});
+}
 
-messages!(AuthResponse {
+#[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
+#[serde(rename_all="snake_case")]
+pub enum AuthResponse {
     Admin {
         address: HumanAddr
-    }
+    },
     CreateViewingKey {
         key: ViewingKey
     }
-});
+}
 
 pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn init (&mut self, env: &Env, admin: &Option<HumanAddr>) -> StdResult<()> {
-        let admin = admin.unwrap_or(env.message.sender.clone());
-        self.admin.set(&self.api().canonical_address(&admin)?)
+        self.set(b"/admin", &self.api().canonical_address(
+            &admin.unwrap_or(env.message.sender.clone())
+        )?)
     }
 
-    fn handle (&mut self, env: &Env, msg: &AuthHandle) -> StdResult<Option<HandleResponse>> {
+    fn handle (&mut self, env: Env, msg: AuthHandle) -> StdResult<HandleResponse> {
         match msg {
             AuthHandle::ChangeAdmin { address } =>
                 self.change_admin(env, address),
@@ -44,15 +51,15 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         }
     }
 
-    fn query (&self, msg: &Query) -> StdResult<Option<Binary>> {
-        match msg {
+    fn query (&self, msg: AuthQuery) -> StdResult<AuthResponse> {
+        Ok(match msg {
             AuthQuery::Admin =>
-                to_binary(&AuthResponse::Admin { address: self.load_admin()? })
-        }
+                AuthResponse::Admin { address: self.load_admin()? }
+        })
     }
 
-    fn change_admin(&self, env: &Env, address: HumanAddr,) -> StdResult<HandleResponse> {
-        self.assert_admin(env)?;
+    fn change_admin(&self, env: Env, address: HumanAddr) -> StdResult<HandleResponse> {
+        self.assert_admin(&env)?;
         self.save_admin(&address)?;
         Ok(HandleResponse::default())
     }
@@ -82,7 +89,7 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         }
     }
 
-    fn create_viewing_key(&self, env: &Env, entropy: String) -> StdResult<HandleResponse> {
+    fn create_viewing_key(&self, env: Env, entropy: String) -> StdResult<HandleResponse> {
         let prng_seed = [ 
             env.block.time.to_be_bytes(),
             env.block.height.to_be_bytes() 
@@ -98,8 +105,8 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         })
     }
 
-    fn set_viewing_key(&self, env: &Env, key: String) -> StdResult<HandleResponse> {
-        let key = ViewingKey(key);
+    fn set_viewing_key(&self, env: Env, key: String) -> StdResult<HandleResponse> {
+        let key = ViewingKey(key.to_string());
         let address = self.api().canonical_address(&env.message.sender)?;
         self.save_viewing_key(address.as_slice(), &key)?;
         Ok(HandleResponse::default())
@@ -121,11 +128,11 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
     }
 
     fn save_viewing_key(&mut self, key: &[u8], viewing_key: &ViewingKey) -> StdResult<()> {
-        ns_save(self.storage(), VIEWING_KEYS, key, &viewing_key)
+        ns_save(&mut self.storage(), VIEWING_KEYS, key, &viewing_key)
     }
 
     fn load_viewing_key(&self, key: &[u8],) -> StdResult<Option<ViewingKey>> {
-        ns_load(self.storage(), VIEWING_KEYS, key)
+        ns_load(&self.storage(), VIEWING_KEYS, key)
     }
 
 }

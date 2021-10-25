@@ -474,7 +474,8 @@ pub fn load_reward_balance (
         let lp_balance = Pool::new(&deps.storage).locked()?;
         reward_balance = (reward_balance - lp_balance)?; }
 
-    Ok(reward_balance) }
+    Ok(reward_balance)
+}
 
 #[cfg(feature="pool_closes")]
 /// Returns either a "pool closed" HandleResponse
