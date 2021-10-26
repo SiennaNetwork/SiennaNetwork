@@ -71,7 +71,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             messages.push(self.set_own_vk(&reward_vk)?);
         }
         if let Some(lp_token) = &config.lp_token {
-            self.set(pool::LP_TOKEN, &self.canonize(*lp_token)?);
+            self.set(pool::LP_TOKEN, &self.canonize(lp_token.clone())?);
         }
         if let Some(ratio) = &config.ratio {
             self.set(pool::RATIO, &ratio);
@@ -102,7 +102,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         // Increment user and pool liquidity
         user.locked += deposited;
         pool.locked += deposited;
-        let id = self.canonize(env.message.sender)?;
+        let id = self.canonize(env.message.sender.clone())?;
         self.update_locked(&pool, &user, &id);
 
         // Update stored value
@@ -138,7 +138,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         // Decrement user and pool liquidity
         pool.locked = (pool.locked - withdrawn)?;
         user.locked = (user.locked - withdrawn)?;
-        let id = self.canonize(env.message.sender)?;
+        let id = self.canonize(env.message.sender.clone())?;
         self.update_locked(&pool, &user, &id);
 
         self.after_user_action(env.block.time, &pool, &user, &id)?;
@@ -146,7 +146,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         // Transfer liquidity provision tokens from the contract to the user
         let lp_link  = &self.humanize(self.get::<ContractLink<CanonicalAddr>>(pool::LP_TOKEN)?)?;
         let lp_token = ISnip20::attach(lp_link);
-        let transfer = lp_token.transfer(&env.message.sender, withdrawn)?;
+        let transfer = lp_token.transfer(&env.message.sender.clone(), withdrawn)?;
         Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
 
     }
@@ -174,7 +174,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         // Increment claimed counters
         user.claimed += user.claimable;
         pool.claimed += user.claimable;
-        let id = self.canonize(env.message.sender)?;
+        let id = self.canonize(env.message.sender.clone())?;
         self.update_claimed(&pool, &user, &id);
 
         // Update user timestamp, and the things synced to it.
@@ -192,9 +192,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         }
 
         // Transfer reward tokens from the contract to the user
-        let reward_link  = self.get::<ContractLink<CanonicalAddr>>(pool::REWARD_TOKEN)?;
-        let reward_token = ISnip20::attach(&self.humanize(reward_link)?);
-        let transfer = reward_token.transfer(&env.message.sender, user.claimable)?;
+        let reward_link  = self.humanize(self.get::<ContractLink<CanonicalAddr>>(pool::REWARD_TOKEN)?)?;
+        let reward_token = ISnip20::attach(&reward_link);
+        let transfer     = reward_token.transfer(&env.message.sender, user.claimable)?;
         Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
 
     }
@@ -217,7 +217,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         }
 
         // Get user state
-        let id = self.canonize(env.message.sender)?;
+        let id = self.canonize(env.message.sender.clone())?;
         let user = self.get_user_status(&pool, id)?;
         if user.updated > now {
             return Err(StdError::generic_err("no time travel"))
@@ -316,11 +316,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     fn get_pool_status (&self, now: Time) -> StdResult<Pool> {
 
         let updated = self.get(pool::UPDATED)?;
-
         if now < updated {
             return Err(StdError::generic_err("this contract does not store history"))
         }
-
         let elapsed = now - updated;
 
         let locked   = self.get(pool::LOCKED)?;
