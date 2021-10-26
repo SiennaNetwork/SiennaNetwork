@@ -78,7 +78,7 @@ impl TokenPair<HumanAddr> {
 
 impl<A: PartialEq> PartialEq for TokenPair<A> {
     fn eq(&self, other: &TokenPair<A>) -> bool {
-        (self.0 == other.0 || self.0 == other.1) && (self.1 == other.0 || self.1 == other.1)
+        (self.0 == other.0 && self.1 == other.1) || (self.0 == other.1 && self.1 == other.0)
     }
 }
 
@@ -157,8 +157,27 @@ mod tests {
 
         let pair2 = TokenPair(pair.1.clone(), pair.0.clone());
 
-        assert_eq!(pair, pair.clone());
-        assert_eq!(pair2, pair2.clone());
+        assert_eq!(pair, pair);
+        assert_eq!(pair2, pair2);
         assert_eq!(pair, pair2);
+
+        let pair2 = TokenPair(pair.1.clone(), pair.1.clone());
+
+        assert_eq!(pair2, pair2);
+        assert_ne!(pair, pair2);
+
+        let pair2 = TokenPair(pair.1.clone(), TokenType::CustomToken {
+            contract_addr: "address2".into(),
+            token_code_hash: "hash2".into(),
+        });
+
+        assert_eq!(pair, pair);
+        assert_eq!(pair2, pair2);
+        assert_ne!(pair, pair2);
+
+        let pair2_reversed = TokenPair(pair2.1.clone(), pair2.0.clone());
+
+        assert_eq!(pair2_reversed, pair2);
+        assert_ne!(pair, pair2);
     }
 }
