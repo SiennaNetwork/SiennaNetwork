@@ -19,7 +19,6 @@
 #[cfg(test)] mod test_2;
 pub mod algo;
 pub mod auth;
-pub mod core;
 pub mod keys;
 pub mod math;
 pub mod migration;
@@ -30,7 +29,6 @@ use fadroma::{message, messages};
 use std::cell::RefCell;
 
 use crate::{
-    core::*,
     auth::{
         Auth,
         AuthHandle,
@@ -173,7 +171,7 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     fn token_info (&self) -> StdResult<Response> {
         let link = self.humanize(self.get(b"/lp_token")?)?;
-        let info = ISnip20::attach(&link).query(&self.querier()).token_info()?;
+        let info = ISnip20::attach(&link).query_token_info(self.querier())?;
         Ok(Response::TokenInfo {
             name:         format!("Sienna Rewards: {}", info.name),
             symbol:       "SRW".into(),

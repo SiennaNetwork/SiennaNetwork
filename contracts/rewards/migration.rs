@@ -1,8 +1,6 @@
 pub use fadroma::*;
 pub use fadroma::messages;
 
-use crate::core::Composable;
-
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub enum MigrationHandle {

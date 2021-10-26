@@ -8,7 +8,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Auth<S, A, Q>
 {
 
-    /// Initialize the rewards module
     fn init (&mut self, env: &Env, config: RewardsConfig) -> StdResult<CosmosMsg> {
 
         let config = RewardsConfig {
@@ -25,22 +24,23 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         self.set(pool::SELF, &self.canonize(ContractLink {
             address:   env.contract.address.clone(),
             code_hash: env.contract_code_hash.clone()
-        })?);
+        })?)?;
 
-        self.handle_configure(&config)?;
+        let set_vk = self.set_own_vk(&config.reward_vk.clone().unwrap())?;
 
-        self.set_own_vk(&config.reward_vk.unwrap())
+        self.handle_configure(config)?;
+
+        Ok(set_vk)
 
     }
 
-    /// Handle transactions
     fn handle (&mut self, env: Env, msg: RewardsHandle) -> StdResult<HandleResponse> {
 
         match msg {
 
             RewardsHandle::Configure(config) => {
                 Auth::assert_admin(self, &env)?;
-                self.handle_configure(&config)
+                self.handle_configure(config)
             },
 
             RewardsHandle::Lock { amount } =>
@@ -59,8 +59,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     }
 
-    /// Store configuration values
-    fn handle_configure (&mut self, config: &RewardsConfig) -> StdResult<HandleResponse> {
+    fn handle_configure (&mut self, config: RewardsConfig) -> StdResult<HandleResponse> {
 
         let mut messages = vec![];
 
@@ -71,7 +70,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             messages.push(self.set_own_vk(&reward_vk)?);
         }
         if let Some(lp_token) = &config.lp_token {
-            self.set(pool::LP_TOKEN, &self.canonize(*lp_token)?);
+            //self.set(pool::LP_TOKEN, &self.canonize(*lp_token)?);
         }
         if let Some(ratio) = &config.ratio {
             self.set(pool::RATIO, &ratio);
@@ -87,74 +86,46 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     }
 
-    /// Store a viewing key for the reward balance and
-    /// generate a transaction to set it in the corresponding token contract
     fn set_own_vk (&mut self, vk: &String) -> StdResult<CosmosMsg> {
         self.set(pool::REWARD_VK, &vk);
         ISnip20::attach(&self.get(pool::REWARD_TOKEN)?).set_viewing_key(&vk)
     }
 
-    /// Deposit LP tokens from user into pool
-    fn handle_deposit (&mut self, env: Env, deposited: Amount) -> StdResult<HandleResponse> {
+    fn handle_deposit (&mut self, env: Env, amount: Amount) -> StdResult<HandleResponse> {
 
-        let (mut pool, mut user) = self.before_user_action(&env)?;
+        let address = env.message.sender;
 
         // Increment user and pool liquidity
-        user.locked += deposited;
-        pool.locked += deposited;
-        let id = self.canonize(env.message.sender)?;
-        self.update_locked(&pool, &user, &id);
-
-        // Update stored value
-        self.after_user_action(env.block.time, &pool, &user, &id)?;
+        //self.update(&env, amount, Amount::zero(), Amount::zero())?;
 
         // Transfer liquidity provision tokens from the user to the contract
-        let lp_link  = &self.humanize(self.get::<ContractLink<CanonicalAddr>>(pool::LP_TOKEN)?)?;
-        let lp_token = ISnip20::attach(lp_link);
-        let transfer = lp_token.transfer_from(&env.message.sender, &env.contract.address, deposited)?;
+        let lp_link  = self.humanize(self.get(pool::LP_TOKEN)?)?;
+        let lp_token = ISnip20::attach(&lp_link);
+        let transfer = lp_token.transfer_from(&address, &env.contract.address, amount)?;
         Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
 
     }
 
-    /// Withdraw deposited LP tokens from pool back to the user
-    fn handle_withdraw (&mut self, env: Env, withdrawn: Uint128) -> StdResult<HandleResponse> {
+    fn handle_withdraw (&mut self, env: Env, amount: Uint128) -> StdResult<HandleResponse> {
 
-        let (mut pool, mut user) = self.before_user_action(&env)?;
-
-        // User must have enough locked to retrieve
-        if user.locked < withdrawn {
-            return Err(StdError::generic_err(format!(
-                "not enough locked ({} < {})", user.locked, withdrawn
-            )))
-        }
-
-        // If pool does not have enough lp tokens then something has gone badly wrong
-        if pool.locked < withdrawn {
-            return Err(StdError::generic_err(format!(
-                "FATAL: not enough tokens in pool ({} < {})", pool.locked, withdrawn
-            )))
-        }
+        let address = env.message.sender;
 
         // Decrement user and pool liquidity
-        pool.locked = (pool.locked - withdrawn)?;
-        user.locked = (user.locked - withdrawn)?;
-        let id = self.canonize(env.message.sender)?;
-        self.update_locked(&pool, &user, &id);
-
-        self.after_user_action(env.block.time, &pool, &user, &id)?;
+        //self.update(&env, Amount::zero(), amount, Amount::zero())?;
 
         // Transfer liquidity provision tokens from the contract to the user
-        let lp_link  = &self.humanize(self.get::<ContractLink<CanonicalAddr>>(pool::LP_TOKEN)?)?;
-        let lp_token = ISnip20::attach(lp_link);
-        let transfer = lp_token.transfer(&env.message.sender, withdrawn)?;
+        let lp_link  = self.humanize(self.get(pool::LP_TOKEN)?)?;
+        let lp_token = ISnip20::attach(&lp_link);
+        let transfer = lp_token.transfer(&address, amount)?;
         Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
 
     }
 
-    /// Transfer rewards to user if eligible
     fn handle_claim (&mut self, env: Env) -> StdResult<HandleResponse> {
 
-        let (mut pool, mut user) = self.before_user_action(&env)?;
+        let pool = self.get_pool_status(env.block.time)?;
+        let id   = CanonicalAddr::default();//self.canonize(env.message.sender)?;
+        let user = self.get_user_status(&pool, id)?;
 
         // If user must wait before first claim, enforce that here.
         enforce_cooldown(user.present, pool.threshold)?;
@@ -171,14 +142,11 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             ))
         }
 
-        // Increment claimed counters
-        user.claimed += user.claimable;
-        pool.claimed += user.claimable;
-        let id = self.canonize(env.message.sender)?;
-        self.update_claimed(&pool, &user, &id);
-
         // Update user timestamp, and the things synced to it.
-        self.after_user_action(env.block.time, &pool, &user, &id)?;
+        //self.update(&env, Amount::zero(), Amount::zero(), user.claimable)?;
+
+        // Reset the cooldown, so that the user has to wait before claiming again)
+        //self.set_ns(user::COOLDOWN, id.as_slice(), pool.cooldown)?;
 
         if user.locked == Amount::zero() {
             // Optionally, reset the user's `lifetime` and `share` if they have currently
@@ -187,67 +155,96 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             // at some point, when they come back they have to start over, which is OK
             // because they can then start claiming rewards immediately, without waiting
             // for threshold, only cooldown.
-            self.set_ns(user::LIFETIME, id.as_slice(), Volume::zero())?;
-            self.set_ns(user::CLAIMED,  id.as_slice(), Amount::zero())?;
+            //self.set_ns(user::LIFETIME, id.as_slice(), Volume::zero())?;
+            //self.set_ns(user::CLAIMED,  id.as_slice(), Amount::zero())?;
         }
 
         // Transfer reward tokens from the contract to the user
-        let reward_link  = self.get::<ContractLink<CanonicalAddr>>(pool::REWARD_TOKEN)?;
-        let reward_token = ISnip20::attach(&self.humanize(reward_link)?);
-        let transfer = reward_token.transfer(&env.message.sender, user.claimable)?;
-        Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
+        let reward_token = ISnip20::attach(&self.humanize(self.get(pool::REWARD_TOKEN)?)?);
+        //let transfer = reward_token.transfer(&env.message.sender, user.claimable)?;
+        Ok(HandleResponse {messages: vec![/*transfer*/], log: vec![/*TODO*/], data: None})
 
     }
 
-    /// Admin can mark pool as closed
     fn handle_close_pool (&mut self, env: Env, message: String) -> StdResult<HandleResponse> {
         Auth::assert_admin(self, &env);
         self.set(pool::CLOSED, Some((env.block.time, message)));
         Ok(HandleResponse::default())
     }
 
-    /// Get user and pool status, prevent replays
-    fn before_user_action (&mut self, env: &Env) -> StdResult<(Pool, User)> {
+    /// Commit rolling values to storage
+    /// Every time the amount of tokens locked in the pool is updated,
+    /// the pool's lifetime liquidity is tallied and and the timestamp is updated.
+    fn update (
+        &mut self,
+        env:       &Env,
+        deposited: Amount,
+        withdrawn: Amount,
+        reward:    Amount
+    ) -> StdResult<()> {
 
         // Get pool state
         let now = env.block.time;
-        let pool = self.get_pool_status(now)?;
+        let mut pool = self.get_pool_status(now)?;
         if pool.updated > now {
             return Err(StdError::generic_err("no time travel"))
         }
 
         // Get user state
-        let id = self.canonize(env.message.sender)?;
-        let user = self.get_user_status(&pool, id)?;
+        let id  = CanonicalAddr::default();//self.canonize(env.message.sender)?;
+        let mut user = self.get_user_status(&pool, id)?;
         if user.updated > now {
             return Err(StdError::generic_err("no time travel"))
         }
 
-        Ok((pool, user))
-    }
+        // Add deposits
+        if deposited > Amount::zero() {
+            user.locked += deposited;
+            pool.locked += deposited;
+        }
 
-    /// Commit amount of locked tokens for user and pool
-    fn update_locked (
-        &mut self, pool: &Pool, user: &User, id: &CanonicalAddr
-    ) -> StdResult<()> {
-        self.set_ns(user::LOCKED, id.as_slice(), user.locked)?;
-        self.set(pool::LOCKED, pool.locked)
-    }
+        // Subtract withdrawals
+        if withdrawn > Amount::zero() {
+            // User must have enough locked to retrieve
+            if user.locked < withdrawn {
+                return Err(StdError::generic_err(format!(
+                    "not enough locked ({} < {})", user.locked, withdrawn
+                )))
+            }
+            user.locked = (user.locked - withdrawn)?;
 
-    /// Commit amount of rewards claimed for user and pool, and reset the cooldown
-    fn update_claimed (
-        &mut self, pool: &Pool, user: &User, id: &CanonicalAddr
-    ) -> StdResult<()> {
-        self.set_ns(user::CLAIMED, id.as_slice(), user.claimed)?;
-        self.set(pool::CLAIMED, pool.claimed)?;
-        self.set_ns(user::COOLDOWN, id.as_slice(), pool.cooldown)
-    }
+            // If pool does not have enough lp tokens then something has gone badly wrong
+            if pool.locked < withdrawn {
+                return Err(StdError::generic_err(format!(
+                    "FATAL: not enough tokens in pool ({} < {})", pool.locked, withdrawn
+                )))
+            }
+            pool.locked = (pool.locked - withdrawn)?;
+        }
 
-    /// Commit remaining values to storage
-    fn after_user_action (
-        &mut self, now: Time, pool: &Pool, user: &User, id: &CanonicalAddr
-    ) -> StdResult<()> {
+        // Accumulate claims
+        if reward > Amount::zero() {
+            user.claimed += reward;
+            pool.claimed += reward;
+            //self.set_ns(user::CLAIMED, id.as_slice(), user.claimed)?;
+            self.set(pool::CLAIMED, pool.claimed)?;
+        }
 
+        // Save updates to balances
+        if deposited > Amount::zero() || withdrawn > Amount::zero() {
+            //self.set_ns(user::LOCKED, id.as_slice(), user.locked)?;
+            self.set(pool::LOCKED, pool.locked)?;
+        }
+
+        //self.set_ns(user::EXISTED,  id.as_slice(), user.existed)?;
+        //self.set_ns(user::PRESENT,  id.as_slice(), user.present)?;
+        //self.set_ns(user::COOLDOWN, id.as_slice(), user.cooldown)?;
+        //self.set_ns(user::LIFETIME, id.as_slice(), user.lifetime)?;
+        //self.set_ns(user::UPDATED,  id.as_slice(), now)?;
+
+        self.set(pool::LIQUID,    pool.liquid)?;
+        self.set(pool::LIFETIME,  pool.lifetime)?;
+        self.set(pool::UPDATED, now)?;
         match pool.seeded {
             None => {
                 // If this is the first time someone is locking tokens in this pool,
@@ -264,21 +261,10 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             },
             _ => {}
         };
-        self.set(pool::LIQUID,   pool.liquid)?;
-        self.set(pool::LIFETIME, pool.lifetime)?;
-        self.set(pool::UPDATED,  now)?;
-
-        self.set_ns(user::EXISTED,  id.as_slice(), user.existed)?;
-        self.set_ns(user::PRESENT,  id.as_slice(), user.present)?;
-        self.set_ns(user::COOLDOWN, id.as_slice(), user.cooldown)?;
-        self.set_ns(user::LIFETIME, id.as_slice(), user.lifetime)?;
-        self.set_ns(user::UPDATED,  id.as_slice(), now)?;
 
         Ok(())
-
     }
 
-    /// Handle queries
     fn query (&self, msg: RewardsQuery) -> StdResult<RewardsResponse> {
         match msg {
             RewardsQuery::Status { at, address, key } =>
@@ -286,11 +272,12 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         }
     }
 
-    /// Report pool status and optionally user status, at a given time
     fn query_status (
-        &self, now: Time, address: Option<HumanAddr>, key: Option<String>
+        &self,
+        now:     Time,
+        address: Option<HumanAddr>,
+        key:     Option<String>
     ) -> StdResult<RewardsResponse> {
-
         if address.is_some() && key.is_none() {
             return Err(StdError::generic_err("no viewing key"))
         }
@@ -309,11 +296,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         };
 
         Ok(RewardsResponse::Status { time: now, pool, user })
-
     }
 
-    /// Compute pool status
-    fn get_pool_status (&self, now: Time) -> StdResult<Pool> {
+    fn get_pool_status (&self, now: Time) -> StdResult<PoolStatus> {
 
         let updated = self.get(pool::UPDATED)?;
 
@@ -323,10 +308,12 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
         let elapsed = now - updated;
 
-        let locked   = self.get(pool::LOCKED)?;
+        let locked = self.get(pool::LOCKED)?;
+
         let lifetime = accumulate(self.get(pool::LIFETIME)?, elapsed, locked)?;
 
-        let seeded  = self.get::<Option<Time>>(pool::SEEDED)?;
+        let seeded = self.get::<Option<Time>>(pool::SEEDED)?;
+
         let existed = if let Some(seeded) = seeded {
             if now < seeded {
                 return Err(StdError::generic_err("no time travel"))
@@ -342,10 +329,12 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let reward_link = self.humanize(
             self.get::<ContractLink<CanonicalAddr>>(pool::REWARD_TOKEN)?
         )?;
-        let self_link   = self.humanize(self.get::<ContractLink<CanonicalAddr>>(pool::SELF)?)?;
-        let rewards_vk  = self.get::<ViewingKey>(pool::REWARD_VK)?.0;
-        let mut balance = ISnip20::attach(&reward_link)
-            .query_balance(self.querier(), &self_link.address, &rewards_vk)?;
+
+        let mut balance = ISnip20::attach(&reward_link).query_balance(
+            self.querier(),
+            &self.humanize(self.get(pool::SELF)?)?,
+            &self.get::<ViewingKey>(pool::REWARD_VK)?.0
+        )?;
 
         let lp_link = self.humanize(
             self.get::<ContractLink<CanonicalAddr>>(pool::LP_TOKEN)?
@@ -360,7 +349,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
         let vested  = claimed + balance;
 
-        Ok(Pool {
+        Ok(PoolStatus {
             now,
             seeded,
             updated,
@@ -382,8 +371,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         })
     }
 
-    /// Compute user status
-    fn get_user_status (&self, pool: &Pool, id: CanonicalAddr) -> StdResult<User> {
+    fn get_user_status (
+        &self, pool: &PoolStatus, id: CanonicalAddr
+    ) -> StdResult<UserStatus> {
 
         let now = pool.now;
 
@@ -405,13 +395,16 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
         let locked = self.get_ns(user::LOCKED, id.as_slice())?;
 
-        let lifetime = accumulate(
-            self.get_ns(user::LIFETIME, id.as_slice())?,
-            elapsed,
-            locked)?;
+        let lifetime = accumulate(self.get_ns(user::LIFETIME, id.as_slice())?, elapsed, locked)?;
 
         let present = self.get_ns::<Time>(user::PRESENT, id.as_slice())? +
             if locked > Amount::zero() { elapsed } else { 0 };
+
+        let presence = (present, existed);
+
+        let momentary_share = (locked, pool.locked);
+
+        let lifetime_share = (lifetime, pool.lifetime);
 
         let budget = Amount::from(pool.vested)
             .diminish_or_zero(pool.liquid, pool.existed.unwrap_or(0))?
@@ -447,19 +440,16 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             }
         };
 
-        Ok(User {
+        Ok(UserStatus {
             registered,
-
             existed,
             present,
-            presence: (present, existed),
 
             updated,
             locked,
-            momentary_share: (locked, pool.locked),
-
+            momentary_share,
             lifetime,
-            lifetime_share: (lifetime, pool.lifetime),
+            lifetime_share,
 
             earned,
             claimed,
@@ -509,14 +499,14 @@ pub enum RewardsQuery {
 pub enum RewardsResponse {
     Status {
         time: Time,
-        pool: Pool,
-        user: Option<User>
+        pool: PoolStatus,
+        user: Option<UserStatus>
     }
 }
 
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
-pub struct Pool {
+pub struct PoolStatus {
     /// "For what point in time do the following values hold true?"
     /// Passed on instantiation.
     now:          Time,
@@ -582,7 +572,7 @@ pub struct Pool {
 
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
-pub struct User {
+pub struct UserStatus {
 
     /// When did this user first provide liquidity?
     /// Set to current time on first update.
@@ -592,15 +582,17 @@ pub struct User {
     /// Computed as pool.now - user.registered
     existed:         Time,
 
-    /// When did this user's liquidity amount last change?
-    /// Set to current time on update.
-    updated:         Time,
-
     /// For how much time this user has provided non-zero liquidity?
     /// Incremented on update by user.elapsed if user.locked > 0
     present:         Time,
 
-    presence: (Time, Time),
+    /// When did this user's liquidity amount last change?
+    /// Set to current time on update.
+    updated:         Time,
+
+    /// How much liquidity has this user provided since they first appeared?
+    /// Incremented on update by user.locked * elapsed if user.locked > 0
+    lifetime:        Volume,
 
     /// How much liquidity does this user currently provide?
     /// Incremented/decremented on lock/unlock.
@@ -609,10 +601,6 @@ pub struct User {
     /// What portion of the pool is this user currently contributing?
     /// Computed as user.locked / pool.locked
     momentary_share: (Amount, Amount),
-
-    /// How much liquidity has this user provided since they first appeared?
-    /// Incremented on update by user.locked * elapsed if user.locked > 0
-    lifetime:        Volume,
 
     /// What portion of all the liquidity has this user ever contributed?
     /// Computed as user.lifetime / pool.lifetime

@@ -2,8 +2,6 @@ use fadroma::*;
 use fadroma::messages;
 pub use fadroma::ViewingKey;
 
-use crate::core::Composable;
-
 const ADMIN_KEY:    &[u8] = b"ltp5P6sFZT";
 const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
 
@@ -35,9 +33,10 @@ pub enum AuthResponse {
 pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn init (&mut self, env: &Env, admin: &Option<HumanAddr>) -> StdResult<()> {
-        self.set(b"/admin", &self.api().canonical_address(
-            &admin.unwrap_or(env.message.sender.clone())
-        )?)
+        //self.set(b"/admin", &self.api().canonical_address(
+            //&admin.unwrap_or(env.message.sender.clone())
+        //)?)
+        Ok(())
     }
 
     fn handle (&mut self, env: Env, msg: AuthHandle) -> StdResult<HandleResponse> {
@@ -58,7 +57,7 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         })
     }
 
-    fn change_admin(&self, env: Env, address: HumanAddr) -> StdResult<HandleResponse> {
+    fn change_admin(&mut self, env: Env, address: HumanAddr) -> StdResult<HandleResponse> {
         self.assert_admin(&env)?;
         self.save_admin(&address)?;
         Ok(HandleResponse::default())
@@ -76,7 +75,7 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn save_admin(&mut self, address: &HumanAddr) -> StdResult<()> {
         let admin = self.api().canonical_address(address)?;
-        self.storage().set(ADMIN_KEY, &admin.as_slice());
+        self.set(ADMIN_KEY, &admin.as_slice());
         Ok(())
     }
 
@@ -89,7 +88,7 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         }
     }
 
-    fn create_viewing_key(&self, env: Env, entropy: String) -> StdResult<HandleResponse> {
+    fn create_viewing_key(&mut self, env: Env, entropy: String) -> StdResult<HandleResponse> {
         let prng_seed = [ 
             env.block.time.to_be_bytes(),
             env.block.height.to_be_bytes() 
@@ -105,7 +104,7 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         })
     }
 
-    fn set_viewing_key(&self, env: Env, key: String) -> StdResult<HandleResponse> {
+    fn set_viewing_key(&mut self, env: Env, key: String) -> StdResult<HandleResponse> {
         let key = ViewingKey(key.to_string());
         let address = self.api().canonical_address(&env.message.sender)?;
         self.save_viewing_key(address.as_slice(), &key)?;
@@ -128,11 +127,11 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
     }
 
     fn save_viewing_key(&mut self, key: &[u8], viewing_key: &ViewingKey) -> StdResult<()> {
-        ns_save(&mut self.storage(), VIEWING_KEYS, key, &viewing_key)
+        self.set_ns(VIEWING_KEYS, key, &viewing_key)
     }
 
     fn load_viewing_key(&self, key: &[u8],) -> StdResult<Option<ViewingKey>> {
-        ns_load(&self.storage(), VIEWING_KEYS, key)
+        self.get_ns(VIEWING_KEYS, key)
     }
 
 }
