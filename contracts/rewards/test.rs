@@ -1,15 +1,9 @@
 #![allow(unused_macros)]
 #![allow(non_snake_case)]
 
-use fadroma::{
-    scrt::{HumanAddr, StdError},
-    scrt_contract_harness::Harness
-};
-use crate::{
-    rewards_harness::*,
-    msg,
-    rewards_config::load_viewing_key
-};
+use fadroma::*;
+use crate::*;
+use crate::test_harness::*;
 
 const REWARD: u128 = 100;
 const STAKE:  u128 = 100;
@@ -437,7 +431,7 @@ kukumba_harnessed! {
 
             let key = "key";
 
-            let msg = msg::Handle::ReleaseSnip20 {
+            let msg = Handle::ReleaseSnip20 {
                 snip20: Test.reward_token(),
                 key: key.into(),
                 recipient: None

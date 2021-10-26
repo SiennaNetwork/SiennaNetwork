@@ -2,19 +2,10 @@
 
 /// Unit testing harness for Sienna Rewards.
 
-use fadroma::scrt::{
-    Uint128, HumanAddr, StdResult, StdError,
-    Extern, testing::MockApi, MemoryStorage,
-    Querier, QueryRequest, Empty, WasmQuery, QuerierResult,
-    from_binary, to_binary, from_slice, SystemError};
-use fadroma::scrt_link::ContractLink;
-use fadroma::scrt_contract_harness::{
-    Harness, InitFn, HandleFn, QueryFn, TxResult};
-
-use crate::{init, handle, query};
-use crate::msg::{Init, Handle as TX, Query as QQ, Response};
-
-pub use crate::rewards_math::{Amount, Time, Volume};
+use fadroma::*;
+use fadroma::testing::*;
+use fadroma::scrt_contract_harness::*;
+use crate::*;
 
 macro_rules! assert_error {
     ($response:expr, $msg:expr) => { assert_eq!($response, Err(StdError::generic_err($msg))) }
@@ -98,13 +89,13 @@ pub struct RewardsHarness <Q: Querier> {
 }
 
 // trait fields WHEN?
-impl <Q: Querier> Harness <Q, Init, TX, QQ, Response> for RewardsHarness<Q> {
+impl <Q: Querier> Harness <Q, Init, Handle, Query, Response> for RewardsHarness<Q> {
     type Deps = Extern<MemoryStorage, MockApi, Q>;
     fn deps       (&self)     -> &Self::Deps { &self._deps }
     fn deps_mut   (&mut self) -> &mut Self::Deps { &mut self._deps }
-    fn get_init   (&mut self) -> InitFn<Self::Deps, Init> { init }
-    fn get_handle (&mut self) -> HandleFn<Self::Deps, TX> { handle }
-    fn get_query  (&self)     -> QueryFn<Self::Deps, QQ>  { query }
+    fn get_init   (&mut self) -> InitFn<Self::Deps, Init> { crate::init }
+    fn get_handle (&mut self) -> HandleFn<Self::Deps, Handle> { crate::handle }
+    fn get_query  (&self)     -> QueryFn<Self::Deps, Query>  { crate::query }
 }
 
 /// See https://docs.rs/cosmwasm-std/0.10.1/cosmwasm_std/testing/fn.mock_dependencies_with_balances.html
@@ -292,11 +283,11 @@ impl RewardsHarness<RewardsMockQuerier> {
     // private query and transaction helpers ------------------------------------------------------
 
     fn q_pool_info (&self) -> StdResult<Response> {
-        self.q(QQ::PoolInfo {
+        self.q(Query::PoolInfo {
             at: self.now() }) }
 
     fn q_user_info (&self, address: &HumanAddr) -> StdResult<Response> {
-        self.q(QQ::UserInfo {
+        self.q(Query::UserInfo {
             at: self.now(),
             address: address.clone(),
             key: "".into() }) }
@@ -304,35 +295,35 @@ impl RewardsHarness<RewardsMockQuerier> {
     fn tx_set_token (
         &mut self, agent: &HumanAddr, address: &str, code_hash: &str
     ) -> TxResult {
-        self.tx(self.now(), agent, TX::SetProvidedToken {
+        self.tx(self.now(), agent, Handle::SetProvidedToken {
             address:   HumanAddr::from(address),
             code_hash: code_hash.into(), }) }
 
     fn tx_set_ratio (
         &mut self, agent: &HumanAddr, num: u128, denom: u128
     ) -> TxResult {
-        self.tx(self.now(), agent, TX::ChangeRatio {
+        self.tx(self.now(), agent, Handle::ChangeRatio {
             numerator:   num.into(),
             denominator: denom.into(), }) }
 
     fn tx_set_vk (&mut self, agent: &HumanAddr, key: &str) -> TxResult {
-        self.tx(self.now(), agent, TX::SetViewingKey {
+        self.tx(self.now(), agent, Handle::SetViewingKey {
             key: key.into(),
             padding: None }) }
 
     pub fn tx_lock (&mut self, agent: &HumanAddr, amount: u128) -> TxResult {
-        self.tx(self.now(), agent, TX::Lock {
+        self.tx(self.now(), agent, Handle::Lock {
             amount: amount.into() }) }
 
     fn tx_retrieve (&mut self, agent: &HumanAddr, amount: u128) -> TxResult {
-        self.tx(self.now(), agent, TX::Retrieve {
+        self.tx(self.now(), agent, Handle::Retrieve {
             amount: amount.into() }) }
 
     fn tx_claim (&mut self, agent: &HumanAddr) -> TxResult {
-        self.tx(self.now(), agent, TX::Claim {}) }
+        self.tx(self.now(), agent, Handle::Claim {}) }
 
     fn tx_close (&mut self, agent: &HumanAddr) -> TxResult {
-        self.tx(self.now(), agent, TX::ClosePool { message: "closed".into() }) }
+        self.tx(self.now(), agent, Handle::ClosePool { message: "closed".into() }) }
 }
 
 pub struct Snip20;

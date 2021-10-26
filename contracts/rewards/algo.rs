@@ -25,7 +25,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         self.set(pool::SELF, &self.canonize(ContractLink {
             address:   env.contract.address.clone(),
             code_hash: env.contract_code_hash.clone()
-        })?);
+        })?)?;
 
         self.handle_configure(&config)?;
 

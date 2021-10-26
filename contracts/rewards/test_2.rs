@@ -1,7 +1,8 @@
 #![allow(unused_macros)]
 #![allow(non_snake_case)]
-use fadroma::scrt::{StdError, MemoryStorage, CanonicalAddr, Binary};
-use crate::{rewards_harness::*, rewards_algo::Pool};
+
+use fadroma::*;
+use crate::*;
 
 // duration of rewards period as u128 instead of u64
 // to allow in-place (DAY * Amount) volume calculations

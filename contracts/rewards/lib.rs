@@ -12,16 +12,17 @@
 //! less frequently, and need to lock more tokens to restore their place
 //! in the queue.
 
-#[cfg(browser)] #[macro_use] extern crate wasm_bindgen;
-#[cfg(test)] #[macro_use] extern crate kukumba;
-#[cfg(any(test, browser))] mod test_harness;
-#[cfg(test)] mod test;
-#[cfg(test)] mod test_2;
 pub mod algo;
 pub mod auth;
 pub mod keys;
 pub mod math;
 pub mod migration;
+
+#[cfg(browser)] #[macro_use] extern crate wasm_bindgen;
+#[cfg(any(test, browser))] mod test_harness;
+#[cfg(test)] #[macro_use] extern crate kukumba;
+#[cfg(test)] mod test;
+#[cfg(test)] mod test_2;
 
 use fadroma::*;
 use fadroma::{message, messages};

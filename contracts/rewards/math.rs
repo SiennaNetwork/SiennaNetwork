@@ -43,8 +43,8 @@ pub fn accumulate (
 
 pub trait Diminish<
     T: From<u64> + From<Self>,
-    N: Eq + From<u64
->>: Copy {
+    N: Eq + From<u64>
+>: Copy {
     /// Divide self on num/denom; throw if num > denom or if denom == 0
     fn diminish         (self, num: N, denom: N) -> StdResult<T>;
     /// Diminish, but return 0 if denom == 0
