@@ -45,6 +45,11 @@ export interface NativeToken {
     };
 }
 
+export enum TypeOfToken {
+    Native,
+    Custom
+}
+
 // These two are not exported in secretjs...
 export interface Coin {
     readonly denom: string;
@@ -115,11 +120,6 @@ export function add_native_balance(amount: TokenTypeAmount): Coin[] | undefined 
     }
 
     return result
-}
-
-export enum TypeOfToken {
-    Native,
-    Custom
 }
 
 export function get_token_type(token: TokenType): TypeOfToken {
