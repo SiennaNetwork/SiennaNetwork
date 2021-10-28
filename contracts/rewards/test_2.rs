@@ -3,6 +3,7 @@
 
 use fadroma::*;
 use crate::*;
+use crate::test_harness::*;
 
 // duration of rewards period as u128 instead of u64
 // to allow in-place (DAY * Amount) volume calculations

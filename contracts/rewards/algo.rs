@@ -9,7 +9,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 {
 
     /// Initialize the rewards module
-    fn init (&mut self, env: &Env, config: RewardsConfig) -> StdResult<CosmosMsg> {
+    fn init (&mut self, env: &Env, config: RewardsConfig) -> StdResult<Option<CosmosMsg>> {
 
         let config = RewardsConfig {
             lp_token:     config.lp_token,
@@ -29,7 +29,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
         self.handle_configure(&config)?;
 
-        self.set_own_vk(&config.reward_vk.unwrap())
+        Ok(Some(self.set_own_vk(&config.reward_vk.unwrap())?))
 
     }
 
@@ -52,8 +52,11 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             RewardsHandle::Claim {} =>
                 self.handle_claim(env),
 
-            RewardsHandle::ClosePool { message } =>
-                self.handle_close_pool(env, message),
+            RewardsHandle::Close { message } =>
+                self.handle_close(env, message),
+
+            RewardsHandle::Drain { snip20, recipient, key } =>
+                self.handle_drain(&env, snip20, recipient, key),
 
         }
 
@@ -65,22 +68,22 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let mut messages = vec![];
 
         if let Some(reward_token) = &config.reward_token {
-            self.set(pool::REWARD_TOKEN, &reward_token);
+            self.set(pool::REWARD_TOKEN, &reward_token)?;
         }
         if let Some(reward_vk) = &config.reward_vk {
             messages.push(self.set_own_vk(&reward_vk)?);
         }
         if let Some(lp_token) = &config.lp_token {
-            self.set(pool::LP_TOKEN, &self.canonize(lp_token.clone())?);
+            self.set(pool::LP_TOKEN, &self.canonize(lp_token.clone())?)?;
         }
         if let Some(ratio) = &config.ratio {
-            self.set(pool::RATIO, &ratio);
+            self.set(pool::RATIO, &ratio)?;
         }
         if let Some(threshold) = &config.threshold {
-            self.set(pool::THRESHOLD, &threshold);
+            self.set(pool::THRESHOLD, &threshold)?;
         }
         if let Some(cooldown) = &config.cooldown {
-            self.set(pool::COOLDOWN, &cooldown);
+            self.set(pool::COOLDOWN, &cooldown)?;
         }
 
         Ok(HandleResponse { messages, log: vec![], data: None })
@@ -90,7 +93,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     /// Store a viewing key for the reward balance and
     /// generate a transaction to set it in the corresponding token contract
     fn set_own_vk (&mut self, vk: &String) -> StdResult<CosmosMsg> {
-        self.set(pool::REWARD_VK, &vk);
+        self.set(pool::REWARD_VK, &vk)?;
         ISnip20::attach(&self.get(pool::REWARD_TOKEN)?).set_viewing_key(&vk)
     }
 
@@ -103,7 +106,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         user.locked += deposited;
         pool.locked += deposited;
         let id = self.canonize(env.message.sender.clone())?;
-        self.update_locked(&pool, &user, &id);
+        self.update_locked(&pool, &user, &id)?;
 
         // Update stored value
         self.after_user_action(env.block.time, &pool, &user, &id)?;
@@ -139,7 +142,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         pool.locked = (pool.locked - withdrawn)?;
         user.locked = (user.locked - withdrawn)?;
         let id = self.canonize(env.message.sender.clone())?;
-        self.update_locked(&pool, &user, &id);
+        self.update_locked(&pool, &user, &id)?;
 
         self.after_user_action(env.block.time, &pool, &user, &id)?;
 
@@ -175,7 +178,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         user.claimed += user.claimable;
         pool.claimed += user.claimable;
         let id = self.canonize(env.message.sender.clone())?;
-        self.update_claimed(&pool, &user, &id);
+        self.update_claimed(&pool, &user, &id)?;
 
         // Update user timestamp, and the things synced to it.
         self.after_user_action(env.block.time, &pool, &user, &id)?;
@@ -197,13 +200,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let transfer     = reward_token.transfer(&env.message.sender, user.claimable)?;
         Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
 
-    }
-
-    /// Admin can mark pool as closed
-    fn handle_close_pool (&mut self, env: Env, message: String) -> StdResult<HandleResponse> {
-        Auth::assert_admin(self, &env);
-        self.set(pool::CLOSED, Some((env.block.time, message)));
-        Ok(HandleResponse::default())
     }
 
     /// Get user and pool status, prevent replays
@@ -276,6 +272,52 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
         Ok(())
 
+    }
+
+    /// Admin can mark pool as closed
+    fn handle_close (&mut self, env: Env, message: String) -> StdResult<HandleResponse> {
+        Auth::assert_admin(self, &env)?;
+        self.set(pool::CLOSED, Some((env.block.time, message)))?;
+        Ok(HandleResponse::default())
+    }
+
+    fn handle_drain (
+        &mut self,
+        env:       &Env,
+        snip20:    ContractLink<HumanAddr>,
+        recipient: Option<HumanAddr>,
+        key:       String
+    ) -> StdResult<HandleResponse> {
+        Auth::assert_admin(&self, &env)?;
+
+        let recipient = recipient.unwrap_or(env.message.sender);
+
+        let reward_token = load_reward_token(&deps.storage, &deps.api)?;
+
+        // Update the viewing key if the supplied
+        // token info for is the reward token
+        if reward_token == snip20 {
+            save_viewing_key(&mut deps.storage, &ViewingKey(key.clone()))?
+        }
+
+        tx_ok!(
+            snip20::increase_allowance_msg(
+                recipient,
+                Uint128(u128::MAX),
+                Some(env.block.time + 86400000), // One day duration
+                None,
+                BLOCK_SIZE,
+                snip20.code_hash.clone(),
+                snip20.address.clone()
+            )?,
+            snip20::set_viewing_key_msg(
+                key,
+                None,
+                BLOCK_SIZE,
+                snip20.code_hash,
+                snip20.address
+            )?
+        )
     }
 
     /// Handle queries
@@ -475,10 +517,26 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 #[serde(rename_all="snake_case")]
 pub enum RewardsHandle {
     Configure(RewardsConfig),
-    ClosePool { message: String },
-    Lock      { amount: Amount },
-    Retrieve  { amount: Amount },
-    Claim     {}
+
+    Lock {
+        amount: Amount
+    },
+
+    Retrieve {
+        amount: Amount
+    },
+
+    Claim {},
+
+    Close {
+        message: String
+    },
+
+    Drain {
+        snip20:    ContractLink<HumanAddr>,
+        recipient: Option<HumanAddr>,
+        key:       String
+    },
 }
 
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]

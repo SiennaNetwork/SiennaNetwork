@@ -1,15 +1,16 @@
-pub use fadroma::*;
-pub use fadroma::messages;
+use crate::auth::Auth;
+use fadroma::*;
+use fadroma::messages;
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub enum MigrationHandle {
-    MigrateTo   { contract: ContractLink<HumanAddr> },
-    MigrateFrom { contract: ContractLink<HumanAddr> },
-    ReleaseSnip20 {
-        snip20:    ContractLink<HumanAddr>,
-        recipient: Option<HumanAddr>,
-        key:       String
+    InitiateMigration {
+        next_contract: ContractLink<HumanAddr>
+    },
+    MigrationData {},
+    MigrateFrom {
+        contract: ContractLink<HumanAddr>
     },
 }
 
@@ -17,11 +18,27 @@ pub enum MigrationHandle {
 #[serde(rename_all="snake_case")]
 pub enum MigrationQuery {}
 
-pub trait Migration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
+pub trait Migration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
+    + Auth<S, A, Q>
+{
     fn handle (&mut self, env: Env, msg: MigrationHandle) -> StdResult<HandleResponse> {
-        Err(StdError::generic_err("not implemented"))
+        match msg {
+            MigrationHandle::MigrateTo { contract } =>
+                self.handle_migrate_to(env, contract),
+            MigrationHandle::MigrateFrom { contract } =>
+                self.handle_migrate_from(env, contract)
+        }
     }
-    fn query  (&self, msg: MigrationQuery) -> StdResult<Binary> {
+
+    fn handle_migrate_to (&mut self, env: Env, contract: ContractLink<HumanAddr>) -> StdResult<HandleResponse> {
+        Ok(HandleResponse::default())
+    }
+
+    fn handle_migrate_from (&mut self, env: Env, contract: ContractLink<HumanAddr>) -> StdResult<HandleResponse> {
+        Ok(HandleResponse::default())
+    }
+
+    fn query (&self, msg: MigrationQuery) -> StdResult<Binary> {
         Err(StdError::generic_err("not implemented"))
     }
 }

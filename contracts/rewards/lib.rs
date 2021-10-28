@@ -12,7 +12,7 @@
 //! less frequently, and need to lock more tokens to restore their place
 //! in the queue.
 
-pub mod algo;
+pub mod algo; #[cfg(test)] mod algo_test;
 pub mod auth;
 pub mod keys;
 pub mod math;
@@ -21,8 +21,7 @@ pub mod migration;
 #[cfg(browser)] #[macro_use] extern crate wasm_bindgen;
 #[cfg(any(test, browser))] mod test_harness;
 #[cfg(test)] #[macro_use] extern crate kukumba;
-#[cfg(test)] mod test;
-#[cfg(test)] mod test_2;
+
 
 use fadroma::*;
 use fadroma::{message, messages};
@@ -44,7 +43,7 @@ use crate::{
         RewardsResponse,
     },
     math::*,
-    migration::*
+    //migration::*
 };
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
@@ -75,7 +74,7 @@ pub enum Handle {
         padding: Option<String>
     },
 
-    Migration(MigrationHandle),
+    //Migration(MigrationHandle),
 
     Rewards(RewardsHandle),
 }
@@ -130,7 +129,7 @@ pub enum Response {
 pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Auth<S, A, Q>
     + Rewards<S, A, Q>
-    + Migration<S, A, Q>
+    //+ Migration<S, A, Q>
 {
     fn init (&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
         Auth::init(self, &env, &msg.admin)?;
@@ -150,8 +149,8 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             Handle::Rewards(msg) =>
                 Rewards::handle(self, env, msg),
 
-            Handle::Migration(msg) =>
-                Migration::handle(self, env, msg)
+            //Handle::Migration(msg) =>
+                //Migration::handle(self, env, msg)
         }
     }
 
@@ -193,4 +192,4 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q> for Extern<S, A, Q> {}
 impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for Extern<S, A, Q> {}
 impl<S: Storage, A: Api, Q: Querier> Auth<S, A, Q> for Extern<S, A, Q> {}
-impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for Extern<S, A, Q> {}
+//impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for Extern<S, A, Q> {}
