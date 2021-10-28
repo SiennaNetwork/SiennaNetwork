@@ -75,6 +75,9 @@ export interface TokenPairComparableTree {
  * array of theese objects needs to be passed to the router
  * in order for it to execute the transaction which will
  * swap any for any token.
+ * 
+ * IMPORTANT: Router gives only one constraint: Scrt can be first or last in the chain
+ * it cannot appear anywhere in the middle of the chain.
  */
 export interface Hop {
     from_token: Token;
