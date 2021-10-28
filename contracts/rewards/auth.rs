@@ -126,12 +126,12 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         return Err(StdError::unauthorized());
     }
 
-    fn save_viewing_key(&mut self, key: &[u8], viewing_key: &ViewingKey) -> StdResult<()> {
-        self.set_ns(VIEWING_KEYS, key, &viewing_key)
+    fn save_viewing_key (&mut self, id: &[u8], viewing_key: &ViewingKey) -> StdResult<()> {
+        self.set_ns(VIEWING_KEYS, id, &viewing_key)
     }
 
-    fn load_viewing_key(&self, key: &[u8],) -> StdResult<Option<ViewingKey>> {
-        self.get_ns(VIEWING_KEYS, key)
+    fn load_viewing_key (&self, id: &[u8]) -> StdResult<Option<ViewingKey>> {
+        self.get_ns(VIEWING_KEYS, id)
     }
 
 }
