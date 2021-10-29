@@ -31,15 +31,21 @@ pub trait Migration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         }
     }
 
-    fn handle_initiate_migration (&mut self, env: Env, next_contract: ContractLink<HumanAddr>) -> StdResult<HandleResponse> {
+    fn handle_initiate_migration (
+        &mut self, env: Env, next_contract: ContractLink<HumanAddr>
+    ) -> StdResult<HandleResponse> {
         Ok(HandleResponse::default())
     }
 
-    fn handle_migrate_away (&mut self, env: Env) -> StdResult<HandleResponse> {
+    fn handle_migrate_away (
+        &mut self, env: Env
+    ) -> StdResult<HandleResponse> {
         Ok(HandleResponse::default())
     }
 
-    fn handle_migrate_from (&mut self, env: Env, prev_contract: ContractLink<HumanAddr>) -> StdResult<HandleResponse> {
+    fn handle_migrate_from (
+        &mut self, env: Env, prev_contract: ContractLink<HumanAddr>
+    ) -> StdResult<HandleResponse> {
         Ok(HandleResponse::default())
     }
 

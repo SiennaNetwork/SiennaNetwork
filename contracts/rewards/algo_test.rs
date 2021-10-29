@@ -34,11 +34,11 @@ macro_rules! assert_fields {
 // to allow in-place (DAY * Amount) volume calculations
 // (volume is also represented as u128 instead of u256)
 // i.e. need to call .into(), harness up/downcasts accordingly
-const DAY:        u128 = crate::DAY as u128;
-const NO_REWARDS: &str = "You've already received as much as your share of the reward pool allows. Keep your liquidity tokens locked and wait for more rewards to be vested, and/or lock more liquidity tokens to grow your share of the reward pool.";
-const PORTION:    u128 = 100;
-const REWARD:     u128 = 100;
-const STAKE:      u128 = 100;
+//const DAY:        u128 = crate::DAY as u128;
+//const NO_REWARDS: &str = "You've already received as much as your share of the reward pool allows. Keep your liquidity tokens locked and wait for more rewards to be vested, and/or lock more liquidity tokens to grow your share of the reward pool.";
+//const PORTION:    u128 = 100;
+//const REWARD:     u128 = 100;
+//const STAKE:      u128 = 100;
 
 /// Given no instance
 ///
@@ -94,14 +94,19 @@ const STAKE:      u128 = 100;
 #[test] fn test_configure () {
     let (ref mut deps, reward_vk, reward_token, _, admin, badman, _) = context();
 
-    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
+    assert_eq!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     None,
         reward_token: Some(reward_token.clone()),
         reward_vk:    Some(reward_vk.clone()),
         ratio:        None,
         threshold:    None,
         cooldown:     None,
-    }).is_ok());
+    }), Ok(Some(snip20::set_viewing_key_msg(
+        reward_vk.clone(),
+        None, BLOCK_SIZE,
+        reward_token.code_hash.clone(),
+        reward_token.address.clone()
+    ).unwrap())));
 
     assert_eq!(Rewards::handle(deps, admin(2), RewardsHandle::Configure(RewardsConfig {
         lp_token:     None,
@@ -312,16 +317,7 @@ const STAKE:      u128 = 100;
 ///  When a provider claims their rewards less often
 ///  Then they receive equivalent rewards as long as the liquidity locked hasn't changed
 #[test] fn test_claim () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, user) = context();
-
-    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     Some(lp_token),
-        reward_token: Some(reward_token),
-        reward_vk:    Some(reward_vk),
-        ratio:        None,
-        threshold:    None,
-        cooldown:     None,
-    }).is_ok());
+    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, user) = context_init();
 
     assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
         amount: 100u128.into()
@@ -574,16 +570,7 @@ const STAKE:      u128 = 100;
 ///  Then the pool is closed
 ///   And every user transaction returns all LP tokens to the user
 #[test] fn test_close () {
-    let (ref mut deps, reward_vk, reward_token, _, admin, badman, user) = context();
-
-    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     None,
-        reward_token: Some(reward_token),
-        reward_vk:    Some(reward_vk),
-        ratio:        None,
-        threshold:    None,
-        cooldown:     None,
-    }).is_ok());
+    let (ref mut deps, reward_vk, reward_token, _, admin, badman, user) = context_init();
 
     assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
         amount: 100u128.into()
@@ -636,8 +623,8 @@ const STAKE:      u128 = 100;
 
     assert!(Rewards::handle(deps, admin(3), msg.clone()).is_ok());
 
-    let vk: ViewingKey = deps.get(crate::keys::pool::REWARD_VK).unwrap();
-    assert_eq!(vk.0, String::from(key));
+    let vk: Option<ViewingKey> = deps.get(crate::algo::pool::REWARD_VK).unwrap();
+    assert_eq!(vk.unwrap().0, String::from(key));
 }
 
 /// Given an instance with 0/1 ratio
@@ -699,16 +686,7 @@ const STAKE:      u128 = 100;
 ///  When a user is eligible to claim rewards
 ///  Then the rewards are diminished by the pool liquidity ratio
 #[test] fn test_pool_liquidity_ratio () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, _) = context();
-
-    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     Some(lp_token),
-        reward_token: Some(reward_token),
-        reward_vk:    Some(reward_vk),
-        ratio:        Some((0u128.into(), 1u128.into())),
-        threshold:    None,
-        cooldown:     None,
-    }).is_ok());
+    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, _) = context_init();
 
     match Rewards::query(deps, RewardsQuery::Status { at: 1, address: None, key: None }).unwrap() {
         crate::algo::RewardsResponse::Status { pool, .. } => assert_eq!(pool.liquid, pool.existed.unwrap()),
@@ -764,16 +742,7 @@ const STAKE:      u128 = 100;
 ///  When the user is eligible to claim rewards
 ///  Then the rewards are diminished by the user's liquidity ratio
 #[test] fn test_user_liquidity_ratio () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, _) = context();
-
-    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     Some(lp_token),
-        reward_token: Some(reward_token),
-        reward_vk:    Some(reward_vk),
-        ratio:        Some((0u128.into(), 1u128.into())),
-        threshold:    None,
-        cooldown:     None,
-    }).is_ok());
+    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, _) = context_init();
 
     //let mut user = pool.user(addr.clone());
 
@@ -820,15 +789,38 @@ type Context = (
     fn (&str, u64) -> Env,   // user envs - pass
 );
 
-fn context () -> Context { (
-    mock_dependencies(20, &[]),
-    "reward_vk".to_string(),
-    ContractLink { address: HumanAddr::from("reward_addr"), code_hash: "reward_hash".into() },
-    ContractLink { address: HumanAddr::from("lp_addr"),     code_hash: "lp_hash".into() },
-    |t: u64| env(&HumanAddr::from("Admin"),  t),
-    |t: u64| env(&HumanAddr::from("Badman"), t),
-    |id: &str, t: u64| env(&HumanAddr::from(format!("User{}", id)), t),
-) }
+fn context () -> Context {
+    (
+        mock_dependencies(20, &[]),
+        "reward_vk".to_string(),
+        ContractLink { address: HumanAddr::from("reward_addr"), code_hash: "reward_hash".into() },
+        ContractLink { address: HumanAddr::from("lp_addr"),     code_hash: "lp_hash".into() },
+        |t: u64| env(&HumanAddr::from("Admin"),  t),
+        |t: u64| env(&HumanAddr::from("Badman"), t),
+        |id: &str, t: u64| env(&HumanAddr::from(format!("User{}", id)), t),
+    )
+}
+
+fn context_init () -> Context {
+    let mut context = context();
+    assert_eq!(
+        Rewards::init(&mut context.0, &context.4(1), RewardsConfig {
+            lp_token:     Some(context.3.clone()),
+            reward_token: Some(context.2.clone()),
+            reward_vk:    Some(context.1.clone()),
+            ratio:        None,
+            threshold:    None,
+            cooldown:     None,
+        }).unwrap(),
+        Some(snip20::set_viewing_key_msg(
+            context.1.clone(),
+            None, BLOCK_SIZE,
+            context.2.code_hash.clone(),
+            context.2.address.clone()
+        ).unwrap())
+    );
+    context
+}
 
 fn env (signer: &HumanAddr, time: u64) -> Env {
     let mut env = mock_env(signer, &[]);

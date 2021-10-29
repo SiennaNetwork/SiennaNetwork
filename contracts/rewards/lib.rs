@@ -13,9 +13,7 @@
 //! in the queue.
 
 pub mod algo; #[cfg(test)] mod algo_test;
-pub mod auth;
-pub mod keys;
-pub mod math;
+pub mod auth; #[cfg(test)] mod auth_test;
 pub mod migration;
 
 #[cfg(browser)] #[macro_use] extern crate wasm_bindgen;
@@ -30,14 +28,7 @@ use crate::{
         AuthQuery,
         AuthResponse
     },
-    algo::{
-        Rewards,
-        RewardsConfig,
-        RewardsHandle,
-        RewardsQuery,
-        RewardsResponse,
-    },
-    math::*,
+    algo::{*, RewardsResponse},
     migration::*
 };
 
@@ -171,7 +162,7 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let link = self.humanize(
             self.get(b"/lp_token")?.ok_or(StdError::generic_err("no lp token"))?
         )?;
-        let info = ISnip20::attach(&link).query_token_info(self.querier())?;
+        let info = ISnip20::attach(link).query_token_info(self.querier())?;
         Ok(Response::TokenInfo {
             name:         format!("Sienna Rewards: {}", info.name),
             symbol:       "SRW".into(),
@@ -184,7 +175,7 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let id = self.canonize(address)?;
         Auth::check_viewing_key(self, &key, id.as_slice())?;
         Ok(Response::Balance {
-            amount: self.get_ns(keys::user::LOCKED, id.as_slice())?.unwrap_or(Amount::zero())
+            amount: self.get_ns(algo::user::LOCKED, id.as_slice())?.unwrap_or(Amount::zero())
         })
     }
 }

@@ -1,8 +1,38 @@
-use fadroma::*;
+use fadroma::{*, scrt_uint256::Uint256};
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 
-use crate::{math::*, auth::Auth, keys::*};
+use crate::auth::Auth;
+
+/// A monotonic time counter, such as env.block.time or env.block.height
+pub type Time   = u64;
+
+/// Amount of funds
+pub type Amount = Uint128;
+
+/// Liquidity = amount (u128) * time (u64)
+pub type Volume = Uint256;
+
+/// A ratio represented as tuple (nom, denom)
+pub type Ratio  = (Uint128, Uint128);
+
+/// 100% with 6 digits after the decimal
+pub const HUNDRED_PERCENT: u128 = 100000000u128;
+
+/// Seconds in 24 hours
+pub const DAY: Time = 86400;
+
+/// Project current value of an accumulating parameter based on stored value,
+/// time since it was last updated, and rate of change, i.e.
+/// `current = stored + (elapsed * rate)`
+pub fn accumulate (
+    total_before_last_update: Volume,
+    time_updated_last_update: Time,
+    value_after_last_update:  Amount
+) -> StdResult<Volume> {
+    total_before_last_update + Volume::from(value_after_last_update)
+        .multiply_ratio(time_updated_last_update, 1u128)?
+}
 
 pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Auth<S, A, Q>
@@ -94,9 +124,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     /// generate a transaction to set it in the corresponding token contract
     fn set_own_vk (&mut self, vk: &String) -> StdResult<CosmosMsg> {
         self.set(pool::REWARD_VK, &vk)?;
-        ISnip20::attach(
-            &self.get(pool::REWARD_TOKEN)?.ok_or(StdError::generic_err("no reward token"))?
-        ).set_viewing_key(&vk)
+        self.reward_token()?.set_viewing_key(&vk)
     }
 
     /// Deposit LP tokens from user into pool
@@ -147,10 +175,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         self.after_user_action(env.block.time, &pool, &user, &id)?;
 
         // Transfer liquidity provision tokens from the contract to the user
-        let lp_link = self.get::<ContractLink<CanonicalAddr>>(pool::LP_TOKEN)?
-            .ok_or(StdError::generic_err("no lp token"))?;
-        let lp_token = ISnip20::attach(&self.humanize(lp_link)?);
-        let transfer = lp_token.transfer(&env.message.sender.clone(), withdrawn)?;
+        let transfer = self.lp_token()?.transfer(&env.message.sender.clone(), withdrawn)?;
         Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
 
     }
@@ -202,24 +227,21 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     fn self_link (&self) -> StdResult<ContractLink<HumanAddr>> {
-        Ok(self.humanize(
-            self.get::<ContractLink<CanonicalAddr>>(pool::SELF)?
-                .ok_or(StdError::generic_err("no self link"))?
-        )?)
+        let link = self.get::<ContractLink<CanonicalAddr>>(pool::SELF)?
+            .ok_or(StdError::generic_err("no self link"))?;
+        Ok(self.humanize(link)?)
     }
 
     fn lp_token (&self) -> StdResult<ISnip20> {
-        let link = self.get::<ContractLink<CanonicalAddr>>(pool::LP_TOKEN)?;
-        Ok(ISnip20::attach(&self.humanize(
-            link.ok_or(StdError::generic_err("no lp token"))?
-        )?))
+        let link = self.get::<ContractLink<CanonicalAddr>>(pool::LP_TOKEN)?
+            .ok_or(StdError::generic_err("no lp token"))?;
+        Ok(ISnip20::attach(self.humanize(link)?))
     }
 
     fn reward_token (&self) -> StdResult<ISnip20> {
-        let link = self.get::<ContractLink<CanonicalAddr>>(pool::REWARD_TOKEN)?;
-        Ok(ISnip20::attach(&self.humanize(
-            link.ok_or(StdError::generic_err("no reward token"))?
-        )?))
+        let link = self.get::<ContractLink<CanonicalAddr>>(pool::REWARD_TOKEN)?
+            .ok_or(StdError::generic_err("no reward token"))?;
+        Ok(ISnip20::attach(self.humanize(link)?))
     }
 
     fn reward_vk (&self) -> StdResult<String> {
@@ -321,13 +343,13 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
         // Update the viewing key if the supplied
         // token info for is the reward token
-        if *self.reward_token()?.link == snip20 {
+        if self.reward_token()?.link == snip20 {
             self.set(pool::REWARD_VK, key.clone())?
         }
 
         let allowance = Uint128(u128::MAX);
         let duration  = Some(env.block.time + 86400000);
-        let snip20    = ISnip20::attach(&snip20);
+        let snip20    = ISnip20::attach(snip20);
         Ok(HandleResponse {
             messages: vec![
                 snip20.increase_allowance(&recipient, allowance, duration)?,
@@ -408,23 +430,25 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let claimed = self.get(pool::CLAIMED)?.unwrap_or(Amount::zero());
         let vested  = claimed + balance;
         Ok(Pool {
-            now,
-            seeded,
-            updated,
-            existed,
-            liquid,
+            now, seeded, updated, existed, liquid,
 
-            vested,
-            claimed,
-            balance,
+            locked, lifetime,
 
-            locked,
-            lifetime,
+            vested, claimed, balance,
 
-            deployed:     self.get(pool::DEPLOYED)?,
-            cooldown:     self.get(pool::COOLDOWN)?,
-            threshold:    self.get(pool::THRESHOLD)?,
-            global_ratio: self.get(pool::RATIO)?,
+            cooldown:     self.get(pool::COOLDOWN)?.ok_or(
+                StdError::generic_err("missing cooldown")
+            )?,
+            threshold:    self.get(pool::THRESHOLD)?.ok_or(
+                StdError::generic_err("missing threshold")
+            )?,
+            global_ratio: self.get(pool::RATIO)?.ok_or(
+                StdError::generic_err("missing global ratio")
+            )?,
+
+            deployed:     self.get(pool::DEPLOYED)?.ok_or(
+                StdError::generic_err("missing deploy timestamp")
+            )?,
             closed:       self.get(pool::CLOSED)?,
         })
     }
@@ -692,5 +716,100 @@ fn enforce_cooldown (elapsed: Time, cooldown: Time) -> StdResult<()> {
         Err(StdError::generic_err(format!(
             "lock tokens for {} more blocks to be eligible", cooldown - elapsed
         )))
+    }
+}
+
+pub mod pool {
+    pub const CLAIMED:      &[u8] = b"/pool/claimed";
+    pub const CLOSED:       &[u8] = b"/pool/closed";
+    pub const COOLDOWN:     &[u8] = b"/pool/cooldown";
+    pub const CREATED:      &[u8] = b"/pool/created";
+    pub const DEPLOYED:     &[u8] = b"/pool/deployed";
+    pub const LIFETIME:     &[u8] = b"/pool/lifetime";
+    pub const LIQUID:       &[u8] = b"/pool/not_empty";
+    pub const LOCKED:       &[u8] = b"/pool/balance";
+    pub const LP_TOKEN:     &[u8] = b"/pool/lp_token";
+    pub const RATIO:        &[u8] = b"/pool/ratio";
+    pub const REWARD_TOKEN: &[u8] = b"/pool/reward_token";
+    pub const REWARD_VK:    &[u8] = b"/pool/reward_vk";
+    pub const SEEDED:       &[u8] = b"/pool/seeded";
+    pub const SELF:         &[u8] = b"/pool/self";
+    pub const THRESHOLD:    &[u8] = b"/pool/threshold";
+    pub const UPDATED:      &[u8] = b"/pool/updated";
+}
+
+pub mod user {
+    pub const CLAIMED:    &[u8] = b"/user/claimed/";
+    pub const COOLDOWN:   &[u8] = b"/user/cooldown/";
+    pub const EXISTED:    &[u8] = b"/user/existed/";
+    pub const LIFETIME:   &[u8] = b"/user/lifetime/";
+    pub const LOCKED:     &[u8] = b"/user/current/";
+    pub const PRESENT:    &[u8] = b"/user/present/";
+    pub const REGISTERED: &[u8] = b"/user/registered/";
+    pub const UPDATED:    &[u8] = b"/user/updated/";
+}
+
+pub trait Diminish<T: From<u64> + From<Self>, N: Eq + From<u64>>: Copy {
+
+    /// Divide self on num/denom; throw if num > denom or if denom == 0
+    fn diminish         (self, num: N, denom: N) -> StdResult<T>;
+
+    /// Diminish, but return 0 if denom == 0
+    fn diminish_or_max  (self, num: N, denom: N) -> StdResult<T> {
+        if denom == 0u64.into() {
+            Ok(self.into())
+        } else {
+            self.diminish(num, denom)
+        }
+    }
+
+    /// Diminish, but return self if denom == 0
+    fn diminish_or_zero (self, num: N, denom: N) -> StdResult<T> {
+        if denom == 0u64.into() {
+            Ok(0u64.into())
+        } else {
+            self.diminish(num, denom)
+        }
+    }
+
+}
+
+impl Diminish<Self, Time> for Volume {
+    fn diminish (self, num: Time, denom: Time) -> StdResult<Self> {
+        if num > denom {
+            Err(StdError::generic_err("num > denom in diminish function"))
+        } else {
+            Ok(self.multiply_ratio(num, denom)?)
+        }
+    }
+}
+
+impl Diminish<Self, Volume> for Volume {
+    fn diminish (self, num: Volume, denom: Volume) -> StdResult<Self> {
+        if num > denom {
+            Err(StdError::generic_err("num > denom in diminish function"))
+        } else {
+            Ok(self.multiply_ratio(num, denom)?)
+        }
+    }
+}
+
+impl Diminish<Self, Amount> for Amount {
+    fn diminish (self, num: Amount, denom: Amount) -> StdResult<Self> {
+        if num > denom {
+            Err(StdError::generic_err("num > denom in diminish function"))
+        } else {
+            Ok(self.multiply_ratio(num, denom))
+        }
+    }
+}
+
+impl Diminish<Self, Time> for Amount {
+    fn diminish (self, num: Time, denom: Time) -> StdResult<Self> {
+        if num > denom {
+            Err(StdError::generic_err("num > denom in diminish function"))
+        } else {
+            Ok(self.multiply_ratio(num, denom))
+        }
     }
 }
