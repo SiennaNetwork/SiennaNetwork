@@ -42,11 +42,25 @@ const STAKE:      u128 = 100;
 
 /// Given no instance
 ///
+///  When the admin inits an instance without providing a reward token
+///  Then the init fails
+///
 ///  When the admin inits an instance with a configured reward token
 ///  Then the default values are used where applicable
 ///   And the rewards module emits a message that sets the reward token viewing key
 #[test] fn test_init () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
+    let (ref mut deps, reward_vk, reward_token, _, admin, _, _) = context();
+
+    assert!(
+        Rewards::init(deps, &admin(1), RewardsConfig {
+            lp_token:     None,
+            reward_token: None,
+            reward_vk:    None,
+            ratio:        None,
+            threshold:    None,
+            cooldown:     None,
+        }).is_err(),
+    );
 
     assert_eq!(
         Rewards::init(deps, &admin(1), RewardsConfig {
@@ -78,18 +92,27 @@ const STAKE:      u128 = 100;
 ///  When the admin sets the config, including a reward token
 ///  Then a reward token viewing key config message is returned
 #[test] fn test_configure () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
+    let (ref mut deps, reward_vk, reward_token, _, admin, badman, _) = context();
 
-    assert_eq!(Rewards::init(deps, &admin(1), RewardsConfig {
+    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     None,
-        reward_token: None,
-        reward_vk:    None,
+        reward_token: Some(reward_token.clone()),
+        reward_vk:    Some(reward_vk.clone()),
         ratio:        None,
         threshold:    None,
         cooldown:     None,
-    }), Ok(None));
+    }).is_ok());
 
-    assert_eq!(Rewards::handle(deps, badman(2), RewardsHandle::Configure(RewardsConfig {
+    assert_eq!(Rewards::handle(deps, admin(2), RewardsHandle::Configure(RewardsConfig {
+        lp_token:     None,
+        reward_token: Some(reward_token.clone()),
+        reward_vk:    Some(reward_vk.clone()),
+        ratio:        None,
+        threshold:    None,
+        cooldown:     None,
+    })), Ok(HandleResponse::default()));
+
+    assert_eq!(Rewards::handle(deps, badman(3), RewardsHandle::Configure(RewardsConfig {
         lp_token:     None,
         reward_token: Some(reward_token.clone()),
         reward_vk:    Some(reward_vk.clone()),
@@ -98,7 +121,7 @@ const STAKE:      u128 = 100;
         cooldown:     None,
     })), Err(StdError::unauthorized()));
 
-    assert_eq!(Rewards::handle(deps, admin(3), RewardsHandle::Configure(RewardsConfig {
+    assert_eq!(Rewards::handle(deps, admin(4), RewardsHandle::Configure(RewardsConfig {
         lp_token:     None,
         reward_token: Some(reward_token.clone()),
         reward_vk:    Some(reward_vk.clone()),
@@ -192,7 +215,7 @@ const STAKE:      u128 = 100;
 ///  When alice and bob's ages reach the configured threshold,
 ///  Then each is eligible to claim half of the available rewards
 #[test] fn test_lock_retrieve_parallel () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
+    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, user) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token),
@@ -243,7 +266,7 @@ const STAKE:      u128 = 100;
 ///  When bob reaches the age threshold
 ///  Then each is eligible to claim some rewards
 #[test] fn test_lock_retrieve_sequential () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
+    let (ref mut deps, _, _, _, _, _, user) = context();
 
     assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
         amount: 100u128.into()
@@ -289,7 +312,7 @@ const STAKE:      u128 = 100;
 ///  When a provider claims their rewards less often
 ///  Then they receive equivalent rewards as long as the liquidity locked hasn't changed
 #[test] fn test_claim () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
+    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, user) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token),
@@ -418,7 +441,7 @@ const STAKE:      u128 = 100;
 ///  When a user claims rewards
 ///  Then they need to wait a fixed amount of time before they can claim again
 #[test] fn test_threshold_cooldown () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
+    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, user) = context();
 
     let threshold = 100u64;
 
@@ -456,7 +479,7 @@ const STAKE:      u128 = 100;
 ///  When a user retrieves tokens after claiming
 ///  Then they get the original amount
 #[test] fn test_single_sided () {
-    let (ref mut deps, reward_vk, reward_token, _lp_token, admin, badman, user) = context();
+    let (ref mut deps, reward_vk, reward_token, _lp_token, admin, _, user) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(reward_token.clone()),
@@ -489,7 +512,7 @@ const STAKE:      u128 = 100;
 ///   And user first unlocks all tokens and then claims rewards
 ///  Then user lifetime and claimed is reset so they can start over
 #[test] fn test_reset () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
+    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, user) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token),
@@ -551,7 +574,7 @@ const STAKE:      u128 = 100;
 ///  Then the pool is closed
 ///   And every user transaction returns all LP tokens to the user
 #[test] fn test_close () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
+    let (ref mut deps, reward_vk, reward_token, _, admin, badman, user) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     None,
@@ -591,7 +614,7 @@ const STAKE:      u128 = 100;
 ///  When calling with reward token info
 ///  Then the viewing key changes
 #[test] fn test_drain () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
+    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, _) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token),
@@ -625,7 +648,7 @@ const STAKE:      u128 = 100;
 ///  When ratio is set to 1/1
 ///  Then rewards are normal
 #[test] fn test_global_ratio () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
+    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, user) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token),
@@ -676,7 +699,7 @@ const STAKE:      u128 = 100;
 ///  When a user is eligible to claim rewards
 ///  Then the rewards are diminished by the pool liquidity ratio
 #[test] fn test_pool_liquidity_ratio () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
+    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, _) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token),
@@ -741,7 +764,7 @@ const STAKE:      u128 = 100;
 ///  When the user is eligible to claim rewards
 ///  Then the rewards are diminished by the user's liquidity ratio
 #[test] fn test_user_liquidity_ratio () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
+    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, _) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token),
@@ -798,7 +821,7 @@ type Context = (
 );
 
 fn context () -> Context { (
-    mock_dependencies(10, &[]),
+    mock_dependencies(20, &[]),
     "reward_vk".to_string(),
     ContractLink { address: HumanAddr::from("reward_addr"), code_hash: "reward_hash".into() },
     ContractLink { address: HumanAddr::from("lp_addr"),     code_hash: "lp_hash".into() },

@@ -1,5 +1,4 @@
 use fadroma::*;
-use fadroma::messages;
 pub use fadroma::ViewingKey;
 
 const ADMIN_KEY:    &[u8] = b"ltp5P6sFZT";
@@ -33,9 +32,9 @@ pub enum AuthResponse {
 pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn init (&mut self, env: &Env, admin: &Option<HumanAddr>) -> StdResult<()> {
-        //self.set(b"/admin", &self.api().canonical_address(
-            //&admin.unwrap_or(env.message.sender.clone())
-        //)?)
+        self.set(b"/admin", &self.api().canonical_address(
+            &admin.as_ref().unwrap_or(&env.message.sender)
+        )?)?;
         Ok(())
     }
 
@@ -139,7 +138,6 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fadroma::*;
     use fadroma::testing::*;
     use super::Auth;
 

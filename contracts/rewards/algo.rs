@@ -94,7 +94,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     /// generate a transaction to set it in the corresponding token contract
     fn set_own_vk (&mut self, vk: &String) -> StdResult<CosmosMsg> {
         self.set(pool::REWARD_VK, &vk)?;
-        ISnip20::attach(&self.get(pool::REWARD_TOKEN)?).set_viewing_key(&vk)
+        ISnip20::attach(
+            &self.get(pool::REWARD_TOKEN)?.ok_or(StdError::generic_err("no reward token"))?
+        ).set_viewing_key(&vk)
     }
 
     /// Deposit LP tokens from user into pool
@@ -112,9 +114,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         self.after_user_action(env.block.time, &pool, &user, &id)?;
 
         // Transfer liquidity provision tokens from the user to the contract
-        let lp_link  = &self.humanize(self.get::<ContractLink<CanonicalAddr>>(pool::LP_TOKEN)?)?;
-        let lp_token = ISnip20::attach(lp_link);
-        let transfer = lp_token.transfer_from(&env.message.sender, &env.contract.address, deposited)?;
+        let transfer = self.lp_token()?.transfer_from(&env.message.sender, &env.contract.address, deposited)?;
         Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
 
     }
@@ -147,8 +147,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         self.after_user_action(env.block.time, &pool, &user, &id)?;
 
         // Transfer liquidity provision tokens from the contract to the user
-        let lp_link  = &self.humanize(self.get::<ContractLink<CanonicalAddr>>(pool::LP_TOKEN)?)?;
-        let lp_token = ISnip20::attach(lp_link);
+        let lp_link = self.get::<ContractLink<CanonicalAddr>>(pool::LP_TOKEN)?
+            .ok_or(StdError::generic_err("no lp token"))?;
+        let lp_token = ISnip20::attach(&self.humanize(lp_link)?);
         let transfer = lp_token.transfer(&env.message.sender.clone(), withdrawn)?;
         Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
 
@@ -195,12 +196,38 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         }
 
         // Transfer reward tokens from the contract to the user
-        let reward_link  = self.humanize(self.get::<ContractLink<CanonicalAddr>>(pool::REWARD_TOKEN)?)?;
-        let reward_token = ISnip20::attach(&reward_link);
-        let transfer     = reward_token.transfer(&env.message.sender, user.claimable)?;
+        let transfer     = self.reward_token()?.transfer(&env.message.sender, user.claimable)?;
         Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
 
     }
+
+    fn self_link (&self) -> StdResult<ContractLink<HumanAddr>> {
+        Ok(self.humanize(
+            self.get::<ContractLink<CanonicalAddr>>(pool::SELF)?
+                .ok_or(StdError::generic_err("no self link"))?
+        )?)
+    }
+
+    fn lp_token (&self) -> StdResult<ISnip20> {
+        let link = self.get::<ContractLink<CanonicalAddr>>(pool::LP_TOKEN)?;
+        Ok(ISnip20::attach(&self.humanize(
+            link.ok_or(StdError::generic_err("no lp token"))?
+        )?))
+    }
+
+    fn reward_token (&self) -> StdResult<ISnip20> {
+        let link = self.get::<ContractLink<CanonicalAddr>>(pool::REWARD_TOKEN)?;
+        Ok(ISnip20::attach(&self.humanize(
+            link.ok_or(StdError::generic_err("no reward token"))?
+        )?))
+    }
+
+    fn reward_vk (&self) -> StdResult<String> {
+        Ok(self.get::<ViewingKey>(pool::REWARD_VK)?
+            .ok_or(StdError::generic_err("no reward viewing key"))?
+            .0)
+    }
+
 
     /// Get user and pool status, prevent replays
     fn before_user_action (&mut self, env: &Env) -> StdResult<(Pool, User)> {
@@ -292,13 +319,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
         let recipient = recipient.unwrap_or(env.message.sender.clone());
 
-        let reward_token = self.humanize(
-            self.get::<ContractLink<CanonicalAddr>>(pool::REWARD_TOKEN)?
-        )?;
-
         // Update the viewing key if the supplied
         // token info for is the reward token
-        if reward_token == snip20 {
+        if *self.reward_token()?.link == snip20 {
             self.set(pool::REWARD_VK, key.clone())?
         }
 
@@ -351,17 +374,18 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     /// Compute pool status
     fn get_pool_status (&self, now: Time) -> StdResult<Pool> {
-
-        let updated = self.get(pool::UPDATED)?;
+        let updated: Time = self.get(pool::UPDATED)?.unwrap_or(now);
         if now < updated {
             return Err(StdError::generic_err("this contract does not store history"))
         }
         let elapsed = now - updated;
-
-        let locked   = self.get(pool::LOCKED)?;
-        let lifetime = accumulate(self.get(pool::LIFETIME)?, elapsed, locked)?;
-
-        let seeded  = self.get::<Option<Time>>(pool::SEEDED)?;
+        let locked: Amount = self.get(pool::LOCKED)?.unwrap_or(Amount::zero());
+        let lifetime = accumulate(
+            self.get(pool::LIFETIME)?.unwrap_or(Volume::zero()),
+            elapsed,
+            locked
+        )?;
+        let seeded: Option<Time> = self.get(pool::SEEDED)?;
         let existed = if let Some(seeded) = seeded {
             if now < seeded {
                 return Err(StdError::generic_err("no time travel"))
@@ -370,31 +394,19 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         } else {
             None
         };
-
-        let liquid = self.get::<Time>(pool::LIQUID)? +
+        let liquid: Time = self.get(pool::LIQUID)?.unwrap_or(0) +
             if locked > Amount::zero() { elapsed } else { 0 };
-
-        let reward_link = self.humanize(
-            self.get::<ContractLink<CanonicalAddr>>(pool::REWARD_TOKEN)?
+        let lp_token     = self.lp_token()?;
+        let reward_token = self.reward_token()?;
+        let mut balance  = reward_token.query_balance(
+            self.querier(), &self.self_link()?.address, &self.reward_vk()?
         )?;
-        let self_link   = self.humanize(self.get::<ContractLink<CanonicalAddr>>(pool::SELF)?)?;
-        let rewards_vk  = self.get::<ViewingKey>(pool::REWARD_VK)?.0;
-        let mut balance = ISnip20::attach(&reward_link)
-            .query_balance(self.querier(), &self_link.address, &rewards_vk)?;
-
-        let lp_link = self.humanize(
-            self.get::<ContractLink<CanonicalAddr>>(pool::LP_TOKEN)?
-        )?;
-
-        if reward_link == lp_link {
+        if reward_token.link == lp_token.link {
             // separate balances for single-sided staking
             balance = (balance - locked)?;
         }
-
-        let claimed = self.get(pool::CLAIMED)?;
-
+        let claimed = self.get(pool::CLAIMED)?.unwrap_or(Amount::zero());
         let vested  = claimed + balance;
-
         Ok(Pool {
             now,
             seeded,
@@ -419,50 +431,35 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     /// Compute user status
     fn get_user_status (&self, pool: &Pool, id: CanonicalAddr) -> StdResult<User> {
-
         let now = pool.now;
-
-        let registered = self.get_ns(user::REGISTERED, id.as_slice())?;
-
+        let registered: Time = self.get_ns(user::REGISTERED, id.as_slice())?.unwrap_or(now);
         if now < registered {
             return Err(StdError::generic_err("no time travel"))
         }
-
         let existed = now - registered;
-
-        let updated = self.get_ns(user::UPDATED, id.as_slice())?;
-
+        let updated = self.get_ns(user::UPDATED, id.as_slice())?.unwrap_or(now);
         if now < updated {
             return Err(StdError::generic_err("this contract does not store history"))
         }
-
         let elapsed = now - updated;
-
-        let locked = self.get_ns(user::LOCKED, id.as_slice())?;
-
-        let lifetime = accumulate(
-            self.get_ns(user::LIFETIME, id.as_slice())?,
+        let locked = self.get_ns(user::LOCKED, id.as_slice())?.unwrap_or(Amount::zero());
+        let lifetime: Volume = accumulate(
+            self.get_ns(user::LIFETIME, id.as_slice())?.unwrap_or(Volume::zero()),
             elapsed,
-            locked)?;
-
-        let liquid = self.get_ns::<Time>(user::PRESENT, id.as_slice())? +
+            locked
+        )?;
+        let liquid: Time = self.get_ns(user::PRESENT, id.as_slice())?.unwrap_or(0) +
             if locked > Amount::zero() { elapsed } else { 0 };
-
         let budget = Amount::from(pool.vested)
             .diminish_or_zero(pool.liquid, pool.existed.unwrap_or(0))?
             .diminish_or_zero(pool.global_ratio.0, pool.global_ratio.1)?;
-
         let earned = Volume::from(budget)
             .diminish_or_zero(lifetime, pool.lifetime)?
             .diminish_or_zero(liquid, existed)?
             .low_u128().into();
-
-        let claimed = self.get_ns(user::CLAIMED, id.as_slice())?;
-
+        let claimed = self.get_ns(user::CLAIMED, id.as_slice())?.unwrap_or(Amount::zero());
         let mut reason: Option<&str> = None;
-
-        let cooldown = self.get_ns(user::COOLDOWN, id.as_slice())?;
-
+        let cooldown = self.get_ns(user::COOLDOWN, id.as_slice())?.unwrap_or(pool.cooldown);
         let claimable = if liquid < pool.threshold {
             reason = Some("can only claim after age threshold");
             Amount::zero()

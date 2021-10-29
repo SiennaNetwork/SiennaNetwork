@@ -1,6 +1,5 @@
 use crate::auth::Auth;
 use fadroma::*;
-use fadroma::messages;
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]
