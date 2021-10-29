@@ -57,6 +57,8 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             code_hash: env.contract_code_hash.clone()
         })?)?;
 
+        self.set(pool::DEPLOYED, &env.block.time)?;
+
         self.handle_configure(&config)?;
 
         Ok(Some(self.set_own_vk(&config.reward_vk.unwrap())?))
@@ -98,7 +100,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let mut messages = vec![];
 
         if let Some(reward_token) = &config.reward_token {
-            self.set(pool::REWARD_TOKEN, &reward_token)?;
+            self.set(pool::REWARD_TOKEN, &self.canonize(reward_token.clone())?)?;
         }
         if let Some(reward_vk) = &config.reward_vk {
             messages.push(self.set_own_vk(&reward_vk)?);

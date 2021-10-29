@@ -20,17 +20,7 @@ pub mod migration;
 //#[cfg(test)] #[macro_use] extern crate kukumba;
 
 use fadroma::*;
-
-use crate::{
-    auth::{
-        Auth,
-        AuthHandle,
-        AuthQuery,
-        AuthResponse
-    },
-    algo::{*, RewardsResponse},
-    migration::*
-};
+use crate::{auth::{*, Auth}, algo::{*, RewardsResponse}, migration::*};
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]

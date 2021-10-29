@@ -30,6 +30,111 @@ macro_rules! assert_fields {
     }; }
 }
 
+pub struct RewardsMockQuerier { pub balance: Amount }
+
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all="snake_case")]
+pub enum Snip20Query { Balance {} }
+
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all="snake_case")]
+pub enum Snip20Response { Balance { amount: Amount } }
+
+impl Querier for RewardsMockQuerier {
+    fn raw_query (&self, bin_request: &[u8]) -> QuerierResult {
+        let request: QueryRequest<Empty> = match from_slice(bin_request) {
+            Ok(v) => v,
+            Err(e) => unimplemented!()
+        };
+        match request {
+            QueryRequest::Wasm(WasmQuery::Smart { callback_code_hash, contract_addr, msg }) => {
+                Ok(to_binary(&self.mock_query_dispatch(&ContractLink {
+                    code_hash: callback_code_hash,
+                    address:   contract_addr
+                }, &from_binary(&msg).unwrap())))
+            },
+            _ => unimplemented!()
+        }
+    }
+}
+
+impl RewardsMockQuerier {
+    fn mock_query_dispatch(
+        &self, _: &ContractLink<HumanAddr>, msg: &Snip20Query
+    ) -> Snip20Response {
+        match msg {
+            Snip20Query::Balance { .. } => Snip20Response::Balance { amount: self.balance },
+            _ => unimplemented!()
+        }
+    }
+    pub fn increment_balance (&mut self, amount: u128) -> () {
+        self.balance += amount.into();
+    }
+    pub fn decrement_balance (&mut self, amount: u128) -> StdResult<()> {
+        self.balance = (self.balance - amount.into())?;
+        Ok(())
+    }
+}
+
+type Deps = Extern<MemoryStorage, MockApi, RewardsMockQuerier>;
+
+type Context = (
+    Deps,                  // deps
+    String,                // reward_vk
+    ISnip20,               // reward_token
+    ISnip20,               // lp_token
+    fn (u64) -> Env,       // admin env - always init contract with this
+    fn (u64) -> Env,       // badman env - never register in the contract
+    fn (&str, u64) -> Env, // user envs - pass
+);
+
+fn context () -> Context {
+    (
+        Extern {
+            storage: MemoryStorage::default(),
+            api:     MockApi::new(20),
+            querier: RewardsMockQuerier { balance: 0u128.into() }
+        },
+        "reward_vk".to_string(),
+        ISnip20::attach(
+            ContractLink { address: HumanAddr::from("reward_addr"), code_hash: "reward_hash".into() }
+        ),
+        ISnip20::attach(
+            ContractLink { address: HumanAddr::from("lp_addr"),     code_hash: "lp_hash".into() }
+        ),
+        |t: u64| env(&HumanAddr::from("Admin"),  t),
+        |t: u64| env(&HumanAddr::from("Badman"), t),
+        |id: &str, t: u64| env(&HumanAddr::from(format!("User{}", id)), t),
+    )
+}
+
+fn context_init () -> Context {
+    let mut context = context();
+    assert_eq!(
+        Rewards::init(&mut context.0, &context.4(1), RewardsConfig {
+            lp_token:     Some(context.3.link.clone()),
+            reward_token: Some(context.2.link.clone()),
+            reward_vk:    Some(context.1.clone()),
+            ratio:        None,
+            threshold:    None,
+            cooldown:     None,
+        }).unwrap(),
+        Some(snip20::set_viewing_key_msg(
+            context.1.clone(),
+            None, BLOCK_SIZE,
+            context.2.link.code_hash.clone(),
+            context.2.link.address.clone()
+        ).unwrap())
+    );
+    context
+}
+
+fn env (signer: &HumanAddr, time: u64) -> Env {
+    let mut env = mock_env(signer, &[]);
+    env.block.time = time;
+    env
+}
+
 // duration of rewards period as u128 instead of u64
 // to allow in-place (DAY * Amount) volume calculations
 // (volume is also represented as u128 instead of u256)
@@ -65,7 +170,7 @@ macro_rules! assert_fields {
     assert_eq!(
         Rewards::init(deps, &admin(1), RewardsConfig {
             lp_token:     None,
-            reward_token: Some(reward_token.clone()),
+            reward_token: Some(reward_token.link.clone()),
             reward_vk:    Some(reward_vk.clone()),
             ratio:        None,
             threshold:    None,
@@ -74,8 +179,8 @@ macro_rules! assert_fields {
         Some(snip20::set_viewing_key_msg(
             reward_vk,
             None, BLOCK_SIZE,
-            reward_token.code_hash.clone(),
-            reward_token.address.clone()
+            reward_token.link.code_hash.clone(),
+            reward_token.link.address.clone()
         ).unwrap())
     );
 }
@@ -96,7 +201,7 @@ macro_rules! assert_fields {
 
     assert_eq!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     None,
-        reward_token: Some(reward_token.clone()),
+        reward_token: Some(reward_token.link.clone()),
         reward_vk:    Some(reward_vk.clone()),
         ratio:        None,
         threshold:    None,
@@ -104,13 +209,13 @@ macro_rules! assert_fields {
     }), Ok(Some(snip20::set_viewing_key_msg(
         reward_vk.clone(),
         None, BLOCK_SIZE,
-        reward_token.code_hash.clone(),
-        reward_token.address.clone()
+        reward_token.link.code_hash.clone(),
+        reward_token.link.address.clone()
     ).unwrap())));
 
     assert_eq!(Rewards::handle(deps, admin(2), RewardsHandle::Configure(RewardsConfig {
         lp_token:     None,
-        reward_token: Some(reward_token.clone()),
+        reward_token: Some(reward_token.link.clone()),
         reward_vk:    Some(reward_vk.clone()),
         ratio:        None,
         threshold:    None,
@@ -119,7 +224,7 @@ macro_rules! assert_fields {
 
     assert_eq!(Rewards::handle(deps, badman(3), RewardsHandle::Configure(RewardsConfig {
         lp_token:     None,
-        reward_token: Some(reward_token.clone()),
+        reward_token: Some(reward_token.link.clone()),
         reward_vk:    Some(reward_vk.clone()),
         ratio:        None,
         threshold:    None,
@@ -128,7 +233,7 @@ macro_rules! assert_fields {
 
     assert_eq!(Rewards::handle(deps, admin(4), RewardsHandle::Configure(RewardsConfig {
         lp_token:     None,
-        reward_token: Some(reward_token.clone()),
+        reward_token: Some(reward_token.link.clone()),
         reward_vk:    Some(reward_vk.clone()),
         ratio:        None,
         threshold:    None,
@@ -138,8 +243,8 @@ macro_rules! assert_fields {
             snip20::set_viewing_key_msg(
                 reward_vk,
                 None, BLOCK_SIZE,
-                reward_token.code_hash.clone(),
-                reward_token.address.clone()
+                reward_token.link.code_hash.clone(),
+                reward_token.link.address.clone()
             ).unwrap()
         ],
         data: None,
@@ -174,8 +279,8 @@ macro_rules! assert_fields {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     Some(lp_token),
-        reward_token: Some(reward_token),
+        lp_token:     Some(lp_token.link.clone()),
+        reward_token: Some(reward_token.link.clone()),
         reward_vk:    Some(reward_vk),
         ratio:        None,
         threshold:    None,
@@ -223,8 +328,8 @@ macro_rules! assert_fields {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, user) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     Some(lp_token),
-        reward_token: Some(reward_token),
+        lp_token:     Some(lp_token.link.clone()),
+        reward_token: Some(reward_token.link.clone()),
         reward_vk:    Some(reward_vk),
         ratio:        None,
         threshold:    None,
@@ -441,18 +546,28 @@ macro_rules! assert_fields {
 
     let threshold = 100u64;
 
-    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     Some(lp_token),
-        reward_token: Some(reward_token),
-        reward_vk:    Some(reward_vk),
+    assert_eq!(Rewards::init(deps, &admin(1), RewardsConfig {
+        lp_token:     Some(lp_token.link.clone()),
+        reward_token: Some(reward_token.link.clone()),
+        reward_vk:    Some(reward_vk.clone()),
         ratio:        None,
         threshold:    Some(threshold),
         cooldown:     None,
-    }).is_ok());
+    }), Ok(Some(snip20::set_viewing_key_msg(
+        reward_vk.clone(),
+        None, BLOCK_SIZE,
+        reward_token.link.code_hash.clone(),
+        reward_token.link.address.clone()
+    ).unwrap())));
 
     assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
         amount: 100u128.into()
-    }), Ok(HandleResponse::default()));
+    }), HandleResponse::default()
+        .msg(lp_token.transfer_from(
+            &user("Alice", 2).message.sender,
+            &user("Alice", 2).contract.address,
+            100u128.into()
+        ).unwrap()));
 
     assert_eq!(Rewards::handle(deps, user("Alice", 4), RewardsHandle::Claim {
     }), Err(StdError::unauthorized()));
@@ -478,8 +593,8 @@ macro_rules! assert_fields {
     let (ref mut deps, reward_vk, reward_token, _lp_token, admin, _, user) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     Some(reward_token.clone()),
-        reward_token: Some(reward_token),
+        lp_token:     Some(reward_token.link.clone()),
+        reward_token: Some(reward_token.link.clone()),
         reward_vk:    Some(reward_vk),
         ratio:        None,
         threshold:    None,
@@ -511,8 +626,8 @@ macro_rules! assert_fields {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, user) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     Some(lp_token),
-        reward_token: Some(reward_token),
+        lp_token:     Some(lp_token.link.clone()),
+        reward_token: Some(reward_token.link.clone()),
         reward_vk:    Some(reward_vk),
         ratio:        None,
         threshold:    None,
@@ -604,8 +719,8 @@ macro_rules! assert_fields {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, _) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     Some(lp_token),
-        reward_token: Some(reward_token.clone()),
+        lp_token:     Some(lp_token.link.clone()),
+        reward_token: Some(reward_token.link.clone()),
         reward_vk:    Some(reward_vk),
         ratio:        None,
         threshold:    None,
@@ -614,7 +729,7 @@ macro_rules! assert_fields {
 
     let key = "key";
     let msg = RewardsHandle::Drain {
-        snip20:    reward_token,
+        snip20:    reward_token.link.clone(),
         key:       key.into(),
         recipient: None
     };
@@ -638,9 +753,9 @@ macro_rules! assert_fields {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, user) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     Some(lp_token),
-        reward_token: Some(reward_token),
-        reward_vk:    Some(reward_vk),
+        lp_token:     Some(lp_token.link.clone()),
+        reward_token: Some(reward_token.link.clone()),
+        reward_vk:    Some(reward_vk.clone()),
         ratio:        Some((0u128.into(), 1u128.into())),
         threshold:    None,
         cooldown:     None,
@@ -775,55 +890,4 @@ macro_rules! assert_fields {
     //user.pool.reset_liquidity_ratio()?;
 
     //assert_eq!(user.claim_reward()?, 75u128.into());
-}
-
-type Deps = Extern<MemoryStorage, MockApi, MockQuerier>;
-
-type Context = (
-    Deps,                    // deps
-    String,                  // reward_vk
-    ContractLink<HumanAddr>, // reward_token
-    ContractLink<HumanAddr>, // lp_token
-    fn (u64) -> Env,         // admin env - always init contract with this
-    fn (u64) -> Env,         // badman env - never register in the contract
-    fn (&str, u64) -> Env,   // user envs - pass
-);
-
-fn context () -> Context {
-    (
-        mock_dependencies(20, &[]),
-        "reward_vk".to_string(),
-        ContractLink { address: HumanAddr::from("reward_addr"), code_hash: "reward_hash".into() },
-        ContractLink { address: HumanAddr::from("lp_addr"),     code_hash: "lp_hash".into() },
-        |t: u64| env(&HumanAddr::from("Admin"),  t),
-        |t: u64| env(&HumanAddr::from("Badman"), t),
-        |id: &str, t: u64| env(&HumanAddr::from(format!("User{}", id)), t),
-    )
-}
-
-fn context_init () -> Context {
-    let mut context = context();
-    assert_eq!(
-        Rewards::init(&mut context.0, &context.4(1), RewardsConfig {
-            lp_token:     Some(context.3.clone()),
-            reward_token: Some(context.2.clone()),
-            reward_vk:    Some(context.1.clone()),
-            ratio:        None,
-            threshold:    None,
-            cooldown:     None,
-        }).unwrap(),
-        Some(snip20::set_viewing_key_msg(
-            context.1.clone(),
-            None, BLOCK_SIZE,
-            context.2.code_hash.clone(),
-            context.2.address.clone()
-        ).unwrap())
-    );
-    context
-}
-
-fn env (signer: &HumanAddr, time: u64) -> Env {
-    let mut env = mock_env(signer, &[]);
-    env.block.time = time;
-    env
 }
