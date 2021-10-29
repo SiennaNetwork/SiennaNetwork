@@ -30,111 +30,6 @@ macro_rules! assert_fields {
     }; }
 }
 
-pub struct RewardsMockQuerier { pub balance: Amount }
-
-#[derive(serde::Serialize, serde::Deserialize)]
-#[serde(rename_all="snake_case")]
-pub enum Snip20Query { Balance {} }
-
-#[derive(serde::Serialize, serde::Deserialize)]
-#[serde(rename_all="snake_case")]
-pub enum Snip20Response { Balance { amount: Amount } }
-
-impl Querier for RewardsMockQuerier {
-    fn raw_query (&self, bin_request: &[u8]) -> QuerierResult {
-        let request: QueryRequest<Empty> = match from_slice(bin_request) {
-            Ok(v) => v,
-            Err(e) => unimplemented!()
-        };
-        match request {
-            QueryRequest::Wasm(WasmQuery::Smart { callback_code_hash, contract_addr, msg }) => {
-                Ok(to_binary(&self.mock_query_dispatch(&ContractLink {
-                    code_hash: callback_code_hash,
-                    address:   contract_addr
-                }, &from_binary(&msg).unwrap())))
-            },
-            _ => unimplemented!()
-        }
-    }
-}
-
-impl RewardsMockQuerier {
-    fn mock_query_dispatch(
-        &self, _: &ContractLink<HumanAddr>, msg: &Snip20Query
-    ) -> Snip20Response {
-        match msg {
-            Snip20Query::Balance { .. } => Snip20Response::Balance { amount: self.balance },
-            _ => unimplemented!()
-        }
-    }
-    pub fn increment_balance (&mut self, amount: u128) -> () {
-        self.balance += amount.into();
-    }
-    pub fn decrement_balance (&mut self, amount: u128) -> StdResult<()> {
-        self.balance = (self.balance - amount.into())?;
-        Ok(())
-    }
-}
-
-type Deps = Extern<MemoryStorage, MockApi, RewardsMockQuerier>;
-
-type Context = (
-    Deps,                  // deps
-    String,                // reward_vk
-    ISnip20,               // reward_token
-    ISnip20,               // lp_token
-    fn (u64) -> Env,       // admin env - always init contract with this
-    fn (u64) -> Env,       // badman env - never register in the contract
-    fn (&str, u64) -> Env, // user envs - pass
-);
-
-fn context () -> Context {
-    (
-        Extern {
-            storage: MemoryStorage::default(),
-            api:     MockApi::new(20),
-            querier: RewardsMockQuerier { balance: 0u128.into() }
-        },
-        "reward_vk".to_string(),
-        ISnip20::attach(
-            ContractLink { address: HumanAddr::from("reward_addr"), code_hash: "reward_hash".into() }
-        ),
-        ISnip20::attach(
-            ContractLink { address: HumanAddr::from("lp_addr"),     code_hash: "lp_hash".into() }
-        ),
-        |t: u64| env(&HumanAddr::from("Admin"),  t),
-        |t: u64| env(&HumanAddr::from("Badman"), t),
-        |id: &str, t: u64| env(&HumanAddr::from(format!("User{}", id)), t),
-    )
-}
-
-fn context_init () -> Context {
-    let mut context = context();
-    assert_eq!(
-        Rewards::init(&mut context.0, &context.4(1), RewardsConfig {
-            lp_token:     Some(context.3.link.clone()),
-            reward_token: Some(context.2.link.clone()),
-            reward_vk:    Some(context.1.clone()),
-            ratio:        None,
-            threshold:    None,
-            cooldown:     None,
-        }).unwrap(),
-        Some(snip20::set_viewing_key_msg(
-            context.1.clone(),
-            None, BLOCK_SIZE,
-            context.2.link.code_hash.clone(),
-            context.2.link.address.clone()
-        ).unwrap())
-    );
-    context
-}
-
-fn env (signer: &HumanAddr, time: u64) -> Env {
-    let mut env = mock_env(signer, &[]);
-    env.block.time = time;
-    env
-}
-
 // duration of rewards period as u128 instead of u64
 // to allow in-place (DAY * Amount) volume calculations
 // (volume is also represented as u128 instead of u256)
@@ -144,6 +39,8 @@ fn env (signer: &HumanAddr, time: u64) -> Env {
 //const PORTION:    u128 = 100;
 //const REWARD:     u128 = 100;
 //const STAKE:      u128 = 100;
+
+// Look Ma, no macros! ////////////////////////////////////////////////////////////////////////////
 
 /// Given no instance
 ///
@@ -184,6 +81,115 @@ fn env (signer: &HumanAddr, time: u64) -> Env {
         ).unwrap())
     );
 }
+
+    // Helpers will be indented 1 level above the test cases
+
+    pub struct RewardsMockQuerier { pub balance: Amount }
+
+    #[derive(serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all="snake_case")]
+    pub enum Snip20Query { Balance {} }
+
+    #[derive(serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all="snake_case")]
+    pub enum Snip20Response { Balance { amount: Amount } }
+
+    impl Querier for RewardsMockQuerier {
+        fn raw_query (&self, bin_request: &[u8]) -> QuerierResult {
+            let request: QueryRequest<Empty> = match from_slice(bin_request) {
+                Ok(v) => v,
+                Err(e) => unimplemented!()
+            };
+            match request {
+                QueryRequest::Wasm(WasmQuery::Smart { callback_code_hash, contract_addr, msg }) => {
+                    Ok(to_binary(&self.mock_query_dispatch(&ContractLink {
+                        code_hash: callback_code_hash,
+                        address:   contract_addr
+                    }, &from_binary(&msg).unwrap())))
+                },
+                _ => unimplemented!()
+            }
+        }
+    }
+
+    impl RewardsMockQuerier {
+        fn mock_query_dispatch(
+            &self, _: &ContractLink<HumanAddr>, msg: &Snip20Query
+        ) -> Snip20Response {
+            match msg {
+                Snip20Query::Balance { .. } => Snip20Response::Balance { amount: self.balance },
+                _ => unimplemented!()
+            }
+        }
+        pub fn increment_balance (&mut self, amount: u128) -> () {
+            self.balance += amount.into();
+        }
+        pub fn decrement_balance (&mut self, amount: u128) -> StdResult<()> {
+            self.balance = (self.balance - amount.into())?;
+            Ok(())
+        }
+    }
+
+    type Deps = Extern<MemoryStorage, MockApi, RewardsMockQuerier>;
+
+    type Context = (
+        Deps,                  // deps
+        String,                // reward_vk
+        ISnip20,               // reward_token
+        ISnip20,               // lp_token
+        fn (u64) -> Env,       // admin env - always init contract with this
+        fn (u64) -> Env,       // badman env - never register in the contract
+        fn (&str, u64) -> Env, // user envs - pass
+    );
+
+    fn context () -> Context {
+        (
+            Extern {
+                storage: MemoryStorage::default(),
+                api:     MockApi::new(20),
+                querier: RewardsMockQuerier { balance: 0u128.into() }
+            },
+            "reward_vk".to_string(),
+            ISnip20::attach(
+                ContractLink { address: HumanAddr::from("reward_addr"), code_hash: "reward_hash".into() }
+            ),
+            ISnip20::attach(
+                ContractLink { address: HumanAddr::from("lp_addr"),     code_hash: "lp_hash".into() }
+            ),
+            |t: u64| env(&HumanAddr::from("Admin"),  t),
+            |t: u64| env(&HumanAddr::from("Badman"), t),
+            |id: &str, t: u64| env(&HumanAddr::from(format!("User{}", id)), t),
+        )
+    }
+
+    fn context_init () -> Context {
+        let mut context = context();
+        assert_eq!(
+            Rewards::init(&mut context.0, &context.4(1), RewardsConfig {
+                lp_token:     Some(context.3.link.clone()),
+                reward_token: Some(context.2.link.clone()),
+                reward_vk:    Some(context.1.clone()),
+                ratio:        None,
+                threshold:    None,
+                cooldown:     None,
+            }).unwrap(),
+            Some(snip20::set_viewing_key_msg(
+                context.1.clone(),
+                None, BLOCK_SIZE,
+                context.2.link.code_hash.clone(),
+                context.2.link.address.clone()
+            ).unwrap())
+        );
+        context
+    }
+
+    fn env (signer: &HumanAddr, time: u64) -> Env {
+        let mut env = mock_env(signer, &[]);
+        env.block.time = time;
+        env
+    }
+
+// And more test cases, with gradually fewer helper functions as the defined ones are reused //////
 
 /// Given no instance
 ///
@@ -276,7 +282,7 @@ fn env (signer: &HumanAddr, time: u64) -> Env {
 ///  When a stranger tries to withdraw
 ///  Then they can't
 #[test] fn test_lock_retrieve_one () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
+    let (ref mut deps, reward_vk, ref reward_token, ref lp_token, admin, badman, user) = context();
 
     assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token.link.clone()),
@@ -287,43 +293,52 @@ fn env (signer: &HumanAddr, time: u64) -> Env {
         cooldown:     None,
     }).is_ok());
 
-    assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
-        amount: 100u128.into()
-    }), Ok(HandleResponse::default()));
+    deposit(deps, lp_token, user("Alice", 2), 100u128);
 
-    assert_eq!(Rewards::handle(deps, user("Alice", 4), RewardsHandle::Retrieve {
-        amount: 50u128.into()
-    }), Ok(HandleResponse::default()));
+    successful_withdrawal(deps, lp_token, user("Alice", 4), 50u128);
 
-    assert_eq!(Rewards::handle(deps, user("Alice", 6), RewardsHandle::Retrieve {
-        amount: 50u128.into()
-    }), Ok(HandleResponse::default()));
+    successful_withdrawal(deps, lp_token, user("Alice", 6), 50u128);
 
-    assert_eq!(Rewards::handle(deps, user("Alice", 8), RewardsHandle::Lock {
-        amount: 10u128.into()
-    }), Ok(HandleResponse::default()));
+    deposit(deps, lp_token, user("Alice", 8), 100u128);
 
-    assert_eq!(Rewards::handle(deps, user("Alice", 10), RewardsHandle::Lock {
-        amount: 10u128.into()
-    }), Ok(HandleResponse::default()));
+    deposit(deps, lp_token, user("Alice", 10), 100u128);
 
-    assert_eq!(Rewards::handle(deps, user("Alice", 12), RewardsHandle::Retrieve {
-        amount: 50u128.into()
-    }), Ok(HandleResponse::default()));
+    successful_withdrawal(deps, lp_token, user("Alice", 12), 50u128);
 
-    assert_eq!(Rewards::handle(deps, badman(14), RewardsHandle::Retrieve {
-        amount: 50u128.into()
-    }), Ok(HandleResponse::default()));
+    successful_withdrawal(deps, lp_token, user("Alice", 14), 50u128);
 
 }
+
+    fn deposit (deps: &mut Deps, lp_token: &ISnip20, env: Env, amount: u128) {
+        assert_eq!(
+            Rewards::handle(deps, env.clone(), RewardsHandle::Lock { amount: amount.into() }),
+            HandleResponse::default().msg(lp_token.transfer_from(
+                &env.message.sender,
+                &env.contract.address,
+                amount.into()
+            ).unwrap()));
+    }
+
+    fn successful_withdrawal (deps: &mut Deps, lp_token: &ISnip20, env: Env, amount: u128) {
+        assert_eq!(
+            Rewards::handle(deps, env.clone(), RewardsHandle::Lock { amount: amount.into() }),
+            HandleResponse::default().msg(lp_token.transfer(
+                &env.message.sender,
+                amount.into()
+            ).unwrap()));
+    }
 
 /// Given an instance:
 ///
 ///  When alice and bob first lock lp tokens simultaneously,
 ///  Then their ages and earnings start incrementing simultaneously;
 ///
+///  When alice and bob retrieve lp tokens simultaneously,
+///  Then their ages and earnings keep changing simultaneously;
+///
 ///  When alice and bob's ages reach the configured threshold,
 ///  Then each is eligible to claim half of the available rewards
+///   And their rewards are proportionate to their stakes.
 #[test] fn test_lock_retrieve_parallel () {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, user) = context();
 
@@ -336,13 +351,10 @@ fn env (signer: &HumanAddr, time: u64) -> Env {
         cooldown:     None,
     }).is_ok());
 
-    assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
-        amount: 100u128.into()
-    }), Ok(HandleResponse::default()));
+    deposit(deps, &lp_token, user("Alice", 2), 100u128);
 
-    assert_eq!(Rewards::handle(deps, user("Bob", 2), RewardsHandle::Lock {
-        amount: 100u128.into()
-    }), Ok(HandleResponse::default()));
+    deposit(deps, &lp_token, user("Bob",   2), 200u128);
+
 
     //Test.at(1).init_configured(&admin)?
               //.fund(REWARD)
@@ -542,17 +554,15 @@ fn env (signer: &HumanAddr, time: u64) -> Env {
 ///  When a user claims rewards
 ///  Then they need to wait a fixed amount of time before they can claim again
 #[test] fn test_threshold_cooldown () {
-    let (ref mut deps, reward_vk, reward_token, lp_token, admin, _, user) = context();
-
-    let threshold = 100u64;
+    let (ref mut deps, reward_vk, ref reward_token, ref lp_token, admin, _, user) = context();
 
     assert_eq!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token.link.clone()),
         reward_token: Some(reward_token.link.clone()),
         reward_vk:    Some(reward_vk.clone()),
         ratio:        None,
-        threshold:    Some(threshold),
-        cooldown:     None,
+        threshold:    Some(100),
+        cooldown:     Some(200),
     }), Ok(Some(snip20::set_viewing_key_msg(
         reward_vk.clone(),
         None, BLOCK_SIZE,
@@ -560,27 +570,41 @@ fn env (signer: &HumanAddr, time: u64) -> Env {
         reward_token.link.address.clone()
     ).unwrap())));
 
-    assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
-        amount: 100u128.into()
-    }), HandleResponse::default()
-        .msg(lp_token.transfer_from(
-            &user("Alice", 2).message.sender,
-            &user("Alice", 2).contract.address,
-            100u128.into()
-        ).unwrap()));
+    deposit(deps, lp_token, user("Alice", 2), 100u128);
 
-    assert_eq!(Rewards::handle(deps, user("Alice", 4), RewardsHandle::Claim {
-    }), Err(StdError::unauthorized()));
+    claim_must_wait(deps, user("Alice", 4), 98);
+    claim_must_wait(deps, user("Alice", 5), 97);
+    // ...
+    claim_must_wait(deps, user("Alice", 100), 2);
+    claim_must_wait(deps, user("Alice", 101), 1);
 
-    assert_eq!(Rewards::handle(deps, user("Alice", 6), RewardsHandle::Claim {
-    }), Ok(HandleResponse::default()));
+    successful_claim(deps, reward_token, user("Alice", 102), 100);
 
-    assert_eq!(Rewards::handle(deps, user("Alice", 8), RewardsHandle::Claim {
-    }), Err(StdError::unauthorized()));
+    claim_must_wait(deps, user("Alice", 103), 200);
+    claim_must_wait(deps, user("Alice", 104), 199);
+    // ...
+    claim_must_wait(deps, user("Alice", 300), 3);
+    claim_must_wait(deps, user("Alice", 301), 2);
+    claim_must_wait(deps, user("Alice", 302), 1);
 
-    assert_eq!(Rewards::handle(deps, user("Alice", 10), RewardsHandle::Claim {
-    }), Ok(HandleResponse::default()));
+    successful_claim(deps, reward_token, user("Alice", 303), 100);
 }
+
+    fn successful_claim (deps: &mut Deps, reward_token: &ISnip20, env: Env, amount: u128) {
+        assert_eq!(
+            Rewards::handle(deps, env.clone(), RewardsHandle::Claim {}),
+            HandleResponse::default().msg(reward_token.transfer(
+                &env.message.sender,
+                amount.into()
+            ).unwrap()));
+    }
+
+    fn claim_must_wait (deps: &mut Deps, env: Env, remaining: u64) {
+        assert_eq!(
+            Rewards::handle(deps, env.clone(), RewardsHandle::Claim {}),
+            Err(StdError::generic_err(
+                format!("lock tokens for {} more blocks to be eligible", remaining))))
+    }
 
 /// Given an instance where rewards are given in the same token that is staked
 ///
