@@ -59,17 +59,15 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
     }
 
     fn load_admin (&self) -> StdResult<HumanAddr> {
-        let result: Option<CanonicalAddr> = self.get(ADMIN_KEY)?;
-        if let Some(result) = result {
-            self.api().human_address(&result)
-        } else {
-            Ok(HumanAddr::default())
-        }
+        self.get(ADMIN_KEY)?.map_or(
+            Ok(HumanAddr::default()),
+            |result|self.api().human_address(&result),
+        )
     }
 
     fn save_admin(&mut self, address: &HumanAddr) -> StdResult<()> {
         let admin = self.api().canonical_address(address)?;
-        self.set(ADMIN_KEY, &admin.as_slice())?;
+        self.set(ADMIN_KEY, Some(&admin))?;
         Ok(())
     }
 

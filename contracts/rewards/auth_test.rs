@@ -37,7 +37,7 @@ fn test_admin_handle() {
     let result = Auth::handle(deps, mock_env("unauthorized", &[]), msg).unwrap_err();
     match result {
         StdError::Unauthorized { .. } => { },
-        _ => panic!("Expected \"StdError::Unauthorized\"")
+        _ => panic!("Expected \"StdError::Unauthorized\", got: {:#?}", &result)
     };
     let new_admin = HumanAddr::from("new_admin");
     let msg = AuthHandle::ChangeAdmin { address: new_admin.clone() };

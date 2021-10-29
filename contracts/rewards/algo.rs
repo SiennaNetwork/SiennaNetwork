@@ -431,11 +431,8 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let vested  = claimed + balance;
         Ok(Pool {
             now, seeded, updated, existed, liquid,
-
             locked, lifetime,
-
             vested, claimed, balance,
-
             cooldown:     self.get(pool::COOLDOWN)?.ok_or(
                 StdError::generic_err("missing cooldown")
             )?,
@@ -445,7 +442,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             global_ratio: self.get(pool::RATIO)?.ok_or(
                 StdError::generic_err("missing global ratio")
             )?,
-
             deployed:     self.get(pool::DEPLOYED)?.ok_or(
                 StdError::generic_err("missing deploy timestamp")
             )?,
@@ -505,24 +501,10 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
         Ok(User {
             registered,
-
-            existed,
-            liquid,
-            presence: (liquid, existed),
-
-            updated,
-            locked,
-            momentary_share: (locked, pool.locked),
-
-            lifetime,
-            lifetime_share: (lifetime, pool.lifetime),
-
-            earned,
-            claimed,
-            claimable,
-
-            cooldown,
-
+            existed, liquid, presence: (liquid, existed),
+            updated, locked, momentary_share: (locked, pool.locked),
+            lifetime, lifetime_share: (lifetime, pool.lifetime),
+            earned, claimed, claimable, cooldown,
             reason: reason.map(|x|x.to_string())
         })
     }
@@ -534,25 +516,16 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 pub enum RewardsHandle {
     Configure(RewardsConfig),
 
-    Lock {
-        amount: Amount
-    },
-
-    Retrieve {
-        amount: Amount
-    },
-
-    Claim {},
-
-    Close {
-        message: String
-    },
-
+    Close { message: String },
     Drain {
         snip20:    ContractLink<HumanAddr>,
         recipient: Option<HumanAddr>,
         key:       String
     },
+
+    Lock     { amount: Amount },
+    Retrieve { amount: Amount },
+    Claim {},
 }
 
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
