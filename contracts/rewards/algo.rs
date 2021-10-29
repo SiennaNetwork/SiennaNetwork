@@ -160,7 +160,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let (mut pool, mut user) = self.before_user_action(&env)?;
 
         // If user must wait before first claim, enforce that here.
-        enforce_cooldown(user.present, pool.threshold)?;
+        enforce_cooldown(user.liquid, pool.threshold)?;
 
         // If user must wait between claims, enforce that here.
         enforce_cooldown(0, user.cooldown)?;
@@ -265,7 +265,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         self.set(pool::UPDATED,  now)?;
 
         self.set_ns(user::EXISTED,  id.as_slice(), user.existed)?;
-        self.set_ns(user::PRESENT,  id.as_slice(), user.present)?;
+        self.set_ns(user::PRESENT,  id.as_slice(), user.liquid)?;
         self.set_ns(user::COOLDOWN, id.as_slice(), user.cooldown)?;
         self.set_ns(user::LIFETIME, id.as_slice(), user.lifetime)?;
         self.set_ns(user::UPDATED,  id.as_slice(), now)?;
@@ -288,36 +288,31 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         recipient: Option<HumanAddr>,
         key:       String
     ) -> StdResult<HandleResponse> {
-        Auth::assert_admin(&self, &env)?;
+        Auth::assert_admin(&*self, &env)?;
 
-        let recipient = recipient.unwrap_or(env.message.sender);
+        let recipient = recipient.unwrap_or(env.message.sender.clone());
 
-        let reward_token = load_reward_token(&deps.storage, &deps.api)?;
+        let reward_token = self.humanize(
+            self.get::<ContractLink<CanonicalAddr>>(pool::REWARD_TOKEN)?
+        )?;
 
         // Update the viewing key if the supplied
         // token info for is the reward token
         if reward_token == snip20 {
-            save_viewing_key(&mut deps.storage, &ViewingKey(key.clone()))?
+            self.set(pool::REWARD_VK, key.clone())?
         }
 
-        tx_ok!(
-            snip20::increase_allowance_msg(
-                recipient,
-                Uint128(u128::MAX),
-                Some(env.block.time + 86400000), // One day duration
-                None,
-                BLOCK_SIZE,
-                snip20.code_hash.clone(),
-                snip20.address.clone()
-            )?,
-            snip20::set_viewing_key_msg(
-                key,
-                None,
-                BLOCK_SIZE,
-                snip20.code_hash,
-                snip20.address
-            )?
-        )
+        let allowance = Uint128(u128::MAX);
+        let duration  = Some(env.block.time + 86400000);
+        let snip20    = ISnip20::attach(&snip20);
+        Ok(HandleResponse {
+            messages: vec![
+                snip20.increase_allowance(&recipient, allowance, duration)?,
+                snip20.set_viewing_key(&key)?
+            ],
+            log: vec![],
+            data: None
+        })
     }
 
     /// Handle queries
@@ -450,7 +445,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             elapsed,
             locked)?;
 
-        let present = self.get_ns::<Time>(user::PRESENT, id.as_slice())? +
+        let liquid = self.get_ns::<Time>(user::PRESENT, id.as_slice())? +
             if locked > Amount::zero() { elapsed } else { 0 };
 
         let budget = Amount::from(pool.vested)
@@ -459,7 +454,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
         let earned = Volume::from(budget)
             .diminish_or_zero(lifetime, pool.lifetime)?
-            .diminish_or_zero(present, existed)?
+            .diminish_or_zero(liquid, existed)?
             .low_u128().into();
 
         let claimed = self.get_ns(user::CLAIMED, id.as_slice())?;
@@ -468,7 +463,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
         let cooldown = self.get_ns(user::COOLDOWN, id.as_slice())?;
 
-        let claimable = if present < pool.threshold {
+        let claimable = if liquid < pool.threshold {
             reason = Some("can only claim after age threshold");
             Amount::zero()
         } else if earned == Amount::zero() {
@@ -491,8 +486,8 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             registered,
 
             existed,
-            present,
-            presence: (present, existed),
+            liquid,
+            presence: (liquid, existed),
 
             updated,
             locked,
@@ -575,123 +570,122 @@ pub enum RewardsResponse {
 pub struct Pool {
     /// "For what point in time do the following values hold true?"
     /// Passed on instantiation.
-    now:          Time,
+    pub now:          Time,
 
     /// "When was this pool deployed?"
     /// Set to current time on init.
-    deployed:     Time,
+    pub deployed:     Time,
 
     /// "Is this pool closed, and if so, when and why?"
     /// Set irreversibly via handle method.
-    closed:       Option<String>,
+    pub closed:       Option<String>,
 
     /// "When were LP tokens first locked?"
     /// Set to current time on first lock.
-    seeded:       Option<Time>,
+    pub seeded:       Option<Time>,
 
     /// "For how many units of time has this pool existed?"
     /// Computed as now - seeded
-    existed:      Option<Time>,
+    pub existed:      Option<Time>,
 
     /// "When was the last time someone locked or unlocked tokens?"
     /// Set to current time on lock/unlock.
-    updated:      Time,
+    pub updated:      Time,
 
     /// Used to compute what portion of the time the pool was not empty.
     /// Before lock/unlock, if locked > 0, this is incremented
     /// by pool.elapsed
-    liquid:       Time,
+    pub liquid:       Time,
 
     /// "What liquidity has this pool contained up to this point?"
     /// Before lock/unlock, if locked > 0, this is incremented
     /// by pool.elapsed * pool.locked
-    lifetime:     Volume,
+    pub lifetime:     Volume,
 
     /// "What liquidity is there in the whole pool right now?"
     /// Incremented/decremented on lock/unlock.
-    locked:       Amount,
+    pub locked:       Amount,
 
     /// "What reward balance is there in the pool?"
     /// Queried from reward token.
-    balance:      Amount,
+    pub balance:      Amount,
 
     /// "What rewards has everyone received so far?"
     /// Incremented on claim.
-    claimed:      Amount,
+    pub claimed:      Amount,
 
     /// "What rewards were unlocked for this pool so far?"
     /// Computed as balance + claimed.
-    vested:       Amount,
+    pub vested:       Amount,
 
     /// "What is the initial bonding period?"
     /// User needs to lock LP tokens for this amount of time
     /// before rewards can be claimed. Configured on init.
-    threshold:    Time,
+    pub threshold:    Time,
 
     /// "How much must the user wait between claims?"
     /// Configured on init.
     /// User cooldowns are reset to this value on claim.
-    cooldown:     Time,
+    pub cooldown:     Time,
 
-    global_ratio:    (Amount, Amount),
+    pub global_ratio:    (Amount, Amount),
 }
 
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub struct User {
-
     /// When did this user first provide liquidity?
     /// Set to current time on first update.
-    registered:      Time,
+    pub registered:      Time,
 
     /// How much time has passed since this user became known to the contract?
     /// Computed as pool.now - user.registered
-    existed:         Time,
+    pub existed:         Time,
 
     /// When did this user's liquidity amount last change?
     /// Set to current time on update.
-    updated:         Time,
+    pub updated:         Time,
 
     /// For how much time this user has provided non-zero liquidity?
     /// Incremented on update by user.elapsed if user.locked > 0
-    present:         Time,
+    pub liquid:          Time,
 
-    presence: (Time, Time),
+    pub presence: (Time, Time),
 
     /// How much liquidity does this user currently provide?
     /// Incremented/decremented on lock/unlock.
-    locked:          Amount,
+    pub locked:          Amount,
 
     /// What portion of the pool is this user currently contributing?
     /// Computed as user.locked / pool.locked
-    momentary_share: (Amount, Amount),
+    pub momentary_share: (Amount, Amount),
 
     /// How much liquidity has this user provided since they first appeared?
     /// Incremented on update by user.locked * elapsed if user.locked > 0
-    lifetime:        Volume,
+    pub lifetime:        Volume,
 
     /// What portion of all the liquidity has this user ever contributed?
     /// Computed as user.lifetime / pool.lifetime
-    lifetime_share:  (Volume, Volume),
+    pub lifetime_share:  (Volume, Volume),
 
     /// How much rewards has this user earned?
     /// Computed as user.lifetime_share * pool.vested
-    earned:          Amount,
+    pub earned:          Amount,
 
     /// How much rewards has this user claimed so far?
     /// Incremented on claim by the amount claimed.
-    claimed:         Amount,
+    pub claimed:         Amount,
 
     /// How much rewards can this user claim?
     /// Computed as user.earned - user.claimed, clamped at 0.
-    claimable:       Amount,
+    pub claimable:       Amount,
 
     /// User-friendly reason why claimable is 0
-    reason:          Option<String>,
+    pub reason:          Option<String>,
 
     /// How many units of time remain until the user can claim again?
     /// Decremented on lock/unlock, reset to pool.cooldown on claim.
-    cooldown:        Time,
+    pub cooldown:        Time,
 }
 
 fn enforce_cooldown (elapsed: Time, cooldown: Time) -> StdResult<()> {

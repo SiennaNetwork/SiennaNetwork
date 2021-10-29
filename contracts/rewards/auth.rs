@@ -147,11 +147,14 @@ mod tests {
     fn test_vk_handle() {
         let ref mut deps = mock_dependencies(10, &[]);
         let sender  = HumanAddr("sender".into());
-        let env     = mock_env(sender, &[]);
+        let env     = mock_env(sender.clone(), &[]);
         let request = AuthHandle::CreateViewingKey { entropy: "123".into(), padding: None };
         let result  = Auth::handle(deps, env.clone(), request).unwrap();
         let result: AuthResponse = from_binary(&result.data.unwrap()).unwrap();
-        let created_vk = match result { AuthResponse::CreateViewingKey { key } => { key } };
+        let created_vk = match result {
+            AuthResponse::CreateViewingKey { key } => { key },
+            _ => unimplemented!()
+        };
         let sender_canonical = deps.api.canonical_address(&sender).unwrap();
         assert_eq!(created_vk, load_viewing_key(deps, sender_canonical.as_slice()).unwrap().unwrap());
         let auth_result = authenticate(&deps.storage, &ViewingKey("invalid".into()), sender_canonical.as_slice());
@@ -186,13 +189,15 @@ mod tests {
     #[test]
     fn test_auth_query() {
         let ref mut deps = mock_dependencies(10, &[]);
-        let result = Auth::query(deps, AuthQuery::Admin).unwrap();
-        let response: AuthResponse = from_binary(&result).unwrap();
-        assert!(response.address == HumanAddr::default());
+        match Auth::query(deps, AuthQuery::Admin).unwrap() {
+            AuthResponse::Admin { address } => assert_eq!(address, HumanAddr::default()),
+            _ => unimplemented!()
+        };
         let admin = HumanAddr::from("admin");
         Auth::save_admin(deps, &admin).unwrap();
-        let result = Auth::query(deps, AuthQuery::Admin).unwrap();
-        let response: AuthResponse = from_binary(&result).unwrap();
-        assert!(response.address == admin);
+        match Auth::query(deps, AuthQuery::Admin).unwrap() {
+            AuthResponse::Admin { address } => assert_eq!(address, admin),
+            _ => unimplemented!()
+        };
     }
 }

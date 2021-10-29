@@ -19,9 +19,7 @@ pub mod math;
 pub mod migration;
 
 #[cfg(browser)] #[macro_use] extern crate wasm_bindgen;
-#[cfg(any(test, browser))] mod test_harness;
 #[cfg(test)] #[macro_use] extern crate kukumba;
-
 
 use fadroma::*;
 use fadroma::{message, messages};
@@ -43,7 +41,7 @@ use crate::{
         RewardsResponse,
     },
     math::*,
-    //migration::*
+    migration::*
 };
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
@@ -133,8 +131,11 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 {
     fn init (&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
         Auth::init(self, &env, &msg.admin)?;
-        let set_vk = Rewards::init(self, &env, msg.config)?;
-        Ok(InitResponse { messages: vec![set_vk], log: vec![] })
+        let mut messages = vec![];
+        if let Some(set_vk) = Rewards::init(self, &env, msg.config)? {
+            messages.push(set_vk);
+        }
+        Ok(InitResponse { messages, log: vec![] })
     }
 
     fn handle (&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> {
@@ -192,4 +193,4 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q> for Extern<S, A, Q> {}
 impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for Extern<S, A, Q> {}
 impl<S: Storage, A: Api, Q: Querier> Auth<S, A, Q> for Extern<S, A, Q> {}
-//impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for Extern<S, A, Q> {}
+impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for Extern<S, A, Q> {}

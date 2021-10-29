@@ -8,9 +8,9 @@ pub enum MigrationHandle {
     InitiateMigration {
         next_contract: ContractLink<HumanAddr>
     },
-    MigrationData {},
+    MigrateAway {},
     MigrateFrom {
-        contract: ContractLink<HumanAddr>
+        prev_contract: ContractLink<HumanAddr>
     },
 }
 
@@ -23,18 +23,24 @@ pub trait Migration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 {
     fn handle (&mut self, env: Env, msg: MigrationHandle) -> StdResult<HandleResponse> {
         match msg {
-            MigrationHandle::MigrateTo { contract } =>
-                self.handle_migrate_to(env, contract),
-            MigrationHandle::MigrateFrom { contract } =>
-                self.handle_migrate_from(env, contract)
+            MigrationHandle::InitiateMigration { next_contract } =>
+                self.handle_initiate_migration(env, next_contract),
+            MigrationHandle::MigrateAway {} =>
+                self.handle_migrate_away(env),
+            MigrationHandle::MigrateFrom { prev_contract } =>
+                self.handle_migrate_from(env, prev_contract)
         }
     }
 
-    fn handle_migrate_to (&mut self, env: Env, contract: ContractLink<HumanAddr>) -> StdResult<HandleResponse> {
+    fn handle_initiate_migration (&mut self, env: Env, next_contract: ContractLink<HumanAddr>) -> StdResult<HandleResponse> {
         Ok(HandleResponse::default())
     }
 
-    fn handle_migrate_from (&mut self, env: Env, contract: ContractLink<HumanAddr>) -> StdResult<HandleResponse> {
+    fn handle_migrate_away (&mut self, env: Env) -> StdResult<HandleResponse> {
+        Ok(HandleResponse::default())
+    }
+
+    fn handle_migrate_from (&mut self, env: Env, prev_contract: ContractLink<HumanAddr>) -> StdResult<HandleResponse> {
         Ok(HandleResponse::default())
     }
 

@@ -49,20 +49,20 @@ const STAKE:      u128 = 100;
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
 
     assert_eq!(
-        Rewards::init(deps, &admin(), RewardsConfig {
+        Rewards::init(deps, &admin(1), RewardsConfig {
             lp_token:     None,
-            reward_token: Some(reward_token),
-            reward_vk:    Some(reward_vk),
+            reward_token: Some(reward_token.clone()),
+            reward_vk:    Some(reward_vk.clone()),
             ratio:        None,
             threshold:    None,
             cooldown:     None,
-        }),
-        Ok(Some(snip20::set_viewing_key_msg(
+        }).unwrap(),
+        Some(snip20::set_viewing_key_msg(
             reward_vk,
             None, BLOCK_SIZE,
             reward_token.code_hash.clone(),
             reward_token.address.clone()
-        )))
+        ).unwrap())
     );
 }
 
@@ -80,7 +80,7 @@ const STAKE:      u128 = 100;
 #[test] fn test_configure () {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
 
-    assert_eq!(Rewards::init(deps, &admin(), RewardsConfig {
+    assert_eq!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     None,
         reward_token: None,
         reward_vk:    None,
@@ -89,19 +89,19 @@ const STAKE:      u128 = 100;
         cooldown:     None,
     }), Ok(None));
 
-    assert_eq!(Rewards::handle(deps, badman(), RewardsHandle::Configure(RewardsConfig {
+    assert_eq!(Rewards::handle(deps, badman(2), RewardsHandle::Configure(RewardsConfig {
         lp_token:     None,
-        reward_token: Some(reward_token),
-        reward_vk:    Some(reward_vk),
+        reward_token: Some(reward_token.clone()),
+        reward_vk:    Some(reward_vk.clone()),
         ratio:        None,
         threshold:    None,
         cooldown:     None,
     })), Err(StdError::unauthorized()));
 
-    assert_eq!(Rewards::handle(deps, admin(), RewardsHandle::Configure(RewardsConfig {
+    assert_eq!(Rewards::handle(deps, admin(3), RewardsHandle::Configure(RewardsConfig {
         lp_token:     None,
-        reward_token: Some(reward_token),
-        reward_vk:    Some(reward_vk),
+        reward_token: Some(reward_token.clone()),
+        reward_vk:    Some(reward_vk.clone()),
         ratio:        None,
         threshold:    None,
         cooldown:     None,
@@ -145,7 +145,7 @@ const STAKE:      u128 = 100;
 #[test] fn test_lock_retrieve_one () {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
 
-    assert!(Rewards::init(deps, &admin(), RewardsConfig {
+    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token),
         reward_token: Some(reward_token),
         reward_vk:    Some(reward_vk),
@@ -154,31 +154,31 @@ const STAKE:      u128 = 100;
         cooldown:     None,
     }).is_ok());
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Lock {
+    assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
         amount: 100u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Retrieve {
+    assert_eq!(Rewards::handle(deps, user("Alice", 4), RewardsHandle::Retrieve {
         amount: 50u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Retrieve {
+    assert_eq!(Rewards::handle(deps, user("Alice", 6), RewardsHandle::Retrieve {
         amount: 50u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Lock {
+    assert_eq!(Rewards::handle(deps, user("Alice", 8), RewardsHandle::Lock {
         amount: 10u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Lock {
+    assert_eq!(Rewards::handle(deps, user("Alice", 10), RewardsHandle::Lock {
         amount: 10u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Retrieve {
+    assert_eq!(Rewards::handle(deps, user("Alice", 12), RewardsHandle::Retrieve {
         amount: 50u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Retrieve {
+    assert_eq!(Rewards::handle(deps, badman(14), RewardsHandle::Retrieve {
         amount: 50u128.into()
     }), Ok(HandleResponse::default()));
 
@@ -192,62 +192,85 @@ const STAKE:      u128 = 100;
 ///  When alice and bob's ages reach the configured threshold,
 ///  Then each is eligible to claim half of the available rewards
 #[test] fn test_lock_retrieve_parallel () {
-    let admin = HumanAddr::from("admin");
-    let alice = HumanAddr::from("alice");
-    let bob   = HumanAddr::from("bob");
-    Test.at(1).init_configured(&admin)?
-              .fund(REWARD)
-              .set_vk(&alice, "")?
-              .set_vk(&bob,   "")?
-              .user(&alice, 0, 0, 0, 0, 0, 0)?
-              .user(&bob,   0, 0, 0, 0, 0, 0)?
+    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
 
-    Test.at(1).user(&alice, 0,   0,   0, 0,  0, 0)?.lock(&alice, 100)?;
-    Test.at(1).user(&bob,   0,   0,   0, 0,  0, 0)?.lock(&bob,   100)?;
-    Test.at(1).user(&alice, 0, 100,   0, 0,  0, 0)?;
-    Test.at(1).user(&bob,   0, 100,   0, 0,  0, 0)?;
-    Test.at(2).user(&alice, 1, 100, 100, 50, 0, 0)?;
-    Test.at(2).user(&bob,   1, 100, 100, 50, 0, 0)?;
-    Test.at(3).user(&alice, 2, 100, 200, 50, 0, 0)?;
-    Test.at(3).user(&bob,   2, 100, 200, 50, 0, 0)?;
+    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
+        lp_token:     Some(lp_token),
+        reward_token: Some(reward_token),
+        reward_vk:    Some(reward_vk),
+        ratio:        None,
+        threshold:    None,
+        cooldown:     None,
+    }).is_ok());
 
-    Test.at(DAY+1).user(&alice, DAY, 100, DAY * 100, 50, 0, 50)?
-                  .user(&bob,   DAY, 100, DAY * 100, 50, 0, 50)?
+    assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
+        amount: 100u128.into()
+    }), Ok(HandleResponse::default()));
+
+    assert_eq!(Rewards::handle(deps, user("Bob", 2), RewardsHandle::Lock {
+        amount: 100u128.into()
+    }), Ok(HandleResponse::default()));
+
+    //Test.at(1).init_configured(&admin)?
+              //.fund(REWARD)
+              //.set_vk(&alice, "")?
+              //.set_vk(&bob,   "")?
+              //.user(&alice, 0, 0, 0, 0, 0, 0)?
+              //.user(&bob,   0, 0, 0, 0, 0, 0)?
+
+    //Test.at(1).user(&alice, 0,   0,   0, 0,  0, 0)?.lock(&alice, 100)?;
+    //Test.at(1).user(&bob,   0,   0,   0, 0,  0, 0)?.lock(&bob,   100)?;
+    //Test.at(1).user(&alice, 0, 100,   0, 0,  0, 0)?;
+    //Test.at(1).user(&bob,   0, 100,   0, 0,  0, 0)?;
+    //Test.at(2).user(&alice, 1, 100, 100, 50, 0, 0)?;
+    //Test.at(2).user(&bob,   1, 100, 100, 50, 0, 0)?;
+    //Test.at(3).user(&alice, 2, 100, 200, 50, 0, 0)?;
+    //Test.at(3).user(&bob,   2, 100, 200, 50, 0, 0)?;
+
+    //Test.at(DAY+1).user(&alice, DAY, 100, DAY * 100, 50, 0, 50)?
+                  //.user(&bob,   DAY, 100, DAY * 100, 50, 0, 50)?
 }
 
-/// given "an instance"
+/// Given an instance
 ///
-///  when "alice locks lp tokens,"
-///   and  "alice retrieves them after reaching the threshold;"
-///  then "alice is eligible to claim the whole pool"
+///  When alice locks lp tokens,
+///   And alice retrieves them after reaching the threshold;
+///  Then alice is eligible to claim the whole pool
 ///
-///  when "bob locks the same amount of tokens"
-///  then "alice's rewards start decreasing proportionally"
+///  When bob locks the same amount of tokens
+///  Then alice's rewards start decreasing proportionally
 ///
-///  when "bob reaches the age threshold"
-///  then "each is eligible to claim some rewards"
+///  When bob reaches the age threshold
+///  Then each is eligible to claim some rewards
 #[test] fn test_lock_retrieve_sequential () {
-    let admin = HumanAddr::from("admin");
-    let alice = HumanAddr::from("alice");
-    let bob   = HumanAddr::from("bob");
-    Test.at(1).init_configured(&admin)?
-              .set_vk(&alice, "")?
-              .set_vk(&bob,   "")?
-              .fund(REWARD)
+    let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
 
-    Test.at(    1).user(&alice,   0,   0,         0,   0, 0,   0)?.lock(&alice, 100)?
-        .at(DAY+1).user(&alice, DAY, 100, DAY * 100, 100, 0, 100)?.retrieve(&alice, 100)?
-                  .user(&alice, DAY,   0, DAY * 100, 100, 0, 100)?
+    assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
+        amount: 100u128.into()
+    }), Ok(HandleResponse::default()));
 
-    Test.at(           DAY+2).user(&bob,     0,   0,         0,  0, 0,  0)?.lock(&bob, 100)?
-                             .user(&bob,     0, 100,         0,  0, 0,  0)?
-        .at(         DAY+2+1).user(&alice, DAY,   0, DAY * 100, 97, 0, 97)?
-        .at(     DAY+2+DAY/2).user(&alice, DAY,   0, DAY * 100, 43, 0, 43)?
-        .at(DAY+2+DAY/2+1000).user(&alice, DAY,   0, DAY * 100, 40, 0, 40)?
+    assert_eq!(Rewards::handle(deps, user("Bob", 2), RewardsHandle::Lock {
+        amount: 100u128.into()
+    }), Ok(HandleResponse::default()));
 
-    Test.at(         2*DAY+2).user(&bob,   DAY, 100, DAY * 100, 49, 0, 49)?.retrieve(&bob, 100)?
-                             .user(&bob,   DAY,   0, DAY * 100, 49, 0, 49)?
-                             .user(&alice, DAY,   0, DAY * 100, 24, 0, 24)?
+    //Test.at(1).init_configured(&admin)?
+              //.set_vk(&alice, "")?
+              //.set_vk(&bob,   "")?
+              //.fund(REWARD);
+
+    //Test.at(    1).user(&alice,   0,   0,         0,   0, 0,   0)?.lock(&alice, 100)?
+        //.at(DAY+1).user(&alice, DAY, 100, DAY * 100, 100, 0, 100)?.retrieve(&alice, 100)?
+                  //.user(&alice, DAY,   0, DAY * 100, 100, 0, 100)?
+
+    //Test.at(           DAY+2).user(&bob,     0,   0,         0,  0, 0,  0)?.lock(&bob, 100)?
+                             //.user(&bob,     0, 100,         0,  0, 0,  0)?
+        //.at(         DAY+2+1).user(&alice, DAY,   0, DAY * 100, 97, 0, 97)?
+        //.at(     DAY+2+DAY/2).user(&alice, DAY,   0, DAY * 100, 43, 0, 43)?
+        //.at(DAY+2+DAY/2+1000).user(&alice, DAY,   0, DAY * 100, 40, 0, 40)?
+
+    //Test.at(         2*DAY+2).user(&bob,   DAY, 100, DAY * 100, 49, 0, 49)?.retrieve(&bob, 100)?
+                             //.user(&bob,   DAY,   0, DAY * 100, 49, 0, 49)?
+                             //.user(&alice, DAY,   0, DAY * 100, 24, 0, 24)?
 }
 
 /// Given an instance
@@ -268,7 +291,7 @@ const STAKE:      u128 = 100;
 #[test] fn test_claim () {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
 
-    assert!(Rewards::init(deps, &admin(), RewardsConfig {
+    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token),
         reward_token: Some(reward_token),
         reward_vk:    Some(reward_vk),
@@ -277,11 +300,11 @@ const STAKE:      u128 = 100;
         cooldown:     None,
     }).is_ok());
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Lock {
+    assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
         amount: 100u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Claim {
+    assert_eq!(Rewards::handle(deps, user("Alice", 3), RewardsHandle::Claim {
     }), Ok(HandleResponse::default()));
 
     //claim {
@@ -311,80 +334,80 @@ const STAKE:      u128 = 100;
             //Test.fund(REWARD)
                 //.at(3 + DAY * 2).claim(&alice, 50)?.claim(&bob, 100)? } }
 
-    claim_ratio_zero {
-        given "an instance" {
-            let admin = HumanAddr::from("admin");
-            let alice = HumanAddr::from("alice");
-            let bob   = HumanAddr::from("bob");
-            Test.at(1).init_configured(&admin)? }
+    //claim_ratio_zero {
+        //given "an instance" {
+            //let admin = HumanAddr::from("admin");
+            //let alice = HumanAddr::from("alice");
+            //let bob   = HumanAddr::from("bob");
+            //Test.at(1).init_configured(&admin)? }
 
-        when  "strangers try to claim rewards"
-        then  "they get an error" {
-            Test.at(1).claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
-                      .claim_must_wait(&bob,   "lock tokens for 17280 more blocks to be eligible")? }
+        //when  "strangers try to claim rewards"
+        //then  "they get an error" {
+            //Test.at(1).claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
+                      //.claim_must_wait(&bob,   "lock tokens for 17280 more blocks to be eligible")? }
 
-        when  "users provide liquidity"
-        and   "they wait for rewards to accumulate" {
-            Test.at(1)
-                .lock(&alice, 100)?.claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
-                .lock(&bob,   100)?.claim_must_wait(&bob, "lock tokens for 17280 more blocks to be eligible")?
-                .at(2).claim_must_wait(&alice, "lock tokens for 17279 more blocks to be eligible")?
-                .at(3).claim_must_wait(&bob,   "lock tokens for 17278 more blocks to be eligible")?
-                .at(4).claim_must_wait(&alice, "lock tokens for 17277 more blocks to be eligible")?
-                .at(5).claim_must_wait(&bob,   "lock tokens for 17276 more blocks to be eligible")? }
+        //when  "users provide liquidity"
+        //and   "they wait for rewards to accumulate" {
+            //Test.at(1)
+                //.lock(&alice, 100)?.claim_must_wait(&alice, "lock tokens for 17280 more blocks to be eligible")?
+                //.lock(&bob,   100)?.claim_must_wait(&bob, "lock tokens for 17280 more blocks to be eligible")?
+                //.at(2).claim_must_wait(&alice, "lock tokens for 17279 more blocks to be eligible")?
+                //.at(3).claim_must_wait(&bob,   "lock tokens for 17278 more blocks to be eligible")?
+                //.at(4).claim_must_wait(&alice, "lock tokens for 17277 more blocks to be eligible")?
+                //.at(5).claim_must_wait(&bob,   "lock tokens for 17276 more blocks to be eligible")? }
 
-        and   "a provider claims rewards"
-        then  "that provider receives reward tokens" {
-            Test.fund(REWARD)
-                .set_ratio(&admin, 0u128, 1u128)?
-                .at(1 + DAY).claim_must_wait(&alice, NO_REWARDS)? }
+        //and   "a provider claims rewards"
+        //then  "that provider receives reward tokens" {
+            //Test.fund(REWARD)
+                //.set_ratio(&admin, 0u128, 1u128)?
+                //.at(1 + DAY).claim_must_wait(&alice, NO_REWARDS)? }
 
-        when  "a provider claims rewards twice within a period"
-        then  "rewards are sent only the first time" {
-            Test.at(1 + DAY).claim_must_wait(&alice, NO_REWARDS)?
-                .at(2 + DAY).claim_must_wait(&alice, NO_REWARDS)?
-                .at(3 + DAY).claim_must_wait(&alice, NO_REWARDS)? }
+        //when  "a provider claims rewards twice within a period"
+        //then  "rewards are sent only the first time" {
+            //Test.at(1 + DAY).claim_must_wait(&alice, NO_REWARDS)?
+                //.at(2 + DAY).claim_must_wait(&alice, NO_REWARDS)?
+                //.at(3 + DAY).claim_must_wait(&alice, NO_REWARDS)? }
 
-        when  "a provider claims their rewards less often"
-        then  "they receive equivalent rewards as long as the liquidity locked hasn't changed" {
-            Test.fund(REWARD)
-                .set_ratio(&admin, 1u128, 1u128)?
-                .at(3 + DAY * 2).claim(&alice, 100)?.claim(&bob, 100)? } }
+        //when  "a provider claims their rewards less often"
+        //then  "they receive equivalent rewards as long as the liquidity locked hasn't changed" {
+            //Test.fund(REWARD)
+                //.set_ratio(&admin, 1u128, 1u128)?
+                //.at(3 + DAY * 2).claim(&alice, 100)?.claim(&bob, 100)? } }
 
-    two_sequential_users_and_claim {
-        given "an instance" {
-            let admin = HumanAddr::from("admin");
-            let alice = HumanAddr::from("alice");
-            let bob   = HumanAddr::from("bob");
-            Test.at(1).init_configured(&admin)?
-                      .set_vk(&alice, "")?
-                      .set_vk(&bob,   "")? }
+    //two_sequential_users_and_claim {
+        //given "an instance" {
+            //let admin = HumanAddr::from("admin");
+            //let alice = HumanAddr::from("alice");
+            //let bob   = HumanAddr::from("bob");
+            //Test.at(1).init_configured(&admin)?
+                      //.set_vk(&alice, "")?
+                      //.set_vk(&bob,   "")? }
 
-        when "alice locks lp tokens,"
-        and  "alice retrieves them after reaching the threshold;"
-        then "alice is eligible to claim the whole pool" {
-            Test.fund(REWARD)
-                .at(    1).user(&alice, 0, 0, 0, 0, 0, 0)?.lock(&alice, 100)?
-                .at(DAY+1).user(&alice, DAY, 100, DAY * 100, 100, 0, 100)?.retrieve(&alice, 100)?
-                          .user(&alice, DAY,   0, DAY * 100, 100, 0, 100)? }
+        //when "alice locks lp tokens,"
+        //and  "alice retrieves them after reaching the threshold;"
+        //then "alice is eligible to claim the whole pool" {
+            //Test.fund(REWARD)
+                //.at(    1).user(&alice, 0, 0, 0, 0, 0, 0)?.lock(&alice, 100)?
+                //.at(DAY+1).user(&alice, DAY, 100, DAY * 100, 100, 0, 100)?.retrieve(&alice, 100)?
+                          //.user(&alice, DAY,   0, DAY * 100, 100, 0, 100)? }
 
-        when "bob locks the same amount of tokens" {
-            Test.at(DAY+2).user(&bob,    0,   0, 0, 0, 0, 0)?.lock(&bob, 100)?
-                          .user(&bob,    0, 100, 0, 0, 0, 0)? }
+        //when "bob locks the same amount of tokens" {
+            //Test.at(DAY+2).user(&bob,    0,   0, 0, 0, 0, 0)?.lock(&bob, 100)?
+                          //.user(&bob,    0, 100, 0, 0, 0, 0)? }
 
-        then "alice's rewards start decreasing proportionally" {
-            Test.at(DAY+2+1).user(&alice, DAY, 0, DAY * 100, 97, 0, 97)? }
+        //then "alice's rewards start decreasing proportionally" {
+            //Test.at(DAY+2+1).user(&alice, DAY, 0, DAY * 100, 97, 0, 97)? }
 
-        when "alice claims some time after maturing"
-        then "alice's state is reset because of selective_memory" {
-            Test.at(     DAY+2+DAY/2).user(&alice, DAY, 0, DAY * 100, 43, 0, 43 )?.claim(&alice, 43)?
-                .at(1000+DAY+2+DAY/2).user(&alice, DAY, 0, 0, 0, 0, 0) }
+        //when "alice claims some time after maturing"
+        //then "alice's state is reset because of selective_memory" {
+            //Test.at(     DAY+2+DAY/2).user(&alice, DAY, 0, DAY * 100, 43, 0, 43 )?.claim(&alice, 43)?
+                //.at(1000+DAY+2+DAY/2).user(&alice, DAY, 0, 0, 0, 0, 0) }
 
-        when "bob reaches the age threshold"
-        then "bob is eligible to claim a comparable amount of rewards" {
-            Test.at(2*DAY+2).user(&bob,   DAY, 100, DAY * 100, 49,  0, 49)?.retrieve(&bob, 100)?
-                            .user(&bob,   DAY,   0, DAY * 100, 49,  0, 49)?
-                            .user(&alice, DAY,   0, 0, 0, 0, 0)? } }
+        //when "bob reaches the age threshold"
+        //then "bob is eligible to claim a comparable amount of rewards" {
+            //Test.at(2*DAY+2).user(&bob,   DAY, 100, DAY * 100, 49,  0, 49)?.retrieve(&bob, 100)?
+                            //.user(&bob,   DAY,   0, DAY * 100, 49,  0, 49)?
+                            //.user(&alice, DAY,   0, 0, 0, 0, 0)? } }
 }
 
 /// Given a pool
@@ -399,7 +422,7 @@ const STAKE:      u128 = 100;
 
     let threshold = 100u64;
 
-    assert!(Rewards::init(deps, &admin(), RewardsConfig {
+    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token),
         reward_token: Some(reward_token),
         reward_vk:    Some(reward_vk),
@@ -408,20 +431,20 @@ const STAKE:      u128 = 100;
         cooldown:     None,
     }).is_ok());
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Lock {
+    assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
         amount: 100u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Claim {
+    assert_eq!(Rewards::handle(deps, user("Alice", 4), RewardsHandle::Claim {
     }), Err(StdError::unauthorized()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Claim {
+    assert_eq!(Rewards::handle(deps, user("Alice", 6), RewardsHandle::Claim {
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Claim {
+    assert_eq!(Rewards::handle(deps, user("Alice", 8), RewardsHandle::Claim {
     }), Err(StdError::unauthorized()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Claim {
+    assert_eq!(Rewards::handle(deps, user("Alice", 10), RewardsHandle::Claim {
     }), Ok(HandleResponse::default()));
 }
 
@@ -435,8 +458,8 @@ const STAKE:      u128 = 100;
 #[test] fn test_single_sided () {
     let (ref mut deps, reward_vk, reward_token, _lp_token, admin, badman, user) = context();
 
-    assert!(Rewards::init(deps, &admin(), RewardsConfig {
-        lp_token:     Some(reward_token),
+    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
+        lp_token:     Some(reward_token.clone()),
         reward_token: Some(reward_token),
         reward_vk:    Some(reward_vk),
         ratio:        None,
@@ -444,14 +467,14 @@ const STAKE:      u128 = 100;
         cooldown:     None,
     }).is_ok());
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Lock {
+    assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
         amount: 100u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Claim {
+    assert_eq!(Rewards::handle(deps, user("Alice", 3), RewardsHandle::Claim {
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Retrieve {
+    assert_eq!(Rewards::handle(deps, user("Alice", 4), RewardsHandle::Retrieve {
         amount: 100u128.into()
     }), Ok(HandleResponse::default()));
 }
@@ -468,7 +491,7 @@ const STAKE:      u128 = 100;
 #[test] fn test_reset () {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
 
-    assert!(Rewards::init(deps, &admin(), RewardsConfig {
+    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token),
         reward_token: Some(reward_token),
         reward_vk:    Some(reward_vk),
@@ -477,26 +500,26 @@ const STAKE:      u128 = 100;
         cooldown:     None,
     }).is_ok());
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Lock {
+    assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
         amount: 100u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Claim {
+    assert_eq!(Rewards::handle(deps, user("Alice", 4), RewardsHandle::Claim {
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Retrieve {
+    assert_eq!(Rewards::handle(deps, user("Alice", 6), RewardsHandle::Retrieve {
         amount: 100u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Lock {
+    assert_eq!(Rewards::handle(deps, user("Alice", 8), RewardsHandle::Lock {
         amount: 100u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Retrieve {
+    assert_eq!(Rewards::handle(deps, user("Alice", 10), RewardsHandle::Retrieve {
         amount: 100u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Claim {
+    assert_eq!(Rewards::handle(deps, user("Alice", 12), RewardsHandle::Claim {
     }), Ok(HandleResponse::default()));
 
     //when  "share of user who has previously claimed rewards diminishes"
@@ -530,7 +553,7 @@ const STAKE:      u128 = 100;
 #[test] fn test_close () {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
 
-    assert!(Rewards::init(deps, &admin(), RewardsConfig {
+    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     None,
         reward_token: Some(reward_token),
         reward_vk:    Some(reward_vk),
@@ -539,23 +562,23 @@ const STAKE:      u128 = 100;
         cooldown:     None,
     }).is_ok());
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Lock {
+    assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
         amount: 100u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, badman(), RewardsHandle::Close {
+    assert_eq!(Rewards::handle(deps, badman(3), RewardsHandle::Close {
         message: String::from("closed")
     }), Err(StdError::unauthorized()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Lock {
+    assert_eq!(Rewards::handle(deps, user("Alice", 4), RewardsHandle::Lock {
         amount: 100u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, admin(), RewardsHandle::Close {
+    assert_eq!(Rewards::handle(deps, admin(5), RewardsHandle::Close {
         message: String::from("closed")
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Lock {
+    assert_eq!(Rewards::handle(deps, user("Alice", 6), RewardsHandle::Lock {
         amount: 100u128.into()
     }), Ok(HandleResponse::default()));
 }
@@ -570,9 +593,9 @@ const STAKE:      u128 = 100;
 #[test] fn test_drain () {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
 
-    assert!(Rewards::init(deps, &admin(), RewardsConfig {
+    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token),
-        reward_token: Some(reward_token),
+        reward_token: Some(reward_token.clone()),
         reward_vk:    Some(reward_vk),
         ratio:        None,
         threshold:    None,
@@ -586,10 +609,12 @@ const STAKE:      u128 = 100;
         recipient: None
     };
 
-    assert!(Rewards::handle(deps, badman(), msg.clone()).is_err());
+    assert!(Rewards::handle(deps, badman(2), msg.clone()).is_err());
 
-    assert!(Rewards::handle(deps, admin(), msg.clone()).is_ok());
-    assert_eq!(deps.get(crate::keys::pool::REWARD_VK)?.0, String::from(key));
+    assert!(Rewards::handle(deps, admin(3), msg.clone()).is_ok());
+
+    let vk: ViewingKey = deps.get(crate::keys::pool::REWARD_VK).unwrap();
+    assert_eq!(vk.0, String::from(key));
 }
 
 /// Given an instance with 0/1 ratio
@@ -602,7 +627,7 @@ const STAKE:      u128 = 100;
 #[test] fn test_global_ratio () {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
 
-    assert!(Rewards::init(deps, &admin(), RewardsConfig {
+    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
         lp_token:     Some(lp_token),
         reward_token: Some(reward_token),
         reward_vk:    Some(reward_vk),
@@ -611,14 +636,14 @@ const STAKE:      u128 = 100;
         cooldown:     None,
     }).is_ok());
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Lock {
+    assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
         amount: 100u128.into()
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Claim {
+    assert_eq!(Rewards::handle(deps, user("Alice", 4), RewardsHandle::Claim {
     }), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Configure(RewardsConfig {
+    assert_eq!(Rewards::handle(deps, user("Alice", 6), RewardsHandle::Configure(RewardsConfig {
         lp_token:     None,
         reward_token: None,
         reward_vk:    None,
@@ -627,7 +652,7 @@ const STAKE:      u128 = 100;
         cooldown:     None,
     })), Ok(HandleResponse::default()));
 
-    assert_eq!(Rewards::handle(deps, user(), RewardsHandle::Claim {
+    assert_eq!(Rewards::handle(deps, user("Alice", 8), RewardsHandle::Claim {
     }), Ok(HandleResponse::default()));
 }
 
@@ -653,33 +678,47 @@ const STAKE:      u128 = 100;
 #[test] fn test_pool_liquidity_ratio () {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
 
-    assert!(user.pool.liquidity_ratio().is_err());
+    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
+        lp_token:     Some(lp_token),
+        reward_token: Some(reward_token),
+        reward_vk:    Some(reward_vk),
+        ratio:        Some((0u128.into(), 1u128.into())),
+        threshold:    None,
+        cooldown:     None,
+    }).is_ok());
 
-    user.pool.set_time(10000);
-    assert!(user.pool.liquidity_ratio().is_err());
-    user.lock_tokens(100u128.into())?;
-    assert_eq!(user.pool.liquidity_ratio()?, 100000000u128.into());
+    match Rewards::query(deps, RewardsQuery::Status { at: 1, address: None, key: None }).unwrap() {
+        crate::algo::RewardsResponse::Status { pool, .. } => assert_eq!(pool.liquid, pool.existed.unwrap()),
+        _ => unimplemented!()
+    }
 
-    user.pool.set_time(20000);
-    assert_eq!(user.pool.liquidity_ratio()?, 100000000u128.into());
-    user.retrieve_tokens(50u128.into())?;
-    assert_eq!(user.pool.liquidity_ratio()?, 100000000u128.into());
+    //assert!(user.pool.liquidity_ratio().is_err());
 
-    user.pool.set_time(30000);
-    assert_eq!(user.pool.liquidity_ratio()?, 100000000u128.into());
-    user.retrieve_tokens(50u128.into())?;
-    assert_eq!(user.pool.liquidity_ratio()?, 100000000u128.into());
-    user.pool.set_time(50000);
-    assert_eq!(user.pool.liquidity_ratio()?,  50000000u128.into());
+    //user.pool.set_time(10000);
+    //assert!(user.pool.liquidity_ratio().is_err());
+    //user.lock_tokens(100u128.into())?;
+    //assert_eq!(user.pool.liquidity_ratio()?, 100000000u128.into());
 
-    user.lock_tokens(50u128.into())?;
-    user.pool.set_time(90000);
-    assert_eq!(user.pool.liquidity_ratio()?,  75000000u128.into());
+    //user.pool.set_time(20000);
+    //assert_eq!(user.pool.liquidity_ratio()?, 100000000u128.into());
+    //user.retrieve_tokens(50u128.into())?;
+    //assert_eq!(user.pool.liquidity_ratio()?, 100000000u128.into());
 
-    user.pool.set_balance(100u128.into());
-    user.retrieve_tokens(50u128.into())?;
-    user.reset_liquidity_ratio()?;
-    assert_eq!(user.claim_reward()?, 75u128.into());
+    //user.pool.set_time(30000);
+    //assert_eq!(user.pool.liquidity_ratio()?, 100000000u128.into());
+    //user.retrieve_tokens(50u128.into())?;
+    //assert_eq!(user.pool.liquidity_ratio()?, 100000000u128.into());
+    //user.pool.set_time(50000);
+    //assert_eq!(user.pool.liquidity_ratio()?,  50000000u128.into());
+
+    //user.lock_tokens(50u128.into())?;
+    //user.pool.set_time(90000);
+    //assert_eq!(user.pool.liquidity_ratio()?,  75000000u128.into());
+
+    //user.pool.set_balance(100u128.into());
+    //user.retrieve_tokens(50u128.into())?;
+    //user.reset_liquidity_ratio()?;
+    //assert_eq!(user.claim_reward()?, 75u128.into());
 }
 
 /// Given a pool and a user
@@ -704,57 +743,72 @@ const STAKE:      u128 = 100;
 #[test] fn test_user_liquidity_ratio () {
     let (ref mut deps, reward_vk, reward_token, lp_token, admin, badman, user) = context();
 
-    let mut user = pool.user(addr.clone());
+    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
+        lp_token:     Some(lp_token),
+        reward_token: Some(reward_token),
+        reward_vk:    Some(reward_vk),
+        ratio:        Some((0u128.into(), 1u128.into())),
+        threshold:    None,
+        cooldown:     None,
+    }).is_ok());
 
-    assert_eq!(user.liquidity_ratio()?, 100000000u128.into());
+    //let mut user = pool.user(addr.clone());
 
-    user.pool.set_time(10000);
-    user.lock_tokens(100u128.into())?;
-    assert_eq!(user.liquidity_ratio()?, 100000000u128.into());
+    //assert_eq!(user.liquidity_ratio()?, 100000000u128.into());
 
-    user.pool.set_time(20000);
-    user.retrieve_tokens(50u128.into())?;
-    assert_eq!(user.liquidity_ratio()?, 100000000u128.into());
-    user.pool.set_time(30000);
-    user.retrieve_tokens(50u128.into())?;
-    assert_eq!(user.liquidity_ratio()?, 100000000u128.into());
+    //user.pool.set_time(10000);
+    //user.lock_tokens(100u128.into())?;
+    //assert_eq!(user.liquidity_ratio()?, 100000000u128.into());
 
-    user.pool.set_time(40000);
-    assert_eq!(user.liquidity_ratio()?,  66666666u128.into());
+    //user.pool.set_time(20000);
+    //user.retrieve_tokens(50u128.into())?;
+    //assert_eq!(user.liquidity_ratio()?, 100000000u128.into());
+    //user.pool.set_time(30000);
+    //user.retrieve_tokens(50u128.into())?;
+    //assert_eq!(user.liquidity_ratio()?, 100000000u128.into());
 
-    user.pool.set_time(50000);
-    user.lock_tokens(50u128.into())?;
-    assert_eq!(user.liquidity_ratio()?,  50000000u128.into());
+    //user.pool.set_time(40000);
+    //assert_eq!(user.liquidity_ratio()?,  66666666u128.into());
 
-    user.pool.set_time(90000);
-    assert_eq!(user.liquidity_ratio()?,  75000000u128.into());
+    //user.pool.set_time(50000);
+    //user.lock_tokens(50u128.into())?;
+    //assert_eq!(user.liquidity_ratio()?,  50000000u128.into());
 
-    user.retrieve_tokens(50u128.into())?;
-    user.pool.set_balance(100u128.into());
+    //user.pool.set_time(90000);
+    //assert_eq!(user.liquidity_ratio()?,  75000000u128.into());
 
-    user.pool.reset_liquidity_ratio()?;
+    //user.retrieve_tokens(50u128.into())?;
+    //user.pool.set_balance(100u128.into());
 
-    assert_eq!(user.claim_reward()?, 75u128.into());
+    //user.pool.reset_liquidity_ratio()?;
+
+    //assert_eq!(user.claim_reward()?, 75u128.into());
 }
 
 type Deps = Extern<MemoryStorage, MockApi, MockQuerier>;
+
 type Context = (
     Deps,                    // deps
     String,                  // reward_vk
     ContractLink<HumanAddr>, // reward_token
     ContractLink<HumanAddr>, // lp_token
-    fn () -> Env,            // admin env
-    fn () -> Env,            // badman env
-    fn () -> Env,            // user env
+    fn (u64) -> Env,         // admin env - always init contract with this
+    fn (u64) -> Env,         // badman env - never register in the contract
+    fn (&str, u64) -> Env,   // user envs - pass
 );
-fn context () -> Context {
-    (
-        mock_dependencies(10, &[]),
-        "reward_vk".to_string(),
-        ContractLink { address: HumanAddr::from("reward_addr"), code_hash: "reward_hash".into() },
-        ContractLink { address: HumanAddr::from("lp_addr"),     code_hash: "lp_hash".into() },
-        || { mock_env("Admin",  &[]) },
-        || { mock_env("Badman", &[]) },
-        || { mock_env("User",   &[]) },
-    )
+
+fn context () -> Context { (
+    mock_dependencies(10, &[]),
+    "reward_vk".to_string(),
+    ContractLink { address: HumanAddr::from("reward_addr"), code_hash: "reward_hash".into() },
+    ContractLink { address: HumanAddr::from("lp_addr"),     code_hash: "lp_hash".into() },
+    |t: u64| env(&HumanAddr::from("Admin"),  t),
+    |t: u64| env(&HumanAddr::from("Badman"), t),
+    |id: &str, t: u64| env(&HumanAddr::from(format!("User{}", id)), t),
+) }
+
+fn env (signer: &HumanAddr, time: u64) -> Env {
+    let mut env = mock_env(signer, &[]);
+    env.block.time = time;
+    env
 }
