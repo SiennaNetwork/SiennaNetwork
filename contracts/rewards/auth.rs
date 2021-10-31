@@ -28,9 +28,8 @@ pub enum AuthResponse {
 pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn init (&mut self, env: &Env, admin: &Option<HumanAddr>) -> StdResult<()> {
-        self.set(b"/admin", &self.api().canonical_address(
-            &admin.as_ref().unwrap_or(&env.message.sender)
-        )?)?;
+        println!("Auth::init");
+        self.save_admin(&admin.as_ref().unwrap_or(&env.message.sender))?;
         Ok(())
     }
 
@@ -39,9 +38,9 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
             AuthHandle::ChangeAdmin { address } =>
                 self.change_admin(env, address),
             AuthHandle::CreateViewingKey { entropy, .. } =>
-                self.create_viewing_key(env, entropy),
+                self.create_vk(env, entropy),
             AuthHandle::SetViewingKey { key, .. } => 
-                self.set_viewing_key(env, key)
+                self.set_vk(env, key)
         }
     }
 
@@ -67,12 +66,14 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn save_admin(&mut self, address: &HumanAddr) -> StdResult<()> {
         let admin = self.api().canonical_address(address)?;
+        println!("Auth::save_admin {}", admin);
         self.set(ADMIN_KEY, Some(&admin))?;
         Ok(())
     }
 
     fn assert_admin(&self, env: &Env) -> StdResult<()> {
         let admin = self.load_admin()?;
+        println!("Auth::assert_admin {} {}", admin, env.message.sender);
         if admin == env.message.sender {
             Ok(())
         } else {
@@ -80,7 +81,7 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         }
     }
 
-    fn create_viewing_key(&mut self, env: Env, entropy: String) -> StdResult<HandleResponse> {
+    fn create_vk(&mut self, env: Env, entropy: String) -> StdResult<HandleResponse> {
         let prng_seed = [ 
             env.block.time.to_be_bytes(),
             env.block.height.to_be_bytes() 
@@ -88,7 +89,7 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
         let key = ViewingKey::new(&env, &prng_seed, &(entropy).as_ref());
         let address = self.api().canonical_address(&env.message.sender)?;
-        self.save_viewing_key(address.as_slice(), &key)?;
+        self.save_vk(address.as_slice(), &key)?;
         Ok(HandleResponse {
             messages: vec![],
             log: vec![],
@@ -96,20 +97,20 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         })
     }
 
-    fn set_viewing_key(&mut self, env: Env, key: String) -> StdResult<HandleResponse> {
+    fn set_vk(&mut self, env: Env, key: String) -> StdResult<HandleResponse> {
         let key = ViewingKey(key.to_string());
         let address = self.api().canonical_address(&env.message.sender)?;
-        self.save_viewing_key(address.as_slice(), &key)?;
+        self.save_vk(address.as_slice(), &key)?;
         Ok(HandleResponse::default())
     }
 
-    fn check_viewing_key (
+    fn check_vk (
         &self,
         provided_key: &ViewingKey,
         storage_key: &[u8]
     ) -> StdResult<()> {
-        let stored_vk: Option<ViewingKey> = self.load_viewing_key(storage_key)?;
-        if let Some(key) = stored_vk {
+        let stored_vk: Option<ViewingKey> = self.load_vk(storage_key)?;
+        if let Some(ref key) = stored_vk {
             if provided_key.check_viewing_key(&key.to_hashed()) {
                 return Ok(());
             }
@@ -118,11 +119,11 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         return Err(StdError::unauthorized());
     }
 
-    fn save_viewing_key (&mut self, id: &[u8], viewing_key: &ViewingKey) -> StdResult<()> {
-        self.set_ns(VIEWING_KEYS, id, &viewing_key)
+    fn save_vk (&mut self, id: &[u8], key: &ViewingKey) -> StdResult<()> {
+        self.set_ns(VIEWING_KEYS, id, &key)
     }
 
-    fn load_viewing_key (&self, id: &[u8]) -> StdResult<Option<ViewingKey>> {
+    fn load_vk (&self, id: &[u8]) -> StdResult<Option<ViewingKey>> {
         self.get_ns(VIEWING_KEYS, id)
     }
 

@@ -1530,6 +1530,7 @@ dependencies = [
  "color-backtrace",
  "fadroma 0.1.0",
  "kukumba 1.0.1",
+ "rand 0.8.4",
  "schemars",
  "serde",
  "serde_json",

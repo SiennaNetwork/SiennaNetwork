@@ -140,6 +140,11 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let id = self.canonize(env.message.sender.clone())?;
         self.update_locked(&pool, &user, &id)?;
 
+        // Set user registration date if this is their first deposit
+        if self.get_ns::<Time>(user::REGISTERED, id.as_slice())?.is_none() {
+            self.set_ns(user::REGISTERED, id.as_slice(), pool.now)?
+        }
+
         // Update stored value
         self.after_user_action(env.block.time, &pool, &user, &id)?;
 
@@ -206,7 +211,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         user.claimed += user.claimable;
         pool.claimed += user.claimable;
         let id = self.canonize(env.message.sender.clone())?;
-        self.update_claimed(&pool, &user, &id)?;
+        self.set_ns(user::CLAIMED, id.as_slice(), user.claimed)?;
+        self.set(pool::CLAIMED, pool.claimed)?;
+        self.set_ns(user::COOLDOWN, id.as_slice(), pool.cooldown)?;
 
         // Update user timestamp, and the things synced to it.
         self.after_user_action(env.block.time, &pool, &user, &id)?;
@@ -252,7 +259,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             .0)
     }
 
-
     /// Get user and pool status, prevent replays
     fn before_user_action (&mut self, env: &Env) -> StdResult<(Pool, User)> {
 
@@ -279,15 +285,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     ) -> StdResult<()> {
         self.set_ns(user::LOCKED, id.as_slice(), user.locked)?;
         self.set(pool::LOCKED, pool.locked)
-    }
-
-    /// Commit amount of rewards claimed for user and pool, and reset the cooldown
-    fn update_claimed (
-        &mut self, pool: &Pool, user: &User, id: &CanonicalAddr
-    ) -> StdResult<()> {
-        self.set_ns(user::CLAIMED, id.as_slice(), user.claimed)?;
-        self.set(pool::CLAIMED, pool.claimed)?;
-        self.set_ns(user::COOLDOWN, id.as_slice(), pool.cooldown)
     }
 
     /// Commit remaining values to storage
@@ -350,7 +347,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         }
 
         let allowance = Uint128(u128::MAX);
-        let duration  = Some(env.block.time + 86400000);
+        let duration  = Some(env.block.time + DAY * 10000);
         let snip20    = ISnip20::attach(snip20);
         Ok(HandleResponse {
             messages: vec![
@@ -386,7 +383,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
         let user = if let (Some(address), Some(key)) = (address, key) {
             let id = self.canonize(address)?;
-            Auth::check_viewing_key(self, &ViewingKey(key), id.as_slice())?;
+            Auth::check_vk(self, &ViewingKey(key), id.as_slice())?;
             Some(self.get_user_status(&pool, id)?)
         } else {
             None
@@ -500,6 +497,8 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
                 claimable
             }
         };
+        println!("get_user_status: {} {} {:?}; {} {}",
+            earned, claimed, &reason, liquid, pool.threshold);
 
         Ok(User {
             registered,
@@ -689,7 +688,7 @@ fn enforce_cooldown (elapsed: Time, cooldown: Time) -> StdResult<()> {
         Ok(())
     } else {
         Err(StdError::generic_err(format!(
-            "lock tokens for {} more blocks to be eligible", cooldown - elapsed
+            "deposit tokens for {} more blocks to be eligible", cooldown - elapsed
         )))
     }
 }

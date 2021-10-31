@@ -163,7 +163,7 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     fn balance (&self, address: HumanAddr, key: ViewingKey) -> StdResult<Response> {
         let id = self.canonize(address)?;
-        Auth::check_viewing_key(self, &key, id.as_slice())?;
+        Auth::check_vk(self, &key, id.as_slice())?;
         Ok(Response::Balance {
             amount: self.get_ns(algo::user::LOCKED, id.as_slice())?.unwrap_or(Amount::zero())
         })
