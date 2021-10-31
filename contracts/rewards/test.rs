@@ -143,6 +143,17 @@ impl<'a> AdminRole<'a> {
         }), Ok(HandleResponse::default()));
         self
     }
+    pub fn drains_pool (&mut self, reward_token: &ISnip20, key: &str) {
+        assert!(
+            Rewards::handle(self.deps, &self.env, RewardsHandle::Drain {
+                snip20:    reward_token.link.clone(),
+                key:       key.into(),
+                recipient: None
+            }).is_ok()
+        );
+        let vk: Option<ViewingKey> = self.deps.get(crate::algo::pool::REWARD_VK).unwrap();
+        assert_eq!(vk.unwrap().0, String::from(key));
+    }
 }
 
 impl<'a> UserRole<'a> {
@@ -270,6 +281,15 @@ impl<'a> BadmanRole<'a> {
                 message: String::from("closed")
             }),
             Err(StdError::unauthorized())
+        );
+    }
+    pub fn cannot_drain (&mut self, reward_token: &ISnip20, key: &str) {
+        assert!(
+            Rewards::handle(self.deps, &self.env, RewardsHandle::Drain {
+                snip20:    reward_token.link.clone(),
+                key:       key.into(),
+                recipient: None
+            }).is_err()
         );
     }
 }

@@ -431,19 +431,9 @@ macro_rules! assert_fields {
 ///  When calling with reward token info
 ///  Then the viewing key changes
 #[test] fn test_drain () {
-    let (ref mut deps, _, SIENNA, _) = entities_init();
-    let key = "key";
-    let msg = RewardsHandle::Drain {
-        snip20:    SIENNA.link.clone(),
-        key:       key.into(),
-        recipient: None
-    };
-    badman(deps).at(2).cannot_drain();
-    admin(deps).at(3).drains_pool();
-    assert!(Rewards::handle(deps, &badman(deps).at(2).env, msg.clone()).is_err());
-    assert!(Rewards::handle(deps, &admin(deps).at(3).env, msg.clone()).is_ok());
-    let vk: Option<ViewingKey> = deps.get(crate::algo::pool::REWARD_VK).unwrap();
-    assert_eq!(vk.unwrap().0, String::from(key));
+    let (ref mut deps, _, ref SIENNA, _) = entities_init();
+    badman(deps).at(2).cannot_drain(SIENNA, "key");
+    admin(deps).at(3).drains_pool(SIENNA, "key");
 }
 
 /// Given an instance with 0/1 ratio
