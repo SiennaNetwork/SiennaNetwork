@@ -66,12 +66,12 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Handle transactions
-    fn handle (&mut self, env: Env, msg: RewardsHandle) -> StdResult<HandleResponse> {
+    fn handle (&mut self, env: &Env, msg: RewardsHandle) -> StdResult<HandleResponse> {
 
         match msg {
 
             RewardsHandle::Configure(config) => {
-                Auth::assert_admin(self, &env)?;
+                Auth::assert_admin(self, env)?;
                 self.handle_configure(&config)
             },
 
@@ -88,7 +88,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
                 self.handle_close(env, message),
 
             RewardsHandle::Drain { snip20, recipient, key } =>
-                self.handle_drain(&env, snip20, recipient, key),
+                self.handle_drain(env, snip20, recipient, key),
 
         }
 
@@ -130,7 +130,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Deposit LP tokens from user into pool
-    fn handle_deposit (&mut self, env: Env, deposited: Amount) -> StdResult<HandleResponse> {
+    fn handle_deposit (&mut self, env: &Env, deposited: Amount) -> StdResult<HandleResponse> {
 
         let (mut pool, mut user) = self.before_user_action(&env)?;
 
@@ -155,7 +155,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Withdraw deposited LP tokens from pool back to the user
-    fn handle_withdraw (&mut self, env: Env, withdrawn: Uint128) -> StdResult<HandleResponse> {
+    fn handle_withdraw (&mut self, env: &Env, withdrawn: Uint128) -> StdResult<HandleResponse> {
 
         let (mut pool, mut user) = self.before_user_action(&env)?;
 
@@ -188,7 +188,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Transfer rewards to user if eligible
-    fn handle_claim (&mut self, env: Env) -> StdResult<HandleResponse> {
+    fn handle_claim (&mut self, env: &Env) -> StdResult<HandleResponse> {
 
         let (mut pool, mut user) = self.before_user_action(&env)?;
 
@@ -323,7 +323,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Admin can mark pool as closed
-    fn handle_close (&mut self, env: Env, message: String) -> StdResult<HandleResponse> {
+    fn handle_close (&mut self, env: &Env, message: String) -> StdResult<HandleResponse> {
         Auth::assert_admin(self, &env)?;
         self.set(pool::CLOSED, Some((env.block.time, message)))?;
         Ok(HandleResponse::default())
@@ -497,9 +497,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
                 claimable
             }
         };
-        println!("get_user_status: {} {} {:?}; {} {}",
-            earned, claimed, &reason, liquid, pool.threshold);
-
         Ok(User {
             registered,
             existed, liquid, presence: (liquid, existed),
