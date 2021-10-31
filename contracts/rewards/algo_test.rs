@@ -4,10 +4,9 @@
 #![allow(unreachable_patterns)]
 
 use crate::*;
+use crate::test::*;
 use fadroma::*;
 use fadroma::secret_toolkit::snip20;
-use fadroma::testing::*;
-use rand::Rng;
 
 macro_rules! assert_error {
     ($response:expr, $msg:expr) => { assert_eq!($response, Err(StdError::generic_err($msg))) }
@@ -52,147 +51,10 @@ macro_rules! assert_fields {
 ///  Then the default values are used where applicable
 ///   And the rewards module emits a message that sets the reward token viewing key
 #[test] fn test_init () {
-    let (ref mut deps, reward_vk, SIENNA, _, admin, _, _) = entities();
-
-    assert!(
-        Rewards::init(deps, &admin(1), RewardsConfig {
-            lp_token:     None,
-            reward_token: None,
-            reward_vk:    None,
-            ratio:        None,
-            threshold:    None,
-            cooldown:     None,
-        }).is_err(),
-    );
-
-    assert_eq!(
-        Rewards::init(deps, &admin(1), RewardsConfig {
-            lp_token:     None,
-            reward_token: Some(SIENNA.link.clone()),
-            reward_vk:    Some(reward_vk.clone()),
-            ratio:        None,
-            threshold:    None,
-            cooldown:     None,
-        }).unwrap(),
-        Some(snip20::set_viewing_key_msg(
-            reward_vk,
-            None, BLOCK_SIZE,
-            SIENNA.link.code_hash.clone(),
-            SIENNA.link.address.clone()
-        ).unwrap())
-    );
+    let (ref mut deps, ref VK, ref SIENNA, ref LP) = entities();
+    admin(deps).at(1).init_invalid();
+    admin(deps).at(1).init(LP, SIENNA, VK.clone());
 }
-
-    // Helpers will be indented 1 level above the test cases
-
-    pub struct RewardsMockQuerier { pub balance: Amount }
-
-    #[derive(serde::Serialize, serde::Deserialize)]
-    #[serde(rename_all="snake_case")]
-    pub enum Snip20Query { Balance {} }
-
-    #[derive(serde::Serialize, serde::Deserialize)]
-    #[serde(rename_all="snake_case")]
-    pub enum Snip20Response { Balance { amount: Amount } }
-
-    impl Querier for RewardsMockQuerier {
-        fn raw_query (&self, bin_request: &[u8]) -> QuerierResult {
-            let request: QueryRequest<Empty> = match from_slice(bin_request) {
-                Ok(v) => v,
-                Err(e) => unimplemented!()
-            };
-            match request {
-                QueryRequest::Wasm(WasmQuery::Smart { callback_code_hash, contract_addr, msg }) => {
-                    Ok(to_binary(&self.mock_query_dispatch(&ContractLink {
-                        code_hash: callback_code_hash,
-                        address:   contract_addr
-                    }, &from_binary(&msg).unwrap())))
-                },
-                _ => unimplemented!()
-            }
-        }
-    }
-
-    impl RewardsMockQuerier {
-        fn mock_query_dispatch(
-            &self, _: &ContractLink<HumanAddr>, msg: &Snip20Query
-        ) -> Snip20Response {
-            match msg {
-                Snip20Query::Balance { .. } => Snip20Response::Balance { amount: self.balance },
-                _ => unimplemented!()
-            }
-        }
-        pub fn increment_balance (&mut self, amount: u128) -> () {
-            self.balance += amount.into();
-        }
-        pub fn decrement_balance (&mut self, amount: u128) -> StdResult<()> {
-            self.balance = (self.balance - amount.into())?;
-            Ok(())
-        }
-    }
-
-    type Deps = Extern<MemoryStorage, MockApi, RewardsMockQuerier>;
-
-    type Context = (
-        Deps,                  // deps
-        String,                // reward_vk
-        ISnip20,               // reward_token
-        ISnip20,               // lp_token
-        fn (u64) -> Env,       // admin env - always init contract with this
-        fn (u64) -> Env,       // badman env - never register in the contract
-        fn (&str, u64) -> Env, // user envs - pass
-    );
-
-    fn entities () -> Context {
-        color_backtrace::install();
-        (
-            Extern {
-                storage: MemoryStorage::default(),
-                api:     MockApi::new(20),
-                querier: RewardsMockQuerier { balance: 0u128.into() }
-            },
-            "reward_vk".to_string(),
-            ISnip20::attach(
-                ContractLink { address: HumanAddr::from("reward_addr"), code_hash: "reward_hash".into() }
-            ),
-            ISnip20::attach(
-                ContractLink { address: HumanAddr::from("lp_addr"),     code_hash: "lp_hash".into() }
-            ),
-            |t: u64| env(&HumanAddr::from("Admin"),  t),
-            |t: u64| env(&HumanAddr::from("Badman"), t),
-            |id: &str, t: u64| env(&HumanAddr::from(id), t),
-        )
-    }
-
-    fn entities_init () -> Context {
-        let mut entities = entities();
-        crate::Auth::init(&mut entities.0, &entities.4(1), &None);
-        assert_eq!(
-            Rewards::init(&mut entities.0, &entities.4(1), RewardsConfig {
-                lp_token:     Some(entities.3.link.clone()),
-                reward_token: Some(entities.2.link.clone()),
-                reward_vk:    Some(entities.1.clone()),
-                ratio:        None,
-                threshold:    None,
-                cooldown:     None,
-            }).unwrap(),
-            Some(snip20::set_viewing_key_msg(
-                entities.1.clone(),
-                None, BLOCK_SIZE,
-                entities.2.link.code_hash.clone(),
-                entities.2.link.address.clone()
-            ).unwrap())
-        );
-        entities
-    }
-
-    fn env (signer: &HumanAddr, time: u64) -> Env {
-        let mut env = mock_env(signer, &[]);
-        env.block.time = time;
-        env
-    }
-
-// And more test cases, with gradually fewer helper functions as the defined ones are reused //////
 
 /// Given no instance
 ///
@@ -206,59 +68,28 @@ macro_rules! assert_fields {
 ///  When the admin sets the config, including a reward token
 ///  Then a reward token viewing key config message is returned
 #[test] fn test_configure () {
-    let (ref mut deps, reward_vk, SIENNA, _, admin, badman, _) = entities();
-
-    assert_eq!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     None,
-        reward_token: Some(SIENNA.link.clone()),
-        reward_vk:    Some(reward_vk.clone()),
-        ratio:        None,
-        threshold:    None,
-        cooldown:     None,
-    }), Ok(Some(snip20::set_viewing_key_msg(
-        reward_vk.clone(),
-        None, BLOCK_SIZE,
-        SIENNA.link.code_hash.clone(),
-        SIENNA.link.address.clone()
-    ).unwrap())));
-
-    assert_eq!(Rewards::handle(deps, admin(2), RewardsHandle::Configure(RewardsConfig {
-        lp_token:     None,
-        reward_token: Some(SIENNA.link.clone()),
-        reward_vk:    Some(reward_vk.clone()),
-        ratio:        None,
-        threshold:    None,
-        cooldown:     None,
-    })), Ok(HandleResponse::default()));
-
-    assert_eq!(Rewards::handle(deps, badman(3), RewardsHandle::Configure(RewardsConfig {
-        lp_token:     None,
-        reward_token: Some(SIENNA.link.clone()),
-        reward_vk:    Some(reward_vk.clone()),
-        ratio:        None,
-        threshold:    None,
-        cooldown:     None,
-    })), Err(StdError::unauthorized()));
-
-    assert_eq!(Rewards::handle(deps, admin(4), RewardsHandle::Configure(RewardsConfig {
-        lp_token:     None,
-        reward_token: Some(SIENNA.link.clone()),
-        reward_vk:    Some(reward_vk.clone()),
-        ratio:        None,
-        threshold:    None,
-        cooldown:     None,
-    })), Ok(HandleResponse {
-        messages: vec![
-            snip20::set_viewing_key_msg(
-                reward_vk,
-                None, BLOCK_SIZE,
-                SIENNA.link.code_hash.clone(),
-                SIENNA.link.address.clone()
-            ).unwrap()
-        ],
-        data: None,
-        log: vec![],
-    }));
+    let (ref mut deps, ref VK, ref SIENNA, ref LP) = entities();
+    admin(deps)
+        .at(1).init(LP, SIENNA, VK.clone())
+        .at(2).configure(RewardsConfig {
+            lp_token:     None,
+            reward_token: Some(SIENNA.link.clone()),
+            reward_vk:    Some(VK.clone()),
+            ratio:        None,
+            threshold:    None,
+            cooldown:     None,
+        });
+    badman(deps)
+        .at(3).cannot_configure();
+    admin(deps)
+        .at(4).configure(RewardsConfig {
+            lp_token:     None,
+            reward_token: Some(SIENNA.link.clone()),
+            reward_vk:    Some(VK.clone()),
+            ratio:        None,
+            threshold:    None,
+            cooldown:     None,
+        });
 }
 
 /// Given an instance
@@ -285,73 +116,26 @@ macro_rules! assert_fields {
 ///  When a stranger tries to withdraw
 ///  Then they can't
 #[test] fn test_deposit_withdraw_one () {
-    let (ref mut deps, reward_vk, ref SIENNA, ref LP, admin, _badman, _) = entities();
-
-    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     Some(LP.link.clone()),
-        reward_token: Some(SIENNA.link.clone()),
-        reward_vk:    Some(reward_vk),
-        ratio:        None,
-        threshold:    None,
-        cooldown:     None,
-    }).is_ok());
-
+    let (ref mut deps, VK, ref SIENNA, ref LP) = entities_init();
     user(deps, "Alice")
-        .at(2)
-            .locked(0u128).lifetime(0u128)
-            .deposits(LP, 100u128)
-            .locked(100u128).lifetime(0u128)
-        .at(3)
-            .locked(100u128).lifetime(100u128)
-        .at(4)
-            .locked(100u128).lifetime(200u128)
-            .withdraws(LP, 50u128)
-            .locked( 50u128).lifetime(200u128)
-        .at(5)
-            .locked( 50u128).lifetime(250u128)
-        .at(6)
-            .locked( 50u128).lifetime(300u128)
-            .withdraws(LP, 50u128)
-            .locked(  0u128).lifetime(300u128)
-        .at(7)
-            .locked(  0u128).lifetime(300u128)
-        .at(8)
-            .locked(  0u128).lifetime(300u128)
-            .deposits(LP,   1u128)
-            .locked(  1u128).lifetime(300u128)
-        .at(9)
-            .locked(  1u128).lifetime(301u128)
-        .at(10)
-            .locked(  1u128).lifetime(302);
-
+        .at(2).locked(0u128).lifetime(0u128)
+              .deposits(LP, 100u128)
+              .locked(100u128).lifetime(0u128)
+        .at(3).locked(100u128).lifetime(100u128)
+        .at(4).locked(100u128).lifetime(200u128)
+              .withdraws(LP, 50u128)
+              .locked( 50u128).lifetime(200u128)
+        .at(5).locked( 50u128).lifetime(250u128)
+        .at(6).locked( 50u128).lifetime(300u128)
+              .withdraws(LP, 50u128)
+              .locked(  0u128).lifetime(300u128)
+        .at(7).locked(  0u128).lifetime(300u128)
+        .at(8).locked(  0u128).lifetime(300u128)
+              .deposits(LP,   1u128)
+              .locked(  1u128).lifetime(300u128)
+        .at(9).locked(  1u128).lifetime(301u128)
+        .at(10).locked( 1u128).lifetime(302);
 }
-
-    fn deposit (deps: &mut Deps, lp_token: &ISnip20, env: Env, amount: u128) {
-        let actual = Rewards::handle(deps, env.clone(), RewardsHandle::Lock {
-            amount: amount.into()
-        }).unwrap();
-        let expected = HandleResponse::default().msg(lp_token.transfer_from(
-            &env.message.sender,
-            &env.contract.address,
-            amount.into()
-        ).unwrap()).unwrap();
-        //println!("expected = {:?}", expected);
-        //println!("actual = {:?}", actual);
-        assert_eq!(actual, expected, "deposit");
-    }
-
-    fn withdraw (deps: &mut Deps, lp_token: &ISnip20, env: Env, amount: u128) {
-        let actual = Rewards::handle(deps, env.clone(), RewardsHandle::Lock {
-            amount: amount.into()
-        }).unwrap();
-        let expected = HandleResponse::default().msg(lp_token.transfer(
-            &env.message.sender,
-            amount.into()
-        ).unwrap()).unwrap();
-        if expected != actual {
-        }
-        assert_eq!(actual, expected, "withdraw");
-    }
 
 /// Given an instance:
 ///
@@ -365,40 +149,9 @@ macro_rules! assert_fields {
 ///  Then each is eligible to claim half of the available rewards
 ///   And their rewards are proportionate to their stakes.
 #[test] fn test_deposit_withdraw_parallel () {
-    let (ref mut deps, reward_vk, SIENNA, lp_token, admin, _, user) = entities();
-
-    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     Some(lp_token.link.clone()),
-        reward_token: Some(SIENNA.link.clone()),
-        reward_vk:    Some(reward_vk),
-        ratio:        None,
-        threshold:    None,
-        cooldown:     None,
-    }).is_ok());
-
-    deposit(deps, &lp_token, user("Alice", 2), 100u128);
-
-    deposit(deps, &lp_token, user("Bob",   2), 200u128);
-
-
-    //Test.at(1).init_configured(&admin)?
-              //.fund(REWARD)
-              //.set_vk(&alice, "")?
-              //.set_vk(&bob,   "")?
-              //.user(&alice, 0, 0, 0, 0, 0, 0)?
-              //.user(&bob,   0, 0, 0, 0, 0, 0)?
-
-    //Test.at(1).user(&alice, 0,   0,   0, 0,  0, 0)?.deposit(&alice, 100)?;
-    //Test.at(1).user(&bob,   0,   0,   0, 0,  0, 0)?.deposit(&bob,   100)?;
-    //Test.at(1).user(&alice, 0, 100,   0, 0,  0, 0)?;
-    //Test.at(1).user(&bob,   0, 100,   0, 0,  0, 0)?;
-    //Test.at(2).user(&alice, 1, 100, 100, 50, 0, 0)?;
-    //Test.at(2).user(&bob,   1, 100, 100, 50, 0, 0)?;
-    //Test.at(3).user(&alice, 2, 100, 200, 50, 0, 0)?;
-    //Test.at(3).user(&bob,   2, 100, 200, 50, 0, 0)?;
-
-    //Test.at(DAY+1).user(&alice, DAY, 100, DAY * 100, 50, 0, 50)?
-                  //.user(&bob,   DAY, 100, DAY * 100, 50, 0, 50)?
+    let (ref mut deps, VK, SIENNA, ref LP) = entities_init();
+    user(deps, "Alice").at(2).deposits(LP, 100);
+    user(deps, "Bob").at(2).deposits(LP, 100);
 }
 
 /// Given an instance
@@ -413,15 +166,10 @@ macro_rules! assert_fields {
 ///  When bob reaches the age threshold
 ///  Then each is eligible to claim some rewards
 #[test] fn test_deposit_withdraw_sequential () {
-    let (ref mut deps, _, _, _, _, _, user) = entities();
+    let (ref mut deps, _, _, ref LP) = entities();
 
-    assert_eq!(Rewards::handle(deps, user("Alice", 2), RewardsHandle::Lock {
-        amount: 100u128.into()
-    }), Ok(HandleResponse::default()));
-
-    assert_eq!(Rewards::handle(deps, user("Bob", 2), RewardsHandle::Lock {
-        amount: 100u128.into()
-    }), Ok(HandleResponse::default()));
+    user(deps, "Alice").at(2).deposits(LP, 100u128);
+    user(deps, "Bob").at(2).deposits(LP, 100u128);
 
     //Test.at(1).init_configured(&admin)?
               //.set_vk(&alice, "")?
@@ -459,26 +207,16 @@ macro_rules! assert_fields {
 ///  When a provider claims their rewards less often
 ///  Then they receive equivalent rewards as long as the liquidity deposited hasn't changed
 #[test] fn test_claim_one () {
-    let (ref mut deps, _, ref SIENNA, ref lp_token, admin, _, _) = entities_init();
+    let (ref mut deps, _, ref SIENNA, ref LP) = entities_init();
     user(deps, "Alice")
         .at(2).is_unregistered()
-        .at(3).deposits(lp_token, 100)
+        .at(3).deposits(LP, 100)
         .at(103).claims(SIENNA, 100)
         .at(104).must_wait(99)
         .at(105).must_wait(98)
         .at(203).claims(SIENNA, 100)
         .at(204).must_wait(99)
         .at(403).claims(SIENNA, 200);
-    //stranger_can_not_claim(deps, user("Alice", 2));
-    //deposit(deps, &lp_token, user("Alice", 3), 100u128);
-    //claim(deps, &reward_token, user("Alice", 103), 100u128);
-    //claim_must_wait(deps, user("Alice", 104), 99);
-    //claim_must_wait(deps, user("Alice", 105), 98);
-    //claim(deps, &reward_token, user("Alice", 203), 100u128);
-    //claim_must_wait(deps, user("Alice", 204), 99);
-    //claim(deps, &reward_token, user("Alice", 403), 200u128);
-    //assert_eq!(Rewards::handle(deps, user("Alice", 3), RewardsHandle::Claim {
-    //}), Ok(HandleResponse::default()));
 }
 
 #[test] fn test_claim_parallel_sequential () {
@@ -566,22 +304,17 @@ macro_rules! assert_fields {
 ///  When a user claims rewards
 ///  Then they need to wait a fixed amount of time before they can claim again
 #[test] fn test_threshold_cooldown () {
-    let (ref mut deps, reward_vk, ref SIENNA, ref lp_token, admin, _, _) = entities();
-    assert_eq!(Rewards::init(deps, &admin(1), RewardsConfig {
-        lp_token:     Some(lp_token.link.clone()),
+    let (ref mut deps, VK, ref SIENNA, ref LP) = entities();
+    admin(deps).at(1).configure(RewardsConfig {
+        lp_token:     Some(LP.link.clone()),
         reward_token: Some(SIENNA.link.clone()),
-        reward_vk:    Some(reward_vk.clone()),
+        reward_vk:    Some(VK.clone()),
         ratio:        None,
         threshold:    Some(100),
         cooldown:     Some(200),
-    }), Ok(Some(snip20::set_viewing_key_msg(
-        reward_vk.clone(),
-        None, BLOCK_SIZE,
-        SIENNA.link.code_hash.clone(),
-        SIENNA.link.address.clone()
-    ).unwrap())));
+    });;
     user(deps, "Alice")
-        .at(2).deposits(lp_token, 100u128)
+        .at(2).deposits(LP, 100u128)
         .at(4).must_wait(98)
         .at(5).must_wait(97)
         .at(100).must_wait(2)
@@ -603,19 +336,19 @@ macro_rules! assert_fields {
 ///  When a user withdraws tokens after claiming
 ///  Then they get the original amount
 #[test] fn test_single_sided () {
-    let (ref mut deps, reward_vk, ref SIENNA, ref lp_token, admin, _, _) = entities();
-    assert!(Rewards::init(deps, &admin(1), RewardsConfig {
+    let (ref mut deps, VK, ref SIENNA, _) = entities();
+    admin(deps).at(1).configure(RewardsConfig {
         lp_token:     Some(SIENNA.link.clone()),
         reward_token: Some(SIENNA.link.clone()),
-        reward_vk:    Some(reward_vk),
+        reward_vk:    Some(VK),
         ratio:        None,
         threshold:    None,
         cooldown:     None,
-    }).is_ok());
+    });
     user(deps, "Alice")
-        .at(2).deposits(lp_token, 100u128)
-        .at(103).claims(SIENNA, 100u128)
-        .at(104).withdraws(lp_token, 100u128);
+        .at(2)  .deposits(SIENNA,  100u128)
+        .at(103).claims(SIENNA,    100u128)
+        .at(104).withdraws(SIENNA, 100u128);
 }
 
 /// Given a pool and a user
@@ -628,13 +361,21 @@ macro_rules! assert_fields {
 ///   And user first withdraws all tokens and then claims rewards
 ///  Then user lifetime and claimed is reset so they can start over
 #[test] fn test_reset () {
-    let (ref mut deps, _, ref SIENNA, ref lp_token, admin, _, _) = entities_init();
+    let (ref mut deps, _, ref SIENNA, ref LP) = entities_init();
+    assert!(Rewards::handle_configure(deps, &RewardsConfig {
+        lp_token:     None,
+        reward_token: None,
+        reward_vk:    None,
+        ratio:        None,
+        threshold:    Some(0u64),
+        cooldown:     None,
+    }).is_ok());
     user(deps, "Alice")
-        .at(2).deposits(lp_token, 100u128)
-        .at(4).claims(SIENNA, 100u128)
-        .at(6).withdraws(lp_token, 100u128).lifetime(400u128).claimed(100u128)
-        .at(8).deposits(lp_token, 100u128)
-        .at(10).withdraws(lp_token, 100u128)
+        .at( 2).deposits(LP,   100u128)
+        .at( 4).claims(SIENNA, 100u128)
+        .at( 6).withdraws(LP,  100u128).lifetime(400u128).claimed(100u128)
+        .at( 8).deposits(LP,   100u128)
+        .at(10).withdraws(LP,  100u128)
         .at(12).claims(SIENNA, 100u128).lifetime(0u128).claimed(0u128);
 
     //when  "share of user who has previously claimed rewards diminishes"
@@ -670,29 +411,17 @@ macro_rules! assert_fields {
         RewardsHandle::Lock     { amount: 100u128.into() },
         RewardsHandle::Retrieve { amount: 100u128.into() },
     ] {
-        let (ref mut deps, _reward_vk, _SIENNA, ref lp_token, admin, badman, user) = entities_init();
-        deposit(deps, lp_token, user("Alice", 2), 100u128);
-        close_unauthorized(deps, badman(3));
-        deposit(deps, lp_token, user("Alice", 4), 100u128);
-        close_succeeds(deps, admin(5));
-        assert_eq!(
-            Rewards::handle(deps, user("Alice", 6), msg),
-            Ok(HandleResponse::default())
+        let (ref mut deps, _VK, _SIENNA, ref LP) = entities_init();
+        user(deps, "Alice").at(2).deposits(LP, 100u128);
+        badman(deps).at(3).cannot_close_pool();
+        user(deps, "Alice").at(4).deposits(LP, 100u128);
+        admin(deps).at(5).closes_pool();
+        user(deps, "Alice").at(6).test_handle(
+            msg,
+            Ok(HandleResponse::default()) // should be retrieval instead of lock
         );
     }
 }
-
-    fn close_succeeds (deps: &mut Deps, env: Env) {
-        assert_eq!(Rewards::handle(deps, env, RewardsHandle::Close {
-            message: String::from("closed")
-        }), Ok(HandleResponse::default()));
-    }
-
-    fn close_unauthorized (deps: &mut Deps, env: Env) {
-        assert_eq!(Rewards::handle(deps, env, RewardsHandle::Close {
-            message: String::from("closed")
-        }), Err(StdError::unauthorized()));
-    }
 
 /// Given an instance
 ///
@@ -702,15 +431,17 @@ macro_rules! assert_fields {
 ///  When calling with reward token info
 ///  Then the viewing key changes
 #[test] fn test_drain () {
-    let (ref mut deps, _, SIENNA, _, admin, badman, _) = entities_init();
+    let (ref mut deps, _, SIENNA, _) = entities_init();
     let key = "key";
     let msg = RewardsHandle::Drain {
         snip20:    SIENNA.link.clone(),
         key:       key.into(),
         recipient: None
     };
-    assert!(Rewards::handle(deps, badman(2), msg.clone()).is_err());
-    assert!(Rewards::handle(deps, admin(3), msg.clone()).is_ok());
+    badman(deps).at(2).cannot_drain();
+    admin(deps).at(3).drains_pool();
+    assert!(Rewards::handle(deps, &badman(deps).at(2).env, msg.clone()).is_err());
+    assert!(Rewards::handle(deps, &admin(deps).at(3).env, msg.clone()).is_ok());
     let vk: Option<ViewingKey> = deps.get(crate::algo::pool::REWARD_VK).unwrap();
     assert_eq!(vk.unwrap().0, String::from(key));
 }
@@ -729,29 +460,25 @@ macro_rules! assert_fields {
 ///  When ratio is set to 2/1
 ///  Then rewards are doubled
 #[test] fn test_global_ratio () {
-    let (ref mut deps, _, ref SIENNA, ref lp_token, admin, _, _) = entities_init();
-    set_ratio(deps, admin(1), (0u128, 1u128));
-    user(deps, "Alice").at(2).deposits(lp_token, 100u128)
-                       .at(86402).claims(SIENNA, 0u128);
-    set_ratio(deps, admin(86403), (1u128, 2u128));
-    user(deps, "Alice").at(86402).claims(SIENNA, 50u128);
-    set_ratio(deps, admin(10), (1u128, 1u128));
-    user(deps, "Alice").at(86402).claims(SIENNA, 50u128);
-    set_ratio(deps, admin(12), (2u128, 1u128));
-    user(deps, "Alice").at(86402).claims(SIENNA, 50u128);
+    let (ref mut deps, _, ref SIENNA, ref LP) = entities_init();
+    admin(deps)
+        .at(1).set_ratio((0u128, 1u128));
+    user(deps, "Alice")
+        .at(2).deposits(LP, 100u128)
+        .at(86402).claims(SIENNA, 0u128);
+    admin(deps)
+        .at(86403).set_ratio((1u128, 2u128));
+    user(deps, "Alice")
+        .at(86402).claims(SIENNA, 50u128);
+    admin(deps)
+        .at(10).set_ratio((1u128, 1u128));
+    user(deps, "Alice")
+        .at(86402).claims(SIENNA, 50u128);
+    admin(deps)
+        .at(1234).set_ratio((2u128, 1u128));
+    user(deps, "Alice")
+        .at(86402).claims(SIENNA, 50u128);
 }
-
-    fn set_ratio (deps: &mut Deps, env: Env, ratio: (u128, u128)) {
-        assert_eq!(Rewards::handle(deps, env, RewardsHandle::Configure(RewardsConfig {
-            lp_token:     None,
-            reward_token: None,
-            reward_vk:    None,
-            ratio:        Some((ratio.0.into(), ratio.1.into())),
-            threshold:    None,
-            cooldown:     None,
-        })), Ok(HandleResponse::default()));
-        // TODO query!!!
-    }
 
 /// Given a pool and a user
 ///
@@ -773,7 +500,7 @@ macro_rules! assert_fields {
 ///  When a user is eligible to claim rewards
 ///  Then the rewards are diminished by the pool liquidity ratio
 #[test] fn test_pool_liquidity_ratio () {
-    let (ref mut deps, reward_vk, SIENNA, lp_token, admin, _, _) = entities_init();
+    let (ref mut deps, VK, SIENNA, LP) = entities_init();
 
     pool_status(deps, 1).liquid(0).existed(None);
 
@@ -845,171 +572,34 @@ macro_rules! assert_fields {
 ///  When the user is eligible to claim rewards
 ///  Then the rewards are diminished by the user's liquidity ratio
 #[test] fn test_user_liquidity_ratio () {
-    let (ref mut deps, reward_vk, SIENNA, ref lp_token, admin, _, _) = entities_init();
+    let (ref mut deps, _, SIENNA, ref LP) = entities_init();
     let t    =   23u64;
     let r    = 5040u128;
     let half =  120u128;
     deps.querier.increment_balance(r);
-    assert!(Rewards::handle_configure(deps, &RewardsConfig {
-        lp_token:     None,
-        reward_token: None,
-        reward_vk:    None,
-        ratio:        None,
-        threshold:    Some(0u64),
-        cooldown:     None,
-    }).is_ok());
+    admin(deps)
+        .at(t-1).set_threshold(0u64);
     user(deps, "Alice")
-        .at(t  )
-            .set_vk("")
+        .at(t  ).set_vk("")
                 .liquid(0).existed(0).claimable(0u128)
-            .deposits(lp_token, 2 * half)
+                .deposits(LP, 2 * half)
                 .liquid(0).existed(0).claimable(0u128)
         .at(t+1).liquid(1).existed(1).claimable(r)
         .at(t+2) // after partial withdrawal user is still present
                 .liquid(2).existed(2).claimable(r)
-            .withdraws(lp_token, half)
+                .withdraws(LP, half)
                 .liquid(2).existed(2).claimable(r)
         .at(t+3) // after full withdraw ratio starts going down, representing the user's absence
                 .liquid(3).existed(3).claimable(r)
-            .withdraws(lp_token, half)
+                .withdraws(LP, half)
                 .liquid(3).existed(3).claimable(r)
         .at(t+4).liquid(3).existed(4).claimable(r*3/4)
         .at(t+5).liquid(3).existed(5).claimable(r*3/5)
         .at(t+6).liquid(3).existed(6).claimable(r*3/6)
-            .deposits(lp_token, 1u128) // then it starts increasing again once the user is back
+                .deposits(LP, 1u128) // then it starts increasing again once the user is back
                 .liquid(3).existed(6).claimable(r*3/6)
         .at(t+7).liquid(4).existed(7).claimable(r*4/7)
         .at(t+8).liquid(5).existed(8).claimable(r*5/8)
         .at(t+9) // user has provided liquidity for 2/3rds of the time
                 .liquid(6).existed(9).claimable(r*6/9);
 }
-
-struct UserTester<'a> {
-    deps:    &'a mut Deps,
-    address: HumanAddr,
-    env:     Env
-}
-fn user<'a>(deps: &'a mut Deps, address: &str) -> UserTester<'a> {
-    let address = HumanAddr::from(address);
-    UserTester { deps, env: env(&address, 0), address }
-}
-impl<'a> UserTester<'a> {
-
-    fn at (&mut self, t: Time) -> &mut Self {
-        self.env = env(&self.address, t);
-        self
-    }
-
-    fn later (&mut self) -> &mut Self {
-        let t: Time = rand::thread_rng().gen();
-        self.at(self.env.block.time + t)
-    }
-
-    fn set_vk (&mut self, key: &str) -> &mut Self {
-        let msg = crate::AuthHandle::SetViewingKey { key: key.into(), padding: None };
-        assert_eq!(
-            crate::Auth::handle(self.deps, self.env.clone(), msg),
-            Ok(HandleResponse::default())
-        );
-        self
-    }
-
-    fn deposits (&mut self, lp_token: &ISnip20, amount: u128) -> &mut Self {
-        let actual = Rewards::handle(self.deps, self.env.clone(), RewardsHandle::Lock {
-            amount: amount.into()
-        }).unwrap();
-        let expected = HandleResponse::default().msg(lp_token.transfer_from(
-            &self.env.message.sender,
-            &self.env.contract.address,
-            amount.into()
-        ).unwrap()).unwrap();
-        assert_eq!(actual, expected, "deposit");
-        self
-    }
-
-    fn withdraws (&mut self, lp_token: &ISnip20, amount: u128) -> &mut Self {
-        let actual = Rewards::handle(self.deps, self.env.clone(), RewardsHandle::Retrieve {
-            amount: amount.into()
-        }).unwrap();
-        let expected = HandleResponse::default().msg(lp_token.transfer(
-            &self.env.message.sender,
-            amount.into()
-        ).unwrap()).unwrap();
-        assert_eq!(actual, expected, "withdraw");
-        self
-    }
-
-    fn must_wait (&mut self, remaining: Time) -> &mut Self {
-        assert_eq!(
-            Rewards::handle(self.deps, self.env.clone(), RewardsHandle::Claim {}),
-            Err(StdError::generic_err(
-                format!("deposit tokens for {} more blocks to be eligible", remaining)
-            )));
-        self
-    }
-
-    fn claims (&mut self, reward_token: &ISnip20, amount: u128) -> &mut Self {
-        assert_eq!(
-            Rewards::handle(self.deps, self.env.clone(), RewardsHandle::Claim {}),
-            HandleResponse::default().msg(reward_token.transfer(
-                &self.env.message.sender,
-                amount.into()
-            ).unwrap()));
-        self
-    }
-
-    fn is_unregistered (&mut self) -> &mut Self {
-        assert_eq!(
-            Rewards::handle(self.deps, self.env.clone(), RewardsHandle::Claim {}),
-            Err(StdError::generic_err(format!("deposit tokens for 100 more blocks to be eligible")))
-        );
-        self
-    }
-
-    fn status (&mut self) -> User {
-        match Rewards::query_status(
-            &*self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
-        ).unwrap() {
-            crate::RewardsResponse::Status { user, .. } => user.unwrap(),
-            _ => panic!()
-        }
-    }
-
-    fn locked <A: Into<Amount>> (&mut self, v: A) -> &mut Self {
-        assert_eq!(self.status().locked, v.into(), "user.locked");
-        self
-    }
-
-    fn lifetime <V: Into<Volume>> (&mut self, v: V) -> &mut Self {
-        assert_eq!(self.status().lifetime, v.into(), "user.lifetime");
-        self
-    }
-
-    fn liquid (&mut self, t: u64) -> &mut Self {
-        assert_eq!(self.status().liquid, t, "user.liquid");
-        self
-    }
-
-    fn existed (&mut self, t: u64) -> &mut Self {
-        assert_eq!(self.status().existed, t, "user.existed");
-        self
-    }
-
-    fn claimed <A: Into<Amount>> (&mut self, a: A) -> &mut Self {
-        assert_eq!(self.status().claimed, a.into(), "user.claimed");
-        self
-    }
-
-    fn claimable <A: Into<Amount>> (&mut self, a: A) -> &mut Self {
-        assert_eq!(self.status().claimable, a.into(), "user.claimable");
-        self
-    }
-
-}
-
-/*.msg(snip20::set_viewing_key_msg( // this is for own reward vk, not user status vk
-                key.to_string(),
-                None, BLOCK_SIZE,
-                lp_token.link.code_hash.clone(),
-                lp_token.link.address.clone()
-            ).unwrap())*/
