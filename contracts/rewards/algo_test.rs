@@ -362,18 +362,24 @@ macro_rules! assert_fields {
 ///  Then user lifetime and claimed is reset so they can start over
 #[test] fn test_reset () {
     let (ref mut deps, _, ref SIENNA, ref LP) = entities_init();
-    assert!(Rewards::handle_configure(deps, &RewardsConfig {
+    admin(deps).at(1).configure(RewardsConfig {
         lp_token:     None,
         reward_token: None,
         reward_vk:    None,
         ratio:        None,
         threshold:    Some(0u64),
-        cooldown:     None,
-    }).is_ok());
+        cooldown:     Some(0u64),
+    });
+
+    deps.querier.increment_balance(100);
     user(deps, "Alice")
+        .set_vk("")
         .at( 2).deposits(LP,   100u128)
         .at( 4).claims(SIENNA, 100u128)
-        .at( 6).withdraws(LP,  100u128).lifetime(400u128).claimed(100u128)
+        .at( 6).withdraws(LP,  100u128).lifetime(400u128).claimed(100u128);
+
+    deps.querier.increment_balance(100);
+    user(deps, "Bob")
         .at( 8).deposits(LP,   100u128)
         .at(10).withdraws(LP,  100u128)
         .at(12).claims(SIENNA, 100u128).lifetime(0u128).claimed(0u128);
@@ -416,9 +422,12 @@ macro_rules! assert_fields {
         badman(deps).at(3).cannot_close_pool();
         user(deps, "Alice").at(4).deposits(LP, 100u128);
         admin(deps).at(5).closes_pool();
+        // always retrieval, optionally claim transfer
         user(deps, "Alice").at(6).test_handle(
             msg,
-            Ok(HandleResponse::default()) // should be retrieval instead of lock
+            HandleResponse::default()
+                .msg(LP.transfer(&HumanAddr::from("Alice"), 200u128.into()).unwrap()).unwrap()
+                .log("closed", "5 closed")
         );
     }
 }

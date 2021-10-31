@@ -129,112 +129,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         self.reward_token()?.set_viewing_key(&vk)
     }
 
-    /// Deposit LP tokens from user into pool
-    fn handle_deposit (&mut self, env: &Env, deposited: Amount) -> StdResult<HandleResponse> {
-
-        let (mut pool, mut user) = self.before_user_action(&env)?;
-
-        // Increment user and pool liquidity
-        user.locked += deposited;
-        pool.locked += deposited;
-        let id = self.canonize(env.message.sender.clone())?;
-        self.update_locked(&pool, &user, &id)?;
-
-        // Set user registration date if this is their first deposit
-        if self.get_ns::<Time>(user::REGISTERED, id.as_slice())?.is_none() {
-            self.set_ns(user::REGISTERED, id.as_slice(), pool.now)?
-        }
-
-        // Update stored value
-        self.after_user_action(env.block.time, &pool, &user, &id)?;
-
-        // Transfer liquidity provision tokens from the user to the contract
-        let transfer = self.lp_token()?.transfer_from(&env.message.sender, &env.contract.address, deposited)?;
-        Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
-
-    }
-
-    /// Withdraw deposited LP tokens from pool back to the user
-    fn handle_withdraw (&mut self, env: &Env, withdrawn: Uint128) -> StdResult<HandleResponse> {
-
-        let (mut pool, mut user) = self.before_user_action(&env)?;
-
-        // User must have enough locked to retrieve
-        if user.locked < withdrawn {
-            return Err(StdError::generic_err(format!(
-                "not enough locked ({} < {})", user.locked, withdrawn
-            )))
-        }
-
-        // If pool does not have enough lp tokens then something has gone badly wrong
-        if pool.locked < withdrawn {
-            return Err(StdError::generic_err(format!(
-                "FATAL: not enough tokens in pool ({} < {})", pool.locked, withdrawn
-            )))
-        }
-
-        // Decrement user and pool liquidity
-        pool.locked = (pool.locked - withdrawn)?;
-        user.locked = (user.locked - withdrawn)?;
-        let id = self.canonize(env.message.sender.clone())?;
-        self.update_locked(&pool, &user, &id)?;
-
-        self.after_user_action(env.block.time, &pool, &user, &id)?;
-
-        // Transfer liquidity provision tokens from the contract to the user
-        let transfer = self.lp_token()?.transfer(&env.message.sender.clone(), withdrawn)?;
-        Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
-
-    }
-
-    /// Transfer rewards to user if eligible
-    fn handle_claim (&mut self, env: &Env) -> StdResult<HandleResponse> {
-
-        let (mut pool, mut user) = self.before_user_action(&env)?;
-
-        // If user must wait before first claim, enforce that here.
-        enforce_cooldown(user.liquid, pool.threshold)?;
-
-        // If user must wait between claims, enforce that here.
-        enforce_cooldown(0, user.cooldown)?;
-
-        // See if there is some unclaimed reward amount:
-        if user.claimable == Amount::zero() {
-            return Err(StdError::generic_err(
-                "You've already received as much as your share of the reward pool allows. \
-                Keep your liquidity tokens locked and wait for more rewards to be vested, \
-                and/or lock more liquidity tokens to grow your share of the reward pool."
-            ))
-        }
-
-        // Increment claimed counters
-        user.claimed += user.claimable;
-        pool.claimed += user.claimable;
-        let id = self.canonize(env.message.sender.clone())?;
-        self.set_ns(user::CLAIMED, id.as_slice(), user.claimed)?;
-        self.set(pool::CLAIMED, pool.claimed)?;
-        self.set_ns(user::COOLDOWN, id.as_slice(), pool.cooldown)?;
-
-        // Update user timestamp, and the things synced to it.
-        self.after_user_action(env.block.time, &pool, &user, &id)?;
-
-        if user.locked == Amount::zero() {
-            // Optionally, reset the user's `lifetime` and `share` if they have currently
-            // 0 tokens locked. The intent is for this to be the user's last reward claim
-            // after they've left the pool completely. If they provide exactly 0 liquidity
-            // at some point, when they come back they have to start over, which is OK
-            // because they can then start claiming rewards immediately, without waiting
-            // for threshold, only cooldown.
-            self.set_ns(user::LIFETIME, id.as_slice(), Volume::zero())?;
-            self.set_ns(user::CLAIMED,  id.as_slice(), Amount::zero())?;
-        }
-
-        // Transfer reward tokens from the contract to the user
-        let transfer     = self.reward_token()?.transfer(&env.message.sender, user.claimable)?;
-        Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
-
-    }
-
     fn self_link (&self) -> StdResult<ContractLink<HumanAddr>> {
         let link = self.get::<ContractLink<CanonicalAddr>>(pool::SELF)?
             .ok_or(StdError::generic_err("no self link"))?;
@@ -259,23 +153,115 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             .0)
     }
 
+    /// Deposit LP tokens from user into pool
+    fn handle_deposit (&mut self, env: &Env, deposited: Amount) -> StdResult<HandleResponse> {
+        let (mut pool, mut user) = self.before_user_action(&env)?;
+        if pool.closed.is_some() {
+            self.return_all_funds(env, &mut pool, &mut user)
+        } else {
+            // Set user registration date if this is their first deposit
+            let id = self.canonize(env.message.sender.clone())?;
+            if self.get_ns::<Time>(user::REGISTERED, id.as_slice())?.is_none() {
+                self.set_ns(user::REGISTERED, id.as_slice(), pool.now)?
+            }
+            // Increment user and pool liquidity
+            user.locked += deposited;
+            pool.locked += deposited;
+            self.update_locked(&pool, &user, &id)?;
+            // Update stored value
+            self.after_user_action(env.block.time, &pool, &user, &id)?;
+            // Transfer liquidity provision tokens from the user to the contract
+            let transfer = self.lp_token()?.transfer_from(&env.message.sender, &env.contract.address, deposited)?;
+            Ok(HandleResponse {messages: vec![transfer], log: vec![/*TODO*/], data: None})
+        }
+    }
+
+    /// Withdraw deposited LP tokens from pool back to the user
+    fn handle_withdraw (&mut self, env: &Env, withdrawn: Uint128) -> StdResult<HandleResponse> {
+        let (mut pool, mut user) = self.before_user_action(&env)?;
+        if pool.closed.is_some() {
+            self.return_all_funds(env, &mut pool, &mut user)
+        } else {
+            // User must have enough locked to retrieve
+            if user.locked < withdrawn {
+                return Err(StdError::generic_err(format!(
+                    "not enough locked ({} < {})", user.locked, withdrawn
+                )))
+            }
+            // If pool does not have enough lp tokens then something has gone badly wrong
+            if pool.locked < withdrawn {
+                return Err(StdError::generic_err(format!(
+                    "FATAL: not enough tokens in pool ({} < {})", pool.locked, withdrawn
+                )))
+            }
+            // Decrement user and pool liquidity
+            pool.locked = (pool.locked - withdrawn)?;
+            user.locked = (user.locked - withdrawn)?;
+            let id = self.canonize(env.message.sender.clone())?;
+            self.update_locked(&pool, &user, &id)?;
+            self.after_user_action(env.block.time, &pool, &user, &id)?;
+            // Transfer liquidity provision tokens from the contract to the user
+            HandleResponse::default()
+                .msg(self.lp_token()?.transfer(&env.message.sender.clone(), withdrawn)?)
+        }
+    }
+
+    /// Transfer rewards to user if eligible
+    fn handle_claim (&mut self, env: &Env) -> StdResult<HandleResponse> {
+        let (mut pool, mut user) = self.before_user_action(&env)?;
+        // If user must wait before first claim, enforce that here.
+        dbg!(user.liquid);
+        dbg!(pool.threshold);
+        enforce_cooldown(user.liquid, pool.threshold)?;
+        // If user must wait between claims, enforce that here.
+        dbg!(user.cooldown);
+        enforce_cooldown(0, user.cooldown)?;
+        // See if there is some unclaimed reward amount:
+        if user.claimable == Amount::zero() {
+            return Err(StdError::generic_err(
+                "You've already received as much as your share of the reward pool allows. \
+                Keep your liquidity tokens locked and wait for more rewards to be vested, \
+                and/or lock more liquidity tokens to grow your share of the reward pool."
+            ))
+        }
+        // Increment claimed counters
+        user.claimed += user.claimable;
+        pool.claimed += user.claimable;
+        let id = self.canonize(env.message.sender.clone())?;
+        self.set_ns(user::CLAIMED, id.as_slice(), user.claimed)?;
+        self.set(pool::CLAIMED, pool.claimed)?;
+        self.set_ns(user::COOLDOWN, id.as_slice(), pool.cooldown)?;
+        // Update user timestamp, and the things synced to it.
+        self.after_user_action(env.block.time, &pool, &user, &id)?;
+        if user.locked == Amount::zero() {
+            // Optionally, reset the user's `lifetime` and `share` if they have currently
+            // 0 tokens locked. The intent is for this to be the user's last reward claim
+            // after they've left the pool completely. If they provide exactly 0 liquidity
+            // at some point, when they come back they have to start over, which is OK
+            // because they can then start claiming rewards immediately, without waiting
+            // for threshold, only cooldown.
+            self.set_ns(user::LIFETIME, id.as_slice(), Volume::zero())?;
+            self.set_ns(user::CLAIMED,  id.as_slice(), Amount::zero())?;
+        }
+        // Transfer reward tokens from the contract to the user
+        HandleResponse::default()
+            .msg(self.reward_token()?.transfer(&env.message.sender, user.claimable)?)
+    }
+
     /// Get user and pool status, prevent replays
     fn before_user_action (&mut self, env: &Env) -> StdResult<(Pool, User)> {
-
         // Get pool state
         let now = env.block.time;
         let pool = self.get_pool_status(now)?;
         if pool.updated > now {
             return Err(StdError::generic_err("no time travel"))
         }
-
         // Get user state
         let id = self.canonize(env.message.sender.clone())?;
         let user = self.get_user_status(&pool, id)?;
         if user.updated > now {
             return Err(StdError::generic_err("no time travel"))
         }
-
         Ok((pool, user))
     }
 
@@ -291,7 +277,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     fn after_user_action (
         &mut self, now: Time, pool: &Pool, user: &User, id: &CanonicalAddr
     ) -> StdResult<()> {
-
         match pool.seeded {
             None => {
                 // If this is the first time someone is locking tokens in this pool,
@@ -311,15 +296,12 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         self.set(pool::LIQUID,   pool.liquid)?;
         self.set(pool::LIFETIME, pool.lifetime)?;
         self.set(pool::UPDATED,  now)?;
-
         self.set_ns(user::EXISTED,  id.as_slice(), user.existed)?;
         self.set_ns(user::PRESENT,  id.as_slice(), user.liquid)?;
         self.set_ns(user::COOLDOWN, id.as_slice(), user.cooldown)?;
         self.set_ns(user::LIFETIME, id.as_slice(), user.lifetime)?;
         self.set_ns(user::UPDATED,  id.as_slice(), now)?;
-
         Ok(())
-
     }
 
     /// Admin can mark pool as closed
@@ -329,6 +311,26 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         Ok(HandleResponse::default())
     }
 
+    /// Closed pools return all funds upon request and prevent further deposits
+    fn return_all_funds (
+        &mut self, env: &Env, pool: &mut Pool, user: &mut User
+    ) -> StdResult<HandleResponse> {
+        if let Some((ref when, ref why)) = pool.closed {
+            let withdraw_all = user.locked;
+            user.locked = 0u128.into();
+            pool.locked = (pool.locked - withdraw_all)?;
+            let id = self.canonize(env.message.sender.clone())?;
+            self.update_locked(&pool, &user, &id)?;
+            self.after_user_action(env.block.time, &pool, &user, &id)?;
+            HandleResponse::default()
+                .msg(self.lp_token()?.transfer(&env.message.sender.clone(), withdraw_all)?)?
+                .log("closed", &format!("{} {}", when, why))
+        } else {
+            panic!()
+        }
+    }
+
+    /// Closed pools can be drained for manual redistribution of erroneously locked funds
     fn handle_drain (
         &mut self,
         env:       &Env,
@@ -444,7 +446,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             deployed:     self.get(pool::DEPLOYED)?.ok_or(
                 StdError::generic_err("missing deploy timestamp")
             )?,
-            closed:       self.get(pool::CLOSED)?,
+            closed:       self.get::<CloseSeal>(pool::CLOSED)?,
         })
     }
 
@@ -557,6 +559,8 @@ pub enum RewardsResponse {
     }
 }
 
+pub type CloseSeal = (Time, String);
+
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub struct Pool {
@@ -570,7 +574,7 @@ pub struct Pool {
 
     /// "Is this pool closed, and if so, when and why?"
     /// Set irreversibly via handle method.
-    pub closed:       Option<String>,
+    pub closed:       Option<CloseSeal>,
 
     /// "When were LP tokens first locked?"
     /// Set to current time on first lock.

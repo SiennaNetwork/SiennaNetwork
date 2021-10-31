@@ -28,7 +28,7 @@ pub enum AuthResponse {
 pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn init (&mut self, env: &Env, admin: &Option<HumanAddr>) -> StdResult<()> {
-        println!("Auth::init");
+        dbg!("Auth::init");
         self.save_admin(&admin.as_ref().unwrap_or(&env.message.sender))?;
         Ok(())
     }
@@ -66,14 +66,14 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn save_admin(&mut self, address: &HumanAddr) -> StdResult<()> {
         let admin = self.api().canonical_address(address)?;
-        println!("Auth::save_admin {}", admin);
+        dbg!("Auth::save_admin {}", &admin);
         self.set(ADMIN_KEY, Some(&admin))?;
         Ok(())
     }
 
     fn assert_admin(&self, env: &Env) -> StdResult<()> {
         let admin = self.load_admin()?;
-        println!("Auth::assert_admin {} {}", admin, env.message.sender);
+        dbg!("Auth::assert_admin {} {}", &admin, &env.message.sender);
         if admin == env.message.sender {
             Ok(())
         } else {

@@ -107,22 +107,27 @@ impl<'a> AdminRole<'a> {
                 config.reward_token.clone().unwrap().address
             ).unwrap())
         }
-        assert_eq!(
-            Rewards::handle(self.deps, &self.env, RewardsHandle::Configure(config)),
+        test_handle(
+            self.deps, &self.env, self.address.clone(),
+            RewardsHandle::Configure(config),
             Ok(expected)
         );
         self
     }
     pub fn set_ratio (&mut self, ratio: (u128, u128)) -> &mut Self  {
-        assert_eq!(Rewards::handle(self.deps, &self.env, RewardsHandle::Configure(RewardsConfig {
-            lp_token:     None,
-            reward_token: None,
-            reward_vk:    None,
-            ratio:        Some((ratio.0.into(), ratio.1.into())),
-            threshold:    None,
-            cooldown:     None,
-        })), Ok(HandleResponse::default()));
         // TODO query!!!
+        test_handle(
+            self.deps, &self.env, self.address.clone(),
+            RewardsHandle::Configure(RewardsConfig {
+                lp_token:     None,
+                reward_token: None,
+                reward_vk:    None,
+                ratio:        Some((ratio.0.into(), ratio.1.into())),
+                threshold:    None,
+                cooldown:     None,
+            }),
+            Ok(HandleResponse::default())
+        );
         self
     }
     pub fn set_threshold (&mut self, threshold: Time) -> &mut Self  {
@@ -138,10 +143,11 @@ impl<'a> AdminRole<'a> {
         self
     }
     pub fn closes_pool (&mut self) -> &mut Self{
-        assert_eq!(Rewards::handle(self.deps, &self.env, RewardsHandle::Close {
-            message: String::from("closed")
-        }), Ok(HandleResponse::default()));
-        self
+        test_handle(
+            self.deps, &self.env, self.address.clone(),
+            RewardsHandle::Close { message: String::from("closed") },
+            Ok(HandleResponse::default())
+        ); self
     }
     pub fn drains_pool (&mut self, reward_token: &ISnip20, key: &str) {
         assert!(
@@ -215,16 +221,14 @@ impl<'a> UserRole<'a> {
             ))
         )
     }
+
     pub fn test_handle (&mut self, msg: RewardsHandle, expected: StdResult<HandleResponse>) -> &mut Self {
-        println!("-> {:?}", &msg);
-        let result = Rewards::handle(self.deps, &self.env, msg);
-        println!("<- {:?}", &result);
-        if result != expected {
-            println!("Was expecting: {:?}", &expected);
-        }
-        assert_eq!(result, expected);
-        self
+        test_handle(
+            self.deps, &self.env, self.address.clone(),
+            msg, expected
+        ); self
     }
+
     pub fn status (&mut self) -> User {
         match Rewards::query_status(
             &*self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
@@ -257,6 +261,61 @@ impl<'a> UserRole<'a> {
         assert_eq!(self.status().claimable, a.into(), "user.claimable");
         self
     }
+}
+
+pub fn test_handle (
+    deps: &mut Deps, env: &Env, address: HumanAddr, msg: RewardsHandle, expected: StdResult<HandleResponse>
+) {
+    use yansi::Paint;
+    print!("\n| {} | {} | {:?} | ", env.block.time, address, Paint::yellow(&msg));
+    let result = Rewards::handle(deps, env, msg);
+    if result == expected {
+        println!("{}", Paint::green("OK"));
+    } else {
+        println!("{} <-", address);
+        match result {
+            Ok(HandleResponse { ref messages, ref log, ref data }) => {
+                println!("messages:");
+                for message in messages.iter() {
+                    match message {
+                        CosmosMsg::Wasm(WasmMsg::Execute {
+                            ref contract_addr, ref callback_code_hash, ref msg, ref send
+                        }) => {
+                            println!("- to:   {}#{}", Paint::red(contract_addr), Paint::red(callback_code_hash));
+                            println!("  msg:  {}",    Paint::red(&std::str::from_utf8(msg.as_slice()).unwrap().trim_end()));
+                            println!("  send: {:?}",  Paint::red(send));
+                        },
+                        _ => println!("- {:?}", Paint::red(message))
+                    }
+                }
+                println!("log:  {:?}", log);
+                println!("data: {:?}", data);
+            }
+            _ => println!("\n{} <- {:?}", address, Paint::red(&result))
+        };
+        println!("{}", Paint::red("Was expecting:"));
+    }
+    match expected {
+        Ok(HandleResponse { ref messages, ref log, ref data }) => {
+            println!("messages:");
+            for message in messages.iter() {
+                match message {
+                    CosmosMsg::Wasm(WasmMsg::Execute {
+                        ref contract_addr, ref callback_code_hash, ref msg, ref send
+                    }) => {
+                        println!("- to:   {}#{}", Paint::green(contract_addr), Paint::green(callback_code_hash));
+                        println!("  msg:  {}",    Paint::green(&std::str::from_utf8(msg.as_slice()).unwrap().trim_end()));
+                        println!("  send: {:?}",  Paint::green(send));
+                    },
+                    _ => println!("- {:?}", Paint::green(message))
+                }
+            }
+            println!("log:  {:?}", log);
+            println!("data: {:?}", data);
+        }
+        _ => println!("\n{} <- {:?}", address, Paint::green(&result))
+    };
+    assert_eq!(result, expected);
 }
 
 impl<'a> BadmanRole<'a> {
