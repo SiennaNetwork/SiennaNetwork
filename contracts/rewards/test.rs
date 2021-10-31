@@ -23,10 +23,10 @@ pub fn entities () -> Context {
         },
         "reward_vk".to_string(),
         ISnip20::attach(
-            ContractLink { address: HumanAddr::from("reward_addr"), code_hash: "reward_hash".into() }
+            ContractLink { address: HumanAddr::from("SIENNA_addr"), code_hash: "SIENNA_hash".into() }
         ),
         ISnip20::attach(
-            ContractLink { address: HumanAddr::from("lp_addr"),     code_hash: "lp_hash".into() }
+            ContractLink { address: HumanAddr::from("LP_addr"),     code_hash: "LP_hash".into() }
         ),
     )
 }
@@ -281,16 +281,21 @@ pub fn test_handle (
                         CosmosMsg::Wasm(WasmMsg::Execute {
                             ref contract_addr, ref callback_code_hash, ref msg, ref send
                         }) => {
-                            println!("- to:   {}#{}", Paint::red(contract_addr), Paint::red(callback_code_hash));
-                            println!("  msg:  {}",    Paint::red(&std::str::from_utf8(msg.as_slice()).unwrap().trim_end()));
-                            println!("  send: {:?}",  Paint::red(send));
+                            println!("[{}#{}] {} {:?}",
+                                Paint::red(contract_addr),
+                                Paint::red(callback_code_hash),
+                                Paint::red(&std::str::from_utf8(msg.as_slice()).unwrap().trim_end()),
+                                Paint::red(send));
                         },
                         _ => println!("- {:?}", Paint::red(message))
                     }
                 }
                 println!("log:  {:?}", log);
                 println!("data: {:?}", data);
-            }
+            },
+            Err(StdError::GenericErr { ref msg, .. } ) => {
+                println!("\n{} <- {:?}", address, Paint::red(&msg))
+            },
             _ => println!("\n{} <- {:?}", address, Paint::red(&result))
         };
         println!("{}", Paint::red("Was expecting:"));
@@ -303,9 +308,11 @@ pub fn test_handle (
                     CosmosMsg::Wasm(WasmMsg::Execute {
                         ref contract_addr, ref callback_code_hash, ref msg, ref send
                     }) => {
-                        println!("- to:   {}#{}", Paint::green(contract_addr), Paint::green(callback_code_hash));
-                        println!("  msg:  {}",    Paint::green(&std::str::from_utf8(msg.as_slice()).unwrap().trim_end()));
-                        println!("  send: {:?}",  Paint::green(send));
+                            println!("[{}#{}] {} {:?}",
+                                Paint::green(contract_addr),
+                                Paint::green(callback_code_hash),
+                                Paint::green(&std::str::from_utf8(msg.as_slice()).unwrap().trim_end()),
+                                Paint::green(send));
                     },
                     _ => println!("- {:?}", Paint::green(message))
                 }
@@ -313,6 +320,9 @@ pub fn test_handle (
             println!("log:  {:?}", log);
             println!("data: {:?}", data);
         }
+        Err(StdError::GenericErr { ref msg, .. } ) => {
+            println!("\n{} <- {:?}", address, Paint::green(&msg))
+        },
         _ => println!("\n{} <- {:?}", address, Paint::green(&result))
     };
     assert_eq!(result, expected);

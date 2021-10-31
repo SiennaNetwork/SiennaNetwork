@@ -166,7 +166,7 @@ macro_rules! assert_fields {
 ///  When bob reaches the age threshold
 ///  Then each is eligible to claim some rewards
 #[test] fn test_deposit_withdraw_sequential () {
-    let (ref mut deps, _, _, ref LP) = entities();
+    let (ref mut deps, _, _, ref LP) = entities_init();
 
     user(deps, "Alice").at(2).deposits(LP, 100u128);
     user(deps, "Bob").at(2).deposits(LP, 100u128);
@@ -304,7 +304,7 @@ macro_rules! assert_fields {
 ///  When a user claims rewards
 ///  Then they need to wait a fixed amount of time before they can claim again
 #[test] fn test_threshold_cooldown () {
-    let (ref mut deps, VK, ref SIENNA, ref LP) = entities();
+    let (ref mut deps, VK, ref SIENNA, ref LP) = entities_init();
     admin(deps).at(1).configure(RewardsConfig {
         lp_token:     Some(LP.link.clone()),
         reward_token: Some(SIENNA.link.clone()),
@@ -313,6 +313,7 @@ macro_rules! assert_fields {
         threshold:    Some(100),
         cooldown:     Some(200),
     });;
+    deps.querier.increment_balance(100);
     user(deps, "Alice")
         .at(2).deposits(LP, 100u128)
         .at(4).must_wait(98)
@@ -336,7 +337,7 @@ macro_rules! assert_fields {
 ///  When a user withdraws tokens after claiming
 ///  Then they get the original amount
 #[test] fn test_single_sided () {
-    let (ref mut deps, VK, ref SIENNA, _) = entities();
+    let (ref mut deps, VK, ref SIENNA, _) = entities_init();
     admin(deps).at(1).configure(RewardsConfig {
         lp_token:     Some(SIENNA.link.clone()),
         reward_token: Some(SIENNA.link.clone()),
@@ -361,28 +362,41 @@ macro_rules! assert_fields {
 ///   And user first withdraws all tokens and then claims rewards
 ///  Then user lifetime and claimed is reset so they can start over
 #[test] fn test_reset () {
-    let (ref mut deps, _, ref SIENNA, ref LP) = entities_init();
-    admin(deps).at(1).configure(RewardsConfig {
-        lp_token:     None,
-        reward_token: None,
-        reward_vk:    None,
-        ratio:        None,
-        threshold:    Some(0u64),
-        cooldown:     Some(0u64),
-    });
+    {
+        let (ref mut deps, _, ref SIENNA, ref LP) = entities_init();
+        admin(deps).at(1).configure(RewardsConfig {
+            lp_token:     None,
+            reward_token: None,
+            reward_vk:    None,
+            ratio:        None,
+            threshold:    Some(0u64),
+            cooldown:     Some(0u64),
+        });
+        deps.querier.increment_balance(100);
+        user(deps, "Alice")
+            .set_vk("")
+            .at( 2).deposits(LP,   100u128)
+            .at( 4).claims(SIENNA, 100u128)
+            .at( 6).withdraws(LP,  100u128).lifetime(400u128).claimed(100u128);
+    }
 
-    deps.querier.increment_balance(100);
-    user(deps, "Alice")
-        .set_vk("")
-        .at( 2).deposits(LP,   100u128)
-        .at( 4).claims(SIENNA, 100u128)
-        .at( 6).withdraws(LP,  100u128).lifetime(400u128).claimed(100u128);
-
-    deps.querier.increment_balance(100);
-    user(deps, "Bob")
-        .at( 8).deposits(LP,   100u128)
-        .at(10).withdraws(LP,  100u128)
-        .at(12).claims(SIENNA, 100u128).lifetime(0u128).claimed(0u128);
+    {
+        let (ref mut deps, _, ref SIENNA, ref LP) = entities_init();
+        admin(deps).at(1).configure(RewardsConfig {
+            lp_token:     None,
+            reward_token: None,
+            reward_vk:    None,
+            ratio:        None,
+            threshold:    Some(0u64),
+            cooldown:     Some(0u64),
+        });
+        deps.querier.increment_balance(100);
+        user(deps, "Alice")
+            .set_vk("")
+            .at( 2).deposits(LP,   100u128)
+            .at( 4).withdraws(LP,  100u128)
+            .at( 6).claims(SIENNA, 100u128).lifetime(0u128).claimed(0u128);
+    }
 
     //when  "share of user who has previously claimed rewards diminishes"
     //then  "user is crowded out"

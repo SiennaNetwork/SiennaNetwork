@@ -210,20 +210,34 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     fn handle_claim (&mut self, env: &Env) -> StdResult<HandleResponse> {
         let (mut pool, mut user) = self.before_user_action(&env)?;
         // If user must wait before first claim, enforce that here.
-        dbg!(user.liquid);
-        dbg!(pool.threshold);
         enforce_cooldown(user.liquid, pool.threshold)?;
         // If user must wait between claims, enforce that here.
-        dbg!(user.cooldown);
         enforce_cooldown(0, user.cooldown)?;
-        // See if there is some unclaimed reward amount:
-        if user.claimable == Amount::zero() {
+        if pool.balance == Amount::zero() {
             return Err(StdError::generic_err(
-                "You've already received as much as your share of the reward pool allows. \
-                Keep your liquidity tokens locked and wait for more rewards to be vested, \
-                and/or lock more liquidity tokens to grow your share of the reward pool."
+                "This pool is currently empty. \
+                However, liquidity shares continue to accumulate."
             ))
         }
+        if pool.global_ratio.0 == Amount::zero() {
+            return Err(StdError::generic_err(
+                "Rewards from this pool are currently stopped. \
+                However, liquidity shares continue to accumulate."
+            ))
+        }
+        if user.claimed > user.earned {
+            return Err(StdError::generic_err(
+                "Your liquidity share has steeply diminished \
+                since you last claimed. Lock more tokens to get \
+                to the front of the queue faster."
+            ))
+        }
+        if user.claimable == Amount::zero() {
+            return Err(StdError::generic_err(
+                "You have already claimed your exact share of the rewards."
+            ))
+        }
+
         // Increment claimed counters
         user.claimed += user.claimable;
         pool.claimed += user.claimable;
@@ -231,18 +245,20 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         self.set_ns(user::CLAIMED, id.as_slice(), user.claimed)?;
         self.set(pool::CLAIMED, pool.claimed)?;
         self.set_ns(user::COOLDOWN, id.as_slice(), pool.cooldown)?;
+
         // Update user timestamp, and the things synced to it.
         self.after_user_action(env.block.time, &pool, &user, &id)?;
+
         if user.locked == Amount::zero() {
-            // Optionally, reset the user's `lifetime` and `share` if they have currently
-            // 0 tokens locked. The intent is for this to be the user's last reward claim
-            // after they've left the pool completely. If they provide exactly 0 liquidity
-            // at some point, when they come back they have to start over, which is OK
-            // because they can then start claiming rewards immediately, without waiting
-            // for threshold, only cooldown.
+            // Reset the user's `lifetime` and `share` if they currently have 0 tokens locked.
+            // The intent is for this to be the user's last reward claim after they've left
+            // the pool completely. If they provide exactly 0 liquidity at some point,
+            // when they come back they have to start over, which is OK because they can
+            // then start claiming rewards immediately, without waiting for threshold, only cooldown.
             self.set_ns(user::LIFETIME, id.as_slice(), Volume::zero())?;
             self.set_ns(user::CLAIMED,  id.as_slice(), Amount::zero())?;
         }
+
         // Transfer reward tokens from the contract to the user
         HandleResponse::default()
             .msg(self.reward_token()?.transfer(&env.message.sender, user.claimable)?)
@@ -480,7 +496,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             .low_u128().into();
         let claimed = self.get_ns(user::CLAIMED, id.as_slice())?.unwrap_or(Amount::zero());
         let mut reason: Option<&str> = None;
-        let cooldown = self.get_ns(user::COOLDOWN, id.as_slice())?.unwrap_or(pool.cooldown);
+        let cooldown = self.get_ns(user::COOLDOWN, id.as_slice())?.unwrap_or(0);
         let claimable = if liquid < pool.threshold {
             reason = Some("can only claim after age threshold");
             Amount::zero()
