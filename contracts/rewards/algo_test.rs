@@ -4,9 +4,9 @@
 #![allow(unreachable_patterns)]
 
 use crate::*;
-use crate::test::*;
+use crate::test::{*, Context};
 use fadroma::*;
-use fadroma::secret_toolkit::snip20;
+//use fadroma::secret_toolkit::snip20;
 
 macro_rules! assert_error {
     ($response:expr, $msg:expr) => { assert_eq!($response, Err(StdError::generic_err($msg))) }
@@ -51,9 +51,9 @@ macro_rules! assert_fields {
 ///  Then the default values are used where applicable
 ///   And the rewards module emits a message that sets the reward token viewing key
 #[test] fn test_init () {
-    let (ref mut deps, ref VK, ref SIENNA, ref LP) = entities();
-    admin(deps).at(1).init_invalid();
-    admin(deps).at(1).init(LP, SIENNA, VK.clone());
+    let Context(ref mut table, ref mut deps, ref VK, ref SIENNA, ref LP) = Context::entities();
+    admin(table, deps).at(1).init_invalid();
+    admin(table, deps).at(1).init(LP, SIENNA, VK.clone());
 }
 
 /// Given no instance
@@ -68,8 +68,8 @@ macro_rules! assert_fields {
 ///  When the admin sets the config, including a reward token
 ///  Then a reward token viewing key config message is returned
 #[test] fn test_configure () {
-    let (ref mut deps, ref VK, ref SIENNA, ref LP) = entities();
-    admin(deps)
+    let Context(ref mut table, ref mut deps, ref VK, ref SIENNA, ref LP) = Context::entities();
+    admin(table, deps)
         .at(1).init(LP, SIENNA, VK.clone())
         .at(2).configure(RewardsConfig {
             lp_token:     None,
@@ -79,9 +79,9 @@ macro_rules! assert_fields {
             threshold:    None,
             cooldown:     None,
         });
-    badman(deps)
+    badman(table, deps)
         .at(3).cannot_configure();
-    admin(deps)
+    admin(table, deps)
         .at(4).configure(RewardsConfig {
             lp_token:     None,
             reward_token: Some(SIENNA.link.clone()),
@@ -116,8 +116,8 @@ macro_rules! assert_fields {
 ///  When a stranger tries to withdraw
 ///  Then they can't
 #[test] fn test_deposit_withdraw_one () {
-    let (ref mut deps, VK, ref SIENNA, ref LP) = entities_init();
-    user(deps, "Alice")
+    let Context(ref mut table, ref mut deps, _, _, ref LP) = Context::entities_init();
+    user(table, deps, "Alice")
         .at(2).locked(0u128).lifetime(0u128)
               .deposits(LP, 100u128)
               .locked(100u128).lifetime(0u128)
@@ -149,9 +149,9 @@ macro_rules! assert_fields {
 ///  Then each is eligible to claim half of the available rewards
 ///   And their rewards are proportionate to their stakes.
 #[test] fn test_deposit_withdraw_parallel () {
-    let (ref mut deps, VK, SIENNA, ref LP) = entities_init();
-    user(deps, "Alice").at(2).deposits(LP, 100);
-    user(deps, "Bob").at(2).deposits(LP, 100);
+    let Context(ref mut table, ref mut deps, _, _, ref LP) = Context::entities_init();
+    user(table, deps, "Alice").at(2).deposits(LP, 100);
+    user(table, deps, "Bob").at(2).deposits(LP, 100);
 }
 
 /// Given an instance
@@ -166,10 +166,10 @@ macro_rules! assert_fields {
 ///  When bob reaches the age threshold
 ///  Then each is eligible to claim some rewards
 #[test] fn test_deposit_withdraw_sequential () {
-    let (ref mut deps, _, _, ref LP) = entities_init();
+    let Context(ref mut table, ref mut deps, _, _, ref LP) = Context::entities_init();
 
-    user(deps, "Alice").at(2).deposits(LP, 100u128);
-    user(deps, "Bob").at(2).deposits(LP, 100u128);
+    user(table, deps, "Alice").at(2).deposits(LP, 100u128);
+    user(table, deps, "Bob").at(2).deposits(LP, 100u128);
 
     //Test.at(1).init_configured(&admin)?
               //.set_vk(&alice, "")?
@@ -207,8 +207,8 @@ macro_rules! assert_fields {
 ///  When a provider claims their rewards less often
 ///  Then they receive equivalent rewards as long as the liquidity deposited hasn't changed
 #[test] fn test_claim_one () {
-    let (ref mut deps, _, ref SIENNA, ref LP) = entities_init();
-    user(deps, "Alice")
+    let Context(ref mut table, ref mut deps, _, ref SIENNA, ref LP) = Context::entities_init();
+    user(table, deps, "Alice")
         .at(2).is_unregistered()
         .at(3).deposits(LP, 100)
         .at(103).claims(SIENNA, 100)
@@ -304,17 +304,17 @@ macro_rules! assert_fields {
 ///  When a user claims rewards
 ///  Then they need to wait a fixed amount of time before they can claim again
 #[test] fn test_threshold_cooldown () {
-    let (ref mut deps, VK, ref SIENNA, ref LP) = entities_init();
-    admin(deps).at(1).configure(RewardsConfig {
+    let Context(ref mut table, ref mut deps, ref VK, ref SIENNA, ref LP) = Context::entities_init();
+    admin(table, deps).at(1).configure(RewardsConfig {
         lp_token:     Some(LP.link.clone()),
         reward_token: Some(SIENNA.link.clone()),
         reward_vk:    Some(VK.clone()),
         ratio:        None,
         threshold:    Some(100),
         cooldown:     Some(200),
-    });;
+    });
     deps.querier.increment_balance(100);
-    user(deps, "Alice")
+    user(table, deps, "Alice")
         .at(2).deposits(LP, 100u128)
         .at(4).must_wait(98)
         .at(5).must_wait(97)
@@ -337,16 +337,16 @@ macro_rules! assert_fields {
 ///  When a user withdraws tokens after claiming
 ///  Then they get the original amount
 #[test] fn test_single_sided () {
-    let (ref mut deps, VK, ref SIENNA, _) = entities_init();
-    admin(deps).at(1).configure(RewardsConfig {
+    let Context(ref mut table, ref mut deps, ref VK, ref SIENNA, _) = Context::entities_init();
+    admin(table, deps).at(1).configure(RewardsConfig {
         lp_token:     Some(SIENNA.link.clone()),
         reward_token: Some(SIENNA.link.clone()),
-        reward_vk:    Some(VK),
+        reward_vk:    Some(VK.clone()),
         ratio:        None,
         threshold:    None,
         cooldown:     None,
     });
-    user(deps, "Alice")
+    user(table, deps, "Alice")
         .at(2)  .deposits(SIENNA,  100u128)
         .at(103).claims(SIENNA,    100u128)
         .at(104).withdraws(SIENNA, 100u128);
@@ -363,8 +363,8 @@ macro_rules! assert_fields {
 ///  Then user lifetime and claimed is reset so they can start over
 #[test] fn test_reset () {
     {
-        let (ref mut deps, _, ref SIENNA, ref LP) = entities_init();
-        admin(deps).at(1).configure(RewardsConfig {
+        let Context(ref mut table, ref mut deps, _, ref SIENNA, ref LP) = Context::entities_init();
+        admin(table, deps).at(1).configure(RewardsConfig {
             lp_token:     None,
             reward_token: None,
             reward_vk:    None,
@@ -373,16 +373,16 @@ macro_rules! assert_fields {
             cooldown:     Some(0u64),
         });
         deps.querier.increment_balance(100);
-        user(deps, "Alice")
+        user(table, deps, "Alice")
             .set_vk("")
             .at( 2).deposits(LP,   100u128)
             .at( 4).claims(SIENNA, 100u128)
-            .at( 6).withdraws(LP,  100u128).lifetime(400u128).claimed(100u128);
+            .at( 4).withdraws(LP,  100u128).lifetime(200u128).claimed(100u128);
     }
 
     {
-        let (ref mut deps, _, ref SIENNA, ref LP) = entities_init();
-        admin(deps).at(1).configure(RewardsConfig {
+        let Context(ref mut table, ref mut deps, _, ref SIENNA, ref LP) = Context::entities_init();
+        admin(table, deps).at(1).configure(RewardsConfig {
             lp_token:     None,
             reward_token: None,
             reward_vk:    None,
@@ -391,11 +391,11 @@ macro_rules! assert_fields {
             cooldown:     Some(0u64),
         });
         deps.querier.increment_balance(100);
-        user(deps, "Alice")
+        user(table, deps, "Alice")
             .set_vk("")
             .at( 2).deposits(LP,   100u128)
             .at( 4).withdraws(LP,  100u128)
-            .at( 6).claims(SIENNA, 100u128).lifetime(0u128).claimed(0u128);
+            .at( 4).claims(SIENNA, 100u128).lifetime(0u128).claimed(0u128);
     }
 
     //when  "share of user who has previously claimed rewards diminishes"
@@ -431,13 +431,13 @@ macro_rules! assert_fields {
         RewardsHandle::Lock     { amount: 100u128.into() },
         RewardsHandle::Retrieve { amount: 100u128.into() },
     ] {
-        let (ref mut deps, _VK, _SIENNA, ref LP) = entities_init();
-        user(deps, "Alice").at(2).deposits(LP, 100u128);
-        badman(deps).at(3).cannot_close_pool();
-        user(deps, "Alice").at(4).deposits(LP, 100u128);
-        admin(deps).at(5).closes_pool();
+        let Context(ref mut table, ref mut deps, ref _VK, ref _SIENNA, ref LP) = Context::entities_init();
+        user(table, deps, "Alice").at(2).deposits(LP, 100u128);
+        badman(table, deps).at(3).cannot_close_pool();
+        user(table, deps, "Alice").at(4).deposits(LP, 100u128);
+        admin(table, deps).at(5).closes_pool();
         // always retrieval, optionally claim transfer
-        user(deps, "Alice").at(6).test_handle(
+        user(table, deps, "Alice").at(6).test_handle(
             msg,
             HandleResponse::default()
                 .msg(LP.transfer(&HumanAddr::from("Alice"), 200u128.into()).unwrap()).unwrap()
@@ -454,9 +454,9 @@ macro_rules! assert_fields {
 ///  When calling with reward token info
 ///  Then the viewing key changes
 #[test] fn test_drain () {
-    let (ref mut deps, _, ref SIENNA, _) = entities_init();
-    badman(deps).at(2).cannot_drain(SIENNA, "key");
-    admin(deps).at(3).drains_pool(SIENNA, "key");
+    let Context(ref mut table, ref mut deps, _, ref SIENNA, _) = Context::entities_init();
+    badman(table, deps).at(2).cannot_drain(SIENNA, "key");
+    admin(table, deps).at(3).drains_pool(SIENNA, "key");
 }
 
 /// Given an instance with 0/1 ratio
@@ -473,23 +473,23 @@ macro_rules! assert_fields {
 ///  When ratio is set to 2/1
 ///  Then rewards are doubled
 #[test] fn test_global_ratio () {
-    let (ref mut deps, _, ref SIENNA, ref LP) = entities_init();
-    admin(deps)
+    let Context(ref mut table, ref mut deps, _, ref SIENNA, ref LP) = Context::entities_init();
+    admin(table, deps)
         .at(1).set_ratio((0u128, 1u128));
-    user(deps, "Alice")
+    user(table, deps, "Alice")
         .at(2).deposits(LP, 100u128)
         .at(86402).claims(SIENNA, 0u128);
-    admin(deps)
+    admin(table, deps)
         .at(86403).set_ratio((1u128, 2u128));
-    user(deps, "Alice")
+    user(table, deps, "Alice")
         .at(86402).claims(SIENNA, 50u128);
-    admin(deps)
+    admin(table, deps)
         .at(10).set_ratio((1u128, 1u128));
-    user(deps, "Alice")
+    user(table, deps, "Alice")
         .at(86402).claims(SIENNA, 50u128);
-    admin(deps)
+    admin(table, deps)
         .at(1234).set_ratio((2u128, 1u128));
-    user(deps, "Alice")
+    user(table, deps, "Alice")
         .at(86402).claims(SIENNA, 50u128);
 }
 
@@ -513,7 +513,7 @@ macro_rules! assert_fields {
 ///  When a user is eligible to claim rewards
 ///  Then the rewards are diminished by the pool liquidity ratio
 #[test] fn test_pool_liquidity_ratio () {
-    let (ref mut deps, VK, SIENNA, LP) = entities_init();
+    let Context(ref mut table, ref mut deps, _, _, _) = Context::entities_init();
 
     pool_status(deps, 1).liquid(0).existed(None);
 
@@ -585,14 +585,14 @@ macro_rules! assert_fields {
 ///  When the user is eligible to claim rewards
 ///  Then the rewards are diminished by the user's liquidity ratio
 #[test] fn test_user_liquidity_ratio () {
-    let (ref mut deps, _, SIENNA, ref LP) = entities_init();
+    let Context(ref mut table, ref mut deps, _, _, ref LP) = Context::entities_init();
     let t    =   23u64;
     let r    = 5040u128;
     let half =  120u128;
     deps.querier.increment_balance(r);
-    admin(deps)
+    admin(table, deps)
         .at(t-1).set_threshold(0u64);
-    user(deps, "Alice")
+    user(table, deps, "Alice")
         .at(t  ).set_vk("")
                 .liquid(0).existed(0).claimable(0u128)
                 .deposits(LP, 2 * half)

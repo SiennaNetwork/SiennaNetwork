@@ -12,6 +12,7 @@
 //! less frequently, and need to lock more tokens to restore their place
 //! in the queue.
 
+#[cfg(test)] #[macro_use] extern crate prettytable;
 #[cfg(test)] mod test;
 pub mod algo; #[cfg(test)] mod algo_test;
 pub mod auth; #[cfg(test)] mod auth_test;

@@ -1,40 +1,91 @@
+#![allow(non_snake_case)]
+use prettytable::{Table, /*Row, Cell,*/ format};
+//use yansi::Paint;
+
 use crate::*;
 use fadroma::*;
 use fadroma::secret_toolkit::snip20;
 use fadroma::testing::*;
-use rand::Rng;
+//use rand::Rng;
 
 pub type Deps = Extern<MemoryStorage, MockApi, RewardsMockQuerier>;
 
-pub type Context = (
-    Deps,    // deps
-    String,  // reward_vk
-    ISnip20, // reward_token
-    ISnip20, // lp_token
+pub struct Context (
+    pub Table,
+    pub Deps,    // deps
+    pub String,  // reward_vk
+    pub ISnip20, // reward_token
+    pub ISnip20, // lp_token
 );
 
-pub fn entities () -> Context {
-    color_backtrace::install();
-    (
-        Extern {
-            storage: MemoryStorage::default(),
-            api:     MockApi::new(20),
-            querier: RewardsMockQuerier { balance: 0u128.into() }
-        },
-        "reward_vk".to_string(),
-        ISnip20::attach(
-            ContractLink { address: HumanAddr::from("SIENNA_addr"), code_hash: "SIENNA_hash".into() }
-        ),
-        ISnip20::attach(
-            ContractLink { address: HumanAddr::from("LP_addr"),     code_hash: "LP_hash".into() }
-        ),
-    )
+impl Context {
+    pub fn entities () -> Self {
+        //color_backtrace::install();
+        Self(
+            Self::new_table(),
+            Extern {
+                storage: MemoryStorage::default(),
+                api:     MockApi::new(20),
+                querier: RewardsMockQuerier { balance: 0u128.into() }
+            },
+            "reward_vk".to_string(),
+            ISnip20::attach(
+                ContractLink { address: HumanAddr::from("SIENNA_addr"), code_hash: "SIENNA_hash".into() }
+            ),
+            ISnip20::attach(
+                ContractLink { address: HumanAddr::from("LP_addr"),     code_hash: "LP_hash".into() }
+            ),
+        )
+    }
+    pub fn entities_init () -> Self {
+        let mut context = Context::entities();
+        let Context(ref mut table, ref mut deps, ref VK, ref SIENNA, ref LP) = context;
+        admin(table, deps).at(1).init(LP, SIENNA, VK.to_string());
+        context
+    }
+    fn new_table () -> Table {
+        let mut table = Table::new();
+        table.set_format(format::FormatBuilder::new()
+            .column_separator('|')
+            .borders('|')
+            .padding(1, 1)
+        .build());
+        table
+    }
+}
+impl Drop for Context {
+    fn drop (&mut self) {
+        self.0.printstd();
+    }
 }
 
-pub fn entities_init () -> Context {
-    let (mut deps, VK, SIENNA, LP) = entities();
-    admin(&mut deps).at(1).init(&LP, &SIENNA, VK.to_string());
-    (deps, VK, SIENNA, LP)
+//pub type Context = (
+    //Table,
+    //Deps,    // deps
+    //String,  // reward_vk
+    //ISnip20, // reward_token
+    //ISnip20, // lp_token
+//);
+
+//pub fn run_test<T: FnOnce(Context) -> () + std::panic::UnwindSafe>(test: T) -> () {
+    //let Context(table, deps, VK, SIENNA, LP) = Context::entities();
+    //let result = std::panic::catch_unwind(|| {
+        //test((table, deps, VK, SIENNA, LP))
+    //});
+    //take(&mut table, |table| { table.printstd(); table });
+    //assert!(result.is_ok())
+//}
+
+pub fn take<T, F>(mut_ref: &mut T, closure: F)
+  where F: FnOnce(T) -> T {
+    use std::ptr;
+
+    unsafe {
+        let old_t = ptr::read(mut_ref);
+        let new_t = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| closure(old_t)))
+            .unwrap_or_else(|_| ::std::process::abort());
+        ptr::write(mut_ref, new_t);
+    }
 }
 
 pub fn env (signer: &HumanAddr, time: u64) -> Env {
@@ -43,20 +94,37 @@ pub fn env (signer: &HumanAddr, time: u64) -> Env {
     env
 }
 
-pub struct AdminRole<'a> { pub deps: &'a mut Deps, pub address: HumanAddr, pub env: Env }
-pub struct UserRole<'a>   { pub deps: &'a mut Deps, pub address: HumanAddr, pub env: Env }
-pub struct BadmanRole<'a> { pub deps: &'a mut Deps, pub address: HumanAddr, pub env: Env }
-pub fn admin<'a>(deps: &'a mut Deps) -> AdminRole<'a> {
+pub fn admin<'a>(table: &'a mut Table, deps: &'a mut Deps) -> AdminRole<'a> {
     let address = HumanAddr::from("Admin");
-    AdminRole { deps, env: env(&address, 0), address }
+    AdminRole  { deps, env: env(&address, 0), address, table }
 }
-pub fn user<'a>(deps: &'a mut Deps, address: &str) -> UserRole<'a> {
+pub struct AdminRole<'a> {
+    pub table:   &'a mut Table,
+    pub deps:    &'a mut Deps,
+    pub address: HumanAddr,
+    pub env:     Env,
+}
+
+pub fn user<'a>(table: &'a mut Table, deps: &'a mut Deps, address: &str) -> UserRole<'a> {
     let address = HumanAddr::from(address);
-    UserRole { deps, env: env(&address, 0), address }
+    UserRole   { deps, env: env(&address, 0), address, table }
 }
-pub fn badman<'a>(deps: &'a mut Deps) -> BadmanRole<'a> {
+pub struct UserRole<'a> {
+    pub table:   &'a mut Table,
+    pub deps:    &'a mut Deps,
+    pub address: HumanAddr,
+    pub env:     Env,
+}
+
+pub fn badman<'a>(table: &'a mut Table, deps: &'a mut Deps) -> BadmanRole<'a> {
     let address = HumanAddr::from("Badman");
-    BadmanRole { deps, env: env(&address, 0), address }
+    BadmanRole { deps, env: env(&address, 0), address, table }
+}
+pub struct BadmanRole<'a> {
+    pub table:   &'a mut Table,
+    pub deps:    &'a mut Deps,
+    pub address: HumanAddr,
+    pub env:     Env,
 }
 
 impl<'a> AdminRole<'a> {
@@ -78,7 +146,7 @@ impl<'a> AdminRole<'a> {
         self
     }
     pub fn init (&mut self, lp: &ISnip20, reward: &ISnip20, vk: String) -> &mut Self {
-        crate::Auth::init(self.deps, &self.env, &None);
+        crate::Auth::init(self.deps, &self.env, &None).unwrap();
         assert_eq!(
             Rewards::init(self.deps, &self.env, RewardsConfig {
                 lp_token:     Some(lp.link.clone()),
@@ -108,6 +176,7 @@ impl<'a> AdminRole<'a> {
             ).unwrap())
         }
         test_handle(
+            &mut self.table,
             self.deps, &self.env, self.address.clone(),
             RewardsHandle::Configure(config),
             Ok(expected)
@@ -117,6 +186,7 @@ impl<'a> AdminRole<'a> {
     pub fn set_ratio (&mut self, ratio: (u128, u128)) -> &mut Self  {
         // TODO query!!!
         test_handle(
+            &mut self.table,
             self.deps, &self.env, self.address.clone(),
             RewardsHandle::Configure(RewardsConfig {
                 lp_token:     None,
@@ -144,6 +214,7 @@ impl<'a> AdminRole<'a> {
     }
     pub fn closes_pool (&mut self) -> &mut Self{
         test_handle(
+            &mut self.table,
             self.deps, &self.env, self.address.clone(),
             RewardsHandle::Close { message: String::from("closed") },
             Ok(HandleResponse::default())
@@ -167,10 +238,10 @@ impl<'a> UserRole<'a> {
         self.env = env(&self.address, t);
         self
     }
-    pub fn later (&mut self) -> &mut Self {
-        let t: Time = rand::thread_rng().gen();
-        self.at(self.env.block.time + t)
-    }
+    //pub fn later (&mut self) -> &mut Self {
+        //let t: Time = rand::thread_rng().gen();
+        //self.at(self.env.block.time + t)
+    //}
     pub fn set_vk (&mut self, key: &str) -> &mut Self {
         let msg = crate::AuthHandle::SetViewingKey { key: key.into(), padding: None };
         assert_eq!(
@@ -224,6 +295,7 @@ impl<'a> UserRole<'a> {
 
     pub fn test_handle (&mut self, msg: RewardsHandle, expected: StdResult<HandleResponse>) -> &mut Self {
         test_handle(
+            &mut self.table,
             self.deps, &self.env, self.address.clone(),
             msg, expected
         ); self
@@ -234,7 +306,7 @@ impl<'a> UserRole<'a> {
             &*self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
         ).unwrap() {
             crate::RewardsResponse::Status { user, .. } => user.unwrap(),
-            _ => panic!()
+            //_ => panic!()
         }
     }
     pub fn locked <A: Into<Amount>> (&mut self, v: A) -> &mut Self {
@@ -261,71 +333,6 @@ impl<'a> UserRole<'a> {
         assert_eq!(self.status().claimable, a.into(), "user.claimable");
         self
     }
-}
-
-pub fn test_handle (
-    deps: &mut Deps, env: &Env, address: HumanAddr, msg: RewardsHandle, expected: StdResult<HandleResponse>
-) {
-    use yansi::Paint;
-    print!("\n| {} | {} | {:?} | ", env.block.time, address, Paint::yellow(&msg));
-    let result = Rewards::handle(deps, env, msg);
-    if result == expected {
-        println!("{}", Paint::green("OK"));
-    } else {
-        println!("{} <-", address);
-        match result {
-            Ok(HandleResponse { ref messages, ref log, ref data }) => {
-                println!("messages:");
-                for message in messages.iter() {
-                    match message {
-                        CosmosMsg::Wasm(WasmMsg::Execute {
-                            ref contract_addr, ref callback_code_hash, ref msg, ref send
-                        }) => {
-                            println!("[{}#{}] {} {:?}",
-                                Paint::red(contract_addr),
-                                Paint::red(callback_code_hash),
-                                Paint::red(&std::str::from_utf8(msg.as_slice()).unwrap().trim_end()),
-                                Paint::red(send));
-                        },
-                        _ => println!("- {:?}", Paint::red(message))
-                    }
-                }
-                println!("log:  {:?}", log);
-                println!("data: {:?}", data);
-            },
-            Err(StdError::GenericErr { ref msg, .. } ) => {
-                println!("\n{} <- {:?}", address, Paint::red(&msg))
-            },
-            _ => println!("\n{} <- {:?}", address, Paint::red(&result))
-        };
-        println!("{}", Paint::red("Was expecting:"));
-    }
-    match expected {
-        Ok(HandleResponse { ref messages, ref log, ref data }) => {
-            println!("messages:");
-            for message in messages.iter() {
-                match message {
-                    CosmosMsg::Wasm(WasmMsg::Execute {
-                        ref contract_addr, ref callback_code_hash, ref msg, ref send
-                    }) => {
-                            println!("[{}#{}] {} {:?}",
-                                Paint::green(contract_addr),
-                                Paint::green(callback_code_hash),
-                                Paint::green(&std::str::from_utf8(msg.as_slice()).unwrap().trim_end()),
-                                Paint::green(send));
-                    },
-                    _ => println!("- {:?}", Paint::green(message))
-                }
-            }
-            println!("log:  {:?}", log);
-            println!("data: {:?}", data);
-        }
-        Err(StdError::GenericErr { ref msg, .. } ) => {
-            println!("\n{} <- {:?}", address, Paint::green(&msg))
-        },
-        _ => println!("\n{} <- {:?}", address, Paint::green(&result))
-    };
-    assert_eq!(result, expected);
 }
 
 impl<'a> BadmanRole<'a> {
@@ -372,6 +379,109 @@ impl<'a> BadmanRole<'a> {
 
 // Helpers will be indented 1 level above the test cases
 
+pub fn test_handle (
+    table:    &mut Table,
+    deps:     &mut Deps,
+    env:      &Env,
+    address:  HumanAddr,
+    msg:      RewardsHandle,
+    expected: StdResult<HandleResponse>
+) {
+    table.add_row(row![]);
+    let msg_ser = serde_json::to_string_pretty(&msg).unwrap();
+    table.add_row(row![b->env.block.time, b->&address, b->msg_ser.trim()]);
+    let result = Rewards::handle(deps, env, msg);
+    let add_result = |table: &mut Table, result: &StdResult<HandleResponse>| match result {
+        Ok(ref result) => {
+            for message in result.messages.iter() {
+                if let CosmosMsg::Wasm(WasmMsg::Execute { .. }) = message {
+                    table.add_row(row!["=>", "msg", &decode_msg(message).unwrap()]);
+                } else {
+                    table.add_row(row!["=>", "msg", serde_json::to_string_pretty(&message).unwrap()]);
+                }
+            }
+        },
+        Err(ref error) => {
+            table.add_row(row!["=>", "err", error]);
+        }
+    };
+    add_result(table, &result);
+    if result != expected {
+        table.add_row(row![]);
+        table.add_row(row!["ERROR", "was expecting", "the following:"]);
+        add_result(table, &expected);
+    }
+    //if result == expected {
+        //println!("{}", Paint::green("OK"));
+    //} else {
+        //println!("{} <-", address);
+        //match result {
+            //Ok(HandleResponse { ref messages, ref log, ref data }) => {
+                //println!("messages:");
+                //for message in messages.iter() {
+                    //match message {
+                        //CosmosMsg::Wasm(WasmMsg::Execute {
+                            //ref contract_addr, ref callback_code_hash, ref msg, ref send
+                        //}) => {
+                            //println!("[{}#{}] {} {:?}",
+                                //Paint::red(contract_addr),
+                                //Paint::red(callback_code_hash),
+                                //Paint::red(&std::str::from_utf8(msg.as_slice()).unwrap().trim_end()),
+                                //Paint::red(send));
+                        //},
+                        //_ => println!("- {:?}", Paint::red(message))
+                    //}
+                //}
+                //println!("log:  {:?}", log);
+                //println!("data: {:?}", data);
+            //},
+            //Err(StdError::GenericErr { ref msg, .. } ) => {
+                //println!("\n{} <- {:?}", address, Paint::red(&msg))
+            //},
+            //_ => println!("\n{} <- {:?}", address, Paint::red(&result))
+        //};
+        //println!("{}", Paint::red("Was expecting:"));
+    //}
+
+    //match expected {
+        //Ok(HandleResponse { ref messages, ref log, ref data }) => {
+            //println!("messages:");
+            //for message in messages.iter() {
+                //match message {
+                    //CosmosMsg::Wasm(WasmMsg::Execute {
+                        //ref contract_addr, ref callback_code_hash, ref msg, ref send
+                    //}) => {
+                            //println!("[{}#{}] {} {:?}",
+                                //Paint::green(contract_addr),
+                                //Paint::green(callback_code_hash),
+                                //Paint::green(&std::str::from_utf8(msg.as_slice()).unwrap().trim_end()),
+                                //Paint::green(send));
+                    //},
+                    //_ => println!("- {:?}", Paint::green(message))
+                //}
+            //}
+            //println!("log:  {:?}", log);
+            //println!("data: {:?}", data);
+        //}
+        //Err(StdError::GenericErr { ref msg, .. } ) => {
+            //println!("\n{} <- {:?}", address, Paint::green(&msg))
+        //},
+        //_ => println!("\n{} <- {:?}", address, Paint::green(&result))
+    //};
+
+    assert_eq!(result, expected);
+
+}
+
+fn decode_msg (message: &CosmosMsg) -> Option<String> {
+    match message {
+        CosmosMsg::Wasm(WasmMsg::Execute { ref msg, .. }) => {
+            Some(std::str::from_utf8(msg.as_slice()).unwrap().trim_end().to_string())
+        },
+        _ => None
+    }
+}
+
 pub struct RewardsMockQuerier { pub balance: Amount }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -386,7 +496,7 @@ impl Querier for RewardsMockQuerier {
     fn raw_query (&self, bin_request: &[u8]) -> QuerierResult {
         let request: QueryRequest<Empty> = match from_slice(bin_request) {
             Ok(v) => v,
-            Err(e) => unimplemented!()
+            Err(_) => unimplemented!()
         };
         match request {
             QueryRequest::Wasm(WasmQuery::Smart { callback_code_hash, contract_addr, msg }) => {
@@ -406,14 +516,14 @@ impl RewardsMockQuerier {
     ) -> Snip20Response {
         match msg {
             Snip20Query::Balance { .. } => Snip20Response::Balance { amount: self.balance },
-            _ => unimplemented!()
+            //_ => unimplemented!()
         }
     }
     pub fn increment_balance (&mut self, amount: u128) -> () {
         self.balance += amount.into();
     }
-    pub fn decrement_balance (&mut self, amount: u128) -> StdResult<()> {
-        self.balance = (self.balance - amount.into())?;
-        Ok(())
-    }
+    //pub fn decrement_balance (&mut self, amount: u128) -> StdResult<()> {
+        //self.balance = (self.balance - amount.into())?;
+        //Ok(())
+    //}
 }

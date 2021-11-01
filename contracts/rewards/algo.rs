@@ -342,11 +342,11 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
                 .msg(self.lp_token()?.transfer(&env.message.sender.clone(), withdraw_all)?)?
                 .log("closed", &format!("{} {}", when, why))
         } else {
-            panic!()
+            Err(StdError::generic_err("pool not closed"))
         }
     }
 
-    /// Closed pools can be drained for manual redistribution of erroneously locked funds
+    /// Closed pools can be drained for manual redistribution of erroneously locked funds.
     fn handle_drain (
         &mut self,
         env:       &Env,
@@ -355,26 +355,18 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         key:       String
     ) -> StdResult<HandleResponse> {
         Auth::assert_admin(&*self, &env)?;
-
         let recipient = recipient.unwrap_or(env.message.sender.clone());
-
         // Update the viewing key if the supplied
         // token info for is the reward token
         if self.reward_token()?.link == snip20 {
             self.set(pool::REWARD_VK, key.clone())?
         }
-
         let allowance = Uint128(u128::MAX);
         let duration  = Some(env.block.time + DAY * 10000);
         let snip20    = ISnip20::attach(snip20);
-        Ok(HandleResponse {
-            messages: vec![
-                snip20.increase_allowance(&recipient, allowance, duration)?,
-                snip20.set_viewing_key(&key)?
-            ],
-            log: vec![],
-            data: None
-        })
+        HandleResponse::default()
+            .msg(snip20.increase_allowance(&recipient, allowance, duration)?)?
+            .msg(snip20.set_viewing_key(&key)?)
     }
 
     /// Handle queries
@@ -804,14 +796,21 @@ pub struct Pool {
 ///
 ///     `earned` may become less than `claimed` if the user's lifetime share
 ///     goes down too steeply:
+///
 ///         * as a result of that user withdrawing liquidity;
+///
 ///         * or as a result of an influx of liquidity by other users
+///
 ///     This means the user has been *crowded out* - they have already claimed
 ///     fair rewards for their contribution up to this point, but have become
 ///     ineligible for further rewards until their lifetime share increases:
+///
 ///         * as a result of that user providing a greater amount of liquidity
+///
 ///         * as a result of other users withdrawing liquidity
+///
 ///     and/or until the pool's balance increases:
+///
 ///         * as a result of incoming reward portions from the TGE budget.
 ///
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]

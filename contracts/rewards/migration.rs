@@ -38,17 +38,17 @@ pub trait Migration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         }
     }
 
-    fn handle_start_migration (&mut self, env: Env, next: ContractLink<HumanAddr>) -> StdResult<HandleResponse> {
+    fn handle_start_migration (&mut self, _env: Env, next: ContractLink<HumanAddr>) -> StdResult<HandleResponse> {
         self.set(NEXT, Some(next))?;
         Ok(HandleResponse::default())
     }
 
-    fn handle_stop_migration (&mut self, env: Env) -> StdResult<HandleResponse> {
+    fn handle_stop_migration (&mut self, _env: Env) -> StdResult<HandleResponse> {
         self.set::<Option<ContractLink<HumanAddr>>>(NEXT, None)?;
         Ok(HandleResponse::default())
     }
 
-    fn handle_export_state (&mut self, env: Env, initiator: HumanAddr) -> StdResult<HandleResponse> {
+    fn handle_export_state (&mut self, _env: Env, _initiator: HumanAddr) -> StdResult<HandleResponse> {
         Ok(HandleResponse::default())
     }
 
@@ -62,11 +62,11 @@ pub trait Migration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             }))
     }
 
-    fn handle_receive_state (&mut self, env: Env, data: Binary) -> StdResult<HandleResponse> {
+    fn handle_receive_state (&mut self, _env: Env, _data: Binary) -> StdResult<HandleResponse> {
         Ok(HandleResponse::default())
     }
 
-    fn query (&self, msg: MigrationQuery) -> StdResult<Binary> {
+    fn query (&self, _msg: MigrationQuery) -> StdResult<Binary> {
         Err(StdError::generic_err("not implemented"))
     }
 }
