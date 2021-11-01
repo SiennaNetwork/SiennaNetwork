@@ -276,6 +276,36 @@ mod test_contract {
     }
 
     #[test]
+    fn test_register_exchange_with_empty_signature() -> StdResult<()> {
+        let ref mut deps = mkdeps();
+
+        let pair = TokenPair(
+            TokenType::CustomToken {
+                contract_addr: HumanAddr("token_addr".into()),
+                token_code_hash: "13123adasd".into(),
+            },
+            TokenType::NativeToken {
+                denom: "test1".into(),
+            },
+        );
+
+        let sender_addr = HumanAddr("sender1111".into());
+
+        let result = handle(
+            deps,
+            mkenv(sender_addr.clone()),
+            HandleMsg::RegisterExchange {
+                pair: pair.clone(),
+                signature: Binary(vec![]),
+            },
+        );
+
+        assert_unauthorized(result);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_register_ido() -> StdResult<()> {
         let ref mut deps = mkdeps();
 

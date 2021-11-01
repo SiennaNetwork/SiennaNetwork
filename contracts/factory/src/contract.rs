@@ -544,8 +544,9 @@ pub(crate) fn create_signature(env: &Env) -> StdResult<Binary> {
 }
 
 fn ensure_correct_signature(storage: &mut impl Storage, signature: Binary) -> StdResult<()> {
-    let stored_signature: Binary = load(storage, EPHEMERAL_STORAGE_KEY)?.unwrap_or_default();
-
+    let stored_signature: Binary = load(storage, EPHEMERAL_STORAGE_KEY)?
+        .ok_or_else(|| StdError::unauthorized())?;
+    
     if stored_signature != signature {
         return Err(StdError::unauthorized());
     }
