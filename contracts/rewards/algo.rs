@@ -411,19 +411,72 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     }
 
-    /// Compute pool status
+    /// Compute pool status.
+    ///
+    /// 1. Timestamps
+    ///
+    ///     This contract acts as a price discovery mechanism by
+    ///     distributing funds over time in response to market activity.
+    ///
+    ///     It refers to the following points in time:
+    ///
+    ///     * `now`. The current moment.
+    ///       * Received from transaction environment
+    ///       * For queries, passed by the user.
+    ///
+    ///     * `seeded`. The moment of the first deposit.
+    ///       * Set to current time on first successful deposit tx.
+    ///
+    ///     * `existed`. The number of moments since the first deposit.
+    ///       * Equal to `now - seeded`.
+    ///
+    ///     * `liquid`. The number of moments since first deposit,
+    ///       for which the pool was not empty.
+    ///       * Incremented on update if pool is not empty.
+    ///
+    ///     * `updated`. The moment of the last update (lock, retrieve, or claim).
+    ///       * Defaults to current time.
+    ///
+    ///     * `elapsed`. Moments elapsed since last update.
+    ///       * Equal to `now - updated`.
+    ///       * Defaults to zero.
+    ///
+    /// 2. Pool liquidity ratio
+    ///
+    ///     Rewards should only be distributed for the time liquidity was provided.
+    ///
+    ///     * The pool liquidity ratio is defined as `existed / liquid`.
+    ///       It factors into the user reward computation.
+    ///         * A pool that has been liquid 100% of the time must
+    ///           distribute 100% of the rewards per epoch.
+    ///         * A pool that was empty for 10% of the time will distribute
+    ///           90% of the rewards per epoch.
+    ///
+    ///     * Users are incentivized to keep the liquidity pools non-empty
+    ///       by depositing LP tokens in the reward contract, in order to keep
+    ///       the liquidity ratio as close to 99% as possible.
+    ///
+    ///     This is a good candidate for synchronizing to an epoch clock.
+    ///
+    /// 3. Liquidity in pool
+    ///
+    ///     * `locked`. The total amount of liquidity provision tokens
+    ///       that is currently locked in the pool.
+    ///       * Incremented and decremented on withdraws and deposits.
+    ///
+    ///     * `lifetime`. The total amount of liquidity contained by the
+    ///       pool over its lifetime.
+    ///       * Incremented by `elapsed * locked` on deposits and withdrawals.
+    ///       * Computed as `last_value + elapsed * locked` on queries.
+    ///
+    /// 2. 
+    ///
+    /// The contract's status is committed to on-chain storage
+    /// every time it changes as a result of a lock, unlock, or claim
+    /// transaction initiated by a user. The status can also be
+    /// queried
     fn get_pool_status (&self, now: Time) -> StdResult<Pool> {
-        let updated: Time = self.get(pool::UPDATED)?.unwrap_or(now);
-        if now < updated {
-            return Err(StdError::generic_err("this contract does not store history"))
-        }
-        let elapsed = now - updated;
-        let locked: Amount = self.get(pool::LOCKED)?.unwrap_or(Amount::zero());
-        let lifetime = accumulate(
-            self.get(pool::LIFETIME)?.unwrap_or(Volume::zero()),
-            elapsed,
-            locked
-        )?;
+
         let seeded: Option<Time> = self.get(pool::SEEDED)?;
         let existed = if let Some(seeded) = seeded {
             if now < seeded {
@@ -433,6 +486,19 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         } else {
             None
         };
+
+        let updated: Time = self.get(pool::UPDATED)?.unwrap_or(now);
+        if now < updated {
+            return Err(StdError::generic_err("this contract does not store history"))
+        }
+        let elapsed = now - updated;
+
+        let locked: Amount = self.get(pool::LOCKED)?.unwrap_or(Amount::zero());
+        let lifetime = accumulate(
+            self.get(pool::LIFETIME)?.unwrap_or(Volume::zero()),
+            elapsed,
+            locked
+        )?;
         let liquid: Time = self.get(pool::LIQUID)?.unwrap_or(0) +
             if locked > Amount::zero() { elapsed } else { 0 };
         let lp_token     = self.lp_token()?;
