@@ -412,105 +412,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Compute pool status.
-    ///
-    /// 1. Timestamps
-    ///
-    ///     This contract acts as a price discovery mechanism by
-    ///     distributing funds over time in response to market activity.
-    ///
-    ///     It refers to the following points in time:
-    ///
-    ///     * `now`. The current moment.
-    ///       * Received from transaction environment
-    ///       * For queries, passed by the user.
-    ///
-    ///     * `seeded`. The moment of the first deposit.
-    ///       * Set to current time on first successful deposit tx.
-    ///
-    ///     * `existed`. The number of moments since the first deposit.
-    ///       * Equal to `now - seeded`.
-    ///
-    ///     * `liquid`. The number of moments since first deposit,
-    ///       for which the pool was not empty.
-    ///       * Incremented on update if pool is not empty.
-    ///
-    ///     * `updated`. The moment of the last update (lock, retrieve, or claim).
-    ///       * Defaults to current time.
-    ///
-    ///     * `elapsed`. Moments elapsed since last update.
-    ///       * Equal to `now - updated`.
-    ///       * Defaults to zero.
-    ///
-    ///     A "moment" corresponds to a block in v2 and a second in v3.
-    ///
-    /// 2. Pool liquidity ratio
-    ///
-    ///     Rewards should only be distributed for the time liquidity was provided.
-    ///
-    ///     For the moments the pool is empty, no rewards should be distributed.
-    ///
-    ///     This is represented by the pool liquidity ratio, equal to `liquid / existed`.
-    ///
-    ///     * A pool that has been liquid 100% of the time must
-    ///       distribute 100% of the rewards per epoch.
-    ///
-    ///     * A pool that was empty for 10% of the time will distribute
-    ///       90% of the rewards per epoch.
-    ///
-    ///     * To get the maximum of rewards per epoch, users are thus incentivized
-    ///       to keep the liquidity pools non-empty by depositing LP tokens,
-    ///       in order to keep the liquidity ratio as close to 99% as possible.
-    ///
-    ///     This is a good candidate for synchronizing to an epoch clock.
-    ///
-    /// 3. Liquidity in pool
-    ///
-    ///     When users lock tokens in the pool, liquidity accumulates.
-    ///
-    ///     Liquidity is defined as amount of tokens multiplied by time.
-    ///
-    ///     * Starting with a new pool, lock 10 LP for 20 moments.
-    ///       The pool will have a liquidity of 200.
-    ///       Lock 10 more and 5 moments later the liquidity will be 300.
-    ///
-    ///     Pool liquidity is internally represented by two variables:
-    ///
-    ///     * `locked` is the total number of LP tokens
-    ///       that are currently locked in the pool.
-    ///       * Incremented and decremented on withdraws and deposits.
-    ///       * Should be equal to this contract's balance in the
-    ///         LP token contract.
-    ///
-    ///     * `lifetime`. The total amount of liquidity
-    ///       contained by the pool over its lifetime.
-    ///       * Incremented by `elapsed * locked` on deposits and withdrawals.
-    ///       * Computed as `last_value + elapsed * locked` on queries.
-    ///
-    /// 4. Rewards distributed
-    ///
-    ///     The pool queries its `balance` in reward tokens from the reward token
-    ///     contract.
-    ///
-    ///     * In the case of **single-sided staking** (e.g. staking SIENNA to earn SIENNA)
-    ///       the value of `locked` is subtracted from this balance in order to separate
-    ///       the tokens locked by users from the reward budget.
-    ///
-    ///     Rewards are computed on the basis of this balance.
-    ///
-    ///     * This was the cause of issues around the launch of v2, as we had
-    ///       neglected the fact that a large balance had already accumulated.
-    ///       This would've distributed the rewards for a few weeks in one go
-    ///       to the earliest users, rather than computing their fair liquidity share
-    ///       over time.
-    ///
-    ///     The pool also keeps track of how much rewards have been distributed,
-    ///     in the `claimed` variable which is incremented on successful claims.
-    ///
-    ///     `vested` is equal to `balance + claimed` and is informative.
-    ///     
-    ///     This is the other set of variables that can be coupled to an epoch clock,
-    ///     in order to define a maximum amount of rewards per epoch.
-    ///
     fn get_pool_status (&self, now: Time) -> StdResult<Pool> {
 
         let seeded: Option<Time> = self.get(pool::SEEDED)?;
@@ -683,6 +584,119 @@ pub enum RewardsResponse {
 
 pub type CloseSeal = (Time, String);
 
+/// Pool status
+///
+/// 1. Timestamps
+///
+///     This contract acts as a price discovery mechanism by
+///     distributing funds over time in response to market activity.
+///
+///     It refers to the following points in time:
+///
+///     * `now`. The current moment.
+///       * Received from transaction environment
+///       * For queries, passed by the user.
+///
+///     * `seeded`. The moment of the first deposit.
+///       * Set to current time on first successful deposit tx.
+///
+///     * `existed`. The number of moments since the first deposit.
+///       * Equal to `now - seeded`.
+///
+///     * `liquid`. The number of moments since first deposit,
+///       for which the pool was not empty.
+///       * Incremented on update if pool is not empty.
+///
+///     * `updated`. The moment of the last update (lock, retrieve, or claim).
+///       * Defaults to current time.
+///
+///     * `elapsed`. Moments elapsed since last update.
+///       * Equal to `now - updated`.
+///       * Defaults to zero.
+///
+///     A "moment" corresponds to a block in v2 and a second in v3.
+///
+/// 2. Global ratio
+///
+///    This can be configured by the admin to
+///    manually boost or reduce reward distribution.
+///
+/// 3. Pool liquidity ratio
+///
+///     Rewards should only be distributed for the time liquidity was provided.
+///
+///     For the moments the pool is empty, no rewards should be distributed.
+///
+///     This is represented by the pool liquidity ratio, equal to `liquid / existed`.
+///
+///     * A pool that has been liquid 100% of the time must
+///       distribute 100% of the rewards per epoch.
+///
+///     * A pool that was empty for 10% of the time will distribute
+///       90% of the rewards per epoch.
+///
+///     * To get the maximum of rewards per epoch, users are thus incentivized
+///       to keep the liquidity pools non-empty by depositing LP tokens,
+///       in order to keep the liquidity ratio as close to 99% as possible.
+///
+///     This is a good candidate for synchronizing to an epoch clock.
+///
+/// 4. Liquidity in pool
+///
+///     When users lock tokens in the pool, liquidity accumulates.
+///
+///     Liquidity is defined as amount of tokens multiplied by time.
+///
+///     * Starting with a new pool, lock 10 LP for 20 moments.
+///       The pool will have a liquidity of 200.
+///       Lock 10 more and 5 moments later the liquidity will be 300.
+///
+///     Pool liquidity is internally represented by two variables:
+///
+///     * `locked` is the total number of LP tokens
+///       that are currently locked in the pool.
+///       * Incremented and decremented on withdraws and deposits.
+///       * Should be equal to this contract's balance in the
+///         LP token contract.
+///
+///     * `lifetime`. The total amount of liquidity
+///       contained by the pool over its lifetime.
+///       * Incremented by `elapsed * locked` on deposits and withdrawals.
+///       * Computed as `last_value + elapsed * locked` on queries.
+///
+/// 5. Reward budget
+///
+///     The pool queries its `balance` in reward tokens from the reward token
+///     contract.
+///
+///     * In the case of **single-sided staking** (e.g. staking SIENNA to earn SIENNA)
+///       the value of `locked` is subtracted from this balance in order to separate
+///       the tokens locked by users from the reward budget.
+///
+///     Rewards are computed on the basis of this balance.
+///
+///     * This was the cause of issues around the launch of v2, as we had
+///       neglected the fact that a large balance had already accumulated.
+///       This would've distributed the rewards for a few weeks in one go
+///       to the earliest users, rather than computing their fair liquidity share
+///       over time.
+///
+///     The pool also keeps track of how much rewards have been distributed,
+///     in the `claimed` variable which is incremented on successful claims.
+///
+///     `vested` is equal to `balance + claimed` and is informative.
+///     
+///     This is the other set of variables that can be coupled to an epoch clock,
+///     in order to define a maximum amount of rewards per epoch.
+///
+/// 6. Throttles
+///
+///     * Age threshold (initial bonding period)
+///     * Cooldown (minimum time between claims)
+///
+///     By default, each is equal to the epoch duration.
+///     Other values can be configured by the admin.
+///
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub struct Pool {
@@ -749,6 +763,57 @@ pub struct Pool {
     pub global_ratio:    (Amount, Amount),
 }
 
+/// User status
+///
+/// 1. Timestamps
+///
+///     Each user earns rewards as a function of their liquidity contribution over time.
+///     The following points and durations in time are stored for each user:
+///
+///     * `registered` is set to the current time the first time the user locks liquidity
+///     * `existed` is the time since `registered`
+///     * `updated` is the time of last update (deposit, withdraw or claim by this user)
+///     * `liquid` is the number of moments for which this user has locked >0 LP.
+///
+/// 2. Liquidity ratio
+///
+///     The variable `presence` is equal to `liquid / existed`.
+///     If a user provides liquidity intermittently,
+///     their rewards are diminished by this proportion.
+///
+/// 3. Liquidity and liquidity share
+///
+///     * `locked` is the number of LP tokens locked by this user in this pool.
+///     * The user's **momentary share** is defined as `locked / pool.locked`.
+///     * `lifetime` is the lifetime liquidity contributed by this user.
+///       It is incremented by `locked` for every moment elapsed.
+///     * The user's **lifetime share** is defined as `lifetime / pool.lifetime`.
+///       It represents the user's overall contribution, and should move in the
+///       direction of the user's momentary share.
+///
+/// 4. Rewards claimable
+///
+///     * `earned` rewards are equal to `lifetime_share * user_liquidity_ratio *
+///     pool_liquidity_ratio * global_ratio * pool.budget`.
+///     * `claimed` rewards are incremented on each claim, by the amount claimed.
+///     * `claimable` is equal to `earned - claimed`.
+///
+///     As the user's lifetime share increases (as a result of providing liquidity)
+///     or the pool's budget increases (as a result of new reward portions being
+///     unlocked from the TGE budget), new rewards are `earned` and become `claimable`.
+///
+///     `earned` may become less than `claimed` if the user's lifetime share
+///     goes down too steeply:
+///         * as a result of that user withdrawing liquidity;
+///         * or as a result of an influx of liquidity by other users
+///     This means the user has been *crowded out* - they have already claimed
+///     fair rewards for their contribution up to this point, but have become
+///     ineligible for further rewards until their lifetime share increases:
+///         * as a result of that user providing a greater amount of liquidity
+///         * as a result of other users withdrawing liquidity
+///     and/or until the pool's balance increases:
+///         * as a result of incoming reward portions from the TGE budget.
+///
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub struct User {
