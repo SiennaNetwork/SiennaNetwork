@@ -441,40 +441,76 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     ///       * Equal to `now - updated`.
     ///       * Defaults to zero.
     ///
+    ///     A "moment" corresponds to a block in v2 and a second in v3.
+    ///
     /// 2. Pool liquidity ratio
     ///
     ///     Rewards should only be distributed for the time liquidity was provided.
     ///
-    ///     * The pool liquidity ratio is defined as `existed / liquid`.
-    ///       It factors into the user reward computation.
-    ///         * A pool that has been liquid 100% of the time must
-    ///           distribute 100% of the rewards per epoch.
-    ///         * A pool that was empty for 10% of the time will distribute
-    ///           90% of the rewards per epoch.
+    ///     For the moments the pool is empty, no rewards should be distributed.
     ///
-    ///     * Users are incentivized to keep the liquidity pools non-empty
-    ///       by depositing LP tokens in the reward contract, in order to keep
-    ///       the liquidity ratio as close to 99% as possible.
+    ///     This is represented by the pool liquidity ratio, equal to `liquid / existed`.
+    ///
+    ///     * A pool that has been liquid 100% of the time must
+    ///       distribute 100% of the rewards per epoch.
+    ///
+    ///     * A pool that was empty for 10% of the time will distribute
+    ///       90% of the rewards per epoch.
+    ///
+    ///     * To get the maximum of rewards per epoch, users are thus incentivized
+    ///       to keep the liquidity pools non-empty by depositing LP tokens,
+    ///       in order to keep the liquidity ratio as close to 99% as possible.
     ///
     ///     This is a good candidate for synchronizing to an epoch clock.
     ///
     /// 3. Liquidity in pool
     ///
-    ///     * `locked`. The total amount of liquidity provision tokens
-    ///       that is currently locked in the pool.
-    ///       * Incremented and decremented on withdraws and deposits.
+    ///     When users lock tokens in the pool, liquidity accumulates.
     ///
-    ///     * `lifetime`. The total amount of liquidity contained by the
-    ///       pool over its lifetime.
+    ///     Liquidity is defined as amount of tokens multiplied by time.
+    ///
+    ///     * Starting with a new pool, lock 10 LP for 20 moments.
+    ///       The pool will have a liquidity of 200.
+    ///       Lock 10 more and 5 moments later the liquidity will be 300.
+    ///
+    ///     Pool liquidity is internally represented by two variables:
+    ///
+    ///     * `locked` is the total number of LP tokens
+    ///       that are currently locked in the pool.
+    ///       * Incremented and decremented on withdraws and deposits.
+    ///       * Should be equal to this contract's balance in the
+    ///         LP token contract.
+    ///
+    ///     * `lifetime`. The total amount of liquidity
+    ///       contained by the pool over its lifetime.
     ///       * Incremented by `elapsed * locked` on deposits and withdrawals.
     ///       * Computed as `last_value + elapsed * locked` on queries.
     ///
-    /// 2. 
+    /// 4. Rewards distributed
     ///
-    /// The contract's status is committed to on-chain storage
-    /// every time it changes as a result of a lock, unlock, or claim
-    /// transaction initiated by a user. The status can also be
-    /// queried
+    ///     The pool queries its `balance` in reward tokens from the reward token
+    ///     contract.
+    ///
+    ///     * In the case of **single-sided staking** (e.g. staking SIENNA to earn SIENNA)
+    ///       the value of `locked` is subtracted from this balance in order to separate
+    ///       the tokens locked by users from the reward budget.
+    ///
+    ///     Rewards are computed on the basis of this balance.
+    ///
+    ///     * This was the cause of issues around the launch of v2, as we had
+    ///       neglected the fact that a large balance had already accumulated.
+    ///       This would've distributed the rewards for a few weeks in one go
+    ///       to the earliest users, rather than computing their fair liquidity share
+    ///       over time.
+    ///
+    ///     The pool also keeps track of how much rewards have been distributed,
+    ///     in the `claimed` variable which is incremented on successful claims.
+    ///
+    ///     `vested` is equal to `balance + claimed` and is informative.
+    ///     
+    ///     This is the other set of variables that can be coupled to an epoch clock,
+    ///     in order to define a maximum amount of rewards per epoch.
+    ///
     fn get_pool_status (&self, now: Time) -> StdResult<Pool> {
 
         let seeded: Option<Time> = self.get(pool::SEEDED)?;
@@ -499,8 +535,10 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             elapsed,
             locked
         )?;
+
         let liquid: Time = self.get(pool::LIQUID)?.unwrap_or(0) +
             if locked > Amount::zero() { elapsed } else { 0 };
+
         let lp_token     = self.lp_token()?;
         let reward_token = self.reward_token()?;
         let mut balance  = reward_token.query_balance(
@@ -510,8 +548,10 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             // separate balances for single-sided staking
             balance = (balance - locked)?;
         }
+
         let claimed = self.get(pool::CLAIMED)?.unwrap_or(Amount::zero());
         let vested  = claimed + balance;
+
         Ok(Pool {
             now, seeded, updated, existed, liquid,
             locked, lifetime,
