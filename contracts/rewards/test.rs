@@ -128,7 +128,7 @@ pub struct BadmanRole<'a> {
 }
 
 impl<'a> AdminRole<'a> {
-    pub fn at (&mut self, t: Time) -> &mut Self {
+    pub fn at (&mut self, t: Moment) -> &mut Self {
         self.env = env(&self.address, t);
         self
     }
@@ -200,7 +200,7 @@ impl<'a> AdminRole<'a> {
         );
         self
     }
-    pub fn set_threshold (&mut self, threshold: Time) -> &mut Self  {
+    pub fn set_threshold (&mut self, threshold: Duration) -> &mut Self  {
         assert_eq!(Rewards::handle(self.deps, &self.env, RewardsHandle::Configure(RewardsConfig {
             lp_token:     None,
             reward_token: None,
@@ -234,7 +234,7 @@ impl<'a> AdminRole<'a> {
 }
 
 impl<'a> UserRole<'a> {
-    pub fn at (&mut self, t: Time) -> &mut Self {
+    pub fn at (&mut self, t: Moment) -> &mut Self {
         self.env = env(&self.address, t);
         self
     }
@@ -278,18 +278,22 @@ impl<'a> UserRole<'a> {
             ).unwrap())
         )
     }
-    pub fn is_unregistered (&mut self) -> &mut Self {
+    pub fn needs_age_threshold (&mut self, remaining: Duration) -> &mut Self {
         self.test_handle(
             RewardsHandle::Claim {},
-            Err(StdError::generic_err(format!("deposit tokens for 100 more blocks to be eligible")))
+            Rewards::err_claim_threshold(self.deps, remaining, 0)
         )
     }
-    pub fn must_wait (&mut self, remaining: Time) -> &mut Self {
+    pub fn needs_cooldown (&mut self, remaining: Duration) -> &mut Self {
         self.test_handle(
             RewardsHandle::Claim {},
-            Err(StdError::generic_err(
-                format!("deposit tokens for {} more blocks to be eligible", remaining)
-            ))
+            Rewards::err_claim_cooldown(self.deps, remaining)
+        )
+    }
+    pub fn ratio_is_zero (&mut self) -> &mut Self {
+        self.test_handle(
+            RewardsHandle::Claim {},
+            Rewards::err_claim_global_ratio_zero(self.deps)
         )
     }
 
@@ -336,7 +340,7 @@ impl<'a> UserRole<'a> {
 }
 
 impl<'a> BadmanRole<'a> {
-    pub fn at (&mut self, t: Time) -> &mut Self {
+    pub fn at (&mut self, t: Moment) -> &mut Self {
         self.env = env(&self.address, t);
         self
     }
@@ -388,16 +392,16 @@ pub fn test_handle (
     expected: StdResult<HandleResponse>
 ) {
     table.add_row(row![]);
-    let msg_ser = serde_json::to_string_pretty(&msg).unwrap();
+    let msg_ser = serde_yaml::to_string(&msg).unwrap();
     table.add_row(row![b->env.block.time, b->&address, b->msg_ser.trim()]);
     let result = Rewards::handle(deps, env, msg);
     let add_result = |table: &mut Table, result: &StdResult<HandleResponse>| match result {
         Ok(ref result) => {
             for message in result.messages.iter() {
                 if let CosmosMsg::Wasm(WasmMsg::Execute { .. }) = message {
-                    table.add_row(row!["=>", "msg", &decode_msg(message).unwrap()]);
+                    table.add_row(row!["=>", "execute", &decode_msg(message).unwrap()]);
                 } else {
-                    table.add_row(row!["=>", "msg", serde_json::to_string_pretty(&message).unwrap()]);
+                    table.add_row(row!["=>", "msg", serde_yaml::to_string(&message).unwrap()]);
                 }
             }
         },
@@ -411,75 +415,17 @@ pub fn test_handle (
         table.add_row(row!["ERROR", "was expecting", "the following:"]);
         add_result(table, &expected);
     }
-    //if result == expected {
-        //println!("{}", Paint::green("OK"));
-    //} else {
-        //println!("{} <-", address);
-        //match result {
-            //Ok(HandleResponse { ref messages, ref log, ref data }) => {
-                //println!("messages:");
-                //for message in messages.iter() {
-                    //match message {
-                        //CosmosMsg::Wasm(WasmMsg::Execute {
-                            //ref contract_addr, ref callback_code_hash, ref msg, ref send
-                        //}) => {
-                            //println!("[{}#{}] {} {:?}",
-                                //Paint::red(contract_addr),
-                                //Paint::red(callback_code_hash),
-                                //Paint::red(&std::str::from_utf8(msg.as_slice()).unwrap().trim_end()),
-                                //Paint::red(send));
-                        //},
-                        //_ => println!("- {:?}", Paint::red(message))
-                    //}
-                //}
-                //println!("log:  {:?}", log);
-                //println!("data: {:?}", data);
-            //},
-            //Err(StdError::GenericErr { ref msg, .. } ) => {
-                //println!("\n{} <- {:?}", address, Paint::red(&msg))
-            //},
-            //_ => println!("\n{} <- {:?}", address, Paint::red(&result))
-        //};
-        //println!("{}", Paint::red("Was expecting:"));
-    //}
-
-    //match expected {
-        //Ok(HandleResponse { ref messages, ref log, ref data }) => {
-            //println!("messages:");
-            //for message in messages.iter() {
-                //match message {
-                    //CosmosMsg::Wasm(WasmMsg::Execute {
-                        //ref contract_addr, ref callback_code_hash, ref msg, ref send
-                    //}) => {
-                            //println!("[{}#{}] {} {:?}",
-                                //Paint::green(contract_addr),
-                                //Paint::green(callback_code_hash),
-                                //Paint::green(&std::str::from_utf8(msg.as_slice()).unwrap().trim_end()),
-                                //Paint::green(send));
-                    //},
-                    //_ => println!("- {:?}", Paint::green(message))
-                //}
-            //}
-            //println!("log:  {:?}", log);
-            //println!("data: {:?}", data);
-        //}
-        //Err(StdError::GenericErr { ref msg, .. } ) => {
-            //println!("\n{} <- {:?}", address, Paint::green(&msg))
-        //},
-        //_ => println!("\n{} <- {:?}", address, Paint::green(&result))
-    //};
-
+    fn decode_msg (message: &CosmosMsg) -> Option<String> {
+        match message {
+            CosmosMsg::Wasm(WasmMsg::Execute { ref msg, .. }) => {
+                let msg: serde_json::Value = serde_json::from_slice(msg.as_slice()).unwrap();
+                Some(serde_yaml::to_string(&msg).unwrap())
+            },
+            _ => None
+        }
+    }
     assert_eq!(result, expected);
 
-}
-
-fn decode_msg (message: &CosmosMsg) -> Option<String> {
-    match message {
-        CosmosMsg::Wasm(WasmMsg::Execute { ref msg, .. }) => {
-            Some(std::str::from_utf8(msg.as_slice()).unwrap().trim_end().to_string())
-        },
-        _ => None
-    }
 }
 
 pub struct RewardsMockQuerier { pub balance: Amount }

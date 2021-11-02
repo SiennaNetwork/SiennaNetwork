@@ -208,60 +208,39 @@ macro_rules! assert_fields {
 ///  Then they receive equivalent rewards as long as the liquidity deposited hasn't changed
 #[test] fn test_claim_one () {
     let Context(ref mut table, ref mut deps, _, ref SIENNA, ref LP) = Context::entities_init();
+    deps.querier.increment_balance(100u128);
     user(table, deps, "Alice")
-        .at(2).is_unregistered()
-        .at(3).deposits(LP, 100)
-        .at(103).claims(SIENNA, 100)
-        .at(104).must_wait(99)
-        .at(105).must_wait(98)
-        .at(203).claims(SIENNA, 100)
-        .at(204).must_wait(99)
-        .at(403).claims(SIENNA, 200);
+        .at(2).needs_age_threshold(86400)
+        .at(3).needs_age_threshold(86400).deposits(LP, 100).needs_age_threshold(86400)
+        .at(4).needs_age_threshold(86399)
+        .at(5).needs_age_threshold(86398)
+        // ...
+        .at(86402).needs_age_threshold(1)
+        .at(86403).claims(SIENNA, 100)
+        .at(86403).needs_cooldown(86400)
+        .at(86404).needs_cooldown(86399)
+        .at(86405).needs_cooldown(86398)
+        // ...
+        .at(2*86400-1).needs_cooldown(1)
+        .at(2*86400).claims(SIENNA, 100)
+        .at(2*86400).needs_cooldown(86400)
+        .at(3*86400).claims(SIENNA, 100).needs_cooldown(86400);
 }
 
-#[test] fn test_claim_parallel_sequential () {
-    //claim_ratio_zero {
-        //given "an instance" {
-            //let admin = HumanAddr::from("admin");
-            //let alice = HumanAddr::from("alice");
-            //let bob   = HumanAddr::from("bob");
-            //Test.at(1).init_configured(&admin)? }
-
-        //when  "strangers try to claim rewards"
-        //then  "they get an error" {
-            //Test.at(1).claim_must_wait(&alice, "deposit tokens for 17280 more blocks to be eligible")?
-                      //.claim_must_wait(&bob,   "deposit tokens for 17280 more blocks to be eligible")? }
-
-        //when  "users provide liquidity"
-        //and   "they wait for rewards to accumulate" {
-            //Test.at(1)
-                //.deposit(&alice, 100)?.claim_must_wait(&alice, "deposit tokens for 17280 more blocks to be eligible")?
-                //.deposit(&bob,   100)?.claim_must_wait(&bob, "deposit tokens for 17280 more blocks to be eligible")?
-                //.at(2).claim_must_wait(&alice, "deposit tokens for 17279 more blocks to be eligible")?
-                //.at(3).claim_must_wait(&bob,   "deposit tokens for 17278 more blocks to be eligible")?
-                //.at(4).claim_must_wait(&alice, "deposit tokens for 17277 more blocks to be eligible")?
-                //.at(5).claim_must_wait(&bob,   "deposit tokens for 17276 more blocks to be eligible")? }
-
-        //and   "a provider claims rewards"
-        //then  "that provider receives reward tokens" {
-            //Test.fund(REWARD)
-                //.set_ratio(&admin, 0u128, 1u128)?
-                //.at(1 + DAY).claim_must_wait(&alice, NO_REWARDS)? }
-
-        //when  "a provider claims rewards twice within a period"
-        //then  "rewards are sent only the first time" {
-            //Test.at(1 + DAY).claim_must_wait(&alice, NO_REWARDS)?
-                //.at(2 + DAY).claim_must_wait(&alice, NO_REWARDS)?
-                //.at(3 + DAY).claim_must_wait(&alice, NO_REWARDS)? }
-
-        //when  "a provider claims their rewards less often"
-        //then  "they receive equivalent rewards as long as the liquidity deposited hasn't changed" {
-            //Test.fund(REWARD)
-                //.set_ratio(&admin, 1u128, 1u128)?
-                //.at(3 + DAY * 2).claim(&alice, 100)?.claim(&bob, 100)? } }
-
+/// given an instance"
+///  when alice deposits lp tokens,"
+///   and alice withdraws them after reaching the threshold;"
+///  then alice is eligible to claim the whole pool"
+///  when bob deposits the same amount of tokens"
+///  then alice's rewards start decreasing proportionally"
+///  when alice claims some time after maturing"
+///  then alice's state is reset because of selective_memory"
+///  when bob reaches the age threshold"
+///  then bob is eligible to claim a comparable amount of rewards"
+#[test] fn test_claim_sequential () {
+    let Context(ref mut table, ref mut deps, _, ref SIENNA, ref LP) = Context::entities_init();
+    deps.querier.increment_balance(100u128);
     //two_sequential_users_and_claim {
-        //given "an instance" {
             //let admin = HumanAddr::from("admin");
             //let alice = HumanAddr::from("alice");
             //let bob   = HumanAddr::from("bob");
@@ -269,28 +248,19 @@ macro_rules! assert_fields {
                       //.set_vk(&alice, "")?
                       //.set_vk(&bob,   "")? }
 
-        //when "alice deposits lp tokens,"
-        //and  "alice withdraws them after reaching the threshold;"
-        //then "alice is eligible to claim the whole pool" {
             //Test.fund(REWARD)
                 //.at(    1).user(&alice, 0, 0, 0, 0, 0, 0)?.deposit(&alice, 100)?
                 //.at(DAY+1).user(&alice, DAY, 100, DAY * 100, 100, 0, 100)?.withdraw(&alice, 100)?
                           //.user(&alice, DAY,   0, DAY * 100, 100, 0, 100)? }
 
-        //when "bob deposits the same amount of tokens" {
             //Test.at(DAY+2).user(&bob,    0,   0, 0, 0, 0, 0)?.deposit(&bob, 100)?
                           //.user(&bob,    0, 100, 0, 0, 0, 0)? }
 
-        //then "alice's rewards start decreasing proportionally" {
             //Test.at(DAY+2+1).user(&alice, DAY, 0, DAY * 100, 97, 0, 97)? }
 
-        //when "alice claims some time after maturing"
-        //then "alice's state is reset because of selective_memory" {
             //Test.at(     DAY+2+DAY/2).user(&alice, DAY, 0, DAY * 100, 43, 0, 43 )?.claim(&alice, 43)?
                 //.at(1000+DAY+2+DAY/2).user(&alice, DAY, 0, 0, 0, 0, 0) }
 
-        //when "bob reaches the age threshold"
-        //then "bob is eligible to claim a comparable amount of rewards" {
             //Test.at(2*DAY+2).user(&bob,   DAY, 100, DAY * 100, 49,  0, 49)?.withdraw(&bob, 100)?
                             //.user(&bob,   DAY,   0, DAY * 100, 49,  0, 49)?
                             //.user(&alice, DAY,   0, 0, 0, 0, 0)? } }
@@ -316,17 +286,20 @@ macro_rules! assert_fields {
     deps.querier.increment_balance(100);
     user(table, deps, "Alice")
         .at(2).deposits(LP, 100u128)
-        .at(4).must_wait(98)
-        .at(5).must_wait(97)
-        .at(100).must_wait(2)
-        .at(101).must_wait(1)
+        .at(4).needs_age_threshold(98)
+        .at(5).needs_age_threshold(97)
+        // ...
+        .at(100).needs_age_threshold(2)
+        .at(101).needs_age_threshold(1)
         .at(102).claims(SIENNA, 100)
-        .at(103).must_wait(200)
-        .at(104).must_wait(199)
-        .at(300).must_wait(3)
-        .at(301).must_wait(2)
-        .at(302).must_wait(1)
-        .at(303).claims(SIENNA, 100);
+        .at(102).needs_cooldown(200)
+        .at(103).needs_cooldown(199)
+        .at(104).needs_cooldown(198)
+        // ...
+        .at(299).needs_cooldown(3)
+        .at(300).needs_cooldown(2)
+        .at(301).needs_cooldown(1)
+        .at(302).claims(SIENNA, 100);
 }
 
 /// Given an instance where rewards are given in the same token that is staked
@@ -474,23 +447,28 @@ macro_rules! assert_fields {
 ///  Then rewards are doubled
 #[test] fn test_global_ratio () {
     let Context(ref mut table, ref mut deps, _, ref SIENNA, ref LP) = Context::entities_init();
+    deps.querier.increment_balance(100u128);
     admin(table, deps)
         .at(1).set_ratio((0u128, 1u128));
     user(table, deps, "Alice")
         .at(2).deposits(LP, 100u128)
-        .at(86402).claims(SIENNA, 0u128);
+        .at(2).needs_age_threshold(86400)
+        .at(3).needs_age_threshold(86399)
+        .at(86401).needs_age_threshold(1)
+        .at(86402).ratio_is_zero();
     admin(table, deps)
         .at(86403).set_ratio((1u128, 2u128));
     user(table, deps, "Alice")
         .at(86402).claims(SIENNA, 50u128);
     admin(table, deps)
-        .at(10).set_ratio((1u128, 1u128));
+        .at(86403).set_ratio((1u128, 1u128));
     user(table, deps, "Alice")
-        .at(86402).claims(SIENNA, 50u128);
+        .at(86402*2).claims(SIENNA, 100u128);
     admin(table, deps)
-        .at(1234).set_ratio((2u128, 1u128));
+        .at(86402*2).set_ratio((2u128, 1u128));
+    deps.querier.increment_balance(100u128);
     user(table, deps, "Alice")
-        .at(86402).claims(SIENNA, 50u128);
+        .at(86402*3).claims(SIENNA, 200u128);
 }
 
 /// Given a pool and a user
@@ -546,7 +524,7 @@ macro_rules! assert_fields {
     //assert_eq!(user.claim_reward()?, 75u128.into());
 }
 
-    fn pool_status (deps: &mut Deps, time: Time) -> PoolAssertAdapter {
+    fn pool_status (deps: &mut Deps, time: Moment) -> PoolAssertAdapter {
         match Rewards::query_status(&*deps, time, None, None).unwrap() {
             crate::RewardsResponse::Status { pool, .. } => PoolAssertAdapter(pool),
             _ => panic!()
@@ -567,24 +545,24 @@ macro_rules! assert_fields {
 
 /// Given a pool and a user
 ///
-///  When LP tokens have never been deposited by this user
-///  Then the user's liquidity ratio is 1
+///  When LP tokens have never been deposited in this pool
+///  Then the user and pool liquidity ratios is 1
 ///
 ///  When LP tokens are deposited by this user
-///  Then the user's liquidity ratio remains 1
+///  Then the user and pool liquidity ratios remain 1
 ///
 ///  When some LP tokens are withdrawn by this user
-///  Then the user's liquidity ratio remains 1
+///  Then the user and pool liquidity ratios remain 1
 ///
 ///  When all LP tokens are withdrawn by this user
-///  Then the user's liquidity ratio begins to decrease toward 0
+///  Then the user and pool liquidity ratios begins to decrease toward 0
 ///
 ///  When LP tokens are deposited again by this user
-///  Then the user's liquidity ratio begins to increase toward 1
+///  Then the user and pool liquidity ratios begins to increase toward 1
 ///
 ///  When the user is eligible to claim rewards
-///  Then the rewards are diminished by the user's liquidity ratio
-#[test] fn test_user_liquidity_ratio () {
+///  Then the rewards are diminished by the user and pool liquidity ratios
+#[test] fn test_liquidity_ratios () {
     let Context(ref mut table, ref mut deps, _, _, ref LP) = Context::entities_init();
     let t    =   23u64;
     let r    = 5040u128;
@@ -606,13 +584,13 @@ macro_rules! assert_fields {
                 .liquid(3).existed(3).claimable(r)
                 .withdraws(LP, half)
                 .liquid(3).existed(3).claimable(r)
-        .at(t+4).liquid(3).existed(4).claimable(r*3/4)
-        .at(t+5).liquid(3).existed(5).claimable(r*3/5)
-        .at(t+6).liquid(3).existed(6).claimable(r*3/6)
+        .at(t+4).liquid(3).existed(4).claimable(r*3/4*3/4)
+        .at(t+5).liquid(3).existed(5).claimable(r*3/5*3/5)
+        .at(t+6).liquid(3).existed(6).claimable(r*3/6*3/6)
                 .deposits(LP, 1u128) // then it starts increasing again once the user is back
-                .liquid(3).existed(6).claimable(r*3/6)
-        .at(t+7).liquid(4).existed(7).claimable(r*4/7)
-        .at(t+8).liquid(5).existed(8).claimable(r*5/8)
+                .liquid(3).existed(6).claimable(r*3/6*3/6)
+        .at(t+7).liquid(4).existed(7).claimable(r*4/7*4/7)
+        .at(t+8).liquid(5).existed(8).claimable(r*5/8*5/8)
         .at(t+9) // user has provided liquidity for 2/3rds of the time
-                .liquid(6).existed(9).claimable(r*6/9);
+                .liquid(6).existed(9).claimable(r*6/9*6/9);
 }

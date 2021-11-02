@@ -25,6 +25,7 @@ backtrace = "0.3.61"
 color-backtrace = "0.5.1"
 rand = "0.8.4"
 prettytable-rs = "^0.8"
+serde_yaml = "0.8"
 
 [features]
 # Makes it so that after first providing liquidity,
