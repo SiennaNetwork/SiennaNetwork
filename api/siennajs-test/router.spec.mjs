@@ -49,8 +49,9 @@ describe("Test assembler in creating a route", function () {
       const hops = assembler.get();
       const printout = print_token_pair_comparable_tree(tree);
 
-    //   console.log(JSON.stringify(hops, null, 2));
-    //   console.log(printout.join(" ==> "));
+      console.log(JSON.stringify(tree, null, 2));
+      console.log(JSON.stringify(hops, null, 2));
+      console.log(printout.join(" ==> "));
 
       assert.strictEqual(printout.join(" ==> "), "token-2 -> token-3 ==> token-3 -> token-4");
   });
