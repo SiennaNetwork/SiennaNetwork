@@ -42,33 +42,24 @@ macro_rules! assert_fields {
 
 // Look Ma, no macros! ////////////////////////////////////////////////////////////////////////////
 
-/// Given no instance
-///
-///  When the admin inits an instance without providing a reward token
-///  Then the init fails
-///
-///  When the admin inits an instance with a configured reward token
-///  Then the default values are used where applicable
-///   And the rewards module emits a message that sets the reward token viewing key
 #[test] fn test_init () {
+    // Given no instance
     let Context(ref mut table, ref mut deps, ref VK, ref SIENNA, ref LP) = Context::entities();
+    //  When the admin inits an instance without providing a reward token
+    //  Then the init fails
     admin(table, deps).at(1).init_invalid();
+    //  When the admin inits an instance with a configured reward token
+    //  Then the default values are used where applicable
+    //   And the rewards module emits a message that sets the reward token viewing key
     admin(table, deps).at(1).init(LP, SIENNA, VK.clone());
 }
 
-/// Given no instance
-///
-///  When the admin inits an instance with an empty configuration
-///  Then the default values are used where applicable
-///   And no viewing key config message is returned
-///
-///  When someone else tries to set the config
-///  Then the config remains unchanged
-///
-///  When the admin sets the config, including a reward token
-///  Then a reward token viewing key config message is returned
 #[test] fn test_configure () {
+    // Given no instance
     let Context(ref mut table, ref mut deps, ref VK, ref SIENNA, ref LP) = Context::entities();
+    //  When the admin inits an instance with an empty configuration
+    //  Then the default values are used where applicable
+    //   And no viewing key config message is returned
     admin(table, deps)
         .at(1).init(LP, SIENNA, VK.clone())
         .at(2).configure(RewardsConfig {
@@ -79,8 +70,12 @@ macro_rules! assert_fields {
             threshold:    None,
             cooldown:     None,
         });
+    //  When someone else tries to set the config
+    //  Then the config remains unchanged
     badman(table, deps)
         .at(3).cannot_configure();
+    //  When the admin sets the config, including a reward token
+    //  Then a reward token viewing key config message is returned
     admin(table, deps)
         .at(4).configure(RewardsConfig {
             lp_token:     None,
@@ -92,49 +87,44 @@ macro_rules! assert_fields {
         });
 }
 
-/// Given an instance
-///
-///  When user first deposits
-///  Then user's age and lifetime start incrementing
-///
-///  When user withdraws half of the tokens
-///  Then user's age keeps incrementing
-///   And user's lifetime keeps incrementing at a halved datebut half as fas
-///
-///  When user withdraws other half of tokens
-///  Then user's age and lifetime stop incrementing
-///
-///  When user deposits tokens again later
-///  Then user's age and lifetime start incrementing again
-///
-///  When another user deposits tokens
-///  Then the first user's lifetime share starts to diminish
-///
-///  When user tries to withdraw too much
-///  Then they can't
-///
-///  When a stranger tries to withdraw
-///  Then they can't
 #[test] fn test_deposit_withdraw_one () {
+    // Given an instance
     let Context(ref mut table, ref mut deps, _, _, ref LP) = Context::entities_init();
+    //  When user first deposits
+    //  Then user's age and lifetime start incrementing
     user(table, deps, "Alice")
         .at(2).locked(0u128).lifetime(0u128)
               .deposits(LP, 100u128)
               .locked(100u128).lifetime(0u128)
         .at(3).locked(100u128).lifetime(100u128)
         .at(4).locked(100u128).lifetime(200u128)
-              .withdraws(LP, 50u128)
-              .locked( 50u128).lifetime(200u128)
-        .at(5).locked( 50u128).lifetime(250u128)
-        .at(6).locked( 50u128).lifetime(300u128)
-              .withdraws(LP, 50u128)
-              .locked(  0u128).lifetime(300u128)
-        .at(7).locked(  0u128).lifetime(300u128)
-        .at(8).locked(  0u128).lifetime(300u128)
-              .deposits(LP,   1u128)
-              .locked(  1u128).lifetime(300u128)
-        .at(9).locked(  1u128).lifetime(301u128)
-        .at(10).locked( 1u128).lifetime(302);
+    //  When user withdraws half of the tokens
+    //  Then user's age keeps incrementing
+    //   And user's lifetime keeps incrementing at a halved datebut half as fas
+             .withdraws(LP, 50u128)
+             .locked( 50u128).lifetime(200u128)
+       .at(5).locked( 50u128).lifetime(250u128)
+       .at(6).locked( 50u128).lifetime(300u128)
+    //  When user withdraws other half of tokens
+    //  Then user's age and lifetime stop incrementing
+             .withdraws(LP, 50u128)
+             .locked(  0u128).lifetime(300u128)
+       .at(7).locked(  0u128).lifetime(300u128)
+       .at(8).locked(  0u128).lifetime(300u128)
+    //  When user deposits tokens again later
+    //  Then user's age and lifetime start incrementing again
+             .deposits(LP,   1u128)
+             .locked(  1u128).lifetime(300u128)
+       .at(9).locked(  1u128).lifetime(301u128)
+       .at(10).locked( 1u128).lifetime(302);
+    //  When another user deposits tokens
+    //  Then the first user's lifetime share starts to diminish
+    //
+    //  When user tries to withdraw too much
+    //  Then they can't
+    //
+    //  When a stranger tries to withdraw
+    //  Then they can't
 }
 
 /// Given an instance:
@@ -221,10 +211,10 @@ macro_rules! assert_fields {
         .at(86404).needs_cooldown(86399)
         .at(86405).needs_cooldown(86398)
         // ...
-        .at(2*86400-1).needs_cooldown(1)
-        .at(2*86400).claims(SIENNA, 100)
-        .at(2*86400).needs_cooldown(86400)
-        .at(3*86400).claims(SIENNA, 100).needs_cooldown(86400);
+        .at(2*86400+2).needs_cooldown(1)
+        .at(2*86400+3).claims(SIENNA, 100)
+        .at(2*86400+3).needs_cooldown(86400)
+        .at(3*86400+3).claims(SIENNA, 100).needs_cooldown(86400);
 }
 
 /// given an instance"
@@ -319,10 +309,11 @@ macro_rules! assert_fields {
         threshold:    None,
         cooldown:     None,
     });
+    deps.querier.increment_balance(200u128);
     user(table, deps, "Alice")
-        .at(2)  .deposits(SIENNA,  100u128)
-        .at(103).claims(SIENNA,    100u128)
-        .at(104).withdraws(SIENNA, 100u128);
+        .at(2)    .deposits(SIENNA,  100u128)
+        .at(86402).claims(SIENNA,    100u128)
+        .at(86403).withdraws(SIENNA, 100u128);
 }
 
 /// Given a pool and a user
@@ -335,6 +326,7 @@ macro_rules! assert_fields {
 ///   And user first withdraws all tokens and then claims rewards
 ///  Then user lifetime and claimed is reset so they can start over
 #[test] fn test_reset () {
+
     {
         let Context(ref mut table, ref mut deps, _, ref SIENNA, ref LP) = Context::entities_init();
         admin(table, deps).at(1).configure(RewardsConfig {
@@ -543,54 +535,48 @@ macro_rules! assert_fields {
         }
     }
 
-/// Given a pool and a user
-///
-///  When LP tokens have never been deposited in this pool
-///  Then the user and pool liquidity ratios is 1
-///
-///  When LP tokens are deposited by this user
-///  Then the user and pool liquidity ratios remain 1
-///
-///  When some LP tokens are withdrawn by this user
-///  Then the user and pool liquidity ratios remain 1
-///
-///  When all LP tokens are withdrawn by this user
-///  Then the user and pool liquidity ratios begins to decrease toward 0
-///
-///  When LP tokens are deposited again by this user
-///  Then the user and pool liquidity ratios begins to increase toward 1
-///
-///  When the user is eligible to claim rewards
-///  Then the rewards are diminished by the user and pool liquidity ratios
 #[test] fn test_liquidity_ratios () {
-    let Context(ref mut table, ref mut deps, _, _, ref LP) = Context::entities_init();
-    let t    =   23u64;
-    let r    = 5040u128;
-    let half =  120u128;
-    deps.querier.increment_balance(r);
-    admin(table, deps)
-        .at(t-1).set_threshold(0u64);
-    user(table, deps, "Alice")
-        .at(t  ).set_vk("")
-                .liquid(0).existed(0).claimable(0u128)
-                .deposits(LP, 2 * half)
-                .liquid(0).existed(0).claimable(0u128)
-        .at(t+1).liquid(1).existed(1).claimable(r)
-        .at(t+2) // after partial withdrawal user is still present
-                .liquid(2).existed(2).claimable(r)
-                .withdraws(LP, half)
-                .liquid(2).existed(2).claimable(r)
-        .at(t+3) // after full withdraw ratio starts going down, representing the user's absence
-                .liquid(3).existed(3).claimable(r)
-                .withdraws(LP, half)
-                .liquid(3).existed(3).claimable(r)
-        .at(t+4).liquid(3).existed(4).claimable(r*3/4*3/4)
-        .at(t+5).liquid(3).existed(5).claimable(r*3/5*3/5)
-        .at(t+6).liquid(3).existed(6).claimable(r*3/6*3/6)
+// Given a pool and a user
+   let Context(ref mut table, ref mut deps, _, _, ref LP) = Context::entities_init();
+   let t    =   23u64;
+   let r    = 5040u128;
+   let half =  120u128;
+   deps.querier.increment_balance(r);
+   admin(table, deps)
+       .at(t-1).set_threshold(0u64);
+//  When LP tokens have never been deposited in this pool
+//  Then the user and pool liquidity ratios is 1
+   user(table, deps, "Alice")
+       .at(t  ).set_vk("")
+               .liquid(0).existed(0).claimable(0u128)
+//  When LP tokens are deposited by this user
+//  Then the user and pool liquidity ratios remain 1
+               .deposits(LP, 2 * half)
+               .liquid(0).existed(0).claimable(0u128)
+       .at(t+1).liquid(1).existed(1).claimable(r)
+       .at(t+2) // after partial withdrawal user is still present
+               .liquid(2).existed(2).claimable(r)
+//  When some LP tokens are withdrawn by this user
+//  Then the user and pool liquidity ratios remain 1
+               .withdraws(LP, half)
+               .liquid(2).existed(2).claimable(r)
+       .at(t+3) // after full withdraw ratio starts going down, representing the user's absence
+               .liquid(3).existed(3).claimable(r)
+//  When all LP tokens are withdrawn by this user
+//  Then the user and pool liquidity ratios begins to decrease toward 0
+               .withdraws(LP, half)
+               .liquid(3).existed(3).claimable(r)
+       .at(t+4).liquid(3).existed(4).claimable(r*3/4*3/4)
+       .at(t+5).liquid(3).existed(5).claimable(r*3/5*3/5)
+       .at(t+6).liquid(3).existed(6).claimable(r*3/6*3/6)
+//  When LP tokens are deposited again by this user
+//  Then the user and pool liquidity ratios begins to increase toward 1
                 .deposits(LP, 1u128) // then it starts increasing again once the user is back
                 .liquid(3).existed(6).claimable(r*3/6*3/6)
         .at(t+7).liquid(4).existed(7).claimable(r*4/7*4/7)
         .at(t+8).liquid(5).existed(8).claimable(r*5/8*5/8)
         .at(t+9) // user has provided liquidity for 2/3rds of the time
                 .liquid(6).existed(9).claimable(r*6/9*6/9);
+//  When the user is eligible to claim rewards
+//  Then the rewards are diminished by the user and pool liquidity ratios
 }
