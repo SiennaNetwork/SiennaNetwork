@@ -47,40 +47,44 @@ jobs:
       - name: Generate schema
         run: ./sienna schema
 
-  #coverage:
-    #name: Unit test coverage report
-    #runs-on: ubuntu-latest
-    #steps:
-      #- name: Install Node and Yarn
-        #uses: actions/setup-node@v2
-        #with: { node-version: "14.x" }
-      #- name: Install toolchain that works with Tarpaulin
-        #uses: actions-rs/toolchain@v1
-        #with:
-          #{
-            #profile: minimal,
-            #toolchain: stable,
-            #target: wasm32-unknown-unknown,
-            #override: true,
-          #}
-      #- uses: Swatinem/rust-cache@v1
-      #- name: Install Tarpaulin
-        #uses: actions-rs/cargo@v1
-        #with: { command: install, args: cargo-tarpaulin }
-        #env: { RUST_BACKTRACE: 1 }
-      #- name: Checkout sources
-        #uses: actions/checkout@v2
-        #with: { submodules: true }
-      #- name: Install JS dependencies
-        #run: npm install -g pnpm && pnpm install
-      #- name: Generate coverage report
-        #run: ./sienna coverage
-      #- name: Commit coverage report
-        #run: |
-          #git checkout $(git symbolic-ref --short HEAD)
-          #git add tarpaulin-report.html
-          #git diff --cached
-          #git config --global user.email "hack@hack.bg"
-          #git config --global user.name "hack.bg"
-          #git commit -m "🤖 update coverage @ $(date -u)" || true
-          #git push
+  coverage:
+    name: Unit test coverage report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Node and Yarn
+        uses: actions/setup-node@v2
+        with: { node-version: "14.x" }
+      - name: Install toolchain that works with Tarpaulin
+        uses: actions-rs/toolchain@v1
+        with:
+          {
+            profile: minimal,
+            toolchain: stable,
+            target: wasm32-unknown-unknown,
+            override: true,
+          }
+      - uses: Swatinem/rust-cache@v1
+      - name: Install Tarpaulin
+        uses: actions-rs/cargo@v1
+        with: { command: install, args: cargo-tarpaulin }
+        env: { RUST_BACKTRACE: 1 }
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with: { submodules: true }
+      - name: Install JS dependencies
+        run: npm install -g pnpm && pnpm install
+      - name: Generate coverage report
+        run: ./sienna coverage
+      - name: Commit coverage report
+        run: |
+          git checkout $(git symbolic-ref --short HEAD)
+          git add tarpaulin-report.html
+          git diff --cached
+          git config --global user.email "hack@hack.bg"
+          git config --global user.name "hack.bg"
+          git commit -m "🤖 update coverage @ $(date -u)" || true
+          git push
+      - name: Publish to coveralls.io
+        uses: coverallsapp/github-action@v1.1.2
+        with:
+          github-token: ${{ secrets.COVERALLS_REPO_TOKEN }}
