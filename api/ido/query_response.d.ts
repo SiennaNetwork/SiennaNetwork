@@ -42,7 +42,7 @@ export type QueryResponse =
         /**
          * The token that is being sold.
          */
-        sold_token: ContractInstanceFor_HumanAddr;
+        sold_token: ContractLinkFor_HumanAddr;
         /**
          * Sale start time.
          */
@@ -105,7 +105,7 @@ export type Uint128 = string;
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractInstanceFor_HumanAddr {
+export interface ContractLinkFor_HumanAddr {
   address: HumanAddr;
   code_hash: string;
   [k: string]: unknown;

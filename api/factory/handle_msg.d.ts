@@ -97,13 +97,13 @@ export type HandleMsg =
     }
   | {
       add_launchpad: {
-        launchpad: ContractInstanceFor_HumanAddr;
+        launchpad: ContractLinkFor_HumanAddr;
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
-      admin: AdminHandleMsg;
+      admin: HandleMsg1;
       [k: string]: unknown;
     };
 /**
@@ -136,7 +136,7 @@ export type TokenTypeFor_HumanAddr =
     };
 export type Uint128 = string;
 export type SaleType = "PreLockAndSwap" | "PreLockOnly" | "SwapOnly";
-export type AdminHandleMsg = {
+export type HandleMsg1 = {
   change_admin: {
     address: HumanAddr;
     [k: string]: unknown;
@@ -197,7 +197,7 @@ export interface TokenSaleConfig {
    * Sale type settings
    */
   sale_type?: SaleType | null;
-  sold_token: ContractInstanceFor_HumanAddr;
+  sold_token: ContractLinkFor_HumanAddr;
   /**
    * The addresses that are eligible to participate in the sale.
    */
@@ -207,7 +207,7 @@ export interface TokenSaleConfig {
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractInstanceFor_HumanAddr {
+export interface ContractLinkFor_HumanAddr {
   address: HumanAddr;
   code_hash: string;
   [k: string]: unknown;

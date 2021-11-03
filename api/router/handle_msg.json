@@ -1,0 +1,205 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HandleMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "receive"
+      ],
+      "properties": {
+        "receive": {
+          "type": "object",
+          "required": [
+            "amount",
+            "from"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "from": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "msg": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Binary"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "finalize_route"
+      ],
+      "properties": {
+        "finalize_route": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "register_tokens"
+      ],
+      "properties": {
+        "register_tokens": {
+          "type": "object",
+          "required": [
+            "tokens"
+          ],
+          "properties": {
+            "tokens": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Snip20Data"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "recover_funds"
+      ],
+      "properties": {
+        "recover_funds": {
+          "type": "object",
+          "required": [
+            "amount",
+            "to",
+            "token"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "snip20_send_msg": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Binary"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "to": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "token": {
+              "$ref": "#/definitions/Token"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "update_settings"
+      ],
+      "properties": {
+        "update_settings": {
+          "type": "object",
+          "properties": {
+            "new_cashback": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SecretContract"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "new_owner": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "SecretContract": {
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "Snip20Data": {
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "Token": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "scrt"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "snip20"
+          ],
+          "properties": {
+            "snip20": {
+              "$ref": "#/definitions/Snip20Data"
+            }
+          }
+        }
+      ]
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}

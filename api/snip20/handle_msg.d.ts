@@ -39,6 +39,7 @@ export type HandleMsg =
         msg?: Binary | null;
         padding?: string | null;
         recipient: HumanAddr;
+        recipient_code_hash?: string | null;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -131,6 +132,7 @@ export type HandleMsg =
         owner: HumanAddr;
         padding?: string | null;
         recipient: HumanAddr;
+        recipient_code_hash?: string | null;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -226,6 +228,14 @@ export type HandleMsg =
         [k: string]: unknown;
       };
       [k: string]: unknown;
+    }
+  | {
+      revoke_permit: {
+        padding?: string | null;
+        permit_name: string;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
     };
 export type Uint128 = string;
 export type HumanAddr = string;
@@ -248,6 +258,7 @@ export interface SendAction {
   memo?: string | null;
   msg?: Binary | null;
   recipient: HumanAddr;
+  recipient_code_hash?: string | null;
   [k: string]: unknown;
 }
 export interface TransferFromAction {
@@ -263,6 +274,7 @@ export interface SendFromAction {
   msg?: Binary | null;
   owner: HumanAddr;
   recipient: HumanAddr;
+  recipient_code_hash?: string | null;
   [k: string]: unknown;
 }
 export interface BurnFromAction {

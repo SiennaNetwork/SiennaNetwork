@@ -1,10 +1,9 @@
-use cosmwasm_std::{
-    debug_print, from_binary, to_binary, Api, BankMsg, Binary, Coin, CosmosMsg, Env, Extern,
-    HandleResponse, HumanAddr, InitResponse, Querier, StdError, StdResult, Storage, Uint128,
-    WasmMsg,
+use crate::msg::{Asset, AssetInfo};
+use amm_shared::fadroma::scrt::{
+    from_binary, secret_toolkit::snip20, to_binary, Api, BankMsg, Binary, Coin, CosmosMsg, Env,
+    Extern, HandleResponse, HumanAddr, InitResponse, Querier, StdError, StdResult, Storage,
+    Uint128, WasmMsg,
 };
-use secret_toolkit::snip20;
-use secretswap::{Asset, AssetInfo};
 
 use crate::{
     msg::{HandleMsg, Hop, InitMsg, NativeSwap, QueryMsg, Route, Snip20Data, Snip20Swap, Token},
@@ -259,6 +258,7 @@ fn handle_first_hop<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+#[allow(unused_variables)]
 fn handle_hop<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: &Env,

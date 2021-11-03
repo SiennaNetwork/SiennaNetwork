@@ -348,7 +348,7 @@
           ],
           "properties": {
             "launchpad": {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             }
           }
         }
@@ -361,54 +361,15 @@
       ],
       "properties": {
         "admin": {
-          "$ref": "#/definitions/AdminHandleMsg"
+          "$ref": "#/definitions/HandleMsg"
         }
       }
     }
   ],
   "definitions": {
-    "AdminHandleMsg": {
-      "anyOf": [
-        {
-          "type": "object",
-          "required": [
-            "change_admin"
-          ],
-          "properties": {
-            "change_admin": {
-              "type": "object",
-              "required": [
-                "address"
-              ],
-              "properties": {
-                "address": {
-                  "$ref": "#/definitions/HumanAddr"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
     "Binary": {
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
-    },
-    "ContractInstance_for_HumanAddr": {
-      "description": "Info needed to talk to a contract instance.",
-      "type": "object",
-      "required": [
-        "address",
-        "code_hash"
-      ],
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
-        },
-        "code_hash": {
-          "type": "string"
-        }
-      }
     },
     "ContractInstantiationInfo": {
       "description": "Info needed to instantiate a contract.",
@@ -425,6 +386,22 @@
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
+        }
+      }
+    },
+    "ContractLink_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
         }
       }
     },
@@ -506,6 +483,29 @@
           "minimum": 0.0
         }
       }
+    },
+    "HandleMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "change_admin"
+          ],
+          "properties": {
+            "change_admin": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "HumanAddr": {
       "type": "string"
@@ -593,7 +593,7 @@
           ]
         },
         "sold_token": {
-          "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+          "$ref": "#/definitions/ContractLink_for_HumanAddr"
         },
         "whitelist": {
           "description": "The addresses that are eligible to participate in the sale.",

@@ -1,47 +1,32 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "QueryMsgResponse",
+  "title": "QueryMsg",
   "anyOf": [
+    {
+      "type": "string",
+      "enum": [
+        "pair_info"
+      ]
+    },
     {
       "type": "object",
       "required": [
-        "pair_info"
+        "swap_simulation"
       ],
       "properties": {
-        "pair_info": {
+        "swap_simulation": {
           "type": "object",
           "required": [
-            "amount_0",
-            "amount_1",
-            "contract_version",
-            "factory",
-            "liquidity_token",
-            "pair",
-            "total_liquidity"
+            "offer"
           ],
           "properties": {
-            "amount_0": {
-              "$ref": "#/definitions/Uint128"
-            },
-            "amount_1": {
-              "$ref": "#/definitions/Uint128"
-            },
-            "contract_version": {
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0.0
-            },
-            "factory": {
-              "$ref": "#/definitions/ContractLink_for_HumanAddr"
-            },
-            "liquidity_token": {
-              "$ref": "#/definitions/ContractLink_for_HumanAddr"
-            },
-            "pair": {
-              "$ref": "#/definitions/TokenPair_for_HumanAddr"
-            },
-            "total_liquidity": {
-              "$ref": "#/definitions/Uint128"
+            "offer": {
+              "description": "The token type to swap from.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/TokenTypeAmount_for_HumanAddr"
+                }
+              ]
             }
           }
         }
@@ -49,37 +34,23 @@
     }
   ],
   "definitions": {
-    "ContractLink_for_HumanAddr": {
-      "description": "Info needed to talk to a contract instance.",
-      "type": "object",
-      "required": [
-        "address",
-        "code_hash"
-      ],
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
-        },
-        "code_hash": {
-          "type": "string"
-        }
-      }
-    },
     "HumanAddr": {
       "type": "string"
     },
-    "TokenPair_for_HumanAddr": {
-      "type": "array",
-      "items": [
-        {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+    "TokenTypeAmount_for_HumanAddr": {
+      "type": "object",
+      "required": [
+        "amount",
+        "token"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "#/definitions/Uint128"
         },
-        {
+        "token": {
           "$ref": "#/definitions/TokenType_for_HumanAddr"
         }
-      ],
-      "maxItems": 2,
-      "minItems": 2
+      }
     },
     "TokenType_for_HumanAddr": {
       "anyOf": [

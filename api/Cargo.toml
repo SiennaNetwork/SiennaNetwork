@@ -1,5 +1,5 @@
 [package]
-name    = "sienna-schema"
+name = "sienna-schema"
 version = "0.0.0"
 authors = ["Adam A. <adam@hack.bg>"]
 edition = "2018"
@@ -7,15 +7,16 @@ edition = "2018"
 [dependencies]
 cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
 
-amm-shared      = { path = "../libraries/amm-shared" }
-exchange        = { path = "../contracts/exchange" }
-factory         = { path = "../contracts/factory" }
-ido             = { path = "../contracts/ido" }
-lp-token        = { path = "../contracts/lp-token" }
-sienna-mgmt     = { path = "../contracts/mgmt" }
-sienna-rewards  = { path = "../contracts/rewards" }
+amm-shared = { path = "../libraries/amm-shared" }
+exchange = { path = "../contracts/exchange" }
+factory = { path = "../contracts/factory" }
+ido = { path = "../contracts/ido" }
+lp-token = { path = "../contracts/lp-token" }
+sienna-mgmt = { path = "../contracts/mgmt" }
+sienna-rewards = { path = "../contracts/rewards" }
+router = { path = "../contracts/router" }
 sienna-rewards-emergency-proxy = { path = "../contracts/rewards-emergency-proxy" }
-sienna-rpt      = { path = "../contracts/rpt" }
+sienna-rpt = { path = "../contracts/rpt" }
 
 [[bin]]
 name = "schema"

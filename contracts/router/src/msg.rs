@@ -1,10 +1,28 @@
 use std::collections::VecDeque;
 
 use crate::state::SecretContract;
-use cosmwasm_std::{Binary, HumanAddr, Uint128};
+use amm_shared::fadroma::scrt::{Binary, HumanAddr, Uint128};
 use schemars::JsonSchema;
-use secretswap::Asset;
 use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct Asset {
+    pub info: AssetInfo,
+    pub amount: Uint128,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AssetInfo {
+    Token {
+        contract_addr: HumanAddr,
+        token_code_hash: String,
+        viewing_key: String,
+    },
+    NativeToken {
+        denom: String,
+    },
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {

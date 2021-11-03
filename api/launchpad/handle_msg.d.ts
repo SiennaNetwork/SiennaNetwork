@@ -53,7 +53,7 @@ export type HandleMsg =
       [k: string]: unknown;
     }
   | {
-      admin: AdminHandleMsg;
+      admin: HandleMsg1;
       [k: string]: unknown;
     }
   | {
@@ -100,7 +100,7 @@ export type TokenTypeFor_HumanAddr =
       };
       [k: string]: unknown;
     };
-export type AdminHandleMsg = {
+export type HandleMsg1 = {
   change_admin: {
     address: HumanAddr;
     [k: string]: unknown;

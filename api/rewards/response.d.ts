@@ -9,7 +9,7 @@ export type Response =
   | {
       pool_info: {
         it_is_now: number;
-        lp_token: ContractInstanceFor_HumanAddr;
+        lp_token: ContractLinkFor_HumanAddr;
         pool_balance: Uint128;
         pool_claimed: Uint128;
         pool_closed?: string | null;
@@ -19,7 +19,7 @@ export type Response =
         pool_liquid: Uint128;
         pool_locked: Uint128;
         pool_threshold: number;
-        reward_token: ContractInstanceFor_HumanAddr;
+        reward_token: ContractLinkFor_HumanAddr;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -75,7 +75,7 @@ export type Uint256 = string;
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractInstanceFor_HumanAddr {
+export interface ContractLinkFor_HumanAddr {
   address: HumanAddr;
   code_hash: string;
   [k: string]: unknown;

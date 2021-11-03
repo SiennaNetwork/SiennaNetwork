@@ -23,6 +23,18 @@ export class SNIP20 extends ScrtContract {
   }
 
   /**
+   * Return snip20 data for the instantiated token
+   * 
+   * @returns {{ address: string, code_hash: string }}
+   */
+  snip20Data() {
+    return {
+      address: this.address,
+      code_hash: this.codeHash,
+    }
+  }
+
+  /**
    * Change admin of the token
    *
    * @param {string} address

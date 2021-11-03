@@ -19,9 +19,11 @@ members = [
   "contracts/lp-token",   # snip20 liquidity provider token,
   "contracts/amm-snip20", # vanilla snip20 token, used when creating an IDO
 
+  "contracts/router", # Copy and modifications of secretswap_router
+
   # Framework
-  "libraries/migrate",                                   # migration flag, as used by TGE before merging this feature into Fadroma
-  "libraries/kukumba",                                   # BDD testing framework
+  "libraries/migrate", # migration flag, as used by TGE before merging this feature into Fadroma
+  "libraries/kukumba", # BDD testing framework
 ]
 
 [profile.release]

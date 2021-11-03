@@ -51,6 +51,15 @@ export type Handle =
       [k: string]: unknown;
     }
   | {
+      release_snip20: {
+        key: string;
+        recipient?: HumanAddr | null;
+        snip20: ContractLinkFor_HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
       create_viewing_key: {
         entropy: string;
         padding?: string | null;
@@ -88,3 +97,12 @@ export type Handle =
     };
 export type HumanAddr = string;
 export type Uint128 = string;
+
+/**
+ * Info needed to talk to a contract instance.
+ */
+export interface ContractLinkFor_HumanAddr {
+  address: HumanAddr;
+  code_hash: string;
+  [k: string]: unknown;
+}

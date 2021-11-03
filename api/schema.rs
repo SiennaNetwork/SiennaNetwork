@@ -12,6 +12,8 @@ use sienna_rewards::msg as rewards;
 use sienna_rewards_emergency_proxy::msg as rewards_emergency_proxy;
 use sienna_rpt::msg as rpt;
 
+use router::msg as rtr;
+
 fn main() {
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");
@@ -89,6 +91,16 @@ fn main() {
 
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");
+    out_dir.push("exchange");
+    create_dir_all(&out_dir).unwrap();
+    remove_schemas(&out_dir).unwrap();
+    export_schema(&schema_for!(exchange::InitMsg), &out_dir);
+    export_schema(&schema_for!(exchange::HandleMsg), &out_dir);
+    export_schema(&schema_for!(exchange::QueryMsg), &out_dir);
+    export_schema(&schema_for!(exchange::QueryMsgResponse), &out_dir);
+
+    let mut out_dir = current_dir().unwrap();
+    out_dir.push("api");
     out_dir.push("rewards");
     create_dir_all(&out_dir).unwrap();
     remove_schemas(&out_dir).unwrap();
@@ -96,6 +108,15 @@ fn main() {
     export_schema(&schema_for!(rewards::Handle), &out_dir);
     export_schema(&schema_for!(rewards::Query), &out_dir);
     export_schema(&schema_for!(rewards::Response), &out_dir);
+
+    let mut out_dir = current_dir().unwrap();
+    out_dir.push("api");
+    out_dir.push("router");
+    create_dir_all(&out_dir).unwrap();
+    remove_schemas(&out_dir).unwrap();
+    export_schema(&schema_for!(rtr::InitMsg), &out_dir);
+    export_schema(&schema_for!(rtr::HandleMsg), &out_dir);
+    export_schema(&schema_for!(rtr::QueryMsg), &out_dir);
 
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");

@@ -12,9 +12,9 @@ export type ViewingKey = string;
 export interface Init {
   admin?: HumanAddr | null;
   cooldown?: number | null;
-  lp_token?: ContractInstanceFor_HumanAddr | null;
+  lp_token?: ContractLinkFor_HumanAddr | null;
   ratio?: [Uint128, Uint128] | null;
-  reward_token: ContractInstanceFor_HumanAddr;
+  reward_token: ContractLinkFor_HumanAddr;
   threshold?: number | null;
   viewing_key: ViewingKey;
   [k: string]: unknown;
@@ -22,7 +22,7 @@ export interface Init {
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractInstanceFor_HumanAddr {
+export interface ContractLinkFor_HumanAddr {
   address: HumanAddr;
   code_hash: string;
   [k: string]: unknown;
