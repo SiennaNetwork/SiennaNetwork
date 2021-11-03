@@ -6,135 +6,129 @@ use crate::*;
 use fadroma::*;
 use fadroma::secret_toolkit::snip20;
 use fadroma::testing::*;
-//use rand::Rng;
+use rand::Rng;
 
 pub type Deps = Extern<MemoryStorage, MockApi, RewardsMockQuerier>;
 
-pub struct Context (
-    pub Table,
-    pub Deps,    // deps
-    pub String,  // reward_vk
-    pub ISnip20, // reward_token
-    pub ISnip20, // lp_token
-);
+pub struct Context {
+    pub table:        Table,
+    pub deps:         Deps,
+    pub reward_vk:    String,
+    pub reward_token: ISnip20,
+    pub lp_token:     ISnip20,
+    pub address:      HumanAddr,
+    pub env:          Env,
+    pub time:         Moment
+}
 
 impl Context {
-    pub fn entities () -> Self {
+    pub fn new () -> Self {
+        let mut table = Table::new();
+        table
+            .set_format(format::FormatBuilder::new()
+                .column_separator('|')
+                .borders('|')
+                .padding(1, 1)
+            .build());
+
+        let address = HumanAddr::from("Admin");
+        let time = 1;
+
         //color_backtrace::install();
-        Self(
-            Self::new_table(),
-            Extern {
+
+        Self {
+            table,
+
+            deps: Extern {
                 storage: MemoryStorage::default(),
                 api:     MockApi::new(20),
                 querier: RewardsMockQuerier { balance: 0u128.into() }
             },
-            "reward_vk".to_string(),
-            ISnip20::attach(
+
+            reward_vk: "reward_vk".to_string(),
+            reward_token: ISnip20::attach(
                 ContractLink { address: HumanAddr::from("SIENNA_addr"), code_hash: "SIENNA_hash".into() }
             ),
-            ISnip20::attach(
+
+            lp_token: ISnip20::attach(
                 ContractLink { address: HumanAddr::from("LP_addr"),     code_hash: "LP_hash".into() }
             ),
-        )
+
+            env: env(&address, time),
+            address,
+            time,
+        }
     }
-    pub fn entities_init () -> Self {
-        let mut context = Context::entities();
-        let Context(ref mut table, ref mut deps, ref VK, ref SIENNA, ref LP) = context;
-        admin(table, deps).at(1).init(LP, SIENNA, VK.to_string());
-        context
+    fn update_env (&mut self) -> &mut Self {
+        self.env = env(&self.address, self.time);
+        self
     }
-    fn new_table () -> Table {
-        let mut table = Table::new();
-        table.set_format(format::FormatBuilder::new()
-            .column_separator('|')
-            .borders('|')
-            .padding(1, 1)
-        .build());
-        table
-    }
-}
-impl Drop for Context {
-    fn drop (&mut self) {
-        self.0.printstd();
-    }
-}
-
-//pub type Context = (
-    //Table,
-    //Deps,    // deps
-    //String,  // reward_vk
-    //ISnip20, // reward_token
-    //ISnip20, // lp_token
-//);
-
-//pub fn run_test<T: FnOnce(Context) -> () + std::panic::UnwindSafe>(test: T) -> () {
-    //let Context(table, deps, VK, SIENNA, LP) = Context::entities();
-    //let result = std::panic::catch_unwind(|| {
-        //test((table, deps, VK, SIENNA, LP))
-    //});
-    //take(&mut table, |table| { table.printstd(); table });
-    //assert!(result.is_ok())
-//}
-
-pub fn take<T, F>(mut_ref: &mut T, closure: F)
-  where F: FnOnce(T) -> T {
-    use std::ptr;
-
-    unsafe {
-        let old_t = ptr::read(mut_ref);
-        let new_t = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| closure(old_t)))
-            .unwrap_or_else(|_| ::std::process::abort());
-        ptr::write(mut_ref, new_t);
-    }
-}
-
-pub fn env (signer: &HumanAddr, time: u64) -> Env {
-    let mut env = mock_env(signer, &[]);
-    env.block.time = time;
-    env
-}
-
-pub fn admin<'a>(table: &'a mut Table, deps: &'a mut Deps) -> AdminRole<'a> {
-    let address = HumanAddr::from("Admin");
-    AdminRole  { deps, env: env(&address, 0), address, table }
-}
-pub struct AdminRole<'a> {
-    pub table:   &'a mut Table,
-    pub deps:    &'a mut Deps,
-    pub address: HumanAddr,
-    pub env:     Env,
-}
-
-pub fn user<'a>(table: &'a mut Table, deps: &'a mut Deps, address: &str) -> UserRole<'a> {
-    let address = HumanAddr::from(address);
-    UserRole   { deps, env: env(&address, 0), address, table }
-}
-pub struct UserRole<'a> {
-    pub table:   &'a mut Table,
-    pub deps:    &'a mut Deps,
-    pub address: HumanAddr,
-    pub env:     Env,
-}
-
-pub fn badman<'a>(table: &'a mut Table, deps: &'a mut Deps) -> BadmanRole<'a> {
-    let address = HumanAddr::from("Badman");
-    BadmanRole { deps, env: env(&address, 0), address, table }
-}
-pub struct BadmanRole<'a> {
-    pub table:   &'a mut Table,
-    pub deps:    &'a mut Deps,
-    pub address: HumanAddr,
-    pub env:     Env,
-}
-
-impl<'a> AdminRole<'a> {
     pub fn at (&mut self, t: Moment) -> &mut Self {
-        self.env = env(&self.address, t);
+        self.time = t;
+        self.update_env()
+    }
+    pub fn after (&mut self, t: Duration) -> &mut Self {
+        self.at(self.env.block.time + t)
+    }
+    pub fn next (&mut self) -> &mut Self {
+        self.after(1)
+    }
+    pub fn later (&mut self) -> &mut Self {
+        self.after(rand::thread_rng().gen())
+    }
+    pub fn epoch (&mut self) -> &mut Self {
+        self.after(86400)
+    }
+    pub fn set_address (&mut self, address: &str) -> &mut Self {
+        self.address = HumanAddr::from(address);
+        self.update_env()
+    }
+    pub fn admin (&mut self) -> &mut Self {
+        self.set_address("Admin")
+    }
+    pub fn badman (&mut self) -> &mut Self {
+        self.set_address("Badman")
+    }
+    pub fn user (&mut self, address: &str) -> &mut Self {
+        self.set_address(address)
+    }
+    pub fn fund (&mut self, amount: u128) -> &mut Self {
+        self.deps.querier.increment_balance(amount);
+        self
+    }
+    pub fn test_handle (&mut self, msg: RewardsHandle, expected: StdResult<HandleResponse>) -> &mut Self {
+        test_handle(
+            &mut self.table,
+            &mut self.deps,
+            &self.env,
+            self.address.clone(),
+            msg,
+            expected
+        ); self
+    }
+    pub fn init (&mut self) -> &mut Self {
+        crate::Auth::init(&mut self.deps, &self.env, &None).unwrap();
+        assert_eq!(
+            Rewards::init(&mut self.deps, &self.env, RewardsConfig {
+                lp_token:     Some(self.lp_token.link.clone()),
+                reward_token: Some(self.reward_token.link.clone()),
+                reward_vk:    Some(self.reward_vk.clone()),
+                ratio:        None,
+                threshold:    None,
+                cooldown:     None,
+            }).unwrap(),
+            Some(snip20::set_viewing_key_msg(
+                self.reward_vk.clone(),
+                None, BLOCK_SIZE,
+                self.reward_token.link.code_hash.clone(),
+                self.reward_token.link.address.clone()
+            ).unwrap())
+        );
         self
     }
     pub fn init_invalid (&mut self) -> &mut Self {
         assert!(
-            Rewards::init(self.deps, &self.env, RewardsConfig {
+            Rewards::init(&mut self.deps, &self.env, RewardsConfig {
                 lp_token:     None,
                 reward_token: None,
                 reward_vk:    None,
@@ -142,26 +136,6 @@ impl<'a> AdminRole<'a> {
                 threshold:    None,
                 cooldown:     None,
             }).is_err(),
-        );
-        self
-    }
-    pub fn init (&mut self, lp: &ISnip20, reward: &ISnip20, vk: String) -> &mut Self {
-        crate::Auth::init(self.deps, &self.env, &None).unwrap();
-        assert_eq!(
-            Rewards::init(self.deps, &self.env, RewardsConfig {
-                lp_token:     Some(lp.link.clone()),
-                reward_token: Some(reward.link.clone()),
-                reward_vk:    Some(vk.clone()),
-                ratio:        None,
-                threshold:    None,
-                cooldown:     None,
-            }).unwrap(),
-            Some(snip20::set_viewing_key_msg(
-                vk.clone(),
-                None, BLOCK_SIZE,
-                reward.link.code_hash.clone(),
-                reward.link.address.clone()
-            ).unwrap())
         );
         self
     }
@@ -177,17 +151,28 @@ impl<'a> AdminRole<'a> {
         }
         test_handle(
             &mut self.table,
-            self.deps, &self.env, self.address.clone(),
+            &mut self.deps, &self.env, self.address.clone(),
             RewardsHandle::Configure(config),
             Ok(expected)
         );
+        self
+    }
+    pub fn cannot_configure (&mut self) -> &mut Self {
+        assert_eq!(Rewards::handle(&mut self.deps, &self.env, RewardsHandle::Configure(RewardsConfig {
+            lp_token:     None,
+            reward_token: None,
+            reward_vk:    None,
+            ratio:        None,
+            threshold:    None,
+            cooldown:     None,
+        })), Err(StdError::unauthorized()));
         self
     }
     pub fn set_ratio (&mut self, ratio: (u128, u128)) -> &mut Self  {
         // TODO query!!!
         test_handle(
             &mut self.table,
-            self.deps, &self.env, self.address.clone(),
+            &mut self.deps, &self.env, self.address.clone(),
             RewardsHandle::Configure(RewardsConfig {
                 lp_token:     None,
                 reward_token: None,
@@ -201,7 +186,7 @@ impl<'a> AdminRole<'a> {
         self
     }
     pub fn set_threshold (&mut self, threshold: Duration) -> &mut Self  {
-        assert_eq!(Rewards::handle(self.deps, &self.env, RewardsHandle::Configure(RewardsConfig {
+        assert_eq!(Rewards::handle(&mut self.deps, &self.env, RewardsHandle::Configure(RewardsConfig {
             lp_token:     None,
             reward_token: None,
             reward_vk:    None,
@@ -212,102 +197,102 @@ impl<'a> AdminRole<'a> {
         // TODO query!!!
         self
     }
-    pub fn closes_pool (&mut self) -> &mut Self{
+    pub fn closes_pool (&mut self) -> &mut Self {
         test_handle(
             &mut self.table,
-            self.deps, &self.env, self.address.clone(),
+            &mut self.deps, &self.env, self.address.clone(),
             RewardsHandle::Close { message: String::from("closed") },
             Ok(HandleResponse::default())
         ); self
     }
-    pub fn drains_pool (&mut self, reward_token: &ISnip20, key: &str) {
+    pub fn cannot_close_pool (&mut self) -> &mut Self {
+        assert_eq!(
+            Rewards::handle(&mut self.deps, &self.env, RewardsHandle::Close {
+                message: String::from("closed")
+            }),
+            Err(StdError::unauthorized())
+        ); self
+    }
+    pub fn drains_pool (&mut self, key: &str) -> &mut Self {
         assert!(
-            Rewards::handle(self.deps, &self.env, RewardsHandle::Drain {
-                snip20:    reward_token.link.clone(),
+            Rewards::handle(&mut self.deps, &self.env, RewardsHandle::Drain {
+                snip20:    self.reward_token.link.clone(),
                 key:       key.into(),
                 recipient: None
             }).is_ok()
         );
         let vk: Option<ViewingKey> = self.deps.get(crate::algo::pool::REWARD_VK).unwrap();
         assert_eq!(vk.unwrap().0, String::from(key));
-    }
-}
-
-impl<'a> UserRole<'a> {
-    pub fn at (&mut self, t: Moment) -> &mut Self {
-        self.env = env(&self.address, t);
         self
     }
-    //pub fn later (&mut self) -> &mut Self {
-        //let t: Time = rand::thread_rng().gen();
-        //self.at(self.env.block.time + t)
-    //}
+    pub fn cannot_drain (&mut self, key: &str) -> &mut Self {
+        assert!(
+            Rewards::handle(&mut self.deps, &self.env, RewardsHandle::Drain {
+                snip20:    self.reward_token.link.clone(),
+                key:       key.into(),
+                recipient: None
+            }).is_err()
+        ); self
+    }
     pub fn set_vk (&mut self, key: &str) -> &mut Self {
         let msg = crate::AuthHandle::SetViewingKey { key: key.into(), padding: None };
         assert_eq!(
-            crate::Auth::handle(self.deps, self.env.clone(), msg),
+            crate::Auth::handle(&mut self.deps, self.env.clone(), msg),
             Ok(HandleResponse::default())
         );
         self
     }
-    pub fn deposits (&mut self, lp_token: &ISnip20, amount: u128) -> &mut Self {
+    pub fn deposits (&mut self, amount: u128) -> &mut Self {
         self.test_handle(
             RewardsHandle::Lock { amount: amount.into() },
-            HandleResponse::default().msg(lp_token.transfer_from(
+            HandleResponse::default().msg(self.lp_token.transfer_from(
                 &self.env.message.sender,
                 &self.env.contract.address,
                 amount.into()
             ).unwrap())
         )
     }
-    pub fn withdraws (&mut self, lp_token: &ISnip20, amount: u128) -> &mut Self {
+    pub fn withdraws (&mut self, amount: u128) -> &mut Self {
         self.test_handle(
             RewardsHandle::Retrieve { amount: amount.into() },
-            HandleResponse::default().msg(lp_token.transfer(
+            HandleResponse::default().msg(self.lp_token.transfer(
                 &self.env.message.sender,
                 amount.into()
             ).unwrap())
         )
     }
-    pub fn claims (&mut self, reward_token: &ISnip20, amount: u128) -> &mut Self {
+    pub fn claims (&mut self, amount: u128) -> &mut Self {
         self.test_handle(
             RewardsHandle::Claim {},
-            HandleResponse::default().msg(reward_token.transfer(
+            HandleResponse::default().msg(self.reward_token.transfer(
                 &self.env.message.sender,
                 amount.into()
             ).unwrap())
-        )
+        );
+        self.deps.querier.decrement_balance(amount).unwrap();
+        self
     }
     pub fn needs_age_threshold (&mut self, remaining: Duration) -> &mut Self {
         self.test_handle(
             RewardsHandle::Claim {},
-            Rewards::err_claim_threshold(self.deps, remaining, 0)
+            Rewards::err_claim_threshold(&self.deps, remaining, 0)
         )
     }
     pub fn needs_cooldown (&mut self, remaining: Duration) -> &mut Self {
         self.test_handle(
             RewardsHandle::Claim {},
-            Rewards::err_claim_cooldown(self.deps, remaining)
+            Rewards::err_claim_cooldown(&self.deps, remaining)
         )
     }
     pub fn ratio_is_zero (&mut self) -> &mut Self {
         self.test_handle(
             RewardsHandle::Claim {},
-            Rewards::err_claim_global_ratio_zero(self.deps)
+            Rewards::err_claim_global_ratio_zero(&self.deps)
         )
     }
-
-    pub fn test_handle (&mut self, msg: RewardsHandle, expected: StdResult<HandleResponse>) -> &mut Self {
-        test_handle(
-            &mut self.table,
-            self.deps, &self.env, self.address.clone(),
-            msg, expected
-        ); self
-    }
-
     pub fn status (&mut self) -> User {
         match Rewards::query_status(
-            &*self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
+            &self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
         ).unwrap() {
             crate::RewardsResponse::Status { user, .. } => user.unwrap(),
             //_ => panic!()
@@ -338,40 +323,16 @@ impl<'a> UserRole<'a> {
         self
     }
 }
+impl Drop for Context {
+    fn drop (&mut self) {
+        self.table.printstd();
+    }
+}
 
-impl<'a> BadmanRole<'a> {
-    pub fn at (&mut self, t: Moment) -> &mut Self {
-        self.env = env(&self.address, t);
-        self
-    }
-    pub fn cannot_configure (&mut self) -> &mut Self {
-        assert_eq!(Rewards::handle(self.deps, &self.env, RewardsHandle::Configure(RewardsConfig {
-            lp_token:     None,
-            reward_token: None,
-            reward_vk:    None,
-            ratio:        None,
-            threshold:    None,
-            cooldown:     None,
-        })), Err(StdError::unauthorized()));
-        self
-    }
-    pub fn cannot_close_pool (&mut self) {
-        assert_eq!(
-            Rewards::handle(self.deps, &self.env, RewardsHandle::Close {
-                message: String::from("closed")
-            }),
-            Err(StdError::unauthorized())
-        );
-    }
-    pub fn cannot_drain (&mut self, reward_token: &ISnip20, key: &str) {
-        assert!(
-            Rewards::handle(self.deps, &self.env, RewardsHandle::Drain {
-                snip20:    reward_token.link.clone(),
-                key:       key.into(),
-                recipient: None
-            }).is_err()
-        );
-    }
+pub fn env (signer: &HumanAddr, time: u64) -> Env {
+    let mut env = mock_env(signer, &[]);
+    env.block.time = time;
+    env
 }
 
 /*.msg(snip20::set_viewing_key_msg( // this is for own reward vk, not user status vk
@@ -468,8 +429,8 @@ impl RewardsMockQuerier {
     pub fn increment_balance (&mut self, amount: u128) -> () {
         self.balance += amount.into();
     }
-    //pub fn decrement_balance (&mut self, amount: u128) -> StdResult<()> {
-        //self.balance = (self.balance - amount.into())?;
-        //Ok(())
-    //}
+    pub fn decrement_balance (&mut self, amount: u128) -> StdResult<()> {
+        self.balance = (self.balance - amount.into())?;
+        Ok(())
+    }
 }
