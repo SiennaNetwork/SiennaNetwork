@@ -146,43 +146,6 @@ macro_rules! assert_fields {
 
 /// Given an instance
 ///
-///  When alice deposits lp tokens,
-///   And alice withdraws them after reaching the threshold;
-///  Then alice is eligible to claim the whole pool
-///
-///  When bob deposits the same amount of tokens
-///  Then alice's rewards start decreasing proportionally
-///
-///  When bob reaches the age threshold
-///  Then each is eligible to claim some rewards
-#[test] fn test_deposit_withdraw_sequential () {
-    let Context(ref mut table, ref mut deps, _, _, ref LP) = Context::entities_init();
-
-    user(table, deps, "Alice").at(2).deposits(LP, 100u128);
-    user(table, deps, "Bob").at(2).deposits(LP, 100u128);
-
-    //Test.at(1).init_configured(&admin)?
-              //.set_vk(&alice, "")?
-              //.set_vk(&bob,   "")?
-              //.fund(REWARD);
-
-    //Test.at(    1).user(&alice,   0,   0,         0,   0, 0,   0)?.deposit(&alice, 100)?
-        //.at(DAY+1).user(&alice, DAY, 100, DAY * 100, 100, 0, 100)?.withdraw(&alice, 100)?
-                  //.user(&alice, DAY,   0, DAY * 100, 100, 0, 100)?
-
-    //Test.at(           DAY+2).user(&bob,     0,   0,         0,  0, 0,  0)?.deposit(&bob, 100)?
-                             //.user(&bob,     0, 100,         0,  0, 0,  0)?
-        //.at(         DAY+2+1).user(&alice, DAY,   0, DAY * 100, 97, 0, 97)?
-        //.at(     DAY+2+DAY/2).user(&alice, DAY,   0, DAY * 100, 43, 0, 43)?
-        //.at(DAY+2+DAY/2+1000).user(&alice, DAY,   0, DAY * 100, 40, 0, 40)?
-
-    //Test.at(         2*DAY+2).user(&bob,   DAY, 100, DAY * 100, 49, 0, 49)?.withdraw(&bob, 100)?
-                             //.user(&bob,   DAY,   0, DAY * 100, 49, 0, 49)?
-                             //.user(&alice, DAY,   0, DAY * 100, 24, 0, 24)?
-}
-
-/// Given an instance
-///
 ///  When strangers try to claim rewards
 ///  Then they get an error
 ///
@@ -217,43 +180,27 @@ macro_rules! assert_fields {
         .at(3*86400+3).claims(SIENNA, 100).needs_cooldown(86400);
 }
 
-/// given an instance"
-///  when alice deposits lp tokens,"
-///   and alice withdraws them after reaching the threshold;"
-///  then alice is eligible to claim the whole pool"
-///  when bob deposits the same amount of tokens"
-///  then alice's rewards start decreasing proportionally"
-///  when alice claims some time after maturing"
-///  then alice's state is reset because of selective_memory"
-///  when bob reaches the age threshold"
-///  then bob is eligible to claim a comparable amount of rewards"
-#[test] fn test_claim_sequential () {
+#[test] fn test_sequential () {
     let Context(ref mut table, ref mut deps, _, ref SIENNA, ref LP) = Context::entities_init();
     deps.querier.increment_balance(100u128);
-    //two_sequential_users_and_claim {
-            //let admin = HumanAddr::from("admin");
-            //let alice = HumanAddr::from("alice");
-            //let bob   = HumanAddr::from("bob");
-            //Test.at(1).init_configured(&admin)?
-                      //.set_vk(&alice, "")?
-                      //.set_vk(&bob,   "")? }
+    user(table, deps, "Alice")
+        .at(2).deposits(LP, 100u128)
+        .at(86402).withdraws(LP, 100u128).claims(SIENNA, 100u128);
+    user(table, deps, "Bob")
+        .at(86402).deposits(LP, 100u128)
+        .at(86400*2+2).withdraws(LP, 100u128).claims(SIENNA, 100u128);
+}
 
-            //Test.fund(REWARD)
-                //.at(    1).user(&alice, 0, 0, 0, 0, 0, 0)?.deposit(&alice, 100)?
-                //.at(DAY+1).user(&alice, DAY, 100, DAY * 100, 100, 0, 100)?.withdraw(&alice, 100)?
-                          //.user(&alice, DAY,   0, DAY * 100, 100, 0, 100)? }
-
-            //Test.at(DAY+2).user(&bob,    0,   0, 0, 0, 0, 0)?.deposit(&bob, 100)?
-                          //.user(&bob,    0, 100, 0, 0, 0, 0)? }
-
-            //Test.at(DAY+2+1).user(&alice, DAY, 0, DAY * 100, 97, 0, 97)? }
-
-            //Test.at(     DAY+2+DAY/2).user(&alice, DAY, 0, DAY * 100, 43, 0, 43 )?.claim(&alice, 43)?
-                //.at(1000+DAY+2+DAY/2).user(&alice, DAY, 0, 0, 0, 0, 0) }
-
-            //Test.at(2*DAY+2).user(&bob,   DAY, 100, DAY * 100, 49,  0, 49)?.withdraw(&bob, 100)?
-                            //.user(&bob,   DAY,   0, DAY * 100, 49,  0, 49)?
-                            //.user(&alice, DAY,   0, 0, 0, 0, 0)? } }
+#[test] fn test_parallel () {
+    let Context(ref mut table, ref mut deps, _, _, ref LP) = Context::entities_init();
+    user(table, deps, "Alice")
+        .at(2).deposits(LP, 100u128);
+    user(table, deps, "Bob")
+        .at(2).deposits(LP, 100u128);
+    user(table, deps, "Alice")
+        .at(86402).withdraws(LP, 100u128).deposits(LP, 100u128);
+    user(table, deps, "Bob")
+        .at(86402).withdraws(LP, 100u128).deposits(LP, 100u128);
 }
 
 /// Given a pool

@@ -552,7 +552,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
         let earned = if pool.lifetime == Volume::zero() {
             Amount::zero()
-        } else if pool.existed == None || pool.existed == Some(0) {
+        } else if existed == 0 {
             Amount::zero()
         } else {
             Volume::from(budget)

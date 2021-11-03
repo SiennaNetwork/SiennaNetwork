@@ -412,7 +412,7 @@ pub fn test_handle (
     add_result(table, &result);
     if result != expected {
         table.add_row(row![]);
-        table.add_row(row!["ERROR", "was expecting", "the following:"]);
+        table.add_row(row![bBrFd->"ERROR", "was expecting", "the following:"]);
         add_result(table, &expected);
     }
     fn decode_msg (message: &CosmosMsg) -> Option<String> {
