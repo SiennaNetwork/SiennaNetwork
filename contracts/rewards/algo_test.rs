@@ -93,7 +93,7 @@ macro_rules! assert_fields {
     //  When user first deposits
     //  Then user's age and lifetime start incrementing
     user(table, deps, "Alice")
-        .at(2).locked(0u128).lifetime(0u128)
+        .at(2).set_vk("").locked(0u128).lifetime(0u128)
               .deposits(LP, 100u128)
               .locked(100u128).lifetime(0u128)
         .at(3).locked(100u128).lifetime(100u128)

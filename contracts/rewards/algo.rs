@@ -173,7 +173,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     fn after_user_action (
-        &mut self, env: &Env, pool: &mut Pool, user: &mut User, id: CanonicalAddr
+        &mut self, env: &Env, pool: &mut Pool, user: &mut User, id: &CanonicalAddr
     ) -> StdResult<()> {
         // Commit pool state
         match pool.seeded {
@@ -208,7 +208,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     fn handle_deposit (&mut self, env: &Env, deposited: Amount) -> StdResult<HandleResponse> {
         let (mut pool, mut user) = self.before_user_action(&env)?;
         if pool.closed.is_some() {
-            self.return_staked_lp_tokens(env, &mut pool, &mut user)
+            self.return_stake(env, &mut pool, &mut user)
         } else {
             // Set user registration date if this is their first deposit
             let id = self.canonize(env.message.sender.clone())?;
@@ -219,7 +219,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             user.locked += deposited;
             pool.locked += deposited;
             self.update_locked(&pool, &user, &id)?;
-            self.after_user_action(env, &mut pool, &mut user, id)?;
+            self.after_user_action(env, &mut pool, &mut user, &id)?;
             // Transfer liquidity provision tokens from the user to the contract
             HandleResponse::default()
                 .msg(self.lp_token()?.transfer_from(
@@ -234,7 +234,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     fn handle_withdraw (&mut self, env: &Env, withdrawn: Uint128) -> StdResult<HandleResponse> {
         let (mut pool, mut user) = self.before_user_action(&env)?;
         if pool.closed.is_some() {
-            self.return_staked_lp_tokens(env, &mut pool, &mut user)
+            self.return_stake(env, &mut pool, &mut user)
         } else if user.locked < withdrawn {
             self.err_withdraw(user.locked, withdrawn)
         } else if pool.locked < withdrawn {
@@ -245,7 +245,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             user.locked = (user.locked - withdrawn)?;
             let id = self.canonize(env.message.sender.clone())?;
             self.update_locked(&pool, &user, &id)?;
-            self.after_user_action(env, &mut pool, &mut user, id)?;
+            self.after_user_action(env, &mut pool, &mut user, &id)?;
             // Transfer liquidity provision tokens from the contract to the user
             HandleResponse::default()
                 .msg(self.lp_token()?.transfer(
@@ -301,11 +301,19 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             self.set(pool::CLAIMED, pool.claimed)?;
             // Reset user cooldown countdown to pool cooldown value
             user.cooldown = pool.cooldown;
-            self.after_user_action(env, &mut pool, &mut user, id)?;
+            self.after_user_action(env, &mut pool, &mut user, &id)?;
+            if user.locked == Amount::zero() {
+                self.reset_user_data(&id);
+            }
             // Transfer reward tokens from the contract to the user
             HandleResponse::default()
                 .msg(self.reward_token()?.transfer(&env.message.sender, user.claimable)?)
         }
+    }
+
+    fn reset_user_data (&mut self, id: &CanonicalAddr) -> StdResult<()> {
+        self.set_ns(user::LIFETIME, id.as_slice(), Volume::zero());
+        self.set_ns(user::CLAIMED,  id.as_slice(), Amount::zero())
     }
 
     fn err_claim_threshold (&self, threshold: Duration, liquid: Duration) -> StdResult<HandleResponse> {
@@ -360,7 +368,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Closed pools return all funds upon request and prevent further deposits
-    fn return_staked_lp_tokens (
+    fn return_stake (
         &mut self, env: &Env, pool: &mut Pool, user: &mut User
     ) -> StdResult<HandleResponse> {
         if let Some((ref when, ref why)) = pool.closed {

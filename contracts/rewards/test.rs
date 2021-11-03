@@ -393,13 +393,13 @@ pub fn test_handle (
 ) {
     table.add_row(row![]);
     let msg_ser = serde_yaml::to_string(&msg).unwrap();
-    table.add_row(row![b->env.block.time, b->&address, b->msg_ser.trim()]);
+    table.add_row(row![b->env.block.time, b->&address, b->msg_ser.trim()[4..]]);
     let result = Rewards::handle(deps, env, msg);
     let add_result = |table: &mut Table, result: &StdResult<HandleResponse>| match result {
         Ok(ref result) => {
             for message in result.messages.iter() {
                 if let CosmosMsg::Wasm(WasmMsg::Execute { .. }) = message {
-                    table.add_row(row!["=>", "execute", &decode_msg(message).unwrap()]);
+                    table.add_row(row!["=>", "execute", &decode_msg(message).unwrap()[4..]]);
                 } else {
                     table.add_row(row!["=>", "msg", serde_yaml::to_string(&message).unwrap()]);
                 }
