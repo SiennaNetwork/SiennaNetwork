@@ -242,6 +242,35 @@ export class SNIP20 extends ScrtContract {
   }
 
   /**
+   * Send tokens
+   *
+   * @param {string} recipient Address
+   * @param {string} amount Amount to send
+   * @param {object} [msg] Message to send
+   * @param {Agent} [agent]
+   * @returns
+   */
+  send = (recipient: string, amount: string, msg?: object, agent?: Agent) => {
+    const message = {
+      recipient,
+      amount: `${amount}`,
+      msg: undefined,
+    };
+
+    if (msg && typeof msg === "object") {
+      message.msg = Buffer.from(
+        JSON.stringify(msg),
+        "utf8"
+      ).toString("base64");
+    }
+
+    return this.tx.send(
+      message,
+      agent
+    );
+  }
+
+  /**
    * Return the address and code hash of this token in the format
    * required by the Factory to create a swap pair with this token
    */

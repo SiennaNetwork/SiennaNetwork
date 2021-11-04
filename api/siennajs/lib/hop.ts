@@ -80,7 +80,7 @@ export interface TokenPairComparableTree {
  * it cannot appear anywhere in the middle of the chain.
  */
 export interface Hop {
-    from_token: Token;
+    from_token: { snip20: { address: Address, code_hash: string } } | { Scrt: {} };
     pair_address: Address;
     pair_code_hash: string;
 }
@@ -106,10 +106,15 @@ export function into_token_pair_extended(A: Token, B: Token, pair_address: Addre
 /**
  * Converts token enum into a comparable token
  * 
- * @param {Token} token 
+ * @param {Token | TokenComparable} token 
  * @returns {TokenComparable}
  */
-export function token_into_comparable(token: Token): TokenComparable {
+export function token_into_comparable(token: Token | TokenComparable): TokenComparable {
+    // @ts-ignore
+    if (typeof token.id !== "undefined") {
+        return token as TokenComparable;
+    }
+
     let id = "Scrt";
 
     if (
@@ -122,7 +127,7 @@ export function token_into_comparable(token: Token): TokenComparable {
 
     return {
         id,
-        token,
+        token: token as Token,
     };
 }
 
@@ -134,7 +139,7 @@ export function token_into_comparable(token: Token): TokenComparable {
  */
 export function token_pair_simple_into_token_pair_comparable(token_pair: TokenPairSimple | TokenPairComparable): TokenPairComparable {
     // @ts-ignore
-    if (typeof token_pair.A.id !== "undefined" && typeof token_pair.B.id !== "undefined") {
+    if (typeof token_pair.A.id !== "undefined" || typeof token_pair.B.id !== "undefined") {
         return token_pair as TokenPairComparable;
     }
 
@@ -165,8 +170,18 @@ export function token_pair_comparable_into_token_pair_comparable_tree(pair: Toke
  * @returns {Hop}
  */
 export function token_pair_comparable_into_hop(pair: TokenPairComparable): Hop {
+    let from_token = { Scrt: {} };
+
+    if (pair.A.token.hasOwnProperty("Snip20Data")) {
+        // @ts-ignore
+        from_token = { snip20: {
+            address: (pair.A.token as unknown as Snip20Data).Snip20Data.address,
+            code_hash: (pair.A.token as unknown as Snip20Data).Snip20Data.code_hash,
+        } };
+    }
+
     return {
-        from_token: pair.A.token,
+        from_token,
         pair_address: pair.pair_address,
         pair_code_hash: pair.pair_code_hash,
     }

@@ -2,15 +2,14 @@ use amm_shared::{
     exchange::{ExchangeSettings, Fee},
     fadroma::{
         scrt::{
-            from_binary, log, to_binary, Api, BankMsg, Binary, Coin, CosmosMsg, Decimal, Env,
-            Extern, HandleResponse, HumanAddr, InitResponse, Querier, QueryRequest, QueryResult,
-            StdError, StdResult, Storage, Uint128, WasmMsg, WasmQuery,
-            secret_toolkit::snip20,
+            from_binary, log, secret_toolkit::snip20, to_binary, Api, BankMsg, Binary, Coin,
+            CosmosMsg, Decimal, Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
+            QueryRequest, QueryResult, StdError, StdResult, Storage, Uint128, WasmMsg, WasmQuery,
         },
         scrt_callback::Callback,
         scrt_link::ContractLink,
+        scrt_uint256::Uint256,
         scrt_vk::ViewingKey,
-        scrt_uint256::Uint256
     },
     msg::{
         exchange::{

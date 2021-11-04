@@ -1,9 +1,8 @@
 /// This contract implements SNIP-20 standard:
 /// https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-20.md
 use cosmwasm_std::{
-    log, to_binary, Api, Binary, CanonicalAddr, CosmosMsg, Env, Extern,
-    HandleResponse, HumanAddr, InitResponse, Querier, QueryResult, ReadonlyStorage, StdError,
-    StdResult, Storage, Uint128,
+    log, to_binary, Api, Binary, CanonicalAddr, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
+    InitResponse, Querier, QueryResult, ReadonlyStorage, StdError, StdResult, Storage, Uint128,
 };
 
 use crate::msg::{
@@ -118,30 +117,54 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::SetMinters { minters, .. } => set_minters(deps, env, minters),
         HandleMsg::AddMinters { minters, .. } => add_minters(deps, env, minters),
         HandleMsg::RemoveMinters { minters, .. } => remove_minters(deps, env, minters),
-        HandleMsg::Mint { recipient, amount, .. } => try_mint(deps, env, recipient, amount),
+        HandleMsg::Mint {
+            recipient, amount, ..
+        } => try_mint(deps, env, recipient, amount),
         HandleMsg::Burn { amount, .. } => try_burn(deps, env, amount),
         HandleMsg::BurnFrom { owner, amount, .. } => try_burn_from(deps, env, &owner, amount),
 
-        HandleMsg::Deposit  { .. } => Err(StdError::generic_err("not allowed.")),
-        HandleMsg::Redeem   { .. } => Err(StdError::generic_err("not allowed.")),
+        HandleMsg::Deposit { .. } => Err(StdError::generic_err("not allowed.")),
+        HandleMsg::Redeem { .. } => Err(StdError::generic_err("not allowed.")),
 
-        HandleMsg::Transfer { recipient, amount, .. } =>
-            try_transfer(deps, env, &recipient, amount),
-        HandleMsg::TransferFrom { owner, recipient, amount, .. } =>
-            try_transfer_from(deps, env, &owner, &recipient, amount),
-        HandleMsg::Send { recipient, amount, msg, .. } =>
-            try_send(deps, env, &recipient, amount, msg),
-        HandleMsg::SendFrom { owner, recipient, amount, msg, .. } =>
-            try_send_from(deps, env, &owner, &recipient, amount, msg),
+        HandleMsg::Transfer {
+            recipient, amount, ..
+        } => try_transfer(deps, env, &recipient, amount),
+        HandleMsg::TransferFrom {
+            owner,
+            recipient,
+            amount,
+            ..
+        } => try_transfer_from(deps, env, &owner, &recipient, amount),
+        HandleMsg::Send {
+            recipient,
+            amount,
+            msg,
+            ..
+        } => try_send(deps, env, &recipient, amount, msg),
+        HandleMsg::SendFrom {
+            owner,
+            recipient,
+            amount,
+            msg,
+            ..
+        } => try_send_from(deps, env, &owner, &recipient, amount, msg),
 
         HandleMsg::CreateViewingKey { entropy, .. } => try_create_key(deps, env, entropy),
         HandleMsg::SetViewingKey { key, .. } => try_set_key(deps, env, key),
         HandleMsg::RegisterReceive { code_hash, .. } => try_register_receive(deps, env, code_hash),
 
-        HandleMsg::IncreaseAllowance { spender, amount, expiration, .. } =>
-            try_increase_allowance(deps, env, spender, amount, expiration),
-        HandleMsg::DecreaseAllowance { spender, amount, expiration, .. } =>
-            try_decrease_allowance(deps, env, spender, amount, expiration),
+        HandleMsg::IncreaseAllowance {
+            spender,
+            amount,
+            expiration,
+            ..
+        } => try_increase_allowance(deps, env, spender, amount, expiration),
+        HandleMsg::DecreaseAllowance {
+            spender,
+            amount,
+            expiration,
+            ..
+        } => try_decrease_allowance(deps, env, spender, amount, expiration),
     };
 
     pad_response(response)
@@ -1009,7 +1032,7 @@ mod tests {
             | HandleAnswer::SetMinters { status }
             | HandleAnswer::AddMinters { status }
             | HandleAnswer::RemoveMinters { status } => {
-                matches!(status, ResponseStatus::Success {..})
+                matches!(status, ResponseStatus::Success { .. })
             }
             _ => panic!("HandleAnswer not supported for success extraction"),
         }
@@ -1776,7 +1799,10 @@ mod tests {
         );
 
         let contract_status = ReadonlyConfig::from_storage(&deps.storage).contract_status();
-        assert!(matches!(contract_status, ContractStatusLevel::StopAll{..}));
+        assert!(matches!(
+            contract_status,
+            ContractStatusLevel::StopAll { .. }
+        ));
     }
 
     #[test]
