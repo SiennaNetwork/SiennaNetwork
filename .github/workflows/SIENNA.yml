@@ -104,7 +104,7 @@ jobs:
           #run_install: true
 
       - name: Generate coverage report
-        run: cargo tarpaulin --out=Html --locked --frozen
+        run: cargo tarpaulin --out=Lcov --locked --frozen
 
       - name: Publish to coveralls.io
         uses: coverallsapp/github-action@v1.1.2
