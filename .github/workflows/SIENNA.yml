@@ -109,8 +109,8 @@ jobs:
         with:
           version: '0.18.3'
 
-      - name: Generate coverage report
-        run: cargo tarpaulin --out=Lcov --output-dir=. --locked --frozen
+      #- name: Generate coverage report
+        #run: cargo tarpaulin --out=Lcov --output-dir=. --locked --frozen
 
       - name: Publish to coveralls.io
         uses: coverallsapp/github-action@v1.1.2
