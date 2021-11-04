@@ -21,20 +21,20 @@
     "./settings"
   ],
   "dependencies": {
-    "@sienna/api": "workspace:*",
-    "@sienna/settings": "workspace:*",
     "@fadroma/ops": "workspace:*",
     "@fadroma/scrt": "workspace:*",
     "@fadroma/scrt-1.0": "workspace:*",
     "@fadroma/scrt-1.2": "workspace:*",
     "@fadroma/tools": "workspace:*",
     "@hackbg/ganesha": "workspace:*",
+    "@sienna/api": "workspace:*",
+    "@sienna/settings": "workspace:*",
     "chai": "^4.3.4",
     "docco": "^0.8.1",
     "mocha": "^8.4.0",
-    "source-map-support": "^0.5.19",
-    "ts-node": "^10.2.1",
-    "typescript": "^4.3.2"
+    "source-map-support": "^0.5.20",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.4.4"
   },
   "scripts": {
     "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",
