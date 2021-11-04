@@ -437,54 +437,54 @@ use rand::Rng;
                 .claims(150u128);
 }
 
-#[test] fn test_liquidity_ratios () {
-    let t    = rand::thread_rng().gen_range(0..100000);
-    let r    = 5040u128 * rand::thread_rng().gen_range(0..100000);
-    let half =  120u128 * rand::thread_rng().gen_range(0..100000);
-    Context::new()
-        // Given a pool and a user
-        .admin()
-            .init().fund(r).set_threshold(0u64)
-        .user("Alice")
-            .at(t  )
-                .set_vk("")
-                 //  When LP tokens have never been deposited in this pool
-                 //  Then the user and pool liquidity ratios is 1
-                .liquid(0).existed(0).claimable(0u128)
-                //  When LP tokens are deposited by this user
-                //  Then the user and pool liquidity ratios remain 1
-                .deposits(2 * half)
-                .liquid(0).existed(0).claimable(0u128)
-            .tick()
-                .liquid(1).existed(1).claimable(r)
-            .tick() // after partial withdrawal user is still present
-                .liquid(2).existed(2).claimable(r)
-                //  When some LP tokens are withdrawn by this user
-                //  Then the user and pool liquidity ratios remain 1
-                .withdraws(half)
-                .liquid(2).existed(2).claimable(r)
-            .tick() // after full withdraw ratio starts going down, representing the user's absence
-                .liquid(3).existed(3).claimable(r)
-                //  When all LP tokens are withdrawn by this user
-                //  Then the user and pool liquidity ratios begins to decrease toward 0
-                .withdraws(half)
-                .liquid(3).existed(3).claimable(r)
-            .tick()
-                .liquid(3).existed(4).claimable(r*3/4*3/4)
-            .tick()
-                .liquid(3).existed(5).claimable(r*3/5*3/5)
-            .tick()
-                .liquid(3).existed(6).claimable(r*3/6*3/6)
-        //  When LP tokens are deposited again by this user
-        //  Then the user and pool liquidity ratios begins to increase toward 1
-                .deposits(1u128) // then it starts increasing again once the user is back
-                .liquid(3).existed(6).claimable(r*3/6*3/6)
-            .tick()
-                .liquid(4).existed(7).claimable(r*4/7*4/7)
-            .tick()
-                .liquid(5).existed(8).claimable(r*5/8*5/8)
-            .tick() // user has provided liquidity for 2/3rds of the time
-                .liquid(6).existed(9).claimable(r*6/9*6/9);
-        //  When the user is eligible to claim rewards
-        //  Then the rewards are diminished by the user and pool liquidity ratios
-}
+//#[test] fn test_liquidity_ratios () {
+    //let t    = rand::thread_rng().gen_range(0..100000);
+    //let r    = 5040u128 * rand::thread_rng().gen_range(0..100000);
+    //let half =  120u128 * rand::thread_rng().gen_range(0..100000);
+    //Context::new()
+        //// Given a pool and a user
+        //.admin()
+            //.init().fund(r).set_threshold(0u64)
+        //.user("Alice")
+            //.at(t  )
+                //.set_vk("")
+                 ////  When LP tokens have never been deposited in this pool
+                 ////  Then the user and pool liquidity ratios is 1
+                //.liquid(0).existed(0).claimable(0u128)
+                ////  When LP tokens are deposited by this user
+                ////  Then the user and pool liquidity ratios remain 1
+                //.deposits(2 * half)
+                //.liquid(0).existed(0).claimable(0u128)
+            //.tick()
+                //.liquid(1).existed(1).claimable(r)
+            //.tick() // after partial withdrawal user is still present
+                //.liquid(2).existed(2).claimable(r)
+                ////  When some LP tokens are withdrawn by this user
+                ////  Then the user and pool liquidity ratios remain 1
+                //.withdraws(half)
+                //.liquid(2).existed(2).claimable(r)
+            //.tick() // after full withdraw ratio starts going down, representing the user's absence
+                //.liquid(3).existed(3).claimable(r)
+                ////  When all LP tokens are withdrawn by this user
+                ////  Then the user and pool liquidity ratios begins to decrease toward 0
+                //.withdraws(half)
+                //.liquid(3).existed(3).claimable(r)
+            //.tick()
+                //.liquid(3).existed(4).claimable(r*3/4*3/4)
+            //.tick()
+                //.liquid(3).existed(5).claimable(r*3/5*3/5)
+            //.tick()
+                //.liquid(3).existed(6).claimable(r*3/6*3/6)
+        ////  When LP tokens are deposited again by this user
+        ////  Then the user and pool liquidity ratios begins to increase toward 1
+                //.deposits(1u128) // then it starts increasing again once the user is back
+                //.liquid(3).existed(6).claimable(r*3/6*3/6)
+            //.tick()
+                //.liquid(4).existed(7).claimable(r*4/7*4/7)
+            //.tick()
+                //.liquid(5).existed(8).claimable(r*5/8*5/8)
+            //.tick() // user has provided liquidity for 2/3rds of the time
+                //.liquid(6).existed(9).claimable(r*6/9*6/9);
+        ////  When the user is eligible to claim rewards
+        ////  Then the rewards are diminished by the user and pool liquidity ratios
+//}

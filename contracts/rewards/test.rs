@@ -223,7 +223,7 @@ impl Context {
                 recipient: None
             }).is_ok()
         );
-        let vk: Option<ViewingKey> = self.deps.get(crate::algo::pool::REWARD_VK).unwrap();
+        let vk: Option<ViewingKey> = self.deps.get(crate::algo::config::REWARD_VK).unwrap();
         assert_eq!(vk.unwrap().0, String::from(key));
         self
     }
@@ -312,14 +312,14 @@ impl Context {
         assert_eq!(self.status().lifetime, v.into(), "user.lifetime");
         self
     }
-    pub fn liquid (&mut self, t: u64) -> &mut Self {
-        assert_eq!(self.status().liquid, t, "user.liquid");
-        self
-    }
-    pub fn existed (&mut self, t: u64) -> &mut Self {
-        assert_eq!(self.status().existed, t, "user.existed");
-        self
-    }
+    //pub fn liquid (&mut self, t: u64) -> &mut Self {
+        //assert_eq!(self.status().liquid, t, "user.liquid");
+        //self
+    //}
+    //pub fn existed (&mut self, t: u64) -> &mut Self {
+        //assert_eq!(self.status().existed, t, "user.existed");
+        //self
+    //}
     pub fn claimed <A: Into<Amount>> (&mut self, a: A) -> &mut Self {
         assert_eq!(self.status().claimed, a.into(), "user.claimed");
         self
