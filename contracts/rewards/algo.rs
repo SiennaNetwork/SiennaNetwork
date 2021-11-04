@@ -159,13 +159,13 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     fn before_user_action (&mut self, env: &Env) -> StdResult<(Pool, User)> {
         // Compute pool state
         let now = env.block.time;
-        let mut pool = self.get_pool_status(now)?;
+        let pool = self.get_pool_status(now)?;
         if pool.updated > now {
             return Err(StdError::generic_err("no time travel"))
         }
         // Compute user state
         let id = self.canonize(env.message.sender.clone())?;
-        let mut user = self.get_user_status(&pool, &id)?;
+        let user = self.get_user_status(&pool, &id)?;
         if user.updated > now {
             return Err(StdError::generic_err("no time travel"))
         }
@@ -173,8 +173,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     fn after_user_action (
-        &mut self, env: &Env, pool: &mut Pool, user: &mut User, id: &CanonicalAddr
+        &mut self, pool: &mut Pool, user: &mut User, id: &CanonicalAddr
     ) -> StdResult<()> {
+
         // Commit pool state
         match pool.seeded {
             None => {
@@ -195,6 +196,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         self.set(pool::LIQUID,   pool.liquid)?;
         self.set(pool::LIFETIME, pool.lifetime)?;
         self.set(pool::UPDATED,  pool.now)?;
+
         // Commit user state
         self.set_ns(user::EXISTED,  id.as_slice(), user.existed)?;
         self.set_ns(user::PRESENT,  id.as_slice(), user.liquid)?;
@@ -219,7 +221,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             user.locked += deposited;
             pool.locked += deposited;
             self.update_locked(&pool, &user, &id)?;
-            self.after_user_action(env, &mut pool, &mut user, &id)?;
+            self.after_user_action(&mut pool, &mut user, &id)?;
             // Transfer liquidity provision tokens from the user to the contract
             HandleResponse::default()
                 .msg(self.lp_token()?.transfer_from(
@@ -245,7 +247,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             user.locked = (user.locked - withdrawn)?;
             let id = self.canonize(env.message.sender.clone())?;
             self.update_locked(&pool, &user, &id)?;
-            self.after_user_action(env, &mut pool, &mut user, &id)?;
+            self.after_user_action(&mut pool, &mut user, &id)?;
             // Transfer liquidity provision tokens from the contract to the user
             HandleResponse::default()
                 .msg(self.lp_token()?.transfer(
@@ -301,9 +303,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             self.set(pool::CLAIMED, pool.claimed)?;
             // Reset user cooldown countdown to pool cooldown value
             user.cooldown = pool.cooldown;
-            self.after_user_action(env, &mut pool, &mut user, &id)?;
+            self.after_user_action(&mut pool, &mut user, &id)?;
             if user.locked == Amount::zero() {
-                self.reset_user_data(&id);
+                self.reset_user_data(&id)?;
             }
             // Transfer reward tokens from the contract to the user
             HandleResponse::default()
@@ -312,7 +314,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     fn reset_user_data (&mut self, id: &CanonicalAddr) -> StdResult<()> {
-        self.set_ns(user::LIFETIME, id.as_slice(), Volume::zero());
+        self.set_ns(user::LIFETIME, id.as_slice(), Volume::zero())?;
         self.set_ns(user::CLAIMED,  id.as_slice(), Amount::zero())
     }
 
