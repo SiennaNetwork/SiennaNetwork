@@ -81,10 +81,10 @@ jobs:
           }
       - uses: Swatinem/rust-cache@v1
 
-      - name: Install Tarpaulin
-        uses: actions-rs/cargo@v1
-        with: { command: install, args: cargo-tarpaulin }
-        env: { RUST_BACKTRACE: 1 }
+      #- name: Install Tarpaulin
+        #uses: actions-rs/cargo@v1
+        #with: { command: install, args: cargo-tarpaulin }
+        #env: { RUST_BACKTRACE: 1 }
 
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -102,6 +102,12 @@ jobs:
         #with:
           #version: 6.0.2
           #run_install: true
+          #
+
+      - name: Run cargo-tarpaulin
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          version: '0.18.3'
 
       - name: Generate coverage report
         run: cargo tarpaulin --out=Lcov --locked --frozen
