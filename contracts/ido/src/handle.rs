@@ -8,7 +8,7 @@ use amm_shared::fadroma::{
     scrt_storage_traits::Storable,
     admin::{assert_admin, load_admin},
     require_admin::require_admin,
-    scrt_decimal::convert_token
+    convert_token
 };
 use amm_shared::TokenType;
 use amm_shared::msg::ido::{ReceiverCallbackMsg, SaleType};

@@ -1,4 +1,4 @@
-use fadroma::{*, scrt_uint256::Uint256};
+use fadroma::*;
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 
