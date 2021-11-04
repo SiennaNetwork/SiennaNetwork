@@ -91,9 +91,24 @@ pub mod factory {
         RegisterIdo {
             signature: Binary,
         },
-        /// Adds already created exchanges to the registry. Admin only command.
-        AddExchanges {
-            exchanges: Vec<Exchange<HumanAddr>>,
+        /// Transfers exchanges to a new instance. Admin only command.
+        TransferExchanges {
+            /// The password set on the receiving instance.
+            password: String,
+            /// The address of the new instance.
+            new_instance: ContractLink<HumanAddr>,
+            /// Optionally, skip transferring the given exchanges.
+            skip: Option<Vec<HumanAddr>>
+        },
+        ReceiveExchanges {
+            /// The password that was set on this instance.
+            password: String,
+            /// Indicates whether all exchanges have been transferred.
+            finalize: bool,
+            exchanges: Vec<Exchange<HumanAddr>>
+        },
+        SetMigrationPassword {
+            password: String
         },
         /// Adds already created IDO addresses to the registry. Admin only command.
         AddIdos {
@@ -196,7 +211,11 @@ pub mod exchange {
             amount: Uint128,
         },
         /// Sent by the LP token contract so that we can record its address.
-        OnLpTokenInit
+        OnLpTokenInit,
+        /// Can only be called by the current factory.
+        ChangeFactory {
+            contract: ContractLink<HumanAddr>
+        }
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]

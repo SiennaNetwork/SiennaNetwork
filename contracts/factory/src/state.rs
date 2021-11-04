@@ -9,16 +9,19 @@ use amm_shared::{
             Api, Binary, CanonicalAddr, Extern, HumanAddr,
             Querier, StdError, StdResult, Storage,
         },
-        scrt_storage::{load, ns_load, ns_remove, ns_save, save, IterableStorage},
+        scrt_storage::{
+            load, ns_load, ns_remove, ns_save,
+            save, remove, IterableStorage
+        },
     },
-    msg::factory::InitMsg,
-    Pagination, TokenPair, TokenType,
+    Pagination, TokenPair, TokenType
 };
 use serde::{Deserialize, Serialize};
 
 const CONFIG_KEY: &[u8] = b"config";
 const PRNG_KEY: &[u8] = b"prng_seed";
 const LAUNCHPAD_KEY: &[u8] = b"launchpad_instance";
+const MIGRATION_KEY: &[u8] = b"migration";
 
 const NS_IDO_WHITELIST: &[u8] = b"ido_whitelist";
 const NS_IDOS: &[u8] = b"idos";
@@ -36,18 +39,6 @@ pub(crate) struct Config<A> {
     pub exchange_settings: ExchangeSettings<A>,
 }
 
-impl Config<HumanAddr> {
-    pub fn from_init_msg(msg: InitMsg) -> Self {
-        Self {
-            snip20_contract: msg.snip20_contract,
-            lp_token_contract: msg.lp_token_contract,
-            pair_contract: msg.pair_contract,
-            launchpad_contract: msg.launchpad_contract,
-            ido_contract: msg.ido_contract,
-            exchange_settings: msg.exchange_settings,
-        }
-    }
-}
 impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
     fn canonize(&self, api: &impl Api) -> StdResult<Config<CanonicalAddr>> {
         Ok(Config {
@@ -86,8 +77,9 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
 ) -> StdResult<Config<HumanAddr>> {
     let config: Option<Config<CanonicalAddr>> = load(&deps.storage, CONFIG_KEY)?;
+
     config
-        .ok_or(StdError::generic_err("Config doesn't exist in storage."))?
+        .ok_or_else(|| StdError::generic_err("Config doesn't exist in storage."))?
         .humanize(&deps.api)
 }
 
@@ -97,7 +89,22 @@ pub(crate) fn save_prng_seed(storage: &mut impl Storage, prng_seed: &Binary) -> 
 
 pub(crate) fn load_prng_seed(storage: &impl Storage) -> StdResult<Binary> {
     let prng_seed: Option<Binary> = load(storage, PRNG_KEY)?;
-    prng_seed.ok_or(StdError::generic_err("Prng seed doesn't exist in storage."))
+
+    prng_seed.ok_or_else(|| StdError::generic_err("Prng seed doesn't exist in storage."))
+}
+
+pub(crate) fn save_migration_password(storage: &mut impl Storage, pass: &String) -> StdResult<()> {
+    save(storage, MIGRATION_KEY, pass)
+}
+
+pub(crate) fn load_migration_password(storage: &impl Storage) -> StdResult<String> {
+    let pass: Option<String> = load(storage, MIGRATION_KEY)?;
+
+    pass.ok_or_else(|| StdError::unauthorized())
+}
+
+pub(crate) fn remove_migration_password(storage: &mut impl Storage) {
+    remove(storage, MIGRATION_KEY)
 }
 
 pub(crate) fn save_launchpad_instance(
@@ -111,6 +118,16 @@ pub(crate) fn load_launchpad_instance(
     storage: &impl Storage,
 ) -> StdResult<Option<ContractLink<HumanAddr>>> {
     load(storage, LAUNCHPAD_KEY)
+}
+
+#[inline]
+pub(crate) fn exchanges_store() -> IterableStorage<Exchange<CanonicalAddr>> {
+    IterableStorage::new(NS_EXCHANGES)
+}
+
+#[inline]
+pub(crate) fn idos_store() -> IterableStorage<CanonicalAddr> {
+    IterableStorage::new(NS_IDOS)
 }
 
 /// Returns StdResult<bool> indicating whether a pair has been created before or not.
@@ -129,7 +146,7 @@ pub(crate) fn store_exchanges<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     exchanges: Vec<Exchange<HumanAddr>>,
 ) -> StdResult<()> {
-    let mut exchanges_store = IterableStorage::<Exchange<CanonicalAddr>>::new(NS_EXCHANGES);
+    let mut exchanges_store = exchanges_store();
 
     for exchange in exchanges {
         let exchange = exchange.canonize(&deps.api)?;
@@ -143,7 +160,7 @@ pub(crate) fn store_exchanges<S: Storage, A: Api, Q: Querier>(
             )));
         }
 
-        ns_save(&mut deps.storage, NS_EXCHANGES, &key, &exchange.address)?;
+        ns_save(&mut deps.storage, NS_EXCHANGES, &key, &exchange.contract.address)?;
         exchanges_store.push(&mut deps.storage, &exchange)?;
     }
 
@@ -167,7 +184,7 @@ pub(crate) fn store_ido_addresses<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     addresses: Vec<HumanAddr>,
 ) -> StdResult<()> {
-    let mut idos_store = IterableStorage::<CanonicalAddr>::new(NS_IDOS);
+    let mut idos_store = idos_store();
 
     for address in addresses {
         let address = deps.api.canonical_address(&address)?;
@@ -183,7 +200,7 @@ pub(crate) fn get_idos<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<Vec<HumanAddr>> {
     let limit = pagination.limit.min(PAGINATION_LIMIT);
 
-    let idos_store = IterableStorage::<CanonicalAddr>::new(NS_IDOS);
+    let idos_store = idos_store();
     let iterator = idos_store.iter(&deps.storage)?
         .skip(pagination.start as usize)
         .take(limit as usize);
@@ -204,7 +221,7 @@ pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<Vec<Exchange<HumanAddr>>> {
     let limit = pagination.limit.min(PAGINATION_LIMIT);
 
-    let exchanges_store = IterableStorage::<Exchange<CanonicalAddr>>::new(NS_EXCHANGES);
+    let exchanges_store = exchanges_store();
     let iterator = exchanges_store.iter(&deps.storage)?
         .skip(pagination.start as usize)
         .take(limit as usize);

@@ -145,6 +145,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             slippage_tolerance,
         } => add_liquidity(deps, env, deposit, slippage_tolerance),
         HandleMsg::OnLpTokenInit => register_lp_token(deps, env),
+        HandleMsg::ChangeFactory { contract } => change_factory(deps, env, contract),
         HandleMsg::Swap {
             offer,
             expected_return,
@@ -589,6 +590,23 @@ fn register_lp_token<S: Storage, A: Api, Q: Querier>(
         log: vec![log("liquidity_token_addr", env.message.sender)],
         data: None,
     })
+}
+
+fn change_factory<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    new_instance: ContractLink<HumanAddr>
+) -> StdResult<HandleResponse> {
+    let mut config = load_config(deps)?;
+
+    if env.message.sender != config.factory_info.address {
+        return Err(StdError::unauthorized());
+    }
+
+    config.factory_info = new_instance;
+    store_config(deps, &config)?;
+
+    Ok(HandleResponse::default())
 }
 
 fn register_custom_token(

@@ -66,7 +66,7 @@ fn mkdeps() -> Extern<impl Storage, impl Api, impl Querier> {
 }
 
 fn mkconfig(id: u64) -> Config<HumanAddr> {
-    Config::from_init_msg(InitMsg {
+    Config {
         snip20_contract: ContractInstantiationInfo {
             id,
             code_hash: "snip20".into(),
@@ -91,10 +91,8 @@ fn mkconfig(id: u64) -> Config<HumanAddr> {
             swap_fee: Fee::new(28, 10000),
             sienna_fee: Fee::new(2, 10000),
             sienna_burner: None,
-        },
-        admin: None,
-        prng_seed: to_binary(&"prng").unwrap(),
-    })
+        }
+    }
 }
 
 fn assert_unauthorized(response: StdResult<HandleResponse>) {
@@ -388,70 +386,6 @@ mod test_contract {
     }
 
     #[test]
-    fn test_add_exchanges() {
-        let ref mut deps = mkdeps();
-        let env = mkenv("admin");
-        let config = mkconfig(0);
-
-        init(deps, env.clone(), (&config).into()).unwrap();
-
-        let mut exchanges = vec![];
-
-        for i in 0..5 {
-            exchanges.push(Exchange {
-                pair: TokenPair::<HumanAddr>(
-                    TokenType::CustomToken {
-                        contract_addr: format!("token_0_addr_{}", i).into(),
-                        token_code_hash: format!("token_0_hash_{}", i),
-                    },
-                    TokenType::CustomToken {
-                        contract_addr: format!("token_1_addr_{}", i).into(),
-                        token_code_hash: format!("token_1_hash_{}", i),
-                    },
-                ),
-                address: format!("pair_addr_{}", i).into(),
-            });
-        }
-
-        store_exchanges(deps, vec![exchanges[0].clone()]).unwrap();
-
-        let result = handle(
-            deps,
-            mkenv("unauthorized"),
-            HandleMsg::AddExchanges {
-                exchanges: exchanges.clone()[1..].into(),
-            },
-        );
-        assert_unauthorized(result);
-
-        handle(
-            deps,
-            env,
-            HandleMsg::AddExchanges {
-                exchanges: exchanges.clone()[1..].into(),
-            },
-        )
-        .unwrap();
-
-        let result = query(
-            deps,
-            QueryMsg::ListExchanges {
-                pagination: pagination(0, PAGINATION_LIMIT),
-            },
-        )
-        .unwrap();
-
-        let response: QueryResponse = from_binary(&result).unwrap();
-
-        match response {
-            QueryResponse::ListExchanges { exchanges: stored } => {
-                assert_eq!(exchanges, stored)
-            }
-            _ => panic!("QueryResponse::ListExchanges"),
-        }
-    }
-
-    #[test]
     fn test_add_idos() {
         let ref mut deps = mkdeps();
         let env = mkenv("admin");
@@ -678,7 +612,10 @@ mod test_state {
             &mut deps,
             vec![Exchange {
                 pair: pair.clone(),
-                address: address.clone(),
+                contract: ContractLink {
+                    address:  address.clone(),
+                    code_hash: "code_hash".into()
+                }
             }],
         )?;
 
@@ -708,7 +645,10 @@ mod test_state {
             deps,
             vec![Exchange {
                 pair: pair.clone(),
-                address: "first_addr".into(),
+                contract: ContractLink {
+                    address: "first_addr".into(),
+                    code_hash: "first_code_hash".into()
+                }
             }],
         )?;
 
@@ -718,7 +658,10 @@ mod test_state {
             deps,
             vec![Exchange {
                 pair: swapped,
-                address: "other_addr".into(),
+                contract: ContractLink {
+                    address: "other_addr".into(),
+                    code_hash: "other_code_hash".into()
+                }
             }],
         ) {
             Ok(_) => Err(StdError::generic_err("Exchange already exists")),
@@ -773,8 +716,15 @@ mod test_state {
                 },
             );
             let address = HumanAddr(format!("address_{}", i));
+            let code_hash = format!("code_hash_{}", i);
 
-            let exchange = Exchange { pair, address };
+            let exchange = Exchange {
+                pair,
+                contract: ContractLink {
+                    address,
+                    code_hash
+                }
+            };
 
             store_exchanges(deps, vec![exchange.clone()])?;
             exchanges.push(exchange);
