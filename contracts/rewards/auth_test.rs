@@ -1,6 +1,6 @@
 #![cfg(test)]
 use crate::*;
-use fadroma::testing::*;
+use fadroma::{testing::*, scrt_vk_auth::{authenticate, load_viewing_key}};
 
 #[test]
 fn test_vk_handle() {
