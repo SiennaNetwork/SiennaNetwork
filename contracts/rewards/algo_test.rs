@@ -6,6 +6,7 @@
 use crate::*;
 use crate::test::{*, Context};
 use fadroma::*;
+use rand::Rng;
 //use fadroma::secret_toolkit::snip20;
 
 // duration of rewards period as u128 instead of u64
@@ -84,34 +85,34 @@ use fadroma::*;
             .locked(0u128).lifetime(0u128)
             .deposits(100u128)
             .locked(100u128).lifetime(0u128)
-        .next()
+        .tick()
             .locked(100u128).lifetime(100u128)
-        .next()
+        .tick()
             .locked(100u128).lifetime(200u128)
     //  When user withdraws half of the tokens
     //  Then user's age keeps incrementing
     //   And user's lifetime keeps incrementing at a halved rate
             .withdraws(50u128)
             .locked( 50u128).lifetime(200u128)
-       .next()
+       .tick()
             .locked( 50u128).lifetime(250u128)
-       .next()
+       .tick()
             .locked( 50u128).lifetime(300u128)
     //  When user withdraws other half of tokens
     //  Then user's age and lifetime stop incrementing
             .withdraws(50u128)
             .locked(  0u128).lifetime(300u128)
-       .next()
+       .tick()
             .locked(  0u128).lifetime(300u128)
-       .next()
+       .tick()
             .locked(  0u128).lifetime(300u128)
     //  When user deposits tokens again later
     //  Then user's age and lifetime start incrementing again
             .deposits(1u128)
             .locked(  1u128).lifetime(300u128)
-       .next()
+       .tick()
             .locked(  1u128).lifetime(301u128)
-       .next()
+       .tick()
             .locked(  1u128).lifetime(302);
     //  When another user deposits tokens
     //  Then the first user's lifetime share starts to diminish
@@ -144,30 +145,48 @@ use fadroma::*;
 
     // Given an instance
     Context::new()
-        .admin().at(1).init().fund(100u128)
-        //  When strangers try to claim rewards
-        //  Then they get an error
+        .admin()
+            .at(1)
+                .init()
+        .fund(100)
         .user("Alice")
-        .at(2).needs_age_threshold(86400)
-        //  When users provide liquidity
-        //   And they wait for rewards to accumulate
-        .at(3).needs_age_threshold(86400).deposits(100).needs_age_threshold(86400)
-        .at(4).needs_age_threshold(86399)
-        .at(5).needs_age_threshold(86398)
-        // ...
-        .at(86402).needs_age_threshold(1)
-        //   And a provider claims rewards
-        //  Then that provider receives reward tokens
-        .at(86403).claims(100)
-        //  When a provider claims rewards twice within a period
-        //  Then rewards are sent only the first time
-        .at(86403).needs_cooldown(86400)
-        .at(86404).needs_cooldown(86399)
-        .at(86405).needs_cooldown(86398)
-        // ...
-        //  When a provider claims their rewards less often
-        //  Then they receive equivalent rewards as long as the liquidity deposited hasn't changed
-        .at(3*86400+3).claims(200).needs_cooldown(86400);
+            //  When users tries to claim reward before providing liquidity
+            //  Then they get an error
+            .at(2)
+                .needs_age_threshold(86400)
+            //  When users provide liquidity
+            //   And they wait for rewards to accumulate
+            .tick()
+                .needs_age_threshold(86400)
+                .deposits(100)
+                .needs_age_threshold(86400)
+            .tick()
+                .needs_age_threshold(86399)
+            .tick()
+                .needs_age_threshold(86398)
+            // ...
+            .at(86402)
+                .needs_age_threshold(1)
+            //   And a provider claims rewards
+            //  Then that provider receives reward tokens
+            .tick()
+                .claims(100)
+        .fund(100)
+            //  When a provider claims rewards twice within a period
+            //  Then rewards are sent only the first time
+            .tick()
+                .needs_cooldown(86399)
+            .tick()
+                .needs_cooldown(86398)
+            .tick()
+                .needs_cooldown(86397)
+            // ...
+            //  When a provider claims their rewards less often
+            //  Then they receive equivalent rewards as long as the liquidity deposited hasn't changed
+        .fund(100)
+            .at(3*86400+3)
+                .claims(200)
+                .needs_cooldown(86400);
 
 }
 
@@ -208,7 +227,7 @@ use fadroma::*;
 
     Context::new()
         .admin()
-            .at(1).init().fund(100u128).configure(RewardsConfig {
+            .at(1).init().configure(RewardsConfig {
                 lp_token:     None,
                 reward_token: None,
                 reward_vk:    None,
@@ -216,6 +235,7 @@ use fadroma::*;
                 threshold:    Some(100),
                 cooldown:     Some(200),
             })
+        .fund(100u128)
         .user("Alice")
             .at(2).deposits(100u128)
             .at(4).needs_age_threshold(98)
@@ -228,6 +248,7 @@ use fadroma::*;
             .at(103).needs_cooldown(199)
             .at(104).needs_cooldown(198)
             // ...
+        .fund(100u128)
             .at(299).needs_cooldown(3)
             .at(300).needs_cooldown(2)
             .at(301).needs_cooldown(1)
@@ -388,64 +409,82 @@ use fadroma::*;
 #[test] fn test_global_ratio () {
     Context::new()
         .admin()
-            .at(1).init().fund(100u128).set_ratio((0u128, 1u128))
+            .at(1)
+                .init().fund(100u128).set_ratio((0u128, 1u128))
         .user("Alice")
-            .at(2).deposits(100u128)
-            .at(2).needs_age_threshold(86400)
-            .at(3).needs_age_threshold(86399)
-            .at(86401).needs_age_threshold(1)
-            .at(86402).ratio_is_zero()
+            .tick()
+                .deposits(100u128)
+            .tick()
+                .needs_age_threshold(86399)
+            .tick()
+                .needs_age_threshold(86398)
+            .at(86401)
+                .needs_age_threshold(1)
+            .tick()
+                .ratio_is_zero()
         .admin()
-            .at(86403).set_ratio((1u128, 2u128)).fund(100u128)
+            .tick()
+                .set_ratio((1u128, 2u128))
         .user("Alice")
-            .at(86402).claims(50u128)
+            .tick()
+                .claims(50u128)
         .admin()
-            .at(86403).set_ratio((1u128, 1u128)).fund(100u128)
+            .tick()
+                .set_ratio((1u128, 1u128))
+                .fund(100u128)
         .user("Alice")
-            .at(86402*2).claims(150u128);
+            .at(86402*2)
+                .claims(150u128);
 }
 
 #[test] fn test_liquidity_ratios () {
-    let t    =   23u64;
-    let r    = 5040u128;
-    let half =  120u128;
-    // Given a pool and a user
+    let t    = rand::thread_rng().gen_range(0..100000);
+    let r    = 5040u128 * rand::thread_rng().gen_range(0..100000);
+    let half =  120u128 * rand::thread_rng().gen_range(0..100000);
     Context::new()
+        // Given a pool and a user
         .admin()
-            .at(1).init().fund(100u128).set_threshold(0u64)
-             //  When LP tokens have never been deposited in this pool
-             //  Then the user and pool liquidity ratios is 1
+            .init().fund(r).set_threshold(0u64)
         .user("Alice")
-            .at(t  ).set_vk("")
+            .at(t  )
+                .set_vk("")
+                 //  When LP tokens have never been deposited in this pool
+                 //  Then the user and pool liquidity ratios is 1
                 .liquid(0).existed(0).claimable(0u128)
-        //  When LP tokens are deposited by this user
-        //  Then the user and pool liquidity ratios remain 1
+                //  When LP tokens are deposited by this user
+                //  Then the user and pool liquidity ratios remain 1
                 .deposits(2 * half)
                 .liquid(0).existed(0).claimable(0u128)
-            .at(t+1).liquid(1).existed(1).claimable(r)
-            .at(t+2) // after partial withdrawal user is still present
-                    .liquid(2).existed(2).claimable(r)
-        //  When some LP tokens are withdrawn by this user
-        //  Then the user and pool liquidity ratios remain 1
-                    .withdraws(half)
-                    .liquid(2).existed(2).claimable(r)
-            .at(t+3) // after full withdraw ratio starts going down, representing the user's absence
-                    .liquid(3).existed(3).claimable(r)
-        //  When all LP tokens are withdrawn by this user
-        //  Then the user and pool liquidity ratios begins to decrease toward 0
-                    .withdraws(half)
-                    .liquid(3).existed(3).claimable(r)
-            .at(t+4).liquid(3).existed(4).claimable(r*3/4*3/4)
-            .at(t+5).liquid(3).existed(5).claimable(r*3/5*3/5)
-            .at(t+6).liquid(3).existed(6).claimable(r*3/6*3/6)
+            .tick()
+                .liquid(1).existed(1).claimable(r)
+            .tick() // after partial withdrawal user is still present
+                .liquid(2).existed(2).claimable(r)
+                //  When some LP tokens are withdrawn by this user
+                //  Then the user and pool liquidity ratios remain 1
+                .withdraws(half)
+                .liquid(2).existed(2).claimable(r)
+            .tick() // after full withdraw ratio starts going down, representing the user's absence
+                .liquid(3).existed(3).claimable(r)
+                //  When all LP tokens are withdrawn by this user
+                //  Then the user and pool liquidity ratios begins to decrease toward 0
+                .withdraws(half)
+                .liquid(3).existed(3).claimable(r)
+            .tick()
+                .liquid(3).existed(4).claimable(r*3/4*3/4)
+            .tick()
+                .liquid(3).existed(5).claimable(r*3/5*3/5)
+            .tick()
+                .liquid(3).existed(6).claimable(r*3/6*3/6)
         //  When LP tokens are deposited again by this user
         //  Then the user and pool liquidity ratios begins to increase toward 1
-                    .deposits(1u128) // then it starts increasing again once the user is back
-                    .liquid(3).existed(6).claimable(r*3/6*3/6)
-            .at(t+7).liquid(4).existed(7).claimable(r*4/7*4/7)
-            .at(t+8).liquid(5).existed(8).claimable(r*5/8*5/8)
-            .at(t+9) // user has provided liquidity for 2/3rds of the time
-                    .liquid(6).existed(9).claimable(r*6/9*6/9);
+                .deposits(1u128) // then it starts increasing again once the user is back
+                .liquid(3).existed(6).claimable(r*3/6*3/6)
+            .tick()
+                .liquid(4).existed(7).claimable(r*4/7*4/7)
+            .tick()
+                .liquid(5).existed(8).claimable(r*5/8*5/8)
+            .tick() // user has provided liquidity for 2/3rds of the time
+                .liquid(6).existed(9).claimable(r*6/9*6/9);
         //  When the user is eligible to claim rewards
         //  Then the rewards are diminished by the user and pool liquidity ratios
 }

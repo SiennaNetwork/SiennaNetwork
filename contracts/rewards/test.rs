@@ -70,11 +70,11 @@ impl Context {
     pub fn after (&mut self, t: Duration) -> &mut Self {
         self.at(self.env.block.time + t)
     }
-    pub fn next (&mut self) -> &mut Self {
+    pub fn tick (&mut self) -> &mut Self {
         self.after(1)
     }
     pub fn later (&mut self) -> &mut Self {
-        self.after(rand::thread_rng().gen())
+        self.after(rand::thread_rng().gen_range(0..86400))
     }
     pub fn epoch (&mut self) -> &mut Self {
         self.after(86400)
@@ -93,6 +93,8 @@ impl Context {
         self.set_address(address)
     }
     pub fn fund (&mut self, amount: u128) -> &mut Self {
+        self.table.add_row(row![]);
+        self.table.add_row(row![rb->self.time, b->"RPT", b->format!("vest {}", &amount)]);
         self.deps.querier.increment_balance(&self.reward_token.link.address, amount);
         self
     }
@@ -243,8 +245,6 @@ impl Context {
         self
     }
     pub fn deposits (&mut self, amount: u128) -> &mut Self {
-        dbg!(&self.lp_token);
-        dbg!(&self.reward_token);
         self.test_handle(
             RewardsHandle::Lock { amount: amount.into() },
             HandleResponse::default().msg(self.lp_token.transfer_from(
@@ -386,7 +386,7 @@ pub fn test_handle (
     add_result(table, &result);
     if result != expected {
         table.add_row(row![]);
-        table.add_row(row![rbBrFd->"FAIL", bBrFd->"was expecting", bBrFd->"the following:"]);
+        table.add_row(row![rbBrFd->"FAIL", bBrFd->"was expecting", bBrFd->"the following"]);
         table.add_row(row![]);
         add_result(table, &expected);
     }
@@ -421,12 +421,9 @@ impl RewardsMockQuerier {
     pub fn mock_query_dispatch(
         &self, contract: &ContractLink<HumanAddr>, msg: &Snip20Query
     ) -> Snip20Response {
-        dbg!(contract);
-        dbg!(msg);
         match msg {
             Snip20Query::Balance { .. } => {
                 let amount = self.get_balance(&contract.address).into();
-                dbg!(amount);
                 Snip20Response::Balance { amount }
             }
             //_ => unimplemented!()

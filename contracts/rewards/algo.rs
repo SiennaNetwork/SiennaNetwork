@@ -488,23 +488,34 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             balance = (balance - locked)?;
         }
 
+        let global_ratio: (Amount, Amount) =
+            self.get(pool::RATIO)?
+                .ok_or(StdError::generic_err("missing global ratio"))?;
         let claimed =
-            self.get(pool::CLAIMED)?.unwrap_or(Amount::zero());
+            self.get(pool::CLAIMED)?
+                .unwrap_or(Amount::zero());
         let vested =
             claimed + balance;
+        let budget = if existed.unwrap_or(0) == 0 {
+            Amount::zero()
+        } else if global_ratio.1 == Amount::zero() {
+            Amount::zero()
+        } else {
+            Amount::from(vested)
+                .multiply_ratio(liquid, existed.unwrap_or(0))
+                .multiply_ratio(global_ratio.0, global_ratio.1)
+        };
 
         Ok(Pool {
             now, seeded, updated, existed, liquid,
             locked, lifetime,
-            vested, claimed, balance,
+            vested, claimed, balance, budget,
+            global_ratio,
             cooldown:     self.get(pool::COOLDOWN)?.ok_or(
                 StdError::generic_err("missing cooldown")
             )?,
             threshold:    self.get(pool::THRESHOLD)?.ok_or(
                 StdError::generic_err("missing threshold")
-            )?,
-            global_ratio: self.get(pool::RATIO)?.ok_or(
-                StdError::generic_err("missing global ratio")
             )?,
             deployed:     self.get(pool::DEPLOYED)?.ok_or(
                 StdError::generic_err("missing deploy timestamp")
@@ -540,22 +551,12 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let liquid: Duration = self.get_ns(user::PRESENT, id.as_slice())?.unwrap_or(0) +
             if locked > Amount::zero() { elapsed } else { 0 };
 
-        let budget = if pool.existed.unwrap_or(0) == 0 {
-            Amount::zero()
-        } else if pool.global_ratio.1 == Amount::zero() {
-            Amount::zero()
-        } else {
-            Amount::from(pool.vested)
-                .multiply_ratio(pool.liquid, pool.existed.unwrap_or(0))
-                .multiply_ratio(pool.global_ratio.0, pool.global_ratio.1)
-        };
-
         let earned = if pool.lifetime == Volume::zero() {
             Amount::zero()
         } else if existed == 0 {
             Amount::zero()
         } else {
-            Volume::from(budget)
+            Volume::from(pool.budget)
                 .multiply_ratio(lifetime, pool.lifetime)?
                 .multiply_ratio(liquid, existed)?
                 .low_u128().into()
@@ -827,6 +828,7 @@ pub struct Pool {
     pub cooldown:     Duration,
 
     pub global_ratio:    (Amount, Amount),
+    pub budget: Amount
 }
 
 /// User status
