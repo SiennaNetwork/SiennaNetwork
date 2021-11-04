@@ -42,7 +42,7 @@ impl Context {
             deps: Extern {
                 storage: MemoryStorage::default(),
                 api:     MockApi::new(20),
-                querier: RewardsMockQuerier { balance: 0u128.into() }
+                querier: RewardsMockQuerier::new()
             },
 
             reward_vk: "reward_vk".to_string(),
@@ -93,7 +93,7 @@ impl Context {
         self.set_address(address)
     }
     pub fn fund (&mut self, amount: u128) -> &mut Self {
-        self.deps.querier.increment_balance(amount);
+        self.deps.querier.increment_balance(&self.reward_token.link.address, amount);
         self
     }
     pub fn test_handle (&mut self, msg: RewardsHandle, expected: StdResult<HandleResponse>) -> &mut Self {
@@ -243,6 +243,8 @@ impl Context {
         self
     }
     pub fn deposits (&mut self, amount: u128) -> &mut Self {
+        dbg!(&self.lp_token);
+        dbg!(&self.reward_token);
         self.test_handle(
             RewardsHandle::Lock { amount: amount.into() },
             HandleResponse::default().msg(self.lp_token.transfer_from(
@@ -250,7 +252,9 @@ impl Context {
                 &self.env.contract.address,
                 amount.into()
             ).unwrap())
-        )
+        );
+        self.deps.querier.increment_balance(&self.lp_token.link.address, amount);
+        self
     }
     pub fn withdraws (&mut self, amount: u128) -> &mut Self {
         self.test_handle(
@@ -259,7 +263,9 @@ impl Context {
                 &self.env.message.sender,
                 amount.into()
             ).unwrap())
-        )
+        );
+        self.deps.querier.decrement_balance(&self.lp_token.link.address, amount);
+        self
     }
     pub fn claims (&mut self, amount: u128) -> &mut Self {
         self.test_handle(
@@ -269,7 +275,7 @@ impl Context {
                 amount.into()
             ).unwrap())
         );
-        self.deps.querier.decrement_balance(amount).unwrap();
+        self.deps.querier.decrement_balance(&self.reward_token.link.address, amount);
         self
     }
     pub fn needs_age_threshold (&mut self, remaining: Duration) -> &mut Self {
@@ -354,50 +360,79 @@ pub fn test_handle (
 ) {
     table.add_row(row![]);
     let msg_ser = serde_yaml::to_string(&msg).unwrap();
-    table.add_row(row![b->env.block.time, b->&address, b->msg_ser.trim()[4..]]);
+    table.add_row(row![rb->env.block.time, b->&address, b->msg_ser.trim()[4..]]);
     let result = Rewards::handle(deps, env, msg);
     let add_result = |table: &mut Table, result: &StdResult<HandleResponse>| match result {
         Ok(ref result) => {
             for message in result.messages.iter() {
-                if let CosmosMsg::Wasm(WasmMsg::Execute { .. }) = message {
-                    table.add_row(row!["=>", "execute", &decode_msg(message).unwrap()[4..]]);
+                if let CosmosMsg::Wasm(WasmMsg::Execute {
+                    ref msg, ref contract_addr, ..
+                }) = message {
+                    let ref decoded = decode_msg(msg).unwrap();
+                    table.add_row(row![
+                        r->"=>",
+                        b->format!("execute\n{}", contract_addr),
+                        decoded[4..]
+                    ]);
                 } else {
-                    table.add_row(row!["=>", "msg", serde_yaml::to_string(&message).unwrap()]);
+                    table.add_row(row![r->"=>", "msg", serde_yaml::to_string(&message).unwrap()]);
                 }
             }
         },
         Err(ref error) => {
-            table.add_row(row!["=>", "err", error]);
+            table.add_row(row![r->"=>", "err", error]);
         }
     };
     add_result(table, &result);
     if result != expected {
         table.add_row(row![]);
-        table.add_row(row![bBrFd->"ERROR", "was expecting", "the following:"]);
+        table.add_row(row![rbBrFd->"FAIL", bBrFd->"was expecting", bBrFd->"the following:"]);
+        table.add_row(row![]);
         add_result(table, &expected);
     }
-    fn decode_msg (message: &CosmosMsg) -> Option<String> {
-        match message {
-            CosmosMsg::Wasm(WasmMsg::Execute { ref msg, .. }) => {
-                let msg: serde_json::Value = serde_json::from_slice(msg.as_slice()).unwrap();
-                Some(serde_yaml::to_string(&msg).unwrap())
-            },
-            _ => None
-        }
+    fn decode_msg (msg: &Binary) -> Option<String> {
+        let msg: serde_json::Value = serde_json::from_slice(msg.as_slice()).unwrap();
+        Some(serde_yaml::to_string(&msg).unwrap())
     }
     assert_eq!(result, expected);
 
 }
 
-pub struct RewardsMockQuerier { pub balance: Amount }
+pub struct RewardsMockQuerier {
+    pub balances: std::collections::HashMap<HumanAddr, u128>
+}
 
-#[derive(serde::Serialize, serde::Deserialize)]
-#[serde(rename_all="snake_case")]
-pub enum Snip20Query { Balance {} }
-
-#[derive(serde::Serialize, serde::Deserialize)]
-#[serde(rename_all="snake_case")]
-pub enum Snip20Response { Balance { amount: Amount } }
+impl RewardsMockQuerier {
+    pub fn new () -> Self {
+        let mut balances = std::collections::HashMap::new();
+        balances.insert("SIENNA_addr".into(), 0u128);
+        balances.insert("LP_addr".into(),     0u128);
+        Self { balances }
+    }
+    fn get_balance (&self, address: &HumanAddr) -> u128 {
+        *self.balances.get(address).unwrap()
+    }
+    pub fn increment_balance (&mut self, address: &HumanAddr, amount: u128) -> () {
+        self.balances.insert(address.clone(), self.get_balance(address) + amount).unwrap();
+    }
+    pub fn decrement_balance (&mut self, address: &HumanAddr, amount: u128) -> () {
+        self.balances.insert(address.clone(), self.get_balance(address) - amount).unwrap();
+    }
+    pub fn mock_query_dispatch(
+        &self, contract: &ContractLink<HumanAddr>, msg: &Snip20Query
+    ) -> Snip20Response {
+        dbg!(contract);
+        dbg!(msg);
+        match msg {
+            Snip20Query::Balance { .. } => {
+                let amount = self.get_balance(&contract.address).into();
+                dbg!(amount);
+                Snip20Response::Balance { amount }
+            }
+            //_ => unimplemented!()
+        }
+    }
+}
 
 impl Querier for RewardsMockQuerier {
     fn raw_query (&self, bin_request: &[u8]) -> QuerierResult {
@@ -417,20 +452,10 @@ impl Querier for RewardsMockQuerier {
     }
 }
 
-impl RewardsMockQuerier {
-    pub fn mock_query_dispatch(
-        &self, _: &ContractLink<HumanAddr>, msg: &Snip20Query
-    ) -> Snip20Response {
-        match msg {
-            Snip20Query::Balance { .. } => Snip20Response::Balance { amount: self.balance },
-            //_ => unimplemented!()
-        }
-    }
-    pub fn increment_balance (&mut self, amount: u128) -> () {
-        self.balance += amount.into();
-    }
-    pub fn decrement_balance (&mut self, amount: u128) -> StdResult<()> {
-        self.balance = (self.balance - amount.into())?;
-        Ok(())
-    }
-}
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all="snake_case")]
+pub enum Snip20Query { Balance {} }
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all="snake_case")]
+pub enum Snip20Response { Balance { amount: Amount } }

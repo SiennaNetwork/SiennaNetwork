@@ -174,10 +174,12 @@ use fadroma::*;
 #[test] fn test_sequential () {
 
     Context::new()
-        .admin().at(1).init().fund(100u128)
+        .admin().at(1).init()
+        .fund(100u128)
         .user("Alice")
             .at(2).deposits(100u128)
             .at(86402).withdraws(100u128).claims(100u128)
+        .fund(100u128)
         .user("Bob")
             .at(86402).deposits(100u128)
             .at(86400*2+2).withdraws(100u128).claims(100u128);
@@ -190,8 +192,8 @@ use fadroma::*;
         .admin().at(1).init().fund(100u128)
         .at(2).user("Alice").deposits(100u128)
               .user("Bob").deposits(100u128)
-        .at(86402).user("Alice").withdraws(100u128).claims(100u128)
-                  .user("Bob").withdraws(100u128).deposits(100u128);
+        .at(86402).user("Alice").withdraws(100u128).claims(50u128)
+                  .user("Bob").withdraws(100u128).deposits(50u128);
 
 }
 
@@ -242,18 +244,11 @@ use fadroma::*;
 ///  Then they get the original amount
 #[test] fn test_single_sided () {
 
-    let Context { ref reward_token, ref reward_vk, .. } = Context::new();
-
-    Context::new()
+    let mut context = Context::new();
+    context.lp_token = context.reward_token.clone();
+    context
         .admin()
-            .at(1).init().fund(100u128).configure(RewardsConfig {
-                lp_token:     Some(reward_token.link.clone()),
-                reward_token: Some(reward_token.link.clone()),
-                reward_vk:    Some(reward_vk.clone()),
-                ratio:        None,
-                threshold:    None,
-                cooldown:     None,
-            })
+            .at(1).init().fund(100u128)
         .user("Alice")
             .at(2)    .deposits(100u128)
             .at(86402).claims(100u128)
@@ -390,9 +385,6 @@ use fadroma::*;
 ///
 ///  When ratio is set to 1/1
 ///  Then rewards are normal
-///
-///  When ratio is set to 2/1
-///  Then rewards are doubled
 #[test] fn test_global_ratio () {
     Context::new()
         .admin()
@@ -404,18 +396,13 @@ use fadroma::*;
             .at(86401).needs_age_threshold(1)
             .at(86402).ratio_is_zero()
         .admin()
-            .at(86403).set_ratio((1u128, 2u128))
+            .at(86403).set_ratio((1u128, 2u128)).fund(100u128)
         .user("Alice")
             .at(86402).claims(50u128)
         .admin()
-            .at(86403).set_ratio((1u128, 1u128))
+            .at(86403).set_ratio((1u128, 1u128)).fund(100u128)
         .user("Alice")
-            .at(86402*2).claims(100u128)
-        .admin()
-            .at(86402*2).set_ratio((2u128, 1u128))
-            .fund(100u128)
-        .user("Alice")
-            .at(86402*3).claims(200u128);
+            .at(86402*2).claims(150u128);
 }
 
 #[test] fn test_liquidity_ratios () {
