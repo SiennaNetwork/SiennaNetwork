@@ -1,5 +1,5 @@
 pub mod contract;
-pub mod state;
+mod state;
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
