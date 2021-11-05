@@ -494,16 +494,18 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
     for e in exchanges_store.iter(&deps.storage)?.rev().take(TRANSFER_LIMIT) {
         let e = e?.humanize(&deps.api)?;
 
-        if !skip.contains(&e.contract.address) {
-            messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: e.contract.address.clone(),
-                callback_code_hash: e.contract.code_hash.clone(),
-                send: vec![],
-                msg: to_binary(&ExchangeHandleMsg::ChangeFactory {
-                    contract: new_instance.clone()
-                })?
-            }));
+        if skip.contains(&e.contract.address) {
+            continue;
         }
+
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: e.contract.address.clone(),
+            callback_code_hash: e.contract.code_hash.clone(),
+            send: vec![],
+            msg: to_binary(&ExchangeHandleMsg::ChangeFactory {
+                contract: new_instance.clone()
+            })?
+        }));
 
         exchanges.push(e);
     }
