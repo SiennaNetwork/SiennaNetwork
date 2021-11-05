@@ -1,4 +1,7 @@
-import { Address, TokenPair, Fee, ContractInstantiationInfo, create_entropy } from './core'
+import { 
+    Address, TokenPair, ContractInstantiationInfo,
+    ContractInfo, Fee, create_entropy
+} from './core'
 import { SmartContract, Executor, Querier } from './contract'
 import { TokenSaleConfig } from './ido'
 import { TokenSettings } from './launchpad'
@@ -7,7 +10,7 @@ import { ExecuteResult } from 'secretjs'
 
 export interface Exchange {
     pair: TokenPair,
-    address: Address
+    contract: ContractInfo
 }
 
 export interface ExchangeSettings {
@@ -60,7 +63,7 @@ export class AmmFactoryExecutor extends Executor {
             }
         }
 
-        return this.run(msg, '750000')
+        return this.run(msg, '760000')
     }
 
     async create_ido(config: TokenSaleConfig): Promise<ExecuteResult> {

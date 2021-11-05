@@ -162,7 +162,7 @@ async function test_query_exchanges(factory: AmmFactoryContract, pair: TokenPair
     async () => { 
       const result = await factory.query().list_exchanges(new Pagination(0, 30))
       assert_equal(result.length, 1)
-      assert_equal(result[0].address, address)
+      assert_equal(result[0].contract.address, address)
       assert_objects_equal(result[0].pair, pair)
     }
   )

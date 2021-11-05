@@ -76,7 +76,7 @@ export class ExchangeExecutor extends Executor {
         const info = await this.querier().get_pair_info()
         const snip20 = new Snip20Contract(info.liquidity_token.address, this.client)
 
-        return snip20.exec(fee, this.memo).send(this.address, amount, msg, null)
+        return snip20.exec(fee, this.memo).send(this.address, amount, msg)
     }
 
     async swap(
@@ -109,7 +109,7 @@ export class ExchangeExecutor extends Executor {
         const token_addr = (amount.token as CustomToken).custom_token.contract_addr;
         const snip20 = new Snip20Contract(token_addr, this.client)
 
-        return snip20.exec(fee, this.memo).send(this.address, amount.amount, msg, null)
+        return snip20.exec(fee, this.memo).send(this.address, amount.amount, msg)
     }
 }
 
