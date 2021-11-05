@@ -1,0 +1,39 @@
+,,
+1,RPT,vest 100
+,,
+83329,Alice,"lock:
+  amount: ""100"""
+=>,"execute
+LP_TOKEN","transfer_from:
+  amount: ""100""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,
+190574,Alice,"lock:
+  amount: ""100"""
+=>,"execute
+LP_TOKEN","transfer_from:
+  amount: ""100""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,
+271378,Admin,"close:
+  message: closed"
+,,
+281266,Alice,"lock:
+  amount: ""100"""
+=>,"execute
+LP_TOKEN","transfer:
+  amount: ""200""
+  padding: ~
+  recipient: Alice"
+,,
+FAIL,was expecting,the following
+,,
+=>,"execute
+LP_TOKEN","transfer:
+  amount: ""200""
+  padding: ~
+  recipient: Alice"

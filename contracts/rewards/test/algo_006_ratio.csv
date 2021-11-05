@@ -1,0 +1,27 @@
+,,
+1,RPT,vest 100
+,,
+1,Admin,"configure:
+  lp_token: ~
+  reward_token: ~
+  reward_vk: ~
+  ratio:
+    - ""0""
+    - ""1""
+  bonding: ~"
+,,
+2,Alice,"lock:
+  amount: ""100"""
+=>,"execute
+LP_TOKEN","transfer_from:
+  amount: ""100""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,
+3,Alice,claim: {}
+=>,err,"Generic error: Rewards from this pool are currently stopped. However, liquidity shares continue to accumulate."
+,,
+FAIL,was expecting,the following
+,,
+=>,err,Generic error: You must keep some tokens staked for 86399 more seconds before you are able to claim.

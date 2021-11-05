@@ -14,8 +14,8 @@
 
 #[cfg(test)] #[macro_use] extern crate prettytable;
 #[cfg(test)] mod test;
-pub mod algo; #[cfg(test)] mod algo_test;
-pub mod auth; #[cfg(test)] mod auth_test;
+pub mod algo;
+pub mod auth;
 pub mod errors;
 pub mod migration;
 

@@ -1,0 +1,26 @@
+,,
+1,RPT,vest 100
+,,
+2,Alice,"lock:
+  amount: ""100"""
+=>,"execute
+SIENNA","transfer_from:
+  amount: ""100""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,
+86402,Alice,claim: {}
+=>,"execute
+SIENNA","transfer:
+  amount: ""100""
+  padding: ~
+  recipient: Alice"
+,,
+86403,Alice,"retrieve:
+  amount: ""100"""
+=>,"execute
+SIENNA","transfer:
+  amount: ""100""
+  padding: ~
+  recipient: Alice"

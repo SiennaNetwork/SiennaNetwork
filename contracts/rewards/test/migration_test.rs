@@ -1,13 +1,4 @@
-#![cfg(test)]
-#![allow(unused_macros)]
-#![allow(non_snake_case)]
-#![allow(unreachable_patterns)]
-
-use crate::*;
-use fadroma::*;
-use fadroma::scrt_contract_harness::*;
-use fadroma::secret_toolkit::snip20;
-use fadroma::testing::*;
+//use crate::test::*;
 
 /// Given two instances
 ///
@@ -22,4 +13,3 @@ use fadroma::testing::*;
 ///  Then the new contract fetches data from the old one
 #[test] fn test_migration () {
 }
-

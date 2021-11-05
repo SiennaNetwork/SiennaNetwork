@@ -1,0 +1,26 @@
+,,
+36601,Admin,"configure:
+  lp_token: ~
+  reward_token:
+    address: SIENNA
+    code_hash: SIENNA_hash
+  reward_vk: reward_vk
+  ratio: ~
+  bonding: ~"
+=>,"execute
+SIENNA","set_viewing_key:
+  key: reward_vk
+  padding: ~"
+,,
+147857,Admin,"configure:
+  lp_token: ~
+  reward_token:
+    address: SIENNA
+    code_hash: SIENNA_hash
+  reward_vk: reward_vk
+  ratio: ~
+  bonding: ~"
+=>,"execute
+SIENNA","set_viewing_key:
+  key: reward_vk
+  padding: ~"

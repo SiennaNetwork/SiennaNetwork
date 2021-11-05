@@ -1,4 +1,33 @@
+// Look Ma, no macros! ////////////////////////////////////////////////////////////////////////////
+#![cfg(test)]
+#![allow(dead_code)]
+#![allow(unused_macros)]
 #![allow(non_snake_case)]
+#![allow(unreachable_patterns)]
+#![allow(non_snake_case)]
+
+mod algo_001_init;
+mod algo_002_config;
+mod algo_003_single_sided;
+mod algo_004_close;
+mod algo_005_drain;
+mod algo_006_ratio;
+
+mod algo_010_basic;
+mod algo_011_deposit_withdraw_one;
+mod algo_012_deposit_withdraw_parallel;
+mod algo_013_reset;
+
+mod algo_020_claim_one;
+mod algo_021_sequential;
+mod algo_022_parallel;
+
+mod algo_030_bonding;
+
+mod auth_test;
+
+mod migration_test;
+
 use prettytable::{Table, /*Row, Cell,*/ format};
 //use yansi::Paint;
 
@@ -6,11 +35,12 @@ use crate::*;
 use fadroma::*;
 use fadroma::secret_toolkit::snip20;
 use fadroma::testing::*;
-use rand::Rng;
+pub use rand::Rng;
 
 pub type Deps = Extern<MemoryStorage, MockApi, RewardsMockQuerier>;
 
 pub struct Context {
+    pub name:         Option<&'static str>,
     pub table:        Table,
     pub deps:         Deps,
     pub reward_vk:    String,
@@ -37,6 +67,7 @@ impl Context {
         //color_backtrace::install();
 
         Self {
+            name: None,
             table,
 
             deps: Extern {
@@ -58,6 +89,11 @@ impl Context {
             address,
             time,
         }
+    }
+    pub fn named (name: &'static str) -> Self {
+        let mut context = Self::new();
+        context.name = Some(name);
+        context
     }
     fn update_env (&mut self) -> &mut Self {
         self.env = env(&self.address, self.time);
@@ -93,7 +129,7 @@ impl Context {
         self.set_address(address)
     }
     pub fn fund (&mut self, amount: u128) -> &mut Self {
-        self.table.add_row(row![]);
+        self.table.add_row(row!["","",""]);
         self.table.add_row(row![rb->self.time, b->"RPT", b->format!("vest {}", &amount)]);
         self.deps.querier.increment_balance(&self.reward_token.link.address, amount);
         self
@@ -116,8 +152,7 @@ impl Context {
                 reward_token: Some(self.reward_token.link.clone()),
                 reward_vk:    Some(self.reward_vk.clone()),
                 ratio:        None,
-                threshold:    None,
-                cooldown:     None,
+                bonding:      None,
             }).unwrap(),
             Some(snip20::set_viewing_key_msg(
                 self.reward_vk.clone(),
@@ -135,8 +170,7 @@ impl Context {
                 reward_token: None,
                 reward_vk:    None,
                 ratio:        None,
-                threshold:    None,
-                cooldown:     None,
+                bonding:      None,
             }).is_err(),
         );
         self
@@ -165,8 +199,7 @@ impl Context {
             reward_token: None,
             reward_vk:    None,
             ratio:        None,
-            threshold:    None,
-            cooldown:     None,
+            bonding:      None,
         })), Err(StdError::unauthorized()));
         self
     }
@@ -180,23 +213,10 @@ impl Context {
                 reward_token: None,
                 reward_vk:    None,
                 ratio:        Some((ratio.0.into(), ratio.1.into())),
-                threshold:    None,
-                cooldown:     None,
+                bonding:      None,
             }),
             Ok(HandleResponse::default())
         );
-        self
-    }
-    pub fn set_threshold (&mut self, threshold: Duration) -> &mut Self  {
-        assert_eq!(Rewards::handle(&mut self.deps, &self.env, RewardsHandle::Configure(RewardsConfig {
-            lp_token:     None,
-            reward_token: None,
-            reward_vk:    None,
-            ratio:        None,
-            threshold:    Some(threshold),
-            cooldown:     None,
-        })), Ok(HandleResponse::default()));
-        // TODO query!!!
         self
     }
     pub fn closes_pool (&mut self) -> &mut Self {
@@ -278,16 +298,10 @@ impl Context {
         self.deps.querier.decrement_balance(&self.reward_token.link.address, amount);
         self
     }
-    pub fn needs_age_threshold (&mut self, remaining: Duration) -> &mut Self {
+    pub fn must_wait (&mut self, remaining: Duration) -> &mut Self {
         self.test_handle(
             RewardsHandle::Claim {},
-            errors::claim_threshold(remaining, 0)
-        )
-    }
-    pub fn needs_cooldown (&mut self, remaining: Duration) -> &mut Self {
-        self.test_handle(
-            RewardsHandle::Claim {},
-            errors::claim_cooldown(remaining)
+            errors::claim_bonding(remaining)
         )
     }
     pub fn ratio_is_zero (&mut self) -> &mut Self {
@@ -304,12 +318,16 @@ impl Context {
             //_ => panic!()
         }
     }
-    pub fn staked <A: Into<Amount>> (&mut self, v: A) -> &mut Self {
-        assert_eq!(self.status().staked, v.into(), "user.staked");
+    pub fn staked <A: Into<Amount>> (&mut self, a: A) -> &mut Self {
+        assert_eq!(self.status().staked, a.into(), "user.staked");
         self
     }
     pub fn volume <V: Into<Volume>> (&mut self, v: V) -> &mut Self {
         assert_eq!(self.status().volume, v.into(), "user.volume");
+        self
+    }
+    pub fn bonding (&mut self, t: Duration) -> &mut Self {
+        assert_eq!(self.status().bonding, t, "user.bonding");
         self
     }
     //pub fn liquid (&mut self, t: u64) -> &mut Self {
@@ -331,6 +349,10 @@ impl Context {
 }
 impl Drop for Context {
     fn drop (&mut self) {
+        if let Some(name) = self.name {
+            println!("writing to test/{}.csv", &name);
+            self.table.to_csv(std::fs::File::create(format!("test/{}.csv", &name)).unwrap()).unwrap();
+        }
         self.table.printstd();
     }
 }
@@ -358,7 +380,7 @@ pub fn test_handle (
     msg:      RewardsHandle,
     expected: StdResult<HandleResponse>
 ) {
-    table.add_row(row![]);
+    table.add_row(row!["","",""]);
     let msg_ser = serde_yaml::to_string(&msg).unwrap();
     table.add_row(row![rb->env.block.time, b->&address, b->msg_ser.trim()[4..]]);
     let result = Rewards::handle(deps, env, msg);
@@ -385,9 +407,9 @@ pub fn test_handle (
     };
     add_result(table, &result);
     if result != expected {
-        table.add_row(row![]);
+        table.add_row(row!["","",""]);
         table.add_row(row![rbBrFd->"FAIL", bBrFd->"was expecting", bBrFd->"the following"]);
-        table.add_row(row![]);
+        table.add_row(row!["","",""]);
         add_result(table, &expected);
     }
     fn decode_msg (msg: &Binary) -> Option<String> {

@@ -47,8 +47,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             )?),
             reward_vk:    Some(config.reward_vk.unwrap_or("".into())),
             ratio:        Some(config.ratio.unwrap_or((1u128.into(), 1u128.into()))),
-            threshold:    Some(config.threshold.unwrap_or(DAY)),
-            cooldown:     Some(config.cooldown.unwrap_or(DAY))
+            bonding:     Some(config.bonding.unwrap_or(DAY))
         };
 
         self.set(config::SELF, &self.canonize(ContractLink {
@@ -112,11 +111,8 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         if let Some(ratio) = &config.ratio {
             self.set(pool::RATIO, &ratio)?;
         }
-        if let Some(threshold) = &config.threshold {
-            self.set(pool::THRESHOLD, &threshold)?;
-        }
-        if let Some(cooldown) = &config.cooldown {
-            self.set(pool::COOLDOWN, &cooldown)?;
+        if let Some(bonding) = &config.bonding {
+            self.set(pool::BONDING, &bonding)?;
         }
 
         Ok(HandleResponse { messages, log: vec![], data: None })
@@ -169,7 +165,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             elapsed,
             pool.staked
         )?;
-
         let lp_token     = self.lp_token()?;
         let reward_token = self.reward_token()?;
         pool.budget = reward_token.query_balance(
@@ -180,13 +175,10 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         if reward_token.link == lp_token.link { // separate balances for single-sided staking
             pool.budget = (pool.budget - pool.staked)?;
         }
-
         pool.claimed = self.get(pool::CLAIMED)?.unwrap_or(Amount::zero());
         pool.vested  = pool.claimed + pool.budget;
-
         pool.global_ratio = self.get(pool::RATIO)?
             .ok_or(StdError::generic_err("missing global ratio"))?;
-
         pool.closed = self.get(pool::CLOSED)?;
         Ok(pool)
     }
@@ -220,9 +212,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
                 .low_u128().into()
         };
         user.claimed = self.get_ns(user::CLAIMED, id.as_slice())?.unwrap_or(Amount::zero());
-        user.cooldown = self.get_ns(user::COOLDOWN, id.as_slice())?.unwrap_or(0);
+        user.bonding = self.get_ns(user::BONDING, id.as_slice())?.unwrap_or(0);
         if user.staked > Amount::zero() {
-            user.cooldown = user.cooldown - u64::min(elapsed, user.cooldown)
+            user.bonding = user.bonding - u64::min(elapsed, user.bonding)
         };
         user.claimable = if user.earned == Amount::zero() {
             user.reason = Some("can only claim positive earnings".to_string());
@@ -308,8 +300,8 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     /// Transfer rewards to user if eligible
     fn handle_claim (&mut self, env: &Env) -> StdResult<HandleResponse> {
         let (ref mut pool, ref mut user) = self.get_status(&env)?;
-        if user.cooldown > 0 {
-            errors::claim_cooldown(user.cooldown)
+        if user.bonding > 0 {
+            errors::claim_bonding(user.bonding)
         } else if pool.budget == Amount::zero() {
             errors::claim_pool_empty()
         } else if pool.global_ratio.0 == Amount::zero() {
@@ -319,7 +311,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         } else if user.claimable == Amount::zero() {
             errors::claim_zero_claimable()
         } else {
-            user.cooldown = pool.cooldown;
+            user.bonding = pool.bonding;
             self.commit_claim(pool, user)?;
             self.commit_progress(pool, user)?;
             self.reset(user)?;
@@ -366,7 +358,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             let withdraw_all = user.staked;
             user.staked = 0u128.into();
             pool.staked = (pool.staked - withdraw_all)?;
-            let id = self.canonize(env.message.sender.clone())?;
             self.commit_staked(pool, user)?;
             HandleResponse::default()
                 .msg(self.lp_token()?.transfer(&env.message.sender.clone(), withdraw_all)?)?
@@ -387,9 +378,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         self.set(pool::VOLUME,  pool.volume)?;
         self.set(pool::UPDATED, pool.now)?;
         // Commit user state
-        self.set_ns(user::COOLDOWN, user.id.as_slice(), user.cooldown)?;
-        self.set_ns(user::VOLUME,   user.id.as_slice(), user.volume)?;
-        self.set_ns(user::UPDATED,  user.id.as_slice(), pool.now)?;
+        self.set_ns(user::BONDING, user.id.as_slice(), user.bonding)?;
+        self.set_ns(user::VOLUME,  user.id.as_slice(), user.volume)?;
+        self.set_ns(user::UPDATED, user.id.as_slice(), pool.now)?;
         Ok(())
     }
 
@@ -465,8 +456,7 @@ pub struct RewardsConfig {
     pub reward_token: Option<ContractLink<HumanAddr>>,
     pub reward_vk:    Option<String>,
     pub ratio:        Option<(Uint128, Uint128)>,
-    pub threshold:    Option<Duration>,
-    pub cooldown:     Option<Duration>
+    pub bonding:      Option<Duration>
 }
 
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -575,7 +565,6 @@ pub mod config {
 ///
 /// 6. Throttles
 ///
-///     * Age threshold (initial bonding period)
 ///     * Cooldown (minimum time between claims)
 ///
 ///     By default, each is equal to the epoch duration.
@@ -609,27 +598,22 @@ pub struct Pool {
     /// "What rewards were unstaked for this pool so far?"
     /// Computed as balance + claimed.
     pub vested:       Amount,
-    /// "What is the initial bonding period?"
-    /// User needs to lock LP tokens for this amount of time
-    /// before rewards can be claimed. Configured on init.
-    pub threshold:    Duration,
     /// "How much must the user wait between claims?"
     /// Configured on init.
-    /// User cooldowns are reset to this value on claim.
-    pub cooldown:     Duration,
+    /// User bondings are reset to this value on claim.
+    pub bonding:      Duration,
     /// Used to throttle the pool.
     pub global_ratio: (Amount, Amount),
 }
 
 pub mod pool {
-    pub const CLOSED:    &[u8] = b"/pool/closed";
-    pub const RATIO:     &[u8] = b"/pool/ratio";
-    pub const COOLDOWN:  &[u8] = b"/pool/cooldown";
-    pub const THRESHOLD: &[u8] = b"/pool/threshold";
-    pub const VOLUME:    &[u8] = b"/pool/volume";
-    pub const UPDATED:   &[u8] = b"/pool/updated";
-    pub const STAKED:    &[u8] = b"/pool/size";
-    pub const CLAIMED:   &[u8] = b"/pool/claimed";
+    pub const CLOSED:  &[u8] = b"/pool/closed";
+    pub const RATIO:   &[u8] = b"/pool/ratio";
+    pub const BONDING: &[u8] = b"/pool/bonding";
+    pub const VOLUME:  &[u8] = b"/pool/volume";
+    pub const UPDATED: &[u8] = b"/pool/updated";
+    pub const STAKED:  &[u8] = b"/pool/size";
+    pub const CLAIMED: &[u8] = b"/pool/claimed";
 }
 
 /// User status
@@ -682,12 +666,12 @@ pub mod pool {
 ///         * as a result of incoming reward portions from the TGE budget.
 ///
 pub mod user {
-    pub const ENTRY:    &[u8] = b"/user/entry/";
-    pub const STAKED:   &[u8] = b"/user/current/";
-    pub const UPDATED:  &[u8] = b"/user/updated/";
-    pub const VOLUME:   &[u8] = b"/user/volume/";
-    pub const CLAIMED:  &[u8] = b"/user/claimed/";
-    pub const COOLDOWN: &[u8] = b"/user/cooldown/";
+    pub const ENTRY:   &[u8] = b"/user/entry/";
+    pub const STAKED:  &[u8] = b"/user/current/";
+    pub const UPDATED: &[u8] = b"/user/updated/";
+    pub const VOLUME:  &[u8] = b"/user/volume/";
+    pub const CLAIMED: &[u8] = b"/user/claimed/";
+    pub const BONDING: &[u8] = b"/user/bonding/";
 }
 
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -717,8 +701,8 @@ pub struct User {
     /// User-friendly reason why claimable is 0
     pub reason:       Option<String>,
     /// How many units of time remain until the user can claim again?
-    /// Decremented on lock/unlock, reset to pool.cooldown on claim.
-    pub cooldown:     Duration,
+    /// Decremented on lock/unlock, reset to pool.bonding on claim.
+    pub bonding:      Duration,
     /// What portion of the pool is this user currently contributing?
     /// Computed as user.staked / pool.staked
     pub pool_share:   (Amount, Amount),

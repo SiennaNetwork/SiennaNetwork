@@ -19,19 +19,11 @@ pub fn withdraw_fatal (staked: Amount, withdrawn: Amount) -> StdResult<HandleRes
     )))
 }
 
-pub fn claim_threshold (threshold: Duration, liquid: Duration) -> StdResult<HandleResponse> {
+pub fn claim_bonding (bonding: Duration) -> StdResult<HandleResponse> {
     Err(StdError::generic_err(format!(
         "You must keep some tokens staked for {} more seconds \
-        before you are able to claim for the first time.",
-        threshold - liquid
-    )))
-}
-
-pub fn claim_cooldown (cooldown: Duration) -> StdResult<HandleResponse> {
-    Err(StdError::generic_err(format!(
-        "You must keep some tokens staked for {} more seconds \
-        before you are able to claim again.",
-        cooldown
+        before you are able to claim.",
+        bonding
     )))
 }
 
