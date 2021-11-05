@@ -373,13 +373,13 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     /// Commit amount of staked tokens for user and pool
     fn commit_staked (&mut self, pool: &Pool, user: &User) -> StdResult<()> {
         self.set_ns(user::STAKED, user.id.as_slice(), user.staked)?;
-        self.set(pool::STAKED, user.staked)
+        self.set(pool::STAKED, pool.staked)
     }
 
     fn commit_progress (&mut self, pool: &mut Pool, user: &mut User) -> StdResult<()> {
         // Commit pool state
-        self.set(pool::VOLUME, pool.volume)?;
-        self.set(pool::UPDATED,  pool.now)?;
+        self.set(pool::VOLUME,  pool.volume)?;
+        self.set(pool::UPDATED, pool.now)?;
         // Commit user state
         self.set_ns(user::COOLDOWN, user.id.as_slice(), user.cooldown)?;
         self.set_ns(user::VOLUME,   user.id.as_slice(), user.volume)?;
