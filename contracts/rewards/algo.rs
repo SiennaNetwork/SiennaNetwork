@@ -189,6 +189,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     /// Compute user status
     fn get_user_status (&self, pool: &Pool, id: &CanonicalAddr) -> StdResult<User> {
         let mut user = User::default();
+        user.id = id.clone();
         user.updated = self.get_ns(user::UPDATED, id.as_slice())?.unwrap_or(pool.now);
         if pool.now < user.updated {
             return errors::no_time_travel()
@@ -236,7 +237,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         Ok(user)
     }
 
-    fn get_status (&mut self, env: &Env) -> StdResult<(Pool, User, CanonicalAddr)> {
+    fn get_status (&mut self, env: &Env) -> StdResult<(Pool, User)> {
         // Compute pool state
         let now = env.block.time;
         let pool = self.get_pool_status(now)?;
@@ -249,24 +250,24 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         if user.updated > now {
             return errors::no_time_travel()
         }
-        Ok((pool, user, id))
+        Ok((pool, user))
     }
 
     /// Deposit LP tokens from user into pool
     fn handle_deposit (&mut self, env: &Env, amount: Amount) -> StdResult<HandleResponse> {
-        let (ref mut pool, ref mut user, ref id) = self.get_status(&env)?;
+        let (ref mut pool, ref mut user) = self.get_status(&env)?;
         if pool.closed.is_some() {
             self.return_stake(env, pool, user)
         } else {
             if user.staked == Amount::zero() {
-                self.reset(id)?;
+                self.reset(user)?;
                 user.entry = pool.volume;
-                self.set_ns::<Volume>(user::ENTRY, id.as_slice(), user.entry)?;
+                self.set_ns::<Volume>(user::ENTRY, user.id.as_slice(), user.entry)?;
             }
             user.staked += amount;
             pool.staked += amount;
-            self.commit_staked(pool.staked, user.staked, &id)?;
-            self.commit_state(pool, user, id)?;
+            self.commit_staked(pool, user)?;
+            self.commit_progress(pool, user)?;
             HandleResponse::default().msg(self.lp_token()?.transfer_from(
                 &env.message.sender,
                 &env.contract.address,
@@ -277,7 +278,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     /// Withdraw deposited LP tokens from pool back to the user
     fn handle_withdraw (&mut self, env: &Env, amount: Uint128) -> StdResult<HandleResponse> {
-        let (ref mut pool, ref mut user, ref id) = self.get_status(&env)?;
+        let (ref mut pool, ref mut user) = self.get_status(&env)?;
         if pool.closed.is_some() {
             self.return_stake(env, pool, user)
         } else if user.staked < amount {
@@ -287,8 +288,8 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         } else {
             user.staked = (user.staked - amount)?;
             pool.staked = (pool.staked - amount)?;
-            self.commit_staked(pool.staked, user.staked, &id)?;
-            self.commit_state(pool, user, id)?;
+            self.commit_staked(pool, user)?;
+            self.commit_progress(pool, user)?;
             if user.staked == Amount::zero() && user.claimable > Amount::zero() {
             }
             HandleResponse::default().msg(self.lp_token()?.transfer(
@@ -300,7 +301,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     /// Transfer rewards to user if eligible
     fn handle_claim (&mut self, env: &Env) -> StdResult<HandleResponse> {
-        let (ref mut pool, ref mut user, ref id) = self.get_status(&env)?;
+        let (ref mut pool, ref mut user) = self.get_status(&env)?;
         if user.cooldown > 0 {
             errors::claim_cooldown(user.cooldown)
         } else if pool.budget == Amount::zero() {
@@ -313,9 +314,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             errors::claim_zero_claimable()
         } else {
             user.cooldown = pool.cooldown;
-            self.commit_claimed(pool, user, id)?;
-            self.commit_state(pool, user, id)?;
-            self.reset(id)?;
+            self.commit_claim(pool, user)?;
+            self.commit_progress(pool, user)?;
+            self.reset(user)?;
             // Transfer reward tokens from the contract to the user
             HandleResponse::default().msg(self.reward_token()?.transfer(
                 &env.message.sender,
@@ -360,7 +361,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             user.staked = 0u128.into();
             pool.staked = (pool.staked - withdraw_all)?;
             let id = self.canonize(env.message.sender.clone())?;
-            self.commit_staked(pool.staked, user.staked, &id)?;
+            self.commit_staked(pool, user)?;
             HandleResponse::default()
                 .msg(self.lp_token()?.transfer(&env.message.sender.clone(), withdraw_all)?)?
                 .log("closed", &format!("{} {}", when, why))
@@ -370,41 +371,35 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Commit amount of staked tokens for user and pool
-    fn commit_staked (
-        &mut self, pool_staked: Amount, user_staked: Amount, id: &CanonicalAddr
-    ) -> StdResult<()> {
-        self.set_ns(user::STAKED, id.as_slice(), user_staked)?;
-        self.set(pool::STAKED, pool_staked)
+    fn commit_staked (&mut self, pool: &Pool, user: &User) -> StdResult<()> {
+        self.set_ns(user::STAKED, user.id.as_slice(), user.staked)?;
+        self.set(pool::STAKED, user.staked)
     }
 
-    fn commit_claimed (
-        &mut self, pool: &mut Pool, user: &mut User, id: &CanonicalAddr
-    ) -> StdResult<()> {
-        user.claimed += user.claimable;
-        pool.claimed += user.claimable;
-        self.set_ns(user::CLAIMED, id.as_slice(), user.claimed)?;
-        self.set(pool::CLAIMED, pool.claimed)?;
-        Ok(())
-    }
-
-    fn commit_state (
-        &mut self, pool: &mut Pool, user: &mut User, id: &CanonicalAddr
-    ) -> StdResult<()> {
+    fn commit_progress (&mut self, pool: &mut Pool, user: &mut User) -> StdResult<()> {
         // Commit pool state
         self.set(pool::VOLUME, pool.volume)?;
         self.set(pool::UPDATED,  pool.now)?;
         // Commit user state
-        self.set_ns(user::COOLDOWN, id.as_slice(), user.cooldown)?;
-        self.set_ns(user::VOLUME, id.as_slice(), user.volume)?;
-        self.set_ns(user::UPDATED,  id.as_slice(), pool.now)?;
+        self.set_ns(user::COOLDOWN, user.id.as_slice(), user.cooldown)?;
+        self.set_ns(user::VOLUME,   user.id.as_slice(), user.volume)?;
+        self.set_ns(user::UPDATED,  user.id.as_slice(), pool.now)?;
+        Ok(())
+    }
+
+    fn commit_claim (&mut self, pool: &mut Pool, user: &mut User) -> StdResult<()> {
+        user.claimed += user.claimable;
+        pool.claimed += user.claimable;
+        self.set_ns(user::CLAIMED, user.id.as_slice(), user.claimed)?;
+        self.set(pool::CLAIMED, pool.claimed)?;
         Ok(())
     }
 
     /// Reset the user's liquidity conribution
-    fn reset (&mut self, id: &CanonicalAddr) -> StdResult<()> {
-        self.set_ns(user::ENTRY,    id.as_slice(), Volume::zero())?;
-        self.set_ns(user::VOLUME, id.as_slice(), Volume::zero())?;
-        self.set_ns(user::CLAIMED,  id.as_slice(), Amount::zero())?;
+    fn reset (&mut self, user: &User) -> StdResult<()> {
+        self.set_ns(user::ENTRY,   user.id.as_slice(), Volume::zero())?;
+        self.set_ns(user::VOLUME,  user.id.as_slice(), Volume::zero())?;
+        self.set_ns(user::CLAIMED, user.id.as_slice(), Amount::zero())?;
         Ok(())
     }
 
