@@ -95,7 +95,7 @@ pub mod factory {
         TransferExchanges {
             /// The password set on the receiving instance.
             password: String,
-            /// The address of the new instance.
+            /// New factory instance.
             new_instance: ContractLink<HumanAddr>,
             /// Optionally, skip transferring the given exchanges.
             skip: Option<Vec<HumanAddr>>

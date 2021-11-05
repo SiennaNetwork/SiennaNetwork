@@ -38,6 +38,7 @@ use crate::state::{
 };
 
 pub const EPHEMERAL_STORAGE_KEY: &[u8] = b"ephemeral_storage";
+pub const TRANSFER_LIMIT: usize = 30;
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -64,7 +65,6 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     match msg {
         HandleMsg::SetStatus { level, reason, new_address } => {
-            scrt_migrate::can_set_status(&deps, &level)?;
             scrt_migrate::set_status(deps, env, level, reason, new_address)?;
             
             return Ok(HandleResponse::default());
@@ -487,11 +487,11 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
     let skip = skip.unwrap_or(vec![]);
     let mut exchanges_store = exchanges_store();
 
-    let len = exchanges_store.len(&deps.storage)?;
+    let len = exchanges_store.len(&deps.storage)?.min(TRANSFER_LIMIT as u64);
     let mut messages = Vec::with_capacity(len as usize - skip.len() + 1);
     let mut exchanges = Vec::with_capacity(len as usize - skip.len());
 
-    for e in exchanges_store.iter(&deps.storage)?.rev() {
+    for e in exchanges_store.iter(&deps.storage)?.rev().take(TRANSFER_LIMIT) {
         let e = e?.humanize(&deps.api)?;
 
         if !skip.contains(&e.contract.address) {
