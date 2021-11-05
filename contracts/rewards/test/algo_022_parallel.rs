@@ -2,7 +2,7 @@ use crate::test::*;
 
 #[test] fn test_parallel () {
 
-    Context::new()
+    Context::named("algo_022_parallel")
         .admin().at(1).init().fund(100u128)
         .at(2).user("Alice").deposits(100u128)
               .user("Bob").deposits(100u128)

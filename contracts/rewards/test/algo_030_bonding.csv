@@ -1,0 +1,25 @@
+,,
+1,Admin,"configure:
+  lp_token: ~
+  reward_token: ~
+  reward_vk: ~
+  ratio: ~
+  bonding: 59270"
+,,
+1,RPT,vest 45100
+,,
+32098,Alice,"lock:
+  amount: ""28652"""
+=>,"execute
+LP_TOKEN","transfer_from:
+  amount: ""28652""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,
+32098,Alice,claim: {}
+=>,err,Generic error: You have already claimed your exact share of the rewards.
+,,
+FAIL,was expecting,the following
+,,
+=>,err,Generic error: You must keep some tokens staked for 59270 more seconds before you are able to claim.

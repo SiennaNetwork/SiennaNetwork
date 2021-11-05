@@ -2,7 +2,7 @@ use crate::test::*;
 
 #[test] fn test_deposit_withdraw_parallel () {
     // Given an instance:
-    Context::new()
+    Context::named("algo_012_deposit_withdraw_parallel")
         .admin().at(1).init()
         //  When alice and bob first deposit lp tokens simultaneously,
         //  Then their ages and earnings start incrementing simultaneously;

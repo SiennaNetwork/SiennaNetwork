@@ -3,7 +3,7 @@ use crate::test::*;
 #[test] fn test_deposit_withdraw_one () {
 
     // Given an instance
-    Context::new()
+    Context::named("algo_011_deposit_withdraw_one")
         .at(1).admin().init()
         //  When user first deposits
         //  Then user's age and volume start incrementing

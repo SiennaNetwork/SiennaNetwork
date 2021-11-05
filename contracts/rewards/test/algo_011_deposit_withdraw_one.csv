@@ -1,0 +1,34 @@
+,,
+52208,Alice,"lock:
+  amount: ""100"""
+=>,"execute
+LP_TOKEN","transfer_from:
+  amount: ""100""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,
+52210,Alice,"retrieve:
+  amount: ""50"""
+=>,"execute
+LP_TOKEN","transfer:
+  amount: ""50""
+  padding: ~
+  recipient: Alice"
+,,
+52212,Alice,"retrieve:
+  amount: ""50"""
+=>,"execute
+LP_TOKEN","transfer:
+  amount: ""50""
+  padding: ~
+  recipient: Alice"
+,,
+52214,Alice,"lock:
+  amount: ""1"""
+=>,"execute
+LP_TOKEN","transfer_from:
+  amount: ""1""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"

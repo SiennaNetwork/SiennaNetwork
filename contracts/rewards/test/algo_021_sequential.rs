@@ -2,7 +2,7 @@ use crate::test::*;
 
 #[test] fn test_sequential () {
 
-    Context::new()
+    Context::named("algo_021_sequential")
         .admin().at(1).init()
         .fund(100u128)
         .user("Alice")

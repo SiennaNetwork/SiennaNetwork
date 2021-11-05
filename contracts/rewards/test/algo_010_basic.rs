@@ -2,7 +2,7 @@ use crate::test::*;
 
 #[test] fn test_basic () {
     // Given an instance
-    Context::new()
+    Context::named("algo_010_basic")
         .at(1)
             .admin()
             .init()

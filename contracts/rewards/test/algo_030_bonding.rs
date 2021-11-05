@@ -7,7 +7,7 @@ use crate::test::*;
     let stake   = rand::thread_rng().gen_range(0..100000);
 
     // Given a pool
-    Context::new()
+    Context::named("algo_030_bonding")
         .admin().init().configure(RewardsConfig {
             lp_token:     None,
             reward_token: None,

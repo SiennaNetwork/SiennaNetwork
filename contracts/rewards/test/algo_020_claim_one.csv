@@ -1,0 +1,9 @@
+,,
+1,RPT,vest 100
+,,
+2,Alice,claim: {}
+=>,err,Generic error: You have already claimed your exact share of the rewards.
+,,
+FAIL,was expecting,the following
+,,
+=>,err,Generic error: You must keep some tokens staked for 86400 more seconds before you are able to claim.

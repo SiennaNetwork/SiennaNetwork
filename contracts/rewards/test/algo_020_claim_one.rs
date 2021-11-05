@@ -3,7 +3,7 @@ use crate::test::*;
 #[test] fn test_claim_one () {
 
     // Given an instance
-    Context::new()
+    Context::named("algo_020_claim_one")
         .admin()
             .at(1)
                 .init()

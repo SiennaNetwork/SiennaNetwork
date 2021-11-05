@@ -1,7 +1,7 @@
 ,,
 1,RPT,vest 100
 ,,
-56117,Alice,"lock:
+2,Alice,"lock:
   amount: ""100"""
 =>,"execute
 LP_TOKEN","transfer_from:
@@ -10,30 +10,21 @@ LP_TOKEN","transfer_from:
   padding: ~
   recipient: cosmos2contract"
 ,,
-126066,Alice,"lock:
-  amount: ""100"""
-=>,"execute
-LP_TOKEN","transfer_from:
-  amount: ""100""
-  owner: Alice
-  padding: ~
-  recipient: cosmos2contract"
-,,
-199641,Admin,"close:
-  message: closed"
-,,
-259778,Alice,"lock:
+86402,Alice,"retrieve:
   amount: ""100"""
 =>,"execute
 LP_TOKEN","transfer:
-  amount: ""200""
+  amount: ""100""
   padding: ~
   recipient: Alice"
+,,
+86402,Alice,claim: {}
+=>,err,Generic error: You have already claimed your exact share of the rewards.
 ,,
 FAIL,was expecting,the following
 ,,
 =>,"execute
-LP_TOKEN","transfer:
-  amount: ""200""
+SIENNA","transfer:
+  amount: ""100""
   padding: ~
   recipient: Alice"

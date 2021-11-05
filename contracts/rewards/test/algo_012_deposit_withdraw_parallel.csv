@@ -1,0 +1,18 @@
+,,
+2,Alice,"lock:
+  amount: ""100"""
+=>,"execute
+LP_TOKEN","transfer_from:
+  amount: ""100""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,
+2,Bob,"lock:
+  amount: ""100"""
+=>,"execute
+LP_TOKEN","transfer_from:
+  amount: ""100""
+  owner: Bob
+  padding: ~
+  recipient: cosmos2contract"

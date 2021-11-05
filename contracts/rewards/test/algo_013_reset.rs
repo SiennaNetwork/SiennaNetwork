@@ -11,7 +11,7 @@ use crate::test::*;
 ///  Then user volume and claimed is reset so they can start over
 #[test] fn test_reset () {
 
-    Context::new()
+    Context::named("algo_013_reset_a")
         .admin()
             .at(1).init().fund(100u128)
         .user("Alice")
@@ -20,7 +20,7 @@ use crate::test::*;
             .at(86402).claims(100u128)
             .at(86402).withdraws(100u128).volume(200u128).claimed(100u128);
 
-    Context::new()
+    Context::named("algo_013_reset_b")
         .admin()
             .at(1).init().fund(100u128)
             .user("Alice")
