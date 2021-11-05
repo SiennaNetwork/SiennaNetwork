@@ -1,39 +1,30 @@
-,,
-1,RPT,vest 100
-,,
-2,Alice,"lock:
+Time,Sender,Recipient,Data
+,,,
+1,RPT,REWARDS,vest 100
+,,,
+2,Alice,REWARDS,"lock:
   amount: ""100"""
-=>,"execute
-LP_TOKEN","transfer_from:
+tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""100""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-,,
-2,Bob,"lock:
+,,,
+2,Bob,REWARDS,"lock:
   amount: ""100"""
-=>,"execute
-LP_TOKEN","transfer_from:
+tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""100""
   owner: Bob
   padding: ~
   recipient: cosmos2contract"
-,,
-86402,Alice,"retrieve:
+,,,
+86402,Alice,REWARDS,"retrieve:
   amount: ""100"""
-=>,"execute
-LP_TOKEN","transfer:
+=>,err,"Error parsing into type core::option::Option<core::result::Result<u64, cosmwasm_std::errors::std_error::StdError>>: Expected to parse either a `true`, `false`, or a `null`.",
+,,,
+FAIL,was expecting,the following,
+,,,
+tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""100""
-  padding: ~
-  recipient: Alice"
-,,
-86402,Alice,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 86400 more seconds before you are able to claim.
-,,
-FAIL,was expecting,the following
-,,
-=>,"execute
-SIENNA","transfer:
-  amount: ""50""
   padding: ~
   recipient: Alice"

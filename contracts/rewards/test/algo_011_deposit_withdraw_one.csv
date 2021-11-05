@@ -1,42 +1,12 @@
-975,Alice,user.staked = Uint128(0)
-975,Alice,user.volume = Uint256(0)
-,,
-975,Alice,"lock:
+Time,Sender,Recipient,Data
+975,REWARDS,Alice,user.staked = Uint128(0)
+975,REWARDS,Alice,user.volume = Uint256(0)
+,,,
+975,Alice,REWARDS,"lock:
   amount: ""100"""
-=>,"execute
-LP_TOKEN","transfer_from:
+tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""100""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-975,Alice,user.staked = Uint128(100)
-975,Alice,user.volume = Uint256(0)
-976,Alice,user.staked = Uint128(100)
-976,Alice,user.volume = Uint256(100)
-977,Alice,user.staked = Uint128(100)
-977,Alice,user.volume = Uint256(200)
-,,
-977,Alice,"retrieve:
-  amount: ""50"""
-=>,"execute
-LP_TOKEN","transfer:
-  amount: ""50""
-  padding: ~
-  recipient: Alice"
-977,Alice,user.staked = Uint128(50)
-977,Alice,user.volume = Uint256(200)
-978,Alice,user.staked = Uint128(50)
-978,Alice,user.volume = Uint256(250)
-979,Alice,user.staked = Uint128(50)
-979,Alice,user.volume = Uint256(300)
-,,
-979,Alice,"retrieve:
-  amount: ""50"""
-=>,"execute
-LP_TOKEN","transfer:
-  amount: ""50""
-  padding: ~
-  recipient: Alice"
-979,Alice,user.staked = Uint128(0)
-979,Alice,user.volume = Uint256(0)
-ERROR,EXPECTED,user.volume = Uint256(300)
+ERROR,status,,"Error parsing into type core::option::Option<core::result::Result<u64, cosmwasm_std::errors::std_error::StdError>>: Expected to parse either a `true`, `false`, or a `null`."

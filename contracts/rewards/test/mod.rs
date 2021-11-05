@@ -51,18 +51,20 @@ pub struct Context {
     pub lp_token:     ISnip20,
     pub address:      HumanAddr,
     pub env:          Env,
-    pub time:         Moment
+    pub time:         Moment,
+    pub closed:       Option<CloseSeal>
 }
 
 impl Context {
     pub fn new () -> Self {
         let mut table = Table::new();
-        table
-            .set_format(format::FormatBuilder::new()
-                .column_separator('|')
-                .borders('|')
-                .padding(1, 1)
-            .build());
+        table.set_format(format::FormatBuilder::new()
+            .separator(format::LinePosition::Title, format::LineSeparator::new('-', '-', '-', '-'))
+            .column_separator('|')
+            .borders('|')
+            .padding(1, 1)
+        .build());
+        table.set_titles(row![rb->"Time", b->"Sender", b->"Recipient", b->"Data"]);
 
         let address = HumanAddr::from("Admin");
         let time = 1;
@@ -92,6 +94,7 @@ impl Context {
             env: env(&address, time),
             address,
             time,
+            closed: None
         }
     }
     pub fn named (name: &'static str) -> Self {
@@ -134,8 +137,8 @@ impl Context {
         self.set_address(address)
     }
     pub fn fund (&mut self, amount: u128) -> &mut Self {
-        self.table.add_row(row!["","",""]);
-        self.table.add_row(row![rb->self.time, b->"RPT", b->format!("vest {}", &amount)]);
+        self.table.add_row(row!["","","",""]);
+        self.table.add_row(row![rb->self.time, "RPT", "REWARDS", b->format!("vest {}", &amount)]);
         self.deps.querier.increment_balance(&self.reward_token.link.address, amount);
         self
     }
@@ -159,12 +162,12 @@ impl Context {
                 ratio:        None,
                 bonding:      None,
             }).unwrap(),
-            Some(snip20::set_viewing_key_msg(
+            vec![snip20::set_viewing_key_msg(
                 self.reward_vk.clone(),
                 None, BLOCK_SIZE,
                 self.reward_token.link.code_hash.clone(),
                 self.reward_token.link.address.clone()
-            ).unwrap())
+            ).unwrap()]
         );
         self
     }
@@ -225,12 +228,15 @@ impl Context {
         self
     }
     pub fn closes_pool (&mut self) -> &mut Self {
+        let message = "closed";
         test_handle(
             &mut self.table,
             &mut self.deps, &self.env, self.address.clone(),
-            RewardsHandle::Close { message: String::from("closed") },
+            RewardsHandle::Close { message: message.to_string() },
             Ok(HandleResponse::default())
-        ); self
+        );
+        self.closed = Some((self.time, message.to_string()));
+        self
     }
     pub fn cannot_close_pool (&mut self) -> &mut Self {
         assert_eq!(
@@ -248,7 +254,7 @@ impl Context {
                 recipient: None
             }).is_ok()
         );
-        let vk: Option<ViewingKey> = self.deps.get(crate::algo::config::REWARD_VK).unwrap();
+        let vk: Option<ViewingKey> = self.deps.get(crate::algo::RewardsConfig::REWARD_VK).unwrap();
         assert_eq!(vk.unwrap().0, String::from(key));
         self
     }
@@ -315,25 +321,35 @@ impl Context {
             errors::claim_global_ratio_zero()
         )
     }
-    pub fn status (&mut self) -> User {
-        match Rewards::query_status(
+    pub fn status (&mut self) -> Account {
+        let result = Rewards::query_status(
             &self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
-        ).unwrap() {
-            crate::RewardsResponse::Status { user, .. } => user.unwrap(),
-            //_ => panic!()
+        );
+        match result {
+            Ok(result) => {
+                match result {
+                    crate::RewardsResponse::Status { account, .. } => account.unwrap(),
+                }
+            },
+            Err(e) => {
+                self.table.add_row(row![rbBrFd->"ERROR", bBrFd->"status", "", bBrFd->e]);
+                panic!("status query failed: {:?}", e);
+            }
         }
     }
     fn test_field <V: std::fmt::Debug + Clone + PartialEq> (&mut self, name: &'static str, actual: V, expected: V) -> &mut Self {
         self.table.add_row(row![
-            rb->self.time,
-             b->self.address,
-             b->format!("{} = {:?}", &name, &actual)
+             r->self.time,
+             "REWARDS",
+             self.address,
+             format!("{} = {:?}", &name, &actual),
         ]);
         if expected != actual {
             self.table.add_row(row![
                 rbBrFd->"ERROR",
                  bBrFd->"EXPECTED",
-                 bBrFd->format!("{} = {:?}", &name, &expected)
+                 "",
+                 bBrFd->format!("{} = {:?}", &name, &expected),
             ]);
         }
         assert_eq!(expected, actual, "{}", name);
@@ -351,13 +367,9 @@ impl Context {
         let bonding = self.status().bonding;
         self.test_field("user.bonding", bonding, expected.into())
     }
-    pub fn claimed (&mut self, expected: u128) -> &mut Self {
-        let claimed = self.status().claimed;
-        self.test_field("user.claimed", claimed, expected.into())
-    }
-    pub fn claimable (&mut self, expected: u128) -> &mut Self {
-        let claimable = self.status().claimable;
-        self.test_field("user.claimable", claimable, expected.into())
+    pub fn earned (&mut self, expected: u128) -> &mut Self {
+        let earned = self.status().earned;
+        self.test_field("user.earned", earned, expected.into())
     }
 }
 impl Drop for Context {
@@ -393,9 +405,9 @@ pub fn test_handle (
     msg:      RewardsHandle,
     expected: StdResult<HandleResponse>
 ) {
-    table.add_row(row!["","",""]);
+    table.add_row(row!["","","",""]);
     let msg_ser = serde_yaml::to_string(&msg).unwrap();
-    table.add_row(row![rb->env.block.time, b->&address, b->msg_ser.trim()[4..]]);
+    table.add_row(row![rb->env.block.time, &address, "REWARDS", b->msg_ser.trim()[4..]]);
     let result = Rewards::handle(deps, env, msg);
     let add_result = |table: &mut Table, result: &StdResult<HandleResponse>| match result {
         Ok(ref result) => {
@@ -404,25 +416,24 @@ pub fn test_handle (
                     ref msg, ref contract_addr, ..
                 }) = message {
                     let ref decoded = decode_msg(msg).unwrap();
-                    table.add_row(row![
-                        r->"=>",
-                        b->format!("execute\n{}", contract_addr),
-                        decoded[4..]
-                    ]);
+                    table.add_row(row![rb->"tx", "REWARDS", contract_addr, decoded[4..],]);
                 } else {
-                    table.add_row(row![r->"=>", "msg", serde_yaml::to_string(&message).unwrap()]);
+                    table.add_row(row![r->"msg", "REWARDS", "", serde_yaml::to_string(&message).unwrap()]);
                 }
+            }
+            for log in result.log.iter() {
+                table.add_row(row![rb->"log", "REWARDS", "", format!("{} = {}", &log.key, &log.value),]);
             }
         },
         Err(ref error) => {
-            table.add_row(row![r->"=>", "err", error]);
+            table.add_row(row![r->"=>", "err", error,""]);
         }
     };
     add_result(table, &result);
     if result != expected {
-        table.add_row(row!["","",""]);
-        table.add_row(row![rbBrFd->"FAIL", bBrFd->"was expecting", bBrFd->"the following"]);
-        table.add_row(row!["","",""]);
+        table.add_row(row!["","","",""]);
+        table.add_row(row![rbBrFd->"FAIL", bBrFd->"was expecting", bBrFd->"the following",""]);
+        table.add_row(row!["","","",""]);
         add_result(table, &expected);
     }
     fn decode_msg (msg: &Binary) -> Option<String> {

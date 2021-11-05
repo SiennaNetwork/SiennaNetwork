@@ -18,7 +18,7 @@ use crate::test::*;
             .set_vk("")
             .at(    2).deposits(100u128)
             .at(86402).claims(100u128)
-            .at(86402).withdraws(100u128).volume(200u128).claimed(100u128);
+            .at(86402).withdraws(100u128).volume(200u128);
 
     Context::named("algo_013_reset_b")
         .admin()
@@ -27,6 +27,6 @@ use crate::test::*;
                 .set_vk("")
                 .at(    2).deposits(100u128)
                 .at(86402).withdraws(100u128)
-                .at(86402).claims(100u128).volume(0u128).claimed(0u128);
+                .at(86402).claims(100u128).volume(0u128);
 
 }

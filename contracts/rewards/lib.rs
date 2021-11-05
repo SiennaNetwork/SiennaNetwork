@@ -110,16 +110,13 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Rewards<S, A, Q>
     + Migration<S, A, Q>
 {
-    fn init (&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
+    fn init (&mut self, env: Env, msg: Init) -> StdResult<InitResponse> where Self: Sized {
         Auth::init(self, &env, &msg.admin)?;
-        let mut messages = vec![];
-        if let Some(set_vk) = Rewards::init(self, &env, msg.config)? {
-            messages.push(set_vk);
-        }
+        let messages = Rewards::init(self, &env, msg.config)?;
         Ok(InitResponse { messages, log: vec![] })
     }
 
-    fn handle (&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> {
+    fn handle (&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> where Self: Sized {
         match msg {
             Handle::Auth(msg) =>
                 Auth::handle(self, env, msg),
@@ -136,7 +133,7 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         }
     }
 
-    fn query (&self, msg: Query) -> StdResult<Response> {
+    fn query (&self, msg: Query) -> StdResult<Response> where Self: Sized {
         Ok(match msg {
             Query::Auth(msg) =>
                 Response::Auth(Auth::query(self, msg)?),
@@ -168,7 +165,7 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let id = self.canonize(address)?;
         Auth::check_vk(self, &key, id.as_slice())?;
         Ok(Response::Balance {
-            amount: self.get_ns(algo::user::STAKED, id.as_slice())?.unwrap_or(Amount::zero())
+            amount: self.get_ns(algo::Account::STAKED, id.as_slice())?.unwrap_or(Amount::zero())
         })
     }
 }

@@ -1,5 +1,6 @@
-,,
-975,Admin,"configure:
+Time,Sender,Recipient,Data
+,,,
+975,Admin,REWARDS,"configure:
   lp_token: ~
   reward_token:
     address: SIENNA
@@ -7,12 +8,11 @@
   reward_vk: reward_vk
   ratio: ~
   bonding: ~"
-=>,"execute
-SIENNA","set_viewing_key:
+tx,REWARDS,SIENNA,"set_viewing_key:
   key: reward_vk
   padding: ~"
-,,
-2093,Admin,"configure:
+,,,
+2093,Admin,REWARDS,"configure:
   lp_token: ~
   reward_token:
     address: SIENNA
@@ -20,7 +20,6 @@ SIENNA","set_viewing_key:
   reward_vk: reward_vk
   ratio: ~
   bonding: ~"
-=>,"execute
-SIENNA","set_viewing_key:
+tx,REWARDS,SIENNA,"set_viewing_key:
   key: reward_vk
   padding: ~"

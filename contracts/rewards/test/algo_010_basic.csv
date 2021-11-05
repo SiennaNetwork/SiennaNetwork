@@ -1,24 +1,16 @@
-,,
-975,RPT,vest 100
-975,Alice,user.staked = Uint128(0)
-975,Alice,user.volume = Uint256(0)
-975,Alice,user.bonding = 86400
-975,Alice,user.claimable = Uint128(0)
-,,
-975,Alice,"lock:
-  amount: ""100"""
-=>,"execute
-LP_TOKEN","transfer_from:
-  amount: ""100""
+Time,Sender,Recipient,Data
+,,,
+255,RPT,REWARDS,vest 17558
+255,REWARDS,Alice,user.staked = Uint128(0)
+255,REWARDS,Alice,user.volume = Uint256(0)
+255,REWARDS,Alice,user.bonding = 86400
+255,REWARDS,Alice,user.earned = Uint128(0)
+,,,
+255,Alice,REWARDS,"lock:
+  amount: ""69123"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""69123""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-975,Alice,user.staked = Uint128(100)
-975,Alice,user.volume = Uint256(0)
-975,Alice,user.bonding = 86400
-975,Alice,user.claimable = Uint128(0)
-976,Alice,user.staked = Uint128(100)
-976,Alice,user.volume = Uint256(100)
-976,Alice,user.bonding = 86399
-976,Alice,user.claimable = Uint128(100)
-ERROR,EXPECTED,user.claimable = Uint128(0)
+ERROR,status,,"Error parsing into type core::option::Option<core::result::Result<u64, cosmwasm_std::errors::std_error::StdError>>: Expected to parse either a `true`, `false`, or a `null`."

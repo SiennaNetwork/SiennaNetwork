@@ -13,23 +13,29 @@ use crate::test::*;
         RewardsHandle::Lock     { amount: 100u128.into() },
         RewardsHandle::Retrieve { amount: 100u128.into() },
     ] {
-        let mut context = Context::named("algo_004_close");
-        let reward = context.rng.gen_range(0..100000);
-        let stake1 = context.rng.gen_range(0..100000);
-        let stake2 = context.rng.gen_range(0..100000);
+        let mut context  = Context::named("algo_004_close");
+        let reward: u128 = context.rng.gen_range(0..100000);
+        let stake1: u128 = context.rng.gen_range(0..100000);
+        let stake2: u128 = context.rng.gen_range(0..100000);
         let return_funds = context.lp_token
             .transfer(&HumanAddr::from("Alice"), (stake1+stake2).into());
         context
             .admin().init().fund(reward)
+            .later().badman().cannot_close_pool()
             .later().user("Alice").deposits(stake1)
             .later().badman().cannot_close_pool()
             .later().user("Alice").deposits(stake2)
-            .later().admin().closes_pool()
-            // always retrieval, optionally claim transfer
-            .later().user("Alice").test_handle(
-                msg,
-                HandleResponse::default()
-                    .msg(return_funds.unwrap()).unwrap()
-                    .log("closed", "5 closed"));
+            .later().badman().cannot_close_pool()
+            .later().admin().closes_pool();
+            //// always retrieval, optionally claim transfer
+
+        let (ref when, ref why) = context.closed.clone().unwrap();
+        let expected =  HandleResponse::default()
+            .msg(return_funds.unwrap()).unwrap()
+            .log("close_time",   &format!("{}", when)).unwrap()
+            .log("close_reason", why);
+
+        context
+            .later().user("Alice").test_handle(msg, expected);
     }
 }

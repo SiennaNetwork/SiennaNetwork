@@ -3,6 +3,8 @@ use crate::test::*;
 #[test] fn test_basic () {
     // Given an instance
     let mut context = Context::named("algo_010_basic");
+    let stake  = context.rng.gen_range(0..100000);
+    let reward = context.rng.gen_range(0..100000);
     
     context
         .admin()
@@ -11,52 +13,49 @@ use crate::test::*;
         .user("Alice")
             .set_vk("")
             // When user first deposits
-            .later().fund(100)
-                .staked(  0).volume(  0).bonding(86400).claimable(0)
-                .deposits(100)
+            .later().fund(reward)
+                .staked(    0).volume(  0).bonding(86400).earned(0)
+                .deposits(stake)
             // Then user's stake increments
-                .staked(100).volume(  0).bonding(86400).claimable(0)
+                .staked(stake).volume(  0).bonding(86400).earned(0)
             // And user's liquidity starts incrementing
             // And user's bonding starts decrementing
-            .tick()
-                .staked(100).volume(100).bonding(86399).claimable(0)
-            .tick()
-                .staked(100).volume(200).bonding(86398).claimable(0)
-            .tick()
-                .staked(100).volume(300).bonding(86397).claimable(0)
+            .tick().staked(stake).volume(stake*1).bonding(86399).earned(0)
+            .tick().staked(stake).volume(stake*2).bonding(86398).earned(0)
+            .tick().staked(stake).volume(stake*3).bonding(86397).earned(0)
             // When user withdraws all before bonding is over
             // Then there are no rewards
             //  And user's liquidity and bonding reset
             .later()
-                .claimable(0)
-                .withdraws(100)
-                .staked(  0).volume(  0).bonding(86400).claimable(0)
+                .earned(0)
+                .withdraws(stake)
+                .staked(    0).volume(  0).bonding(86400).earned(0)
             // When user withdraws all after bonding
             // Then rewards are automatically transferred
             //  And user's liquidity and bonding reset
-            .later().fund(100)
-                .staked(  0).volume(  0).bonding(86400).claimable(0)
-                .deposits(100)
-                .staked(100).volume(  0).bonding(86400).claimable(0)
+            .later().fund(reward)
+                .staked(    0).volume(  0).bonding(86400).earned(0)
+                .deposits(stake)
+                .staked(stake).volume(  0).bonding(86400).earned(0)
             .epoch()
-                .claimable(100).bonding(0)
+                .earned(reward).bonding(0)
             .tick()
             // When user claims after bonding
             // Then rewards are transferred
             //  And user's liquidity and bonding reset
             //  And user's stake remains the same
-            .later().fund(100)
-                .staked(  0).volume(  0).bonding(86400).claimable(0)
-                .deposits(100)
-                .staked(100).volume(  0).bonding(86400).claimable(0)
+            .later().fund(reward)
+                .staked(    0).volume(  0).bonding(86400).earned(0)
+                .deposits(stake)
+                .staked(stake).volume(  0).bonding(86400).earned(0)
             .epoch()
-                .claimable(100).bonding(0)
+                .earned(reward).bonding(0)
             .tick()
-                .claimable(100).bonding(0)
-                .claims(100)
-                .staked(100).volume(100 * 86400).bonding(86400)
-            .epoch().fund(100)
-                .claimable(100).bonding(0);
+                .earned(reward).bonding(0)
+                .claims(reward)
+                .staked(stake).volume(stake * 86400).bonding(86400)
+            .epoch().fund(reward)
+                .earned(reward).bonding(0);
             // When the same user does the same thing later
             // Then the same thing happens
 }
