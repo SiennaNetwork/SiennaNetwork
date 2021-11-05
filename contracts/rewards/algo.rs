@@ -1,8 +1,7 @@
 use fadroma::*;
+use crate::{auth::Auth, errors};
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
-
-use crate::auth::Auth;
 
 /// A moment in time, as represented by the current value of env.block.time
 pub type Moment   = u64;
@@ -65,30 +64,32 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     /// Handle transactions
     fn handle (&mut self, env: &Env, msg: RewardsHandle) -> StdResult<HandleResponse> {
-
         match msg {
-
-            RewardsHandle::Configure(config) => {
+            // Public transactions
+            RewardsHandle::Lock     { amount } => self.handle_deposit(env, amount),
+            RewardsHandle::Retrieve { amount } => self.handle_withdraw(env, amount),
+            RewardsHandle::Claim    {}         => self.handle_claim(env),
+            // Admin-only transactions
+            _ => {
                 Auth::assert_admin(self, env)?;
-                self.handle_configure(&config)
-            },
-
-            RewardsHandle::Lock { amount } =>
-                self.handle_deposit(env, amount),
-
-            RewardsHandle::Retrieve { amount } =>
-                self.handle_withdraw(env, amount),
-
-            RewardsHandle::Claim {} =>
-                self.handle_claim(env),
-
-            RewardsHandle::Close { message } => {
-                Auth::assert_admin(self, &env)?;
-                self.handle_close(env, message)
-            },
-
-            RewardsHandle::Drain { snip20, recipient, key } =>
-                self.handle_drain(env, snip20, recipient, key),
+                match msg {
+                    RewardsHandle::Configure(config) => {
+                        self.handle_configure(&config)
+                    },
+                    RewardsHandle::Close { message } => {
+                        self.handle_close(env.block.time, message)
+                    },
+                    RewardsHandle::Drain { snip20, recipient, key } => {
+                        self.handle_drain(
+                            env.block.time,
+                            recipient.unwrap_or(env.message.sender.clone()),
+                            snip20,
+                            key
+                        )
+                    },
+                    _ => unreachable!()
+                }
+            }
 
         }
 
@@ -159,27 +160,27 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         pool.now = now;
         pool.updated = self.get(pool::UPDATED)?.unwrap_or(now);
         if pool.now < pool.updated {
-            return self.err_no_time_travel()
+            return errors::no_time_travel()
         }
         let elapsed = now - pool.updated;
-        pool.locked = self.get(pool::LOCKED)?.unwrap_or(Amount::zero());
-        pool.lifetime = accumulate(
-            self.get(pool::LIFETIME)?.unwrap_or(Volume::zero()),
+        pool.staked = self.get(pool::STAKED)?.unwrap_or(Amount::zero());
+        pool.volume = accumulate(
+            self.get(pool::VOLUME)?.unwrap_or(Volume::zero()),
             elapsed,
-            pool.locked
+            pool.staked
         )?;
         let lp_token = self.lp_token()?;
         let reward_token = self.reward_token()?;
-        pool.balance = reward_token.query_balance(
+        pool.budget = reward_token.query_balance(
             self.querier(),
             &self.self_link()?.address,
             &self.reward_vk()?
         )?;
         if reward_token.link == lp_token.link { // separate balances for single-sided staking
-            pool.balance = (pool.balance - pool.locked)?;
+            pool.budget = (pool.budget - pool.staked)?;
         }
         pool.claimed = self.get(pool::CLAIMED)?.unwrap_or(Amount::zero());
-        pool.vested = pool.claimed + pool.balance;
+        pool.vested = pool.claimed + pool.budget;
         pool.global_ratio = self.get(pool::RATIO)?
             .ok_or(StdError::generic_err("missing global ratio"))?;
         Ok(pool)
@@ -190,21 +191,21 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let mut user = User::default();
         user.updated = self.get_ns(user::UPDATED, id.as_slice())?.unwrap_or(pool.now);
         if pool.now < user.updated {
-            return self.err_no_time_travel()
+            return errors::no_time_travel()
         }
         let elapsed: Duration = pool.now - user.updated;
-        user.entry = self.get_ns(user::ENTRY, id.as_slice())?.unwrap_or(pool.lifetime);
-        if user.entry > pool.lifetime {
-            return self.err_no_time_travel()
+        user.entry = self.get_ns(user::ENTRY, id.as_slice())?.unwrap_or(pool.volume);
+        if user.entry > pool.volume {
+            return errors::no_time_travel()
         }
-        user.locked = self.get_ns(user::LOCKED, id.as_slice())?.unwrap_or(Amount::zero());
-        user.lifetime = accumulate(
-            self.get_ns(user::LIFETIME, id.as_slice())?.unwrap_or(Volume::zero()),
+        user.staked = self.get_ns(user::STAKED, id.as_slice())?.unwrap_or(Amount::zero());
+        user.volume = accumulate(
+            self.get_ns(user::VOLUME, id.as_slice())?.unwrap_or(Volume::zero()),
             elapsed,
-            user.locked
+            user.staked
         )?;
-        user.pool_share = (user.locked, pool.locked);
-        user.reward_share = (user.lifetime, (pool.lifetime - user.entry)?);
+        user.pool_share = (user.staked, pool.staked);
+        user.reward_share = (user.volume, (pool.volume - user.entry)?);
         user.earned = if user.reward_share.1 == Volume::zero() {
             Amount::zero()
         } else {
@@ -214,7 +215,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         };
         user.claimed = self.get_ns(user::CLAIMED, id.as_slice())?.unwrap_or(Amount::zero());
         user.cooldown = self.get_ns(user::COOLDOWN, id.as_slice())?.unwrap_or(0);
-        if user.locked > Amount::zero() {
+        if user.staked > Amount::zero() {
             user.cooldown = user.cooldown - u64::min(elapsed, user.cooldown)
         };
         user.claimable = if user.earned == Amount::zero() {
@@ -225,9 +226,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             Amount::zero()
         } else {
             user.claimable = (user.earned - user.claimed)?;
-            if user.claimable > pool.balance {
-                user.reason = Some("can't claim more than the remaining pool balance".to_string());
-                pool.balance
+            if user.claimable > pool.budget {
+                user.reason = Some("can't claim more than the remaining pool budget".to_string());
+                pool.budget
             } else {
                 user.claimable
             }
@@ -240,90 +241,76 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let now = env.block.time;
         let pool = self.get_pool_status(now)?;
         if pool.updated > now {
-            return self.err_no_time_travel()
+            return errors::no_time_travel()
         }
         // Compute user state
         let id = self.canonize(env.message.sender.clone())?;
         let user = self.get_user_status(&pool, &id)?;
         if user.updated > now {
-            return self.err_no_time_travel()
+            return errors::no_time_travel()
         }
         Ok((pool, user, id))
     }
 
     /// Deposit LP tokens from user into pool
-    fn handle_deposit (&mut self, env: &Env, deposited: Amount) -> StdResult<HandleResponse> {
+    fn handle_deposit (&mut self, env: &Env, amount: Amount) -> StdResult<HandleResponse> {
         let (ref mut pool, ref mut user, ref id) = self.get_status(&env)?;
         if pool.closed.is_some() {
             self.return_stake(env, pool, user)
         } else {
-            self.increment_stake(pool, user, id, deposited)?;
+            if user.staked == Amount::zero() {
+                self.reset(id)?;
+                user.entry = pool.volume;
+                self.set_ns::<Volume>(user::ENTRY, id.as_slice(), user.entry)?;
+            }
+            user.staked += amount;
+            pool.staked += amount;
+            self.commit_staked(pool.staked, user.staked, &id)?;
+            self.commit_state(pool, user, id)?;
             HandleResponse::default().msg(self.lp_token()?.transfer_from(
                 &env.message.sender,
                 &env.contract.address,
-                deposited
+                amount
             )?)
         }
-    }
-
-    /// Commit amount of locked tokens for user and pool
-    fn increment_stake (
-        &mut self, pool: &mut Pool, user: &mut User, id: &CanonicalAddr, amount: Amount
-    ) -> StdResult<()> {
-        if user.locked == Amount::zero() {
-            self.reset(id)?;
-            user.entry = pool.lifetime;
-            self.set_ns(user::ENTRY, id.as_slice(), user.entry)?;
-        }
-        user.locked += amount;
-        pool.locked += amount;
-        self.commit_locked(pool.locked, user.locked, &id)?;
-        self.commit_state(pool, user, id)?;
-        Ok(())
     }
 
     /// Withdraw deposited LP tokens from pool back to the user
-    fn handle_withdraw (&mut self, env: &Env, withdrawn: Uint128) -> StdResult<HandleResponse> {
+    fn handle_withdraw (&mut self, env: &Env, amount: Uint128) -> StdResult<HandleResponse> {
         let (ref mut pool, ref mut user, ref id) = self.get_status(&env)?;
         if pool.closed.is_some() {
             self.return_stake(env, pool, user)
-        } else if user.locked < withdrawn {
-            self.err_withdraw(user.locked, withdrawn)
-        } else if pool.locked < withdrawn {
-            self.err_withdraw_fatal(pool.locked, withdrawn)
+        } else if user.staked < amount {
+            errors::withdraw(user.staked, amount)
+        } else if pool.staked < amount {
+            errors::withdraw_fatal(pool.staked, amount)
         } else {
-            self.decrement_stake(pool, user, id, withdrawn)?;
+            user.staked = (user.staked - amount)?;
+            pool.staked = (pool.staked - amount)?;
+            self.commit_staked(pool.staked, user.staked, &id)?;
+            self.commit_state(pool, user, id)?;
+            if user.staked == Amount::zero() && user.claimable > Amount::zero() {
+            }
             HandleResponse::default().msg(self.lp_token()?.transfer(
                 &env.message.sender,
-                withdrawn
+                amount
             )?)
         }
-    }
-
-    /// Commit amount of locked tokens for user and pool
-    fn decrement_stake (
-        &mut self, pool: &mut Pool, user: &mut User, id: &CanonicalAddr, amount: Amount
-    ) -> StdResult<()> {
-        user.locked = (user.locked - amount)?;
-        pool.locked = (user.locked - amount)?;
-        self.commit_locked(pool.locked, user.locked, &id)?;
-        self.commit_state(pool, user, id)?;
-        Ok(())
     }
 
     /// Transfer rewards to user if eligible
     fn handle_claim (&mut self, env: &Env) -> StdResult<HandleResponse> {
         let (ref mut pool, ref mut user, ref id) = self.get_status(&env)?;
         if user.cooldown > 0 {
-            self.err_claim_cooldown(user.cooldown)
-        } else if pool.balance == Amount::zero() {
-            self.err_claim_pool_empty()
+            errors::claim_cooldown(user.cooldown)
+        } else if pool.budget == Amount::zero() {
+            errors::claim_pool_empty()
         } else if pool.global_ratio.0 == Amount::zero() {
-            self.err_claim_global_ratio_zero()
+            errors::claim_global_ratio_zero()
         } else if user.claimed > user.earned {
-            self.err_claim_crowded_out()
+            errors::claim_crowded_out()
         } else if user.claimable == Amount::zero() {
-            self.err_claim_zero_claimable()
+            errors::claim_zero_claimable()
         } else {
             user.cooldown = pool.cooldown;
             self.commit_claimed(pool, user, id)?;
@@ -338,28 +325,26 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Admin can mark pool as closed
-    fn handle_close (&mut self, env: &Env, message: String) -> StdResult<HandleResponse> {
-        self.set(pool::CLOSED, Some((env.block.time, message)))?;
+    fn handle_close (&mut self, time: Moment, message: String) -> StdResult<HandleResponse> {
+        self.set(pool::CLOSED, Some((time, message)))?;
         Ok(HandleResponse::default())
     }
 
-    /// Closed pools can be drained for manual redistribution of erroneously locked funds.
+    /// Closed pools can be drained for manual redistribution of erroneously staked funds.
     fn handle_drain (
         &mut self,
-        env:       &Env,
+        time:      Moment,
+        recipient: HumanAddr,
         snip20:    ContractLink<HumanAddr>,
-        recipient: Option<HumanAddr>,
         key:       String
     ) -> StdResult<HandleResponse> {
-        Auth::assert_admin(&*self, &env)?;
-        let recipient = recipient.unwrap_or(env.message.sender.clone());
         // Update the viewing key if the supplied
         // token info for is the reward token
         if self.reward_token()?.link == snip20 {
             self.set(config::REWARD_VK, key.clone())?
         }
         let allowance = Uint128(u128::MAX);
-        let duration  = Some(env.block.time + DAY * 10000);
+        let duration  = Some(time + DAY * 10000);
         let snip20    = ISnip20::attach(snip20);
         HandleResponse::default()
             .msg(snip20.increase_allowance(&recipient, allowance, duration)?)?
@@ -371,11 +356,11 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         &mut self, env: &Env, pool: &mut Pool, user: &mut User
     ) -> StdResult<HandleResponse> {
         if let Some((ref when, ref why)) = pool.closed {
-            let withdraw_all = user.locked;
-            user.locked = 0u128.into();
-            pool.locked = (pool.locked - withdraw_all)?;
+            let withdraw_all = user.staked;
+            user.staked = 0u128.into();
+            pool.staked = (pool.staked - withdraw_all)?;
             let id = self.canonize(env.message.sender.clone())?;
-            self.commit_locked(pool.locked, user.locked, &id)?;
+            self.commit_staked(pool.staked, user.staked, &id)?;
             HandleResponse::default()
                 .msg(self.lp_token()?.transfer(&env.message.sender.clone(), withdraw_all)?)?
                 .log("closed", &format!("{} {}", when, why))
@@ -384,12 +369,12 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         }
     }
 
-    /// Commit amount of locked tokens for user and pool
-    fn commit_locked (
-        &mut self, pool_locked: Amount, user_locked: Amount, id: &CanonicalAddr
+    /// Commit amount of staked tokens for user and pool
+    fn commit_staked (
+        &mut self, pool_staked: Amount, user_staked: Amount, id: &CanonicalAddr
     ) -> StdResult<()> {
-        self.set_ns(user::LOCKED, id.as_slice(), user_locked)?;
-        self.set(pool::LOCKED, pool_locked)
+        self.set_ns(user::STAKED, id.as_slice(), user_staked)?;
+        self.set(pool::STAKED, pool_staked)
     }
 
     fn commit_claimed (
@@ -406,18 +391,19 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         &mut self, pool: &mut Pool, user: &mut User, id: &CanonicalAddr
     ) -> StdResult<()> {
         // Commit pool state
-        self.set(pool::LIFETIME, pool.lifetime)?;
+        self.set(pool::VOLUME, pool.volume)?;
         self.set(pool::UPDATED,  pool.now)?;
         // Commit user state
         self.set_ns(user::COOLDOWN, id.as_slice(), user.cooldown)?;
-        self.set_ns(user::LIFETIME, id.as_slice(), user.lifetime)?;
+        self.set_ns(user::VOLUME, id.as_slice(), user.volume)?;
         self.set_ns(user::UPDATED,  id.as_slice(), pool.now)?;
         Ok(())
     }
 
     /// Reset the user's liquidity conribution
     fn reset (&mut self, id: &CanonicalAddr) -> StdResult<()> {
-        self.set_ns(user::LIFETIME, id.as_slice(), Volume::zero())?;
+        self.set_ns(user::ENTRY,    id.as_slice(), Volume::zero())?;
+        self.set_ns(user::VOLUME, id.as_slice(), Volume::zero())?;
         self.set_ns(user::CLAIMED,  id.as_slice(), Amount::zero())?;
         Ok(())
     }
@@ -434,16 +420,13 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     fn query_status (
         &self, now: Moment, address: Option<HumanAddr>, key: Option<String>
     ) -> StdResult<RewardsResponse> {
-
         if address.is_some() && key.is_none() {
             return Err(StdError::generic_err("no viewing key"))
         }
-
         let pool = self.get_pool_status(now)?;
         if now < pool.updated {
             return Err(StdError::generic_err("no history"))
         }
-
         let user = if let (Some(address), Some(key)) = (address, key) {
             let id = self.canonize(address)?;
             Auth::check_vk(self, &ViewingKey(key), id.as_slice())?;
@@ -451,71 +434,8 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         } else {
             None
         };
-
         Ok(RewardsResponse::Status { time: now, pool, user })
 
-    }
-
-    fn err_no_time_travel <T> (&self) -> StdResult<T> {
-        Err(StdError::generic_err("This service does not store history nor permit time travel."))
-    }
-
-    fn err_withdraw (&self, locked: Amount, withdrawn: Amount) -> StdResult<HandleResponse> {
-        // User must have enough locked to retrieve
-        Err(StdError::generic_err(format!(
-            "not enough locked ({} < {})", locked, withdrawn
-        )))
-    }
-
-    fn err_withdraw_fatal (&self, locked: Amount, withdrawn: Amount) -> StdResult<HandleResponse> {
-        // If pool does not have enough lp tokens then something has gone badly wrong
-        Err(StdError::generic_err(format!(
-            "FATAL: not enough tokens in pool ({} < {})", locked, withdrawn
-        )))
-    }
-
-    fn err_claim_threshold (&self, threshold: Duration, liquid: Duration) -> StdResult<HandleResponse> {
-        Err(StdError::generic_err(format!(
-            "You must keep some tokens locked for {} more seconds \
-            before you are able to claim for the first time.",
-            threshold - liquid
-        )))
-    }
-
-    fn err_claim_cooldown (&self, cooldown: Duration) -> StdResult<HandleResponse> {
-        Err(StdError::generic_err(format!(
-            "You must keep some tokens locked for {} more seconds \
-            before you are able to claim again.",
-            cooldown
-        )))
-    }
-
-    fn err_claim_pool_empty (&self) -> StdResult<HandleResponse> {
-        Err(StdError::generic_err(
-            "This pool is currently empty. \
-            However, liquidity shares continue to accumulate."
-        ))
-    }
-
-    fn err_claim_global_ratio_zero (&self) -> StdResult<HandleResponse> {
-        Err(StdError::generic_err(
-            "Rewards from this pool are currently stopped. \
-            However, liquidity shares continue to accumulate."
-        ))
-    }
-
-    fn err_claim_crowded_out (&self) -> StdResult<HandleResponse> {
-        Err(StdError::generic_err(
-            "Your liquidity share has steeply diminished \
-            since you last claimed. Lock more tokens to get \
-            to the front of the queue faster."
-        ))
-    }
-
-    fn err_claim_zero_claimable (&self) -> StdResult<HandleResponse> {
-        Err(StdError::generic_err(
-            "You have already claimed your exact share of the rewards."
-        ))
     }
 
 }
@@ -616,16 +536,16 @@ pub mod config {
 ///
 ///     Pool liquidity is internally represented by two variables:
 ///
-///     * `locked` is the total number of LP tokens
-///       that are currently locked in the pool.
+///     * `staked` is the total number of LP tokens
+///       that are currently staked in the pool.
 ///       * Incremented and decremented on withdraws and deposits.
 ///       * Should be equal to this contract's balance in the
 ///         LP token contract.
 ///
-///     * `lifetime`. The total amount of liquidity
-///       contained by the pool over its lifetime.
-///       * Incremented by `elapsed * locked` on deposits and withdrawals.
-///       * Computed as `last_value + elapsed * locked` on queries.
+///     * `volume`. The total amount of liquidity
+///       contained by the pool over its volume.
+///       * Incremented by `elapsed * staked` on deposits and withdrawals.
+///       * Computed as `last_value + elapsed * staked` on queries.
 ///
 /// 4. Reward budget
 ///
@@ -633,8 +553,8 @@ pub mod config {
 ///     contract.
 ///
 ///     * In the case of **single-sided staking** (e.g. staking SIENNA to earn SIENNA)
-///       the value of `locked` is subtracted from this balance in order to separate
-///       the tokens locked by users from the reward budget.
+///       the value of `staked` is subtracted from this balance in order to separate
+///       the tokens staked by users from the reward budget.
 ///
 ///     Rewards are computed on the basis of this balance.
 ///
@@ -666,62 +586,48 @@ pub struct Pool {
     /// "For what point in time do the following values hold true?"
     /// Passed on instantiation.
     pub now:          Moment,
-
     /// "Is this pool closed, and if so, when and why?"
     /// Set irreversibly via handle method.
     pub closed:       Option<CloseSeal>,
-
-    /// "When was the last time someone locked or unlocked tokens?"
+    /// "When was the last time someone staked or unstaked tokens?"
     /// Set to current time on lock/unlock.
     pub updated:      Moment,
-
     /// "What liquidity has this pool contained up to this point?"
-    /// Before lock/unlock, if locked > 0, this is incremented
-    /// by pool.elapsed * pool.locked
-    pub lifetime:     Volume,
-
+    /// Before lock/unlock, if staked > 0, this is incremented
+    /// by pool.elapsed * pool.staked
+    pub volume:       Volume,
     /// "What liquidity is there in the whole pool right now?"
     /// Incremented/decremented on lock/unlock.
-    pub locked:       Amount,
-
-    /// "What reward balance is there in the pool?"
+    pub staked:       Amount,
+    /// "What amount of rewards is currently available for users?"
     /// Queried from reward token.
-    pub balance:      Amount,
-
+    pub budget:       Amount,
     /// "What rewards has everyone received so far?"
     /// Incremented on claim.
     pub claimed:      Amount,
-
-    /// "What rewards were unlocked for this pool so far?"
+    /// "What rewards were unstaked for this pool so far?"
     /// Computed as balance + claimed.
     pub vested:       Amount,
-
     /// "What is the initial bonding period?"
     /// User needs to lock LP tokens for this amount of time
     /// before rewards can be claimed. Configured on init.
     pub threshold:    Duration,
-
     /// "How much must the user wait between claims?"
     /// Configured on init.
     /// User cooldowns are reset to this value on claim.
     pub cooldown:     Duration,
-
+    /// Used to throttle the pool.
     pub global_ratio: (Amount, Amount),
-
-    pub budget: Amount
 }
 
 pub mod pool {
     pub const CLOSED:    &[u8] = b"/pool/closed";
-
     pub const RATIO:     &[u8] = b"/pool/ratio";
     pub const COOLDOWN:  &[u8] = b"/pool/cooldown";
     pub const THRESHOLD: &[u8] = b"/pool/threshold";
-
-    pub const LIFETIME:  &[u8] = b"/pool/lifetime";
+    pub const VOLUME:    &[u8] = b"/pool/volume";
     pub const UPDATED:   &[u8] = b"/pool/updated";
-    pub const LOCKED:    &[u8] = b"/pool/size";
-
+    pub const STAKED:    &[u8] = b"/pool/size";
     pub const CLAIMED:   &[u8] = b"/pool/claimed";
 }
 
@@ -736,26 +642,26 @@ pub mod pool {
 ///
 /// 2. Liquidity and liquidity share
 ///
-///     * `locked` is the number of LP tokens locked by this user in this pool.
-///     * The user's **momentary share** is defined as `locked / pool.locked`.
-///     * `lifetime` is the lifetime liquidity contributed by this user.
-///       It is incremented by `locked` for every moment elapsed.
-///     * The user's **lifetime share** is defined as `lifetime / pool.lifetime`.
+///     * `staked` is the number of LP tokens staked by this user in this pool.
+///     * The user's **momentary share** is defined as `staked / pool.staked`.
+///     * `volume` is the volume liquidity contributed by this user.
+///       It is incremented by `staked` for every moment elapsed.
+///     * The user's **volume share** is defined as `volume / pool.volume`.
 ///       It represents the user's overall contribution, and should move in the
 ///       direction of the user's momentary share.
 ///
 /// 3. Rewards claimable
 ///
-///     * `earned` rewards are equal to `lifetime_share * user_liquidity_ratio *
+///     * `earned` rewards are equal to `volume_share * user_liquidity_ratio *
 ///     pool_liquidity_ratio * global_ratio * pool.budget`.
 ///     * `claimed` rewards are incremented on each claim, by the amount claimed.
 ///     * `claimable` is equal to `earned - claimed`.
 ///
-///     As the user's lifetime share increases (as a result of providing liquidity)
+///     As the user's volume share increases (as a result of providing liquidity)
 ///     or the pool's budget increases (as a result of new reward portions being
-///     unlocked from the TGE budget), new rewards are `earned` and become `claimable`.
+///     unstaked from the TGE budget), new rewards are `earned` and become `claimable`.
 ///
-///     `earned` may become less than `claimed` if the user's lifetime share
+///     `earned` may become less than `claimed` if the user's volume share
 ///     goes down too steeply:
 ///
 ///         * as a result of that user withdrawing liquidity;
@@ -764,7 +670,7 @@ pub mod pool {
 ///
 ///     This means the user has been *crowded out* - they have already claimed
 ///     fair rewards for their contribution up to this point, but have become
-///     ineligible for further rewards until their lifetime share increases:
+///     ineligible for further rewards until their volume share increases:
 ///
 ///         * as a result of that user providing a greater amount of liquidity
 ///
@@ -775,60 +681,50 @@ pub mod pool {
 ///         * as a result of incoming reward portions from the TGE budget.
 ///
 pub mod user {
-    pub const ENTRY:    &[u8] = b"/user/entry";
-
-    pub const LOCKED:   &[u8] = b"/user/current/";
+    pub const ENTRY:    &[u8] = b"/user/entry/";
+    pub const STAKED:   &[u8] = b"/user/current/";
     pub const UPDATED:  &[u8] = b"/user/updated/";
-    pub const LIFETIME: &[u8] = b"/user/lifetime/";
-
+    pub const VOLUME:   &[u8] = b"/user/volume/";
     pub const CLAIMED:  &[u8] = b"/user/claimed/";
-
     pub const COOLDOWN: &[u8] = b"/user/cooldown/";
 }
 
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub struct User {
-    /// What was the lifetime liquidity of the pool when the user entered?
-    /// User's liquidity share is computed from liquidity accumulated over that amount.
+    /// What was the volume liquidity of the pool when the user entered?
+    /// User's reward share is computed from liquidity accumulated over that amount.
     pub entry:        Volume,
-
     /// When did this user's liquidity amount last change?
     /// Set to current time on update.
     pub updated:      Moment,
-
     /// How much liquidity does this user currently provide?
     /// Incremented/decremented on lock/unlock.
-    pub locked:       Amount,
-
+    pub staked:       Amount,
     /// How much liquidity has this user provided since they first appeared?
-    /// Incremented on update by user.locked * elapsed if user.locked > 0
-    pub lifetime:     Volume,
-
+    /// Incremented on update by user.staked * elapsed if user.staked > 0
+    pub volume:       Volume,
     /// How much rewards has this user earned?
-    /// Computed as user.lifetime_share * pool.vested
+    /// Computed as user.volume_share * pool.vested
     pub earned:       Amount,
-
     /// How much rewards has this user claimed so far?
     /// Incremented on claim by the amount claimed.
     pub claimed:      Amount,
-
     /// How much rewards can this user claim?
     /// Computed as user.earned - user.claimed, clamped at 0.
     pub claimable:    Amount,
-
     /// User-friendly reason why claimable is 0
     pub reason:       Option<String>,
-
     /// How many units of time remain until the user can claim again?
     /// Decremented on lock/unlock, reset to pool.cooldown on claim.
     pub cooldown:     Duration,
-
     /// What portion of the pool is this user currently contributing?
-    /// Computed as user.locked / pool.locked
+    /// Computed as user.staked / pool.staked
     pub pool_share:   (Amount, Amount),
-
     /// What portion of all the liquidity has this user ever contributed?
-    /// Computed as user.lifetime / pool.lifetime
+    /// Computed as user.volume / pool.volume
     pub reward_share: (Volume, Volume),
+    #[serde(skip)]
+    /// Passed around internally, not presented to user.
+    pub id: CanonicalAddr,
 }

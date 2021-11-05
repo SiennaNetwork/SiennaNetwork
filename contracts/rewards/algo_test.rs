@@ -56,12 +56,12 @@ use rand::Rng;
             threshold:    None,
             cooldown:     None,
         })
-    //  When someone else tries to set the config
-    //  Then the config remains unchanged
+        //  When someone else tries to set the config
+        //  Then the config remains unchanged
         .later().badman()
             .cannot_configure()
-    //  When the admin sets the config, including a reward token
-    //  Then a reward token viewing key config message is returned
+        //  When the admin sets the config, including a reward token
+        //  Then a reward token viewing key config message is returned
         .later().admin().configure(RewardsConfig {
             lp_token:     None,
             reward_token: Some(reward_token.link.clone()),
@@ -73,55 +73,70 @@ use rand::Rng;
 
 }
 
+// Given an instance
+// When user first deposits
+// Then user's stake increments
+//  And user's liquidity starts incrementing
+//  And user's cooldown starts decrementing
+// When user withdraws all before cooldown is over
+// Then user's liquidity and cooldown reset
+//  And there are no rewards
+// When user withdraws all after cooldown
+// Then rewards are automatically transferred
+//  And user's liquidity and cooldown reset
+// When user claims after cooldown
+// Then rewards are transferred
+//  And user's liquidity and cooldown reset
+
 #[test] fn test_deposit_withdraw_one () {
 
     // Given an instance
     Context::new()
         .at(1).admin().init()
-    //  When user first deposits
-    //  Then user's age and lifetime start incrementing
+        //  When user first deposits
+        //  Then user's age and volume start incrementing
         .later().user("Alice")
             .set_vk("")
-            .locked(0u128).lifetime(0u128)
+            .staked(0u128).volume(0u128)
             .deposits(100u128)
-            .locked(100u128).lifetime(0u128)
+            .staked(100u128).volume(0u128)
         .tick()
-            .locked(100u128).lifetime(100u128)
+            .staked(100u128).volume(100u128)
         .tick()
-            .locked(100u128).lifetime(200u128)
-    //  When user withdraws half of the tokens
-    //  Then user's age keeps incrementing
-    //   And user's lifetime keeps incrementing at a halved rate
+            .staked(100u128).volume(200u128)
+        //  When user withdraws half of the tokens
+        //  Then user's age keeps incrementing
+        //   And user's volume keeps incrementing at a halved rate
             .withdraws(50u128)
-            .locked( 50u128).lifetime(200u128)
+            .staked( 50u128).volume(200u128)
        .tick()
-            .locked( 50u128).lifetime(250u128)
+            .staked( 50u128).volume(250u128)
        .tick()
-            .locked( 50u128).lifetime(300u128)
-    //  When user withdraws other half of tokens
-    //  Then user's age and lifetime stop incrementing
+            .staked( 50u128).volume(300u128)
+        //  When user withdraws other half of tokens
+        //  Then user's age and volume stop incrementing
             .withdraws(50u128)
-            .locked(  0u128).lifetime(300u128)
+            .staked(  0u128).volume(300u128)
        .tick()
-            .locked(  0u128).lifetime(300u128)
+            .staked(  0u128).volume(300u128)
        .tick()
-            .locked(  0u128).lifetime(300u128)
-    //  When user deposits tokens again later
-    //  Then user's age and lifetime start incrementing again
+            .staked(  0u128).volume(300u128)
+        //  When user deposits tokens again later
+        //  Then user's age and volume start incrementing again
             .deposits(1u128)
-            .locked(  1u128).lifetime(300u128)
+            .staked(  1u128).volume(300u128)
        .tick()
-            .locked(  1u128).lifetime(301u128)
+            .staked(  1u128).volume(301u128)
        .tick()
-            .locked(  1u128).lifetime(302);
-    //  When another user deposits tokens
-    //  Then the first user's lifetime share starts to diminish
-    //
-    //  When user tries to withdraw too much
-    //  Then they can't
-    //
-    //  When a stranger tries to withdraw
-    //  Then they can't
+            .staked(  1u128).volume(302);
+        //  When another user deposits tokens
+        //  Then the first user's volume share starts to diminish
+        //
+        //  When user tries to withdraw too much
+        //  Then they can't
+        //
+        //  When a stranger tries to withdraw
+        //  Then they can't
 
 }
 
@@ -152,7 +167,7 @@ use rand::Rng;
         .user("Alice")
             //  When users tries to claim reward before providing liquidity
             //  Then they get an error
-            .at(2)
+            .tick()
                 .needs_age_threshold(86400)
             //  When users provide liquidity
             //   And they wait for rewards to accumulate
@@ -238,21 +253,21 @@ use rand::Rng;
         .fund(100u128)
         .user("Alice")
             .at(2).deposits(100u128)
-            .at(4).needs_age_threshold(98)
-            .at(5).needs_age_threshold(97)
+            .tick().needs_age_threshold(99)
+            .tick().needs_age_threshold(98)
+            .tick().needs_age_threshold(97)
             // ...
             .at(100).needs_age_threshold(2)
-            .at(101).needs_age_threshold(1)
-            .at(102).claims(100)
-            .at(102).needs_cooldown(200)
-            .at(103).needs_cooldown(199)
-            .at(104).needs_cooldown(198)
+            .tick().needs_age_threshold(1)
+            .tick().claims(100).needs_cooldown(200)
+            .tick().needs_cooldown(199)
+            .tick().needs_cooldown(198)
             // ...
         .fund(100u128)
             .at(299).needs_cooldown(3)
-            .at(300).needs_cooldown(2)
-            .at(301).needs_cooldown(1)
-            .at(302).claims(100);
+            .tick().needs_cooldown(2)
+            .tick().needs_cooldown(1)
+            .tick().claims(100);
 
 }
 
@@ -281,65 +296,32 @@ use rand::Rng;
 ///
 ///  When user deposits tokens and becomes eligible for rewards
 ///   And user first claims rewards and then withdraws all tokens
-///  Then user lifetime is preserved so they can re-stake and continue
+///  Then user volume is preserved so they can re-stake and continue
 ///
 ///  When user deposits tokens and becomes eligible for rewards
 ///   And user first withdraws all tokens and then claims rewards
-///  Then user lifetime and claimed is reset so they can start over
+///  Then user volume and claimed is reset so they can start over
 #[test] fn test_reset () {
 
     Context::new()
         .admin()
-            .at(1).init().fund(100u128).configure(RewardsConfig {
-                lp_token:     None,
-                reward_token: None,
-                reward_vk:    None,
-                ratio:        None,
-                threshold:    Some(0u64),
-                cooldown:     Some(0u64),
-            })
+            .at(1).init().fund(100u128)
         .user("Alice")
             .set_vk("")
-            .at( 2).deposits(100u128)
-            .at( 4).claims(100u128)
-            .at( 4).withdraws(100u128).lifetime(200u128).claimed(100u128);
+            .at(    2).deposits(100u128)
+            .at(86402).claims(100u128)
+            .at(86402).withdraws(100u128).volume(200u128).claimed(100u128);
 
     Context::new()
         .admin()
-            .at(1).init().fund(100u128).configure(RewardsConfig {
-                lp_token:     None,
-                reward_token: None,
-                reward_vk:    None,
-                ratio:        None,
-                threshold:    Some(0u64),
-                cooldown:     Some(0u64),
-            })
+            .at(1).init().fund(100u128)
             .user("Alice")
                 .set_vk("")
-                .at( 2).deposits(100u128)
-                .at( 4).withdraws(100u128)
-                .at( 4).claims(100u128).lifetime(0u128).claimed(0u128);
+                .at(    2).deposits(100u128)
+                .at(86402).withdraws(100u128)
+                .at(86402).claims(100u128).volume(0u128).claimed(0u128);
 
 }
-
-    //when  "share of user who has previously claimed rewards diminishes"
-    //then  "user is crowded out"
-    //and   "user can't claim" {
-        //user1.deposit_tokens(100u128.into())?;
-        //user1.pool.set_time(1 + crate::DAY*4);
-        //user1.claim_reward()?;
-        //let mut user2 = user1.pool.user(addr2.clone());
-        //user2.deposit_tokens(1000u128.into())?;
-        //user2.pool.set_time(1 + crate::DAY*5);
-        //let mut user1 = user2.pool.user(addr1.clone());
-        //assert!(user1.earned()? < user1.claimed()?);
-        //assert_eq!(user1.claimable()?, Amount::zero()); }
-
-    //when  "user withdraws all tokens"
-    //then  "user's lifetime is preserved"
-    //and   "crowded out users can't reset their negative claimable" {
-        //user1.withdraw_tokens(100u128.into())?;
-        //assert!(user1.earned()? < user1.claimed()?); }
 
 /// Given a pool with some activity
 ///

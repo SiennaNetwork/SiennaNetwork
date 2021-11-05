@@ -281,19 +281,19 @@ impl Context {
     pub fn needs_age_threshold (&mut self, remaining: Duration) -> &mut Self {
         self.test_handle(
             RewardsHandle::Claim {},
-            Rewards::err_claim_threshold(&self.deps, remaining, 0)
+            errors::claim_threshold(remaining, 0)
         )
     }
     pub fn needs_cooldown (&mut self, remaining: Duration) -> &mut Self {
         self.test_handle(
             RewardsHandle::Claim {},
-            Rewards::err_claim_cooldown(&self.deps, remaining)
+            errors::claim_cooldown(remaining)
         )
     }
     pub fn ratio_is_zero (&mut self) -> &mut Self {
         self.test_handle(
             RewardsHandle::Claim {},
-            Rewards::err_claim_global_ratio_zero(&self.deps)
+            errors::claim_global_ratio_zero()
         )
     }
     pub fn status (&mut self) -> User {
@@ -304,12 +304,12 @@ impl Context {
             //_ => panic!()
         }
     }
-    pub fn locked <A: Into<Amount>> (&mut self, v: A) -> &mut Self {
-        assert_eq!(self.status().locked, v.into(), "user.locked");
+    pub fn staked <A: Into<Amount>> (&mut self, v: A) -> &mut Self {
+        assert_eq!(self.status().staked, v.into(), "user.staked");
         self
     }
-    pub fn lifetime <V: Into<Volume>> (&mut self, v: V) -> &mut Self {
-        assert_eq!(self.status().lifetime, v.into(), "user.lifetime");
+    pub fn volume <V: Into<Volume>> (&mut self, v: V) -> &mut Self {
+        assert_eq!(self.status().volume, v.into(), "user.volume");
         self
     }
     //pub fn liquid (&mut self, t: u64) -> &mut Self {

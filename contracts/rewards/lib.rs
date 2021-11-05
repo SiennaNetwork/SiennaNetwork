@@ -16,6 +16,7 @@
 #[cfg(test)] mod test;
 pub mod algo; #[cfg(test)] mod algo_test;
 pub mod auth; #[cfg(test)] mod auth_test;
+pub mod errors;
 pub mod migration;
 
 #[cfg(browser)] #[macro_use] extern crate wasm_bindgen;
@@ -167,7 +168,7 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let id = self.canonize(address)?;
         Auth::check_vk(self, &key, id.as_slice())?;
         Ok(Response::Balance {
-            amount: self.get_ns(algo::user::LOCKED, id.as_slice())?.unwrap_or(Amount::zero())
+            amount: self.get_ns(algo::user::STAKED, id.as_slice())?.unwrap_or(Amount::zero())
         })
     }
 }
