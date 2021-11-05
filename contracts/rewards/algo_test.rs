@@ -238,7 +238,7 @@ use rand::Rng;
 ///
 ///  When a user claims rewards
 ///  Then they need to wait a fixed amount of time before they can claim again
-#[test] fn test_threshold_cooldown () {
+#[test] fn test_bonding () {
 
     Context::new()
         .admin()

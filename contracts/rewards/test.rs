@@ -47,11 +47,11 @@ impl Context {
 
             reward_vk: "reward_vk".to_string(),
             reward_token: ISnip20::attach(
-                ContractLink { address: HumanAddr::from("SIENNA_addr"), code_hash: "SIENNA_hash".into() }
+                ContractLink { address: HumanAddr::from("SIENNA"), code_hash: "SIENNA_hash".into() }
             ),
 
             lp_token: ISnip20::attach(
-                ContractLink { address: HumanAddr::from("LP_addr"),     code_hash: "LP_hash".into() }
+                ContractLink { address: HumanAddr::from("LP_TOKEN"),     code_hash: "LP_hash".into() }
             ),
 
             env: env(&address, time),
@@ -405,8 +405,8 @@ pub struct RewardsMockQuerier {
 impl RewardsMockQuerier {
     pub fn new () -> Self {
         let mut balances = std::collections::HashMap::new();
-        balances.insert("SIENNA_addr".into(), 0u128);
-        balances.insert("LP_addr".into(),     0u128);
+        balances.insert("SIENNA".into(), 0u128);
+        balances.insert("LP_TOKEN".into(),     0u128);
         Self { balances }
     }
     fn get_balance (&self, address: &HumanAddr) -> u128 {

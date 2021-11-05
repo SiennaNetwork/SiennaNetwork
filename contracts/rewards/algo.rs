@@ -169,7 +169,8 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             elapsed,
             pool.staked
         )?;
-        let lp_token = self.lp_token()?;
+
+        let lp_token     = self.lp_token()?;
         let reward_token = self.reward_token()?;
         pool.budget = reward_token.query_balance(
             self.querier(),
@@ -179,10 +180,14 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         if reward_token.link == lp_token.link { // separate balances for single-sided staking
             pool.budget = (pool.budget - pool.staked)?;
         }
+
         pool.claimed = self.get(pool::CLAIMED)?.unwrap_or(Amount::zero());
-        pool.vested = pool.claimed + pool.budget;
+        pool.vested  = pool.claimed + pool.budget;
+
         pool.global_ratio = self.get(pool::RATIO)?
             .ok_or(StdError::generic_err("missing global ratio"))?;
+
+        pool.closed = self.get(pool::CLOSED)?;
         Ok(pool)
     }
 
@@ -291,6 +296,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             self.commit_staked(pool, user)?;
             self.commit_progress(pool, user)?;
             if user.staked == Amount::zero() && user.claimable > Amount::zero() {
+                self.reset(user)?;
             }
             HandleResponse::default().msg(self.lp_token()?.transfer(
                 &env.message.sender,
