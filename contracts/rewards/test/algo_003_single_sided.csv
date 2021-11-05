@@ -1,26 +1,26 @@
 ,,
-1,RPT,vest 100
+1,RPT,vest 17558
 ,,
-2,Alice,"lock:
-  amount: ""100"""
+255,Alice,"lock:
+  amount: ""69123"""
 =>,"execute
 SIENNA","transfer_from:
-  amount: ""100""
+  amount: ""69123""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
 ,,
-86402,Alice,claim: {}
+86655,Alice,claim: {}
 =>,"execute
 SIENNA","transfer:
-  amount: ""100""
+  amount: ""17558""
   padding: ~
   recipient: Alice"
 ,,
-86403,Alice,"retrieve:
-  amount: ""100"""
+87617,Alice,"retrieve:
+  amount: ""69123"""
 =>,"execute
 SIENNA","transfer:
-  amount: ""100""
+  amount: ""69123""
   padding: ~
   recipient: Alice"

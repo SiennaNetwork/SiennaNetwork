@@ -35,11 +35,14 @@ use crate::*;
 use fadroma::*;
 use fadroma::secret_toolkit::snip20;
 use fadroma::testing::*;
+
 pub use rand::Rng;
+use rand::{SeedableRng, rngs::StdRng};
 
 pub type Deps = Extern<MemoryStorage, MockApi, RewardsMockQuerier>;
 
 pub struct Context {
+    pub rng:          StdRng,
     pub name:         Option<&'static str>,
     pub table:        Table,
     pub deps:         Deps,
@@ -67,6 +70,7 @@ impl Context {
         //color_backtrace::install();
 
         Self {
+            rng:  StdRng::seed_from_u64(1),
             name: None,
             table,
 
@@ -110,7 +114,8 @@ impl Context {
         self.after(1)
     }
     pub fn later (&mut self) -> &mut Self {
-        self.after(rand::thread_rng().gen_range(0..86400))
+        let t = self.rng.gen_range(0..1000);
+        self.after(t)
     }
     pub fn epoch (&mut self) -> &mut Self {
         self.after(86400)
@@ -318,33 +323,41 @@ impl Context {
             //_ => panic!()
         }
     }
-    pub fn staked <A: Into<Amount>> (&mut self, a: A) -> &mut Self {
-        assert_eq!(self.status().staked, a.into(), "user.staked");
+    fn test_field <V: std::fmt::Debug + Clone + PartialEq> (&mut self, name: &'static str, actual: V, expected: V) -> &mut Self {
+        self.table.add_row(row![
+            rb->self.time,
+             b->self.address,
+             b->format!("{} = {:?}", &name, &actual)
+        ]);
+        if expected != actual {
+            self.table.add_row(row![
+                rbBrFd->"ERROR",
+                 bBrFd->"EXPECTED",
+                 bBrFd->format!("{} = {:?}", &name, &expected)
+            ]);
+        }
+        assert_eq!(expected, actual, "{}", name);
         self
     }
-    pub fn volume <V: Into<Volume>> (&mut self, v: V) -> &mut Self {
-        assert_eq!(self.status().volume, v.into(), "user.volume");
-        self
+    pub fn staked (&mut self, expected: u128) -> &mut Self {
+        let staked = self.status().staked;
+        self.test_field("user.staked", staked, expected.into())
     }
-    pub fn bonding (&mut self, t: Duration) -> &mut Self {
-        assert_eq!(self.status().bonding, t, "user.bonding");
-        self
+    pub fn volume (&mut self, expected: u128) -> &mut Self {
+        let volume = self.status().volume;
+        self.test_field("user.volume", volume, expected.into())
     }
-    //pub fn liquid (&mut self, t: u64) -> &mut Self {
-        //assert_eq!(self.status().liquid, t, "user.liquid");
-        //self
-    //}
-    //pub fn existed (&mut self, t: u64) -> &mut Self {
-        //assert_eq!(self.status().existed, t, "user.existed");
-        //self
-    //}
-    pub fn claimed <A: Into<Amount>> (&mut self, a: A) -> &mut Self {
-        assert_eq!(self.status().claimed, a.into(), "user.claimed");
-        self
+    pub fn bonding (&mut self, expected: Duration) -> &mut Self {
+        let bonding = self.status().bonding;
+        self.test_field("user.bonding", bonding, expected.into())
     }
-    pub fn claimable <A: Into<Amount>> (&mut self, a: A) -> &mut Self {
-        assert_eq!(self.status().claimable, a.into(), "user.claimable");
-        self
+    pub fn claimed (&mut self, expected: u128) -> &mut Self {
+        let claimed = self.status().claimed;
+        self.test_field("user.claimed", claimed, expected.into())
+    }
+    pub fn claimable (&mut self, expected: u128) -> &mut Self {
+        let claimable = self.status().claimable;
+        self.test_field("user.claimable", claimable, expected.into())
     }
 }
 impl Drop for Context {

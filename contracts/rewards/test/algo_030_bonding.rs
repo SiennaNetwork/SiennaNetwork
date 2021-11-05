@@ -1,13 +1,14 @@
 use crate::test::*;
 
 #[test] fn test_bonding () {
-    let bonding = rand::thread_rng().gen_range(0..100000);
-    let t_lock  = rand::thread_rng().gen_range(0..100000);
-    let reward  = rand::thread_rng().gen_range(0..100000);
-    let stake   = rand::thread_rng().gen_range(0..100000);
+    let mut context = Context::named("algo_030_bonding");
+    let bonding = context.rng.gen_range(0..100000);
+    let t_lock  = context.rng.gen_range(0..100000);
+    let reward  = context.rng.gen_range(0..100000);
+    let stake   = context.rng.gen_range(0..100000);
 
     // Given a pool
-    Context::named("algo_030_bonding")
+    context
         .admin().init().configure(RewardsConfig {
             lp_token:     None,
             reward_token: None,

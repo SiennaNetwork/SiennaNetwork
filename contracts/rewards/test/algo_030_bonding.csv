@@ -4,22 +4,78 @@
   reward_token: ~
   reward_vk: ~
   ratio: ~
-  bonding: 59270"
+  bonding: 97424"
 ,,
-1,RPT,vest 45100
+1,RPT,vest 17558
 ,,
-32098,Alice,"lock:
-  amount: ""28652"""
+69123,Alice,"lock:
+  amount: ""96260"""
 =>,"execute
 LP_TOKEN","transfer_from:
-  amount: ""28652""
+  amount: ""96260""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
 ,,
-32098,Alice,claim: {}
-=>,err,Generic error: You have already claimed your exact share of the rewards.
+69123,Alice,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97424 more seconds before you are able to claim.
+,,
+69124,Alice,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97423 more seconds before you are able to claim.
+,,
+69125,Alice,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97422 more seconds before you are able to claim.
+,,
+69126,Alice,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97421 more seconds before you are able to claim.
+,,
+166544,Alice,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 3 more seconds before you are able to claim.
+,,
+166545,Alice,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 2 more seconds before you are able to claim.
+,,
+166546,Alice,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 1 more seconds before you are able to claim.
+,,
+166547,Alice,claim: {}
+=>,"execute
+SIENNA","transfer:
+  amount: ""17558""
+  padding: ~
+  recipient: Alice"
+,,
+166547,Alice,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97424 more seconds before you are able to claim.
+,,
+166548,Alice,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97423 more seconds before you are able to claim.
+,,
+166549,Alice,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97422 more seconds before you are able to claim.
+,,
+166549,RPT,vest 17558
+,,
+263968,Alice,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 3 more seconds before you are able to claim.
+,,
+263969,Alice,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 2 more seconds before you are able to claim.
+,,
+263970,Alice,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 1 more seconds before you are able to claim.
+,,
+263971,Alice,claim: {}
+=>,"execute
+SIENNA","transfer:
+  amount: ""8779""
+  padding: ~
+  recipient: Alice"
 ,,
 FAIL,was expecting,the following
 ,,
-=>,err,Generic error: You must keep some tokens staked for 59270 more seconds before you are able to claim.
+=>,"execute
+SIENNA","transfer:
+  amount: ""17558""
+  padding: ~
+  recipient: Alice"

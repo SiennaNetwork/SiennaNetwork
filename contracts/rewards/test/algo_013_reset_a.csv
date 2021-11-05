@@ -24,3 +24,5 @@ LP_TOKEN","transfer:
   amount: ""100""
   padding: ~
   recipient: Alice"
+86402,Alice,user.volume = Uint256(0)
+ERROR,EXPECTED,user.volume = Uint256(200)

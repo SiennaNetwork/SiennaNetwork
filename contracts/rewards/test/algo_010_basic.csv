@@ -1,0 +1,24 @@
+,,
+975,RPT,vest 100
+975,Alice,user.staked = Uint128(0)
+975,Alice,user.volume = Uint256(0)
+975,Alice,user.bonding = 86400
+975,Alice,user.claimable = Uint128(0)
+,,
+975,Alice,"lock:
+  amount: ""100"""
+=>,"execute
+LP_TOKEN","transfer_from:
+  amount: ""100""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+975,Alice,user.staked = Uint128(100)
+975,Alice,user.volume = Uint256(0)
+975,Alice,user.bonding = 86400
+975,Alice,user.claimable = Uint128(0)
+976,Alice,user.staked = Uint128(100)
+976,Alice,user.volume = Uint256(100)
+976,Alice,user.bonding = 86399
+976,Alice,user.claimable = Uint128(100)
+ERROR,EXPECTED,user.claimable = Uint128(0)

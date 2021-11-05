@@ -1,5 +1,7 @@
+975,Alice,user.staked = Uint128(0)
+975,Alice,user.volume = Uint256(0)
 ,,
-52208,Alice,"lock:
+975,Alice,"lock:
   amount: ""100"""
 =>,"execute
 LP_TOKEN","transfer_from:
@@ -7,28 +9,34 @@ LP_TOKEN","transfer_from:
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
+975,Alice,user.staked = Uint128(100)
+975,Alice,user.volume = Uint256(0)
+976,Alice,user.staked = Uint128(100)
+976,Alice,user.volume = Uint256(100)
+977,Alice,user.staked = Uint128(100)
+977,Alice,user.volume = Uint256(200)
 ,,
-52210,Alice,"retrieve:
+977,Alice,"retrieve:
   amount: ""50"""
 =>,"execute
 LP_TOKEN","transfer:
   amount: ""50""
   padding: ~
   recipient: Alice"
+977,Alice,user.staked = Uint128(50)
+977,Alice,user.volume = Uint256(200)
+978,Alice,user.staked = Uint128(50)
+978,Alice,user.volume = Uint256(250)
+979,Alice,user.staked = Uint128(50)
+979,Alice,user.volume = Uint256(300)
 ,,
-52212,Alice,"retrieve:
+979,Alice,"retrieve:
   amount: ""50"""
 =>,"execute
 LP_TOKEN","transfer:
   amount: ""50""
   padding: ~
   recipient: Alice"
-,,
-52214,Alice,"lock:
-  amount: ""1"""
-=>,"execute
-LP_TOKEN","transfer_from:
-  amount: ""1""
-  owner: Alice
-  padding: ~
-  recipient: cosmos2contract"
+979,Alice,user.staked = Uint128(0)
+979,Alice,user.volume = Uint256(0)
+ERROR,EXPECTED,user.volume = Uint256(300)

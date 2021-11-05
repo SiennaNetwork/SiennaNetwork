@@ -1,5 +1,5 @@
 ,,
-13995,Admin,"configure:
+975,Admin,"configure:
   lp_token: ~
   reward_token:
     address: SIENNA
@@ -12,7 +12,7 @@ SIENNA","set_viewing_key:
   key: reward_vk
   padding: ~"
 ,,
-38316,Admin,"configure:
+2093,Admin,"configure:
   lp_token: ~
   reward_token:
     address: SIENNA

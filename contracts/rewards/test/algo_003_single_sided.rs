@@ -11,12 +11,16 @@ use crate::test::*;
 
     let mut context = Context::named("algo_003_single_sided");
     context.lp_token = context.reward_token.clone();
+
+    let stake  = context.rng.gen_range(0..100000);
+    let reward = context.rng.gen_range(0..100000);
+
     context
         .admin()
-            .at(1).init().fund(100u128)
+            .init().fund(reward)
         .user("Alice")
-            .at(2)    .deposits(100u128)
-            .at(86402).claims(100u128)
-            .at(86403).withdraws(100u128);
+            .later().deposits(stake)
+            .epoch().claims(reward)
+            .later().withdraws(stake);
 
 }

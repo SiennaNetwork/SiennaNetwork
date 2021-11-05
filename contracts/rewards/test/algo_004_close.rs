@@ -14,13 +14,16 @@ use crate::test::*;
         RewardsHandle::Retrieve { amount: 100u128.into() },
     ] {
         let mut context = Context::named("algo_004_close");
+        let reward = context.rng.gen_range(0..100000);
+        let stake1 = context.rng.gen_range(0..100000);
+        let stake2 = context.rng.gen_range(0..100000);
         let return_funds = context.lp_token
-            .transfer(&HumanAddr::from("Alice"), 200u128.into());
+            .transfer(&HumanAddr::from("Alice"), (stake1+stake2).into());
         context
-            .admin().init().fund(100u128)
-            .later().user("Alice").deposits(100u128)
+            .admin().init().fund(reward)
+            .later().user("Alice").deposits(stake1)
             .later().badman().cannot_close_pool()
-            .later().user("Alice").deposits(100u128)
+            .later().user("Alice").deposits(stake2)
             .later().admin().closes_pool()
             // always retrieval, optionally claim transfer
             .later().user("Alice").test_handle(

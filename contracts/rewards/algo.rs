@@ -47,7 +47,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             )?),
             reward_vk:    Some(config.reward_vk.unwrap_or("".into())),
             ratio:        Some(config.ratio.unwrap_or((1u128.into(), 1u128.into()))),
-            bonding:     Some(config.bonding.unwrap_or(DAY))
+            bonding:      Some(config.bonding.unwrap_or(DAY))
         };
 
         self.set(config::SELF, &self.canonize(ContractLink {
@@ -175,6 +175,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         if reward_token.link == lp_token.link { // separate balances for single-sided staking
             pool.budget = (pool.budget - pool.staked)?;
         }
+        pool.bonding = self.get(pool::BONDING)?.unwrap_or(0u64);
         pool.claimed = self.get(pool::CLAIMED)?.unwrap_or(Amount::zero());
         pool.vested  = pool.claimed + pool.budget;
         pool.global_ratio = self.get(pool::RATIO)?
@@ -212,7 +213,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
                 .low_u128().into()
         };
         user.claimed = self.get_ns(user::CLAIMED, id.as_slice())?.unwrap_or(Amount::zero());
-        user.bonding = self.get_ns(user::BONDING, id.as_slice())?.unwrap_or(0);
+        user.bonding = self.get_ns(user::BONDING, id.as_slice())?.unwrap_or(pool.bonding);
         if user.staked > Amount::zero() {
             user.bonding = user.bonding - u64::min(elapsed, user.bonding)
         };
@@ -257,7 +258,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             self.return_stake(env, pool, user)
         } else {
             if user.staked == Amount::zero() {
-                self.reset(user)?;
+                self.reset(pool, user)?;
                 user.entry = pool.volume;
                 self.set_ns::<Volume>(user::ENTRY, user.id.as_slice(), user.entry)?;
             }
@@ -287,8 +288,8 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             pool.staked = (pool.staked - amount)?;
             self.commit_staked(pool, user)?;
             self.commit_progress(pool, user)?;
-            if user.staked == Amount::zero() && user.claimable > Amount::zero() {
-                self.reset(user)?;
+            if user.staked == Amount::zero() {
+                self.reset(pool, user)?;
             }
             HandleResponse::default().msg(self.lp_token()?.transfer(
                 &env.message.sender,
@@ -314,7 +315,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             user.bonding = pool.bonding;
             self.commit_claim(pool, user)?;
             self.commit_progress(pool, user)?;
-            self.reset(user)?;
+            self.reset(pool, user)?;
             // Transfer reward tokens from the contract to the user
             HandleResponse::default().msg(self.reward_token()?.transfer(
                 &env.message.sender,
@@ -359,6 +360,7 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             user.staked = 0u128.into();
             pool.staked = (pool.staked - withdraw_all)?;
             self.commit_staked(pool, user)?;
+            self.reset(pool, user)?;
             HandleResponse::default()
                 .msg(self.lp_token()?.transfer(&env.message.sender.clone(), withdraw_all)?)?
                 .log("closed", &format!("{} {}", when, why))
@@ -393,10 +395,11 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Reset the user's liquidity conribution
-    fn reset (&mut self, user: &User) -> StdResult<()> {
+    fn reset (&mut self, pool: &Pool, user: &User) -> StdResult<()> {
         self.set_ns(user::ENTRY,   user.id.as_slice(), Volume::zero())?;
         self.set_ns(user::VOLUME,  user.id.as_slice(), Volume::zero())?;
         self.set_ns(user::CLAIMED, user.id.as_slice(), Amount::zero())?;
+        self.set_ns(user::BONDING, user.id.as_slice(), pool.bonding)?;
         Ok(())
     }
 
