@@ -10,16 +10,20 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   padding: ~
   recipient: cosmos2contract"
 ,,,
-87375,Alice,REWARDS,claim: {}
+87375,Alice,REWARDS,"retrieve:
+  amount: ""69123"""
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""69123""
+  padding: ~
+  recipient: Alice"
+,,,
+88066,Alice,REWARDS,"retrieve:
+  amount: ""69123"""
 tx,REWARDS,SIENNA,"transfer:
   amount: ""17558""
   padding: ~
   recipient: Alice"
-,,,
-87375,Alice,REWARDS,"retrieve:
-  amount: ""138246"""
 tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""138246""
+  amount: ""69123""
   padding: ~
   recipient: Alice"
-87375,REWARDS,Alice,user.volume  = Uint256(0)

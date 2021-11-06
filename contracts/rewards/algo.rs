@@ -269,8 +269,9 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>:
         let (ref mut total, ref mut account) = self.get_status(&env)?;
         if total.closed.is_some() {
             return self.force_exit(env, total, account)
+        } else {
+            account.increment_stake(self, total, amount)
         }
-        account.increment_stake(self, total, amount)
     }
 
     /// Withdraw deposited LP tokens from pool back to the account
@@ -292,14 +293,14 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>:
     /// Transfer rewards to account if eligible
     fn handle_claim (&mut self, env: &Env) -> StdResult<HandleResponse> {
         let (ref mut total, ref mut account) = self.get_status(&env)?;
-        if account.bonding > 0 {
+        if total.closed.is_some() {
+            self.force_exit(env, total, account)
+        } else if account.bonding > 0 {
             errors::claim_bonding(account.bonding)
         } else if total.budget == Amount::zero() {
             errors::claim_pool_empty()
         } else if account.earned == Amount::zero() {
             errors::claim_zero_claimable()
-        } else if total.closed.is_some() {
-            self.force_exit(env, total, account)
         } else {
             account.commit_claim(self, total)
         }
@@ -319,12 +320,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>:
         } else {
             Err(StdError::generic_err("pool not closed"))
         }
-    }
-
-    fn commit_claim (&mut self, total: &mut Totals, account: &mut Account) -> StdResult<()> {
-        total.distributed += account.earned;
-        self.set(Totals::CLAIMED, total.distributed)?;
-        Ok(())
     }
 
     /// Handle queries
@@ -439,7 +434,9 @@ impl Account {
         total:    &Totals,
         address:  HumanAddr
     ) -> StdResult<Self> {
+
         let id = contract.canonize(address.clone())?;
+
         let get_time = |key, default: u64| -> StdResult<u64> {
             Ok(contract.get_ns(key, &id.as_slice())?.unwrap_or(default))
         };
@@ -458,16 +455,22 @@ impl Account {
         if total.now < account.updated {
             return errors::no_time_travel()
         }
+
         account.entry = get_volume(Self::ENTRY, total.volume)?;
         if account.entry > total.volume {
             return errors::no_time_travel()
         }
+
         account.staked = get_amount(Self::STAKED, Amount::zero())?;
+
         account.pool_share = (account.staked, total.staked);
+
         let last_volume = get_volume(Self::VOLUME, Volume::zero())?;
         let elapsed: Duration = now - account.updated;
         account.volume = accumulate(last_volume, elapsed, account.staked)?;
+
         account.reward_share = (account.volume, (total.volume - account.entry)?);
+
         account.earned = if account.reward_share.1 == Volume::zero() {
             Amount::zero()
         } else {
@@ -475,11 +478,15 @@ impl Account {
                 .multiply_ratio(account.reward_share.0, account.reward_share.1)?
                 .low_u128().into()
         };
+
         account.bonding = get_time(Self::BONDING, total.bonding)?;
+
         if account.staked > Amount::zero() {
             account.bonding = account.bonding.saturating_sub(elapsed)
         };
+
         account.id = id;
+
         Ok(account)
     }
 
@@ -489,10 +496,13 @@ impl Account {
         total:    &mut Totals,
         amount:   Amount
     ) -> StdResult<HandleResponse> {
-        self.progress(contract, total)?;
+
+        self.commit_elapsed(contract, total)?;
 
         self.staked += amount;
+
         contract.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
+
         total.increment_stake(contract, amount)?;
 
         HandleResponse::default().msg(
@@ -506,19 +516,25 @@ impl Account {
         total:    &mut Totals,
         amount:   Amount
     ) -> StdResult<HandleResponse> {
-        let response = if self.staked == amount {
-            self.commit_claim(contract, total)?
-        } else {
-            HandleResponse::default()
-        };
+
+        self.commit_elapsed(contract, total)?;
 
         self.staked = (self.staked - amount)?;
+
         contract.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
+
         total.decrement_stake(contract, amount)?;
 
-        self.progress(contract, total)?;
-
-        response.msg(
+        if self.staked == Amount::zero() {
+            if self.bonding == 0 {
+                self.commit_claim(contract, total)?
+            } else {
+                self.reset(contract, total)?;
+                HandleResponse::default()
+            }
+        } else {
+            HandleResponse::default()
+        }.msg(
             contract.lp_token()?.transfer(&self.address, amount)?
         )
     }
@@ -528,11 +544,20 @@ impl Account {
         contract: &mut impl Rewards<S, A, Q>,
         total:    &mut Totals,
     ) -> StdResult<HandleResponse> {
+
         let earned = self.earned;
-        total.commit_claim(contract, earned)?;
+
         self.reset(contract, total)?;
-        HandleResponse::default()
-            .msg(contract.reward_token()?.transfer(&self.address, earned)?)
+
+        if earned == Amount::zero() {
+            return Ok(HandleResponse::default())
+        }
+
+        total.commit_claim(contract, earned)?;
+
+        HandleResponse::default().msg(
+            contract.reward_token()?.transfer(&self.address, earned)?
+        )
     }
 
     /// Reset the user's liquidity conribution
@@ -541,18 +566,21 @@ impl Account {
         contract: &mut impl Rewards<S, A, Q>,
         total:    &Totals,
     ) -> StdResult<()> {
+
         self.entry   = total.volume;
         self.bonding = total.bonding;
         self.volume  = Volume::zero();
         self.updated = total.now;
+
         contract.set_ns(Self::ENTRY,   self.id.as_slice(), self.entry)?;
         contract.set_ns(Self::BONDING, self.id.as_slice(), self.bonding)?;
         contract.set_ns(Self::VOLUME,  self.id.as_slice(), self.volume)?;
         contract.set_ns(Self::UPDATED, self.id.as_slice(), self.updated)?;
+
         Ok(())
     }
 
-    pub fn progress <S: Storage, A: Api, Q: Querier> (
+    pub fn commit_elapsed <S: Storage, A: Api, Q: Querier> (
         &mut self,
         contract: &mut impl Rewards<S, A, Q>,
         total:    &mut Totals,
@@ -564,7 +592,7 @@ impl Account {
             contract.set_ns(Self::VOLUME,  self.id.as_slice(), self.volume)?;
             contract.set_ns(Self::UPDATED, self.id.as_slice(), total.now)?;
         }
-        total.progress(contract)
+        total.commit_elapsed(contract)
     }
 
 }
@@ -672,24 +700,15 @@ impl Totals {
         let ref address  = contract.self_link()?.address;
         let ref vk       = contract.reward_vk()?;
         total.budget     = reward_token.query_balance(contract.querier(), address, vk)?;
-        let lp_token = contract.lp_token()?;
+        let lp_token     = contract.lp_token()?;
         if reward_token.link == lp_token.link {
             total.budget = (total.budget - total.staked)?;
         }
-        total.distributed  = get_amount(Self::CLAIMED, Amount::zero())?;
-        total.unlocked     = total.distributed + total.budget;
-        total.bonding      = get_time(RewardsConfig::BONDING, 0u64)?;
-        total.closed       = contract.get(RewardsConfig::CLOSED)?;
+        total.distributed = get_amount(Self::CLAIMED, Amount::zero())?;
+        total.unlocked    = total.distributed + total.budget;
+        total.bonding     = get_time(RewardsConfig::BONDING, 0u64)?;
+        total.closed      = contract.get(RewardsConfig::CLOSED)?;
         Ok(total)
-    }
-
-    fn progress <S: Storage, A: Api, Q: Querier> (
-        &mut self,
-        contract: &mut impl Rewards<S, A, Q>
-    ) -> StdResult<()> {
-        contract.set(Self::VOLUME,  self.volume)?;
-        contract.set(Self::UPDATED, self.now)?;
-        Ok(())
     }
 
     fn increment_stake <S: Storage, A: Api, Q: Querier> (
@@ -717,5 +736,14 @@ impl Totals {
     ) -> StdResult<()> {
         self.distributed += amount;
         contract.set(Self::CLAIMED, self.distributed)
+    }
+
+    fn commit_elapsed <S: Storage, A: Api, Q: Querier> (
+        &mut self,
+        contract: &mut impl Rewards<S, A, Q>
+    ) -> StdResult<()> {
+        contract.set(Self::VOLUME,  self.volume)?;
+        contract.set(Self::UPDATED, self.now)?;
+        Ok(())
     }
 }

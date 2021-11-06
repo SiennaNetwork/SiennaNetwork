@@ -15,34 +15,45 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 976,REWARDS,Alice,user.volume  = Uint256(100)
 977,REWARDS,Alice,user.staked  = Uint128(100)
 977,REWARDS,Alice,user.volume  = Uint256(200)
+978,REWARDS,Alice,user.staked  = Uint128(100)
+978,REWARDS,Alice,user.volume  = Uint256(300)
 ,,,
-977,Alice,REWARDS,"retrieve:
+978,Alice,REWARDS,"retrieve:
   amount: ""50"""
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""50""
   padding: ~
   recipient: Alice"
-977,REWARDS,Alice,user.staked  = Uint128(50)
-977,REWARDS,Alice,user.volume  = Uint256(200)
 978,REWARDS,Alice,user.staked  = Uint128(50)
-978,REWARDS,Alice,user.volume  = Uint256(250)
+978,REWARDS,Alice,user.volume  = Uint256(300)
 979,REWARDS,Alice,user.staked  = Uint128(50)
-979,REWARDS,Alice,user.volume  = Uint256(300)
+979,REWARDS,Alice,user.volume  = Uint256(350)
+980,REWARDS,Alice,user.staked  = Uint128(50)
+980,REWARDS,Alice,user.volume  = Uint256(400)
 ,,,
-979,Alice,REWARDS,"retrieve:
+980,Alice,REWARDS,"retrieve:
   amount: ""50"""
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""0""
-  padding: ~
-  recipient: Alice"
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""50""
   padding: ~
   recipient: Alice"
+980,REWARDS,Alice,user.staked  = Uint128(0)
+980,REWARDS,Alice,user.volume  = Uint256(0)
+981,REWARDS,Alice,user.staked  = Uint128(0)
+981,REWARDS,Alice,user.volume  = Uint256(0)
+982,REWARDS,Alice,user.staked  = Uint128(0)
+982,REWARDS,Alice,user.volume  = Uint256(0)
 ,,,
-FAIL,was expecting,the following,
-,,,
-tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""50""
+982,Alice,REWARDS,"lock:
+  amount: ""1"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""1""
+  owner: Alice
   padding: ~
-  recipient: Alice"
+  recipient: cosmos2contract"
+982,REWARDS,Alice,user.staked  = Uint128(1)
+982,REWARDS,Alice,user.volume  = Uint256(0)
+983,REWARDS,Alice,user.staked  = Uint128(1)
+983,REWARDS,Alice,user.volume  = Uint256(1)
+984,REWARDS,Alice,user.staked  = Uint128(1)
+984,REWARDS,Alice,user.volume  = Uint256(2)

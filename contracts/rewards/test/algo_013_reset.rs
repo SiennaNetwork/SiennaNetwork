@@ -1,32 +1,39 @@
 use crate::test::*;
 
-/// Given a pool and a user
-///
-///  When user deposits tokens and becomes eligible for rewards
-///   And user first claims rewards and then withdraws all tokens
-///  Then user volume is preserved so they can re-stake and continue
-///
-///  When user deposits tokens and becomes eligible for rewards
-///   And user first withdraws all tokens and then claims rewards
-///  Then user volume and claimed is reset so they can start over
 #[test] fn test_reset () {
 
-    Context::named("algo_013_reset_a")
-        .admin()
-            .at(1).init().fund(100u128)
-        .user("Alice")
-            .set_vk("")
-            .at(    2).deposits(100u128)
-            .at(86402).claims(100u128)
-            .at(86402).withdraws(100u128).volume(200u128);
+    let mut context = Context::new();
+    let stake   = context.rng.gen_range(0..100000)*2;
+    let reward  = context.rng.gen_range(0..100000);
 
+    // Given a pool and a user
+    // When the user claims reward
+    // Then the user can withdraw stake
+    Context::named("algo_013_reset_a")
+        .admin().init().fund(reward)
+        .user("Alice").set_vk("")
+            .later().deposits(stake)
+            .epoch().claims(reward).withdraws(stake).volume(0);
+
+    // Given a pool and a user
+    // When the user withdraws full stake
+    // Then the user auto claims
     Context::named("algo_013_reset_b")
-        .admin()
-            .at(1).init().fund(100u128)
-            .user("Alice")
-                .set_vk("")
-                .at(    2).deposits(100u128)
-                .at(86402).withdraws(100u128)
-                .at(86402).claims(100u128).volume(0u128);
+        .admin().init().fund(reward)
+        .user("Alice").set_vk("")
+            .later().deposits(stake)
+            .epoch().withdraws_claims(stake, reward).volume(0);
+
+    // Given a pool and a user
+    // When the user withdraws partial stake
+    // Then the user doesn't auto claim
+    // When the user withdraws the rest of the stake
+    // Then the user auto claims
+    Context::named("algo_013_reset_c")
+        .admin().init().fund(reward)
+        .user("Alice").set_vk("")
+            .later().deposits(stake)
+            .epoch().withdraws(stake/2)
+            .later().withdraws_claims(stake/2, reward);
 
 }

@@ -19,17 +19,6 @@ tx,REWARDS,SIENNA,"transfer:
 87617,Alice,REWARDS,"retrieve:
   amount: ""69123"""
 tx,REWARDS,SIENNA,"transfer:
-  amount: ""0""
-  padding: ~
-  recipient: Alice"
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""69123""
-  padding: ~
-  recipient: Alice"
-,,,
-FAIL,was expecting,the following,
-,,,
-tx,REWARDS,SIENNA,"transfer:
   amount: ""69123""
   padding: ~
   recipient: Alice"
