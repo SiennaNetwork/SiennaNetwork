@@ -13,6 +13,10 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
+975,REWARDS,Alice,user.staked  = Uint128(69123)
+975,REWARDS,Alice,user.volume  = Uint256(0)
+975,REWARDS,Alice,user.bonding = 86400
+975,REWARDS,Alice,user.earned  = Uint128(0)
 1666,REWARDS,Alice,user.earned  = Uint128(17558)
 ,,,
 1666,Alice,REWARDS,"retrieve:
@@ -23,5 +27,5 @@ tx,REWARDS,LP_TOKEN,"transfer:
   recipient: Alice"
 1666,REWARDS,Alice,user.staked  = Uint128(0)
 1666,REWARDS,Alice,user.volume  = Uint256(0)
-1666,REWARDS,Alice,user.bonding = 86400
 1666,REWARDS,Alice,user.earned  = Uint128(0)
+1666,REWARDS,Alice,user.bonding = 86400

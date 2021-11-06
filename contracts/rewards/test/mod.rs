@@ -9,8 +9,7 @@
 mod test_0000_init;
 mod test_0100_operate;
 mod test_0200_auth;
-mod test_0300_close;
-mod test_0400_migrate;
+mod test_0300_migrate;
 
 use prettytable::{Table, /*Row, Cell,*/ format};
 //use yansi::Paint;
@@ -23,31 +22,64 @@ use fadroma::testing::*;
 pub use rand::Rng;
 use rand::{SeedableRng, rngs::StdRng};
 
-pub type Deps = Extern<MemoryStorage, MockApi, RewardsMockQuerier>;
+use std::collections::BTreeMap;
 
+#[derive(Default, Clone)]
+pub struct ClonableMemoryStorage {
+    data: BTreeMap<Vec<u8>, Vec<u8>>,
+}
+impl ClonableMemoryStorage {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+impl ReadonlyStorage for ClonableMemoryStorage {
+    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+        self.data.get(key).cloned()
+    }
+}
+impl Storage for ClonableMemoryStorage {
+    fn set(&mut self, key: &[u8], value: &[u8]) {
+        self.data.insert(key.to_vec(), value.to_vec());
+    }
+    fn remove(&mut self, key: &[u8]) {
+        self.data.remove(key);
+    }
+}
+impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q> for MockExtern<S, A, Q> {}
+impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for MockExtern<S, A, Q> {}
+impl<S: Storage, A: Api, Q: Querier> Auth<S, A, Q> for MockExtern<S, A, Q> {}
+impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for MockExtern<S, A, Q> {}
+
+pub type Deps = MockExtern<ClonableMemoryStorage, MockApi, RewardsMockQuerier>;
+
+#[derive(Clone)]
 pub struct Context {
     pub rng:          StdRng,
-    pub name:         Option<&'static str>,
+    pub name:         Option<String>,
     pub table:        Table,
     pub deps:         Deps,
-    pub reward_vk:    String,
-    pub reward_token: ISnip20,
-    pub lp_token:     ISnip20,
     pub address:      HumanAddr,
     pub env:          Env,
     pub time:         Moment,
+
+    pub reward_vk:    String,
+    pub reward_token: ISnip20,
+    pub lp_token:     ISnip20,
     pub closed:       Option<CloseSeal>
 }
 
 impl Context {
     pub fn new () -> Self {
         let mut table = Table::new();
+
         table.set_format(format::FormatBuilder::new()
             .separator(format::LinePosition::Title, format::LineSeparator::new('-', '-', '-', '-'))
             .column_separator('|')
             .borders('|')
             .padding(1, 1)
         .build());
+
         table.set_titles(row![rb->"Time", b->"Sender", b->"Recipient", b->"Data"]);
 
         let address = HumanAddr::from("Admin");
@@ -60,19 +92,19 @@ impl Context {
             name: None,
             table,
 
-            deps: Extern {
-                storage: MemoryStorage::default(),
+            deps: MockExtern {
+                storage: ClonableMemoryStorage::default(),
                 api:     MockApi::new(20),
                 querier: RewardsMockQuerier::new()
             },
 
             reward_vk: "reward_vk".to_string(),
             reward_token: ISnip20::attach(
-                ContractLink { address: HumanAddr::from("SIENNA"), code_hash: "SIENNA_hash".into() }
+                ContractLink { address: HumanAddr::from("SIENNA"),   code_hash: "SIENNA_hash".into() }
             ),
 
             lp_token: ISnip20::attach(
-                ContractLink { address: HumanAddr::from("LP_TOKEN"),     code_hash: "LP_hash".into() }
+                ContractLink { address: HumanAddr::from("LP_TOKEN"), code_hash: "LP_hash".into() }
             ),
 
             env: env(&address, time),
@@ -81,10 +113,17 @@ impl Context {
             closed: None
         }
     }
-    pub fn named (name: &'static str) -> Self {
+    pub fn named (name: &str) -> Self {
         let mut context = Self::new();
-        context.name = Some(name);
+        context.name = Some(name.to_string());
         context
+    }
+    pub fn branch <F: FnMut(Context)->()> (&mut self, name: &str, mut f: F) -> &mut Self {
+        let mut context = self.clone();
+        let name = format!("{}_{}", self.name.clone().unwrap_or("".to_string()), name).to_string();
+        context.name = Some(name.to_string());
+        f(context);
+        self
     }
     fn update_env (&mut self) -> &mut Self {
         self.env = env(&self.address, self.time);
@@ -383,7 +422,7 @@ impl Context {
 }
 impl Drop for Context {
     fn drop (&mut self) {
-        if let Some(name) = self.name {
+        if let Some(name) = &self.name {
             println!("writing to test/{}.csv", &name);
             self.table.to_csv(std::fs::File::create(format!("test/{}.csv", &name)).unwrap()).unwrap();
         }
@@ -453,6 +492,7 @@ pub fn test_handle (
 
 }
 
+#[derive(Clone)]
 pub struct RewardsMockQuerier {
     pub balances: std::collections::HashMap<HumanAddr, u128>
 }

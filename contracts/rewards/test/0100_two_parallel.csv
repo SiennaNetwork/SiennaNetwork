@@ -1,0 +1,66 @@
+Time,Sender,Recipient,Data
+,,,
+1,RPT,REWARDS,vest 35116
+,,,
+975,Alice,REWARDS,"lock:
+  amount: ""138246"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""138246""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,,
+975,Bob,REWARDS,"lock:
+  amount: ""138246"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""138246""
+  owner: Bob
+  padding: ~
+  recipient: cosmos2contract"
+,,,
+1666,Alice,REWARDS,"retrieve:
+  amount: ""69123"""
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""69123""
+  padding: ~
+  recipient: Alice"
+,,,
+1666,Bob,REWARDS,"retrieve:
+  amount: ""69123"""
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""69123""
+  padding: ~
+  recipient: Bob"
+,,,
+88066,Alice,REWARDS,"retrieve:
+  amount: ""69123"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""17558""
+  padding: ~
+  recipient: Alice"
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""69123""
+  padding: ~
+  recipient: Alice"
+,,,
+88066,Bob,REWARDS,"retrieve:
+  amount: ""69123"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""8779""
+  padding: ~
+  recipient: Bob"
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""69123""
+  padding: ~
+  recipient: Bob"
+,,,
+FAIL,was expecting,the following,
+,,,
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""17558""
+  padding: ~
+  recipient: Bob"
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""69123""
+  padding: ~
+  recipient: Bob"
