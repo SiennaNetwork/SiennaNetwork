@@ -12,6 +12,10 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 ,,,
 88066,Alice,REWARDS,"retrieve:
   amount: ""69123"""
+=>,err,Generic error: FATAL: not enough tokens in pool (0 < 69123),
+,,,
+FAIL,was expecting,the following,
+,,,
 tx,REWARDS,SIENNA,"transfer:
   amount: ""17558""
   padding: ~
@@ -20,24 +24,3 @@ tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""69123""
   padding: ~
   recipient: Alice"
-,,,
-88493,RPT,REWARDS,vest 17558
-,,,
-88668,Bob,REWARDS,"lock:
-  amount: ""69123"""
-tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""69123""
-  owner: Bob
-  padding: ~
-  recipient: cosmos2contract"
-,,,
-175068,Bob,REWARDS,"retrieve:
-  amount: ""69123"""
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""17558""
-  padding: ~
-  recipient: Bob"
-tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""69123""
-  padding: ~
-  recipient: Bob"

@@ -1,6 +1,10 @@
 use fadroma::*;
 use crate::*;
 
+pub fn no_vk <T> () -> StdResult<T> {
+    return Err(StdError::generic_err("no viewing key"))
+}
+
 pub fn no_time_travel <T> () -> StdResult<T> {
     Err(StdError::generic_err("This service does not store history nor permit time travel."))
 }

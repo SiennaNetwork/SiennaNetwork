@@ -17,41 +17,8 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   recipient: cosmos2contract"
 ,,,
 3,Alice,REWARDS,claim: {}
-=>,err,Generic error: Keep tokens staked for 86400 more seconds to be eligible for rewards.,
+=>,err,"Generic error: This pool is currently empty. However, liquidity shares continue to accumulate.",
 ,,,
-4,Alice,REWARDS,claim: {}
-=>,err,Generic error: Keep tokens staked for 86399 more seconds to be eligible for rewards.,
+FAIL,was expecting,the following,
 ,,,
-5,Alice,REWARDS,claim: {}
-=>,err,Generic error: Keep tokens staked for 86398 more seconds to be eligible for rewards.,
-,,,
-86402,Alice,REWARDS,claim: {}
-=>,err,Generic error: Keep tokens staked for 1 more seconds to be eligible for rewards.,
-,,,
-86403,Alice,REWARDS,claim: {}
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""100""
-  padding: ~
-  recipient: Alice"
-,,,
-86403,RPT,REWARDS,vest 100
-,,,
-86404,Alice,REWARDS,claim: {}
-=>,err,Generic error: Keep tokens staked for 86399 more seconds to be eligible for rewards.,
-,,,
-86405,Alice,REWARDS,claim: {}
-=>,err,Generic error: Keep tokens staked for 86398 more seconds to be eligible for rewards.,
-,,,
-86406,Alice,REWARDS,claim: {}
-=>,err,Generic error: Keep tokens staked for 86397 more seconds to be eligible for rewards.,
-,,,
-86406,RPT,REWARDS,vest 100
-,,,
-259203,Alice,REWARDS,claim: {}
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""200""
-  padding: ~
-  recipient: Alice"
-,,,
-259203,Alice,REWARDS,claim: {}
 =>,err,Generic error: Keep tokens staked for 86400 more seconds to be eligible for rewards.,

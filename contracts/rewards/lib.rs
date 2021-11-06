@@ -126,7 +126,7 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
                 Auth::handle(self, env, AuthHandle::SetViewingKey { key, padding }),
 
             Handle::Rewards(msg) =>
-                Rewards::handle(self, &env, msg),
+                Rewards::handle(self, env, msg),
 
             Handle::Migration(msg) =>
                 Migration::handle(self, env, msg)

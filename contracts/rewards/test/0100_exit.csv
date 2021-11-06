@@ -14,6 +14,5 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   padding: ~
   recipient: cosmos2contract"
 975,REWARDS,Alice,user.staked  = Uint128(69123)
-975,REWARDS,Alice,user.volume  = Uint256(0)
-975,REWARDS,Alice,user.bonding = 86400
-975,REWARDS,Alice,user.earned  = Uint128(0)
+975,REWARDS,Alice,user.volume  = Uint256(67394925)
+ERROR,EXPECTED,,user.volume  = Uint256(0)

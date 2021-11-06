@@ -223,7 +223,7 @@ impl Context {
         self
     }
     pub fn cannot_configure (&mut self) -> &mut Self {
-        assert_eq!(Rewards::handle(&mut self.deps, &self.env, RewardsHandle::Configure(RewardsConfig {
+        assert_eq!(Rewards::handle(&mut self.deps, self.env.clone(), RewardsHandle::Configure(RewardsConfig {
             lp_token:     None,
             reward_token: None,
             reward_vk:    None,
@@ -259,7 +259,7 @@ impl Context {
     }
     pub fn cannot_close_pool (&mut self) -> &mut Self {
         assert_eq!(
-            Rewards::handle(&mut self.deps, &self.env, RewardsHandle::Close {
+            Rewards::handle(&mut self.deps, self.env.clone(), RewardsHandle::Close {
                 message: String::from("closed")
             }),
             Err(StdError::unauthorized())
@@ -267,7 +267,7 @@ impl Context {
     }
     pub fn drains_pool (&mut self, key: &str) -> &mut Self {
         assert!(
-            Rewards::handle(&mut self.deps, &self.env, RewardsHandle::Drain {
+            Rewards::handle(&mut self.deps, self.env.clone(), RewardsHandle::Drain {
                 snip20:    self.reward_token.link.clone(),
                 key:       key.into(),
                 recipient: None
@@ -279,7 +279,7 @@ impl Context {
     }
     pub fn cannot_drain (&mut self, key: &str) -> &mut Self {
         assert!(
-            Rewards::handle(&mut self.deps, &self.env, RewardsHandle::Drain {
+            Rewards::handle(&mut self.deps, self.env.clone(), RewardsHandle::Drain {
                 snip20:    self.reward_token.link.clone(),
                 key:       key.into(),
                 recipient: None
@@ -456,7 +456,7 @@ pub fn test_handle (
     table.add_row(row!["","","",""]);
     let msg_ser = serde_yaml::to_string(&msg).unwrap();
     table.add_row(row![rb->env.block.time, &address, "REWARDS", b->msg_ser.trim()[4..]]);
-    let result = Rewards::handle(deps, env, msg);
+    let result = Rewards::handle(deps, env.clone(), msg);
     let add_result = |table: &mut Table, result: &StdResult<HandleResponse>| match result {
         Ok(ref result) => {
             for message in result.messages.iter() {

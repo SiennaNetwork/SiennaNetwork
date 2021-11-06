@@ -11,14 +11,11 @@ tx,REWARDS,SIENNA,"transfer_from:
   recipient: cosmos2contract"
 ,,,
 86655,Alice,REWARDS,claim: {}
+=>,err,"Generic error: This pool is currently empty. However, liquidity shares continue to accumulate.",
+,,,
+FAIL,was expecting,the following,
+,,,
 tx,REWARDS,SIENNA,"transfer:
   amount: ""17558""
-  padding: ~
-  recipient: Alice"
-,,,
-87617,Alice,REWARDS,"retrieve:
-  amount: ""69123"""
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""69123""
   padding: ~
   recipient: Alice"

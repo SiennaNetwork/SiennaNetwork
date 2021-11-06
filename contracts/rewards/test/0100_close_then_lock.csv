@@ -23,6 +23,14 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 ,,,
 3200,Alice,REWARDS,"lock:
   amount: ""100"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""100""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,,
+FAIL,was expecting,the following,
+,,,
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""113818""
   padding: ~
