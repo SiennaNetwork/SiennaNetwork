@@ -358,26 +358,13 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>:
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub struct Account {
-    // 0. Identity
     /// Passed around internally, not presented to user.
     #[serde(skip)] pub address: HumanAddr,
     /// Passed around internally, not presented to user.
     #[serde(skip)] pub id: CanonicalAddr,
-    // 1. Timestamps
-    // Each user earns rewards as a function of their liquidity contribution over time.
-    // The following points and durations in time are stored for each user:
-    // * `updated` is the time of last update (deposit, withdraw or claim by this user)
     /// When did this user's liquidity amount last change?
     /// Set to current time on update.
     pub updated:      Moment,
-    // 2. Liquidity and liquidity share
-    // * `staked` is the number of LP tokens staked by this user in this pool.
-    // * The user's **momentary share** is defined as `staked / total.staked`.
-    // * `volume` is the volume liquidity contributed by this user.
-    //   It is incremented by `staked` for every moment elapsed.
-    // * The user's **volume share** is defined as `volume / total.volume`.
-    //   It represents the user's overall contribution, and should move in the
-    //   direction of the user's momentary share.
     /// What was the volume liquidity of the pool when the user entered?
     /// Account's reward share is computed from liquidity accumulated over that amount.
     pub entry:        Volume,
@@ -393,29 +380,11 @@ pub struct Account {
     /// What portion of all the liquidity has this user ever contributed?
     /// Computed as user.volume / pool.volume
     pub reward_share: (Volume, Volume),
-    // 3. Rewards claimable
-    // `earned` rewards are equal to `total.budget * reward_share`.
-    // As the user's volume share increases (as a result of providing liquidity)
-    // or the pool's budget increases (as a result of new reward portions being
-    // unstaked from the TGE budget), new rewards are `earned` and become `claimable`.
-    // `earned` may become less than `claimed` if the user's volume share
-    // goes down too steeply:
-    // * as a result of that user withdrawing liquidity;
-    // * or as a result of an influx of liquidity by other users
-    // This means the user has been *crowded out* - they have already claimed
-    // fair rewards for their contribution up to this point, but have become
-    // ineligible for further rewards until their volume share increases:
-    // * as a result of that user providing a greater amount of liquidity
-    // * as a result of other users withdrawing liquidity
-    // and/or until the pool's balance increases:
-    // * as a result of incoming reward portions from the TGE budget.
     /// How much rewards has this user earned?
     /// Computed as user.reward_share * pool.unlocked
     pub earned:       Amount,
     /// Account-friendly reason why earned is 0
     pub reason:       Option<String>,
-    // 4. Bonding period
-    // This decrements by `elapsed` if `staked > 0`.
     /// How many units of time remain until the user can claim again?
     /// Decremented on lock/unlock, reset to pool.bonding on claim.
     pub bonding:      Duration,
@@ -434,9 +403,7 @@ impl Account {
         total:    &Totals,
         address:  HumanAddr
     ) -> StdResult<Self> {
-
         let id = contract.canonize(address.clone())?;
-
         let get_time = |key, default: u64| -> StdResult<u64> {
             Ok(contract.get_ns(key, &id.as_slice())?.unwrap_or(default))
         };
@@ -447,30 +414,53 @@ impl Account {
             Ok(contract.get_ns(key, &id.as_slice())?.unwrap_or(default))
         };
 
-        let now = total.now;
         let mut account = Self::default();
         account.address = address;
 
+        // 1. Timestamps
+        // Each user earns rewards as a function of their liquidity contribution over time.
+        // The following points and durations in time are stored for each user:
+        // * `updated` is the time of last update (deposit, withdraw or claim by this user)
+        let now = total.now;
+
         account.updated = get_time(Self::UPDATED, now)?;
-        if total.now < account.updated {
-            return errors::no_time_travel()
-        }
+        if total.now < account.updated { return errors::no_time_travel() }
 
+        // 2. Liquidity and liquidity share
+        // * `staked` is the number of LP tokens staked by this user in this pool.
+        // * The user's **momentary share** is defined as `staked / total.staked`.
+        // * `volume` is the volume liquidity contributed by this user.
+        //   It is incremented by `staked` for every moment elapsed.
+        // * The user's **volume share** is defined as `volume / total.volume`.
+        //   It represents the user's overall contribution, and should move in the
+        //   direction of the user's momentary share.
         account.entry = get_volume(Self::ENTRY, total.volume)?;
-        if account.entry > total.volume {
-            return errors::no_time_travel()
-        }
+        if account.entry > total.volume { return errors::no_time_travel() }
 
-        account.staked = get_amount(Self::STAKED, Amount::zero())?;
-
-        account.pool_share = (account.staked, total.staked);
-
+        account.staked  = get_amount(Self::STAKED, Amount::zero())?;
         let last_volume = get_volume(Self::VOLUME, Volume::zero())?;
         let elapsed: Duration = now - account.updated;
         account.volume = accumulate(last_volume, elapsed, account.staked)?;
 
+        account.pool_share   = (account.staked, total.staked);
         account.reward_share = (account.volume, (total.volume - account.entry)?);
 
+        // 3. Rewards claimable
+        // `earned` rewards are equal to `total.budget * reward_share`.
+        // As the user's volume share increases (as a result of providing liquidity)
+        // or the pool's budget increases (as a result of new reward portions being
+        // unstaked from the TGE budget), new rewards are `earned` and become `claimable`.
+        // `earned` may become less than `claimed` if the user's volume share
+        // goes down too steeply:
+        // * as a result of that user withdrawing liquidity;
+        // * or as a result of an influx of liquidity by other users
+        // This means the user has been *crowded out* - they have already claimed
+        // fair rewards for their contribution up to this point, but have become
+        // ineligible for further rewards until their volume share increases:
+        // * as a result of that user providing a greater amount of liquidity
+        // * as a result of other users withdrawing liquidity
+        // and/or until the pool's balance increases:
+        // * as a result of incoming reward portions from the TGE budget.
         account.earned = if account.reward_share.1 == Volume::zero() {
             Amount::zero()
         } else {
@@ -479,14 +469,13 @@ impl Account {
                 .low_u128().into()
         };
 
+        // 4. Bonding period
+        // This decrements by `elapsed` if `staked > 0`.
         account.bonding = get_time(Self::BONDING, total.bonding)?;
-
         if account.staked > Amount::zero() {
             account.bonding = account.bonding.saturating_sub(elapsed)
         };
-
         account.id = id;
-
         Ok(account)
     }
 
@@ -496,15 +485,10 @@ impl Account {
         total:    &mut Totals,
         amount:   Amount
     ) -> StdResult<HandleResponse> {
-
         self.commit_elapsed(contract, total)?;
-
         self.staked += amount;
-
         contract.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
-
         total.increment_stake(contract, amount)?;
-
         HandleResponse::default().msg(
             contract.lp_token()?.transfer_from(&self.address, &contract.self_link()?.address, amount)?
         )
@@ -516,15 +500,10 @@ impl Account {
         total:    &mut Totals,
         amount:   Amount
     ) -> StdResult<HandleResponse> {
-
         self.commit_elapsed(contract, total)?;
-
         self.staked = (self.staked - amount)?;
-
         contract.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
-
         total.decrement_stake(contract, amount)?;
-
         if self.staked == Amount::zero() {
             if self.bonding == 0 {
                 self.commit_claim(contract, total)?
@@ -544,17 +523,12 @@ impl Account {
         contract: &mut impl Rewards<S, A, Q>,
         total:    &mut Totals,
     ) -> StdResult<HandleResponse> {
-
         let earned = self.earned;
-
         self.reset(contract, total)?;
-
         if earned == Amount::zero() {
             return Ok(HandleResponse::default())
         }
-
         total.commit_claim(contract, earned)?;
-
         HandleResponse::default().msg(
             contract.reward_token()?.transfer(&self.address, earned)?
         )
@@ -601,30 +575,12 @@ impl Account {
 #[serde(rename_all="snake_case")]
 /// Totals status
 pub struct Totals {
-    // # 1. Timestamps
     /// "For what point in time do the following values hold true?"
     /// Passed on instantiation.
     pub now:          Moment,
     /// "When was the last time someone staked or unstaked tokens?"
     /// Set to current time on lock/unlock.
     pub updated:      Moment,
-    // # 2. Liquidity
-    // When users lock tokens in the pool, liquidity accumulates.
-    // Pool liquidity is internally represented by two variables:
-    // * `staked` is the total number of LP tokens that are
-    //   currently staked in the pool.
-    //   * Incremented and decremented on withdraws and deposits.
-    //   * Should be equal to this contract's balance in the
-    //     LP token contract.
-    // * `volume`. The total amount of liquidity contained by the pool
-    //   over its entire lifetime. Liquidity is defined as amount of tokens
-    //   multiplied by time.
-    //   * Incremented by `elapsed * staked` on deposits and withdrawals.
-    //   * Computed as `last_value + elapsed * staked` on queries.
-    // > EXAMPLE:
-    //   Starting with a new pool, lock 10 LP for 20 moments.
-    //   The pool will have a liquidity of 200.
-    //   Lock 10 more; 5 moments later, the liquidity will be 300.
     /// "What liquidity has this pool contained up to this point?"
     /// Before lock/unlock, if staked > 0, this is incremented
     /// by total.elapsed * total.staked
@@ -632,18 +588,6 @@ pub struct Totals {
     /// "What liquidity is there in the whole pool right now?"
     /// Incremented/decremented on lock/unlock.
     pub staked:       Amount,
-    // # 3. Budget
-    // * The pool queries its `balance` in reward tokens from the reward token
-    //   contract. Rewards are computed on the basis of this balance.
-    // * TODO: Couple budget to epoch clock in order to
-    //   define a maximum amount of rewards per epoch.
-    // * In the case of **single-sided staking** (e.g. staking SIENNA to earn SIENNA)
-    //   the value of `staked` is subtracted from this balance in order to separate
-    //   the tokens staked by users from the reward budget.
-    // * The pool keeps track of how much rewards have been distributed,
-    //   in the `distributed` variable which is incremented on successful claims.
-    // * The `unlocked` field is equal to `budget + claimed` and is informative.
-    //   It should be equal to the sum released from RPT for this total.
     /// "What amount of rewards is currently available for users?"
     /// Queried from reward token.
     pub budget:       Amount,
@@ -653,10 +597,6 @@ pub struct Totals {
     /// "What rewards were unstaked for this pool so far?"
     /// Computed as balance + claimed.
     pub unlocked:     Amount,
-    // # IV. Throttles
-    // * Bonding period: user must wait this much before each claim.
-    // * Closing the pool stops its time and makes it
-    //   return all funds upon any user action.
     /// "How much must the user wait between claims?"
     /// Configured on init.
     /// Account bondings are reset to this value on claim.
@@ -676,6 +616,8 @@ impl Totals {
         contract: &impl Rewards<S, A, Q>,
         now:      Moment
     ) -> StdResult<Self> {
+        let mut total = Self::default();
+
         let get_time = |key, default: u64| -> StdResult<u64> {
             Ok(contract.get(key)?.unwrap_or(default))
         };
@@ -686,12 +628,28 @@ impl Totals {
             Ok(contract.get(key)?.unwrap_or(default))
         };
 
-        let mut total = Self::default();
+        // # 1. Timestamps
         total.now = now;
         total.updated = get_time(Self::UPDATED, now)?;
-        if total.now < total.updated {
-            return errors::no_time_travel()
-        }
+        if total.now < total.updated { return errors::no_time_travel() }
+
+        // # 2. Liquidity
+        // When users lock tokens in the pool, liquidity accumulates.
+        // Pool liquidity is internally represented by two variables:
+        // * `staked` is the total number of LP tokens that are
+        //   currently staked in the pool.
+        //   * Incremented and decremented on withdraws and deposits.
+        //   * Should be equal to this contract's balance in the
+        //     LP token contract.
+        // * `volume`. The total amount of liquidity contained by the pool
+        //   over its entire lifetime. Liquidity is defined as amount of tokens
+        //   multiplied by time.
+        //   * Incremented by `elapsed * staked` on deposits and withdrawals.
+        //   * Computed as `last_value + elapsed * staked` on queries.
+        // > EXAMPLE:
+        //   Starting with a new pool, lock 10 LP for 20 moments.
+        //   The pool will have a liquidity of 200.
+        //   Lock 10 more; 5 moments later, the liquidity will be 300.
         let last_volume  = get_volume(Self::VOLUME, Volume::zero())?;
         let elapsed      = now - total.updated;
         total.staked     = get_amount(Self::STAKED, Amount::zero())?;
@@ -699,6 +657,19 @@ impl Totals {
         let reward_token = contract.reward_token()?;
         let ref address  = contract.self_link()?.address;
         let ref vk       = contract.reward_vk()?;
+
+        // # 3. Budget
+        // * The pool queries its `balance` in reward tokens from the reward token
+        //   contract. Rewards are computed on the basis of this balance.
+        // * TODO: Couple budget to epoch clock in order to
+        //   define a maximum amount of rewards per epoch.
+        // * In the case of **single-sided staking** (e.g. staking SIENNA to earn SIENNA)
+        //   the value of `staked` is subtracted from this balance in order to separate
+        //   the tokens staked by users from the reward budget.
+        // * The pool keeps track of how much rewards have been distributed,
+        //   in the `distributed` variable which is incremented on successful claims.
+        // * The `unlocked` field is equal to `budget + claimed` and is informative.
+        //   It should be equal to the sum released from RPT for this total.
         total.budget     = reward_token.query_balance(contract.querier(), address, vk)?;
         let lp_token     = contract.lp_token()?;
         if reward_token.link == lp_token.link {
@@ -706,6 +677,11 @@ impl Totals {
         }
         total.distributed = get_amount(Self::CLAIMED, Amount::zero())?;
         total.unlocked    = total.distributed + total.budget;
+
+        // # 4. Throttles
+        // * Bonding period: user must wait this much before each claim.
+        // * Closing the pool stops its time and makes it
+        //   return all funds upon any user action.
         total.bonding     = get_time(RewardsConfig::BONDING, 0u64)?;
         total.closed      = contract.get(RewardsConfig::CLOSED)?;
         Ok(total)

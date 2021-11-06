@@ -208,19 +208,19 @@ use crate::test::{*, Context};
         //  When alice and bob first deposit lp tokens simultaneously,
         //  Then their ages and earnings start incrementing simultaneously;
         .later()
-            .user("Alice").set_vk("").deposits(stake)
-            .user("Bob").set_vk("").deposits(stake)
+            .user("Alice").set_vk("").deposits(stake).earned(0)
+            .user("Bob").set_vk("").deposits(stake).earned(0)
         //  When alice and bob withdraw lp tokens simultaneously,
         //  Then their ages and earnings keep changing simultaneously;
         .later()
-            .user("Alice").set_vk("").withdraws(stake/2)
-            .user("Bob").set_vk("").withdraws(stake/2)
+            .user("Alice").set_vk("").withdraws(stake/2).earned(reward/2)
+            .user("Bob").set_vk("").withdraws(stake/2).earned(reward/2)
         //  When alice and bob's ages reach the configured threshold,
         //  Then each is eligible to claim half of the available rewards
         //   And their rewards are proportionate to their stakes.
         .epoch()
-            .user("Alice").withdraws_claims(stake/2, reward/2)
-            .user("Bob").withdraws_claims(stake/2, reward/2);
+            .user("Alice").earned(reward/2).withdraws_claims(stake/2, reward/2)
+            .user("Bob").earned(reward/2).withdraws_claims(stake/2, reward/2);
 }
 
 #[test] fn test_0110_reset() {
