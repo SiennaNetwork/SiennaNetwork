@@ -20,13 +20,13 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   recipient: cosmos2contract"
 ,,,
 3,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 86399 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 86399 more seconds to be eligible for rewards.,
 ,,,
 4,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 86398 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 86398 more seconds to be eligible for rewards.,
 ,,,
 86401,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 1 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 1 more seconds to be eligible for rewards.,
 ,,,
 86402,Alice,REWARDS,claim: {}
 =>,err,"Generic error: Rewards from this pool are currently stopped. However, liquidity shares continue to accumulate.",

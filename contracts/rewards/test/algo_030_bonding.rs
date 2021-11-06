@@ -13,7 +13,6 @@ use crate::test::*;
             lp_token:     None,
             reward_token: None,
             reward_vk:    None,
-            ratio:        None,
             bonding:      Some(bonding),
         })
         .fund(reward)

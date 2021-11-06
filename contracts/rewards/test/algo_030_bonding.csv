@@ -4,7 +4,6 @@ Time,Sender,Recipient,Data
   lp_token: ~
   reward_token: ~
   reward_vk: ~
-  ratio: ~
   bonding: 97424"
 ,,,
 1,RPT,REWARDS,vest 17558
@@ -18,25 +17,25 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   recipient: cosmos2contract"
 ,,,
 69123,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 97424 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 97424 more seconds to be eligible for rewards.,
 ,,,
 69124,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 97423 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 97423 more seconds to be eligible for rewards.,
 ,,,
 69125,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 97422 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 97422 more seconds to be eligible for rewards.,
 ,,,
 69126,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 97421 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 97421 more seconds to be eligible for rewards.,
 ,,,
 166544,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 3 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 3 more seconds to be eligible for rewards.,
 ,,,
 166545,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 2 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 2 more seconds to be eligible for rewards.,
 ,,,
 166546,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 1 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 1 more seconds to be eligible for rewards.,
 ,,,
 166547,Alice,REWARDS,claim: {}
 tx,REWARDS,SIENNA,"transfer:
@@ -45,24 +44,24 @@ tx,REWARDS,SIENNA,"transfer:
   recipient: Alice"
 ,,,
 166547,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 97424 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 97424 more seconds to be eligible for rewards.,
 ,,,
 166548,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 97423 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 97423 more seconds to be eligible for rewards.,
 ,,,
 166549,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 97422 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 97422 more seconds to be eligible for rewards.,
 ,,,
 166549,RPT,REWARDS,vest 17558
 ,,,
 263968,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 3 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 3 more seconds to be eligible for rewards.,
 ,,,
 263969,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 2 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 2 more seconds to be eligible for rewards.,
 ,,,
 263970,Alice,REWARDS,claim: {}
-=>,err,Generic error: You must keep some tokens staked for 1 more seconds before you are able to claim.,
+=>,err,Generic error: Keep tokens staked for 1 more seconds to be eligible for rewards.,
 ,,,
 263971,Alice,REWARDS,claim: {}
 tx,REWARDS,SIENNA,"transfer:

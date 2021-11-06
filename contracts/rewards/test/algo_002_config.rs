@@ -14,7 +14,6 @@ use crate::test::*;
             lp_token:     None,
             reward_token: Some(reward_token.link.clone()),
             reward_vk:    Some(reward_vk.clone()),
-            ratio:        None,
             bonding:      None,
         })
         //  When someone else tries to set the config
@@ -27,7 +26,6 @@ use crate::test::*;
             lp_token:     None,
             reward_token: Some(reward_token.link.clone()),
             reward_vk:    Some(reward_vk.clone()),
-            ratio:        None,
             bonding:      None,
         });
 

@@ -105,7 +105,6 @@ pub struct RewardsConfig {
     pub lp_token:     Option<ContractLink<HumanAddr>>,
     pub reward_token: Option<ContractLink<HumanAddr>>,
     pub reward_vk:    Option<String>,
-    pub ratio:        Option<(Uint128, Uint128)>,
     pub bonding:      Option<Duration>
 }
 
@@ -116,7 +115,6 @@ impl RewardsConfig {
     pub const REWARD_TOKEN: &'static[u8] = b"/config/reward_token";
     pub const REWARD_VK:    &'static[u8] = b"/config/reward_vk";
     pub const CLOSED:       &'static[u8] = b"/config/closed";
-    pub const RATIO:        &'static[u8] = b"/config/ratio";
     pub const BONDING:      &'static[u8] = b"/config/bonding";
 
     /// Commit contract configuration to storage.
@@ -133,9 +131,6 @@ impl RewardsConfig {
         }
         if let Some(lp_token) = &self.lp_token {
             contract.set(Self::LP_TOKEN, &contract.canonize(lp_token.clone())?)?;
-        }
-        if let Some(ratio) = &self.ratio {
-            contract.set(Self::RATIO, &ratio)?;
         }
         if let Some(bonding) = &self.bonding {
             contract.set(Self::BONDING, &bonding)?;
@@ -163,7 +158,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>:
             lp_token:     config.lp_token,
             reward_token: Some(reward_token),
             reward_vk:    Some(config.reward_vk.unwrap_or("".into())),
-            ratio:        Some(config.ratio.unwrap_or((1u128.into(), 1u128.into()))),
             bonding:      Some(config.bonding.unwrap_or(DAY))
         }.commit(self)
     }
@@ -302,8 +296,6 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>:
             errors::claim_bonding(account.bonding)
         } else if total.budget == Amount::zero() {
             errors::claim_pool_empty()
-        } else if total.global_ratio.0 == Amount::zero() {
-            errors::claim_global_ratio_zero()
         } else if account.earned == Amount::zero() {
             errors::claim_zero_claimable()
         } else if total.closed.is_some() {
@@ -514,7 +506,7 @@ impl Account {
         total:    &mut Totals,
         amount:   Amount
     ) -> StdResult<HandleResponse> {
-        let response = if self.staked == amount && self.bonding == 0 {
+        let response = if self.staked == amount {
             self.commit_claim(contract, total)?
         } else {
             HandleResponse::default()
@@ -634,13 +626,9 @@ pub struct Totals {
     /// Computed as balance + claimed.
     pub unlocked:     Amount,
     // # IV. Throttles
-    // * Global ratio can be configured by the admin to
-    //   manually boost or reduce reward distribution.
     // * Bonding period: user must wait this much before each claim.
     // * Closing the pool stops its time and makes it
     //   return all funds upon any user action.
-    /// Used to throttle the pool.
-    pub global_ratio: (Amount, Amount),
     /// "How much must the user wait between claims?"
     /// Configured on init.
     /// Account bondings are reset to this value on claim.
@@ -690,7 +678,6 @@ impl Totals {
         }
         total.distributed  = get_amount(Self::CLAIMED, Amount::zero())?;
         total.unlocked     = total.distributed + total.budget;
-        total.global_ratio = contract.get(RewardsConfig::RATIO)?.ok_or(StdError::generic_err("missing global ratio"))?;
         total.bonding      = get_time(RewardsConfig::BONDING, 0u64)?;
         total.closed       = contract.get(RewardsConfig::CLOSED)?;
         Ok(total)

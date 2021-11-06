@@ -21,8 +21,7 @@ pub fn withdraw_fatal (staked: Amount, withdrawn: Amount) -> StdResult<HandleRes
 
 pub fn claim_bonding (bonding: Duration) -> StdResult<HandleResponse> {
     Err(StdError::generic_err(format!(
-        "You must keep some tokens staked for {} more seconds \
-        before you are able to claim.",
+        "Keep tokens staked for {} more seconds to be eligible for rewards.",
         bonding
     )))
 }
@@ -54,4 +53,3 @@ pub fn claim_zero_claimable () -> StdResult<HandleResponse> {
         "You have already claimed your exact share of the rewards."
     ))
 }
-

@@ -18,9 +18,18 @@ tx,REWARDS,SIENNA,"transfer:
 ,,,
 86402,Alice,REWARDS,"retrieve:
   amount: ""100"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""0""
+  padding: ~
+  recipient: Alice"
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""100""
   padding: ~
   recipient: Alice"
-86402,REWARDS,Alice,user.volume  = Uint256(0)
-ERROR,EXPECTED,,user.volume  = Uint256(200)
+,,,
+FAIL,was expecting,the following,
+,,,
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""100""
+  padding: ~
+  recipient: Alice"

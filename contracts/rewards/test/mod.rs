@@ -11,7 +11,7 @@ mod algo_002_config;
 mod algo_003_single_sided;
 mod algo_004_close;
 mod algo_005_drain;
-mod algo_006_ratio;
+//mod algo_006_ratio;
 
 mod algo_010_basic;
 mod algo_011_deposit_withdraw_one;
@@ -159,7 +159,6 @@ impl Context {
                 lp_token:     Some(self.lp_token.link.clone()),
                 reward_token: Some(self.reward_token.link.clone()),
                 reward_vk:    Some(self.reward_vk.clone()),
-                ratio:        None,
                 bonding:      None,
             }).unwrap(),
             vec![snip20::set_viewing_key_msg(
@@ -177,7 +176,6 @@ impl Context {
                 lp_token:     None,
                 reward_token: None,
                 reward_vk:    None,
-                ratio:        None,
                 bonding:      None,
             }).is_err(),
         );
@@ -206,7 +204,6 @@ impl Context {
             lp_token:     None,
             reward_token: None,
             reward_vk:    None,
-            ratio:        None,
             bonding:      None,
         })), Err(StdError::unauthorized()));
         self
@@ -220,7 +217,6 @@ impl Context {
                 lp_token:     None,
                 reward_token: None,
                 reward_vk:    None,
-                ratio:        Some((ratio.0.into(), ratio.1.into())),
                 bonding:      None,
             }),
             Ok(HandleResponse::default())
@@ -328,12 +324,6 @@ impl Context {
         self.test_handle(
             RewardsHandle::Claim {},
             errors::claim_bonding(remaining)
-        )
-    }
-    pub fn ratio_is_zero (&mut self) -> &mut Self {
-        self.test_handle(
-            RewardsHandle::Claim {},
-            errors::claim_global_ratio_zero()
         )
     }
     pub fn staked (&mut self, expected: u128) -> &mut Self {

@@ -31,10 +31,18 @@ tx,REWARDS,LP_TOKEN,"transfer:
 ,,,
 979,Alice,REWARDS,"retrieve:
   amount: ""50"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""0""
+  padding: ~
+  recipient: Alice"
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""50""
   padding: ~
   recipient: Alice"
-979,REWARDS,Alice,user.staked  = Uint128(0)
-979,REWARDS,Alice,user.volume  = Uint256(0)
-ERROR,EXPECTED,,user.volume  = Uint256(300)
+,,,
+FAIL,was expecting,the following,
+,,,
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""50""
+  padding: ~
+  recipient: Alice"
