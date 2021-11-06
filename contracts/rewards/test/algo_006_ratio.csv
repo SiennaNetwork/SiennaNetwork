@@ -13,15 +13,12 @@ Time,Sender,Recipient,Data
 ,,,
 2,Alice,REWARDS,"lock:
   amount: ""100"""
+=>,err,"Error parsing into type core::option::Option<core::result::Result<u64, cosmwasm_std::errors::std_error::StdError>>: Expected to parse either a `true`, `false`, or a `null`.",
+,,,
+FAIL,was expecting,the following,
+,,,
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""100""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-,,,
-3,Alice,REWARDS,claim: {}
-=>,err,"Error parsing into type core::option::Option<core::result::Result<u64, cosmwasm_std::errors::std_error::StdError>>: Expected to parse either a `true`, `false`, or a `null`.",
-,,,
-FAIL,was expecting,the following,
-,,,
-=>,err,Generic error: You must keep some tokens staked for 86399 more seconds before you are able to claim.,
