@@ -498,10 +498,11 @@ impl Account {
         amount:   Amount
     ) -> StdResult<HandleResponse> {
         self.progress(contract, total)?;
-        total.progress(contract)?;
+
         self.staked += amount;
-        self.commit_stake(contract)?;
+        contract.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
         total.increment_stake(contract, amount)?;
+
         HandleResponse::default().msg(
             contract.lp_token()?.transfer_from(&self.address, &contract.self_link()?.address, amount)?
         )
@@ -513,20 +514,21 @@ impl Account {
         total:    &mut Totals,
         amount:   Amount
     ) -> StdResult<HandleResponse> {
+        let response = if self.staked == amount && self.bonding == 0 {
+            self.commit_claim(contract, total)?
+        } else {
+            HandleResponse::default()
+        };
+
         self.staked = (self.staked - amount)?;
-        self.commit_stake(contract)?;
+        contract.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
         total.decrement_stake(contract, amount)?;
+
         self.progress(contract, total)?;
-        HandleResponse::default().msg(
+
+        response.msg(
             contract.lp_token()?.transfer(&self.address, amount)?
         )
-    }
-
-    fn commit_stake <S: Storage, A: Api, Q: Querier> (
-        &mut self,
-        contract: &mut impl Rewards<S, A, Q>,
-    ) -> StdResult<()> {
-        contract.set_ns(Account::STAKED, self.id.as_slice(), self.staked)
     }
 
     fn commit_claim <S: Storage, A: Api, Q: Querier> (
@@ -550,7 +552,7 @@ impl Account {
         self.entry   = total.volume;
         self.bonding = total.bonding;
         self.volume  = Volume::zero();
-        self.updated = 0;
+        self.updated = total.now;
         contract.set_ns(Self::ENTRY,   self.id.as_slice(), self.entry)?;
         contract.set_ns(Self::BONDING, self.id.as_slice(), self.bonding)?;
         contract.set_ns(Self::VOLUME,  self.id.as_slice(), self.volume)?;

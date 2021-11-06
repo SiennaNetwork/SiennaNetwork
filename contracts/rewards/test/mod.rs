@@ -309,6 +309,21 @@ impl Context {
         self.deps.querier.decrement_balance(&self.reward_token.link.address, amount);
         self
     }
+    pub fn withdraws_claims (&mut self, stake: u128, reward: u128) -> &mut Self {
+        self.test_handle(
+            RewardsHandle::Retrieve { amount: stake.into() },
+            HandleResponse::default()
+                .msg(
+                    self.reward_token.transfer(&self.env.message.sender, reward.into()).unwrap()
+                ).unwrap()
+                .msg(
+                    self.lp_token.transfer(&self.env.message.sender, stake.into()).unwrap()
+                )
+        );
+        self.deps.querier.decrement_balance(&self.reward_token.link.address, reward);
+        self.deps.querier.decrement_balance(&self.lp_token.link.address,     stake);
+        self
+    }
     pub fn must_wait (&mut self, remaining: Duration) -> &mut Self {
         self.test_handle(
             RewardsHandle::Claim {},
@@ -321,21 +336,25 @@ impl Context {
             errors::claim_global_ratio_zero()
         )
     }
-    pub fn status (&mut self) -> Account {
-        let result = Rewards::query_status(
-            &self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
-        );
-        match result {
-            Ok(result) => {
-                match result {
-                    crate::RewardsResponse::Status { account, .. } => account.unwrap(),
-                }
-            },
-            Err(e) => {
-                self.table.add_row(row![rbBrFd->"ERROR", bBrFd->"status", "", bBrFd->e]);
-                panic!("status query failed: {:?}", e);
-            }
-        }
+    pub fn staked (&mut self, expected: u128) -> &mut Self {
+        let staked = self.account_status().staked;
+        self.test_field("user.staked ", staked, expected.into())
+    }
+    pub fn volume (&mut self, expected: u128) -> &mut Self {
+        let volume = self.account_status().volume;
+        self.test_field("user.volume ", volume, expected.into())
+    }
+    pub fn bonding (&mut self, expected: Duration) -> &mut Self {
+        let bonding = self.account_status().bonding;
+        self.test_field("user.bonding", bonding, expected.into())
+    }
+    pub fn earned (&mut self, expected: u128) -> &mut Self {
+        let earned = self.account_status().earned;
+        self.test_field("user.earned ", earned, expected.into())
+    }
+    pub fn distributed (&mut self, expected: u128) -> &mut Self {
+        let distributed = self.pool_status().distributed;
+        self.test_field("pool.distributed ", distributed, expected.into())
     }
     fn test_field <V: std::fmt::Debug + Clone + PartialEq> (&mut self, name: &'static str, actual: V, expected: V) -> &mut Self {
         self.table.add_row(row![
@@ -355,21 +374,37 @@ impl Context {
         assert_eq!(expected, actual, "{}", name);
         self
     }
-    pub fn staked (&mut self, expected: u128) -> &mut Self {
-        let staked = self.status().staked;
-        self.test_field("user.staked", staked, expected.into())
+    pub fn account_status (&mut self) -> Account {
+        let result = Rewards::query_status(
+            &self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
+        );
+        match result {
+            Ok(result) => {
+                match result {
+                    crate::RewardsResponse::Status { account, .. } => account.unwrap(),
+                }
+            },
+            Err(e) => {
+                self.table.add_row(row![rbBrFd->"ERROR", bBrFd->"status", "", bBrFd->e]);
+                panic!("status query failed: {:?}", e);
+            }
+        }
     }
-    pub fn volume (&mut self, expected: u128) -> &mut Self {
-        let volume = self.status().volume;
-        self.test_field("user.volume", volume, expected.into())
-    }
-    pub fn bonding (&mut self, expected: Duration) -> &mut Self {
-        let bonding = self.status().bonding;
-        self.test_field("user.bonding", bonding, expected.into())
-    }
-    pub fn earned (&mut self, expected: u128) -> &mut Self {
-        let earned = self.status().earned;
-        self.test_field("user.earned", earned, expected.into())
+    pub fn pool_status (&mut self) -> Totals {
+        let result = Rewards::query_status(
+            &self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
+        );
+        match result {
+            Ok(result) => {
+                match result {
+                    crate::RewardsResponse::Status { total, .. } => total,
+                }
+            },
+            Err(e) => {
+                self.table.add_row(row![rbBrFd->"ERROR", bBrFd->"status", "", bBrFd->e]);
+                panic!("status query failed: {:?}", e);
+            }
+        }
     }
 }
 impl Drop for Context {

@@ -4,12 +4,21 @@ Time,Sender,Recipient,Data
 ,,,
 255,Alice,REWARDS,"lock:
   amount: ""69123"""
-=>,err,"Error parsing into type core::option::Option<core::result::Result<u64, cosmwasm_std::errors::std_error::StdError>>: Expected to parse either a `true`, `false`, or a `null`.",
-,,,
-FAIL,was expecting,the following,
-,,,
 tx,REWARDS,SIENNA,"transfer_from:
   amount: ""69123""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
+,,,
+86655,Alice,REWARDS,claim: {}
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""17558""
+  padding: ~
+  recipient: Alice"
+,,,
+87617,Alice,REWARDS,"retrieve:
+  amount: ""69123"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""69123""
+  padding: ~
+  recipient: Alice"

@@ -4,12 +4,28 @@ Time,Sender,Recipient,Data
 ,,,
 1097,Alice,REWARDS,"lock:
   amount: ""17558"""
-=>,err,"Error parsing into type core::option::Option<core::result::Result<u64, cosmwasm_std::errors::std_error::StdError>>: Expected to parse either a `true`, `false`, or a `null`.",
-,,,
-FAIL,was expecting,the following,
-,,,
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""17558""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
+,,,
+2002,Alice,REWARDS,"lock:
+  amount: ""96260"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""96260""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,,
+2265,Admin,REWARDS,"close:
+  message: closed"
+,,,
+3200,Alice,REWARDS,"retrieve:
+  amount: ""100"""
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""113818""
+  padding: ~
+  recipient: Alice"
+log,REWARDS,,close_time = 2265
+log,REWARDS,,close_reason = closed

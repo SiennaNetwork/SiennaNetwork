@@ -1,10 +1,10 @@
 Time,Sender,Recipient,Data
 ,,,
 255,RPT,REWARDS,vest 17558
-255,REWARDS,Alice,user.staked = Uint128(0)
-255,REWARDS,Alice,user.volume = Uint256(0)
+255,REWARDS,Alice,user.staked  = Uint128(0)
+255,REWARDS,Alice,user.volume  = Uint256(0)
 255,REWARDS,Alice,user.bonding = 86400
-255,REWARDS,Alice,user.earned = Uint128(0)
+255,REWARDS,Alice,user.earned  = Uint128(0)
 ,,,
 255,Alice,REWARDS,"lock:
   amount: ""69123"""
@@ -13,6 +13,104 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-255,REWARDS,Alice,user.staked = Uint128(69123)
-255,REWARDS,Alice,user.volume = Uint256(17626365)
-ERROR,EXPECTED,,user.volume = Uint256(0)
+255,REWARDS,Alice,user.staked  = Uint128(69123)
+255,REWARDS,Alice,user.volume  = Uint256(0)
+255,REWARDS,Alice,user.bonding = 86400
+255,REWARDS,Alice,user.earned  = Uint128(0)
+256,REWARDS,Alice,user.staked  = Uint128(69123)
+256,REWARDS,Alice,user.volume  = Uint256(69123)
+256,REWARDS,Alice,user.bonding = 86399
+256,REWARDS,Alice,user.earned  = Uint128(17558)
+257,REWARDS,Alice,user.staked  = Uint128(69123)
+257,REWARDS,Alice,user.volume  = Uint256(138246)
+257,REWARDS,Alice,user.bonding = 86398
+257,REWARDS,Alice,user.earned  = Uint128(17558)
+258,REWARDS,Alice,user.staked  = Uint128(69123)
+258,REWARDS,Alice,user.volume  = Uint256(207369)
+258,REWARDS,Alice,user.bonding = 86397
+258,REWARDS,Alice,user.earned  = Uint128(17558)
+1220,REWARDS,Alice,user.earned  = Uint128(17558)
+,,,
+1220,Alice,REWARDS,"retrieve:
+  amount: ""69123"""
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""69123""
+  padding: ~
+  recipient: Alice"
+1220,REWARDS,Alice,user.staked  = Uint128(0)
+1220,REWARDS,Alice,user.volume  = Uint256(0)
+1220,REWARDS,Alice,user.bonding = 86400
+1220,REWARDS,Alice,user.earned  = Uint128(0)
+1608,REWARDS,Alice,user.staked  = Uint128(0)
+1608,REWARDS,Alice,user.volume  = Uint256(0)
+1608,REWARDS,Alice,user.bonding = 86400
+1608,REWARDS,Alice,user.earned  = Uint128(0)
+,,,
+1608,Alice,REWARDS,"lock:
+  amount: ""69123"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""69123""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+1608,REWARDS,Alice,user.staked  = Uint128(69123)
+1608,REWARDS,Alice,user.volume  = Uint256(0)
+1608,REWARDS,Alice,user.bonding = 86400
+1608,REWARDS,Alice,user.earned  = Uint128(0)
+88008,REWARDS,Alice,user.earned  = Uint128(17558)
+88008,REWARDS,Alice,user.bonding = 0
+,,,
+88008,Alice,REWARDS,"retrieve:
+  amount: ""69123"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""17558""
+  padding: ~
+  recipient: Alice"
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""69123""
+  padding: ~
+  recipient: Alice"
+88008,REWARDS,Alice,pool.distributed  = Uint128(17558)
+88008,REWARDS,Alice,user.earned  = Uint128(0)
+88008,REWARDS,Alice,user.bonding = 86400
+,,,
+88717,RPT,REWARDS,vest 17558
+88717,REWARDS,Alice,user.staked  = Uint128(0)
+88717,REWARDS,Alice,user.volume  = Uint256(0)
+88717,REWARDS,Alice,user.bonding = 86400
+88717,REWARDS,Alice,user.earned  = Uint128(0)
+,,,
+88717,Alice,REWARDS,"lock:
+  amount: ""69123"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""69123""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+88717,REWARDS,Alice,user.staked  = Uint128(69123)
+88717,REWARDS,Alice,user.volume  = Uint256(0)
+88717,REWARDS,Alice,user.bonding = 86400
+88717,REWARDS,Alice,user.earned  = Uint128(0)
+175117,REWARDS,Alice,user.staked  = Uint128(69123)
+175117,REWARDS,Alice,user.bonding = 0
+175117,REWARDS,Alice,user.volume  = Uint256(5972227200)
+175117,REWARDS,Alice,user.earned  = Uint128(17558)
+175118,REWARDS,Alice,user.staked  = Uint128(69123)
+175118,REWARDS,Alice,user.volume  = Uint256(5972296323)
+175118,REWARDS,Alice,user.bonding = 0
+175118,REWARDS,Alice,user.earned  = Uint128(17558)
+,,,
+175118,Alice,REWARDS,claim: {}
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""17558""
+  padding: ~
+  recipient: Alice"
+175118,REWARDS,Alice,pool.distributed  = Uint128(35116)
+175118,REWARDS,Alice,user.staked  = Uint128(69123)
+175118,REWARDS,Alice,user.volume  = Uint256(0)
+175118,REWARDS,Alice,user.bonding = 86400
+175118,REWARDS,Alice,user.earned  = Uint128(0)
+,,,
+261518,RPT,REWARDS,vest 17558
+261518,REWARDS,Alice,user.earned  = Uint128(17558)
+261518,REWARDS,Alice,user.bonding = 0

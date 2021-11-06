@@ -2,12 +2,16 @@ Time,Sender,Recipient,Data
 ,,,
 2,Alice,REWARDS,"lock:
   amount: ""100"""
-=>,err,"Error parsing into type core::option::Option<core::result::Result<u64, cosmwasm_std::errors::std_error::StdError>>: Expected to parse either a `true`, `false`, or a `null`.",
-,,,
-FAIL,was expecting,the following,
-,,,
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""100""
   owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,,
+2,Bob,REWARDS,"lock:
+  amount: ""100"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""100""
+  owner: Bob
   padding: ~
   recipient: cosmos2contract"

@@ -11,12 +11,61 @@ Time,Sender,Recipient,Data
 ,,,
 69123,Alice,REWARDS,"lock:
   amount: ""96260"""
-=>,err,"Error parsing into type core::option::Option<core::result::Result<u64, cosmwasm_std::errors::std_error::StdError>>: Expected to parse either a `true`, `false`, or a `null`.",
-,,,
-FAIL,was expecting,the following,
-,,,
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""96260""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
+,,,
+69123,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97424 more seconds before you are able to claim.,
+,,,
+69124,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97423 more seconds before you are able to claim.,
+,,,
+69125,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97422 more seconds before you are able to claim.,
+,,,
+69126,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97421 more seconds before you are able to claim.,
+,,,
+166544,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 3 more seconds before you are able to claim.,
+,,,
+166545,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 2 more seconds before you are able to claim.,
+,,,
+166546,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 1 more seconds before you are able to claim.,
+,,,
+166547,Alice,REWARDS,claim: {}
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""17558""
+  padding: ~
+  recipient: Alice"
+,,,
+166547,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97424 more seconds before you are able to claim.,
+,,,
+166548,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97423 more seconds before you are able to claim.,
+,,,
+166549,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 97422 more seconds before you are able to claim.,
+,,,
+166549,RPT,REWARDS,vest 17558
+,,,
+263968,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 3 more seconds before you are able to claim.,
+,,,
+263969,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 2 more seconds before you are able to claim.,
+,,,
+263970,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 1 more seconds before you are able to claim.,
+,,,
+263971,Alice,REWARDS,claim: {}
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""17558""
+  padding: ~
+  recipient: Alice"

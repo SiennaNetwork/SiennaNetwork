@@ -13,12 +13,42 @@ Time,Sender,Recipient,Data
 ,,,
 2,Alice,REWARDS,"lock:
   amount: ""100"""
-=>,err,"Error parsing into type core::option::Option<core::result::Result<u64, cosmwasm_std::errors::std_error::StdError>>: Expected to parse either a `true`, `false`, or a `null`.",
-,,,
-FAIL,was expecting,the following,
-,,,
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""100""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
+,,,
+3,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 86399 more seconds before you are able to claim.,
+,,,
+4,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 86398 more seconds before you are able to claim.,
+,,,
+86401,Alice,REWARDS,claim: {}
+=>,err,Generic error: You must keep some tokens staked for 1 more seconds before you are able to claim.,
+,,,
+86402,Alice,REWARDS,claim: {}
+=>,err,"Generic error: Rewards from this pool are currently stopped. However, liquidity shares continue to accumulate.",
+,,,
+86403,Admin,REWARDS,"configure:
+  lp_token: ~
+  reward_token: ~
+  reward_vk: ~
+  ratio:
+    - ""1""
+    - ""2""
+  bonding: ~"
+,,,
+86404,Alice,REWARDS,claim: {}
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""100""
+  padding: ~
+  recipient: Alice"
+,,,
+FAIL,was expecting,the following,
+,,,
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""50""
+  padding: ~
+  recipient: Alice"
