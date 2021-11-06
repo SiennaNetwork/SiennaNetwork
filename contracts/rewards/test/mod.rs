@@ -6,27 +6,11 @@
 #![allow(unreachable_patterns)]
 #![allow(non_snake_case)]
 
-mod algo_001_init;
-mod algo_002_config;
-mod algo_003_single_sided;
-mod algo_004_close;
-mod algo_005_drain;
-//mod algo_006_ratio;
-
-mod algo_010_basic;
-mod algo_011_deposit_withdraw_one;
-mod algo_012_deposit_withdraw_parallel;
-mod algo_013_autoclaim;
-
-mod algo_020_claim_one;
-mod algo_021_sequential;
-mod algo_022_parallel;
-
-mod algo_030_bonding;
-
-mod auth_test;
-
-mod migration_test;
+mod test_0000_init;
+mod test_0100_operate;
+mod test_0200_auth;
+mod test_0300_close;
+mod test_0400_migrate;
 
 use prettytable::{Table, /*Row, Cell,*/ format};
 //use yansi::Paint;
@@ -181,7 +165,7 @@ impl Context {
         );
         self
     }
-    pub fn configure (&mut self, config: RewardsConfig) -> &mut Self {
+    pub fn configures (&mut self, config: RewardsConfig) -> &mut Self {
         let mut expected = HandleResponse::default();
         if config.reward_vk.is_some() && config.reward_token.is_some() {
             expected.messages.push(snip20::set_viewing_key_msg(
