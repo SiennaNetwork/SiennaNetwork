@@ -2,11 +2,16 @@ use crate::test::*;
 
 #[test] fn test_parallel () {
 
+    let mut context = Context::named("algo_022_parallel");
+    let stake  = context.rng.gen_range(0..100000);
+    let reward = context.rng.gen_range(0..100000)*2;
     Context::named("algo_022_parallel")
-        .admin().at(1).init().fund(100u128)
-        .at(2).user("Alice").deposits(100u128)
-              .user("Bob").deposits(100u128)
-        .at(86402).user("Alice").withdraws(100u128).claims(50u128)
-                  .user("Bob").withdraws(100u128).deposits(50u128);
+        .admin().init().fund(reward)
+        .later()
+            .user("Alice").set_vk("").deposits(stake)
+            .user("Bob").set_vk("").deposits(stake)
+        .epoch()
+            .user("Alice").withdraws_claims(stake, reward/2)
+            .user("Bob").withdraws_claims(stake, reward/2);
 
 }

@@ -27,3 +27,4 @@ tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""69123""
   padding: ~
   recipient: Alice"
+88066,REWARDS,Alice,user.volume  = Uint256(0)

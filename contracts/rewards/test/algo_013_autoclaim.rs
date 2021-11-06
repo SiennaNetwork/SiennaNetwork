@@ -34,6 +34,6 @@ use crate::test::*;
         .user("Alice").set_vk("")
             .later().deposits(stake)
             .epoch().withdraws(stake/2)
-            .later().withdraws_claims(stake/2, reward);
+            .later().withdraws_claims(stake/2, reward).volume(0);
 
 }

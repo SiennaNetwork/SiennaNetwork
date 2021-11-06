@@ -16,7 +16,7 @@ mod algo_005_drain;
 mod algo_010_basic;
 mod algo_011_deposit_withdraw_one;
 mod algo_012_deposit_withdraw_parallel;
-mod algo_013_reset;
+mod algo_013_autoclaim;
 
 mod algo_020_claim_one;
 mod algo_021_sequential;
