@@ -6,17 +6,17 @@ Time,Sender,Recipient,Data
   reward_vk: ~
   bonding: 97424"
 ,,,
-1,RPT,REWARDS,vest 17558
+1,RPT,REWARDS,vest 38861
 ,,,
-69123,Alice,REWARDS,"lock:
-  amount: ""96260"""
+42798,Alice,REWARDS,"lock:
+  amount: ""93561"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""96260""
+  amount: ""93561""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
 ,,,
-69123,Alice,REWARDS,claim: {}
+42798,Alice,REWARDS,claim: {}
 =>,err,"Generic error: This pool is currently empty. However, liquidity shares continue to accumulate.",
 ,,,
 FAIL,was expecting,the following,

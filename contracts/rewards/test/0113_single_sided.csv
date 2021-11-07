@@ -1,21 +1,21 @@
 Time,Sender,Recipient,Data
 ,,,
-1,RPT,REWARDS,vest 17558
+1,RPT,REWARDS,vest 96260
 ,,,
-255,Alice,REWARDS,"lock:
-  amount: ""69123"""
+389,Alice,REWARDS,"lock:
+  amount: ""17559"""
 tx,REWARDS,SIENNA,"transfer_from:
-  amount: ""69123""
+  amount: ""17559""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
 ,,,
-86655,Alice,REWARDS,claim: {}
+86789,Alice,REWARDS,claim: {}
 =>,err,"Generic error: This pool is currently empty. However, liquidity shares continue to accumulate.",
 ,,,
 FAIL,was expecting,the following,
 ,,,
 tx,REWARDS,SIENNA,"transfer:
-  amount: ""17558""
+  amount: ""96260""
   padding: ~
   recipient: Alice"

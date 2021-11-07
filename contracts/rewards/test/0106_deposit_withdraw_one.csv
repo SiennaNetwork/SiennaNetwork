@@ -3,12 +3,12 @@ Time,Sender,Recipient,Data
 975,REWARDS,Alice,user.volume  = Uint256(0)
 ,,,
 975,Alice,REWARDS,"lock:
-  amount: ""138246"""
+  amount: ""35118"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""138246""
+  amount: ""35118""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-975,REWARDS,Alice,user.staked  = Uint128(138246)
-975,REWARDS,Alice,user.volume  = Uint256(134789850)
+975,REWARDS,Alice,user.staked  = Uint128(35118)
+975,REWARDS,Alice,user.volume  = Uint256(34240050)
 ERROR,EXPECTED,,user.volume  = Uint256(0)

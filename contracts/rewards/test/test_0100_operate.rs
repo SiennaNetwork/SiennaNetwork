@@ -1,35 +1,105 @@
 use crate::test::{*, Context};
 
-#[test] fn test_0101_accumulation () {
-    let mut context = Context::new();
-    let stake  = context.rng.gen_range(0..100000);
-    let reward = context.rng.gen_range(0..100000);
-    let bonding = 86400;
+#[test] fn test_0101_empty () {
+    let mut context = Context::named("0101_defaults");
+    let bonding = context.bonding;
+    // Given an instance
+    context.init()
+        // When nobody has deposited yet
+        // And the status of a user is queried
+        .user("Alice").set_vk("")
+            // Then their stake is 0
+            .staked(0)
+            // And their volume is 0
+            .volume(0)
+            // And their entry is 0
+            .entry(0)
+            // And their bonding is max
+            .bonding(bonding);
+}
+
+#[test] fn test_0102_stake_volume () {
+    let mut context = Context::named("0102_stake");
+    let stake   = context.rng.gen_range(1..100000);
+    let n_ticks = 10;
+    // Given an instance
+    context.init()
+        // When user deposits
+        .user("Alice").set_vk("").deposits(stake)
+            // Then user's stake increments
+            .staked(stake).volume(0)
+            // And user's liquidity starts incrementing from the next tick
+            .ticks(n_ticks, |i, context|{
+                context.staked(stake).volume(stake * i as u128);
+            });
+}
+
+#[test] fn test_0103_entry () {
+    let mut context = Context::named("0103_entry");
+    let stake1  = context.rng.gen_range(1..100000);
+    let stake2  = context.rng.gen_range(1..100000);
+    let n_ticks = 10;
 
     // Given an instance
-    Context::named("0100_stake").admin().init().user("Alice").set_vk("")
+    context
+        .admin().init()
 
-        // When user deposits
-        .later().fund(reward)
-            .staked(0).volume(0).bonding(bonding).earned(0)
-            .deposits(stake)
+        // When the first user hasn't deposited
+        .user("Alice").set_vk("")
+            // Then their entry is 0, corresponding to the initially empty pool
+            .entry(0)
+            // When the first user deposits
+            .deposits(stake1)
+            // Then their entry becomes fixed at its current value
+            .entry(0)
+            // When some time passes
+            // Then the pool's liquidity is equal to the user's liquidity
+            .after(n_ticks)
+                .entry(0)
+                .volume(stake1 * n_ticks as u128)
+                .pool_volume(stake1 * n_ticks as u128)
 
-            // Then user's stake increments
-            .staked(stake).volume(0).bonding(bonding).earned(0)
+        // When a subsequent user hasn't deposited
+        .user("Bob").set_vk("")
+            // Then their entry is equal to the curent volume of the pool
+            .entry(stake1 * n_ticks as u128)
+            .after(n_ticks).entry(stake1 * n_ticks as u128 * 2)
+            // When a subsequent user deposits
+            // Then their entry becomes fixed at its current value
+            .deposits(stake2).entry(stake1 * n_ticks as u128 * 2)
+            .after(n_ticks).entry(stake1 * n_ticks as u128 * 2)
+            // And user's liquidity starts incrementing from the next tick
+            .ticks(n_ticks, |i, context|{
+                context.staked(stake2).volume(stake2 * i as u128);
+            });
+}
 
-        // And user's liquidity starts incrementing
-        // And user's bonding starts decrementing
-        .tick().staked(stake).volume(stake*1).bonding(bonding - 1).earned(reward)
-        .tick().staked(stake).volume(stake*2).bonding(bonding - 2).earned(reward)
-        .tick().staked(stake).volume(stake*3).bonding(bonding - 3).earned(reward);
+#[test] fn test_0110_reset() {
+    let mut context = Context::new();
+    let stake   = context.rng.gen_range(0..100000)*2;
+    let reward  = context.rng.gen_range(0..100000);
+    Context::named("0110_reset")
+        .admin().init().fund(reward)
+        .user("Alice").set_vk("")
+            .later().deposits(stake)
+            .epoch()
+            .branch("after_claim", |mut context| {
+                context.claims(reward).volume(0).withdraws(stake);
+            })
+            .branch("after_full_withdraw", |mut context| {
+                context.withdraws_claims(stake, reward).volume(0);
+            })
+            .branch("only_after_full_withdraw", |mut context| {
+                context.withdraws(stake/2).later().withdraws_claims(stake/2, reward).volume(0);
+            });
 }
 
 #[test] fn test_0102_bonding () {
-    let mut context = Context::named("0100_bonding");
-    let bonding = context.rng.gen_range(0..100000);
-    let t_lock  = context.rng.gen_range(0..100000);
-    let reward  = context.rng.gen_range(0..100000);
-    let stake   = context.rng.gen_range(0..100000);
+    let mut context = Context::named("0102_bonding");
+    let bonding = context.rng.gen_range(1..100000);
+    let t_lock  = context.rng.gen_range(1..100000);
+    let reward  = context.rng.gen_range(1..100000);
+    let stake   = context.rng.gen_range(1..100000);
 
     // Given a pool
     context
@@ -60,18 +130,17 @@ use crate::test::{*, Context};
             .tick().must_wait(2)
             .tick().must_wait(1)
             .tick().claims(reward);
-
 }
 
 #[test] fn test_0103_exit () {
-    let mut context = Context::new();
-    let stake  = context.rng.gen_range(0..100000);
-    let reward = context.rng.gen_range(0..100000);
+    let mut context = Context::named("0103_exit");
+    let stake  = context.rng.gen_range(1..100000);
+    let reward = context.rng.gen_range(1..100000);
     let bonding = 86400;
 
     // Given an instance
     // When  user deposits
-    Context::named("0100_exit")
+    context
         .admin().init().user("Alice").set_vk("")
         .later().fund(reward)
             .staked(0).volume(0).bonding(bonding).earned(0)
@@ -117,10 +186,10 @@ use crate::test::{*, Context};
 
 #[test] fn test_0106_deposit_withdraw_one () {
     let mut context = Context::new();
-    let stake  = context.rng.gen_range(0..100000)*2;
-    let reward = context.rng.gen_range(0..100000);
+    let stake  = context.rng.gen_range(1..100000)*2;
+    let reward = context.rng.gen_range(1..100000);
     // Given an instance
-    Context::named("0100_one_deposit_withdraw").admin().init()
+    Context::named("0106_deposit_withdraw_one").admin().init()
         //  When user first deposits
         //  Then user's age and volume start incrementing
         .later().user("Alice")
@@ -149,43 +218,43 @@ use crate::test::{*, Context};
 
 #[test] fn test_0107_claim_one () {
     let mut context = Context::new();
-    let stake  = context.rng.gen_range(0..100000);
-    let reward = context.rng.gen_range(0..100000);
+    let stake  = context.rng.gen_range(1..100000);
+    let reward = context.rng.gen_range(1..100000);
 
     // Given an instance
-    Context::named("0100_one_claim")
-        .admin().init().fund(100)
+    Context::named("0100_one_claim").admin().init()
+        .fund(reward)
         //  When users tries to claim reward before providing liquidity
         //  Then they get an error
-        .user("Alice")
+        .user("Alice").set_vk("")
             .tick().must_wait(86400)
             //  When users provide liquidity
             //   And they wait for rewards to accumulate
-            .tick().must_wait(86400).deposits(100).must_wait(86400)
+            .tick().must_wait(86400).deposits(stake).must_wait(86400)
             .tick().must_wait(86399)
             .tick().must_wait(86398)
             // ...
             .at(86402).must_wait(1)
             //   And a provider claims rewards
             //  Then that provider receives reward tokens
-            .tick().claims(100)
-        .fund(100)
+            .tick().claims(reward)
+        .fund(reward)
             //  When a provider claims rewards twice within a period
             //  Then rewards are sent only the first time
             .tick().must_wait(86399)
             .tick().must_wait(86398)
-            .tick() .must_wait(86397)
+            .tick().must_wait(86397)
             // ...
             //  When a provider claims their rewards less often
             //  Then they receive equivalent rewards as long as the liquidity deposited hasn't changed
-        .fund(100)
-            .at(3*86400+3).claims(200).must_wait(86400);
+        .fund(reward)
+            .at(3*86400+3).claims(reward*2).must_wait(86400);
 }
 
 #[test] fn test_0108_sequential () {
     let mut context = Context::new();
-    let stake  = context.rng.gen_range(0..100000);
-    let reward = context.rng.gen_range(0..100000);
+    let stake  = context.rng.gen_range(1..100000);
+    let reward = context.rng.gen_range(1..100000);
     Context::named("0100_two_sequential")
         .admin().init()
         .later().fund(reward)
@@ -200,8 +269,8 @@ use crate::test::{*, Context};
 
 #[test] fn test_0109_parallel () {
     let mut context = Context::new();
-    let stake  = context.rng.gen_range(0..100000)*2;
-    let reward = context.rng.gen_range(0..100000)*2;
+    let stake  = context.rng.gen_range(1..100000)*2;
+    let reward = context.rng.gen_range(1..100000)*2;
     // Given an instance:
     Context::named("0100_two_parallel")
         .admin().init().fund(reward)
@@ -223,26 +292,6 @@ use crate::test::{*, Context};
             .user("Bob").earned(reward/2).withdraws_claims(stake/2, reward/2);
 }
 
-#[test] fn test_0110_reset() {
-    let mut context = Context::new();
-    let stake   = context.rng.gen_range(0..100000)*2;
-    let reward  = context.rng.gen_range(0..100000);
-    Context::named("0100_reset")
-        .admin().init().fund(reward)
-        .user("Alice").set_vk("")
-            .later().deposits(stake)
-            .epoch()
-            .branch("after_claim", |mut context| {
-                context.claims(reward).volume(0).withdraws(stake);
-            })
-            .branch("after_full_withdraw", |mut context| {
-                context.withdraws_claims(stake, reward).volume(0);
-            })
-            .branch("only_after_full_withdraw", |mut context| {
-                context.withdraws(stake/2).later().withdraws_claims(stake/2, reward).volume(0);
-            });
-}
-
 /// Given an instance where rewards are given in the same token that is staked
 ///
 ///  When a user deposits tokens and claims rewards
@@ -251,10 +300,10 @@ use crate::test::{*, Context};
 ///  When a user withdraws tokens after claiming
 ///  Then they get the original amount
 #[test] fn test_0113_single_sided () {
-    let mut context = Context::named("0100_single_sided");
+    let mut context = Context::named("0113_single_sided");
     context.lp_token = context.reward_token.clone();
-    let stake  = context.rng.gen_range(0..100000);
-    let reward = context.rng.gen_range(0..100000);
+    let stake  = context.rng.gen_range(1..100000);
+    let reward = context.rng.gen_range(1..100000);
     context
         .admin()
             .init().fund(reward)
@@ -264,11 +313,11 @@ use crate::test::{*, Context};
             .later().withdraws(stake);
 }
 
-#[test] fn test_0300_close () {
-    let mut context  = Context::named("0100_close");
-    let reward: u128 = context.rng.gen_range(0..100000);
-    let stake1: u128 = context.rng.gen_range(0..100000);
-    let stake2: u128 = context.rng.gen_range(0..100000);
+#[test] fn test_0114_close () {
+    let mut context  = Context::named("0114_close");
+    let reward: u128 = context.rng.gen_range(1..100000);
+    let stake1: u128 = context.rng.gen_range(1..100000);
+    let stake2: u128 = context.rng.gen_range(1..100000);
     let return_funds = context.lp_token.transfer(
         &HumanAddr::from("Alice"), (stake1+stake2).into()
     ).unwrap();

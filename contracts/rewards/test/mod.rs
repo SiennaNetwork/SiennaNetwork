@@ -14,7 +14,7 @@ mod test_0300_migrate;
 use prettytable::{Table, /*Row, Cell,*/ format};
 //use yansi::Paint;
 
-use crate::*;
+use crate::{*, RewardsResponse};
 use fadroma::*;
 use fadroma::secret_toolkit::snip20;
 use fadroma::testing::*;
@@ -66,7 +66,8 @@ pub struct Context {
     pub reward_vk:    String,
     pub reward_token: ISnip20,
     pub lp_token:     ISnip20,
-    pub closed:       Option<CloseSeal>
+    pub closed:       Option<CloseSeal>,
+    pub bonding:      u64
 }
 
 impl Context {
@@ -110,7 +111,8 @@ impl Context {
             env: env(&address, time),
             address,
             time,
-            closed: None
+            closed: None,
+            bonding: 86400
         }
     }
     pub fn named (name: &str) -> Self {
@@ -139,12 +141,19 @@ impl Context {
     pub fn tick (&mut self) -> &mut Self {
         self.after(1)
     }
+    pub fn ticks <F: FnMut(u64, &mut Context)->()> (&mut self, n: Duration, mut f: F) -> &mut Self {
+        for i in 0..n {
+            self.tick();
+            f(i, self);
+        }
+        self
+    }
     pub fn later (&mut self) -> &mut Self {
         let t = self.rng.gen_range(0..1000);
         self.after(t)
     }
     pub fn epoch (&mut self) -> &mut Self {
-        self.after(86400)
+        self.after(self.bonding)
     }
     pub fn set_address (&mut self, address: &str) -> &mut Self {
         self.address = HumanAddr::from(address);
@@ -351,11 +360,11 @@ impl Context {
     }
     pub fn staked (&mut self, expected: u128) -> &mut Self {
         let staked = self.account_status().staked;
-        self.test_field("user.staked ", staked, expected.into())
+        self.test_field("user.staked ", staked,  expected.into())
     }
     pub fn volume (&mut self, expected: u128) -> &mut Self {
         let volume = self.account_status().volume;
-        self.test_field("user.volume ", volume, expected.into())
+        self.test_field("user.volume ", volume,  expected.into())
     }
     pub fn bonding (&mut self, expected: Duration) -> &mut Self {
         let bonding = self.account_status().bonding;
@@ -363,7 +372,15 @@ impl Context {
     }
     pub fn earned (&mut self, expected: u128) -> &mut Self {
         let earned = self.account_status().earned;
-        self.test_field("user.earned ", earned, expected.into())
+        self.test_field("user.earned ", earned,  expected.into())
+    }
+    pub fn entry (&mut self, expected: u128) -> &mut Self {
+        let entry = self.account_status().entry;
+        self.test_field("user.entry  ", entry,   expected.into())
+    }
+    pub fn pool_volume (&mut self, expected: u128) -> &mut Self {
+        let volume = self.pool_status().volume;
+        self.test_field("pool.volume      ", volume, expected.into())
     }
     pub fn distributed (&mut self, expected: u128) -> &mut Self {
         let distributed = self.pool_status().distributed;
@@ -388,7 +405,7 @@ impl Context {
         self
     }
     pub fn account_status (&mut self) -> Account {
-        let result = Rewards::query_status(
+        let result = RewardsResponse::status(
             &self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
         );
         match result {
@@ -404,7 +421,7 @@ impl Context {
         }
     }
     pub fn pool_status (&mut self) -> Totals {
-        let result = Rewards::query_status(
+        let result = RewardsResponse::status(
             &self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
         );
         match result {

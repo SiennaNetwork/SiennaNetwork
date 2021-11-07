@@ -1,13 +1,32 @@
 Time,Sender,Recipient,Data
 ,,,
-1,RPT,REWARDS,vest 35116
+1,RPT,REWARDS,vest 192520
 ,,,
 975,Alice,REWARDS,"lock:
-  amount: ""138246"""
+  amount: ""35118"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""138246""
+  amount: ""35118""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-975,REWARDS,Alice,user.earned  = Uint128(35116)
-ERROR,EXPECTED,,user.earned  = Uint128(0)
+975,REWARDS,Alice,user.earned  = Uint128(0)
+,,,
+975,Bob,REWARDS,"lock:
+  amount: ""35118"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""35118""
+  owner: Bob
+  padding: ~
+  recipient: cosmos2contract"
+975,REWARDS,Bob,user.earned  = Uint128(0)
+,,,
+1666,Alice,REWARDS,"retrieve:
+  amount: ""17559"""
+=>,err,Generic error: FATAL: not enough tokens in pool (0 < 17559),
+,,,
+FAIL,was expecting,the following,
+,,,
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""17559""
+  padding: ~
+  recipient: Alice"

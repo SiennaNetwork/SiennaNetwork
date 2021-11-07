@@ -1,16 +1,8 @@
 Time,Sender,Recipient,Data
 ,,,
-1,RPT,REWARDS,vest 69123
+1,RPT,REWARDS,vest 17559
 ,,,
-1097,Alice,REWARDS,"lock:
-  amount: ""17558"""
-tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""17558""
-  owner: Alice
-  padding: ~
-  recipient: cosmos2contract"
-,,,
-2002,Alice,REWARDS,"lock:
+906,Alice,REWARDS,"lock:
   amount: ""96260"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""96260""
@@ -18,5 +10,13 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   padding: ~
   recipient: cosmos2contract"
 ,,,
-2265,Admin,REWARDS,"close:
+1169,Alice,REWARDS,"lock:
+  amount: ""70851"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""70851""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,,
+2536,Admin,REWARDS,"close:
   message: closed"

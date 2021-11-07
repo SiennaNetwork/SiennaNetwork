@@ -1,6 +1,6 @@
 Time,Sender,Recipient,Data
 ,,,
-1,RPT,REWARDS,vest 100
+1,RPT,REWARDS,vest 96260
 ,,,
 2,Alice,REWARDS,claim: {}
 =>,err,Generic error: Keep tokens staked for 86400 more seconds to be eligible for rewards.,
@@ -9,9 +9,9 @@ Time,Sender,Recipient,Data
 =>,err,Generic error: Keep tokens staked for 86400 more seconds to be eligible for rewards.,
 ,,,
 3,Alice,REWARDS,"lock:
-  amount: ""100"""
+  amount: ""17559"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""100""
+  amount: ""17559""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"

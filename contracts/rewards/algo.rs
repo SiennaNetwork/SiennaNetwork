@@ -2,21 +2,48 @@ use fadroma::*;
 use crate::{auth::Auth, errors};
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
-
+pub trait Rewards<S: Storage, A: Api, Q: Querier>:
+    Composable<S, A, Q> // to compose with other modules
+    + Auth<S, A, Q>     // to authenticate txs/queries
+    + Sized             // to pass mutable self-reference to Totals and Account
+{
+    /// Initialize the rewards module
+    fn init (&mut self, env: &Env, config: RewardsConfig) -> StdResult<Vec<CosmosMsg>> {
+        let reward_token = config.reward_token.ok_or(
+            StdError::generic_err("need to provide link to reward token")
+        )?;
+        self.set(RewardsConfig::SELF, &self.canonize(ContractLink {
+            address:   env.contract.address.clone(),
+            code_hash: env.contract_code_hash.clone()
+        })?)?;
+        RewardsConfig {
+            lp_token:     config.lp_token,
+            reward_token: Some(reward_token),
+            reward_vk:    Some(config.reward_vk.unwrap_or("".into())),
+            bonding:      Some(config.bonding.unwrap_or(DAY))
+        }.store(self)
+    }
+    /// Handle transactions
+    fn handle (&mut self, env: Env, msg: RewardsHandle) -> StdResult<HandleResponse> {
+        msg.dispatch_handle(self, env)
+    }
+    /// Handle queries
+    fn query (&self, msg: RewardsQuery) -> StdResult<RewardsResponse> {
+        msg.dispatch_query(self)
+    }
+}
 /// A moment in time, as represented by the current value of env.block.time
 pub type Moment   = u64;
 /// A duration of time, represented as a number of moments
 pub type Duration = u64;
 /// Seconds in 24 hours
 pub const DAY: Duration = 86400;
-
 /// Amount of funds
 pub type Amount = Uint128;
 /// Amount multiplied by duration.
 pub type Volume = Uint256;
 /// A ratio, represented as tuple (nom, denom)
 pub type Ratio  = (Uint128, Uint128);
-
 /// Project current value of an accumulating parameter based on stored value,
 /// time since it was last updated, and rate of change, i.e.
 /// `current = stored + (elapsed * rate)`
@@ -55,14 +82,14 @@ pub fn accumulate (
     total_before_last_update + Volume::from(value_after_last_update)
         .multiply_ratio(time_since_last_update, 1u128)?
 }
-
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub enum RewardsHandle {
+    // Public transactions
     Lock     { amount: Amount },
     Retrieve { amount: Amount },
     Claim {},
-
+    // Admin-only transactions
     Configure(RewardsConfig),
     Close { message: String },
     Drain {
@@ -71,8 +98,53 @@ pub enum RewardsHandle {
         key:       String
     },
 }
-
-
+impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for RewardsHandle where
+    S: Storage,
+    A: Api,
+    Q: Querier,
+    C: Rewards<S, A, Q>
+{
+    fn dispatch_handle (self, core: &mut C, env: Env) -> StdResult<HandleResponse> {
+        match self {
+            // Public transactions
+            RewardsHandle::Lock { amount } =>
+                Account::get(core, env.block.time, env.message.sender)?.deposit(core, amount),
+            RewardsHandle::Retrieve { amount } =>
+                Account::get(core, env.block.time, env.message.sender)?.withdraw(core, amount),
+            RewardsHandle::Claim {} =>
+                Account::get(core, env.block.time, env.message.sender)?.claim(core),
+            // Admin-only transactions
+            _ => {
+                Auth::assert_admin(core, &env)?;
+                match self {
+                    RewardsHandle::Configure(config) => {
+                        Ok(HandleResponse { messages: config.store(core)?, log: vec![], data: None })
+                    },
+                    RewardsHandle::Close { message } => {
+                        core.set(RewardsConfig::CLOSED, Some((env.block.time, message)))?;
+                        Ok(HandleResponse::default())
+                    },
+                    RewardsHandle::Drain { snip20, recipient, key } => {
+                        let recipient = recipient.unwrap_or(env.message.sender.clone());
+                        // Update the viewing key if the supplied
+                        // token info for is the reward token
+                        let reward_token = RewardsConfig::reward_token(core)?;
+                        if reward_token.link == snip20 {
+                            core.set(RewardsConfig::REWARD_VK, key.clone())?
+                        }
+                        let allowance = Uint128(u128::MAX);
+                        let duration  = Some(env.block.time + DAY * 10000);
+                        let snip20    = ISnip20::attach(snip20);
+                        HandleResponse::default()
+                            .msg(snip20.increase_allowance(&recipient, allowance, duration)?)?
+                            .msg(snip20.set_viewing_key(&key)?)
+                    },
+                    _ => unreachable!()
+                }
+            }
+        }
+    }
+}
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub enum RewardsQuery {
@@ -82,7 +154,19 @@ pub enum RewardsQuery {
         key:     Option<String>
     }
 }
-
+impl<S, A, Q, C> QueryDispatch<S, A, Q, C, RewardsResponse> for RewardsQuery where
+    S: Storage,
+    A: Api,
+    Q: Querier,
+    C: Rewards<S, A, Q>
+{
+    fn dispatch_query (self, core: &C) -> StdResult<RewardsResponse> {
+        match self {
+            RewardsQuery::Status { at, address, key } =>
+                RewardsResponse::status(core, at, address, key)
+        }
+    }
+}
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub enum RewardsResponse {
@@ -92,34 +176,32 @@ pub enum RewardsResponse {
         account: Option<Account>
     }
 }
-
 impl RewardsResponse {
     /// Report pool status and optionally account status, at a given time
     pub fn status <S: Storage, A: Api, Q: Querier> (
-        contract: &impl Rewards<S, A, Q>,
-        time:     Moment,
-        address:  Option<HumanAddr>,
-        key:      Option<String>
+        core:    &impl Rewards<S, A, Q>,
+        time:    Moment,
+        address: Option<HumanAddr>,
+        key:     Option<String>
     ) -> StdResult<Self> {
         if address.is_some() && key.is_none() { return errors::no_vk() }
-        let total = Totals::get(contract, time)?;
+        let total = Totals::get(core, time)?;
         if time < total.updated { return errors::no_time_travel() }
         Ok(RewardsResponse::Status {
             time,
             total,
             account: if let (Some(address), Some(key)) = (address, key) {
-                let id = contract.canonize(address.clone())?;
-                Auth::check_vk(contract, &ViewingKey(key), id.as_slice())?;
-                Some(Account::get(contract, time, address)?)
+                let id = core.canonize(address.clone())?;
+                Auth::check_vk(core, &ViewingKey(key), id.as_slice())?;
+                Some(Account::get(core, time, address)?)
             } else {
                 None
             }
         })
     }
 }
-
 pub type CloseSeal = (Moment, String);
-
+/// Reward pool configuration
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub struct RewardsConfig {
@@ -128,78 +210,79 @@ pub struct RewardsConfig {
     pub reward_vk:    Option<String>,
     pub bonding:      Option<Duration>
 }
-
 impl RewardsConfig {
-
     pub const SELF:         &'static[u8] = b"/config/self";
     pub const LP_TOKEN:     &'static[u8] = b"/config/lp_token";
     pub const REWARD_TOKEN: &'static[u8] = b"/config/reward_token";
     pub const REWARD_VK:    &'static[u8] = b"/config/reward_vk";
     pub const CLOSED:       &'static[u8] = b"/config/closed";
     pub const BONDING:      &'static[u8] = b"/config/bonding";
-
+}
+pub trait IRewardsConfig <S, A, Q, C> where
+    S: Storage,
+    A: Api,
+    Q: Querier,
+    C: Composable<S, A, Q>
+{
     /// Commit contract configuration to storage.
-    fn commit <S: Storage, A: Api, Q: Querier> (
-        &self, contract: &mut impl Rewards<S, A, Q>
-    ) -> StdResult<Vec<CosmosMsg>> {
+    fn store (&self, core: &mut C) -> StdResult<Vec<CosmosMsg>>;
+    /// Get this contract's address (used in queries where Env is unavailable).
+    fn self_link    (core: &C) -> StdResult<ContractLink<HumanAddr>>;
+    /// Get an interface to the LP token.
+    fn lp_token     (core: &C) -> StdResult<ISnip20>;
+    /// Get an interface to the reward token.
+    fn reward_token (core: &C) -> StdResult<ISnip20>;
+    /// Get the reward viewing key.
+    fn reward_vk    (core: &C) -> StdResult<String>;
+}
+impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
+    S: Storage,
+    A: Api,
+    Q: Querier,
+    C: Rewards<S, A, Q>
+{
+    fn store (&self, core: &mut C) -> StdResult<Vec<CosmosMsg>> {
         let mut messages = vec![];
-
         if let Some(lp_token) = &self.lp_token {
-            contract.set(Self::LP_TOKEN, &contract.canonize(lp_token.clone())?)?;
+            core.set(Self::LP_TOKEN, &core.canonize(lp_token.clone())?)?;
         }
-
         if let Some(bonding) = &self.bonding {
-            contract.set(Self::BONDING, &bonding)?;
+            core.set(Self::BONDING, &bonding)?;
         }
-
         if let Some(reward_token) = &self.reward_token {
-            contract.set(Self::REWARD_TOKEN, &contract.canonize(reward_token.clone())?)?;
+            core.set(Self::REWARD_TOKEN, &core.canonize(reward_token.clone())?)?;
             if let Some(reward_vk) = &self.reward_vk {
-                contract.set(Self::REWARD_VK, &reward_vk)?;
+                core.set(Self::REWARD_VK, &reward_vk)?;
                 messages.push(ISnip20::attach(reward_token.clone()).set_viewing_key(&reward_vk)?);
             }
         } else if let Some(reward_vk) = &self.reward_vk {
-            contract.set(Self::REWARD_VK, &reward_vk)?;
-            let reward_token = RewardsConfig::reward_token(contract)?;
+            core.set(Self::REWARD_VK, &reward_vk)?;
+            let reward_token = RewardsConfig::reward_token(core)?;
             messages.push(reward_token.set_viewing_key(&reward_vk)?);
         }
-
         Ok(messages)
     }
-
-    fn self_link <S: Storage, A: Api, Q: Querier> (
-        contract: &impl Rewards<S, A, Q>
-    ) -> StdResult<ContractLink<HumanAddr>> {
-        let link = contract.get::<ContractLink<CanonicalAddr>>(Self::SELF)?
-            .ok_or(StdError::generic_err("no contract link"))?;
-        Ok(contract.humanize(link)?)
+    fn self_link (core: &C) -> StdResult<ContractLink<HumanAddr>> {
+        let link = core.get::<ContractLink<CanonicalAddr>>(Self::SELF)?
+            .ok_or(StdError::generic_err("no self link"))?;
+        Ok(core.humanize(link)?)
     }
-
-    fn lp_token <S: Storage, A: Api, Q: Querier> (
-        contract: &impl Rewards<S, A, Q>
-    ) -> StdResult<ISnip20> {
-        let link = contract.get::<ContractLink<CanonicalAddr>>(Self::LP_TOKEN)?
+    fn lp_token (core: &C) -> StdResult<ISnip20> {
+        let link = core.get::<ContractLink<CanonicalAddr>>(Self::LP_TOKEN)?
             .ok_or(StdError::generic_err("no lp token"))?;
-        Ok(ISnip20::attach(contract.humanize(link)?))
+        Ok(ISnip20::attach(core.humanize(link)?))
     }
-
-    fn reward_token <S: Storage, A: Api, Q: Querier> (
-        contract: &impl Rewards<S, A, Q>
-    ) -> StdResult<ISnip20> {
-        let link = contract.get::<ContractLink<CanonicalAddr>>(Self::REWARD_TOKEN)?
+    fn reward_token (core: &C) -> StdResult<ISnip20> {
+        let link = core.get::<ContractLink<CanonicalAddr>>(Self::REWARD_TOKEN)?
             .ok_or(StdError::generic_err("no reward token"))?;
-        Ok(ISnip20::attach(contract.humanize(link)?))
+        Ok(ISnip20::attach(core.humanize(link)?))
     }
-
-    fn reward_vk <S: Storage, A: Api, Q: Querier> (
-        contract: &impl Rewards<S, A, Q>
-    ) -> StdResult<String> {
-        Ok(contract.get::<ViewingKey>(Self::REWARD_VK)?
+    fn reward_vk (core: &C) -> StdResult<String> {
+        Ok(core.get::<ViewingKey>(Self::REWARD_VK)?
             .ok_or(StdError::generic_err("no reward viewing key"))?
             .0)
     }
 }
-
 /// Account status
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
@@ -210,7 +293,6 @@ pub struct Account {
     #[serde(skip)] pub id:      CanonicalAddr,
     /// Passed around internally, not presented to user.
     #[serde(skip)] pub total:   Totals,
-
     /// When did this user's liquidity amount last change?
     /// Set to current time on update.
     pub updated:      Moment,
@@ -238,44 +320,60 @@ pub struct Account {
     /// Decremented on lock/unlock, reset to pool.bonding on claim.
     pub bonding:      Duration,
 }
-
-impl Account {
-    pub const ENTRY:   &'static[u8] = b"/user/entry/";
-    pub const STAKED:  &'static[u8] = b"/user/current/";
-    pub const UPDATED: &'static[u8] = b"/user/updated/";
-    pub const VOLUME:  &'static[u8] = b"/user/volume/";
-    pub const CLAIMED: &'static[u8] = b"/user/claimed/";
-    pub const BONDING: &'static[u8] = b"/user/bonding/";
-
-    pub fn get <S: Storage, A: Api, Q: Querier> (
-        contract: &impl Rewards<S, A, Q>,
-        now:      Moment,
-        address:  HumanAddr
-    ) -> StdResult<Self> {
-        let total      = Totals::get(contract, now)?;
-        let id         = contract.canonize(address.clone())?;
+pub trait IAccount <S, A, Q, C>: Sized where
+    S: Storage,
+    A: Api,
+    Q: Querier,
+    C: Composable<S, A, Q>
+{
+    /// Get an account with up-to-date values
+    fn get (core: &C, now: Moment, address: HumanAddr) -> StdResult<Self>;
+    /// Commit to storage the values that were updated by the passing of time
+    fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()>;
+    /// Check if a deposit is possible, then perform it
+    fn deposit (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse>;
+    /// Store the results of a deposit
+    fn increment_stake (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse>;
+    /// Check if a withdrawal is possible, then perform it
+    fn withdraw (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse>;
+    /// Store the results of a withdrawal
+    fn decrement_stake (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse>;
+    /// Check if a claim is possible, then perform it
+    fn claim (&mut self, core: &mut C) -> StdResult<HandleResponse>;
+    /// Store the results of a claim
+    fn commit_claim (&mut self, core: &mut C) -> StdResult<HandleResponse>;
+    /// Return the user's stake if trying to interact with a closed pool
+    fn force_exit (&mut self, core: &mut C) -> StdResult<HandleResponse>;
+    /// Reset the user's liquidity conribution
+    fn reset (&mut self, core: &mut C) -> StdResult<()>;
+}
+impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
+    S: Storage,
+    A: Api,
+    Q: Querier,
+    C: Rewards<S, A, Q>
+{
+    fn get (core: &C, now: Moment, address: HumanAddr) -> StdResult<Self> {
+        let total      = Totals::get(core, now)?;
+        let id         = core.canonize(address.clone())?;
         let get_time   = |key, default: u64| -> StdResult<u64> {
-            Ok(contract.get_ns(key, &id.as_slice())?.unwrap_or(default))
+            Ok(core.get_ns(key, &id.as_slice())?.unwrap_or(default))
         };
         let get_amount = |key, default: Amount| -> StdResult<Amount> {
-            Ok(contract.get_ns(key, &id.as_slice())?.unwrap_or(default))
+            Ok(core.get_ns(key, &id.as_slice())?.unwrap_or(default))
         };
         let get_volume = |key, default: Volume| -> StdResult<Volume> {
-            Ok(contract.get_ns(key, &id.as_slice())?.unwrap_or(default))
+            Ok(core.get_ns(key, &id.as_slice())?.unwrap_or(default))
         };
-
         let mut account = Self::default();
         account.address = address;
-
         // 1. Timestamps
         // Each user earns rewards as a function of their liquidity contribution over time.
         // The following points and durations in time are stored for each user:
         // * `updated` is the time of last update (deposit, withdraw or claim by this user)
         let now = total.now;
-
         account.updated = get_time(Self::UPDATED, now)?;
         if total.now < account.updated { return errors::no_time_travel() }
-
         // 2. Liquidity and liquidity share
         // * `staked` is the number of LP tokens staked by this user in this pool.
         // * The user's **momentary share** is defined as `staked / total.staked`.
@@ -286,15 +384,12 @@ impl Account {
         //   direction of the user's momentary share.
         account.entry = get_volume(Self::ENTRY, total.volume)?;
         if account.entry > total.volume { return errors::no_time_travel() }
-
         account.staked  = get_amount(Self::STAKED, Amount::zero())?;
         let last_volume = get_volume(Self::VOLUME, Volume::zero())?;
         let elapsed: Duration = now - account.updated;
         account.volume = accumulate(last_volume, elapsed, account.staked)?;
-
         account.pool_share   = (account.staked, total.staked);
         account.reward_share = (account.volume, (total.volume - account.entry)?);
-
         // 3. Rewards claimable
         // `earned` rewards are equal to `total.budget * reward_share`.
         // As the user's volume share increases (as a result of providing liquidity)
@@ -318,7 +413,6 @@ impl Account {
                 .multiply_ratio(account.reward_share.0, account.reward_share.1)?
                 .low_u128().into()
         };
-
         // 4. Bonding period
         // This decrements by `elapsed` if `staked > 0`.
         account.bonding = get_time(Self::BONDING, total.bonding)?;
@@ -328,81 +422,76 @@ impl Account {
         account.id = id;
         Ok(account)
     }
-
-    pub fn deposit <S: Storage, A: Api, Q: Querier> (
-        &mut self, contract: &mut impl Rewards<S, A, Q>, amount: Uint128
-    ) -> StdResult<HandleResponse> {
-        if self.total.closed.is_some() {
-            return self.force_exit(contract)
+    fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()> {
+        if self.staked == Amount::zero() {
+            self.reset(core)?;
         } else {
-            self.increment_stake(contract, amount)
+            core.set_ns(Self::BONDING, self.id.as_slice(), self.bonding)?;
+            core.set_ns(Self::VOLUME,  self.id.as_slice(), self.volume)?;
+            core.set_ns(Self::UPDATED, self.id.as_slice(), self.total.now)?;
+        }
+        core.set(Self::VOLUME,  self.total.volume)?;
+        core.set(Self::UPDATED, self.total.now)?;
+        Ok(())
+    }
+    fn deposit (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {
+        if self.total.closed.is_some() {
+            return self.force_exit(core)
+        } else {
+            self.increment_stake(core, amount)
         }
     }
-
-    fn increment_stake <S: Storage, A: Api, Q: Querier> (
-        &mut self, contract: &mut impl Rewards<S, A, Q>, amount: Amount
-    ) -> StdResult<HandleResponse> {
-        self.commit_elapsed(contract)?;
+    fn increment_stake (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse> {
+        self.commit_elapsed(core)?;
 
         self.staked += amount;
-        contract.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
+        core.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
 
         self.total.staked += amount;
-        contract.set(Totals::STAKED, self.total.staked)?;
+        core.set(Totals::STAKED, self.total.staked)?;
 
-        let lp_token  = RewardsConfig::lp_token(contract)?;
-        let self_link = RewardsConfig::self_link(contract)?;
+        let lp_token  = RewardsConfig::lp_token(core)?;
+        let self_link = RewardsConfig::self_link(core)?;
         HandleResponse::default().msg(
             lp_token.transfer_from(&self.address, &self_link.address, amount)?
         )
     }
-
-    pub fn withdraw <S: Storage, A: Api, Q: Querier> (
-        &mut self, contract: &mut impl Rewards<S, A, Q>, amount: Uint128
-    ) -> StdResult<HandleResponse> {
+    fn withdraw (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {
         if self.total.closed.is_some() {
-            self.force_exit(contract)
+            self.force_exit(core)
         } else if self.staked < amount {
             errors::withdraw(self.staked, amount)
         } else if self.total.staked < amount {
             errors::withdraw_fatal(self.total.staked, amount)
         } else {
-            self.decrement_stake(contract, amount)
+            self.decrement_stake(core, amount)
         }
     }
-
-    fn decrement_stake <S: Storage, A: Api, Q: Querier> (
-        &mut self, contract: &mut impl Rewards<S, A, Q>, amount: Amount
-    ) -> StdResult<HandleResponse> {
-        self.commit_elapsed(contract)?;
+    fn decrement_stake (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse> {
+        self.commit_elapsed(core)?;
 
         self.staked = (self.staked - amount)?;
-        contract.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
+        core.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
 
         self.total.staked = (self.staked - amount)?;
-        contract.set(Self::STAKED, self.total.staked)?;
-
-        let lp_token  = RewardsConfig::lp_token(contract)?;
+        core.set(Self::STAKED, self.total.staked)?;
 
         if self.staked == Amount::zero() { // hairy, fixme
             if self.bonding == 0 {
-                self.commit_claim(contract)?
+                self.commit_claim(core)?
             } else {
-                self.reset(contract)?;
+                self.reset(core)?;
                 HandleResponse::default()
             }
         } else {
             HandleResponse::default()
         }.msg(
-            lp_token.transfer(&self.address, amount)?
+            RewardsConfig::lp_token(core)?.transfer(&self.address, amount)?
         )
     }
-
-    pub fn claim <S: Storage, A: Api, Q: Querier> (
-        &mut self, contract: &mut impl Rewards<S, A, Q>
-    ) -> StdResult<HandleResponse> {
+    fn claim (&mut self, core: &mut C) -> StdResult<HandleResponse> {
         if self.total.closed.is_some() {
-            self.force_exit(contract)
+            self.force_exit(core)
         } else if self.bonding > 0 {
             errors::claim_bonding(self.bonding)
         } else if self.total.budget == Amount::zero() {
@@ -410,75 +499,58 @@ impl Account {
         } else if self.earned == Amount::zero() {
             errors::claim_zero_claimable()
         } else {
-            self.commit_claim(contract)
+            self.commit_claim(core)
         }
     }
+    fn commit_claim (&mut self, core: &mut C) -> StdResult<HandleResponse> {
+        let earned = self.earned;
+        if earned == Amount::zero() { return Ok(HandleResponse::default()) }
 
-    fn force_exit <S: Storage, A: Api, Q: Querier> (
-        &mut self, contract: &mut impl Rewards<S, A, Q>
-    ) -> StdResult<HandleResponse> {
+        self.reset(core)?;
+
+        self.total.distributed += earned;
+        core.set(Self::CLAIMED, self.total.distributed)?;
+
+        HandleResponse::default()
+            .msg(RewardsConfig::reward_token(core)?.transfer(&self.address, earned)?)
+    }
+    fn force_exit (&mut self, core: &mut C) -> StdResult<HandleResponse> {
         if let Some((ref when, ref why)) = self.total.closed {
             let amount   = self.staked;
-            let lp_token = RewardsConfig::lp_token(contract)?;
+            let lp_token = RewardsConfig::lp_token(core)?;
             let response = HandleResponse::default()
                 .msg(lp_token.transfer(&self.address, amount)?)?
                 .log("close_time",   &format!("{}", when))?
                 .log("close_reason", &format!("{}", why))?;
-            self.decrement_stake(contract, amount)?;
+            self.decrement_stake(core, amount)?;
             Ok(response)
         } else {
             Err(StdError::generic_err("pool not closed"))
         }
     }
-
-    fn commit_elapsed <S: Storage, A: Api, Q: Querier> (
-        &mut self, contract: &mut impl Rewards<S, A, Q>
-    ) -> StdResult<()> {
-        if self.staked == Amount::zero() {
-            self.reset(contract)?;
-        } else {
-            contract.set_ns(Self::BONDING, self.id.as_slice(), self.bonding)?;
-            contract.set_ns(Self::VOLUME,  self.id.as_slice(), self.volume)?;
-            contract.set_ns(Self::UPDATED, self.id.as_slice(), self.total.now)?;
-        }
-        contract.set(Self::VOLUME,  self.total.volume)?;
-        contract.set(Self::UPDATED, self.total.now)?;
-        Ok(())
-    }
-
-    fn commit_claim <S: Storage, A: Api, Q: Querier> (
-        &mut self, contract: &mut impl Rewards<S, A, Q>
-    ) -> StdResult<HandleResponse> {
-        let earned = self.earned;
-        self.reset(contract)?;
-        if earned == Amount::zero() { return Ok(HandleResponse::default()) }
-        self.total.distributed += earned;
-        contract.set(Self::CLAIMED, self.total.distributed)?;
-        let reward_token = RewardsConfig::reward_token(contract)?;
-        HandleResponse::default()
-            .msg(reward_token.transfer(&self.address, earned)?)
-    }
-
-    /// Reset the user's liquidity conribution
-    fn reset <S: Storage, A: Api, Q: Querier> (
-        &mut self, contract: &mut impl Rewards<S, A, Q>
-    ) -> StdResult<()> {
-        self.entry   = self.total.volume;
-        self.bonding = self.total.bonding;
-        self.volume  = Volume::zero();
+    fn reset (&mut self, core: &mut C) -> StdResult<()> {
         self.updated = self.total.now;
-        contract.set_ns(Self::ENTRY,   self.id.as_slice(), self.entry)?;
-        contract.set_ns(Self::BONDING, self.id.as_slice(), self.bonding)?;
-        contract.set_ns(Self::VOLUME,  self.id.as_slice(), self.volume)?;
-        contract.set_ns(Self::UPDATED, self.id.as_slice(), self.updated)?;
+        self.entry   = self.total.volume;
+        self.volume  = Volume::zero();
+        self.bonding = self.total.bonding;
+        core.set_ns(Self::UPDATED, self.id.as_slice(), self.updated)?;
+        core.set_ns(Self::ENTRY,   self.id.as_slice(), self.entry)?;
+        core.set_ns(Self::VOLUME,  self.id.as_slice(), self.volume)?;
+        core.set_ns(Self::BONDING, self.id.as_slice(), self.bonding)?;
         Ok(())
     }
-
 }
-
+impl Account {
+    pub const ENTRY:   &'static[u8] = b"/user/entry/";
+    pub const STAKED:  &'static[u8] = b"/user/current/";
+    pub const UPDATED: &'static[u8] = b"/user/updated/";
+    pub const VOLUME:  &'static[u8] = b"/user/volume/";
+    pub const CLAIMED: &'static[u8] = b"/user/claimed/";
+    pub const BONDING: &'static[u8] = b"/user/bonding/";
+}
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
-/// Totals status
+/// Pool totals
 pub struct Totals {
     /// "For what point in time do the following values hold true?"
     /// Passed on instantiation.
@@ -510,7 +582,6 @@ pub struct Totals {
     /// Set irreversibly via handle method.
     pub closed:       Option<CloseSeal>,
 }
-
 impl Totals {
     pub const VOLUME:  &'static[u8] = b"/total/volume";
     pub const UPDATED: &'static[u8] = b"/total/updated";
@@ -518,19 +589,19 @@ impl Totals {
     pub const CLAIMED: &'static[u8] = b"/total/claimed";
 
     fn get <S: Storage, A: Api, Q: Querier> (
-        contract: &impl Rewards<S, A, Q>,
-        now:      Moment
+        core: &impl Rewards<S, A, Q>,
+        now:  Moment
     ) -> StdResult<Self> {
         let mut total = Self::default();
 
         let get_time = |key, default: u64| -> StdResult<u64> {
-            Ok(contract.get(key)?.unwrap_or(default))
+            Ok(core.get(key)?.unwrap_or(default))
         };
         let get_amount = |key, default: Amount| -> StdResult<Amount> {
-            Ok(contract.get(key)?.unwrap_or(default))
+            Ok(core.get(key)?.unwrap_or(default))
         };
         let get_volume = |key, default: Volume| -> StdResult<Volume> {
-            Ok(contract.get(key)?.unwrap_or(default))
+            Ok(core.get(key)?.unwrap_or(default))
         };
 
         // # 1. Timestamps
@@ -559,9 +630,9 @@ impl Totals {
         let elapsed      = now - total.updated;
         total.staked     = get_amount(Self::STAKED, Amount::zero())?;
         total.volume     = accumulate(last_volume, elapsed, total.staked)?;
-        let reward_token = RewardsConfig::reward_token(contract)?;
-        let ref address  = RewardsConfig::self_link(contract)?.address;
-        let ref vk       = RewardsConfig::reward_vk(contract)?;
+        let reward_token = RewardsConfig::reward_token(core)?;
+        let ref address  = RewardsConfig::self_link(core)?.address;
+        let ref vk       = RewardsConfig::reward_vk(core)?;
 
         // # 3. Budget
         // * The pool queries its `balance` in reward tokens from the reward token
@@ -575,8 +646,8 @@ impl Totals {
         //   in the `distributed` variable which is incremented on successful claims.
         // * The `unlocked` field is equal to `budget + claimed` and is informative.
         //   It should be equal to the sum released from RPT for this total.
-        total.budget = reward_token.query_balance(contract.querier(), address, vk)?;
-        let lp_token = RewardsConfig::lp_token(contract)?;
+        total.budget = reward_token.query_balance(core.querier(), address, vk)?;
+        let lp_token = RewardsConfig::lp_token(core)?;
         if reward_token.link == lp_token.link {
             total.budget = (total.budget - total.staked)?;
         }
@@ -588,91 +659,7 @@ impl Totals {
         // * Closing the pool stops its time and makes it
         //   return all funds upon any user action.
         total.bonding     = get_time(RewardsConfig::BONDING, 0u64)?;
-        total.closed      = contract.get(RewardsConfig::CLOSED)?;
+        total.closed      = core.get(RewardsConfig::CLOSED)?;
         Ok(total)
     }
-}
-
-pub trait Rewards<S: Storage, A: Api, Q: Querier>:
-    Composable<S, A, Q> // to compose with other modules
-    + Auth<S, A, Q>     // to authenticate txs/queries
-    + Sized             // to pass mutable self-reference to Totals and Account
-{
-
-    /// Initialize the rewards module
-    fn init (&mut self, env: &Env, config: RewardsConfig) -> StdResult<Vec<CosmosMsg>> {
-        let reward_token = config.reward_token.ok_or(
-            StdError::generic_err("need to provide link to reward token")
-        )?;
-        self.set(RewardsConfig::SELF, &self.canonize(ContractLink {
-            address:   env.contract.address.clone(),
-            code_hash: env.contract_code_hash.clone()
-        })?)?;
-        RewardsConfig {
-            lp_token:     config.lp_token,
-            reward_token: Some(reward_token),
-            reward_vk:    Some(config.reward_vk.unwrap_or("".into())),
-            bonding:      Some(config.bonding.unwrap_or(DAY))
-        }.commit(self)
-    }
-
-    /// Handle transactions
-    fn handle (&mut self, env: Env, msg: RewardsHandle) -> StdResult<HandleResponse> {
-        match msg {
-
-            // Public transactions
-            RewardsHandle::Lock { amount } =>
-                Account::get(self, env.block.time, env.message.sender)?.deposit(self, amount),
-
-            RewardsHandle::Retrieve { amount } =>
-                Account::get(self, env.block.time, env.message.sender)?.withdraw(self, amount),
-
-            RewardsHandle::Claim {} =>
-                Account::get(self, env.block.time, env.message.sender)?.claim(self),
-
-            // Admin-only transactions
-            _ => {
-                Auth::assert_admin(self, &env)?;
-                match msg {
-
-                    RewardsHandle::Configure(config) => {
-                        Ok(HandleResponse { messages: config.commit(self)?, log: vec![], data: None })
-                    },
-
-                    RewardsHandle::Close { message } => {
-                        self.set(RewardsConfig::CLOSED, Some((env.block.time, message)))?;
-                        Ok(HandleResponse::default())
-                    },
-
-                    RewardsHandle::Drain { snip20, recipient, key } => {
-                        let recipient =  recipient.unwrap_or(env.message.sender.clone());
-                        // Update the viewing key if the supplied
-                        // token info for is the reward token
-                        let reward_token = RewardsConfig::reward_token(self)?;
-                        if reward_token.link == snip20 {
-                            self.set(RewardsConfig::REWARD_VK, key.clone())?
-                        }
-                        let allowance = Uint128(u128::MAX);
-                        let duration  = Some(env.block.time + DAY * 10000);
-                        let snip20    = ISnip20::attach(snip20);
-                        HandleResponse::default()
-                            .msg(snip20.increase_allowance(&recipient, allowance, duration)?)?
-                            .msg(snip20.set_viewing_key(&key)?)
-                    },
-
-                    _ => unreachable!()
-                }
-            }
-
-        }
-    }
-
-    /// Handle queries
-    fn query (&self, msg: RewardsQuery) -> StdResult<RewardsResponse> {
-        match msg {
-            RewardsQuery::Status { at, address, key } =>
-                RewardsResponse::status(self, at, address, key)
-        }
-    }
-
 }

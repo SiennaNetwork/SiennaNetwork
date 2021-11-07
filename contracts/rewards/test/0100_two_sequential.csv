@@ -1,26 +1,26 @@
 Time,Sender,Recipient,Data
 ,,,
-975,RPT,REWARDS,vest 17558
+975,RPT,REWARDS,vest 96260
 ,,,
 1666,Alice,REWARDS,"lock:
-  amount: ""69123"""
+  amount: ""17559"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""69123""
+  amount: ""17559""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
 ,,,
 88066,Alice,REWARDS,"retrieve:
-  amount: ""69123"""
-=>,err,Generic error: FATAL: not enough tokens in pool (0 < 69123),
+  amount: ""17559"""
+=>,err,Generic error: FATAL: not enough tokens in pool (0 < 17559),
 ,,,
 FAIL,was expecting,the following,
 ,,,
 tx,REWARDS,SIENNA,"transfer:
-  amount: ""17558""
+  amount: ""96260""
   padding: ~
   recipient: Alice"
 tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""69123""
+  amount: ""17559""
   padding: ~
   recipient: Alice"
