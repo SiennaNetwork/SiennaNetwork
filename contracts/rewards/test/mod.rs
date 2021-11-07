@@ -401,9 +401,11 @@ impl Context {
         self
     }
     pub fn account_status (&mut self) -> Account {
-        let result = RewardsResponse::status(
-            &self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
-        );
+        let result = Rewards::query(&self.deps, RewardsQuery::Status {
+            at:      self.env.block.time,
+            address: Some(self.address.clone()),
+            key:     Some(String::from(""))
+        });
         match result {
             Ok(result) => {
                 match result {
@@ -417,9 +419,11 @@ impl Context {
         }
     }
     pub fn pool_status (&mut self) -> Total {
-        let result = RewardsResponse::status(
-            &self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
-        );
+        let result = Rewards::query(&self.deps, RewardsQuery::Status {
+            at:      self.env.block.time,
+            address: None,
+            key:     None
+        });
         match result {
             Ok(result) => {
                 match result {
