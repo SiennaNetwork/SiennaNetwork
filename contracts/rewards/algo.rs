@@ -5,7 +5,7 @@ use schemars::JsonSchema;
 pub trait Rewards<S: Storage, A: Api, Q: Querier>:
     Composable<S, A, Q> // to compose with other modules
     + Auth<S, A, Q>     // to authenticate txs/queries
-    + Sized             // to pass mutable self-reference to Totals and Account
+    + Sized             // to pass mutable self-reference to Total and Account
 {
     /// Initialize the rewards module
     fn init (&mut self, env: &Env, config: RewardsConfig) -> StdResult<Vec<CosmosMsg>> {
@@ -160,7 +160,7 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, RewardsResponse> for RewardsQuery whe
 pub enum RewardsResponse {
     Status {
         time:    Moment,
-        total:   Totals,
+        total:   Total,
         account: Option<Account>
     }
 }
@@ -173,7 +173,7 @@ impl RewardsResponse {
         key:     Option<String>
     ) -> StdResult<Self> {
         if address.is_some() && key.is_none() { return errors::no_vk() }
-        let total = Totals::get(core, time)?;
+        let total = Total::get(core, time)?;
         if time < total.updated { return errors::no_time_travel() }
         Ok(RewardsResponse::Status {
             time,
@@ -280,13 +280,17 @@ pub struct Account {
     /// Passed around internally, not presented to user.
     #[serde(skip)] pub id:      CanonicalAddr,
     /// Passed around internally, not presented to user.
-    #[serde(skip)] pub total:   Totals,
+    #[serde(skip)] pub total:   Total,
     /// When did this user's liquidity amount last change?
     /// Set to current time on update.
     pub updated:      Moment,
     /// What was the volume liquidity of the pool when the user entered?
     /// Account's reward share is computed from liquidity accumulated over that amount.
     pub entry:        Volume,
+
+    // pool_volume_at_entry
+    // reward_budget_at_entry
+
     /// How much liquidity does this user currently provide?
     /// Incremented/decremented on lock/unlock.
     pub staked:       Amount,
@@ -342,7 +346,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
     C: Rewards<S, A, Q>
 {
     fn get (core: &C, now: Moment, address: HumanAddr) -> StdResult<Self> {
-        let total      = Totals::get(core, now)?;
+        let total      = Total::get(core, now)?;
         let id         = core.canonize(address.clone())?;
         let get_time   = |key, default: u64| -> StdResult<u64> {
             Ok(core.get_ns(key, &id.as_slice())?.unwrap_or(default))
@@ -413,8 +417,8 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         Ok(account)
     }
     fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()> {
-        core.set(Totals::VOLUME,  self.total.volume)?;
-        core.set(Totals::UPDATED, self.total.now)?;
+        core.set(Total::VOLUME,  self.total.volume)?;
+        core.set(Total::UPDATED, self.total.now)?;
         if self.staked == Amount::zero() {
             self.reset(core)
         } else {
@@ -437,7 +441,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         core.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
 
         self.total.staked += amount;
-        core.set(Totals::STAKED, self.total.staked)?;
+        core.set(Total::STAKED, self.total.staked)?;
 
         let lp_token  = RewardsConfig::lp_token(core)?;
         let self_link = RewardsConfig::self_link(core)?;
@@ -463,7 +467,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         core.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
 
         self.total.staked = (self.total.staked - amount)?;
-        core.set(Totals::STAKED, self.total.staked)?;
+        core.set(Total::STAKED, self.total.staked)?;
 
         if self.staked == Amount::zero() { // hairy, fixme
             if self.bonding == 0 {
@@ -498,7 +502,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         self.reset(core)?;
 
         self.total.distributed += earned;
-        core.set(Totals::CLAIMED, self.total.distributed)?;
+        core.set(Total::CLAIMED, self.total.distributed)?;
 
         HandleResponse::default()
             .msg(RewardsConfig::reward_token(core)?.transfer(&self.address, earned)?)
@@ -540,7 +544,7 @@ impl Account {
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 /// Pool totals
-pub struct Totals {
+pub struct Total {
     /// "For what point in time do the following values hold true?"
     /// Passed on instantiation.
     pub now:          Moment,
@@ -571,7 +575,7 @@ pub struct Totals {
     /// Set irreversibly via handle method.
     pub closed:       Option<CloseSeal>,
 }
-impl Totals {
+impl Total {
     pub const VOLUME:  &'static[u8] = b"/total/volume";
     pub const UPDATED: &'static[u8] = b"/total/updated";
     pub const STAKED:  &'static[u8] = b"/total/size";
@@ -595,7 +599,7 @@ impl Totals {
 
         // # 1. Timestamps
         total.now = now;
-        total.updated = get_time(Totals::UPDATED, now)?;
+        total.updated = get_time(Total::UPDATED, now)?;
         if total.now < total.updated { return errors::no_time_travel() }
 
         // # 2. Liquidity
@@ -615,9 +619,9 @@ impl Totals {
         //   Starting with a new pool, lock 10 LP for 20 moments.
         //   The pool will have a liquidity of 200.
         //   Lock 10 more; 5 moments later, the liquidity will be 300.
-        let last_volume  = get_volume(Totals::VOLUME, Volume::zero())?;
+        let last_volume  = get_volume(Total::VOLUME, Volume::zero())?;
         let elapsed      = now - total.updated;
-        total.staked     = get_amount(Totals::STAKED, Amount::zero())?;
+        total.staked     = get_amount(Total::STAKED, Amount::zero())?;
         total.volume     = accumulate(last_volume, elapsed, total.staked)?;
         let reward_token = RewardsConfig::reward_token(core)?;
         let ref address  = RewardsConfig::self_link(core)?.address;
@@ -640,7 +644,7 @@ impl Totals {
         if reward_token.link == lp_token.link {
             total.budget = (total.budget - total.staked)?;
         }
-        total.distributed = get_amount(Totals::CLAIMED, Amount::zero())?;
+        total.distributed = get_amount(Total::CLAIMED, Amount::zero())?;
         total.unlocked    = total.distributed + total.budget;
 
         // # 4. Throttles

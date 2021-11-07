@@ -416,7 +416,7 @@ impl Context {
             }
         }
     }
-    pub fn pool_status (&mut self) -> Totals {
+    pub fn pool_status (&mut self) -> Total {
         let result = RewardsResponse::status(
             &self.deps, self.env.block.time, Some(self.address.clone()), Some(String::from(""))
         );
