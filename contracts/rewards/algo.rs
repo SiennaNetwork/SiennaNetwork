@@ -408,7 +408,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         account.earned = if account.reward_share.1 == Volume::zero() {
             Amount::zero()
         } else {
-            Volume::from(total.budget)
+            Volume::from(total.unlocked) // TODO unlocked_since_entry
                 .multiply_ratio(account.reward_share.0, account.reward_share.1)?
                 .low_u128().into()
         };

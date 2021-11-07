@@ -47,5 +47,15 @@ tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
   padding: ~
   recipient: Alice"
-219,REWARDS,Bob,user.earned  = Uint128(19430)
-ERROR,EXPECTED,,user.earned  = Uint128(38861)
+219,REWARDS,Bob,user.earned  = Uint128(38861)
+,,,
+219,Bob,REWARDS,"retrieve:
+  amount: ""42798"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""38861""
+  padding: ~
+  recipient: Bob"
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""42798""
+  padding: ~
+  recipient: Bob"
