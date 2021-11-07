@@ -8,20 +8,8 @@ pub trait Rewards<S: Storage, A: Api, Q: Querier>:
     + Sized             // to pass mutable self-reference to Total and Account
 {
     /// Initialize the rewards module
-    fn init (&mut self, env: &Env, config: RewardsConfig) -> StdResult<Vec<CosmosMsg>> {
-        let reward_token = config.reward_token.ok_or(
-            StdError::generic_err("need to provide link to reward token")
-        )?;
-        self.set(RewardsConfig::SELF, &self.canonize(ContractLink {
-            address:   env.contract.address.clone(),
-            code_hash: env.contract_code_hash.clone()
-        })?)?;
-        RewardsConfig {
-            lp_token:     config.lp_token,
-            reward_token: Some(reward_token),
-            reward_vk:    Some(config.reward_vk.unwrap_or("".into())),
-            bonding:      Some(config.bonding.unwrap_or(DAY))
-        }.store(self)
+    fn init (&mut self, env: &Env, mut config: RewardsConfig) -> StdResult<Vec<CosmosMsg>> {
+        config.initialize(self, env)
     }
     /// Handle transactions
     fn handle (&mut self, env: Env, msg: RewardsHandle) -> StdResult<HandleResponse> {
@@ -212,8 +200,10 @@ pub trait IRewardsConfig <S, A, Q, C> where
     Q: Querier,
     C: Composable<S, A, Q>
 {
+    /// Commit initial contract configuration to storage.
+    fn initialize   (&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>>;
     /// Commit contract configuration to storage.
-    fn store (&self, core: &mut C) -> StdResult<Vec<CosmosMsg>>;
+    fn store        (&self, core: &mut C) -> StdResult<Vec<CosmosMsg>>;
     /// Get this contract's address (used in queries where Env is unavailable).
     fn self_link    (core: &C) -> StdResult<ContractLink<HumanAddr>>;
     /// Get an interface to the LP token.
@@ -229,6 +219,23 @@ impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
     Q: Querier,
     C: Rewards<S, A, Q>
 {
+    fn initialize (&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>> {
+        if self.reward_token.is_none() {
+            Err(StdError::generic_err("need to provide link to reward token"))
+        } else {
+            core.set(RewardsConfig::SELF, &core.canonize(ContractLink {
+                address:   env.contract.address.clone(),
+                code_hash: env.contract_code_hash.clone()
+            })?)?;
+            if self.reward_vk.is_none() {
+                self.reward_vk = Some("".into())
+            }
+            if self.bonding.is_none () {
+                self.bonding = Some(DAY)
+            }
+            self.store(core)
+        }
+    }
     fn store (&self, core: &mut C) -> StdResult<Vec<CosmosMsg>> {
         let mut messages = vec![];
         if let Some(lp_token) = &self.lp_token {
