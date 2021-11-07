@@ -10,5 +10,34 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   padding: ~
   recipient: cosmos2contract"
 975,REWARDS,Alice,user.staked  = Uint128(35118)
-975,REWARDS,Alice,user.volume  = Uint256(34240050)
-ERROR,EXPECTED,,user.volume  = Uint256(0)
+975,REWARDS,Alice,user.volume  = Uint256(0)
+976,REWARDS,Alice,user.staked  = Uint128(35118)
+976,REWARDS,Alice,user.volume  = Uint256(35118)
+977,REWARDS,Alice,user.staked  = Uint128(35118)
+977,REWARDS,Alice,user.volume  = Uint256(70236)
+978,REWARDS,Alice,user.staked  = Uint128(35118)
+978,REWARDS,Alice,user.volume  = Uint256(105354)
+,,,
+978,Alice,REWARDS,"retrieve:
+  amount: ""17559"""
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""17559""
+  padding: ~
+  recipient: Alice"
+978,REWARDS,Alice,user.staked  = Uint128(17559)
+978,REWARDS,Alice,user.volume  = Uint256(105354)
+979,REWARDS,Alice,user.staked  = Uint128(17559)
+979,REWARDS,Alice,user.volume  = Uint256(122913)
+980,REWARDS,Alice,user.staked  = Uint128(17559)
+980,REWARDS,Alice,user.volume  = Uint256(140472)
+,,,
+980,Alice,REWARDS,"retrieve:
+  amount: ""17559"""
+=>,err,Cannot subtract 17559 from 0,
+,,,
+FAIL,was expecting,the following,
+,,,
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""17559""
+  padding: ~
+  recipient: Alice"

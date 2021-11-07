@@ -7,7 +7,7 @@ use crate::test::{*, Context};
     context.init()
         // When nobody has deposited yet
         // And the status of a user is queried
-        .user("Alice").set_vk("")
+        .later().user("Alice").set_vk("")
             // Then their stake is 0
             .staked(0)
             // And their volume is 0
@@ -39,11 +39,8 @@ use crate::test::{*, Context};
     let stake1  = context.rng.gen_range(1..100000);
     let stake2  = context.rng.gen_range(1..100000);
     let n_ticks = 10;
-
     // Given an instance
-    context
-        .admin().init()
-
+    context.init()
         // When the first user hasn't deposited
         .user("Alice").set_vk("")
             // Then their entry is 0, corresponding to the initially empty pool
@@ -58,7 +55,6 @@ use crate::test::{*, Context};
                 .entry(0)
                 .volume(stake1 * n_ticks as u128)
                 .pool_volume(stake1 * n_ticks as u128)
-
         // When a subsequent user hasn't deposited
         .user("Bob").set_vk("")
             // Then their entry is equal to the curent volume of the pool
@@ -83,7 +79,6 @@ use crate::test::{*, Context};
     let bonding = context.rng.gen_range(1..100000);
     let stake   = context.rng.gen_range(1..100000);
     let n_ticks = context.rng.gen_range(1..100000);
-
     // Given a pool
     context.init().sets_bonding(bonding)
         // When a user has not deposited tokens
@@ -98,11 +93,11 @@ use crate::test::{*, Context};
             .during(bonding, |_, context| { context.bonding(0); });
 }
 
-#[test] fn test_0110_reset() {
+#[test] fn test_0105_reset() {
     let mut context = Context::new();
     let stake   = context.rng.gen_range(0..100000)*2;
     let reward  = context.rng.gen_range(0..100000);
-    Context::named("0110_reset")
+    Context::named("0105_reset")
         .admin().init().fund(reward)
         .user("Alice").set_vk("")
             .later().deposits(stake)
@@ -118,8 +113,8 @@ use crate::test::{*, Context};
             });
 }
 
-#[test] fn test_0103_exit () {
-    let mut context = Context::named("0103_exit");
+#[test] fn test_0106_exit () {
+    let mut context = Context::named("0106_exit");
     let stake  = context.rng.gen_range(1..100000);
     let reward = context.rng.gen_range(1..100000);
     let bonding = 86400;

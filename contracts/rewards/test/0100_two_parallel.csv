@@ -22,11 +22,18 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 ,,,
 1666,Alice,REWARDS,"retrieve:
   amount: ""17559"""
-=>,err,Generic error: FATAL: not enough tokens in pool (0 < 17559),
-,,,
-FAIL,was expecting,the following,
-,,,
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""17559""
   padding: ~
   recipient: Alice"
+1666,REWARDS,Alice,user.earned  = Uint128(96260)
+,,,
+1666,Bob,REWARDS,"retrieve:
+  amount: ""17559"""
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""17559""
+  padding: ~
+  recipient: Bob"
+1666,REWARDS,Bob,user.earned  = Uint128(96260)
+88066,REWARDS,Alice,user.earned  = Uint128(48511)
+ERROR,EXPECTED,,user.earned  = Uint128(96260)

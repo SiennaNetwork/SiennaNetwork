@@ -12,7 +12,7 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 ,,,
 88066,Alice,REWARDS,"retrieve:
   amount: ""17559"""
-=>,err,Generic error: FATAL: not enough tokens in pool (0 < 17559),
+=>,err,Cannot subtract 17559 from 0,
 ,,,
 FAIL,was expecting,the following,
 ,,,

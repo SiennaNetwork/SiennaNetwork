@@ -17,3 +17,15 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 389,REWARDS,Alice,user.volume  = Uint256(0)
 389,REWARDS,Alice,user.bonding = 86400
 389,REWARDS,Alice,user.earned  = Uint128(0)
+1097,REWARDS,Alice,user.earned  = Uint128(96260)
+,,,
+1097,Alice,REWARDS,"retrieve:
+  amount: ""17559"""
+=>,err,Cannot subtract 17559 from 0,
+,,,
+FAIL,was expecting,the following,
+,,,
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""17559""
+  padding: ~
+  recipient: Alice"

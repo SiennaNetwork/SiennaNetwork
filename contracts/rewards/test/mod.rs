@@ -142,7 +142,7 @@ impl Context {
         self.after(1)
     }
     pub fn during <F: FnMut(u64, &mut Context)->()> (&mut self, n: Duration, mut f: F) -> &mut Self {
-        for i in 0..n {
+        for i in 1..=n {
             self.tick();
             f(i, self);
         }
@@ -372,6 +372,7 @@ impl Context {
     }
     pub fn volume (&mut self, expected: u128) -> &mut Self {
         let volume = self.account_status().volume;
+        dbg!(volume, expected);
         self.test_field("user.volume ", volume,  expected.into())
     }
     pub fn bonding (&mut self, expected: Duration) -> &mut Self {

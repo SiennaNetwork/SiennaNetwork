@@ -47,33 +47,21 @@ pub type Ratio  = (Uint128, Uint128);
 /// Project current value of an accumulating parameter based on stored value,
 /// time since it was last updated, and rate of change, i.e.
 /// `current = stored + (elapsed * rate)`
-///
-/// * The need to store detailed history (and iterate over it, unboundedly)
-///   is avoided by using continuously accumulating values.
-///
-/// * The state can't be updated outside of a transaction,
-///   the current values of the accumulators need to be computed as
-///   `last value + (elapsed * rate)`, where:
-///
-///   * `last value` is fetched from storage
-///
-///   * `elapsed` is `now - last update`
-///
-///     * v2 measures time in blocks
-///
-///     * v3 measures time in seconds
-///
-///     * For transactions, `now` is `env.block.time`.
-///
-///     * For queries, `now` has to be passed by the client.
-///
-///   * `rate` depends on what is being computed:
-///
-///     * `total.volume` grows by `total.staked` every moment.
-///
-///     * `user.volume` grows by `user.staked` every moment.
-///
-///     * `user.bonding` decreases by 1 every moment, until it reaches 0.
+// * The need to store detailed history (and iterate over it, unboundedly)
+//   is avoided by using continuously accumulating values.
+// * The state can't be updated outside of a transaction,
+//   the current values of the accumulators need to be computed as
+//   `last value + (elapsed * rate)`, where:
+//   * `last value` is fetched from storage
+//   * `elapsed` is `now - last update`
+//     * v2 measures time in blocks
+//     * v3 measures time in seconds
+//     * For transactions, `now` is `env.block.time`.
+//     * For queries, `now` has to be passed by the client.
+//   * `rate` depends on what is being computed:
+//     * `total.volume` grows by `total.staked` every moment.
+//     * `user.volume` grows by `user.staked` every moment.
+//     * `user.bonding` decreases by 1 every moment, until it reaches 0.
 pub fn accumulate (
     total_before_last_update: Volume,
     time_since_last_update:   Duration,
@@ -419,7 +407,8 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         if account.staked > Amount::zero() {
             account.bonding = account.bonding.saturating_sub(elapsed)
         };
-        account.id = id;
+        account.id    = id;
+        account.total = total;
         Ok(account)
     }
     fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()> {
@@ -430,8 +419,8 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
             core.set_ns(Self::VOLUME,  self.id.as_slice(), self.volume)?;
             core.set_ns(Self::UPDATED, self.id.as_slice(), self.total.now)?;
         }
-        core.set(Self::VOLUME,  self.total.volume)?;
-        core.set(Self::UPDATED, self.total.now)?;
+        core.set(Totals::VOLUME,  self.total.volume)?;
+        core.set(Totals::UPDATED, self.total.now)?;
         Ok(())
     }
     fn deposit (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {

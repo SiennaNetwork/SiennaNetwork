@@ -23,11 +23,7 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 ,,,
 2730,Alice,REWARDS,"lock:
   amount: ""100"""
-tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""100""
-  owner: Alice
-  padding: ~
-  recipient: cosmos2contract"
+=>,err,Cannot subtract 167111 from 0,
 ,,,
 FAIL,was expecting,the following,
 ,,,

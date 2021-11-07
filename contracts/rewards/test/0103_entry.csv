@@ -10,5 +10,47 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   recipient: cosmos2contract"
 1,REWARDS,Alice,user.entry   = Uint256(0)
 11,REWARDS,Alice,user.entry   = Uint256(0)
-11,REWARDS,Alice,user.volume  = Uint256(193149)
-ERROR,EXPECTED,,user.volume  = Uint256(175590)
+11,REWARDS,Alice,user.volume  = Uint256(175590)
+11,REWARDS,Alice,pool.volume       = Uint256(175590)
+11,REWARDS,Bob,user.entry   = Uint256(175590)
+21,REWARDS,Bob,user.entry   = Uint256(351180)
+,,,
+21,Bob,REWARDS,"lock:
+  amount: ""96260"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""96260""
+  owner: Bob
+  padding: ~
+  recipient: cosmos2contract"
+21,REWARDS,Bob,user.entry   = Uint256(351180)
+22,REWARDS,Bob,user.staked  = Uint128(96260)
+22,REWARDS,Bob,user.volume  = Uint256(96260)
+22,REWARDS,Bob,user.entry   = Uint256(351180)
+23,REWARDS,Bob,user.staked  = Uint128(96260)
+23,REWARDS,Bob,user.volume  = Uint256(192520)
+23,REWARDS,Bob,user.entry   = Uint256(351180)
+24,REWARDS,Bob,user.staked  = Uint128(96260)
+24,REWARDS,Bob,user.volume  = Uint256(288780)
+24,REWARDS,Bob,user.entry   = Uint256(351180)
+25,REWARDS,Bob,user.staked  = Uint128(96260)
+25,REWARDS,Bob,user.volume  = Uint256(385040)
+25,REWARDS,Bob,user.entry   = Uint256(351180)
+26,REWARDS,Bob,user.staked  = Uint128(96260)
+26,REWARDS,Bob,user.volume  = Uint256(481300)
+26,REWARDS,Bob,user.entry   = Uint256(351180)
+27,REWARDS,Bob,user.staked  = Uint128(96260)
+27,REWARDS,Bob,user.volume  = Uint256(577560)
+27,REWARDS,Bob,user.entry   = Uint256(351180)
+28,REWARDS,Bob,user.staked  = Uint128(96260)
+28,REWARDS,Bob,user.volume  = Uint256(673820)
+28,REWARDS,Bob,user.entry   = Uint256(351180)
+29,REWARDS,Bob,user.staked  = Uint128(96260)
+29,REWARDS,Bob,user.volume  = Uint256(770080)
+29,REWARDS,Bob,user.entry   = Uint256(351180)
+30,REWARDS,Bob,user.staked  = Uint128(96260)
+30,REWARDS,Bob,user.volume  = Uint256(866340)
+30,REWARDS,Bob,user.entry   = Uint256(351180)
+31,REWARDS,Bob,user.staked  = Uint128(96260)
+31,REWARDS,Bob,user.volume  = Uint256(962600)
+31,REWARDS,Bob,user.entry   = Uint256(351180)
+31,REWARDS,Bob,user.entry   = Uint256(351180)
