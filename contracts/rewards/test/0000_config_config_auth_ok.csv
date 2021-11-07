@@ -1,6 +1,6 @@
 Time,Sender,Recipient,Data
 ,,,
-975,Admin,REWARDS,"configure:
+692,Admin,REWARDS,"configure:
   lp_token: ~
   reward_token:
     address: SIENNA

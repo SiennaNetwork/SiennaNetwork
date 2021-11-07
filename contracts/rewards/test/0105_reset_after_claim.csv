@@ -1,0 +1,29 @@
+Time,Sender,Recipient,Data
+,,,
+1,RPT,REWARDS,vest 25455
+,,,
+692,Alice,REWARDS,"lock:
+  amount: ""85594"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""85594""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,,
+789,Alice,REWARDS,claim: {}
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""25455""
+  padding: ~
+  recipient: Alice"
+789,REWARDS,Alice,user.volume  = Uint256(0)
+,,,
+789,Alice,REWARDS,"retrieve:
+  amount: ""85594"""
+=>,err,Cannot subtract 85594 from 0,
+,,,
+FAIL,was expecting,the following,
+,,,
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""85594""
+  padding: ~
+  recipient: Alice"

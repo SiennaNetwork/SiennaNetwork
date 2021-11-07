@@ -1,26 +1,26 @@
 Time,Sender,Recipient,Data
 ,,,
-975,RPT,REWARDS,vest 96260
+692,RPT,REWARDS,vest 38861
 ,,,
-1666,Alice,REWARDS,"lock:
-  amount: ""17559"""
+1119,Alice,REWARDS,"lock:
+  amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""17559""
+  amount: ""42798""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
 ,,,
-88066,Alice,REWARDS,"retrieve:
-  amount: ""17559"""
-=>,err,Cannot subtract 17559 from 0,
+1216,Alice,REWARDS,"retrieve:
+  amount: ""42798"""
+=>,err,Cannot subtract 42798 from 0,
 ,,,
 FAIL,was expecting,the following,
 ,,,
 tx,REWARDS,SIENNA,"transfer:
-  amount: ""96260""
+  amount: ""38861""
   padding: ~
   recipient: Alice"
 tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""17559""
+  amount: ""42798""
   padding: ~
   recipient: Alice"

@@ -1,35 +1,35 @@
 Time,Sender,Recipient,Data
 ,,,
-1,RPT,REWARDS,vest 17559
+1,RPT,REWARDS,vest 42798
 ,,,
-906,Alice,REWARDS,"lock:
-  amount: ""96260"""
+627,Alice,REWARDS,"lock:
+  amount: ""38861"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""96260""
+  amount: ""38861""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
 ,,,
-1169,Alice,REWARDS,"lock:
-  amount: ""70851"""
+1661,Alice,REWARDS,"lock:
+  amount: ""93561"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""70851""
+  amount: ""93561""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
 ,,,
-2536,Admin,REWARDS,"close:
+2932,Admin,REWARDS,"close:
   message: closed"
 ,,,
-2730,Alice,REWARDS,"lock:
+2974,Alice,REWARDS,"lock:
   amount: ""100"""
-=>,err,Cannot subtract 167111 from 0,
+=>,err,Cannot subtract 132422 from 0,
 ,,,
 FAIL,was expecting,the following,
 ,,,
 tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""167111""
+  amount: ""132422""
   padding: ~
   recipient: Alice"
-log,REWARDS,,close_time = 2536
+log,REWARDS,,close_time = 2932
 log,REWARDS,,close_reason = closed

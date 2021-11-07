@@ -76,13 +76,13 @@ use crate::test::{*, Context};
 
 #[test] fn test_0104_bonding () {
     let mut context = Context::named("0104_bonding");
-    let bonding = context.rng.gen_range(1..100000);
+    let bonding = context.bonding;
     let stake   = context.rng.gen_range(1..100000);
-    let n_ticks = context.rng.gen_range(1..100000);
+    let n_ticks = context.rng.gen_range(1..100);
     // Given a pool
-    context.init().sets_bonding(bonding)
+    context.init()
         // When a user has not deposited tokens
-        .user("Alice")
+        .user("Alice").set_vk("")
             // Then their bonding stays at max
             .during(n_ticks, |_, context| { context.bonding(bonding); })
             // When a user deposits tokens
@@ -90,7 +90,7 @@ use crate::test::{*, Context};
             // Then their bonding starts decrementing from the next block
             .during(bonding, |i, context| { context.bonding(bonding - i); })
             // Then their bonding remains at 0
-            .during(bonding, |_, context| { context.bonding(0); });
+            .during(n_ticks, |_, context| { context.bonding(0); });
 }
 
 #[test] fn test_0105_reset() {
@@ -117,7 +117,7 @@ use crate::test::{*, Context};
     let mut context = Context::named("0106_exit");
     let stake  = context.rng.gen_range(1..100000);
     let reward = context.rng.gen_range(1..100000);
-    let bonding = 86400;
+    let bonding = context.bonding;
 
     // Given an instance
     // When  user deposits
@@ -128,8 +128,8 @@ use crate::test::{*, Context};
             .deposits(stake)
             .staked(stake).volume(0).bonding(bonding).earned(0)
 
+        // When user withdraws all before bonding is over
         .branch("before_bonding", |mut context|{
-            // When user withdraws all before bonding is over
             // Then there are no rewards
             // And  user's liquidity and bonding reset
             context.later()
@@ -138,8 +138,8 @@ use crate::test::{*, Context};
                 .staked(0).volume(0).earned(0).bonding(bonding);
         })
 
+        // When user withdraws all after bonding
         .branch("after_bonding", |mut context|{
-            // When user withdraws all after bonding
             // Then rewards are automatically transferred
             // And  user's liquidity and bonding reset
             context.epoch()
@@ -148,8 +148,8 @@ use crate::test::{*, Context};
                 .staked(0).volume(0).earned(0).bonding(bonding);
         })
 
+        // When user claims after bonding
         .branch("after_claim", |mut context|{
-            // When user claims after bonding
             // Then rewards are transferred
             // And  user's liquidity and bonding reset
             // And  user's stake remains the same

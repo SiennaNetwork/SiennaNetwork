@@ -1,39 +1,39 @@
 Time,Sender,Recipient,Data
 ,,,
-1,RPT,REWARDS,vest 192520
+1,RPT,REWARDS,vest 77722
 ,,,
-975,Alice,REWARDS,"lock:
-  amount: ""35118"""
+692,Alice,REWARDS,"lock:
+  amount: ""85596"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""35118""
+  amount: ""85596""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-975,REWARDS,Alice,user.earned  = Uint128(0)
+692,REWARDS,Alice,user.earned  = Uint128(0)
 ,,,
-975,Bob,REWARDS,"lock:
-  amount: ""35118"""
+692,Bob,REWARDS,"lock:
+  amount: ""85596"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""35118""
+  amount: ""85596""
   owner: Bob
   padding: ~
   recipient: cosmos2contract"
-975,REWARDS,Bob,user.earned  = Uint128(0)
+692,REWARDS,Bob,user.earned  = Uint128(0)
 ,,,
-1666,Alice,REWARDS,"retrieve:
-  amount: ""17559"""
+1119,Alice,REWARDS,"retrieve:
+  amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""17559""
+  amount: ""42798""
   padding: ~
   recipient: Alice"
-1666,REWARDS,Alice,user.earned  = Uint128(96260)
+1119,REWARDS,Alice,user.earned  = Uint128(38861)
 ,,,
-1666,Bob,REWARDS,"retrieve:
-  amount: ""17559"""
+1119,Bob,REWARDS,"retrieve:
+  amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""17559""
+  amount: ""42798""
   padding: ~
   recipient: Bob"
-1666,REWARDS,Bob,user.earned  = Uint128(96260)
-88066,REWARDS,Alice,user.earned  = Uint128(48511)
-ERROR,EXPECTED,,user.earned  = Uint128(96260)
+1119,REWARDS,Bob,user.earned  = Uint128(38861)
+1216,REWARDS,Alice,user.earned  = Uint128(35264)
+ERROR,EXPECTED,,user.earned  = Uint128(38861)

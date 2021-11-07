@@ -88,8 +88,10 @@ impl Context {
 
         //color_backtrace::install();
 
+        let mut rng = StdRng::seed_from_u64(1);
+        let bonding = rng.gen_range(1..100);
         Self {
-            rng:  StdRng::seed_from_u64(1),
+            rng,
             name: None,
             table,
 
@@ -112,7 +114,7 @@ impl Context {
             address,
             time,
             closed: None,
-            bonding: 86400
+            bonding
         }
     }
     pub fn named (name: &str) -> Self {
@@ -191,7 +193,7 @@ impl Context {
                 lp_token:     Some(self.lp_token.link.clone()),
                 reward_token: Some(self.reward_token.link.clone()),
                 reward_vk:    Some(self.reward_vk.clone()),
-                bonding:      None,
+                bonding:      Some(self.bonding),
             }).unwrap(),
             vec![snip20::set_viewing_key_msg(
                 self.reward_vk.clone(),
