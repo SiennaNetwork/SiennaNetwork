@@ -89,7 +89,7 @@ impl Context {
         //color_backtrace::install();
 
         let mut rng = StdRng::seed_from_u64(1);
-        let bonding = rng.gen_range(1..100);
+        let bonding = rng.gen_range(100..200);
         Self {
             rng,
             name: None,
@@ -151,7 +151,7 @@ impl Context {
         self
     }
     pub fn later (&mut self) -> &mut Self {
-        let t = self.rng.gen_range(0..1000);
+        let t = self.rng.gen_range(0..self.bonding/10);
         self.after(t)
     }
     pub fn epoch (&mut self) -> &mut Self {
@@ -360,7 +360,6 @@ impl Context {
     }
     pub fn volume (&mut self, expected: u128) -> &mut Self {
         let volume = self.account_status().volume;
-        dbg!(volume, expected);
         self.test_field("user.volume ", volume,  expected.into())
     }
     pub fn bonding (&mut self, expected: Duration) -> &mut Self {

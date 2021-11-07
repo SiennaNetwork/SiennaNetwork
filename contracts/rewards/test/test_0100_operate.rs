@@ -108,47 +108,83 @@ use crate::test::{*, Context};
             .staked(stake).volume(0).bonding(bonding).earned(0)
 
         // When the bonding period is not over
-        // And the user withdraws all tokens
         .branch("before_bonding", |mut context|{
-            // Then user's volume and bonding reset
-            // And there are no rewards
-            context.later()
+            context.after(10)
+                .volume(10 * stake)
+                .bonding(bonding - 10)
                 .earned(reward)
-                .withdraws(stake)
-                .staked(0).volume(0).earned(0).bonding(bonding);
+
+                // And the user withdraws all tokens
+                .branch("1", |mut context|{
+                    context.withdraws(stake)
+                        // Then user's volume and bonding reset
+                        .volume(0)
+                        .bonding(bonding)
+                        // And there are no rewards
+                        .earned(0);
+                })
+
+                // And the user withdraws some tokens
+                .branch("2", |mut context|{
+                    context.withdraws(stake/2)
+                        // Then user's volume is preserved
+                        .volume(10 * stake)
+                        .bonding(bonding - 10)
+                        .earned(reward)
+                    .after(10)
+                        // And the volume keeps incrementing
+                        .volume(10 * stake + 10 * stake / 2)
+                        // And the bonding keeps decrementing
+                        .earned(reward)
+                        .bonding(bonding - 20)
+                    // When user withdraws the rest of the tokens
+                    // Then the user's volume and bonding reset
+                    .withdraws(stake/2)
+                        .staked(0)
+                        .volume(0)
+                        .earned(0)
+                        .bonding(bonding);
+                });
         })
 
-        // When the bonding period is not over
-        // And the user withdraws some tokens
-        .branch("before_bonding_2", |mut context|{
-            // Then user's volume and bonding keep decrementing
-            context.later()
-                .earned(reward)
-                .withdraws(stake/2)
-                .staked(stake/2).volume(0).earned(0).bonding(bonding);
-            // When user withdraws the rest of the tokens
-            // Then the user's volume and bonding reset
-        })
-
-        // When user withdraws all after bonding
+        // When the bonding period is over
         .branch("after_bonding", |mut context|{
-            // Then rewards are automatically transferred
-            // And  user's volume and bonding reset
             context.epoch()
                 .earned(reward).bonding(0)
-                .withdraws_claims(stake, reward).distributed(reward)
-                .staked(0).volume(0).earned(0).bonding(bonding);
-        })
 
-        // When user withdraws some funds after bonding
-        .branch("after_bonding_2", |mut context|{
-            // Then rewards are automatically transferred
-            // And  user's volume and bonding remain the same
-            context.epoch()
-                .earned(reward).bonding(0)
-                .withdraws_claims(stake, reward).distributed(reward)
-                .staked(0).volume(0).earned(0).bonding(bonding);
-            // When user withdraws the rest of the funds
+                // And user withdraws all tokens
+                .branch("1", |mut context|{
+                    // Then rewards are automatically transferred
+                    context.withdraws_claims(stake, reward)
+                        .staked(0)
+                        .volume(0)
+                        .earned(0)
+                        .bonding(bonding)
+                        .distributed(reward);
+                })
+
+                // And user withdraws some tokens
+                .branch("2", |mut context|{
+                    context.withdraws(stake/2)
+                        // Then user's volume is preserved
+                        .volume(bonding as u128 * stake)
+                        .bonding(0)
+                        .earned(reward)
+                    .after(10)
+                        // And the volume keeps incrementing
+                        .volume(bonding as u128 * stake + 10 * stake / 2)
+                        // And the bonding keeps decrementing
+                        .bonding(0)
+                        .earned(reward)
+                    // When user withdraws the rest of the tokens
+                    // Then the user's volume and bonding reset
+                    .withdraws_claims(stake/2, reward)
+                        .staked(0)
+                        .volume(0)
+                        .bonding(bonding)
+                        .earned(0)
+                        .distributed(reward);
+                });
         })
 
         // When user claims after bonding

@@ -1,38 +1,22 @@
 Time,Sender,Recipient,Data
 ,,,
 1,RPT,REWARDS,vest 38861
-709,REWARDS,Alice,user.staked  = Uint128(0)
-709,REWARDS,Alice,user.volume  = Uint256(0)
-709,REWARDS,Alice,user.bonding = 97
-709,REWARDS,Alice,user.earned  = Uint128(0)
+14,REWARDS,Alice,user.staked  = Uint128(0)
+14,REWARDS,Alice,user.volume  = Uint256(0)
+14,REWARDS,Alice,user.bonding = 197
+14,REWARDS,Alice,user.earned  = Uint128(0)
 ,,,
-709,Alice,REWARDS,"lock:
+14,Alice,REWARDS,"lock:
   amount: ""85596"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""85596""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-709,REWARDS,Alice,user.staked  = Uint128(85596)
-709,REWARDS,Alice,user.volume  = Uint256(0)
-709,REWARDS,Alice,user.bonding = 97
-709,REWARDS,Alice,user.earned  = Uint128(0)
-1229,REWARDS,Alice,user.earned  = Uint128(38861)
-,,,
-1229,Alice,REWARDS,"retrieve:
-  amount: ""85596"""
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""38861""
-  padding: ~
-  recipient: Alice"
-tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""85596""
-  padding: ~
-  recipient: Alice"
-,,,
-FAIL,was expecting,the following,
-,,,
-tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""85596""
-  padding: ~
-  recipient: Alice"
+14,REWARDS,Alice,user.staked  = Uint128(85596)
+14,REWARDS,Alice,user.volume  = Uint256(0)
+14,REWARDS,Alice,user.bonding = 197
+14,REWARDS,Alice,user.earned  = Uint128(0)
+24,REWARDS,Alice,user.volume  = Uint256(855960)
+24,REWARDS,Alice,user.bonding = 187
+24,REWARDS,Alice,user.earned  = Uint128(38861)

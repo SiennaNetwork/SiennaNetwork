@@ -3,7 +3,7 @@ Time,Sender,Recipient,Data
 1,RPT,REWARDS,vest 38861
 ,,,
 2,Alice,REWARDS,claim: {}
-=>,err,Generic error: Keep tokens staked for 97 more seconds to be eligible for rewards.,
+=>,err,Generic error: Keep tokens staked for 197 more seconds to be eligible for rewards.,
 ,,,
 FAIL,was expecting,the following,
 ,,,

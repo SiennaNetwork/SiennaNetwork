@@ -2,11 +2,11 @@ Time,Sender,Recipient,Data
 ,,,
 1,RPT,REWARDS,vest 42798
 ,,,
-433,Badman,REWARDS,"close:
+9,Badman,REWARDS,"close:
   message: closed"
 =>,err,Unauthorized,
 ,,,
-627,Alice,REWARDS,"lock:
+16,Alice,REWARDS,"lock:
   amount: ""38861"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""38861""
@@ -14,11 +14,11 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   padding: ~
   recipient: cosmos2contract"
 ,,,
-769,Badman,REWARDS,"close:
+27,Badman,REWARDS,"close:
   message: closed"
 =>,err,Unauthorized,
 ,,,
-1661,Alice,REWARDS,"lock:
+32,Alice,REWARDS,"lock:
   amount: ""93561"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""93561""
@@ -26,9 +26,9 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   padding: ~
   recipient: cosmos2contract"
 ,,,
-2051,Badman,REWARDS,"close:
+50,Badman,REWARDS,"close:
   message: closed"
 =>,err,Unauthorized,
 ,,,
-2932,Admin,REWARDS,"close:
+61,Admin,REWARDS,"close:
   message: closed"

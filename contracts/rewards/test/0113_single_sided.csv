@@ -2,7 +2,7 @@ Time,Sender,Recipient,Data
 ,,,
 1,RPT,REWARDS,vest 38861
 ,,,
-709,Alice,REWARDS,"lock:
+14,Alice,REWARDS,"lock:
   amount: ""42798"""
 tx,REWARDS,SIENNA,"transfer_from:
   amount: ""42798""
@@ -10,13 +10,13 @@ tx,REWARDS,SIENNA,"transfer_from:
   padding: ~
   recipient: cosmos2contract"
 ,,,
-806,Alice,REWARDS,claim: {}
+211,Alice,REWARDS,claim: {}
 tx,REWARDS,SIENNA,"transfer:
   amount: ""38861""
   padding: ~
   recipient: Alice"
 ,,,
-1326,Alice,REWARDS,"retrieve:
+218,Alice,REWARDS,"retrieve:
   amount: ""42798"""
 tx,REWARDS,SIENNA,"transfer:
   amount: ""42798""
