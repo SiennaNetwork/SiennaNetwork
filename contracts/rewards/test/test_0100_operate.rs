@@ -93,65 +93,68 @@ use crate::test::{*, Context};
             .during(n_ticks, |_, context| { context.bonding(0); });
 }
 
-#[test] fn test_0105_reset() {
-    let mut context = Context::new();
-    let stake   = context.rng.gen_range(0..100000)*2;
-    let reward  = context.rng.gen_range(0..100000);
-    Context::named("0105_reset")
-        .admin().init().fund(reward)
-        .user("Alice").set_vk("")
-            .later().deposits(stake)
-            .epoch()
-            .branch("after_claim", |mut context| {
-                context.claims(reward).volume(0).withdraws(stake);
-            })
-            .branch("after_full_withdraw", |mut context| {
-                context.withdraws_claims(stake, reward).volume(0);
-            })
-            .branch("only_after_full_withdraw", |mut context| {
-                context.withdraws(stake/2).later().withdraws_claims(stake/2, reward).volume(0);
-            });
-}
-
-#[test] fn test_0106_exit () {
+#[test] fn test_0105_reset () {
     let mut context = Context::named("0106_exit");
-    let stake  = context.rng.gen_range(1..100000);
+    let stake  = context.rng.gen_range(1..100000) * 2;
     let reward = context.rng.gen_range(1..100000);
     let bonding = context.bonding;
 
     // Given an instance
-    // When  user deposits
-    context
-        .admin().init().user("Alice").set_vk("")
-        .later().fund(reward)
+    // When user deposits
+    context.init().fund(reward).later()
+        .user("Alice").set_vk("")
             .staked(0).volume(0).bonding(bonding).earned(0)
             .deposits(stake)
             .staked(stake).volume(0).bonding(bonding).earned(0)
 
-        // When user withdraws all before bonding is over
+        // When the bonding period is not over
+        // And the user withdraws all tokens
         .branch("before_bonding", |mut context|{
-            // Then there are no rewards
-            // And  user's liquidity and bonding reset
+            // Then user's volume and bonding reset
+            // And there are no rewards
             context.later()
                 .earned(reward)
                 .withdraws(stake)
                 .staked(0).volume(0).earned(0).bonding(bonding);
         })
 
+        // When the bonding period is not over
+        // And the user withdraws some tokens
+        .branch("before_bonding_2", |mut context|{
+            // Then user's volume and bonding keep decrementing
+            context.later()
+                .earned(reward)
+                .withdraws(stake/2)
+                .staked(stake/2).volume(0).earned(0).bonding(bonding);
+            // When user withdraws the rest of the tokens
+            // Then the user's volume and bonding reset
+        })
+
         // When user withdraws all after bonding
         .branch("after_bonding", |mut context|{
             // Then rewards are automatically transferred
-            // And  user's liquidity and bonding reset
+            // And  user's volume and bonding reset
             context.epoch()
                 .earned(reward).bonding(0)
                 .withdraws_claims(stake, reward).distributed(reward)
                 .staked(0).volume(0).earned(0).bonding(bonding);
         })
 
+        // When user withdraws some funds after bonding
+        .branch("after_bonding_2", |mut context|{
+            // Then rewards are automatically transferred
+            // And  user's volume and bonding remain the same
+            context.epoch()
+                .earned(reward).bonding(0)
+                .withdraws_claims(stake, reward).distributed(reward)
+                .staked(0).volume(0).earned(0).bonding(bonding);
+            // When user withdraws the rest of the funds
+        })
+
         // When user claims after bonding
         .branch("after_claim", |mut context|{
             // Then rewards are transferred
-            // And  user's liquidity and bonding reset
+            // And  user's volume and bonding reset
             // And  user's stake remains the same
             context.epoch()
                 .staked(stake).bonding(0).volume((stake * bonding as u128).into())

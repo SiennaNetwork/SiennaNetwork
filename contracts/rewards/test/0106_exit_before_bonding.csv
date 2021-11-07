@@ -7,25 +7,25 @@ Time,Sender,Recipient,Data
 709,REWARDS,Alice,user.earned  = Uint128(0)
 ,,,
 709,Alice,REWARDS,"lock:
-  amount: ""42798"""
+  amount: ""85596"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""42798""
+  amount: ""85596""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-709,REWARDS,Alice,user.staked  = Uint128(42798)
+709,REWARDS,Alice,user.staked  = Uint128(85596)
 709,REWARDS,Alice,user.volume  = Uint256(0)
 709,REWARDS,Alice,user.bonding = 97
 709,REWARDS,Alice,user.earned  = Uint128(0)
 1229,REWARDS,Alice,user.earned  = Uint128(38861)
 ,,,
 1229,Alice,REWARDS,"retrieve:
-  amount: ""42798"""
-=>,err,Cannot subtract 42798 from 0,
+  amount: ""85596"""
+=>,err,Cannot subtract 85596 from 0,
 ,,,
 FAIL,was expecting,the following,
 ,,,
 tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""42798""
+  amount: ""85596""
   padding: ~
   recipient: Alice"

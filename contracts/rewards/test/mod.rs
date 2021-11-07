@@ -188,31 +188,32 @@ impl Context {
     }
     pub fn init (&mut self) -> &mut Self {
         crate::Auth::init(&mut self.deps, &self.env, &None).unwrap();
-        assert_eq!(
-            Rewards::init(&mut self.deps, &self.env, RewardsConfig {
-                lp_token:     Some(self.lp_token.link.clone()),
-                reward_token: Some(self.reward_token.link.clone()),
-                reward_vk:    Some(self.reward_vk.clone()),
-                bonding:      Some(self.bonding),
-            }).unwrap(),
-            vec![snip20::set_viewing_key_msg(
+        let config = RewardsConfig {
+            lp_token:     Some(self.lp_token.link.clone()),
+            reward_token: Some(self.reward_token.link.clone()),
+            reward_vk:    Some(self.reward_vk.clone()),
+            bonding:      Some(self.bonding),
+        };
+        let actual = Rewards::init(&mut self.deps, &self.env, config).unwrap();
+        let expected = vec![
+            snip20::set_viewing_key_msg(
                 self.reward_vk.clone(),
                 None, BLOCK_SIZE,
                 self.reward_token.link.code_hash.clone(),
                 self.reward_token.link.address.clone()
-            ).unwrap()]
-        );
+            ).unwrap()
+        ];
+        assert_eq!(actual, expected);
         self
     }
     pub fn init_invalid (&mut self) -> &mut Self {
-        assert!(
-            Rewards::init(&mut self.deps, &self.env, RewardsConfig {
-                lp_token:     None,
-                reward_token: None,
-                reward_vk:    None,
-                bonding:      None,
-            }).is_err(),
-        );
+        let invalid_config = RewardsConfig {
+            lp_token:     None,
+            reward_token: None,
+            reward_vk:    None,
+            bonding:      None,
+        };
+        assert!(Rewards::init(&mut self.deps, &self.env, invalid_config).is_err());
         self
     }
     pub fn configures (&mut self, config: RewardsConfig) -> &mut Self {
@@ -250,21 +251,6 @@ impl Context {
         })), Err(StdError::unauthorized()));
         self
     }
-    pub fn set_ratio (&mut self, ratio: (u128, u128)) -> &mut Self  {
-        // TODO query!!!
-        test_handle(
-            &mut self.table,
-            &mut self.deps, &self.env, self.address.clone(),
-            RewardsHandle::Configure(RewardsConfig {
-                lp_token:     None,
-                reward_token: None,
-                reward_vk:    None,
-                bonding:      None,
-            }),
-            Ok(HandleResponse::default())
-        );
-        self
-    }
     pub fn closes_pool (&mut self) -> &mut Self {
         let message = "closed";
         test_handle(
@@ -277,10 +263,10 @@ impl Context {
         self
     }
     pub fn cannot_close_pool (&mut self) -> &mut Self {
-        assert_eq!(
-            Rewards::handle(&mut self.deps, self.env.clone(), RewardsHandle::Close {
-                message: String::from("closed")
-            }),
+        test_handle(
+            &mut self.table,
+            &mut self.deps, &self.env, self.address.clone(),
+            RewardsHandle::Close { message: String::from("closed") },
             Err(StdError::unauthorized())
         ); self
     }
