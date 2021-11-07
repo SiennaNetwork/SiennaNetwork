@@ -252,39 +252,53 @@ use crate::test::{*, Context};
                         .tick().staked(1).volume(2);
 }
 
-#[test] fn test_0107_claim_one () {
+#[test] fn test_0107_claim () {
     let mut context = Context::new();
+    let bonding = context.bonding;
     let stake  = context.rng.gen_range(1..100000);
     let reward = context.rng.gen_range(1..100000);
 
     // Given an instance
-    Context::named("0100_one_claim").admin().init()
-        .fund(reward)
+    Context::named("0107_claim").init().fund(reward)
+        .user("Alice").set_vk("")
         //  When users tries to claim reward before providing liquidity
         //  Then they get an error
-        .user("Alice").set_vk("")
-            .tick().must_wait(86400)
-            //  When users provide liquidity
-            //   And they wait for rewards to accumulate
-            .tick().must_wait(86400).deposits(stake).must_wait(86400)
-            .tick().must_wait(86399)
-            .tick().must_wait(86398)
-            // ...
-            .at(86402).must_wait(1)
-            //   And a provider claims rewards
-            //  Then that provider receives reward tokens
-            .tick().claims(reward)
+        .later()
+            .must_wait(bonding)
+        //  When users provide liquidity
+        //   And they wait for rewards to accumulate
+        .later()
+            .must_wait(bonding)
+            .deposits(stake)
+            .must_wait(bonding)
+        .tick()
+            .must_wait(bonding-1)
+        .tick()
+            .must_wait(bonding-2)
+        // ...
+        .after(bonding-3)
+            .must_wait(1)
+        //   And a provider claims rewards
+        //  Then that provider receives reward tokens
+        .tick()
+            .claims(reward)
+        //  When a provider claims rewards twice within a period
+        //  Then rewards are sent only the first time
         .fund(reward)
-            //  When a provider claims rewards twice within a period
-            //  Then rewards are sent only the first time
-            .tick().must_wait(86399)
-            .tick().must_wait(86398)
-            .tick().must_wait(86397)
-            // ...
-            //  When a provider claims their rewards less often
-            //  Then they receive equivalent rewards as long as the liquidity deposited hasn't changed
+        .tick()
+            .must_wait(bonding-1)
+        .tick()
+            .must_wait(bonding-2)
+        .tick()
+            .must_wait(bonding-3)
+        // ...
+        //  When a provider claims their rewards less often
+        //  Then they receive equivalent rewards as long as the liquidity deposited hasn't changed
         .fund(reward)
-            .at(3*86400+3).claims(reward*2).must_wait(86400);
+            .epoch()
+            .epoch()
+            .claims(reward*2)
+            .must_wait(bonding);
 }
 
 #[test] fn test_0108_sequential () {

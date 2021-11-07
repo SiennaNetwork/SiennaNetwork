@@ -1,0 +1,57 @@
+Time,Sender,Recipient,Data
+,,,
+1,RPT,REWARDS,vest 38861
+,,,
+14,Alice,REWARDS,claim: {}
+=>,err,Generic error: Keep tokens staked for 197 more seconds to be eligible for rewards.,
+,,,
+22,Alice,REWARDS,claim: {}
+=>,err,Generic error: Keep tokens staked for 197 more seconds to be eligible for rewards.,
+,,,
+22,Alice,REWARDS,"lock:
+  amount: ""42798"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""42798""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,,
+22,Alice,REWARDS,claim: {}
+=>,err,Generic error: Keep tokens staked for 197 more seconds to be eligible for rewards.,
+,,,
+23,Alice,REWARDS,claim: {}
+=>,err,Generic error: Keep tokens staked for 196 more seconds to be eligible for rewards.,
+,,,
+24,Alice,REWARDS,claim: {}
+=>,err,Generic error: Keep tokens staked for 195 more seconds to be eligible for rewards.,
+,,,
+218,Alice,REWARDS,claim: {}
+=>,err,Generic error: Keep tokens staked for 1 more seconds to be eligible for rewards.,
+,,,
+219,Alice,REWARDS,claim: {}
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""38861""
+  padding: ~
+  recipient: Alice"
+,,,
+219,RPT,REWARDS,vest 38861
+,,,
+220,Alice,REWARDS,claim: {}
+=>,err,Generic error: Keep tokens staked for 196 more seconds to be eligible for rewards.,
+,,,
+221,Alice,REWARDS,claim: {}
+=>,err,Generic error: Keep tokens staked for 195 more seconds to be eligible for rewards.,
+,,,
+222,Alice,REWARDS,claim: {}
+=>,err,Generic error: Keep tokens staked for 194 more seconds to be eligible for rewards.,
+,,,
+222,RPT,REWARDS,vest 38861
+,,,
+616,Alice,REWARDS,claim: {}
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""77722""
+  padding: ~
+  recipient: Alice"
+,,,
+616,Alice,REWARDS,claim: {}
+=>,err,Generic error: Keep tokens staked for 197 more seconds to be eligible for rewards.,
