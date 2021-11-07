@@ -20,17 +20,34 @@ use crate::test::{*, Context};
 
 #[test] fn test_0102_stake_volume () {
     let mut context = Context::named("0102_stake");
-    let stake   = context.rng.gen_range(1..100000);
-    let n_ticks = 10;
+    let stake1    = context.rng.gen_range(1..100);
+    let stake2    = context.rng.gen_range(1..100);
+    let n_ticks_1 = 10;
+    let n_ticks_2 = 20;
     // Given an instance
-    context.init()
+    context.init().later()
         // When user deposits
-        .user("Alice").set_vk("").deposits(stake)
+        .user("Alice").set_vk("").deposits(stake1)
             // Then user's stake increments
-            .staked(stake).volume(0)
+            .staked(stake1)
+            .volume(0)
             // And user's liquidity starts incrementing from the next tick
-            .during(n_ticks, |i, context|{
-                context.staked(stake).volume(stake * i as u128);
+            .during(n_ticks_1, |i, context|{
+                context
+                    .staked(stake1)
+                    .volume(i as u128 * stake1);
+            })
+        // When user deposits again
+        .deposits(stake2)
+            // Then user's stake increments
+            .staked(stake1 + stake2)
+            .volume(n_ticks_1 as u128 * stake1)
+            // And user's liquidity starts incrementing at a faster rate
+            .during(n_ticks_2, |i, context|{
+                context
+                    .staked(stake1 + stake2)
+                    .volume(n_ticks_1 as u128 * stake1
+                                  + i as u128 * (stake1 + stake2));
             });
 }
 
@@ -206,8 +223,7 @@ use crate::test::{*, Context};
 
 #[test] fn test_0106_deposit_withdraw_one () {
     let mut context = Context::new();
-    let stake  = context.rng.gen_range(1..100000)*2;
-    let reward = context.rng.gen_range(1..100000);
+    let stake = context.rng.gen_range(1..100000)*2;
     // Given an instance
     Context::named("0106_deposit_withdraw_one").admin().init()
         //  When user first deposits

@@ -1,31 +1,81 @@
 Time,Sender,Recipient,Data
 ,,,
-1,Alice,REWARDS,"lock:
-  amount: ""42798"""
+19,Alice,REWARDS,"lock:
+  amount: ""43"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""42798""
+  amount: ""43""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-1,REWARDS,Alice,user.staked  = Uint128(42798)
-1,REWARDS,Alice,user.volume  = Uint256(0)
-2,REWARDS,Alice,user.staked  = Uint128(42798)
-2,REWARDS,Alice,user.volume  = Uint256(42798)
-3,REWARDS,Alice,user.staked  = Uint128(42798)
-3,REWARDS,Alice,user.volume  = Uint256(85596)
-4,REWARDS,Alice,user.staked  = Uint128(42798)
-4,REWARDS,Alice,user.volume  = Uint256(128394)
-5,REWARDS,Alice,user.staked  = Uint128(42798)
-5,REWARDS,Alice,user.volume  = Uint256(171192)
-6,REWARDS,Alice,user.staked  = Uint128(42798)
-6,REWARDS,Alice,user.volume  = Uint256(213990)
-7,REWARDS,Alice,user.staked  = Uint128(42798)
-7,REWARDS,Alice,user.volume  = Uint256(256788)
-8,REWARDS,Alice,user.staked  = Uint128(42798)
-8,REWARDS,Alice,user.volume  = Uint256(299586)
-9,REWARDS,Alice,user.staked  = Uint128(42798)
-9,REWARDS,Alice,user.volume  = Uint256(342384)
-10,REWARDS,Alice,user.staked  = Uint128(42798)
-10,REWARDS,Alice,user.volume  = Uint256(385182)
-11,REWARDS,Alice,user.staked  = Uint128(42798)
-11,REWARDS,Alice,user.volume  = Uint256(427980)
+19,REWARDS,Alice,user.staked  = Uint128(43)
+19,REWARDS,Alice,user.volume  = Uint256(0)
+20,REWARDS,Alice,user.staked  = Uint128(43)
+20,REWARDS,Alice,user.volume  = Uint256(43)
+21,REWARDS,Alice,user.staked  = Uint128(43)
+21,REWARDS,Alice,user.volume  = Uint256(86)
+22,REWARDS,Alice,user.staked  = Uint128(43)
+22,REWARDS,Alice,user.volume  = Uint256(129)
+23,REWARDS,Alice,user.staked  = Uint128(43)
+23,REWARDS,Alice,user.volume  = Uint256(172)
+24,REWARDS,Alice,user.staked  = Uint128(43)
+24,REWARDS,Alice,user.volume  = Uint256(215)
+25,REWARDS,Alice,user.staked  = Uint128(43)
+25,REWARDS,Alice,user.volume  = Uint256(258)
+26,REWARDS,Alice,user.staked  = Uint128(43)
+26,REWARDS,Alice,user.volume  = Uint256(301)
+27,REWARDS,Alice,user.staked  = Uint128(43)
+27,REWARDS,Alice,user.volume  = Uint256(344)
+28,REWARDS,Alice,user.staked  = Uint128(43)
+28,REWARDS,Alice,user.volume  = Uint256(387)
+29,REWARDS,Alice,user.staked  = Uint128(43)
+29,REWARDS,Alice,user.volume  = Uint256(430)
+,,,
+29,Alice,REWARDS,"lock:
+  amount: ""26"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""26""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+29,REWARDS,Alice,user.staked  = Uint128(69)
+29,REWARDS,Alice,user.volume  = Uint256(430)
+30,REWARDS,Alice,user.staked  = Uint128(69)
+30,REWARDS,Alice,user.volume  = Uint256(499)
+31,REWARDS,Alice,user.staked  = Uint128(69)
+31,REWARDS,Alice,user.volume  = Uint256(568)
+32,REWARDS,Alice,user.staked  = Uint128(69)
+32,REWARDS,Alice,user.volume  = Uint256(637)
+33,REWARDS,Alice,user.staked  = Uint128(69)
+33,REWARDS,Alice,user.volume  = Uint256(706)
+34,REWARDS,Alice,user.staked  = Uint128(69)
+34,REWARDS,Alice,user.volume  = Uint256(775)
+35,REWARDS,Alice,user.staked  = Uint128(69)
+35,REWARDS,Alice,user.volume  = Uint256(844)
+36,REWARDS,Alice,user.staked  = Uint128(69)
+36,REWARDS,Alice,user.volume  = Uint256(913)
+37,REWARDS,Alice,user.staked  = Uint128(69)
+37,REWARDS,Alice,user.volume  = Uint256(982)
+38,REWARDS,Alice,user.staked  = Uint128(69)
+38,REWARDS,Alice,user.volume  = Uint256(1051)
+39,REWARDS,Alice,user.staked  = Uint128(69)
+39,REWARDS,Alice,user.volume  = Uint256(1120)
+40,REWARDS,Alice,user.staked  = Uint128(69)
+40,REWARDS,Alice,user.volume  = Uint256(1189)
+41,REWARDS,Alice,user.staked  = Uint128(69)
+41,REWARDS,Alice,user.volume  = Uint256(1258)
+42,REWARDS,Alice,user.staked  = Uint128(69)
+42,REWARDS,Alice,user.volume  = Uint256(1327)
+43,REWARDS,Alice,user.staked  = Uint128(69)
+43,REWARDS,Alice,user.volume  = Uint256(1396)
+44,REWARDS,Alice,user.staked  = Uint128(69)
+44,REWARDS,Alice,user.volume  = Uint256(1465)
+45,REWARDS,Alice,user.staked  = Uint128(69)
+45,REWARDS,Alice,user.volume  = Uint256(1534)
+46,REWARDS,Alice,user.staked  = Uint128(69)
+46,REWARDS,Alice,user.volume  = Uint256(1603)
+47,REWARDS,Alice,user.staked  = Uint128(69)
+47,REWARDS,Alice,user.volume  = Uint256(1672)
+48,REWARDS,Alice,user.staked  = Uint128(69)
+48,REWARDS,Alice,user.volume  = Uint256(1741)
+49,REWARDS,Alice,user.staked  = Uint128(69)
+49,REWARDS,Alice,user.volume  = Uint256(1810)
