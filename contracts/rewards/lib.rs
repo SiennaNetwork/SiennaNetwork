@@ -16,14 +16,22 @@
 #[cfg(test)] mod test;
 pub mod algo;
 pub mod auth;
+pub mod drain;
 pub mod errors;
+pub mod keplr;
 pub mod migration;
 
 #[cfg(browser)] #[macro_use] extern crate wasm_bindgen;
 //#[cfg(test)] #[macro_use] extern crate kukumba;
 
 use fadroma::*;
-use crate::{auth::{*, Auth}, algo::{*, RewardsResponse}, migration::*};
+use crate::{
+    algo::{*, RewardsResponse},
+    auth::{*, Auth},
+    drain::*,
+    keplr::*,
+    migration::*,
+};
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]
@@ -56,6 +64,12 @@ pub enum Handle {
     Migration(MigrationHandle),
 
     Rewards(RewardsHandle),
+
+    Drain {
+        snip20:    ContractLink<HumanAddr>,
+        recipient: Option<HumanAddr>,
+        key:       String
+    },
 }
 
 pub fn handle <S: Storage + AsRef<S> + AsMut<S>, A: Api, Q: Querier> (
@@ -109,11 +123,15 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Auth<S, A, Q>
     + Rewards<S, A, Q>
     + Migration<S, A, Q>
+    + KeplrCompat<S, A, Q>
+    + Drain<S, A, Q>
 {
     fn init (&mut self, env: Env, msg: Init) -> StdResult<InitResponse> where Self: Sized {
         Auth::init(self, &env, &msg.admin)?;
-        let messages = Rewards::init(self, &env, msg.config)?;
-        Ok(InitResponse { messages, log: vec![] })
+        Ok(InitResponse {
+            messages: Rewards::init(self, &env, msg.config)?,
+            log:      vec![]
+        })
     }
 
     fn handle (&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> where Self: Sized {
@@ -124,12 +142,12 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
                 Auth::handle(self, env, AuthHandle::CreateViewingKey { entropy, padding }),
             Handle::SetViewingKey { key, padding } =>
                 Auth::handle(self, env, AuthHandle::SetViewingKey { key, padding }),
-
             Handle::Rewards(msg) =>
                 Rewards::handle(self, env, msg),
-
             Handle::Migration(msg) =>
-                Migration::handle(self, env, msg)
+                Migration::handle(self, env, msg),
+            Handle::Drain { snip20, recipient, key } =>
+                Drain::drain(self, env, snip20, recipient, key)
         }
     }
 
@@ -137,40 +155,24 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         Ok(match msg {
             Query::Auth(msg) =>
                 Response::Auth(Auth::query(self, msg)?),
-
             Query::Rewards(msg) =>
                 Response::Rewards(Rewards::query(self, msg)?),
-
             Query::TokenInfo {} =>
-                self.token_info()?,
+                KeplrCompat::token_info(self)?,
             Query::Balance { address, key } =>
-                self.balance(address, ViewingKey(key))?,
-        })
-    }
-
-    fn token_info (&self) -> StdResult<Response> {
-        let link = self.humanize(
-            self.get(b"/lp_token")?.ok_or(StdError::generic_err("no lp token"))?
-        )?;
-        let info = ISnip20::attach(link).query_token_info(self.querier())?;
-        Ok(Response::TokenInfo {
-            name:         format!("Sienna Rewards: {}", info.name),
-            symbol:       "SRW".into(),
-            decimals:     1,
-            total_supply: None
-        })
-    }
-
-    fn balance (&self, address: HumanAddr, key: ViewingKey) -> StdResult<Response> {
-        let id = self.canonize(address)?;
-        Auth::check_vk(self, &key, id.as_slice())?;
-        Ok(Response::Balance {
-            amount: self.get_ns(algo::Account::STAKED, id.as_slice())?.unwrap_or(Amount::zero())
+                KeplrCompat::balance(self, address, ViewingKey(key))?
         })
     }
 }
 
 impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q> for Extern<S, A, Q> {}
-impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for Extern<S, A, Q> {}
+
 impl<S: Storage, A: Api, Q: Querier> Auth<S, A, Q> for Extern<S, A, Q> {}
+
+impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for Extern<S, A, Q> {}
+
+impl<S: Storage, A: Api, Q: Querier> KeplrCompat<S, A, Q> for Extern<S, A, Q> {}
+
 impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for Extern<S, A, Q> {}
+
+impl<S: Storage, A: Api, Q: Querier> Drain<S, A, Q> for Extern<S, A, Q> {}

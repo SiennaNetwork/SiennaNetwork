@@ -6,7 +6,7 @@
 #![allow(unreachable_patterns)]
 #![allow(non_snake_case)]
 
-mod test_0000_init;
+mod test_0000_setup;
 mod test_0100_operate;
 mod test_0200_auth;
 mod test_0300_migrate;
@@ -50,6 +50,8 @@ impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q> for MockExtern<S, A, Q> {
 impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for MockExtern<S, A, Q> {}
 impl<S: Storage, A: Api, Q: Querier> Auth<S, A, Q> for MockExtern<S, A, Q> {}
 impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for MockExtern<S, A, Q> {}
+impl<S: Storage, A: Api, Q: Querier> KeplrCompat<S, A, Q> for MockExtern<S, A, Q> {}
+impl<S: Storage, A: Api, Q: Querier> Drain<S, A, Q> for MockExtern<S, A, Q> {}
 
 pub type Deps = MockExtern<ClonableMemoryStorage, MockApi, RewardsMockQuerier>;
 
@@ -272,7 +274,7 @@ impl Context {
     }
     pub fn drains_pool (&mut self, key: &str) -> &mut Self {
         assert!(
-            Rewards::handle(&mut self.deps, self.env.clone(), RewardsHandle::Drain {
+            Contract::handle(&mut self.deps, self.env.clone(), Handle::Drain {
                 snip20:    self.reward_token.link.clone(),
                 key:       key.into(),
                 recipient: None
@@ -284,7 +286,7 @@ impl Context {
     }
     pub fn cannot_drain (&mut self, key: &str) -> &mut Self {
         assert!(
-            Rewards::handle(&mut self.deps, self.env.clone(), RewardsHandle::Drain {
+            Contract::handle(&mut self.deps, self.env.clone(), Handle::Drain {
                 snip20:    self.reward_token.link.clone(),
                 key:       key.into(),
                 recipient: None

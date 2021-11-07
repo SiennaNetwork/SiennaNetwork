@@ -117,8 +117,7 @@ impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
     }
     fn reward_vk (core: &C) -> StdResult<String> {
         Ok(core.get::<ViewingKey>(Self::REWARD_VK)?
-            .ok_or(StdError::generic_err("no reward viewing key"))?
-            .0)
+            .ok_or(StdError::generic_err("no reward viewing key"))?.0)
     }
 }
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -131,11 +130,6 @@ pub enum RewardsHandle {
     // Admin-only transactions
     Configure(RewardsConfig),
     Close { message: String },
-    Drain {
-        snip20:    ContractLink<HumanAddr>,
-        recipient: Option<HumanAddr>,
-        key:       String
-    },
 }
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for RewardsHandle where
     S: Storage,
@@ -162,21 +156,6 @@ impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for RewardsHandle where
                     RewardsHandle::Close { message } => {
                         core.set(RewardsConfig::CLOSED, Some((env.block.time, message)))?;
                         Ok(HandleResponse::default())
-                    },
-                    RewardsHandle::Drain { snip20, recipient, key } => {
-                        let recipient = recipient.unwrap_or(env.message.sender.clone());
-                        // Update the viewing key if the supplied
-                        // token info for is the reward token
-                        let reward_token = RewardsConfig::reward_token(core)?;
-                        if reward_token.link == snip20 {
-                            core.set(RewardsConfig::REWARD_VK, key.clone())?
-                        }
-                        let allowance = Uint128(u128::MAX);
-                        let duration  = Some(env.block.time + DAY * 10000);
-                        let snip20    = ISnip20::attach(snip20);
-                        HandleResponse::default()
-                            .msg(snip20.increase_allowance(&recipient, allowance, duration)?)?
-                            .msg(snip20.set_viewing_key(&key)?)
                     },
                     _ => unreachable!()
                 }
@@ -670,6 +649,9 @@ pub fn accumulate (
     time_since_last_update:   Duration,
     value_after_last_update:  Amount
 ) -> StdResult<Volume> {
-    total_before_last_update + Volume::from(value_after_last_update)
-        .multiply_ratio(time_since_last_update, 1u128)?
+    let increment = Volume::from(value_after_last_update).multiply_ratio(
+        time_since_last_update,
+        1u128
+    )?;
+    total_before_last_update + increment
 }
