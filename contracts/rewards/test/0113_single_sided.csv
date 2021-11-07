@@ -18,10 +18,6 @@ tx,REWARDS,SIENNA,"transfer:
 ,,,
 1326,Alice,REWARDS,"retrieve:
   amount: ""42798"""
-=>,err,Cannot subtract 42798 from 0,
-,,,
-FAIL,was expecting,the following,
-,,,
 tx,REWARDS,SIENNA,"transfer:
   amount: ""42798""
   padding: ~

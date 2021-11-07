@@ -33,11 +33,27 @@ tx,REWARDS,LP_TOKEN,"transfer:
 ,,,
 697,Alice,REWARDS,"retrieve:
   amount: ""42798"""
-=>,err,Cannot subtract 42798 from 0,
-,,,
-FAIL,was expecting,the following,
-,,,
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
   padding: ~
   recipient: Alice"
+697,REWARDS,Alice,user.staked  = Uint128(0)
+697,REWARDS,Alice,user.volume  = Uint256(0)
+698,REWARDS,Alice,user.staked  = Uint128(0)
+698,REWARDS,Alice,user.volume  = Uint256(0)
+699,REWARDS,Alice,user.staked  = Uint128(0)
+699,REWARDS,Alice,user.volume  = Uint256(0)
+,,,
+699,Alice,REWARDS,"lock:
+  amount: ""1"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""1""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+699,REWARDS,Alice,user.staked  = Uint128(1)
+699,REWARDS,Alice,user.volume  = Uint256(0)
+700,REWARDS,Alice,user.staked  = Uint128(1)
+700,REWARDS,Alice,user.volume  = Uint256(1)
+701,REWARDS,Alice,user.staked  = Uint128(1)
+701,REWARDS,Alice,user.volume  = Uint256(2)

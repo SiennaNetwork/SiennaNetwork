@@ -1,6 +1,6 @@
 Time,Sender,Recipient,Data
 ,,,
-709,RPT,REWARDS,vest 38861
+1,RPT,REWARDS,vest 38861
 709,REWARDS,Alice,user.staked  = Uint128(0)
 709,REWARDS,Alice,user.volume  = Uint256(0)
 709,REWARDS,Alice,user.bonding = 97
@@ -21,7 +21,14 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 ,,,
 1229,Alice,REWARDS,"retrieve:
   amount: ""85596"""
-=>,err,Cannot subtract 85596 from 0,
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""38861""
+  padding: ~
+  recipient: Alice"
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""85596""
+  padding: ~
+  recipient: Alice"
 ,,,
 FAIL,was expecting,the following,
 ,,,

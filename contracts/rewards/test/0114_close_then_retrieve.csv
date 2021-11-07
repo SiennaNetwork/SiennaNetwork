@@ -33,7 +33,7 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 2932,Admin,REWARDS,"close:
   message: closed"
 ,,,
-2974,Alice,REWARDS,"lock:
+2974,Alice,REWARDS,"retrieve:
   amount: ""100"""
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""132422""

@@ -12,10 +12,6 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 ,,,
 1216,Alice,REWARDS,"retrieve:
   amount: ""42798"""
-=>,err,Cannot subtract 42798 from 0,
-,,,
-FAIL,was expecting,the following,
-,,,
 tx,REWARDS,SIENNA,"transfer:
   amount: ""38861""
   padding: ~
@@ -24,3 +20,24 @@ tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
   padding: ~
   recipient: Alice"
+,,,
+1391,RPT,REWARDS,vest 38861
+,,,
+1645,Bob,REWARDS,"lock:
+  amount: ""42798"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""42798""
+  owner: Bob
+  padding: ~
+  recipient: cosmos2contract"
+,,,
+1742,Bob,REWARDS,"retrieve:
+  amount: ""42798"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""38861""
+  padding: ~
+  recipient: Bob"
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""42798""
+  padding: ~
+  recipient: Bob"

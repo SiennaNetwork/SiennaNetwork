@@ -360,7 +360,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         // The following points and durations in time are stored for each user:
         // * `updated` is the time of last update (deposit, withdraw or claim by this user)
         let now = total.now;
-        account.updated = get_time(Self::UPDATED, now)?;
+        account.updated = get_time(Account::UPDATED, now)?;
         if total.now < account.updated { return errors::no_time_travel() }
         // 2. Liquidity and liquidity share
         // * `staked` is the number of LP tokens staked by this user in this pool.
@@ -370,10 +370,10 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         // * The user's **volume share** is defined as `volume / total.volume`.
         //   It represents the user's overall contribution, and should move in the
         //   direction of the user's momentary share.
-        account.entry = get_volume(Self::ENTRY, total.volume)?;
+        account.entry = get_volume(Account::ENTRY, total.volume)?;
         if account.entry > total.volume { return errors::no_time_travel() }
-        account.staked  = get_amount(Self::STAKED, Amount::zero())?;
-        let last_volume = get_volume(Self::VOLUME, Volume::zero())?;
+        account.staked  = get_amount(Account::STAKED, Amount::zero())?;
+        let last_volume = get_volume(Account::VOLUME, Volume::zero())?;
         let elapsed: Duration = now - account.updated;
         account.volume = accumulate(last_volume, elapsed, account.staked)?;
         account.pool_share   = (account.staked, total.staked);
@@ -407,21 +407,21 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         if account.staked > Amount::zero() {
             account.bonding = account.bonding.saturating_sub(elapsed)
         };
+        // These are used above, then moved into the account struct at the end
         account.id    = id;
         account.total = total;
         Ok(account)
     }
     fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()> {
-        if self.staked == Amount::zero() {
-            self.reset(core)?;
-        } else {
-            core.set_ns(Self::BONDING, self.id.as_slice(), self.bonding)?;
-            core.set_ns(Self::VOLUME,  self.id.as_slice(), self.volume)?;
-            core.set_ns(Self::UPDATED, self.id.as_slice(), self.total.now)?;
-        }
         core.set(Totals::VOLUME,  self.total.volume)?;
         core.set(Totals::UPDATED, self.total.now)?;
-        Ok(())
+        if self.staked == Amount::zero() {
+            self.reset(core)
+        } else {
+            core.set_ns(Account::BONDING, self.id.as_slice(), self.bonding)?;
+            core.set_ns(Account::VOLUME,  self.id.as_slice(), self.volume)?;
+            core.set_ns(Account::UPDATED, self.id.as_slice(), self.total.now)
+        }
     }
     fn deposit (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {
         if self.total.closed.is_some() {
@@ -462,8 +462,8 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         self.staked = (self.staked - amount)?;
         core.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
 
-        self.total.staked = (self.staked - amount)?;
-        core.set(Self::STAKED, self.total.staked)?;
+        self.total.staked = (self.total.staked - amount)?;
+        core.set(Totals::STAKED, self.total.staked)?;
 
         if self.staked == Amount::zero() { // hairy, fixme
             if self.bonding == 0 {
@@ -498,17 +498,17 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         self.reset(core)?;
 
         self.total.distributed += earned;
-        core.set(Self::CLAIMED, self.total.distributed)?;
+        core.set(Totals::CLAIMED, self.total.distributed)?;
 
         HandleResponse::default()
             .msg(RewardsConfig::reward_token(core)?.transfer(&self.address, earned)?)
     }
     fn force_exit (&mut self, core: &mut C) -> StdResult<HandleResponse> {
         if let Some((ref when, ref why)) = self.total.closed {
-            let amount   = self.staked;
-            let lp_token = RewardsConfig::lp_token(core)?;
+            let amount = self.staked;
+            dbg!("force_exit", &amount);
             let response = HandleResponse::default()
-                .msg(lp_token.transfer(&self.address, amount)?)?
+                .msg(RewardsConfig::lp_token(core)?.transfer(&self.address, amount)?)?
                 .log("close_time",   &format!("{}", when))?
                 .log("close_reason", &format!("{}", why))?;
             self.decrement_stake(core, amount)?;
@@ -522,10 +522,10 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         self.entry   = self.total.volume;
         self.volume  = Volume::zero();
         self.bonding = self.total.bonding;
-        core.set_ns(Self::UPDATED, self.id.as_slice(), self.updated)?;
-        core.set_ns(Self::ENTRY,   self.id.as_slice(), self.entry)?;
-        core.set_ns(Self::VOLUME,  self.id.as_slice(), self.volume)?;
-        core.set_ns(Self::BONDING, self.id.as_slice(), self.bonding)?;
+        core.set_ns(Account::UPDATED, self.id.as_slice(), self.updated)?;
+        core.set_ns(Account::ENTRY,   self.id.as_slice(), self.entry)?;
+        core.set_ns(Account::VOLUME,  self.id.as_slice(), self.volume)?;
+        core.set_ns(Account::BONDING, self.id.as_slice(), self.bonding)?;
         Ok(())
     }
 }
@@ -595,7 +595,7 @@ impl Totals {
 
         // # 1. Timestamps
         total.now = now;
-        total.updated = get_time(Self::UPDATED, now)?;
+        total.updated = get_time(Totals::UPDATED, now)?;
         if total.now < total.updated { return errors::no_time_travel() }
 
         // # 2. Liquidity
@@ -615,9 +615,9 @@ impl Totals {
         //   Starting with a new pool, lock 10 LP for 20 moments.
         //   The pool will have a liquidity of 200.
         //   Lock 10 more; 5 moments later, the liquidity will be 300.
-        let last_volume  = get_volume(Self::VOLUME, Volume::zero())?;
+        let last_volume  = get_volume(Totals::VOLUME, Volume::zero())?;
         let elapsed      = now - total.updated;
-        total.staked     = get_amount(Self::STAKED, Amount::zero())?;
+        total.staked     = get_amount(Totals::STAKED, Amount::zero())?;
         total.volume     = accumulate(last_volume, elapsed, total.staked)?;
         let reward_token = RewardsConfig::reward_token(core)?;
         let ref address  = RewardsConfig::self_link(core)?.address;
@@ -640,7 +640,7 @@ impl Totals {
         if reward_token.link == lp_token.link {
             total.budget = (total.budget - total.staked)?;
         }
-        total.distributed = get_amount(Self::CLAIMED, Amount::zero())?;
+        total.distributed = get_amount(Totals::CLAIMED, Amount::zero())?;
         total.unlocked    = total.distributed + total.budget;
 
         // # 4. Throttles
