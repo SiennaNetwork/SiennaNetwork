@@ -1,8 +1,6 @@
 Time,Sender,Recipient,Data
 ,,,
-14,RPT,REWARDS,vest 38861
-,,,
-22,Alice,REWARDS,"lock:
+25,Alice,REWARDS,"lock:
   amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""42798""
@@ -10,7 +8,9 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   padding: ~
   recipient: cosmos2contract"
 ,,,
-219,Alice,REWARDS,"retrieve:
+25,RPT,REWARDS,vest 38861
+,,,
+222,Alice,REWARDS,"retrieve:
   amount: ""42798"""
 tx,REWARDS,SIENNA,"transfer:
   amount: ""38861""
@@ -21,9 +21,7 @@ tx,REWARDS,LP_TOKEN,"transfer:
   padding: ~
   recipient: Alice"
 ,,,
-222,RPT,REWARDS,vest 38861
-,,,
-240,Bob,REWARDS,"lock:
+247,Bob,REWARDS,"lock:
   amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""42798""
@@ -31,10 +29,54 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   padding: ~
   recipient: cosmos2contract"
 ,,,
-437,Bob,REWARDS,"retrieve:
+247,RPT,REWARDS,vest 93561
+,,,
+444,Bob,REWARDS,"retrieve:
   amount: ""42798"""
 tx,REWARDS,SIENNA,"transfer:
-  amount: ""38861""
+  amount: ""93561""
+  padding: ~
+  recipient: Bob"
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""42798""
+  padding: ~
+  recipient: Bob"
+,,,
+464,Alice,REWARDS,"lock:
+  amount: ""42798"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""42798""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,,
+464,RPT,REWARDS,vest 19429
+,,,
+661,Alice,REWARDS,"retrieve:
+  amount: ""42798"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""19429""
+  padding: ~
+  recipient: Alice"
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""42798""
+  padding: ~
+  recipient: Alice"
+,,,
+670,Bob,REWARDS,"lock:
+  amount: ""42798"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""42798""
+  owner: Bob
+  padding: ~
+  recipient: cosmos2contract"
+,,,
+670,RPT,REWARDS,vest 89229
+,,,
+867,Bob,REWARDS,"retrieve:
+  amount: ""42798"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""89229""
   padding: ~
   recipient: Bob"
 tx,REWARDS,LP_TOKEN,"transfer:

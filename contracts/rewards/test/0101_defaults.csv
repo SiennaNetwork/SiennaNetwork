@@ -1,5 +1,5 @@
 Time,Sender,Recipient,Data
 14,REWARDS,Alice,user.staked  = Uint128(0)
 14,REWARDS,Alice,user.volume  = Uint256(0)
-14,REWARDS,Alice,user.entry   = Uint256(0)
+14,REWARDS,Alice,user.pool_volume_at_entry = Uint256(0)
 14,REWARDS,Alice,user.bonding = 197

@@ -28,6 +28,8 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 218,Alice,REWARDS,claim: {}
 =>,err,Generic error: Keep tokens staked for 1 more seconds to be eligible for rewards.,
 ,,,
+218,RPT,REWARDS,vest 38861
+,,,
 219,Alice,REWARDS,claim: {}
 tx,REWARDS,SIENNA,"transfer:
   amount: ""38861""

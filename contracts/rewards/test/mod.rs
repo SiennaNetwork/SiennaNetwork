@@ -355,32 +355,32 @@ impl Context {
         )
     }
     pub fn staked (&mut self, expected: u128) -> &mut Self {
-        let staked = self.account_status().staked;
-        self.test_field("user.staked ", staked,  expected.into())
+        let actual = self.account_status().staked;
+        self.test_field("user.staked ", actual, expected.into())
     }
     pub fn volume (&mut self, expected: u128) -> &mut Self {
-        let volume = self.account_status().volume;
-        self.test_field("user.volume ", volume,  expected.into())
+        let actual = self.account_status().volume;
+        self.test_field("user.volume ", actual, expected.into())
     }
     pub fn bonding (&mut self, expected: Duration) -> &mut Self {
-        let bonding = self.account_status().bonding;
-        self.test_field("user.bonding", bonding, expected.into())
+        let actual = self.account_status().bonding;
+        self.test_field("user.bonding", actual, expected.into())
     }
     pub fn earned (&mut self, expected: u128) -> &mut Self {
-        let earned = self.account_status().earned;
-        self.test_field("user.earned ", earned,  expected.into())
+        let actual = self.account_status().earned;
+        self.test_field("user.earned ", actual, expected.into())
     }
     pub fn entry (&mut self, expected: u128) -> &mut Self {
-        let entry = self.account_status().entry;
-        self.test_field("user.entry  ", entry,   expected.into())
+        let actual = self.account_status().pool_volume_at_entry;
+        self.test_field("user.pool_volume_at_entry", actual, expected.into())
     }
     pub fn pool_volume (&mut self, expected: u128) -> &mut Self {
-        let volume = self.pool_status().volume;
-        self.test_field("pool.volume      ", volume, expected.into())
+        let actual = self.pool_status().volume;
+        self.test_field("pool.volume      ", actual, expected.into())
     }
     pub fn distributed (&mut self, expected: u128) -> &mut Self {
-        let distributed = self.pool_status().distributed;
-        self.test_field("pool.distributed ", distributed, expected.into())
+        let actual = self.pool_status().distributed;
+        self.test_field("pool.distributed ", actual, expected.into())
     }
     fn test_field <V: std::fmt::Debug + Clone + PartialEq> (&mut self, name: &'static str, actual: V, expected: V) -> &mut Self {
         self.table.add_row(row![

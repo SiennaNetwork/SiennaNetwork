@@ -1,5 +1,5 @@
 Time,Sender,Recipient,Data
-1,REWARDS,Alice,user.entry   = Uint256(0)
+1,REWARDS,Alice,user.pool_volume_at_entry = Uint256(0)
 ,,,
 1,Alice,REWARDS,"lock:
   amount: ""42798"""
@@ -8,12 +8,12 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-1,REWARDS,Alice,user.entry   = Uint256(0)
-11,REWARDS,Alice,user.entry   = Uint256(0)
+1,REWARDS,Alice,user.pool_volume_at_entry = Uint256(0)
+11,REWARDS,Alice,user.pool_volume_at_entry = Uint256(0)
 11,REWARDS,Alice,user.volume  = Uint256(427980)
 11,REWARDS,Alice,pool.volume       = Uint256(427980)
-11,REWARDS,Bob,user.entry   = Uint256(427980)
-21,REWARDS,Bob,user.entry   = Uint256(855960)
+11,REWARDS,Bob,user.pool_volume_at_entry = Uint256(427980)
+21,REWARDS,Bob,user.pool_volume_at_entry = Uint256(855960)
 ,,,
 21,Bob,REWARDS,"lock:
   amount: ""38861"""
@@ -22,35 +22,35 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   owner: Bob
   padding: ~
   recipient: cosmos2contract"
-21,REWARDS,Bob,user.entry   = Uint256(855960)
+21,REWARDS,Bob,user.pool_volume_at_entry = Uint256(855960)
 22,REWARDS,Bob,user.staked  = Uint128(38861)
 22,REWARDS,Bob,user.volume  = Uint256(38861)
-22,REWARDS,Bob,user.entry   = Uint256(855960)
+22,REWARDS,Bob,user.pool_volume_at_entry = Uint256(855960)
 23,REWARDS,Bob,user.staked  = Uint128(38861)
 23,REWARDS,Bob,user.volume  = Uint256(77722)
-23,REWARDS,Bob,user.entry   = Uint256(855960)
+23,REWARDS,Bob,user.pool_volume_at_entry = Uint256(855960)
 24,REWARDS,Bob,user.staked  = Uint128(38861)
 24,REWARDS,Bob,user.volume  = Uint256(116583)
-24,REWARDS,Bob,user.entry   = Uint256(855960)
+24,REWARDS,Bob,user.pool_volume_at_entry = Uint256(855960)
 25,REWARDS,Bob,user.staked  = Uint128(38861)
 25,REWARDS,Bob,user.volume  = Uint256(155444)
-25,REWARDS,Bob,user.entry   = Uint256(855960)
+25,REWARDS,Bob,user.pool_volume_at_entry = Uint256(855960)
 26,REWARDS,Bob,user.staked  = Uint128(38861)
 26,REWARDS,Bob,user.volume  = Uint256(194305)
-26,REWARDS,Bob,user.entry   = Uint256(855960)
+26,REWARDS,Bob,user.pool_volume_at_entry = Uint256(855960)
 27,REWARDS,Bob,user.staked  = Uint128(38861)
 27,REWARDS,Bob,user.volume  = Uint256(233166)
-27,REWARDS,Bob,user.entry   = Uint256(855960)
+27,REWARDS,Bob,user.pool_volume_at_entry = Uint256(855960)
 28,REWARDS,Bob,user.staked  = Uint128(38861)
 28,REWARDS,Bob,user.volume  = Uint256(272027)
-28,REWARDS,Bob,user.entry   = Uint256(855960)
+28,REWARDS,Bob,user.pool_volume_at_entry = Uint256(855960)
 29,REWARDS,Bob,user.staked  = Uint128(38861)
 29,REWARDS,Bob,user.volume  = Uint256(310888)
-29,REWARDS,Bob,user.entry   = Uint256(855960)
+29,REWARDS,Bob,user.pool_volume_at_entry = Uint256(855960)
 30,REWARDS,Bob,user.staked  = Uint128(38861)
 30,REWARDS,Bob,user.volume  = Uint256(349749)
-30,REWARDS,Bob,user.entry   = Uint256(855960)
+30,REWARDS,Bob,user.pool_volume_at_entry = Uint256(855960)
 31,REWARDS,Bob,user.staked  = Uint128(38861)
 31,REWARDS,Bob,user.volume  = Uint256(388610)
-31,REWARDS,Bob,user.entry   = Uint256(855960)
-31,REWARDS,Bob,user.entry   = Uint256(855960)
+31,REWARDS,Bob,user.pool_volume_at_entry = Uint256(855960)
+31,REWARDS,Bob,user.pool_volume_at_entry = Uint256(855960)
