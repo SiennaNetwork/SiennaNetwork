@@ -29,7 +29,7 @@ use crate::test::{*, Context};
             // Then user's stake increments
             .staked(stake).volume(0)
             // And user's liquidity starts incrementing from the next tick
-            .ticks(n_ticks, |i, context|{
+            .during(n_ticks, |i, context|{
                 context.staked(stake).volume(stake * i as u128);
             });
 }
@@ -65,13 +65,37 @@ use crate::test::{*, Context};
             .entry(stake1 * n_ticks as u128)
             .after(n_ticks).entry(stake1 * n_ticks as u128 * 2)
             // When a subsequent user deposits
+            .deposits(stake2)
             // Then their entry becomes fixed at its current value
-            .deposits(stake2).entry(stake1 * n_ticks as u128 * 2)
-            .after(n_ticks).entry(stake1 * n_ticks as u128 * 2)
-            // And user's liquidity starts incrementing from the next tick
-            .ticks(n_ticks, |i, context|{
-                context.staked(stake2).volume(stake2 * i as u128);
-            });
+            .entry(stake1 * n_ticks as u128 * 2)
+            // And their liquidity starts incrementing from the next tick
+            .during(n_ticks, |i, context| {
+                context
+                    .staked(stake2)
+                    .volume(stake2 * i as u128)
+                    .entry(stake1 * n_ticks as u128 * 2);
+            })
+            .entry(stake1 * n_ticks as u128 * 2);
+}
+
+#[test] fn test_0104_bonding () {
+    let mut context = Context::named("0104_bonding");
+    let bonding = context.rng.gen_range(1..100000);
+    let stake   = context.rng.gen_range(1..100000);
+    let n_ticks = context.rng.gen_range(1..100000);
+
+    // Given a pool
+    context.init().sets_bonding(bonding)
+        // When a user has not deposited tokens
+        .user("Alice")
+            // Then their bonding stays at max
+            .during(n_ticks, |_, context| { context.bonding(bonding); })
+            // When a user deposits tokens
+            .deposits(stake)
+            // Then their bonding starts decrementing from the next block
+            .during(bonding, |i, context| { context.bonding(bonding - i); })
+            // Then their bonding remains at 0
+            .during(bonding, |_, context| { context.bonding(0); });
 }
 
 #[test] fn test_0110_reset() {
@@ -92,44 +116,6 @@ use crate::test::{*, Context};
             .branch("only_after_full_withdraw", |mut context| {
                 context.withdraws(stake/2).later().withdraws_claims(stake/2, reward).volume(0);
             });
-}
-
-#[test] fn test_0102_bonding () {
-    let mut context = Context::named("0102_bonding");
-    let bonding = context.rng.gen_range(1..100000);
-    let t_lock  = context.rng.gen_range(1..100000);
-    let reward  = context.rng.gen_range(1..100000);
-    let stake   = context.rng.gen_range(1..100000);
-
-    // Given a pool
-    context
-        .admin().init().configures(RewardsConfig {
-            lp_token:     None,
-            reward_token: None,
-            reward_vk:    None,
-            bonding:      Some(bonding),
-        })
-        .fund(reward)
-        .user("Alice")
-            // When a user deposits tokens
-            // Then they need to keep them deposited for a fixed amount of time before they can claim
-            .at(t_lock).deposits(stake).must_wait(bonding)
-            .tick().must_wait(bonding - 1)
-            .tick().must_wait(bonding - 2)
-            .tick().must_wait(bonding - 3)
-            .at(t_lock + bonding - 3).must_wait(3)
-            .tick().must_wait(2)
-            .tick().must_wait(1)
-            // When a user claims rewards
-            // Then they need to wait a fixed amount of time before they can claim again
-            .tick().claims(reward).must_wait(bonding)
-            .tick().must_wait(bonding - 1)
-            .tick().must_wait(bonding - 2)
-            .fund(reward)
-            .at(t_lock + 2*bonding - 3).must_wait(3)
-            .tick().must_wait(2)
-            .tick().must_wait(1)
-            .tick().claims(reward);
 }
 
 #[test] fn test_0103_exit () {

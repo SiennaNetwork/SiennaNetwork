@@ -141,7 +141,7 @@ impl Context {
     pub fn tick (&mut self) -> &mut Self {
         self.after(1)
     }
-    pub fn ticks <F: FnMut(u64, &mut Context)->()> (&mut self, n: Duration, mut f: F) -> &mut Self {
+    pub fn during <F: FnMut(u64, &mut Context)->()> (&mut self, n: Duration, mut f: F) -> &mut Self {
         for i in 0..n {
             self.tick();
             f(i, self);
@@ -230,6 +230,14 @@ impl Context {
             Ok(expected)
         );
         self
+    }
+    pub fn sets_bonding (&mut self, bonding: Duration) -> &mut Self {
+        self.configures(RewardsConfig {
+            lp_token:     None,
+            reward_token: None,
+            reward_vk:    None,
+            bonding:      Some(bonding)
+        })
     }
     pub fn cannot_configure (&mut self) -> &mut Self {
         assert_eq!(Rewards::handle(&mut self.deps, self.env.clone(), RewardsHandle::Configure(RewardsConfig {

@@ -1,0 +1,8 @@
+Time,Sender,Recipient,Data
+,,,
+1,Admin,REWARDS,"configure:
+  lp_token: ~
+  reward_token: ~
+  reward_vk: ~
+  bonding: 97424"
+ERROR,status,,Unauthorized
