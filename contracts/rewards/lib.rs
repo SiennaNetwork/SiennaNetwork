@@ -40,7 +40,7 @@ pub struct Init {
     config: RewardsConfig
 }
 
-pub fn init <S: Storage + AsRef<S> + AsMut<S>, A: Api, Q: Querier> (
+pub fn init <S: Storage, A: Api, Q: Querier> (
     deps: &mut Extern<S, A, Q>,
     env:  Env,
     msg:  Init
@@ -72,7 +72,7 @@ pub enum Handle {
     },
 }
 
-pub fn handle <S: Storage + AsRef<S> + AsMut<S>, A: Api, Q: Querier> (
+pub fn handle <S: Storage, A: Api, Q: Querier> (
     deps: &mut Extern<S, A, Q>,
     env:  Env,
     msg:  Handle
@@ -92,7 +92,7 @@ pub enum Query {
     Balance { address: HumanAddr, key: String }
 }
 
-pub fn query <S: Storage + AsRef<S>, A: Api, Q: Querier> (
+pub fn query <S: Storage, A: Api, Q: Querier> (
     deps: &Extern<S, A, Q>,
     msg:  Query
 ) -> StdResult<Binary> {
@@ -125,8 +125,9 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Migration<S, A, Q>
     + KeplrCompat<S, A, Q>
     + Drain<S, A, Q>
+    + Sized
 {
-    fn init (&mut self, env: Env, msg: Init) -> StdResult<InitResponse> where Self: Sized {
+    fn init (&mut self, env: Env, msg: Init) -> StdResult<InitResponse> {
         Auth::init(self, &env, &msg.admin)?;
         Ok(InitResponse {
             messages: Rewards::init(self, &env, msg.config)?,
@@ -134,7 +135,7 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         })
     }
 
-    fn handle (&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> where Self: Sized {
+    fn handle (&mut self, env: Env, msg: Handle) -> StdResult<HandleResponse> {
         match msg {
             Handle::Auth(msg) =>
                 Auth::handle(self, env, msg),
@@ -151,7 +152,7 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         }
     }
 
-    fn query (&self, msg: Query) -> StdResult<Response> where Self: Sized {
+    fn query (&self, msg: Query) -> StdResult<Response> {
         Ok(match msg {
             Query::Auth(msg) =>
                 Response::Auth(Auth::query(self, msg)?),
