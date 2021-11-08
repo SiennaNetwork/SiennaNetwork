@@ -1,10 +1,10 @@
-import './dashboard/style.css'
-import { Log, Table, PieChart, StackedPieChart } from './dashboard/widgets'
-import { T, Users, MAX_USERS, MAX_INITIAL } from './dashboard/contract_base'
-import { RealPool as Pool, RealUser as User } from './dashboard/contract_real'
-import { random, pickRandom, throttle, after, append } from './dashboard/helpers'
-//import initMock from './dashboard/contract_mock'
-import initReal from './dashboard/contract_real'
+import './style.css'
+import { Log, Table, PieChart, StackedPieChart } from './widgets'
+import { T, Users, MAX_USERS, MAX_INITIAL } from './contract_base'
+import { RealPool as Pool, RealUser as User } from './contract_real'
+import { random, pickRandom, throttle, after, append } from './helpers'
+//import initMock from './contract_mock'
+import initReal from './contract_real'
 
 document.body.innerHTML = '<center>loading</center>'
 

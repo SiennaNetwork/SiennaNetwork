@@ -126,10 +126,10 @@ pub enum RewardsHandle {
     // Public transactions
     Lock     { amount: Amount },
     Retrieve { amount: Amount },
-    Claim {},
+    Claim    {},
     // Admin-only transactions
     Configure(RewardsConfig),
-    Close { message: String },
+    Close    { message: String },
 }
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for RewardsHandle where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
