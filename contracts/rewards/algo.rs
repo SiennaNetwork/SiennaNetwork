@@ -132,10 +132,7 @@ pub enum RewardsHandle {
     Close { message: String },
 }
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for RewardsHandle where
-    S: Storage,
-    A: Api,
-    Q: Querier,
-    C: Rewards<S, A, Q>
+    S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     fn dispatch_handle (self, core: &mut C, env: Env) -> StdResult<HandleResponse> {
         match self {
@@ -173,10 +170,7 @@ pub enum RewardsQuery {
     }
 }
 impl<S, A, Q, C> QueryDispatch<S, A, Q, C, RewardsResponse> for RewardsQuery where
-    S: Storage,
-    A: Api,
-    Q: Querier,
-    C: Rewards<S, A, Q>
+    S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     fn dispatch_query (self, core: &C) -> StdResult<RewardsResponse> {
         match self {
