@@ -8,8 +8,8 @@ use amm_shared::fadroma::scrt::{
 use crate::{
     msg::{HandleMsg, Hop, InitMsg, NativeSwap, QueryMsg, Route, Snip20Data, Snip20Swap, Token},
     state::{
-        delete_route_state, read_cashback, read_owner, read_route_state, read_tokens,
-        store_cashback, store_owner, store_route_state, store_tokens, RouteState,
+        delete_route_state, read_owner, read_route_state, read_tokens, store_owner,
+        store_route_state, store_tokens, RouteState,
     },
 };
 
@@ -29,18 +29,6 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     store_tokens(&mut deps.storage, &vec![])?;
     if let Some(tokens) = msg.register_tokens {
         output_msgs.extend(register_tokens(deps, &env, tokens)?);
-    }
-
-    if let Some(cashback) = msg.cashback {
-        store_cashback(&mut deps.storage, &cashback)?;
-        output_msgs.extend(register_tokens(
-            deps,
-            &env,
-            vec![Snip20Data {
-                address: cashback.address,
-                code_hash: cashback.code_hash,
-            }],
-        )?);
     }
 
     Ok(InitResponse {
@@ -108,18 +96,11 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
                 data: None,
             })
         }
-        HandleMsg::UpdateSettings {
-            new_owner,
-            new_cashback,
-        } => {
+        HandleMsg::UpdateSettings { new_owner } => {
             check_owner(deps, &env)?;
 
             if let Some(new_owner) = new_owner {
                 store_owner(&mut deps.storage, &new_owner)?;
-            }
-
-            if let Some(new_cashback) = new_cashback {
-                store_cashback(&mut deps.storage, &new_cashback)?;
             }
 
             Ok(HandleResponse::default())
@@ -134,7 +115,7 @@ fn handle_first_hop<S: Storage, A: Api, Q: Querier>(
     amount: Uint128,
 ) -> StdResult<HandleResponse> {
     // This is the first msg from the user, with the entire route details
-    // 1. save the remaining route to state (e.g. if the route is X/Y -> Y/Z -> Z->W then save Y/Z -> Z/W to state)
+    // 1. save the remaining route to state (e.g. if the route is X/Y -> Y/Z -> Z/W then save Y/Z -> Z/W to state)
     // 2. send `amount` X to pair X/Y
     // 3. call FinalizeRoute to make sure everything went ok, otherwise revert the tx
 
@@ -414,38 +395,7 @@ fn finalize_route<S: Storage, A: Api, Q: Querier>(
 
             delete_route_state(&mut deps.storage);
 
-            if let Some(cashback) = read_cashback(&deps.storage)? {
-                let balance = snip20::balance_query(
-                    &deps.querier,
-                    env.contract.address.clone(),
-                    "SecretSwap Router".into(),
-                    256,
-                    cashback.code_hash.clone(),
-                    cashback.address.clone(),
-                )?;
-
-                let mut messages = vec![];
-                if balance.amount.u128() > 0 {
-                    let msg = snip20::send_msg(
-                        remaining_route.to,
-                        balance.amount,
-                        None,
-                        None,
-                        256,
-                        cashback.code_hash,
-                        cashback.address,
-                    )?;
-                    messages.push(msg);
-                }
-
-                Ok(HandleResponse {
-                    messages,
-                    log: vec![],
-                    data: None,
-                })
-            } else {
-                Ok(HandleResponse::default())
-            }
+            Ok(HandleResponse::default())
         }
         None => Err(StdError::generic_err("no route to finalize")),
     }

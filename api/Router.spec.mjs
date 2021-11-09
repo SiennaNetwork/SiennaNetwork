@@ -16,7 +16,7 @@ const log = function () {
   debug("out")(JSON.stringify(arguments, null, 2));
 };
 
-describe("Launchpad", () => {
+describe("Router", () => {
   const fees = {
     upload: new ScrtGas(10000000),
     init: new ScrtGas(100000000),
@@ -109,13 +109,39 @@ describe("Launchpad", () => {
     const A = { Snip20Data: { address: context.tokenA.address, code_hash: context.tokenA.codeHash } };
     const B = { Snip20Data: { address: context.tokenD.address, code_hash: context.tokenD.codeHash } };
 
-    console.log(A, B);
-
     const hops = new Assembler(context.pairs).from(A).to(B).get();
 
-    console.log(hops)
-
     await context.tokenA.send(context.router.address, '10', { hops, to: context.agent.address } );
+
+    const balanceA = await context.tokenA.balance(context.agent.address, context.viewkeyA);
+    const balanceD = await context.tokenD.balance(context.agent.address, context.viewkeyD);
+
+    assert.strictEqual(parseInt(balanceA), 90);
+    assert.strictEqual(parseInt(balanceD), 10);
+  });
+
+  it("Do the exchange path in reverse", async function () {
+    this.timeout(0);
+
+    await context.tokenH.mint(100);
+
+    const balanceA1 = parseInt(await context.tokenA.balance(context.agent.address, context.viewkeyA));
+    const balanceH1 = parseInt(await context.tokenH.balance(context.agent.address, context.viewkeyH));
+
+    const H = { Snip20Data: { address: context.tokenH.address, code_hash: context.tokenH.codeHash } };
+    const A = { Snip20Data: { address: context.tokenA.address, code_hash: context.tokenA.codeHash } };
+
+    const hops = new Assembler(context.pairs).from(H).to(A).get();
+
+    await context.tokenH.send(context.router.address, '10', { hops, to: context.agent.address } );
+
+    const balanceA2 = parseInt(await context.tokenA.balance(context.agent.address, context.viewkeyA));
+    const balanceH2 = parseInt(await context.tokenH.balance(context.agent.address, context.viewkeyH));
+
+    const totalBalanceA = balanceA2 - balanceA1;
+
+    assert.strictEqual(parseInt(totalBalanceA) > 10, true);
+    assert.strictEqual(parseInt(balanceH2), 90);
   });
 
   after(async function cleanupAll() {

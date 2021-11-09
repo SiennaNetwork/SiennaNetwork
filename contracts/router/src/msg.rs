@@ -1,6 +1,5 @@
 use std::collections::VecDeque;
 
-use crate::state::SecretContract;
 use amm_shared::fadroma::scrt::{Binary, HumanAddr, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -27,7 +26,6 @@ pub enum AssetInfo {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {
     pub register_tokens: Option<Vec<Snip20Data>>,
-    pub cashback: Option<SecretContract>,
     pub owner: Option<HumanAddr>,
 }
 
@@ -78,7 +76,6 @@ pub enum HandleMsg {
     },
     UpdateSettings {
         new_owner: Option<HumanAddr>,
-        new_cashback: Option<SecretContract>,
     },
 }
 
