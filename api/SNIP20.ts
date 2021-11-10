@@ -27,10 +27,12 @@ export class SNIP20 extends ScrtContract {
    * 
    * @returns {{ address: string, code_hash: string }}
    */
-  snip20Data() {
+  tokenTypeData() {
     return {
-      address: this.address,
-      code_hash: this.codeHash,
+      custom_token: {
+        contract_addr: this.address,
+        token_code_hash: this.codeHash,
+      }
     }
   }
 

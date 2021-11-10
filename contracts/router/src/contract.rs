@@ -1,12 +1,15 @@
 use crate::msg::{Asset, AssetInfo};
-use amm_shared::fadroma::scrt::{
-    from_binary, secret_toolkit::snip20, to_binary, Api, BankMsg, Binary, Coin, CosmosMsg, Env,
-    Extern, HandleResponse, HumanAddr, InitResponse, Querier, StdError, StdResult, Storage,
-    Uint128, WasmMsg,
+use amm_shared::{
+    fadroma::scrt::{
+        from_binary, secret_toolkit::snip20, to_binary, Api, BankMsg, Binary, Coin, CosmosMsg, Env,
+        Extern, HandleResponse, HumanAddr, InitResponse, Querier, StdError, StdResult, Storage,
+        Uint128, WasmMsg,
+    },
+    TokenType,
 };
 
 use crate::{
-    msg::{HandleMsg, Hop, InitMsg, NativeSwap, QueryMsg, Route, Snip20Data, Snip20Swap, Token},
+    msg::{HandleMsg, Hop, InitMsg, NativeSwap, QueryMsg, Route, Snip20Swap},
     state::{
         delete_route_state, read_owner, read_route_state, read_tokens, store_owner,
         store_route_state, store_tokens, RouteState,
@@ -74,19 +77,22 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             check_owner(deps, &env)?;
 
             let send_msg = match token {
-                Token::Snip20(Snip20Data { address, code_hash }) => vec![snip20::send_msg(
+                TokenType::CustomToken {
+                    contract_addr,
+                    token_code_hash,
+                } => vec![snip20::send_msg(
                     to,
                     amount,
                     snip20_send_msg,
                     None,
                     256,
-                    code_hash,
-                    address,
+                    token_code_hash,
+                    contract_addr,
                 )?],
-                Token::Scrt => vec![CosmosMsg::Bank(BankMsg::Send {
+                TokenType::NativeToken { denom } => vec![CosmosMsg::Bank(BankMsg::Send {
                     from_address: env.contract.address,
                     to_address: to,
-                    amount: vec![Coin::new(amount.u128(), "uscrt")],
+                    amount: vec![Coin::new(amount.u128(), &denom)],
                 })],
             };
 
@@ -134,7 +140,7 @@ fn handle_first_hop<S: Storage, A: Api, Q: Querier>(
     // (we don't need to check if it's the output token because it's handled in the swap_pair contract)
     for i in 1..(hops.len() - 1) {
         match hops[i].from_token {
-            Token::Scrt => {
+            TokenType::NativeToken { denom: _ } => {
                 return Err(StdError::generic_err(
                     "cannot route via uscrt. uscrt can only be route input token or output token.",
                 ))
@@ -146,14 +152,14 @@ fn handle_first_hop<S: Storage, A: Api, Q: Querier>(
     let first_hop: Hop = hops.pop_front().unwrap(); // unwrap is cool because `hops.len() >= 2`
 
     let received_first_hop: bool = match first_hop.from_token {
-        Token::Snip20(Snip20Data {
-            ref address,
-            code_hash: _,
-        }) => env.message.sender == *address,
-        Token::Scrt => {
+        TokenType::CustomToken {
+            ref contract_addr,
+            token_code_hash: _,
+        } => env.message.sender == *contract_addr,
+        TokenType::NativeToken { ref denom } => {
             env.message.sent_funds.len() == 1
                 && env.message.sent_funds[0].amount == amount
-                && env.message.sent_funds[0].denom == "uscrt"
+                && &env.message.sent_funds[0].denom == denom
         }
     };
 
@@ -179,7 +185,10 @@ fn handle_first_hop<S: Storage, A: Api, Q: Querier>(
     let mut msgs = vec![];
 
     match first_hop.from_token {
-        Token::Snip20(Snip20Data { address, code_hash }) => {
+        TokenType::CustomToken {
+            contract_addr,
+            token_code_hash,
+        } => {
             // first hop is a snip20
             msgs.push(snip20::send_msg(
                 first_hop.pair_address,
@@ -193,11 +202,11 @@ fn handle_first_hop<S: Storage, A: Api, Q: Querier>(
                 })?),
                 None,
                 256,
-                code_hash,
-                address,
+                token_code_hash,
+                contract_addr,
             )?);
         }
-        Token::Scrt => {
+        TokenType::NativeToken { ref denom } => {
             // first hop is SCRT
             msgs.push(
                 // build swap msg for the next hop
@@ -208,7 +217,7 @@ fn handle_first_hop<S: Storage, A: Api, Q: Querier>(
                         offer_asset: Asset {
                             amount,
                             info: AssetInfo::NativeToken {
-                                denom: "uscrt".into(),
+                                denom: denom.clone(),
                             },
                         },
                         // set expected_return to None because we don't care about slippage mid-route
@@ -216,7 +225,7 @@ fn handle_first_hop<S: Storage, A: Api, Q: Querier>(
                         // set the recepient of the swap to be this contract (the router)
                         to: Some(env.contract.address.clone()),
                     })?,
-                    send: vec![Coin::new(amount.u128(), "uscrt")],
+                    send: vec![Coin::new(amount.u128(), &denom)],
                 }),
             );
         }
@@ -271,8 +280,11 @@ fn handle_hop<S: Storage, A: Api, Q: Querier>(
             };
 
             let (from_token_address, from_token_code_hash) = match next_hop.clone().from_token {
-                Token::Snip20(Snip20Data { address, code_hash }) => (address, code_hash),
-                Token::Scrt => {
+                TokenType::CustomToken {
+                    contract_addr,
+                    token_code_hash,
+                } => (contract_addr, token_code_hash),
+                TokenType::NativeToken { .. } => {
                     return Err(StdError::generic_err(
                         "weird. cannot route via uscrt. uscrt can only be route input token or output token.",
                         ));
@@ -416,34 +428,39 @@ fn check_owner<S: Storage, A: Api, Q: Querier>(
 fn register_tokens<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: &Env,
-    tokens: Vec<Snip20Data>,
+    tokens: Vec<TokenType<HumanAddr>>,
 ) -> StdResult<Vec<CosmosMsg>> {
     let mut registered_tokens = read_tokens(&deps.storage)?;
     let mut output_msgs = vec![];
 
     for token in tokens {
-        let address = token.address;
-        let code_hash = token.code_hash;
+        match token {
+            TokenType::CustomToken {
+                contract_addr,
+                token_code_hash,
+            } => {
+                if registered_tokens.contains(&contract_addr) {
+                    continue;
+                }
+                registered_tokens.push(contract_addr.clone());
 
-        if registered_tokens.contains(&address) {
-            continue;
+                output_msgs.push(snip20::register_receive_msg(
+                    env.contract_code_hash.clone(),
+                    None,
+                    256,
+                    token_code_hash.clone(),
+                    contract_addr.clone(),
+                )?);
+                output_msgs.push(snip20::set_viewing_key_msg(
+                    "SecretSwap Router".into(),
+                    None,
+                    256,
+                    token_code_hash.clone(),
+                    contract_addr.clone(),
+                )?);
+            }
+            _ => (),
         }
-        registered_tokens.push(address.clone());
-
-        output_msgs.push(snip20::register_receive_msg(
-            env.contract_code_hash.clone(),
-            None,
-            256,
-            code_hash.clone(),
-            address.clone(),
-        )?);
-        output_msgs.push(snip20::set_viewing_key_msg(
-            "SecretSwap Router".into(),
-            None,
-            256,
-            code_hash.clone(),
-            address.clone(),
-        )?);
     }
 
     store_tokens(&mut deps.storage, &registered_tokens)?;

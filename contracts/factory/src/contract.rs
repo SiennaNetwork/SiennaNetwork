@@ -1,40 +1,37 @@
 use amm_shared::{
-    Pagination, TokenPair,
     exchange::Exchange,
     fadroma::{
         admin::{
-            handle as admin_handle,
-            query as admin_query,
-            assert_admin, load_admin,
-            Admin, DefaultImpl as AdminImpl
+            assert_admin, handle as admin_handle, load_admin, query as admin_query, Admin,
+            DefaultImpl as AdminImpl,
         },
         require_admin::require_admin,
         scrt::{
-            log, to_binary, Api, Binary, CosmosMsg, Env, Extern, 
-            InitResponse, Querier, StdError, StdResult, Storage, 
-            HandleResponse, HumanAddr, WasmMsg
+            log, to_binary, Api, Binary, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
+            InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
         scrt_addr::Humanize,
         scrt_callback::Callback,
         scrt_link::ContractLink,
         scrt_migrate,
         scrt_migrate::{get_status, ContractStatusLevel},
-        scrt_storage::{load, remove, save}
+        scrt_storage::{load, remove, save},
     },
     msg::{
-        exchange::{InitMsg as ExchangeInitMsg, HandleMsg as ExchangeHandleMsg},
+        exchange::{HandleMsg as ExchangeHandleMsg, InitMsg as ExchangeInitMsg},
         factory::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
         ido::{InitMsg as IdoInitMsg, TokenSaleConfig, WhitelistRequest},
-        launchpad::{InitMsg as LaunchpadInitMsg, TokenSettings}
-    }
+        launchpad::{InitMsg as LaunchpadInitMsg, TokenSettings},
+    },
+    Pagination, TokenPair,
 };
 
 use crate::state::{
-    get_address_for_pair, get_exchanges, get_idos, ido_whitelist_add, ido_whitelist_remove,
-    is_ido_whitelisted, load_config, load_launchpad_instance, load_prng_seed, pair_exists,
-    save_config, save_launchpad_instance, save_prng_seed, store_exchanges, store_ido_addresses,
-    exchanges_store, save_migration_password, load_migration_password, remove_migration_password,
-    Config
+    exchanges_store, get_address_for_pair, get_exchanges, get_idos, ido_whitelist_add,
+    ido_whitelist_remove, is_ido_whitelisted, load_config, load_launchpad_instance,
+    load_migration_password, load_prng_seed, pair_exists, remove_migration_password, save_config,
+    save_launchpad_instance, save_migration_password, save_prng_seed, store_exchanges,
+    store_ido_addresses, Config,
 };
 
 pub const EPHEMERAL_STORAGE_KEY: &[u8] = b"ephemeral_storage";
@@ -46,14 +43,17 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
     save_prng_seed(&mut deps.storage, &msg.prng_seed)?;
-    save_config(deps, &Config {
-        snip20_contract: msg.snip20_contract,
-        lp_token_contract: msg.lp_token_contract,
-        pair_contract: msg.pair_contract,
-        launchpad_contract: msg.launchpad_contract,
-        ido_contract: msg.ido_contract,
-        exchange_settings: msg.exchange_settings,
-    })?;
+    save_config(
+        deps,
+        &Config {
+            snip20_contract: msg.snip20_contract,
+            lp_token_contract: msg.lp_token_contract,
+            pair_contract: msg.pair_contract,
+            launchpad_contract: msg.launchpad_contract,
+            ido_contract: msg.ido_contract,
+            exchange_settings: msg.exchange_settings,
+        },
+    )?;
 
     AdminImpl.new(msg.admin, deps, env)
 }
@@ -64,15 +64,22 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     match msg {
-        HandleMsg::SetStatus { level, reason, new_address } => {
+        HandleMsg::SetStatus {
+            level,
+            reason,
+            new_address,
+        } => {
             scrt_migrate::set_status(deps, env, level, reason, new_address)?;
-            
             return Ok(HandleResponse::default());
-        },
-        HandleMsg::TransferExchanges { password, new_instance, skip } => {
+        }
+        HandleMsg::TransferExchanges {
+            password,
+            new_instance,
+            skip,
+        } => {
             return transfer_exchanges(deps, env, new_instance, password, skip);
-        },
-        _ => { }
+        }
+        _ => {}
     }
 
     scrt_migrate::is_operational(&deps)?;
@@ -82,18 +89,25 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::TransferExchanges { .. } => unreachable!(),
         HandleMsg::SetConfig { .. } => set_config(deps, env, msg),
         HandleMsg::IdoWhitelist { addresses } => ido_whitelist(deps, env, addresses),
-        HandleMsg::CreateExchange { pair, entropy } =>
-            create_exchange(deps, env, pair, entropy),
-        HandleMsg::CreateLaunchpad { tokens, entropy } =>
-            create_launchpad(deps, env, tokens, entropy),
+        HandleMsg::CreateExchange { pair, entropy } => create_exchange(deps, env, pair, entropy),
+        HandleMsg::CreateLaunchpad { tokens, entropy } => {
+            create_launchpad(deps, env, tokens, entropy)
+        }
         HandleMsg::RegisterLaunchpad { signature } => register_launchpad(deps, env, signature),
-        HandleMsg::CreateIdo { info, tokens, entropy } =>
-            create_ido(deps, env, info, tokens, entropy),
+        HandleMsg::CreateIdo {
+            info,
+            tokens,
+            entropy,
+        } => create_ido(deps, env, info, tokens, entropy),
         HandleMsg::RegisterIdo { signature } => register_ido(deps, env, signature),
-        HandleMsg::RegisterExchange { pair, signature } =>
-            register_exchange(deps, env, pair, signature),
-        HandleMsg::ReceiveExchanges { password, finalize, exchanges } =>
-            receive_exchanges(deps, password, finalize, exchanges),
+        HandleMsg::RegisterExchange { pair, signature } => {
+            register_exchange(deps, env, pair, signature)
+        }
+        HandleMsg::ReceiveExchanges {
+            password,
+            finalize,
+            exchanges,
+        } => receive_exchanges(deps, password, finalize, exchanges),
         HandleMsg::SetMigrationPassword { password } => set_migration_password(deps, env, password),
         HandleMsg::AddIdos { idos } => add_idos(deps, env, idos),
         HandleMsg::AddLaunchpad { launchpad } => add_launchpad(deps, env, launchpad),
@@ -265,8 +279,8 @@ fn register_exchange<S: Storage, A: Api, Q: Querier>(
         pair,
         contract: ContractLink {
             address: env.message.sender.clone(),
-            code_hash: config.pair_contract.code_hash
-        }
+            code_hash: config.pair_contract.code_hash,
+        },
     };
 
     store_exchanges(deps, vec![exchange])?;
@@ -470,7 +484,7 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
     env: Env,
     new_instance: ContractLink<HumanAddr>,
     password: String,
-    skip: Option<Vec<HumanAddr>>
+    skip: Option<Vec<HumanAddr>>,
 ) -> StdResult<HandleResponse> {
     let status = scrt_migrate::get_status(&deps)?;
 
@@ -480,18 +494,24 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
             env,
             ContractStatusLevel::Migrating,
             "Migrating to new factory.".into(),
-            Some(new_instance.address.clone())
+            Some(new_instance.address.clone()),
         )?;
     }
 
     let skip = skip.unwrap_or(vec![]);
     let mut exchanges_store = exchanges_store();
 
-    let len = exchanges_store.len(&deps.storage)?.min(TRANSFER_LIMIT as u64);
+    let len = exchanges_store
+        .len(&deps.storage)?
+        .min(TRANSFER_LIMIT as u64);
     let mut messages = Vec::with_capacity(len as usize - skip.len() + 1);
     let mut exchanges = Vec::with_capacity(len as usize - skip.len());
 
-    for e in exchanges_store.iter(&deps.storage)?.rev().take(TRANSFER_LIMIT) {
+    for e in exchanges_store
+        .iter(&deps.storage)?
+        .rev()
+        .take(TRANSFER_LIMIT)
+    {
         let e = e?.humanize(&deps.api)?;
 
         if skip.contains(&e.contract.address) {
@@ -503,8 +523,8 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
             callback_code_hash: e.contract.code_hash.clone(),
             send: vec![],
             msg: to_binary(&ExchangeHandleMsg::ChangeFactory {
-                contract: new_instance.clone()
-            })?
+                contract: new_instance.clone(),
+            })?,
         }));
 
         exchanges.push(e);
@@ -524,17 +544,14 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
         msg: to_binary(&HandleMsg::ReceiveExchanges {
             password,
             finalize: len == 0,
-            exchanges
-        })?
+            exchanges,
+        })?,
     }));
 
     Ok(HandleResponse {
         messages,
-        log: vec![
-            log("action", "transfer_exchanges"),
-            log("remaining", len)
-        ],
-        data: None
+        log: vec![log("action", "transfer_exchanges"), log("remaining", len)],
+        data: None,
     })
 }
 
@@ -542,7 +559,7 @@ fn receive_exchanges<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     password: String,
     finalize: bool,
-    exchanges: Vec<Exchange<HumanAddr>>
+    exchanges: Vec<Exchange<HumanAddr>>,
 ) -> StdResult<HandleResponse> {
     let stored_pass = load_migration_password(&deps.storage)?;
 
@@ -559,10 +576,7 @@ fn receive_exchanges<S: Storage, A: Api, Q: Querier>(
 
     Ok(HandleResponse {
         messages: vec![],
-        log: vec![
-            log("action", "receive_exchanges"),
-            log("received", len)
-        ],
+        log: vec![log("action", "receive_exchanges"), log("received", len)],
         data: None,
     })
 }
@@ -571,7 +585,7 @@ fn receive_exchanges<S: Storage, A: Api, Q: Querier>(
 fn set_migration_password<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    password: String
+    password: String,
 ) -> StdResult<HandleResponse> {
     save_migration_password(&mut deps.storage, &password)?;
 
@@ -666,9 +680,8 @@ pub(crate) fn create_signature(env: &Env) -> StdResult<Binary> {
 }
 
 fn ensure_correct_signature(storage: &mut impl Storage, signature: Binary) -> StdResult<()> {
-    let stored_signature: Binary = load(storage, EPHEMERAL_STORAGE_KEY)?
-        .ok_or_else(|| StdError::unauthorized())?;
-    
+    let stored_signature: Binary =
+        load(storage, EPHEMERAL_STORAGE_KEY)?.ok_or_else(|| StdError::unauthorized())?;
     if stored_signature != signature {
         return Err(StdError::unauthorized());
     }

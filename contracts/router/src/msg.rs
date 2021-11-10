@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
 
-use amm_shared::fadroma::scrt::{Binary, HumanAddr, Uint128};
+use amm_shared::{
+    fadroma::scrt::{Binary, HumanAddr, Uint128},
+    TokenType,
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +16,7 @@ pub struct Asset {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AssetInfo {
-    Token {
+    CustomToken {
         contract_addr: HumanAddr,
         token_code_hash: String,
         viewing_key: String,
@@ -25,13 +28,13 @@ pub enum AssetInfo {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {
-    pub register_tokens: Option<Vec<Snip20Data>>,
+    pub register_tokens: Option<Vec<TokenType<HumanAddr>>>,
     pub owner: Option<HumanAddr>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Hop {
-    pub from_token: Token,
+    pub from_token: TokenType<HumanAddr>,
     pub pair_address: HumanAddr,
     pub pair_code_hash: String,
 }
@@ -44,19 +47,6 @@ pub struct Route {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct Snip20Data {
-    pub address: HumanAddr,
-    pub code_hash: String,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum Token {
-    Snip20(Snip20Data),
-    Scrt,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
     Receive {
@@ -66,10 +56,10 @@ pub enum HandleMsg {
     },
     FinalizeRoute {},
     RegisterTokens {
-        tokens: Vec<Snip20Data>,
+        tokens: Vec<TokenType<HumanAddr>>,
     },
     RecoverFunds {
-        token: Token,
+        token: TokenType<HumanAddr>,
         amount: Uint128,
         to: HumanAddr,
         snip20_send_msg: Option<Binary>,

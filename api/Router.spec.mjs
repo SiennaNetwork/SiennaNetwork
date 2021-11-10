@@ -83,14 +83,14 @@ describe("Router", () => {
       label: `router-${parseInt(Math.random() * 100000)}`,
       initMsg: {
         register_tokens: [
-          context.tokenA.snip20Data(),
-          context.tokenB.snip20Data(),
-          context.tokenC.snip20Data(),
-          context.tokenD.snip20Data(),
-          context.tokenE.snip20Data(),
-          context.tokenF.snip20Data(),
-          context.tokenG.snip20Data(),
-          context.tokenH.snip20Data(),
+          context.tokenA.tokenTypeData(),
+          context.tokenB.tokenTypeData(),
+          context.tokenC.tokenTypeData(),
+          context.tokenD.tokenTypeData(),
+          context.tokenE.tokenTypeData(),
+          context.tokenF.tokenTypeData(),
+          context.tokenG.tokenTypeData(),
+          context.tokenH.tokenTypeData(),
         ]
       },
     });
@@ -106,8 +106,8 @@ describe("Router", () => {
 
     await context.tokenA.mint(100);
 
-    const A = { Snip20Data: { address: context.tokenA.address, code_hash: context.tokenA.codeHash } };
-    const B = { Snip20Data: { address: context.tokenD.address, code_hash: context.tokenD.codeHash } };
+    const A = { custom_token: { contract_addr: context.tokenA.address, token_code_hash: context.tokenA.codeHash } };
+    const B = { custom_token: { contract_addr: context.tokenD.address, token_code_hash: context.tokenD.codeHash } };
 
     const hops = new Assembler(context.pairs).from(A).to(B).get();
 
@@ -128,8 +128,8 @@ describe("Router", () => {
     const balanceA1 = parseInt(await context.tokenA.balance(context.agent.address, context.viewkeyA));
     const balanceH1 = parseInt(await context.tokenH.balance(context.agent.address, context.viewkeyH));
 
-    const H = { Snip20Data: { address: context.tokenH.address, code_hash: context.tokenH.codeHash } };
-    const A = { Snip20Data: { address: context.tokenA.address, code_hash: context.tokenA.codeHash } };
+    const H = { custom_token: { contract_addr: context.tokenH.address, token_code_hash: context.tokenH.codeHash } };
+    const A = { custom_token: { contract_addr: context.tokenA.address, token_code_hash: context.tokenA.codeHash } };
 
     const hops = new Assembler(context.pairs).from(H).to(A).get();
 
@@ -328,11 +328,11 @@ async function initFactory(context) {
   const intoPairInfo = function (response) {
     let A = { Scrt: {} };
     if (response.token_0.custom_token) {
-      A = { Snip20Data: { address: response.token_0.custom_token.contract_addr, code_hash: response.token_0.custom_token.token_code_hash } };
+      A = { custom_token: { contract_addr: response.token_0.custom_token.contract_addr, code_hash: response.token_0.custom_token.token_code_hash } };
     }
     let B = { Scrt: {} };
     if (response.token_1.custom_token) {
-      B = { Snip20Data: { address: response.token_1.custom_token.contract_addr, code_hash: response.token_1.custom_token.token_code_hash } };
+      B = { custom_token: { contract_addr: response.token_1.custom_token.contract_addr, code_hash: response.token_1.custom_token.token_code_hash } };
     }
 
     return {
