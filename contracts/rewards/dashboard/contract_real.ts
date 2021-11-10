@@ -73,18 +73,22 @@ export default async function initReal () {
 
 // pool api ----------------------------------------------------------------------------------------
 export class RealPool extends Pool {
+
   contract: Rewards = new Rewards()
+
   constructor (ui: UIContext) {
     super(ui)
     this.contract.init({
       config: {
-        reward_token: { address: "", code_hash: "" },
-        lp_token:     { address: "", code_hash: "" },
+        reward_token: { address: "SIENNA",  code_hash: "" },
+        lp_token:     { address: "LPTOKEN", code_hash: "" },
         viewing_key:  "",
         bonding:      COOLDOWN,
       }
     })
-    this.ui.log.close.onclick = this.close.bind(this) }
+    this.ui.log.close.onclick = this.close.bind(this)
+  }
+
   update () {
     this.contract.next_query_response = {balance:{amount:String(this.balance)}}
     const info = this.contract.query({rewards:{status:{at:T.T}}})
@@ -97,10 +101,12 @@ export class RealPool extends Pool {
     this.cooldown    = info.bonding
     super.update()
   }
+
   close () {
     this.contract.sender = ""
     this.contract.handle({close_pool:{message:"pool closed"}})
   }
+
 }
 
 // user api ----------------------------------------------------------------------------------------
@@ -109,13 +115,15 @@ export class RealUser extends User {
   address: string
 
   get contract () {
-    return (this.pool as RealPool).contract }
+    return (this.pool as RealPool).contract
+  }
 
   constructor (ui: UIContext, pool: Pool, name: string, balance: number) {
     super(ui, pool, name, balance)
     this.address = this.name
     this.contract.sender = this.address
-    this.contract.handle({ set_viewing_key: { key: "" } }) }
+    this.contract.handle({ set_viewing_key: { key: "" } })
+  }
 
   update () {
     // mock the user's balance - actually stored on this same object
@@ -124,8 +132,8 @@ export class RealUser extends User {
 
     // get the user's info as stored and calculated by the rewards contract
     // presuming the above mock balance
-    const info = this.contract.query({rewards:{status:{at:T.T,address:this.address,key:""}}})
-      .rewards.status.account
+    const msg  = {rewards:{status:{at:T.T,address:this.address,key:""}}};
+    const info = this.contract.query(msg).rewards.status.account
     this.last_update = info.updated
     this.lifetime    = Number(info.volume)
     this.locked      = Number(info.staked)
@@ -134,28 +142,36 @@ export class RealUser extends User {
     this.earned      = Number(info.earned)
     //this.claimed     = Number(info.user_claimed)
     //this.claimable   = Number(info.user_claimable)
+    this.pool_volume_since_entry = Number(info.pool_volume_since_entry)
+    this.rewards_since_entry     = Number(info.rewards_unlocked_since_entry)
+    this.share = this.lifetime / this.pool_volume_since_entry * 100000000
     this.cooldown    = Number(info.bonding)
-    super.update() }
+    super.update()
+  }
 
   lock (amount: number) {
     this.contract.sender = this.address
     try {
       //console.debug('lock', amount)
-      this.contract.handle({rewards:{lock:{amount: String(amount)}}})
+      const msg = {rewards:{lock:{amount: String(amount)}}};
+      this.contract.handle(msg)
       super.lock(amount) }
     catch (e) {
       //console.error(e)
-    } }
+    }
+  }
 
   retrieve (amount: number) {
     this.contract.sender = this.address
     try {
       //console.debug('retrieve', amount)
-      this.contract.handle({rewards:{retrieve:{amount: String(amount)}}})
+      const msg = {rewards:{retrieve:{amount: String(amount)}}};
+      this.contract.handle(msg)
       super.retrieve(amount)
     } catch (e) {
       //console.error(e)
-    } }
+    }
+  }
 
   claim () {
     this.contract.sender = this.address
@@ -165,4 +181,7 @@ export class RealUser extends User {
       return this.doClaim(reward) }
     catch (e) {
       console.error(e)
-      return 0 } } }
+      return 0
+    }
+  }
+}

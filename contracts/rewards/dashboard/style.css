@@ -128,6 +128,10 @@ td.locked {
   justify-content: space-between;
   background: rgba(0,0,0,0.2)
 }
+.locked > span {
+  margin: 0 1rem;
+}
 .locked button {
   padding: 0 1rem;
+  font-size: 0.8rem;
 }

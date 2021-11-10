@@ -20,12 +20,16 @@ export class Field {
   value = append(this.root, h('div'))
   constructor (name: string, value?: any) {
     this.label.textContent = name
-    this.value.textContent = String(value) }
+    this.value.textContent = String(value)
+  }
   append (parent: HTMLElement) {
     parent.appendChild(this.root)
-    return this }
+    return this
+  }
   setValue (value: any) {
-    this.value.textContent = String(value) } }
+    this.value.textContent = String(value)
+  }
+}
 
 // global values + log of all modeled events -------------------------------------------------------
 export class Log {
@@ -56,19 +60,23 @@ export class Log {
 
 // table of current state --------------------------------------------------------------------------
 interface Columns {
-  name:         HTMLElement
-  last_update:  HTMLElement
-  lifetime:     HTMLElement
-  share:        HTMLElement
-  locked:       HTMLElement
-  lockedMinus:  HTMLElement
-  lockedValue:  HTMLElement
-  lockedPlus:   HTMLElement
-  age:          HTMLElement
-  earned:       HTMLElement
-  claimed:      HTMLElement
-  claimable:    HTMLElement
-  cooldown:     HTMLElement
+  name:                HTMLElement
+  last_update:         HTMLElement
+  lifetime:            HTMLElement
+  volume_since_entry:  HTMLElement
+  rewards_since_entry: HTMLElement
+  share:               HTMLElement
+  locked:              HTMLElement
+  lockedMinus100:      HTMLElement
+  lockedMinus1:        HTMLElement
+  lockedValue:         HTMLElement
+  lockedPlus1:         HTMLElement
+  lockedPlus100:       HTMLElement
+  age:                 HTMLElement
+  earned:              HTMLElement
+  claimed:             HTMLElement
+  claimable:           HTMLElement
+  cooldown:            HTMLElement
 }
 
 type Rows = Record<string, Columns>
@@ -83,49 +91,58 @@ export class Table {
 
   init (users: Users) {
     append(this.root, h('thead', {},
-      h('th', { textContent: 'name'         }),
-      h('th', { textContent: 'last_update'  }),
-      h('th', { textContent: 'age'          }),
-      h('th', { textContent: 'locked'       }),
-      h('th', { textContent: 'lifetime'     }),
-      h('th', { textContent: 'share'        }),
-      h('th', { textContent: 'earned'       }),
-      h('th', { textContent: 'claimed'      }),
-      h('th', { textContent: 'claimable'    }),
-      h('th', { textContent: 'cooldown'     }), ))
+      h('th', { textContent: 'name'                }),
+      h('th', { textContent: 'last_update'         }),
+      h('th', { textContent: 'locked'              }),
+      //h('th', { textContent: 'age'          }),
+      h('th', { textContent: 'volume'              }),
+      h('th', { textContent: 'pool_volume_since_entry'  }),
+      h('th', { textContent: 'rewards_since_entry' }),
+      h('th', { textContent: 'share'               }),
+      h('th', { textContent: 'earned'              }),
+      //h('th', { textContent: 'claimed'      }),
+      //h('th', { textContent: 'claimable'    }),
+      h('th', { textContent: 'cooldown'            }),
+    ))
     for (const name of Object.keys(users)) {
-      this.addRow(name, users[name]) } }
+      this.addRow(name, users[name])
+    }
+  }
 
   addRow (name: string, user: User) {
     if (NO_TABLE) return
     const row = append(this.root, h('tr'))
-    const locked      = h('td', { className: 'locked' })
-        , lockedMinus = append(locked, h('button', {
-                          textContent: '-',
-                          onclick: () => user.retrieve(100)
-                        }))
-        , lockedValue = append(locked, h('span', {
-                          textContent: ''
-                        }))
-        , lockedPlus  = append(locked, h('button', {
-                          textContent: '+',
-                          onclick: () => user.lock(100)
-                        }))
+    const locked =
+            h('td', { className: 'locked' })
+        , lockedMinus100 =
+            append(locked, h('button', { textContent: '-100', onclick: () => user.retrieve(100) }))
+        , lockedMinus1   =
+            append(locked, h('button', { textContent: '-1', onclick: () => user.retrieve(1) }))
+        , lockedValue    =
+            append(locked, h('span', { textContent: '' }))
+        , lockedPlus1    =
+            append(locked, h('button', { textContent: '+1', onclick: () => user.lock(1) }))
+        , lockedPlus100  =
+            append(locked, h('button', { textContent: '+100', onclick: () => user.lock(100) }))
     const rows = this.rows[name] = {
       name:         append(row, h('td', { style: 'font-weight:bold', textContent: name })),
       last_update:  append(row, h('td')),
-      age:          append(row, h('td')),
       locked:       append(row, locked),
-      lockedMinus, lockedValue, lockedPlus,
+      lockedMinus100, lockedMinus1, lockedValue, lockedPlus1, lockedPlus100,
+      age:          /*append(row, */h('td')/*)*/,
       lifetime:     append(row, h('td')),
+      volume_since_entry: append(row, h('td')),
+      rewards_since_entry: append(row, h('td')),
       share:        append(row, h('td')),
-      earned:       append(row, h('td')),
-      claimed:      append(row, h('td')),
-      claimable:    append(row, h('td', { className: 'claimable', onclick: () => {user.claim()} })),
-      cooldown:     append(row, h('td')), }
+      earned:       append(row, h('td', { className: 'claimable', onclick: () => {user.claim()} })),
+      claimed:      /*append(row,*/ h('td')/*)*/,
+      claimable:    /*append(row,*/ h('td', { className: 'claimable', onclick: () => {user.claim()} })/*)*/,
+      cooldown:     append(row, h('td')),
+    }
     rows.claimable.style.fontWeight = 'bold'
     append(this.root, row)
-    return rows }
+    return rows
+  }
 
   update (user: User) {
     if (NO_TABLE) return
@@ -135,6 +152,10 @@ export class Table {
       format.integer(user.locked)
     this.rows[user.name].lifetime.textContent =
       format.integer(user.lifetime)
+    this.rows[user.name].volume_since_entry.textContent =
+      format.integer(user.pool_volume_since_entry)
+    this.rows[user.name].rewards_since_entry.textContent =
+      format.integer(user.rewards_since_entry)
     this.rows[user.name].share.textContent =
       format.percentage(user.share)
     this.rows[user.name].age.textContent =

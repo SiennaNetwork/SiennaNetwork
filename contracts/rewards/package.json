@@ -15,7 +15,7 @@
     "webpack-dev-server": "^3.11.2"
   },
   "scripts": {
-    "start": "pnpm wasm; webpack serve",
+    "start": "pnpm wasm && webpack serve",
     "wasm": "wasm-pack build --dev --target web --out-dir target/web --out-name rewards -- --features browser"
   }
 }

@@ -11,7 +11,7 @@ export const TIME_SCALE          = 120
            , COOLDOWN            = FUND_INTERVAL
            , THRESHOLD           = FUND_INTERVAL
            , USER_GIVES_UP_AFTER = Infinity
-           , MAX_USERS           = 20
+           , MAX_USERS           = 10
            , MAX_INITIAL         = 10000
 
 export const format = {
@@ -89,6 +89,10 @@ export class User {
   waited:       number = 0
   last_claimed: number = 0
   share:        number = 0
+
+  pool_volume_since_entry: number = 0
+  rewards_since_entry:     number = 0
+
   constructor (ui: UIContext, pool: Pool, name: string, balance: number) {
     this.ui      = ui
     this.pool    = pool
