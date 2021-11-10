@@ -27,7 +27,8 @@ pub struct RewardsConfig {
     pub lp_token:     Option<ContractLink<HumanAddr>>,
     pub reward_token: Option<ContractLink<HumanAddr>>,
     pub reward_vk:    Option<String>,
-    pub bonding:      Option<Duration>
+    pub bonding:      Option<Duration>,
+    pub timekeeper:   Option<HumanAddr>
 }
 impl RewardsConfig {
     pub const SELF:         &'static[u8] = b"/config/self";
@@ -36,12 +37,10 @@ impl RewardsConfig {
     pub const REWARD_VK:    &'static[u8] = b"/config/reward_vk";
     pub const CLOSED:       &'static[u8] = b"/config/closed";
     pub const BONDING:      &'static[u8] = b"/config/bonding";
+    pub const TIMEKEEPER:   &'static[u8] = b"/config/keeper";
 }
 pub trait IRewardsConfig <S, A, Q, C> where
-    S: Storage,
-    A: Api,
-    Q: Querier,
-    C: Composable<S, A, Q>
+    S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>
 {
     /// Commit initial contract configuration to storage.
     fn initialize   (&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>>;
@@ -55,12 +54,11 @@ pub trait IRewardsConfig <S, A, Q, C> where
     fn reward_token (core: &C) -> StdResult<ISnip20>;
     /// Get the reward viewing key.
     fn reward_vk    (core: &C) -> StdResult<String>;
+    /// Get the address authorized to increment the epoch
+    fn timekeeper   (core: &C) -> StdResult<HumanAddr>;
 }
 impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
-    S: Storage,
-    A: Api,
-    Q: Querier,
-    C: Rewards<S, A, Q>
+    S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     fn initialize (&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>> {
         if self.reward_token.is_none() {
@@ -73,30 +71,37 @@ impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
             if self.reward_vk.is_none() {
                 self.reward_vk = Some("".into())
             }
-            if self.bonding.is_none () {
+            if self.bonding.is_none() {
                 self.bonding = Some(DAY)
+            }
+            if self.timekeeper.is_none() {
+                self.timekeeper = Some(env.message.sender.clone())
             }
             self.store(core)
         }
     }
     fn store (&self, core: &mut C) -> StdResult<Vec<CosmosMsg>> {
+        let RewardsConfig { timekeeper, lp_token, bonding, reward_token, reward_vk } = self;
         let mut messages = vec![];
-        if let Some(lp_token) = &self.lp_token {
+        if let Some(lp_token) = lp_token {
             core.set(Self::LP_TOKEN, &core.canonize(lp_token.clone())?)?;
         }
-        if let Some(bonding) = &self.bonding {
+        if let Some(bonding) = bonding {
             core.set(Self::BONDING, &bonding)?;
         }
-        if let Some(reward_token) = &self.reward_token {
+        if let Some(reward_token) = reward_token {
             core.set(Self::REWARD_TOKEN, &core.canonize(reward_token.clone())?)?;
-            if let Some(reward_vk) = &self.reward_vk {
+            if let Some(reward_vk) = reward_vk {
                 core.set(Self::REWARD_VK, &reward_vk)?;
                 messages.push(ISnip20::attach(reward_token.clone()).set_viewing_key(&reward_vk)?);
             }
-        } else if let Some(reward_vk) = &self.reward_vk {
+        } else if let Some(reward_vk) = reward_vk {
             core.set(Self::REWARD_VK, &reward_vk)?;
             let reward_token = RewardsConfig::reward_token(core)?;
             messages.push(reward_token.set_viewing_key(&reward_vk)?);
+        }
+        if let Some(timekeeper) = timekeeper {
+            core.set(Self::TIMEKEEPER, &core.canonize(timekeeper.clone())?)?;
         }
         Ok(messages)
     }
@@ -119,6 +124,10 @@ impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
         Ok(core.get::<ViewingKey>(Self::REWARD_VK)?
             .ok_or(StdError::generic_err("no reward viewing key"))?.0)
     }
+    fn timekeeper (core: &C) -> StdResult<HumanAddr> {
+        Ok(core.get::<HumanAddr>(Self::TIMEKEEPER)?
+            .ok_or(StdError::generic_err("no timekeeper address"))?)
+    }
 }
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
@@ -127,6 +136,8 @@ pub enum RewardsHandle {
     Lock     { amount: Amount },
     Retrieve { amount: Amount },
     Claim    {},
+    // Authorized transactions
+    IncrementEpoch { next_epoch: Moment },
     // Admin-only transactions
     Configure(RewardsConfig),
     Close    { message: String },
@@ -143,6 +154,9 @@ impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for RewardsHandle where
                 Account::get(core, env.block.time, env.message.sender)?.withdraw(core, amount),
             RewardsHandle::Claim {} =>
                 Account::get(core, env.block.time, env.message.sender)?.claim(core),
+            // Authorized transactions
+            RewardsHandle::IncrementEpoch { next_epoch } =>
+                EpochClock::increment(core, &env, next_epoch),
             // Admin-only transactions
             _ => {
                 Auth::assert_admin(core, &env)?;
@@ -212,6 +226,81 @@ impl RewardsResponse {
         })
     }
 }
+
+/// Reward epoch state. Epoch is incremented after each RPT vesting.
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
+#[serde(rename_all="snake_case")]
+pub struct EpochClock {
+    /// "Who can increment the epoch?"
+    pub keeper:  HumanAddr,
+    /// "Which contract vests funds to this reward pool?"
+    pub rpt:     ContractLink<HumanAddr>,
+    /// "What is the current reward epoch?"
+    /// Incremented by external periodic call.
+    pub number:  Moment,
+    /// "When did the epoch last increment?"
+    /// Set to current time on epoch increment.
+    pub started: Moment,
+    /// "What was the total pool liquidity at the epoch start?"
+    /// Set to `total.volume` on epoch increment.
+    pub volume:  Volume
+    //// "what rewards were unlocked for this pool at the epoch start?"
+    //// computed as balance + claimed.
+    //pub unlocked_at_epoch: Amount,
+}
+impl EpochClock {
+    pub const MASTER:   &'static[u8] = b"/epoch/master";
+    pub const NUMBER:   &'static[u8] = b"/epoch/number";
+    pub const START:    &'static[u8] = b"/epoch/start";
+    pub const VOLUME:   &'static[u8] = b"/epoch/volume";
+    pub const UNLOCKED: &'static[u8] = b"/epoch/unlocked";
+}
+pub trait IEpochClock <S, A, Q, C> where
+    S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>
+{
+    /// Increment the epoch and commit liquidity so far
+    fn increment (core: &mut C, env: &Env, next_epoch: Moment) -> StdResult<HandleResponse>;
+}
+impl<S, A, Q, C> IEpochClock<S, A, Q, C> for EpochClock where
+    S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
+{
+    fn increment (core: &mut C, env: &Env, next_epoch: Moment) -> StdResult<HandleResponse> {
+        if env.message.sender != RewardsConfig::timekeeper(core)? {
+            return Err(StdError::unauthorized())
+        }
+
+        let epoch: Moment = core.get(Self::NUMBER)?.unwrap_or(0u64);
+
+        if next_epoch != epoch + 1 {
+            return Err(StdError::generic_err(format!(
+                "The current epoch is {}. The 'next_epoch' field must be set to {} instead of {}.",
+                epoch,
+                epoch + 1,
+                next_epoch
+            )))
+        }
+
+        core.set(Self::NUMBER, next_epoch)?;
+
+        let now = env.block.time;
+
+        core.set(Self::START, now)?;
+
+        core.set(Self::VOLUME, accumulate(
+            core.get(Total::VOLUME)?.unwrap_or(Volume::zero()),
+            now - core.get(Total::UPDATED)?.unwrap_or(now),
+            core.get(Total::STAKED)?.unwrap_or(Amount::zero())
+        )?)?;
+
+        Ok(HandleResponse::default())
+    }
+}
+
+#[derive(Serialize)]
+pub enum RPTHandle {
+    Vest {}
+}
+
 /// Account status
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
@@ -224,47 +313,44 @@ pub struct Account {
     #[serde(skip)] pub total:   Total,
     /// When did this user's liquidity amount last change?
     /// Set to current time on update.
-    pub updated:                      Moment,
+    pub updated:                  Moment,
     /// How much liquidity does this user currently provide?
     /// Incremented/decremented on lock/unlock.
-    pub staked:                       Amount,
+    pub staked:                   Amount,
     /// What portion of the pool is currently owned by this user?
     /// Computed as user.staked / pool.staked
-    pub pool_share:                   (Amount, Amount),
+    pub pool_share:               (Amount, Amount),
     /// How much liquidity has this user provided since they first appeared?
     /// Incremented on update by staked * elapsed if staked > 0
-    pub volume:                       Volume,
+    pub volume:                   Volume,
     /// What was the volume of the pool when the user entered?
     /// Set to `total.volume` on initial deposit.
-    pub pool_volume_at_entry:         Volume,
+    pub starting_pool_volume:     Volume,
     /// How much has `total.volume` grown, i.e. how much liquidity
     /// has accumulated in the pool since this user entered?
     /// Used as basis of reward share calculation.
-    pub pool_volume_since_entry:      Volume,
+    pub accumulated_pool_volume:  Volume,
     /// What portion of all the liquidity accumulated since this user's entry
     /// is due to this particular user's stake? Computed as user.volume / pool.volume
-    pub reward_share:                 (Volume, Volume),
+    pub reward_share:             (Volume, Volume),
     /// How much rewards were already unlocked when the user entered?
     /// Set to `total.unlocked` on initial deposit.
-    pub rewards_unlocked_at_entry:    Amount,
+    pub starting_pool_rewards:    Amount,
     /// How much has `total.unlocked` grown, i.e. how much rewards
     /// have been unlocked since this user entered?
     /// Multiply this by the reward share to compute earnings.
-    pub rewards_unlocked_since_entry: Amount,
+    pub accumulated_pool_rewards: Amount,
     /// How much rewards has this user earned?
     /// Computed as user.reward_share * pool.unlocked
-    pub earned:       Amount,
+    pub earned:                   Amount,
     /// How many units of time remain until the user can claim?
     /// Decremented on update, reset to pool.bonding on claim.
-    pub bonding:      Duration,
+    pub bonding:                  Duration,
     /// User-friendly reason why earned is 0
-    pub reason:       Option<String>,
+    pub reason:                   Option<String>,
 }
 pub trait IAccount <S, A, Q, C>: Sized where
-    S: Storage,
-    A: Api,
-    Q: Querier,
-    C: Composable<S, A, Q>
+    S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>
 {
     /// Get an account with up-to-date values
     fn get (core: &C, now: Moment, address: HumanAddr) -> StdResult<Self>;
@@ -288,10 +374,7 @@ pub trait IAccount <S, A, Q, C>: Sized where
     fn reset (&mut self, core: &mut C) -> StdResult<()>;
 }
 impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
-    S: Storage,
-    A: Api,
-    Q: Querier,
-    C: Rewards<S, A, Q>
+    S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     fn get (core: &C, now: Moment, address: HumanAddr) -> StdResult<Self> {
         let total      = Total::get(core, now)?;
@@ -322,20 +405,22 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         // * The user's **volume share** is defined as `volume / total.volume`.
         //   It represents the user's overall contribution, and should move in the
         //   direction of the user's momentary share.
-        account.pool_volume_at_entry = get_volume(Account::ENTRY_VOL, total.volume)?;
-        if account.pool_volume_at_entry > total.volume { return errors::no_time_travel() }
-        account.pool_volume_since_entry = (total.volume - account.pool_volume_at_entry)?;
+        account.starting_pool_volume = get_volume(Account::ENTRY_VOL, total.volume)?;
+        if account.starting_pool_volume > total.volume { return errors::no_time_travel() }
 
-        account.rewards_unlocked_at_entry = get_amount(Account::ENTRY_REW, total.unlocked)?;
-        if account.rewards_unlocked_at_entry > total.unlocked { return errors::no_time_travel() }
-        account.rewards_unlocked_since_entry = (total.unlocked - account.rewards_unlocked_at_entry)?;
+        account.accumulated_pool_volume = (total.volume - account.starting_pool_volume)?;
+
+        account.starting_pool_rewards = get_amount(Account::ENTRY_REW, total.unlocked)?;
+        if account.starting_pool_rewards > total.unlocked { return errors::no_time_travel() }
+
+        account.accumulated_pool_rewards = (total.unlocked - account.starting_pool_rewards)?;
 
         account.staked  = get_amount(Account::STAKED, Amount::zero())?;
         let last_volume = get_volume(Account::VOLUME, Volume::zero())?;
         let elapsed: Duration = now - account.updated;
         account.volume       = accumulate(last_volume, elapsed, account.staked)?;
         account.pool_share   = (account.staked, total.staked);
-        account.reward_share = (account.volume, account.pool_volume_since_entry);
+        account.reward_share = (account.volume, account.accumulated_pool_volume);
         // 3. Rewards claimable
         // `earned` rewards are equal to `total.budget * reward_share`.
         // As the user's volume share increases (as a result of providing liquidity)
@@ -355,7 +440,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         account.earned = if account.reward_share.1 == Volume::zero() {
             Amount::zero()
         } else {
-            Volume::from(account.rewards_unlocked_since_entry) // TODO unlocked_since_entry
+            Volume::from(account.accumulated_pool_rewards) // TODO unlocked_since_entry
                 .multiply_ratio(account.reward_share.0, account.reward_share.1)?
                 .low_u128().into()
         };
@@ -369,6 +454,19 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         account.id    = id;
         account.total = total;
         Ok(account)
+    }
+    fn reset (&mut self, core: &mut C) -> StdResult<()> {
+        self.updated                   = self.total.now;
+        self.starting_pool_volume      = self.total.volume;
+        self.starting_pool_rewards = self.total.unlocked;
+        self.volume                    = Volume::zero();
+        self.bonding                   = self.total.bonding;
+        core.set_ns(Account::UPDATED,   self.id.as_slice(), self.updated)?;
+        core.set_ns(Account::ENTRY_VOL, self.id.as_slice(), self.starting_pool_volume)?;
+        core.set_ns(Account::ENTRY_REW, self.id.as_slice(), self.starting_pool_rewards)?;
+        core.set_ns(Account::VOLUME,    self.id.as_slice(), self.volume)?;
+        core.set_ns(Account::BONDING,   self.id.as_slice(), self.bonding)?;
+        Ok(())
     }
     fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()> {
         core.set(Total::VOLUME,  self.total.volume)?;
@@ -474,19 +572,6 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
             Err(StdError::generic_err("pool not closed"))
         }
     }
-    fn reset (&mut self, core: &mut C) -> StdResult<()> {
-        self.updated                   = self.total.now;
-        self.pool_volume_at_entry      = self.total.volume;
-        self.rewards_unlocked_at_entry = self.total.unlocked;
-        self.volume                    = Volume::zero();
-        self.bonding                   = self.total.bonding;
-        core.set_ns(Account::UPDATED,   self.id.as_slice(), self.updated)?;
-        core.set_ns(Account::ENTRY_VOL, self.id.as_slice(), self.pool_volume_at_entry)?;
-        core.set_ns(Account::ENTRY_REW, self.id.as_slice(), self.rewards_unlocked_at_entry)?;
-        core.set_ns(Account::VOLUME,    self.id.as_slice(), self.volume)?;
-        core.set_ns(Account::BONDING,   self.id.as_slice(), self.bonding)?;
-        Ok(())
-    }
 }
 impl Account {
     pub const ENTRY_VOL: &'static[u8] = b"/user/entry_vol/";
@@ -502,44 +587,52 @@ impl Account {
 /// Pool totals
 pub struct Total {
     /// "For what point in time do the following values hold true?"
-    /// Passed on instantiation.
-    pub now:          Moment,
+    /// Passed on instantiation. Can't be in the past.
+    pub now:               Moment,
+    pub epoch:             Moment,
+    pub epoch_start:       Moment,
     /// "When was the last time someone staked or unstaked tokens?"
     /// Set to current time on lock/unlock.
-    pub updated:      Moment,
+    pub updated:           Moment,
     /// "What liquidity is there in the whole pool right now?"
     /// Incremented/decremented on lock/unlock.
-    pub staked:       Amount,
+    pub staked:            Amount,
     /// "What liquidity has this pool contained up to this point?"
     /// Before lock/unlock, if staked > 0, this is incremented
     /// by total.elapsed * total.staked
-    pub volume:       Volume,
+    pub volume:            Volume,
     /// "What amount of rewards is currently available for users?"
     /// Queried from reward token.
-    pub budget:       Amount,
+    pub budget:            Amount,
     /// "What rewards has everyone received so far?"
     /// Incremented on claim.
-    pub distributed:  Amount,
-    /// "What rewards were unstaked for this pool so far?"
-    /// Computed as balance + claimed.
-    pub unlocked:     Amount,
-    /// "How much must the user wait between claims?"
+    pub distributed:       Amount,
+    /// "what rewards were unlocked for this pool so far?"
+    /// computed as balance + claimed.
+    pub unlocked:          Amount,
+    /// "how much must the user wait between claims?"
     /// Configured on init.
     /// Account bondings are reset to this value on claim.
-    pub bonding:      Duration,
+    pub bonding:           Duration,
     /// "Is this pool closed, and if so, when and why?"
     /// Set irreversibly via handle method.
-    pub closed:       Option<CloseSeal>,
+    pub closed:            Option<CloseSeal>,
+}
+pub trait ITotal <S, A, Q, C>: Sized where
+    S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>
+{
+    fn get (core: &C, now: Moment) -> StdResult<Self>;
 }
 impl Total {
-    pub const VOLUME:  &'static[u8] = b"/total/volume";
-    pub const UPDATED: &'static[u8] = b"/total/updated";
-    pub const STAKED:  &'static[u8] = b"/total/size";
-    pub const CLAIMED: &'static[u8] = b"/total/claimed";
-    fn get <S: Storage, A: Api, Q: Querier> (
-        core: &impl Rewards<S, A, Q>,
-        now:  Moment
-    ) -> StdResult<Self> {
+    pub const VOLUME:         &'static[u8] = b"/total/volume";
+    pub const UPDATED:        &'static[u8] = b"/total/updated";
+    pub const STAKED:         &'static[u8] = b"/total/size";
+    pub const CLAIMED:        &'static[u8] = b"/total/claimed";
+}
+impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
+    S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
+{
+    fn get (core: &C, now: Moment) -> StdResult<Self> {
         let mut total = Self::default();
         let get_time = |key, default: u64| -> StdResult<u64> {
             Ok(core.get(key)?.unwrap_or(default))
@@ -592,7 +685,8 @@ impl Total {
         //   It should be equal to the sum released from RPT for this total.
         total.budget = reward_token.query_balance(core.querier(), address, vk)?;
         let lp_token = RewardsConfig::lp_token(core)?;
-        if reward_token.link == lp_token.link {
+        let is_single_sided = reward_token.link == lp_token.link;
+        if is_single_sided {
             total.budget = (total.budget - total.staked)?;
         }
         total.distributed = get_amount(Total::CLAIMED, Amount::zero())?;

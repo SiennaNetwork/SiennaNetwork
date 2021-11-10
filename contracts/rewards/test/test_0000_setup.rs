@@ -40,6 +40,7 @@ use crate::test::{*, Context};
                 reward_token: Some(reward_token),
                 reward_vk:    Some(reward_vk),
                 bonding:      None,
+                timekeeper:   None
             });
         });
 }

@@ -6,7 +6,8 @@ Time,Sender,Recipient,Data
     address: SIENNA
     code_hash: SIENNA_hash
   reward_vk: reward_vk
-  bonding: ~"
+  bonding: ~
+  timekeeper: ~"
 tx,REWARDS,SIENNA,"set_viewing_key:
   key: reward_vk
   padding: ~"

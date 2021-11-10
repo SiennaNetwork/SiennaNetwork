@@ -195,6 +195,7 @@ impl Context {
             reward_token: Some(self.reward_token.link.clone()),
             reward_vk:    Some(self.reward_vk.clone()),
             bonding:      Some(self.bonding),
+            timekeeper:   Some(HumanAddr::from("Admin")),
         };
         let actual = Rewards::init(&mut self.deps, &self.env, config).unwrap();
         let expected = vec![
@@ -214,6 +215,7 @@ impl Context {
             reward_token: None,
             reward_vk:    None,
             bonding:      None,
+            timekeeper:   None
         };
         assert!(Rewards::init(&mut self.deps, &self.env, invalid_config).is_err());
         self
@@ -241,7 +243,8 @@ impl Context {
             lp_token:     None,
             reward_token: None,
             reward_vk:    None,
-            bonding:      Some(bonding)
+            bonding:      Some(bonding),
+            timekeeper:   None,
         })
     }
     pub fn cannot_configure (&mut self) -> &mut Self {
@@ -250,6 +253,7 @@ impl Context {
             reward_token: None,
             reward_vk:    None,
             bonding:      None,
+            timekeeper:   None,
         })), Err(StdError::unauthorized()));
         self
     }
@@ -373,8 +377,8 @@ impl Context {
         self.test_field("user.earned ", actual, expected.into())
     }
     pub fn entry (&mut self, expected: u128) -> &mut Self {
-        let actual = self.account_status().pool_volume_at_entry;
-        self.test_field("user.pool_volume_at_entry", actual, expected.into())
+        let actual = self.account_status().starting_pool_volume;
+        self.test_field("user.starting_pool_volume", actual, expected.into())
     }
     pub fn pool_volume (&mut self, expected: u128) -> &mut Self {
         let actual = self.pool_status().volume;
