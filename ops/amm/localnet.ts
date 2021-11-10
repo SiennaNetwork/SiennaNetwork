@@ -1,5 +1,5 @@
 import { create_fee, Address } from '../../api/siennajs/lib/core'
-import { AmmFactoryContract, ExchangeSettings } from '../../api/siennajs/lib/amm_factory'
+import { ExchangeSettings } from '../../api/siennajs/lib/amm_factory'
 import { create_rand_base64, UploadResult } from './setup'
 
 import { SigningCosmWasmClient, InstantiateResult } from 'secretjs'
@@ -33,7 +33,7 @@ export async function instantiate_factory(
     const instance = await client.instantiate(
         result.factory.id,
         factory_init_msg,
-        'SIENNA AMM FACTORY',
+        `SIENNA AMM FACTORY_${Date.now()}`,
         undefined,
         undefined,
         create_fee('165000')

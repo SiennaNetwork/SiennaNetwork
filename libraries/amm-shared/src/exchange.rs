@@ -1,6 +1,7 @@
 use fadroma::{
     scrt::{HumanAddr, StdResult, Api, CanonicalAddr},
-    scrt_addr::{Canonize, Humanize}
+    scrt_addr::{Canonize, Humanize},
+    scrt_link::ContractLink
 };
 use crate::token_pair::TokenPair;
 use schemars::JsonSchema;
@@ -11,15 +12,15 @@ use serde::{Deserialize, Serialize};
 pub struct Exchange<A: Clone> {
     /// The pair that the contract manages.
     pub pair: TokenPair<A>,
-    /// Address of the contract that manages the exchange.
-    pub address: A,
+    /// The contract that manages the exchange.
+    pub contract: ContractLink<A>,
 }
 
 impl Canonize<Exchange<CanonicalAddr>> for Exchange<HumanAddr> {
     fn canonize(&self, api: &impl Api) -> StdResult<Exchange<CanonicalAddr>> {
         Ok(Exchange {
             pair: self.pair.canonize(api)?,
-            address: self.address.canonize(api)?,
+            contract: self.contract.canonize(api)?,
         })
     }
 }
@@ -28,7 +29,7 @@ impl Humanize<Exchange<HumanAddr>> for Exchange<CanonicalAddr> {
     fn humanize(&self, api: &impl Api) -> StdResult<Exchange<HumanAddr>> {
         Ok(Exchange {
             pair: self.pair.humanize(api)?,
-            address: api.human_address(&self.address)?,
+            contract: self.contract.humanize(api)?,
         })
     }
 }

@@ -1,22 +1,23 @@
-pub use amm_shared::{
+use amm_shared::{
     exchange::{Exchange, ExchangeSettings, Fee},
     fadroma::{
         scrt_addr::Canonize,
         scrt_link::{ContractLink, ContractInstantiationInfo},
         scrt::{
-            from_binary,
-            testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage},
-            to_binary, Api, Binary, Env, Extern, HandleResponse, HumanAddr, Querier, StdError,
-            StdResult, Storage, Uint128,
+            testing::{mock_dependencies, mock_env},
+            Api, Binary, Env, Extern, HandleResponse, HumanAddr, Querier, StdError,
+            StdResult, Storage, Uint128, CosmosMsg, WasmMsg, from_binary, to_binary
         },
         scrt_storage::{load, save},
+        scrt_migrate
     },
     msg::factory::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
+    msg::exchange::HandleMsg as ExchangeHandle,
     msg::ido::TokenSaleConfig,
     Pagination, TokenPair, TokenType,
 };
 
-pub use crate::{contract::*, state::*};
+use crate::{contract::*, state::*};
 
 impl Into<InitMsg> for &Config<HumanAddr> {
     fn into(self) -> InitMsg {
@@ -66,7 +67,7 @@ fn mkdeps() -> Extern<impl Storage, impl Api, impl Querier> {
 }
 
 fn mkconfig(id: u64) -> Config<HumanAddr> {
-    Config::from_init_msg(InitMsg {
+    Config {
         snip20_contract: ContractInstantiationInfo {
             id,
             code_hash: "snip20".into(),
@@ -91,10 +92,8 @@ fn mkconfig(id: u64) -> Config<HumanAddr> {
             swap_fee: Fee::new(28, 10000),
             sienna_fee: Fee::new(2, 10000),
             sienna_burner: None,
-        },
-        admin: None,
-        prng_seed: to_binary(&"prng").unwrap(),
-    })
+        }
+    }
 }
 
 fn assert_unauthorized(response: StdResult<HandleResponse>) {
@@ -276,6 +275,36 @@ mod test_contract {
     }
 
     #[test]
+    fn test_register_exchange_with_empty_signature() -> StdResult<()> {
+        let ref mut deps = mkdeps();
+
+        let pair = TokenPair(
+            TokenType::CustomToken {
+                contract_addr: HumanAddr("token_addr".into()),
+                token_code_hash: "13123adasd".into(),
+            },
+            TokenType::NativeToken {
+                denom: "test1".into(),
+            },
+        );
+
+        let sender_addr = HumanAddr("sender1111".into());
+
+        let result = handle(
+            deps,
+            mkenv(sender_addr.clone()),
+            HandleMsg::RegisterExchange {
+                pair: pair.clone(),
+                signature: Binary(vec![]),
+            },
+        );
+
+        assert_unauthorized(result);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_register_ido() -> StdResult<()> {
         let ref mut deps = mkdeps();
 
@@ -355,70 +384,6 @@ mod test_contract {
             }
         };
         Ok(())
-    }
-
-    #[test]
-    fn test_add_exchanges() {
-        let ref mut deps = mkdeps();
-        let env = mkenv("admin");
-        let config = mkconfig(0);
-
-        init(deps, env.clone(), (&config).into()).unwrap();
-
-        let mut exchanges = vec![];
-
-        for i in 0..5 {
-            exchanges.push(Exchange {
-                pair: TokenPair::<HumanAddr>(
-                    TokenType::CustomToken {
-                        contract_addr: format!("token_0_addr_{}", i).into(),
-                        token_code_hash: format!("token_0_hash_{}", i),
-                    },
-                    TokenType::CustomToken {
-                        contract_addr: format!("token_1_addr_{}", i).into(),
-                        token_code_hash: format!("token_1_hash_{}", i),
-                    },
-                ),
-                address: format!("pair_addr_{}", i).into(),
-            });
-        }
-
-        store_exchanges(deps, vec![exchanges[0].clone()]).unwrap();
-
-        let result = handle(
-            deps,
-            mkenv("unauthorized"),
-            HandleMsg::AddExchanges {
-                exchanges: exchanges.clone()[1..].into(),
-            },
-        );
-        assert_unauthorized(result);
-
-        handle(
-            deps,
-            env,
-            HandleMsg::AddExchanges {
-                exchanges: exchanges.clone()[1..].into(),
-            },
-        )
-        .unwrap();
-
-        let result = query(
-            deps,
-            QueryMsg::ListExchanges {
-                pagination: pagination(0, PAGINATION_LIMIT),
-            },
-        )
-        .unwrap();
-
-        let response: QueryResponse = from_binary(&result).unwrap();
-
-        match response {
-            QueryResponse::ListExchanges { exchanges: stored } => {
-                assert_eq!(exchanges, stored)
-            }
-            _ => panic!("QueryResponse::ListExchanges"),
-        }
     }
 
     #[test]
@@ -555,6 +520,257 @@ mod test_contract {
         )
         .unwrap();
     }
+
+    #[test]
+    fn test_transfer_exchanges() {
+        let ref mut deps = mkdeps();
+        let admin = "admin";
+
+        let config = mkconfig(0);
+
+        init(deps, mkenv(admin), (&config).into()).unwrap();
+
+        let over_limit = 5;
+        let mut exchanges = mock_and_store_exchanges(deps, TRANSFER_LIMIT + over_limit);
+
+        let new_instance = ContractLink {
+            address: HumanAddr("new_factory".into()),
+            code_hash: "new_factory_code_hash".into()
+        };
+
+        let password = String::from("pass");
+
+        let result = handle(deps, mkenv("rando"), HandleMsg::TransferExchanges {
+            password: password.clone(),
+            new_instance: new_instance.clone(),
+            skip: None
+        });
+        assert_unauthorized(result);
+
+        let mut result = handle(deps, mkenv(admin), HandleMsg::TransferExchanges {
+            password: password.clone(),
+            new_instance: new_instance.clone(),
+            skip: None
+        }).unwrap();
+        assert_eq!(result.messages.len(), TRANSFER_LIMIT + 1); // +1 for the message to the new factory
+
+        let exchanges_left = get_exchanges(deps, pagination(0, 30)).unwrap();
+        assert_eq!(exchanges_left.len(), over_limit);
+        assert_eq!(exchanges_left, exchanges[..over_limit]);
+
+        let last_msg = result.messages.pop().unwrap();
+        assert_eq!(last_msg, CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: new_instance.address.clone(),
+            callback_code_hash: new_instance.code_hash.clone(),
+            send: vec![],
+            msg: to_binary(&HandleMsg::ReceiveExchanges {
+                password: password.clone(),
+                finalize: false,
+                exchanges: exchanges.clone().into_iter().rev().take(TRANSFER_LIMIT).collect()
+            }).unwrap()
+        }));
+
+        for (message, exchange) in result.messages.into_iter().zip(
+            exchanges.drain(over_limit..).into_iter().rev().take(TRANSFER_LIMIT)
+        ) {
+            assert_eq!(message, CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: exchange.contract.address,
+                callback_code_hash: exchange.contract.code_hash,
+                send: vec![],
+                msg: to_binary(&ExchangeHandle::ChangeFactory {
+                    contract: new_instance.clone()
+                }).unwrap()
+            }))
+        }
+
+        let mut result = handle(deps, mkenv(admin), HandleMsg::TransferExchanges {
+            password: password.clone(),
+            new_instance: new_instance.clone(),
+            skip: None
+        }).unwrap();
+        assert_eq!(result.messages.len(), over_limit + 1); // +1 for the message to the new factory
+
+        let exchanges_left = get_exchanges(deps, pagination(0, 30)).unwrap();
+        assert_eq!(exchanges_left.len(), 0);
+
+        let last_msg = result.messages.pop().unwrap();
+        assert_eq!(last_msg, CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: new_instance.address.clone(),
+            callback_code_hash: new_instance.code_hash.clone(),
+            send: vec![],
+            msg: to_binary(&HandleMsg::ReceiveExchanges {
+                password: password.clone(),
+                finalize: true,
+                exchanges: exchanges.clone().into_iter().rev().collect()
+            }).unwrap()
+        }));
+
+        for (message, exchange) in result.messages.into_iter().zip(
+            exchanges.into_iter().rev().take(TRANSFER_LIMIT)
+        ) {
+            assert_eq!(message, CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: exchange.contract.address,
+                callback_code_hash: exchange.contract.code_hash,
+                send: vec![],
+                msg: to_binary(&ExchangeHandle::ChangeFactory {
+                    contract: new_instance.clone()
+                }).unwrap()
+            }))
+        }
+
+        let status = scrt_migrate::get_status(deps).unwrap();
+        assert_eq!(status, scrt_migrate::ContractStatus {
+            level: scrt_migrate::ContractStatusLevel::Migrating,
+            reason: "Migrating to new factory.".into(),
+            new_address: Some(new_instance.address)
+        });
+    }
+
+    #[test]
+    fn test_transfer_exchanges_with_skip() {
+        let ref mut deps = mkdeps();
+        let admin = "admin";
+
+        let config = mkconfig(0);
+
+        init(deps, mkenv(admin), (&config).into()).unwrap();
+
+        let mut exchanges = mock_and_store_exchanges(deps, 5);
+
+        let new_instance = ContractLink {
+            address: HumanAddr("new_factory".into()),
+            code_hash: "new_factory_code_hash".into()
+        };
+
+        let password = String::from("pass");
+
+        let mut result = handle(deps, mkenv(admin), HandleMsg::TransferExchanges {
+            password: password.clone(),
+            new_instance: new_instance.clone(),
+            skip: Some(vec![
+                exchanges[0].contract.address.clone(),
+                exchanges[2].contract.address.clone()
+            ])
+        }).unwrap();
+        assert_eq!(result.messages.len(), 4);
+
+        result.messages.pop();
+
+        let exchanges_left = get_exchanges(deps, pagination(0, 30)).unwrap();
+        assert_eq!(exchanges_left.len(), 0);
+
+        exchanges.remove(0);
+        exchanges.remove(1);
+
+        for (message, exchange) in result.messages.into_iter().zip(
+            exchanges.into_iter().rev().take(TRANSFER_LIMIT)
+        ) {
+            assert_eq!(message, CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: exchange.contract.address,
+                callback_code_hash: exchange.contract.code_hash,
+                send: vec![],
+                msg: to_binary(&ExchangeHandle::ChangeFactory {
+                    contract: new_instance.clone()
+                }).unwrap()
+            }))
+        }
+    }
+
+    #[test]
+    fn test_receive_exchanges() {
+        let ref mut deps = mkdeps();
+        let admin = "admin";
+
+        let config = mkconfig(0);
+
+        init(deps, mkenv(admin), (&config).into()).unwrap();
+
+        let mut existing_exchanges = mock_and_store_exchanges(deps, 2);
+
+        let password = String::from("pass");
+
+        let result = handle(deps, mkenv("rando"), HandleMsg::SetMigrationPassword {
+            password: password.clone()
+        });
+        assert_unauthorized(result);
+
+        let result = handle(deps, mkenv("rando"), HandleMsg::ReceiveExchanges {
+            password: password.clone(),
+            finalize: false,
+            exchanges: vec![]
+        });
+        assert_unauthorized(result);
+
+        handle(deps, mkenv(admin), HandleMsg::SetMigrationPassword {
+            password: password.clone()
+        }).unwrap();
+
+        let mut new_exchanges = vec![];
+
+        for i in 2..5 {
+            let pair = TokenPair(
+                TokenType::CustomToken {
+                    contract_addr: HumanAddr(format!("addr_{}", i)),
+                    token_code_hash: format!("code_hash_{}", i),
+                },
+                TokenType::NativeToken {
+                    denom: format!("denom_{}", i),
+                },
+            );
+            let address = HumanAddr(format!("address_{}", i));
+            let code_hash = format!("code_hash_{}", i);
+    
+            new_exchanges.push(Exchange {
+                pair,
+                contract: ContractLink {
+                    address,
+                    code_hash
+                }
+            });
+        };
+
+        handle(deps, mkenv("rando"), HandleMsg::ReceiveExchanges {
+            password: password.clone(),
+            finalize: false,
+            exchanges: new_exchanges.clone()
+        }).unwrap();
+
+        assert!(load_migration_password(&deps.storage).is_ok());
+
+        let stored_exchanges = get_exchanges(deps, pagination(0, 30)).unwrap();
+        existing_exchanges.extend(new_exchanges.into_iter());
+
+        assert_eq!(stored_exchanges, existing_exchanges);
+
+        let new_exchange = Exchange {
+            pair: TokenPair(
+                TokenType::CustomToken {
+                    contract_addr: HumanAddr("addr_5".into()),
+                    token_code_hash: "code_hash_5".into(),
+                },
+                TokenType::NativeToken {
+                    denom: "denom_5".into(),
+                },
+            ),
+            contract: ContractLink {
+                address: HumanAddr("address_5".into()),
+                code_hash: "code_hash_5".into()
+            }
+        };
+
+        handle(deps, mkenv("rando"), HandleMsg::ReceiveExchanges {
+            password: password.clone(),
+            finalize: true,
+            exchanges: vec![ new_exchange.clone() ]
+        }).unwrap();
+
+        assert!(load_migration_password(&deps.storage).is_err());
+
+        let stored_exchanges = get_exchanges(deps, pagination(0, 30)).unwrap();
+        existing_exchanges.push(new_exchange);
+
+        assert_eq!(stored_exchanges, existing_exchanges);
+    }
 }
 
 mod test_state {
@@ -648,7 +864,10 @@ mod test_state {
             &mut deps,
             vec![Exchange {
                 pair: pair.clone(),
-                address: address.clone(),
+                contract: ContractLink {
+                    address:  address.clone(),
+                    code_hash: "code_hash".into()
+                }
             }],
         )?;
 
@@ -678,7 +897,10 @@ mod test_state {
             deps,
             vec![Exchange {
                 pair: pair.clone(),
-                address: "first_addr".into(),
+                contract: ContractLink {
+                    address: "first_addr".into(),
+                    code_hash: "first_code_hash".into()
+                }
             }],
         )?;
 
@@ -688,7 +910,10 @@ mod test_state {
             deps,
             vec![Exchange {
                 pair: swapped,
-                address: "other_addr".into(),
+                contract: ContractLink {
+                    address: "other_addr".into(),
+                    code_hash: "other_code_hash".into()
+                }
             }],
         ) {
             Ok(_) => Err(StdError::generic_err("Exchange already exists")),
@@ -729,26 +954,7 @@ mod test_state {
     #[test]
     fn test_get_exchanges() -> StdResult<()> {
         let ref mut deps = mkdeps();
-
-        let mut exchanges = vec![];
-
-        for i in 0..33 {
-            let pair = TokenPair(
-                TokenType::CustomToken {
-                    contract_addr: HumanAddr(format!("addr_{}", i)),
-                    token_code_hash: format!("code_hash_{}", i),
-                },
-                TokenType::NativeToken {
-                    denom: format!("denom_{}", i),
-                },
-            );
-            let address = HumanAddr(format!("address_{}", i));
-
-            let exchange = Exchange { pair, address };
-
-            store_exchanges(deps, vec![exchange.clone()])?;
-            exchanges.push(exchange);
-        }
+        let exchanges = mock_and_store_exchanges(deps, 33);
 
         let result = get_exchanges(deps, pagination(exchanges.len() as u64, 20))?;
         assert_eq!(result.len(), 0);
@@ -767,4 +973,38 @@ mod test_state {
 
         Ok(())
     }
+}
+
+fn mock_and_store_exchanges<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S,A,Q>,
+    count: usize
+) -> Vec<Exchange<HumanAddr>> {
+    let mut exchanges = vec![];
+
+    for i in 0..count {
+        let pair = TokenPair(
+            TokenType::CustomToken {
+                contract_addr: HumanAddr(format!("addr_{}", i)),
+                token_code_hash: format!("code_hash_{}", i),
+            },
+            TokenType::NativeToken {
+                denom: format!("denom_{}", i),
+            },
+        );
+        let address = HumanAddr(format!("address_{}", i));
+        let code_hash = format!("code_hash_{}", i);
+
+        let exchange = Exchange {
+            pair,
+            contract: ContractLink {
+                address,
+                code_hash
+            }
+        };
+
+        store_exchanges(deps, vec![exchange.clone()]).unwrap();
+        exchanges.push(exchange);
+    }
+
+    exchanges
 }
