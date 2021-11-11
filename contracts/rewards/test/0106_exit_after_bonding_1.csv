@@ -23,13 +23,13 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 ,,,
 211,Admin,REWARDS,"begin_epoch:
   next_epoch: 1"
-212,REWARDS,Alice,account.earned               = 38861
-212,REWARDS,Alice,account.bonding              = 0
+211,REWARDS,Alice,account.earned               = 38861
+211,REWARDS,Alice,account.bonding              = 0
 ,,,
-212,test,branch,0106_exit_after_bonding_1
+211,test,branch,0106_exit_after_bonding_1
 ,,,
 ,,,
-212,Alice,REWARDS,"retrieve:
+211,Alice,REWARDS,"retrieve:
   amount: ""85596"""
 tx,REWARDS,SIENNA,"transfer:
   amount: ""38861""
@@ -39,8 +39,8 @@ tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""85596""
   padding: ~
   recipient: Alice"
-212,REWARDS,Alice,account.staked               = 0
-212,REWARDS,Alice,account.volume               = 0
-212,REWARDS,Alice,account.earned               = 0
-212,REWARDS,Alice,account.bonding              = 197
-212,REWARDS,Alice,total.distributed            = 38861
+211,REWARDS,Alice,account.staked               = 0
+211,REWARDS,Alice,account.volume               = 0
+211,REWARDS,Alice,account.earned               = 0
+211,REWARDS,Alice,account.bonding              = 197
+211,REWARDS,Alice,total.distributed            = 38861

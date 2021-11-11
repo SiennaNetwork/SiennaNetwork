@@ -187,11 +187,8 @@ use crate::test::{*, Context};
         // When the bonding period is over
         .branch("after_bonding", |mut context|{
             context
-                .admin()
-                    .epoch(1, reward)
-                .tick()
-                .user("Alice")
-                    .earned(reward).bonding(0)
+                .admin().epoch(1, reward)
+                .user("Alice").earned(reward).bonding(0)
 
                 // And user withdraws all tokens
                 .branch("1", |mut context|{
@@ -208,23 +205,18 @@ use crate::test::{*, Context};
                 .branch("2", |mut context|{
                     context.withdraws(stake/2)
                         // Then user's volume is preserved
-                        .volume(bonding as u128 * stake)
-                        .bonding(0)
+                        .volume(bonding as u128 * stake).bonding(0)
                         .earned(reward)
                     .after(10)
                         // And the volume keeps incrementing
-                        .volume(bonding as u128 * stake + 10 * stake / 2)
                         // And the bonding keeps decrementing
-                        .bonding(0)
+                        .volume(bonding as u128 * stake + 10 * stake / 2).bonding(0)
                         .earned(reward)
                     // When user withdraws the rest of the tokens
-                    // Then the user's volume and bonding reset
                     .withdraws_claims(stake/2, reward)
-                        .staked(0)
-                        .volume(0)
-                        .bonding(bonding)
-                        .earned(0)
-                        .distributed(reward);
+                        // Then the user's volume and bonding reset
+                        .staked(0).volume(0).bonding(bonding)
+                        .earned(0).distributed(reward);
                 });
         })
 
@@ -234,14 +226,16 @@ use crate::test::{*, Context};
             // And  user's volume and bonding reset
             // And  user's stake remains the same
             context
-                .epoch(1, reward)
+                .admin().epoch(1, reward)
+                .user("Alice")
                     .staked(stake).bonding(0).volume((stake * bonding as u128).into())
                     .earned(reward)
                 .tick()
-                    .staked(stake).volume((stake * (bonding + 1) as u128).into()).bonding(0).earned(reward)
-                    .claims(reward).distributed(reward)
+                    .staked(stake).volume((stake * (bonding + 1) as u128).into()).bonding(0)
+                    .earned(reward).claims(reward).distributed(reward)
                     .staked(stake).volume(0).bonding(bonding).earned(0)
-                .epoch(2, reward)
+                .admin().epoch(2, reward)
+                .user("Alice")
                     .earned(reward).bonding(0);
         });
 }
