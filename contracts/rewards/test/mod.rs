@@ -156,8 +156,16 @@ impl Context {
         let t = self.rng.gen_range(0..self.bonding/10);
         self.after(t)
     }
-    pub fn epoch (&mut self) -> &mut Self {
-        self.after(self.bonding)
+    pub fn epoch (&mut self, epoch: Moment, portion: u128) -> &mut Self {
+        self.after(self.bonding);
+        self.table.add_row(row!["","","",""]);
+        self.table.add_row(
+            row![rb->self.time, "RPT", "REWARDS", b->format!("vest {}", &portion)]
+        );
+        self.table.add_row(
+            row![rb->self.time, "Timekeeper", "REWARDS", b->format!("begin epoch {}", &epoch)]
+        );
+        self
     }
     pub fn set_address (&mut self, address: &str) -> &mut Self {
         self.address = HumanAddr::from(address);
@@ -178,15 +186,14 @@ impl Context {
         self.deps.querier.increment_balance(&self.reward_token.link.address, amount);
         self
     }
-    pub fn test_handle (&mut self, msg: RewardsHandle, expected: StdResult<HandleResponse>) -> &mut Self {
+    pub fn test_handle (
+        &mut self, msg: RewardsHandle, expected: StdResult<HandleResponse>
+    ) -> &mut Self {
         test_handle(
-            &mut self.table,
-            &mut self.deps,
-            &self.env,
-            self.address.clone(),
-            msg,
-            expected
-        ); self
+            &mut self.table, &mut self.deps, &self.env,
+            self.address.clone(), msg, expected
+        );
+        self
     }
     pub fn init (&mut self) -> &mut Self {
         crate::Auth::init(&mut self.deps, &self.env, &None).unwrap();
@@ -407,15 +414,15 @@ impl Context {
         self
     }
     pub fn account_status (&mut self) -> Account {
-        let result = Rewards::query(&self.deps, RewardsQuery::Status {
-            at:      self.env.block.time,
-            address: Some(self.address.clone()),
-            key:     Some(String::from(""))
-        });
+        let at      = self.env.block.time;
+        let address = self.address.clone();
+        let key     = String::from("");
+        let result = Rewards::query(&self.deps, RewardsQuery::UserInfo { at, address, key });
         match result {
             Ok(result) => {
                 match result {
-                    crate::RewardsResponse::Status { account, .. } => account.unwrap(),
+                    crate::RewardsResponse::UserInfo(account) => account,
+                    _ => panic!()
                 }
             },
             Err(e) => {
@@ -425,15 +432,12 @@ impl Context {
         }
     }
     pub fn pool_status (&mut self) -> Total {
-        let result = Rewards::query(&self.deps, RewardsQuery::Status {
-            at:      self.env.block.time,
-            address: None,
-            key:     None
-        });
+        let result = Rewards::query(&self.deps, RewardsQuery::PoolInfo { at: self.env.block.time });
         match result {
             Ok(result) => {
                 match result {
-                    crate::RewardsResponse::Status { total, .. } => total,
+                    crate::RewardsResponse::PoolInfo(total) => total,
+                    _ => panic!()
                 }
             },
             Err(e) => {

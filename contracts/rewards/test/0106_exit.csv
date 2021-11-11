@@ -15,5 +15,3 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 14,REWARDS,Alice,user.volume  = Uint256(0)
 14,REWARDS,Alice,user.bonding = 197
 14,REWARDS,Alice,user.earned  = Uint128(0)
-,,,
-14,RPT,REWARDS,vest 38861

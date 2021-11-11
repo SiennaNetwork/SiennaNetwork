@@ -9,16 +9,14 @@ tx,REWARDS,SIENNA,"transfer_from:
   recipient: cosmos2contract"
 ,,,
 211,RPT,REWARDS,vest 38861
+211,Timekeeper,REWARDS,begin epoch 1
 ,,,
 211,Alice,REWARDS,claim: {}
+=>,err,"Generic error: This pool is currently empty. However, liquidity shares continue to accumulate.",
+,,,
+FAIL,was expecting,the following,
+,,,
 tx,REWARDS,SIENNA,"transfer:
   amount: ""38861""
-  padding: ~
-  recipient: Alice"
-,,,
-218,Alice,REWARDS,"retrieve:
-  amount: ""42798"""
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""42798""
   padding: ~
   recipient: Alice"

@@ -129,7 +129,6 @@ use crate::test::{*, Context};
             .volume(0)
             .bonding(bonding)
             .earned(0)
-        .fund(reward)
 
         // When the bonding period is not over
         .branch("before_bonding", |mut context|{
@@ -173,7 +172,7 @@ use crate::test::{*, Context};
 
         // When the bonding period is over
         .branch("after_bonding", |mut context|{
-            context.epoch()
+            context.epoch(1, reward)
                 .earned(reward).bonding(0)
 
                 // And user withdraws all tokens
@@ -216,15 +215,16 @@ use crate::test::{*, Context};
             // Then rewards are transferred
             // And  user's volume and bonding reset
             // And  user's stake remains the same
-            context.epoch()
-                .staked(stake).bonding(0).volume((stake * bonding as u128).into())
-                .earned(reward)
-            .tick()
-                .staked(stake).volume((stake * (bonding + 1) as u128).into()).bonding(0).earned(reward)
-                .claims(reward).distributed(reward)
-                .staked(stake).volume(0).bonding(bonding).earned(0)
-            .epoch().fund(reward)
-                .earned(reward).bonding(0);
+            context
+                .epoch(1, reward)
+                    .staked(stake).bonding(0).volume((stake * bonding as u128).into())
+                    .earned(reward)
+                .tick()
+                    .staked(stake).volume((stake * (bonding + 1) as u128).into()).bonding(0).earned(reward)
+                    .claims(reward).distributed(reward)
+                    .staked(stake).volume(0).bonding(bonding).earned(0)
+                .epoch(2, reward)
+                    .earned(reward).bonding(0);
         });
 }
 
@@ -287,7 +287,7 @@ use crate::test::{*, Context};
             .must_wait(1)
         //   And a provider claims rewards
         //  Then that provider receives reward tokens
-        .fund(reward)
+        .epoch(1, reward)
         .tick()
             .claims(reward)
         //  When a provider claims rewards twice within a period
@@ -302,9 +302,8 @@ use crate::test::{*, Context};
         // ...
         //  When a provider claims their rewards less often
         //  Then they receive equivalent rewards as long as the liquidity deposited hasn't changed
-        .fund(reward)
-            .epoch()
-            .epoch()
+        .epoch(2, reward)
+        .epoch(3, reward)
             .claims(reward*2)
             .must_wait(bonding);
 }
@@ -317,18 +316,26 @@ use crate::test::{*, Context};
     let reward_3 = context.rng.gen_range(1..100000);
     let reward_4 = context.rng.gen_range(1..100000);
     Context::named("0100_two_sequential").init().later()
-        .later().user("Alice").set_vk("")
-            .later().deposits(stake).fund(reward_1)
-            .epoch().withdraws_claims(stake, reward_1)
-        .later().user("Bob").set_vk("")
-            .later().deposits(stake).fund(reward_2)
-            .epoch().withdraws_claims(stake, reward_2)
-        .later().user("Alice")
-            .later().deposits(stake).fund(reward_3)
-            .epoch().withdraws_claims(stake, reward_3)
-        .later().user("Bob")
-            .later().deposits(stake).fund(reward_4)
-            .epoch().withdraws_claims(stake, reward_4);
+        .user("Alice").set_vk("")
+            .later()
+            .deposits(stake)
+            .epoch(1, reward_1)
+            .withdraws_claims(stake, reward_1)
+        .user("Bob").set_vk("")
+            .later()
+            .deposits(stake)
+            .epoch(2, reward_2)
+            .withdraws_claims(stake, reward_2)
+        .user("Alice")
+            .later()
+            .deposits(stake)
+            .epoch(3, reward_3)
+            .withdraws_claims(stake, reward_3)
+        .user("Bob")
+            .later()
+            .deposits(stake)
+            .epoch(4, reward_4)
+            .withdraws_claims(stake, reward_4);
 }
 
 #[test] fn test_0109_parallel () {
@@ -360,7 +367,7 @@ use crate::test::{*, Context};
         //  When alice and bob's ages reach the configured threshold,
         //  Then each is eligible to claim half of the available rewards
         //   And their rewards are proportionate to their stakes.
-        .epoch()
+        .epoch(1, 0)
             .user("Alice")
                 .earned(reward/2)
                 .withdraws_claims(stake/2, reward/2)
@@ -377,7 +384,7 @@ use crate::test::{*, Context};
         .later()
             .user("Alice").set_vk("").deposits(stake).earned(0)
             .user("Bob").set_vk("").deposits(stake).earned(0)
-        .epoch().fund(reward)
+        .epoch(2, reward)
             .user("Alice").earned(reward/2).withdraws_claims(stake, reward/2)
             .user("Bob").earned(reward/2).withdraws_claims(stake, reward/2);
 }
@@ -397,7 +404,7 @@ use crate::test::{*, Context};
     context.init().later()
         .user("Alice")
             .deposits(stake)
-        .epoch().fund(reward)
+        .epoch(1, reward)
             .claims(reward)
         .later()
             .withdraws(stake);

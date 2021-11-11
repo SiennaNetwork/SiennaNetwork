@@ -37,6 +37,9 @@ tx,REWARDS,LP_TOKEN,"transfer:
   padding: ~
   recipient: Bob"
 22,REWARDS,Bob,user.earned  = Uint128(38861)
+,,,
+219,RPT,REWARDS,vest 0
+219,Timekeeper,REWARDS,begin epoch 1
 219,REWARDS,Alice,user.earned  = Uint128(38861)
 ,,,
 219,Alice,REWARDS,"retrieve:
@@ -83,27 +86,6 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 222,REWARDS,Bob,user.earned  = Uint128(0)
 ,,,
 419,RPT,REWARDS,vest 77722
-419,REWARDS,Alice,user.earned  = Uint128(38861)
-,,,
-419,Alice,REWARDS,"retrieve:
-  amount: ""85596"""
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""38861""
-  padding: ~
-  recipient: Alice"
-tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""85596""
-  padding: ~
-  recipient: Alice"
-419,REWARDS,Bob,user.earned  = Uint128(38861)
-,,,
-419,Bob,REWARDS,"retrieve:
-  amount: ""85596"""
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""38861""
-  padding: ~
-  recipient: Bob"
-tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""85596""
-  padding: ~
-  recipient: Bob"
+419,Timekeeper,REWARDS,begin epoch 2
+419,REWARDS,Alice,user.earned  = Uint128(0)
+ERROR,EXPECTED,,user.earned  = Uint128(38861)
