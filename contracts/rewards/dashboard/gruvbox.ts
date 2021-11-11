@@ -138,31 +138,3 @@ const Gruvbox = {
 }
 
 export default Gruvbox
-
-import { Pool, User, THRESHOLD } from './contract_base'
-export const COLORS = Object.assign(
-  function getColor (pool: Pool, user: User) {
-    switch (true) {
-      case user.age < THRESHOLD || user.cooldown > 0: // waiting for age threshold
-        return COLORS.COOLDOWN
-      case user.claimable > 0 && user.cooldown == 1:  // have rewards to claim
-        return COLORS.CLAIMING
-      //case user.claimable > 0 && user.cooldown > 0: // just claimed, cooling down
-        //return COLORS.ALL_OK
-      case user.claimable > pool.balance:             // not enough money in pool
-        return COLORS.BLOCKED 
-      case user.claimed > user.earned:                // crowded out
-        return COLORS.CROWDED
-      case user.claimable === 0:
-        return COLORS.NOTHING
-      default:
-        return COLORS.CLAIMABLE
-    }
-  }, {
-    CLAIMABLE: [Gruvbox.fadedAqua,   Gruvbox.brightAqua],
-    CLAIMING:  [Gruvbox.brightAqua,  Gruvbox.brightAqua],
-    BLOCKED:   [Gruvbox.fadedOrange, Gruvbox.brightOrange],
-    CROWDED:   [Gruvbox.fadedPurple, Gruvbox.brightPurple],
-    COOLDOWN:  [Gruvbox.fadedBlue,   Gruvbox.brightBlue],
-    NOTHING:   [Gruvbox.dark0,       Gruvbox.brightYellow]
-  })
