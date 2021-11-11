@@ -1,8 +1,8 @@
 Time,Sender,Recipient,Data
-14,REWARDS,Alice,user.staked  = Uint128(0)
-14,REWARDS,Alice,user.volume  = Uint256(0)
-14,REWARDS,Alice,user.bonding = 197
-14,REWARDS,Alice,user.earned  = Uint128(0)
+14,REWARDS,Alice,account.staked               = 0
+14,REWARDS,Alice,account.volume               = 0
+14,REWARDS,Alice,account.bonding              = 197
+14,REWARDS,Alice,account.earned               = 0
 ,,,
 14,Alice,REWARDS,"lock:
   amount: ""85596"""
@@ -11,7 +11,7 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-14,REWARDS,Alice,user.staked  = Uint128(85596)
-14,REWARDS,Alice,user.volume  = Uint256(0)
-14,REWARDS,Alice,user.bonding = 197
-14,REWARDS,Alice,user.earned  = Uint128(0)
+14,REWARDS,Alice,account.staked               = 85596
+14,REWARDS,Alice,account.volume               = 0
+14,REWARDS,Alice,account.bonding              = 197
+14,REWARDS,Alice,account.earned               = 0

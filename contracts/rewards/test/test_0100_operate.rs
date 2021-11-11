@@ -56,39 +56,56 @@ use crate::test::{*, Context};
     let stake1  = context.rng.gen_range(1..100000);
     let stake2  = context.rng.gen_range(1..100000);
     let n_ticks = 10;
+    let bonding = context.bonding;
     // Given an instance
     context.init()
         // When the first user hasn't deposited
         .user("Alice").set_vk("")
             // Then their entry is 0, corresponding to the initially empty pool
             .entry(0)
-            // When the first user deposits
-            .deposits(stake1)
-            // Then their entry becomes fixed at its current value
+        // When the first user deposits
+        // Then their entry becomes fixed at its value at the start of the epoch
+        .deposits(stake1)
             .entry(0)
-            // When some time passes
-            // Then the pool's liquidity is equal to the user's liquidity
-            .after(n_ticks)
+        // When some time passes
+        // Then the pool's liquidity is equal to the user's liquidity
+        .during(n_ticks, |i, context| {
+            context
                 .entry(0)
-                .volume(stake1 * n_ticks as u128)
-                .pool_volume(stake1 * n_ticks as u128)
+                .staked(stake1)
+                .volume(stake1 * i as u128).entry(0);
+        })
         // When a subsequent user hasn't deposited
         .user("Bob").set_vk("")
-            // Then their entry is equal to the curent volume of the pool
-            .entry(stake1 * n_ticks as u128)
-            .after(n_ticks).entry(stake1 * n_ticks as u128 * 2)
-            // When a subsequent user deposits
-            .deposits(stake2)
-            // Then their entry becomes fixed at its current value
-            .entry(stake1 * n_ticks as u128 * 2)
+            // Then their entry is equal to the volume of the pool at the start of the epoch
+            .entry(0)
+        .deposits(stake2)
+            .entry(0)
             // And their liquidity starts incrementing from the next tick
-            .during(n_ticks, |i, context| {
-                context
-                    .staked(stake2)
-                    .volume(stake2 * i as u128)
-                    .entry(stake1 * n_ticks as u128 * 2);
-            })
-            .entry(stake1 * n_ticks as u128 * 2);
+        .during(n_ticks, |i, context| {
+            context.staked(stake2).volume(stake2 * i as u128).entry(0);
+        })
+            .entry(0)
+        // When another user deposits after the epoch
+        // Then their entry is equal to the volume of the pool at the start of that epoch
+        .admin()
+            .epoch(1, 100)
+        .user("Charlie")
+            .set_vk("")
+            .entry(
+                (bonding + n_ticks * 2) as u128 * stake1 +
+                (bonding + n_ticks)     as u128 * stake2
+            )
+        .deposits(stake1)
+            .entry(
+                (bonding + n_ticks * 2) as u128 * stake1 +
+                (bonding + n_ticks)     as u128 * stake2
+            )
+        .later()
+            .entry(
+                (bonding + n_ticks * 2) as u128 * stake1 +
+                (bonding + n_ticks)     as u128 * stake2
+            );
 }
 
 #[test] fn test_0104_bonding () {
@@ -112,9 +129,9 @@ use crate::test::{*, Context};
 
 #[test] fn test_0105_reset () {
     let mut context = Context::named("0106_exit");
-    let stake  = context.rng.gen_range(1..100000) * 2;
-    let reward = context.rng.gen_range(1..100000);
-    let bonding = context.bonding;
+    let stake       = context.rng.gen_range(1..100000) * 2;
+    let reward      = context.rng.gen_range(1..100000);
+    let bonding     = context.bonding;
 
     // Given an instance
     context.init().later()
@@ -135,7 +152,7 @@ use crate::test::{*, Context};
             context.after(10)
                 .volume(10 * stake)
                 .bonding(bonding - 10)
-                .earned(reward)
+                .earned(0)
 
                 // And the user withdraws all tokens
                 .branch("1", |mut context|{
@@ -153,12 +170,12 @@ use crate::test::{*, Context};
                         // Then user's volume is preserved
                         .volume(10 * stake)
                         .bonding(bonding - 10)
-                        .earned(reward)
+                        .earned(0)
                     .after(10)
                         // And the volume keeps incrementing
                         .volume(10 * stake + 10 * stake / 2)
                         // And the bonding keeps decrementing
-                        .earned(reward)
+                        .earned(0)
                         .bonding(bonding - 20)
                     // When user withdraws the rest of the tokens
                     // Then the user's volume and bonding reset
@@ -172,8 +189,12 @@ use crate::test::{*, Context};
 
         // When the bonding period is over
         .branch("after_bonding", |mut context|{
-            context.epoch(1, reward)
-                .earned(reward).bonding(0)
+            context
+                .admin()
+                    .epoch(1, reward)
+                .tick()
+                .user("Alice")
+                    .earned(reward).bonding(0)
 
                 // And user withdraws all tokens
                 .branch("1", |mut context|{
@@ -270,42 +291,29 @@ use crate::test::{*, Context};
         .user("Alice").set_vk("")
         //  When user tries to claim reward before providing liquidity
         //  Then they get an error
-        .later()
-            .must_wait(bonding)
+        .later().must_wait(bonding)
         //  When users provide liquidity
         //   And they wait for rewards to accumulate
-        .later()
-            .must_wait(bonding)
-            .deposits(stake)
-            .must_wait(bonding)
-        .tick()
-            .must_wait(bonding-1)
-        .tick()
-            .must_wait(bonding-2)
+        .later().must_wait(bonding).deposits(stake).must_wait(bonding)
+        .tick().must_wait(bonding-1)
+        .tick().must_wait(bonding-2)
         // ...
-        .after(bonding-3)
-            .must_wait(1)
+        .after(bonding-3).must_wait(1)
         //   And a provider claims rewards
         //  Then that provider receives reward tokens
-        .epoch(1, reward)
-        .tick()
-            .claims(reward)
+        .admin().epoch(1, reward)
+        .user("Alice").tick().claims(reward)
         //  When a provider claims rewards twice within a period
         //  Then rewards are sent only the first time
         .fund(reward)
-        .tick()
-            .must_wait(bonding-1)
-        .tick()
-            .must_wait(bonding-2)
-        .tick()
-            .must_wait(bonding-3)
+        .tick().must_wait(bonding-1)
+        .tick().must_wait(bonding-2)
+        .tick().must_wait(bonding-3)
         // ...
         //  When a provider claims their rewards less often
         //  Then they receive equivalent rewards as long as the liquidity deposited hasn't changed
-        .epoch(2, reward)
-        .epoch(3, reward)
-            .claims(reward*2)
-            .must_wait(bonding);
+        .admin().epoch(2, reward).epoch(3, reward)
+        .user("Alice").claims(reward*2).must_wait(bonding);
 }
 
 #[test] fn test_0108_sequential () {
@@ -316,26 +324,18 @@ use crate::test::{*, Context};
     let reward_3 = context.rng.gen_range(1..100000);
     let reward_4 = context.rng.gen_range(1..100000);
     Context::named("0100_two_sequential").init().later()
-        .user("Alice").set_vk("")
-            .later()
-            .deposits(stake)
-            .epoch(1, reward_1)
-            .withdraws_claims(stake, reward_1)
-        .user("Bob").set_vk("")
-            .later()
-            .deposits(stake)
-            .epoch(2, reward_2)
-            .withdraws_claims(stake, reward_2)
-        .user("Alice")
-            .later()
-            .deposits(stake)
-            .epoch(3, reward_3)
-            .withdraws_claims(stake, reward_3)
-        .user("Bob")
-            .later()
-            .deposits(stake)
-            .epoch(4, reward_4)
-            .withdraws_claims(stake, reward_4);
+        .user("Alice").set_vk("").later().deposits(stake)
+        .admin(      ).epoch(1, reward_1)
+        .user("Alice").withdraws_claims(stake, reward_1)
+        .user("Bob"  ).set_vk("").later().deposits(stake)
+        .admin(      ).epoch(2, reward_2)
+        .user("Alice").withdraws_claims(stake, reward_2)
+        .user("Alice").later().deposits(stake)
+        .admin(      ).epoch(3, reward_3)
+        .user("Alice").withdraws_claims(stake, reward_3)
+        .user("Bob"  ).later().deposits(stake)
+        .admin(      ).epoch(4, reward_4)
+        .user("Bob"  ).withdraws_claims(stake, reward_4);
 }
 
 #[test] fn test_0109_parallel () {
@@ -347,46 +347,30 @@ use crate::test::{*, Context};
         //  When alice and bob first deposit lp tokens simultaneously,
         //  Then their ages and earnings start incrementing simultaneously;
         .later()
-            .user("Alice").set_vk("")
-                .deposits(stake)
-                .earned(0)
-            .user("Bob").set_vk("")
-                .deposits(stake)
-                .earned(0)
+            .user("Alice").set_vk("").deposits(stake).earned(0)
+            .user("Bob"  ).set_vk("").deposits(stake).earned(0)
         //  When alice and bob withdraw lp tokens simultaneously,
         //  Then their ages and earnings keep changing simultaneously;
         .later().fund(reward)
-            .user("Alice")
-                .earned(reward/2)
-                .withdraws(stake/2)
-                .earned(reward/2)
-            .user("Bob")
-                .earned(reward/2)
-                .withdraws(stake/2)
-                .earned(reward/2)
+            .user("Alice").earned(reward/2).withdraws(stake/2).earned(reward/2)
+            .user("Bob"  ).earned(reward/2).withdraws(stake/2).earned(reward/2)
         //  When alice and bob's ages reach the configured threshold,
         //  Then each is eligible to claim half of the available rewards
         //   And their rewards are proportionate to their stakes.
-        .epoch(1, 0)
-            .user("Alice")
-                .earned(reward/2)
-                .withdraws_claims(stake/2, reward/2)
-                .earned(0)
-            .user("Bob")
-                .earned(reward/2)
-                .withdraws_claims(stake/2, reward/2)
-                .earned(0)
+        .admin().epoch(1, 0)
+        .user("Alice").earned(reward/2).withdraws_claims(stake/2, reward/2).earned(0)
+        .user("Bob"  ).earned(reward/2).withdraws_claims(stake/2, reward/2).earned(0)
 
         //  When alice and bob again deposit lp tokens simultaneously,
         //  Then their ages and earnings start incrementing simultaneously;
         //  When their bonding periods are over
         //  Then their rewards are proportional to their stakes
         .later()
-            .user("Alice").set_vk("").deposits(stake).earned(0)
-            .user("Bob").set_vk("").deposits(stake).earned(0)
-        .epoch(2, reward)
-            .user("Alice").earned(reward/2).withdraws_claims(stake, reward/2)
-            .user("Bob").earned(reward/2).withdraws_claims(stake, reward/2);
+        .user("Alice").set_vk("").deposits(stake).earned(0)
+        .user("Bob"  ).set_vk("").deposits(stake).earned(0)
+        .admin().epoch(2, reward)
+        .user("Alice").earned(reward/2).withdraws_claims(stake, reward/2)
+        .user("Bob"  ).earned(reward/2).withdraws_claims(stake, reward/2);
 }
 
 /// Given an instance where rewards are given in the same token that is staked
@@ -402,12 +386,9 @@ use crate::test::{*, Context};
     let stake  = context.rng.gen_range(1..100000);
     let reward = context.rng.gen_range(1..100000);
     context.init().later()
-        .user("Alice")
-            .deposits(stake)
-        .epoch(1, reward)
-            .claims(reward)
-        .later()
-            .withdraws(stake);
+        .user("Alice").deposits(stake)
+        .admin(      ).epoch(1, reward)
+        .user("Alice").claims(reward).later().withdraws(stake);
 }
 
 #[test] fn test_0114_close () {

@@ -9,7 +9,9 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   recipient: cosmos2contract"
 ,,,
 219,RPT,REWARDS,vest 38861
-219,Timekeeper,REWARDS,begin epoch 1
+,,,
+219,Admin,REWARDS,"begin_epoch:
+  next_epoch: 1"
 ,,,
 219,Alice,REWARDS,"retrieve:
   amount: ""42798"""

@@ -33,6 +33,9 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 61,Admin,REWARDS,"close:
   message: closed"
 ,,,
+73,test,branch,0114_close_then_claim
+,,,
+,,,
 73,Alice,REWARDS,claim: {}
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""132422""

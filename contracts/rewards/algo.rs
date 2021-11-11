@@ -125,8 +125,8 @@ impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
             .ok_or(StdError::generic_err("no reward viewing key"))?.0)
     }
     fn timekeeper (core: &C) -> StdResult<HumanAddr> {
-        Ok(core.get::<HumanAddr>(Self::TIMEKEEPER)?
-            .ok_or(StdError::generic_err("no timekeeper address"))?)
+        Ok(core.humanize(core.get::<CanonicalAddr>(Self::TIMEKEEPER)?
+            .ok_or(StdError::generic_err("no timekeeper address"))?)?)
     }
 }
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -137,7 +137,7 @@ pub enum RewardsHandle {
     Retrieve { amount: Amount },
     Claim    {},
     // Authorized transactions
-    IncrementEpoch { next_epoch: Moment },
+    BeginEpoch { next_epoch: Moment },
     // Admin-only transactions
     Configure(RewardsConfig),
     Close    { message: String },
@@ -155,7 +155,7 @@ impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for RewardsHandle where
             RewardsHandle::Claim {} =>
                 Account::from_env(core, env)?.claim(core),
             // Authorized transactions
-            RewardsHandle::IncrementEpoch { next_epoch } =>
+            RewardsHandle::BeginEpoch { next_epoch } =>
                 Clock::increment(core, &env, next_epoch),
             // Admin-only transactions
             _ => {
@@ -283,13 +283,14 @@ impl<S, A, Q, C> IClock<S, A, Q, C> for Clock where
             )))
         }
         let now = env.block.time;
-        core.set(Self::NUMBER, next_epoch)?;
-        core.set(Self::START, now)?;
-        core.set(Self::VOLUME, accumulate(
+        let volume = accumulate(
             core.get(Total::VOLUME)?.unwrap_or(Volume::zero()),
             now - core.get(Total::UPDATED)?.unwrap_or(now),
             core.get(Total::STAKED)?.unwrap_or(Amount::zero())
-        )?)?;
+        )?;
+        core.set(Self::NUMBER, next_epoch)?;
+        core.set(Self::START, now)?;
+        core.set(Self::VOLUME, volume)?;
         Ok(HandleResponse::default())
     }
 }
@@ -418,9 +419,12 @@ pub struct Account {
     #[serde(skip)] pub id:      CanonicalAddr,
     /// Passed around internally, not presented to user.
     #[serde(skip)] pub total:   Total,
-    /// When did this user's liquidity amount last change?
+    /// "When did this user's liquidity amount last change?"
     /// Set to current time on update.
     pub updated:                  Moment,
+    /// "How much time has passed since the user updated their stake?"
+    /// Computed as `current time - updated`
+    pub elapsed:                  Duration,
     /// How much liquidity does this user currently provide?
     /// Incremented/decremented on lock/unlock.
     pub staked:                   Amount,
@@ -515,21 +519,14 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         // * The user's **volume share** is defined as `volume / total.volume`.
         //   It represents the user's overall contribution, and should move in the
         //   direction of the user's momentary share.
-        account.starting_pool_volume = get_volume(Account::ENTRY_VOL, total.volume)?;
+        account.staked     = get_amount(Account::STAKED, Amount::zero())?;
+        account.pool_share = (account.staked, total.staked);
+        let last_volume    = get_volume(Account::VOLUME, Volume::zero())?;
+        account.elapsed    = total.clock.now - account.updated;
+        account.volume     = accumulate(last_volume, account.elapsed, account.staked)?;
+        account.starting_pool_volume = total.clock.volume;
         if account.starting_pool_volume > total.volume { return errors::no_time_travel() }
-
         account.accumulated_pool_volume = (total.volume - account.starting_pool_volume)?;
-
-        account.starting_pool_rewards = get_amount(Account::ENTRY_REW, total.unlocked)?;
-        if account.starting_pool_rewards > total.unlocked { return errors::no_time_travel() }
-
-        account.accumulated_pool_rewards = (total.unlocked - account.starting_pool_rewards)?;
-
-        account.staked  = get_amount(Account::STAKED, Amount::zero())?;
-        let last_volume = get_volume(Account::VOLUME, Volume::zero())?;
-        let elapsed: Duration = total.clock.now - account.updated;
-        account.volume       = accumulate(last_volume, elapsed, account.staked)?;
-        account.pool_share   = (account.staked, total.staked);
         account.reward_share = (account.volume, account.accumulated_pool_volume);
         // 3. Rewards claimable
         // `earned` rewards are equal to `total.budget * reward_share`.
@@ -547,6 +544,9 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         // * as a result of other users withdrawing liquidity
         // and/or until the pool's balance increases:
         // * as a result of incoming reward portions from the TGE budget.
+        account.starting_pool_rewards = get_amount(Account::ENTRY_REW, total.unlocked)?;
+        if account.starting_pool_rewards > total.unlocked { return errors::no_time_travel() }
+        account.accumulated_pool_rewards = (total.unlocked - account.starting_pool_rewards)?;
         account.earned = if account.reward_share.1 == Volume::zero() {
             Amount::zero()
         } else {
@@ -558,7 +558,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         // This decrements by `elapsed` if `staked > 0`.
         account.bonding = get_time(Self::BONDING, total.bonding)?;
         if account.staked > Amount::zero() {
-            account.bonding = account.bonding.saturating_sub(elapsed)
+            account.bonding = account.bonding.saturating_sub(account.elapsed)
         };
         // These are used above, then moved into the account struct at the end
         account.id    = id;
@@ -566,11 +566,11 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         Ok(account)
     }
     fn reset (&mut self, core: &mut C) -> StdResult<()> {
-        self.updated                   = self.total.clock.now;
-        self.starting_pool_volume      = self.total.volume;
+        self.updated               = self.total.clock.now;
+        self.starting_pool_volume  = self.total.clock.volume;
         self.starting_pool_rewards = self.total.unlocked;
-        self.volume                    = Volume::zero();
-        self.bonding                   = self.total.bonding;
+        self.volume                = Volume::zero();
+        self.bonding               = self.total.bonding;
         core.set_ns(Account::UPDATED,   self.id.as_slice(), self.updated)?;
         core.set_ns(Account::ENTRY_VOL, self.id.as_slice(), self.starting_pool_volume)?;
         core.set_ns(Account::ENTRY_REW, self.id.as_slice(), self.starting_pool_rewards)?;

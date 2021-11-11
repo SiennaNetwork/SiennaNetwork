@@ -128,6 +128,9 @@ impl Context {
         let mut context = self.clone();
         let name = format!("{}_{}", self.name.clone().unwrap_or("".to_string()), name).to_string();
         context.name = Some(name.to_string());
+        context.table.add_row(row!["","","",""]);
+        context.table.add_row(row![rb->self.time, "test", "branch", b->&name]);
+        context.table.add_row(row!["","","",""]);
         f(context);
         self
     }
@@ -156,15 +159,10 @@ impl Context {
         let t = self.rng.gen_range(0..self.bonding/10);
         self.after(t)
     }
-    pub fn epoch (&mut self, epoch: Moment, portion: u128) -> &mut Self {
+    pub fn epoch (&mut self, next_epoch: Moment, portion: u128) -> &mut Self {
         self.after(self.bonding);
-        self.table.add_row(row!["","","",""]);
-        self.table.add_row(
-            row![rb->self.time, "RPT", "REWARDS", b->format!("vest {}", &portion)]
-        );
-        self.table.add_row(
-            row![rb->self.time, "Timekeeper", "REWARDS", b->format!("begin epoch {}", &epoch)]
-        );
+        self.fund(portion);
+        self.test_handle(RewardsHandle::BeginEpoch { next_epoch }, Ok(HandleResponse::default()));
         self
     }
     pub fn set_address (&mut self, address: &str) -> &mut Self {
@@ -368,50 +366,24 @@ impl Context {
         )
     }
     pub fn staked (&mut self, expected: u128) -> &mut Self {
-        let actual = self.account_status().staked;
-        self.test_field("user.staked ", actual, expected.into())
+        let actual = self.account_status().staked.0;
+        self.test_field("account.staked              ", actual, expected)
     }
     pub fn volume (&mut self, expected: u128) -> &mut Self {
-        let actual = self.account_status().volume;
-        self.test_field("user.volume ", actual, expected.into())
+        let actual = self.account_status().volume.0;
+        self.test_field("account.volume              ", actual, expected.into())
     }
     pub fn bonding (&mut self, expected: Duration) -> &mut Self {
         let actual = self.account_status().bonding;
-        self.test_field("user.bonding", actual, expected.into())
+        self.test_field("account.bonding             ", actual, expected.into())
     }
     pub fn earned (&mut self, expected: u128) -> &mut Self {
-        let actual = self.account_status().earned;
-        self.test_field("user.earned ", actual, expected.into())
+        let actual = self.account_status().earned.0;
+        self.test_field("account.earned              ", actual, expected)
     }
     pub fn entry (&mut self, expected: u128) -> &mut Self {
-        let actual = self.account_status().starting_pool_volume;
-        self.test_field("user.starting_pool_volume", actual, expected.into())
-    }
-    pub fn pool_volume (&mut self, expected: u128) -> &mut Self {
-        let actual = self.pool_status().volume;
-        self.test_field("pool.volume      ", actual, expected.into())
-    }
-    pub fn distributed (&mut self, expected: u128) -> &mut Self {
-        let actual = self.pool_status().distributed;
-        self.test_field("pool.distributed ", actual, expected.into())
-    }
-    fn test_field <V: std::fmt::Debug + Clone + PartialEq> (&mut self, name: &'static str, actual: V, expected: V) -> &mut Self {
-        self.table.add_row(row![
-             r->self.time,
-             "REWARDS",
-             self.address,
-             format!("{} = {:?}", &name, &actual),
-        ]);
-        if expected != actual {
-            self.table.add_row(row![
-                rbBrFd->"ERROR",
-                 bBrFd->"EXPECTED",
-                 "",
-                 bBrFd->format!("{} = {:?}", &name, &expected),
-            ]);
-        }
-        assert_eq!(expected, actual, "{}", name);
-        self
+        let actual = self.account_status().starting_pool_volume.0;
+        self.test_field("account.starting_pool_volume", actual, expected.into())
     }
     pub fn account_status (&mut self) -> Account {
         let at      = self.env.block.time;
@@ -431,6 +403,14 @@ impl Context {
             }
         }
     }
+    pub fn pool_volume (&mut self, expected: u128) -> &mut Self {
+        let actual = self.pool_status().volume.0;
+        self.test_field("total.volume                ", actual, expected.into())
+    }
+    pub fn distributed (&mut self, expected: u128) -> &mut Self {
+        let actual = self.pool_status().distributed.0;
+        self.test_field("total.distributed           ", actual, expected)
+    }
     pub fn pool_status (&mut self) -> Total {
         let result = Rewards::query(&self.deps, RewardsQuery::PoolInfo { at: self.env.block.time });
         match result {
@@ -445,6 +425,24 @@ impl Context {
                 panic!("status query failed: {:?}", e);
             }
         }
+    }
+    fn test_field <V: std::fmt::Debug + Clone + PartialEq> (&mut self, name: &'static str, actual: V, expected: V) -> &mut Self {
+        self.table.add_row(row![
+             r->self.time,
+             "REWARDS",
+             self.address,
+             format!("{} = {:?}", &name, &actual),
+        ]);
+        if expected != actual {
+            self.table.add_row(row![
+                rbBrFd->"ERROR",
+                 bBrFd->"EXPECTED",
+                 "",
+                 bBrFd->format!("{} = {:?}", &name, &expected),
+            ]);
+        }
+        assert_eq!(expected, actual, "{}", name);
+        self
     }
 }
 impl Drop for Context {

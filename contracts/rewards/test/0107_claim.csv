@@ -29,10 +29,15 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 =>,err,Generic error: Keep tokens staked for 1 more seconds to be eligible for rewards.,
 ,,,
 415,RPT,REWARDS,vest 38861
-415,Timekeeper,REWARDS,begin epoch 1
+,,,
+415,Admin,REWARDS,"begin_epoch:
+  next_epoch: 1"
 ,,,
 416,Alice,REWARDS,claim: {}
-=>,err,Generic error: You have already claimed your exact share of the rewards.,
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""15311234""
+  padding: ~
+  recipient: Alice"
 ,,,
 FAIL,was expecting,the following,
 ,,,

@@ -9,10 +9,12 @@ tx,REWARDS,SIENNA,"transfer_from:
   recipient: cosmos2contract"
 ,,,
 211,RPT,REWARDS,vest 38861
-211,Timekeeper,REWARDS,begin epoch 1
+,,,
+211,Admin,REWARDS,"begin_epoch:
+  next_epoch: 1"
 ,,,
 211,Alice,REWARDS,claim: {}
-=>,err,"Generic error: This pool is currently empty. However, liquidity shares continue to accumulate.",
+=>,err,Generic error: You have already claimed your exact share of the rewards.,
 ,,,
 FAIL,was expecting,the following,
 ,,,

@@ -7,7 +7,7 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-14,REWARDS,Alice,user.earned  = Uint128(0)
+14,REWARDS,Alice,account.earned               = 0
 ,,,
 14,Bob,REWARDS,"lock:
   amount: ""85596"""
@@ -16,10 +16,10 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   owner: Bob
   padding: ~
   recipient: cosmos2contract"
-14,REWARDS,Bob,user.earned  = Uint128(0)
+14,REWARDS,Bob,account.earned               = 0
 ,,,
 22,RPT,REWARDS,vest 77722
-22,REWARDS,Alice,user.earned  = Uint128(38861)
+22,REWARDS,Alice,account.earned               = 38861
 ,,,
 22,Alice,REWARDS,"retrieve:
   amount: ""42798"""
@@ -27,8 +27,8 @@ tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
   padding: ~
   recipient: Alice"
-22,REWARDS,Alice,user.earned  = Uint128(38861)
-22,REWARDS,Bob,user.earned  = Uint128(38861)
+22,REWARDS,Alice,account.earned               = 38861
+22,REWARDS,Bob,account.earned               = 38861
 ,,,
 22,Bob,REWARDS,"retrieve:
   amount: ""42798"""
@@ -36,56 +36,11 @@ tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
   padding: ~
   recipient: Bob"
-22,REWARDS,Bob,user.earned  = Uint128(38861)
+22,REWARDS,Bob,account.earned               = 38861
 ,,,
 219,RPT,REWARDS,vest 0
-219,Timekeeper,REWARDS,begin epoch 1
-219,REWARDS,Alice,user.earned  = Uint128(38861)
 ,,,
-219,Alice,REWARDS,"retrieve:
-  amount: ""42798"""
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""38861""
-  padding: ~
-  recipient: Alice"
-tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""42798""
-  padding: ~
-  recipient: Alice"
-219,REWARDS,Alice,user.earned  = Uint128(0)
-219,REWARDS,Bob,user.earned  = Uint128(38861)
-,,,
-219,Bob,REWARDS,"retrieve:
-  amount: ""42798"""
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""38861""
-  padding: ~
-  recipient: Bob"
-tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""42798""
-  padding: ~
-  recipient: Bob"
-219,REWARDS,Bob,user.earned  = Uint128(0)
-,,,
-222,Alice,REWARDS,"lock:
-  amount: ""85596"""
-tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""85596""
-  owner: Alice
-  padding: ~
-  recipient: cosmos2contract"
-222,REWARDS,Alice,user.earned  = Uint128(0)
-,,,
-222,Bob,REWARDS,"lock:
-  amount: ""85596"""
-tx,REWARDS,LP_TOKEN,"transfer_from:
-  amount: ""85596""
-  owner: Bob
-  padding: ~
-  recipient: cosmos2contract"
-222,REWARDS,Bob,user.earned  = Uint128(0)
-,,,
-419,RPT,REWARDS,vest 77722
-419,Timekeeper,REWARDS,begin epoch 2
-419,REWARDS,Alice,user.earned  = Uint128(0)
-ERROR,EXPECTED,,user.earned  = Uint128(38861)
+219,Admin,REWARDS,"begin_epoch:
+  next_epoch: 1"
+219,REWARDS,Alice,account.earned               = 0
+ERROR,EXPECTED,,account.earned               = 38861
