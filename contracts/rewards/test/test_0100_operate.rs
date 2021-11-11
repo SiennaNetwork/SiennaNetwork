@@ -3,19 +3,16 @@ use crate::test::{*, Context};
 #[test] fn test_0101_empty () {
     let mut context = Context::named("0101_defaults");
     let bonding = context.bonding;
-    // Given an instance
+    // Given a fresh reward pool
     context.init()
         // When nobody has deposited yet
         // And the status of a user is queried
         .later().user("Alice").set_vk("")
-            // Then their stake is 0
-            .staked(0)
-            // And their volume is 0
-            .volume(0)
-            // And their entry is 0
-            .entry(0)
-            // And their bonding is max
-            .bonding(bonding);
+            // Then the user's initial stake is 0
+            // And  the user's initial volume is 0
+            // And  the user's inital entry is 0
+            // And  the user's initial bonding is max
+            .staked(0).volume(0).entry(0).bonding(bonding);
 }
 
 #[test] fn test_0102_stake_volume () {
@@ -386,9 +383,12 @@ use crate::test::{*, Context};
     let stake  = context.rng.gen_range(1..100000);
     let reward = context.rng.gen_range(1..100000);
     context.init().later()
-        .user("Alice").deposits(stake)
-        .admin(      ).epoch(1, reward)
-        .user("Alice").claims(reward).later().withdraws(stake);
+        .user("Alice").set_vk("")
+            .deposits(stake).earned(0)
+        .admin(      )
+            .epoch(1, reward)
+        .user("Alice")
+            .earned(reward).claims(reward).earned(0).staked(stake).withdraws(stake);
 }
 
 #[test] fn test_0114_close () {

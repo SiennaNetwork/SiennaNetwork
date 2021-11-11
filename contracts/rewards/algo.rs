@@ -262,12 +262,12 @@ impl<S, A, Q, C> IClock<S, A, Q, C> for Clock where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     fn get (core: &C, now: Moment) -> StdResult<Clock> {
-        Ok(Clock {
-            now,
-            number:  core.get(Self::NUMBER)?.unwrap_or(0u64),
-            started: core.get(Self::START)?.unwrap_or(0u64),
-            volume:  core.get(Self::VOLUME)?.unwrap_or(Volume::zero()),
-        })
+        let mut clock = Self::default();
+        clock.now = now;
+        clock.number  = core.get(Self::NUMBER)?.unwrap_or(0u64);
+        clock.started = core.get(Self::START)?.unwrap_or(0u64);
+        clock.volume  = core.get(Self::VOLUME)?.unwrap_or(Volume::zero());
+        Ok(clock)
     }
     fn increment (core: &mut C, env: &Env, next_epoch: Moment) -> StdResult<HandleResponse> {
         if env.message.sender != RewardsConfig::timekeeper(core)? {
@@ -509,7 +509,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         // Each user earns rewards as a function of their liquidity contribution over time.
         // The following points and durations in time are stored for each user:
         // * `updated` is the time of last update (deposit, withdraw or claim by this user)
-        account.updated = get_time(Account::UPDATED, total.clock.now)?;
+        account.updated = get_time(Self::UPDATED, total.clock.now)?;
         if total.clock.now < account.updated { return errors::no_time_travel() }
         // 2. Liquidity and liquidity share
         // * `staked` is the number of LP tokens staked by this user in this pool.
@@ -519,15 +519,14 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         // * The user's **volume share** is defined as `volume / total.volume`.
         //   It represents the user's overall contribution, and should move in the
         //   direction of the user's momentary share.
-        account.staked     = get_amount(Account::STAKED, Amount::zero())?;
+        account.staked     = get_amount(Self::STAKED, Amount::zero())?;
         account.pool_share = (account.staked, total.staked);
-        let last_volume    = get_volume(Account::VOLUME, Volume::zero())?;
+        let last_volume    = get_volume(Self::VOLUME, Volume::zero())?;
         account.elapsed    = total.clock.now - account.updated;
         account.volume     = accumulate(last_volume, account.elapsed, account.staked)?;
-        account.starting_pool_volume = total.clock.volume;
+        account.starting_pool_volume = get_volume(Self::ENTRY_VOL, total.clock.volume)?;
         if account.starting_pool_volume > total.volume { return errors::no_time_travel() }
         account.accumulated_pool_volume = (total.volume - account.starting_pool_volume)?;
-        account.reward_share = (account.volume, account.accumulated_pool_volume);
         // 3. Rewards claimable
         // `earned` rewards are equal to `total.budget * reward_share`.
         // As the user's volume share increases (as a result of providing liquidity)
@@ -544,9 +543,10 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         // * as a result of other users withdrawing liquidity
         // and/or until the pool's balance increases:
         // * as a result of incoming reward portions from the TGE budget.
-        account.starting_pool_rewards = get_amount(Account::ENTRY_REW, total.unlocked)?;
+        account.starting_pool_rewards = get_amount(Self::ENTRY_REW, total.unlocked)?;
         if account.starting_pool_rewards > total.unlocked { return errors::no_time_travel() }
         account.accumulated_pool_rewards = (total.unlocked - account.starting_pool_rewards)?;
+        account.reward_share = (account.volume, account.accumulated_pool_volume);
         account.earned = if account.reward_share.1 == Volume::zero() {
             Amount::zero()
         } else {
@@ -571,11 +571,11 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         self.starting_pool_rewards = self.total.unlocked;
         self.volume                = Volume::zero();
         self.bonding               = self.total.bonding;
-        core.set_ns(Account::UPDATED,   self.id.as_slice(), self.updated)?;
-        core.set_ns(Account::ENTRY_VOL, self.id.as_slice(), self.starting_pool_volume)?;
-        core.set_ns(Account::ENTRY_REW, self.id.as_slice(), self.starting_pool_rewards)?;
-        core.set_ns(Account::VOLUME,    self.id.as_slice(), self.volume)?;
-        core.set_ns(Account::BONDING,   self.id.as_slice(), self.bonding)?;
+        core.set_ns(Self::UPDATED,   self.id.as_slice(), self.updated)?;
+        core.set_ns(Self::ENTRY_VOL, self.id.as_slice(), self.starting_pool_volume)?;
+        core.set_ns(Self::ENTRY_REW, self.id.as_slice(), self.starting_pool_rewards)?;
+        core.set_ns(Self::VOLUME,    self.id.as_slice(), self.volume)?;
+        core.set_ns(Self::BONDING,   self.id.as_slice(), self.bonding)?;
         Ok(())
     }
     fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()> {
@@ -584,9 +584,9 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         if self.staked == Amount::zero() {
             self.reset(core)
         } else {
-            core.set_ns(Account::BONDING, self.id.as_slice(), self.bonding)?;
-            core.set_ns(Account::VOLUME,  self.id.as_slice(), self.volume)?;
-            core.set_ns(Account::UPDATED, self.id.as_slice(), self.total.clock.now)
+            core.set_ns(Self::BONDING, self.id.as_slice(), self.bonding)?;
+            core.set_ns(Self::VOLUME,  self.id.as_slice(), self.volume)?;
+            core.set_ns(Self::UPDATED, self.id.as_slice(), self.total.clock.now)
         }
     }
     fn deposit (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {
@@ -600,7 +600,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         self.commit_elapsed(core)?;
 
         self.staked += amount;
-        core.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
+        core.set_ns(Self::STAKED, self.id.as_slice(), self.staked)?;
 
         self.total.staked += amount;
         core.set(Total::STAKED, self.total.staked)?;
@@ -626,7 +626,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         self.commit_elapsed(core)?;
 
         self.staked = (self.staked - amount)?;
-        core.set_ns(Account::STAKED, self.id.as_slice(), self.staked)?;
+        core.set_ns(Self::STAKED, self.id.as_slice(), self.staked)?;
 
         self.total.staked = (self.total.staked - amount)?;
         core.set(Total::STAKED, self.total.staked)?;

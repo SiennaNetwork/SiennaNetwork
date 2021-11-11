@@ -1,8 +1,8 @@
 Time,Sender,Recipient,Data
-14,REWARDS,Alice,user.staked  = Uint128(0)
-14,REWARDS,Alice,user.volume  = Uint256(0)
-14,REWARDS,Alice,user.bonding = 197
-14,REWARDS,Alice,user.earned  = Uint128(0)
+14,REWARDS,Alice,account.staked               = 0
+14,REWARDS,Alice,account.volume               = 0
+14,REWARDS,Alice,account.bonding              = 197
+14,REWARDS,Alice,account.earned               = 0
 ,,,
 14,Alice,REWARDS,"lock:
   amount: ""85596"""
@@ -11,16 +11,25 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-14,REWARDS,Alice,user.staked  = Uint128(85596)
-14,REWARDS,Alice,user.volume  = Uint256(0)
-14,REWARDS,Alice,user.bonding = 197
-14,REWARDS,Alice,user.earned  = Uint128(0)
+14,REWARDS,Alice,account.staked               = 85596
+14,REWARDS,Alice,account.volume               = 0
+14,REWARDS,Alice,account.bonding              = 197
+14,REWARDS,Alice,account.earned               = 0
 ,,,
-14,RPT,REWARDS,vest 38861
-211,REWARDS,Alice,user.earned  = Uint128(38861)
-211,REWARDS,Alice,user.bonding = 0
+14,test,branch,0106_exit_after_bonding
 ,,,
-211,Alice,REWARDS,"retrieve:
+,,,
+211,RPT,REWARDS,vest 38861
+,,,
+211,Admin,REWARDS,"begin_epoch:
+  next_epoch: 1"
+212,REWARDS,Alice,account.earned               = 38861
+212,REWARDS,Alice,account.bonding              = 0
+,,,
+212,test,branch,0106_exit_after_bonding_1
+,,,
+,,,
+212,Alice,REWARDS,"retrieve:
   amount: ""85596"""
 tx,REWARDS,SIENNA,"transfer:
   amount: ""38861""
@@ -30,8 +39,8 @@ tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""85596""
   padding: ~
   recipient: Alice"
-211,REWARDS,Alice,user.staked  = Uint128(0)
-211,REWARDS,Alice,user.volume  = Uint256(0)
-211,REWARDS,Alice,user.earned  = Uint128(0)
-211,REWARDS,Alice,user.bonding = 197
-211,REWARDS,Alice,pool.distributed  = Uint128(38861)
+212,REWARDS,Alice,account.staked               = 0
+212,REWARDS,Alice,account.volume               = 0
+212,REWARDS,Alice,account.earned               = 0
+212,REWARDS,Alice,account.bonding              = 197
+212,REWARDS,Alice,total.distributed            = 38861

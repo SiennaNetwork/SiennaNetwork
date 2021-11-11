@@ -23,5 +23,5 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 ,,,
 211,Admin,REWARDS,"begin_epoch:
   next_epoch: 1"
-212,REWARDS,Alice,account.earned               = 7694478
-ERROR,EXPECTED,,account.earned               = 38861
+212,REWARDS,Alice,account.earned               = 38861
+212,REWARDS,Alice,account.bonding              = 0

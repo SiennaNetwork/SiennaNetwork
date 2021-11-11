@@ -42,5 +42,76 @@ tx,REWARDS,LP_TOKEN,"transfer:
 ,,,
 219,Admin,REWARDS,"begin_epoch:
   next_epoch: 1"
+219,REWARDS,Alice,account.earned               = 38861
+,,,
+219,Alice,REWARDS,"retrieve:
+  amount: ""42798"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""38861""
+  padding: ~
+  recipient: Alice"
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""42798""
+  padding: ~
+  recipient: Alice"
 219,REWARDS,Alice,account.earned               = 0
-ERROR,EXPECTED,,account.earned               = 38861
+219,REWARDS,Bob,account.earned               = 38861
+,,,
+219,Bob,REWARDS,"retrieve:
+  amount: ""42798"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""38861""
+  padding: ~
+  recipient: Bob"
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""42798""
+  padding: ~
+  recipient: Bob"
+219,REWARDS,Bob,account.earned               = 0
+,,,
+222,Alice,REWARDS,"lock:
+  amount: ""85596"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""85596""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+222,REWARDS,Alice,account.earned               = 0
+,,,
+222,Bob,REWARDS,"lock:
+  amount: ""85596"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""85596""
+  owner: Bob
+  padding: ~
+  recipient: cosmos2contract"
+222,REWARDS,Bob,account.earned               = 0
+,,,
+419,RPT,REWARDS,vest 77722
+,,,
+419,Admin,REWARDS,"begin_epoch:
+  next_epoch: 2"
+419,REWARDS,Alice,account.earned               = 38861
+,,,
+419,Alice,REWARDS,"retrieve:
+  amount: ""85596"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""38861""
+  padding: ~
+  recipient: Alice"
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""85596""
+  padding: ~
+  recipient: Alice"
+419,REWARDS,Bob,account.earned               = 38861
+,,,
+419,Bob,REWARDS,"retrieve:
+  amount: ""85596"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""38861""
+  padding: ~
+  recipient: Bob"
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""85596""
+  padding: ~
+  recipient: Bob"

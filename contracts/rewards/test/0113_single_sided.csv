@@ -7,18 +7,25 @@ tx,REWARDS,SIENNA,"transfer_from:
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
+14,REWARDS,Alice,account.earned               = 0
 ,,,
 211,RPT,REWARDS,vest 38861
 ,,,
 211,Admin,REWARDS,"begin_epoch:
   next_epoch: 1"
+211,REWARDS,Alice,account.earned               = 38861
 ,,,
 211,Alice,REWARDS,claim: {}
-=>,err,Generic error: You have already claimed your exact share of the rewards.,
-,,,
-FAIL,was expecting,the following,
-,,,
 tx,REWARDS,SIENNA,"transfer:
   amount: ""38861""
+  padding: ~
+  recipient: Alice"
+211,REWARDS,Alice,account.earned               = 0
+211,REWARDS,Alice,account.staked               = 42798
+,,,
+211,Alice,REWARDS,"retrieve:
+  amount: ""42798"""
+tx,REWARDS,SIENNA,"transfer:
+  amount: ""42798""
   padding: ~
   recipient: Alice"
