@@ -109,7 +109,8 @@ describe("Router", () => {
     const A = { custom_token: { contract_addr: context.tokenA.address, token_code_hash: context.tokenA.codeHash } };
     const B = { custom_token: { contract_addr: context.tokenD.address, token_code_hash: context.tokenD.codeHash } };
 
-    const hops = new Assembler(context.pairs).from(A).to(B).get();
+    const hops = new Assembler(context.pairs).from(A).to(B).get_tree().into_hops();
+    console.log(JSON.stringify(hops, null, 2))
 
     await context.tokenA.send(context.router.address, '10', { hops, to: context.agent.address } );
 
@@ -131,7 +132,7 @@ describe("Router", () => {
     const H = { custom_token: { contract_addr: context.tokenH.address, token_code_hash: context.tokenH.codeHash } };
     const A = { custom_token: { contract_addr: context.tokenA.address, token_code_hash: context.tokenA.codeHash } };
 
-    const hops = new Assembler(context.pairs).from(H).to(A).get();
+    const hops = new Assembler(context.pairs).from(H).to(A).get_tree().into_hops();
 
     await context.tokenH.send(context.router.address, '10', { hops, to: context.agent.address } );
 
@@ -328,11 +329,11 @@ async function initFactory(context) {
   const intoPairInfo = function (response) {
     let A = { Scrt: {} };
     if (response.token_0.custom_token) {
-      A = { custom_token: { contract_addr: response.token_0.custom_token.contract_addr, code_hash: response.token_0.custom_token.token_code_hash } };
+      A = { custom_token: { contract_addr: response.token_0.custom_token.contract_addr, token_code_hash: response.token_0.custom_token.token_code_hash } };
     }
     let B = { Scrt: {} };
     if (response.token_1.custom_token) {
-      B = { custom_token: { contract_addr: response.token_1.custom_token.contract_addr, code_hash: response.token_1.custom_token.token_code_hash } };
+      B = { custom_token: { contract_addr: response.token_1.custom_token.contract_addr, token_code_hash: response.token_1.custom_token.token_code_hash } };
     }
 
     return {

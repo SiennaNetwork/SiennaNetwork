@@ -4,29 +4,23 @@ import { assert } from "chai";
 import siennajs from "../siennajs/index";
 
 const Assembler = siennajs.hop.Assembler;
-const print_token_pair_comparable_tree = siennajs.hop.print_token_pair_comparable_tree;
-const token_pair_simple_into_token_pair_comparable = siennajs.hop.token_pair_simple_into_token_pair_comparable;
+const TokenPair = siennajs.hop.TokenPair;
 
 function create_token(id) {
   if (id) {
     return {
-        Snip20Data: {
-          address: id,
-          code_hash: "",
+        custom_token: {
+          contract_addr: id,
+          token_code_hash: "",
         },
       };
   }
 
-  return { Scrt: {} };
+  return { native_token: { denom: "uscrt" } };
 }
 
 function create_pair(a, b) {
-    return {
-        A: a,
-        B: b,
-        pair_address: `${parseInt(Math.random() * 1000)}-address`,
-        pair_code_hash: "",
-    };
+  return new TokenPair(a, b, `${parseInt(Math.random() * 1000)}-address`, "");
 }
 
 describe("Test assembler in creating a route", function () {
@@ -47,50 +41,13 @@ describe("Test assembler in creating a route", function () {
 
       const assembler = new Assembler(pairs);
       const tree = assembler.from(A).to(B).get_tree();
-      const hops = assembler.get();
-      const printout = print_token_pair_comparable_tree(tree);
+      const hops = tree.into_hops();
+      const printout = tree.printout();
 
-      // console.log(JSON.stringify(tree, null, 2));
-      // console.log(JSON.stringify(hops, null, 2));
-      // console.log(printout.join(" ==> "));
+      console.log(JSON.stringify(tree, null, 2));
+      console.log(JSON.stringify(hops, null, 2));
+      console.log(printout.join(" ==> "));
 
       assert.strictEqual(printout.join(" ==> "), "token-2 -> token-3 ==> token-3 -> token-4");
-  });
-
-  it("Will convert simple token pair into comparable token pair", async function () {
-    const A = { Snip20Data: { address: "addrA", code_hash: "hashA" } };
-    const B = { Snip20Data: { address: "addrB", code_hash: "hashB" } };
-    const simple = {
-      A,
-      B,
-      pair_address: "pair_addr",
-      pair_code_hash: "pair_hash"
-    };
-
-    const comparable = token_pair_simple_into_token_pair_comparable(simple);
-    const correct = {
-      "A": {
-        "id": "addrA",
-        "token": {
-          "Snip20Data": {
-            "address": "addrA",
-            "code_hash": "hashA"
-          }
-        }
-      },
-      "B": {
-        "id": "addrB",
-        "token": {
-          "Snip20Data": {
-            "address": "addrB",
-            "code_hash": "hashB"
-          }
-        }
-      },
-      "pair_address": "pair_addr",
-      "pair_code_hash": "pair_hash"
-    };
-
-    assert.strictEqual(JSON.stringify(comparable), JSON.stringify(correct));
   });
 });

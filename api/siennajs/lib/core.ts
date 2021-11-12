@@ -61,6 +61,26 @@ export interface Fee {
     readonly gas: Uint128
 }
 
+/**
+ * Extract some comparable id from the token type 
+ * 
+ * @param {TypeOfToken} token
+ * @returns {string}
+ */
+export function get_type_of_token_id(token: TypeOfToken): string {
+    if ((token as unknown as NativeToken).native_token) {
+        return "native";
+    }
+
+    const address = (token as unknown as CustomToken).custom_token?.contract_addr;
+
+    if (!address) {
+        throw new Error("TypeOfToken is not correct, missing address");
+    }
+
+    return address;
+}
+
 export function decode_data<T>(result: ExecuteResult | InstantiateResult): T {
     const b64string = b64fromBuffer(result.data)
 
