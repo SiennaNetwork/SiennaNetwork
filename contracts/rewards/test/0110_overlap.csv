@@ -1,0 +1,24 @@
+Time,Sender,Recipient,Data
+,,,
+9,Alice,REWARDS,"lock:
+  amount: ""42798"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""42798""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,,
+206,RPT,REWARDS,vest 93561
+,,,
+206,Admin,REWARDS,"begin_epoch:
+  next_epoch: 1"
+206,REWARDS,Bob,account.starting_pool_volume = 8431206
+,,,
+206,Bob,REWARDS,"lock:
+  amount: ""38861"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""38861""
+  owner: Bob
+  padding: ~
+  recipient: cosmos2contract"
+206,REWARDS,Bob,account.starting_pool_volume = 8431206

@@ -314,16 +314,19 @@ use crate::test::{*, Context};
     let reward_2 = context.rng.gen_range(1..100000);
     let reward_3 = context.rng.gen_range(1..100000);
     let reward_4 = context.rng.gen_range(1..100000);
-    Context::named("0100_two_sequential").init().later()
+    Context::named("0108_sequential").init().later()
         .user("Alice").set_vk("").later().deposits(stake)
         .admin(      ).epoch(1, reward_1)
         .user("Alice").withdraws_claims(stake, reward_1)
+
         .user("Bob"  ).set_vk("").later().deposits(stake)
         .admin(      ).epoch(2, reward_2)
-        .user("Alice").withdraws_claims(stake, reward_2)
+        .user("Bob"  ).withdraws_claims(stake, reward_2)
+
         .user("Alice").later().deposits(stake)
         .admin(      ).epoch(3, reward_3)
         .user("Alice").withdraws_claims(stake, reward_3)
+
         .user("Bob"  ).later().deposits(stake)
         .admin(      ).epoch(4, reward_4)
         .user("Bob"  ).withdraws_claims(stake, reward_4);
@@ -334,7 +337,7 @@ use crate::test::{*, Context};
     let stake  = context.rng.gen_range(1..100000)*2;
     let reward = context.rng.gen_range(1..100000)*2;
     // Given an instance:
-    Context::named("0100_two_parallel").init()
+    Context::named("0109_parallel").init()
         //  When alice and bob first deposit lp tokens simultaneously,
         //  Then their ages and earnings start incrementing simultaneously;
         .later()
@@ -362,6 +365,22 @@ use crate::test::{*, Context};
         .admin().epoch(2, reward)
         .user("Alice").earned(reward/2).withdraws_claims(stake, reward/2)
         .user("Bob"  ).earned(reward/2).withdraws_claims(stake, reward/2);
+}
+
+#[test] fn test_0110_overlap () {
+    let mut context = Context::named("0110_overlap");
+    let stake_1  = context.rng.gen_range(1..100000);
+    let stake_2  = context.rng.gen_range(1..100000);
+    let reward_1 = context.rng.gen_range(1..100000);
+    let bonding  = context.bonding;
+    context.init().later()
+        .user("Alice").set_vk("")
+            .deposits(stake_1)
+        .admin(      ).epoch(1, reward_1)
+        .user("Bob"  ).set_vk("")
+            .entry(stake_1 * bonding as u128)
+            .deposits(stake_2)
+            .entry(stake_1 * bonding as u128);
 }
 
 /// Given an instance where rewards are given in the same token that is staked

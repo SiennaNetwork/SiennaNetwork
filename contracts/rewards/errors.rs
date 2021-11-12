@@ -2,7 +2,11 @@ use fadroma::*;
 use crate::*;
 
 pub fn no_vk <T> () -> StdResult<T> {
-    return Err(StdError::generic_err("no viewing key"))
+    Err(StdError::generic_err("no viewing key"))
+}
+
+pub fn pool_not_closed <T> () -> StdResult<T> {
+    Err(StdError::generic_err("pool not closed"))
 }
 
 pub fn no_time_travel <T> () -> StdResult<T> {

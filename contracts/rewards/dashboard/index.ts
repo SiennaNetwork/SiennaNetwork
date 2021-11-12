@@ -4,6 +4,23 @@ import {
   h, random, pickRandom, throttle, after, append, prepend, encode, decode
 } from './helpers'
 
+// settings ----------------------------------------------------------------------------------------
+export const TIME_SCALE          = 120
+           , FUND_PORTIONS       = 7
+           , DIGITS              = 1000
+           , DIGITS_INV          = Math.log10(DIGITS)
+           , FUND_PORTION        = 2500 * DIGITS
+           , FUND_INTERVAL       = 17280/TIME_SCALE
+           , COOLDOWN            = FUND_INTERVAL
+           , THRESHOLD           = FUND_INTERVAL
+           , USER_GIVES_UP_AFTER = Infinity
+           , MAX_USERS           = 10
+           , MAX_INITIAL         = 10000
+           , UPDATE_INTERVAL     = 100
+           , AUTO_CLAIM          = false
+           , AUTO_LOCK_UNLOCK    = false
+
+// colors ------------------------------------------------------------------------------------------
 import Gruvbox from './gruvbox'
 const COLORS = Object.assign(
   function getColor (pool: Pool, user: User) {
@@ -37,11 +54,6 @@ import initRewards, * as Bound from '../target/web/rewards.js'
 
 document.body.innerHTML = '<center>loading</center>'
 
-// settings ----------------------------------------------------------------------------------------
-const UPDATE_INTERVAL  = 100
-const AUTO_CLAIM       = false
-const AUTO_LOCK_UNLOCK = false
-
 // load then start on click ------------------------------------------------------------------------
 initReal().then(()=>{ 
   document.body.onclick = () => {
@@ -50,6 +62,16 @@ initReal().then(()=>{
     start() }
   document.body.innerHTML = '<center>click to start</center>'
 })
+
+// wasm module load & init -------------------------------------------------------------------------
+export default async function initReal () {
+  // thankfully wasm-pack/wasm-bindgen left an escape hatch
+  // because idk wtf is going on with the default loading code
+  const url = new URL('rewards_bg.wasm', location.href)
+      , res = await fetch(url.toString())
+      , buf = await res.arrayBuffer()
+  await initRewards(buf)
+}
 
 function start () {
 
@@ -134,19 +156,6 @@ function start () {
   }
 }
 
-// settings ----------------------------------------------------------------------------------------
-export const TIME_SCALE          = 120
-           , FUND_PORTIONS       = 7
-           , DIGITS              = 1000
-           , DIGITS_INV          = Math.log10(DIGITS)
-           , FUND_PORTION        = 2500 * DIGITS
-           , FUND_INTERVAL       = 17280/TIME_SCALE
-           , COOLDOWN            = FUND_INTERVAL
-           , THRESHOLD           = FUND_INTERVAL
-           , USER_GIVES_UP_AFTER = Infinity
-           , MAX_USERS           = 10
-           , MAX_INITIAL         = 10000
-
 export const format = {
   integer:    (x:number) => String(x),
   decimal:    (x:number) => (x/DIGITS).toFixed(DIGITS_INV),
@@ -176,8 +185,7 @@ class RPT {
 export class Pool {
 
   contract: Rewards = new Rewards()
-
-  rpt = new RPT()
+  rpt:      RPT     = new RPT()
 
   ui:          UIContext
 
@@ -214,8 +222,9 @@ export class Pool {
     this.contract.handle({rewards:{begin_epoch:{next_epoch:this.epoch}}})
 
     this.contract.next_query_response = {balance:{amount:String(this.balance)}}
+
     const {
-      rewards:{pool_info:{updated, volume, staked, distributed, bonding}}
+      rewards:{pool_info:{updated, volume, staked, distributed, bonding, budget}}
     } = this.contract.query({rewards:{pool_info:{at:T.T}}})
 
     Object.assign(this, {
@@ -224,7 +233,8 @@ export class Pool {
       locked:      staked,
       claimed:     distributed,
       threshold:   bonding,
-      cooldown:    bonding
+      cooldown:    bonding,
+      balance:     Number(budget)
     })
 
     this.ui.log.now.setValue(T.T)
@@ -379,10 +389,10 @@ export class RealUser extends User {
   claim () {
     this.contract.sender = this.address
     try {
-      const result = this.contract.handle({ claim: {} })
+      const result = this.contract.handle({ rewards: { claim: {} } })
       const reward = Number(result.log.reward)
-      return this.doClaim(reward) }
-    catch (e) {
+      return this.doClaim(reward)
+    } catch (e) {
       console.error(e)
       return 0
     }
@@ -447,16 +457,6 @@ class Rewards {
   }
 }
 
-// wasm module load & init -------------------------------------------------------------------------
-export default async function initReal () {
-  // thankfully wasm-pack/wasm-bindgen left an escape hatch
-  // because idk wtf is going on with the default loading code
-  const url = new URL('rewards_bg.wasm', location.href)
-      , res = await fetch(url.toString())
-      , buf = await res.arrayBuffer()
-  await initRewards(buf)
-}
-
 // pool api ----------------------------------------------------------------------------------------
 
 
@@ -516,30 +516,42 @@ export class Log {
   add (event: string, name: string, amount: number|undefined) {
     if (NO_HISTORY) return
     if (amount) {
-      prepend(this.body, h('div', { innerHTML: `<b>${name}</b> ${event} ${amount}LP` })) }
-    else {
-      prepend(this.body, h('div', { innerHTML: `<b>${name}</b> ${event}` })) } } }
+      prepend(this.body, h('div', { innerHTML: `<b>${name}</b> ${event} ${amount}LP` }))
+    } else {
+      prepend(this.body, h('div', { innerHTML: `<b>${name}</b> ${event}` }))
+    }
+  }
+}
 
 // table of current state --------------------------------------------------------------------------
 interface Columns {
+  // fields
   name:                HTMLElement
   last_update:         HTMLElement
-  lifetime:            HTMLElement
   volume_at_entry:     HTMLElement
-  volume_since_entry:  HTMLElement
-  rewards_since_entry: HTMLElement
-  share:               HTMLElement
   locked:              HTMLElement
+
+  lifetime:            HTMLElement
+  sign1: HTMLElement
+  volume_since_entry:  HTMLElement
+  sign2: HTMLElement
+  share:               HTMLElement
+  sign3: HTMLElement
+  rewards_since_entry: HTMLElement
+  sign4: HTMLElement
+  earned:              HTMLElement
+
+  age:                 HTMLElement
+  claimed:             HTMLElement
+  claimable:           HTMLElement
+  cooldown:            HTMLElement
+
+  // buttons
   lockedMinus100:      HTMLElement
   lockedMinus1:        HTMLElement
   lockedValue:         HTMLElement
   lockedPlus1:         HTMLElement
   lockedPlus100:       HTMLElement
-  age:                 HTMLElement
-  earned:              HTMLElement
-  claimed:             HTMLElement
-  claimable:           HTMLElement
-  cooldown:            HTMLElement
 }
 
 type Rows = Record<string, Columns>
@@ -554,19 +566,20 @@ export class Table {
 
   init (users: Users) {
     append(this.root, h('thead', {},
-      h('th', { textContent: 'name'                }),
-      h('th', { textContent: 'last_update'         }),
-      h('th', { textContent: 'locked'              }),
-      //h('th', { textContent: 'age'          }),
-      h('th', { textContent: 'volume'              }),
-      h('th', { innerHTML: 'pool volume<br>@ entry epoch'  }),
-      h('th', { innerHTML: 'pool volume<br>since entry epoch'  }),
-      h('th', { innerHTML: 'rewards vested<br>since entry' }),
-      h('th', { textContent: 'share'               }),
-      h('th', { textContent: 'earned'              }),
-      //h('th', { textContent: 'claimed'      }),
-      //h('th', { textContent: 'claimable'    }),
-      h('th', { textContent: 'cooldown'            }),
+      h('th', { textContent: 'name' }),
+      h('th', { textContent: 'last_update' }),
+      h('th', { innerHTML:   'pool volume<br>@ entry epoch'  }),
+      h('th', { textContent: 'current stake' }),
+      h('th', { innerHTML:   'liquidity<br>contribution' }),
+      h('th', { textContent: '÷' }),
+      h('th', { innerHTML:   'pool volume<br>since entry epoch'  }),
+      h('th', { textContent: '=' }),
+      h('th', { textContent: 'share' }),
+      h('th', { textContent: '×' }),
+      h('th', { innerHTML:   'rewards vested<br>since entry' }),
+      h('th', { textContent: '=' }),
+      h('th', { textContent: 'earned' }),
+      h('th', { textContent: 'cooldown' }),
     ))
     for (const name of Object.keys(users)) {
       this.addRow(name, users[name])
@@ -591,19 +604,24 @@ export class Table {
     const fields = this.rows[name] = {
       name:                append(row, h('td', { style: 'font-weight:bold', textContent: name })),
       last_update:         append(row, h('td')),
+      volume_at_entry:     append(row, h('td')),
       locked:              append(row, locked),
       lockedMinus100, lockedMinus1, lockedValue, lockedPlus1, lockedPlus100,
       age:                 /*append(row, */h('td')/*)*/,
       lifetime:            append(row, h('td')),
-      volume_at_entry:     append(row, h('td')),
+      sign1:               append(row, h('td', { textContent: '÷' })),
       volume_since_entry:  append(row, h('td')),
-      rewards_since_entry: append(row, h('td')),
+      sign2:               append(row, h('td', { textContent: '=' })),
       share:               append(row, h('td')),
+      sign3:               append(row, h('td', { textContent: '×' })),
+      rewards_since_entry: append(row, h('td')),
+      sign4:               append(row, h('td', { textContent: '=' })),
       earned:              append(row, h('td', { className: 'claimable', onclick: () => {user.claim()} })),
       claimed:             /*append(row,*/ h('td')/*)*/,
       claimable:           /*append(row,*/ h('td', { className: 'claimable', onclick: () => {user.claim()} })/*)*/,
       cooldown:            append(row, h('td')),
     }
+    fields.share.style.fontWeight = 'bold'
     fields.claimable.style.fontWeight = 'bold'
     append(this.root, row)
     return fields

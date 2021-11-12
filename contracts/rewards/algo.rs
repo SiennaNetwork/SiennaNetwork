@@ -330,6 +330,7 @@ pub trait ITotal <S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>
 {
     fn get (core: &C, clock: Clock) -> StdResult<Self>;
+    fn commit_elapsed (&self, core: &mut C) -> StdResult<()>;
 }
 impl Total {
     pub const VOLUME:  &'static[u8] = b"/total/volume";
@@ -406,6 +407,11 @@ impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
         total.bonding     = get_time(RewardsConfig::BONDING, 0u64)?;
         total.closed      = core.get(RewardsConfig::CLOSED)?;
         Ok(total)
+    }
+    fn commit_elapsed (&self, core: &mut C) -> StdResult<()> {
+        core.set(Self::VOLUME,  self.volume)?;
+        core.set(Self::UPDATED, self.clock.now)?;
+        Ok(())
     }
 }
 
@@ -506,19 +512,19 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         let mut account = Self::default();
         account.address = address;
         // 1. Timestamps
-        // Each user earns rewards as a function of their liquidity contribution over time.
-        // The following points and durations in time are stored for each user:
-        // * `updated` is the time of last update (deposit, withdraw or claim by this user)
+        //    Each user earns rewards as a function of their liquidity contribution over time.
+        //    The following points and durations in time are stored for each user:
+        //    * `updated` is the time of last update (deposit, withdraw or claim by this user)
         account.updated = get_time(Self::UPDATED, total.clock.now)?;
         if total.clock.now < account.updated { return errors::no_time_travel() }
         // 2. Liquidity and liquidity share
-        // * `staked` is the number of LP tokens staked by this user in this pool.
-        // * The user's **momentary share** is defined as `staked / total.staked`.
-        // * `volume` is the volume liquidity contributed by this user.
-        //   It is incremented by `staked` for every moment elapsed.
-        // * The user's **volume share** is defined as `volume / total.volume`.
-        //   It represents the user's overall contribution, and should move in the
-        //   direction of the user's momentary share.
+        //    * `staked` is the number of LP tokens staked by this user in this pool.
+        //    * The user's **momentary share** is defined as `staked / total.staked`.
+        //    * `volume` is the volume liquidity contributed by this user.
+        //      It is incremented by `staked` for every moment elapsed.
+        //    * The user's **volume share** is defined as `volume / total.volume`.
+        //      It represents the user's overall contribution, and should move in the
+        //      direction of the user's momentary share.
         account.staked     = get_amount(Self::STAKED, Amount::zero())?;
         account.pool_share = (account.staked, total.staked);
         let last_volume    = get_volume(Self::VOLUME, Volume::zero())?;
@@ -528,21 +534,11 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         if account.starting_pool_volume > total.volume { return errors::no_time_travel() }
         account.accumulated_pool_volume = (total.volume - account.starting_pool_volume)?;
         // 3. Rewards claimable
-        // `earned` rewards are equal to `total.budget * reward_share`.
-        // As the user's volume share increases (as a result of providing liquidity)
-        // or the pool's budget increases (as a result of new reward portions being
-        // unstaked from the TGE budget), new rewards are `earned` and become `claimable`.
-        // `earned` may become less than `claimed` if the user's volume share
-        // goes down too steeply:
-        // * as a result of that user withdrawing liquidity;
-        // * or as a result of an influx of liquidity by other users
-        // This means the user has been *crowded out* - they have already claimed
-        // fair rewards for their contribution up to this point, but have become
-        // ineligible for further rewards until their volume share increases:
-        // * as a result of that user providing a greater amount of liquidity
-        // * as a result of other users withdrawing liquidity
-        // and/or until the pool's balance increases:
-        // * as a result of incoming reward portions from the TGE budget.
+        //    `earned` rewards are equal to `total.budget * reward_share`.
+        //    As the user's volume share increases (as a result of providing liquidity)
+        //    or the pool's budget increases (as a result of new reward portions being
+        //    unstaked from the TGE budget), new rewards are `earned` and become claimable
+        //    once the `bonding` period passes
         account.starting_pool_rewards = get_amount(Self::ENTRY_REW, total.unlocked)?;
         if account.starting_pool_rewards > total.unlocked { return errors::no_time_travel() }
         account.accumulated_pool_rewards = (total.unlocked - account.starting_pool_rewards)?;
@@ -550,9 +546,12 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         account.earned = if account.reward_share.1 == Volume::zero() {
             Amount::zero()
         } else {
-            Volume::from(account.accumulated_pool_rewards) // TODO unlocked_since_entry
-                .multiply_ratio(account.reward_share.0, account.reward_share.1)?
-                .low_u128().into()
+            u128::min(
+                total.budget.0,
+                Volume::from(account.accumulated_pool_rewards) // TODO unlocked_since_entry
+                    .multiply_ratio(account.reward_share.0, account.reward_share.1)?
+                    .low_u128()
+            ).into()
         };
         // 4. Bonding period
         // This decrements by `elapsed` if `staked > 0`.
@@ -579,8 +578,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         Ok(())
     }
     fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()> {
-        core.set(Total::VOLUME,  self.total.volume)?;
-        core.set(Total::UPDATED, self.total.clock.now)?;
+        self.total.commit_elapsed(core)?;
         if self.staked == Amount::zero() {
             self.reset(core)
         } else {
@@ -679,7 +677,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
             self.decrement_stake(core, amount)?;
             Ok(response)
         } else {
-            Err(StdError::generic_err("pool not closed"))
+            errors::pool_not_closed()
         }
     }
 }
