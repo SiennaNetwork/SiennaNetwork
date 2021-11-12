@@ -133,6 +133,6 @@ td.locked {
   margin: 0 1rem;
 }
 .locked button {
-  padding: 0 1rem;
+  padding: 0 0.25rem;
   font-size: 0.8rem;
 }

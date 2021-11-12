@@ -5,18 +5,18 @@ import {
 } from './helpers'
 
 // settings ----------------------------------------------------------------------------------------
-export const TIME_SCALE          = 120
-           , FUND_PORTIONS       = 7
+export const TIME_SCALE          = 864
+           , EPOCHS              = 14
            , DIGITS              = 1000
            , DIGITS_INV          = Math.log10(DIGITS)
            , FUND_PORTION        = 2500 * DIGITS
-           , FUND_INTERVAL       = 17280/TIME_SCALE
+           , FUND_INTERVAL       = 86400/TIME_SCALE
            , COOLDOWN            = FUND_INTERVAL
            , THRESHOLD           = FUND_INTERVAL
            , USER_GIVES_UP_AFTER = Infinity
            , MAX_USERS           = 10
            , MAX_INITIAL         = 10000
-           , UPDATE_INTERVAL     = 100
+           , UPDATE_INTERVAL     = 20
            , AUTO_CLAIM          = false
            , AUTO_LOCK_UNLOCK    = false
 
@@ -120,7 +120,7 @@ function start () {
       const eligible: Array<User> = []
       for (const user of Object.values(users)) {
         user.update()
-        if (user.claimable > 0) eligible.push(user as User)
+        if (user.earned > 0) eligible.push(user as User)
       }
 
       // perform random lock/retrieve from random account for random amount --------------------------
@@ -168,7 +168,7 @@ export const T = { T: 1 }
 class RPT {
   interval  = FUND_INTERVAL
   portion   = FUND_PORTION
-  remaining = FUND_PORTIONS
+  remaining = EPOCHS
   vest (pool: Pool) {
     if (T.T % this.interval == 0) {
       console.info('fund', this.portion, this.remaining)
@@ -230,16 +230,16 @@ export class Pool {
 
     Object.assign(this, {
       last_update: updated,
-      lifetime:    volume,
-      locked:      staked,
-      claimed:     distributed,
+      lifetime:    Number(volume),
+      locked:      Number(staked),
+      claimed:     Number(distributed),
       threshold:   bonding,
       cooldown:    bonding,
       balance:     Number(budget)
     })
 
     this.ui.log.now.setValue(T.T)
-    this.ui.log.epoch.setValue(clock.number)
+    this.ui.log.epoch.setValue(`${clock.number}/${EPOCHS}`)
     this.ui.log.epoch_started.setValue(clock.started)
     this.ui.log.epoch_start_volume.setValue(clock.volume)
 
@@ -248,7 +248,6 @@ export class Pool {
 
     this.ui.log.balance.setValue(format.decimal(this.balance))
     this.ui.log.claimed.setValue(format.decimal(this.claimed))
-    this.ui.log.remaining.setValue(this.rpt.remaining)
 
     this.ui.log.cooldown.setValue(this.cooldown)
     this.ui.log.threshold.setValue(this.threshold)
@@ -257,7 +256,7 @@ export class Pool {
 
   close () {
     this.contract.sender = ""
-    this.contract.handle({close_pool:{message:"pool closed"}})
+    this.contract.handle({rewards:{close:{message:"pool closed"}}})
   }
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -304,12 +303,11 @@ export class User {
     throw new Error('not implemented')
   }
   doClaim (reward: number) { // stupid typescript inheritance constraints
-    console.debug(this.name, 'claim', reward)
     if (reward <= 0) return 0
 
     if (this.locked === 0) return 0
 
-    if (this.cooldown > 0 || this.age < THRESHOLD) return 0
+    if (this.cooldown > 0) return 0
 
     if (this.claimed > this.earned) {
       this.ui.log.add('crowded out A', this.name, undefined)
@@ -324,6 +322,7 @@ export class User {
     this.pool.balance -= reward
     this.ui.log.add('claim', this.name, reward)
     console.debug('claimed:', reward)
+    console.debug('remaining balance:', this.pool.balance)
     return reward
   }
 
@@ -403,7 +402,6 @@ export class RealUser extends User {
   }
 }
 export type Users = Record<string, User>
-console.log({Bound})
 // wrapper classes on the js side too... -----------------------------------------------------------
 interface LogAttribute {
   key:   string,
@@ -461,12 +459,6 @@ class Rewards {
   }
 }
 
-// pool api ----------------------------------------------------------------------------------------
-
-
-// user api ----------------------------------------------------------------------------------------
-
-
 // killswitches for gui components -----------------------------------------------------------------
 export const NO_HISTORY = true
 export const NO_TABLE   = false
@@ -513,7 +505,6 @@ export class Sidebar {
 
   balance   = new Field('available reward balance').append(this.root)
   claimed   = new Field('rewards claimed by users').append(this.root)
-  remaining = new Field('remaining funding portions').append(this.root)
 
   threshold = new Field('initial age threshold').append(this.root)
   cooldown  = new Field('cooldown after claim').append(this.root)
@@ -580,7 +571,7 @@ export class Table {
       h('th', { textContent: 'current stake' }),
       h('th', { innerHTML:   'liquidity<br>contribution' }),
       h('th', { textContent: '÷' }),
-      h('th', { innerHTML:   'pool volume<br>since entry epoch'  }),
+      h('th', { innerHTML:   'pool volume<br>since entry epoch<br>or last claim'  }),
       h('th', { textContent: '=' }),
       h('th', { textContent: 'share' }),
       h('th', { textContent: '×' }),

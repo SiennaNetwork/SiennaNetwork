@@ -329,8 +329,12 @@ pub struct Total {
 pub trait ITotal <S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>
 {
+    /// Load and compute the up-to-date totals for a given clock value
     fn get (core: &C, clock: Clock) -> StdResult<Self>;
+    /// Store values that updated due to the passing of time
     fn commit_elapsed (&self, core: &mut C) -> StdResult<()>;
+    /// Store values that updated due to a claim
+    fn commit_claim (&mut self, core: &mut C, earned: Amount) -> StdResult<()>;
 }
 impl Total {
     pub const VOLUME:  &'static[u8] = b"/total/volume";
@@ -413,6 +417,11 @@ impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
         core.set(Self::UPDATED, self.clock.now)?;
         Ok(())
     }
+    fn commit_claim (&mut self, core: &mut C, earned: Amount) -> StdResult<()> {
+        self.distributed += earned;
+        core.set(Self::CLAIMED, self.distributed)?;
+        Ok(())
+    }
 }
 
 /// Account status
@@ -420,11 +429,11 @@ impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
 #[serde(rename_all="snake_case")]
 pub struct Account {
     /// Passed around internally, not presented to user.
-    #[serde(skip)] pub address: HumanAddr,
+    #[serde(skip)] pub address:   HumanAddr,
     /// Passed around internally, not presented to user.
-    #[serde(skip)] pub id:      CanonicalAddr,
+    #[serde(skip)] pub id:        CanonicalAddr,
     /// Passed around internally, not presented to user.
-    #[serde(skip)] pub total:   Total,
+    #[serde(skip)] pub total:     Total,
     /// "When did this user's liquidity amount last change?"
     /// Set to current time on update.
     pub updated:                  Moment,
@@ -473,24 +482,24 @@ pub trait IAccount <S, A, Q, C>: Sized where
     fn from_env (core: &C, env: Env) -> StdResult<Self>;
     /// Get an account with up-to-date values
     fn get (core: &C, total: Total, address: HumanAddr) -> StdResult<Self>;
-    /// Commit to storage the values that were updated by the passing of time
-    fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()>;
-    /// Check if a deposit is possible, then perform it
-    fn deposit (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse>;
-    /// Store the results of a deposit
-    fn increment_stake (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse>;
-    /// Check if a withdrawal is possible, then perform it
-    fn withdraw (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse>;
-    /// Store the results of a withdrawal
-    fn decrement_stake (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse>;
-    /// Check if a claim is possible, then perform it
-    fn claim (&mut self, core: &mut C) -> StdResult<HandleResponse>;
-    /// Store the results of a claim
-    fn commit_claim (&mut self, core: &mut C) -> StdResult<HandleResponse>;
-    /// Return the user's stake if trying to interact with a closed pool
-    fn force_exit (&mut self, core: &mut C) -> StdResult<HandleResponse>;
     /// Reset the user's liquidity conribution
     fn reset (&mut self, core: &mut C) -> StdResult<()>;
+    /// Check if a deposit is possible, then perform it
+    fn deposit (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse>;
+    /// Check if a withdrawal is possible, then perform it
+    fn withdraw (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse>;
+    /// Check if a claim is possible, then perform it
+    fn claim (&mut self, core: &mut C) -> StdResult<HandleResponse>;
+    /// Return the user's stake if trying to interact with a closed pool
+    fn force_exit (&mut self, core: &mut C) -> StdResult<HandleResponse>;
+    /// Store the values that were updated by the passing of time
+    fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()>;
+    /// Store the results of a deposit
+    fn commit_deposit (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse>;
+    /// Store the results of a withdrawal
+    fn commit_withdrawal (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse>;
+    /// Store the results of a claim
+    fn commit_claim (&mut self, core: &mut C) -> StdResult<HandleResponse>;
 }
 impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
@@ -534,11 +543,8 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         if account.starting_pool_volume > total.volume { return errors::no_time_travel() }
         account.accumulated_pool_volume = (total.volume - account.starting_pool_volume)?;
         // 3. Rewards claimable
-        //    `earned` rewards are equal to `total.budget * reward_share`.
-        //    As the user's volume share increases (as a result of providing liquidity)
-        //    or the pool's budget increases (as a result of new reward portions being
-        //    unstaked from the TGE budget), new rewards are `earned` and become claimable
-        //    once the `bonding` period passes
+        //    The `earned` rewards are a portion of the rewards unlocked since the epoch
+        //    in which the user entered the pool.
         account.starting_pool_rewards = get_amount(Self::ENTRY_REW, total.unlocked)?;
         if account.starting_pool_rewards > total.unlocked { return errors::no_time_travel() }
         account.accumulated_pool_rewards = (total.unlocked - account.starting_pool_rewards)?;
@@ -565,49 +571,36 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         Ok(account)
     }
     fn reset (&mut self, core: &mut C) -> StdResult<()> {
-        self.updated               = self.total.clock.now;
-        self.starting_pool_volume  = self.total.clock.volume;
-        self.starting_pool_rewards = self.total.unlocked;
-        self.volume                = Volume::zero();
-        self.bonding               = self.total.bonding;
-        core.set_ns(Self::UPDATED,   self.id.as_slice(), self.updated)?;
-        core.set_ns(Self::ENTRY_VOL, self.id.as_slice(), self.starting_pool_volume)?;
-        core.set_ns(Self::ENTRY_REW, self.id.as_slice(), self.starting_pool_rewards)?;
-        core.set_ns(Self::VOLUME,    self.id.as_slice(), self.volume)?;
-        core.set_ns(Self::BONDING,   self.id.as_slice(), self.bonding)?;
-        Ok(())
-    }
-    fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()> {
-        self.total.commit_elapsed(core)?;
-        if self.staked == Amount::zero() {
-            self.reset(core)
+        self.starting_pool_volume = if self.staked == Amount::zero() {
+            // If starting from scratch amidst an epoch,
+            // count from the start of the epoch.
+            self.total.clock.volume
         } else {
-            core.set_ns(Self::BONDING, self.id.as_slice(), self.bonding)?;
-            core.set_ns(Self::VOLUME,  self.id.as_slice(), self.volume)?;
-            core.set_ns(Self::UPDATED, self.id.as_slice(), self.total.clock.now)
-        }
+            // If reset is due to claim, there is no gap in liquidity provision,
+            // therefore count from the current moment.
+            self.total.volume
+        };
+        core.set_ns(Self::ENTRY_VOL, self.id.as_slice(), self.starting_pool_volume)?;
+
+        self.starting_pool_rewards = self.total.unlocked;
+        core.set_ns(Self::ENTRY_REW, self.id.as_slice(), self.starting_pool_rewards)?;
+
+        self.bonding = self.total.bonding;
+        core.set_ns(Self::BONDING, self.id.as_slice(), self.bonding)?;
+
+        self.volume = Volume::zero();
+        core.set_ns(Self::VOLUME, self.id.as_slice(), self.volume)?;
+
+        self.updated = self.total.clock.now;
+        core.set_ns(Self::UPDATED, self.id.as_slice(), self.updated)?;
+        Ok(())
     }
     fn deposit (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {
         if self.total.closed.is_some() {
             return self.force_exit(core)
         } else {
-            self.increment_stake(core, amount)
+            self.commit_deposit(core, amount)
         }
-    }
-    fn increment_stake (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse> {
-        self.commit_elapsed(core)?;
-
-        self.staked += amount;
-        core.set_ns(Self::STAKED, self.id.as_slice(), self.staked)?;
-
-        self.total.staked += amount;
-        core.set(Total::STAKED, self.total.staked)?;
-
-        let lp_token  = RewardsConfig::lp_token(core)?;
-        let self_link = RewardsConfig::self_link(core)?;
-        HandleResponse::default().msg(
-            lp_token.transfer_from(&self.address, &self_link.address, amount)?
-        )
     }
     fn withdraw (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {
         if self.total.closed.is_some() {
@@ -617,30 +610,8 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         } else if self.total.staked < amount {
             errors::withdraw_fatal(self.total.staked, amount)
         } else {
-            self.decrement_stake(core, amount)
+            self.commit_withdrawal(core, amount)
         }
-    }
-    fn decrement_stake (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse> {
-        self.commit_elapsed(core)?;
-
-        self.staked = (self.staked - amount)?;
-        core.set_ns(Self::STAKED, self.id.as_slice(), self.staked)?;
-
-        self.total.staked = (self.total.staked - amount)?;
-        core.set(Total::STAKED, self.total.staked)?;
-
-        if self.staked == Amount::zero() { // hairy, fixme
-            if self.bonding == 0 {
-                self.commit_claim(core)?
-            } else {
-                self.reset(core)?;
-                HandleResponse::default()
-            }
-        } else {
-            HandleResponse::default()
-        }.msg(
-            RewardsConfig::lp_token(core)?.transfer(&self.address, amount)?
-        )
     }
     fn claim (&mut self, core: &mut C) -> StdResult<HandleResponse> {
         if self.total.closed.is_some() {
@@ -655,18 +626,6 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
             self.commit_claim(core)
         }
     }
-    fn commit_claim (&mut self, core: &mut C) -> StdResult<HandleResponse> {
-        let earned = self.earned;
-        if earned == Amount::zero() { return Ok(HandleResponse::default()) }
-
-        self.reset(core)?;
-
-        self.total.distributed += earned;
-        core.set(Total::CLAIMED, self.total.distributed)?;
-
-        HandleResponse::default()
-            .msg(RewardsConfig::reward_token(core)?.transfer(&self.address, earned)?)
-    }
     fn force_exit (&mut self, core: &mut C) -> StdResult<HandleResponse> {
         if let Some((ref when, ref why)) = self.total.closed {
             let amount = self.staked;
@@ -674,11 +633,70 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
                 .msg(RewardsConfig::lp_token(core)?.transfer(&self.address, amount)?)?
                 .log("close_time",   &format!("{}", when))?
                 .log("close_reason", &format!("{}", why))?;
-            self.decrement_stake(core, amount)?;
+            self.commit_withdrawal(core, amount)?;
             Ok(response)
         } else {
             errors::pool_not_closed()
         }
+    }
+    fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()> {
+        self.total.commit_elapsed(core)?;
+        if self.staked == Amount::zero() {
+            self.reset(core)?;
+        } else {
+            core.set_ns(Self::BONDING, self.id.as_slice(), self.bonding)?;
+            core.set_ns(Self::VOLUME,  self.id.as_slice(), self.volume)?;
+            core.set_ns(Self::UPDATED, self.id.as_slice(), self.total.clock.now)?;
+        }
+        Ok(())
+    }
+    fn commit_deposit (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse> {
+        self.commit_elapsed(core)?;
+
+        self.staked += amount;
+        core.set_ns(Self::STAKED, self.id.as_slice(), self.staked)?;
+
+        self.total.staked += amount;
+        core.set(Total::STAKED, self.total.staked)?;
+
+        let lp_token  = RewardsConfig::lp_token(core)?;
+        let self_link = RewardsConfig::self_link(core)?;
+        HandleResponse::default().msg(
+            lp_token.transfer_from(&self.address, &self_link.address, amount)?
+        )
+    }
+    fn commit_withdrawal (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse> {
+        self.commit_elapsed(core)?;
+
+        self.staked = (self.staked - amount)?;
+        core.set_ns(Self::STAKED, self.id.as_slice(), self.staked)?;
+
+        self.total.staked = (self.total.staked - amount)?;
+        core.set(Total::STAKED, self.total.staked)?;
+
+        let response = if self.staked == Amount::zero() { // hairy, fixme
+            if self.bonding == 0 {
+                self.commit_claim(core)?
+            } else {
+                self.reset(core)?;
+                HandleResponse::default()
+            }
+        } else {
+            HandleResponse::default()
+        };
+
+        response.msg(
+            RewardsConfig::lp_token(core)?.transfer(&self.address, amount)?
+        )
+    }
+    fn commit_claim (&mut self, core: &mut C) -> StdResult<HandleResponse> {
+        let earned = self.earned;
+        if earned == Amount::zero() { return Ok(HandleResponse::default()) }
+        self.reset(core)?;
+        self.total.commit_claim(core, earned)?;
+        HandleResponse::default()
+            .msg(RewardsConfig::reward_token(core)?.transfer(&self.address, earned)?)?
+            .log("reward", &earned.to_string())
     }
 }
 impl Account {

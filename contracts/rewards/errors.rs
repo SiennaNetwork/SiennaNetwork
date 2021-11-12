@@ -29,7 +29,7 @@ pub fn withdraw_fatal (staked: Amount, withdrawn: Amount) -> StdResult<HandleRes
 
 pub fn claim_bonding (bonding: Duration) -> StdResult<HandleResponse> {
     Err(StdError::generic_err(format!(
-        "Keep tokens staked for {} more seconds to be eligible for rewards.",
+        "Stake tokens for {} more seconds to be eligible for rewards.",
         bonding
     )))
 }
