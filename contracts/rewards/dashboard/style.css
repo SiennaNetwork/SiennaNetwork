@@ -84,7 +84,7 @@ th {
   grid-row-start: 1;
   grid-row-end: 3;
   grid-column-start: 1;
-  padding: 1em;
+  padding: 0.5em;
   background: #3c3836;
   overflow: auto;
 }
@@ -113,9 +113,9 @@ center {
 }
 
 .field {
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(0,0,0,0.5);
-  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom:  1px solid rgba(0,0,0,0.5);
+  margin-bottom:  0.5rem;
 }
 .field label {
   font-weight: bold;

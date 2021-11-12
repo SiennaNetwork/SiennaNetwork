@@ -289,7 +289,7 @@ impl<S, A, Q, C> IClock<S, A, Q, C> for Clock where
             core.get(Total::STAKED)?.unwrap_or(Amount::zero())
         )?;
         core.set(Self::NUMBER, next_epoch)?;
-        core.set(Self::START, now)?;
+        core.set(Self::START,  now)?;
         core.set(Self::VOLUME, volume)?;
         Ok(HandleResponse::default())
     }

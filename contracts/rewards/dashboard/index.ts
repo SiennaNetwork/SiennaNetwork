@@ -77,7 +77,7 @@ function start () {
 
   // create the dashboard --------------------------------------------------------------------------
   const ui = {
-    log:     new Log(),
+    log:     new Sidebar(),
     table:   new Table(),
     current: new PieChart('Current amounts locked',  'locked'),
     stacked: new StackedPieChart()
@@ -169,12 +169,15 @@ class RPT {
   interval  = FUND_INTERVAL
   portion   = FUND_PORTION
   remaining = FUND_PORTIONS
-  vest () {
+  vest (pool: Pool) {
     if (T.T % this.interval == 0) {
       console.info('fund', this.portion, this.remaining)
       if (this.remaining > 0) {
         this.portion
         this.remaining -= 1
+        pool.epoch++
+        pool.contract.sender = ""
+        pool.contract.handle({rewards:{begin_epoch:{next_epoch:pool.epoch}}})
         return this.portion
       }
     }
@@ -192,13 +195,14 @@ export class Pool {
   last_update: number = 0
   lifetime:    number = 0
   locked:      number = 0
-  balance:     number = this.rpt.vest()
   claimed:     number = 0
   cooldown:    number = 0
   threshold:   number = 0
   liquid:      number = 0
 
   epoch: number = 0
+
+  balance:     number = this.rpt.vest(this)
 
   constructor (ui: UIContext) {
     this.ui = ui
@@ -215,16 +219,13 @@ export class Pool {
 
   update () {
 
-    let portion = this.rpt.vest()
+    let portion = this.rpt.vest(this)
     this.balance += portion
-    this.epoch++
-    this.contract.sender = ""
-    this.contract.handle({rewards:{begin_epoch:{next_epoch:this.epoch}}})
 
     this.contract.next_query_response = {balance:{amount:String(this.balance)}}
 
     const {
-      rewards:{pool_info:{updated, volume, staked, distributed, bonding, budget}}
+      rewards:{pool_info:{updated, volume, staked, distributed, bonding, budget, clock}}
     } = this.contract.query({rewards:{pool_info:{at:T.T}}})
 
     Object.assign(this, {
@@ -238,6 +239,9 @@ export class Pool {
     })
 
     this.ui.log.now.setValue(T.T)
+    this.ui.log.epoch.setValue(clock.number)
+    this.ui.log.epoch_started.setValue(clock.started)
+    this.ui.log.epoch_start_volume.setValue(clock.volume)
 
     this.ui.log.lifetime.setValue(this.lifetime)
     this.ui.log.locked.setValue(this.locked)
@@ -470,10 +474,11 @@ export const NO_TABLE   = false
 // handles to dashboard components that can be passed into User/Pool objects -----------------------
 // normally we'd do this with events but this way is simpler
 export interface UIContext {
-  log:     Log
+  log:     Sidebar
   table:   Table
   current: PieChart
-  stacked: StackedPieChart }
+  stacked: StackedPieChart
+}
 
 // Label + value
 export class Field {
@@ -494,11 +499,14 @@ export class Field {
 }
 
 // global values + log of all modeled events -------------------------------------------------------
-export class Log {
+export class Sidebar {
   root      = h('div', { className: 'history' })
   body      = append(this.root, h('ol'))
 
-  now       = new Field('block').append(this.root)
+  now                = new Field('time').append(this.root)
+  epoch              = new Field('epoch').append(this.root)
+  epoch_started      = new Field('epoch started @').append(this.root)
+  epoch_start_volume = new Field('pool volume @ epoch start').append(this.root)
 
   locked    = new Field('liquidity now in pool').append(this.root)
   lifetime  = new Field('all liquidity ever in pool').append(this.root)
@@ -567,7 +575,7 @@ export class Table {
   init (users: Users) {
     append(this.root, h('thead', {},
       h('th', { textContent: 'name' }),
-      h('th', { textContent: 'last_update' }),
+      h('th', { innerHTML:   'last<br>update' }),
       h('th', { innerHTML:   'pool volume<br>@ entry epoch'  }),
       h('th', { textContent: 'current stake' }),
       h('th', { innerHTML:   'liquidity<br>contribution' }),
@@ -591,16 +599,11 @@ export class Table {
     const row = append(this.root, h('tr'))
     const locked =
             h('td', { className: 'locked' })
-        , lockedMinus100 =
-            append(locked, h('button', { textContent: '-100', onclick: () => user.retrieve(100) }))
-        , lockedMinus1   =
-            append(locked, h('button', { textContent: '-1', onclick: () => user.retrieve(1) }))
-        , lockedValue    =
-            append(locked, h('span', { textContent: '' }))
-        , lockedPlus1    =
-            append(locked, h('button', { textContent: '+1', onclick: () => user.lock(1) }))
-        , lockedPlus100  =
-            append(locked, h('button', { textContent: '+100', onclick: () => user.lock(100) }))
+        , lockedMinus100 = append(locked, h('button', { textContent: '-100', onclick: () => user.retrieve(100) }))
+        , lockedMinus1   = append(locked, h('button', { textContent:   '-1', onclick: () => user.retrieve(1) }))
+        , lockedValue    = append(locked, h('span',   { textContent:    '' }))
+        , lockedPlus1    = append(locked, h('button', { textContent:   '+1', onclick: () => user.lock(1) }))
+        , lockedPlus100  = append(locked, h('button', { textContent: '+100', onclick: () => user.lock(100) }))
     const fields = this.rows[name] = {
       name:                append(row, h('td', { style: 'font-weight:bold', textContent: name })),
       last_update:         append(row, h('td')),
