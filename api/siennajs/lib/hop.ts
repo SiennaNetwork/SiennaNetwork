@@ -1,24 +1,4 @@
-import { Address, TypeOfToken, CustomToken, NativeToken, TokenType } from "./core";
-
-/**
- * Extract some comparable id from the token type 
- * 
- * @param {TypeOfToken} token
- * @returns 
- */
-export function get_type_of_token_id(token: TypeOfToken): string {
-    if ((token as unknown as NativeToken).native_token) {
-        return "native";
-    }
-
-    const address = (token as unknown as CustomToken).custom_token?.contract_addr;
-
-    if (!address) {
-        throw new Error("TypeOfToken is not correct, missing address");
-    }
-
-    return address;
-}
+import { Address, TypeOfToken, CustomToken, NativeToken, get_type_of_token_id } from "./core";
 
 /**
  * Simple token pair interface for easier filling in the pairs
