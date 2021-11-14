@@ -417,7 +417,7 @@ use crate::test::{*, Context};
     context.later().user("Alice")
         .branch("then_lock", |mut context|{
             context.test_handle(
-                RewardsHandle::Lock { amount: 100u128.into() },
+                RewardsHandle::Deposit { amount: 100u128.into() },
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
                     .log("close_time",   &format!("{}", when)).unwrap()
@@ -425,7 +425,7 @@ use crate::test::{*, Context};
         })
         .branch("then_retrieve", |mut context|{
             context.test_handle(
-                RewardsHandle::Retrieve { amount: 100u128.into() },
+                RewardsHandle::Withdraw { amount: 100u128.into() },
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
                     .log("close_time",   &format!("{}", when)).unwrap()

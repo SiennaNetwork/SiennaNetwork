@@ -133,8 +133,8 @@ impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
 #[serde(rename_all="snake_case")]
 pub enum RewardsHandle {
     // Public transactions
-    Lock     { amount: Amount },
-    Retrieve { amount: Amount },
+    Deposit  { amount: Amount },
+    Withdraw { amount: Amount },
     Claim    {},
     // Authorized transactions
     BeginEpoch { next_epoch: Moment },
@@ -148,9 +148,9 @@ impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for RewardsHandle where
     fn dispatch_handle (self, core: &mut C, env: Env) -> StdResult<HandleResponse> {
         match self {
             // Public transactions
-            RewardsHandle::Lock { amount } =>
+            RewardsHandle::Deposit { amount } =>
                 Account::from_env(core, env)?.deposit(core, amount),
-            RewardsHandle::Retrieve { amount } =>
+            RewardsHandle::Withdraw { amount } =>
                 Account::from_env(core, env)?.withdraw(core, amount),
             RewardsHandle::Claim {} =>
                 Account::from_env(core, env)?.claim(core),
@@ -373,7 +373,7 @@ impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
         // > EXAMPLE:
         //   Starting with a new pool, lock 10 LP for 20 moments.
         //   The pool will have a liquidity of 200.
-        //   Lock 10 more; 5 moments later, the liquidity will be 300.
+        //   Deposit 10 more; 5 moments later, the liquidity will be 300.
         let last_volume  = get_volume(Total::VOLUME, Volume::zero())?;
         let elapsed      = total.clock.now - total.updated;
         total.staked     = get_amount(Total::STAKED, Amount::zero())?;

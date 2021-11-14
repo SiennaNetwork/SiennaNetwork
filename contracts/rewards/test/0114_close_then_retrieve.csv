@@ -4,7 +4,7 @@ Time,Sender,Recipient,Data
   message: closed"
 =>,err,Unauthorized,
 ,,,
-16,Alice,REWARDS,"lock:
+16,Alice,REWARDS,"deposit:
   amount: ""38861"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""38861""
@@ -16,7 +16,7 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   message: closed"
 =>,err,Unauthorized,
 ,,,
-32,Alice,REWARDS,"lock:
+32,Alice,REWARDS,"deposit:
   amount: ""93561"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""93561""
@@ -34,7 +34,7 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 73,test,branch,0114_close_then_retrieve
 ,,,
 ,,,
-73,Alice,REWARDS,"retrieve:
+73,Alice,REWARDS,"withdraw:
   amount: ""100"""
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""132422""

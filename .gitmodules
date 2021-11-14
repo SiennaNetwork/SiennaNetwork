@@ -19,4 +19,4 @@
 	branch = 21.09
 [submodule "libraries/amm-types"]
 	path = libraries/amm-types
-	url = https://github.com/SiennaNetwork/amm-types
+	url = git@github.com:SiennaNetwork/amm-types.git

@@ -6,7 +6,7 @@ Time,Sender,Recipient,Data
 22,Alice,REWARDS,claim: {}
 =>,err,Generic error: Stake tokens for 197 more seconds to be eligible for rewards.,
 ,,,
-22,Alice,REWARDS,"lock:
+22,Alice,REWARDS,"deposit:
   amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""42798""

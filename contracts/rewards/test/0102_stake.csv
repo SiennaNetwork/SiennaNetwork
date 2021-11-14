@@ -1,6 +1,6 @@
 Time,Sender,Recipient,Data
 ,,,
-19,Alice,REWARDS,"lock:
+19,Alice,REWARDS,"deposit:
   amount: ""43"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""43""
@@ -30,7 +30,7 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 29,REWARDS,Alice,account.staked               = 43
 29,REWARDS,Alice,account.volume               = 430
 ,,,
-29,Alice,REWARDS,"lock:
+29,Alice,REWARDS,"deposit:
   amount: ""26"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""26""

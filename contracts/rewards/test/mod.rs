@@ -312,7 +312,7 @@ impl Context {
     }
     pub fn deposits (&mut self, amount: u128) -> &mut Self {
         self.test_handle(
-            RewardsHandle::Lock { amount: amount.into() },
+            RewardsHandle::Deposit { amount: amount.into() },
             HandleResponse::default().msg(self.lp_token.transfer_from(
                 &self.env.message.sender,
                 &self.env.contract.address,
@@ -324,7 +324,7 @@ impl Context {
     }
     pub fn withdraws (&mut self, amount: u128) -> &mut Self {
         self.test_handle(
-            RewardsHandle::Retrieve { amount: amount.into() },
+            RewardsHandle::Withdraw { amount: amount.into() },
             HandleResponse::default().msg(self.lp_token.transfer(
                 &self.env.message.sender,
                 amount.into()
@@ -350,7 +350,7 @@ impl Context {
     }
     pub fn withdraws_claims (&mut self, stake: u128, reward: u128) -> &mut Self {
         self.test_handle(
-            RewardsHandle::Retrieve { amount: stake.into() },
+            RewardsHandle::Withdraw { amount: stake.into() },
             HandleResponse::default()
                 .msg(
                     self.reward_token.transfer(&self.env.message.sender, reward.into()).unwrap()

@@ -2,7 +2,7 @@ Time,Sender,Recipient,Data
 14,REWARDS,Alice,account.staked               = 0
 14,REWARDS,Alice,account.volume               = 0
 ,,,
-14,Alice,REWARDS,"lock:
+14,Alice,REWARDS,"deposit:
   amount: ""85596"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""85596""
@@ -18,7 +18,7 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 17,REWARDS,Alice,account.staked               = 85596
 17,REWARDS,Alice,account.volume               = 256788
 ,,,
-17,Alice,REWARDS,"retrieve:
+17,Alice,REWARDS,"withdraw:
   amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
@@ -31,7 +31,7 @@ tx,REWARDS,LP_TOKEN,"transfer:
 19,REWARDS,Alice,account.staked               = 42798
 19,REWARDS,Alice,account.volume               = 342384
 ,,,
-19,Alice,REWARDS,"retrieve:
+19,Alice,REWARDS,"withdraw:
   amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
@@ -44,7 +44,7 @@ tx,REWARDS,LP_TOKEN,"transfer:
 21,REWARDS,Alice,account.staked               = 0
 21,REWARDS,Alice,account.volume               = 0
 ,,,
-21,Alice,REWARDS,"lock:
+21,Alice,REWARDS,"deposit:
   amount: ""1"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""1""

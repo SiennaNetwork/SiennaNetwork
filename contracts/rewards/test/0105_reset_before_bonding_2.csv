@@ -4,7 +4,7 @@ Time,Sender,Recipient,Data
 14,REWARDS,Alice,account.bonding              = 197
 14,REWARDS,Alice,account.earned               = 0
 ,,,
-14,Alice,REWARDS,"lock:
+14,Alice,REWARDS,"deposit:
   amount: ""85596"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""85596""
@@ -25,7 +25,7 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 24,test,branch,0105_reset_before_bonding_2
 ,,,
 ,,,
-24,Alice,REWARDS,"retrieve:
+24,Alice,REWARDS,"withdraw:
   amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
@@ -38,7 +38,7 @@ tx,REWARDS,LP_TOKEN,"transfer:
 34,REWARDS,Alice,account.earned               = 0
 34,REWARDS,Alice,account.bonding              = 177
 ,,,
-34,Alice,REWARDS,"retrieve:
+34,Alice,REWARDS,"withdraw:
   amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
