@@ -125,7 +125,7 @@ use crate::test::{*, Context};
 }
 
 #[test] fn test_0105_reset () {
-    let mut context = Context::named("0106_exit");
+    let mut context = Context::named("0105_reset");
     let stake       = context.rng.gen_range(1..100000) * 2;
     let reward      = context.rng.gen_range(1..100000);
     let bonding     = context.bonding;
@@ -278,7 +278,7 @@ use crate::test::{*, Context};
     let reward = context.rng.gen_range(1..100000);
 
     // Given an instance
-    Context::named("0107_claim").init().fund(reward)
+    Context::named("0107_claim").init()
         .user("Alice").set_vk("")
         //  When user tries to claim reward before providing liquidity
         //  Then they get an error
@@ -296,7 +296,6 @@ use crate::test::{*, Context};
         .user("Alice").tick().claims(reward)
         //  When a provider claims rewards twice within a period
         //  Then rewards are sent only the first time
-        .fund(reward)
         .tick().must_wait(bonding-1)
         .tick().must_wait(bonding-2)
         .tick().must_wait(bonding-3)
@@ -338,33 +337,18 @@ use crate::test::{*, Context};
     let reward = context.rng.gen_range(1..100000)*2;
     // Given an instance:
     Context::named("0109_parallel").init()
-        //  When alice and bob first deposit lp tokens simultaneously,
-        //  Then their ages and earnings start incrementing simultaneously;
         .later()
             .user("Alice").set_vk("").deposits(stake).earned(0)
             .user("Bob"  ).set_vk("").deposits(stake).earned(0)
-        //  When alice and bob withdraw lp tokens simultaneously,
-        //  Then their ages and earnings keep changing simultaneously;
-        .later().fund(reward)
+        .admin().epoch(1, reward)
             .user("Alice").earned(reward/2).withdraws(stake/2).earned(reward/2)
             .user("Bob"  ).earned(reward/2).withdraws(stake/2).earned(reward/2)
-        //  When alice and bob's ages reach the configured threshold,
-        //  Then each is eligible to claim half of the available rewards
-        //   And their rewards are proportionate to their stakes.
-        .admin().epoch(1, 0)
-        .user("Alice").earned(reward/2).withdraws_claims(stake/2, reward/2).earned(0)
-        .user("Bob"  ).earned(reward/2).withdraws_claims(stake/2, reward/2).earned(0)
-
-        //  When alice and bob again deposit lp tokens simultaneously,
-        //  Then their ages and earnings start incrementing simultaneously;
-        //  When their bonding periods are over
-        //  Then their rewards are proportional to their stakes
         .later()
-        .user("Alice").set_vk("").deposits(stake).earned(0)
-        .user("Bob"  ).set_vk("").deposits(stake).earned(0)
+            .user("Alice").set_vk("").deposits(stake).earned(reward/2)
+            .user("Bob"  ).set_vk("").deposits(stake).earned(reward/2)
         .admin().epoch(2, reward)
-        .user("Alice").earned(reward/2).withdraws_claims(stake, reward/2)
-        .user("Bob"  ).earned(reward/2).withdraws_claims(stake, reward/2);
+            .user("Alice").earned(reward).withdraws_claims(stake*3/2, reward).earned(0)
+            .user("Bob"  ).earned(reward).withdraws_claims(stake*3/2, reward).earned(0);
 }
 
 #[test] fn test_0110_overlap () {
@@ -416,7 +400,7 @@ use crate::test::{*, Context};
     // When someone unauthorized tries to close the pool
     // Then they can't
     context
-        .admin().init().fund(reward)
+        .admin().init()
         .later().badman().cannot_close_pool()
         .later().user("Alice").deposits(stake1)
         .later().badman().cannot_close_pool()

@@ -333,15 +333,19 @@ impl Context {
         self.deps.querier.decrement_balance(&self.lp_token.link.address, amount);
         self
     }
-    pub fn claims (&mut self, amount: u128) -> &mut Self {
+    pub fn claims (&mut self, reward: u128) -> &mut Self {
         self.test_handle(
             RewardsHandle::Claim {},
-            HandleResponse::default().msg(self.reward_token.transfer(
-                &self.env.message.sender,
-                amount.into()
-            ).unwrap())
+            HandleResponse::default().msg(
+                self.reward_token.transfer(
+                    &self.env.message.sender,
+                    reward.into()
+                ).unwrap()
+            ).unwrap().log(
+                "reward", &reward.to_string()
+            )
         );
-        self.deps.querier.decrement_balance(&self.reward_token.link.address, amount);
+        self.deps.querier.decrement_balance(&self.reward_token.link.address, reward);
         self
     }
     pub fn withdraws_claims (&mut self, stake: u128, reward: u128) -> &mut Self {
@@ -353,6 +357,9 @@ impl Context {
                 ).unwrap()
                 .msg(
                     self.lp_token.transfer(&self.env.message.sender, stake.into()).unwrap()
+                ).unwrap()
+                .log(
+                    "reward", &reward.to_string()
                 )
         );
         self.deps.querier.decrement_balance(&self.reward_token.link.address, reward);

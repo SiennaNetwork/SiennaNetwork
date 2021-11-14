@@ -23,6 +23,7 @@ tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
   padding: ~
   recipient: Alice"
+log,REWARDS,,reward = 38861
 ,,,
 222,Bob,REWARDS,"lock:
   amount: ""42798"""
@@ -47,6 +48,7 @@ tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
   padding: ~
   recipient: Bob"
+log,REWARDS,,reward = 93561
 ,,,
 437,Alice,REWARDS,"lock:
   amount: ""42798"""
@@ -71,6 +73,7 @@ tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
   padding: ~
   recipient: Alice"
+log,REWARDS,,reward = 19429
 ,,,
 641,Bob,REWARDS,"lock:
   amount: ""42798"""
@@ -95,3 +98,4 @@ tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
   padding: ~
   recipient: Bob"
+log,REWARDS,,reward = 89229

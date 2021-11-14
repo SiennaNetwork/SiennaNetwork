@@ -228,7 +228,7 @@ impl<S, A, Q, C> IRewardsResponse<S, A, Q, C> for RewardsResponse where
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub struct Clock {
-    /// "For what point in time do these values hold true?"
+    /// "For what point in time do the reported values hold true?"
     /// Got from env.block time on transactions, passed by client in queries.
     pub now:     Moment,
     /// "What is the current reward epoch?"
@@ -240,9 +240,6 @@ pub struct Clock {
     /// "What was the total pool liquidity at the epoch start?"
     /// Set to `total.volume` on epoch increment.
     pub volume:  Volume
-    //// "what rewards were unlocked for this pool at the epoch start?"
-    //// computed as balance + claimed.
-    //pub unlocked_at_epoch: Amount,
 }
 impl Clock {
     pub const NUMBER:   &'static[u8] = b"/epoch/number";
@@ -428,12 +425,9 @@ impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub struct Account {
-    /// Passed around internally, not presented to user.
-    #[serde(skip)] pub address:   HumanAddr,
-    /// Passed around internally, not presented to user.
-    #[serde(skip)] pub id:        CanonicalAddr,
-    /// Passed around internally, not presented to user.
-    #[serde(skip)] pub total:     Total,
+    /// "What is the overall state of the pool?"
+    /// Passed at instantiation.
+    pub total:                    Total,
     /// "When did this user's liquidity amount last change?"
     /// Set to current time on update.
     pub updated:                  Moment,
@@ -474,6 +468,10 @@ pub struct Account {
     pub bonding:                  Duration,
     /// User-friendly reason why earned is 0
     pub reason:                   Option<String>,
+    /// Passed around internally, not presented to user.
+    #[serde(skip)] pub address:   HumanAddr,
+    /// Passed around internally, not presented to user.
+    #[serde(skip)] pub id:        CanonicalAddr,
 }
 pub trait IAccount <S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>

@@ -18,100 +18,76 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
   recipient: cosmos2contract"
 14,REWARDS,Bob,account.earned               = 0
 ,,,
-22,RPT,REWARDS,vest 77722
-22,REWARDS,Alice,account.earned               = 38861
+211,RPT,REWARDS,vest 77722
 ,,,
-22,Alice,REWARDS,"retrieve:
-  amount: ""42798"""
-tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""42798""
-  padding: ~
-  recipient: Alice"
-22,REWARDS,Alice,account.earned               = 38861
-22,REWARDS,Bob,account.earned               = 38861
-,,,
-22,Bob,REWARDS,"retrieve:
-  amount: ""42798"""
-tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""42798""
-  padding: ~
-  recipient: Bob"
-22,REWARDS,Bob,account.earned               = 38861
-,,,
-219,RPT,REWARDS,vest 0
-,,,
-219,Admin,REWARDS,"begin_epoch:
+211,Admin,REWARDS,"begin_epoch:
   next_epoch: 1"
-219,REWARDS,Alice,account.earned               = 38861
+211,REWARDS,Alice,account.earned               = 38861
 ,,,
-219,Alice,REWARDS,"retrieve:
+211,Alice,REWARDS,"retrieve:
   amount: ""42798"""
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""38861""
-  padding: ~
-  recipient: Alice"
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
   padding: ~
   recipient: Alice"
-219,REWARDS,Alice,account.earned               = 0
-219,REWARDS,Bob,account.earned               = 38861
+211,REWARDS,Alice,account.earned               = 38861
+211,REWARDS,Bob,account.earned               = 38861
 ,,,
-219,Bob,REWARDS,"retrieve:
+211,Bob,REWARDS,"retrieve:
   amount: ""42798"""
-tx,REWARDS,SIENNA,"transfer:
-  amount: ""38861""
-  padding: ~
-  recipient: Bob"
 tx,REWARDS,LP_TOKEN,"transfer:
   amount: ""42798""
   padding: ~
   recipient: Bob"
-219,REWARDS,Bob,account.earned               = 0
+211,REWARDS,Bob,account.earned               = 38861
 ,,,
-222,Alice,REWARDS,"lock:
+219,Alice,REWARDS,"lock:
   amount: ""85596"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""85596""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-222,REWARDS,Alice,account.earned               = 0
+219,REWARDS,Alice,account.earned               = 38861
 ,,,
-222,Bob,REWARDS,"lock:
+219,Bob,REWARDS,"lock:
   amount: ""85596"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""85596""
   owner: Bob
   padding: ~
   recipient: cosmos2contract"
-222,REWARDS,Bob,account.earned               = 0
+219,REWARDS,Bob,account.earned               = 38861
 ,,,
-419,RPT,REWARDS,vest 77722
+416,RPT,REWARDS,vest 77722
 ,,,
-419,Admin,REWARDS,"begin_epoch:
+416,Admin,REWARDS,"begin_epoch:
   next_epoch: 2"
-419,REWARDS,Alice,account.earned               = 38861
+416,REWARDS,Alice,account.earned               = 77722
 ,,,
-419,Alice,REWARDS,"retrieve:
-  amount: ""85596"""
+416,Alice,REWARDS,"retrieve:
+  amount: ""128394"""
 tx,REWARDS,SIENNA,"transfer:
-  amount: ""38861""
+  amount: ""77722""
   padding: ~
   recipient: Alice"
 tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""85596""
+  amount: ""128394""
   padding: ~
   recipient: Alice"
-419,REWARDS,Bob,account.earned               = 38861
+log,REWARDS,,reward = 77722
+416,REWARDS,Alice,account.earned               = 0
+416,REWARDS,Bob,account.earned               = 77722
 ,,,
-419,Bob,REWARDS,"retrieve:
-  amount: ""85596"""
+416,Bob,REWARDS,"retrieve:
+  amount: ""128394"""
 tx,REWARDS,SIENNA,"transfer:
-  amount: ""38861""
+  amount: ""77722""
   padding: ~
   recipient: Bob"
 tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""85596""
+  amount: ""128394""
   padding: ~
   recipient: Bob"
+log,REWARDS,,reward = 77722
+416,REWARDS,Bob,account.earned               = 0

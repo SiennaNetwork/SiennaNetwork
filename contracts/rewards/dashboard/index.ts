@@ -530,9 +530,8 @@ interface Columns {
   volume_at_entry:     HTMLElement
   locked:              HTMLElement
 
-  lifetime:            HTMLElement
-  sign1: HTMLElement
-  volume_since_entry:  HTMLElement
+  lifetime_over_volume_since_entry:            HTMLElement
+  //sign1: HTMLElement
   sign2: HTMLElement
   share:               HTMLElement
   sign3: HTMLElement
@@ -569,13 +568,12 @@ export class Table {
       h('th', { innerHTML:   'last<br>update' }),
       h('th', { innerHTML:   'pool volume<br>@ entry epoch'  }),
       h('th', { textContent: 'current stake' }),
-      h('th', { innerHTML:   'liquidity<br>contribution' }),
-      h('th', { textContent: '÷' }),
-      h('th', { innerHTML:   'pool volume<br>since entry epoch<br>or last claim'  }),
-      h('th', { textContent: '=' }),
-      h('th', { textContent: 'share' }),
+      h('th', { innerHTML:   '<div><div style="padding-bottom:3px;border-bottom:1px solid white">volume of this user\'s<br>liquidity contribution</div><div>pool volume since<br>this user entered or last claimed</div>' }),
+      //h('th', { textContent: '÷' }),
+      //h('th', { textContent: '=' }),
+      //h('th', { textContent: 'share' }),
       h('th', { textContent: '×' }),
-      h('th', { innerHTML:   'rewards vested<br>since entry' }),
+      h('th', { innerHTML:   'rewards vested<br>since this user<br>entered or claimed' }),
       h('th', { textContent: '=' }),
       h('th', { textContent: 'earned' }),
       h('th', { textContent: 'cooldown' }),
@@ -602,11 +600,10 @@ export class Table {
       locked:              append(row, locked),
       lockedMinus100, lockedMinus1, lockedValue, lockedPlus1, lockedPlus100,
       age:                 /*append(row, */h('td')/*)*/,
-      lifetime:            append(row, h('td')),
-      sign1:               append(row, h('td', { textContent: '÷' })),
-      volume_since_entry:  append(row, h('td')),
-      sign2:               append(row, h('td', { textContent: '=' })),
-      share:               append(row, h('td')),
+      lifetime_over_volume_since_entry:            append(row, h('td')),
+      //sign1:               append(row, h('td', { textContent: '÷' })),
+      sign2:               /*append(row, */ h('td'), /*{ textContent: '=' })),*/
+      share:               /*append(row, */ h('td'), /*)*/
       sign3:               append(row, h('td', { textContent: '×' })),
       rewards_since_entry: append(row, h('td')),
       sign4:               append(row, h('td', { textContent: '=' })),
@@ -627,12 +624,14 @@ export class Table {
       format.integer(user.last_update)
     this.rows[user.name].lockedValue.textContent =
       format.integer(user.locked)
-    this.rows[user.name].lifetime.textContent =
-      format.integer(user.lifetime)
+    this.rows[user.name].lifetime_over_volume_since_entry.innerHTML = `
+      <div style="display:flex;flex-flow:column nowrap;align-items:center">
+        <div style="padding-bottom:2px;">${format.integer(user.lifetime)}</div>
+        <div style="border-top:1px solid white">${format.integer(user.pool_volume_since_entry)}</div>
+      </div>
+    `
     this.rows[user.name].volume_at_entry.textContent =
       format.integer(user.pool_volume_at_entry)
-    this.rows[user.name].volume_since_entry.textContent =
-      format.integer(user.pool_volume_since_entry)
     this.rows[user.name].rewards_since_entry.textContent =
       format.integer(user.rewards_since_entry)
     this.rows[user.name].share.textContent =

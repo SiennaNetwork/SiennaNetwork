@@ -20,6 +20,7 @@ tx,REWARDS,SIENNA,"transfer:
   amount: ""38861""
   padding: ~
   recipient: Alice"
+log,REWARDS,,reward = 38861
 211,REWARDS,Alice,account.earned               = 0
 211,REWARDS,Alice,account.staked               = 42798
 ,,,

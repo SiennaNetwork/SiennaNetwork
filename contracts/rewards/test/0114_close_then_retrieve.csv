@@ -1,7 +1,5 @@
 Time,Sender,Recipient,Data
 ,,,
-1,RPT,REWARDS,vest 42798
-,,,
 9,Badman,REWARDS,"close:
   message: closed"
 =>,err,Unauthorized,

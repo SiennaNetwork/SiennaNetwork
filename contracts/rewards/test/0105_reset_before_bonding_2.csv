@@ -16,21 +16,35 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 14,REWARDS,Alice,account.bonding              = 197
 14,REWARDS,Alice,account.earned               = 0
 ,,,
-14,test,branch,0106_exit_before_bonding
+14,test,branch,0105_reset_before_bonding
 ,,,
 24,REWARDS,Alice,account.volume               = 855960
 24,REWARDS,Alice,account.bonding              = 187
 24,REWARDS,Alice,account.earned               = 0
 ,,,
-24,test,branch,0106_exit_before_bonding_1
+24,test,branch,0105_reset_before_bonding_2
 ,,,
 ,,,
 24,Alice,REWARDS,"retrieve:
-  amount: ""85596"""
+  amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer:
-  amount: ""85596""
+  amount: ""42798""
   padding: ~
   recipient: Alice"
-24,REWARDS,Alice,account.volume               = 0
-24,REWARDS,Alice,account.bonding              = 197
+24,REWARDS,Alice,account.volume               = 855960
+24,REWARDS,Alice,account.bonding              = 187
 24,REWARDS,Alice,account.earned               = 0
+34,REWARDS,Alice,account.volume               = 1283940
+34,REWARDS,Alice,account.earned               = 0
+34,REWARDS,Alice,account.bonding              = 177
+,,,
+34,Alice,REWARDS,"retrieve:
+  amount: ""42798"""
+tx,REWARDS,LP_TOKEN,"transfer:
+  amount: ""42798""
+  padding: ~
+  recipient: Alice"
+34,REWARDS,Alice,account.staked               = 0
+34,REWARDS,Alice,account.volume               = 0
+34,REWARDS,Alice,account.earned               = 0
+34,REWARDS,Alice,account.bonding              = 197
