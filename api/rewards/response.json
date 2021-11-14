@@ -3,181 +3,24 @@
   "title": "Response",
   "anyOf": [
     {
-      "description": "Response from `Query::PoolInfo`",
       "type": "object",
       "required": [
-        "pool_info"
+        "auth"
       ],
       "properties": {
-        "pool_info": {
-          "type": "object",
-          "required": [
-            "it_is_now",
-            "lp_token",
-            "pool_balance",
-            "pool_claimed",
-            "pool_cooldown",
-            "pool_last_update",
-            "pool_lifetime",
-            "pool_liquid",
-            "pool_locked",
-            "pool_threshold",
-            "reward_token"
-          ],
-          "properties": {
-            "it_is_now": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "lp_token": {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
-            },
-            "pool_balance": {
-              "$ref": "#/definitions/Uint128"
-            },
-            "pool_claimed": {
-              "$ref": "#/definitions/Uint128"
-            },
-            "pool_closed": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "pool_cooldown": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "pool_last_update": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "pool_lifetime": {
-              "$ref": "#/definitions/Uint256"
-            },
-            "pool_liquid": {
-              "$ref": "#/definitions/Uint128"
-            },
-            "pool_locked": {
-              "$ref": "#/definitions/Uint128"
-            },
-            "pool_threshold": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "reward_token": {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "Response from `Query::UserInfo`",
-      "type": "object",
-      "required": [
-        "user_info"
-      ],
-      "properties": {
-        "user_info": {
-          "type": "object",
-          "required": [
-            "it_is_now",
-            "pool_last_update",
-            "pool_lifetime",
-            "pool_locked",
-            "user_age",
-            "user_claimable",
-            "user_claimed",
-            "user_cooldown",
-            "user_earned",
-            "user_lifetime",
-            "user_locked",
-            "user_share"
-          ],
-          "properties": {
-            "it_is_now": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "pool_closed": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "pool_last_update": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "pool_lifetime": {
-              "$ref": "#/definitions/Uint256"
-            },
-            "pool_locked": {
-              "$ref": "#/definitions/Uint128"
-            },
-            "user_age": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "user_claimable": {
-              "$ref": "#/definitions/Uint128"
-            },
-            "user_claimed": {
-              "$ref": "#/definitions/Uint128"
-            },
-            "user_cooldown": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "user_earned": {
-              "$ref": "#/definitions/Uint128"
-            },
-            "user_last_update": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "user_lifetime": {
-              "$ref": "#/definitions/Uint256"
-            },
-            "user_locked": {
-              "$ref": "#/definitions/Uint128"
-            },
-            "user_share": {
-              "$ref": "#/definitions/Uint128"
-            }
-          }
+        "auth": {
+          "$ref": "#/definitions/AuthResponse"
         }
       }
     },
     {
       "type": "object",
       "required": [
-        "admin"
+        "rewards"
       ],
       "properties": {
-        "admin": {
-          "type": "object",
-          "required": [
-            "address"
-          ],
-          "properties": {
-            "address": {
-              "$ref": "#/definitions/HumanAddr"
-            }
-          }
+        "rewards": {
+          "$ref": "#/definitions/RewardsResponse"
         }
       }
     },
@@ -243,29 +86,350 @@
     }
   ],
   "definitions": {
-    "ContractInstance_for_HumanAddr": {
-      "description": "Info needed to talk to a contract instance.",
+    "Account": {
+      "description": "Account status",
       "type": "object",
       "required": [
-        "address",
-        "code_hash"
+        "accumulated_pool_rewards",
+        "accumulated_pool_volume",
+        "bonding",
+        "earned",
+        "elapsed",
+        "pool_share",
+        "reward_share",
+        "staked",
+        "starting_pool_rewards",
+        "starting_pool_volume",
+        "total",
+        "updated",
+        "volume"
       ],
       "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
+        "accumulated_pool_rewards": {
+          "description": "How much has `total.unlocked` grown, i.e. how much rewards have been unlocked since this user entered? Multiply this by the reward share to compute earnings.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
         },
-        "code_hash": {
-          "type": "string"
+        "accumulated_pool_volume": {
+          "description": "How much has `total.volume` grown, i.e. how much liquidity has accumulated in the pool since this user entered? Used as basis of reward share calculation.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint256"
+            }
+          ]
+        },
+        "bonding": {
+          "description": "How many units of time remain until the user can claim? Decremented on update, reset to pool.bonding on claim.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "earned": {
+          "description": "How much rewards has this user earned? Computed as user.reward_share * pool.unlocked",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "elapsed": {
+          "description": "\"How much time has passed since the user updated their stake?\" Computed as `current time - updated`",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "pool_share": {
+          "description": "What portion of the pool is currently owned by this user? Computed as user.staked / pool.staked",
+          "type": "array",
+          "items": [
+            {
+              "$ref": "#/definitions/Uint128"
+            },
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ],
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "reason": {
+          "description": "User-friendly reason why earned is 0",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reward_share": {
+          "description": "What portion of all the liquidity accumulated since this user's entry is due to this particular user's stake? Computed as user.volume / pool.volume",
+          "type": "array",
+          "items": [
+            {
+              "$ref": "#/definitions/Uint256"
+            },
+            {
+              "$ref": "#/definitions/Uint256"
+            }
+          ],
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "staked": {
+          "description": "How much liquidity does this user currently provide? Incremented/decremented on lock/unlock.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "starting_pool_rewards": {
+          "description": "How much rewards were already unlocked when the user entered? Set to `total.unlocked` on initial deposit.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "starting_pool_volume": {
+          "description": "What was the volume of the pool when the user entered? Set to `total.volume` on initial deposit.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint256"
+            }
+          ]
+        },
+        "total": {
+          "description": "\"What is the overall state of the pool?\" Passed at instantiation.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Total"
+            }
+          ]
+        },
+        "updated": {
+          "description": "\"When did this user's liquidity amount last change?\" Set to current time on update.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "volume": {
+          "description": "How much liquidity has this user provided since they first appeared? Incremented on update by staked * elapsed if staked > 0",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint256"
+            }
+          ]
+        }
+      }
+    },
+    "AuthResponse": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "admin"
+          ],
+          "properties": {
+            "admin": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "create_viewing_key"
+          ],
+          "properties": {
+            "create_viewing_key": {
+              "type": "object",
+              "required": [
+                "key"
+              ],
+              "properties": {
+                "key": {
+                  "$ref": "#/definitions/ViewingKey"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Clock": {
+      "description": "Reward epoch state. Epoch is incremented after each RPT vesting.",
+      "type": "object",
+      "required": [
+        "now",
+        "number",
+        "started",
+        "volume"
+      ],
+      "properties": {
+        "now": {
+          "description": "\"For what point in time do the reported values hold true?\" Got from env.block time on transactions, passed by client in queries.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "number": {
+          "description": "\"What is the current reward epoch?\" Incremented by external periodic call.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "started": {
+          "description": "\"When did the epoch last increment?\" Set to current time on epoch increment.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "volume": {
+          "description": "\"What was the total pool liquidity at the epoch start?\" Set to `total.volume` on epoch increment.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint256"
+            }
+          ]
         }
       }
     },
     "HumanAddr": {
       "type": "string"
     },
+    "RewardsResponse": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "user_info"
+          ],
+          "properties": {
+            "user_info": {
+              "$ref": "#/definitions/Account"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "pool_info"
+          ],
+          "properties": {
+            "pool_info": {
+              "$ref": "#/definitions/Total"
+            }
+          }
+        }
+      ]
+    },
+    "Total": {
+      "description": "Pool totals",
+      "type": "object",
+      "required": [
+        "bonding",
+        "budget",
+        "clock",
+        "distributed",
+        "staked",
+        "unlocked",
+        "updated",
+        "volume"
+      ],
+      "properties": {
+        "bonding": {
+          "description": "\"how much must the user wait between claims?\" Configured on init. Account bondings are reset to this value on claim.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "budget": {
+          "description": "\"What amount of rewards is currently available for users?\" Queried from reward token.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "clock": {
+          "$ref": "#/definitions/Clock"
+        },
+        "closed": {
+          "description": "\"Is this pool closed, and if so, when and why?\" Set irreversibly via handle method.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": [
+            {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "distributed": {
+          "description": "\"What rewards has everyone received so far?\" Incremented on claim.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "staked": {
+          "description": "\"What liquidity is there in the whole pool right now?\" Incremented/decremented on lock/unlock.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "unlocked": {
+          "description": "\"what rewards were unlocked for this pool so far?\" computed as balance + claimed.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "updated": {
+          "description": "\"When was the last time someone staked or unstaked tokens?\" Set to current time on lock/unlock.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "volume": {
+          "description": "\"What liquidity has this pool contained up to this point?\" Before lock/unlock, if staked > 0, this is incremented by total.elapsed * total.staked",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint256"
+            }
+          ]
+        }
+      }
+    },
     "Uint128": {
       "type": "string"
     },
     "Uint256": {
+      "type": "string"
+    },
+    "ViewingKey": {
       "type": "string"
     }
   }

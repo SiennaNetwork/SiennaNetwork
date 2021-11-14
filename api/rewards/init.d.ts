@@ -6,23 +6,27 @@
  */
 
 export type HumanAddr = string;
-export type Uint128 = string;
-export type ViewingKey = string;
 
 export interface Init {
   admin?: HumanAddr | null;
-  cooldown?: number | null;
-  lp_token?: ContractInstanceFor_HumanAddr | null;
-  ratio?: [Uint128, Uint128] | null;
-  reward_token: ContractInstanceFor_HumanAddr;
-  threshold?: number | null;
-  viewing_key: ViewingKey;
+  config: RewardsConfig;
+  [k: string]: unknown;
+}
+/**
+ * Reward pool configuration
+ */
+export interface RewardsConfig {
+  bonding?: number | null;
+  lp_token?: ContractLinkFor_HumanAddr | null;
+  reward_token?: ContractLinkFor_HumanAddr | null;
+  reward_vk?: string | null;
+  timekeeper?: HumanAddr | null;
   [k: string]: unknown;
 }
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractInstanceFor_HumanAddr {
+export interface ContractLinkFor_HumanAddr {
   address: HumanAddr;
   code_hash: string;
   [k: string]: unknown;

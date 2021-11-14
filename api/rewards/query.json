@@ -3,71 +3,29 @@
   "title": "Query",
   "anyOf": [
     {
-      "description": "Who is admin? TODO do we need this in prod?",
       "type": "object",
       "required": [
-        "admin"
+        "auth"
       ],
       "properties": {
-        "admin": {
-          "type": "object"
+        "auth": {
+          "$ref": "#/definitions/AuthQuery"
         }
       }
     },
     {
-      "description": "Overall pool status",
       "type": "object",
       "required": [
-        "pool_info"
+        "rewards"
       ],
       "properties": {
-        "pool_info": {
-          "type": "object",
-          "required": [
-            "at"
-          ],
-          "properties": {
-            "at": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            }
-          }
+        "rewards": {
+          "$ref": "#/definitions/RewardsQuery"
         }
       }
     },
     {
-      "description": "Requires the user's viewing key.",
-      "type": "object",
-      "required": [
-        "user_info"
-      ],
-      "properties": {
-        "user_info": {
-          "type": "object",
-          "required": [
-            "address",
-            "at",
-            "key"
-          ],
-          "properties": {
-            "address": {
-              "$ref": "#/definitions/HumanAddr"
-            },
-            "at": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "key": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "Keplr integration",
+      "description": "For Keplr integration",
       "type": "object",
       "required": [
         "token_info"
@@ -79,7 +37,7 @@
       }
     },
     {
-      "description": "Keplr integration",
+      "description": "For Keplr integration",
       "type": "object",
       "required": [
         "balance"
@@ -104,8 +62,68 @@
     }
   ],
   "definitions": {
+    "AuthQuery": {
+      "type": "string",
+      "enum": [
+        "admin"
+      ]
+    },
     "HumanAddr": {
       "type": "string"
+    },
+    "RewardsQuery": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "user_info"
+          ],
+          "properties": {
+            "user_info": {
+              "type": "object",
+              "required": [
+                "address",
+                "at",
+                "key"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "at": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                },
+                "key": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "pool_info"
+          ],
+          "properties": {
+            "pool_info": {
+              "type": "object",
+              "required": [
+                "at"
+              ],
+              "properties": {
+                "at": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

@@ -7,47 +7,7 @@
 
 export type Handle =
   | {
-      change_admin: {
-        address: HumanAddr;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      set_provided_token: {
-        address: HumanAddr;
-        code_hash: string;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      change_ratio: {
-        denominator: Uint128;
-        numerator: Uint128;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      change_threshold: {
-        threshold: number;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      change_cooldown: {
-        cooldown: number;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      close_pool: {
-        message: string;
-        [k: string]: unknown;
-      };
+      auth: AuthHandle;
       [k: string]: unknown;
     }
   | {
@@ -67,6 +27,90 @@ export type Handle =
       [k: string]: unknown;
     }
   | {
+      migration: MigrationHandle;
+      [k: string]: unknown;
+    }
+  | {
+      rewards: RewardsHandle;
+      [k: string]: unknown;
+    }
+  | {
+      drain: {
+        key: string;
+        recipient?: HumanAddr | null;
+        snip20: ContractLinkFor_HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    };
+export type AuthHandle =
+  | {
+      change_admin: {
+        address: HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      create_viewing_key: {
+        entropy: string;
+        padding?: string | null;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      set_viewing_key: {
+        key: string;
+        padding?: string | null;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    };
+export type HumanAddr = string;
+export type MigrationHandle =
+  | {
+      start_migration: {
+        next_contract: ContractLinkFor_HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      stop_migration: {
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      export_state: {
+        initiator: HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      import_state: {
+        prev_contract: ContractLinkFor_HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      receive_state: {
+        data: Binary;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    };
+/**
+ * Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.
+ *
+ * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
+ */
+export type Binary = string;
+export type RewardsHandle =
+  | {
       lock: {
         amount: Uint128;
         [k: string]: unknown;
@@ -85,6 +129,43 @@ export type Handle =
         [k: string]: unknown;
       };
       [k: string]: unknown;
+    }
+  | {
+      begin_epoch: {
+        next_epoch: number;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      configure: RewardsConfig;
+      [k: string]: unknown;
+    }
+  | {
+      close: {
+        message: string;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
     };
-export type HumanAddr = string;
 export type Uint128 = string;
+
+/**
+ * Info needed to talk to a contract instance.
+ */
+export interface ContractLinkFor_HumanAddr {
+  address: HumanAddr;
+  code_hash: string;
+  [k: string]: unknown;
+}
+/**
+ * Reward pool configuration
+ */
+export interface RewardsConfig {
+  bonding?: number | null;
+  lp_token?: ContractLinkFor_HumanAddr | null;
+  reward_token?: ContractLinkFor_HumanAddr | null;
+  reward_vk?: string | null;
+  timekeeper?: HumanAddr | null;
+  [k: string]: unknown;
+}

@@ -7,48 +7,11 @@
 
 export type Response =
   | {
-      pool_info: {
-        it_is_now: number;
-        lp_token: ContractInstanceFor_HumanAddr;
-        pool_balance: Uint128;
-        pool_claimed: Uint128;
-        pool_closed?: string | null;
-        pool_cooldown: number;
-        pool_last_update: number;
-        pool_lifetime: Uint256;
-        pool_liquid: Uint128;
-        pool_locked: Uint128;
-        pool_threshold: number;
-        reward_token: ContractInstanceFor_HumanAddr;
-        [k: string]: unknown;
-      };
+      auth: AuthResponse;
       [k: string]: unknown;
     }
   | {
-      user_info: {
-        it_is_now: number;
-        pool_closed?: string | null;
-        pool_last_update: number;
-        pool_lifetime: Uint256;
-        pool_locked: Uint128;
-        user_age: number;
-        user_claimable: Uint128;
-        user_claimed: Uint128;
-        user_cooldown: number;
-        user_earned: Uint128;
-        user_last_update?: number | null;
-        user_lifetime: Uint256;
-        user_locked: Uint128;
-        user_share: Uint128;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      admin: {
-        address: HumanAddr;
-        [k: string]: unknown;
-      };
+      rewards: RewardsResponse;
       [k: string]: unknown;
     }
   | {
@@ -68,15 +31,155 @@ export type Response =
       };
       [k: string]: unknown;
     };
+export type AuthResponse =
+  | {
+      admin: {
+        address: HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      create_viewing_key: {
+        key: ViewingKey;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    };
 export type HumanAddr = string;
+export type ViewingKey = string;
+export type RewardsResponse =
+  | {
+      user_info: Account;
+      [k: string]: unknown;
+    }
+  | {
+      pool_info: Total;
+      [k: string]: unknown;
+    };
 export type Uint128 = string;
 export type Uint256 = string;
 
 /**
- * Info needed to talk to a contract instance.
+ * Account status
  */
-export interface ContractInstanceFor_HumanAddr {
-  address: HumanAddr;
-  code_hash: string;
+export interface Account {
+  /**
+   * How much has `total.unlocked` grown, i.e. how much rewards have been unlocked since this user entered? Multiply this by the reward share to compute earnings.
+   */
+  accumulated_pool_rewards: Uint128;
+  /**
+   * How much has `total.volume` grown, i.e. how much liquidity has accumulated in the pool since this user entered? Used as basis of reward share calculation.
+   */
+  accumulated_pool_volume: Uint256;
+  /**
+   * How many units of time remain until the user can claim? Decremented on update, reset to pool.bonding on claim.
+   */
+  bonding: number;
+  /**
+   * How much rewards has this user earned? Computed as user.reward_share * pool.unlocked
+   */
+  earned: Uint128;
+  /**
+   * "How much time has passed since the user updated their stake?" Computed as `current time - updated`
+   */
+  elapsed: number;
+  /**
+   * What portion of the pool is currently owned by this user? Computed as user.staked / pool.staked
+   */
+  pool_share: [Uint128, Uint128];
+  /**
+   * User-friendly reason why earned is 0
+   */
+  reason?: string | null;
+  /**
+   * What portion of all the liquidity accumulated since this user's entry is due to this particular user's stake? Computed as user.volume / pool.volume
+   */
+  reward_share: [Uint256, Uint256];
+  /**
+   * How much liquidity does this user currently provide? Incremented/decremented on lock/unlock.
+   */
+  staked: Uint128;
+  /**
+   * How much rewards were already unlocked when the user entered? Set to `total.unlocked` on initial deposit.
+   */
+  starting_pool_rewards: Uint128;
+  /**
+   * What was the volume of the pool when the user entered? Set to `total.volume` on initial deposit.
+   */
+  starting_pool_volume: Uint256;
+  /**
+   * "What is the overall state of the pool?" Passed at instantiation.
+   */
+  total: Total;
+  /**
+   * "When did this user's liquidity amount last change?" Set to current time on update.
+   */
+  updated: number;
+  /**
+   * How much liquidity has this user provided since they first appeared? Incremented on update by staked * elapsed if staked > 0
+   */
+  volume: Uint256;
+  [k: string]: unknown;
+}
+/**
+ * Pool totals
+ */
+export interface Total {
+  /**
+   * "how much must the user wait between claims?" Configured on init. Account bondings are reset to this value on claim.
+   */
+  bonding: number;
+  /**
+   * "What amount of rewards is currently available for users?" Queried from reward token.
+   */
+  budget: Uint128;
+  clock: Clock;
+  /**
+   * "Is this pool closed, and if so, when and why?" Set irreversibly via handle method.
+   */
+  closed?: [number, string] | null;
+  /**
+   * "What rewards has everyone received so far?" Incremented on claim.
+   */
+  distributed: Uint128;
+  /**
+   * "What liquidity is there in the whole pool right now?" Incremented/decremented on lock/unlock.
+   */
+  staked: Uint128;
+  /**
+   * "what rewards were unlocked for this pool so far?" computed as balance + claimed.
+   */
+  unlocked: Uint128;
+  /**
+   * "When was the last time someone staked or unstaked tokens?" Set to current time on lock/unlock.
+   */
+  updated: number;
+  /**
+   * "What liquidity has this pool contained up to this point?" Before lock/unlock, if staked > 0, this is incremented by total.elapsed * total.staked
+   */
+  volume: Uint256;
+  [k: string]: unknown;
+}
+/**
+ * Reward epoch state. Epoch is incremented after each RPT vesting.
+ */
+export interface Clock {
+  /**
+   * "For what point in time do the reported values hold true?" Got from env.block time on transactions, passed by client in queries.
+   */
+  now: number;
+  /**
+   * "What is the current reward epoch?" Incremented by external periodic call.
+   */
+  number: number;
+  /**
+   * "When did the epoch last increment?" Set to current time on epoch increment.
+   */
+  started: number;
+  /**
+   * "What was the total pool liquidity at the epoch start?" Set to `total.volume` on epoch increment.
+   */
+  volume: Uint256;
   [k: string]: unknown;
 }

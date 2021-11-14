@@ -7,25 +7,11 @@
 
 export type Query =
   | {
-      admin: {
-        [k: string]: unknown;
-      };
+      auth: AuthQuery;
       [k: string]: unknown;
     }
   | {
-      pool_info: {
-        at: number;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      user_info: {
-        address: HumanAddr;
-        at: number;
-        key: string;
-        [k: string]: unknown;
-      };
+      rewards: RewardsQuery;
       [k: string]: unknown;
     }
   | {
@@ -38,6 +24,24 @@ export type Query =
       balance: {
         address: HumanAddr;
         key: string;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    };
+export type AuthQuery = "admin";
+export type RewardsQuery =
+  | {
+      user_info: {
+        address: HumanAddr;
+        at: number;
+        key: string;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      pool_info: {
+        at: number;
         [k: string]: unknown;
       };
       [k: string]: unknown;

@@ -3,168 +3,17 @@
   "title": "Handle",
   "anyOf": [
     {
-      "description": "Set the contract admin.",
       "type": "object",
       "required": [
-        "change_admin"
+        "auth"
       ],
       "properties": {
-        "change_admin": {
-          "type": "object",
-          "required": [
-            "address"
-          ],
-          "properties": {
-            "address": {
-              "$ref": "#/definitions/HumanAddr"
-            }
-          }
+        "auth": {
+          "$ref": "#/definitions/AuthHandle"
         }
       }
     },
     {
-      "description": "Set the active asset token.",
-      "type": "object",
-      "required": [
-        "set_provided_token"
-      ],
-      "properties": {
-        "set_provided_token": {
-          "type": "object",
-          "required": [
-            "address",
-            "code_hash"
-          ],
-          "properties": {
-            "address": {
-              "$ref": "#/definitions/HumanAddr"
-            },
-            "code_hash": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "change_ratio"
-      ],
-      "properties": {
-        "change_ratio": {
-          "type": "object",
-          "required": [
-            "denominator",
-            "numerator"
-          ],
-          "properties": {
-            "denominator": {
-              "$ref": "#/definitions/Uint128"
-            },
-            "numerator": {
-              "$ref": "#/definitions/Uint128"
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "change_threshold"
-      ],
-      "properties": {
-        "change_threshold": {
-          "type": "object",
-          "required": [
-            "threshold"
-          ],
-          "properties": {
-            "threshold": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "change_cooldown"
-      ],
-      "properties": {
-        "change_cooldown": {
-          "type": "object",
-          "required": [
-            "cooldown"
-          ],
-          "properties": {
-            "cooldown": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "close_pool"
-      ],
-      "properties": {
-        "close_pool": {
-          "type": "object",
-          "required": [
-            "message"
-          ],
-          "properties": {
-            "message": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "release_snip20"
-      ],
-      "properties": {
-        "release_snip20": {
-          "type": "object",
-          "required": [
-            "key",
-            "snip20"
-          ],
-          "properties": {
-            "key": {
-              "type": "string"
-            },
-            "recipient": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/HumanAddr"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "snip20": {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
-            }
-          }
-        }
-      }
-    },
-    {
-      "description": "User can request a new viewing key for oneself.",
       "type": "object",
       "required": [
         "create_viewing_key"
@@ -190,7 +39,6 @@
       }
     },
     {
-      "description": "User can set own viewing key to a known value.",
       "type": "object",
       "required": [
         "set_viewing_key"
@@ -216,60 +64,140 @@
       }
     },
     {
-      "description": "User can lock some liquidity provision tokens.",
       "type": "object",
       "required": [
-        "lock"
+        "migration"
       ],
       "properties": {
-        "lock": {
-          "type": "object",
-          "required": [
-            "amount"
-          ],
-          "properties": {
-            "amount": {
-              "$ref": "#/definitions/Uint128"
-            }
-          }
+        "migration": {
+          "$ref": "#/definitions/MigrationHandle"
         }
       }
     },
     {
-      "description": "User can always get their liquidity provision tokens back.",
       "type": "object",
       "required": [
-        "retrieve"
+        "rewards"
       ],
       "properties": {
-        "retrieve": {
-          "type": "object",
-          "required": [
-            "amount"
-          ],
-          "properties": {
-            "amount": {
-              "$ref": "#/definitions/Uint128"
-            }
-          }
+        "rewards": {
+          "$ref": "#/definitions/RewardsHandle"
         }
       }
     },
     {
-      "description": "User can receive rewards after having provided liquidity.",
       "type": "object",
       "required": [
-        "claim"
+        "drain"
       ],
       "properties": {
-        "claim": {
-          "type": "object"
+        "drain": {
+          "type": "object",
+          "required": [
+            "key",
+            "snip20"
+          ],
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "recipient": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "snip20": {
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+            }
+          }
         }
       }
     }
   ],
   "definitions": {
-    "ContractInstance_for_HumanAddr": {
+    "AuthHandle": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "change_admin"
+          ],
+          "properties": {
+            "change_admin": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "create_viewing_key"
+          ],
+          "properties": {
+            "create_viewing_key": {
+              "type": "object",
+              "required": [
+                "entropy"
+              ],
+              "properties": {
+                "entropy": {
+                  "type": "string"
+                },
+                "padding": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "set_viewing_key"
+          ],
+          "properties": {
+            "set_viewing_key": {
+              "type": "object",
+              "required": [
+                "key"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "padding": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "ContractLink_for_HumanAddr": {
       "description": "Info needed to talk to a contract instance.",
       "type": "object",
       "required": [
@@ -287,6 +215,251 @@
     },
     "HumanAddr": {
       "type": "string"
+    },
+    "MigrationHandle": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "start_migration"
+          ],
+          "properties": {
+            "start_migration": {
+              "type": "object",
+              "required": [
+                "next_contract"
+              ],
+              "properties": {
+                "next_contract": {
+                  "$ref": "#/definitions/ContractLink_for_HumanAddr"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "stop_migration"
+          ],
+          "properties": {
+            "stop_migration": {
+              "type": "object"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "export_state"
+          ],
+          "properties": {
+            "export_state": {
+              "type": "object",
+              "required": [
+                "initiator"
+              ],
+              "properties": {
+                "initiator": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "import_state"
+          ],
+          "properties": {
+            "import_state": {
+              "type": "object",
+              "required": [
+                "prev_contract"
+              ],
+              "properties": {
+                "prev_contract": {
+                  "$ref": "#/definitions/ContractLink_for_HumanAddr"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "receive_state"
+          ],
+          "properties": {
+            "receive_state": {
+              "type": "object",
+              "required": [
+                "data"
+              ],
+              "properties": {
+                "data": {
+                  "$ref": "#/definitions/Binary"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "RewardsConfig": {
+      "description": "Reward pool configuration",
+      "type": "object",
+      "properties": {
+        "bonding": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "lp_token": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reward_token": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reward_vk": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timekeeper": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "RewardsHandle": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "lock"
+          ],
+          "properties": {
+            "lock": {
+              "type": "object",
+              "required": [
+                "amount"
+              ],
+              "properties": {
+                "amount": {
+                  "$ref": "#/definitions/Uint128"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "retrieve"
+          ],
+          "properties": {
+            "retrieve": {
+              "type": "object",
+              "required": [
+                "amount"
+              ],
+              "properties": {
+                "amount": {
+                  "$ref": "#/definitions/Uint128"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "claim"
+          ],
+          "properties": {
+            "claim": {
+              "type": "object"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "begin_epoch"
+          ],
+          "properties": {
+            "begin_epoch": {
+              "type": "object",
+              "required": [
+                "next_epoch"
+              ],
+              "properties": {
+                "next_epoch": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "configure"
+          ],
+          "properties": {
+            "configure": {
+              "$ref": "#/definitions/RewardsConfig"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "close"
+          ],
+          "properties": {
+            "close": {
+              "type": "object",
+              "required": [
+                "message"
+              ],
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "Uint128": {
       "type": "string"
