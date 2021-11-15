@@ -473,11 +473,24 @@ pub struct Account {
     /// Passed around internally, not presented to user.
     #[serde(skip)] pub id:        CanonicalAddr,
 }
+#[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize,JsonSchema)]
+#[serde(rename_all="snake_case")]
+pub struct AccountSnapshot {
+    address: HumanAddr,
+    bonding: Duration,
+    staked:  Amount,
+    updated: Moment,
+    volume:  Volume,
+}
 pub trait IAccount <S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>
 {
     /// Get the transaction initiator's account at current time
     fn from_env (core: &C, env: Env) -> StdResult<Self>;
+    /// Export stored user data
+    fn export (core: &C, address: HumanAddr) -> StdResult<AccountSnapshot>;
+    /// Import stored user data
+    fn import (core: &mut C, snapshot: AccountSnapshot) -> StdResult<()>;
     /// Get an account with up-to-date values
     fn get (core: &C, total: Total, address: HumanAddr) -> StdResult<Self>;
     /// Reset the user's liquidity conribution
@@ -504,6 +517,33 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
 {
     fn from_env (core: &C, env: Env) -> StdResult<Self> {
         Self::get(core, Total::get(core, Clock::get(core, env.block.time)?)?, env.message.sender)
+    }
+    fn export (core: &C, address: HumanAddr) -> StdResult<AccountSnapshot> {
+        let id = core.canonize(address.clone())?;
+        Ok(AccountSnapshot {
+            address,
+            bonding: core
+                .get_ns(Self::BONDING, &id.as_slice())?
+                .ok_or(StdError::generic_err("missing bonding period"))?,
+            staked: core
+                .get_ns(Self::STAKED,  &id.as_slice())?
+                .ok_or(StdError::generic_err("missing staked amount"))?,
+            updated: core
+                .get_ns(Self::UPDATED, &id.as_slice())?
+                .ok_or(StdError::generic_err("missing update timestamp"))?,
+            volume: core
+                .get_ns(Self::VOLUME,  &id.as_slice())?
+                .ok_or(StdError::generic_err("missing contribution volume"))?,
+        })
+    }
+    fn import (core: &mut C, data: AccountSnapshot) -> StdResult<()> {
+        let AccountSnapshot { address, bonding, staked, updated, volume } = data;
+        let id = core.canonize(address)?;
+        core.set_ns(Self::BONDING, id.as_slice(), bonding)?;
+        core.set_ns(Self::STAKED,  id.as_slice(), staked)?;
+        core.set_ns(Self::UPDATED, id.as_slice(), updated)?;
+        core.set_ns(Self::VOLUME,  id.as_slice(), volume)?;
+        Ok(())
     }
     fn get (core: &C, total: Total, address: HumanAddr) -> StdResult<Self> {
         let id         = core.canonize(address.clone())?;
@@ -703,7 +743,6 @@ impl Account {
     pub const STAKED:    &'static[u8] = b"/user/current/";
     pub const UPDATED:   &'static[u8] = b"/user/updated/";
     pub const VOLUME:    &'static[u8] = b"/user/volume/";
-    pub const CLAIMED:   &'static[u8] = b"/user/claimed/";
     pub const BONDING:   &'static[u8] = b"/user/bonding/";
 }
 /// A moment in time, as represented by the current value of env.block.time

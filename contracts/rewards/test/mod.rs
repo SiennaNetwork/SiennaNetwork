@@ -49,7 +49,15 @@ impl Storage for ClonableMemoryStorage {
 impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q> for MockExtern<S, A, Q> {}
 impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for MockExtern<S, A, Q> {}
 impl<S: Storage, A: Api, Q: Querier> Auth<S, A, Q> for MockExtern<S, A, Q> {}
-impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for MockExtern<S, A, Q> {}
+impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for MockExtern<S, A, Q> {
+    fn export_state (&mut self, env: Env, addr: HumanAddr) -> StdResult<Binary> {
+        unimplemented!()
+    }
+    fn import_state (&mut self, env: Env, data: Binary) -> StdResult<()> {
+        unimplemented!()
+    }
+
+}
 impl<S: Storage, A: Api, Q: Querier> KeplrCompat<S, A, Q> for MockExtern<S, A, Q> {}
 impl<S: Storage, A: Api, Q: Querier> Drain<S, A, Q> for MockExtern<S, A, Q> {}
 

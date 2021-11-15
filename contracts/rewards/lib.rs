@@ -57,7 +57,14 @@ use crate::keplr::*;
 impl<S: Storage, A: Api, Q: Querier> KeplrCompat<S, A, Q> for Extern<S, A, Q> {}
 
 use crate::migration::*;
-impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for Extern<S, A, Q> {}
+impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for Extern<S, A, Q> {
+    fn export_state (&mut self, env: Env, addr: HumanAddr) -> StdResult<Binary> {
+        to_binary(&Account::export(self, addr)?)
+    }
+    fn import_state (&mut self, env: Env, data: Binary) -> StdResult<()> {
+        Account::import(self, from_slice(&data.as_slice())?)
+    }
+}
 
 use crate::drain::Drain;
 impl<S: Storage, A: Api, Q: Querier> Drain<S, A, Q> for Extern<S, A, Q> {}
