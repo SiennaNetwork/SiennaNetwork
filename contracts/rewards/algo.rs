@@ -473,15 +473,6 @@ pub struct Account {
     /// Passed around internally, not presented to user.
     #[serde(skip)] pub id:        CanonicalAddr,
 }
-#[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize,JsonSchema)]
-#[serde(rename_all="snake_case")]
-pub struct AccountSnapshot {
-    address: HumanAddr,
-    bonding: Duration,
-    staked:  Amount,
-    updated: Moment,
-    volume:  Volume,
-}
 pub trait IAccount <S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>
 {
@@ -619,16 +610,12 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
             self.total.volume
         };
         core.set_ns(Self::ENTRY_VOL, self.id.as_slice(), self.starting_pool_volume)?;
-
         self.starting_pool_rewards = self.total.unlocked;
         core.set_ns(Self::ENTRY_REW, self.id.as_slice(), self.starting_pool_rewards)?;
-
         self.bonding = self.total.bonding;
         core.set_ns(Self::BONDING, self.id.as_slice(), self.bonding)?;
-
         self.volume = Volume::zero();
         core.set_ns(Self::VOLUME, self.id.as_slice(), self.volume)?;
-
         self.updated = self.total.clock.now;
         core.set_ns(Self::UPDATED, self.id.as_slice(), self.updated)?;
         Ok(())
@@ -718,23 +705,18 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
     }
     fn commit_deposit (&mut self, core: &mut C, amount: Amount) -> StdResult<()> {
         self.commit_elapsed(core)?;
-
         self.staked += amount;
         core.set_ns(Self::STAKED, self.id.as_slice(), self.staked)?;
-
         self.total.staked += amount;
         core.set(Total::STAKED, self.total.staked)?;
         Ok(())
     }
     fn commit_withdrawal (&mut self, core: &mut C, amount: Amount) -> StdResult<()> {
         self.commit_elapsed(core)?;
-
         self.staked = (self.staked - amount)?;
         core.set_ns(Self::STAKED, self.id.as_slice(), self.staked)?;
-
         self.total.staked = (self.total.staked - amount)?;
         core.set(Total::STAKED, self.total.staked)?;
-
         Ok(())
     }
     fn commit_claim (&mut self, core: &mut C) -> StdResult<()> {
@@ -752,6 +734,15 @@ impl Account {
     pub const UPDATED:   &'static[u8] = b"/user/updated/";
     pub const VOLUME:    &'static[u8] = b"/user/volume/";
     pub const BONDING:   &'static[u8] = b"/user/bonding/";
+}
+#[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize,JsonSchema)]
+#[serde(rename_all="snake_case")]
+pub struct AccountSnapshot {
+    address: HumanAddr,
+    bonding: Duration,
+    staked:  Amount,
+    updated: Moment,
+    volume:  Volume,
 }
 /// A moment in time, as represented by the current value of env.block.time
 pub type Moment   = u64;

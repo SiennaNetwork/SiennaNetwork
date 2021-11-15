@@ -130,12 +130,29 @@ pub enum Response {
     }
 }
 
+/// Implement the feature traits on the base struct.
 #[macro_export] macro_rules! compose {
     ($base_struct:ty) => {
         impl<S: Storage, A: Api, Q: Querier> crate::Contract<S, A, Q> for $base_struct {}
         impl<S: Storage, A: Api, Q: Querier> crate::auth::Auth<S, A, Q> for $base_struct {}
         impl<S: Storage, A: Api, Q: Querier> crate::algo::Rewards<S, A, Q> for $base_struct {}
-        impl<S: Storage, A: Api, Q: Querier> crate::keplr::KeplrCompat<S, A, Q> for $base_struct {}
+        impl<S: Storage, A: Api, Q: Querier> crate::keplr::KeplrCompat<S, A, Q> for $base_struct {
+            fn token_info (&self) -> StdResult<Response> {
+                let info = RewardsConfig::lp_token(self)?.query_token_info(self.querier())?;
+                Ok(Response::TokenInfo {
+                    name:         format!("Sienna Rewards: {}", info.name),
+                    symbol:       "SRW".into(),
+                    decimals:     1,
+                    total_supply: None
+                })
+            }
+            fn balance (&self, address: HumanAddr, key: ViewingKey) -> StdResult<Response> {
+                let id = self.canonize(address)?;
+                Auth::check_vk(self, &key, id.as_slice())?;
+                let amount = self.get_ns(crate::algo::Account::STAKED, id.as_slice())?;
+                Ok(Response::Balance { amount: amount.unwrap_or(Amount::zero()) })
+            }
+        }
         impl<S: Storage, A: Api, Q: Querier> crate::migration::Migration<S, A, Q> for $base_struct {
             fn export_state (&mut self, _env: Env, addr: HumanAddr) -> StdResult<Binary> {
                 to_binary(&crate::algo::Account::export(self, addr)?)
