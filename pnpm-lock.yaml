@@ -56,11 +56,11 @@ importers:
   api/siennajs:
     specifiers:
       '@waiting/base64': ^4.2.9
-      secretjs: 0.16.7
+      secretjs: 0.17.3
       typescript: ^4.2.4
     dependencies:
       '@waiting/base64': 4.2.9
-      secretjs: 0.16.7
+      secretjs: 0.17.3
     devDependencies:
       typescript: 4.4.3
 
@@ -146,75 +146,6 @@ importers:
       colors: 1.4.0
       marked: 2.1.3
 
-  libraries/fadroma-21.07:
-    specifiers:
-      '@cosmjs/crypto': ^0.24.1
-      ajv: ^8.6.0
-      bignumber.js: ^9.0.1
-      chai: ^4.3.4
-      documentation: ^13.2.1
-      mocha: ^8.0.1
-      secretjs: ^0.11.0
-    dependencies:
-      '@cosmjs/crypto': 0.24.1
-      ajv: 8.6.3
-      bignumber.js: 9.0.1
-      secretjs: 0.11.0
-    devDependencies:
-      chai: 4.3.4
-      documentation: 13.2.5
-      mocha: 8.4.0
-
-  libraries/fadroma-21.07/example:
-    specifiers: {}
-
-  libraries/fadroma-21.07/scrt-agent:
-    specifiers: {}
-
-  libraries/fadroma-21.07/scrt-ops:
-    specifiers:
-      '@fadroma/scrt-agent': '*'
-      '@fadroma/utilities': '*'
-      dockerode: ^3.3.0
-      wait-port: ^0.2.9
-    dependencies:
-      '@fadroma/scrt-agent': link:../scrt-agent
-      '@fadroma/utilities': link:../utilities
-      dockerode: 3.3.1
-      wait-port: 0.2.9
-
-  libraries/fadroma-21.07/test:
-    specifiers:
-      '@fadroma/scrt-agent': '*'
-      '@fadroma/scrt-ops': '*'
-      '@fadroma/utilities': '*'
-    dependencies:
-      '@fadroma/scrt-agent': link:../scrt-agent
-      '@fadroma/scrt-ops': link:../scrt-ops
-      '@fadroma/utilities': link:../utilities
-
-  libraries/fadroma-21.07/utilities:
-    specifiers:
-      colors: ^1.4.0
-      exponential-backoff: ^3.1.0
-      mkdirp: ^1.0.4
-      prettyjson: ^1.2.1
-      rimraf: ^3.0.2
-      secretjs: ^0.11.0
-      signal-exit: ^3.0.3
-      table: ^6.6.0
-      wait-port: ^0.2.9
-    dependencies:
-      colors: 1.4.0
-      exponential-backoff: 3.1.0
-      mkdirp: 1.0.4
-      prettyjson: 1.2.1
-      rimraf: 3.0.2
-      secretjs: 0.11.0
-      signal-exit: 3.0.4
-      table: 6.7.1
-      wait-port: 0.2.9
-
   libraries/fadroma-next:
     specifiers:
       '@hackbg/ganesha': workspace:*
@@ -262,12 +193,12 @@ importers:
       '@cosmjs/crypto': ^0.24.1
       '@fadroma/ops': workspace:*
       '@fadroma/tools': workspace:*
-      secretjs: workspace:*
+      secretjs: 0.17.3
     dependencies:
       '@cosmjs/crypto': 0.24.1
       '@fadroma/ops': link:../ops
       '@fadroma/tools': link:../tools
-      secretjs: link:../platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: 0.17.3
 
   libraries/fadroma-next/ops-scrt-1.0:
     specifiers:
@@ -280,10 +211,10 @@ importers:
   libraries/fadroma-next/ops-scrt-1.2:
     specifiers:
       '@fadroma/scrt': '*'
-      secretjs: workspace:^0.17.0
+      secretjs: 0.17.3
     dependencies:
       '@fadroma/scrt': link:../ops-scrt
-      secretjs: link:../platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: 0.17.3
 
   libraries/fadroma-next/platforms/ganesha:
     specifiers:
@@ -773,7 +704,7 @@ importers:
       esm: ^3.2.25
       node-notifier: ^9.0.1
       prompts: ^2.4.1
-      secretjs: ^0.11.0
+      secretjs: 0.17.3
     dependencies:
       '@fadroma/scrt': link:../libraries/fadroma-next/ops-scrt
       '@fadroma/tools': link:../libraries/fadroma-next/tools
@@ -783,19 +714,21 @@ importers:
       esm: 3.2.25
       node-notifier: 9.0.1
       prompts: 2.4.1
-      secretjs: 0.11.0
+      secretjs: 0.17.3
 
   ops/amm:
     specifiers:
+      '@iov/crypto': ^2.5.0
       '@types/node': ^14.14.37
       dotenv: ^8.2.0
       esmo: ^0.9.1
-      secretjs: ^0.16.7
+      secretjs: 0.17.3
       table: ^6.7.1
       typescript: ^4.2.3
     dependencies:
+      '@iov/crypto': 2.5.0
       dotenv: 8.6.0
-      secretjs: 0.16.7
+      secretjs: 0.17.3
       table: 6.7.1
     devDependencies:
       '@types/node': 14.17.18
@@ -3289,7 +3222,7 @@ packages:
   /@iov/crypto/2.1.0:
     resolution: {integrity: sha512-jnb4XuK50admolm7fBxOcxfAW2TO+wYrZlhDWiMETItY/Y5gNNa1zaDSO2wNIjjfGng+8nQ1yqnNhqy7busV2Q==}
     dependencies:
-      '@iov/encoding': 2.1.0
+      '@iov/encoding': 2.5.0
       bip39: 3.0.4
       bn.js: 4.12.0
       elliptic: 6.5.4
@@ -5307,6 +5240,7 @@ packages:
 
   /@types/events/3.0.0:
     resolution: {integrity: sha512-EaObqwIvayI5a8dCzhFrjKzVwKLxjoG9T6Ppd5CEo07LRKfQ8Yokw54r5+Wq7FaBQ+yXRvQAYPrHwya1/UFt9g==}
+    dev: true
 
   /@types/express-serve-static-core/4.17.24:
     resolution: {integrity: sha512-3UJuW+Qxhzwjq3xhwXm2onQcFHn76frIYVbTu+kn24LFxI+dEhdfISDFovPB8VpEgW8oQCTpRuCe+0zJxB7NEA==}
@@ -5448,6 +5382,7 @@ packages:
     resolution: {integrity: sha512-9+s5CWGhkYitklhLgnbf4s5ncCEx0An2jhBuhvw/sh9WNQ+/WvNFkPLyLjXGy+Oeo8CjPl69oz6M2FzZH+KwWA==}
     dependencies:
       '@types/events': 3.0.0
+    dev: true
 
   /@types/node/10.12.18:
     resolution: {integrity: sha512-fh+pAqt4xRzPfqA6eh3Z2y6fyZavRIumvjhaCL753+TVkGKGhpPeyrJG2JftD0T9q4GF00KjefsQ+PQNDdWQaQ==}
@@ -20773,14 +20708,6 @@ packages:
     engines: {node: '>=4'}
     dev: true
 
-  /prettyjson/1.2.1:
-    resolution: {integrity: sha1-/P+rQdGcq0365eV15kJGYZsS0ok=}
-    hasBin: true
-    dependencies:
-      colors: 1.4.0
-      minimist: 1.2.5
-    dev: false
-
   /printj/1.1.2:
     resolution: {integrity: sha512-zA2SmoLaxZyArQTOPj5LXecR+RagfPSU5Kw1qP+jkWeNlrq+eJZyY2oS68SU1Z/7/myXM4lo9716laOFAVStCQ==}
     engines: {node: '>=0.8'}
@@ -22315,26 +22242,8 @@ packages:
       node-addon-api: 2.0.2
       node-gyp-build: 4.3.0
 
-  /secretjs/0.11.0:
-    resolution: {integrity: sha512-e5F6a0hS1G1YwZL77YQUyC5JCtx660ZSIn7kZGM5RYLKvgntRMifoaXnJalny/46yRVp41ZQ3N+OzD+g5weZUw==}
-    dependencies:
-      '@iov/crypto': 2.5.0
-      '@iov/encoding': 2.5.0
-      '@iov/utils': 2.5.0
-      '@types/node-localstorage': 1.3.0
-      axios: 0.21.4
-      curve25519-js: 0.0.4
-      fast-deep-equal: 3.1.3
-      js-crypto-hkdf: 0.7.3
-      miscreant: 0.3.2
-      pako: 1.0.11
-      secure-random: 1.1.2
-    transitivePeerDependencies:
-      - debug
-    dev: false
-
-  /secretjs/0.16.7:
-    resolution: {integrity: sha512-HL2Ekui0TFQhWrzQ5IenI3a54IaD9UdXwdyYMMLhisQCm5/quMw/v4CxmjEro+b5FxlEYvWcgzFO6nntduywDg==}
+  /secretjs/0.17.3:
+    resolution: {integrity: sha512-eB2+eKkGUdjoR+sBRbtJUglEaB3jwlcz69c28xT5+Y65d1cxMJzdx3cBR7cLnqWayyERidhzZL+idu9TrwQR9g==}
     dependencies:
       '@iov/crypto': 2.1.0
       '@iov/encoding': 2.1.0
@@ -22345,6 +22254,7 @@ packages:
       js-crypto-hkdf: 0.7.3
       miscreant: 0.3.2
       pako: 1.0.11
+      protobufjs: 6.11.2
       secure-random: 1.1.2
     transitivePeerDependencies:
       - debug

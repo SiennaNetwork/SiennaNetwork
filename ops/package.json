@@ -12,6 +12,6 @@
     "esm": "^3.2.25",
     "node-notifier": "^9.0.1",
     "prompts": "^2.4.1",
-    "secretjs": "^0.11.0"
+    "secretjs": "0.17.3"
   }
 }
