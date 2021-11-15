@@ -5,3 +5,7 @@ Time,Sender,Recipient,Data
     address: 0301_migrate_v1_addr
     code_hash: 0301_migrate_v1_hash"
 tx,0301_migrate_v2_addr,0301_migrate_v1_addr,export_state: Alice
+,,,
+1,Alice,0301_migrate_v2_addr,"migration_import:
+  receive_migration: eyJhZGRyZXNzIjoiQWxpY2UiLCJib25kaW5nIjoxOTcsInN0YWtlZCI6Ijg1NTk2IiwidXBkYXRlZCI6MSwidm9sdW1lIjoiMCJ9"
+ERROR,status,,Unauthorized

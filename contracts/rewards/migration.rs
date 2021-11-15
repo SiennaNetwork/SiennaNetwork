@@ -57,20 +57,22 @@ pub trait MigrationExport<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     fn handle_export_state (&mut self, env: Env, initiator: HumanAddr) -> StdResult<HandleResponse> {
         // This makes no sense to be called manually by the user;
         // it must be called by the contract which is receiving the migration
-        let contract_addr = env.message.sender;
-        if contract_addr == initiator {
+        let receiver = env.message.sender.clone();
+        if receiver == initiator {
             return Err(StdError::generic_err("This handler must be called as part of a transaction"))
         }
         // If migration to the caller contract is enabled,
         // its code hash should be available in storage
-        let id = self.canonize(contract_addr.clone())?;
-        let link: Option<ContractLink<HumanAddr>> = self.get_ns(Self::CAN_MIGRATE_TO, id.as_slice())?;
-        if let Some(link) = link {
+        let id = self.canonize(receiver.clone())?;
+        let receiver: Option<ContractLink<HumanAddr>> =
+            self.get_ns(Self::CAN_MIGRATE_TO, id.as_slice())?;
+        if let Some(receiver) = receiver {
+            let msg = MigrationImportHandle::ReceiveMigration(self.export_state(env, initiator)?);
             Ok(HandleResponse::default().msg(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr:      link.address,
-                callback_code_hash: link.code_hash,
+                contract_addr:      receiver.address,
+                callback_code_hash: receiver.code_hash,
                 send:               vec![],
-                msg: to_binary(&MigrationExportHandle::ExportState(contract_addr))?,
+                msg: to_binary(&msg)?,
             }))?)
         } else {
             return Err(StdError::generic_err("Migration to this contract is not enabled."))
