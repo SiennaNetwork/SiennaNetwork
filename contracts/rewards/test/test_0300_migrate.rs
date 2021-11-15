@@ -1,64 +1,24 @@
-use crate::test::*;
+use crate::test::{*, Context};
 
-/// Given two instances
-///
-///  When a user tries to initiate a migration
-///  Then they fail
-///
-///  When the admin calls SetMigrationStatus
-///   And passes the address of the new contract
-///  Then the old contract is in migration mode
-///
-///  When a user calls ImportState on the new contract
-///  Then the new contract fetches data from the old one
-#[test] fn test_migration () {
+#[test] fn test_0301_migrate () {
 
-    let bonding = Some(86400);
+    let mut contract1 = Context::new("0301_migrate_v1");
 
-    let reward_vk = Some("reward_vk".to_string());
+    let mut contract2 = Context::new("0301_migrate_v2");
 
-    let reward_token = Some(ContractLink {
-        address:   HumanAddr::from("SIENNA"),
-        code_hash: "SIENNA_hash".into()
-    });
+    let stake = contract1.rng.gen_range(1..100000)*2;
 
-    let lp_token = Some(ContractLink {
-        address:   HumanAddr::from("LP_TOKEN"),
-        code_hash: "LP_hash".into()
-    });
+    contract1.init()
+        .user("Alice").set_vk("")
+            .staked(0).total_staked(0)
+            .deposits(stake)
+            .staked(stake).total_staked(stake)
+        .admin()
+            .enable_migration_to(&contract2.link);
 
-    let timekeeper = Some(HumanAddr::from("QUASIMODO"));
-
-    let config = RewardsConfig { bonding, lp_token, reward_token, reward_vk, timekeeper };
-
-    let mut v1 = MockExtern {
-        storage: ClonableMemoryStorage::default(),
-        api:     MockApi::new(20),
-        querier: RewardsMockQuerier::new()
-    };
-
-    let env1 = env(&HumanAddr::from("ADMIN"), 0);
-
-    Contract::init(&mut v1, env1.clone(), Init { admin: None, config: config.clone() }).unwrap();
-
-    let mut v2 = MockExtern {
-        storage: ClonableMemoryStorage::default(),
-        api:     MockApi::new(20),
-        querier: RewardsMockQuerier::new()
-    };
-
-    let env2 = env(&HumanAddr::from("ADMIN"), 0);
-
-    Contract::init(&mut v2, env2.clone(), Init { admin: None, config: config.clone() }).unwrap();
-
-    Contract::handle(&mut v1, env1.clone(), Handle::Migration(MigrationHandle::EnableMigration(ContractLink {
-        address:   HumanAddr::from("V2"),
-        code_hash: "".into()
-    }))).unwrap();
-
-    Contract::handle(&mut v2, env2.clone(), Handle::Migration(MigrationHandle::ImportState(ContractLink {
-        address:   HumanAddr::from("V1"),
-        code_hash: "".into()
-    }))).unwrap();
+    contract2.init()
+        .user("Alice")
+            .migrate_from(&contract1.link)
+            .staked(stake).total_staked(stake);
 
 }

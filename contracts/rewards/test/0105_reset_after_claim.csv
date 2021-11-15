@@ -4,8 +4,9 @@ Time,Sender,Recipient,Data
 14,REWARDS,Alice,account.bonding              = 197
 14,REWARDS,Alice,account.earned               = 0
 ,,,
-14,Alice,REWARDS,"deposit:
-  amount: ""85596"""
+14,Alice,REWARDS,"rewards:
+  deposit:
+    amount: ""85596"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""85596""
   owner: Alice
@@ -21,8 +22,9 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 ,,,
 211,RPT,REWARDS,vest 38861
 ,,,
-211,Admin,REWARDS,"begin_epoch:
-  next_epoch: 1"
+211,Admin,REWARDS,"rewards:
+  begin_epoch:
+    next_epoch: 1"
 211,REWARDS,Alice,account.staked               = 85596
 211,REWARDS,Alice,account.bonding              = 0
 211,REWARDS,Alice,account.volume               = 16862412
@@ -32,7 +34,8 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 212,REWARDS,Alice,account.bonding              = 0
 212,REWARDS,Alice,account.earned               = 38861
 ,,,
-212,Alice,REWARDS,claim: {}
+212,Alice,REWARDS,"rewards:
+  claim: {}"
 tx,REWARDS,SIENNA,"transfer:
   amount: ""38861""
   padding: ~
@@ -46,7 +49,8 @@ log,REWARDS,,reward = 38861
 ,,,
 409,RPT,REWARDS,vest 38861
 ,,,
-409,Admin,REWARDS,"begin_epoch:
-  next_epoch: 2"
+409,Admin,REWARDS,"rewards:
+  begin_epoch:
+    next_epoch: 2"
 409,REWARDS,Alice,account.earned               = 38861
 409,REWARDS,Alice,account.bonding              = 0

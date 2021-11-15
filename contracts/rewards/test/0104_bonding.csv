@@ -18,8 +18,9 @@ Time,Sender,Recipient,Data
 18,REWARDS,Alice,account.bonding              = 197
 19,REWARDS,Alice,account.bonding              = 197
 ,,,
-19,Alice,REWARDS,"deposit:
-  amount: ""42798"""
+19,Alice,REWARDS,"rewards:
+  deposit:
+    amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""42798""
   owner: Alice

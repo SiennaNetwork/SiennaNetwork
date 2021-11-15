@@ -22,51 +22,14 @@ use fadroma::testing::*;
 pub use rand::Rng;
 use rand::{SeedableRng, rngs::StdRng};
 
-use std::collections::BTreeMap;
-
-#[derive(Default, Clone)]
-pub struct ClonableMemoryStorage {
-    data: BTreeMap<Vec<u8>, Vec<u8>>,
-}
-impl ClonableMemoryStorage {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-impl ReadonlyStorage for ClonableMemoryStorage {
-    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        self.data.get(key).cloned()
-    }
-}
-impl Storage for ClonableMemoryStorage {
-    fn set(&mut self, key: &[u8], value: &[u8]) {
-        self.data.insert(key.to_vec(), value.to_vec());
-    }
-    fn remove(&mut self, key: &[u8]) {
-        self.data.remove(key);
-    }
-}
-impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q> for MockExtern<S, A, Q> {}
-impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for MockExtern<S, A, Q> {}
-impl<S: Storage, A: Api, Q: Querier> Auth<S, A, Q> for MockExtern<S, A, Q> {}
-impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for MockExtern<S, A, Q> {
-    fn export_state (&mut self, env: Env, addr: HumanAddr) -> StdResult<Binary> {
-        unimplemented!()
-    }
-    fn import_state (&mut self, env: Env, data: Binary) -> StdResult<()> {
-        unimplemented!()
-    }
-
-}
-impl<S: Storage, A: Api, Q: Querier> KeplrCompat<S, A, Q> for MockExtern<S, A, Q> {}
-impl<S: Storage, A: Api, Q: Querier> Drain<S, A, Q> for MockExtern<S, A, Q> {}
-
+compose!(MockExtern<S, A, Q>);
 pub type Deps = MockExtern<ClonableMemoryStorage, MockApi, RewardsMockQuerier>;
 
 #[derive(Clone)]
 pub struct Context {
     pub rng:          StdRng,
-    pub name:         Option<String>,
+    pub name:         String,
+    pub link:         ContractLink<HumanAddr>,
     pub table:        Table,
     pub deps:         Deps,
     pub address:      HumanAddr,
@@ -81,7 +44,7 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new () -> Self {
+    pub fn new (name: &str) -> Self {
         let mut table = Table::new();
 
         table.set_format(format::FormatBuilder::new()
@@ -102,7 +65,11 @@ impl Context {
         let bonding = rng.gen_range(100..200);
         Self {
             rng,
-            name: None,
+            name: name.to_string(),
+            link: ContractLink {
+                address:   HumanAddr::from(format!("{}_addr", &name)),
+                code_hash: format!("{}_hash", &name).to_string(),
+            },
             table,
 
             deps: MockExtern {
@@ -127,15 +94,10 @@ impl Context {
             bonding
         }
     }
-    pub fn named (name: &str) -> Self {
-        let mut context = Self::new();
-        context.name = Some(name.to_string());
-        context
-    }
     pub fn branch <F: FnMut(Context)->()> (&mut self, name: &str, mut f: F) -> &mut Self {
         let mut context = self.clone();
-        let name = format!("{}_{}", self.name.clone().unwrap_or("".to_string()), name).to_string();
-        context.name = Some(name.to_string());
+        let name = format!("{}_{}", self.name, name).to_string();
+        context.name = name.to_string();
         context.table.add_row(row!["","","",""]);
         context.table.add_row(row![rb->self.time, "test", "branch", b->&name]);
         context.table.add_row(row!["","","",""]);
@@ -170,7 +132,10 @@ impl Context {
     pub fn epoch (&mut self, next_epoch: Moment, portion: u128) -> &mut Self {
         self.after(self.bonding);
         self.fund(portion);
-        self.test_handle(RewardsHandle::BeginEpoch { next_epoch }, Ok(HandleResponse::default()));
+        self.test_handle(
+            Handle::Rewards(RewardsHandle::BeginEpoch { next_epoch }),
+            Ok(HandleResponse::default())
+        );
         self
     }
     pub fn set_address (&mut self, address: &str) -> &mut Self {
@@ -192,9 +157,9 @@ impl Context {
         self.deps.querier.increment_balance(&self.reward_token.link.address, amount);
         self
     }
-    pub fn test_handle (
-        &mut self, msg: RewardsHandle, expected: StdResult<HandleResponse>
-    ) -> &mut Self {
+    pub fn test_handle (&mut self, msg: Handle, expected: StdResult<HandleResponse>)
+        -> &mut Self
+    {
         test_handle(
             &mut self.table, &mut self.deps, &self.env,
             self.address.clone(), msg, expected
@@ -246,7 +211,7 @@ impl Context {
         test_handle(
             &mut self.table,
             &mut self.deps, &self.env, self.address.clone(),
-            RewardsHandle::Configure(config),
+            Handle::Rewards(RewardsHandle::Configure(config)),
             Ok(expected)
         );
         self
@@ -275,7 +240,7 @@ impl Context {
         test_handle(
             &mut self.table,
             &mut self.deps, &self.env, self.address.clone(),
-            RewardsHandle::Close { message: message.to_string() },
+            Handle::Rewards(RewardsHandle::Close { message: message.to_string() }),
             Ok(HandleResponse::default())
         );
         self.closed = Some((self.time, message.to_string()));
@@ -285,7 +250,7 @@ impl Context {
         test_handle(
             &mut self.table,
             &mut self.deps, &self.env, self.address.clone(),
-            RewardsHandle::Close { message: String::from("closed") },
+            Handle::Rewards(RewardsHandle::Close { message: String::from("closed") }),
             Err(StdError::unauthorized())
         ); self
     }
@@ -320,7 +285,7 @@ impl Context {
     }
     pub fn deposits (&mut self, amount: u128) -> &mut Self {
         self.test_handle(
-            RewardsHandle::Deposit { amount: amount.into() },
+            Handle::Rewards(RewardsHandle::Deposit { amount: amount.into() }),
             HandleResponse::default().msg(self.lp_token.transfer_from(
                 &self.env.message.sender,
                 &self.env.contract.address,
@@ -332,7 +297,7 @@ impl Context {
     }
     pub fn withdraws (&mut self, amount: u128) -> &mut Self {
         self.test_handle(
-            RewardsHandle::Withdraw { amount: amount.into() },
+            Handle::Rewards(RewardsHandle::Withdraw { amount: amount.into() }),
             HandleResponse::default().msg(self.lp_token.transfer(
                 &self.env.message.sender,
                 amount.into()
@@ -343,7 +308,7 @@ impl Context {
     }
     pub fn claims (&mut self, reward: u128) -> &mut Self {
         self.test_handle(
-            RewardsHandle::Claim {},
+            Handle::Rewards(RewardsHandle::Claim {}),
             HandleResponse::default().msg(
                 self.reward_token.transfer(
                     &self.env.message.sender,
@@ -358,7 +323,7 @@ impl Context {
     }
     pub fn withdraws_claims (&mut self, stake: u128, reward: u128) -> &mut Self {
         self.test_handle(
-            RewardsHandle::Withdraw { amount: stake.into() },
+            Handle::Rewards(RewardsHandle::Withdraw { amount: stake.into() }),
             HandleResponse::default()
                 .msg(
                     self.reward_token.transfer(&self.env.message.sender, reward.into()).unwrap()
@@ -376,9 +341,15 @@ impl Context {
     }
     pub fn must_wait (&mut self, remaining: Duration) -> &mut Self {
         self.test_handle(
-            RewardsHandle::Claim {},
+            Handle::Rewards(RewardsHandle::Claim {}),
             errors::claim_bonding(remaining)
         )
+    }
+    pub fn enable_migration_to (&mut self, next_version: &ContractLink<HumanAddr>) -> &mut Self {
+        self
+    }
+    pub fn migrate_from (&mut self, last_version: &ContractLink<HumanAddr>) -> &mut Self {
+        self
     }
     pub fn staked (&mut self, expected: u128) -> &mut Self {
         let actual = self.account_status().staked.0;
@@ -417,6 +388,10 @@ impl Context {
                 panic!("status query failed: {:?}", e);
             }
         }
+    }
+    pub fn total_staked (&mut self, expected: u128) -> &mut Self {
+        let actual = self.pool_status().staked.0;
+        self.test_field("total.staked                ", actual, expected.into())
     }
     pub fn pool_volume (&mut self, expected: u128) -> &mut Self {
         let actual = self.pool_status().volume.0;
@@ -462,10 +437,9 @@ impl Context {
 }
 impl Drop for Context {
     fn drop (&mut self) {
-        if let Some(name) = &self.name {
-            println!("writing to test/{}.csv", &name);
-            self.table.to_csv(std::fs::File::create(format!("test/{}.csv", &name)).unwrap()).unwrap();
-        }
+        println!("writing to test/{}.csv", &self.name);
+        let file = std::fs::File::create(format!("test/{}.csv", &self.name)).unwrap();
+        self.table.to_csv(file).unwrap();
         self.table.printstd();
     }
 }
@@ -476,27 +450,18 @@ pub fn env (signer: &HumanAddr, time: u64) -> Env {
     env
 }
 
-/*.msg(snip20::set_viewing_key_msg( // this is for own reward vk, not user status vk
-                key.to_string(),
-                None, BLOCK_SIZE,
-                lp_token.link.code_hash.clone(),
-                lp_token.link.address.clone()
-            ).unwrap())*/
-
-// Helpers will be indented 1 level above the test cases
-
 pub fn test_handle (
     table:    &mut Table,
     deps:     &mut Deps,
     env:      &Env,
     address:  HumanAddr,
-    msg:      RewardsHandle,
+    msg:      Handle,
     expected: StdResult<HandleResponse>
 ) {
     table.add_row(row!["","","",""]);
     let msg_ser = serde_yaml::to_string(&msg).unwrap();
     table.add_row(row![rb->env.block.time, &address, "REWARDS", b->msg_ser.trim()[4..]]);
-    let result = Rewards::handle(deps, env.clone(), msg);
+    let result = Contract::handle(deps, env.clone(), msg);
     let add_result = |table: &mut Table, result: &StdResult<HandleResponse>| match result {
         Ok(ref result) => {
             for message in result.messages.iter() {
@@ -591,3 +556,26 @@ pub enum Snip20Query { Balance {} }
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all="snake_case")]
 pub enum Snip20Response { Balance { amount: Amount } }
+
+#[derive(Default, Clone)]
+pub struct ClonableMemoryStorage {
+    data: std::collections::BTreeMap<Vec<u8>, Vec<u8>>,
+}
+impl ClonableMemoryStorage {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+impl ReadonlyStorage for ClonableMemoryStorage {
+    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+        self.data.get(key).cloned()
+    }
+}
+impl Storage for ClonableMemoryStorage {
+    fn set(&mut self, key: &[u8], value: &[u8]) {
+        self.data.insert(key.to_vec(), value.to_vec());
+    }
+    fn remove(&mut self, key: &[u8]) {
+        self.data.remove(key);
+    }
+}

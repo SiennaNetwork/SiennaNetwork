@@ -1,11 +1,11 @@
 use fadroma::*;
 
-pub mod algo;
-pub mod auth;
-pub mod drain;
+pub mod algo; use crate::algo::{*, RewardsResponse};
+pub mod auth; use crate::auth::{*, Auth};
+pub mod drain; use crate::drain::Drain;
 pub mod errors;
-pub mod keplr;
-pub mod migration;
+pub mod keplr; use crate::keplr::*;
+pub mod migration; use crate::migration::*;
 
 #[cfg(test)] #[macro_use] extern crate prettytable;
 #[cfg(test)] mod test;
@@ -19,16 +19,6 @@ pub fn handle <S: Storage, A: Api, Q: Querier> (deps: &mut Extern<S, A, Q>, env:
     -> StdResult<HandleResponse> { Contract::handle(deps, env, msg) }
 pub fn query <S: Storage, A: Api, Q: Querier> (deps: &Extern<S, A, Q>, msg: Query)
     -> StdResult<Binary>         { to_binary(&Contract::query(deps, msg)?) }
-
-//mod foo <S: Storage, A: Api, Q: Querier> {
-    //pub fn hello (storage: &mut S, api: &A) { ... }
-    //pub trait Foo { fn hello (querier: &Q) { ... } }
-    //impl Foo for Extern<S, A, Q> { ... }
-//}
-//#[prepend_generics(S: Storage, A: Api, Q: Querier)] mod foo {
-//  ...
-//}
-//#![prepend_generics(S: Storage, A: Api, Q: Querier)]
 
 pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Auth<S, A, Q>
@@ -45,29 +35,6 @@ pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     fn query (&self, msg: Query)
         -> StdResult<Response>       { msg.dispatch_query(self) }
 }
-impl<S: Storage, A: Api, Q: Querier> Contract<S, A, Q> for Extern<S, A, Q> {}
-
-use crate::auth::{*, Auth};
-impl<S: Storage, A: Api, Q: Querier> Auth<S, A, Q> for Extern<S, A, Q> {}
-
-use crate::algo::{*, RewardsResponse};
-impl<S: Storage, A: Api, Q: Querier> Rewards<S, A, Q> for Extern<S, A, Q> {}
-
-use crate::keplr::*;
-impl<S: Storage, A: Api, Q: Querier> KeplrCompat<S, A, Q> for Extern<S, A, Q> {}
-
-use crate::migration::*;
-impl<S: Storage, A: Api, Q: Querier> Migration<S, A, Q> for Extern<S, A, Q> {
-    fn export_state (&mut self, env: Env, addr: HumanAddr) -> StdResult<Binary> {
-        to_binary(&Account::export(self, addr)?)
-    }
-    fn import_state (&mut self, env: Env, data: Binary) -> StdResult<()> {
-        Account::import(self, from_slice(&data.as_slice())?)
-    }
-}
-
-use crate::drain::Drain;
-impl<S: Storage, A: Api, Q: Querier> Drain<S, A, Q> for Extern<S, A, Q> {}
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]
@@ -162,3 +129,23 @@ pub enum Response {
         amount: Amount
     }
 }
+
+#[macro_export] macro_rules! compose {
+    ($base_struct:ty) => {
+        impl<S: Storage, A: Api, Q: Querier> crate::Contract<S, A, Q> for $base_struct {}
+        impl<S: Storage, A: Api, Q: Querier> crate::auth::Auth<S, A, Q> for $base_struct {}
+        impl<S: Storage, A: Api, Q: Querier> crate::algo::Rewards<S, A, Q> for $base_struct {}
+        impl<S: Storage, A: Api, Q: Querier> crate::keplr::KeplrCompat<S, A, Q> for $base_struct {}
+        impl<S: Storage, A: Api, Q: Querier> crate::migration::Migration<S, A, Q> for $base_struct {
+            fn export_state (&mut self, _env: Env, addr: HumanAddr) -> StdResult<Binary> {
+                to_binary(&crate::algo::Account::export(self, addr)?)
+            }
+            fn import_state (&mut self, _env: Env, data: Binary) -> StdResult<()> {
+                crate::algo::Account::import(self, from_slice(&data.as_slice())?)
+            }
+        }
+        impl<S: Storage, A: Api, Q: Querier> crate::drain::Drain<S, A, Q> for $base_struct {}
+    };
+}
+
+compose!(Extern<S, A, Q>);

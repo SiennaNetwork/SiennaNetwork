@@ -3,7 +3,7 @@ use crate::test::{*, Context};
 #[test] fn test_0001_init () {
 
     // Given no instance
-    Context::named("0001_init").admin().later()
+    Context::new("0001_init").admin().later()
 
         // When  the admin inits an instance without providing a reward token
         // Then  the init fails
@@ -22,7 +22,7 @@ use crate::test::{*, Context};
 #[test] fn test_0002_config () {
 
     // Given no instance
-    Context::named("0002_config").admin().init().later()
+    Context::new("0002_config").admin().init().later()
 
         // When someone else tries to set the config
         // Then the config remains unchanged
@@ -48,7 +48,7 @@ use crate::test::{*, Context};
 #[test] fn test_0003_drain () {
 
     // Given an instance
-    Context::named("0003_drain").init().fund(100).later()
+    Context::new("0003_drain").init().fund(100).later()
 
         // When non admin-tries to call release
         // Then gets rejected

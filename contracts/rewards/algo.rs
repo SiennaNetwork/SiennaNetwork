@@ -506,11 +506,11 @@ pub trait IAccount <S, A, Q, C>: Sized where
     /// Store the values that were updated by the passing of time
     fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()>;
     /// Store the results of a deposit
-    fn commit_deposit (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse>;
+    fn commit_deposit (&mut self, core: &mut C, amount: Amount) -> StdResult<()>;
     /// Store the results of a withdrawal
-    fn commit_withdrawal (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse>;
+    fn commit_withdrawal (&mut self, core: &mut C, amount: Amount) -> StdResult<()>;
     /// Store the results of a claim
-    fn commit_claim (&mut self, core: &mut C) -> StdResult<HandleResponse>;
+    fn commit_claim (&mut self, core: &mut C) -> StdResult<()>;
 }
 impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
@@ -637,7 +637,12 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         if self.total.closed.is_some() {
             return self.force_exit(core)
         } else {
-            self.commit_deposit(core, amount)
+            self.commit_deposit(core, amount)?;
+            let lp_token  = RewardsConfig::lp_token(core)?;
+            let self_link = RewardsConfig::self_link(core)?;
+            HandleResponse::default().msg(
+                lp_token.transfer_from(&self.address, &self_link.address, amount)?
+            )
         }
     }
     fn withdraw (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {
@@ -648,7 +653,27 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         } else if self.total.staked < amount {
             errors::withdraw_fatal(self.total.staked, amount)
         } else {
-            self.commit_withdrawal(core, amount)
+            self.commit_withdrawal(core, amount)?;
+            let mut response = HandleResponse::default();
+            // If all tokens were withdrawn
+            if self.staked == Amount::zero() {
+                // And if there is some reward claimable
+                if self.earned > Amount::zero() && self.bonding == 0 {
+                    // Also transfer rewards
+                    self.commit_claim(core)?;
+                    let reward_token = RewardsConfig::reward_token(core)?;
+                    response = response
+                        .msg(reward_token.transfer(&self.address, self.earned)?)?
+                        .log("reward", &self.earned.to_string())?;
+                } else {
+                    // If bonding is not over yet just reset even if some rewards were earned
+                    self.reset(core)?;
+                }
+            }
+            // Transfer withdrawn stake
+            response.msg(
+                RewardsConfig::lp_token(core)?.transfer(&self.address, amount)?
+            )
         }
     }
     fn claim (&mut self, core: &mut C) -> StdResult<HandleResponse> {
@@ -661,7 +686,10 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         } else if self.earned == Amount::zero() {
             errors::claim_zero_claimable()
         } else {
-            self.commit_claim(core)
+            self.commit_claim(core)?;
+            HandleResponse::default()
+                .msg(RewardsConfig::reward_token(core)?.transfer(&self.address, self.earned)?)?
+                .log("reward", &self.earned.to_string())
         }
     }
     fn force_exit (&mut self, core: &mut C) -> StdResult<HandleResponse> {
@@ -688,7 +716,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         }
         Ok(())
     }
-    fn commit_deposit (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse> {
+    fn commit_deposit (&mut self, core: &mut C, amount: Amount) -> StdResult<()> {
         self.commit_elapsed(core)?;
 
         self.staked += amount;
@@ -696,14 +724,9 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
 
         self.total.staked += amount;
         core.set(Total::STAKED, self.total.staked)?;
-
-        let lp_token  = RewardsConfig::lp_token(core)?;
-        let self_link = RewardsConfig::self_link(core)?;
-        HandleResponse::default().msg(
-            lp_token.transfer_from(&self.address, &self_link.address, amount)?
-        )
+        Ok(())
     }
-    fn commit_withdrawal (&mut self, core: &mut C, amount: Amount) -> StdResult<HandleResponse> {
+    fn commit_withdrawal (&mut self, core: &mut C, amount: Amount) -> StdResult<()> {
         self.commit_elapsed(core)?;
 
         self.staked = (self.staked - amount)?;
@@ -712,29 +735,14 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         self.total.staked = (self.total.staked - amount)?;
         core.set(Total::STAKED, self.total.staked)?;
 
-        let response = if self.staked == Amount::zero() { // hairy, fixme
-            if self.bonding == 0 {
-                self.commit_claim(core)?
-            } else {
-                self.reset(core)?;
-                HandleResponse::default()
-            }
-        } else {
-            HandleResponse::default()
-        };
-
-        response.msg(
-            RewardsConfig::lp_token(core)?.transfer(&self.address, amount)?
-        )
+        Ok(())
     }
-    fn commit_claim (&mut self, core: &mut C) -> StdResult<HandleResponse> {
-        let earned = self.earned;
-        if earned == Amount::zero() { return Ok(HandleResponse::default()) }
-        self.reset(core)?;
-        self.total.commit_claim(core, earned)?;
-        HandleResponse::default()
-            .msg(RewardsConfig::reward_token(core)?.transfer(&self.address, earned)?)?
-            .log("reward", &earned.to_string())
+    fn commit_claim (&mut self, core: &mut C) -> StdResult<()> {
+        if self.earned > Amount::zero() {
+            self.reset(core)?;
+            self.total.commit_claim(core, self.earned)?;
+        }
+        Ok(())
     }
 }
 impl Account {

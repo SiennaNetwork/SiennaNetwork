@@ -1,7 +1,7 @@
 use crate::test::{*, Context};
 
 #[test] fn test_0101_empty () {
-    let mut context = Context::named("0101_defaults");
+    let mut context = Context::new("0101_defaults");
     let bonding = context.bonding;
     // Given a fresh reward pool
     context.init()
@@ -16,7 +16,7 @@ use crate::test::{*, Context};
 }
 
 #[test] fn test_0102_stake_volume () {
-    let mut context = Context::named("0102_stake");
+    let mut context = Context::new("0102_stake");
     let stake1    = context.rng.gen_range(1..100);
     let stake2    = context.rng.gen_range(1..100);
     let n_ticks_1 = 10;
@@ -49,7 +49,7 @@ use crate::test::{*, Context};
 }
 
 #[test] fn test_0103_entry () {
-    let mut context = Context::named("0103_entry");
+    let mut context = Context::new("0103_entry");
     let stake1  = context.rng.gen_range(1..100000);
     let stake2  = context.rng.gen_range(1..100000);
     let n_ticks = 10;
@@ -106,7 +106,7 @@ use crate::test::{*, Context};
 }
 
 #[test] fn test_0104_bonding () {
-    let mut context = Context::named("0104_bonding");
+    let mut context = Context::new("0104_bonding");
     let bonding = context.bonding;
     let stake   = context.rng.gen_range(1..100000);
     let n_ticks = context.rng.gen_range(1..100);
@@ -125,7 +125,7 @@ use crate::test::{*, Context};
 }
 
 #[test] fn test_0105_reset () {
-    let mut context = Context::named("0105_reset");
+    let mut context = Context::new("0105_reset");
     let stake       = context.rng.gen_range(1..100000) * 2;
     let reward      = context.rng.gen_range(1..100000);
     let bonding     = context.bonding;
@@ -241,10 +241,10 @@ use crate::test::{*, Context};
 }
 
 #[test] fn test_0106_deposit_withdraw_one () {
-    let mut context = Context::new();
+    let mut context = Context::new("0106_deposit_withdraw_one");
     let stake = context.rng.gen_range(1..100000)*2;
     // Given an instance
-    Context::named("0106_deposit_withdraw_one").admin().init()
+    Context::new("0106_deposit_withdraw_one").admin().init()
         //  When user first deposits
         //  Then user's age and volume start incrementing
         .later().user("Alice")
@@ -272,13 +272,13 @@ use crate::test::{*, Context};
 }
 
 #[test] fn test_0107_claim () {
-    let mut context = Context::new();
+    let mut context = Context::new("0107_claim");
     let bonding = context.bonding;
     let stake  = context.rng.gen_range(1..100000);
     let reward = context.rng.gen_range(1..100000);
 
     // Given an instance
-    Context::named("0107_claim").init()
+    Context::new("0107_claim").init()
         .user("Alice").set_vk("")
         //  When user tries to claim reward before providing liquidity
         //  Then they get an error
@@ -307,13 +307,13 @@ use crate::test::{*, Context};
 }
 
 #[test] fn test_0108_sequential () {
-    let mut context = Context::new();
+    let mut context = Context::new("0108_sequential");
     let stake    = context.rng.gen_range(1..100000);
     let reward_1 = context.rng.gen_range(1..100000);
     let reward_2 = context.rng.gen_range(1..100000);
     let reward_3 = context.rng.gen_range(1..100000);
     let reward_4 = context.rng.gen_range(1..100000);
-    Context::named("0108_sequential").init().later()
+    Context::new("0108_sequential").init().later()
         .user("Alice").set_vk("").later().deposits(stake)
         .admin(      ).epoch(1, reward_1)
         .user("Alice").withdraws_claims(stake, reward_1)
@@ -332,11 +332,11 @@ use crate::test::{*, Context};
 }
 
 #[test] fn test_0109_parallel () {
-    let mut context = Context::new();
+    let mut context = Context::new("0109_parallel");
     let stake  = context.rng.gen_range(1..100000)*2;
     let reward = context.rng.gen_range(1..100000)*2;
     // Given an instance:
-    Context::named("0109_parallel").init()
+    Context::new("0109_parallel").init()
         .later()
             .user("Alice").set_vk("").deposits(stake).earned(0)
             .user("Bob"  ).set_vk("").deposits(stake).earned(0)
@@ -352,7 +352,7 @@ use crate::test::{*, Context};
 }
 
 #[test] fn test_0110_overlap () {
-    let mut context = Context::named("0110_overlap");
+    let mut context = Context::new("0110_overlap");
     let stake_1  = context.rng.gen_range(1..100000);
     let stake_2  = context.rng.gen_range(1..100000);
     let reward_1 = context.rng.gen_range(1..100000);
@@ -375,7 +375,7 @@ use crate::test::{*, Context};
 ///  When a user withdraws tokens after claiming
 ///  Then they get the original amount
 #[test] fn test_0113_single_sided () {
-    let mut context = Context::named("0113_single_sided");
+    let mut context = Context::new("0113_single_sided");
     context.lp_token = context.reward_token.clone();
     let stake  = context.rng.gen_range(1..100000);
     let reward = context.rng.gen_range(1..100000);
@@ -389,7 +389,7 @@ use crate::test::{*, Context};
 }
 
 #[test] fn test_0114_close () {
-    let mut context  = Context::named("0114_close");
+    let mut context  = Context::new("0114_close");
     let reward: u128 = context.rng.gen_range(1..100000);
     let stake1: u128 = context.rng.gen_range(1..100000);
     let stake2: u128 = context.rng.gen_range(1..100000);
@@ -417,7 +417,7 @@ use crate::test::{*, Context};
     context.later().user("Alice")
         .branch("then_lock", |mut context|{
             context.test_handle(
-                RewardsHandle::Deposit { amount: 100u128.into() },
+                Handle::Rewards(RewardsHandle::Deposit { amount: 100u128.into() }),
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
                     .log("close_time",   &format!("{}", when)).unwrap()
@@ -425,7 +425,7 @@ use crate::test::{*, Context};
         })
         .branch("then_retrieve", |mut context|{
             context.test_handle(
-                RewardsHandle::Withdraw { amount: 100u128.into() },
+                Handle::Rewards(RewardsHandle::Withdraw { amount: 100u128.into() }),
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
                     .log("close_time",   &format!("{}", when)).unwrap()
@@ -433,7 +433,7 @@ use crate::test::{*, Context};
         })
         .branch("then_claim", |mut context|{
             context.test_handle(
-                RewardsHandle::Claim {},
+                Handle::Rewards(RewardsHandle::Claim {}),
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
                     .log("close_time",   &format!("{}", when)).unwrap()

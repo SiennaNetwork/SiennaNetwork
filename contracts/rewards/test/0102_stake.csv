@@ -1,7 +1,8 @@
 Time,Sender,Recipient,Data
 ,,,
-19,Alice,REWARDS,"deposit:
-  amount: ""43"""
+19,Alice,REWARDS,"rewards:
+  deposit:
+    amount: ""43"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""43""
   owner: Alice
@@ -30,8 +31,9 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 29,REWARDS,Alice,account.staked               = 43
 29,REWARDS,Alice,account.volume               = 430
 ,,,
-29,Alice,REWARDS,"deposit:
-  amount: ""26"""
+29,Alice,REWARDS,"rewards:
+  deposit:
+    amount: ""26"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""26""
   owner: Alice

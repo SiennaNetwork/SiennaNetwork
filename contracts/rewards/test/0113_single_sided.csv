@@ -1,7 +1,8 @@
 Time,Sender,Recipient,Data
 ,,,
-14,Alice,REWARDS,"deposit:
-  amount: ""42798"""
+14,Alice,REWARDS,"rewards:
+  deposit:
+    amount: ""42798"""
 tx,REWARDS,SIENNA,"transfer_from:
   amount: ""42798""
   owner: Alice
@@ -11,11 +12,13 @@ tx,REWARDS,SIENNA,"transfer_from:
 ,,,
 211,RPT,REWARDS,vest 38861
 ,,,
-211,Admin,REWARDS,"begin_epoch:
-  next_epoch: 1"
+211,Admin,REWARDS,"rewards:
+  begin_epoch:
+    next_epoch: 1"
 211,REWARDS,Alice,account.earned               = 38861
 ,,,
-211,Alice,REWARDS,claim: {}
+211,Alice,REWARDS,"rewards:
+  claim: {}"
 tx,REWARDS,SIENNA,"transfer:
   amount: ""38861""
   padding: ~
@@ -24,8 +27,9 @@ log,REWARDS,,reward = 38861
 211,REWARDS,Alice,account.earned               = 0
 211,REWARDS,Alice,account.staked               = 42798
 ,,,
-211,Alice,REWARDS,"withdraw:
-  amount: ""42798"""
+211,Alice,REWARDS,"rewards:
+  withdraw:
+    amount: ""42798"""
 tx,REWARDS,SIENNA,"transfer:
   amount: ""42798""
   padding: ~

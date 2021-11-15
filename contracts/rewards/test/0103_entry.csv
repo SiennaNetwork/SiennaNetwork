@@ -1,8 +1,9 @@
 Time,Sender,Recipient,Data
 1,REWARDS,Alice,account.starting_pool_volume = 0
 ,,,
-1,Alice,REWARDS,"deposit:
-  amount: ""42798"""
+1,Alice,REWARDS,"rewards:
+  deposit:
+    amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""42798""
   owner: Alice
@@ -51,8 +52,9 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 11,REWARDS,Alice,account.starting_pool_volume = 0
 11,REWARDS,Bob,account.starting_pool_volume = 0
 ,,,
-11,Bob,REWARDS,"deposit:
-  amount: ""38861"""
+11,Bob,REWARDS,"rewards:
+  deposit:
+    amount: ""38861"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""38861""
   owner: Bob
@@ -93,12 +95,14 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 ,,,
 218,RPT,REWARDS,vest 100
 ,,,
-218,Admin,REWARDS,"begin_epoch:
-  next_epoch: 1"
+218,Admin,REWARDS,"rewards:
+  begin_epoch:
+    next_epoch: 1"
 218,REWARDS,Charlie,account.starting_pool_volume = 17331393
 ,,,
-218,Charlie,REWARDS,"deposit:
-  amount: ""42798"""
+218,Charlie,REWARDS,"rewards:
+  deposit:
+    amount: ""42798"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""42798""
   owner: Charlie

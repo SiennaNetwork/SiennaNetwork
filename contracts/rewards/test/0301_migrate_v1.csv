@@ -1,0 +1,14 @@
+Time,Sender,Recipient,Data
+1,REWARDS,Alice,account.staked               = 0
+1,REWARDS,Alice,total.staked                 = 0
+,,,
+1,Alice,REWARDS,"rewards:
+  deposit:
+    amount: ""85596"""
+tx,REWARDS,LP_TOKEN,"transfer_from:
+  amount: ""85596""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+1,REWARDS,Alice,account.staked               = 85596
+1,REWARDS,Alice,total.staked                 = 85596

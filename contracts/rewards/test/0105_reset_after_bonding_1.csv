@@ -4,8 +4,9 @@ Time,Sender,Recipient,Data
 14,REWARDS,Alice,account.bonding              = 197
 14,REWARDS,Alice,account.earned               = 0
 ,,,
-14,Alice,REWARDS,"deposit:
-  amount: ""85596"""
+14,Alice,REWARDS,"rewards:
+  deposit:
+    amount: ""85596"""
 tx,REWARDS,LP_TOKEN,"transfer_from:
   amount: ""85596""
   owner: Alice
@@ -21,16 +22,18 @@ tx,REWARDS,LP_TOKEN,"transfer_from:
 ,,,
 211,RPT,REWARDS,vest 38861
 ,,,
-211,Admin,REWARDS,"begin_epoch:
-  next_epoch: 1"
+211,Admin,REWARDS,"rewards:
+  begin_epoch:
+    next_epoch: 1"
 211,REWARDS,Alice,account.earned               = 38861
 211,REWARDS,Alice,account.bonding              = 0
 ,,,
 211,test,branch,0105_reset_after_bonding_1
 ,,,
 ,,,
-211,Alice,REWARDS,"withdraw:
-  amount: ""85596"""
+211,Alice,REWARDS,"rewards:
+  withdraw:
+    amount: ""85596"""
 tx,REWARDS,SIENNA,"transfer:
   amount: ""38861""
   padding: ~
