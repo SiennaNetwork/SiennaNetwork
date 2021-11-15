@@ -1,2 +1,7 @@
 Time,Sender,Recipient,Data
-ERROR,status,,Unauthorized
+,,,
+1,Alice,0301_migrate_v2_addr,"migration_import:
+  request_migration:
+    address: 0301_migrate_v1_addr
+    code_hash: 0301_migrate_v1_hash"
+tx,0301_migrate_v2_addr,0301_migrate_v1_addr,export_state: Alice

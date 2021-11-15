@@ -1,4 +1,5 @@
-use fadroma::*;
+#[macro_use] extern crate fadroma;
+pub use fadroma::*;
 
 pub mod algo; use crate::algo::{*, RewardsResponse};
 pub mod auth; use crate::auth::{*, Auth};
@@ -23,7 +24,8 @@ pub fn query <S: Storage, A: Api, Q: Querier> (deps: &Extern<S, A, Q>, msg: Quer
 pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Auth<S, A, Q>
     + Rewards<S, A, Q>
-    + Migration<S, A, Q>
+    + MigrationImport<S, A, Q>
+    + MigrationExport<S, A, Q>
     + KeplrCompat<S, A, Q>
     + Drain<S, A, Q>
     + Sized
@@ -60,7 +62,8 @@ pub enum Handle {
     Auth(AuthHandle),
     CreateViewingKey { entropy: String, padding: Option<String> },
     SetViewingKey { key: String, padding: Option<String> },
-    Migration(MigrationHandle),
+    MigrationImport(MigrationImportHandle),
+    MigrationExport(MigrationExportHandle),
     Rewards(RewardsHandle),
     Drain { snip20: ContractLink<HumanAddr>, recipient: Option<HumanAddr>, key: String },
 }
@@ -77,8 +80,10 @@ impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for Handle where
                 Auth::handle(core, env, AuthHandle::SetViewingKey { key, padding }),
             Handle::Rewards(msg) =>
                 Rewards::handle(core, env, msg),
-            Handle::Migration(msg) =>
-                Migration::handle(core, env, msg),
+            Handle::MigrationImport(msg) =>
+                MigrationImport::handle(core, env, msg),
+            Handle::MigrationExport(msg) =>
+                MigrationExport::handle(core, env, msg),
             Handle::Drain { snip20, recipient, key } =>
                 Drain::drain(core, env, snip20, recipient, key)
         }
@@ -132,11 +137,15 @@ pub enum Response {
 
 /// Implement the feature traits on the base struct.
 #[macro_export] macro_rules! compose {
-    ($base_struct:ty) => {
-        impl<S: Storage, A: Api, Q: Querier> crate::Contract<S, A, Q> for $base_struct {}
-        impl<S: Storage, A: Api, Q: Querier> crate::auth::Auth<S, A, Q> for $base_struct {}
-        impl<S: Storage, A: Api, Q: Querier> crate::algo::Rewards<S, A, Q> for $base_struct {}
-        impl<S: Storage, A: Api, Q: Querier> crate::keplr::KeplrCompat<S, A, Q> for $base_struct {
+    ($Core:ty) => {
+
+        impl<S: Storage, A: Api, Q: Querier> crate::Contract<S, A, Q> for $Core {}
+
+        impl<S: Storage, A: Api, Q: Querier> crate::auth::Auth<S, A, Q> for $Core {}
+
+        impl<S: Storage, A: Api, Q: Querier> crate::algo::Rewards<S, A, Q> for $Core {}
+
+        impl<S: Storage, A: Api, Q: Querier> crate::keplr::KeplrCompat<S, A, Q> for $Core {
             fn token_info (&self) -> StdResult<Response> {
                 let info = RewardsConfig::lp_token(self)?.query_token_info(self.querier())?;
                 Ok(Response::TokenInfo {
@@ -153,15 +162,21 @@ pub enum Response {
                 Ok(Response::Balance { amount: amount.unwrap_or(Amount::zero()) })
             }
         }
-        impl<S: Storage, A: Api, Q: Querier> crate::migration::Migration<S, A, Q> for $base_struct {
+
+        impl<S: Storage, A: Api, Q: Querier> crate::migration::MigrationExport<S, A, Q> for $Core {
             fn export_state (&mut self, _env: Env, addr: HumanAddr) -> StdResult<Binary> {
                 to_binary(&crate::algo::Account::export(self, addr)?)
             }
+        }
+
+        impl<S: Storage, A: Api, Q: Querier> crate::migration::MigrationImport<S, A, Q> for $Core {
             fn import_state (&mut self, _env: Env, data: Binary) -> StdResult<()> {
                 crate::algo::Account::import(self, from_slice(&data.as_slice())?)
             }
         }
-        impl<S: Storage, A: Api, Q: Querier> crate::drain::Drain<S, A, Q> for $base_struct {}
+
+        impl<S: Storage, A: Api, Q: Querier> crate::drain::Drain<S, A, Q> for $Core {}
+
     };
 }
 

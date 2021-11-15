@@ -14,8 +14,7 @@ mod test_0300_migrate;
 use prettytable::{Table, /*Row, Cell,*/ format};
 //use yansi::Paint;
 
-use crate::{*, RewardsResponse};
-use fadroma::*;
+use crate::*;
 use fadroma::secret_toolkit::snip20;
 use fadroma::testing::*;
 
@@ -32,7 +31,7 @@ pub struct Context {
     pub link:         ContractLink<HumanAddr>,
     pub table:        Table,
     pub deps:         Deps,
-    pub address:      HumanAddr,
+    pub initiator:  HumanAddr,
     pub env:          Env,
     pub time:         Moment,
 
@@ -56,7 +55,7 @@ impl Context {
 
         table.set_titles(row![rb->"Time", b->"Sender", b->"Recipient", b->"Data"]);
 
-        let address = HumanAddr::from("Admin");
+        let initiator = HumanAddr::from("Admin");
         let time = 1;
 
         //color_backtrace::install();
@@ -87,8 +86,8 @@ impl Context {
                 ContractLink { address: HumanAddr::from("LP_TOKEN"), code_hash: "LP_hash".into() }
             ),
 
-            env: env(&address, time),
-            address,
+            env: env(&initiator, time),
+            initiator,
             time,
             closed: None,
             bonding
@@ -105,7 +104,7 @@ impl Context {
         self
     }
     fn update_env (&mut self) -> &mut Self {
-        self.env = env(&self.address, self.time);
+        self.env = env(&self.initiator, self.time);
         self
     }
     pub fn at (&mut self, t: Moment) -> &mut Self {
@@ -139,7 +138,7 @@ impl Context {
         self
     }
     pub fn set_address (&mut self, address: &str) -> &mut Self {
-        self.address = HumanAddr::from(address);
+        self.initiator = HumanAddr::from(address);
         self.update_env()
     }
     pub fn admin (&mut self) -> &mut Self {
@@ -153,7 +152,12 @@ impl Context {
     }
     pub fn fund (&mut self, amount: u128) -> &mut Self {
         self.table.add_row(row!["","","",""]);
-        self.table.add_row(row![rb->self.time, "RPT", "REWARDS", b->format!("vest {}", &amount)]);
+        self.table.add_row(row![
+            rb->self.time,
+            "RPT",
+            self.link.address.clone(),
+            b->format!("vest {}", &amount)
+        ]);
         self.deps.querier.increment_balance(&self.reward_token.link.address, amount);
         self
     }
@@ -162,7 +166,7 @@ impl Context {
     {
         test_handle(
             &mut self.table, &mut self.deps, &self.env,
-            self.address.clone(), msg, expected
+            self.initiator.clone(), msg, expected, self.link.address.clone()
         );
         self
     }
@@ -210,9 +214,10 @@ impl Context {
         }
         test_handle(
             &mut self.table,
-            &mut self.deps, &self.env, self.address.clone(),
+            &mut self.deps, &self.env, self.initiator.clone(),
             Handle::Rewards(RewardsHandle::Configure(config)),
-            Ok(expected)
+            Ok(expected),
+            self.link.address.clone()
         );
         self
     }
@@ -239,9 +244,10 @@ impl Context {
         let message = "closed";
         test_handle(
             &mut self.table,
-            &mut self.deps, &self.env, self.address.clone(),
+            &mut self.deps, &self.env, self.initiator.clone(),
             Handle::Rewards(RewardsHandle::Close { message: message.to_string() }),
-            Ok(HandleResponse::default())
+            Ok(HandleResponse::default()),
+            self.link.address.clone()
         );
         self.closed = Some((self.time, message.to_string()));
         self
@@ -249,9 +255,10 @@ impl Context {
     pub fn cannot_close_pool (&mut self) -> &mut Self {
         test_handle(
             &mut self.table,
-            &mut self.deps, &self.env, self.address.clone(),
+            &mut self.deps, &self.env, self.initiator.clone(),
             Handle::Rewards(RewardsHandle::Close { message: String::from("closed") }),
-            Err(StdError::unauthorized())
+            Err(StdError::unauthorized()),
+            self.link.address.clone()
         ); self
     }
     pub fn drains_pool (&mut self, key: &str) -> &mut Self {
@@ -345,10 +352,57 @@ impl Context {
             errors::claim_bonding(remaining)
         )
     }
-    pub fn enable_migration_to (&mut self, next_version: &ContractLink<HumanAddr>) -> &mut Self {
+    pub fn enable_migration_to (&mut self, contract: &ContractLink<HumanAddr>) -> &mut Self {
+        self.test_handle(
+            Handle::MigrationExport(MigrationExportHandle::EnableMigrationTo(contract.clone())),
+            Ok(HandleResponse::default())
+        );
         self
     }
-    pub fn migrate_from (&mut self, last_version: &ContractLink<HumanAddr>) -> &mut Self {
+    pub fn enable_migration_from (&mut self, contract: &ContractLink<HumanAddr>) -> &mut Self {
+        self.test_handle(
+            Handle::MigrationImport(MigrationImportHandle::EnableMigrationFrom(contract.clone())),
+            Ok(HandleResponse::default())
+        );
+        self
+    }
+    pub fn migrate_from (&mut self, last_version: &mut Context) -> &mut Self {
+
+        let request  = MigrationImportHandle::RequestMigration(last_version.link.clone());
+        let export   = MigrationExportHandle::ExportState(self.initiator.clone());
+        let snapshot = Account::export(&last_version.deps, self.initiator.clone()).unwrap();
+        let receive  = MigrationImportHandle::ReceiveMigration(to_binary(&snapshot).unwrap());
+
+        self.test_handle(
+            Handle::MigrationImport(request),
+            HandleResponse::default().msg(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr:      last_version.link.address.clone(),
+                callback_code_hash: last_version.link.code_hash.clone(),
+                msg:  to_binary(&export).unwrap(),
+                send: vec![],
+            }))
+        );
+
+        test_handle(
+            &mut last_version.table,
+            &mut last_version.deps,
+            &env(&self.link.address, self.time),
+            self.link.address.clone(),
+            Handle::MigrationExport(export),
+            HandleResponse::default().msg(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr:      self.link.address.clone(),
+                callback_code_hash: self.link.code_hash.clone(),
+                msg:  to_binary(&receive).unwrap(),
+                send: vec![],
+            })),
+            self.link.address.clone()
+        );
+
+        self.test_handle(
+            Handle::MigrationImport(receive),
+            Ok(HandleResponse::default())
+        );
+
         self
     }
     pub fn staked (&mut self, expected: u128) -> &mut Self {
@@ -373,7 +427,7 @@ impl Context {
     }
     pub fn account_status (&mut self) -> Account {
         let at      = self.env.block.time;
-        let address = self.address.clone();
+        let address = self.initiator.clone();
         let key     = String::from("");
         let result = Rewards::query(&self.deps, RewardsQuery::UserInfo { at, address, key });
         match result {
@@ -411,7 +465,7 @@ impl Context {
                 }
             },
             Err(e) => {
-                self.table.add_row(row![rbBrFd->"ERROR", bBrFd->"status", "", bBrFd->e]);
+                self.table.add_row(row![rbBrFd->"ERROR", bBrFd->"query(status)", "", bBrFd->e]);
                 panic!("status query failed: {:?}", e);
             }
         }
@@ -419,8 +473,8 @@ impl Context {
     fn test_field <V: std::fmt::Debug + Clone + PartialEq> (&mut self, name: &'static str, actual: V, expected: V) -> &mut Self {
         self.table.add_row(row![
              r->self.time,
-             "REWARDS",
-             self.address,
+             self.link.address,
+             self.initiator,
              format!("{} = {:?}", &name, &actual),
         ]);
         if expected != actual {
@@ -451,16 +505,17 @@ pub fn env (signer: &HumanAddr, time: u64) -> Env {
 }
 
 pub fn test_handle (
-    table:    &mut Table,
-    deps:     &mut Deps,
-    env:      &Env,
-    address:  HumanAddr,
-    msg:      Handle,
-    expected: StdResult<HandleResponse>
+    table:       &mut Table,
+    deps:        &mut Deps,
+    env:         &Env,
+    initiator:   HumanAddr,
+    msg:         Handle,
+    expected:    StdResult<HandleResponse>,
+    own_address: HumanAddr
 ) {
     table.add_row(row!["","","",""]);
     let msg_ser = serde_yaml::to_string(&msg).unwrap();
-    table.add_row(row![rb->env.block.time, &address, "REWARDS", b->msg_ser.trim()[4..]]);
+    table.add_row(row![rb->env.block.time, &initiator, own_address, b->msg_ser.trim()[4..]]);
     let result = Contract::handle(deps, env.clone(), msg);
     let add_result = |table: &mut Table, result: &StdResult<HandleResponse>| match result {
         Ok(ref result) => {
@@ -469,13 +524,18 @@ pub fn test_handle (
                     ref msg, ref contract_addr, ..
                 }) = message {
                     let ref decoded = decode_msg(msg).unwrap();
-                    table.add_row(row![rb->"tx", "REWARDS", contract_addr, decoded[4..],]);
+                    table.add_row(row![rb->"tx", own_address, contract_addr, decoded[4..],]);
                 } else {
-                    table.add_row(row![r->"msg", "REWARDS", "", serde_yaml::to_string(&message).unwrap()]);
+                    table.add_row(row![r->"msg", own_address, "", serde_yaml::to_string(&message).unwrap()]);
                 }
             }
             for log in result.log.iter() {
-                table.add_row(row![rb->"log", "REWARDS", "", format!("{} = {}", &log.key, &log.value),]);
+                table.add_row(row![
+                    rb->"log",
+                    own_address,
+                    "",
+                    format!("{} = {}", &log.key, &log.value),
+                ]);
             }
         },
         Err(ref error) => {

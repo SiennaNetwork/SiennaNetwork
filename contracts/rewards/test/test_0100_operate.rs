@@ -390,7 +390,6 @@ use crate::test::{*, Context};
 
 #[test] fn test_0114_close () {
     let mut context  = Context::new("0114_close");
-    let reward: u128 = context.rng.gen_range(1..100000);
     let stake1: u128 = context.rng.gen_range(1..100000);
     let stake2: u128 = context.rng.gen_range(1..100000);
     let return_funds = context.lp_token.transfer(
