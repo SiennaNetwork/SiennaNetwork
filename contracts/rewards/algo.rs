@@ -40,7 +40,7 @@ impl RewardsConfig {
     pub const TIMEKEEPER:   &'static[u8] = b"/config/keeper";
 }
 pub trait IRewardsConfig <S, A, Q, C> where
-    S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>
+    S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     /// Commit initial contract configuration to storage.
     fn initialize   (&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>>;
@@ -199,7 +199,7 @@ pub enum RewardsResponse {
     PoolInfo(Total),
 }
 pub trait IRewardsResponse<S, A, Q, C>: Sized where
-    S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>
+    S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     /// Get account + pool + epoch info
     fn user_info (core: &C, time: Moment, address: HumanAddr, key: String) -> StdResult<Self>;
@@ -248,7 +248,7 @@ impl Clock {
     pub const UNLOCKED: &'static[u8] = b"/epoch/unlocked";
 }
 pub trait IClock <S, A, Q, C> where
-    S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>
+    S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     /// Get the current state of the epoch clock.
     fn get (core: &C, now: Moment) -> StdResult<Clock>;
@@ -324,7 +324,7 @@ pub struct Total {
     pub closed:      Option<CloseSeal>,
 }
 pub trait ITotal <S, A, Q, C>: Sized where
-    S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>
+    S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     /// Load and compute the up-to-date totals for a given clock value
     fn get (core: &C, clock: Clock) -> StdResult<Self>;
@@ -474,7 +474,7 @@ pub struct Account {
     #[serde(skip)] pub id:        CanonicalAddr,
 }
 pub trait IAccount <S, A, Q, C>: Sized where
-    S: Storage, A: Api, Q: Querier, C: Composable<S, A, Q>
+    S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     /// Get the transaction initiator's account at current time
     fn from_env (core: &C, env: Env) -> StdResult<Self>;
@@ -513,6 +513,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         let id = core.canonize(address.clone())?;
         Ok(AccountSnapshot {
             address,
+            vk: Auth::load_vk(core, id.as_slice())?,
             bonding: core
                 .get_ns(Self::BONDING, &id.as_slice())?
                 .ok_or(StdError::generic_err("missing bonding period"))?,
@@ -528,8 +529,13 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         })
     }
     fn import (core: &mut C, data: AccountSnapshot) -> StdResult<()> {
-        let AccountSnapshot { address, bonding, staked, updated, volume } = data;
+        let AccountSnapshot { address, vk, bonding, staked, updated, volume } = data;
         let id = core.canonize(address)?;
+        if let Some(vk) = vk {
+            // for some reason it does not see Auth as implemented
+            //Auth::save_vk(&mut core, id.as_slice(), &vk)?;
+            core.set_ns(crate::auth::VIEWING_KEYS, id.as_slice(), &vk)?;
+        }
         core.set_ns(Self::BONDING, id.as_slice(), bonding)?;
         core.set_ns(Self::STAKED,  id.as_slice(), staked)?;
         core.set_ns(Self::UPDATED, id.as_slice(), updated)?;
@@ -739,6 +745,7 @@ impl Account {
 #[serde(rename_all="snake_case")]
 pub struct AccountSnapshot {
     address: HumanAddr,
+    vk:      Option<ViewingKey>,
     bonding: Duration,
     staked:  Amount,
     updated: Moment,

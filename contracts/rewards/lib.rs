@@ -136,6 +136,8 @@ pub enum Response {
 }
 
 /// Implement the feature traits on the base struct.
+/// Reused in test harness (test/mod.rs), where the same
+/// traits need to be implemented on a clonable MockExtern
 #[macro_export] macro_rules! compose {
     ($Core:ty) => {
 

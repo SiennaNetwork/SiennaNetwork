@@ -1,8 +1,8 @@
 use fadroma::*;
 pub use fadroma::ViewingKey;
 
-const ADMIN_KEY:    &[u8] = b"ltp5P6sFZT";
-const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
+pub const ADMIN_KEY:    &[u8] = b"ltp5P6sFZT";
+pub const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]

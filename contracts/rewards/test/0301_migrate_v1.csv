@@ -20,4 +20,4 @@ tx,0301_migrate_v1_addr,LP_TOKEN,"transfer_from:
 ,,,
 1,0301_migrate_v2_addr,0301_migrate_v2_addr,"migration_export:
   export_state: Alice"
-tx,0301_migrate_v2_addr,0301_migrate_v2_addr,receive_migration: eyJhZGRyZXNzIjoiQWxpY2UiLCJib25kaW5nIjoxOTcsInN0YWtlZCI6Ijg1NTk2IiwidXBkYXRlZCI6MSwidm9sdW1lIjoiMCJ9
+tx,0301_migrate_v2_addr,0301_migrate_v2_addr,receive_migration: eyJhZGRyZXNzIjoiQWxpY2UiLCJ2ayI6IiIsImJvbmRpbmciOjE5Nywic3Rha2VkIjoiODU1OTYiLCJ1cGRhdGVkIjoxLCJ2b2x1bWUiOiIwIn0=
