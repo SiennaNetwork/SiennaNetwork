@@ -59,15 +59,6 @@ export class TokenPairTree extends TokenPair {
     next?: TokenPairTree;
     public is_solved: boolean = false;
 
-    constructor(
-        A: TypeOfToken,
-        B: TypeOfToken,
-        pair_address: Address,
-        pair_code_hash: string,
-    ) {
-        super(A, B, pair_address, pair_code_hash);
-    }
-
     /**
      * Check if the tree is considered solved (if the last node is solved)
      * 
