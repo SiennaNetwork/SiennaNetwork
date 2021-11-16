@@ -366,12 +366,15 @@ impl Context {
         );
         self
     }
-    pub fn migrate_from (&mut self, last_version: &mut Context) -> &mut Self {
+    pub fn migrate_from (
+        &mut self,
+        last_version: &mut Context,
+        migrated_stake: u128,
+        claimed_reward: u128
+    ) -> &mut Self {
 
-        let request  = MigrationImportHandle::RequestMigration(last_version.link.clone());
-        let export   = MigrationExportHandle::ExportState(self.initiator.clone());
-        let snapshot = Account::export(&last_version.deps, self.initiator.clone()).unwrap();
-        let receive  = MigrationImportHandle::ReceiveMigration(to_binary(&snapshot).unwrap());
+        let request = MigrationImportHandle::RequestMigration(last_version.link.clone());
+        let export  = MigrationExportHandle::ExportState(self.initiator.clone());
 
         self.test_handle(
             Handle::MigrationImport(request),
@@ -379,9 +382,36 @@ impl Context {
                 contract_addr:      last_version.link.address.clone(),
                 callback_code_hash: last_version.link.code_hash.clone(),
                 msg:  to_binary(&export).unwrap(),
-                send: vec![],
-            }))
+                send: vec![], })) );
+
+        let mut export_result = HandleResponse::default().msg(self.lp_token.transfer(
+            &self.env.message.sender,
+            migrated_stake.into() ).unwrap());
+
+        if claimed_reward > 0 {
+            export_result = export_result.unwrap().msg(self.reward_token.transfer_from(
+                &self.env.message.sender,
+                &self.env.contract.address,
+                claimed_reward.into()).unwrap()); }
+
+        let id = self.deps.canonize(self.initiator.clone()).unwrap();
+        let vk_snapshot = (
+            self.initiator.clone(), 
+            if let Some(vk) = Auth::load_vk(&last_version.deps, id.as_slice()).unwrap() {
+                Some(vk.0)
+            } else {
+                None
+            },
+            self.deps.get_ns(Account::STAKED, id.as_slice()).unwrap().unwrap_or(Amount::zero())
         );
+        let receive_vk_snapshot = MigrationImportHandle::ReceiveMigration(
+            to_binary(&vk_snapshot).unwrap());
+
+        export_result = export_result.unwrap().msg(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr:      self.link.address.clone(),
+            callback_code_hash: self.link.code_hash.clone(),
+            msg:  to_binary(&receive_vk_snapshot).unwrap(),
+            send: vec![], }));
 
         test_handle(
             &mut last_version.table,
@@ -389,19 +419,17 @@ impl Context {
             &env(&self.link.address, self.time),
             self.link.address.clone(),
             Handle::MigrationExport(export),
-            HandleResponse::default().msg(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr:      self.link.address.clone(),
-                callback_code_hash: self.link.code_hash.clone(),
-                msg:  to_binary(&receive).unwrap(),
-                send: vec![],
-            })),
-            self.link.address.clone()
-        );
+            export_result,
+            self.link.address.clone());
 
         self.test_handle(
-            Handle::MigrationImport(receive),
-            Ok(HandleResponse::default())
-        );
+            Handle::MigrationImport(receive_vk_snapshot),
+            HandleResponse::default()
+                .msg(self.lp_token.transfer_from(
+                    &self.initiator,
+                    &self.link.address,
+                    migrated_stake.into()
+                ).unwrap()));
 
         self
     }

@@ -18,7 +18,7 @@ use crate::test::{*, Context};
 
     contract2.init()
         .user("Alice") // no vk, should migrate that too
-            .migrate_from(&mut contract1)
+            .migrate_from(&mut contract1, stake, 0u128)
             .staked(stake).total_staked(stake);
 
 }

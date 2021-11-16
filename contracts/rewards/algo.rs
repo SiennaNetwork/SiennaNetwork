@@ -213,10 +213,7 @@ impl<S, A, Q, C> IRewardsResponse<S, A, Q, C> for RewardsResponse where
     fn user_info (core: &C, time: Moment, address: HumanAddr, key: String) -> StdResult<Self> {
         let id = core.canonize(address.clone())?;
         Auth::check_vk(core, &ViewingKey(key), id.as_slice())?;
-        let clock = Clock::get(core, time)?;
-        let total = Total::get(core, clock)?;
-        let account = Account::get(core, total, address)?;
-        Ok(RewardsResponse::UserInfo(account))
+        Ok(RewardsResponse::UserInfo(Account::from_addr(core, address, time)?))
     }
     fn pool_info (core: &C, time: Moment) -> StdResult<RewardsResponse> {
         let clock = Clock::get(core, time)?;
@@ -344,18 +341,9 @@ impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
 {
     fn get (core: &C, clock: Clock) -> StdResult<Self> {
         let mut total = Self::default();
-        let get_time = |key, default: u64| -> StdResult<u64> {
-            Ok(core.get(key)?.unwrap_or(default))
-        };
-        let get_amount = |key, default: Amount| -> StdResult<Amount> {
-            Ok(core.get(key)?.unwrap_or(default))
-        };
-        let get_volume = |key, default: Volume| -> StdResult<Volume> {
-            Ok(core.get(key)?.unwrap_or(default))
-        };
         // # 1. Timestamps
         total.clock = clock;
-        total.updated = get_time(Total::UPDATED, total.clock.now)?;
+        total.updated = core.get(Total::UPDATED)?.unwrap_or(total.clock.now);
         if total.clock.now < total.updated { return errors::no_time_travel() }
         // # 2. Liquidity
         // When users lock tokens in the pool, liquidity accumulates.
@@ -374,9 +362,9 @@ impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
         //   Starting with a new pool, lock 10 LP for 20 moments.
         //   The pool will have a liquidity of 200.
         //   Deposit 10 more; 5 moments later, the liquidity will be 300.
-        let last_volume  = get_volume(Total::VOLUME, Volume::zero())?;
+        let last_volume  = core.get(Total::VOLUME)?.unwrap_or(Volume::zero());
         let elapsed      = total.clock.now - total.updated;
-        total.staked     = get_amount(Total::STAKED, Amount::zero())?;
+        total.staked     = core.get(Total::STAKED)?.unwrap_or(Amount::zero());
         total.volume     = accumulate(last_volume, elapsed, total.staked)?;
         let reward_token = RewardsConfig::reward_token(core)?;
         let ref address  = RewardsConfig::self_link(core)?.address;
@@ -399,13 +387,13 @@ impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
         if is_single_sided {
             total.budget = (total.budget - total.staked)?;
         }
-        total.distributed = get_amount(Total::CLAIMED, Amount::zero())?;
+        total.distributed = core.get(Total::CLAIMED)?.unwrap_or(Amount::zero());
         total.unlocked    = total.distributed + total.budget;
         // # 4. Throttles
         // * Bonding period: user must wait this much before each claim.
         // * Closing the pool stops its time and makes it
         //   return all funds upon any user action.
-        total.bonding     = get_time(RewardsConfig::BONDING, 0u64)?;
+        total.bonding     = core.get(RewardsConfig::BONDING)?.unwrap_or(0u64);
         total.closed      = core.get(RewardsConfig::CLOSED)?;
         Ok(total)
     }
@@ -478,10 +466,8 @@ pub trait IAccount <S, A, Q, C>: Sized where
 {
     /// Get the transaction initiator's account at current time
     fn from_env (core: &C, env: Env) -> StdResult<Self>;
-    /// Export stored user data
-    fn export (core: &C, address: HumanAddr) -> StdResult<AccountSnapshot>;
-    /// Import stored user data
-    fn import (core: &mut C, snapshot: AccountSnapshot) -> StdResult<()>;
+    /// Get the transaction initiator's account at specified time
+    fn from_addr (core: &C, address: HumanAddr, time: Moment) -> StdResult<Self>;
     /// Get an account with up-to-date values
     fn get (core: &C, total: Total, address: HumanAddr) -> StdResult<Self>;
     /// Reset the user's liquidity conribution
@@ -507,40 +493,10 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     fn from_env (core: &C, env: Env) -> StdResult<Self> {
-        Self::get(core, Total::get(core, Clock::get(core, env.block.time)?)?, env.message.sender)
+        Self::from_addr(core, env.message.sender, env.block.time)
     }
-    fn export (core: &C, address: HumanAddr) -> StdResult<AccountSnapshot> {
-        let id = core.canonize(address.clone())?;
-        Ok(AccountSnapshot {
-            address,
-            vk: Auth::load_vk(core, id.as_slice())?,
-            bonding: core
-                .get_ns(Self::BONDING, &id.as_slice())?
-                .ok_or(StdError::generic_err("missing bonding period"))?,
-            staked: core
-                .get_ns(Self::STAKED,  &id.as_slice())?
-                .ok_or(StdError::generic_err("missing staked amount"))?,
-            updated: core
-                .get_ns(Self::UPDATED, &id.as_slice())?
-                .ok_or(StdError::generic_err("missing update timestamp"))?,
-            volume: core
-                .get_ns(Self::VOLUME,  &id.as_slice())?
-                .ok_or(StdError::generic_err("missing contribution volume"))?,
-        })
-    }
-    fn import (core: &mut C, data: AccountSnapshot) -> StdResult<()> {
-        let AccountSnapshot { address, vk, bonding, staked, updated, volume } = data;
-        let id = core.canonize(address)?;
-        if let Some(vk) = vk {
-            // for some reason it does not see Auth as implemented
-            //Auth::save_vk(&mut core, id.as_slice(), &vk)?;
-            core.set_ns(crate::auth::VIEWING_KEYS, id.as_slice(), &vk)?;
-        }
-        core.set_ns(Self::BONDING, id.as_slice(), bonding)?;
-        core.set_ns(Self::STAKED,  id.as_slice(), staked)?;
-        core.set_ns(Self::UPDATED, id.as_slice(), updated)?;
-        core.set_ns(Self::VOLUME,  id.as_slice(), volume)?;
-        Ok(())
+    fn from_addr (core: &C, address: HumanAddr, time: Moment) -> StdResult<Self> {
+        Self::get(core, Total::get(core, Clock::get(core, time)?)?, address)
     }
     fn get (core: &C, total: Total, address: HumanAddr) -> StdResult<Self> {
         let id         = core.canonize(address.clone())?;
@@ -741,16 +697,6 @@ impl Account {
     pub const VOLUME:    &'static[u8] = b"/user/volume/";
     pub const BONDING:   &'static[u8] = b"/user/bonding/";
 }
-#[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize,JsonSchema)]
-#[serde(rename_all="snake_case")]
-pub struct AccountSnapshot {
-    address: HumanAddr,
-    vk:      Option<ViewingKey>,
-    bonding: Duration,
-    staked:  Amount,
-    updated: Moment,
-    volume:  Volume,
-}
 /// A moment in time, as represented by the current value of env.block.time
 pub type Moment   = u64;
 /// A duration of time, represented as a number of moments
@@ -765,6 +711,8 @@ pub type Volume = Uint256;
 pub type Ratio  = (Uint128, Uint128);
 /// When and why was the pool closed
 pub type CloseSeal = (Moment, String);
+/// Address and, optionally, viewing key
+pub type AccountSnapshot = (HumanAddr, Option<String>, Amount);
 /// Project current value of an accumulating parameter based on stored value,
 /// time since it was last updated, and rate of change, i.e.
 /// `current = stored + (elapsed * rate)`

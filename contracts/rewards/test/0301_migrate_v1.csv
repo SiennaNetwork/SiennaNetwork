@@ -20,4 +20,8 @@ tx,0301_migrate_v1_addr,LP_TOKEN,"transfer_from:
 ,,,
 1,0301_migrate_v2_addr,0301_migrate_v2_addr,"migration_export:
   export_state: Alice"
-tx,0301_migrate_v2_addr,0301_migrate_v2_addr,receive_migration: eyJhZGRyZXNzIjoiQWxpY2UiLCJ2ayI6IiIsImJvbmRpbmciOjE5Nywic3Rha2VkIjoiODU1OTYiLCJ1cGRhdGVkIjoxLCJ2b2x1bWUiOiIwIn0=
+tx,0301_migrate_v2_addr,LP_TOKEN,"transfer:
+  amount: ""85596""
+  padding: ~
+  recipient: Alice"
+tx,0301_migrate_v2_addr,0301_migrate_v2_addr,receive_migration: WyJBbGljZSIsIiIsIjAiXQ==

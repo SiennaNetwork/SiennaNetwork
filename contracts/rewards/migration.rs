@@ -1,3 +1,14 @@
+//! This module supports two methods of migration.
+//!
+//! * One is by automatically emitting the messages from both contract
+//!   that a manual migration would involve.
+//!
+//! * The other is by emitting a snapshot from the sender contract
+//!   that is imported by the receiver contract.
+//!
+//! Sienna Rewards currently uses the former method, so as not to
+//! reimplement the liquidity accumulation machinery twice.
+
 use crate::auth::Auth;
 use fadroma::*;
 
@@ -21,8 +32,8 @@ pub trait MigrationExport<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     fn handle (&mut self, env: Env, msg: MigrationExportHandle) -> StdResult<HandleResponse> {
         match msg {
-            MigrationExportHandle::ExportState(initiator) =>
-                self.handle_export_state(env, initiator),
+            MigrationExportHandle::ExportState(migrant) =>
+                self.handle_export_state(env, migrant),
             _ => {
                 Auth::assert_admin(self, &env)?;
                 match msg {
@@ -54,33 +65,49 @@ pub trait MigrationExport<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         Ok(HandleResponse::default())
     }
 
-    fn handle_export_state (&mut self, env: Env, initiator: HumanAddr) -> StdResult<HandleResponse> {
-        // This makes no sense to be called manually by the user;
+    fn can_export_state (&mut self, env: &Env, migrant: &HumanAddr)
+        -> StdResult<ContractLink<HumanAddr>>
+    {
+        // The ExportState transaction cannot be called manually by the user;
         // it must be called by the contract which is receiving the migration
-        let receiver = env.message.sender.clone();
-        if receiver == initiator {
+        if &env.message.sender == migrant {
             return Err(StdError::generic_err("This handler must be called as part of a transaction"))
         }
         // If migration to the caller contract is enabled,
         // its code hash should be available in storage
-        let id = self.canonize(receiver.clone())?;
-        let receiver: Option<ContractLink<HumanAddr>> =
+        let id = self.canonize(env.message.sender.clone())?;
+        let receiver_link: Option<ContractLink<HumanAddr>> =
             self.get_ns(Self::CAN_MIGRATE_TO, id.as_slice())?;
-        if let Some(receiver) = receiver {
-            let msg = MigrationImportHandle::ReceiveMigration(self.export_state(env, initiator)?);
-            Ok(HandleResponse::default().msg(CosmosMsg::Wasm(WasmMsg::Execute {
+        if let Some(receiver_link) = receiver_link {
+            Ok(receiver_link)
+        } else {
+            Err(StdError::generic_err("Migration to this target is not enabled."))
+        }
+    }
+
+    /// Override this to emit the corresponding messages, if migrating via transactions.
+    /// Make sure to keep can_export_state call in the override.
+    fn handle_export_state (&mut self, env: Env, migrant: HumanAddr) -> StdResult<HandleResponse> {
+        let receiver = self.can_export_state(&env, &migrant)?;
+        let response = HandleResponse::default();
+        if let Some(snapshot) = self.export_state(env, migrant)? {
+            let msg = MigrationImportHandle::ReceiveMigration(snapshot);
+            response.msg(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr:      receiver.address,
                 callback_code_hash: receiver.code_hash,
                 send:               vec![],
                 msg: to_binary(&msg)?,
-            }))?)
+            }))
         } else {
-            return Err(StdError::generic_err("Migration to this contract is not enabled."))
+            Ok(response)
         }
     }
 
-    /// Implement this to return a serialized version of your migration snapshot object.
-    fn export_state (&mut self, env: Env, initiator: HumanAddr) -> StdResult<Binary>;
+    /// Override this to return a serialized version of your migration snapshot object
+    /// if you are migrating via snapshots.
+    fn export_state (&mut self, _env: Env, _migrant: HumanAddr) -> StdResult<Option<Binary>> {
+        Ok(None)
+    }
 }
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
@@ -96,7 +123,6 @@ pub enum MigrationImportHandle {
     /// migration from which was enabled via `EnableMigrationFrom`.
     ReceiveMigration(Binary),
 }
-
 
 pub trait MigrationImport<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Auth<S, A, Q>
@@ -139,7 +165,9 @@ pub trait MigrationImport<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         Ok(HandleResponse::default())
     }
 
-    fn handle_request_migration (&mut self, env: Env, prev: ContractLink<HumanAddr>) -> StdResult<HandleResponse> {
+    fn handle_request_migration (&mut self, env: Env, prev: ContractLink<HumanAddr>)
+        -> StdResult<HandleResponse>
+    {
         HandleResponse::default()
             .msg(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr:      prev.address,
@@ -149,11 +177,14 @@ pub trait MigrationImport<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             }))
     }
 
+    /// Override this to emit the corresponding messages, if migrating via transactions
     fn handle_receive_migration (&mut self, env: Env, data: Binary) -> StdResult<HandleResponse> {
         self.import_state(env, data)?;
         Ok(HandleResponse::default())
     }
 
-    /// Implement this to deserialize and store a migration snapshot
-    fn import_state (&mut self, env: Env, data: Binary) -> StdResult<()>;
+    /// Override this to import a snapshot, if migrating via snapshots
+    fn import_state (&mut self, env: Env, data: Binary) -> StdResult<()> {
+        unimplemented!()
+    }
 }

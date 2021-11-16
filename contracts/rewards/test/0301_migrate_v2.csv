@@ -7,7 +7,17 @@ Time,Sender,Recipient,Data
 tx,0301_migrate_v2_addr,0301_migrate_v1_addr,export_state: Alice
 ,,,
 1,Alice,0301_migrate_v2_addr,"migration_import:
-  receive_migration: eyJhZGRyZXNzIjoiQWxpY2UiLCJ2ayI6IiIsImJvbmRpbmciOjE5Nywic3Rha2VkIjoiODU1OTYiLCJ1cGRhdGVkIjoxLCJ2b2x1bWUiOiIwIn0="
-1,0301_migrate_v2_addr,Alice,account.staked               = 85596
-1,0301_migrate_v2_addr,Alice,total.staked                 = 0
-ERROR,EXPECTED,,total.staked                 = 85596
+  receive_migration: WyJBbGljZSIsIiIsIjAiXQ=="
+tx,0301_migrate_v2_addr,LP_TOKEN,"transfer_from:
+  amount: ""0""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+,,,
+FAIL,was expecting,the following,
+,,,
+tx,0301_migrate_v2_addr,LP_TOKEN,"transfer_from:
+  amount: ""85596""
+  owner: Alice
+  padding: ~
+  recipient: 0301_migrate_v2_addr"
