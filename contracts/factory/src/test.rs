@@ -161,9 +161,21 @@ mod test_contract {
 
     #[test]
     fn create_exchange_for_the_same_tokens_returns_error() -> StdResult<()> {
-        let ref mut deps = mkdeps();
+        fn assert_create_error(pair: TokenPair<HumanAddr>) {
+            let ref mut deps = mkdeps();
+            let result = create_exchange(deps, mkenv("sender"), pair, to_binary(&"entropy").unwrap());
 
-        let pair = TokenPair(
+            let error: StdError = result.unwrap_err();
+    
+            match error {
+                StdError::GenericErr { msg, .. } => {
+                    assert_eq!(msg, "Cannot create an exchange with the same token.");
+                }
+                _ => panic!("Expected StdError::GenericErr"),
+            };
+        }
+
+        assert_create_error(TokenPair(
             TokenType::CustomToken {
                 contract_addr: HumanAddr("token_addr".into()),
                 token_code_hash: "13123adasd".into(),
@@ -172,50 +184,27 @@ mod test_contract {
                 contract_addr: HumanAddr("token_addr".into()),
                 token_code_hash: "13123adasd".into(),
             },
-        );
+        ));
 
-        let result = create_exchange(deps, mkenv("sender"), pair, to_binary(&"entropy").unwrap());
+        assert_create_error(TokenPair(
+            TokenType::CustomToken {
+                contract_addr: HumanAddr("token_addr".into()),
+                token_code_hash: "c1dc8261059fee1de9f1873cd1359ccd7a6bc5623772661fa3d55332eb652084".into(),
+            },
+            TokenType::CustomToken {
+                contract_addr: HumanAddr("token_addr".into()),
+                token_code_hash: "C1dc8261059fee1de9f1873cd1359ccd7a6bc5623772661fa3d55332eb652084".into(),
+            },
+        ));
 
-        let error: StdError = result.unwrap_err();
-
-        let result = match error {
-            StdError::GenericErr { msg, .. } => {
-                if msg.as_str() == "Cannot create an exchange with the same token." {
-                    true
-                } else {
-                    false
-                }
-            }
-            _ => false,
-        };
-
-        assert!(result);
-
-        let pair = TokenPair(
+        assert_create_error(TokenPair(
             TokenType::NativeToken {
                 denom: "test1".into(),
             },
             TokenType::NativeToken {
                 denom: "test1".into(),
             },
-        );
-
-        let result = create_exchange(deps, mkenv("sender"), pair, to_binary(&"entropy").unwrap());
-
-        let error: StdError = result.unwrap_err();
-
-        let result = match error {
-            StdError::GenericErr { msg, .. } => {
-                if msg.as_str() == "Cannot create an exchange with the same token." {
-                    true
-                } else {
-                    false
-                }
-            }
-            _ => false,
-        };
-
-        assert!(result);
+        ));
 
         Ok(())
     }
