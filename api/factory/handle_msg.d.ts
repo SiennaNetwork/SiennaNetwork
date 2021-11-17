@@ -82,8 +82,41 @@ export type HandleMsg =
       [k: string]: unknown;
     }
   | {
-      add_exchanges: {
+      transfer_exchanges: {
+        /**
+         * New factory instance.
+         */
+        new_instance: ContractLinkFor_HumanAddr;
+        /**
+         * The password set on the receiving instance.
+         */
+        password: string;
+        /**
+         * Optionally, skip transferring the given exchanges.
+         */
+        skip?: HumanAddr[] | null;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      receive_exchanges: {
         exchanges: ExchangeFor_HumanAddr[];
+        /**
+         * Indicates whether all exchanges have been transferred.
+         */
+        finalize: boolean;
+        /**
+         * The password that was set on this instance.
+         */
+        password: string;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      set_migration_password: {
+        password: string;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -217,9 +250,9 @@ export interface ContractLinkFor_HumanAddr {
  */
 export interface ExchangeFor_HumanAddr {
   /**
-   * Address of the contract that manages the exchange.
+   * The contract that manages the exchange.
    */
-  address: HumanAddr;
+  contract: ContractLinkFor_HumanAddr;
   /**
    * The pair that the contract manages.
    */

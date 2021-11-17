@@ -64,10 +64,10 @@ export interface Fee {
 /**
  * Extract some comparable id from the token type 
  * 
- * @param {TypeOfToken} token
+ * @param {TypeOfToken | TokenType} token
  * @returns {string}
  */
-export function get_type_of_token_id(token: TypeOfToken): string {
+export function get_type_of_token_id(token: TypeOfToken | TokenType): string {
     if ((token as unknown as NativeToken).native_token) {
         return "native";
     }

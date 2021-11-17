@@ -1,4 +1,6 @@
-use crate::msg::{Asset, AssetInfo};
+use amm_shared::msg::router::{
+    Asset, AssetInfo, HandleMsg, Hop, InitMsg, NativeSwap, QueryMsg, Route, Snip20Swap,
+};
 use amm_shared::{
     fadroma::scrt::{
         from_binary, secret_toolkit::snip20, to_binary, Api, BankMsg, Binary, Coin, CosmosMsg, Env,
@@ -8,12 +10,9 @@ use amm_shared::{
     TokenType,
 };
 
-use crate::{
-    msg::{HandleMsg, Hop, InitMsg, NativeSwap, QueryMsg, Route, Snip20Swap},
-    state::{
-        delete_route_state, read_owner, read_route_state, read_tokens, store_owner,
-        store_route_state, store_tokens, RouteState,
-    },
+use crate::state::{
+    delete_route_state, read_owner, read_route_state, read_tokens, store_owner, store_route_state,
+    store_tokens, RouteState,
 };
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
@@ -27,15 +26,26 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         store_owner(&mut deps.storage, &env.message.sender)?;
     }
 
-    let mut output_msgs: Vec<CosmosMsg> = vec![];
+    let mut messages: Vec<CosmosMsg> = vec![];
 
     store_tokens(&mut deps.storage, &vec![])?;
     if let Some(tokens) = msg.register_tokens {
-        output_msgs.extend(register_tokens(deps, &env, tokens)?);
+        messages.extend(register_tokens(deps, &env, tokens)?);
+    }
+
+    if let Some(callback) = msg.callback {
+        // Execute the HandleMsg::RegisterRouter method of
+        // the factory contract in order to register this address
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: callback.contract.address,
+            callback_code_hash: callback.contract.code_hash,
+            msg: callback.msg,
+            send: vec![],
+        }));
     }
 
     Ok(InitResponse {
-        messages: output_msgs,
+        messages,
         log: vec![],
     })
 }

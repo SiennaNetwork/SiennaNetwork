@@ -22,16 +22,17 @@ use amm_shared::{
         factory::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
         ido::{InitMsg as IdoInitMsg, TokenSaleConfig, WhitelistRequest},
         launchpad::{InitMsg as LaunchpadInitMsg, TokenSettings},
+        router::InitMsg as RouterInitMsg,
     },
-    Pagination, TokenPair,
+    Pagination, TokenPair, TokenType,
 };
 
 use crate::state::{
     exchanges_store, get_address_for_pair, get_exchanges, get_idos, ido_whitelist_add,
     ido_whitelist_remove, is_ido_whitelisted, load_config, load_launchpad_instance,
-    load_migration_password, load_prng_seed, pair_exists, remove_migration_password, save_config,
-    save_launchpad_instance, save_migration_password, save_prng_seed, store_exchanges,
-    store_ido_addresses, Config,
+    load_migration_password, load_prng_seed, load_router_instance, pair_exists,
+    remove_migration_password, save_config, save_launchpad_instance, save_migration_password,
+    save_prng_seed, save_router_instance, store_exchanges, store_ido_addresses, Config,
 };
 
 pub const EPHEMERAL_STORAGE_KEY: &[u8] = b"ephemeral_storage";
@@ -51,6 +52,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             pair_contract: msg.pair_contract,
             launchpad_contract: msg.launchpad_contract,
             ido_contract: msg.ido_contract,
+            router_contract: msg.router_contract,
             exchange_settings: msg.exchange_settings,
         },
     )?;
@@ -93,6 +95,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::CreateLaunchpad { tokens, entropy } => {
             create_launchpad(deps, env, tokens, entropy)
         }
+        HandleMsg::CreateRouter { register_tokens } => create_router(deps, env, register_tokens),
         HandleMsg::RegisterLaunchpad { signature } => register_launchpad(deps, env, signature),
         HandleMsg::CreateIdo {
             info,
@@ -100,6 +103,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             entropy,
         } => create_ido(deps, env, info, tokens, entropy),
         HandleMsg::RegisterIdo { signature } => register_ido(deps, env, signature),
+        HandleMsg::RegisterRouter { signature } => register_router(deps, env, signature),
         HandleMsg::RegisterExchange { pair, signature } => {
             register_exchange(deps, env, pair, signature)
         }
@@ -126,6 +130,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::ListExchanges { pagination } => list_exchanges(deps, pagination),
         QueryMsg::ListIdos { pagination } => list_idos(deps, pagination),
         QueryMsg::GetLaunchpadAddress => get_launchpad_address(deps),
+        QueryMsg::GetRouterAddress => get_router_address(deps),
         QueryMsg::GetExchangeSettings => query_exchange_settings(deps),
 
         QueryMsg::Admin(msg) => to_binary(&admin_query(deps, msg, AdminImpl)?),
@@ -144,6 +149,7 @@ pub fn set_config<S: Storage, A: Api, Q: Querier>(
         pair_contract,
         launchpad_contract,
         ido_contract,
+        router_contract,
         exchange_settings,
     } = msg
     {
@@ -163,6 +169,9 @@ pub fn set_config<S: Storage, A: Api, Q: Querier>(
         }
         if let Some(new_value) = ido_contract {
             config.ido_contract = new_value;
+        }
+        if let Some(new_value) = router_contract {
+            config.router_contract = new_value;
         }
         if let Some(new_value) = exchange_settings {
             config.exchange_settings = new_value;
@@ -187,6 +196,7 @@ pub fn get_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> Std
         pair_contract,
         launchpad_contract,
         ido_contract,
+        router_contract,
         exchange_settings,
         ..
     } = load_config(deps)?;
@@ -197,6 +207,7 @@ pub fn get_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> Std
         pair_contract,
         launchpad_contract,
         ido_contract,
+        router_contract,
         exchange_settings,
     })
 }
@@ -464,6 +475,70 @@ fn register_ido<S: Storage, A: Api, Q: Querier>(
 }
 
 #[require_admin]
+fn create_router<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    register_tokens: Option<Vec<TokenType<HumanAddr>>>,
+) -> StdResult<HandleResponse> {
+    let signature = create_signature(&env)?;
+    save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
+    // Again, creating the Router happens when the instantiated contract calls
+    // us back via the HandleMsg::RegisterRouter so that we can get its address.
+    let config = load_config(deps)?;
+
+    Ok(HandleResponse {
+        messages: vec![CosmosMsg::Wasm(WasmMsg::Instantiate {
+            code_id: config.router_contract.id,
+            callback_code_hash: config.router_contract.code_hash,
+            send: vec![],
+            label: format!(
+                "SIENNA Router for swapping, created at {}",
+                env.block.time // Make sure the label is unique
+            ),
+            msg: to_binary(&RouterInitMsg {
+                register_tokens,
+                owner: Some(env.message.sender),
+                callback: Some(Callback {
+                    contract: ContractLink {
+                        address: env.contract.address,
+                        code_hash: env.contract_code_hash,
+                    },
+                    msg: to_binary(&HandleMsg::RegisterRouter { signature })?,
+                }),
+            })?,
+        })],
+        log: vec![log("action", "create_router")],
+        data: None,
+    })
+}
+
+fn register_router<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    signature: Binary,
+) -> StdResult<HandleResponse> {
+    ensure_correct_signature(&mut deps.storage, signature)?;
+    let config = load_config(deps)?;
+
+    save_router_instance(
+        &mut deps.storage,
+        &ContractLink {
+            address: env.message.sender.clone(),
+            code_hash: config.router_contract.code_hash,
+        },
+    )?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("action", "register_router"),
+            log("address", env.message.sender),
+        ],
+        data: None,
+    })
+}
+
+#[require_admin]
 fn ido_whitelist<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -646,6 +721,16 @@ fn get_launchpad_address<S: Storage, A: Api, Q: Querier>(
 
     to_binary(&QueryResponse::GetLaunchpadAddress {
         address: launchpad.address,
+    })
+}
+
+fn get_router_address<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Binary> {
+    let router = load_router_instance(&deps.storage)?.ok_or(StdError::generic_err(
+        "Router contract hasn't been created yet",
+    ))?;
+
+    to_binary(&QueryResponse::GetRouterAddress {
+        address: router.address,
     })
 }
 

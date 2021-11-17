@@ -1,12 +1,12 @@
-import { Address, TypeOfToken, CustomToken, NativeToken, get_type_of_token_id } from "./core";
+import { Address, TokenType, CustomToken, NativeToken, get_type_of_token_id } from "./core";
 
 /**
  * Simple token pair interface for easier filling in the pairs
  */
 export class TokenPair {
     constructor(
-        public A: TypeOfToken,
-        public B: TypeOfToken,
+        public A: TokenType,
+        public B: TokenType,
         public pair_address: Address,
         public pair_code_hash: string
     ) { }
@@ -158,7 +158,7 @@ export class TokenPairTree extends TokenPair {
  * it cannot appear anywhere in the middle of the chain.
  */
 export interface Hop {
-    from_token: TypeOfToken;
+    from_token: TokenType;
     pair_address: Address;
     pair_code_hash: string;
 }
@@ -168,9 +168,9 @@ export interface Hop {
  * @class {Assembler}
  */
 export class Assembler {
-    private A?: TypeOfToken;
+    private A?: TokenType;
     private a_id?: string;
-    private B?: TypeOfToken;
+    private B?: TokenType;
     private b_id?: string;
     private pairs: TokenPairTree[] = [];
     private parents: TokenPairTree[] = [];
@@ -201,10 +201,10 @@ export class Assembler {
     /**
      * Set token that we want to swap
      * 
-     * @param {TypeOfToken} token 
+     * @param {TokenType} token 
      * @returns {Assembler}
      */
-    from(token: TypeOfToken): this {
+    from(token: TokenType): this {
         this.A = token;
         this.a_id = get_type_of_token_id(token);
 
@@ -214,10 +214,10 @@ export class Assembler {
     /**
      * Set token that we want to get after the swap
      * 
-     * @param {TypeOfToken} token 
+     * @param {TokenType} token 
      * @returns {Assembler}
      */
-    to(token: TypeOfToken): this {
+    to(token: TokenType): this {
         if (!this.A) {
             throw new Error("Swap path assembler: You'll have to provide the 'from' token first");
         }

@@ -162,6 +162,22 @@
         }
       }
     },
+    "ContractLink_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
     "ExchangeSettings_for_HumanAddr": {
       "type": "object",
       "required": [
@@ -191,15 +207,15 @@
       "description": "Represents the address of an exchange and the pair that it manages",
       "type": "object",
       "required": [
-        "address",
+        "contract",
         "pair"
       ],
       "properties": {
-        "address": {
-          "description": "Address of the contract that manages the exchange.",
+        "contract": {
+          "description": "The contract that manages the exchange.",
           "allOf": [
             {
-              "$ref": "#/definitions/HumanAddr"
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             }
           ]
         },

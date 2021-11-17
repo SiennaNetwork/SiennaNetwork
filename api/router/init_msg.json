@@ -3,16 +3,6 @@
   "title": "InitMsg",
   "type": "object",
   "properties": {
-    "cashback": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/SecretContract"
-        },
-        {
-          "type": "null"
-        }
-      ]
-    },
     "owner": {
       "anyOf": [
         {
@@ -29,7 +19,7 @@
         "null"
       ],
       "items": {
-        "$ref": "#/definitions/Snip20Data"
+        "$ref": "#/definitions/TokenType_for_HumanAddr"
       }
     }
   },
@@ -37,35 +27,51 @@
     "HumanAddr": {
       "type": "string"
     },
-    "SecretContract": {
-      "type": "object",
-      "required": [
-        "address",
-        "code_hash"
-      ],
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
+    "TokenType_for_HumanAddr": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "custom_token"
+          ],
+          "properties": {
+            "custom_token": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "token_code_hash"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "token_code_hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
         },
-        "code_hash": {
-          "type": "string"
+        {
+          "type": "object",
+          "required": [
+            "native_token"
+          ],
+          "properties": {
+            "native_token": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              }
+            }
+          }
         }
-      }
-    },
-    "Snip20Data": {
-      "type": "object",
-      "required": [
-        "address",
-        "code_hash"
-      ],
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
-        },
-        "code_hash": {
-          "type": "string"
-        }
-      }
+      ]
     }
   }
 }

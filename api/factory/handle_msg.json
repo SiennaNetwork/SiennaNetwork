@@ -289,16 +289,57 @@
       }
     },
     {
-      "description": "Adds already created exchanges to the registry. Admin only command.",
+      "description": "Transfers exchanges to a new instance. Admin only command.",
       "type": "object",
       "required": [
-        "add_exchanges"
+        "transfer_exchanges"
       ],
       "properties": {
-        "add_exchanges": {
+        "transfer_exchanges": {
           "type": "object",
           "required": [
-            "exchanges"
+            "new_instance",
+            "password"
+          ],
+          "properties": {
+            "new_instance": {
+              "description": "New factory instance.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/ContractLink_for_HumanAddr"
+                }
+              ]
+            },
+            "password": {
+              "description": "The password set on the receiving instance.",
+              "type": "string"
+            },
+            "skip": {
+              "description": "Optionally, skip transferring the given exchanges.",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "receive_exchanges"
+      ],
+      "properties": {
+        "receive_exchanges": {
+          "type": "object",
+          "required": [
+            "exchanges",
+            "finalize",
+            "password"
           ],
           "properties": {
             "exchanges": {
@@ -306,6 +347,33 @@
               "items": {
                 "$ref": "#/definitions/Exchange_for_HumanAddr"
               }
+            },
+            "finalize": {
+              "description": "Indicates whether all exchanges have been transferred.",
+              "type": "boolean"
+            },
+            "password": {
+              "description": "The password that was set on this instance.",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_migration_password"
+      ],
+      "properties": {
+        "set_migration_password": {
+          "type": "object",
+          "required": [
+            "password"
+          ],
+          "properties": {
+            "password": {
+              "type": "string"
             }
           }
         }
@@ -443,15 +511,15 @@
       "description": "Represents the address of an exchange and the pair that it manages",
       "type": "object",
       "required": [
-        "address",
+        "contract",
         "pair"
       ],
       "properties": {
-        "address": {
-          "description": "Address of the contract that manages the exchange.",
+        "contract": {
+          "description": "The contract that manages the exchange.",
           "allOf": [
             {
-              "$ref": "#/definitions/HumanAddr"
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             }
           ]
         },

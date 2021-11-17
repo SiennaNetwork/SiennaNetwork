@@ -61,7 +61,7 @@
             "tokens": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Snip20Data"
+                "$ref": "#/definitions/TokenType_for_HumanAddr"
               }
             }
           }
@@ -99,7 +99,7 @@
               "$ref": "#/definitions/HumanAddr"
             },
             "token": {
-              "$ref": "#/definitions/Token"
+              "$ref": "#/definitions/TokenType_for_HumanAddr"
             }
           }
         }
@@ -114,16 +114,6 @@
         "update_settings": {
           "type": "object",
           "properties": {
-            "new_cashback": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/SecretContract"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
             "new_owner": {
               "anyOf": [
                 {
@@ -147,52 +137,47 @@
     "HumanAddr": {
       "type": "string"
     },
-    "SecretContract": {
-      "type": "object",
-      "required": [
-        "address",
-        "code_hash"
-      ],
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
-        },
-        "code_hash": {
-          "type": "string"
-        }
-      }
-    },
-    "Snip20Data": {
-      "type": "object",
-      "required": [
-        "address",
-        "code_hash"
-      ],
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
-        },
-        "code_hash": {
-          "type": "string"
-        }
-      }
-    },
-    "Token": {
+    "TokenType_for_HumanAddr": {
       "anyOf": [
         {
-          "type": "string",
-          "enum": [
-            "scrt"
-          ]
+          "type": "object",
+          "required": [
+            "custom_token"
+          ],
+          "properties": {
+            "custom_token": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "token_code_hash"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "token_code_hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
         },
         {
           "type": "object",
           "required": [
-            "snip20"
+            "native_token"
           ],
           "properties": {
-            "snip20": {
-              "$ref": "#/definitions/Snip20Data"
+            "native_token": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              }
             }
           }
         }

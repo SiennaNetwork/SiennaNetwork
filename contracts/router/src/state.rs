@@ -4,7 +4,7 @@ use amm_shared::fadroma::scrt::cosmwasm_storage::{ReadonlySingleton, Singleton};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::msg::{Hop, Route};
+use amm_shared::msg::router::{Hop, Route};
 
 static KEY_OWNER: &[u8] = b"owner";
 
