@@ -169,33 +169,33 @@ pub enum Response {
             fn handle_export_state (&mut self, env: &Env, migrant: &HumanAddr)
                 -> StdResult<HandleResponse>
             {
-                let receiver = self.can_export_state(&env, &migrant)?;
+                let receiver    = self.can_export_state(&env, &migrant)?;
                 let mut account = Account::from_addr(self, &migrant, env.block.time)?;
-                let staked = account.staked;
-                let id = self.canonize(migrant.clone())?;
-                let snapshot: AccountSnapshot = (
+                let staked      = account.staked;
+                let id          = self.canonize(migrant.clone())?;
+
+                let snapshot = to_binary(&((
                     migrant.clone(),
-                    if let Some(vk) = Auth::load_vk(self, id.as_slice())? {
-                        Some(vk.0)
-                    } else {
-                        None
-                    },
+                    Auth::load_vk(self, id.as_slice())?.map(|vk|vk.0),
                     staked
-                );
-                let snapshot = to_binary(&snapshot)?;
+                ) as AccountSnapshot))?;
+
                 let mut response = HandleResponse::default();
+
                 if staked > Amount::zero() {
                     account.commit_withdrawal(self, staked)?;
                     response = response.msg(
                         RewardsConfig::lp_token(self)?.transfer(&migrant, staked)?
                     )?;
                 }
+
                 response = response.msg(CosmosMsg::Wasm(WasmMsg::Execute {
-                        contract_addr:      receiver.address,
-                        callback_code_hash: receiver.code_hash,
-                        send: vec![],
-                        msg: to_binary(&ImmigrationHandle::ReceiveMigration(snapshot))?,
-                    }))?;
+                    contract_addr:      receiver.address,
+                    callback_code_hash: receiver.code_hash,
+                    send: vec![],
+                    msg: to_binary(&ImmigrationHandle::ReceiveMigration(snapshot))?,
+                }))?;
+
                 Ok(response)
             }
         }

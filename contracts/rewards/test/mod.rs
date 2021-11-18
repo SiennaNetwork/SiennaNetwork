@@ -26,14 +26,14 @@ pub type Deps = MockExtern<ClonableMemoryStorage, MockApi, RewardsMockQuerier>;
 
 #[derive(Clone)]
 pub struct Context {
-    pub rng:          StdRng,
-    pub name:         String,
-    pub link:         ContractLink<HumanAddr>,
-    pub table:        Table,
-    pub deps:         Deps,
+    pub rng:        StdRng,
+    pub name:       String,
+    pub link:       ContractLink<HumanAddr>,
+    pub table:      Table,
+    pub deps:       Deps,
     pub initiator:  HumanAddr,
-    pub env:          Env,
-    pub time:         Moment,
+    pub env:        Env,
+    pub time:       Moment,
 
     pub reward_vk:    String,
     pub reward_token: ISnip20,
@@ -47,13 +47,20 @@ impl Context {
         let mut table = Table::new();
 
         table.set_format(format::FormatBuilder::new()
-            .separator(format::LinePosition::Title, format::LineSeparator::new('-', '-', '-', '-'))
+            .separator(
+                format::LinePosition::Title,
+                format::LineSeparator::new('-', '-', '-', '-'))
             .column_separator('|')
             .borders('|')
             .padding(1, 1)
         .build());
 
-        table.set_titles(row![rb->"Time", b->"Sender", b->"Recipient", b->"Data"]);
+        table.set_titles(row![
+            rb->"Time",
+            b->"Sender",
+            b->"Recipient",
+            b->"Data"
+        ]);
 
         let initiator = HumanAddr::from("Admin");
         let time = 1;
@@ -71,11 +78,7 @@ impl Context {
             },
             table,
 
-            deps: MockExtern {
-                storage: ClonableMemoryStorage::default(),
-                api:     MockApi::new(20),
-                querier: RewardsMockQuerier::new()
-            },
+            deps: MockExtern::new(RewardsMockQuerier::new()),
 
             reward_vk: "reward_vk".to_string(),
             reward_token: ISnip20::attach(
@@ -171,24 +174,25 @@ impl Context {
         self
     }
     pub fn init (&mut self) -> &mut Self {
-        crate::Auth::init(&mut self.deps, &self.env, &None).unwrap();
-        let config = RewardsConfig {
-            lp_token:     Some(self.lp_token.link.clone()),
-            reward_token: Some(self.reward_token.link.clone()),
-            reward_vk:    Some(self.reward_vk.clone()),
-            bonding:      Some(self.bonding),
-            timekeeper:   Some(HumanAddr::from("Admin")),
-        };
-        let actual = Rewards::init(&mut self.deps, &self.env, config).unwrap();
-        let expected = vec![
-            snip20::set_viewing_key_msg(
-                self.reward_vk.clone(),
-                None, BLOCK_SIZE,
-                self.reward_token.link.code_hash.clone(),
-                self.reward_token.link.address.clone()
-            ).unwrap()
-        ];
-        assert_eq!(actual, expected);
+        assert_eq!(
+            Contract::init(&mut self.deps, self.env.clone(), Init {
+                admin: None,
+                config: RewardsConfig {
+                    lp_token:     Some(self.lp_token.link.clone()),
+                    reward_token: Some(self.reward_token.link.clone()),
+                    reward_vk:    Some(self.reward_vk.clone()),
+                    bonding:      Some(self.bonding),
+                    timekeeper:   Some(HumanAddr::from("Admin")),
+                }
+            }),
+            InitResponse::default()
+                .msg(snip20::set_viewing_key_msg(
+                    self.reward_vk.clone(),
+                    None, BLOCK_SIZE,
+                    self.reward_token.link.code_hash.clone(),
+                    self.reward_token.link.address.clone()
+                ).unwrap())
+        );
         self
     }
     pub fn init_invalid (&mut self) -> &mut Self {
@@ -378,19 +382,14 @@ impl Context {
         // 1. User calls RequestMigration on NEW version of contract.
         // 2. NEW version calls ExportState(migrant) on OLD version of contract.
         let request = ImmigrationHandle::RequestMigration(last_version.link.clone());
-        let export = EmigrationHandle::ExportState(migrant.clone());
-        let id = self.deps.canonize(migrant.clone()).unwrap();
-        let vk_snapshot: AccountSnapshot = (
-            migrant.clone(),
-            if let Some(vk) = Auth::load_vk(&last_version.deps, id.as_slice()).unwrap() {
-                Some(vk.0)
-            } else {
-                None
-            },
-            migrated_stake.into()
-        );
+        let export  = EmigrationHandle::ExportState(migrant.clone());
+        let id      = self.deps.canonize(migrant.clone()).unwrap();
         let receive_vk_snapshot = ImmigrationHandle::ReceiveMigration(
-            to_binary(&vk_snapshot).unwrap());
+            to_binary(&((
+                migrant.clone(),
+                Auth::load_vk(&last_version.deps, id.as_slice()).unwrap().map(|vk|vk.0),
+                migrated_stake.into()
+            ) as AccountSnapshot)).unwrap());
 
         self.test_handle(
             Handle::Immigration(request),
@@ -594,8 +593,8 @@ pub struct RewardsMockQuerier {
 impl RewardsMockQuerier {
     pub fn new () -> Self {
         let mut balances = std::collections::HashMap::new();
-        balances.insert("SIENNA".into(), 0u128);
-        balances.insert("LP_TOKEN".into(),     0u128);
+        balances.insert("SIENNA".into(),   0u128);
+        balances.insert("LP_TOKEN".into(), 0u128);
         Self { balances }
     }
     fn get_balance (&self, address: &HumanAddr) -> u128 {
@@ -645,26 +644,3 @@ pub enum Snip20Query { Balance {} }
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all="snake_case")]
 pub enum Snip20Response { Balance { amount: Amount } }
-
-#[derive(Default, Clone)]
-pub struct ClonableMemoryStorage {
-    data: std::collections::BTreeMap<Vec<u8>, Vec<u8>>,
-}
-impl ClonableMemoryStorage {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-impl ReadonlyStorage for ClonableMemoryStorage {
-    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        self.data.get(key).cloned()
-    }
-}
-impl Storage for ClonableMemoryStorage {
-    fn set(&mut self, key: &[u8], value: &[u8]) {
-        self.data.insert(key.to_vec(), value.to_vec());
-    }
-    fn remove(&mut self, key: &[u8]) {
-        self.data.remove(key);
-    }
-}
