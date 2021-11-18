@@ -14,7 +14,7 @@ use fadroma::*;
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]
-pub enum MigrationExportHandle {
+pub enum EmigrationHandle {
     /// Allow another contract to receive data from this contract
     EnableMigrationTo(ContractLink<HumanAddr>),
     /// Disallow another contract to receive data from this contract
@@ -25,21 +25,21 @@ pub enum MigrationExportHandle {
     ExportState(HumanAddr),
 }
 
-pub trait MigrationExport<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
+pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Auth<S, A, Q>
 {
     const CAN_MIGRATE_TO: &'static [u8] = b"/migration/prev";
 
-    fn handle (&mut self, env: Env, msg: MigrationExportHandle) -> StdResult<HandleResponse> {
+    fn handle (&mut self, env: Env, msg: EmigrationHandle) -> StdResult<HandleResponse> {
         match msg {
-            MigrationExportHandle::ExportState(migrant) =>
-                self.handle_export_state(env, migrant),
+            EmigrationHandle::ExportState(migrant) =>
+                self.handle_export_state(&env, &migrant),
             _ => {
                 Auth::assert_admin(self, &env)?;
                 match msg {
-                    MigrationExportHandle::EnableMigrationTo(contract) =>
+                    EmigrationHandle::EnableMigrationTo(contract) =>
                         self.handle_enable_migration_to(env, contract),
-                    MigrationExportHandle::DisableMigrationTo(contract) =>
+                    EmigrationHandle::DisableMigrationTo(contract) =>
                         self.handle_disable_migration_to(env, contract),
                     _ => unreachable!()
                 }
@@ -87,11 +87,11 @@ pub trait MigrationExport<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     /// Override this to emit the corresponding messages, if migrating via transactions.
     /// Make sure to keep can_export_state call in the override.
-    fn handle_export_state (&mut self, env: Env, migrant: HumanAddr) -> StdResult<HandleResponse> {
-        let receiver = self.can_export_state(&env, &migrant)?;
+    fn handle_export_state (&mut self, env: &Env, migrant: &HumanAddr) -> StdResult<HandleResponse> {
+        let receiver = self.can_export_state(env, migrant)?;
         let response = HandleResponse::default();
         if let Some(snapshot) = self.export_state(env, migrant)? {
-            let msg = MigrationImportHandle::ReceiveMigration(snapshot);
+            let msg = ImmigrationHandle::ReceiveMigration(snapshot);
             response.msg(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr:      receiver.address,
                 callback_code_hash: receiver.code_hash,
@@ -105,14 +105,14 @@ pub trait MigrationExport<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     /// Override this to return a serialized version of your migration snapshot object
     /// if you are migrating via snapshots.
-    fn export_state (&mut self, _env: Env, _migrant: HumanAddr) -> StdResult<Option<Binary>> {
+    fn export_state (&mut self, _env: &Env, _migrant: &HumanAddr) -> StdResult<Option<Binary>> {
         Ok(None)
     }
 }
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]
-pub enum MigrationImportHandle {
+pub enum ImmigrationHandle {
     /// Allow this contract to receive data from another contract
     EnableMigrationFrom(ContractLink<HumanAddr>),
     /// Disallow this contract to receive data from another contract
@@ -124,22 +124,22 @@ pub enum MigrationImportHandle {
     ReceiveMigration(Binary),
 }
 
-pub trait MigrationImport<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
+pub trait Immigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Auth<S, A, Q>
 {
     const CAN_MIGRATE_FROM: &'static [u8] = b"/migration/next";
 
-    fn handle (&mut self, env: Env, msg: MigrationImportHandle) -> StdResult<HandleResponse> {
+    fn handle (&mut self, env: Env, msg: ImmigrationHandle) -> StdResult<HandleResponse> {
         match msg {
-            MigrationImportHandle::RequestMigration(last_contract) =>
+            ImmigrationHandle::RequestMigration(last_contract) =>
                 self.handle_request_migration(env, last_contract),
-            MigrationImportHandle::ReceiveMigration(data) =>
+            ImmigrationHandle::ReceiveMigration(data) =>
                 self.handle_receive_migration(env, data),
             _ => {
                 match msg {
-                    MigrationImportHandle::EnableMigrationFrom(contract) =>
+                    ImmigrationHandle::EnableMigrationFrom(contract) =>
                         self.handle_enable_migration_from(env, contract),
-                    MigrationImportHandle::DisableMigrationFrom(contract) =>
+                    ImmigrationHandle::DisableMigrationFrom(contract) =>
                         self.handle_disable_migration_from(env, contract),
                     _ => unreachable!()
                 }
@@ -173,7 +173,7 @@ pub trait MigrationImport<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
                 contract_addr:      prev.address,
                 callback_code_hash: prev.code_hash,
                 send:               vec![],
-                msg: to_binary(&MigrationExportHandle::ExportState(env.message.sender))?,
+                msg: to_binary(&EmigrationHandle::ExportState(env.message.sender))?,
             }))
     }
 

@@ -24,8 +24,8 @@ pub fn query <S: Storage, A: Api, Q: Querier> (deps: &Extern<S, A, Q>, msg: Quer
 pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Auth<S, A, Q>
     + Rewards<S, A, Q>
-    + MigrationImport<S, A, Q>
-    + MigrationExport<S, A, Q>
+    + Immigration<S, A, Q>
+    + Emigration<S, A, Q>
     + KeplrCompat<S, A, Q>
     + Drain<S, A, Q>
     + Sized
@@ -62,8 +62,8 @@ pub enum Handle {
     Auth(AuthHandle),
     CreateViewingKey { entropy: String, padding: Option<String> },
     SetViewingKey { key: String, padding: Option<String> },
-    MigrationImport(MigrationImportHandle),
-    MigrationExport(MigrationExportHandle),
+    Immigration(ImmigrationHandle),
+    Emigration(EmigrationHandle),
     Rewards(RewardsHandle),
     Drain { snip20: ContractLink<HumanAddr>, recipient: Option<HumanAddr>, key: String },
 }
@@ -80,10 +80,10 @@ impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for Handle where
                 Auth::handle(core, env, AuthHandle::SetViewingKey { key, padding }),
             Handle::Rewards(msg) =>
                 Rewards::handle(core, env, msg),
-            Handle::MigrationImport(msg) =>
-                MigrationImport::handle(core, env, msg),
-            Handle::MigrationExport(msg) =>
-                MigrationExport::handle(core, env, msg),
+            Handle::Immigration(msg) =>
+                Immigration::handle(core, env, msg),
+            Handle::Emigration(msg) =>
+                Emigration::handle(core, env, msg),
             Handle::Drain { snip20, recipient, key } =>
                 Drain::drain(core, env, snip20, recipient, key)
         }
@@ -165,42 +165,42 @@ pub enum Response {
             }
         }
 
-        impl<S: Storage, A: Api, Q: Querier> crate::migration::MigrationExport<S, A, Q> for $Core {
-            fn handle_export_state (&mut self, env: Env, migrant: HumanAddr) -> StdResult<HandleResponse> {
+        impl<S: Storage, A: Api, Q: Querier> crate::migration::Emigration<S, A, Q> for $Core {
+            fn handle_export_state (&mut self, env: &Env, migrant: &HumanAddr)
+                -> StdResult<HandleResponse>
+            {
                 let receiver = self.can_export_state(&env, &migrant)?;
-                let mut account = Account::from_addr(self, migrant.clone(), env.block.time)?;
+                let mut account = Account::from_addr(self, &migrant, env.block.time)?;
                 let staked = account.staked;
-                let response = HandleResponse::default()
-                    .merge(account.withdraw(self, account.staked).or(Ok(HandleResponse::default()))?)?
-                    .merge(account.claim(self).or(Ok(HandleResponse::default()))?)?;
-                if let Some(snapshot) = self.export_state(env, migrant)? {
-                    response.msg(CosmosMsg::Wasm(WasmMsg::Execute {
-                        contract_addr:      receiver.address,
-                        callback_code_hash: receiver.code_hash,
-                        send:               vec![],
-                        msg: to_binary(&MigrationImportHandle::ReceiveMigration(snapshot))?,
-                    }))
-                } else {
-                    Ok(response)
-                }
-            }
-            fn export_state (&mut self, _env: Env, migrant: HumanAddr) -> StdResult<Option<Binary>> {
-                // migrate viewing key if set
                 let id = self.canonize(migrant.clone())?;
                 let snapshot: AccountSnapshot = (
-                    migrant, 
+                    migrant.clone(),
                     if let Some(vk) = Auth::load_vk(self, id.as_slice())? {
                         Some(vk.0)
                     } else {
                         None
                     },
-                    self.get_ns(Account::STAKED, id.as_slice())?.unwrap_or(Amount::zero())
+                    staked
                 );
-                Ok(Some(to_binary(&snapshot)?))
+                let snapshot = to_binary(&snapshot)?;
+                let mut response = HandleResponse::default();
+                if staked > Amount::zero() {
+                    account.commit_withdrawal(self, staked)?;
+                    response = response.msg(
+                        RewardsConfig::lp_token(self)?.transfer(&migrant, staked)?
+                    )?;
+                }
+                response = response.msg(CosmosMsg::Wasm(WasmMsg::Execute {
+                        contract_addr:      receiver.address,
+                        callback_code_hash: receiver.code_hash,
+                        send: vec![],
+                        msg: to_binary(&ImmigrationHandle::ReceiveMigration(snapshot))?,
+                    }))?;
+                Ok(response)
             }
         }
 
-        impl<S: Storage, A: Api, Q: Querier> crate::migration::MigrationImport<S, A, Q> for $Core {
+        impl<S: Storage, A: Api, Q: Querier> crate::migration::Immigration<S, A, Q> for $Core {
             fn handle_receive_migration (&mut self, env: Env, data: Binary) -> StdResult<HandleResponse> {
                 let (migrant, vk, staked): AccountSnapshot = from_slice(&data.as_slice())?;
                 let id = self.canonize(migrant.clone())?;
@@ -209,8 +209,8 @@ pub enum Response {
                     //Auth::save_vk(&mut core, id.as_slice(), &vk)?;
                     self.set_ns(crate::auth::VIEWING_KEYS, id.as_slice(), &vk)?;
                 }
-                HandleResponse::default()
-                    .merge(Account::from_env(self, env)?.deposit(self, staked)?)
+                Account::from_env(self, &env)?.commit_deposit(self, staked)?;
+                HandleResponse::default().log("migrated", &staked.to_string())
             }
         }
 

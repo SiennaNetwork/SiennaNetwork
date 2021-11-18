@@ -1,23 +1,13 @@
 Time,Sender,Recipient,Data
 ,,,
-1,Alice,0301_migrate_v2_addr,"migration_import:
+1,Alice,0301_migrate_v2_addr,"immigration:
   request_migration:
     address: 0301_migrate_v1_addr
     code_hash: 0301_migrate_v1_hash"
 tx,0301_migrate_v2_addr,0301_migrate_v1_addr,export_state: Alice
 ,,,
-1,Alice,0301_migrate_v2_addr,"migration_import:
-  receive_migration: WyJBbGljZSIsIiIsIjAiXQ=="
-tx,0301_migrate_v2_addr,LP_TOKEN,"transfer_from:
-  amount: ""0""
-  owner: Alice
-  padding: ~
-  recipient: cosmos2contract"
-,,,
-FAIL,was expecting,the following,
-,,,
-tx,0301_migrate_v2_addr,LP_TOKEN,"transfer_from:
-  amount: ""85596""
-  owner: Alice
-  padding: ~
-  recipient: 0301_migrate_v2_addr"
+1,Alice,0301_migrate_v2_addr,"immigration:
+  receive_migration: WyJBbGljZSIsIiIsIjg1NTk2Il0="
+log,0301_migrate_v2_addr,,migrated = 85596
+1,0301_migrate_v2_addr,Alice,account.staked               = 85596
+1,0301_migrate_v2_addr,Alice,total.staked                 = 85596

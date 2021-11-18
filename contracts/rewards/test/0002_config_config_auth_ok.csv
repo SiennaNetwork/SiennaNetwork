@@ -3,7 +3,7 @@ Time,Sender,Recipient,Data
 14,test,branch,0002_config_config_auth_ok
 ,,,
 ,,,
-14,Admin,REWARDS,"rewards:
+14,Admin,0002_config_addr,"rewards:
   configure:
     lp_token: ~
     reward_token:
@@ -12,6 +12,6 @@ Time,Sender,Recipient,Data
     reward_vk: reward_vk
     bonding: ~
     timekeeper: ~"
-tx,REWARDS,SIENNA,"set_viewing_key:
+tx,0002_config_addr,SIENNA,"set_viewing_key:
   key: reward_vk
   padding: ~"

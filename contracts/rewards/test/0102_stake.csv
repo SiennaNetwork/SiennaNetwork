@@ -1,83 +1,83 @@
 Time,Sender,Recipient,Data
 ,,,
-19,Alice,REWARDS,"rewards:
+19,Alice,0102_stake_addr,"rewards:
   deposit:
     amount: ""43"""
-tx,REWARDS,LP_TOKEN,"transfer_from:
+tx,0102_stake_addr,LP_TOKEN,"transfer_from:
   amount: ""43""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-19,REWARDS,Alice,account.staked               = 43
-19,REWARDS,Alice,account.volume               = 0
-20,REWARDS,Alice,account.staked               = 43
-20,REWARDS,Alice,account.volume               = 43
-21,REWARDS,Alice,account.staked               = 43
-21,REWARDS,Alice,account.volume               = 86
-22,REWARDS,Alice,account.staked               = 43
-22,REWARDS,Alice,account.volume               = 129
-23,REWARDS,Alice,account.staked               = 43
-23,REWARDS,Alice,account.volume               = 172
-24,REWARDS,Alice,account.staked               = 43
-24,REWARDS,Alice,account.volume               = 215
-25,REWARDS,Alice,account.staked               = 43
-25,REWARDS,Alice,account.volume               = 258
-26,REWARDS,Alice,account.staked               = 43
-26,REWARDS,Alice,account.volume               = 301
-27,REWARDS,Alice,account.staked               = 43
-27,REWARDS,Alice,account.volume               = 344
-28,REWARDS,Alice,account.staked               = 43
-28,REWARDS,Alice,account.volume               = 387
-29,REWARDS,Alice,account.staked               = 43
-29,REWARDS,Alice,account.volume               = 430
+19,0102_stake_addr,Alice,account.staked               = 43
+19,0102_stake_addr,Alice,account.volume               = 0
+20,0102_stake_addr,Alice,account.staked               = 43
+20,0102_stake_addr,Alice,account.volume               = 43
+21,0102_stake_addr,Alice,account.staked               = 43
+21,0102_stake_addr,Alice,account.volume               = 86
+22,0102_stake_addr,Alice,account.staked               = 43
+22,0102_stake_addr,Alice,account.volume               = 129
+23,0102_stake_addr,Alice,account.staked               = 43
+23,0102_stake_addr,Alice,account.volume               = 172
+24,0102_stake_addr,Alice,account.staked               = 43
+24,0102_stake_addr,Alice,account.volume               = 215
+25,0102_stake_addr,Alice,account.staked               = 43
+25,0102_stake_addr,Alice,account.volume               = 258
+26,0102_stake_addr,Alice,account.staked               = 43
+26,0102_stake_addr,Alice,account.volume               = 301
+27,0102_stake_addr,Alice,account.staked               = 43
+27,0102_stake_addr,Alice,account.volume               = 344
+28,0102_stake_addr,Alice,account.staked               = 43
+28,0102_stake_addr,Alice,account.volume               = 387
+29,0102_stake_addr,Alice,account.staked               = 43
+29,0102_stake_addr,Alice,account.volume               = 430
 ,,,
-29,Alice,REWARDS,"rewards:
+29,Alice,0102_stake_addr,"rewards:
   deposit:
     amount: ""26"""
-tx,REWARDS,LP_TOKEN,"transfer_from:
+tx,0102_stake_addr,LP_TOKEN,"transfer_from:
   amount: ""26""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
-29,REWARDS,Alice,account.staked               = 69
-29,REWARDS,Alice,account.volume               = 430
-30,REWARDS,Alice,account.staked               = 69
-30,REWARDS,Alice,account.volume               = 499
-31,REWARDS,Alice,account.staked               = 69
-31,REWARDS,Alice,account.volume               = 568
-32,REWARDS,Alice,account.staked               = 69
-32,REWARDS,Alice,account.volume               = 637
-33,REWARDS,Alice,account.staked               = 69
-33,REWARDS,Alice,account.volume               = 706
-34,REWARDS,Alice,account.staked               = 69
-34,REWARDS,Alice,account.volume               = 775
-35,REWARDS,Alice,account.staked               = 69
-35,REWARDS,Alice,account.volume               = 844
-36,REWARDS,Alice,account.staked               = 69
-36,REWARDS,Alice,account.volume               = 913
-37,REWARDS,Alice,account.staked               = 69
-37,REWARDS,Alice,account.volume               = 982
-38,REWARDS,Alice,account.staked               = 69
-38,REWARDS,Alice,account.volume               = 1051
-39,REWARDS,Alice,account.staked               = 69
-39,REWARDS,Alice,account.volume               = 1120
-40,REWARDS,Alice,account.staked               = 69
-40,REWARDS,Alice,account.volume               = 1189
-41,REWARDS,Alice,account.staked               = 69
-41,REWARDS,Alice,account.volume               = 1258
-42,REWARDS,Alice,account.staked               = 69
-42,REWARDS,Alice,account.volume               = 1327
-43,REWARDS,Alice,account.staked               = 69
-43,REWARDS,Alice,account.volume               = 1396
-44,REWARDS,Alice,account.staked               = 69
-44,REWARDS,Alice,account.volume               = 1465
-45,REWARDS,Alice,account.staked               = 69
-45,REWARDS,Alice,account.volume               = 1534
-46,REWARDS,Alice,account.staked               = 69
-46,REWARDS,Alice,account.volume               = 1603
-47,REWARDS,Alice,account.staked               = 69
-47,REWARDS,Alice,account.volume               = 1672
-48,REWARDS,Alice,account.staked               = 69
-48,REWARDS,Alice,account.volume               = 1741
-49,REWARDS,Alice,account.staked               = 69
-49,REWARDS,Alice,account.volume               = 1810
+29,0102_stake_addr,Alice,account.staked               = 69
+29,0102_stake_addr,Alice,account.volume               = 430
+30,0102_stake_addr,Alice,account.staked               = 69
+30,0102_stake_addr,Alice,account.volume               = 499
+31,0102_stake_addr,Alice,account.staked               = 69
+31,0102_stake_addr,Alice,account.volume               = 568
+32,0102_stake_addr,Alice,account.staked               = 69
+32,0102_stake_addr,Alice,account.volume               = 637
+33,0102_stake_addr,Alice,account.staked               = 69
+33,0102_stake_addr,Alice,account.volume               = 706
+34,0102_stake_addr,Alice,account.staked               = 69
+34,0102_stake_addr,Alice,account.volume               = 775
+35,0102_stake_addr,Alice,account.staked               = 69
+35,0102_stake_addr,Alice,account.volume               = 844
+36,0102_stake_addr,Alice,account.staked               = 69
+36,0102_stake_addr,Alice,account.volume               = 913
+37,0102_stake_addr,Alice,account.staked               = 69
+37,0102_stake_addr,Alice,account.volume               = 982
+38,0102_stake_addr,Alice,account.staked               = 69
+38,0102_stake_addr,Alice,account.volume               = 1051
+39,0102_stake_addr,Alice,account.staked               = 69
+39,0102_stake_addr,Alice,account.volume               = 1120
+40,0102_stake_addr,Alice,account.staked               = 69
+40,0102_stake_addr,Alice,account.volume               = 1189
+41,0102_stake_addr,Alice,account.staked               = 69
+41,0102_stake_addr,Alice,account.volume               = 1258
+42,0102_stake_addr,Alice,account.staked               = 69
+42,0102_stake_addr,Alice,account.volume               = 1327
+43,0102_stake_addr,Alice,account.staked               = 69
+43,0102_stake_addr,Alice,account.volume               = 1396
+44,0102_stake_addr,Alice,account.staked               = 69
+44,0102_stake_addr,Alice,account.volume               = 1465
+45,0102_stake_addr,Alice,account.staked               = 69
+45,0102_stake_addr,Alice,account.volume               = 1534
+46,0102_stake_addr,Alice,account.staked               = 69
+46,0102_stake_addr,Alice,account.volume               = 1603
+47,0102_stake_addr,Alice,account.staked               = 69
+47,0102_stake_addr,Alice,account.volume               = 1672
+48,0102_stake_addr,Alice,account.staked               = 69
+48,0102_stake_addr,Alice,account.volume               = 1741
+49,0102_stake_addr,Alice,account.staked               = 69
+49,0102_stake_addr,Alice,account.volume               = 1810

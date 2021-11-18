@@ -1,38 +1,38 @@
 Time,Sender,Recipient,Data
 ,,,
-14,Badman,REWARDS,"rewards:
+14,Badman,0114_close_addr,"rewards:
   close:
     message: closed"
 =>,err,Unauthorized,
 ,,,
-21,Alice,REWARDS,"rewards:
+21,Alice,0114_close_addr,"rewards:
   deposit:
     amount: ""42798"""
-tx,REWARDS,LP_TOKEN,"transfer_from:
+tx,0114_close_addr,LP_TOKEN,"transfer_from:
   amount: ""42798""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
 ,,,
-22,Badman,REWARDS,"rewards:
+22,Badman,0114_close_addr,"rewards:
   close:
     message: closed"
 =>,err,Unauthorized,
 ,,,
-30,Alice,REWARDS,"rewards:
+30,Alice,0114_close_addr,"rewards:
   deposit:
     amount: ""38861"""
-tx,REWARDS,LP_TOKEN,"transfer_from:
+tx,0114_close_addr,LP_TOKEN,"transfer_from:
   amount: ""38861""
   owner: Alice
   padding: ~
   recipient: cosmos2contract"
 ,,,
-37,Badman,REWARDS,"rewards:
+37,Badman,0114_close_addr,"rewards:
   close:
     message: closed"
 =>,err,Unauthorized,
 ,,,
-48,Admin,REWARDS,"rewards:
+48,Admin,0114_close_addr,"rewards:
   close:
     message: closed"

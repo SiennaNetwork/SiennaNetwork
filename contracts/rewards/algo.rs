@@ -149,11 +149,11 @@ impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for RewardsHandle where
         match self {
             // Public transactions
             RewardsHandle::Deposit { amount } =>
-                Account::from_env(core, env)?.deposit(core, amount),
+                Account::from_env(core, &env)?.deposit(core, amount),
             RewardsHandle::Withdraw { amount } =>
-                Account::from_env(core, env)?.withdraw(core, amount),
+                Account::from_env(core, &env)?.withdraw(core, amount, None),
             RewardsHandle::Claim {} =>
-                Account::from_env(core, env)?.claim(core),
+                Account::from_env(core, &env)?.claim(core),
             // Authorized transactions
             RewardsHandle::BeginEpoch { next_epoch } =>
                 Clock::increment(core, &env, next_epoch),
@@ -213,7 +213,7 @@ impl<S, A, Q, C> IRewardsResponse<S, A, Q, C> for RewardsResponse where
     fn user_info (core: &C, time: Moment, address: HumanAddr, key: String) -> StdResult<Self> {
         let id = core.canonize(address.clone())?;
         Auth::check_vk(core, &ViewingKey(key), id.as_slice())?;
-        Ok(RewardsResponse::UserInfo(Account::from_addr(core, address, time)?))
+        Ok(RewardsResponse::UserInfo(Account::from_addr(core, &address, time)?))
     }
     fn pool_info (core: &C, time: Moment) -> StdResult<RewardsResponse> {
         let clock = Clock::get(core, time)?;
@@ -465,17 +465,19 @@ pub trait IAccount <S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     /// Get the transaction initiator's account at current time
-    fn from_env (core: &C, env: Env) -> StdResult<Self>;
+    fn from_env (core: &C, env: &Env) -> StdResult<Self>;
     /// Get the transaction initiator's account at specified time
-    fn from_addr (core: &C, address: HumanAddr, time: Moment) -> StdResult<Self>;
+    fn from_addr (core: &C, address: &HumanAddr, time: Moment) -> StdResult<Self>;
     /// Get an account with up-to-date values
-    fn get (core: &C, total: Total, address: HumanAddr) -> StdResult<Self>;
+    fn get (core: &C, total: Total, address: &HumanAddr) -> StdResult<Self>;
     /// Reset the user's liquidity conribution
     fn reset (&mut self, core: &mut C) -> StdResult<()>;
     /// Check if a deposit is possible, then perform it
     fn deposit (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse>;
-    /// Check if a withdrawal is possible, then perform it
-    fn withdraw (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse>;
+    /// Check if a withdrawal is possible, then perform it.
+    /// Optionally, allow passing a different recipient (used for migrations).
+    fn withdraw (&mut self, core: &mut C, amount: Uint128, recipient: Option<HumanAddr>)
+        -> StdResult<HandleResponse>;
     /// Check if a claim is possible, then perform it
     fn claim (&mut self, core: &mut C) -> StdResult<HandleResponse>;
     /// Return the user's stake if trying to interact with a closed pool
@@ -492,13 +494,13 @@ pub trait IAccount <S, A, Q, C>: Sized where
 impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
-    fn from_env (core: &C, env: Env) -> StdResult<Self> {
-        Self::from_addr(core, env.message.sender, env.block.time)
+    fn from_env (core: &C, env: &Env) -> StdResult<Self> {
+        Self::from_addr(core, &env.message.sender, env.block.time)
     }
-    fn from_addr (core: &C, address: HumanAddr, time: Moment) -> StdResult<Self> {
+    fn from_addr (core: &C, address: &HumanAddr, time: Moment) -> StdResult<Self> {
         Self::get(core, Total::get(core, Clock::get(core, time)?)?, address)
     }
-    fn get (core: &C, total: Total, address: HumanAddr) -> StdResult<Self> {
+    fn get (core: &C, total: Total, address: &HumanAddr) -> StdResult<Self> {
         let id         = core.canonize(address.clone())?;
         let get_time   = |key, default: u64| -> StdResult<u64> {
             Ok(core.get_ns(key, &id.as_slice())?.unwrap_or(default))
@@ -510,7 +512,6 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
             Ok(core.get_ns(key, &id.as_slice())?.unwrap_or(default))
         };
         let mut account = Self::default();
-        account.address = address;
         // 1. Timestamps
         //    Each user earns rewards as a function of their liquidity contribution over time.
         //    The following points and durations in time are stored for each user:
@@ -557,8 +558,9 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
             account.bonding = account.bonding.saturating_sub(account.elapsed)
         };
         // These are used above, then moved into the account struct at the end
-        account.id    = id;
-        account.total = total;
+        account.id      = id;
+        account.total   = total;
+        account.address = address.clone();
         Ok(account)
     }
     fn reset (&mut self, core: &mut C) -> StdResult<()> {
@@ -594,7 +596,9 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
             )
         }
     }
-    fn withdraw (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {
+    fn withdraw (&mut self, core: &mut C, amount: Uint128, recipient: Option<HumanAddr>)
+        -> StdResult<HandleResponse>
+    {
         if self.total.closed.is_some() {
             self.force_exit(core)
         } else if self.staked < amount {
