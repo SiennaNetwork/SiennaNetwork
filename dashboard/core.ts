@@ -209,8 +209,8 @@ export class User {
     let x = append(this.root, h('div', { className: 'Row' }))
     append(x, this.ui.staked.root)
     append(x, this.ui.volume.root)
-    append(this.ui.staked.value, this.ui.withdraw1.root)
     append(this.ui.staked.value, this.ui.withdraw100.root)
+    append(this.ui.staked.value, this.ui.withdraw1.root)
     append(this.ui.staked.value, this.ui.deposit1.root)
     append(this.ui.staked.value, this.ui.deposit100.root)
 

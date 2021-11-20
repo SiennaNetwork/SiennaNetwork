@@ -21,6 +21,7 @@ members = [
 
   # Framework
   "libraries/fadroma-next/lib",
+  "libraries/fadroma-next/bind-js",
   "libraries/migrate", # migration flag, as used by TGE before merging this feature into Fadroma
   "libraries/kukumba", # BDD testing framework
 

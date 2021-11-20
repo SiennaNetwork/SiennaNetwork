@@ -15,11 +15,6 @@ exclude = [
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[features]
-# for quicker tests, cargo test --lib
-# for more explicit tests, cargo test --features=backtraces
-backtraces = ["cosmwasm-std/backtraces", "cosmwasm-vm/backtraces"]
-
 [dependencies]
 cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
 cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
@@ -36,6 +31,13 @@ rand_chacha = { version = "0.2.2", default-features = false }
 rand_core = { version =  "0.5.1", default-features = false }
 sha2 = { version = "0.9.1", default-features = false }
 
+fadroma-bind-js = { optional = true, path = "../../libraries/fadroma-next/bind-js" }
+wasm-bindgen = { optional = true, version = "0.2" }
+
 [dev-dependencies]
 cosmwasm-vm = { package = "cosmwasm-sgx-vm", git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
 cosmwasm-schema = { version = "0.9.2" }
+
+[features]
+browser = [ "fadroma-bind-js", "wasm-bindgen" ]
+backtraces = ["cosmwasm-std/backtraces", "cosmwasm-vm/backtraces"]

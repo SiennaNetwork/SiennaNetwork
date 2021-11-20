@@ -6,7 +6,10 @@ pub mod state;
 mod utils;
 mod viewing_key;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(browser)] #[macro_use] extern crate wasm_bindgen;
+#[cfg(all(feature="browser",target_arch="wasm32"))]
+mod wasm { fadroma_bind_js::bind_js!(cosmwasm_std, crate::contract); }
+#[cfg(all(not(feature="browser"),target_arch="wasm32"))]
 mod wasm {
     use super::contract;
     use cosmwasm_std::{
