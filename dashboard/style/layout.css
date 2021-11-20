@@ -1,0 +1,47 @@
+body {
+  display: grid;
+  grid-template-columns: 45%  5%  5% 45%;
+  grid-template-rows:    10% 25% 25% 40%;
+  margin: 0;
+  padding: 0.5rem;
+}
+
+.Environment {
+  grid-column-start: 1; grid-column-end: 3;
+  grid-row-start:    1; grid-row-end:    2;
+}
+
+.Microservice {
+  grid-column-start: 3; grid-column-end: 5;
+  grid-row-start:    1; grid-row-end:    2;
+}
+
+.MGMT {
+  grid-column-start: 1; grid-column-end: 3;
+  grid-row-start:    2; grid-row-end:    3;
+}
+
+.RPT {
+  grid-column-start: 3; grid-column-end: 5;
+  grid-row-start:    2; grid-row-end:    3;
+}
+
+.SNIP20.SIENNA {
+  grid-column-start: 1; grid-column-end: 3;
+  grid-row-start:    3; grid-row-end:    4;
+}
+
+.SNIP20.LP_XXX_YYY {
+  grid-column-start: 3; grid-column-end: 5;
+  grid-row-start:    3; grid-row-end:    4;
+}
+
+.Rewards.v3 {
+  grid-column-start: 1; grid-column-end: 2;
+  grid-row-start:    4; grid-row-end:    5;
+}
+
+.Rewards.v4 {
+  grid-column-start: 4; grid-column-end: 5;
+  grid-row-start:    4; grid-row-end:    5;
+}

@@ -39,3 +39,13 @@ export const encode = (x: any) => enc.encode(JSON.stringify(x))
 
 const dec = new TextDecoder()
 export const decode = (x: Uint8Array) => JSON.parse(dec.decode(x.buffer))
+
+// -------------------------------------------------------------------------------------------------
+
+export const DIGITS     = 1000
+           , DIGITS_INV = Math.log10(DIGITS)
+export const format = {
+  integer:    (x:number) => String(x),
+  decimal:    (x:number) => (x/DIGITS).toFixed(DIGITS_INV),
+  percentage: (x:number) => `${format.decimal(x)}%`
+}

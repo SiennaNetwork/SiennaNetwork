@@ -1,0 +1,15 @@
+.Module {
+  background: #1d2021;
+  padding: 1rem;
+  margin: 0.5rem;
+  border: 1px solid black;
+}
+
+.Module header {
+  font-weight: bold;
+  background: #32302f;
+  margin: -1rem;
+  padding: 0.5rem;
+  text-shadow: 1px 1px 0 black;
+  border-bottom: 1px solid black;
+}

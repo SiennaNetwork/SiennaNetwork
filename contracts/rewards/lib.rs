@@ -123,16 +123,9 @@ pub enum Response {
     Auth(AuthResponse),
     Rewards(RewardsResponse),
     /// Keplr integration
-    TokenInfo {
-        name:         String,
-        symbol:       String,
-        decimals:     u8,
-        total_supply: Option<Amount>
-    },
+    TokenInfo { name: String, symbol: String, decimals: u8, total_supply: Option<Amount> },
     /// Keplr integration
-    Balance {
-        amount: Amount
-    }
+    Balance { amount: Amount }
 }
 
 /// Implement the feature traits on the base struct.
@@ -201,7 +194,9 @@ pub enum Response {
         }
 
         impl<S: Storage, A: Api, Q: Querier> crate::migration::Immigration<S, A, Q> for $Core {
-            fn handle_receive_migration (&mut self, env: Env, data: Binary) -> StdResult<HandleResponse> {
+            fn handle_receive_migration (&mut self, env: Env, data: Binary) ->
+                StdResult<HandleResponse>
+            {
                 let (migrant, vk, staked): AccountSnapshot = from_slice(&data.as_slice())?;
                 let id = self.canonize(migrant.clone())?;
                 if let Some(vk) = vk {

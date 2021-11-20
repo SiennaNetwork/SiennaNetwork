@@ -67,28 +67,6 @@ importers:
   contracts/lp-token:
     specifiers: {}
 
-  contracts/rewards:
-    specifiers:
-      css-loader: ^5.2.6
-      html-webpack-plugin: ^5.3.2
-      style-loader: ^3.0.0
-      ts-loader: ^9.2.3
-      typescript: ^4.3.5
-      wasm-loader: ^1.3.0
-      webpack: ^5.42.1
-      webpack-cli: ^4.7.2
-      webpack-dev-server: ^3.11.2
-    dependencies:
-      css-loader: 5.2.7_webpack@5.53.0
-      html-webpack-plugin: 5.3.2_webpack@5.53.0
-      style-loader: 3.3.0_webpack@5.53.0
-      ts-loader: 9.2.6_typescript@4.4.3+webpack@5.53.0
-      typescript: 4.4.3
-      wasm-loader: 1.3.0
-      webpack: 5.53.0_webpack-cli@4.8.0
-      webpack-cli: 4.8.0_54159a174ab32b03d40d3fca8c5d8363
-      webpack-dev-server: 3.11.2_webpack-cli@4.8.0+webpack@5.53.0
-
   contracts/rewards/target/web:
     specifiers: {}
 
@@ -141,6 +119,28 @@ importers:
       solidity-coverage: 0.7.17
       truffle: 5.4.11
 
+  dashboard:
+    specifiers:
+      css-loader: ^5.2.6
+      html-webpack-plugin: ^5.3.2
+      style-loader: ^3.0.0
+      ts-loader: ^9.2.3
+      typescript: ^4.3.5
+      wasm-loader: ^1.3.0
+      webpack: ^5.42.1
+      webpack-cli: ^4.7.2
+      webpack-dev-server: ^3.11.2
+    dependencies:
+      css-loader: 5.2.7_webpack@5.53.0
+      html-webpack-plugin: 5.3.2_webpack@5.53.0
+      style-loader: 3.3.0_webpack@5.53.0
+      ts-loader: 9.2.6_typescript@4.4.4+webpack@5.53.0
+      typescript: 4.4.4
+      wasm-loader: 1.3.0
+      webpack: 5.53.0_webpack-cli@4.8.0
+      webpack-cli: 4.8.0_54159a174ab32b03d40d3fca8c5d8363
+      webpack-dev-server: 3.11.2_webpack-cli@4.8.0+webpack@5.53.0
+
   docs:
     specifiers:
       colors: ^1.4.0
@@ -148,6 +148,17 @@ importers:
     dependencies:
       colors: 1.4.0
       marked: 2.1.3
+
+  libraries/amm-types:
+    specifiers:
+      '@waiting/base64': ^4.2.9
+      secretjs: 0.17.0-beta.4
+      typescript: ^4.2.4
+    dependencies:
+      '@waiting/base64': 4.2.9
+      secretjs: 0.17.0-beta.4
+    devDependencies:
+      typescript: 4.4.4
 
   libraries/fadroma-next:
     specifiers:
@@ -5272,7 +5283,7 @@ packages:
     resolution: {integrity: sha512-w+LsMxKyYQm347Otw+IfBXOv9UWVjpHpCDdbBMt8Kz/xbvCYNjP+0qPh91Km3iKfSRLBB0P7fAMf0KHrPu+MyA==}
     dependencies:
       '@types/minimatch': 3.0.5
-      '@types/node': 16.9.6
+      '@types/node': 16.11.6
 
   /@types/google-protobuf/3.15.5:
     resolution: {integrity: sha512-6bgv24B+A2bo9AfzReeg5StdiijKzwwnRflA8RLd1V4Yv995LeTmo0z69/MPbBDFSiZWdZHQygLo/ccXhMEDgw==}
@@ -5402,7 +5413,6 @@ packages:
 
   /@types/node/16.11.6:
     resolution: {integrity: sha512-ua7PgUoeQFjmWPcoo9khiPum3Pd60k4/2ZGXt18sm2Slk0W0xZTqt5Y0Ny1NyBiN1EVQ/+FaF9NcY4Qe6rwk5w==}
-    dev: false
 
   /@types/node/16.9.6:
     resolution: {integrity: sha512-YHUZhBOMTM3mjFkXVcK+WwAcYmyhe1wL4lfqNtzI0b3qAy7yuSetnM7QJazgE5PFmgVTNGiLOgRFfJMqW7XpSQ==}
@@ -8991,7 +9001,7 @@ packages:
       glob-parent: 3.1.0
       inherits: 2.0.4
       is-binary-path: 1.0.1
-      is-glob: 4.0.1
+      is-glob: 4.0.3
       normalize-path: 3.0.0
       path-is-absolute: 1.0.1
       readdirp: 2.2.1
@@ -14577,7 +14587,7 @@ packages:
     engines: {node: '>=4.0.0'}
     dependencies:
       http-proxy: 1.18.1_debug@4.3.2
-      is-glob: 4.0.1
+      is-glob: 4.0.3
       lodash: 4.17.21
       micromatch: 3.1.10
     transitivePeerDependencies:
@@ -15949,7 +15959,7 @@ packages:
     resolution: {integrity: sha512-laB0ZVIBz+voh/QQy9dmUuuDsadixeerrKqyVpgPz+CCWiOYjOBabUXHIXZhsdvkWbLqSHbgkAHWl5cg24Q6RA==}
     engines: {node: '>= 10.13.0'}
     dependencies:
-      '@types/node': 16.9.6
+      '@types/node': 16.11.6
       merge-stream: 2.0.0
       supports-color: 8.1.1
     dev: false
@@ -22291,6 +22301,24 @@ packages:
       - debug
     dev: false
 
+  /secretjs/0.17.0-beta.4:
+    resolution: {integrity: sha512-sMWIAE9rdOn9Gd4eNjf5pwt3BW+8Kg/EJfYAcidluEwBfhtpxibQbbtaQXcLYi4VTXIxX+OpfV4KAy4+VUQpEw==}
+    dependencies:
+      '@iov/crypto': 2.1.0
+      '@iov/encoding': 2.1.0
+      '@iov/utils': 2.0.2
+      axios: 0.21.1
+      curve25519-js: 0.0.4
+      fast-deep-equal: 3.1.1
+      js-crypto-hkdf: 0.7.3
+      miscreant: 0.3.2
+      pako: 1.0.11
+      protobufjs: 6.11.2
+      secure-random: 1.1.2
+    transitivePeerDependencies:
+      - debug
+    dev: false
+
   /section-matter/1.0.0:
     resolution: {integrity: sha512-vfD3pmTzGpufjScBh50YHKzEu2lxBWhVEHsNGoEXmCmn2hKGfeNLYMzCJpe8cD7gqX7TJluOVpBkAequ6dgMmA==}
     engines: {node: '>=4'}
@@ -24368,7 +24396,7 @@ packages:
     dev: true
     optional: true
 
-  /ts-loader/9.2.6_typescript@4.4.3+webpack@5.53.0:
+  /ts-loader/9.2.6_typescript@4.4.4+webpack@5.53.0:
     resolution: {integrity: sha512-QMTC4UFzHmu9wU2VHZEmWWE9cUajjfcdcws+Gh7FhiO+Dy0RnR1bNz0YCHqhI0yRowCE9arVnNxYHqELOy9Hjw==}
     engines: {node: '>=12.0.0'}
     peerDependencies:
@@ -24379,7 +24407,7 @@ packages:
       enhanced-resolve: 5.8.3
       micromatch: 4.0.4
       semver: 7.3.5
-      typescript: 4.4.3
+      typescript: 4.4.4
       webpack: 5.53.0_webpack-cli@4.8.0
     dev: false
 
@@ -24609,12 +24637,12 @@ packages:
     resolution: {integrity: sha512-4xfscpisVgqqDfPaJo5vkd+Qd/ItkoagnHpufr+i2QCHBsNYp+G7UAoyFl8aPtx879u38wPV65rZ8qbGZijalA==}
     engines: {node: '>=4.2.0'}
     hasBin: true
+    dev: true
 
   /typescript/4.4.4:
     resolution: {integrity: sha512-DqGhF5IKoBl8WNf8C1gu8q0xZSInh9j1kJJMqT3a94w1JzVaBU4EXOSMrz9yDqMT0xt3selp83fuFMQ0uzv6qA==}
     engines: {node: '>=4.2.0'}
     hasBin: true
-    dev: false
 
   /typewise-core/1.2.0:
     resolution: {integrity: sha1-l+uRgFx/VdL5QXSPpQ0xXZke8ZU=}

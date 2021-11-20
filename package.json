@@ -5,7 +5,7 @@
   "workspace": true,
   "type": "module",
   "packages": [
-    "./contracts/rewards",
+    "./dashboard",
     "./libraries/fadroma-next/ops",
     "./libraries/fadroma-next/ops-scrt",
     "./libraries/fadroma-next/ops-scrt-1.0",

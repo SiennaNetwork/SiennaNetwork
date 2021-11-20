@@ -454,8 +454,6 @@ pub struct Account {
     /// How many units of time remain until the user can claim?
     /// Decremented on update, reset to pool.bonding on claim.
     pub bonding:                  Duration,
-    /// User-friendly reason why earned is 0
-    pub reason:                   Option<String>,
     /// Passed around internally, not presented to user.
     #[serde(skip)] pub address:   HumanAddr,
     /// Passed around internally, not presented to user.
@@ -546,7 +544,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         } else {
             u128::min(
                 total.budget.0,
-                Volume::from(account.accumulated_pool_rewards) // TODO unlocked_since_entry
+                Volume::from(account.accumulated_pool_rewards)
                     .multiply_ratio(account.reward_share.0, account.reward_share.1)?
                     .low_u128()
             ).into()
