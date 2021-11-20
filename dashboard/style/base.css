@@ -3,13 +3,34 @@
   padding: 1rem;
   margin: 0.5rem;
   border: 1px solid black;
+  overflow: auto;
 }
 
 .Module header {
   font-weight: bold;
   background: #32302f;
-  margin: -1rem;
+  margin: -1rem -1rem 0;
   padding: 0.5rem;
   text-shadow: 1px 1px 0 black;
   border-bottom: 1px solid black;
+}
+
+.Field {
+  border-bottom:  1px solid rgba(0,0,0,0.5);
+  display:   flex;
+  flex-flow: row nowrap;
+  margin: 0 -1rem;
+  padding: 0 0.5rem;
+}
+.Field label {
+  font-weight: bold;
+  flex-grow: 1;
+}
+.Field > div {
+  text-align: right
+}
+
+.User {
+  border-top: 1px solid rgba(0,0,0,0.5);
+  margin-bottom: 1em;
 }

@@ -1,15 +1,26 @@
 import { h, append, format } from './helpers'
 
+export class Field {
+  root  = h('div', { className: 'Field' })
+  label = append(this.root, h('label'))
+  value = append(this.root, h('div'))
+  constructor (parent: HTMLElement, name: string, value?: any) {
+    append(parent, this.root)
+    this.label.textContent = name
+    this.value.textContent = String(value)
+  }
+  setValue (value: any) {
+    this.value.textContent = String(value)
+  }
+}
+
 export class Dashboard {
-  root = document.body
-
+  root         = document.body
   environment  = new Environment()
-
   sienna       = new SNIP20('SIENNA')
   mgmt         = new MGMT()
   rpt          = new RPT()
   microservice = new Microservice()
-
   lpToken      = new SNIP20('LP_XXX_YYY')
   rewards_v3   = new RewardPool('v3')
   migrate      = h('button', { textContent: 'migrate' })
@@ -24,6 +35,25 @@ export class Dashboard {
     ]) {
       append(this.root, el.root)
     }
+
+    this.sienna.add('Admin')
+    this.lpToken.add('Admin')
+
+    for (let i = 0; i < 10; i++) {
+      const id = `User${i}`
+      this.sienna.add(id)
+      this.lpToken.add(id, Math.floor(Math.random()*100000))
+      this.rewards_v3.add(id)
+      this.rewards_v4.add(id)
+    }
+
+    this.sienna.add('Rewards V3')
+    this.sienna.add('Rewards V4')
+    this.sienna.add('MGMT')
+    this.sienna.add('RPT')
+
+    this.lpToken.add('Rewards V3')
+    this.lpToken.add('Rewards V4')
   }
 }
 
@@ -37,6 +67,8 @@ export class Environment {
   rate = 1
   timer: Timer|null = null
 
+  timeDisplay = new Field(this.root, "Time", this.time)
+
   start () {
     this.timer = setInterval(this.update.bind(this), this.rate)
   }
@@ -49,7 +81,6 @@ export class Environment {
   update () {
     this.time += this.rate
   }
-
 }
 
 export class SNIP20 {
@@ -57,17 +88,25 @@ export class SNIP20 {
   title = append(this.root, h('header', { textContent: 'SNIP20' }))
   table = append(this.root, h('table'))
 
-  balances: Record<string, number> = {}
-
   constructor (id: string) {
     this.title.textContent = id
     this.root.classList.add(id)
+  }
+
+  balances: Record<string, number> = {}
+  displays: Record<string, Field>  = {}
+  add (id: string, balance: number = 0) {
+    this.balances[id] = balance
+    this.displays[id] = new Field(this.root, id, balance)
   }
 }
 
 export class Microservice {
   root  = h('section', { className: 'Module Microservice' })
   title = append(this.root, h('header', { textContent: 'Microservice' }))
+
+  epoch = 0
+  epochDisplay = new Field(this.root, "Epoch", this.epoch)
 }
 
 export class MGMT {
@@ -88,19 +127,14 @@ export class RewardPool {
   root  = h('section', { className: 'Module Rewards' })
   title = append(this.root, h('header', { textContent: 'Rewards' }))
 
-  accounts = new UserTable(10)
-  current  = new PieChart()
-  stacked  = new PieChart()
+  stakedPie = new PieChart()
+  volumePie = new PieChart()
 
   closed: [number, string] | null = null
-
-  staked: number = 0
-
-  volume: number = 0
-
-  updated: number = 0
-  bonding: number = 0
-
+  staked:      number = 0
+  volume:      number = 0
+  updated:     number = 0
+  bonding:     number = 0
   unlocked:    number = 0
   distributed: number = 0
   budget:      number = 0
@@ -108,42 +142,61 @@ export class RewardPool {
   constructor (id: string) {
     this.title.textContent = `Rewards ${id}`
     this.root.classList.add(id)
+    append(this.root, this.stakedPie.root)
+    append(this.root, this.volumePie.root)
   }
-}
 
-export class UserTable {
-  root = h('div')
-  users: Record<string, User> = {}
-  constructor (count: number) {
-    for (let i = 0; i < count; i++) {
-      const id = `User${i}`
-      this.users[id] = new User(id)
-    }
+  totals: Record<string, Field> = {}
+  users:  Record<string, User> = {}
+  add (id: string) {
+    this.users[id] = new User(this.root, id)
   }
 }
 
 export class User {
-  staked:     number = 0
-  pool_share: number = 0
+  root  = h('section', { className: 'User' })
+  ui = { 
+    id:
+      new Field(this.root, 'ID', this.id),
+    staked:
+      new Field(this.root, 'Staked', 0),
+    volume:
+      new Field(this.root, 'Volume', 0),
+    bonding:
+      new Field(this.root, 'Remaining bonding period',   0),
+    starting_pool_volume:
+      new Field(this.root, 'Pool volume at entry',       0),
+    accumulated_pool_volume:
+      new Field(this.root, 'Pool volume since entry',    0),
+    starting_pool_rewards:
+      new Field(this.root, 'Reward budget at entry',     0),
+    accumulated_pool_rewards:
+      new Field(this.root, 'Rewards vested since entry', 0),
+    earned:
+      new Field(this.root, 'Earned rewards', 0),
+  }
 
+  staked:                   number = 0
+  pool_share:               number = 0
   volume:                   number = 0
   starting_pool_volume:     number = 0
   accumulated_pool_volume:  number = 0
   reward_share:             number = 0
-
   starting_pool_rewards:    number = 0
   accumulated_pool_rewards: number = 0
   earned:                   number = 0
+  updated:                  number = 0
+  elapsed:                  number = 0
+  bonding:                  number = 0
 
-  updated: number = 0
-  elapsed: number = 0
-  bonding: number = 0
-
-  constructor (public id: string) {}
+  constructor (parent: HTMLElement, public id: string) {
+    append(parent, this.root)
+  }
 }
 
 export class PieChart {
-  root = h('div')
+  root   = h('div', { className: 'pie' })
+  canvas = append(this.root, h('canvas', { width: 1, height: 1 }))
 }
 
 //export class Pool {

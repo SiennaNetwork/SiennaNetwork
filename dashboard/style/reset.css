@@ -116,18 +116,6 @@ center {
   font-size: 3rem;
 }
 
-.field {
-  padding-bottom: 0.5rem;
-  border-bottom:  1px solid rgba(0,0,0,0.5);
-  margin-bottom:  0.5rem;
-}
-.field label {
-  font-weight: bold;
-}
-.field > div {
-  text-align: right
-}
-
 td.locked {
   display: flex;
   justify-content: space-between;
