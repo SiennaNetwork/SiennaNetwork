@@ -1,4 +1,4 @@
-import { h, append, format } from './helpers'
+import { h, append, prepend, format } from './helpers'
 
 export class Field {
   root  = h('div', { className: 'Field' })
@@ -11,6 +11,14 @@ export class Field {
   }
   setValue (value: any) {
     this.value.textContent = String(value)
+  }
+}
+
+export class Button {
+  root  = h('button', { className: 'Button' })
+  constructor (parent: HTMLElement, name: string) {
+    append(parent, this.root)
+    this.root.textContent = name
   }
 }
 
@@ -174,6 +182,12 @@ export class User {
       new Field(this.root, 'Remaining bonding period',   0),
     earned:
       new Field(this.root, 'Earned rewards', 0),
+
+    withdraw100: new Button(this.root, '-100'),
+    withdraw1:   new Button(this.root, '-1'),
+    deposit1:    new Button(this.root, '+1'),
+    deposit100:  new Button(this.root, '+100'),
+    claim:       new Button(this.root, 'Claim'),
   }
 
   staked:                   number = 0
@@ -191,18 +205,28 @@ export class User {
 
   constructor (parent: HTMLElement, public id: string) {
     append(parent, this.root)
+
     let x = append(this.root, h('div', { className: 'Row' }))
     append(x, this.ui.staked.root)
     append(x, this.ui.volume.root)
+    append(this.ui.staked.value, this.ui.withdraw1.root)
+    append(this.ui.staked.value, this.ui.withdraw100.root)
+    append(this.ui.staked.value, this.ui.deposit1.root)
+    append(this.ui.staked.value, this.ui.deposit100.root)
+
     x = append(this.root, h('div', { className: 'Row' }))
     append(x, this.ui.starting_pool_volume.root)
     append(x, this.ui.accumulated_pool_volume.root)
+
     x = append(this.root, h('div', { className: 'Row' }))
     append(x, this.ui.starting_pool_rewards.root)
     append(x, this.ui.accumulated_pool_rewards.root)
+
     x = append(this.root, h('div', { className: 'Row' }))
     append(x, this.ui.bonding.root)
     append(x, this.ui.earned.root)
+
+    append(this.ui.earned.root, this.ui.claim.root)
   }
 }
 
