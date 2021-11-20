@@ -154,7 +154,7 @@ export class RewardPool {
 }
 
 export class User {
-  root  = h('section', { className: 'User' })
+  root = h('section', { className: 'User' })
   ui = { 
     id:
       new Field(this.root, 'ID', this.id),
@@ -162,8 +162,6 @@ export class User {
       new Field(this.root, 'Staked', 0),
     volume:
       new Field(this.root, 'Volume', 0),
-    bonding:
-      new Field(this.root, 'Remaining bonding period',   0),
     starting_pool_volume:
       new Field(this.root, 'Pool volume at entry',       0),
     accumulated_pool_volume:
@@ -172,6 +170,8 @@ export class User {
       new Field(this.root, 'Reward budget at entry',     0),
     accumulated_pool_rewards:
       new Field(this.root, 'Rewards vested since entry', 0),
+    bonding:
+      new Field(this.root, 'Remaining bonding period',   0),
     earned:
       new Field(this.root, 'Earned rewards', 0),
   }
@@ -191,6 +191,18 @@ export class User {
 
   constructor (parent: HTMLElement, public id: string) {
     append(parent, this.root)
+    let x = append(this.root, h('div', { className: 'Row' }))
+    append(x, this.ui.staked.root)
+    append(x, this.ui.volume.root)
+    x = append(this.root, h('div', { className: 'Row' }))
+    append(x, this.ui.starting_pool_volume.root)
+    append(x, this.ui.accumulated_pool_volume.root)
+    x = append(this.root, h('div', { className: 'Row' }))
+    append(x, this.ui.starting_pool_rewards.root)
+    append(x, this.ui.accumulated_pool_rewards.root)
+    x = append(this.root, h('div', { className: 'Row' }))
+    append(x, this.ui.bonding.root)
+    append(x, this.ui.earned.root)
   }
 }
 
