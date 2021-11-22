@@ -17,6 +17,7 @@ use prettytable::{Table, /*Row, Cell,*/ format};
 use crate::*;
 use fadroma::secret_toolkit::snip20;
 use fadroma::testing::*;
+use fadroma::composable_core_test::{MockExtern, ClonableMemoryStorage};
 
 pub use rand::Rng;
 use rand::{SeedableRng, rngs::StdRng};
@@ -26,14 +27,14 @@ pub type Deps = MockExtern<ClonableMemoryStorage, MockApi, RewardsMockQuerier>;
 
 #[derive(Clone)]
 pub struct Context {
-    pub rng:        StdRng,
-    pub name:       String,
-    pub link:       ContractLink<HumanAddr>,
-    pub table:      Table,
-    pub deps:       Deps,
-    pub initiator:  HumanAddr,
-    pub env:        Env,
-    pub time:       Moment,
+    pub rng:       StdRng,
+    pub name:      String,
+    pub link:      ContractLink<HumanAddr>,
+    pub table:     Table,
+    pub deps:      Deps,
+    pub initiator: HumanAddr,
+    pub env:       Env,
+    pub time:      Moment,
 
     pub reward_vk:    String,
     pub reward_token: ISnip20,

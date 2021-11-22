@@ -151,7 +151,7 @@ impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for RewardsHandle where
             RewardsHandle::Deposit { amount } =>
                 Account::from_env(core, &env)?.deposit(core, amount),
             RewardsHandle::Withdraw { amount } =>
-                Account::from_env(core, &env)?.withdraw(core, amount, None),
+                Account::from_env(core, &env)?.withdraw(core, amount),
             RewardsHandle::Claim {} =>
                 Account::from_env(core, &env)?.claim(core),
             // Authorized transactions
@@ -473,9 +473,7 @@ pub trait IAccount <S, A, Q, C>: Sized where
     /// Check if a deposit is possible, then perform it
     fn deposit (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse>;
     /// Check if a withdrawal is possible, then perform it.
-    /// Optionally, allow passing a different recipient (used for migrations).
-    fn withdraw (&mut self, core: &mut C, amount: Uint128, recipient: Option<HumanAddr>)
-        -> StdResult<HandleResponse>;
+    fn withdraw (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse>;
     /// Check if a claim is possible, then perform it
     fn claim (&mut self, core: &mut C) -> StdResult<HandleResponse>;
     /// Return the user's stake if trying to interact with a closed pool
@@ -594,7 +592,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
             )
         }
     }
-    fn withdraw (&mut self, core: &mut C, amount: Uint128, recipient: Option<HumanAddr>)
+    fn withdraw (&mut self, core: &mut C, amount: Uint128)
         -> StdResult<HandleResponse>
     {
         if self.total.closed.is_some() {
