@@ -10,4 +10,4 @@ export default
 , plugins:   [ new HtmlWebpackPlugin () ]
 , resolve:   { extensions: ['.tsx', '.ts', '.js', /*'.wasm'*/ ] }
 , devtool:   'inline-source-map'
-, devServer: { contentBase: './target/web' } }
+, devServer: { contentBase: './artifacts' } }

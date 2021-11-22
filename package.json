@@ -40,6 +40,7 @@
     "docco": "cp docs/docco.css docs/docco.css.bak && docco demo.js && mv docs/docco.css.bak docs/docco.css",
     "sienna": "./sienna",
     "dev": "ganesha run-module --unhandled-rejections=strict build.ts",
-    "ops": "ganesha run-module --unhandled-rejections=strict deploy.ts"
+    "ops": "ganesha run-module --unhandled-rejections=strict deploy.ts",
+    "dash": "cd dashboard; pnpm web"
   }
 }

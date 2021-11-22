@@ -3,8 +3,9 @@ import './style/base.css'
 import './style/layout.css'
 
 import { Dashboard } from './core'
+import initContracts from './wasm'
 
-const dashboard = new Dashboard()
+initContracts().then(contracts=>new Dashboard(contracts))
 
 //import {
   //h, random, pickRandom, throttle, after, append, prepend, encode, decode

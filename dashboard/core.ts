@@ -1,40 +1,23 @@
-import { h, append, prepend, format } from './helpers'
-
-export class Field {
-  root  = h('div', { className: 'Field' })
-  label = append(this.root, h('label'))
-  value = append(this.root, h('div'))
-  constructor (parent: HTMLElement, name: string, value?: any) {
-    append(parent, this.root)
-    this.label.textContent = name
-    this.value.textContent = String(value)
-  }
-  setValue (value: any) {
-    this.value.textContent = String(value)
-  }
-}
-
-export class Button {
-  root  = h('button', { className: 'Button' })
-  constructor (parent: HTMLElement, name: string) {
-    append(parent, this.root)
-    this.root.textContent = name
-  }
-}
+import { h, append, encode, decode } from './helpers'
+import { Field, Button, PieChart } from './widgets'
+import schedule from '../settings/schedule.json'
+console.debug({schedule})
 
 export class Dashboard {
   root         = document.body
   environment  = new Environment()
-  sienna       = new SNIP20('SIENNA')
-  mgmt         = new MGMT()
-  rpt          = new RPT()
+  sienna       = new SNIP20(this.contracts.SIENNA, 'SIENNA')
+  mgmt         = new MGMT(this.contracts.MGMT)
+  rpt          = new RPT(this.contracts.RPT)
   microservice = new Microservice()
-  lpToken      = new SNIP20('LP_XXX_YYY')
-  rewards_v3   = new RewardPool('v3')
+  lpToken      = new SNIP20(this.contracts.LPToken, 'LPTOKEN')
+  rewards_v3   = new RewardPool(this.contracts.Rewards, 'v3')
   migrate      = h('button', { textContent: 'migrate' })
-  rewards_v4   = new RewardPool('v4')
+  rewards_v4   = new RewardPool(this.contracts.Rewards, 'v4')
 
-  constructor () {
+  constructor (
+    public readonly contracts: Record<string, any>
+  ) {
     //this.root.innerHTML = '<center>loading</center>'
     for (const el of [
       this.environment,
@@ -44,8 +27,13 @@ export class Dashboard {
       append(this.root, el.root)
     }
 
-    this.sienna.add('Admin')
-    this.lpToken.add('Admin')
+    for (const contract of [this.sienna, this.lpToken]) {
+      contract.add('Admin')
+      contract.add('MGMT')
+      contract.add('RPT')
+      contract.add('Rewards V3')
+      contract.add('Rewards V4')
+    }
 
     for (let i = 0; i < 10; i++) {
       const id = `User${i}`
@@ -54,14 +42,6 @@ export class Dashboard {
       this.rewards_v3.add(id)
       this.rewards_v4.add(id)
     }
-
-    this.sienna.add('Rewards V3')
-    this.sienna.add('Rewards V4')
-    this.sienna.add('MGMT')
-    this.sienna.add('RPT')
-
-    this.lpToken.add('Rewards V3')
-    this.lpToken.add('Rewards V4')
   }
 }
 
@@ -96,16 +76,23 @@ export class SNIP20 {
   title = append(this.root, h('header', { textContent: 'SNIP20' }))
   table = append(this.root, h('table'))
 
-  constructor (id: string) {
+  constructor (
+    public readonly Contract: any,
+    public readonly id:       string
+  ) {
     this.title.textContent = id
     this.root.classList.add(id)
   }
+
+  contract = new this.Contract()
+  initMsg  = { name: this.id, symbol: this.id, decimals: 6, prng_seed: '' }
+  ready    = this.contract.init(encode(this.initMsg))
 
   balances: Record<string, number> = {}
   displays: Record<string, Field>  = {}
   add (id: string, balance: number = 0) {
     this.balances[id] = balance
-    this.displays[id] = new Field(this.root, id, balance)
+    this.displays[id] = new Field(this.root, id, `${balance} ${this.id}`)
   }
 }
 
@@ -119,24 +106,76 @@ export class Microservice {
 
 export class MGMT {
   root  = h('section', { className: 'Module MGMT' })
-  title = append(this.root, h('header', { textContent: 'MGMT' }))
+  ui = {
+    title: append(this.root, h('header', { textContent: 'MGMT' })),
+    total: new Field(this.root, "Total", 0),
+    pools: append(this.root, h('div'))
+  }
 
-  portion = 2500
+  constructor (
+    public readonly Contract: any
+  ) {
+    this.update()
+  }
+
+  contract = new this.Contract()
+  initMsg = { schedule, token: ["", ""] }
+  ready = this.contract.init(encode(this.initMsg))
+
+  update () {
+    const {schedule:{schedule:{total, pools}}} = decode(
+      this.contract.query(encode({schedule:{}})))
+    this.ui.total.setValue(total)
+    for (const pool of pools) {
+      new Field(this.root, `.${pool.name}`, pool.total)
+      if (pool.name === 'MintingPool') {
+        for (const account of pool.accounts) {
+          new Field(this.root, `..${account.name}`, account.amount)
+        }
+      }
+    }
+  }
 }
 
 export class RPT {
   root  = h('section', { className: 'Module RPT' })
   title = append(this.root, h('header', { textContent: 'RPT' }))
 
-  portion = 2500
+  portion = BigInt(2500)
+
+  constructor (
+    public readonly Contract: any
+  ) {
+    this.update()
+  }
+
+  contract = new this.Contract()
+  initMsg  = { portion: String(this.portion), config: [["","2500"]], token: ["", ""], mgmt: ["", ""] }
+  ready    = this.contract.init(encode(this.initMsg))
+
+  update () {
+    const {status} = decode(this.contract.query(encode({status:{}})))
+    const {portion, config} = status
+    this.portion = BigInt(portion)
+    console.log(config)
+    for (const [recipient, amount] of config) {
+      new Field(this.root, recipient, amount)
+    }
+  }
 }
 
 export class RewardPool {
   root  = h('section', { className: 'Module Rewards' })
-  title = append(this.root, h('header', { textContent: 'Rewards' }))
-
-  stakedPie = new PieChart()
-  volumePie = new PieChart()
+  ui = {
+    title:
+      append(this.root, h('header', { textContent: 'Rewards' })),
+    stakedPie:
+      new PieChart(this.root),
+    volumePie:
+      new PieChart(this.root),
+    addUser:
+      new AddUser(this.root, this)
+  }
 
   closed: [number, string] | null = null
   staked:      number = 0
@@ -147,17 +186,41 @@ export class RewardPool {
   distributed: number = 0
   budget:      number = 0
 
-  constructor (id: string) {
-    this.title.textContent = `Rewards ${id}`
+  constructor (
+    public readonly Contract: any,
+    public readonly id:       string
+  ) {
+    this.ui.title.textContent = `Rewards ${id}`
     this.root.classList.add(id)
-    append(this.root, this.stakedPie.root)
-    append(this.root, this.volumePie.root)
+    append(this.root, this.ui.stakedPie.root)
+    append(this.root, this.ui.volumePie.root)
   }
+
+  contract = new this.Contract()
+  initMsg  = { config: { reward_token: { address: "", code_hash: "" } } }
+  ready    = this.contract.init(encode(this.initMsg))
 
   totals: Record<string, Field> = {}
   users:  Record<string, User> = {}
   add (id: string) {
     this.users[id] = new User(this.root, id)
+  }
+}
+
+export class AddUser {
+  root = h('section', { className: 'User' })
+  ui = {
+    id:         new Field(this.root, 'New user', ''),
+    deposit1:   new Button(this.root, '+1'),
+    deposit100: new Button(this.root, '+100'),
+  }
+  constructor (
+    parent: HTMLElement,
+    public readonly pool: RewardPool
+  ) {
+    append(parent, this.root)
+    append(this.ui.id.root, this.ui.deposit1.root)
+    append(this.ui.id.root, this.ui.deposit100.root)
   }
 }
 
@@ -228,11 +291,6 @@ export class User {
 
     append(this.ui.earned.root, this.ui.claim.root)
   }
-}
-
-export class PieChart {
-  root   = h('div', { className: 'pie' })
-  canvas = append(this.root, h('canvas', { width: 1, height: 1 }))
 }
 
 //export class Pool {
