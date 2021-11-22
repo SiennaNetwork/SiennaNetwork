@@ -29,7 +29,7 @@ sienna-migrate   = { path = "../../libraries/migrate" }
 sienna-schedule  = { path = "../../libraries/schedule" }
 
 fadroma-bind-js = { optional = true, path = "../../libraries/fadroma-next/bind-js" }
-wasm-bindgen = { optional = true, path = "../../../wasm-bindgen" }
+wasm-bindgen = { optional = true, version = "0.2" }
 
 [dev-dependencies]
 kukumba = { git = "https://github.com/hackbg/kukumba", branch = "21.04" }
