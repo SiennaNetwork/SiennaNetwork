@@ -5,7 +5,7 @@ authors = ["Adam A. <adam@hack.bg>"]
 edition = "2018"
 
 [dependencies]
-cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 
 amm-shared      = { path = "../libraries/amm-shared" }
 exchange        = { path = "../contracts/exchange" }
