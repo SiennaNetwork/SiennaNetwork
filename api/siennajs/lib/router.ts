@@ -1,3 +1,5 @@
+// For running this test from the root directory of Sienna repository type a command:
+// ./api-test sienna-test/router.spec.mjs
 import {
     Address, Uint128, Fee, create_fee,
     get_token_type, TypeOfToken, CustomToken, TokenTypeAmount, Decimal, add_native_balance
@@ -39,7 +41,7 @@ export class RouterExecutor extends Executor {
     async swap(
         hops: Hop[],
         amount: Uint128,
-        recipient?: Address | null,
+        recipient: Address,
         expected_return?: Decimal | null,
     ): Promise<ExecuteResult> {
         if (hops.length === 0) {
@@ -71,7 +73,7 @@ export class RouterExecutor extends Executor {
             expected_return,
         }
 
-        const fee = this.fee || create_fee('530000')
+        const fee = this.fee || create_fee('1500000')
 
         const token_addr = (first_hop.from_token as CustomToken).custom_token.contract_addr;
         const snip20 = new Snip20Contract(token_addr, this.client)

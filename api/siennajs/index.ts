@@ -7,5 +7,6 @@ import * as rewards from "./lib/rewards"
 import * as amm_factory from "./lib/amm_factory"
 import * as snip20 from "./lib/snip20"
 import * as hop from "./lib/hop"
+import * as router from "./lib/router"
 
-export default { contract, core, exchange, ido, launchpad, rewards, amm_factory, snip20, hop }
+export default { contract, core, exchange, ido, launchpad, rewards, amm_factory, snip20, hop, router }

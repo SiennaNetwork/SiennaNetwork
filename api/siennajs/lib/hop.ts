@@ -3,7 +3,7 @@ import { Address, TokenType, CustomToken, NativeToken, get_type_of_token_id } fr
 /**
  * Simple token pair interface for easier filling in the pairs
  */
-export class TokenPair {
+export class RouterTokenPair {
     constructor(
         public A: TokenType,
         public B: TokenType,
@@ -19,7 +19,7 @@ export class TokenPair {
         return get_type_of_token_id(this.B);
     }
 
-    eq(other: TokenPair): boolean {
+    eq(other: RouterTokenPair): boolean {
         return this.a_id() === other.a_id() && this.b_id() === other.b_id();
     }
 
@@ -32,16 +32,16 @@ export class TokenPair {
     }
 
     /**
-     * Converts itself to TokenPairTree if not already it.
+     * Converts itself to RouterTokenPairTree if not already it.
      * 
-     * @returns {TokenPairTree}
+     * @returns {RouterTokenPairTree}
      */
-    into_tree(): TokenPairTree {
-        if (this instanceof TokenPairTree) {
+    into_tree(): RouterTokenPairTree {
+        if (this instanceof RouterTokenPairTree) {
             return this;
         }
 
-        return new TokenPairTree(
+        return new RouterTokenPairTree(
             this.A,
             this.B,
             this.pair_address,
@@ -55,8 +55,8 @@ export class TokenPair {
  * IMPORTANT: Only the last node will be marked as solved (performance fix),
  * so to check if its solved you'll have to use the function provided in this file.
  */
-export class TokenPairTree extends TokenPair {
-    next?: TokenPairTree;
+export class RouterTokenPairTree extends RouterTokenPair {
+    next?: RouterTokenPairTree;
     public is_solved: boolean = false;
 
     /**
@@ -65,7 +65,7 @@ export class TokenPairTree extends TokenPair {
      * @returns {boolean}
      */
     solved(): boolean {
-        let node: TokenPairTree | undefined = this;
+        let node: RouterTokenPairTree | undefined = this;
         let first = true;
 
         while (node) {
@@ -101,7 +101,7 @@ export class TokenPairTree extends TokenPair {
         }
 
         const hops = [];
-        let node: TokenPairTree | undefined = this;
+        let node: RouterTokenPairTree | undefined = this;
 
         hops.push(node.into_hop());
 
@@ -122,7 +122,7 @@ export class TokenPairTree extends TokenPair {
      * @returns {string[]}
      */
     printout(): string[] {
-        let node: TokenPairTree | undefined = this;
+        let node: RouterTokenPairTree | undefined = this;
         let printout: string[] = [];
 
         while (node) {
@@ -136,10 +136,10 @@ export class TokenPairTree extends TokenPair {
     /**
      * Creates itself into a reverse exchange pair.
      * 
-     * @returns {TokenPairTree}
+     * @returns {RouterTokenPairTree}
      */
-    into_reverse(): TokenPairTree {
-        return new TokenPairTree(
+    into_reverse(): RouterTokenPairTree {
+        return new RouterTokenPairTree(
             this.B,
             this.A,
             this.pair_address,
@@ -172,18 +172,18 @@ export class Assembler {
     private a_id?: string;
     private B?: TokenType;
     private b_id?: string;
-    private pairs: TokenPairTree[] = [];
-    private parents: TokenPairTree[] = [];
+    private pairs: RouterTokenPairTree[] = [];
+    private parents: RouterTokenPairTree[] = [];
 
-    constructor(pairs: TokenPair[] | TokenPairTree[], private filter: string[] = []) {
+    constructor(pairs: RouterTokenPair[] | RouterTokenPairTree[], private filter: string[] = []) {
         for (const pair of pairs) {
             let _pair: any = pair;
 
             if (
-                !(_pair instanceof TokenPair) &&
-                !(_pair instanceof TokenPairTree)
+                !(_pair instanceof RouterTokenPair) &&
+                !(_pair instanceof RouterTokenPairTree)
             ) {
-                _pair = new TokenPair(
+                _pair = new RouterTokenPair(
                     pair.A,
                     pair.B,
                     pair.pair_address,
@@ -262,9 +262,9 @@ export class Assembler {
      * Create token tree that will let us know what paths we need to take in order
      * to swap A for B
      * 
-     * @returns {TokenPairTree}
+     * @returns {RouterTokenPairTree}
      */
-    get_tree(): TokenPairTree {
+    get_tree(): RouterTokenPairTree {
         if ((!this.A || !this.B)) {
             throw new Error("Swap path assembler: You'll have to provide pairs first");
         }
