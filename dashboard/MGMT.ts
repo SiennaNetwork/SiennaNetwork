@@ -1,17 +1,13 @@
 import { h, encode, decode } from './helpers'
-import Component from './Component'
+import {ContractComponent} from './Component'
 import Field from './Field'
 import schedule from '../settings/schedule.json'
 
-export class MGMT extends Component {
+export class MGMT extends ContractComponent {
 
-  #contract: any
-  setup (Contract: any) {
-    this.#contract = new Contract()
-    this.#contract.init(encode({
-      schedule,
-      token: ["", ""]
-    }))
+  initMsg = {
+    schedule,
+    token: ["", ""]
   }
 
   ui = {
@@ -21,8 +17,7 @@ export class MGMT extends Component {
   }
 
   update () {
-    const {schedule:{schedule:{total, pools}}} =
-      decode(this.#contract.query(encode({schedule:{}})))
+    const {schedule:{schedule:{total, pools}}} = this.query({schedule:{}})
     this.ui.total.value = total
     for (const pool of pools) {
       this.add(Field(`.${pool.name}`, pool.total))

@@ -1,10 +1,10 @@
-import { h, encode } from './helpers'
-import Component from './Component'
+import { h } from './helpers'
+import Component, { ContractComponent } from './Component'
 import Field  from './Field'
 import Button from './Button'
 import Pie    from './PieChart'
 
-export class Rewards extends Component {
+export class Rewards extends ContractComponent {
 
   ui = {
     title:
@@ -17,6 +17,19 @@ export class Rewards extends Component {
       //new AddUser(this.root, this)
   }
 
+  initMsg = {
+    config: {
+      reward_token: { address: "", code_hash: "" }
+    }
+  }
+
+  #id: string = ""
+  get id () { return this.#id }
+  set id (id: string) {
+    this.#id = id
+    this.ui.title.textContent = `Rewards ${id}`
+  }
+
   closed: [number, string] | null = null
   staked:      number = 0
   volume:      number = 0
@@ -26,31 +39,13 @@ export class Rewards extends Component {
   distributed: number = 0
   budget:      number = 0
 
-  //constructor (
-    //public readonly Contract: any,
-    //public readonly id:       string
-  //) {
-    //this.ui.title.textContent = `Rewards ${id}`
-    //this.root.classList.add(id)
-    //this.add(this.ui.stakedPie.root)
-    //this.add(this.ui.volumePie.root)
-  //}
-
-  #contract: any
-  setup (Contract: any) {
-    this.#contract = new Contract()
-    this.#contract.init(encode({
-      config: {
-        reward_token: { address: "", code_hash: "" }
-      }
-    }))
-  }
+  update () {}
 
   totals: Record<string, any> = {}
   users:  Record<string, User> = {}
-  //add (id: string) {
+  addUser (id: string) {
     //this.users[id] = new User(this.root, id)
-  //}
+  }
 }
 
 export class AddUser extends Component {

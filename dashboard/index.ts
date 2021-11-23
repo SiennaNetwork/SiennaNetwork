@@ -6,4 +6,6 @@ import contracts from './wasm'
 import dashboard from './Dashboard'
 import {append}  from './helpers'
 
-contracts.then(dashboard).then(append(document.body))
+contracts
+  .then(dashboard)
+    .then(append(document.body))

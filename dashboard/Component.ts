@@ -38,3 +38,19 @@ export default class Component extends HTMLElement {
   }
 
 }
+
+import { encode, decode } from './helpers'
+export abstract class ContractComponent extends Component {
+  #contract: any
+  setup (Contract: any) {
+    this.#contract = new Contract()
+    this.#contract.init(encode(this.initMsg))
+    this.update()
+  }
+  abstract readonly initMsg: any
+  abstract update (): void
+
+  query (msg: any) {
+    return decode(this.#contract.query(encode(msg)))
+  }
+}

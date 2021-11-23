@@ -24,35 +24,16 @@ export class Dashboard extends Component {
     rewards_v4:   this.add(Rewards('v4'))
   }
 
-  //root         = document.body
-  //environment  = new Environment()
-  //sienna       = new SNIP20(this.contracts.SIENNA, 'SIENNA')
-  //mgmt         = new MGMT(this.contracts.MGMT)
-  //rpt          = new RPT(this.contracts.RPT)
-  //microservice = new Microservice()
-  //lpToken      = new SNIP20(this.contracts.LPToken, 'LPTOKEN')
-  //rewards_v3   = new RewardPool(this.contracts.Rewards, 'v3')
-  //migrate      = h('button', { textContent: 'migrate' })
-  //rewards_v4   = new RewardPool(this.contracts.Rewards, 'v4')
-
   constructor () {
     super()
-    //this.root.innerHTML = '<center>loading</center>'
-    //for (const el of [
-      //this.environment,
-      //this.sienna, this.mgmt, this.rpt, this.microservice,
-      //this.rewards_v3, this.rewards_v4, this.lpToken,
-    //]) {
-      //append(this.root, el.root)
-    //}
 
-    //for (const contract of [this.sienna, this.lpToken]) {
-      //contract.add('Admin')
-      //contract.add('MGMT')
-      //contract.add('RPT')
-      //contract.add('Rewards V3')
-      //contract.add('Rewards V4')
-    //}
+    for (const contract of [this.ui.sienna, this.ui.lpToken]) {
+      contract.addAccount('Admin')
+      contract.addAccount('MGMT')
+      contract.addAccount('RPT')
+      contract.addAccount('Rewards V3')
+      contract.addAccount('Rewards V4')
+    }
 
     //for (let i = 0; i < 10; i++) {
       //const id = `User${i}`
@@ -82,12 +63,12 @@ export class Dashboard extends Component {
   }
 
   setup () {
-    //this.ui.sienna.setup(this.contracts.SIENNA)
-    //this.ui.mgmt.setup(this.contracts.MGMT)
-    //this.ui.rpt.setup(this.contracts.RPT)
-    //this.ui.lpToken.setup(this.contracts.LPToken)
-    //this.ui.rewards_v3.setup(this.contracts.Rewards)
-    //this.ui.rewards_v4.setup(this.contracts.Rewards)
+    this.ui.sienna.setup(this.contracts.SIENNA)
+    this.ui.mgmt.setup(this.contracts.MGMT)
+    this.ui.rpt.setup(this.contracts.RPT)
+    this.ui.lpToken.setup(this.contracts.LPToken)
+    this.ui.rewards_v3.setup(this.contracts.Rewards)
+    this.ui.rewards_v4.setup(this.contracts.Rewards)
   }
 }
 
