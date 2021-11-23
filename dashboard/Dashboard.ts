@@ -1,4 +1,4 @@
-import { h } from './helpers'
+import { h, append } from './helpers'
 
 import Component from './Component'
 
@@ -11,19 +11,26 @@ import MGMT    from './contracts/MGMT'
 import RPT     from './contracts/RPT'
 import rewards, { Rewards } from './contracts/Rewards'
 
+import {querier} from './contracts/Contract'
+
 export class Dashboard extends Component {
 
   ui: Record<string, any> = {
-    environment:  this.add(Environment()),
-    sienna:       this.add(SNIP20('SIENNA')),
-    mgmt:         this.add(MGMT()),
-    rpt:          this.add(RPT()),
-    microservice: this.add(Microservice()),
-    lpToken:      this.add(SNIP20('LPTOKEN')),
-    rewards_v3:   this.add(rewards(this, 'v3')),
-    migrate:      this.add(Button('Migrate')),
-    rewards_v4:   this.add(rewards(this, 'v4'))
+    row1: this.add(h('div', { className: 'Row' })),
+    row2: this.add(h('div', { className: 'Row' })),
+    row3: this.add(h('div', { className: 'Row' })),
+    row4: this.add(h('div', { className: 'Row' })),
   }
+
+  environment  = append(this.ui.row1)(Environment())
+  microservice = append(this.ui.row1)(Microservice())
+  mgmt         = append(this.ui.row2)(MGMT())
+  rpt          = append(this.ui.row2)(RPT())
+  sienna       = append(this.ui.row3)(SNIP20('SIENNA'))
+  lpToken      = append(this.ui.row3)(SNIP20('LPTOKEN'))
+  rewards_v3   = append(this.ui.row4)(rewards(this, 'v3'))
+  migrate      = append(this.ui.row4)(Button('Migrate'))
+  rewards_v4   = append(this.ui.row4)(rewards(this, 'v4'))
 
   #contracts: Contracts|null = null
   set contracts (v: Contracts) {
@@ -44,30 +51,43 @@ export class Dashboard extends Component {
   }
 
   setup () {
-    this.ui.sienna.setup(this.contracts.SIENNA)
-    this.ui.mgmt.setup(this.contracts.MGMT)
-    this.ui.rpt.setup(this.contracts.RPT)
-    this.ui.lpToken.setup(this.contracts.LPToken)
-    this.ui.rewards_v3.setup(this.contracts.Rewards)
-    this.ui.rewards_v4.setup(this.contracts.Rewards)
-    for (const contract of [this.ui.sienna, this.ui.lpToken]) {
+    this.sienna.setup(this.contracts.SIENNA)
+    querier.add('SIENNA_addr', this.sienna)
+
+    this.mgmt.setup(this.contracts.MGMT)
+    querier.add('MGMT_addr', this.mgmt)
+
+    this.rpt.setup(this.contracts.RPT)
+    querier.add('RPT_addr', this.rpt)
+
+    this.lpToken.setup(this.contracts.LPToken)
+    querier.add('LPTOKEN_addr', this.lpToken)
+
+    this.rewards_v3.setup(this.contracts.Rewards)
+    querier.add('REWARDS_V3_addr', this.rewards_v3)
+
+    this.rewards_v4.setup(this.contracts.Rewards)
+    querier.add('REWARDS_V4_addr', this.rewards_v4)
+
+    for (const contract of [this.sienna, this.lpToken]) {
       contract.register('Admin')
       contract.register('MGMT')
-      contract.mint('MGMT', this.ui.mgmt.total)
       contract.register('RPT')
       contract.register('Rewards V3')
       contract.register('Rewards V4')
     }
+
+    this.sienna.mint('MGMT', this.mgmt.total)
   }
 
   nextUser = 1
   addUser (pool: Rewards, stake: BigInt) {
     const id = `User ${this.nextUser}`
-    this.ui.sienna.register(id)
-    this.ui.lpToken.register(id)
-    this.ui.lpToken.mint(id, stake)
-    this.ui.rewards_v3.ui.users.register(id)
-    this.ui.rewards_v4.ui.users.register(id)
+    this.sienna.register(id)
+    this.lpToken.register(id)
+    this.lpToken.mint(id, stake)
+    this.rewards_v3.ui.users.register(id)
+    this.rewards_v4.ui.users.register(id)
     pool.deposit(id, stake)
     console.log({pool, stake})
     this.nextUser++

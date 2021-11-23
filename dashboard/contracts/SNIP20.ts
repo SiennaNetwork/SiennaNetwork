@@ -1,5 +1,5 @@
-import { h, encode } from '../helpers'
-import { ContractComponent } from '../Component'
+import { h } from '../helpers'
+import ContractComponent from './Contract'
 import field from '../widgets/Field'
 
 export class SNIP20 extends ContractComponent {

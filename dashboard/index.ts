@@ -2,10 +2,10 @@ import './style/reset.css'
 import './style/base.css'
 import './style/layout.css'
 
-import contracts from './wasm'
+import {initContracts} from './contracts/Contract'
 import dashboard from './Dashboard'
 import {append}  from './helpers'
 
-contracts
+initContracts()
   .then(dashboard)
     .then(append(document.body))

@@ -1,5 +1,6 @@
 import { h } from '../helpers'
-import Component, { ContractComponent } from '../Component'
+import Component from '../Component'
+import ContractComponent from './Contract'
 import Field  from '../widgets/Field'
 import Button from '../widgets/Button'
 import Pie    from '../widgets/PieChart'
@@ -39,7 +40,7 @@ export class Rewards extends ContractComponent {
 
   initMsg = {
     config: {
-      reward_token: { address: "", code_hash: "" }
+      reward_token: { address: "SIENNA_addr", code_hash: "SIENNA_hash" }
     }
   }
 

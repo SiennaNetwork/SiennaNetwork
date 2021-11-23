@@ -1,5 +1,5 @@
 import { h } from '../helpers'
-import { ContractComponent } from '../Component'
+import ContractComponent from './Contract'
 import Field from '../widgets/Field'
 
 export class RPT extends ContractComponent {
@@ -11,8 +11,8 @@ export class RPT extends ContractComponent {
   initMsg = {
     portion: "2500",
     config:  [["","2500"]],
-    token:   ["", ""],
-    mgmt:    ["", ""]
+    token:   ["SIENNA_addr", "SIENNA_hash"],
+    mgmt:    ["MGMT_addr", "MGMT_hash"]
   }
 
   update () {

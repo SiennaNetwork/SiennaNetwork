@@ -1,5 +1,5 @@
 import { h, format } from '../helpers'
-import {ContractComponent} from '../Component'
+import ContractComponent from './Contract'
 import Field from '../widgets/Field'
 import schedule from '../../settings/schedule.json'
 
@@ -7,7 +7,7 @@ export class MGMT extends ContractComponent {
 
   initMsg = {
     schedule,
-    token: ["", ""]
+    token: ["SIENNA_addr", "SIENNA_hash"]
   }
 
   ui = {

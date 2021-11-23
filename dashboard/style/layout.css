@@ -56,11 +56,20 @@ x-button:active {
   width:      100%;
 }
 .Inside.Dashboard {
-  display: grid;
-  grid-template-columns: 45%  5%  5% 45%;
-  grid-template-rows:     5% 10% 30% 55%;
+  display: flex;
+  flex-flow: column nowrap;
   width: 100%;
   height: 100%;
+  overflow: auto;
+}
+
+.Row {
+  display: flex;
+  flex-flow: row nowrap;
+  flex-grow: 1;
+}
+.Row > * {
+  flex-grow: 1;
 }
 
 .Outside.Environment {
@@ -211,15 +220,4 @@ x-button:active {
   grid-column-end:   7;
   grid-row-start:    5;
   grid-row-end:      6;
-}
-
-.Row {
-  display:   flex;
-  flex-flow: row nowrap;
-  margin:    0 -1rem;
-}
-.Row > * {
-  flex-grow: 1;
-  margin:    0;
-  width: 50%;
 }

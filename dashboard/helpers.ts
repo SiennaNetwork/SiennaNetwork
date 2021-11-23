@@ -47,5 +47,5 @@ export const format = {
   integer:    (x:number) => String(x),
   decimal:    (x:number) => (x/DIGITS).toFixed(DIGITS_INV),
   percentage: (x:number) => `${format.decimal(x)}%`,
-  SIENNA: (x:any) => `${BigInt(x)/1000000000000000000n} SIENNA`
+  SIENNA:     (x:any)    => `${BigInt(x)/1000000000000000000n} SIENNA`
 }

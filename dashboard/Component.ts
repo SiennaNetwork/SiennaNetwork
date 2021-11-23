@@ -1,4 +1,4 @@
-import { h, append, encode, decode } from './helpers'
+import { h, append } from './helpers'
 
 export default class Component extends HTMLElement {
 
@@ -40,38 +40,4 @@ export default class Component extends HTMLElement {
     }
   }
 
-}
-
-export abstract class ContractComponent extends Component {
-  #contract: any
-  setup (Contract: any) {
-    this.#contract = new Contract()
-    this.#contract.init(encode(this.initMsg))
-    this.#contract.querier_callback = (data: string) => {
-      try {
-        const {wasm:{smart:{msg, contract_addr, callback_code_hash}}} = JSON.parse(data)
-        console.log({msg, contract_addr, callback_code_hash})
-        console.log(JSON.parse(atob(msg).trim()))
-      } catch (e) {
-        console.error(e)
-      }
-      return "{}"
-    }
-    this.update()
-  }
-  abstract readonly initMsg: any
-  abstract update (): void
-
-  query (msg: any) {
-    console.debug('query', msg)
-    return decode(this.#contract.query(encode(msg)))
-  }
-
-  handle (sender: any, msg: any) {
-    console.debug('handle', sender, msg)
-    this.#contract.sender = encode(sender)
-    let {messages, log, data} = decode(this.#contract.handle(encode(msg)))
-    data = JSON.parse(atob(data))
-    return {messages, log, data}
-  }
 }
