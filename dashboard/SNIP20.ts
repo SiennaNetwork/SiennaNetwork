@@ -1,10 +1,19 @@
-import { h, append, encode } from './helpers'
+import { h, encode } from './helpers'
+import Component from './Component'
 import field from './Field'
 
-export class SNIP20 extends HTMLElement {
+export class SNIP20 extends Component {
 
-  root = this.attachShadow({ mode: 'open' })
-  add  = append(this.root)
+  #contract: any
+  setup (Contract: any) {
+    this.#contract = new Contract()
+    this.#contract.init(encode({
+      name: this.id,
+      symbol: this.id,
+      decimals: 6,
+      prng_seed: ''
+    }))
+  }
 
   ui = {
     title: this.add(h('header', { textContent: 'SNIP20' })),
@@ -22,20 +31,9 @@ export class SNIP20 extends HTMLElement {
   get id () { return this.#id }
   set id (id: string) { this.#id = id }
 
-  #contract: any
-  setup (Contract: any) {
-    this.#contract = new Contract()
-    this.#contract.init(encode({
-      name: this.id,
-      symbol: this.id,
-      decimals: 6,
-      prng_seed: ''
-    }))
-  }
-
 }
 
 customElements.define('x-snip20', SNIP20)
 export default function snip20 (id: string) {
-  return h('x-snip20', { id, className: `Module SNIP20 ${id}` })
+  return h('x-snip20', { id, className: `Outside SNIP20 ${id}` })
 }

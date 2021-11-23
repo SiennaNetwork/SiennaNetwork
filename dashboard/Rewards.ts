@@ -1,12 +1,10 @@
-import { h, append, encode } from './helpers'
+import { h, encode } from './helpers'
+import Component from './Component'
 import Field  from './Field'
 import Button from './Button'
 import Pie    from './PieChart'
 
-export class Rewards extends HTMLElement {
-
-  root = this.attachShadow({ mode: 'open' })
-  add  = append(this.root)
+export class Rewards extends Component {
 
   ui = {
     title:
@@ -55,22 +53,17 @@ export class Rewards extends HTMLElement {
   //}
 }
 
-export class AddUser extends HTMLElement {
-
-  root = this.attachShadow({ mode: 'open' })
-  add  = append(this.root)
+export class AddUser extends Component {
 
   ui = {
     id:         this.add(Field('New user', '')),
     deposit1:   this.add(Button('+1')),
     deposit100: this.add(Button('+100')),
   }
+
 }
 
-export class User extends HTMLElement {
-
-  root = this.attachShadow({ mode: 'open' })
-  add  = append(this.root)
+export class User extends Component {
 
   ui = { 
     id:                       this.add(Field('ID',                   this.id)),
@@ -132,5 +125,5 @@ export class User extends HTMLElement {
 
 customElements.define('x-rewards', Rewards)
 export default function rewards (id: string) {
-  return h('x-rewards', { id, className: `Module Rewards ${id}` })
+  return h('x-rewards', { id, className: `Outside Rewards ${id}` })
 }

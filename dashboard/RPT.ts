@@ -1,10 +1,9 @@
 import { h, append, encode, decode } from './helpers'
+import Component from './Component'
 import Field from './Field'
 
-export class RPT extends HTMLElement {
+export class RPT extends Component {
 
-  root = this.attachShadow({ mode: 'open' })
-  add = append(this.root)
   ui = {
     title: this.add(h('header', { textContent: 'RPT' }))
   }
@@ -35,5 +34,5 @@ export class RPT extends HTMLElement {
 
 customElements.define('x-rpt', RPT)
 export default function rpt () {
-  return h('x-rpt', { className: 'Module RPT' })
+  return h('x-rpt', { className: 'Outside RPT' })
 }

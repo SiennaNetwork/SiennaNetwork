@@ -1,8 +1,9 @@
-import { h, append, encode, decode } from './helpers'
+import { h, encode, decode } from './helpers'
+import Component from './Component'
 import Field from './Field'
 import schedule from '../settings/schedule.json'
 
-export class MGMT extends HTMLElement {
+export class MGMT extends Component {
 
   #contract: any
   setup (Contract: any) {
@@ -13,8 +14,6 @@ export class MGMT extends HTMLElement {
     }))
   }
 
-  root = this.attachShadow({ mode: 'open' })
-  add = append(this.root)
   ui = {
     title: this.add(h('header', { textContent: 'MGMT' })),
     total: this.add(Field("Total", 0)),
@@ -39,5 +38,5 @@ export class MGMT extends HTMLElement {
 
 customElements.define('x-mgmt', MGMT)
 export default function mgmt () {
-  return h('x-mgmt', { className: 'Module MGMT' })
+  return h('x-mgmt', { className: 'Outside MGMT' })
 }

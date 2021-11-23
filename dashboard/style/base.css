@@ -1,26 +1,21 @@
-.Module,
-x-environment {
+.Module {
   background: #1d2021;
-  padding: 1rem;
   margin: 0.5rem;
   border: 1px solid black;
   overflow: auto;
 }
 
-.Module header {
+header {
   font-weight: bold;
   background: #32302f;
-  margin: -1rem -1rem 0;
   padding: 0.5rem;
   text-shadow: 1px 1px 0 black;
-  border-bottom: 1px solid black;
 }
 
 x-field {
-  border-bottom:  1px solid rgba(0,0,0,0.5);
+  /*border-bottom:  1px solid rgba(0,0,0,0.5);*/
   display:   flex;
   flex-flow: row nowrap;
-  margin: 0 -1rem;
   padding: 0 0.5rem;
 }
 

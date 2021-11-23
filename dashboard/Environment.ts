@@ -1,6 +1,7 @@
-import { h, append } from './helpers'
+import { h } from './helpers'
 import Component from './Component'
 import Field from './Field'
+import Button from './Button'
 
 type Timer = ReturnType<typeof setTimeout>
 
@@ -27,11 +28,13 @@ export class Environment extends Component {
     title: this.add(h('header', { textContent: 'Environment' })),
     time:  this.add(Field('Time', this.time)),
     rate:  this.add(Field('Rate', this.rate)),
+    start: this.add(Button('START')),
+    pause: this.add(Button('PAUSE')),
   }
 
 }
 
 customElements.define('x-environment', Environment)
 export default function environment () {
-  return h('x-environment', { className: 'Module' })
+  return h('x-environment', { className: 'Outside Environment' })
 }

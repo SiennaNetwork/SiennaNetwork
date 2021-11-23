@@ -95,5 +95,5 @@ type Contracts = Record<string, any>
 
 customElements.define('x-dashboard', Dashboard)
 export default function dashboard (contracts: Record<string, any>) {
-  return h('x-dashboard', { contracts })
+  return h('x-dashboard', { contracts, className: 'Outside Dashboard' })
 }
