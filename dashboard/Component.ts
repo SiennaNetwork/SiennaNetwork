@@ -1,4 +1,5 @@
-import { h, append } from './helpers'
+import { h, append, encode, decode } from './helpers'
+
 export default class Component extends HTMLElement {
 
   root = this.attachShadow({ mode: 'open' })
@@ -41,16 +42,20 @@ export default class Component extends HTMLElement {
 
 }
 
-import { encode, decode } from './helpers'
 export abstract class ContractComponent extends Component {
   #contract: any
   setup (Contract: any) {
     this.#contract = new Contract()
     this.#contract.init(encode(this.initMsg))
-    console.log({has:Contract.has_querier_callback})
-    this.#contract.querier_callback = (x: any) => {
-      console.log({x})
-      return ""
+    this.#contract.querier_callback = (data: string) => {
+      try {
+        const {wasm:{smart:{msg, contract_addr, callback_code_hash}}} = JSON.parse(data)
+        console.log({msg, contract_addr, callback_code_hash})
+        console.log(JSON.parse(atob(msg).trim()))
+      } catch (e) {
+        console.error(e)
+      }
+      return "{}"
     }
     this.update()
   }
@@ -65,6 +70,8 @@ export abstract class ContractComponent extends Component {
   handle (sender: any, msg: any) {
     console.debug('handle', sender, msg)
     this.#contract.sender = encode(sender)
-    return decode(this.#contract.handle(encode(msg)))
+    let {messages, log, data} = decode(this.#contract.handle(encode(msg)))
+    data = JSON.parse(atob(data))
+    return {messages, log, data}
   }
 }
