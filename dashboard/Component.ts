@@ -57,8 +57,9 @@ export abstract class ContractComponent extends Component {
     return decode(this.#contract.query(encode(msg)))
   }
 
-  handle (msg: any) {
-    console.debug('handle', msg)
+  handle (sender: any, msg: any) {
+    console.debug('handle', sender, msg)
+    this.#contract.sender = encode(sender)
     return decode(this.#contract.handle(encode(msg)))
   }
 }

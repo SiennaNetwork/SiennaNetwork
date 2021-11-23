@@ -26,30 +26,29 @@ export class SNIP20 extends ContractComponent {
     config: { enable_mint: true }
   }
 
-  balances: Record<string, number> = {}
-  displays: Record<string, any>  = {}
-  addAccount (id: string, balance: number = 0) {
-    this.balances[id] = balance
-    this.displays[id] = this.add(field(id, `${balance} ${this.id}`))
-  }
-
   users: Array<string> = []
+  displays: Record<string, any> = {}
   register (id: string) {
     this.users.push(id)
-    this.handle({set_viewing_key:{key:""}})
-    this.addAccount(id)
+    this.handle(id, {set_viewing_key:{key:""}})
+    this.displays[id] = this.add(field(id, `0 ${this.id}`))
   }
 
   mint (id: string, amount: number) {
     this.users.push(id)
-    this.handle({mint:{recipient:id,amount:String(amount)}})
+    this.handle("", {set_minters:{minters:[""]}})
+    this.handle("", {mint:{recipient:id,amount:String(amount)}})
     this.update()
   }
 
   update () {
     for (const user of this.users) {
-      const balance = this.query({balance:{address:user,key:""}})
-      console.log({balance})
+      const response = this.query({balance:{address:user,key:""}})
+      if (response.viewing_key_error) {
+        throw new Error(response.viewing_key_error)
+      } else {
+        this.displays[user].value = response.balance.amount
+      }
     }
   }
 

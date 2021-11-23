@@ -16,8 +16,11 @@ export class MGMT extends ContractComponent {
     pools: this.add(h('div'))
   }
 
+  total: BigInt = 0n
+
   update () {
     const {schedule:{schedule:{total, pools}}} = this.query({schedule:{}})
+    this.total = total
     this.ui.total.value = total
     for (const pool of pools) {
       this.add(Field(`.${pool.name}`, pool.total))

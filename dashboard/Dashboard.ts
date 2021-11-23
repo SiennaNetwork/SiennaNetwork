@@ -24,26 +24,6 @@ export class Dashboard extends Component {
     rewards_v4:   this.add(rewards(this, 'v4'))
   }
 
-  constructor () {
-    super()
-
-    for (const contract of [this.ui.sienna, this.ui.lpToken]) {
-      contract.addAccount('Admin')
-      contract.addAccount('MGMT')
-      contract.addAccount('RPT')
-      contract.addAccount('Rewards V3')
-      contract.addAccount('Rewards V4')
-    }
-
-    //for (let i = 0; i < 10; i++) {
-      //const id = `User${i}`
-      //this.sienna.add(id)
-      //this.lpToken.add(id, Math.floor(Math.random()*100000))
-      //this.rewards_v3.add(id)
-      //this.rewards_v4.add(id)
-    //}
-  }
-
   #contracts: Contracts|null = null
   set contracts (v: Contracts) {
     if (this.#contracts === null) {
@@ -69,6 +49,13 @@ export class Dashboard extends Component {
     this.ui.lpToken.setup(this.contracts.LPToken)
     this.ui.rewards_v3.setup(this.contracts.Rewards)
     this.ui.rewards_v4.setup(this.contracts.Rewards)
+    for (const contract of [this.ui.sienna, this.ui.lpToken]) {
+      contract.register('Admin')
+      contract.register('MGMT')
+      contract.register('RPT')
+      contract.register('Rewards V3')
+      contract.register('Rewards V4')
+    }
   }
 
   nextUser = 1
