@@ -26,10 +26,9 @@ export function h (element: string, attributes={}, ...content:any) {
   for (const el2 of content) el.appendChild(el2)
   return el }
 
-export function append (parent: HTMLElement, child: HTMLElement) {
-  return parent.appendChild(child) }
+export const append = (parent: any) => (child: any) => parent.appendChild(child)
 
-export function prepend (parent: HTMLElement, child: HTMLElement) {
+export function prepend (parent: any, child: HTMLElement) {
   return parent.insertBefore(child, parent.firstChild) }
 
 // convert from string to Utf8Array ----------------------------------------------------------------

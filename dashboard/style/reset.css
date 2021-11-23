@@ -16,9 +16,6 @@ html, body {
 body {
   background: #282828;
   color:      #ebdbb2;
-  display:    grid;
-  grid-template-columns: 20% 20% 20% 20% 20%;
-  grid-template-rows: 32% 68%
 }
 
 @media (orientation: landscape) {}

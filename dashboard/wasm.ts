@@ -12,7 +12,9 @@ const CONTRACTS: Array<[string, Function]> = [
   ['rewards/rewards_bg.wasm', initRewards]
 ]
 
-export default async function initContracts () {
+export default initContracts()
+
+async function initContracts () {
   for (const [blob, init] of CONTRACTS) {
     console.debug(`init`, blob)
     const url = new URL(blob, location.href)

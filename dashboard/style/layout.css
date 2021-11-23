@@ -1,4 +1,15 @@
-body {
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  height: 100%;
+}
+
+x-dashboard {
+  width: 100%;
+  height: 100%;
+
   display: grid;
   grid-template-columns: 45%  5%  5% 45%;
   grid-template-rows:    10% 10% 25% 55%;

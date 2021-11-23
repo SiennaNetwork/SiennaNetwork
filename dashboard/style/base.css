@@ -1,4 +1,5 @@
-.Module {
+.Module,
+x-environment {
   background: #1d2021;
   padding: 1rem;
   margin: 0.5rem;
@@ -15,19 +16,12 @@
   border-bottom: 1px solid black;
 }
 
-.Field {
+x-field {
   border-bottom:  1px solid rgba(0,0,0,0.5);
   display:   flex;
   flex-flow: row nowrap;
   margin: 0 -1rem;
   padding: 0 0.5rem;
-}
-.Field label {
-  font-weight: bold;
-  flex-grow: 1;
-}
-.Field > div {
-  text-align: right
 }
 
 .User {
