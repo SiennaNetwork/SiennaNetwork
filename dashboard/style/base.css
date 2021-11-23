@@ -7,9 +7,11 @@
 
 header {
   font-weight: bold;
-  background: #32302f;
+  background: #8f3f71;
   padding: 0.5rem;
   text-shadow: 1px 1px 0 black;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
 }
 
 x-field {

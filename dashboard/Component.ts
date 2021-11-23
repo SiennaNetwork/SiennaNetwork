@@ -32,7 +32,9 @@ export default class Component extends HTMLElement {
   attributeChangedCallback (name: string, _oldValue: any, newValue: any) {
     switch (name) {
       case 'class':
+        //this.classList.add('Outside')
         this.base.className = newValue.replace('Outside', 'Inside')
+        //this.base.classList.add('Inside')
         break
     }
   }
@@ -51,6 +53,12 @@ export abstract class ContractComponent extends Component {
   abstract update (): void
 
   query (msg: any) {
+    console.debug('query', msg)
     return decode(this.#contract.query(encode(msg)))
+  }
+
+  handle (msg: any) {
+    console.debug('handle', msg)
+    return decode(this.#contract.handle(encode(msg)))
   }
 }

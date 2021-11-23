@@ -5,16 +5,36 @@ import Button from './Button'
 import Pie    from './PieChart'
 
 export class Rewards extends ContractComponent {
+  #dashboard: any = null
+  get dashboard () { return this.#dashboard }
+  set dashboard (v: any) { this.#dashboard = v }
+
+  closed: [number, string] | null = null
+  staked:      number = 0
+  volume:      number = 0
+  updated:     number = 0
+  bonding:     number = 0
+  unlocked:    number = 0
+  distributed: number = 0
+  budget:      number = 0
 
   ui = {
-    title:
-      this.add(h('header', { textContent: 'Rewards' })),
-    stakedPie:
-      this.add(Pie()),
-    volumePie:
-      this.add(Pie()),
-    //addUser:
-      //new AddUser(this.root, this)
+    title:     this.add(h('header', { textContent: 'Rewards' })),
+    stakedPie: this.add(Pie()),
+    volumePie: this.add(Pie()),
+
+    closed: this.add(Field('Closed', this.closed||'no')),
+    staked: this.add(Field('Staked', this.staked)),
+    volume: this.add(Field('Volume', this.volume)),
+
+    updated: this.add(Field('Updated', this.updated)),
+    bonding: this.add(Field('Bonding', this.bonding)),
+
+    unlocked:    this.add(Field('Unlocked',    this.unlocked)),
+    distributed: this.add(Field('Distributed', this.distributed)),
+    budget:      this.add(Field('Budget',      this.budget)),
+
+    users: this.add(users(this))
   }
 
   initMsg = {
@@ -30,30 +50,34 @@ export class Rewards extends ContractComponent {
     this.ui.title.textContent = `Rewards ${id}`
   }
 
-  closed: [number, string] | null = null
-  staked:      number = 0
-  volume:      number = 0
-  updated:     number = 0
-  bonding:     number = 0
-  unlocked:    number = 0
-  distributed: number = 0
-  budget:      number = 0
-
   update () {}
 
-  totals: Record<string, any> = {}
-  users:  Record<string, User> = {}
-  addUser (id: string) {
-    //this.users[id] = new User(this.root, id)
+  register () {}
+}
+
+export class Users extends Component {
+  #pool: Rewards|null = null
+  get pool () { return this.#pool as Rewards }
+  set pool (v: Rewards) { this.#pool = v }
+
+  ui = {
+    addUser: this.add(addUser(this))
   }
 }
 
 export class AddUser extends Component {
+  #users: Users|null = null
+  get users () { return this.#users as Users }
+  set users (v: Users) { this.#users = v }
 
   ui = {
     id:         this.add(Field('New user', '')),
-    deposit1:   this.add(Button('+1')),
-    deposit100: this.add(Button('+100')),
+    deposit1:   this.add(Button('+1',   () => this.addUser(1))),
+    deposit100: this.add(Button('+100', () => this.addUser(100))),
+  }
+
+  addUser (stake: number) {
+    this.users.pool.dashboard.addUser(this.users.pool, stake)
   }
 
 }
@@ -119,6 +143,25 @@ export class User extends Component {
 }
 
 customElements.define('x-rewards', Rewards)
-export default function rewards (id: string) {
-  return h('x-rewards', { id, className: `Outside Rewards ${id}` })
+
+export default function rewards (dashboard: any, id: string) {
+  return h('x-rewards', { id, className: `Outside Rewards ${id}`, dashboard })
+}
+
+customElements.define('x-users', Users)
+
+export function users (pool: Rewards) {
+  return h('x-users', { pool, className: 'Outside Users' })
+}
+
+customElements.define('x-add-user', AddUser)
+
+export function addUser (users: Users) {
+  return h('x-add-user', { users, className: 'Outside AddUser' })
+}
+
+customElements.define('x-user', User)
+
+export function user (users: Users) {
+  return h('x-add-user', { users, className: 'Outside AddUser' })
 }

@@ -8,7 +8,7 @@ import Microservice from './Microservice'
 import SNIP20  from './SNIP20'
 import MGMT    from './MGMT'
 import RPT     from './RPT'
-import Rewards from './Rewards'
+import rewards, { Rewards } from './Rewards'
 
 export class Dashboard extends Component {
 
@@ -19,9 +19,9 @@ export class Dashboard extends Component {
     rpt:          this.add(RPT()),
     microservice: this.add(Microservice()),
     lpToken:      this.add(SNIP20('LPTOKEN')),
-    rewards_v3:   this.add(Rewards('v3')),
+    rewards_v3:   this.add(rewards(this, 'v3')),
     migrate:      this.add(h('x-button')),
-    rewards_v4:   this.add(Rewards('v4'))
+    rewards_v4:   this.add(rewards(this, 'v4'))
   }
 
   constructor () {
@@ -69,6 +69,18 @@ export class Dashboard extends Component {
     this.ui.lpToken.setup(this.contracts.LPToken)
     this.ui.rewards_v3.setup(this.contracts.Rewards)
     this.ui.rewards_v4.setup(this.contracts.Rewards)
+  }
+
+  nextUser = 1
+  addUser (pool: Rewards, stake: number) {
+    const id = `User ${this.nextUser}`
+    this.ui.sienna.register(id)
+    this.ui.lpToken.register(id)
+    this.ui.lpToken.mint(id, stake)
+    this.ui.rewards_v3.register(id)
+    this.ui.rewards_v4.register(id)
+    console.log({pool, stake})
+    this.nextUser++
   }
 }
 

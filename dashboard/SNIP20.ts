@@ -22,7 +22,8 @@ export class SNIP20 extends ContractComponent {
     name:      this.id,
     symbol:    this.id,
     decimals:  6,
-    prng_seed: ''
+    prng_seed: '',
+    config: { enable_mint: true }
   }
 
   balances: Record<string, number> = {}
@@ -32,7 +33,25 @@ export class SNIP20 extends ContractComponent {
     this.displays[id] = this.add(field(id, `${balance} ${this.id}`))
   }
 
-  update () {}
+  users: Array<string> = []
+  register (id: string) {
+    this.users.push(id)
+    this.handle({set_viewing_key:{key:""}})
+    this.addAccount(id)
+  }
+
+  mint (id: string, amount: number) {
+    this.users.push(id)
+    this.handle({mint:{recipient:id,amount:String(amount)}})
+    this.update()
+  }
+
+  update () {
+    for (const user of this.users) {
+      const balance = this.query({balance:{address:user,key:""}})
+      console.log({balance})
+    }
+  }
 
 }
 
