@@ -838,6 +838,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b71991ff56294aa922b450139ee08b3bfc70982c6b2c7562771375cf73542dd4"
 
 [[package]]
+name = "js-sys"
+version = "0.3.55"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7cc9ffccd38c451a86bf13657df244e9c3f37493cce8e5e21e940963777acc84"
+dependencies = [
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "kukumba"
 version = "1.0.1"
 dependencies = [
@@ -928,6 +937,7 @@ version = "0.1.0"
 dependencies = [
  "amm-shared",
  "fadroma-bind-js",
+ "js-sys",
  "wasm-bindgen",
 ]
 
@@ -1785,6 +1795,7 @@ dependencies = [
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "fadroma 3.0.0-rc1",
  "fadroma-bind-js",
+ "js-sys",
  "kukumba 1.0.1 (git+https://github.com/hackbg/kukumba?branch=21.04)",
  "linear-map",
  "schemars",
@@ -1812,6 +1823,8 @@ dependencies = [
  "backtrace",
  "color-backtrace",
  "fadroma 0.1.0",
+ "fadroma-bind-js",
+ "js-sys",
  "kukumba 1.0.1",
  "prettytable-rs",
  "rand 0.8.4",
@@ -1833,6 +1846,7 @@ dependencies = [
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "fadroma 3.0.0-rc1",
  "fadroma-bind-js",
+ "js-sys",
  "kukumba 1.0.1 (git+https://github.com/hackbg/kukumba?branch=21.04)",
  "linear-map",
  "schemars",
@@ -1919,6 +1933,7 @@ dependencies = [
  "cosmwasm-storage 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.0)",
  "fadroma-bind-js",
  "hex",
+ "js-sys",
  "rand_chacha 0.2.2",
  "rand_core 0.5.1",
  "schemars",
@@ -2199,6 +2214,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "632f73e236b219150ea279196e54e610f5dbafa5d61786303d4da54f84e47fce"
 dependencies = [
  "cfg-if",
+ "serde",
+ "serde_json",
  "wasm-bindgen-macro",
 ]
 

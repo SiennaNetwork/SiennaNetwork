@@ -33,11 +33,12 @@ sha2 = { version = "0.9.1", default-features = false }
 
 fadroma-bind-js = { optional = true, path = "../../libraries/fadroma-next/bind-js" }
 wasm-bindgen = { optional = true, version = "0.2" }
+js-sys = { optional = true, version = "0.3.55" }
 
 [dev-dependencies]
 cosmwasm-vm = { package = "cosmwasm-sgx-vm", git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
 cosmwasm-schema = { version = "0.9.2" }
 
 [features]
-browser = [ "fadroma-bind-js", "wasm-bindgen" ]
+browser = [ "fadroma-bind-js", "wasm-bindgen", "wasm-bindgen/serde-serialize", "js-sys" ]
 backtraces = ["cosmwasm-std/backtraces", "cosmwasm-vm/backtraces"]

@@ -22,6 +22,7 @@ sienna-migrate   = { path = "../../libraries/migrate" }
 
 fadroma-bind-js = { optional = true, path = "../../libraries/fadroma-next/bind-js" }
 wasm-bindgen = { optional = true, version = "0.2" }
+js-sys = { optional = true, version = "0.3.55" }
 
 [dev-dependencies]
 kukumba = { git = "https://github.com/hackbg/kukumba", branch = "21.04" }
@@ -31,4 +32,8 @@ snip20-sienna = { path = "../snip20-sienna" }
 default = []
 # this allows the contract to be build for a mock environment
 # that is hosted in a browser. allows dashboard and fast integration tests
-browser = [ "fadroma/browser", "fadroma-bind-js", "wasm-bindgen", "sienna-mgmt/apionly" ]
+browser = [
+  "fadroma-bind-js",
+  "wasm-bindgen", "wasm-bindgen/serde-serialize", "js-sys",
+  "sienna-mgmt/apionly"
+]

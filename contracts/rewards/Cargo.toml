@@ -13,7 +13,10 @@ path = "lib.rs"
 fadroma = { path = "../../libraries/fadroma-next/lib", features = ["scrt-all"] }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+
+fadroma-bind-js = { optional = true, path = "../../libraries/fadroma-next/bind-js" }
 wasm-bindgen = { optional = true, version = "0.2" }
+js-sys = { optional = true, version = "0.3.55" }
 
 [dev-dependencies]
 fadroma = { path = "../../libraries/fadroma-next/lib", features = [ "harness", "backtraces" ] }
@@ -28,9 +31,8 @@ prettytable-rs = "^0.8"
 serde_yaml = "0.8"
 
 [features]
-# this allows the contract to be build for a mock environment
-# that is hosted in a browser. allows dashboard and fast integration tests
 browser = [
-  "fadroma/browser",
-  "wasm-bindgen"
+  "fadroma/browser", "fadroma-bind-js",
+  "wasm-bindgen", "wasm-bindgen/serde-serialize",
+  "js-sys"
 ]

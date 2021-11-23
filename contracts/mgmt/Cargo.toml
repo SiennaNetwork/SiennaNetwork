@@ -30,6 +30,7 @@ sienna-schedule  = { path = "../../libraries/schedule" }
 
 fadroma-bind-js = { optional = true, path = "../../libraries/fadroma-next/bind-js" }
 wasm-bindgen = { optional = true, version = "0.2" }
+js-sys = { optional = true, version = "0.3.55" }
 
 [dev-dependencies]
 kukumba = { git = "https://github.com/hackbg/kukumba", branch = "21.04" }
@@ -39,5 +40,5 @@ serde_json = "1.0"
 default = []
 # this allows the contract to be build for a mock environment
 # that is hosted in a browser. allows dashboard and fast integration tests
-browser = [ "fadroma/browser", "fadroma-bind-js", "wasm-bindgen" ]
+browser = [ "fadroma-bind-js", "wasm-bindgen", "wasm-bindgen/serde-serialize", "js-sys" ]
 apionly = []

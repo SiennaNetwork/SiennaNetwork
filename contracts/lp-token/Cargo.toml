@@ -9,8 +9,10 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 amm-shared = { path = "../../libraries/amm-shared" }
-wasm-bindgen = { optional = true, version = "0.2" }
+
 fadroma-bind-js = { optional = true, path = "../../libraries/fadroma-next/bind-js" }
+wasm-bindgen = { optional = true, version = "0.2" }
+js-sys = { optional = true, version = "0.3.55" }
 
 [features]
-browser = [ "fadroma-bind-js", "wasm-bindgen" ]
+browser = [ "fadroma-bind-js", "wasm-bindgen", "wasm-bindgen/serde-serialize", "js-sys" ]
