@@ -1,4 +1,4 @@
-import { h, append } from './helpers'
+import { h, append } from '../helpers'
 
 /** A label-value pair */
 export class Field extends HTMLElement {
@@ -43,5 +43,5 @@ export class Field extends HTMLElement {
 customElements.define('x-field', Field)
 
 export default function field (label: string, value: any) {
-  return h('x-field', { label, value })
+  return h('x-field', { label, value, className: label.replace(/ /g, '_') })
 }

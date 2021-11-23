@@ -1,6 +1,6 @@
-import { h } from './helpers'
-import { ContractComponent } from './Component'
-import Field from './Field'
+import { h } from '../helpers'
+import { ContractComponent } from '../Component'
+import Field from '../widgets/Field'
 
 export class RPT extends ContractComponent {
 

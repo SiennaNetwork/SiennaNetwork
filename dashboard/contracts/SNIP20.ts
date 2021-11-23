@@ -1,6 +1,6 @@
-import { h, encode } from './helpers'
-import { ContractComponent } from './Component'
-import field from './Field'
+import { h, encode } from '../helpers'
+import { ContractComponent } from '../Component'
+import field from '../widgets/Field'
 
 export class SNIP20 extends ContractComponent {
 
@@ -47,7 +47,7 @@ export class SNIP20 extends ContractComponent {
       if (response.viewing_key_error) {
         throw new Error(response.viewing_key_error)
       } else {
-        this.displays[user].value = response.balance.amount
+        this.displays[user].value = `${response.balance.amount} ${this.id}`
       }
     }
   }

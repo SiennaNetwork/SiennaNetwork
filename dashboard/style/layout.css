@@ -18,16 +18,18 @@ x-button {
   border-right:  1px solid rgba(0,0,0,0.5);
 
   color: 1px solid white;
-  padding: 0.5rem;
+  padding: 0.33rem 0.5rem;
   margin: 2px;
   text-align: center;
   cursor: pointer;
   background: rgba(255,255,255,0.1);
-  display: inline-block;
   user-select: none;
   transition: all 0.1s ease;
   font-weight: bold;
   letter-spacing: 1px;
+
+  display: flex;
+  align-items: center;
 }
 x-button:hover {
   background: rgba(255,255,255,0.2);
@@ -138,6 +140,77 @@ x-button:active {
 }
 .Inside.AddUser > x-field {
   flex-grow: 1;
+}
+
+.Inside.User {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+  grid-template-rows:    1fr 1fr 1fr 1fr 2fr;
+}
+.Inside.User > x-field {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+.Inside.User > x-field.ID {
+  grid-column-start: 1;
+  grid-column-end:   2;
+  grid-row-start:    1;
+  grid-row-end:      2;
+}
+.Inside.User > x-field.Volume {
+  grid-column-start: 4;
+  grid-column-end:   7;
+  grid-row-start:    1;
+  grid-row-end:      2;
+}
+.Inside.User > x-field.Staked {
+  grid-column-start: 2;
+  grid-column-end:   4;
+  grid-row-start:    1;
+  grid-row-end:      2;
+}
+.Inside.User > x-field.Pool_volume_at_entry {
+  grid-column-start: 1;
+  grid-column-end:   4;
+  grid-row-start:    2;
+  grid-row-end:      3;
+}
+.Inside.User > x-field.Pool_volume_since_entry {
+  grid-column-start: 4;
+  grid-column-end:   7;
+  grid-row-start:    2;
+  grid-row-end:      3;
+}
+.Inside.User > x-field.Reward_budget_at_entry {
+  grid-column-start: 1;
+  grid-column-end:   4;
+  grid-row-start:    3;
+  grid-row-end:      4;
+}
+.Inside.User > x-field.Rewards_vested_since_entry {
+  grid-column-start: 4;
+  grid-column-end:   7;
+  grid-row-start:    3;
+  grid-row-end:      4;
+}
+.Inside.User > x-field.Remaining_bonding_period {
+  grid-column-start: 1;
+  grid-column-end:   4;
+  grid-row-start:    4;
+  grid-row-end:      5;
+}
+.Inside.User > x-field.Earned_rewards {
+  grid-column-start: 4;
+  grid-column-end:   7;
+  grid-row-start:    4;
+  grid-row-end:      5;
+}
+.Inside.User > x-button.Claim {
+  grid-column-start: 5;
+  grid-column-end:   7;
+  grid-row-start:    5;
+  grid-row-end:      6;
 }
 
 .Row {

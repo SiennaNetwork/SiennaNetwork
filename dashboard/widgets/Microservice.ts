@@ -1,5 +1,5 @@
-import { h } from './helpers'
-import Component from './Component'
+import { h } from '../helpers'
+import Component from '../Component'
 import Field     from './Field'
 import Button    from './Button'
 

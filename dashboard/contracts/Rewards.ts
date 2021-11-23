@@ -1,8 +1,8 @@
-import { h } from './helpers'
-import Component, { ContractComponent } from './Component'
-import Field  from './Field'
-import Button from './Button'
-import Pie    from './PieChart'
+import { h } from '../helpers'
+import Component, { ContractComponent } from '../Component'
+import Field  from '../widgets/Field'
+import Button from '../widgets/Button'
+import Pie    from '../widgets/PieChart'
 
 export class Rewards extends ContractComponent {
   #dashboard: any = null
@@ -52,7 +52,12 @@ export class Rewards extends ContractComponent {
 
   update () {}
 
-  register () {}
+  deposit (id: string, amount: BigInt) {
+    const msg = {rewards:{deposit:{amount:amount.toString()}}}
+    const response = this.handle(id, msg)
+    console.log(response)
+    this.update()
+  }
 }
 
 export class Users extends Component {
@@ -61,7 +66,11 @@ export class Users extends Component {
   set pool (v: Rewards) { this.#pool = v }
 
   ui = {
-    addUser: this.add(addUser(this))
+    addUser: this.add(addUser(this)),
+  }
+
+  register (id: string) {
+    this.add(user(this, id))
   }
 }
 
@@ -83,6 +92,13 @@ export class AddUser extends Component {
 }
 
 export class User extends Component {
+
+  #id: string = ""
+  get id () { return this.#id }
+  set id (id: string) {
+    this.#id = id
+    this.ui.id.textContent = `${id}`
+  }
 
   ui = { 
     id:                       this.add(Field('ID',                   this.id)),
@@ -162,6 +178,6 @@ export function addUser (users: Users) {
 
 customElements.define('x-user', User)
 
-export function user (users: Users) {
-  return h('x-add-user', { users, className: 'Outside AddUser' })
+export function user (users: Users, id: string) {
+  return h('x-user', { users, id, className: 'Outside User' })
 }

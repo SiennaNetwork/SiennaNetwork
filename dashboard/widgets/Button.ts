@@ -1,5 +1,5 @@
-import { h } from './helpers'
-import Component from './Component'
+import { h } from '../helpers'
+import Component from '../Component'
 
 export class Button extends Component {
   set label (v: string) {
@@ -13,5 +13,5 @@ export default function button (
   label: string,
   onclick = (event:any) => console.debug(event)
 ) {
-  return h('x-button', { label, onclick })
+  return h('x-button', { label, onclick, className: label.replace(/ /g, '_') })
 }

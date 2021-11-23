@@ -1,4 +1,4 @@
-import { h, append } from './helpers'
+import { h, append } from '../helpers'
 
 const PIE = 'x-pie'
 

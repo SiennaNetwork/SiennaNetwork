@@ -1,14 +1,15 @@
-import { h, append } from './helpers'
+import { h } from './helpers'
 
 import Component from './Component'
 
-import Environment  from './Environment'
-import Microservice from './Microservice'
+import Button       from './widgets/Button'
+import Environment  from './widgets/Environment'
+import Microservice from './widgets/Microservice'
 
-import SNIP20  from './SNIP20'
-import MGMT    from './MGMT'
-import RPT     from './RPT'
-import rewards, { Rewards } from './Rewards'
+import SNIP20  from './contracts/SNIP20'
+import MGMT    from './contracts/MGMT'
+import RPT     from './contracts/RPT'
+import rewards, { Rewards } from './contracts/Rewards'
 
 export class Dashboard extends Component {
 
@@ -20,7 +21,7 @@ export class Dashboard extends Component {
     microservice: this.add(Microservice()),
     lpToken:      this.add(SNIP20('LPTOKEN')),
     rewards_v3:   this.add(rewards(this, 'v3')),
-    migrate:      this.add(h('x-button')),
+    migrate:      this.add(Button('Migrate')),
     rewards_v4:   this.add(rewards(this, 'v4'))
   }
 
@@ -52,6 +53,7 @@ export class Dashboard extends Component {
     for (const contract of [this.ui.sienna, this.ui.lpToken]) {
       contract.register('Admin')
       contract.register('MGMT')
+      contract.mint('MGMT', this.ui.mgmt.total)
       contract.register('RPT')
       contract.register('Rewards V3')
       contract.register('Rewards V4')
@@ -59,13 +61,14 @@ export class Dashboard extends Component {
   }
 
   nextUser = 1
-  addUser (pool: Rewards, stake: number) {
+  addUser (pool: Rewards, stake: BigInt) {
     const id = `User ${this.nextUser}`
     this.ui.sienna.register(id)
     this.ui.lpToken.register(id)
     this.ui.lpToken.mint(id, stake)
-    this.ui.rewards_v3.register(id)
-    this.ui.rewards_v4.register(id)
+    this.ui.rewards_v3.ui.users.register(id)
+    this.ui.rewards_v4.ui.users.register(id)
+    pool.deposit(id, stake)
     console.log({pool, stake})
     this.nextUser++
   }

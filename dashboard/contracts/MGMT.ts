@@ -1,7 +1,7 @@
-import { h, encode, decode } from './helpers'
-import {ContractComponent} from './Component'
-import Field from './Field'
-import schedule from '../settings/schedule.json'
+import { h, format } from '../helpers'
+import {ContractComponent} from '../Component'
+import Field from '../widgets/Field'
+import schedule from '../../settings/schedule.json'
 
 export class MGMT extends ContractComponent {
 
@@ -21,12 +21,12 @@ export class MGMT extends ContractComponent {
   update () {
     const {schedule:{schedule:{total, pools}}} = this.query({schedule:{}})
     this.total = total
-    this.ui.total.value = total
+    this.ui.total.value = format.SIENNA(total)
     for (const pool of pools) {
-      this.add(Field(`.${pool.name}`, pool.total))
+      this.add(Field(`.${pool.name}`, format.SIENNA(pool.total)))
       if (pool.name === 'MintingPool') {
         for (const account of pool.accounts) {
-          this.add(Field(`..${account.name}`, account.amount))
+          this.add(Field(`..${account.name}`, format.SIENNA(account.amount)))
         }
       }
     }

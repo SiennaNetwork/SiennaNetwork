@@ -47,6 +47,11 @@ export abstract class ContractComponent extends Component {
   setup (Contract: any) {
     this.#contract = new Contract()
     this.#contract.init(encode(this.initMsg))
+    console.log({has:Contract.has_querier_callback})
+    this.#contract.querier_callback = (x: any) => {
+      console.log({x})
+      return ""
+    }
     this.update()
   }
   abstract readonly initMsg: any
