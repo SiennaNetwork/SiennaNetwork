@@ -12,18 +12,34 @@ use serde::{Deserialize, Serialize};
 
 const BLOCK_SIZE: usize = 256;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum TokenType<A> {
     CustomToken {
         contract_addr: A,
-        token_code_hash: String,
-        //viewing_key: String,
+        token_code_hash: String
     },
     NativeToken {
-        denom: String,
+        denom: String
     },
 }
+
+impl<A: PartialEq> PartialEq for TokenType<A> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                Self::CustomToken { contract_addr: l_contract_addr, .. },
+                Self::CustomToken { contract_addr: r_contract_addr, .. }
+            ) => l_contract_addr == r_contract_addr,
+            (
+                Self::NativeToken { denom: l_denom },
+                Self::NativeToken { denom: r_denom }
+            ) => l_denom == r_denom,
+            _ => false
+        }
+    }
+}
+
 impl Canonize<TokenType<CanonicalAddr>> for TokenType<HumanAddr> {
     fn canonize(&self, api: &impl Api) -> StdResult<TokenType<CanonicalAddr>> {
         Ok(match self {
@@ -159,5 +175,64 @@ impl TokenType<HumanAddr> {
         };
     
         Ok(msg)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_eq() {
+        let token_0 = TokenType::CustomToken {
+            contract_addr: HumanAddr::from("addr_0"),
+            token_code_hash: "code_hash_0".into()
+        };
+
+        let token_1: TokenType<HumanAddr> = TokenType::NativeToken {
+            denom: "denom_0".into()
+        };
+
+        assert!(token_0 != token_1);
+        assert!(token_1 != token_0);
+
+        let token_0 = TokenType::CustomToken {
+            contract_addr: HumanAddr::from("addr_0"),
+            token_code_hash: "code_hash_0".into()
+        };
+
+        let token_1 = TokenType::CustomToken {
+            contract_addr: HumanAddr::from("addr_0"),
+            token_code_hash: "code_hash_1".into()
+        };
+
+        assert!(token_0 == token_1);
+        assert!(token_1 == token_0);
+
+        let token_0 = TokenType::CustomToken {
+            contract_addr: HumanAddr::from("addr_0"),
+            token_code_hash: "code_hash_0".into()
+        };
+
+        let token_1 = TokenType::CustomToken {
+            contract_addr: HumanAddr::from("addr_0"),
+            token_code_hash: "code_hash_0".into()
+        };
+
+        assert!(token_0 == token_1);
+        assert!(token_1 == token_0);
+
+        let token_0 = TokenType::CustomToken {
+            contract_addr: HumanAddr::from("addr_1"),
+            token_code_hash: "code_hash_0".into()
+        };
+
+        let token_1 = TokenType::CustomToken {
+            contract_addr: HumanAddr::from("addr_0"),
+            token_code_hash: "code_hash_0".into()
+        };
+
+        assert!(token_0 != token_1);
+        assert!(token_1 != token_0);
     }
 }

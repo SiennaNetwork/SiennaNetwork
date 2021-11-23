@@ -350,6 +350,7 @@ async function initFactory(context) {
     EXCHANGE: context.templates.Exchange,
     AMMTOKEN: context.templates.SNIP20,
     LPTOKEN: context.templates.LPToken,
+    ROUTER: context.templates.SwapRouter,
     IDO: context.templates.SNIP20, // Dummy
     LAUNCHPAD: context.templates.SNIP20, // Dummy
   });

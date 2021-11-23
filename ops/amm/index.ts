@@ -34,7 +34,6 @@ const ANALYTICS = new TxAnalytics(APIURL)
 
 async function run_tests() {
   const client_a = await build_client(ACC_A.mnemonic, APIURL)
-  
   const result = await upload_amm(client_a, new NullJsonFileWriter)
 
   const instance = await instantiate_factory(client_a, result)
@@ -221,9 +220,10 @@ async function test_liquidity(exchange: ExchangeContract, sienna_token: Contract
     async () => {
       const result = await exchange.exec().withdraw_liquidity(amount, exchange.execute_client?.senderAddress as string)
       ANALYTICS.add_tx(result.transactionHash, 'Exchange: Withdraw Liquidity')
-
+      
       assert_equal(extract_log_value(result, 'withdrawn_share'), amount)
-      assert_equal(result.logs[0].events[1].attributes[0].value, exchange.execute_client?.senderAddress as string)
+      assert_equal(result.logs[0].events[0].attributes[0].value, exchange.execute_client?.senderAddress as string)
+      assert_equal(result.logs[0].events[1].attributes[0].value, exchange.address)
     }
   )
 
