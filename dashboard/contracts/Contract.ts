@@ -53,39 +53,32 @@ export class Cosmos {
     this.contracts[addr] = comp
   }
 
-  query (request: any) {
-    const {contract_addr, msg} = request.wasm.smart
-    const target = this.contracts[contract_addr]
-    debug({inter_contract_query:{target:target.addr, request}})
-    if (target) {
-      const response = target.query(msg)
-      debug({inter_contract_query_response:response})
-      return target.query(msg)
-    } else {
-      console.error(`can't query unknown address ${contract_addr}`)
-      return {}
-    }
-  }
-
   queryCallback (data: string) {
+    let response = {}
     try {
       const request = JSON.parse(data)
-      const msg = request.wasm.smart.msg
+      const {contract_addr, msg} = request.wasm.smart
       request.wasm.smart.msg = JSON.parse(atob(msg).trim())
-      debug({inter_contract_query_callback:request})
-      return JSON.stringify(Cosmos.default.query(request))
+      const target = Cosmos.default.contracts[contract_addr]
+      debug({inter_contract_query:{target:target.addr, request}})
+      if (target) {
+        response = target.query(request.wasm.smart.msg)
+        debug({inter_contract_query_response:response})
+      } else {
+        console.error(`can't query unknown address ${contract_addr}`)
+      }
     } catch (e) {
       console.error(e)
-      return JSON.stringify({})
     }
+    return btoa(JSON.stringify(response))
   }
 
-  processMessages (sender: string, messages: Array<any>) {
+  passMessages (sender: string, messages: Array<any>) {
     for (const message of messages) {
       const addr = message.wasm.execute.contract_addr
       const msg  = JSON.parse(atob(message.wasm.execute.msg))
+      debug({pass:{addr, sender, msg}})
       this.contracts[addr].handle(sender, msg)
-      debug({process:message})
     }
   }
 
@@ -101,7 +94,7 @@ export class Cosmos {
     setup (WASM: any, addr: string, hash: string) {
       this.addr = addr
       this.hash = hash
-      this.#wasm = new WASM(encode(addr), encode(hash))
+      this.#wasm = new WASM(addr, hash);
       this.#wasm.querier_callback = Cosmos.default.queryCallback
       this.sender = "Admin"
       this.init(this.initMsg)
@@ -118,13 +111,15 @@ export class Cosmos {
       debug({init:{sender:this.sender, msg}})
       const response = decode(this.#wasm.init(encode(msg)))
       debug({init_response:response})
-      Cosmos.default.processMessages(this.addr, response.messages)
+      Cosmos.default.passMessages(this.addr, response.messages)
       return response
     }
 
     query (msg: any) {
-      debug({query:{contract:this.constructor.name, msg}})
-      return decode(this.#wasm.query(encode(msg)))
+      debug({query:{contract:this.constructor.name,addr:this.addr,msg}})
+      const response = decode(this.#wasm.query(encode(msg)))
+      debug({query_response:response})
+      return response
     }
 
     handle (sender: string, msg: any) {
@@ -133,7 +128,7 @@ export class Cosmos {
       const response = decode(this.#wasm.handle(encode(msg)))
       if (response.data) response.data = JSON.parse(atob(response.data))
       debug({handle_response:response})
-      Cosmos.default.processMessages(this.addr, response.messages)
+      Cosmos.default.passMessages(this.addr, response.messages)
       return response
     }
 
