@@ -1,14 +1,13 @@
 import { h, append } from './helpers'
-
-import Component from './Component'
-
-import Button       from './widgets/Button'
-import Environment  from './widgets/Environment'
-import Microservice from './widgets/Microservice'
-
-import SNIP20  from './contracts/SNIP20'
-import MGMT    from './contracts/MGMT'
-import RPT     from './contracts/RPT'
+import Component     from './Component'
+import Field         from './widgets/Field'
+import Button        from './widgets/Button'
+import SNIP20        from './contracts/SNIP20'
+import {
+  mgmt         as MGMT,
+  rpt          as RPT,
+  microservice as Microservice
+} from './contracts/TGE'
 import rewards, { Rewards } from './contracts/Rewards'
 
 import {Cosmos} from './contracts/Contract'
@@ -22,7 +21,7 @@ export class Dashboard extends Component {
     row4: this.add(h('div', { className: 'Row', style: 'flex-grow:3' })),
   }
 
-  environment  = append(this.ui.row1)(Environment())
+  environment  = append(this.ui.row1)(environment())
   microservice = append(this.ui.row1)(Microservice())
   mgmt         = append(this.ui.row2)(MGMT())
   rpt          = append(this.ui.row2)(RPT())
@@ -85,22 +84,61 @@ export class Dashboard extends Component {
   }
 
   nextUser = 1
-  addUser (pool: Rewards, stake: BigInt) {
+  addUser (balance: BigInt) {
     const id = `User ${this.nextUser}`
     this.sienna.register(id)
     this.lpToken.register(id)
-    this.lpToken.mint(id, stake)
+    console.debug('MINT', id, balance)
+    this.lpToken.mint(id, balance)
     this.rewards_v3.ui.users.register(id)
     this.rewards_v4.ui.users.register(id)
-    pool.deposit(id, stake)
-    console.log({pool, stake})
-    this.nextUser++
+    this.nextUser++;
+    return id
   }
 }
 
 type Contracts = Record<string, any> 
 
 customElements.define('x-dashboard', Dashboard)
+
 export default function dashboard (contracts: Record<string, any>) {
   return h('x-dashboard', { contracts, className: 'Outside Dashboard' })
+}
+
+type Timer = ReturnType<typeof setTimeout>
+
+export class Environment extends Component {
+
+  time = 0
+  rate = [10, 10]
+  timer: Timer|null = null
+
+  start () {
+    this.timer = setInterval(this.update.bind(this), this.rate[1])
+  }
+
+  pause () {
+    if (this.timer) clearInterval(this.timer)
+    this.timer = null
+  }
+
+  update () {
+    this.time += this.rate[0]
+    this.ui.time.value = `${this.time}s`
+  }
+
+  ui = {
+    title: this.add(h('header', { textContent: 'Environment' })),
+    time:  this.add(Field('Time', `${this.time}s`)),
+    rate:  this.add(Field('Speed', `${this.rate[0]}s per ${this.rate[1]}ms`)),
+    start: this.add(Button('START', () => this.start())),
+    pause: this.add(Button('PAUSE', () => this.pause())),
+  }
+
+}
+
+customElements.define('x-environment', Environment)
+
+export function environment () {
+  return h('x-environment', { className: 'Outside Environment' })
 }

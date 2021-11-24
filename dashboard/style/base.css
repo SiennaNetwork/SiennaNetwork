@@ -1,8 +1,10 @@
-.Module {
-  background: #1d2021;
-  margin: 0.5rem;
-  border: 1px solid black;
+.Outside.Module {
+  padding: 0.5rem;
   overflow: auto;
+}
+.Inside.Module {
+  background: #1d2021;
+  border: 1px solid black;
 }
 
 header {

@@ -34,7 +34,8 @@ export class SNIP20 extends ContractComponent {
     this.displays[id] = this.add(field(id, `0 ${this.id}`))
   }
 
-  mint (id: string, amount: number) {
+  mint (id: string, amount: BigInt) {
+    console.trace('mint', id, amount)
     this.users.push(id)
     this.handle("Admin", {set_minters:{minters:["Admin"]}})
     this.handle("Admin", {mint:{recipient:id,amount:String(amount)}})
@@ -56,5 +57,5 @@ export class SNIP20 extends ContractComponent {
 
 customElements.define('x-snip20', SNIP20)
 export default function snip20 (id: string) {
-  return h('x-snip20', { id, className: `Outside SNIP20 ${id}` })
+  return h('x-snip20', { id, className: `Outside Module SNIP20 ${id}` })
 }
