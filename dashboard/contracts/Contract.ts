@@ -7,88 +7,112 @@ import initMGMT,    * as MGMT    from '../artifacts/mgmt/mgmt.js'
 import initRPT,     * as RPT     from '../artifacts/rpt/rpt.js'
 import initRewards, * as Rewards from '../artifacts/rewards/rewards.js'
 
-const CONTRACTS: Array<[string, Function]> = [
-  ['sienna/sienna_bg.wasm',   initSIENNA],
-  ['lptoken/lptoken_bg.wasm', initLPToken],
-  ['mgmt/mgmt_bg.wasm',       initMGMT],
-  ['rpt/rpt_bg.wasm',         initRPT],
-  ['rewards/rewards_bg.wasm', initRewards]
-]
-
-export async function initContracts () {
-
-  await Promise.all(CONTRACTS.map(async ([blob,init])=>{
-    console.debug(`init`, blob)
-    const url = new URL(blob, location.href)
-        , res = await fetch(url.toString())
-        , buf = await res.arrayBuffer()
-    await init(buf)
-  }))
-
-  return {
-    SIENNA:  SIENNA.Contract,
-    LPToken: LPToken.Contract,
-    MGMT:    MGMT.Contract,
-    RPT:     RPT.Contract,
-    Rewards: Rewards.Contract
-  }
-
+export interface IContract {
+  query (msg: any): any
 }
 
-export class Querier {
-  contracts: Record<string, ContractComponent> = {}
-  add (addr: string, comp: ContractComponent) {
+export class Cosmos {
+
+  static default = new Cosmos()
+
+  static CONTRACTS: Array<[string, Function]> = [
+    ['sienna/sienna_bg.wasm',   initSIENNA],
+    ['lptoken/lptoken_bg.wasm', initLPToken],
+    ['mgmt/mgmt_bg.wasm',       initMGMT],
+    ['rpt/rpt_bg.wasm',         initRPT],
+    ['rewards/rewards_bg.wasm', initRewards]
+  ]
+
+  static async loadContracts () {
+
+    await Promise.all(Cosmos.CONTRACTS.map(async ([blob, load])=>{
+      const url = new URL(blob, location.href)
+      console.debug({load:url.toString()})
+      const res = await fetch(url.toString())
+      const buf = await res.arrayBuffer()
+      await load(buf)
+    }))
+
+    return {
+      SIENNA:  SIENNA.Contract,
+      LPToken: LPToken.Contract,
+      MGMT:    MGMT.Contract,
+      RPT:     RPT.Contract,
+      Rewards: Rewards.Contract
+    }
+
+  }
+
+  contracts: Record<string, IContract> = {}
+
+  add (addr: string, comp: IContract) {
     this.contracts[addr] = comp
   }
+
   query (request: any) {
-    console.debug('querier', request)
     const {contract_addr, msg} = request.wasm.smart
     const target = this.contracts[contract_addr]
+    console.debug('cosmos', request, target)
     if (target) {
+      console.debug('queryresponse', target.query(msg))
       return target.query(msg)
     } else {
-      throw new Error(`can't query unknown address ${contract_addr}`)
-    }
-  }
-}
-
-export const querier = new Querier()
-
-export default abstract class ContractComponent extends Component {
-
-  #contract: any
-
-  setup (Contract: any) {
-    this.#contract = new Contract("", "")
-    this.#contract.init(encode(this.initMsg))
-    this.#contract.querier_callback = (data: string) => {
-      try {
-        const request = JSON.parse(data)
-        const msg = request.wasm.smart.msg
-        request.wasm.smart.msg = JSON.parse(atob(msg).trim())
-        return JSON.stringify(querier.query(request))
-      } catch (e) {
-        console.error(e)
-        throw e
-      }
+      console.error(`can't query unknown address ${contract_addr}`)
+      return {}
     }
   }
 
-  abstract readonly initMsg: any
-
-  abstract update (): void
-
-  query (msg: any) {
-    console.debug('query', this.constructor.name, msg)
-    return decode(this.#contract.query(encode(msg)))
+  queryCallback (data: string) {
+    try {
+      const request = JSON.parse(data)
+      const msg = request.wasm.smart.msg
+      request.wasm.smart.msg = JSON.parse(atob(msg).trim())
+      return JSON.stringify(Cosmos.default.query(request))
+    } catch (e) {
+      console.error(e)
+      return JSON.stringify({})
+    }
   }
 
-  handle (sender: any, msg: any) {
-    console.debug('handle', sender, msg)
-    this.#contract.sender = encode(sender)
-    let {messages, log, data} = decode(this.#contract.handle(encode(msg)))
-    data = JSON.parse(atob(data))
-    return {messages, log, data}
+  Contract = class CosmosContractComponent extends Component {
+
+    #wasm: any
+
+    set sender (addr: string) { this.#wasm.sender = encode(addr) }
+
+    setup (WASM: any, addr: string, hash: string) {
+      this.#wasm = new WASM(addr, hash)
+      this.#wasm.querier_callback = Cosmos.default.queryCallback
+      this.sender = "Admin"
+      this.init(this.initMsg)
+      this.update()
+    }
+
+    update () {
+      console.warn('empty update method called')
+    }
+
+    initMsg: any = {}
+
+    init (msg: any): any {
+      return decode(this.#wasm.init(encode(msg)))
+    }
+
+    query (msg: any) {
+      console.debug('query', this.constructor.name, msg)
+      return decode(this.#wasm.query(encode(msg)))
+    }
+
+    handle (sender: string, msg: any) {
+      console.debug('handle', sender, msg)
+      this.sender = sender
+      let {messages, log, data} = decode(this.#wasm.handle(encode(msg)))
+      if (data) data = JSON.parse(atob(data))
+      return {messages, log, data}
+    }
+
   }
 
 }
+
+export default Cosmos.default.Contract

@@ -54,6 +54,7 @@ export class Rewards extends ContractComponent {
   update () {}
 
   deposit (id: string, amount: BigInt) {
+    console.debug('deposit', id, amount)
     const msg = {rewards:{deposit:{amount:amount.toString()}}}
     const response = this.handle(id, msg)
     console.log(response)

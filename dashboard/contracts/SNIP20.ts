@@ -36,8 +36,8 @@ export class SNIP20 extends ContractComponent {
 
   mint (id: string, amount: number) {
     this.users.push(id)
-    this.handle("", {set_minters:{minters:[""]}})
-    this.handle("", {mint:{recipient:id,amount:String(amount)}})
+    this.handle("Admin", {set_minters:{minters:["Admin"]}})
+    this.handle("Admin", {mint:{recipient:id,amount:String(amount)}})
     this.update()
   }
 

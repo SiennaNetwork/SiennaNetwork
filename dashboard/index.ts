@@ -2,10 +2,12 @@ import './style/reset.css'
 import './style/base.css'
 import './style/layout.css'
 
-import {initContracts} from './contracts/Contract'
+import {Cosmos} from './contracts/Contract'
 import dashboard from './Dashboard'
 import {append}  from './helpers'
 
-initContracts()
+console.log(Cosmos.default)
+
+Cosmos.loadContracts()
   .then(dashboard)
-    .then(append(document.body))
+  .then(append(document.body))
