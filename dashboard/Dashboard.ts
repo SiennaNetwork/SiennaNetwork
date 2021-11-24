@@ -18,18 +18,17 @@ export class Dashboard extends Component {
     row1: this.add(h('div', { className: 'Row', style: 'flex-grow:0;flex-shrink:0' })),
     row2: this.add(h('div', { className: 'Row', style: 'flex-grow:1' })),
     row3: this.add(h('div', { className: 'Row', style: 'flex-grow:2' })),
-    row4: this.add(h('div', { className: 'Row', style: 'flex-grow:3' })),
   }
 
   environment  = append(this.ui.row1)(environment())
   microservice = append(this.ui.row1)(Microservice())
   mgmt         = append(this.ui.row2)(MGMT())
   rpt          = append(this.ui.row2)(RPT())
-  sienna       = append(this.ui.row3)(SNIP20('SIENNA'))
-  lpToken      = append(this.ui.row3)(SNIP20('LPTOKEN'))
-  rewards_v3   = append(this.ui.row4)(rewards(this, 'v3'))
-  migrate      = append(this.ui.row4)(Button('Migrate', () => this.performMigration()))
-  rewards_v4   = append(this.ui.row4)(rewards(this, 'v4'))
+  sienna       = append(this.ui.row2)(SNIP20('SIENNA'))
+  lpToken      = append(this.ui.row2)(SNIP20('LPTOKEN'))
+  rewards_v3   = append(this.ui.row3)(rewards(this, 'v3'))
+  migrate      = append(this.ui.row3)(Button('Migrate', () => this.performMigration()))
+  rewards_v4   = append(this.ui.row3)(rewards(this, 'v4'))
 
   #contracts: Contracts|null = null
   set contracts (v: Contracts) {
@@ -90,8 +89,8 @@ export class Dashboard extends Component {
     this.lpToken.register(id)
     console.debug('MINT', id, balance)
     this.lpToken.mint(id, balance)
-    this.rewards_v3.ui.users.register(id)
-    this.rewards_v4.ui.users.register(id)
+    this.rewards_v3.users.register(id)
+    this.rewards_v4.users.register(id)
     this.nextUser++;
     return id
   }

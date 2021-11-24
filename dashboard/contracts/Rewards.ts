@@ -1,4 +1,4 @@
-import { h } from '../helpers'
+import { h, append } from '../helpers'
 import Component from '../Component'
 import ContractComponent from './Contract'
 import Field  from '../widgets/Field'
@@ -10,33 +10,28 @@ export class Rewards extends ContractComponent {
   get dashboard () { return this.#dashboard }
   set dashboard (v: any) { this.#dashboard = v }
 
-  closed: [number, string] | null = null
-  staked:      number = 0
-  volume:      number = 0
-  updated:     number = 0
-  bonding:     number = 0
-  unlocked:    number = 0
-  distributed: number = 0
-  budget:      number = 0
-
   ui = {
-    title:     this.add(h('header', { textContent: 'Rewards' })),
-    stakedPie: this.add(Pie()),
-    volumePie: this.add(Pie()),
-
-    closed: this.add(Field('Closed', this.closed||'no')),
-    staked: this.add(Field('Staked', this.staked)),
-    volume: this.add(Field('Volume', this.volume)),
-
-    updated: this.add(Field('Updated', this.updated)),
-    bonding: this.add(Field('Bonding', this.bonding)),
-
-    unlocked:    this.add(Field('Unlocked',    this.unlocked)),
-    distributed: this.add(Field('Distributed', this.distributed)),
-    budget:      this.add(Field('Budget',      this.budget)),
-
-    users: this.add(users(this))
+    title: this.add(h('header', { textContent: 'Rewards' })),
+    row:   this.add(h('div', { className: 'Row', style: 'flex-grow:0;flex-shrink:0' }))
   }
+
+  totals = append(this.ui.row)(h('div'))
+
+  stakedPie = append(this.totals)(Pie())
+  volumePie = append(this.totals)(Pie())
+
+  closed = append(this.totals)(Field('Closed', 'no'))
+  staked = append(this.totals)(Field('Staked', 0))
+  volume = append(this.totals)(Field('Volume', 0))
+
+  updated = append(this.totals)(Field('Updated', 0))
+  bonding = append(this.totals)(Field('Bonding', 0))
+
+  unlocked =    append(this.totals)(Field('Unlocked',    0))
+  distributed = append(this.totals)(Field('Distributed', 0))
+  budget =      append(this.totals)(Field('Budget',      0))
+
+  users = append(this.ui.row)(users(this))
 
   initMsg = {
     config: {
