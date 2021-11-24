@@ -22,14 +22,15 @@ export class Environment extends Component {
 
   update () {
     this.time += this.rate
+    this.ui.time.value = this.time
   }
 
   ui = {
     title: this.add(h('header', { textContent: 'Environment' })),
     time:  this.add(Field('Time', this.time)),
     rate:  this.add(Field('Rate', this.rate)),
-    start: this.add(Button('START')),
-    pause: this.add(Button('PAUSE')),
+    start: this.add(Button('START', () => this.start())),
+    pause: this.add(Button('PAUSE', () => this.pause())),
   }
 
 }

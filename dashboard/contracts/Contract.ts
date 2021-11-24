@@ -7,8 +7,12 @@ import initMGMT,    * as MGMT    from '../artifacts/mgmt/mgmt.js'
 import initRPT,     * as RPT     from '../artifacts/rpt/rpt.js'
 import initRewards, * as Rewards from '../artifacts/rewards/rewards.js'
 
+const debug = (obj:any) => console.debug(JSON.stringify(obj))
+
 export interface IContract {
+  addr: string
   query (msg: any): any
+  handle (sender: string, msg: any): any
 }
 
 export class Cosmos {
@@ -27,7 +31,7 @@ export class Cosmos {
 
     await Promise.all(Cosmos.CONTRACTS.map(async ([blob, load])=>{
       const url = new URL(blob, location.href)
-      console.debug({load:url.toString()})
+      debug({load:url.toString()})
       const res = await fetch(url.toString())
       const buf = await res.arrayBuffer()
       await load(buf)
@@ -52,9 +56,10 @@ export class Cosmos {
   query (request: any) {
     const {contract_addr, msg} = request.wasm.smart
     const target = this.contracts[contract_addr]
-    console.debug('cosmos', request, target)
+    debug({inter_contract_query:{target:target.addr, request}})
     if (target) {
-      console.debug('queryresponse', target.query(msg))
+      const response = target.query(msg)
+      debug({inter_contract_query_response:response})
       return target.query(msg)
     } else {
       console.error(`can't query unknown address ${contract_addr}`)
@@ -67,10 +72,20 @@ export class Cosmos {
       const request = JSON.parse(data)
       const msg = request.wasm.smart.msg
       request.wasm.smart.msg = JSON.parse(atob(msg).trim())
+      debug({inter_contract_query_callback:request})
       return JSON.stringify(Cosmos.default.query(request))
     } catch (e) {
       console.error(e)
       return JSON.stringify({})
+    }
+  }
+
+  processMessages (sender: string, messages: Array<any>) {
+    for (const message of messages) {
+      const addr = message.wasm.execute.contract_addr
+      const msg  = JSON.parse(atob(message.wasm.execute.msg))
+      this.contracts[addr].handle(sender, msg)
+      debug({process:message})
     }
   }
 
@@ -80,8 +95,13 @@ export class Cosmos {
 
     set sender (addr: string) { this.#wasm.sender = encode(addr) }
 
+    addr: string = ""
+    hash: string = ""
+
     setup (WASM: any, addr: string, hash: string) {
-      this.#wasm = new WASM(addr, hash)
+      this.addr = addr
+      this.hash = hash
+      this.#wasm = new WASM(encode(addr), encode(hash))
       this.#wasm.querier_callback = Cosmos.default.queryCallback
       this.sender = "Admin"
       this.init(this.initMsg)
@@ -95,20 +115,26 @@ export class Cosmos {
     initMsg: any = {}
 
     init (msg: any): any {
-      return decode(this.#wasm.init(encode(msg)))
+      debug({init:{sender:this.sender, msg}})
+      const response = decode(this.#wasm.init(encode(msg)))
+      debug({init_response:response})
+      Cosmos.default.processMessages(this.addr, response.messages)
+      return response
     }
 
     query (msg: any) {
-      console.debug('query', this.constructor.name, msg)
+      debug({query:{contract:this.constructor.name, msg}})
       return decode(this.#wasm.query(encode(msg)))
     }
 
     handle (sender: string, msg: any) {
-      console.debug('handle', sender, msg)
+      debug({handle:{sender, msg}})
       this.sender = sender
-      let {messages, log, data} = decode(this.#wasm.handle(encode(msg)))
-      if (data) data = JSON.parse(atob(data))
-      return {messages, log, data}
+      const response = decode(this.#wasm.handle(encode(msg)))
+      if (response.data) response.data = JSON.parse(atob(response.data))
+      debug({handle_response:response})
+      Cosmos.default.processMessages(this.addr, response.messages)
+      return response
     }
 
   }

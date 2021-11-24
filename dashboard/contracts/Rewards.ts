@@ -40,7 +40,8 @@ export class Rewards extends ContractComponent {
 
   initMsg = {
     config: {
-      reward_token: { address: "SIENNA_addr", code_hash: "SIENNA_hash" }
+      reward_token: { address: "SIENNA_addr",  code_hash: "SIENNA_hash"  },
+      lp_token:     { address: "LPTOKEN_addr", code_hash: "LPTOKEN_hash" }
     }
   }
 
