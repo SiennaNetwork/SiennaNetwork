@@ -7,7 +7,7 @@ export class Field extends HTMLElement {
   add = append(this.root)
   ui = {
     label: this.add(h('label')),
-    value: this.add(h('div'))
+    value: this.add(h('div', {style:'white-space:nowrap'}))
   }
 
   constructor () {

@@ -1,4 +1,4 @@
-import { encode, decode } from './helpers'
+import { h, encode, decode } from './helpers'
 import Component from './Component'
 
 import initSIENNA,  * as SIENNA  from './artifacts/sienna/sienna.js'
@@ -6,6 +6,9 @@ import initLPToken, * as LPToken from './artifacts/lptoken/lptoken.js'
 import initMGMT,    * as MGMT    from './artifacts/mgmt/mgmt.js'
 import initRPT,     * as RPT     from './artifacts/rpt/rpt.js'
 import initRewards, * as Rewards from './artifacts/rewards/rewards.js'
+
+import Field  from './widgets/Field'
+import Button from './widgets/Button'
 
 const debug = (obj:any) => console.debug(JSON.stringify(obj))
 
@@ -49,6 +52,8 @@ export class Cosmos {
   add (addr: string, comp: IContract) {
     this.contracts[addr] = comp
   }
+
+  time = 0
 
   queryCallback (data: string) {
     let response = {}
@@ -112,6 +117,7 @@ export class Cosmos {
     initMsg: any = {}
 
     init (msg: any): any {
+      this.#wasm.time = BigInt(Cosmos.default.time)
       console.debug(`${this.addr} was initialized by ${this.sender} with ${JSON.stringify(msg, null, 2)}`)
       //debug({addr:this.addr,init:{sender:this.sender, msg}})
       const response = decode(this.#wasm.init(encode(msg)))
@@ -131,6 +137,8 @@ export class Cosmos {
     }
 
     handle (sender: string, msg: any) {
+      console.log(this.#wasm.get_time)
+      this.#wasm.time = BigInt(Cosmos.default.time)
       console.debug(`${this.addr} handled transaction by ${sender}: ${JSON.stringify(msg, null, 2)}`)
       //debug({addr:this.addr,handle:{sender, msg}})
       this.sender = sender
@@ -147,3 +155,47 @@ export class Cosmos {
 }
 
 export default Cosmos.default.Contract
+
+type Timer = ReturnType<typeof setTimeout>
+
+export class Environment extends Component {
+
+  static TAG   = 'x-environment'
+  static CLASS = 'Outside Environment'
+  static make  = (dashboard: any) =>
+    h(this.TAG, { className: this.CLASS, dashboard })
+  static _ = customElements.define(this.TAG, this)
+
+  #dashboard: any = null
+  get dashboard () { return this.#dashboard }
+  set dashboard (v: any) { this.#dashboard = v }
+
+  time = 0
+  rate = [600, 33]
+  timer: Timer|null = null
+
+  start () {
+    this.timer = setInterval(this.update.bind(this), this.rate[1])
+  }
+
+  pause () {
+    if (this.timer) clearInterval(this.timer)
+    this.timer = null
+  }
+
+  update () {
+    this.time += this.rate[0]
+    Cosmos.default.time = this.time
+    this.ui.time.value = `${this.time}s`
+    this.dashboard.update()
+  }
+
+  ui = {
+    title: this.add(h('header', { textContent: 'Environment' })),
+    time:  this.add(Field('Time', `${this.time}s`)),
+    rate:  this.add(Field('Speed', `${this.rate[0]}s per ${this.rate[1]}ms`)),
+    start: this.add(Button('START', () => this.start())),
+    pause: this.add(Button('PAUSE', () => this.pause())),
+  }
+
+}

@@ -1,12 +1,14 @@
-import { h, append } from './helpers'
-import Component     from './Component'
-import Field         from './widgets/Field'
-import Button        from './widgets/Button'
-import SNIP20        from './contracts/SNIP20'
-import Rewards       from './contracts/Rewards'
+import { h, append, throttle } from './helpers'
+import Component       from './Component'
+import Button          from './widgets/Button'
+import SNIP20          from './contracts/SNIP20'
+import Rewards         from './contracts/Rewards'
+import { Environment } from './Cosmos'
 import { MGMT, RPT, Microservice } from './contracts/TGE'
 
 import {Cosmos} from './Cosmos'
+
+type Contracts = Record<string, any> 
 
 export default class Dashboard extends Component {
 
@@ -69,6 +71,13 @@ export default class Dashboard extends Component {
     this.rewards_v4.setup(this.contracts.Rewards, "REWARDS_V4_addr", "REWARDS_V4_hash")
     Cosmos.default.add('REWARDS_V4_addr', this.rewards_v4)
 
+    this.rewards_v3.resize()
+    this.rewards_v4.resize()
+    window.addEventListener('resize', throttle(100, () => {
+      this.rewards_v3.resize()
+      this.rewards_v4.resize()
+    }))
+
     for (const contract of [this.sienna, this.lpToken]) {
       contract.register('Admin')
       contract.register('MGMT')
@@ -109,49 +118,4 @@ export default class Dashboard extends Component {
     this.rewards_v3.update()
     this.rewards_v4.update()
   }
-}
-
-type Contracts = Record<string, any> 
-
-type Timer = ReturnType<typeof setTimeout>
-
-export class Environment extends Component {
-
-  static TAG   = 'x-environment'
-  static CLASS = 'Outside Environment'
-  static make  = (dashboard: Dashboard) =>
-    h(this.TAG, { className: this.CLASS, dashboard })
-  static _ = customElements.define(this.TAG, this)
-
-  #dashboard: any = null
-  get dashboard () { return this.#dashboard }
-  set dashboard (v: any) { this.#dashboard = v }
-
-  time = 0
-  rate = [60, 16]
-  timer: Timer|null = null
-
-  start () {
-    this.timer = setInterval(this.update.bind(this), this.rate[1])
-  }
-
-  pause () {
-    if (this.timer) clearInterval(this.timer)
-    this.timer = null
-  }
-
-  update () {
-    this.time += this.rate[0]
-    this.ui.time.value = `${this.time}s`
-    this.dashboard.update()
-  }
-
-  ui = {
-    title: this.add(h('header', { textContent: 'Environment' })),
-    time:  this.add(Field('Time', `${this.time}s`)),
-    rate:  this.add(Field('Speed', `${this.rate[0]}s per ${this.rate[1]}ms`)),
-    start: this.add(Button('START', () => this.start())),
-    pause: this.add(Button('PAUSE', () => this.pause())),
-  }
-
 }

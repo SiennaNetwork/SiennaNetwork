@@ -21,12 +21,16 @@ export default class Rewards extends ContractComponent {
     row:   this.add(h('div', { className: 'Row', style: 'flex-grow:0;flex-shrink:0' }))
   }
 
-  totals = append(this.ui.row)(h('div'))
+  totals = append(this.ui.row)(h('div', {style:'display:flex;flex-flow:column nowrap'}))
 
-  stakedPie = append(this.totals)(Pie())
-  volumePie = append(this.totals)(Pie())
+  stakedPie = append(this.totals)(Pie.make(this, 'staked'))
+  volumePie = append(this.totals)(Pie.make(this, 'volume'))
 
-  closed = append(this.totals)(Field('Closed', 'no'))
+  resize = () => {
+    this.stakedPie.resize()
+    this.volumePie.resize()
+  }
+
   staked = append(this.totals)(Field('Staked', 0))
   volume = append(this.totals)(Field('Volume', 0))
 
@@ -36,6 +40,10 @@ export default class Rewards extends ContractComponent {
   unlocked    = append(this.totals)(Field('Unlocked',    0))
   distributed = append(this.totals)(Field('Distributed', 0))
   budget      = append(this.totals)(Field('Budget',      0))
+
+  closed = append(this.totals)(Field('Closed', 'no'))
+  close = append(this.totals)(Button('Close', () => {}))
+  drain = append(this.totals)(Button('Drain', () => {}))
 
   userList     = append(this.ui.row)(h('div', { className: 'Outside Inside Users' }))
   newUser      = append(this.userList)(h('div', { className: 'Outside Inside AddUser' }))
@@ -84,6 +92,9 @@ export default class Rewards extends ContractComponent {
     this.update()
     this.dashboard.lpToken.update()
     this.users[id].update()
+
+    this.stakedPie.add
+    this.volumePie.add
   }
 
   withdraw (id: string, amount: BigInt) {
@@ -113,9 +124,20 @@ export default class Rewards extends ContractComponent {
   }
 
   update () {
-    for (const user of Object.values(this.users)) {
-      user.update(this.dashboard.environment.time)
-    }
+    const at = this.dashboard.environment.time
+    const {rewards:{pool_info}} = this.query({rewards:{pool_info:{at}}})
+    console.log(pool_info)
+    this.closed.value = pool_info.closed||'no'
+    this.staked.value = pool_info.staked
+    this.volume.value = pool_info.volume
+    this.updated.value = pool_info.updated
+    this.bonding.value = pool_info.bonding
+    this.unlocked.value    = format.SIENNA(BigInt(pool_info.unlocked))
+    this.distributed.value = format.SIENNA(BigInt(pool_info.distributed))
+    this.budget.value      = format.SIENNA(BigInt(pool_info.budget))
+    for (const user of Object.values(this.users)) user.update(at)
+    this.stakedPie.render()
+    this.volumePie.render()
   }
 }
 
