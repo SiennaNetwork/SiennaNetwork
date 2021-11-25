@@ -383,14 +383,15 @@ impl Context {
         // 1. User calls RequestMigration on NEW version of contract.
         // 2. NEW version calls ExportState(migrant) on OLD version of contract.
         let request = ImmigrationHandle::RequestMigration(last_version.link.clone());
-        let export  = EmigrationHandle::ExportState(migrant.clone());
+        let export  = Handle::Emigration(EmigrationHandle::ExportState(migrant.clone()));
         let id      = self.deps.canonize(migrant.clone()).unwrap();
         let receive_vk_snapshot = ImmigrationHandle::ReceiveMigration(
             to_binary(&((
                 migrant.clone(),
                 Auth::load_vk(&last_version.deps, id.as_slice()).unwrap().map(|vk|vk.0),
                 migrated_stake.into()
-            ) as AccountSnapshot)).unwrap());
+            ) as AccountSnapshot)).unwrap()
+        );
 
         self.test_handle(
             Handle::Immigration(request),
@@ -398,34 +399,43 @@ impl Context {
                 contract_addr:      last_version.link.address.clone(),
                 callback_code_hash: last_version.link.code_hash.clone(),
                 msg:  to_binary(&export).unwrap(),
-                send: vec![], })) );
+                send: vec![],
+            }))
+        );
 
         let mut export_result = HandleResponse::default().msg(
             self.lp_token.transfer(
                 &self.env.message.sender,
-                migrated_stake.into()).unwrap());
+                migrated_stake.into()
+            ).unwrap()
+        );
 
         if claimed_reward > 0 {
             export_result = export_result.unwrap().msg(
                 self.reward_token.transfer_from(
                     &self.env.message.sender,
                     &self.env.contract.address,
-                    claimed_reward.into()).unwrap()); }
+                    claimed_reward.into()
+                ).unwrap()
+            );
+        }
 
         export_result = export_result.unwrap().msg(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr:      self.link.address.clone(),
             callback_code_hash: self.link.code_hash.clone(),
             msg:  to_binary(&receive_vk_snapshot).unwrap(),
-            send: vec![], }));
+            send: vec![]
+        }));
 
         test_handle(
             &mut last_version.table,
             &mut last_version.deps,
             &env(&self.link.address, self.time),
             self.link.address.clone(),
-            Handle::Emigration(export),
+            export,
             export_result,
-            self.link.address.clone());
+            self.link.address.clone()
+        );
 
         self.test_handle(
             Handle::Immigration(receive_vk_snapshot),

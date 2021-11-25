@@ -196,10 +196,14 @@ pub enum Response {
                     contract_addr:      receiver.address,
                     callback_code_hash: receiver.code_hash,
                     send: vec![],
-                    msg: to_binary(&ImmigrationHandle::ReceiveMigration(snapshot))?,
+                    msg: self.receive_migration_msg(snapshot)?
                 }))?;
 
                 Ok(response)
+            }
+
+            fn receive_migration_msg (&self, snapshot: Binary) -> StdResult<Binary> {
+                to_binary(&Handle::Immigration(ImmigrationHandle::ReceiveMigration(snapshot)))
             }
         }
 
@@ -216,6 +220,10 @@ pub enum Response {
                 }
                 Account::from_env(self, &env)?.commit_deposit(self, staked)?;
                 HandleResponse::default().log("migrated", &staked.to_string())
+            }
+
+            fn export_state_msg (&self, env: Env) -> StdResult<Binary> {
+                to_binary(&Handle::Emigration(EmigrationHandle::ExportState(env.message.sender)))
             }
         }
 

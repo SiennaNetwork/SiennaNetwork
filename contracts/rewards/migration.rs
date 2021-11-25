@@ -91,7 +91,7 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let receiver = self.can_export_state(env, migrant)?;
         let response = HandleResponse::default();
         if let Some(snapshot) = self.export_state(env, migrant)? {
-            let msg = ImmigrationHandle::ReceiveMigration(snapshot);
+            let msg = self.receive_migration_msg(snapshot)?;
             response.msg(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr:      receiver.address,
                 callback_code_hash: receiver.code_hash,
@@ -101,6 +101,12 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         } else {
             Ok(response)
         }
+    }
+
+    /// Override this to wrap ImmigrationHandle in contract's root Handle type,
+    /// so that `{"receive_migration":...}` can become `{"immigration":{"receive_migration":...}`
+    fn receive_migration_msg (&self, snapshot: Binary) -> StdResult<Binary> {
+        to_binary(&ImmigrationHandle::ReceiveMigration(snapshot))
     }
 
     /// Override this to return a serialized version of your migration snapshot object
@@ -168,13 +174,18 @@ pub trait Immigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     fn handle_request_migration (&mut self, env: Env, prev: ContractLink<HumanAddr>)
         -> StdResult<HandleResponse>
     {
-        HandleResponse::default()
-            .msg(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr:      prev.address,
-                callback_code_hash: prev.code_hash,
-                send:               vec![],
-                msg: to_binary(&EmigrationHandle::ExportState(env.message.sender))?,
-            }))
+        HandleResponse::default().msg(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr:      prev.address,
+            callback_code_hash: prev.code_hash,
+            send:               vec![],
+            msg: self.export_state_msg(env)?,
+        }))
+    }
+
+    /// Override this to wrap EmigrationHandle in contract's root Handle type.
+    /// so that `{"export_state":...}` can become `{"emigration":{"export_state":...}`
+    fn export_state_msg (&self, env: Env) -> StdResult<Binary> {
+        to_binary(&EmigrationHandle::ExportState(env.message.sender))
     }
 
     /// Override this to emit the corresponding messages, if migrating via transactions

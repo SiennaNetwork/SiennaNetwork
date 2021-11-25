@@ -4,7 +4,8 @@ Time,Sender,Recipient,Data
   request_migration:
     address: 0301_migrate_v1_addr
     code_hash: 0301_migrate_v1_hash"
-tx,0301_migrate_v2_addr,0301_migrate_v1_addr,export_state: Alice
+tx,0301_migrate_v2_addr,0301_migrate_v1_addr,"emigration:
+  export_state: Alice"
 ,,,
 1,Alice,0301_migrate_v2_addr,"immigration:
   receive_migration: WyJBbGljZSIsIiIsIjg1NTk2Il0="
