@@ -1,11 +1,17 @@
-import { h, append } from '../helpers'
+import { h, append, format } from '../helpers'
 import Component from '../Component'
-import ContractComponent from './Contract'
+import ContractComponent from '../Cosmos'
 import Field  from '../widgets/Field'
 import Button from '../widgets/Button'
 import Pie    from '../widgets/PieChart'
 
-export class Rewards extends ContractComponent {
+export default class Rewards extends ContractComponent {
+
+  static TAG   = 'x-rewards'
+  static _     = customElements.define(this.TAG, this)
+  static CLASS = 'Outside Module Rewards'
+  static make  = (dashboard: any, id: string) => h(this.TAG, { className: this.CLASS, dashboard, id })
+
   #dashboard: any = null
   get dashboard () { return this.#dashboard }
   set dashboard (v: any) { this.#dashboard = v }
@@ -54,7 +60,7 @@ export class Rewards extends ContractComponent {
   users: Record<string, User> = {}
 
   register (id: string) {
-    append(this.userList)(this.users[id] = user(this, id))
+    append(this.userList)(this.users[id] = User.make(this, id))
     this.handle(id, {set_viewing_key:{key:""}})
   }
 
@@ -114,6 +120,12 @@ export class Rewards extends ContractComponent {
 }
 
 export class User extends Component {
+
+  static TAG   = 'x-user'
+  static _     = customElements.define(this.TAG, this)
+  static CLASS = 'Outside User'
+  static make  = (pool: Rewards, id: string) => h('x-user', { pool, id, className: 'Outside User' }) as User
+
   #pool: Rewards|null = null
   get pool () { return this.#pool as Rewards }
   set pool (v: Rewards) { this.#pool = v }
@@ -168,22 +180,10 @@ export class User extends Component {
     this.ui.volume.value                   = user_info.volume
     this.ui.starting_pool_volume.value     = user_info.starting_pool_volume
     this.ui.accumulated_pool_volume.value  = user_info.accumulated_pool_volume
-    this.ui.starting_pool_rewards.value    = user_info.starting_pool_rewards
-    this.ui.accumulated_pool_rewards.value = user_info.accumulated_pool_rewards
+    this.ui.starting_pool_rewards.value    = format.SIENNA(user_info.starting_pool_rewards)
+    this.ui.accumulated_pool_rewards.value = format.SIENNA(user_info.accumulated_pool_rewards)
     this.ui.bonding.value                  = user_info.bonding
-    this.ui.earned.value                   = user_info.earned
+    this.ui.earned.value                   = format.SIENNA(user_info.earned)
   }
 
-}
-
-customElements.define('x-rewards', Rewards)
-
-export default function rewards (dashboard: any, id: string) {
-  return h('x-rewards', { id, className: `Outside Module Rewards ${id}`, dashboard })
-}
-
-customElements.define('x-user', User)
-
-export function user (pool: Rewards, id: string): User {
-  return h('x-user', { pool, id, className: 'Outside User' }) as User
 }

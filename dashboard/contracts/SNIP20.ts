@@ -1,13 +1,13 @@
 import { h } from '../helpers'
-import ContractComponent from './Contract'
 import field from '../widgets/Field'
+import ContractComponent from '../Cosmos'
 
 export default class SNIP20 extends ContractComponent {
 
   static TAG   = 'x-snip20'
+  static _     = customElements.define(this.TAG, this)
   static CLASS = 'Outside Module SNIP20'
-  static make  = (id: string) =>
-    h(this.TAG, { className: this.CLASS, id })
+  static make  = (id: string) => h(this.TAG, { className: this.CLASS, id })
 
   #id: string = ""
   get id () { return this.#id }
@@ -59,5 +59,3 @@ export default class SNIP20 extends ContractComponent {
   }
 
 }
-
-customElements.define('x-snip20', SNIP20)

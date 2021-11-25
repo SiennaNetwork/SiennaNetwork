@@ -2,7 +2,7 @@ import './style/reset.css'
 import './style/base.css'
 import './style/layout.css'
 
-import {Cosmos} from './contracts/Contract'
+import {Cosmos}  from './Cosmos'
 import Dashboard from './Dashboard'
 import {append}  from './helpers'
 

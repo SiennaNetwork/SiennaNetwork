@@ -1,11 +1,11 @@
-import { encode, decode } from '../helpers'
-import Component from '../Component'
+import { encode, decode } from './helpers'
+import Component from './Component'
 
-import initSIENNA,  * as SIENNA  from '../artifacts/sienna/sienna.js'
-import initLPToken, * as LPToken from '../artifacts/lptoken/lptoken.js'
-import initMGMT,    * as MGMT    from '../artifacts/mgmt/mgmt.js'
-import initRPT,     * as RPT     from '../artifacts/rpt/rpt.js'
-import initRewards, * as Rewards from '../artifacts/rewards/rewards.js'
+import initSIENNA,  * as SIENNA  from './artifacts/sienna/sienna.js'
+import initLPToken, * as LPToken from './artifacts/lptoken/lptoken.js'
+import initMGMT,    * as MGMT    from './artifacts/mgmt/mgmt.js'
+import initRPT,     * as RPT     from './artifacts/rpt/rpt.js'
+import initRewards, * as Rewards from './artifacts/rewards/rewards.js'
 
 const debug = (obj:any) => console.debug(JSON.stringify(obj))
 
@@ -28,7 +28,6 @@ export class Cosmos {
   ]
 
   static async loadContracts () {
-
     await Promise.all(Cosmos.CONTRACTS.map(async ([blob, load])=>{
       const url = new URL(blob, location.href)
       debug({load:url.toString()})
@@ -36,7 +35,6 @@ export class Cosmos {
       const buf = await res.arrayBuffer()
       await load(buf)
     }))
-
     return {
       SIENNA:  SIENNA.Contract,
       LPToken: LPToken.Contract,
@@ -44,7 +42,6 @@ export class Cosmos {
       RPT:     RPT.Contract,
       Rewards: Rewards.Contract
     }
-
   }
 
   contracts: Record<string, IContract> = {}

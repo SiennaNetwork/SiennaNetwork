@@ -1,6 +1,6 @@
 import { h, append, format } from '../helpers'
 import Component             from '../Component'
-import ContractComponent     from './Contract'
+import ContractComponent     from '../Cosmos'
 import Field                 from '../widgets/Field'
 import schedule              from '../../settings/schedule.json'
 import Button                from '../widgets/Button'
@@ -11,6 +11,7 @@ export class MGMT extends ContractComponent {
   static CLASS = 'Outside Module MGMT'
   static make  = () =>
     h(this.TAG, { className: this.CLASS })
+  static _ = customElements.define(this.TAG, this)
 
   initMsg = {
     schedule,
@@ -53,6 +54,7 @@ export class RPT extends ContractComponent {
   static CLASS = 'Outside Module RPT'
   static make  = (dashboard: any) =>
     h(this.TAG, { className: this.CLASS, dashboard })
+  static _ = customElements.define(this.TAG, this)
 
   #dashboard: any = null
   get dashboard () { return this.#dashboard }
@@ -99,6 +101,7 @@ export class Microservice extends Component {
   static CLASS = 'Outside Microservice'
   static make  = (dashboard: any) =>
     h(this.TAG, { className: this.CLASS, dashboard })
+  static _ = customElements.define(this.TAG, this)
 
   #dashboard: any = null
   get dashboard () { return this.#dashboard }
@@ -120,7 +123,3 @@ export class Microservice extends Component {
   }
 
 }
-
-customElements.define('x-mgmt',         MGMT)
-customElements.define('x-rpt',          RPT)
-customElements.define('x-microservice', Microservice)

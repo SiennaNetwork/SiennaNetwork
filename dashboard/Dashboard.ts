@@ -3,10 +3,10 @@ import Component     from './Component'
 import Field         from './widgets/Field'
 import Button        from './widgets/Button'
 import SNIP20        from './contracts/SNIP20'
+import Rewards       from './contracts/Rewards'
 import { MGMT, RPT, Microservice } from './contracts/TGE'
-import rewards, { Rewards } from './contracts/Rewards'
 
-import {Cosmos} from './contracts/Contract'
+import {Cosmos} from './Cosmos'
 
 export default class Dashboard extends Component {
 
@@ -14,21 +14,22 @@ export default class Dashboard extends Component {
   static CLASS = 'Outside Dashboard'
   static make  = (contracts: Record<string, any>) =>
     h(this.TAG, { className: this.CLASS, contracts })
+  static _ = customElements.define(this.TAG, this)
 
   row1 = this.add(h('div', { className: 'Row', style: 'flex-grow:0;flex-shrink:0' }))
   environment  = append(this.row1)(Environment.make(this))
   microservice = append(this.row1)(Microservice.make(this))
 
-  row2 = this.add(h('div', { className: 'Row', style: 'flex-grow:1' }))
+  row2 = this.add(h('div', { className: 'Row', style: 'flex-grow:0' }))
   lpToken = append(this.row2)(SNIP20.make('LPTOKEN'))
   sienna  = append(this.row2)(SNIP20.make('SIENNA'))
   mgmt    = append(this.row2)(MGMT.make())
   rpt     = append(this.row2)(RPT.make(this))
 
   row3 = this.add(h('div', { className: 'Row', style: 'flex-grow:3' }))
-  rewards_v3 = append(this.row3)(rewards(this, 'v3'))
+  rewards_v3 = append(this.row3)(Rewards.make(this, 'v3'))
   migrate    = append(this.row3)(Button('Migrate', () => this.performMigration()))
-  rewards_v4 = append(this.row3)(rewards(this, 'v4'))
+  rewards_v4 = append(this.row3)(Rewards.make(this, 'v4'))
 
   #contracts: Contracts|null = null
   set contracts (v: Contracts) {
@@ -120,6 +121,7 @@ export class Environment extends Component {
   static CLASS = 'Outside Environment'
   static make  = (dashboard: Dashboard) =>
     h(this.TAG, { className: this.CLASS, dashboard })
+  static _ = customElements.define(this.TAG, this)
 
   #dashboard: any = null
   get dashboard () { return this.#dashboard }
@@ -153,6 +155,3 @@ export class Environment extends Component {
   }
 
 }
-
-customElements.define('x-dashboard',   Dashboard)
-customElements.define('x-environment', Environment)
