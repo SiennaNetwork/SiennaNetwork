@@ -105,9 +105,9 @@ export class Microservice extends Component {
   epoch = 0
 
   ui = {
-    title: this.add(h('header', { textContent: 'Microservice' })),
+    //title: this.add(h('header', { textContent: 'Microservice' })),
     epoch: this.add(Field('Epoch', this.epoch)),
-    next:  this.add(Button.make('NEXT', () => this.nextEpoch()))
+    //next:  this.add(Button.make('NEXT', () => this.nextEpoch()))
   }
 
   nextEpoch () {

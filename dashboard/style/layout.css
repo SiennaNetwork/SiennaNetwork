@@ -95,12 +95,16 @@ x-button:active {
 .Outside.Microservice {
   grid-column-start: 3; grid-column-end: 5;
   grid-row-start:    1; grid-row-end:    2;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
 }
 .Inside.Microservice {
   display:         flex;
   flex-flow:       row nowrap;
   align-items:     center;
   justify-content: stretch;
+  flex-grow: 1;
 }
 .Inside.Microservice > * {
   flex-grow: 1;

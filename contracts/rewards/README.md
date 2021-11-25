@@ -109,6 +109,6 @@ To migrate:
 2. Enable migration to new contract in old contract
 3. Enable migration from old contract in new contract
 4. Each user calls RequestMigration to move from old to new contract
-5. When migration window is over, call ClosePool on old contract
+5. Call ClosePool on old contract
 
 ![](./doc/migration_flow.png)

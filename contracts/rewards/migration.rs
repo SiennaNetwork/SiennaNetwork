@@ -94,23 +94,21 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let receiver = self.can_export_state(env, migrant)?;
         let response = HandleResponse::default();
         if let Some(snapshot) = self.export_state(env, migrant)? {
-            let msg = self.wrap_serialize(snapshot)?;
+            let msg = self.wrap_receive_msg(ImmigrationHandle::ReceiveMigration(snapshot))?;
             response.msg(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr:      receiver.address,
                 callback_code_hash: receiver.code_hash,
-                send:               vec![],
-                msg: to_binary(&msg)?,
+                send: vec![],
+                msg,
             }))
         } else {
             Ok(response)
         }
     }
 
-    /// Override this to wrap ImmigrationHandle in contract's root Handle type,
+    /// Implement this to wrap ImmigrationHandle in contract's root Handle type,
     /// so that `{"receive_migration":...}` can become `{"immigration":{"receive_migration":...}`
-    fn wrap_serialize (&self, snapshot: Binary) -> StdResult<Binary> {
-        to_binary(&ImmigrationHandle::ReceiveMigration(snapshot))
-    }
+    fn wrap_receive_msg (&self, msg: ImmigrationHandle) -> StdResult<Binary>;
 
     /// Override this to return a serialized version of your migration snapshot object
     /// if you are migrating via snapshots.
@@ -181,15 +179,13 @@ pub trait Immigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             contract_addr:      prev.address,
             callback_code_hash: prev.code_hash,
             send:               vec![],
-            msg: self.wrap_serialize(env)?,
+            msg: self.wrap_export_msg(EmigrationHandle::ExportState(env.message.sender))?,
         }))
     }
 
-    /// Override this to wrap EmigrationHandle in contract's root Handle type.
+    /// Implement this to wrap EmigrationHandle in contract's root Handle type.
     /// so that `{"export_state":...}` can become `{"emigration":{"export_state":...}`
-    fn wrap_serialize (&self, env: Env) -> StdResult<Binary> {
-        to_binary(&EmigrationHandle::ExportState(env.message.sender))
-    }
+    fn wrap_export_msg (&self, msg: EmigrationHandle) -> StdResult<Binary>;
 
     /// Override this to emit the corresponding messages, if migrating via transactions
     fn handle_receive_migration (&mut self, env: Env, data: Binary) -> StdResult<HandleResponse> {

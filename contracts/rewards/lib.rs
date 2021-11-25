@@ -198,14 +198,14 @@ pub enum Response {
                     contract_addr:      receiver.address,
                     callback_code_hash: receiver.code_hash,
                     send: vec![],
-                    msg: self.receive_migration_msg(snapshot)?
+                    msg: self.wrap_receive_msg(ImmigrationHandle::ReceiveMigration(snapshot))?
                 }))?;
 
                 Ok(response)
             }
 
-            fn receive_migration_msg (&self, snapshot: Binary) -> StdResult<Binary> {
-                to_binary(&Handle::Immigration(ImmigrationHandle::ReceiveMigration(snapshot)))
+            fn wrap_receive_msg (&self, msg: ImmigrationHandle) -> StdResult<Binary> {
+                to_binary(&Handle::Immigration(msg))
             }
         }
 
@@ -215,17 +215,22 @@ pub enum Response {
             {
                 let (migrant, vk, staked): AccountSnapshot = from_slice(&data.as_slice())?;
                 let id = self.canonize(migrant.clone())?;
+                // Set the migrant's viewing key
                 if let Some(vk) = vk {
                     // for some reason it does not see Auth as implemented
                     //Auth::save_vk(&mut core, id.as_slice(), &vk)?;
                     self.set_ns(crate::auth::VIEWING_KEYS, id.as_slice(), &vk)?;
                 }
-                Account::from_env(self, &env)?.commit_deposit(self, staked)?;
-                HandleResponse::default().log("migrated", &staked.to_string())
+                // Add the LP tokens transferred by the migration
+                // to the migrant's new account
+                Account::from_addr(self, &migrant, env.block.time)?
+                    .commit_deposit(self, staked)?;
+                HandleResponse::default()
+                    .log("migrated", &staked.to_string())
             }
 
-            fn export_state_msg (&self, env: Env) -> StdResult<Binary> {
-                to_binary(&Handle::Emigration(EmigrationHandle::ExportState(env.message.sender)))
+            fn wrap_export_msg (&self, msg: EmigrationHandle) -> StdResult<Binary> {
+                to_binary(&Handle::Emigration(msg))
             }
         }
 

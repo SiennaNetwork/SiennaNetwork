@@ -6,10 +6,11 @@ participant Old
 participant New
 participant LPToken
 
-== Begin ==
-Admin -> New: deploy
+== Initiate migration ==
+Admin -> New: Deploy new version
 Admin -> Old: EmigrationHandle::EnableMigrationTo(New)
 Admin -> New: ImmigrationHandle::EnableMigrationFrom(Old)
+Admin -> Old: ClosePool
 
 == Migrate ==
 User -> New: ImmigrationHandle::RequestMigration
@@ -17,10 +18,5 @@ New -> Old: EmigrationHandle::ExportState
 Old -> LPToken: Transfer(stake)
 LPToken -> New: (transfers)
 Old -> New: ImmigrationHandle::ReceiveMigration
-
-== End ==
-Admin -> Old: EmigrationHandle::DisableMigrationTo(New)
-Admin -> New: ImmigrationHandle::DisableMigrationFrom(Old)
-Admin -> Old: ClosePool
 
 @enduml

@@ -192,7 +192,7 @@ export class Environment extends Component {
   }
 
   ui = {
-    title: this.add(h('header', { textContent: 'Environment' })),
+    //title: this.add(h('header', { textContent: 'Environment' })),
     time:  this.add(Field('Time', `${this.time}s`)),
     rate:  this.add(Field('Speed', `${this.rate[0]}s per ${this.rate[1]}ms`)),
     start: this.add(Button.make('START', () => this.start())),

@@ -99,7 +99,8 @@ export default class Dashboard extends Component {
 
   performMigration () {
     if (this.rewards === this.rewards_v3) {
-      this.rpt.handle("Admin", {"configure":{"config":[["REWARDS_v4_addr","2500"]]}})
+      this.rewards = this.rewards_v4
+      this.rpt.handle("Admin", {"configure":{"config":[["REWARDS_V4_addr","2500"]]}})
       this.rpt.update()
       this.rewards_v3.handle("Admin", {
         emigration:{enable_migration_to:{
