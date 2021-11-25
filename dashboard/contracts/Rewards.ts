@@ -126,7 +126,6 @@ export default class Rewards extends ContractComponent {
   update () {
     const at = this.dashboard.environment.time
     const {rewards:{pool_info}} = this.query({rewards:{pool_info:{at}}})
-    console.log(pool_info)
     this.closed.value = pool_info.closed||'no'
     this.staked.value = pool_info.staked
     this.volume.value = pool_info.volume

@@ -186,9 +186,11 @@ pub enum Response {
                 let mut response = HandleResponse::default();
 
                 if staked > Amount::zero() {
+                    // Write off the user's LP tokens as withdrawn
                     account.commit_withdrawal(self, staked)?;
+                    // Transfer LP tokens directly to the new version
                     response = response.msg(
-                        RewardsConfig::lp_token(self)?.transfer(&migrant, staked)?
+                        RewardsConfig::lp_token(self)?.transfer(&env.message.sender, staked)?
                     )?;
                 }
 

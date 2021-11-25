@@ -47,6 +47,7 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         }
     }
 
+    /// Allow another contract to receive migrations from this contract
     fn handle_enable_migration_to (&mut self, env: Env, next: ContractLink<HumanAddr>)
         -> StdResult<HandleResponse>
     {
@@ -56,6 +57,7 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         Ok(HandleResponse::default())
     }
 
+    /// Stop allowing another contract to receive migrations from this contract
     fn handle_disable_migration_to (&mut self, env: Env, next: ContractLink<HumanAddr>)
         -> StdResult<HandleResponse>
     {
@@ -65,10 +67,11 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         Ok(HandleResponse::default())
     }
 
+    /// Check if a `ExportState` call is permissible
     fn can_export_state (&mut self, env: &Env, migrant: &HumanAddr)
         -> StdResult<ContractLink<HumanAddr>>
     {
-        // The ExportState transaction cannot be called manually by the user;
+        // The ExportState transaction is not meat to be called manually by the user;
         // it must be called by the contract which is receiving the migration
         if &env.message.sender == migrant {
             return Err(StdError::generic_err("This handler must be called as part of a transaction"))
@@ -86,12 +89,12 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Override this to emit the corresponding messages, if migrating via transactions.
-    /// Make sure to keep can_export_state call in the override.
+    /// (Make sure to keep the `can_export_state` call in the override!)
     fn handle_export_state (&mut self, env: &Env, migrant: &HumanAddr) -> StdResult<HandleResponse> {
         let receiver = self.can_export_state(env, migrant)?;
         let response = HandleResponse::default();
         if let Some(snapshot) = self.export_state(env, migrant)? {
-            let msg = self.receive_migration_msg(snapshot)?;
+            let msg = self.wrap_serialize(snapshot)?;
             response.msg(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr:      receiver.address,
                 callback_code_hash: receiver.code_hash,
@@ -105,7 +108,7 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     /// Override this to wrap ImmigrationHandle in contract's root Handle type,
     /// so that `{"receive_migration":...}` can become `{"immigration":{"receive_migration":...}`
-    fn receive_migration_msg (&self, snapshot: Binary) -> StdResult<Binary> {
+    fn wrap_serialize (&self, snapshot: Binary) -> StdResult<Binary> {
         to_binary(&ImmigrationHandle::ReceiveMigration(snapshot))
     }
 
@@ -178,13 +181,13 @@ pub trait Immigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
             contract_addr:      prev.address,
             callback_code_hash: prev.code_hash,
             send:               vec![],
-            msg: self.export_state_msg(env)?,
+            msg: self.wrap_serialize(env)?,
         }))
     }
 
     /// Override this to wrap EmigrationHandle in contract's root Handle type.
     /// so that `{"export_state":...}` can become `{"emigration":{"export_state":...}`
-    fn export_state_msg (&self, env: Env) -> StdResult<Binary> {
+    fn wrap_serialize (&self, env: Env) -> StdResult<Binary> {
         to_binary(&EmigrationHandle::ExportState(env.message.sender))
     }
 

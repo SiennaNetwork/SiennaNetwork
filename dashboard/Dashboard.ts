@@ -1,9 +1,9 @@
 import { h, append, throttle } from './helpers'
-import Component       from './Component'
-import Button          from './widgets/Button'
-import SNIP20          from './contracts/SNIP20'
-import Rewards         from './contracts/Rewards'
-import { Environment } from './Cosmos'
+import Component         from './Component'
+import Button            from './widgets/Button'
+import SNIP20            from './contracts/SNIP20'
+import Rewards, { User } from './contracts/Rewards'
+import { Environment }   from './Cosmos'
 import { MGMT, RPT, Microservice } from './contracts/TGE'
 
 import {Cosmos} from './Cosmos'
@@ -116,13 +116,24 @@ export default class Dashboard extends Component {
       for (const id of Object.keys(this.rewards_v3.users).sort()) {
         this.rewards_v4.users[id] =
           append(this.rewards_v4.userList)(Button.make(`Migrate ${id}`, () => {
-            this.rewards_v4.handle("Admin", {
+            console.log(`Migrate ${id}...`)
+            this.rewards_v4.handle(id, {
               immigration:{request_migration:{
                 address:   "REWARDS_V3_addr",
                 code_hash: "REWARDS_V3_hash"
               }}
             })
+            const user = User.make(this.rewards_v4, id)
+            this.rewards_v4.users[id].parentElement.replaceChild(
+              user,
+              this.rewards_v4.users[id]
+            )
+            this.rewards_v4.users[id] = user
             this.rewards_v4.update()
+            user.update()
+            this.rewards_v3.update()
+            this.lpToken.update()
+            console.log(`Migrated ${id}.`)
           }))
       }
     }
