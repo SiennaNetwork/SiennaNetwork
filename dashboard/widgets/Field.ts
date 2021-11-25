@@ -6,14 +6,8 @@ export class Field extends HTMLElement {
   root = this.attachShadow({ mode: 'open' })
   add = append(this.root)
   ui = {
-    label: this.add(h('label')),
-    value: this.add(h('div', {style:'white-space:nowrap'}))
-  }
-
-  constructor () {
-    super()
-    this.ui.label.style.fontWeight = 'bold'
-    this.ui.label.style.flexGrow   = 1
+    label: this.add(h('label', {style:'font-weight:normal;flex-grow:1;white-space:nowrap'})),
+    value: this.add(h('div',   {style:'font-weight:bold;white-space:nowrap'}))
   }
 
   #value: any = null
@@ -43,5 +37,9 @@ export class Field extends HTMLElement {
 customElements.define('x-field', Field)
 
 export default function field (label: string, value: any) {
-  return h('x-field', { label, value, className: label.replace(/ /g, '_') })
+  return h('x-field', {
+    label,
+    value,
+    className: label.replace(/ /g, '_')
+  })
 }

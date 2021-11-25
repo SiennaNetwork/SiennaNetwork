@@ -151,6 +151,9 @@ x-button:active {
   flex-grow: 1;
 }
 
+.Outside.User {
+  margin-bottom: 1rem;
+}
 .Inside.User {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;

@@ -30,7 +30,7 @@ export default class Dashboard extends Component {
 
   row3 = this.add(h('div', { className: 'Row', style: 'flex-grow:3' }))
   rewards_v3 = append(this.row3)(Rewards.make(this, 'v3'))
-  migrate    = append(this.row3)(Button('Migrate', () => this.performMigration()))
+  migrate    = append(this.row3)(Button.make('Migrate', () => this.performMigration()))
   rewards_v4 = append(this.row3)(Rewards.make(this, 'v4'))
 
   #contracts: Contracts|null = null
@@ -95,8 +95,37 @@ export default class Dashboard extends Component {
     this.mgmt.launch()
   }
 
+  rewards = this.rewards_v3
+
   performMigration () {
-    this.rpt.performMigration()
+    if (this.rewards === this.rewards_v3) {
+      this.rpt.handle("Admin", {"configure":{"config":[["REWARDS_v4_addr","2500"]]}})
+      this.rpt.update()
+      this.rewards_v3.handle("Admin", {
+        emigration:{enable_migration_to:{
+          address:   "REWARDS_V4_addr",
+          code_hash: "REWARDS_V4_hash"
+        }}
+      })
+      this.rewards_v4.handle("Admin", {
+        immigration:{enable_migration_from:{
+          address:   "REWARDS_V3_addr",
+          code_hash: "REWARDS_V3_hash"
+        }}
+      })
+      for (const id of Object.keys(this.rewards_v3.users).sort()) {
+        this.rewards_v4.users[id] =
+          append(this.rewards_v4.userList)(Button.make(`Migrate ${id}`, () => {
+            this.rewards_v4.handle("Admin", {
+              immigration:{request_migration:{
+                address:   "REWARDS_V3_addr",
+                code_hash: "REWARDS_V3_hash"
+              }}
+            })
+            this.rewards_v4.update()
+          }))
+      }
+    }
   }
 
   ids: Array<string> = []
@@ -108,8 +137,7 @@ export default class Dashboard extends Component {
     this.lpToken.register(id)
     console.debug('MINT', id, balance)
     this.lpToken.mint(id, balance)
-    this.rewards_v3.register(id)
-    this.rewards_v4.register(id)
+    this.rewards.register(id)
     this.nextUser++;
     return id
   }

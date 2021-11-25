@@ -42,14 +42,14 @@ export default class Rewards extends ContractComponent {
   budget      = append(this.totals)(Field('Budget',      0))
 
   closed = append(this.totals)(Field('Closed', 'no'))
-  close = append(this.totals)(Button('Close', () => {}))
-  drain = append(this.totals)(Button('Drain', () => {}))
+  close = append(this.totals)(Button.make('Close', () => {}))
+  drain = append(this.totals)(Button.make('Drain', () => {}))
 
   userList     = append(this.ui.row)(h('div', { className: 'Outside Inside Users' }))
   newUser      = append(this.userList)(h('div', { className: 'Outside Inside AddUser' }))
   newUserLabel = append(this.newUser)(Field('New user', ''))
-  deposit1     = append(this.newUser)(Button('+1',   () => this.addUser(1n)))
-  deposit100   = append(this.newUser)(Button('+100', () => this.addUser(100n)))
+  deposit1     = append(this.newUser)(Button.make('+1',   () => this.addUser(1n)))
+  deposit100   = append(this.newUser)(Button.make('+100', () => this.addUser(100n)))
 
   initMsg = {
     config: {
@@ -65,7 +65,7 @@ export default class Rewards extends ContractComponent {
     this.ui.title.textContent = `Rewards ${id}`
   }
 
-  users: Record<string, User> = {}
+  users: Record<string, User|Button> = {}
 
   register (id: string) {
     append(this.userList)(this.users[id] = User.make(this, id))
@@ -170,11 +170,11 @@ export class User extends Component {
     bonding:                  this.add(Field('Remaining bonding period',   0)),
     earned:                   this.add(Field('Earned rewards',             0)),
 
-    withdraw100: this.add(Button( '-100', () => this.withdraw(100n))),
-    withdraw1:   this.add(Button(   '-1', () => this.withdraw(1n))),
-    deposit1:    this.add(Button(   '+1', () => this.deposit(1n))),
-    deposit100:  this.add(Button( '+100', () => this.deposit(100n))),
-    claim:       this.add(Button('Claim', () => this.claim())),
+    withdraw100: this.add(Button.make( '-100', () => this.withdraw(100n))),
+    withdraw1:   this.add(Button.make(   '-1', () => this.withdraw(1n))),
+    deposit1:    this.add(Button.make(   '+1', () => this.deposit(1n))),
+    deposit100:  this.add(Button.make( '+100', () => this.deposit(100n))),
+    claim:       this.add(Button.make('Claim', () => this.claim())),
   }
 
   deposit (amount: BigInt) {

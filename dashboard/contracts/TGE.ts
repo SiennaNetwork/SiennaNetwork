@@ -88,11 +88,6 @@ export class RPT extends ContractComponent {
     this.handle("", {vest: {}})
     this.update()
   }
-
-  performMigration () {
-    this.handle("Admin", {"configure":{"config":[["REWARDS_v4_addr","2500"]]}})
-    this.update()
-  }
 }
 
 export class Microservice extends Component {
@@ -112,7 +107,7 @@ export class Microservice extends Component {
   ui = {
     title: this.add(h('header', { textContent: 'Microservice' })),
     epoch: this.add(Field('Epoch', this.epoch)),
-    next:  this.add(Button('NEXT', () => this.nextEpoch()))
+    next:  this.add(Button.make('NEXT', () => this.nextEpoch()))
   }
 
   nextEpoch () {

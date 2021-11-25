@@ -187,6 +187,7 @@ export class Environment extends Component {
     this.time += this.rate[0]
     Cosmos.default.time = this.time
     this.ui.time.value = `${this.time}s`
+    if (this.time % 86400 === 0) this.dashboard.microservice.nextEpoch()
     this.dashboard.update()
   }
 
@@ -194,8 +195,8 @@ export class Environment extends Component {
     title: this.add(h('header', { textContent: 'Environment' })),
     time:  this.add(Field('Time', `${this.time}s`)),
     rate:  this.add(Field('Speed', `${this.rate[0]}s per ${this.rate[1]}ms`)),
-    start: this.add(Button('START', () => this.start())),
-    pause: this.add(Button('PAUSE', () => this.pause())),
+    start: this.add(Button.make('START', () => this.start())),
+    pause: this.add(Button.make('PAUSE', () => this.pause())),
   }
 
 }
