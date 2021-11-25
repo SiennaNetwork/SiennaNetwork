@@ -82,14 +82,14 @@ export class Snip20Executor extends ViewingKeyExecutor {
         recipient: Address,
         amount: Uint128,
         msg?: object | null,
-        padding?: string | null
+        padding?: string
     ): Promise<ExecuteResult> {
         const message = {
             send: {
-                amount,
                 recipient,
+                amount,
                 padding,
-                msg: msg ? create_base64_msg(msg) : null
+                msg: msg ? create_base64_msg(msg) : undefined
             }
         }
 
@@ -132,6 +132,11 @@ export class Snip20Querier extends Querier {
         }
 
         const result = await this.run(msg) as GetBalanceResponse
+        
+        if (result.viewing_key_error) {
+            throw new Error(result.viewing_key_error.msg || "Something went wrong with the viewing key")
+        }
+        
         return result.balance.amount
     }
 
@@ -161,6 +166,9 @@ interface GetAllowanceResponse {
 interface GetBalanceResponse {
     balance: {
         amount: Uint128
+    },
+    viewing_key_error?: {
+        msg?: string,
     }
 }
 

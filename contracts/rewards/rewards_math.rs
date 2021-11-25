@@ -9,7 +9,10 @@
 //! then, during read-only queries the new "current" can be computes based on
 //! the stored value and the elapsed time since the last such transaction.
 
-use fadroma::scrt::{cosmwasm_std::{StdResult, StdError, Uint128}, utils::Uint256};
+use fadroma::{
+    scrt::{StdResult, StdError, Uint128},
+    scrt_uint256::Uint256
+};
 
 /// A monotonic time counter, such as env.block.time or env.block.height
 pub type Time   = u64;

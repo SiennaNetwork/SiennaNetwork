@@ -98,25 +98,21 @@ export class LaunchpadExecutor extends ViewingKeyExecutor {
 
         const fee = this.fee || create_fee('350000')
         const snip20 = new Snip20Contract(token_address, this.client)
-        return snip20.exec(fee, this.memo).send(this.address, amount, msg, null)
+        return snip20.exec(fee, this.memo).send(this.address, amount, msg)
     }
 
     async unlock(entries: number, token_address?: Address): Promise<ExecuteResult> {
         token_address = await this.verify_token_address(token_address);
 
-        const msg = {
-            unlock: {
-                entries
-            }
-        }
+        const msg = { unlock: { entries } }
 
         if (!token_address) {
             return await this.run(msg, "280000")
         }
 
-        const fee = this.fee || create_fee('350000')
+        const fee = this.fee || create_fee('400000')
         const snip20 = new Snip20Contract(token_address, this.client)
-        return snip20.exec(fee, this.memo).send(this.address, '0', msg, null)
+        return snip20.exec(fee, this.memo).send(this.address, '0', msg)
     }
 
     async admin_add_token(config: TokenSettings) {

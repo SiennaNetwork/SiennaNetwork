@@ -1,8 +1,29 @@
 on: [push, pull_request]
 name: Project-wide tasks
 jobs:
+
   docs:
     name: Rust documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          {
+            profile: minimal,
+            toolchain: 1.49.0,
+            target: wasm32-unknown-unknown,
+            override: true,
+          }
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with: { submodules: true }
+      - uses: Swatinem/rust-cache@v1
+      - name: Generate documentation
+        run: cargo doc
+
+  schema:
+    name: API schema of all contracts
     runs-on: ubuntu-latest
     steps:
       - name: Install Node and Yarn
@@ -23,32 +44,9 @@ jobs:
       - uses: Swatinem/rust-cache@v1
       - name: Install JS dependencies
         run: npm install -g pnpm && pnpm install
-      - name: Generate documentation
-        run: ./sienna docs
-  test:
-    name: Unit test suites of all contracts
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install Node and Yarn
-        uses: actions/setup-node@v2
-        with: { node-version: "14.x" }
-      - name: Install toolchain that allows macro backtrace
-        uses: actions-rs/toolchain@v1
-        with:
-          {
-            profile: minimal,
-            toolchain: nightly,
-            target: wasm32-unknown-unknown,
-            override: true,
-          }
-      - name: Checkout sources
-        uses: actions/checkout@v2
-        with: { submodules: true }
-      - uses: Swatinem/rust-cache@v1
-      - name: Install JS dependencies
-        run: npm install -g pnpm && pnpm install
-      - name: Run tests
-        run: ./sienna test
+      - name: Generate schema
+        run: ./sienna schema
+
   coverage:
     name: Unit test coverage report
     runs-on: ubuntu-latest
@@ -86,27 +84,7 @@ jobs:
           git config --global user.name "hack.bg"
           git commit -m "🤖 update coverage @ $(date -u)" || true
           git push
-  schema:
-    name: API schema of all contracts
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install Node and Yarn
-        uses: actions/setup-node@v2
-        with: { node-version: "14.x" }
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Publish to coveralls.io
+        uses: coverallsapp/github-action@v1.1.2
         with:
-          {
-            profile: minimal,
-            toolchain: 1.49.0,
-            target: wasm32-unknown-unknown,
-            override: true,
-          }
-      - name: Checkout sources
-        uses: actions/checkout@v2
-        with: { submodules: true }
-      - uses: Swatinem/rust-cache@v1
-      - name: Install JS dependencies
-        run: npm install -g pnpm && pnpm install
-      - name: Generate schema
-        run: ./sienna schema
+          github-token: ${{ secrets.COVERALLS_REPO_TOKEN }}

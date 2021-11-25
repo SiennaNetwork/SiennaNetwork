@@ -1,9 +1,9 @@
-use fadroma::scrt::{
-    addr::{Humanize, Canonize},
-    callback::{ContractInstance as ContractLink},
-    cosmwasm_std::{ReadonlyStorage, Storage, Api, StdResult, StdError, HumanAddr, CanonicalAddr},
-    storage::{load, save},
-    utils::viewing_key::ViewingKey,
+use fadroma::{
+    scrt_addr::{Humanize, Canonize},
+    scrt_link::ContractLink,
+    scrt::{ReadonlyStorage, Storage, Api, StdResult, StdError, HumanAddr, CanonicalAddr},
+    scrt_storage::{load, save},
+    scrt_vk::ViewingKey,
 };
 
 macro_rules! error { ($info:expr) => {
@@ -91,4 +91,3 @@ pub fn save_viewing_key (
 ) -> StdResult<()> {
     save(storage, POOL_REWARD_TOKEN_VK, &key)
 }
-

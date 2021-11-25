@@ -1,17 +1,23 @@
 use amm_shared::{
-    admin::admin::{
-        admin_handle, admin_query, assert_admin, load_admin, save_admin,
-        DefaultHandleImpl as AdminHandle, DefaultQueryImpl as AdminQuery,
-    },
     exchange::Exchange,
-    fadroma::scrt::{
-        callback::{Callback, ContractInstance},
-        cosmwasm_std::{
+    fadroma::{
+        with_status,
+        scrt::{
             log, to_binary, Api, Binary, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
             InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
-        migrate as fadroma_scrt_migrate,
-        storage::{load, remove, save},
+        admin::{
+            handle as admin_handle,
+            query as admin_query,
+            assert_admin, load_admin, save_admin,
+            DefaultImpl as AdminImpl
+        },
+        require_admin::require_admin,
+        scrt_callback::Callback,
+        scrt_link::ContractLink,
+        scrt_migrate,
+        scrt_migrate::get_status,
+        scrt_storage::{load, remove, save},
     },
     msg::{
         exchange::InitMsg as ExchangeInitMsg,
@@ -22,15 +28,12 @@ use amm_shared::{
     Pagination, TokenPair,
 };
 
-use amm_shared::admin::require_admin;
-
 use crate::state::{
     get_address_for_pair, get_exchanges, get_idos, ido_whitelist_add, ido_whitelist_remove,
     is_ido_whitelisted, load_config, load_launchpad_instance, load_prng_seed, pair_exists,
     save_config, save_launchpad_instance, save_prng_seed, store_exchanges, store_ido_addresses,
     Config,
 };
-use fadroma_scrt_migrate::{get_status, with_status};
 
 pub const EPHEMERAL_STORAGE_KEY: &[u8] = b"ephemeral_storage";
 
@@ -75,7 +78,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             HandleMsg::AddExchanges { exchanges } => add_exchanges(deps, env, exchanges),
             HandleMsg::AddIdos { idos } => add_idos(deps, env, idos),
             HandleMsg::AddLaunchpad { launchpad } => add_launchpad(deps, env, launchpad),
-            HandleMsg::Admin(msg) => admin_handle(deps, env, msg, AdminHandle),
+            HandleMsg::Admin(msg) => admin_handle(deps, env, msg, AdminImpl),
         }
     )
 }
@@ -93,7 +96,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::GetLaunchpadAddress => get_launchpad_address(deps),
         QueryMsg::GetExchangeSettings => query_exchange_settings(deps),
 
-        QueryMsg::Admin(msg) => admin_query(deps, msg, AdminQuery),
+        QueryMsg::Admin(msg) => to_binary(&admin_query(deps, msg, AdminImpl)?),
     }
 }
 
@@ -207,12 +210,12 @@ pub fn create_exchange<S: Storage, A: Api, Q: Querier>(
             msg: to_binary(&ExchangeInitMsg {
                 pair: pair.clone(),
                 lp_token_contract: config.lp_token_contract.clone(),
-                factory_info: ContractInstance {
+                factory_info: ContractLink {
                     code_hash: env.contract_code_hash.clone(),
                     address: env.contract.address.clone(),
                 },
                 callback: Callback {
-                    contract: ContractInstance {
+                    contract: ContractLink {
                         address: env.contract.address,
                         code_hash: env.contract_code_hash,
                     },
@@ -296,7 +299,7 @@ fn create_launchpad<S: Storage, A: Api, Q: Querier>(
                 prng_seed: load_prng_seed(&deps.storage)?,
                 entropy,
                 callback: Callback {
-                    contract: ContractInstance {
+                    contract: ContractLink {
                         address: env.contract.address,
                         code_hash: env.contract_code_hash,
                     },
@@ -319,7 +322,7 @@ fn register_launchpad<S: Storage, A: Api, Q: Querier>(
 
     save_launchpad_instance(
         &mut deps.storage,
-        &ContractInstance {
+        &ContractLink {
             address: env.message.sender.clone(),
             code_hash: config.launchpad_contract.code_hash,
         },
@@ -391,7 +394,7 @@ fn create_ido<S: Storage, A: Api, Q: Querier>(
                 entropy,
                 launchpad: whitelist_request,
                 callback: Callback {
-                    contract: ContractInstance {
+                    contract: ContractLink {
                         address: env.contract.address,
                         code_hash: env.contract_code_hash,
                     },
@@ -472,7 +475,7 @@ fn add_idos<S: Storage, A: Api, Q: Querier>(
 fn add_launchpad<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    launchpad: ContractInstance<HumanAddr>,
+    launchpad: ContractLink<HumanAddr>,
 ) -> StdResult<HandleResponse> {
     if load_launchpad_instance(&deps.storage)?.is_some() {
         return Err(StdError::generic_err(

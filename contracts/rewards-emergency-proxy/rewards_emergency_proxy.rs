@@ -1,11 +1,22 @@
 #[cfg(test)] mod rewards_emergency_proxy_test;
 
-use fadroma::scrt::{
-    BLOCK_SIZE,
-    cosmwasm_std::{to_vec, from_slice, QueryRequest, WasmQuery},
-    callback::{ContractInstance as ContractLink},
-    contract::*,
-    snip20_api::ISnip20
+use fadroma::{
+    contract,
+    prelude,
+    define_init_message,
+    define_q_messages,
+    define_state_singleton,
+    define_tx_messages,
+    implement_init,
+    implement_queries,
+    implement_transactions,
+    message,
+    messages,
+    scrt::{
+        BLOCK_SIZE, to_vec, from_slice, QueryRequest, WasmQuery
+    },
+    scrt_link::ContractLink,
+    scrt_snip20_api::ISnip20
 };
 
 use sienna_rewards::msg::{

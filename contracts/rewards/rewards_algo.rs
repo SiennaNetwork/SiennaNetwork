@@ -1,5 +1,10 @@
 use crate::rewards_math::*;
-use fadroma::scrt::{cosmwasm_std::{StdError, CanonicalAddr}, storage::*};
+use fadroma::{
+    scrt::{StdError, CanonicalAddr},
+    scrt_storage::*,
+    scrt_storage_traits2::{Readonly, Writable},
+    stateful
+};
 
 macro_rules! error { ($info:expr) => { Err(StdError::generic_err($info)) }; } // just a shorthand
 
@@ -111,7 +116,7 @@ pub struct User <S> {
 impl <S> Pool<S> {
     /// Create a new pool with a storage handle
     pub fn new (storage: S) -> Self {
-        Self { storage, now: None, balance: None }
+        Self { storage, now: None, balance: Option::<Amount>::None }
     }
     /// Return a new Pool at given time
     pub fn at (self, now: Time) -> Self {

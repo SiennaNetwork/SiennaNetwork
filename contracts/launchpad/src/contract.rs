@@ -1,22 +1,30 @@
-use amm_shared::{
-    admin::admin::{admin_handle, admin_query, save_admin, DefaultHandleImpl, DefaultQueryImpl},
-    auth::{auth_handle, AuthHandleMsg, DefaultHandleImpl as AuthHandle},
-    fadroma::scrt::{
-        callback::ContractInstance,
-        cosmwasm_std::{
-            to_binary, Api, CosmosMsg, Env, Extern, HandleResponse, InitResponse, Querier,
-            QueryResult, StdResult, Storage, WasmMsg,
-        },
-        migrate as fadroma_scrt_migrate,
-        storage::Storable,
-        toolkit::snip20,
-        utils::viewing_key::ViewingKey,
+use amm_shared::fadroma::{
+    with_status,
+    scrt::{
+        to_binary, Api, CosmosMsg, Env, Extern, HandleResponse, InitResponse, Querier,
+        QueryResult, StdResult, Storage, WasmMsg,
+        secret_toolkit::snip20,
         BLOCK_SIZE,
     },
-    msg::launchpad::{HandleMsg, InitMsg, QueryMsg},
-    TokenType,
+    admin::{
+        handle as admin_handle,
+        query as admin_query,
+        DefaultImpl as AdminImpl,
+        save_admin
+    },
+    scrt_vk_auth::{
+        HandleMsg as AuthHandleMsg,
+        handle as auth_handle,
+        DefaultImpl as AuthImpl
+    },
+    scrt_link::ContractLink,
+    scrt_migrate,
+    scrt_migrate::get_status,
+    scrt_storage_traits::Storable,
+    scrt_vk::ViewingKey
 };
-use fadroma_scrt_migrate::{get_status, with_status};
+use amm_shared::TokenType;
+use amm_shared::msg::launchpad::{HandleMsg, InitMsg, QueryMsg};
 
 use crate::data::{save_contract_address, save_viewing_key, Config, TokenConfig};
 use crate::helpers::*;
@@ -62,7 +70,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
                 // Get the number of token decimals
                 let token_decimals = get_token_decimals(
                     &deps.querier,
-                    ContractInstance {
+                    ContractLink {
                         address: contract_addr.clone(),
                         code_hash: token_code_hash.clone(),
                     },
@@ -134,14 +142,14 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
                 crate::handle::admin_add_token(deps, env, config),
             HandleMsg::AdminRemoveToken { index } =>
                 crate::handle::admin_remove_token(deps, env, index),
-            HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, DefaultHandleImpl),
+            HandleMsg::Admin(admin_msg) => admin_handle(deps, env, admin_msg, AdminImpl),
             HandleMsg::CreateViewingKey { entropy, padding } => {
                 let msg = AuthHandleMsg::CreateViewingKey { entropy, padding };
-                auth_handle(deps, env, msg, AuthHandle)
+                auth_handle(deps, env, msg, AuthImpl)
             }
             HandleMsg::SetViewingKey { key, padding } => {
                 let msg = AuthHandleMsg::SetViewingKey { key, padding };
-                auth_handle(deps, env, msg, AuthHandle)
+                auth_handle(deps, env, msg, AuthImpl)
             }
         }
     )
@@ -157,6 +165,6 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
             number,
             timestamp,
         } => crate::query::draw_addresses(deps, tokens, number, timestamp),
-        QueryMsg::Admin(admin_msg) => admin_query(deps, admin_msg, DefaultQueryImpl),
+        QueryMsg::Admin(admin_msg) => to_binary(&admin_query(deps, admin_msg, AdminImpl)?),
     }
 }

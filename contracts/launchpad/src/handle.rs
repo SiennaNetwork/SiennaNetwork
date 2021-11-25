@@ -1,17 +1,16 @@
-use amm_shared::admin::{admin::assert_admin, require_admin};
-use amm_shared::{
-    fadroma::scrt::{
-        cosmwasm_std::{
-            from_binary, log, Api, Binary, Env, Extern, HandleResponse, HumanAddr, Querier,
-            StdError, StdResult, Storage, Uint128,
-        },
-        storage::Storable,
-        toolkit::snip20,
+use amm_shared::fadroma::{
+    scrt::{
+        from_binary, log, Api, Binary, Env, Extern, HandleResponse, HumanAddr, Querier,
+        StdError, StdResult, Storage, Uint128,
+        secret_toolkit::snip20,
         BLOCK_SIZE,
     },
-    msg::launchpad::{ReceiverCallbackMsg, TokenSettings},
-    TokenType,
+    admin::assert_admin,
+    require_admin::require_admin,
+    scrt_storage_traits::Storable
 };
+use amm_shared::TokenType;
+use amm_shared::msg::launchpad::{ReceiverCallbackMsg, TokenSettings};
 
 use crate::data::{
     load_all_accounts, load_or_create_account, load_viewing_key, save_account, Account, Config,

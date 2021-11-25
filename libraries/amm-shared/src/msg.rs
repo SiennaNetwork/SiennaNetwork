@@ -1,9 +1,10 @@
 pub use crate::snip20_impl::msg as snip20;
 
-use fadroma::scrt::{
-    callback::{Callback, ContractInstance, ContractInstantiationInfo},
-    cosmwasm_std::{Binary, Decimal, HumanAddr, Uint128},
-    migrate::types::ContractStatusLevel,
+use fadroma::{
+    scrt_callback::Callback,
+    scrt_link::{ContractLink, ContractInstantiationInfo},
+    scrt::{Binary, Decimal, HumanAddr, Uint128},
+    scrt_migrate::ContractStatusLevel,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -17,7 +18,10 @@ pub mod factory {
         exchange::{Exchange, ExchangeSettings},
         Pagination,
     };
-    use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
+    use fadroma::admin::{
+        HandleMsg as AdminHandleMsg,
+        QueryMsg as AdminQueryMsg
+    };
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
     pub struct InitMsg {
@@ -97,7 +101,7 @@ pub mod factory {
         },
         /// Adds already existing launchpad contract, admin only command.
         AddLaunchpad {
-            launchpad: ContractInstance<HumanAddr>,
+            launchpad: ContractLink<HumanAddr>,
         },
         Admin(AdminHandleMsg),
     }
@@ -164,7 +168,7 @@ pub mod exchange {
         pub lp_token_contract: ContractInstantiationInfo,
         /// Used by the exchange contract to
         /// send back its address to the factory on init
-        pub factory_info: ContractInstance<HumanAddr>,
+        pub factory_info: ContractLink<HumanAddr>,
         pub callback: Callback<HumanAddr>,
         pub prng_seed: Binary,
         pub entropy: Binary,
@@ -221,8 +225,8 @@ pub mod exchange {
     #[serde(rename_all = "snake_case")]
     pub enum QueryMsgResponse {
         PairInfo {
-            liquidity_token: ContractInstance<HumanAddr>,
-            factory: ContractInstance<HumanAddr>,
+            liquidity_token: ContractLink<HumanAddr>,
+            factory: ContractLink<HumanAddr>,
             pair: TokenPair<HumanAddr>,
             amount_0: Uint128,
             amount_1: Uint128,
@@ -242,7 +246,10 @@ pub mod exchange {
 pub mod launchpad {
 
     use super::*;
-    use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
+    use fadroma::admin::{
+        HandleMsg as AdminHandleMsg,
+        QueryMsg as AdminQueryMsg
+    };
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct InitMsg {
@@ -366,8 +373,12 @@ pub mod launchpad {
 
 pub mod ido {
     use super::*;
-    use composable_admin::admin::{AdminHandleMsg, AdminQueryMsg};
-    use fadroma::scrt::callback::ContractInstance;
+    
+    use fadroma::admin::{
+        HandleMsg as AdminHandleMsg,
+        QueryMsg as AdminQueryMsg
+    };
+    use fadroma::scrt_link::ContractLink;
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct InitMsg {
@@ -386,7 +397,7 @@ pub mod ido {
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct WhitelistRequest {
         /// Launchpad contract instance information
-        pub launchpad: ContractInstance<HumanAddr>,
+        pub launchpad: ContractLink<HumanAddr>,
         /// Vector of tokens address needs to have locked in order to be considered
         /// for a draw. Tokens need to be configured in the Launchpad as eligible.
         /// Option<> is because if None that will represent a native token.
@@ -400,7 +411,7 @@ pub mod ido {
         /// The price for a single token.
         pub rate: Uint128,
         // The address of the SNIP20 token beind sold.
-        pub sold_token: ContractInstance<HumanAddr>,
+        pub sold_token: ContractLink<HumanAddr>,
         /// The addresses that are eligible to participate in the sale.
         pub whitelist: Vec<HumanAddr>,
         /// The maximum number of participants allowed.
@@ -514,7 +525,7 @@ pub mod ido {
             /// The token that is used to buy the sold SNIP20.
             input_token: TokenType<HumanAddr>,
             /// The token that is being sold.
-            sold_token: ContractInstance<HumanAddr>,
+            sold_token: ContractLink<HumanAddr>,
             /// The conversion rate at which the token is sold.
             rate: Uint128,
             /// Number of participants currently.

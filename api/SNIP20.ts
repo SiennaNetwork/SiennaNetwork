@@ -214,18 +214,20 @@ export class SNIP20 extends ScrtContract {
    * @param {Agent} [agent]
    * @returns
    */
-  unlockLaunchpad = (contractAddress: string, entries: number, agent?: Agent) =>
-    this.tx.send(
-      {
-        recipient: contractAddress,
-        amount: `0`,
-        msg: Buffer.from(
-          JSON.stringify({ unlock: { entries } }),
-          "utf8"
-        ).toString("base64"),
-      },
+  unlockLaunchpad = (contractAddress: string, entries: number, agent?: Agent) => {
+    const message = {
+      recipient: contractAddress,
+      amount: `0`,
+      msg: Buffer.from(
+        JSON.stringify({ unlock: { entries } }),
+        "utf8"
+      ).toString("base64"),
+    };
+    return this.tx.send(
+      message,
       agent
     );
+  }
 
   /**
    * Return the address and code hash of this token in the format

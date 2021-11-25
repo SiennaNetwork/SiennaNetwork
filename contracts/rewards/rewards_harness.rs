@@ -2,23 +2,41 @@
 
 /// Unit testing harness for Sienna Rewards.
 
-use fadroma::scrt::cosmwasm_std::{
+use fadroma::scrt::{
     Uint128, HumanAddr, StdResult, StdError,
     Extern, testing::MockApi, MemoryStorage,
     Querier, QueryRequest, Empty, WasmQuery, QuerierResult,
     from_binary, to_binary, from_slice, SystemError};
-use fadroma::scrt::callback::{
-    ContractInstance as ContractLink};
-use fadroma::scrt::harness::{
-    Harness, InitFn, HandleFn, QueryFn, TxResult, assert_error};
-use fadroma::scrt::snip20_api::mock::*;
+use fadroma::scrt_link::ContractLink;
+use fadroma::scrt_contract_harness::{
+    Harness, InitFn, HandleFn, QueryFn, TxResult};
 
 use crate::{init, handle, query};
 use crate::msg::{Init, Handle as TX, Query as QQ, Response};
 
 pub use crate::rewards_math::{Amount, Time, Volume};
-pub use fadroma::scrt::snip20_api::mock::Snip20;
-pub use fadroma::scrt::harness::assert_fields;
+
+macro_rules! assert_error {
+    ($response:expr, $msg:expr) => { assert_eq!($response, Err(StdError::generic_err($msg))) }
+}
+
+macro_rules! assert_fields {
+    ($instance:expr ; $variant:path {
+        $($var:ident: $expected:expr),+
+    }) => { {
+        let mut tw = tabwriter::TabWriter::new(std::io::stdout());
+        write!(&mut tw, "field\texpected\tactual\t\n");
+        $(
+            write!(&mut tw, "{}\t", stringify!($var));
+            write!(&mut tw, "{:?}\t", $expected);
+            write!(&mut tw, "{:?}\t\n", (if $var == $expected {
+                yansi::Paint::green
+            } else {
+                yansi::Paint::red
+            })(format!("{}", &$var)));
+        )+;
+    }; }
+}
 
 pub struct RewardsMockQuerier {
     pub balance: Uint128
@@ -315,4 +333,39 @@ impl RewardsHarness<RewardsMockQuerier> {
 
     fn tx_close (&mut self, agent: &HumanAddr) -> TxResult {
         self.tx(self.now(), agent, TX::ClosePool { message: "closed".into() }) }
+}
+
+pub struct Snip20;
+
+impl Snip20 {
+    pub fn set_viewing_key (key: &str) -> String {
+        format!(
+            "{{\"set_viewing_key\":{{\"key\":\"{}\",\"padding\":null}}}}",
+            key
+        ).into()
+    }
+    pub fn transfer_from (owner: &str, recipient: &str, amount: &str) -> String {
+        format!(
+            "{{\"transfer_from\":{{\"owner\":\"{}\",\"recipient\":\"{}\",\"amount\":\"{}\",\"padding\":null}}}}",
+            owner, recipient, amount
+        ).into()
+    }
+    pub fn transfer (recipient: &str, amount: &str) -> String {
+        format!(
+            "{{\"transfer\":{{\"recipient\":\"{}\",\"amount\":\"{}\",\"padding\":null}}}}",
+            recipient, amount
+        ).into()
+    }
+}
+
+#[derive(serde::Serialize,serde::Deserialize)]
+#[serde(rename_all="snake_case")]
+pub enum Snip20Query {
+    Balance {}
+}
+
+#[derive(serde::Serialize,serde::Deserialize)]
+#[serde(rename_all="snake_case")]
+pub enum Snip20QueryAnswer {
+    Balance { amount: Uint128 }
 }

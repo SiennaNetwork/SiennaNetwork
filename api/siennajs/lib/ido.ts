@@ -155,10 +155,10 @@ export class IdoExecutor extends ViewingKeyExecutor {
         const token_addr = (info.input_token as CustomToken).custom_token.contract_addr;
         const snip20 = new Snip20Contract(token_addr, this.client)
 
-        return snip20.exec(fee, this.memo).send(this.address, amount, msg, null)
+        return snip20.exec(fee, this.memo).send(this.address, amount, msg)
     }
 
-    async refund(recipient?: Address): Promise<ExecuteResult> {
+    async admin_refund(recipient?: Address): Promise<ExecuteResult> {
         const msg = {
             admin_refund: {
                 address: recipient
@@ -168,7 +168,7 @@ export class IdoExecutor extends ViewingKeyExecutor {
         return this.run(msg, '300000')
     }
 
-    async claim(recipient?: Address | null): Promise<ExecuteResult> {
+    async admin_claim(recipient?: Address | null): Promise<ExecuteResult> {
         const msg = {
             admin_claim: {
                 address: recipient
@@ -178,7 +178,7 @@ export class IdoExecutor extends ViewingKeyExecutor {
         return this.run(msg, '300000')
     }
 
-    async add_addresses(addresses: Address[]): Promise<ExecuteResult> {
+    async admin_add_addresses(addresses: Address[]): Promise<ExecuteResult> {
         const msg = {
             admin_add_addresses: {
                 addresses
@@ -204,7 +204,7 @@ export class IdoExecutor extends ViewingKeyExecutor {
         const info = await this.querier().get_sale_info()
 
         const snip20 = new Snip20Contract(info.sold_token.address, this.client)
-        return snip20.exec(fee, this.memo).send(this.address, sale_amount, msg, null)
+        return snip20.exec(fee, this.memo).send(this.address, sale_amount, msg)
     }
 }
 
