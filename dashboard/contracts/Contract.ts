@@ -86,7 +86,14 @@ export class Cosmos {
 
     #wasm: any
 
-    set sender (addr: string) { this.#wasm.sender = encode(addr) }
+    #sender: any
+    get sender () {
+      return this.#sender
+    }
+    set sender (addr: string) {
+      this.#sender = addr
+      this.#wasm.sender = encode(addr)
+    }
 
     addr: string = ""
     hash: string = ""
@@ -108,26 +115,32 @@ export class Cosmos {
     initMsg: any = {}
 
     init (msg: any): any {
-      debug({init:{sender:this.sender, msg}})
+      console.debug(`${this.addr} was initialized by ${this.sender} with ${JSON.stringify(msg, null, 2)}`)
+      //debug({addr:this.addr,init:{sender:this.sender, msg}})
       const response = decode(this.#wasm.init(encode(msg)))
-      debug({init_response:response})
+      console.debug(`${this.addr} init ok: ${JSON.stringify(response, null, 2)}`)
+      //debug({addr:this.addr,init_response:response})
       Cosmos.default.passMessages(this.addr, response.messages)
       return response
     }
 
     query (msg: any) {
-      debug({query:{contract:this.constructor.name,addr:this.addr,msg}})
+      console.debug(`${this.addr} was queried: ${JSON.stringify(msg, null, 2)}`)
+      //debug({addr:this.addr,query:{contract:this.constructor.name,addr:this.addr,msg}})
       const response = decode(this.#wasm.query(encode(msg)))
-      debug({query_response:response})
+      console.debug(`${this.addr} responded: ${JSON.stringify(response, null, 2)}`)
+      //debug({addr:this.addr,query_response:response})
       return response
     }
 
     handle (sender: string, msg: any) {
-      debug({handle:{sender, msg}})
+      console.debug(`${this.addr} handled transaction by ${sender}: ${JSON.stringify(msg, null, 2)}`)
+      //debug({addr:this.addr,handle:{sender, msg}})
       this.sender = sender
       const response = decode(this.#wasm.handle(encode(msg)))
       if (response.data) response.data = JSON.parse(atob(response.data))
-      debug({handle_response:response})
+      console.debug(`${this.addr} transaction ok: ${JSON.stringify(response, null, 2)}`)
+      //debug({addr:this.addr,handle_response:response})
       Cosmos.default.passMessages(this.addr, response.messages)
       return response
     }

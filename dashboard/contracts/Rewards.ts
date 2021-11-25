@@ -27,11 +27,15 @@ export class Rewards extends ContractComponent {
   updated = append(this.totals)(Field('Updated', 0))
   bonding = append(this.totals)(Field('Bonding', 0))
 
-  unlocked =    append(this.totals)(Field('Unlocked',    0))
+  unlocked    = append(this.totals)(Field('Unlocked',    0))
   distributed = append(this.totals)(Field('Distributed', 0))
-  budget =      append(this.totals)(Field('Budget',      0))
+  budget      = append(this.totals)(Field('Budget',      0))
 
-  users = append(this.ui.row)(users(this))
+  userList     = append(this.ui.row)(h('div', { className: 'Outside Inside Users' }))
+  newUser      = append(this.userList)(h('div', { className: 'Outside Inside AddUser' }))
+  newUserLabel = append(this.newUser)(Field('New user', ''))
+  deposit1     = append(this.newUser)(Button('+1',   () => this.addUser(1n)))
+  deposit100   = append(this.newUser)(Button('+100', () => this.addUser(100n)))
 
   initMsg = {
     config: {
@@ -47,6 +51,19 @@ export class Rewards extends ContractComponent {
     this.ui.title.textContent = `Rewards ${id}`
   }
 
+  users: Record<string, User> = {}
+
+  register (id: string) {
+    append(this.userList)(this.users[id] = user(this, id))
+    this.handle(id, {set_viewing_key:{key:""}})
+  }
+
+  addUser (stake: BigInt) {
+    console.debug('addUser', stake)
+    const id = this.dashboard.addUser(stake)
+    this.deposit(id, stake)
+  }
+
   deposit (id: string, amount: BigInt) {
     console.debug('deposit', id, amount)
 
@@ -60,6 +77,7 @@ export class Rewards extends ContractComponent {
 
     this.update()
     this.dashboard.lpToken.update()
+    this.users[id].update()
   }
 
   withdraw (id: string, amount: BigInt) {
@@ -69,6 +87,7 @@ export class Rewards extends ContractComponent {
 
     this.update()
     this.dashboard.lpToken.update()
+    this.users[id].update()
   }
 
   claim (id: string) {
@@ -78,52 +97,26 @@ export class Rewards extends ContractComponent {
 
     this.update()
     this.dashboard.sienna.update()
+    this.users[id].update(this.dashboard.environment.time)
   }
 
-  update () {}
-}
-
-export class Users extends Component {
-  #pool: Rewards|null = null
-  get pool () { return this.#pool as Rewards }
-  set pool (v: Rewards) { this.#pool = v }
-
-  ui = {
-    addUser: this.add(addUser(this)),
+  nextEpoch (next_epoch: number) {
+    this.handle("Admin", {rewards:{begin_epoch:{next_epoch}}})
+    this.update()
+    this.dashboard.sienna.update()
   }
 
-  register (id: string) {
-    const u = user(this, id)
-    console.log(u)
-    this.add(u)
-    this.pool.handle(id, {set_viewing_key:{key:""}})
-    u.update()
+  update () {
+    for (const user of Object.values(this.users)) {
+      user.update(this.dashboard.environment.time)
+    }
   }
-}
-
-export class AddUser extends Component {
-  #users: Users|null = null
-  get users () { return this.#users as Users }
-  set users (v: Users) { this.#users = v }
-
-  ui = {
-    id:         this.add(Field('New user', '')),
-    deposit1:   this.add(Button('+1',   () => this.addUser(1n))),
-    deposit100: this.add(Button('+100', () => this.addUser(100n))),
-  }
-
-  addUser (stake: BigInt) {
-    console.debug('addUser', stake)
-    const id = this.users.pool.dashboard.addUser(stake)
-    this.users.pool.deposit(id, stake)
-  }
-
 }
 
 export class User extends Component {
-  #users: Users|null = null
-  get users () { return this.#users as Users }
-  set users (v: Users) { this.#users = v }
+  #pool: Rewards|null = null
+  get pool () { return this.#pool as Rewards }
+  set pool (v: Rewards) { this.#pool = v }
 
   #id: string = ""
   get id () { return this.#id }
@@ -151,24 +144,24 @@ export class User extends Component {
   }
 
   deposit (amount: BigInt) {
-    this.users.pool.dashboard.lpToken.mint(this.id, amount)
-    this.users.pool.deposit(this.id, amount)
+    this.pool.dashboard.lpToken.mint(this.id, amount)
+    this.pool.deposit(this.id, amount)
     this.update()
   }
 
   withdraw (amount: BigInt) {
-    this.users.pool.withdraw(this.id, amount)
+    this.pool.withdraw(this.id, amount)
     this.update()
   }
 
   claim () {
-    this.users.pool.claim(this.id)
+    this.pool.claim(this.id)
     this.update()
   }
 
-  update () {
-    const {rewards:{user_info}} = this.users.pool.query({
-      rewards:{user_info:{at:0,address:this.id,key:""}}
+  update (at = this.pool.dashboard.environment.time) {
+    const {rewards:{user_info}} = this.pool.query({
+      rewards:{user_info:{at,address:this.id,key:""}}
     })
 
     this.ui.staked.value                   = user_info.staked
@@ -189,20 +182,8 @@ export default function rewards (dashboard: any, id: string) {
   return h('x-rewards', { id, className: `Outside Module Rewards ${id}`, dashboard })
 }
 
-customElements.define('x-users', Users)
-
-export function users (pool: Rewards) {
-  return h('x-users', { pool, className: 'Outside Users' })
-}
-
-customElements.define('x-add-user', AddUser)
-
-export function addUser (users: Users) {
-  return h('x-add-user', { users, className: 'Outside AddUser' })
-}
-
 customElements.define('x-user', User)
 
-export function user (users: Users, id: string): User {
-  return h('x-user', { users, id, className: 'Outside User' }) as User
+export function user (pool: Rewards, id: string): User {
+  return h('x-user', { pool, id, className: 'Outside User' }) as User
 }

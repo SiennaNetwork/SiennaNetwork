@@ -3,32 +3,32 @@ import Component     from './Component'
 import Field         from './widgets/Field'
 import Button        from './widgets/Button'
 import SNIP20        from './contracts/SNIP20'
-import {
-  mgmt         as MGMT,
-  rpt          as RPT,
-  microservice as Microservice
-} from './contracts/TGE'
+import { MGMT, RPT, Microservice } from './contracts/TGE'
 import rewards, { Rewards } from './contracts/Rewards'
 
 import {Cosmos} from './contracts/Contract'
 
-export class Dashboard extends Component {
+export default class Dashboard extends Component {
 
-  ui: Record<string, any> = {
-    row1: this.add(h('div', { className: 'Row', style: 'flex-grow:0;flex-shrink:0' })),
-    row2: this.add(h('div', { className: 'Row', style: 'flex-grow:1' })),
-    row3: this.add(h('div', { className: 'Row', style: 'flex-grow:2' })),
-  }
+  static TAG   = 'x-dashboard'
+  static CLASS = 'Outside Dashboard'
+  static make  = (contracts: Record<string, any>) =>
+    h(this.TAG, { className: this.CLASS, contracts })
 
-  environment  = append(this.ui.row1)(environment())
-  microservice = append(this.ui.row1)(Microservice())
-  mgmt         = append(this.ui.row2)(MGMT())
-  rpt          = append(this.ui.row2)(RPT())
-  sienna       = append(this.ui.row2)(SNIP20('SIENNA'))
-  lpToken      = append(this.ui.row2)(SNIP20('LPTOKEN'))
-  rewards_v3   = append(this.ui.row3)(rewards(this, 'v3'))
-  migrate      = append(this.ui.row3)(Button('Migrate', () => this.performMigration()))
-  rewards_v4   = append(this.ui.row3)(rewards(this, 'v4'))
+  row1 = this.add(h('div', { className: 'Row', style: 'flex-grow:0;flex-shrink:0' }))
+  environment  = append(this.row1)(Environment.make(this))
+  microservice = append(this.row1)(Microservice.make(this))
+
+  row2 = this.add(h('div', { className: 'Row', style: 'flex-grow:1' }))
+  lpToken = append(this.row2)(SNIP20.make('LPTOKEN'))
+  sienna  = append(this.row2)(SNIP20.make('SIENNA'))
+  mgmt    = append(this.row2)(MGMT.make())
+  rpt     = append(this.row2)(RPT.make(this))
+
+  row3 = this.add(h('div', { className: 'Row', style: 'flex-grow:3' }))
+  rewards_v3 = append(this.row3)(rewards(this, 'v3'))
+  migrate    = append(this.row3)(Button('Migrate', () => this.performMigration()))
+  rewards_v4 = append(this.row3)(rewards(this, 'v4'))
 
   #contracts: Contracts|null = null
   set contracts (v: Contracts) {
@@ -49,14 +49,15 @@ export class Dashboard extends Component {
   }
 
   setup () {
+    console.log(this)
     this.sienna.setup(this.contracts.SIENNA, "SIENNA_addr", "SIENNA_hash")
     Cosmos.default.add('SIENNA_addr', this.sienna)
 
     this.mgmt.setup(this.contracts.MGMT, "MGMT_addr", "MGMT_hash")
     Cosmos.default.add('MGMT_addr', this.mgmt)
 
-    this.rpt.setup(this.contracts.RPT, "RPT_addr", "RPT_hash")
-    Cosmos.default.add('RPT_addr', this.rpt)
+    this.rpt.setup(this.contracts.RPT, "SPLIT_RPT", "RPT_hash")
+    Cosmos.default.add('SPLIT_RPT', this.rpt)
 
     this.lpToken.setup(this.contracts.LPToken, "LPTOKEN_addr", "LPTOKEN_hash")
     Cosmos.default.add('LPTOKEN_addr', this.lpToken)
@@ -70,46 +71,62 @@ export class Dashboard extends Component {
     for (const contract of [this.sienna, this.lpToken]) {
       contract.register('Admin')
       contract.register('MGMT')
-      contract.register('RPT')
-      contract.register('Rewards V3')
-      contract.register('Rewards V4')
+      contract.register('SPLIT_RPT')
+      contract.register('REWARDS_V3_addr')
+      contract.register('REWARDS_V4_addr')
     }
 
-    this.sienna.mint('MGMT', this.mgmt.total)
+    this.sienna.handle("Admin", {
+      set_minters:{minters:["MGMT_addr"]}
+    })
+    this.sienna.handle("Admin", {
+      change_admin:{address:"MGMT_addr"}
+    })
+    this.mgmt.launch()
   }
 
   performMigration () {
     this.rpt.performMigration()
   }
 
+  ids: Array<string> = []
   nextUser = 1
   addUser (balance: BigInt) {
     const id = `User ${this.nextUser}`
+    this.ids.push(id)
     this.sienna.register(id)
     this.lpToken.register(id)
     console.debug('MINT', id, balance)
     this.lpToken.mint(id, balance)
-    this.rewards_v3.users.register(id)
-    this.rewards_v4.users.register(id)
+    this.rewards_v3.register(id)
+    this.rewards_v4.register(id)
     this.nextUser++;
     return id
+  }
+
+  update () {
+    this.rewards_v3.update()
+    this.rewards_v4.update()
   }
 }
 
 type Contracts = Record<string, any> 
 
-customElements.define('x-dashboard', Dashboard)
-
-export default function dashboard (contracts: Record<string, any>) {
-  return h('x-dashboard', { contracts, className: 'Outside Dashboard' })
-}
-
 type Timer = ReturnType<typeof setTimeout>
 
 export class Environment extends Component {
 
+  static TAG   = 'x-environment'
+  static CLASS = 'Outside Environment'
+  static make  = (dashboard: Dashboard) =>
+    h(this.TAG, { className: this.CLASS, dashboard })
+
+  #dashboard: any = null
+  get dashboard () { return this.#dashboard }
+  set dashboard (v: any) { this.#dashboard = v }
+
   time = 0
-  rate = [10, 10]
+  rate = [60, 16]
   timer: Timer|null = null
 
   start () {
@@ -124,6 +141,7 @@ export class Environment extends Component {
   update () {
     this.time += this.rate[0]
     this.ui.time.value = `${this.time}s`
+    this.dashboard.update()
   }
 
   ui = {
@@ -136,8 +154,5 @@ export class Environment extends Component {
 
 }
 
+customElements.define('x-dashboard',   Dashboard)
 customElements.define('x-environment', Environment)
-
-export function environment () {
-  return h('x-environment', { className: 'Outside Environment' })
-}

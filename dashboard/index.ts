@@ -3,11 +3,11 @@ import './style/base.css'
 import './style/layout.css'
 
 import {Cosmos} from './contracts/Contract'
-import dashboard from './Dashboard'
+import Dashboard from './Dashboard'
 import {append}  from './helpers'
 
 console.log(Cosmos.default)
 
 Cosmos.loadContracts()
-  .then(dashboard)
+  .then(Dashboard.make)
   .then(append(document.body))

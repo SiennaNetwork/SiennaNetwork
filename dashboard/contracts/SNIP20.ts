@@ -2,12 +2,12 @@ import { h } from '../helpers'
 import ContractComponent from './Contract'
 import field from '../widgets/Field'
 
-export class SNIP20 extends ContractComponent {
+export default class SNIP20 extends ContractComponent {
 
-  ui = {
-    title: this.add(h('header', { textContent: 'SNIP20' })),
-    table: this.add(h('table'))
-  }
+  static TAG   = 'x-snip20'
+  static CLASS = 'Outside Module SNIP20'
+  static make  = (id: string) =>
+    h(this.TAG, { className: this.CLASS, id })
 
   #id: string = ""
   get id () { return this.#id }
@@ -16,6 +16,11 @@ export class SNIP20 extends ContractComponent {
     this.initMsg.name = id
     this.initMsg.symbol = id
     this.ui.title.textContent = id
+  }
+
+  ui = {
+    title: this.add(h('header', { textContent: 'SNIP20' })),
+    table: this.add(h('table'))
   }
 
   initMsg = {
@@ -56,6 +61,3 @@ export class SNIP20 extends ContractComponent {
 }
 
 customElements.define('x-snip20', SNIP20)
-export default function snip20 (id: string) {
-  return h('x-snip20', { id, className: `Outside Module SNIP20 ${id}` })
-}
