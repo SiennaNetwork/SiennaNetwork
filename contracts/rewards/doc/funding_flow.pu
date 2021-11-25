@@ -1,0 +1,11 @@
+@startuml
+
+Microservice -> RPT: vest
+RPT -> MGMT: claim
+MGMT -> SIENNA: transfer funds to RPT
+SIENNA -> RPT: transfers funds
+RPT -> SIENNA: transfer funds to RewardPool
+SIENNA -> RewardPool: transfers funds
+Microservice -> RewardPool: begin epoch
+
+@enduml

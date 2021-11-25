@@ -1,0 +1,26 @@
+@startuml
+
+actor Admin
+actor User
+participant Old
+participant New
+participant LPToken
+
+== Begin ==
+Admin -> New: deploy
+Admin -> Old: EmigrationHandle::EnableMigrationTo(New)
+Admin -> New: ImmigrationHandle::EnableMigrationFrom(Old)
+
+== Migrate ==
+User -> New: ImmigrationHandle::RequestMigration
+New -> Old: EmigrationHandle::ExportState
+Old -> LPToken: Transfer(stake)
+LPToken -> New: (transfers)
+Old -> New: ImmigrationHandle::ReceiveMigration
+
+== End ==
+Admin -> Old: EmigrationHandle::DisableMigrationTo(New)
+Admin -> New: ImmigrationHandle::DisableMigrationFrom(Old)
+Admin -> Old: ClosePool
+
+@enduml

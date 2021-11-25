@@ -25,6 +25,8 @@ that it works primarily in **event time**:
 
 ## User flow
 
+![](./doc/user_flow.png)
+
 When a user provides tokens `XXX` and `YYY` to a
 liquidity pool, a LP token `LP_XXX_YYY` is minted
 to that user.
@@ -84,6 +86,10 @@ the state of the user is reset.
 * If the user leaves the pool before the bonding period,
   their contribution is reset and no rewards are claimed.
 
+## Epoch flow
+
+![](./doc/funding_flow.png)
+
 Rewards are vested to the pool via the RPT contract
 (`/contracts/rpt`) daily. This increments an internal counter
 referred to as the **epoch clock**.
@@ -94,3 +100,15 @@ referred to as the **epoch clock**.
 * Unclaimed reward budget can be manually retrieved
   and more epochs can be launched after the end of the
   rewards program if it is so desired.
+
+## Migration flow
+
+To migrate:
+
+1. Deploy next version of contract
+2. Enable migration to new contract in old contract
+3. Enable migration from old contract in new contract
+4. Each user calls RequestMigration to move from old to new contract
+5. When migration window is over, call ClosePool on old contract
+
+![](./doc/migration_flow.png)

@@ -1,0 +1,20 @@
+@startuml
+
+== Deposit ==
+User -> Pair: deposit tokens A and B
+Pair -> User: gets LP token
+User -> LPToken: increase_allowance(RewardPool, x)
+User -> RewardPool: deposit(x)
+RewardPool -> LPToken: transfer (x) LP tokens to self
+
+== Claim ==
+User -> RewardPool: claim
+RewardPool -> SIENNA: transfer (y) SIENNA tokens to user
+SIENNA -> User: gets (y) SIENNA
+
+== Withdraw ==
+User -> RewardPool: withdraw(z)
+RewardPool -> LPToken: return (z) LP tokens to user
+LPToken -> User: gets (z) LP tokens
+
+@enduml

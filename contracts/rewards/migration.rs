@@ -7,7 +7,7 @@
 //!   that is imported by the receiver contract.
 //!
 //! Sienna Rewards currently uses the former method, so as not to
-//! reimplement the liquidity accumulation machinery twice.
+//! reimplement pieces of the liquidity accumulation logic twice.
 
 use crate::auth::Auth;
 use fadroma::*;
