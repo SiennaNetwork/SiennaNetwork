@@ -1,0 +1,51 @@
+{
+  "contractAddress": "secret1hshupwpm7733fwgayh9e6n8prdzrweueys40xf",
+  "logs": [
+    {
+      "msg_index": 0,
+      "log": "",
+      "events": [
+        {
+          "type": "message",
+          "attributes": [
+            {
+              "key": "action",
+              "value": "instantiate"
+            },
+            {
+              "key": "module",
+              "value": "compute"
+            },
+            {
+              "key": "signer",
+              "value": "secret1d7j3w709w3ewg7mrlmlzsvn3jdht3083e6ym2k"
+            },
+            {
+              "key": "code_id",
+              "value": "119"
+            },
+            {
+              "key": "contract_address",
+              "value": "secret1hshupwpm7733fwgayh9e6n8prdzrweueys40xf"
+            }
+          ]
+        },
+        {
+          "type": "wasm",
+          "attributes": [
+            {
+              "key": "contract_address",
+              "value": "secret1hshupwpm7733fwgayh9e6n8prdzrweueys40xf"
+            },
+            {
+              "key": "contract_address",
+              "value": "secret1rgm2m5t530tdzyd99775n6vzumxa5luxcllml4"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "transactionHash": "47A717789131FB66BB606CB5B97A3EB80751338BDA9F57B1EF645B54E5945DC0",
+  "data": "0A460A2E2F7365637265742E636F6D707574652E763162657461312E4D7367496E7374616E7469617465436F6E74726163741214BC2FC0B83BF7A314B91D25CB9D4CE11B44376799"
+}
