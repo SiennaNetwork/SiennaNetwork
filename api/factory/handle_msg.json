@@ -96,6 +96,16 @@
                 }
               ]
             },
+            "router_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContractInstantiationInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "snip20_contract": {
               "anyOf": [
                 {
@@ -202,6 +212,29 @@
       }
     },
     {
+      "description": "Create the router contract",
+      "type": "object",
+      "required": [
+        "create_router"
+      ],
+      "properties": {
+        "create_router": {
+          "type": "object",
+          "properties": {
+            "register_tokens": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/TokenType_for_HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "description": "Add addresses that are allowed to create IDOs",
       "type": "object",
       "required": [
@@ -276,6 +309,26 @@
       ],
       "properties": {
         "register_ido": {
+          "type": "object",
+          "required": [
+            "signature"
+          ],
+          "properties": {
+            "signature": {
+              "$ref": "#/definitions/Binary"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Used by a newly instantiated Router contract to register itself with the factory",
+      "type": "object",
+      "required": [
+        "register_router"
+      ],
+      "properties": {
+        "register_router": {
           "type": "object",
           "required": [
             "signature"

@@ -18,7 +18,8 @@ import {
   RewardsContract,
   RewardsEmergencyProxyContract,
   IDOContract,
-  LaunchpadContract
+  LaunchpadContract,
+  SwapRouterContract,
 } from '@sienna/api'
 
 const
@@ -51,7 +52,8 @@ export default async function main (words: Array<string>) {
         new RewardsContract().build(),
         new RewardsEmergencyProxyContract().build(),
         new IDOContract().build(),
-        new LaunchpadContract().build()
+        new LaunchpadContract().build(),
+        new SwapRouterContract().build()
       ]),
 
       tge: () => Promise.all([
@@ -64,7 +66,8 @@ export default async function main (words: Array<string>) {
         new AMMContract().build(),
         new AMMSNIP20().build(),
         new LPToken().build(),
-        new FactoryContract().build()
+        new SwapRouterContract().build(),
+        new FactoryContract().build(),
       ]),
 
       rewards: () => Promise.all([
@@ -84,7 +87,7 @@ export default async function main (words: Array<string>) {
         'snip20-sienna', 'sienna-mgmt', 'sienna-rpt'
       ),
       swap: testCommandsFor(
-        'factory', 'exchange', 'lp-token', 'amm-snip20'
+        'factory', 'exchange', 'lp-token', 'amm-snip20', 'router'
       ),
       rewards: testCommandsFor(
         'sienna-rewards'
@@ -124,6 +127,9 @@ export default async function main (words: Array<string>) {
         'rewards/init.json',
         'rewards/query.json',
         'rewards/response.json',
+        'router/handle_msg.json',
+        'router/init_msg.json',
+        'router/query_msg.json',
         'rpt/handle.json',
         'rpt/init.json',
         'rpt/query.json',

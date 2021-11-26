@@ -8,7 +8,7 @@ import {
   SiennaSNIP20, MGMTContract, RPTContract,
   FactoryContract as AMMFactory, AMMContract as AMMExchange, AMMSNIP20,
   RewardsContract as RewardPool, LPToken, SNIP20Contract,
-  IDOContract as IDO } from '@sienna/api'
+  IDOContract as IDO, SwapRouterContract, LaunchpadContract } from '@sienna/api'
 
 import { abs, genConfig, getDefaultSchedule, ONE_SIENNA, projectRoot, stringify } from './index'
 import { runDemo } from './tge.demo.js'
@@ -173,7 +173,9 @@ export class SiennaSwap extends BaseEnsemble {
     EXCHANGE: new AMMExchange({ agent: this.agent }),
     AMMTOKEN: new AMMSNIP20({   agent: this.agent }),
     LPTOKEN:  new LPToken({     agent: this.agent }, `${this.prefix}_LPToken`),
-    IDO:      new IDO({         agent: this.agent }) }
+    IDO:      new IDO({         agent: this.agent }),
+    LAUNCHPAD: new LaunchpadContract({ agent: this.agent }),
+    ROUTER:   new SwapRouterContract({ admin: this.agent }) }
 
   tokenContracts: Record<string, Contract> =
     this.chain ? this.getTokens() : {}
@@ -256,7 +258,7 @@ export class SiennaSwap extends BaseEnsemble {
   async initialize () {
     await super.initialize()
     const config = this.loadConfig()
-    const { FACTORY, EXCHANGE, AMMTOKEN, LPTOKEN, IDO } = this.contracts
+    const { FACTORY, EXCHANGE, AMMTOKEN, LPTOKEN, IDO, ROUTER, LAUNCHPAD } = this.contracts
     const results = []
     const factory = await this.task('instantiate AMM factory', async (report: Function) => {
       Object.assign(FACTORY.init.msg, {
@@ -264,6 +266,8 @@ export class SiennaSwap extends BaseEnsemble {
         pair_contract:     { code_hash: EXCHANGE.codeHash, id: EXCHANGE.codeId },
         lp_token_contract: { code_hash: LPTOKEN.codeHash, id: LPTOKEN.codeId },
         ido_contract:      { code_hash: IDO.codeHash, id: IDO.codeId },
+        launchpad_contract:      { code_hash: LAUNCHPAD.codeHash, id: LAUNCHPAD.codeId },
+        router_contract:   { code_hash: ROUTER.codeHash, id: ROUTER.codeId },
         exchange_settings: config.exchange_settings,
         admin: config.admin })
       const result = await FACTORY.instantiate(this.agent)

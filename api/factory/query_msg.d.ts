@@ -6,7 +6,7 @@
  */
 
 export type QueryMsg =
-  | ("status" | "get_launchpad_address" | "get_exchange_settings")
+  | ("status" | "get_launchpad_address" | "get_router_address" | "get_exchange_settings")
   | {
       get_config: {
         [k: string]: unknown;

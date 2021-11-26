@@ -21,6 +21,13 @@ export type QueryResponse =
       [k: string]: unknown;
     }
   | {
+      get_router_address: {
+        address: HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
       list_idos: {
         idos: HumanAddr[];
         [k: string]: unknown;
@@ -48,6 +55,7 @@ export type QueryResponse =
         launchpad_contract: ContractInstantiationInfo;
         lp_token_contract: ContractInstantiationInfo;
         pair_contract: ContractInstantiationInfo;
+        router_contract: ContractInstantiationInfo;
         snip20_contract: ContractInstantiationInfo;
         [k: string]: unknown;
       };

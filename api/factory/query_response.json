@@ -43,6 +43,25 @@
     {
       "type": "object",
       "required": [
+        "get_router_address"
+      ],
+      "properties": {
+        "get_router_address": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
         "list_idos"
       ],
       "properties": {
@@ -117,6 +136,7 @@
             "launchpad_contract",
             "lp_token_contract",
             "pair_contract",
+            "router_contract",
             "snip20_contract"
           ],
           "properties": {
@@ -133,6 +153,9 @@
               "$ref": "#/definitions/ContractInstantiationInfo"
             },
             "pair_contract": {
+              "$ref": "#/definitions/ContractInstantiationInfo"
+            },
+            "router_contract": {
               "$ref": "#/definitions/ContractInstantiationInfo"
             },
             "snip20_contract": {

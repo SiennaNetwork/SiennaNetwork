@@ -30,7 +30,7 @@ async function buildAndUpload (contracts: Array<ContractUpload>) {
 
 import type { ScheduleFor_HumanAddr } from '@sienna/api/mgmt/handle'
 import type { SNIP20Contract as SNIP20 } from '@sienna/api'
-import { SiennaSNIP20, MGMTContract, RPTContract } from '@sienna/api'
+import { SiennaSNIP20, MGMTContract, RPTContract, SwapRouterContract } from '@sienna/api'
 
 export type VestingOptions = {
   prefix?:   string
@@ -114,10 +114,11 @@ export async function deploySwap (options: SwapOptions) {
     LPTOKEN   = new LPToken({ prefix, admin }),
     IDO       = new IDOContract({ prefix, admin }),
     LAUNCHPAD = new LaunchpadContract({ prefix, admin }),
-    REWARDS   = new RewardsContract({ prefix, admin })
+    REWARDS   = new RewardsContract({ prefix, admin }),
+    ROUTER    = new SwapRouterContract({ prefix, admin })
 
   const
-    factoryDeps    = { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD },
+    factoryDeps    = { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD, ROUTER },
     factoryConfig  = settings[`amm-${chain.chainId}`],
     factoryOptions = { prefix, admin, config: factoryConfig, ...factoryDeps },
     FACTORY        = new FactoryContract(factoryOptions)
