@@ -1,5 +1,34 @@
 # Sienna Rewards
 
+## Testing procedures
+
+### Unit testing
+
+Unit tests are implemented in the `test/` directory.
+
+```sh
+# in project root...
+cargo test -p sienna-rewards
+```
+
+### Integration testing
+
+Integration testing is conducted via a Web dashboard
+which executes the smart contract and its dependencies.
+
+```sh
+# in project root...
+./dashboard/build.sh
+pnpm dash
+# open localhost:8080
+```
+
+### Benchmarking
+
+(TODO)
+
+## Conceptual overview
+
 Sienna Rewards distributes SIENNA tokens to users
 who provide liquidity for Sienna Swap.
 
@@ -23,7 +52,9 @@ that it works primarily in **event time**:
   provided by the user is before the time of last update, the query
   fails.
 
-## User flow
+## Control flows
+
+### User flow
 
 ![](./doc/user_flow.png)
 
@@ -86,7 +117,7 @@ the state of the user is reset.
 * If the user leaves the pool before the bonding period,
   their contribution is reset and no rewards are claimed.
 
-## Epoch flow
+### Epoch flow
 
 ![](./doc/funding_flow.png)
 
@@ -101,14 +132,18 @@ referred to as the **epoch clock**.
   and more epochs can be launched after the end of the
   rewards program if it is so desired.
 
-## Migration flow
+### Migration flow
 
 To migrate:
 
 1. Deploy next version of contract
 2. Enable migration to new contract in old contract
 3. Enable migration from old contract in new contract
-4. Each user calls RequestMigration to move from old to new contract
-5. Call ClosePool on old contract
+4. Call ClosePool on old contract
+5. Users can now either:
+  - Call `{"immigration":{"request_migration":{...}}}`
+    **on the new contract** to migrate their stake from the old contract
+  - Call any other method **on the old contract** to withdraw their stake
+    and claim any remaining rewards.
 
 ![](./doc/migration_flow.png)
