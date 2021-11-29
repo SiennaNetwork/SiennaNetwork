@@ -2,9 +2,14 @@
 
 ## Testing procedures
 
+Note that these commands are meant to be run
+from the root of the proejct repository.
+
 ### Unit testing
 
 Unit tests are implemented in the `test/` directory.
+The harness in `test/mod.rs` contains shorthands for
+the test steps, and generates CSV reports for each test.
 
 ```sh
 # in project root...
@@ -14,11 +19,12 @@ cargo test -p sienna-rewards
 ### Integration testing
 
 Integration testing is conducted via a Web dashboard
-which executes the smart contract and its dependencies.
+which executes the smart contract and its dependencies
+within the browser's WASM environment.
 
 ```sh
 # in project root...
-./dashboard/build.sh
+dashboard/build.sh
 pnpm dash
 # open localhost:8080
 ```

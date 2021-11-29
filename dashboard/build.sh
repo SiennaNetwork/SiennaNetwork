@@ -3,7 +3,7 @@
 set -e
 
 cd `dirname $0`/..
-pwd
+echo "Running from `pwd`"
 
 build () {
   echo "Building $1 from $2..."
