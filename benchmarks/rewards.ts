@@ -57,7 +57,7 @@ import { RewardsContract, SiennaSNIP20, LPToken } from '@sienna/api'
 async function setupContracts (admin: IAgent) {
 
   const prefix  = `RewardsBenchmark_${+new Date()}`
-  const LPTOKEN = new LPToken({ prefix, admin, name: 'LPTOKEN' })
+  const LPTOKEN = new LPToken({ prefix, admin, name: 'BENCHMARK' })
   const SIENNA  = new SiennaSNIP20({ prefix, admin })
   const REWARDS = new RewardsContract({ prefix, admin, lpToken: LPTOKEN, rewardToken: SIENNA })
   const contracts = [SIENNA, LPTOKEN, REWARDS]
@@ -95,17 +95,17 @@ function setupActions (REWARDS: RewardsContract) {
   const actions = [
     async (recipient: IAgent) => {
       console.log(`----- ${recipient.name}: lock 100`)
-      const result = await REWARDS.deposit("100", recipient.address)
+      const result = await REWARDS.TX(recipient).deposit("100")
       transactionLog.push(['lock', recipient, result])
     },
     async (recipient: IAgent) => {
       console.log(`----- ${recipient.name}: retrieve 5`)
-      const result = await REWARDS.withdraw("5", recipient.address)
+      const result = await REWARDS.TX(recipient).withdraw("5")
       transactionLog.push(['retrieve', recipient, result])
     },
     async (recipient: IAgent) => {
       console.log(`----- ${recipient.name}: claim`)
-      const result = (await REWARDS.claim(recipient.address))
+      const result = await REWARDS.TX(recipient).claim()
       transactionLog.push(['claim', recipient, result])
     },
   ]
@@ -121,10 +121,13 @@ async function runBenchmark (actions: Array<Action>, agents: Array<IAgent>) {
     const action    = pickRandom(actions)
     const recipient = pickRandom(agents)
     try {
-      console.debug(await action(recipient))
+      console.log('pre')
+      const result = await action(recipient)
+      console.log('post', result)
     } catch (e) {
       console.warn(e)
     }
+    console.info(`next`)
   }
 
   function pickRandom <T> (arr: Array<T>) {
@@ -383,4 +386,3 @@ async function runBenchmark (actions: Array<Action>, agents: Array<IAgent>) {
       ////console.debug(`mint ${amount} to ${recipient.name}`)
       ////await asset.increaseAllowance(amount, rewardPool.address, recipient)
       ////await asset.mint(amount, asset.agent, recipient.address)
-    ////}

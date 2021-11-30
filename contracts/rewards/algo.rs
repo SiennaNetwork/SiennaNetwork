@@ -137,7 +137,7 @@ pub enum RewardsHandle {
     Withdraw { amount: Amount },
     Claim    {},
     // Authorized transactions
-    BeginEpoch { next_epoch: Moment },
+    BeginEpoch { next_epoch: u64 },
     // Admin-only transactions
     Configure(RewardsConfig),
     Close    { message: String },
@@ -250,7 +250,7 @@ pub trait IClock <S, A, Q, C> where
     /// Get the current state of the epoch clock.
     fn get (core: &C, now: Moment) -> StdResult<Clock>;
     /// Increment the epoch and commit liquidity so far
-    fn increment (core: &mut C, env: &Env, next_epoch: Moment) -> StdResult<HandleResponse>;
+    fn increment (core: &mut C, env: &Env, next_epoch: u64) -> StdResult<HandleResponse>;
 }
 impl<S, A, Q, C> IClock<S, A, Q, C> for Clock where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
@@ -263,7 +263,7 @@ impl<S, A, Q, C> IClock<S, A, Q, C> for Clock where
         clock.volume  = core.get(Self::VOLUME)?.unwrap_or(Volume::zero());
         Ok(clock)
     }
-    fn increment (core: &mut C, env: &Env, next_epoch: Moment) -> StdResult<HandleResponse> {
+    fn increment (core: &mut C, env: &Env, next_epoch: u64) -> StdResult<HandleResponse> {
         if env.message.sender != RewardsConfig::timekeeper(core)? {
             return Err(StdError::unauthorized())
         }

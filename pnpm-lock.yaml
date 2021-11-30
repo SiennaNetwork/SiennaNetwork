@@ -38,6 +38,7 @@ importers:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
+      '@sienna/rewards': workspace:*
       '@waiting/base64': ^4.2.9
       bip39: ^3.0.4
       debug: ^4.3.2
@@ -46,6 +47,7 @@ importers:
     dependencies:
       '@fadroma/scrt': link:../libraries/fadroma-next/ops-scrt
       '@fadroma/tools': link:../libraries/fadroma-next/tools
+      '@sienna/rewards': link:../contracts/rewards
       '@waiting/base64': 4.2.9
       bip39: 3.0.4
       debug: 4.3.3
@@ -66,6 +68,16 @@ importers:
 
   contracts/lp-token:
     specifiers: {}
+
+  contracts/rewards:
+    specifiers:
+      '@fadroma/scrt': workspace:*
+      '@fadroma/tools': workspace:*
+      secretjs: workspace:*
+    dependencies:
+      '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
+      '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/snip20-sienna:
     specifiers: {}
@@ -216,31 +228,31 @@ importers:
 
   libraries/fadroma-next/ops-scrt:
     specifiers:
-      '@cosmjs/crypto': ^0.24.1
+      '@cosmjs/crypto': ^0.20.0
       '@fadroma/ops': workspace:*
       '@fadroma/tools': workspace:*
-      secretjs: 0.17.3
+      secretjs: 0.17.5
     dependencies:
-      '@cosmjs/crypto': 0.24.1
+      '@cosmjs/crypto': 0.20.1
       '@fadroma/ops': link:../ops
       '@fadroma/tools': link:../tools
-      secretjs: 0.17.3
+      secretjs: 0.17.5
 
   libraries/fadroma-next/ops-scrt-1.0:
     specifiers:
       '@fadroma/scrt': workspace:*
-      secretjs: 0.17.3
+      secretjs: workspace:0.16.5
     dependencies:
       '@fadroma/scrt': link:../ops-scrt
-      secretjs: 0.17.3
+      secretjs: link:../platforms/scrt-1.0/cosmwasm-js/packages/sdk
 
   libraries/fadroma-next/ops-scrt-1.2:
     specifiers:
       '@fadroma/scrt': workspace:*
-      secretjs: 0.17.3
+      secretjs: workspace:0.17.5
     dependencies:
       '@fadroma/scrt': link:../ops-scrt
-      secretjs: 0.17.3
+      secretjs: link:../platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
   libraries/fadroma-next/platforms/ganesha:
     specifiers:
@@ -2196,23 +2208,6 @@ packages:
       type-tagger: 1.0.0
       unorm: 1.6.0
 
-  /@cosmjs/crypto/0.24.1:
-    resolution: {integrity: sha512-GPhaWmQO06mXldKj/b+oKF5o3jMNfRKpAw+Q8XQhrD7ItinVPDMu8Xgl6frUXWTUdgpYwqpvqOcpm85QUsYV0Q==}
-    dependencies:
-      '@cosmjs/encoding': 0.24.1
-      '@cosmjs/math': 0.24.1
-      '@cosmjs/utils': 0.24.1
-      bip39: 3.0.4
-      bn.js: 4.12.0
-      elliptic: 6.5.4
-      js-sha3: 0.8.0
-      libsodium-wrappers: 0.7.9
-      pbkdf2: 3.1.2
-      ripemd160: 2.0.2
-      sha.js: 2.4.11
-      unorm: 1.6.0
-    dev: false
-
   /@cosmjs/encoding/0.20.1:
     resolution: {integrity: sha512-aBp153iq2LD4GwDGwodDWZk/eyAUZ8J8bbiqZ1uK8rrylzm9Rdw84aa6JxykezJe+uBPtoI4lx9eH7VQXCGDXw==}
     dependencies:
@@ -2220,31 +2215,13 @@ packages:
       bech32: 1.1.4
       readonly-date: 1.0.0
 
-  /@cosmjs/encoding/0.24.1:
-    resolution: {integrity: sha512-PMr+gaXAuM0XgjeXwB1zdX1QI0t+PgVhbmjgI/RSgswDzdExNH97qUopecL0/HG3p64vhIT/6ZjXYYTljZL7WA==}
-    dependencies:
-      base64-js: 1.5.1
-      bech32: 1.1.4
-      readonly-date: 1.0.0
-    dev: false
-
   /@cosmjs/math/0.20.1:
     resolution: {integrity: sha512-xt7BmpSw2OVGM2+JhlJvKv9OJs9+3DqgVL6+byUDC355CSISrZhFjJg9GFko1EFssDXz5YgvBZR5FkifC0xazw==}
     dependencies:
       bn.js: 4.12.0
 
-  /@cosmjs/math/0.24.1:
-    resolution: {integrity: sha512-eBQk8twgzmpHFCVkoNjTZhsZwWRbR+JXt0FhjXJoD85SBm4K8b2OnOyTg68uPHVKOJjLRwzyRVYgMrg5TBVgwQ==}
-    dependencies:
-      bn.js: 4.12.0
-    dev: false
-
   /@cosmjs/utils/0.20.1:
     resolution: {integrity: sha512-xl9YnIrAAaBd6nFffwFbyrnKjqjD9zKGP8OBKxzyglxamHfqAS+PcJPEiaEpt+oUt7HAIOyhL3KK75Dh52hGvA==}
-
-  /@cosmjs/utils/0.24.1:
-    resolution: {integrity: sha512-VA3WFx1lMFb7esp9BqHWkDgMvHoA3D9w+uDRvWhVRpUpDc7RYHxMbWExASjz+gNblTCg556WJGzF64tXnf9tdQ==}
-    dev: false
 
   /@cosmwasm/bcp/0.8.1:
     resolution: {integrity: sha512-VlSIBQKEMi6cleRIhzH+bmTP4NbR0HhsUDA9nii7rvTXp2wDmIrb392AWHtw9c1UijdIl/gJorKmMAdOt7gsGw==}
@@ -22491,8 +22468,8 @@ packages:
       - debug
     dev: false
 
-  /secretjs/0.17.3:
-    resolution: {integrity: sha512-eB2+eKkGUdjoR+sBRbtJUglEaB3jwlcz69c28xT5+Y65d1cxMJzdx3cBR7cLnqWayyERidhzZL+idu9TrwQR9g==}
+  /secretjs/0.17.5:
+    resolution: {integrity: sha512-sf0+Je9KIEMQr/wJOgeqyBOV0ruiMNHSwP4L2vXiJbtzJWQqyVHyPkpavAhruNZ+91XlSzAFP2X5MPxqPBC9fQ==}
     dependencies:
       '@iov/crypto': 2.1.0
       '@iov/encoding': 2.1.0

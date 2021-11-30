@@ -1,0 +1,11 @@
+{
+  "name": "@sienna/rewards",
+  "version": "3.0.0-pre",
+  "type": "module",
+  "main": "./api.ts",
+  "dependencies": {
+    "@fadroma/scrt":  "workspace:*",
+    "@fadroma/tools": "workspace:*",
+    "secretjs":       "workspace:*"
+  }
+}
