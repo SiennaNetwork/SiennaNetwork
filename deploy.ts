@@ -447,17 +447,22 @@ export default async function main ([chainName, ...words]: Array<string>) {
     }
 
     chain = await chains[chainName]().ready
-    admin = await chain.getAgent()
-    console.log(`\nOperating on ${bold(chainName)} as ${bold(admin.address)}`)
 
-    const initialBalance = await admin.balance
-    console.log(`\nBalance: ${bold(initialBalance)}uscrt`)
-    process.on('beforeExit', async () => {
-      const finalBalance = await admin.balance
-      console.log(`\nInitial balance: ${bold(initialBalance)}uscrt`)
-      console.log(`\nFinal balance: ${bold(finalBalance)}uscrt`)
-      console.log(`\nConsumed gas: ${bold(initialBalance - finalBalance)}uscrt`)
-    })
+    try {
+      admin = await chain.getAgent()
+      console.log(`\nOperating on ${bold(chainName)} as ${bold(admin.address)}`)
+
+      const initialBalance = await admin.balance
+      console.log(`\nBalance: ${bold(initialBalance)}uscrt`)
+      process.on('beforeExit', async () => {
+        const finalBalance = await admin.balance
+        console.log(`\nInitial balance: ${bold(initialBalance)}uscrt`)
+        console.log(`\nFinal balance: ${bold(finalBalance)}uscrt`)
+        console.log(`\nConsumed gas: ${bold(String(initialBalance - finalBalance))}uscrt`)
+      })
+    } catch (e) {
+      console.warn(`Could not get an agent for ${chainName}: ${e.message}`)
+    }
 
     return { chain, admin }
   }

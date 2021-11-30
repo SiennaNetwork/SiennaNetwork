@@ -21,6 +21,8 @@ import {
   LaunchpadContract
 } from '@sienna/api'
 
+import rewardsBenchmark from './benchmarks/rewards'
+
 const
   projectRoot = resolve(dirname(fileURLToPath(import.meta.url))),
   abs         = (...args: Array<string>) => resolve(projectRoot, ...args)
@@ -137,7 +139,7 @@ export default async function main (words: Array<string>) {
     },
 
     bench: {
-      rewards: notImplemented,
+      rewards: rewardsBenchmark,
       ido:     notImplemented
     },
 

@@ -67,9 +67,6 @@ importers:
   contracts/lp-token:
     specifiers: {}
 
-  contracts/rewards/target/web:
-    specifiers: {}
-
   contracts/snip20-sienna:
     specifiers: {}
 
@@ -141,6 +138,21 @@ importers:
       webpack-cli: 4.8.0_54159a174ab32b03d40d3fca8c5d8363
       webpack-dev-server: 3.11.2_webpack-cli@4.8.0+webpack@5.53.0
 
+  dashboard/artifacts/lptoken:
+    specifiers: {}
+
+  dashboard/artifacts/mgmt:
+    specifiers: {}
+
+  dashboard/artifacts/rewards:
+    specifiers: {}
+
+  dashboard/artifacts/rpt:
+    specifiers: {}
+
+  dashboard/artifacts/sienna:
+    specifiers: {}
+
   docs:
     specifiers:
       colors: ^1.4.0
@@ -185,7 +197,7 @@ importers:
       chai: 4.3.4
       documentation: 13.2.5
       mocha: 8.4.0
-      typedoc: 0.21.9_typescript@4.4.4
+      typedoc: 0.21.9
 
   libraries/fadroma-next/example:
     specifiers: {}
@@ -225,7 +237,7 @@ importers:
   libraries/fadroma-next/ops-scrt-1.2:
     specifiers:
       '@fadroma/scrt': '*'
-      secretjs: workspace:^0.17.0
+      secretjs: workspace:0.17.0
     dependencies:
       '@fadroma/scrt': link:../ops-scrt
       secretjs: link:../platforms/scrt-1.2/cosmwasm-js/packages/sdk
@@ -253,7 +265,7 @@ importers:
       tree-sitter: 0.19.0
       tree-sitter-markdown: github.com/egasimus/tree-sitter-markdown/18c3f1ccd3e27051273caa6d721d1c033e63741d
     devDependencies:
-      tap: 15.0.10_ts-node@10.4.0+typescript@4.4.4
+      tap: 15.0.10
 
   libraries/fadroma-next/platforms/ganesha/examples/example:
     specifiers: {}
@@ -666,7 +678,7 @@ importers:
       esbuild-node-loader: 0.3.1
       express: 4.17.1
       freeport-async: 2.0.0
-      tap: 15.0.10_ts-node@10.4.0+typescript@4.4.4
+      tap: 15.0.10
 
   libraries/fadroma-next/tools:
     specifiers:
@@ -23748,7 +23760,7 @@ packages:
     dependencies:
       yaml: 1.10.2
 
-  /tap/15.0.10_ts-node@10.4.0+typescript@4.4.4:
+  /tap/15.0.10:
     resolution: {integrity: sha512-8aq4j+1JUOlXyffLX7ZJxhe9KAxV3s7PsdWAm3XwfoWc/OiFyAMcv4+T0/5/65gBxOVAPLpxH8ecfDkYTA2BCQ==}
     engines: {node: '>=10'}
     hasBin: true
@@ -23787,8 +23799,6 @@ packages:
       tap-parser: 10.1.0
       tap-yaml: 1.0.0
       tcompare: 5.0.6
-      ts-node: 10.4.0_typescript@4.4.4
-      typescript: 4.4.4
       which: 2.0.2
     transitivePeerDependencies:
       - supports-color
@@ -24589,7 +24599,7 @@ packages:
     engines: {node: '>= 8'}
     dev: true
 
-  /typedoc/0.21.9_typescript@4.4.4:
+  /typedoc/0.21.9:
     resolution: {integrity: sha512-VRo7aII4bnYaBBM1lhw4bQFmUcDQV8m8tqgjtc7oXl87jc1Slbhfw2X5MccfcR2YnEClHDWgsiQGgNB8KJXocA==}
     engines: {node: '>= 12.10.0'}
     hasBin: true
@@ -24604,7 +24614,6 @@ packages:
       progress: 2.0.3
       shiki: 0.9.11
       typedoc-default-themes: 0.12.10
-      typescript: 4.4.4
     dev: true
 
   /typeforce/1.18.0:
