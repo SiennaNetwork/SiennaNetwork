@@ -450,10 +450,10 @@ export default async function main ([chainName, ...words]: Array<string>) {
 
     try {
       admin = await chain.getAgent()
-      console.log(`\nOperating on ${bold(chainName)} as ${bold(admin.address)}`)
+      console.info(`Operating on ${bold(chainName)} as ${bold(admin.address)}`)
 
       const initialBalance = await admin.balance
-      console.log(`\nBalance: ${bold(initialBalance)}uscrt`)
+      console.info(`Balance: ${bold(initialBalance)}uscrt`)
       process.on('beforeExit', async () => {
         const finalBalance = await admin.balance
         console.log(`\nInitial balance: ${bold(initialBalance)}uscrt`)

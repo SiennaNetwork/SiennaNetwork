@@ -24,14 +24,14 @@ const projectRoot = resolve(dirname(fileURLToPath(import.meta.url))),
       abs = (...args: Array<string>) => resolve(projectRoot, ...args)
 
 async function setupNetwork (numberOfAgents: number) {
-
   console.info(`Setting up localnet with ${numberOfAgents} agents`)
 
-  const agentNames = [...Array(numberOfAgents)].map((_,i)=>`Agent${i}`)
+  const identities = ["ADMIN", ...[...Array(numberOfAgents)].map((_,i)=>`Agent${i}`)]
 
-  const network = await Scrt.localnet_1_2({ identities: ["ADMIN", ...agentNames] }).ready
+  const network = await Scrt.localnet_1_2({ identities }).ready
 
-  const agents = await Promise.all(agentNames.map(name=>network.getAgent(name, {
+  const agents = await Promise.all(identities.map(name=>network.getAgent({
+    name,
     mnemonic: network.node.genesisAccount(name).mnemonic
   })))
 
@@ -45,7 +45,6 @@ async function setupNetwork (numberOfAgents: number) {
   }
 
   return { network, agents }
-
 }
 
 
@@ -56,13 +55,20 @@ import type { IAgent, ContractUpload } from '@fadroma/scrt'
 import { RewardsContract, SiennaSNIP20, LPToken } from '@sienna/api'
 
 async function setupContracts (admin: IAgent) {
-  const prefix = 'benchmark'
-  const REWARDS = new RewardsContract({ prefix, admin })
-  const LPTOKEN = new LPToken({ prefix, admin })
+
+  const prefix  = `RewardsBenchmark_${+new Date()}`
+  const LPTOKEN = new LPToken({ prefix, admin, name: 'LPTOKEN' })
   const SIENNA  = new SiennaSNIP20({ prefix, admin })
-  await buildAndUpload([REWARDS, LPTOKEN, SIENNA])
+  const REWARDS = new RewardsContract({ prefix, admin, lpToken: LPTOKEN, rewardToken: SIENNA })
+  const contracts = [SIENNA, LPTOKEN, REWARDS]
+  await buildAndUpload(contracts)
+
   console.info(`Instantiating contracts`)
-  await REWARDS.instantiate()
+  for (const contract of contracts) {
+    await contract.instantiate()
+    await admin.nextBlock
+  }
+
   return { REWARDS, LPTOKEN, SIENNA }
 
   async function buildAndUpload (contracts: Array<ContractUpload>) {
@@ -124,7 +130,6 @@ async function runBenchmark (actions: Array<Action>, agents: Array<IAgent>) {
   function pickRandom <T> (arr: Array<T>) {
     return arr[Math.floor(Math.random()*arr.length)]
   }
-
 }
 
 

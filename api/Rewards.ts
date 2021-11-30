@@ -17,6 +17,8 @@ export type RewardsOptions = {
   admin?:       Agent
   lpToken?:     SNIP20
   rewardToken?: SNIP20
+  bonding?:     number
+  timekeeper?:  string
 }
 
 export class Rewards extends ScrtContract {
@@ -49,23 +51,39 @@ export class Rewards extends ScrtContract {
     admin,
     lpToken,
     rewardToken,
+    bonding = 86400,
+    timekeeper
   }: RewardsOptions = {}) {
+
     super({
       agent:  admin,
       schema: Rewards.schema,
       prefix,
       label:  label || `SiennaRewards_${name}_Pool`
     })
+
     if (codeId)   this.blob.codeId = codeId
     if (codeHash) this.blob.codeHash = codeHash
+
     Object.assign(this.init.msg, {
-      admin: admin?.address,
-      viewing_key: randomHex(36)
+      admin: admin?.address
     })
-    Object.defineProperties(this.init.msg, {
-      lp_token:     { enumerable: true, get () { return lpToken?.link } },
-      reward_token: { enumerable: true, get () { return rewardToken?.link } }
+
+    const reward_vk = randomHex(36)
+
+    Object.defineProperty(this.init.msg, 'config', {
+      enumerable: true,
+      get () {
+        return {
+          lp_token:     lpToken?.link,
+          reward_token: rewardToken?.link,
+          reward_vk,
+          bonding,
+          timekeeper
+        }
+      }
     })
+
   }
 
   code = {
@@ -128,8 +146,10 @@ export class Rewards extends ScrtContract {
 
   claim = (
     agent: Agent = this.instantiator
-  ) =>
-    this.tx.claim({}, agent);
+  ) => {
+    console.debug(this.tx)
+    return this.tx.claim({}, agent);
+  }
 
   close = (
     message: string,
