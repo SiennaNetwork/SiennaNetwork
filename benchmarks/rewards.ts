@@ -3,6 +3,9 @@
 /// ## Overview
 
 
+import { Console } from '@fadroma/tools'
+const console = Console(import.meta.url)
+
 export default async function benchmarkRewards () {
   const { agents  } = await setupNetwork(20)
   const { REWARDS } = await setupContracts(agents[0])
@@ -21,6 +24,8 @@ const projectRoot = resolve(dirname(fileURLToPath(import.meta.url))),
       abs = (...args: Array<string>) => resolve(projectRoot, ...args)
 
 async function setupNetwork (numberOfAgents: number) {
+
+  console.info(`Setting up localnet with ${numberOfAgents} agents`)
 
   const agentNames = [...Array(numberOfAgents)].map((_,i)=>`Agent${i}`)
 
@@ -56,11 +61,14 @@ async function setupContracts (admin: IAgent) {
   const LPTOKEN = new LPToken({ prefix, admin })
   const SIENNA  = new SiennaSNIP20({ prefix, admin })
   await buildAndUpload([REWARDS, LPTOKEN, SIENNA])
+  console.info(`Instantiating contracts`)
   await REWARDS.instantiate()
   return { REWARDS, LPTOKEN, SIENNA }
 
   async function buildAndUpload (contracts: Array<ContractUpload>) {
+    console.info(`Building contracts`)
     await Promise.all(contracts.map(contract=>contract.build()))
+    console.info(`Uploading contracts`)
     for (const contract of contracts) await contract.upload()
   }
 }
@@ -74,6 +82,8 @@ type Transaction = [string, IAgent, { transactionHash: string }]
 
 
 function setupActions (REWARDS: RewardsContract) {
+  console.info(`Preparing benchmark`)
+
   const transactionLog: Array<Transaction> = []
 
   const actions = [
@@ -99,6 +109,7 @@ function setupActions (REWARDS: RewardsContract) {
 
 
 async function runBenchmark (actions: Array<Action>, agents: Array<IAgent>) {
+  console.info(`Running benchmark`)
 
   for (let i = 0; i < 1000000; i++) {
     const action    = pickRandom(actions)
