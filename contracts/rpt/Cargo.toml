@@ -17,7 +17,7 @@ linear-map       = { path = "../../libraries/linear-map" }
 schemars         = "0.7"
 secret-toolkit   = { git = "https://github.com/enigmampc/secret-toolkit" }
 serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
-sienna-mgmt      = { path = "../mgmt", features = [ "browser" ] }
+sienna-mgmt      = { path = "../mgmt" }
 sienna-migrate   = { path = "../../libraries/migrate" }
 
 fadroma-bind-js = { optional = true, path = "../../libraries/fadroma-next/bind-js" }
@@ -35,5 +35,5 @@ default = []
 browser = [
   "fadroma-bind-js",
   "wasm-bindgen", "wasm-bindgen/serde-serialize", "js-sys",
-  "sienna-mgmt/apionly"
+  "sienna-mgmt/browser", "sienna-mgmt/apionly"
 ]

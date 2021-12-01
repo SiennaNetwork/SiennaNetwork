@@ -1,6 +1,6 @@
 # Sienna Rewards
 
-## Testing procedures
+## Procedures
 
 Note that these commands are meant to be run
 from the root of the proejct repository.
@@ -12,7 +12,6 @@ The harness in `test/mod.rs` contains shorthands for
 the test steps, and generates CSV reports for each test.
 
 ```sh
-# in project root...
 cargo test -p sienna-rewards
 ```
 
@@ -23,15 +22,22 @@ which executes the smart contract and its dependencies
 within the browser's WASM environment.
 
 ```sh
-# in project root...
-dashboard/build.sh
-pnpm dash
+pnpm -w dash:build
+pnpm -w dash
 # open localhost:8080
 ```
 
 ### Benchmarking
 
-(TODO)
+```sh
+pnpm -w dev bench rewards
+```
+
+### Local deployment
+
+```sh
+pnpm -w ops localnet-1.2 deploy all
+```
 
 ## Conceptual overview
 

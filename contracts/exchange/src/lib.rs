@@ -5,7 +5,7 @@ mod decimal_math;
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use super::contract;
-    use amm_shared::fadroma::scrt::cosmwasm_std::{
+    use amm_shared::fadroma::scrt::{
         do_handle, do_init, do_query, ExternalApi, ExternalQuerier, ExternalStorage,
     };
 
