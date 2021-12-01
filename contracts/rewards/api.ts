@@ -112,8 +112,12 @@ export class Rewards extends ScrtContract {
 
       async poolInfo () {
         const at = Math.floor(+ new Date() / 1000)
-        const { pool_info } = await query("rewards", { pool_info: { at } })
-        return pool_info
+        return await query("rewards", { pool_info: { at } })
+      },
+
+      async getEpoch () {
+        const info = await this.poolInfo()
+        return info.rewards.pool_info.clock.number
       },
 
       async getRewardToken (TOKEN: { attach: Function } = SNIP20) {

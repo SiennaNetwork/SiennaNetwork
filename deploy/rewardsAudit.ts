@@ -35,6 +35,7 @@ export default {
     if (isNaN(amount) || amount < 0) {
       throw new Error('pass a non-negative amount of rewards to vest for this epoch')
     }
+    amount = String(amount)
 
     const {chain, admin} = await init(process.env.CHAIN_NAME)
     const instance = chain.instances.active
@@ -42,15 +43,22 @@ export default {
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
 
     await SIENNA.tx.mint({
-      amount:    String(amount),
+      amount,
       recipient: REWARDS.address,
       padding:   null
     }, admin)
 
-    const info = await REWARDS.Q(admin).poolInfo()
-    console.debug(info)
+    const epoch = (await REWARDS.Q(admin).getEpoch()) + 1
+    await REWARDS.TX(admin).beginEpoch(epoch)
 
-    await REWARDS.TX(admin).beginEpoch(0)
+    console.info(`Started epoch ${bold(epoch)} with reward budget: ${bold(amount)}`)
+  },
+
+  async ['status'] () {
+    const {chain, admin} = await init(process.env.CHAIN_NAME)
+    const instance = chain.instances.active
+    const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
+    console.debug('Pool info:', await REWARDS.Q(admin).poolInfo())
   },
 
   async ['deposit'] () {
