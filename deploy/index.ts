@@ -44,7 +44,7 @@ commands['select'] = async function select (id?: string) {
 
 commands['deploy'] = {
 
-  async all () {
+  async ['all'] () {
     const {chain, admin} = await init(process.env.CHAIN_NAME)
     const prefix = timestamp()
     const vesting = await deployVesting({prefix, chain, admin})
@@ -53,7 +53,7 @@ commands['deploy'] = {
     chain.printActiveInstance()
   },
 
-  async vesting () {
+  async ['vesting'] () {
     const {chain, admin} = await init(process.env.CHAIN_NAME)
     const prefix = timestamp()
     const vesting = await deployVesting({prefix, chain, admin})
@@ -61,7 +61,7 @@ commands['deploy'] = {
     chain.printActiveInstance()
   },
 
-  async swap () {
+  async ['swap'] () {
     const {chain, admin} = await init(process.env.CHAIN_NAME)
     if (!chain.instances.active) await commands.deploy.vesting()
     const { name: prefix } = chain.instances.active
@@ -73,7 +73,7 @@ commands['deploy'] = {
 
 commands['upgrade'] = {
 
-  async rewards (id?: string) {
+  async ['rewards'] (id?: string) {
     const {chain, admin} = await init(process.env.CHAIN_NAME)
     if (id) {
       await replaceRewardPool(chain, admin, id)
@@ -103,6 +103,7 @@ export default async function main (
     words,
     async (command: any) => {
       const { chain } = await init(chainName)
+      chain.printIdentities()
       chain.printActiveInstance()
       console.log(`\nAvailable commands:`)
       for (const key of Object.keys(command)) {

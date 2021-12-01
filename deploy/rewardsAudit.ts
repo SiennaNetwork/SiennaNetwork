@@ -8,7 +8,11 @@ const console = Console(import.meta.url)
 
 export default {
 
-  async ['deploy'] () {
+  async ['deploy'] (bonding: number) {
+    bonding = Number(bonding)
+    if (isNaN(bonding) || bonding < 0) {
+      throw new Error('pass a non-negative bonding period to configure (in seconds)')
+    }
     const {chain, admin} = await init(process.env.CHAIN_NAME)
     const prefix  = `AUDIT-${timestamp()}`
     const SIENNA  = new SiennaSNIP20({ prefix, admin })
@@ -54,23 +58,77 @@ export default {
     console.info(`Started epoch ${bold(epoch)} with reward budget: ${bold(amount)}`)
   },
 
-  async ['status'] () {
+  async ['status'] (identity: string) {
     const {chain, admin} = await init(process.env.CHAIN_NAME)
     const instance = chain.instances.active
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
-    console.debug('Pool info:', await REWARDS.Q(admin).poolInfo())
+    if (identity) {
+      const {address} = chain.identities.load(identity)
+      console.debug('User info:', await REWARDS.Q(admin).userInfo(address))
+    } else {
+      console.debug('Pool info:', await REWARDS.Q(admin).poolInfo())
+    }
   },
 
-  async ['deposit'] () {
-    const {chain} = await init(process.env.CHAIN_NAME)
+  async ['deposit'] (user: string, amount: string|number) {
+    const {chain, admin} = await init(process.env.CHAIN_NAME)
+    if (!user) {
+      chain.printIdentities()
+      throw new Error('pass an identity to deposit')
+    }
+    amount = Number(amount)
+    if (isNaN(amount) || amount < 0) {
+      throw new Error('pass a non-negative amount of LP tokens to deposit')
+    }
+    amount = String(amount)
+    const {mnemonic} = chain.identities.load(user)
+    const agent    = await chain.getAgent({mnemonic})
+    const instance = chain.instances.active
+    const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
+    const LPTOKEN  = instance.getContract(LPToken, 'SiennaRewards_AUDIT_LPToken', admin)
+
+    await LPTOKEN.tx.mint({amount, recipient: agent.address, padding: null}, admin)
+    await LPTOKEN.tx.increaseAllowance({amount, spender: REWARDS.address, padding: null}, agent)
+    await REWARDS.TX(agent).deposit(amount)
+
+    console.info(`Deposited ${bold(amount)} LPTOKEN from ${bold(agent.address)} (${user})`)
   },
 
-  async ['withdraw'] () {
-    const {chain} = await init(process.env.CHAIN_NAME)
+  async ['withdraw'] (user: string, amount: string|number) {
+    const {chain, admin} = await init(process.env.CHAIN_NAME)
+    if (!user) {
+      chain.printIdentities()
+      throw new Error('pass an identity to withdraw')
+    }
+    amount = Number(amount)
+    if (isNaN(amount) || amount < 0) {
+      throw new Error('pass a non-negative amount of LP tokens to withdraw')
+    }
+    amount = String(amount)
+    const {mnemonic} = chain.identities.load(user)
+    const agent    = await chain.getAgent({mnemonic})
+    const instance = chain.instances.active
+    const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
+
+    await REWARDS.TX(agent).withdraw(amount)
+
+    console.info(`Withdrew ${bold(amount)} LPTOKEN from ${bold(agent.address)} (${user})`)
   },
 
-  async ['claim'] () {
-    const {chain} = await init(process.env.CHAIN_NAME)
+  async ['claim'] (user: string) {
+    const {chain, admin} = await init(process.env.CHAIN_NAME)
+    if (!user) {
+      chain.printIdentities()
+      throw new Error('pass an identity to claim')
+    }
+    const {mnemonic} = chain.identities.load(user)
+    const agent    = await chain.getAgent({mnemonic})
+    const instance = chain.instances.active
+    const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
+
+    await REWARDS.TX(agent).claim()
+
+    console.info(`Claimed`)
   },
 
   async ['enable-migration'] () {
