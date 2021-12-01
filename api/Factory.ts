@@ -139,6 +139,8 @@ export class Factory extends ScrtContract {
 
     const {logs:[{events:[_,{attributes}]}]} = result
 
+    console.debug('Result of createExchange', result)
+
     const [ {value:contract_address_1}
           , {value:action_1}
           , {value:pair}

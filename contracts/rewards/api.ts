@@ -109,19 +109,23 @@ export class Rewards extends ScrtContract {
       agent.query(this.link, method, args)
 
     return {
+
       async poolInfo () {
-        const { header: { height: at } } = await agent.block // TODO time!
-        const { pool_info } = await query("pool_info", { at })
+        const at = Math.floor(+ new Date() / 1000)
+        const { pool_info } = await query("rewards", { pool_info: { at } })
         return pool_info
       },
+
       async getRewardToken (TOKEN: { attach: Function } = SNIP20) {
         const { address, code_hash } = (await this.poolInfo(agent)).reward_token
         return TOKEN.attach(address, code_hash, agent)
       },
+
       async getLPToken (TOKEN: { attach: Function } = LPToken) {
         const { address, code_hash } = (await this.poolInfo(agent)).lp_token
         return TOKEN.attach(address, code_hash, agent)
       }
+
     }
 
   }

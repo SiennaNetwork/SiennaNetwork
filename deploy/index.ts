@@ -1,12 +1,11 @@
-import type { IChain, IAgent } from '@fadroma/ops'
-import { CHAINS } from '@fadroma/scrt'
 import { bold, timestamp, runCommands, entrypoint } from '@fadroma/tools'
 import process from 'process'
-import { fileURLToPath } from 'url'
 
+import init from './init'
 import deployVesting from './deployVesting'
 import deploySwap from './deploySwap'
 import replaceRewardPool, { printRewardsContracts } from './replaceRewardPool'
+import rewardsAudit from './rewardsAudit'
 
 const commands: Record<string, any> = {}
 
@@ -85,10 +84,20 @@ commands['upgrade'] = {
 
 }
 
+commands['audit'] = {
+
+  rewards: rewardsAudit
+
+}
+
 export default async function main (
   [chainName, ...words]: Array<string>
 ) {
+
+  // FIXME: a better way to pass the chain name
+  // (reintroduce context object, minimally)
   process.env.CHAIN_NAME = chainName
+
   return await runCommands(
     commands,
     words,
@@ -101,38 +110,6 @@ export default async function main (
       }
     }
   )
-}
-
-
-async function init (chainName: string) {
-
-  let chain: IChain
-  let admin: IAgent
-
-  if (!chainName || !Object.keys(CHAINS).includes(chainName)) {
-    console.log(`Select target chain:`)
-    for (const chain of Object.keys(CHAINS)) console.log(`  ${bold(chain)}`)
-    process.exit(1)
-  }
-
-  chain = await CHAINS[chainName]().ready
-
-  try {
-    admin = await chain.getAgent()
-    console.info(`Operating on ${bold(chainName)} as ${bold(admin.address)}`)
-    const initialBalance = await admin.balance
-    console.info(`Balance: ${bold(initialBalance)}uscrt`)
-    process.on('beforeExit', async () => {
-      const finalBalance = await admin.balance
-      console.log(`\nInitial balance: ${bold(initialBalance)}uscrt`)
-      console.log(`\nFinal balance: ${bold(finalBalance)}uscrt`)
-      console.log(`\nConsumed gas: ${bold(String(initialBalance - finalBalance))}uscrt`)
-    })
-  } catch (e) {
-    console.warn(`Could not get an agent for ${chainName}: ${e.message}`)
-  }
-
-  return { chain, admin }
 }
 
 entrypoint(import.meta.url, main)
