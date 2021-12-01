@@ -2,8 +2,21 @@
 
 ## Procedures
 
-Note that these commands are meant to be run
-from the root of the proejct repository.
+### Preparation
+
+To install dependencies for the deployment scripts:
+
+```sh
+pnpm -w i
+```
+
+### Cleanup
+
+To restart from a clean slate:
+
+```sh
+pnpm -w ops localnet-1.2 reset
+```
 
 ### Unit testing
 
@@ -36,7 +49,25 @@ pnpm -w dev bench rewards
 ### Local deployment
 
 ```sh
-pnpm -w ops localnet-1.2 deploy all
+pnpm -w ops localnet-1.2 audit rewards deploy 60
+```
+
+For convenience, `60` is a custom bonding period, in seconds (the default is 86400, i.e. 24h)
+
+#### Testing the user flow
+
+```sh
+pnpm -w ops localnet-1.2 audit rewards deposit ALICE 100
+sleep 60
+pnpm -w ops localnet-1.2 audit rewards epoch 50
+pnpm -w ops localnet-1.2 audit rewards claim ALICE
+pnpm -w ops localnet-1.2 audit rewards withdraw ALICE 100
+```
+
+#### Testing the migration flow
+
+```sh
+# TODO
 ```
 
 ## Conceptual overview
