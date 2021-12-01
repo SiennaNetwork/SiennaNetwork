@@ -7,10 +7,10 @@ import { Console } from '@fadroma/tools'
 const console = Console(import.meta.url)
 
 export default async function benchmarkRewards () {
-  const { agents  } = await setupNetwork(20)
-  const { REWARDS } = await setupContracts(agents[0])
-  const { actions } = setupActions(REWARDS)
-  runBenchmark(actions, agents)
+  const { agents } = await setupNetwork(20)
+  const { REWARDS, LPTOKEN } = await setupContracts(agents[0])
+  const { actions } = setupActions(REWARDS, LPTOKEN)
+  await runBenchmark(actions, agents)
 }
 
 
@@ -59,7 +59,11 @@ async function setupContracts (admin: IAgent) {
   const prefix  = `RewardsBenchmark_${+new Date()}`
   const LPTOKEN = new LPToken({ prefix, admin, name: 'BENCHMARK' })
   const SIENNA  = new SiennaSNIP20({ prefix, admin })
-  const REWARDS = new RewardsContract({ prefix, admin, lpToken: LPTOKEN, rewardToken: SIENNA })
+  const REWARDS = new RewardsContract({
+    prefix, admin,
+    lpToken: LPTOKEN, rewardToken: SIENNA,
+    bonding: 0
+  })
   const contracts = [SIENNA, LPTOKEN, REWARDS]
   await buildAndUpload(contracts)
 
@@ -68,6 +72,7 @@ async function setupContracts (admin: IAgent) {
     await contract.instantiate()
     await admin.nextBlock
   }
+  await LPTOKEN.setMinters([admin.address], admin)
 
   return { REWARDS, LPTOKEN, SIENNA }
 
@@ -87,7 +92,7 @@ type Action      = (agent: IAgent) => Promise<void>
 type Transaction = [string, IAgent, { transactionHash: string }]
 
 
-function setupActions (REWARDS: RewardsContract) {
+function setupActions (REWARDS: RewardsContract, LPTOKEN: LPToken) {
   console.info(`Preparing benchmark`)
 
   const transactionLog: Array<Transaction> = []
@@ -95,6 +100,7 @@ function setupActions (REWARDS: RewardsContract) {
   const actions = [
     async (recipient: IAgent) => {
       console.log(`----- ${recipient.name}: lock 100`)
+      await LPTOKEN.mint("100", undefined, recipient.address)
       const result = await REWARDS.TX(recipient).deposit("100")
       transactionLog.push(['lock', recipient, result])
     },
@@ -121,9 +127,7 @@ async function runBenchmark (actions: Array<Action>, agents: Array<IAgent>) {
     const action    = pickRandom(actions)
     const recipient = pickRandom(agents)
     try {
-      console.log('pre')
-      const result = await action(recipient)
-      console.log('post', result)
+      await action(recipient)
     } catch (e) {
       console.warn(e)
     }
