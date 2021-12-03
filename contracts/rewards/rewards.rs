@@ -93,7 +93,7 @@ contract! {
         // For this, it must know its own balance in the `reward_token`s.
         // For that, it needs a reference to its own address+code_hash
         // and a viewing key in `reward_token`.
-        let set_vk = ISnip20::attach(&reward_token).set_viewing_key(&viewing_key.0)?;
+        let set_vk = ISnip20::attach(reward_token).set_viewing_key(&viewing_key.0)?;
         save_reward_token(&mut deps.storage, &deps.api, &reward_token)?;
         save_viewing_key(&mut deps.storage, &viewing_key)?;
         save_self_reference(&mut deps.storage, &deps.api, &ContractLink {
@@ -226,7 +226,7 @@ contract! {
         /// Keplr integration
         TokenInfo () {
             let lp_token      = load_lp_token(&deps.storage, &deps.api)?;
-            let lp_token_info = ISnip20::attach(&lp_token).query(&deps.querier).token_info()?;
+            let lp_token_info = ISnip20::attach(lp_token).query_token_info(&deps.querier)?;
             let lp_token_name = format!("Sienna Rewards: {}", lp_token_info.name);
             Ok(Response::TokenInfo {
                 name:         lp_token_name,
@@ -409,7 +409,7 @@ contract! {
             if let Some(closed_response) = close_handler(&mut deps.storage, &deps.api, &env)? {
                 return Ok(closed_response) }
 
-            tx_ok!(ISnip20::attach(&load_lp_token(&deps.storage, &deps.api)?).transfer_from(
+            tx_ok!(ISnip20::attach(load_lp_token(&deps.storage, &deps.api)?).transfer_from(
                 &env.message.sender,
                 &env.contract.address,
                 Pool::new(&mut deps.storage)
@@ -424,7 +424,7 @@ contract! {
             if let Some(closed_response) = close_handler(&mut deps.storage, &deps.api, &env)? {
                 return Ok(closed_response) }
 
-            tx_ok!(ISnip20::attach(&load_lp_token(&deps.storage, &deps.api)?).transfer(
+            tx_ok!(ISnip20::attach(load_lp_token(&deps.storage, &deps.api)?).transfer(
                 &env.message.sender,
                 Pool::new(&mut deps.storage)
                     .at(env.block.time)
@@ -454,7 +454,7 @@ contract! {
 
             // Add the reward to the response
             let reward_token_link = load_reward_token(&deps.storage, &deps.api)?;
-            let reward_token      = ISnip20::attach(&reward_token_link);
+            let reward_token      = ISnip20::attach(reward_token_link);
             response.messages.push(reward_token.transfer(&env.message.sender, reward)?);
             response.log.push(LogAttribute { key: "reward".into(), value: reward.into() });
 
@@ -464,8 +464,9 @@ pub fn load_reward_balance (
     deps: &Extern<impl Storage, impl Api, impl Querier>
 ) -> StdResult<Uint128> {
     let reward_token_link  = load_reward_token(&deps.storage, &deps.api)?;
-    let reward_token       = ISnip20::attach(&reward_token_link);
-    let mut reward_balance = reward_token.query(&deps.querier).balance(
+    let reward_token       = ISnip20::attach(reward_token_link);
+    let mut reward_balance = reward_token.query_balance(
+        &deps.querier,
         &load_self_reference(&deps.storage, &deps.api)?.address,
         &load_viewing_key(&deps.storage)?.0)?;
 
@@ -496,7 +497,7 @@ pub fn close_handler (
             user.locked()?)?;
         if locked > Amount::zero() {
             messages.push(
-                ISnip20::attach(&load_lp_token(&*storage, api)?)
+                ISnip20::attach(load_lp_token(&*storage, api)?)
                     .transfer(&env.message.sender, locked)?);
             log.push(LogAttribute {
                 key: "retrieved".into(), value: locked.into() });};

@@ -303,7 +303,6 @@ name = "composable-snip20"
 version = "0.1.0"
 dependencies = [
  "bincode2",
- "cosmwasm-sgx-vm",
  "fadroma 0.1.0",
  "schemars",
  "serde",

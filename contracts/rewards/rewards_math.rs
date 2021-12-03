@@ -11,7 +11,7 @@
 
 use fadroma::{
     scrt::{StdResult, StdError, Uint128},
-    scrt_uint256::Uint256
+    uint256::Uint256
 };
 
 /// A monotonic time counter, such as env.block.time or env.block.height
