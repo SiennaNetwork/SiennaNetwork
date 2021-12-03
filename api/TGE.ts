@@ -4,7 +4,7 @@ import type { ScheduleFor_HumanAddr } from './mgmt/init'
 import { SNIP20 } from './SNIP20'
 import { ScrtContract, loadSchemas } from "@fadroma/scrt"
 import { abs } from '../ops/index'
-import { randomHex } from '@fadroma/tools'
+import { randomHex, timestamp } from '@fadroma/tools'
 
 export class SiennaSNIP20 extends SNIP20 {
 
@@ -13,7 +13,7 @@ export class SiennaSNIP20 extends SNIP20 {
 
   init = {
     ...this.init,
-    label: this.init.label || "SiennaSNIP20",
+    label: this.init.label || `SiennaSNIP20@${timestamp()}`,
     msg: { name: "Sienna",
            symbol: "SIENNA",
            decimals: 18,

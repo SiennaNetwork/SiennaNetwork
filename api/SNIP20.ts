@@ -1,6 +1,6 @@
 import type { Agent, ContractAPIOptions } from "@fadroma/scrt";
 import { ScrtContract, loadSchemas } from "@fadroma/scrt";
-import { randomHex } from "@fadroma/tools";
+import { randomHex, timestamp } from "@fadroma/tools";
 import { abs } from "../ops/index";
 
 // @ts-ignore
@@ -251,7 +251,7 @@ export class AMMSNIP20 extends SNIP20 {
   };
   init = {
     ...this.init,
-    label: this.init.label || "SiennaSNIP20",
+    label: this.init.label || `SiennaSNIP20@${timestamp()}`,
     msg: {
       get prng_seed() {
         return randomHex(36);
@@ -259,7 +259,10 @@ export class AMMSNIP20 extends SNIP20 {
       name: "Sienna",
       symbol: "SIENNA",
       decimals: 18,
-      config: { public_total_supply: true },
+      config: { 
+        public_total_supply: true,
+        enable_mint: true
+      },
       
     },
   };

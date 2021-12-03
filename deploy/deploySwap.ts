@@ -52,15 +52,15 @@ export default async function deploySwap (options: SwapOptions) {
     factoryOptions = { prefix, admin, config: factoryConfig, ...factoryDeps },
     FACTORY        = new FactoryContract(factoryOptions)
 
+  const new_factory = FACTORY.artifact === undefined
+
   await buildAndUpload([FACTORY, EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD, REWARDS])
   await FACTORY.instantiateOrExisting(instance.contracts['SiennaAMMFactory'])
 
-
   /// Obtain a list of token addr/hash pairs for creating liquidity pools
 
-
   const tokens = { SIENNA }
-  if (chain.isLocalnet) {
+  if (chain.isLocalnet || (chain.isTestnet && new_factory)) {
     Object.assign(tokens, await deployPlaceholderTokens())
   } else {
     Object.assign(tokens, getSwapTokens(settings[`swapTokens-${chain.chainId}`]))
@@ -180,9 +180,7 @@ export default async function deploySwap (options: SwapOptions) {
     return tokens
   }
 
-
   /// On localnet, placeholder tokens need to be deployed.
-
 
   async function deployPlaceholderTokens () {
     const tokens = {}
@@ -196,6 +194,8 @@ export default async function deploySwap (options: SwapOptions) {
       Object.assign(token.init.msg, { prng_seed: randomHex(36) })
       const existing = instance.contracts[label]
       await tokens[symbol].instantiateOrExisting(existing)
+
+      await tokens[symbol].mint(100000 * 10 ** initMsg.decimals, admin)
     }
     return tokens
   }

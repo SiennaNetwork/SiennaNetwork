@@ -10,4 +10,4 @@
     "initMsg": { "name": "SITOK",      "symbol": "SITOK", "decimals": 12}},
   "sETH": {
     "label":  "placeholder_sETH",
-    "initMsg": { "name": "SecretETH",  "symbol": "SETH",  "decimals": 15}}}
+    "initMsg": { "name": "SecretETH",  "symbol": "SETH",  "decimals": 18}}}

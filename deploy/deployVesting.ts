@@ -2,7 +2,7 @@ import type { IChain, IAgent } from '@fadroma/ops'
 import type { ScheduleFor_HumanAddr } from '@sienna/api/mgmt/handle'
 import type { SwapOptions } from './deploySwap'
 import { Scrt } from '@fadroma/scrt'
-import { SiennaSNIP20, MGMTContract, RPTContract } from '@sienna/api'
+import { SiennaSNIP20, MGMTContract, RPTContract, AMMSNIP20 } from '@sienna/api'
 import { getDefaultSchedule } from '../ops/index'
 import { timestamp } from '@fadroma/tools'
 import buildAndUpload from './buildAndUpload'
@@ -28,13 +28,17 @@ export default async function deployVesting (
   const RPTAccount = getRPTAccount(schedule)
   const portion    = RPTAccount.portion_size
 
-  const SIENNA = new SiennaSNIP20({ prefix, admin })
+  const SIENNA = chain.isTestnet ? new AMMSNIP20({ prefix, admin }) : new SiennaSNIP20({ prefix, admin })
   const MGMT   = new MGMTContract({ prefix, admin, schedule, SIENNA })
   const RPT    = new RPTContract({ prefix, admin, MGMT, SIENNA, portion })
 
   await buildAndUpload([SIENNA, MGMT, RPT])
 
   await SIENNA.instantiate()
+
+  if(chain.isTestnet && SIENNA.artifact === undefined) {
+    await SIENNA.mint(50000 * 10 ** 18, admin)
+  }
 
   RPTAccount.address = admin.address
   await MGMT.instantiate()
