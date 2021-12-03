@@ -8,7 +8,7 @@ pkgs.mkShell {
   nativeBuildInputs = with pkgs; [
     bash git jq cloc plantuml
 
-    nodejs-14_x yarn
+    nodejs-14_x pnpm
 
     (rustChannelOfTargets "nightly" "2021-08-04" ["wasm32-unknown-unknown"])
     binaryen wabt wasm-pack wasm-bindgen-cli
