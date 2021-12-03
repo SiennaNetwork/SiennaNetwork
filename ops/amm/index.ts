@@ -34,7 +34,6 @@ const ANALYTICS = new TxAnalytics(APIURL)
 
 async function run_tests() {
   const client_a = await build_client(ACC_A.mnemonic, APIURL)
-  
   const result = await upload_amm(client_a, new NullJsonFileWriter)
 
   const instance = await instantiate_factory(client_a, result)
@@ -162,7 +161,7 @@ async function test_query_exchanges(factory: AmmFactoryContract, pair: TokenPair
     async () => { 
       const result = await factory.query().list_exchanges(new Pagination(0, 30))
       assert_equal(result.length, 1)
-      assert_equal(result[0].address, address)
+      assert_equal(result[0].contract.address, address)
       assert_objects_equal(result[0].pair, pair)
     }
   )
@@ -221,9 +220,10 @@ async function test_liquidity(exchange: ExchangeContract, sienna_token: Contract
     async () => {
       const result = await exchange.exec().withdraw_liquidity(amount, exchange.execute_client?.senderAddress as string)
       ANALYTICS.add_tx(result.transactionHash, 'Exchange: Withdraw Liquidity')
-
+      
       assert_equal(extract_log_value(result, 'withdrawn_share'), amount)
-      assert_equal(result.logs[0].events[1].attributes[0].value, exchange.execute_client?.senderAddress as string)
+      assert_equal(result.logs[0].events[0].attributes[0].value, exchange.execute_client?.senderAddress as string)
+      assert_equal(result.logs[0].events[1].attributes[0].value, exchange.address)
     }
   )
 

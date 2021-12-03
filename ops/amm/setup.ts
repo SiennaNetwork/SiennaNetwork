@@ -30,7 +30,7 @@ export interface ScrtAccount {
 export const ARTIFACTS_PATH = '../../artifacts'
 
 export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFileWriter): Promise<UploadResult> {
-    const snip20_fee = create_fee('2700000')
+    const snip20_fee = create_fee('3200000')
 
     const url = (client as any).restClient.enigmautils.apiUrl;
     const analytics = new TxAnalytics(url)
@@ -43,7 +43,7 @@ export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFil
     const launchpad_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/launchpad@HEAD.wasm`))
 
     process.stdout.write(`Uploading exchange contract...\r`)
-    const exchange_upload = await client.upload(exchange_wasm, {}, undefined, create_fee('2400000'))
+    const exchange_upload = await client.upload(exchange_wasm, {}, undefined, create_fee('2500000'))
     analytics.add_tx(exchange_upload.transactionHash, 'Exchange')
     writer.write(exchange_upload, `uploads/exchange`)
     process.stdout.write(`Uploading exchange contract...done\r\n`)
@@ -55,7 +55,7 @@ export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFil
     process.stdout.write(`Uploading SNIP20 contract...done\r\n`)
 
     process.stdout.write(`Uploading factory contract...\r`)
-    const factory_upload = await client.upload(factory_wasm, {}, undefined, create_fee('2100000'))
+    const factory_upload = await client.upload(factory_wasm, {}, undefined, create_fee('2300000'))
     analytics.add_tx(factory_upload.transactionHash, 'Factory')
     writer.write(factory_upload, `uploads/factory`)
     process.stdout.write(`Uploading factory contract...done\r\n`)
@@ -67,7 +67,7 @@ export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFil
     process.stdout.write(`Uploading LP token contract...done\r\n`)
 
     process.stdout.write(`Uploading IDO contract...\r`)
-    const ido_upload = await client.upload(ido_wasm, {}, undefined, create_fee('2500000'))
+    const ido_upload = await client.upload(ido_wasm, {}, undefined, create_fee('2600000'))
     analytics.add_tx(ido_upload.transactionHash, 'IDO')
     writer.write(ido_upload, `uploads/ido`)
     process.stdout.write(`Uploading IDO contract...done\r\n`)

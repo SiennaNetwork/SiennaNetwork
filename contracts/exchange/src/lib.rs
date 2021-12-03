@@ -1,6 +1,9 @@
 pub mod contract;
-pub mod state;
+mod state;
 mod decimal_math;
+
+#[cfg(test)]
+mod test;
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {

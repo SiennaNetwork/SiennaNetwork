@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/SiennaNetwork/sienna/tree/main/api/siennajs#readme",
   "dependencies": {
-    "secretjs": "0.16.7",
+    "secretjs": "0.17.3",
     "@waiting/base64": "^4.2.9"
   },
   "exclude": [

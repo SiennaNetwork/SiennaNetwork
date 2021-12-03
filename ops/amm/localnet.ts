@@ -1,19 +1,40 @@
 import { create_fee, Address } from '../../api/siennajs/lib/core'
-import { AmmFactoryContract, ExchangeSettings } from '../../api/siennajs/lib/amm_factory'
+import { ExchangeSettings } from '../../api/siennajs/lib/amm_factory'
 import { create_rand_base64, UploadResult } from './setup'
 
 import { SigningCosmWasmClient, InstantiateResult } from 'secretjs'
 
 export interface LocalAccount {
-    name: string,
-    type: string,
     address: Address,
-    pubkey: string,
     mnemonic: string
 }
 
 export const APIURL = 'http://localhost:1337'
-export const ACC: LocalAccount[] = JSON.parse(process.argv[2])
+export const ACC: LocalAccount[] = parse_local_acc(process.argv[2])
+
+function parse_local_acc(text: string): LocalAccount[] {
+    const accounts = text.split('**END ACC**') // This phrase is in bootstrap_init.sh
+    const result: LocalAccount[] = []
+
+    const address_search = 'address: '
+    const mnemonic_search = 'password.\n\n'
+
+    for(let acc of accounts) {
+        const address_start = acc.indexOf(address_search) + address_search.length
+        const address_end = acc.indexOf(' pubkey:')
+        const address = acc.substring(address_start, address_end).trimEnd()
+
+        const mnemonic_start = acc.indexOf(mnemonic_search) + mnemonic_search.length
+        const mnemonic = acc.substring(mnemonic_start).trimEnd()
+
+        result.push({
+            address,
+            mnemonic
+        })
+    }
+    
+    return result
+}
 
 export async function instantiate_factory(
     client: SigningCosmWasmClient,
@@ -33,7 +54,7 @@ export async function instantiate_factory(
     const instance = await client.instantiate(
         result.factory.id,
         factory_init_msg,
-        'SIENNA AMM FACTORY',
+        `SIENNA AMM FACTORY_${Date.now()}`,
         undefined,
         undefined,
         create_fee('165000')
