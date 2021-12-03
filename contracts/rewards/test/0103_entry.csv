@@ -1,0 +1,112 @@
+Time,Sender,Recipient,Data
+1,0103_entry_addr,Alice,account.starting_pool_volume = 0
+,,,
+1,Alice,0103_entry_addr,"rewards:
+  deposit:
+    amount: ""42798"""
+tx,0103_entry_addr,LP_TOKEN,"transfer_from:
+  amount: ""42798""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+1,0103_entry_addr,Alice,account.starting_pool_volume = 0
+2,0103_entry_addr,Alice,account.starting_pool_volume = 0
+2,0103_entry_addr,Alice,account.staked               = 42798
+2,0103_entry_addr,Alice,account.volume               = 42798
+2,0103_entry_addr,Alice,account.starting_pool_volume = 0
+3,0103_entry_addr,Alice,account.starting_pool_volume = 0
+3,0103_entry_addr,Alice,account.staked               = 42798
+3,0103_entry_addr,Alice,account.volume               = 85596
+3,0103_entry_addr,Alice,account.starting_pool_volume = 0
+4,0103_entry_addr,Alice,account.starting_pool_volume = 0
+4,0103_entry_addr,Alice,account.staked               = 42798
+4,0103_entry_addr,Alice,account.volume               = 128394
+4,0103_entry_addr,Alice,account.starting_pool_volume = 0
+5,0103_entry_addr,Alice,account.starting_pool_volume = 0
+5,0103_entry_addr,Alice,account.staked               = 42798
+5,0103_entry_addr,Alice,account.volume               = 171192
+5,0103_entry_addr,Alice,account.starting_pool_volume = 0
+6,0103_entry_addr,Alice,account.starting_pool_volume = 0
+6,0103_entry_addr,Alice,account.staked               = 42798
+6,0103_entry_addr,Alice,account.volume               = 213990
+6,0103_entry_addr,Alice,account.starting_pool_volume = 0
+7,0103_entry_addr,Alice,account.starting_pool_volume = 0
+7,0103_entry_addr,Alice,account.staked               = 42798
+7,0103_entry_addr,Alice,account.volume               = 256788
+7,0103_entry_addr,Alice,account.starting_pool_volume = 0
+8,0103_entry_addr,Alice,account.starting_pool_volume = 0
+8,0103_entry_addr,Alice,account.staked               = 42798
+8,0103_entry_addr,Alice,account.volume               = 299586
+8,0103_entry_addr,Alice,account.starting_pool_volume = 0
+9,0103_entry_addr,Alice,account.starting_pool_volume = 0
+9,0103_entry_addr,Alice,account.staked               = 42798
+9,0103_entry_addr,Alice,account.volume               = 342384
+9,0103_entry_addr,Alice,account.starting_pool_volume = 0
+10,0103_entry_addr,Alice,account.starting_pool_volume = 0
+10,0103_entry_addr,Alice,account.staked               = 42798
+10,0103_entry_addr,Alice,account.volume               = 385182
+10,0103_entry_addr,Alice,account.starting_pool_volume = 0
+11,0103_entry_addr,Alice,account.starting_pool_volume = 0
+11,0103_entry_addr,Alice,account.staked               = 42798
+11,0103_entry_addr,Alice,account.volume               = 427980
+11,0103_entry_addr,Alice,account.starting_pool_volume = 0
+11,0103_entry_addr,Bob,account.starting_pool_volume = 0
+,,,
+11,Bob,0103_entry_addr,"rewards:
+  deposit:
+    amount: ""38861"""
+tx,0103_entry_addr,LP_TOKEN,"transfer_from:
+  amount: ""38861""
+  owner: Bob
+  padding: ~
+  recipient: cosmos2contract"
+11,0103_entry_addr,Bob,account.starting_pool_volume = 0
+12,0103_entry_addr,Bob,account.staked               = 38861
+12,0103_entry_addr,Bob,account.volume               = 38861
+12,0103_entry_addr,Bob,account.starting_pool_volume = 0
+13,0103_entry_addr,Bob,account.staked               = 38861
+13,0103_entry_addr,Bob,account.volume               = 77722
+13,0103_entry_addr,Bob,account.starting_pool_volume = 0
+14,0103_entry_addr,Bob,account.staked               = 38861
+14,0103_entry_addr,Bob,account.volume               = 116583
+14,0103_entry_addr,Bob,account.starting_pool_volume = 0
+15,0103_entry_addr,Bob,account.staked               = 38861
+15,0103_entry_addr,Bob,account.volume               = 155444
+15,0103_entry_addr,Bob,account.starting_pool_volume = 0
+16,0103_entry_addr,Bob,account.staked               = 38861
+16,0103_entry_addr,Bob,account.volume               = 194305
+16,0103_entry_addr,Bob,account.starting_pool_volume = 0
+17,0103_entry_addr,Bob,account.staked               = 38861
+17,0103_entry_addr,Bob,account.volume               = 233166
+17,0103_entry_addr,Bob,account.starting_pool_volume = 0
+18,0103_entry_addr,Bob,account.staked               = 38861
+18,0103_entry_addr,Bob,account.volume               = 272027
+18,0103_entry_addr,Bob,account.starting_pool_volume = 0
+19,0103_entry_addr,Bob,account.staked               = 38861
+19,0103_entry_addr,Bob,account.volume               = 310888
+19,0103_entry_addr,Bob,account.starting_pool_volume = 0
+20,0103_entry_addr,Bob,account.staked               = 38861
+20,0103_entry_addr,Bob,account.volume               = 349749
+20,0103_entry_addr,Bob,account.starting_pool_volume = 0
+21,0103_entry_addr,Bob,account.staked               = 38861
+21,0103_entry_addr,Bob,account.volume               = 388610
+21,0103_entry_addr,Bob,account.starting_pool_volume = 0
+21,0103_entry_addr,Bob,account.starting_pool_volume = 0
+,,,
+218,RPT,0103_entry_addr,vest 100
+,,,
+218,Admin,0103_entry_addr,"rewards:
+  begin_epoch:
+    next_epoch: 1"
+218,0103_entry_addr,Charlie,account.starting_pool_volume = 17331393
+,,,
+218,Charlie,0103_entry_addr,"rewards:
+  deposit:
+    amount: ""42798"""
+tx,0103_entry_addr,LP_TOKEN,"transfer_from:
+  amount: ""42798""
+  owner: Charlie
+  padding: ~
+  recipient: cosmos2contract"
+218,0103_entry_addr,Charlie,account.starting_pool_volume = 17331393
+231,0103_entry_addr,Charlie,account.starting_pool_volume = 17331393

@@ -4,7 +4,9 @@ import { ScrtContract, loadSchemas, ContractAPIOptions } from "@fadroma/scrt";
 import { TokenTypeFor_HumanAddr } from "./factory/handle_msg.d";
 import { EnigmaUtils } from "secretjs/src/index.ts";
 import { b64encode } from "@waiting/base64";
-import { randomHex } from "@fadroma/tools";
+import { randomHex, Console } from "@fadroma/tools";
+
+const console = Console(import.meta.url)
 
 import { AMM } from './AMM'
 import { AMMSNIP20, LPToken } from './SNIP20'
@@ -137,6 +139,8 @@ export class Factory extends ScrtContract {
 
     const {logs:[{events:[_,{attributes}]}]} = result
 
+    console.debug('Result of createExchange', result)
+
     const [ {value:contract_address_1}
           , {value:action_1}
           , {value:pair}
@@ -199,6 +203,7 @@ export class Factory extends ScrtContract {
         'Parsing them is fragile - it depends on a particular order. ' +
         'Has the behavior of the Factory changed?'
       )
+      console.debug("Actual:", a, "Expected:", b)
     }
 
     return {

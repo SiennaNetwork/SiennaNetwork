@@ -8,23 +8,32 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 doctest = false
 
-[features]
-default = []
-backtraces = ["cosmwasm-std/backtraces"]
-
 [dependencies]
 cosmwasm-schema  = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
 cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
 cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
-fadroma          = { git = "https://github.com/hackbg/fadroma", branch = "21.05.1" }
+fadroma          = { git = "https://github.com/hackbg/fadroma", branch = "21.05.2" }
 linear-map       = { path = "../../libraries/linear-map" }
 schemars         = "0.7"
 secret-toolkit   = { git = "https://github.com/enigmampc/secret-toolkit" }
 serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
 sienna-mgmt      = { path = "../mgmt" }
 sienna-migrate   = { path = "../../libraries/migrate" }
-snafu            = { version = "0.6.3", features = ["backtraces"] }
+
+fadroma-bind-js = { optional = true, path = "../../libraries/fadroma-next/bind-js" }
+wasm-bindgen = { optional = true, version = "0.2" }
+js-sys = { optional = true, version = "0.3.55" }
 
 [dev-dependencies]
 kukumba = { git = "https://github.com/hackbg/kukumba", branch = "21.04" }
 snip20-sienna = { path = "../snip20-sienna" }
+
+[features]
+default = []
+# this allows the contract to be build for a mock environment
+# that is hosted in a browser. allows dashboard and fast integration tests
+browser = [
+  "fadroma-bind-js",
+  "wasm-bindgen", "wasm-bindgen/serde-serialize", "js-sys",
+  "sienna-mgmt/browser", "sienna-mgmt/apionly"
+]

@@ -1,0 +1,37 @@
+.Outside.Module {
+  padding: 0.5rem;
+  overflow: auto;
+}
+.Inside.Module {
+  background: #1d2021;
+  border: 1px solid black;
+}
+
+header {
+  font-weight: bold;
+  background: #8f3f71;
+  padding: 0.5rem;
+  text-shadow: 1px 1px 0 black;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+}
+
+x-field {
+  /*border-bottom:  1px solid rgba(0,0,0,0.5);*/
+  display:   flex;
+  flex-flow: row nowrap;
+  padding: 0 0.5rem;
+}
+
+.User {
+  border-top: 1px solid rgba(0,0,0,0.5);
+}
+
+.Button {
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  background: black;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.5);
+  padding: 1px;
+}

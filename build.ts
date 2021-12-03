@@ -16,10 +16,11 @@ import {
   AMMSNIP20,
   LPToken,
   RewardsContract,
-  RewardsEmergencyProxyContract,
   IDOContract,
   LaunchpadContract
 } from '@sienna/api'
+
+import rewardsBenchmark from './benchmarks/rewards'
 
 const
   projectRoot = resolve(dirname(fileURLToPath(import.meta.url))),
@@ -49,7 +50,6 @@ export default async function main (words: Array<string>) {
         new LPToken().build(),
         new FactoryContract().build(),
         new RewardsContract().build(),
-        new RewardsEmergencyProxyContract().build(),
         new IDOContract().build(),
         new LaunchpadContract().build()
       ]),
@@ -69,7 +69,6 @@ export default async function main (words: Array<string>) {
 
       rewards: () => Promise.all([
         new RewardsContract().build(),
-        new RewardsEmergencyProxyContract().build(),
       ]),
 
       ido: () => Promise.all([
@@ -137,7 +136,7 @@ export default async function main (words: Array<string>) {
     },
 
     bench: {
-      rewards: notImplemented,
+      rewards: rewardsBenchmark,
       ido:     notImplemented
     },
 

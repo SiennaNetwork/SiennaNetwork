@@ -74,9 +74,12 @@ impl Snip20 for LpTokenImpl {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(browser)] #[macro_use] extern crate wasm_bindgen;
+#[cfg(all(feature="browser",target_arch="wasm32"))]
+mod wasm { fadroma_bind_js::bind_js!(amm_shared::fadroma::scrt, crate); }
+#[cfg(all(not(feature="browser"),target_arch = "wasm32"))]
 mod wasm {
-    use amm_shared::fadroma::scrt::cosmwasm_std::{
+    use amm_shared::fadroma::scrt::{
         do_handle, do_init, do_query, ExternalApi, ExternalQuerier, ExternalStorage,
     };
 

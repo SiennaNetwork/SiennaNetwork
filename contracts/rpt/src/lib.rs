@@ -212,3 +212,9 @@ fn transfer <A:Api> (
     let recipient  = api.human_address(&recipient)?;
     transfer_msg(recipient, amount, None, BLOCK_SIZE, token_hash.clone(), token_addr)
 }
+
+#[cfg(all(feature="browser",target_arch="wasm32"))]
+#[macro_use] extern crate wasm_bindgen;
+
+#[cfg(all(feature="browser",target_arch="wasm32"))]
+mod wasm { fadroma_bind_js::bind_js!(cosmwasm_std, crate); }

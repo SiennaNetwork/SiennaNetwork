@@ -1,0 +1,36 @@
+Time,Sender,Recipient,Data
+1,0301_migrate_v1_addr,Alice,account.staked               = 0
+1,0301_migrate_v1_addr,Alice,total.staked                 = 0
+,,,
+1,Alice,0301_migrate_v1_addr,"rewards:
+  deposit:
+    amount: ""85596"""
+tx,0301_migrate_v1_addr,LP_TOKEN,"transfer_from:
+  amount: ""85596""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+1,0301_migrate_v1_addr,Alice,account.staked               = 85596
+1,0301_migrate_v1_addr,Alice,total.staked                 = 85596
+,,,
+1,Admin,0301_migrate_v1_addr,"emigration:
+  enable_migration_to:
+    address: 0301_migrate_v2_addr
+    code_hash: 0301_migrate_v2_hash"
+,,,
+1,0301_migrate_v2_addr,0301_migrate_v2_addr,"emigration:
+  export_state: Alice"
+tx,0301_migrate_v2_addr,LP_TOKEN,"transfer:
+  amount: ""85596""
+  padding: ~
+  recipient: 0301_migrate_v2_addr"
+tx,0301_migrate_v2_addr,0301_migrate_v2_addr,"immigration:
+  receive_migration: WyJBbGljZSIsIiIsIjg1NTk2Il0="
+,,,
+FAIL,was expecting,the following,
+,,,
+tx,0301_migrate_v2_addr,LP_TOKEN,"transfer:
+  amount: ""85596""
+  padding: ~
+  recipient: Alice"
+tx,0301_migrate_v2_addr,0301_migrate_v2_addr,receive_migration: WyJBbGljZSIsIiIsIjg1NTk2Il0=

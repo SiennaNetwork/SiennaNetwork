@@ -1,0 +1,38 @@
+Time,Sender,Recipient,Data
+14,0105_reset_addr,Alice,account.staked               = 0
+14,0105_reset_addr,Alice,account.volume               = 0
+14,0105_reset_addr,Alice,account.bonding              = 197
+14,0105_reset_addr,Alice,account.earned               = 0
+,,,
+14,Alice,0105_reset_addr,"rewards:
+  deposit:
+    amount: ""85596"""
+tx,0105_reset_addr,LP_TOKEN,"transfer_from:
+  amount: ""85596""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+14,0105_reset_addr,Alice,account.staked               = 85596
+14,0105_reset_addr,Alice,account.volume               = 0
+14,0105_reset_addr,Alice,account.bonding              = 197
+14,0105_reset_addr,Alice,account.earned               = 0
+,,,
+14,test,branch,0105_reset_before_bonding
+,,,
+24,0105_reset_addr,Alice,account.volume               = 855960
+24,0105_reset_addr,Alice,account.bonding              = 187
+24,0105_reset_addr,Alice,account.earned               = 0
+,,,
+24,test,branch,0105_reset_before_bonding_1
+,,,
+,,,
+24,Alice,0105_reset_addr,"rewards:
+  withdraw:
+    amount: ""85596"""
+tx,0105_reset_addr,LP_TOKEN,"transfer:
+  amount: ""85596""
+  padding: ~
+  recipient: Alice"
+24,0105_reset_addr,Alice,account.volume               = 0
+24,0105_reset_addr,Alice,account.bonding              = 197
+24,0105_reset_addr,Alice,account.earned               = 0

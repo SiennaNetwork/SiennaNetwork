@@ -1,0 +1,36 @@
+Time,Sender,Recipient,Data
+,,,
+14,Alice,0113_single_sided_addr,"rewards:
+  deposit:
+    amount: ""42798"""
+tx,0113_single_sided_addr,SIENNA,"transfer_from:
+  amount: ""42798""
+  owner: Alice
+  padding: ~
+  recipient: cosmos2contract"
+14,0113_single_sided_addr,Alice,account.earned               = 0
+,,,
+211,RPT,0113_single_sided_addr,vest 38861
+,,,
+211,Admin,0113_single_sided_addr,"rewards:
+  begin_epoch:
+    next_epoch: 1"
+211,0113_single_sided_addr,Alice,account.earned               = 38861
+,,,
+211,Alice,0113_single_sided_addr,"rewards:
+  claim: {}"
+tx,0113_single_sided_addr,SIENNA,"transfer:
+  amount: ""38861""
+  padding: ~
+  recipient: Alice"
+log,0113_single_sided_addr,,reward = 38861
+211,0113_single_sided_addr,Alice,account.earned               = 0
+211,0113_single_sided_addr,Alice,account.staked               = 42798
+,,,
+211,Alice,0113_single_sided_addr,"rewards:
+  withdraw:
+    amount: ""42798"""
+tx,0113_single_sided_addr,SIENNA,"transfer:
+  amount: ""42798""
+  padding: ~
+  recipient: Alice"

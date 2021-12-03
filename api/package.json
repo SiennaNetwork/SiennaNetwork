@@ -4,8 +4,9 @@
   "main": "./index.ts",
   "type": "module",
   "dependencies": {
-    "@fadroma/scrt": "*",
-    "@fadroma/tools": "*",
+    "@fadroma/scrt": "workspace:*",
+    "@fadroma/tools": "workspace:*",
+    "@sienna/rewards": "workspace:*",
     "@waiting/base64": "^4.2.9",
     "secretjs": "workspace:*",
     "debug": "^4.3.2",

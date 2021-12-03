@@ -1,0 +1,17 @@
+Time,Sender,Recipient,Data
+,,,
+14,test,branch,0002_config_config_auth_ok
+,,,
+,,,
+14,Admin,0002_config_addr,"rewards:
+  configure:
+    lp_token: ~
+    reward_token:
+      address: SIENNA
+      code_hash: SIENNA_hash
+    reward_vk: reward_vk
+    bonding: ~
+    timekeeper: ~"
+tx,0002_config_addr,SIENNA,"set_viewing_key:
+  key: reward_vk
+  padding: ~"

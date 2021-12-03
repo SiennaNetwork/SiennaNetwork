@@ -1,0 +1,468 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Handle",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "auth"
+      ],
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/AuthHandle"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "create_viewing_key"
+      ],
+      "properties": {
+        "create_viewing_key": {
+          "type": "object",
+          "required": [
+            "entropy"
+          ],
+          "properties": {
+            "entropy": {
+              "type": "string"
+            },
+            "padding": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_viewing_key"
+      ],
+      "properties": {
+        "set_viewing_key": {
+          "type": "object",
+          "required": [
+            "key"
+          ],
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "padding": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "migration"
+      ],
+      "properties": {
+        "migration": {
+          "$ref": "#/definitions/MigrationHandle"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "rewards"
+      ],
+      "properties": {
+        "rewards": {
+          "$ref": "#/definitions/RewardsHandle"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "drain"
+      ],
+      "properties": {
+        "drain": {
+          "type": "object",
+          "required": [
+            "key",
+            "snip20"
+          ],
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "recipient": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "snip20": {
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "AuthHandle": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "change_admin"
+          ],
+          "properties": {
+            "change_admin": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "create_viewing_key"
+          ],
+          "properties": {
+            "create_viewing_key": {
+              "type": "object",
+              "required": [
+                "entropy"
+              ],
+              "properties": {
+                "entropy": {
+                  "type": "string"
+                },
+                "padding": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "set_viewing_key"
+          ],
+          "properties": {
+            "set_viewing_key": {
+              "type": "object",
+              "required": [
+                "key"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "padding": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "ContractLink_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "MigrationHandle": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "start_migration"
+          ],
+          "properties": {
+            "start_migration": {
+              "type": "object",
+              "required": [
+                "next_contract"
+              ],
+              "properties": {
+                "next_contract": {
+                  "$ref": "#/definitions/ContractLink_for_HumanAddr"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "stop_migration"
+          ],
+          "properties": {
+            "stop_migration": {
+              "type": "object"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "export_state"
+          ],
+          "properties": {
+            "export_state": {
+              "type": "object",
+              "required": [
+                "initiator"
+              ],
+              "properties": {
+                "initiator": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "import_state"
+          ],
+          "properties": {
+            "import_state": {
+              "type": "object",
+              "required": [
+                "prev_contract"
+              ],
+              "properties": {
+                "prev_contract": {
+                  "$ref": "#/definitions/ContractLink_for_HumanAddr"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "receive_state"
+          ],
+          "properties": {
+            "receive_state": {
+              "type": "object",
+              "required": [
+                "data"
+              ],
+              "properties": {
+                "data": {
+                  "$ref": "#/definitions/Binary"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "RewardsConfig": {
+      "description": "Reward pool configuration",
+      "type": "object",
+      "properties": {
+        "bonding": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "lp_token": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reward_token": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reward_vk": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timekeeper": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "RewardsHandle": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "lock"
+          ],
+          "properties": {
+            "lock": {
+              "type": "object",
+              "required": [
+                "amount"
+              ],
+              "properties": {
+                "amount": {
+                  "$ref": "#/definitions/Uint128"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "retrieve"
+          ],
+          "properties": {
+            "retrieve": {
+              "type": "object",
+              "required": [
+                "amount"
+              ],
+              "properties": {
+                "amount": {
+                  "$ref": "#/definitions/Uint128"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "claim"
+          ],
+          "properties": {
+            "claim": {
+              "type": "object"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "begin_epoch"
+          ],
+          "properties": {
+            "begin_epoch": {
+              "type": "object",
+              "required": [
+                "next_epoch"
+              ],
+              "properties": {
+                "next_epoch": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "configure"
+          ],
+          "properties": {
+            "configure": {
+              "$ref": "#/definitions/RewardsConfig"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "close"
+          ],
+          "properties": {
+            "close": {
+              "type": "object",
+              "required": [
+                "message"
+              ],
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}

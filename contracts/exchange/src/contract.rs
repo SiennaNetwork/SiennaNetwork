@@ -10,7 +10,7 @@ use amm_shared::{
         scrt_callback::Callback,
         scrt_link::ContractLink,
         scrt_vk::ViewingKey,
-        uint256::Uint256
+        Uint256
     },
     msg::{
         exchange::{

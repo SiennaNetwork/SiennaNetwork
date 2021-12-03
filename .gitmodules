@@ -13,7 +13,7 @@
   path   = libraries/kukumba
   url    = git@github.com:hackbg/kukumba.git
   branch = 21.04
-[submodule "fadroma-next"]
-	path = libraries/fadroma-next
-	url = git@github.com:hackbg/fadroma.git
-	branch = 21.12
+[submodule "amm-types"]
+  path = libraries/amm-types
+  url = git@github.com:hackbg/fadroma.git
+  branch = 21.12

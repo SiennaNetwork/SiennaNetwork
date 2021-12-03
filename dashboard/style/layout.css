@@ -1,0 +1,230 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  height: 100%;
+}
+
+body {
+  border: 2px solid black;
+  box-sizing: border-box;
+}
+
+x-button {
+  border-top:    1px solid rgba(255,255,255,0.5);
+  border-left:   1px solid rgba(255,255,255,0.5);
+  border-bottom: 1px solid rgba(0,0,0,0.5);
+  border-right:  1px solid rgba(0,0,0,0.5);
+
+  color: 1px solid white;
+  padding: 0.33rem 0.5rem;
+  margin: 2px;
+  text-align: center;
+  cursor: pointer;
+  background: rgba(255,255,255,0.1);
+  user-select: none;
+  transition: all 0.1s ease;
+  font-weight: bold;
+  letter-spacing: 1px;
+
+  display: flex;
+  align-items: center;
+}
+x-button:hover {
+  background: rgba(255,255,255,0.2);
+}
+x-button:active {
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.5);
+  border-right:  1px solid rgba(255,255,255,0.5);
+  border-top:    1px solid rgba(0,0,0,0.5);
+  border-left:   1px solid rgba(0,0,0,0.5);
+}
+
+.Outside {
+}
+.Inside {
+}
+
+.Outside.Dashboard {
+  background: none;
+  border:     none;
+  height:     100%;
+  margin:     0;
+  padding:    0;
+  width:      100%;
+}
+.Inside.Dashboard {
+  display: flex;
+  flex-flow: column nowrap;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+.Row {
+  display: flex;
+  flex-flow: row nowrap;
+  flex-grow: 1;
+}
+.Row > * {
+  flex-grow: 1;
+}
+
+.Outside.Environment {
+  grid-column-start: 1; grid-column-end: 3;
+  grid-row-start:    1; grid-row-end:    2;
+}
+.Inside.Environment {
+  display:         flex;
+  flex-flow:       row nowrap;
+  align-items:     center;
+  justify-content: stretch;
+}
+.Inside.Environment > * {
+  flex-grow: 1;
+}
+.Inside.Environment > header {
+  align-self:  stretch;
+  display:     flex;
+  flex-flow:   row nowrap;
+  align-items: center;
+}
+
+.Outside.Microservice {
+  grid-column-start: 3; grid-column-end: 5;
+  grid-row-start:    1; grid-row-end:    2;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+.Inside.Microservice {
+  display:         flex;
+  flex-flow:       row nowrap;
+  align-items:     center;
+  justify-content: stretch;
+  flex-grow: 1;
+}
+.Inside.Microservice > * {
+  flex-grow: 1;
+}
+.Inside.Microservice > header {
+  align-self:  stretch;
+  display:     flex;
+  flex-flow:   row nowrap;
+  align-items: center;
+}
+
+.MGMT {
+  grid-column-start: 1; grid-column-end: 3;
+  grid-row-start:    2; grid-row-end:    3;
+}
+
+.RPT {
+  grid-column-start: 3; grid-column-end: 5;
+  grid-row-start:    2; grid-row-end:    3;
+}
+
+.SNIP20.SIENNA {
+  grid-column-start: 1; grid-column-end: 3;
+  grid-row-start:    3; grid-row-end:    4;
+}
+
+.SNIP20.LPTOKEN {
+  grid-column-start: 3; grid-column-end: 5;
+  grid-row-start:    3; grid-row-end:    4;
+}
+
+.Rewards.v3 {
+  grid-column-start: 1; grid-column-end: 2;
+  grid-row-start:    4; grid-row-end:    5;
+}
+
+.Rewards.v4 {
+  grid-column-start: 4; grid-column-end: 5;
+  grid-row-start:    4; grid-row-end:    5;
+}
+
+.Inside.AddUser {
+  display:     flex;
+  flex-flow:   row nowrap;
+  align-items: center;
+}
+.Inside.AddUser > x-field {
+  flex-grow: 1;
+}
+
+.Outside.User {
+  margin-bottom: 1rem;
+}
+.Inside.User {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+  grid-template-rows:    1fr 1fr 1fr 1fr 2fr;
+}
+.Inside.User > x-field {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+.Inside.User > x-field.ID {
+  grid-column-start: 1;
+  grid-column-end:   2;
+  grid-row-start:    1;
+  grid-row-end:      2;
+}
+.Inside.User > x-field.Volume {
+  grid-column-start: 4;
+  grid-column-end:   7;
+  grid-row-start:    1;
+  grid-row-end:      2;
+}
+.Inside.User > x-field.Staked {
+  grid-column-start: 2;
+  grid-column-end:   4;
+  grid-row-start:    1;
+  grid-row-end:      2;
+}
+.Inside.User > x-field.Pool_volume_at_entry {
+  grid-column-start: 1;
+  grid-column-end:   4;
+  grid-row-start:    2;
+  grid-row-end:      3;
+}
+.Inside.User > x-field.Pool_volume_since_entry {
+  grid-column-start: 4;
+  grid-column-end:   7;
+  grid-row-start:    2;
+  grid-row-end:      3;
+}
+.Inside.User > x-field.Reward_budget_at_entry {
+  grid-column-start: 1;
+  grid-column-end:   4;
+  grid-row-start:    3;
+  grid-row-end:      4;
+}
+.Inside.User > x-field.Rewards_vested_since_entry {
+  grid-column-start: 4;
+  grid-column-end:   7;
+  grid-row-start:    3;
+  grid-row-end:      4;
+}
+.Inside.User > x-field.Remaining_bonding_period {
+  grid-column-start: 1;
+  grid-column-end:   4;
+  grid-row-start:    4;
+  grid-row-end:      5;
+}
+.Inside.User > x-field.Earned_rewards {
+  grid-column-start: 4;
+  grid-column-end:   7;
+  grid-row-start:    4;
+  grid-row-end:      5;
+}
+.Inside.User > x-button.Claim {
+  grid-column-start: 5;
+  grid-column-end:   7;
+  grid-row-start:    5;
+  grid-row-end:      6;
+}
