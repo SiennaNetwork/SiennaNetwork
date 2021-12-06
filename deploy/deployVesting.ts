@@ -28,7 +28,7 @@ export default async function deployVesting (
   const RPTAccount = getRPTAccount(schedule)
   const portion    = RPTAccount.portion_size
 
-  const SIENNA = chain.isTestnet ? new AMMSNIP20({ prefix, admin }) : new SiennaSNIP20({ prefix, admin })
+  const SIENNA = new SiennaSNIP20({ prefix, admin })
   const MGMT   = new MGMTContract({ prefix, admin, schedule, SIENNA })
   const RPT    = new RPTContract({ prefix, admin, MGMT, SIENNA, portion })
 
@@ -36,8 +36,9 @@ export default async function deployVesting (
 
   await SIENNA.instantiate()
 
-  if(chain.isTestnet && SIENNA.artifact === undefined) {
-    await SIENNA.mint(50000 * 10 ** 18, admin)
+  if (chain.isTestnet) {
+    await SIENNA.setMinters([admin.address], admin)
+    await SIENNA.mint("5000000000000000000000", admin)
   }
 
   RPTAccount.address = admin.address

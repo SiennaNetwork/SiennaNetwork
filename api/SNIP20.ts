@@ -66,7 +66,10 @@ export class SNIP20 extends ScrtContract {
   ) =>
     this.tx
       .mint({ amount: String(amount), recipient, padding: null }, agent)
-      .then((tx) => ({ tx, mint: JSON.parse(decode(tx.data)).mint }));
+      .then((tx) => {
+        console.debug('WTF is going on here - TX data returned as hex string instead of buffer - why do we need the tx data anyway:', tx)
+        return { tx/*, mint: JSON.parse(decode(tx.data)).mint*/ }
+      });
 
   /**
    * Get address balance
@@ -244,14 +247,16 @@ export class SNIP20 extends ScrtContract {
 }
 
 export class AMMSNIP20 extends SNIP20 {
+
   code = {
     ...this.code,
     workspace: abs(),
     crate: "amm-snip20"
   };
+
   init = {
     ...this.init,
-    label: this.init.label || `SiennaSNIP20@${timestamp()}`,
+    label: this.init.label || `AMMSNIP20`,
     msg: {
       get prng_seed() {
         return randomHex(36);
@@ -263,12 +268,19 @@ export class AMMSNIP20 extends SNIP20 {
         public_total_supply: true,
         enable_mint: true
       },
-      
     },
   };
-  constructor (options: { admin?: Agent } = {}) {
-    super({ agent: options?.admin })
+
+  constructor (options: {
+    prefix?: string,
+    admin?:  Agent
+  } = {}) {
+    super({
+      prefix: options?.prefix,
+      agent:  options?.admin
+    })
   }
+
   static attach = (
     address:  string,
     codeHash: string,

@@ -9,15 +9,21 @@ import { randomHex, timestamp } from '@fadroma/tools'
 export class SiennaSNIP20 extends SNIP20 {
 
   code = {
-    ...this.code, workspace: abs(), crate: "snip20-sienna" }
+    ...this.code,
+    workspace: abs(),
+    crate: "snip20-sienna"
+  }
 
   init = {
     ...this.init,
-    label: this.init.label || `SiennaSNIP20@${timestamp()}`,
-    msg: { name: "Sienna",
-           symbol: "SIENNA",
-           decimals: 18,
-           config: { public_total_supply: true } } }
+    label: this.init.label || `SiennaSNIP20`,
+    msg: {
+      name: "Sienna",
+      symbol: "SIENNA",
+      decimals: 18,
+      config: { public_total_supply: true }
+    }
+  }
 
   constructor (options: {
     prefix?: string,
