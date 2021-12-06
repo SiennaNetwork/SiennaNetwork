@@ -1,3 +1,5 @@
+Error.stackTraceLimit = Infinity
+
 import { bold, timestamp, runCommands, entrypoint } from '@fadroma/tools'
 import process from 'process'
 

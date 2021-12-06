@@ -88,9 +88,9 @@ export default async function deploySwap (options: SwapOptions) {
     const existingExchanges = await FACTORY.listExchanges()
     const rewards = settings[`rewardPairs-${chain.chainId}`]
     for (const name of swapPairs) {
-      const [token0, token1] = await deployLiquidityPool(name, existingExchanges)
+      const {lp_token} = await deployLiquidityPool(name, existingExchanges)
       if (rewards) {
-        const lpToken = await getLPToken(token0, token1)
+        const lpToken = LPToken.attach(lp_token.address, lp_token.code_hash, admin)
         const reward  = BigInt(rewards[name])
         const pool    = await deployRewardPool(name, lpToken, SIENNA)
         rptConfig.push([pool.address, String(reward * ONE_SIENNA)])
@@ -113,49 +113,31 @@ export default async function deploySwap (options: SwapOptions) {
     const [tokenName0, tokenName1] = name.split('-')
     const token0 = tokens[tokenName0]
         , token1 = tokens[tokenName1]
-
     console.log(`\nLiquidity pool ${bold(name)}...`)
-
-    for (const {pair} of existingExchanges) {
-      if ((
-        pair.token_0.custom_token.contract_addr === token0.address &&
-        pair.token_1.custom_token.contract_addr === token1.address
-      ) || (
-        pair.token_0.custom_token.contract_addr === token1.address &&
-        pair.token_1.custom_token.contract_addr === token0.address
-      )) {
-        console.info(bold('Already exists.'))
-        return [token0, token1]
+    try {
+      const exchange = await FACTORY.getExchange(
+        token0.asCustomToken,
+        token1.asCustomToken,
+        admin
+      );
+      console.info(`${bold(name)}: Already exists.`)
+      return exchange
+    } catch (e) {
+      if (e.message.includes("Address doesn't exist in storage")) {
+        console.info(`${bold(`FACTORY.getExchange(${name})`)}: not found (${e.message}), deploying...`)
+        const deployed = await FACTORY.createExchange(
+          token0.asCustomToken,
+          token1.asCustomToken
+        )
+        const exchangeReceiptPath = instance.resolve(`SiennaSwap_${name}.json`)
+        writeFileSync(exchangeReceiptPath, JSON.stringify(deployed, null, 2), 'utf8')
+        console.info(`\nWrote ${bold(exchangeReceiptPath)}.`)
+        console.info(bold('Deployed.'), deployed)
+        return deployed
+      } else {
+        throw new Error(`${bold(`FACTORY.getExchange(${name})`)}: not found (${e.message}), deploying...`)
       }
     }
-
-    const deployed = await FACTORY.createExchange(
-      token0.asCustomToken,
-      token1.asCustomToken
-    )
-
-    const exchangeReceiptPath = instance.resolve(`SiennaSwap_${name}.json`)
-    writeFileSync(exchangeReceiptPath, JSON.stringify(deployed, null, 2), 'utf8')
-    console.info(`\nWrote ${bold(exchangeReceiptPath)}.`)
-
-    console.info(bold('Deployed.'), deployed)
-
-    return [token0, token1]
-  }
-
-  async function getLiquidityPoolInfo (token0: SNIP20, token1: SNIP20) {
-    const exchanges = await FACTORY.listExchanges()
-    const {address: pairAddress} = exchanges.filter(({pair})=>(
-      pair.token_0.custom_token.contract_addr === token0.address &&
-      pair.token_1.custom_token.contract_addr === token1.address
-    ))[0]
-    const {pair_info} = await AMMContract.attach(pairAddress, EXCHANGE.codeHash, admin).pairInfo()
-    return pair_info
-  }
-
-  async function getLPToken (token0: SNIP20, token1: SNIP20) {
-    const {liquidity_token:{address, code_hash}} = await getLiquidityPoolInfo(token0, token1)
-    return LPToken.attach(address, code_hash, admin)
   }
 
   async function deployRewardPool (name: string, lpToken: SNIP20, rewardToken: SNIP20) {
@@ -194,8 +176,8 @@ export default async function deploySwap (options: SwapOptions) {
       Object.assign(token.init.msg, { prng_seed: randomHex(36) })
       const existing = instance.contracts[label]
       await tokens[symbol].instantiateOrExisting(existing)
-
-      await tokens[symbol].mint(100000 * 10 ** initMsg.decimals, admin)
+      await tokens[symbol].setMinters([admin.address], admin)
+      await tokens[symbol].mint("100000000000000000000000", admin)
     }
     return tokens
   }

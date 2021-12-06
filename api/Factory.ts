@@ -128,90 +128,23 @@ export class Factory extends ScrtContract {
     token_1: TokenTypeFor_HumanAddr,
     agent = this.instantiator
   ) {
-    const args = {
-      pair:    { token_0, token_1 },
-      entropy: b64encode(EnigmaUtils.GenerateNewSeed().toString()),
-    };
+    const pair = { token_0, token_1 };
+    const entropy = b64encode(EnigmaUtils.GenerateNewSeed().toString());
+    await agent.execute(this.link, "create_exchange", { pair, entropy });
+    return await this.getExchange(token_0, token_1, agent);
+  }
 
-    const result = await this.execute(
-      "create_exchange", args, "", [], undefined, agent
-    );
-
-    const {logs:[{events:[_,{attributes}]}]} = result
-
-    console.debug('Result of createExchange', result)
-
-    const [ {value:contract_address_1}
-          , {value:action_1}
-          , {value:pair}
-          , {value:contract_address_2}
-          , {value:created_exchange_address}
-          , {value:contract_address_3}
-          , {value:register_status_1}
-          , {value:contract_address_4}
-          , {value:register_status_2}
-          , {value:contract_address_5}
-          , {value:token_address}
-          , {value:token_code_hash}
-          , {value:contract_address_6}
-          , {value:liquidity_token_addr}
-          , {value:contract_address_7}
-          , {value:register_status_3}
-          , {value:contract_address_8}
-          , {value:action_2}
-          , {value:address} ] = attributes
-
-    console.log({token_0, token_1})
-
-    const title =
-      `Token 1: ${token_0.custom_token.contract_addr} \n `+
-      `Token 2: ${token_1.custom_token.contract_addr}`
-
-    for (const [a, b] of [
-      [pair, title],
-
-      [contract_address_1, this.address],
-      [contract_address_8, this.address],
-
-      [action_1, 'create_exchange'],
-
-      [action_2, 'register_exchange'],
-
-      [register_status_1, 'success'],
-      [register_status_2, 'success'],
-      [register_status_3, 'success'],
-
-      [contract_address_2, created_exchange_address],
-      [address,            created_exchange_address],
-
-      [contract_address_3, token_0.custom_token.contract_addr],
-      [contract_address_4, token_1.custom_token.contract_addr],
-
-      [contract_address_5,   token_address],
-      [liquidity_token_addr, token_address],
-
-      [token_address,      liquidity_token_addr],
-      [contract_address_7, liquidity_token_addr],
-      [token_code_hash,    this.dependencies.LPTOKEN.codeHash],
-
-      [contract_address_6, created_exchange_address],
-    ]) {
-      assert.strictEqual(
-        a, b,
-        '@sienna/api (Factory#createExchange): '+
-        'Could not parse logs from exchange pair creation. ' +
-        'Parsing them is fragile - it depends on a particular order. ' +
-        'Has the behavior of the Factory changed?'
-      )
-      console.debug("Actual:", a, "Expected:", b)
-    }
-
-    return {
-      exchange: { address: created_exchange_address },
-      lp_token: { address: liquidity_token_addr, code_hash: token_code_hash },
-      token_0,
-      token_1,
-    }
+  async getExchange (
+    token_0: TokenTypeFor_HumanAddr,
+    token_1: TokenTypeFor_HumanAddr,
+    agent = this.instantiator
+  ) {
+    const pair = { token_0, token_1 };
+    const {get_exchange_address:{address:exchange_address}} =
+      await agent.query(this.link, "get_exchange_address", { pair })
+    const exchange = AMM.attach(exchange_address, undefined, agent)
+    const {pair_info:{liquidity_token:lp_token}} = await exchange.pairInfo();
+    return { exchange: exchange.link, lp_token, token_0, token_1 }
   }
 
   listExchanges = async () => {

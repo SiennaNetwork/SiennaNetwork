@@ -37,8 +37,12 @@ export default async function deployVesting (
   await SIENNA.instantiate()
 
   if (chain.isTestnet) {
-    await SIENNA.setMinters([admin.address], admin)
-    await SIENNA.mint("5000000000000000000000", admin)
+    await SIENNA.setMinters([admin.address])
+    await SIENNA.tx.mint({
+      amount:    "5000000000000000000000",
+      recipient: admin.address,
+      padding:   null,
+    }, admin)
   }
 
   RPTAccount.address = admin.address

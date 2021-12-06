@@ -1,0 +1,101 @@
+{
+  "label": "20211206_112456/placeholder_sSCRT",
+  "codeId": 238,
+  "codeHash": "f3e948d28b0fb877d7e1162e07e895e2619e929c9d027f46868f20e5094b2cb4",
+  "initTx": {
+    "height": "201057",
+    "txhash": "D4C3484D35E1B8D12F6E519ED71E90C03C41F5B7D041F478D6E593A5DEF664BA",
+    "data": "0A460A2E2F7365637265742E636F6D707574652E763162657461312E4D7367496E7374616E7469617465436F6E747261637412142AEE3977DFE4D428FDA2E5F645CCC2FE4424C74C",
+    "raw_log": "[{\"events\":[{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"instantiate\"},{\"key\":\"module\",\"value\":\"compute\"},{\"key\":\"signer\",\"value\":\"secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy\"},{\"key\":\"code_id\",\"value\":\"238\"},{\"key\":\"contract_address\",\"value\":\"secret19thrja7lun2z3ldzuhmytnxzlezzf36vaj6hc7\"}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"contract_address\",\"value\":\"secret19thrja7lun2z3ldzuhmytnxzlezzf36vaj6hc7\"},{\"key\":\"xBFqgOOp9Ld9wU+JzwIMbHc5b3aRuVgW2Of4uEQ=\",\"value\":\"V1benQ7Q4eTIQbOVs/f6z20S0bI1zdBJ8GPxS4tcA+YCSuM6EAcHSM5vxvNDtN+hXCUPd4D2RCx3+qlFEw==\"},{\"key\":\"/zaDAj6cL9eAkXTSdbmKgxB9FyiYNXasCQpmnetAdg==\",\"value\":\"FJlKEgQL2rGcsKvI/3cF4019Sy/vVvrk3M0kkYeDiBQBDihIEkjkwTmFoK9feX1ZBbGZLcYmV4gqIQuXwqDH3D9b8Z2rwylhIg0CYRTPuyI=\"}]}]}]",
+    "logs": [
+      {
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "238"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret19thrja7lun2z3ldzuhmytnxzlezzf36vaj6hc7"
+              }
+            ]
+          },
+          {
+            "type": "wasm",
+            "attributes": [
+              {
+                "key": "contract_address",
+                "value": "secret19thrja7lun2z3ldzuhmytnxzlezzf36vaj6hc7"
+              },
+              {
+                "key": "xBFqgOOp9Ld9wU+JzwIMbHc5b3aRuVgW2Of4uEQ=",
+                "value": "V1benQ7Q4eTIQbOVs/f6z20S0bI1zdBJ8GPxS4tcA+YCSuM6EAcHSM5vxvNDtN+hXCUPd4D2RCx3+qlFEw=="
+              },
+              {
+                "key": "/zaDAj6cL9eAkXTSdbmKgxB9FyiYNXasCQpmnetAdg==",
+                "value": "FJlKEgQL2rGcsKvI/3cF4019Sy/vVvrk3M0kkYeDiBQBDihIEkjkwTmFoK9feX1ZBbGZLcYmV4gqIQuXwqDH3D9b8Z2rwylhIg0CYRTPuyI="
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "gas_wanted": "1000000",
+    "gas_used": "29739",
+    "tx": {
+      "type": "cosmos-sdk/StdTx",
+      "value": {
+        "msg": [
+          {
+            "type": "wasm/MsgInstantiateContract",
+            "value": {
+              "sender": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy",
+              "code_id": "238",
+              "label": "20211206_112456/placeholder_sSCRT",
+              "init_msg": "eppy/rSGC1LmqPN1Os90z4O82yDfS5GigfVxreHe4LgOR/JCUWqVET0oR2+mYfjOOE5UX1aKq2Z2URhg9AwIL+t2R652ynzrS93MWMHcv1O7mlPhAsBX7EXD+MPW1+ZBxsZM/a5WvYi6q6Nqiki6ax+oBw0eKyrPHrW9rpEcUxxUUt19dxpZiup8rBp/DSqNOhHaomC1mV/q5UZyMIbHBcMLL8/uI7xoAMxsB5hbXXGdBYgniDclJXv0o6vy/mjFX0jii+V92RfICyP0t2lVVkRnWbSVlyEwT9ZqXLFMyIdxmDbDElELpYUnXx0NJHbOgGOQYeIGURo1QACgqmpG9AVmwlurxcuNoeghUK4oTA/cEEJe0ODoI39a",
+              "init_funds": []
+            }
+          }
+        ],
+        "fee": {
+          "amount": [
+            {
+              "denom": "uscrt",
+              "amount": "1000000"
+            }
+          ],
+          "gas": "1000000"
+        },
+        "signatures": [
+          {
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "Ai+My06zdI6JtjUpkqnrDm/Cv1JoggutEuYWVDBiwmWc"
+            },
+            "signature": "+puW3C3YFlkQ2CoaZTOKFWIKytCKxfeaKy515eqrcKUcE3tVw7Vy3BJrrJqNdUi+yCqxwjiuhKUmTWO+EFGuGA=="
+          }
+        ],
+        "memo": "",
+        "timeout_height": "0"
+      }
+    },
+    "timestamp": "2021-12-06T11:26:00Z",
+    "transactionHash": "D4C3484D35E1B8D12F6E519ED71E90C03C41F5B7D041F478D6E593A5DEF664BA",
+    "contractAddress": "secret19thrja7lun2z3ldzuhmytnxzlezzf36vaj6hc7"
+  }
+}
