@@ -1,6 +1,9 @@
 # SIENNA
 
-[![Coverage Status](https://coveralls.io/repos/github/SiennaNetwork/sienna/badge.svg?branch=dev&t=s6kRdI)](https://coveralls.io/github/SiennaNetwork/sienna?branch=dev)
+[![Coverage Status](https://coveralls.io/repos/github/SiennaNetwork/sienna/badge.svg?branch=main&t=s6kRdI)](https://coveralls.io/github/SiennaNetwork/sienna?branch=main)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/SiennaNetwork/sienna/blob/main/CONTRIBUTING.md)
+![GitHub contributors](https://img.shields.io/github/contributors/SiennaNetwork/sienna)
+[![Twitter Follow](https://img.shields.io/twitter/follow/sienna_network?style=plastic&logo=twitter)](https://twitter.com/sienna_network)
 
 ## Table of Contents
 
