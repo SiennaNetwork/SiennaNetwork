@@ -26,11 +26,3 @@ tx,0301_migrate_v2_addr,LP_TOKEN,"transfer:
   recipient: 0301_migrate_v2_addr"
 tx,0301_migrate_v2_addr,0301_migrate_v2_addr,"immigration:
   receive_migration: WyJBbGljZSIsIiIsIjg1NTk2Il0="
-,,,
-FAIL,was expecting,the following,
-,,,
-tx,0301_migrate_v2_addr,LP_TOKEN,"transfer:
-  amount: ""85596""
-  padding: ~
-  recipient: Alice"
-tx,0301_migrate_v2_addr,0301_migrate_v2_addr,receive_migration: WyJBbGljZSIsIiIsIjg1NTk2Il0=

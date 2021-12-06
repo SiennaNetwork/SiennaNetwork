@@ -380,21 +380,14 @@ impl Context {
 
         let migrant = self.initiator.clone();
 
+        let id = self.deps.canonize(migrant.clone()).unwrap();
+
+        let export = Handle::Emigration(EmigrationHandle::ExportState(migrant.clone()));
+
         // 1. User calls RequestMigration on NEW version of contract.
         // 2. NEW version calls ExportState(migrant) on OLD version of contract.
-        let request = ImmigrationHandle::RequestMigration(last_version.link.clone());
-        let export  = Handle::Emigration(EmigrationHandle::ExportState(migrant.clone()));
-        let id      = self.deps.canonize(migrant.clone()).unwrap();
-        let receive_vk_snapshot = ImmigrationHandle::ReceiveMigration(
-            to_binary(&((
-                migrant.clone(),
-                Auth::load_vk(&last_version.deps, id.as_slice()).unwrap().map(|vk|vk.0),
-                migrated_stake.into()
-            ) as AccountSnapshot)).unwrap()
-        );
-
         self.test_handle(
-            Handle::Immigration(request),
+            Handle::Immigration(ImmigrationHandle::RequestMigration(last_version.link.clone())),
             HandleResponse::default().msg(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr:      last_version.link.address.clone(),
                 callback_code_hash: last_version.link.code_hash.clone(),
@@ -403,12 +396,13 @@ impl Context {
             }))
         );
 
-        let mut export_result = HandleResponse::default().msg(
-            self.lp_token.transfer(
-                &self.env.message.sender,
-                migrated_stake.into()
-            ).unwrap()
-        );
+        let mut export_result = HandleResponse::default()
+            .msg(
+                self.lp_token.transfer(
+                    &self.link.address.clone(),
+                    migrated_stake.into()
+                ).unwrap()
+            );
 
         if claimed_reward > 0 {
             export_result = export_result.unwrap().msg(
@@ -419,6 +413,14 @@ impl Context {
                 ).unwrap()
             );
         }
+
+        let receive_vk_snapshot = Handle::Immigration(ImmigrationHandle::ReceiveMigration(
+            to_binary(&((
+                migrant.clone(),
+                Auth::load_vk(&last_version.deps, id.as_slice()).unwrap().map(|vk|vk.0),
+                migrated_stake.into()
+            ) as AccountSnapshot)).unwrap()
+        ));
 
         export_result = export_result.unwrap().msg(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr:      self.link.address.clone(),
@@ -438,7 +440,7 @@ impl Context {
         );
 
         self.test_handle(
-            Handle::Immigration(receive_vk_snapshot),
+            receive_vk_snapshot,
             HandleResponse::default().log("migrated", &migrated_stake.to_string())
         );
 
