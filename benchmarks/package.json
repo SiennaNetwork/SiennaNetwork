@@ -2,6 +2,7 @@
   "name":    "@sienna/benchmarks",
   "version": "0.0.0",
   "type":    "module",
+  "main":    "index.ts",
   "dependencies": {
     "@sienna/api":      "workspace:*",
     "@sienna/settings": "workspace:*"

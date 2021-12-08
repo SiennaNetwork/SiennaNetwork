@@ -20,7 +20,7 @@ import {
   LaunchpadContract
 } from '@sienna/api'
 
-import rewardsBenchmark from '../benchmarks/rewards'
+import { rewardsBenchmark } from '@sienna/benchmarks'
 
 const
   projectRoot = resolve(dirname(fileURLToPath(import.meta.url))),
