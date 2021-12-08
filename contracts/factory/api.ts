@@ -167,3 +167,4 @@ export class Factory extends ScrtContract {
     return result
   }
 }
+

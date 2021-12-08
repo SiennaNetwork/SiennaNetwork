@@ -1,5 +1,5 @@
 {
-  "name": "@sienna/lp-token",
+  "name": "@sienna/amm-snip20",
   "version": "0.0.0",
   "main": "./api.ts",
   "type": "module",
@@ -7,4 +7,3 @@
     "@hackbg/fadroma": "*"
   }
 }
-

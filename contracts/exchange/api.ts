@@ -47,3 +47,4 @@ export class AMM extends ScrtContract {
     return instance
   }
 }
+

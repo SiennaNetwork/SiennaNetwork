@@ -159,3 +159,4 @@ export class IDO extends ScrtContract {
     return this.tx.admin_add_addresses({ addresses }, agent)
   }
 }
+

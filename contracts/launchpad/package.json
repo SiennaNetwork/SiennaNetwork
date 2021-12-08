@@ -1,0 +1,11 @@
+{
+  "name": "@sienna/launchpad",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./api.ts",
+  "dependencies": {
+    "@fadroma/scrt":  "workspace:*",
+    "@fadroma/tools": "workspace:*",
+    "secretjs":       "workspace:*"
+  }
+}

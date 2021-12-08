@@ -167,3 +167,4 @@ export class Launchpad extends ScrtContract {
       status: JSON.parse(decode(tx.data)).set_viewing_key.key,
     }));
 }
+
