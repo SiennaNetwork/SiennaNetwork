@@ -14,12 +14,12 @@ importers:
       mocha: ^8.4.0
       typescript: ^4.4.4
     dependencies:
-      '@fadroma/ops': link:libraries/fadroma-next/ops
-      '@fadroma/scrt': link:libraries/fadroma-next/ops-scrt
-      '@fadroma/scrt-1.0': link:libraries/fadroma-next/ops-scrt-1.0
-      '@fadroma/scrt-1.2': link:libraries/fadroma-next/ops-scrt-1.2
-      '@fadroma/tools': link:libraries/fadroma-next/tools
-      '@hackbg/ganesha': link:libraries/fadroma-next/platforms/ganesha
+      '@fadroma/ops': link:libraries/fadroma-next/packages/ops
+      '@fadroma/scrt': link:libraries/fadroma-next/packages/ops-scrt
+      '@fadroma/scrt-1.0': link:libraries/fadroma-next/packages/ops-scrt-1.0
+      '@fadroma/scrt-1.2': link:libraries/fadroma-next/packages/ops-scrt-1.2
+      '@fadroma/tools': link:libraries/fadroma-next/packages/tools
+      '@hackbg/ganesha': link:libraries/fadroma-next/packages/ganesha/loader
       chai: 4.3.4
       mocha: 8.4.0
       typescript: 4.5.2
@@ -47,8 +47,8 @@ importers:
       '@sienna/settings': workspace:*
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
-      '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@fadroma/scrt': link:../../libraries/fadroma-next/packages/ops-scrt
+      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
       '@sienna/settings': link:../../settings
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
@@ -65,8 +65,8 @@ importers:
       '@waiting/base64': ^4.2.9
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
-      '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@fadroma/scrt': link:../../libraries/fadroma-next/packages/ops-scrt
+      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
       '@sienna/amm-snip20': link:../amm-snip20
       '@sienna/exchange': link:../exchange
       '@sienna/ido': link:../ido
@@ -83,8 +83,8 @@ importers:
       '@sienna/settings': workspace:*
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
-      '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@fadroma/scrt': link:../../libraries/fadroma-next/packages/ops-scrt
+      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
       '@sienna/settings': link:../../settings
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
@@ -95,8 +95,8 @@ importers:
       '@sienna/settings': workspace:*
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
-      '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@fadroma/scrt': link:../../libraries/fadroma-next/packages/ops-scrt
+      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
       '@sienna/settings': link:../../settings
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
@@ -115,8 +115,8 @@ importers:
       '@sienna/settings': workspace:*
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
-      '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@fadroma/scrt': link:../../libraries/fadroma-next/packages/ops-scrt
+      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
       '@sienna/settings': link:../../settings
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
@@ -129,9 +129,9 @@ importers:
       '@sienna/settings': workspace:*
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
+      '@fadroma/scrt': link:../../libraries/fadroma-next/packages/ops-scrt
       '@fadroma/snip20': link:../../libraries/fadroma-next/lib/composable-snip20
-      '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
       '@sienna/lp-token': link:../lp-token
       '@sienna/settings': link:../../settings
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
@@ -143,8 +143,8 @@ importers:
       '@sienna/settings': workspace:*
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
-      '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@fadroma/scrt': link:../../libraries/fadroma-next/packages/ops-scrt
+      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
       '@sienna/settings': link:../../settings
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
@@ -252,8 +252,8 @@ importers:
       mocha: ^8.4.0
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../fadroma-next/ops-scrt
-      '@fadroma/tools': link:../fadroma-next/tools
+      '@fadroma/scrt': link:../fadroma-next/packages/ops-scrt
+      '@fadroma/tools': link:../fadroma-next/packages/tools
       '@sienna/amm-snip20': link:../../contracts/amm-snip20
       '@sienna/exchange': link:../../contracts/exchange
       '@sienna/factory': link:../../contracts/factory
@@ -291,7 +291,7 @@ importers:
       '@types/rimraf': 3.0.2
       bignumber.js: 9.0.1
     devDependencies:
-      '@hackbg/ganesha': link:platforms/ganesha
+      '@hackbg/ganesha': link:packages/ganesha/loader
       '@types/mocha': 9.0.0
       chai: 4.3.4
       documentation: 13.2.5
@@ -304,7 +304,94 @@ importers:
   libraries/fadroma-next/lib/composable-snip20:
     specifiers: {}
 
-  libraries/fadroma-next/ops:
+  libraries/fadroma-next/packages/forkers:
+    specifiers:
+      '@types/zen-observable': ^0.8.3
+      zen-observable: ^0.8.15
+    dependencies:
+      '@types/zen-observable': 0.8.3
+      zen-observable: 0.8.15
+
+  libraries/fadroma-next/packages/ganesha:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+      codecov: ^3.8.3
+      tap: ^15.0.9
+    devDependencies:
+      '@hackbg/ganesha': link:loader
+      codecov: 3.8.3
+      tap: 15.1.5_typescript@4.5.2
+
+  libraries/fadroma-next/packages/ganesha/examples/example:
+    specifiers: {}
+
+  libraries/fadroma-next/packages/ganesha/language-client:
+    specifiers: {}
+
+  libraries/fadroma-next/packages/ganesha/language-server:
+    specifiers: {}
+
+  libraries/fadroma-next/packages/ganesha/loader:
+    specifiers:
+      cross-spawn: ^7.0.3
+      esbuild: ^0.13.0
+      front-matter: ^4.0.2
+      get-package-name: ^2.2.0
+      joycon: ^3.0.1
+      jsonc-parser: ^3.0.0
+      pirates: ^4.0.1
+      source-map-support: ^0.5.20
+      tree-sitter: ^0.19.0
+      tree-sitter-markdown: github:egasimus/tree-sitter-markdown
+    dependencies:
+      cross-spawn: 7.0.3
+      esbuild: 0.13.15
+      front-matter: 4.0.2
+      get-package-name: 2.2.0
+      joycon: 3.1.0
+      jsonc-parser: 3.0.0
+      pirates: 4.0.1
+      source-map-support: 0.5.21
+      tree-sitter: 0.19.0
+      tree-sitter-markdown: github.com/egasimus/tree-sitter-markdown/18c3f1ccd3e27051273caa6d721d1c033e63741d
+
+  libraries/fadroma-next/packages/ganesha/rollup-plugin:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+    dependencies:
+      '@hackbg/ganesha': link:../loader
+
+  libraries/fadroma-next/packages/kabinet:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+      mkdirp: ^1.0.4
+      rimraf: ^3.0.2
+    dependencies:
+      mkdirp: 1.0.4
+      rimraf: 3.0.2
+    devDependencies:
+      '@hackbg/ganesha': link:../ganesha/loader
+
+  libraries/fadroma-next/packages/komandi:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+    devDependencies:
+      '@hackbg/ganesha': link:../ganesha/loader
+
+  libraries/fadroma-next/packages/konzola:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+      colors: ^1.4.0
+      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      table: ^6.6.0
+    dependencies:
+      colors: 1.4.0
+      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      table: 6.7.3
+    devDependencies:
+      '@hackbg/ganesha': link:../ganesha/loader
+
+  libraries/fadroma-next/packages/ops:
     specifiers:
       '@fadroma/tools': workspace:*
       ajv: ^8.6.0
@@ -316,7 +403,7 @@ importers:
       exponential-backoff: 3.1.0
       json-schema-to-typescript: 10.1.5
 
-  libraries/fadroma-next/ops-scrt:
+  libraries/fadroma-next/packages/ops-scrt:
     specifiers:
       '@cosmjs/crypto': ^0.20.0
       '@fadroma/ops': workspace:*
@@ -328,49 +415,55 @@ importers:
       '@fadroma/tools': link:../tools
       secretjs: 0.17.5
 
-  libraries/fadroma-next/ops-scrt-1.0:
+  libraries/fadroma-next/packages/ops-scrt-1.0:
     specifiers:
       '@fadroma/scrt': workspace:*
-      secretjs: workspace:0.16.5
+      secretjs: 0.16.5
     dependencies:
       '@fadroma/scrt': link:../ops-scrt
-      secretjs: link:../platforms/scrt-1.0/cosmwasm-js/packages/sdk
+      secretjs: 0.16.5
 
-  libraries/fadroma-next/ops-scrt-1.2:
+  libraries/fadroma-next/packages/ops-scrt-1.2:
     specifiers:
       '@fadroma/scrt': workspace:*
       secretjs: workspace:0.17.5
     dependencies:
       '@fadroma/scrt': link:../ops-scrt
-      secretjs: link:../platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: link:../../platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
-  libraries/fadroma-next/platforms/ganesha:
+  libraries/fadroma-next/packages/tools:
     specifiers:
-      cross-spawn: ^7.0.3
-      esbuild: ^0.12.25
-      front-matter: ^4.0.2
-      joycon: ^3.0.1
-      jsonc-parser: ^3.0.0
-      pirates: ^4.0.1
-      source-map-support: ^0.5.20
-      tap: ^15.0.9
-      tree-sitter: ^0.19.0
-      tree-sitter-markdown: github:egasimus/tree-sitter-markdown
+      '@hackbg/kabinet': workspace:^0.1.0
+      '@hackbg/komandi': workspace:^0.1.0
+      '@hackbg/konzola': workspace:^0.1.0
+      colors: ^1.4.0
+      dockerode: ^3.3.0
+      exponential-backoff: ^3.1.0
+      mkdirp: ^1.0.4
+      open: ^8.0.2
+      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      prompts: ^2.4.1
+      rimraf: ^3.0.2
+      signal-exit: ^3.0.3
+      symlink-dir: ^5.0.1
+      table: ^6.6.0
+      wait-port: ^0.2.9
     dependencies:
-      cross-spawn: 7.0.3
-      esbuild: 0.12.29
-      front-matter: 4.0.2
-      joycon: 3.1.0
-      jsonc-parser: 3.0.0
-      pirates: 4.0.1
-      source-map-support: 0.5.21
-      tree-sitter: 0.19.0
-      tree-sitter-markdown: github.com/egasimus/tree-sitter-markdown/18c3f1ccd3e27051273caa6d721d1c033e63741d
-    devDependencies:
-      tap: 15.1.5_typescript@4.5.2
-
-  libraries/fadroma-next/platforms/ganesha/examples/example:
-    specifiers: {}
+      '@hackbg/kabinet': link:../kabinet
+      '@hackbg/komandi': link:../komandi
+      '@hackbg/konzola': link:../konzola
+      colors: 1.4.0
+      dockerode: 3.3.1
+      exponential-backoff: 3.1.0
+      mkdirp: 1.0.4
+      open: 8.4.0
+      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      prompts: 2.4.2
+      rimraf: 3.0.2
+      signal-exit: 3.0.6
+      symlink-dir: 5.0.1
+      table: 6.7.3
+      wait-port: 0.2.9
 
   libraries/fadroma-next/platforms/scrt-1.0:
     specifiers:
@@ -769,10 +862,10 @@ importers:
       freeport-async: ^2.0.0
       tap: ^15.0.9
     dependencies:
-      '@fadroma/ops': link:../ops
-      '@fadroma/scrt': link:../ops-scrt
-      '@fadroma/tools': link:../tools
-      '@hackbg/ganesha': link:../platforms/ganesha
+      '@fadroma/ops': link:../packages/ops
+      '@fadroma/scrt': link:../packages/ops-scrt
+      '@fadroma/tools': link:../packages/tools
+      '@hackbg/ganesha': link:../packages/ganesha/loader
       '@iov/encoding': 2.5.0
       '@types/express': 4.17.13
       '@types/tap': 15.0.5
@@ -781,34 +874,6 @@ importers:
       express: 4.17.1
       freeport-async: 2.0.0
       tap: 15.1.5_typescript@4.5.2
-
-  libraries/fadroma-next/tools:
-    specifiers:
-      colors: ^1.4.0
-      dockerode: ^3.3.0
-      exponential-backoff: ^3.1.0
-      mkdirp: ^1.0.4
-      open: ^8.0.2
-      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: ^2.4.1
-      rimraf: ^3.0.2
-      signal-exit: ^3.0.3
-      symlink-dir: ^5.0.1
-      table: ^6.6.0
-      wait-port: ^0.2.9
-    dependencies:
-      colors: 1.4.0
-      dockerode: 3.3.1
-      exponential-backoff: 3.1.0
-      mkdirp: 1.0.4
-      open: 8.4.0
-      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: 2.4.2
-      rimraf: 3.0.2
-      signal-exit: 3.0.6
-      symlink-dir: 5.0.1
-      table: 6.7.3
-      wait-port: 0.2.9
 
   libraries/ops-amm:
     specifiers:
@@ -857,9 +922,9 @@ importers:
       '@sienna/benchmarks': workspace:*
       '@sienna/settings': workspace:*
     dependencies:
-      '@fadroma/ops': link:../libraries/fadroma-next/ops
-      '@fadroma/scrt': link:../libraries/fadroma-next/ops-scrt
-      '@fadroma/tools': link:../libraries/fadroma-next/tools
+      '@fadroma/ops': link:../libraries/fadroma-next/packages/ops
+      '@fadroma/scrt': link:../libraries/fadroma-next/packages/ops-scrt
+      '@fadroma/tools': link:../libraries/fadroma-next/packages/tools
       '@sienna/api': link:../libraries/api
       '@sienna/benchmarks': link:../benchmarks
       '@sienna/settings': link:../settings
@@ -4751,6 +4816,11 @@ packages:
     dev: true
     optional: true
 
+  /@tootallnate/once/1.1.2:
+    resolution: {integrity: sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==}
+    engines: {node: '>= 6'}
+    dev: true
+
   /@truffle/abi-utils/0.2.4:
     resolution: {integrity: sha512-ICr5Sger6r5uj2G5GN9Zp9OQDCaCqe2ZyAEyvavDoFB+jX0zZFUCfDnv5jllGRhgzdYJ3mec2390mjUyz9jSZA==}
     dependencies:
@@ -5588,6 +5658,10 @@ packages:
     dependencies:
       '@types/yargs-parser': 20.2.1
     dev: true
+
+  /@types/zen-observable/0.8.3:
+    resolution: {integrity: sha512-fbF6oTd4sGGy0xjHPKAt+eS2CrxJ3+6gQ3FGcBoIJR2TLAyCkCyI8JqZNy+FeON0AhVgNJoUumVoZQjBFUqHkw==}
+    dev: false
 
   /@typescript-eslint/eslint-plugin/2.34.0_82af9fd0d0c58dde3baf13ff7e56e299:
     resolution: {integrity: sha512-4zY3Z88rEE99+CNvTbXSyovv2z9PNOVffTWD2W8QF5s2prBQtwN2zadqERcrHpcR7O/+KMI3fcTAmUUhK/iQcQ==}
@@ -6647,6 +6721,15 @@ packages:
       es6-promisify: 5.0.0
     dev: true
 
+  /agent-base/6.0.2:
+    resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
+    engines: {node: '>= 6.0.0'}
+    dependencies:
+      debug: 4.3.3
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
+
   /agentkeepalive/2.2.0:
     resolution: {integrity: sha1-xdG9SxKQCPEWPyNvhuX66iAm4u8=}
     engines: {node: '>= 0.10.0'}
@@ -7142,6 +7225,11 @@ packages:
     resolution: {integrity: sha1-bnIHtOzbObCviDA/pa4ivajfYcs=}
     dev: true
     optional: true
+
+  /argv/0.0.2:
+    resolution: {integrity: sha1-7L0W+JSbFXGDcRsb2jNPN4QBhas=}
+    engines: {node: '>=0.6.10'}
+    dev: true
 
   /arr-diff/2.0.0:
     resolution: {integrity: sha1-jzuCf5Vai9ZpaX5KQlasPOrjVs8=}
@@ -9421,6 +9509,21 @@ packages:
   /code-point-at/1.1.0:
     resolution: {integrity: sha1-DQcLTQQ6W+ozovGkDi7bPZpMz3c=}
     engines: {node: '>=0.10.0'}
+
+  /codecov/3.8.3:
+    resolution: {integrity: sha512-Y8Hw+V3HgR7V71xWH2vQ9lyS358CbGCldWlJFR0JirqoGtOoas3R3/OclRTvgUYFK29mmJICDPauVKmpqbwhOA==}
+    engines: {node: '>=4.0'}
+    deprecated: https://about.codecov.io/blog/codecov-uploader-deprecation-plan/
+    hasBin: true
+    dependencies:
+      argv: 0.0.2
+      ignore-walk: 3.0.4
+      js-yaml: 3.14.1
+      teeny-request: 7.1.1
+      urlgrey: 1.0.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
 
   /codepage/1.14.0:
     resolution: {integrity: sha1-jL4lSBMjVZ19MHVxsP/5HnodL5k=}
@@ -11755,6 +11858,7 @@ packages:
     resolution: {integrity: sha512-w/XuoBCSwepyiZtIRsKsetiLDUVGPVw1E/R3VTFSecIy8UR7Cq3SOtwKHJMFoVqqVG36aGkzh4e8BvpO1Fdc7g==}
     hasBin: true
     requiresBuild: true
+    dev: true
 
   /esbuild/0.13.15:
     resolution: {integrity: sha512-raCxt02HBKv8RJxE8vkTSCXGIyKHdEdGfUmiYb8wnabnaEmHzyW7DCHb5tEN0xU8ryqg5xw54mcwnYkC4x3AIw==}
@@ -12977,6 +13081,12 @@ packages:
     dev: true
     optional: true
 
+  /fast-url-parser/1.1.3:
+    resolution: {integrity: sha1-9K8+qfNNiicc9YrSs3WfQx8LMY0=}
+    dependencies:
+      punycode: 1.4.1
+    dev: true
+
   /fastest-levenshtein/1.0.12:
     resolution: {integrity: sha512-On2N+BpYJ15xIC974QNVuYGMOlEVt4s0EOI3wwMqOmK1fdDY+FN/zltPV8vosq4ad4c/gJ1KHScUn/6AWIgiow==}
     dev: false
@@ -13675,6 +13785,11 @@ packages:
     resolution: {integrity: sha512-v+dm9bNVfOYsY1OrhaCrmyOcYoSeVvbt+hHZ0Au+T+p1y+0Uyj9aMaGIeUTT6xdpRbWzDeYKvfOslPhggQMcsg==}
     dev: true
     optional: true
+
+  /get-package-name/2.2.0:
+    resolution: {integrity: sha512-LmCKVxioe63Fy6KDAQ/mmCSOSSRUE/x4zdrMD+7dU8quF3bGpzvP8mOmq4Dgce3nzU9AgkVDotucNOOg7c27BQ==}
+    engines: {node: '>= 12.0.0'}
+    dev: false
 
   /get-package-type/0.1.0:
     resolution: {integrity: sha512-pjzuKtY64GYfWizNAJ0fr9VqttZkNiK2iS430LtIHzjBEr6bX8Am2zm4sW4Ro5wjWW5cAlRL1qAMTcXbjNAO2Q==}
@@ -14802,6 +14917,17 @@ packages:
       debug: 3.1.0
     dev: true
 
+  /http-proxy-agent/4.0.1:
+    resolution: {integrity: sha512-k0zdNgqWTGA6aeIRVpvfVob4fL52dTfaehylg0Y4UvSySvOq/Y+BOyPrgpUrA7HylqvU8vIZGsRuXmspskV0Tg==}
+    engines: {node: '>= 6'}
+    dependencies:
+      '@tootallnate/once': 1.1.2
+      agent-base: 6.0.2
+      debug: 4.3.3
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
+
   /http-proxy-middleware/0.19.1_debug@4.3.3:
     resolution: {integrity: sha512-yHYTgWMQO8VvwNS22eLLloAkvungsKdKTLO8AJlftYIKNfJr3GK3zK0ZCfzDDGUBttdGc8xFy1mCitvNKQtC3Q==}
     engines: {node: '>=4.0.0'}
@@ -14858,6 +14984,16 @@ packages:
     dependencies:
       agent-base: 4.3.0
       debug: 3.2.7
+    dev: true
+
+  /https-proxy-agent/5.0.0:
+    resolution: {integrity: sha512-EkYm5BcKUGiduxzSt3Eppko+PiNWNEpa4ySk9vTC6wDsQJW9rHSa+UhGNJoRYp7bz6Ht1eaRIa6QaJqO5rCFbA==}
+    engines: {node: '>= 6'}
+    dependencies:
+      agent-base: 6.0.2
+      debug: 4.3.3
+    transitivePeerDependencies:
+      - supports-color
     dev: true
 
   /human-signals/2.1.0:
@@ -22453,6 +22589,23 @@ packages:
       node-addon-api: 2.0.2
       node-gyp-build: 4.3.0
 
+  /secretjs/0.16.5:
+    resolution: {integrity: sha512-w3K4+bFxgy1NJ0o2PDeEtdUsGJ2XYEi3KhLG1o05/LCNGL4Uh+2MOBnR/fyQWNGDA03vw/UrMb6Cs4hXciiBJw==}
+    dependencies:
+      '@iov/crypto': 2.1.0
+      '@iov/encoding': 2.1.0
+      '@iov/utils': 2.0.2
+      axios: 0.21.1
+      curve25519-js: 0.0.4
+      fast-deep-equal: 3.1.1
+      js-crypto-hkdf: 0.7.3
+      miscreant: 0.3.2
+      pako: 1.0.11
+      secure-random: 1.1.2
+    transitivePeerDependencies:
+      - debug
+    dev: false
+
   /secretjs/0.17.3:
     resolution: {integrity: sha512-eB2+eKkGUdjoR+sBRbtJUglEaB3jwlcz69c28xT5+Y65d1cxMJzdx3cBR7cLnqWayyERidhzZL+idu9TrwQR9g==}
     dependencies:
@@ -23347,6 +23500,12 @@ packages:
       stream-shift: 1.0.1
     dev: true
 
+  /stream-events/1.0.5:
+    resolution: {integrity: sha512-E1GUzBSgvct8Jsb3v2X15pjzN1tYebtbLaMg+eBOUOAxgbLoSbT2NS91ckc5lJD1KfLjId+jXJRgo0qnV5Nerg==}
+    dependencies:
+      stubs: 3.0.0
+    dev: true
+
   /stream-http/2.8.3:
     resolution: {integrity: sha512-+TSkfINHDo4J+ZobQLWiMouQYB+UVYFttRA94FpEzzJ7ZdqcL4uUUQ7WkdkI4DSozGmgBUE/a47L+38PenXhUw==}
     dependencies:
@@ -23595,6 +23754,10 @@ packages:
       duplexer: 0.1.2
       minimist: 1.2.5
       through: 2.3.8
+    dev: true
+
+  /stubs/3.0.0:
+    resolution: {integrity: sha1-6NK6H6nJBXAwPAMLaQD31fiavls=}
     dev: true
 
   /style-loader/3.3.1_webpack@5.64.4:
@@ -24026,6 +24189,19 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       diff: 4.0.2
+
+  /teeny-request/7.1.1:
+    resolution: {integrity: sha512-iwY6rkW5DDGq8hE2YgNQlKbptYpY5Nn2xecjQiNjOXWbKzPGUfmeUBCSQbbr306d7Z7U2N0TPl+/SwYRfua1Dg==}
+    engines: {node: '>=10'}
+    dependencies:
+      http-proxy-agent: 4.0.1
+      https-proxy-agent: 5.0.0
+      node-fetch: 2.6.6
+      stream-events: 1.0.5
+      uuid: 8.3.2
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
 
   /temp-dir/1.0.0:
     resolution: {integrity: sha1-CnwOom06Oa+n4OvqnB/AvE2qAR0=}
@@ -25164,6 +25340,12 @@ packages:
     dependencies:
       punycode: 1.3.2
       querystring: 0.2.0
+
+  /urlgrey/1.0.0:
+    resolution: {integrity: sha512-hJfIzMPJmI9IlLkby8QrsCykQ+SXDeO2W5Q9QTW3QpqZVTx4a/K7p8/5q+/isD8vsbVaFgql/gvAoQCRQ2Cb5w==}
+    dependencies:
+      fast-url-parser: 1.1.3
+    dev: true
 
   /ursa-optional/0.10.2:
     resolution: {integrity: sha512-TKdwuLboBn7M34RcvVTuQyhvrA8gYKapuVdm0nBP0mnBc7oECOfUQZrY91cefL3/nm64ZyrejSRrhTVdX7NG/A==}
@@ -27588,8 +27770,6 @@ packages:
 
   /zen-observable/0.8.15:
     resolution: {integrity: sha512-PQ2PC7R9rslx84ndNBZB/Dkv8V8fZEpk83RLgXtYd0fwUgEjseMn1Dgajh2x6S8QbZAFa9p2qVCEuYZNgve0dQ==}
-    dev: true
-    optional: true
 
   /zepto/1.2.0:
     resolution: {integrity: sha1-4Se9nmb9hGvl6rSME5SIL3wOT5g=}
