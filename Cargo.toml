@@ -1,7 +1,5 @@
 [workspace]
 members = [
-  "api", # JSON schema exporter
-
   # TGE
   "libraries/schedule",      # model of TGE vesting logic
   "libraries/linear-map",    # simple way of storing small number of addresses
@@ -24,8 +22,6 @@ members = [
   "libraries/fadroma-next/bind-js",
   "libraries/migrate", # migration flag, as used by TGE before merging this feature into Fadroma
   "libraries/kukumba", # BDD testing framework
-
-  #"demos/struct-contract-field"
 ]
 
 [profile.release]
