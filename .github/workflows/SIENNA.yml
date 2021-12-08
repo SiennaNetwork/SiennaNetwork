@@ -42,7 +42,7 @@ jobs:
 
       - name: Checkout sources
         uses: actions/checkout@v2
-        with: { submodules: true }
+        with: { submodules: recursive }
 
       - name: Checkout deps of deps
         run: |
