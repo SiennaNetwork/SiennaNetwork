@@ -1,7 +1,7 @@
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 use std::{env::current_dir, fs::create_dir_all};
 
-use crate::msg as snip20;
+use snip20_sienna::msg as snip20;
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
