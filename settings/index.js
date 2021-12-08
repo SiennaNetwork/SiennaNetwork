@@ -26,13 +26,14 @@ module.exports = function getSettingsForChain (chainId) {
     }
   }
 
-  function getSettings (directory, file) {
+  function getSettings (file) {
     const path = resolve(directory, file)
     if (!existsSync(path)) {
       throw new Error(`settings/${chainId}/${file} does not exist`)
     }
     return JSON.parse(readFileSync(path))
   }
+
 }
 
 module.exports.workspace = dirname(__dirname)
