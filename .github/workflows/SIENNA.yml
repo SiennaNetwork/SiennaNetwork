@@ -46,10 +46,7 @@ jobs:
 
       - name: Checkout deps of deps
         run: |
-          cd libraries/fadroma-next
-          git submodule init
-          git submodule update
-          cd ../..
+          ls -al libraries/fadroma-next/packages/*
 
       - name: Cache Cargo crates
         uses: Swatinem/rust-cache@v1
