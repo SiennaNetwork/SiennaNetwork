@@ -12,7 +12,7 @@
     "@sienna/ido":        "workspace:^0.1.0",
     "@sienna/launchpad":  "workspace:^0.1.0",
     "@sienna/lp-token":   "workspace:^0.1.0",
-    "@sienna/settings":   "workspace:*",
+    "@sienna/settings":   "workspace:^1.0.0",
 
     "@waiting/base64":  "^4.2.9",
     "secretjs":         "workspace:*"

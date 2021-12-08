@@ -19,7 +19,7 @@ importers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
       '@sienna/api': workspace:*
-      '@sienna/settings': workspace:*
+      '@sienna/settings': workspace:^1.0.0
     dependencies:
       '@fadroma/scrt': link:../libraries/fadroma-next/packages/scrt
       '@fadroma/tools': link:../libraries/fadroma-next/packages/tools
@@ -30,7 +30,7 @@ importers:
     specifiers:
       '@fadroma/snip20': workspace:*
       '@fadroma/tools': workspace:*
-      '@sienna/settings': workspace:*
+      '@sienna/settings': workspace:^1.0.0
     dependencies:
       '@fadroma/snip20': link:../../libraries/fadroma-next/lib/composable-snip20
       '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
@@ -40,7 +40,7 @@ importers:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
-      '@sienna/settings': workspace:*
+      '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/packages/scrt
@@ -57,7 +57,7 @@ importers:
       '@sienna/ido': workspace:^0.1.0
       '@sienna/launchpad': workspace:^0.1.0
       '@sienna/lp-token': workspace:^0.1.0
-      '@sienna/settings': workspace:*
+      '@sienna/settings': workspace:^1.0.0
       '@waiting/base64': ^4.2.9
       secretjs: workspace:*
     dependencies:
@@ -76,7 +76,7 @@ importers:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
-      '@sienna/settings': workspace:*
+      '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/packages/scrt
@@ -88,7 +88,7 @@ importers:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
-      '@sienna/settings': workspace:*
+      '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/packages/scrt
@@ -100,7 +100,7 @@ importers:
     specifiers:
       '@fadroma/snip20': workspace:*
       '@fadroma/tools': workspace:*
-      '@sienna/settings': workspace:*
+      '@sienna/settings': workspace:^1.0.0
     dependencies:
       '@fadroma/snip20': link:../../libraries/fadroma-next/lib/composable-snip20
       '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
@@ -110,7 +110,7 @@ importers:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
-      '@sienna/settings': workspace:*
+      '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/packages/scrt
@@ -124,7 +124,7 @@ importers:
       '@fadroma/snip20': workspace:*
       '@fadroma/tools': workspace:*
       '@sienna/lp-token': workspace:^0.1.0
-      '@sienna/settings': workspace:*
+      '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/packages/scrt
@@ -138,7 +138,7 @@ importers:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
-      '@sienna/settings': workspace:*
+      '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/packages/scrt
@@ -150,7 +150,7 @@ importers:
     specifiers:
       '@fadroma/snip20': workspace:*
       '@fadroma/tools': workspace:*
-      '@sienna/settings': workspace:*
+      '@sienna/settings': workspace:^1.0.0
     dependencies:
       '@fadroma/snip20': link:../../libraries/fadroma-next/lib/composable-snip20
       '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
@@ -931,7 +931,7 @@ importers:
       '@fadroma/tools': workspace:*
       '@sienna/api': workspace:*
       '@sienna/benchmarks': workspace:*
-      '@sienna/settings': workspace:*
+      '@sienna/settings': workspace:^1.0.0
       toml: ^3.0.0
     dependencies:
       '@fadroma/ops': link:../libraries/fadroma-next/packages/ops

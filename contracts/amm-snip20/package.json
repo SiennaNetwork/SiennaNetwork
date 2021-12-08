@@ -6,7 +6,7 @@
   "dependencies": {
     "@fadroma/snip20":  "workspace:*",
     "@fadroma/tools":   "workspace:*",
-    "@sienna/settings": "workspace:*"
+    "@sienna/settings": "workspace:^1.0.0"
   },
   "peerDependencies": {
     "@hackbg/fadroma": "*"
