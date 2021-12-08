@@ -1,14 +1,16 @@
-import settings from '@sienna/settings'
+import { writeFileSync } from 'fs'
+
 import type { IChain, IAgent } from '@fadroma/ops'
 import { Scrt } from '@fadroma/scrt'
 import { bold, randomHex } from '@fadroma/tools'
-import { writeFileSync } from 'fs'
+
+import settings from '@sienna/settings'
+
 import buildAndUpload from './buildAndUpload'
 
 const SIENNA_DECIMALS = 18
 const ONE_SIENNA = BigInt(`1${[...Array(SIENNA_DECIMALS)].map(()=>'0').join('')}`)
 
-import type { SNIP20Contract } from '@fadroma/snip20'
 import {
   AMMContract,
   AMMSNIP20Contract,
@@ -50,7 +52,7 @@ export default async function deploySwap (options: SwapOptions) {
 
   const
     factoryDeps    = { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD },
-    factoryConfig  = settings[`amm-${chain.chainId}`],
+    factoryConfig  = settings(chain.chainId).amm
     factoryOptions = { prefix, admin, config: factoryConfig, ...factoryDeps },
     FACTORY        = new FactoryContract(factoryOptions)
 
@@ -65,7 +67,7 @@ export default async function deploySwap (options: SwapOptions) {
   if (chain.isLocalnet || (chain.isTestnet && new_factory)) {
     Object.assign(tokens, await deployPlaceholderTokens())
   } else {
-    Object.assign(tokens, getSwapTokens(settings[`swapTokens-${chain.chainId}`]))
+    Object.assign(tokens, getSwapTokens(settings(chain.chainId).swapTokens))
   }
 
 
@@ -75,7 +77,7 @@ export default async function deploySwap (options: SwapOptions) {
   const rptConfig = [
     [
       (await deployRewardPool('SIENNA', SIENNA, SIENNA)).address,
-      String(BigInt(settings[`rewardPairs-${chain.chainId}`].SIENNA) * ONE_SIENNA)
+      String(BigInt(settings(chain.chainId).rewardPairs.SIENNA) * ONE_SIENNA)
     ]
   ]
 
@@ -85,10 +87,10 @@ export default async function deploySwap (options: SwapOptions) {
   /// and add the latter to the RPT configuration.
 
 
-  const swapPairs = settings[`swapPairs-${chain.chainId}`]
+  const swapPairs = settings(chain.chainId).swapPairs
   if (swapPairs.length > 0) {
     const existingExchanges = await FACTORY.listExchanges()
-    const rewards = settings[`rewardPairs-${chain.chainId}`]
+    const rewards = settings(chain.chainId).rewardPairs
     for (const name of swapPairs) {
       const {lp_token} = await deployLiquidityPool(name, existingExchanges)
       if (rewards) {
@@ -170,7 +172,7 @@ export default async function deploySwap (options: SwapOptions) {
     const tokens = {}
     for (
       const [symbol, {label, initMsg}]
-      of Object.entries(settings[`placeholderTokens-${chain.chainId}`])
+      of Object.entries(settings(chain.chainId).placeholderTokens)
     ) {
       const token = tokens[symbol] = new AMMSNIP20Contract({ admin })
       Object.assign(token.blob, { codeId: AMMTOKEN.codeId, codeHash: AMMTOKEN.codeHash })
