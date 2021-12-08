@@ -37,7 +37,7 @@ importers:
       '@fadroma/snip20': workspace:*
       '@sienna/settings': workspace:*
     dependencies:
-      '@fadroma/snip20': link:../../libraries/fadroma-next/lib/composable-snip20
+      '@fadroma/snip20': link:../../libraries/fadroma-next/crates/composable-snip20
       '@sienna/settings': link:../../settings
 
   contracts/exchange:
@@ -105,7 +105,7 @@ importers:
       '@fadroma/snip20': workspace:*
       '@sienna/settings': workspace:*
     dependencies:
-      '@fadroma/snip20': link:../../libraries/fadroma-next/lib/composable-snip20
+      '@fadroma/snip20': link:../../libraries/fadroma-next/crates/composable-snip20
       '@sienna/settings': link:../../settings
 
   contracts/mgmt:
@@ -130,7 +130,7 @@ importers:
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/packages/ops-scrt
-      '@fadroma/snip20': link:../../libraries/fadroma-next/lib/composable-snip20
+      '@fadroma/snip20': link:../../libraries/fadroma-next/crates/composable-snip20
       '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
       '@sienna/lp-token': link:../lp-token
       '@sienna/settings': link:../../settings
@@ -153,7 +153,7 @@ importers:
       '@fadroma/snip20': workspace:*
       '@sienna/settings': workspace:*
     dependencies:
-      '@fadroma/snip20': link:../../libraries/fadroma-next/lib/composable-snip20
+      '@fadroma/snip20': link:../../libraries/fadroma-next/crates/composable-snip20
       '@sienna/settings': link:../../settings
 
   contracts/wrapped:
@@ -245,7 +245,7 @@ importers:
       '@sienna/mgmt': workspace:^2.0.0
       '@sienna/rewards': workspace:^3.0.0
       '@sienna/rpt': workspace:^1.0.0
-      '@sienna/snip20-sienna': workspace:^0.1.0
+      '@sienna/snip20-sienna': workspace:^1.0.0
       '@waiting/base64': ^4.2.9
       bip39: ^3.0.4
       debug: ^4.3.2
@@ -298,10 +298,10 @@ importers:
       mocha: 8.4.0
       typedoc: 0.21.9_typescript@4.5.2
 
-  libraries/fadroma-next/example:
+  libraries/fadroma-next/crates/composable-snip20:
     specifiers: {}
 
-  libraries/fadroma-next/lib/composable-snip20:
+  libraries/fadroma-next/doc/example:
     specifiers: {}
 
   libraries/fadroma-next/packages/forkers:

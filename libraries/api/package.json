@@ -13,7 +13,7 @@
     "@sienna/mgmt":          "workspace:^2.0.0",
     "@sienna/rewards":       "workspace:^3.0.0",
     "@sienna/rpt":           "workspace:^1.0.0",
-    "@sienna/snip20-sienna": "workspace:^0.1.0",
+    "@sienna/snip20-sienna": "workspace:^1.0.0",
 
     "@fadroma/scrt":   "workspace:*",
     "@fadroma/tools":  "workspace:*",
