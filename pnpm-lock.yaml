@@ -24,7 +24,7 @@ importers:
       '@fadroma/scrt-1.0': link:libraries/fadroma-next/ops-scrt-1.0
       '@fadroma/scrt-1.2': link:libraries/fadroma-next/ops-scrt-1.2
       '@fadroma/tools': link:libraries/fadroma-next/tools
-      '@hackbg/ganesha': link:libraries/fadroma-next/platforms/ganesha
+      '@hackbg/ganesha': link:libraries/fadroma-next/packages/ganesha/loader
       '@sienna/api': link:api
       '@sienna/settings': link:settings
       chai: 4.3.4
@@ -178,7 +178,7 @@ importers:
       '@types/rimraf': 3.0.2
       bignumber.js: 9.0.1
     devDependencies:
-      '@hackbg/ganesha': link:platforms/ganesha
+      '@hackbg/ganesha': link:packages/ganesha/loader
       '@types/mocha': 9.0.0
       chai: 4.3.4
       documentation: 13.2.5
@@ -228,33 +228,54 @@ importers:
       '@fadroma/scrt': link:../ops-scrt
       secretjs: link:../platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
-  libraries/fadroma-next/platforms/ganesha:
+  libraries/fadroma-next/packages/ganesha:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+      codecov: ^3.8.3
+      tap: ^15.0.9
+    devDependencies:
+      '@hackbg/ganesha': link:loader
+      codecov: 3.8.3
+      tap: 15.1.5_ts-node@10.4.0+typescript@4.5.2
+
+  libraries/fadroma-next/packages/ganesha/examples/example:
+    specifiers: {}
+
+  libraries/fadroma-next/packages/ganesha/language-client:
+    specifiers: {}
+
+  libraries/fadroma-next/packages/ganesha/language-server:
+    specifiers: {}
+
+  libraries/fadroma-next/packages/ganesha/loader:
     specifiers:
       cross-spawn: ^7.0.3
-      esbuild: ^0.12.25
+      esbuild: ^0.13.0
       front-matter: ^4.0.2
+      get-package-name: ^2.2.0
       joycon: ^3.0.1
       jsonc-parser: ^3.0.0
       pirates: ^4.0.1
       source-map-support: ^0.5.20
-      tap: ^15.0.9
       tree-sitter: ^0.19.0
       tree-sitter-markdown: github:egasimus/tree-sitter-markdown
     dependencies:
       cross-spawn: 7.0.3
-      esbuild: 0.12.29
+      esbuild: 0.13.15
       front-matter: 4.0.2
+      get-package-name: 2.2.0
       joycon: 3.1.0
       jsonc-parser: 3.0.0
       pirates: 4.0.1
       source-map-support: 0.5.21
       tree-sitter: 0.19.0
       tree-sitter-markdown: github.com/egasimus/tree-sitter-markdown/18c3f1ccd3e27051273caa6d721d1c033e63741d
-    devDependencies:
-      tap: 15.1.5_ts-node@10.4.0+typescript@4.5.2
 
-  libraries/fadroma-next/platforms/ganesha/examples/example:
-    specifiers: {}
+  libraries/fadroma-next/packages/ganesha/rollup-plugin:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+    dependencies:
+      '@hackbg/ganesha': link:../loader
 
   libraries/fadroma-next/platforms/scrt-1.0:
     specifiers:
@@ -656,7 +677,7 @@ importers:
       '@fadroma/ops': link:../ops
       '@fadroma/scrt': link:../ops-scrt
       '@fadroma/tools': link:../tools
-      '@hackbg/ganesha': link:../platforms/ganesha
+      '@hackbg/ganesha': link:../packages/ganesha/loader
       '@iov/encoding': 2.5.0
       '@types/express': 4.17.13
       '@types/tap': 15.0.5
@@ -4642,6 +4663,11 @@ packages:
     dev: true
     optional: true
 
+  /@tootallnate/once/1.1.2:
+    resolution: {integrity: sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==}
+    engines: {node: '>= 6'}
+    dev: true
+
   /@truffle/abi-utils/0.2.4:
     resolution: {integrity: sha512-ICr5Sger6r5uj2G5GN9Zp9OQDCaCqe2ZyAEyvavDoFB+jX0zZFUCfDnv5jllGRhgzdYJ3mec2390mjUyz9jSZA==}
     dependencies:
@@ -6559,6 +6585,15 @@ packages:
       es6-promisify: 5.0.0
     dev: true
 
+  /agent-base/6.0.2:
+    resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
+    engines: {node: '>= 6.0.0'}
+    dependencies:
+      debug: 4.3.3
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
+
   /agentkeepalive/2.2.0:
     resolution: {integrity: sha1-xdG9SxKQCPEWPyNvhuX66iAm4u8=}
     engines: {node: '>= 0.10.0'}
@@ -7054,6 +7089,11 @@ packages:
     resolution: {integrity: sha1-bnIHtOzbObCviDA/pa4ivajfYcs=}
     dev: true
     optional: true
+
+  /argv/0.0.2:
+    resolution: {integrity: sha1-7L0W+JSbFXGDcRsb2jNPN4QBhas=}
+    engines: {node: '>=0.6.10'}
+    dev: true
 
   /arr-diff/2.0.0:
     resolution: {integrity: sha1-jzuCf5Vai9ZpaX5KQlasPOrjVs8=}
@@ -9333,6 +9373,21 @@ packages:
   /code-point-at/1.1.0:
     resolution: {integrity: sha1-DQcLTQQ6W+ozovGkDi7bPZpMz3c=}
     engines: {node: '>=0.10.0'}
+
+  /codecov/3.8.3:
+    resolution: {integrity: sha512-Y8Hw+V3HgR7V71xWH2vQ9lyS358CbGCldWlJFR0JirqoGtOoas3R3/OclRTvgUYFK29mmJICDPauVKmpqbwhOA==}
+    engines: {node: '>=4.0'}
+    deprecated: https://about.codecov.io/blog/codecov-uploader-deprecation-plan/
+    hasBin: true
+    dependencies:
+      argv: 0.0.2
+      ignore-walk: 3.0.4
+      js-yaml: 3.14.1
+      teeny-request: 7.1.1
+      urlgrey: 1.0.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
 
   /codepage/1.14.0:
     resolution: {integrity: sha1-jL4lSBMjVZ19MHVxsP/5HnodL5k=}
@@ -11683,6 +11738,7 @@ packages:
     resolution: {integrity: sha512-w/XuoBCSwepyiZtIRsKsetiLDUVGPVw1E/R3VTFSecIy8UR7Cq3SOtwKHJMFoVqqVG36aGkzh4e8BvpO1Fdc7g==}
     hasBin: true
     requiresBuild: true
+    dev: true
 
   /esbuild/0.13.15:
     resolution: {integrity: sha512-raCxt02HBKv8RJxE8vkTSCXGIyKHdEdGfUmiYb8wnabnaEmHzyW7DCHb5tEN0xU8ryqg5xw54mcwnYkC4x3AIw==}
@@ -12910,6 +12966,12 @@ packages:
     dev: true
     optional: true
 
+  /fast-url-parser/1.1.3:
+    resolution: {integrity: sha1-9K8+qfNNiicc9YrSs3WfQx8LMY0=}
+    dependencies:
+      punycode: 1.4.1
+    dev: true
+
   /fastest-levenshtein/1.0.12:
     resolution: {integrity: sha512-On2N+BpYJ15xIC974QNVuYGMOlEVt4s0EOI3wwMqOmK1fdDY+FN/zltPV8vosq4ad4c/gJ1KHScUn/6AWIgiow==}
     dev: false
@@ -13226,6 +13288,17 @@ packages:
     peerDependenciesMeta:
       debug:
         optional: true
+
+  /follow-redirects/1.14.5_debug@4.3.3:
+    resolution: {integrity: sha512-wtphSXy7d4/OR+MvIFbCVBDzZ5520qV8XfPklSN5QtxuMUJZ+b0Wnst1e1lCDocfzuCkHqj8k0FpZqO+UIaKNA==}
+    engines: {node: '>=4.0'}
+    peerDependencies:
+      debug: '*'
+    peerDependenciesMeta:
+      debug:
+        optional: true
+    dependencies:
+      debug: 4.3.3_supports-color@6.1.0
 
   /follow-redirects/1.5.10:
     resolution: {integrity: sha512-0V5l4Cizzvqt5D44aTXbFZz+FtyXV1vrDN6qrelxtfYQKW0KO0W2T/hkE8xvGa/540LkZlkaUjO4ailYTFtHVQ==}
@@ -13606,6 +13679,11 @@ packages:
     resolution: {integrity: sha512-v+dm9bNVfOYsY1OrhaCrmyOcYoSeVvbt+hHZ0Au+T+p1y+0Uyj9aMaGIeUTT6xdpRbWzDeYKvfOslPhggQMcsg==}
     dev: true
     optional: true
+
+  /get-package-name/2.2.0:
+    resolution: {integrity: sha512-LmCKVxioe63Fy6KDAQ/mmCSOSSRUE/x4zdrMD+7dU8quF3bGpzvP8mOmq4Dgce3nzU9AgkVDotucNOOg7c27BQ==}
+    engines: {node: '>= 12.0.0'}
+    dev: false
 
   /get-package-type/0.1.0:
     resolution: {integrity: sha512-pjzuKtY64GYfWizNAJ0fr9VqttZkNiK2iS430LtIHzjBEr6bX8Am2zm4sW4Ro5wjWW5cAlRL1qAMTcXbjNAO2Q==}
@@ -14742,6 +14820,17 @@ packages:
       debug: 3.1.0
     dev: true
 
+  /http-proxy-agent/4.0.1:
+    resolution: {integrity: sha512-k0zdNgqWTGA6aeIRVpvfVob4fL52dTfaehylg0Y4UvSySvOq/Y+BOyPrgpUrA7HylqvU8vIZGsRuXmspskV0Tg==}
+    engines: {node: '>= 6'}
+    dependencies:
+      '@tootallnate/once': 1.1.2
+      agent-base: 6.0.2
+      debug: 4.3.3
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
+
   /http-proxy-middleware/0.19.1_debug@4.3.3:
     resolution: {integrity: sha512-yHYTgWMQO8VvwNS22eLLloAkvungsKdKTLO8AJlftYIKNfJr3GK3zK0ZCfzDDGUBttdGc8xFy1mCitvNKQtC3Q==}
     engines: {node: '>=4.0.0'}
@@ -14769,7 +14858,7 @@ packages:
     engines: {node: '>=8.0.0'}
     dependencies:
       eventemitter3: 4.0.7
-      follow-redirects: 1.14.5
+      follow-redirects: 1.14.5_debug@4.3.3
       requires-port: 1.0.0
     transitivePeerDependencies:
       - debug
@@ -14798,6 +14887,16 @@ packages:
     dependencies:
       agent-base: 4.3.0
       debug: 3.2.7
+    dev: true
+
+  /https-proxy-agent/5.0.0:
+    resolution: {integrity: sha512-EkYm5BcKUGiduxzSt3Eppko+PiNWNEpa4ySk9vTC6wDsQJW9rHSa+UhGNJoRYp7bz6Ht1eaRIa6QaJqO5rCFbA==}
+    engines: {node: '>= 6'}
+    dependencies:
+      agent-base: 6.0.2
+      debug: 4.3.3
+    transitivePeerDependencies:
+      - supports-color
     dev: true
 
   /human-signals/2.1.0:
@@ -23307,6 +23406,12 @@ packages:
       stream-shift: 1.0.1
     dev: true
 
+  /stream-events/1.0.5:
+    resolution: {integrity: sha512-E1GUzBSgvct8Jsb3v2X15pjzN1tYebtbLaMg+eBOUOAxgbLoSbT2NS91ckc5lJD1KfLjId+jXJRgo0qnV5Nerg==}
+    dependencies:
+      stubs: 3.0.0
+    dev: true
+
   /stream-http/2.8.3:
     resolution: {integrity: sha512-+TSkfINHDo4J+ZobQLWiMouQYB+UVYFttRA94FpEzzJ7ZdqcL4uUUQ7WkdkI4DSozGmgBUE/a47L+38PenXhUw==}
     dependencies:
@@ -23555,6 +23660,10 @@ packages:
       duplexer: 0.1.2
       minimist: 1.2.5
       through: 2.3.8
+    dev: true
+
+  /stubs/3.0.0:
+    resolution: {integrity: sha1-6NK6H6nJBXAwPAMLaQD31fiavls=}
     dev: true
 
   /style-loader/3.3.1_webpack@5.64.4:
@@ -23987,6 +24096,19 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       diff: 4.0.2
+
+  /teeny-request/7.1.1:
+    resolution: {integrity: sha512-iwY6rkW5DDGq8hE2YgNQlKbptYpY5Nn2xecjQiNjOXWbKzPGUfmeUBCSQbbr306d7Z7U2N0TPl+/SwYRfua1Dg==}
+    engines: {node: '>=10'}
+    dependencies:
+      http-proxy-agent: 4.0.1
+      https-proxy-agent: 5.0.0
+      node-fetch: 2.6.6
+      stream-events: 1.0.5
+      uuid: 8.3.2
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
 
   /temp-dir/1.0.0:
     resolution: {integrity: sha1-CnwOom06Oa+n4OvqnB/AvE2qAR0=}
@@ -25157,6 +25279,12 @@ packages:
     dependencies:
       punycode: 1.3.2
       querystring: 0.2.0
+
+  /urlgrey/1.0.0:
+    resolution: {integrity: sha512-hJfIzMPJmI9IlLkby8QrsCykQ+SXDeO2W5Q9QTW3QpqZVTx4a/K7p8/5q+/isD8vsbVaFgql/gvAoQCRQ2Cb5w==}
+    dependencies:
+      fast-url-parser: 1.1.3
+    dev: true
 
   /ursa-optional/0.10.2:
     resolution: {integrity: sha512-TKdwuLboBn7M34RcvVTuQyhvrA8gYKapuVdm0nBP0mnBc7oECOfUQZrY91cefL3/nm64ZyrejSRrhTVdX7NG/A==}
