@@ -1,5 +1,5 @@
 use amm_shared::fadroma::{export_schema, remove_schemas, schema_for};
-use std::{env::current_dir, fs::create_dir_all};
+use std::fs::create_dir_all;
 
 use amm_shared::msg::factory;
 
