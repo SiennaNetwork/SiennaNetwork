@@ -12,7 +12,6 @@ importers:
       '@hackbg/ganesha': workspace:*
       chai: ^4.3.4
       mocha: ^8.4.0
-      source-map-support: ^0.5.20
       typescript: ^4.4.4
     dependencies:
       '@fadroma/ops': link:libraries/fadroma-next/ops
@@ -23,7 +22,6 @@ importers:
       '@hackbg/ganesha': link:libraries/fadroma-next/platforms/ganesha
       chai: 4.3.4
       mocha: 8.4.0
-      source-map-support: 0.5.21
       typescript: 4.5.2
 
   benchmarks:
@@ -852,10 +850,16 @@ importers:
 
   scripts:
     specifiers:
+      '@fadroma/ops': workspace:*
+      '@fadroma/scrt': workspace:*
+      '@fadroma/tools': workspace:*
       '@sienna/api': workspace:*
       '@sienna/benchmarks': workspace:*
       '@sienna/settings': workspace:*
     dependencies:
+      '@fadroma/ops': link:../libraries/fadroma-next/ops
+      '@fadroma/scrt': link:../libraries/fadroma-next/ops-scrt
+      '@fadroma/tools': link:../libraries/fadroma-next/tools
       '@sienna/api': link:../libraries/api
       '@sienna/benchmarks': link:../benchmarks
       '@sienna/settings': link:../settings
