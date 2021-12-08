@@ -17,13 +17,6 @@ export type QueryAnswer =
       [k: string]: unknown;
     }
   | {
-      contract_status: {
-        status: ContractStatusLevel;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
       exchange_rate: {
         denom: string;
         rate: Uint128;
@@ -50,16 +43,7 @@ export type QueryAnswer =
     }
   | {
       transfer_history: {
-        total?: number | null;
         txs: Tx[];
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      transaction_history: {
-        total?: number | null;
-        txs: RichTx[];
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -79,54 +63,12 @@ export type QueryAnswer =
       [k: string]: unknown;
     };
 export type Uint128 = string;
-export type ContractStatusLevel = "normal_run" | "stop_all_but_redeems" | "stop_all";
 export type HumanAddr = string;
-export type TxAction =
-  | {
-      transfer: {
-        from: HumanAddr;
-        recipient: HumanAddr;
-        sender: HumanAddr;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      mint: {
-        minter: HumanAddr;
-        recipient: HumanAddr;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      burn: {
-        burner: HumanAddr;
-        owner: HumanAddr;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      deposit: {
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      redeem: {
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    };
 
 export interface Tx {
-  block_height?: number | null;
-  block_time?: number | null;
   coins: Coin;
   from: HumanAddr;
   id: number;
-  memo?: string | null;
   receiver: HumanAddr;
   sender: HumanAddr;
   [k: string]: unknown;
@@ -134,14 +76,5 @@ export interface Tx {
 export interface Coin {
   amount: Uint128;
   denom: string;
-  [k: string]: unknown;
-}
-export interface RichTx {
-  action: TxAction;
-  block_height: number;
-  block_time: number;
-  coins: Coin;
-  id: number;
-  memo?: string | null;
   [k: string]: unknown;
 }

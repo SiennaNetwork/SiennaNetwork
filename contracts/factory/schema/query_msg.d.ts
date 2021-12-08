@@ -35,7 +35,7 @@ export type QueryMsg =
       [k: string]: unknown;
     }
   | {
-      admin: AdminQueryMsg;
+      admin: QueryMsg1;
       [k: string]: unknown;
     };
 export type TokenPairFor_HumanAddr = [TokenTypeFor_HumanAddr, TokenTypeFor_HumanAddr];
@@ -56,7 +56,12 @@ export type TokenTypeFor_HumanAddr =
       [k: string]: unknown;
     };
 export type HumanAddr = string;
-export type AdminQueryMsg = "admin";
+export type QueryMsg1 = {
+  admin: {
+    [k: string]: unknown;
+  };
+  [k: string]: unknown;
+};
 
 export interface Pagination {
   limit: number;

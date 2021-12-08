@@ -35,20 +35,6 @@ export type HandleAnswer =
       [k: string]: unknown;
     }
   | {
-      batch_transfer: {
-        status: ResponseStatus;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      batch_send: {
-        status: ResponseStatus;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
       burn: {
         status: ResponseStatus;
         [k: string]: unknown;
@@ -109,20 +95,6 @@ export type HandleAnswer =
       [k: string]: unknown;
     }
   | {
-      batch_transfer_from: {
-        status: ResponseStatus;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      batch_send_from: {
-        status: ResponseStatus;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
       burn_from: {
         status: ResponseStatus;
         [k: string]: unknown;
@@ -130,21 +102,7 @@ export type HandleAnswer =
       [k: string]: unknown;
     }
   | {
-      batch_burn_from: {
-        status: ResponseStatus;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
       mint: {
-        status: ResponseStatus;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      batch_mint: {
         status: ResponseStatus;
         [k: string]: unknown;
       };

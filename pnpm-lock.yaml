@@ -932,6 +932,7 @@ importers:
       '@sienna/api': workspace:*
       '@sienna/benchmarks': workspace:*
       '@sienna/settings': workspace:*
+      toml: ^3.0.0
     dependencies:
       '@fadroma/ops': link:../libraries/fadroma-next/packages/ops
       '@fadroma/scrt': link:../libraries/fadroma-next/packages/scrt
@@ -939,6 +940,7 @@ importers:
       '@sienna/api': link:../libraries/api
       '@sienna/benchmarks': link:../benchmarks
       '@sienna/settings': link:../settings
+      toml: 3.0.0
 
   settings:
     specifiers: {}
@@ -23435,7 +23437,6 @@ packages:
 
   /toml/3.0.0:
     resolution: {integrity: sha512-y/mWCZinnvxjTKYhJ+pYxwD0mRLVvOtdS2Awbgxln6iEnt4rk0yBxeSBHkGJcPucRiG0e55mwWp+g/05rsrd6w==}
-    dev: true
 
   /toposort/1.0.7:
     resolution: {integrity: sha1-LmhELZ9k7HILjMieZEOsbKqVACk=}

@@ -32,10 +32,10 @@
               "minimum": 0.0
             },
             "factory": {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             },
             "liquidity_token": {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             },
             "pair": {
               "$ref": "#/definitions/TokenPair_for_HumanAddr"
@@ -49,7 +49,7 @@
     }
   ],
   "definitions": {
-    "ContractInstance_for_HumanAddr": {
+    "ContractLink_for_HumanAddr": {
       "description": "Info needed to talk to a contract instance.",
       "type": "object",
       "required": [

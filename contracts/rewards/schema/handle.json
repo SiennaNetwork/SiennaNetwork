@@ -66,11 +66,22 @@
     {
       "type": "object",
       "required": [
-        "migration"
+        "immigration"
       ],
       "properties": {
-        "migration": {
-          "$ref": "#/definitions/MigrationHandle"
+        "immigration": {
+          "$ref": "#/definitions/ImmigrationHandle"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "emigration"
+      ],
+      "properties": {
+        "emigration": {
+          "$ref": "#/definitions/EmigrationHandle"
         }
       }
     },
@@ -213,95 +224,96 @@
         }
       }
     },
-    "HumanAddr": {
-      "type": "string"
-    },
-    "MigrationHandle": {
+    "EmigrationHandle": {
       "anyOf": [
         {
+          "description": "Allow another contract to receive data from this contract",
           "type": "object",
           "required": [
-            "start_migration"
+            "enable_migration_to"
           ],
           "properties": {
-            "start_migration": {
-              "type": "object",
-              "required": [
-                "next_contract"
-              ],
-              "properties": {
-                "next_contract": {
-                  "$ref": "#/definitions/ContractLink_for_HumanAddr"
-                }
-              }
+            "enable_migration_to": {
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             }
           }
         },
         {
+          "description": "Disallow another contract to receive data from this contract",
           "type": "object",
           "required": [
-            "stop_migration"
+            "disable_migration_to"
           ],
           "properties": {
-            "stop_migration": {
-              "type": "object"
+            "disable_migration_to": {
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             }
           }
         },
         {
+          "description": "Export migration data to another contract. Must be called by a contract migration to which was enabled via `EnableMigrationTo`, and pass an address for which the migration is to be performed.",
           "type": "object",
           "required": [
             "export_state"
           ],
           "properties": {
             "export_state": {
-              "type": "object",
-              "required": [
-                "initiator"
-              ],
-              "properties": {
-                "initiator": {
-                  "$ref": "#/definitions/HumanAddr"
-                }
-              }
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      ]
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "ImmigrationHandle": {
+      "anyOf": [
+        {
+          "description": "Allow this contract to receive data from another contract",
+          "type": "object",
+          "required": [
+            "enable_migration_from"
+          ],
+          "properties": {
+            "enable_migration_from": {
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             }
           }
         },
         {
+          "description": "Disallow this contract to receive data from another contract",
           "type": "object",
           "required": [
-            "import_state"
+            "disable_migration_from"
           ],
           "properties": {
-            "import_state": {
-              "type": "object",
-              "required": [
-                "prev_contract"
-              ],
-              "properties": {
-                "prev_contract": {
-                  "$ref": "#/definitions/ContractLink_for_HumanAddr"
-                }
-              }
+            "disable_migration_from": {
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             }
           }
         },
         {
+          "description": "Request migration data from another contract. Called by the user to initiate a migration.",
           "type": "object",
           "required": [
-            "receive_state"
+            "request_migration"
           ],
           "properties": {
-            "receive_state": {
-              "type": "object",
-              "required": [
-                "data"
-              ],
-              "properties": {
-                "data": {
-                  "$ref": "#/definitions/Binary"
-                }
-              }
+            "request_migration": {
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+            }
+          }
+        },
+        {
+          "description": "Callback containing migration data. Must be called by a contract migration from which was enabled via `EnableMigrationFrom`.",
+          "type": "object",
+          "required": [
+            "receive_migration"
+          ],
+          "properties": {
+            "receive_migration": {
+              "$ref": "#/definitions/Binary"
             }
           }
         }
@@ -362,10 +374,10 @@
         {
           "type": "object",
           "required": [
-            "lock"
+            "deposit"
           ],
           "properties": {
-            "lock": {
+            "deposit": {
               "type": "object",
               "required": [
                 "amount"
@@ -381,10 +393,10 @@
         {
           "type": "object",
           "required": [
-            "retrieve"
+            "withdraw"
           ],
           "properties": {
-            "retrieve": {
+            "withdraw": {
               "type": "object",
               "required": [
                 "amount"

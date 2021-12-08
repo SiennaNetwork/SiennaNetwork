@@ -59,7 +59,7 @@ export interface CallbackFor_HumanAddr {
   /**
    * Info about the contract requesting the callback.
    */
-  contract: ContractInstanceFor_HumanAddr;
+  contract: ContractLinkFor_HumanAddr;
   /**
    * The message to call.
    */
@@ -69,7 +69,7 @@ export interface CallbackFor_HumanAddr {
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractInstanceFor_HumanAddr {
+export interface ContractLinkFor_HumanAddr {
   address: HumanAddr;
   code_hash: string;
   [k: string]: unknown;
@@ -99,7 +99,7 @@ export interface TokenSaleConfig {
    * Sale type settings
    */
   sale_type?: SaleType | null;
-  sold_token: ContractInstanceFor_HumanAddr;
+  sold_token: ContractLinkFor_HumanAddr;
   /**
    * The addresses that are eligible to participate in the sale.
    */
@@ -110,7 +110,7 @@ export interface WhitelistRequest {
   /**
    * Launchpad contract instance information
    */
-  launchpad: ContractInstanceFor_HumanAddr;
+  launchpad: ContractLinkFor_HumanAddr;
   /**
    * Vector of tokens address needs to have locked in order to be considered for a draw. Tokens need to be configured in the Launchpad as eligible. Option<> is because if None that will represent a native token.
    */

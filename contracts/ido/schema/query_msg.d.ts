@@ -15,7 +15,7 @@ export type QueryMsg =
       [k: string]: unknown;
     }
   | {
-      admin: AdminQueryMsg;
+      admin: QueryMsg1;
       [k: string]: unknown;
     }
   | {
@@ -33,4 +33,9 @@ export type QueryMsg =
       [k: string]: unknown;
     };
 export type HumanAddr = string;
-export type AdminQueryMsg = "admin";
+export type QueryMsg1 = {
+  admin: {
+    [k: string]: unknown;
+  };
+  [k: string]: unknown;
+};

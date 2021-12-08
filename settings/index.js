@@ -38,4 +38,6 @@ module.exports = function getSettingsForChain (chainId) {
 
 module.exports.workspace = dirname(__dirname)
 
+module.exports.abs = (...args) => resolve(module.exports.workspace, ...args)
+
 module.exports.schedule = JSON.parse(readFileSync(resolve(__dirname, 'schedule.json'), 'utf8'))

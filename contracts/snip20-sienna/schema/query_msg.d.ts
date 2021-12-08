@@ -13,12 +13,6 @@ export type QueryMsg =
       [k: string]: unknown;
     }
   | {
-      contract_status: {
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
       exchange_rate: {
         [k: string]: unknown;
       };
@@ -43,16 +37,6 @@ export type QueryMsg =
     }
   | {
       transfer_history: {
-        address: HumanAddr;
-        key: string;
-        page?: number | null;
-        page_size: number;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      transaction_history: {
         address: HumanAddr;
         key: string;
         page?: number | null;

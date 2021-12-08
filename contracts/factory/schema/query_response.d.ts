@@ -77,13 +77,21 @@ export type TokenTypeFor_HumanAddr =
  */
 export interface ExchangeFor_HumanAddr {
   /**
-   * Address of the contract that manages the exchange.
+   * The contract that manages the exchange.
    */
-  address: HumanAddr;
+  contract: ContractLinkFor_HumanAddr;
   /**
    * The pair that the contract manages.
    */
   pair: TokenPairFor_HumanAddr;
+  [k: string]: unknown;
+}
+/**
+ * Info needed to talk to a contract instance.
+ */
+export interface ContractLinkFor_HumanAddr {
+  address: HumanAddr;
+  code_hash: string;
   [k: string]: unknown;
 }
 export interface ExchangeSettingsFor_HumanAddr {

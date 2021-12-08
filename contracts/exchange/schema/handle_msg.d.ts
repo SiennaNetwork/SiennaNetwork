@@ -38,6 +38,13 @@ export type HandleMsg =
         [k: string]: unknown;
       };
       [k: string]: unknown;
+    }
+  | {
+      change_factory: {
+        contract: ContractLinkFor_HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
     };
 export type Uint128 = string;
 export type TokenPairFor_HumanAddr = [TokenTypeFor_HumanAddr, TokenTypeFor_HumanAddr];
@@ -80,5 +87,13 @@ export interface TokenPairAmountFor_HumanAddr {
 export interface TokenTypeAmountFor_HumanAddr {
   amount: Uint128;
   token: TokenTypeFor_HumanAddr;
+  [k: string]: unknown;
+}
+/**
+ * Info needed to talk to a contract instance.
+ */
+export interface ContractLinkFor_HumanAddr {
+  address: HumanAddr;
+  code_hash: string;
   [k: string]: unknown;
 }

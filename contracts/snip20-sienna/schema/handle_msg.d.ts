@@ -25,7 +25,6 @@ export type HandleMsg =
   | {
       transfer: {
         amount: Uint128;
-        memo?: string | null;
         padding?: string | null;
         recipient: HumanAddr;
         [k: string]: unknown;
@@ -35,7 +34,6 @@ export type HandleMsg =
   | {
       send: {
         amount: Uint128;
-        memo?: string | null;
         msg?: Binary | null;
         padding?: string | null;
         recipient: HumanAddr;
@@ -44,25 +42,8 @@ export type HandleMsg =
       [k: string]: unknown;
     }
   | {
-      batch_transfer: {
-        actions: TransferAction[];
-        padding?: string | null;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      batch_send: {
-        actions: SendAction[];
-        padding?: string | null;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
       burn: {
         amount: Uint128;
-        memo?: string | null;
         padding?: string | null;
         [k: string]: unknown;
       };
@@ -115,7 +96,6 @@ export type HandleMsg =
   | {
       transfer_from: {
         amount: Uint128;
-        memo?: string | null;
         owner: HumanAddr;
         padding?: string | null;
         recipient: HumanAddr;
@@ -126,7 +106,6 @@ export type HandleMsg =
   | {
       send_from: {
         amount: Uint128;
-        memo?: string | null;
         msg?: Binary | null;
         owner: HumanAddr;
         padding?: string | null;
@@ -136,34 +115,9 @@ export type HandleMsg =
       [k: string]: unknown;
     }
   | {
-      batch_transfer_from: {
-        actions: TransferFromAction[];
-        padding?: string | null;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      batch_send_from: {
-        actions: SendFromAction[];
-        padding?: string | null;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
       burn_from: {
         amount: Uint128;
-        memo?: string | null;
         owner: HumanAddr;
-        padding?: string | null;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      batch_burn_from: {
-        actions: BurnFromAction[];
         padding?: string | null;
         [k: string]: unknown;
       };
@@ -172,17 +126,8 @@ export type HandleMsg =
   | {
       mint: {
         amount: Uint128;
-        memo?: string | null;
         padding?: string | null;
         recipient: HumanAddr;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      batch_mint: {
-        actions: MintAction[];
-        padding?: string | null;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -235,45 +180,4 @@ export type HumanAddr = string;
  * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
  */
 export type Binary = string;
-export type ContractStatusLevel = "normal_run" | "stop_all_but_redeems" | "stop_all";
-
-export interface TransferAction {
-  amount: Uint128;
-  memo?: string | null;
-  recipient: HumanAddr;
-  [k: string]: unknown;
-}
-export interface SendAction {
-  amount: Uint128;
-  memo?: string | null;
-  msg?: Binary | null;
-  recipient: HumanAddr;
-  [k: string]: unknown;
-}
-export interface TransferFromAction {
-  amount: Uint128;
-  memo?: string | null;
-  owner: HumanAddr;
-  recipient: HumanAddr;
-  [k: string]: unknown;
-}
-export interface SendFromAction {
-  amount: Uint128;
-  memo?: string | null;
-  msg?: Binary | null;
-  owner: HumanAddr;
-  recipient: HumanAddr;
-  [k: string]: unknown;
-}
-export interface BurnFromAction {
-  amount: Uint128;
-  memo?: string | null;
-  owner: HumanAddr;
-  [k: string]: unknown;
-}
-export interface MintAction {
-  amount: Uint128;
-  memo?: string | null;
-  recipient: HumanAddr;
-  [k: string]: unknown;
-}
+export type ContractStatusLevel = "normal_run" | "stop_all";

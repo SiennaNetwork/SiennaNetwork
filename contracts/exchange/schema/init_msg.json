@@ -21,7 +21,7 @@
       "description": "Used by the exchange contract to send back its address to the factory on init",
       "allOf": [
         {
-          "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+          "$ref": "#/definitions/ContractLink_for_HumanAddr"
         }
       ]
     },
@@ -62,7 +62,7 @@
           "description": "Info about the contract requesting the callback.",
           "allOf": [
             {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             }
           ]
         },
@@ -73,22 +73,6 @@
               "$ref": "#/definitions/Binary"
             }
           ]
-        }
-      }
-    },
-    "ContractInstance_for_HumanAddr": {
-      "description": "Info needed to talk to a contract instance.",
-      "type": "object",
-      "required": [
-        "address",
-        "code_hash"
-      ],
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
-        },
-        "code_hash": {
-          "type": "string"
         }
       }
     },
@@ -107,6 +91,22 @@
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
+        }
+      }
+    },
+    "ContractLink_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
         }
       }
     },

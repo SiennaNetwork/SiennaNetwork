@@ -155,13 +155,6 @@
           "maxItems": 2,
           "minItems": 2
         },
-        "reason": {
-          "description": "User-friendly reason why earned is 0",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "reward_share": {
           "description": "What portion of all the liquidity accumulated since this user's entry is due to this particular user's stake? Computed as user.volume / pool.volume",
           "type": "array",

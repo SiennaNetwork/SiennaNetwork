@@ -1,12 +1,22 @@
 /// # Sienna Development
 
-import { resolve, dirname } from 'path'
+import { resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { execFileSync } from 'child_process'
+import {
+  readdirSync,
+  readFileSync
+} from 'fs'
 import process from 'process'
-import { bold } from '@fadroma/tools'
+
+import TOML from 'toml'
+
+import { bold }          from '@fadroma/tools'
 import { schemaToTypes } from '@fadroma/scrt'
-import { cargo } from '@fadroma/tools'
+import { cargo }         from '@fadroma/tools'
+
+import { abs } from '@sienna/settings'
+
 import {
   SiennaSNIP20Contract,
   MGMTContract,
@@ -21,10 +31,6 @@ import {
 } from '@sienna/api'
 
 import { rewardsBenchmark } from '@sienna/benchmarks'
-
-const
-  projectRoot = resolve(dirname(fileURLToPath(import.meta.url))),
-  abs         = (...args: Array<string>) => resolve(projectRoot, ...args)
 
 
 /// ## Entry point
@@ -95,45 +101,29 @@ export default async function main (words: Array<string>) {
     },
 
     async schema () {
-      cargo('run', '--bin', 'schema')
-      await schemaToTypes(...[
-        'amm/handle_msg.json',
-        'amm/init_msg.json',
-        'amm/query_msg.json',
-        'amm/query_msg_response.json',
-        'amm/receiver_callback_msg.json',
-        'factory/handle_msg.json',
-        'factory/init_msg.json',
-        'factory/query_msg.json',
-        'factory/query_response.json',
-        'ido/handle_msg.json',
-        'ido/init_msg.json',
-        'ido/query_msg.json',
-        'ido/query_response.json',
-        'ido/receiver_callback_msg.json',
-        'launchpad/handle_msg.json',
-        'launchpad/init_msg.json',
-        'launchpad/query_msg.json',
-        'launchpad/query_response.json',
-        'launchpad/receiver_callback_msg.json',
-        'mgmt/handle.json',
-        'mgmt/init.json',
-        'mgmt/query.json',
-        'mgmt/response.json',
-        'rewards/handle.json',
-        'rewards/init.json',
-        'rewards/query.json',
-        'rewards/response.json',
-        'rpt/handle.json',
-        'rpt/init.json',
-        'rpt/query.json',
-        'rpt/response.json',
-        'snip20/handle_answer.json',
-        'snip20/handle_msg.json',
-        'snip20/init_msg.json',
-        'snip20/query_answer.json',
-        'snip20/query_msg.json'
-      ].map(x=>abs('api', x)))
+      for (const dir of [
+        "amm-snip20",
+        "exchange",
+        "factory",
+        "ido",
+        "launchpad",
+        "lp-token",
+        "mgmt",
+        "rewards",
+        "rpt",
+        "snip20-sienna",
+      ]) {
+
+        // Generate JSON schema
+        const cargoToml = abs('contracts', dir, 'Cargo.toml')
+        const {package:{name}} = TOML.parse(readFileSync(cargoToml))
+        cargo('run', '-p', name, '--example', 'schema')
+
+        // Generate type definitions from JSON schema
+        const schemaDir = abs('contracts', dir, 'schema')
+        const schemas   = readdirSync(schemaDir).filter(x=>x.endsWith('.json'))
+        await schemaToTypes(...schemas.map(x=>resolve(schemaDir, x)))
+      }
     },
 
     bench: {

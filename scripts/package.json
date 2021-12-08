@@ -10,7 +10,9 @@
 
     "@sienna/api":        "workspace:*",
     "@sienna/benchmarks": "workspace:*",
-    "@sienna/settings":   "workspace:*"
+    "@sienna/settings":   "workspace:*",
+
+    "toml": "^3.0.0"
 
   }
 }
