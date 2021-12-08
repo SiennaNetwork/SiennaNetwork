@@ -60,7 +60,13 @@ jobs:
         with: { version: 6.0.2, run_install: true }
 
       - name: Generate schema
-        run: pnpm dev schema
+        run:
+          cd libraries/fadroma-next
+          git submodule init
+          git submodule update
+          cd ../..
+          pnpm i
+          pnpm dev schema
 
   coverage:
     name: Run unit tests and publish coverage report
