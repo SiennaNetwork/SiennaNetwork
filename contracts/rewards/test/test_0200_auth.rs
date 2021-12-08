@@ -48,14 +48,16 @@ fn test_admin_handle() {
 #[test]
 fn test_auth_query() {
     let ref mut deps = mock_dependencies(10, &[]);
-    match Auth::query(deps, AuthQuery::Admin).unwrap() {
-        AuthResponse::Admin { address } => assert_eq!(address, HumanAddr::default()),
+    match Contract::query(deps, Query::Auth(AuthQuery::Admin)).unwrap() {
+        Response::Auth(AuthResponse::Admin { address }) =>
+            assert_eq!(address, HumanAddr::default()),
         _ => unimplemented!()
     };
     let admin = HumanAddr::from("admin");
     Auth::save_admin(deps, &admin).unwrap();
-    match Auth::query(deps, AuthQuery::Admin).unwrap() {
-        AuthResponse::Admin { address } => assert_eq!(address, admin),
+    match Contract::query(deps, Query::Auth(AuthQuery::Admin)).unwrap() {
+        Response::Auth(AuthResponse::Admin { address }) =>
+            assert_eq!(address, admin),
         _ => unimplemented!()
     };
 }
