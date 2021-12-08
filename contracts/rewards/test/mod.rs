@@ -470,11 +470,14 @@ impl Context {
         let at      = self.env.block.time;
         let address = self.initiator.clone();
         let key     = String::from("");
-        let result = Rewards::query(&self.deps, RewardsQuery::UserInfo { at, address, key });
-        match result {
+        match Contract::query(
+            &self.deps,
+            Query::Rewards(RewardsQuery::UserInfo { at, address, key })
+        ) {
             Ok(result) => {
                 match result {
-                    crate::RewardsResponse::UserInfo(account) => account,
+                    Response::Rewards(crate::RewardsResponse::UserInfo(account)) =>
+                        account,
                     _ => panic!()
                 }
             },
@@ -497,11 +500,10 @@ impl Context {
         self.test_field("total.distributed           ", actual, expected)
     }
     pub fn pool_status (&mut self) -> Total {
-        let result = Rewards::query(&self.deps, RewardsQuery::PoolInfo { at: self.env.block.time });
-        match result {
+        match Contract::query(&self.deps, Query::Rewards(RewardsQuery::PoolInfo { at: self.env.block.time })) {
             Ok(result) => {
                 match result {
-                    crate::RewardsResponse::PoolInfo(total) => total,
+                    Response::Rewards(crate::RewardsResponse::PoolInfo(total)) => total,
                     _ => panic!()
                 }
             },
