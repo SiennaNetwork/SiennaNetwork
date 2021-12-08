@@ -8,6 +8,7 @@
     "@fadroma/snip20":  "workspace:*",
     "@fadroma/tools":   "workspace:*",
     "@sienna/lp-token": "workspace:*",
+    "@sienna/settings": "workspace:*",
     "secretjs":         "workspace:*"
   }
 }

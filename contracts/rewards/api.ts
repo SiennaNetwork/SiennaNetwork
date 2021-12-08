@@ -1,12 +1,10 @@
-import { resolve, dirname } from 'path'
-import { fileURLToPath } from 'url'
-const workspace = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-
 import type { IAgent } from "@fadroma/scrt"
 import { ScrtContract } from "@fadroma/scrt"
 import { randomHex } from '@fadroma/tools'
 import { SNIP20Contract } from '@fadroma/snip20'
+
 import { LPTokenContract } from '@sienna/lp-token'
+import { workspace } from '@sienna/settings'
 
 export type RewardsOptions = {
   codeId?:      number

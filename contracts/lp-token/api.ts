@@ -1,4 +1,4 @@
-import type { Agent } from "@fadroma/scrt";
+import type { IAgent } from "@fadroma/scrt";
 import { randomHex } from "@fadroma/tools";
 import { SNIP20Contract } from "@fadroma/snip20";
 import { workspace } from "@sienna/settings";
@@ -12,7 +12,7 @@ export const defaultConfig = {
 };
 
 export type LPTokenOptions = {
-  admin?:  Agent,
+  admin?:  IAgent,
   name?:   string,
   prefix?: string,
 }
@@ -47,7 +47,7 @@ export class LPTokenContract extends SNIP20Contract {
   static attach = (
     address:  string,
     codeHash: string,
-    agent:    Agent
+    agent:    IAgent
   ) => {
     const instance = new LPTokenContract({ admin: agent })
     instance.init.agent = agent

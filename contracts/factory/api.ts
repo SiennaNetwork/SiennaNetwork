@@ -1,17 +1,19 @@
-import type { IAgent } from '@fadroma/ops'
+import type { IAgent } from "@fadroma/ops";
 import { ScrtContract, loadSchemas, ContractAPIOptions } from "@fadroma/scrt";
-import { TokenTypeFor_HumanAddr } from "./schema/handle_msg.d";
-import { EnigmaUtils } from "secretjs/src/index.ts";
-import { b64encode } from "@waiting/base64";
-import { randomHex, Console } from "@fadroma/tools";
+import { randomHex } from "@fadroma/tools";
 
-import { AMMContract } from '@sienna/exchange'
-import { AMMSNIP20  } from '@sienna/amm-snip20'
-import { LPToken    } from '@sienna/lp-token'
-import { IDO        } from '@sienna/ido'
-import { Launchpad  } from '@sienna/launchpad'
+import { b64encode } from "@waiting/base64";
+import { EnigmaUtils } from "secretjs/src/index.ts";
+
+import { AMMContract        } from "@sienna/exchange";
+import { AMMSNIP20Contract  } from "@sienna/amm-snip20";
+import { LPTokenContract    } from "@sienna/lp-token";
+import { IDOContract        } from "@sienna/ido";
+import { LaunchpadContract  } from "@sienna/launchpad";
 
 import { workspace } from "@sienna/settings";
+
+import { TokenTypeFor_HumanAddr } from "./schema/handle_msg.d";
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg:     "./schema/init_msg.json",
@@ -24,9 +26,9 @@ type FactoryConstructorOptions = ContractAPIOptions & {
   admin:      IAgent,
   swapConfig: any,
   EXCHANGE:   AMMContract,
-  AMMTOKEN:   AMMSNIP20,
-  LPTOKEN:    LPToken,
-  IDO:        IDO
+  AMMTOKEN:   AMMSNIP20Contract,
+  LPTOKEN:    LPTokenContract,
+  IDO:        IDOContract
 }
 
 export type FactoryOptions = {
@@ -36,10 +38,10 @@ export type FactoryOptions = {
   label?:     string
   config?:    any
   EXCHANGE?:  AMMContract
-  AMMTOKEN?:  AMMSNIP20
-  LPTOKEN?:   LPToken
-  IDO?:       IDO
-  LAUNCHPAD?: Launchpad
+  AMMTOKEN?:  AMMSNIP20Contract
+  LPTOKEN?:   LPTokenContract
+  IDO?:       IDOContract
+  LAUNCHPAD?: LaunchpadContract
 }
 
 export class FactoryContract extends ScrtContract {
@@ -92,7 +94,7 @@ export class FactoryContract extends ScrtContract {
 
   dependencies: Record<string, ScrtContract> = {}
 
-  code = { ...this.code, workspace: abs(), crate: "factory" };
+  code = { ...this.code, workspace, crate: "factory" };
 
   init = {
     ...this.init,

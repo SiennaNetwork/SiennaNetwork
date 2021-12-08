@@ -9,15 +9,18 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg:   "./schema/handle_msg.json",
 });
 
+export type AMMContractOptions = {
+  admin?:    Agent,
+  prefix?:   string,
+  label?:    string,
+  name?:     string,
+  symbol?:   string,
+  decimals?: number,
+}
+
 export class AMMContract extends ScrtContract {
-  constructor (options: {
-    admin?:    Agent,
-    prefix?:   string,
-    label?:    string,
-    name?:     string,
-    symbol?:   string,
-    decimals?: number,
-  } = {}) {
+
+  constructor (options: AMMContractOptions = {}) {
     super({ agent: options?.admin, schema })
     if (options.prefix) this.init.prefix = options.prefix
     this.init.label = options?.label
@@ -40,11 +43,10 @@ export class AMMContract extends ScrtContract {
     codeHash: string,
     agent:    Agent
   ) => {
-    const instance = new AMM({ admin: agent })
+    const instance = new AMMContract({ admin: agent })
     instance.init.agent = agent
     instance.init.address = address
     instance.blob.codeHash = codeHash
     return instance
   }
 }
-

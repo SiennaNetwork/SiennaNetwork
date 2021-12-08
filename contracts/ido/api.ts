@@ -1,5 +1,5 @@
-import type { ContractAPIOptions } from '@fadroma/scrt'
-import { ScrtContract, loadSchemas, IAgent } from "@fadroma/scrt"
+import type { IAgent, ContractAPIOptions } from '@fadroma/scrt'
+import { ScrtContract, loadSchemas } from "@fadroma/scrt"
 import { workspace } from '@sienna/settings'
 
 export const schema = loadSchemas(import.meta.url, {

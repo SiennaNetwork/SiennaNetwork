@@ -14,6 +14,7 @@ const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
 export class LaunchpadContract extends ScrtContract {
+
   constructor ({ prefix, admin, label, codeId, initMsg }: {
     prefix?:  string,
     admin?:   Agent,

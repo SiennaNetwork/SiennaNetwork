@@ -11,16 +11,11 @@ export class AMMSNIP20Contract extends SNIP20Contract {
     ...this.init,
     label: this.init.label || `AMMSNIP20`,
     msg: {
-      get prng_seed() {
-        return randomHex(36);
-      },
-      name: "Sienna",
-      symbol: "SIENNA",
+      get prng_seed() { return randomHex(36); },
+      name:     "Sienna",
+      symbol:   "SIENNA",
       decimals: 18,
-      config: { 
-        public_total_supply: true,
-        enable_mint: true
-      },
+      config:   { public_total_supply: true, enable_mint: true },
     },
   };
 
@@ -39,7 +34,7 @@ export class AMMSNIP20Contract extends SNIP20Contract {
     codeHash: string,
     agent:    IAgent
   ) => {
-    const instance = new AMMSNIP20({ admin: agent })
+    const instance = new AMMSNIP20Contract({ admin: agent })
     instance.init.agent = agent
     instance.init.address = address
     instance.blob.codeHash = codeHash

@@ -34,7 +34,7 @@ export class SiennaSNIP20Contract extends SNIP20Contract {
     codeHash: string,
     agent:    IAgent
   ) => {
-    const instance = new SiennaSNIP20({ admin: agent })
+    const instance = new SiennaSNIP20Contract({ admin: agent })
     instance.init.agent = agent
     instance.init.address = address
     instance.blob.codeHash = codeHash

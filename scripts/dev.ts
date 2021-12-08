@@ -8,13 +8,13 @@ import { bold } from '@fadroma/tools'
 import { schemaToTypes } from '@fadroma/scrt'
 import { cargo } from '@fadroma/tools'
 import {
-  SiennaSNIP20,
+  SiennaSNIP20Contract,
   MGMTContract,
   RPTContract,
   FactoryContract,
   AMMContract,
   AMMSNIP20Contract,
-  LPToken,
+  LPTokenContract,
   RewardsContract,
   IDOContract,
   LaunchpadContract
@@ -42,12 +42,12 @@ export default async function main (words: Array<string>) {
     build: {
 
       all: () => Promise.all([
-        new SiennaSNIP20().build(),
+        new SiennaSNIP20Contract().build(),
         new MGMTContract().build(),
         new RPTContract().build(),
         new AMMContract().build(),
-        new AMMSNIP20().build(),
-        new LPToken().build(),
+        new AMMSNIP20Contract().build(),
+        new LPTokenContract().build(),
         new FactoryContract().build(),
         new RewardsContract().build(),
         new IDOContract().build(),
@@ -55,15 +55,15 @@ export default async function main (words: Array<string>) {
       ]),
 
       tge: () => Promise.all([
-        new SiennaSNIP20().build(),
+        new SiennaSNIP20Contract().build(),
         new MGMTContract().build(),
         new RPTContract().build()
       ]),
 
       swap: () => Promise.all([
         new AMMContract().build(),
-        new AMMSNIP20().build(),
-        new LPToken().build(),
+        new AMMSNIP20Contract().build(),
+        new LPTokenContract().build(),
         new FactoryContract().build()
       ]),
 

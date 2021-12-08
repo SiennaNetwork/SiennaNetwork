@@ -1,14 +1,16 @@
-import type { Agent } from '@fadroma/ops'
-import type { ScheduleFor_HumanAddr } from './mgmt/init'
-import { SNIP20 } from './SNIP20'
+import type { IAgent } from '@fadroma/ops'
+import type { SNIP20Contract } from '@fadroma/snip20'
 import { ScrtContract, loadSchemas } from "@fadroma/scrt"
+
 import { workspace } from '@sienna/settings'
+
+import type { ScheduleFor_HumanAddr } from './schema/init'
 
 export type MGMTOptions = {
   prefix?:   string
-  admin?:    Agent
+  admin?:    IAgent
   schedule?: ScheduleFor_HumanAddr
-  SIENNA?:   SNIP20
+  SIENNA?:   SNIP20Contract
 }
 
 export class MGMTContract extends ScrtContract {
@@ -20,7 +22,7 @@ export class MGMTContract extends ScrtContract {
     handleMsg:   "./schema/handle.json"
   })
 
-  static attach = (address: string, codeHash: string, admin: Agent) => {
+  static attach = (address: string, codeHash: string, admin: IAgent) => {
     const contract = new MGMTContract({ admin })
     contract.init.agent    = admin
     contract.init.address  = address

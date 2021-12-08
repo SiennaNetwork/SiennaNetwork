@@ -1,14 +1,17 @@
-import type { Agent } from '@fadroma/ops'
-import type { LinearMapFor_HumanAddrAnd_Uint128, Uint128 } from './rpt/init'
+import type { IAgent } from '@fadroma/ops'
+import type { SNIP20Contract } from '@fadroma/snip20'
 import { ScrtContract, loadSchemas } from "@fadroma/scrt"
+
 import { workspace } from '@sienna/settings'
+
+import type { LinearMapFor_HumanAddrAnd_Uint128, Uint128 } from './rpt/init'
 
 export type RPTOptions = {
   prefix?:  string
-  admin?:   Agent
+  admin?:   IAgent
   config?:  LinearMapFor_HumanAddrAnd_Uint128
   portion?: Uint128
-  SIENNA?:  SiennaSNIP20
+  SIENNA?:  SNIP20Contract
   MGMT?:    MGMTContract
 }
 
@@ -62,7 +65,7 @@ export class RPTContract extends ScrtContract {
   static attach = (
     address:  string,
     codeHash: string,
-    agent:    Agent
+    agent:    IAgent
   ) => {
     const instance = new RPTContract({ admin: agent })
     instance.init.agent = agent
