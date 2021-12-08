@@ -36,7 +36,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 
 export default async function main (words: Array<string>) {
 
-
   const commands = {
 
     build: {
@@ -78,19 +77,21 @@ export default async function main (words: Array<string>) {
 
     },
 
-    test: {
-      tge: testCommandsFor(
-        'snip20-sienna', 'sienna-mgmt', 'sienna-rpt'
-      ),
-      swap: testCommandsFor(
-        'factory', 'exchange', 'lp-token', 'amm-snip20'
-      ),
-      rewards: testCommandsFor(
-        'sienna-rewards'
-      ),
-      ido: testCommandsFor(
-        'launchpad', 'ido'
-      )
+    test: () => {
+      //tge: testCommandsFor(
+        //'snip20-sienna', 'sienna-mgmt', 'sienna-rpt'
+      //),
+      //swap: testCommandsFor(
+        //'factory', 'exchange', 'lp-token', 'amm-snip20'
+      //),
+      //rewards: testCommandsFor(
+        //'sienna-rewards'
+      //),
+      //ido: testCommandsFor(
+        //'launchpad', 'ido'
+      //)
+      console.log(`This command is on vacation. Please use "cargo test -p $CRATE" till it's back`)
+      process.exit(1)
     },
 
     async schema () {
