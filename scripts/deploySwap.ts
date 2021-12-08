@@ -52,7 +52,7 @@ export default async function deploySwap (options: SwapOptions) {
 
   const
     factoryDeps    = { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD },
-    factoryConfig  = settings(chain.chainId).amm
+    factoryConfig  = settings(chain.chainId).amm,
     factoryOptions = { prefix, admin, config: factoryConfig, ...factoryDeps },
     FACTORY        = new FactoryContract(factoryOptions)
 
