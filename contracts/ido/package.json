@@ -1,5 +1,5 @@
 {
-  "name":    "@sienna/launchpad",
+  "name":    "@sienna/ido",
   "version": "0.1.0",
   "type":    "module",
   "main":    "./api.ts",

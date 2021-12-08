@@ -1,16 +1,26 @@
 {
-  "name": "@sienna/api",
+  "name":    "@sienna/api",
   "version": "0.0.0",
-  "main": "./index.ts",
-  "type": "module",
+  "main":    "./index.ts",
+  "type":    "module",
   "dependencies": {
-    "@fadroma/scrt": "workspace:*",
-    "@fadroma/tools": "workspace:*",
-    "@sienna/rewards": "workspace:*",
+    "@sienna/amm-snip20":    "workspace:*",
+    "@sienna/exchange":      "workspace:*",
+    "@sienna/factory":       "workspace:*",
+    "@sienna/ido":           "workspace:*",
+    "@sienna/launchpad":     "workspace:*",
+    "@sienna/lp-token":      "workspace:*",
+    "@sienna/mgmt":          "workspace:*",
+    "@sienna/rewards":       "workspace:*",
+    "@sienna/rpt":           "workspace:*",
+    "@sienna/snip20-sienna": "workspace:*",
+
+    "@fadroma/scrt":   "workspace:*",
+    "@fadroma/tools":  "workspace:*",
     "@waiting/base64": "^4.2.9",
-    "secretjs": "workspace:*",
-    "debug": "^4.3.2",
-    "bip39": "^3.0.4"
+    "bip39":           "^3.0.4",
+    "debug":           "^4.3.2",
+    "secretjs":        "workspace:*"
   },
   "devDependencies": {
     "mocha": "^8.4.0"

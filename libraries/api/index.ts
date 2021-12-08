@@ -1,13 +1,10 @@
-export { AMM as AMMContract } from './AMM.ts'
-
-export { Factory as FactoryContract } from './Factory.ts'
-
-export { IDO as IDOContract } from './IDO.ts'
-
-export { Launchpad as LaunchpadContract } from './Launchpad.ts'
-
-export { Rewards as RewardsContract } from '@sienna/rewards'
-
-export { SNIP20 as SNIP20Contract, AMMSNIP20, LPToken } from './SNIP20.ts'
-
-export { SiennaSNIP20, MGMTContract, RPTContract } from './TGE.ts'
+export * from '@sienna/amm-snip20'
+export * from '@sienna/exchange'
+export * from '@sienna/factory'
+export * from '@sienna/ido'
+export * from '@sienna/launchpad'
+export * from '@sienna/lp-token'
+export * from '@sienna/mgmt'
+export * from '@sienna/rewards'
+export * from '@sienna/rpt'
+export * from '@sienna/snip20-sienna'

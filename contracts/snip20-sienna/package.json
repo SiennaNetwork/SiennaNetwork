@@ -1,5 +1,5 @@
 {
-  "name": "@hackbg/snip20",
+  "name": "@sienna/snip20-sienna",
   "version": "0.0.0",
   "main": "./schema/index.js",
   "type": "module",

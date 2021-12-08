@@ -13,10 +13,8 @@ importers:
       '@sienna/api': workspace:*
       '@sienna/settings': workspace:*
       chai: ^4.3.4
-      docco: ^0.8.1
       mocha: ^8.4.0
       source-map-support: ^0.5.20
-      ts-node: ^10.4.0
       typescript: ^4.4.4
     dependencies:
       '@fadroma/ops': link:libraries/fadroma-next/ops
@@ -28,14 +26,42 @@ importers:
       '@sienna/api': link:libraries/api
       '@sienna/settings': link:settings
       chai: 4.3.4
-      docco: 0.8.1
       mocha: 8.4.0
       source-map-support: 0.5.21
-      ts-node: 10.4.0_typescript@4.5.2
       typescript: 4.5.2
 
   contracts/amm-snip20:
     specifiers: {}
+
+  contracts/exchange:
+    specifiers:
+      '@fadroma/scrt': workspace:*
+      '@fadroma/tools': workspace:*
+      secretjs: workspace:*
+    dependencies:
+      '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
+      '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
+
+  contracts/factory:
+    specifiers:
+      '@fadroma/scrt': workspace:*
+      '@fadroma/tools': workspace:*
+      secretjs: workspace:*
+    dependencies:
+      '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
+      '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
+
+  contracts/ido:
+    specifiers:
+      '@fadroma/scrt': workspace:*
+      '@fadroma/tools': workspace:*
+      secretjs: workspace:*
+    dependencies:
+      '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
+      '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/launchpad:
     specifiers:
@@ -163,7 +189,16 @@ importers:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
+      '@sienna/amm-snip20': workspace:*
+      '@sienna/exchange': workspace:*
+      '@sienna/factory': workspace:*
+      '@sienna/ido': workspace:*
+      '@sienna/launchpad': workspace:*
+      '@sienna/lp-token': workspace:*
+      '@sienna/mgmt': workspace:*
       '@sienna/rewards': workspace:*
+      '@sienna/rpt': workspace:*
+      '@sienna/snip20-sienna': workspace:*
       '@waiting/base64': ^4.2.9
       bip39: ^3.0.4
       debug: ^4.3.2
@@ -172,7 +207,16 @@ importers:
     dependencies:
       '@fadroma/scrt': link:../fadroma-next/ops-scrt
       '@fadroma/tools': link:../fadroma-next/tools
+      '@sienna/amm-snip20': link:../../contracts/amm-snip20
+      '@sienna/exchange': link:../../contracts/exchange
+      '@sienna/factory': link:../../contracts/factory
+      '@sienna/ido': link:../../contracts/ido
+      '@sienna/launchpad': link:../../contracts/launchpad
+      '@sienna/lp-token': link:../../contracts/lp-token
+      '@sienna/mgmt': link:../../contracts/mgmt
       '@sienna/rewards': link:../../contracts/rewards
+      '@sienna/rpt': link:../../contracts/rpt
+      '@sienna/snip20-sienna': link:../../contracts/snip20-sienna
       '@waiting/base64': 4.2.9
       bip39: 3.0.4
       debug: 4.3.3
@@ -276,7 +320,7 @@ importers:
       tree-sitter: 0.19.0
       tree-sitter-markdown: github.com/egasimus/tree-sitter-markdown/18c3f1ccd3e27051273caa6d721d1c033e63741d
     devDependencies:
-      tap: 15.1.5_ts-node@10.4.0+typescript@4.5.2
+      tap: 15.1.5_typescript@4.5.2
 
   libraries/fadroma-next/platforms/ganesha/examples/example:
     specifiers: {}
@@ -689,7 +733,7 @@ importers:
       esbuild-node-loader: 0.3.2
       express: 4.17.1
       freeport-async: 2.0.0
-      tap: 15.1.5_ts-node@10.4.0+typescript@4.5.2
+      tap: 15.1.5_typescript@4.5.2
 
   libraries/fadroma-next/tools:
     specifiers:
@@ -2237,18 +2281,6 @@ packages:
       axios: 0.19.2
       fast-deep-equal: 3.1.3
       pako: 1.0.11
-    dev: false
-
-  /@cspotcode/source-map-consumer/0.8.0:
-    resolution: {integrity: sha512-41qniHzTU8yAGbCp04ohlmSrZf8bkf/iJsl3V0dRGsQN/5GFfx+LbCSsCpp2gqrqjTVg/K6O8ycoV35JIwAzAg==}
-    engines: {node: '>= 12'}
-    dev: false
-
-  /@cspotcode/source-map-support/0.7.0:
-    resolution: {integrity: sha512-X4xqRHqN8ACt2aHVe51OxeA2HjbcL4MqFqXkrmQszJ1NOUuUu5u6Vqx/0lZSVNku7velL5FC/s5uEAj1lsBMhA==}
-    engines: {node: '>=12'}
-    dependencies:
-      '@cspotcode/source-map-consumer': 0.8.0
     dev: false
 
   /@discoveryjs/json-ext/0.5.5:
@@ -5116,22 +5148,6 @@ packages:
       - supports-color
     dev: false
 
-  /@tsconfig/node10/1.0.8:
-    resolution: {integrity: sha512-6XFfSQmMgq0CFLY1MslA/CPUfhIL919M1rMsa5lP2P097N2Wd1sSX0tx1u4olM16fLNhtHZpRhedZJphNJqmZg==}
-    dev: false
-
-  /@tsconfig/node12/1.0.9:
-    resolution: {integrity: sha512-/yBMcem+fbvhSREH+s14YJi18sp7J9jpuhYByADT2rypfajMZZN4WQ6zBGgBKp53NKmqI36wFYDb3yaMPurITw==}
-    dev: false
-
-  /@tsconfig/node14/1.0.1:
-    resolution: {integrity: sha512-509r2+yARFfHHE7T6Puu2jjkoycftovhXRqW328PDXTVGKihlb1P8Z9mMZH04ebyajfRY7dedfGynlrFHJUQCg==}
-    dev: false
-
-  /@tsconfig/node16/1.0.2:
-    resolution: {integrity: sha512-eZxlbI8GZscaGS7kkc/trHTT5xgrjH3/1n2JDwusC9iahPKWMRvRjJSAN5mCXviuTGQ/lHnhvv8Q1YTpnfz9gA==}
-    dev: false
-
   /@types/abstract-leveldown/5.0.2:
     resolution: {integrity: sha512-+jA1XXF3jsz+Z7FcuiNqgK53hTa/luglT2TyTpKPqoYbxVY+mCPF22Rm+q3KPBrMHJwNXFrTViHszBOfU4vftQ==}
 
@@ -6480,11 +6496,6 @@ packages:
     resolution: {integrity: sha512-OPdCF6GsMIP+Az+aWfAAOEt2/+iVDKE7oy6lJ098aoe59oAmK76qV6Gw60SbZ8jHuG2wH058GF4pLFbYamYrVA==}
     engines: {node: '>=0.4.0'}
     dev: true
-
-  /acorn-walk/8.2.0:
-    resolution: {integrity: sha512-k+iyHEuPgSw6SbuDpGQM+06HQUa04DZ3o+F6CSzXMvvI5KMvnaEqXe+YVe555R9nn6GPt404fos4wcgpw12SDA==}
-    engines: {node: '>=0.4.0'}
-    dev: false
 
   /acorn/2.7.0:
     resolution: {integrity: sha1-q259nYhqrKiwhbwzEreaGYQz8Oc=}
@@ -10041,10 +10052,6 @@ packages:
       safe-buffer: 5.2.1
       sha.js: 2.4.11
 
-  /create-require/1.1.1:
-    resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
-    dev: false
-
   /cross-fetch/2.2.5:
     resolution: {integrity: sha512-xqYAhQb4NhCJSRym03dwxpP1bYXpK3y7UN83Bo2WFi3x1Zmzn0SL/6xGoPr+gpt4WmNrgCCX3HPysvOwFOW36w==}
     dependencies:
@@ -10883,18 +10890,6 @@ packages:
     resolution: {integrity: sha1-uR2Ab10nGI5Ks+fRB9iBocxGQrY=}
     dependencies:
       buffer-indexof: 1.1.1
-
-  /docco/0.8.1:
-    resolution: {integrity: sha512-OFVdjpxw4aTI+FThrCY2NEWZV/nvGDFlfeQxUTMkKL+oY2gD2sMl0N5ogoAj3YLZU05UDBSh64ROYzLFzxSoSQ==}
-    engines: {node: '>=0.2.0'}
-    hasBin: true
-    dependencies:
-      commander: 8.3.0
-      fs-extra: 10.0.0
-      highlight.js: 11.3.1
-      marked: 4.0.5
-      underscore: 1.13.1
-    dev: false
 
   /docker-modem/3.0.3:
     resolution: {integrity: sha512-Tgkn2a+yiNP9FoZgMa/D9Wk+D2Db///0KOyKSYZRJa8w4+DzKyzQMkczKSdR/adQ0x46BOpeNkoyEOKjPhCzjw==}
@@ -13403,15 +13398,6 @@ packages:
       rimraf: 2.7.1
     dev: true
 
-  /fs-extra/10.0.0:
-    resolution: {integrity: sha512-C5owb14u9eJwizKGdchcDUQeFtlSHHthBk8pbX9Vc1PFZrLombudjDnNns88aYslCyF6IY5SUw3Roz6xShcEIQ==}
-    engines: {node: '>=12'}
-    dependencies:
-      graceful-fs: 4.2.8
-      jsonfile: 6.1.0
-      universalify: 2.0.0
-    dev: false
-
   /fs-extra/4.0.3:
     resolution: {integrity: sha512-q6rbdDd1o2mAnQreO7YADIxf/Whx4AHBiRf6d+/cVT8h44ss+lHgxf1FemcqDnQt9X3ct4McHr+JMGlYSsK7Cg==}
     dependencies:
@@ -14506,11 +14492,6 @@ packages:
   /highlight.js/10.7.3:
     resolution: {integrity: sha512-tzcUFauisWKNHaRkN4Wjl/ZA07gENAjFl3J/c480dprkGTg5EQstgaNFqBfUqCq54kZRIEcreTsAgF/m2quD7A==}
     dev: true
-
-  /highlight.js/11.3.1:
-    resolution: {integrity: sha512-PUhCRnPjLtiLHZAQ5A/Dt5F8cWZeMyj9KRsACsWT+OD6OP0x6dp5OmT5jdx0JgEyPxPZZIPQpRN2TciUT7occw==}
-    engines: {node: '>=12.0.0'}
-    dev: false
 
   /highlightjs-solidity/2.0.2:
     resolution: {integrity: sha512-q0aYUKiZ9MPQg41qx/KpXKaCpqql50qTvmwGYyLFfcjt9AE/+C9CwjVIdJZc7EYj6NGgJuFJ4im1gfgrzUU1fQ==}
@@ -16456,6 +16437,7 @@ packages:
       universalify: 2.0.0
     optionalDependencies:
       graceful-fs: 4.2.8
+    dev: true
 
   /jsonify/0.0.0:
     resolution: {integrity: sha1-LHS27kHZPKUbe1qu6PUDYx0lKnM=}
@@ -17651,12 +17633,6 @@ packages:
     engines: {node: '>= 12'}
     hasBin: true
     dev: true
-
-  /marked/4.0.5:
-    resolution: {integrity: sha512-eUToMA5d5lunnipkCN7zFD0RiunCF2Uo6bImEt/Qx8LZMW7oPXTw7R+f+M5V3eS7164HjEDPfW8/TrefuFhDfw==}
-    engines: {node: '>= 12'}
-    hasBin: true
-    dev: false
 
   /math-random/1.0.4:
     resolution: {integrity: sha512-rUxjysqif/BZQH2yhd5Aaq7vXMSx9NdEsQcyA07uEzIvxgI7zIr33gGsh+RU0/XjmQpCW7RsVof1vlkvQVCK5A==}
@@ -23856,7 +23832,7 @@ packages:
     dependencies:
       yaml: 1.10.2
 
-  /tap/15.1.5_ts-node@10.4.0+typescript@4.5.2:
+  /tap/15.1.5_typescript@4.5.2:
     resolution: {integrity: sha512-ha9ify0cagIOENV5D+T8ys+FFOWqPaWAKk66hjtUWjywXdGmnL8LRxloZa8sHiaB+Az1GYx4ufEaflOpedSCbQ==}
     engines: {node: '>=10'}
     hasBin: true
@@ -23893,7 +23869,6 @@ packages:
       tap-parser: 10.1.0
       tap-yaml: 1.0.0
       tcompare: 5.0.6
-      ts-node: 10.4.0_typescript@4.5.2
       typescript: 4.5.2
       which: 2.0.2
     transitivePeerDependencies:
@@ -24546,35 +24521,6 @@ packages:
       webpack: 5.64.4_webpack-cli@4.9.1
     dev: false
 
-  /ts-node/10.4.0_typescript@4.5.2:
-    resolution: {integrity: sha512-g0FlPvvCXSIO1JDF6S232P5jPYqBkRL9qly81ZgAOSU7rwI0stphCgd2kLiCrU9DjQCrJMWEqcNSjQL02s6d8A==}
-    hasBin: true
-    peerDependencies:
-      '@swc/core': '>=1.2.50'
-      '@swc/wasm': '>=1.2.50'
-      '@types/node': '*'
-      typescript: '>=2.7'
-    peerDependenciesMeta:
-      '@swc/core':
-        optional: true
-      '@swc/wasm':
-        optional: true
-    dependencies:
-      '@cspotcode/source-map-support': 0.7.0
-      '@tsconfig/node10': 1.0.8
-      '@tsconfig/node12': 1.0.9
-      '@tsconfig/node14': 1.0.1
-      '@tsconfig/node16': 1.0.2
-      acorn: 8.6.0
-      acorn-walk: 8.2.0
-      arg: 4.1.3
-      create-require: 1.1.1
-      diff: 4.0.2
-      make-error: 1.3.6
-      typescript: 4.5.2
-      yn: 3.1.1
-    dev: false
-
   /ts-node/8.10.2_typescript@3.7.7:
     resolution: {integrity: sha512-ISJJGgkIpDdBhWVu3jufsWpK3Rzo7bdiIXJjQc0ynKxVOVcg2oIrf2H2cejminGrptVc6q6/uynAHNCuWGbpVA==}
     engines: {node: '>=6.0.0'}
@@ -24895,10 +24841,6 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: true
 
-  /underscore/1.13.1:
-    resolution: {integrity: sha512-hzSoAVtJF+3ZtiFX0VgfFPHEDRm7Y/QPjGyNo4TVdnDTdft3tr8hEkD25a1jC+TjTuE7tkHGKkhwCgs9dgBB2g==}
-    dev: false
-
   /underscore/1.9.1:
     resolution: {integrity: sha512-5/4etnCkd9c8gwgowi5/om/mYO5ajCaOgdzj/oW+0eQV9WxKBDZw5+ycmKmeaTXjInS/W0BzpGLo2xR2aBwZdg==}
     dev: true
@@ -25042,6 +24984,7 @@ packages:
   /universalify/2.0.0:
     resolution: {integrity: sha512-hAZsKq7Yy11Zu1DE0OzWjw7nnLZmJZYTDZZyEFHZdUhV8FkH5MCfoU1XMaxXovpyW5nq5scPqq0ZDP9Zyl04oQ==}
     engines: {node: '>= 10.0.0'}
+    dev: true
 
   /unixify/1.0.0:
     resolution: {integrity: sha1-OmQcjC/7zk2mg6XHDwOkYpQMIJA=}

@@ -1,10 +1,18 @@
-import type { IChain, IAgent } from '@fadroma/ops'
-import type { ScheduleFor_HumanAddr } from '@sienna/api/mgmt/handle'
-import type { SwapOptions } from './deploySwap'
+import type {
+  IChain,
+  IAgent
+} from '@fadroma/ops'
 import { Scrt } from '@fadroma/scrt'
-import { SiennaSNIP20, MGMTContract, RPTContract, AMMSNIP20 } from '@sienna/api'
-import { getDefaultSchedule } from '../ops/index'
 import { timestamp } from '@fadroma/tools'
+
+import type { ScheduleFor_HumanAddr } from '@sienna/api/mgmt/handle'
+import {
+  SiennaSNIP20,
+  MGMTContract,
+  RPTContract
+} from '@sienna/api'
+
+import type { SwapOptions } from './deploySwap'
 import buildAndUpload from './buildAndUpload'
 
 export type VestingOptions = {
@@ -22,7 +30,7 @@ export default async function deployVesting (
     prefix   = timestamp(),
     chain    = await new Scrt().ready,
     admin    = await chain.getAgent(),
-    schedule = getDefaultSchedule()
+    schedule = require('../settings/schedule.json')
   } = options
 
   const RPTAccount = getRPTAccount(schedule)
