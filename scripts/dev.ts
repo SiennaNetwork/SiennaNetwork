@@ -90,8 +90,8 @@ export default async function main (words: Array<string>) {
       //ido: testCommandsFor(
         //'launchpad', 'ido'
       //)
-      console.log(`This command is on vacation. Please use "cargo test -p $CRATE" till it's back`)
-      process.exit(1)
+      console.log(`\nThis command is on vacation. Please use "cargo test -p $CRATE" till it's back\n🌴 ⛱️  🐬\n`)
+      process.exit(42)
     },
 
     async schema () {
