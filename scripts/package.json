@@ -1,0 +1,9 @@
+{
+  "name":    "@sienna/scripts",
+  "version": "0.0.0",
+  "type":    "module",
+  "dependencies": {
+    "@sienna/api":      "workspace:*",
+    "@sienna/settings": "workspace:*"
+  }
+}

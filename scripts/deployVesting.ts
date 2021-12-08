@@ -5,12 +5,14 @@ import type {
 import { Scrt } from '@fadroma/scrt'
 import { timestamp } from '@fadroma/tools'
 
-import type { ScheduleFor_HumanAddr } from '@sienna/api/mgmt/handle'
+import type { ScheduleFor_HumanAddr } from '@sienna/mgmt/schema/handle'
 import {
-  SiennaSNIP20,
+  SiennaSNIP20Contract,
   MGMTContract,
   RPTContract
 } from '@sienna/api'
+
+import settings from '@sienna/settings'
 
 import type { SwapOptions } from './deploySwap'
 import buildAndUpload from './buildAndUpload'
@@ -30,13 +32,13 @@ export default async function deployVesting (
     prefix   = timestamp(),
     chain    = await new Scrt().ready,
     admin    = await chain.getAgent(),
-    schedule = require('../settings/schedule.json')
+    schedule = settings.schedule
   } = options
 
   const RPTAccount = getRPTAccount(schedule)
   const portion    = RPTAccount.portion_size
 
-  const SIENNA = new SiennaSNIP20({ prefix, admin })
+  const SIENNA = new SiennaSNIP20Contract({ prefix, admin })
   const MGMT   = new MGMTContract({ prefix, admin, schedule, SIENNA })
   const RPT    = new RPTContract({ prefix, admin, MGMT, SIENNA, portion })
 

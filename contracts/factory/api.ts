@@ -1,51 +1,57 @@
-import assert from 'assert'
-import type { Agent } from '@fadroma/ops'
+import type { IAgent } from '@fadroma/ops'
 import { ScrtContract, loadSchemas, ContractAPIOptions } from "@fadroma/scrt";
-import { TokenTypeFor_HumanAddr } from "./factory/handle_msg.d";
+import { TokenTypeFor_HumanAddr } from "./schema/handle_msg.d";
 import { EnigmaUtils } from "secretjs/src/index.ts";
 import { b64encode } from "@waiting/base64";
 import { randomHex, Console } from "@fadroma/tools";
 
-const console = Console(import.meta.url)
+import { AMMContract } from '@sienna/exchange'
+import { AMMSNIP20  } from '@sienna/amm-snip20'
+import { LPToken    } from '@sienna/lp-token'
+import { IDO        } from '@sienna/ido'
+import { Launchpad  } from '@sienna/launchpad'
 
-import { AMM } from './AMM'
-import { AMMSNIP20, LPToken } from './SNIP20'
-import { IDO } from './IDO'
-import { Launchpad } from './Launchpad'
-
-import { abs } from "../ops/index";
+import { workspace } from "@sienna/settings";
 
 export const schema = loadSchemas(import.meta.url, {
-  initMsg: "./factory/init_msg.json",
-  queryMsg: "./factory/query_msg.json",
-  queryAnswer: "./factory/query_response.json",
-  handleMsg: "./factory/handle_msg.json",
+  initMsg:     "./schema/init_msg.json",
+  queryMsg:    "./schema/query_msg.json",
+  queryAnswer: "./schema/query_response.json",
+  handleMsg:   "./schema/handle_msg.json",
 });
 
 type FactoryConstructorOptions = ContractAPIOptions & {
-  admin:      Agent,
+  admin:      IAgent,
   swapConfig: any,
-  EXCHANGE:   AMM,
+  EXCHANGE:   AMMContract,
   AMMTOKEN:   AMMSNIP20,
   LPTOKEN:    LPToken,
   IDO:        IDO
 }
 
-export class Factory extends ScrtContract {
+export type FactoryOptions = {
+  admin?:     IAgent
+  prefix?:    string
+  codeId?:    number
+  label?:     string
+  config?:    any
+  EXCHANGE?:  AMMContract
+  AMMTOKEN?:  AMMSNIP20
+  LPTOKEN?:   LPToken
+  IDO?:       IDO
+  LAUNCHPAD?: Launchpad
+}
 
-  constructor(options: {
-    admin?:     Agent
-    prefix?:   string
-    config?:    any
-    EXCHANGE?:  AMM
-    AMMTOKEN?:  AMMSNIP20
-    LPTOKEN?:   LPToken
-    IDO?:       IDO
-    LAUNCHPAD?: Launchpad,
-    codeId?: number,
-    label?: string,
-  } = {}) {
-    super({ codeId: options.codeId, agent: options.admin, prefix: options.prefix, schema, workspace: abs() })
+export class FactoryContract extends ScrtContract {
+
+  constructor(options: FactoryOptions = {}) {
+    super({
+      codeId: options.codeId,
+      agent:  options.admin,
+      prefix: options.prefix,
+      schema,
+      workspace
+    })
 
     Object.assign(this.init.msg, {
       ...(options.config || {}),
@@ -105,10 +111,10 @@ export class Factory extends ScrtContract {
 
   /**
    * Create launchpad contract
-   * 
-   * @param {object[]} tokens 
-   * @param {Agent} agent 
-   * @returns 
+   *
+   * @param {object[]} tokens
+   * @param {IAgent} agent
+   * @returns
    */
   createLaunchpad(tokens: object[], agent = this.instantiator) {
     return this.tx.create_launchpad({
@@ -117,11 +123,11 @@ export class Factory extends ScrtContract {
   }
 
   /**
-   * 
-   * @param {TokenTypeFor_HumanAddr} token_0 
-   * @param {TokenTypeFor_HumanAddr} token_1 
-   * @param {Agent} agent 
-   * @returns 
+   *
+   * @param {TokenTypeFor_HumanAddr} token_0
+   * @param {TokenTypeFor_HumanAddr} token_1
+   * @param {IAgent} agent
+   * @returns
    */
   async createExchange (
     token_0: TokenTypeFor_HumanAddr,
@@ -163,8 +169,7 @@ export class Factory extends ScrtContract {
       result.push.apply(result, list)
       start += limit
     }
-    
+
     return result
   }
 }
-

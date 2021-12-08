@@ -1,10 +1,19 @@
-import { SiennaSNIP20, LPToken, RewardsContract } from '@sienna/api'
-import { bold, timestamp, Console } from '@fadroma/tools'
+import {
+  bold,
+  timestamp,
+  Console
+} from '@fadroma/tools'
+
+const console = Console(import.meta.url)
+
+import {
+  SiennaSNIP20Contract,
+  LPTokenContract,
+  RewardsContract
+} from '@sienna/api'
 
 import init from './init'
 import buildAndUpload from './buildAndUpload'
-
-const console = Console(import.meta.url)
 
 export default {
 
@@ -15,8 +24,8 @@ export default {
     }
     const {chain, admin} = await init(process.env.CHAIN_NAME)
     const prefix  = `AUDIT-${timestamp()}`
-    const SIENNA  = new SiennaSNIP20({ prefix, admin })
-    const LPTOKEN = new LPToken({ prefix, admin, name: 'AUDIT' })
+    const SIENNA  = new SiennaSNIP20Contract({ prefix, admin })
+    const LPTOKEN = new LPTokenContract({ prefix, admin, name: 'AUDIT' })
     const REWARDS = new RewardsContract({
       prefix, admin, name: 'AUDIT',
       lpToken: LPTOKEN, rewardToken: SIENNA
@@ -43,7 +52,7 @@ export default {
 
     const {chain, admin} = await init(process.env.CHAIN_NAME)
     const instance = chain.instances.active
-    const SIENNA   = instance.getContract(SiennaSNIP20, 'SiennaSNIP20', admin)
+    const SIENNA   = instance.getContract(SiennaSNIP20Contract, 'SiennaSNIP20', admin)
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
 
     await SIENNA.tx.mint({
@@ -85,7 +94,7 @@ export default {
     const agent    = await chain.getAgent({mnemonic})
     const instance = chain.instances.active
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
-    const LPTOKEN  = instance.getContract(LPToken, 'SiennaRewards_AUDIT_LPToken', admin)
+    const LPTOKEN  = instance.getContract(LPTokenContract, 'SiennaRewards_AUDIT_LPToken', admin)
 
     await LPTOKEN.tx.mint({amount, recipient: agent.address, padding: null}, admin)
     await LPTOKEN.tx.increaseAllowance({amount, spender: REWARDS.address, padding: null}, agent)

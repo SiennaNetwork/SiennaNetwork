@@ -1,8 +1,12 @@
 {
-  "name": "@sienna/lp-token",
-  "version": "0.0.0",
-  "main": "./api.ts",
-  "type": "module",
+  "name":    "@sienna/lp-token",
+  "version": "0.1.0",
+  "main":    "./api.ts",
+  "type":    "module",
+  "dependencies": {
+    "@fadroma/snip20":  "workspace:*",
+    "@sienna/settings": "workspace:*"
+  },
   "peerDependencies": {
     "@hackbg/fadroma": "*"
   }

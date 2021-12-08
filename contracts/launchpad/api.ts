@@ -1,20 +1,19 @@
-import type { ContractAPIOptions } from "@fadroma/scrt";
 import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt";
 import { randomHex } from "@fadroma/tools";
-import { abs } from "../ops/index";
+import { workspace } from "@sienna/settings";
 
 export const schema = loadSchemas(import.meta.url, {
-  initMsg: "./launchpad/init_msg.json",
-  queryMsg: "./launchpad/query_msg.json",
-  queryAnswer: "./launchpad/query_response.json",
-  handleMsg: "./launchpad/handle_msg.json",
+  initMsg:     "./schema/init_msg.json",
+  queryMsg:    "./schema/query_msg.json",
+  queryAnswer: "./schema/query_response.json",
+  handleMsg:   "./schema/handle_msg.json",
 });
 
 // @ts-ignore
 const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
-export class Launchpad extends ScrtContract {
+export class LaunchpadContract extends ScrtContract {
   constructor ({ prefix, admin, label, codeId, initMsg }: {
     prefix?:  string,
     admin?:   Agent,
@@ -29,7 +28,7 @@ export class Launchpad extends ScrtContract {
     if (initMsg) this.init.msg    = initMsg
   }
 
-  code = { ...this.code, workspace: abs(), crate: "launchpad" };
+  code = { ...this.code, workspace, crate: "launchpad" };
 
   /**
    * This action will remove the token from the contract

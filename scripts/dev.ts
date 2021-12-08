@@ -13,14 +13,14 @@ import {
   RPTContract,
   FactoryContract,
   AMMContract,
-  AMMSNIP20,
+  AMMSNIP20Contract,
   LPToken,
   RewardsContract,
   IDOContract,
   LaunchpadContract
 } from '@sienna/api'
 
-import rewardsBenchmark from './benchmarks/rewards'
+import rewardsBenchmark from '../benchmarks/rewards'
 
 const
   projectRoot = resolve(dirname(fileURLToPath(import.meta.url))),

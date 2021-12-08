@@ -5,9 +5,11 @@
   "workspace": true,
   "type": "module",
   "packages": [
+    "./benchmarks",
     "./contracts/*",
     "./dashboard",
     "./libraries/api",
+    "./libraries/fadroma-next/lib/composable-snip20",
     "./libraries/fadroma-next/ops",
     "./libraries/fadroma-next/ops-scrt",
     "./libraries/fadroma-next/ops-scrt-1.0",
@@ -19,8 +21,7 @@
     "./libraries/ops-amm",
     "./libraries/schedule",
     "./libraries/siennajs",
-    "./ops",
-    "./ops/amm",
+    "./scripts",
     "./settings"
   ],
   "dependencies": {
@@ -30,8 +31,6 @@
     "@fadroma/scrt-1.2": "workspace:*",
     "@fadroma/tools":    "workspace:*",
     "@hackbg/ganesha":   "workspace:*",
-    "@sienna/api":       "workspace:*",
-    "@sienna/settings":  "workspace:*",
     "chai": "^4.3.4",
     "mocha": "^8.4.0",
     "source-map-support": "^0.5.20",

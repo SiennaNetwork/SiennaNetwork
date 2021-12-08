@@ -2,38 +2,48 @@ import type { Agent } from '@fadroma/ops'
 import type { ScheduleFor_HumanAddr } from './mgmt/init'
 import { SNIP20 } from './SNIP20'
 import { ScrtContract, loadSchemas } from "@fadroma/scrt"
-import { abs } from '../ops/index'
+import { workspace } from '@sienna/settings'
+
+export type MGMTOptions = {
+  prefix?:   string
+  admin?:    Agent
+  schedule?: ScheduleFor_HumanAddr
+  SIENNA?:   SNIP20
+}
 
 export class MGMTContract extends ScrtContract {
+
   static schema = loadSchemas(import.meta.url, {
-    initMsg:     "./mgmt/init.json",
-    queryMsg:    "./mgmt/query.json",
-    queryAnswer: "./mgmt/response.json",
-    handleMsg:   "./mgmt/handle.json"
+    initMsg:     "./schema/init.json",
+    queryMsg:    "./schema/query.json",
+    queryAnswer: "./schema/response.json",
+    handleMsg:   "./schema/handle.json"
   })
+
   static attach = (address: string, codeHash: string, admin: Agent) => {
     const contract = new MGMTContract({ admin })
     contract.init.agent    = admin
     contract.init.address  = address
     contract.blob.codeHash = codeHash
   }
-  code = { ...this.code, workspace: abs(), crate: 'sienna-mgmt' }
+
+  code = { ...this.code, workspace, crate: 'sienna-mgmt' }
+
   init = { ...this.init, label: 'SiennaMGMT', msg: {} }
-  constructor (options: {
-    prefix?:   string
-    admin?:    Agent
-    schedule?: ScheduleFor_HumanAddr
-    SIENNA?:   SNIP20
-  } = {}) {
+
+  constructor (options: MGMTOptions = {}) {
+
     super({
       prefix: options?.prefix,
-      agent: options?.admin,
+      agent:  options?.admin,
       schema: MGMTContract.schema
     })
+
     Object.assign(this.init.msg, {
       admin:    options.admin?.address,
       schedule: options.schedule,
     })
+
     // auto get token address after it's deployed
     Object.defineProperty(this.init.msg, 'token', {
       enumerable: true,

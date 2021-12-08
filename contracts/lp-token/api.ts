@@ -1,21 +1,24 @@
 import type { Agent } from "@fadroma/scrt";
 import { randomHex } from "@fadroma/tools";
-import { abs } from "../ops/index";
+import { SNIP20Contract } from "@fadroma/snip20";
+import { workspace } from "@sienna/settings";
 
-const lpTokenDefaultConfig = {
-  enable_deposit: true,
-  enable_redeem: true,
-  enable_mint: true,
-  enable_burn: true,
+export const defaultConfig = {
+  enable_deposit:      true,
+  enable_redeem:       true,
+  enable_mint:         true,
+  enable_burn:         true,
   public_total_supply: true,
 };
 
-export class LPToken extends SNIP20 {
-  code = {
-    ...this.code,
-    workspace: abs(),
-    crate: "lp-token"
-  }
+export type LPTokenOptions = {
+  admin?:  Agent,
+  name?:   string,
+  prefix?: string,
+}
+
+export class LPTokenContract extends SNIP20Contract {
+  code = { ...this.code, workspace, crate: "lp-token" }
 
   init = {
     ...this.init,
@@ -24,16 +27,12 @@ export class LPToken extends SNIP20 {
       name:     "Liquidity Provision Token",
       symbol:   "LPTOKEN",
       decimals: 18,
-      config:   { ...lpTokenDefaultConfig },
+      config:   { ...defaultConfig },
       get prng_seed() { return randomHex(36); },
     },
   }
 
-  constructor(options: {
-    admin:   Agent,
-    name?:   string,
-    prefix?: string,
-  } = {}) {
+  constructor(options: LPTokenOptions = {}) {
     super({
       agent:  options?.admin,
       prefix: options?.prefix,
@@ -50,7 +49,7 @@ export class LPToken extends SNIP20 {
     codeHash: string,
     agent:    Agent
   ) => {
-    const instance = new LPToken({ admin: agent })
+    const instance = new LPTokenContract({ admin: agent })
     instance.init.agent = agent
     instance.init.address = address
     instance.blob.codeHash = codeHash

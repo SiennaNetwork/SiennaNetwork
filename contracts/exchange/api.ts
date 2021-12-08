@@ -1,15 +1,15 @@
 import { ScrtContract, loadSchemas, Agent, ContractAPIOptions } from "@fadroma/scrt"
 import { randomHex } from '@fadroma/tools'
-import { abs } from '../ops/index'
+import { workspace } from '@sienna/settings'
 
 export const schema = loadSchemas(import.meta.url, {
-  initMsg:     "./amm/init_msg.json",
-  queryMsg:    "./amm/query_msg.json",
-  queryAnswer: "./amm/query_msg_response.json",
-  handleMsg:   "./amm/handle_msg.json",
+  initMsg:     "./schema/init_msg.json",
+  queryMsg:    "./schema/query_msg.json",
+  queryAnswer: "./schema/query_msg_response.json",
+  handleMsg:   "./schema/handle_msg.json",
 });
 
-export class AMM extends ScrtContract {
+export class AMMContract extends ScrtContract {
   constructor (options: {
     admin?:    Agent,
     prefix?:   string,
@@ -29,7 +29,7 @@ export class AMM extends ScrtContract {
     })
   }
 
-  code = { ...this.code, workspace: abs(), crate: 'exchange' }
+  code = { ...this.code, workspace, crate: 'exchange' }
 
   init = { ...this.init, label: 'SiennaAMMExchange', msg: {} }
 

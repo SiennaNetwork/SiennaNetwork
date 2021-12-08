@@ -10,8 +10,6 @@ importers:
       '@fadroma/scrt-1.2': workspace:*
       '@fadroma/tools': workspace:*
       '@hackbg/ganesha': workspace:*
-      '@sienna/api': workspace:*
-      '@sienna/settings': workspace:*
       chai: ^4.3.4
       mocha: ^8.4.0
       source-map-support: ^0.5.20
@@ -23,91 +21,140 @@ importers:
       '@fadroma/scrt-1.2': link:libraries/fadroma-next/ops-scrt-1.2
       '@fadroma/tools': link:libraries/fadroma-next/tools
       '@hackbg/ganesha': link:libraries/fadroma-next/platforms/ganesha
-      '@sienna/api': link:libraries/api
-      '@sienna/settings': link:settings
       chai: 4.3.4
       mocha: 8.4.0
       source-map-support: 0.5.21
       typescript: 4.5.2
 
+  benchmarks:
+    specifiers:
+      '@sienna/api': workspace:*
+      '@sienna/settings': workspace:*
+    dependencies:
+      '@sienna/api': link:../libraries/api
+      '@sienna/settings': link:../settings
+
   contracts/amm-snip20:
-    specifiers: {}
+    specifiers:
+      '@fadroma/snip20': workspace:*
+      '@sienna/settings': workspace:*
+    dependencies:
+      '@fadroma/snip20': link:../../libraries/fadroma-next/lib/composable-snip20
+      '@sienna/settings': link:../../settings
 
   contracts/exchange:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
+      '@sienna/settings': workspace:*
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
       '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@sienna/settings': link:../../settings
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/factory:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
+      '@sienna/amm-snip20': workspace:*
+      '@sienna/exchange': workspace:*
+      '@sienna/ido': workspace:*
+      '@sienna/launchpad': workspace:*
+      '@sienna/lp-token': workspace:*
+      '@sienna/settings': workspace:*
+      '@waiting/base64': ^4.2.9
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
       '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@sienna/amm-snip20': link:../amm-snip20
+      '@sienna/exchange': link:../exchange
+      '@sienna/ido': link:../ido
+      '@sienna/launchpad': link:../launchpad
+      '@sienna/lp-token': link:../lp-token
+      '@sienna/settings': link:../../settings
+      '@waiting/base64': 4.2.9
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/ido:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
+      '@sienna/settings': workspace:*
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
       '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@sienna/settings': link:../../settings
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/launchpad:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
+      '@sienna/settings': workspace:*
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
       '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@sienna/settings': link:../../settings
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/lp-token:
-    specifiers: {}
+    specifiers:
+      '@fadroma/snip20': workspace:*
+      '@sienna/settings': workspace:*
+    dependencies:
+      '@fadroma/snip20': link:../../libraries/fadroma-next/lib/composable-snip20
+      '@sienna/settings': link:../../settings
 
   contracts/mgmt:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
+      '@sienna/settings': workspace:*
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
       '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@sienna/settings': link:../../settings
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/rewards:
     specifiers:
       '@fadroma/scrt': workspace:*
+      '@fadroma/snip20': workspace:*
       '@fadroma/tools': workspace:*
+      '@sienna/lp-token': workspace:*
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
+      '@fadroma/snip20': link:../../libraries/fadroma-next/lib/composable-snip20
       '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@sienna/lp-token': link:../lp-token
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/rpt:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
+      '@sienna/settings': workspace:*
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/ops-scrt
       '@fadroma/tools': link:../../libraries/fadroma-next/tools
+      '@sienna/settings': link:../../settings
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/snip20-sienna:
-    specifiers: {}
+    specifiers:
+      '@fadroma/snip20': workspace:*
+      '@sienna/settings': workspace:*
+    dependencies:
+      '@fadroma/snip20': link:../../libraries/fadroma-next/lib/composable-snip20
+      '@sienna/settings': link:../../settings
 
   contracts/wrapped:
     specifiers:
@@ -189,16 +236,16 @@ importers:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
-      '@sienna/amm-snip20': workspace:*
-      '@sienna/exchange': workspace:*
-      '@sienna/factory': workspace:*
-      '@sienna/ido': workspace:*
-      '@sienna/launchpad': workspace:*
-      '@sienna/lp-token': workspace:*
-      '@sienna/mgmt': workspace:*
-      '@sienna/rewards': workspace:*
-      '@sienna/rpt': workspace:*
-      '@sienna/snip20-sienna': workspace:*
+      '@sienna/amm-snip20': workspace:^0.1.0
+      '@sienna/exchange': workspace:^0.1.0
+      '@sienna/factory': workspace:^0.1.0
+      '@sienna/ido': workspace:^0.1.0
+      '@sienna/launchpad': workspace:^0.1.0
+      '@sienna/lp-token': workspace:^0.1.0
+      '@sienna/mgmt': workspace:^2.0.0
+      '@sienna/rewards': workspace:^3.0.0
+      '@sienna/rpt': workspace:^1.0.0
+      '@sienna/snip20-sienna': workspace:^0.1.0
       '@waiting/base64': ^4.2.9
       bip39: ^3.0.4
       debug: ^4.3.2
@@ -800,6 +847,14 @@ importers:
       secretjs: 0.17.3
     devDependencies:
       typescript: 4.5.2
+
+  scripts:
+    specifiers:
+      '@sienna/api': workspace:*
+      '@sienna/settings': workspace:*
+    dependencies:
+      '@sienna/api': link:../libraries/api
+      '@sienna/settings': link:../settings
 
   settings:
     specifiers: {}

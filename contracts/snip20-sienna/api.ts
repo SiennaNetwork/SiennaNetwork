@@ -1,15 +1,11 @@
-import type { Agent } from '@fadroma/ops'
-import { SNIP20 } from './SNIP20'
-import { abs } from '../ops/index'
+import type { IAgent } from '@fadroma/ops'
+import { workspace } from '@sienna/settings'
+import { SNIP20Contract } from '@fadroma/snip20'
 import { randomHex } from '@fadroma/tools'
 
-export class SiennaSNIP20 extends SNIP20 {
+export class SiennaSNIP20Contract extends SNIP20Contract {
 
-  code = {
-    ...this.code,
-    workspace: abs(),
-    crate: "snip20-sienna"
-  }
+  code = { ...this.code, workspace, crate: "snip20-sienna" }
 
   init = {
     ...this.init,
@@ -24,7 +20,7 @@ export class SiennaSNIP20 extends SNIP20 {
 
   constructor (options: {
     prefix?: string,
-    admin?: Agent
+    admin?:  IAgent
   } = {}) {
     super({
       prefix: options?.prefix,
@@ -36,7 +32,7 @@ export class SiennaSNIP20 extends SNIP20 {
   static attach = (
     address:  string,
     codeHash: string,
-    agent:    Agent
+    agent:    IAgent
   ) => {
     const instance = new SiennaSNIP20({ admin: agent })
     instance.init.agent = agent

@@ -1,44 +1,50 @@
 import type { Agent } from '@fadroma/ops'
 import type { LinearMapFor_HumanAddrAnd_Uint128, Uint128 } from './rpt/init'
 import { ScrtContract, loadSchemas } from "@fadroma/scrt"
-import { abs } from '../ops/index'
+import { workspace } from '@sienna/settings'
+
+export type RPTOptions = {
+  prefix?:  string
+  admin?:   Agent
+  config?:  LinearMapFor_HumanAddrAnd_Uint128
+  portion?: Uint128
+  SIENNA?:  SiennaSNIP20
+  MGMT?:    MGMTContract
+}
 
 export class RPTContract extends ScrtContract {
 
   static schema = loadSchemas(import.meta.url, {
-    initMsg:     "./rpt/init.json",
-    queryMsg:    "./rpt/query.json",
-    queryAnswer: "./rpt/response.json",
-    handleMsg:   "./rpt/handle.json"
+    initMsg:     "./schema/init.json",
+    queryMsg:    "./schema/query.json",
+    queryAnswer: "./schema/response.json",
+    handleMsg:   "./schema/handle.json"
   })
 
-  code = { ...this.code, workspace: abs(), crate: 'sienna-rpt' }
+  code = { ...this.code, workspace, crate: 'sienna-rpt' }
 
   init = { ...this.init, label: 'SiennaRPT', msg: {} }
 
-  constructor (options: {
-    prefix?:  string
-    admin?:   Agent
-    config?:  LinearMapFor_HumanAddrAnd_Uint128
-    portion?: Uint128
-    SIENNA?:  SiennaSNIP20
-    MGMT?:    MGMTContract
-  } = {}) {
+  constructor (options: RPTOptions = {}) {
+
     super({
       prefix: options?.prefix,
       agent:  options?.admin,
       schema: RPTContract.schema
     })
+
     Object.assign(this.init.msg, {
       token:   options?.SIENNA?.linkPair,
       mgmt:    options?.MGMT?.linkPair,
       portion: options.portion,
       config:  [[options.admin?.address, options.portion]]
     })
+
     Object.defineProperties(this.init.msg, {
       token: { enumerable: true, get () { return options?.SIENNA?.linkPair } },
       mgmt:  { enumerable: true, get () { return options?.MGMT?.linkPair   } }
     })
+
   }
 
   /** query contract status */

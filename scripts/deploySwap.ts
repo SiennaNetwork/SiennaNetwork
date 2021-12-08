@@ -3,20 +3,22 @@ import type { IChain, IAgent } from '@fadroma/ops'
 import { Scrt } from '@fadroma/scrt'
 import { bold, randomHex } from '@fadroma/tools'
 import { writeFileSync } from 'fs'
-import { ONE_SIENNA } from '../ops/index'
 import buildAndUpload from './buildAndUpload'
 
-import type { SNIP20Contract as SNIP20 } from '@sienna/api'
+const SIENNA_DECIMALS = 18
+const ONE_SIENNA = BigInt(`1${[...Array(SIENNA_DECIMALS)].map(()=>'0').join('')}`)
+
+import type { SNIP20Contract } from '@fadroma/snip20'
 import {
   AMMContract,
-  AMMSNIP20,
+  AMMSNIP20Contract,
   FactoryContract,
   IDOContract,
-  LPToken,
+  LPTokenContract,
   LaunchpadContract,
   RPTContract,
   RewardsContract,
-  SiennaSNIP20,
+  SiennaSNIP20Contract,
 } from '@sienna/api'
 
 export type SwapOptions = {
@@ -35,13 +37,13 @@ export default async function deploySwap (options: SwapOptions) {
 
   const
     instance = chain.instances.active,
-    SIENNA   = instance.getContract(SiennaSNIP20, 'SiennaSNIP20', admin),
-    RPT      = instance.getContract(RPTContract,  'SiennaRPT',    admin)
+    SIENNA   = instance.getContract(SiennaSNIP20Contract, 'SiennaSNIP20', admin),
+    RPT      = instance.getContract(RPTContract,          'SiennaRPT',    admin)
 
   const
     EXCHANGE  = new AMMContract({ prefix, admin }),
-    AMMTOKEN  = new AMMSNIP20({ prefix, admin }),
-    LPTOKEN   = new LPToken({ prefix, admin }),
+    AMMTOKEN  = new AMMSNIP20Contract({ prefix, admin }),
+    LPTOKEN   = new LPTokenContract({ prefix, admin }),
     IDO       = new IDOContract({ prefix, admin }),
     LAUNCHPAD = new LaunchpadContract({ prefix, admin }),
     REWARDS   = new RewardsContract({ prefix, admin })
@@ -90,7 +92,7 @@ export default async function deploySwap (options: SwapOptions) {
     for (const name of swapPairs) {
       const {lp_token} = await deployLiquidityPool(name, existingExchanges)
       if (rewards) {
-        const lpToken = LPToken.attach(lp_token.address, lp_token.code_hash, admin)
+        const lpToken = LPTokenContract.attach(lp_token.address, lp_token.code_hash, admin)
         const reward  = BigInt(rewards[name])
         const pool    = await deployRewardPool(name, lpToken, SIENNA)
         rptConfig.push([pool.address, String(reward * ONE_SIENNA)])
@@ -156,7 +158,7 @@ export default async function deploySwap (options: SwapOptions) {
   function getSwapTokens (links: Record<string, { address: string, codeHash: string }>) {
     const tokens = {}
     for (const [name, {address, codeHash}] of Object.entries(links)) {
-      tokens[name] = AMMSNIP20.attach(address, codeHash, admin)
+      tokens[name] = AMMSNIP20Contract.attach(address, codeHash, admin)
       console.log('getSwapToken', name, address, codeHash)
     }
     return tokens
@@ -170,7 +172,7 @@ export default async function deploySwap (options: SwapOptions) {
       const [symbol, {label, initMsg}]
       of Object.entries(settings[`placeholderTokens-${chain.chainId}`])
     ) {
-      const token = tokens[symbol] = new AMMSNIP20({ admin })
+      const token = tokens[symbol] = new AMMSNIP20Contract({ admin })
       Object.assign(token.blob, { codeId: AMMTOKEN.codeId, codeHash: AMMTOKEN.codeHash })
       Object.assign(token.init, { prefix, label, msg: initMsg })
       Object.assign(token.init.msg, { prng_seed: randomHex(36) })
