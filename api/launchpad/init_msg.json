@@ -61,7 +61,7 @@
           "description": "Info about the contract requesting the callback.",
           "allOf": [
             {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             }
           ]
         },
@@ -75,7 +75,7 @@
         }
       }
     },
-    "ContractInstance_for_HumanAddr": {
+    "ContractLink_for_HumanAddr": {
       "description": "Info needed to talk to a contract instance.",
       "type": "object",
       "required": [

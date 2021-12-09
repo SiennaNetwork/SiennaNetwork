@@ -5,6 +5,7 @@ use amm_shared::msg::exchange;
 use amm_shared::msg::factory;
 use amm_shared::msg::ido;
 use amm_shared::msg::launchpad;
+use amm_shared::msg::router;
 use amm_shared::msg::snip20;
 
 use sienna_mgmt::msg as mgmt;
@@ -89,6 +90,16 @@ fn main() {
 
     let mut out_dir = current_dir().unwrap();
     out_dir.push("api");
+    out_dir.push("exchange");
+    create_dir_all(&out_dir).unwrap();
+    remove_schemas(&out_dir).unwrap();
+    export_schema(&schema_for!(exchange::InitMsg), &out_dir);
+    export_schema(&schema_for!(exchange::HandleMsg), &out_dir);
+    export_schema(&schema_for!(exchange::QueryMsg), &out_dir);
+    export_schema(&schema_for!(exchange::QueryMsgResponse), &out_dir);
+
+    let mut out_dir = current_dir().unwrap();
+    out_dir.push("api");
     out_dir.push("rewards");
     create_dir_all(&out_dir).unwrap();
     remove_schemas(&out_dir).unwrap();
@@ -97,13 +108,12 @@ fn main() {
     export_schema(&schema_for!(rewards::Query), &out_dir);
     export_schema(&schema_for!(rewards::Response), &out_dir);
 
-    //let mut out_dir = current_dir().unwrap();
-    //out_dir.push("api");
-    //out_dir.push("rewards_emergency_proxy");
-    //create_dir_all(&out_dir).unwrap();
-    //remove_schemas(&out_dir).unwrap();
-    //export_schema(&schema_for!(rewards_emergency_proxy::Init), &out_dir);
-    //export_schema(&schema_for!(rewards_emergency_proxy::Handle), &out_dir);
-    //export_schema(&schema_for!(rewards_emergency_proxy::Query), &out_dir);
-    //export_schema(&schema_for!(rewards_emergency_proxy::Response), &out_dir);
+    let mut out_dir = current_dir().unwrap();
+    out_dir.push("api");
+    out_dir.push("router");
+    create_dir_all(&out_dir).unwrap();
+    remove_schemas(&out_dir).unwrap();
+    export_schema(&schema_for!(router::InitMsg), &out_dir);
+    export_schema(&schema_for!(router::HandleMsg), &out_dir);
+    export_schema(&schema_for!(router::QueryMsg), &out_dir);
 }

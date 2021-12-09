@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Init",
+  "type": "object",
+  "required": [
+    "reward_token",
+    "viewing_key"
+  ],
+  "properties": {
+    "admin": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cooldown": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "lp_token": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ContractLink_for_HumanAddr"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ratio": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": [
+        {
+          "$ref": "#/definitions/Uint128"
+        },
+        {
+          "$ref": "#/definitions/Uint128"
+        }
+      ],
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "reward_token": {
+      "$ref": "#/definitions/ContractLink_for_HumanAddr"
+    },
+    "threshold": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "viewing_key": {
+      "$ref": "#/definitions/ViewingKey"
+    }
+  },
+  "definitions": {
+    "ContractLink_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "Uint128": {
+      "type": "string"
+    },
+    "ViewingKey": {
+      "type": "string"
+    }
+  }
+}

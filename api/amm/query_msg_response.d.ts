@@ -10,8 +10,8 @@ export type QueryMsgResponse = {
     amount_0: Uint128;
     amount_1: Uint128;
     contract_version: number;
-    factory: ContractInstanceFor_HumanAddr;
-    liquidity_token: ContractInstanceFor_HumanAddr;
+    factory: ContractLinkFor_HumanAddr;
+    liquidity_token: ContractLinkFor_HumanAddr;
     pair: TokenPairFor_HumanAddr;
     total_liquidity: Uint128;
     [k: string]: unknown;
@@ -41,7 +41,7 @@ export type TokenTypeFor_HumanAddr =
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractInstanceFor_HumanAddr {
+export interface ContractLinkFor_HumanAddr {
   address: HumanAddr;
   code_hash: string;
   [k: string]: unknown;

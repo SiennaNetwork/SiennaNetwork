@@ -1,7 +1,4 @@
-import { 
-    Address, TokenPair, ContractInstantiationInfo,
-    ContractInfo, Fee, create_entropy
-} from './core'
+import { Address, TokenPair, Fee, ContractInstantiationInfo, create_entropy, TokenType } from './core'
 import { SmartContract, Executor, Querier } from './contract'
 import { TokenSaleConfig } from './ido'
 import { TokenSettings } from './launchpad'
@@ -10,7 +7,7 @@ import { ExecuteResult } from 'secretjs'
 
 export interface Exchange {
     pair: TokenPair,
-    contract: ContractInfo
+    address: Address
 }
 
 export interface ExchangeSettings {
@@ -37,11 +34,13 @@ export class Pagination {
 }
 
 export interface FactoryConfig {
-    exchange_settings: ExchangeSettings;
-    ido_contract: ContractInstantiationInfo;
+    snip20_contract: ContractInstantiationInfo;
     lp_token_contract: ContractInstantiationInfo;
     pair_contract: ContractInstantiationInfo;
-    snip20_contract: ContractInstantiationInfo;
+    launchpad_contract: ContractInstantiationInfo;
+    ido_contract: ContractInstantiationInfo;
+    router_contract: ContractInstantiationInfo;
+    exchange_settings: ExchangeSettings;
 }
 
 export class AmmFactoryContract extends SmartContract<AmmFactoryExecutor, AmmFactoryQuerier> {
@@ -63,7 +62,7 @@ export class AmmFactoryExecutor extends Executor {
             }
         }
 
-        return this.run(msg, '760000')
+        return this.run(msg, '750000')
     }
 
     async create_ido(config: TokenSaleConfig): Promise<ExecuteResult> {
@@ -88,12 +87,23 @@ export class AmmFactoryExecutor extends Executor {
         return this.run(msg, '200000')
     }
 
+    async create_router(register_tokens: TokenType[]): Promise<ExecuteResult> {
+        const msg = {
+            create_router: {
+                register_tokens,
+            }
+        }
+
+        return this.run(msg, '200000')
+    }
+
     async set_config(
         snip20_contract: ContractInstantiationInfo | undefined,
         lp_token_contract: ContractInstantiationInfo | undefined,
         pair_contract: ContractInstantiationInfo | undefined,
         launchpad_contract: ContractInstantiationInfo | undefined,
         ido_contract: ContractInstantiationInfo | undefined,
+        router_contract: ContractInstantiationInfo | undefined,
         exchange_settings: ExchangeSettings | undefined
     ): Promise<ExecuteResult> {
         const msg = {
@@ -103,6 +113,7 @@ export class AmmFactoryExecutor extends Executor {
                 pair_contract,
                 launchpad_contract,
                 ido_contract,
+                router_contract,
                 exchange_settings
             }
         }
@@ -128,6 +139,13 @@ export class AmmFactoryQuerier extends Querier {
 
         const result = await this.run(msg) as GetLaunchpadAddressResponse
         return result.get_launchpad_address.address
+    }
+
+    async get_router_address(): Promise<Address> {
+        const msg = "get_router_address" as unknown as object
+
+        const result = await this.run(msg) as GetRouterAddressResponse
+        return result.get_router_address.address
     }
 
     async list_idos(pagination: Pagination): Promise<Address[]> {
@@ -170,6 +188,12 @@ interface GetExchangeAddressResponse {
 
 interface GetLaunchpadAddressResponse {
     get_launchpad_address: {
+        address: Address;
+    }
+} 
+
+interface GetRouterAddressResponse {
+    get_router_address: {
         address: Address;
     }
 } 

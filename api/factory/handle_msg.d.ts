@@ -22,6 +22,7 @@ export type HandleMsg =
         launchpad_contract?: ContractInstantiationInfo | null;
         lp_token_contract?: ContractInstantiationInfo | null;
         pair_contract?: ContractInstantiationInfo | null;
+        router_contract?: ContractInstantiationInfo | null;
         snip20_contract?: ContractInstantiationInfo | null;
         [k: string]: unknown;
       };
@@ -48,6 +49,13 @@ export type HandleMsg =
         entropy: Binary;
         info: TokenSaleConfig;
         tokens?: (HumanAddr | null)[] | null;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      create_router: {
+        register_tokens?: TokenTypeFor_HumanAddr[] | null;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -82,8 +90,48 @@ export type HandleMsg =
       [k: string]: unknown;
     }
   | {
-      add_exchanges: {
+      register_router: {
+        signature: Binary;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      transfer_exchanges: {
+        /**
+         * New factory instance.
+         */
+        new_instance: ContractLinkFor_HumanAddr;
+        /**
+         * The password set on the receiving instance.
+         */
+        password: string;
+        /**
+         * Optionally, skip transferring the given exchanges.
+         */
+        skip?: HumanAddr[] | null;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      receive_exchanges: {
         exchanges: ExchangeFor_HumanAddr[];
+        /**
+         * Indicates whether all exchanges have been transferred.
+         */
+        finalize: boolean;
+        /**
+         * The password that was set on this instance.
+         */
+        password: string;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      set_migration_password: {
+        password: string;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -97,13 +145,13 @@ export type HandleMsg =
     }
   | {
       add_launchpad: {
-        launchpad: ContractInstanceFor_HumanAddr;
+        launchpad: ContractLinkFor_HumanAddr;
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
-      admin: AdminHandleMsg;
+      admin: HandleMsg1;
       [k: string]: unknown;
     };
 /**
@@ -136,7 +184,7 @@ export type TokenTypeFor_HumanAddr =
     };
 export type Uint128 = string;
 export type SaleType = "PreLockAndSwap" | "PreLockOnly" | "SwapOnly";
-export type AdminHandleMsg = {
+export type HandleMsg1 = {
   change_admin: {
     address: HumanAddr;
     [k: string]: unknown;
@@ -197,7 +245,7 @@ export interface TokenSaleConfig {
    * Sale type settings
    */
   sale_type?: SaleType | null;
-  sold_token: ContractInstanceFor_HumanAddr;
+  sold_token: ContractLinkFor_HumanAddr;
   /**
    * The addresses that are eligible to participate in the sale.
    */
@@ -207,7 +255,7 @@ export interface TokenSaleConfig {
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractInstanceFor_HumanAddr {
+export interface ContractLinkFor_HumanAddr {
   address: HumanAddr;
   code_hash: string;
   [k: string]: unknown;
@@ -217,9 +265,9 @@ export interface ContractInstanceFor_HumanAddr {
  */
 export interface ExchangeFor_HumanAddr {
   /**
-   * Address of the contract that manages the exchange.
+   * The contract that manages the exchange.
    */
-  address: HumanAddr;
+  contract: ContractLinkFor_HumanAddr;
   /**
    * The pair that the contract manages.
    */

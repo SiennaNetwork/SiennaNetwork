@@ -7,6 +7,7 @@
       "enum": [
         "status",
         "get_launchpad_address",
+        "get_router_address",
         "get_exchange_settings"
       ]
     },
@@ -86,18 +87,12 @@
       ],
       "properties": {
         "admin": {
-          "$ref": "#/definitions/AdminQueryMsg"
+          "$ref": "#/definitions/QueryMsg"
         }
       }
     }
   ],
   "definitions": {
-    "AdminQueryMsg": {
-      "type": "string",
-      "enum": [
-        "admin"
-      ]
-    },
     "HumanAddr": {
       "type": "string"
     },
@@ -119,6 +114,21 @@
           "minimum": 0.0
         }
       }
+    },
+    "QueryMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "admin"
+          ],
+          "properties": {
+            "admin": {
+              "type": "object"
+            }
+          }
+        }
+      ]
     },
     "TokenPair_for_HumanAddr": {
       "type": "array",

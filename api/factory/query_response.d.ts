@@ -21,6 +21,13 @@ export type QueryResponse =
       [k: string]: unknown;
     }
   | {
+      get_router_address: {
+        address: HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
       list_idos: {
         idos: HumanAddr[];
         [k: string]: unknown;
@@ -48,6 +55,7 @@ export type QueryResponse =
         launchpad_contract: ContractInstantiationInfo;
         lp_token_contract: ContractInstantiationInfo;
         pair_contract: ContractInstantiationInfo;
+        router_contract: ContractInstantiationInfo;
         snip20_contract: ContractInstantiationInfo;
         [k: string]: unknown;
       };
@@ -77,13 +85,21 @@ export type TokenTypeFor_HumanAddr =
  */
 export interface ExchangeFor_HumanAddr {
   /**
-   * Address of the contract that manages the exchange.
+   * The contract that manages the exchange.
    */
-  address: HumanAddr;
+  contract: ContractLinkFor_HumanAddr;
   /**
    * The pair that the contract manages.
    */
   pair: TokenPairFor_HumanAddr;
+  [k: string]: unknown;
+}
+/**
+ * Info needed to talk to a contract instance.
+ */
+export interface ContractLinkFor_HumanAddr {
+  address: HumanAddr;
+  code_hash: string;
   [k: string]: unknown;
 }
 export interface ExchangeSettingsFor_HumanAddr {

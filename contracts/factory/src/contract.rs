@@ -1,40 +1,38 @@
 use amm_shared::{
-    Pagination, TokenPair,
     exchange::Exchange,
     fadroma::{
         admin::{
-            handle as admin_handle,
-            query as admin_query,
-            assert_admin, load_admin,
-            Admin, DefaultImpl as AdminImpl
+            assert_admin, handle as admin_handle, load_admin, query as admin_query, Admin,
+            DefaultImpl as AdminImpl,
         },
         require_admin::require_admin,
         scrt::{
-            log, to_binary, Api, Binary, CosmosMsg, Env, Extern, 
-            InitResponse, Querier, StdError, StdResult, Storage, 
-            HandleResponse, HumanAddr, WasmMsg
+            log, to_binary, Api, Binary, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
+            InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
         scrt_addr::Humanize,
         scrt_callback::Callback,
         scrt_link::ContractLink,
         scrt_migrate,
         scrt_migrate::{get_status, ContractStatusLevel},
-        scrt_storage::{load, remove, save}
+        scrt_storage::{load, remove, save},
     },
     msg::{
-        exchange::{InitMsg as ExchangeInitMsg, HandleMsg as ExchangeHandleMsg},
+        exchange::{HandleMsg as ExchangeHandleMsg, InitMsg as ExchangeInitMsg},
         factory::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
         ido::{InitMsg as IdoInitMsg, TokenSaleConfig, WhitelistRequest},
-        launchpad::{InitMsg as LaunchpadInitMsg, TokenSettings}
-    }
+        launchpad::{InitMsg as LaunchpadInitMsg, TokenSettings},
+        router::InitMsg as RouterInitMsg,
+    },
+    Pagination, TokenPair, TokenType,
 };
 
 use crate::state::{
-    get_address_for_pair, get_exchanges, get_idos, ido_whitelist_add, ido_whitelist_remove,
-    is_ido_whitelisted, load_config, load_launchpad_instance, load_prng_seed, pair_exists,
-    save_config, save_launchpad_instance, save_prng_seed, store_exchanges, store_ido_addresses,
-    exchanges_store, save_migration_password, load_migration_password, remove_migration_password,
-    Config
+    exchanges_store, get_address_for_pair, get_exchanges, get_idos, ido_whitelist_add,
+    ido_whitelist_remove, is_ido_whitelisted, load_config, load_launchpad_instance,
+    load_migration_password, load_prng_seed, load_router_instance, pair_exists,
+    remove_migration_password, save_config, save_launchpad_instance, save_migration_password,
+    save_prng_seed, save_router_instance, store_exchanges, store_ido_addresses, Config,
 };
 
 pub const EPHEMERAL_STORAGE_KEY: &[u8] = b"ephemeral_storage";
@@ -46,14 +44,18 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
     save_prng_seed(&mut deps.storage, &msg.prng_seed)?;
-    save_config(deps, &Config {
-        snip20_contract: msg.snip20_contract,
-        lp_token_contract: msg.lp_token_contract,
-        pair_contract: msg.pair_contract,
-        launchpad_contract: msg.launchpad_contract,
-        ido_contract: msg.ido_contract,
-        exchange_settings: msg.exchange_settings,
-    })?;
+    save_config(
+        deps,
+        &Config {
+            snip20_contract: msg.snip20_contract,
+            lp_token_contract: msg.lp_token_contract,
+            pair_contract: msg.pair_contract,
+            launchpad_contract: msg.launchpad_contract,
+            ido_contract: msg.ido_contract,
+            router_contract: msg.router_contract,
+            exchange_settings: msg.exchange_settings,
+        },
+    )?;
 
     AdminImpl.new(msg.admin, deps, env)
 }
@@ -64,15 +66,22 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     match msg {
-        HandleMsg::SetStatus { level, reason, new_address } => {
+        HandleMsg::SetStatus {
+            level,
+            reason,
+            new_address,
+        } => {
             scrt_migrate::set_status(deps, env, level, reason, new_address)?;
-            
             return Ok(HandleResponse::default());
-        },
-        HandleMsg::TransferExchanges { password, new_instance, skip } => {
+        }
+        HandleMsg::TransferExchanges {
+            password,
+            new_instance,
+            skip,
+        } => {
             return transfer_exchanges(deps, env, new_instance, password, skip);
-        },
-        _ => { }
+        }
+        _ => {}
     }
 
     scrt_migrate::is_operational(&deps)?;
@@ -82,18 +91,27 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::TransferExchanges { .. } => unreachable!(),
         HandleMsg::SetConfig { .. } => set_config(deps, env, msg),
         HandleMsg::IdoWhitelist { addresses } => ido_whitelist(deps, env, addresses),
-        HandleMsg::CreateExchange { pair, entropy } =>
-            create_exchange(deps, env, pair, entropy),
-        HandleMsg::CreateLaunchpad { tokens, entropy } =>
-            create_launchpad(deps, env, tokens, entropy),
+        HandleMsg::CreateExchange { pair, entropy } => create_exchange(deps, env, pair, entropy),
+        HandleMsg::CreateLaunchpad { tokens, entropy } => {
+            create_launchpad(deps, env, tokens, entropy)
+        }
+        HandleMsg::CreateRouter { register_tokens } => create_router(deps, env, register_tokens),
         HandleMsg::RegisterLaunchpad { signature } => register_launchpad(deps, env, signature),
-        HandleMsg::CreateIdo { info, tokens, entropy } =>
-            create_ido(deps, env, info, tokens, entropy),
+        HandleMsg::CreateIdo {
+            info,
+            tokens,
+            entropy,
+        } => create_ido(deps, env, info, tokens, entropy),
         HandleMsg::RegisterIdo { signature } => register_ido(deps, env, signature),
-        HandleMsg::RegisterExchange { pair, signature } =>
-            register_exchange(deps, env, pair, signature),
-        HandleMsg::ReceiveExchanges { password, finalize, exchanges } =>
-            receive_exchanges(deps, password, finalize, exchanges),
+        HandleMsg::RegisterRouter { signature } => register_router(deps, env, signature),
+        HandleMsg::RegisterExchange { pair, signature } => {
+            register_exchange(deps, env, pair, signature)
+        }
+        HandleMsg::ReceiveExchanges {
+            password,
+            finalize,
+            exchanges,
+        } => receive_exchanges(deps, password, finalize, exchanges),
         HandleMsg::SetMigrationPassword { password } => set_migration_password(deps, env, password),
         HandleMsg::AddIdos { idos } => add_idos(deps, env, idos),
         HandleMsg::AddLaunchpad { launchpad } => add_launchpad(deps, env, launchpad),
@@ -112,6 +130,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::ListExchanges { pagination } => list_exchanges(deps, pagination),
         QueryMsg::ListIdos { pagination } => list_idos(deps, pagination),
         QueryMsg::GetLaunchpadAddress => get_launchpad_address(deps),
+        QueryMsg::GetRouterAddress => get_router_address(deps),
         QueryMsg::GetExchangeSettings => query_exchange_settings(deps),
 
         QueryMsg::Admin(msg) => to_binary(&admin_query(deps, msg, AdminImpl)?),
@@ -130,6 +149,7 @@ pub fn set_config<S: Storage, A: Api, Q: Querier>(
         pair_contract,
         launchpad_contract,
         ido_contract,
+        router_contract,
         exchange_settings,
     } = msg
     {
@@ -149,6 +169,9 @@ pub fn set_config<S: Storage, A: Api, Q: Querier>(
         }
         if let Some(new_value) = ido_contract {
             config.ido_contract = new_value;
+        }
+        if let Some(new_value) = router_contract {
+            config.router_contract = new_value;
         }
         if let Some(new_value) = exchange_settings {
             config.exchange_settings = new_value;
@@ -173,6 +196,7 @@ pub fn get_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> Std
         pair_contract,
         launchpad_contract,
         ido_contract,
+        router_contract,
         exchange_settings,
         ..
     } = load_config(deps)?;
@@ -183,6 +207,7 @@ pub fn get_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> Std
         pair_contract,
         launchpad_contract,
         ido_contract,
+        router_contract,
         exchange_settings,
     })
 }
@@ -265,8 +290,8 @@ fn register_exchange<S: Storage, A: Api, Q: Querier>(
         pair,
         contract: ContractLink {
             address: env.message.sender.clone(),
-            code_hash: config.pair_contract.code_hash
-        }
+            code_hash: config.pair_contract.code_hash,
+        },
     };
 
     store_exchanges(deps, vec![exchange])?;
@@ -450,6 +475,70 @@ fn register_ido<S: Storage, A: Api, Q: Querier>(
 }
 
 #[require_admin]
+fn create_router<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    register_tokens: Option<Vec<TokenType<HumanAddr>>>,
+) -> StdResult<HandleResponse> {
+    let signature = create_signature(&env)?;
+    save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
+    // Again, creating the Router happens when the instantiated contract calls
+    // us back via the HandleMsg::RegisterRouter so that we can get its address.
+    let config = load_config(deps)?;
+
+    Ok(HandleResponse {
+        messages: vec![CosmosMsg::Wasm(WasmMsg::Instantiate {
+            code_id: config.router_contract.id,
+            callback_code_hash: config.router_contract.code_hash,
+            send: vec![],
+            label: format!(
+                "SIENNA Router for swapping, created at {}",
+                env.block.time // Make sure the label is unique
+            ),
+            msg: to_binary(&RouterInitMsg {
+                register_tokens,
+                owner: Some(env.message.sender),
+                callback: Some(Callback {
+                    contract: ContractLink {
+                        address: env.contract.address,
+                        code_hash: env.contract_code_hash,
+                    },
+                    msg: to_binary(&HandleMsg::RegisterRouter { signature })?,
+                }),
+            })?,
+        })],
+        log: vec![log("action", "create_router")],
+        data: None,
+    })
+}
+
+fn register_router<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    signature: Binary,
+) -> StdResult<HandleResponse> {
+    ensure_correct_signature(&mut deps.storage, signature)?;
+    let config = load_config(deps)?;
+
+    save_router_instance(
+        &mut deps.storage,
+        &ContractLink {
+            address: env.message.sender.clone(),
+            code_hash: config.router_contract.code_hash,
+        },
+    )?;
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("action", "register_router"),
+            log("address", env.message.sender),
+        ],
+        data: None,
+    })
+}
+
+#[require_admin]
 fn ido_whitelist<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -470,7 +559,7 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
     env: Env,
     new_instance: ContractLink<HumanAddr>,
     password: String,
-    skip: Option<Vec<HumanAddr>>
+    skip: Option<Vec<HumanAddr>>,
 ) -> StdResult<HandleResponse> {
     let status = scrt_migrate::get_status(&deps)?;
 
@@ -480,18 +569,24 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
             env,
             ContractStatusLevel::Migrating,
             "Migrating to new factory.".into(),
-            Some(new_instance.address.clone())
+            Some(new_instance.address.clone()),
         )?;
     }
 
     let skip = skip.unwrap_or(vec![]);
     let mut exchanges_store = exchanges_store();
 
-    let len = exchanges_store.len(&deps.storage)?.min(TRANSFER_LIMIT as u64);
+    let len = exchanges_store
+        .len(&deps.storage)?
+        .min(TRANSFER_LIMIT as u64);
     let mut messages = Vec::with_capacity(len as usize - skip.len() + 1);
     let mut exchanges = Vec::with_capacity(len as usize - skip.len());
 
-    for e in exchanges_store.iter(&deps.storage)?.rev().take(TRANSFER_LIMIT) {
+    for e in exchanges_store
+        .iter(&deps.storage)?
+        .rev()
+        .take(TRANSFER_LIMIT)
+    {
         let e = e?.humanize(&deps.api)?;
 
         if skip.contains(&e.contract.address) {
@@ -503,8 +598,8 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
             callback_code_hash: e.contract.code_hash.clone(),
             send: vec![],
             msg: to_binary(&ExchangeHandleMsg::ChangeFactory {
-                contract: new_instance.clone()
-            })?
+                contract: new_instance.clone(),
+            })?,
         }));
 
         exchanges.push(e);
@@ -524,17 +619,14 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
         msg: to_binary(&HandleMsg::ReceiveExchanges {
             password,
             finalize: len == 0,
-            exchanges
-        })?
+            exchanges,
+        })?,
     }));
 
     Ok(HandleResponse {
         messages,
-        log: vec![
-            log("action", "transfer_exchanges"),
-            log("remaining", len)
-        ],
-        data: None
+        log: vec![log("action", "transfer_exchanges"), log("remaining", len)],
+        data: None,
     })
 }
 
@@ -542,7 +634,7 @@ fn receive_exchanges<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     password: String,
     finalize: bool,
-    exchanges: Vec<Exchange<HumanAddr>>
+    exchanges: Vec<Exchange<HumanAddr>>,
 ) -> StdResult<HandleResponse> {
     let stored_pass = load_migration_password(&deps.storage)?;
 
@@ -559,10 +651,7 @@ fn receive_exchanges<S: Storage, A: Api, Q: Querier>(
 
     Ok(HandleResponse {
         messages: vec![],
-        log: vec![
-            log("action", "receive_exchanges"),
-            log("received", len)
-        ],
+        log: vec![log("action", "receive_exchanges"), log("received", len)],
         data: None,
     })
 }
@@ -571,7 +660,7 @@ fn receive_exchanges<S: Storage, A: Api, Q: Querier>(
 fn set_migration_password<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    password: String
+    password: String,
 ) -> StdResult<HandleResponse> {
     save_migration_password(&mut deps.storage, &password)?;
 
@@ -635,6 +724,16 @@ fn get_launchpad_address<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+fn get_router_address<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Binary> {
+    let router = load_router_instance(&deps.storage)?.ok_or(StdError::generic_err(
+        "Router contract hasn't been created yet",
+    ))?;
+
+    to_binary(&QueryResponse::GetRouterAddress {
+        address: router.address,
+    })
+}
+
 fn list_exchanges<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     pagination: Pagination,
@@ -666,9 +765,8 @@ pub(crate) fn create_signature(env: &Env) -> StdResult<Binary> {
 }
 
 fn ensure_correct_signature(storage: &mut impl Storage, signature: Binary) -> StdResult<()> {
-    let stored_signature: Binary = load(storage, EPHEMERAL_STORAGE_KEY)?
-        .ok_or_else(|| StdError::unauthorized())?;
-    
+    let stored_signature: Binary =
+        load(storage, EPHEMERAL_STORAGE_KEY)?.ok_or_else(|| StdError::unauthorized())?;
     if stored_signature != signature {
         return Err(StdError::unauthorized());
     }

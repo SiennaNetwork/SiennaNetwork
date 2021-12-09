@@ -23,6 +23,20 @@ export class SNIP20 extends ScrtContract {
   }
 
   /**
+   * Return snip20 data for the instantiated token
+   * 
+   * @returns {{ address: string, code_hash: string }}
+   */
+  tokenTypeData() {
+    return {
+      custom_token: {
+        contract_addr: this.address,
+        token_code_hash: this.codeHash,
+      }
+    }
+  }
+
+  /**
    * Change admin of the token
    *
    * @param {string} address
@@ -226,6 +240,35 @@ export class SNIP20 extends ScrtContract {
         "utf8"
       ).toString("base64"),
     };
+    return this.tx.send(
+      message,
+      agent
+    );
+  }
+
+  /**
+   * Send tokens
+   *
+   * @param {string} recipient Address
+   * @param {string} amount Amount to send
+   * @param {object} [msg] Message to send
+   * @param {Agent} [agent]
+   * @returns
+   */
+  send = (recipient: string, amount: string, msg?: object, agent?: Agent) => {
+    const message = {
+      recipient,
+      amount: `${amount}`,
+      msg: undefined,
+    };
+
+    if (msg && typeof msg === "object") {
+      message.msg = Buffer.from(
+        JSON.stringify(msg),
+        "utf8"
+      ).toString("base64");
+    }
+
     return this.tx.send(
       message,
       agent

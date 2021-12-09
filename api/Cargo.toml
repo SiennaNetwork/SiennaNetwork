@@ -1,5 +1,5 @@
 [package]
-name    = "sienna-schema"
+name = "sienna-schema"
 version = "0.0.0"
 authors = ["Adam A. <adam@hack.bg>"]
 edition = "2018"
@@ -12,9 +12,9 @@ exchange        = { path = "../contracts/exchange" }
 factory         = { path = "../contracts/factory" }
 ido             = { path = "../contracts/ido" }
 lp-token        = { path = "../contracts/lp-token" }
+router          = { path = "../contracts/router" }
 sienna-mgmt     = { path = "../contracts/mgmt" }
 sienna-rewards  = { path = "../contracts/rewards" }
-#sienna-rewards-emergency-proxy = { path = "../demos/rewards-emergency-proxy" }
 sienna-rpt      = { path = "../contracts/rpt" }
 
 [[bin]]

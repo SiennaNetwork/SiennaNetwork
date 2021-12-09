@@ -14,6 +14,7 @@ import { IDO } from './IDO'
 import { Launchpad } from './Launchpad'
 
 import { abs } from "../ops/index";
+import { SwapRouter } from './Router';
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./factory/init_msg.json",
@@ -28,7 +29,8 @@ type FactoryConstructorOptions = ContractAPIOptions & {
   EXCHANGE:   AMM,
   AMMTOKEN:   AMMSNIP20,
   LPTOKEN:    LPToken,
-  IDO:        IDO
+  IDO: IDO,
+  ROUTER: SwapRouter
 }
 
 export class Factory extends ScrtContract {
@@ -40,7 +42,8 @@ export class Factory extends ScrtContract {
     EXCHANGE?:  AMM
     AMMTOKEN?:  AMMSNIP20
     LPTOKEN?:   LPToken
-    IDO?:       IDO
+    IDO?:       IDO,
+    ROUTER?:    SwapRouter,
     LAUNCHPAD?: Launchpad,
     codeId?: number,
     label?: string,
@@ -52,8 +55,8 @@ export class Factory extends ScrtContract {
       admin: options.admin?.address,
     })
 
-    const { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD } = options
-    Object.assign(this.dependencies, { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD })
+    const { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, ROUTER, LAUNCHPAD } = options
+    Object.assign(this.dependencies, { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, ROUTER, LAUNCHPAD })
 
     const self = this
     Object.defineProperties(this.init.msg, {
@@ -72,6 +75,10 @@ export class Factory extends ScrtContract {
       ido_contract:       {
         enumerable: true,
         get () { return self.dependencies.IDO.template }
+      },
+      router_contract:       {
+        enumerable: true,
+        get () { return self.dependencies.ROUTER.template }
       },
       launchpad_contract: {
         enumerable: true,

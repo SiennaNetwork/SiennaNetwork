@@ -43,6 +43,25 @@
     {
       "type": "object",
       "required": [
+        "get_router_address"
+      ],
+      "properties": {
+        "get_router_address": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
         "list_idos"
       ],
       "properties": {
@@ -117,6 +136,7 @@
             "launchpad_contract",
             "lp_token_contract",
             "pair_contract",
+            "router_contract",
             "snip20_contract"
           ],
           "properties": {
@@ -133,6 +153,9 @@
               "$ref": "#/definitions/ContractInstantiationInfo"
             },
             "pair_contract": {
+              "$ref": "#/definitions/ContractInstantiationInfo"
+            },
+            "router_contract": {
               "$ref": "#/definitions/ContractInstantiationInfo"
             },
             "snip20_contract": {
@@ -159,6 +182,22 @@
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
+        }
+      }
+    },
+    "ContractLink_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
         }
       }
     },
@@ -191,15 +230,15 @@
       "description": "Represents the address of an exchange and the pair that it manages",
       "type": "object",
       "required": [
-        "address",
+        "contract",
         "pair"
       ],
       "properties": {
-        "address": {
-          "description": "Address of the contract that manages the exchange.",
+        "contract": {
+          "description": "The contract that manages the exchange.",
           "allOf": [
             {
-              "$ref": "#/definitions/HumanAddr"
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             }
           ]
         },

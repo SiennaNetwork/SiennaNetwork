@@ -96,6 +96,16 @@
                 }
               ]
             },
+            "router_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContractInstantiationInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "snip20_contract": {
               "anyOf": [
                 {
@@ -202,6 +212,29 @@
       }
     },
     {
+      "description": "Create the router contract",
+      "type": "object",
+      "required": [
+        "create_router"
+      ],
+      "properties": {
+        "create_router": {
+          "type": "object",
+          "properties": {
+            "register_tokens": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/TokenType_for_HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "description": "Add addresses that are allowed to create IDOs",
       "type": "object",
       "required": [
@@ -289,16 +322,77 @@
       }
     },
     {
-      "description": "Adds already created exchanges to the registry. Admin only command.",
+      "description": "Used by a newly instantiated Router contract to register itself with the factory",
       "type": "object",
       "required": [
-        "add_exchanges"
+        "register_router"
       ],
       "properties": {
-        "add_exchanges": {
+        "register_router": {
           "type": "object",
           "required": [
-            "exchanges"
+            "signature"
+          ],
+          "properties": {
+            "signature": {
+              "$ref": "#/definitions/Binary"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Transfers exchanges to a new instance. Admin only command.",
+      "type": "object",
+      "required": [
+        "transfer_exchanges"
+      ],
+      "properties": {
+        "transfer_exchanges": {
+          "type": "object",
+          "required": [
+            "new_instance",
+            "password"
+          ],
+          "properties": {
+            "new_instance": {
+              "description": "New factory instance.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/ContractLink_for_HumanAddr"
+                }
+              ]
+            },
+            "password": {
+              "description": "The password set on the receiving instance.",
+              "type": "string"
+            },
+            "skip": {
+              "description": "Optionally, skip transferring the given exchanges.",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "receive_exchanges"
+      ],
+      "properties": {
+        "receive_exchanges": {
+          "type": "object",
+          "required": [
+            "exchanges",
+            "finalize",
+            "password"
           ],
           "properties": {
             "exchanges": {
@@ -306,6 +400,33 @@
               "items": {
                 "$ref": "#/definitions/Exchange_for_HumanAddr"
               }
+            },
+            "finalize": {
+              "description": "Indicates whether all exchanges have been transferred.",
+              "type": "boolean"
+            },
+            "password": {
+              "description": "The password that was set on this instance.",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_migration_password"
+      ],
+      "properties": {
+        "set_migration_password": {
+          "type": "object",
+          "required": [
+            "password"
+          ],
+          "properties": {
+            "password": {
+              "type": "string"
             }
           }
         }
@@ -348,7 +469,7 @@
           ],
           "properties": {
             "launchpad": {
-              "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             }
           }
         }
@@ -361,54 +482,15 @@
       ],
       "properties": {
         "admin": {
-          "$ref": "#/definitions/AdminHandleMsg"
+          "$ref": "#/definitions/HandleMsg"
         }
       }
     }
   ],
   "definitions": {
-    "AdminHandleMsg": {
-      "anyOf": [
-        {
-          "type": "object",
-          "required": [
-            "change_admin"
-          ],
-          "properties": {
-            "change_admin": {
-              "type": "object",
-              "required": [
-                "address"
-              ],
-              "properties": {
-                "address": {
-                  "$ref": "#/definitions/HumanAddr"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
     "Binary": {
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
-    },
-    "ContractInstance_for_HumanAddr": {
-      "description": "Info needed to talk to a contract instance.",
-      "type": "object",
-      "required": [
-        "address",
-        "code_hash"
-      ],
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/HumanAddr"
-        },
-        "code_hash": {
-          "type": "string"
-        }
-      }
     },
     "ContractInstantiationInfo": {
       "description": "Info needed to instantiate a contract.",
@@ -425,6 +507,22 @@
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
+        }
+      }
+    },
+    "ContractLink_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
         }
       }
     },
@@ -466,15 +564,15 @@
       "description": "Represents the address of an exchange and the pair that it manages",
       "type": "object",
       "required": [
-        "address",
+        "contract",
         "pair"
       ],
       "properties": {
-        "address": {
-          "description": "Address of the contract that manages the exchange.",
+        "contract": {
+          "description": "The contract that manages the exchange.",
           "allOf": [
             {
-              "$ref": "#/definitions/HumanAddr"
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
             }
           ]
         },
@@ -506,6 +604,29 @@
           "minimum": 0.0
         }
       }
+    },
+    "HandleMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "change_admin"
+          ],
+          "properties": {
+            "change_admin": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "HumanAddr": {
       "type": "string"
@@ -593,7 +714,7 @@
           ]
         },
         "sold_token": {
-          "$ref": "#/definitions/ContractInstance_for_HumanAddr"
+          "$ref": "#/definitions/ContractLink_for_HumanAddr"
         },
         "whitelist": {
           "description": "The addresses that are eligible to participate in the sale.",

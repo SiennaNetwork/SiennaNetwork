@@ -45,6 +45,11 @@ export interface NativeToken {
     };
 }
 
+export enum TypeOfToken {
+    Native,
+    Custom
+}
+
 // These two are not exported in secretjs...
 export interface Coin {
     readonly denom: string;
@@ -54,6 +59,26 @@ export interface Coin {
 export interface Fee {
     readonly amount: ReadonlyArray<Coin>
     readonly gas: Uint128
+}
+
+/**
+ * Extract some comparable id from the token type 
+ * 
+ * @param {TypeOfToken | TokenType} token
+ * @returns {string}
+ */
+export function get_type_of_token_id(token: TypeOfToken | TokenType): string {
+    if ((token as unknown as NativeToken).native_token) {
+        return "native";
+    }
+
+    const address = (token as unknown as CustomToken).custom_token?.contract_addr;
+
+    if (!address) {
+        throw new Error("TypeOfToken is not correct, missing address");
+    }
+
+    return address;
 }
 
 export function decode_data<T>(result: ExecuteResult | InstantiateResult): T {
@@ -115,11 +140,6 @@ export function add_native_balance(amount: TokenTypeAmount): Coin[] | undefined 
     }
 
     return result
-}
-
-export enum TypeOfToken {
-    Native,
-    Custom
 }
 
 export function get_token_type(token: TokenType): TypeOfToken {

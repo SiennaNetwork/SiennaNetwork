@@ -33,7 +33,7 @@ export interface CallbackFor_HumanAddr {
   /**
    * Info about the contract requesting the callback.
    */
-  contract: ContractInstanceFor_HumanAddr;
+  contract: ContractLinkFor_HumanAddr;
   /**
    * The message to call.
    */
@@ -43,7 +43,7 @@ export interface CallbackFor_HumanAddr {
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractInstanceFor_HumanAddr {
+export interface ContractLinkFor_HumanAddr {
   address: HumanAddr;
   code_hash: string;
   [k: string]: unknown;

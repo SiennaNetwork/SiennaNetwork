@@ -184,6 +184,13 @@ export type HandleAnswer =
         [k: string]: unknown;
       };
       [k: string]: unknown;
+    }
+  | {
+      revoke_pemit: {
+        status: ResponseStatus;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
     };
 export type ResponseStatus = "success" | "failure";
 export type ViewingKey = string;

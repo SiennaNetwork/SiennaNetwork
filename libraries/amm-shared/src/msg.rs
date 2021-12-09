@@ -1,9 +1,9 @@
 pub use crate::snip20_impl::msg as snip20;
 
 use fadroma::{
-    scrt_callback::Callback,
-    scrt_link::{ContractLink, ContractInstantiationInfo},
     scrt::{Binary, Decimal, HumanAddr, Uint128},
+    scrt_callback::Callback,
+    scrt_link::{ContractInstantiationInfo, ContractLink},
     scrt_migrate::ContractStatusLevel,
 };
 use schemars::JsonSchema;
@@ -18,10 +18,7 @@ pub mod factory {
         exchange::{Exchange, ExchangeSettings},
         Pagination,
     };
-    use fadroma::admin::{
-        HandleMsg as AdminHandleMsg,
-        QueryMsg as AdminQueryMsg
-    };
+    use fadroma::admin::{HandleMsg as AdminHandleMsg, QueryMsg as AdminQueryMsg};
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
     pub struct InitMsg {
@@ -30,6 +27,7 @@ pub mod factory {
         pub pair_contract: ContractInstantiationInfo,
         pub launchpad_contract: ContractInstantiationInfo,
         pub ido_contract: ContractInstantiationInfo,
+        pub router_contract: ContractInstantiationInfo,
         pub exchange_settings: ExchangeSettings<HumanAddr>,
         pub admin: Option<HumanAddr>,
         pub prng_seed: Binary,
@@ -51,6 +49,7 @@ pub mod factory {
             pair_contract: Option<ContractInstantiationInfo>,
             launchpad_contract: Option<ContractInstantiationInfo>,
             ido_contract: Option<ContractInstantiationInfo>,
+            router_contract: Option<ContractInstantiationInfo>,
             exchange_settings: Option<ExchangeSettings<HumanAddr>>,
         },
         /// Instantiates an exchange pair contract
@@ -72,6 +71,10 @@ pub mod factory {
             tokens: Option<Vec<Option<HumanAddr>>>,
             entropy: Binary,
         },
+        /// Create the router contract
+        CreateRouter {
+            register_tokens: Option<Vec<TokenType<HumanAddr>>>,
+        },
         /// Add addresses that are allowed to create IDOs
         IdoWhitelist {
             addresses: Vec<HumanAddr>,
@@ -91,6 +94,11 @@ pub mod factory {
         RegisterIdo {
             signature: Binary,
         },
+        /// Used by a newly instantiated Router contract to register
+        /// itself with the factory
+        RegisterRouter {
+            signature: Binary,
+        },
         /// Transfers exchanges to a new instance. Admin only command.
         TransferExchanges {
             /// The password set on the receiving instance.
@@ -98,17 +106,17 @@ pub mod factory {
             /// New factory instance.
             new_instance: ContractLink<HumanAddr>,
             /// Optionally, skip transferring the given exchanges.
-            skip: Option<Vec<HumanAddr>>
+            skip: Option<Vec<HumanAddr>>,
         },
         ReceiveExchanges {
             /// The password that was set on this instance.
             password: String,
             /// Indicates whether all exchanges have been transferred.
             finalize: bool,
-            exchanges: Vec<Exchange<HumanAddr>>
+            exchanges: Vec<Exchange<HumanAddr>>,
         },
         SetMigrationPassword {
-            password: String
+            password: String,
         },
         /// Adds already created IDO addresses to the registry. Admin only command.
         AddIdos {
@@ -129,6 +137,7 @@ pub mod factory {
         /// Get configuration (contract templates and exchange settings)
         GetConfig {},
         GetLaunchpadAddress,
+        GetRouterAddress,
         GetExchangeAddress {
             pair: TokenPair<HumanAddr>,
         },
@@ -152,6 +161,9 @@ pub mod factory {
         GetLaunchpadAddress {
             address: HumanAddr,
         },
+        GetRouterAddress {
+            address: HumanAddr,
+        },
         ListIdos {
             idos: Vec<HumanAddr>,
         },
@@ -167,6 +179,7 @@ pub mod factory {
             pair_contract: ContractInstantiationInfo,
             launchpad_contract: ContractInstantiationInfo,
             ido_contract: ContractInstantiationInfo,
+            router_contract: ContractInstantiationInfo,
             exchange_settings: ExchangeSettings<HumanAddr>,
         },
     }
@@ -213,9 +226,7 @@ pub mod exchange {
         /// Sent by the LP token contract so that we can record its address.
         OnLpTokenInit,
         /// Can only be called by the current factory.
-        ChangeFactory {
-            contract: ContractLink<HumanAddr>
-        }
+        ChangeFactory { contract: ContractLink<HumanAddr> },
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -265,10 +276,7 @@ pub mod exchange {
 pub mod launchpad {
 
     use super::*;
-    use fadroma::admin::{
-        HandleMsg as AdminHandleMsg,
-        QueryMsg as AdminQueryMsg
-    };
+    use fadroma::admin::{HandleMsg as AdminHandleMsg, QueryMsg as AdminQueryMsg};
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct InitMsg {
@@ -392,11 +400,8 @@ pub mod launchpad {
 
 pub mod ido {
     use super::*;
-    
-    use fadroma::admin::{
-        HandleMsg as AdminHandleMsg,
-        QueryMsg as AdminQueryMsg
-    };
+
+    use fadroma::admin::{HandleMsg as AdminHandleMsg, QueryMsg as AdminQueryMsg};
     use fadroma::scrt_link::ContractLink;
 
     #[derive(Serialize, Deserialize, JsonSchema)]
@@ -595,6 +600,100 @@ pub mod ido {
             /// is going to be someone different
             /// then the sender
             recipient: Option<HumanAddr>,
+        },
+    }
+}
+
+pub mod router {
+    use super::*;
+    use fadroma::scrt::{Binary, HumanAddr, Uint128};
+    use std::collections::VecDeque;
+
+    #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    pub struct Asset {
+        pub info: AssetInfo,
+        pub amount: Uint128,
+    }
+
+    #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum AssetInfo {
+        CustomToken {
+            contract_addr: HumanAddr,
+            token_code_hash: String,
+            viewing_key: String,
+        },
+        NativeToken {
+            denom: String,
+        },
+    }
+
+    #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    pub struct InitMsg {
+        pub register_tokens: Option<Vec<TokenType<HumanAddr>>>,
+        pub owner: Option<HumanAddr>,
+        pub callback: Option<Callback<HumanAddr>>,
+    }
+
+    #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    pub struct Hop {
+        pub from_token: TokenType<HumanAddr>,
+        pub pair_address: HumanAddr,
+        pub pair_code_hash: String,
+    }
+
+    #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    pub struct Route {
+        pub hops: VecDeque<Hop>,
+        pub expected_return: Option<Uint128>,
+        pub to: HumanAddr,
+    }
+
+    #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum HandleMsg {
+        Receive {
+            from: HumanAddr,
+            msg: Option<Binary>,
+            amount: Uint128,
+        },
+        FinalizeRoute {},
+        RegisterTokens {
+            tokens: Vec<TokenType<HumanAddr>>,
+        },
+        RecoverFunds {
+            token: TokenType<HumanAddr>,
+            amount: Uint128,
+            to: HumanAddr,
+            snip20_send_msg: Option<Binary>,
+        },
+        UpdateSettings {
+            new_owner: Option<HumanAddr>,
+        },
+    }
+
+    #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum QueryMsg {
+        SupportedTokens {},
+    }
+
+    #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum Snip20Swap {
+        Swap {
+            expected_return: Option<Uint128>,
+            to: Option<HumanAddr>,
+        },
+    }
+
+    #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    pub enum NativeSwap {
+        Swap {
+            offer_asset: Asset,
+            expected_return: Option<Uint128>,
+            to: Option<HumanAddr>,
         },
     }
 }
