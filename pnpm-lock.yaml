@@ -53,10 +53,10 @@ importers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
       '@sienna/amm-snip20': workspace:^0.1.0
-      '@sienna/exchange': workspace:^0.1.0
+      '@sienna/exchange': workspace:^1.0.0
       '@sienna/ido': workspace:^0.1.0
       '@sienna/launchpad': workspace:^0.1.0
-      '@sienna/lp-token': workspace:^0.1.0
+      '@sienna/lp-token': workspace:^1.0.0
       '@sienna/settings': workspace:^1.0.0
       '@waiting/base64': ^4.2.9
       secretjs: workspace:*
@@ -123,7 +123,7 @@ importers:
       '@fadroma/scrt': workspace:*
       '@fadroma/snip20': workspace:*
       '@fadroma/tools': workspace:*
-      '@sienna/lp-token': workspace:^0.1.0
+      '@sienna/lp-token': workspace:^1.0.0
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
@@ -249,11 +249,11 @@ importers:
       '@fadroma/scrt': workspace:*
       '@fadroma/tools': workspace:*
       '@sienna/amm-snip20': workspace:^0.1.0
-      '@sienna/exchange': workspace:^0.1.0
-      '@sienna/factory': workspace:^0.1.0
+      '@sienna/exchange': workspace:^1.0.0
+      '@sienna/factory': workspace:^1.0.0
       '@sienna/ido': workspace:^0.1.0
       '@sienna/launchpad': workspace:^0.1.0
-      '@sienna/lp-token': workspace:^0.1.0
+      '@sienna/lp-token': workspace:^1.0.0
       '@sienna/mgmt': workspace:^2.0.0
       '@sienna/rewards': workspace:^3.0.0
       '@sienna/router': workspace:^0.1.0

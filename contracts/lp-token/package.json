@@ -1,6 +1,6 @@
 {
   "name":    "@sienna/lp-token",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "main":    "./api.ts",
   "type":    "module",
   "dependencies": {
