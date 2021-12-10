@@ -117,14 +117,10 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, Response> for Query where
 {
     fn dispatch_query (self, core: &C) -> StdResult<Response> {
         Ok(match self {
-            Query::Auth(msg) =>
-                Response::Auth(Auth::query(core, msg)?),
-            Query::Rewards(msg) =>
-                Response::Rewards(Rewards::query(core, msg)?),
-            Query::TokenInfo {} =>
-                KeplrCompat::token_info(core)?,
-            Query::Balance { address, key } =>
-                KeplrCompat::balance(core, address, ViewingKey(key))?
+            Query::Auth(msg)    => Response::Auth(Auth::query(core, msg)?),
+            Query::Rewards(msg) => Response::Rewards(Rewards::query(core, msg)?),
+            Query::TokenInfo {} => KeplrCompat::token_info(core)?,
+            Query::Balance { address, key } => KeplrCompat::balance(core, address, ViewingKey(key))?
         })
     }
 }
