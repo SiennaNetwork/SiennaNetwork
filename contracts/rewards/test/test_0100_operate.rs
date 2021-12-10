@@ -7,7 +7,10 @@ use crate::test::{*, Context};
     context.init()
         // When nobody has deposited yet
         // And the status of a user is queried
-        .later().user("Alice").set_vk("")
+        .later().user("Alice")
+            .account_status_requires_vk()
+            .set_vk("")
+            .account_status_requires_vk()
             // Then the user's initial stake is 0
             // And  the user's initial volume is 0
             // And  the user's inital entry is 0
@@ -73,7 +76,10 @@ use crate::test::{*, Context};
                 .volume(stake1 * i as u128).entry(0);
         })
         // When a subsequent user hasn't deposited
-        .user("Bob").set_vk("")
+        .user("Bob")
+            .account_status_requires_vk()
+            .set_vk("")
+            .account_status_requires_vk()
             // Then their entry is equal to the volume of the pool at the start of the epoch
             .entry(0)
         .deposits(stake2)

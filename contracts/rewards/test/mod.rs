@@ -482,6 +482,17 @@ impl Context {
         let actual = self.account_status().starting_pool_volume.0;
         self.test_field("account.starting_pool_volume", actual, expected.into())
     }
+    pub fn account_status_requires_vk (&mut self) -> &mut Self {
+        assert_eq!(
+            Contract::query(&self.deps, Query::Rewards(RewardsQuery::UserInfo {
+                at:      self.env.block.time,
+                address: self.initiator.clone(),
+                key:     String::from("invalid")
+            })),
+            Err(StdError::unauthorized())
+        );
+        self
+    }
     pub fn account_status (&mut self) -> Account {
         match Contract::query(&self.deps, Query::Rewards(RewardsQuery::UserInfo {
             at:      self.env.block.time,
