@@ -22,6 +22,7 @@ export type HandleMsg =
         launchpad_contract?: ContractInstantiationInfo | null;
         lp_token_contract?: ContractInstantiationInfo | null;
         pair_contract?: ContractInstantiationInfo | null;
+        router_contract?: ContractInstantiationInfo | null;
         snip20_contract?: ContractInstantiationInfo | null;
         [k: string]: unknown;
       };
@@ -53,6 +54,13 @@ export type HandleMsg =
       [k: string]: unknown;
     }
   | {
+      create_router: {
+        register_tokens?: TokenTypeFor_HumanAddr[] | null;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
       ido_whitelist: {
         addresses: HumanAddr[];
         [k: string]: unknown;
@@ -76,6 +84,13 @@ export type HandleMsg =
     }
   | {
       register_ido: {
+        signature: Binary;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      register_router: {
         signature: Binary;
         [k: string]: unknown;
       };

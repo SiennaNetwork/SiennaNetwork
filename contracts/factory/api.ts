@@ -10,9 +10,9 @@ import { AMMSNIP20Contract  } from "@sienna/amm-snip20";
 import { LPTokenContract    } from "@sienna/lp-token";
 import { IDOContract        } from "@sienna/ido";
 import { LaunchpadContract  } from "@sienna/launchpad";
+import { SwapRouterContract } from '@sienna/router';
 
 import { workspace } from "@sienna/settings";
-
 import { TokenTypeFor_HumanAddr } from "./schema/handle_msg.d";
 
 export const schema = loadSchemas(import.meta.url, {
@@ -22,26 +22,15 @@ export const schema = loadSchemas(import.meta.url, {
   handleMsg:   "./schema/handle_msg.json",
 });
 
-type FactoryConstructorOptions = ContractAPIOptions & {
-  admin:      IAgent,
-  swapConfig: any,
-  EXCHANGE:   AMMContract,
-  AMMTOKEN:   AMMSNIP20Contract,
-  LPTOKEN:    LPTokenContract,
-  IDO:        IDOContract
-}
-
-export type FactoryOptions = {
-  admin?:     IAgent
-  prefix?:    string
-  codeId?:    number
-  label?:     string
-  config?:    any
-  EXCHANGE?:  AMMContract
-  AMMTOKEN?:  AMMSNIP20Contract
-  LPTOKEN?:   LPTokenContract
+export type FactoryOptions = ContractAPIOptions & {
+  admin?:     IAgent,
+  config?:    any,
+  EXCHANGE?:  AMMContract,
+  AMMTOKEN?:  AMMSNIP20Contract,
+  LPTOKEN?:   LPTokenContract,
   IDO?:       IDOContract
   LAUNCHPAD?: LaunchpadContract
+  ROUTER?:    SwapRouterContract
 }
 
 export class FactoryContract extends ScrtContract {
@@ -60,31 +49,17 @@ export class FactoryContract extends ScrtContract {
       admin: options.admin?.address,
     })
 
-    const { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD } = options
-    Object.assign(this.dependencies, { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD })
+    const { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, ROUTER, LAUNCHPAD } = options
+    Object.assign(this.dependencies, { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, ROUTER, LAUNCHPAD })
 
     const self = this
     Object.defineProperties(this.init.msg, {
-      snip20_contract:    {
-        enumerable: true,
-        get () { return self.dependencies.AMMTOKEN.template }
-      },
-      pair_contract:      {
-        enumerable: true,
-        get () { return self.dependencies.EXCHANGE.template }
-      },
-      lp_token_contract:  {
-        enumerable: true,
-        get () { return self.dependencies.LPTOKEN.template }
-      },
-      ido_contract:       {
-        enumerable: true,
-        get () { return self.dependencies.IDO.template }
-      },
-      launchpad_contract: {
-        enumerable: true,
-        get () { return self.dependencies.LAUNCHPAD.template }
-      },
+      snip20_contract:    { enumerable: true, get () { return self.dependencies.AMMTOKEN.template  } },
+      pair_contract:      { enumerable: true, get () { return self.dependencies.EXCHANGE.template  } },
+      lp_token_contract:  { enumerable: true, get () { return self.dependencies.LPTOKEN.template   } },
+      ido_contract:       { enumerable: true, get () { return self.dependencies.IDO.template       } },
+      router_contract:    { enumerable: true, get () { return self.dependencies.ROUTER.template    } },
+      launchpad_contract: { enumerable: true, get () { return self.dependencies.LAUNCHPAD.template } },
     })
 
     if (options.label) {
@@ -92,7 +67,7 @@ export class FactoryContract extends ScrtContract {
     }
   }
 
-  dependencies: Record<string, ScrtContract> = {}
+  readonly dependencies: Record<string, ScrtContract> = {}
 
   code = { ...this.code, workspace, crate: "factory" };
 

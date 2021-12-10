@@ -17,6 +17,8 @@ members = [
   "contracts/lp-token",   # snip20 liquidity provider token,
   "contracts/amm-snip20", # vanilla snip20 token, used when creating an IDO
 
+  "contracts/router", # Copy and modifications of secretswap_router
+
   # Framework
   "libraries/fadroma-next/lib",
   "libraries/fadroma-next/bind-js",

@@ -27,7 +27,8 @@ import {
   LPTokenContract,
   RewardsContract,
   IDOContract,
-  LaunchpadContract
+  LaunchpadContract,
+  SwapRouterContract,
 } from '@sienna/api'
 
 import { rewardsBenchmark } from '@sienna/benchmarks'
@@ -56,7 +57,8 @@ export default async function main (words: Array<string>) {
         new FactoryContract().build(),
         new RewardsContract().build(),
         new IDOContract().build(),
-        new LaunchpadContract().build()
+        new LaunchpadContract().build(),
+        new SwapRouterContract().build()
       ]),
 
       tge: () => Promise.all([
@@ -69,6 +71,7 @@ export default async function main (words: Array<string>) {
         new AMMContract().build(),
         new AMMSNIP20Contract().build(),
         new LPTokenContract().build(),
+        new SwapRouterContract().build(),
         new FactoryContract().build()
       ]),
 
@@ -110,13 +113,14 @@ export default async function main (words: Array<string>) {
         "lp-token",
         "mgmt",
         "rewards",
+        "router",
         "rpt",
         "snip20-sienna",
       ]) {
 
         // Generate JSON schema
         const cargoToml = abs('contracts', dir, 'Cargo.toml')
-        const {package:{name}} = TOML.parse(readFileSync(cargoToml))
+        const {package:{name}} = TOML.parse(readFileSync(cargoToml, 'utf8'))
         cargo('run', '-p', name, '--example', 'schema')
 
         // Generate type definitions from JSON schema

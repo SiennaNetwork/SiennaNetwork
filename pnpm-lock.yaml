@@ -134,6 +134,18 @@ importers:
       '@sienna/settings': link:../../settings
       secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
+  contracts/router:
+    specifiers:
+      '@fadroma/scrt': workspace:*
+      '@fadroma/tools': workspace:*
+      '@sienna/settings': workspace:^1.0.0
+      secretjs: workspace:*
+    dependencies:
+      '@fadroma/scrt': link:../../libraries/fadroma-next/packages/scrt
+      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
+      '@sienna/settings': link:../../settings
+      secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
+
   contracts/rpt:
     specifiers:
       '@fadroma/scrt': workspace:*
@@ -244,6 +256,7 @@ importers:
       '@sienna/lp-token': workspace:^0.1.0
       '@sienna/mgmt': workspace:^2.0.0
       '@sienna/rewards': workspace:^3.0.0
+      '@sienna/router': workspace:^0.1.0
       '@sienna/rpt': workspace:^1.0.0
       '@sienna/snip20-sienna': workspace:^1.0.0
       '@waiting/base64': ^4.2.9
@@ -262,6 +275,7 @@ importers:
       '@sienna/lp-token': link:../../contracts/lp-token
       '@sienna/mgmt': link:../../contracts/mgmt
       '@sienna/rewards': link:../../contracts/rewards
+      '@sienna/router': link:../../contracts/router
       '@sienna/rpt': link:../../contracts/rpt
       '@sienna/snip20-sienna': link:../../contracts/snip20-sienna
       '@waiting/base64': 4.2.9

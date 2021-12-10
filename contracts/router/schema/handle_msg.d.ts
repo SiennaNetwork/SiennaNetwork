@@ -5,40 +5,54 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
-export type QueryMsg =
-  | ("status" | "get_launchpad_address" | "get_router_address" | "get_exchange_settings")
+export type HandleMsg =
   | {
-      get_config: {
+      receive: {
+        amount: Uint128;
+        from: HumanAddr;
+        msg?: Binary | null;
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
-      get_exchange_address: {
-        pair: TokenPairFor_HumanAddr;
+      finalize_route: {
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
-      list_idos: {
-        pagination: Pagination;
+      register_tokens: {
+        tokens: TokenTypeFor_HumanAddr[];
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
-      list_exchanges: {
-        pagination: Pagination;
+      recover_funds: {
+        amount: Uint128;
+        snip20_send_msg?: Binary | null;
+        to: HumanAddr;
+        token: TokenTypeFor_HumanAddr;
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
-      admin: QueryMsg1;
+      update_settings: {
+        new_owner?: HumanAddr | null;
+        [k: string]: unknown;
+      };
       [k: string]: unknown;
     };
-export type TokenPairFor_HumanAddr = [TokenTypeFor_HumanAddr, TokenTypeFor_HumanAddr];
+export type Uint128 = string;
+export type HumanAddr = string;
+/**
+ * Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.
+ *
+ * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
+ */
+export type Binary = string;
 export type TokenTypeFor_HumanAddr =
   | {
       custom_token: {
@@ -55,16 +69,3 @@ export type TokenTypeFor_HumanAddr =
       };
       [k: string]: unknown;
     };
-export type HumanAddr = string;
-export type QueryMsg1 = {
-  admin: {
-    [k: string]: unknown;
-  };
-  [k: string]: unknown;
-};
-
-export interface Pagination {
-  limit: number;
-  start: number;
-  [k: string]: unknown;
-}
