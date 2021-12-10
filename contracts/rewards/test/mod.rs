@@ -194,6 +194,15 @@ impl Context {
                     self.reward_token.link.address.clone()
                 ).unwrap())
         );
+        assert_eq!(
+            Contract::query(&self.deps, Query::TokenInfo {}),
+            Ok(Response::TokenInfo {
+                name:         format!("Sienna Rewards: FOO"),
+                symbol:       "SRW".into(),
+                decimals:     1,
+                total_supply: None
+            })
+        );
         self
     }
     pub fn init_invalid (&mut self) -> &mut Self {
@@ -633,6 +642,14 @@ impl RewardsMockQuerier {
             Snip20Query::Balance { .. } => {
                 let amount = self.get_balance(&contract.address).into();
                 Snip20Response::Balance { amount }
+            },
+            Snip20Query::TokenInfo { .. } => {
+                Snip20Response::TokenInfo {
+                    name:         "FOO".into(),
+                    symbol:       "".into(), // unused
+                    decimals:     0,         // unused
+                    total_supply: None       // unused
+                }
             }
             //_ => unimplemented!()
         }
@@ -659,8 +676,11 @@ impl Querier for RewardsMockQuerier {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all="snake_case")]
-pub enum Snip20Query { Balance {} }
+pub enum Snip20Query { Balance {}, TokenInfo {} }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all="snake_case")]
-pub enum Snip20Response { Balance { amount: Amount } }
+pub enum Snip20Response {
+    Balance   { amount: Amount },
+    TokenInfo { name: String, symbol: String, decimals: u64, total_supply: Option<u128> }
+}
