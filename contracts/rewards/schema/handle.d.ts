@@ -27,7 +27,11 @@ export type Handle =
       [k: string]: unknown;
     }
   | {
-      migration: MigrationHandle;
+      immigration: ImmigrationHandle;
+      [k: string]: unknown;
+    }
+  | {
+      emigration: EmigrationHandle;
       [k: string]: unknown;
     }
   | {
@@ -68,39 +72,21 @@ export type AuthHandle =
       [k: string]: unknown;
     };
 export type HumanAddr = string;
-export type MigrationHandle =
+export type ImmigrationHandle =
   | {
-      start_migration: {
-        next_contract: ContractLinkFor_HumanAddr;
-        [k: string]: unknown;
-      };
+      enable_migration_from: ContractLinkFor_HumanAddr;
       [k: string]: unknown;
     }
   | {
-      stop_migration: {
-        [k: string]: unknown;
-      };
+      disable_migration_from: ContractLinkFor_HumanAddr;
       [k: string]: unknown;
     }
   | {
-      export_state: {
-        initiator: HumanAddr;
-        [k: string]: unknown;
-      };
+      request_migration: ContractLinkFor_HumanAddr;
       [k: string]: unknown;
     }
   | {
-      import_state: {
-        prev_contract: ContractLinkFor_HumanAddr;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      receive_state: {
-        data: Binary;
-        [k: string]: unknown;
-      };
+      receive_migration: Binary;
       [k: string]: unknown;
     };
 /**
@@ -109,16 +95,29 @@ export type MigrationHandle =
  * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
  */
 export type Binary = string;
+export type EmigrationHandle =
+  | {
+      enable_migration_to: ContractLinkFor_HumanAddr;
+      [k: string]: unknown;
+    }
+  | {
+      disable_migration_to: ContractLinkFor_HumanAddr;
+      [k: string]: unknown;
+    }
+  | {
+      export_state: HumanAddr;
+      [k: string]: unknown;
+    };
 export type RewardsHandle =
   | {
-      lock: {
+      deposit: {
         amount: Uint128;
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
-      retrieve: {
+      withdraw: {
         amount: Uint128;
         [k: string]: unknown;
       };

@@ -1,6 +1,6 @@
 [package]
 name = "exchange"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Asparuh Kamenov <asparuhkamenov@gmail.com>"]
 edition = "2018"
 
@@ -12,4 +12,4 @@ schemars = "0.7"
 serde    = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu    = { version = "0.6.3" }
 
-amm-shared            = { path = "../../libraries/amm-shared" }
+amm-shared = { path = "../../libraries/amm-shared" }

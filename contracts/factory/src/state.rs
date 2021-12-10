@@ -3,18 +3,14 @@ use std::usize;
 use amm_shared::{
     exchange::{Exchange, ExchangeSettings},
     fadroma::{
-        scrt_addr::{Canonize, Humanize},
-        scrt_link::{ContractLink, ContractInstantiationInfo},
         scrt::{
-            Api, Binary, CanonicalAddr, Extern, HumanAddr,
-            Querier, StdError, StdResult, Storage,
+            Api, Binary, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage,
         },
-        scrt_storage::{
-            load, ns_load, ns_remove, ns_save,
-            save, remove, IterableStorage
-        },
+        scrt_addr::{Canonize, Humanize},
+        scrt_link::{ContractInstantiationInfo, ContractLink},
+        scrt_storage::{load, ns_load, ns_remove, ns_save, remove, save, IterableStorage},
     },
-    Pagination, TokenPair, TokenType
+    Pagination, TokenPair, TokenType,
 };
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +18,7 @@ const CONFIG_KEY: &[u8] = b"config";
 const PRNG_KEY: &[u8] = b"prng_seed";
 const LAUNCHPAD_KEY: &[u8] = b"launchpad_instance";
 const MIGRATION_KEY: &[u8] = b"migration";
+const ROUTER_KEY: &[u8] = b"router";
 
 const NS_IDO_WHITELIST: &[u8] = b"ido_whitelist";
 const NS_IDOS: &[u8] = b"idos";
@@ -36,6 +33,7 @@ pub(crate) struct Config<A> {
     pub pair_contract: ContractInstantiationInfo,
     pub launchpad_contract: ContractInstantiationInfo,
     pub ido_contract: ContractInstantiationInfo,
+    pub router_contract: ContractInstantiationInfo,
     pub exchange_settings: ExchangeSettings<A>,
 }
 
@@ -47,6 +45,7 @@ impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
             pair_contract: self.pair_contract.clone(),
             launchpad_contract: self.launchpad_contract.clone(),
             ido_contract: self.ido_contract.clone(),
+            router_contract: self.router_contract.clone(),
             exchange_settings: self.exchange_settings.canonize(api)?,
         })
     }
@@ -59,6 +58,7 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
             pair_contract: self.pair_contract.clone(),
             launchpad_contract: self.launchpad_contract.clone(),
             ido_contract: self.ido_contract.clone(),
+            router_contract: self.router_contract.clone(),
             exchange_settings: self.exchange_settings.clone().humanize(api)?,
         })
     }
@@ -120,6 +120,19 @@ pub(crate) fn load_launchpad_instance(
     load(storage, LAUNCHPAD_KEY)
 }
 
+pub(crate) fn save_router_instance(
+    storage: &mut impl Storage,
+    instance: &ContractLink<HumanAddr>,
+) -> StdResult<()> {
+    save(storage, ROUTER_KEY, instance)
+}
+
+pub(crate) fn load_router_instance(
+    storage: &impl Storage,
+) -> StdResult<Option<ContractLink<HumanAddr>>> {
+    load(storage, ROUTER_KEY)
+}
+
 #[inline]
 pub(crate) fn exchanges_store() -> IterableStorage<Exchange<CanonicalAddr>> {
     IterableStorage::new(NS_EXCHANGES)
@@ -160,7 +173,12 @@ pub(crate) fn store_exchanges<S: Storage, A: Api, Q: Querier>(
             )));
         }
 
-        ns_save(&mut deps.storage, NS_EXCHANGES, &key, &exchange.contract.address)?;
+        ns_save(
+            &mut deps.storage,
+            NS_EXCHANGES,
+            &key,
+            &exchange.contract.address,
+        )?;
         exchanges_store.push(&mut deps.storage, &exchange)?;
     }
 
@@ -201,7 +219,8 @@ pub(crate) fn get_idos<S: Storage, A: Api, Q: Querier>(
     let limit = pagination.limit.min(PAGINATION_LIMIT);
 
     let idos_store = idos_store();
-    let iterator = idos_store.iter(&deps.storage)?
+    let iterator = idos_store
+        .iter(&deps.storage)?
         .skip(pagination.start as usize)
         .take(limit as usize);
 
@@ -222,7 +241,8 @@ pub(crate) fn get_exchanges<S: Storage, A: Api, Q: Querier>(
     let limit = pagination.limit.min(PAGINATION_LIMIT);
 
     let exchanges_store = exchanges_store();
-    let iterator = exchanges_store.iter(&deps.storage)?
+    let iterator = exchanges_store
+        .iter(&deps.storage)?
         .skip(pagination.start as usize)
         .take(limit as usize);
 

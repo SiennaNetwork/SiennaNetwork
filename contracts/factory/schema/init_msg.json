@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InitMsg",
+  "type": "object",
+  "required": [
+    "exchange_settings",
+    "ido_contract",
+    "launchpad_contract",
+    "lp_token_contract",
+    "pair_contract",
+    "prng_seed",
+    "router_contract",
+    "snip20_contract"
+  ],
+  "properties": {
+    "admin": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "exchange_settings": {
+      "$ref": "#/definitions/ExchangeSettings_for_HumanAddr"
+    },
+    "ido_contract": {
+      "$ref": "#/definitions/ContractInstantiationInfo"
+    },
+    "launchpad_contract": {
+      "$ref": "#/definitions/ContractInstantiationInfo"
+    },
+    "lp_token_contract": {
+      "$ref": "#/definitions/ContractInstantiationInfo"
+    },
+    "pair_contract": {
+      "$ref": "#/definitions/ContractInstantiationInfo"
+    },
+    "prng_seed": {
+      "$ref": "#/definitions/Binary"
+    },
+    "router_contract": {
+      "$ref": "#/definitions/ContractInstantiationInfo"
+    },
+    "snip20_contract": {
+      "$ref": "#/definitions/ContractInstantiationInfo"
+    }
+  },
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "ContractInstantiationInfo": {
+      "description": "Info needed to instantiate a contract.",
+      "type": "object",
+      "required": [
+        "code_hash",
+        "id"
+      ],
+      "properties": {
+        "code_hash": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "ExchangeSettings_for_HumanAddr": {
+      "type": "object",
+      "required": [
+        "sienna_fee",
+        "swap_fee"
+      ],
+      "properties": {
+        "sienna_burner": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sienna_fee": {
+          "$ref": "#/definitions/Fee"
+        },
+        "swap_fee": {
+          "$ref": "#/definitions/Fee"
+        }
+      }
+    },
+    "Fee": {
+      "type": "object",
+      "required": [
+        "denom",
+        "nom"
+      ],
+      "properties": {
+        "denom": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        },
+        "nom": {
+          "type": "integer",
+          "format": "uint8",
+          "minimum": 0.0
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 [package]
 name = "snip20-sienna"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Itzik <itzik@keytango.io>"]
 edition = "2018"
 

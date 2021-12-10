@@ -1,0 +1,800 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HandleMsg",
+  "anyOf": [
+    {
+      "description": "Set pause/migration status",
+      "type": "object",
+      "required": [
+        "set_status"
+      ],
+      "properties": {
+        "set_status": {
+          "type": "object",
+          "required": [
+            "level",
+            "reason"
+          ],
+          "properties": {
+            "level": {
+              "$ref": "#/definitions/ContractStatusLevel"
+            },
+            "new_address": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Set contract templates and exchange settings. Admin only command.",
+      "type": "object",
+      "required": [
+        "set_config"
+      ],
+      "properties": {
+        "set_config": {
+          "type": "object",
+          "properties": {
+            "exchange_settings": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ExchangeSettings_for_HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "ido_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContractInstantiationInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "launchpad_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContractInstantiationInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "lp_token_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContractInstantiationInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "pair_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContractInstantiationInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "router_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContractInstantiationInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "snip20_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContractInstantiationInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Instantiates an exchange pair contract",
+      "type": "object",
+      "required": [
+        "create_exchange"
+      ],
+      "properties": {
+        "create_exchange": {
+          "type": "object",
+          "required": [
+            "entropy",
+            "pair"
+          ],
+          "properties": {
+            "entropy": {
+              "$ref": "#/definitions/Binary"
+            },
+            "pair": {
+              "$ref": "#/definitions/TokenPair_for_HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Create the launchpad contract",
+      "type": "object",
+      "required": [
+        "create_launchpad"
+      ],
+      "properties": {
+        "create_launchpad": {
+          "type": "object",
+          "required": [
+            "entropy",
+            "tokens"
+          ],
+          "properties": {
+            "entropy": {
+              "$ref": "#/definitions/Binary"
+            },
+            "tokens": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/TokenSettings"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Instantiates an IDO contract",
+      "type": "object",
+      "required": [
+        "create_ido"
+      ],
+      "properties": {
+        "create_ido": {
+          "type": "object",
+          "required": [
+            "entropy",
+            "info"
+          ],
+          "properties": {
+            "entropy": {
+              "$ref": "#/definitions/Binary"
+            },
+            "info": {
+              "$ref": "#/definitions/TokenSaleConfig"
+            },
+            "tokens": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/HumanAddr"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Create the router contract",
+      "type": "object",
+      "required": [
+        "create_router"
+      ],
+      "properties": {
+        "create_router": {
+          "type": "object",
+          "properties": {
+            "register_tokens": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/TokenType_for_HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Add addresses that are allowed to create IDOs",
+      "type": "object",
+      "required": [
+        "ido_whitelist"
+      ],
+      "properties": {
+        "ido_whitelist": {
+          "type": "object",
+          "required": [
+            "addresses"
+          ],
+          "properties": {
+            "addresses": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Used by a newly instantiated exchange contract to register itself with the factory",
+      "type": "object",
+      "required": [
+        "register_exchange"
+      ],
+      "properties": {
+        "register_exchange": {
+          "type": "object",
+          "required": [
+            "pair",
+            "signature"
+          ],
+          "properties": {
+            "pair": {
+              "$ref": "#/definitions/TokenPair_for_HumanAddr"
+            },
+            "signature": {
+              "$ref": "#/definitions/Binary"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Used by the launchpad to register itself",
+      "type": "object",
+      "required": [
+        "register_launchpad"
+      ],
+      "properties": {
+        "register_launchpad": {
+          "type": "object",
+          "required": [
+            "signature"
+          ],
+          "properties": {
+            "signature": {
+              "$ref": "#/definitions/Binary"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Used by a newly instantiated IDO contract to register itself with the factory",
+      "type": "object",
+      "required": [
+        "register_ido"
+      ],
+      "properties": {
+        "register_ido": {
+          "type": "object",
+          "required": [
+            "signature"
+          ],
+          "properties": {
+            "signature": {
+              "$ref": "#/definitions/Binary"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Used by a newly instantiated Router contract to register itself with the factory",
+      "type": "object",
+      "required": [
+        "register_router"
+      ],
+      "properties": {
+        "register_router": {
+          "type": "object",
+          "required": [
+            "signature"
+          ],
+          "properties": {
+            "signature": {
+              "$ref": "#/definitions/Binary"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Transfers exchanges to a new instance. Admin only command.",
+      "type": "object",
+      "required": [
+        "transfer_exchanges"
+      ],
+      "properties": {
+        "transfer_exchanges": {
+          "type": "object",
+          "required": [
+            "new_instance",
+            "password"
+          ],
+          "properties": {
+            "new_instance": {
+              "description": "New factory instance.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/ContractLink_for_HumanAddr"
+                }
+              ]
+            },
+            "password": {
+              "description": "The password set on the receiving instance.",
+              "type": "string"
+            },
+            "skip": {
+              "description": "Optionally, skip transferring the given exchanges.",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "receive_exchanges"
+      ],
+      "properties": {
+        "receive_exchanges": {
+          "type": "object",
+          "required": [
+            "exchanges",
+            "finalize",
+            "password"
+          ],
+          "properties": {
+            "exchanges": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Exchange_for_HumanAddr"
+              }
+            },
+            "finalize": {
+              "description": "Indicates whether all exchanges have been transferred.",
+              "type": "boolean"
+            },
+            "password": {
+              "description": "The password that was set on this instance.",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_migration_password"
+      ],
+      "properties": {
+        "set_migration_password": {
+          "type": "object",
+          "required": [
+            "password"
+          ],
+          "properties": {
+            "password": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Adds already created IDO addresses to the registry. Admin only command.",
+      "type": "object",
+      "required": [
+        "add_idos"
+      ],
+      "properties": {
+        "add_idos": {
+          "type": "object",
+          "required": [
+            "idos"
+          ],
+          "properties": {
+            "idos": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Adds already existing launchpad contract, admin only command.",
+      "type": "object",
+      "required": [
+        "add_launchpad"
+      ],
+      "properties": {
+        "add_launchpad": {
+          "type": "object",
+          "required": [
+            "launchpad"
+          ],
+          "properties": {
+            "launchpad": {
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/HandleMsg"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "ContractInstantiationInfo": {
+      "description": "Info needed to instantiate a contract.",
+      "type": "object",
+      "required": [
+        "code_hash",
+        "id"
+      ],
+      "properties": {
+        "code_hash": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "ContractLink_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "ContractStatusLevel": {
+      "description": "Possible states of a contract.",
+      "type": "string",
+      "enum": [
+        "Operational",
+        "Paused",
+        "Migrating"
+      ]
+    },
+    "ExchangeSettings_for_HumanAddr": {
+      "type": "object",
+      "required": [
+        "sienna_fee",
+        "swap_fee"
+      ],
+      "properties": {
+        "sienna_burner": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sienna_fee": {
+          "$ref": "#/definitions/Fee"
+        },
+        "swap_fee": {
+          "$ref": "#/definitions/Fee"
+        }
+      }
+    },
+    "Exchange_for_HumanAddr": {
+      "description": "Represents the address of an exchange and the pair that it manages",
+      "type": "object",
+      "required": [
+        "contract",
+        "pair"
+      ],
+      "properties": {
+        "contract": {
+          "description": "The contract that manages the exchange.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+            }
+          ]
+        },
+        "pair": {
+          "description": "The pair that the contract manages.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TokenPair_for_HumanAddr"
+            }
+          ]
+        }
+      }
+    },
+    "Fee": {
+      "type": "object",
+      "required": [
+        "denom",
+        "nom"
+      ],
+      "properties": {
+        "denom": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        },
+        "nom": {
+          "type": "integer",
+          "format": "uint8",
+          "minimum": 0.0
+        }
+      }
+    },
+    "HandleMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "change_admin"
+          ],
+          "properties": {
+            "change_admin": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "SaleType": {
+      "type": "string",
+      "enum": [
+        "PreLockAndSwap",
+        "PreLockOnly",
+        "SwapOnly"
+      ]
+    },
+    "TokenPair_for_HumanAddr": {
+      "type": "array",
+      "items": [
+        {
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
+        },
+        {
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
+        }
+      ],
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "TokenSaleConfig": {
+      "type": "object",
+      "required": [
+        "input_token",
+        "max_allocation",
+        "max_seats",
+        "min_allocation",
+        "rate",
+        "sold_token",
+        "whitelist"
+      ],
+      "properties": {
+        "input_token": {
+          "description": "The token that will be used to buy the SNIP20.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TokenType_for_HumanAddr"
+            }
+          ]
+        },
+        "max_allocation": {
+          "description": "The total amount that each participant is allowed to buy.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "max_seats": {
+          "description": "The maximum number of participants allowed.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "min_allocation": {
+          "description": "The minimum amount that each participant is allowed to buy.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "rate": {
+          "description": "The price for a single token.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "sale_type": {
+          "description": "Sale type settings",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SaleType"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sold_token": {
+          "$ref": "#/definitions/ContractLink_for_HumanAddr"
+        },
+        "whitelist": {
+          "description": "The addresses that are eligible to participate in the sale.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HumanAddr"
+          }
+        }
+      }
+    },
+    "TokenSettings": {
+      "description": "Configuration for single token that can be locked into the launchpad",
+      "type": "object",
+      "required": [
+        "bounding_period",
+        "segment",
+        "token_type"
+      ],
+      "properties": {
+        "bounding_period": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "segment": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "token_type": {
+          "$ref": "#/definitions/TokenType_for_HumanAddr"
+        }
+      }
+    },
+    "TokenType_for_HumanAddr": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "custom_token"
+          ],
+          "properties": {
+            "custom_token": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "token_code_hash"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "token_code_hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "native_token"
+          ],
+          "properties": {
+            "native_token": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}

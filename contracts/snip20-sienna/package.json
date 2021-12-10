@@ -1,10 +1,11 @@
 {
-  "name": "@hackbg/snip20",
-  "version": "0.0.0",
-  "main": "./schema/index.js",
+  "name": "@sienna/snip20-sienna",
+  "version": "1.0.0",
+  "main": "./api.ts",
   "type": "module",
-  "peerDependencies": {
-    "@hackbg/fadroma": "*"
+  "dependencies": {
+    "@fadroma/snip20":  "workspace:*",
+    "@fadroma/tools":   "workspace:*",
+    "@sienna/settings": "workspace:^1.0.0"
   }
 }
-

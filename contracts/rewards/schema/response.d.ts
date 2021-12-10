@@ -89,10 +89,6 @@ export interface Account {
    */
   pool_share: [Uint128, Uint128];
   /**
-   * User-friendly reason why earned is 0
-   */
-  reason?: string | null;
-  /**
    * What portion of all the liquidity accumulated since this user's entry is due to this particular user's stake? Computed as user.volume / pool.volume
    */
   reward_share: [Uint256, Uint256];

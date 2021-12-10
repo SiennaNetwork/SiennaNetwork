@@ -1,11 +1,14 @@
 {
   "name": "@sienna/rewards",
-  "version": "3.0.0-pre",
+  "version": "3.0.0",
   "type": "module",
   "main": "./api.ts",
   "dependencies": {
-    "@fadroma/scrt":  "workspace:*",
-    "@fadroma/tools": "workspace:*",
-    "secretjs":       "workspace:*"
+    "@fadroma/scrt":    "workspace:*",
+    "@fadroma/snip20":  "workspace:*",
+    "@fadroma/tools":   "workspace:*",
+    "@sienna/lp-token": "workspace:^1.0.0",
+    "@sienna/settings": "workspace:^1.0.0",
+    "secretjs":         "workspace:*"
   }
 }

@@ -1,0 +1,280 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryResponse",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "eligibility"
+      ],
+      "properties": {
+        "eligibility": {
+          "type": "object",
+          "required": [
+            "can_participate"
+          ],
+          "properties": {
+            "can_participate": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "sale_info"
+      ],
+      "properties": {
+        "sale_info": {
+          "type": "object",
+          "required": [
+            "input_token",
+            "max_allocation",
+            "max_seats",
+            "min_allocation",
+            "rate",
+            "sold_token",
+            "taken_seats"
+          ],
+          "properties": {
+            "end": {
+              "description": "Sale end time.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "input_token": {
+              "description": "The token that is used to buy the sold SNIP20.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/TokenType_for_HumanAddr"
+                }
+              ]
+            },
+            "max_allocation": {
+              "description": "The total amount that each participant is allowed to buy.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                }
+              ]
+            },
+            "max_seats": {
+              "description": "The maximum number of participants allowed.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "min_allocation": {
+              "description": "The minimum amount that each participant is allowed to buy.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                }
+              ]
+            },
+            "rate": {
+              "description": "The conversion rate at which the token is sold.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                }
+              ]
+            },
+            "sold_token": {
+              "description": "The token that is being sold.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/ContractLink_for_HumanAddr"
+                }
+              ]
+            },
+            "start": {
+              "description": "Sale start time.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "taken_seats": {
+              "description": "Number of participants currently.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "object",
+          "required": [
+            "available_for_sale",
+            "is_active",
+            "sold_in_pre_lock",
+            "total_allocation"
+          ],
+          "properties": {
+            "available_for_sale": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "is_active": {
+              "type": "boolean"
+            },
+            "sold_in_pre_lock": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "total_allocation": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "balance"
+      ],
+      "properties": {
+        "balance": {
+          "type": "object",
+          "required": [
+            "pre_lock_amount",
+            "total_bought"
+          ],
+          "properties": {
+            "pre_lock_amount": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "total_bought": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "token_info"
+      ],
+      "properties": {
+        "token_info": {
+          "type": "object",
+          "required": [
+            "decimals",
+            "name",
+            "symbol"
+          ],
+          "properties": {
+            "decimals": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0.0
+            },
+            "name": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "total_supply": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "ContractLink_for_HumanAddr": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "TokenType_for_HumanAddr": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "custom_token"
+          ],
+          "properties": {
+            "custom_token": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "token_code_hash"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "token_code_hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "native_token"
+          ],
+          "properties": {
+            "native_token": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}
