@@ -1,10 +1,6 @@
 use fadroma::*;
 use crate::*;
 
-pub fn no_vk <T> () -> StdResult<T> {
-    Err(StdError::generic_err("no viewing key"))
-}
-
 pub fn pool_not_closed <T> () -> StdResult<T> {
     Err(StdError::generic_err("pool not closed"))
 }
@@ -38,21 +34,6 @@ pub fn claim_pool_empty () -> StdResult<HandleResponse> {
     Err(StdError::generic_err(
         "This pool is currently empty. \
         However, liquidity shares continue to accumulate."
-    ))
-}
-
-pub fn claim_global_ratio_zero () -> StdResult<HandleResponse> {
-    Err(StdError::generic_err(
-        "Rewards from this pool are currently stopped. \
-        However, liquidity shares continue to accumulate."
-    ))
-}
-
-pub fn claim_crowded_out () -> StdResult<HandleResponse> {
-    Err(StdError::generic_err(
-        "Your liquidity share has steeply diminished \
-        since you last claimed. Lock more tokens to get \
-        to the front of the queue faster."
     ))
 }
 
