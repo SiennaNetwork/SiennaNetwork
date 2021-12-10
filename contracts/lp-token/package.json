@@ -1,10 +1,12 @@
 {
-  "name": "@hackbg/snip20",
-  "version": "0.0.0",
-  "main": "./schema/index.js",
-  "type": "module",
-  "peerDependencies": {
-    "@hackbg/fadroma": "*"
+  "name":    "@sienna/lp-token",
+  "version": "1.0.0",
+  "main":    "./api.ts",
+  "type":    "module",
+  "dependencies": {
+    "@fadroma/snip20":  "workspace:*",
+    "@fadroma/tools":   "workspace:*",
+    "@sienna/settings": "workspace:^1.0.0"
   }
 }
 

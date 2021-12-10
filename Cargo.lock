@@ -1809,22 +1809,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sienna-schema"
-version = "0.0.0"
-dependencies = [
- "amm-shared",
- "cosmwasm-schema 0.10.0 (git+https://github.com/enigmampc/SecretNetwork?tag=v1.0.4-debug-print)",
- "exchange",
- "factory",
- "ido",
- "lp-token",
- "router",
- "sienna-mgmt",
- "sienna-rewards",
- "sienna-rpt",
-]
-
-[[package]]
 name = "siphasher"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1860,7 +1844,7 @@ dependencies = [
 
 [[package]]
 name = "snip20-sienna"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "base64 0.12.3",
  "bincode2",

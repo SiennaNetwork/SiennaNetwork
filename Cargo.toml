@@ -1,7 +1,5 @@
 [workspace]
 members = [
-  "api", # JSON schema exporter
-
   # TGE
   "libraries/schedule",      # model of TGE vesting logic
   "libraries/linear-map",    # simple way of storing small number of addresses

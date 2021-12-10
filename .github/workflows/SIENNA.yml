@@ -1,9 +1,9 @@
 on: [push, pull_request]
-name: Project-wide tasks
+name: SIENNA
 jobs:
 
   docs:
-    name: Rust documentation
+    name: Generate Rust documentation
     runs-on: ubuntu-latest
     steps:
       - name: Install stable toolchain
@@ -23,7 +23,7 @@ jobs:
         run: cargo doc
 
   schema:
-    name: API schema of all contracts
+    name: Generate API schema of all contracts
     runs-on: ubuntu-latest
     steps:
       - name: Install Node and Yarn
@@ -42,28 +42,28 @@ jobs:
 
       - name: Checkout sources
         uses: actions/checkout@v2
-        with: { submodules: true }
+        with: { submodules: recursive }
 
-      - uses: Swatinem/rust-cache@v1
+      - name: Cache Cargo crates
+        uses: Swatinem/rust-cache@v1
 
-      #- name: Cache pnpm modules
-        #uses: actions/cache@v2
-        #with:
-          #path: ~/.pnpm-store
-          #key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          #restore-keys: |
-            #${{ runner.os }}-
+      - name: Cache PNPM modules
+        uses: actions/cache@v2
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-
 
-      #- uses: pnpm/action-setup@v2.0.1
-        #with:
-          #version: 6.0.2
-          #run_install: true
+      - name: Install PNPM and project dependencies
+        uses: pnpm/action-setup@v2.0.1
+        with: { version: 6.0.2, run_install: true }
 
       - name: Generate schema
-        run: cargo run --bin schema
+        run: pnpm dev schema
 
   coverage:
-    name: Unit test coverage report
+    name: Run unit tests and publish coverage report
     runs-on: ubuntu-latest
     steps:
       - name: Install Node and Yarn
@@ -81,40 +81,12 @@ jobs:
           }
       - uses: Swatinem/rust-cache@v1
 
-      #- name: Install Tarpaulin
-        #uses: actions-rs/cargo@v1
-        #with: { command: install, args: cargo-tarpaulin }
-        #env: { RUST_BACKTRACE: 1 }
-
       - name: Checkout sources
         uses: actions/checkout@v2
         with: { submodules: true }
-
-      #- name: Cache pnpm modules
-        #uses: actions/cache@v2
-        #with:
-          #path: ~/.pnpm-store
-          #key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          #restore-keys: |
-            #${{ runner.os }}-
-
-      #- uses: pnpm/action-setup@v2.0.1
-        #with:
-          #version: 6.0.2
-          #run_install: true
-          #
 
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
           version: '0.18.3'
           args: '--workspace --coveralls ${{secrets.COVERALLS_REPO_TOKEN}}'
-
-      #- name: Generate coverage report
-        #run: cargo tarpaulin --out=Lcov --output-dir=. --locked --frozen
-
-      #- name: Publish to coveralls.io
-        #uses: coverallsapp/github-action@v1.1.2
-        #with:
-          #path-to-lcov: ./lcov.info
-          #github-token: ${{ secrets.COVERALLS_REPO_TOKEN }}

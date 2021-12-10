@@ -1,10 +1,10 @@
-import { resolve, dirname } from 'path'
-import { fileURLToPath } from 'url'
-const workspace = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-
-import { ScrtContract, IAgent } from "@fadroma/scrt"
+import type { IAgent } from "@fadroma/scrt"
+import { ScrtContract } from "@fadroma/scrt"
 import { randomHex } from '@fadroma/tools'
-import { SNIP20Contract as SNIP20, LPToken } from '@sienna/api'
+import { SNIP20Contract } from '@fadroma/snip20'
+
+import { LPTokenContract } from '@sienna/lp-token'
+import { workspace } from '@sienna/settings'
 
 export type RewardsOptions = {
   codeId?:      number
@@ -17,13 +17,13 @@ export type RewardsOptions = {
   admin?:       IAgent
   timekeeper?:  string
 
-  lpToken?:     SNIP20
-  rewardToken?: SNIP20
+  lpToken?:     SNIP20Contract
+  rewardToken?: SNIP20Contract
 
   bonding?:     number
 }
 
-export class Rewards extends ScrtContract {
+export class RewardsContract extends ScrtContract {
 
   static schema = ScrtContract.loadSchemas(
     import.meta.url, {
@@ -38,7 +38,7 @@ export class Rewards extends ScrtContract {
     codeHash: string,
     agent:    IAgent
   ) {
-    const instance = new Rewards({ admin: agent })
+    const instance = new RewardsContract({ admin: agent })
     instance.init.agent = agent
     instance.init.address = address
     instance.blob.codeHash = codeHash
@@ -55,7 +55,7 @@ export class Rewards extends ScrtContract {
 
     super({
       agent:  admin,
-      schema: Rewards.schema,
+      schema: RewardsContract.schema,
       prefix,
       label:  label || `SiennaRewards_${name}_Pool`
     })
@@ -125,7 +125,7 @@ export class Rewards extends ScrtContract {
         return TOKEN.attach(address, code_hash, agent)
       },
 
-      async getLPToken (TOKEN: { attach: Function } = LPToken) {
+      async getLPToken (TOKEN: { attach: Function } = LPTokenContract) {
         const { address, code_hash } = (await this.poolInfo(agent)).lp_token
         return TOKEN.attach(address, code_hash, agent)
       }

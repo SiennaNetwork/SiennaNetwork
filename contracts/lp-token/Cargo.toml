@@ -1,6 +1,6 @@
 [package]
 name = "lp-token"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
 edition = "2018"
 

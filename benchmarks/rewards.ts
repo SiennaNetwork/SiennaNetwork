@@ -1,10 +1,20 @@
 /// # Sienna Rewards v3 Benchmark
 ///
-/// ## Overview
+/// ## Dependencies
 
 
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+import type { IAgent, ContractUpload } from '@fadroma/scrt'
+import { Scrt, ScrtGas } from '@fadroma/scrt'
 import { Console } from '@fadroma/tools'
 const console = Console(import.meta.url)
+
+import { RewardsContract, SiennaSNIP20Contract, LPTokenContract } from '@sienna/api'
+
+/// ## Overview
+
 
 export default async function benchmarkRewards () {
   const { agents } = await setupNetwork(20)
@@ -17,9 +27,6 @@ export default async function benchmarkRewards () {
 /// ## Network setup
 
 
-import { Scrt, ScrtGas } from '@fadroma/scrt'
-import { resolve, dirname } from 'path'
-import { fileURLToPath } from 'url'
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url))),
       abs = (...args: Array<string>) => resolve(projectRoot, ...args)
 
@@ -51,14 +58,12 @@ async function setupNetwork (numberOfAgents: number) {
 /// ## Contract setup
 
 
-import type { IAgent, ContractUpload } from '@fadroma/scrt'
-import { RewardsContract, SiennaSNIP20, LPToken } from '@sienna/api'
 
 async function setupContracts (admin: IAgent) {
 
   const prefix  = `RewardsBenchmark_${+new Date()}`
-  const LPTOKEN = new LPToken({ prefix, admin, name: 'BENCHMARK' })
-  const SIENNA  = new SiennaSNIP20({ prefix, admin })
+  const LPTOKEN = new LPTokenContract({ prefix, admin, name: 'BENCHMARK' })
+  const SIENNA  = new SiennaSNIP20Contract({ prefix, admin })
   const REWARDS = new RewardsContract({
     prefix, admin,
     lpToken: LPTOKEN, rewardToken: SIENNA,
@@ -92,7 +97,7 @@ type Action      = (agent: IAgent) => Promise<void>
 type Transaction = [string, IAgent, { transactionHash: string }]
 
 
-function setupActions (REWARDS: RewardsContract, LPTOKEN: LPToken) {
+function setupActions (REWARDS: RewardsContract, LPTOKEN: LPTokenContract) {
   console.info(`Preparing benchmark`)
 
   const transactionLog: Array<Transaction> = []

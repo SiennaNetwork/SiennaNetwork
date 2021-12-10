@@ -1,0 +1,20 @@
+{
+  "name":    "@sienna/factory",
+  "version": "1.0.0",
+  "type":    "module",
+  "main":    "./api.ts",
+  "dependencies": {
+    "@fadroma/scrt":    "workspace:*",
+    "@fadroma/tools":   "workspace:*",
+
+    "@sienna/amm-snip20": "workspace:^0.1.0",
+    "@sienna/exchange":   "workspace:^1.0.0",
+    "@sienna/ido":        "workspace:^0.1.0",
+    "@sienna/launchpad":  "workspace:^0.1.0",
+    "@sienna/lp-token":   "workspace:^1.0.0",
+    "@sienna/settings":   "workspace:^1.0.0",
+
+    "@waiting/base64":  "^4.2.9",
+    "secretjs":         "workspace:*"
+  }
+}

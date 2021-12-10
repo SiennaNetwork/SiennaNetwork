@@ -1,0 +1,12 @@
+{
+  "name": "@sienna/router",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./api.ts",
+  "dependencies": {
+    "@fadroma/scrt":    "workspace:*",
+    "@fadroma/tools":   "workspace:*",
+    "@sienna/settings": "workspace:^1.0.0",
+    "secretjs":         "workspace:*"
+  }
+}
