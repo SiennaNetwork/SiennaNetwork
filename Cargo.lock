@@ -576,7 +576,7 @@ checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 
 [[package]]
 name = "exchange"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "amm-shared",
  "schemars",
@@ -586,7 +586,7 @@ dependencies = [
 
 [[package]]
 name = "factory"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "amm-shared",
  "schemars",
@@ -878,7 +878,7 @@ dependencies = [
 
 [[package]]
 name = "lp-token"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "amm-shared",
  "fadroma-bind-js",
