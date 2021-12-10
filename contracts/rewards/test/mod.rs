@@ -448,6 +448,13 @@ impl Context {
     }
     pub fn staked (&mut self, expected: u128) -> &mut Self {
         let actual = self.account_status().staked.0;
+        if let Ok(Response::Balance { amount }) = Contract::query(&self.deps, Query::Balance {
+            address: self.initiator.clone(), key: String::from("")
+        }) {
+            assert_eq!(amount, actual.into());
+        } else {
+            panic!("keplr balance query returned unexpected type");
+        };
         self.test_field("account.staked              ", actual, expected)
     }
     pub fn volume (&mut self, expected: u128) -> &mut Self {
@@ -467,13 +474,11 @@ impl Context {
         self.test_field("account.starting_pool_volume", actual, expected.into())
     }
     pub fn account_status (&mut self) -> Account {
-        let at      = self.env.block.time;
-        let address = self.initiator.clone();
-        let key     = String::from("");
-        match Contract::query(
-            &self.deps,
-            Query::Rewards(RewardsQuery::UserInfo { at, address, key })
-        ) {
+        match Contract::query(&self.deps, Query::Rewards(RewardsQuery::UserInfo {
+            at:      self.env.block.time,
+            address: self.initiator.clone(),
+            key:     String::from("")
+        })) {
             Ok(result) => {
                 match result {
                     Response::Rewards(crate::RewardsResponse::UserInfo(account)) =>
