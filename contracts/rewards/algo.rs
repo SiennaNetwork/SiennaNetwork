@@ -269,12 +269,7 @@ impl<S, A, Q, C> IClock<S, A, Q, C> for Clock where
         }
         let epoch: Moment = core.get(Self::NUMBER)?.unwrap_or(0u64);
         if next_epoch != epoch + 1 {
-            return Err(StdError::generic_err(format!(
-                "The current epoch is {}. The 'next_epoch' field must be set to {} instead of {}.",
-                epoch,
-                epoch + 1,
-                next_epoch
-            )))
+            return errors::invalid_epoch_number(epoch, next_epoch)
         }
         let now = env.block.time;
         let volume = accumulate(
@@ -540,12 +535,10 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         account.earned = if account.reward_share.1 == Volume::zero() {
             Amount::zero()
         } else {
-            u128::min(
-                total.budget.0,
-                Volume::from(account.accumulated_pool_rewards)
-                    .multiply_ratio(account.reward_share.0, account.reward_share.1)?
-                    .low_u128()
-            ).into()
+            let reward = Volume::from(account.accumulated_pool_rewards)
+                .multiply_ratio(account.reward_share.0, account.reward_share.1)?
+                .low_u128();
+            u128::min(total.budget.0, reward).into()
         };
         // 4. Bonding period
         // This decrements by `elapsed` if `staked > 0`.

@@ -1,6 +1,15 @@
 use fadroma::*;
 use crate::*;
 
+pub fn invalid_epoch_number <T> (epoch: Moment, next_epoch: Moment) -> StdResult<T> {
+    Err(StdError::generic_err(format!(
+        "The current epoch is {}. The 'next_epoch' field must be set to {} instead of {}.",
+        epoch,
+        epoch + 1,
+        next_epoch
+    )))
+}
+
 pub fn pool_not_closed <T> () -> StdResult<T> {
     Err(StdError::generic_err("pool not closed"))
 }
