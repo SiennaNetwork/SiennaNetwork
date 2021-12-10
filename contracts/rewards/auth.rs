@@ -45,8 +45,7 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn query (&self, msg: AuthQuery) -> StdResult<AuthResponse> {
         Ok(match msg {
-            AuthQuery::Admin =>
-                AuthResponse::Admin { address: self.load_admin()? }
+            AuthQuery::Admin => AuthResponse::Admin { address: self.load_admin()? }
         })
     }
 
@@ -79,13 +78,9 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
     }
 
     fn create_vk(&mut self, env: Env, entropy: String) -> StdResult<HandleResponse> {
-        let prng_seed = [ 
-            env.block.time.to_be_bytes(),
-            env.block.height.to_be_bytes() 
-        ].concat();
-
-        let key = ViewingKey::new(&env, &prng_seed, &(entropy).as_ref());
-        let address = self.api().canonical_address(&env.message.sender)?;
+        let prng_seed = [env.block.time.to_be_bytes(), env.block.height.to_be_bytes()];
+        let key       = ViewingKey::new(&env, &prng_seed.concat(), &(entropy).as_ref());
+        let address   = self.api().canonical_address(&env.message.sender)?;
         self.save_vk(address.as_slice(), &key)?;
         Ok(HandleResponse {
             messages: vec![],
@@ -109,11 +104,13 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         let stored_vk: Option<ViewingKey> = self.load_vk(storage_key)?;
         if let Some(ref key) = stored_vk {
             if provided_key.check_viewing_key(&key.to_hashed()) {
-                return Ok(());
+                Ok(())
+            } else {
+                Err(StdError::unauthorized())
             }
+        } else {
+            Err(StdError::unauthorized())
         }
-        provided_key.check_viewing_key(&[0u8; VIEWING_KEY_SIZE]);
-        return Err(StdError::unauthorized());
     }
 
     fn save_vk (&mut self, id: &[u8], key: &ViewingKey) -> StdResult<()> {
