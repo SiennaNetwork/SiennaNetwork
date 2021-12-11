@@ -93,6 +93,8 @@ use crate::test::{*, Context};
         // Then their entry is equal to the volume of the pool at the start of that epoch
         .admin()
             .epoch(1, 100)
+            .epoch_must_increment(1, 1)
+            .epoch_must_increment(1, 3)
         .user("Charlie")
             .set_vk("")
             .entry(

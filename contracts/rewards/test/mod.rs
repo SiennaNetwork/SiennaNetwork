@@ -141,6 +141,19 @@ impl Context {
         );
         self
     }
+    pub fn epoch_must_increment (&mut self, current_epoch: Moment, next_epoch: Moment)
+        -> &mut Self
+    {
+        assert_eq!(
+            Contract::handle(
+                &mut self.deps,
+                self.env.clone(),
+                Handle::Rewards(RewardsHandle::BeginEpoch { next_epoch })
+            ),
+            errors::invalid_epoch_number(current_epoch, next_epoch)
+        );
+        self
+    }
     pub fn set_address (&mut self, address: &str) -> &mut Self {
         self.initiator = HumanAddr::from(address);
         self.update_env()
