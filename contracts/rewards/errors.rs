@@ -49,7 +49,7 @@ pub fn claim_zero_claimable <T> () -> StdResult<T> {
 }
 
 pub fn export_state_miscalled <T> () -> StdResult<T> {
-    Err(StdError::generic_err("This handler must be called as part of a transaction"))
+    Err(StdError::generic_err("This handler must be called internally."))
 }
 
 pub fn immigration_disallowed <T> () -> StdResult<T> {

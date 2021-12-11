@@ -167,16 +167,18 @@ pub enum Response {
         }
 
         impl<S: Storage, A: Api, Q: Querier> crate::migration::Emigration<S, A, Q> for $Core {
-            fn handle_export_state (&mut self, env: &Env, migrant: &HumanAddr)
-                -> StdResult<HandleResponse>
-            {
-                let receiver    = self.can_export_state(&env, &migrant)?;
+            fn handle_export_state (
+                &mut self,
+                env:           Env,
+                next_contract: ContractLink<HumanAddr>,
+                migrant:       HumanAddr
+            ) -> StdResult<HandleResponse> {
                 let mut account = Account::from_addr(self, &migrant, env.block.time)?;
                 let staked      = account.staked;
                 let id          = self.canonize(migrant.clone())?;
 
                 let snapshot = to_binary(&((
-                    migrant.clone(),
+                    migrant,
                     Auth::load_vk(self, id.as_slice())?.map(|vk|vk.0),
                     staked
                 ) as AccountSnapshot))?;
@@ -193,8 +195,8 @@ pub enum Response {
                 }
 
                 response = response.msg(CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr:      receiver.address,
-                    callback_code_hash: receiver.code_hash,
+                    contract_addr:      next_contract.address,
+                    callback_code_hash: next_contract.code_hash,
                     send: vec![],
                     msg: self.wrap_receive_msg(ImmigrationHandle::ReceiveMigration(snapshot))?
                 }))?;

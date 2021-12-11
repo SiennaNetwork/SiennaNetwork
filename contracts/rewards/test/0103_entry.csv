@@ -8,7 +8,7 @@ tx,0103_entry_addr,LP_TOKEN,"transfer_from:
   amount: ""42798""
   owner: Alice
   padding: ~
-  recipient: cosmos2contract"
+  recipient: 0103_entry_addr"
 1,0103_entry_addr,Alice,account.starting_pool_volume = 0
 2,0103_entry_addr,Alice,account.starting_pool_volume = 0
 2,0103_entry_addr,Alice,account.staked               = 42798
@@ -59,7 +59,7 @@ tx,0103_entry_addr,LP_TOKEN,"transfer_from:
   amount: ""38861""
   owner: Bob
   padding: ~
-  recipient: cosmos2contract"
+  recipient: 0103_entry_addr"
 11,0103_entry_addr,Bob,account.starting_pool_volume = 0
 12,0103_entry_addr,Bob,account.staked               = 38861
 12,0103_entry_addr,Bob,account.volume               = 38861
@@ -107,6 +107,6 @@ tx,0103_entry_addr,LP_TOKEN,"transfer_from:
   amount: ""42798""
   owner: Charlie
   padding: ~
-  recipient: cosmos2contract"
+  recipient: 0103_entry_addr"
 218,0103_entry_addr,Charlie,account.starting_pool_volume = 17331393
 231,0103_entry_addr,Charlie,account.starting_pool_volume = 17331393

@@ -11,7 +11,7 @@ tx,0105_reset_addr,LP_TOKEN,"transfer_from:
   amount: ""85596""
   owner: Alice
   padding: ~
-  recipient: cosmos2contract"
+  recipient: 0105_reset_addr"
 14,0105_reset_addr,Alice,account.staked               = 85596
 14,0105_reset_addr,Alice,account.volume               = 0
 14,0105_reset_addr,Alice,account.bonding              = 197

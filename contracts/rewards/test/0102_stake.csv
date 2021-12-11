@@ -7,7 +7,7 @@ tx,0102_stake_addr,LP_TOKEN,"transfer_from:
   amount: ""43""
   owner: Alice
   padding: ~
-  recipient: cosmos2contract"
+  recipient: 0102_stake_addr"
 19,0102_stake_addr,Alice,account.staked               = 43
 19,0102_stake_addr,Alice,account.volume               = 0
 20,0102_stake_addr,Alice,account.staked               = 43
@@ -38,7 +38,7 @@ tx,0102_stake_addr,LP_TOKEN,"transfer_from:
   amount: ""26""
   owner: Alice
   padding: ~
-  recipient: cosmos2contract"
+  recipient: 0102_stake_addr"
 29,0102_stake_addr,Alice,account.staked               = 69
 29,0102_stake_addr,Alice,account.volume               = 430
 30,0102_stake_addr,Alice,account.staked               = 69
