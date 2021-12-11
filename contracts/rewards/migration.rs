@@ -40,9 +40,9 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
                 Auth::assert_admin(self, &env)?;
                 match msg {
                     EmigrationHandle::EnableMigrationTo(contract) =>
-                        self.handle_enable_migration_to(env, contract),
+                        self.allow_emigration_to(contract),
                     EmigrationHandle::DisableMigrationTo(contract) =>
-                        self.handle_disable_migration_to(env, contract),
+                        self.disallow_emigration_to(contract),
                     _ => unreachable!()
                 }
             }
@@ -50,20 +50,18 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Allow another contract to receive migrations from this contract
-    fn handle_enable_migration_to (&mut self, env: Env, next: ContractLink<HumanAddr>)
+    fn allow_emigration_to (&mut self, next: ContractLink<HumanAddr>)
         -> StdResult<HandleResponse>
     {
-        Auth::assert_admin(self, &env)?;
         let id = self.canonize(next.address.clone())?;
         self.set_ns(Self::CAN_MIGRATE_TO, id.as_slice(), Some(next))?;
         Ok(HandleResponse::default())
     }
 
     /// Stop allowing another contract from receiving migrations from this contract
-    fn handle_disable_migration_to (&mut self, env: Env, next: ContractLink<HumanAddr>)
+    fn disallow_emigration_to (&mut self, next: ContractLink<HumanAddr>)
         -> StdResult<HandleResponse>
     {
-        Auth::assert_admin(self, &env)?;
         let id = self.canonize(next.address)?;
         self.set_ns::<Option<ContractLink<HumanAddr>>>(Self::CAN_MIGRATE_TO, id.as_slice(), None)?;
         Ok(HandleResponse::default())
