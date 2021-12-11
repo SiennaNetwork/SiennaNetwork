@@ -27,14 +27,15 @@ pub type Deps = MockExtern<ClonableMemoryStorage, MockApi, RewardsMockQuerier>;
 
 #[derive(Clone)]
 pub struct Context {
-    pub rng:       StdRng,
-    pub name:      String,
-    pub link:      ContractLink<HumanAddr>,
-    pub table:     Table,
-    pub deps:      Deps,
-    pub initiator: HumanAddr,
-    pub env:       Env,
-    pub time:      Moment,
+    pub init_called: bool,
+    pub rng:         StdRng,
+    pub name:        String,
+    pub link:        ContractLink<HumanAddr>,
+    pub table:       Table,
+    pub deps:        Deps,
+    pub initiator:   HumanAddr,
+    pub env:         Env,
+    pub time:        Moment,
 
     pub reward_vk:    String,
     pub reward_token: ISnip20,
@@ -78,6 +79,7 @@ impl Context {
         let bonding = rng.gen_range(100..200);
 
         Self {
+            init_called: false,
             rng,
             name: name.to_string(),
             link: ContractLink { address: address.clone(), code_hash: code_hash.clone(), },
@@ -226,6 +228,11 @@ impl Context {
     }
 
     pub fn init (&mut self) -> &mut Self {
+
+        if self.init_called {
+            panic!("context.init() called twice");
+        }
+        self.init_called = true;
 
         assert_eq!(
             Contract::init(&mut self.deps, self.env.clone(), Init {

@@ -27,26 +27,19 @@ use crate::test::{*, Context};
         .admin()
             .enable_migration_to(&contract2.link);
 
-    contract2.init()
-        .user("Alice") // no vk, should migrate that too
+    contract2
+        .admin()
             .enable_migration_from(&contract1.link)
+        .user("Alice").set_vk("") // no vk, should migrate that too
             .migrate_from(&mut contract1, stake1, 0u128)
-            .staked(stake1).total_staked(stake1);
-
-    contract1
+            .staked(stake1).total_staked(stake1)
         .admin()
-            .disable_migration_to(&contract2.link);
-
-    contract2
-        .user("Bob") // no vk, should migrate that too
+            .disable_migration_from(&contract1.link)
+        .user("Bob").set_vk("") // no vk, should migrate that too
             .cannot_migrate_from(&mut contract1)
-            .staked(0).total_staked(stake1);
-
-    contract1
+            .staked(0).total_staked(stake1)
         .admin()
-            .enable_migration_to(&contract2.link);
-
-    contract2
+            .enable_migration_from(&contract1.link)
         .user("Bob") // no vk, should migrate that too
             .migrate_from(&mut contract1, stake2, 0u128)
             .staked(stake2).total_staked(stake1 + stake2);
