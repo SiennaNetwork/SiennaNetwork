@@ -27,14 +27,15 @@ pub type Deps = MockExtern<ClonableMemoryStorage, MockApi, RewardsMockQuerier>;
 
 #[derive(Clone)]
 pub struct Context {
-    pub rng:       StdRng,
-    pub name:      String,
-    pub link:      ContractLink<HumanAddr>,
-    pub table:     Table,
-    pub deps:      Deps,
-    pub initiator: HumanAddr,
-    pub env:       Env,
-    pub time:      Moment,
+    pub init_called: bool,
+    pub rng:         StdRng,
+    pub name:        String,
+    pub link:        ContractLink<HumanAddr>,
+    pub table:       Table,
+    pub deps:        Deps,
+    pub initiator:   HumanAddr,
+    pub env:         Env,
+    pub time:        Moment,
 
     pub reward_vk:    String,
     pub reward_token: ISnip20,
@@ -44,6 +45,9 @@ pub struct Context {
 }
 
 impl Context {
+
+    /// Init a test context with a single contract
+    /// TODO: support multiple contracts in the same context
     pub fn new (name: &str) -> Self {
         let mut table = Table::new();
 
@@ -66,37 +70,56 @@ impl Context {
         let initiator = HumanAddr::from("Admin");
         let time = 1;
 
-        //color_backtrace::install();
+        color_backtrace::install();
+
+        let address   = HumanAddr::from(format!("{}_addr", &name));
+        let code_hash = format!("{}_hash", &name).to_string();
 
         let mut rng = StdRng::seed_from_u64(1);
         let bonding = rng.gen_range(100..200);
+
         Self {
+            init_called: false,
             rng,
             name: name.to_string(),
-            link: ContractLink {
-                address:   HumanAddr::from(format!("{}_addr", &name)),
-                code_hash: format!("{}_hash", &name).to_string(),
-            },
+            link: ContractLink { address: address.clone(), code_hash: code_hash.clone(), },
             table,
 
             deps: MockExtern::new(RewardsMockQuerier::new()),
 
             reward_vk: "reward_vk".to_string(),
             reward_token: ISnip20::attach(
-                ContractLink { address: HumanAddr::from("SIENNA"),   code_hash: "SIENNA_hash".into() }
+                ContractLink { address: HumanAddr::from("SIENNA"), code_hash: "SIENNA_hash".into() }
             ),
 
             lp_token: ISnip20::attach(
                 ContractLink { address: HumanAddr::from("LP_TOKEN"), code_hash: "LP_hash".into() }
             ),
 
-            env: env(&initiator, time),
+            env: Env {
+                block: BlockInfo {
+                    height: 0,
+                    time,
+                    chain_id: "fadroma".into()
+                },
+                message: MessageInfo {
+                    sender: initiator.clone(),
+                    sent_funds: vec![]
+                },
+                contract: ContractInfo {
+                    address: address.clone(),
+                },
+                contract_key: Some("".into()),
+                contract_code_hash: code_hash.clone()
+            },
             initiator,
             time,
             closed: None,
             bonding
         }
     }
+
+    /// Clone the context up to this point, branching off the test execution.
     pub fn branch <F: FnMut(Context)->()> (&mut self, name: &str, mut f: F) -> &mut Self {
         let mut context = self.clone();
         let name = format!("{}_{}", self.name, name).to_string();
@@ -107,20 +130,23 @@ impl Context {
         f(context);
         self
     }
-    fn update_env (&mut self) -> &mut Self {
-        self.env = env(&self.initiator, self.time);
-        self
-    }
+
+    // Time functions
+
     pub fn at (&mut self, t: Moment) -> &mut Self {
         self.time = t;
-        self.update_env()
+        self.env.block.time = self.time;
+        self
     }
+
     pub fn after (&mut self, t: Duration) -> &mut Self {
         self.at(self.env.block.time + t)
     }
+
     pub fn tick (&mut self) -> &mut Self {
         self.after(1)
     }
+
     pub fn during <F: FnMut(u64, &mut Context)->()> (&mut self, n: Duration, mut f: F) -> &mut Self {
         for i in 1..=n {
             self.tick();
@@ -128,10 +154,32 @@ impl Context {
         }
         self
     }
+
     pub fn later (&mut self) -> &mut Self {
         let t = self.rng.gen_range(0..self.bonding/10);
         self.after(t)
     }
+
+    // Address functions
+
+    pub fn set_address (&mut self, address: &str) -> &mut Self {
+        self.initiator = HumanAddr::from(address);
+        self.env.message.sender = self.initiator.clone();
+        self
+    }
+
+    pub fn admin (&mut self) -> &mut Self {
+        self.set_address("Admin")
+    }
+
+    pub fn badman (&mut self) -> &mut Self {
+        self.set_address("Badman")
+    }
+
+    pub fn user (&mut self, address: &str) -> &mut Self {
+        self.set_address(address)
+    }
+
     pub fn epoch (&mut self, next_epoch: Moment, portion: u128) -> &mut Self {
         self.after(self.bonding);
         self.fund(portion);
@@ -141,19 +189,32 @@ impl Context {
         );
         self
     }
-    pub fn set_address (&mut self, address: &str) -> &mut Self {
-        self.initiator = HumanAddr::from(address);
-        self.update_env()
+
+    /// Shorthand for the free-standing `test_handle` function
+    /// with table, deps and env pre-populated from the `Context`
+    pub fn test_handle (&mut self, msg: Handle, expected: StdResult<HandleResponse>)
+        -> &mut Self
+    {
+        test_handle(&mut self.table, &mut self.deps, &self.env, msg, expected);
+        self
     }
-    pub fn admin (&mut self) -> &mut Self {
-        self.set_address("Admin")
+
+    // Contract-specific implementation below
+
+    pub fn epoch_must_increment (&mut self, current_epoch: Moment, next_epoch: Moment)
+        -> &mut Self
+    {
+        assert_eq!(
+            Contract::handle(
+                &mut self.deps,
+                self.env.clone(),
+                Handle::Rewards(RewardsHandle::BeginEpoch { next_epoch })
+            ),
+            errors::invalid_epoch_number(current_epoch, next_epoch)
+        );
+        self
     }
-    pub fn badman (&mut self) -> &mut Self {
-        self.set_address("Badman")
-    }
-    pub fn user (&mut self, address: &str) -> &mut Self {
-        self.set_address(address)
-    }
+
     pub fn fund (&mut self, amount: u128) -> &mut Self {
         self.table.add_row(row!["","","",""]);
         self.table.add_row(row![
@@ -165,19 +226,17 @@ impl Context {
         self.deps.querier.increment_balance(&self.reward_token.link.address, amount);
         self
     }
-    pub fn test_handle (&mut self, msg: Handle, expected: StdResult<HandleResponse>)
-        -> &mut Self
-    {
-        test_handle(
-            &mut self.table, &mut self.deps, &self.env,
-            self.initiator.clone(), msg, expected, self.link.address.clone()
-        );
-        self
-    }
+
     pub fn init (&mut self) -> &mut Self {
+
+        if self.init_called {
+            panic!("context.init() called twice");
+        }
+        self.init_called = true;
+
         assert_eq!(
             Contract::init(&mut self.deps, self.env.clone(), Init {
-                admin: None,
+                admin:  None,
                 config: RewardsConfig {
                     lp_token:     Some(self.lp_token.link.clone()),
                     reward_token: Some(self.reward_token.link.clone()),
@@ -186,14 +245,24 @@ impl Context {
                     timekeeper:   Some(HumanAddr::from("Admin")),
                 }
             }),
-            InitResponse::default()
-                .msg(snip20::set_viewing_key_msg(
-                    self.reward_vk.clone(),
-                    None, BLOCK_SIZE,
-                    self.reward_token.link.code_hash.clone(),
-                    self.reward_token.link.address.clone()
-                ).unwrap())
+            InitResponse::default().msg(snip20::set_viewing_key_msg(
+                self.reward_vk.clone(),
+                None, BLOCK_SIZE,
+                self.reward_token.link.code_hash.clone(),
+                self.reward_token.link.address.clone()
+            ).unwrap())
         );
+
+        assert_eq!(
+            Contract::query(&self.deps, Query::TokenInfo {}),
+            Ok(Response::TokenInfo {
+                name:         format!("Sienna Rewards: FOO"),
+                symbol:       "SRW".into(),
+                decimals:     1,
+                total_supply: None
+            })
+        );
+
         self
     }
     pub fn init_invalid (&mut self) -> &mut Self {
@@ -218,11 +287,9 @@ impl Context {
             ).unwrap())
         }
         test_handle(
-            &mut self.table,
-            &mut self.deps, &self.env, self.initiator.clone(),
+            &mut self.table, &mut self.deps, &self.env,
             Handle::Rewards(RewardsHandle::Configure(config)),
             Ok(expected),
-            self.link.address.clone()
         );
         self
     }
@@ -248,22 +315,18 @@ impl Context {
     pub fn closes_pool (&mut self) -> &mut Self {
         let message = "closed";
         test_handle(
-            &mut self.table,
-            &mut self.deps, &self.env, self.initiator.clone(),
+            &mut self.table, &mut self.deps, &self.env,
             Handle::Rewards(RewardsHandle::Close { message: message.to_string() }),
             Ok(HandleResponse::default()),
-            self.link.address.clone()
         );
         self.closed = Some((self.time, message.to_string()));
         self
     }
     pub fn cannot_close_pool (&mut self) -> &mut Self {
         test_handle(
-            &mut self.table,
-            &mut self.deps, &self.env, self.initiator.clone(),
+            &mut self.table, &mut self.deps, &self.env,
             Handle::Rewards(RewardsHandle::Close { message: String::from("closed") }),
             Err(StdError::unauthorized()),
-            self.link.address.clone()
         ); self
     }
     pub fn drains_pool (&mut self, key: &str) -> &mut Self {
@@ -364,6 +427,13 @@ impl Context {
         );
         self
     }
+    pub fn disable_migration_to (&mut self, contract: &ContractLink<HumanAddr>) -> &mut Self {
+        self.test_handle(
+            Handle::Emigration(EmigrationHandle::DisableMigrationTo(contract.clone())),
+            Ok(HandleResponse::default())
+        );
+        self
+    }
     pub fn enable_migration_from (&mut self, contract: &ContractLink<HumanAddr>) -> &mut Self {
         self.test_handle(
             Handle::Immigration(ImmigrationHandle::EnableMigrationFrom(contract.clone())),
@@ -371,21 +441,26 @@ impl Context {
         );
         self
     }
+    pub fn disable_migration_from (&mut self, contract: &ContractLink<HumanAddr>) -> &mut Self {
+        self.test_handle(
+            Handle::Immigration(ImmigrationHandle::DisableMigrationFrom(contract.clone())),
+            Ok(HandleResponse::default())
+        );
+        self
+    }
     pub fn migrate_from (
         &mut self,
-        last_version: &mut Context,
-        migrated_stake: u128,
-        claimed_reward: u128
+        last_version:    &mut Context,
+        expected_stake:  u128,
+        expected_reward: u128
     ) -> &mut Self {
 
         let migrant = self.initiator.clone();
 
         let id = self.deps.canonize(migrant.clone()).unwrap();
 
+        // 1. User calls RequestMigration on NEW.
         let export = Handle::Emigration(EmigrationHandle::ExportState(migrant.clone()));
-
-        // 1. User calls RequestMigration on NEW version of contract.
-        // 2. NEW version calls ExportState(migrant) on OLD version of contract.
         self.test_handle(
             Handle::Immigration(ImmigrationHandle::RequestMigration(last_version.link.clone())),
             HandleResponse::default().msg(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -396,58 +471,97 @@ impl Context {
             }))
         );
 
-        let mut export_result = HandleResponse::default()
-            .msg(
-                self.lp_token.transfer(
-                    &self.link.address.clone(),
-                    migrated_stake.into()
-                ).unwrap()
-            );
-
-        if claimed_reward > 0 {
+        // 2. NEW calls ExportState(migrant) on OLD.
+        let mut export_result = HandleResponse::default().msg(
+            self.lp_token.transfer(
+                &self.link.address.clone(),
+                expected_stake.into()
+            ).unwrap()
+        );
+        if expected_reward > 0 {
             export_result = export_result.unwrap().msg(
                 self.reward_token.transfer_from(
                     &self.env.message.sender,
                     &self.env.contract.address,
-                    claimed_reward.into()
+                    expected_reward.into()
                 ).unwrap()
             );
         }
-
         let receive_vk_snapshot = Handle::Immigration(ImmigrationHandle::ReceiveMigration(
             to_binary(&((
                 migrant.clone(),
                 Auth::load_vk(&last_version.deps, id.as_slice()).unwrap().map(|vk|vk.0),
-                migrated_stake.into()
+                expected_stake.into()
             ) as AccountSnapshot)).unwrap()
         ));
-
         export_result = export_result.unwrap().msg(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr:      self.link.address.clone(),
             callback_code_hash: self.link.code_hash.clone(),
             msg:  to_binary(&receive_vk_snapshot).unwrap(),
             send: vec![]
         }));
-
+        let mut env = last_version.env.clone();
+        env.message.sender = self.link.address.clone();
         test_handle(
             &mut last_version.table,
             &mut last_version.deps,
-            &env(&self.link.address, self.time),
-            self.link.address.clone(),
+            &env,
             export,
             export_result,
-            self.link.address.clone()
         );
 
+        // 3. OLD calls ReceiveMigration on NEW
         self.test_handle(
             receive_vk_snapshot,
-            HandleResponse::default().log("migrated", &migrated_stake.to_string())
+            HandleResponse::default().log("migrated", &expected_stake.to_string())
+        );
+
+        self
+    }
+    pub fn emigration_fails (
+        &mut self,
+        last_version: &mut Context
+    ) -> &mut Self {
+        assert_eq!(
+            Contract::handle(
+                &mut self.deps,
+                self.env.clone(),
+                Handle::Immigration(ImmigrationHandle::RequestMigration(last_version.link.clone()))
+            ),
+            errors::emigration_disallowed()
+        );
+        self
+    }
+    pub fn immigration_fails (
+        &mut self,
+        last_version: &mut Context
+    ) -> &mut Self {
+        assert!(Contract::handle(
+            &mut self.deps,
+            self.env.clone(),
+            Handle::Immigration(ImmigrationHandle::RequestMigration(last_version.link.clone()))
+        ).is_ok());
+
+        assert_eq!(
+            Contract::handle(
+                &mut last_version.deps,
+                last_version.env.clone(),
+                Handle::Emigration(EmigrationHandle::ExportState(self.initiator.clone()))
+            ),
+            errors::immigration_disallowed()
         );
 
         self
     }
     pub fn staked (&mut self, expected: u128) -> &mut Self {
         let actual = self.account_status().staked.0;
+        if let Ok(Response::Balance { amount }) = Contract::query(&self.deps, Query::Balance {
+            address: self.initiator.clone(), key: String::from("")
+        }) {
+            assert_eq!(amount, actual.into());
+        } else {
+            panic!("keplr balance query returned unexpected type");
+        };
         self.test_field("account.staked              ", actual, expected)
     }
     pub fn volume (&mut self, expected: u128) -> &mut Self {
@@ -466,15 +580,27 @@ impl Context {
         let actual = self.account_status().starting_pool_volume.0;
         self.test_field("account.starting_pool_volume", actual, expected.into())
     }
+    pub fn account_status_requires_vk (&mut self) -> &mut Self {
+        assert_eq!(
+            Contract::query(&self.deps, Query::Rewards(RewardsQuery::UserInfo {
+                at:      self.env.block.time,
+                address: self.initiator.clone(),
+                key:     String::from("invalid")
+            })),
+            Err(StdError::unauthorized())
+        );
+        self
+    }
     pub fn account_status (&mut self) -> Account {
-        let at      = self.env.block.time;
-        let address = self.initiator.clone();
-        let key     = String::from("");
-        let result = Rewards::query(&self.deps, RewardsQuery::UserInfo { at, address, key });
-        match result {
+        match Contract::query(&self.deps, Query::Rewards(RewardsQuery::UserInfo {
+            at:      self.env.block.time,
+            address: self.initiator.clone(),
+            key:     String::from("")
+        })) {
             Ok(result) => {
                 match result {
-                    crate::RewardsResponse::UserInfo(account) => account,
+                    Response::Rewards(crate::RewardsResponse::UserInfo(account)) =>
+                        account,
                     _ => panic!()
                 }
             },
@@ -497,11 +623,10 @@ impl Context {
         self.test_field("total.distributed           ", actual, expected)
     }
     pub fn pool_status (&mut self) -> Total {
-        let result = Rewards::query(&self.deps, RewardsQuery::PoolInfo { at: self.env.block.time });
-        match result {
+        match Contract::query(&self.deps, Query::Rewards(RewardsQuery::PoolInfo { at: self.env.block.time })) {
             Ok(result) => {
                 match result {
-                    crate::RewardsResponse::PoolInfo(total) => total,
+                    Response::Rewards(crate::RewardsResponse::PoolInfo(total)) => total,
                     _ => panic!()
                 }
             },
@@ -549,16 +674,18 @@ pub fn test_handle (
     table:       &mut Table,
     deps:        &mut Deps,
     env:         &Env,
-    initiator:   HumanAddr,
     msg:         Handle,
     expected:    StdResult<HandleResponse>,
-    own_address: HumanAddr
 ) {
-    table.add_row(row!["","","",""]);
-    let msg_ser = serde_yaml::to_string(&msg).unwrap();
-    table.add_row(row![rb->env.block.time, &initiator, own_address, b->msg_ser.trim()[4..]]);
-    let result = Contract::handle(deps, env.clone(), msg);
-    let add_result = |table: &mut Table, result: &StdResult<HandleResponse>| match result {
+
+    let initiator   = env.message.sender.clone();
+    let own_address = env.contract.address.clone();
+
+    let add_result = |
+        table:  &mut Table,
+        result: &StdResult<HandleResponse>
+    | match result {
+
         Ok(ref result) => {
             for message in result.messages.iter() {
                 if let CosmosMsg::Wasm(WasmMsg::Execute {
@@ -579,21 +706,43 @@ pub fn test_handle (
                 ]);
             }
         },
+
         Err(ref error) => {
             table.add_row(row![r->"=>", "err", error,""]);
         }
+
     };
-    add_result(table, &result);
-    if result != expected {
-        table.add_row(row!["","","",""]);
-        table.add_row(row![rbBrFd->"FAIL", bBrFd->"was expecting", bBrFd->"the following",""]);
-        table.add_row(row!["","","",""]);
-        add_result(table, &expected);
-    }
+
     fn decode_msg (msg: &Binary) -> Option<String> {
         let msg: serde_json::Value = serde_json::from_slice(msg.as_slice()).unwrap();
         Some(serde_yaml::to_string(&msg).unwrap())
     }
+
+
+    table.add_row(row!["","","",""]);
+
+    let msg_ser = serde_yaml::to_string(&msg).unwrap();
+    table.add_row(row![
+        rb->env.block.time,
+        &initiator,
+        own_address,
+        b->msg_ser.trim()[4..]
+    ]);
+
+    let result = Contract::handle(deps, env.clone(), msg);
+    add_result(table, &result);
+
+    if result != expected {
+        table.add_row(row!["","","",""]);
+        table.add_row(row![
+            rbBrFd->"FAIL",
+            bBrFd->"was expecting",
+            bBrFd->"the following",""
+        ]);
+        table.add_row(row!["","","",""]);
+        add_result(table, &expected);
+    }
+
     assert_eq!(result, expected);
 
 }
@@ -626,6 +775,14 @@ impl RewardsMockQuerier {
             Snip20Query::Balance { .. } => {
                 let amount = self.get_balance(&contract.address).into();
                 Snip20Response::Balance { amount }
+            },
+            Snip20Query::TokenInfo { .. } => {
+                Snip20Response::TokenInfo {
+                    name:         "FOO".into(),
+                    symbol:       "".into(), // unused
+                    decimals:     0,         // unused
+                    total_supply: None       // unused
+                }
             }
             //_ => unimplemented!()
         }
@@ -652,8 +809,11 @@ impl Querier for RewardsMockQuerier {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all="snake_case")]
-pub enum Snip20Query { Balance {} }
+pub enum Snip20Query { Balance {}, TokenInfo {} }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all="snake_case")]
-pub enum Snip20Response { Balance { amount: Amount } }
+pub enum Snip20Response {
+    Balance   { amount: Amount },
+    TokenInfo { name: String, symbol: String, decimals: u64, total_supply: Option<u128> }
+}

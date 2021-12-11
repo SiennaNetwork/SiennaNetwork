@@ -9,7 +9,7 @@
 //! Sienna Rewards currently uses the former method, so as not to
 //! reimplement pieces of the liquidity accumulation logic twice.
 
-use crate::auth::Auth;
+use crate::{auth::Auth, errors};
 use fadroma::*;
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
@@ -32,15 +32,17 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     fn handle (&mut self, env: Env, msg: EmigrationHandle) -> StdResult<HandleResponse> {
         match msg {
-            EmigrationHandle::ExportState(migrant) =>
-                self.handle_export_state(&env, &migrant),
+            EmigrationHandle::ExportState(migrant) => {
+                let next_contract = self.can_export_state(&env, &migrant)?;
+                self.handle_export_state(env, next_contract, migrant)
+            }
             _ => {
                 Auth::assert_admin(self, &env)?;
                 match msg {
                     EmigrationHandle::EnableMigrationTo(contract) =>
-                        self.handle_enable_migration_to(env, contract),
+                        self.allow_emigration_to(contract),
                     EmigrationHandle::DisableMigrationTo(contract) =>
-                        self.handle_disable_migration_to(env, contract),
+                        self.disallow_emigration_to(contract),
                     _ => unreachable!()
                 }
             }
@@ -48,50 +50,32 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Allow another contract to receive migrations from this contract
-    fn handle_enable_migration_to (&mut self, env: Env, next: ContractLink<HumanAddr>)
+    fn allow_emigration_to (&mut self, next: ContractLink<HumanAddr>)
         -> StdResult<HandleResponse>
     {
-        Auth::assert_admin(self, &env)?;
         let id = self.canonize(next.address.clone())?;
         self.set_ns(Self::CAN_MIGRATE_TO, id.as_slice(), Some(next))?;
         Ok(HandleResponse::default())
     }
 
-    /// Stop allowing another contract to receive migrations from this contract
-    fn handle_disable_migration_to (&mut self, env: Env, next: ContractLink<HumanAddr>)
+    /// Stop allowing another contract from receiving migrations from this contract
+    fn disallow_emigration_to (&mut self, next: ContractLink<HumanAddr>)
         -> StdResult<HandleResponse>
     {
-        Auth::assert_admin(self, &env)?;
         let id = self.canonize(next.address)?;
         self.set_ns::<Option<ContractLink<HumanAddr>>>(Self::CAN_MIGRATE_TO, id.as_slice(), None)?;
         Ok(HandleResponse::default())
     }
 
-    /// Check if a `ExportState` call is permissible
-    fn can_export_state (&mut self, env: &Env, migrant: &HumanAddr)
-        -> StdResult<ContractLink<HumanAddr>>
-    {
-        // The ExportState transaction is not meat to be called manually by the user;
-        // it must be called by the contract which is receiving the migration
-        if &env.message.sender == migrant {
-            return Err(StdError::generic_err("This handler must be called as part of a transaction"))
-        }
-        // If migration to the caller contract is enabled,
-        // its code hash should be available in storage
-        let id = self.canonize(env.message.sender.clone())?;
-        let receiver_link: Option<ContractLink<HumanAddr>> =
-            self.get_ns(Self::CAN_MIGRATE_TO, id.as_slice())?;
-        if let Some(receiver_link) = receiver_link {
-            Ok(receiver_link)
-        } else {
-            Err(StdError::generic_err("Migration to this target is not enabled."))
-        }
-    }
-
-    /// Override this to emit the corresponding messages, if migrating via transactions.
-    /// (Make sure to keep the `can_export_state` call in the override!)
-    fn handle_export_state (&mut self, env: &Env, migrant: &HumanAddr) -> StdResult<HandleResponse> {
-        let receiver = self.can_export_state(env, migrant)?;
+    /// Implement this to call `ReceiveMigration(snapshot)` on the new contract,
+    /// as well as perform any state mutations on the old contract and emit
+    /// any extra messages (such as SNIP20 token calls, etc.)
+    fn handle_export_state (
+        &mut self,
+        _env:           Env,
+        _next_contract: ContractLink<HumanAddr>,
+        _migrant:       HumanAddr
+    ) -> StdResult<HandleResponse>; /* { // TODO: extract the reusable part
         let response = HandleResponse::default();
         if let Some(snapshot) = self.export_state(env, migrant)? {
             let msg = self.wrap_receive_msg(ImmigrationHandle::ReceiveMigration(snapshot))?;
@@ -104,14 +88,39 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         } else {
             Ok(response)
         }
+    }*/
+
+    /// Check if the `ExportState` call is allowed.
+    fn can_export_state (&mut self, env: &Env, migrant: &HumanAddr)
+        -> StdResult<ContractLink<HumanAddr>>
+    {
+        // The ExportState transaction is not meat to be called manually by the user;
+        // it must be called by the contract which is receiving the migration
+        if &env.message.sender == migrant {
+            return errors::export_state_miscalled()
+        }
+        // If migration to the caller contract is enabled,
+        // its code hash should be available in storage
+        let id = self.canonize(env.message.sender.clone())?;
+        let next_contract: Option<ContractLink<HumanAddr>> =
+            self.get_ns(Self::CAN_MIGRATE_TO, id.as_slice())?;
+        if let Some(next_contract) = next_contract {
+            if next_contract.address == env.message.sender {
+                Ok(next_contract)
+            } else {
+                errors::immigration_disallowed()
+            }
+        } else {
+            errors::immigration_disallowed()
+        }
     }
 
     /// Implement this to wrap ImmigrationHandle in contract's root Handle type,
     /// so that `{"receive_migration":...}` can become `{"immigration":{"receive_migration":...}`
     fn wrap_receive_msg (&self, msg: ImmigrationHandle) -> StdResult<Binary>;
 
-    /// Override this to return a serialized version of your migration snapshot object
-    /// if you are migrating via snapshots.
+    /// If using snapshots:
+    /// Generate a serialized snapshot of the migrant's data here.
     fn export_state (&mut self, _env: &Env, _migrant: &HumanAddr) -> StdResult<Option<Binary>> {
         Ok(None)
     }
@@ -138,43 +147,48 @@ pub trait Immigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     fn handle (&mut self, env: Env, msg: ImmigrationHandle) -> StdResult<HandleResponse> {
         match msg {
-            ImmigrationHandle::RequestMigration(last_contract) =>
-                self.handle_request_migration(env, last_contract),
+            ImmigrationHandle::RequestMigration(contract) =>
+                self.handle_request_migration(env, contract),
             ImmigrationHandle::ReceiveMigration(data) =>
                 self.handle_receive_migration(env, data),
             _ => {
+                Auth::assert_admin(self, &env)?;
                 match msg {
                     ImmigrationHandle::EnableMigrationFrom(contract) =>
-                        self.handle_enable_migration_from(env, contract),
+                        self.allow_immigration_from(contract),
                     ImmigrationHandle::DisableMigrationFrom(contract) =>
-                        self.handle_disable_migration_from(env, contract),
+                        self.disallow_immigration_from(contract),
                     _ => unreachable!()
                 }
             }
         }
     }
 
-    fn handle_enable_migration_from (&mut self, env: Env, last: ContractLink<HumanAddr>)
+    fn allow_immigration_from (&mut self, prev: ContractLink<HumanAddr>)
         -> StdResult<HandleResponse>
     {
-        Auth::assert_admin(self, &env)?;
-        let id = self.canonize(last.address.clone())?;
-        self.set_ns(Self::CAN_MIGRATE_FROM, id.as_slice(), Some(last))?;
+        let id = self.canonize(prev.address.clone())?;
+        self.set_ns(Self::CAN_MIGRATE_FROM, id.as_slice(), Some(prev))?;
         Ok(HandleResponse::default())
     }
 
-    fn handle_disable_migration_from (&mut self, env: Env, last: ContractLink<HumanAddr>)
+    fn disallow_immigration_from (&mut self, prev: ContractLink<HumanAddr>)
         -> StdResult<HandleResponse>
     {
-        Auth::assert_admin(self, &env)?;
-        let id = self.canonize(last.address)?;
+        let id = self.canonize(prev.address)?;
         self.set_ns::<Option<ContractLink<HumanAddr>>>(Self::CAN_MIGRATE_FROM, id.as_slice(), None)?;
         Ok(HandleResponse::default())
     }
 
+    /// This is where the migration begins.
+    /// 1. User calls this method with the address of the previous contract.
+    /// 2. This contract checks if migration from the previous contract is allowed.
+    /// 3. This contract sends a message to the previous contract,
+    ///    requesting the user's state to be exported.
     fn handle_request_migration (&mut self, env: Env, prev: ContractLink<HumanAddr>)
         -> StdResult<HandleResponse>
     {
+        self.can_immigrate_from(&prev)?;
         HandleResponse::default().msg(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr:      prev.address,
             callback_code_hash: prev.code_hash,
@@ -183,18 +197,36 @@ pub trait Immigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         }))
     }
 
+    fn can_immigrate_from (&mut self, prev: &ContractLink<HumanAddr>) -> StdResult<()> {
+        let id = self.canonize(prev.address.clone())?;
+        let sender_link: Option<ContractLink<HumanAddr>> =
+            self.get_ns(Self::CAN_MIGRATE_FROM, id.as_slice())?;
+        if let Some(sender_link) = sender_link {
+            if sender_link.address == prev.address {
+                Ok(())
+            } else {
+                errors::emigration_disallowed()
+            }
+        } else {
+            errors::emigration_disallowed()
+        }
+    }
+
     /// Implement this to wrap EmigrationHandle in contract's root Handle type.
-    /// so that `{"export_state":...}` can become `{"emigration":{"export_state":...}`
+    /// That way, `{"export_state":...}` can become `{"emigration":{"export_state":...}`,
+    /// where "emigration" is the variant from the contract's root HandleMsg enum.
     fn wrap_export_msg (&self, msg: EmigrationHandle) -> StdResult<Binary>;
 
-    /// Override this to emit the corresponding messages, if migrating via transactions
+    /// If using transactions:
+    /// Emit messages that finalize the migration here.
     fn handle_receive_migration (&mut self, env: Env, data: Binary) -> StdResult<HandleResponse> {
         self.import_state(env, data)?;
         Ok(HandleResponse::default())
     }
 
-    /// Override this to import a snapshot, if migrating via snapshots
-    fn import_state (&mut self, env: Env, data: Binary) -> StdResult<()> {
-        unimplemented!()
+    /// If using snapshots:
+    /// Deserialize snapshot and save data here.
+    fn import_state (&mut self, _env: Env, _data: Binary) -> StdResult<()> {
+        Ok(())
     }
 }

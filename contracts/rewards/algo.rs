@@ -269,12 +269,7 @@ impl<S, A, Q, C> IClock<S, A, Q, C> for Clock where
         }
         let epoch: Moment = core.get(Self::NUMBER)?.unwrap_or(0u64);
         if next_epoch != epoch + 1 {
-            return Err(StdError::generic_err(format!(
-                "The current epoch is {}. The 'next_epoch' field must be set to {} instead of {}.",
-                epoch,
-                epoch + 1,
-                next_epoch
-            )))
+            return errors::invalid_epoch_number(epoch, next_epoch)
         }
         let now = env.block.time;
         let volume = accumulate(
@@ -477,7 +472,7 @@ pub trait IAccount <S, A, Q, C>: Sized where
     /// Check if a claim is possible, then perform it
     fn claim (&mut self, core: &mut C) -> StdResult<HandleResponse>;
     /// Return the user's stake if trying to interact with a closed pool
-    fn force_exit (&mut self, core: &mut C) -> StdResult<HandleResponse>;
+    fn force_exit (&mut self, core: &mut C, when: Moment, why: String) -> StdResult<HandleResponse>;
     /// Store the values that were updated by the passing of time
     fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()>;
     /// Store the results of a deposit
@@ -540,12 +535,10 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         account.earned = if account.reward_share.1 == Volume::zero() {
             Amount::zero()
         } else {
-            u128::min(
-                total.budget.0,
-                Volume::from(account.accumulated_pool_rewards)
-                    .multiply_ratio(account.reward_share.0, account.reward_share.1)?
-                    .low_u128()
-            ).into()
+            let reward = Volume::from(account.accumulated_pool_rewards)
+                .multiply_ratio(account.reward_share.0, account.reward_share.1)?
+                .low_u128();
+            u128::min(total.budget.0, reward).into()
         };
         // 4. Bonding period
         // This decrements by `elapsed` if `staked > 0`.
@@ -581,8 +574,10 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         Ok(())
     }
     fn deposit (&mut self, core: &mut C, amount: Uint128) -> StdResult<HandleResponse> {
-        if self.total.closed.is_some() {
-            return self.force_exit(core)
+        if let Some((ref when, ref why)) = self.total.closed {
+            let when = when.clone();
+            let why  = why.clone();
+            return self.force_exit(core, when, why)
         } else {
             self.commit_deposit(core, amount)?;
             let lp_token  = RewardsConfig::lp_token(core)?;
@@ -595,8 +590,10 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
     fn withdraw (&mut self, core: &mut C, amount: Uint128)
         -> StdResult<HandleResponse>
     {
-        if self.total.closed.is_some() {
-            self.force_exit(core)
+        if let Some((ref when, ref why)) = self.total.closed {
+            let when = when.clone();
+            let why  = why.clone();
+            self.force_exit(core, when, why)
         } else if self.staked < amount {
             errors::withdraw(self.staked, amount)
         } else if self.total.staked < amount {
@@ -626,8 +623,10 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         }
     }
     fn claim (&mut self, core: &mut C) -> StdResult<HandleResponse> {
-        if self.total.closed.is_some() {
-            self.force_exit(core)
+        if let Some((ref when, ref why)) = self.total.closed {
+            let when = when.clone();
+            let why  = why.clone();
+            self.force_exit(core, when, why)
         } else if self.bonding > 0 {
             errors::claim_bonding(self.bonding)
         } else if self.total.budget == Amount::zero() {
@@ -641,18 +640,16 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
                 .log("reward", &self.earned.to_string())
         }
     }
-    fn force_exit (&mut self, core: &mut C) -> StdResult<HandleResponse> {
-        if let Some((ref when, ref why)) = self.total.closed {
-            let amount = self.staked;
-            let response = HandleResponse::default()
-                .msg(RewardsConfig::lp_token(core)?.transfer(&self.address, amount)?)?
-                .log("close_time",   &format!("{}", when))?
-                .log("close_reason", &format!("{}", why))?;
-            self.commit_withdrawal(core, amount)?;
-            Ok(response)
-        } else {
-            errors::pool_not_closed()
-        }
+    fn force_exit (&mut self, core: &mut C, when: Moment, why: String)
+        -> StdResult<HandleResponse>
+    {
+        let amount = self.staked;
+        let response = HandleResponse::default()
+            .msg(RewardsConfig::lp_token(core)?.transfer(&self.address, amount)?)?
+            .log("close_time",   &format!("{}", when))?
+            .log("close_reason", &format!("{}", why))?;
+        self.commit_withdrawal(core, amount)?;
+        Ok(response)
     }
     fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()> {
         self.total.commit_elapsed(core)?;

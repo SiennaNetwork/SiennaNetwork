@@ -7,7 +7,7 @@ tx,0110_overlap_addr,LP_TOKEN,"transfer_from:
   amount: ""42798""
   owner: Alice
   padding: ~
-  recipient: cosmos2contract"
+  recipient: 0110_overlap_addr"
 ,,,
 206,RPT,0110_overlap_addr,vest 93561
 ,,,
@@ -23,5 +23,5 @@ tx,0110_overlap_addr,LP_TOKEN,"transfer_from:
   amount: ""38861""
   owner: Bob
   padding: ~
-  recipient: cosmos2contract"
+  recipient: 0110_overlap_addr"
 206,0110_overlap_addr,Bob,account.starting_pool_volume = 8431206

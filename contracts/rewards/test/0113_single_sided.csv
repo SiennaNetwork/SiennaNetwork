@@ -7,7 +7,7 @@ tx,0113_single_sided_addr,SIENNA,"transfer_from:
   amount: ""42798""
   owner: Alice
   padding: ~
-  recipient: cosmos2contract"
+  recipient: 0113_single_sided_addr"
 14,0113_single_sided_addr,Alice,account.earned               = 0
 ,,,
 211,RPT,0113_single_sided_addr,vest 38861

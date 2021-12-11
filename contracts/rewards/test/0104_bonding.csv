@@ -25,7 +25,7 @@ tx,0104_bonding_addr,LP_TOKEN,"transfer_from:
   amount: ""42798""
   owner: Alice
   padding: ~
-  recipient: cosmos2contract"
+  recipient: 0104_bonding_addr"
 20,0104_bonding_addr,Alice,account.bonding              = 196
 21,0104_bonding_addr,Alice,account.bonding              = 195
 22,0104_bonding_addr,Alice,account.bonding              = 194
