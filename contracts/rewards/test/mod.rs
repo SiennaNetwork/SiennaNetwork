@@ -66,31 +66,47 @@ impl Context {
         let initiator = HumanAddr::from("Admin");
         let time = 1;
 
-        //color_backtrace::install();
+        color_backtrace::install();
+
+        let address   = HumanAddr::from(format!("{}_addr", &name));
+        let code_hash = format!("{}_hash", &name).to_string();
 
         let mut rng = StdRng::seed_from_u64(1);
         let bonding = rng.gen_range(100..200);
+
         Self {
             rng,
             name: name.to_string(),
-            link: ContractLink {
-                address:   HumanAddr::from(format!("{}_addr", &name)),
-                code_hash: format!("{}_hash", &name).to_string(),
-            },
+            link: ContractLink { address: address.clone(), code_hash: code_hash.clone(), },
             table,
 
             deps: MockExtern::new(RewardsMockQuerier::new()),
 
             reward_vk: "reward_vk".to_string(),
             reward_token: ISnip20::attach(
-                ContractLink { address: HumanAddr::from("SIENNA"),   code_hash: "SIENNA_hash".into() }
+                ContractLink { address: HumanAddr::from("SIENNA"), code_hash: "SIENNA_hash".into() }
             ),
 
             lp_token: ISnip20::attach(
                 ContractLink { address: HumanAddr::from("LP_TOKEN"), code_hash: "LP_hash".into() }
             ),
 
-            env: env(&initiator, time),
+            env: Env {
+                block: BlockInfo {
+                    height: 0,
+                    time,
+                    chain_id: "fadroma".into()
+                },
+                message: MessageInfo {
+                    sender:     initiator.clone(),
+                    sent_funds: vec![]
+                },
+                contract: ContractInfo {
+                    address:   address.clone(),
+                },
+                contract_key:       Some("".into()),
+                contract_code_hash: code_hash.clone()
+            },
             initiator,
             time,
             closed: None,
@@ -108,7 +124,8 @@ impl Context {
         self
     }
     fn update_env (&mut self) -> &mut Self {
-        self.env = env(&self.initiator, self.time);
+        self.env.message.sender = self.initiator.clone();
+        self.env.block.time     = self.time;
         self
     }
     pub fn at (&mut self, t: Moment) -> &mut Self {
@@ -386,9 +403,23 @@ impl Context {
         );
         self
     }
+    pub fn disable_migration_to (&mut self, contract: &ContractLink<HumanAddr>) -> &mut Self {
+        self.test_handle(
+            Handle::Emigration(EmigrationHandle::DisableMigrationTo(contract.clone())),
+            Ok(HandleResponse::default())
+        );
+        self
+    }
     pub fn enable_migration_from (&mut self, contract: &ContractLink<HumanAddr>) -> &mut Self {
         self.test_handle(
             Handle::Immigration(ImmigrationHandle::EnableMigrationFrom(contract.clone())),
+            Ok(HandleResponse::default())
+        );
+        self
+    }
+    pub fn disable_migration_from (&mut self, contract: &ContractLink<HumanAddr>) -> &mut Self {
+        self.test_handle(
+            Handle::Immigration(ImmigrationHandle::DisableMigrationFrom(contract.clone())),
             Ok(HandleResponse::default())
         );
         self
@@ -454,7 +485,7 @@ impl Context {
         test_handle(
             &mut last_version.table,
             &mut last_version.deps,
-            &env(&self.link.address, self.time),
+            &self.env,
             self.link.address.clone(),
             export,
             export_result,
@@ -466,6 +497,20 @@ impl Context {
             HandleResponse::default().log("migrated", &migrated_stake.to_string())
         );
 
+        self
+    }
+    pub fn cannot_migrate_from (
+        &mut self,
+        last_version: &mut Context
+    ) -> &mut Self {
+        assert_eq!(
+            Contract::handle(
+                &mut self.deps,
+                self.env.clone(),
+                Handle::Immigration(ImmigrationHandle::RequestMigration(last_version.link.clone()))
+            ),
+            errors::emigration_disallowed()
+        );
         self
     }
     pub fn staked (&mut self, expected: u128) -> &mut Self {

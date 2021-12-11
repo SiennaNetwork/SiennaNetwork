@@ -9,9 +9,22 @@ tx,0301_migrate_v1_addr,LP_TOKEN,"transfer_from:
   amount: ""85596""
   owner: Alice
   padding: ~
-  recipient: cosmos2contract"
+  recipient: 0301_migrate_v1_addr"
 1,0301_migrate_v1_addr,Alice,account.staked               = 85596
 1,0301_migrate_v1_addr,Alice,total.staked                 = 85596
+1,0301_migrate_v1_addr,Bob,account.staked               = 0
+1,0301_migrate_v1_addr,Bob,total.staked                 = 85596
+,,,
+1,Bob,0301_migrate_v1_addr,"rewards:
+  deposit:
+    amount: ""77722"""
+tx,0301_migrate_v1_addr,LP_TOKEN,"transfer_from:
+  amount: ""77722""
+  owner: Bob
+  padding: ~
+  recipient: 0301_migrate_v1_addr"
+1,0301_migrate_v1_addr,Bob,account.staked               = 77722
+1,0301_migrate_v1_addr,Bob,total.staked                 = 163318
 ,,,
 1,Admin,0301_migrate_v1_addr,"emigration:
   enable_migration_to:
@@ -20,6 +33,10 @@ tx,0301_migrate_v1_addr,LP_TOKEN,"transfer_from:
 ,,,
 1,0301_migrate_v2_addr,0301_migrate_v2_addr,"emigration:
   export_state: Alice"
+=>,err,Generic error: This handler must be called as part of a transaction,
+,,,
+FAIL,was expecting,the following,
+,,,
 tx,0301_migrate_v2_addr,LP_TOKEN,"transfer:
   amount: ""85596""
   padding: ~

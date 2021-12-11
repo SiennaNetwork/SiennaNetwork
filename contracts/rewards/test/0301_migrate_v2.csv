@@ -1,4 +1,11 @@
 Time,Sender,Recipient,Data
+1,0301_migrate_v2_addr,Alice,account.staked               = 0
+1,0301_migrate_v2_addr,Alice,total.staked                 = 0
+,,,
+1,Alice,0301_migrate_v2_addr,"immigration:
+  enable_migration_from:
+    address: 0301_migrate_v1_addr
+    code_hash: 0301_migrate_v1_hash"
 ,,,
 1,Alice,0301_migrate_v2_addr,"immigration:
   request_migration:
@@ -6,9 +13,3 @@ Time,Sender,Recipient,Data
     code_hash: 0301_migrate_v1_hash"
 tx,0301_migrate_v2_addr,0301_migrate_v1_addr,"emigration:
   export_state: Alice"
-,,,
-1,Alice,0301_migrate_v2_addr,"immigration:
-  receive_migration: WyJBbGljZSIsIiIsIjg1NTk2Il0="
-log,0301_migrate_v2_addr,,migrated = 85596
-1,0301_migrate_v2_addr,Alice,account.staked               = 85596
-1,0301_migrate_v2_addr,Alice,total.staked                 = 85596

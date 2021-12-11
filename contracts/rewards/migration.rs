@@ -9,7 +9,7 @@
 //! Sienna Rewards currently uses the former method, so as not to
 //! reimplement pieces of the liquidity accumulation logic twice.
 
-use crate::auth::Auth;
+use crate::{auth::Auth, errors};
 use fadroma::*;
 
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
@@ -74,7 +74,7 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         // The ExportState transaction is not meat to be called manually by the user;
         // it must be called by the contract which is receiving the migration
         if &env.message.sender == migrant {
-            return Err(StdError::generic_err("This handler must be called as part of a transaction"))
+            return errors::export_state_miscalled()
         }
         // If migration to the caller contract is enabled,
         // its code hash should be available in storage
@@ -82,15 +82,24 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         let receiver_link: Option<ContractLink<HumanAddr>> =
             self.get_ns(Self::CAN_MIGRATE_TO, id.as_slice())?;
         if let Some(receiver_link) = receiver_link {
-            Ok(receiver_link)
+            if receiver_link.address == env.message.sender {
+                Ok(receiver_link)
+            } else {
+                errors::immigration_disallowed()
+            }
         } else {
-            Err(StdError::generic_err("Migration to this target is not enabled."))
+            errors::immigration_disallowed()
         }
     }
 
-    /// Override this to emit the corresponding messages, if migrating via transactions.
+    /// Implement this to emit the corresponding messages, if migrating via transactions.
     /// (Make sure to keep the `can_export_state` call in the override!)
-    fn handle_export_state (&mut self, env: &Env, migrant: &HumanAddr) -> StdResult<HandleResponse> {
+    fn handle_export_state (&mut self, _env: &Env, _migrant: &HumanAddr)
+        -> StdResult<HandleResponse>
+    {
+        unimplemented!()
+    }/* {
+        panic!("handle_export_state not over {:?} {}", &env, &migrant);
         let receiver = self.can_export_state(env, migrant)?;
         let response = HandleResponse::default();
         if let Some(snapshot) = self.export_state(env, migrant)? {
@@ -104,7 +113,7 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         } else {
             Ok(response)
         }
-    }
+    }*/
 
     /// Implement this to wrap ImmigrationHandle in contract's root Handle type,
     /// so that `{"receive_migration":...}` can become `{"immigration":{"receive_migration":...}`
@@ -175,12 +184,23 @@ pub trait Immigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     fn handle_request_migration (&mut self, env: Env, prev: ContractLink<HumanAddr>)
         -> StdResult<HandleResponse>
     {
-        HandleResponse::default().msg(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr:      prev.address,
-            callback_code_hash: prev.code_hash,
-            send:               vec![],
-            msg: self.wrap_export_msg(EmigrationHandle::ExportState(env.message.sender))?,
-        }))
+        let id = self.canonize(prev.address.clone())?;
+        let sender_link: Option<ContractLink<HumanAddr>> =
+            self.get_ns(Self::CAN_MIGRATE_FROM, id.as_slice())?;
+        if let Some(sender_link) = sender_link {
+            if sender_link.address == prev.address {
+                HandleResponse::default().msg(CosmosMsg::Wasm(WasmMsg::Execute {
+                    contract_addr:      prev.address,
+                    callback_code_hash: prev.code_hash,
+                    send:               vec![],
+                    msg: self.wrap_export_msg(EmigrationHandle::ExportState(env.message.sender))?,
+                }))
+            } else {
+                errors::emigration_disallowed()
+            }
+        } else {
+            errors::emigration_disallowed()
+        }
     }
 
     /// Implement this to wrap EmigrationHandle in contract's root Handle type.
@@ -194,7 +214,7 @@ pub trait Immigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     }
 
     /// Override this to import a snapshot, if migrating via snapshots
-    fn import_state (&mut self, env: Env, data: Binary) -> StdResult<()> {
+    fn import_state (&mut self, _env: Env, _data: Binary) -> StdResult<()> {
         unimplemented!()
     }
 }
