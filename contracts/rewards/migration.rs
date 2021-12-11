@@ -67,15 +67,15 @@ pub trait Emigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         Ok(HandleResponse::default())
     }
 
-    /// Implement this to emit the corresponding messages, if migrating via transactions.
+    /// Implement this to call `ReceiveMigration(snapshot)` on the new contract,
+    /// as well as perform any state mutations on the old contract and emit
+    /// any extra messages (such as SNIP20 token calls, etc.)
     fn handle_export_state (
         &mut self,
         _env:           Env,
         _next_contract: ContractLink<HumanAddr>,
         _migrant:       HumanAddr
-    ) -> StdResult<HandleResponse> {
-        unimplemented!()
-    }/* {
+    ) -> StdResult<HandleResponse>; /* { // TODO: extract the reusable part
         let response = HandleResponse::default();
         if let Some(snapshot) = self.export_state(env, migrant)? {
             let msg = self.wrap_receive_msg(ImmigrationHandle::ReceiveMigration(snapshot))?;
