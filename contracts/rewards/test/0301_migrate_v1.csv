@@ -40,6 +40,16 @@ tx,0301_migrate_v1_addr,LP_TOKEN,"transfer:
 tx,0301_migrate_v1_addr,0301_migrate_v2_addr,"immigration:
   receive_migration: WyJBbGljZSIsIiIsIjg1NTk2Il0="
 ,,,
+1,Admin,0301_migrate_v1_addr,"emigration:
+  disable_migration_to:
+    address: 0301_migrate_v2_addr
+    code_hash: 0301_migrate_v2_hash"
+,,,
+1,Admin,0301_migrate_v1_addr,"emigration:
+  enable_migration_to:
+    address: 0301_migrate_v2_addr
+    code_hash: 0301_migrate_v2_hash"
+,,,
 1,0301_migrate_v2_addr,0301_migrate_v1_addr,"emigration:
   export_state: Bob"
 tx,0301_migrate_v1_addr,LP_TOKEN,"transfer:

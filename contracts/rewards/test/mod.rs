@@ -450,9 +450,9 @@ impl Context {
     }
     pub fn migrate_from (
         &mut self,
-        last_version: &mut Context,
-        migrated_stake: u128,
-        claimed_reward: u128
+        last_version:    &mut Context,
+        expected_stake:  u128,
+        expected_reward: u128
     ) -> &mut Self {
 
         let migrant = self.initiator.clone();
@@ -471,18 +471,19 @@ impl Context {
             }))
         );
 
+        // 2. NEW calls ExportState(migrant) on OLD.
         let mut export_result = HandleResponse::default().msg(
             self.lp_token.transfer(
                 &self.link.address.clone(),
-                migrated_stake.into()
+                expected_stake.into()
             ).unwrap()
         );
-        if claimed_reward > 0 {
+        if expected_reward > 0 {
             export_result = export_result.unwrap().msg(
                 self.reward_token.transfer_from(
                     &self.env.message.sender,
                     &self.env.contract.address,
-                    claimed_reward.into()
+                    expected_reward.into()
                 ).unwrap()
             );
         }
@@ -490,7 +491,7 @@ impl Context {
             to_binary(&((
                 migrant.clone(),
                 Auth::load_vk(&last_version.deps, id.as_slice()).unwrap().map(|vk|vk.0),
-                migrated_stake.into()
+                expected_stake.into()
             ) as AccountSnapshot)).unwrap()
         ));
         export_result = export_result.unwrap().msg(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -499,8 +500,6 @@ impl Context {
             msg:  to_binary(&receive_vk_snapshot).unwrap(),
             send: vec![]
         }));
-
-        // 2. NEW calls ExportState(migrant) on OLD.
         let mut env = last_version.env.clone();
         env.message.sender = self.link.address.clone();
         test_handle(
@@ -514,12 +513,12 @@ impl Context {
         // 3. OLD calls ReceiveMigration on NEW
         self.test_handle(
             receive_vk_snapshot,
-            HandleResponse::default().log("migrated", &migrated_stake.to_string())
+            HandleResponse::default().log("migrated", &expected_stake.to_string())
         );
 
         self
     }
-    pub fn cannot_migrate_from (
+    pub fn emigration_fails (
         &mut self,
         last_version: &mut Context
     ) -> &mut Self {
@@ -531,6 +530,27 @@ impl Context {
             ),
             errors::emigration_disallowed()
         );
+        self
+    }
+    pub fn immigration_fails (
+        &mut self,
+        last_version: &mut Context
+    ) -> &mut Self {
+        assert!(Contract::handle(
+            &mut self.deps,
+            self.env.clone(),
+            Handle::Immigration(ImmigrationHandle::RequestMigration(last_version.link.clone()))
+        ).is_ok());
+
+        assert_eq!(
+            Contract::handle(
+                &mut last_version.deps,
+                last_version.env.clone(),
+                Handle::Emigration(EmigrationHandle::ExportState(self.initiator.clone()))
+            ),
+            errors::immigration_disallowed()
+        );
+
         self
     }
     pub fn staked (&mut self, expected: u128) -> &mut Self {
