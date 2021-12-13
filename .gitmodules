@@ -17,3 +17,9 @@
   path = libraries/fadroma-next
   url = git@github.com:hackbg/fadroma.git
   branch = 21.12
+[submodule "frontends/amm-types"]
+	path = frontends/amm-types
+	url = git@github.com:siennanetwork/amm-types.git
+[submodule "frontends/platform"]
+	path = frontends/platform
+	url = git@github.com:siennanetwork/platform.git
