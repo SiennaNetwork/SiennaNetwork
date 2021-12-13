@@ -20,6 +20,3 @@
 [submodule "frontends/amm-types"]
 	path = frontends/amm-types
 	url = git@github.com:siennanetwork/amm-types.git
-[submodule "frontends/platform"]
-	path = frontends/platform
-	url = git@github.com:siennanetwork/platform.git
