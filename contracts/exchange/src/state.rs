@@ -1,13 +1,15 @@
-use amm_shared::TokenPair;
-use amm_shared::fadroma::{
-    scrt::{
-        Api, CanonicalAddr, Extern, HumanAddr,
-        Querier, StdResult, Storage, StdError
-    },
-    scrt_addr::{Canonize, Humanize},
-    scrt_link::ContractLink,
-    scrt_storage::{load, save},
-    scrt_vk::ViewingKey
+use amm_shared::{
+    TokenPair,
+    fadroma::{
+        platform::{
+            Api, CanonicalAddr, Extern, HumanAddr,
+            Querier, StdResult, Storage, StdError,
+            Canonize, Humanize,
+            ContractLink,
+        },
+        storage::{load, save},
+        ViewingKey
+    }
 };
 
 use serde::{Serialize,Deserialize};
@@ -67,7 +69,7 @@ pub(crate) fn load_config<S: Storage, A: Api, Q: Querier>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use amm_shared::fadroma::scrt::testing::mock_dependencies;
+    use amm_shared::fadroma::platform::testing::mock_dependencies;
     use amm_shared::TokenType;
 
     #[test]

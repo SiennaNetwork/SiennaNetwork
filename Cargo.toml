@@ -20,19 +20,18 @@ members = [
   "contracts/router", # Copy and modifications of secretswap_router
 
   # Framework
-  "libraries/fadroma-next/lib",
-  "libraries/fadroma-next/bind-js",
+  "libraries/fadroma-next/crates/*",
   "libraries/migrate", # migration flag, as used by TGE before merging this feature into Fadroma
   "libraries/kukumba", # BDD testing framework
 ]
 
 [profile.release]
-opt-level = 3
-debug = false
-rpath = false
-lto = true
+codegen-units    = 1
+debug            = false
 debug-assertions = false
-codegen-units = 1
-panic = 'abort'
-incremental = false
-overflow-checks = true
+incremental      = false
+lto              = true
+opt-level        = 3
+overflow-checks  = true
+panic            = 'abort'
+rpath            = false

@@ -1,11 +1,11 @@
 use amm_shared::fadroma::{
-    scrt_link::ContractLink,
-    scrt::{
-        BLOCK_SIZE,
+    platform::{
         Api, Extern, HumanAddr, Querier, StdResult, Storage, Uint128,
         secret_toolkit::snip20,
+        BLOCK_SIZE,
+        ContractLink
     },
-    scrt_vk::ViewingKey,
+    ViewingKey,
 };
 
 /// Query the token for number of its decimals

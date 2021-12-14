@@ -1,5 +1,5 @@
 use fadroma::*;
-pub use fadroma::ViewingKey;
+pub use fadroma::auth::vk::ViewingKey;
 
 pub const ADMIN_KEY:    &[u8] = b"ltp5P6sFZT";
 pub const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";

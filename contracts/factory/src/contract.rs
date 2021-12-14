@@ -1,21 +1,21 @@
 use amm_shared::{
     exchange::Exchange,
     fadroma::{
-        admin::{
+        auth::admin::{
             assert_admin, handle as admin_handle, load_admin, query as admin_query, Admin,
             DefaultImpl as AdminImpl,
         },
-        require_admin::require_admin,
-        scrt::{
+        auth_proc::require_admin,
+        platform::{
             log, to_binary, Api, Binary, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
             InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
+            Humanize,
+            Callback,
+            ContractLink,
         },
-        scrt_addr::Humanize,
-        scrt_callback::Callback,
-        scrt_link::ContractLink,
-        scrt_migrate,
-        scrt_migrate::{get_status, ContractStatusLevel},
-        scrt_storage::{load, remove, save},
+        killswitch,
+        killswitch::{get_status, ContractStatusLevel},
+        storage::{load, remove, save},
     },
     msg::{
         exchange::{HandleMsg as ExchangeHandleMsg, InitMsg as ExchangeInitMsg},
@@ -71,7 +71,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             reason,
             new_address,
         } => {
-            scrt_migrate::set_status(deps, env, level, reason, new_address)?;
+            killswitch::set_status(deps, env, level, reason, new_address)?;
             return Ok(HandleResponse::default());
         }
         HandleMsg::TransferExchanges {
@@ -84,7 +84,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         _ => {}
     }
 
-    scrt_migrate::is_operational(&deps)?;
+    killswitch::is_operational(&deps)?;
 
     match msg {
         HandleMsg::SetStatus { .. } => unreachable!(),
@@ -561,10 +561,10 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
     password: String,
     skip: Option<Vec<HumanAddr>>,
 ) -> StdResult<HandleResponse> {
-    let status = scrt_migrate::get_status(&deps)?;
+    let status = killswitch::get_status(&deps)?;
 
     if status.level != ContractStatusLevel::Migrating {
-        scrt_migrate::set_status(
+        killswitch::set_status(
             deps,
             env,
             ContractStatusLevel::Migrating,

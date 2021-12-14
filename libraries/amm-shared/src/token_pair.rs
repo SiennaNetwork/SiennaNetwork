@@ -1,10 +1,9 @@
-use fadroma::{
-    scrt::{
-        Api, StdResult, Querier,
-        HumanAddr, Uint128, CanonicalAddr
-    },
-    scrt_addr::{Canonize, Humanize}
+use fadroma::platform::{
+    Api, StdResult, Querier,
+    HumanAddr, Uint128, CanonicalAddr,
+    Canonize, Humanize
 };
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 

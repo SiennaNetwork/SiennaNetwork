@@ -1,5 +1,5 @@
-use amm_shared::fadroma::scrt::cosmwasm_std::{HumanAddr, StdResult, Storage};
-use amm_shared::fadroma::scrt::{ReadonlySingleton, Singleton};
+use amm_shared::fadroma::platform::cosmwasm_std::{HumanAddr, StdResult, Storage};
+use amm_shared::fadroma::platform::{ReadonlySingleton, Singleton};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

@@ -1,13 +1,13 @@
 use amm_shared::fadroma::{
-    scrt::{
+    platform::{
         from_binary, log, Api, BankMsg, Binary, CanonicalAddr, Coin, Env, Extern,
         HandleResponse, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
         secret_toolkit::snip20,
         BLOCK_SIZE,
     },
-    scrt_storage_traits::Storable,
+    storage::traits1::Storable,
     admin::{assert_admin, load_admin},
-    require_admin::require_admin,
+    auth_proc::require_admin,
     convert_token
 };
 use amm_shared::TokenType;

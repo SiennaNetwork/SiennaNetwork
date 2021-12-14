@@ -1,5 +1,5 @@
 // Modules re-export
-pub use composable_snip20 as snip20_impl;
+pub use fadroma_snip20_impl as snip20_impl;
 pub use fadroma;
 
 pub use token_pair::*;

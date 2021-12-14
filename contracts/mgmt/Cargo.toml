@@ -28,9 +28,9 @@ linear-map       = { path = "../../libraries/linear-map" }
 sienna-migrate   = { path = "../../libraries/migrate" }
 sienna-schedule  = { path = "../../libraries/schedule" }
 
-fadroma-bind-js = { optional = true, path = "../../libraries/fadroma-next/bind-js" }
-wasm-bindgen = { optional = true, version = "0.2" }
-js-sys = { optional = true, version = "0.3.55" }
+fadroma-bind-js = { optional = true, path = "../../libraries/fadroma-next/crates/fadroma-bind-js" }
+wasm-bindgen    = { optional = true, version = "0.2" }
+js-sys          = { optional = true, version = "0.3.55" }
 
 [dev-dependencies]
 kukumba = { git = "https://github.com/hackbg/kukumba", branch = "21.04" }

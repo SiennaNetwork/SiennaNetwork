@@ -1,8 +1,4 @@
-use fadroma::{
-    scrt::{HumanAddr, StdResult, Api, CanonicalAddr},
-    scrt_addr::{Canonize, Humanize},
-    scrt_link::ContractLink
-};
+use fadroma::platform::{HumanAddr, StdResult, Api, CanonicalAddr, Canonize, Humanize, ContractLink};
 use crate::token_pair::TokenPair;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

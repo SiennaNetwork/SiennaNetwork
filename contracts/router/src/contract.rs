@@ -2,7 +2,7 @@ use amm_shared::msg::router::{
     Asset, AssetInfo, HandleMsg, Hop, InitMsg, NativeSwap, QueryMsg, Route, Snip20Swap,
 };
 use amm_shared::{
-    fadroma::scrt::{
+    fadroma::platform::{
         from_binary, secret_toolkit::snip20, to_binary, Api, BankMsg, Binary, Coin, CosmosMsg, Env,
         Extern, HandleResponse, HumanAddr, InitResponse, Querier, StdError, StdResult, Storage,
         Uint128, WasmMsg,

@@ -1,14 +1,16 @@
-use amm_shared::fadroma::{
-    scrt::{
-        Api, BankMsg, Coin, CosmosMsg, Decimal, Extern,
-        HumanAddr, Querier, StdResult, Storage, Uint128,
-        secret_toolkit::snip20,
-        BLOCK_SIZE,
-    },
-    scrt_vk::ViewingKey,
-    scrt_link::ContractLink
+use amm_shared::{
+    TokenType,
+    fadroma::{
+        platform::{
+            Api, BankMsg, Coin, CosmosMsg, Decimal, Extern,
+            HumanAddr, Querier, StdResult, Storage, Uint128,
+            secret_toolkit::snip20,
+            BLOCK_SIZE, ContractLink
+        },
+        ViewingKey,
+    }
 };
-use amm_shared::TokenType;
+
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 
 use crate::data::TokenConfig;

@@ -1,13 +1,13 @@
 use amm_shared::fadroma::{
-    scrt_addr::{Canonize, Humanize},
-    scrt_link::ContractLink,
-    scrt::{
+    platform::{
         Api, CanonicalAddr, Decimal, Extern, HumanAddr,
-        Querier, StdError, StdResult, Storage, Uint128
+        Querier, StdError, StdResult, Storage, Uint128,
+        Canonize, Humanize,
+        ContractLink,
     },
-    scrt_storage::{load, ns_load, ns_save, save},
-    scrt_storage_traits::Storable,
-    scrt_vk::ViewingKey,
+    storage::{load, ns_load, ns_save, save},
+    storage::traits1::Storable,
+    auth::vk::ViewingKey,
 };
 use amm_shared::{msg::launchpad::TokenSettings, TokenType};
 use schemars::JsonSchema;

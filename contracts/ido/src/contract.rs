@@ -1,28 +1,30 @@
-use amm_shared::fadroma::{
-    with_status,
-    scrt::{
+use amm_shared::fadroma as fadroma;
+use fadroma::{
+    platform::{
         to_binary, Api, CanonicalAddr, CosmosMsg, Env, Extern, HandleResponse, InitResponse,
         Querier, QueryRequest, QueryResult, StdError, StdResult, Storage, WasmMsg, WasmQuery,
         secret_toolkit::snip20,
         BLOCK_SIZE,
+        ContractLink
     },
-    scrt_link::ContractLink,
-    admin::{
-        handle as admin_handle,
-        query as admin_query,
-        DefaultImpl as AdminImpl,
-        save_admin
+    auth::{
+        admin::{
+            handle as admin_handle,
+            query as admin_query,
+            DefaultImpl as AdminImpl,
+            save_admin
+        },
+        vk::ViewingKey,
+        vk_auth::{
+            HandleMsg as AuthHandleMsg,
+            handle as auth_handle,
+            DefaultImpl as AuthImpl
+        }
     },
-    scrt_migrate,
-    scrt_migrate::get_status,
-    scrt_storage_traits::Storable,
-    scrt_vk::ViewingKey,
-    scrt_vk_auth::{
-        HandleMsg as AuthHandleMsg,
-        handle as auth_handle,
-        DefaultImpl as AuthImpl
-    }
+    killswitch::{with_status, get_status},
+    storage::traits1::Storable,
 };
+
 use amm_shared::TokenType;
 use amm_shared::msg::ido::{HandleMsg, InitMsg, QueryMsg};
 use amm_shared::msg::launchpad::QueryMsg as LaunchpadQueryMsg;
@@ -270,21 +272,20 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
-    use amm_shared::fadroma::{
-        scrt::{
-            from_binary,
-            testing::{mock_env, MockApi, MockStorage},
-            Binary, Coin, Env, Extern, HumanAddr, Uint128,
-        },
-        scrt_callback::Callback
+
+    use amm_shared::fadroma::platform::{
+        from_binary, Binary, Coin, Env, Extern, HumanAddr, Uint128, Callback,
+        testing::{mock_env, MockApi, MockStorage},
     };
+
     use amm_shared::{
         msg::ido::{
             HandleMsg, InitMsg, QueryMsg, QueryResponse, ReceiverCallbackMsg, TokenSaleConfig,
         },
         querier::{MockContractInstance, MockQuerier},
-        TokenType,
+        TokenType, 
     };
 
     const BLOCK_TIME: u64 = 1_571_797_419;

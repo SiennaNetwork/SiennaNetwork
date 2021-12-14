@@ -1,12 +1,11 @@
 use amm_shared::fadroma::{
-    scrt::{
+    platform::{
         to_binary, Api, CanonicalAddr, Extern, HumanAddr, Querier, QueryResult, Storage,
         secret_toolkit::snip20,
-        BLOCK_SIZE,
+        BLOCK_SIZE, Canonize
     },
-    scrt_vk::ViewingKey,
-    scrt_addr::Canonize,
-    scrt_vk_auth::authenticate,
+    auth::vk_auth::authenticate,
+    ViewingKey,
 };
 use amm_shared::msg::ido::QueryResponse;
 

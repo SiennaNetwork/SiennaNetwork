@@ -1,4 +1,4 @@
-use fadroma::scrt::{Uint128, Env, StdResult};
+use fadroma::platform::{Uint128, Env, StdResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

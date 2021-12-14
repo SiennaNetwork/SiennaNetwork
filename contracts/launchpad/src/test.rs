@@ -1,18 +1,20 @@
 use crate::contract::*;
-use amm_shared::fadroma::{
-    scrt_callback::Callback,
-    scrt_link::ContractLink,
-    scrt::{
-        from_binary,
-        testing::{mock_env, MockApi, MockStorage},
-        to_binary, Binary, Coin, Extern, HumanAddr, StdError, Uint128,
+
+use amm_shared::{
+    fadroma,
+    TokenType,
+    querier::{MockContractInstance, MockQuerier},
+    msg::launchpad::{
+        HandleMsg, InitMsg, QueryMsg, QueryResponse,
+        ReceiverCallbackMsg, TokenSettings,
     }
 };
-use amm_shared::TokenType;
-use amm_shared::querier::{MockContractInstance, MockQuerier};
-use amm_shared::msg::launchpad::{
-    HandleMsg, InitMsg, QueryMsg, QueryResponse,
-    ReceiverCallbackMsg, TokenSettings,
+
+use fadroma::platform::{
+    from_binary,
+    testing::{mock_env, MockApi, MockStorage},
+    to_binary, Binary, Coin, Extern, HumanAddr, StdError, Uint128,
+    Callback, ContractLink
 };
 
 fn mock_deps() -> Extern<MockStorage, MockApi, MockQuerier> {

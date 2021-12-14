@@ -1,11 +1,10 @@
 use amm_shared::fadroma::{
-    scrt::{
-        to_binary, Api, Binary, Extern, HumanAddr, Querier, StdResult, Storage
+    platform::{
+        to_binary, Api, Binary, Extern, HumanAddr, Querier, StdResult, Storage,
+        Canonize, ContractLink
     },
-    scrt_vk_auth::authenticate,
-    scrt_addr::Canonize,
-    scrt_link::ContractLink,
-    scrt_vk::ViewingKey
+    auth::vk_auth::authenticate,
+    ViewingKey
 };
 use amm_shared::TokenType;
 use amm_shared::msg::launchpad::{QueryAccountToken, QueryResponse, QueryTokenConfig};
