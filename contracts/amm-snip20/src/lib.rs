@@ -1,9 +1,10 @@
-use amm_shared::fadroma::scrt::{
-    Extern, Storage, Api, Querier, StdResult,
-    InitResponse, Env, HandleResponse, Binary
+use amm_shared::{
+    fadroma::platform::{
+        Extern, Storage, Api, Querier, StdResult,
+        InitResponse, Env, HandleResponse, Binary
+    },
+    snip20_impl as composable_snip20
 };
-
-use amm_shared::snip20_impl as composable_snip20;
 use composable_snip20::{snip20_init, snip20_handle, snip20_query, DefaultSnip20Impl};
 use composable_snip20::msg::{InitMsg, HandleMsg, QueryMsg};
 

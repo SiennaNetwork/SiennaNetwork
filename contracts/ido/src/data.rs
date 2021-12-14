@@ -1,12 +1,11 @@
 use amm_shared::fadroma::{
-    scrt_addr::{Canonize, Humanize},
-    scrt_link::ContractLink,
-    scrt::{
+    platform::{
         Api, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage, Uint128,
+        Canonize, Humanize,
+        ContractLink,
     },
-    scrt_storage::{load, save},
-    scrt_storage_traits::Storable,
-    scrt_vk::ViewingKey,
+    storage::{load, save, traits1::Storable},
+    ViewingKey,
 };
 use amm_shared::{msg::ido::SaleType, TokenType};
 use schemars::JsonSchema;

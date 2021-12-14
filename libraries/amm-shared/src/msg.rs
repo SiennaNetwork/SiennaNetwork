@@ -1,10 +1,8 @@
 pub use crate::snip20_impl::msg as snip20;
 
 use fadroma::{
-    scrt::{Binary, Decimal, HumanAddr, Uint128},
-    scrt_callback::Callback,
-    scrt_link::{ContractInstantiationInfo, ContractLink},
-    scrt_migrate::ContractStatusLevel,
+    platform::{Binary, Decimal, HumanAddr, Uint128, Callback, ContractInstantiationInfo, ContractLink},
+    killswitch::ContractStatusLevel,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -401,8 +399,10 @@ pub mod launchpad {
 pub mod ido {
     use super::*;
 
-    use fadroma::admin::{HandleMsg as AdminHandleMsg, QueryMsg as AdminQueryMsg};
-    use fadroma::scrt_link::ContractLink;
+    use fadroma::{
+        platform::ContractLink,
+        auth::admin::{HandleMsg as AdminHandleMsg, QueryMsg as AdminQueryMsg}
+    };
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     pub struct InitMsg {
@@ -606,7 +606,7 @@ pub mod ido {
 
 pub mod router {
     use super::*;
-    use fadroma::scrt::{Binary, HumanAddr, Uint128};
+    use fadroma::platform::{Binary, HumanAddr, Uint128};
     use std::collections::VecDeque;
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

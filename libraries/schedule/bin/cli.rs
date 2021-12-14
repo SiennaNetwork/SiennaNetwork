@@ -1,4 +1,4 @@
-use serde::Deserialize;
+//use serde::Deserialize;
 use sienna_schedule::{*, vesting::*, validate::*};
 
 use std::{path::Path, fs::read_to_string};
@@ -50,7 +50,7 @@ fn main () -> Result<(), std::io::Error> {
             }
         },
         None => {
-            &app.print_long_help();
+            app.print_long_help()?;
         }
     };
 

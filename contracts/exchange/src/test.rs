@@ -1,16 +1,14 @@
 use amm_shared::{
-    fadroma::{
-        scrt_link::{ContractLink, ContractInstantiationInfo},
-        scrt_callback::Callback,
-        scrt::{
-            testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage},
-            Extern, HumanAddr, StdError, to_binary
-        },
-    },
+    fadroma,
     msg::exchange::{InitMsg, HandleMsg},
     TokenPair, TokenType,
 };
-
+use fadroma::platform::{
+    testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage},
+    Extern, HumanAddr, StdError, to_binary,
+    ContractLink, ContractInstantiationInfo,
+    Callback,
+};
 use crate::{contract::*, state::load_config};
 
 fn do_init() -> Extern<MockStorage, MockApi, MockQuerier> {

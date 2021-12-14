@@ -1,13 +1,13 @@
 use amm_shared::fadroma::{
-    scrt::{
+    platform::{
         from_binary, log, Api, Binary, Env, Extern, HandleResponse, HumanAddr, Querier,
         StdError, StdResult, Storage, Uint128,
         secret_toolkit::snip20,
         BLOCK_SIZE,
     },
     admin::assert_admin,
-    require_admin::require_admin,
-    scrt_storage_traits::Storable
+    auth_proc::require_admin,
+    storage::traits1::Storable
 };
 use amm_shared::TokenType;
 use amm_shared::msg::launchpad::{ReceiverCallbackMsg, TokenSettings};

@@ -1,27 +1,30 @@
-use amm_shared::fadroma::{
-    with_status,
-    scrt::{
+use amm_shared::fadroma as fadroma;
+
+use fadroma::{
+    platform::{
         to_binary, Api, CosmosMsg, Env, Extern, HandleResponse, InitResponse, Querier,
         QueryResult, StdResult, Storage, WasmMsg,
         secret_toolkit::snip20,
         BLOCK_SIZE,
+        ContractLink
     },
-    admin::{
-        handle as admin_handle,
-        query as admin_query,
-        DefaultImpl as AdminImpl,
-        save_admin
+    ViewingKey,
+    auth::{
+        admin::{
+            handle as admin_handle,
+            query as admin_query,
+            DefaultImpl as AdminImpl,
+            save_admin
+        },
+        vk_auth::{
+            HandleMsg as AuthHandleMsg,
+            handle as auth_handle,
+            DefaultImpl as AuthImpl
+        }
     },
-    scrt_vk_auth::{
-        HandleMsg as AuthHandleMsg,
-        handle as auth_handle,
-        DefaultImpl as AuthImpl
-    },
-    scrt_link::ContractLink,
-    scrt_migrate,
-    scrt_migrate::get_status,
-    scrt_storage_traits::Storable,
-    scrt_vk::ViewingKey
+    killswitch::get_status,
+    killswitch::with_status,
+    storage::traits1::Storable,
 };
 use amm_shared::TokenType;
 use amm_shared::msg::launchpad::{HandleMsg, InitMsg, QueryMsg};

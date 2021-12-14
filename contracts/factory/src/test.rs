@@ -1,21 +1,22 @@
 use amm_shared::{
+    fadroma as fadroma,
     exchange::{Exchange, ExchangeSettings, Fee},
-    fadroma::{
-        scrt::{
-            from_binary,
-            testing::{mock_dependencies, mock_env},
-            to_binary, Api, Binary, CosmosMsg, Env, Extern, HandleResponse, HumanAddr, Querier,
-            StdError, StdResult, Storage, Uint128, WasmMsg,
-        },
-        scrt_addr::Canonize,
-        scrt_link::{ContractInstantiationInfo, ContractLink},
-        scrt_migrate,
-        scrt_storage::{load, save},
-    },
     msg::exchange::HandleMsg as ExchangeHandle,
     msg::factory::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
     msg::ido::TokenSaleConfig,
     Pagination, TokenPair, TokenType,
+};
+use fadroma::{
+    platform::{
+        from_binary,
+        testing::{mock_dependencies, mock_env},
+        to_binary, Api, Binary, CosmosMsg, Env, Extern, HandleResponse, HumanAddr, Querier,
+        StdError, StdResult, Storage, Uint128, WasmMsg,
+        Canonize,
+        {ContractInstantiationInfo, ContractLink},
+    },
+    killswitch,
+    storage::{load, save},
 };
 
 use crate::{contract::*, state::*};
@@ -656,11 +657,11 @@ mod test_contract {
             )
         }
 
-        let status = scrt_migrate::get_status(deps).unwrap();
+        let status = killswitch::get_status(deps).unwrap();
         assert_eq!(
             status,
-            scrt_migrate::ContractStatus {
-                level: scrt_migrate::ContractStatusLevel::Migrating,
+            killswitch::ContractStatus {
+                level: killswitch::ContractStatusLevel::Migrating,
                 reason: "Migrating to new factory.".into(),
                 new_address: Some(new_instance.address)
             }

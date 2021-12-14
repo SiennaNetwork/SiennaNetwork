@@ -3,12 +3,12 @@ use std::usize;
 use amm_shared::{
     exchange::{Exchange, ExchangeSettings},
     fadroma::{
-        scrt::{
+        platform::{
             Api, Binary, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage,
+            Canonize, Humanize,
+            ContractInstantiationInfo, ContractLink,
         },
-        scrt_addr::{Canonize, Humanize},
-        scrt_link::{ContractInstantiationInfo, ContractLink},
-        scrt_storage::{load, ns_load, ns_remove, ns_save, remove, save, IterableStorage},
+        storage::{load, ns_load, ns_remove, ns_save, remove, save, IterableStorage},
     },
     Pagination, TokenPair, TokenType,
 };

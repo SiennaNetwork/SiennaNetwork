@@ -1,10 +1,10 @@
 use fadroma::{
-    scrt::{
+    platform::{
         from_binary, from_slice, testing::MockQuerier as StdMockQuerier, to_binary, Coin, Empty,
         HumanAddr, Querier, QuerierResult, QueryRequest, StdResult, SystemError, Uint128, WasmQuery,
-        secret_toolkit::snip20::{Balance, TokenInfo}
+        secret_toolkit::snip20::{Balance, TokenInfo},
+        ContractLink
     },
-    scrt_link::ContractLink,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 

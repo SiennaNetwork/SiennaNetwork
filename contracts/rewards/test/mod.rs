@@ -17,7 +17,7 @@ use prettytable::{Table, /*Row, Cell,*/ format};
 use crate::*;
 use fadroma::secret_toolkit::snip20;
 use fadroma::testing::*;
-use fadroma::composable_core_test::{MockExtern, ClonableMemoryStorage};
+use fadroma::composability::{MockExtern, ClonableMemoryStorage};
 
 pub use rand::Rng;
 use rand::{SeedableRng, rngs::StdRng};
