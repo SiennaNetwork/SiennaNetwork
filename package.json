@@ -7,15 +7,13 @@
   "packages": [
     "./benchmarks",
     "./contracts/*",
-    "./dashboard",
-    "./libraries/api",
+    "./frontends/*",
     "./libraries/fadroma-next/lib/composable-snip20",
     "./libraries/fadroma-next/packages/*",
     "./libraries/fadroma-next/platforms/scrt-1.0/cosmwasm-js/packages/sdk",
     "./libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk",
     "./libraries/ops-amm",
     "./libraries/schedule",
-    "./libraries/siennajs",
     "./scripts",
     "./settings"
   ],
@@ -28,8 +26,8 @@
   "scripts": {
     "dev":          "ganesha run-module --unhandled-rejections=strict scripts/dev.ts",
     "ops":          "ganesha run-module --unhandled-rejections=strict scripts/ops.ts",
-    "dash":         "cd dashboard; pnpm web",
-    "dash:build":   "dashboard/build.sh",
+    "dash":         "cd frontends/dashboard; pnpm web",
+    "dash:build":   "frontends/dashboard/build.sh",
     "test:rewards": "cargo test -p sienna-rewards"
   }
 }

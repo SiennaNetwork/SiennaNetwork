@@ -17,3 +17,15 @@
   path = libraries/fadroma-next
   url = git@github.com:hackbg/fadroma.git
   branch = 21.12
+[submodule "frontends/amm-types"]
+  path = frontends/amm-types
+  url = git@github.com:siennanetwork/amm-types.git
+[submodule "frontends/claim"]
+  path = frontends/claim
+  url = git@github.com:siennanetwork/claim.git
+[submodule "frontends/reward-pools-monitor"]
+  path = frontends/reward-pools-monitor
+  url = git@github.com:siennanetwork/reward-pools-monitor.git
+[submodule "frontends/vest"]
+  path = frontends/vest
+  url = git@github.com:siennanetwork/vest.git
