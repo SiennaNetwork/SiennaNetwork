@@ -1,4 +1,4 @@
-import { ContractInstantiationInfo, Address, create_fee } from '../../api/siennajs/lib/core'
+import { ContractInstantiationInfo, Address, create_fee } from '../../frontends/siennajs/lib/core'
 import { IJsonFileWriter } from './utils/json_file_writer'
 import { TxAnalytics } from './utils/tx_analytics'
 

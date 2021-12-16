@@ -1,11 +1,11 @@
-import { AmmFactoryContract } from '../../api/siennajs/lib/amm_factory'
-import { ExchangeContract } from '../../api/siennajs/lib/exchange'
-import { Snip20Contract, TokenInfo } from '../../api/siennajs/lib/snip20'
+import { AmmFactory } from '../../frontends/siennajs/lib/amm_factory'
+import { Exchange } from '../../frontends/siennajs/lib/exchange'
+import { Snip20, TokenInfo } from '../../frontends/siennajs/lib/snip20'
 import {
     Address, ContractInstantiationInfo, TokenPair, TokenPairAmount,
     TokenType, CustomToken, Uint128, TokenTypeAmount, create_coin,
     create_fee
-} from '../../api/siennajs/lib/core'
+} from '../../frontends/siennajs/lib/core'
 import {
     upload_amm, build_client, create_rand_base64, create_account
 } from './setup'
@@ -64,7 +64,7 @@ async function simulation() {
     const instance = await instantiate_factory(client, result, ACC[1].address)
     process.stdout.write(`Instantiating factory...done\r\n\n`)
 
-    const factory = new AmmFactoryContract(instance.contractAddress, client)
+    const factory = new AmmFactory(instance.contractAddress, client)
 
     await create_users(client)
     await create_pairs(client, result.snip20, factory)
@@ -97,7 +97,7 @@ async function create_users(client: SigningCosmWasmClient) {
 async function create_pairs(
     client: SigningCosmWasmClient,
     info: ContractInstantiationInfo,
-    factory: AmmFactoryContract
+    factory: AmmFactory
 ) {
     const tokens: Address[][] = []
 
@@ -212,10 +212,10 @@ async function run_simulation() {
 }
 
 async function provide_liquidity(user: User, pair: PairContract, amount: number) {
-    const contract = new ExchangeContract(pair.address, user.client)
+    const contract = new Exchange(pair.address, user.client)
 
-    const snip20_contract_0 = new Snip20Contract((pair.pair.token_0 as CustomToken).custom_token.contract_addr, user.client)
-    const snip20_contract_1 = new Snip20Contract((pair.pair.token_1 as CustomToken).custom_token.contract_addr, user.client)
+    const snip20_contract_0 = new Snip20((pair.pair.token_0 as CustomToken).custom_token.contract_addr, user.client)
+    const snip20_contract_1 = new Snip20((pair.pair.token_1 as CustomToken).custom_token.contract_addr, user.client)
 
     const amount_0 = raw_amount(amount, get_decimals(pair.pair.token_0))
     const amount_1 = raw_amount(amount, get_decimals(pair.pair.token_1))
@@ -287,7 +287,7 @@ async function withdraw_liquidity() {
         lp.liquidity.set(pair, lp_amount - rand_amount)
     }
 
-    const contract = new ExchangeContract(pair.address, lp.info.client)
+    const contract = new Exchange(pair.address, lp.info.client)
     const result = await contract.exec().withdraw_liquidity(rand_amount.toString(), lp.info.client.senderAddress)
 
     await log_action(
@@ -312,7 +312,7 @@ async function swap() {
     const info = get_token_info(token)
     const amount = raw_amount(rand(MIN_AMOUNT, MAX_AMOUNT), info.decimals)
 
-    const contract = new ExchangeContract(pair.address, user.client)
+    const contract = new Exchange(pair.address, user.client)
     const result = await contract.exec().swap(new TokenTypeAmount(token, amount))
 
     await log_action(
@@ -345,7 +345,7 @@ async function log_action(
     hash: string,
     pair: PairContract
 ) {
-    const contract = new ExchangeContract(pair.address, undefined, QUERY_CLIENT)
+    const contract = new Exchange(pair.address, undefined, QUERY_CLIENT)
     
     const pool = await contract.query().get_pair_info()
     const name_0 = get_token_info(pool.pair.token_0).name

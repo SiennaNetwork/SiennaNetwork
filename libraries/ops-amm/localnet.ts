@@ -1,5 +1,5 @@
-import { create_fee, Address } from '../../api/siennajs/lib/core'
-import { ExchangeSettings } from '../../api/siennajs/lib/amm_factory'
+import { create_fee, Address } from '../../frontends/siennajs/lib/core'
+import { ExchangeSettings } from '../../frontends/siennajs/lib/amm_factory'
 import { create_rand_base64, UploadResult } from './setup'
 
 import { SigningCosmWasmClient, InstantiateResult } from 'secretjs'
