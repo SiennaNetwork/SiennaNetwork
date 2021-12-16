@@ -5,13 +5,13 @@ import {
     get_token_type, TypeOfToken, CustomToken, TokenTypeAmount, Decimal, add_native_balance
 } from './core'
 import { SmartContract, Querier, Executor } from './contract'
-import { Snip20Contract } from './snip20'
+import { Snip20 } from './snip20'
 
 import { SigningCosmWasmClient, ExecuteResult } from 'secretjs'
 import { Hop } from './hop'
-import { ExchangeContract } from './exchange'
+import { Exchange } from './exchange'
 
-export class RouterContract extends SmartContract<RouterExecutor, RouterQuerier> {
+export class Router extends SmartContract<RouterExecutor, RouterQuerier> {
     exec(fee?: Fee, memo?: string): RouterExecutor {
         return new RouterExecutor(
             this.address,
@@ -51,7 +51,7 @@ export class RouterExecutor extends Executor {
         const first_hop = hops[0]
 
         if (hops.length === 1) {
-            return (new ExchangeContract(first_hop.pair_address, this.client, this.client))
+            return (new Exchange(first_hop.pair_address, this.client, this.client))
                 .exec()
                 .swap(new TokenTypeAmount(first_hop.from_token, amount), recipient, expected_return)
         }
@@ -76,7 +76,7 @@ export class RouterExecutor extends Executor {
         const fee = this.fee || create_fee('1500000')
 
         const token_addr = (first_hop.from_token as CustomToken).custom_token.contract_addr;
-        const snip20 = new Snip20Contract(token_addr, this.client)
+        const snip20 = new Snip20(token_addr, this.client)
 
         return snip20.exec(fee, this.memo).send(this.address, amount, msg)
     }

@@ -97,17 +97,17 @@ export interface RewardsAccount {
     user_share: Uint128;
 }
 
-export class RewardsContract extends SmartContract<RewardsExecutor, RewardsQuerier> {
-    exec(fee?: Fee, memo?: string): RewardsExecutor {
-        return new RewardsExecutor(this.address, this.execute_client, fee, memo)
+export class RewardsV2 extends SmartContract<RewardsV2Executor, RewardsV2Querier> {
+    exec(fee?: Fee, memo?: string): RewardsV2Executor {
+        return new RewardsV2Executor(this.address, this.execute_client, fee, memo)
     }
 
-    query(): RewardsQuerier {
-        return new RewardsQuerier(this.address, this.query_client)
+    query(): RewardsV2Querier {
+        return new RewardsV2Querier(this.address, this.query_client)
     }
 }
 
-export class RewardsExecutor extends ViewingKeyExecutor {
+export class RewardsV2Executor extends ViewingKeyExecutor {
     async claim(): Promise<ExecuteResult> {
         const msg = {
             claim: { }
@@ -137,7 +137,7 @@ export class RewardsExecutor extends ViewingKeyExecutor {
     }
 }
 
-export class RewardsQuerier extends Querier {
+export class RewardsV2Querier extends Querier {
     async get_pool(at: number): Promise<RewardPool> {
         const msg = {
             pool_info: {

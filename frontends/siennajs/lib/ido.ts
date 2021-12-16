@@ -4,7 +4,7 @@ import {
 } from './core'
 import { SmartContract, Querier } from './contract'
 import { ViewingKeyExecutor } from './executors/viewing_key_executor'
-import { Snip20Contract } from './snip20'
+import { Snip20 } from './snip20'
 
 import { SigningCosmWasmClient, ExecuteResult } from 'secretjs'
 
@@ -102,7 +102,7 @@ export interface EligibilityInfo {
     can_participate: boolean;
 }
 
-export class IdoContract extends SmartContract<IdoExecutor, IdoQuerier> {
+export class Ido extends SmartContract<IdoExecutor, IdoQuerier> {
     exec(fee?: Fee, memo?: string): IdoExecutor {
         return new IdoExecutor(
             this.address,
@@ -153,7 +153,7 @@ export class IdoExecutor extends ViewingKeyExecutor {
         }
 
         const token_addr = (info.input_token as CustomToken).custom_token.contract_addr;
-        const snip20 = new Snip20Contract(token_addr, this.client)
+        const snip20 = new Snip20(token_addr, this.client)
 
         return snip20.exec(fee, this.memo).send(this.address, amount, msg)
     }
@@ -203,7 +203,7 @@ export class IdoExecutor extends ViewingKeyExecutor {
         const fee = this.fee || create_fee('300000')
         const info = await this.querier().get_sale_info()
 
-        const snip20 = new Snip20Contract(info.sold_token.address, this.client)
+        const snip20 = new Snip20(info.sold_token.address, this.client)
         return snip20.exec(fee, this.memo).send(this.address, sale_amount, msg)
     }
 }

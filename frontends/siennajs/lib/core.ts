@@ -2,6 +2,7 @@ import { b64encode, b64decode, b64fromBuffer } from "@waiting/base64";
 import { EnigmaUtils, ExecuteResult, InstantiateResult } from "secretjs";
 
 export type Uint128 = string;
+export type Uint256 = string;
 export type Address = string;
 export type TokenType = CustomToken | NativeToken;
 export type Decimal = string;
@@ -94,7 +95,7 @@ export function create_coin(amount: Uint128): Coin {
     }
 }
 
-export function create_fee(amount: Uint128, gas?: Uint128 | undefined): Fee {
+export function create_fee(amount: Uint128, gas?: Uint128): Fee {
     if (gas === undefined) {
         gas = amount
     }

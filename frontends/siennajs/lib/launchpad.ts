@@ -4,7 +4,7 @@ import {
 } from './core'
 import { SmartContract, Querier } from './contract'
 import { ViewingKeyExecutor } from './executors/viewing_key_executor'
-import { Snip20Contract } from './snip20'
+import { Snip20 } from './snip20'
 
 import { SigningCosmWasmClient, ExecuteResult } from 'secretjs'
 
@@ -30,7 +30,7 @@ export interface QueryAccountToken {
     entries: number[],
 }
 
-export class LaunchpadContract extends SmartContract<LaunchpadExecutor, LaunchpadQuerier> {
+export class Launchpad extends SmartContract<LaunchpadExecutor, LaunchpadQuerier> {
     exec(fee?: Fee, memo?: string): LaunchpadExecutor {
         return new LaunchpadExecutor(
             this.address,
@@ -97,7 +97,7 @@ export class LaunchpadExecutor extends ViewingKeyExecutor {
         }
 
         const fee = this.fee || create_fee('350000')
-        const snip20 = new Snip20Contract(token_address, this.client)
+        const snip20 = new Snip20(token_address, this.client)
         return snip20.exec(fee, this.memo).send(this.address, amount, msg)
     }
 
@@ -111,7 +111,7 @@ export class LaunchpadExecutor extends ViewingKeyExecutor {
         }
 
         const fee = this.fee || create_fee('400000')
-        const snip20 = new Snip20Contract(token_address, this.client)
+        const snip20 = new Snip20(token_address, this.client)
         return snip20.exec(fee, this.memo).send(this.address, '0', msg)
     }
 
