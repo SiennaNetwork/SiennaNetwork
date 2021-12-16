@@ -1,10 +1,10 @@
 {
   "name": "siennajs",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Interact with Sienna Network smart contracts through JS.",
   "main": "dist/index.js",
   "scripts": {
-    "build": "npx tsc",
+    "build": "pnpm exec tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/SiennaNetwork/sienna/tree/main/api/siennajs#readme",
   "dependencies": {
-    "secretjs": "0.17.3",
+    "secretjs": "^0.17.5",
     "@waiting/base64": "^4.2.9"
   },
   "exclude": [
