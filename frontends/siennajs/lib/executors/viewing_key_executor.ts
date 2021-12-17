@@ -22,7 +22,7 @@ export class ViewingKeyExecutor extends Executor {
 
         const result = await this.run(
             msg,
-            "200000",
+            '50000',
         )
 
         const decode_result = decode_data<CreateViewingKeyResult>(result)
@@ -44,7 +44,7 @@ export class ViewingKeyExecutor extends Executor {
 
         return this.run(
             msg,
-            "200000",
+            '50000',
         )
     }
 }

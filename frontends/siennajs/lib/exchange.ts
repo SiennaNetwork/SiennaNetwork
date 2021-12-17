@@ -51,7 +51,7 @@ export class ExchangeExecutor extends Executor {
         super(address, client, fee, memo)
     }
 
-    async provide_liquidity(amount: TokenPairAmount, tolerance?: Decimal | null): Promise<ExecuteResult> {
+    async provide_liquidity(amount: TokenPairAmount, tolerance?: Decimal): Promise<ExecuteResult> {
         const msg = {
             add_liquidity: {
                 deposit: amount,
@@ -81,8 +81,8 @@ export class ExchangeExecutor extends Executor {
 
     async swap(
         amount: TokenTypeAmount,
-        recipient?: Address | null,
-        expected_return?: Decimal | null
+        recipient?: Address,
+        expected_return?: Decimal
     ): Promise<ExecuteResult> {
         if (get_token_type(amount.token) == TypeOfToken.Native) {
             const msg = {

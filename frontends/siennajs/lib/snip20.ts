@@ -40,8 +40,8 @@ export class Snip20Executor extends ViewingKeyExecutor {
     async increase_allowance(
         spender: Address,
         amount: Uint128,
-        expiration?: number | null,
-        padding?: string | null
+        expiration?: number,
+        padding?: string
     ): Promise<ExecuteResult> {
         const msg = {
             increase_allowance: {
@@ -55,7 +55,7 @@ export class Snip20Executor extends ViewingKeyExecutor {
         return this.run(msg, '50000')
     }
 
-    async deposit(amount: Uint128, padding?: string | null): Promise<ExecuteResult> {
+    async deposit(amount: Uint128, padding?: string): Promise<ExecuteResult> {
         const msg = {
             deposit: {
                 padding
@@ -66,7 +66,7 @@ export class Snip20Executor extends ViewingKeyExecutor {
         return this.run(msg, '50000', transfer)
     }
 
-    async transfer(recipient: Address, amount: Uint128, padding?: string | null): Promise<ExecuteResult> {
+    async transfer(recipient: Address, amount: Uint128, padding?: string): Promise<ExecuteResult> {
         const msg = {
             transfer: {
                 recipient,
@@ -81,7 +81,7 @@ export class Snip20Executor extends ViewingKeyExecutor {
     async send(
         recipient: Address,
         amount: Uint128,
-        msg?: object | null,
+        msg?: object,
         padding?: string
     ): Promise<ExecuteResult> {
         const message = {
@@ -96,7 +96,7 @@ export class Snip20Executor extends ViewingKeyExecutor {
         return this.run(message, '50000')
     }
 
-    async mint(recipient: Address, amount: Uint128, padding?: string | null): Promise<ExecuteResult> {
+    async mint(recipient: Address, amount: Uint128, padding?: string): Promise<ExecuteResult> {
         const msg = {
             mint: {
                 recipient,

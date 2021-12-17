@@ -42,7 +42,7 @@ export class RouterExecutor extends Executor {
         hops: Hop[],
         amount: Uint128,
         recipient: Address,
-        expected_return?: Decimal | null,
+        expected_return?: Decimal,
     ): Promise<ExecuteResult> {
         if (hops.length === 0) {
             throw new Error("You have to provide hops for the swap to happen")
