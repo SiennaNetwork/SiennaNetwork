@@ -9,19 +9,19 @@ import { Snip20 } from './snip20'
 import { ExecuteResult, SigningCosmWasmClient } from 'secretjs'
 
 export interface SwapSimulationResponse {
-    return_amount: Uint128,
-    spread_amount: Uint128,
+    return_amount: Uint128
+    spread_amount: Uint128
     commission_amount: Uint128
 }
 
 export interface PairInfo {
-    amount_0: Uint128;
-    amount_1: Uint128;
-    factory: ContractInfo;
-    liquidity_token: ContractInfo;
-    pair: TokenPair;
-    total_liquidity: Uint128;
-    contract_version: number;
+    amount_0: Uint128
+    amount_1: Uint128
+    factory: ContractInfo
+    liquidity_token: ContractInfo
+    pair: TokenPair
+    total_liquidity: Uint128
+    contract_version: number
 }
 
 export class Exchange extends SmartContract<ExchangeExecutor, ExchangeQuerier> {

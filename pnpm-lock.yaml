@@ -418,7 +418,7 @@ importers:
       typescript: ^4.2.4
     dependencies:
       '@waiting/base64': 4.2.9
-      secretjs: 0.17.5
+      secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
     devDependencies:
       typescript: 4.5.2
 

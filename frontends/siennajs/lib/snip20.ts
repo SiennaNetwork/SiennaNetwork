@@ -4,6 +4,7 @@ import {
 } from './core'
 import { SmartContract, Querier } from './contract'
 import { ViewingKeyExecutor } from './executors/viewing_key_executor'
+import { Signer, Permit } from './permit'
 
 import { ExecuteResult } from 'secretjs'
 
@@ -25,6 +26,8 @@ export interface ExchangeRate {
     rate: Uint128,
     denom: string
 }
+
+export type Snip20Permit = Permit<'allowance' | 'balance' | 'history' | 'owner'>
 
 export class Snip20 extends SmartContract<Snip20Executor, Snip20Querier> {
     exec(fee?: Fee, memo?: string): Snip20Executor {
@@ -140,6 +143,44 @@ export class Snip20Querier extends Querier {
         return result.balance.amount
     }
 
+    async permit_get_balance(signer: Signer): Promise<Uint128> {
+        const msg = create_permit_msg(
+            { balance: {} },
+            await signer.sign({
+                permit_name: `SiennaJS permit for ${this.address}`,
+                allowed_tokens: [ this.address ],
+                permissions: [ 'balance' ]
+            })
+        )
+
+        const result = await this.run(msg) as GetBalanceResponse
+        
+        return result.balance.amount
+    }
+
+    /**
+     * The address of the signer has to correspond to either `owner` or `spender`.
+     */
+    async permit_get_allowance(signer: Signer, owner: Address, spender: Address): Promise<Allowance> {
+        const msg = create_permit_msg(
+            {
+                allowance: {
+                    owner,
+                    spender
+                }
+            },
+            await signer.sign({
+                permit_name: `SiennaJS permit for ${this.address}`,
+                allowed_tokens: [ this.address ],
+                permissions: [ 'balance' ]
+            })
+        )
+
+        const result = await this.run(msg) as GetAllowanceResponse
+        
+        return result.allowance
+    }
+
     async get_token_info(): Promise<TokenInfo> {
         const msg = {
             token_info: { }
@@ -156,6 +197,15 @@ export class Snip20Querier extends Querier {
 
         const result = await this.run(msg) as GetExchangeRateResponse
         return result.exchange_rate
+    }
+}
+
+function create_permit_msg(query: object, permit: Snip20Permit): object {
+    return {
+        with_permit: {
+            query,
+            permit
+        }
     }
 }
 

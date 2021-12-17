@@ -9,6 +9,7 @@ import * as amm_factory from "./lib/amm_factory"
 import * as snip20 from "./lib/snip20"
 import * as hop from "./lib/hop"
 import * as router from "./lib/router"
+import * as permit from "./lib/permit"
 
 export default {
     contract,
@@ -21,5 +22,6 @@ export default {
     amm_factory,
     snip20,
     hop,
-    router
+    router,
+    permit
 }
