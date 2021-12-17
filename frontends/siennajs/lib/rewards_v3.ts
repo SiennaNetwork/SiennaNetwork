@@ -94,19 +94,19 @@ export class RewardsV3Executor extends ViewingKeyExecutor {
     async claim(): Promise<ExecuteResult> {
         const msg = { rewards: { claim: { } } }
 
-        return this.run(msg, '300000')
+        return this.run(msg, '80000')
     }
 
     async deposit_tokens(amount: Uint128): Promise<ExecuteResult> {
         const msg = { rewards: { deposit: { amount } } }
 
-        return this.run(msg, '300000')
+        return this.run(msg, '75000')
     }
 
     async withdraw_tokens(amount: Uint128): Promise<ExecuteResult> {
         const msg = { rewards: { withdraw: { amount } } }
 
-        return this.run(msg, '300000')
+        return this.run(msg, '75000')
     }
 }
 

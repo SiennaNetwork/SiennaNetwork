@@ -113,7 +113,7 @@ export class RewardsV2Executor extends ViewingKeyExecutor {
             claim: { }
         }
 
-        return this.run(msg, '300000')
+        return this.run(msg, '80000')
     }
 
     async lock_tokens(amount: Uint128): Promise<ExecuteResult> {
@@ -123,7 +123,7 @@ export class RewardsV2Executor extends ViewingKeyExecutor {
             }
         }
 
-        return this.run(msg, '280000')
+        return this.run(msg, '75000')
     }
 
     async retrieve_tokens(amount: Uint128,): Promise<ExecuteResult> {
@@ -133,7 +133,7 @@ export class RewardsV2Executor extends ViewingKeyExecutor {
             }
         }
 
-        return this.run(msg, '260000')
+        return this.run(msg, '75000')
     }
 }
 

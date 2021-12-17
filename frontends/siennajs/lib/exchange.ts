@@ -61,7 +61,7 @@ export class ExchangeExecutor extends Executor {
 
         const transfer = add_native_balance_pair(amount)
 
-        return this.run(msg, '530000', transfer)
+        return this.run(msg, '100000', transfer)
     }
 
     async withdraw_liquidity(amount: Uint128, recipient: Address): Promise<ExecuteResult> {
@@ -71,7 +71,7 @@ export class ExchangeExecutor extends Executor {
             }
         }
 
-        const fee = this.fee || create_fee('610000')
+        const fee = this.fee || create_fee('110000')
 
         const info = await this.querier().get_pair_info()
         const snip20 = new Snip20(info.liquidity_token.address, this.client)
@@ -94,7 +94,7 @@ export class ExchangeExecutor extends Executor {
             }
 
             const transfer = add_native_balance(amount)
-            return this.run(msg, '280000', transfer)
+            return this.run(msg, '55000', transfer)
         }
 
         const msg = {
@@ -104,7 +104,7 @@ export class ExchangeExecutor extends Executor {
             }
         }
 
-        const fee = this.fee || create_fee('530000')
+        const fee = this.fee || create_fee('100000')
 
         const token_addr = (amount.token as CustomToken).custom_token.contract_addr;
         const snip20 = new Snip20(token_addr, this.client)

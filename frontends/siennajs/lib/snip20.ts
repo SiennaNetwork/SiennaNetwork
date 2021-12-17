@@ -52,7 +52,7 @@ export class Snip20Executor extends ViewingKeyExecutor {
             }
         }
 
-        return this.run(msg, '200000')
+        return this.run(msg, '50000')
     }
 
     async deposit(amount: Uint128, padding?: string | null): Promise<ExecuteResult> {
@@ -63,7 +63,7 @@ export class Snip20Executor extends ViewingKeyExecutor {
         }
 
         const transfer = [create_coin(amount)]
-        return this.run(msg, '200000', transfer)
+        return this.run(msg, '50000', transfer)
     }
 
     async transfer(recipient: Address, amount: Uint128, padding?: string | null): Promise<ExecuteResult> {
@@ -75,7 +75,7 @@ export class Snip20Executor extends ViewingKeyExecutor {
             }
         }
 
-        return this.run(msg, '200000')
+        return this.run(msg, '50000')
     }
 
     async send(
@@ -93,7 +93,7 @@ export class Snip20Executor extends ViewingKeyExecutor {
             }
         }
 
-        return this.run(message, '200000')
+        return this.run(message, '50000')
     }
 
     async mint(recipient: Address, amount: Uint128, padding?: string | null): Promise<ExecuteResult> {
@@ -105,7 +105,7 @@ export class Snip20Executor extends ViewingKeyExecutor {
             }
         }
 
-        return this.run(msg, '200000')
+        return this.run(msg, '50000')
     }
 }
 

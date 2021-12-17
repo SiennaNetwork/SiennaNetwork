@@ -35,8 +35,8 @@ export abstract class Executor {
     constructor(
         protected address: Address,
         client?: SigningCosmWasmClient,
-        protected fee?: Fee,
-        protected memo?: string,
+        public fee?: Fee,
+        public memo?: string,
     ) {
         if (!client) {
             throw new Error('No instance of SigningCosmWasmClient was provided.')

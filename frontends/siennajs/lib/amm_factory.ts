@@ -62,7 +62,7 @@ export class AmmFactoryExecutor extends Executor {
             }
         }
 
-        return this.run(msg, '750000')
+        return this.run(msg, '300000')
     }
 
     async create_ido(config: TokenSaleConfig): Promise<ExecuteResult> {
