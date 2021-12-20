@@ -29,6 +29,6 @@ const token_info = await sienna_token.query().get_token_info()
 ```
 
 ## Querying with permits
-SiennaJS exposes the `Signer` interface the must implement an offline signing method. See the [SNIP-24 spec](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-24.md#data-structures) for more info.
+SiennaJS exposes the `Signer` interface which must implement an offline signing method. See the [SNIP-24 spec](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-24.md#data-structures) for more info.
 
 An implementation for the [Keplr](https://www.keplr.app) wallet is provided by the library - `KeplrSigner`
