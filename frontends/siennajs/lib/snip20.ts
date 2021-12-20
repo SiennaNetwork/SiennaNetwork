@@ -27,6 +27,68 @@ export interface ExchangeRate {
     denom: string
 }
 
+export interface TransferHistory {
+    total?: number | null,
+    txs: Tx[]
+}
+
+export interface TransactionHistory {
+    total?: number | null,
+    txs: RichTx[]
+}
+
+export type TxAction =
+    | {
+        transfer: {
+            from: Address,
+            recipient: Address,
+            sender: Address
+        }
+    }
+    | {
+        mint: {
+            minter: Address,
+            recipient: Address
+        }
+    }
+    | {
+        burn: {
+            burner: Address,
+            owner: Address
+        }
+    }
+    | {
+        deposit: { }
+    }
+    | {
+        redeem: { }
+    }
+
+export interface RichTx {
+    action: TxAction,
+    block_height: number,
+    block_time: number,
+    coins: Coin,
+    id: number,
+    memo?: string | null
+}
+
+export interface Tx {
+    block_height?: number | null,
+    block_time?: number | null,
+    coins: Coin,
+    from: Address,
+    id: number,
+    memo?: string | null,
+    receiver: Address,
+    sender: Address
+}
+
+export interface Coin {
+    amount: Uint128,
+    denom: string
+}
+
 export type Snip20Permit = Permit<'allowance' | 'balance' | 'history' | 'owner'>
 
 export class Snip20 extends SmartContract<Snip20Executor, Snip20Querier> {
@@ -126,7 +188,7 @@ export class Snip20Querier extends Querier {
         return result.allowance
     }
 
-    async get_balance(key: ViewingKey, address: Address): Promise<Uint128> {
+    async get_balance(address: Address, key: ViewingKey): Promise<Uint128> {
         const msg = {
             balance: {
                 address,
@@ -141,6 +203,54 @@ export class Snip20Querier extends Querier {
         }
         
         return result.balance.amount
+    }
+
+    /**
+     * Part of the new SNIP-21 history interface: https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-21.md#transfer-history
+     * Prefer using this function instead of {@link get_transaction_history} if the token supports it.
+     */
+    async get_transfer_history(
+        address: Address,
+        key: ViewingKey,
+        page_size: number,
+        page?: number
+    ): Promise<TransferHistory> {
+        const msg = {
+            transfer_history: {
+                address,
+                key,
+                page_size,
+                page
+            }
+        }
+
+        const result = await this.run(msg) as GetTransferHistoryResponse
+        
+        return result.transfer_history
+    }
+
+    /**
+     * This is the legacy interface: https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-21.md#transaction-history
+     * Use {@link get_transfer_history} instead if the token supports it.
+     */
+    async get_transaction_history(
+        address: Address,
+        key: ViewingKey,
+        page_size: number,
+        page?: number
+    ): Promise<TransactionHistory> {
+        const msg = {
+            transaction_history: {
+                address,
+                key,
+                page_size,
+                page
+            }
+        }
+
+        const result = await this.run(msg) as GetTransactionHistoryResponse
+        
+        return result.transaction_history
     }
 
     async permit_get_balance(signer: Signer): Promise<Uint128> {
@@ -172,13 +282,69 @@ export class Snip20Querier extends Querier {
             await signer.sign({
                 permit_name: `SiennaJS permit for ${this.address}`,
                 allowed_tokens: [ this.address ],
-                permissions: [ 'balance' ]
+                permissions: [ 'allowance' ]
             })
         )
 
         const result = await this.run(msg) as GetAllowanceResponse
         
         return result.allowance
+    }
+
+    /**
+     * Part of the new SNIP-21 history interface: https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-21.md#transfer-history
+     * Prefer using this function instead of {@link permit_get_transaction_history} if the token supports it.
+     */
+    async permit_get_transfer_history(
+        signer: Signer,
+        page_size: number,
+        page?: number
+    ): Promise<TransferHistory> {
+        const msg = create_permit_msg(
+            {
+                transfer_history: {
+                    page,
+                    page_size
+                }
+            },
+            await signer.sign({
+                permit_name: `SiennaJS permit for ${this.address}`,
+                allowed_tokens: [ this.address ],
+                permissions: [ 'history' ]
+            })
+        )
+
+        const result = await this.run(msg) as GetTransferHistoryResponse
+        
+        return result.transfer_history
+    }
+
+    /**
+     * This is the legacy interface: https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-21.md#transaction-history
+     * Use {@link permit_get_transfer_history} instead if the token supports it.
+     */
+    async permit_get_transaction_history(
+        signer: Signer,
+        page_size: number,
+        page?: number
+    ): Promise<TransactionHistory> {
+        const msg = create_permit_msg(
+            {
+                transaction_history: {
+                    page,
+                    page_size
+                }
+            },
+            await signer.sign({
+                permit_name: `SiennaJS permit for ${this.address}`,
+                allowed_tokens: [ this.address ],
+                permissions: [ 'history' ]
+            })
+        )
+
+        const result = await this.run(msg) as GetTransactionHistoryResponse
+        
+        return result.transaction_history
     }
 
     async get_token_info(): Promise<TokenInfo> {
@@ -207,6 +373,14 @@ function create_permit_msg(query: object, permit: Snip20Permit): object {
             permit
         }
     }
+}
+
+interface GetTransferHistoryResponse {
+    transfer_history: TransferHistory
+}
+
+interface GetTransactionHistoryResponse {
+    transaction_history: TransactionHistory
 }
 
 interface GetAllowanceResponse {
