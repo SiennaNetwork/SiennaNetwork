@@ -67,23 +67,19 @@ export default async function main (words: Array<string>) {
         new RPTContract().build()
       ]),
 
-      swap: () => Promise.all([
+      amm: () => Promise.all([
         new AMMContract().build(),
         new AMMSNIP20Contract().build(),
         new LPTokenContract().build(),
         new SwapRouterContract().build(),
-        new FactoryContract().build()
+        new FactoryContract().build(),
+        new LaunchpadContract().build(),
+        new IDOContract().build()
       ]),
 
       rewards: () => Promise.all([
         new RewardsContract().build(),
-      ]),
-
-      ido: () => Promise.all([
-        new IDOContract().build(),
-        new LaunchpadContract().build()
       ])
-
     },
 
     test: () => {

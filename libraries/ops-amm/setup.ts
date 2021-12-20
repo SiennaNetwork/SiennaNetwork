@@ -19,7 +19,8 @@ export interface UploadResult {
     exchange: ContractInstantiationInfo,
     lp_token: ContractInstantiationInfo,
     ido: ContractInstantiationInfo,
-    launchpad: ContractInstantiationInfo
+    launchpad: ContractInstantiationInfo,
+    router: ContractInstantiationInfo
 }
 
 export interface ScrtAccount {
@@ -41,6 +42,7 @@ export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFil
     const lp_token_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/lp-token@HEAD.wasm`))
     const ido_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/ido@HEAD.wasm`))
     const launchpad_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/launchpad@HEAD.wasm`))
+    const router_wasm = readFileSync(resolve(`${ARTIFACTS_PATH}/router@HEAD.wasm`))
 
     process.stdout.write(`Uploading exchange contract...\r`)
     const exchange_upload = await client.upload(exchange_wasm, {}, undefined, create_fee('2500000'))
@@ -78,6 +80,12 @@ export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFil
     writer.write(launchpad_upload, `uploads/launchpad`)
     process.stdout.write(`Uploading launchpad contract...done\r\n`)
 
+    process.stdout.write(`Uploading router contract...\r`)
+    const router_upload = await client.upload(router_wasm, {}, undefined, create_fee('1600000'))
+    analytics.add_tx(router_upload.transactionHash, 'Router')
+    writer.write(router_upload, `uploads/router`)
+    process.stdout.write(`Uploading router contract...done\r\n`)
+
     const gas = await analytics.get_gas_report()
     const gas_table = [ [ 'Uploaded Contract', 'Gas Wanted', 'Gas Used' ] ]
 
@@ -90,7 +98,8 @@ export async function upload_amm(client: SigningCosmWasmClient, writer: IJsonFil
         exchange: new ContractInstantiationInfo(exchange_upload.originalChecksum, exchange_upload.codeId),
         lp_token: new ContractInstantiationInfo(lp_token_upload.originalChecksum, lp_token_upload.codeId),
         ido: new ContractInstantiationInfo(ido_upload.originalChecksum, ido_upload.codeId),
-        launchpad: new ContractInstantiationInfo(launchpad_upload.originalChecksum, launchpad_upload.codeId)
+        launchpad: new ContractInstantiationInfo(launchpad_upload.originalChecksum, launchpad_upload.codeId),
+        router: new ContractInstantiationInfo(router_upload.originalChecksum, router_upload.codeId)
     }
 }
 

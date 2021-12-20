@@ -4,7 +4,7 @@ fi
 
 docker create --rm \
  -p 26657:26657 -p 26656:26656 -p 1337:1337 \
- --name secretdev enigmampc/secret-network-sw-dev:v1.2.0
+ --name secretdev enigmampc/secret-network-sw-dev:v1.2.2-1
 
 docker cp $(pwd)/bootstrap_init.sh secretdev:/root/bootstrap_init.sh
 
