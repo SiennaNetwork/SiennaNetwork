@@ -10,14 +10,13 @@ members = [
 
   # Swap + IDO
   "libraries/amm-shared", # definitions that are shared between AMM and IDO
-  "contracts/exchange",   # uniswap exchange contract implementation
-  "contracts/factory",    # factory contract for creating exchanges
-  "contracts/launchpad",  # Launchpad contract
-  "contracts/ido",        # Sienna IDO
-  "contracts/lp-token",   # snip20 liquidity provider token,
+  "contracts/amm/exchange",   # uniswap exchange contract implementation
+  "contracts/amm/factory",    # factory contract for creating exchanges
+  "contracts/amm/launchpad",  # Launchpad contract
+  "contracts/amm/ido",        # Sienna IDO
+  "contracts/amm/lp-token",   # snip20 liquidity provider token,
   "contracts/amm-snip20", # vanilla snip20 token, used when creating an IDO
-
-  "contracts/router", # Copy and modifications of secretswap_router
+  "contracts/amm/router", # Copy and modifications of secretswap_router
 
   # Framework
   "libraries/fadroma-next/crates/*",

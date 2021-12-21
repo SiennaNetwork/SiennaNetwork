@@ -14,4 +14,4 @@ crate-type = ["cdylib", "rlib"]
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 
-amm-shared = { path = "../../libraries/amm-shared" }
+amm-shared = { path = "../../../libraries/amm-shared" }
