@@ -1,5 +1,5 @@
-import { create_fee, Address } from '../../api/siennajs/lib/core'
-import { ExchangeSettings } from '../../api/siennajs/lib/amm_factory'
+import { create_fee, Address } from '../../frontends/siennajs/lib/core'
+import { ExchangeSettings } from '../../frontends/siennajs/lib/amm_factory'
 import { create_rand_base64, UploadResult } from './setup'
 
 import { SigningCosmWasmClient, InstantiateResult } from 'secretjs'
@@ -47,6 +47,7 @@ export async function instantiate_factory(
         pair_contract: result.exchange,
         ido_contract: result.ido,
         launchpad_contract: result.launchpad,
+        router_contract: result.router,
         exchange_settings: get_exchange_settings(burner),
         prng_seed: create_rand_base64()
     }
@@ -57,7 +58,7 @@ export async function instantiate_factory(
         `SIENNA AMM FACTORY_${Date.now()}`,
         undefined,
         undefined,
-        create_fee('165000')
+        create_fee('175000')
     )
   
     return instance

@@ -9,19 +9,19 @@ import { Snip20Contract } from './snip20'
 import { ExecuteResult, SigningCosmWasmClient } from 'secretjs'
 
 export interface SwapSimulationResponse {
-    return_amount: Uint128,
-    spread_amount: Uint128,
+    return_amount: Uint128
+    spread_amount: Uint128
     commission_amount: Uint128
 }
 
 export interface PairInfo {
-    amount_0: Uint128;
-    amount_1: Uint128;
-    factory: ContractInfo;
-    liquidity_token: ContractInfo;
-    pair: TokenPair;
-    total_liquidity: Uint128;
-    contract_version: number;
+    amount_0: Uint128
+    amount_1: Uint128
+    factory: ContractInfo
+    liquidity_token: ContractInfo
+    pair: TokenPair
+    total_liquidity: Uint128
+    contract_version: number
 }
 
 export class ExchangeContract extends SmartContract<ExchangeExecutor, ExchangeQuerier> {
@@ -51,7 +51,7 @@ export class ExchangeExecutor extends Executor {
         super(address, client, fee, memo)
     }
 
-    async provide_liquidity(amount: TokenPairAmount, tolerance?: Decimal | null): Promise<ExecuteResult> {
+    async provide_liquidity(amount: TokenPairAmount, tolerance?: Decimal): Promise<ExecuteResult> {
         const msg = {
             add_liquidity: {
                 deposit: amount,
@@ -61,7 +61,7 @@ export class ExchangeExecutor extends Executor {
 
         const transfer = add_native_balance_pair(amount)
 
-        return this.run(msg, '530000', transfer)
+        return this.run(msg, '100000', transfer)
     }
 
     async withdraw_liquidity(amount: Uint128, recipient: Address): Promise<ExecuteResult> {
@@ -71,7 +71,7 @@ export class ExchangeExecutor extends Executor {
             }
         }
 
-        const fee = this.fee || create_fee('610000')
+        const fee = this.fee || create_fee('110000')
 
         const info = await this.querier().get_pair_info()
         const snip20 = new Snip20Contract(info.liquidity_token.address, this.client)
@@ -81,8 +81,8 @@ export class ExchangeExecutor extends Executor {
 
     async swap(
         amount: TokenTypeAmount,
-        recipient?: Address | null,
-        expected_return?: Decimal | null
+        recipient?: Address,
+        expected_return?: Decimal
     ): Promise<ExecuteResult> {
         if (get_token_type(amount.token) == TypeOfToken.Native) {
             const msg = {
@@ -94,7 +94,7 @@ export class ExchangeExecutor extends Executor {
             }
 
             const transfer = add_native_balance(amount)
-            return this.run(msg, '280000', transfer)
+            return this.run(msg, '55000', transfer)
         }
 
         const msg = {
@@ -104,7 +104,7 @@ export class ExchangeExecutor extends Executor {
             }
         }
 
-        const fee = this.fee || create_fee('530000')
+        const fee = this.fee || create_fee('100000')
 
         const token_addr = (amount.token as CustomToken).custom_token.contract_addr;
         const snip20 = new Snip20Contract(token_addr, this.client)

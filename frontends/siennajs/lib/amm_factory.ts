@@ -62,7 +62,7 @@ export class AmmFactoryExecutor extends Executor {
             }
         }
 
-        return this.run(msg, '750000')
+        return this.run(msg, '300000')
     }
 
     async create_ido(config: TokenSaleConfig): Promise<ExecuteResult> {
@@ -97,28 +97,28 @@ export class AmmFactoryExecutor extends Executor {
         return this.run(msg, '200000')
     }
 
-    async set_config(
-        snip20_contract: ContractInstantiationInfo | undefined,
-        lp_token_contract: ContractInstantiationInfo | undefined,
-        pair_contract: ContractInstantiationInfo | undefined,
-        launchpad_contract: ContractInstantiationInfo | undefined,
-        ido_contract: ContractInstantiationInfo | undefined,
-        router_contract: ContractInstantiationInfo | undefined,
-        exchange_settings: ExchangeSettings | undefined
-    ): Promise<ExecuteResult> {
+    async set_config(config: {
+        snip20_contract?: ContractInstantiationInfo,
+        lp_token_contract?: ContractInstantiationInfo,
+        pair_contract?: ContractInstantiationInfo,
+        launchpad_contract?: ContractInstantiationInfo,
+        ido_contract?: ContractInstantiationInfo,
+        router_contract?: ContractInstantiationInfo,
+        exchange_settings?: ExchangeSettings
+    }): Promise<ExecuteResult> {
         const msg = {
             set_config: {
-                snip20_contract,
-                lp_token_contract,
-                pair_contract,
-                launchpad_contract,
-                ido_contract,
-                router_contract,
-                exchange_settings
+                snip20_contract: config.snip20_contract,
+                lp_token_contract: config.lp_token_contract,
+                pair_contract: config.pair_contract,
+                launchpad_contract: config.launchpad_contract,
+                ido_contract: config.ido_contract,
+                router_contract: config.router_contract,
+                exchange_settings: config.exchange_settings
             }
         }
 
-        return this.run(msg, '150000')
+        return this.run(msg, '50000')
     }
 }
 

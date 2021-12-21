@@ -33,7 +33,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
-    use amm_shared::fadroma::scrt::{
+    use amm_shared::fadroma::cosmwasm_std::{
         do_handle, do_init, do_query, ExternalApi, ExternalQuerier, ExternalStorage,
     };
 

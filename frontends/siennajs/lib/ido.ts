@@ -168,7 +168,7 @@ export class IdoExecutor extends ViewingKeyExecutor {
         return this.run(msg, '300000')
     }
 
-    async admin_claim(recipient?: Address | null): Promise<ExecuteResult> {
+    async admin_claim(recipient?: Address): Promise<ExecuteResult> {
         const msg = {
             admin_claim: {
                 address: recipient
