@@ -91,7 +91,7 @@ export interface Coin {
 
 export type Snip20Permit = Permit<'allowance' | 'balance' | 'history' | 'owner'>
 
-export class Snip20 extends SmartContract<Snip20Executor, Snip20Querier> {
+export class Snip20Contract extends SmartContract<Snip20Executor, Snip20Querier> {
     exec(fee?: Fee, memo?: string): Snip20Executor {
         return new Snip20Executor(this.address, this.execute_client, fee, memo)
     }

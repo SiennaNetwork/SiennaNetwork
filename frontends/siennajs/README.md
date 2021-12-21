@@ -19,7 +19,7 @@ If both instances are passed it will use `SigningCosmWasmClient` for executing a
 
 ```typescript
 const query_client = new CosmWasmClient('API_URL_HERE')
-const sienna_token = new Snip20(
+const sienna_token = new Snip20Contract(
     'secret1rgm2m5t530tdzyd99775n6vzumxa5luxcllml4',
     undefined, // We don't pass a SigningCosmWasmClient as we don't need it for queries
     query_client

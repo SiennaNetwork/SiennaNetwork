@@ -80,7 +80,7 @@ export interface RewardsAccount {
   bonding: Duration;
 }
 
-export class RewardsV3 extends SmartContract<RewardsV3Executor, RewardsV3Querier> {
+export class RewardsV3Contract extends SmartContract<RewardsV3Executor, RewardsV3Querier> {
     exec(fee?: Fee, memo?: string): RewardsV3Executor {
         return new RewardsV3Executor(this.address, this.execute_client, fee, memo)
     }

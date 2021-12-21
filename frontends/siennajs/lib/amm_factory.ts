@@ -43,7 +43,7 @@ export interface FactoryConfig {
     exchange_settings: ExchangeSettings;
 }
 
-export class AmmFactory extends SmartContract<AmmFactoryExecutor, AmmFactoryQuerier> {
+export class AmmFactoryContract extends SmartContract<AmmFactoryExecutor, AmmFactoryQuerier> {
     exec(fee?: Fee, memo?: string): AmmFactoryExecutor {
         return new AmmFactoryExecutor(this.address, this.execute_client, fee, memo)
     }

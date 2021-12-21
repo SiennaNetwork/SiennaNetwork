@@ -97,7 +97,7 @@ export interface RewardsAccount {
     user_share: Uint128;
 }
 
-export class RewardsV2 extends SmartContract<RewardsV2Executor, RewardsV2Querier> {
+export class RewardsV2Contract extends SmartContract<RewardsV2Executor, RewardsV2Querier> {
     exec(fee?: Fee, memo?: string): RewardsV2Executor {
         return new RewardsV2Executor(this.address, this.execute_client, fee, memo)
     }
