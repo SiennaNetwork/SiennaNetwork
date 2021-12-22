@@ -1,7 +1,6 @@
 use std::usize;
 
 use amm_shared::{
-    exchange::{Exchange, ExchangeSettings},
     fadroma::{
         platform::{
             Api, Binary, CanonicalAddr, Extern, HumanAddr, Querier, StdError, StdResult, Storage,
@@ -10,7 +9,7 @@ use amm_shared::{
         },
         storage::{load, ns_load, ns_remove, ns_save, remove, save, IterableStorage},
     },
-    Pagination, TokenPair, TokenType,
+    Pagination, TokenPair, TokenType, Exchange, ExchangeSettings
 };
 use serde::{Deserialize, Serialize};
 

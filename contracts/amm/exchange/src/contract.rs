@@ -1,5 +1,4 @@
 use amm_shared::{
-    exchange::{ExchangeSettings, Fee},
     fadroma::{
         platform::{
             from_binary, log, secret_toolkit::snip20, to_binary, Api, BankMsg, Binary, Coin,
@@ -19,7 +18,7 @@ use amm_shared::{
         factory::{QueryMsg as FactoryQueryMsg, QueryResponse as FactoryResponse},
         snip20::{InitConfig as Snip20InitConfig, InitMsg as Snip20InitMsg},
     },
-    TokenPairAmount, TokenType, TokenTypeAmount,
+    TokenPairAmount, TokenType, TokenTypeAmount, ExchangeSettings, Fee
 };
 
 use crate::{

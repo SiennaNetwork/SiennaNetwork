@@ -1,5 +1,4 @@
 use amm_shared::{
-    exchange::Exchange,
     fadroma::{
         auth::admin::{
             assert_admin, handle as admin_handle, load_admin, query as admin_query, Admin,
@@ -24,7 +23,7 @@ use amm_shared::{
         launchpad::{InitMsg as LaunchpadInitMsg, TokenSettings},
         router::InitMsg as RouterInitMsg,
     },
-    Pagination, TokenPair, TokenType,
+    Pagination, TokenPair, TokenType, Exchange
 };
 
 use crate::state::{
