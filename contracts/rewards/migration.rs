@@ -147,10 +147,14 @@ pub trait Immigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
 
     fn handle (&mut self, env: Env, msg: ImmigrationHandle) -> StdResult<HandleResponse> {
         match msg {
-            ImmigrationHandle::RequestMigration(contract) =>
-                self.handle_request_migration(env, contract),
-            ImmigrationHandle::ReceiveMigration(data) =>
-                self.handle_receive_migration(env, data),
+            ImmigrationHandle::RequestMigration(contract) => {
+                self.can_immigrate_from(&contract.address)?;
+                self.handle_request_migration(env, contract)
+            },
+            ImmigrationHandle::ReceiveMigration(data) => {
+                self.can_immigrate_from(&env.message.sender)?;
+                self.handle_receive_migration(env, data)
+            },
             _ => {
                 Auth::assert_admin(self, &env)?;
                 match msg {
@@ -188,7 +192,6 @@ pub trait Immigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     fn handle_request_migration (&mut self, env: Env, prev: ContractLink<HumanAddr>)
         -> StdResult<HandleResponse>
     {
-        self.can_immigrate_from(&prev)?;
         HandleResponse::default().msg(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr:      prev.address,
             callback_code_hash: prev.code_hash,
@@ -197,12 +200,12 @@ pub trait Immigration<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
         }))
     }
 
-    fn can_immigrate_from (&mut self, prev: &ContractLink<HumanAddr>) -> StdResult<()> {
-        let id = self.canonize(prev.address.clone())?;
+    fn can_immigrate_from (&mut self, prev: &HumanAddr) -> StdResult<()> {
+        let id = self.canonize(prev.clone())?;
         let sender_link: Option<ContractLink<HumanAddr>> =
             self.get_ns(Self::CAN_MIGRATE_FROM, id.as_slice())?;
         if let Some(sender_link) = sender_link {
-            if sender_link.address == prev.address {
+            if sender_link.address == *prev {
                 Ok(())
             } else {
                 errors::emigration_disallowed()
