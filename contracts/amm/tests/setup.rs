@@ -1,18 +1,19 @@
 use amm_shared::{
     fadroma::{
-        ContractLink,
+        ContractLink, one_token,
         cosmwasm_std::{
             StdResult, Env, Binary, InitResponse,
-            HandleResponse, HumanAddr, from_binary
+            HandleResponse, HumanAddr, Uint128,
+            from_binary
         },
         ensemble::{
             ContractEnsemble, MockEnv,
             ContractHarness, MockDeps, 
         },
         snip20_impl::{
-            msg::{InitMsg as Snip20InitMsg, InitConfig},
+            msg::{InitMsg as Snip20InitMsg, InitConfig, InitialBalance},
             snip20_init, snip20_handle, snip20_query, SymbolValidation, Snip20
-        }
+        },
     },
     TokenPair, TokenType, Pagination,
     ExchangeSettings, Fee, Exchange,
@@ -27,11 +28,12 @@ use router::contract as router;
 use lp_token;
 
 pub const ADMIN: &str = "admin";
+pub const USER: &str = "user";
 pub const BURNER: &str = "burner_acc";
 
 pub struct Amm {
-    ensemble: ContractEnsemble,
-    factory: ContractLink<HumanAddr>
+    pub ensemble: ContractEnsemble,
+    pub factory: ContractLink<HumanAddr>
 }
 
 impl Amm {
@@ -83,7 +85,10 @@ impl Amm {
                     admin: None,
                     symbol: format!("TKN{}", i),
                     decimals: 18,
-                    initial_balances: None,
+                    initial_balances: Some(vec![InitialBalance {
+                        address: USER.into(),
+                        amount: Uint128(1000 * one_token(18))
+                    }]),
                     initial_allowances: None,
                     prng_seed: Binary::from(b"whatever"),
                     config: Some(InitConfig::builder()

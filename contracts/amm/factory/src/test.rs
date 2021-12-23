@@ -1,10 +1,10 @@
 use amm_shared::{
     fadroma as fadroma,
-    exchange::{Exchange, ExchangeSettings, Fee},
     msg::exchange::HandleMsg as ExchangeHandle,
     msg::factory::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
     msg::ido::TokenSaleConfig,
     Pagination, TokenPair, TokenType,
+    Exchange, ExchangeSettings, Fee
 };
 use fadroma::{
     platform::{
