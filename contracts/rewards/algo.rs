@@ -643,12 +643,13 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
     fn force_exit (&mut self, core: &mut C, when: Moment, why: String)
         -> StdResult<HandleResponse>
     {
-        let amount = self.staked;
         let response = HandleResponse::default()
-            .msg(RewardsConfig::lp_token(core)?.transfer(&self.address, amount)?)?
+            .msg(RewardsConfig::lp_token(core)?.transfer(&self.address, self.staked)?)?
+            .msg(RewardsConfig::reward_token(core)?.transfer(&self.address, self.earned)?)?
             .log("close_time",   &format!("{}", when))?
             .log("close_reason", &format!("{}", why))?;
-        self.commit_withdrawal(core, amount)?;
+        self.commit_withdrawal(core, self.staked)?;
+        self.commit_claim(core)?;
         Ok(response)
     }
     fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()> {

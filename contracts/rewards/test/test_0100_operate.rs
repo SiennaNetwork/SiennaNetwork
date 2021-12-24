@@ -390,7 +390,7 @@ use crate::test::{*, Context};
     context.init().later()
         .user("Alice").set_vk("")
             .deposits(stake).earned(0)
-        .admin(      )
+        .admin()
             .epoch(1, reward)
         .user("Alice")
             .earned(reward).claims(reward).earned(0).staked(stake).withdraws(stake);
@@ -400,8 +400,12 @@ use crate::test::{*, Context};
     let mut context  = Context::new("0114_close");
     let stake1: u128 = context.rng.gen_range(1..100000);
     let stake2: u128 = context.rng.gen_range(1..100000);
+    let reward: u128 = context.rng.gen_range(1..100000);
     let return_funds = context.lp_token.transfer(
         &HumanAddr::from("Alice"), (stake1+stake2).into()
+    ).unwrap();
+    let claim_rewards = context.reward_token.transfer(
+        &HumanAddr::from("Alice"), reward.into()
     ).unwrap();
     // Given a pool with some activity
     // When someone unauthorized tries to close the pool
@@ -415,18 +419,20 @@ use crate::test::{*, Context};
         .later().badman().cannot_close_pool()
 
         // When the admin closes the pool
-        .later().admin().closes_pool();
+        .later().admin().epoch(1, reward).closes_pool();
 
     // Then the pool is closed
     let (ref when, ref why) = context.closed.clone().unwrap();
 
     // And every user transaction returns all LP tokens to the user
+    // And transfers any claimable rewards to the user
     context.later().user("Alice")
         .branch("then_lock", |mut context|{
             context.test_handle(
                 Handle::Rewards(RewardsHandle::Deposit { amount: 100u128.into() }),
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
+                    .msg(claim_rewards.clone()).unwrap()
                     .log("close_time",   &format!("{}", when)).unwrap()
                     .log("close_reason", why));
         })
@@ -435,6 +441,7 @@ use crate::test::{*, Context};
                 Handle::Rewards(RewardsHandle::Withdraw { amount: 100u128.into() }),
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
+                    .msg(claim_rewards.clone()).unwrap()
                     .log("close_time",   &format!("{}", when)).unwrap()
                     .log("close_reason", why));
         })
@@ -443,6 +450,7 @@ use crate::test::{*, Context};
                 Handle::Rewards(RewardsHandle::Claim {}),
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
+                    .msg(claim_rewards.clone()).unwrap()
                     .log("close_time",   &format!("{}", when)).unwrap()
                     .log("close_reason", why));
         });

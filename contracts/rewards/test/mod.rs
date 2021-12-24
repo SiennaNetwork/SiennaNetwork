@@ -459,7 +459,9 @@ impl Context {
 
         let id = self.deps.canonize(migrant.clone()).unwrap();
 
+
         // 1. User calls RequestMigration on NEW.
+        self.table.add_row(row!["Migration step 1","","",""]);
         let export = Handle::Emigration(EmigrationHandle::ExportState(migrant.clone()));
         self.test_handle(
             Handle::Immigration(ImmigrationHandle::RequestMigration(last_version.link.clone())),
@@ -472,6 +474,7 @@ impl Context {
         );
 
         // 2. NEW calls ExportState(migrant) on OLD.
+        last_version.table.add_row(row!["Migration step 2","","",""]);
         let mut export_result = HandleResponse::default().msg(
             self.lp_token.transfer(
                 &self.link.address.clone(),
@@ -511,7 +514,13 @@ impl Context {
         );
 
         // 3. OLD calls ReceiveMigration on NEW
-        self.test_handle(
+        self.table.add_row(row!["Migration step 3","","",""]);
+        let mut env = self.env.clone();
+        env.message.sender = last_version.link.address.clone();
+        test_handle(
+            &mut self.table,
+            &mut self.deps,
+            &env,
             receive_vk_snapshot,
             HandleResponse::default().log("migrated", &expected_stake.to_string())
         );

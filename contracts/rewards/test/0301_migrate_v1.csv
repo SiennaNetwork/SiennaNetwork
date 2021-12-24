@@ -30,6 +30,7 @@ tx,0301_migrate_v1_addr,LP_TOKEN,"transfer_from:
   enable_migration_to:
     address: 0301_migrate_v2_addr
     code_hash: 0301_migrate_v2_hash"
+Migration step 2,,,
 ,,,
 1,0301_migrate_v2_addr,0301_migrate_v1_addr,"emigration:
   export_state: Alice"
@@ -49,6 +50,7 @@ tx,0301_migrate_v1_addr,0301_migrate_v2_addr,"immigration:
   enable_migration_to:
     address: 0301_migrate_v2_addr
     code_hash: 0301_migrate_v2_hash"
+Migration step 2,,,
 ,,,
 1,0301_migrate_v2_addr,0301_migrate_v1_addr,"emigration:
   export_state: Bob"
