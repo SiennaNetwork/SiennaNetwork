@@ -1,13 +1,11 @@
 use fadroma::*;
 pub use fadroma::auth::vk::ViewingKey;
 
-pub const ADMIN_KEY:    &[u8] = b"ltp5P6sFZT";
-pub const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
-
 #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub enum AuthHandle {
-    ChangeAdmin      { address: HumanAddr },
+    NominateAdmin    { address: HumanAddr },
+    AcceptAdmin      {},
     CreateViewingKey { entropy: String, padding: Option<String> },
     SetViewingKey    { key:     String, padding: Option<String> }
 }
@@ -25,17 +23,25 @@ pub enum AuthResponse {
     CreateViewingKey { key: ViewingKey }
 }
 
+pub const ADMIN_KEY:      &[u8] = b"/admin/current";
+pub const NEXT_ADMIN_KEY: &[u8] = b"/admin/next";
+pub const VIEWING_KEYS:   &[u8] = b"/vk/";
+
 pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn init (&mut self, env: &Env, admin: &Option<HumanAddr>) -> StdResult<()> {
-        self.save_admin(&admin.as_ref().unwrap_or(&env.message.sender))?;
+        let admin = Some(admin.as_ref().unwrap_or(&env.message.sender));
+        self.set(ADMIN_KEY,      admin)?;
+        self.set(NEXT_ADMIN_KEY, admin)?;
         Ok(())
     }
 
     fn handle (&mut self, env: Env, msg: AuthHandle) -> StdResult<HandleResponse> {
         match msg {
-            AuthHandle::ChangeAdmin { address } =>
-                self.change_admin(env, address),
+            AuthHandle::NominateAdmin { address } =>
+                self.nominate_admin(env, address),
+            AuthHandle::AcceptAdmin {} =>
+                self.accept_admin(env),
             AuthHandle::CreateViewingKey { entropy, .. } =>
                 self.create_vk(env, entropy),
             AuthHandle::SetViewingKey { key, .. } => 
@@ -45,35 +51,46 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn query (&self, msg: AuthQuery) -> StdResult<AuthResponse> {
         Ok(match msg {
-            AuthQuery::Admin => AuthResponse::Admin { address: self.load_admin()? }
+            AuthQuery::Admin => AuthResponse::Admin {
+                address: self.load_admin()?
+            }
         })
     }
 
-    fn change_admin(&mut self, env: Env, address: HumanAddr) -> StdResult<HandleResponse> {
+    fn load_admin (&self) -> StdResult<HumanAddr> {
+        if let Some(admin) = self.get::<CanonicalAddr>(ADMIN_KEY)? {
+            self.api().human_address(&admin)
+        } else {
+            Err(StdError::generic_err("This contract has no admin."))
+        }
+    }
+
+    fn nominate_admin (&mut self, env: Env, address: HumanAddr) -> StdResult<HandleResponse> {
         self.assert_admin(&env)?;
-        self.save_admin(&address)?;
+        let admin = self.api().canonical_address(&address)?;
+        self.set(NEXT_ADMIN_KEY, Some(admin))?;
         Ok(HandleResponse::default())
     }
 
-    fn load_admin (&self) -> StdResult<HumanAddr> {
-        self.get(ADMIN_KEY)?.map_or(
-            Ok(HumanAddr::default()),
-            |result|self.api().human_address(&result),
-        )
-    }
-
-    fn save_admin(&mut self, address: &HumanAddr) -> StdResult<()> {
-        let admin = self.api().canonical_address(address)?;
-        self.set(ADMIN_KEY, Some(&admin))?;
-        Ok(())
+    fn accept_admin (&mut self, env: Env) -> StdResult<HandleResponse> {
+        if let Some(next_admin) = self.get::<CanonicalAddr>(NEXT_ADMIN_KEY)? {
+            if next_admin == self.api().canonical_address(&env.message.sender)? {
+                self.set(ADMIN_KEY, Some(next_admin))?;
+                return Ok(HandleResponse::default())
+            }
+        }
+        Err(StdError::unauthorized())
     }
 
     fn assert_admin(&self, env: &Env) -> StdResult<()> {
-        let admin = self.load_admin()?;
-        if admin == env.message.sender {
-            Ok(())
+        if let Some(admin) = self.get::<CanonicalAddr>(ADMIN_KEY)? {
+            if admin == self.api().canonical_address(&env.message.sender)? {
+                Ok(())
+            } else {
+                Err(StdError::unauthorized())
+            }
         } else {
-            Err(StdError::unauthorized())
+            Err(StdError::generic_err("This contract has no admin."))
         }
     }
 
@@ -84,8 +101,8 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         self.save_vk(address.as_slice(), &key)?;
         Ok(HandleResponse {
             messages: vec![],
-            log: vec![],
-            data: Some(to_binary(&AuthResponse::CreateViewingKey { key })?)
+            log:      vec![],
+            data:     Some(to_binary(&AuthResponse::CreateViewingKey { key })?)
         })
     }
 
