@@ -388,7 +388,7 @@ impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
         // * Bonding period: user must wait this much before each claim.
         // * Closing the pool stops its time and makes it
         //   return all funds upon any user action.
-        total.bonding     = core.get(RewardsConfig::BONDING)?.unwrap_or(0u64);
+        total.bonding     = core.get(RewardsConfig::BONDING)?.unwrap_or(DAY);
         total.closed      = core.get(RewardsConfig::CLOSED)?;
         Ok(total)
     }
