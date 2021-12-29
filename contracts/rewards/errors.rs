@@ -14,6 +14,10 @@ pub fn no_time_travel <T> () -> StdResult<T> {
     Err(StdError::generic_err("This service does not store history nor permit time travel."))
 }
 
+pub fn pool_not_closed <T> () -> StdResult<T> {
+    Err(StdError::generic_err("The pool must be permanently closed before performing this operation."))
+}
+
 pub fn withdraw <T> (staked: Amount, withdrawn: Amount) -> StdResult<T> {
     // User must have enough staked to retrieve
     Err(StdError::generic_err(format!(

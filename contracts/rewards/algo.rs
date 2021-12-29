@@ -43,19 +43,21 @@ pub trait IRewardsConfig <S, A, Q, C> where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     /// Commit initial contract configuration to storage.
-    fn initialize   (&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>>;
+    fn initialize    (&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>>;
     /// Commit contract configuration to storage.
-    fn store        (&self, core: &mut C) -> StdResult<Vec<CosmosMsg>>;
+    fn store         (&self, core: &mut C) -> StdResult<Vec<CosmosMsg>>;
     /// Get this contract's address (used in queries where Env is unavailable).
-    fn self_link    (core: &C) -> StdResult<ContractLink<HumanAddr>>;
+    fn self_link     (core: &C) -> StdResult<ContractLink<HumanAddr>>;
     /// Get an interface to the LP token.
-    fn lp_token     (core: &C) -> StdResult<ISnip20>;
+    fn lp_token      (core: &C) -> StdResult<ISnip20>;
     /// Get an interface to the reward token.
-    fn reward_token (core: &C) -> StdResult<ISnip20>;
+    fn reward_token  (core: &C) -> StdResult<ISnip20>;
     /// Get the reward viewing key.
-    fn reward_vk    (core: &C) -> StdResult<String>;
+    fn reward_vk     (core: &C) -> StdResult<String>;
     /// Get the address authorized to increment the epoch
-    fn timekeeper   (core: &C) -> StdResult<HumanAddr>;
+    fn timekeeper    (core: &C) -> StdResult<HumanAddr>;
+    /// Get the address authorized to increment the epoch
+    fn assert_closed (core: &C, env: &Env) -> StdResult<Duration>;
 }
 impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
@@ -127,6 +129,17 @@ impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
     fn timekeeper (core: &C) -> StdResult<HumanAddr> {
         Ok(core.humanize(core.get::<CanonicalAddr>(Self::TIMEKEEPER)?
             .ok_or(StdError::generic_err("no timekeeper address"))?)?)
+    }
+    fn assert_closed (core: &C, env: &Env) -> StdResult<Duration> {
+        if let Some((closed, _)) = core.get::<CloseSeal>(RewardsConfig::CLOSED)? {
+            if closed >= env.block.time {
+                Ok(env.block.time - closed)
+            } else {
+                errors::no_time_travel()
+            }
+        } else {
+            errors::pool_not_closed()
+        }
     }
 }
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -209,16 +222,15 @@ pub trait IRewardsResponse<S, A, Q, C>: Sized where
 impl<S, A, Q, C> IRewardsResponse<S, A, Q, C> for RewardsResponse where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
-    /// Report pool status and optionally account status, at a given time
+    /// For a moment in time, report the status of an account, with embedded pool and clock status
     fn user_info (core: &C, time: Moment, address: HumanAddr, key: String) -> StdResult<Self> {
         let id = core.canonize(address.clone())?;
         Auth::check_vk(core, &ViewingKey(key), id.as_slice())?;
         Ok(RewardsResponse::UserInfo(Account::from_addr(core, &address, time)?))
     }
+    /// For a moment in time, report pool status, with embedded clock status
     fn pool_info (core: &C, time: Moment) -> StdResult<RewardsResponse> {
-        let clock = Clock::get(core, time)?;
-        let total = Total::get(core, clock)?;
-        Ok(RewardsResponse::PoolInfo(total))
+        Ok(RewardsResponse::PoolInfo(Total::from_time(core, time)?))
     }
 }
 /// Reward epoch state. Epoch is incremented after each RPT vesting.
@@ -318,7 +330,9 @@ pub struct Total {
 pub trait ITotal <S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
-    /// Load and compute the up-to-date totals for a given clock value
+    /// Load and compute the up-to-date totals for a given moment in time
+    fn from_time (core: &C, time: Moment) -> StdResult<Self>;
+    /// Load and compute the up-to-date totals for a given `Clock` struct
     fn get (core: &C, clock: Clock) -> StdResult<Self>;
     /// Store values that updated due to the passing of time
     fn commit_elapsed (&self, core: &mut C) -> StdResult<()>;
@@ -334,6 +348,9 @@ impl Total {
 impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
+    fn from_time (core: &C, time: Moment) -> StdResult<Self> {
+        Self::get(core, Clock::get(core, time)?)
+    }
     fn get (core: &C, clock: Clock) -> StdResult<Self> {
         let mut total = Self::default();
         // # 1. Timestamps
@@ -489,7 +506,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         Self::from_addr(core, &env.message.sender, env.block.time)
     }
     fn from_addr (core: &C, address: &HumanAddr, time: Moment) -> StdResult<Self> {
-        Self::get(core, Total::get(core, Clock::get(core, time)?)?, address)
+        Self::get(core, Total::from_time(core, time)?, address)
     }
     fn get (core: &C, total: Total, address: &HumanAddr) -> StdResult<Self> {
         let id         = core.canonize(address.clone())?;
