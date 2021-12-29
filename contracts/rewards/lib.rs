@@ -152,10 +152,10 @@ pub enum Response {
             fn token_info (&self) -> StdResult<Response> {
                 let info = RewardsConfig::lp_token(self)?.query_token_info(self.querier())?;
                 Ok(Response::TokenInfo {
-                    name:         format!("Sienna Rewards: {}", info.name),
-                    symbol:       "SRW".into(),
-                    decimals:     1,
-                    total_supply: None
+                    name:         format!("Staked {}",   info.name),
+                    symbol:       format!("{} (staked)", info.symbol),
+                    decimals:     info.decimals,
+                    total_supply: info.total_supply
                 })
             }
             fn balance (&self, address: HumanAddr, key: ViewingKey) -> StdResult<Response> {
