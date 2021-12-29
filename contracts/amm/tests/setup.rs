@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use amm_shared::{
     fadroma::{
         ContractLink, one_token,
@@ -10,8 +12,17 @@ use amm_shared::{
             ContractEnsemble, MockEnv,
             ContractHarness, MockDeps, 
         },
+        auth::Permit,
         snip20_impl::{
-            msg::{InitMsg as Snip20InitMsg, InitConfig, InitialBalance},
+            msg::{
+                InitMsg as Snip20InitMsg,
+                QueryMsg as Snip20QueryMsg,
+                QueryPermission as Snip20Permission,
+                QueryWithPermit,
+                QueryAnswer,
+                InitConfig,
+                InitialBalance
+            },
             snip20_init, snip20_handle, snip20_query, SymbolValidation, Snip20
         },
     },
@@ -28,7 +39,7 @@ use router::contract as router;
 use lp_token;
 
 pub const ADMIN: &str = "admin";
-pub const USER: &str = "user";
+pub const USERS: &[&str] = &[ "user_a", "user_b", "user_c" ];
 pub const BURNER: &str = "burner_acc";
 
 pub struct Amm {
@@ -85,10 +96,14 @@ impl Amm {
                     admin: None,
                     symbol: format!("TKN{}", i),
                     decimals: 18,
-                    initial_balances: Some(vec![InitialBalance {
-                        address: USER.into(),
-                        amount: Uint128(1000 * one_token(18))
-                    }]),
+                    initial_balances: Some(USERS
+                        .iter()
+                        .map(|x| InitialBalance {
+                            address: (*x).into(),
+                            amount: Uint128(1000 * one_token(18))
+                        })
+                        .collect()
+                    ),
                     initial_allowances: None,
                     prng_seed: Binary::from(b"whatever"),
                     config: Some(InitConfig::builder()
@@ -129,7 +144,7 @@ impl Amm {
     }
 
     pub fn get_pairs(&self) -> Vec<Exchange<HumanAddr>> {
-        let response: msg::factory::QueryResponse = self.ensemble.query(
+        let response = self.ensemble.query(
             self.factory.address.clone(),
             &msg::factory::QueryMsg::ListExchanges {
                 pagination: Pagination {
@@ -144,6 +159,62 @@ impl Amm {
                 exchanges
             },
             _ => panic!("Expected QueryResponse::ListExchanges")
+        }
+    }
+
+    pub fn increase_allowances(&mut self, pair: &Exchange<HumanAddr>) {
+        for token in pair.pair.into_iter() {
+            let token: ContractLink<HumanAddr> = token.try_into().unwrap();
+    
+            for user in USERS {
+                self.ensemble.execute(
+                    &msg::snip20::HandleMsg::IncreaseAllowance {
+                        spender: pair.contract.address.clone(),
+                        amount: Uint128(u128::MAX),
+                        expiration: None,
+                        padding: None
+                    },
+                    MockEnv::new(*user, token.clone())
+                ).unwrap();
+            }
+        }
+    }
+
+    pub fn get_balance(
+        &self,
+        address: impl Into<HumanAddr>,
+        token: HumanAddr
+    ) -> Uint128 {
+        let result = self.ensemble.query(token.clone(), Snip20QueryMsg::WithPermit {
+            permit: Permit::<Snip20Permission>::new(
+                address,
+                vec![ Snip20Permission::Balance ],
+                vec![ token ],
+                "balance"
+            ),
+            query: QueryWithPermit::Balance {}
+        }).unwrap();
+
+        match result {
+            QueryAnswer::Balance { amount } => amount,
+            _ => panic!("Expecting QueryAnswer::Balance")
+        }
+    }
+
+    pub fn get_lp_balance(
+        &self,
+        address: impl Into<HumanAddr>,
+        pair: HumanAddr
+    ) -> Uint128 {
+        let result = self.ensemble.query(
+            pair,
+            msg::exchange::QueryMsg::PairInfo
+        ).unwrap();
+
+        match result {
+            msg::exchange::QueryMsgResponse::PairInfo { liquidity_token, .. } => {
+                self.get_balance(address, liquidity_token.address)
+            }
         }
     }
 }

@@ -199,6 +199,22 @@ impl TryInto<ContractLink<HumanAddr>> for &TokenType<HumanAddr> {
     }
 }
 
+impl TryInto<ContractLink<HumanAddr>> for TokenType<HumanAddr> {
+    type Error = StdError;
+
+    fn try_into(self) -> Result<ContractLink<HumanAddr>, Self::Error> {
+        match self {
+            TokenType::CustomToken { contract_addr, token_code_hash } => {
+                Ok(ContractLink {
+                    address: contract_addr,
+                    code_hash: token_code_hash
+                })
+            },
+            _ => Err(StdError::generic_err("Cannot convert TokenType::NativeToken to ContractLink."))
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
