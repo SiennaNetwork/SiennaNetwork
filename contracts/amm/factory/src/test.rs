@@ -853,18 +853,49 @@ mod test_state {
     }
 
     #[test]
+    fn generates_the_same_key_for_uppercase_denom() {
+        let ref deps = mkdeps();
+
+        let pair = TokenPair(
+            TokenType::NativeToken {
+                denom: "test".into(),
+            },
+            TokenType::CustomToken {
+                contract_addr: HumanAddr("address".into()),
+                token_code_hash: "asd21312asd".into(),
+            },
+        );
+
+        let key_0 = generate_pair_key(pair.canonize(&deps.api).unwrap());
+
+        let pair = TokenPair(
+            TokenType::NativeToken {
+                denom: "TeST".into(),
+            },
+            TokenType::CustomToken {
+                contract_addr: HumanAddr("address".into()),
+                token_code_hash: "asd21312asd".into(),
+            },
+        );
+
+        let key_1 = generate_pair_key(pair.canonize(&deps.api).unwrap());
+
+        assert_eq!(key_0, key_1);
+    }
+
+    #[test]
     fn generates_the_same_key_for_swapped_pairs() -> StdResult<()> {
         fn cmp_pair<S: Storage, A: Api, Q: Querier>(
             deps: &Extern<S, A, Q>,
             pair: TokenPair<HumanAddr>,
         ) -> StdResult<()> {
             let stored_pair = pair.canonize(&deps.api)?;
-            let key = generate_pair_key(&stored_pair);
+            let key = generate_pair_key(stored_pair);
 
             let pair = swap_pair(&pair);
 
             let stored_pair = pair.canonize(&deps.api)?;
-            let swapped_key = generate_pair_key(&stored_pair);
+            let swapped_key = generate_pair_key(stored_pair);
 
             assert_eq!(key, swapped_key);
 

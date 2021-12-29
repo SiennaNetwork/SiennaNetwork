@@ -148,7 +148,7 @@ pub(crate) fn pair_exists<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     pair: &TokenPair<HumanAddr>,
 ) -> StdResult<bool> {
-    let key = generate_pair_key(&pair.canonize(&deps.api)?);
+    let key = generate_pair_key(pair.canonize(&deps.api)?);
     let result: Option<CanonicalAddr> = ns_load(&deps.storage, NS_EXCHANGES, &key)?;
 
     Ok(result.is_some())
@@ -162,7 +162,7 @@ pub(crate) fn store_exchanges<S: Storage, A: Api, Q: Querier>(
 
     for exchange in exchanges {
         let exchange = exchange.canonize(&deps.api)?;
-        let key = generate_pair_key(&exchange.pair);
+        let key = generate_pair_key(exchange.pair.clone());
 
         let result: Option<CanonicalAddr> = ns_load(&deps.storage, NS_EXCHANGES, &key)?;
         if result.is_some() {
@@ -189,7 +189,7 @@ pub(crate) fn get_address_for_pair<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     pair: &TokenPair<HumanAddr>,
 ) -> StdResult<HumanAddr> {
-    let key = generate_pair_key(&pair.canonize(&deps.api)?);
+    let key = generate_pair_key(pair.canonize(&deps.api)?);
 
     let canonical = ns_load(&deps.storage, NS_EXCHANGES, &key)?
         .ok_or_else(|| StdError::generic_err("Address doesn't exist in storage."))?;
@@ -295,20 +295,30 @@ pub(crate) fn is_ido_whitelisted<S: Storage, A: Api, Q: Querier>(
     Ok(result.is_some())
 }
 
-pub(crate) fn generate_pair_key(pair: &TokenPair<CanonicalAddr>) -> Vec<u8> {
-    let mut bytes: Vec<&[u8]> = Vec::new();
-
-    match &pair.0 {
-        TokenType::NativeToken { denom } => bytes.push(denom.as_bytes()),
-        TokenType::CustomToken { contract_addr, .. } => bytes.push(contract_addr.as_slice()),
-    }
-
-    match &pair.1 {
-        TokenType::NativeToken { denom } => bytes.push(denom.as_bytes()),
-        TokenType::CustomToken { contract_addr, .. } => bytes.push(contract_addr.as_slice()),
-    }
-
+pub(crate) fn generate_pair_key(pair: TokenPair<CanonicalAddr>) -> Vec<u8> {
+    let mut bytes = vec![
+        token_type_to_slice(pair.0),
+        token_type_to_slice(pair.1)
+    ];
     bytes.sort();
 
-    bytes.concat()
+    let mut result = Vec::with_capacity(bytes[0].len() + bytes[1].len());
+
+    for slice in bytes.into_iter() {
+        result.extend(slice)
+    }
+
+    result
+}
+
+#[inline]
+fn token_type_to_slice(token: TokenType<CanonicalAddr>) -> Vec<u8> {
+    match token {
+        TokenType::NativeToken { mut denom } => {
+            denom.make_ascii_lowercase();
+
+            Vec::from(denom)
+        },
+        TokenType::CustomToken { contract_addr, .. } => contract_addr.0.0,
+    }
 }
