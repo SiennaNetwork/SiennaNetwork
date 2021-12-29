@@ -92,17 +92,17 @@ pub(crate) fn load_prng_seed(storage: &impl Storage) -> StdResult<Binary> {
     prng_seed.ok_or_else(|| StdError::generic_err("Prng seed doesn't exist in storage."))
 }
 
-pub(crate) fn save_migration_password(storage: &mut impl Storage, pass: &String) -> StdResult<()> {
+pub(crate) fn save_migration_address(storage: &mut impl Storage, pass: &HumanAddr) -> StdResult<()> {
     save(storage, MIGRATION_KEY, pass)
 }
 
-pub(crate) fn load_migration_password(storage: &impl Storage) -> StdResult<String> {
-    let pass: Option<String> = load(storage, MIGRATION_KEY)?;
+pub(crate) fn load_migration_address(storage: &impl Storage) -> StdResult<HumanAddr> {
+    let pass: Option<HumanAddr> = load(storage, MIGRATION_KEY)?;
 
     pass.ok_or_else(|| StdError::unauthorized())
 }
 
-pub(crate) fn remove_migration_password(storage: &mut impl Storage) {
+pub(crate) fn remove_migration_address(storage: &mut impl Storage) {
     remove(storage, MIGRATION_KEY)
 }
 

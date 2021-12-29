@@ -536,13 +536,10 @@ mod test_contract {
             code_hash: "new_factory_code_hash".into(),
         };
 
-        let password = String::from("pass");
-
         let result = handle(
             deps,
             mkenv("rando"),
             HandleMsg::TransferExchanges {
-                password: password.clone(),
                 new_instance: new_instance.clone(),
                 skip: None,
             },
@@ -553,7 +550,6 @@ mod test_contract {
             deps,
             mkenv(admin),
             HandleMsg::TransferExchanges {
-                password: password.clone(),
                 new_instance: new_instance.clone(),
                 skip: None,
             },
@@ -573,7 +569,6 @@ mod test_contract {
                 callback_code_hash: new_instance.code_hash.clone(),
                 send: vec![],
                 msg: to_binary(&HandleMsg::ReceiveExchanges {
-                    password: password.clone(),
                     finalize: false,
                     exchanges: exchanges
                         .clone()
@@ -611,7 +606,6 @@ mod test_contract {
             deps,
             mkenv(admin),
             HandleMsg::TransferExchanges {
-                password: password.clone(),
                 new_instance: new_instance.clone(),
                 skip: None,
             },
@@ -630,7 +624,6 @@ mod test_contract {
                 callback_code_hash: new_instance.code_hash.clone(),
                 send: vec![],
                 msg: to_binary(&HandleMsg::ReceiveExchanges {
-                    password: password.clone(),
                     finalize: true,
                     exchanges: exchanges.clone().into_iter().rev().collect()
                 })
@@ -684,13 +677,10 @@ mod test_contract {
             code_hash: "new_factory_code_hash".into(),
         };
 
-        let password = String::from("pass");
-
         let mut result = handle(
             deps,
             mkenv(admin),
             HandleMsg::TransferExchanges {
-                password: password.clone(),
                 new_instance: new_instance.clone(),
                 skip: Some(vec![
                     exchanges[0].contract.address.clone(),
@@ -740,14 +730,14 @@ mod test_contract {
 
         let mut existing_exchanges = mock_and_store_exchanges(deps, 2);
 
-        let password = String::from("pass");
+        let address = HumanAddr::from("new_factory");
 
         let result = handle(
             deps,
             mkenv("rando"),
-            HandleMsg::SetMigrationPassword {
-                password: password.clone(),
-            },
+            HandleMsg::SetMigrationAddress {
+                address: address.clone(),
+            }
         );
         assert_unauthorized(result);
 
@@ -755,7 +745,6 @@ mod test_contract {
             deps,
             mkenv("rando"),
             HandleMsg::ReceiveExchanges {
-                password: password.clone(),
                 finalize: false,
                 exchanges: vec![],
             },
@@ -765,9 +754,9 @@ mod test_contract {
         handle(
             deps,
             mkenv(admin),
-            HandleMsg::SetMigrationPassword {
-                password: password.clone(),
-            },
+            HandleMsg::SetMigrationAddress {
+                address: address.clone(),
+            }
         )
         .unwrap();
 
@@ -793,16 +782,15 @@ mod test_contract {
 
         handle(
             deps,
-            mkenv("rando"),
+            mkenv(address.clone()),
             HandleMsg::ReceiveExchanges {
-                password: password.clone(),
                 finalize: false,
                 exchanges: new_exchanges.clone(),
             },
         )
         .unwrap();
 
-        assert!(load_migration_password(&deps.storage).is_ok());
+        assert!(load_migration_address(&deps.storage).is_ok());
 
         let stored_exchanges = get_exchanges(deps, pagination(0, 30)).unwrap();
         existing_exchanges.extend(new_exchanges.into_iter());
@@ -827,16 +815,15 @@ mod test_contract {
 
         handle(
             deps,
-            mkenv("rando"),
+            mkenv(address),
             HandleMsg::ReceiveExchanges {
-                password: password.clone(),
                 finalize: true,
                 exchanges: vec![new_exchange.clone()],
             },
         )
         .unwrap();
 
-        assert!(load_migration_password(&deps.storage).is_err());
+        assert!(load_migration_address(&deps.storage).is_err());
 
         let stored_exchanges = get_exchanges(deps, pagination(0, 30)).unwrap();
         existing_exchanges.push(new_exchange);
