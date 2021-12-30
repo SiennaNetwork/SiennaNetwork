@@ -329,12 +329,26 @@ impl Context {
         ); self
     }
     pub fn drains_pool (&mut self, key: &str) -> &mut Self {
-        assert!(
+        assert_eq!(
             Contract::handle(&mut self.deps, self.env.clone(), Handle::Drain {
                 snip20:    self.reward_token.link.clone(),
                 key:       key.into(),
                 recipient: None
-            }).is_ok()
+            }),
+            Ok(HandleResponse {
+                messages: vec![
+                    self.reward_token.increase_allowance(
+                        &self.initiator,
+                        Uint128(u128::MAX),
+                        Some(self.env.block.time + DAY * 10000)
+                    ).unwrap(),
+                    self.reward_token.set_viewing_key(
+                        key.into()
+                    ).unwrap()
+                ],
+                log:      vec![],
+                data:     None
+            })
         );
         let vk: Option<ViewingKey> = self.deps.get(crate::algo::RewardsConfig::REWARD_VK).unwrap();
         assert_eq!(vk.unwrap().0, String::from(key));
