@@ -63,7 +63,7 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn nominate_admin (&mut self, env: Env, address: HumanAddr) -> StdResult<HandleResponse> {
         self.assert_admin(&env)?;
-        self.save_next_admin(&address);
+        self.save_next_admin(&address)?;
         Ok(HandleResponse::default())
     }
 
@@ -175,7 +175,6 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
             _ => unimplemented!()
         };
 
-        let user_canon = deps.api.canonical_address(&user).unwrap();
         let loaded_vk = Auth::load_vk(deps, &user).unwrap().unwrap();
         assert_eq!(created_vk, loaded_vk);
 
