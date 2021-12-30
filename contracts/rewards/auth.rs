@@ -27,6 +27,10 @@ pub const ADMIN:       &[u8] = b"/admin/current";
 pub const NEXT_ADMIN:  &[u8] = b"/admin/next";
 pub const VIEWING_KEY: &[u8] = b"/vk/";
 
+pub fn err_no_admin <T> () -> StdResult<T> {
+    Err(StdError::generic_err("This contract has no admin."))
+}
+
 pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn init (&mut self, env: &Env, admin: &Option<HumanAddr>) -> StdResult<()> {
@@ -45,23 +49,23 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
             AuthHandle::CreateViewingKey { entropy, .. } =>
                 self.create_vk(env, entropy),
             AuthHandle::SetViewingKey { key, .. } => 
-                self.set_vk(env, key)
+                self.set_vk(env, key.into())
         }
     }
 
     fn query (&self, msg: AuthQuery) -> StdResult<AuthResponse> {
         Ok(match msg {
             AuthQuery::Admin => AuthResponse::Admin {
-                address: self.load_admin()?
+                address: self.api().human_address(&self.load_admin()?)?
             }
         })
     }
 
-    fn load_admin (&self) -> StdResult<HumanAddr> {
+    fn load_admin (&self) -> StdResult<CanonicalAddr> {
         if let Some(admin) = self.get::<CanonicalAddr>(ADMIN)? {
-            self.api().human_address(&admin)
+            Ok(admin)
         } else {
-            Err(StdError::generic_err("This contract has no admin."))
+            err_no_admin()
         }
     }
 
@@ -81,19 +85,15 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         Err(StdError::unauthorized())
     }
 
-    fn assert_admin(&self, env: &Env) -> StdResult<()> {
-        if let Some(admin) = self.get::<CanonicalAddr>(ADMIN)? {
-            if admin == self.api().canonical_address(&env.message.sender)? {
-                Ok(())
-            } else {
-                Err(StdError::unauthorized())
-            }
+    fn assert_admin (&self, env: &Env) -> StdResult<()> {
+        if self.load_admin()? == self.api().canonical_address(&env.message.sender)? {
+            Ok(())
         } else {
-            Err(StdError::generic_err("This contract has no admin."))
+            Err(StdError::unauthorized())
         }
     }
 
-    fn create_vk(&mut self, env: Env, entropy: String) -> StdResult<HandleResponse> {
+    fn create_vk (&mut self, env: Env, entropy: String) -> StdResult<HandleResponse> {
         let prng_seed = [env.block.time.to_be_bytes(), env.block.height.to_be_bytes()];
         let key       = ViewingKey::new(&env, &prng_seed.concat(), &(entropy).as_ref());
         let address   = self.api().canonical_address(&env.message.sender)?;
@@ -105,19 +105,14 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         })
     }
 
-    fn set_vk(&mut self, env: Env, key: String) -> StdResult<HandleResponse> {
-        let key = ViewingKey(key.to_string());
+    fn set_vk (&mut self, env: Env, key: ViewingKey) -> StdResult<HandleResponse> {
         let address = self.api().canonical_address(&env.message.sender)?;
         self.save_vk(address.as_slice(), &key)?;
         Ok(HandleResponse::default())
     }
 
-    fn check_vk (
-        &self,
-        provided_key: &ViewingKey,
-        storage_key: &[u8]
-    ) -> StdResult<()> {
-        let stored_vk: Option<ViewingKey> = self.load_vk(storage_key)?;
+    fn check_vk (&self, provided_key: &ViewingKey, user_id: &[u8]) -> StdResult<()> {
+        let stored_vk: Option<ViewingKey> = self.load_vk(user_id)?;
         if let Some(ref key) = stored_vk {
             if provided_key.check_viewing_key(&key.to_hashed()) {
                 Ok(())
@@ -141,61 +136,92 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
 #[cfg(test)] mod test {
     use crate::*;
-    use fadroma::{testing::*, auth::vk_auth::{authenticate, load_viewing_key}};
 
     #[test]
     fn test_vk_handle() {
-        let ref mut deps = mock_dependencies(10, &[]);
-        let sender  = HumanAddr("sender".into());
-        let env     = mock_env(sender.clone(), &[]);
-        let request = Handle::CreateViewingKey { entropy: "123".into(), padding: None };
-        let result  = Contract::handle(deps, env.clone(), request).unwrap();
+        let ref mut deps = mock_dependencies(20, &[]);
+        let user  = HumanAddr("user".into());
+
+        let result  = Contract::handle(
+            deps,
+            mock_env(user.clone(), &[]),
+            Handle::CreateViewingKey { entropy: "123".into(), padding: None }
+        ).unwrap();
         let result: AuthResponse = from_binary(&result.data.unwrap()).unwrap();
         let created_vk = match result {
             AuthResponse::CreateViewingKey { key } => { key },
             _ => unimplemented!()
         };
-        let sender_canonical = deps.api.canonical_address(&sender).unwrap();
-        assert_eq!(created_vk, load_viewing_key(deps, sender_canonical.as_slice()).unwrap().unwrap());
-        let auth_result = authenticate(&deps.storage, &ViewingKey("invalid".into()), sender_canonical.as_slice());
-        assert_eq!(auth_result.unwrap_err(), StdError::unauthorized());
-        let auth_result = authenticate(&deps.storage, &created_vk, sender_canonical.as_slice());
-        assert!(auth_result.is_ok());
-        let new_key = String::from("new_key");
-        let request = Handle::SetViewingKey { key: new_key.clone(), padding: None };
-        Contract::handle(deps, env.clone(), request).unwrap();
-        assert_eq!(ViewingKey(new_key.clone()), load_viewing_key(deps, sender_canonical.as_slice()).unwrap().unwrap());
-        let auth_result = authenticate(&deps.storage, &ViewingKey(new_key), sender_canonical.as_slice());
-        assert!(auth_result.is_ok());
+
+        let user_canon = deps.api.canonical_address(&user).unwrap();
+        let loaded_vk = Auth::load_vk(deps, user_canon.as_slice()).unwrap().unwrap();
+        assert_eq!(created_vk, loaded_vk);
+
+        let invalid_vk  = ViewingKey("invalid".into());
+        let result = Auth::check_vk(deps, &invalid_vk, user_canon.as_slice());
+        assert_eq!(result.unwrap_err(), StdError::unauthorized());
+
+        let result = Auth::check_vk(deps, &created_vk, user_canon.as_slice());
+        assert!(result.is_ok());
+
+        let new_vk = String::from("new_vk");
+        let request = Handle::SetViewingKey { key: new_vk.clone(), padding: None };
+        Contract::handle(
+            deps,
+            mock_env(user.clone(), &[]).clone(),
+            request
+        ).unwrap();
+        assert_eq!(ViewingKey(new_vk.clone()), Auth::load_vk(deps, user_canon.as_slice()).unwrap().unwrap());
+
+        let result = Auth::check_vk(deps, &ViewingKey(new_vk), user_canon.as_slice());
+        assert!(result.is_ok());
     }
 
     #[test]
     fn test_admin_handle() {
-        let ref mut deps = mock_dependencies(10, &[]);
+        let ref mut deps = mock_dependencies(20, &[]);
+
         let admin = HumanAddr::from("admin");
-        Composable::set(deps, ADMIN, admin.clone()).unwrap();
-        let msg = AuthHandle::NominateAdmin { address: HumanAddr::from("will fail") };
-        let result = Contract::handle(deps, mock_env("unauthorized", &[]), Handle::Auth(msg)).unwrap_err();
+        let admin_canon = deps.api.canonical_address(&admin).unwrap();
+        Composable::set(deps, ADMIN, admin_canon.clone()).unwrap();
+
+        let result = Contract::handle(
+            deps,
+            mock_env("unauthorized", &[]),
+            Handle::Auth(AuthHandle::NominateAdmin { address: HumanAddr::from("will fail") })
+        ).unwrap_err();
         match result {
             StdError::Unauthorized { .. } => { },
             _ => panic!("Expected \"StdError::Unauthorized\", got: {:#?}", &result)
         };
+
         let new_admin = HumanAddr::from("new_admin");
+        let new_admin_canon = deps.api.canonical_address(&new_admin).unwrap();
         let msg = AuthHandle::NominateAdmin { address: new_admin.clone() };
         Contract::handle(deps, mock_env(admin, &[]), Handle::Auth(msg)).unwrap();
-        assert!(Auth::load_admin(deps).unwrap() == new_admin);
+        assert_eq!(
+            Auth::load_admin(deps).unwrap(),
+            admin_canon
+        );
+
+        let msg = AuthHandle::BecomeAdmin {};
+        Contract::handle(deps, mock_env(new_admin, &[]), Handle::Auth(msg)).unwrap();
+        assert_eq!(
+            Auth::load_admin(deps).unwrap(),
+            new_admin_canon
+        );
     }
 
     #[test]
     fn test_auth_query() {
         let ref mut deps = mock_dependencies(10, &[]);
-        match Contract::query(deps, Query::Auth(AuthQuery::Admin)).unwrap() {
-            Response::Auth(AuthResponse::Admin { address }) =>
-                assert_eq!(address, HumanAddr::default()),
-            _ => unimplemented!()
-        };
+        assert_eq!(
+            Contract::query(deps, Query::Auth(AuthQuery::Admin)),
+            err_no_admin()
+        );
         let admin = HumanAddr::from("admin");
-        Composable::set(deps, ADMIN, admin.clone()).unwrap();
+        let admin_canon = deps.api.canonical_address(&admin).unwrap();
+        Composable::set(deps, ADMIN, admin_canon).unwrap();
         match Contract::query(deps, Query::Auth(AuthQuery::Admin)).unwrap() {
             Response::Auth(AuthResponse::Admin { address }) =>
                 assert_eq!(address, admin),
