@@ -217,9 +217,7 @@ pub enum Response {
                 let id = self.canonize(migrant.clone())?;
                 // Set the migrant's viewing key
                 if let Some(vk) = vk {
-                    // for some reason it does not see Auth as implemented
-                    //Auth::save_vk(&mut core, id.as_slice(), &vk)?;
-                    self.set_ns(crate::auth::VIEWING_KEYS, id.as_slice(), &vk)?;
+                    Auth::save_vk(self, id.as_slice(), &vk.into())?;
                 }
                 // Add the LP tokens transferred by the migration
                 // to the migrant's new account

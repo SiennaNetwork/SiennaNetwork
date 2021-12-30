@@ -5,7 +5,7 @@ pub use fadroma::auth::vk::ViewingKey;
 #[serde(rename_all="snake_case")]
 pub enum AuthHandle {
     NominateAdmin    { address: HumanAddr },
-    AcceptAdmin      {},
+    BecomeAdmin      {},
     CreateViewingKey { entropy: String, padding: Option<String> },
     SetViewingKey    { key:     String, padding: Option<String> }
 }
@@ -23,16 +23,16 @@ pub enum AuthResponse {
     CreateViewingKey { key: ViewingKey }
 }
 
-pub const ADMIN_KEY:      &[u8] = b"/admin/current";
-pub const NEXT_ADMIN_KEY: &[u8] = b"/admin/next";
-pub const VIEWING_KEYS:   &[u8] = b"/vk/";
+pub const ADMIN:       &[u8] = b"/admin/current";
+pub const NEXT_ADMIN:  &[u8] = b"/admin/next";
+pub const VIEWING_KEY: &[u8] = b"/vk/";
 
 pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn init (&mut self, env: &Env, admin: &Option<HumanAddr>) -> StdResult<()> {
-        let admin = Some(admin.as_ref().unwrap_or(&env.message.sender));
-        self.set(ADMIN_KEY,      admin)?;
-        self.set(NEXT_ADMIN_KEY, admin)?;
+        let admin = admin.as_ref().unwrap_or(&env.message.sender);
+        self.set(ADMIN,      Some(self.api().canonical_address(&admin)))?;
+        self.set(NEXT_ADMIN, Some(self.api().canonical_address(&admin)))?;
         Ok(())
     }
 
@@ -40,8 +40,8 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
         match msg {
             AuthHandle::NominateAdmin { address } =>
                 self.nominate_admin(env, address),
-            AuthHandle::AcceptAdmin {} =>
-                self.accept_admin(env),
+            AuthHandle::BecomeAdmin {} =>
+                self.become_admin(env),
             AuthHandle::CreateViewingKey { entropy, .. } =>
                 self.create_vk(env, entropy),
             AuthHandle::SetViewingKey { key, .. } => 
@@ -58,7 +58,7 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
     }
 
     fn load_admin (&self) -> StdResult<HumanAddr> {
-        if let Some(admin) = self.get::<CanonicalAddr>(ADMIN_KEY)? {
+        if let Some(admin) = self.get::<CanonicalAddr>(ADMIN)? {
             self.api().human_address(&admin)
         } else {
             Err(StdError::generic_err("This contract has no admin."))
@@ -67,15 +67,14 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
 
     fn nominate_admin (&mut self, env: Env, address: HumanAddr) -> StdResult<HandleResponse> {
         self.assert_admin(&env)?;
-        let admin = self.api().canonical_address(&address)?;
-        self.set(NEXT_ADMIN_KEY, Some(admin))?;
+        self.set(NEXT_ADMIN, Some(self.api().canonical_address(&address)?))?;
         Ok(HandleResponse::default())
     }
 
-    fn accept_admin (&mut self, env: Env) -> StdResult<HandleResponse> {
-        if let Some(next_admin) = self.get::<CanonicalAddr>(NEXT_ADMIN_KEY)? {
+    fn become_admin (&mut self, env: Env) -> StdResult<HandleResponse> {
+        if let Some(next_admin) = self.get::<CanonicalAddr>(NEXT_ADMIN)? {
             if next_admin == self.api().canonical_address(&env.message.sender)? {
-                self.set(ADMIN_KEY, Some(next_admin))?;
+                self.set(ADMIN, Some(next_admin))?;
                 return Ok(HandleResponse::default())
             }
         }
@@ -83,7 +82,7 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
     }
 
     fn assert_admin(&self, env: &Env) -> StdResult<()> {
-        if let Some(admin) = self.get::<CanonicalAddr>(ADMIN_KEY)? {
+        if let Some(admin) = self.get::<CanonicalAddr>(ADMIN)? {
             if admin == self.api().canonical_address(&env.message.sender)? {
                 Ok(())
             } else {
@@ -131,11 +130,76 @@ pub trait Auth<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q> {
     }
 
     fn save_vk (&mut self, id: &[u8], key: &ViewingKey) -> StdResult<()> {
-        self.set_ns(VIEWING_KEYS, id, &key)
+        self.set_ns(VIEWING_KEY, id, &key)
     }
 
     fn load_vk (&self, id: &[u8]) -> StdResult<Option<ViewingKey>> {
-        self.get_ns(VIEWING_KEYS, id)
+        self.get_ns(VIEWING_KEY, id)
     }
 
+}
+
+#[cfg(test)] mod test {
+    use crate::*;
+    use fadroma::{testing::*, auth::vk_auth::{authenticate, load_viewing_key}};
+
+    #[test]
+    fn test_vk_handle() {
+        let ref mut deps = mock_dependencies(10, &[]);
+        let sender  = HumanAddr("sender".into());
+        let env     = mock_env(sender.clone(), &[]);
+        let request = Handle::CreateViewingKey { entropy: "123".into(), padding: None };
+        let result  = Contract::handle(deps, env.clone(), request).unwrap();
+        let result: AuthResponse = from_binary(&result.data.unwrap()).unwrap();
+        let created_vk = match result {
+            AuthResponse::CreateViewingKey { key } => { key },
+            _ => unimplemented!()
+        };
+        let sender_canonical = deps.api.canonical_address(&sender).unwrap();
+        assert_eq!(created_vk, load_viewing_key(deps, sender_canonical.as_slice()).unwrap().unwrap());
+        let auth_result = authenticate(&deps.storage, &ViewingKey("invalid".into()), sender_canonical.as_slice());
+        assert_eq!(auth_result.unwrap_err(), StdError::unauthorized());
+        let auth_result = authenticate(&deps.storage, &created_vk, sender_canonical.as_slice());
+        assert!(auth_result.is_ok());
+        let new_key = String::from("new_key");
+        let request = Handle::SetViewingKey { key: new_key.clone(), padding: None };
+        Contract::handle(deps, env.clone(), request).unwrap();
+        assert_eq!(ViewingKey(new_key.clone()), load_viewing_key(deps, sender_canonical.as_slice()).unwrap().unwrap());
+        let auth_result = authenticate(&deps.storage, &ViewingKey(new_key), sender_canonical.as_slice());
+        assert!(auth_result.is_ok());
+    }
+
+    #[test]
+    fn test_admin_handle() {
+        let ref mut deps = mock_dependencies(10, &[]);
+        let admin = HumanAddr::from("admin");
+        Composable::set(deps, ADMIN, admin.clone()).unwrap();
+        let msg = AuthHandle::NominateAdmin { address: HumanAddr::from("will fail") };
+        let result = Contract::handle(deps, mock_env("unauthorized", &[]), Handle::Auth(msg)).unwrap_err();
+        match result {
+            StdError::Unauthorized { .. } => { },
+            _ => panic!("Expected \"StdError::Unauthorized\", got: {:#?}", &result)
+        };
+        let new_admin = HumanAddr::from("new_admin");
+        let msg = AuthHandle::NominateAdmin { address: new_admin.clone() };
+        Contract::handle(deps, mock_env(admin, &[]), Handle::Auth(msg)).unwrap();
+        assert!(Auth::load_admin(deps).unwrap() == new_admin);
+    }
+
+    #[test]
+    fn test_auth_query() {
+        let ref mut deps = mock_dependencies(10, &[]);
+        match Contract::query(deps, Query::Auth(AuthQuery::Admin)).unwrap() {
+            Response::Auth(AuthResponse::Admin { address }) =>
+                assert_eq!(address, HumanAddr::default()),
+            _ => unimplemented!()
+        };
+        let admin = HumanAddr::from("admin");
+        Composable::set(deps, ADMIN, admin.clone()).unwrap();
+        match Contract::query(deps, Query::Auth(AuthQuery::Admin)).unwrap() {
+            Response::Auth(AuthResponse::Admin { address }) =>
+                assert_eq!(address, admin),
+            _ => unimplemented!()
+        };
+    }
 }

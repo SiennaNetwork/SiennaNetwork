@@ -8,7 +8,6 @@
 
 mod test_0000_setup;
 mod test_0100_operate;
-mod test_0200_auth;
 mod test_0300_migrate;
 
 use prettytable::{Table, /*Row, Cell,*/ format};
@@ -256,9 +255,9 @@ impl Context {
         assert_eq!(
             Contract::query(&self.deps, Query::TokenInfo {}),
             Ok(Response::TokenInfo {
-                name:         format!("Sienna Rewards: FOO"),
-                symbol:       "SRW".into(),
-                decimals:     1,
+                name:         format!("Staked FooToken"),
+                symbol:       "FOO (staked)".into(),
+                decimals:     0,
                 total_supply: None
             })
         );
@@ -787,8 +786,8 @@ impl RewardsMockQuerier {
             },
             Snip20Query::TokenInfo { .. } => {
                 Snip20Response::TokenInfo {
-                    name:         "FOO".into(),
-                    symbol:       "".into(), // unused
+                    name:         "FooToken".into(),
+                    symbol:       "FOO".into(), // unused
                     decimals:     0,         // unused
                     total_supply: None       // unused
                 }
