@@ -456,9 +456,6 @@ impl Context {
 
         let migrant = self.initiator.clone();
 
-        let id = self.deps.canonize(migrant.clone()).unwrap();
-
-
         // 1. User calls RequestMigration on NEW.
         self.table.add_row(row!["Migration step 1","","",""]);
         let export = Handle::Emigration(EmigrationHandle::ExportState(migrant.clone()));
@@ -492,7 +489,7 @@ impl Context {
         let receive_vk_snapshot = Handle::Immigration(ImmigrationHandle::ReceiveMigration(
             to_binary(&((
                 migrant.clone(),
-                Auth::load_vk(&last_version.deps, id.as_slice()).unwrap().map(|vk|vk.0),
+                Auth::load_vk(&last_version.deps, &migrant).unwrap().map(|vk|vk.0),
                 expected_stake.into()
             ) as AccountSnapshot)).unwrap()
         ));

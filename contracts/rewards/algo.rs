@@ -224,8 +224,7 @@ impl<S, A, Q, C> IRewardsResponse<S, A, Q, C> for RewardsResponse where
 {
     /// For a moment in time, report the status of an account, with embedded pool and clock status
     fn user_info (core: &C, time: Moment, address: HumanAddr, key: String) -> StdResult<Self> {
-        let id = core.canonize(address.clone())?;
-        Auth::check_vk(core, &ViewingKey(key), id.as_slice())?;
+        Auth::check_vk(core, &address, &key.into())?;
         Ok(RewardsResponse::UserInfo(Account::from_addr(core, &address, time)?))
     }
     /// For a moment in time, report pool status, with embedded clock status
