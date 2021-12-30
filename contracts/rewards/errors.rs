@@ -10,8 +10,11 @@ pub fn invalid_epoch_number <T> (epoch: Moment, next_epoch: Moment) -> StdResult
     )))
 }
 
-pub fn no_time_travel <T> () -> StdResult<T> {
-    Err(StdError::generic_err("This service does not store history nor permit time travel."))
+pub fn no_time_travel <T> (code: u64) -> StdResult<T> {
+    Err(StdError::generic_err(format!(
+        "This service does not store history nor permit time travel. ({})",
+        code
+    )))
 }
 
 pub fn pool_not_closed <T> () -> StdResult<T> {

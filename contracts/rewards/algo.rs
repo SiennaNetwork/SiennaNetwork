@@ -132,10 +132,10 @@ impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
     }
     fn assert_closed (core: &C, env: &Env) -> StdResult<Duration> {
         if let Some((closed, _)) = core.get::<CloseSeal>(RewardsConfig::CLOSED)? {
-            if closed >= env.block.time {
+            if closed <= env.block.time {
                 Ok(env.block.time - closed)
             } else {
-                errors::no_time_travel()
+                errors::no_time_travel(1)
             }
         } else {
             errors::pool_not_closed()
@@ -355,7 +355,7 @@ impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
         // # 1. Timestamps
         total.clock = clock;
         total.updated = core.get(Total::UPDATED)?.unwrap_or(total.clock.now);
-        if total.clock.now < total.updated { return errors::no_time_travel() }
+        if total.clock.now < total.updated { return errors::no_time_travel(2) }
         // # 2. Liquidity
         // When users lock tokens in the pool, liquidity accumulates.
         // Pool liquidity is internally represented by two variables:
@@ -524,7 +524,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         //    The following points and durations in time are stored for each user:
         //    * `updated` is the time of last update (deposit, withdraw or claim by this user)
         account.updated = get_time(Self::UPDATED, total.clock.now)?;
-        if total.clock.now < account.updated { return errors::no_time_travel() }
+        if total.clock.now < account.updated { return errors::no_time_travel(3) }
         // 2. Liquidity and liquidity share
         //    * `staked` is the number of LP tokens staked by this user in this pool.
         //    * The user's **momentary share** is defined as `staked / total.staked`.
@@ -539,13 +539,13 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         account.elapsed    = total.clock.now - account.updated;
         account.volume     = accumulate(last_volume, account.elapsed, account.staked)?;
         account.starting_pool_volume = get_volume(Self::ENTRY_VOL, total.clock.volume)?;
-        if account.starting_pool_volume > total.volume { return errors::no_time_travel() }
+        if account.starting_pool_volume > total.volume { return errors::no_time_travel(4) }
         account.accumulated_pool_volume = (total.volume - account.starting_pool_volume)?;
         // 3. Rewards claimable
         //    The `earned` rewards are a portion of the rewards unlocked since the epoch
         //    in which the user entered the pool.
         account.starting_pool_rewards = get_amount(Self::ENTRY_REW, total.unlocked)?;
-        if account.starting_pool_rewards > total.unlocked { return errors::no_time_travel() }
+        if account.starting_pool_rewards > total.unlocked { return errors::no_time_travel(5) }
         account.accumulated_pool_rewards = (total.unlocked - account.starting_pool_rewards)?;
         account.reward_share = (account.volume, account.accumulated_pool_volume);
         account.earned = if account.reward_share.1 == Volume::zero() {
