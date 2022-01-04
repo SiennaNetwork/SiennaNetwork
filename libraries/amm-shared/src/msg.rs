@@ -99,22 +99,18 @@ pub mod factory {
         },
         /// Transfers exchanges to a new instance. Admin only command.
         TransferExchanges {
-            /// The password set on the receiving instance.
-            password: String,
             /// New factory instance.
             new_instance: ContractLink<HumanAddr>,
             /// Optionally, skip transferring the given exchanges.
             skip: Option<Vec<HumanAddr>>,
         },
         ReceiveExchanges {
-            /// The password that was set on this instance.
-            password: String,
             /// Indicates whether all exchanges have been transferred.
             finalize: bool,
             exchanges: Vec<Exchange<HumanAddr>>,
         },
-        SetMigrationPassword {
-            password: String,
+        SetMigrationAddress {
+            address: HumanAddr,
         },
         /// Adds already created IDO addresses to the registry. Admin only command.
         AddIdos {

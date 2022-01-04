@@ -1,15 +1,18 @@
 [package]
-name    = "factory"
-version = "1.0.0"
-authors = ["Asparuh Kamenov <asparuhkamenov@gmail.com>"]
+name = "router"
+version = "0.1.0"
+authors = ["Assaf Morami <assaf.morami@gmail.com>"]
 edition = "2018"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
 
 [dependencies]
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
 
-amm-shared = { path = "../../libraries/amm-shared" }
+amm-shared = { path = "../../../libraries/amm-shared" }

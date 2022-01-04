@@ -1,0 +1,18 @@
+[package]
+name = "amm-tests"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "lib.rs"
+
+[dependencies]
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+amm-shared = { path = "../../../libraries/amm-shared" }
+lp-token = { path = "../lp-token" }
+factory = { path = "../factory" }
+exchange = { path = "../exchange" }
+ido = { path = "../ido" }
+launchpad = { path = "../launchpad" }
+router = { path = "../router" }

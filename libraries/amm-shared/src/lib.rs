@@ -6,7 +6,7 @@ pub use token_pair::*;
 pub use token_pair_amount::*;
 pub use token_type::*;
 pub use token_type_amount::*;
-pub mod exchange;
+pub use exchange::*;
 
 pub mod msg;
 
@@ -14,6 +14,7 @@ pub mod msg;
 // This is instead of declaring it as a testing package due to limit of re-exporting testing packages
 pub mod querier;
 
+mod exchange;
 mod display;
 mod token_pair;
 mod token_pair_amount;

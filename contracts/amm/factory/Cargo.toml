@@ -1,10 +1,7 @@
 [package]
-name = "ido"
-version = "0.1.0"
-authors = [
-    "aakamenov <asparuhkamenov@gmail.com>",
-    "Tibor Hudik <tibor@barrage.net>",
-]
+name    = "factory"
+version = "1.0.0"
+authors = ["Asparuh Kamenov <asparuhkamenov@gmail.com>"]
 edition = "2018"
 
 [lib]
@@ -13,5 +10,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+snafu = { version = "0.6.3" }
 
-amm-shared = { path = "../../libraries/amm-shared" }
+amm-shared = { path = "../../../libraries/amm-shared" }

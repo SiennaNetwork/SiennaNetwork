@@ -1,5 +1,4 @@
 use amm_shared::{
-    exchange::{ExchangeSettings, Fee},
     fadroma::{
         platform::{
             from_binary, log, secret_toolkit::snip20, to_binary, Api, BankMsg, Binary, Coin,
@@ -19,7 +18,7 @@ use amm_shared::{
         factory::{QueryMsg as FactoryQueryMsg, QueryResponse as FactoryResponse},
         snip20::{InitConfig as Snip20InitConfig, InitMsg as Snip20InitMsg},
     },
-    TokenPairAmount, TokenType, TokenTypeAmount,
+    TokenPairAmount, TokenType, TokenTypeAmount, ExchangeSettings, Fee
 };
 
 use crate::{
@@ -268,6 +267,10 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
     deposit: TokenPairAmount<HumanAddr>,
     slippage: Option<Decimal>,
 ) -> StdResult<HandleResponse> {
+    if deposit.amount_0.is_zero() || deposit.amount_1.is_zero() {
+        return Err(StdError::generic_err("Cannot provide zero liquidity."));
+    }
+
     let config = load_config(&deps)?;
 
     let Config {
@@ -723,31 +726,50 @@ fn percentage_decrease(amount: Uint256, fee: Fee) -> StdResult<Uint128> {
 
 /// The amount the price moves in a trading pair between when a transaction is submitted and when it is executed.
 /// Returns an `StdError` if the range of the expected tokens to be received is exceeded.
+/// Assumes deposits are > 0. 
 fn assert_slippage_tolerance(
     slippage: Option<Decimal>,
     deposits: &[Uint128; 2],
     pools: &[Uint128; 2],
 ) -> StdResult<()> {
-    if slippage.is_none() {
-        return Ok(());
+    fn cmp_ratio(price: Decimal, pool_0: Uint128, pool_1: Uint128) -> bool {
+        if pool_1.is_zero() {
+            return false;
+        }
+
+        price > Decimal::from_ratio(pool_0, pool_1)
     }
 
-    let one_minus_slippage_tolerance =
-        decimal_math::decimal_subtraction(Decimal::one(), slippage.unwrap())?;
+    if let Some(slippage) = slippage {
+        if slippage.is_zero() || slippage >= Decimal::one() {
+            return Err(StdError::generic_err(
+                format!("Slippage tolerance must be between 0.1 and 0.9, got: {}", slippage))
+            );
+        }
 
-    // Ensure each prices are not dropped as much as slippage tolerance rate
-    if decimal_math::decimal_multiplication(
-        Decimal::from_ratio(deposits[0], deposits[1]),
-        one_minus_slippage_tolerance,
-    ) > Decimal::from_ratio(pools[0], pools[1])
-        || decimal_math::decimal_multiplication(
+        let one_minus_slippage_tolerance = decimal_math::decimal_subtraction(
+            Decimal::one(),
+            slippage
+        )?;
+
+        let price_0 = decimal_math::decimal_multiplication(
+            Decimal::from_ratio(deposits[0], deposits[1]),
+            one_minus_slippage_tolerance,
+        );
+
+        let price_1 = decimal_math::decimal_multiplication(
             Decimal::from_ratio(deposits[1], deposits[0]),
             one_minus_slippage_tolerance,
-        ) > Decimal::from_ratio(pools[1], pools[0])
-    {
-        return Err(StdError::generic_err(
-            "Operation exceeds max slippage tolerance",
-        ));
+        );
+
+        // Ensure prices are not dropped as much as slippage tolerance rate
+        if cmp_ratio(price_0, pools[0], pools[1]) ||
+            cmp_ratio(price_1, pools[1], pools[0])
+        {
+            return Err(StdError::generic_err(
+                "Operation exceeds max slippage tolerance",
+            ));
+        }
     }
 
     Ok(())

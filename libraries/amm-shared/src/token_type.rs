@@ -1,7 +1,8 @@
+use std::convert::TryInto;
 use fadroma::platform::{
     HumanAddr, CanonicalAddr, Api, StdResult,
     Querier, Uint128, StdError, Env, CosmosMsg,
-    WasmMsg, BankMsg, Coin, to_binary,
+    WasmMsg, BankMsg, Coin, ContractLink, to_binary,
     secret_toolkit::snip20,
     Canonize, Humanize
 };
@@ -70,9 +71,6 @@ impl Humanize<TokenType<HumanAddr>> for TokenType<CanonicalAddr> {
         })
     }
 }
-
-#[deprecated(note = "please use TokenType<CanonicalAddr> instead")]
-pub type TokenTypeStored = TokenType<CanonicalAddr>;
 
 impl<A: Clone> TokenType<A> {
     pub fn is_native_token(&self) -> bool {
@@ -173,6 +171,47 @@ impl TokenType<HumanAddr> {
         };
     
         Ok(msg)
+    }
+}
+
+impl From<ContractLink<HumanAddr>> for TokenType<HumanAddr> {
+    fn from(contract: ContractLink<HumanAddr>) -> Self {
+        TokenType::CustomToken {
+            contract_addr: contract.address,
+            token_code_hash: contract.code_hash
+        }
+    }
+}
+
+impl TryInto<ContractLink<HumanAddr>> for &TokenType<HumanAddr> {
+    type Error = StdError;
+
+    fn try_into(self) -> Result<ContractLink<HumanAddr>, Self::Error> {
+        match self {
+            TokenType::CustomToken { contract_addr, token_code_hash } => {
+                Ok(ContractLink {
+                    address: contract_addr.clone(),
+                    code_hash: token_code_hash.clone()
+                })
+            },
+            _ => Err(StdError::generic_err("Cannot convert TokenType::NativeToken to ContractLink."))
+        }
+    }
+}
+
+impl TryInto<ContractLink<HumanAddr>> for TokenType<HumanAddr> {
+    type Error = StdError;
+
+    fn try_into(self) -> Result<ContractLink<HumanAddr>, Self::Error> {
+        match self {
+            TokenType::CustomToken { contract_addr, token_code_hash } => {
+                Ok(ContractLink {
+                    address: contract_addr,
+                    code_hash: token_code_hash
+                })
+            },
+            _ => Err(StdError::generic_err("Cannot convert TokenType::NativeToken to ContractLink."))
+        }
     }
 }
 

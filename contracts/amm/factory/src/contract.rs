@@ -1,5 +1,4 @@
 use amm_shared::{
-    exchange::Exchange,
     fadroma::{
         auth::admin::{
             assert_admin, handle as admin_handle, load_admin, query as admin_query, Admin,
@@ -24,14 +23,14 @@ use amm_shared::{
         launchpad::{InitMsg as LaunchpadInitMsg, TokenSettings},
         router::InitMsg as RouterInitMsg,
     },
-    Pagination, TokenPair, TokenType,
+    Pagination, TokenPair, TokenType, Exchange
 };
 
 use crate::state::{
     exchanges_store, get_address_for_pair, get_exchanges, get_idos, ido_whitelist_add,
     ido_whitelist_remove, is_ido_whitelisted, load_config, load_launchpad_instance,
-    load_migration_password, load_prng_seed, load_router_instance, pair_exists,
-    remove_migration_password, save_config, save_launchpad_instance, save_migration_password,
+    load_migration_address, load_prng_seed, load_router_instance, pair_exists,
+    remove_migration_address, save_config, save_launchpad_instance, save_migration_address,
     save_prng_seed, save_router_instance, store_exchanges, store_ido_addresses, Config,
 };
 
@@ -75,11 +74,10 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             return Ok(HandleResponse::default());
         }
         HandleMsg::TransferExchanges {
-            password,
             new_instance,
             skip,
         } => {
-            return transfer_exchanges(deps, env, new_instance, password, skip);
+            return transfer_exchanges(deps, env, new_instance, skip);
         }
         _ => {}
     }
@@ -108,11 +106,10 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             register_exchange(deps, env, pair, signature)
         }
         HandleMsg::ReceiveExchanges {
-            password,
             finalize,
             exchanges,
-        } => receive_exchanges(deps, password, finalize, exchanges),
-        HandleMsg::SetMigrationPassword { password } => set_migration_password(deps, env, password),
+        } => receive_exchanges(deps, env, finalize, exchanges),
+        HandleMsg::SetMigrationAddress { address } => set_migration_address(deps, env, address),
         HandleMsg::AddIdos { idos } => add_idos(deps, env, idos),
         HandleMsg::AddLaunchpad { launchpad } => add_launchpad(deps, env, launchpad),
         HandleMsg::Admin(msg) => admin_handle(deps, env, msg, AdminImpl),
@@ -558,7 +555,6 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     new_instance: ContractLink<HumanAddr>,
-    password: String,
     skip: Option<Vec<HumanAddr>>,
 ) -> StdResult<HandleResponse> {
     let status = killswitch::get_status(&deps)?;
@@ -617,7 +613,6 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
         callback_code_hash: new_instance.code_hash,
         send: vec![],
         msg: to_binary(&HandleMsg::ReceiveExchanges {
-            password,
             finalize: len == 0,
             exchanges,
         })?,
@@ -632,18 +627,18 @@ fn transfer_exchanges<S: Storage, A: Api, Q: Querier>(
 
 fn receive_exchanges<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    password: String,
+    env: Env,
     finalize: bool,
     exchanges: Vec<Exchange<HumanAddr>>,
 ) -> StdResult<HandleResponse> {
-    let stored_pass = load_migration_password(&deps.storage)?;
+    let address = load_migration_address(&deps.storage)?;
 
-    if stored_pass != password {
+    if address != env.message.sender {
         return Err(StdError::unauthorized());
     }
 
     if finalize {
-        remove_migration_password(&mut deps.storage);
+        remove_migration_address(&mut deps.storage);
     }
 
     let len = exchanges.len();
@@ -651,20 +646,31 @@ fn receive_exchanges<S: Storage, A: Api, Q: Querier>(
 
     Ok(HandleResponse {
         messages: vec![],
-        log: vec![log("action", "receive_exchanges"), log("received", len)],
+        log: vec![
+            log("action", "receive_exchanges"),
+            log("received", len),
+            log("finalize", finalize)
+        ],
         data: None,
     })
 }
 
 #[require_admin]
-fn set_migration_password<S: Storage, A: Api, Q: Querier>(
+fn set_migration_address<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    password: String,
+    address: HumanAddr,
 ) -> StdResult<HandleResponse> {
-    save_migration_password(&mut deps.storage, &password)?;
+    save_migration_address(&mut deps.storage, &address)?;
 
-    Ok(HandleResponse::default())
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("action", "set_migration_address"),
+            log("migration_address", address)
+        ],
+        data: None,
+    })
 }
 
 #[require_admin]
