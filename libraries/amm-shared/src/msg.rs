@@ -25,7 +25,6 @@ pub mod factory {
         pub pair_contract: ContractInstantiationInfo,
         pub launchpad_contract: ContractInstantiationInfo,
         pub ido_contract: ContractInstantiationInfo,
-        pub router_contract: ContractInstantiationInfo,
         pub exchange_settings: ExchangeSettings<HumanAddr>,
         pub admin: Option<HumanAddr>,
         pub prng_seed: Binary,
@@ -47,7 +46,6 @@ pub mod factory {
             pair_contract: Option<ContractInstantiationInfo>,
             launchpad_contract: Option<ContractInstantiationInfo>,
             ido_contract: Option<ContractInstantiationInfo>,
-            router_contract: Option<ContractInstantiationInfo>,
             exchange_settings: Option<ExchangeSettings<HumanAddr>>,
         },
         /// Instantiates an exchange pair contract
@@ -69,10 +67,6 @@ pub mod factory {
             tokens: Option<Vec<Option<HumanAddr>>>,
             entropy: Binary,
         },
-        /// Create the router contract
-        CreateRouter {
-            register_tokens: Option<Vec<TokenType<HumanAddr>>>,
-        },
         /// Add addresses that are allowed to create IDOs
         IdoWhitelist {
             addresses: Vec<HumanAddr>,
@@ -90,11 +84,6 @@ pub mod factory {
         /// Used by a newly instantiated IDO contract to register
         /// itself with the factory
         RegisterIdo {
-            signature: Binary,
-        },
-        /// Used by a newly instantiated Router contract to register
-        /// itself with the factory
-        RegisterRouter {
             signature: Binary,
         },
         /// Transfers exchanges to a new instance. Admin only command.
@@ -131,7 +120,6 @@ pub mod factory {
         /// Get configuration (contract templates and exchange settings)
         GetConfig {},
         GetLaunchpadAddress,
-        GetRouterAddress,
         GetExchangeAddress {
             pair: TokenPair<HumanAddr>,
         },
@@ -155,9 +143,6 @@ pub mod factory {
         GetLaunchpadAddress {
             address: HumanAddr,
         },
-        GetRouterAddress {
-            address: HumanAddr,
-        },
         ListIdos {
             idos: Vec<HumanAddr>,
         },
@@ -173,7 +158,6 @@ pub mod factory {
             pair_contract: ContractInstantiationInfo,
             launchpad_contract: ContractInstantiationInfo,
             ido_contract: ContractInstantiationInfo,
-            router_contract: ContractInstantiationInfo,
             exchange_settings: ExchangeSettings<HumanAddr>,
         },
     }

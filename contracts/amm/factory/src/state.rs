@@ -17,7 +17,6 @@ const CONFIG_KEY: &[u8] = b"config";
 const PRNG_KEY: &[u8] = b"prng_seed";
 const LAUNCHPAD_KEY: &[u8] = b"launchpad_instance";
 const MIGRATION_KEY: &[u8] = b"migration";
-const ROUTER_KEY: &[u8] = b"router";
 
 const NS_IDO_WHITELIST: &[u8] = b"ido_whitelist";
 const NS_IDOS: &[u8] = b"idos";
@@ -32,7 +31,6 @@ pub(crate) struct Config<A> {
     pub pair_contract: ContractInstantiationInfo,
     pub launchpad_contract: ContractInstantiationInfo,
     pub ido_contract: ContractInstantiationInfo,
-    pub router_contract: ContractInstantiationInfo,
     pub exchange_settings: ExchangeSettings<A>,
 }
 
@@ -44,7 +42,6 @@ impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
             pair_contract: self.pair_contract.clone(),
             launchpad_contract: self.launchpad_contract.clone(),
             ido_contract: self.ido_contract.clone(),
-            router_contract: self.router_contract.clone(),
             exchange_settings: self.exchange_settings.canonize(api)?,
         })
     }
@@ -57,7 +54,6 @@ impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
             pair_contract: self.pair_contract.clone(),
             launchpad_contract: self.launchpad_contract.clone(),
             ido_contract: self.ido_contract.clone(),
-            router_contract: self.router_contract.clone(),
             exchange_settings: self.exchange_settings.clone().humanize(api)?,
         })
     }
@@ -117,19 +113,6 @@ pub(crate) fn load_launchpad_instance(
     storage: &impl Storage,
 ) -> StdResult<Option<ContractLink<HumanAddr>>> {
     load(storage, LAUNCHPAD_KEY)
-}
-
-pub(crate) fn save_router_instance(
-    storage: &mut impl Storage,
-    instance: &ContractLink<HumanAddr>,
-) -> StdResult<()> {
-    save(storage, ROUTER_KEY, instance)
-}
-
-pub(crate) fn load_router_instance(
-    storage: &impl Storage,
-) -> StdResult<Option<ContractLink<HumanAddr>>> {
-    load(storage, ROUTER_KEY)
 }
 
 #[inline]

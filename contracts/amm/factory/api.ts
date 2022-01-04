@@ -10,7 +10,6 @@ import { AMMSNIP20Contract  } from "@sienna/amm-snip20";
 import { LPTokenContract    } from "@sienna/lp-token";
 import { IDOContract        } from "@sienna/ido";
 import { LaunchpadContract  } from "@sienna/launchpad";
-import { SwapRouterContract } from '@sienna/router';
 
 import { workspace } from "@sienna/settings";
 import { TokenTypeFor_HumanAddr } from "./schema/handle_msg.d";
@@ -58,7 +57,6 @@ export class FactoryContract extends ScrtContract {
       pair_contract:      { enumerable: true, get () { return self.dependencies.EXCHANGE.template  } },
       lp_token_contract:  { enumerable: true, get () { return self.dependencies.LPTOKEN.template   } },
       ido_contract:       { enumerable: true, get () { return self.dependencies.IDO.template       } },
-      router_contract:    { enumerable: true, get () { return self.dependencies.ROUTER.template    } },
       launchpad_contract: { enumerable: true, get () { return self.dependencies.LAUNCHPAD.template } },
     })
 
