@@ -95,10 +95,17 @@ export type Uint128 = string;
  * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
  */
 export type Binary = string;
-export type HandleMsg1 = {
-  change_admin: {
-    address: HumanAddr;
-    [k: string]: unknown;
-  };
-  [k: string]: unknown;
-};
+export type HandleMsg1 =
+  | {
+      change_admin: {
+        address: HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      accept_admin: {
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    };

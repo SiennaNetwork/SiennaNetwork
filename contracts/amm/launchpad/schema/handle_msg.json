@@ -251,6 +251,17 @@
               }
             }
           }
+        },
+        {
+          "type": "object",
+          "required": [
+            "accept_admin"
+          ],
+          "properties": {
+            "accept_admin": {
+              "type": "object"
+            }
+          }
         }
       ]
     },

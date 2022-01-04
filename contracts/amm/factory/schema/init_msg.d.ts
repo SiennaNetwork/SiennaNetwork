@@ -21,7 +21,6 @@ export interface InitMsg {
   lp_token_contract: ContractInstantiationInfo;
   pair_contract: ContractInstantiationInfo;
   prng_seed: Binary;
-  router_contract: ContractInstantiationInfo;
   snip20_contract: ContractInstantiationInfo;
   [k: string]: unknown;
 }

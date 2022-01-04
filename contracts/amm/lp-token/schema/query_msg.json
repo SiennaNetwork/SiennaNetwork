@@ -195,10 +195,6 @@
     }
   ],
   "definitions": {
-    "Binary": {
-      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
-      "type": "string"
-    },
     "HumanAddr": {
       "type": "string"
     },
@@ -231,54 +227,18 @@
         }
       }
     },
-    "PermitSignature": {
-      "type": "object",
-      "required": [
-        "pub_key",
-        "signature"
-      ],
-      "properties": {
-        "pub_key": {
-          "$ref": "#/definitions/PubKey"
-        },
-        "signature": {
-          "$ref": "#/definitions/Binary"
-        }
-      }
-    },
     "Permit_for_QueryPermission": {
       "type": "object",
       "required": [
-        "params",
-        "signature"
+        "address",
+        "params"
       ],
       "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
         "params": {
           "$ref": "#/definitions/PermitParams_for_QueryPermission"
-        },
-        "signature": {
-          "$ref": "#/definitions/PermitSignature"
-        }
-      }
-    },
-    "PubKey": {
-      "type": "object",
-      "required": [
-        "type",
-        "value"
-      ],
-      "properties": {
-        "type": {
-          "description": "ignored, but must be \"tendermint/PubKeySecp256k1\" otherwise the verification will fail",
-          "type": "string"
-        },
-        "value": {
-          "description": "Secp256k1 PubKey",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Binary"
-            }
-          ]
         }
       }
     },

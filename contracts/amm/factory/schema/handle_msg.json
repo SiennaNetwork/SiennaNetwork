@@ -96,16 +96,6 @@
                 }
               ]
             },
-            "router_contract": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/ContractInstantiationInfo"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
             "snip20_contract": {
               "anyOf": [
                 {
@@ -212,29 +202,6 @@
       }
     },
     {
-      "description": "Create the router contract",
-      "type": "object",
-      "required": [
-        "create_router"
-      ],
-      "properties": {
-        "create_router": {
-          "type": "object",
-          "properties": {
-            "register_tokens": {
-              "type": [
-                "array",
-                "null"
-              ],
-              "items": {
-                "$ref": "#/definitions/TokenType_for_HumanAddr"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
       "description": "Add addresses that are allowed to create IDOs",
       "type": "object",
       "required": [
@@ -322,26 +289,6 @@
       }
     },
     {
-      "description": "Used by a newly instantiated Router contract to register itself with the factory",
-      "type": "object",
-      "required": [
-        "register_router"
-      ],
-      "properties": {
-        "register_router": {
-          "type": "object",
-          "required": [
-            "signature"
-          ],
-          "properties": {
-            "signature": {
-              "$ref": "#/definitions/Binary"
-            }
-          }
-        }
-      }
-    },
-    {
       "description": "Transfers exchanges to a new instance. Admin only command.",
       "type": "object",
       "required": [
@@ -351,8 +298,7 @@
         "transfer_exchanges": {
           "type": "object",
           "required": [
-            "new_instance",
-            "password"
+            "new_instance"
           ],
           "properties": {
             "new_instance": {
@@ -362,10 +308,6 @@
                   "$ref": "#/definitions/ContractLink_for_HumanAddr"
                 }
               ]
-            },
-            "password": {
-              "description": "The password set on the receiving instance.",
-              "type": "string"
             },
             "skip": {
               "description": "Optionally, skip transferring the given exchanges.",
@@ -391,8 +333,7 @@
           "type": "object",
           "required": [
             "exchanges",
-            "finalize",
-            "password"
+            "finalize"
           ],
           "properties": {
             "exchanges": {
@@ -404,10 +345,6 @@
             "finalize": {
               "description": "Indicates whether all exchanges have been transferred.",
               "type": "boolean"
-            },
-            "password": {
-              "description": "The password that was set on this instance.",
-              "type": "string"
             }
           }
         }
@@ -416,17 +353,17 @@
     {
       "type": "object",
       "required": [
-        "set_migration_password"
+        "set_migration_address"
       ],
       "properties": {
-        "set_migration_password": {
+        "set_migration_address": {
           "type": "object",
           "required": [
-            "password"
+            "address"
           ],
           "properties": {
-            "password": {
-              "type": "string"
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
             }
           }
         }
@@ -623,6 +560,17 @@
                   "$ref": "#/definitions/HumanAddr"
                 }
               }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "accept_admin"
+          ],
+          "properties": {
+            "accept_admin": {
+              "type": "object"
             }
           }
         }

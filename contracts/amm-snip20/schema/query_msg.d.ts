@@ -77,12 +77,6 @@ export type QueryMsg =
     };
 export type HumanAddr = string;
 export type QueryPermission = "allowance" | "balance" | "history" | "owner";
-/**
- * Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.
- *
- * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
- */
-export type Binary = string;
 export type QueryWithPermit =
   | {
       allowance: {
@@ -116,8 +110,8 @@ export type QueryWithPermit =
     };
 
 export interface PermitFor_QueryPermission {
+  address: HumanAddr;
   params: PermitParamsFor_QueryPermission;
-  signature: PermitSignature;
   [k: string]: unknown;
 }
 export interface PermitParamsFor_QueryPermission {
@@ -125,21 +119,5 @@ export interface PermitParamsFor_QueryPermission {
   chain_id: string;
   permissions: QueryPermission[];
   permit_name: string;
-  [k: string]: unknown;
-}
-export interface PermitSignature {
-  pub_key: PubKey;
-  signature: Binary;
-  [k: string]: unknown;
-}
-export interface PubKey {
-  /**
-   * ignored, but must be "tendermint/PubKeySecp256k1" otherwise the verification will fail
-   */
-  type: string;
-  /**
-   * Secp256k1 PubKey
-   */
-  value: Binary;
   [k: string]: unknown;
 }

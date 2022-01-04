@@ -22,7 +22,6 @@ export type HandleMsg =
         launchpad_contract?: ContractInstantiationInfo | null;
         lp_token_contract?: ContractInstantiationInfo | null;
         pair_contract?: ContractInstantiationInfo | null;
-        router_contract?: ContractInstantiationInfo | null;
         snip20_contract?: ContractInstantiationInfo | null;
         [k: string]: unknown;
       };
@@ -49,13 +48,6 @@ export type HandleMsg =
         entropy: Binary;
         info: TokenSaleConfig;
         tokens?: (HumanAddr | null)[] | null;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      create_router: {
-        register_tokens?: TokenTypeFor_HumanAddr[] | null;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -90,22 +82,11 @@ export type HandleMsg =
       [k: string]: unknown;
     }
   | {
-      register_router: {
-        signature: Binary;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
       transfer_exchanges: {
         /**
          * New factory instance.
          */
         new_instance: ContractLinkFor_HumanAddr;
-        /**
-         * The password set on the receiving instance.
-         */
-        password: string;
         /**
          * Optionally, skip transferring the given exchanges.
          */
@@ -121,17 +102,13 @@ export type HandleMsg =
          * Indicates whether all exchanges have been transferred.
          */
         finalize: boolean;
-        /**
-         * The password that was set on this instance.
-         */
-        password: string;
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
-      set_migration_password: {
-        password: string;
+      set_migration_address: {
+        address: HumanAddr;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -184,13 +161,20 @@ export type TokenTypeFor_HumanAddr =
     };
 export type Uint128 = string;
 export type SaleType = "PreLockAndSwap" | "PreLockOnly" | "SwapOnly";
-export type HandleMsg1 = {
-  change_admin: {
-    address: HumanAddr;
-    [k: string]: unknown;
-  };
-  [k: string]: unknown;
-};
+export type HandleMsg1 =
+  | {
+      change_admin: {
+        address: HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      accept_admin: {
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    };
 
 export interface ExchangeSettingsFor_HumanAddr {
   sienna_burner?: HumanAddr | null;

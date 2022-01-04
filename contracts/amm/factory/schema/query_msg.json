@@ -7,7 +7,6 @@
       "enum": [
         "status",
         "get_launchpad_address",
-        "get_router_address",
         "get_exchange_settings"
       ]
     },

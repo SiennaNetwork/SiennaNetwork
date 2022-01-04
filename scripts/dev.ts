@@ -102,14 +102,14 @@ export default async function main (words: Array<string>) {
     async schema () {
       for (const dir of [
         "amm-snip20",
-        "exchange",
-        "factory",
-        "ido",
-        "launchpad",
-        "lp-token",
+        "amm/exchange",
+        "amm/factory",
+        "amm/ido",
+        "amm/launchpad",
+        "amm/lp-token",
+        "amm/router",
         "mgmt",
         "rewards",
-        "router",
         "rpt",
         "snip20-sienna",
       ]) {

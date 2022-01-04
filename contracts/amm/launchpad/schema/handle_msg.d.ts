@@ -100,13 +100,20 @@ export type TokenTypeFor_HumanAddr =
       };
       [k: string]: unknown;
     };
-export type HandleMsg1 = {
-  change_admin: {
-    address: HumanAddr;
-    [k: string]: unknown;
-  };
-  [k: string]: unknown;
-};
+export type HandleMsg1 =
+  | {
+      change_admin: {
+        address: HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      accept_admin: {
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    };
 
 /**
  * Configuration for single token that can be locked into the launchpad
