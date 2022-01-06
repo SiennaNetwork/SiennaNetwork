@@ -29,7 +29,6 @@ impl Into<InitMsg> for &Config<HumanAddr> {
             pair_contract: self.pair_contract.clone(),
             launchpad_contract: self.launchpad_contract.clone(),
             ido_contract: self.ido_contract.clone(),
-            router_contract: self.router_contract.clone(),
             exchange_settings: self.exchange_settings.clone(),
             admin: None,
             prng_seed: to_binary(&"prng").unwrap(),
@@ -44,7 +43,6 @@ impl Into<HandleMsg> for &Config<HumanAddr> {
             pair_contract: Some(self.pair_contract.clone()),
             launchpad_contract: Some(self.launchpad_contract.clone()),
             ido_contract: Some(self.ido_contract.clone()),
-            router_contract: Some(self.router_contract.clone()),
             exchange_settings: Some(self.exchange_settings.clone()),
         }
     }
@@ -57,7 +55,6 @@ impl Into<QueryResponse> for &Config<HumanAddr> {
             pair_contract: self.pair_contract.clone(),
             launchpad_contract: self.launchpad_contract.clone(),
             ido_contract: self.ido_contract.clone(),
-            router_contract: self.router_contract.clone(),
             exchange_settings: self.exchange_settings.clone(),
         }
     }
@@ -90,10 +87,6 @@ fn mkconfig(id: u64) -> Config<HumanAddr> {
             code_hash: "2312325346".into(),
         },
         ido_contract: ContractInstantiationInfo {
-            id,
-            code_hash: "348534835".into(),
-        },
-        router_contract: ContractInstantiationInfo {
             id,
             code_hash: "348534835".into(),
         },

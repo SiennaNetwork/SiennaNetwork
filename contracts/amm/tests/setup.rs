@@ -59,7 +59,7 @@ impl Amm {
         let pair = ensemble.register(Box::new(Pair));
         let ido = ensemble.register(Box::new(Ido));
         let launchpad = ensemble.register(Box::new(Launchpad));
-        let router = ensemble.register(Box::new(Router));
+        let _router = ensemble.register(Box::new(Router));
         
         let factory = ensemble.instantiate(
             factory.id,
@@ -69,7 +69,6 @@ impl Amm {
                 pair_contract: pair,
                 launchpad_contract: launchpad,
                 ido_contract: ido,
-                router_contract: router,
                 exchange_settings: ExchangeSettings {
                     swap_fee: Fee::new(28, 10000),
                     sienna_fee: Fee::new(2, 10000),
