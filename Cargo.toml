@@ -19,6 +19,11 @@ members = [
   "contracts/amm/router",    # Copy and modifications of secretswap_router
   "contracts/amm/tests",     # AMM integration tests
 
+  # Lend
+  "libraries/lend-shared",         # definitions that are shared across the lending contracts
+  "contracts/lend/interest_model",
+  "contracts/lend/oracle",
+
   # Framework
   "libraries/fadroma-next/crates/*",
   "libraries/migrate", # migration flag, as used by TGE before merging this feature into Fadroma
