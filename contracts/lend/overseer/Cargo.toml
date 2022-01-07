@@ -1,0 +1,17 @@
+[package]
+name = "lend-overseer"
+version = "0.0.1"
+authors = ["hackbg"]
+edition = "2018"
+description = "Market factory and lending interactions gateway."
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/contract.rs"
+
+[dependencies]
+serde    = { version = "1.0.103", default-features = false, features = ["derive"] }
+snafu    = { version = "0.6.3" }
+
+lend-shared = { path = "../../../libraries/lend-shared" }
