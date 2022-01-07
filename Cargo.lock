@@ -960,6 +960,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lend-overseer"
+version = "0.0.1"
+dependencies = [
+ "lend-shared",
+ "serde",
+ "snafu",
+]
+
+[[package]]
 name = "lend-shared"
 version = "0.1.0"
 dependencies = [
