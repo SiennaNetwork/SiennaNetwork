@@ -2,18 +2,32 @@ kind: pipeline
 type: docker
 name: Coverage
 
+volumes: [ { name: cache, temp: {} } ]
+
 steps:
+
+  # Restore cache if present.
+  # See http://plugins.drone.io/meltwater/drone-cache/
+  - name:     get-cache
+    image:    meltwater/drone-cache:dev
+    volumes:  [ { name: cache, path: /tmp/cache } ]
+    settings:
+      backend:          "filesystem"
+      restore:          true
+      cache_key:        "{{ .Repo.Name }}_{{ .Commit.Branch }}"
+      archive_format:   "gzip"
+      mount:          [ "target" ]
 
   # The main repo is cloned automatically, but,
   # in order to clone the submodules, an SSH key is needed.
   # This needs to be set up in two places:
-  # 0. Generate a ssh key with `ssh-keygen -t ed25519`
+  # 0. Generate a ssh key locally with `ssh-keygen -t ed25519`
   # 1. Private key goes into CI secrets for main repo
   # 2. Public key goes into deploy keys for each submodule
-  - name:  submodules
-    image: alpine/git
-    environment:
-      DEPLOY_KEY: { from_secret: deploy_key }
+  # 3. Delete the generated SSH key from your local filesystem.
+  - name:          submodules
+    image:         alpine/git
+    environment: { DEPLOY_KEY: { from_secret: deploy_key } }
     commands:
     - mkdir -p ~/.ssh
     - printenv DEPLOY_KEY > ~/.ssh/id_ed25519
@@ -21,14 +35,25 @@ steps:
     - ssh-keyscan -t rsa git.sienna.network >> ~/.ssh/known_hosts
     - git submodule update --init
 
-  # This is a little slow and network-hungry
-  # because it installs the same things every time.
-  # TODO Setup a Docker image with Tarpaulin pre-installed.
-  # TODO Setup caching of intermediate build artifacts.
-  - name:  toolchain
-    image: xd009642/tarpaulin
+  # This container needs to be privileged because Tarpaulin relies on
+  # disabling ASLR for the process in order to perform tracing.
+  - name:       toolchain
+    image:      xd009642/tarpaulin
+    privileged: true
     commands:
-    - rustup toolchain install stable
-    - rustup set profile minimal
-    - rustup target add wasm32-unknown-unknown
+    #- rustup toolchain install stable
+    #- rustup set profile minimal
+    #- rustup target add wasm32-unknown-unknown
     - cargo tarpaulin --workspace
+
+  # Update cache.
+  # See http://plugins.drone.io/meltwater/drone-cache/
+  - name:     set-cache
+    image:    meltwater/drone-cache:dev
+    volumes:  [ { name: cache, path: /tmp/cache } ]
+    settings:
+      backend:          "filesystem"
+      rebuild:          true
+      cache_key:        "{{ .Repo.Name }}_{{ .Commit.Branch }}"
+      archive_format:   "gzip"
+      mount:          [ "target" ]
