@@ -1,0 +1,36 @@
+kind: pipeline
+type: docker
+name: Coverage
+
+steps:
+
+  # The main repo is cloned automatically, but,
+  # in order to clone the submodules, an SSH key is needed.
+  # This needs to be set up in two places:
+  # 0. Generate a ssh key with `ssh-keygen -t ed25519`
+  # 1. Private key goes into CI secrets for main repo
+  # 2. Public key goes into deploy keys for each submodule
+  - name:  submodules
+    image: alpine/git
+    environment:
+      DEPLOY_KEY: { from_secret: deploy_key }
+    commands:
+    - mkdir -p ~/.ssh
+    - printenv DEPLOY_KEY > ~/.ssh/id_ed25519
+    - chmod 0600 ~/.ssh/id_ed25519
+    - ssh-keyscan -t rsa git.sienna.network >> ~/.ssh/known_hosts
+    - git submodule update --init
+
+  # This is a little slow and network-hungry
+  # because it installs the same things every time.
+  # TODO Setup a Docker image with Tarpaulin pre-installed.
+  # TODO Setup caching of intermediate build artifacts.
+  - name:  toolchain
+    image: rust:1-slim
+    commands:
+    - apt update && apt install -y pkg-config libssl-dev
+    - rustup toolchain install stable
+    - rustup set profile minimal
+    - rustup target add wasm32-unknown-unknown
+    - cargo install --version 0.18.3 cargo-tarpaulin
+    - cargo tarpaulin --workspace
