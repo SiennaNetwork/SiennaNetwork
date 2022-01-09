@@ -26,11 +26,9 @@ steps:
   # TODO Setup a Docker image with Tarpaulin pre-installed.
   # TODO Setup caching of intermediate build artifacts.
   - name:  toolchain
-    image: rust:1-slim
+    image: xd009642/tarpaulin
     commands:
-    - apt update && apt install -y pkg-config libssl-dev
     - rustup toolchain install stable
     - rustup set profile minimal
     - rustup target add wasm32-unknown-unknown
-    - cargo install --version 0.18.3 cargo-tarpaulin
     - cargo tarpaulin --workspace
