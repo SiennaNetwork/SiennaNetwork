@@ -14,8 +14,7 @@ steps:
     settings:
       backend:          "filesystem"
       restore:          true
-      cache_key:        "{{ .Repo.Name }}_{{ .Commit.Branch }}"
-      archive_format:   "gzip"
+      cache_key:        "{{ .Repo.Name }}"
       mount:          [ "target", "/root/.cargo" ]
 
   # The main repo is cloned automatically, but,
@@ -54,6 +53,5 @@ steps:
     settings:
       backend:          "filesystem"
       rebuild:          true
-      cache_key:        "{{ .Repo.Name }}_{{ .Commit.Branch }}"
-      archive_format:   "gzip"
+      cache_key:        "{{ .Repo.Name }}"
       mount:          [ "target", "/root/.cargo" ]
