@@ -2,7 +2,7 @@ kind: pipeline
 type: docker
 name: Coverage
 
-volumes: [ { name: cache, temp: {} } ]
+volumes: [ { name: cache, host: { path: /var/lib/drone/sienna-cache } } ]
 
 steps:
 
