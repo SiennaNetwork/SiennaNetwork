@@ -16,7 +16,7 @@ steps:
       restore:          true
       cache_key:        "{{ .Repo.Name }}_{{ .Commit.Branch }}"
       archive_format:   "gzip"
-      mount:          [ "target" ]
+      mount:          [ "target", "/root/.cargo" ]
 
   # The main repo is cloned automatically, but,
   # in order to clone the submodules, an SSH key is needed.
@@ -56,4 +56,4 @@ steps:
       rebuild:          true
       cache_key:        "{{ .Repo.Name }}_{{ .Commit.Branch }}"
       archive_format:   "gzip"
-      mount:          [ "target" ]
+      mount:          [ "target", "/root/.cargo" ]
