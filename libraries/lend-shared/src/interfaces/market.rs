@@ -1,7 +1,7 @@
 use fadroma::{
     admin, auth::Permit, cosmwasm_std, derive_contract::*, schemars, schemars::JsonSchema, Binary,
     ContractInstantiationInfo, ContractLink, Decimal256, HandleResponse, HumanAddr, InitResponse,
-    StdResult, Uint128,
+    StdResult, Uint128, Uint256,
 };
 
 use serde::{Deserialize, Serialize};
@@ -95,14 +95,14 @@ pub struct StateResponse {
     // Total amount of reserves of the underlying held in this market
     total_reserves: Decimal256,
     // Total number of tokens in circulation
-    total_supply: Decimal256,
+    total_supply: Uint256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct BorrowerInfoResponse {
     // Total balance (with accrued interest), after applying the most recent balance-changing action
-    principal: Decimal256,
+    principal: Uint256,
     // Global borrowIndex as of the most recent balance-changing action
     interest_index: Decimal256,
 }
@@ -110,8 +110,8 @@ pub struct BorrowerInfoResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct AccountSnapshotResponse {
-    sl_token_balance: Decimal256,
-    borrow_balance: Decimal256,
+    sl_token_balance: Uint128,
+    borrow_balance: Uint128,
     exchange_rate: Decimal256,
 }
 
