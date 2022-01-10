@@ -404,6 +404,13 @@ impl Context {
         self.deps.querier.decrement_balance(&self.lp_token.link.address, amount);
         self
     }
+    pub fn cannot_withdraw (&mut self, staked: u128, amount: u128) -> &mut Self {
+        self.test_handle(
+            Handle::Rewards(RewardsHandle::Withdraw { amount: amount.into() }),
+            errors::withdraw(staked.into(), amount.into())
+        );
+        self
+    }
     pub fn claims (&mut self, reward: u128) -> &mut Self {
         self.test_handle(
             Handle::Rewards(RewardsHandle::Claim {}),

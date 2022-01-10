@@ -15,7 +15,7 @@ use crate::test::{*, Context};
             // And  the user's initial volume is 0
             // And  the user's inital entry is 0
             // And  the user's initial bonding is max
-            .staked(0).volume(0).entry(0).bonding(bonding);
+            .staked(0).volume(0).entry(0).bonding(bonding).cannot_withdraw(0, 100);
 }
 
 #[test] fn test_0102_stake_volume () {
