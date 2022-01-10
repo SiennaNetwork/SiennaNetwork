@@ -1,4 +1,5 @@
 mod state;
+mod querier;
 
 use lend_shared::{
     fadroma::{
@@ -17,17 +18,18 @@ use lend_shared::{
             InitResponse, HandleResponse, HumanAddr,
             CosmosMsg, StdResult, WasmMsg, StdError,
             Extern, Storage, Api, Querier, Binary, 
-            to_binary, log
+            Uint128, to_binary, log
         },
         secret_toolkit::snip20
     },
     interfaces::{
         overseer::{OverseerPermissions, AccountLiquidity, Config, Market},
-        oracle::{HandleMsg as OracleHandleMsg, PriceAsset}
+        oracle::{HandleMsg as OracleHandleMsg, PriceAsset, query_price}
     }
 };
 
 use state::{Borrower, BorrowerId, Markets, Contracts, Constants};
+use querier::query_snapshot;
 
 #[contract_impl(
     path = "lend_shared::interfaces::overseer",
@@ -145,5 +147,46 @@ pub trait Overseer {
             close_factor,
             premium
         })
+    }
+}
+
+/// Determine what the account liquidity would be if the given amounts were redeemed/borrowed.
+fn calc_liquidity_decrease<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    borrower: Borrower,
+    target_asset: HumanAddr,
+    redeeem_amount: Uint128,
+    borrow_amount: Uint128
+) -> StdResult<(Uint256, Uint256)> {
+    let oracle = Contracts::load_oracle(deps)?;
+
+    let total_collateral = Uint256::zero();
+    let total_borrowed = Uint256::zero();
+
+    for market in borrower.list_markets(deps)? {
+        let snapshot = query_snapshot(&deps.querier, market.contract, borrower.clone().id())?;
+
+        let price = query_price(
+            &deps.querier,
+            oracle.clone(),
+            todo!(),
+            "USD".into(),
+            None
+        )?;
+
+        let conversion_factor = ((market.ltv_ratio * snapshot.exchange_rate)? * price.rate)?;
+        total_collateral = (Uint256::from(snapshot.sl_token_balance).decimal_mul(conversion_factor)? + total_collateral)?;
+        total_borrowed = (Uint256::from(snapshot.borrow_balance).decimal_mul(price.rate)? + total_borrowed)?;
+
+        if target_asset == market.contract.address {
+            total_borrowed = (Uint256::from(redeeem_amount).decimal_mul(conversion_factor)? + total_borrowed)?;
+            total_borrowed = (Uint256::from(borrow_amount).decimal_mul(price.rate)? + total_borrowed)?;
+        }
+    }
+
+    if total_collateral > total_borrowed {
+        Ok(((total_collateral - total_borrowed)?, Uint256::zero()))
+    } else {
+        Ok((Uint256::zero(), (total_borrowed - total_collateral)?))
     }
 }
