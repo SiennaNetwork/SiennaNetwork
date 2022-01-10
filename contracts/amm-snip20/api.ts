@@ -1,10 +1,10 @@
 import type { IAgent } from "@fadroma/scrt";
 import { randomHex } from "@fadroma/tools";
-import { SNIP20Contract } from "@fadroma/snip20";
+import { SNIP20Contract_1_2 } from "@fadroma/snip20";
 
 import { workspace } from "@sienna/settings";
 
-export class AMMSNIP20Contract extends SNIP20Contract {
+export class AMMSNIP20Contract extends SNIP20Contract_1_2 {
 
   code = { ...this.code, workspace, crate: "amm-snip20" };
 

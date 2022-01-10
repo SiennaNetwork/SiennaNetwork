@@ -1,5 +1,5 @@
 import type { IAgent } from "@fadroma/ops";
-import { ScrtContract, loadSchemas, ContractAPIOptions } from "@fadroma/scrt";
+import { ScrtContract_1_2, loadSchemas, ContractAPIOptions } from "@fadroma/scrt";
 import { randomHex } from "@fadroma/tools";
 
 import { b64encode } from "@waiting/base64";
@@ -32,7 +32,7 @@ export type FactoryOptions = ContractAPIOptions & {
   ROUTER?:    SwapRouterContract
 }
 
-export class FactoryContract extends ScrtContract {
+export class FactoryContract extends ScrtContract_1_2 {
 
   constructor(options: FactoryOptions = {}) {
     super({

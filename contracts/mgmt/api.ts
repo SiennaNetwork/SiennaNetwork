@@ -1,6 +1,6 @@
 import type { IAgent } from '@fadroma/ops'
 import type { SNIP20Contract } from '@fadroma/snip20'
-import { ScrtContract, loadSchemas } from "@fadroma/scrt"
+import { ScrtContract_1_2, loadSchemas } from "@fadroma/scrt"
 
 import { workspace } from '@sienna/settings'
 
@@ -13,7 +13,7 @@ export type MGMTOptions = {
   SIENNA?:   SNIP20Contract
 }
 
-export class MGMTContract extends ScrtContract {
+export class MGMTContract extends ScrtContract_1_2 {
 
   static schema = loadSchemas(import.meta.url, {
     initMsg:     "./schema/init.json",

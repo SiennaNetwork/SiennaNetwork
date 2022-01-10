@@ -1,6 +1,6 @@
 import type { IAgent } from "@fadroma/scrt";
 import { randomHex } from "@fadroma/tools";
-import { SNIP20Contract } from "@fadroma/snip20";
+import { SNIP20Contract_1_2 } from "@fadroma/snip20";
 import { workspace } from "@sienna/settings";
 
 export const defaultConfig = {
@@ -17,7 +17,7 @@ export type LPTokenOptions = {
   prefix?: string,
 }
 
-export class LPTokenContract extends SNIP20Contract {
+export class LPTokenContract extends SNIP20Contract_1_2 {
   code = { ...this.code, workspace, crate: "lp-token" }
 
   init = {

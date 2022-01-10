@@ -1,5 +1,5 @@
 import type { IAgent } from "@fadroma/scrt"
-import { ScrtContract } from "@fadroma/scrt"
+import { ScrtContract_1_2 } from "@fadroma/scrt"
 import { randomHex } from '@fadroma/tools'
 import { SNIP20Contract } from '@fadroma/snip20'
 
@@ -23,9 +23,9 @@ export type RewardsOptions = {
   bonding?:     number
 }
 
-export class RewardsContract extends ScrtContract {
+export class RewardsContract extends ScrtContract_1_2 {
 
-  static schema = ScrtContract.loadSchemas(
+  static schema = ScrtContract_1_2.loadSchemas(
     import.meta.url, {
       initMsg:     "./schema/init.json",
       queryMsg:    "./schema/query.json",

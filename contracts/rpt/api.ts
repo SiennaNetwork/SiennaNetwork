@@ -1,7 +1,8 @@
 import type { IAgent } from '@fadroma/ops'
-import type { SNIP20Contract } from '@fadroma/snip20'
-import { ScrtContract, loadSchemas } from "@fadroma/scrt"
+import type { SNIP20Contract_1_0 } from '@fadroma/snip20'
+import { ScrtContract_1_0, loadSchemas } from "@fadroma/scrt"
 
+import type { MGMTContract } from '@sienna/mgmt'
 import { workspace } from '@sienna/settings'
 
 import type { LinearMapFor_HumanAddrAnd_Uint128, Uint128 } from './rpt/init'
@@ -11,11 +12,11 @@ export type RPTOptions = {
   admin?:   IAgent
   config?:  LinearMapFor_HumanAddrAnd_Uint128
   portion?: Uint128
-  SIENNA?:  SNIP20Contract
+  SIENNA?:  SNIP20Contract_1_0
   MGMT?:    MGMTContract
 }
 
-export class RPTContract extends ScrtContract {
+export class RPTContract extends ScrtContract_1_0 {
 
   static schema = loadSchemas(import.meta.url, {
     initMsg:     "./schema/init.json",

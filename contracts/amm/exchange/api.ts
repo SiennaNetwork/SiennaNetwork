@@ -1,4 +1,4 @@
-import { ScrtContract, loadSchemas, Agent, ContractAPIOptions } from "@fadroma/scrt"
+import { ScrtContract_1_2, loadSchemas, Agent, ContractAPIOptions } from "@fadroma/scrt"
 import { randomHex } from '@fadroma/tools'
 import { workspace } from '@sienna/settings'
 
@@ -18,7 +18,7 @@ export type AMMContractOptions = {
   decimals?: number,
 }
 
-export class AMMContract extends ScrtContract {
+export class AMMContract extends ScrtContract_1_2 {
 
   constructor (options: AMMContractOptions = {}) {
     super({ agent: options?.admin, schema })
