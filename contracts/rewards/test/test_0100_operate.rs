@@ -15,7 +15,7 @@ use crate::test::{*, Context};
             // And  the user's initial volume is 0
             // And  the user's inital entry is 0
             // And  the user's initial bonding is max
-            .staked(0).volume(0).entry(0).bonding(bonding);
+            .staked(0).volume(0).entry(0).bonding(bonding).cannot_withdraw(0, 100);
 }
 
 #[test] fn test_0102_stake_volume () {
@@ -311,7 +311,9 @@ use crate::test::{*, Context};
         //  When a provider claims their rewards less often
         //  Then they receive equivalent rewards as long as the liquidity deposited hasn't changed
         .admin().epoch(2, reward).epoch(3, reward)
-        .user("Alice").claims(reward*2).must_wait(bonding);
+        .user("Alice").claims(reward*2).must_wait(bonding)
+        .admin().epoch(4, 0)
+        .user("Alice").pool_empty();
 }
 
 #[test] fn test_0108_sequential () {
@@ -390,7 +392,7 @@ use crate::test::{*, Context};
     context.init().later()
         .user("Alice").set_vk("")
             .deposits(stake).earned(0)
-        .admin(      )
+        .admin()
             .epoch(1, reward)
         .user("Alice")
             .earned(reward).claims(reward).earned(0).staked(stake).withdraws(stake);
@@ -400,8 +402,12 @@ use crate::test::{*, Context};
     let mut context  = Context::new("0114_close");
     let stake1: u128 = context.rng.gen_range(1..100000);
     let stake2: u128 = context.rng.gen_range(1..100000);
+    let reward: u128 = context.rng.gen_range(1..100000);
     let return_funds = context.lp_token.transfer(
         &HumanAddr::from("Alice"), (stake1+stake2).into()
+    ).unwrap();
+    let claim_rewards = context.reward_token.transfer(
+        &HumanAddr::from("Alice"), reward.into()
     ).unwrap();
     // Given a pool with some activity
     // When someone unauthorized tries to close the pool
@@ -415,18 +421,20 @@ use crate::test::{*, Context};
         .later().badman().cannot_close_pool()
 
         // When the admin closes the pool
-        .later().admin().closes_pool();
+        .later().admin().epoch(1, reward).closes_pool();
 
     // Then the pool is closed
     let (ref when, ref why) = context.closed.clone().unwrap();
 
     // And every user transaction returns all LP tokens to the user
+    // And transfers any claimable rewards to the user
     context.later().user("Alice")
         .branch("then_lock", |mut context|{
             context.test_handle(
                 Handle::Rewards(RewardsHandle::Deposit { amount: 100u128.into() }),
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
+                    .msg(claim_rewards.clone()).unwrap()
                     .log("close_time",   &format!("{}", when)).unwrap()
                     .log("close_reason", why));
         })
@@ -435,6 +443,7 @@ use crate::test::{*, Context};
                 Handle::Rewards(RewardsHandle::Withdraw { amount: 100u128.into() }),
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
+                    .msg(claim_rewards.clone()).unwrap()
                     .log("close_time",   &format!("{}", when)).unwrap()
                     .log("close_reason", why));
         })
@@ -443,7 +452,39 @@ use crate::test::{*, Context};
                 Handle::Rewards(RewardsHandle::Claim {}),
                 HandleResponse::default()
                     .msg(return_funds.clone()).unwrap()
+                    .msg(claim_rewards.clone()).unwrap()
                     .log("close_time",   &format!("{}", when)).unwrap()
                     .log("close_reason", why));
         });
+}
+
+#[test] fn test_0120_no_time_travel () {
+
+    let mut context = Context::new("0120_no_time_travel");
+    let stake = context.rng.gen_range(1..100);
+
+    // Given a contract
+    context
+        .admin().init()
+        // When a user stakes
+        .later().user("Alice").set_vk("").deposits(stake);
+
+    // And a user queries info for a moment back in time
+    let at = context.env.block.time - 1;
+    context
+        // Then they can't query pool info
+        .test_query(
+            Query::Rewards(RewardsQuery::PoolInfo { at }),
+            errors::no_time_travel(2)
+        )
+        // And they can't query user info
+        .test_query(
+            Query::Rewards(RewardsQuery::UserInfo {
+                at,
+                address: HumanAddr::from("Alice"),
+                key:     String::from("")
+            }),
+            errors::no_time_travel(2)
+        );
+
 }

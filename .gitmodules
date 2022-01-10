@@ -1,31 +1,21 @@
-[submodule "snip20"] # generic snip20 token
-  update = rebase
-  path   = contracts/snip20
-  url    = https://github.com/hackbg/snip20-reference-impl
-  branch = 21.04
-[submodule "snip20-sienna"] # token with deposit/redeem disabled for SIENNA TGE
-  update = rebase
-  path   = contracts/snip20-sienna
-  url    = git@github.com:hackbg/snip20-reference-impl.git
-  branch = 21.04+nodeposit+noredeem
 [submodule "kukumba"] # BDD test helper
   update = rebase
   path   = libraries/kukumba
-  url    = git@github.com:hackbg/kukumba.git
+  url    = git@git.sienna.network:siennanetwork/kukumba.git
   branch = 21.04
 [submodule "libraries/fadroma-next"]
-  path = libraries/fadroma-next
-  url = git@github.com:hackbg/fadroma.git
+  path   = libraries/fadroma-next
+  url    = git@git.sienna.network:siennanetwork/fadroma.git
   branch = 21.12
 [submodule "frontends/amm-types"]
-  path = frontends/amm-types
-  url = git@github.com:siennanetwork/amm-types.git
+  path   = frontends/amm-types
+  url    = git@git.sienna.network:siennanetwork/amm-types.git
 [submodule "frontends/claim"]
-  path = frontends/claim
-  url = git@github.com:siennanetwork/claim.git
+  path   = frontends/claim
+  url    = git@git.sienna.network:siennanetwork/claim.git
 [submodule "frontends/reward-pools-monitor"]
-  path = frontends/reward-pools-monitor
-  url = git@github.com:siennanetwork/reward-pools-monitor.git
+  path   = frontends/reward-pools-monitor
+  url    = git@git.sienna.network:siennanetwork/reward-pools-monitor.git
 [submodule "frontends/vest"]
-  path = frontends/vest
-  url = git@github.com:siennanetwork/vest.git
+  path   = frontends/vest
+  url    = git@git.sienna.network:siennanetwork/vest.git

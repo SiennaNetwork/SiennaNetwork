@@ -1,61 +1,72 @@
 use fadroma::*;
 use crate::*;
 
+/// When trying to set the epoch to something other than the next
 pub fn invalid_epoch_number <T> (epoch: Moment, next_epoch: Moment) -> StdResult<T> {
-    Err(StdError::generic_err(format!(
+    let msg = format!(
         "The current epoch is {}. The 'next_epoch' field must be set to {} instead of {}.",
-        epoch,
-        epoch + 1,
-        next_epoch
-    )))
+        epoch, epoch + 1, next_epoch
+    );
+    Err(StdError::generic_err(msg))
 }
 
-pub fn no_time_travel <T> () -> StdResult<T> {
-    Err(StdError::generic_err("This service does not store history nor permit time travel."))
+/// When querying for a moment before the last update,
+/// or when an accumulator has somehow decreased
+pub fn no_time_travel <T> (code: u64) -> StdResult<T> {
+    let msg = format!(
+        "This service does not store history nor permit time travel. ({})", code
+    );
+    Err(StdError::generic_err(msg))
 }
 
+/// Returned if pool is not closed when draining
+pub fn pool_not_closed <T> () -> StdResult<T> {
+    Err(StdError::generic_err("The pool must be permanently closed before performing this operation."))
+}
+
+/// User must have enough staked to retrieve
 pub fn withdraw <T> (staked: Amount, withdrawn: Amount) -> StdResult<T> {
-    // User must have enough staked to retrieve
-    Err(StdError::generic_err(format!(
-        "not enough staked ({} < {})", staked, withdrawn
-    )))
+    Err(StdError::generic_err(format!("not enough staked ({} < {})", staked, withdrawn)))
 }
 
+/// If pool does not have enough lp tokens then something has gone badly wrong
 pub fn withdraw_fatal <T> (staked: Amount, withdrawn: Amount) -> StdResult<T> {
-    // If pool does not have enough lp tokens then something has gone badly wrong
-    Err(StdError::generic_err(format!(
-        "FATAL: not enough tokens in pool ({} < {})", staked, withdrawn
-    )))
+    Err(StdError::generic_err(format!("FATAL: not enough tokens in pool ({} < {})", staked, withdrawn)))
 }
 
+/// If user calls claim before their bonding period is over
 pub fn claim_bonding <T> (bonding: Duration) -> StdResult<T> {
-    Err(StdError::generic_err(format!(
+    let msg = format!(
         "Stake tokens for {} more seconds to be eligible for rewards.",
         bonding
-    )))
+    );
+    Err(StdError::generic_err(msg))
 }
 
+/// When pool doesn't get funding
 pub fn claim_pool_empty <T> () -> StdResult<T> {
-    Err(StdError::generic_err(
-        "This pool is currently empty. \
-        However, liquidity shares continue to accumulate."
-    ))
+    let msg = StdError::generic_err(
+        "This pool is currently empty. However, liquidity shares continue to accumulate."
+    );
+    Err(msg)
 }
 
+/// Unreachable?
 pub fn claim_zero_claimable <T> () -> StdResult<T> {
-    Err(StdError::generic_err(
-        "You have already claimed your exact share of the rewards."
-    ))
+    Err(StdError::generic_err("You have already claimed your exact share of the rewards."))
 }
 
+/// When a user tries to call EmigrationHandle::ExportState directly
 pub fn export_state_miscalled <T> () -> StdResult<T> {
     Err(StdError::generic_err("This handler must be called internally."))
 }
 
+/// When a user tries to migrate into a contract that is not whitelisted
 pub fn immigration_disallowed <T> () -> StdResult<T> {
     Err(StdError::generic_err("Migration to this contract is not enabled."))
 }
 
+/// When a user tries to migrate from a contract that is not whitelisted
 pub fn emigration_disallowed <T> () -> StdResult<T> {
     Err(StdError::generic_err("Migration from this contract is not enabled."))
 }

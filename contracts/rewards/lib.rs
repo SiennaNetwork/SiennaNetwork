@@ -152,15 +152,15 @@ pub enum Response {
             fn token_info (&self) -> StdResult<Response> {
                 let info = RewardsConfig::lp_token(self)?.query_token_info(self.querier())?;
                 Ok(Response::TokenInfo {
-                    name:         format!("Sienna Rewards: {}", info.name),
-                    symbol:       "SRW".into(),
-                    decimals:     1,
-                    total_supply: None
+                    name:         format!("Staked {}",   info.name),
+                    symbol:       format!("{} (staked)", info.symbol),
+                    decimals:     info.decimals,
+                    total_supply: info.total_supply
                 })
             }
             fn balance (&self, address: HumanAddr, key: ViewingKey) -> StdResult<Response> {
-                let id = self.canonize(address)?;
-                Auth::check_vk(self, &key, id.as_slice())?;
+                Auth::check_vk(self, &address, &key)?;
+                let id     = self.canonize(address)?;
                 let amount = self.get_ns(crate::algo::Account::STAKED, id.as_slice())?;
                 Ok(Response::Balance { amount: amount.unwrap_or(Amount::zero()) })
             }
@@ -175,13 +175,9 @@ pub enum Response {
             ) -> StdResult<HandleResponse> {
                 let mut account = Account::from_addr(self, &migrant, env.block.time)?;
                 let staked      = account.staked;
-                let id          = self.canonize(migrant.clone())?;
 
-                let snapshot = to_binary(&((
-                    migrant,
-                    Auth::load_vk(self, id.as_slice())?.map(|vk|vk.0),
-                    staked
-                ) as AccountSnapshot))?;
+                let vk = Auth::load_vk(self, &migrant)?.map(|vk|vk.0);
+                let snapshot = to_binary(&((migrant, vk, staked) as AccountSnapshot))?;
 
                 let mut response = HandleResponse::default();
 
@@ -213,14 +209,14 @@ pub enum Response {
             fn handle_receive_migration (&mut self, env: Env, data: Binary) ->
                 StdResult<HandleResponse>
             {
+                // Parse the account snapshot passed by the caller
                 let (migrant, vk, staked): AccountSnapshot = from_slice(&data.as_slice())?;
-                let id = self.canonize(migrant.clone())?;
+
                 // Set the migrant's viewing key
                 if let Some(vk) = vk {
-                    // for some reason it does not see Auth as implemented
-                    //Auth::save_vk(&mut core, id.as_slice(), &vk)?;
-                    self.set_ns(crate::auth::VIEWING_KEYS, id.as_slice(), &vk)?;
+                    Auth::save_vk(self, &migrant, &vk.into())?;
                 }
+
                 // Add the LP tokens transferred by the migration
                 // to the migrant's new account
                 Account::from_addr(self, &migrant, env.block.time)?

@@ -1,4 +1,5 @@
 use crate::test::{*, Context};
+use crate::drain::WAIT_PERIOD;
 
 #[test] fn test_0001_init () {
 
@@ -59,6 +60,11 @@ use crate::test::{*, Context};
         // When calling with reward token info
         // Then the viewing key changes
         .branch("auth_ok", |mut context| {
-            context.admin().drains_pool("key");
+            context.admin()
+                .cannot_drain("key")
+                .closes_pool()
+                .cannot_drain("key")
+                .after(WAIT_PERIOD)
+                .drains_pool("key");
         });
 }

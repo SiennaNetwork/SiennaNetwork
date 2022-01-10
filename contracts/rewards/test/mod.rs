@@ -8,7 +8,6 @@
 
 mod test_0000_setup;
 mod test_0100_operate;
-mod test_0200_auth;
 mod test_0300_migrate;
 
 use prettytable::{Table, /*Row, Cell,*/ format};
@@ -199,6 +198,16 @@ impl Context {
         self
     }
 
+    pub fn test_query (&mut self, msg: Query, expected: StdResult<Response>)
+        -> &mut Self
+    {
+        assert_eq!(
+            Contract::query(&mut self.deps, msg),
+            expected
+        );
+        self
+    }
+
     // Contract-specific implementation below
 
     pub fn epoch_must_increment (&mut self, current_epoch: Moment, next_epoch: Moment)
@@ -256,9 +265,9 @@ impl Context {
         assert_eq!(
             Contract::query(&self.deps, Query::TokenInfo {}),
             Ok(Response::TokenInfo {
-                name:         format!("Sienna Rewards: FOO"),
-                symbol:       "SRW".into(),
-                decimals:     1,
+                name:         format!("Staked FooToken"),
+                symbol:       "FOO (staked)".into(),
+                decimals:     0,
                 total_supply: None
             })
         );
@@ -330,12 +339,26 @@ impl Context {
         ); self
     }
     pub fn drains_pool (&mut self, key: &str) -> &mut Self {
-        assert!(
+        assert_eq!(
             Contract::handle(&mut self.deps, self.env.clone(), Handle::Drain {
                 snip20:    self.reward_token.link.clone(),
                 key:       key.into(),
                 recipient: None
-            }).is_ok()
+            }),
+            Ok(HandleResponse {
+                messages: vec![
+                    self.reward_token.increase_allowance(
+                        &self.initiator,
+                        Uint128(u128::MAX),
+                        Some(self.env.block.time + DAY * 10000)
+                    ).unwrap(),
+                    self.reward_token.set_viewing_key(
+                        key.into()
+                    ).unwrap()
+                ],
+                log:      vec![],
+                data:     None
+            })
         );
         let vk: Option<ViewingKey> = self.deps.get(crate::algo::RewardsConfig::REWARD_VK).unwrap();
         assert_eq!(vk.unwrap().0, String::from(key));
@@ -381,6 +404,13 @@ impl Context {
         self.deps.querier.decrement_balance(&self.lp_token.link.address, amount);
         self
     }
+    pub fn cannot_withdraw (&mut self, staked: u128, amount: u128) -> &mut Self {
+        self.test_handle(
+            Handle::Rewards(RewardsHandle::Withdraw { amount: amount.into() }),
+            errors::withdraw(staked.into(), amount.into())
+        );
+        self
+    }
     pub fn claims (&mut self, reward: u128) -> &mut Self {
         self.test_handle(
             Handle::Rewards(RewardsHandle::Claim {}),
@@ -420,6 +450,12 @@ impl Context {
             errors::claim_bonding(remaining)
         )
     }
+    pub fn pool_empty (&mut self) -> &mut Self {
+        self.test_handle(
+            Handle::Rewards(RewardsHandle::Claim {}),
+            errors::claim_pool_empty()
+        )
+    }
     pub fn enable_migration_to (&mut self, contract: &ContractLink<HumanAddr>) -> &mut Self {
         self.test_handle(
             Handle::Emigration(EmigrationHandle::EnableMigrationTo(contract.clone())),
@@ -457,9 +493,8 @@ impl Context {
 
         let migrant = self.initiator.clone();
 
-        let id = self.deps.canonize(migrant.clone()).unwrap();
-
         // 1. User calls RequestMigration on NEW.
+        self.table.add_row(row!["Migration step 1","","",""]);
         let export = Handle::Emigration(EmigrationHandle::ExportState(migrant.clone()));
         self.test_handle(
             Handle::Immigration(ImmigrationHandle::RequestMigration(last_version.link.clone())),
@@ -472,6 +507,7 @@ impl Context {
         );
 
         // 2. NEW calls ExportState(migrant) on OLD.
+        last_version.table.add_row(row!["Migration step 2","","",""]);
         let mut export_result = HandleResponse::default().msg(
             self.lp_token.transfer(
                 &self.link.address.clone(),
@@ -490,7 +526,7 @@ impl Context {
         let receive_vk_snapshot = Handle::Immigration(ImmigrationHandle::ReceiveMigration(
             to_binary(&((
                 migrant.clone(),
-                Auth::load_vk(&last_version.deps, id.as_slice()).unwrap().map(|vk|vk.0),
+                Auth::load_vk(&last_version.deps, &migrant).unwrap().map(|vk|vk.0),
                 expected_stake.into()
             ) as AccountSnapshot)).unwrap()
         ));
@@ -511,7 +547,13 @@ impl Context {
         );
 
         // 3. OLD calls ReceiveMigration on NEW
-        self.test_handle(
+        self.table.add_row(row!["Migration step 3","","",""]);
+        let mut env = self.env.clone();
+        env.message.sender = last_version.link.address.clone();
+        test_handle(
+            &mut self.table,
+            &mut self.deps,
+            &env,
             receive_vk_snapshot,
             HandleResponse::default().log("migrated", &expected_stake.to_string())
         );
@@ -778,8 +820,8 @@ impl RewardsMockQuerier {
             },
             Snip20Query::TokenInfo { .. } => {
                 Snip20Response::TokenInfo {
-                    name:         "FOO".into(),
-                    symbol:       "".into(), // unused
+                    name:         "FooToken".into(),
+                    symbol:       "FOO".into(), // unused
                     decimals:     0,         // unused
                     total_supply: None       // unused
                 }

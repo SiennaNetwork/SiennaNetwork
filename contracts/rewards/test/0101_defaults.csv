@@ -3,3 +3,8 @@ Time,Sender,Recipient,Data
 14,0101_defaults_addr,Alice,account.volume               = 0
 14,0101_defaults_addr,Alice,account.starting_pool_volume = 0
 14,0101_defaults_addr,Alice,account.bonding              = 197
+,,,
+14,Alice,0101_defaults_addr,"rewards:
+  withdraw:
+    amount: ""100"""
+=>,err,Generic error: not enough staked (0 < 100),

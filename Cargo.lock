@@ -1866,7 +1866,7 @@ dependencies = [
 
 [[package]]
 name = "sienna-rewards"
-version = "3.0.0-pre"
+version = "3.0.0"
 dependencies = [
  "backtrace",
  "color-backtrace",

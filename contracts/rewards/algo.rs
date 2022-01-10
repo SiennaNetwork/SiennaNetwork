@@ -43,19 +43,21 @@ pub trait IRewardsConfig <S, A, Q, C> where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
     /// Commit initial contract configuration to storage.
-    fn initialize   (&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>>;
+    fn initialize    (&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>>;
     /// Commit contract configuration to storage.
-    fn store        (&self, core: &mut C) -> StdResult<Vec<CosmosMsg>>;
+    fn store         (&self, core: &mut C) -> StdResult<Vec<CosmosMsg>>;
     /// Get this contract's address (used in queries where Env is unavailable).
-    fn self_link    (core: &C) -> StdResult<ContractLink<HumanAddr>>;
+    fn self_link     (core: &C) -> StdResult<ContractLink<HumanAddr>>;
     /// Get an interface to the LP token.
-    fn lp_token     (core: &C) -> StdResult<ISnip20>;
+    fn lp_token      (core: &C) -> StdResult<ISnip20>;
     /// Get an interface to the reward token.
-    fn reward_token (core: &C) -> StdResult<ISnip20>;
+    fn reward_token  (core: &C) -> StdResult<ISnip20>;
     /// Get the reward viewing key.
-    fn reward_vk    (core: &C) -> StdResult<String>;
+    fn reward_vk     (core: &C) -> StdResult<String>;
     /// Get the address authorized to increment the epoch
-    fn timekeeper   (core: &C) -> StdResult<HumanAddr>;
+    fn timekeeper    (core: &C) -> StdResult<HumanAddr>;
+    /// Get the address authorized to increment the epoch
+    fn assert_closed (core: &C, env: &Env) -> StdResult<Duration>;
 }
 impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
@@ -127,6 +129,17 @@ impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
     fn timekeeper (core: &C) -> StdResult<HumanAddr> {
         Ok(core.humanize(core.get::<CanonicalAddr>(Self::TIMEKEEPER)?
             .ok_or(StdError::generic_err("no timekeeper address"))?)?)
+    }
+    fn assert_closed (core: &C, env: &Env) -> StdResult<Duration> {
+        if let Some((closed, _)) = core.get::<CloseSeal>(RewardsConfig::CLOSED)? {
+            if closed <= env.block.time {
+                Ok(env.block.time - closed)
+            } else {
+                errors::no_time_travel(1)
+            }
+        } else {
+            errors::pool_not_closed()
+        }
     }
 }
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -209,16 +222,14 @@ pub trait IRewardsResponse<S, A, Q, C>: Sized where
 impl<S, A, Q, C> IRewardsResponse<S, A, Q, C> for RewardsResponse where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
-    /// Report pool status and optionally account status, at a given time
+    /// For a moment in time, report the status of an account, with embedded pool and clock status
     fn user_info (core: &C, time: Moment, address: HumanAddr, key: String) -> StdResult<Self> {
-        let id = core.canonize(address.clone())?;
-        Auth::check_vk(core, &ViewingKey(key), id.as_slice())?;
+        Auth::check_vk(core, &address, &key.into())?;
         Ok(RewardsResponse::UserInfo(Account::from_addr(core, &address, time)?))
     }
+    /// For a moment in time, report pool status, with embedded clock status
     fn pool_info (core: &C, time: Moment) -> StdResult<RewardsResponse> {
-        let clock = Clock::get(core, time)?;
-        let total = Total::get(core, clock)?;
-        Ok(RewardsResponse::PoolInfo(total))
+        Ok(RewardsResponse::PoolInfo(Total::from_time(core, time)?))
     }
 }
 /// Reward epoch state. Epoch is incremented after each RPT vesting.
@@ -318,7 +329,9 @@ pub struct Total {
 pub trait ITotal <S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
-    /// Load and compute the up-to-date totals for a given clock value
+    /// Load and compute the up-to-date totals for a given moment in time
+    fn from_time (core: &C, time: Moment) -> StdResult<Self>;
+    /// Load and compute the up-to-date totals for a given `Clock` struct
     fn get (core: &C, clock: Clock) -> StdResult<Self>;
     /// Store values that updated due to the passing of time
     fn commit_elapsed (&self, core: &mut C) -> StdResult<()>;
@@ -334,12 +347,15 @@ impl Total {
 impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
+    fn from_time (core: &C, time: Moment) -> StdResult<Self> {
+        Self::get(core, Clock::get(core, time)?)
+    }
     fn get (core: &C, clock: Clock) -> StdResult<Self> {
         let mut total = Self::default();
         // # 1. Timestamps
         total.clock = clock;
         total.updated = core.get(Total::UPDATED)?.unwrap_or(total.clock.now);
-        if total.clock.now < total.updated { return errors::no_time_travel() }
+        if total.clock.now < total.updated { return errors::no_time_travel(2) }
         // # 2. Liquidity
         // When users lock tokens in the pool, liquidity accumulates.
         // Pool liquidity is internally represented by two variables:
@@ -388,7 +404,7 @@ impl<S, A, Q, C> ITotal<S, A, Q, C> for Total where
         // * Bonding period: user must wait this much before each claim.
         // * Closing the pool stops its time and makes it
         //   return all funds upon any user action.
-        total.bonding     = core.get(RewardsConfig::BONDING)?.unwrap_or(0u64);
+        total.bonding     = core.get(RewardsConfig::BONDING)?.unwrap_or(DAY);
         total.closed      = core.get(RewardsConfig::CLOSED)?;
         Ok(total)
     }
@@ -489,7 +505,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         Self::from_addr(core, &env.message.sender, env.block.time)
     }
     fn from_addr (core: &C, address: &HumanAddr, time: Moment) -> StdResult<Self> {
-        Self::get(core, Total::get(core, Clock::get(core, time)?)?, address)
+        Self::get(core, Total::from_time(core, time)?, address)
     }
     fn get (core: &C, total: Total, address: &HumanAddr) -> StdResult<Self> {
         let id         = core.canonize(address.clone())?;
@@ -508,7 +524,7 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         //    The following points and durations in time are stored for each user:
         //    * `updated` is the time of last update (deposit, withdraw or claim by this user)
         account.updated = get_time(Self::UPDATED, total.clock.now)?;
-        if total.clock.now < account.updated { return errors::no_time_travel() }
+        if total.clock.now < account.updated { return errors::no_time_travel(3) }
         // 2. Liquidity and liquidity share
         //    * `staked` is the number of LP tokens staked by this user in this pool.
         //    * The user's **momentary share** is defined as `staked / total.staked`.
@@ -523,13 +539,13 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
         account.elapsed    = total.clock.now - account.updated;
         account.volume     = accumulate(last_volume, account.elapsed, account.staked)?;
         account.starting_pool_volume = get_volume(Self::ENTRY_VOL, total.clock.volume)?;
-        if account.starting_pool_volume > total.volume { return errors::no_time_travel() }
+        if account.starting_pool_volume > total.volume { return errors::no_time_travel(4) }
         account.accumulated_pool_volume = (total.volume - account.starting_pool_volume)?;
         // 3. Rewards claimable
         //    The `earned` rewards are a portion of the rewards unlocked since the epoch
         //    in which the user entered the pool.
         account.starting_pool_rewards = get_amount(Self::ENTRY_REW, total.unlocked)?;
-        if account.starting_pool_rewards > total.unlocked { return errors::no_time_travel() }
+        if account.starting_pool_rewards > total.unlocked { return errors::no_time_travel(5) }
         account.accumulated_pool_rewards = (total.unlocked - account.starting_pool_rewards)?;
         account.reward_share = (account.volume, account.accumulated_pool_volume);
         account.earned = if account.reward_share.1 == Volume::zero() {
@@ -643,12 +659,13 @@ impl<S, A, Q, C> IAccount<S, A, Q, C> for Account where
     fn force_exit (&mut self, core: &mut C, when: Moment, why: String)
         -> StdResult<HandleResponse>
     {
-        let amount = self.staked;
         let response = HandleResponse::default()
-            .msg(RewardsConfig::lp_token(core)?.transfer(&self.address, amount)?)?
+            .msg(RewardsConfig::lp_token(core)?.transfer(&self.address, self.staked)?)?
+            .msg(RewardsConfig::reward_token(core)?.transfer(&self.address, self.earned)?)?
             .log("close_time",   &format!("{}", when))?
             .log("close_reason", &format!("{}", why))?;
-        self.commit_withdrawal(core, amount)?;
+        self.commit_withdrawal(core, self.staked)?;
+        self.commit_claim(core)?;
         Ok(response)
     }
     fn commit_elapsed (&mut self, core: &mut C) -> StdResult<()> {

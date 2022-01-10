@@ -1,0 +1,10 @@
+Time,Sender,Recipient,Data
+,,,
+4,Alice,0120_no_time_travel_addr,"rewards:
+  deposit:
+    amount: ""43"""
+tx,0120_no_time_travel_addr,LP_TOKEN,"transfer_from:
+  amount: ""43""
+  owner: Alice
+  padding: ~
+  recipient: 0120_no_time_travel_addr"
