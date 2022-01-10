@@ -27,6 +27,7 @@ members = [
   "contracts/lend/interest_model",
   "contracts/lend/oracle",
   "contracts/lend/overseer",
+  "contracts/lend/market",
 
   # Framework
   "libraries/fadroma-next/crates/*",
