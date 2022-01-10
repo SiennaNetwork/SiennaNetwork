@@ -311,7 +311,9 @@ use crate::test::{*, Context};
         //  When a provider claims their rewards less often
         //  Then they receive equivalent rewards as long as the liquidity deposited hasn't changed
         .admin().epoch(2, reward).epoch(3, reward)
-        .user("Alice").claims(reward*2).must_wait(bonding);
+        .user("Alice").claims(reward*2).must_wait(bonding)
+        .admin().epoch(4, 0)
+        .user("Alice").pool_empty();
 }
 
 #[test] fn test_0108_sequential () {

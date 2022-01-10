@@ -450,6 +450,12 @@ impl Context {
             errors::claim_bonding(remaining)
         )
     }
+    pub fn pool_empty (&mut self) -> &mut Self {
+        self.test_handle(
+            Handle::Rewards(RewardsHandle::Claim {}),
+            errors::claim_pool_empty()
+        )
+    }
     pub fn enable_migration_to (&mut self, contract: &ContractLink<HumanAddr>) -> &mut Self {
         self.test_handle(
             Handle::Emigration(EmigrationHandle::EnableMigrationTo(contract.clone())),
