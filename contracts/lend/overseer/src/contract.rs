@@ -27,7 +27,7 @@ use lend_shared::{
     }
 };
 
-use state::{BorrowerId, Markets, Contracts};
+use state::{Borrower, BorrowerId, Markets, Contracts, Constants};
 
 #[contract_impl(
     path = "lend_shared::interfaces::overseer",
@@ -42,6 +42,17 @@ pub trait Overseer {
         premium: Decimal256
     ) -> StdResult<InitResponse> {
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
+
+        Constants {
+            close_factor,
+            premium
+        }.save(&mut deps.storage)?;
+
+        let self_ref = ContractLink {
+            address: env.contract.address.clone(),
+            code_hash: env.contract_code_hash.clone()
+        };
+        Contracts::save_self_ref(deps, &self_ref)?;
 
         admin::DefaultImpl.new(admin, deps, env)
     }
@@ -76,7 +87,18 @@ pub trait Overseer {
 
     #[handle]
     fn enter(markets: Vec<HumanAddr>) -> StdResult<HandleResponse> {
-        unimplemented!()
+        let borrower = Borrower::new(deps, &env.message.sender)?;
+
+        for market in markets {
+            let id = Markets::get_id(deps, &market)?;
+            borrower.add_market(&mut deps.storage, id)?;
+        }
+
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![ log("action", "enter") ],
+            data: None
+        })
     }
 
     #[handle]
@@ -87,8 +109,17 @@ pub trait Overseer {
     #[query("entered_markets")]
     fn entered_markets(
         permit: Permit<OverseerPermissions>
-    ) -> StdResult<Vec<ContractLink<HumanAddr>>> {
-        unimplemented!()
+    ) -> StdResult<Vec<Market<HumanAddr>>> {
+        let self_ref = Contracts::load_self_ref(deps)?;
+        let borrower = permit.validate_with_permissions(
+            deps,
+            self_ref.address,
+            vec![ OverseerPermissions::Account ]
+        )?;
+
+        let borrower = Borrower::new(deps, &borrower)?;
+
+        borrower.list_markets(deps)
     }
 
     #[query("borrow_factor")]
@@ -105,6 +136,14 @@ pub trait Overseer {
 
     #[query("config")]
     fn config() -> StdResult<Config> {
-        unimplemented!()
+        let Constants {
+            close_factor,
+            premium
+        } = Constants::load(&deps.storage)?;
+
+        Ok(Config {
+            close_factor,
+            premium
+        })
     }
 }

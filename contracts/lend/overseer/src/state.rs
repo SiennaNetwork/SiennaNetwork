@@ -10,7 +10,7 @@ use lend_shared::{
         cosmwasm_std::{
             HumanAddr, CanonicalAddr, Extern,
             StdResult, Api, Storage, Querier,
-            StdError, Binary
+            StdError, Binary, Order
         },
         cosmwasm_storage::{Bucket, ReadonlyBucket},
         crypto::sha_256,
@@ -45,10 +45,12 @@ pub struct BorrowerId([u8; 32]);
 impl Constants {
     const KEY: &'static [u8] = b"constants";
 
+    #[inline]
     pub fn load(storage: &impl Storage) -> StdResult<Self> {
         Ok(load(storage, Self::KEY)?.unwrap())
     }
 
+    #[inline]
     pub fn save(
         &self,
         storage: &mut impl Storage
@@ -59,6 +61,7 @@ impl Constants {
 
 impl Contracts {
     impl_contract_storage!(save_oracle, load_oracle, b"oracle");
+    impl_contract_storage!(save_self_ref, load_self_ref, b"self");
 }
 
 impl Markets {
@@ -89,29 +92,45 @@ impl Markets {
         )
     }
 
-    pub fn get_info<S: Storage, A: Api, Q: Querier>(
+    pub fn get_by_addr<S: Storage, A: Api, Q: Querier>(
         deps: &Extern<S, A, Q>,
         market: &HumanAddr
-    ) -> StdResult<ContractLink<HumanAddr>> {
+    ) -> StdResult<Market<HumanAddr>> {
+        let result = Self::load(
+            &deps.storage,
+            Self::get_id(deps, market)?
+        )?.unwrap();
+
+        result.humanize(&deps.api)
+    }
+
+    pub fn get_by_id<S: Storage, A: Api, Q: Querier>(
+        deps: &Extern<S, A, Q>,
+        id: u64
+    ) -> StdResult<Option<Market<HumanAddr>>> {
+        let result = Self::load(&deps.storage, id)?;
+
+        match result {
+            Some(market) => Ok(Some(market.humanize(&deps.api)?)),
+            None => Ok(None)
+        }
+    }
+
+    pub fn get_id<S: Storage, A: Api, Q: Querier>(
+        deps: &Extern<S, A, Q>,
+        market: &HumanAddr
+    ) -> StdResult<u64> {
         let market = market.canonize(&deps.api)?;
-        let index: Option<u64> = ns_load(
+
+        let result: Option<u64> = ns_load(
             &deps.storage,
             Self::NS,
             market.as_slice()
         )?;
 
-        match index {
-            Some(index) => {
-                let result: ContractLink<CanonicalAddr> =
-                    IterableStorage::new(Self::NS)
-                    .get_at(&deps.storage, index)?
-                    .unwrap();
-                
-                result.humanize(&deps.api)
-            },
-            None => Err(StdError::generic_err(
-                "Token is not registered as collateral.",
-            ))
+        match result {
+            Some(id) => Ok(id),
+            None => Err(StdError::generic_err("Market is not listed."))
         }
     }
 
@@ -122,27 +141,15 @@ impl Markets {
     ) -> StdResult<()>
         where F: FnOnce(Market<CanonicalAddr>) -> StdResult<Market<CanonicalAddr>>
     {
-        let market = market.canonize(&deps.api)?;
-        let index: Option<u64> = ns_load(
-            &deps.storage,
-            Self::NS,
-            market.as_slice()
-        )?;
+        let id = Self::get_id(deps, market)?;
 
-        match index {
-            Some(index) => {
-                IterableStorage::new(Self::NS)
-                    .update_at(&mut deps.storage, index, update)?;
-                
-                Ok(())
-            },
-            None => Err(StdError::generic_err(
-                "Token is not registered as collateral.",
-            ))
-        }
+        IterableStorage::new(Self::NS)
+            .update_at(&mut deps.storage, id, update)?;
+    
+        Ok(())
     }
 
-    pub fn whitelist<S: Storage, A: Api, Q: Querier>(
+    pub fn list<S: Storage, A: Api, Q: Querier>(
         deps: &Extern<S, A, Q>,
         pagination: Pagination
     ) -> StdResult<Vec<Market<HumanAddr>>> {
@@ -162,10 +169,19 @@ impl Markets {
 
         Ok(result)
     }
+
+    #[inline]
+    fn load(
+        storage: &impl Storage,
+        index: u64
+    ) -> StdResult<Option<Market<CanonicalAddr>>> {
+        IterableStorage::new(Self::NS)
+            .get_at(storage, index)
+    }
 }
 
 impl Borrower {
-    const NS_COLLATERALS: &'static [u8] = b"collaterals";
+    const NS: &'static [u8] = b"borrowers";
 
     pub fn new<S: Storage, A: Api, Q: Querier>(
         deps: &Extern<S, A, Q>,
@@ -186,42 +202,39 @@ impl Borrower {
         self.id.into()
     }
 
-    pub fn save_collaterals_raw<S: Storage, A: Api, Q: Querier>(
+    pub fn add_market<S: Storage>(
         &self,
-        deps: &mut Extern<S, A, Q>,
-        collaterals: Vec<ContractLink<CanonicalAddr>>
+        storage: &mut S,
+        id: u64
     ) -> StdResult<()> {
-        let mut collaterals_bucket: Bucket<'_, S, Vec<ContractLink<CanonicalAddr>>> =
-            Bucket::new(Self::NS_COLLATERALS, &mut deps.storage);
+        let mut storage: Bucket<'_, S, u64> =
+            Bucket::new(&self.create_key(), storage);
 
-        if collaterals.is_empty() {
-            collaterals_bucket.remove(self.id.as_slice());
-        } else {
-            collaterals_bucket.save(self.id.as_slice(), &collaterals)?;
-        }
-    
-        Ok(())
+        storage.save(&id.to_be_bytes(), &id)
     }
 
-    pub fn load_collaterals_raw<S: Storage, A: Api, Q: Querier>(
+    pub fn list_markets<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>
-    ) -> StdResult<Vec<ContractLink<CanonicalAddr>>> {
-        let collaterals_bucket: ReadonlyBucket<'_, S, Vec<ContractLink<CanonicalAddr>>> =
-            ReadonlyBucket::new(Self::NS_COLLATERALS, &deps.storage);
+    ) -> StdResult<Vec<Market<HumanAddr>>> {
+        let storage: ReadonlyBucket<'_, S, u64> =
+            ReadonlyBucket::new(&self.create_key(), &deps.storage);
 
-        match collaterals_bucket.load(self.id.as_slice()) {
-            Ok(collaterals) => Ok(collaterals),
-            _ => Ok(vec![]),
+        // Bucket iterator doesn't implement len() :(
+        let mut result = Vec::new();
+
+        for item in storage.range(None, None, Order::Ascending) {
+            let (_, value) = item?;
+            let market = Markets::get_by_id(deps, value)?.unwrap();
+
+            result.push(market);
         }
+
+        Ok(result)
     }
 
-    #[inline]
-    pub fn load_collaterals<S: Storage, A: Api, Q: Querier>(
-        &self,
-        deps: &Extern<S, A, Q>
-    ) -> StdResult<Vec<ContractLink<HumanAddr>>> {
-        self.load_collaterals_raw(deps)?.humanize(&deps.api)
+    fn create_key(&self) -> Vec<u8> {
+        [ Self::NS, &self.id.0 ].concat()
     }
 }
 
