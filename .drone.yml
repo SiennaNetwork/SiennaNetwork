@@ -44,7 +44,7 @@ steps:
     #- rustup toolchain install stable
     #- rustup set profile minimal
     #- rustup target add wasm32-unknown-unknown
-    - cargo tarpaulin --workspace --coveralls $COVERAGE_KEY #--report-uri https://cov.sienna.network/api/v1/jobs
+    - cargo tarpaulin --workspace --ignore-panics --ignore-tests --coveralls $COVERAGE_KEY #--report-uri https://cov.sienna.network/api/v1/jobs
 
   # Update cache.
   # See http://plugins.drone.io/meltwater/drone-cache/
