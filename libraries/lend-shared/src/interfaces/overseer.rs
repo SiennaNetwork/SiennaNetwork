@@ -36,7 +36,7 @@ pub trait Overseer {
     #[query("entered_markets")]
     fn entered_markets(
         permit: Permit<OverseerPermissions>
-    ) -> StdResult<Vec<ContractLink<HumanAddr>>>;
+    ) -> StdResult<Vec<Market<HumanAddr>>>;
 
     #[query("borrow_factor")]
     fn borrow_factor(market: HumanAddr) -> StdResult<Decimal256>;
@@ -72,9 +72,9 @@ pub struct Config {
     /// The percentage of a liquidatable account's borrow that can be repaid in a single liquidate transaction.
     /// If a user has multiple borrowed assets, the closeFactor applies to any single borrowed asset,
     /// not the aggregated value of a user’s outstanding borrowing.
-    close_factor: Decimal256,
+    pub close_factor: Decimal256,
     /// The discount on collateral that a liquidator receives.
-    premium: Decimal256
+    pub premium: Decimal256
 }
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema)]
