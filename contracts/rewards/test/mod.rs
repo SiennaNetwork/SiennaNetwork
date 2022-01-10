@@ -198,6 +198,16 @@ impl Context {
         self
     }
 
+    pub fn test_query (&mut self, msg: Query, expected: StdResult<Response>)
+        -> &mut Self
+    {
+        assert_eq!(
+            Contract::query(&mut self.deps, msg),
+            expected
+        );
+        self
+    }
+
     // Contract-specific implementation below
 
     pub fn epoch_must_increment (&mut self, current_epoch: Moment, next_epoch: Moment)

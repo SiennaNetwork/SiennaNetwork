@@ -455,3 +455,34 @@ use crate::test::{*, Context};
                     .log("close_reason", why));
         });
 }
+
+#[test] fn test_0120_no_time_travel () {
+
+    let mut context = Context::new("0120_no_time_travel");
+    let stake = context.rng.gen_range(1..100);
+
+    // Given a contract
+    context
+        .admin().init()
+        // When a user stakes
+        .later().user("Alice").set_vk("").deposits(stake);
+
+    // And a user queries info for a moment back in time
+    let at = context.env.block.time - 1;
+    context
+        // Then they can't query pool info
+        .test_query(
+            Query::Rewards(RewardsQuery::PoolInfo { at }),
+            errors::no_time_travel(2)
+        )
+        // And they can't query user info
+        .test_query(
+            Query::Rewards(RewardsQuery::UserInfo {
+                at,
+                address: HumanAddr::from("Alice"),
+                key:     String::from("")
+            }),
+            errors::no_time_travel(2)
+        );
+
+}
