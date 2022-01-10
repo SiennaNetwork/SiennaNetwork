@@ -110,9 +110,9 @@ pub struct BorrowerInfoResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct AccountSnapshotResponse {
-    sl_token_balance: Uint128,
-    borrow_balance: Uint128,
-    exchange_rate: Decimal256,
+    pub sl_token_balance: Uint128,
+    pub borrow_balance: Uint128,
+    pub exchange_rate: Decimal256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
