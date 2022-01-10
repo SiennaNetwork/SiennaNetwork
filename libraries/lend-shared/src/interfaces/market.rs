@@ -54,9 +54,7 @@ pub trait Market {
     fn state() -> StdResult<StateResponse>;
 
     #[query("borrower")]
-    fn borrower(
-        id: Binary,
-    ) -> StdResult<BorrowerInfoResponse>;
+    fn borrower(id: Binary) -> StdResult<BorrowerInfoResponse>;
 
     #[query("borrow_rate_per_block")]
     fn borrow_rate() -> StdResult<Decimal256>;
@@ -69,6 +67,9 @@ pub trait Market {
 
     #[query("borrow_balance")]
     fn borrow_balance(id: Binary) -> StdResult<Decimal256>;
+
+    #[query("account_snapshot")]
+    fn account_snapshot(id: Binary) -> StdResult<AccountSnapshotResponse>;
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -104,6 +105,14 @@ pub struct BorrowerInfoResponse {
     principal: Decimal256,
     // Global borrowIndex as of the most recent balance-changing action
     interest_index: Decimal256,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct AccountSnapshotResponse {
+    sl_token_balance: Decimal256,
+    borrow_balance: Decimal256,
+    exchange_rate: Decimal256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
