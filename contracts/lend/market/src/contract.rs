@@ -163,4 +163,9 @@ pub trait Market {
     fn borrow_balance(id: Binary) -> StdResult<Decimal256> {
         unimplemented!()
     }
+
+    #[query("account_snapshot")]
+    fn account_snapshot(id: Binary) -> StdResult<AccountSnapshotResponse> {
+        unimplemented!()
+    }
 }
