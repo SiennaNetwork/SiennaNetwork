@@ -1,5 +1,0 @@
-#!/bin/sh
-node_modules/.bin/ganesha run-module \
-  --enable-source-maps \
-  --stack-trace-limit=1000 \
-  ./ops/main.ts $@
