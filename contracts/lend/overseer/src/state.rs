@@ -2,11 +2,7 @@ use std::convert::{TryFrom, TryInto};
 
 use lend_shared::{
     impl_contract_storage,
-    impl_contract_storage_option,
     fadroma::{
-        schemars,
-        schemars::JsonSchema,
-        uint256::Uint256,
         cosmwasm_std::{
             HumanAddr, CanonicalAddr, Extern,
             StdResult, Api, Storage, Querier,
@@ -95,13 +91,14 @@ impl Markets {
     pub fn get_by_addr<S: Storage, A: Api, Q: Querier>(
         deps: &Extern<S, A, Q>,
         market: &HumanAddr
-    ) -> StdResult<Market<HumanAddr>> {
+    ) -> StdResult<(u64, Market<HumanAddr>)> {
+        let id = Self::get_id(deps, market)?;
         let result = Self::load(
             &deps.storage,
-            Self::get_id(deps, market)?
+            id
         )?.unwrap();
 
-        result.humanize(&deps.api)
+        Ok((id, result.humanize(&deps.api)?))
     }
 
     pub fn get_by_id<S: Storage, A: Api, Q: Querier>(
@@ -213,6 +210,33 @@ impl Borrower {
         storage.save(&id.to_be_bytes(), &id)
     }
 
+    pub fn remove_market<S: Storage>(
+        &self,
+        storage: &mut S,
+        id: u64
+    ) {
+        let mut storage: Bucket<'_, S, u64> =
+            Bucket::new(&self.create_key(), storage);
+
+        storage.remove(&id.to_be_bytes())
+    }
+
+    pub fn get_market<S: Storage, A: Api, Q: Querier>(
+        &self,
+        deps: &Extern<S, A, Q>,
+        address: &HumanAddr
+    ) -> StdResult<(u64, Market<HumanAddr>)> {
+        let (id, market) = Markets::get_by_addr(deps, address)?;
+
+        let storage: ReadonlyBucket<'_, S, u64> =
+            ReadonlyBucket::new(&self.create_key(), &deps.storage);
+
+        match storage.may_load(&id.to_be_bytes())? {
+            Some(_) => Ok((id, market)),
+            None => Err(StdError::generic_err("Not entered in market."))
+        }
+    }
+
     pub fn list_markets<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>
@@ -234,7 +258,7 @@ impl Borrower {
     }
 
     fn create_key(&self) -> Vec<u8> {
-        [ Self::NS, &self.id.0 ].concat()
+        [ Self::NS, self.id.as_slice() ].concat()
     }
 }
 
