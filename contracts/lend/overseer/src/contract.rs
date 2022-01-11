@@ -157,6 +157,9 @@ pub trait Overseer {
     #[query("liquidity")]
     fn account_liquidity(
         permit: Permit<OverseerPermissions>,
+        market: Option<HumanAddr>,
+        redeeem_amount: Uint128,
+        borrow_amount: Uint128
     ) -> StdResult<AccountLiquidity> {
         let self_ref = Contracts::load_self_ref(deps)?;
         let borrower = permit.validate_with_permissions(
@@ -168,9 +171,9 @@ pub trait Overseer {
         calc_liquidity(
             deps,
             &Borrower::new(deps, &borrower)?,
-            None,
-            Uint128::zero(),
-            Uint128::zero()
+            market,
+            redeeem_amount,
+            borrow_amount
         )
     }
 
