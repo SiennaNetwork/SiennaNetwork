@@ -10,7 +10,7 @@ use fadroma::{
         Api, CanonicalAddr, StdError
     },
     Humanize, Canonize, ContractLink,
-    Decimal256, Uint256
+    Decimal256, Uint256, Uint128
 };
 
 use serde::{Serialize, Deserialize};
@@ -46,7 +46,10 @@ pub trait Overseer {
 
     #[query("liquidity")]
     fn account_liquidity(
-        permit: Permit<OverseerPermissions>
+        permit: Permit<OverseerPermissions>,
+        market: Option<HumanAddr>,
+        redeeem_amount: Uint128,
+        borrow_amount: Uint128
     ) -> StdResult<AccountLiquidity>;
 
     #[query("config")]
