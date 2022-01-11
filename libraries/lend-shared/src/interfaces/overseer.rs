@@ -7,10 +7,12 @@ use fadroma::{
     cosmwasm_std::{
         HumanAddr, Binary, StdResult,
         HandleResponse, InitResponse,
-        Api, CanonicalAddr, StdError
+        Api, CanonicalAddr, StdError,
+        Uint128, Querier, QueryRequest,
+        WasmQuery, to_binary
     },
     Humanize, Canonize, ContractLink,
-    Decimal256, Uint256, Uint128
+    Decimal256, Uint256,
 };
 
 use serde::{Serialize, Deserialize};
@@ -48,7 +50,7 @@ pub trait Overseer {
     fn account_liquidity(
         permit: Permit<OverseerPermissions>,
         market: Option<HumanAddr>,
-        redeeem_amount: Uint128,
+        redeem_amount: Uint128,
         borrow_amount: Uint128
     ) -> StdResult<AccountLiquidity>;
 
@@ -58,7 +60,6 @@ pub trait Overseer {
     #[query("config")]
     fn config() -> StdResult<Config>;
 }
-
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
@@ -131,5 +132,30 @@ impl Humanize<Market<HumanAddr>> for Market<CanonicalAddr> {
             contract: self.contract.humanize(api)?,
             ltv_ratio: self.ltv_ratio
         })
+    }
+}
+
+pub fn query_account_liquidity(
+    querier: &impl Querier,
+    overseer: ContractLink<HumanAddr>,
+    permit: Permit<OverseerPermissions>,
+    market: Option<HumanAddr>,
+    redeem_amount: Uint128,
+    borrow_amount: Uint128
+) -> StdResult<AccountLiquidity> {
+    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: overseer.address,
+        callback_code_hash: overseer.code_hash,
+        msg: to_binary(&QueryMsg::AccountLiquidity {
+            permit,
+            market,
+            redeem_amount,
+            borrow_amount
+        })?
+    }))?;
+
+    match result {
+        QueryResponse::AccountLiquidity { liquidity } => Ok(liquidity),
+        _ => Err(StdError::generic_err("Expecting QueryResponse::AccountLiquidity"))
     }
 }
