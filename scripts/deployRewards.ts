@@ -1,4 +1,4 @@
-import { randomHex } from '@fadroma/tools'
+import { randomHex, Console } from '@fadroma/tools'
 
 import type { IChain, IAgent } from '@fadroma/scrt'
 import { Scrt } from '@fadroma/scrt'
@@ -13,16 +13,20 @@ import {
 } from '@sienna/api'
 import settings from '@sienna/settings'
 
+import buildAndUpload from './buildAndUpload'
 import deployPlaceholderTokens from './deployPlaceholderTokens'
+
+const console = Console(import.meta.url)
 
 const SIENNA_DECIMALS = 18
 const ONE_SIENNA = BigInt(`1${[...Array(SIENNA_DECIMALS)].map(()=>'0').join('')}`)
 
 export type RewardsOptions = {
-  chain?:  IChain,
-  admin?:  IAgent,
-  prefix:  string,
-  split?:  number,
+  chain?:  IChain
+  admin?:  IAgent
+  prefix:  string
+  suffix?: string
+  split?:  number
   ref?:    string
 }
 
@@ -30,14 +34,15 @@ export type RPTRecipient = string
 export type RPTAmount    = string
 export type RPTConfig = [RPTRecipient, RPTAmount][]
 
-export default async function deployRewards (options: RewardsOptions): RPTConfig {
+export default async function deployRewards (options: RewardsOptions): Promise<RPTConfig> {
 
   const {
-    chain = await new Scrt().ready,
-    admin = await chain.getAgent(),
+    chain  = await new Scrt().ready,
+    admin  = await chain.getAgent(),
     prefix,
-    split = 1.0,
-    ref   = 'dev'
+    suffix = '',
+    split  = 1.0,
+    ref    = 'dev'
   } = options
 
   const
@@ -46,35 +51,55 @@ export default async function deployRewards (options: RewardsOptions): RPTConfig
     FACTORY  = instance.getContract(FactoryContract, 'SiennaAMMFactory', admin),
     REWARDS  = new RewardsContract({ prefix, admin, ref })
 
+  await buildAndUpload([SIENNA, FACTORY, REWARDS])
+
   const tokens = { SIENNA }
   if (chain.isLocalnet) {
     const placeholderOptions = { chain, admin, prefix, instance }
     Object.assign(tokens, await deployPlaceholderTokens(placeholderOptions))
   } else {
-    Object.assign(tokens, getSwapTokens(settings(chain.chainId).swapTokens), admin)
+    Object.assign(tokens, getSwapTokens(settings(chain.chainId).swapTokens, admin))
   }
 
   const rptConfig = []
 
+  const reward = BigInt(settings(chain.chainId).rewardPairs.SIENNA) / BigInt(1 / split)
   rptConfig.push([
-    (await deployRewardPool('SIENNA', SIENNA, SIENNA)).address,
-    String(BigInt(settings(chain.chainId).rewardPairs.SIENNA) * ONE_SIENNA)
+    (await deployRewardPool(`SIENNA${suffix}`, SIENNA, SIENNA)).address,
+    String(reward * ONE_SIENNA)
   ])
 
   const swapPairs = settings(chain.chainId).swapPairs
+
   if (swapPairs.length > 0) {
+
     const existingExchanges = await FACTORY.listExchanges()
     const rewards = settings(chain.chainId).rewardPairs
+
     for (const name of swapPairs) {
       if (rewards && rewards[name]) {
-        console.info(`Deploying rewards for ${name}...`)
-        //const lpToken = LPTokenContract.attach(lp_token.address, lp_token.code_hash, admin)
-        //const reward  = BigInt(rewards[name])
-        //const pool    = await deployRewardPool(name, lpToken, SIENNA)
-        //rptConfig.push([pool.address, String(reward * ONE_SIENNA)])
+        const exchangeName = `SiennaSwap_${name}`
+        const exchange = instance.contracts[exchangeName]
+        if (!exchange) {
+          console.log(`${exchangeName} doesn't exist`)
+          process.exit(1)
+        }
+        const { lp_token } = exchange
+        console.debug(`Deploying rewards for ${name}...`, { lp_token })
+        const lpToken = LPTokenContract.attach(
+          exchange.lp_token.address,
+          exchange.lp_token.code_hash,
+          admin
+        )
+        const reward = BigInt(rewards[name]) / BigInt(1 / split)
+        const pool    = await deployRewardPool(`${name}${suffix}`, lpToken, SIENNA)
+        rptConfig.push([pool.address, String(reward * ONE_SIENNA)])
       }
     }
+
   }
+
+  console.debug('Resulting RPT config:', rptConfig)
 
   return rptConfig
 

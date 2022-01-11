@@ -63,10 +63,16 @@ export class RewardsContract extends ScrtContract_1_2 {
   }
 
   constructor ({
-    codeId, codeHash,
-    prefix, label, name,
-    admin, timekeeper,
-    lpToken, rewardToken,
+    ref,
+    codeId,
+    codeHash,
+    prefix,
+    label,
+    name,
+    admin,
+    timekeeper,
+    lpToken,
+    rewardToken,
     bonding = 86400,
   }: RewardsOptions = {}) {
 
@@ -74,8 +80,12 @@ export class RewardsContract extends ScrtContract_1_2 {
       agent:  admin,
       schema: RewardsContract.schema,
       prefix,
-      label:  label || `SiennaRewards_${name}_Pool`
+      label:  label || `SiennaRewards_${name}`
     })
+
+    if (ref) {
+      this.code.ref = ref
+    }
 
     if (codeId) {
       this.blob.codeId = codeId
