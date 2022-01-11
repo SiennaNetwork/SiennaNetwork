@@ -9,7 +9,8 @@ use fadroma::{
         HandleResponse, InitResponse,
         Api, CanonicalAddr, StdError
     },
-    Humanize, Canonize, ContractLink, Decimal256
+    Humanize, Canonize, ContractLink,
+    Decimal256, Uint256, Uint128
 };
 
 use serde::{Serialize, Deserialize};
@@ -31,20 +32,28 @@ pub trait Overseer {
     fn enter(markets: Vec<HumanAddr>) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn exit(market: HumanAddr) -> StdResult<HandleResponse>;
+    fn exit(market_address: HumanAddr) -> StdResult<HandleResponse>;
+
+    #[query("whitelist")]
+    fn markets(
+        pagination: Pagination
+    ) -> StdResult<Vec<Market<HumanAddr>>>;
 
     #[query("entered_markets")]
     fn entered_markets(
         permit: Permit<OverseerPermissions>
     ) -> StdResult<Vec<Market<HumanAddr>>>;
 
-    #[query("borrow_factor")]
-    fn borrow_factor(market: HumanAddr) -> StdResult<Decimal256>;
-
     #[query("liquidity")]
     fn account_liquidity(
         permit: Permit<OverseerPermissions>,
+        market: Option<HumanAddr>,
+        redeeem_amount: Uint128,
+        borrow_amount: Uint128
     ) -> StdResult<AccountLiquidity>;
+
+    #[query("id")]
+    fn id(permit: Permit<OverseerPermissions>) -> StdResult<Binary>;
 
     #[query("config")]
     fn config() -> StdResult<Config>;
@@ -54,16 +63,17 @@ pub trait Overseer {
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum OverseerPermissions {
-    Account
+    AccountInfo,
+    Id
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct AccountLiquidity {
     /// The USD value borrowable by the user, before it reaches liquidation.
-    pub liquidity: Decimal256,
+    pub liquidity: Uint256,
     /// If > 0 the account is currently below the collateral requirement and is subject to liquidation.
-    pub shortfall: Decimal256
+    pub shortfall: Uint256
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]

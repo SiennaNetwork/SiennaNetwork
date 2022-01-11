@@ -3,12 +3,9 @@ mod querier;
 
 use lend_shared::{
     fadroma::{
-        BLOCK_SIZE,
         Uint256, Decimal256,
         ContractLink,
-        Canonize, Humanize,
         Permit,
-        Callback,
         admin,
         admin::{Admin, assert_admin},
         require_admin,
@@ -19,12 +16,14 @@ use lend_shared::{
             CosmosMsg, StdResult, WasmMsg, StdError,
             Extern, Storage, Api, Querier, Binary, 
             Uint128, to_binary, log
-        },
-        secret_toolkit::snip20
+        }
     },
     interfaces::{
-        overseer::{OverseerPermissions, AccountLiquidity, Config, Market},
-        oracle::{HandleMsg as OracleHandleMsg, PriceAsset, query_price}
+        overseer::{
+            OverseerPermissions, Pagination,
+            AccountLiquidity, Config, Market, 
+        },
+        oracle::{HandleMsg as OracleHandleMsg, Asset, query_price}
     }
 };
 
@@ -74,7 +73,7 @@ pub trait Overseer {
                 callback_code_hash: oracle.code_hash,
                 send: vec![],
                 msg: to_binary(&OracleHandleMsg::UpdateAssets {
-                    assets: vec![PriceAsset {
+                    assets: vec![Asset {
                         address: market.contract.address,
                         symbol: market.symbol
                     }]
@@ -104,8 +103,39 @@ pub trait Overseer {
     }
 
     #[handle]
-    fn exit(market: HumanAddr) -> StdResult<HandleResponse> {
-        unimplemented!()
+    fn exit(market_address: HumanAddr) -> StdResult<HandleResponse> {
+        let borrower = Borrower::new(deps, &env.message.sender)?;
+        let (id, market) = borrower.get_market(deps, &market_address)?;
+
+        // TODO: Maybe calc_liquidity() can be changed to cover this check in order to avoid calling this twice.
+        let snapshot = query_snapshot(&deps.querier, market.contract, borrower.clone().id())?;
+
+        if snapshot.borrow_balance != Uint128::zero() {
+            return Err(StdError::generic_err("Cannot exit market while borrowing."));
+        }
+
+        let liquidity = calc_liquidity(
+            deps,
+            &borrower,
+            Some(market_address),
+            snapshot.sl_token_balance,
+            Uint128::zero()
+        )?;
+
+        if liquidity.shortfall > Uint256::zero() {
+            return Err(StdError::generic_err(format!(
+                "This account is currently below its target collateral requirement by {}",
+                liquidity.shortfall
+            )));
+        }
+
+        borrower.remove_market(&mut deps.storage, id);
+
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![ log("action", "exit") ],
+            data: None
+        })
     }
 
     #[query("entered_markets")]
@@ -116,7 +146,7 @@ pub trait Overseer {
         let borrower = permit.validate_with_permissions(
             deps,
             self_ref.address,
-            vec![ OverseerPermissions::Account ]
+            vec![ OverseerPermissions::AccountInfo ]
         )?;
 
         let borrower = Borrower::new(deps, &borrower)?;
@@ -124,16 +154,46 @@ pub trait Overseer {
         borrower.list_markets(deps)
     }
 
-    #[query("borrow_factor")]
-    fn borrow_factor(market: HumanAddr) -> StdResult<Decimal256> {
-        unimplemented!()
-    }
-
     #[query("liquidity")]
     fn account_liquidity(
         permit: Permit<OverseerPermissions>,
+        market: Option<HumanAddr>,
+        redeeem_amount: Uint128,
+        borrow_amount: Uint128
     ) -> StdResult<AccountLiquidity> {
-        unimplemented!()
+        let self_ref = Contracts::load_self_ref(deps)?;
+        let borrower = permit.validate_with_permissions(
+            deps,
+            self_ref.address,
+            vec![ OverseerPermissions::AccountInfo ]
+        )?;
+
+        calc_liquidity(
+            deps,
+            &Borrower::new(deps, &borrower)?,
+            market,
+            redeeem_amount,
+            borrow_amount
+        )
+    }
+
+    #[query("id")]
+    fn id(permit: Permit<OverseerPermissions>) -> StdResult<Binary> {
+        let self_ref = Contracts::load_self_ref(deps)?;
+        let borrower = permit.validate_with_permissions(
+            deps,
+            self_ref.address,
+            vec![ OverseerPermissions::Id ]
+        )?;
+
+        Ok(BorrowerId::new(deps, &borrower)?.into())
+    }
+
+    #[query("whitelist")]
+    fn markets(
+        pagination: Pagination
+    ) -> StdResult<Vec<Market<HumanAddr>>> {
+        Markets::list(deps, pagination)
     }
 
     #[query("config")]
@@ -151,25 +211,28 @@ pub trait Overseer {
 }
 
 /// Determine what the account liquidity would be if the given amounts were redeemed/borrowed.
-fn calc_liquidity_decrease<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    borrower: Borrower,
-    target_asset: HumanAddr,
+fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    borrower: &Borrower,
+    target_asset: Option<HumanAddr>,
     redeeem_amount: Uint128,
     borrow_amount: Uint128
-) -> StdResult<(Uint256, Uint256)> {
+) -> StdResult<AccountLiquidity> {
     let oracle = Contracts::load_oracle(deps)?;
+    let target_asset = target_asset.unwrap_or_default();
 
-    let total_collateral = Uint256::zero();
-    let total_borrowed = Uint256::zero();
+    let mut total_collateral = Uint256::zero();
+    let mut total_borrowed = Uint256::zero();
 
     for market in borrower.list_markets(deps)? {
+        let is_target_asset = target_asset == market.contract.address;
+
         let snapshot = query_snapshot(&deps.querier, market.contract, borrower.clone().id())?;
 
         let price = query_price(
             &deps.querier,
             oracle.clone(),
-            todo!(),
+            market.symbol.into(),
             "USD".into(),
             None
         )?;
@@ -178,15 +241,21 @@ fn calc_liquidity_decrease<S: Storage, A: Api, Q: Querier>(
         total_collateral = (Uint256::from(snapshot.sl_token_balance).decimal_mul(conversion_factor)? + total_collateral)?;
         total_borrowed = (Uint256::from(snapshot.borrow_balance).decimal_mul(price.rate)? + total_borrowed)?;
 
-        if target_asset == market.contract.address {
+        if is_target_asset {
             total_borrowed = (Uint256::from(redeeem_amount).decimal_mul(conversion_factor)? + total_borrowed)?;
             total_borrowed = (Uint256::from(borrow_amount).decimal_mul(price.rate)? + total_borrowed)?;
         }
     }
 
     if total_collateral > total_borrowed {
-        Ok(((total_collateral - total_borrowed)?, Uint256::zero()))
+        Ok(AccountLiquidity {
+            liquidity: (total_collateral - total_borrowed)?,
+            shortfall: Uint256::zero()
+        })
     } else {
-        Ok((Uint256::zero(), (total_borrowed - total_collateral)?))
+        Ok(AccountLiquidity {
+            liquidity: Uint256::zero(),
+            shortfall: (total_borrowed - total_collateral)?
+        })
     }
 }
