@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use super::overseer::OverseerPermissions;
 
 pub const VIEWING_KEY: &str = "SiennaLend"; // TODO: Should this be public?
-
+pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
 #[interface(component(path = "admin"))]
 pub trait Market {
     #[init]
@@ -20,7 +20,13 @@ pub trait Market {
         underlying_asset: ContractLink<HumanAddr>,
         // SiennaLend token info
         sl_token_info: ContractInstantiationInfo,
+        // Overseer contract address
+        overseer_contract: ContractLink<HumanAddr>,
+        // Interest model contract address
+        interest_model_contract: ContractLink<HumanAddr>,
         initial_exchange_rate: Decimal256,
+        // Fraction of interest currently set aside for reserves
+        reserve_factor: Decimal256,
     ) -> StdResult<InitResponse>;
 
     /// Snip20 receiver interface
@@ -29,14 +35,6 @@ pub trait Market {
 
     #[handle]
     fn register_sl_token() -> StdResult<HandleResponse>;
-
-    #[handle]
-    fn register_contracts(
-        overseer_contract: ContractLink<HumanAddr>,
-        // The contract has the logic for
-        // Sienna borrow interest rate
-        interest_model: ContractLink<HumanAddr>,
-    ) -> StdResult<HandleResponse>;
 
     #[handle]
     fn update_config(
@@ -80,30 +78,29 @@ pub struct ConfigResponse {
     overseer_contract: ContractLink<HumanAddr>,
     interest_model_contract: ContractLink<HumanAddr>,
     initial_exchange_rate: Decimal256,
-    protocol_seize_share: Decimal256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct StateResponse {
-    // Block number that the interest was last accrued at
+    /// Block number that the interest was last accrued at
     accrual_block: u64,
-    // Accumulator of the total earned interest rate since the opening of the market
+    /// Accumulator of the total earned interest rate since the opening of the market
     borrow_index: Decimal256,
-    // Total amount of outstanding borrows of the underlying in this market
+    /// Total amount of outstanding borrows of the underlying in this market
     total_borrows: Decimal256,
-    // Total amount of reserves of the underlying held in this market
+    /// Total amount of reserves of the underlying held in this market
     total_reserves: Decimal256,
-    // Total number of tokens in circulation
+    /// Total number of tokens in circulation
     total_supply: Uint256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct BorrowerInfoResponse {
-    // Total balance (with accrued interest), after applying the most recent balance-changing action
+    /// Total balance (with accrued interest), after applying the most recent balance-changing action
     principal: Uint256,
-    // Global borrowIndex as of the most recent balance-changing action
+    /// Global borrowIndex as of the most recent balance-changing action
     interest_index: Decimal256,
 }
 

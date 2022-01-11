@@ -10,7 +10,7 @@ use lend_shared::{
             InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
         derive_contract::*,
-        require_admin,
+        from_binary, require_admin,
         secret_toolkit::snip20,
         snip20_impl::msg::{InitConfig, InitMsg as Snip20InitMsg},
         Callback, Canonize, ContractInstantiationInfo, ContractLink, Decimal256, Humanize, Permit,
@@ -19,7 +19,7 @@ use lend_shared::{
     interfaces::{market::*, overseer::OverseerPermissions},
 };
 
-use state::{Config};
+use state::Config;
 
 #[contract_impl(path = "lend_shared::interfaces::market", component(path = "admin"))]
 pub trait Market {
@@ -27,18 +27,33 @@ pub trait Market {
     fn new(
         admin: Option<HumanAddr>,
         prng_seed: Binary,
-        underlying_asset: ContractLink<HumanAddr>,
         sl_token_info: ContractInstantiationInfo,
+        initial_exchange_rate: Decimal256,
+        reserve_factor: Decimal256,
+        underlying_asset: ContractLink<HumanAddr>,
+        overseer_contract: ContractLink<HumanAddr>,
+        interest_model_contract: ContractLink<HumanAddr>,
     ) -> StdResult<InitResponse> {
         let self_ref = ContractLink {
             address: env.contract.address.clone(),
             code_hash: env.contract_code_hash.clone(),
         };
-
         let sl_token = ContractLink {
             address: HumanAddr::default(), // Added in RegisterSlToken
             code_hash: sl_token_info.code_hash.clone(),
         };
+
+        Config::save(
+            deps,
+            &Config {
+                initial_exchange_rate,
+                overseer_contract,
+                interest_model_contract,
+                sl_token,
+                underlying_asset: underlying_asset.clone(),
+                reserve_factor,
+            },
+        )?;
 
         let time = env.block.time;
         admin::DefaultImpl.new(admin, deps, env)?;
@@ -98,28 +113,69 @@ pub trait Market {
 
     #[handle]
     fn receive(from: HumanAddr, msg: Option<Binary>, amount: Uint128) -> StdResult<HandleResponse> {
-        unimplemented!()
+        if msg.is_none() {
+            return Err(StdError::generic_err("\"msg\" parameter cannot be empty."));
+        }
+
+        match from_binary(&msg.unwrap())? {
+            ReceiverCallbackMsg::DepositUnderlying { permit } => {
+                let config = Config::load(&deps)?;
+                if env.message.sender != config.underlying_asset.address {
+                    return Err(StdError::unauthorized());
+                }
+
+                let id = query_id(&deps.querier, config.overseer_contract.clone(), permit)?;
+
+                unimplemented!()
+            }
+            ReceiverCallbackMsg::WithdrawUnderlying { permit } => {
+                unimplemented!()
+            }
+        }
     }
 
     #[handle]
     fn register_sl_token() -> StdResult<HandleResponse> {
-        unimplemented!()
+        let mut config = Config::load(deps)?;
+
+        if config.sl_token.address != HumanAddr::default() {
+            return Err(StdError::unauthorized());
+        }
+
+        config.sl_token.address = env.message.sender;
+        Config::save(deps, &config)?;
+
+        Ok(HandleResponse {
+            messages: vec![snip20::register_receive_msg(
+                env.contract_code_hash,
+                None,
+                BLOCK_SIZE,
+                config.sl_token.code_hash,
+                config.sl_token.address,
+            )?],
+            log: vec![log("action", "register_sl_token")],
+            data: None,
+        })
     }
 
     #[handle]
-    fn register_contracts(
-        overseer_contract: ContractLink<HumanAddr>,
-        interest_model: ContractLink<HumanAddr>,
-    ) -> StdResult<HandleResponse> {
-        unimplemented!()
-    }
-
-    #[handle]
+    #[require_admin]
     fn update_config(
         interest_model: Option<ContractLink<HumanAddr>>,
         reserve_factor: Option<Decimal256>,
     ) -> StdResult<HandleResponse> {
-        unimplemented!()
+        let mut config = Config::load(deps)?;
+        if let Some(interest_model) = interest_model {
+            config.interest_model_contract = interest_model;
+            Config::save(deps, &config)?;
+        }
+
+        if let Some(reserve_factor) = reserve_factor {
+            config.reserve_factor = reserve_factor;
+            Config::save(deps, &config)?;
+        }
+
+        Ok(HandleResponse::default())
     }
 
     #[handle]
@@ -138,9 +194,7 @@ pub trait Market {
     }
 
     #[query("borrower")]
-    fn borrower(
-        id: Binary,
-    ) -> StdResult<BorrowerInfoResponse> {
+    fn borrower(id: Binary) -> StdResult<BorrowerInfoResponse> {
         unimplemented!()
     }
 
