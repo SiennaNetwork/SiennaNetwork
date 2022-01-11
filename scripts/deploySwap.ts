@@ -2,6 +2,7 @@ import { writeFileSync } from 'fs'
 
 import type { IChain, IAgent } from '@fadroma/ops'
 import { Scrt } from '@fadroma/scrt'
+import type { SNIP20Contract } from '@fadroma/snip20'
 import { bold, randomHex } from '@fadroma/tools'
 
 import settings from '@sienna/settings'
@@ -143,7 +144,7 @@ export default async function deploySwap (options: SwapOptions) {
     }
   }
 
-  async function deployRewardPool (name: string, lpToken: SNIP20, rewardToken: SNIP20) {
+  async function deployRewardPool (name: string, lpToken: SNIP20Contract, rewardToken: SNIP20Contract) {
     const {codeId, codeHash} = REWARDS
         , options    = { codeId, codeHash, prefix, name, admin, lpToken, rewardToken, }
         , rewardPool = new RewardsContract(options)

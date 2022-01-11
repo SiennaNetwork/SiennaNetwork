@@ -1,0 +1,21 @@
+{
+  "exchange": {
+    "address": "secret15retgw2w28dp92jr8anmuv4eeu0qu7vdrfv6we"
+  },
+  "lp_token": {
+    "address": "secret1djyhpwg77esvjjvtedm76z4h0wyyhe799aj2ra",
+    "code_hash": "aa311ee3c9e7dff9a06e184d60b45638ff3580e2062df178cd89dbf1e029b236"
+  },
+  "token_0": {
+    "custom_token": {
+      "contract_addr": "secret1e2ra7ss77q9xsu2t9etj9gr0qjl0xs7pqq8lqj",
+      "token_code_hash": "f3e948d28b0fb877d7e1162e07e895e2619e929c9d027f46868f20e5094b2cb4"
+    }
+  },
+  "token_1": {
+    "custom_token": {
+      "contract_addr": "secret1gqz8lj439ckdcptcgzx9gxm2uxh64p02a5wnwl",
+      "token_code_hash": "f3e948d28b0fb877d7e1162e07e895e2619e929c9d027f46868f20e5094b2cb4"
+    }
+  }
+}

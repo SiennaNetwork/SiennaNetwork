@@ -7,31 +7,48 @@ import { LPTokenContract } from '@sienna/lp-token'
 import { workspace } from '@sienna/settings'
 
 export type RewardsOptions = {
+  /** Commit to deploy */
+  ref?:         string
+
+  /** ID of the uploaded code */
   codeId?:      number
+
+  /** Hash of the uploaded code */
   codeHash?:    string
 
+  /** Deployment name */
   prefix?:      string
+
+  /** Name of contract */
   name?:        string
+
+  /** On-chain label of contract: prefix + name */
   label?:       string
 
+  /** Admin agent */
   admin?:       IAgent
+
+  /** Address of other user that can increment the epoch */
   timekeeper?:  string
 
+  /** Staked token */
   lpToken?:     SNIP20Contract
+
+  /** Rewarded token */
   rewardToken?: SNIP20Contract
 
+  /** Bonding period config */
   bonding?:     number
 }
 
 export class RewardsContract extends ScrtContract_1_2 {
 
-  static schema = ScrtContract_1_2.loadSchemas(
-    import.meta.url, {
-      initMsg:     "./schema/init.json",
-      queryMsg:    "./schema/query.json",
-      queryAnswer: "./schema/response.json",
-      handleMsg:   "./schema/handle.json",
-    })
+  static schema = ScrtContract_1_2.loadSchemas(import.meta.url, {
+    initMsg:     "./schema/init.json",
+    queryMsg:    "./schema/query.json",
+    queryAnswer: "./schema/response.json",
+    handleMsg:   "./schema/handle.json",
+  })
 
   static attach (
     address:  string,

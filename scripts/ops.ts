@@ -5,7 +5,8 @@ import process from 'process'
 
 import init from './init'
 import deployVesting from './deployVesting'
-import deploySwap from './deploySwap'
+import deploySwap    from './deploySwap'
+import deployRewards from './deployRewards'
 import replaceRewardPool, { printRewardsContracts } from './replaceRewardPool'
 import rewardsAudit from './rewardsAudit'
 
@@ -68,6 +69,22 @@ commands['deploy'] = {
     if (!chain.instances.active) await commands.deploy.vesting()
     const { name: prefix } = chain.instances.active
     await deploySwap({ chain, admin, prefix })
+    chain.printActiveInstance()
+  },
+
+  async ['rewards-v2-and-v3'] () {
+    const {chain, admin} = await init(process.env.CHAIN_NAME)
+    if (chain.isMainnet) {
+      console.log('This command is not intended for mainnet.')
+      process.exit(1)
+    }
+    if (!chain.instances.active) {
+      console.log('Need to select an active instance for this command.')
+      process.exit(1)
+    }
+    const { name: prefix } = chain.instances.active
+    await deployRewards({ chain, admin, prefix, split: 0.5, ref: 'rewards-2.1.2' })
+    await deployRewards({ chain, admin, prefix, split: 0.5, ref: 'rewards-3.0.0' })
     chain.printActiveInstance()
   }
 

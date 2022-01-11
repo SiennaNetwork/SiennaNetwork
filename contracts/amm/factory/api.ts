@@ -34,6 +34,18 @@ export type FactoryOptions = ContractAPIOptions & {
 
 export class FactoryContract extends ScrtContract_1_2 {
 
+  static attach = (
+    address:  string,
+    codeHash: string,
+    agent:    IAgent
+  ) => {
+    const instance = new FactoryContract({ admin: agent })
+    instance.init.agent = agent
+    instance.init.address = address
+    instance.blob.codeHash = codeHash
+    return instance
+  }
+
   constructor(options: FactoryOptions = {}) {
     super({
       codeId: options.codeId,
