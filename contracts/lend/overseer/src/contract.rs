@@ -177,6 +177,18 @@ pub trait Overseer {
         )
     }
 
+    #[query("id")]
+    fn id(permit: Permit<OverseerPermissions>) -> StdResult<Binary> {
+        let self_ref = Contracts::load_self_ref(deps)?;
+        let borrower = permit.validate_with_permissions(
+            deps,
+            self_ref.address,
+            vec![ OverseerPermissions::Id ]
+        )?;
+
+        Ok(BorrowerId::new(deps, &borrower)?.into())
+    }
+
     #[query("whitelist")]
     fn markets(
         pagination: Pagination

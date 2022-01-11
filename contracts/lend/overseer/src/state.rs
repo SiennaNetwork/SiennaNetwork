@@ -297,9 +297,9 @@ impl BorrowerId {
     }
 }
 
-impl Into<Binary> for BorrowerId {
-    fn into(self) -> Binary {
-        Binary::from(self.0)
+impl From<BorrowerId> for Binary {
+    fn from(id: BorrowerId) -> Self {
+        Binary(id.0.into())
     }
 }
 

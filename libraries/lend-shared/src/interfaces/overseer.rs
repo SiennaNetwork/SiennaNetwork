@@ -52,6 +52,9 @@ pub trait Overseer {
         borrow_amount: Uint128
     ) -> StdResult<AccountLiquidity>;
 
+    #[query("id")]
+    fn id(permit: Permit<OverseerPermissions>) -> StdResult<Binary>;
+
     #[query("config")]
     fn config() -> StdResult<Config>;
 }
@@ -60,7 +63,8 @@ pub trait Overseer {
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum OverseerPermissions {
-    AccountInfo
+    AccountInfo,
+    Id
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
