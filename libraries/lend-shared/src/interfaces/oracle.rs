@@ -17,42 +17,36 @@ pub trait Oracle {
     fn new(
         admin: Option<HumanAddr>,
         source: ContractLink<HumanAddr>,
-        initial_assets: Vec<PriceAsset>,
+        initial_assets: Vec<Asset>,
         callback: Callback<HumanAddr>
     ) -> StdResult<InitResponse>;
 
     #[handle]
-    fn update_assets(assets: Vec<PriceAsset>) -> StdResult<HandleResponse>;
+    fn update_assets(assets: Vec<Asset>) -> StdResult<HandleResponse>;
 
     #[query("price")]
     fn price(
-        base: HumanAddr,
-        quote: HumanAddr
+        base: AssetType,
+        quote: AssetType
     ) -> StdResult<PriceResponse>;
 
     #[query("prices")]
     fn prices(
-        base: Vec<HumanAddr>,
-        quote: Vec<HumanAddr>
+        base: Vec<AssetType>,
+        quote: Vec<AssetType>
     ) -> StdResult<PricesResponse>;
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub enum SourceQuery {
-    GetReferenceData {
-        base_symbol: String,
-        quote_symbol: String,
-    },
-    GetReferenceDataBulk {
-        base_symbols: Vec<String>,
-        quote_symbols: Vec<String>,
-    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct PriceAsset {
+pub enum AssetType {
+    Symbol(String),
+    Address(HumanAddr)
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct Asset {
     pub address: HumanAddr,
     pub symbol: String
 }
@@ -75,11 +69,29 @@ pub struct TimeConstraints {
     pub valid_timeframe: u64,
 }
 
+impl From<HumanAddr> for AssetType {
+    fn from(address: HumanAddr) -> Self {
+        AssetType::Address(address)
+    }
+}
+
+impl From<&str> for AssetType {
+    fn from(symbol: &str) -> Self {
+        AssetType::Symbol(symbol.to_string())
+    }
+}
+
+impl From<String> for AssetType {
+    fn from(symbol: String) -> Self {
+        AssetType::Symbol(symbol)
+    }
+}
+
 pub fn query_price(
     querier: &impl Querier,
     oracle: ContractLink<HumanAddr>,
-    base: HumanAddr,
-    quote: HumanAddr,
+    base: AssetType,
+    quote: AssetType,
     time_contraints: Option<TimeConstraints>,
 ) -> StdResult<PriceResponse> {
     let oracle_price = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {

@@ -23,7 +23,7 @@ use lend_shared::{
             OverseerPermissions, Pagination,
             AccountLiquidity, Config, Market, 
         },
-        oracle::{HandleMsg as OracleHandleMsg, PriceAsset, query_price}
+        oracle::{HandleMsg as OracleHandleMsg, Asset, query_price}
     }
 };
 
@@ -73,7 +73,7 @@ pub trait Overseer {
                 callback_code_hash: oracle.code_hash,
                 send: vec![],
                 msg: to_binary(&OracleHandleMsg::UpdateAssets {
-                    assets: vec![PriceAsset {
+                    assets: vec![Asset {
                         address: market.contract.address,
                         symbol: market.symbol
                     }]
@@ -209,16 +209,18 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     let oracle = Contracts::load_oracle(deps)?;
     let target_asset = target_asset.unwrap_or_default();
 
-    let total_collateral = Uint256::zero();
-    let total_borrowed = Uint256::zero();
+    let mut total_collateral = Uint256::zero();
+    let mut total_borrowed = Uint256::zero();
 
     for market in borrower.list_markets(deps)? {
+        let is_target_asset = target_asset == market.contract.address;
+
         let snapshot = query_snapshot(&deps.querier, market.contract, borrower.clone().id())?;
 
         let price = query_price(
             &deps.querier,
             oracle.clone(),
-            todo!(),
+            market.symbol.into(),
             "USD".into(),
             None
         )?;
@@ -227,7 +229,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
         total_collateral = (Uint256::from(snapshot.sl_token_balance).decimal_mul(conversion_factor)? + total_collateral)?;
         total_borrowed = (Uint256::from(snapshot.borrow_balance).decimal_mul(price.rate)? + total_borrowed)?;
 
-        if target_asset == market.contract.address {
+        if is_target_asset {
             total_borrowed = (Uint256::from(redeeem_amount).decimal_mul(conversion_factor)? + total_borrowed)?;
             total_borrowed = (Uint256::from(borrow_amount).decimal_mul(price.rate)? + total_borrowed)?;
         }
