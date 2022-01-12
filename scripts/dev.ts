@@ -79,6 +79,10 @@ export default async function main (words: Array<string>) {
 
       rewards: () => Promise.all([
         new RewardsContract().build(),
+      ]),
+
+      ['rewards-v2']: () => Promise.all([
+        new RewardsContract({ ref: 'rewards-2.1.2' }).build(),
       ])
     },
 

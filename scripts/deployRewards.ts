@@ -42,7 +42,7 @@ export default async function deployRewards (options: RewardsOptions): Promise<R
     prefix,
     suffix = '',
     split  = 1.0,
-    ref    = 'dev'
+    ref    = 'HEAD'
   } = options
 
   const

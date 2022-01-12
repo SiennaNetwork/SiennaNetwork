@@ -1,7 +1,4 @@
-import type {
-  IChain,
-  IAgent
-} from '@fadroma/ops'
+import type { IChain, IAgent } from '@fadroma/ops'
 import { Scrt } from '@fadroma/scrt'
 import { timestamp } from '@fadroma/tools'
 
