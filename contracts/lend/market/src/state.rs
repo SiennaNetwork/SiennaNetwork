@@ -4,7 +4,7 @@ use lend_shared::fadroma::{
     schemars,
     schemars::JsonSchema,
     storage::{load, save},
-    Canonize, ContractLink, Decimal256, Humanize, Uint256, Uint128, StdError
+    Canonize, ContractLink, Decimal256, Humanize, StdError, Uint128, Uint256,
 };
 use lend_shared::impl_contract_storage;
 use serde::{Deserialize, Serialize};
@@ -87,43 +87,39 @@ impl Borrower {
 pub struct GlobalData;
 
 impl GlobalData {
-    const KEY_BORROW_CAP: &'static[u8] = b"borrow_cap";
-    const KEY_TOTAL_BORROWS: &'static[u8] = b"total_borrows";
+    const KEY_BORROW_CAP: &'static [u8] = b"borrow_cap";
+    const KEY_TOTAL_BORROWS: &'static [u8] = b"total_borrows";
+    const KEY_TOTAL_RESERVES: &'static [u8] = b"total_reserves";
+    const KEY_TOTAL_SUPPLY: &'static [u8] = b"total_supply";
+    const KEY_BORROW_INDEX: &'static [u8] = b"borrow_index";
 
     #[inline]
-    pub fn save_borrow_cap(
-        storage: &mut impl Storage,
-        borrow_cap: &Uint128
-    ) -> StdResult<()> {
+    pub fn save_borrow_cap(storage: &mut impl Storage, borrow_cap: &Uint128) -> StdResult<()> {
         save(storage, Self::KEY_BORROW_CAP, borrow_cap)
     }
-    
+
     #[inline]
-    pub fn load_borrow_cap(
-        storage: &impl Storage,
-    ) -> StdResult<Option<Uint128>> {
+    pub fn load_borrow_cap(storage: &impl Storage) -> StdResult<Option<Uint128>> {
         load(storage, Self::KEY_BORROW_CAP)
     }
-    
+
     pub fn increase_total_borrows(
         storage: &mut impl Storage,
-        amount: Uint128
+        amount: Uint128,
     ) -> StdResult<Uint128> {
         let current = Self::load_total_borrows(storage)?;
-        let new = current.0.checked_add(amount.0).ok_or_else(||
-            StdError::generic_err("Total borrows amount overflowed.")
-        )?;
+        let new = current
+            .0
+            .checked_add(amount.0)
+            .ok_or_else(|| StdError::generic_err("Total borrows amount overflowed."))?;
 
         let new = Uint128(new);
         Self::save_total_borrows(storage, &new)?;
 
         Ok(new)
     }
-    
-    pub fn decrease_borrow_cap(
-        storage: &mut impl Storage,
-        amount: Uint128
-    ) -> StdResult<Uint128> {
+
+    pub fn decrease_borrow_cap(storage: &mut impl Storage, amount: Uint128) -> StdResult<Uint128> {
         let current = Self::load_total_borrows(storage)?;
         let new = (current - amount)?;
 
@@ -138,10 +134,65 @@ impl GlobalData {
     }
 
     #[inline]
-    fn save_total_borrows(
-        storage: &mut impl Storage,
-        total: &Uint128
-    ) -> StdResult<()> {
+    fn save_total_borrows(storage: &mut impl Storage, total: &Uint128) -> StdResult<()> {
         save(storage, Self::KEY_TOTAL_BORROWS, total)
+    }
+
+    #[inline]
+    pub fn load_total_reserves(storage: &impl Storage) -> StdResult<Uint128> {
+        Ok(load(storage, Self::KEY_TOTAL_RESERVES)?.unwrap_or_default())
+    }
+
+    #[inline]
+    fn save_total_reserves(storage: &mut impl Storage, reserves: &Uint128) -> StdResult<()> {
+        save(storage, Self::KEY_TOTAL_RESERVES, reserves)
+    }
+
+    pub fn increase_total_supply(
+        storage: &mut impl Storage,
+        amount: Uint128,
+    ) -> StdResult<Uint128> {
+        let current = Self::load_total_supply(storage)?;
+        let new = current
+            .0
+            .checked_add(amount.0)
+            .ok_or_else(|| StdError::generic_err("Total supply amount overflowed."))?;
+
+        let new = Uint128(new);
+        Self::save_total_supply(storage, &new)?;
+
+        Ok(new)
+    }
+
+    pub fn decrease_total_supply(
+        storage: &mut impl Storage,
+        amount: Uint128,
+    ) -> StdResult<Uint128> {
+        let current = Self::load_total_supply(storage)?;
+        let new = (current - amount)?;
+
+        Self::save_total_supply(storage, &new)?;
+
+        Ok(new)
+    }
+
+    #[inline]
+    pub fn load_total_supply(storage: &impl Storage) -> StdResult<Uint128> {
+        Ok(load(storage, Self::KEY_TOTAL_BORROWS)?.unwrap_or_default())
+    }
+
+    #[inline]
+    fn save_total_supply(storage: &mut impl Storage, total: &Uint128) -> StdResult<()> {
+        save(storage, Self::KEY_TOTAL_BORROWS, total)
+    }
+
+    #[inline]
+    pub fn load_borrow_index(storage: &impl Storage) -> StdResult<Decimal256> {
+        Ok(load(storage, Self::KEY_BORROW_INDEX)?.unwrap_or_default())
+    }
+
+    #[inline]
+    fn save_borrow_index(storage: &mut impl Storage, index: &Decimal256) -> StdResult<()> {
+        save(storage, Self::KEY_BORROW_INDEX, index)
     }
 }

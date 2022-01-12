@@ -88,11 +88,11 @@ pub struct StateResponse {
     /// Accumulator of the total earned interest rate since the opening of the market
     borrow_index: Decimal256,
     /// Total amount of outstanding borrows of the underlying in this market
-    total_borrows: Decimal256,
+    total_borrows: Uint128,
     /// Total amount of reserves of the underlying held in this market
-    total_reserves: Decimal256,
+    total_reserves: Uint128,
     /// Total number of tokens in circulation
-    total_supply: Uint256,
+    total_supply: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
