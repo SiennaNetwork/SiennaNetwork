@@ -158,7 +158,7 @@ pub trait Overseer {
     fn account_liquidity(
         permit: Permit<OverseerPermissions>,
         market: Option<HumanAddr>,
-        redeeem_amount: Uint128,
+        redeem_amount: Uint128,
         borrow_amount: Uint128
     ) -> StdResult<AccountLiquidity> {
         let self_ref = Contracts::load_self_ref(deps)?;
@@ -172,7 +172,7 @@ pub trait Overseer {
             deps,
             &Borrower::new(deps, &borrower)?,
             market,
-            redeeem_amount,
+            redeem_amount,
             borrow_amount
         )
     }
@@ -215,7 +215,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     borrower: &Borrower,
     target_asset: Option<HumanAddr>,
-    redeeem_amount: Uint128,
+    redeem_amount: Uint128,
     borrow_amount: Uint128
 ) -> StdResult<AccountLiquidity> {
     let oracle = Contracts::load_oracle(deps)?;
@@ -242,7 +242,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
         total_borrowed = (Uint256::from(snapshot.borrow_balance).decimal_mul(price.rate)? + total_borrowed)?;
 
         if is_target_asset {
-            total_borrowed = (Uint256::from(redeeem_amount).decimal_mul(conversion_factor)? + total_borrowed)?;
+            total_borrowed = (Uint256::from(redeem_amount).decimal_mul(conversion_factor)? + total_borrowed)?;
             total_borrowed = (Uint256::from(borrow_amount).decimal_mul(price.rate)? + total_borrowed)?;
         }
     }
