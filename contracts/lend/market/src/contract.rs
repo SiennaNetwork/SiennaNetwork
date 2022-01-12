@@ -1,5 +1,6 @@
-mod state;
 mod checks;
+mod state;
+mod ops;
 
 use lend_shared::{
     fadroma::{
@@ -17,7 +18,10 @@ use lend_shared::{
         Callback, Canonize, ContractInstantiationInfo, ContractLink, Decimal256, Humanize, Permit,
         Uint128, Uint256, BLOCK_SIZE,
     },
-    interfaces::{market::*, overseer::OverseerPermissions},
+    interfaces::{
+        market::*,
+        overseer::{query_id, OverseerPermissions},
+    },
 };
 
 use state::Config;
@@ -127,10 +131,17 @@ pub trait Market {
 
                 let id = query_id(&deps.querier, config.overseer_contract.clone(), permit)?;
 
-                unimplemented!()
+                ops::deposit_underlying(deps, env, id, Uint256::from(amount))
             }
             ReceiverCallbackMsg::WithdrawUnderlying { permit } => {
-                unimplemented!()
+                let config = Config::load(&deps)?;
+                if env.message.sender != config.sl_token.address {
+                    return Err(StdError::unauthorized());
+                }
+
+                let id = query_id(&deps.querier, config.overseer_contract.clone(), permit)?;
+
+                ops::withdraw_underlying(deps, env, id, Uint256::from(amount))
             }
         }
     }

@@ -159,3 +159,20 @@ pub fn query_account_liquidity(
         _ => Err(StdError::generic_err("Expecting QueryResponse::AccountLiquidity"))
     }
 }
+
+pub fn query_id(
+    querier: &impl Querier,
+    overseer: ContractLink<HumanAddr>,
+    permit: Permit<OverseerPermissions>,
+) -> StdResult<Binary> {
+    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: overseer.address,
+        callback_code_hash: overseer.code_hash,
+        msg: to_binary(&QueryMsg::Id { permit })?
+    }))?;
+
+    match result {
+        QueryResponse::Id { id } => Ok(id),
+        _ => Err(StdError::generic_err("Expecting QueryResponse::Id"))
+    }
+}
