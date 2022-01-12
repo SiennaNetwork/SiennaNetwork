@@ -92,7 +92,7 @@ commands['deploy'] = {
     const v3Suffix = `@v3+${timestamp()}`
     const rptConfig = [
       ...await deployRewards({ ...options, suffix: v2Suffix, split: 0.5, ref: 'rewards-2.1.2' }),
-      ...await deployRewards({ ...options, suffix: v3Suffix, split: 0.5, ref: 'rewards-3.0.0' })
+      ...await deployRewards({ ...options, suffix: v3Suffix, split: 0.5, ref: 'HEAD' })
     ]
     console.log({rptConfig})
     const RPT = chain.instances.active.getContract(RPTContract, 'SiennaRPT', admin)
