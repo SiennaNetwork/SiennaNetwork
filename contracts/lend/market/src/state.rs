@@ -1,73 +1,47 @@
-use std::convert::{TryFrom, TryInto};
-
 use lend_shared::fadroma::{
     cosmwasm_std::{Api, Binary, CanonicalAddr, Extern, HumanAddr, Querier, StdResult, Storage},
     cosmwasm_storage::{Bucket, ReadonlyBucket},
     schemars,
     schemars::JsonSchema,
     storage::{load, save},
-    Canonize, ContractLink, Decimal256, Humanize, Uint256
+    Canonize, ContractLink, Decimal256, Humanize, Uint256, Uint128, StdError
 };
+use lend_shared::impl_contract_storage;
 use serde::{Deserialize, Serialize};
 
 const PAGINATION_LIMIT: u8 = 30;
 
-const PREFIX_BORROWER: &[u8] = b"borrower";
+pub struct Contracts;
+
+impl Contracts {
+    impl_contract_storage!(save_interest_model, load_interest_model, b"interest_model");
+    impl_contract_storage!(save_overseer, load_overseer, b"interest_model");
+    impl_contract_storage!(save_underlying, load_underlying, b"underlying_asset");
+    impl_contract_storage!(save_sl_token, load_sl_token, b"sl_token");
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct Config<A> {
-    pub underlying_asset: ContractLink<A>,
-    pub overseer_contract: ContractLink<A>,
-    pub sl_token: ContractLink<A>,
-    pub interest_model_contract: ContractLink<A>,
+pub struct Config {
     // Initial exchange rate used when minting the first slTokens (used when totalSupply = 0)
     pub initial_exchange_rate: Decimal256,
     // Fraction of interest currently set aside for reserves
     pub reserve_factor: Decimal256,
 }
 
-impl Config<HumanAddr> {
+impl Config {
     const KEY: &'static [u8] = b"config";
 
     pub fn save<S: Storage, A: Api, Q: Querier>(
         deps: &mut Extern<S, A, Q>,
         config: &Self,
     ) -> StdResult<()> {
-        let config = config.canonize(&deps.api)?;
-
         save(&mut deps.storage, Self::KEY, &config)
     }
 
     pub fn load<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Self> {
-        let result: Config<CanonicalAddr> = load(&deps.storage, Self::KEY)?.unwrap();
+        let result: Config = load(&deps.storage, Self::KEY)?.unwrap();
 
-        result.humanize(&deps.api)
-    }
-}
-
-impl Canonize<Config<CanonicalAddr>> for Config<HumanAddr> {
-    fn canonize(&self, api: &impl Api) -> StdResult<Config<CanonicalAddr>> {
-        Ok(Config {
-            underlying_asset: self.underlying_asset.canonize(api)?,
-            overseer_contract: self.overseer_contract.canonize(api)?,
-            sl_token: self.sl_token.canonize(api)?,
-            interest_model_contract: self.interest_model_contract.canonize(api)?,
-            initial_exchange_rate: self.initial_exchange_rate,
-            reserve_factor: self.reserve_factor,
-        })
-    }
-}
-
-impl Humanize<Config<HumanAddr>> for Config<CanonicalAddr> {
-    fn humanize(&self, api: &impl Api) -> StdResult<Config<HumanAddr>> {
-        Ok(Config {
-            underlying_asset: self.underlying_asset.humanize(api)?,
-            overseer_contract: self.overseer_contract.humanize(api)?,
-            sl_token: self.sl_token.humanize(api)?,
-            interest_model_contract: self.interest_model_contract.humanize(api)?,
-            initial_exchange_rate: self.initial_exchange_rate,
-            reserve_factor: self.reserve_factor,
-        })
+        Ok(result)
     }
 }
 
@@ -75,7 +49,6 @@ pub struct Borrower {
     /// The id must be created by Overseer.
     id: Binary,
 }
-
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct BorrowInfo {
@@ -86,6 +59,7 @@ pub struct BorrowInfo {
 }
 
 impl Borrower {
+    const KEY: &'static [u8] = b"borrower";
     pub fn new(id: Binary) -> StdResult<Self> {
         Ok(Self { id })
     }
@@ -94,13 +68,12 @@ impl Borrower {
         storage: &mut S,
         borrow_info: &BorrowInfo,
     ) -> StdResult<()> {
-        let mut borrower_bucket: Bucket<'_, S, BorrowInfo> =
-            Bucket::new(PREFIX_BORROWER, storage);
+        let mut borrower_bucket: Bucket<'_, S, BorrowInfo> = Bucket::new(Self::KEY, storage);
         borrower_bucket.save(&self.id.as_slice(), borrow_info)
     }
 
     pub fn read_borrow_info(&self, storage: &impl Storage) -> BorrowInfo {
-        let borrower_bucket = ReadonlyBucket::new(PREFIX_BORROWER, storage);
+        let borrower_bucket = ReadonlyBucket::new(Self::KEY, storage);
         match borrower_bucket.load(self.id.as_slice()) {
             Ok(v) => v,
             _ => BorrowInfo {
@@ -108,5 +81,67 @@ impl Borrower {
                 interest_index: Decimal256::one(),
             },
         }
+    }
+}
+
+pub struct GlobalData;
+
+impl GlobalData {
+    const KEY_BORROW_CAP: &'static[u8] = b"borrow_cap";
+    const KEY_TOTAL_BORROWS: &'static[u8] = b"total_borrows";
+
+    #[inline]
+    pub fn save_borrow_cap(
+        storage: &mut impl Storage,
+        borrow_cap: &Uint128
+    ) -> StdResult<()> {
+        save(storage, Self::KEY_BORROW_CAP, borrow_cap)
+    }
+    
+    #[inline]
+    pub fn load_borrow_cap(
+        storage: &impl Storage,
+    ) -> StdResult<Option<Uint128>> {
+        load(storage, Self::KEY_BORROW_CAP)
+    }
+    
+    pub fn increase_total_borrows(
+        storage: &mut impl Storage,
+        amount: Uint128
+    ) -> StdResult<Uint128> {
+        let current = Self::load_total_borrows(storage)?;
+        let new = current.0.checked_add(amount.0).ok_or_else(||
+            StdError::generic_err("Total borrows amount overflowed.")
+        )?;
+
+        let new = Uint128(new);
+        Self::save_total_borrows(storage, &new)?;
+
+        Ok(new)
+    }
+    
+    pub fn decrease_borrow_cap(
+        storage: &mut impl Storage,
+        amount: Uint128
+    ) -> StdResult<Uint128> {
+        let current = Self::load_total_borrows(storage)?;
+        let new = (current - amount)?;
+
+        Self::save_total_borrows(storage, &new)?;
+
+        Ok(new)
+    }
+
+    #[inline]
+    pub fn load_total_borrows(storage: &impl Storage) -> StdResult<Uint128> {
+        Ok(load(storage, Self::KEY_TOTAL_BORROWS)?.unwrap_or_default())
+    }
+
+    #[inline]
+    fn save_total_borrows(
+        storage: &mut impl Storage,
+        total: &Uint128
+    ) -> StdResult<()> {
+        save(storage, Self::KEY_TOTAL_BORROWS, total)
     }
 }

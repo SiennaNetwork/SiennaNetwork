@@ -1,6 +1,6 @@
 mod checks;
-mod state;
 mod ops;
+mod state;
 
 use lend_shared::{
     fadroma::{
@@ -24,7 +24,7 @@ use lend_shared::{
     },
 };
 
-use state::Config;
+use state::{Config, Contracts, GlobalData};
 
 #[contract_impl(path = "lend_shared::interfaces::market", component(path = "admin"))]
 pub trait Market {
@@ -52,13 +52,14 @@ pub trait Market {
             deps,
             &Config {
                 initial_exchange_rate,
-                overseer_contract,
-                interest_model_contract,
-                sl_token,
-                underlying_asset: underlying_asset.clone(),
                 reserve_factor,
             },
         )?;
+
+        Contracts::save_overseer(deps, &overseer_contract);
+        Contracts::save_interest_model(deps, &interest_model_contract);
+        Contracts::save_underlying(deps, &underlying_asset);
+        Contracts::save_sl_token(deps, &sl_token);
 
         let time = env.block.time;
         admin::DefaultImpl.new(admin, deps, env)?;
@@ -121,25 +122,22 @@ pub trait Market {
         if msg.is_none() {
             return Err(StdError::generic_err("\"msg\" parameter cannot be empty."));
         }
-
         match from_binary(&msg.unwrap())? {
             ReceiverCallbackMsg::DepositUnderlying { permit } => {
-                let config = Config::load(&deps)?;
-                if env.message.sender != config.underlying_asset.address {
+                if env.message.sender != Contracts::load_underlying(deps)?.address {
                     return Err(StdError::unauthorized());
                 }
 
-                let id = query_id(&deps.querier, config.overseer_contract.clone(), permit)?;
+                let id = query_id(&deps.querier, Contracts::load_overseer(deps)?, permit)?;
 
                 ops::deposit_underlying(deps, env, id, Uint256::from(amount))
             }
             ReceiverCallbackMsg::WithdrawUnderlying { permit } => {
-                let config = Config::load(&deps)?;
-                if env.message.sender != config.sl_token.address {
+                if env.message.sender != Contracts::load_sl_token(deps)?.address {
                     return Err(StdError::unauthorized());
                 }
 
-                let id = query_id(&deps.querier, config.overseer_contract.clone(), permit)?;
+                let id = query_id(&deps.querier, Contracts::load_overseer(deps)?, permit)?;
 
                 ops::withdraw_underlying(deps, env, id, Uint256::from(amount))
             }
@@ -148,22 +146,22 @@ pub trait Market {
 
     #[handle]
     fn register_sl_token() -> StdResult<HandleResponse> {
-        let mut config = Config::load(deps)?;
+        let mut sl_token = Contracts::load_sl_token(deps)?;
 
-        if config.sl_token.address != HumanAddr::default() {
+        if sl_token.address != HumanAddr::default() {
             return Err(StdError::unauthorized());
         }
 
-        config.sl_token.address = env.message.sender;
-        Config::save(deps, &config)?;
+        sl_token.address = env.message.sender;
+        Contracts::save_sl_token(deps, &sl_token)?;
 
         Ok(HandleResponse {
             messages: vec![snip20::register_receive_msg(
                 env.contract_code_hash,
                 None,
                 BLOCK_SIZE,
-                config.sl_token.code_hash,
-                config.sl_token.address,
+                sl_token.code_hash,
+                sl_token.address,
             )?],
             log: vec![log("action", "register_sl_token")],
             data: None,
@@ -178,8 +176,7 @@ pub trait Market {
     ) -> StdResult<HandleResponse> {
         let mut config = Config::load(deps)?;
         if let Some(interest_model) = interest_model {
-            config.interest_model_contract = interest_model;
-            Config::save(deps, &config)?;
+            Contracts::save_interest_model(deps, &interest_model)?;
         }
 
         if let Some(reserve_factor) = reserve_factor {
