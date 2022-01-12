@@ -1,4 +1,5 @@
 mod state;
+mod checks;
 
 use lend_shared::{
     fadroma::{
