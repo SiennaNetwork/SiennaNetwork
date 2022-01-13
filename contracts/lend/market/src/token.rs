@@ -1,92 +1,134 @@
 use lend_shared::{
     fadroma::{
         cosmwasm_std::{
-            Binary, Storage, Api, Querier, Extern,
-            Uint128,StdResult, StdError, HumanAddr,
-            HandleResponse
+            Storage, Api, Querier, Extern,
+            Uint128,StdResult, StdError,
+            HumanAddr, Env, HandleResponse,
+            log
         },
+        permit::Permit,
         secret_toolkit::snip20,
-        storage::{ns_load, ns_save},
-        Decimal256, Uint256, BLOCK_SIZE
+        Decimal256, Uint256, ContractLink, BLOCK_SIZE
     },
-    interfaces::market::VIEWING_KEY
+    interfaces::{
+        market::VIEWING_KEY,
+        overseer::{OverseerPermissions, query_can_transfer}
+    }
 };
-use crate::{GlobalData, Config, Contracts};
 
-// TODO: Move to state.rs
-// *********************************************************************************************
-pub struct Account(Binary);
-
-impl Account {
-    const NS_BALANCES: &'static [u8] = b"balances";
-
-    pub fn get_balance(&self, storage: &impl Storage) -> StdResult<Uint128> {
-        let result: Option<Uint128> = ns_load(
-            storage,
-            Self::NS_BALANCES,
-            self.0.as_slice()
-        )?;
-
-        Ok(result.unwrap_or_default())
-    }
-
-    pub fn add_balance(&self, storage: &mut impl Storage, amount: Uint128) -> StdResult<()> {
-        let account_balance = self.get_balance(storage)?;
-
-        if let Some(new_balance) = account_balance.0.checked_add(amount.0) {
-            self.set_balance(storage, Uint128(new_balance))
-        } else {
-            Err(StdError::generic_err(
-                "This deposit would overflow your balance",
-            ))
-        }
-    }
-
-    pub fn subtract_balance(&self, storage: &mut impl Storage, amount: Uint128) -> StdResult<()> {
-        let account_balance = self.get_balance(storage)?;
-
-        if let Some(new_balance) = account_balance.0.checked_sub(amount.0) {
-            self.set_balance(storage, Uint128(new_balance))
-        } else {
-            Err(StdError::generic_err(format!(
-                "insufficient funds: balance={}, required={}",
-                account_balance, amount
-            )))
-        }
-    }
-
-    #[inline]
-    fn set_balance(&self, storage: &mut impl Storage, amount: Uint128) -> StdResult<()> {
-        ns_save(storage, Self::NS_BALANCES, self.0.as_slice(), &amount)
-    }
-}
-// *********************************************************************************************
+use crate::accrue_interest;
+use crate::state::{GlobalData, Config, Contracts, Account};
 
 pub fn deposit<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S,A,Q>,
-    self_addr: HumanAddr,
-    depositor: HumanAddr,
+    env: Env,
+    underlying_asset: ContractLink<HumanAddr>,
+    from: HumanAddr,
     amount: Uint128
 ) -> StdResult<HandleResponse> {
-    // TODO: accrue_interest
-    // TODO: https://github.com/compound-finance/compound-protocol/blob/4a8648ec0364d24c4ecfc7d6cae254f55030d65f/contracts/CToken.sol#L505-L507
+    let balance = snip20::balance_query(
+        &deps.querier,
+        env.contract.address,
+        VIEWING_KEY.to_string(),
+        BLOCK_SIZE,
+        underlying_asset.code_hash,
+        underlying_asset.address,
+    )?.amount;
 
-    let exchange_rate = calc_exchange_rate(deps, self_addr)?;
+    accrue_interest(deps, env.block.height, balance)?;
+
+    let exchange_rate = calc_exchange_rate(deps, balance)?;
     let mint_amount: Uint128 = Uint256::from(amount)
         .decimal_div(exchange_rate)?
         .clamp_u128()?
         .into();
 
-    GlobalData::increase_total_supply(&mut deps.storage, mint_amount);
+    GlobalData::increase_total_supply(&mut deps.storage, mint_amount)?;
 
-    // TODO: increase account balance.
+    let account = Account::new(deps, &from)?;
+    account.add_balance(&mut deps.storage, mint_amount)?;
 
     Ok(HandleResponse::default())
 }
 
+pub fn redeem<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S,A,Q>,
+    env: Env,
+    permit: Permit<OverseerPermissions>,
+    from_sl_token: Uint128,
+    from_underlying: Uint128
+) -> StdResult<HandleResponse> {
+    let underlying_asset = Contracts::load_underlying(deps)?;
+
+    let balance = snip20::balance_query(
+        &deps.querier,
+        env.contract.address.clone(),
+        VIEWING_KEY.to_string(),
+        BLOCK_SIZE,
+        underlying_asset.code_hash.clone(),
+        underlying_asset.address.clone(),
+    )?.amount;
+
+    accrue_interest(deps, env.block.height, balance)?;
+
+    let exchange_rate = calc_exchange_rate(deps, balance)?;
+
+    let (redeem_amount, burn_amount) = if from_sl_token > Uint128::zero() {
+        let redeem_amount = Uint256::from(from_sl_token).decimal_mul(exchange_rate)?;
+
+        (Uint128(redeem_amount.clamp_u128()?), from_sl_token)
+    } else {
+        let burn_amount = Uint256::from(from_underlying).decimal_div(exchange_rate)?;
+
+        (from_underlying, Uint128(burn_amount.clamp_u128()?))
+    };
+
+    if balance < redeem_amount {
+        return Err(StdError::generic_err(format!(
+            "The protocol has an insufficient amount of the underlying asset at this time. supply: {}, needed: {}",
+            balance,
+            redeem_amount
+        )));
+    }
+
+    let can_transfer = query_can_transfer(
+        &deps.querier,
+        Contracts::load_overseer(deps)?,
+        permit,
+        env.contract.address,
+        burn_amount
+    )?;
+
+    if !can_transfer {
+        return Err(StdError::generic_err("Account has negative liquidity and cannot redeem."));
+    }
+
+    GlobalData::decrease_total_supply(&mut deps.storage, burn_amount)?;
+
+    let account = Account::new(deps, &env.message.sender)?;
+    account.subtract_balance(&mut deps.storage, burn_amount)?;
+
+    Ok(HandleResponse {
+        messages: vec![snip20::transfer_msg(
+            env.message.sender,
+            redeem_amount,
+            None,
+            BLOCK_SIZE,
+            underlying_asset.code_hash,
+            underlying_asset.address
+        )?],
+        log: vec![
+            log("action", "redeem"),
+            log("redeem_amount", redeem_amount),
+            log("burn_amount", burn_amount)
+        ],
+        data: None
+    })
+}
+
 pub fn calc_exchange_rate<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S,A,Q>,
-    self_addr: HumanAddr
+    balance: Uint128
 ) -> StdResult<Decimal256> {
     let total_supply = GlobalData::load_total_supply(&deps.storage)?;
 
@@ -95,17 +137,6 @@ pub fn calc_exchange_rate<S: Storage, A: Api, Q: Querier>(
 
         return Ok(config.initial_exchange_rate);
     }
-
-    let underlying_asset = Contracts::load_underlying(deps)?;
-
-    let balance = snip20::balance_query(
-        &deps.querier,
-        self_addr,
-        VIEWING_KEY.to_string(),
-        BLOCK_SIZE,
-        underlying_asset.code_hash,
-        underlying_asset.address,
-    )?.amount;
 
     let total_borrows = GlobalData::load_total_borrows(&deps.storage)?.0;
     let total_reserves = GlobalData::load_total_reserves(&deps.storage)?.0;

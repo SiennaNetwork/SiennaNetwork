@@ -1,17 +1,23 @@
 use fadroma::{
-    admin, auth::Permit, cosmwasm_std, derive_contract::*, schemars, schemars::JsonSchema, Binary,
-    ContractInstantiationInfo, ContractLink, Decimal256, HandleResponse, HumanAddr, InitResponse,
-    StdResult, Uint128, Uint256,
+    admin,
+    auth::Permit,
+    cosmwasm_std,
+    derive_contract::*,
+    schemars,
+    schemars::JsonSchema,
+    ContractLink, Decimal256, HandleResponse, HumanAddr, InitResponse,
+    StdResult, Uint128, Uint256, Binary,
 };
 
 use serde::{Deserialize, Serialize};
 
 use super::overseer::OverseerPermissions;
 
-pub const VIEWING_KEY: &str = "SiennaLend"; // TODO: Should this be public?
+pub const VIEWING_KEY: &str = "SiennaLend"; // TODO: This shouldn't be hardcoded.
 pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
 // TODO: proper value here
 pub const MAX_BORROW_RATE: Decimal256 = Decimal256::one();
+
 #[interface(component(path = "admin"))]
 pub trait Market {
     #[init]
@@ -20,8 +26,6 @@ pub trait Market {
         prng_seed: Binary,
         // Underlying asset address
         underlying_asset: ContractLink<HumanAddr>,
-        // SiennaLend token info
-        sl_token_info: ContractInstantiationInfo,
         // Overseer contract address
         overseer_contract: ContractLink<HumanAddr>,
         // Interest model contract address
@@ -36,7 +40,16 @@ pub trait Market {
     fn receive(from: HumanAddr, msg: Option<Binary>, amount: Uint128) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn register_sl_token() -> StdResult<HandleResponse>;
+    fn redeem_token(
+        permit: Permit<OverseerPermissions>,
+        burn_amount: Uint128
+    ) -> StdResult<HandleResponse>;
+
+    #[handle]
+    fn redeem_underlying(
+        permit: Permit<OverseerPermissions>,
+        receive_amount: Uint128
+    ) -> StdResult<HandleResponse>;
 
     #[handle]
     fn update_config(
@@ -118,10 +131,5 @@ pub struct AccountSnapshotResponse {
 #[serde(rename_all = "snake_case")]
 pub enum ReceiverCallbackMsg {
     /// Deposit underlying token
-    DepositUnderlying { permit: Permit<OverseerPermissions> },
-    /// Withdraw spendable underlying token.
-    /// If the amount is not given,
-    /// return all spendable underlying
-    /// User operation
-    WithdrawUnderlying { permit: Permit<OverseerPermissions> },
+    Deposit
 }

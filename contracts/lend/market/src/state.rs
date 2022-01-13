@@ -1,24 +1,24 @@
-use lend_shared::fadroma::{
-    cosmwasm_std::{Api, Binary, CanonicalAddr, Extern, HumanAddr, Querier, StdResult, Storage},
-    cosmwasm_storage::{Bucket, ReadonlyBucket},
-    schemars,
-    schemars::JsonSchema,
-    storage::{load, save},
-    Canonize, ContractLink, Decimal256, Humanize, StdError, Uint128, Uint256,
+use std::convert::{TryFrom, TryInto};
+
+use lend_shared::{
+    fadroma::{
+        cosmwasm_std::{
+            Api, Binary, CanonicalAddr, Extern,
+            HumanAddr, Querier, StdResult, Storage
+        },
+        schemars,
+        schemars::JsonSchema,
+        storage::{load, save, ns_load, ns_save},
+        crypto::sha_256,
+        Canonize, ContractLink, Decimal256, Humanize, StdError, Uint128, Uint256,
+    },
+    impl_contract_storage
 };
-use lend_shared::impl_contract_storage;
 use serde::{Deserialize, Serialize};
 
 const PAGINATION_LIMIT: u8 = 30;
 
 pub struct Contracts;
-
-impl Contracts {
-    impl_contract_storage!(save_interest_model, load_interest_model, b"interest_model");
-    impl_contract_storage!(save_overseer, load_overseer, b"interest_model");
-    impl_contract_storage!(save_underlying, load_underlying, b"underlying_asset");
-    impl_contract_storage!(save_sl_token, load_sl_token, b"sl_token");
-}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
@@ -26,6 +26,27 @@ pub struct Config {
     pub initial_exchange_rate: Decimal256,
     // Fraction of interest currently set aside for reserves
     pub reserve_factor: Decimal256,
+}
+
+pub struct Account(BorrowerId);
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct BorrowerId([u8; 32]);
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct BorrowInfo {
+    /// Total balance (with accrued interest), after applying the most recent balance-changing action
+    principal: Uint256,
+    /// Global borrowIndex as of the most recent balance-changing action
+    interest_index: Decimal256,
+}
+
+pub struct GlobalData;
+
+impl Contracts {
+    impl_contract_storage!(save_interest_model, load_interest_model, b"interest_model");
+    impl_contract_storage!(save_overseer, load_overseer, b"interest_model");
+    impl_contract_storage!(save_underlying, load_underlying, b"underlying_asset");
 }
 
 impl Config {
@@ -44,47 +65,6 @@ impl Config {
         Ok(result)
     }
 }
-
-pub struct Borrower {
-    /// The id must be created by Overseer.
-    id: Binary,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct BorrowInfo {
-    /// Total balance (with accrued interest), after applying the most recent balance-changing action
-    principal: Uint256,
-    /// Global borrowIndex as of the most recent balance-changing action
-    interest_index: Decimal256,
-}
-
-impl Borrower {
-    const KEY: &'static [u8] = b"borrower";
-    pub fn new(id: Binary) -> StdResult<Self> {
-        Ok(Self { id })
-    }
-    pub fn store_borrow_info<S: Storage>(
-        &self,
-        storage: &mut S,
-        borrow_info: &BorrowInfo,
-    ) -> StdResult<()> {
-        let mut borrower_bucket: Bucket<'_, S, BorrowInfo> = Bucket::new(Self::KEY, storage);
-        borrower_bucket.save(&self.id.as_slice(), borrow_info)
-    }
-
-    pub fn read_borrow_info(&self, storage: &impl Storage) -> BorrowInfo {
-        let borrower_bucket = ReadonlyBucket::new(Self::KEY, storage);
-        match borrower_bucket.load(self.id.as_slice()) {
-            Ok(v) => v,
-            _ => BorrowInfo {
-                principal: Uint256::zero(),
-                interest_index: Decimal256::one(),
-            },
-        }
-    }
-}
-
-pub struct GlobalData;
 
 impl GlobalData {
     const KEY_BORROW_CAP: &'static [u8] = b"borrow_cap";
@@ -205,5 +185,108 @@ impl GlobalData {
     #[inline]
     pub fn save_accrual_block_number(storage: &mut impl Storage, block: &u64) -> StdResult<()> {
         save(storage, Self::KEY_ACCRUAL_BLOCK_NUMBER, block)
+    }
+}
+
+impl Account {
+    const NS_BALANCES: &'static [u8] = b"balances";
+
+    pub fn new<S: Storage, A: Api, Q: Querier>(
+        deps: &Extern<S, A, Q>,
+        address: &HumanAddr
+    ) -> StdResult<Self> {
+        Ok(Self(BorrowerId::new(deps, address)?))
+    }
+
+    pub fn get_balance(&self, storage: &impl Storage) -> StdResult<Uint128> {
+        let result: Option<Uint128> = ns_load(
+            storage,
+            Self::NS_BALANCES,
+            self.0.as_slice()
+        )?;
+
+        Ok(result.unwrap_or_default())
+    }
+
+    pub fn add_balance(&self, storage: &mut impl Storage, amount: Uint128) -> StdResult<()> {
+        let account_balance = self.get_balance(storage)?;
+
+        if let Some(new_balance) = account_balance.0.checked_add(amount.0) {
+            self.set_balance(storage, Uint128(new_balance))
+        } else {
+            Err(StdError::generic_err(
+                "This deposit would overflow your balance",
+            ))
+        }
+    }
+
+    pub fn subtract_balance(&self, storage: &mut impl Storage, amount: Uint128) -> StdResult<()> {
+        let account_balance = self.get_balance(storage)?;
+
+        if let Some(new_balance) = account_balance.0.checked_sub(amount.0) {
+            self.set_balance(storage, Uint128(new_balance))
+        } else {
+            Err(StdError::generic_err(format!(
+                "insufficient funds: balance={}, required={}",
+                account_balance, amount
+            )))
+        }
+    }
+
+    #[inline]
+    fn set_balance(&self, storage: &mut impl Storage, amount: Uint128) -> StdResult<()> {
+        ns_save(storage, Self::NS_BALANCES, self.0.as_slice(), &amount)
+    }
+}
+
+impl BorrowerId {
+    const KEY: &'static [u8] = b"salt";
+
+    pub fn new<S: Storage, A: Api, Q: Querier>(
+        deps: &Extern<S, A, Q>,
+        address: &HumanAddr
+    ) -> StdResult<Self> {
+        let address = address.canonize(&deps.api)?;
+        let salt = Self::load_prng_seed(&deps.storage)?;
+
+        let data = vec![ address.as_slice(), salt.as_slice() ].concat();
+
+        Ok(Self(sha_256(&data)))
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        &self.0
+    }
+
+    pub fn set_prng_seed(storage: &mut impl Storage, prng_seed: &Binary) -> StdResult<()> {
+        let stored: Option<Binary> = load(storage, Self::KEY)?;
+
+        // Should only set this once, otherwise will break the contract.
+        if stored.is_some() {
+            return Err(StdError::generic_err("Prng seed already set."));
+        }
+
+        save(storage, Self::KEY, prng_seed)
+    }
+
+    fn load_prng_seed(storage: &impl Storage) -> StdResult<Binary> {
+        Ok(load(storage, Self::KEY)?.unwrap())
+    }
+}
+
+impl From<BorrowerId> for Binary {
+    fn from(id: BorrowerId) -> Self {
+        Binary(id.0.into())
+    }
+}
+
+impl TryFrom<Vec<u8>> for BorrowerId {
+    type Error = StdError;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        match value.try_into() {
+            Ok(data) => Ok(Self(data)),
+            Err(_) => Err(StdError::generic_err("Couldn't create BorrowerId from bytes."))
+        }
     }
 }

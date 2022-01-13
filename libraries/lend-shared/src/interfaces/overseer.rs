@@ -183,3 +183,26 @@ pub fn query_id(
         _ => Err(StdError::generic_err("Expecting QueryResponse::Id"))
     }
 }
+
+pub fn query_can_transfer(
+    querier: &impl Querier,
+    overseer: ContractLink<HumanAddr>,
+    permit: Permit<OverseerPermissions>,
+    market: HumanAddr,
+    amount: Uint128
+) -> StdResult<bool> {
+    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: overseer.address,
+        callback_code_hash: overseer.code_hash,
+        msg: to_binary(&QueryMsg::CanTransfer {
+            permit,
+            market,
+            amount
+        })?
+    }))?;
+
+    match result {
+        QueryResponse::CanTransfer { can_transfer } => Ok(can_transfer),
+        _ => Err(StdError::generic_err("QueryResponse::CanTransfer"))
+    }
+}
