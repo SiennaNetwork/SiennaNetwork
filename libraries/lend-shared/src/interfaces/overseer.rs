@@ -54,6 +54,13 @@ pub trait Overseer {
         borrow_amount: Uint128
     ) -> StdResult<AccountLiquidity>;
 
+    #[query("can_transfer")]
+    fn can_transfer(
+        permit: Permit<OverseerPermissions>,
+        market: HumanAddr,
+        amount: Uint128
+    ) -> StdResult<bool>;
+
     #[query("id")]
     fn id(permit: Permit<OverseerPermissions>) -> StdResult<Binary>;
 

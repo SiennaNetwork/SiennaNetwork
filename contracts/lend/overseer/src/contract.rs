@@ -177,6 +177,41 @@ pub trait Overseer {
         )
     }
 
+    #[query("can_transfer")]
+    fn can_transfer(
+        permit: Permit<OverseerPermissions>,
+        market: HumanAddr,
+        amount: Uint128
+    ) -> StdResult<bool> {
+        let self_ref = Contracts::load_self_ref(deps)?;
+        let borrower = permit.validate_with_permissions(
+            deps,
+            self_ref.address,
+            vec![ OverseerPermissions::AccountInfo ]
+        )?;
+
+        let borrower = Borrower::new(&deps, &borrower)?;
+
+        // If not entered the market then transfer is allowed.
+        if borrower.get_market(&deps, &market).is_err() {
+            return Ok(true);
+        }
+
+        let result = calc_liquidity(
+            deps,
+            &borrower,
+            Some(market),
+            amount,
+            Uint128::zero()
+        )?;
+
+        if result.shortfall > Uint256::zero() {
+            Ok(false)
+        } else {
+            Ok(true)
+        }
+    }
+
     #[query("id")]
     fn id(permit: Permit<OverseerPermissions>) -> StdResult<Binary> {
         let self_ref = Contracts::load_self_ref(deps)?;
