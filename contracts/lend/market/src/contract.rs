@@ -2,13 +2,15 @@ mod checks;
 mod ops;
 mod state;
 
+use std::ops::{Add, Mul};
+
 use lend_shared::{
     fadroma::{
         admin,
         admin::{assert_admin, Admin},
         cosmwasm_std,
         cosmwasm_std::{
-            log, to_binary, Api, Binary, CosmosMsg, Extern, HandleResponse, HumanAddr,
+            log, to_binary, Api, Binary, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
             InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
         derive_contract::*,
@@ -19,6 +21,7 @@ use lend_shared::{
         Uint128, Uint256, BLOCK_SIZE,
     },
     interfaces::{
+        interest_model::query_borrow_rate,
         market::*,
         overseer::{query_id, OverseerPermissions},
     },
@@ -231,4 +234,79 @@ pub trait Market {
     fn account_snapshot(id: Binary) -> StdResult<AccountSnapshotResponse> {
         unimplemented!()
     }
+}
+
+fn accrue_interest<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+) -> StdResult<()> {
+    let config = Config::load(deps)?;
+    // Initial block number
+    let last_accrual_block = GlobalData::load_accrual_block_number(&deps.storage)?;
+    let current_block = env.block.height;
+
+    if last_accrual_block == current_block {
+        return Ok(());
+    }
+
+    // Previous values from storage
+    let underlying_asset = Contracts::load_underlying(deps)?;
+
+    let balance_prior = snip20::balance_query(
+        &deps.querier,
+        env.contract.address,
+        VIEWING_KEY.to_string(),
+        BLOCK_SIZE,
+        underlying_asset.code_hash,
+        underlying_asset.address,
+    )?
+    .amount;
+    let borrows_prior = Decimal256::from_uint256(GlobalData::load_total_borrows(&deps.storage)?)?;
+    let reserves_prior = Decimal256::from_uint256(GlobalData::load_total_reserves(&deps.storage)?)?;
+    let borrow_index_prior =
+        Decimal256::from_uint256(GlobalData::load_borrow_index(&deps.storage)?)?;
+
+    // Current borrow interest rate
+    let interest_model = Contracts::load_interest_model(deps)?;
+    let borrow_rate = query_borrow_rate(
+        &deps.querier,
+        interest_model,
+        Decimal256::from_uint256(balance_prior)?,
+        borrows_prior,
+        reserves_prior,
+    )?;
+
+    if borrow_rate >= MAX_BORROW_RATE {
+        return Err(StdError::generic_err("Borrow rate is absurdly high"));
+    }
+
+    // Calculate the number of blocks elapsed since last accrual
+    let block_delta = current_block
+        .checked_sub(last_accrual_block)
+        .ok_or_else(|| StdError::generic_err("Could not calculate block delta"))?;
+
+    let simple_interest_factor = borrow_rate.mul(Decimal256::from_uint256(block_delta as u128)?)?;
+    let interest_accumulated = simple_interest_factor.mul(borrows_prior)?;
+
+    let total_borrows_new = Uint128::from(
+        interest_accumulated
+            .add(borrows_prior)?
+            .round()
+            .clamp_u128()?,
+    );
+    GlobalData::save_total_borrows(&mut deps.storage, &total_borrows_new)?;
+
+    let total_reserves_new = Uint128::from(
+        ((config.reserve_factor.mul(interest_accumulated)?) + reserves_prior)?
+            .round()
+            .clamp_u128()?,
+    );
+    GlobalData::save_total_reserves(&mut deps.storage, &total_reserves_new)?;
+
+    let borrow_index_new = (simple_interest_factor.mul(borrow_index_prior)? + borrow_index_prior)?;
+    GlobalData::save_borrow_index(&mut deps.storage, &borrow_index_new)?;
+
+    GlobalData::save_accrual_block_number(&mut deps.storage, &current_block)?;
+
+    Ok(())
 }

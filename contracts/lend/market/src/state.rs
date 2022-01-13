@@ -92,6 +92,7 @@ impl GlobalData {
     const KEY_TOTAL_RESERVES: &'static [u8] = b"total_reserves";
     const KEY_TOTAL_SUPPLY: &'static [u8] = b"total_supply";
     const KEY_BORROW_INDEX: &'static [u8] = b"borrow_index";
+    const KEY_ACCRUAL_BLOCK_NUMBER: &'static [u8] = b"accrual_block_number";
 
     #[inline]
     pub fn save_borrow_cap(storage: &mut impl Storage, borrow_cap: &Uint128) -> StdResult<()> {
@@ -134,7 +135,7 @@ impl GlobalData {
     }
 
     #[inline]
-    fn save_total_borrows(storage: &mut impl Storage, total: &Uint128) -> StdResult<()> {
+    pub fn save_total_borrows(storage: &mut impl Storage, total: &Uint128) -> StdResult<()> {
         save(storage, Self::KEY_TOTAL_BORROWS, total)
     }
 
@@ -144,7 +145,7 @@ impl GlobalData {
     }
 
     #[inline]
-    fn save_total_reserves(storage: &mut impl Storage, reserves: &Uint128) -> StdResult<()> {
+    pub fn save_total_reserves(storage: &mut impl Storage, reserves: &Uint128) -> StdResult<()> {
         save(storage, Self::KEY_TOTAL_RESERVES, reserves)
     }
 
@@ -192,7 +193,17 @@ impl GlobalData {
     }
 
     #[inline]
-    fn save_borrow_index(storage: &mut impl Storage, index: &Decimal256) -> StdResult<()> {
+    pub fn save_borrow_index(storage: &mut impl Storage, index: &Decimal256) -> StdResult<()> {
         save(storage, Self::KEY_BORROW_INDEX, index)
+    }
+
+    #[inline]
+    pub fn load_accrual_block_number(storage: &impl Storage) -> StdResult<u64> {
+        Ok(load(storage, Self::KEY_ACCRUAL_BLOCK_NUMBER)?.unwrap_or_default())
+    }
+
+    #[inline]
+    pub fn save_accrual_block_number(storage: &mut impl Storage, block: &u64) -> StdResult<()> {
+        save(storage, Self::KEY_ACCRUAL_BLOCK_NUMBER, block)
     }
 }

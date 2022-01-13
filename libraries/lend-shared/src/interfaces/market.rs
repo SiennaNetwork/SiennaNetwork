@@ -10,6 +10,8 @@ use super::overseer::OverseerPermissions;
 
 pub const VIEWING_KEY: &str = "SiennaLend"; // TODO: Should this be public?
 pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
+// TODO: proper value here
+pub const MAX_BORROW_RATE: Decimal256 = Decimal256::one();
 #[interface(component(path = "admin"))]
 pub trait Market {
     #[init]
