@@ -1,6 +1,7 @@
 mod checks;
 mod ops;
 mod state;
+mod token;
 
 use std::ops::{Add, Mul};
 
