@@ -4,14 +4,17 @@ use lend_shared::{
     fadroma::{
         cosmwasm_std::{
             Api, Binary, CanonicalAddr, Extern,
-            HumanAddr, Querier, StdResult, Storage
+            HumanAddr, Querier, StdResult, Storage,
+            Order
         },
+        cosmwasm_storage::{Bucket, ReadonlyBucket},
         schemars,
         schemars::JsonSchema,
         storage::{load, save, ns_load, ns_save},
         crypto::sha_256,
         Canonize, ContractLink, Decimal256, Humanize, StdError, Uint128, Uint256,
     },
+    interfaces::market::{BorrowerInfo, Borrower},
     impl_contract_storage
 };
 use serde::{Deserialize, Serialize};
@@ -30,16 +33,11 @@ pub struct Config {
 
 pub struct Account(BorrowerId);
 
+#[derive(Serialize, Deserialize, JsonSchema, Default, Debug)]
+pub struct BorrowSnapshot(pub BorrowerInfo);
+
 #[derive(PartialEq, Clone, Debug)]
 pub struct BorrowerId([u8; 32]);
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct BorrowInfo {
-    /// Total balance (with accrued interest), after applying the most recent balance-changing action
-    principal: Uint256,
-    /// Global borrowIndex as of the most recent balance-changing action
-    interest_index: Decimal256,
-}
 
 pub struct GlobalData;
 
@@ -159,21 +157,21 @@ impl GlobalData {
 
     #[inline]
     pub fn load_total_supply(storage: &impl Storage) -> StdResult<Uint128> {
-        Ok(load(storage, Self::KEY_TOTAL_BORROWS)?.unwrap_or_default())
+        Ok(load(storage, Self::KEY_TOTAL_SUPPLY)?.unwrap_or_default())
     }
 
     #[inline]
     fn save_total_supply(storage: &mut impl Storage, total: &Uint128) -> StdResult<()> {
-        save(storage, Self::KEY_TOTAL_BORROWS, total)
+        save(storage, Self::KEY_TOTAL_SUPPLY, total)
     }
 
     #[inline]
-    pub fn load_borrow_index(storage: &impl Storage) -> StdResult<Decimal256> {
+    pub fn load_borrow_index(storage: &impl Storage) -> StdResult<Uint256> {
         Ok(load(storage, Self::KEY_BORROW_INDEX)?.unwrap_or_default())
     }
 
     #[inline]
-    pub fn save_borrow_index(storage: &mut impl Storage, index: &Decimal256) -> StdResult<()> {
+    pub fn save_borrow_index(storage: &mut impl Storage, index: &Uint256) -> StdResult<()> {
         save(storage, Self::KEY_BORROW_INDEX, index)
     }
 
@@ -190,6 +188,7 @@ impl GlobalData {
 
 impl Account {
     const NS_BALANCES: &'static [u8] = b"balances";
+    const NS_BORROWERS: &'static [u8] = b"borrowers";
 
     pub fn new<S: Storage, A: Api, Q: Querier>(
         deps: &Extern<S, A, Q>,
@@ -233,10 +232,62 @@ impl Account {
         }
     }
 
+    pub fn save_borrow_snapshot<S: Storage>(
+        &self,
+        storage: &mut S,
+        borrow_info: &BorrowSnapshot,
+    ) -> StdResult<()> {
+        let mut borrower_bucket: Bucket<'_, S, BorrowSnapshot> =
+            Bucket::new(Self::NS_BORROWERS, storage);
+
+        borrower_bucket.save(&self.0.as_slice(), borrow_info)
+    }
+
+    pub fn get_borrow_snapshot(&self, storage: &impl Storage) -> StdResult<BorrowSnapshot> {
+        let borrower_bucket = ReadonlyBucket::new(Self::NS_BORROWERS, storage);
+
+        Ok(borrower_bucket.may_load(self.0.as_slice())?.unwrap_or_default())
+    }
+
     #[inline]
     fn set_balance(&self, storage: &mut impl Storage, amount: Uint128) -> StdResult<()> {
         ns_save(storage, Self::NS_BALANCES, self.0.as_slice(), &amount)
     }
+}
+
+pub fn load_all_borrowers<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    start_after: Option<Binary>,
+    limit: Option<u8>
+) -> StdResult<Vec<Borrower>> {
+    let collaterals_bucket: ReadonlyBucket<'_, S, BorrowSnapshot> =
+        ReadonlyBucket::new(Account::NS_BORROWERS, &deps.storage);
+
+    let limit = limit.unwrap_or(PAGINATION_LIMIT).min(PAGINATION_LIMIT) as usize;
+    let start = calc_range_start(start_after);
+
+    collaterals_bucket
+        .range(start.as_deref(), None, Order::Ascending)
+        .take(limit)
+        .map(|elem| {
+            let (k, v) = elem?;
+            let id = BorrowerId::try_from(k)?;
+
+            Ok(Borrower {
+                id: id.into(),
+                info: v.0,
+            })
+        })
+        .collect()
+}
+
+// this will set the first key after the provided key, by appending a 1 byte
+fn calc_range_start(start_after: Option<Binary>) -> Option<Vec<u8>> {
+    start_after.map(|addr| {
+        let mut v = addr.as_slice().to_vec();
+        v.push(1);
+        v
+    })
 }
 
 impl BorrowerId {

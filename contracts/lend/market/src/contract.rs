@@ -1,6 +1,7 @@
 mod checks;
 mod state;
 mod token;
+mod ops;
 
 use std::ops::{Add, Mul};
 
@@ -12,21 +13,30 @@ use lend_shared::{
         cosmwasm_std::{
             Api, Binary, Extern, HandleResponse, HumanAddr,
             InitResponse, Querier, StdError, StdResult, Storage,
+            log
         },
         derive_contract::*,
         from_binary, require_admin,
         secret_toolkit::snip20,
-        ContractLink, Decimal256, Permit,
-        Uint128, BLOCK_SIZE,
+        Uint256, Decimal256, Permit,
+        Uint128, BLOCK_SIZE, ContractLink
     },
     interfaces::{
         interest_model::query_borrow_rate,
-        market::*,
+        market::{
+            ReceiverCallbackMsg, AccountInfo,
+            StateResponse, ConfigResponse
+        },
         overseer::OverseerPermissions,
     },
 };
 
-use state::{Config, Contracts, GlobalData};
+pub const VIEWING_KEY: &str = "SiennaLend"; // TODO: This shouldn't be hardcoded.
+pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
+// TODO: proper value here
+pub const MAX_BORROW_RATE: Decimal256 = Decimal256::one();
+
+use state::{Config, Contracts, GlobalData, Account};
 
 #[contract_impl(path = "lend_shared::interfaces::market", component(path = "admin"))]
 pub trait Market {
@@ -133,6 +143,65 @@ pub trait Market {
     }
 
     #[handle]
+    fn borrow(
+        permit: Permit<OverseerPermissions>,
+        amount: Uint128
+    ) -> StdResult<HandleResponse> {
+        let underlying_asset = Contracts::load_underlying(deps)?;
+
+        let balance = snip20::balance_query(
+            &deps.querier,
+            env.contract.address.clone(),
+            VIEWING_KEY.to_string(),
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+
+        checks::assert_can_withdraw(balance, amount)?;
+    
+        accrue_interest(deps, env.block.height, balance)?;
+
+        checks::assert_borrow_allowed(
+            deps,
+            permit,
+            env.contract.address,
+            amount
+        )?;
+
+        let borrow_index = GlobalData::load_borrow_index(&deps.storage)?;
+
+        let account = Account::new(deps, &env.message.sender)?;
+        let mut snapshot = account.get_borrow_snapshot(&deps.storage)?;
+        let balance = snapshot.borrow_balance(borrow_index)?;
+
+        snapshot.0.principal = (balance + Uint256::from(amount))?;
+        snapshot.0.interest_index = borrow_index;
+
+        account.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
+
+        GlobalData::increase_total_borrows(&mut deps.storage, amount)?;
+
+        Ok(HandleResponse {
+            messages: vec![
+                snip20::transfer_msg(
+                    env.message.sender,
+                    amount,
+                    None,
+                    BLOCK_SIZE,
+                    underlying_asset.code_hash,
+                    underlying_asset.address
+                )?
+            ],
+            log: vec![
+                log("action", "borrow"),
+                log("borrow_info", snapshot.0)
+            ],
+            data: None
+        })
+    }
+
+    #[handle]
     #[require_admin]
     fn update_config(
         interest_model: Option<ContractLink<HumanAddr>>,
@@ -166,11 +235,6 @@ pub trait Market {
         unimplemented!()
     }
 
-    #[query("borrower")]
-    fn borrower(id: Binary) -> StdResult<BorrowerInfoResponse> {
-        unimplemented!()
-    }
-
     #[query("borrow_rate_per_block")]
     fn borrow_rate() -> StdResult<Decimal256> {
         unimplemented!()
@@ -192,7 +256,7 @@ pub trait Market {
     }
 
     #[query("account_snapshot")]
-    fn account_snapshot(id: Binary) -> StdResult<AccountSnapshotResponse> {
+    fn account_snapshot(id: Binary) -> StdResult<AccountInfo> {
         unimplemented!()
     }
 }
@@ -213,8 +277,7 @@ fn accrue_interest<S: Storage, A: Api, Q: Querier>(
     // Previous values from storage
     let borrows_prior = Decimal256::from_uint256(GlobalData::load_total_borrows(&deps.storage)?)?;
     let reserves_prior = Decimal256::from_uint256(GlobalData::load_total_reserves(&deps.storage)?)?;
-    let borrow_index_prior =
-        Decimal256::from_uint256(GlobalData::load_borrow_index(&deps.storage)?)?;
+    let borrow_index_prior = GlobalData::load_borrow_index(&deps.storage)?;
 
     // Current borrow interest rate
     let interest_model = Contracts::load_interest_model(deps)?;
@@ -253,7 +316,7 @@ fn accrue_interest<S: Storage, A: Api, Q: Querier>(
     );
     GlobalData::save_total_reserves(&mut deps.storage, &total_reserves_new)?;
 
-    let borrow_index_new = (simple_interest_factor.mul(borrow_index_prior)? + borrow_index_prior)?;
+    let borrow_index_new = (borrow_index_prior.decimal_mul(simple_interest_factor)? + borrow_index_prior)?;
     GlobalData::save_borrow_index(&mut deps.storage, &borrow_index_new)?;
 
     GlobalData::save_accrual_block_number(&mut deps.storage, &current_block)?;

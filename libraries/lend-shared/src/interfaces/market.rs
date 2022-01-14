@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use fadroma::{
     admin,
     auth::Permit,
@@ -12,11 +14,6 @@ use fadroma::{
 use serde::{Deserialize, Serialize};
 
 use super::overseer::OverseerPermissions;
-
-pub const VIEWING_KEY: &str = "SiennaLend"; // TODO: This shouldn't be hardcoded.
-pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
-// TODO: proper value here
-pub const MAX_BORROW_RATE: Decimal256 = Decimal256::one();
 
 #[interface(component(path = "admin"))]
 pub trait Market {
@@ -37,7 +34,11 @@ pub trait Market {
 
     /// Snip20 receiver interface
     #[handle]
-    fn receive(from: HumanAddr, msg: Option<Binary>, amount: Uint128) -> StdResult<HandleResponse>;
+    fn receive(
+        from: HumanAddr,
+        msg: Option<Binary>,
+        amount: Uint128
+    ) -> StdResult<HandleResponse>;
 
     #[handle]
     fn redeem_token(
@@ -49,6 +50,12 @@ pub trait Market {
     fn redeem_underlying(
         permit: Permit<OverseerPermissions>,
         receive_amount: Uint128
+    ) -> StdResult<HandleResponse>;
+
+    #[handle]
+    fn borrow(
+        permit: Permit<OverseerPermissions>,
+        amount: Uint128
     ) -> StdResult<HandleResponse>;
 
     #[handle]
@@ -66,9 +73,6 @@ pub trait Market {
     #[query("state")]
     fn state() -> StdResult<StateResponse>;
 
-    #[query("borrower")]
-    fn borrower(id: Binary) -> StdResult<BorrowerInfoResponse>;
-
     #[query("borrow_rate_per_block")]
     fn borrow_rate() -> StdResult<Decimal256>;
 
@@ -82,14 +86,13 @@ pub trait Market {
     fn borrow_balance(id: Binary) -> StdResult<Decimal256>;
 
     #[query("account_snapshot")]
-    fn account_snapshot(id: Binary) -> StdResult<AccountSnapshotResponse>;
+    fn account_snapshot(id: Binary) -> StdResult<AccountInfo>;
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct ConfigResponse {
     underlying_asset: ContractLink<HumanAddr>,
-    sl_token: ContractLink<HumanAddr>,
     overseer_contract: ContractLink<HumanAddr>,
     interest_model_contract: ContractLink<HumanAddr>,
     initial_exchange_rate: Decimal256,
@@ -110,18 +113,23 @@ pub struct StateResponse {
     total_supply: Uint128,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub struct BorrowerInfoResponse {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Borrower {
+    pub id: Binary,
+    pub info: BorrowerInfo
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default, JsonSchema)]
+pub struct BorrowerInfo {
     /// Total balance (with accrued interest), after applying the most recent balance-changing action
-    principal: Uint256,
+    pub principal: Uint256,
     /// Global borrowIndex as of the most recent balance-changing action
-    interest_index: Decimal256,
+    pub interest_index: Uint256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct AccountSnapshotResponse {
+pub struct AccountInfo {
     pub sl_token_balance: Uint128,
     pub borrow_balance: Uint128,
     pub exchange_rate: Decimal256,
@@ -132,4 +140,10 @@ pub struct AccountSnapshotResponse {
 pub enum ReceiverCallbackMsg {
     /// Deposit underlying token
     Deposit
+}
+
+impl Display for BorrowerInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "total_balance: {}, global_index: {}", self.principal, self.interest_index)
+    }
 }

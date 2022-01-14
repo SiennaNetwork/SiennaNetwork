@@ -50,3 +50,18 @@ pub fn assert_borrow_allowed<S: Storage, A: Api, Q: Querier>(
         Ok(())
     }
 }
+
+pub fn assert_can_withdraw(
+    balance: Uint128,
+    amount: Uint128
+) -> StdResult<()> {
+    if balance < amount {
+        Err(StdError::generic_err(format!(
+            "The protocol has an insufficient amount of the underlying asset at this time. supply: {}, needed: {}",
+            balance,
+            amount
+        )))
+    } else {
+        Ok(())
+    }
+}

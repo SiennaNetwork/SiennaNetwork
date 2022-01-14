@@ -11,13 +11,13 @@ use lend_shared::{
         Decimal256, Uint256, ContractLink, BLOCK_SIZE
     },
     interfaces::{
-        market::VIEWING_KEY,
         overseer::{OverseerPermissions, query_can_transfer}
     }
 };
 
-use crate::accrue_interest;
+use crate::{accrue_interest, VIEWING_KEY};
 use crate::state::{GlobalData, Config, Contracts, Account};
+use crate::checks;
 
 pub fn deposit<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S,A,Q>,
@@ -83,13 +83,7 @@ pub fn redeem<S: Storage, A: Api, Q: Querier>(
         (from_underlying, Uint128(burn_amount.clamp_u128()?))
     };
 
-    if balance < redeem_amount {
-        return Err(StdError::generic_err(format!(
-            "The protocol has an insufficient amount of the underlying asset at this time. supply: {}, needed: {}",
-            balance,
-            redeem_amount
-        )));
-    }
+    checks::assert_can_withdraw(balance, redeem_amount)?;
 
     let can_transfer = query_can_transfer(
         &deps.querier,

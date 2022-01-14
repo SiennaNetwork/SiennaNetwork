@@ -4,7 +4,7 @@ use lend_shared::{
         cosmwasm_std::{StdResult, StdError, Querier, QueryRequest, WasmQuery, Binary, to_binary},
         ContractLink, HumanAddr
     },
-    interfaces::market::{QueryMsg, QueryResponse, AccountSnapshotResponse}
+    interfaces::market::{QueryMsg, QueryResponse, AccountInfo}
 };
 
 
@@ -12,7 +12,7 @@ pub fn query_snapshot(
     querier: &impl Querier,
     market: ContractLink<HumanAddr>,
     id: Binary
-) -> StdResult<AccountSnapshotResponse> {
+) -> StdResult<AccountInfo> {
     let result: QueryResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: market.address,
         callback_code_hash: market.code_hash,
