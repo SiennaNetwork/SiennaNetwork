@@ -6,7 +6,7 @@ use fadroma::{
     },
     derive_contract::*,
     permit::Permit,
-    schemars, Canonize, ContractLink, Decimal256, Humanize, Uint256,
+    schemars, Canonize, ContractInstantiationInfo, ContractLink, Decimal256, Humanize, Uint256,
 };
 
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,12 @@ pub trait Overseer {
         admin: Option<HumanAddr>,
         prng_seed: Binary,
         close_factor: Decimal256,
+        // Liquidation incentive
         premium: Decimal256,
+        // Oracle instantiation info
+        oracle_contract: ContractInstantiationInfo,
+        // Price source for the oracle
+        oracle_source: ContractLink<HumanAddr>,
     ) -> StdResult<InitResponse>;
 
     #[handle]

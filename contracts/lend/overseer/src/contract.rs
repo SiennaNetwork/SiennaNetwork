@@ -11,11 +11,12 @@ use lend_shared::{
             InitResponse, Querier, StdError, StdResult, Storage, Uint128, WasmMsg,
         },
         derive_contract::*,
-        require_admin, ContractLink, Decimal256, Permit, Uint256,
+        require_admin, Callback, ContractInstantiationInfo, ContractLink, Decimal256, Permit,
+        Uint256,
     },
     interfaces::{
-        oracle::{query_price, Asset, HandleMsg as OracleHandleMsg},
-        overseer::{AccountLiquidity, Config, Market, OverseerPermissions, Pagination},
+        oracle::{query_price, Asset, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg},
+        overseer::{AccountLiquidity, Config, HandleMsg, Market, OverseerPermissions, Pagination},
     },
 };
 
@@ -30,8 +31,18 @@ pub trait Overseer {
         prng_seed: Binary,
         close_factor: Decimal256,
         premium: Decimal256,
+        oracle_contract: ContractInstantiationInfo,
+        oracle_source: ContractLink<HumanAddr>,
     ) -> StdResult<InitResponse> {
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
+
+        Contracts::save_oracle(
+            deps,
+            &ContractLink {
+                address: HumanAddr::default(), // Added in RegisterOracle
+                code_hash: oracle_contract.code_hash.clone(),
+            },
+        )?;
 
         Constants {
             close_factor,
@@ -45,7 +56,26 @@ pub trait Overseer {
         };
         Contracts::save_self_ref(deps, &self_ref)?;
 
-        admin::DefaultImpl.new(admin, deps, env)
+        let time = env.block.time;
+
+        let mut result = admin::DefaultImpl.new(admin.clone(), deps, env)?;
+        result.messages.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
+            code_id: oracle_contract.id,
+            callback_code_hash: oracle_contract.code_hash,
+            send: vec![],
+            label: format!("Sienna Lend Oracle: {}", time),
+            msg: to_binary(&OracleInitMsg {
+                admin: admin,
+                source: oracle_source,
+                initial_assets: vec![],
+                callback: Callback {
+                    contract: self_ref,
+                    msg: to_binary(&HandleMsg::RegisterOracle {})?,
+                },
+            })?,
+        }));
+
+        Ok(result)
     }
 
     #[handle]
