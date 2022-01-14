@@ -32,14 +32,21 @@ export type RewardsOptions = {
 
 export type RPTRecipient = string
 export type RPTAmount    = string
-export type RPTConfig = [RPTRecipient, RPTAmount][]
+export type RPTConfig    = [RPTRecipient, RPTAmount][]
+export type RewardsAPIVersion = 'v2'|'v3'
 
-export default async function deployRewards (options: RewardsOptions): Promise<RPTConfig> {
+export default async function deployRewards (
+  apiVersion: RewardsAPIVersion = 'v3',
+  options:    RewardsOptions,
+): Promise<{
+  deployedContracts: RewardsContract[]
+  rptConfig:         RPTConfig
+}> {
 
   const {
+    prefix,
     chain  = await new Scrt().ready,
     admin  = await chain.getAgent(),
-    prefix,
     suffix = '',
     split  = 1.0,
     ref    = 'HEAD'
@@ -61,13 +68,13 @@ export default async function deployRewards (options: RewardsOptions): Promise<R
     Object.assign(tokens, getSwapTokens(settings(chain.chainId).swapTokens, admin))
   }
 
+  const deployedContracts = []
   const rptConfig = []
 
   const reward = BigInt(settings(chain.chainId).rewardPairs.SIENNA) / BigInt(1 / split)
-  rptConfig.push([
-    (await deployRewardPool(`SIENNA${suffix}`, SIENNA, SIENNA)).address,
-    String(reward * ONE_SIENNA)
-  ])
+  const pool = await deployRewardPool(`SIENNA${suffix}`, SIENNA, SIENNA)
+  deployedContracts.push(pool)
+  rptConfig.push([pool.address, String(reward * ONE_SIENNA)])
 
   const swapPairs = settings(chain.chainId).swapPairs
 
@@ -93,6 +100,7 @@ export default async function deployRewards (options: RewardsOptions): Promise<R
         )
         const reward = BigInt(rewards[name]) / BigInt(1 / split)
         const pool    = await deployRewardPool(`${name}${suffix}`, lpToken, SIENNA)
+        deployedContracts.push(pool)
         rptConfig.push([pool.address, String(reward * ONE_SIENNA)])
       }
     }
@@ -101,13 +109,28 @@ export default async function deployRewards (options: RewardsOptions): Promise<R
 
   console.debug('Resulting RPT config:', rptConfig)
 
-  return rptConfig
+  return { deployedContracts, rptConfig }
 
   async function deployRewardPool (name: string, lpToken: SNIP20Contract, rewardToken: SNIP20Contract) {
+
     const {codeId, codeHash} = REWARDS
         , options    = { codeId, codeHash, prefix, name, admin, lpToken, rewardToken, ref }
         , rewardPool = new RewardsContract(options)
         , receipt    = instance.contracts[rewardPool.init.label]
+
+    // override init msg for legacy api
+    if (apiVersion === 'v2') {
+      rewardPool.init.msg = {
+        admin:        admin.address,
+        lp_token:     lpToken.link,
+        reward_token: rewardToken.link,
+        viewing_key:  "",
+        ratio:        ["1", "1"],
+        threshold:    15940,
+        cooldown:     15940,
+      }
+    }
+
     await rewardPool.instantiateOrExisting(receipt)
     return rewardPool
   }
