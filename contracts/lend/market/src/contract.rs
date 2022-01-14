@@ -3,13 +3,15 @@ mod state;
 mod token;
 mod ops;
 
+use std::convert::TryFrom;
+
 use lend_shared::{
     fadroma::{
         admin,
         admin::{assert_admin, Admin},
         cosmwasm_std,
         cosmwasm_std::{
-            Api, Binary, Extern, HandleResponse, HumanAddr,
+            Api, Binary, Extern, HandleResponse, HumanAddr, Env,
             InitResponse, Querier, StdError, StdResult, Storage,
             log
         },
@@ -111,6 +113,19 @@ pub trait Market {
                     from,
                     amount.into()
                 )
+            },
+            ReceiverCallbackMsg::Repay { borrower } => {
+                repay(
+                    deps,
+                    env,
+                    if let Some(borrower) = borrower {
+                        // TODO: Is a wrong/fake ID dangerous?
+                        Account::try_from(borrower)?
+                    } else {
+                        Account::new(deps, &from)?
+                    },
+                    amount.into()
+                )
             }
         }
     }
@@ -173,12 +188,9 @@ pub trait Market {
         let borrow_index = Global::load_borrow_index(&deps.storage)?;
 
         let account = Account::new(deps, &env.message.sender)?;
+
         let mut snapshot = account.get_borrow_snapshot(&deps.storage)?;
-        let balance = snapshot.borrow_balance(borrow_index)?;
-
-        snapshot.0.principal = (balance + Uint256::from(amount))?;
-        snapshot.0.interest_index = borrow_index;
-
+        snapshot.add_balance(borrow_index, amount)?;
         account.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
 
         TotalBorrows::increase(&mut deps.storage, amount)?;
@@ -260,6 +272,36 @@ pub trait Market {
     fn account_snapshot(id: Binary) -> StdResult<AccountInfo> {
         unimplemented!()
     }
+}
+
+fn repay<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    borrower: Account,
+    amount: Uint256
+) -> StdResult<HandleResponse> {
+    let underlying_asset = Contracts::load_underlying(deps)?;
+
+    let balance = snip20::balance_query(
+        &deps.querier,
+        env.contract.address.clone(),
+        VIEWING_KEY.to_string(),
+        BLOCK_SIZE,
+        underlying_asset.code_hash.clone(),
+        underlying_asset.address.clone(),
+    )?.amount;
+
+    accrue_interest(deps, env.block.height, balance)?;
+
+    let borrow_index = Global::load_borrow_index(&deps.storage)?;
+
+    let mut snapshot = borrower.get_borrow_snapshot(&deps.storage)?;
+    snapshot.subtract_balance(borrow_index, amount)?;
+    borrower.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
+
+    TotalBorrows::decrease(&mut deps.storage, amount)?;
+
+    Ok(HandleResponse::default())
 }
 
 fn accrue_interest<S: Storage, A: Api, Q: Querier>(

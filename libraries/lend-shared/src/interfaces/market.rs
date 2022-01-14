@@ -139,7 +139,11 @@ pub struct AccountInfo {
 #[serde(rename_all = "snake_case")]
 pub enum ReceiverCallbackMsg {
     /// Deposit underlying token
-    Deposit
+    Deposit,
+    Repay {
+        // Repay someone else's debt.
+        borrower: Option<Binary>
+    }
 }
 
 impl Display for BorrowerInfo {

@@ -295,6 +295,14 @@ impl BorrowerId {
     }
 }
 
+impl TryFrom<Binary> for Account {
+    type Error = StdError;
+
+    fn try_from(value: Binary) -> Result<Self, Self::Error> {
+        Ok(Self(BorrowerId::try_from(value.0)?))
+    }
+}
+
 impl From<BorrowerId> for Binary {
     fn from(id: BorrowerId) -> Self {
         Binary(id.0.into())
