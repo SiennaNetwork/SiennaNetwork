@@ -12,7 +12,7 @@ use lend_shared::{
         schemars::JsonSchema,
         storage::{load, save, ns_load, ns_save},
         crypto::sha_256,
-        Canonize, ContractLink, Decimal256, Humanize, StdError, Uint128, Uint256,
+        Canonize, ContractLink, Decimal256, Humanize, StdError, Uint256,
     },
     interfaces::market::{BorrowerInfo, Borrower},
     impl_contract_storage
@@ -39,7 +39,7 @@ pub struct BorrowSnapshot(pub BorrowerInfo);
 #[derive(PartialEq, Clone, Debug)]
 pub struct BorrowerId([u8; 32]);
 
-pub struct GlobalData;
+pub struct Global;
 
 impl Contracts {
     impl_contract_storage!(save_interest_model, load_interest_model, b"interest_model");
@@ -64,115 +64,85 @@ impl Config {
     }
 }
 
-impl GlobalData {
+macro_rules! impl_uint_storage {
+    ($name:ident, $data_type:ty, $key:literal) => {
+        pub struct $name;
+
+        impl $name {
+            pub fn increase(
+                storage: &mut impl Storage,
+                amount: $data_type,
+            ) -> StdResult<$data_type> {
+                let current = Self::load(storage)?;
+                let new = (current + amount)?;
+        
+                Self::save(storage, &new)?;
+        
+                Ok(new)
+            }
+        
+            pub fn decrease(
+                storage: &mut impl Storage,
+                amount: $data_type,
+            ) -> StdResult<$data_type> {
+                let current = Self::load(storage)?;
+                let new = (current - amount)?;
+        
+                Self::save(storage, &new)?;
+        
+                Ok(new)
+            }
+        
+            #[inline]
+            pub fn load(storage: &impl Storage) -> StdResult<$data_type> {
+                Ok(load(storage, $key)?.unwrap_or_default())
+            }
+        
+            #[inline]
+            pub fn save(storage: &mut impl Storage, new: &$data_type) -> StdResult<()> {
+                save(storage, $key, new)
+            }
+        }
+    };
+}
+
+impl_uint_storage!(TotalBorrows, Uint256, b"total_borrows");
+impl_uint_storage!(TotalSupply, Uint256, b"total_supply");
+
+impl Global {
     const KEY_BORROW_CAP: &'static [u8] = b"borrow_cap";
-    const KEY_TOTAL_BORROWS: &'static [u8] = b"total_borrows";
-    const KEY_TOTAL_RESERVES: &'static [u8] = b"total_reserves";
-    const KEY_TOTAL_SUPPLY: &'static [u8] = b"total_supply";
     const KEY_BORROW_INDEX: &'static [u8] = b"borrow_index";
+    const KEY_INTEREST_RESERVE: &'static [u8] = b"interest_reserve";
     const KEY_ACCRUAL_BLOCK_NUMBER: &'static [u8] = b"accrual_block_number";
 
     #[inline]
-    pub fn save_borrow_cap(storage: &mut impl Storage, borrow_cap: &Uint128) -> StdResult<()> {
+    pub fn save_borrow_cap(storage: &mut impl Storage, borrow_cap: &Uint256) -> StdResult<()> {
         save(storage, Self::KEY_BORROW_CAP, borrow_cap)
     }
 
     #[inline]
-    pub fn load_borrow_cap(storage: &impl Storage) -> StdResult<Option<Uint128>> {
+    pub fn load_borrow_cap(storage: &impl Storage) -> StdResult<Option<Uint256>> {
         load(storage, Self::KEY_BORROW_CAP)
     }
 
-    pub fn increase_total_borrows(
-        storage: &mut impl Storage,
-        amount: Uint128,
-    ) -> StdResult<Uint128> {
-        let current = Self::load_total_borrows(storage)?;
-        let new = current
-            .0
-            .checked_add(amount.0)
-            .ok_or_else(|| StdError::generic_err("Total borrows amount overflowed."))?;
-
-        let new = Uint128(new);
-        Self::save_total_borrows(storage, &new)?;
-
-        Ok(new)
-    }
-
-    pub fn decrease_borrow_cap(storage: &mut impl Storage, amount: Uint128) -> StdResult<Uint128> {
-        let current = Self::load_total_borrows(storage)?;
-        let new = (current - amount)?;
-
-        Self::save_total_borrows(storage, &new)?;
-
-        Ok(new)
-    }
-
     #[inline]
-    pub fn load_total_borrows(storage: &impl Storage) -> StdResult<Uint128> {
-        Ok(load(storage, Self::KEY_TOTAL_BORROWS)?.unwrap_or_default())
-    }
-
-    #[inline]
-    pub fn save_total_borrows(storage: &mut impl Storage, total: &Uint128) -> StdResult<()> {
-        save(storage, Self::KEY_TOTAL_BORROWS, total)
-    }
-
-    #[inline]
-    pub fn load_total_reserves(storage: &impl Storage) -> StdResult<Uint128> {
-        Ok(load(storage, Self::KEY_TOTAL_RESERVES)?.unwrap_or_default())
-    }
-
-    #[inline]
-    pub fn save_total_reserves(storage: &mut impl Storage, reserves: &Uint128) -> StdResult<()> {
-        save(storage, Self::KEY_TOTAL_RESERVES, reserves)
-    }
-
-    pub fn increase_total_supply(
-        storage: &mut impl Storage,
-        amount: Uint128,
-    ) -> StdResult<Uint128> {
-        let current = Self::load_total_supply(storage)?;
-        let new = current
-            .0
-            .checked_add(amount.0)
-            .ok_or_else(|| StdError::generic_err("Total supply amount overflowed."))?;
-
-        let new = Uint128(new);
-        Self::save_total_supply(storage, &new)?;
-
-        Ok(new)
-    }
-
-    pub fn decrease_total_supply(
-        storage: &mut impl Storage,
-        amount: Uint128,
-    ) -> StdResult<Uint128> {
-        let current = Self::load_total_supply(storage)?;
-        let new = (current - amount)?;
-
-        Self::save_total_supply(storage, &new)?;
-
-        Ok(new)
-    }
-
-    #[inline]
-    pub fn load_total_supply(storage: &impl Storage) -> StdResult<Uint128> {
-        Ok(load(storage, Self::KEY_TOTAL_SUPPLY)?.unwrap_or_default())
-    }
-
-    #[inline]
-    fn save_total_supply(storage: &mut impl Storage, total: &Uint128) -> StdResult<()> {
-        save(storage, Self::KEY_TOTAL_SUPPLY, total)
-    }
-
-    #[inline]
-    pub fn load_borrow_index(storage: &impl Storage) -> StdResult<Uint256> {
+    pub fn load_borrow_index(storage: &impl Storage) -> StdResult<Decimal256> {
         Ok(load(storage, Self::KEY_BORROW_INDEX)?.unwrap_or_default())
     }
 
     #[inline]
-    pub fn save_borrow_index(storage: &mut impl Storage, index: &Uint256) -> StdResult<()> {
+    pub fn save_borrow_index(storage: &mut impl Storage, index: &Decimal256) -> StdResult<()> {
         save(storage, Self::KEY_BORROW_INDEX, index)
+    }
+
+    #[inline]
+    pub fn load_interest_reserve(storage: &impl Storage) -> StdResult<Uint256> {
+        Ok(load(storage, Self::KEY_INTEREST_RESERVE)?.unwrap_or_default())
+    }
+
+    #[inline]
+    pub fn save_interest_reserve(storage: &mut impl Storage, new: &Uint256) -> StdResult<()> {
+        save(storage, Self::KEY_INTEREST_RESERVE, new)
     }
 
     #[inline]
@@ -181,8 +151,8 @@ impl GlobalData {
     }
 
     #[inline]
-    pub fn save_accrual_block_number(storage: &mut impl Storage, block: &u64) -> StdResult<()> {
-        save(storage, Self::KEY_ACCRUAL_BLOCK_NUMBER, block)
+    pub fn save_accrual_block_number(storage: &mut impl Storage, block: u64) -> StdResult<()> {
+        save(storage, Self::KEY_ACCRUAL_BLOCK_NUMBER, &block)
     }
 }
 
@@ -197,8 +167,8 @@ impl Account {
         Ok(Self(BorrowerId::new(deps, address)?))
     }
 
-    pub fn get_balance(&self, storage: &impl Storage) -> StdResult<Uint128> {
-        let result: Option<Uint128> = ns_load(
+    pub fn get_balance(&self, storage: &impl Storage) -> StdResult<Uint256> {
+        let result: Option<Uint256> = ns_load(
             storage,
             Self::NS_BALANCES,
             self.0.as_slice()
@@ -207,11 +177,11 @@ impl Account {
         Ok(result.unwrap_or_default())
     }
 
-    pub fn add_balance(&self, storage: &mut impl Storage, amount: Uint128) -> StdResult<()> {
+    pub fn add_balance(&self, storage: &mut impl Storage, amount: Uint256) -> StdResult<()> {
         let account_balance = self.get_balance(storage)?;
 
-        if let Some(new_balance) = account_balance.0.checked_add(amount.0) {
-            self.set_balance(storage, Uint128(new_balance))
+        if let Ok(new_balance) = account_balance + amount {
+            self.set_balance(storage, &new_balance)
         } else {
             Err(StdError::generic_err(
                 "This deposit would overflow your balance",
@@ -219,11 +189,11 @@ impl Account {
         }
     }
 
-    pub fn subtract_balance(&self, storage: &mut impl Storage, amount: Uint128) -> StdResult<()> {
+    pub fn subtract_balance(&self, storage: &mut impl Storage, amount: Uint256) -> StdResult<()> {
         let account_balance = self.get_balance(storage)?;
 
-        if let Some(new_balance) = account_balance.0.checked_sub(amount.0) {
-            self.set_balance(storage, Uint128(new_balance))
+        if let Ok(new_balance) = account_balance - amount {
+            self.set_balance(storage, &new_balance)
         } else {
             Err(StdError::generic_err(format!(
                 "insufficient funds: balance={}, required={}",
@@ -250,8 +220,8 @@ impl Account {
     }
 
     #[inline]
-    fn set_balance(&self, storage: &mut impl Storage, amount: Uint128) -> StdResult<()> {
-        ns_save(storage, Self::NS_BALANCES, self.0.as_slice(), &amount)
+    fn set_balance(&self, storage: &mut impl Storage, amount: &Uint256) -> StdResult<()> {
+        ns_save(storage, Self::NS_BALANCES, self.0.as_slice(), amount)
     }
 }
 

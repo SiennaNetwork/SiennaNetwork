@@ -43,19 +43,19 @@ pub trait Market {
     #[handle]
     fn redeem_token(
         permit: Permit<OverseerPermissions>,
-        burn_amount: Uint128
+        burn_amount: Uint256
     ) -> StdResult<HandleResponse>;
 
     #[handle]
     fn redeem_underlying(
         permit: Permit<OverseerPermissions>,
-        receive_amount: Uint128
+        receive_amount: Uint256
     ) -> StdResult<HandleResponse>;
 
     #[handle]
     fn borrow(
         permit: Permit<OverseerPermissions>,
-        amount: Uint128
+        amount: Uint256
     ) -> StdResult<HandleResponse>;
 
     #[handle]
@@ -124,7 +124,7 @@ pub struct BorrowerInfo {
     /// Total balance (with accrued interest), after applying the most recent balance-changing action
     pub principal: Uint256,
     /// Global borrowIndex as of the most recent balance-changing action
-    pub interest_index: Uint256,
+    pub interest_index: Decimal256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

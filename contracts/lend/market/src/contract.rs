@@ -3,8 +3,6 @@ mod state;
 mod token;
 mod ops;
 
-use std::ops::{Add, Mul};
-
 use lend_shared::{
     fadroma::{
         admin,
@@ -36,7 +34,10 @@ pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
 // TODO: proper value here
 pub const MAX_BORROW_RATE: Decimal256 = Decimal256::one();
 
-use state::{Config, Contracts, GlobalData, Account};
+use state::{
+    Config, Contracts, Global,
+    Account, TotalBorrows
+};
 
 #[contract_impl(path = "lend_shared::interfaces::market", component(path = "admin"))]
 pub trait Market {
@@ -108,7 +109,7 @@ pub trait Market {
                     env,
                     underlying,
                     from,
-                    amount
+                    amount.into()
                 )
             }
         }
@@ -117,27 +118,27 @@ pub trait Market {
     #[handle]
     fn redeem_token(
         permit: Permit<OverseerPermissions>,
-        burn_amount: Uint128
+        burn_amount: Uint256
     ) -> StdResult<HandleResponse> {
         token::redeem(
             deps,
             env,
             permit,
             burn_amount,
-            Uint128::zero()
+            Uint256::zero()
         )
     }
 
     #[handle]
     fn redeem_underlying(
         permit: Permit<OverseerPermissions>,
-        receive_amount: Uint128
+        receive_amount: Uint256
     ) -> StdResult<HandleResponse> {
         token::redeem(
             deps,
             env,
             permit,
-            Uint128::zero(),
+            Uint256::zero(),
             receive_amount
         )
     }
@@ -145,7 +146,7 @@ pub trait Market {
     #[handle]
     fn borrow(
         permit: Permit<OverseerPermissions>,
-        amount: Uint128
+        amount: Uint256
     ) -> StdResult<HandleResponse> {
         let underlying_asset = Contracts::load_underlying(deps)?;
 
@@ -158,7 +159,7 @@ pub trait Market {
             underlying_asset.address.clone(),
         )?.amount;
 
-        checks::assert_can_withdraw(balance, amount)?;
+        checks::assert_can_withdraw(balance.into(), amount)?;
     
         accrue_interest(deps, env.block.height, balance)?;
 
@@ -169,7 +170,7 @@ pub trait Market {
             amount
         )?;
 
-        let borrow_index = GlobalData::load_borrow_index(&deps.storage)?;
+        let borrow_index = Global::load_borrow_index(&deps.storage)?;
 
         let account = Account::new(deps, &env.message.sender)?;
         let mut snapshot = account.get_borrow_snapshot(&deps.storage)?;
@@ -180,13 +181,13 @@ pub trait Market {
 
         account.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
 
-        GlobalData::increase_total_borrows(&mut deps.storage, amount)?;
+        TotalBorrows::increase(&mut deps.storage, amount)?;
 
         Ok(HandleResponse {
             messages: vec![
                 snip20::transfer_msg(
                     env.message.sender,
-                    amount,
+                    amount.clamp_u128()?.into(),
                     None,
                     BLOCK_SIZE,
                     underlying_asset.code_hash,
@@ -268,16 +269,16 @@ fn accrue_interest<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<()> {
     let config = Config::load(deps)?;
     // Initial block number
-    let last_accrual_block = GlobalData::load_accrual_block_number(&deps.storage)?;
+    let last_accrual_block = Global::load_accrual_block_number(&deps.storage)?;
 
     if last_accrual_block == current_block {
         return Ok(());
     }
 
     // Previous values from storage
-    let borrows_prior = Decimal256::from_uint256(GlobalData::load_total_borrows(&deps.storage)?)?;
-    let reserves_prior = Decimal256::from_uint256(GlobalData::load_total_reserves(&deps.storage)?)?;
-    let borrow_index_prior = GlobalData::load_borrow_index(&deps.storage)?;
+    let borrows_prior = TotalBorrows::load(&deps.storage)?;
+    let reserves_prior = Global::load_interest_reserve(&deps.storage)?;
+    let borrow_index_prior = Global::load_borrow_index(&deps.storage)?;
 
     // Current borrow interest rate
     let interest_model = Contracts::load_interest_model(deps)?;
@@ -285,8 +286,8 @@ fn accrue_interest<S: Storage, A: Api, Q: Querier>(
         &deps.querier,
         interest_model,
         Decimal256::from_uint256(balance_prior)?,
-        borrows_prior,
-        reserves_prior,
+        Decimal256::from_uint256(borrows_prior)?,
+        Decimal256::from_uint256(reserves_prior)?,
     )?;
 
     if borrow_rate >= MAX_BORROW_RATE {
@@ -298,28 +299,19 @@ fn accrue_interest<S: Storage, A: Api, Q: Querier>(
         .checked_sub(last_accrual_block)
         .ok_or_else(|| StdError::generic_err("Could not calculate block delta"))?;
 
-    let simple_interest_factor = borrow_rate.mul(Decimal256::from_uint256(block_delta as u128)?)?;
-    let interest_accumulated = simple_interest_factor.mul(borrows_prior)?;
+    let simple_interest_factor = (borrow_rate * Decimal256::from_uint256(block_delta)?)?;
+    let interest_accumulated = borrows_prior.decimal_mul(simple_interest_factor)?;
 
-    let total_borrows_new = Uint128::from(
-        interest_accumulated
-            .add(borrows_prior)?
-            .round()
-            .clamp_u128()?,
-    );
-    GlobalData::save_total_borrows(&mut deps.storage, &total_borrows_new)?;
+    let total_borrows_new = (interest_accumulated + borrows_prior)?;
+    TotalBorrows::save(&mut deps.storage, &total_borrows_new)?;
 
-    let total_reserves_new = Uint128::from(
-        ((config.reserve_factor.mul(interest_accumulated)?) + reserves_prior)?
-            .round()
-            .clamp_u128()?,
-    );
-    GlobalData::save_total_reserves(&mut deps.storage, &total_reserves_new)?;
+    let total_reserves_new = (interest_accumulated.decimal_mul(config.reserve_factor)? + reserves_prior)?;
+    Global::save_interest_reserve(&mut deps.storage, &total_reserves_new)?;
 
-    let borrow_index_new = (borrow_index_prior.decimal_mul(simple_interest_factor)? + borrow_index_prior)?;
-    GlobalData::save_borrow_index(&mut deps.storage, &borrow_index_new)?;
+    let borrow_index_new = ((borrow_index_prior * simple_interest_factor)? + borrow_index_prior)?;
+    Global::save_borrow_index(&mut deps.storage, &borrow_index_new)?;
 
-    GlobalData::save_accrual_block_number(&mut deps.storage, &current_block)?;
+    Global::save_accrual_block_number(&mut deps.storage, current_block)?;
 
     Ok(())
 }
