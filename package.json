@@ -8,10 +8,9 @@
     "./benchmarks",
     "./contracts/*",
     "./frontends/*",
-    "./libraries/fadroma-next/lib/composable-snip20",
+    "./libraries/fadroma-next/crates/fadroma-snip20-impl",
     "./libraries/fadroma-next/packages/*",
-    "./libraries/fadroma-next/platforms/scrt-1.0/cosmwasm-js/packages/sdk",
-    "./libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk",
+    "./libraries/fadroma-next/deps/*",
     "./libraries/ops-amm",
     "./libraries/schedule",
     "./scripts",
@@ -19,8 +18,7 @@
   ],
   "dependencies": {
     "@ganesha/node": "workspace:*",
-    "chai":          "^4.3.4",
-    "mocha":         "^8.4.0",
+    "@hackbg/tools": "workspace:*",
     "typescript":    "^4.4.4"
   },
   "scripts": {

@@ -11,9 +11,8 @@ import process from 'process'
 
 import TOML from 'toml'
 
-import { bold }          from '@hackbg/tools'
+import { bold, cargo }   from '@hackbg/tools'
 import { schemaToTypes } from '@fadroma/scrt'
-import { cargo }         from '@hackbg/tools'
 
 import { abs } from '@sienna/settings'
 

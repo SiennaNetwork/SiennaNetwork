@@ -127,6 +127,7 @@ steps:
   - name:  deps
     image: node:14-slim
     commands:
+      - ls -al
       - npm i -g pnpm
       - pnpm i
 
@@ -144,6 +145,7 @@ steps:
   - name:  test
     image: node:14-slim
     commands:
+      - cat package.json
       - npm i -g pnpm
       - pnpm -w dev
       - pnpm -w ops
