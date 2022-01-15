@@ -1,9 +1,7 @@
 kind: pipeline
 type: docker
-name: Coverage
-
+name: Smart Contract Tests And Coverage
 volumes: [ { name: cache, host: { path: /var/lib/drone/sienna-cache } } ]
-
 steps:
 
   # Restore cache if present.
@@ -80,3 +78,54 @@ steps:
       rebuild:   true
       cache_key: "{{ .Repo.Name }}"
       mount:     [ "target" ]
+
+---
+
+kind: pipeline
+type: docker
+name: Dev and Ops Scripts
+volumes: [ { name: cache, host: { path: /var/lib/drone/sienna-cache } } ]
+steps:
+
+  # Restore cache if present.
+  - name:     get-cache
+    image:    meltwater/drone-cache:dev
+    volumes:  [ { name: cache, path: /tmp/cache } ]
+    settings:
+      backend:   "filesystem"
+      restore:   true
+      cache_key: "{{ .Repo.Name }}"
+      mount:     [ "/drone/src/.pnpm-store/v3" ]
+
+  # Clone submodules.
+  - name:        submodules
+    image:       alpine/git
+    environment: { DRONE_KEY: { from_secret: drone_key } }
+    commands:
+    - mkdir -p ~/.ssh
+    - printenv DRONE_KEY > ~/.ssh/id_rsa
+    - chmod 0600 ~/.ssh/id_rsa
+    - ssh-keyscan git.sienna.network >> ~/.ssh/known_hosts
+    - git submodule update --init
+    - cd libraries/fadroma-next
+    - sed -i -e 's|git@github.com:.\+/|git@git.sienna.network:siennanetwork/|' .gitmodules
+    - git submodule update --init
+
+  - name:  test
+    image: node:17-slim
+    commands:
+      - npm i -g pnpm
+      - pnpm i
+      - pnpm -w dev
+      - pnpm -w ops
+
+  # Update cache.
+  # See http://plugins.drone.io/meltwater/drone-cache/
+  - name:     set-cache
+    image:    meltwater/drone-cache:dev
+    volumes:  [ { name: cache, path: /tmp/cache } ]
+    settings:
+      backend:   "filesystem"
+      rebuild:   true
+      cache_key: "{{ .Repo.Name }}"
+      mount:     [ "/drone/src/.pnpm-store/v3" ]

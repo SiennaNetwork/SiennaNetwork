@@ -527,12 +527,11 @@ importers:
     specifiers:
       '@ganesha/nodejs-loader': workspace:*
       '@types/mkdirp': ^1.0.2
-      '@types/node': ^16.11.19
+      '@types/node': ^16.11.6
       '@types/prettyjson': ^0.0.30
       '@types/rimraf': ^3.0.2
-      bignumber.js: ^9.0.2
+      bignumber.js: ^9.0.1
       typedoc: ^0.21.9
-      typescript: ^4.5.4
     dependencies:
       '@types/mkdirp': 1.0.2
       '@types/node': 16.11.19
@@ -541,8 +540,7 @@ importers:
       bignumber.js: 9.0.2
     devDependencies:
       '@ganesha/nodejs-loader': link:packages/ganesha/nodejs-loader
-      typedoc: 0.21.9_typescript@4.5.4
-      typescript: 4.5.4
+      typedoc: 0.21.9_typescript@4.5.2
 
   libraries/fadroma-next/crates/fadroma-snip20-impl:
     specifiers:
@@ -680,29 +678,24 @@ importers:
 
   libraries/fadroma-next/packages/kabinet:
     specifiers:
-      '@ganesha/nodejs-loader': workspace:*
-      '@ganesha/tsc': workspace:*
+      '@hackbg/ganesha': workspace:*
       mkdirp: ^1.0.4
       rimraf: ^3.0.2
     dependencies:
       mkdirp: 1.0.4
       rimraf: 3.0.2
     devDependencies:
-      '@ganesha/nodejs-loader': link:../ganesha/nodejs-loader
-      '@ganesha/tsc': link:../ganesha/tsc
+      '@hackbg/ganesha': link:../ganesha
 
   libraries/fadroma-next/packages/komandi:
     specifiers:
-      '@ganesha/nodejs-loader': workspace:*
-      typescript: latest
+      '@hackbg/ganesha': workspace:*
     devDependencies:
-      '@ganesha/nodejs-loader': link:../ganesha/nodejs-loader
-      typescript: 4.5.4
+      '@hackbg/ganesha': link:../ganesha
 
   libraries/fadroma-next/packages/konzola:
     specifiers:
-      '@ganesha/nodejs-loader': workspace:*
-      '@ganesha/tsc': workspace:*
+      '@hackbg/ganesha': workspace:*
       colors: ^1.4.0
       prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       table: ^6.6.0
@@ -711,12 +704,12 @@ importers:
       prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       table: 6.7.3
     devDependencies:
-      '@ganesha/nodejs-loader': link:../ganesha/nodejs-loader
-      '@ganesha/tsc': link:../ganesha/tsc
+      '@hackbg/ganesha': link:../ganesha
 
   libraries/fadroma-next/packages/ops:
     specifiers:
       '@fadroma/tools': workspace:*
+      '@ganesha/tsc': workspace:*
       ajv: ^8.6.0
       exponential-backoff: ^3.1.0
       json-schema-to-typescript: ^10.1.4
@@ -725,6 +718,8 @@ importers:
       ajv: 8.8.2
       exponential-backoff: 3.1.0
       json-schema-to-typescript: 10.1.5
+    devDependencies:
+      '@ganesha/tsc': link:../ganesha/tsc
 
   libraries/fadroma-next/packages/scrt:
     specifiers:
@@ -6471,7 +6466,7 @@ packages:
   /@types/fs-capacitor/2.0.0:
     resolution: {integrity: sha512-FKVPOCFbhCvZxpVAMhdBdTfVfXUpsh15wFHgqOKxh9N9vzWZVuWCSijZ5T4U34XYNnuj2oduh6xcs1i+LPI+BQ==}
     dependencies:
-      '@types/node': 16.11.11
+      '@types/node': 17.0.8
     dev: true
     optional: true
 
@@ -22129,7 +22124,7 @@ packages:
   /parse5/3.0.3:
     resolution: {integrity: sha512-rgO9Zg5LLLkfJF9E6CCmXlSE4UVceloys8JrFqCcHloC3usd/kJCyPDwH2SOlzix2j3xaP9sUX3e8+kvkuleAA==}
     dependencies:
-      '@types/node': 16.11.11
+      '@types/node': 17.0.8
     dev: true
 
   /parse5/6.0.1:
@@ -27837,7 +27832,7 @@ packages:
     engines: {node: '>= 8'}
     dev: true
 
-  /typedoc/0.21.9_typescript@4.5.4:
+  /typedoc/0.21.9_typescript@4.5.2:
     resolution: {integrity: sha512-VRo7aII4bnYaBBM1lhw4bQFmUcDQV8m8tqgjtc7oXl87jc1Slbhfw2X5MccfcR2YnEClHDWgsiQGgNB8KJXocA==}
     engines: {node: '>= 12.10.0'}
     hasBin: true
@@ -27852,7 +27847,7 @@ packages:
       progress: 2.0.3
       shiki: 0.9.13
       typedoc-default-themes: 0.12.10
-      typescript: 4.5.4
+      typescript: 4.5.2
     dev: true
 
   /typeforce/1.18.0:
