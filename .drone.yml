@@ -13,7 +13,7 @@ steps:
       backend:   "filesystem"
       restore:   true
       cache_key: "{{ .Repo.Name }}"
-      mount:     [ "target" ]
+      mount:     [ "/drone/src/target" ]
 
   # Clone submodules.
   # The main repo is cloned automatically, but,
@@ -56,17 +56,21 @@ steps:
     - sed -i -e 's|git@github.com:.\+/|git@git.sienna.network:siennanetwork/|' .gitmodules
     - git submodule update --init
 
-  # This container needs to be privileged because Tarpaulin relies on
-  # disabling ASLR for the process in order to perform tracing.
-  - name:        toolchain
+  - name:        build
     image:       xd009642/tarpaulin
-    privileged:  true
+    # This container needs to be privileged to generate coverage
+    # because Tarpaulin relies on disabling ASLR for the process
+    # in order to perform tracing. Maybe try grcov after all.
+    # privileged:  true
     environment: { COVERAGE_KEY: { from_secret: coverage_key } }
     commands:
+    # Are these needed or not?
     #- rustup toolchain install stable
     #- rustup set profile minimal
     #- rustup target add wasm32-unknown-unknown
-    - cargo tarpaulin --workspace --ignore-panics --ignore-tests --coveralls $COVERAGE_KEY --report-uri https://cov.sienna.network/api/v1/jobs
+    # But we aint doing coverage anyway, just seeing if the contract builds
+    #- cargo tarpaulin --workspace --ignore-panics --ignore-tests --coveralls $COVERAGE_KEY --report-uri https://cov.sienna.network/api/v1/jobs
+    - cargo build
 
   # Update cache.
   # See http://plugins.drone.io/meltwater/drone-cache/
@@ -77,7 +81,7 @@ steps:
       backend:   "filesystem"
       rebuild:   true
       cache_key: "{{ .Repo.Name }}"
-      mount:     [ "target" ]
+      mount:     [ "/drone/src/target" ]
 
 ---
 
@@ -111,6 +115,7 @@ steps:
     - sed -i -e 's|git@github.com:.\+/|git@git.sienna.network:siennanetwork/|' .gitmodules
     - git submodule update --init
 
+  # Install dependencies and make sure ops scripts work
   - name:  test
     image: node:17-slim
     commands:
