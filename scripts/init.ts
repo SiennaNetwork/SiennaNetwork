@@ -1,5 +1,5 @@
 import type { IChain, IAgent } from '@fadroma/ops'
-import { bold } from '@fadroma/tools'
+import { bold } from '@hackbg/tools'
 import { CHAINS } from '@fadroma/scrt'
 
 export default async function init (chainName: string) {

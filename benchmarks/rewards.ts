@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url'
 
 import type { IAgent, ContractUpload } from '@fadroma/scrt'
 import { Scrt, ScrtGas } from '@fadroma/scrt'
-import { Console } from '@fadroma/tools'
+import { Console } from '@hackbg/tools'
 const console = Console(import.meta.url)
 
 import { RewardsContract, SiennaSNIP20Contract, LPTokenContract } from '@sienna/api'

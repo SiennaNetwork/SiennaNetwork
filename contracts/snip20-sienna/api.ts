@@ -1,7 +1,7 @@
 import type { IAgent } from '@fadroma/ops'
 import { workspace } from '@sienna/settings'
 import { SNIP20Contract_1_0 } from '@fadroma/snip20'
-import { randomHex } from '@fadroma/tools'
+import { randomHex } from '@hackbg/tools'
 
 export class SiennaSNIP20Contract extends SNIP20Contract_1_0 {
 

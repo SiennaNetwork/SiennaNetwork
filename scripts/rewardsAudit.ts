@@ -2,7 +2,7 @@ import {
   bold,
   timestamp,
   Console
-} from '@fadroma/tools'
+} from '@hackbg/tools'
 
 const console = Console(import.meta.url)
 

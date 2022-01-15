@@ -1,7 +1,7 @@
 Error.stackTraceLimit = Infinity
 import process from 'process'
 
-import { bold, timestamp, runCommands, entrypoint } from '@fadroma/tools'
+import { bold, timestamp, runCommands, entrypoint } from '@hackbg/tools'
 
 import { RPTContract } from '@sienna/api'
 

@@ -5,7 +5,7 @@
   "type":    "module",
   "dependencies": {
     "@fadroma/snip20":  "workspace:*",
-    "@fadroma/tools":   "workspace:*",
+    "@hackbg/tools":   "workspace:*",
     "@sienna/settings": "workspace:^1.0.0"
   }
 }

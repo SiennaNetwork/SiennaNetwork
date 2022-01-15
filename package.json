@@ -18,14 +18,14 @@
     "./settings"
   ],
   "dependencies": {
-    "@ganesha/nodejs-loader": "workspace:*",
-    "chai":                   "^4.3.4",
-    "mocha":                  "^8.4.0",
-    "typescript":             "^4.4.4"
+    "@ganesha/node": "workspace:*",
+    "chai":          "^4.3.4",
+    "mocha":         "^8.4.0",
+    "typescript":    "^4.4.4"
   },
   "scripts": {
-    "dev":          "ganesha --unhandled-rejections=strict scripts/dev.ts",
-    "ops":          "ganesha --unhandled-rejections=strict scripts/ops.ts",
+    "dev":          "ganesha-node --unhandled-rejections=strict scripts/dev.ts",
+    "ops":          "ganesha-node --unhandled-rejections=strict scripts/ops.ts",
     "dash":         "cd frontends/dashboard; pnpm web",
     "dash:build":   "frontends/dashboard/build.sh",
     "test:rewards": "cargo test -p sienna-rewards"

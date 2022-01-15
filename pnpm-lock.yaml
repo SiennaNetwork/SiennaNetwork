@@ -4,12 +4,12 @@ importers:
 
   .:
     specifiers:
-      '@ganesha/nodejs-loader': workspace:*
+      '@ganesha/node': workspace:*
       chai: ^4.3.4
       mocha: ^8.4.0
       typescript: ^4.4.4
     dependencies:
-      '@ganesha/nodejs-loader': link:libraries/fadroma-next/packages/ganesha/nodejs-loader
+      '@ganesha/node': link:libraries/fadroma-next/deps/ganesha/src/node
       chai: 4.3.4
       mocha: 8.4.0
       typescript: 4.5.2
@@ -17,41 +17,41 @@ importers:
   benchmarks:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/api': workspace:*
       '@sienna/settings': workspace:^1.0.0
     dependencies:
       '@fadroma/scrt': link:../libraries/fadroma-next/packages/scrt
-      '@fadroma/tools': link:../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/api': link:../frontends/api
       '@sienna/settings': link:../settings
 
   contracts/amm-snip20:
     specifiers:
       '@fadroma/snip20': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/settings': workspace:^1.0.0
     dependencies:
       '@fadroma/snip20': link:../../libraries/fadroma-next/crates/fadroma-snip20-impl
-      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/settings': link:../../settings
 
   contracts/amm/exchange:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../../libraries/fadroma-next/packages/scrt
-      '@fadroma/tools': link:../../../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/settings': link:../../../settings
-      secretjs: link:../../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: link:../../../libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/amm/factory:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/amm-snip20': workspace:^0.1.0
       '@sienna/exchange': workspace:^1.0.0
       '@sienna/ido': workspace:^0.1.0
@@ -62,7 +62,7 @@ importers:
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../../libraries/fadroma-next/packages/scrt
-      '@fadroma/tools': link:../../../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/amm-snip20': link:../../amm-snip20
       '@sienna/exchange': link:../exchange
       '@sienna/ido': link:../ido
@@ -70,104 +70,104 @@ importers:
       '@sienna/lp-token': link:../lp-token
       '@sienna/settings': link:../../../settings
       '@waiting/base64': 4.2.9
-      secretjs: link:../../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: link:../../../libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/amm/ido:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../../libraries/fadroma-next/packages/scrt
-      '@fadroma/tools': link:../../../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/settings': link:../../../settings
-      secretjs: link:../../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: link:../../../libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/amm/launchpad:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../../libraries/fadroma-next/packages/scrt
-      '@fadroma/tools': link:../../../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/settings': link:../../../settings
-      secretjs: link:../../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: link:../../../libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/amm/lp-token:
     specifiers:
       '@fadroma/snip20': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/settings': workspace:^1.0.0
     dependencies:
       '@fadroma/snip20': link:../../../libraries/fadroma-next/crates/fadroma-snip20-impl
-      '@fadroma/tools': link:../../../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/settings': link:../../../settings
 
   contracts/amm/router:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../../libraries/fadroma-next/packages/scrt
-      '@fadroma/tools': link:../../../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/settings': link:../../../settings
-      secretjs: link:../../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: link:../../../libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/mgmt:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/packages/scrt
-      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/settings': link:../../settings
-      secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: link:../../libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/rewards:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@fadroma/snip20': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/lp-token': workspace:^1.0.0
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/packages/scrt
       '@fadroma/snip20': link:../../libraries/fadroma-next/crates/fadroma-snip20-impl
-      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/lp-token': link:../amm/lp-token
       '@sienna/settings': link:../../settings
-      secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: link:../../libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/rpt:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/mgmt': workspace:^2.0.0
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/packages/scrt
-      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/mgmt': link:../mgmt
       '@sienna/settings': link:../../settings
-      secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: link:../../libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/snip20-sienna:
     specifiers:
       '@fadroma/snip20': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/settings': workspace:^1.0.0
     dependencies:
       '@fadroma/snip20': link:../../libraries/fadroma-next/crates/fadroma-snip20-impl
-      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/settings': link:../../settings
 
   contracts/wrapped:
@@ -238,7 +238,7 @@ importers:
   frontends/api:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/amm-snip20': workspace:^0.1.0
       '@sienna/exchange': workspace:^1.0.0
       '@sienna/factory': workspace:^1.0.0
@@ -257,7 +257,7 @@ importers:
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../libraries/fadroma-next/packages/scrt
-      '@fadroma/tools': link:../../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/amm-snip20': link:../../contracts/amm-snip20
       '@sienna/exchange': link:../../contracts/amm/exchange
       '@sienna/factory': link:../../contracts/amm/factory
@@ -272,7 +272,7 @@ importers:
       '@waiting/base64': 4.2.9
       bip39: 3.0.4
       debug: 4.3.3
-      secretjs: link:../../libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: link:../../libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/sdk
     devDependencies:
       mocha: 8.4.0
 
@@ -525,13 +525,14 @@ importers:
 
   libraries/fadroma-next:
     specifiers:
-      '@ganesha/nodejs-loader': workspace:*
+      '@ganesha/node': workspace:*
       '@types/mkdirp': ^1.0.2
-      '@types/node': ^16.11.6
+      '@types/node': ^16.11.19
       '@types/prettyjson': ^0.0.30
       '@types/rimraf': ^3.0.2
-      bignumber.js: ^9.0.1
+      bignumber.js: ^9.0.2
       typedoc: ^0.21.9
+      typescript: ^4.5.4
     dependencies:
       '@types/mkdirp': 1.0.2
       '@types/node': 16.11.19
@@ -539,50 +540,43 @@ importers:
       '@types/rimraf': 3.0.2
       bignumber.js: 9.0.2
     devDependencies:
-      '@ganesha/nodejs-loader': link:packages/ganesha/nodejs-loader
-      typedoc: 0.21.9_typescript@4.5.2
+      '@ganesha/node': link:deps/ganesha/src/node
+      typedoc: 0.21.9_typescript@4.5.4
+      typescript: 4.5.4
 
   libraries/fadroma-next/crates/fadroma-snip20-impl:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
     dependencies:
       '@fadroma/scrt': link:../../packages/scrt
-      '@fadroma/tools': link:../../packages/tools
+      '@hackbg/tools': link:../../deps/toolbox/tools
 
-  libraries/fadroma-next/doc/example:
-    specifiers: {}
-
-  libraries/fadroma-next/packages/forkers:
+  libraries/fadroma-next/deps/ganesha:
     specifiers:
-      '@types/zen-observable': ^0.8.3
-      zen-observable: ^0.8.15
-    dependencies:
-      '@types/zen-observable': 0.8.3
-      zen-observable: 0.8.15
-
-  libraries/fadroma-next/packages/ganesha:
-    specifiers:
-      '@ganesha/core': workspace:*
-      '@ganesha/nodejs-loader': workspace:*
+      '@hackbg/komandi': workspace:*
       '@types/node': latest
       tap: ^15.0.9
       typescript: latest
       vite: ^2.7.6
       vsce: latest
     devDependencies:
-      '@ganesha/core': link:core
-      '@ganesha/nodejs-loader': link:nodejs-loader
+      '@hackbg/komandi': link:../toolbox/komandi
       '@types/node': 17.0.8
       tap: 15.1.5_typescript@4.5.4
       typescript: 4.5.4
       vite: 2.7.10
       vsce: 2.6.3
 
-  libraries/fadroma-next/packages/ganesha/core:
-    specifiers: {}
+  libraries/fadroma-next/deps/ganesha/src/core:
+    specifiers:
+      joycon: ^3.0.1
+      jsonc-parser: ^3.0.0
+    dependencies:
+      joycon: 3.1.0
+      jsonc-parser: 3.0.0
 
-  libraries/fadroma-next/packages/ganesha/nodejs-loader:
+  libraries/fadroma-next/deps/ganesha/src/node:
     specifiers:
       '@ganesha/core': workspace:*
       cross-spawn: ^7.0.3
@@ -602,58 +596,57 @@ importers:
       pirates: 4.0.1
       source-map-support: 0.5.21
 
-  libraries/fadroma-next/packages/ganesha/rollup-plugin:
+  libraries/fadroma-next/deps/ganesha/src/node-legacy:
+    specifiers:
+      '@ganesha/core': workspace:*
+      cross-spawn: ^7.0.3
+      esbuild: ^0.13.0
+      front-matter: ^4.0.2
+      joycon: ^3.0.1
+      jsonc-parser: ^3.0.0
+      pirates: ^4.0.1
+      source-map-support: ^0.5.20
+    dependencies:
+      '@ganesha/core': link:../core
+      cross-spawn: 7.0.3
+      esbuild: 0.13.15
+      front-matter: 4.0.2
+      joycon: 3.1.0
+      jsonc-parser: 3.0.0
+      pirates: 4.0.1
+      source-map-support: 0.5.21
+
+  libraries/fadroma-next/deps/ganesha/src/rollup:
     specifiers:
       '@ganesha/core': workspace:*
     dependencies:
       '@ganesha/core': link:../core
 
-  libraries/fadroma-next/packages/ganesha/tests:
+  libraries/fadroma-next/deps/ganesha/src/tsc:
     specifiers:
       '@ganesha/core': workspace:*
-      '@ganesha/nodejs-loader': workspace:*
-      '@ganesha/rollup-plugin': workspace:*
-      mkdirp: ^1.0.4
-      vite: ^2.7.6
-    devDependencies:
+      '@ganesha/node': workspace:*
+    dependencies:
       '@ganesha/core': link:../core
-      '@ganesha/nodejs-loader': link:../nodejs-loader
-      '@ganesha/rollup-plugin': link:../rollup-plugin
-      mkdirp: 1.0.4
-      vite: 2.7.10
+      '@ganesha/node': link:../node
 
-  libraries/fadroma-next/packages/ganesha/tests/examples/example:
+  libraries/fadroma-next/deps/ganesha/src/vsc:
     specifiers: {}
 
-  libraries/fadroma-next/packages/ganesha/tsc:
-    specifiers:
-      '@ganesha/core': workspace:*
-      '@ganesha/nodejs-loader': workspace:*
-    dependencies:
-      '@ganesha/core': link:../core
-      '@ganesha/nodejs-loader': link:../nodejs-loader
-
-  libraries/fadroma-next/packages/ganesha/typescript-patch:
-    specifiers:
-      '@ganesha/core': workspace:*
-    dependencies:
-      '@ganesha/core': link:../core
-
-  libraries/fadroma-next/packages/ganesha/vscode-client:
+  libraries/fadroma-next/deps/ganesha/src/vsc/client:
     specifiers:
       '@ganesha/vscode-shared': workspace:*
       '@types/vscode': latest
       vscode-languageclient: ^7.1.0-next.4
     dependencies:
-      '@ganesha/vscode-shared': link:../vscode-shared
+      '@ganesha/vscode-shared': link:../shared
       vscode-languageclient: 7.1.0-next.5
     devDependencies:
       '@types/vscode': 1.63.1
 
-  libraries/fadroma-next/packages/ganesha/vscode-server:
+  libraries/fadroma-next/deps/ganesha/src/vsc/server:
     specifiers:
       '@ganesha/core': workspace:*
-      '@ganesha/typescript-patch': workspace:*
       '@ganesha/vscode-shared': workspace:*
       fast-glob: ^3.2.7
       vscode-languageserver: ^8.0.0-next.1
@@ -661,143 +654,46 @@ importers:
       vscode-typescript-languageservice: ^0.27.7
       vscode-uri: ^3.0.2
     dependencies:
-      '@ganesha/core': link:../core
-      '@ganesha/typescript-patch': link:../typescript-patch
-      '@ganesha/vscode-shared': link:../vscode-shared
+      '@ganesha/core': link:../../core
+      '@ganesha/vscode-shared': link:../shared
       fast-glob: 3.2.7
       vscode-languageserver: 8.0.0-next.5
       vscode-languageserver-textdocument: 1.0.3
       vscode-typescript-languageservice: 0.27.25
       vscode-uri: 3.0.3
 
-  libraries/fadroma-next/packages/ganesha/vscode-shared:
+  libraries/fadroma-next/deps/ganesha/src/vsc/shared:
     specifiers:
       typescript: latest
     devDependencies:
       typescript: 4.5.4
 
-  libraries/fadroma-next/packages/kabinet:
+  libraries/fadroma-next/deps/ganesha/test:
     specifiers:
-      '@hackbg/ganesha': workspace:*
+      '@ganesha/core': workspace:*
+      '@ganesha/node': workspace:*
+      '@ganesha/rollup': workspace:*
       mkdirp: ^1.0.4
-      rimraf: ^3.0.2
-    dependencies:
+      tap: ^15.0.9
+      vite: ^2.7.6
+    devDependencies:
+      '@ganesha/core': link:../src/core
+      '@ganesha/node': link:../src/node
+      '@ganesha/rollup': link:../src/rollup
       mkdirp: 1.0.4
-      rimraf: 3.0.2
-    devDependencies:
-      '@hackbg/ganesha': link:../ganesha
+      tap: 15.1.5_typescript@4.5.2
+      vite: 2.7.10
 
-  libraries/fadroma-next/packages/komandi:
-    specifiers:
-      '@hackbg/ganesha': workspace:*
-    devDependencies:
-      '@hackbg/ganesha': link:../ganesha
+  libraries/fadroma-next/deps/ganesha/test/examples/example:
+    specifiers: {}
 
-  libraries/fadroma-next/packages/konzola:
-    specifiers:
-      '@hackbg/ganesha': workspace:*
-      colors: ^1.4.0
-      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      table: ^6.6.0
-    dependencies:
-      colors: 1.4.0
-      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      table: 6.7.3
-    devDependencies:
-      '@hackbg/ganesha': link:../ganesha
-
-  libraries/fadroma-next/packages/ops:
-    specifiers:
-      '@fadroma/tools': workspace:*
-      '@ganesha/tsc': workspace:*
-      ajv: ^8.6.0
-      exponential-backoff: ^3.1.0
-      json-schema-to-typescript: ^10.1.4
-    dependencies:
-      '@fadroma/tools': link:../tools
-      ajv: 8.8.2
-      exponential-backoff: 3.1.0
-      json-schema-to-typescript: 10.1.5
-    devDependencies:
-      '@ganesha/tsc': link:../ganesha/tsc
-
-  libraries/fadroma-next/packages/scrt:
-    specifiers:
-      '@cosmjs/crypto': ^0.20.0
-      '@fadroma/ops': workspace:*
-      '@fadroma/scrt-1.0': workspace:*
-      '@fadroma/scrt-1.2': workspace:*
-      '@fadroma/tools': workspace:*
-      secretjs: workspace:0.17.5
-    dependencies:
-      '@cosmjs/crypto': 0.20.1
-      '@fadroma/ops': link:../ops
-      '@fadroma/scrt-1.0': link:../scrt-1.0
-      '@fadroma/scrt-1.2': link:../scrt-1.2
-      '@fadroma/tools': link:../tools
-      secretjs: link:../../platforms/scrt-1.2/cosmwasm-js/packages/sdk
-
-  libraries/fadroma-next/packages/scrt-1.0:
-    specifiers:
-      '@fadroma/scrt': workspace:*
-      '@fadroma/tools': workspace:*
-      secretjs: workspace:0.16.5
-    dependencies:
-      '@fadroma/scrt': link:../scrt
-      '@fadroma/tools': link:../tools
-      secretjs: link:../../platforms/scrt-1.0/cosmwasm-js/packages/sdk
-
-  libraries/fadroma-next/packages/scrt-1.2:
-    specifiers:
-      '@fadroma/scrt': workspace:*
-      '@fadroma/tools': workspace:*
-      secretjs: workspace:0.17.5
-    dependencies:
-      '@fadroma/scrt': link:../scrt
-      '@fadroma/tools': link:../tools
-      secretjs: link:../../platforms/scrt-1.2/cosmwasm-js/packages/sdk
-
-  libraries/fadroma-next/packages/tools:
-    specifiers:
-      '@hackbg/kabinet': workspace:^0.1.0
-      '@hackbg/komandi': workspace:^0.1.0
-      '@hackbg/konzola': workspace:^0.1.0
-      colors: ^1.4.0
-      dockerode: ^3.3.0
-      exponential-backoff: ^3.1.0
-      mkdirp: ^1.0.4
-      open: ^8.0.2
-      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: ^2.4.1
-      rimraf: ^3.0.2
-      signal-exit: ^3.0.3
-      symlink-dir: ^5.0.1
-      table: ^6.6.0
-      wait-port: ^0.2.9
-    dependencies:
-      '@hackbg/kabinet': link:../kabinet
-      '@hackbg/komandi': link:../komandi
-      '@hackbg/konzola': link:../konzola
-      colors: 1.4.0
-      dockerode: 3.3.1
-      exponential-backoff: 3.1.0
-      mkdirp: 1.0.4
-      open: 8.4.0
-      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: 2.4.2
-      rimraf: 3.0.2
-      signal-exit: 3.0.6
-      symlink-dir: 5.0.1
-      table: 6.7.3
-      wait-port: 0.2.9
-
-  libraries/fadroma-next/platforms/scrt-1.0:
+  libraries/fadroma-next/deps/scrt-1.0:
     specifiers:
       vuepress: ^1.5.1
     devDependencies:
       vuepress: 1.8.2
 
-  libraries/fadroma-next/platforms/scrt-1.0/cosmwasm-js:
+  libraries/fadroma-next/deps/scrt-1.0/cosmwasm-js:
     specifiers:
       '@types/color-name': 1.1.1
       '@types/jasmine': ^3.3.7
@@ -849,7 +745,7 @@ importers:
       webpack: 4.46.0_webpack-cli@3.3.12
       webpack-cli: 3.3.12_webpack@4.46.0
 
-  libraries/fadroma-next/platforms/scrt-1.0/cosmwasm-js/packages/bcp:
+  libraries/fadroma-next/deps/scrt-1.0/cosmwasm-js/packages/bcp:
     specifiers:
       '@cosmwasm/sdk': ^0.8.0-alpha.0
       '@iov/bcp': ^2.1.0
@@ -878,7 +774,7 @@ importers:
       '@iov/keycontrol': 2.5.0
       '@types/bn.js': 4.11.6
 
-  libraries/fadroma-next/platforms/scrt-1.0/cosmwasm-js/packages/cli:
+  libraries/fadroma-next/deps/scrt-1.0/cosmwasm-js/packages/cli:
     specifiers:
       '@cosmwasm/sdk': ^0.8.0-alpha.0
       '@iov/crypto': ^2.1.0
@@ -913,7 +809,7 @@ importers:
       '@types/diff': 4.0.2
       '@types/yargs': 15.0.14
 
-  libraries/fadroma-next/platforms/scrt-1.0/cosmwasm-js/packages/faucet:
+  libraries/fadroma-next/deps/scrt-1.0/cosmwasm-js/packages/faucet:
     specifiers:
       '@cosmwasm/bcp': ^0.8.0-alpha.0
       '@iov/bcp': ^2.1.0
@@ -948,7 +844,7 @@ importers:
       '@types/koa__cors': 3.0.3
       '@types/koa-bodyparser': 4.3.4
 
-  libraries/fadroma-next/platforms/scrt-1.0/cosmwasm-js/packages/sdk:
+  libraries/fadroma-next/deps/scrt-1.0/cosmwasm-js/packages/sdk:
     specifiers:
       '@iov/crypto': 2.1.0
       '@iov/encoding': 2.1.0
@@ -981,13 +877,13 @@ importers:
       '@types/q': 1.5.4
       readonly-date: 1.0.0
 
-  libraries/fadroma-next/platforms/scrt-1.2:
+  libraries/fadroma-next/deps/scrt-1.2:
     specifiers:
       vuepress: ^1.5.1
     devDependencies:
       vuepress: 1.8.2
 
-  libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js:
+  libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js:
     specifiers:
       '@types/color-name': 1.1.1
       '@types/jasmine': ^3.3.7
@@ -1039,7 +935,7 @@ importers:
       webpack: 4.46.0_webpack-cli@3.3.12
       webpack-cli: 3.3.12_webpack@4.46.0
 
-  libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/bcp:
+  libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/bcp:
     specifiers:
       '@cosmwasm/sdk': ^0.8.0-alpha.0
       '@iov/bcp': ^2.1.0
@@ -1068,7 +964,7 @@ importers:
       '@iov/keycontrol': 2.5.0
       '@types/bn.js': 4.11.6
 
-  libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/cli:
+  libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/cli:
     specifiers:
       '@cosmwasm/sdk': ^0.8.0-alpha.0
       '@iov/crypto': ^2.1.0
@@ -1103,7 +999,7 @@ importers:
       '@types/diff': 4.0.2
       '@types/yargs': 15.0.14
 
-  libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/faucet:
+  libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/faucet:
     specifiers:
       '@cosmwasm/bcp': ^0.8.0-alpha.0
       '@iov/bcp': ^2.1.0
@@ -1138,7 +1034,7 @@ importers:
       '@types/koa__cors': 3.0.3
       '@types/koa-bodyparser': 4.3.4
 
-  libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk:
+  libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/sdk:
     specifiers:
       '@iov/crypto': 2.1.0
       '@iov/encoding': 2.1.0
@@ -1173,30 +1069,163 @@ importers:
       '@types/q': 1.5.4
       readonly-date: 1.0.0
 
+  libraries/fadroma-next/deps/toolbox/forkers:
+    specifiers:
+      '@types/zen-observable': ^0.8.3
+      zen-observable: ^0.8.15
+    dependencies:
+      '@types/zen-observable': 0.8.3
+      zen-observable: 0.8.15
+
+  libraries/fadroma-next/deps/toolbox/kabinet:
+    specifiers:
+      mkdirp: ^1.0.4
+      rimraf: ^3.0.2
+    dependencies:
+      mkdirp: 1.0.4
+      rimraf: 3.0.2
+
+  libraries/fadroma-next/deps/toolbox/komandi:
+    specifiers:
+      typescript: latest
+    devDependencies:
+      typescript: 4.5.4
+
+  libraries/fadroma-next/deps/toolbox/konzola:
+    specifiers:
+      colors: ^1.4.0
+      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      table: ^6.6.0
+    dependencies:
+      colors: 1.4.0
+      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      table: 6.7.3
+
+  libraries/fadroma-next/deps/toolbox/tools:
+    specifiers:
+      '@hackbg/kabinet': workspace:*
+      '@hackbg/komandi': workspace:*
+      '@hackbg/konzola': workspace:*
+      colors: ^1.4.0
+      dockerode: ^3.3.0
+      exponential-backoff: ^3.1.0
+      mkdirp: ^1.0.4
+      open: ^8.0.2
+      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      prompts: ^2.4.1
+      recursive-copy: ^2.0.13
+      rimraf: ^3.0.2
+      signal-exit: ^3.0.3
+      symlink-dir: ^5.0.1
+      table: ^6.6.0
+      tmp: ^0.2.1
+      wait-port: ^0.2.9
+    dependencies:
+      '@hackbg/kabinet': link:../kabinet
+      '@hackbg/komandi': link:../komandi
+      '@hackbg/konzola': link:../konzola
+      colors: 1.4.0
+      dockerode: 3.3.1
+      exponential-backoff: 3.1.0
+      mkdirp: 1.0.4
+      open: 8.4.0
+      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      prompts: 2.4.2
+      recursive-copy: 2.0.13
+      rimraf: 3.0.2
+      signal-exit: 3.0.6
+      symlink-dir: 5.0.1
+      table: 6.7.3
+      tmp: 0.2.1
+      wait-port: 0.2.9
+
+  libraries/fadroma-next/doc/example:
+    specifiers: {}
+
+  libraries/fadroma-next/packages/cli:
+    specifiers:
+      '@ganesha/node': workspace:*
+      '@hackbg/komandi': workspace:*
+      cross-spawn: ^7.0.3
+      mkdirp: ^1.0.4
+      prompts: ^2.4.1
+    dependencies:
+      '@ganesha/node': link:../../deps/ganesha/src/node
+      '@hackbg/komandi': link:../../deps/toolbox/komandi
+      cross-spawn: 7.0.3
+      mkdirp: 1.0.4
+      prompts: 2.4.2
+
+  libraries/fadroma-next/packages/ops:
+    specifiers:
+      '@hackbg/tools': workspace:*
+      ajv: ^8.6.0
+      exponential-backoff: ^3.1.0
+      json-schema-to-typescript: ^10.1.4
+    dependencies:
+      '@hackbg/tools': link:../../deps/toolbox/tools
+      ajv: 8.8.2
+      exponential-backoff: 3.1.0
+      json-schema-to-typescript: 10.1.5
+
+  libraries/fadroma-next/packages/scrt:
+    specifiers:
+      '@cosmjs/crypto': ^0.20.0
+      '@fadroma/ops': workspace:*
+      '@fadroma/scrt-1.0': workspace:*
+      '@fadroma/scrt-1.2': workspace:*
+      '@hackbg/tools': workspace:*
+      secretjs: workspace:0.17.5
+    dependencies:
+      '@cosmjs/crypto': 0.20.1
+      '@fadroma/ops': link:../ops
+      '@fadroma/scrt-1.0': link:../scrt-1.0
+      '@fadroma/scrt-1.2': link:../scrt-1.2
+      '@hackbg/tools': link:../../deps/toolbox/tools
+      secretjs: link:../../deps/scrt-1.2/cosmwasm-js/packages/sdk
+
+  libraries/fadroma-next/packages/scrt-1.0:
+    specifiers:
+      '@fadroma/scrt': workspace:*
+      '@hackbg/tools': workspace:*
+      secretjs: workspace:0.16.5
+    dependencies:
+      '@fadroma/scrt': link:../scrt
+      '@hackbg/tools': link:../../deps/toolbox/tools
+      secretjs: link:../../deps/scrt-1.0/cosmwasm-js/packages/sdk
+
+  libraries/fadroma-next/packages/scrt-1.2:
+    specifiers:
+      '@fadroma/scrt': workspace:*
+      '@hackbg/tools': workspace:*
+      secretjs: workspace:0.17.5
+    dependencies:
+      '@fadroma/scrt': link:../scrt
+      '@hackbg/tools': link:../../deps/toolbox/tools
+      secretjs: link:../../deps/scrt-1.2/cosmwasm-js/packages/sdk
+
   libraries/fadroma-next/test:
     specifiers:
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
-      '@fadroma/tools': workspace:*
       '@hackbg/ganesha': workspace:*
+      '@hackbg/tools': workspace:*
       '@iov/encoding': ^2.1.0
       '@types/express': ^4.17.13
       '@types/tap': ^15.0.5
       body-parser: ^1.19.0
-      esbuild-node-loader: ^0.3.1
       express: ^4.17.1
       freeport-async: ^2.0.0
       tap: ^15.0.9
     dependencies:
       '@fadroma/ops': link:../packages/ops
       '@fadroma/scrt': link:../packages/scrt
-      '@fadroma/tools': link:../packages/tools
-      '@hackbg/ganesha': link:../packages/ganesha
+      '@hackbg/ganesha': link:../deps/ganesha
+      '@hackbg/tools': link:../deps/toolbox/tools
       '@iov/encoding': 2.5.0
       '@types/express': 4.17.13
       '@types/tap': 15.0.5
       body-parser: 1.19.0
-      esbuild-node-loader: 0.3.2
       express: 4.17.1
       freeport-async: 2.0.0
       tap: 15.1.5_typescript@4.5.2
@@ -1233,7 +1262,7 @@ importers:
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
       '@fadroma/snip20': workspace:*
-      '@fadroma/tools': workspace:*
+      '@hackbg/tools': workspace:*
       '@sienna/api': workspace:*
       '@sienna/benchmarks': workspace:*
       '@sienna/settings': workspace:^1.0.0
@@ -1242,7 +1271,7 @@ importers:
       '@fadroma/ops': link:../libraries/fadroma-next/packages/ops
       '@fadroma/scrt': link:../libraries/fadroma-next/packages/scrt
       '@fadroma/snip20': link:../libraries/fadroma-next/crates/fadroma-snip20-impl
-      '@fadroma/tools': link:../libraries/fadroma-next/packages/tools
+      '@hackbg/tools': link:../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/api': link:../frontends/api
       '@sienna/benchmarks': link:../benchmarks
       '@sienna/settings': link:../settings
@@ -1746,7 +1775,7 @@ packages:
       '@babel/core': ^7.0.0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-bugfix-v8-spread-parameters-in-optional-chaining/7.16.0_@babel+core@7.16.0:
@@ -1756,7 +1785,7 @@ packages:
       '@babel/core': ^7.13.0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/helper-skip-transparent-expression-wrappers': 7.16.0
       '@babel/plugin-proposal-optional-chaining': 7.16.0_@babel+core@7.16.0
     dev: true
@@ -1768,7 +1797,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/helper-remap-async-to-generator': 7.16.4
       '@babel/plugin-syntax-async-generators': 7.8.4_@babel+core@7.16.0
     transitivePeerDependencies:
@@ -1796,7 +1825,7 @@ packages:
     dependencies:
       '@babel/core': 7.16.0
       '@babel/helper-create-class-features-plugin': 7.16.0_@babel+core@7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/plugin-syntax-class-static-block': 7.14.5_@babel+core@7.16.0
     transitivePeerDependencies:
       - supports-color
@@ -1810,7 +1839,7 @@ packages:
     dependencies:
       '@babel/core': 7.16.0
       '@babel/helper-create-class-features-plugin': 7.16.0_@babel+core@7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/plugin-syntax-decorators': 7.16.0_@babel+core@7.16.0
     transitivePeerDependencies:
       - supports-color
@@ -1823,7 +1852,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/plugin-syntax-dynamic-import': 7.8.3_@babel+core@7.16.0
     dev: true
 
@@ -1834,7 +1863,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/plugin-syntax-export-namespace-from': 7.8.3_@babel+core@7.16.0
     dev: true
 
@@ -1845,7 +1874,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/plugin-syntax-json-strings': 7.8.3_@babel+core@7.16.0
     dev: true
 
@@ -1856,7 +1885,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/plugin-syntax-logical-assignment-operators': 7.10.4_@babel+core@7.16.0
     dev: true
 
@@ -1867,7 +1896,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/plugin-syntax-nullish-coalescing-operator': 7.8.3_@babel+core@7.16.0
     dev: true
 
@@ -1878,7 +1907,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/plugin-syntax-numeric-separator': 7.10.4_@babel+core@7.16.0
     dev: true
 
@@ -1903,7 +1932,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/plugin-syntax-optional-catch-binding': 7.8.3_@babel+core@7.16.0
     dev: true
 
@@ -1914,7 +1943,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/helper-skip-transparent-expression-wrappers': 7.16.0
       '@babel/plugin-syntax-optional-chaining': 7.8.3_@babel+core@7.16.0
     dev: true
@@ -1927,7 +1956,7 @@ packages:
     dependencies:
       '@babel/core': 7.16.0
       '@babel/helper-create-class-features-plugin': 7.16.0_@babel+core@7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -1941,7 +1970,7 @@ packages:
       '@babel/core': 7.16.0
       '@babel/helper-annotate-as-pure': 7.16.0
       '@babel/helper-create-class-features-plugin': 7.16.0_@babel+core@7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/plugin-syntax-private-property-in-object': 7.14.5_@babel+core@7.16.0
     transitivePeerDependencies:
       - supports-color
@@ -1955,7 +1984,7 @@ packages:
     dependencies:
       '@babel/core': 7.16.0
       '@babel/helper-create-regexp-features-plugin': 7.16.0_@babel+core@7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-syntax-async-generators/7.8.4_@babel+core@7.14.6:
@@ -2019,7 +2048,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-syntax-decorators/7.16.0_@babel+core@7.16.0:
@@ -2029,7 +2058,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-syntax-dynamic-import/7.8.3_@babel+core@7.16.0:
@@ -2038,7 +2067,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-syntax-export-namespace-from/7.8.3_@babel+core@7.16.0:
@@ -2047,7 +2076,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-syntax-flow/7.16.0_@babel+core@7.16.0:
@@ -2232,7 +2261,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-syntax-top-level-await/7.14.5_@babel+core@7.14.6:
@@ -2283,7 +2312,7 @@ packages:
     dependencies:
       '@babel/core': 7.16.0
       '@babel/helper-module-imports': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/helper-remap-async-to-generator': 7.16.4
     transitivePeerDependencies:
       - supports-color
@@ -2355,7 +2384,7 @@ packages:
     dependencies:
       '@babel/core': 7.16.0
       '@babel/helper-create-regexp-features-plugin': 7.16.0_@babel+core@7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-transform-duplicate-keys/7.16.0_@babel+core@7.16.0:
@@ -2365,7 +2394,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-transform-exponentiation-operator/7.16.0_@babel+core@7.16.0:
@@ -2376,7 +2405,7 @@ packages:
     dependencies:
       '@babel/core': 7.16.0
       '@babel/helper-builder-binary-assignment-operator-visitor': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-transform-flow-strip-types/7.16.0_@babel+core@7.16.0:
@@ -2440,7 +2469,7 @@ packages:
     dependencies:
       '@babel/core': 7.16.0
       '@babel/helper-module-transforms': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       babel-plugin-dynamic-import-node: 2.3.3
     transitivePeerDependencies:
       - supports-color
@@ -2470,7 +2499,7 @@ packages:
       '@babel/core': 7.16.0
       '@babel/helper-hoist-variables': 7.16.0
       '@babel/helper-module-transforms': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/helper-validator-identifier': 7.15.7
       babel-plugin-dynamic-import-node: 2.3.3
     transitivePeerDependencies:
@@ -2485,7 +2514,7 @@ packages:
     dependencies:
       '@babel/core': 7.16.0
       '@babel/helper-module-transforms': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -2507,7 +2536,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-transform-object-super/7.16.0_@babel+core@7.16.0:
@@ -2586,7 +2615,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-transform-runtime/7.16.4:
@@ -2650,7 +2679,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-transform-template-literals/7.16.0_@babel+core@7.16.0:
@@ -2670,7 +2699,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-transform-unicode-escapes/7.16.0_@babel+core@7.16.0:
@@ -2680,7 +2709,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/plugin-transform-unicode-regex/7.16.0_@babel+core@7.16.0:
@@ -2691,7 +2720,7 @@ packages:
     dependencies:
       '@babel/core': 7.16.0
       '@babel/helper-create-regexp-features-plugin': 7.16.0_@babel+core@7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
     dev: true
 
   /@babel/preset-env/7.16.4_@babel+core@7.16.0:
@@ -2703,7 +2732,7 @@ packages:
       '@babel/compat-data': 7.16.4
       '@babel/core': 7.16.0
       '@babel/helper-compilation-targets': 7.16.3_@babel+core@7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/helper-validator-option': 7.14.5
       '@babel/plugin-bugfix-safari-id-destructuring-collision-in-function-expression': 7.16.2_@babel+core@7.16.0
       '@babel/plugin-bugfix-v8-spread-parameters-in-optional-chaining': 7.16.0_@babel+core@7.16.0
@@ -2785,7 +2814,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.16.0
-      '@babel/helper-plugin-utils': 7.14.5
+      '@babel/helper-plugin-utils': 7.16.5
       '@babel/plugin-proposal-unicode-property-regex': 7.16.0_@babel+core@7.16.0
       '@babel/plugin-transform-dotall-regex': 7.16.0_@babel+core@7.16.0
       '@babel/types': 7.16.0
@@ -5302,7 +5331,7 @@ packages:
   /@octokit/types/2.16.2:
     resolution: {integrity: sha512-O75k56TYvJ8WpAakWwYRN8Bgu60KrmX0z1KqFp1kNiFNkgW+JW+9EBKZ+S33PU6SLvbihqd+3drvPxKK68Ee8Q==}
     dependencies:
-      '@types/node': 16.11.11
+      '@types/node': 17.0.8
     dev: true
 
   /@octokit/types/6.34.0:
@@ -6292,7 +6321,7 @@ packages:
   /@types/accepts/1.3.5:
     resolution: {integrity: sha512-jOdnI/3qTpHABjM5cx1Hc0sKsPoYCp+DP/GJRGtDlPd7fiV9oXGGIcjW/ZOxLIvjGz8MA+uMZI9metHlgqbgwQ==}
     dependencies:
-      '@types/node': 16.11.11
+      '@types/node': 17.0.8
     dev: true
 
   /@types/aria-query/4.2.2:
@@ -6347,7 +6376,7 @@ packages:
   /@types/bn.js/4.11.6:
     resolution: {integrity: sha512-pqr857jrp2kPuO9uRjZ3PwnJTjoQy+fcdxvBTvHm6dkmEL9q+hDD/2j/0ELOBPtPnS8LjCX0gI9nbl8lVkadpg==}
     dependencies:
-      '@types/node': 16.11.11
+      '@types/node': 17.0.8
 
   /@types/bn.js/5.1.0:
     resolution: {integrity: sha512-QSSVYj7pYFN49kW77o2s9xTCwZ8F2xLbjLLSEVh8D2F4JUhZtPAGOFLTD+ffqksBx/u4cE/KImFjyhqCjn/LIA==}
@@ -6397,7 +6426,7 @@ packages:
       '@types/connect': 3.4.35
       '@types/express': 4.17.13
       '@types/keygrip': 1.0.2
-      '@types/node': 16.11.11
+      '@types/node': 17.0.8
     dev: true
 
   /@types/cors/2.8.10:
@@ -6566,7 +6595,7 @@ packages:
       '@types/http-errors': 1.8.1
       '@types/keygrip': 1.0.2
       '@types/koa-compose': 3.2.5
-      '@types/node': 16.11.11
+      '@types/node': 17.0.8
     dev: true
 
   /@types/koa__cors/3.0.3:
@@ -6579,7 +6608,7 @@ packages:
     resolution: {integrity: sha512-LjvlfctJYj23Xuqq3jCT8ZPSUSSgDcRJg8+XFDBasoYzefFbB4cHzlDmBVjc2rBOYvklpYHJRayD0jBsbJLD9w==}
     dependencies:
       '@types/abstract-leveldown': 5.0.2
-      '@types/node': 10.17.60
+      '@types/node': 17.0.8
 
   /@types/lodash.isempty/4.4.0:
     resolution: {integrity: sha1-DhHqFSq7SQt4Qk6+ZusGLZ1nvq0=}
@@ -8506,6 +8535,11 @@ packages:
     resolution: {integrity: sha1-45sJrqne+Gao8gbiiK9jkZuuOcQ=}
     engines: {node: '>=0.10.0'}
 
+  /array-differ/1.0.0:
+    resolution: {integrity: sha1-7/UuN1gknTO+QCuLuOVkuytdQDE=}
+    engines: {node: '>=0.10.0'}
+    dev: false
+
   /array-differ/2.1.0:
     resolution: {integrity: sha512-KbUpJgx909ZscOc/7CLATBFam7P1Z1QRQInvgT0UztM9Q72aGKCunKASAl7WNW0tnPmPyEMeMhdsfWhfmW037w==}
     engines: {node: '>=6'}
@@ -8602,11 +8636,9 @@ packages:
   /arrify/1.0.1:
     resolution: {integrity: sha1-iYUI2iIm84DfkEcoRWhJwVAaSw0=}
     engines: {node: '>=0.10.0'}
-    dev: true
 
   /asap/2.0.6:
     resolution: {integrity: sha1-5QNHYR1+aQlDIIu9r+vLwvuGbUY=}
-    dev: true
 
   /asn1.js/5.4.1:
     resolution: {integrity: sha512-+I//4cYPccV8LdmBLiX8CYvf9Sp3vQsrqu2QNXRcrbiWvcx/UdlFiqUJJzxRQxgsZmvhXhn4cSKeSmoFjVdupA==}
@@ -8793,7 +8825,7 @@ packages:
     resolution: {integrity: sha512-ANA4rr2BDcmmAQLOKft2fufrtuvlqR+cXNNinUmvfeSNCOF98PZL+7M/v1zIdGo7OLjEA9J2gXJL+j4zGsl0bA==}
     deprecated: Critical security vulnerability fixed in v0.21.1. For more information, see https://github.com/axios/axios/pull/3410
     dependencies:
-      follow-redirects: 1.14.5
+      follow-redirects: 1.14.5_debug@4.3.3
     transitivePeerDependencies:
       - debug
     dev: true
@@ -12271,6 +12303,19 @@ packages:
     resolution: {integrity: sha1-yY2bzvdWdBiOEQlpFRGZ45sfppM=}
     dev: true
 
+  /del/2.2.2:
+    resolution: {integrity: sha1-wSyYHQZ4RshLyvhiz/kw2Qf/0ag=}
+    engines: {node: '>=0.10.0'}
+    dependencies:
+      globby: 5.0.0
+      is-path-cwd: 1.0.0
+      is-path-in-cwd: 1.0.1
+      object-assign: 4.1.1
+      pify: 2.3.0
+      pinkie-promise: 2.0.1
+      rimraf: 2.7.1
+    dev: false
+
   /del/4.1.1:
     resolution: {integrity: sha512-QwGuEUouP2kVwQenAsOof5Fv8K9t3D8Ca8NxcXKrIpEHjTXK5J2nXLdP+ALI1cgv8wj7KuwBhTwBkOZSJKM5XQ==}
     engines: {node: '>=6'}
@@ -13207,6 +13252,7 @@ packages:
     resolution: {integrity: sha512-4Y6sTwvB5pH+A7gmpd/xzyPkOZC4nmEWRoGBi4BQoE0DhZvrrzHqSmT+jb4x7m1rwv4BCuNbajN13LN8D0PGoA==}
     dependencies:
       esbuild: 0.13.15
+    dev: true
 
   /esbuild-openbsd-64/0.13.15:
     resolution: {integrity: sha512-wTfvtwYJYAFL1fSs8yHIdf5GEE4NkbtbXtjLWjM3Cw8mmQKqsg8kTiqJ9NJQe5NX/5Qlo7Xd9r1yKMMkHllp5g==}
@@ -15800,6 +15846,18 @@ packages:
       slash: 3.0.0
     dev: true
 
+  /globby/5.0.0:
+    resolution: {integrity: sha1-69hGZ8oNuzMLmbz8aOrCvFQ3Dg0=}
+    engines: {node: '>=0.10.0'}
+    dependencies:
+      array-union: 1.0.2
+      arrify: 1.0.1
+      glob: 7.2.0
+      object-assign: 4.1.1
+      pify: 2.3.0
+      pinkie-promise: 2.0.1
+    dev: false
+
   /globby/6.1.0:
     resolution: {integrity: sha1-9abXDoOV4hyFj7BInWTfAkJNUGw=}
     engines: {node: '>=0.10.0'}
@@ -17378,15 +17436,34 @@ packages:
     resolution: {integrity: sha512-2rRIahhZr2UWb45fIOuvZGpFtz0TyOZLf32KxBbSoUCeZR495zCKlWUKKUByk3geS2eAs7ZAABt0Y/Rx0GiQGA==}
     dev: true
 
+  /is-path-cwd/1.0.0:
+    resolution: {integrity: sha1-0iXsIxMuie3Tj9p2dHLmLmXxEG0=}
+    engines: {node: '>=0.10.0'}
+    dev: false
+
   /is-path-cwd/2.2.0:
     resolution: {integrity: sha512-w942bTcih8fdJPJmQHFzkS76NEP8Kzzvmw92cXsazb8intwLqPibPPdXf4ANdKV3rYMuuQYGIWtvz9JilB3NFQ==}
     engines: {node: '>=6'}
+
+  /is-path-in-cwd/1.0.1:
+    resolution: {integrity: sha512-FjV1RTW48E7CWM7eE/J2NJvAEEVektecDBVBE5Hh3nM1Jd0kvhHtX68Pr3xsDf857xt3Y4AkwVULK1Vku62aaQ==}
+    engines: {node: '>=0.10.0'}
+    dependencies:
+      is-path-inside: 1.0.1
+    dev: false
 
   /is-path-in-cwd/2.1.0:
     resolution: {integrity: sha512-rNocXHgipO+rvnP6dk3zI20RpOtrAM/kzbB258Uw5BWr3TpXi861yzjo16Dn4hUox07iw5AyeMLHWsujkjzvRQ==}
     engines: {node: '>=6'}
     dependencies:
       is-path-inside: 2.1.0
+
+  /is-path-inside/1.0.1:
+    resolution: {integrity: sha1-jvW33lBDej/cprToZe96pVy0gDY=}
+    engines: {node: '>=0.10.0'}
+    dependencies:
+      path-is-inside: 1.0.2
+    dev: false
 
   /is-path-inside/2.1.0:
     resolution: {integrity: sha512-wiyhTzfDWsvwAW53OBWF5zuvaOGlZ6PwYxAbPVDhpm+gM09xKQGjBq/8uYN12aDvMxnAnq3dxTyoSoRNmg5YFg==}
@@ -18758,6 +18835,11 @@ packages:
       object.assign: 4.1.2
     dev: true
 
+  /junk/1.0.3:
+    resolution: {integrity: sha1-h75jSIZJy9ym9Tqzm+yczSNH9ZI=}
+    engines: {node: '>=0.10.0'}
+    dev: false
+
   /karma-chrome-launcher/3.1.0:
     resolution: {integrity: sha512-3dPs/n7vgz1rxxtynpzZTvb9y/GIaW8xjAwcIGttLbycqoFtI7yo1NGnQi6oFTherRE+GIhCAHZC4vEqWGhNvg==}
     dependencies:
@@ -20010,6 +20092,16 @@ packages:
     resolution: {integrity: sha512-rUxjysqif/BZQH2yhd5Aaq7vXMSx9NdEsQcyA07uEzIvxgI7zIr33gGsh+RU0/XjmQpCW7RsVof1vlkvQVCK5A==}
     dev: true
     optional: true
+
+  /maximatch/0.1.0:
+    resolution: {integrity: sha1-hs2NawTJ8wfAWmuUGZBtA2D7E6I=}
+    engines: {node: '>=0.10.0'}
+    dependencies:
+      array-differ: 1.0.0
+      array-union: 1.0.2
+      arrify: 1.0.1
+      minimatch: 3.0.4
+    dev: false
 
   /md5.js/1.3.5:
     resolution: {integrity: sha512-xitP+WxNPcTTOgnTJcrhM0xvdPepipPSf3I8EIpGKeFLjt3PlJLIDG3u8EX53ZIubkb+5U2+3rELYpEhHhzdkg==}
@@ -23299,8 +23391,6 @@ packages:
     resolution: {integrity: sha512-nolQXZ/4L+bP/UGlkfaIujX9BKxGwmQ9OT4mOt5yvy8iK1h3wqTEJCijzGANTCCl9nWjY41juyAn2K3Q1hLLTg==}
     dependencies:
       asap: 2.0.6
-    dev: true
-    optional: true
 
   /promise/8.1.0:
     resolution: {integrity: sha512-W04AqnILOL/sPRXziNicCjSNRruLAuIHEOVBazepu0545DDNGYHz7ar9ZgZ1fMU8/MA4mVxp5rkBWRi6OXIy3Q==}
@@ -24269,6 +24359,7 @@ packages:
 
   /read-package-tree/5.3.1:
     resolution: {integrity: sha512-mLUDsD5JVtlZxjSlPPx1RETkNjjvQYuweKwNVt1Sn8kP5Jh44pvYuUHCp6xSVDZWbNxVxG5lyZJ921aJH61sTw==}
+    deprecated: The functionality that this package provided is now in @npmcli/arborist
     dependencies:
       read-package-json: 2.1.2
       readdir-scoped-modules: 1.1.0
@@ -24490,6 +24581,20 @@ packages:
     engines: {node: '>= 0.10'}
     dependencies:
       resolve: 1.20.0
+    dev: false
+
+  /recursive-copy/2.0.13:
+    resolution: {integrity: sha512-BjmE6R/dOImStEku+017L3Z0I6u/lA+SVr1sySWbTLjmQKDTESNmJ9WBZP8wbN5FuvqNvSYvRKA/IKQhAjqnpQ==}
+    dependencies:
+      del: 2.2.2
+      errno: 0.1.8
+      graceful-fs: 4.2.8
+      junk: 1.0.3
+      maximatch: 0.1.0
+      mkdirp: 0.5.5
+      pify: 2.3.0
+      promise: 7.3.1
+      slash: 1.0.0
     dev: false
 
   /recursive-readdir/2.2.2:
@@ -25705,7 +25810,6 @@ packages:
   /slash/1.0.0:
     resolution: {integrity: sha1-xB8vbDn8FtHNF61LXYlhFK5HDVU=}
     engines: {node: '>=0.10.0'}
-    dev: true
 
   /slash/2.0.0:
     resolution: {integrity: sha512-ZYKh3Wh2z1PpEXWr0MpSBZ0V6mZHAQfYevttO11c51CaWjGTaadiKZ+wVt1PbMlDV5qhMFslpZCemhwOK7C89A==}
@@ -26938,7 +27042,6 @@ packages:
       which: 2.0.2
     transitivePeerDependencies:
       - supports-color
-    dev: false
     bundledDependencies:
       - ink
       - treport
@@ -27387,7 +27490,6 @@ packages:
     engines: {node: '>=8.17.0'}
     dependencies:
       rimraf: 3.0.2
-    dev: true
 
   /tmpl/1.0.5:
     resolution: {integrity: sha512-3f0uOEAQwIqGuWW2MVzYg8fV/QNnc/IpuJNG837rLuczAaLVHslWHZQj4IGiEl5Hs3kkbhwL9Ab7Hrsmuj+Smw==}
@@ -27832,7 +27934,7 @@ packages:
     engines: {node: '>= 8'}
     dev: true
 
-  /typedoc/0.21.9_typescript@4.5.2:
+  /typedoc/0.21.9_typescript@4.5.4:
     resolution: {integrity: sha512-VRo7aII4bnYaBBM1lhw4bQFmUcDQV8m8tqgjtc7oXl87jc1Slbhfw2X5MccfcR2YnEClHDWgsiQGgNB8KJXocA==}
     engines: {node: '>= 12.10.0'}
     hasBin: true
@@ -27847,7 +27949,7 @@ packages:
       progress: 2.0.3
       shiki: 0.9.13
       typedoc-default-themes: 0.12.10
-      typescript: 4.5.2
+      typescript: 4.5.4
     dev: true
 
   /typeforce/1.18.0:
@@ -30185,7 +30287,7 @@ packages:
   /wide-align/1.1.5:
     resolution: {integrity: sha512-eDMORYaPNZ4sQIuuYPDHdQvf4gyCF9rEEV/yPxGfwPkRodwEgiMUUXTx/dex+Me0wxx53S+NgUHaP7y3MGlDmg==}
     dependencies:
-      string-width: 1.0.2
+      string-width: 4.2.3
     dev: true
 
   /widest-line/3.1.0:

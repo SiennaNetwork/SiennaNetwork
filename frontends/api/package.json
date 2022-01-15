@@ -17,7 +17,7 @@
     "@sienna/snip20-sienna": "workspace:^1.0.0",
 
     "@fadroma/scrt":   "workspace:*",
-    "@fadroma/tools":  "workspace:*",
+    "@hackbg/tools":  "workspace:*",
     "@waiting/base64": "^4.2.9",
     "bip39":           "^3.0.4",
     "debug":           "^4.3.2",

@@ -21,7 +21,7 @@
 // * 💰 **splitting the Remaining Pool Tokens** between multiple addresses
 // * 🍰 **reconfiguring that split**, preserving the **total portion size**
 import { prefund } from '@fadroma/scrt'
-import { loadJSON, fileURLToPath, resolve, dirname, taskmaster } from '@fadroma/tools'
+import { loadJSON, fileURLToPath, resolve, dirname, taskmaster } from '@hackbg/tools'
 
 import { fmtSIENNA } from './index.ts'
 import { SiennaTGE as TGEContracts } from './ensembles'

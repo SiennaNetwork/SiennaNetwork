@@ -1,4 +1,4 @@
-import { randomHex } from '@fadroma/tools'
+import { randomHex } from '@hackbg/tools'
 import type { IChain, IAgent } from '@fadroma/scrt'
 import type { SNIP20Contract } from "@fadroma/snip20";
 

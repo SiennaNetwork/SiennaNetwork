@@ -3,7 +3,7 @@ import { writeFileSync } from 'fs'
 import type { IChain, IAgent } from '@fadroma/ops'
 import { Scrt } from '@fadroma/scrt'
 import type { SNIP20Contract } from '@fadroma/snip20'
-import { bold, randomHex } from '@fadroma/tools'
+import { bold, randomHex } from '@hackbg/tools'
 
 import settings from '@sienna/settings'
 

@@ -1,5 +1,5 @@
 import type { IAgent } from "@fadroma/scrt";
-import { randomHex } from "@fadroma/tools";
+import { randomHex } from "@hackbg/tools";
 import { SNIP20Contract_1_2 } from "@fadroma/snip20";
 
 import { workspace } from "@sienna/settings";

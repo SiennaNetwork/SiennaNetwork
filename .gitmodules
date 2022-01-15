@@ -6,7 +6,7 @@
 [submodule "libraries/fadroma-next"]
   path   = libraries/fadroma-next
   url    = git@git.sienna.network:siennanetwork/fadroma.git
-  branch = 21.12
+  branch = 22.01
 [submodule "frontends/amm-types"]
   path   = frontends/amm-types
   url    = git@git.sienna.network:siennanetwork/amm-types.git

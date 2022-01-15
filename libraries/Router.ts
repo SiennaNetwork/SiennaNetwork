@@ -1,5 +1,5 @@
 import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt";
-import { randomHex } from "@fadroma/tools";
+import { randomHex } from "@hackbg/tools";
 import { abs } from "../ops/index";
 
 export const schema = loadSchemas(import.meta.url, {

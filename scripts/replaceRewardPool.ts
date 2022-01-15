@@ -1,5 +1,5 @@
 import type { IChain, IAgent } from '@fadroma/ops'
-import { bold, timestamp } from '@fadroma/tools'
+import { bold, timestamp } from '@hackbg/tools'
 import process from 'process'
 import { writeFileSync } from 'fs'
 import buildAndUpload from './buildAndUpload'

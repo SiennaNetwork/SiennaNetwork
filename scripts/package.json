@@ -7,7 +7,7 @@
     "@fadroma/ops":    "workspace:*",
     "@fadroma/scrt":   "workspace:*",
     "@fadroma/snip20": "workspace:*",
-    "@fadroma/tools":  "workspace:*",
+    "@hackbg/tools":  "workspace:*",
 
     "@sienna/api":        "workspace:*",
     "@sienna/benchmarks": "workspace:*",

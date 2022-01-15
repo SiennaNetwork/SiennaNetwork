@@ -1,4 +1,4 @@
-import { randomHex, Console } from '@fadroma/tools'
+import { randomHex, Console } from '@hackbg/tools'
 
 import type { IChain, IAgent } from '@fadroma/scrt'
 import { Scrt } from '@fadroma/scrt'
