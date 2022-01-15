@@ -13,7 +13,7 @@ steps:
       backend:   "filesystem"
       restore:   true
       cache_key: "{{ .Repo.Name }}"
-      mount:     [ "/drone/src/target" ]
+      mount:     [ "/usr/local/cargo", "/drone/src/target" ]
 
   # Clone submodules.
   # The main repo is cloned automatically, but,
@@ -30,6 +30,8 @@ steps:
     #   2. Public key goes into service account public keys.
     #   3. Delete the generated SSH key from your local filesystem.
     #
+    - pwd
+    - ls -al
     - mkdir -p ~/.ssh
     - printenv DRONE_KEY > ~/.ssh/id_rsa
     - chmod 0600 ~/.ssh/id_rsa
@@ -72,6 +74,11 @@ steps:
     #- cargo tarpaulin --workspace --ignore-panics --ignore-tests --coveralls $COVERAGE_KEY --report-uri https://cov.sienna.network/api/v1/jobs
     - cargo build
     - cargo test
+    - pwd
+    - ls -al
+    - echo $HOME
+    - ls -al $HOME
+    - export
 
   # Update cache.
   # See http://plugins.drone.io/meltwater/drone-cache/
@@ -82,7 +89,7 @@ steps:
       backend:   "filesystem"
       rebuild:   true
       cache_key: "{{ .Repo.Name }}"
-      mount:     [ "/drone/src/target" ]
+      mount:     [ "/usr/local/cargo", "/drone/src/target" ]
 
 ---
 
@@ -100,7 +107,7 @@ steps:
       backend:   "filesystem"
       restore:   true
       cache_key: "{{ .Repo.Name }}"
-      mount:     [ "/drone/src/.pnpm-store/v3" ]
+      mount:     [ "/drone/src/.pnpm-store/v3", "/drone/src/node_modules" ]
 
   # Clone submodules.
   - name:        submodules
@@ -118,7 +125,7 @@ steps:
 
   # Install dependencies and make sure ops scripts work
   - name:  deps
-    image: node:17-slim
+    image: node:14-slim
     commands:
       - npm i -g pnpm
       - pnpm i
@@ -131,11 +138,11 @@ steps:
       backend:   "filesystem"
       rebuild:   true
       cache_key: "{{ .Repo.Name }}"
-      mount:     [ "/drone/src/.pnpm-store/v3" ]
+      mount:     [ "/drone/src/.pnpm-store/v3", "/drone/src/node_modules" ]
 
   # Run tests
   - name:  test
-    image: node:17-slim
+    image: node:14-slim
     commands:
       - npm i -g pnpm
       - pnpm -w dev
