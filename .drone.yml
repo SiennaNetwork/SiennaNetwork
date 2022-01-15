@@ -17,21 +17,45 @@ steps:
       cache_key: "{{ .Repo.Name }}"
       mount:     [ "target" ]
 
+  # Clone submodules.
   # The main repo is cloned automatically, but,
   # in order to clone the submodules, an SSH key is needed.
-  # This needs to be set up in two places:
-  # 0. Generate a ssh key locally with `ssh-keygen -t ed25519`
-  # 1. Private key goes into CI secrets for main repo
-  # 2. Public key goes into deploy keys for each submodule
-  # 3. Delete the generated SSH key from your local filesystem.
   - name:        submodules
     image:       alpine/git
-    environment: { DEPLOY_KEY: { from_secret: deploy_key } }
+    environment: { DRONE_KEY: { from_secret: drone_key } }
     commands:
+    #
+    # Deploy the service account's private key from org secrets.
+    # This needs to be set up in two places:
+    #   0. Generate a ssh key locally with `ssh-keygen -t rsa` (ed25519 seems not to work)
+    #   1. Private key goes into organization secrets.
+    #   2. Public key goes into service account public keys.
+    #   3. Delete the generated SSH key from your local filesystem.
+    #
     - mkdir -p ~/.ssh
-    - printenv DEPLOY_KEY > ~/.ssh/id_ed25519
-    - chmod 0600 ~/.ssh/id_ed25519
-    - ssh-keyscan -t rsa git.sienna.network >> ~/.ssh/known_hosts
+    - printenv DRONE_KEY > ~/.ssh/id_rsa
+    - chmod 0600 ~/.ssh/id_rsa
+    #
+    # Add git server to known hosts
+    #
+    - ssh-keyscan git.sienna.network >> ~/.ssh/known_hosts
+    #
+    # The usual `git submodule update --init --recursive` won't do. Here's why.
+    # 1. The project repo lives on the private forge, and can have
+    #    the correct submodule URLs in its root `.gitmodules` file.
+    # 2. However, some of the public submodules live on GitHub, which
+    #    does not let unauthenticated users clone over SSH, nor does it
+    #    allow the same deploy key to be used across multiple repos.
+    # 3. Those public submodules are also mirrored by the private forge,
+    #    and it is preferable to use those mirrors rather than connect to GitHub.
+    #    Therefore, the `.gitmodules` files of each submodule which has submodules
+    #    need to be edited to point to the private forge URLs, rather than to the
+    #    public GitHub URLs. Otherwise it is impossible to clone the submodules.
+    # 4. Thankfully, there's only one level of this, in fact only one `.gitmodules`
+    #    file needs to be updated.
+    - git submodule update --init
+    - cd libraries/fadroma-next
+    - sed -i -e 's|git@github.com:.\+/|git@git.sienna.network:siennanetwork/|' .gitmodules
     - git submodule update --init
 
   # This container needs to be privileged because Tarpaulin relies on
@@ -39,12 +63,12 @@ steps:
   - name:        toolchain
     image:       xd009642/tarpaulin
     privileged:  true
-    environment: { COVERAGE_KEY: { from_secret: coverage_key_2 } }
+    environment: { COVERAGE_KEY: { from_secret: coverage_key } }
     commands:
     #- rustup toolchain install stable
     #- rustup set profile minimal
     #- rustup target add wasm32-unknown-unknown
-    - cargo tarpaulin --workspace --ignore-panics --ignore-tests --coveralls $COVERAGE_KEY #--report-uri https://cov.sienna.network/api/v1/jobs
+    - cargo tarpaulin --workspace --ignore-panics --ignore-tests --coveralls $COVERAGE_KEY --report-uri https://cov.sienna.network/api/v1/jobs
 
   # Update cache.
   # See http://plugins.drone.io/meltwater/drone-cache/
