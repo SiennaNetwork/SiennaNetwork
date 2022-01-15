@@ -1,6 +1,6 @@
 kind: pipeline
 type: docker
-name: Smart Contract Tests And Coverage
+name: Smart Contract Build, Test And Coverage
 volumes: [ { name: cache, host: { path: /var/lib/drone/sienna-cache } } ]
 steps:
 
@@ -71,6 +71,7 @@ steps:
     # But we aint doing coverage anyway, just seeing if the contract builds
     #- cargo tarpaulin --workspace --ignore-panics --ignore-tests --coveralls $COVERAGE_KEY --report-uri https://cov.sienna.network/api/v1/jobs
     - cargo build
+    - cargo test
 
   # Update cache.
   # See http://plugins.drone.io/meltwater/drone-cache/
@@ -116,16 +117,13 @@ steps:
     - git submodule update --init
 
   # Install dependencies and make sure ops scripts work
-  - name:  test
+  - name:  deps
     image: node:17-slim
     commands:
       - npm i -g pnpm
       - pnpm i
-      - pnpm -w dev
-      - pnpm -w ops
 
   # Update cache.
-  # See http://plugins.drone.io/meltwater/drone-cache/
   - name:     set-cache
     image:    meltwater/drone-cache:dev
     volumes:  [ { name: cache, path: /tmp/cache } ]
@@ -134,3 +132,11 @@ steps:
       rebuild:   true
       cache_key: "{{ .Repo.Name }}"
       mount:     [ "/drone/src/.pnpm-store/v3" ]
+
+  # Run tests
+  - name:  test
+    image: node:17-slim
+    commands:
+      - npm i -g pnpm
+      - pnpm -w dev
+      - pnpm -w ops
