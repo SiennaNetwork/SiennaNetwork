@@ -1,19 +1,10 @@
 kind: pipeline
 type: docker
-name: Smart Contract Tests And Coverage
+name: Smart Contract Build, Test And Coverage
 volumes: [ { name: cache, host: { path: /var/lib/drone/sienna-cache } } ]
 steps:
 
-  # Restore cache if present.
-  # See http://plugins.drone.io/meltwater/drone-cache/
-  - name:     get-cache
-    image:    meltwater/drone-cache:dev
-    volumes:  [ { name: cache, path: /tmp/cache } ]
-    settings:
-      backend:   "filesystem"
-      restore:   true
-      cache_key: "{{ .Repo.Name }}"
-      mount:     [ "target" ]
+  # Repo setup #####################################################################################
 
   # Clone submodules.
   # The main repo is cloned automatically, but,
@@ -30,6 +21,8 @@ steps:
     #   2. Public key goes into service account public keys.
     #   3. Delete the generated SSH key from your local filesystem.
     #
+    - pwd
+    - ls -al
     - mkdir -p ~/.ssh
     - printenv DRONE_KEY > ~/.ssh/id_rsa
     - chmod 0600 ~/.ssh/id_rsa
@@ -56,76 +49,103 @@ steps:
     - sed -i -e 's|git@github.com:.\+/|git@git.sienna.network:siennanetwork/|' .gitmodules
     - git submodule update --init
 
-  # This container needs to be privileged because Tarpaulin relies on
-  # disabling ASLR for the process in order to perform tracing.
-  - name:        toolchain
-    image:       xd009642/tarpaulin
-    privileged:  true
-    environment: { COVERAGE_KEY: { from_secret: coverage_key } }
-    commands:
-    #- rustup toolchain install stable
-    #- rustup set profile minimal
-    #- rustup target add wasm32-unknown-unknown
-    - cargo tarpaulin --workspace --ignore-panics --ignore-tests --coveralls $COVERAGE_KEY --report-uri https://cov.sienna.network/api/v1/jobs
-
-  # Update cache.
-  # See http://plugins.drone.io/meltwater/drone-cache/
-  - name:     set-cache
-    image:    meltwater/drone-cache:dev
-    volumes:  [ { name: cache, path: /tmp/cache } ]
-    settings:
-      backend:   "filesystem"
-      rebuild:   true
-      cache_key: "{{ .Repo.Name }}"
-      mount:     [ "target" ]
-
----
-
-kind: pipeline
-type: docker
-name: Dev and Ops Scripts
-volumes: [ { name: cache, host: { path: /var/lib/drone/sienna-cache } } ]
-steps:
+  # Rust part ######################################################################################
 
   # Restore cache if present.
-  - name:     get-cache
+  # See http://plugins.drone.io/meltwater/drone-cache/
+  - name:     get-rust-cache
+    depends_on:
+      - submodules
     image:    meltwater/drone-cache:dev
     volumes:  [ { name: cache, path: /tmp/cache } ]
     settings:
       backend:   "filesystem"
       restore:   true
       cache_key: "{{ .Repo.Name }}"
-      mount:     [ "/drone/src/.pnpm-store/v3" ]
+      mount:     [ "/drone/src/.cargo-home", "/drone/src/target" ]
 
-  # Clone submodules.
-  - name:        submodules
-    image:       alpine/git
-    environment: { DRONE_KEY: { from_secret: drone_key } }
+  - name:        build
+    depends_on:
+      - get-rust-cache
+    image:       xd009642/tarpaulin
+    # This container needs to be privileged to generate coverage
+    # because Tarpaulin relies on disabling ASLR for the process
+    # in order to perform tracing. Maybe try grcov after all.
+    # privileged:  true
+    environment: 
+      COVERAGE_KEY: { from_secret: coverage_key }
+      CARGO_HOME: /drone/src/.cargo-home
     commands:
-    - mkdir -p ~/.ssh
-    - printenv DRONE_KEY > ~/.ssh/id_rsa
-    - chmod 0600 ~/.ssh/id_rsa
-    - ssh-keyscan git.sienna.network >> ~/.ssh/known_hosts
-    - git submodule update --init
-    - cd libraries/fadroma-next
-    - sed -i -e 's|git@github.com:.\+/|git@git.sienna.network:siennanetwork/|' .gitmodules
-    - git submodule update --init
-
-  - name:  test
-    image: node:17-slim
-    commands:
-      - npm i -g pnpm
-      - pnpm i
-      - pnpm -w dev
-      - pnpm -w ops
+    # Are these needed or not?
+    #- rustup toolchain install stable
+    #- rustup set profile minimal
+    #- rustup target add wasm32-unknown-unknown
+    # But we aint doing coverage anyway, just seeing if the contract builds
+    #- cargo tarpaulin --workspace --ignore-panics --ignore-tests --coveralls $COVERAGE_KEY --report-uri https://cov.sienna.network/api/v1/jobs
+    - cargo build
+    - cargo test
+    - pwd
+    - ls -al
+    - echo $HOME
+    - ls -al $HOME
+    - export
 
   # Update cache.
   # See http://plugins.drone.io/meltwater/drone-cache/
-  - name:     set-cache
+  - name:     set-rust-cache
+    depends_on:
+      - build
     image:    meltwater/drone-cache:dev
     volumes:  [ { name: cache, path: /tmp/cache } ]
     settings:
       backend:   "filesystem"
       rebuild:   true
       cache_key: "{{ .Repo.Name }}"
-      mount:     [ "/drone/src/.pnpm-store/v3" ]
+      mount:     [ "/drone/src/.cargo-home", "/drone/src/target" ]
+
+  # Node part ######################################################################################
+
+  # Restore cache if present.
+  - name:     get-node-cache
+    depends_on:
+      - submodules
+    image:    meltwater/drone-cache:dev
+    volumes:  [ { name: cache, path: /tmp/cache } ]
+    settings:
+      backend:   "filesystem"
+      restore:   true
+      cache_key: "{{ .Repo.Name }}"
+      mount:     [ "/drone/src/.pnpm-store/v3", "/drone/src/node_modules" ]
+
+  # Install dependencies and make sure ops scripts work
+  - name:  pnpm-deps
+    depends_on:
+      - get-node-cache
+    image: node:14-slim
+    commands:
+      - npm i -g pnpm
+      - pnpm i --unsafe-perm
+
+  # Update cache.
+  - name:     set-node-cache
+    depends_on:
+      - pnpm-deps
+    image:    meltwater/drone-cache:dev
+    volumes:  [ { name: cache, path: /tmp/cache } ]
+    settings:
+      backend:   "filesystem"
+      rebuild:   true
+      cache_key: "{{ .Repo.Name }}"
+      mount:     [ "/drone/src/.pnpm-store/v3", "/drone/src/node_modules" ]
+
+  # Run tests
+  - name:  pnpm-test
+    depends_on:
+      - set-node-cache
+    image: node:14-slim
+    commands:
+      - cat package.json
+      - npm i -g pnpm
+      - pnpm -w dev
+      - pnpm -w ops pulsar-2
+      - pnpm -w ops secret-3
