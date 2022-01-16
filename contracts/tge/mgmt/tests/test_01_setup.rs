@@ -39,7 +39,7 @@ kukumba! {
             tx!(deps; sender, 0, 0; Configure { schedule: bad_schedule } == err!(auth));
             q!(deps; Schedule == Schedule { schedule: original_schedule }); } }
     when "the admin sets the real configuration" {
-        let src = include_str!("../../../settings/schedule.json")
+        let src = include_str!("../../../../settings/schedule.json")
         let s: Schedule<HumanAddr> = serde_json::from_str(src).unwrap();
         tx!(deps; ADMIN, 0, 0; Configure { schedule: s.clone() } == ok!()); }
     then "the configuration is updated" {
