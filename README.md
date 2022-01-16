@@ -21,7 +21,7 @@ mainnet addresses of all production contracts.
 git clone git@git.sienna.network:siennanetwork/contracts.git sienna-contracts
 cd sienna-contracts
 git submodule update --init --recursive
-nix-shell # optional
+nix-shell # optional, or bring your own Cargo and PNPM
 pnpm i
 pnpm -w dev build
 pnpm -w ops localnet-1.2 deploy all
@@ -32,51 +32,54 @@ on `wasm32-unknown-unknown`.
 
 See [scripts/Dev.ts.md](./scripts/Dev.ts.md)
 and [scripts/Ops.ts.md](./scripts/Ops.ts.md)
-for workflow commands.
+for the available workflow commands.
 
 See also:
 * **[Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)** documentation,
   and most importantly the `git submodule update --init --recursive` command.
-* **[Pnpm](https://pnpm.io/)** package manager, and most importantly
+* THe **[pnpm](https://pnpm.io/)** package manager, and most importantly
   its [Workspaces feature](https://pnpm.io/workspaces).
 
 ## Repository content
 
-* [artifacts](./artifacts) contains the compiled smart contracts (gitignored)
+* [**artifacts**](./artifacts) contains the compiled smart contracts (gitignored)
   and their checksums (not gitignored).
 
-* [benchmarks](./benchmarks) contains gas benchmarks and demos.
+* [**contracts**](./contracts) contains the Rust source code of the smart contracts,
+  as well as the TypeScript code necessary to build them and interact with them.
+  * [tge](./contracts/tge) - Sienna TGE/Vesting
+  * [amm](./contracts/amm) - Sienna Swap (AMM + Launchpad/IDO + Rewards + Router)
+  * [lend](./contracts/amm) - Sienna LEND
 
-* [contracts](./contracts) contains the Rust source code of the smart contracts.
-  * [**contracts/tge**](./contracts/tge)
-  * [**contracts/amm**](./contracts/tge)
-
-* [docs](./docs) contains various project documentation.
-
-* [experiments](./experiments) is a playground for experimental solutions
-
-* [frontends](./frontends) contains clients for the smart contracts, written in JS/TS.
+* [**frontends**](./frontends) contains clients for the smart contracts, written in JS/TS.
   Some of them are transcluded as git submodules pointing to other repos.
-  * [**Rewards Simulation Dashboard**](./frontends/dashboard)
+  * [siennajs](./frontends/siennajs) - current client library
+  * [@sienna/api](./frontends/api) - upcoming mixed deploy/client library
+  * [dashboard](./frontends/dashboard) - rewards simulation dashboard
+  * [reward-pools-monitor](./frontends/reward-pools-monitor) - query status of reward pools
+  * [claim](./frontends/claim) - TGE claim frontend
+  * [vest](./frontends/vest) - TGE vest frontend
 
-* [libraries](./libraries) contains Rust libraries used by one or more smart contracts.
+* [**libraries**](./libraries) contains Rust libraries used by one or more smart contracts.
   * [fadroma-next](./libraries/fadroma-next) is a Git submodule pointing to the top of
     the Fadroma deployment framework, which takes care of building and uploading the
     contracts behind the scenes.
+  * [amm-shared](./libraries/amm-shared) defines the contract API of Sienna Swap.
 
-* [receipts](./receipts) contains the responses to upload and init transactions
+* [**receipts**](./receipts) contains the responses to upload and init transactions
   performed by the framework, grouped by chain ID. This lets you keep track of uploaded
   contracts.
+  * [secret-4/instances/prod](./secret-4/instances/prod) - current production deployment
 
-* [scripts](./scripts) contains utility scripts pertaining to the whole repo.
-  * Of those, [Dev.ts.md](./scripts/Dev.ts.md) and
-    [Ops.ts.md](./scripts/Ops.ts.md) contain the entrypoints
-    for the main workflow commands `pnpm -w dev` and `pnpm -w ops`.
+* [**scripts**](./scripts) contains utility scripts pertaining to the whole repo.
+  * [Dev.ts.md](./scripts/Dev.ts.md) - build and test with `pnpm -w dev`
+  * [Ops.ts.md](./scripts/Ops.ts.md) - test and deploy with `pnpm -w ops`
 
-* [settings](./settings) contains the values of configurable properties for each
+* [**settings**](./settings) contains the values of configurable properties for each
   smart contract, again grouped by chain ID. This is a NPM module that can be imported
   by the deploy scripts to access the settings for deploying to a specific chain
   (as testnet configuration may need to systematically differ from mainnet).
+  * [schedule.json](./settings/schedule.json) - vesting schedule
 
 ## Post-deployment configuration
 
@@ -87,8 +90,3 @@ do not support generating multisig transactions.
 
 See [hackbg/motika](https://github.com/hackbg/motika)
 for a GUI-based multisig transaction signer.
-
-### SNIP20
-
-Located under `api/SNIP20.js` you'll find the wrapper for any `snip20` contract
-that will expose all the required methods to call on the contract.
