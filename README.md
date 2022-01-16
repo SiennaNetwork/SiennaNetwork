@@ -1,119 +1,178 @@
-# SIENNA
+<div align="center">
 
-[![Coverage Status](https://coveralls.io/repos/github/SiennaNetwork/sienna/badge.svg?branch=dev&t=s6kRdI)](https://coveralls.io/github/SiennaNetwork/sienna?branch=dev)
-[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/SiennaNetwork/sienna/blob/main/CONTRIBUTING.md)
-![GitHub contributors](https://img.shields.io/github/contributors/SiennaNetwork/sienna)
+[![](/logo.svg)](https://sienna.network/)
+
 [![Twitter Follow](https://img.shields.io/twitter/follow/sienna_network?style=plastic&logo=twitter)](https://twitter.com/sienna_network)
 
-## Table of Contents
+[![Coverage Status](https://coveralls.io/repos/github/SiennaNetwork/sienna/badge.svg?branch=dev&t=s6kRdI)](https://coveralls.io/github/SiennaNetwork/sienna?branch=dev)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](/CONTRIBUTING.md)
+[![Code style](https://img.shields.io/badge/code%20style-open--minded-%239013fe)](/CONTRIBUTING.md#coding-style)
 
-- [Contents](#contents)
-- Running the project
-  - [Clone the code](#obtaining-the-code)
-  - [Development environment (nix-shell)](#entering-the-development-environment)
-  - [Installing dependencies](#installing-dependencies)
-  - [Compile the code](#building-the-code)
-  - [Run Tests](#running-the-tests)
-  - [Deployment](#deployment)
-    - [Post deployment configuration](#post-deployment-configuration)
-  - [Usage](#usage)
-  - [Extras](#extras)
-- [Mainnet addresses](#mainnet-addresses)
-- [Architecture](#architecture-overview)
-- [Troubleshooting](#troubleshooting)
-
-## Contents
-
-|Environment|Component     |TGE |Swap|Rewards|IDO|Lend|
-|----|---------------------|----|----|-------|---|----|
-|Rust|Smart contract(s)    |✔️   |✔️   |✔️      |✔️  |?   |
-|Rust|Unit tests           |?   |?   |✔️      |?  |?   |
-|JS  |API wrapper(s)       |✔️   |✔️   |✔️      |✔️  |?   |
-|JS  |API integration tests|✔️   |?   |?      |?  |?   |
-|JS  |Gas benchmark        |?   |?   |✔️      |?  |?   |
-|JS  |Dashboard            |?   |?   |✔️      |?  |?   |
-
+</div>
 
 ## Mainnet addresses
 
-|Kind/Area |Contract  |Address<br>Code hash|
-|:----|:---------|:-------------------|
-|SNIP-20 (CosmWasm) |**SIENNA**<br>The main [SNIP20](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-20.md) governance token.<br>[SIENNA on CoinMarketCap](https://coinmarketcap.com/currencies/sienna/)|[**`secret1rgm2m5t530tdzyd99775n6vzumxa5luxcllml4`**](https://secretnodes.com/secret/chains/secret-3/accounts/secret1rgm2m5t530tdzyd99775n6vzumxa5luxcllml4)<br>`c1dc8261059fee1de9f1873cd1359ccd7a6bc5623772661fa3d55332eb652084`|
-|ERC-20 (Solidity) |**SIENNA on BSC**<br>Wrapper on Binance Smart Chain<br>[SIENNA BSC token tracker](https://www.bscscan.com/token/0x130F6E4d338BFD8304F5342D759ABE5C6Bd7bA9b)|[**`0x130F6E4d338BFD8304F5342D759ABE5C6Bd7bA9b`**](https://www.bscscan.com/address/0x130F6E4d338BFD8304F5342D759ABE5C6Bd7bA9b)|N/A|
-|ERC-20 (Solidity) |**wSIENNA on ETH**<br>Wrapper on Ethereum<br>[wSIENNA on CoinMarketCap](https://coinmarketcap.com/currencies/sienna-erc20/)|[**`0x9b00e6E8D787b13756eb919786c9745054DB64f9`**](https://ethplorer.io/address/0x9b00e6e8d787b13756eb919786c9745054db64f9#chart=candlestick)|
-|Vesting (CosmWasm) |**MGMT**<br>The [main vesting contract](./contracts/mgmt) that distributes pre-defined amounts of SIENNA over time|[**`secret1kn6kvc97nvu69dqten0w9p9e95dw6d6luv3dfx`**](https://secretnodes.com/secret/chains/secret-3/accounts/secret1kn6kvc97nvu69dqten0w9p9e95dw6d6luv3dfx)<br>`b1e4c4d76a5aedd180d08d8fec99ad84ed1a8a08d6d8a32a30c8c0f9835f4fab`|
-|Vesiting (CosmWasm) |**RPT**<br>The [remaining pool token](./contracts/rpt) distribution contract that funds the reward pools|[**`secret107j8czcysrkvxsllvhqj4mhmcegt9hx2ra3x42`**](https://secretnodes.com/secret/chains/secret-3/accounts/secret107j8czcysrkvxsllvhqj4mhmcegt9hx2ra3x42)<br>`a9bfc78d182eb8d3cbb74d4269ef1f529a607f7842d755f00fef7df13c02c5b4`|
-|AMM (CosmWasm) |**Factory**<br>The [hub of Sienna Swap](./contracts/factory).|[**`secret1zvk7pvhtme6j8yw3ryv0jdtgg937w0g0ggu8yy`**](https://secretnodes.com/secret/chains/secret-3/accounts/secret1zvk7pvhtme6j8yw3ryv0jdtgg937w0g0ggu8yy)<br>`b1f8a2086c7ca3bf8a0866275885b21462829158927a2a757064ccd65a593b36`|
-|AMM (CosmWasm) |**Exchanges**<br>Initial [liquidity pools](./contracts/exchange) created via the Factory|See **./artifacts/secret-3/prod/SiennaSwap_\***<br>and [settings/swapPairs-secret-3.json](./settings/swapPairs-secret-3.json)|
-|AMM (CosmWasm) |**Rewards V1/V2**<br>[Reward pools](./contracts/rewards) corresponding to select liquidity pools|See **./artifacts/secret-3/prod/SiennaRewards_\***<br>and [settings/rewardPairs-secret-3.json](./settings/rewardPairs-secret-3.json)|
+MOVED: See [receipts/README.md](./receipts/README.md#mainnet-addresses) for the up-to-date
+mainnet addresses of all production contracts.
 
+## Development quickstart
 
-## Architecture overview
+```sh
+git clone git@git.sienna.network:siennanetwork/contracts.git sienna-contracts
+cd sienna-contracts
+git submodule update --init --recursive
+nix-shell # optional
+pnpm i
+pnpm -w dev build
+pnpm -w ops localnet-1.2 deploy all
+```
 
-### AMM
+The smart contracts are written in Rust, targeting SecretNetwork's fork of `cosmwasm-std 0.10`
+on `wasm32-unknown-unknown`.
 
-![](./docs/Sienna.drawio.png)
+See [scripts/Dev.ts.md](./scripts/Dev.ts.md)
+and [scripts/Ops.ts.md](./scripts/Ops.ts.md)
+for workflow commands.
 
-### Lending
+See also:
+* **[Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)** documentation,
+  and most importantly the `git submodule update --init --recursive` command.
+* **[Pnpm](https://pnpm.io/)** package manager, and most importantly
+  its [Workspaces feature](https://pnpm.io/workspaces).
+
+## Repository content
+
+* [artifacts](./artifacts) contains the compiled smart contracts (gitignored)
+  and their checksums (not gitignored).
+
+* [benchmarks](./benchmarks) contains gas benchmarks and demos.
+
+* [contracts](./contracts) contains the Rust source code of the smart contracts.
+
+* [docs](./docs) contains various project documentation.
+
+* [experiments](./experiments) is a playground for experimental solutions
+
+* [frontends](./frontends) contains clients for the smart contracts, written in JS/TS.
+  Some of them are transcluded as git submodules pointing to other repos.
+
+* [libraries](./libraries) contains Rust libraries used by one or more smart contracts.
+  * [fadroma-next](./libraries/fadroma-next) is a Git submodule pointing to the top of
+    the Fadroma deployment framework, which takes care of building and uploading the
+    contracts behind the scenes.
+
+* [receipts](./receipts) contains the responses to upload and init transactions
+  performed by the framework, grouped by chain ID. This lets you keep track of uploaded
+  contracts.
+
+* [scripts](./scripts) contains utility scripts pertaining to the whole repo.
+  * Of those, [Dev.ts.md](./scripts/Dev.ts.md) and
+    [Ops.ts.md](./scripts/Ops.ts.md) contain the entrypoints
+    for the main workflow commands `pnpm -w dev` and `pnpm -w ops`.
+
+* [settings](./settings) contains the values of configurable properties for each
+  smart contract, again grouped by chain ID. This is a NPM module that can be imported
+  by the deploy scripts to access the settings for deploying to a specific chain
+  (as testnet configuration may need to systematically differ from mainnet).
+
+## Project phases
+
+### TGE/Vesting
+
+Consists of:
+* `contracts/snip20-sienna`
+* `contracts/mgmt`
+* `contracts/rpt`
+
+#### Usage
+
+* To claim funds from MGMT, send it `{"claim":{}}`.
+* To make RPT send funds to the reward pools, send it `{"vest":{}}`
+
+#### Configuration
+
+* MGMT can be reconfigured by its admin after deployment
+  as long as it hasn't been launched yet.
+
+* RPT can be freely reconfigured by its admin
+  as long as the budget adds up to the original amount (2500 SIENNA).
+
+#### Compiling from source
+
+```sh
+pnpm -w dev build tge
+```
+
+#### Running tests
+
+```sh
+cargo test -p snip20-sienna
+cargo test -p mgmt
+cargo test -p rpt
+```
+
+### Swap/AMM
+
+Consists of:
+* `contracts/factory`
+* `contracts/exchange`
+* `contracts/ido`
+* `contracts/launchpad`
+* `contracts/rewards`
+* `contracts/router`
+* `libraries/amm-shared`
+
+Refer to [this diagram](./docs/Sienna.drawio.png) for the architectural overview.
+
+#### Compiling from source
+
+```sh
+pnpm -w dev build amm
+```
+
+#### Running tests
+
+```sh
+cargo test -p factory
+cargo test -p exchange
+cargo test -p ido
+cargo test -p launchpad
+cargo test -p sienna-rewards
+cargo test -p sienna-router
+```
+
+#### Configuring the factory
 
 TODO
 
+#### Configuring the reward pools
 
-## Obtaining the code
+* A reward pool can be closed by sending it
+  `{"close_pool":{"message":"Here the admin should provide info on why the pool was closed."}}`.
 
-This project is connected to some of its dependencies
-via [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
-This means that to get everything you need to get started,
-you need to clone this repo **recursively**:
+  * If upgrading a pool, please write the message in this format:
+    `Moved to secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (because...)`.
 
-```sh
-git clone --recurse-submodules git@github.com:SiennaNetwork/sienna.git
-```
+  * A closed reward pool returns each user's LP tokens
+    the next time the user interacts with the pool.
+    No more locking is allowed, and time stops
+    (this means liquidity shares will stop changing,
+    even though sending more SIENNA to the pool will allocate
+    more rewards according to current liquidity shares).
+    Eligible users are able to claim rewards
+    from a closed pool one last time.
+    Afterwards, their LP tokens will be returned
+    and their liquidity share reset to 0.
 
-See [the troubleshooting section](#troubleshooting) if you forget to do that.
+### Sienna Lend
 
-## Entering the development environment
-
-The file `shell.nix` contains a reproducible
-description of the development environment.
-To enter the development environment,
-run this in the project root:
-
-```sh
-nix-shell
-```
-
-This requires the [Nix package manager](https://nixos.org/download.html#nix-quick-install),
-and contains Rust Nightly, Node.js, and PNPM.
-Alternatively, you are free to bring
-your own toolchain for your convenience
-(and this project's portability).
-
-## Installing dependencies
-
-To install the dependencies of the management scripts,
-run this in the project root:
-
-```sh
-pnpm i
-```
+TODO
 
 ## Building the code
-
-The smart contracts are written in Rust, targeting
-SecretNetwork's fork of `cosmwasm-std 0.10.*`.
 
 ### Sienna TGE
 
 TODO
-
-### Sienna Swap + Rewards
-
-To obtain a production build of Sienna Rewards:
-
-```sh
-pnpm dev build rewards
-```
 
 ## Running the tests
 
@@ -144,7 +203,7 @@ There is some support for resuming deployments that were interrupted halfway.
 ### Full local deployment
 
 ```
-pnpm ops localnet-1.0 deploy all
+pnpm -w ops localnet-1.2 deploy all
 ```
 
 ### Remote and multi-stage deployment
@@ -160,40 +219,7 @@ do not support generating multisig transactions.
 See [hackbg/motika](https://github.com/hackbg/motika)
 for a GUI-based multisig transaction signer.
 
-### Sienna TGE
-
-* MGMT can be reconfigured by its admin after deployment
-  as long as it hasn't been launched yet.
-* RPT can be freely reconfigured by its admin
-  as long as the budget adds up to the original amount (2500 SIENNA).
-
-### Sienna Swap
-
-TODO
-
 ### Sienna Rewards
-
-* A reward pool can be closed by sending it
-  `{"close_pool":{"message":"Here the admin should provide info on why the pool was closed."}}`.
-  * If upgrading a pool, please write the message in this format:
-    `Moved to secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (because...)`.
-  * A closed reward pool returns each user's LP tokens
-    the next time the user interacts with the pool.
-    No more locking is allowed, and time stops
-    (this means liquidity shares will stop changing,
-    even though sending more SIENNA to the pool will allocate
-    more rewards according to current liquidity shares).
-    Eligible users are able to claim rewards
-    from a closed pool one last time.
-    Afterwards, their LP tokens will be returned
-    and their liquidity share reset to 0.
-
-## Usage
-
-* To claim funds from MGMT, send it `{"claim":{}}`.
-* To make RPT send funds to the reward pools, send it `{"vest":{}}`
-* Swap: TODO
-* Rewards: TODO
 
 ## Extras
 
@@ -243,3 +269,17 @@ cd libraries/fadroma-next
 git submodule init
 git submodule update
 ```
+
+- Running the project:
+  - [Clone the code](#obtaining-the-code)
+  - [Development environment (nix-shell)](#entering-the-development-environment)
+  - [Installing dependencies](#installing-dependencies)
+  - [Compile the code](#building-the-code)
+  - [Run Tests](#running-the-tests)
+  - [Deployment](#deployment)
+    - [Post deployment configuration](#post-deployment-configuration)
+  - [Usage](#usage)
+  - [Extras](#extras)
+- [Mainnet addresses](#mainnet-addresses)
+- [Architecture](#architecture-overview)
+- [Troubleshooting](#troubleshooting)

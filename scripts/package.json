@@ -5,6 +5,7 @@
   "dependencies": {
 
     "@hackbg/tools":   "workspace:*",
+    "@hackbg/komandi": "workspace:*",
 
     "@fadroma/ops":    "workspace:*",
     "@fadroma/scrt":   "workspace:*",

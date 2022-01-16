@@ -1374,6 +1374,7 @@ importers:
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
       '@fadroma/snip20': workspace:*
+      '@hackbg/komandi': workspace:*
       '@hackbg/tools': workspace:*
       '@sienna/api': workspace:*
       '@sienna/benchmarks': workspace:*
@@ -1383,6 +1384,7 @@ importers:
       '@fadroma/ops': link:../libraries/fadroma-next/packages/ops
       '@fadroma/scrt': link:../libraries/fadroma-next/packages/scrt
       '@fadroma/snip20': link:../libraries/fadroma-next/crates/fadroma-snip20-impl
+      '@hackbg/komandi': link:../libraries/fadroma-next/deps/toolbox/komandi
       '@hackbg/tools': link:../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/api': link:../frontends/api
       '@sienna/benchmarks': link:../benchmarks
