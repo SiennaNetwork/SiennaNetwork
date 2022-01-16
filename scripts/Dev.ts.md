@@ -125,14 +125,14 @@ Use `cargo test -p $CRATE` to test individual crates, as listed in [/Cargo.toml]
 for info and a possible workaround.
 
 ```typescript
-import routerClientTests from '../contracts/router/test/client.test.ts.md'
+/*import routerClientTests from '../contracts/router/test/client.test.ts.md'
 commands['test'] = {}
 commands['test']['router'] = {}
 commands['test']['router']['client'] = routerClientTests
 commands['test']['router']['integration'] = async () => {
   const tests = await import('../contracts/router/test/integration.test.ts.md')
   await tests.allDone
-}
+}*/
 ```
 
 ## Generating the JSON schema
