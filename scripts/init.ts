@@ -8,9 +8,9 @@ export default async function init (chainName: string) {
   let admin: IAgent
 
   if (!chainName || !Object.keys(CHAINS).includes(chainName)) {
-    console.log(`Select target chain:`)
+    console.log(`\nSelect target chain:`)
     for (const chain of Object.keys(CHAINS)) console.log(`  ${bold(chain)}`)
-    process.exit(1)
+    process.exit(0)
   }
 
   chain = await CHAINS[chainName]().ready

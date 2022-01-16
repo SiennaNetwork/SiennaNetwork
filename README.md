@@ -5,8 +5,8 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/sienna_network?style=plastic&logo=twitter)](https://twitter.com/sienna_network)
 
 [![Coverage Status](https://coveralls.io/repos/github/SiennaNetwork/sienna/badge.svg?branch=dev&t=s6kRdI)](https://coveralls.io/github/SiennaNetwork/sienna?branch=dev)
-[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](/CONTRIBUTING.md)
-[![Code style](https://img.shields.io/badge/code%20style-open--minded-%239013fe)](/CONTRIBUTING.md#coding-style)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
+[![Code style](https://img.shields.io/badge/code%20style-open--minded-%239013fe)](CONTRIBUTING.md#coding-style)
 
 </div>
 
