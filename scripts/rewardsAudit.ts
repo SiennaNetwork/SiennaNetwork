@@ -12,8 +12,9 @@ import {
   RewardsContract
 } from '@sienna/api'
 
+import { buildAndUpload } from '@fadroma/ops'
+
 import init from './init'
-import buildAndUpload from './buildAndUpload'
 
 export default {
 

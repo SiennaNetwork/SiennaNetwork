@@ -1,13 +1,12 @@
 import { writeFileSync } from 'fs'
 
+import { buildAndUpload } from '@fadroma/ops'
 import type { IChain, IAgent } from '@fadroma/ops'
 import { Scrt } from '@fadroma/scrt'
 import type { SNIP20Contract } from '@fadroma/snip20'
 import { bold, randomHex } from '@hackbg/tools'
 
 import settings from '@sienna/settings'
-
-import buildAndUpload from './buildAndUpload'
 
 const SIENNA_DECIMALS = 18
 const ONE_SIENNA = BigInt(`1${[...Array(SIENNA_DECIMALS)].map(()=>'0').join('')}`)

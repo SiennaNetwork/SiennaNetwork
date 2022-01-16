@@ -1,8 +1,8 @@
 import type { IChain, IAgent } from '@fadroma/ops'
+import { buildAndUpload } from '@fadroma/ops'
 import { bold, timestamp } from '@hackbg/tools'
 import process from 'process'
 import { writeFileSync } from 'fs'
-import buildAndUpload from './buildAndUpload'
 
 export default async function replaceRewardPool (
   chain: IChain,

@@ -1,9 +1,9 @@
-import { randomHex, Console } from '@hackbg/tools'
+import { randomHex, Console }   from '@hackbg/tools'
+import { buildAndUpload }       from '@fadroma/ops'
+import { IChain, IAgent, Scrt } from '@fadroma/scrt'
+import { SNIP20Contract }       from "@fadroma/snip20";
 
-import type { IChain, IAgent } from '@fadroma/scrt'
-import { Scrt } from '@fadroma/scrt'
-import { SNIP20Contract } from "@fadroma/snip20";
-
+import settings from '@sienna/settings'
 import {
   SiennaSNIP20Contract,
   FactoryContract,
@@ -11,9 +11,7 @@ import {
   AMMSNIP20Contract,
   LPTokenContract
 } from '@sienna/api'
-import settings from '@sienna/settings'
 
-import buildAndUpload from './buildAndUpload'
 import deployPlaceholderTokens from './deployPlaceholderTokens'
 
 const console = Console(import.meta.url)

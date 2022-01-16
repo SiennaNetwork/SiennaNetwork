@@ -1,4 +1,5 @@
 import type { IChain, IAgent } from '@fadroma/ops'
+import { buildAndUpload } from '@fadroma/ops'
 import { Scrt } from '@fadroma/scrt'
 import { timestamp } from '@hackbg/tools'
 
@@ -12,7 +13,6 @@ import {
 import settings from '@sienna/settings'
 
 import type { SwapOptions } from './deploySwap'
-import buildAndUpload from './buildAndUpload'
 
 export type VestingOptions = {
   prefix?:   string
