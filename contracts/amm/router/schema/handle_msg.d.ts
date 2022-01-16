@@ -23,7 +23,7 @@ export type HandleMsg =
     }
   | {
       register_tokens: {
-        tokens: TokenTypeFor_HumanAddr[];
+        tokens: TokenType[];
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -33,7 +33,7 @@ export type HandleMsg =
         amount: Uint128;
         snip20_send_msg?: Binary | null;
         to: HumanAddr;
-        token: TokenTypeFor_HumanAddr;
+        token: TokenType;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -53,7 +53,7 @@ export type HumanAddr = string;
  * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
  */
 export type Binary = string;
-export type TokenTypeFor_HumanAddr =
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;

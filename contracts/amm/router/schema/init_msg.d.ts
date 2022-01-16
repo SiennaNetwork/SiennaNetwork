@@ -12,7 +12,7 @@ export type HumanAddr = string;
  * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
  */
 export type Binary = string;
-export type TokenTypeFor_HumanAddr =
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;
@@ -30,30 +30,28 @@ export type TokenTypeFor_HumanAddr =
     };
 
 export interface InitMsg {
-  callback?: CallbackFor_HumanAddr | null;
+  callback?: Callback | null;
   owner?: HumanAddr | null;
-  register_tokens?: TokenTypeFor_HumanAddr[] | null;
+  register_tokens?: TokenType[] | null;
   [k: string]: unknown;
 }
 /**
  * Info needed to have the other contract respond.
  */
-export interface CallbackFor_HumanAddr {
+export interface Callback {
   /**
    * Info about the contract requesting the callback.
    */
-  contract: ContractLinkFor_HumanAddr;
+  contract: ContractLink;
   /**
    * The message to call.
    */
   msg: Binary;
-  [k: string]: unknown;
 }
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractLinkFor_HumanAddr {
+export interface ContractLink {
   address: HumanAddr;
   code_hash: string;
-  [k: string]: unknown;
 }

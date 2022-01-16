@@ -23,7 +23,7 @@
       ]
     },
     "exchange_settings": {
-      "$ref": "#/definitions/ExchangeSettings_for_HumanAddr"
+      "$ref": "#/definitions/ExchangeSettings"
     },
     "ido_contract": {
       "$ref": "#/definitions/ContractInstantiationInfo"
@@ -65,9 +65,10 @@
           "format": "uint64",
           "minimum": 0.0
         }
-      }
+      },
+      "additionalProperties": false
     },
-    "ExchangeSettings_for_HumanAddr": {
+    "ExchangeSettings": {
       "type": "object",
       "required": [
         "sienna_fee",

@@ -70,7 +70,7 @@
           }
         },
         "token_type": {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         }
       }
     },
@@ -102,11 +102,11 @@
           "minimum": 0.0
         },
         "token_type": {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         }
       }
     },
-    "TokenType_for_HumanAddr": {
+    "TokenType": {
       "anyOf": [
         {
           "type": "object",

@@ -1,28 +1,30 @@
 [workspace]
 members = [
+
   # TGE
-  "libraries/schedule",      # model of TGE vesting logic
-  "libraries/linear-map",    # simple way of storing small number of addresses
-  "contracts/snip20-sienna", # SNIP20 reference impl with deposit/redeem disabled
-  "contracts/mgmt",          # mints and vests tokens according to schedule
-  "contracts/rpt",           # claims from mgmt and splits the portion between recipients
-  "contracts/rewards",       # liquidity provision rewards
+  "libraries/schedule",          # model of TGE vesting logic
+  "libraries/linear-map",        # simple way of storing small number of addresses
+  "libraries/migrate",           # migration flag, as used by TGE before merging this feature into Fadroma
+  "libraries/kukumba",           # BDD testing framework
+  "contracts/tge/snip20-sienna", # SNIP20 reference impl with deposit/redeem disabled
+  "contracts/tge/mgmt",          # mints and vests tokens according to schedule
+  "contracts/tge/rpt",           # claims from mgmt and splits the portion between recipients
 
   # Swap + IDO
-  "libraries/amm-shared",    # definitions that are shared between AMM and IDO
-  "contracts/amm/exchange",  # uniswap exchange contract implementation
-  "contracts/amm/factory",   # factory contract for creating exchanges
-  "contracts/amm/launchpad", # Launchpad contract
-  "contracts/amm/ido",       # Sienna IDO
-  "contracts/amm/lp-token",  # snip20 liquidity provider token,
-  "contracts/amm-snip20",    # vanilla snip20 token, used when creating an IDO
-  "contracts/amm/router",    # Copy and modifications of secretswap_router
-  "contracts/amm/tests",     # AMM integration tests
+  "libraries/amm-shared",     # definitions that are shared between AMM and IDO
+  "contracts/amm/exchange",   # uniswap exchange contract implementation
+  "contracts/amm/factory",    # factory contract for creating exchanges
+  "contracts/amm/launchpad",  # Launchpad contract
+  "contracts/amm/ido",        # Sienna IDO
+  "contracts/amm/lp-token",   # snip20 liquidity provider token,
+  "contracts/amm/amm-snip20", # vanilla snip20 token, used when creating an IDO
+  "contracts/amm/router",     # Copy and modifications of secretswap_router
+  "contracts/amm/rewards",    # liquidity provision rewards
+  "contracts/amm/tests",      # AMM integration tests
 
   # Framework
   "libraries/fadroma-next/crates/*",
-  "libraries/migrate", # migration flag, as used by TGE before merging this feature into Fadroma
-  "libraries/kukumba", # BDD testing framework
+
 ]
 
 [profile.release]

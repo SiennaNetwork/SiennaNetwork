@@ -6,16 +6,22 @@
   "workspace": true,
 
   "packages": [
-    "./benchmarks",
-    "./contracts/*",
-    "./frontends/*",
-    "./libraries/fadroma-next/crates/fadroma-snip20-impl",
-    "./libraries/fadroma-next/packages/*",
     "./libraries/fadroma-next/deps/*",
-    "./libraries/ops-amm",
-    "./libraries/schedule",
+    "./libraries/fadroma-next/packages/*",
+    "./libraries/fadroma-next/crates/fadroma-snip20-impl",
+
     "./scripts",
-    "./settings"
+    "./settings",
+
+    "./contracts/tge",
+    "./contracts/tge/*",
+    "./libraries/schedule",
+
+    "./contracts/amm",
+    "./contracts/amm/*",
+    "./libraries/ops-amm",
+
+    "./frontends/*"
   ],
 
   "dependencies": {

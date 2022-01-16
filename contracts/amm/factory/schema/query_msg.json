@@ -35,7 +35,7 @@
           ],
           "properties": {
             "pair": {
-              "$ref": "#/definitions/TokenPair_for_HumanAddr"
+              "$ref": "#/definitions/TokenPair"
             }
           }
         }
@@ -129,20 +129,20 @@
         }
       ]
     },
-    "TokenPair_for_HumanAddr": {
+    "TokenPair": {
       "type": "array",
       "items": [
         {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         },
         {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         }
       ],
       "maxItems": 2,
       "minItems": 2
     },
-    "TokenType_for_HumanAddr": {
+    "TokenType": {
       "anyOf": [
         {
           "type": "object",

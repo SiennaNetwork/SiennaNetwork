@@ -19,7 +19,7 @@ export type QueryResponse =
       [k: string]: unknown;
     };
 export type Uint128 = string;
-export type TokenTypeFor_HumanAddr =
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;
@@ -45,7 +45,7 @@ export interface QueryTokenConfig {
   locked_balance: Uint128;
   segment: Uint128;
   token_decimals: number;
-  token_type: TokenTypeFor_HumanAddr;
+  token_type: TokenType;
   [k: string]: unknown;
 }
 /**
@@ -54,6 +54,6 @@ export interface QueryTokenConfig {
 export interface QueryAccountToken {
   balance: Uint128;
   entries: number[];
-  token_type: TokenTypeFor_HumanAddr;
+  token_type: TokenType;
   [k: string]: unknown;
 }

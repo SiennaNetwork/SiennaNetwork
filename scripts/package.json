@@ -11,11 +11,10 @@
     "@fadroma/scrt":   "workspace:*",
     "@fadroma/snip20": "workspace:*",
 
-    "@sienna/api":        "workspace:*",
-    "@sienna/benchmarks": "workspace:*",
-    "@sienna/settings":   "workspace:^1.0.0",
-
-    "toml": "^3.0.0"
+    "@sienna/api":      "workspace:*",
+    "@sienna/tge":      "workspace:*",
+    "@sienna/amm":      "workspace:*",
+    "@sienna/settings": "workspace:^1.0.0"
 
   }
 }

@@ -1,0 +1,20 @@
+{
+  "name": "@sienna/amm",
+  "private": true,
+  "main": "index.ts",
+  "dependencies": {
+
+    "@hackbg/tools":    "workspace:*",
+    "@hackbg/komandi":  "workspace:*",
+
+    "@fadroma/ops":     "workspace:*",
+    "@fadroma/scrt":    "workspace:*",
+    "@fadroma/snip20":  "workspace:*",
+
+    "@sienna/api":      "workspace:*",
+    "@sienna/settings": "workspace:^1.0.0",
+
+    "toml": "^3.0.0"
+
+  }
+}

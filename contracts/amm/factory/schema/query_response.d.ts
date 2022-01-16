@@ -29,21 +29,21 @@ export type QueryResponse =
     }
   | {
       list_exchanges: {
-        exchanges: ExchangeFor_HumanAddr[];
+        exchanges: Exchange[];
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
       get_exchange_settings: {
-        settings: ExchangeSettingsFor_HumanAddr;
+        settings: ExchangeSettings;
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
       config: {
-        exchange_settings: ExchangeSettingsFor_HumanAddr;
+        exchange_settings: ExchangeSettings;
         ido_contract: ContractInstantiationInfo;
         launchpad_contract: ContractInstantiationInfo;
         lp_token_contract: ContractInstantiationInfo;
@@ -54,8 +54,8 @@ export type QueryResponse =
       [k: string]: unknown;
     };
 export type HumanAddr = string;
-export type TokenPairFor_HumanAddr = [TokenTypeFor_HumanAddr, TokenTypeFor_HumanAddr];
-export type TokenTypeFor_HumanAddr =
+export type TokenPair = [TokenType, TokenType];
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;
@@ -75,26 +75,25 @@ export type TokenTypeFor_HumanAddr =
 /**
  * Represents the address of an exchange and the pair that it manages
  */
-export interface ExchangeFor_HumanAddr {
+export interface Exchange {
   /**
    * The contract that manages the exchange.
    */
-  contract: ContractLinkFor_HumanAddr;
+  contract: ContractLink;
   /**
    * The pair that the contract manages.
    */
-  pair: TokenPairFor_HumanAddr;
+  pair: TokenPair;
   [k: string]: unknown;
 }
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractLinkFor_HumanAddr {
+export interface ContractLink {
   address: HumanAddr;
   code_hash: string;
-  [k: string]: unknown;
 }
-export interface ExchangeSettingsFor_HumanAddr {
+export interface ExchangeSettings {
   sienna_burner?: HumanAddr | null;
   sienna_fee: Fee;
   swap_fee: Fee;
@@ -111,5 +110,4 @@ export interface Fee {
 export interface ContractInstantiationInfo {
   code_hash: string;
   id: number;
-  [k: string]: unknown;
 }

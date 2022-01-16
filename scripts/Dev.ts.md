@@ -1,14 +1,9 @@
 # Sienna Development Procedures
 
-* [Building the contracts - `pnpm -w dev build`](#building-the-contracts)
-  * [Building all contracts - `pnpm -w dev build all`](#building-all-contracts)
-  * [Building the TGE contracts - `pnpm -w dev build tge`](#building-the-tge-contracts)
-  * [Building the AMM contracts - `pnpm -w dev build amm`](#building-the-amm-contracts)
-  * [Building the rewards contract - `pnpm -w dev build rewards`](#building-the-rewards-contract)
-* [Running the tests - `pnpm -w dev test`](#running-the-tests)
-* [Generating the JSON schema - `pnpm -w dev schema`](#generating-the-schema)
-* [Running the benchmarks and demos - `pnpm -w dev bench`, `pnpm dev -w demo`](#running-the-benchmarks-and-demos)
-* [Entry point](#entry-point)
+* [Run the tests - `pnpm -w dev test`](#run-the-tests)
+* [Compile for production - `pnpm -w dev build all`](#compile-for-production)
+* [Generate JSON schema - `pnpm -w dev schema`](#generate-json-schema)
+* [This script's entry point - `pnpm -w dev`](#entry-point)
 
 The following procedures are executed by the [Komandi](https://github.com/hackbg/fadroma/tree/21.12/packages/komandi)
 library based on the command line arguments (see [Entry point](#entry-point)). Or, you can
@@ -19,103 +14,11 @@ const commands = {}
 export default commands
 ```
 
-Let's populate the list of commands.
+The content below populates the list of commands that are invoked with `pnpm -w dev`,
+while taking the time to elaborate on what each command does and what there is to be
+known about it.
 
-## Building the contracts
-
-These commands allow different combinations of contracts to be built for **production**.
-Run `pnpm -w dev build` to list them.
-
-The build output for each contract consists of a WASM file in [/artifacts](../artifacts)
-and a checksum in [/artifacts/checksums.sha256.txt](../artifacts/checksums.sha256.txt).
-
-```typescript
-commands['build'] = {}
-```
-
-The build procedure for any CosmWasm contract is implemented in [@fadroma/ops/ContractBuild](../libraries/fadroma-next/packages/ops/ContractBuild.ts);
-the [build script](https://github.com/hackbg/fadroma/tree/21.12/packages/scrt/ScrtBuild.sh)
-and [build image](https://github.com/hackbg/fadroma/tree/21.12/packages/scrt/ScrtBuild.Dockerfile)
-are set in [@fadroma/scrt/ScrtContract](https://github.com/hackbg/fadroma/tree/21.12/packages/scrt/ScrtContract.ts).
-
-### Building all contracts
-
-Run `pnpm -w dev build all` to compile all contracts defined below:
-
-```typescript
-import {
-  SiennaSNIP20Contract, MGMTContract, RPTContract,
-  FactoryContract, AMMContract, AMMSNIP20Contract, LPTokenContract,
-  RewardsContract, SwapRouterContract,
-  IDOContract, LaunchpadContract,
-} from '@sienna/api'
-
-commands['build']['all'] = () => Promise.all([
-  new SiennaSNIP20Contract().build(),
-  new MGMTContract().build(),
-  new RPTContract().build(),
-  new AMMContract().build(),
-  new AMMSNIP20Contract().build(),
-  new LPTokenContract().build(),
-  new FactoryContract().build(),
-  new RewardsContract().build(),
-  new IDOContract().build(),
-  new LaunchpadContract().build(),
-  new SwapRouterContract().build()
-])
-```
-
-### Building the TGE contracts
-
-Run `pnpm -w dev build tge` to compile the contracts for the Token Generation Event:
-
-```typescript
-commands['build']['tge'] = () => Promise.all([
-  new SiennaSNIP20Contract().build(),
-  new MGMTContract().build(),
-  new RPTContract().build()
-])
-```
-
-### Building the AMM contracts
-
-Run `pnpm -w dev build amm` to compile the contracts for Sienna Swap/AMM:
-
-```typescript
-commands['build']['amm'] = () => Promise.all([
-  new AMMContract().build(),
-  new AMMSNIP20Contract().build(),
-  new LPTokenContract().build(),
-  new SwapRouterContract().build(),
-  new FactoryContract().build(),
-  new LaunchpadContract().build(),
-  new IDOContract().build(),
-  new RewardsContract().build(),
-  new SwapRouterContract().build()
-])
-```
-
-### Building the rewards contract
-
-Run `pnpm -w dev build rewards` to compile the contract for Sienna Rewards:
-
-```typescript
-commands['build']['rewards'] = () => Promise.all([
-  new RewardsContract().build(),
-])
-```
-
-#### Building legacy rewards
-
-Run `pnpm -w dev build rewards-v2` to compile Rewards v2 from git tag `rewards-2.1.2`.
-
-```typescript
-commands['build']['rewards'] = () => Promise.all([
-  new RewardsContract().build(),
-])
-```
-
-## Running the tests
+## Run the tests
 
 Use `pnpm -w dev test` to run the available JavaScript integration tests.
 
@@ -135,79 +38,61 @@ commands['test']['router']['integration'] = async () => {
 }*/
 ```
 
-## Generating the JSON schema
+## Compile for production
+
+`pnpm -w dev build all` compiles all contracts for production.
+
+The build output consists of two files being written to [/artifacts](../artifacts):
+* `contract-name@version.wasm` (gitignored)
+* `contract-name@version.wasm.sha256` (not gitignored).
+
+Run `pnpm -w dev build all` compile to list the subsets of contracts that can be built.
 
 ```typescript
-import { resolve } from 'path'
-import { readdirSync, readFileSync, writeFileSync } from 'fs'
-
-import TOML              from 'toml'
-import { schemaToTypes } from '@fadroma/scrt'
-import { cargo }         from '@hackbg/tools'
-import { abs }           from '@sienna/settings'
-
-commands['schema'] = async () => {
-
-  for (const dir of [
-    "amm-snip20",
-    "exchange",
-    "factory",
-    "ido",
-    "launchpad",
-    "lp-token",
-    "mgmt",
-    "rewards",
-    "router",
-    "rpt",
-    "snip20-sienna",
-  ]) {
-
-    // Generate JSON schema
-    const cargoToml = abs('contracts', dir, 'Cargo.toml')
-    const {package:{name}} = TOML.parse(readFileSync(cargoToml, 'utf8'))
-    cargo('run', '-p', name, '--example', 'schema')
-
-    // Collect generated schema definitions
-    const schemaDir = abs('contracts', dir, 'schema')
-    const schemas = readdirSync(schemaDir)
-      .filter(x=>x.endsWith('.json'))
-      .map(x=>resolve(schemaDir, x))
-
-    // Remove `For_HumanAddr` suffix from generic structs
-    // This does a naive find'n' replace, not sure what it'll do for
-    // types that are genericized over HumanAddr AND something else?
-    for (const schema of schemas) {
-      const content = readFileSync(schema, 'utf8')
-      writeFileSync(schema, content.replace(/_for_HumanAddr/g, ''), 'utf8')
-    }
-
-    // Generate type definitions from JSON schema
-    await schemaToTypes(...schemas)
-
-  }
-
-}
+import { buildTge } from '@sienna/tge'
+import { buildTokens, buildAmm, buildIdo, buildRewards, buildRouter } from '@sienna/amm'
+commands['build'] = {}
+commands['build']['tge']     = () => buildTge()
+commands['build']['amm']     = () => buildTokens().then(buildAmm())
+commands['build']['rewards'] = () => buildTokens().then(buildRewards())
+commands['build']['ido']     = () => buildTokens().then(buildIdo())
+commands['build']['router']  = () => buildTokens().then(buildRouter())
+commands['build']['all'] = () => Promise.all([
+  buildTge(),
+  buildTokens(),
+  buildAmm(),
+  buildRewards(),
+  buildRouter()
+])
 ```
 
-## Running the benchmarks and demos
+These commands are defined in [`@sienna/tge/build.ts`](../contracts/tge/build.ts')
+and [`@sienna/amm/build.ts`](../contracts/amm/build.ts'), and use a build procedure
+that is implemented in [@fadroma/ops/ContractBuild](../libraries/fadroma-next/packages/ops/ContractBuild.ts).
+
+The [image of the build container](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtBuild.Dockerfile)
+and the [build script that runs in it](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtBuild.sh)
+are set in [@fadroma/scrt/ScrtContract](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtContract.ts).
+
+## Generate JSON schema
 
 ```typescript
-import { rewardsBenchmark } from '@sienna/benchmarks'
+import { generateSchema } from '@fadroma/ops'
+import { abs } from '@sienna/settings'
+commands['schema'] = () => generateSchema(abs(), [
+  "tge/mgmt",
+  "tge/rpt",
+  "tge/snip20-sienna",
 
-commands['bench'] = {
-  rewards: rewardsBenchmark,
-  ido:     notImplemented
-}
-
-commands['demo'] = {
-  tge:     notImplemented,
-  rewards: notImplemented
-}
-
-function notImplemented () {
-  console.log(`\nThis command is on vacation. 🌴 ⛱️  🐬\n`)
-  process.exit(1)
-}
+  "amm/amm-snip20",
+  "amm/exchange",
+  "amm/factory",
+  "amm/ido",
+  "amm/launchpad",
+  "amm/lp-token",
+  "amm/rewards",
+  "amm/router",
+])
 ```
 
 ## Entry point

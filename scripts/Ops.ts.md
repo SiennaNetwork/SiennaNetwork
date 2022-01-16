@@ -90,7 +90,7 @@ commands['deploy']['all'] = async function () {
 This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 
 ```typescript
-import deployVesting from './deployVesting'
+import { deployVesting } from '@sienna/tge'
 commands['deploy']['vesting'] = async function () {
   const {chain, admin} = await init(process.env.CHAIN_NAME)
   const prefix = timestamp()
@@ -106,7 +106,7 @@ This command adds the contracts for Sienna Swap to the currently selected deploy
 (see [Select the active deployment](#select-the-active-deployment)).
 
 ```typescript
-import deploySwap from './deploySwap'
+import { deploySwap } from '@sienna/amm'
 commands['deploy']['swap'] = async () => {
   const {chain, admin} = await init(process.env.CHAIN_NAME)
   if (!chain.instances.active) await commands.deploy.vesting()
@@ -121,7 +121,7 @@ commands['deploy']['swap'] = async () => {
 Prototype of future migration procedures.
 
 ```typescript
-import deployRewards from './deployRewards'
+import { deployRewards } from '@sienna/amm'
 commands['deploy']['rewards'] = async () => {
   const {chain, admin} = await init(process.env.CHAIN_NAME)
   if (chain.isMainnet) {
@@ -169,7 +169,7 @@ This command closes a specified reward pool in the currently selected deployment
 with the latest version of the code.
 
 ```typescript
-import replaceRewardPool, { printRewardsContracts } from './replaceRewardPool'
+import { replaceRewardPool, printRewardsContracts } from '@sienna/amm'
 commands['upgrade'] = {
 
   async ['rewards'] (id?: string) {
@@ -187,7 +187,7 @@ commands['upgrade'] = {
 ## Helper commands for auditing the contract logic
 
 ```typescript
-import rewardsAudit from './rewardsAudit'
+import { rewardsAudit } from '@sienna/amm'
 commands['audit'] = {
 
   rewards: rewardsAudit
@@ -222,5 +222,17 @@ export async function main (
       }
     }
   )
+}
+```
+
+### Connecting to a chain
+
+```typescript
+import type { IChain, IAgent } from '@fadroma/ops'
+import { init as _init } from '@fadroma/ops'
+import { CHAINS } from '@fadroma/scrt'
+export type Context = { chain: IChain, admin: IAgent }
+async function init (chainName: string): Promise<Context> {
+  return _init(CHAINS, chainName)
 }
 ```

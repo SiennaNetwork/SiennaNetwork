@@ -12,7 +12,7 @@ export type HumanAddr = string;
  * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
  */
 export type Binary = string;
-export type TokenTypeFor_HumanAddr =
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;
@@ -39,7 +39,7 @@ export interface InitMsg {
   /**
    * Used by the IDO to register itself with the factory.
    */
-  callback: CallbackFor_HumanAddr;
+  callback: Callback;
   entropy: Binary;
   info: TokenSaleConfig;
   /**
@@ -55,30 +55,28 @@ export interface InitMsg {
 /**
  * Info needed to have the other contract respond.
  */
-export interface CallbackFor_HumanAddr {
+export interface Callback {
   /**
    * Info about the contract requesting the callback.
    */
-  contract: ContractLinkFor_HumanAddr;
+  contract: ContractLink;
   /**
    * The message to call.
    */
   msg: Binary;
-  [k: string]: unknown;
 }
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractLinkFor_HumanAddr {
+export interface ContractLink {
   address: HumanAddr;
   code_hash: string;
-  [k: string]: unknown;
 }
 export interface TokenSaleConfig {
   /**
    * The token that will be used to buy the SNIP20.
    */
-  input_token: TokenTypeFor_HumanAddr;
+  input_token: TokenType;
   /**
    * The total amount that each participant is allowed to buy.
    */
@@ -99,7 +97,7 @@ export interface TokenSaleConfig {
    * Sale type settings
    */
   sale_type?: SaleType | null;
-  sold_token: ContractLinkFor_HumanAddr;
+  sold_token: ContractLink;
   /**
    * The addresses that are eligible to participate in the sale.
    */
@@ -110,7 +108,7 @@ export interface WhitelistRequest {
   /**
    * Launchpad contract instance information
    */
-  launchpad: ContractLinkFor_HumanAddr;
+  launchpad: ContractLink;
   /**
    * Vector of tokens address needs to have locked in order to be considered for a draw. Tokens need to be configured in the Launchpad as eligible. Option<> is because if None that will represent a native token.
    */

@@ -12,7 +12,7 @@
   ],
   "properties": {
     "callback": {
-      "$ref": "#/definitions/Callback_for_HumanAddr"
+      "$ref": "#/definitions/Callback"
     },
     "entropy": {
       "$ref": "#/definitions/Binary"
@@ -21,7 +21,7 @@
       "description": "Used by the exchange contract to send back its address to the factory on init",
       "allOf": [
         {
-          "$ref": "#/definitions/ContractLink_for_HumanAddr"
+          "$ref": "#/definitions/ContractLink"
         }
       ]
     },
@@ -37,7 +37,7 @@
       "description": "The tokens that will be managed by the exchange",
       "allOf": [
         {
-          "$ref": "#/definitions/TokenPair_for_HumanAddr"
+          "$ref": "#/definitions/TokenPair"
         }
       ]
     },
@@ -50,7 +50,7 @@
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
     },
-    "Callback_for_HumanAddr": {
+    "Callback": {
       "description": "Info needed to have the other contract respond.",
       "type": "object",
       "required": [
@@ -62,7 +62,7 @@
           "description": "Info about the contract requesting the callback.",
           "allOf": [
             {
-              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink"
             }
           ]
         },
@@ -74,7 +74,8 @@
             }
           ]
         }
-      }
+      },
+      "additionalProperties": false
     },
     "ContractInstantiationInfo": {
       "description": "Info needed to instantiate a contract.",
@@ -92,9 +93,10 @@
           "format": "uint64",
           "minimum": 0.0
         }
-      }
+      },
+      "additionalProperties": false
     },
-    "ContractLink_for_HumanAddr": {
+    "ContractLink": {
       "description": "Info needed to talk to a contract instance.",
       "type": "object",
       "required": [
@@ -108,25 +110,26 @@
         "code_hash": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "HumanAddr": {
       "type": "string"
     },
-    "TokenPair_for_HumanAddr": {
+    "TokenPair": {
       "type": "array",
       "items": [
         {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         },
         {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         }
       ],
       "maxItems": 2,
       "minItems": 2
     },
-    "TokenType_for_HumanAddr": {
+    "TokenType": {
       "anyOf": [
         {
           "type": "object",
