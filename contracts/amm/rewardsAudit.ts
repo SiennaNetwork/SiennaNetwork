@@ -1,8 +1,4 @@
-import {
-  bold,
-  timestamp,
-  Console
-} from '@hackbg/tools'
+import { bold, timestamp, Console } from '@hackbg/tools'
 
 const console = Console(import.meta.url)
 
@@ -12,15 +8,7 @@ import {
   RewardsContract
 } from '@sienna/api'
 
-import type { IChain, IAgent } from '@fadroma/ops'
-import { init as _init } from '@fadroma/ops'
-import { CHAINS } from '@fadroma/scrt'
-export type Context = { chain: IChain, admin: IAgent }
-async function init (chainName: string): Promise<Context> {
-  return _init(CHAINS, chainName)
-}
-
-import { buildAndUpload } from '@fadroma/ops'
+import { init, buildAndUpload } from '@fadroma/scrt'
 
 export const rewardsAudit = {
 

@@ -7,7 +7,6 @@
     "@hackbg/tools":   "workspace:*",
     "@hackbg/komandi": "workspace:*",
 
-    "@fadroma/ops":    "workspace:*",
     "@fadroma/scrt":   "workspace:*",
     "@fadroma/snip20": "workspace:*",
 

@@ -1,4 +1,4 @@
-import type { IAgent } from '@fadroma/ops'
+import type { IAgent } from '@fadroma/scrt'
 import { workspace } from '@sienna/settings'
 import { SNIP20Contract_1_0 } from '@fadroma/snip20'
 import { randomHex } from '@hackbg/tools'

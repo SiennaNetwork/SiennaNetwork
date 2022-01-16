@@ -77,7 +77,7 @@ are set in [@fadroma/scrt/ScrtContract](https://github.com/hackbg/fadroma/tree/2
 ## Generate JSON schema
 
 ```typescript
-import { generateSchema } from '@fadroma/ops'
+import { generateSchema } from '@fadroma/scrt'
 import { abs } from '@sienna/settings'
 commands['schema'] = () => generateSchema(abs(), [
   "tge/mgmt",

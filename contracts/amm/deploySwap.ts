@@ -1,10 +1,11 @@
 import { writeFileSync } from 'fs'
 
-import { buildAndUpload } from '@fadroma/ops'
-import type { IChain, IAgent } from '@fadroma/ops'
-import { Scrt } from '@fadroma/scrt'
-import type { SNIP20Contract } from '@fadroma/snip20'
 import { bold, randomHex } from '@hackbg/tools'
+
+import type { IChain, IAgent } from '@fadroma/scrt'
+import { buildAndUpload, Scrt } from '@fadroma/scrt'
+
+import type { SNIP20Contract } from '@fadroma/snip20'
 
 import settings from '@sienna/settings'
 

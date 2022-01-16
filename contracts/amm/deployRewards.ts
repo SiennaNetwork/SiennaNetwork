@@ -1,6 +1,7 @@
 import { randomHex, Console }   from '@hackbg/tools'
-import { buildAndUpload }       from '@fadroma/ops'
-import { IChain, IAgent, Scrt } from '@fadroma/scrt'
+
+import type { IChain, IAgent}   from '@fadroma/scrt'
+import { Scrt, buildAndUpload } from '@fadroma/scrt'
 import { SNIP20Contract }       from "@fadroma/snip20";
 
 import settings from '@sienna/settings'

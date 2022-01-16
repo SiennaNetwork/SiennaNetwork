@@ -5,7 +5,6 @@
   "main": "./api.ts",
   "dependencies": {
     "@fadroma/scrt":    "workspace:*",
-    "@hackbg/tools":   "workspace:*",
     "@sienna/mgmt":     "workspace:^2.0.0",
     "@sienna/settings": "workspace:^1.0.0",
     "secretjs":         "workspace:*"

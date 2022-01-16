@@ -14,23 +14,17 @@ importers:
 
   contracts/amm:
     specifiers:
-      '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
       '@fadroma/snip20': workspace:*
-      '@hackbg/komandi': workspace:*
       '@hackbg/tools': workspace:*
       '@sienna/api': workspace:*
       '@sienna/settings': workspace:^1.0.0
-      toml: ^3.0.0
     dependencies:
-      '@fadroma/ops': link:../../libraries/fadroma-next/packages/ops
       '@fadroma/scrt': link:../../libraries/fadroma-next/packages/scrt
       '@fadroma/snip20': link:../../libraries/fadroma-next/crates/fadroma-snip20-impl
-      '@hackbg/komandi': link:../../libraries/fadroma-next/deps/toolbox/komandi
       '@hackbg/tools': link:../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/api': link:../../frontends/api
       '@sienna/settings': link:../../settings
-      toml: 3.0.0
 
   contracts/amm/amm-snip20:
     specifiers:
@@ -142,46 +136,36 @@ importers:
 
   contracts/tge:
     specifiers:
-      '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
       '@fadroma/snip20': workspace:*
-      '@hackbg/komandi': workspace:*
       '@hackbg/tools': workspace:*
       '@sienna/api': workspace:*
       '@sienna/settings': workspace:^1.0.0
-      toml: ^3.0.0
     dependencies:
-      '@fadroma/ops': link:../../libraries/fadroma-next/packages/ops
       '@fadroma/scrt': link:../../libraries/fadroma-next/packages/scrt
       '@fadroma/snip20': link:../../libraries/fadroma-next/crates/fadroma-snip20-impl
-      '@hackbg/komandi': link:../../libraries/fadroma-next/deps/toolbox/komandi
       '@hackbg/tools': link:../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/api': link:../../frontends/api
       '@sienna/settings': link:../../settings
-      toml: 3.0.0
 
   contracts/tge/mgmt:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@hackbg/tools': workspace:*
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../../libraries/fadroma-next/packages/scrt
-      '@hackbg/tools': link:../../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/settings': link:../../../settings
       secretjs: link:../../../libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/tge/rpt:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@hackbg/tools': workspace:*
       '@sienna/mgmt': workspace:^2.0.0
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../../libraries/fadroma-next/packages/scrt
-      '@hackbg/tools': link:../../../libraries/fadroma-next/deps/toolbox/tools
       '@sienna/mgmt': link:../mgmt
       '@sienna/settings': link:../../../settings
       secretjs: link:../../../libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/sdk
@@ -1393,7 +1377,6 @@ importers:
 
   scripts:
     specifiers:
-      '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
       '@fadroma/snip20': workspace:*
       '@hackbg/komandi': workspace:*
@@ -1403,7 +1386,6 @@ importers:
       '@sienna/settings': workspace:^1.0.0
       '@sienna/tge': workspace:*
     dependencies:
-      '@fadroma/ops': link:../libraries/fadroma-next/packages/ops
       '@fadroma/scrt': link:../libraries/fadroma-next/packages/scrt
       '@fadroma/snip20': link:../libraries/fadroma-next/crates/fadroma-snip20-impl
       '@hackbg/komandi': link:../libraries/fadroma-next/deps/toolbox/komandi

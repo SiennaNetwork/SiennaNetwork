@@ -1,4 +1,4 @@
-import type { IAgent } from "@fadroma/ops";
+import type { IAgent } from "@fadroma/scrt";
 import { ScrtContract_1_2, loadSchemas, ContractAPIOptions } from "@fadroma/scrt";
 import { randomHex } from "@hackbg/tools";
 

@@ -1,4 +1,4 @@
-import type { IAgent } from '@fadroma/ops'
+import type { IAgent } from '@fadroma/scrt'
 import type { SNIP20Contract_1_0 } from '@fadroma/snip20'
 import { ScrtContract_1_0, loadSchemas } from "@fadroma/scrt"
 

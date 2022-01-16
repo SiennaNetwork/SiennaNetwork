@@ -1,6 +1,5 @@
-import type { IChain, IAgent } from '@fadroma/ops'
-import { buildAndUpload } from '@fadroma/ops'
-import { Scrt } from '@fadroma/scrt'
+import type { IChain, IAgent } from '@fadroma/scrt'
+import { buildAndUpload, Scrt } from '@fadroma/scrt'
 import { timestamp } from '@hackbg/tools'
 
 import type { ScheduleFor_HumanAddr } from '@sienna/mgmt/schema/handle'

@@ -198,6 +198,7 @@ commands['audit'] = {
 ## Entry point
 
 ```typescript
+import { init } from '@fadroma/scrt'
 import runCommands from '@hackbg/komandi'
 Error.stackTraceLimit = Infinity
 entrypoint(import.meta.url, main)
@@ -222,17 +223,5 @@ export async function main (
       }
     }
   )
-}
-```
-
-### Connecting to a chain
-
-```typescript
-import type { IChain, IAgent } from '@fadroma/ops'
-import { init as _init } from '@fadroma/ops'
-import { CHAINS } from '@fadroma/scrt'
-export type Context = { chain: IChain, admin: IAgent }
-async function init (chainName: string): Promise<Context> {
-  return _init(CHAINS, chainName)
 }
 ```
