@@ -3,6 +3,7 @@
 ```typescript
 import { bold, timestamp, entrypoint } from '@hackbg/tools'
 import process from 'process'
+import { init } from '@fadroma/scrt'
 ```
 
 ## Commands
@@ -30,7 +31,6 @@ reset the localnet manually, the `pnpm -w ops $LOCALNET reset` command
 currently running localnet container, and will delete the localnet data under `/receipts`.
 
 ```typescript
-import init from './init'
 commands['reset'] = async function reset () {
   const {chain} = await init(process.env.CHAIN_NAME)
   if (!chain.node) {
