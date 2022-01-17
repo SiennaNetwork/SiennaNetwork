@@ -1,8 +1,8 @@
 use lend_shared::{
     fadroma::{
         cosmwasm_std::{
-            Extern, Storage, Api, Querier, StdResult,
-            Uint128, HumanAddr, StdError
+            Extern, Storage, Api, Querier,
+            StdResult, HumanAddr, StdError
         },
         permit::Permit,
         Uint256
@@ -40,7 +40,7 @@ pub fn assert_borrow_allowed<S: Storage, A: Api, Q: Querier>(
         Contracts::load_overseer(deps)?,
         permit,
         Some(self_addr),
-        Uint128::zero(),
+        Uint256::zero(),
         amount.low_u128().into()
     )?;
 

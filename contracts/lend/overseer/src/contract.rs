@@ -1,8 +1,6 @@
 mod querier;
 mod state;
 
-use std::ops::Div;
-
 use lend_shared::{
     fadroma::{
         admin,
@@ -154,7 +152,7 @@ pub trait Overseer {
         // TODO: Maybe calc_liquidity() can be changed to cover this check in order to avoid calling this twice.
         let snapshot = query_snapshot(&deps.querier, market.contract, borrower.clone().id())?;
 
-        if snapshot.borrow_balance != Uint128::zero() {
+        if snapshot.borrow_balance != Uint256::zero() {
             return Err(StdError::generic_err("Cannot exit market while borrowing."));
         }
 
@@ -163,7 +161,7 @@ pub trait Overseer {
             &borrower,
             Some(market_address),
             snapshot.sl_token_balance,
-            Uint128::zero(),
+            Uint256::zero(),
         )?;
 
         if liquidity.shortfall > Uint256::zero() {
@@ -200,8 +198,8 @@ pub trait Overseer {
     fn account_liquidity(
         permit: Permit<OverseerPermissions>,
         market: Option<HumanAddr>,
-        redeem_amount: Uint128,
-        borrow_amount: Uint128,
+        redeem_amount: Uint256,
+        borrow_amount: Uint256,
     ) -> StdResult<AccountLiquidity> {
         let self_ref = Contracts::load_self_ref(deps)?;
         let borrower = permit.validate_with_permissions(
@@ -223,7 +221,7 @@ pub trait Overseer {
     fn can_transfer(
         permit: Permit<OverseerPermissions>,
         market: HumanAddr,
-        amount: Uint128,
+        amount: Uint256,
     ) -> StdResult<bool> {
         let self_ref = Contracts::load_self_ref(deps)?;
         let borrower = permit.validate_with_permissions(
@@ -239,7 +237,7 @@ pub trait Overseer {
             return Ok(true);
         }
 
-        let result = calc_liquidity(deps, &borrower, Some(market), amount, Uint128::zero())?;
+        let result = calc_liquidity(deps, &borrower, Some(market), amount, Uint256::zero())?;
 
         if result.shortfall > Uint256::zero() {
             Ok(false)
@@ -284,8 +282,8 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     borrower: &Borrower,
     target_asset: Option<HumanAddr>,
-    redeem_amount: Uint128,
-    borrow_amount: Uint128,
+    redeem_amount: Uint256,
+    borrow_amount: Uint256,
 ) -> StdResult<AccountLiquidity> {
     let oracle = Contracts::load_oracle(deps)?;
     let target_asset = target_asset.unwrap_or_default();
@@ -315,9 +313,9 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
 
         if is_target_asset {
             total_borrowed =
-                (Uint256::from(redeem_amount).decimal_mul(conversion_factor)? + total_borrowed)?;
+                (redeem_amount.decimal_mul(conversion_factor)? + total_borrowed)?;
             total_borrowed =
-                (Uint256::from(borrow_amount).decimal_mul(price.rate)? + total_borrowed)?;
+                (borrow_amount.decimal_mul(price.rate)? + total_borrowed)?;
         }
     }
 

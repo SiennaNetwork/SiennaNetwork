@@ -42,6 +42,7 @@ use state::{
     Config, Contracts, Global,
     Account, TotalBorrows
 };
+use token::calc_exchange_rate;
 
 #[contract_impl(path = "lend_shared::interfaces::market", component(path = "admin"))]
 pub trait Market {
@@ -71,6 +72,10 @@ pub trait Market {
         Contracts::save_overseer(deps, &overseer_contract)?;
         Contracts::save_interest_model(deps, &interest_model_contract)?;
         Contracts::save_underlying(deps, &underlying_asset)?;
+        Contracts::save_self_ref(deps, &ContractLink {
+            address: env.contract.address.clone(),
+            code_hash: env.contract_code_hash.clone()
+        })?;
 
         admin::DefaultImpl.new(admin, deps, env)?;
 
@@ -226,7 +231,7 @@ pub trait Market {
             Contracts::load_overseer(deps)?,
             todo!(),
             env.contract.address,
-            Uint128(amount.low_u128())
+            amount
         )?;
 
         if !can_transfer {
@@ -305,7 +310,27 @@ pub trait Market {
 
     #[query("account_snapshot")]
     fn account_snapshot(id: Binary) -> StdResult<AccountInfo> {
-        unimplemented!()
+        // TODO: Should borrow_index be updated first?
+        let borrow_index = Global::load_borrow_index(&deps.storage)?;
+
+        let account = Account::try_from(id)?;
+        let snapshot = account.get_borrow_snapshot(&deps.storage)?;
+
+        let underlying_asset = Contracts::load_underlying(deps)?;
+        let balance = snip20::balance_query(
+            &deps.querier,
+            Contracts::load_self_ref(deps)?.address,
+            VIEWING_KEY.to_string(),
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+    
+        Ok(AccountInfo {
+            sl_token_balance: account.get_balance(&deps.storage)?,
+            borrow_balance: snapshot.current_balance(borrow_index)?,
+            exchange_rate: calc_exchange_rate(deps, balance.into())?
+        })
     }
 }
 
