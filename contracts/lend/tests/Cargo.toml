@@ -9,8 +9,8 @@ path = "lib.rs"
 
 [dependencies]
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-lend-shared = { path = "../../../libraries/lend-shared" }
-amm-snip20 = { path = "../../amm-snip20" }
-lend-market = { path = "../market" }
+lend-shared   = { path = "../../../libraries/lend-shared" }
+amm-snip20    = { path = "../../amm/amm-snip20" }
+lend-market   = { path = "../market" }
 lend-overseer = { path = "../overseer" }
-lend-oracle = { path = "../oracle" }
+lend-oracle   = { path = "../oracle" }
