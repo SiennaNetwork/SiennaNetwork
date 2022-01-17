@@ -47,20 +47,20 @@ commands['reset'] = async function reset () {
 ```typescript
 commands['select'] = async function select (id?: string) {
   const {chain} = await init(process.env.CHAIN_NAME)
-  const list = chain.instances.list()
+  const list = chain.deployments.list()
   if (list.length < 1) {
     console.log('\nNo known deployments.')
   }
   if (id) {
-    await chain.instances.select(id)
+    await chain.deployments.select(id)
   } else if (list.length > 0) {
     console.log(`\nKnown deployments:`)
-    for (let instance of chain.instances.list()) {
-      if (instance === chain.instances.active.name) instance = bold(instance)
+    for (let instance of chain.deployments.list()) {
+      if (instance === chain.deployments.active.name) instance = bold(instance)
       console.log(`  ${instance}`)
     }
   }
-  chain.printActiveInstance()
+  chain.deployments.printActive()
 }
 ```
 
@@ -79,9 +79,9 @@ commands['deploy']['all'] = async function () {
   const {chain, admin} = await init(process.env.CHAIN_NAME)
   const prefix = timestamp()
   const vesting = await deployVesting({prefix, chain, admin})
-  await chain.instances.select(vesting.prefix)
+  await chain.deployments.select(vesting.prefix)
   await deploySwap(vesting)
-  chain.printActiveInstance()
+  chain.deployments.printActive()
 }
 ```
 
@@ -95,8 +95,8 @@ commands['deploy']['vesting'] = async function () {
   const {chain, admin} = await init(process.env.CHAIN_NAME)
   const prefix = timestamp()
   const vesting = await deployVesting({prefix, chain, admin})
-  await chain.instances.select(vesting.prefix)
-  chain.printActiveInstance()
+  await chain.deployments.select(vesting.prefix)
+  chain.deployments.printActive()
 }
 ```
 
@@ -109,10 +109,10 @@ This command adds the contracts for Sienna Swap to the currently selected deploy
 import { deploySwap } from '@sienna/amm'
 commands['deploy']['swap'] = async () => {
   const {chain, admin} = await init(process.env.CHAIN_NAME)
-  if (!chain.instances.active) await commands.deploy.vesting()
-  const { name: prefix } = chain.instances.active
+  if (!chain.deployments.active) await commands.deploy.vesting()
+  const { name: prefix } = chain.deployments.active
   await deploySwap({ chain, admin, prefix })
-  chain.printActiveInstance()
+  chain.deployments.printActive()
 }
 ```
 
@@ -128,12 +128,12 @@ commands['deploy']['rewards'] = async () => {
     console.log('This command is not intended for mainnet.')
     process.exit(1)
   }
-  if (!chain.instances.active) {
+  if (!chain.deployments.active) {
     console.log('Need to select an active instance for this command.')
     process.exit(1)
   }
-  chain.printActiveInstance()
-  const { name: prefix } = chain.instances.active
+  chain.deployments.printActive()
+  const { name: prefix } = chain.deployments.active
   const options = { chain, admin, prefix }
   const v2Suffix = `@v2+${timestamp()}`
   const v3Suffix = `@v3+${timestamp()}`
@@ -143,7 +143,7 @@ commands['deploy']['rewards'] = async () => {
     ...v2.rptConfig,
     ...v3.rptConfig
   ]
-  const RPT = chain.instances.active.getContract(RPTContract, 'SiennaRPT', admin)
+  const RPT = chain.deployments.active.getContract(RPTContract, 'SiennaRPT', admin)
   await RPT.configure(rptConfig)
   console.log({rptConfig})
   console.table([
@@ -216,7 +216,7 @@ export async function main (
     async (command: any) => {
       const { chain } = await init(chainName)
       chain.printIdentities()
-      chain.printActiveInstance()
+      chain.deployments.printActive()
       console.log(`\nAvailable commands:`)
       for (const key of Object.keys(command)) {
         console.log(`  ${bold(key)}`)

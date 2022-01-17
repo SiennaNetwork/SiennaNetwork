@@ -10,7 +10,7 @@ export async function replaceRewardPool (
   label: string
 ) {
 
-  const { name: prefix, getContract } = chain.instances.active
+  const { name: prefix, getContract } = chain.deployments.active
 
   console.log(
     `Upgrading reward pool ${bold(label)}` +
@@ -72,8 +72,8 @@ export async function replaceRewardPool (
 }
 
 export function printRewardsContracts (chain: IChain) {
-  if (chain && chain.instances.active) {
-    const {name, contracts} = chain.instances.active
+  if (chain && chain.deployments.active) {
+    const {name, contracts} = chain.deployments.active
     const isRewardPool = (x: string) => x.startsWith('SiennaRewards_')
     const rewardsContracts = Object.keys(contracts).filter(isRewardPool)
     if (rewardsContracts.length > 0) {

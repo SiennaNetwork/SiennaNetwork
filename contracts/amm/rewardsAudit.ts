@@ -30,7 +30,7 @@ export const rewardsAudit = {
     await LPTOKEN.instantiate()
     await REWARDS.instantiate()
     await SIENNA.setMinters([admin.address])
-    await chain.instances.select(prefix)
+    await chain.deployments.select(prefix)
     console.debug(`Deployed the following contracts to ${bold(chain.chainId)}:`, {
       SIENNA:  SIENNA.link,
       LPTOKEN: LPTOKEN.link,
@@ -46,7 +46,7 @@ export const rewardsAudit = {
     amount = String(amount)
 
     const {chain, admin} = await init(process.env.CHAIN_NAME)
-    const instance = chain.instances.active
+    const instance = chain.deployments.active
     const SIENNA   = instance.getContract(SiennaSNIP20Contract, 'SiennaSNIP20', admin)
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
 
@@ -64,7 +64,7 @@ export const rewardsAudit = {
 
   async ['status'] (identity: string) {
     const {chain, admin} = await init(process.env.CHAIN_NAME)
-    const instance = chain.instances.active
+    const instance = chain.deployments.active
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
     if (identity) {
       const {address} = chain.identities.load(identity)
@@ -87,7 +87,7 @@ export const rewardsAudit = {
     amount = String(amount)
     const {mnemonic} = chain.identities.load(user)
     const agent    = await chain.getAgent({mnemonic})
-    const instance = chain.instances.active
+    const instance = chain.deployments.active
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
     const LPTOKEN  = instance.getContract(LPTokenContract, 'SiennaRewards_AUDIT_LPToken', admin)
 
@@ -111,7 +111,7 @@ export const rewardsAudit = {
     amount = String(amount)
     const {mnemonic} = chain.identities.load(user)
     const agent    = await chain.getAgent({mnemonic})
-    const instance = chain.instances.active
+    const instance = chain.deployments.active
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
 
     await REWARDS.TX(agent).withdraw(amount)
@@ -127,7 +127,7 @@ export const rewardsAudit = {
     }
     const {mnemonic} = chain.identities.load(user)
     const agent    = await chain.getAgent({mnemonic})
-    const instance = chain.instances.active
+    const instance = chain.deployments.active
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
 
     await REWARDS.TX(agent).claim()

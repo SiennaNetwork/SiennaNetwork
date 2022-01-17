@@ -52,7 +52,7 @@ export async function deployRewards (
   } = options
 
   const
-    instance = chain.instances.active,
+    instance = chain.deployments.active,
     SIENNA   = instance.getContract(SiennaSNIP20Contract, 'SiennaSNIP20', admin),
     FACTORY  = instance.getContract(FactoryContract, 'SiennaAMMFactory', admin),
     REWARDS  = new RewardsContract({ prefix, admin, ref })
