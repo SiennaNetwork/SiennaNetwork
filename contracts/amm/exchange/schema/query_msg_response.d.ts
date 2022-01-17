@@ -10,9 +10,9 @@ export type QueryMsgResponse = {
     amount_0: Uint128;
     amount_1: Uint128;
     contract_version: number;
-    factory: ContractLinkFor_HumanAddr;
-    liquidity_token: ContractLinkFor_HumanAddr;
-    pair: TokenPairFor_HumanAddr;
+    factory: ContractLink;
+    liquidity_token: ContractLink;
+    pair: TokenPair;
     total_liquidity: Uint128;
     [k: string]: unknown;
   };
@@ -20,8 +20,8 @@ export type QueryMsgResponse = {
 };
 export type Uint128 = string;
 export type HumanAddr = string;
-export type TokenPairFor_HumanAddr = [TokenTypeFor_HumanAddr, TokenTypeFor_HumanAddr];
-export type TokenTypeFor_HumanAddr =
+export type TokenPair = [TokenType, TokenType];
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;
@@ -41,8 +41,7 @@ export type TokenTypeFor_HumanAddr =
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractLinkFor_HumanAddr {
+export interface ContractLink {
   address: HumanAddr;
   code_hash: string;
-  [k: string]: unknown;
 }

@@ -1,61 +1,105 @@
-mod state;
 mod querier;
+mod state;
 
 use lend_shared::{
     fadroma::{
-        Uint256, Decimal256,
-        ContractLink,
-        Permit,
         admin,
-        admin::{Admin, assert_admin},
-        require_admin,
-        derive_contract::*,
+        admin::{assert_admin, Admin},
         cosmwasm_std,
         cosmwasm_std::{
-            InitResponse, HandleResponse, HumanAddr,
-            CosmosMsg, StdResult, WasmMsg, StdError,
-            Extern, Storage, Api, Querier, Binary, 
-            Uint128, to_binary, log
-        }
+            log, to_binary, Api, Binary, CosmosMsg, Extern, HandleResponse, HumanAddr,
+            InitResponse, Querier, StdError, StdResult, Storage, Uint128, WasmMsg,
+        },
+        derive_contract::*,
+        require_admin, Callback, ContractInstantiationInfo, ContractLink, Decimal256, Permit,
+        Uint256,
     },
     interfaces::{
-        overseer::{
-            OverseerPermissions, Pagination,
-            AccountLiquidity, Config, Market, 
+        oracle::{
+            query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
         },
-        oracle::{HandleMsg as OracleHandleMsg, Asset, query_price}
-    }
+        overseer::{AccountLiquidity, Config, HandleMsg, Market, OverseerPermissions, Pagination},
+        market::{query_exchange_rate},
+    },
 };
 
-use state::{Borrower, BorrowerId, Markets, Contracts, Constants};
 use querier::query_snapshot;
+use state::{Borrower, BorrowerId, Constants, Contracts, Markets};
 
-#[contract_impl(
-    path = "lend_shared::interfaces::overseer",
-    component(path = "admin")
-)]
+#[contract_impl(path = "lend_shared::interfaces::overseer", component(path = "admin"))]
 pub trait Overseer {
     #[init]
     fn new(
         admin: Option<HumanAddr>,
         prng_seed: Binary,
         close_factor: Decimal256,
-        premium: Decimal256
+        premium: Decimal256,
+        oracle_contract: ContractInstantiationInfo,
+        oracle_source: ContractLink<HumanAddr>,
     ) -> StdResult<InitResponse> {
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
 
+        Contracts::save_oracle(
+            deps,
+            &ContractLink {
+                address: HumanAddr::default(), // Added in RegisterOracle
+                code_hash: oracle_contract.code_hash.clone(),
+            },
+        )?;
+
         Constants {
             close_factor,
-            premium
-        }.save(&mut deps.storage)?;
+            premium,
+        }
+        .save(&mut deps.storage)?;
 
         let self_ref = ContractLink {
             address: env.contract.address.clone(),
-            code_hash: env.contract_code_hash.clone()
+            code_hash: env.contract_code_hash.clone(),
         };
         Contracts::save_self_ref(deps, &self_ref)?;
 
-        admin::DefaultImpl.new(admin, deps, env)
+        let time = env.block.time;
+
+        let mut result = admin::DefaultImpl.new(admin.clone(), deps, env)?;
+        result.messages.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
+            code_id: oracle_contract.id,
+            callback_code_hash: oracle_contract.code_hash,
+            send: vec![],
+            label: format!("Sienna Lend Oracle: {}", time),
+            msg: to_binary(&OracleInitMsg {
+                admin: admin,
+                source: oracle_source,
+                initial_assets: vec![],
+                callback: Callback {
+                    contract: self_ref,
+                    msg: to_binary(&HandleMsg::RegisterOracle {})?,
+                },
+            })?,
+        }));
+
+        Ok(result)
+    }
+
+    #[handle]
+    fn register_oracle() -> StdResult<HandleResponse> {
+        let mut oracle = Contracts::load_oracle(deps)?;
+
+        if oracle.address != HumanAddr::default() {
+            return Err(StdError::unauthorized());
+        }
+
+        oracle.address = env.message.sender;
+        Contracts::save_oracle(deps, &oracle)?;
+
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![
+                log("action", "register_interest_token"),
+                log("oracle_address", oracle.address),
+            ],
+            data: None,
+        })
     }
 
     #[handle]
@@ -75,14 +119,12 @@ pub trait Overseer {
                 msg: to_binary(&OracleHandleMsg::UpdateAssets {
                     assets: vec![Asset {
                         address: market.contract.address,
-                        symbol: market.symbol
-                    }]
-                })?
+                        symbol: market.symbol,
+                    }],
+                })?,
             })],
-            log: vec![
-                log("action", "whitelist")
-            ],
-            data: None
+            log: vec![log("action", "whitelist")],
+            data: None,
         })
     }
 
@@ -97,8 +139,8 @@ pub trait Overseer {
 
         Ok(HandleResponse {
             messages: vec![],
-            log: vec![ log("action", "enter") ],
-            data: None
+            log: vec![log("action", "enter")],
+            data: None,
         })
     }
 
@@ -119,7 +161,7 @@ pub trait Overseer {
             &borrower,
             Some(market_address),
             snapshot.sl_token_balance,
-            Uint128::zero()
+            Uint128::zero(),
         )?;
 
         if liquidity.shortfall > Uint256::zero() {
@@ -133,20 +175,18 @@ pub trait Overseer {
 
         Ok(HandleResponse {
             messages: vec![],
-            log: vec![ log("action", "exit") ],
-            data: None
+            log: vec![log("action", "exit")],
+            data: None,
         })
     }
 
     #[query("entered_markets")]
-    fn entered_markets(
-        permit: Permit<OverseerPermissions>
-    ) -> StdResult<Vec<Market<HumanAddr>>> {
+    fn entered_markets(permit: Permit<OverseerPermissions>) -> StdResult<Vec<Market<HumanAddr>>> {
         let self_ref = Contracts::load_self_ref(deps)?;
         let borrower = permit.validate_with_permissions(
             deps,
             self_ref.address,
-            vec![ OverseerPermissions::AccountInfo ]
+            vec![OverseerPermissions::AccountInfo],
         )?;
 
         let borrower = Borrower::new(deps, &borrower)?;
@@ -159,13 +199,13 @@ pub trait Overseer {
         permit: Permit<OverseerPermissions>,
         market: Option<HumanAddr>,
         redeem_amount: Uint128,
-        borrow_amount: Uint128
+        borrow_amount: Uint128,
     ) -> StdResult<AccountLiquidity> {
         let self_ref = Contracts::load_self_ref(deps)?;
         let borrower = permit.validate_with_permissions(
             deps,
             self_ref.address,
-            vec![ OverseerPermissions::AccountInfo ]
+            vec![OverseerPermissions::AccountInfo],
         )?;
 
         calc_liquidity(
@@ -173,7 +213,7 @@ pub trait Overseer {
             &Borrower::new(deps, &borrower)?,
             market,
             redeem_amount,
-            borrow_amount
+            borrow_amount,
         )
     }
 
@@ -218,16 +258,14 @@ pub trait Overseer {
         let borrower = permit.validate_with_permissions(
             deps,
             self_ref.address,
-            vec![ OverseerPermissions::Id ]
+            vec![OverseerPermissions::Id],
         )?;
 
         Ok(BorrowerId::new(deps, &borrower)?.into())
     }
 
     #[query("whitelist")]
-    fn markets(
-        pagination: Pagination
-    ) -> StdResult<Vec<Market<HumanAddr>>> {
+    fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>> {
         Markets::list(deps, pagination)
     }
 
@@ -235,12 +273,12 @@ pub trait Overseer {
     fn config() -> StdResult<Config> {
         let Constants {
             close_factor,
-            premium
+            premium,
         } = Constants::load(&deps.storage)?;
 
         Ok(Config {
             close_factor,
-            premium
+            premium,
         })
     }
 }
@@ -251,7 +289,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     borrower: &Borrower,
     target_asset: Option<HumanAddr>,
     redeem_amount: Uint128,
-    borrow_amount: Uint128
+    borrow_amount: Uint128,
 ) -> StdResult<AccountLiquidity> {
     let oracle = Contracts::load_oracle(deps)?;
     let target_asset = target_asset.unwrap_or_default();
@@ -269,28 +307,53 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
             oracle.clone(),
             market.symbol.into(),
             "USD".into(),
-            None
+            None,
         )?;
 
         let conversion_factor = ((market.ltv_ratio * snapshot.exchange_rate)? * price.rate)?;
-        total_collateral = (Uint256::from(snapshot.sl_token_balance).decimal_mul(conversion_factor)? + total_collateral)?;
-        total_borrowed = (Uint256::from(snapshot.borrow_balance).decimal_mul(price.rate)? + total_borrowed)?;
+        total_collateral = (Uint256::from(snapshot.sl_token_balance)
+            .decimal_mul(conversion_factor)?
+            + total_collateral)?;
+        total_borrowed =
+            (Uint256::from(snapshot.borrow_balance).decimal_mul(price.rate)? + total_borrowed)?;
 
         if is_target_asset {
-            total_borrowed = (Uint256::from(redeem_amount).decimal_mul(conversion_factor)? + total_borrowed)?;
-            total_borrowed = (Uint256::from(borrow_amount).decimal_mul(price.rate)? + total_borrowed)?;
+            total_borrowed =
+                (Uint256::from(redeem_amount).decimal_mul(conversion_factor)? + total_borrowed)?;
+            total_borrowed =
+                (Uint256::from(borrow_amount).decimal_mul(price.rate)? + total_borrowed)?;
         }
     }
 
     if total_collateral > total_borrowed {
         Ok(AccountLiquidity {
             liquidity: (total_collateral - total_borrowed)?,
-            shortfall: Uint256::zero()
+            shortfall: Uint256::zero(),
         })
     } else {
         Ok(AccountLiquidity {
             liquidity: Uint256::zero(),
-            shortfall: (total_borrowed - total_collateral)?
+            shortfall: (total_borrowed - total_collateral)?,
         })
     }
+}
+
+/// Calculate number of tokens of collateral asset to seize given an underlying amount
+fn calc_seize_tokens<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    // borrowed token
+    borrowed: HumanAddr,
+    // collateral token
+    collateral: HumanAddr,
+    // the amount of borrowed to convert into collateral
+    repay_amount: Uint128,
+) -> StdResult<Uint128> {
+    let oracle = Contracts::load_oracle(deps)?;
+    let price_borrowed = query_price(&deps.querier, oracle.clone(), AssetType::Address(borrowed), "USD".into(), None)?;
+    let price_collateral = query_price(&deps.querier, oracle, AssetType::Address(collateral.clone()), "USD".into(), None)?;
+
+    let market = Markets::get_by_addr(deps, &collateral)?;
+    // TODO:
+    // let exchange_rate = query_exchange_rate(&deps.querier, market)?;
+    Ok(Uint128::zero())
 }

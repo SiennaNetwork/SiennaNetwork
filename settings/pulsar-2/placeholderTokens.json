@@ -1,0 +1,13 @@
+{
+  "sSCRT": {
+    "label":  "placeholder_sSCRT",
+    "initMsg": { "name": "SecretSCRT", "symbol": "SSCRT", "decimals": 6, "config": { "enable_mint": true, "public_total_supply": true } }},
+  "STEST": {
+    "label":  "placeholder_STEST",
+    "initMsg": { "name": "STEST",      "symbol": "STEST", "decimals": 9, "config": { "enable_mint": true, "public_total_supply": true } }},
+  "SITOK": {
+    "label":  "placeholder_SITOK",
+    "initMsg": { "name": "SITOK",      "symbol": "SITOK", "decimals": 12, "config": { "enable_mint": true, "public_total_supply": true } }},
+  "sETH": {
+    "label":  "placeholder_sETH",
+    "initMsg": { "name": "SecretETH",  "symbol": "SETH",  "decimals": 18, "config": { "enable_mint": true, "public_total_supply": true } }}}

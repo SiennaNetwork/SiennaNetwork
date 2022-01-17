@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Init",
+  "type": "object",
+  "required": [
+    "config"
+  ],
+  "properties": {
+    "admin": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "config": {
+      "$ref": "#/definitions/RewardsConfig"
+    }
+  },
+  "definitions": {
+    "ContractLink": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "RewardsConfig": {
+      "description": "Reward pool configuration",
+      "type": "object",
+      "properties": {
+        "bonding": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "lp_token": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContractLink"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reward_token": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContractLink"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reward_vk": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timekeeper": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

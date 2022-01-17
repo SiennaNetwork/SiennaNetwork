@@ -1,0 +1,44 @@
+Time,Sender,Recipient,Data
+,,,
+9,Badman,0114_close_addr,"rewards:
+  close:
+    message: closed"
+=>,err,Unauthorized,
+,,,
+16,Alice,0114_close_addr,"rewards:
+  deposit:
+    amount: ""42798"""
+tx,0114_close_addr,LP_TOKEN,"transfer_from:
+  amount: ""42798""
+  owner: Alice
+  padding: ~
+  recipient: 0114_close_addr"
+,,,
+27,Badman,0114_close_addr,"rewards:
+  close:
+    message: closed"
+=>,err,Unauthorized,
+,,,
+32,Alice,0114_close_addr,"rewards:
+  deposit:
+    amount: ""38861"""
+tx,0114_close_addr,LP_TOKEN,"transfer_from:
+  amount: ""38861""
+  owner: Alice
+  padding: ~
+  recipient: 0114_close_addr"
+,,,
+50,Badman,0114_close_addr,"rewards:
+  close:
+    message: closed"
+=>,err,Unauthorized,
+,,,
+258,RPT,0114_close_addr,vest 93561
+,,,
+258,Admin,0114_close_addr,"rewards:
+  begin_epoch:
+    next_epoch: 1"
+,,,
+258,Admin,0114_close_addr,"rewards:
+  close:
+    message: closed"

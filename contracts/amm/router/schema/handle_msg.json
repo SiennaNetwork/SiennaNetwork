@@ -61,7 +61,7 @@
             "tokens": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/TokenType_for_HumanAddr"
+                "$ref": "#/definitions/TokenType"
               }
             }
           }
@@ -99,7 +99,7 @@
               "$ref": "#/definitions/HumanAddr"
             },
             "token": {
-              "$ref": "#/definitions/TokenType_for_HumanAddr"
+              "$ref": "#/definitions/TokenType"
             }
           }
         }
@@ -137,7 +137,7 @@
     "HumanAddr": {
       "type": "string"
     },
-    "TokenType_for_HumanAddr": {
+    "TokenType": {
       "anyOf": [
         {
           "type": "object",

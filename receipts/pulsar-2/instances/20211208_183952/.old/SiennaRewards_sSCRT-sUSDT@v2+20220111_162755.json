@@ -1,0 +1,97 @@
+{
+  "label": "20211208_183952/SiennaRewards_sSCRT-sUSDT@v2+20220111_162755",
+  "codeId": 242,
+  "codeHash": "26ac6ea2b61be9741d8febdc032065f0ccc2502c0eee93608a3f15c188ff20c6",
+  "initTx": {
+    "height": "760866",
+    "txhash": "6720C1C1C8F1A948C539647D49EA4909A47005489A7F084CAD59563044A0A28E",
+    "data": "0A460A2E2F7365637265742E636F6D707574652E763162657461312E4D7367496E7374616E7469617465436F6E74726163741214B2F4C4FB6EF1891D182388238EC0896CB8674D08",
+    "raw_log": "[{\"events\":[{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"instantiate\"},{\"key\":\"module\",\"value\":\"compute\"},{\"key\":\"signer\",\"value\":\"secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy\"},{\"key\":\"code_id\",\"value\":\"242\"},{\"key\":\"contract_address\",\"value\":\"secret1kt6vf7mw7xy36xpr3q3casyfdjuxwnggg2mcx7\"}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"contract_address\",\"value\":\"secret1kt6vf7mw7xy36xpr3q3casyfdjuxwnggg2mcx7\"},{\"key\":\"contract_address\",\"value\":\"secret1gv6f6vvx3z3j4vnkla9vl930pjjxgs92lvqfdr\"}]}]}]",
+    "logs": [
+      {
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "242"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret1kt6vf7mw7xy36xpr3q3casyfdjuxwnggg2mcx7"
+              }
+            ]
+          },
+          {
+            "type": "wasm",
+            "attributes": [
+              {
+                "key": "contract_address",
+                "value": "secret1kt6vf7mw7xy36xpr3q3casyfdjuxwnggg2mcx7"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret1gv6f6vvx3z3j4vnkla9vl930pjjxgs92lvqfdr"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "gas_wanted": "1000000",
+    "gas_used": "47624",
+    "tx": {
+      "type": "cosmos-sdk/StdTx",
+      "value": {
+        "msg": [
+          {
+            "type": "wasm/MsgInstantiateContract",
+            "value": {
+              "sender": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy",
+              "code_id": "242",
+              "label": "20211208_183952/SiennaRewards_sSCRT-sUSDT@v2+20220111_162755",
+              "init_msg": "2zXjrMaEe6MzFmWQHD3Gu8rkQS8YUfiE8zYBjlyxCHPlcb/j3gMPVmPTDeKzm3P4CMWQ8NMqs9ExwYkJ1bYoeIObwSK+I1gjoJGnEIsOsneoyP7piv8UkaB1aP95Ed1GvaWTzQIQKwlUMRNcPJA7S2hX9qxkXVHocwVjWpeWq2daP9Dgp1NpW0SDC5Lzzy4BQsoQ0aSnLLkmjN9epFcxau1+8IY7gn074Aoin1D7f4eJmj5Kt62cWL7onwrYzgOgoavnUM1F0JKbtJ9HxGOFYY61RqZV6EG9xOU1PKe8lRN9G2SpNqRoDHvvz2A3C+nc1pE88oNytVEh2ttaFKDnRGM3M3RiYfFw0+O91asgcy0z5aGEiId4NZf/JZxEDeW85D39TQyHgrI7oP6lJtCngXtF1xEY+sF7Tpt8wfKnFOtMHu7pPtR/Gzd4Y8gK17nVXsIxW60Tb0ItQBOnZrTmvoTsMi/u10wHyDdNN9JmD3ZlVQJhXhHCVRYYJH1pf0Sh2pEUL99reV/5UW1hbs6LKOzn2lDe3XbQJlLMSzc5b5Wxiu0XkeLSf0wdIaLL9VGbRITuFIuiLJd5vsz4FBuEeLPV09uI7IUo7sIvUNmbrdSyd42BG2OO+n8v7px+PtxULei5HxBfF2LlwLTDWe1FJZOJDqsvArJp3b9YMjXNs8yJ9wVRwMvDexIBn2ERmn2iynyHjyyLIk37DYQMBbtbUDZRT8+r7GPCDU1FgazBOPby0ViPdvLPNR9y5a76N1rue3csaKA2XnJlGabs9kZ9IEH5bwP9XB25HqsDvx6uV8Br5WN4dz8U1DW/mg==",
+              "init_funds": []
+            }
+          }
+        ],
+        "fee": {
+          "amount": [
+            {
+              "denom": "uscrt",
+              "amount": "1000000"
+            }
+          ],
+          "gas": "1000000"
+        },
+        "signatures": [
+          {
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "Ai+My06zdI6JtjUpkqnrDm/Cv1JoggutEuYWVDBiwmWc"
+            },
+            "signature": "qWyaWI9aG+5wQ+W/FeBmoPILp0kZEReKpcO6XWNLU9AeZevFahx+m/rZ6cw1wTnmoSOxqQAyfd529dvV0vkKUg=="
+          }
+        ],
+        "memo": "",
+        "timeout_height": "0"
+      }
+    },
+    "timestamp": "2022-01-11T16:28:26Z",
+    "transactionHash": "6720C1C1C8F1A948C539647D49EA4909A47005489A7F084CAD59563044A0A28E",
+    "contractAddress": "secret1kt6vf7mw7xy36xpr3q3casyfdjuxwnggg2mcx7"
+  }
+}

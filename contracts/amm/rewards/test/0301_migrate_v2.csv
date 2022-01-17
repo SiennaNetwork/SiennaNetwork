@@ -1,0 +1,52 @@
+Time,Sender,Recipient,Data
+1,0301_migrate_v2_addr,Alice,account.staked               = 0
+1,0301_migrate_v2_addr,Alice,total.staked                 = 0
+,,,
+1,Admin,0301_migrate_v2_addr,"immigration:
+  enable_migration_from:
+    address: 0301_migrate_v1_addr
+    code_hash: 0301_migrate_v1_hash"
+Migration step 1,,,
+,,,
+1,Alice,0301_migrate_v2_addr,"immigration:
+  request_migration:
+    address: 0301_migrate_v1_addr
+    code_hash: 0301_migrate_v1_hash"
+tx,0301_migrate_v2_addr,0301_migrate_v1_addr,"emigration:
+  export_state: Alice"
+Migration step 3,,,
+,,,
+1,0301_migrate_v1_addr,0301_migrate_v2_addr,"immigration:
+  receive_migration: WyJBbGljZSIsIiIsIjg1NTk2Il0="
+log,0301_migrate_v2_addr,,migrated = 85596
+1,0301_migrate_v2_addr,Alice,account.staked               = 85596
+1,0301_migrate_v2_addr,Alice,total.staked                 = 85596
+,,,
+1,Admin,0301_migrate_v2_addr,"immigration:
+  disable_migration_from:
+    address: 0301_migrate_v1_addr
+    code_hash: 0301_migrate_v1_hash"
+1,0301_migrate_v2_addr,Bob,account.staked               = 0
+1,0301_migrate_v2_addr,Bob,total.staked                 = 85596
+,,,
+1,Admin,0301_migrate_v2_addr,"immigration:
+  enable_migration_from:
+    address: 0301_migrate_v1_addr
+    code_hash: 0301_migrate_v1_hash"
+1,0301_migrate_v2_addr,Bob,account.staked               = 0
+1,0301_migrate_v2_addr,Bob,total.staked                 = 85596
+Migration step 1,,,
+,,,
+1,Bob,0301_migrate_v2_addr,"immigration:
+  request_migration:
+    address: 0301_migrate_v1_addr
+    code_hash: 0301_migrate_v1_hash"
+tx,0301_migrate_v2_addr,0301_migrate_v1_addr,"emigration:
+  export_state: Bob"
+Migration step 3,,,
+,,,
+1,0301_migrate_v1_addr,0301_migrate_v2_addr,"immigration:
+  receive_migration: WyJCb2IiLCIiLCI3NzcyMiJd"
+log,0301_migrate_v2_addr,,migrated = 77722
+1,0301_migrate_v2_addr,Bob,account.staked               = 77722
+1,0301_migrate_v2_addr,Bob,total.staked                 = 163318

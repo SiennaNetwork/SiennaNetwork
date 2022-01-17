@@ -1,5 +1,5 @@
 import type { IAgent, ContractAPIOptions } from '@fadroma/scrt'
-import { ScrtContract, loadSchemas } from "@fadroma/scrt"
+import { ScrtContract_1_2, loadSchemas } from "@fadroma/scrt"
 import { workspace } from '@sienna/settings'
 
 export const schema = loadSchemas(import.meta.url, {
@@ -13,7 +13,7 @@ export type IDOOptions = ContractAPIOptions & {
   admin?: IAgent
 }
 
-export class IDOContract extends ScrtContract {
+export class IDOContract extends ScrtContract_1_2 {
   constructor (options: IDOOptions = {}) {
     super({ ...options, agent: options.admin, schema })
   }

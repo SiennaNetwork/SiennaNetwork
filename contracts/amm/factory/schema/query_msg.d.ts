@@ -15,7 +15,7 @@ export type QueryMsg =
     }
   | {
       get_exchange_address: {
-        pair: TokenPairFor_HumanAddr;
+        pair: TokenPair;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -38,8 +38,8 @@ export type QueryMsg =
       admin: QueryMsg1;
       [k: string]: unknown;
     };
-export type TokenPairFor_HumanAddr = [TokenTypeFor_HumanAddr, TokenTypeFor_HumanAddr];
-export type TokenTypeFor_HumanAddr =
+export type TokenPair = [TokenType, TokenType];
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;

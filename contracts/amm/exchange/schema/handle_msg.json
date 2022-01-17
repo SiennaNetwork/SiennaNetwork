@@ -21,7 +21,7 @@
           ],
           "properties": {
             "deposit": {
-              "$ref": "#/definitions/TokenPairAmount_for_HumanAddr"
+              "$ref": "#/definitions/TokenPairAmount"
             },
             "slippage_tolerance": {
               "description": "The amount the price moves in a trading pair between when a transaction is submitted and when it is executed. Transactions that exceed this threshold will be rejected.",
@@ -64,7 +64,7 @@
               "description": "The token type to swap from.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/TokenTypeAmount_for_HumanAddr"
+                  "$ref": "#/definitions/TokenTypeAmount"
                 }
               ]
             },
@@ -129,7 +129,7 @@
           ],
           "properties": {
             "contract": {
-              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink"
             }
           }
         }
@@ -141,7 +141,7 @@
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
     },
-    "ContractLink_for_HumanAddr": {
+    "ContractLink": {
       "description": "Info needed to talk to a contract instance.",
       "type": "object",
       "required": [
@@ -155,7 +155,8 @@
         "code_hash": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "Decimal": {
       "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
@@ -164,7 +165,7 @@
     "HumanAddr": {
       "type": "string"
     },
-    "TokenPairAmount_for_HumanAddr": {
+    "TokenPairAmount": {
       "type": "object",
       "required": [
         "amount_0",
@@ -179,24 +180,24 @@
           "$ref": "#/definitions/Uint128"
         },
         "pair": {
-          "$ref": "#/definitions/TokenPair_for_HumanAddr"
+          "$ref": "#/definitions/TokenPair"
         }
       }
     },
-    "TokenPair_for_HumanAddr": {
+    "TokenPair": {
       "type": "array",
       "items": [
         {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         },
         {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         }
       ],
       "maxItems": 2,
       "minItems": 2
     },
-    "TokenTypeAmount_for_HumanAddr": {
+    "TokenTypeAmount": {
       "type": "object",
       "required": [
         "amount",
@@ -207,11 +208,11 @@
           "$ref": "#/definitions/Uint128"
         },
         "token": {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         }
       }
     },
-    "TokenType_for_HumanAddr": {
+    "TokenType": {
       "anyOf": [
         {
           "type": "object",

@@ -1,0 +1,61 @@
+Time,Sender,Recipient,Data
+,,,
+9,Badman,0114_close_addr,"rewards:
+  close:
+    message: closed"
+=>,err,Unauthorized,
+,,,
+16,Alice,0114_close_addr,"rewards:
+  deposit:
+    amount: ""42798"""
+tx,0114_close_addr,LP_TOKEN,"transfer_from:
+  amount: ""42798""
+  owner: Alice
+  padding: ~
+  recipient: 0114_close_addr"
+,,,
+27,Badman,0114_close_addr,"rewards:
+  close:
+    message: closed"
+=>,err,Unauthorized,
+,,,
+32,Alice,0114_close_addr,"rewards:
+  deposit:
+    amount: ""38861"""
+tx,0114_close_addr,LP_TOKEN,"transfer_from:
+  amount: ""38861""
+  owner: Alice
+  padding: ~
+  recipient: 0114_close_addr"
+,,,
+50,Badman,0114_close_addr,"rewards:
+  close:
+    message: closed"
+=>,err,Unauthorized,
+,,,
+258,RPT,0114_close_addr,vest 93561
+,,,
+258,Admin,0114_close_addr,"rewards:
+  begin_epoch:
+    next_epoch: 1"
+,,,
+258,Admin,0114_close_addr,"rewards:
+  close:
+    message: closed"
+,,,
+270,test,branch,0114_close_then_lock
+,,,
+,,,
+270,Alice,0114_close_addr,"rewards:
+  deposit:
+    amount: ""100"""
+tx,0114_close_addr,LP_TOKEN,"transfer:
+  amount: ""81659""
+  padding: ~
+  recipient: Alice"
+tx,0114_close_addr,SIENNA,"transfer:
+  amount: ""93561""
+  padding: ~
+  recipient: Alice"
+log,0114_close_addr,,close_time = 258
+log,0114_close_addr,,close_reason = closed

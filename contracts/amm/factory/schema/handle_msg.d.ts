@@ -17,7 +17,7 @@ export type HandleMsg =
     }
   | {
       set_config: {
-        exchange_settings?: ExchangeSettingsFor_HumanAddr | null;
+        exchange_settings?: ExchangeSettings | null;
         ido_contract?: ContractInstantiationInfo | null;
         launchpad_contract?: ContractInstantiationInfo | null;
         lp_token_contract?: ContractInstantiationInfo | null;
@@ -30,7 +30,7 @@ export type HandleMsg =
   | {
       create_exchange: {
         entropy: Binary;
-        pair: TokenPairFor_HumanAddr;
+        pair: TokenPair;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -61,7 +61,7 @@ export type HandleMsg =
     }
   | {
       register_exchange: {
-        pair: TokenPairFor_HumanAddr;
+        pair: TokenPair;
         signature: Binary;
         [k: string]: unknown;
       };
@@ -86,7 +86,7 @@ export type HandleMsg =
         /**
          * New factory instance.
          */
-        new_instance: ContractLinkFor_HumanAddr;
+        new_instance: ContractLink;
         /**
          * Optionally, skip transferring the given exchanges.
          */
@@ -97,7 +97,7 @@ export type HandleMsg =
     }
   | {
       receive_exchanges: {
-        exchanges: ExchangeFor_HumanAddr[];
+        exchanges: Exchange[];
         /**
          * Indicates whether all exchanges have been transferred.
          */
@@ -122,7 +122,7 @@ export type HandleMsg =
     }
   | {
       add_launchpad: {
-        launchpad: ContractLinkFor_HumanAddr;
+        launchpad: ContractLink;
         [k: string]: unknown;
       };
       [k: string]: unknown;
@@ -142,8 +142,8 @@ export type HumanAddr = string;
  * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
  */
 export type Binary = string;
-export type TokenPairFor_HumanAddr = [TokenTypeFor_HumanAddr, TokenTypeFor_HumanAddr];
-export type TokenTypeFor_HumanAddr =
+export type TokenPair = [TokenType, TokenType];
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;
@@ -176,7 +176,7 @@ export type HandleMsg1 =
       [k: string]: unknown;
     };
 
-export interface ExchangeSettingsFor_HumanAddr {
+export interface ExchangeSettings {
   sienna_burner?: HumanAddr | null;
   sienna_fee: Fee;
   swap_fee: Fee;
@@ -193,7 +193,6 @@ export interface Fee {
 export interface ContractInstantiationInfo {
   code_hash: string;
   id: number;
-  [k: string]: unknown;
 }
 /**
  * Configuration for single token that can be locked into the launchpad
@@ -201,14 +200,14 @@ export interface ContractInstantiationInfo {
 export interface TokenSettings {
   bounding_period: number;
   segment: Uint128;
-  token_type: TokenTypeFor_HumanAddr;
+  token_type: TokenType;
   [k: string]: unknown;
 }
 export interface TokenSaleConfig {
   /**
    * The token that will be used to buy the SNIP20.
    */
-  input_token: TokenTypeFor_HumanAddr;
+  input_token: TokenType;
   /**
    * The total amount that each participant is allowed to buy.
    */
@@ -229,7 +228,7 @@ export interface TokenSaleConfig {
    * Sale type settings
    */
   sale_type?: SaleType | null;
-  sold_token: ContractLinkFor_HumanAddr;
+  sold_token: ContractLink;
   /**
    * The addresses that are eligible to participate in the sale.
    */
@@ -239,22 +238,21 @@ export interface TokenSaleConfig {
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractLinkFor_HumanAddr {
+export interface ContractLink {
   address: HumanAddr;
   code_hash: string;
-  [k: string]: unknown;
 }
 /**
  * Represents the address of an exchange and the pair that it manages
  */
-export interface ExchangeFor_HumanAddr {
+export interface Exchange {
   /**
    * The contract that manages the exchange.
    */
-  contract: ContractLinkFor_HumanAddr;
+  contract: ContractLink;
   /**
    * The pair that the contract manages.
    */
-  pair: TokenPairFor_HumanAddr;
+  pair: TokenPair;
   [k: string]: unknown;
 }

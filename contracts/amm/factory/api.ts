@@ -1,6 +1,6 @@
-import type { IAgent } from "@fadroma/ops";
-import { ScrtContract, loadSchemas, ContractAPIOptions } from "@fadroma/scrt";
-import { randomHex } from "@fadroma/tools";
+import type { IAgent } from "@fadroma/scrt";
+import { ScrtContract_1_2, loadSchemas, ContractAPIOptions } from "@fadroma/scrt";
+import { randomHex } from "@hackbg/tools";
 
 import { b64encode } from "@waiting/base64";
 import { EnigmaUtils } from "secretjs/src/index.ts";
@@ -32,7 +32,19 @@ export type FactoryOptions = ContractAPIOptions & {
   ROUTER?:    SwapRouterContract
 }
 
-export class FactoryContract extends ScrtContract {
+export class FactoryContract extends ScrtContract_1_2 {
+
+  static attach = (
+    address:  string,
+    codeHash: string,
+    agent:    IAgent
+  ) => {
+    const instance = new FactoryContract({ admin: agent })
+    instance.init.agent = agent
+    instance.init.address = address
+    instance.blob.codeHash = codeHash
+    return instance
+  }
 
   constructor(options: FactoryOptions = {}) {
     super({

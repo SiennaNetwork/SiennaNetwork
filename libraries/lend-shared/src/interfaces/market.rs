@@ -8,7 +8,8 @@ use fadroma::{
     schemars,
     schemars::JsonSchema,
     ContractLink, Decimal256, HandleResponse, HumanAddr, InitResponse,
-    StdResult, Uint128, Uint256, Binary,
+    StdResult, Uint128, Uint256, Binary, QueryRequest, WasmQuery, StdError,
+    Querier, to_binary
 };
 
 use serde::{Deserialize, Serialize};
@@ -149,5 +150,22 @@ pub enum ReceiverCallbackMsg {
 impl Display for BorrowerInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "total_balance: {}, global_index: {}", self.principal, self.interest_index)
+    }
+}
+
+pub fn query_exchange_rate(
+    querier: &impl Querier,
+    market: ContractLink<HumanAddr>,
+) -> StdResult<Decimal256> {
+    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: market.address,
+        callback_code_hash: market.code_hash,
+        msg: to_binary(&QueryMsg::ExchangeRate {})?,
+    }))?;
+    match result {
+        QueryResponse::ExchangeRate { exchange_rate } => Ok(exchange_rate),
+        _ => Err(StdError::generic_err(
+            "Expecting QueryResponse::ExchangeRate",
+        )),
     }
 }

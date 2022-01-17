@@ -52,7 +52,7 @@
               "description": "The token that is used to buy the sold SNIP20.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/TokenType_for_HumanAddr"
+                  "$ref": "#/definitions/TokenType"
                 }
               ]
             },
@@ -90,7 +90,7 @@
               "description": "The token that is being sold.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/ContractLink_for_HumanAddr"
+                  "$ref": "#/definitions/ContractLink"
                 }
               ]
             },
@@ -208,7 +208,7 @@
     }
   ],
   "definitions": {
-    "ContractLink_for_HumanAddr": {
+    "ContractLink": {
       "description": "Info needed to talk to a contract instance.",
       "type": "object",
       "required": [
@@ -222,12 +222,13 @@
         "code_hash": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "HumanAddr": {
       "type": "string"
     },
-    "TokenType_for_HumanAddr": {
+    "TokenType": {
       "anyOf": [
         {
           "type": "object",

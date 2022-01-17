@@ -49,7 +49,7 @@
             "exchange_settings": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/ExchangeSettings_for_HumanAddr"
+                  "$ref": "#/definitions/ExchangeSettings"
                 },
                 {
                   "type": "null"
@@ -128,7 +128,7 @@
               "$ref": "#/definitions/Binary"
             },
             "pair": {
-              "$ref": "#/definitions/TokenPair_for_HumanAddr"
+              "$ref": "#/definitions/TokenPair"
             }
           }
         }
@@ -239,7 +239,7 @@
           ],
           "properties": {
             "pair": {
-              "$ref": "#/definitions/TokenPair_for_HumanAddr"
+              "$ref": "#/definitions/TokenPair"
             },
             "signature": {
               "$ref": "#/definitions/Binary"
@@ -305,7 +305,7 @@
               "description": "New factory instance.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/ContractLink_for_HumanAddr"
+                  "$ref": "#/definitions/ContractLink"
                 }
               ]
             },
@@ -339,7 +339,7 @@
             "exchanges": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Exchange_for_HumanAddr"
+                "$ref": "#/definitions/Exchange"
               }
             },
             "finalize": {
@@ -406,7 +406,7 @@
           ],
           "properties": {
             "launchpad": {
-              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink"
             }
           }
         }
@@ -445,9 +445,10 @@
           "format": "uint64",
           "minimum": 0.0
         }
-      }
+      },
+      "additionalProperties": false
     },
-    "ContractLink_for_HumanAddr": {
+    "ContractLink": {
       "description": "Info needed to talk to a contract instance.",
       "type": "object",
       "required": [
@@ -461,7 +462,8 @@
         "code_hash": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "ContractStatusLevel": {
       "description": "Possible states of a contract.",
@@ -472,7 +474,7 @@
         "Migrating"
       ]
     },
-    "ExchangeSettings_for_HumanAddr": {
+    "ExchangeSettings": {
       "type": "object",
       "required": [
         "sienna_fee",
@@ -497,7 +499,7 @@
         }
       }
     },
-    "Exchange_for_HumanAddr": {
+    "Exchange": {
       "description": "Represents the address of an exchange and the pair that it manages",
       "type": "object",
       "required": [
@@ -509,7 +511,7 @@
           "description": "The contract that manages the exchange.",
           "allOf": [
             {
-              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink"
             }
           ]
         },
@@ -517,7 +519,7 @@
           "description": "The pair that the contract manages.",
           "allOf": [
             {
-              "$ref": "#/definitions/TokenPair_for_HumanAddr"
+              "$ref": "#/definitions/TokenPair"
             }
           ]
         }
@@ -587,14 +589,14 @@
         "SwapOnly"
       ]
     },
-    "TokenPair_for_HumanAddr": {
+    "TokenPair": {
       "type": "array",
       "items": [
         {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         },
         {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         }
       ],
       "maxItems": 2,
@@ -616,7 +618,7 @@
           "description": "The token that will be used to buy the SNIP20.",
           "allOf": [
             {
-              "$ref": "#/definitions/TokenType_for_HumanAddr"
+              "$ref": "#/definitions/TokenType"
             }
           ]
         },
@@ -662,7 +664,7 @@
           ]
         },
         "sold_token": {
-          "$ref": "#/definitions/ContractLink_for_HumanAddr"
+          "$ref": "#/definitions/ContractLink"
         },
         "whitelist": {
           "description": "The addresses that are eligible to participate in the sale.",
@@ -691,11 +693,11 @@
           "$ref": "#/definitions/Uint128"
         },
         "token_type": {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         }
       }
     },
-    "TokenType_for_HumanAddr": {
+    "TokenType": {
       "anyOf": [
         {
           "type": "object",

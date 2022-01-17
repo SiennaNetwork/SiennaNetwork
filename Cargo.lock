@@ -1911,7 +1911,7 @@ dependencies = [
 
 [[package]]
 name = "sienna-rewards"
-version = "3.0.0-pre"
+version = "3.0.0"
 dependencies = [
  "backtrace",
  "color-backtrace",
@@ -2142,6 +2142,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dfed899f0eb03f32ee8c6a0aabdb8a7949659e3466561fc0adf54e26d88c5f4"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "tests"
+version = "0.1.0"
+dependencies = [
+ "amm-snip20",
+ "lend-market",
+ "lend-oracle",
+ "lend-overseer",
+ "lend-shared",
+ "serde",
 ]
 
 [[package]]

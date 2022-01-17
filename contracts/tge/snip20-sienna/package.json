@@ -1,0 +1,11 @@
+{
+  "name": "@sienna/snip20-sienna",
+  "version": "1.0.0",
+  "main": "./api.ts",
+  "type": "module",
+  "dependencies": {
+    "@hackbg/tools":    "workspace:*",
+    "@fadroma/snip20":  "workspace:*",
+    "@sienna/settings": "workspace:^1.0.0"
+  }
+}

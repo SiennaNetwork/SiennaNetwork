@@ -5,7 +5,7 @@
   "main":    "./api.ts",
   "dependencies": {
     "@fadroma/scrt":    "workspace:*",
-    "@fadroma/tools":   "workspace:*",
+    "@hackbg/tools":   "workspace:*",
 
     "@sienna/amm-snip20": "workspace:^0.1.0",
     "@sienna/exchange":   "workspace:^1.0.0",

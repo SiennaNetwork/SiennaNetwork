@@ -1,0 +1,16 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "lib.rs"
+
+[dependencies]
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+lend-shared   = { path = "../../../libraries/lend-shared" }
+amm-snip20    = { path = "../../amm/amm-snip20" }
+lend-market   = { path = "../market" }
+lend-overseer = { path = "../overseer" }
+lend-oracle   = { path = "../oracle" }

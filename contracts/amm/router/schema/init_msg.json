@@ -6,7 +6,7 @@
     "callback": {
       "anyOf": [
         {
-          "$ref": "#/definitions/Callback_for_HumanAddr"
+          "$ref": "#/definitions/Callback"
         },
         {
           "type": "null"
@@ -29,7 +29,7 @@
         "null"
       ],
       "items": {
-        "$ref": "#/definitions/TokenType_for_HumanAddr"
+        "$ref": "#/definitions/TokenType"
       }
     }
   },
@@ -38,7 +38,7 @@
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
     },
-    "Callback_for_HumanAddr": {
+    "Callback": {
       "description": "Info needed to have the other contract respond.",
       "type": "object",
       "required": [
@@ -50,7 +50,7 @@
           "description": "Info about the contract requesting the callback.",
           "allOf": [
             {
-              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink"
             }
           ]
         },
@@ -62,9 +62,10 @@
             }
           ]
         }
-      }
+      },
+      "additionalProperties": false
     },
-    "ContractLink_for_HumanAddr": {
+    "ContractLink": {
       "description": "Info needed to talk to a contract instance.",
       "type": "object",
       "required": [
@@ -78,12 +79,13 @@
         "code_hash": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "HumanAddr": {
       "type": "string"
     },
-    "TokenType_for_HumanAddr": {
+    "TokenType": {
       "anyOf": [
         {
           "type": "object",

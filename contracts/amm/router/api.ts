@@ -1,5 +1,4 @@
-import { ScrtContract, loadSchemas, Agent } from "@fadroma/scrt";
-import { randomHex } from "@fadroma/tools";
+import { ScrtContract_1_2, loadSchemas, Agent } from "@fadroma/scrt";
 import { workspace } from "@sienna/settings";
 
 export const schema = loadSchemas(import.meta.url, {
@@ -12,7 +11,7 @@ export const schema = loadSchemas(import.meta.url, {
 const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
-export class SwapRouterContract extends ScrtContract {
+export class SwapRouterContract extends ScrtContract_1_2 {
   constructor ({ prefix, admin, label, codeId, initMsg }: {
     prefix?:  string,
     admin?:   Agent,
