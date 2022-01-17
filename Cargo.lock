@@ -942,6 +942,51 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
+name = "lend-interest-model"
+version = "0.0.1"
+dependencies = [
+ "lend-shared",
+ "serde",
+ "snafu",
+]
+
+[[package]]
+name = "lend-market"
+version = "0.0.1"
+dependencies = [
+ "lend-shared",
+ "serde",
+ "snafu",
+]
+
+[[package]]
+name = "lend-oracle"
+version = "0.0.1"
+dependencies = [
+ "lend-shared",
+ "serde",
+ "snafu",
+]
+
+[[package]]
+name = "lend-overseer"
+version = "0.0.1"
+dependencies = [
+ "lend-shared",
+ "serde",
+ "snafu",
+]
+
+[[package]]
+name = "lend-shared"
+version = "0.1.0"
+dependencies = [
+ "fadroma 22.1.0",
+ "primitive-types",
+ "serde",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.112"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2097,6 +2142,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dfed899f0eb03f32ee8c6a0aabdb8a7949659e3466561fc0adf54e26d88c5f4"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "tests"
+version = "0.1.0"
+dependencies = [
+ "amm-snip20",
+ "lend-market",
+ "lend-oracle",
+ "lend-overseer",
+ "lend-shared",
+ "serde",
 ]
 
 [[package]]

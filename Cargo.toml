@@ -22,6 +22,21 @@ members = [
   "contracts/amm/rewards",    # liquidity provision rewards
   "contracts/amm/tests",      # AMM integration tests
 
+  # Lend
+  "libraries/lend-shared",         # definitions that are shared across the lending contracts
+  "contracts/lend/interest_model",
+  "contracts/lend/oracle",
+  "contracts/lend/overseer",
+  "contracts/lend/market",
+  "contracts/lend/tests",
+
+  # Lend
+  "libraries/lend-shared",         # definitions that are shared across the lending contracts
+  "contracts/lend/interest_model",
+  "contracts/lend/oracle",
+  "contracts/lend/overseer",
+  "contracts/lend/market",
+
   # Framework
   "libraries/fadroma-next/crates/*",
 
