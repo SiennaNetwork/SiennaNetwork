@@ -15,8 +15,11 @@ use lend_shared::{
         Uint256,
     },
     interfaces::{
-        oracle::{query_price, Asset, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg},
+        oracle::{
+            query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
+        },
         overseer::{AccountLiquidity, Config, HandleMsg, Market, OverseerPermissions, Pagination},
+        market::{query_exchange_rate},
     },
 };
 
@@ -298,4 +301,24 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
             shortfall: (total_borrowed - total_collateral)?,
         })
     }
+}
+
+/// Calculate number of tokens of collateral asset to seize given an underlying amount
+fn calc_seize_tokens<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    // borrowed token
+    borrowed: HumanAddr,
+    // collateral token
+    collateral: HumanAddr,
+    // the amount of borrowed to convert into collateral
+    repay_amount: Uint128,
+) -> StdResult<Uint128> {
+    let oracle = Contracts::load_oracle(deps)?;
+    let price_borrowed = query_price(&deps.querier, oracle.clone(), AssetType::Address(borrowed), "USD".into(), None)?;
+    let price_collateral = query_price(&deps.querier, oracle, AssetType::Address(collateral.clone()), "USD".into(), None)?;
+
+    let market = Markets::get_by_addr(deps, &collateral)?;
+    // TODO:
+    // let exchange_rate = query_exchange_rate(&deps.querier, market)?;
+    Ok(Uint128::zero())
 }

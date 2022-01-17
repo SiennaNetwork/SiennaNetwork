@@ -73,8 +73,8 @@ pub trait Market {
                     label: format!("Interest token for SIENNA Lend: {}", time),
                     msg: to_binary(&Snip20InitMsg {
                         admin: None,
-                        name: format!("SIENNA Lend interest token: {}", token_info.name),
-                        symbol: format!("sl{}", token_info.symbol),
+                        name: format!("Sienna Lend interest token: {}", token_info.name),
+                        symbol: format!("SL{}", token_info.symbol),
                         decimals: token_info.decimals,
                         initial_allowances: None,
                         initial_balances: None,
@@ -103,7 +103,7 @@ pub trait Market {
 
     #[handle]
     fn register_sl_token() -> StdResult<HandleResponse> {
-        unimplemented!()
+        Ok(HandleResponse::default())
     }
 
     #[handle]

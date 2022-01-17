@@ -8,10 +8,25 @@ use lend_shared::fadroma::{
 use serde::{Deserialize, Serialize};
 
 use amm_snip20;
+use lend_market;
 use lend_oracle;
 use lend_overseer;
 
 pub struct Token;
+
+impl ContractHarness for Token {
+    fn init(&self, deps: &mut MockDeps, env: Env, msg: Binary) -> StdResult<InitResponse> {
+        amm_snip20::init(deps, env, from_binary(&msg)?)
+    }
+
+    fn handle(&self, deps: &mut MockDeps, env: Env, msg: Binary) -> StdResult<HandleResponse> {
+        amm_snip20::handle(deps, env, from_binary(&msg)?)
+    }
+
+    fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
+        amm_snip20::query(deps, from_binary(&msg)?)
+    }
+}
 
 pub struct Overseer;
 
@@ -49,6 +64,24 @@ impl ContractHarness for Oracle {
     }
 }
 
+pub struct Market;
+
+impl ContractHarness for Market {
+    fn init(&self, deps: &mut MockDeps, env: Env, msg: Binary) -> StdResult<InitResponse> {
+        lend_market::init(deps, env, from_binary(&msg)?, lend_market::DefaultImpl)
+    }
+
+    fn handle(&self, deps: &mut MockDeps, env: Env, msg: Binary) -> StdResult<HandleResponse> {
+        lend_market::handle(deps, env, from_binary(&msg)?, lend_market::DefaultImpl)
+    }
+
+    fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
+        let result = lend_market::query(deps, from_binary(&msg)?, lend_market::DefaultImpl)?;
+
+        to_binary(&result)
+    }
+}
+
 pub struct MockBand;
 
 #[derive(Serialize, Deserialize, JsonSchema)]
@@ -75,6 +108,7 @@ impl ContractHarness for MockBand {
             backtrace: None,
         })
     }
+
     fn query(&self, _deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
         let msg = from_binary(&msg).unwrap();
         match msg {

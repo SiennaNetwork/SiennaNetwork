@@ -1,7 +1,8 @@
 use fadroma::{
-    admin, auth::Permit, cosmwasm_std, derive_contract::*, schemars, schemars::JsonSchema, Binary,
-    ContractInstantiationInfo, ContractLink, Decimal256, HandleResponse, HumanAddr, InitResponse,
-    StdResult, Uint128, Uint256,
+    admin, auth::Permit, cosmwasm_std, derive_contract::*, schemars, schemars::JsonSchema,
+    to_binary, Binary, ContractInstantiationInfo, ContractLink, Decimal256, HandleResponse,
+    HumanAddr, InitResponse, Querier, QueryRequest, StdError, StdResult, Uint128, Uint256,
+    WasmQuery,
 };
 
 use serde::{Deserialize, Serialize};
@@ -125,4 +126,22 @@ pub enum ReceiverCallbackMsg {
     /// return all spendable underlying
     /// User operation
     WithdrawUnderlying { permit: Permit<OverseerPermissions> },
+}
+
+pub fn query_exchange_rate(
+    querier: &impl Querier,
+    market: ContractLink<HumanAddr>,
+) -> StdResult<Decimal256> {
+    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: market.address,
+        callback_code_hash: market.code_hash,
+        msg: to_binary(&QueryMsg::ExchangeRate {})?,
+    }))?;
+
+    match result {
+        QueryResponse::ExchangeRate { exchange_rate } => Ok(exchange_rate),
+        _ => Err(StdError::generic_err(
+            "Expecting QueryResponse::ExchangeRate",
+        )),
+    }
 }
