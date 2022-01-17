@@ -1,6 +1,8 @@
 mod querier;
 mod state;
 
+use std::ops::Div;
+
 use lend_shared::{
     fadroma::{
         admin,
@@ -15,11 +17,11 @@ use lend_shared::{
         Uint256,
     },
     interfaces::{
+        market::query_exchange_rate,
         oracle::{
             query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
         },
         overseer::{AccountLiquidity, Config, HandleMsg, Market, OverseerPermissions, Pagination},
-        market::{query_exchange_rate},
     },
 };
 
@@ -221,13 +223,13 @@ pub trait Overseer {
     fn can_transfer(
         permit: Permit<OverseerPermissions>,
         market: HumanAddr,
-        amount: Uint128
+        amount: Uint128,
     ) -> StdResult<bool> {
         let self_ref = Contracts::load_self_ref(deps)?;
         let borrower = permit.validate_with_permissions(
             deps,
             self_ref.address,
-            vec![ OverseerPermissions::AccountInfo ]
+            vec![OverseerPermissions::AccountInfo],
         )?;
 
         let borrower = Borrower::new(&deps, &borrower)?;
@@ -237,13 +239,7 @@ pub trait Overseer {
             return Ok(true);
         }
 
-        let result = calc_liquidity(
-            deps,
-            &borrower,
-            Some(market),
-            amount,
-            Uint128::zero()
-        )?;
+        let result = calc_liquidity(deps, &borrower, Some(market), amount, Uint128::zero())?;
 
         if result.shortfall > Uint256::zero() {
             Ok(false)
@@ -347,13 +343,31 @@ fn calc_seize_tokens<S: Storage, A: Api, Q: Querier>(
     collateral: HumanAddr,
     // the amount of borrowed to convert into collateral
     repay_amount: Uint128,
-) -> StdResult<Uint128> {
-    let oracle = Contracts::load_oracle(deps)?;
-    let price_borrowed = query_price(&deps.querier, oracle.clone(), AssetType::Address(borrowed), "USD".into(), None)?;
-    let price_collateral = query_price(&deps.querier, oracle, AssetType::Address(collateral.clone()), "USD".into(), None)?;
+) -> StdResult<Uint256> {
+    let premium = Constants::load(&deps.storage)?.premium;
 
-    let market = Markets::get_by_addr(deps, &collateral)?;
-    // TODO:
-    // let exchange_rate = query_exchange_rate(&deps.querier, market)?;
-    Ok(Uint128::zero())
+    //  Read oracle prices for borrowed and collateral markets 
+    let oracle = Contracts::load_oracle(deps)?;
+    let price_borrowed = query_price(
+        &deps.querier,
+        oracle.clone(),
+        AssetType::Address(borrowed),
+        "USD".into(),
+        None,
+    )?;
+    let price_collateral = query_price(
+        &deps.querier,
+        oracle,
+        AssetType::Address(collateral.clone()),
+        "USD".into(),
+        None,
+    )?;
+
+    // Get the exchange rate and calculate the number of collateral tokens to seize
+    let (_, market) = Markets::get_by_addr(deps, &collateral)?;
+    let exchange_rate = query_exchange_rate(&deps.querier, market.contract)?;
+    let ratio = ((premium * price_borrowed.rate)? / (price_collateral.rate * exchange_rate)?)?;
+
+    let seize_tokens = (ratio * Decimal256::from_uint256(repay_amount)?)?.round();
+    Ok(seize_tokens)
 }
