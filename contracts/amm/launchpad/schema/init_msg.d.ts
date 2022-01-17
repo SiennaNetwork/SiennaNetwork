@@ -13,7 +13,7 @@ export type HumanAddr = string;
  */
 export type Binary = string;
 export type Uint128 = string;
-export type TokenTypeFor_HumanAddr =
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;
@@ -38,7 +38,7 @@ export interface InitMsg {
   /**
    * Used by the Launchpad to register itself with the factory.
    */
-  callback: CallbackFor_HumanAddr;
+  callback: Callback;
   entropy: Binary;
   /**
    * Seed for creating viewkey
@@ -50,24 +50,22 @@ export interface InitMsg {
 /**
  * Info needed to have the other contract respond.
  */
-export interface CallbackFor_HumanAddr {
+export interface Callback {
   /**
    * Info about the contract requesting the callback.
    */
-  contract: ContractLinkFor_HumanAddr;
+  contract: ContractLink;
   /**
    * The message to call.
    */
   msg: Binary;
-  [k: string]: unknown;
 }
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractLinkFor_HumanAddr {
+export interface ContractLink {
   address: HumanAddr;
   code_hash: string;
-  [k: string]: unknown;
 }
 /**
  * Configuration for single token that can be locked into the launchpad
@@ -75,6 +73,6 @@ export interface ContractLinkFor_HumanAddr {
 export interface TokenSettings {
   bounding_period: number;
   segment: Uint128;
-  token_type: TokenTypeFor_HumanAddr;
+  token_type: TokenType;
   [k: string]: unknown;
 }

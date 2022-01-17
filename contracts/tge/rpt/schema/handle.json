@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Handle",
+  "anyOf": [
+    {
+      "description": "Set the contract status. Used to pause the contract operation in case of errors, and to initiate a migration to a fixed version of the contract.",
+      "type": "object",
+      "required": [
+        "set_status"
+      ],
+      "properties": {
+        "set_status": {
+          "type": "object",
+          "required": [
+            "level",
+            "reason"
+          ],
+          "properties": {
+            "level": {
+              "$ref": "#/definitions/ContractStatusLevel"
+            },
+            "new_address": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "The current admin can make someone else the admin.",
+      "type": "object",
+      "required": [
+        "set_owner"
+      ],
+      "properties": {
+        "set_owner": {
+          "type": "object",
+          "required": [
+            "new_admin"
+          ],
+          "properties": {
+            "new_admin": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Set how funds will be split.",
+      "type": "object",
+      "required": [
+        "configure"
+      ],
+      "properties": {
+        "configure": {
+          "type": "object",
+          "required": [
+            "config"
+          ],
+          "properties": {
+            "config": {
+              "$ref": "#/definitions/LinearMap_and_Uint128"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Receive and distribute funds. `WARNING` a cliff on the RPT account could confuse this?",
+      "type": "object",
+      "required": [
+        "vest"
+      ],
+      "properties": {
+        "vest": {
+          "type": "object"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "ContractStatusLevel": {
+      "type": "string",
+      "enum": [
+        "Operational",
+        "Paused",
+        "Migrating"
+      ]
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "LinearMap_and_Uint128": {
+      "description": "Just a wrapped `Vec` with `get` and `insert` methods.\n\nActs as a KV map but serializes as an array of [K,V] pairs: * new keys are appended to the end, existing keys are updated in place * there is no check for keys being unique during deserialization * in case of duplicate keys, it's the 1st instance of a given key that \"counts\".\n\nIt's like this because `serde_json_wasm` doesn't serialize maps (`HashMap`, `BTreeMap`). This is true even in versions more recent than the default for SecretNetwork: the `serialize_map` method contains a single `unreachable!()` panic. It's not immediately obvious why this remains the case the case; perhaps iterating over of those is somehow more expensive on a blockchain? In any case, in the absence of gas benchmarks it's pointless to risk altering the default execution environment (of which `serde_json_wasm` is part), even though there's no obvious reason why that wouldn't work.",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "#/definitions/HumanAddr"
+          },
+          {
+            "$ref": "#/definitions/Uint128"
+          }
+        ],
+        "maxItems": 2,
+        "minItems": 2
+      }
+    },
+    "Uint128": {
+      "type": "string"
+    }
+  }
+}

@@ -12,8 +12,8 @@ export type HumanAddr = string;
  * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
  */
 export type Binary = string;
-export type TokenPairFor_HumanAddr = [TokenTypeFor_HumanAddr, TokenTypeFor_HumanAddr];
-export type TokenTypeFor_HumanAddr =
+export type TokenPair = [TokenType, TokenType];
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;
@@ -31,12 +31,12 @@ export type TokenTypeFor_HumanAddr =
     };
 
 export interface InitMsg {
-  callback: CallbackFor_HumanAddr;
+  callback: Callback;
   entropy: Binary;
   /**
    * Used by the exchange contract to send back its address to the factory on init
    */
-  factory_info: ContractLinkFor_HumanAddr;
+  factory_info: ContractLink;
   /**
    * LP token instantiation info
    */
@@ -44,31 +44,29 @@ export interface InitMsg {
   /**
    * The tokens that will be managed by the exchange
    */
-  pair: TokenPairFor_HumanAddr;
+  pair: TokenPair;
   prng_seed: Binary;
   [k: string]: unknown;
 }
 /**
  * Info needed to have the other contract respond.
  */
-export interface CallbackFor_HumanAddr {
+export interface Callback {
   /**
    * Info about the contract requesting the callback.
    */
-  contract: ContractLinkFor_HumanAddr;
+  contract: ContractLink;
   /**
    * The message to call.
    */
   msg: Binary;
-  [k: string]: unknown;
 }
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractLinkFor_HumanAddr {
+export interface ContractLink {
   address: HumanAddr;
   code_hash: string;
-  [k: string]: unknown;
 }
 /**
  * Info needed to instantiate a contract.
@@ -76,5 +74,4 @@ export interface ContractLinkFor_HumanAddr {
 export interface ContractInstantiationInfo {
   code_hash: string;
   id: number;
-  [k: string]: unknown;
 }

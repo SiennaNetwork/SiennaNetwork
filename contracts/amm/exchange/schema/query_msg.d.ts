@@ -12,13 +12,13 @@ export type QueryMsg =
         /**
          * The token type to swap from.
          */
-        offer: TokenTypeAmountFor_HumanAddr;
+        offer: TokenTypeAmount;
         [k: string]: unknown;
       };
       [k: string]: unknown;
     };
 export type Uint128 = string;
-export type TokenTypeFor_HumanAddr =
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;
@@ -36,8 +36,8 @@ export type TokenTypeFor_HumanAddr =
     };
 export type HumanAddr = string;
 
-export interface TokenTypeAmountFor_HumanAddr {
+export interface TokenTypeAmount {
   amount: Uint128;
-  token: TokenTypeFor_HumanAddr;
+  token: TokenType;
   [k: string]: unknown;
 }

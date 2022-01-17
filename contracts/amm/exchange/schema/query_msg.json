@@ -24,7 +24,7 @@
               "description": "The token type to swap from.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/TokenTypeAmount_for_HumanAddr"
+                  "$ref": "#/definitions/TokenTypeAmount"
                 }
               ]
             }
@@ -37,7 +37,7 @@
     "HumanAddr": {
       "type": "string"
     },
-    "TokenTypeAmount_for_HumanAddr": {
+    "TokenTypeAmount": {
       "type": "object",
       "required": [
         "amount",
@@ -48,11 +48,11 @@
           "$ref": "#/definitions/Uint128"
         },
         "token": {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         }
       }
     },
-    "TokenType_for_HumanAddr": {
+    "TokenType": {
       "anyOf": [
         {
           "type": "object",

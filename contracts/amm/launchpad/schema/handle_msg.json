@@ -286,11 +286,11 @@
           "$ref": "#/definitions/Uint128"
         },
         "token_type": {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         }
       }
     },
-    "TokenType_for_HumanAddr": {
+    "TokenType": {
       "anyOf": [
         {
           "type": "object",

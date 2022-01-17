@@ -1,0 +1,11 @@
+{
+  "name": "@sienna/mgmt",
+  "version": "2.0.0",
+  "type": "module",
+  "main": "./api.ts",
+  "dependencies": {
+    "@fadroma/scrt":    "workspace:*",
+    "@sienna/settings": "workspace:^1.0.0",
+    "secretjs":         "workspace:*"
+  }
+}

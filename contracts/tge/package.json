@@ -1,0 +1,12 @@
+{
+  "name":   "@sienna/tge",
+  "private": true,
+  "main":   "index.ts",
+  "dependencies": {
+    "@hackbg/tools":    "workspace:*",
+    "@fadroma/scrt":    "workspace:*",
+    "@fadroma/snip20":  "workspace:*",
+    "@sienna/api":      "workspace:*",
+    "@sienna/settings": "workspace:^1.0.0"
+  }
+}

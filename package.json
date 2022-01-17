@@ -1,33 +1,42 @@
 {
-  "name": "@sienna/sienna",
-  "version": "0.0.0",
-  "private": true,
+  "name":     "@sienna/sienna",
+  "version":  "0.0.0",
+  "type":     "module",
+  "private":   true,
   "workspace": true,
-  "type": "module",
+
   "packages": [
-    "./benchmarks",
-    "./contracts/*",
-    "./frontends/*",
-    "./libraries/fadroma-next/lib/composable-snip20",
+    "./libraries/fadroma-next/deps/*",
     "./libraries/fadroma-next/packages/*",
-    "./libraries/fadroma-next/platforms/scrt-1.0/cosmwasm-js/packages/sdk",
-    "./libraries/fadroma-next/platforms/scrt-1.2/cosmwasm-js/packages/sdk",
-    "./libraries/ops-amm",
-    "./libraries/schedule",
+    "./libraries/fadroma-next/crates/fadroma-snip20-impl",
+
     "./scripts",
-    "./settings"
+    "./settings",
+
+    "./contracts/tge",
+    "./contracts/tge/*",
+    "./libraries/schedule",
+
+    "./contracts/amm",
+    "./contracts/amm/*",
+    "./libraries/ops-amm",
+
+    "./frontends/*"
   ],
+
   "dependencies": {
-    "@ganesha/nodejs-loader": "workspace:*",
-    "chai":                   "^4.3.4",
-    "mocha":                  "^8.4.0",
-    "typescript":             "^4.4.4"
+    "@ganesha/node": "workspace:*",
+    "@hackbg/tools": "workspace:*",
+    "typescript":    "^4.4.4"
   },
+
   "scripts": {
-    "dev":          "ganesha --unhandled-rejections=strict scripts/dev.ts",
-    "ops":          "ganesha --unhandled-rejections=strict scripts/ops.ts",
+    "dev": "ganesha-node --unhandled-rejections=strict scripts/Dev.ts.md",
+    "ops": "ganesha-node --unhandled-rejections=strict scripts/Ops.ts.md",
+
     "dash":         "cd frontends/dashboard; pnpm web",
     "dash:build":   "frontends/dashboard/build.sh",
     "test:rewards": "cargo test -p sienna-rewards"
   }
+
 }

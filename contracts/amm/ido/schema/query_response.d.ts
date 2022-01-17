@@ -22,7 +22,7 @@ export type QueryResponse =
         /**
          * The token that is used to buy the sold SNIP20.
          */
-        input_token: TokenTypeFor_HumanAddr;
+        input_token: TokenType;
         /**
          * The total amount that each participant is allowed to buy.
          */
@@ -42,7 +42,7 @@ export type QueryResponse =
         /**
          * The token that is being sold.
          */
-        sold_token: ContractLinkFor_HumanAddr;
+        sold_token: ContractLink;
         /**
          * Sale start time.
          */
@@ -83,7 +83,7 @@ export type QueryResponse =
       };
       [k: string]: unknown;
     };
-export type TokenTypeFor_HumanAddr =
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;
@@ -105,8 +105,7 @@ export type Uint128 = string;
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractLinkFor_HumanAddr {
+export interface ContractLink {
   address: HumanAddr;
   code_hash: string;
-  [k: string]: unknown;
 }

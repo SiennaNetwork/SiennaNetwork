@@ -84,7 +84,7 @@ export type Uint128 = string;
  * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>
  */
 export type Binary = string;
-export type TokenTypeFor_HumanAddr =
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;
@@ -121,6 +121,6 @@ export type HandleMsg1 =
 export interface TokenSettings {
   bounding_period: number;
   segment: Uint128;
-  token_type: TokenTypeFor_HumanAddr;
+  token_type: TokenType;
   [k: string]: unknown;
 }

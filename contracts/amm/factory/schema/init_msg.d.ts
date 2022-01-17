@@ -15,7 +15,7 @@ export type Binary = string;
 
 export interface InitMsg {
   admin?: HumanAddr | null;
-  exchange_settings: ExchangeSettingsFor_HumanAddr;
+  exchange_settings: ExchangeSettings;
   ido_contract: ContractInstantiationInfo;
   launchpad_contract: ContractInstantiationInfo;
   lp_token_contract: ContractInstantiationInfo;
@@ -24,7 +24,7 @@ export interface InitMsg {
   snip20_contract: ContractInstantiationInfo;
   [k: string]: unknown;
 }
-export interface ExchangeSettingsFor_HumanAddr {
+export interface ExchangeSettings {
   sienna_burner?: HumanAddr | null;
   sienna_fee: Fee;
   swap_fee: Fee;
@@ -41,5 +41,4 @@ export interface Fee {
 export interface ContractInstantiationInfo {
   code_hash: string;
   id: number;
-  [k: string]: unknown;
 }

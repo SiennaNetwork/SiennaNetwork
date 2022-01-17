@@ -9,7 +9,7 @@ export type HandleMsg =
   | "on_lp_token_init"
   | {
       add_liquidity: {
-        deposit: TokenPairAmountFor_HumanAddr;
+        deposit: TokenPairAmount;
         /**
          * The amount the price moves in a trading pair between when a transaction is submitted and when it is executed. Transactions that exceed this threshold will be rejected.
          */
@@ -24,7 +24,7 @@ export type HandleMsg =
         /**
          * The token type to swap from.
          */
-        offer: TokenTypeAmountFor_HumanAddr;
+        offer: TokenTypeAmount;
         to?: HumanAddr | null;
         [k: string]: unknown;
       };
@@ -41,14 +41,14 @@ export type HandleMsg =
     }
   | {
       change_factory: {
-        contract: ContractLinkFor_HumanAddr;
+        contract: ContractLink;
         [k: string]: unknown;
       };
       [k: string]: unknown;
     };
 export type Uint128 = string;
-export type TokenPairFor_HumanAddr = [TokenTypeFor_HumanAddr, TokenTypeFor_HumanAddr];
-export type TokenTypeFor_HumanAddr =
+export type TokenPair = [TokenType, TokenType];
+export type TokenType =
   | {
       custom_token: {
         contract_addr: HumanAddr;
@@ -78,22 +78,21 @@ export type Decimal = string;
  */
 export type Binary = string;
 
-export interface TokenPairAmountFor_HumanAddr {
+export interface TokenPairAmount {
   amount_0: Uint128;
   amount_1: Uint128;
-  pair: TokenPairFor_HumanAddr;
+  pair: TokenPair;
   [k: string]: unknown;
 }
-export interface TokenTypeAmountFor_HumanAddr {
+export interface TokenTypeAmount {
   amount: Uint128;
-  token: TokenTypeFor_HumanAddr;
+  token: TokenType;
   [k: string]: unknown;
 }
 /**
  * Info needed to talk to a contract instance.
  */
-export interface ContractLinkFor_HumanAddr {
+export interface ContractLink {
   address: HumanAddr;
   code_hash: string;
-  [k: string]: unknown;
 }

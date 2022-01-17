@@ -1,0 +1,12 @@
+{
+  "name": "@sienna/rpt",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./api.ts",
+  "dependencies": {
+    "@fadroma/scrt":    "workspace:*",
+    "@sienna/mgmt":     "workspace:^2.0.0",
+    "@sienna/settings": "workspace:^1.0.0",
+    "secretjs":         "workspace:*"
+  }
+}

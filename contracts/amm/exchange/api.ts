@@ -1,5 +1,5 @@
 import { ScrtContract_1_2, loadSchemas, Agent, ContractAPIOptions } from "@fadroma/scrt"
-import { randomHex } from '@fadroma/tools'
+import { randomHex } from '@hackbg/tools'
 import { workspace } from '@sienna/settings'
 
 export const schema = loadSchemas(import.meta.url, {

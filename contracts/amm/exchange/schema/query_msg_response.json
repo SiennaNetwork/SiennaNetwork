@@ -32,13 +32,13 @@
               "minimum": 0.0
             },
             "factory": {
-              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink"
             },
             "liquidity_token": {
-              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink"
             },
             "pair": {
-              "$ref": "#/definitions/TokenPair_for_HumanAddr"
+              "$ref": "#/definitions/TokenPair"
             },
             "total_liquidity": {
               "$ref": "#/definitions/Uint128"
@@ -49,7 +49,7 @@
     }
   ],
   "definitions": {
-    "ContractLink_for_HumanAddr": {
+    "ContractLink": {
       "description": "Info needed to talk to a contract instance.",
       "type": "object",
       "required": [
@@ -63,25 +63,26 @@
         "code_hash": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "HumanAddr": {
       "type": "string"
     },
-    "TokenPair_for_HumanAddr": {
+    "TokenPair": {
       "type": "array",
       "items": [
         {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         },
         {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         }
       ],
       "maxItems": 2,
       "minItems": 2
     },
-    "TokenType_for_HumanAddr": {
+    "TokenType": {
       "anyOf": [
         {
           "type": "object",

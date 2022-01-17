@@ -77,7 +77,7 @@
             "exchanges": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Exchange_for_HumanAddr"
+                "$ref": "#/definitions/Exchange"
               }
             }
           }
@@ -97,7 +97,7 @@
           ],
           "properties": {
             "settings": {
-              "$ref": "#/definitions/ExchangeSettings_for_HumanAddr"
+              "$ref": "#/definitions/ExchangeSettings"
             }
           }
         }
@@ -121,7 +121,7 @@
           ],
           "properties": {
             "exchange_settings": {
-              "$ref": "#/definitions/ExchangeSettings_for_HumanAddr"
+              "$ref": "#/definitions/ExchangeSettings"
             },
             "ido_contract": {
               "$ref": "#/definitions/ContractInstantiationInfo"
@@ -160,9 +160,10 @@
           "format": "uint64",
           "minimum": 0.0
         }
-      }
+      },
+      "additionalProperties": false
     },
-    "ContractLink_for_HumanAddr": {
+    "ContractLink": {
       "description": "Info needed to talk to a contract instance.",
       "type": "object",
       "required": [
@@ -176,9 +177,10 @@
         "code_hash": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
-    "ExchangeSettings_for_HumanAddr": {
+    "ExchangeSettings": {
       "type": "object",
       "required": [
         "sienna_fee",
@@ -203,7 +205,7 @@
         }
       }
     },
-    "Exchange_for_HumanAddr": {
+    "Exchange": {
       "description": "Represents the address of an exchange and the pair that it manages",
       "type": "object",
       "required": [
@@ -215,7 +217,7 @@
           "description": "The contract that manages the exchange.",
           "allOf": [
             {
-              "$ref": "#/definitions/ContractLink_for_HumanAddr"
+              "$ref": "#/definitions/ContractLink"
             }
           ]
         },
@@ -223,7 +225,7 @@
           "description": "The pair that the contract manages.",
           "allOf": [
             {
-              "$ref": "#/definitions/TokenPair_for_HumanAddr"
+              "$ref": "#/definitions/TokenPair"
             }
           ]
         }
@@ -251,20 +253,20 @@
     "HumanAddr": {
       "type": "string"
     },
-    "TokenPair_for_HumanAddr": {
+    "TokenPair": {
       "type": "array",
       "items": [
         {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         },
         {
-          "$ref": "#/definitions/TokenType_for_HumanAddr"
+          "$ref": "#/definitions/TokenType"
         }
       ],
       "maxItems": 2,
       "minItems": 2
     },
-    "TokenType_for_HumanAddr": {
+    "TokenType": {
       "anyOf": [
         {
           "type": "object",
