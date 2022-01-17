@@ -60,6 +60,12 @@ pub trait Market {
     ) -> StdResult<HandleResponse>;
 
     #[handle]
+    fn transfer(
+        recipient: HumanAddr,
+        amount: Uint256
+    ) -> StdResult<HandleResponse>;
+
+    #[handle]
     fn update_config(
         interest_model: Option<ContractLink<HumanAddr>>,
         reserve_factor: Option<Decimal256>,

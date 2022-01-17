@@ -16,10 +16,12 @@ use lend_shared::{
             log
         },
         derive_contract::*,
-        from_binary, require_admin,
+        require_admin,
         secret_toolkit::snip20,
+        snip20_impl::msg as snip20_msg,
         Uint256, Decimal256, Permit,
-        Uint128, BLOCK_SIZE, ContractLink
+        Uint128, BLOCK_SIZE, ContractLink,
+        from_binary, to_binary
     },
     interfaces::{
         interest_model::query_borrow_rate,
@@ -27,7 +29,7 @@ use lend_shared::{
             ReceiverCallbackMsg, AccountInfo,
             StateResponse, ConfigResponse
         },
-        overseer::OverseerPermissions,
+        overseer::{OverseerPermissions, query_can_transfer},
     },
 };
 
@@ -211,6 +213,39 @@ pub trait Market {
                 log("borrow_info", snapshot.0)
             ],
             data: None
+        })
+    }
+
+    #[handle]
+    fn transfer(
+        recipient: HumanAddr,
+        amount: Uint256
+    ) -> StdResult<HandleResponse> {
+        let can_transfer = query_can_transfer(
+            &deps.querier,
+            Contracts::load_overseer(deps)?,
+            todo!(),
+            env.contract.address,
+            Uint128(amount.low_u128())
+        )?;
+
+        if !can_transfer {
+            return Err(StdError::generic_err("Account has negative liquidity and cannot transfer."));
+        }
+
+        let sender = Account::new(deps, &env.message.sender)?;
+        sender.subtract_balance(&mut deps.storage, amount)?;
+
+        let recipient = Account::new(deps, &recipient)?;
+        recipient.add_balance(&mut deps.storage, amount)?;
+
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![],
+            // SNIP-20 spec compliance.
+            data: Some(to_binary(&snip20_msg::HandleAnswer::Transfer {
+                status: snip20_msg::ResponseStatus::Success
+            })?)
         })
     }
 
