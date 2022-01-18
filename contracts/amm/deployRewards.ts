@@ -98,7 +98,7 @@ export async function deployRewards (
           admin
         )
         const reward = BigInt(rewards[name]) / BigInt(1 / split)
-        const pool    = await deployRewardPool(`${name}${suffix}`, lpToken, SIENNA)
+        const pool   = await deployRewardPool(`${name}${suffix}`, lpToken, SIENNA)
         deployedContracts.push(pool)
         rptConfig.push([pool.address, String(reward * ONE_SIENNA)])
       }
@@ -111,7 +111,6 @@ export async function deployRewards (
   return { deployedContracts, rptConfig }
 
   async function deployRewardPool (name: string, lpToken: SNIP20Contract, rewardToken: SNIP20Contract) {
-
     const {codeId, codeHash} = REWARDS
         , options    = { codeId, codeHash, prefix, name, admin, lpToken, rewardToken, ref }
         , rewardPool = new RewardsContract(options)

@@ -122,14 +122,14 @@ Prototype of future migration procedures.
 
 ```typescript
 import { deployRewards } from '@sienna/amm'
-commands['deploy']['rewards'] = async () => {
+commands['deploy']['rewards-side-by-side'] = async () => {
   const {chain, admin} = await init(process.env.CHAIN_NAME)
   if (chain.isMainnet) {
     console.log('This command is not intended for mainnet.')
     process.exit(1)
   }
   if (!chain.deployments.active) {
-    console.log('Need to select an active instance for this command.')
+    console.log('This command requires an active deployment.')
     process.exit(1)
   }
   chain.deployments.printActive()
@@ -157,6 +157,21 @@ commands['deploy']['rewards'] = async () => {
     }
     return table
   }, {}))
+}
+
+import { deployLegacyFactory } from '@sienna/amm'
+commands['deploy']['legacy-factory'] = async () => {
+  const {chain, admin} = await init(process.env.CHAIN_NAME)
+  if (chain.isMainnet) {
+    console.log('This command is not intended for mainnet.')
+    process.exit(1)
+  }
+  if (!chain.deployments.active) {
+    console.log('This command requires an active deployment.')
+    process.exit(1)
+  }
+  chain.deployments.printActive()
+  await deployLegacyFactory(chain, admin)
 }
 ```
 

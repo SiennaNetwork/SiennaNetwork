@@ -84,16 +84,28 @@ export class FactoryContract extends ScrtContract_1_2 {
       schema, prefix, agent: admin
     })
 
-    Object.assign(this.init.msg, {
-      admin: admin?.address,
-      prng_seed: randomHex(36),
-      exchange_settings: exchange_settings || {
-        swap_fee: { nom: 28, denom: 1000 },
-        sienna_fee: { nom: 2, denom: 10000 },
-        sienna_burner: null,
-      },
-      ...(contracts||{}),
+    Object.assign(this.init, {
+      msg: {
+        prng_seed: randomHex(36),
+        exchange_settings: {
+          swap_fee: { nom: 28, denom: 1000 },
+          sienna_fee: { nom: 2, denom: 10000 },
+          sienna_burner: null,
+        },
+      }
     })
+
+    if (admin) {
+      Object.assign(this.init.msg, { admin: admin.address })
+    }
+
+    if (exchange_settings) {
+      Object.assign(this.init.msg, { exchange_settings })
+    }
+
+    if (contracts) {
+      Object.assign(this.init.msg, contracts)
+    }
 
   }
 
