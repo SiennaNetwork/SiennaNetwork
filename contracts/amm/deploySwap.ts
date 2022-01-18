@@ -39,7 +39,7 @@ export async function deploySwap (options: SwapOptions) {
   } = options
 
   const
-    instance = chain.instances.active,
+    instance = chain.deployments.active,
     SIENNA   = instance.getContract(SiennaSNIP20Contract, 'SiennaSNIP20', admin),
     RPT      = instance.getContract(RPTContract,          'SiennaRPT',    admin)
 
