@@ -15,7 +15,10 @@ use lend_shared::{
 };
 
 use crate::{accrue_interest, VIEWING_KEY};
-use crate::state::{Global, Config, Contracts, Account, TotalSupply, TotalBorrows};
+use crate::state::{
+    Global, Constants, Contracts,
+    Account, TotalSupply, TotalBorrows
+};
 use crate::checks;
 
 pub fn deposit<S: Storage, A: Api, Q: Querier>(
@@ -36,7 +39,12 @@ pub fn deposit<S: Storage, A: Api, Q: Querier>(
 
     accrue_interest(deps, env.block.height, balance)?;
 
-    let exchange_rate = calc_exchange_rate(deps, balance.into())?;
+    let exchange_rate = calc_exchange_rate(
+        deps,
+        balance.into(),
+        TotalBorrows::load(&deps.storage)?,
+        Global::load_interest_reserve(&deps.storage)?
+    )?;
     let mint_amount = Uint256::from(amount)
         .decimal_div(exchange_rate)?;
 
@@ -68,7 +76,12 @@ pub fn redeem<S: Storage, A: Api, Q: Querier>(
 
     accrue_interest(deps, env.block.height, balance)?;
 
-    let exchange_rate = calc_exchange_rate(deps, balance.into())?;
+    let exchange_rate = calc_exchange_rate(
+        deps,
+        balance.into(),
+        TotalBorrows::load(&deps.storage)?,
+        Global::load_interest_reserve(&deps.storage)?
+    )?;
 
     let (redeem_amount, burn_amount) = if from_sl_token > Uint256::zero() {
         let redeem_amount = Uint256::from(from_sl_token).decimal_mul(exchange_rate)?;
@@ -119,18 +132,17 @@ pub fn redeem<S: Storage, A: Api, Q: Querier>(
 
 pub fn calc_exchange_rate<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S,A,Q>,
-    balance: Uint256
+    balance: Uint256,
+    total_borrows: Uint256,
+    total_reserves: Uint256
 ) -> StdResult<Decimal256> {
     let total_supply = TotalSupply::load(&deps.storage)?;
 
     if total_supply.is_zero() {
-        let config = Config::load(deps)?;
+        let config = Constants::load(deps)?;
 
         return Ok(config.initial_exchange_rate);
     }
-
-    let total_borrows = TotalBorrows::load(&deps.storage)?;
-    let total_reserves = Global::load_interest_reserve(&deps.storage)?;
 
     let total_minus_reserves = ((balance + total_borrows)? - total_reserves)?;
 

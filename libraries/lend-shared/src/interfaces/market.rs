@@ -74,50 +74,47 @@ pub trait Market {
     #[handle]
     fn reduce_reserves(amount: Uint128) -> StdResult<HandleResponse>;
 
-    #[query("config")]
-    fn config() -> StdResult<ConfigResponse>;
-
     #[query("state")]
-    fn state() -> StdResult<StateResponse>;
+    fn state(block: Option<u64>) -> StdResult<State>;
 
     #[query("borrow_rate_per_block")]
-    fn borrow_rate() -> StdResult<Decimal256>;
+    fn borrow_rate(block: Option<u64>) -> StdResult<Decimal256>;
 
     #[query("supply_rate_per_block")]
-    fn supply_rate() -> StdResult<Decimal256>;
+    fn supply_rate(block: Option<u64>) -> StdResult<Decimal256>;
 
     #[query("exchange_rate")]
-    fn exchange_rate() -> StdResult<Decimal256>;
+    fn exchange_rate(block: Option<u64>) -> StdResult<Decimal256>;
 
-    #[query("borrow_balance")]
-    fn borrow_balance(id: Binary) -> StdResult<Decimal256>;
-
-    #[query("account_snapshot")]
-    fn account_snapshot(id: Binary) -> StdResult<AccountInfo>;
+    #[query("account")]
+    fn account(id: Binary, block: Option<u64>) -> StdResult<AccountInfo>;
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct ConfigResponse {
-    underlying_asset: ContractLink<HumanAddr>,
-    overseer_contract: ContractLink<HumanAddr>,
-    interest_model_contract: ContractLink<HumanAddr>,
-    initial_exchange_rate: Decimal256,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub struct StateResponse {
+pub struct State {
     /// Block number that the interest was last accrued at
-    accrual_block: u64,
+    pub accrual_block: u64,
     /// Accumulator of the total earned interest rate since the opening of the market
-    borrow_index: Decimal256,
+    pub borrow_index: Decimal256,
     /// Total amount of outstanding borrows of the underlying in this market
-    total_borrows: Uint128,
+    pub total_borrows: Uint256,
     /// Total amount of reserves of the underlying held in this market
-    total_reserves: Uint128,
+    pub total_reserves: Uint256,
     /// Total number of tokens in circulation
-    total_supply: Uint128,
+    pub total_supply: Uint256,
+    /// The amount of the underlying token that the market has.
+    pub underlying_balance: Uint128,
+    /// Values in the contract that rarely change.
+    pub config: Config
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct Config {
+    // Initial exchange rate used when minting the first slTokens (used when totalSupply = 0)
+    pub initial_exchange_rate: Decimal256,
+    // Fraction of interest currently set aside for reserves
+    pub reserve_factor: Decimal256
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -162,16 +159,40 @@ impl Display for BorrowerInfo {
 pub fn query_exchange_rate(
     querier: &impl Querier,
     market: ContractLink<HumanAddr>,
+    block: Option<u64>
 ) -> StdResult<Decimal256> {
     let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: market.address,
         callback_code_hash: market.code_hash,
-        msg: to_binary(&QueryMsg::ExchangeRate {})?,
+        msg: to_binary(&QueryMsg::ExchangeRate { block })?,
     }))?;
     match result {
         QueryResponse::ExchangeRate { exchange_rate } => Ok(exchange_rate),
         _ => Err(StdError::generic_err(
             "Expecting QueryResponse::ExchangeRate",
         )),
+    }
+}
+
+pub fn query_account(
+    querier: &impl Querier,
+    market: ContractLink<HumanAddr>,
+    id: Binary,
+    block: Option<u64>
+) -> StdResult<AccountInfo> {
+    let result: QueryResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: market.address,
+        callback_code_hash: market.code_hash,
+        msg: to_binary(&QueryMsg::Account {
+            id,
+            block
+        })?
+    }))?;
+
+    match result {
+        QueryResponse::Account { account } => {
+            Ok(account)
+        },
+        _ => Err(StdError::generic_err("Expected QueryResponse::Account"))
     }
 }

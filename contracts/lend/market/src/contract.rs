@@ -26,8 +26,8 @@ use lend_shared::{
     interfaces::{
         interest_model::{query_borrow_rate, query_supply_rate},
         market::{
-            ReceiverCallbackMsg, AccountInfo,
-            StateResponse, ConfigResponse
+            ReceiverCallbackMsg, State,
+            AccountInfo, Config
         },
         overseer::{OverseerPermissions, query_can_transfer},
     },
@@ -39,10 +39,11 @@ pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
 pub const MAX_BORROW_RATE: Decimal256 = Decimal256::one();
 
 use state::{
-    Config, Contracts, Global,
-    Account, TotalBorrows
+    Constants, Contracts, Global,
+    Account, TotalBorrows, TotalSupply
 };
 use token::calc_exchange_rate;
+use ops::{accrue_interest, accrued_interest_at};
 
 #[contract_impl(path = "lend_shared::interfaces::market", component(path = "admin"))]
 pub trait Market {
@@ -61,7 +62,7 @@ pub trait Market {
             code_hash: env.contract_code_hash.clone(),
         };
 
-        Config::save(
+        Constants::save(
             deps,
             &Config {
                 initial_exchange_rate,
@@ -260,14 +261,14 @@ pub trait Market {
         interest_model: Option<ContractLink<HumanAddr>>,
         reserve_factor: Option<Decimal256>,
     ) -> StdResult<HandleResponse> {
-        let mut config = Config::load(deps)?;
+        let mut config = Constants::load(deps)?;
         if let Some(interest_model) = interest_model {
             Contracts::save_interest_model(deps, &interest_model)?;
         }
 
         if let Some(reserve_factor) = reserve_factor {
             config.reserve_factor = reserve_factor;
-            Config::save(deps, &config)?;
+            Constants::save(deps, &config)?;
         }
 
         Ok(HandleResponse::default())
@@ -279,18 +280,8 @@ pub trait Market {
         unimplemented!()
     }
 
-    #[query("config")]
-    fn config() -> StdResult<ConfigResponse> {
-        unimplemented!()
-    }
-
     #[query("state")]
-    fn state() -> StdResult<StateResponse> {
-        unimplemented!()
-    }
-
-    #[query("borrow_rate_per_block")]
-    fn borrow_rate() -> StdResult<Decimal256> {
+    fn state(block: Option<u64>) -> StdResult<State> {
         let underlying_asset = Contracts::load_underlying(deps)?;
 
         let balance = snip20::balance_query(
@@ -302,20 +293,53 @@ pub trait Market {
             underlying_asset.address.clone(),
         )?.amount;
 
-        let borrows = TotalBorrows::load(&deps.storage)?;
-        let reserves = Global::load_interest_reserve(&deps.storage)?;
+        let interest = accrued_interest_at(
+            deps,
+            block,
+            balance
+        )?;
+
+        Ok(State {
+            underlying_balance: balance,
+            total_borrows: interest.total_borrows,
+            total_reserves: interest.total_reserves,
+            borrow_index: interest.borrow_index,
+            total_supply: TotalSupply::load(&deps.storage)?,
+            accrual_block: Global::load_accrual_block_number(&deps.storage)?,
+            config: Constants::load(deps)?
+        })
+    }
+
+    #[query("borrow_rate_per_block")]
+    fn borrow_rate(block: Option<u64>) -> StdResult<Decimal256> {
+        let underlying_asset = Contracts::load_underlying(deps)?;
+
+        let balance = snip20::balance_query(
+            &deps.querier,
+            Contracts::load_self_ref(deps)?.address,
+            VIEWING_KEY.to_string(),
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+
+        let interest = accrued_interest_at(
+            deps,
+            block,
+            balance
+        )?;
     
         query_borrow_rate(
             &deps.querier,
             Contracts::load_interest_model(deps)?,
             Decimal256::from_uint256(balance)?,
-            Decimal256::from_uint256(borrows)?,
-            Decimal256::from_uint256(reserves)?,
+            Decimal256::from_uint256(interest.total_borrows)?,
+            Decimal256::from_uint256(interest.total_reserves)?,
         )
     }
 
     #[query("supply_rate_per_block")]
-    fn supply_rate() -> StdResult<Decimal256> {
+    fn supply_rate(block: Option<u64>) -> StdResult<Decimal256> {
         let underlying_asset = Contracts::load_underlying(deps)?;
 
         let balance = snip20::balance_query(
@@ -327,36 +351,52 @@ pub trait Market {
             underlying_asset.address.clone(),
         )?.amount;
 
-        let borrows = TotalBorrows::load(&deps.storage)?;
-        let reserves = Global::load_interest_reserve(&deps.storage)?;
+        let interest = accrued_interest_at(
+            deps,
+            block,
+            balance
+        )?;
 
         query_supply_rate(
             &deps.querier,
             Contracts::load_interest_model(deps)?,
             Decimal256::from_uint256(balance)?,
-            Decimal256::from_uint256(borrows)?,
-            Decimal256::from_uint256(reserves)?,
-            Config::load(deps)?.reserve_factor
+            Decimal256::from_uint256(interest.total_borrows)?,
+            Decimal256::from_uint256(interest.total_reserves)?,
+            Constants::load(deps)?.reserve_factor
         )
     }
 
     #[query("exchange_rate")]
-    fn exchange_rate() -> StdResult<Decimal256> {
-        unimplemented!()
+    fn exchange_rate(block: Option<u64>) -> StdResult<Decimal256> {
+        let underlying_asset = Contracts::load_underlying(deps)?;
+
+        let balance = snip20::balance_query(
+            &deps.querier,
+            Contracts::load_self_ref(deps)?.address,
+            VIEWING_KEY.to_string(),
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+
+        let interest = accrued_interest_at(
+            deps,
+            block,
+            balance
+        )?;
+
+        calc_exchange_rate(
+            deps,
+            balance.into(),
+            interest.total_borrows,
+            interest.total_reserves
+        )
     }
 
-    #[query("borrow_balance")]
-    fn borrow_balance(id: Binary) -> StdResult<Decimal256> {
-        unimplemented!()
-    }
-
-    #[query("account_snapshot")]
-    fn account_snapshot(id: Binary) -> StdResult<AccountInfo> {
-        // TODO: Should borrow_index be updated first?
-        let borrow_index = Global::load_borrow_index(&deps.storage)?;
-
+    #[query("account")]
+    fn account(id: Binary, block: Option<u64>) -> StdResult<AccountInfo> {
         let account = Account::try_from(id)?;
-        let snapshot = account.get_borrow_snapshot(&deps.storage)?;
 
         let underlying_asset = Contracts::load_underlying(deps)?;
         let balance = snip20::balance_query(
@@ -367,11 +407,24 @@ pub trait Market {
             underlying_asset.code_hash.clone(),
             underlying_asset.address.clone(),
         )?.amount;
-    
+
+        let interest = accrued_interest_at(
+            deps,
+            block,
+            balance
+        )?;
+
+        let snapshot = account.get_borrow_snapshot(&deps.storage)?;
+
         Ok(AccountInfo {
             sl_token_balance: account.get_balance(&deps.storage)?,
-            borrow_balance: snapshot.current_balance(borrow_index)?,
-            exchange_rate: calc_exchange_rate(deps, balance.into())?
+            borrow_balance: snapshot.current_balance(interest.borrow_index)?,
+            exchange_rate: calc_exchange_rate(
+                deps,
+                balance.into(),
+                interest.total_borrows,
+                interest.total_reserves
+            )?
         })
     }
 }
@@ -404,58 +457,4 @@ fn repay<S: Storage, A: Api, Q: Querier>(
     TotalBorrows::decrease(&mut deps.storage, amount)?;
 
     Ok(HandleResponse::default())
-}
-
-fn accrue_interest<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    current_block: u64,
-    balance_prior: Uint128
-) -> StdResult<()> {
-    let config = Config::load(deps)?;
-    // Initial block number
-    let last_accrual_block = Global::load_accrual_block_number(&deps.storage)?;
-
-    if last_accrual_block == current_block {
-        return Ok(());
-    }
-
-    // Previous values from storage
-    let borrows_prior = TotalBorrows::load(&deps.storage)?;
-    let reserves_prior = Global::load_interest_reserve(&deps.storage)?;
-    let borrow_index_prior = Global::load_borrow_index(&deps.storage)?;
-
-    // Current borrow interest rate
-    let interest_model = Contracts::load_interest_model(deps)?;
-    let borrow_rate = query_borrow_rate(
-        &deps.querier,
-        interest_model,
-        Decimal256::from_uint256(balance_prior)?,
-        Decimal256::from_uint256(borrows_prior)?,
-        Decimal256::from_uint256(reserves_prior)?,
-    )?;
-
-    if borrow_rate >= MAX_BORROW_RATE {
-        return Err(StdError::generic_err("Borrow rate is absurdly high"));
-    }
-
-    // Calculate the number of blocks elapsed since last accrual
-    let block_delta = current_block
-        .checked_sub(last_accrual_block)
-        .ok_or_else(|| StdError::generic_err("Could not calculate block delta"))?;
-
-    let simple_interest_factor = (borrow_rate * Decimal256::from_uint256(block_delta)?)?;
-    let interest_accumulated = borrows_prior.decimal_mul(simple_interest_factor)?;
-
-    let total_borrows_new = (interest_accumulated + borrows_prior)?;
-    TotalBorrows::save(&mut deps.storage, &total_borrows_new)?;
-
-    let total_reserves_new = (interest_accumulated.decimal_mul(config.reserve_factor)? + reserves_prior)?;
-    Global::save_interest_reserve(&mut deps.storage, &total_reserves_new)?;
-
-    let borrow_index_new = ((borrow_index_prior * simple_interest_factor)? + borrow_index_prior)?;
-    Global::save_borrow_index(&mut deps.storage, &borrow_index_new)?;
-
-    Global::save_accrual_block_number(&mut deps.storage, current_block)?;
-
-    Ok(())
 }

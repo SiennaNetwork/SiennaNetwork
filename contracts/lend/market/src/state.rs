@@ -14,7 +14,7 @@ use lend_shared::{
         crypto::sha_256,
         Canonize, ContractLink, Decimal256, Humanize, StdError, Uint256,
     },
-    interfaces::market::{BorrowerInfo, Borrower},
+    interfaces::market::{BorrowerInfo, Borrower, Config},
     impl_contract_storage
 };
 use serde::{Deserialize, Serialize};
@@ -23,13 +23,7 @@ const PAGINATION_LIMIT: u8 = 30;
 
 pub struct Contracts;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct Config {
-    // Initial exchange rate used when minting the first slTokens (used when totalSupply = 0)
-    pub initial_exchange_rate: Decimal256,
-    // Fraction of interest currently set aside for reserves
-    pub reserve_factor: Decimal256,
-}
+pub struct Constants;
 
 pub struct Account(BorrowerId);
 
@@ -48,17 +42,17 @@ impl Contracts {
     impl_contract_storage!(save_self_ref, load_self_ref, b"self");
 }
 
-impl Config {
+impl Constants {
     const KEY: &'static [u8] = b"config";
 
     pub fn save<S: Storage, A: Api, Q: Querier>(
         deps: &mut Extern<S, A, Q>,
-        config: &Self,
+        config: &Config,
     ) -> StdResult<()> {
         save(&mut deps.storage, Self::KEY, &config)
     }
 
-    pub fn load<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Self> {
+    pub fn load<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Config> {
         let result: Config = load(&deps.storage, Self::KEY)?.unwrap();
 
         Ok(result)

@@ -1,4 +1,3 @@
-mod querier;
 mod state;
 
 use lend_shared::{
@@ -15,7 +14,7 @@ use lend_shared::{
         Uint256,
     },
     interfaces::{
-        market::query_exchange_rate,
+        market::{query_exchange_rate, query_account},
         oracle::{
             query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
         },
@@ -23,7 +22,6 @@ use lend_shared::{
     },
 };
 
-use querier::query_snapshot;
 use state::{Borrower, BorrowerId, Constants, Contracts, Markets};
 
 #[contract_impl(path = "lend_shared::interfaces::overseer", component(path = "admin"))]
@@ -150,7 +148,12 @@ pub trait Overseer {
         let (id, market) = borrower.get_market(deps, &market_address)?;
 
         // TODO: Maybe calc_liquidity() can be changed to cover this check in order to avoid calling this twice.
-        let snapshot = query_snapshot(&deps.querier, market.contract, borrower.clone().id())?;
+        let snapshot = query_account(
+            &deps.querier,
+            market.contract,
+            borrower.clone().id(),
+            None
+        )?;
 
         if snapshot.borrow_balance != Uint256::zero() {
             return Err(StdError::generic_err("Cannot exit market while borrowing."));
@@ -294,7 +297,16 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     for market in borrower.list_markets(deps)? {
         let is_target_asset = target_asset == market.contract.address;
 
-        let snapshot = query_snapshot(&deps.querier, market.contract, borrower.clone().id())?;
+        let snapshot = query_account(
+            &deps.querier,
+            market.contract,
+            borrower.clone().id(),
+            // TODO: Compound queries the cached values, possibly due to updating
+            // all interest in all markets and storing it being expensive.
+            // However, here we can just calculate without storing. 
+            // Wouldn't doing this be more accurate? Or is there another reason?
+            None
+        )?;
 
         let price = query_price(
             &deps.querier,
@@ -363,7 +375,7 @@ fn calc_seize_tokens<S: Storage, A: Api, Q: Querier>(
 
     // Get the exchange rate and calculate the number of collateral tokens to seize
     let (_, market) = Markets::get_by_addr(deps, &collateral)?;
-    let exchange_rate = query_exchange_rate(&deps.querier, market.contract)?;
+    let exchange_rate = query_exchange_rate(&deps.querier, market.contract, None)?;
     let ratio = ((premium * price_borrowed.rate)? / (price_collateral.rate * exchange_rate)?)?;
 
     let seize_tokens = (ratio * Decimal256::from_uint256(repay_amount)?)?.round();
