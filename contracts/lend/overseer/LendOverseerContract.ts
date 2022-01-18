@@ -1,4 +1,4 @@
-import { randomHex, ScrtContract_1_2, IAgent, ContractState } from "@fadroma/scrt"
+import { ScrtContract_1_2 } from "@fadroma/scrt"
 
 import { workspace } from '@sienna/settings'
 
