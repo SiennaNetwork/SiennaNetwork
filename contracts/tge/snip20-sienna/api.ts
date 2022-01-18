@@ -29,16 +29,4 @@ export class SiennaSNIP20Contract extends SNIP20Contract_1_0 {
     this.init.msg.prng_seed = randomHex(36)
   }
 
-  static attach = (
-    address:  string,
-    codeHash: string,
-    agent:    IAgent
-  ) => {
-    const instance = new SiennaSNIP20Contract({ admin: agent })
-    instance.init.agent = agent
-    instance.init.address = address
-    instance.blob.codeHash = codeHash
-    return instance
-  }
-
 }

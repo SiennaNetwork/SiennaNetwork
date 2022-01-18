@@ -1,3 +1,4 @@
+import { timestamp } from '@hackbg/tools'
 import type { IChain, IAgent, Deployment } from '@fadroma/scrt'
 import { buildAndUpload, Scrt } from '@fadroma/scrt'
 
@@ -15,7 +16,7 @@ export async function deployLegacyFactory (chain: IChain, admin: IAgent) {
     exchange_settings: settings(chain.chainId).amm,
     contracts,
     ref: 'main',
-    suffix: '+${timestamp()}'
+    suffix: `+${timestamp()}`
   })
   await buildAndUpload([V1_FACTORY])
   await V1_FACTORY.instantiate()

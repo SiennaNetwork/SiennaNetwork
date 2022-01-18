@@ -43,16 +43,4 @@ export class LPTokenContract extends SNIP20Contract_1_2 {
       },
     })
   }
-
-  static attach = (
-    address:  string,
-    codeHash: string,
-    agent:    IAgent
-  ) => {
-    const instance = new LPTokenContract({ admin: agent })
-    instance.init.agent = agent
-    instance.init.address = address
-    instance.blob.codeHash = codeHash
-    return instance
-  }
 }

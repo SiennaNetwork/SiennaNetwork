@@ -94,7 +94,11 @@ export async function deploySwap (options: SwapOptions) {
       const {lp_token} = await deployLiquidityPool(name, existingExchanges)
       if (rewards && rewards[name]) {
         console.info(`Deploying rewards for ${name}...`)
-        const lpToken = LPTokenContract.attach(lp_token.address, lp_token.code_hash, admin)
+        const lpToken = new LPTokenContract({
+          address:  lp_token.address,
+          codeHash: lp_token.code_hash,
+          admin
+        })
         const reward  = BigInt(rewards[name])
         const pool    = await deployRewardPool(name, lpToken, SIENNA)
         rptConfig.push([pool.address, String(reward * ONE_SIENNA)])
@@ -160,7 +164,7 @@ export async function deploySwap (options: SwapOptions) {
   function getSwapTokens (links: Record<string, { address: string, codeHash: string }>) {
     const tokens = {}
     for (const [name, {address, codeHash}] of Object.entries(links)) {
-      tokens[name] = AMMSNIP20Contract.attach(address, codeHash, admin)
+      tokens[name] = new AMMSNIP20Contract({address, codeHash, admin})
       console.log('getSwapToken', name, address, codeHash)
     }
     return tokens

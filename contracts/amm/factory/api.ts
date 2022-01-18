@@ -41,20 +41,10 @@ export class FactoryContract extends ScrtContract_1_2 {
     handleMsg:   "./schema/handle_msg.json",
   });
 
-  static attach = (
-    address:  string,
-    codeHash: string,
-    agent:    IAgent
-  ) => {
-    const instance = new FactoryContract({ admin: agent })
-    instance.init.agent    = agent
-    instance.init.address  = address
-    instance.blob.codeHash = codeHash
-    return instance
-  }
-
   constructor({
+    address,
     codeId,
+    codeHash,
     admin,
     schema = FactoryContract.schema,
     prefix,
@@ -79,9 +69,9 @@ export class FactoryContract extends ScrtContract_1_2 {
       // for building
       workspace, crate: 'factory',
       // for uploading
-      codeId, label: 'SiennaAMMFactory',
+      codeId, codeHash, label: 'SiennaAMMFactory',
       // for transacting
-      schema, prefix, agent: admin
+      address, schema, prefix, agent: admin
     })
 
     Object.assign(this.init, {
@@ -165,7 +155,7 @@ export class FactoryContract extends ScrtContract_1_2 {
     const {get_exchange_address:{address:exchange_address}} =
       await agent.query(this.link, "get_exchange_address", { pair })
 
-    const exchange = AMMContract.attach(exchange_address, undefined, agent)
+    const exchange = new AMMContract({address: exchange_address, agent})
 
     const {pair_info:{liquidity_token:lp_token}} = await exchange.pairInfo()
 

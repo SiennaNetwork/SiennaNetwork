@@ -92,11 +92,11 @@ export async function deployRewards (
         }
         const { lp_token } = exchange
         console.debug(`Deploying rewards for ${name}...`, { lp_token })
-        const lpToken = LPTokenContract.attach(
-          exchange.lp_token.address,
-          exchange.lp_token.code_hash,
+        const lpToken = new LPTokenContract({
+          address:  exchange.lp_token.address,
+          codeHash: exchange.lp_token.code_hash,
           admin
-        )
+        })
         const reward = BigInt(rewards[name]) / BigInt(1 / split)
         const pool   = await deployRewardPool(`${name}${suffix}`, lpToken, SIENNA)
         deployedContracts.push(pool)
@@ -141,7 +141,7 @@ function getSwapTokens (
 ): Record<string, SNIP20Contract> {
   const tokens = {}
   for (const [name, {address, codeHash}] of Object.entries(links)) {
-    tokens[name] = AMMSNIP20Contract.attach(address, codeHash, admin)
+    tokens[name] = new AMMSNIP20Contract({address, codeHash, admin})
     console.log('getSwapToken', name, address, codeHash)
   }
   return tokens

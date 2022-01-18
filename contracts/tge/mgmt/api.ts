@@ -22,13 +22,6 @@ export class MGMTContract extends ScrtContract_1_2 {
     handleMsg:   "./schema/handle.json"
   })
 
-  static attach = (address: string, codeHash: string, admin: IAgent) => {
-    const contract = new MGMTContract({ admin })
-    contract.init.agent    = admin
-    contract.init.address  = address
-    contract.blob.codeHash = codeHash
-  }
-
   code = { ...this.code, workspace, crate: 'sienna-mgmt' }
 
   init = { ...this.init, label: 'SiennaMGMT', msg: {} }
