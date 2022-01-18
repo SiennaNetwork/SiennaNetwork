@@ -14,11 +14,17 @@ import { LaunchpadContract  } from "@sienna/launchpad";
 import { workspace } from "@sienna/settings";
 
 import {
+  InitMsg,
   ExchangeSettings,
   ContractInstantiationInfo
 } from './schema/init_msg.d';
-import { TokenType } from './schema/handle_msg.d';
-import { QueryResponse, Exchange } from './schema/query_response.d'
+import {
+  TokenType
+} from './schema/handle_msg.d';
+import {
+  QueryResponse,
+  Exchange
+} from './schema/query_response.d'
 
 export type FactoryInventory = {
   snip20_contract?:    ContractInstantiationInfo
@@ -42,12 +48,13 @@ export class FactoryContract extends ScrtContract_1_2 {
   });
 
   constructor({
+    ref,
     address,
     codeId,
     codeHash,
     admin,
-    schema = FactoryContract.schema,
     prefix,
+    suffix = '',
     exchange_settings,
     contracts
   }: ContractAPIOptions & {
@@ -69,9 +76,9 @@ export class FactoryContract extends ScrtContract_1_2 {
       // for building
       workspace, crate: 'factory',
       // for uploading
-      codeId, codeHash, label: 'SiennaAMMFactory',
+      codeId, codeHash, label: `SiennaAMMFactory${suffix}`,
       // for transacting
-      address, schema, prefix, agent: admin
+      address, prefix, agent: admin
     })
 
     Object.assign(this.init, {
@@ -84,6 +91,10 @@ export class FactoryContract extends ScrtContract_1_2 {
         },
       }
     })
+
+    if (ref) {
+      this.code.ref = ref
+    }
 
     if (admin) {
       Object.assign(this.init.msg, { admin: admin.address })
@@ -100,32 +111,30 @@ export class FactoryContract extends ScrtContract_1_2 {
   }
 
   get contracts (): Promise<FactoryInventory> {
+    // type kludge!
     if (this.address) {
       // If this contract has an address query this from the contract state
-      return (this.q.get_config() as Promise<QueryResponse>).then(({
-        snip20_contract,
-        pair_contract,
-        lp_token_contract,
-        ido_contract,
-        launchpad_contract,
-        router_contract
-      })=>({// type kludge!
-        snip20_contract:    snip20_contract    as ContractInstantiationInfo,
-        pair_contract:      pair_contract      as ContractInstantiationInfo,
-        lp_token_contract:  lp_token_contract  as ContractInstantiationInfo,
-        ido_contract:       ido_contract       as ContractInstantiationInfo,
-        launchpad_contract: launchpad_contract as ContractInstantiationInfo,
-        router_contract:    router_contract    as ContractInstantiationInfo
-      }))
+      return (this.query({'get_config':{}}) as Promise<QueryResponse>).then(response=>{
+        const config: FactoryInventory = response.config
+        return {
+          snip20_contract:    config.snip20_contract,
+          pair_contract:      config.pair_contract,
+          lp_token_contract:  config.lp_token_contract,
+          ido_contract:       config.ido_contract,
+          launchpad_contract: config.launchpad_contract,
+          router_contract:    config.router_contract
+        }
+      })
     } else {
       // If it's not deployed yet, return the value from the config
+      const initMsg: InitMsg = this.init.msg as InitMsg
       return Promise.resolve({
-        snip20_contract:    this.init.msg.snip20_contract,
-        pair_contract:      this.init.msg.pair_contract,
-        lp_token_contract:  this.init.msg.lp_token_contract,
-        ido_contract:       this.init.msg.ido_contract,
-        launchpad_contract: this.init.msg.launchpad_contract,
-        router_contract:    this.init.msg.router_contract
+        snip20_contract:    initMsg.snip20_contract    as ContractInstantiationInfo,
+        pair_contract:      initMsg.pair_contract      as ContractInstantiationInfo,
+        lp_token_contract:  initMsg.lp_token_contract  as ContractInstantiationInfo,
+        ido_contract:       initMsg.ido_contract       as ContractInstantiationInfo,
+        launchpad_contract: initMsg.launchpad_contract as ContractInstantiationInfo,
+        router_contract:    initMsg.router_contract    as ContractInstantiationInfo
       })
     }
   }
@@ -149,18 +158,11 @@ export class FactoryContract extends ScrtContract_1_2 {
   }
 
   async getExchange (token_0: TokenType, token_1: TokenType, agent = this.instantiator) {
-
     const pair = { token_0, token_1 }
-
-    const {get_exchange_address:{address:exchange_address}} =
-      await agent.query(this.link, "get_exchange_address", { pair })
-
-    const exchange = new AMMContract({address: exchange_address, agent})
-
+    const {get_exchange_address} = await agent.query(this.link, "get_exchange_address", { pair })
+    const exchange = new AMMContract({address: get_exchange_address.address, agent})
     const {pair_info:{liquidity_token:lp_token}} = await exchange.pairInfo()
-
     return { exchange: exchange.link, lp_token, token_0, token_1 }
-
   }
 
   /** Create a liquidity pool, i.e. an instance of the exchange contract */
