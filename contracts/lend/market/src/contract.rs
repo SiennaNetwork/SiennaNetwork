@@ -24,7 +24,7 @@ use lend_shared::{
         from_binary, to_binary
     },
     interfaces::{
-        interest_model::query_borrow_rate,
+        interest_model::{query_borrow_rate, query_supply_rate},
         market::{
             ReceiverCallbackMsg, AccountInfo,
             StateResponse, ConfigResponse
@@ -274,6 +274,7 @@ pub trait Market {
     }
 
     #[handle]
+    #[require_admin]
     fn reduce_reserves(amount: Uint128) -> StdResult<HandleResponse> {
         unimplemented!()
     }
@@ -290,12 +291,53 @@ pub trait Market {
 
     #[query("borrow_rate_per_block")]
     fn borrow_rate() -> StdResult<Decimal256> {
-        unimplemented!()
+        let underlying_asset = Contracts::load_underlying(deps)?;
+
+        let balance = snip20::balance_query(
+            &deps.querier,
+            Contracts::load_self_ref(deps)?.address,
+            VIEWING_KEY.to_string(),
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+
+        let borrows = TotalBorrows::load(&deps.storage)?;
+        let reserves = Global::load_interest_reserve(&deps.storage)?;
+    
+        query_borrow_rate(
+            &deps.querier,
+            Contracts::load_interest_model(deps)?,
+            Decimal256::from_uint256(balance)?,
+            Decimal256::from_uint256(borrows)?,
+            Decimal256::from_uint256(reserves)?,
+        )
     }
 
     #[query("supply_rate_per_block")]
     fn supply_rate() -> StdResult<Decimal256> {
-        unimplemented!()
+        let underlying_asset = Contracts::load_underlying(deps)?;
+
+        let balance = snip20::balance_query(
+            &deps.querier,
+            Contracts::load_self_ref(deps)?.address,
+            VIEWING_KEY.to_string(),
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+
+        let borrows = TotalBorrows::load(&deps.storage)?;
+        let reserves = Global::load_interest_reserve(&deps.storage)?;
+
+        query_supply_rate(
+            &deps.querier,
+            Contracts::load_interest_model(deps)?,
+            Decimal256::from_uint256(balance)?,
+            Decimal256::from_uint256(borrows)?,
+            Decimal256::from_uint256(reserves)?,
+            Config::load(deps)?.reserve_factor
+        )
     }
 
     #[query("exchange_rate")]
