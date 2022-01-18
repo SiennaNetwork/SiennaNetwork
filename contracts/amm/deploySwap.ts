@@ -24,41 +24,42 @@ import {
   SiennaSNIP20Contract,
 } from '@sienna/api'
 
-export type SwapOptions = {
-  chain?:  IChain,
-  admin?:  IAgent,
-  prefix:  string,
-}
+export async function deploySwap (
+  chain: IChain,
+  admin: IAgent,
+  deployment = chain.deployments.active
+) {
 
-export async function deploySwap (options: SwapOptions) {
+  const prefix = deployment.name
 
-  const {
-    chain = await new Scrt().ready,
-    admin = await chain.getAgent(),
+  const SIENNA   = deployment.getContract(SiennaSNIP20Contract, 'SiennaSNIP20', admin),
+        RPT      = deployment.getContract(RPTContract,          'SiennaRPT',    admin),
+
+  const EXCHANGE  = new AMMContract({ prefix, admin }),
+        AMMTOKEN  = new AMMSNIP20Contract({ prefix, admin }),
+        LPTOKEN   = new LPTokenContract({ prefix, admin }),
+        IDO       = new IDOContract({ prefix, admin }),
+        LAUNCHPAD = new LaunchpadContract({ prefix, admin }),
+        REWARDS   = new RewardsContract({ prefix, admin })
+
+  await buildAndUpload([EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD, REWARDS])
+
+  const FACTORY = new FactoryContract({
     prefix,
-  } = options
+    admin,
+    exchange_settings: settings(chain.chainId).amm,
+    contracts: {
+      snip20_contract:    AMMTOKEN,
+      pair_contract:      EXCHANGE,
+      lp_token_contract:  LPTOKEN,
+      ido_contract:       IDO,
+      launchpad_contract: LAUNCHPAD,
+    }
+  })
 
-  const
-    instance = chain.deployments.active,
-    SIENNA   = instance.getContract(SiennaSNIP20Contract, 'SiennaSNIP20', admin),
-    RPT      = instance.getContract(RPTContract,          'SiennaRPT',    admin)
+  await buildAndUpload([FACTORY])
 
-  const
-    EXCHANGE  = new AMMContract({ prefix, admin }),
-    AMMTOKEN  = new AMMSNIP20Contract({ prefix, admin }),
-    LPTOKEN   = new LPTokenContract({ prefix, admin }),
-    IDO       = new IDOContract({ prefix, admin }),
-    LAUNCHPAD = new LaunchpadContract({ prefix, admin }),
-    REWARDS   = new RewardsContract({ prefix, admin })
-
-  const
-    factoryDeps    = { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD },
-    factoryConfig  = settings(chain.chainId).amm,
-    factoryOptions = { prefix, admin, config: factoryConfig, ...factoryDeps },
-    FACTORY        = new FactoryContract(factoryOptions)
-
-  await buildAndUpload([FACTORY, EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD, REWARDS])
-  await FACTORY.instantiateOrExisting(instance.contracts['SiennaAMMFactory'])
+  await FACTORY.instantiateOrExisting(deployment.contracts['SiennaAMMFactory'])
 
   /// Obtain a list of token addr/hash pairs for creating liquidity pools
 
@@ -107,7 +108,7 @@ export async function deploySwap (options: SwapOptions) {
   }
 
   if (chain.isMainnet) {
-    const rptConfigPath = instance.resolve(`RPTConfig.json`)
+    const rptConfigPath = deployment.resolve(`RPTConfig.json`)
     writeFileSync(rptConfigPath, JSON.stringify({config: rptConfig}, null, 2), 'utf8')
     console.info(
       `\n\nWrote ${bold(rptConfigPath)}. `+
@@ -137,7 +138,7 @@ export async function deploySwap (options: SwapOptions) {
           token0.asCustomToken,
           token1.asCustomToken
         )
-        const exchangeReceiptPath = instance.resolve(`SiennaSwap_${name}.json`)
+        const exchangeReceiptPath = deployment.resolve(`SiennaSwap_${name}.json`)
         writeFileSync(exchangeReceiptPath, JSON.stringify(deployed, null, 2), 'utf8')
         console.info(`\nWrote ${bold(exchangeReceiptPath)}.`)
         console.info(bold('Deployed.'), deployed)
@@ -152,7 +153,7 @@ export async function deploySwap (options: SwapOptions) {
     const {codeId, codeHash} = REWARDS
         , options    = { codeId, codeHash, prefix, name, admin, lpToken, rewardToken, }
         , rewardPool = new RewardsContract(options)
-        , receipt    = instance.contracts[rewardPool.init.label]
+        , receipt    = deployment.contracts[rewardPool.init.label]
     await rewardPool.instantiateOrExisting(receipt)
     return rewardPool
   }
@@ -182,7 +183,7 @@ export async function deploySwap (options: SwapOptions) {
       Object.assign(token.blob, { codeId: AMMTOKEN.codeId, codeHash: AMMTOKEN.codeHash })
       Object.assign(token.init, { prefix, label, msg: initMsg })
       Object.assign(token.init.msg, { prng_seed: randomHex(36) })
-      const existing = instance.contracts[label]
+      const existing = deployment.contracts[label]
       await tokens[symbol].instantiateOrExisting(existing)
       await tokens[symbol].setMinters([admin.address], admin)
       await tokens[symbol].mint("100000000000000000000000", admin)

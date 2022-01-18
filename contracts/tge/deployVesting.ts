@@ -9,15 +9,16 @@ import {
   RPTContract
 } from '@sienna/api'
 
-import settings from '@sienna/settings'
+import settings, { abs } from '@sienna/settings'
 
 import type { SwapOptions } from './deploySwap'
 
 export type VestingOptions = {
-  prefix?:   string
-  chain?:    IChain,
-  admin?:    IAgent,
-  schedule?: ScheduleFor_HumanAddr
+  workspace?: string
+  prefix?:    string
+  chain?:     IChain
+  admin?:     IAgent
+  schedule?:  ScheduleFor_HumanAddr
 }
 
 export async function deployVesting (
@@ -25,18 +26,19 @@ export async function deployVesting (
 ): Promise<SwapOptions> {
 
   const {
-    prefix   = timestamp(),
-    chain    = await new Scrt().ready,
-    admin    = await chain.getAgent(),
-    schedule = settings.schedule
+    workspace = abs(),
+    prefix    = timestamp(),
+    chain     = await new Scrt().ready,
+    admin     = await chain.getAgent(),
+    schedule  = settings.schedule
   } = options
 
   const RPTAccount = getRPTAccount(schedule)
   const portion    = RPTAccount.portion_size
 
-  const SIENNA = new SiennaSNIP20Contract({ prefix, admin })
-  const MGMT   = new MGMTContract({ prefix, admin, schedule, SIENNA })
-  const RPT    = new RPTContract({ prefix, admin, MGMT, SIENNA, portion })
+  const SIENNA = new SiennaSNIP20Contract({ workspace, prefix, admin })
+  const MGMT   = new MGMTContract({ workspace, prefix, admin, schedule, SIENNA })
+  const RPT    = new RPTContract({ workspace, prefix, admin, MGMT, SIENNA, portion })
 
   await buildAndUpload([SIENNA, MGMT, RPT])
 
@@ -62,7 +64,7 @@ export async function deployVesting (
   await MGMT.launch()
   await RPT.vest()
 
-  return { prefix, chain, admin, SIENNA, MGMT, RPT }
+  return { workspace, prefix, chain, admin, SIENNA, MGMT, RPT }
 
   /// ### Get the RPT account from the schedule
   /// This is a special entry in MGMT's schedule that must be made to point to

@@ -14,11 +14,14 @@ export type IDOOptions = ContractAPIOptions & {
 }
 
 export class IDOContract extends ScrtContract_1_2 {
+
+  crate = 'ido'
+
+  name = 'SiennaIDO'
+
   constructor (options: IDOOptions = {}) {
     super({ ...options, agent: options.admin, schema })
   }
-
-  code = { ...this.code, workspace, crate: 'ido' }
 
   /**
    * Check if the address can participate in an IDO

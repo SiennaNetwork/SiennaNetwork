@@ -123,38 +123,42 @@ Prototype of future migration procedures.
 ```typescript
 import { deployRewardsSideBySide } from '@sienna/amm'
 commands['deploy']['rewards-side-by-side'] = async () => {
-  const {chain, admin} = await init(process.env.CHAIN_NAME)
-  if (chain.isMainnet) {
-    console.log('This command is not intended for mainnet.')
-    process.exit(1)
-  }
-  if (!chain.deployments.active) {
-    console.log('This command requires an active deployment.')
-    process.exit(1)
-  }
-  chain.deployments.printActive()
+  const {chain, admin} = await init(process.env.CHAIN_NAME, {
+    notOnMainnet:          true,
+    needsActiveDeployment: true
+  })
   await deployRewardsSideBySide(chain, admin)
 }
 
 import { deployLegacyFactory } from '@sienna/amm'
 commands['deploy']['legacy-factory'] = async () => {
-  const {chain, admin} = await init(process.env.CHAIN_NAME)
-  if (chain.isMainnet) {
-    console.log('This command is not intended for mainnet.')
-    process.exit(1)
-  }
-  if (!chain.deployments.active) {
-    console.log('This command requires an active deployment.')
-    process.exit(1)
-  }
-  chain.deployments.printActive()
+  const {chain, admin} = await init(process.env.CHAIN_NAME, {
+    notOnMainnet:          true,
+    needsActiveDeployment: true
+  })
   await deployLegacyFactory(chain, admin)
 }
 ```
 
-## Perform an upgrade
+## Upgrades and migrations
 
-### Upgrading the reward pools in a deployment
+```typescript
+commands['migrate'] = {}
+```
+
+### Migrating to `@sienna/amm v2.0.0` + `@sienna/rewards v3.0.0`
+```typescript
+import { migrateFactoryAndRewards } from '@sienna/amm'
+commands['migrate']['factory-and-rewards'] = async function (id?: string) {
+  const {chain, admin} = await init(process.env.CHAIN_NAME, {
+    notOnMainnet:          true,
+    needsActiveDeployment: true
+  })
+  await migrateFactoryAndRewards(chain, admin)
+}
+```
+
+### Replacing a single reward pool in a deployment with an updated version
 
 This command closes a specified reward pool in the currently selected deployment
 (see [Select the active deployment](#select-the-active-deployment)) and deploys a new one
@@ -162,29 +166,24 @@ with the latest version of the code.
 
 ```typescript
 import { replaceRewardPool, printRewardsContracts } from '@sienna/amm'
-commands['upgrade'] = {
-
-  async ['rewards'] (id?: string) {
-    const {chain, admin} = await init(process.env.CHAIN_NAME)
-    if (id) {
-      await replaceRewardPool(chain, admin, id)
-    } else {
-      printRewardsContracts(chain)
-    }
+commands['migrate']['rewards'] = async function (id?: string) {
+  const {chain, admin} = await init(process.env.CHAIN_NAME)
+  if (id) {
+    await replaceRewardPool(chain, admin, id)
+  } else {
+    printRewardsContracts(chain)
   }
-
 }
 ```
 
 ## Helper commands for auditing the contract logic
 
+This spins up a rewards contract on localnet and lets you interact with it.
+
 ```typescript
 import { rewardsAudit } from '@sienna/amm'
-commands['audit'] = {
-
-  rewards: rewardsAudit
-
-}
+commands['audit'] = {}
+commands['audit']['rewards'] = rewardsAudit
 ```
 
 ## Entry point

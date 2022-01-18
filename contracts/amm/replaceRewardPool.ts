@@ -1,25 +1,26 @@
 import type { IChain, IAgent } from '@fadroma/scrt'
 import { buildAndUpload } from '@fadroma/scrt'
-import { bold, timestamp } from '@hackbg/tools'
+import { bold, colors, timestamp } from '@hackbg/tools'
+import { RewardsContract, RPTContract } from '@sienna/api'
 import process from 'process'
 import { writeFileSync } from 'fs'
 
 export async function replaceRewardPool (
   chain: IChain,
   admin: IAgent,
-  label: string
+  rewardPoolLabel: string
 ) {
 
-  const { name: prefix, getContract } = chain.deployments.active
+  const { name: prefix, getContract, resolve } = chain.deployments.active
 
   console.log(
-    `Upgrading reward pool ${bold(label)}` +
+    `Upgrading reward pool ${bold(rewardPoolLabel)}` +
     `\nin deployment ${bold(prefix)}` +
     `\non ${bold(chain.chainId)}` +
     `\nas ${bold(admin.address)}\n`
   )
 
-  const OLD_POOL = getContract(RewardsContract, label, admin)
+  const OLD_POOL = getContract(RewardsContract, rewardPoolLabel, admin)
       , RPT      = getContract(RPTContract, 'SiennaRPT', admin)
 
   const {config} = await RPT.status
@@ -48,17 +49,18 @@ export async function replaceRewardPool (
   ])
 
   const NEW_POOL = new RewardsContract({
-    prefix, label: `${label}@${timestamp()}`, admin,
+    prefix, label: `${rewardPoolLabel}@${timestamp()}`, admin,
     lpToken:     LP_TOKEN,
     rewardToken: REWARD_TOKEN
   })
+
   await buildAndUpload([NEW_POOL])
   await NEW_POOL.instantiate()
 
   config[found][0] = NEW_POOL.address
 
   if (chain.isMainnet) {
-    const rptConfigPath = instance.resolve(`RPTConfig.json`)
+    const rptConfigPath = resolve(`RPTConfig.json`)
     writeFileSync(rptConfigPath, JSON.stringify({config}, null, 2), 'utf8')
     console.info(
       `\n\nWrote ${bold(rptConfigPath)}. `+
@@ -85,6 +87,6 @@ export function printRewardsContracts (chain: IChain) {
       console.log(`\nNo rewards contracts.`)
     }
   } else {
-    console.log(`\nSelect an instance to pick a reward contract.`)
+    console.log(`\nSelect a deployment to pick a reward contract.`)
   }
 }

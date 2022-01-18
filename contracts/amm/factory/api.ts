@@ -1,5 +1,10 @@
 import type { IAgent } from "@fadroma/scrt";
-import { ScrtContract_1_2, ContractAPIOptions } from "@fadroma/scrt";
+import {
+  ScrtContract_1_2,
+  ContractBuildState,
+  ContractUploadState,
+  ContractClientState
+} from "@fadroma/scrt";
 import { randomHex } from "@hackbg/tools";
 
 import { b64encode } from "@waiting/base64";
@@ -13,18 +18,9 @@ import { LaunchpadContract  } from "@sienna/launchpad";
 
 import { workspace } from "@sienna/settings";
 
-import {
-  InitMsg,
-  ExchangeSettings,
-  ContractInstantiationInfo
-} from './schema/init_msg.d';
-import {
-  TokenType
-} from './schema/handle_msg.d';
-import {
-  QueryResponse,
-  Exchange
-} from './schema/query_response.d'
+import { InitMsg, ExchangeSettings, ContractInstantiationInfo } from './schema/init_msg.d';
+import { TokenType } from './schema/handle_msg.d';
+import { QueryResponse, Exchange } from './schema/query_response.d'
 
 export type FactoryInventory = {
   snip20_contract?:    ContractInstantiationInfo
@@ -35,29 +31,13 @@ export type FactoryInventory = {
   router_contract?:    ContractInstantiationInfo
 }
 
-// Okay, so here's how a deployer class works.
 export class FactoryContract extends ScrtContract_1_2 {
 
-  // Schema: used for generating the .q and .tx methods,
-  // supposedly validating inputs and outputs.
-  static schema = ScrtContract_1_2.loadSchemas(import.meta.url, {
-    initMsg:     "./schema/init_msg.json",
-    queryMsg:    "./schema/query_msg.json",
-    queryAnswer: "./schema/query_response.json",
-    handleMsg:   "./schema/handle_msg.json",
-  });
+  crate = 'factory'
 
-  constructor({
-    ref,
-    address,
-    codeId,
-    codeHash,
-    admin,
-    prefix,
-    suffix = '',
-    exchange_settings,
-    contracts
-  }: ContractAPIOptions & {
+  name  = 'SiennaAMMFactory'
+
+  constructor(options: ContractBuildState & ContractUploadState & ContractClientState & {
 
     admin?: IAgent
 
@@ -72,40 +52,28 @@ export class FactoryContract extends ScrtContract_1_2 {
 
   } = {}) {
 
-    super({
-      // for building
-      workspace, crate: 'factory', ref,
-      // for uploading
-      codeId, codeHash, label: `SiennaAMMFactory${suffix}`,
-      // for transacting
-      address, prefix, agent: admin
+    super()
+
+    Object.assign(this.initMsg, {
+      prng_seed: randomHex(36),
+      exchange_settings: {
+        swap_fee: { nom: 28, denom: 1000 },
+        sienna_fee: { nom: 2, denom: 10000 },
+        sienna_burner: null,
+      },
     })
 
-    Object.assign(this.init, {
-      msg: {
-        prng_seed: randomHex(36),
-        exchange_settings: {
-          swap_fee: { nom: 28, denom: 1000 },
-          sienna_fee: { nom: 2, denom: 10000 },
-          sienna_burner: null,
-        },
-      }
-    })
-
-    if (ref) {
-      this.code.ref = ref
+    if (options.admin) {
+      this.instantiator = options.admin
+      this.initMsg.admin = options.admin.address
     }
 
-    if (admin) {
-      Object.assign(this.init.msg, { admin: admin.address })
+    if (options.exchange_settings) {
+      Object.assign(this.initMsg, { exchange_settings: options.exchange_settings })
     }
 
-    if (exchange_settings) {
-      Object.assign(this.init.msg, { exchange_settings })
-    }
-
-    if (contracts) {
-      Object.assign(this.init.msg, contracts)
+    if (options.contracts) {
+      Object.assign(this.initMsg, options.contracts)
     }
 
   }

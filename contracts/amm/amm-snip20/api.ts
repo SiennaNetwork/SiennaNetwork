@@ -1,32 +1,30 @@
-import type { IAgent } from "@fadroma/scrt";
-import { randomHex } from "@hackbg/tools";
-import { SNIP20Contract_1_2 } from "@fadroma/snip20";
-
-import { workspace } from "@sienna/settings";
+import type { IAgent, ContractState } from "@fadroma/scrt"
+import { randomHex } from "@hackbg/tools"
+import { SNIP20Contract_1_2 } from "@fadroma/snip20"
+import { workspace } from "@sienna/settings"
+import { InitMsg } from './schema/init_msg.d'
 
 export class AMMSNIP20Contract extends SNIP20Contract_1_2 {
 
-  code = { ...this.code, workspace, crate: "amm-snip20" };
+  crate = 'amm-snip20'
 
-  init = {
-    ...this.init,
-    label: this.init.label || `AMMSNIP20`,
-    msg: {
-      get prng_seed() { return randomHex(36); },
-      name:     "Sienna",
-      symbol:   "SIENNA",
-      decimals: 18,
-      config:   { public_total_supply: true, enable_mint: true },
+  name = 'AMMSNIP20'
+
+  initMsg: InitMsg = {
+    prng_seed: randomHex(36),
+    name:      "AMSNIP20",
+    symbol:    "AMM",
+    decimals:  18,
+    config:    {
+      public_total_supply: true,
+      enable_mint: true
     },
-  };
+  }
 
-  constructor (options: {
-    prefix?: string,
+  constructor (options: ContractState & {
     admin?:  IAgent
   } = {}) {
-    super({
-      prefix: options?.prefix,
-      agent:  options?.admin
-    })
+    super(options)
   }
+
 }

@@ -15,6 +15,10 @@ const decode = (buffer: any) => decoder.decode(buffer).trim();
 
 export class LaunchpadContract extends ScrtContract_1_2 {
 
+  crate = 'launchpad'
+
+  name  = 'SiennaAMMLaunchpad'
+
   constructor ({ prefix, admin, label, codeId, initMsg }: {
     prefix?:  string,
     admin?:   Agent,
@@ -28,8 +32,6 @@ export class LaunchpadContract extends ScrtContract_1_2 {
     if (label)   this.init.label  = label
     if (initMsg) this.init.msg    = initMsg
   }
-
-  code = { ...this.code, workspace, crate: "launchpad" };
 
   /**
    * This action will remove the token from the contract

@@ -1,15 +1,8 @@
-import type { IAgent } from "@fadroma/scrt";
-import { randomHex } from "@hackbg/tools";
-import { SNIP20Contract_1_2 } from "@fadroma/snip20";
-import { workspace } from "@sienna/settings";
-
-export const defaultConfig = {
-  enable_deposit:      true,
-  enable_redeem:       true,
-  enable_mint:         true,
-  enable_burn:         true,
-  public_total_supply: true,
-};
+import type { IAgent, ContractState } from "@fadroma/scrt"
+import { randomHex } from "@hackbg/tools"
+import { SNIP20Contract_1_2 } from "@fadroma/snip20"
+import { workspace } from "@sienna/settings"
+import { InitMsg } from "./schema/init_msg.d"
 
 export type LPTokenOptions = {
   admin?:  IAgent,
@@ -18,29 +11,31 @@ export type LPTokenOptions = {
 }
 
 export class LPTokenContract extends SNIP20Contract_1_2 {
-  code = { ...this.code, workspace, crate: "lp-token" }
 
-  init = {
-    ...this.init,
-    label: this.init.label || `LP`,
-    msg: {
-      name:     "Liquidity Provision Token",
-      symbol:   "LPTOKEN",
-      decimals: 18,
-      config:   { ...defaultConfig },
-      get prng_seed() { return randomHex(36); },
+  crate = 'lp-token'
+
+  name = 'LP'
+
+  initMsg: InitMsg = {
+    name:     "Liquidity Provision Token",
+    symbol:   "LPTOKEN",
+    decimals:  18,
+    config:    {
+      enable_deposit:      true,
+      enable_redeem:       true,
+      enable_mint:         true,
+      enable_burn:         true,
+      public_total_supply: true,
     },
+    prng_seed: randomHex(36),
   }
 
-  constructor(options: LPTokenOptions = {}) {
-    super({
-      agent:  options?.admin,
-      prefix: options?.prefix,
-      label: `SiennaRewards_${options?.name}_LPToken`,
-      initMsg: {
-        symbol: `LP-${options?.name}`,
-        name: `${options?.name} liquidity provision token`,
-      },
-    })
+  constructor (options) {
+    super(options)
+    if (options.name) {
+      this.name           = `SiennaRewards_${options?.name}_LPToken`
+      this.initMsg.name   = `${options?.name} liquidity provision token`
+      this.initMsg.symbol = `LP-${options?.name}`
+    }
   }
 }
