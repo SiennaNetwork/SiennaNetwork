@@ -50,8 +50,10 @@ pub trait InterestModel {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, schemars::JsonSchema)]
 pub struct ConfigResponse {
-    pub base_rate: Decimal256,
-    pub interest_multiplier: Decimal256,
+    pub multiplier_block: Decimal256,
+    pub jump_multiplier_block: Decimal256,
+    pub base_rate_block: Decimal256,
+    pub jump_threshold: Decimal256,
 }
 
 pub fn query_borrow_rate(
@@ -59,7 +61,7 @@ pub fn query_borrow_rate(
     interest_model: ContractLink<HumanAddr>,
     market_size: Decimal256,
     num_borrows: Decimal256,
-    reserves: Decimal256
+    reserves: Decimal256,
 ) -> StdResult<Decimal256> {
     let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: interest_model.address,
@@ -83,7 +85,7 @@ pub fn query_supply_rate(
     market_size: Decimal256,
     num_borrows: Decimal256,
     reserves: Decimal256,
-    reserve_factor: Decimal256
+    reserve_factor: Decimal256,
 ) -> StdResult<Decimal256> {
     let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: interest_model.address,
@@ -92,7 +94,7 @@ pub fn query_supply_rate(
             market_size,
             num_borrows,
             reserves,
-            reserve_factor
+            reserve_factor,
         })?,
     }))?;
 

@@ -1,23 +1,17 @@
-use lend_shared::fadroma::{
-    storage::{load, save},
-    schemars,
-    cosmwasm_std::{Storage, StdResult},
-    Decimal256
+use lend_shared::{
+    core::JumpRateInterest,
+    fadroma::{
+        cosmwasm_std::{StdResult, Storage},
+        storage::{load, save},
+    },
 };
-use serde::{Deserialize, Serialize};
 
-static KEY_CONFIG: &[u8] = b"config";
+static KEY_INTEREST_MODEL: &[u8] = b"interest_model";
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, schemars::JsonSchema)]
-pub struct Config {
-    pub base_rate: Decimal256,
-    pub interest_multiplier: Decimal256,
+pub fn save_interest_model(storage: &mut impl Storage, model: &JumpRateInterest) -> StdResult<()> {
+    save(storage, KEY_INTEREST_MODEL, model)
 }
 
-pub fn save_config(storage: &mut impl Storage, config: &Config) -> StdResult<()> {
-    save(storage, KEY_CONFIG, config)
-}
-
-pub fn load_config(storage: &impl Storage) -> StdResult<Config> {
-    Ok(load(storage, KEY_CONFIG)?.unwrap())
+pub fn load_interest_model(storage: &impl Storage) -> StdResult<JumpRateInterest> {
+    Ok(load(storage, KEY_INTEREST_MODEL)?.unwrap())
 }
