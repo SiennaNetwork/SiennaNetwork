@@ -151,10 +151,12 @@ importers:
   contracts/tge/mgmt:
     specifiers:
       '@fadroma/scrt': workspace:*
+      '@fadroma/snip20': workspace:*
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
       '@fadroma/scrt': link:../../../libraries/fadroma-next/packages/scrt
+      '@fadroma/snip20': link:../../../libraries/fadroma-next/crates/fadroma-snip20-impl
       '@sienna/settings': link:../../../settings
       secretjs: link:../../../libraries/fadroma-next/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
@@ -564,7 +566,7 @@ importers:
       vsce: latest
     devDependencies:
       '@hackbg/komandi': link:../toolbox/komandi
-      '@types/node': 17.0.8
+      '@types/node': 17.0.10
       tap: 15.1.5_typescript@4.5.4
       typescript: 4.5.4
       vite: 2.7.10
@@ -580,7 +582,7 @@ importers:
       '@types/zen-observable': 0.8.3
       zen-observable: 0.8.15
     devDependencies:
-      '@types/node': 17.0.8
+      '@types/node': 17.0.10
       typescript: 4.5.4
 
   libraries/fadroma-next/deps/ganesha/deps/toolbox/kabinet:
@@ -593,7 +595,7 @@ importers:
       mkdirp: 1.0.4
       rimraf: 3.0.2
     devDependencies:
-      '@types/node': 17.0.8
+      '@types/node': 17.0.10
       typescript: 4.5.4
 
   libraries/fadroma-next/deps/ganesha/deps/toolbox/komandi:
@@ -601,7 +603,7 @@ importers:
       '@types/node': latest
       typescript: latest
     devDependencies:
-      '@types/node': 17.0.8
+      '@types/node': 17.0.10
       typescript: 4.5.4
 
   libraries/fadroma-next/deps/ganesha/deps/toolbox/konzola:
@@ -616,7 +618,7 @@ importers:
       prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       table: 6.7.3
     devDependencies:
-      '@types/node': 17.0.8
+      '@types/node': 17.0.10
       typescript: 4.5.4
 
   libraries/fadroma-next/deps/ganesha/deps/toolbox/tools:
@@ -659,7 +661,7 @@ importers:
       tmp: 0.2.1
       wait-port: 0.2.9
     devDependencies:
-      '@types/node': 17.0.8
+      '@types/node': 17.0.10
       typescript: 4.5.4
 
   libraries/fadroma-next/deps/ganesha/src/core:
@@ -1173,7 +1175,7 @@ importers:
       '@types/zen-observable': 0.8.3
       zen-observable: 0.8.15
     devDependencies:
-      '@types/node': 17.0.8
+      '@types/node': 17.0.10
       typescript: 4.5.4
 
   libraries/fadroma-next/deps/toolbox/kabinet:
@@ -1186,7 +1188,7 @@ importers:
       mkdirp: 1.0.4
       rimraf: 3.0.2
     devDependencies:
-      '@types/node': 17.0.8
+      '@types/node': 17.0.10
       typescript: 4.5.4
 
   libraries/fadroma-next/deps/toolbox/komandi:
@@ -1194,7 +1196,7 @@ importers:
       '@types/node': latest
       typescript: latest
     devDependencies:
-      '@types/node': 17.0.8
+      '@types/node': 17.0.10
       typescript: 4.5.4
 
   libraries/fadroma-next/deps/toolbox/konzola:
@@ -1209,7 +1211,7 @@ importers:
       prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       table: 6.7.3
     devDependencies:
-      '@types/node': 17.0.8
+      '@types/node': 17.0.10
       typescript: 4.5.4
 
   libraries/fadroma-next/deps/toolbox/tools:
@@ -1252,7 +1254,7 @@ importers:
       tmp: 0.2.1
       wait-port: 0.2.9
     devDependencies:
-      '@types/node': 17.0.8
+      '@types/node': 17.0.10
       typescript: 4.5.4
 
   libraries/fadroma-next/doc/example:
@@ -6791,6 +6793,10 @@ packages:
   /@types/node/16.11.19:
     resolution: {integrity: sha512-BPAcfDPoHlRQNKktbsbnpACGdypPFBuX4xQlsWDE7B8XXcfII+SpOLay3/qZmCLb39kV5S1RTYwXdkx2lwLYng==}
     dev: false
+
+  /@types/node/17.0.10:
+    resolution: {integrity: sha512-S/3xB4KzyFxYGCppyDt68yzBU9ysL88lSdIah4D6cptdcltc4NCPCAMc0+PCpg/lLIyC7IPvj2Z52OJWeIUkog==}
+    dev: true
 
   /@types/node/17.0.8:
     resolution: {integrity: sha512-YofkM6fGv4gDJq78g4j0mMuGMkZVxZDgtU0JRdx6FgiJDG+0fY0GKVolOV8WqVmEhLCXkQRjwDdKyPxJp/uucg==}

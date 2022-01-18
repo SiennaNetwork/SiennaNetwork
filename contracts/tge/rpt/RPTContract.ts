@@ -39,22 +39,56 @@ export class RPTContract extends ScrtContract_1_0 {
 
   /** query contract status */
   get status() {
-    return this.q.status().then(({status})=>status)
+    return this.q().status().then(({status})=>status)
   }
+
+  tx (agent: IAgent = this.instantiator): RPTContractExecutor {
+    return new RPTContractExecutor(this, agent)
+  }
+
+  q (agent: IAgent = this.instantiator): RPTContractQuerier {
+    return new RPTContractQuerier(this, agent)
+  }
+
+}
+
+export class RPTContractExecutor {
+
+  constructor (
+    readonly contract: RPTContract,
+    readonly agent:    IAgent
+  ) {}
 
   /** set the splitt proportions */
   configure (config = []) {
-    return this.tx.configure({ config })
+    const msg = { configure: { config } }
+    return this.agent.execute(this.contract, msg)
   }
 
   /** claim portions from mgmt and distribute them to recipients */
   vest () {
-    return this.tx.vest()
+    const msg = { vest: {} }
+    return this.agent.execute(this.contract, msg)
   }
 
   /** set the admin */
   setOwner (new_admin) {
-    return this.tx.set_owner({ new_admin })
+    const msg = { set_owner: { new_admin } }
+    return this.agent.execute(this.contract, msg)
+  }
+
+}
+
+export class RPTContractQuerier {
+
+  constructor (
+    readonly contract: RPTContract,
+    readonly agent:    IAgent
+  ) {}
+
+  async status () {
+    const msg = { status: {} }
+    return this.agent.query(this.contract, msg)
   }
 
 }

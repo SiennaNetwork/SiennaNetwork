@@ -1,13 +1,8 @@
 import { writeFileSync } from 'fs'
-
-import { bold, randomHex } from '@hackbg/tools'
-
 import type { IChain, IAgent } from '@fadroma/scrt'
-import { buildAndUpload, Scrt } from '@fadroma/scrt'
-
+import { bold, randomHex, buildAndUpload, Scrt } from '@fadroma/scrt'
 import type { SNIP20Contract } from '@fadroma/snip20'
-
-import settings from '@sienna/settings'
+import settings, { abs } from '@sienna/settings'
 
 const SIENNA_DECIMALS = 18
 const ONE_SIENNA = BigInt(`1${[...Array(SIENNA_DECIMALS)].map(()=>'0').join('')}`)
@@ -24,29 +19,33 @@ import {
   SiennaSNIP20Contract,
 } from '@sienna/api'
 
-export async function deploySwap (
-  chain: IChain,
-  admin: IAgent,
-  deployment = chain.deployments.active
-) {
+export async function deploySwap ({
+  chain, admin, prefix
+}: {
+  chain:  IChain,
+  admin:  IAgent,
+  prefix: string
+}) {
 
-  const prefix = deployment.name
+  const workspace = abs()
+
+  const deployment = chain.deployments.active
 
   const SIENNA   = deployment.getContract(SiennaSNIP20Contract, 'SiennaSNIP20', admin),
         RPT      = deployment.getContract(RPTContract,          'SiennaRPT',    admin),
 
-  const EXCHANGE  = new AMMContract({ prefix, admin }),
-        AMMTOKEN  = new AMMSNIP20Contract({ prefix, admin }),
-        LPTOKEN   = new LPTokenContract({ prefix, admin }),
-        IDO       = new IDOContract({ prefix, admin }),
-        LAUNCHPAD = new LaunchpadContract({ prefix, admin }),
-        REWARDS   = new RewardsContract({ prefix, admin })
+  const options = { uploader: admin, instantiator: admin, workspace, chain, prefix, admin }
+  const EXCHANGE  = new AMMContract({       ...options }),
+        AMMTOKEN  = new AMMSNIP20Contract({ ...options }),
+        LPTOKEN   = new LPTokenContract({   ...options }),
+        IDO       = new IDOContract({       ...options }),
+        LAUNCHPAD = new LaunchpadContract({ ...options }),
+        REWARDS   = new RewardsContract({   ...options })
 
   await buildAndUpload([EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD, REWARDS])
 
   const FACTORY = new FactoryContract({
-    prefix,
-    admin,
+    ...options,
     exchange_settings: settings(chain.chainId).amm,
     contracts: {
       snip20_contract:    AMMTOKEN,

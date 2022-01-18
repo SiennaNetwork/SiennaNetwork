@@ -2,7 +2,7 @@ import type { IChain, IAgent } from '@fadroma/scrt'
 import { buildAndUpload, Scrt } from '@fadroma/scrt'
 import { timestamp } from '@hackbg/tools'
 
-import type { ScheduleFor_HumanAddr } from '@sienna/mgmt/schema/handle'
+import type { ScheduleFor_HumanAddr } from '@sienna/mgmt/schema/handle.d'
 import {
   SiennaSNIP20Contract,
   MGMTContract,
@@ -36,33 +36,36 @@ export async function deployVesting (
   const RPTAccount = getRPTAccount(schedule)
   const portion    = RPTAccount.portion_size
 
-  const SIENNA = new SiennaSNIP20Contract({ workspace, prefix, admin })
-  const MGMT   = new MGMTContract({ workspace, prefix, admin, schedule, SIENNA })
-  const RPT    = new RPTContract({ workspace, prefix, admin, MGMT, SIENNA, portion })
+  const options = { uploader: admin, instantiator: admin, admin, workspace, chain, prefix }
+  const SIENNA = new SiennaSNIP20Contract({ ...options })
+  const MGMT   = new MGMTContract({ ...options, schedule, SIENNA })
+  const RPT    = new RPTContract({ ...options, MGMT, SIENNA, portion })
 
+  SIENNA.uploader = MGMT.uploader = RPT.uploader = admin
   await buildAndUpload([SIENNA, MGMT, RPT])
 
+  SIENNA.instantiator = MGMT.instantiator = RPT.instantiator = admin
   await SIENNA.instantiate()
 
   if (chain.isTestnet) {
     await SIENNA.setMinters([admin.address])
-    await SIENNA.tx.mint({
+    await SIENNA.tx(admin).mint({
       amount:    "5000000000000000000000",
       recipient: admin.address,
       padding:   null,
-    }, admin)
+    })
   }
 
   RPTAccount.address = admin.address
   await MGMT.instantiate()
-  await MGMT.acquire(SIENNA)
+  await MGMT.tx().acquire(SIENNA)
 
   await RPT.instantiate()
   RPTAccount.address = RPT.address
-  await MGMT.configure(schedule)
+  await MGMT.tx().configure(schedule)
 
-  await MGMT.launch()
-  await RPT.vest()
+  await MGMT.tx().launch()
+  await RPT.tx().vest()
 
   return { workspace, prefix, chain, admin, SIENNA, MGMT, RPT }
 

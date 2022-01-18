@@ -66,7 +66,7 @@ export class FactoryContract extends ScrtContract_1_2 {
     }
 
     if (options.contracts) {
-      Object.assign(this.initMsg, options.contracts)
+      this.contracts = options.contracts
     }
 
   }
@@ -88,7 +88,7 @@ export class FactoryContract extends ScrtContract_1_2 {
       })
     } else {
       // If it's not deployed yet, return the value from the config
-      const initMsg: InitMsg = this.init.msg as InitMsg
+      const initMsg: InitMsg = this.initMsg as InitMsg
       return Promise.resolve({
         snip20_contract:    initMsg.snip20_contract    as ContractInstantiationInfo,
         pair_contract:      initMsg.pair_contract      as ContractInstantiationInfo,
@@ -96,6 +96,16 @@ export class FactoryContract extends ScrtContract_1_2 {
         ido_contract:       initMsg.ido_contract       as ContractInstantiationInfo,
         launchpad_contract: initMsg.launchpad_contract as ContractInstantiationInfo,
         router_contract:    initMsg.router_contract    as ContractInstantiationInfo
+      })
+    }
+  }
+
+  set contracts (contracts: FactoryInventory|Promise<FactoryInventory>) {
+    if (this.address) {
+      throw new Error('Use the config method to reconfigure a live contract.')
+    } else {
+      Promise.resolve(contracts).then(contracts=>{
+        Object.assign(this.initMsg, contracts)
       })
     }
   }

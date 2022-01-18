@@ -1,0 +1,73 @@
+
+
+  /**
+   * Perform send with a callback message that will be sent to IDO contract
+   *
+   * @param {string} contractAddress Address of the IDO contract where we will send this amount
+   * @param {string|number|bigint} amount Amount to send
+   * @param {string} [recipient] Recipient of the bought funds from IDO contract
+   * @param {IAgent} [agent]
+   * @returns
+   */
+  sendIdo = (
+    contractAddress: string,
+    amount: string | number | bigint,
+    recipient: string | null = null,
+  ) =>
+    this.tx.send(
+      {
+        recipient: contractAddress,
+        amount: `${amount}`,
+        msg: Buffer.from(
+          JSON.stringify({ swap: { recipient } }),
+          "utf8"
+        ).toString("base64"),
+      },
+      agent
+    );
+
+  /**
+   * Perform locking of the funds in launchpad contract
+   *
+   * @param {string} contractAddress Address of the Launchpad contract where we will send this amount
+   * @param {string|number|bigint} amount Amount to send
+   * @param {IAgent} [agent]
+   * @returns
+   */
+  lockLaunchpad = (
+    contractAddress: string,
+    amount: string | number | bigint,
+  ) =>
+    this.tx.send(
+      {
+        recipient: contractAddress,
+        amount: `${amount}`,
+        msg: Buffer.from(JSON.stringify({ lock: {} }), "utf8").toString(
+          "base64"
+        ),
+      },
+      agent
+    );
+
+  /**
+   * Perform unlocking of the funds in launchpad contract
+   *
+   * @param {string} contractAddress Address of the Launchpad contract
+   * @param {number} entries Number of entries to unlock
+   * @param {IAgent} [agent]
+   * @returns
+   */
+  unlockLaunchpad = (contractAddress: string, entries: number) => {
+    const message = {
+      recipient: contractAddress,
+      amount: `0`,
+      msg: Buffer.from(
+        JSON.stringify({ unlock: { entries } }),
+        "utf8"
+      ).toString("base64"),
+    };
+    return this.tx.send(
+      message,
+      agent
+    );
+  }

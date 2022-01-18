@@ -5,6 +5,7 @@
   "main": "./MGMTContract.ts",
   "dependencies": {
     "@fadroma/scrt":    "workspace:*",
+    "@fadroma/snip20":  "workspace:*",
     "@sienna/settings": "workspace:^1.0.0",
     "secretjs":         "workspace:*"
   }

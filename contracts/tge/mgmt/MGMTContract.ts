@@ -39,11 +39,12 @@ export class MGMTContract extends ScrtContract_1_2 {
   /** query current schedule */
   get schedule (): Promise<Schedule> {
     if (this.address) {
-      return this.q.schedule({})
+      return this.q().schedule()
     } else {
       return this.initMsg.schedule
     }
   }
+
   set schedule (schedule: Schedule|Promise<Schedule>) {
     if (this.address) {
       throw new Error('Use the configure method to set the schedule of a deployed contract.')
@@ -51,36 +52,86 @@ export class MGMTContract extends ScrtContract_1_2 {
     Promise.resolve(schedule).then(schedule=>this.initMsg.schedule = schedule)
   }
 
-  /** query contract status */
-  get status () {
-    return this.q.status({})
+  tx (agent: IAgent = this.instantiator): MGMTContractExecutor {
+    return new MGMTContractExecutor(this, agent)
   }
 
+  q (agent: IAgent = this.instantiator): MGMTContractQuerier {
+    return new MGMTContractQuerier(this, agent)
+  }
+
+}
+
+export class MGMTContractExecutor {
+
+  constructor (
+    readonly contract: MGMTContract,
+    readonly agent:    IAgent
+  ) {}
+
   /** take over a SNIP20 token */
-  acquire = async (snip20: any) => {
-    const tx1 = await snip20.setMinters([this.address]);
-    const tx2 = await snip20.changeAdmin(this.address);
+  async acquire (snip20: SNIP20Contract) {
+    const tx1 = await snip20.tx(this.agent).setMinters([this.contract.address]);
+    const tx2 = await snip20.tx(this.agent).changeAdmin(this.contract.address);
     return [tx1, tx2]
   }
 
   /** load a schedule */
-  configure = (schedule: any) => this.tx.configure({ schedule })
+  async configure (schedule: any) {
+    const msg = { configure: { schedule } }
+    return this.agent.execute(this.contract, msg)
+  }
 
   /** launch the vesting */
-  launch = () => this.tx.launch({})
+  launch () {
+    const msg = { launch: {} }
+    return this.agent.execute(this.contract, msg)
+  }
 
   /** claim accumulated portions */
-  claim = (claimant: any) => this.tx.claim({})
-
-  /** see how much is claimable by someone at a certain time */
-  progress = (address: any, time = +new Date()) =>
-    this.q.progress({
-      address,
-      time: Math.floor(time / 1000/* JS msec -> CosmWasm seconds */) })
+  claim (claimant: any) {
+    const msg = { claim: {} }
+    return this.agent.execute(this.contract, msg)
+  }
 
   /** add a new account to a pool */
-  add = (pool_name: any, account: any) => this.tx.add_account({ pool_name, account })
+  add (pool_name: any, account: any) {
+    const msg = { add_account: { pool_name, account } }
+    return this.agent.execute(this.contract, msg)
+  }
 
   /** set the admin */
-  setOwner = (new_admin: any) => this.tx.set_owner({ new_admin })
+  setOwner (new_admin: any) {
+    const msg = { set_owner: { new_admin } }
+    return this.agent.execute(this.contract, msg)
+  }
+
+}
+
+export class MGMTContractQuerier {
+
+  constructor (
+    readonly contract: MGMTContract,
+    readonly agent:    IAgent
+  ) {}
+
+  /** query contgract status */
+  status () {
+    const msg = { schedule: {} }
+    return this.agent.query(this.contract, msg)
+  }
+
+  /** see how much is claimable by someone at a certain time */
+  schedule () {
+    const msg = { schedule: {} }
+    return this.agent.query(this.contract, msg)
+  }
+
+  /** see how much is claimable by someone at a certain time */
+  progress (address: any, time = +new Date()) {
+    time = Math.floor(time / 1000) // JS msec -> CosmWasm seconds
+    const msg = { address, time }
+    return this.agent.query(this.contract, msg)
+  }
+
 }

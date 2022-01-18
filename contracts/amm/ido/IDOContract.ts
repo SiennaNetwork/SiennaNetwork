@@ -1,19 +1,11 @@
 import type { IAgent, ContractAPIOptions } from '@fadroma/scrt'
 import { ScrtContract_1_2 } from "@fadroma/scrt"
 
-export type IDOOptions = ContractAPIOptions & {
-  admin?: IAgent
-}
-
 export class IDOContract extends ScrtContract_1_2 {
 
   crate = 'ido'
 
   name = 'SiennaIDO'
-
-  constructor (options: IDOOptions = {}) {
-    super({ ...options, agent: options.admin, schema })
-  }
 
   /**
    * Check if the address can participate in an IDO
