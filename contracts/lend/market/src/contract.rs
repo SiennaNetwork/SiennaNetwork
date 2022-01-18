@@ -16,18 +16,20 @@ use lend_shared::{
             log
         },
         derive_contract::*,
-        from_binary, require_admin,
+        require_admin,
         secret_toolkit::snip20,
+        snip20_impl::msg as snip20_msg,
         Uint256, Decimal256, Permit,
-        Uint128, BLOCK_SIZE, ContractLink
+        Uint128, BLOCK_SIZE, ContractLink,
+        from_binary, to_binary
     },
     interfaces::{
-        interest_model::query_borrow_rate,
+        interest_model::{query_borrow_rate, query_supply_rate},
         market::{
             ReceiverCallbackMsg, AccountInfo,
             StateResponse, ConfigResponse
         },
-        overseer::OverseerPermissions,
+        overseer::{OverseerPermissions, query_can_transfer},
     },
 };
 
@@ -40,6 +42,7 @@ use state::{
     Config, Contracts, Global,
     Account, TotalBorrows
 };
+use token::calc_exchange_rate;
 
 #[contract_impl(path = "lend_shared::interfaces::market", component(path = "admin"))]
 pub trait Market {
@@ -69,6 +72,10 @@ pub trait Market {
         Contracts::save_overseer(deps, &overseer_contract)?;
         Contracts::save_interest_model(deps, &interest_model_contract)?;
         Contracts::save_underlying(deps, &underlying_asset)?;
+        Contracts::save_self_ref(deps, &ContractLink {
+            address: env.contract.address.clone(),
+            code_hash: env.contract_code_hash.clone()
+        })?;
 
         admin::DefaultImpl.new(admin, deps, env)?;
 
@@ -215,6 +222,39 @@ pub trait Market {
     }
 
     #[handle]
+    fn transfer(
+        recipient: HumanAddr,
+        amount: Uint256
+    ) -> StdResult<HandleResponse> {
+        let can_transfer = query_can_transfer(
+            &deps.querier,
+            Contracts::load_overseer(deps)?,
+            todo!(),
+            env.contract.address,
+            amount
+        )?;
+
+        if !can_transfer {
+            return Err(StdError::generic_err("Account has negative liquidity and cannot transfer."));
+        }
+
+        let sender = Account::new(deps, &env.message.sender)?;
+        sender.subtract_balance(&mut deps.storage, amount)?;
+
+        let recipient = Account::new(deps, &recipient)?;
+        recipient.add_balance(&mut deps.storage, amount)?;
+
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![],
+            // SNIP-20 spec compliance.
+            data: Some(to_binary(&snip20_msg::HandleAnswer::Transfer {
+                status: snip20_msg::ResponseStatus::Success
+            })?)
+        })
+    }
+
+    #[handle]
     #[require_admin]
     fn update_config(
         interest_model: Option<ContractLink<HumanAddr>>,
@@ -234,6 +274,7 @@ pub trait Market {
     }
 
     #[handle]
+    #[require_admin]
     fn reduce_reserves(amount: Uint128) -> StdResult<HandleResponse> {
         unimplemented!()
     }
@@ -250,12 +291,53 @@ pub trait Market {
 
     #[query("borrow_rate_per_block")]
     fn borrow_rate() -> StdResult<Decimal256> {
-        unimplemented!()
+        let underlying_asset = Contracts::load_underlying(deps)?;
+
+        let balance = snip20::balance_query(
+            &deps.querier,
+            Contracts::load_self_ref(deps)?.address,
+            VIEWING_KEY.to_string(),
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+
+        let borrows = TotalBorrows::load(&deps.storage)?;
+        let reserves = Global::load_interest_reserve(&deps.storage)?;
+    
+        query_borrow_rate(
+            &deps.querier,
+            Contracts::load_interest_model(deps)?,
+            Decimal256::from_uint256(balance)?,
+            Decimal256::from_uint256(borrows)?,
+            Decimal256::from_uint256(reserves)?,
+        )
     }
 
     #[query("supply_rate_per_block")]
     fn supply_rate() -> StdResult<Decimal256> {
-        unimplemented!()
+        let underlying_asset = Contracts::load_underlying(deps)?;
+
+        let balance = snip20::balance_query(
+            &deps.querier,
+            Contracts::load_self_ref(deps)?.address,
+            VIEWING_KEY.to_string(),
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+
+        let borrows = TotalBorrows::load(&deps.storage)?;
+        let reserves = Global::load_interest_reserve(&deps.storage)?;
+
+        query_supply_rate(
+            &deps.querier,
+            Contracts::load_interest_model(deps)?,
+            Decimal256::from_uint256(balance)?,
+            Decimal256::from_uint256(borrows)?,
+            Decimal256::from_uint256(reserves)?,
+            Config::load(deps)?.reserve_factor
+        )
     }
 
     #[query("exchange_rate")]
@@ -270,7 +352,27 @@ pub trait Market {
 
     #[query("account_snapshot")]
     fn account_snapshot(id: Binary) -> StdResult<AccountInfo> {
-        unimplemented!()
+        // TODO: Should borrow_index be updated first?
+        let borrow_index = Global::load_borrow_index(&deps.storage)?;
+
+        let account = Account::try_from(id)?;
+        let snapshot = account.get_borrow_snapshot(&deps.storage)?;
+
+        let underlying_asset = Contracts::load_underlying(deps)?;
+        let balance = snip20::balance_query(
+            &deps.querier,
+            Contracts::load_self_ref(deps)?.address,
+            VIEWING_KEY.to_string(),
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+    
+        Ok(AccountInfo {
+            sl_token_balance: account.get_balance(&deps.storage)?,
+            borrow_balance: snapshot.current_balance(borrow_index)?,
+            exchange_rate: calc_exchange_rate(deps, balance.into())?
+        })
     }
 }
 

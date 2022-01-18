@@ -2,7 +2,7 @@ use fadroma::{
     admin, cosmwasm_std,
     cosmwasm_std::{
         to_binary, Api, Binary, CanonicalAddr, HandleResponse, HumanAddr, InitResponse, Querier,
-        QueryRequest, StdError, StdResult, Uint128, WasmQuery,
+        QueryRequest, StdError, StdResult, WasmQuery,
     },
     derive_contract::*,
     permit::Permit,
@@ -48,15 +48,15 @@ pub trait Overseer {
     fn account_liquidity(
         permit: Permit<OverseerPermissions>,
         market: Option<HumanAddr>,
-        redeem_amount: Uint128,
-        borrow_amount: Uint128,
+        redeem_amount: Uint256,
+        borrow_amount: Uint256,
     ) -> StdResult<AccountLiquidity>;
 
     #[query("can_transfer")]
     fn can_transfer(
         permit: Permit<OverseerPermissions>,
         market: HumanAddr,
-        amount: Uint128
+        amount: Uint256
     ) -> StdResult<bool>;
 
     #[query("id")]
@@ -145,8 +145,8 @@ pub fn query_account_liquidity(
     overseer: ContractLink<HumanAddr>,
     permit: Permit<OverseerPermissions>,
     market: Option<HumanAddr>,
-    redeem_amount: Uint128,
-    borrow_amount: Uint128,
+    redeem_amount: Uint256,
+    borrow_amount: Uint256,
 ) -> StdResult<AccountLiquidity> {
     let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
@@ -187,7 +187,7 @@ pub fn query_can_transfer(
     overseer: ContractLink<HumanAddr>,
     permit: Permit<OverseerPermissions>,
     market: HumanAddr,
-    amount: Uint128
+    amount: Uint256
 ) -> StdResult<bool> {
     let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,

@@ -59,7 +59,7 @@ pub fn query_borrow_rate(
     interest_model: ContractLink<HumanAddr>,
     market_size: Decimal256,
     num_borrows: Decimal256,
-    reserves: Decimal256,
+    reserves: Decimal256
 ) -> StdResult<Decimal256> {
     let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: interest_model.address,
@@ -74,5 +74,30 @@ pub fn query_borrow_rate(
     match result {
         QueryResponse::BorrowRate { borrow_rate } => Ok(borrow_rate),
         _ => Err(StdError::generic_err("Expecting Queryresponse::BorrowRate")),
+    }
+}
+
+pub fn query_supply_rate(
+    querier: &impl Querier,
+    interest_model: ContractLink<HumanAddr>,
+    market_size: Decimal256,
+    num_borrows: Decimal256,
+    reserves: Decimal256,
+    reserve_factor: Decimal256
+) -> StdResult<Decimal256> {
+    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: interest_model.address,
+        callback_code_hash: interest_model.code_hash,
+        msg: to_binary(&QueryMsg::SupplyRate {
+            market_size,
+            num_borrows,
+            reserves,
+            reserve_factor
+        })?,
+    }))?;
+
+    match result {
+        QueryResponse::SupplyRate { supply_rate } => Ok(supply_rate),
+        _ => Err(StdError::generic_err("Expecting Queryresponse::SupplyRate")),
     }
 }

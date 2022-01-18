@@ -60,6 +60,12 @@ pub trait Market {
     ) -> StdResult<HandleResponse>;
 
     #[handle]
+    fn transfer(
+        recipient: HumanAddr,
+        amount: Uint256
+    ) -> StdResult<HandleResponse>;
+
+    #[handle]
     fn update_config(
         interest_model: Option<ContractLink<HumanAddr>>,
         reserve_factor: Option<Decimal256>,
@@ -131,8 +137,8 @@ pub struct BorrowerInfo {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct AccountInfo {
-    pub sl_token_balance: Uint128,
-    pub borrow_balance: Uint128,
+    pub sl_token_balance: Uint256,
+    pub borrow_balance: Uint256,
     pub exchange_rate: Decimal256,
 }
 
