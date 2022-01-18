@@ -1,0 +1,9 @@
+{
+  "name":    "@sienna/lend-oracle",
+  "version": "0.0.1",
+  "main":    "./LendOracleContract.ts",
+  "type":    "module",
+  "dependencies": {
+    "@fadroma/scrt": "workspace:*"
+  }
+}

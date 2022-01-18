@@ -1,0 +1,9 @@
+{
+  "name":    "@sienna/lend-overseer",
+  "version": "0.0.1",
+  "main":    "./LendOverseerContract.ts",
+  "type":    "module",
+  "dependencies": {
+    "@fadroma/scrt": "workspace:*"
+  }
+}

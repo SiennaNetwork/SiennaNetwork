@@ -1,14 +1,10 @@
 {
-  "name": "@sienna/amm-snip20",
+  "name":    "@sienna/amm-snip20",
   "version": "0.1.0",
-  "main": "./AMMSNIP20Contract.ts",
-  "type": "module",
+  "main":    "./AMMSNIP20Contract.ts",
+  "type":    "module",
   "dependencies": {
-    "@fadroma/snip20":  "workspace:*",
-    "@hackbg/tools":    "workspace:*",
-    "@sienna/settings": "workspace:^1.0.0"
-  },
-  "peerDependencies": {
-    "@hackbg/fadroma": "*"
+    "@fadroma/scrt":   "workspace:*",
+    "@fadroma/snip20": "workspace:*"
   }
 }

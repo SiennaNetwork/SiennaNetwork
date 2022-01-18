@@ -1,0 +1,9 @@
+{
+  "name":    "@sienna/lend-market",
+  "version": "0.0.1",
+  "main":    "./LendMarketContract.ts",
+  "type":    "module",
+  "dependencies": {
+    "@fadroma/scrt": "workspace:*"
+  }
+}
