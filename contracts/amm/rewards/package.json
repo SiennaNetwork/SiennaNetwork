@@ -2,7 +2,7 @@
   "name": "@sienna/rewards",
   "version": "3.0.0",
   "type": "module",
-  "main": "./api.ts",
+  "main": "./RewardsContract.ts",
   "dependencies": {
     "@fadroma/scrt":    "workspace:*",
     "@fadroma/snip20":  "workspace:*",

@@ -2,7 +2,7 @@
   "name":    "@sienna/launchpad",
   "version": "0.1.0",
   "type":    "module",
-  "main":    "./api.ts",
+  "main":    "./LaunchpadContract.ts",
   "dependencies": {
     "@fadroma/scrt":    "workspace:*",
     "@hackbg/tools":   "workspace:*",

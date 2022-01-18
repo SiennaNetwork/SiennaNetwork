@@ -2,10 +2,10 @@
   "name":    "@sienna/exchange",
   "version": "1.0.0",
   "type":    "module",
-  "main":    "./api.ts",
+  "main":    "./AMMContract.ts",
   "dependencies": {
     "@fadroma/scrt":    "workspace:*",
-    "@hackbg/tools":   "workspace:*",
+    "@hackbg/tools":    "workspace:*",
     "@sienna/settings": "workspace:^1.0.0",
     "secretjs":         "workspace:*"
   }

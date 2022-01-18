@@ -2,10 +2,10 @@
   "name":    "@sienna/factory",
   "version": "1.0.0",
   "type":    "module",
-  "main":    "./api.ts",
+  "main":    "./FactoryContract.ts",
   "dependencies": {
-    "@fadroma/scrt":    "workspace:*",
-    "@hackbg/tools":   "workspace:*",
+    "@fadroma/scrt": "workspace:*",
+    "@hackbg/tools": "workspace:*",
 
     "@sienna/amm-snip20": "workspace:^0.1.0",
     "@sienna/exchange":   "workspace:^1.0.0",

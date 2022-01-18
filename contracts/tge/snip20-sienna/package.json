@@ -1,7 +1,7 @@
 {
   "name": "@sienna/snip20-sienna",
   "version": "1.0.0",
-  "main": "./api.ts",
+  "main": "./SiennaSNIP20Contract.ts",
   "type": "module",
   "dependencies": {
     "@hackbg/tools":    "workspace:*",
