@@ -121,7 +121,7 @@ commands['deploy']['swap'] = async () => {
 Prototype of future migration procedures.
 
 ```typescript
-import { deployRewards } from '@sienna/amm'
+import { deployRewardsSideBySide } from '@sienna/amm'
 commands['deploy']['rewards-side-by-side'] = async () => {
   const {chain, admin} = await init(process.env.CHAIN_NAME)
   if (chain.isMainnet) {
@@ -133,30 +133,7 @@ commands['deploy']['rewards-side-by-side'] = async () => {
     process.exit(1)
   }
   chain.deployments.printActive()
-  const { name: prefix } = chain.deployments.active
-  const options = { chain, admin, prefix }
-  const v2Suffix = `@v2+${timestamp()}`
-  const v3Suffix = `@v3+${timestamp()}`
-  const v2 = await deployRewards('v2', { ...options, suffix: v2Suffix, split: 0.5, ref: 'rewards-2.1.2' })
-  const v3 = await deployRewards('v3', { ...options, suffix: v3Suffix, split: 0.5, ref: 'HEAD' })
-  const rptConfig = [
-    ...v2.rptConfig,
-    ...v3.rptConfig
-  ]
-  const RPT = chain.deployments.active.getContract(RPTContract, 'SiennaRPT', admin)
-  await RPT.configure(rptConfig)
-  console.log({rptConfig})
-  console.table([
-    ...v2.deployedContracts,
-    ...v3.deployedContracts
-  ].reduce((table, contract)=>{
-    table[contract.init.label] = {
-      address:  contract.init.address,
-      codeId:   contract.blob.codeId,
-      codeHash: contract.blob.codeHash
-    }
-    return table
-  }, {}))
+  await deployRewardsSideBySide(chain, admin)
 }
 
 import { deployLegacyFactory } from '@sienna/amm'

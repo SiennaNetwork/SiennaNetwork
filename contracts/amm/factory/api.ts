@@ -74,7 +74,7 @@ export class FactoryContract extends ScrtContract_1_2 {
 
     super({
       // for building
-      workspace, crate: 'factory',
+      workspace, crate: 'factory', ref,
       // for uploading
       codeId, codeHash, label: `SiennaAMMFactory${suffix}`,
       // for transacting
