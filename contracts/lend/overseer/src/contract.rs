@@ -20,6 +20,7 @@ use lend_shared::{
         },
         overseer::{AccountLiquidity, Config, HandleMsg, Market, OverseerPermissions, Pagination},
     },
+    core::MasterKey
 };
 
 use state::{Borrower, BorrowerId, Constants, Contracts, Markets};
@@ -30,11 +31,15 @@ pub trait Overseer {
     fn new(
         admin: Option<HumanAddr>,
         prng_seed: Binary,
+        entropy: Binary,
         close_factor: Decimal256,
         premium: Decimal256,
         oracle_contract: ContractInstantiationInfo,
         oracle_source: ContractLink<HumanAddr>,
     ) -> StdResult<InitResponse> {
+        MasterKey::new(&env, prng_seed.as_slice(), entropy.as_slice())
+            .save(&mut deps.storage)?;
+            
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
 
         Contracts::save_oracle(
@@ -221,19 +226,15 @@ pub trait Overseer {
     }
 
     #[query("can_transfer")]
-    fn can_transfer(
-        permit: Permit<OverseerPermissions>,
+    fn can_transfer_internal(
+        key: MasterKey,
+        address: HumanAddr,
         market: HumanAddr,
-        amount: Uint256,
+        amount: Uint256
     ) -> StdResult<bool> {
-        let self_ref = Contracts::load_self_ref(deps)?;
-        let borrower = permit.validate_with_permissions(
-            deps,
-            self_ref.address,
-            vec![OverseerPermissions::AccountInfo],
-        )?;
+        MasterKey::check(&deps.storage, &key)?;
 
-        let borrower = Borrower::new(&deps, &borrower)?;
+        let borrower = Borrower::new(&deps, &address)?;
 
         // If not entered the market then transfer is allowed.
         if borrower.get_market(&deps, &market).is_err() {

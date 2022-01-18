@@ -15,11 +15,18 @@ use lend_shared::{
             InitResponse, Querier, StdError, StdResult, Storage,
             log
         },
+        auth::{
+            vk_auth::{
+                DefaultImpl as AuthImpl,
+                Auth, authenticate
+            },
+            ViewingKey
+        },
         derive_contract::*,
         require_admin,
         secret_toolkit::snip20,
         snip20_impl::msg as snip20_msg,
-        Uint256, Decimal256, Permit,
+        Uint256, Decimal256, Permit, Canonize,
         Uint128, BLOCK_SIZE, ContractLink,
         from_binary, to_binary
     },
@@ -31,6 +38,7 @@ use lend_shared::{
         },
         overseer::{OverseerPermissions, query_can_transfer},
     },
+    core::MasterKey
 };
 
 pub const VIEWING_KEY: &str = "SiennaLend"; // TODO: This shouldn't be hardcoded.
@@ -51,12 +59,15 @@ pub trait Market {
     fn new(
         admin: Option<HumanAddr>,
         prng_seed: Binary,
+        key: MasterKey,
         initial_exchange_rate: Decimal256,
         reserve_factor: Decimal256,
         underlying_asset: ContractLink<HumanAddr>,
         overseer_contract: ContractLink<HumanAddr>,
         interest_model_contract: ContractLink<HumanAddr>,
     ) -> StdResult<InitResponse> {
+        key.save(&mut deps.storage)?;
+
         let self_ref = ContractLink {
             address: env.contract.address.clone(),
             code_hash: env.contract_code_hash.clone(),
@@ -139,28 +150,20 @@ pub trait Market {
     }
 
     #[handle]
-    fn redeem_token(
-        permit: Permit<OverseerPermissions>,
-        burn_amount: Uint256
-    ) -> StdResult<HandleResponse> {
+    fn redeem_token(burn_amount: Uint256) -> StdResult<HandleResponse> {
         token::redeem(
             deps,
             env,
-            permit,
             burn_amount,
             Uint256::zero()
         )
     }
 
     #[handle]
-    fn redeem_underlying(
-        permit: Permit<OverseerPermissions>,
-        receive_amount: Uint256
-    ) -> StdResult<HandleResponse> {
+    fn redeem_underlying(receive_amount: Uint256) -> StdResult<HandleResponse> {
         token::redeem(
             deps,
             env,
-            permit,
             Uint256::zero(),
             receive_amount
         )
@@ -227,10 +230,13 @@ pub trait Market {
         recipient: HumanAddr,
         amount: Uint256
     ) -> StdResult<HandleResponse> {
+        let sender = Account::new(deps, &env.message.sender)?;
+
         let can_transfer = query_can_transfer(
             &deps.querier,
             Contracts::load_overseer(deps)?,
-            todo!(),
+            MasterKey::load(&deps.storage)?,
+            env.message.sender,
             env.contract.address,
             amount
         )?;
@@ -239,7 +245,6 @@ pub trait Market {
             return Err(StdError::generic_err("Account has negative liquidity and cannot transfer."));
         }
 
-        let sender = Account::new(deps, &env.message.sender)?;
         sender.subtract_balance(&mut deps.storage, amount)?;
 
         let recipient = Account::new(deps, &recipient)?;
@@ -278,6 +283,73 @@ pub trait Market {
     #[require_admin]
     fn reduce_reserves(amount: Uint128) -> StdResult<HandleResponse> {
         unimplemented!()
+    }
+
+    #[handle]
+    fn create_viewing_key(
+        entropy: String,
+        padding: Option<String>
+    ) -> StdResult<HandleResponse> {
+        AuthImpl.create_viewing_key(entropy, padding, deps, env)
+    }
+
+    #[handle]
+    fn set_viewing_key(
+        key: String,
+        padding: Option<String>
+    ) -> StdResult<HandleResponse> {
+        AuthImpl.set_viewing_key(key, padding, deps, env)
+    }
+
+    #[query("amount")]
+    fn balance(
+        address: HumanAddr,
+        key: String
+    ) -> StdResult<Uint128> {
+        let canonical = address.canonize(&deps.api)?;
+        authenticate(&deps.storage, &ViewingKey(key), canonical.as_slice())?;
+
+        let account = Account::new(deps, &address)?;
+
+        Ok(account.get_balance(&deps.storage)?
+            .low_u128()
+            .into()
+        )
+    }
+
+    #[query("amount")]
+    fn balance_underlying(
+        address: HumanAddr,
+        key: String,
+        block: Option<u64>
+    ) -> StdResult<Uint128> {
+        let canonical = address.canonize(&deps.api)?;
+        authenticate(&deps.storage, &ViewingKey(key), canonical.as_slice())?;
+
+        let exchange_rate = self.exchange_rate(block, deps)?;
+
+        let account = Account::new(deps, &address)?;
+        let balance = account.get_balance(&deps.storage)?;
+
+        Ok(balance.decimal_mul(exchange_rate)?
+            .low_u128()
+            .into()
+        )
+    }
+
+    #[query("amount")]
+    fn balance_internal(
+        address: HumanAddr,
+        key: MasterKey
+    ) -> StdResult<Uint128> {
+        MasterKey::check(&deps.storage, &key)?;
+
+        let account = Account::new(deps, &address)?;
+
+        Ok(account.get_balance(&deps.storage)?
+            .low_u128()
+            .into()
+        )
     }
 
     #[query("state")]

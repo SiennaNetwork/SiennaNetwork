@@ -128,6 +128,7 @@ fn calc_accrued_interest<S: Storage, A: Api, Q: Querier>(
     )?;
 
     if borrow_rate >= MAX_BORROW_RATE {
+        // TODO: Should this be capped instead of returning an error?
         return Err(StdError::generic_err("Borrow rate is absurdly high"));
     }
 

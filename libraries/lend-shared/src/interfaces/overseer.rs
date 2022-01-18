@@ -11,12 +11,15 @@ use fadroma::{
 
 use serde::{Deserialize, Serialize};
 
+use crate::core::MasterKey;
+
 #[interface(component(path = "admin"))]
 pub trait Overseer {
     #[init]
     fn new(
         admin: Option<HumanAddr>,
         prng_seed: Binary,
+        entropy: Binary,
         close_factor: Decimal256,
         // Liquidation incentive
         premium: Decimal256,
@@ -53,8 +56,9 @@ pub trait Overseer {
     ) -> StdResult<AccountLiquidity>;
 
     #[query("can_transfer")]
-    fn can_transfer(
-        permit: Permit<OverseerPermissions>,
+    fn can_transfer_internal(
+        key: MasterKey,
+        address: HumanAddr,
         market: HumanAddr,
         amount: Uint256
     ) -> StdResult<bool>;
@@ -185,22 +189,24 @@ pub fn query_id(
 pub fn query_can_transfer(
     querier: &impl Querier,
     overseer: ContractLink<HumanAddr>,
-    permit: Permit<OverseerPermissions>,
+    key: MasterKey,
+    address: HumanAddr,
     market: HumanAddr,
     amount: Uint256
 ) -> StdResult<bool> {
     let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
-        msg: to_binary(&QueryMsg::CanTransfer {
-            permit,
+        msg: to_binary(&QueryMsg::CanTransferInternal {
+            key,
+            address,
             market,
             amount
         })?
     }))?;
 
     match result {
-        QueryResponse::CanTransfer { can_transfer } => Ok(can_transfer),
-        _ => Err(StdError::generic_err("QueryResponse::CanTransfer"))
+        QueryResponse::CanTransferInternal { can_transfer } => Ok(can_transfer),
+        _ => Err(StdError::generic_err("QueryResponse::CanTransferInternal"))
     }
 }

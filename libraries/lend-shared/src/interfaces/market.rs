@@ -14,7 +14,8 @@ use fadroma::{
 
 use serde::{Deserialize, Serialize};
 
-use super::overseer::OverseerPermissions;
+use crate::interfaces::overseer::OverseerPermissions;
+use crate::core::MasterKey;
 
 #[interface(component(path = "admin"))]
 pub trait Market {
@@ -22,6 +23,7 @@ pub trait Market {
     fn new(
         admin: Option<HumanAddr>,
         prng_seed: Binary,
+        key: MasterKey,
         // Underlying asset address
         underlying_asset: ContractLink<HumanAddr>,
         // Overseer contract address
@@ -42,16 +44,10 @@ pub trait Market {
     ) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn redeem_token(
-        permit: Permit<OverseerPermissions>,
-        burn_amount: Uint256
-    ) -> StdResult<HandleResponse>;
+    fn redeem_token(burn_amount: Uint256) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn redeem_underlying(
-        permit: Permit<OverseerPermissions>,
-        receive_amount: Uint256
-    ) -> StdResult<HandleResponse>;
+    fn redeem_underlying(receive_amount: Uint256) -> StdResult<HandleResponse>;
 
     #[handle]
     fn borrow(
@@ -73,6 +69,37 @@ pub trait Market {
 
     #[handle]
     fn reduce_reserves(amount: Uint128) -> StdResult<HandleResponse>;
+
+    #[handle]
+    fn create_viewing_key(
+        entropy: String,
+        padding: Option<String>
+    ) -> StdResult<HandleResponse>;
+
+    #[handle]
+    fn set_viewing_key(
+        key: String,
+        padding: Option<String>
+    ) -> StdResult<HandleResponse>;
+
+    #[query("amount")]
+    fn balance(
+        address: HumanAddr,
+        key: String
+    ) -> StdResult<Uint128>;
+
+    #[query("amount")]
+    fn balance_underlying(
+        address: HumanAddr,
+        key: String,
+        block: Option<u64>
+    ) -> StdResult<Uint128>;
+
+    #[query("amount")]
+    fn balance_internal(
+        address: HumanAddr,
+        key: MasterKey
+    ) -> StdResult<Uint128>;
 
     #[query("state")]
     fn state(block: Option<u64>) -> StdResult<State>;
