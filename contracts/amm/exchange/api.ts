@@ -38,15 +38,4 @@ export class AMMContract extends ScrtContract_1_2 {
 
   pairInfo = () => this.q.pairInfo()
 
-  static attach = (
-    address:  string,
-    codeHash: string,
-    agent:    Agent
-  ) => {
-    const instance = new AMMContract({ admin: agent })
-    instance.init.agent = agent
-    instance.init.address = address
-    instance.blob.codeHash = codeHash
-    return instance
-  }
 }

@@ -52,7 +52,7 @@ export async function deployRewards (
   } = options
 
   const
-    instance = chain.instances.active,
+    instance = chain.deployments.active,
     SIENNA   = instance.getContract(SiennaSNIP20Contract, 'SiennaSNIP20', admin),
     FACTORY  = instance.getContract(FactoryContract, 'SiennaAMMFactory', admin),
     REWARDS  = new RewardsContract({ prefix, admin, ref })
@@ -92,13 +92,13 @@ export async function deployRewards (
         }
         const { lp_token } = exchange
         console.debug(`Deploying rewards for ${name}...`, { lp_token })
-        const lpToken = LPTokenContract.attach(
-          exchange.lp_token.address,
-          exchange.lp_token.code_hash,
+        const lpToken = new LPTokenContract({
+          address:  exchange.lp_token.address,
+          codeHash: exchange.lp_token.code_hash,
           admin
-        )
+        })
         const reward = BigInt(rewards[name]) / BigInt(1 / split)
-        const pool    = await deployRewardPool(`${name}${suffix}`, lpToken, SIENNA)
+        const pool   = await deployRewardPool(`${name}${suffix}`, lpToken, SIENNA)
         deployedContracts.push(pool)
         rptConfig.push([pool.address, String(reward * ONE_SIENNA)])
       }
@@ -111,7 +111,6 @@ export async function deployRewards (
   return { deployedContracts, rptConfig }
 
   async function deployRewardPool (name: string, lpToken: SNIP20Contract, rewardToken: SNIP20Contract) {
-
     const {codeId, codeHash} = REWARDS
         , options    = { codeId, codeHash, prefix, name, admin, lpToken, rewardToken, ref }
         , rewardPool = new RewardsContract(options)
@@ -142,7 +141,7 @@ function getSwapTokens (
 ): Record<string, SNIP20Contract> {
   const tokens = {}
   for (const [name, {address, codeHash}] of Object.entries(links)) {
-    tokens[name] = AMMSNIP20Contract.attach(address, codeHash, admin)
+    tokens[name] = new AMMSNIP20Contract({address, codeHash, admin})
     console.log('getSwapToken', name, address, codeHash)
   }
   return tokens

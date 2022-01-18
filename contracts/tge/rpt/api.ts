@@ -63,17 +63,5 @@ export class RPTContract extends ScrtContract_1_0 {
   /** set the admin */
   setOwner = (new_admin) => this.tx.set_owner({ new_admin })
 
-  static attach = (
-    address:  string,
-    codeHash: string,
-    agent:    IAgent
-  ) => {
-    const instance = new RPTContract({ admin: agent })
-    instance.init.agent = agent
-    instance.init.address = address
-    instance.blob.codeHash = codeHash
-    return instance
-  }
-
 }
 

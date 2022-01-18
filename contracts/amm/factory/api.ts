@@ -1,5 +1,5 @@
 import type { IAgent } from "@fadroma/scrt";
-import { ScrtContract_1_2, loadSchemas, ContractAPIOptions } from "@fadroma/scrt";
+import { ScrtContract_1_2, ContractAPIOptions } from "@fadroma/scrt";
 import { randomHex } from "@hackbg/tools";
 
 import { b64encode } from "@waiting/base64";
@@ -12,151 +12,168 @@ import { IDOContract        } from "@sienna/ido";
 import { LaunchpadContract  } from "@sienna/launchpad";
 
 import { workspace } from "@sienna/settings";
-import { TokenTypeFor_HumanAddr } from "./schema/handle_msg.d";
 
-export const schema = loadSchemas(import.meta.url, {
-  initMsg:     "./schema/init_msg.json",
-  queryMsg:    "./schema/query_msg.json",
-  queryAnswer: "./schema/query_response.json",
-  handleMsg:   "./schema/handle_msg.json",
-});
+import {
+  ExchangeSettings,
+  ContractInstantiationInfo
+} from './schema/init_msg.d';
+import { TokenType } from './schema/handle_msg.d';
+import { QueryResponse, Exchange } from './schema/query_response.d'
 
-export type FactoryOptions = ContractAPIOptions & {
-  admin?:     IAgent,
-  config?:    any,
-  EXCHANGE?:  AMMContract,
-  AMMTOKEN?:  AMMSNIP20Contract,
-  LPTOKEN?:   LPTokenContract,
-  IDO?:       IDOContract
-  LAUNCHPAD?: LaunchpadContract
-  ROUTER?:    SwapRouterContract
+export type FactoryInventory = {
+  snip20_contract?:    ContractInstantiationInfo
+  pair_contract?:      ContractInstantiationInfo
+  lp_token_contract?:  ContractInstantiationInfo
+  ido_contract?:       ContractInstantiationInfo
+  launchpad_contract?: ContractInstantiationInfo
+  router_contract?:    ContractInstantiationInfo
 }
 
+// Okay, so here's how a deployer class works.
 export class FactoryContract extends ScrtContract_1_2 {
 
-  static attach = (
-    address:  string,
-    codeHash: string,
-    agent:    IAgent
-  ) => {
-    const instance = new FactoryContract({ admin: agent })
-    instance.init.agent = agent
-    instance.init.address = address
-    instance.blob.codeHash = codeHash
-    return instance
+  // Schema: used for generating the .q and .tx methods,
+  // supposedly validating inputs and outputs.
+  static schema = ScrtContract_1_2.loadSchemas(import.meta.url, {
+    initMsg:     "./schema/init_msg.json",
+    queryMsg:    "./schema/query_msg.json",
+    queryAnswer: "./schema/query_response.json",
+    handleMsg:   "./schema/handle_msg.json",
+  });
+
+  constructor({
+    address,
+    codeId,
+    codeHash,
+    admin,
+    schema = FactoryContract.schema,
+    prefix,
+    exchange_settings,
+    contracts
+  }: ContractAPIOptions & {
+
+    admin?: IAgent
+
+    /* AMM config from project settings.
+     * First auto-generated type definition
+     * finally put to use in the codebase! Hooray */
+    exchange_settings?:  ExchangeSettings
+
+    /* Contract contracts (id + codehash)
+     * for each contract known by the factory */
+    contracts?: FactoryInventory
+
+  } = {}) {
+
+    super({
+      // for building
+      workspace, crate: 'factory',
+      // for uploading
+      codeId, codeHash, label: 'SiennaAMMFactory',
+      // for transacting
+      address, schema, prefix, agent: admin
+    })
+
+    Object.assign(this.init, {
+      msg: {
+        prng_seed: randomHex(36),
+        exchange_settings: {
+          swap_fee: { nom: 28, denom: 1000 },
+          sienna_fee: { nom: 2, denom: 10000 },
+          sienna_burner: null,
+        },
+      }
+    })
+
+    if (admin) {
+      Object.assign(this.init.msg, { admin: admin.address })
+    }
+
+    if (exchange_settings) {
+      Object.assign(this.init.msg, { exchange_settings })
+    }
+
+    if (contracts) {
+      Object.assign(this.init.msg, contracts)
+    }
+
   }
 
-  constructor(options: FactoryOptions = {}) {
-    super({
-      codeId: options.codeId,
-      agent:  options.admin,
-      prefix: options.prefix,
-      schema,
-      workspace
-    })
-
-    Object.assign(this.init.msg, {
-      ...(options.config || {}),
-      admin: options.admin?.address,
-    })
-
-    const { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, ROUTER, LAUNCHPAD } = options
-    Object.assign(this.dependencies, { EXCHANGE, AMMTOKEN, LPTOKEN, IDO, ROUTER, LAUNCHPAD })
-
-    const self = this
-    Object.defineProperties(this.init.msg, {
-      snip20_contract:    { enumerable: true, get () { return self.dependencies.AMMTOKEN.template  } },
-      pair_contract:      { enumerable: true, get () { return self.dependencies.EXCHANGE.template  } },
-      lp_token_contract:  { enumerable: true, get () { return self.dependencies.LPTOKEN.template   } },
-      ido_contract:       { enumerable: true, get () { return self.dependencies.IDO.template       } },
-      launchpad_contract: { enumerable: true, get () { return self.dependencies.LAUNCHPAD.template } },
-    })
-
-    if (options.label) {
-      this.init.label = options.label;
+  get contracts (): Promise<FactoryInventory> {
+    if (this.address) {
+      // If this contract has an address query this from the contract state
+      return (this.q.get_config() as Promise<QueryResponse>).then(({
+        snip20_contract,
+        pair_contract,
+        lp_token_contract,
+        ido_contract,
+        launchpad_contract,
+        router_contract
+      })=>({// type kludge!
+        snip20_contract:    snip20_contract    as ContractInstantiationInfo,
+        pair_contract:      pair_contract      as ContractInstantiationInfo,
+        lp_token_contract:  lp_token_contract  as ContractInstantiationInfo,
+        ido_contract:       ido_contract       as ContractInstantiationInfo,
+        launchpad_contract: launchpad_contract as ContractInstantiationInfo,
+        router_contract:    router_contract    as ContractInstantiationInfo
+      }))
+    } else {
+      // If it's not deployed yet, return the value from the config
+      return Promise.resolve({
+        snip20_contract:    this.init.msg.snip20_contract,
+        pair_contract:      this.init.msg.pair_contract,
+        lp_token_contract:  this.init.msg.lp_token_contract,
+        ido_contract:       this.init.msg.ido_contract,
+        launchpad_contract: this.init.msg.launchpad_contract,
+        router_contract:    this.init.msg.router_contract
+      })
     }
   }
 
-  readonly dependencies: Record<string, ScrtContract> = {}
-
-  code = { ...this.code, workspace, crate: "factory" };
-
-  init = {
-    ...this.init,
-    label: "SiennaAMMFactory",
-    msg: {
-      get prng_seed() {
-        return randomHex(36);
-      },
-      exchange_settings: {
-        swap_fee: { nom: 28, denom: 1000 },
-        sienna_fee: { nom: 2, denom: 10000 },
-        sienna_burner: null,
-      },
-    },
-  };
-
-  /**
-   * Create launchpad contract
-   *
-   * @param {object[]} tokens
-   * @param {IAgent} agent
-   * @returns
-   */
-  createLaunchpad(tokens: object[], agent = this.instantiator) {
-    return this.tx.create_launchpad({
-      tokens,
-    }, agent);
-  }
-
-  /**
-   *
-   * @param {TokenTypeFor_HumanAddr} token_0
-   * @param {TokenTypeFor_HumanAddr} token_1
-   * @param {IAgent} agent
-   * @returns
-   */
-  async createExchange (
-    token_0: TokenTypeFor_HumanAddr,
-    token_1: TokenTypeFor_HumanAddr,
-    agent = this.instantiator
-  ) {
-    const pair = { token_0, token_1 };
-    const entropy = b64encode(EnigmaUtils.GenerateNewSeed().toString());
-    await agent.execute(this.link, "create_exchange", { pair, entropy });
-    return await this.getExchange(token_0, token_1, agent);
-  }
-
-  async getExchange (
-    token_0: TokenTypeFor_HumanAddr,
-    token_1: TokenTypeFor_HumanAddr,
-    agent = this.instantiator
-  ) {
-    const pair = { token_0, token_1 };
-    const {get_exchange_address:{address:exchange_address}} =
-      await agent.query(this.link, "get_exchange_address", { pair })
-    const exchange = AMM.attach(exchange_address, undefined, agent)
-    const {pair_info:{liquidity_token:lp_token}} = await exchange.pairInfo();
-    return { exchange: exchange.link, lp_token, token_0, token_1 }
-  }
-
-  listExchanges = async () => {
-    const result = []
-
+  async listExchanges (): Promise<Exchange[]> {
+    const result: Exchange[] = []
     const limit = 30
+
     let start = 0
-
     while(true) {
-      const response = await this.q.listExchanges({ pagination: { start, limit } })
-      const list = response.list_exchanges.exchanges
-
-      if (list.length == 0)
+      const response: QueryResponse = await this.q.listExchanges({ pagination: { start, limit } }) as QueryResponse
+      const list:     Exchange[]    = (response.list_exchanges as { exchanges: Exchange[] }).exchanges
+      if (list.length == 0) {
         break
-
+      }
       result.push.apply(result, list)
       start += limit
     }
 
     return result
   }
+
+  async getExchange (token_0: TokenType, token_1: TokenType, agent = this.instantiator) {
+
+    const pair = { token_0, token_1 }
+
+    const {get_exchange_address:{address:exchange_address}} =
+      await agent.query(this.link, "get_exchange_address", { pair })
+
+    const exchange = new AMMContract({address: exchange_address, agent})
+
+    const {pair_info:{liquidity_token:lp_token}} = await exchange.pairInfo()
+
+    return { exchange: exchange.link, lp_token, token_0, token_1 }
+
+  }
+
+  /** Create a liquidity pool, i.e. an instance of the exchange contract */
+  async createExchange (token_0: TokenType, token_1: TokenType, agent = this.instantiator) {
+    const pair = { token_0, token_1 };
+    const entropy = b64encode(EnigmaUtils.GenerateNewSeed().toString());
+    await agent.execute(this.link, "create_exchange", { pair, entropy });
+    return await this.getExchange(token_0, token_1, agent);
+  }
+
+  /** Create an instance of the launchpad contract. */
+  createLaunchpad (tokens: object[], agent = this.instantiator) {
+    return this.tx.create_launchpad({ tokens, }, agent)
+  }
+
 }

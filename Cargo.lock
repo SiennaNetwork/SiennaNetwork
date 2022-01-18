@@ -2149,6 +2149,7 @@ name = "tests"
 version = "0.1.0"
 dependencies = [
  "amm-snip20",
+ "lend-interest-model",
  "lend-market",
  "lend-oracle",
  "lend-overseer",

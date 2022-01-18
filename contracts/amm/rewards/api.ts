@@ -1,4 +1,4 @@
-import type { IAgent } from "@fadroma/scrt"
+import type { IAgent, IContract } from "@fadroma/scrt"
 import { ScrtContract_1_2 } from "@fadroma/scrt"
 import { randomHex } from '@hackbg/tools'
 import { SNIP20Contract } from '@fadroma/snip20'
@@ -49,18 +49,6 @@ export class RewardsContract extends ScrtContract_1_2 {
     queryAnswer: "./schema/response.json",
     handleMsg:   "./schema/handle.json",
   })
-
-  static attach (
-    address:  string,
-    codeHash: string,
-    agent:    IAgent
-  ) {
-    const instance = new RewardsContract({ admin: agent })
-    instance.init.agent = agent
-    instance.init.address = address
-    instance.blob.codeHash = codeHash
-    return instance
-  }
 
   constructor ({
     ref,
@@ -147,14 +135,14 @@ export class RewardsContract extends ScrtContract_1_2 {
         return info.rewards.pool_info.clock.number
       },
 
-      async getRewardToken (TOKEN: { attach: Function } = SNIP20) {
+      async getRewardToken (TOKEN: IContract) {
         const { address, code_hash } = (await this.poolInfo(agent)).reward_token
-        return TOKEN.attach(address, code_hash, agent)
+        return new TOKEN({ address, codeHash: code_hash, agent })
       },
 
-      async getLPToken (TOKEN: { attach: Function } = LPTokenContract) {
+      async getLPToken (TOKEN: IContract) {
         const { address, code_hash } = (await this.poolInfo(agent)).lp_token
-        return TOKEN.attach(address, code_hash, agent)
+        return new TOKEN({ address, codeHash: code_hash, agent })
       }
 
     }

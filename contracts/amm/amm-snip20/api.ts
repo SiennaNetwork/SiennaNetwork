@@ -29,16 +29,4 @@ export class AMMSNIP20Contract extends SNIP20Contract_1_2 {
       agent:  options?.admin
     })
   }
-
-  static attach = (
-    address:  string,
-    codeHash: string,
-    agent:    IAgent
-  ) => {
-    const instance = new AMMSNIP20Contract({ admin: agent })
-    instance.init.agent = agent
-    instance.init.address = address
-    instance.blob.codeHash = codeHash
-    return instance
-  }
 }
