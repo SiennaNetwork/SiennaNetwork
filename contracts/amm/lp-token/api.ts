@@ -1,7 +1,6 @@
 import type { IAgent, ContractState } from "@fadroma/scrt"
 import { randomHex } from "@hackbg/tools"
 import { SNIP20Contract_1_2 } from "@fadroma/snip20"
-import { workspace } from "@sienna/settings"
 import { InitMsg } from "./schema/init_msg.d"
 
 export type LPTokenOptions = {

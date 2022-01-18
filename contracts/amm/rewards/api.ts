@@ -3,7 +3,6 @@ import { ScrtContract_1_2 } from "@fadroma/scrt"
 import { randomHex } from '@hackbg/tools'
 import { SNIP20Contract } from '@fadroma/snip20'
 import { LPTokenContract } from '@sienna/lp-token'
-import { workspace } from '@sienna/settings'
 import { Init } from './schema/init.d'
 
 export class RewardsContract extends ScrtContract_1_2 {
@@ -13,24 +12,24 @@ export class RewardsContract extends ScrtContract_1_2 {
   name = 'SiennaRewards'
 
   initMsg: Init = {
-    admin: this.instantiator.address,
+    admin: this.instantiator?.address,
     config: {}
   }
 
   constructor (options: ContractState & {
     /** Admin agent */
-    admin:       IAgent,
+    admin?:       IAgent,
     /** Address of other user that can increment the epoch */
-    timekeeper:  string,
+    timekeeper?:  string,
     /** Staked token */
-    lpToken:     LPTokenContract,
+    lpToken?:     LPTokenContract,
     /** Rewarded token */
-    rewardToken: SNIP20Contract,
+    rewardToken?: SNIP20Contract,
     /** Bonding period config */
     bonding?:     number,
-  }) {
+  } = {}) {
     super(options)
-    this.initMsg.admin = options.admin.address
+    this.initMsg.admin = options.admin?.address
     this.initMsg.config = {
       reward_vk:    randomHex(36),
       bonding:      options.bonding || 86400,

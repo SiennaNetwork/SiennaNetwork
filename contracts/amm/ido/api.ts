@@ -1,13 +1,5 @@
 import type { IAgent, ContractAPIOptions } from '@fadroma/scrt'
-import { ScrtContract_1_2, loadSchemas } from "@fadroma/scrt"
-import { workspace } from '@sienna/settings'
-
-export const schema = loadSchemas(import.meta.url, {
-  initMsg:     "./schema/init_msg.json",
-  queryMsg:    "./schema/query_msg.json",
-  queryAnswer: "./schema/query_response.json",
-  handleMsg:   "./schema/handle_msg.json",
-});
+import { ScrtContract_1_2 } from "@fadroma/scrt"
 
 export type IDOOptions = ContractAPIOptions & {
   admin?: IAgent

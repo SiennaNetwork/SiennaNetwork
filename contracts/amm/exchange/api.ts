@@ -1,4 +1,4 @@
-import { ScrtContract_1_2, loadSchemas, IAgent, ContractState } from "@fadroma/scrt"
+import { ScrtContract_1_2, IAgent, ContractState } from "@fadroma/scrt"
 import { randomHex } from '@hackbg/tools'
 import { workspace } from '@sienna/settings'
 import { InitMsg } from './schema/init_msg.d'

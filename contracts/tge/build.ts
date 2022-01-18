@@ -4,10 +4,12 @@ import {
   RPTContract,
 } from '@sienna/api'
 
+import { workspace } from '@sienna/settings'
+
 export async function buildTge (): Promise<string[]> {
   return Promise.all([
-    new SiennaSNIP20Contract().build(),
-    new MGMTContract().build(),
-    new RPTContract().build()
+    new SiennaSNIP20Contract({ workspace }).build(),
+    new MGMTContract({ workspace }).build(),
+    new RPTContract({ workspace }).build()
   ])
 }

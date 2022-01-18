@@ -1,10 +1,5 @@
 import type { IAgent } from "@fadroma/scrt";
-import {
-  ScrtContract_1_2,
-  ContractBuildState,
-  ContractUploadState,
-  ContractClientState
-} from "@fadroma/scrt";
+import { ScrtContract_1_2, ContractState } from "@fadroma/scrt";
 import { randomHex } from "@hackbg/tools";
 
 import { b64encode } from "@waiting/base64";
@@ -15,8 +10,6 @@ import { AMMSNIP20Contract  } from "@sienna/amm-snip20";
 import { LPTokenContract    } from "@sienna/lp-token";
 import { IDOContract        } from "@sienna/ido";
 import { LaunchpadContract  } from "@sienna/launchpad";
-
-import { workspace } from "@sienna/settings";
 
 import { InitMsg, ExchangeSettings, ContractInstantiationInfo } from './schema/init_msg.d';
 import { TokenType } from './schema/handle_msg.d';
@@ -37,7 +30,7 @@ export class FactoryContract extends ScrtContract_1_2 {
 
   name  = 'SiennaAMMFactory'
 
-  constructor(options: ContractBuildState & ContractUploadState & ContractClientState & {
+  constructor(options: ContractState & {
 
     admin?: IAgent
 
@@ -52,7 +45,7 @@ export class FactoryContract extends ScrtContract_1_2 {
 
   } = {}) {
 
-    super()
+    super(options)
 
     Object.assign(this.initMsg, {
       prng_seed: randomHex(36),

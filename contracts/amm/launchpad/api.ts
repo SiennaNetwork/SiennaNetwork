@@ -1,13 +1,5 @@
 import { ScrtContract_1_2, loadSchemas, Agent } from "@fadroma/scrt";
 import { randomHex } from "@hackbg/tools";
-import { workspace } from "@sienna/settings";
-
-export const schema = loadSchemas(import.meta.url, {
-  initMsg:     "./schema/init_msg.json",
-  queryMsg:    "./schema/query_msg.json",
-  queryAnswer: "./schema/query_response.json",
-  handleMsg:   "./schema/handle_msg.json",
-});
 
 // @ts-ignore
 const decoder = new TextDecoder();
@@ -18,20 +10,6 @@ export class LaunchpadContract extends ScrtContract_1_2 {
   crate = 'launchpad'
 
   name  = 'SiennaAMMLaunchpad'
-
-  constructor ({ prefix, admin, label, codeId, initMsg }: {
-    prefix?:  string,
-    admin?:   Agent,
-    label?:   string,
-    codeId?:  number
-    initMsg?: any
-  } = {}) {
-    super({ agent: admin, schema })
-    if (codeId)  this.blob.codeId = codeId
-    if (prefix)  this.init.prefix = prefix
-    if (label)   this.init.label  = label
-    if (initMsg) this.init.msg    = initMsg
-  }
 
   /**
    * This action will remove the token from the contract
