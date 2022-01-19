@@ -4,19 +4,19 @@ use lend_shared::{
             Extern, Storage, Api, Querier,
             StdResult, HumanAddr, StdError
         },
-        permit::Permit,
         Uint256
     },
     interfaces::overseer::{
-        OverseerPermissions, query_account_liquidity
-    }
+        query_account_liquidity
+    },
+    core::MasterKey
 };
 
 use crate::state::{Contracts, Global, TotalBorrows};
 
 pub fn assert_borrow_allowed<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S,A,Q>,
-    permit: Permit<OverseerPermissions>,
+    sender: HumanAddr,
     block: u64,
     self_addr: HumanAddr,
     amount: Uint256
@@ -39,7 +39,8 @@ pub fn assert_borrow_allowed<S: Storage, A: Api, Q: Querier>(
     let liquidity = query_account_liquidity(
         &deps.querier,
         Contracts::load_overseer(deps)?,
-        permit,
+        MasterKey::load(&deps.storage)?,
+        sender,
         Some(self_addr),
         Some(block),
         Uint256::zero(),

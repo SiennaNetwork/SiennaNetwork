@@ -56,7 +56,17 @@ pub trait Overseer {
         market: Option<HumanAddr>,
         block: Option<u64>,
         redeem_amount: Uint256,
-        borrow_amount: Uint256,
+        borrow_amount: Uint256
+    ) -> StdResult<AccountLiquidity>;
+
+    #[query("liquidity")]
+    fn account_liquidity_internal(
+        key: MasterKey,
+        address: HumanAddr,
+        market: Option<HumanAddr>,
+        block: Option<u64>,
+        redeem_amount: Uint256,
+        borrow_amount: Uint256
     ) -> StdResult<AccountLiquidity>;
 
     #[query("can_transfer")]
@@ -152,7 +162,8 @@ impl Humanize<Market<HumanAddr>> for Market<CanonicalAddr> {
 pub fn query_account_liquidity(
     querier: &impl Querier,
     overseer: ContractLink<HumanAddr>,
-    permit: Permit<OverseerPermissions>,
+    key: MasterKey,
+    address: HumanAddr,
     market: Option<HumanAddr>,
     block: Option<u64>,
     redeem_amount: Uint256,
@@ -161,8 +172,9 @@ pub fn query_account_liquidity(
     let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
-        msg: to_binary(&QueryMsg::AccountLiquidity {
-            permit,
+        msg: to_binary(&QueryMsg::AccountLiquidityInternal {
+            key,
+            address,
             market,
             block,
             redeem_amount,
@@ -171,8 +183,8 @@ pub fn query_account_liquidity(
     }))?;
 
     match result {
-        QueryResponse::AccountLiquidity { liquidity } => Ok(liquidity),
-        _ => Err(StdError::generic_err("Expecting QueryResponse::AccountLiquidity"))
+        QueryResponse::AccountLiquidityInternal { liquidity } => Ok(liquidity),
+        _ => Err(StdError::generic_err("Expecting QueryResponse::AccountLiquidityInternal"))
     }
 }
 
@@ -236,5 +248,21 @@ pub fn query_market(
     match result {
         QueryResponse::Market { market } => Ok(market),
         _ => Err(StdError::generic_err("QueryResponse::Market"))
+    }
+}
+
+pub fn query_config(
+    querier: &impl Querier,
+    overseer: ContractLink<HumanAddr>
+) -> StdResult<Config> {
+    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: overseer.address,
+        callback_code_hash: overseer.code_hash,
+        msg: to_binary(&QueryMsg::Config { })?
+    }))?;
+
+    match result {
+        QueryResponse::Config { config } => Ok(config),
+        _ => Err(StdError::generic_err("QueryResponse::Config"))
     }
 }

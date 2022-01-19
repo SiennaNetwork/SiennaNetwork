@@ -228,6 +228,27 @@ pub trait Overseer {
         )
     }
 
+    #[query("liquidity")]
+    fn account_liquidity_internal(
+        key: MasterKey,
+        address: HumanAddr,
+        market: Option<HumanAddr>,
+        block: Option<u64>,
+        redeem_amount: Uint256,
+        borrow_amount: Uint256,
+    ) -> StdResult<AccountLiquidity> {
+        MasterKey::check(&deps.storage, &key)?;
+
+        calc_liquidity(
+            deps,
+            &Borrower::new(deps, &address)?,
+            market,
+            block,
+            redeem_amount,
+            borrow_amount,
+        )
+    }
+
     #[query("can_transfer")]
     fn can_transfer_internal(
         key: MasterKey,

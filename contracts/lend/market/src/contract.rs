@@ -191,7 +191,7 @@ pub trait Market {
 
         checks::assert_borrow_allowed(
             deps,
-            permit,
+            env.message.sender.clone(),
             env.block.height,
             env.contract.address,
             amount
