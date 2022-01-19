@@ -19,21 +19,3 @@ export class SiennaSNIP20Contract extends SNIP20Contract_1_0 {
   }
 
 }
-
-//export class SiennaSNIP20Executor extends SNIP20Executor {
-
-  //constructor (
-    //readonly contract: SiennaSNIP20Contract,
-    //readonly agent:    IAgent
-  //) {}
-
-  //mint ({ amount, recipient, padding }: {
-    //amount:    BigInt|String,
-    //recipient: string,
-    //padding:   string|null
-  //}) {
-    //const msg = { mint: { amount, recipient, padding } }
-    //return this.agent.execute(this.contract, msg)
-  //}
-
-//}

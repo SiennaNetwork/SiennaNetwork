@@ -8,12 +8,11 @@ import { MGMTTransactions } from './MGMTTransactions'
 import { MGMTQueries }      from './MGMTQueries'
 export class MGMTContract extends AugmentedScrtContract_1_2<MGMTTransactions, MGMTQueries> {
 
-  crate = 'sienna-mgmt'
-
-  name  = 'SiennaMGMT'
+  workspace = workspace
+  crate     = 'sienna-mgmt'
+  name      = 'SiennaMGMT'
 
   Transactions = MGMTTransactions
-
   Queries      = MGMTQueries
 
   constructor (options: ContractState & {

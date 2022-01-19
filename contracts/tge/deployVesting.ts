@@ -36,9 +36,9 @@ export async function deployVesting (
   const RPTAccount = getRPTAccount(schedule)
   const portion    = RPTAccount.portion_size
 
-  const options = { uploader: admin, instantiator: admin, admin, workspace, chain, prefix }
-  const SIENNA = new SiennaSNIP20Contract({ ...options })
-  const MGMT   = new MGMTContract({ ...options, schedule, SIENNA })
+  const contractOptions = { uploader: admin, instantiator: admin, admin, workspace, chain, prefix }
+  const SIENNA = new SiennaSNIP20Contract({ ...contractOptions })
+  const MGMT   = new MGMTContract({ ...contractOptions, schedule, SIENNA })
   const RPT    = new RPTContract({ ...options, MGMT, SIENNA, portion })
 
   SIENNA.uploader = MGMT.uploader = RPT.uploader = admin
@@ -48,12 +48,8 @@ export async function deployVesting (
   await SIENNA.instantiate()
 
   if (chain.isTestnet) {
-    await SIENNA.setMinters([admin.address])
-    await SIENNA.tx(admin).mint({
-      amount:    "5000000000000000000000",
-      recipient: admin.address,
-      padding:   null,
-    })
+    await SIENNA.tx(admin).setMinters([admin.address])
+    await SIENNA.tx(admin).mint("5000000000000000000000", admin.address)
   }
 
   RPTAccount.address = admin.address

@@ -8,7 +8,7 @@ export class FactoryQueries extends QueryExecutor {
     return response.list_exchanges.exchanges
   }
   async get_exchange_address (token_0: TokenType, token_1: TokenType) {
-    const response = await this.query({ get_exchange_address: { token_0, token_1 } })
+    const response = await this.query({ get_exchange_address: { pair: { token_0, token_1 } } })
     return response.get_exchange_address
   }
 }

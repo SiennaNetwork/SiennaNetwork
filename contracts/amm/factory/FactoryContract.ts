@@ -109,7 +109,12 @@ export class FactoryContract extends AugmentedScrtContract_1_2<FactoryTransactio
       throw new Error('Use the config method to reconfigure a live contract.')
     } else {
       Promise.resolve(contracts).then(contracts=>{
-        Object.assign(this.initMsg, contracts)
+        for (const contract of Object.keys(contracts)) {
+          this.initMsg[contract] = {
+            id:        contracts[contract].codeId,
+            code_hash: contracts[contract].codeHash,
+          }
+        }
       })
     }
   }
@@ -134,7 +139,7 @@ export class FactoryContract extends AugmentedScrtContract_1_2<FactoryTransactio
   /** Get info about an exchange. */
   async getExchange (token_0: TokenType, token_1: TokenType, agent = this.instantiator) {
     const {address} = await this.q(agent).get_exchange_address(token_0, token_1)
-    const exchange  = new AMMContract({address, admin: agent})
+    const exchange  = new AMMContract({address, admin: agent, instantiator: agent})
     const {pair_info:{liquidity_token:lp_token}} = await exchange.pairInfo()
     return { exchange: exchange.link, lp_token, token_0, token_1 }
   }

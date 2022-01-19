@@ -4,7 +4,6 @@ import {
   randomHex
 } from "@fadroma/scrt"
 import { SNIP20Contract } from '@fadroma/snip20'
-import { LPTokenContract } from '@sienna/lp-token'
 import { Init } from './schema/init.d'
 
 import { RewardsTransactions } from './RewardsTransactions'
@@ -26,7 +25,7 @@ export class RewardsContract extends AugmentedScrtContract_1_2<RewardsTransactio
     /** Address of other user that can increment the epoch */
     timekeeper?:  string,
     /** Staked token */
-    lpToken?:     LPTokenContract,
+    lpToken?:     SNIP20Contract,
     /** Rewarded token */
     rewardToken?: SNIP20Contract,
     /** Bonding period config */
