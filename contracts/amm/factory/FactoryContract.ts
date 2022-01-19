@@ -119,6 +119,27 @@ export class FactoryContract extends AugmentedScrtContract_1_2<FactoryTransactio
     }
   }
 
+  get exchanges (): Promise<AMMContract[]> {
+    return this.listExchanges().then(exchanges=>
+      Promise.all(exchanges.map(async ({ contract, pair }) => {
+        const { lp_token } = await this.getExchange(
+          pair.token_0,
+          pair.token_1
+        )
+        const lpToken = new LPTokenContract({
+          address:  lp_token.address,
+          codeHash: lp_token.code_hash
+        })
+        const exchange = new AMMContract({
+          address:  contract.address,
+          codeHash: contract.code_hash,
+          lpToken
+        })
+        return exchange
+      }))
+    )
+  }
+
   async listExchanges (): Promise<Exchange[]> {
     const result: Exchange[] = []
     const limit = 30
@@ -126,11 +147,12 @@ export class FactoryContract extends AugmentedScrtContract_1_2<FactoryTransactio
     let start = 0
     while (true) {
       const list = await this.q().list_exchanges(start, limit)
-      if (list.length == 0) {
+      if (list.length > 0) {
+        result.push(...list)
+        start += limit
+      } else {
         break
       }
-      result.push.apply(result, list)
-      start += limit
     }
 
     return result

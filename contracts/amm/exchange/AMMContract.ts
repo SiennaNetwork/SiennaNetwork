@@ -1,4 +1,5 @@
 import { IAgent, ContractState, AugmentedScrtContract_1_2, randomHex } from "@fadroma/scrt"
+import { SNIP20Contract } from '@fadroma/snip20'
 import { InitMsg } from './schema/init_msg.d'
 import { AMMTransactions } from './AMMTransactions'
 import { AMMQueries } from './AMMQueries'
@@ -11,6 +12,8 @@ export class AMMContract extends AugmentedScrtContract_1_2<AMMTransactions, AMMQ
 
   initMsg?: InitMsg
 
+  lpToken?: SNIP20Contract
+
   Transactions = AMMTransactions
 
   Queries      = AMMQueries
@@ -22,6 +25,7 @@ export class AMMContract extends AugmentedScrtContract_1_2<AMMTransactions, AMMQ
     name?:     string,
     symbol?:   string,
     decimals?: number,
+    lpToken?:  SNIP20Contract
   } = {}) {
     super(options)
     this.initMsg = {
