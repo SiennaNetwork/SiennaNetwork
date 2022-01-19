@@ -278,13 +278,11 @@ pub trait Overseer {
         Markets::list(deps, pagination)
     }
 
-    #[query("is_listed")]
-    fn is_listed(address: HumanAddr) -> StdResult<bool> {
-        if Markets::get_id(deps, &address).is_ok() {
-            Ok(true)
-        } else {
-            Ok(false)
-        }
+    #[query("market")]
+    fn market(address: HumanAddr) -> StdResult<Market<HumanAddr>> {
+        let (_, market) = Markets::get_by_addr(deps, &address)?;
+
+        Ok(market)
     }
 
     #[query("config")]
