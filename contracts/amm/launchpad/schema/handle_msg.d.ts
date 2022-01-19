@@ -122,5 +122,4 @@ export interface TokenSettings {
   bounding_period: number;
   segment: Uint128;
   token_type: TokenType;
-  [k: string]: unknown;
 }

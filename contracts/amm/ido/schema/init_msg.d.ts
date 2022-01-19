@@ -50,7 +50,6 @@ export interface InitMsg {
    * Seed for creating viewkey
    */
   prng_seed: Binary;
-  [k: string]: unknown;
 }
 /**
  * Info needed to have the other contract respond.
@@ -102,7 +101,6 @@ export interface TokenSaleConfig {
    * The addresses that are eligible to participate in the sale.
    */
   whitelist: HumanAddr[];
-  [k: string]: unknown;
 }
 export interface WhitelistRequest {
   /**
@@ -113,5 +111,4 @@ export interface WhitelistRequest {
    * Vector of tokens address needs to have locked in order to be considered for a draw. Tokens need to be configured in the Launchpad as eligible. Option<> is because if None that will represent a native token.
    */
   tokens: (HumanAddr | null)[];
-  [k: string]: unknown;
 }

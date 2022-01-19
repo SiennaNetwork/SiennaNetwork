@@ -46,7 +46,6 @@ export interface InitMsg {
    */
   pair: TokenPair;
   prng_seed: Binary;
-  [k: string]: unknown;
 }
 /**
  * Info needed to have the other contract respond.

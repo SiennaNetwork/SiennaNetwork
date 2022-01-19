@@ -68,6 +68,7 @@ pub trait Overseer {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum OverseerPermissions {
     AccountInfo,
     Id,
@@ -75,6 +76,7 @@ pub enum OverseerPermissions {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct AccountLiquidity {
     /// The USD value borrowable by the user, before it reaches liquidation.
     pub liquidity: Uint256,
@@ -84,6 +86,7 @@ pub struct AccountLiquidity {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     /// The percentage of a liquidatable account's borrow that can be repaid in a single liquidate transaction.
     /// If a user has multiple borrowed assets, the closeFactor applies to any single borrowed asset,
@@ -95,6 +98,7 @@ pub struct Config {
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct Market<A> {
     pub contract: ContractLink<A>,
     /// The symbol of the underlying asset.
@@ -105,6 +109,7 @@ pub struct Market<A> {
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct Pagination {
     pub start: u64,
     pub limit: u8,

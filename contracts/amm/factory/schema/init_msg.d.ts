@@ -22,7 +22,6 @@ export interface InitMsg {
   pair_contract: ContractInstantiationInfo;
   prng_seed: Binary;
   snip20_contract: ContractInstantiationInfo;
-  [k: string]: unknown;
 }
 export interface ExchangeSettings {
   sienna_burner?: HumanAddr | null;

@@ -12,11 +12,12 @@ export class AMMContract extends AugmentedScrtContract_1_2<AMMTransactions, AMMQ
 
   initMsg?: InitMsg
 
-  lpToken?: SNIP20Contract
-
   Transactions = AMMTransactions
-
   Queries      = AMMQueries
+
+  token0?:  SNIP20Contract
+  token1?:  SNIP20Contract
+  lpToken?: SNIP20Contract
 
   constructor (options: ContractState & {
     admin?:    IAgent,

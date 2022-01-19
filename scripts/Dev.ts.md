@@ -100,10 +100,10 @@ commands['schema'] = () => generateSchema(abs(), [
   "amm/rewards",
   "amm/router",
 
-  "lend/interest_model",
+  /*"lend/interest_model",
   "lend/market",
   "lend/oracle",
-  "lend/overseer"
+  "lend/overseer"*/
 ])
 ```
 

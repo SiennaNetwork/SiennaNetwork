@@ -110,6 +110,7 @@ pub struct State {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     // Initial exchange rate used when minting the first slTokens (used when totalSupply = 0)
     pub initial_exchange_rate: Decimal256,
@@ -118,12 +119,14 @@ pub struct Config {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct Borrower {
     pub id: Binary,
     pub info: BorrowerInfo
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct BorrowerInfo {
     /// Total balance (with accrued interest), after applying the most recent balance-changing action
     pub principal: Uint256,
@@ -133,6 +136,7 @@ pub struct BorrowerInfo {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct AccountInfo {
     pub sl_token_balance: Uint256,
     pub borrow_balance: Uint256,
@@ -141,6 +145,7 @@ pub struct AccountInfo {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum ReceiverCallbackMsg {
     /// Deposit underlying token
     Deposit,

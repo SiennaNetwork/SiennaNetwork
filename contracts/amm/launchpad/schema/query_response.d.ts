@@ -46,7 +46,6 @@ export interface QueryTokenConfig {
   segment: Uint128;
   token_decimals: number;
   token_type: TokenType;
-  [k: string]: unknown;
 }
 /**
  * Account token representation that holds all the entries for this token
@@ -55,5 +54,4 @@ export interface QueryAccountToken {
   balance: Uint128;
   entries: number[];
   token_type: TokenType;
-  [k: string]: unknown;
 }
