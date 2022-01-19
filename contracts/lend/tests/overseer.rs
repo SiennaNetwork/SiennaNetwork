@@ -1,5 +1,5 @@
 use lend_shared::{
-    fadroma::{auth::Permit, ensemble::MockEnv, Decimal256, StdError, Uint256},
+    fadroma::{ensemble::MockEnv, Decimal256, StdError, Uint256, decimal::one_token},
     interfaces::overseer::*,
 };
 
@@ -88,7 +88,6 @@ fn liquidity() {
         StdError::generic_err("Market is not listed.")
     );
 
-    // can list two different markets
     lend.ensemble
         .execute(
             &HandleMsg::Whitelist {
@@ -103,28 +102,14 @@ fn liquidity() {
         .unwrap();
 
     // not in market yet, should have no effect
-    let res = lend
-        .ensemble
-        .query(
-            lend.overseer.address.clone(),
-            QueryMsg::AccountLiquidity {
-                permit: Permit::<OverseerPermissions>::new(
-                    "Borrower",
-                    vec![OverseerPermissions::AccountInfo],
-                    vec![lend.overseer.address.clone()],
-                    "balance",
-                ),
-                market: Some(atom_market.address.clone()),
-                redeem_amount: Uint256::from(1u128),
-                borrow_amount: Uint256::from(1u128),
-            },
-        )
-        .unwrap();
+    let res = lend.get_liquidity(
+        Some(atom_market.address.clone()),
+        Uint256::from(1u128),
+        Uint256::from(1u128),
+    );
 
-    if let QueryResponse::AccountLiquidity { liquidity } = res {
-        assert_eq!(Uint256::from(0u128), liquidity.liquidity);
-        assert_eq!(Uint256::from(0u128), liquidity.shortfall);
-    }
+    assert_eq!(Uint256::from(0u128), res.liquidity);
+    assert_eq!(Uint256::from(0u128), res.shortfall);
 
     lend.ensemble
         .execute(
@@ -136,31 +121,31 @@ fn liquidity() {
         .unwrap();
 
     // total account liquidity after supplying `amount`
-    let res = lend
-        .ensemble
-        .query(
-            lend.overseer.address.clone(),
-            QueryMsg::AccountLiquidity {
-                permit: Permit::<OverseerPermissions>::new(
-                    "Borrower",
-                    vec![OverseerPermissions::AccountInfo],
-                    vec![lend.overseer.address.clone()],
-                    "balance",
-                ),
-                market: Some(atom_market.address.clone()),
-                redeem_amount: Uint256::from(0u128),
-                borrow_amount: Uint256::from(0u128),
-            },
-        )
-        .unwrap();
+    let res = lend.get_liquidity(
+        Some(atom_market.address.clone()),
+        Uint256::from(0u128),
+        Uint256::from(0u128),
+    );
 
-    if let QueryResponse::AccountLiquidity { liquidity } = res {
-        assert_eq!(
-            Uint256::from(1u128)
-                .decimal_mul(Decimal256::percent(50))
-                .unwrap(),
-            liquidity.liquidity
-        );
-        assert_eq!(Uint256::from(0u128), liquidity.shortfall);
-    }
+    assert_eq!(
+        Uint256::from(1u128)
+            .decimal_mul(Decimal256::percent(50))
+            .unwrap(),
+        res.liquidity
+    );
+    assert_eq!(Uint256::from(0u128), res.shortfall);
+
+    // borrow amount, should shortfall over collateralFactor
+    let res = lend.get_liquidity(
+        Some(atom_market.address.clone()),
+        Uint256::from(0u128),
+        Uint256::from(one_token(6)),
+    );
+
+    assert_eq!(
+        Uint256::from(0u128),
+        res.liquidity
+    );
+    assert_eq!(Uint256::from(1u128).decimal_mul(Decimal256::percent(50)).unwrap(), res.shortfall);
+
 }

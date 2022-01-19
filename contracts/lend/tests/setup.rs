@@ -5,7 +5,7 @@ use lend_shared::fadroma::{
     schemars::JsonSchema,
     snip20_impl::msg::{InitMsg as Snip20InitMsg, InitialBalance},
     to_binary, Binary, ContractLink, Decimal256, Env, HandleResponse, HumanAddr, InitResponse,
-    StdError, StdResult, Uint128,
+    Permit, StdError, StdResult, Uint128, Uint256,
 };
 
 use lend_shared::interfaces::{interest_model, market, overseer};
@@ -137,7 +137,7 @@ impl Lend {
                         },
                         InitialBalance {
                             address: "Borrower".into(),
-                            amount: Uint128(100 * one_token(decimals)),
+                            amount: Uint128(one_token(decimals)),
                         },
                     ]),
                     prng_seed: Binary::from(b"whatever"),
@@ -170,7 +170,7 @@ impl Lend {
                         },
                         InitialBalance {
                             address: "Borrower".into(),
-                            amount: Uint128(100 * one_token(decimals)),
+                            amount: Uint128(one_token(decimals)),
                         },
                     ]),
                     prng_seed: Binary::from(b"whatever"),
@@ -272,7 +272,7 @@ impl Lend {
                     admin: None,
                     prng_seed: Binary::from(b"market"),
                     underlying_asset: atom_underlying_token,
-                    initial_exchange_rate: Decimal256::percent(20),
+                    initial_exchange_rate: Decimal256::one(),
                     overseer_contract: overseer.clone(),
                     interest_model_contract: interest_model,
                     reserve_factor: Decimal256::one(),
@@ -291,6 +291,36 @@ impl Lend {
             ensemble,
             overseer,
             markets: vec![sienna_market, atom_market],
+        }
+    }
+
+    pub fn get_liquidity(
+        &self,
+        market: Option<HumanAddr>,
+        redeem_amount: Uint256,
+        borrow_amount: Uint256,
+    ) -> overseer::AccountLiquidity {
+        let res = self
+            .ensemble
+            .query(
+                self.overseer.address.clone(),
+                overseer::QueryMsg::AccountLiquidity {
+                    permit: Permit::<overseer::OverseerPermissions>::new(
+                        "Borrower",
+                        vec![overseer::OverseerPermissions::AccountInfo],
+                        vec![self.overseer.address.clone()],
+                        "balance",
+                    ),
+                    market,
+                    redeem_amount,
+                    borrow_amount,
+                },
+            )
+            .unwrap();
+
+        match res {
+            overseer::QueryResponse::AccountLiquidity { liquidity } => liquidity,
+            _ => panic!("Expecting overseer::QueryResponse::AccountLiquidity"),
         }
     }
 }
