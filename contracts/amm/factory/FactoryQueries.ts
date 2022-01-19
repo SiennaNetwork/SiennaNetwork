@@ -1,3 +1,6 @@
+import { TokenType } from './schema/handle_msg.d'
+import { Exchange } from './schema/query_response.d'
+
 import { QueryExecutor } from '@fadroma/scrt'
 export class FactoryQueries extends QueryExecutor {
   async list_exchanges (start: number, limit: number): Promise<Exchange[]> {

@@ -2,9 +2,6 @@ import type { IAgent } from "@fadroma/scrt";
 import { AugmentedScrtContract_1_2, ContractState } from "@fadroma/scrt";
 import { randomHex } from "@hackbg/tools";
 
-import { b64encode } from "@waiting/base64";
-import { EnigmaUtils } from "secretjs/src/index.ts";
-
 import { AMMContract        } from "@sienna/exchange";
 import { AMMSNIP20Contract  } from "@sienna/amm-snip20";
 import { LPTokenContract    } from "@sienna/lp-token";
