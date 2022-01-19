@@ -3,9 +3,6 @@ import { randomHex } from '@hackbg/tools'
 import { workspace } from '@sienna/settings'
 import { InitMsg } from './schema/init_msg.d'
 
-export type AMMContractOptions = {
-}
-
 export class AMMContract extends ScrtContract_1_2 {
 
   crate = 'exchange'

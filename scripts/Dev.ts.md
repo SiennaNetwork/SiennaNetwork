@@ -51,18 +51,21 @@ Run `pnpm -w dev build all` compile to list the subsets of contracts that can be
 ```typescript
 import { buildTge } from '@sienna/tge'
 import { buildTokens, buildAmm, buildIdo, buildRewards, buildRouter } from '@sienna/amm'
+import { buildLend } from '@sienna/lend'
 commands['build'] = {}
 commands['build']['tge']     = () => buildTge()
 commands['build']['amm']     = () => buildTokens().then(buildAmm())
 commands['build']['rewards'] = () => buildTokens().then(buildRewards())
 commands['build']['ido']     = () => buildTokens().then(buildIdo())
 commands['build']['router']  = () => buildTokens().then(buildRouter())
+commands['build']['lend']    = () => buildTokens().then(buildLend())
 commands['build']['all'] = () => Promise.all([
   buildTge(),
   buildTokens(),
   buildAmm(),
   buildRewards(),
   buildRouter()
+  buildLend()
 ])
 ```
 
@@ -92,6 +95,11 @@ commands['schema'] = () => generateSchema(abs(), [
   "amm/lp-token",
   "amm/rewards",
   "amm/router",
+
+  "lend/interest_model",
+  "lend/market",
+  "lend/oracle",
+  "lend/overseer"
 ])
 ```
 

@@ -1,5 +1,5 @@
 import type { IAgent, ContractState } from "@fadroma/scrt"
-import { randomHex } from "@hackbg/tools"
+import { randomHex } from "@fadroma/scrt"
 import { SNIP20Contract_1_2 } from "@fadroma/snip20"
 import { InitMsg } from './schema/init_msg.d'
 

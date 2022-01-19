@@ -21,6 +21,9 @@
     "./contracts/amm/*",
     "./libraries/ops-amm",
 
+    "./contracts/lend",
+    "./contracts/lend/*",
+
     "./frontends/*"
   ],
 
