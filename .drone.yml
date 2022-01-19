@@ -147,5 +147,6 @@ steps:
       - cat package.json
       - npm i -g pnpm
       - pnpm -w dev
+      - pnpm -w dev test clients
       - pnpm -w ops pulsar-2
       - pnpm -w ops secret-3

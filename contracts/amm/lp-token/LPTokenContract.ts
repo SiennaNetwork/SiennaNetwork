@@ -29,7 +29,7 @@ export class LPTokenContract extends SNIP20Contract_1_2 {
     prng_seed: randomHex(36),
   }
 
-  constructor (options) {
+  constructor (options = {}) {
     super(options)
     if (options.name) {
       this.name           = `SiennaRewards_${options?.name}_LPToken`
