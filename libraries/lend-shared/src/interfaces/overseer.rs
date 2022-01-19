@@ -44,8 +44,8 @@ pub trait Overseer {
     #[query("whitelist")]
     fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>>;
 
-    #[query("is_listed")]
-    fn is_listed(address: HumanAddr) -> StdResult<bool>;
+    #[query("market")]
+    fn market(address: HumanAddr) -> StdResult<Market<HumanAddr>>;
 
     #[query("entered_markets")]
     fn entered_markets(permit: Permit<OverseerPermissions>) -> StdResult<Vec<Market<HumanAddr>>>;
@@ -220,21 +220,21 @@ pub fn query_can_transfer(
     }
 }
 
-pub fn query_is_listed(
+pub fn query_market(
     querier: &impl Querier,
     overseer: ContractLink<HumanAddr>,
     address: HumanAddr,
-) -> StdResult<bool> {
+) -> StdResult<Market<HumanAddr>> {
     let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
-        msg: to_binary(&QueryMsg::IsListed {
+        msg: to_binary(&QueryMsg::Market {
             address
         })?
     }))?;
 
     match result {
-        QueryResponse::IsListed { is_listed } => Ok(is_listed),
-        _ => Err(StdError::generic_err("QueryResponse::IsListed"))
+        QueryResponse::Market { market } => Ok(market),
+        _ => Err(StdError::generic_err("QueryResponse::Market"))
     }
 }
