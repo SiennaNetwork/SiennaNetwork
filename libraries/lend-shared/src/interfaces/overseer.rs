@@ -11,12 +11,15 @@ use fadroma::{
 
 use serde::{Deserialize, Serialize};
 
+use crate::core::MasterKey;
+
 #[interface(component(path = "admin"))]
 pub trait Overseer {
     #[init]
     fn new(
         admin: Option<HumanAddr>,
         prng_seed: Binary,
+        entropy: Binary,
         close_factor: Decimal256,
         // Liquidation incentive
         premium: Decimal256,
@@ -41,6 +44,9 @@ pub trait Overseer {
     #[query("whitelist")]
     fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>>;
 
+    #[query("is_listed")]
+    fn is_listed(address: HumanAddr) -> StdResult<bool>;
+
     #[query("entered_markets")]
     fn entered_markets(permit: Permit<OverseerPermissions>) -> StdResult<Vec<Market<HumanAddr>>>;
 
@@ -48,14 +54,17 @@ pub trait Overseer {
     fn account_liquidity(
         permit: Permit<OverseerPermissions>,
         market: Option<HumanAddr>,
+        block: Option<u64>,
         redeem_amount: Uint256,
         borrow_amount: Uint256,
     ) -> StdResult<AccountLiquidity>;
 
     #[query("can_transfer")]
-    fn can_transfer(
-        permit: Permit<OverseerPermissions>,
+    fn can_transfer_internal(
+        key: MasterKey,
+        address: HumanAddr,
         market: HumanAddr,
+        block: u64,
         amount: Uint256
     ) -> StdResult<bool>;
 
@@ -145,6 +154,7 @@ pub fn query_account_liquidity(
     overseer: ContractLink<HumanAddr>,
     permit: Permit<OverseerPermissions>,
     market: Option<HumanAddr>,
+    block: Option<u64>,
     redeem_amount: Uint256,
     borrow_amount: Uint256,
 ) -> StdResult<AccountLiquidity> {
@@ -154,6 +164,7 @@ pub fn query_account_liquidity(
         msg: to_binary(&QueryMsg::AccountLiquidity {
             permit,
             market,
+            block,
             redeem_amount,
             borrow_amount,
         })?,
@@ -185,22 +196,45 @@ pub fn query_id(
 pub fn query_can_transfer(
     querier: &impl Querier,
     overseer: ContractLink<HumanAddr>,
-    permit: Permit<OverseerPermissions>,
+    key: MasterKey,
+    address: HumanAddr,
     market: HumanAddr,
+    block: u64,
     amount: Uint256
 ) -> StdResult<bool> {
     let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
-        msg: to_binary(&QueryMsg::CanTransfer {
-            permit,
+        msg: to_binary(&QueryMsg::CanTransferInternal {
+            key,
+            address,
             market,
+            block,
             amount
         })?
     }))?;
 
     match result {
-        QueryResponse::CanTransfer { can_transfer } => Ok(can_transfer),
-        _ => Err(StdError::generic_err("QueryResponse::CanTransfer"))
+        QueryResponse::CanTransferInternal { can_transfer } => Ok(can_transfer),
+        _ => Err(StdError::generic_err("QueryResponse::CanTransferInternal"))
+    }
+}
+
+pub fn query_is_listed(
+    querier: &impl Querier,
+    overseer: ContractLink<HumanAddr>,
+    address: HumanAddr,
+) -> StdResult<bool> {
+    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: overseer.address,
+        callback_code_hash: overseer.code_hash,
+        msg: to_binary(&QueryMsg::IsListed {
+            address
+        })?
+    }))?;
+
+    match result {
+        QueryResponse::IsListed { is_listed } => Ok(is_listed),
+        _ => Err(StdError::generic_err("QueryResponse::IsListed"))
     }
 }

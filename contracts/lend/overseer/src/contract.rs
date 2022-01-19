@@ -20,6 +20,7 @@ use lend_shared::{
         },
         overseer::{AccountLiquidity, Config, HandleMsg, Market, OverseerPermissions, Pagination},
     },
+    core::MasterKey
 };
 
 use state::{Borrower, BorrowerId, Constants, Contracts, Markets};
@@ -30,11 +31,15 @@ pub trait Overseer {
     fn new(
         admin: Option<HumanAddr>,
         prng_seed: Binary,
+        entropy: Binary,
         close_factor: Decimal256,
         premium: Decimal256,
         oracle_contract: ContractInstantiationInfo,
         oracle_source: ContractLink<HumanAddr>,
     ) -> StdResult<InitResponse> {
+        MasterKey::new(&env, prng_seed.as_slice(), entropy.as_slice())
+            .save(&mut deps.storage)?;
+            
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
 
         Contracts::save_oracle(
@@ -152,7 +157,7 @@ pub trait Overseer {
             &deps.querier,
             market.contract,
             borrower.clone().id(),
-            None
+            None // None because we only check if borrows balance is zero here.
         )?;
 
         if snapshot.borrow_balance != Uint256::zero() {
@@ -163,8 +168,9 @@ pub trait Overseer {
             deps,
             &borrower,
             Some(market_address),
+            Some(env.block.height),
             snapshot.sl_token_balance,
-            Uint256::zero(),
+            Uint256::zero()
         )?;
 
         if liquidity.shortfall > Uint256::zero() {
@@ -201,6 +207,7 @@ pub trait Overseer {
     fn account_liquidity(
         permit: Permit<OverseerPermissions>,
         market: Option<HumanAddr>,
+        block: Option<u64>,
         redeem_amount: Uint256,
         borrow_amount: Uint256,
     ) -> StdResult<AccountLiquidity> {
@@ -215,32 +222,37 @@ pub trait Overseer {
             deps,
             &Borrower::new(deps, &borrower)?,
             market,
+            block,
             redeem_amount,
             borrow_amount,
         )
     }
 
     #[query("can_transfer")]
-    fn can_transfer(
-        permit: Permit<OverseerPermissions>,
+    fn can_transfer_internal(
+        key: MasterKey,
+        address: HumanAddr,
         market: HumanAddr,
-        amount: Uint256,
+        block: u64,
+        amount: Uint256
     ) -> StdResult<bool> {
-        let self_ref = Contracts::load_self_ref(deps)?;
-        let borrower = permit.validate_with_permissions(
-            deps,
-            self_ref.address,
-            vec![OverseerPermissions::AccountInfo],
-        )?;
+        MasterKey::check(&deps.storage, &key)?;
 
-        let borrower = Borrower::new(&deps, &borrower)?;
+        let borrower = Borrower::new(&deps, &address)?;
 
         // If not entered the market then transfer is allowed.
         if borrower.get_market(&deps, &market).is_err() {
             return Ok(true);
         }
 
-        let result = calc_liquidity(deps, &borrower, Some(market), amount, Uint256::zero())?;
+        let result = calc_liquidity(
+            deps,
+            &borrower,
+            Some(market),
+            Some(block),
+            amount,
+            Uint256::zero()
+        )?;
 
         if result.shortfall > Uint256::zero() {
             Ok(false)
@@ -266,6 +278,15 @@ pub trait Overseer {
         Markets::list(deps, pagination)
     }
 
+    #[query("is_listed")]
+    fn is_listed(address: HumanAddr) -> StdResult<bool> {
+        if Markets::get_id(deps, &address).is_ok() {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
     #[query("config")]
     fn config() -> StdResult<Config> {
         let Constants {
@@ -285,8 +306,9 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     borrower: &Borrower,
     target_asset: Option<HumanAddr>,
+    block: Option<u64>,
     redeem_amount: Uint256,
-    borrow_amount: Uint256,
+    borrow_amount: Uint256
 ) -> StdResult<AccountLiquidity> {
     let oracle = Contracts::load_oracle(deps)?;
     let target_asset = target_asset.unwrap_or_default();
@@ -301,11 +323,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
             &deps.querier,
             market.contract,
             borrower.clone().id(),
-            // TODO: Compound queries the cached values, possibly due to updating
-            // all interest in all markets and storing it being expensive.
-            // However, here we can just calculate without storing. 
-            // Wouldn't doing this be more accurate? Or is there another reason?
-            None
+            block
         )?;
 
         let price = query_price(
