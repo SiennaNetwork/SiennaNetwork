@@ -1,9 +1,14 @@
-import { ScrtContract_1_2, IAgent, ContractState } from "@fadroma/scrt"
-import { randomHex } from '@hackbg/tools'
+import {
+  IAgent, ContractState,
+  AugmentedScrtContract_1_2, TransactionExecutor, QueryExecutor,
+  randomHex
+} from "@fadroma/scrt"
+
 import { workspace } from '@sienna/settings'
+
 import { InitMsg } from './schema/init_msg.d'
 
-export class AMMContract extends ScrtContract_1_2 {
+export class AMMContract extends AugmentedScrtContract_1_2<AMMExecutor, AMMQuerier> {
 
   crate = 'exchange'
 
@@ -30,6 +35,18 @@ export class AMMContract extends ScrtContract_1_2 {
     }
   }
 
-  pairInfo = () => this.q.pairInfo()
+  Transactions = AMMExecutor
 
+  Queries  = AMMQuerier
+
+  pairInfo = () => this.q().pair_info()
+
+}
+
+export class AMMExecutor extends TransactionExecutor {}
+
+export class AMMQuerier extends QueryExecutor {
+  pair_info () {
+    return this.query({ pair_info: {} })
+  }
 }

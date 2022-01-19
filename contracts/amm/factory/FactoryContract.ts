@@ -1,5 +1,5 @@
 import type { IAgent } from "@fadroma/scrt";
-import { ScrtContract_1_2, ContractState } from "@fadroma/scrt";
+import { AugmentedScrtContract_1_2, ContractState } from "@fadroma/scrt";
 import { randomHex } from "@hackbg/tools";
 
 import { b64encode } from "@waiting/base64";
@@ -24,13 +24,20 @@ export type FactoryInventory = {
   router_contract?:    ContractInstantiationInfo
 }
 
-export class FactoryContract extends ScrtContract_1_2 {
+import { FactoryTransactions } from './FactoryTransactions'
+import { FactoryQueries }      from './FactoryQueries'
 
-  crate = 'factory'
+export class FactoryContract extends AugmentedScrtContract_1_2<FactoryTransactions, FactoryQueries> {
 
-  name  = 'SiennaAMMFactory'
+  crate        = 'factory'
 
-  constructor(options: ContractState & {
+  name         = 'SiennaAMMFactory'
+
+  Transactions = FactoryTransactions
+
+  Queries      = FactoryQueries
+
+  constructor (options: ContractState & {
 
     admin?: IAgent
 
@@ -115,9 +122,8 @@ export class FactoryContract extends ScrtContract_1_2 {
     const limit = 30
 
     let start = 0
-    while(true) {
-      const response: QueryResponse = await this.q.listExchanges({ pagination: { start, limit } }) as QueryResponse
-      const list:     Exchange[]    = (response.list_exchanges as { exchanges: Exchange[] }).exchanges
+    while (true) {
+      const list = await this.q().list_exchanges(start, limit)
       if (list.length == 0) {
         break
       }
@@ -128,25 +134,23 @@ export class FactoryContract extends ScrtContract_1_2 {
     return result
   }
 
+  /** Get info about an exchange. */
   async getExchange (token_0: TokenType, token_1: TokenType, agent = this.instantiator) {
-    const pair = { token_0, token_1 }
-    const {get_exchange_address} = await agent.query(this.link, "get_exchange_address", { pair })
-    const exchange = new AMMContract({address: get_exchange_address.address, agent})
+    const {address} = await this.q(agent).get_exchange_address(token_0, token_1)
+    const exchange  = new AMMContract({address, admin: agent})
     const {pair_info:{liquidity_token:lp_token}} = await exchange.pairInfo()
     return { exchange: exchange.link, lp_token, token_0, token_1 }
   }
 
-  /** Create a liquidity pool, i.e. an instance of the exchange contract */
+  /** Create a liquidity pool, i.e. an instance of the exchange contract. */
   async createExchange (token_0: TokenType, token_1: TokenType, agent = this.instantiator) {
-    const pair = { token_0, token_1 };
-    const entropy = b64encode(EnigmaUtils.GenerateNewSeed().toString());
-    await agent.execute(this.link, "create_exchange", { pair, entropy });
+    await this.tx(agent).create_exchange(token_0, token_1)
     return await this.getExchange(token_0, token_1, agent);
   }
 
   /** Create an instance of the launchpad contract. */
   createLaunchpad (tokens: object[], agent = this.instantiator) {
-    return this.tx.create_launchpad({ tokens, }, agent)
+    return this.tx(agent).create_launchpad(tokens)
   }
 
 }

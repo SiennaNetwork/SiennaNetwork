@@ -18,10 +18,6 @@ export class SiennaSNIP20Contract extends SNIP20Contract_1_0 {
     prng_seed: randomHex(36)
   }
 
-  //tx (agent: IAgent = this.instantiator) {
-    //return new SiennaSNIP20Executor(this, agent)
-  //}
-
 }
 
 //export class SiennaSNIP20Executor extends SNIP20Executor {
