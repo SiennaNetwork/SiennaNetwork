@@ -192,6 +192,7 @@ pub trait Market {
         checks::assert_borrow_allowed(
             deps,
             permit,
+            env.block.height,
             env.contract.address,
             amount
         )?;
@@ -238,6 +239,7 @@ pub trait Market {
             MasterKey::load(&deps.storage)?,
             env.message.sender,
             env.contract.address,
+            env.block.height,
             amount
         )?;
 

@@ -98,6 +98,7 @@ pub fn redeem<S: Storage, A: Api, Q: Querier>(
         MasterKey::load(&deps.storage)?,
         env.message.sender.clone(),
         env.contract.address,
+        env.block.height,
         burn_amount.clamp_u128()?.into()
     )?;
 

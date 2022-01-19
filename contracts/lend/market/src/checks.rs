@@ -17,6 +17,7 @@ use crate::state::{Contracts, Global, TotalBorrows};
 pub fn assert_borrow_allowed<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S,A,Q>,
     permit: Permit<OverseerPermissions>,
+    block: u64,
     self_addr: HumanAddr,
     amount: Uint256
 ) -> StdResult<()> {
@@ -40,6 +41,7 @@ pub fn assert_borrow_allowed<S: Storage, A: Api, Q: Querier>(
         Contracts::load_overseer(deps)?,
         permit,
         Some(self_addr),
+        Some(block),
         Uint256::zero(),
         amount.low_u128().into()
     )?;

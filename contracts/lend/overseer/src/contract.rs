@@ -157,7 +157,7 @@ pub trait Overseer {
             &deps.querier,
             market.contract,
             borrower.clone().id(),
-            None
+            None // None because we only check if borrows balance is zero here.
         )?;
 
         if snapshot.borrow_balance != Uint256::zero() {
@@ -168,8 +168,9 @@ pub trait Overseer {
             deps,
             &borrower,
             Some(market_address),
+            Some(env.block.height),
             snapshot.sl_token_balance,
-            Uint256::zero(),
+            Uint256::zero()
         )?;
 
         if liquidity.shortfall > Uint256::zero() {
@@ -206,6 +207,7 @@ pub trait Overseer {
     fn account_liquidity(
         permit: Permit<OverseerPermissions>,
         market: Option<HumanAddr>,
+        block: Option<u64>,
         redeem_amount: Uint256,
         borrow_amount: Uint256,
     ) -> StdResult<AccountLiquidity> {
@@ -220,6 +222,7 @@ pub trait Overseer {
             deps,
             &Borrower::new(deps, &borrower)?,
             market,
+            block,
             redeem_amount,
             borrow_amount,
         )
@@ -230,6 +233,7 @@ pub trait Overseer {
         key: MasterKey,
         address: HumanAddr,
         market: HumanAddr,
+        block: u64,
         amount: Uint256
     ) -> StdResult<bool> {
         MasterKey::check(&deps.storage, &key)?;
@@ -241,7 +245,14 @@ pub trait Overseer {
             return Ok(true);
         }
 
-        let result = calc_liquidity(deps, &borrower, Some(market), amount, Uint256::zero())?;
+        let result = calc_liquidity(
+            deps,
+            &borrower,
+            Some(market),
+            Some(block),
+            amount,
+            Uint256::zero()
+        )?;
 
         if result.shortfall > Uint256::zero() {
             Ok(false)
@@ -267,6 +278,15 @@ pub trait Overseer {
         Markets::list(deps, pagination)
     }
 
+    #[query("is_listed")]
+    fn is_listed(address: HumanAddr) -> StdResult<bool> {
+        if Markets::get_id(deps, &address).is_ok() {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
     #[query("config")]
     fn config() -> StdResult<Config> {
         let Constants {
@@ -286,8 +306,9 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     borrower: &Borrower,
     target_asset: Option<HumanAddr>,
+    block: Option<u64>,
     redeem_amount: Uint256,
-    borrow_amount: Uint256,
+    borrow_amount: Uint256
 ) -> StdResult<AccountLiquidity> {
     let oracle = Contracts::load_oracle(deps)?;
     let target_asset = target_asset.unwrap_or_default();
@@ -302,11 +323,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
             &deps.querier,
             market.contract,
             borrower.clone().id(),
-            // TODO: Compound queries the cached values, possibly due to updating
-            // all interest in all markets and storing it being expensive.
-            // However, here we can just calculate without storing. 
-            // Wouldn't doing this be more accurate? Or is there another reason?
-            None
+            block
         )?;
 
         let price = query_price(
