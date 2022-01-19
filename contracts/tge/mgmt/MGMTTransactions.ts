@@ -13,31 +13,31 @@ export class MGMTTransactions extends TransactionExecutor {
   /** load a schedule */
   async configure (schedule: any) {
     const msg = { configure: { schedule } }
-    return this.agent.execute(this.contract, msg)
+    return this.execute(msg)
   }
 
   /** launch the vesting */
   launch () {
     const msg = { launch: {} }
-    return this.agent.execute(this.contract, msg)
+    return this.execute(msg)
   }
 
   /** claim accumulated portions */
   claim (claimant: any) {
     const msg = { claim: {} }
-    return this.agent.execute(this.contract, msg)
+    return this.execute(msg)
   }
 
   /** add a new account to a pool */
   add (pool_name: any, account: any) {
     const msg = { add_account: { pool_name, account } }
-    return this.agent.execute(this.contract, msg)
+    return this.execute(msg)
   }
 
   /** set the admin */
   setOwner (new_admin: any) {
     const msg = { set_owner: { new_admin } }
-    return this.agent.execute(this.contract, msg)
+    return this.execute(msg)
   }
 
 }
