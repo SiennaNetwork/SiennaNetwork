@@ -3,14 +3,12 @@ use lend_shared::fadroma::{
     ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
     from_binary, schemars,
     schemars::JsonSchema,
-    snip20_impl::msg::{
-        HandleAnswer, HandleMsg as Snip20HandleMsg, InitMsg as Snip20InitMsg, InitialBalance,
-    },
-    to_binary, Binary, ContractLink, Decimal, Decimal256, Env, HandleResponse, HumanAddr,
-    InitResponse, StdError, StdResult, Uint128,
+    snip20_impl::msg::{InitMsg as Snip20InitMsg, InitialBalance},
+    to_binary, Binary, ContractLink, Decimal256, Env, HandleResponse, HumanAddr, InitResponse,
+    StdError, StdResult, Uint128,
 };
 
-use lend_shared::interfaces::{interest_model, market, oracle, overseer};
+use lend_shared::interfaces::{interest_model, market, overseer};
 use serde::{Deserialize, Serialize};
 
 use crate::{impl_contract_harness_default, ADMIN};
@@ -108,7 +106,7 @@ impl ContractHarness for MockBand {
 pub struct Lend {
     pub ensemble: ContractEnsemble,
     pub overseer: ContractLink<HumanAddr>,
-    pub market: ContractLink<HumanAddr>,
+    pub markets: Vec<ContractLink<HumanAddr>>,
 }
 
 impl Lend {
@@ -123,7 +121,7 @@ impl Lend {
         let interest = ensemble.register(Box::new(InterestModel));
 
         let decimals = 6;
-        let underlying_token = ensemble
+        let sienna_underlying_token = ensemble
             .instantiate(
                 token.id,
                 &Snip20InitMsg {
@@ -132,10 +130,16 @@ impl Lend {
                     symbol: "UNDR".into(),
                     decimals,
                     initial_allowances: None,
-                    initial_balances: Some(vec![InitialBalance {
-                        address: ADMIN.into(),
-                        amount: Uint128(one_token(decimals)),
-                    }]),
+                    initial_balances: Some(vec![
+                        InitialBalance {
+                            address: ADMIN.into(),
+                            amount: Uint128(one_token(decimals)),
+                        },
+                        InitialBalance {
+                            address: "Borrower".into(),
+                            amount: Uint128(100 * one_token(decimals)),
+                        },
+                    ]),
                     prng_seed: Binary::from(b"whatever"),
                     config: None,
                     callback: None,
@@ -143,7 +147,40 @@ impl Lend {
                 MockEnv::new(
                     ADMIN,
                     ContractLink {
-                        address: "underlying_token".into(),
+                        address: "underlying_sienna".into(),
+                        code_hash: token.code_hash.clone(),
+                    },
+                ),
+            )
+            .unwrap();
+
+        let atom_underlying_token = ensemble
+            .instantiate(
+                token.id,
+                &Snip20InitMsg {
+                    name: "Underlying Token".into(),
+                    admin: None,
+                    symbol: "UNATOM".into(),
+                    decimals,
+                    initial_allowances: None,
+                    initial_balances: Some(vec![
+                        InitialBalance {
+                            address: ADMIN.into(),
+                            amount: Uint128(one_token(decimals)),
+                        },
+                        InitialBalance {
+                            address: "Borrower".into(),
+                            amount: Uint128(100 * one_token(decimals)),
+                        },
+                    ]),
+                    prng_seed: Binary::from(b"whatever"),
+                    config: None,
+                    callback: None,
+                },
+                MockEnv::new(
+                    ADMIN,
+                    ContractLink {
+                        address: "underlying_atom".into(),
                         code_hash: token.code_hash.clone(),
                     },
                 ),
@@ -169,10 +206,10 @@ impl Lend {
                 interest.id,
                 &interest_model::InitMsg {
                     admin: None,
-                    base_rate_year: Decimal256::percent(2),
-                    multiplier_year: Decimal256::percent(2),
-                    jump_multiplier_year: Decimal256::percent(2),
-                    jump_threshold: Decimal256::percent(2),
+                    base_rate_year: Decimal256::zero(),
+                    multiplier_year: Decimal256::one(),
+                    jump_multiplier_year: Decimal256::zero(),
+                    jump_threshold: Decimal256::zero(),
                     blocks_year: Some(6311520),
                 },
                 MockEnv::new(
@@ -191,7 +228,7 @@ impl Lend {
                 &overseer::InitMsg {
                     admin: None,
                     prng_seed: Binary::from(b"whatever"),
-                    close_factor: Decimal256::from_uint256(50000000000000000u128).unwrap(),
+                    close_factor: Decimal256::from_uint256(51000000000000000u128).unwrap(),
                     premium: Decimal256::one(),
                     oracle_contract: oracle,
                     oracle_source: mock_band,
@@ -206,13 +243,35 @@ impl Lend {
             )
             .unwrap();
 
-        let market = ensemble
+        let sienna_market = ensemble
             .instantiate(
                 market.id,
                 &market::InitMsg {
                     admin: None,
                     prng_seed: Binary::from(b"market"),
-                    underlying_asset: underlying_token,
+                    underlying_asset: sienna_underlying_token,
+                    initial_exchange_rate: Decimal256::percent(20),
+                    overseer_contract: overseer.clone(),
+                    interest_model_contract: interest_model.clone(),
+                    reserve_factor: Decimal256::one(),
+                },
+                MockEnv::new(
+                    ADMIN,
+                    ContractLink {
+                        address: "sienna_market".into(),
+                        code_hash: market.code_hash.clone(),
+                    },
+                ),
+            )
+            .unwrap();
+
+        let atom_market = ensemble
+            .instantiate(
+                market.id,
+                &market::InitMsg {
+                    admin: None,
+                    prng_seed: Binary::from(b"market"),
+                    underlying_asset: atom_underlying_token,
                     initial_exchange_rate: Decimal256::percent(20),
                     overseer_contract: overseer.clone(),
                     interest_model_contract: interest_model,
@@ -221,7 +280,7 @@ impl Lend {
                 MockEnv::new(
                     ADMIN,
                     ContractLink {
-                        address: "market".into(),
+                        address: "atom_market".into(),
                         code_hash: market.code_hash,
                     },
                 ),
@@ -231,7 +290,7 @@ impl Lend {
         Self {
             ensemble,
             overseer,
-            market,
+            markets: vec![sienna_market, atom_market],
         }
     }
 }
