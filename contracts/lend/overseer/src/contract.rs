@@ -1,6 +1,7 @@
 mod state;
 
 use lend_shared::{
+    core::MasterKey,
     fadroma::{
         admin,
         admin::{assert_admin, Admin},
@@ -14,13 +15,12 @@ use lend_shared::{
         Uint256,
     },
     interfaces::{
-        market::{query_exchange_rate, query_account},
+        market::{query_account, query_exchange_rate},
         oracle::{
             query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
         },
         overseer::{AccountLiquidity, Config, HandleMsg, Market, OverseerPermissions, Pagination},
     },
-    core::MasterKey
 };
 
 use state::{Borrower, BorrowerId, Constants, Contracts, Markets};
@@ -37,9 +37,8 @@ pub trait Overseer {
         oracle_contract: ContractInstantiationInfo,
         oracle_source: ContractLink<HumanAddr>,
     ) -> StdResult<InitResponse> {
-        MasterKey::new(&env, prng_seed.as_slice(), entropy.as_slice())
-            .save(&mut deps.storage)?;
-            
+        MasterKey::new(&env, prng_seed.as_slice(), entropy.as_slice()).save(&mut deps.storage)?;
+
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
 
         Contracts::save_oracle(
@@ -157,7 +156,7 @@ pub trait Overseer {
             &deps.querier,
             market.contract,
             borrower.clone().id(),
-            None // None because we only check if borrows balance is zero here.
+            None, // None because we only check if borrows balance is zero here.
         )?;
 
         if snapshot.borrow_balance != Uint256::zero() {
@@ -170,7 +169,7 @@ pub trait Overseer {
             Some(market_address),
             Some(env.block.height),
             snapshot.sl_token_balance,
-            Uint256::zero()
+            Uint256::zero(),
         )?;
 
         if liquidity.shortfall > Uint256::zero() {
@@ -187,6 +186,33 @@ pub trait Overseer {
             log: vec![log("action", "exit")],
             data: None,
         })
+    }
+
+    #[handle]
+    #[require_admin]
+    fn set_ltv_ratio(market: HumanAddr, ltv_ratio: Decimal256) -> StdResult<HandleResponse> {
+        let symbol = Markets::get_by_addr(deps, &market)?.1.symbol;
+        let price = query_price(
+            &deps.querier,
+            Contracts::load_oracle(deps)?,
+            symbol.into(),
+            "USD".into(),
+            None,
+        )?;
+
+        // Can't set collateral factor if the price is 0
+        if price.rate == Decimal256::zero() {
+            return Err(StdError::generic_err(
+                "Cannot set the collateral factor if the price is 0",
+            ));
+        }
+
+        Markets::update(deps, &market, |mut m| {
+            m.ltv_ratio = ltv_ratio;
+            m.validate()?;
+            Ok(m)
+        })?;
+        Ok(HandleResponse::default())
     }
 
     #[query("entered_markets")]
@@ -234,7 +260,7 @@ pub trait Overseer {
         address: HumanAddr,
         market: HumanAddr,
         block: u64,
-        amount: Uint256
+        amount: Uint256,
     ) -> StdResult<bool> {
         MasterKey::check(&deps.storage, &key)?;
 
@@ -251,7 +277,7 @@ pub trait Overseer {
             Some(market),
             Some(block),
             amount,
-            Uint256::zero()
+            Uint256::zero(),
         )?;
 
         if result.shortfall > Uint256::zero() {
@@ -306,7 +332,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     target_asset: Option<HumanAddr>,
     block: Option<u64>,
     redeem_amount: Uint256,
-    borrow_amount: Uint256
+    borrow_amount: Uint256,
 ) -> StdResult<AccountLiquidity> {
     let oracle = Contracts::load_oracle(deps)?;
     let target_asset = target_asset.unwrap_or_default();
@@ -317,12 +343,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     for market in borrower.list_markets(deps)? {
         let is_target_asset = target_asset == market.contract.address;
 
-        let snapshot = query_account(
-            &deps.querier,
-            market.contract,
-            borrower.clone().id(),
-            block
-        )?;
+        let snapshot = query_account(&deps.querier, market.contract, borrower.clone().id(), block)?;
 
         let price = query_price(
             &deps.querier,
@@ -333,6 +354,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
         )?;
 
         let conversion_factor = ((market.ltv_ratio * snapshot.exchange_rate)? * price.rate)?;
+
         total_collateral = (Uint256::from(snapshot.sl_token_balance)
             .decimal_mul(conversion_factor)?
             + total_collateral)?;
@@ -340,10 +362,8 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
             (Uint256::from(snapshot.borrow_balance).decimal_mul(price.rate)? + total_borrowed)?;
 
         if is_target_asset {
-            total_borrowed =
-                (redeem_amount.decimal_mul(conversion_factor)? + total_borrowed)?;
-            total_borrowed =
-                (borrow_amount.decimal_mul(price.rate)? + total_borrowed)?;
+            total_borrowed = (redeem_amount.decimal_mul(conversion_factor)? + total_borrowed)?;
+            total_borrowed = (borrow_amount.decimal_mul(price.rate)? + total_borrowed)?;
         }
     }
 
@@ -372,7 +392,7 @@ fn calc_seize_tokens<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<Uint256> {
     let premium = Constants::load(&deps.storage)?.premium;
 
-    //  Read oracle prices for borrowed and collateral markets 
+    //  Read oracle prices for borrowed and collateral markets
     let oracle = Contracts::load_oracle(deps)?;
     let price_borrowed = query_price(
         &deps.querier,

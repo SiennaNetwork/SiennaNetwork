@@ -1,11 +1,14 @@
-use lend_shared::fadroma::{
-    decimal::one_token,
-    ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
-    from_binary, schemars,
-    schemars::JsonSchema,
-    snip20_impl::msg::{InitMsg as Snip20InitMsg, InitialBalance},
-    to_binary, Binary, ContractLink, Decimal256, Env, HandleResponse, HumanAddr, InitResponse,
-    Permit, StdError, StdResult, Uint128, Uint256,
+use lend_shared::{
+    core::MasterKey,
+    fadroma::{
+        decimal::one_token,
+        ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
+        from_binary, schemars,
+        schemars::JsonSchema,
+        snip20_impl::msg::{InitMsg as Snip20InitMsg, InitialBalance},
+        to_binary, Binary, ContractLink, Decimal256, Env, HandleResponse, HumanAddr, InitResponse,
+        Permit, StdError, StdResult, Uint128, Uint256,
+    },
 };
 
 use lend_shared::interfaces::{interest_model, market, overseer};
@@ -232,6 +235,7 @@ impl Lend {
                     premium: Decimal256::one(),
                     oracle_contract: oracle,
                     oracle_source: mock_band,
+                    entropy: Binary::from(b"something"),
                 },
                 MockEnv::new(
                     ADMIN,
@@ -243,6 +247,13 @@ impl Lend {
             )
             .unwrap();
 
+        let env = MockEnv::new(
+            ADMIN,
+            ContractLink {
+                address: "sienna_market".into(),
+                code_hash: market.code_hash.clone(),
+            },
+        );
         let sienna_market = ensemble
             .instantiate(
                 market.id,
@@ -254,17 +265,19 @@ impl Lend {
                     overseer_contract: overseer.clone(),
                     interest_model_contract: interest_model.clone(),
                     reserve_factor: Decimal256::one(),
+                    key: MasterKey::new(&env.env(), b"something", b"something"),
                 },
-                MockEnv::new(
-                    ADMIN,
-                    ContractLink {
-                        address: "sienna_market".into(),
-                        code_hash: market.code_hash.clone(),
-                    },
-                ),
+                env,
             )
             .unwrap();
 
+        let env = MockEnv::new(
+            ADMIN,
+            ContractLink {
+                address: "sienna_market".into(),
+                code_hash: market.code_hash.clone(),
+            },
+        );
         let atom_market = ensemble
             .instantiate(
                 market.id,
@@ -276,6 +289,7 @@ impl Lend {
                     overseer_contract: overseer.clone(),
                     interest_model_contract: interest_model,
                     reserve_factor: Decimal256::one(),
+                    key: MasterKey::new(&env.env(), b"something", b"something"),
                 },
                 MockEnv::new(
                     ADMIN,
@@ -299,6 +313,7 @@ impl Lend {
         market: Option<HumanAddr>,
         redeem_amount: Uint256,
         borrow_amount: Uint256,
+        block: Option<u64>,
     ) -> overseer::AccountLiquidity {
         let res = self
             .ensemble
@@ -314,6 +329,7 @@ impl Lend {
                     market,
                     redeem_amount,
                     borrow_amount,
+                    block,
                 },
             )
             .unwrap();

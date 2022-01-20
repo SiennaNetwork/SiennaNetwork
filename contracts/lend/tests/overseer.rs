@@ -94,7 +94,7 @@ fn liquidity() {
                 market: Market {
                     contract: lend.markets[1].clone(),
                     symbol: "ATOM".into(),
-                    ltv_ratio: Decimal256::percent(90),
+                    ltv_ratio: Decimal256::percent(50),
                 },
             },
             MockEnv::new(ADMIN, lend.overseer.clone()),
@@ -106,6 +106,7 @@ fn liquidity() {
         Some(atom_market.address.clone()),
         Uint256::from(1u128),
         Uint256::from(1u128),
+        None
     );
 
     assert_eq!(Uint256::from(0u128), res.liquidity);
@@ -125,6 +126,7 @@ fn liquidity() {
         Some(atom_market.address.clone()),
         Uint256::from(0u128),
         Uint256::from(0u128),
+        None,
     );
 
     assert_eq!(
@@ -140,6 +142,7 @@ fn liquidity() {
         Some(atom_market.address.clone()),
         Uint256::from(0u128),
         Uint256::from(one_token(6)),
+        Some(1),
     );
 
     assert_eq!(
