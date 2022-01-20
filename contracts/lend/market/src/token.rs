@@ -108,7 +108,7 @@ pub fn redeem<S: Storage, A: Api, Q: Querier>(
 
     TotalSupply::decrease(&mut deps.storage, burn_amount)?;
 
-    let account = Account::new(deps, &env.message.sender)?;
+    let account = Account::of(deps, &env.message.sender)?;
     account.subtract_balance(&mut deps.storage, burn_amount)?;
 
     Ok(HandleResponse {

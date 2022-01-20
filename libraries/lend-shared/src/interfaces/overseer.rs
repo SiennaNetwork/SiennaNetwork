@@ -42,8 +42,10 @@ pub trait Overseer {
     fn exit(market_address: HumanAddr) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn set_ltv_ratio(market: HumanAddr, ltv_ratio: Decimal256)
-        -> StdResult<HandleResponse>;
+    fn set_ltv_ratio(
+        market: HumanAddr,
+        ltv_ratio: Decimal256
+    ) -> StdResult<HandleResponse>;
 
     #[query("whitelist")]
     fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>>;
@@ -89,9 +91,6 @@ pub trait Overseer {
         repay_amount: Uint256
     ) -> StdResult<Uint256>;
 
-    #[query("id")]
-    fn id(permit: Permit<OverseerPermissions>) -> StdResult<Binary>;
-
     #[query("config")]
     fn config() -> StdResult<Config>;
 }
@@ -99,8 +98,7 @@ pub trait Overseer {
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum OverseerPermissions {
-    AccountInfo,
-    Id,
+    AccountInfo
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
@@ -196,23 +194,6 @@ pub fn query_account_liquidity(
     match result {
         QueryResponse::AccountLiquidityInternal { liquidity } => Ok(liquidity),
         _ => Err(StdError::generic_err("Expecting QueryResponse::AccountLiquidityInternal"))
-    }
-}
-
-pub fn query_id(
-    querier: &impl Querier,
-    overseer: ContractLink<HumanAddr>,
-    permit: Permit<OverseerPermissions>,
-) -> StdResult<Binary> {
-    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-        contract_addr: overseer.address,
-        callback_code_hash: overseer.code_hash,
-        msg: to_binary(&QueryMsg::Id { permit })?,
-    }))?;
-
-    match result {
-        QueryResponse::Id { id } => Ok(id),
-        _ => Err(StdError::generic_err("Expecting QueryResponse::Id")),
     }
 }
 

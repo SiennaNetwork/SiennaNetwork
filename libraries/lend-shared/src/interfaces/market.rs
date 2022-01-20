@@ -4,6 +4,7 @@ use fadroma::{
     admin,
     cosmwasm_std,
     derive_contract::*,
+    auth::Permit,
     schemars,
     schemars::JsonSchema,
     ContractLink, Decimal256, HandleResponse, HumanAddr, InitResponse,
@@ -94,8 +95,7 @@ pub trait Market {
 
     #[query("amount")]
     fn balance_underlying(
-        address: HumanAddr,
-        key: String,
+        method: AuthMethod,
         block: Option<u64>
     ) -> StdResult<Uint128>;
 
@@ -118,7 +118,31 @@ pub trait Market {
     fn exchange_rate(block: Option<u64>) -> StdResult<Decimal256>;
 
     #[query("account")]
-    fn account(id: Binary, block: Option<u64>) -> StdResult<AccountInfo>;
+    fn account(
+        method: AuthMethod,
+        block: Option<u64>
+    ) -> StdResult<AccountInfo>;
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthMethod {
+    Permit(Permit<MarketPermissions>),
+    ViewingKey {
+        address: HumanAddr,
+        key: String
+    },
+    Internal {
+        address: HumanAddr,
+        key: MasterKey
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum MarketPermissions {
+    AccountInfo,
+    Balance
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -214,14 +238,14 @@ pub fn query_exchange_rate(
 pub fn query_account(
     querier: &impl Querier,
     market: ContractLink<HumanAddr>,
-    id: Binary,
+    method: AuthMethod,
     block: Option<u64>
 ) -> StdResult<AccountInfo> {
     let result: QueryResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: market.address,
         callback_code_hash: market.code_hash,
         msg: to_binary(&QueryMsg::Account {
-            id,
+            method,
             block
         })?
     }))?;
