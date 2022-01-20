@@ -38,6 +38,7 @@ pub trait Market {
     /// Snip20 receiver interface
     #[handle]
     fn receive(
+        sender: HumanAddr,
         from: HumanAddr,
         msg: Option<Binary>,
         amount: Uint128

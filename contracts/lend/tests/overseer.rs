@@ -1,6 +1,13 @@
 use lend_shared::{
-    fadroma::{ensemble::MockEnv, Decimal256, StdError, Uint256, decimal::one_token},
-    interfaces::overseer::*,
+    fadroma::{
+        decimal::one_token,
+        ensemble::MockEnv,
+        snip20_impl::msg::{
+            HandleMsg as Snip20HandleMsg, InitMsg as Snip20InitMsg, InitialBalance,
+        },
+        Decimal256, StdError, Uint256, Uint128, to_binary
+    },
+    interfaces::{overseer::*, market},
 };
 
 use crate::setup::Lend;
@@ -80,7 +87,7 @@ fn liquidity() {
         &HandleMsg::Enter {
             markets: vec![atom_market.address.clone()],
         },
-        MockEnv::new("Borrower", lend.overseer.clone()),
+        MockEnv::new("borrower", lend.overseer.clone()),
     );
 
     assert_eq!(
@@ -106,7 +113,7 @@ fn liquidity() {
         Some(atom_market.address.clone()),
         Uint256::from(1u128),
         Uint256::from(1u128),
-        None
+        None,
     );
 
     assert_eq!(Uint256::from(0u128), res.liquidity);
@@ -117,7 +124,24 @@ fn liquidity() {
             &HandleMsg::Enter {
                 markets: vec![atom_market.address.clone()],
             },
-            MockEnv::new("Borrower", lend.overseer.clone()),
+            MockEnv::new("borrower", lend.overseer.clone()),
+        )
+        .unwrap();
+
+
+    // deposit
+    let _res = lend
+        .ensemble
+        .execute(
+            &Snip20HandleMsg::Send {
+                recipient: atom_market.address.clone(),
+                recipient_code_hash: None,
+                amount: Uint128(1),
+                memo: None,
+                padding: None,
+                msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
+            },
+            MockEnv::new("borrower", lend.atom_underlying_token.clone()),
         )
         .unwrap();
 
@@ -130,10 +154,8 @@ fn liquidity() {
     );
 
     assert_eq!(
-        Uint256::from(1u128)
-            .decimal_mul(Decimal256::percent(50))
-            .unwrap(),
-        res.liquidity
+       Uint256::from(1000000u128).decimal_mul(Decimal256::percent(50)).unwrap(),
+       res.liquidity, 
     );
     assert_eq!(Uint256::from(0u128), res.shortfall);
 
@@ -141,14 +163,15 @@ fn liquidity() {
     let res = lend.get_liquidity(
         Some(atom_market.address.clone()),
         Uint256::from(0u128),
-        Uint256::from(one_token(6)),
-        Some(1),
+        Uint256::from(1u128),
+        Some(12346),
     );
 
+    assert_eq!(Uint256::from(0u128), res.liquidity);
     assert_eq!(
-        Uint256::from(0u128),
-        res.liquidity
+        Uint256::from(1000000u128)
+            .decimal_mul(Decimal256::percent(50))
+            .unwrap(),
+        res.shortfall
     );
-    assert_eq!(Uint256::from(1u128).decimal_mul(Decimal256::percent(50)).unwrap(), res.shortfall);
-
 }

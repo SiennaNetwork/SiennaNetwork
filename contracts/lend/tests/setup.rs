@@ -82,7 +82,7 @@ impl ContractHarness for MockBand {
                 base_symbol: _,
                 quote_symbol: _,
             } => to_binary(&lend_oracle::BandResponse {
-                rate: Uint128(1_000_000_000_000_000_000),
+                rate: Uint128(1_000_000),
                 last_updated_base: 1628544285u64,
                 last_updated_quote: 3377610u64,
             }),
@@ -92,7 +92,7 @@ impl ContractHarness for MockBand {
             } => {
                 let mut results = Vec::new();
                 let data = lend_oracle::BandResponse {
-                    rate: Uint128(1_000_000_000_000_000_000),
+                    rate: Uint128(1_000_000),
                     last_updated_base: 1628544285u64,
                     last_updated_quote: 3377610u64,
                 };
@@ -110,6 +110,7 @@ pub struct Lend {
     pub ensemble: ContractEnsemble,
     pub overseer: ContractLink<HumanAddr>,
     pub markets: Vec<ContractLink<HumanAddr>>,
+    pub atom_underlying_token: ContractLink<HumanAddr>,
 }
 
 impl Lend {
@@ -139,7 +140,7 @@ impl Lend {
                             amount: Uint128(one_token(decimals)),
                         },
                         InitialBalance {
-                            address: "Borrower".into(),
+                            address: "borrower".into(),
                             amount: Uint128(one_token(decimals)),
                         },
                     ]),
@@ -172,8 +173,8 @@ impl Lend {
                             amount: Uint128(one_token(decimals)),
                         },
                         InitialBalance {
-                            address: "Borrower".into(),
-                            amount: Uint128(one_token(decimals)),
+                            address: "borrower".into(),
+                            amount: Uint128(15 * one_token(decimals)),
                         },
                     ]),
                     prng_seed: Binary::from(b"whatever"),
@@ -235,7 +236,7 @@ impl Lend {
                     premium: Decimal256::one(),
                     oracle_contract: oracle,
                     oracle_source: mock_band,
-                    entropy: Binary::from(b"something"),
+                    entropy: Binary::from(b"whatever"),
                 },
                 MockEnv::new(
                     ADMIN,
@@ -259,13 +260,13 @@ impl Lend {
                 market.id,
                 &market::InitMsg {
                     admin: None,
-                    prng_seed: Binary::from(b"market"),
+                    prng_seed: Binary::from(b"whatever"),
                     underlying_asset: sienna_underlying_token,
                     initial_exchange_rate: Decimal256::percent(20),
                     overseer_contract: overseer.clone(),
                     interest_model_contract: interest_model.clone(),
                     reserve_factor: Decimal256::one(),
-                    key: MasterKey::new(&env.env(), b"something", b"something"),
+                    key: MasterKey::new(&env.env(), b"whatever", b"whatever"),
                 },
                 env,
             )
@@ -283,13 +284,13 @@ impl Lend {
                 market.id,
                 &market::InitMsg {
                     admin: None,
-                    prng_seed: Binary::from(b"market"),
-                    underlying_asset: atom_underlying_token,
+                    prng_seed: Binary::from(b"whatever"),
+                    underlying_asset: atom_underlying_token.clone(),
                     initial_exchange_rate: Decimal256::one(),
                     overseer_contract: overseer.clone(),
                     interest_model_contract: interest_model,
                     reserve_factor: Decimal256::one(),
-                    key: MasterKey::new(&env.env(), b"something", b"something"),
+                    key: MasterKey::new(&env.env(), b"whatever", b"whatever"),
                 },
                 MockEnv::new(
                     ADMIN,
@@ -305,6 +306,7 @@ impl Lend {
             ensemble,
             overseer,
             markets: vec![sienna_market, atom_market],
+            atom_underlying_token
         }
     }
 
@@ -321,7 +323,7 @@ impl Lend {
                 self.overseer.address.clone(),
                 overseer::QueryMsg::AccountLiquidity {
                     permit: Permit::<overseer::OverseerPermissions>::new(
-                        "Borrower",
+                        "borrower",
                         vec![overseer::OverseerPermissions::AccountInfo],
                         vec![self.overseer.address.clone()],
                         "balance",
