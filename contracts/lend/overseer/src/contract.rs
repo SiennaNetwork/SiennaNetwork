@@ -7,7 +7,7 @@ use lend_shared::{
         cosmwasm_std,
         cosmwasm_std::{
             log, to_binary, Api, Binary, CosmosMsg, Extern, HandleResponse, HumanAddr,
-            InitResponse, Querier, StdError, StdResult, Storage, Uint128, WasmMsg,
+            InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
         derive_contract::*,
         require_admin, Callback, ContractInstantiationInfo, ContractLink, Decimal256, Permit,
@@ -282,6 +282,20 @@ pub trait Overseer {
         }
     }
 
+    #[query("amount")]
+    fn seize_amount(
+        borrowed: HumanAddr,
+        collateral: HumanAddr,
+        repay_amount: Uint256
+    ) -> StdResult<Uint256> {
+        calc_seize_tokens(
+            deps,
+            borrowed,
+            collateral,
+            repay_amount
+        )
+    }
+
     #[query("id")]
     fn id(permit: Permit<OverseerPermissions>) -> StdResult<Binary> {
         let self_ref = Contracts::load_self_ref(deps)?;
@@ -389,7 +403,7 @@ fn calc_seize_tokens<S: Storage, A: Api, Q: Querier>(
     // collateral token
     collateral: HumanAddr,
     // the amount of borrowed to convert into collateral
-    repay_amount: Uint128,
+    repay_amount: Uint256,
 ) -> StdResult<Uint256> {
     let premium = Constants::load(&deps.storage)?.premium;
 
@@ -415,6 +429,5 @@ fn calc_seize_tokens<S: Storage, A: Api, Q: Querier>(
     let exchange_rate = query_exchange_rate(&deps.querier, market.contract, None)?;
     let ratio = ((premium * price_borrowed.rate)? / (price_collateral.rate * exchange_rate)?)?;
 
-    let seize_tokens = (ratio * Decimal256::from_uint256(repay_amount)?)?.round();
-    Ok(seize_tokens)
+    repay_amount.decimal_mul(ratio)
 }

@@ -78,6 +78,13 @@ pub trait Overseer {
         amount: Uint256
     ) -> StdResult<bool>;
 
+    #[query("amount")]
+    fn seize_amount(
+        borrowed: HumanAddr,
+        collateral: HumanAddr,
+        repay_amount: Uint256
+    ) -> StdResult<Uint256>;
+
     #[query("id")]
     fn id(permit: Permit<OverseerPermissions>) -> StdResult<Binary>;
 
@@ -264,5 +271,28 @@ pub fn query_config(
     match result {
         QueryResponse::Config { config } => Ok(config),
         _ => Err(StdError::generic_err("QueryResponse::Config"))
+    }
+}
+
+pub fn query_seize_amount(
+    querier: &impl Querier,
+    overseer: ContractLink<HumanAddr>,
+    borrowed: HumanAddr,
+    collateral: HumanAddr,
+    repay_amount: Uint256
+) -> StdResult<Uint256> {
+    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: overseer.address,
+        callback_code_hash: overseer.code_hash,
+        msg: to_binary(&QueryMsg::SeizeAmount {
+            borrowed,
+            collateral,
+            repay_amount
+        })?
+    }))?;
+
+    match result {
+        QueryResponse::SeizeAmount { amount } => Ok(amount),
+        _ => Err(StdError::generic_err("QueryResponse::SeizeAmount"))
     }
 }

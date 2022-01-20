@@ -7,7 +7,7 @@ use lend_shared::{
         Uint256
     },
     interfaces::overseer::{
-        query_account_liquidity
+        query_config, query_account_liquidity
     },
     core::MasterKey
 };
@@ -49,6 +49,48 @@ pub fn assert_borrow_allowed<S: Storage, A: Api, Q: Querier>(
 
     if liquidity.shortfall > Uint256::zero() {
         Err(StdError::generic_err("Insufficient liquidity."))
+    } else {
+        Ok(())
+    }
+}
+
+pub fn assert_liquidate_allowed<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S,A,Q>,
+    borrower: HumanAddr,
+    borrower_balance: Uint256,
+    block: u64,
+    amount: Uint256
+) -> StdResult<()> {
+    if amount == Uint256::zero() {
+        return Err(StdError::generic_err("Repay amount cannot be zero."));
+    }
+
+    let overseer = Contracts::load_overseer(deps)?;
+
+    let liquidity = query_account_liquidity(
+        &deps.querier,
+        overseer.clone(),
+        MasterKey::load(&deps.storage)?,
+        borrower,
+        None,
+        Some(block),
+        Uint256::zero(),
+        Uint256::zero()
+    )?;
+
+    if liquidity.shortfall == Uint256::zero() {
+        return Err(StdError::generic_err("Borrower cannot be liquidated."));
+    }
+
+    let config = query_config(
+        &deps.querier,
+        overseer
+    )?;
+
+    let max = borrower_balance.decimal_mul(config.close_factor)?;
+
+    if amount > max {
+        Err(StdError::generic_err("Repay amount is too high."))
     } else {
         Ok(())
     }

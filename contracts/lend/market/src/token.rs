@@ -138,7 +138,7 @@ pub fn calc_exchange_rate<S: Storage, A: Api, Q: Querier>(
     let total_supply = TotalSupply::load(&deps.storage)?;
 
     if total_supply.is_zero() {
-        let config = Constants::load(deps)?;
+        let config = Constants::load(&deps.storage)?;
 
         return Ok(config.initial_exchange_rate);
     }

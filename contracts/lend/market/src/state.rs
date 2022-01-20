@@ -25,6 +25,7 @@ pub struct Contracts;
 
 pub struct Constants;
 
+#[derive(PartialEq, Debug)]
 pub struct Account(BorrowerId);
 
 #[derive(Serialize, Deserialize, JsonSchema, Default, Debug)]
@@ -45,15 +46,15 @@ impl Contracts {
 impl Constants {
     const KEY: &'static [u8] = b"config";
 
-    pub fn save<S: Storage, A: Api, Q: Querier>(
-        deps: &mut Extern<S, A, Q>,
+    pub fn save(
+        storage: &mut impl Storage,
         config: &Config,
     ) -> StdResult<()> {
-        save(&mut deps.storage, Self::KEY, &config)
+        save(storage, Self::KEY, &config)
     }
 
-    pub fn load<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Config> {
-        let result: Config = load(&deps.storage, Self::KEY)?.unwrap();
+    pub fn load(storage: &impl Storage) -> StdResult<Config> {
+        let result: Config = load(storage, Self::KEY)?.unwrap();
 
         Ok(result)
     }
