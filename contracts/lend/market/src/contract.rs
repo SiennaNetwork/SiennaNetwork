@@ -48,7 +48,7 @@ pub const MAX_BORROW_RATE: Decimal256 = Decimal256::one();
 
 use state::{
     Constants, Contracts, Global,
-    Account, TotalBorrows, TotalSupply
+    Account, TotalBorrows, TotalSupply, BorrowerId
 };
 use token::calc_exchange_rate;
 use ops::{accrue_interest, accrued_interest_at};
@@ -77,6 +77,7 @@ pub trait Market {
 
         Constants::save(&mut deps.storage, &config)?;
 
+        BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
         Contracts::save_overseer(deps, &overseer_contract)?;
         Contracts::save_interest_model(deps, &interest_model_contract)?;
         Contracts::save_underlying(deps, &underlying_asset)?;
@@ -109,7 +110,7 @@ pub trait Market {
     }
 
     #[handle]
-    fn receive(from: HumanAddr, msg: Option<Binary>, amount: Uint128) -> StdResult<HandleResponse> {
+    fn receive(_sender: HumanAddr, from: HumanAddr, msg: Option<Binary>, amount: Uint128) -> StdResult<HandleResponse> {
         if msg.is_none() {
             return Err(StdError::generic_err("\"msg\" parameter cannot be empty."));
         }

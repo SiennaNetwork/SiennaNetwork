@@ -41,6 +41,10 @@ pub trait Overseer {
     #[handle]
     fn exit(market_address: HumanAddr) -> StdResult<HandleResponse>;
 
+    #[handle]
+    fn set_ltv_ratio(market: HumanAddr, ltv_ratio: Decimal256)
+        -> StdResult<HandleResponse>;
+
     #[query("whitelist")]
     fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>>;
 
@@ -75,7 +79,7 @@ pub trait Overseer {
         address: HumanAddr,
         market: HumanAddr,
         block: u64,
-        amount: Uint256
+        amount: Uint256,
     ) -> StdResult<bool>;
 
     #[query("amount")]
@@ -203,12 +207,12 @@ pub fn query_id(
     let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
-        msg: to_binary(&QueryMsg::Id { permit })?
+        msg: to_binary(&QueryMsg::Id { permit })?,
     }))?;
 
     match result {
         QueryResponse::Id { id } => Ok(id),
-        _ => Err(StdError::generic_err("Expecting QueryResponse::Id"))
+        _ => Err(StdError::generic_err("Expecting QueryResponse::Id")),
     }
 }
 
@@ -219,7 +223,7 @@ pub fn query_can_transfer(
     address: HumanAddr,
     market: HumanAddr,
     block: u64,
-    amount: Uint256
+    amount: Uint256,
 ) -> StdResult<bool> {
     let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
@@ -229,13 +233,13 @@ pub fn query_can_transfer(
             address,
             market,
             block,
-            amount
-        })?
+            amount,
+        })?,
     }))?;
 
     match result {
         QueryResponse::CanTransferInternal { can_transfer } => Ok(can_transfer),
-        _ => Err(StdError::generic_err("QueryResponse::CanTransferInternal"))
+        _ => Err(StdError::generic_err("QueryResponse::CanTransferInternal")),
     }
 }
 
@@ -247,14 +251,12 @@ pub fn query_market(
     let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
-        msg: to_binary(&QueryMsg::Market {
-            address
-        })?
+        msg: to_binary(&QueryMsg::Market { address })?,
     }))?;
 
     match result {
         QueryResponse::Market { market } => Ok(market),
-        _ => Err(StdError::generic_err("QueryResponse::Market"))
+        _ => Err(StdError::generic_err("QueryResponse::Market")),
     }
 }
 
