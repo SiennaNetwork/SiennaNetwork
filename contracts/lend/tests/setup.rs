@@ -429,4 +429,22 @@ impl Lend {
             _ => panic!("Expecting overseer::QueryResponse::AccountLiquidity"),
         }
     }
+
+    pub fn whitelist_market(
+        &mut self,
+        market: ContractLink<HumanAddr>,
+        symbol: String,
+        ltv_ratio: Decimal256,
+    ) -> StdResult<()> {
+        self.ensemble.execute(
+            &overseer::HandleMsg::Whitelist {
+                market: overseer::Market {
+                    contract: market,
+                    symbol,
+                    ltv_ratio,
+                },
+            },
+            MockEnv::new(ADMIN, self.overseer.clone()),
+        )
+    }
 }
