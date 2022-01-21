@@ -3,7 +3,7 @@ use std::str::FromStr;
 use lend_shared::{
     fadroma::{
         ensemble::MockEnv, snip20_impl::msg::HandleMsg as Snip20HandleMsg, to_binary, Decimal256,
-        StdError, Uint128, Uint256,
+        Permit, StdError, Uint128, Uint256,
     },
     interfaces::{market, overseer::*},
 };
@@ -14,6 +14,20 @@ use crate::ADMIN;
 #[test]
 fn whitelist() {
     let mut lend = Lend::new();
+
+    // can only be called by admin
+    let res = lend.ensemble.execute(
+        &HandleMsg::Whitelist {
+            market: Market {
+                contract: lend.markets[1].clone(),
+                symbol: "SLAT".into(),
+                ltv_ratio: Decimal256::zero(),
+            },
+        },
+        MockEnv::new("fake", lend.overseer.clone()),
+    );
+
+    assert_eq!(StdError::unauthorized(), res.unwrap_err());
 
     lend.whitelist_market(
         lend.markets[0].clone(),
@@ -56,6 +70,112 @@ fn whitelist() {
 
     if let QueryResponse::Markets { whitelist } = res {
         assert_eq!(whitelist.len(), 2)
+    }
+}
+
+#[test]
+fn enter_and_exit_markets() {
+    let mut lend = Lend::new();
+
+    lend.whitelist_market(
+        lend.markets[0].clone(),
+        "SLSN".into(),
+        Decimal256::percent(90),
+    )
+    .unwrap();
+
+    lend.whitelist_market(
+        lend.markets[1].clone(),
+        "SLAT".into(),
+        Decimal256::percent(90),
+    )
+    .unwrap();
+
+    // enter market
+    lend.ensemble
+        .execute(
+            &HandleMsg::Enter {
+                markets: vec![lend.markets[0].address.clone()],
+            },
+            MockEnv::new("borrower", lend.overseer.clone()),
+        )
+        .unwrap();
+
+    let res = lend
+        .ensemble
+        .query(
+            lend.overseer.address.clone(),
+            QueryMsg::EnteredMarkets {
+                permit: Permit::<OverseerPermissions>::new(
+                    "borrower",
+                    vec![OverseerPermissions::AccountInfo],
+                    vec![lend.overseer.address.clone()],
+                    "balance",
+                ),
+            },
+        )
+        .unwrap();
+
+    if let QueryResponse::EnteredMarkets { entered_markets } = res {
+        assert_eq!(entered_markets.len(), 1);
+    }
+
+    // enter another market
+    lend.ensemble
+        .execute(
+            &HandleMsg::Enter {
+                markets: vec![lend.markets[1].address.clone()],
+            },
+            MockEnv::new("borrower", lend.overseer.clone()),
+        )
+        .unwrap();
+
+    let res = lend
+        .ensemble
+        .query(
+            lend.overseer.address.clone(),
+            QueryMsg::EnteredMarkets {
+                permit: Permit::<OverseerPermissions>::new(
+                    "borrower",
+                    vec![OverseerPermissions::AccountInfo],
+                    vec![lend.overseer.address.clone()],
+                    "balance",
+                ),
+            },
+        )
+        .unwrap();
+
+    if let QueryResponse::EnteredMarkets { entered_markets } = res {
+        assert_eq!(entered_markets.len(), 2);
+    }
+
+    // exit market
+    lend.ensemble
+        .execute(
+            &HandleMsg::Exit {
+                market_address: lend.markets[0].address.clone(),
+            },
+            MockEnv::new("borrower", lend.overseer.clone()),
+        )
+        .unwrap();
+
+    let res = lend
+        .ensemble
+        .query(
+            lend.overseer.address.clone(),
+            QueryMsg::EnteredMarkets {
+                permit: Permit::<OverseerPermissions>::new(
+                    "borrower",
+                    vec![OverseerPermissions::AccountInfo],
+                    vec![lend.overseer.address.clone()],
+                    "balance",
+                ),
+            },
+        )
+        .unwrap();
+
+    if let QueryResponse::EnteredMarkets { entered_markets } = res {
+        assert_eq!(entered_markets.len(), 1);
     }
 }
 
