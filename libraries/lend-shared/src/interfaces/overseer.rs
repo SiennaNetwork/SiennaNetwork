@@ -128,7 +128,7 @@ pub struct Config {
     pub premium: Decimal256,
 }
 
-#[derive(Serialize, Deserialize, schemars::JsonSchema)]
+#[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct Market<A> {
     pub contract: ContractLink<A>,
