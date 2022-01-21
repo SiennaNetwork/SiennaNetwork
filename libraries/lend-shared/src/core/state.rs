@@ -23,7 +23,7 @@ impl MasterKey {
     pub fn check(storage: &impl Storage, other: &Self) -> StdResult<()> {
         let key = Self::load(storage)?;
 
-        if key.0.check_viewing_key(other.0.as_bytes()) {
+        if key.0.check_viewing_key(&other.0.to_hashed()) {
             Ok(())
         } else {
             Err(StdError::unauthorized())
