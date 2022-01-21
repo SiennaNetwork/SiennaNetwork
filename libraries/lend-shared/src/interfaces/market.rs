@@ -8,7 +8,7 @@ use fadroma::{
     schemars,
     schemars::JsonSchema,
     ContractLink, Decimal256, HandleResponse, HumanAddr, InitResponse,
-    StdResult, Uint128, Uint256, Binary, QueryRequest, WasmQuery, StdError,
+    StdResult, Uint128, Uint256, Binary, QueryRequest, WasmQuery,
     Querier, Callback, to_binary
 };
 
@@ -86,37 +86,37 @@ pub trait Market {
         padding: Option<String>
     ) -> StdResult<HandleResponse>;
 
-    #[query("amount")]
+    #[query]
     fn balance(
         address: HumanAddr,
         key: String
     ) -> StdResult<Uint128>;
 
-    #[query("amount")]
+    #[query]
     fn balance_underlying(
         method: AuthMethod,
         block: Option<u64>
     ) -> StdResult<Uint128>;
 
-    #[query("amount")]
+    #[query]
     fn balance_internal(
         address: HumanAddr,
         key: MasterKey
     ) -> StdResult<Uint128>;
 
-    #[query("state")]
+    #[query]
     fn state(block: Option<u64>) -> StdResult<State>;
 
-    #[query("borrow_rate_per_block")]
+    #[query]
     fn borrow_rate(block: Option<u64>) -> StdResult<Decimal256>;
 
-    #[query("supply_rate_per_block")]
+    #[query]
     fn supply_rate(block: Option<u64>) -> StdResult<Decimal256>;
 
-    #[query("exchange_rate")]
+    #[query]
     fn exchange_rate(block: Option<u64>) -> StdResult<Decimal256>;
 
-    #[query("account")]
+    #[query]
     fn account(
         method: AuthMethod,
         block: Option<u64>
@@ -221,17 +221,11 @@ pub fn query_exchange_rate(
     market: ContractLink<HumanAddr>,
     block: Option<u64>
 ) -> StdResult<Decimal256> {
-    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: market.address,
         callback_code_hash: market.code_hash,
         msg: to_binary(&QueryMsg::ExchangeRate { block })?,
-    }))?;
-    match result {
-        QueryResponse::ExchangeRate { exchange_rate } => Ok(exchange_rate),
-        _ => Err(StdError::generic_err(
-            "Expecting QueryResponse::ExchangeRate",
-        )),
-    }
+    }))
 }
 
 pub fn query_account(
@@ -240,21 +234,14 @@ pub fn query_account(
     method: AuthMethod,
     block: Option<u64>
 ) -> StdResult<AccountInfo> {
-    let result: QueryResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: market.address,
         callback_code_hash: market.code_hash,
         msg: to_binary(&QueryMsg::Account {
             method,
             block
         })?
-    }))?;
-
-    match result {
-        QueryResponse::Account { account } => {
-            Ok(account)
-        },
-        _ => Err(StdError::generic_err("Expected QueryResponse::Account"))
-    }
+    }))
 }
 
 pub fn query_balance(
@@ -263,19 +250,12 @@ pub fn query_balance(
     key: MasterKey,
     address: HumanAddr
 ) -> StdResult<Uint128> {
-    let result: QueryResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: market.address,
         callback_code_hash: market.code_hash,
         msg: to_binary(&QueryMsg::BalanceInternal {
             key,
             address
         })?
-    }))?;
-
-    match result {
-        QueryResponse::BalanceInternal { amount } => {
-            Ok(amount)
-        },
-        _ => Err(StdError::generic_err("Expected QueryResponse::BalanceInternal"))
-    }
+    }))
 }

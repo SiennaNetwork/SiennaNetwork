@@ -299,7 +299,7 @@ pub trait Overseer {
         Ok(HandleResponse::default())
     }
 
-    #[query("entered_markets")]
+    #[query]
     fn entered_markets(permit: Permit<OverseerPermissions>) -> StdResult<Vec<Market<HumanAddr>>> {
         let self_ref = Contracts::load_self_ref(deps)?;
         let borrower = permit.validate_with_permissions(
@@ -313,7 +313,7 @@ pub trait Overseer {
         borrower.list_markets(deps)
     }
 
-    #[query("liquidity")]
+    #[query]
     fn account_liquidity(
         permit: Permit<OverseerPermissions>,
         market: Option<HumanAddr>,
@@ -342,7 +342,7 @@ pub trait Overseer {
         )
     }
 
-    #[query("liquidity")]
+    #[query]
     fn account_liquidity_internal(
         key: MasterKey,
         address: HumanAddr,
@@ -367,7 +367,7 @@ pub trait Overseer {
         )
     }
 
-    #[query("can_transfer")]
+    #[query]
     fn can_transfer_internal(
         key: MasterKey,
         address: HumanAddr,
@@ -404,7 +404,7 @@ pub trait Overseer {
         }
     }
 
-    #[query("amount")]
+    #[query]
     fn seize_amount(
         borrowed: HumanAddr,
         collateral: HumanAddr,
@@ -418,19 +418,19 @@ pub trait Overseer {
         )
     }
 
-    #[query("whitelist")]
+    #[query]
     fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>> {
         Markets::list(deps, pagination)
     }
 
-    #[query("market")]
+    #[query]
     fn market(address: HumanAddr) -> StdResult<Market<HumanAddr>> {
         let (_, market) = Markets::get_by_addr(deps, &address)?;
 
         Ok(market)
     }
 
-    #[query("config")]
+    #[query]
     fn config() -> StdResult<Config> {
         let Constants {
             close_factor,
