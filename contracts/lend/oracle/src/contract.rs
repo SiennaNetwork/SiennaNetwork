@@ -101,7 +101,7 @@ pub trait BandOracleConsumer {
         }))?;
 
         Ok(PriceResponse {
-            rate: Decimal256::from_uint256(res.rate)?,
+            rate: Decimal256(res.rate.u128().into()),
             last_updated_base: res.last_updated_base,
             last_updated_quote: res.last_updated_quote,
         })

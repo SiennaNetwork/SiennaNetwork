@@ -79,13 +79,27 @@ impl ContractHarness for MockBand {
         let msg = from_binary(&msg).unwrap();
         match msg {
             MockBandQuery::GetReferenceData {
-                base_symbol: _,
+                base_symbol,
                 quote_symbol: _,
-            } => to_binary(&lend_oracle::BandResponse {
-                rate: Uint128(1_000_000),
-                last_updated_base: 1628544285u64,
-                last_updated_quote: 3377610u64,
-            }),
+            } => {
+                match base_symbol.as_ref() {
+                    "SLSN" => to_binary(&lend_oracle::BandResponse {
+                        rate: Uint128(3_000_000_000_000_000_000),
+                        last_updated_base: 1628544285u64,
+                        last_updated_quote: 3377610u64,
+                    }),
+                    "SLAT" => to_binary(&lend_oracle::BandResponse {
+                        rate: Uint128(2_718_000_000_000_000_000),
+                        last_updated_base: 1628544285u64,
+                        last_updated_quote: 3377610u64,
+                    }),
+                    _ => to_binary(&lend_oracle::BandResponse {
+                        rate: Uint128(1_000_000_000_000_000_000),
+                        last_updated_base: 1628544285u64,
+                        last_updated_quote: 3377610u64,
+                    }),
+                }
+            }
             MockBandQuery::GetReferenceDataBulk {
                 base_symbols,
                 quote_symbols: _,
@@ -111,6 +125,8 @@ pub struct Lend {
     pub overseer: ContractLink<HumanAddr>,
     pub markets: Vec<ContractLink<HumanAddr>>,
     pub atom_underlying_token: ContractLink<HumanAddr>,
+    pub sienna_underlying_token: ContractLink<HumanAddr>,
+    pub secret_underlying_token: ContractLink<HumanAddr>,
 }
 
 impl Lend {
@@ -131,7 +147,7 @@ impl Lend {
                 &Snip20InitMsg {
                     name: "Underlying Token".into(),
                     admin: None,
-                    symbol: "UNDR".into(),
+                    symbol: "SLSN".into(),
                     decimals,
                     initial_allowances: None,
                     initial_balances: Some(vec![
@@ -141,7 +157,7 @@ impl Lend {
                         },
                         InitialBalance {
                             address: "borrower".into(),
-                            amount: Uint128(one_token(decimals)),
+                            amount: Uint128(5 * one_token(decimals)),
                         },
                     ]),
                     prng_seed: Binary::from(b"whatever"),
@@ -164,17 +180,17 @@ impl Lend {
                 &Snip20InitMsg {
                     name: "Underlying Token".into(),
                     admin: None,
-                    symbol: "UNATOM".into(),
-                    decimals,
+                    symbol: "SLAT".into(),
+                    decimals: 3,
                     initial_allowances: None,
                     initial_balances: Some(vec![
                         InitialBalance {
                             address: ADMIN.into(),
-                            amount: Uint128(one_token(decimals)),
+                            amount: Uint128(one_token(3)),
                         },
                         InitialBalance {
                             address: "borrower".into(),
-                            amount: Uint128(15 * one_token(decimals)),
+                            amount: Uint128(5 * one_token(3)),
                         },
                     ]),
                     prng_seed: Binary::from(b"whatever"),
@@ -185,6 +201,39 @@ impl Lend {
                     ADMIN,
                     ContractLink {
                         address: "underlying_atom".into(),
+                        code_hash: token.code_hash.clone(),
+                    },
+                ),
+            )
+            .unwrap();
+
+        let secret_underlying_token = ensemble
+            .instantiate(
+                token.id,
+                &Snip20InitMsg {
+                    name: "Underlying Token".into(),
+                    admin: None,
+                    symbol: "SLSC".into(),
+                    decimals,
+                    initial_allowances: None,
+                    initial_balances: Some(vec![
+                        InitialBalance {
+                            address: ADMIN.into(),
+                            amount: Uint128(one_token(decimals)),
+                        },
+                        InitialBalance {
+                            address: "borrower".into(),
+                            amount: Uint128(5 * one_token(decimals)),
+                        },
+                    ]),
+                    prng_seed: Binary::from(b"whatever"),
+                    config: None,
+                    callback: None,
+                },
+                MockEnv::new(
+                    ADMIN,
+                    ContractLink {
+                        address: "underlying_secret".into(),
                         code_hash: token.code_hash.clone(),
                     },
                 ),
@@ -261,8 +310,8 @@ impl Lend {
                 &market::InitMsg {
                     admin: None,
                     prng_seed: Binary::from(b"whatever"),
-                    underlying_asset: sienna_underlying_token,
-                    initial_exchange_rate: Decimal256::percent(20),
+                    underlying_asset: sienna_underlying_token.clone(),
+                    initial_exchange_rate: Decimal256::one(),
                     overseer_contract: overseer.clone(),
                     interest_model_contract: interest_model.clone(),
                     reserve_factor: Decimal256::one(),
@@ -275,7 +324,7 @@ impl Lend {
         let env = MockEnv::new(
             ADMIN,
             ContractLink {
-                address: "sienna_market".into(),
+                address: "atom_market".into(),
                 code_hash: market.code_hash.clone(),
             },
         );
@@ -288,7 +337,7 @@ impl Lend {
                     underlying_asset: atom_underlying_token.clone(),
                     initial_exchange_rate: Decimal256::one(),
                     overseer_contract: overseer.clone(),
-                    interest_model_contract: interest_model,
+                    interest_model_contract: interest_model.clone(),
                     reserve_factor: Decimal256::one(),
                     key: MasterKey::new(&env.env(), b"whatever", b"whatever"),
                 },
@@ -296,6 +345,36 @@ impl Lend {
                     ADMIN,
                     ContractLink {
                         address: "atom_market".into(),
+                        code_hash: market.code_hash.clone(),
+                    },
+                ),
+            )
+            .unwrap();
+
+        let env = MockEnv::new(
+            ADMIN,
+            ContractLink {
+                address: "secret_market".into(),
+                code_hash: market.code_hash.clone(),
+            },
+        );
+        let secret_market = ensemble
+            .instantiate(
+                market.id,
+                &market::InitMsg {
+                    admin: None,
+                    prng_seed: Binary::from(b"whatever"),
+                    underlying_asset: secret_underlying_token.clone(),
+                    initial_exchange_rate: Decimal256::one(),
+                    overseer_contract: overseer.clone(),
+                    interest_model_contract: interest_model,
+                    reserve_factor: Decimal256::one(),
+                    key: MasterKey::new(&env.env(), b"whatever", b"whatever"),
+                },
+                MockEnv::new(
+                    ADMIN,
+                    ContractLink {
+                        address: "secret".into(),
                         code_hash: market.code_hash,
                     },
                 ),
@@ -305,8 +384,10 @@ impl Lend {
         Self {
             ensemble,
             overseer,
-            markets: vec![sienna_market, atom_market],
-            atom_underlying_token
+            markets: vec![sienna_market, atom_market, secret_market],
+            atom_underlying_token,
+            sienna_underlying_token,
+            secret_underlying_token,
         }
     }
 
