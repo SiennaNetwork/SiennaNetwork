@@ -164,6 +164,16 @@ fn enter_and_exit_markets() {
     if let QueryResponse::EnteredMarkets { entered_markets } = res {
         assert_eq!(entered_markets.len(), 1);
     }
+
+     // cannot exit not entered market
+     let res = lend.ensemble
+     .execute(
+         &HandleMsg::Exit {
+             market_address: sienna_market.contract.address.clone(),
+         },
+         MockEnv::new("borrower", lend.overseer.clone()),
+     );
+     assert_eq!(StdError::generic_err("Not entered in market."), res.unwrap_err());
 }
 
 #[test]
@@ -431,4 +441,17 @@ fn liquidity_entering_markets() {
     );
     assert_eq!(collateral_two, res.liquidity);
     assert_eq!(Uint256::from(0u128), res.shortfall);
+}
+
+#[test]
+fn caclulate_amount_seize() {
+    let mut lend = Lend::new();
+    let sienna_market = lend.whitelist_market(
+        lend.sienna_underlying_token.clone(),
+        Decimal256::percent(50)
+    ).unwrap();
+    let atom_market = lend.whitelist_market(
+        lend.atom_underlying_token.clone(),
+        Decimal256::permille(666)
+    ).unwrap();
 }
