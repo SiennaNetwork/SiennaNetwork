@@ -8,8 +8,8 @@ use lend_shared::{
         },
         cosmwasm_storage::{Bucket, ReadonlyBucket},
         storage::{load, save, ns_load, ns_save, IterableStorage},
-        Canonize, Humanize,
-        ContractLink, Decimal256
+        Canonize, Humanize, ContractLink,
+        ContractInstantiationInfo, Decimal256
     },
     interfaces::overseer::{Pagination, Market}
 };
@@ -26,6 +26,8 @@ pub struct Constants {
 
 pub struct Contracts;
 pub struct Markets;
+
+pub struct Whitelisting;
 
 #[derive(Clone)]
 pub struct Borrower(CanonicalAddr);
@@ -50,6 +52,49 @@ impl Constants {
 impl Contracts {
     impl_contract_storage!(save_oracle, load_oracle, b"oracle");
     impl_contract_storage!(save_self_ref, load_self_ref, b"self");
+}
+
+impl Whitelisting {
+    const KEY_MARKET_CONTRACT: &'static [u8] = b"market_contract";
+    const KEY_PENDING: &'static [u8] = b"pending";
+
+    #[inline]
+    pub fn save_market_contract(
+        storage: &mut impl Storage,
+        contract: &ContractInstantiationInfo
+    ) -> StdResult<()> {
+        save(storage, Self::KEY_MARKET_CONTRACT, contract)
+    }
+    
+    #[inline]
+    pub fn load_market_contract(
+        storage: &impl Storage
+    ) -> StdResult<ContractInstantiationInfo> {
+        Ok(load(storage, Self::KEY_MARKET_CONTRACT)?.unwrap())
+    }
+
+    pub fn set_pending(
+        storage: &mut impl Storage,
+        market: &Market<HumanAddr>
+    ) -> StdResult<()> {
+        save(storage, Self::KEY_PENDING, market)
+    }
+
+    pub fn pop_pending(
+        storage: &mut impl Storage
+    ) -> StdResult<Market<HumanAddr>> {
+        let result: Option<Market<HumanAddr>> =
+            load(storage, Self::KEY_PENDING)?;
+
+        match result {
+            Some(market) => {
+                storage.remove(Self::KEY_PENDING);
+
+                Ok(market)
+            },
+            None => Err(StdError::unauthorized())
+        }
+    }
 }
 
 impl Markets {

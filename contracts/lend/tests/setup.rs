@@ -1,5 +1,4 @@
 use lend_shared::{
-    core::MasterKey,
     fadroma::{
         decimal::one_token,
         ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
@@ -12,6 +11,7 @@ use lend_shared::{
 };
 
 use lend_shared::interfaces::{interest_model, market, overseer};
+use overseer::MarketInitConfig;
 use serde::{Deserialize, Serialize};
 
 use crate::{impl_contract_harness_default, ADMIN};
@@ -121,10 +121,10 @@ impl ContractHarness for MockBand {
 pub struct Lend {
     pub ensemble: ContractEnsemble,
     pub overseer: ContractLink<HumanAddr>,
-    pub markets: Vec<ContractLink<HumanAddr>>,
     pub atom_underlying_token: ContractLink<HumanAddr>,
     pub sienna_underlying_token: ContractLink<HumanAddr>,
     pub secret_underlying_token: ContractLink<HumanAddr>,
+    pub interest_model: ContractLink<HumanAddr>
 }
 
 impl Lend {
@@ -281,6 +281,7 @@ impl Lend {
                     prng_seed: Binary::from(b"whatever"),
                     close_factor: Decimal256::from_uint256(51000000000000000u128).unwrap(),
                     premium: Decimal256::one(),
+                    market_contract: market,
                     oracle_contract: oracle,
                     oracle_source: mock_band,
                     entropy: Binary::from(b"whatever"),
@@ -295,106 +296,13 @@ impl Lend {
             )
             .unwrap();
 
-        let env = MockEnv::new(
-            ADMIN,
-            ContractLink {
-                address: "sienna_market".into(),
-                code_hash: market.code_hash.clone(),
-            },
-        );
-        let sienna_market = ensemble
-            .instantiate(
-                market.id,
-                &market::InitMsg {
-                    config: market::Config {
-                        initial_exchange_rate: Decimal256::one(),
-                        reserve_factor: Decimal256::one(),
-                        seize_factor: Decimal256::one(),
-                    },
-                    admin: None,
-                    prng_seed: Binary::from(b"whatever"),
-                    underlying_asset: sienna_underlying_token.clone(),
-                    overseer_contract: overseer.clone(),
-                    interest_model_contract: interest_model.clone(),
-                    key: MasterKey::new(&env.env(), b"whatever", b"whatever"),
-                },
-                env,
-            )
-            .unwrap();
-
-        let env = MockEnv::new(
-            ADMIN,
-            ContractLink {
-                address: "atom_market".into(),
-                code_hash: market.code_hash.clone(),
-            },
-        );
-        let atom_market = ensemble
-            .instantiate(
-                market.id,
-                &market::InitMsg {
-                    config: market::Config {
-                        initial_exchange_rate: Decimal256::one(),
-                        reserve_factor: Decimal256::one(),
-                        seize_factor: Decimal256::one(),
-                    },
-                    admin: None,
-                    prng_seed: Binary::from(b"whatever"),
-                    underlying_asset: atom_underlying_token.clone(),
-                    overseer_contract: overseer.clone(),
-                    interest_model_contract: interest_model.clone(),
-                    key: MasterKey::new(&env.env(), b"whatever", b"whatever"),
-                },
-                MockEnv::new(
-                    ADMIN,
-                    ContractLink {
-                        address: "atom_market".into(),
-                        code_hash: market.code_hash.clone(),
-                    },
-                ),
-            )
-            .unwrap();
-
-        let env = MockEnv::new(
-            ADMIN,
-            ContractLink {
-                address: "secret_market".into(),
-                code_hash: market.code_hash.clone(),
-            },
-        );
-        let secret_market = ensemble
-            .instantiate(
-                market.id,
-                &market::InitMsg {
-                    config: market::Config {
-                        initial_exchange_rate: Decimal256::one(),
-                        reserve_factor: Decimal256::one(),
-                        seize_factor: Decimal256::one(),
-                    },
-                    admin: None,
-                    prng_seed: Binary::from(b"whatever"),
-                    underlying_asset: secret_underlying_token.clone(),
-                    overseer_contract: overseer.clone(),
-                    interest_model_contract: interest_model,
-                    key: MasterKey::new(&env.env(), b"whatever", b"whatever"),
-                },
-                MockEnv::new(
-                    ADMIN,
-                    ContractLink {
-                        address: "secret".into(),
-                        code_hash: market.code_hash,
-                    },
-                ),
-            )
-            .unwrap();
-
         Self {
             ensemble,
             overseer,
-            markets: vec![sienna_market, atom_market, secret_market],
             atom_underlying_token,
             sienna_underlying_token,
             secret_underlying_token,
+            interest_model
         }
     }
 
@@ -430,21 +338,45 @@ impl Lend {
         }
     }
 
+    pub fn get_markets(&self) -> StdResult<Vec<overseer::Market<HumanAddr>>> {
+        let result = self.ensemble.query(
+            self.overseer.address.clone(),
+            overseer::QueryMsg::Markets {
+                pagination: overseer::Pagination {
+                    start: 0,
+                    limit: 30
+                }
+            }
+        )?;
+
+        match result {
+            overseer::QueryResponse::Markets { whitelist } => Ok(whitelist),
+            _ => panic!("Expecting overseer::QueryResponse::Markets"),
+        }
+    }
+
     pub fn whitelist_market(
         &mut self,
-        market: ContractLink<HumanAddr>,
-        symbol: String,
+        underlying_asset: ContractLink<HumanAddr>,
         ltv_ratio: Decimal256,
-    ) -> StdResult<()> {
+    ) -> StdResult<overseer::Market<HumanAddr>> {
         self.ensemble.execute(
             &overseer::HandleMsg::Whitelist {
-                market: overseer::Market {
-                    contract: market,
-                    symbol,
+                config: MarketInitConfig {
+                    prng_seed: Binary::from(b"seed_for_sienna_market"),
+                    underlying_asset,
                     ltv_ratio,
-                },
+                    config: market::Config {
+                        initial_exchange_rate: Decimal256::one(),
+                        reserve_factor: Decimal256::one(),
+                        seize_factor: Decimal256::one(),
+                    },
+                    interest_model_contract: self.interest_model.clone()
+                }
             },
-            MockEnv::new(ADMIN, self.overseer.clone()),
-        )
+            MockEnv::new(ADMIN, self.overseer.clone())
+        )?;
+
+        Ok(self.get_markets().unwrap().pop().unwrap())
     }
 }
