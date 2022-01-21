@@ -81,25 +81,23 @@ impl ContractHarness for MockBand {
             MockBandQuery::GetReferenceData {
                 base_symbol,
                 quote_symbol: _,
-            } => {
-                match base_symbol.as_ref() {
-                    "SLSN" => to_binary(&lend_oracle::BandResponse {
-                        rate: Uint128(3_000_000_000_000_000_000),
-                        last_updated_base: 1628544285u64,
-                        last_updated_quote: 3377610u64,
-                    }),
-                    "SLAT" => to_binary(&lend_oracle::BandResponse {
-                        rate: Uint128(2_718_000_000_000_000_000),
-                        last_updated_base: 1628544285u64,
-                        last_updated_quote: 3377610u64,
-                    }),
-                    _ => to_binary(&lend_oracle::BandResponse {
-                        rate: Uint128(1_000_000_000_000_000_000),
-                        last_updated_base: 1628544285u64,
-                        last_updated_quote: 3377610u64,
-                    }),
-                }
-            }
+            } => match base_symbol.as_ref() {
+                "SLSN" => to_binary(&lend_oracle::BandResponse {
+                    rate: Uint128(3_000_000_000_000_000_000),
+                    last_updated_base: 1628544285u64,
+                    last_updated_quote: 3377610u64,
+                }),
+                "SLAT" => to_binary(&lend_oracle::BandResponse {
+                    rate: Uint128(2_718_000_000_000_000_000),
+                    last_updated_base: 1628544285u64,
+                    last_updated_quote: 3377610u64,
+                }),
+                _ => to_binary(&lend_oracle::BandResponse {
+                    rate: Uint128(1_000_000_000_000_000_000),
+                    last_updated_base: 1628544285u64,
+                    last_updated_quote: 3377610u64,
+                }),
+            },
             MockBandQuery::GetReferenceDataBulk {
                 base_symbols,
                 quote_symbols: _,
@@ -308,13 +306,16 @@ impl Lend {
             .instantiate(
                 market.id,
                 &market::InitMsg {
+                    config: market::Config {
+                        initial_exchange_rate: Decimal256::one(),
+                        reserve_factor: Decimal256::one(),
+                        seize_factor: Decimal256::one(),
+                    },
                     admin: None,
                     prng_seed: Binary::from(b"whatever"),
                     underlying_asset: sienna_underlying_token.clone(),
-                    initial_exchange_rate: Decimal256::one(),
                     overseer_contract: overseer.clone(),
                     interest_model_contract: interest_model.clone(),
-                    reserve_factor: Decimal256::one(),
                     key: MasterKey::new(&env.env(), b"whatever", b"whatever"),
                 },
                 env,
@@ -332,13 +333,16 @@ impl Lend {
             .instantiate(
                 market.id,
                 &market::InitMsg {
+                    config: market::Config {
+                        initial_exchange_rate: Decimal256::one(),
+                        reserve_factor: Decimal256::one(),
+                        seize_factor: Decimal256::one(),
+                    },
                     admin: None,
                     prng_seed: Binary::from(b"whatever"),
                     underlying_asset: atom_underlying_token.clone(),
-                    initial_exchange_rate: Decimal256::one(),
                     overseer_contract: overseer.clone(),
                     interest_model_contract: interest_model.clone(),
-                    reserve_factor: Decimal256::one(),
                     key: MasterKey::new(&env.env(), b"whatever", b"whatever"),
                 },
                 MockEnv::new(
@@ -362,13 +366,16 @@ impl Lend {
             .instantiate(
                 market.id,
                 &market::InitMsg {
+                    config: market::Config {
+                        initial_exchange_rate: Decimal256::one(),
+                        reserve_factor: Decimal256::one(),
+                        seize_factor: Decimal256::one(),
+                    },
                     admin: None,
                     prng_seed: Binary::from(b"whatever"),
                     underlying_asset: secret_underlying_token.clone(),
-                    initial_exchange_rate: Decimal256::one(),
                     overseer_contract: overseer.clone(),
                     interest_model_contract: interest_model,
-                    reserve_factor: Decimal256::one(),
                     key: MasterKey::new(&env.env(), b"whatever", b"whatever"),
                 },
                 MockEnv::new(
