@@ -54,16 +54,16 @@ pub trait Overseer {
         ltv_ratio: Decimal256
     ) -> StdResult<HandleResponse>;
 
-    #[query("whitelist")]
+    #[query]
     fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>>;
 
-    #[query("market")]
+    #[query]
     fn market(address: HumanAddr) -> StdResult<Market<HumanAddr>>;
 
-    #[query("entered_markets")]
+    #[query]
     fn entered_markets(permit: Permit<OverseerPermissions>) -> StdResult<Vec<Market<HumanAddr>>>;
 
-    #[query("liquidity")]
+    #[query]
     fn account_liquidity(
         permit: Permit<OverseerPermissions>,
         market: Option<HumanAddr>,
@@ -72,7 +72,7 @@ pub trait Overseer {
         borrow_amount: Uint256
     ) -> StdResult<AccountLiquidity>;
 
-    #[query("liquidity")]
+    #[query]
     fn account_liquidity_internal(
         key: MasterKey,
         address: HumanAddr,
@@ -82,7 +82,7 @@ pub trait Overseer {
         borrow_amount: Uint256
     ) -> StdResult<AccountLiquidity>;
 
-    #[query("can_transfer")]
+    #[query]
     fn can_transfer_internal(
         key: MasterKey,
         address: HumanAddr,
@@ -91,14 +91,14 @@ pub trait Overseer {
         amount: Uint256,
     ) -> StdResult<bool>;
 
-    #[query("amount")]
+    #[query]
     fn seize_amount(
         borrowed: HumanAddr,
         collateral: HumanAddr,
         repay_amount: Uint256
     ) -> StdResult<Uint256>;
 
-    #[query("config")]
+    #[query]
     fn config() -> StdResult<Config>;
 }
 
@@ -138,7 +138,7 @@ pub struct Market<A> {
     pub ltv_ratio: Decimal256,
 }
 
-#[derive(Serialize, Deserialize, schemars::JsonSchema)]
+#[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct MarketInitConfig {
     // Underlying asset address.
@@ -151,7 +151,7 @@ pub struct MarketInitConfig {
     pub prng_seed: Binary
 }
 
-#[derive(Serialize, Deserialize, schemars::JsonSchema)]
+#[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct Pagination {
     pub start: u64,
@@ -198,7 +198,7 @@ pub fn query_account_liquidity(
     redeem_amount: Uint256,
     borrow_amount: Uint256,
 ) -> StdResult<AccountLiquidity> {
-    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
         msg: to_binary(&QueryMsg::AccountLiquidityInternal {
@@ -209,12 +209,7 @@ pub fn query_account_liquidity(
             redeem_amount,
             borrow_amount,
         })?,
-    }))?;
-
-    match result {
-        QueryResponse::AccountLiquidityInternal { liquidity } => Ok(liquidity),
-        _ => Err(StdError::generic_err("Expecting QueryResponse::AccountLiquidityInternal"))
-    }
+    }))
 }
 
 pub fn query_can_transfer(
@@ -226,7 +221,7 @@ pub fn query_can_transfer(
     block: u64,
     amount: Uint256,
 ) -> StdResult<bool> {
-    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
         msg: to_binary(&QueryMsg::CanTransferInternal {
@@ -236,12 +231,7 @@ pub fn query_can_transfer(
             block,
             amount,
         })?,
-    }))?;
-
-    match result {
-        QueryResponse::CanTransferInternal { can_transfer } => Ok(can_transfer),
-        _ => Err(StdError::generic_err("QueryResponse::CanTransferInternal")),
-    }
+    }))
 }
 
 pub fn query_market(
@@ -249,32 +239,22 @@ pub fn query_market(
     overseer: ContractLink<HumanAddr>,
     address: HumanAddr,
 ) -> StdResult<Market<HumanAddr>> {
-    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
         msg: to_binary(&QueryMsg::Market { address })?,
-    }))?;
-
-    match result {
-        QueryResponse::Market { market } => Ok(market),
-        _ => Err(StdError::generic_err("QueryResponse::Market")),
-    }
+    }))
 }
 
 pub fn query_config(
     querier: &impl Querier,
     overseer: ContractLink<HumanAddr>
 ) -> StdResult<Config> {
-    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
         msg: to_binary(&QueryMsg::Config { })?
-    }))?;
-
-    match result {
-        QueryResponse::Config { config } => Ok(config),
-        _ => Err(StdError::generic_err("QueryResponse::Config"))
-    }
+    }))
 }
 
 pub fn query_seize_amount(
@@ -284,7 +264,7 @@ pub fn query_seize_amount(
     collateral: HumanAddr,
     repay_amount: Uint256
 ) -> StdResult<Uint256> {
-    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
         msg: to_binary(&QueryMsg::SeizeAmount {
@@ -292,10 +272,5 @@ pub fn query_seize_amount(
             collateral,
             repay_amount
         })?
-    }))?;
-
-    match result {
-        QueryResponse::SeizeAmount { amount } => Ok(amount),
-        _ => Err(StdError::generic_err("QueryResponse::SeizeAmount"))
-    }
+    }))
 }

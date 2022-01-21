@@ -24,13 +24,13 @@ pub trait Oracle {
     #[handle]
     fn update_assets(assets: Vec<Asset>) -> StdResult<HandleResponse>;
 
-    #[query("price")]
+    #[query]
     fn price(
         base: AssetType,
         quote: AssetType
     ) -> StdResult<PriceResponse>;
 
-    #[query("prices")]
+    #[query]
     fn prices(
         base: Vec<AssetType>,
         quote: Vec<AssetType>
@@ -94,28 +94,21 @@ pub fn query_price(
     quote: AssetType,
     time_contraints: Option<TimeConstraints>,
 ) -> StdResult<PriceResponse> {
-    let oracle_price = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    let price: PriceResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: oracle.address,
         callback_code_hash: oracle.code_hash,
         msg: to_binary(&QueryMsg::Price { base, quote })?,
     }))?;
 
-    match oracle_price {
-        QueryResponse::Price { price } => {
-            if let Some(time_contraints) = time_contraints {
-                let valid_update_time =
-                    time_contraints.block_time - time_contraints.valid_timeframe;
-                if price.last_updated_base < valid_update_time
-                    || price.last_updated_quote < valid_update_time
-                {
-                    return Err(StdError::generic_err("Price is too old"));
-                }
-            }
-
-            Ok(price)
+    if let Some(time_contraints) = time_contraints {
+        let valid_update_time =
+            time_contraints.block_time - time_contraints.valid_timeframe;
+        if price.last_updated_base < valid_update_time
+            || price.last_updated_quote < valid_update_time
+        {
+            return Err(StdError::generic_err("Price is too old"));
         }
-        _ => Err(StdError::generic_err(
-            "Expecting OracleQueryResponse::Price",
-        )),
     }
+
+    Ok(price)
 }

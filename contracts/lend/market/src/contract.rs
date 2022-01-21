@@ -381,7 +381,7 @@ pub trait Market {
         AuthImpl.set_viewing_key(key, padding, deps, env)
     }
 
-    #[query("amount")]
+    #[query]
     fn balance(
         address: HumanAddr,
         key: String
@@ -394,7 +394,7 @@ pub trait Market {
         )
     }
 
-    #[query("amount")]
+    #[query]
     fn balance_underlying(
         method: AuthMethod,
         block: Option<u64>
@@ -410,7 +410,7 @@ pub trait Market {
         )
     }
 
-    #[query("amount")]
+    #[query]
     fn balance_internal(
         address: HumanAddr,
         key: MasterKey
@@ -425,7 +425,7 @@ pub trait Market {
         )
     }
 
-    #[query("state")]
+    #[query]
     fn state(block: Option<u64>) -> StdResult<State> {
         let underlying_asset = Contracts::load_underlying(deps)?;
 
@@ -455,7 +455,7 @@ pub trait Market {
         })
     }
 
-    #[query("borrow_rate_per_block")]
+    #[query]
     fn borrow_rate(block: Option<u64>) -> StdResult<Decimal256> {
         let underlying_asset = Contracts::load_underlying(deps)?;
 
@@ -483,7 +483,7 @@ pub trait Market {
         )
     }
 
-    #[query("supply_rate_per_block")]
+    #[query]
     fn supply_rate(block: Option<u64>) -> StdResult<Decimal256> {
         let underlying_asset = Contracts::load_underlying(deps)?;
 
@@ -512,7 +512,7 @@ pub trait Market {
         )
     }
 
-    #[query("exchange_rate")]
+    #[query]
     fn exchange_rate(block: Option<u64>) -> StdResult<Decimal256> {
         let underlying_asset = Contracts::load_underlying(deps)?;
 
@@ -539,7 +539,7 @@ pub trait Market {
         )
     }
 
-    #[query("account")]
+    #[query]
     fn account(method: AuthMethod, block: Option<u64>) -> StdResult<AccountInfo> {
         let account = auth(deps, method, MarketPermissions::AccountInfo)?;
 

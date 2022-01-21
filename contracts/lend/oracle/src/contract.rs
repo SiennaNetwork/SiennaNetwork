@@ -87,7 +87,7 @@ pub trait BandOracleConsumer {
         })
     }
 
-    #[query("price")]
+    #[query]
     fn price(base: AssetType, quote: AssetType) -> StdResult<PriceResponse> {
         let source = Contracts::load_source(deps)?;
 
@@ -107,7 +107,7 @@ pub trait BandOracleConsumer {
         })
     }
 
-    #[query("prices")]
+    #[query]
     fn prices(base: Vec<AssetType>, quote: Vec<AssetType>) -> StdResult<PricesResponse> {
         let source = Contracts::load_source(deps)?;
 
