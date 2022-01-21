@@ -2,9 +2,9 @@ use std::fmt::Display;
 
 use fadroma::{
     admin,
-    auth::Permit,
     cosmwasm_std,
     derive_contract::*,
+    auth::Permit,
     schemars,
     schemars::JsonSchema,
     ContractLink, Decimal256, HandleResponse, HumanAddr, InitResponse,
@@ -14,7 +14,6 @@ use fadroma::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::interfaces::overseer::OverseerPermissions;
 use crate::core::MasterKey;
 
 #[interface(component(path = "admin"))]
@@ -30,9 +29,7 @@ pub trait Market {
         overseer_contract: ContractLink<HumanAddr>,
         // Interest model contract address
         interest_model_contract: ContractLink<HumanAddr>,
-        initial_exchange_rate: Decimal256,
-        // Fraction of interest currently set aside for reserves
-        reserve_factor: Decimal256,
+        config: Config
     ) -> StdResult<InitResponse>;
 
     /// Snip20 receiver interface
@@ -51,14 +48,21 @@ pub trait Market {
     fn redeem_underlying(receive_amount: Uint256) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn borrow(
-        permit: Permit<OverseerPermissions>,
-        amount: Uint256
-    ) -> StdResult<HandleResponse>;
+    fn borrow(amount: Uint256) -> StdResult<HandleResponse>;
 
     #[handle]
     fn transfer(
         recipient: HumanAddr,
+        amount: Uint256
+    ) -> StdResult<HandleResponse>;
+
+    #[handle]
+    fn accrue_interest() -> StdResult<HandleResponse>;
+
+    #[handle]
+    fn seize(
+        liquidator: HumanAddr,
+        borrower: HumanAddr,
         amount: Uint256
     ) -> StdResult<HandleResponse>;
 
@@ -91,8 +95,7 @@ pub trait Market {
 
     #[query("amount")]
     fn balance_underlying(
-        address: HumanAddr,
-        key: String,
+        method: AuthMethod,
         block: Option<u64>
     ) -> StdResult<Uint128>;
 
@@ -115,7 +118,31 @@ pub trait Market {
     fn exchange_rate(block: Option<u64>) -> StdResult<Decimal256>;
 
     #[query("account")]
-    fn account(id: Binary, block: Option<u64>) -> StdResult<AccountInfo>;
+    fn account(
+        method: AuthMethod,
+        block: Option<u64>
+    ) -> StdResult<AccountInfo>;
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthMethod {
+    Permit(Permit<MarketPermissions>),
+    ViewingKey {
+        address: HumanAddr,
+        key: String
+    },
+    Internal {
+        address: HumanAddr,
+        key: MasterKey
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum MarketPermissions {
+    AccountInfo,
+    Balance
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -139,10 +166,12 @@ pub struct State {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
-    // Initial exchange rate used when minting the first slTokens (used when totalSupply = 0)
+    /// Initial exchange rate used when minting the first slTokens (used when totalSupply = 0)
     pub initial_exchange_rate: Decimal256,
-    // Fraction of interest currently set aside for reserves
-    pub reserve_factor: Decimal256
+    /// Fraction of interest currently set aside for reserves
+    pub reserve_factor: Decimal256,
+    /// Share of seized collateral that is added to reserves
+    pub seize_factor: Decimal256
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -173,8 +202,12 @@ pub enum ReceiverCallbackMsg {
     /// Deposit underlying token
     Deposit,
     Repay {
-        // Repay someone else's debt.
+        /// Repay someone else's debt.
         borrower: Option<Binary>
+    },
+    Liquidate {
+        borrower: Binary,
+        collateral: HumanAddr
     }
 }
 
@@ -205,14 +238,14 @@ pub fn query_exchange_rate(
 pub fn query_account(
     querier: &impl Querier,
     market: ContractLink<HumanAddr>,
-    id: Binary,
+    method: AuthMethod,
     block: Option<u64>
 ) -> StdResult<AccountInfo> {
     let result: QueryResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: market.address,
         callback_code_hash: market.code_hash,
         msg: to_binary(&QueryMsg::Account {
-            id,
+            method,
             block
         })?
     }))?;
@@ -222,5 +255,28 @@ pub fn query_account(
             Ok(account)
         },
         _ => Err(StdError::generic_err("Expected QueryResponse::Account"))
+    }
+}
+
+pub fn query_balance(
+    querier: &impl Querier,
+    market: ContractLink<HumanAddr>,
+    key: MasterKey,
+    address: HumanAddr
+) -> StdResult<Uint128> {
+    let result: QueryResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: market.address,
+        callback_code_hash: market.code_hash,
+        msg: to_binary(&QueryMsg::BalanceInternal {
+            key,
+            address
+        })?
+    }))?;
+
+    match result {
+        QueryResponse::BalanceInternal { amount } => {
+            Ok(amount)
+        },
+        _ => Err(StdError::generic_err("Expected QueryResponse::BalanceInternal"))
     }
 }

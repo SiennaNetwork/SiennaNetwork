@@ -1,15 +1,12 @@
-use std::convert::{TryFrom, TryInto};
-
 use lend_shared::{
     impl_contract_storage,
     fadroma::{
         cosmwasm_std::{
             HumanAddr, CanonicalAddr, Extern,
             StdResult, Api, Storage, Querier,
-            StdError, Binary, Order
+            StdError, Order
         },
         cosmwasm_storage::{Bucket, ReadonlyBucket},
-        crypto::sha_256,
         storage::{load, save, ns_load, ns_save, IterableStorage},
         Canonize, Humanize,
         ContractLink, Decimal256
@@ -31,12 +28,7 @@ pub struct Contracts;
 pub struct Markets;
 
 #[derive(Clone)]
-pub struct Borrower {
-    id: BorrowerId
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub struct BorrowerId([u8; 32]);
+pub struct Borrower(CanonicalAddr);
 
 impl Constants {
     const KEY: &'static [u8] = b"constants";
@@ -180,23 +172,11 @@ impl Markets {
 impl Borrower {
     const NS: &'static [u8] = b"borrowers";
 
-    pub fn new<S: Storage, A: Api, Q: Querier>(
-        deps: &Extern<S, A, Q>,
+    pub fn new(
+        api: &impl Api,
         address: &HumanAddr
     ) -> StdResult<Self> {
-        Ok(Self {
-            id: BorrowerId::new(deps, address)?
-        })
-    }
-
-    pub fn from_base64(bin: Binary) -> StdResult<Self> {
-        Ok(Self {
-            id: BorrowerId::try_from(bin.0)?
-        })
-    }
-
-    pub fn id(self) -> Binary {
-        self.id.into()
+        Ok(Self(address.canonize(api)?))
     }
 
     pub fn add_market<S: Storage>(
@@ -258,58 +238,6 @@ impl Borrower {
     }
 
     fn create_key(&self) -> Vec<u8> {
-        [ Self::NS, self.id.as_slice() ].concat()
-    }
-}
-
-impl BorrowerId {
-    const KEY: &'static [u8] = b"salt";
-
-    pub fn new<S: Storage, A: Api, Q: Querier>(
-        deps: &Extern<S, A, Q>,
-        address: &HumanAddr
-    ) -> StdResult<Self> {
-        let address = address.canonize(&deps.api)?;
-        let salt = Self::load_prng_seed(&deps.storage)?;
-
-        let data = vec![ address.as_slice(), salt.as_slice() ].concat();
-
-        Ok(Self(sha_256(&data)))
-    }
-
-    pub fn as_slice(&self) -> &[u8] {
-        &self.0
-    }
-
-    pub fn set_prng_seed(storage: &mut impl Storage, prng_seed: &Binary) -> StdResult<()> {
-        let stored: Option<Binary> = load(storage, Self::KEY)?;
-
-        // Should only set this once, otherwise will break the contract.
-        if stored.is_some() {
-            return Err(StdError::generic_err("Prng seed already set."));
-        }
-
-        save(storage, Self::KEY, prng_seed)
-    }
-
-    fn load_prng_seed(storage: &impl Storage) -> StdResult<Binary> {
-        Ok(load(storage, Self::KEY)?.unwrap())
-    }
-}
-
-impl From<BorrowerId> for Binary {
-    fn from(id: BorrowerId) -> Self {
-        Binary(id.0.into())
-    }
-}
-
-impl TryFrom<Vec<u8>> for BorrowerId {
-    type Error = StdError;
-
-    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        match value.try_into() {
-            Ok(data) => Ok(Self(data)),
-            Err(_) => Err(StdError::generic_err("Couldn't create BorrowerId from bytes."))
-        }
+        [ Self::NS, self.0.as_slice() ].concat()
     }
 }

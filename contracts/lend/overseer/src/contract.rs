@@ -8,14 +8,14 @@ use lend_shared::{
         cosmwasm_std,
         cosmwasm_std::{
             log, to_binary, Api, Binary, CosmosMsg, Extern, HandleResponse, HumanAddr,
-            InitResponse, Querier, StdError, StdResult, Storage, Uint128, WasmMsg,
+            InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
         derive_contract::*,
         require_admin, Callback, ContractInstantiationInfo, ContractLink, Decimal256, Permit,
         Uint256,
     },
     interfaces::{
-        market::{query_account, query_exchange_rate},
+        market::{AuthMethod, query_account, query_exchange_rate},
         oracle::{
             query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
         },
@@ -23,7 +23,7 @@ use lend_shared::{
     },
 };
 
-use state::{Borrower, BorrowerId, Constants, Contracts, Markets};
+use state::{Borrower, Constants, Contracts, Markets};
 
 #[contract_impl(path = "lend_shared::interfaces::overseer", component(path = "admin"))]
 pub trait Overseer {
@@ -38,8 +38,6 @@ pub trait Overseer {
         oracle_source: ContractLink<HumanAddr>,
     ) -> StdResult<InitResponse> {
         MasterKey::new(&env, prng_seed.as_slice(), entropy.as_slice()).save(&mut deps.storage)?;
-
-        BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
 
         Contracts::save_oracle(
             deps,
@@ -132,7 +130,7 @@ pub trait Overseer {
 
     #[handle]
     fn enter(markets: Vec<HumanAddr>) -> StdResult<HandleResponse> {
-        let borrower = Borrower::new(deps, &env.message.sender)?;
+        let borrower = Borrower::new(&deps.api, &env.message.sender)?;
 
         for market in markets {
             let id = Markets::get_id(deps, &market)?;
@@ -148,14 +146,19 @@ pub trait Overseer {
 
     #[handle]
     fn exit(market_address: HumanAddr) -> StdResult<HandleResponse> {
-        let borrower = Borrower::new(deps, &env.message.sender)?;
+        let borrower = Borrower::new(&deps.api, &env.message.sender)?;
         let (id, market) = borrower.get_market(deps, &market_address)?;
+
+        let method = AuthMethod::Internal{
+            address: env.message.sender,
+            key: MasterKey::load(&deps.storage)?
+        };
 
         // TODO: Maybe calc_liquidity() can be changed to cover this check in order to avoid calling this twice.
         let snapshot = query_account(
             &deps.querier,
             market.contract,
-            borrower.clone().id(),
+            method.clone(),
             None, // None because we only check if borrows balance is zero here.
         )?;
 
@@ -166,6 +169,7 @@ pub trait Overseer {
         let liquidity = calc_liquidity(
             deps,
             &borrower,
+            method,
             Some(market_address),
             Some(env.block.height),
             snapshot.sl_token_balance,
@@ -224,7 +228,7 @@ pub trait Overseer {
             vec![OverseerPermissions::AccountInfo],
         )?;
 
-        let borrower = Borrower::new(deps, &borrower)?;
+        let borrower = Borrower::new(&deps.api, &borrower)?;
 
         borrower.list_markets(deps)
     }
@@ -238,7 +242,7 @@ pub trait Overseer {
         borrow_amount: Uint256,
     ) -> StdResult<AccountLiquidity> {
         let self_ref = Contracts::load_self_ref(deps)?;
-        let borrower = permit.validate_with_permissions(
+        let address = permit.validate_with_permissions(
             deps,
             self_ref.address,
             vec![OverseerPermissions::AccountInfo],
@@ -246,7 +250,36 @@ pub trait Overseer {
 
         calc_liquidity(
             deps,
-            &Borrower::new(deps, &borrower)?,
+            &Borrower::new(&deps.api, &address)?,
+            AuthMethod::Internal {
+                key: MasterKey::load(&deps.storage)?,
+                address
+            },
+            market,
+            block,
+            redeem_amount,
+            borrow_amount,
+        )
+    }
+
+    #[query("liquidity")]
+    fn account_liquidity_internal(
+        key: MasterKey,
+        address: HumanAddr,
+        market: Option<HumanAddr>,
+        block: Option<u64>,
+        redeem_amount: Uint256,
+        borrow_amount: Uint256,
+    ) -> StdResult<AccountLiquidity> {
+        MasterKey::check(&deps.storage, &key)?;
+
+        calc_liquidity(
+            deps,
+            &Borrower::new(&deps.api, &address)?,
+            AuthMethod::Internal {
+                key,
+                address
+            },
             market,
             block,
             redeem_amount,
@@ -264,7 +297,7 @@ pub trait Overseer {
     ) -> StdResult<bool> {
         MasterKey::check(&deps.storage, &key)?;
 
-        let borrower = Borrower::new(&deps, &address)?;
+        let borrower = Borrower::new(&deps.api, &address)?;
 
         // If not entered the market then transfer is allowed.
         if borrower.get_market(&deps, &market).is_err() {
@@ -274,6 +307,10 @@ pub trait Overseer {
         let result = calc_liquidity(
             deps,
             &borrower,
+            AuthMethod::Internal {
+                key,
+                address
+            },
             Some(market),
             Some(block),
             amount,
@@ -287,16 +324,18 @@ pub trait Overseer {
         }
     }
 
-    #[query("id")]
-    fn id(permit: Permit<OverseerPermissions>) -> StdResult<Binary> {
-        let self_ref = Contracts::load_self_ref(deps)?;
-        let borrower = permit.validate_with_permissions(
+    #[query("amount")]
+    fn seize_amount(
+        borrowed: HumanAddr,
+        collateral: HumanAddr,
+        repay_amount: Uint256
+    ) -> StdResult<Uint256> {
+        calc_seize_tokens(
             deps,
-            self_ref.address,
-            vec![OverseerPermissions::Id],
-        )?;
-
-        Ok(BorrowerId::new(deps, &borrower)?.into())
+            borrowed,
+            collateral,
+            repay_amount
+        )
     }
 
     #[query("whitelist")]
@@ -329,6 +368,7 @@ pub trait Overseer {
 fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     borrower: &Borrower,
+    method: AuthMethod,
     target_asset: Option<HumanAddr>,
     block: Option<u64>,
     redeem_amount: Uint256,
@@ -343,7 +383,12 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     for market in borrower.list_markets(deps)? {
         let is_target_asset = target_asset == market.contract.address;
 
-        let snapshot = query_account(&deps.querier, market.contract, borrower.clone().id(), block)?;
+        let snapshot = query_account(
+            &deps.querier,
+            market.contract,
+            method.clone(),
+            block
+        )?;
 
         let price = query_price(
             &deps.querier,
@@ -388,7 +433,7 @@ fn calc_seize_tokens<S: Storage, A: Api, Q: Querier>(
     // collateral token
     collateral: HumanAddr,
     // the amount of borrowed to convert into collateral
-    repay_amount: Uint128,
+    repay_amount: Uint256,
 ) -> StdResult<Uint256> {
     let premium = Constants::load(&deps.storage)?.premium;
 
@@ -414,6 +459,5 @@ fn calc_seize_tokens<S: Storage, A: Api, Q: Querier>(
     let exchange_rate = query_exchange_rate(&deps.querier, market.contract, None)?;
     let ratio = ((premium * price_borrowed.rate)? / (price_collateral.rate * exchange_rate)?)?;
 
-    let seize_tokens = (ratio * Decimal256::from_uint256(repay_amount)?)?.round();
-    Ok(seize_tokens)
+    repay_amount.decimal_mul(ratio)
 }

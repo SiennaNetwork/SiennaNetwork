@@ -2,8 +2,7 @@ mod checks;
 mod state;
 mod token;
 mod ops;
-
-use std::convert::TryFrom;
+mod auth;
 
 use lend_shared::{
     fadroma::{
@@ -13,30 +12,29 @@ use lend_shared::{
         cosmwasm_std::{
             Api, Binary, Extern, HandleResponse, HumanAddr, Env,
             InitResponse, Querier, StdError, StdResult, Storage,
-            log
+            CosmosMsg, WasmMsg, log
         },
         auth::{
             vk_auth::{
-                DefaultImpl as AuthImpl,
-                Auth, authenticate
-            },
-            ViewingKey
+                DefaultImpl as AuthImpl, Auth
+            }
         },
         derive_contract::*,
         require_admin,
         secret_toolkit::snip20,
         snip20_impl::msg as snip20_msg,
-        Uint256, Decimal256, Permit, Canonize,
-        Uint128, BLOCK_SIZE, ContractLink,
+        Uint256, Decimal256, Uint128,
+        BLOCK_SIZE, ContractLink,
         from_binary, to_binary
     },
     interfaces::{
         interest_model::{query_borrow_rate, query_supply_rate},
         market::{
-            ReceiverCallbackMsg, State,
-            AccountInfo, Config
+            ReceiverCallbackMsg, State, HandleMsg,
+            MarketPermissions, AccountInfo, Config,
+            AuthMethod, query_balance, 
         },
-        overseer::{OverseerPermissions, query_can_transfer},
+        overseer::{query_can_transfer, query_seize_amount, query_market},
     },
     core::MasterKey
 };
@@ -52,16 +50,19 @@ use state::{
 };
 use token::calc_exchange_rate;
 use ops::{accrue_interest, accrued_interest_at};
+use auth::{auth, auth_user_key};
 
-#[contract_impl(path = "lend_shared::interfaces::market", component(path = "admin"))]
+#[contract_impl(
+    path = "lend_shared::interfaces::market",
+    component(path = "admin")
+)]
 pub trait Market {
     #[init]
     fn new(
         admin: Option<HumanAddr>,
         prng_seed: Binary,
         key: MasterKey,
-        initial_exchange_rate: Decimal256,
-        reserve_factor: Decimal256,
+        config: Config,
         underlying_asset: ContractLink<HumanAddr>,
         overseer_contract: ContractLink<HumanAddr>,
         interest_model_contract: ContractLink<HumanAddr>,
@@ -73,13 +74,7 @@ pub trait Market {
             code_hash: env.contract_code_hash.clone(),
         };
 
-        Constants::save(
-            deps,
-            &Config {
-                initial_exchange_rate,
-                reserve_factor,
-            },
-        )?;
+        Constants::save(&mut deps.storage, &config)?;
 
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
         Contracts::save_overseer(deps, &overseer_contract)?;
@@ -135,15 +130,41 @@ pub trait Market {
                 )
             },
             ReceiverCallbackMsg::Repay { borrower } => {
+                let underlying = Contracts::load_underlying(deps)?;
+
+                if env.message.sender != underlying.address {
+                    return Err(StdError::unauthorized());
+                }
+
                 repay(
                     deps,
                     env,
+                    underlying,
                     if let Some(borrower) = borrower {
-                        // TODO: Is a wrong/fake ID dangerous?
-                        Account::try_from(borrower)?
+                        Account::from_id(&deps.storage, &borrower)?
                     } else {
-                        Account::new(deps, &from)?
+                        Account::of(deps, &from)?
                     },
+                    amount.into()
+                )
+            },
+            ReceiverCallbackMsg::Liquidate {
+                borrower,
+                collateral
+            } => {
+                let underlying = Contracts::load_underlying(deps)?;
+
+                if env.message.sender != underlying.address {
+                    return Err(StdError::unauthorized());
+                }
+
+                liquidate(
+                    deps,
+                    env,
+                    underlying,
+                    from,
+                    Account::from_id(&deps.storage, &borrower)?,
+                    collateral,
                     amount.into()
                 )
             }
@@ -171,10 +192,7 @@ pub trait Market {
     }
 
     #[handle]
-    fn borrow(
-        permit: Permit<OverseerPermissions>,
-        amount: Uint256
-    ) -> StdResult<HandleResponse> {
+    fn borrow(amount: Uint256) -> StdResult<HandleResponse> {
         let underlying_asset = Contracts::load_underlying(deps)?;
 
         let balance = snip20::balance_query(
@@ -192,7 +210,7 @@ pub trait Market {
 
         checks::assert_borrow_allowed(
             deps,
-            permit,
+            env.message.sender.clone(),
             env.block.height,
             env.contract.address,
             amount
@@ -200,7 +218,7 @@ pub trait Market {
 
         let borrow_index = Global::load_borrow_index(&deps.storage)?;
 
-        let account = Account::new(deps, &env.message.sender)?;
+        let account = Account::of(deps, &env.message.sender)?;
 
         let mut snapshot = account.get_borrow_snapshot(&deps.storage)?;
         snapshot.add_balance(borrow_index, amount)?;
@@ -232,7 +250,7 @@ pub trait Market {
         recipient: HumanAddr,
         amount: Uint256
     ) -> StdResult<HandleResponse> {
-        let sender = Account::new(deps, &env.message.sender)?;
+        let sender = Account::of(deps, &env.message.sender)?;
 
         let can_transfer = query_can_transfer(
             &deps.querier,
@@ -250,7 +268,7 @@ pub trait Market {
 
         sender.subtract_balance(&mut deps.storage, amount)?;
 
-        let recipient = Account::new(deps, &recipient)?;
+        let recipient = Account::of(deps, &recipient)?;
         recipient.add_balance(&mut deps.storage, amount)?;
 
         Ok(HandleResponse {
@@ -264,19 +282,72 @@ pub trait Market {
     }
 
     #[handle]
+    fn accrue_interest() -> StdResult<HandleResponse> {
+        let underlying_asset = Contracts::load_underlying(deps)?;
+
+        let balance = snip20::balance_query(
+            &deps.querier,
+            env.contract.address.clone(),
+            VIEWING_KEY.to_string(),
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+
+        accrue_interest(deps, env.block.height, balance)?;
+
+        Ok(HandleResponse::default())
+    }
+
+    #[handle]
+    fn seize(
+        liquidator: HumanAddr,
+        borrower: HumanAddr,
+        amount: Uint256
+    ) -> StdResult<HandleResponse> {
+        // Assert that the caller is a market contract.
+        query_market(
+            &deps.querier,
+            Contracts::load_overseer(deps)?,
+            env.message.sender.clone()
+        )?;
+
+        let underlying_asset = Contracts::load_underlying(deps)?;
+
+        let balance = snip20::balance_query(
+            &deps.querier,
+            env.contract.address.clone(),
+            VIEWING_KEY.to_string(),
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+
+        accrue_interest(deps, env.block.height, balance)?;
+
+        seize(
+            deps,
+            balance.into(),
+            Account::of(deps, &liquidator)?,
+            Account::of(deps, &borrower)?,
+            amount
+        )
+    }
+
+    #[handle]
     #[require_admin]
     fn update_config(
         interest_model: Option<ContractLink<HumanAddr>>,
         reserve_factor: Option<Decimal256>,
     ) -> StdResult<HandleResponse> {
-        let mut config = Constants::load(deps)?;
+        let mut config = Constants::load(&deps.storage)?;
         if let Some(interest_model) = interest_model {
             Contracts::save_interest_model(deps, &interest_model)?;
         }
 
         if let Some(reserve_factor) = reserve_factor {
             config.reserve_factor = reserve_factor;
-            Constants::save(deps, &config)?;
+            Constants::save(&mut deps.storage, &config)?;
         }
 
         Ok(HandleResponse::default())
@@ -309,10 +380,7 @@ pub trait Market {
         address: HumanAddr,
         key: String
     ) -> StdResult<Uint128> {
-        let canonical = address.canonize(&deps.api)?;
-        authenticate(&deps.storage, &ViewingKey(key), canonical.as_slice())?;
-
-        let account = Account::new(deps, &address)?;
+        let account = auth_user_key(deps, key, address)?;
 
         Ok(account.get_balance(&deps.storage)?
             .low_u128()
@@ -322,16 +390,12 @@ pub trait Market {
 
     #[query("amount")]
     fn balance_underlying(
-        address: HumanAddr,
-        key: String,
+        method: AuthMethod,
         block: Option<u64>
     ) -> StdResult<Uint128> {
-        let canonical = address.canonize(&deps.api)?;
-        authenticate(&deps.storage, &ViewingKey(key), canonical.as_slice())?;
+        let account = auth(deps, method, MarketPermissions::Balance)?;
 
         let exchange_rate = self.exchange_rate(block, deps)?;
-
-        let account = Account::new(deps, &address)?;
         let balance = account.get_balance(&deps.storage)?;
 
         Ok(balance.decimal_mul(exchange_rate)?
@@ -347,7 +411,7 @@ pub trait Market {
     ) -> StdResult<Uint128> {
         MasterKey::check(&deps.storage, &key)?;
 
-        let account = Account::new(deps, &address)?;
+        let account = Account::of(deps, &address)?;
 
         Ok(account.get_balance(&deps.storage)?
             .low_u128()
@@ -381,7 +445,7 @@ pub trait Market {
             borrow_index: interest.borrow_index,
             total_supply: TotalSupply::load(&deps.storage)?,
             accrual_block: Global::load_accrual_block_number(&deps.storage)?,
-            config: Constants::load(deps)?
+            config: Constants::load(&deps.storage)?
         })
     }
 
@@ -438,7 +502,7 @@ pub trait Market {
             Decimal256::from_uint256(balance)?,
             Decimal256::from_uint256(interest.total_borrows)?,
             Decimal256::from_uint256(interest.total_reserves)?,
-            Constants::load(deps)?.reserve_factor
+            Constants::load(&deps.storage)?.reserve_factor
         )
     }
 
@@ -470,8 +534,8 @@ pub trait Market {
     }
 
     #[query("account")]
-    fn account(id: Binary, block: Option<u64>) -> StdResult<AccountInfo> {
-        let account = Account::try_from(id)?;
+    fn account(method: AuthMethod, block: Option<u64>) -> StdResult<AccountInfo> {
+        let account = auth(deps, method, MarketPermissions::AccountInfo)?;
 
         let underlying_asset = Contracts::load_underlying(deps)?;
         let balance = snip20::balance_query(
@@ -507,10 +571,46 @@ pub trait Market {
 fn repay<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
+    underlying_asset: ContractLink<HumanAddr>,
     borrower: Account,
     amount: Uint256
 ) -> StdResult<HandleResponse> {
-    let underlying_asset = Contracts::load_underlying(deps)?;
+    let balance = snip20::balance_query(
+        &deps.querier,
+        env.contract.address,
+        VIEWING_KEY.to_string(),
+        BLOCK_SIZE,
+        underlying_asset.code_hash,
+        underlying_asset.address,
+    )?.amount;
+
+    accrue_interest(deps, env.block.height, balance)?;
+
+    let borrow_index = Global::load_borrow_index(&deps.storage)?;
+
+    let mut snapshot = borrower.get_borrow_snapshot(&deps.storage)?;
+    snapshot.subtract_balance(borrow_index, amount)?;
+    borrower.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
+
+    TotalBorrows::decrease(&mut deps.storage, amount)?;
+
+    Ok(HandleResponse::default())
+}
+
+fn liquidate<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    underlying_asset: ContractLink<HumanAddr>,
+    liquidator_address: HumanAddr,
+    borrower: Account,
+    collateral: HumanAddr,
+    amount: Uint256
+) -> StdResult<HandleResponse> {
+    let liquidator = Account::of(deps, &liquidator_address)?;
+
+    if liquidator == borrower {
+        return Err(StdError::generic_err("Liquidator and borrower are the same account."));
+    }
 
     let balance = snip20::balance_query(
         &deps.querier,
@@ -524,12 +624,120 @@ fn repay<S: Storage, A: Api, Q: Querier>(
     accrue_interest(deps, env.block.height, balance)?;
 
     let borrow_index = Global::load_borrow_index(&deps.storage)?;
-
     let mut snapshot = borrower.get_borrow_snapshot(&deps.storage)?;
+
+    checks::assert_liquidate_allowed(
+        deps,
+        HumanAddr::default(), // TODO: get borrower address
+        snapshot.current_balance(borrow_index)?,
+        env.block.height,
+        amount
+    )?;
+
+    // Do repay
     snapshot.subtract_balance(borrow_index, amount)?;
     borrower.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
 
     TotalBorrows::decrease(&mut deps.storage, amount)?;
+
+    let overseer = Contracts::load_overseer(deps)?;
+    let borrower_address = borrower.address(&deps.api)?;
+
+    let (borrower_balance, market) = if env.contract.address == collateral {
+        (borrower.get_balance(&deps.storage)?, None)
+    } else {
+        let market = query_market(
+            &deps.querier,
+            overseer.clone(),
+            collateral.clone()
+        )?;
+
+        let borrower_balance: Uint256 = query_balance(
+            &deps.querier,
+            market.contract.clone(),
+            MasterKey::load(&deps.storage)?,
+            borrower_address.clone()
+        )?.into();
+
+        (borrower_balance, Some(market))
+    };
+
+    let seize_amount = query_seize_amount(
+        &deps.querier,
+        overseer,
+        env.contract.address,
+        collateral,
+        amount
+    )?;
+
+    if borrower_balance < seize_amount {
+        return Err(StdError::generic_err(format!(
+            "Borrow collateral balance is less that the seize amount. Shortfall: {}",
+            (seize_amount - borrower_balance)?
+        )));
+    }
+
+    if let Some(market) = market {
+        Ok(HandleResponse {
+            messages: vec![
+                CosmosMsg::Wasm(WasmMsg::Execute {
+                    send: vec![],
+                    contract_addr: market.contract.address,
+                    callback_code_hash: market.contract.code_hash,
+                    msg: to_binary(&HandleMsg::Seize {
+                        liquidator: liquidator_address,
+                        borrower: borrower_address,
+                        amount
+                    })?
+                })
+            ],
+            log: vec![],
+            data: None
+        })
+    } else {
+        seize(
+            deps,
+            balance.into(),
+            liquidator,
+            borrower,
+            amount
+        )
+    }
+}
+
+fn seize<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    underlying_balance: Uint256,
+    liquidator: Account,
+    borrower: Account,
+    amount: Uint256
+) -> StdResult<HandleResponse> {
+    borrower.subtract_balance(&mut deps.storage, amount)?;
+
+    let config = Constants::load(&deps.storage)?;
+    // TODO: how are those two next lines correct???
+    // https://github.com/compound-finance/compound-protocol/blob/4a8648ec0364d24c4ecfc7d6cae254f55030d65f/contracts/CToken.sol#L1085-L1086
+    let protocol_share = amount.decimal_mul(config.seize_factor)?;
+    let liquidator_share = (amount - protocol_share)?;
+
+    let interest_reserve = Global::load_interest_reserve(&deps.storage)?;
+    let exchange_rate = calc_exchange_rate(
+        deps,
+        underlying_balance,
+        TotalBorrows::load(&deps.storage)?,
+        interest_reserve
+    )?;
+
+    let protocol_amount = protocol_share.decimal_mul(exchange_rate)?;
+
+    Global::save_interest_reserve(
+        &mut deps.storage,
+        &(interest_reserve + protocol_amount)?
+    )?;
+
+    TotalSupply::decrease(&mut deps.storage, protocol_share)?;
+
+    liquidator.add_balance(&mut deps.storage, liquidator_share)?;
 
     Ok(HandleResponse::default())
 }
