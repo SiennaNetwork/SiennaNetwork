@@ -9,7 +9,7 @@ use fadroma::{
     schemars::JsonSchema,
     ContractLink, Decimal256, HandleResponse, HumanAddr, InitResponse,
     StdResult, Uint128, Uint256, Binary, QueryRequest, WasmQuery, StdError,
-    Querier, to_binary
+    Querier, Callback, to_binary
 };
 
 use serde::{Deserialize, Serialize};
@@ -20,16 +20,15 @@ use crate::core::MasterKey;
 pub trait Market {
     #[init]
     fn new(
-        admin: Option<HumanAddr>,
+        admin: HumanAddr,
         prng_seed: Binary,
         key: MasterKey,
         // Underlying asset address
         underlying_asset: ContractLink<HumanAddr>,
-        // Overseer contract address
-        overseer_contract: ContractLink<HumanAddr>,
         // Interest model contract address
         interest_model_contract: ContractLink<HumanAddr>,
-        config: Config
+        config: Config,
+        callback: Callback<HumanAddr>
     ) -> StdResult<InitResponse>;
 
     /// Snip20 receiver interface

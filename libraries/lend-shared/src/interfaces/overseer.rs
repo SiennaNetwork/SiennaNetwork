@@ -11,6 +11,7 @@ use fadroma::{
 
 use serde::{Deserialize, Serialize};
 
+use crate::interfaces::market::Config as MarketConfig;
 use crate::core::MasterKey;
 
 #[interface(component(path = "admin"))]
@@ -23,6 +24,7 @@ pub trait Overseer {
         close_factor: Decimal256,
         // Liquidation incentive
         premium: Decimal256,
+        market_contract: ContractInstantiationInfo,
         // Oracle instantiation info
         oracle_contract: ContractInstantiationInfo,
         // Price source for the oracle
@@ -33,7 +35,12 @@ pub trait Overseer {
     fn register_oracle() -> StdResult<HandleResponse>;
 
     #[handle]
-    fn whitelist(market: Market<HumanAddr>) -> StdResult<HandleResponse>;
+    fn whitelist(
+        config: MarketInitConfig
+    ) -> StdResult<HandleResponse>;
+
+    #[handle]
+    fn register_market() -> StdResult<HandleResponse>;
 
     #[handle]
     fn enter(markets: Vec<HumanAddr>) -> StdResult<HandleResponse>;
@@ -129,6 +136,19 @@ pub struct Market<A> {
     pub symbol: String,
     /// The percentage rate at which tokens can be borrowed given the size of the collateral.
     pub ltv_ratio: Decimal256,
+}
+
+#[derive(Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct MarketInitConfig {
+    // Underlying asset address.
+    pub underlying_asset: ContractLink<HumanAddr>,
+    /// The percentage rate at which tokens can be borrowed given the size of the collateral.
+    pub ltv_ratio: Decimal256,
+    // Interest model contract address.
+    pub interest_model_contract: ContractLink<HumanAddr>,
+    pub config: MarketConfig,
+    pub prng_seed: Binary
 }
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema)]

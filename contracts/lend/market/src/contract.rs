@@ -24,7 +24,7 @@ use lend_shared::{
         secret_toolkit::snip20,
         snip20_impl::msg as snip20_msg,
         Uint256, Decimal256, Uint128,
-        BLOCK_SIZE, ContractLink,
+        BLOCK_SIZE, ContractLink, Callback,
         from_binary, to_binary
     },
     interfaces::{
@@ -59,13 +59,13 @@ use auth::{auth, auth_user_key};
 pub trait Market {
     #[init]
     fn new(
-        admin: Option<HumanAddr>,
+        admin: HumanAddr,
         prng_seed: Binary,
         key: MasterKey,
-        config: Config,
         underlying_asset: ContractLink<HumanAddr>,
-        overseer_contract: ContractLink<HumanAddr>,
         interest_model_contract: ContractLink<HumanAddr>,
+        config: Config,
+        callback: Callback<HumanAddr>
     ) -> StdResult<InitResponse> {
         key.save(&mut deps.storage)?;
 
@@ -77,7 +77,7 @@ pub trait Market {
         Constants::save(&mut deps.storage, &config)?;
 
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
-        Contracts::save_overseer(deps, &overseer_contract)?;
+        Contracts::save_overseer(deps, &callback.contract)?;
         Contracts::save_interest_model(deps, &interest_model_contract)?;
         Contracts::save_underlying(deps, &underlying_asset)?;
         Contracts::save_self_ref(deps, &ContractLink {
@@ -85,10 +85,16 @@ pub trait Market {
             code_hash: env.contract_code_hash.clone()
         })?;
 
-        admin::DefaultImpl.new(admin, deps, env)?;
+        admin::DefaultImpl.new(Some(admin), deps, env)?;
 
         Ok(InitResponse {
             messages: vec![
+                CosmosMsg::Wasm(WasmMsg::Execute {
+                    send: vec![],
+                    callback_code_hash: callback.contract.code_hash,
+                    contract_addr: callback.contract.address,
+                    msg: callback.msg
+                }),
                 snip20::set_viewing_key_msg(
                     VIEWING_KEY.into(),
                     None,

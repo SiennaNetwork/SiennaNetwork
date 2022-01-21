@@ -10,22 +10,32 @@ use lend_shared::{
             log, to_binary, Api, Binary, CosmosMsg, Extern, HandleResponse, HumanAddr,
             InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
+        secret_toolkit::snip20,
         derive_contract::*,
-        require_admin, Callback, ContractInstantiationInfo, ContractLink, Decimal256, Permit,
-        Uint256,
+        require_admin, Callback, ContractInstantiationInfo,
+        ContractLink, Decimal256, Permit, Uint256, BLOCK_SIZE
     },
     interfaces::{
-        market::{AuthMethod, query_account, query_exchange_rate},
+        market::{AuthMethod, query_account, query_exchange_rate, InitMsg as MarketInitMsg},
         oracle::{
             query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
         },
-        overseer::{AccountLiquidity, Config, HandleMsg, Market, OverseerPermissions, Pagination},
+        overseer::{
+            AccountLiquidity, Config, HandleMsg, Market,
+            OverseerPermissions, Pagination, MarketInitConfig
+        },
     },
 };
 
-use state::{Borrower, Constants, Contracts, Markets};
+use state::{
+    Borrower, Constants, Contracts,
+    Markets, Whitelisting
+};
 
-#[contract_impl(path = "lend_shared::interfaces::overseer", component(path = "admin"))]
+#[contract_impl(
+    path = "lend_shared::interfaces::overseer",
+    component(path = "admin")
+)]
 pub trait Overseer {
     #[init]
     fn new(
@@ -34,10 +44,15 @@ pub trait Overseer {
         entropy: Binary,
         close_factor: Decimal256,
         premium: Decimal256,
+        market_contract: ContractInstantiationInfo,
         oracle_contract: ContractInstantiationInfo,
-        oracle_source: ContractLink<HumanAddr>,
+        oracle_source: ContractLink<HumanAddr>
     ) -> StdResult<InitResponse> {
-        MasterKey::new(&env, prng_seed.as_slice(), entropy.as_slice()).save(&mut deps.storage)?;
+        MasterKey::new(
+            &env,
+            prng_seed.as_slice(),
+            entropy.as_slice()
+        ).save(&mut deps.storage)?;
 
         Contracts::save_oracle(
             deps,
@@ -59,6 +74,11 @@ pub trait Overseer {
         };
         Contracts::save_self_ref(deps, &self_ref)?;
 
+        Whitelisting::save_market_contract(
+            &mut deps.storage,
+            &market_contract
+        )?;
+
         let time = env.block.time;
 
         let mut result = admin::DefaultImpl.new(admin.clone(), deps, env)?;
@@ -68,7 +88,7 @@ pub trait Overseer {
             send: vec![],
             label: format!("Sienna Lend Oracle: {}", time),
             msg: to_binary(&OracleInitMsg {
-                admin: admin,
+                admin,
                 source: oracle_source,
                 initial_assets: vec![],
                 callback: Callback {
@@ -104,12 +124,68 @@ pub trait Overseer {
 
     #[handle]
     #[require_admin]
-    fn whitelist(market: Market<HumanAddr>) -> StdResult<HandleResponse> {
+    fn whitelist(config: MarketInitConfig) -> StdResult<HandleResponse> {
+        let token_info = snip20::token_info_query(
+            &deps.querier,
+            BLOCK_SIZE,
+            config.underlying_asset.code_hash.clone(),
+            config.underlying_asset.address.clone()
+        )?;
+        let info = Whitelisting::load_market_contract(&deps.storage)?;
+        
+        let market = Market {
+            contract: ContractLink {
+                address: HumanAddr::default(),
+                code_hash: info.code_hash.clone()
+            },
+            symbol: token_info.symbol.clone(),
+            ltv_ratio: config.ltv_ratio
+        };
         market.validate()?;
+
+        Whitelisting::set_pending(&mut deps.storage, &market)?;
+
+        Ok(HandleResponse {
+            messages: vec![CosmosMsg::Wasm(WasmMsg::Instantiate {
+                label: format!(
+                    "Sienna Lend {} market with overseer: {}",
+                    token_info.symbol,
+                    env.contract.address
+                ),
+                code_id: info.id,
+                callback_code_hash: info.code_hash,
+                send: vec![],
+                msg: to_binary(&MarketInitMsg {
+                    admin: env.message.sender,
+                    prng_seed: config.prng_seed,
+                    interest_model_contract: config.interest_model_contract,
+                    key: MasterKey::load(&deps.storage)?,
+                    config: config.config,
+                    underlying_asset: config.underlying_asset,
+                    callback: Callback {
+                        contract: ContractLink {
+                            address: env.contract.address,
+                            code_hash: env.contract_code_hash
+                        },
+                        msg: to_binary(&HandleMsg::RegisterMarket {})?
+                    }
+                })?,
+            })],
+            log: vec![log("action", "whitelist")],
+            data: None,
+        })
+    }
+
+    #[handle]
+    fn register_market() -> StdResult<HandleResponse> {
+        let mut market = Whitelisting::pop_pending(&mut deps.storage)?;
+        let oracle = Contracts::load_oracle(deps)?;
+
+        market.contract.address = env.message.sender;
 
         Markets::push(deps, &market)?;
 
-        let oracle = Contracts::load_oracle(deps)?;
+        let log_address = market.contract.address.to_string();
 
         Ok(HandleResponse {
             messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
@@ -123,7 +199,10 @@ pub trait Overseer {
                     }],
                 })?,
             })],
-            log: vec![log("action", "whitelist")],
+            log: vec![
+                log("action", "register_market"),
+                log("market_address", log_address)
+            ],
             data: None,
         })
     }
@@ -216,6 +295,7 @@ pub trait Overseer {
             m.validate()?;
             Ok(m)
         })?;
+
         Ok(HandleResponse::default())
     }
 
