@@ -1,27 +1,33 @@
-import { IChain, IAgent, timestamp, randomHex, buildAndUpload } from '@fadroma/scrt'
+import { Migration, randomHex } from '@fadroma/scrt'
 import type { SNIP20Contract } from "@fadroma/snip20"
 
 import { AMMSNIP20Contract } from '@sienna/api'
 import settings, { workspace } from '@sienna/settings'
 
-export type PlaceholderTokenConfig = Record<string, {
-  label:   string,
-  initMsg: any
-}>
+export type TokenConfig = { label: string, initMsg: any }
 
-export async function deployPlaceholderTokens ({
-  chain,
-  admin,
-  deployment: { name: prefix, contracts }
-}: {
-  chain:      IChain,
-  admin:      IAgent,
-  deployment: { name: string, contracts: Record<string, any> }
-}): Promise<Record<string, SNIP20Contract>> {
+export async function deployPlaceholderTokens (options: Migration): Promise<
+  Record<string, SNIP20Contract>
+> {
+
+  const {
+
+    timestamp,
+
+    chain,
+    admin,
+
+    prefix,
+    contracts
+
+  } = options
 
   const AMMTOKEN = new AMMSNIP20Contract({ workspace, prefix, chain, admin })
-  await buildAndUpload([AMMTOKEN])
-  const placeholders: PlaceholderTokenConfig = settings(chain.chainId).placeholderTokens
+  await chain.buildAndUpload([AMMTOKEN])
+
+  const placeholders: Record<string, TokenConfig> =
+    settings(chain.chainId).placeholderTokens
+
   const tokens = {}
 
   for (const [symbol, {label, initMsg}] of Object.entries(placeholders)) {
@@ -30,10 +36,10 @@ export async function deployPlaceholderTokens ({
       chain,
       admin,
       instantiator: admin,
-      codeId:   AMMTOKEN.codeId,
-      codeHash: AMMTOKEN.codeHash,
+      codeId:       AMMTOKEN.codeId,
+      codeHash:     AMMTOKEN.codeHash,
       prefix,
-      suffix: `_${label}+${timestamp()}`,
+      suffix:       `_${label}+${timestamp}`,
       initMsg: { ...initMsg, prng_seed: randomHex(36) }
     })
 

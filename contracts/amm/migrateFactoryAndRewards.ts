@@ -1,27 +1,30 @@
-import { timestamp } from '@hackbg/tools'
-import type { IChain, IAgent, Deployment } from '@fadroma/scrt'
-import { buildAndUpload, Scrt } from '@fadroma/scrt'
+import type { Migration } from '@fadroma/scrt'
 import type { SNIP20Contract } from '@fadroma/snip20'
 import { FactoryContract, AMMContract, LPTokenContract, RewardsContract } from '@sienna/api'
 import settings from '@sienna/settings'
 
 type MultisigTX = any
 
-export async function migrateFactoryAndRewards (
-  chain: IChain,
-  admin: IAgent
-): Promise<MultisigTX[]> {
+export async function migrateFactoryAndRewards (options: Migration): Promise<MultisigTX[]> {
 
-  const deployment = chain.deployments.active
+  const {
+    timestamp,
+
+    chain,
+    admin,
+    prefix,
+    getContract,
+    getContracts
+  } = options
 
   const OLD_FACTORY:   FactoryContract   =
-    deployment.getContract(FactoryContract, 'SiennaAMMFactory', admin)
+    getContract(FactoryContract, 'SiennaAMMFactory', admin)
   const OLD_EXCHANGES: AMMContract[]     =
     await OLD_FACTORY.exchanges
   const OLD_LP_TOKENS: SNIP20Contract[]  =
     OLD_EXCHANGES.map(exchange=>exchange.lpToken)
   const OLD_REWARDS:   RewardsContract[] =
-    deployment.getContracts(RewardsContract, 'SiennaRewards', admin)
+    getContracts(RewardsContract, 'SiennaRewards', admin)
 
   console.log({
     OLD_FACTORY,
@@ -33,8 +36,8 @@ export async function migrateFactoryAndRewards (
   const NEW_FACTORY:   FactoryContract =
     new FactoryContract({
       ref:    `main`,
-      prefix: deployment.name,
-      suffix: `@v2.0.0+${timestamp()}`,
+      prefix,
+      suffix: `@v2.0.0+${timestamp}`,
       admin,
       exchange_settings: settings(chain.chainId).amm.exchange_settings,
       contracts:         await OLD_FACTORY.contracts,

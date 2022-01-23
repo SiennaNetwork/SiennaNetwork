@@ -1,5 +1,5 @@
 import {
-  IAgent, IContract, ContractState, ContractConstructor,
+  IAgent, IContract, ContractOptions, ContractConstructor,
   AugmentedScrtContract_1_2,
   randomHex
 } from "@fadroma/scrt"
@@ -19,7 +19,9 @@ export class RewardsContract extends AugmentedScrtContract_1_2<RewardsTransactio
     config: {}
   }
 
-  constructor (options: ContractState & {
+  admin?: IAgent
+
+  constructor (options: ContractOptions & {
     /** Admin agent */
     admin?:       IAgent,
     /** Address of other user that can increment the epoch */
@@ -32,6 +34,7 @@ export class RewardsContract extends AugmentedScrtContract_1_2<RewardsTransactio
     bonding?:     number,
   } = {}) {
     super(options)
+    this.admin = options.admin
     this.initMsg.admin = options.admin?.address
     this.initMsg.config = {
       reward_vk:    randomHex(36),
@@ -40,6 +43,22 @@ export class RewardsContract extends AugmentedScrtContract_1_2<RewardsTransactio
       lp_token:     options.lpToken?.link,
       reward_token: options.rewardToken?.link,
     }
+  }
+
+  get epoch (): Promise<number> {
+    return this.q().pool_info().then(pool_info=>pool_info.clock.number)
+  }
+
+  RewardTokenContract: ContractConstructor<SNIP20Contract> = SNIP20Contract
+  async rewardToken <T extends SNIP20Contract>(SNIP20 = this.RewardTokenContract) {
+    const { address, code_hash } = (await this.q().pool_info()).reward_token
+    return new SNIP20({ address, codeHash: code_hash, admin: this.admin })
+  }
+
+  LPTokenContract: ContractConstructor<SNIP20Contract> = SNIP20Contract
+  async lpToken <T extends SNIP20Contract>(SNIP20 = this.LPTokenContract) {
+    const { address, code_hash } = (await this.q().pool_info()).lp_token
+    return new SNIP20({ address, codeHash: code_hash, admin: this.admin })
   }
 
 }

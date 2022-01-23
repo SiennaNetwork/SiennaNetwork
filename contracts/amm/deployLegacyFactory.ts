@@ -1,21 +1,29 @@
-import { timestamp } from '@hackbg/tools'
-import type { IChain, IAgent, Deployment } from '@fadroma/scrt'
-import { buildAndUpload, Scrt } from '@fadroma/scrt'
-
+import { Migration } from '@fadroma/scrt'
 import { FactoryContract } from '@sienna/api'
 import settings from '@sienna/settings'
 
-export async function deployLegacyFactory (chain: IChain, admin: IAgent) {
-  const deployment = chain.deployments.active
-  const V2_FACTORY = deployment.getContract(FactoryContract, 'SiennaAMMFactory', admin)
+export async function deployLegacyFactory (options: Migration) {
+
+  const {
+    timestamp,
+    chain,
+    prefix,
+    getContract,
+    admin
+  } = options
+
+  const FACTORY = getContract(FactoryContract, 'SiennaAMMFactory', admin)
+
   const V1_FACTORY = new FactoryContract({
     ref:    `main`,
-    prefix: deployment.name,
-    suffix: `@v1+${timestamp()}`,
+    prefix,
+    suffix: `@v1+${timestamp}`,
     admin,
-    exchange_settings: settings(chain.chainId).amm.exchange_settings,
-    contracts:         await V2_FACTORY.contracts,
+    exchange_settings: settings(chain.id).amm.exchange_settings,
+    contracts:         await FACTORY.contracts,
   })
-  await buildAndUpload([V1_FACTORY])
+
+  await chain.buildAndUpload([V1_FACTORY])
   await V1_FACTORY.instantiate()
+
 }

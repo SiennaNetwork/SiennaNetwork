@@ -1,33 +1,50 @@
-import { IAgent, IChain, Deployment, timestamp } from '@fadroma/scrt'
+import { Migration } from '@fadroma/scrt'
 import type { SNIP20Contract } from '@fadroma/snip20'
 import { RewardsContract } from '@sienna/api'
 
-export async function deployRewardPool ({
-  chain,
-  admin,
-  deployment,
-  REWARDS,
-  suffix,
-  lpToken,
-  rewardToken,
-}: {
-  chain:       IChain
-  admin:       IAgent
-  deployment:  Deployment
-  REWARDS:     RewardsContract
-  suffix:      string
-  lpToken:     SNIP20Contract
-  rewardToken: SNIP20Contract
+export async function deployRewardPool (options: Migration & {
+  apiVersion?:   'v2'|'v3'
+  suffix?:       string
+  lpToken?:      SNIP20Contract
+  rewardToken?:  SNIP20Contract
 }) {
-  const {codeId, codeHash} = REWARDS
-  const options = {
-    codeId, codeHash,
-    prefix: deployment.name, suffix: `_${suffix}+${timestamp()}`,
-    admin, instantiator: admin,
-    chain, lpToken, rewardToken
+
+  const {
+
+    timestamp,
+
+    chain,
+    admin,
+    contracts,
+  
+    apiVersion  = 'v3',
+    suffix      = `_${apiVersion}+${timestamp}`,
+    lpToken,
+    rewardToken
+
+  } = options
+
+  const contract = new RewardsContract()
+  await chain.buildAndUpload(contract)
+
+  if (apiVersion === 'v2') {
+    // override init msg for legacy api
+    const initMsg = {
+      admin:        admin.address,
+      lp_token:     lpToken.link,
+      reward_token: rewardToken.link,
+      viewing_key:  "",
+      ratio:        ["1", "1"],
+      threshold:    15940,
+      cooldown:     15940,
+    }
+    // use Object.assign to avoid type check
+    Object.assign(contract, { initMsg })
   }
-  const rewardPool = new RewardsContract(options)
-  const receipt    = deployment.contracts[rewardPool.label]
-  await rewardPool.instantiateOrExisting(receipt)
-  return rewardPool
+
+  const receipt = contracts[contract.label]
+  await contract.instantiateOrExisting(receipt)
+
+  return contract
+
 }

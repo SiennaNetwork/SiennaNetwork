@@ -29,7 +29,7 @@ export const rewardsAudit = {
     await SIENNA.instantiate()
     await LPTOKEN.instantiate()
     await REWARDS.instantiate()
-    await SIENNA.setMinters([admin.address])
+    await SIENNA.tx().setMinters([admin.address])
     await chain.deployments.select(prefix)
     console.debug(`Deployed the following contracts to ${bold(chain.chainId)}:`, {
       SIENNA:  SIENNA.link,
@@ -50,16 +50,12 @@ export const rewardsAudit = {
     const SIENNA   = instance.getContract(SiennaSNIP20Contract, 'SiennaSNIP20', admin)
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
 
-    await SIENNA.tx.mint({
-      amount,
-      recipient: REWARDS.address,
-      padding:   null
-    }, admin)
+    await SIENNA.tx(admin).mint(amount, REWARDS.address)
 
-    const epoch = (await REWARDS.Q(admin).getEpoch()) + 1
-    await REWARDS.TX(admin).beginEpoch(epoch)
+    const epoch = (await REWARDS.epoch) + 1
+    await REWARDS.tx(admin).beginEpoch(epoch)
 
-    console.info(`Started epoch ${bold(epoch)} with reward budget: ${bold(amount)}`)
+    console.info(`Started epoch ${bold(String(epoch))} with reward budget: ${bold(amount)}`)
   },
 
   async ['status'] (identity: string) {
@@ -68,9 +64,9 @@ export const rewardsAudit = {
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
     if (identity) {
       const {address} = chain.identities.load(identity)
-      console.debug('User info:', await REWARDS.Q(admin).userInfo(address))
+      console.debug('User info:', await REWARDS.q(admin).user_info(address))
     } else {
-      console.debug('Pool info:', await REWARDS.Q(admin).poolInfo())
+      console.debug('Pool info:', await REWARDS.q(admin).pool_info())
     }
   },
 
@@ -91,9 +87,9 @@ export const rewardsAudit = {
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
     const LPTOKEN  = instance.getContract(LPTokenContract, 'SiennaRewards_AUDIT_LPToken', admin)
 
-    await LPTOKEN.tx.mint({amount, recipient: agent.address, padding: null}, admin)
-    await LPTOKEN.tx.increaseAllowance({amount, spender: REWARDS.address, padding: null}, agent)
-    await REWARDS.TX(agent).deposit(amount)
+    await LPTOKEN.tx(admin).mint(amount, agent.address)
+    await LPTOKEN.tx(admin).increaseAllowance(amount, REWARDS.address)
+    await REWARDS.tx(agent).deposit(amount)
 
     console.info(`Deposited ${bold(amount)} LPTOKEN from ${bold(agent.address)} (${user})`)
   },
@@ -114,7 +110,7 @@ export const rewardsAudit = {
     const instance = chain.deployments.active
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
 
-    await REWARDS.TX(agent).withdraw(amount)
+    await REWARDS.tx(agent).withdraw(amount)
 
     console.info(`Withdrew ${bold(amount)} LPTOKEN from ${bold(agent.address)} (${user})`)
   },
@@ -130,7 +126,7 @@ export const rewardsAudit = {
     const instance = chain.deployments.active
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
 
-    await REWARDS.TX(agent).claim()
+    await REWARDS.tx(agent).claim()
 
     console.info(`Claimed`)
   },
