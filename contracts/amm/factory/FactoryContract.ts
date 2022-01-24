@@ -73,7 +73,7 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
 
   }
 
-  get contracts (): Promise<FactoryInventory> {
+  getContracts (): Promise<FactoryInventory> {
     // type kludge!
     if (this.address) {
       // If this contract has an address query this from the contract state
@@ -102,40 +102,24 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     }
   }
 
-  set contracts (contracts: FactoryInventory|Promise<FactoryInventory>) {
+  setContracts (contracts: FactoryInventory) {
     if (this.address) {
       throw new Error('Use the config method to reconfigure a live contract.')
     } else {
-      Promise.resolve(contracts).then(contracts=>{
-        for (const contract of Object.keys(contracts)) {
-          this.initMsg[contract] = {
-            id:        contracts[contract].codeId,
-            code_hash: contracts[contract].codeHash,
-          }
-        }
-      })
+      for (const [name, contract] of Object.entries(contracts)) {
+        this.initMsg[name] = contract
+      }
     }
   }
 
   get exchanges (): Promise<AMMContract[]> {
-    return this.listExchanges().then(exchanges=>
-      Promise.all(exchanges.map(async ({ contract, pair }) => {
-        const { lp_token } = await this.getExchange(
-          pair.token_0,
-          pair.token_1
-        )
-        const lpToken = new LPTokenContract({
-          address:  lp_token.address,
-          codeHash: lp_token.code_hash
-        })
-        const exchange = new AMMContract({
-          address:  contract.address,
-          codeHash: contract.code_hash,
-          lpToken
-        })
-        return exchange
-      }))
-    )
+    return this.listExchanges().then(exchanges=>Promise.all(
+      exchanges.map(({ contract, pair }) => new AMMContract({
+        admin:    this.admin,
+        address:  contract.address,
+        codeHash: contract.code_hash,
+      }).populate())
+    ))
   }
 
   async listExchanges (): Promise<Exchange[]> {
@@ -160,7 +144,7 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
   async getExchange (token_0: TokenType, token_1: TokenType, agent = this.instantiator) {
     const {address} = await this.q(agent).get_exchange_address(token_0, token_1)
     const exchange  = new AMMContract({address, admin: agent, instantiator: agent})
-    const {pair_info:{liquidity_token:lp_token}} = await exchange.pairInfo()
+    const {liquidity_token:lp_token} = await exchange.pairInfo()
     return { exchange: exchange.link, lp_token, token_0, token_1 }
   }
 

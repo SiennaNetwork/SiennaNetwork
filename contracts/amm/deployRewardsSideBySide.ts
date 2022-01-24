@@ -2,7 +2,7 @@ import { Migration } from '@hackbg/fadroma'
 import { RPTContract } from '@sienna/api'
 import { deployRewards } from './deployRewards'
 
-export async function deployRewardsSideBySide (options: Migration) {
+export async function deployRewardsSideBySide (migration: Migration) {
 
   const {
 
@@ -13,7 +13,7 @@ export async function deployRewardsSideBySide (options: Migration) {
     admin,
     prefix,
 
-  } = options
+  } = migration
 
   const options = { chain, admin, prefix }
   const v2Suffix = `@v2+${timestamp()}`

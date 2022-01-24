@@ -1,22 +1,23 @@
 import { IAgent, ContractState, randomHex, Scrt_1_2 } from "@hackbg/fadroma"
 import { SNIP20Contract } from '@fadroma/snip20'
-import { InitMsg } from './schema/init_msg.d'
+
 import { AMMTransactions } from './AMMTransactions'
 import { AMMQueries } from './AMMQueries'
+
+import { InitMsg } from './schema/init_msg.d'
+import { TokenType, TokenPair, ContractLink } from './schema/query_msg_response.d'
 
 export class AMMContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> {
 
   crate = 'exchange'
-
   name  = 'SiennaAMMExchange'
-
-  initMsg?: InitMsg
 
   Transactions = AMMTransactions
   Queries      = AMMQueries
 
-  token0?:  SNIP20Contract
-  token1?:  SNIP20Contract
+  initMsg?: InitMsg
+  token_0?: TokenType
+  token_1?: TokenType
   lpToken?: SNIP20Contract
 
   constructor (options: ContractState & {
@@ -39,7 +40,17 @@ export class AMMContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> 
     }
   }
 
-  pairInfo = () => this.q().pair_info()
+  async populate () {
+    const pairInfo = await this.pairInfo()
+    const { pair: { token_0, token_1 }, liquidity_token } = pairInfo
+    this.token_0  = token_0
+    this.token_1  = token_1
+    this.lpToken = new SNIP20Contract(liquidity_token)
+    return this
+  }
+
+  pairInfo = (): Promise<{ pair: TokenPair, liquidity_token: ContractLink }> => {
+    return this.q(this.admin).pair_info()
+  }
 
 }
-
