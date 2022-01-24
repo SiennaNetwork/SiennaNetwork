@@ -24,9 +24,7 @@ macro_rules! impl_contract_harness_default {
             }
 
             fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
-                let result = $contract::query(deps, from_binary(&msg)?, $contract::DefaultImpl)?;
-
-                to_binary(&result)
+                $contract::query(deps, from_binary(&msg)?, $contract::DefaultImpl)
             }
         }
     };

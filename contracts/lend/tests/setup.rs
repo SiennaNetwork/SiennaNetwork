@@ -1,13 +1,11 @@
-use lend_shared::{
-    fadroma::{
-        decimal::one_token,
-        ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
-        from_binary, schemars,
-        schemars::JsonSchema,
-        snip20_impl::msg::{InitMsg as Snip20InitMsg, InitialBalance},
-        to_binary, Binary, ContractLink, Decimal256, Env, HandleResponse, HumanAddr, InitResponse,
-        Permit, StdError, StdResult, Uint128, Uint256,
-    },
+use lend_shared::fadroma::{
+    decimal::one_token,
+    ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
+    from_binary, schemars,
+    schemars::JsonSchema,
+    snip20_impl::msg::{InitMsg as Snip20InitMsg, InitialBalance},
+    to_binary, Binary, Composable, ContractLink, Decimal256, Env, HandleResponse, HumanAddr,
+    InitResponse, Permit, StdError, StdResult, Uint128, Uint256,
 };
 
 use lend_shared::interfaces::{interest_model, market, overseer};
@@ -75,29 +73,27 @@ impl ContractHarness for MockBand {
         })
     }
 
-    fn query(&self, _deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
+    fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
         let msg = from_binary(&msg).unwrap();
         match msg {
             MockBandQuery::GetReferenceData {
                 base_symbol,
                 quote_symbol: _,
-            } => match base_symbol.as_ref() {
-                "SLSN" => to_binary(&lend_oracle::BandResponse {
-                    rate: Uint128(3_000_000_000_000_000_000),
-                    last_updated_base: 1628544285u64,
-                    last_updated_quote: 3377610u64,
-                }),
-                "SLAT" => to_binary(&lend_oracle::BandResponse {
-                    rate: Uint128(2_718_000_000_000_000_000),
-                    last_updated_base: 1628544285u64,
-                    last_updated_quote: 3377610u64,
-                }),
-                _ => to_binary(&lend_oracle::BandResponse {
-                    rate: Uint128(1_000_000_000_000_000_000),
-                    last_updated_base: 1628544285u64,
-                    last_updated_quote: 3377610u64,
-                }),
-            },
+            } => {
+                let key: &[u8] = base_symbol.as_bytes();
+                match deps.get(key).unwrap() {
+                    Some(value) => to_binary(&lend_oracle::BandResponse {
+                        rate: value,
+                        last_updated_base: 1628544285u64,
+                        last_updated_quote: 3377610u64,
+                    }),
+                    None => to_binary(&lend_oracle::BandResponse {
+                        rate: Uint128(1_000_000_000_000_000_000),
+                        last_updated_base: 1628544285u64,
+                        last_updated_quote: 3377610u64,
+                    }),
+                }
+            }
             MockBandQuery::GetReferenceDataBulk {
                 base_symbols,
                 quote_symbols: _,
@@ -121,10 +117,11 @@ impl ContractHarness for MockBand {
 pub struct Lend {
     pub ensemble: ContractEnsemble,
     pub overseer: ContractLink<HumanAddr>,
-    pub atom_underlying_token: ContractLink<HumanAddr>,
-    pub sienna_underlying_token: ContractLink<HumanAddr>,
-    pub secret_underlying_token: ContractLink<HumanAddr>,
-    interest_model: ContractLink<HumanAddr>
+    pub underlying_token_one: ContractLink<HumanAddr>,
+    pub underlying_token_two: ContractLink<HumanAddr>,
+    pub underlying_token_three: ContractLink<HumanAddr>,
+    pub interest_model: ContractLink<HumanAddr>,
+    pub mock_band: ContractLink<HumanAddr>,
 }
 
 impl Lend {
@@ -139,13 +136,13 @@ impl Lend {
         let interest = ensemble.register(Box::new(InterestModel));
 
         let decimals = 6;
-        let sienna_underlying_token = ensemble
+        let underlying_token_one = ensemble
             .instantiate(
                 token.id,
                 &Snip20InitMsg {
                     name: "Underlying Token".into(),
                     admin: None,
-                    symbol: "SLSN".into(),
+                    symbol: "EDNO".into(),
                     decimals,
                     initial_allowances: None,
                     initial_balances: Some(vec![
@@ -165,20 +162,20 @@ impl Lend {
                 MockEnv::new(
                     ADMIN,
                     ContractLink {
-                        address: "underlying_sienna".into(),
+                        address: "underlying_one".into(),
                         code_hash: token.code_hash.clone(),
                     },
                 ),
             )
             .unwrap();
 
-        let atom_underlying_token = ensemble
+        let underlying_token_two = ensemble
             .instantiate(
                 token.id,
                 &Snip20InitMsg {
                     name: "Underlying Token".into(),
                     admin: None,
-                    symbol: "SLAT".into(),
+                    symbol: "DVE".into(),
                     decimals: 3,
                     initial_allowances: None,
                     initial_balances: Some(vec![
@@ -198,20 +195,20 @@ impl Lend {
                 MockEnv::new(
                     ADMIN,
                     ContractLink {
-                        address: "underlying_atom".into(),
+                        address: "underlying_two".into(),
                         code_hash: token.code_hash.clone(),
                     },
                 ),
             )
             .unwrap();
 
-        let secret_underlying_token = ensemble
+        let underlying_token_three = ensemble
             .instantiate(
                 token.id,
                 &Snip20InitMsg {
                     name: "Underlying Token".into(),
                     admin: None,
-                    symbol: "SLSC".into(),
+                    symbol: "TRI".into(),
                     decimals,
                     initial_allowances: None,
                     initial_balances: Some(vec![
@@ -231,7 +228,7 @@ impl Lend {
                 MockEnv::new(
                     ADMIN,
                     ContractLink {
-                        address: "underlying_secret".into(),
+                        address: "underlying_three".into(),
                         code_hash: token.code_hash.clone(),
                     },
                 ),
@@ -283,7 +280,7 @@ impl Lend {
                     premium: Decimal256::one(),
                     market_contract: market,
                     oracle_contract: oracle,
-                    oracle_source: mock_band,
+                    oracle_source: mock_band.clone(),
                     entropy: Binary::from(b"whatever"),
                 },
                 MockEnv::new(
@@ -299,10 +296,11 @@ impl Lend {
         Self {
             ensemble,
             overseer,
-            atom_underlying_token,
-            sienna_underlying_token,
-            secret_underlying_token,
-            interest_model
+            underlying_token_one,
+            underlying_token_two,
+            underlying_token_three,
+            interest_model,
+            mock_band,
         }
     }
 
@@ -312,47 +310,34 @@ impl Lend {
         redeem_amount: Uint256,
         borrow_amount: Uint256,
         block: Option<u64>,
-    ) -> overseer::AccountLiquidity {
-        let res = self
-            .ensemble
-            .query(
-                self.overseer.address.clone(),
-                overseer::QueryMsg::AccountLiquidity {
-                    permit: Permit::<overseer::OverseerPermissions>::new(
-                        "borrower",
-                        vec![overseer::OverseerPermissions::AccountInfo],
-                        vec![self.overseer.address.clone()],
-                        "balance",
-                    ),
-                    market,
-                    redeem_amount,
-                    borrow_amount,
-                    block,
-                },
-            )
-            .unwrap();
-
-        match res {
-            overseer::QueryResponse::AccountLiquidity { liquidity } => liquidity,
-            _ => panic!("Expecting overseer::QueryResponse::AccountLiquidity"),
-        }
+    ) -> StdResult<overseer::AccountLiquidity> {
+        self.ensemble.query(
+            self.overseer.address.clone(),
+            overseer::QueryMsg::AccountLiquidity {
+                permit: Permit::<overseer::OverseerPermissions>::new(
+                    "borrower",
+                    vec![overseer::OverseerPermissions::AccountInfo],
+                    vec![self.overseer.address.clone()],
+                    "balance",
+                ),
+                market,
+                redeem_amount,
+                borrow_amount,
+                block,
+            },
+        )
     }
 
     pub fn get_markets(&self) -> StdResult<Vec<overseer::Market<HumanAddr>>> {
-        let result = self.ensemble.query(
+        self.ensemble.query(
             self.overseer.address.clone(),
             overseer::QueryMsg::Markets {
                 pagination: overseer::Pagination {
                     start: 0,
-                    limit: 30
-                }
-            }
-        )?;
-
-        match result {
-            overseer::QueryResponse::Markets { whitelist } => Ok(whitelist),
-            _ => panic!("Expecting overseer::QueryResponse::Markets"),
-        }
+                    limit: 30,
+                },
+            },
+        )
     }
 
     pub fn whitelist_market(
@@ -371,12 +356,22 @@ impl Lend {
                         reserve_factor: Decimal256::one(),
                         seize_factor: Decimal256::one(),
                     },
-                    interest_model_contract: self.interest_model.clone()
-                }
+                    interest_model_contract: self.interest_model.clone(),
+                },
             },
-            MockEnv::new(ADMIN, self.overseer.clone())
+            MockEnv::new(ADMIN, self.overseer.clone()),
         )?;
 
         Ok(self.get_markets().unwrap().pop().unwrap())
+    }
+
+    pub fn set_oracle_price(&mut self, key: &[u8], value: Uint128) -> StdResult<()> {
+        self.ensemble
+            .deps_mut(self.mock_band.address.clone(), |s| {
+                s.set(key, value).unwrap();
+            })
+            .unwrap();
+
+        Ok(())
     }
 }
