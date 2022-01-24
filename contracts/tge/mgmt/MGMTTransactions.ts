@@ -1,7 +1,7 @@
+import { Scrt_1_2 } from '@hackbg/fadroma'
 import type { SNIP20Contract } from '@fadroma/snip20'
-import { TransactionExecutor } from '@fadroma/scrt'
 
-export class MGMTTransactions extends TransactionExecutor {
+export class MGMTTransactions extends Scrt_1_2.Contract.Transactions {
 
   /** take over a SNIP20 token */
   async acquire (snip20: SNIP20Contract) {

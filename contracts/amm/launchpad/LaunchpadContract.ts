@@ -1,11 +1,10 @@
-import { ScrtContract_1_2, loadSchemas, Agent } from "@fadroma/scrt";
-import { randomHex } from "@hackbg/tools";
+import { randomHex, Scrt_1_2, loadSchemas, IAgent } from "@hackbg/fadroma"
 
 // @ts-ignore
 const decoder = new TextDecoder();
 const decode = (buffer: any) => decoder.decode(buffer).trim();
 
-export class LaunchpadContract extends ScrtContract_1_2 {
+export class LaunchpadContract extends Scrt_1_2.Contract<any, any> {
 
   crate = 'launchpad'
 

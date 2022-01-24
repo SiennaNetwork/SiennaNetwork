@@ -1,10 +1,4 @@
-import {
-  Migration,
-  IChain, IAgent,
-  Scrt, buildAndUpload,
-  randomHex, Console
-} from '@fadroma/scrt'
-
+import { Migration, IChain, IAgent, randomHex, Console } from '@hackbg/fadroma'
 import { SNIP20Contract } from "@fadroma/snip20"
 
 import settings from '@sienna/settings'
@@ -57,7 +51,7 @@ export async function deployRewards (options: Migration & {
   const SIENNA  = getContract(SiennaSNIP20Contract, 'SiennaSNIP20',     admin)
   const FACTORY = getContract(FactoryContract,      'SiennaAMMFactory', admin)
   const REWARDS = new RewardsContract({ prefix, admin, ref })
-  await buildAndUpload([REWARDS])
+  await chain.buildAndUpload([REWARDS])
 
   const tokens = {
     SIENNA,

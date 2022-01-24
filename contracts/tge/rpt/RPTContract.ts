@@ -1,7 +1,4 @@
-import {
-  IAgent, ContractState,
-  AugmentedScrtContract_1_2, TransactionExecutor, QueryExecutor
-} from '@fadroma/scrt'
+import { IAgent, ContractState, Scrt_1_2 } from '@hackbg/fadroma'
 import type { SNIP20Contract_1_2 } from '@fadroma/snip20'
 
 import type { MGMTContract } from '@sienna/mgmt'
@@ -10,7 +7,7 @@ import { workspace } from '@sienna/settings'
 import type { LinearMapAnd_Uint128 as LinearMap, Uint128 } from './schema/init'
 import { RPTTransactions } from './RPTTransactions'
 import { RPTQueries }      from './RPTQueries'
-export class RPTContract extends AugmentedScrtContract_1_2<RPTTransactions, RPTQueries> {
+export class RPTContract extends Scrt_1_2.Contract<RPTTransactions, RPTQueries> {
 
   workspace = workspace
   crate     = 'sienna-rpt'

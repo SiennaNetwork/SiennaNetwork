@@ -1,6 +1,7 @@
-import { QueryExecutor } from '@fadroma/scrt'
+import { Scrt_1_0 } from '@hackbg/fadroma'
+import type { SNIP20Contract } from '@fadroma/snip20'
 
-export class MGMTQueries extends QueryExecutor {
+export class MGMTQueries extends Scrt_1_0.Contract.Queries {
 
   /** query contgract status */
   status () {

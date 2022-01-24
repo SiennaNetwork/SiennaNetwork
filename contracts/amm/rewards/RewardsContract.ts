@@ -1,14 +1,15 @@
 import {
-  IAgent, IContract, ContractOptions, ContractConstructor,
-  AugmentedScrtContract_1_2,
+  Scrt_1_2,
+  IAgent, IContract,
+  ContractOptions, ContractConstructor,
   randomHex
-} from "@fadroma/scrt"
+} from "@hackbg/fadroma"
 import { SNIP20Contract } from '@fadroma/snip20'
 import { Init } from './schema/init.d'
 
 import { RewardsTransactions } from './RewardsTransactions'
 import { RewardsQueries } from './RewardsQueries'
-export class RewardsContract extends AugmentedScrtContract_1_2<RewardsTransactions, RewardsQueries> {
+export class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, RewardsQueries> {
 
   crate = 'sienna-rewards'
 

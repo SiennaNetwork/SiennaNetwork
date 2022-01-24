@@ -1,4 +1,4 @@
-import { IAgent } from '@fadroma/scrt'
+import { IAgent } from '@hackbg/fadroma'
 import { SNIP20Contract } from '@fadroma/snip20'
 import { AMMSNIP20Contract } from '@sienna/api'
 

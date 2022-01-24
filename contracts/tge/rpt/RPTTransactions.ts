@@ -1,4 +1,4 @@
-import { TransactionExecutor } from '@fadroma/scrt'
+import { TransactionExecutor } from '@hackbg/fadroma'
 
 export class RPTTransactions extends TransactionExecutor {
 

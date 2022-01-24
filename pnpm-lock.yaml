@@ -14,42 +14,37 @@ importers:
 
   contracts/amm:
     specifiers:
-      '@fadroma/scrt': workspace:*
       '@fadroma/snip20': workspace:*
-      '@hackbg/tools': workspace:*
+      '@hackbg/fadroma': workspace:../../deps/fadroma
       '@sienna/api': workspace:*
       '@sienna/settings': workspace:^1.0.0
     dependencies:
-      '@fadroma/scrt': link:../../deps/fadroma/packages/scrt
       '@fadroma/snip20': link:../../deps/fadroma/crates/fadroma-snip20-impl
-      '@hackbg/tools': link:../../deps/fadroma/deps/toolbox/tools
+      '@hackbg/fadroma': link:../../deps/fadroma
       '@sienna/api': link:../../frontends/api
       '@sienna/settings': link:../../settings
 
   contracts/amm/amm-snip20:
     specifiers:
-      '@fadroma/scrt': workspace:*
       '@fadroma/snip20': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
     dependencies:
-      '@fadroma/scrt': link:../../../deps/fadroma/packages/scrt
       '@fadroma/snip20': link:../../../deps/fadroma/crates/fadroma-snip20-impl
+      '@hackbg/fadroma': link:../../../deps/fadroma
 
   contracts/amm/exchange:
     specifiers:
-      '@fadroma/scrt': workspace:*
-      '@hackbg/tools': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../../deps/fadroma/packages/scrt
-      '@hackbg/tools': link:../../../deps/fadroma/deps/toolbox/tools
+      '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/settings': link:../../../settings
       secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/amm/factory:
     specifiers:
-      '@fadroma/scrt': workspace:*
-      '@hackbg/tools': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/amm-snip20': workspace:^0.1.0
       '@sienna/exchange': workspace:^1.0.0
       '@sienna/ido': workspace:^0.1.0
@@ -59,8 +54,7 @@ importers:
       '@waiting/base64': ^4.2.9
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../../deps/fadroma/packages/scrt
-      '@hackbg/tools': link:../../../deps/fadroma/deps/toolbox/tools
+      '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/amm-snip20': link:../amm-snip20
       '@sienna/exchange': link:../exchange
       '@sienna/ido': link:../ido
@@ -72,25 +66,21 @@ importers:
 
   contracts/amm/ido:
     specifiers:
-      '@fadroma/scrt': workspace:*
-      '@hackbg/tools': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../../deps/fadroma/packages/scrt
-      '@hackbg/tools': link:../../../deps/fadroma/deps/toolbox/tools
+      '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/settings': link:../../../settings
       secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/amm/launchpad:
     specifiers:
-      '@fadroma/scrt': workspace:*
-      '@hackbg/tools': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../../deps/fadroma/packages/scrt
-      '@hackbg/tools': link:../../../deps/fadroma/deps/toolbox/tools
+      '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/settings': link:../../../settings
       secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
@@ -106,67 +96,63 @@ importers:
 
   contracts/amm/rewards:
     specifiers:
-      '@fadroma/scrt': workspace:*
       '@fadroma/snip20': workspace:*
-      '@hackbg/tools': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/lp-token': workspace:^1.0.0
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../../deps/fadroma/packages/scrt
       '@fadroma/snip20': link:../../../deps/fadroma/crates/fadroma-snip20-impl
-      '@hackbg/tools': link:../../../deps/fadroma/deps/toolbox/tools
+      '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/lp-token': link:../lp-token
       '@sienna/settings': link:../../../settings
       secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/amm/router:
     specifiers:
-      '@fadroma/scrt': workspace:*
-      '@hackbg/tools': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../../deps/fadroma/packages/scrt
-      '@hackbg/tools': link:../../../deps/fadroma/deps/toolbox/tools
+      '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/settings': link:../../../settings
       secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/lend:
     specifiers:
-      '@fadroma/scrt': workspace:*
       '@fadroma/snip20': workspace:*
+      '@hackbg/fadroma': workspace:../../deps/fadroma
       '@sienna/api': workspace:*
       '@sienna/settings': workspace:^1.0.0
     dependencies:
-      '@fadroma/scrt': link:../../deps/fadroma/packages/scrt
       '@fadroma/snip20': link:../../deps/fadroma/crates/fadroma-snip20-impl
+      '@hackbg/fadroma': link:../../deps/fadroma
       '@sienna/api': link:../../frontends/api
       '@sienna/settings': link:../../settings
 
   contracts/lend/interest_model:
     specifiers:
-      '@fadroma/scrt': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
     dependencies:
-      '@fadroma/scrt': link:../../../deps/fadroma/packages/scrt
+      '@hackbg/fadroma': link:../../../deps/fadroma
 
   contracts/lend/market:
     specifiers:
-      '@fadroma/scrt': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
     dependencies:
-      '@fadroma/scrt': link:../../../deps/fadroma/packages/scrt
+      '@hackbg/fadroma': link:../../../deps/fadroma
 
   contracts/lend/oracle:
     specifiers:
-      '@fadroma/scrt': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
     dependencies:
-      '@fadroma/scrt': link:../../../deps/fadroma/packages/scrt
+      '@hackbg/fadroma': link:../../../deps/fadroma
 
   contracts/lend/overseer:
     specifiers:
-      '@fadroma/scrt': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
     dependencies:
-      '@fadroma/scrt': link:../../../deps/fadroma/packages/scrt
+      '@hackbg/fadroma': link:../../../deps/fadroma
 
   contracts/tge:
     specifiers:
@@ -194,12 +180,12 @@ importers:
 
   contracts/tge/rpt:
     specifiers:
-      '@fadroma/scrt': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/mgmt': workspace:^2.0.0
       '@sienna/settings': workspace:^1.0.0
       secretjs: workspace:*
     dependencies:
-      '@fadroma/scrt': link:../../../deps/fadroma/packages/scrt
+      '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/mgmt': link:../mgmt
       '@sienna/settings': link:../../../settings
       secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
@@ -1470,20 +1456,18 @@ importers:
 
   scripts:
     specifiers:
-      '@fadroma/scrt': workspace:*
       '@fadroma/snip20': workspace:*
+      '@hackbg/fadroma': workspace:../deps/fadroma
       '@hackbg/komandi': workspace:*
-      '@hackbg/tools': workspace:*
       '@sienna/amm': workspace:*
       '@sienna/api': workspace:*
       '@sienna/lend': workspace:*
       '@sienna/settings': workspace:^1.0.0
       '@sienna/tge': workspace:*
     dependencies:
-      '@fadroma/scrt': link:../deps/fadroma/packages/scrt
       '@fadroma/snip20': link:../deps/fadroma/crates/fadroma-snip20-impl
+      '@hackbg/fadroma': link:../deps/fadroma
       '@hackbg/komandi': link:../deps/fadroma/deps/toolbox/komandi
-      '@hackbg/tools': link:../deps/fadroma/deps/toolbox/tools
       '@sienna/amm': link:../contracts/amm
       '@sienna/api': link:../frontends/api
       '@sienna/lend': link:../contracts/lend

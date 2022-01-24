@@ -1,9 +1,6 @@
-import type { Migration } from '@fadroma/scrt'
-import { buildAndUpload } from '@fadroma/scrt'
-import { bold, colors, timestamp } from '@hackbg/tools'
+import { Migration, bold, colors, timestamp, writeFileSync } from '@hackbg/fadroma'
 import { RewardsContract, RPTContract } from '@sienna/api'
 import process from 'process'
-import { writeFileSync } from 'fs'
 
 export async function replaceRewardPool (options: Migration & { rewardPoolLabel: string }) {
 
@@ -62,7 +59,7 @@ export async function replaceRewardPool (options: Migration & { rewardPoolLabel:
     lpToken:     LP_TOKEN,
     rewardToken: REWARD_TOKEN
   })
-  await buildAndUpload([NEW_POOL])
+  await chain.buildAndUpload([NEW_POOL])
   await NEW_POOL.instantiate()
 
   config[found][0] = NEW_POOL.address

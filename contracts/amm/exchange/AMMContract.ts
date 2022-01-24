@@ -1,10 +1,10 @@
-import { IAgent, ContractState, AugmentedScrtContract_1_2, randomHex } from "@fadroma/scrt"
+import { IAgent, ContractState, randomHex, Scrt_1_2 } from "@hackbg/fadroma"
 import { SNIP20Contract } from '@fadroma/snip20'
 import { InitMsg } from './schema/init_msg.d'
 import { AMMTransactions } from './AMMTransactions'
 import { AMMQueries } from './AMMQueries'
 
-export class AMMContract extends AugmentedScrtContract_1_2<AMMTransactions, AMMQueries> {
+export class AMMContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> {
 
   crate = 'exchange'
 

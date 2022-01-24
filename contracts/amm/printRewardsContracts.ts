@@ -1,4 +1,4 @@
-import { IChain, bold, colors } from '@fadroma/scrt'
+import { IChain, bold, colors } from '@hackbg/fadroma'
 
 export function printRewardsContracts (chain: IChain) {
 

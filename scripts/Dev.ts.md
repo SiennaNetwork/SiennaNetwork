@@ -75,7 +75,7 @@ that is implemented in [@fadroma/ops/ContractBuild](../deps/fadroma/packages/ops
 
 The [image of the build container](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtBuild.Dockerfile)
 and the [build script that runs in it](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtBuild.sh)
-are set in [@fadroma/scrt/ScrtContract](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtContract.ts).
+are set in [@hackbg/fadroma/ScrtContract](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtContract.ts).
 
 ## Generate JSON schema
 
@@ -84,7 +84,7 @@ From this, we create TypeScript type definitions via `json-schema-to-typescript`
 These type definitions are imported by the client classes.
 
 ```typescript
-import { generateSchema } from '@fadroma/scrt'
+import { generateSchema } from '@hackbg/fadroma'
 import { abs } from '@sienna/settings'
 commands['schema'] = () => generateSchema(abs(), [
   "tge/mgmt",

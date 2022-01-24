@@ -1,4 +1,4 @@
-import { Migration } from '@fadroma/scrt'
+import { Migration } from '@hackbg/fadroma'
 import { FactoryContract } from '@sienna/api'
 import settings from '@sienna/settings'
 

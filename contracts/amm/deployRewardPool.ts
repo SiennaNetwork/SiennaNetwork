@@ -1,4 +1,4 @@
-import { Migration } from '@fadroma/scrt'
+import { Migration } from '@hackbg/fadroma'
 import type { SNIP20Contract } from '@fadroma/snip20'
 import { RewardsContract } from '@sienna/api'
 

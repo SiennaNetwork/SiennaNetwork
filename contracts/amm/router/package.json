@@ -4,8 +4,7 @@
   "type": "module",
   "main": "./RouterContract.ts",
   "dependencies": {
-    "@fadroma/scrt":    "workspace:*",
-    "@hackbg/tools":   "workspace:*",
+    "@hackbg/fadroma":  "workspace:../../../deps/fadroma",
     "@sienna/settings": "workspace:^1.0.0",
     "secretjs":         "workspace:*"
   }

@@ -1,8 +1,9 @@
-import { writeFileSync } from 'fs'
-import { Migration,
-  IChain, IAgent, Scrt, buildAndUpload,
-  bold, randomHex, timestamp
-} from '@fadroma/scrt'
+import {
+  Migration,
+  IChain, IAgent,
+  bold, randomHex, timestamp,
+  writeFileSync
+} from '@hackbg/fadroma'
 import type { SNIP20Contract } from '@fadroma/snip20'
 import settings from '@sienna/settings'
 
@@ -43,7 +44,7 @@ export async function deploySwap (migration: Migration) {
         RPT    = deployment.getContract(RPTContract,          'SiennaRPT',    admin)
 
   const EXCHANGE  = new AMMContract({ ...migration })
-  await buildAndUpload([EXCHANGE])
+  await chain.buildAndUpload([EXCHANGE])
 
   const AMMTOKEN  = new AMMSNIP20Contract({ ...migration })
   const LPTOKEN   = new LPTokenContract({   ...migration })

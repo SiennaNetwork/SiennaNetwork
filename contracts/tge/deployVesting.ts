@@ -1,6 +1,4 @@
-import type { IChain, IAgent } from '@fadroma/scrt'
-import { buildAndUpload, Scrt } from '@fadroma/scrt'
-import { timestamp } from '@hackbg/tools'
+import { IChain, IAgent, timestamp } from '@hackbg/fadroma'
 
 import type { ScheduleFor_HumanAddr } from '@sienna/mgmt/schema/handle.d'
 import {
@@ -28,7 +26,7 @@ export async function deployVesting (
   const {
     workspace = abs(),
     prefix    = timestamp(),
-    chain     = await new Scrt().ready,
+    chain,
     admin     = await chain.getAgent(),
     schedule  = settings.schedule
   } = options
@@ -42,7 +40,7 @@ export async function deployVesting (
   const RPT    = new RPTContract({ ...options, MGMT, SIENNA, portion })
 
   SIENNA.uploader = MGMT.uploader = RPT.uploader = admin
-  await buildAndUpload([SIENNA, MGMT, RPT])
+  await chain.buildAndUpload([SIENNA, MGMT, RPT])
 
   SIENNA.instantiator = MGMT.instantiator = RPT.instantiator = admin
   await SIENNA.instantiate()

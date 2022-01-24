@@ -1,5 +1,4 @@
-import { Migration } from '@fadroma/scrt'
-import { bold, writeFileSync } from '@fadroma/scrt'
+import { Migration, bold, writeFileSync } from '@hackbg/fadroma'
 import { SNIP20Contract } from '@fadroma/snip20'
 import { FactoryContract } from '@sienna/api'
 

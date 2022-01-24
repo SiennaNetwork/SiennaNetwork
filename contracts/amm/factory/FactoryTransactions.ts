@@ -1,5 +1,5 @@
+import { TransactionExecutor } from '@hackbg/fadroma'
 import { b64encode } from "@waiting/base64";
-import { TransactionExecutor } from '@fadroma/scrt'
 import { TokenType } from './schema/handle_msg.d'
 import { EnigmaUtils } from "secretjs/src/index.ts";
 

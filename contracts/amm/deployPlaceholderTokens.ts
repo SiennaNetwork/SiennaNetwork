@@ -1,4 +1,4 @@
-import { Migration, randomHex } from '@fadroma/scrt'
+import { Migration, randomHex } from '@hackbg/fadroma'
 import type { SNIP20Contract } from "@fadroma/snip20"
 
 import { AMMSNIP20Contract } from '@sienna/api'

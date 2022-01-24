@@ -1,4 +1,4 @@
-import type { Migration } from '@fadroma/scrt'
+import type { Migration } from '@hackbg/fadroma'
 import type { SNIP20Contract } from '@fadroma/snip20'
 import { FactoryContract, AMMContract, LPTokenContract, RewardsContract } from '@sienna/api'
 import settings from '@sienna/settings'

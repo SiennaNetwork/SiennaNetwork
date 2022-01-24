@@ -3,7 +3,7 @@
 ```typescript
 import { bold, timestamp, entrypoint } from '@hackbg/tools'
 import process from 'process'
-import { init } from '@fadroma/scrt'
+import { init } from '@hackbg/fadroma'
 ```
 
 ## Commands
@@ -189,7 +189,7 @@ commands['audit']['rewards'] = rewardsAudit
 ## Entry point
 
 ```typescript
-import { init } from '@fadroma/scrt'
+import { init } from '@hackbg/fadroma'
 import runCommands from '@hackbg/komandi'
 Error.stackTraceLimit = Infinity
 entrypoint(import.meta.url, main)

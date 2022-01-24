@@ -1,4 +1,4 @@
-import { QueryExecutor } from '@fadroma/scrt'
+import { QueryExecutor } from '@hackbg/fadroma'
 
 export class AMMQueries extends QueryExecutor {
   pair_info () {

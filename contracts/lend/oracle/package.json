@@ -4,6 +4,6 @@
   "main":    "./LendOracleContract.ts",
   "type":    "module",
   "dependencies": {
-    "@fadroma/scrt": "workspace:*"
+    "@hackbg/fadroma": "workspace:../../../deps/fadroma"
   }
 }

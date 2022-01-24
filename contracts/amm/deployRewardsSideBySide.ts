@@ -1,4 +1,4 @@
-import { Migration } from '@fadroma/scrt'
+import { Migration } from '@hackbg/fadroma'
 import { RPTContract } from '@sienna/api'
 import { deployRewards } from './deployRewards'
 

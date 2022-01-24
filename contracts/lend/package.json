@@ -3,7 +3,7 @@
   "private": true,
   "main": "index.ts",
   "dependencies": {
-    "@fadroma/scrt":    "workspace:*",
+    "@hackbg/fadroma":  "workspace:../../deps/fadroma",
     "@fadroma/snip20":  "workspace:*",
     "@sienna/api":      "workspace:*",
     "@sienna/settings": "workspace:^1.0.0"

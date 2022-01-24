@@ -1,6 +1,4 @@
-import type { IAgent } from "@fadroma/scrt";
-import { AugmentedScrtContract_1_2, ContractState } from "@fadroma/scrt";
-import { randomHex } from "@hackbg/tools";
+import { Scrt_1_2, ContractState, IAgent, randomHex } from "@hackbg/fadroma";
 
 import { AMMContract        } from "@sienna/exchange";
 import { AMMSNIP20Contract  } from "@sienna/amm-snip20";
@@ -24,7 +22,7 @@ export type FactoryInventory = {
 import { FactoryTransactions } from './FactoryTransactions'
 import { FactoryQueries }      from './FactoryQueries'
 
-export class FactoryContract extends AugmentedScrtContract_1_2<FactoryTransactions, FactoryQueries> {
+export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, FactoryQueries> {
 
   crate        = 'factory'
 

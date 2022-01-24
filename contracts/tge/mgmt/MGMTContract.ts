@@ -1,16 +1,21 @@
-import type { IAgent, ContractState } from '@fadroma/scrt'
+import { IAgent, ContractState, Scrt_1_0 } from '@hackbg/fadroma'
 import type { SNIP20Contract } from '@fadroma/snip20'
-import { AugmentedScrtContract_1_2, TransactionExecutor, QueryExecutor } from "@fadroma/scrt"
-import { workspace } from '@sienna/settings'
-import type { Schedule } from './schema/init'
 
+import { workspace } from '@sienna/settings'
+import type { InitMsg, Schedule } from './schema/init'
 import { MGMTTransactions } from './MGMTTransactions'
 import { MGMTQueries }      from './MGMTQueries'
-export class MGMTContract extends AugmentedScrtContract_1_2<MGMTTransactions, MGMTQueries> {
+
+export class MGMTContract extends Scrt_1_0.Contract<
+  MGMTTransactions,
+  MGMTQueries
+> {
 
   workspace = workspace
   crate     = 'sienna-mgmt'
   name      = 'SiennaMGMT'
+
+  initMsg?: InitMsg
 
   Transactions = MGMTTransactions
   Queries      = MGMTQueries

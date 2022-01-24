@@ -1,14 +1,12 @@
-import { bold, timestamp, Console } from '@hackbg/tools'
+import { bold, timestamp, Console } from '@hackbg/fadroma'
 
-const console = Console(import.meta.url)
+const console = Console('[@sienna/amm/rewardsAudit]'])
 
 import {
   SiennaSNIP20Contract,
   LPTokenContract,
   RewardsContract
 } from '@sienna/api'
-
-import { init, buildAndUpload } from '@fadroma/scrt'
 
 export const rewardsAudit = {
 

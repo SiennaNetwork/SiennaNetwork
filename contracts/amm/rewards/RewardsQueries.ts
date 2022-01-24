@@ -1,4 +1,4 @@
-import { QueryExecutor, ContractConstructor } from '@fadroma/scrt'
+import { QueryExecutor, ContractConstructor } from '@hackbg/fadroma'
 
 export class RewardsQueries extends QueryExecutor {
 
