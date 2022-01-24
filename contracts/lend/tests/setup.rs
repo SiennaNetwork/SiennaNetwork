@@ -1,13 +1,11 @@
-use lend_shared::{
-    fadroma::{
-        decimal::one_token,
-        ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
-        from_binary, schemars,
-        schemars::JsonSchema,
-        snip20_impl::msg::{InitMsg as Snip20InitMsg, InitialBalance},
-        to_binary, Binary, ContractLink, Decimal256, Env, HandleResponse, HumanAddr, InitResponse,
-        Permit, StdError, StdResult, Uint128, Uint256,
-    },
+use lend_shared::fadroma::{
+    decimal::one_token,
+    ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
+    from_binary, schemars,
+    schemars::JsonSchema,
+    snip20_impl::msg::{InitMsg as Snip20InitMsg, InitialBalance},
+    to_binary, Binary, ContractLink, Decimal256, Env, HandleResponse, HumanAddr, InitResponse,
+    Permit, StdError, StdResult, Uint128, Uint256,
 };
 
 use lend_shared::interfaces::{interest_model, market, overseer};
@@ -124,7 +122,7 @@ pub struct Lend {
     pub atom_underlying_token: ContractLink<HumanAddr>,
     pub sienna_underlying_token: ContractLink<HumanAddr>,
     pub secret_underlying_token: ContractLink<HumanAddr>,
-    pub interest_model: ContractLink<HumanAddr>
+    pub interest_model: ContractLink<HumanAddr>,
 }
 
 impl Lend {
@@ -302,7 +300,7 @@ impl Lend {
             atom_underlying_token,
             sienna_underlying_token,
             secret_underlying_token,
-            interest_model
+            interest_model,
         }
     }
 
@@ -312,47 +310,34 @@ impl Lend {
         redeem_amount: Uint256,
         borrow_amount: Uint256,
         block: Option<u64>,
-    ) -> overseer::AccountLiquidity {
-        let res = self
-            .ensemble
-            .query(
-                self.overseer.address.clone(),
-                overseer::QueryMsg::AccountLiquidity {
-                    permit: Permit::<overseer::OverseerPermissions>::new(
-                        "borrower",
-                        vec![overseer::OverseerPermissions::AccountInfo],
-                        vec![self.overseer.address.clone()],
-                        "balance",
-                    ),
-                    market,
-                    redeem_amount,
-                    borrow_amount,
-                    block,
-                },
-            )
-            .unwrap();
-
-        match res {
-            overseer::QueryResponse::AccountLiquidity { liquidity } => liquidity,
-            _ => panic!("Expecting overseer::QueryResponse::AccountLiquidity"),
-        }
+    ) -> StdResult<overseer::AccountLiquidity> {
+        self.ensemble.query(
+            self.overseer.address.clone(),
+            overseer::QueryMsg::AccountLiquidity {
+                permit: Permit::<overseer::OverseerPermissions>::new(
+                    "borrower",
+                    vec![overseer::OverseerPermissions::AccountInfo],
+                    vec![self.overseer.address.clone()],
+                    "balance",
+                ),
+                market,
+                redeem_amount,
+                borrow_amount,
+                block,
+            },
+        )
     }
 
     pub fn get_markets(&self) -> StdResult<Vec<overseer::Market<HumanAddr>>> {
-        let result = self.ensemble.query(
+        self.ensemble.query(
             self.overseer.address.clone(),
             overseer::QueryMsg::Markets {
                 pagination: overseer::Pagination {
                     start: 0,
-                    limit: 30
-                }
-            }
-        )?;
-
-        match result {
-            overseer::QueryResponse::Markets { whitelist } => Ok(whitelist),
-            _ => panic!("Expecting overseer::QueryResponse::Markets"),
-        }
+                    limit: 30,
+                },
+            },
+        )
     }
 
     pub fn whitelist_market(
@@ -371,10 +356,10 @@ impl Lend {
                         reserve_factor: Decimal256::one(),
                         seize_factor: Decimal256::one(),
                     },
-                    interest_model_contract: self.interest_model.clone()
-                }
+                    interest_model_contract: self.interest_model.clone(),
+                },
             },
-            MockEnv::new(ADMIN, self.overseer.clone())
+            MockEnv::new(ADMIN, self.overseer.clone()),
         )?;
 
         Ok(self.get_markets().unwrap().pop().unwrap())
