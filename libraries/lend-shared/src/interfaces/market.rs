@@ -72,7 +72,10 @@ pub trait Market {
     ) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn reduce_reserves(amount: Uint128) -> StdResult<HandleResponse>;
+    fn reduce_reserves(
+        amount: Uint128,
+        to: Option<HumanAddr>
+    ) -> StdResult<HandleResponse>;
 
     #[handle]
     fn create_viewing_key(

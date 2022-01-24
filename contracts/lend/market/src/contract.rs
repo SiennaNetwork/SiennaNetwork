@@ -361,8 +361,60 @@ pub trait Market {
 
     #[handle]
     #[require_admin]
-    fn reduce_reserves(amount: Uint128) -> StdResult<HandleResponse> {
-        unimplemented!()
+    fn reduce_reserves(amount: Uint128, to: Option<HumanAddr>) -> StdResult<HandleResponse> {
+        let underlying_asset = Contracts::load_underlying(deps)?;
+
+        let balance = snip20::balance_query(
+            &deps.querier,
+            env.contract.address.clone(),
+            VIEWING_KEY.to_string(),
+            BLOCK_SIZE,
+            underlying_asset.code_hash.clone(),
+            underlying_asset.address.clone(),
+        )?.amount;
+
+        if balance < amount {
+            return Err(StdError::generic_err(format!(
+                "Insufficient underlying balance. Balance: {}, Required: {}",
+                balance,
+                amount
+            )));
+        }
+
+        accrue_interest(deps, env.block.height, balance)?;
+
+        // Load after accrue_interest(), because it's updated inside.
+        let reserve = Global::load_interest_reserve(&deps.storage)?;
+        let amount_256 = Uint256::from(amount);
+
+        if reserve < amount_256 {
+            return Err(StdError::generic_err(format!(
+                "Insufficient reserve balance. Balance: {}, Required: {}",
+                reserve,
+                amount
+            )));
+        }
+
+        let reserve = (reserve - amount_256)?;
+        Global::save_interest_reserve(&mut deps.storage, &reserve)?;
+
+        Ok(HandleResponse {
+            messages: vec![
+                snip20::transfer_msg(
+                    to.unwrap_or(env.message.sender),
+                    amount,
+                    None,
+                    BLOCK_SIZE,
+                    underlying_asset.code_hash,
+                    underlying_asset.address
+                )?
+            ],
+            log: vec![
+                log("action", "reduce_reserves"),
+                log("new_reserve", reserve)
+            ],
+            data: None
+        })
     }
 
     #[handle]
