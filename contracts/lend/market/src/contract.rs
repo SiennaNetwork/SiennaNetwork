@@ -2,7 +2,6 @@ mod checks;
 mod state;
 mod token;
 mod ops;
-mod auth;
 
 use lend_shared::{
     fadroma::{
@@ -32,11 +31,11 @@ use lend_shared::{
         market::{
             ReceiverCallbackMsg, State, HandleMsg,
             MarketPermissions, AccountInfo, Config,
-            AuthMethod, query_balance, 
+            MarketAuth, query_balance, 
         },
         overseer::{query_can_transfer, query_seize_amount, query_market},
     },
-    core::MasterKey
+    core::{MasterKey, AuthenticatedUser}
 };
 
 pub const VIEWING_KEY: &str = "SiennaLend"; // TODO: This shouldn't be hardcoded.
@@ -50,7 +49,6 @@ use state::{
 };
 use token::calc_exchange_rate;
 use ops::{accrue_interest, accrued_interest_at};
-use auth::{auth, auth_user_key};
 
 #[contract_impl(
     path = "lend_shared::interfaces::market",
@@ -438,7 +436,7 @@ pub trait Market {
         address: HumanAddr,
         key: String
     ) -> StdResult<Uint128> {
-        let account = auth_user_key(deps, key, address)?;
+        let account = Account::auth_viewing_key(deps, key, &address)?;
 
         Ok(account.get_balance(&deps.storage)?
             .low_u128()
@@ -448,10 +446,15 @@ pub trait Market {
 
     #[query]
     fn balance_underlying(
-        method: AuthMethod,
+        method: MarketAuth,
         block: Option<u64>
     ) -> StdResult<Uint128> {
-        let account = auth(deps, method, MarketPermissions::Balance)?;
+        let account = Account::authenticate(
+            deps,
+            method,
+            MarketPermissions::Balance,
+            Contracts::load_self_ref
+        )?;
 
         let exchange_rate = self.exchange_rate(block, deps)?;
         let balance = account.get_balance(&deps.storage)?;
@@ -592,8 +595,13 @@ pub trait Market {
     }
 
     #[query]
-    fn account(method: AuthMethod, block: Option<u64>) -> StdResult<AccountInfo> {
-        let account = auth(deps, method, MarketPermissions::AccountInfo)?;
+    fn account(method: MarketAuth, block: Option<u64>) -> StdResult<AccountInfo> {
+        let account = Account::authenticate(
+            deps,
+            method,
+            MarketPermissions::AccountInfo,
+            Contracts::load_self_ref
+        )?;
 
         let underlying_asset = Contracts::load_underlying(deps)?;
         let balance = snip20::balance_query(

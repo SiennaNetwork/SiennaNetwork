@@ -11,7 +11,8 @@ use lend_shared::{
         Canonize, Humanize, ContractLink,
         ContractInstantiationInfo, Decimal256
     },
-    interfaces::overseer::{Pagination, Market}
+    interfaces::overseer::{Pagination, Market},
+    core::AuthenticatedUser
 };
 use serde::{Deserialize, Serialize};
 
@@ -30,7 +31,7 @@ pub struct Markets;
 pub struct Whitelisting;
 
 #[derive(Clone)]
-pub struct Borrower(CanonicalAddr);
+pub struct Account(pub CanonicalAddr);
 
 impl Constants {
     const KEY: &'static [u8] = b"constants";
@@ -214,8 +215,8 @@ impl Markets {
     }
 }
 
-impl Borrower {
-    const NS: &'static [u8] = b"borrowers";
+impl Account {
+    const NS: &'static [u8] = b"accounts";
 
     pub fn new(
         api: &impl Api,
@@ -284,5 +285,14 @@ impl Borrower {
 
     fn create_key(&self) -> Vec<u8> {
         [ Self::NS, self.0.as_slice() ].concat()
+    }
+}
+
+impl AuthenticatedUser for Account {
+    fn from_canonical<S: Storage, A: Api, Q: Querier>(
+        _deps: &Extern<S, A, Q>,
+        address: CanonicalAddr
+    ) -> StdResult<Self> {
+        Ok(Self(address))
     }
 }

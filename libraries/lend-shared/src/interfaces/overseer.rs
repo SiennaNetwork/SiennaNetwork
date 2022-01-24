@@ -1,20 +1,24 @@
 use fadroma::{
-    admin, cosmwasm_std,
+    admin,
+    auth,
+    cosmwasm_std,
     cosmwasm_std::{
         to_binary, Api, Binary, CanonicalAddr, HandleResponse, HumanAddr, InitResponse, Querier,
         QueryRequest, StdError, StdResult, WasmQuery,
     },
     derive_contract::*,
-    permit::Permit,
     schemars, Canonize, ContractInstantiationInfo, ContractLink, Decimal256, Humanize, Uint256,
 };
 
 use serde::{Deserialize, Serialize};
 
 use crate::interfaces::market::Config as MarketConfig;
-use crate::core::MasterKey;
+use crate::core::{MasterKey, AuthMethod};
 
-#[interface(component(path = "admin"))]
+#[interface(
+    component(path = "admin"),
+    component(path = "auth")
+)]
 pub trait Overseer {
     #[init]
     fn new(
@@ -61,21 +65,11 @@ pub trait Overseer {
     fn market(address: HumanAddr) -> StdResult<Market<HumanAddr>>;
 
     #[query]
-    fn entered_markets(permit: Permit<OverseerPermissions>) -> StdResult<Vec<Market<HumanAddr>>>;
+    fn entered_markets(method: OverseerAuth) -> StdResult<Vec<Market<HumanAddr>>>;
 
     #[query]
     fn account_liquidity(
-        permit: Permit<OverseerPermissions>,
-        market: Option<HumanAddr>,
-        block: Option<u64>,
-        redeem_amount: Uint256,
-        borrow_amount: Uint256
-    ) -> StdResult<AccountLiquidity>;
-
-    #[query]
-    fn account_liquidity_internal(
-        key: MasterKey,
-        address: HumanAddr,
+        method: OverseerAuth,
         market: Option<HumanAddr>,
         block: Option<u64>,
         redeem_amount: Uint256,
@@ -101,6 +95,8 @@ pub trait Overseer {
     #[query]
     fn config() -> StdResult<Config>;
 }
+
+pub type OverseerAuth = AuthMethod<OverseerPermissions>;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
@@ -201,9 +197,11 @@ pub fn query_account_liquidity(
     querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
-        msg: to_binary(&QueryMsg::AccountLiquidityInternal {
-            key,
-            address,
+        msg: to_binary(&QueryMsg::AccountLiquidity {
+            method: OverseerAuth::Internal {
+                key,
+                address
+            },
             market,
             block,
             redeem_amount,

@@ -15,6 +15,7 @@ use lend_shared::{
         Canonize, ContractLink, Decimal256, Humanize, StdError, Uint256,
     },
     interfaces::market::{BorrowerInfo, Borrower, Config},
+    core::AuthenticatedUser,
     impl_contract_storage
 };
 use serde::{Deserialize, Serialize};
@@ -254,9 +255,12 @@ impl Account {
     }
 }
 
-impl From<CanonicalAddr> for Account {
-    fn from(address: CanonicalAddr) -> Self {
-        Account(address)
+impl AuthenticatedUser for Account {
+    fn from_canonical<S: Storage, A: Api, Q: Querier>(
+        _deps: &Extern<S, A, Q>,
+        address: CanonicalAddr
+    ) -> StdResult<Self> {
+        Ok(Self(address))
     }
 }
 
