@@ -71,7 +71,7 @@ commands['build']['all'] = () => Promise.all([
 
 These commands are defined in [`@sienna/tge/build.ts`](../contracts/tge/build.ts')
 and [`@sienna/amm/build.ts`](../contracts/amm/build.ts'), and use a build procedure
-that is implemented in [@fadroma/ops/ContractBuild](../libraries/fadroma-next/packages/ops/ContractBuild.ts).
+that is implemented in [@fadroma/ops/ContractBuild](../deps/fadroma/packages/ops/ContractBuild.ts).
 
 The [image of the build container](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtBuild.Dockerfile)
 and the [build script that runs in it](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtBuild.sh)

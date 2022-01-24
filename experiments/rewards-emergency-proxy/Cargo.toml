@@ -11,7 +11,7 @@ path = "rewards_emergency_proxy.rs"
 
 [dependencies]
 sienna-rewards = { path = "../rewards" }
-fadroma = { path = "../../libraries/fadroma-next/core", features = [
+fadroma = { path = "../../deps/fadroma/core", features = [
   "scrt-addr",
   "scrt-admin",
   "scrt-callback",
@@ -27,7 +27,7 @@ serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 wasm-bindgen = { optional = true, version = "0.2" }
 
 [dev-dependencies]
-fadroma = { path = "../../libraries/fadroma-next/core", features = [
+fadroma = { path = "../../deps/fadroma/core", features = [
   "scrt-harness",
   "backtraces"
 ] }

@@ -51,6 +51,11 @@ See also:
   * [amm](./contracts/amm) - Sienna Swap (AMM + Launchpad/IDO + Rewards + Router)
   * [lend](./contracts/amm) - Sienna LEND
 
+* [**deps**](./deps) contains submodules of our foundational frameworks.
+  * [fadroma](./deps/fadroma) is a Git submodule pointing to the top of
+    the Fadroma deployment framework, which takes care of building and uploading the
+    contracts behind the scenes.
+
 * [**frontends**](./frontends) contains clients for the smart contracts, written in JS/TS.
   Some of them are transcluded as git submodules pointing to other repos.
   * [siennajs](./frontends/siennajs) - current client library
@@ -61,10 +66,8 @@ See also:
   * [vest](./frontends/vest) - TGE vest frontend
 
 * [**libraries**](./libraries) contains Rust libraries used by one or more smart contracts.
-  * [fadroma-next](./libraries/fadroma-next) is a Git submodule pointing to the top of
-    the Fadroma deployment framework, which takes care of building and uploading the
-    contracts behind the scenes.
   * [amm-shared](./libraries/amm-shared) defines the contract API of Sienna Swap.
+  * [lend-shared](./libraries/lend-shared) defines the contract API of Sienna Lend.
 
 * [**receipts**](./receipts) contains the responses to upload and init transactions
   performed by the framework, grouped by chain ID. This lets you keep track of uploaded

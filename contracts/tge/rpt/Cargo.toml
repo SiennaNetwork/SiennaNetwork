@@ -20,7 +20,7 @@ serde            = { version = "1.0.103", default-features = false, features = [
 sienna-mgmt      = { path = "../mgmt" }
 sienna-migrate   = { path = "../../../libraries/migrate" }
 
-fadroma-bind-js = { optional = true, path = "../../../libraries/fadroma-next/crates/fadroma-bind-js" }
+fadroma-bind-js = { optional = true, path = "../../../deps/fadroma/crates/fadroma-bind-js" }
 wasm-bindgen    = { optional = true, version = "0.2" }
 js-sys          = { optional = true, version = "0.3.55" }
 
