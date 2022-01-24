@@ -58,13 +58,14 @@ Fadroma.command('select', async ({ chain, admin, args: [ id ] }) => {
 This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 
 ```typescript
-Fadroma.command('deploy all', async ({ chain, admin, args = [] }) => {
-  const [ prefix = timestamp() ] = args
-  const vesting = await deployVesting({ chain, admin, prefix })
-  await chain.deployments.select(vesting.prefix)
-  await deploySwap(vesting)
-  chain.deployments.printActive()
-})
+Fadroma.command('deploy all',
+  async ({ chain, admin, args = [] }) => {
+    const [ prefix = timestamp() ] = args
+    const vesting = await deployVesting({ chain, admin, prefix })
+    await chain.deployments.select(vesting.prefix)
+    await deploySwap(vesting)
+    chain.deployments.printActive()
+  })
 ```
 
 ### Deploy the TGE
@@ -73,61 +74,56 @@ This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 
 ```typescript
 import { deployVesting } from '@sienna/tge'
-Fadroma.command('deploy vesting', async ({ chain, admin, args = [] }) => {
-  const [ prefix = timestamp() ] = args
-  const vesting = await deployVesting({ chain, admin, prefix })
-  await chain.deployments.select(vesting.prefix)
-  chain.deployments.printActive()
-})
+Fadroma.command('deploy vesting',
+  async ({ chain, admin, args = [] }) => {
+    const [ prefix = timestamp() ] = args
+    const vesting = await deployVesting({ chain, admin, prefix })
+    await chain.deployments.select(vesting.prefix)
+    chain.deployments.printActive()
+  })
 ```
 
 ### Deploy the AMM
 
-This command adds the contracts for Sienna Swap to the currently selected deployment
-(see [Select the active deployment](#select-the-active-deployment)).
+This command requires a [selected deployment](#select-the-active-deployment),
+to which it adds the contracts for Sienna Swap.
 
 ```typescript
 import { deploySwap } from '@sienna/amm'
-Fadroma.command('deploy swap', async ({ chain, admin }) => {
-  const { name: prefix } = chain.deployments.active
-  await deploySwap({ chain, admin, prefix })
-  chain.deployments.printActive()
-})
+Fadroma.command('deploy swap',
+  deploySwap)
 ```
 
 ### Deploying Rewards v2 and v3 side-by-side
 
-Prototype of future migration procedures.
+Used to test the migration from v2 to v3 pools.
 
 ```typescript
 import { deployRewardsSideBySide } from '@sienna/amm'
-Fadroma.command('deploy rewards-side-by-side', async ({ chain, admin }) => {
-  await deployRewardsSideBySide({ chain, admin })
-}, {
-  notOnMainnet:          true,
-  needsActiveDeployment: true
-})
+Fadroma.command('deploy rewards-side-by-side',
+  deployRewardsSideBySide)
+```
 
+### Deploying a v1 factory
+
+This command requires a [selected deployment](#select-the-active-deployment),
+to which it adds the contracts for Sienna Swap to which it adds a Factory instance
+built from `main`.
+
+```typescript
 import { deployLegacyFactory } from '@sienna/amm'
-Fadroma.command('deploy legacy-factory', async ({ chain, admin }) => {
-  await deployLegacyFactory({ chain, admin })
-}, {
-  notOnMainnet:          true,
-  needsActiveDeployment: true
-})
+Fadroma.command('deploy legacy-factory',
+  deployLegacyFactory)
 ```
 
 ## Upgrades and migrations
 
-### Migrating to `@sienna/amm v2.0.0` + `@sienna/rewards v3.0.0`
+### Migrating to `@sienna/factory v2.0.0` + `@sienna/rewards v3.0.0`
+
 ```typescript
 import { migrateFactoryAndRewards } from '@sienna/amm'
-Fadroma.command('migrate factory-and-rewards', async ({ chain, admin, args: [ id ] }) => {
-  await migrateFactoryAndRewards({ chain, admin })
-}, {
-  notOnMainnet:          true,
-  needsActiveDeployment: true
-})
+Fadroma.command('migrate factory-and-rewards',
+  migrateFactoryAndRewards)
 ```
 
 ### Replacing a single reward pool in a deployment with an updated version
@@ -138,13 +134,14 @@ with the latest version of the code.
 
 ```typescript
 import { replaceRewardPool, printRewardsContracts } from '@sienna/amm'
-Fadroma.command('migrate reward-pool', async ({ chain, admin, args: [ id ] }) => {
-  if (id) {
-    await replaceRewardPool(chain, admin, id)
-  } else {
-    printRewardsContracts(chain)
-  }
-})
+Fadroma.command('migrate reward-pool',
+  async ({ chain, admin, args: [ id ] }) => {
+    if (id) {
+      await replaceRewardPool(chain, admin, id)
+    } else {
+      printRewardsContracts(chain)
+    }
+  })
 ```
 
 ## Helper commands for auditing the contract logic
@@ -153,7 +150,8 @@ This spins up a rewards contract on localnet and lets you interact with it.
 
 ```typescript
 import { rewardsAudit } from '@sienna/amm'
-Fadroma.command('audit rewards', rewardsAudit)
+Fadroma.command('audit rewards',
+  rewardsAudit)
 ```
 
 ## Entry point

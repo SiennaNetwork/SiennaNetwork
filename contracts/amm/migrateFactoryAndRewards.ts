@@ -12,19 +12,18 @@ export async function migrateFactoryAndRewards (options: Migration): Promise<Mul
 
     chain,
     admin,
+    deployment,
     prefix,
-    getContract,
-    getContracts
   } = options
 
   const OLD_FACTORY:   FactoryContract   =
-    getContract(FactoryContract, 'SiennaAMMFactory', admin)
+    deployment.getContract(FactoryContract, 'SiennaAMMFactory', admin)
   const OLD_EXCHANGES: AMMContract[]     =
     await OLD_FACTORY.exchanges
   const OLD_LP_TOKENS: SNIP20Contract[]  =
     OLD_EXCHANGES.map(exchange=>exchange.lpToken)
   const OLD_REWARDS:   RewardsContract[] =
-    getContracts(RewardsContract, 'SiennaRewards', admin)
+    deployment.getContracts(RewardsContract, 'SiennaRewards', admin)
 
   console.log({
     OLD_FACTORY,
