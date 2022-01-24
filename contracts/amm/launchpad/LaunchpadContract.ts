@@ -1,4 +1,4 @@
-import { randomHex, Scrt_1_2, loadSchemas, IAgent } from "@hackbg/fadroma"
+import { randomHex, Scrt_1_2, IAgent } from "@hackbg/fadroma"
 
 // @ts-ignore
 const decoder = new TextDecoder();
