@@ -18,8 +18,8 @@ fn whitelist() {
     let res = lend.ensemble.execute(
         &HandleMsg::Whitelist {
             config: MarketInitConfig {
-                prng_seed: Binary::from(b"seed_for_sienna_market"),
-                underlying_asset: lend.sienna_underlying_token.clone(),
+                prng_seed: Binary::from(b"seed_for_base_market"),
+                underlying_asset: lend.underlying_token_one.clone(),
                 ltv_ratio: Decimal256::zero(),
                 config: market::Config {
                     initial_exchange_rate: Decimal256::one(),
@@ -34,13 +34,10 @@ fn whitelist() {
 
     assert_eq!(StdError::unauthorized(), res.unwrap_err());
 
-    lend.whitelist_market(
-        lend.sienna_underlying_token.clone(),
-        Decimal256::percent(90),
-    )
-    .unwrap();
+    lend.whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(90))
+        .unwrap();
 
-    lend.whitelist_market(lend.atom_underlying_token.clone(), Decimal256::percent(90))
+    lend.whitelist_market(lend.underlying_token_two.clone(), Decimal256::percent(90))
         .unwrap();
 
     let res: Vec<Market<HumanAddr>> = lend
@@ -63,22 +60,19 @@ fn whitelist() {
 fn enter_and_exit_markets() {
     let mut lend = Lend::new();
 
-    let sienna_market = lend
-        .whitelist_market(
-            lend.sienna_underlying_token.clone(),
-            Decimal256::percent(90),
-        )
+    let base_market = lend
+        .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(90))
         .unwrap();
 
-    let atom_market = lend
-        .whitelist_market(lend.atom_underlying_token.clone(), Decimal256::percent(90))
+    let quote_market = lend
+        .whitelist_market(lend.underlying_token_two.clone(), Decimal256::percent(90))
         .unwrap();
 
     // enter market
     lend.ensemble
         .execute(
             &HandleMsg::Enter {
-                markets: vec![sienna_market.contract.address.clone()],
+                markets: vec![base_market.contract.address.clone()],
             },
             MockEnv::new("borrower", lend.overseer.clone()),
         )
@@ -96,7 +90,8 @@ fn enter_and_exit_markets() {
                     "balance",
                 ),
             },
-        ).unwrap();
+        )
+        .unwrap();
 
     assert_eq!(res.len(), 1);
 
@@ -104,7 +99,7 @@ fn enter_and_exit_markets() {
     lend.ensemble
         .execute(
             &HandleMsg::Enter {
-                markets: vec![atom_market.contract.address],
+                markets: vec![quote_market.contract.address],
             },
             MockEnv::new("borrower", lend.overseer.clone()),
         )
@@ -131,7 +126,7 @@ fn enter_and_exit_markets() {
     lend.ensemble
         .execute(
             &HandleMsg::Exit {
-                market_address: sienna_market.contract.address.clone(),
+                market_address: base_market.contract.address.clone(),
             },
             MockEnv::new("borrower", lend.overseer.clone()),
         )
@@ -157,7 +152,7 @@ fn enter_and_exit_markets() {
     // cannot exit not entered market
     let res = lend.ensemble.execute(
         &HandleMsg::Exit {
-            market_address: sienna_market.contract.address.clone(),
+            market_address: base_market.contract.address.clone(),
         },
         MockEnv::new("borrower", lend.overseer.clone()),
     );
@@ -172,10 +167,7 @@ fn returns_right_liquidity() {
     let mut lend = Lend::new();
 
     let market = lend
-        .whitelist_market(
-            lend.secret_underlying_token.clone(),
-            Decimal256::percent(50),
-        )
+        .whitelist_market(lend.underlying_token_three.clone(), Decimal256::percent(50))
         .unwrap();
 
     lend.ensemble
@@ -198,16 +190,18 @@ fn returns_right_liquidity() {
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", lend.secret_underlying_token.clone()),
+            MockEnv::new("borrower", lend.underlying_token_three.clone()),
         )
         .unwrap();
 
-    let res = lend.get_liquidity(
-        Some(market.contract.address),
-        Uint256::from(0u128),
-        Uint256::from(0u128),
-        None,
-    ).unwrap();
+    let res = lend
+        .get_liquidity(
+            Some(market.contract.address),
+            Uint256::from(0u128),
+            Uint256::from(0u128),
+            None,
+        )
+        .unwrap();
 
     // should return amount * collateralFactor * exchangeRate * underlyingPrice
     let expected = ((Uint256::from(1_000_000u128)
@@ -238,19 +232,21 @@ fn liquidity_collateral_factor() {
     );
 
     let market = lend
-        .whitelist_market(
-            lend.secret_underlying_token.clone(),
-            Decimal256::percent(50),
-        )
+        .whitelist_market(lend.underlying_token_three.clone(), Decimal256::percent(50))
+        .unwrap();
+
+    lend.set_oracle_price(market.symbol.as_bytes(), Uint128(1_000_000_000_000_000_000))
         .unwrap();
 
     // not in market yet, should have no effect
-    let res = lend.get_liquidity(
-        Some(market.contract.address.clone()),
-        Uint256::from(1u128),
-        Uint256::from(1u128),
-        None,
-    ).unwrap();
+    let res = lend
+        .get_liquidity(
+            Some(market.contract.address.clone()),
+            Uint256::from(1u128),
+            Uint256::from(1u128),
+            None,
+        )
+        .unwrap();
 
     assert_eq!(Uint256::from(0u128), res.liquidity);
     assert_eq!(Uint256::from(0u128), res.shortfall);
@@ -276,17 +272,19 @@ fn liquidity_collateral_factor() {
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", lend.secret_underlying_token.clone()),
+            MockEnv::new("borrower", lend.underlying_token_three.clone()),
         )
         .unwrap();
 
     // total account liquidity after supplying `amount`
-    let res = lend.get_liquidity(
-        Some(market.contract.address.clone()),
-        Uint256::from(0u128),
-        Uint256::from(0u128),
-        None,
-    ).unwrap();
+    let res = lend
+        .get_liquidity(
+            Some(market.contract.address.clone()),
+            Uint256::from(0u128),
+            Uint256::from(0u128),
+            None,
+        )
+        .unwrap();
 
     assert_eq!(
         Uint256::from(1000000u128)
@@ -297,12 +295,14 @@ fn liquidity_collateral_factor() {
     assert_eq!(Uint256::from(0u128), res.shortfall);
 
     // borrow amount, should shortfall over collateralFactor
-    let res = lend.get_liquidity(
-        Some(market.contract.address.clone()),
-        Uint256::from(0u128),
-        Uint256::from(1_000_000u128),
-        Some(12346),
-    ).unwrap();
+    let res = lend
+        .get_liquidity(
+            Some(market.contract.address.clone()),
+            Uint256::from(0u128),
+            Uint256::from(1_000_000u128),
+            Some(12346),
+        )
+        .unwrap();
 
     assert_eq!(Uint256::from(0u128), res.liquidity);
     assert_eq!(
@@ -313,12 +313,14 @@ fn liquidity_collateral_factor() {
     );
 
     // hypothetically redeem `amount`, should be back to even
-    let res = lend.get_liquidity(
-        Some(market.contract.address.clone()),
-        Uint256::from(1_000_000u128),
-        Uint256::from(0u128),
-        Some(12346),
-    ).unwrap();
+    let res = lend
+        .get_liquidity(
+            Some(market.contract.address.clone()),
+            Uint256::from(1_000_000u128),
+            Uint256::from(0u128),
+            Some(12346),
+        )
+        .unwrap();
 
     assert_eq!(Uint256::from(0u128), res.liquidity);
     assert_eq!(Uint256::from(0u128), res.shortfall);
@@ -328,30 +330,41 @@ fn liquidity_collateral_factor() {
 fn liquidity_entering_markets() {
     // allows entering 3 markets, supplying to 2 and borrowing up to collateralFactor in the 3rd
     let mut lend = Lend::new();
-    let sienna_market = lend
-        .whitelist_market(
-            lend.sienna_underlying_token.clone(),
-            Decimal256::percent(50),
-        )
+    let market_one = lend
+        .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(50))
         .unwrap();
-    let atom_market = lend
-        .whitelist_market(
-            lend.atom_underlying_token.clone(),
-            Decimal256::permille(666),
-        )
+    let market_two = lend
+        .whitelist_market(lend.underlying_token_two.clone(), Decimal256::permille(666))
         .unwrap();
-    let secret_market = lend
-        .whitelist_market(lend.secret_underlying_token.clone(), Decimal256::zero())
+    let market_three = lend
+        .whitelist_market(lend.underlying_token_three.clone(), Decimal256::zero())
         .unwrap();
+
+    // set underlying prices
+    lend.set_oracle_price(
+        market_one.symbol.as_bytes(),
+        Uint128(3_000_000_000_000_000_000),
+    )
+    .unwrap();
+    lend.set_oracle_price(
+        market_two.symbol.as_bytes(),
+        Uint128(2_718_000_000_000_000_000),
+    )
+    .unwrap();
+    lend.set_oracle_price(
+        market_three.symbol.as_bytes(),
+        Uint128(1_000_000_000_000_000_000),
+    )
+    .unwrap();
 
     // enter markets
     lend.ensemble
         .execute(
             &HandleMsg::Enter {
                 markets: vec![
-                    sienna_market.contract.address.clone(),
-                    atom_market.contract.address.clone(),
-                    secret_market.contract.address.clone(),
+                    market_one.contract.address.clone(),
+                    market_two.contract.address.clone(),
+                    market_three.contract.address.clone(),
                 ],
             },
             MockEnv::new("borrower", lend.overseer.clone()),
@@ -364,14 +377,14 @@ fn liquidity_entering_markets() {
         .ensemble
         .execute(
             &Snip20HandleMsg::Send {
-                recipient: sienna_market.contract.address.clone(),
+                recipient: market_one.contract.address.clone(),
                 recipient_code_hash: None,
                 amount: Uint128(1_000_000),
                 memo: None,
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", lend.sienna_underlying_token.clone()),
+            MockEnv::new("borrower", lend.underlying_token_one.clone()),
         )
         .unwrap();
 
@@ -379,14 +392,14 @@ fn liquidity_entering_markets() {
         .ensemble
         .execute(
             &Snip20HandleMsg::Send {
-                recipient: atom_market.contract.address.clone(),
+                recipient: market_two.contract.address.clone(),
                 recipient_code_hash: None,
                 amount: Uint128(1_000),
                 memo: None,
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", lend.atom_underlying_token.clone()),
+            MockEnv::new("borrower", lend.underlying_token_two.clone()),
         )
         .unwrap();
 
@@ -400,60 +413,64 @@ fn liquidity_entering_markets() {
     .unwrap();
     let collateral_three = (collateral_one + collateral_two).unwrap();
 
-    let res = lend.get_liquidity(None, Uint256::from(0u128), Uint256::from(0u128), None).unwrap();
+    let res = lend
+        .get_liquidity(None, Uint256::from(0u128), Uint256::from(0u128), None)
+        .unwrap();
     assert_eq!(collateral_three, res.liquidity);
     assert_eq!(Uint256::from(0u128), res.shortfall);
 
-    let res = lend.get_liquidity(
-        Some(secret_market.contract.address.clone()),
-        collateral_two,
-        Uint256::from(0u128),
-        None,
-    ).unwrap();
+    let res = lend
+        .get_liquidity(
+            Some(market_three.contract.address.clone()),
+            collateral_two,
+            Uint256::from(0u128),
+            None,
+        )
+        .unwrap();
     assert_eq!(collateral_three, res.liquidity);
     assert_eq!(Uint256::from(0u128), res.shortfall);
 
-    let res = lend.get_liquidity(
-        Some(secret_market.contract.address.clone()),
-        Uint256::from(0u128),
-        collateral_two,
-        None,
-    ).unwrap();
+    let res = lend
+        .get_liquidity(
+            Some(market_three.contract.address.clone()),
+            Uint256::from(0u128),
+            collateral_two,
+            None,
+        )
+        .unwrap();
     assert_eq!(collateral_one, res.liquidity);
     assert_eq!(Uint256::from(0u128), res.shortfall);
 
-    let res = lend.get_liquidity(
-        Some(secret_market.contract.address.clone()),
-        Uint256::from(0u128),
-        (collateral_three + collateral_one).unwrap(),
-        None,
-    ).unwrap();
+    let res = lend
+        .get_liquidity(
+            Some(market_three.contract.address.clone()),
+            Uint256::from(0u128),
+            (collateral_three + collateral_one).unwrap(),
+            None,
+        )
+        .unwrap();
     assert_eq!(Uint256::from(0u128), res.liquidity);
     assert_eq!(collateral_one, res.shortfall);
 
-    let res = lend.get_liquidity(
-        Some(sienna_market.contract.address.clone()),
-        Uint256::from(1_000_000u128),
-        Uint256::from(0u128),
-        None,
-    ).unwrap();
+    let res = lend
+        .get_liquidity(
+            Some(market_one.contract.address.clone()),
+            Uint256::from(1_000_000u128),
+            Uint256::from(0u128),
+            None,
+        )
+        .unwrap();
     assert_eq!(collateral_two, res.liquidity);
     assert_eq!(Uint256::from(0u128), res.shortfall);
 }
 
-// #[test]
-// fn caclulate_amount_seize() {
-//     let mut lend = Lend::new();
-//     let sienna_market = lend
-//         .whitelist_market(
-//             lend.sienna_underlying_token.clone(),
-//             Decimal256::percent(50),
-//         )
-//         .unwrap();
-//     let atom_market = lend
-//         .whitelist_market(
-//             lend.atom_underlying_token.clone(),
-//             Decimal256::permille(666),
-//         )
-//         .unwrap();
-// }
+#[test]
+fn caclulate_amount_seize() {
+    let mut lend = Lend::new();
+    let _collateral_market = lend
+        .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(50))
+        .unwrap();
+    let _borrowed_market = lend
+        .whitelist_market(lend.underlying_token_two.clone(), Decimal256::permille(666))
+        .unwrap();
+}
