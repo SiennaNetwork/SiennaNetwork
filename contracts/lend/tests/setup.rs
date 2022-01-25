@@ -314,12 +314,12 @@ impl Lend {
         self.ensemble.query(
             self.overseer.address.clone(),
             overseer::QueryMsg::AccountLiquidity {
-                permit: Permit::<overseer::OverseerPermissions>::new(
+                method: Permit::<overseer::OverseerPermissions>::new(
                     "borrower",
                     vec![overseer::OverseerPermissions::AccountInfo],
                     vec![self.overseer.address.clone()],
                     "balance",
-                ),
+                ).into(),
                 market,
                 redeem_amount,
                 borrow_amount,

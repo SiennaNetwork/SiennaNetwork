@@ -83,12 +83,12 @@ fn enter_and_exit_markets() {
         .query(
             lend.overseer.address.clone(),
             QueryMsg::EnteredMarkets {
-                permit: Permit::<OverseerPermissions>::new(
+                method: Permit::<OverseerPermissions>::new(
                     "borrower",
                     vec![OverseerPermissions::AccountInfo],
                     vec![lend.overseer.address.clone()],
                     "balance",
-                ),
+                ).into(),
             },
         )
         .unwrap();
@@ -110,12 +110,12 @@ fn enter_and_exit_markets() {
         .query(
             lend.overseer.address.clone(),
             QueryMsg::EnteredMarkets {
-                permit: Permit::<OverseerPermissions>::new(
+                method: Permit::<OverseerPermissions>::new(
                     "borrower",
                     vec![OverseerPermissions::AccountInfo],
                     vec![lend.overseer.address.clone()],
                     "balance",
-                ),
+                ).into(),
             },
         )
         .unwrap();
@@ -137,12 +137,12 @@ fn enter_and_exit_markets() {
         .query(
             lend.overseer.address.clone(),
             QueryMsg::EnteredMarkets {
-                permit: Permit::<OverseerPermissions>::new(
+                method: Permit::<OverseerPermissions>::new(
                     "borrower",
                     vec![OverseerPermissions::AccountInfo],
                     vec![lend.overseer.address.clone()],
                     "balance",
-                ),
+                ).into(),
             },
         )
         .unwrap();

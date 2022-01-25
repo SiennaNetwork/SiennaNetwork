@@ -1,8 +1,8 @@
 mod state;
 
 use lend_shared::{
-    core::MasterKey,
     fadroma::{
+        auth,
         admin,
         admin::{assert_admin, Admin},
         cosmwasm_std,
@@ -13,28 +13,31 @@ use lend_shared::{
         secret_toolkit::snip20,
         derive_contract::*,
         require_admin, Callback, ContractInstantiationInfo,
-        ContractLink, Decimal256, Permit, Uint256, BLOCK_SIZE
+        ContractLink, Decimal256, Uint256, Humanize, BLOCK_SIZE
     },
     interfaces::{
-        market::{AuthMethod, query_account, query_exchange_rate, InitMsg as MarketInitMsg},
+        market::{MarketAuth, query_account, query_exchange_rate, InitMsg as MarketInitMsg},
         oracle::{
             query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
         },
         overseer::{
             AccountLiquidity, Config, HandleMsg, Market,
-            OverseerPermissions, Pagination, MarketInitConfig
+            Pagination, MarketInitConfig, OverseerPermissions,
+            OverseerAuth
         },
     },
+    core::{MasterKey, AuthenticatedUser}
 };
 
 use state::{
-    Borrower, Constants, Contracts,
+    Account, Constants, Contracts,
     Markets, Whitelisting
 };
 
 #[contract_impl(
     path = "lend_shared::interfaces::overseer",
-    component(path = "admin")
+    component(path = "admin"),
+    component(path = "auth")
 )]
 pub trait Overseer {
     #[init]
@@ -209,11 +212,11 @@ pub trait Overseer {
 
     #[handle]
     fn enter(markets: Vec<HumanAddr>) -> StdResult<HandleResponse> {
-        let borrower = Borrower::new(&deps.api, &env.message.sender)?;
+        let account = Account::new(&deps.api, &env.message.sender)?;
 
         for market in markets {
             let id = Markets::get_id(deps, &market)?;
-            borrower.add_market(&mut deps.storage, id)?;
+            account.add_market(&mut deps.storage, id)?;
         }
 
         Ok(HandleResponse {
@@ -225,10 +228,10 @@ pub trait Overseer {
 
     #[handle]
     fn exit(market_address: HumanAddr) -> StdResult<HandleResponse> {
-        let borrower = Borrower::new(&deps.api, &env.message.sender)?;
-        let (id, market) = borrower.get_market(deps, &market_address)?;
+        let account = Account::new(&deps.api, &env.message.sender)?;
+        let (id, market) = account.get_market(deps, &market_address)?;
 
-        let method = AuthMethod::Internal{
+        let method = MarketAuth::Internal{
             address: env.message.sender,
             key: MasterKey::load(&deps.storage)?
         };
@@ -247,7 +250,7 @@ pub trait Overseer {
 
         let liquidity = calc_liquidity(
             deps,
-            &borrower,
+            &account,
             method,
             Some(market_address),
             Some(env.block.height),
@@ -262,7 +265,7 @@ pub trait Overseer {
             )));
         }
 
-        borrower.remove_market(&mut deps.storage, id);
+        account.remove_market(&mut deps.storage, id);
 
         Ok(HandleResponse {
             messages: vec![],
@@ -300,65 +303,39 @@ pub trait Overseer {
     }
 
     #[query]
-    fn entered_markets(permit: Permit<OverseerPermissions>) -> StdResult<Vec<Market<HumanAddr>>> {
-        let self_ref = Contracts::load_self_ref(deps)?;
-        let borrower = permit.validate_with_permissions(
+    fn entered_markets(method: OverseerAuth) -> StdResult<Vec<Market<HumanAddr>>> {
+        let account = Account::authenticate(
             deps,
-            self_ref.address,
-            vec![OverseerPermissions::AccountInfo],
+            method,
+            OverseerPermissions::AccountInfo,
+            Contracts::load_self_ref
         )?;
 
-        let borrower = Borrower::new(&deps.api, &borrower)?;
-
-        borrower.list_markets(deps)
+        account.list_markets(deps)
     }
 
     #[query]
     fn account_liquidity(
-        permit: Permit<OverseerPermissions>,
+        method: OverseerAuth,
         market: Option<HumanAddr>,
         block: Option<u64>,
         redeem_amount: Uint256,
         borrow_amount: Uint256,
     ) -> StdResult<AccountLiquidity> {
-        let self_ref = Contracts::load_self_ref(deps)?;
-        let address = permit.validate_with_permissions(
+        let account = Account::authenticate(
             deps,
-            self_ref.address,
-            vec![OverseerPermissions::AccountInfo],
+            method,
+            OverseerPermissions::AccountInfo,
+            Contracts::load_self_ref
         )?;
 
         calc_liquidity(
             deps,
-            &Borrower::new(&deps.api, &address)?,
-            AuthMethod::Internal {
+            &account,
+            // This is ugly
+            MarketAuth::Internal {
                 key: MasterKey::load(&deps.storage)?,
-                address
-            },
-            market,
-            block,
-            redeem_amount,
-            borrow_amount,
-        )
-    }
-
-    #[query]
-    fn account_liquidity_internal(
-        key: MasterKey,
-        address: HumanAddr,
-        market: Option<HumanAddr>,
-        block: Option<u64>,
-        redeem_amount: Uint256,
-        borrow_amount: Uint256,
-    ) -> StdResult<AccountLiquidity> {
-        MasterKey::check(&deps.storage, &key)?;
-
-        calc_liquidity(
-            deps,
-            &Borrower::new(&deps.api, &address)?,
-            AuthMethod::Internal {
-                key,
-                address
+                address: account.0.humanize(&deps.api)?
             },
             market,
             block,
@@ -377,17 +354,17 @@ pub trait Overseer {
     ) -> StdResult<bool> {
         MasterKey::check(&deps.storage, &key)?;
 
-        let borrower = Borrower::new(&deps.api, &address)?;
+        let account = Account::new(&deps.api, &address)?;
 
         // If not entered the market then transfer is allowed.
-        if borrower.get_market(&deps, &market).is_err() {
+        if account.get_market(&deps, &market).is_err() {
             return Ok(true);
         }
 
         let result = calc_liquidity(
             deps,
-            &borrower,
-            AuthMethod::Internal {
+            &account,
+            MarketAuth::Internal {
                 key,
                 address
             },
@@ -447,8 +424,8 @@ pub trait Overseer {
 /// Determine what the account liquidity would be if the given amounts were redeemed/borrowed.
 fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    borrower: &Borrower,
-    method: AuthMethod,
+    account: &Account,
+    method: MarketAuth,
     target_asset: Option<HumanAddr>,
     block: Option<u64>,
     redeem_amount: Uint256,
@@ -460,7 +437,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     let mut total_collateral = Uint256::zero();
     let mut total_borrowed = Uint256::zero();
 
-    for market in borrower.list_markets(deps)? {
+    for market in account.list_markets(deps)? {
         let is_target_asset = target_asset == market.contract.address;
 
         let snapshot = query_account(
