@@ -1,4 +1,6 @@
-import { Migration, Deployment, IChain, IAgent } from '@hackbg/fadroma'
+import { Migration, Deployment, IChain, IAgent, bold, Console } from '@hackbg/fadroma'
+
+const console = Console('@sienna/tge/deployVesting')
 
 import type { ScheduleFor_HumanAddr } from '@sienna/mgmt/schema/handle.d'
 import {
@@ -45,6 +47,8 @@ export async function deployVesting (inputs: Inputs): Promise<Outputs> {
 
     schedule = settings.schedule
   } = inputs
+
+  console.info(bold('Admin balance:'), await admin.balance)
 
   // ignore deployment/prefix from the inputs;
   // always start new deployment
