@@ -14,7 +14,8 @@ use lend_shared::{
         crypto::sha_256,
         Canonize, ContractLink, Decimal256, Humanize, StdError, Uint256,
     },
-    interfaces::market::{BorrowerInfo, Borrower, Config},
+    interfaces::market::{BorrowerInfo, Config},
+    core::AuthenticatedUser,
     impl_contract_storage
 };
 use serde::{Deserialize, Serialize};
@@ -25,13 +26,20 @@ pub struct Contracts;
 
 pub struct Constants;
 
-pub struct Account(BorrowerId);
+#[derive(PartialEq, Debug)]
+pub struct Account(CanonicalAddr);
 
 #[derive(Serialize, Deserialize, JsonSchema, Default, Debug)]
 pub struct BorrowSnapshot(pub BorrowerInfo);
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct BorrowerId([u8; 32]);
+
+pub struct BorrowerRecord {
+    pub id: Binary,
+    pub address: HumanAddr,
+    pub info: BorrowerInfo
+}
 
 pub struct Global;
 
@@ -45,15 +53,15 @@ impl Contracts {
 impl Constants {
     const KEY: &'static [u8] = b"config";
 
-    pub fn save<S: Storage, A: Api, Q: Querier>(
-        deps: &mut Extern<S, A, Q>,
+    pub fn save(
+        storage: &mut impl Storage,
         config: &Config,
     ) -> StdResult<()> {
-        save(&mut deps.storage, Self::KEY, &config)
+        save(storage, Self::KEY, &config)
     }
 
-    pub fn load<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<Config> {
-        let result: Config = load(&deps.storage, Self::KEY)?.unwrap();
+    pub fn load(storage: &impl Storage) -> StdResult<Config> {
+        let result: Config = load(storage, Self::KEY)?.unwrap();
 
         Ok(result)
     }
@@ -154,12 +162,56 @@ impl Global {
 impl Account {
     const NS_BALANCES: &'static [u8] = b"balances";
     const NS_BORROWERS: &'static [u8] = b"borrowers";
+    const NS_ID_TO_ADDR: &'static [u8] = b"ids";
+    const NS_ADDR_TO_ID: &'static [u8] = b"addr";
 
     pub fn new<S: Storage, A: Api, Q: Querier>(
+        deps: &mut Extern<S, A, Q>,
+        address: &HumanAddr
+    ) -> StdResult<Self> {
+        let account = Self(address.canonize(&deps.api)?);
+
+        let id = BorrowerId::new(deps, address)?;
+
+        let is_new_user = ns_load::<CanonicalAddr, S>(
+            &deps.storage,
+            Self::NS_ID_TO_ADDR,
+            id.as_slice()
+        )?.is_none();
+
+        if is_new_user {
+            ns_save(&mut deps.storage, Self::NS_ID_TO_ADDR, id.as_slice(), &account.0.0)?;
+            ns_save(&mut deps.storage, Self::NS_ADDR_TO_ID, account.0.0.as_slice(), &id.0)?;
+        }
+
+        Ok(account)
+    }
+
+    pub fn of<S: Storage, A: Api, Q: Querier>(
         deps: &Extern<S, A, Q>,
         address: &HumanAddr
     ) -> StdResult<Self> {
-        Ok(Self(BorrowerId::new(deps, address)?))
+        Ok(Self(address.canonize(&deps.api)?))
+    }
+
+    pub fn from_id(
+        storage: &impl Storage,
+        id: &Binary
+    ) -> StdResult<Self> {
+        let result: Option<Binary> =
+            ns_load(storage, Self::NS_ID_TO_ADDR, id.as_slice())?;
+        
+        match result {
+            Some(address) => Ok(Self(CanonicalAddr(address))),
+            None => Err(StdError::generic_err(format!(
+                "Account with id {} doesn't exist.",
+                id
+            )))
+        }
+    }
+
+    pub fn address(&self, api: &impl Api) -> StdResult<HumanAddr> {
+        self.0.humanize(api)
     }
 
     pub fn get_balance(&self, storage: &impl Storage) -> StdResult<Uint256> {
@@ -205,7 +257,13 @@ impl Account {
         let mut borrower_bucket: Bucket<'_, S, BorrowSnapshot> =
             Bucket::new(Self::NS_BORROWERS, storage);
 
-        borrower_bucket.save(&self.0.as_slice(), borrow_info)
+        if borrow_info.0.principal.is_zero() {
+            borrower_bucket.remove(&self.0.as_slice());
+
+            Ok(())
+        } else {
+            borrower_bucket.save(&self.0.as_slice(), borrow_info)
+        }
     }
 
     pub fn get_borrow_snapshot(&self, storage: &impl Storage) -> StdResult<BorrowSnapshot> {
@@ -220,11 +278,20 @@ impl Account {
     }
 }
 
-pub fn load_all_borrowers<S: Storage, A: Api, Q: Querier>(
+impl AuthenticatedUser for Account {
+    fn from_canonical<S: Storage, A: Api, Q: Querier>(
+        _deps: &Extern<S, A, Q>,
+        address: CanonicalAddr
+    ) -> StdResult<Self> {
+        Ok(Self(address))
+    }
+}
+
+pub fn load_borrowers<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     start_after: Option<Binary>,
     limit: Option<u8>
-) -> StdResult<Vec<Borrower>> {
+) -> StdResult<Vec<BorrowerRecord>> {
     let collaterals_bucket: ReadonlyBucket<'_, S, BorrowSnapshot> =
         ReadonlyBucket::new(Account::NS_BORROWERS, &deps.storage);
 
@@ -236,11 +303,13 @@ pub fn load_all_borrowers<S: Storage, A: Api, Q: Querier>(
         .take(limit)
         .map(|elem| {
             let (k, v) = elem?;
-            let id = BorrowerId::try_from(k)?;
+            // TODO: verify that this cannot panic
+            let id = ns_load(&deps.storage, Account::NS_ADDR_TO_ID, k.as_slice())?.unwrap();
 
-            Ok(Borrower {
-                id: id.into(),
-                info: v.0,
+            Ok(BorrowerRecord {
+                id,
+                address: CanonicalAddr::from(k).humanize(&deps.api)?,
+                info: v.0
             })
         })
         .collect()
@@ -287,14 +356,6 @@ impl BorrowerId {
 
     fn load_prng_seed(storage: &impl Storage) -> StdResult<Binary> {
         Ok(load(storage, Self::KEY)?.unwrap())
-    }
-}
-
-impl TryFrom<Binary> for Account {
-    type Error = StdError;
-
-    fn try_from(value: Binary) -> Result<Self, Self::Error> {
-        Ok(Self(BorrowerId::try_from(value.0)?))
     }
 }
 

@@ -1,25 +1,34 @@
 use fadroma::{
-    admin, cosmwasm_std,
+    admin,
+    auth,
+    cosmwasm_std,
     cosmwasm_std::{
         to_binary, Api, Binary, CanonicalAddr, HandleResponse, HumanAddr, InitResponse, Querier,
         QueryRequest, StdError, StdResult, WasmQuery,
     },
     derive_contract::*,
-    permit::Permit,
     schemars, Canonize, ContractInstantiationInfo, ContractLink, Decimal256, Humanize, Uint256,
 };
 
 use serde::{Deserialize, Serialize};
 
-#[interface(component(path = "admin"))]
+use crate::interfaces::market::Config as MarketConfig;
+use crate::core::{MasterKey, AuthMethod};
+
+#[interface(
+    component(path = "admin"),
+    component(path = "auth")
+)]
 pub trait Overseer {
     #[init]
     fn new(
         admin: Option<HumanAddr>,
         prng_seed: Binary,
+        entropy: Binary,
         close_factor: Decimal256,
         // Liquidation incentive
         premium: Decimal256,
+        market_contract: ContractInstantiationInfo,
         // Oracle instantiation info
         oracle_contract: ContractInstantiationInfo,
         // Price source for the oracle
@@ -30,7 +39,12 @@ pub trait Overseer {
     fn register_oracle() -> StdResult<HandleResponse>;
 
     #[handle]
-    fn whitelist(market: Market<HumanAddr>) -> StdResult<HandleResponse>;
+    fn whitelist(
+        config: MarketInitConfig
+    ) -> StdResult<HandleResponse>;
+
+    #[handle]
+    fn register_market() -> StdResult<HandleResponse>;
 
     #[handle]
     fn enter(markets: Vec<HumanAddr>) -> StdResult<HandleResponse>;
@@ -38,39 +52,56 @@ pub trait Overseer {
     #[handle]
     fn exit(market_address: HumanAddr) -> StdResult<HandleResponse>;
 
-    #[query("whitelist")]
+    #[handle]
+    fn set_ltv_ratio(
+        market: HumanAddr,
+        ltv_ratio: Decimal256
+    ) -> StdResult<HandleResponse>;
+
+    #[query]
     fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>>;
 
-    #[query("entered_markets")]
-    fn entered_markets(permit: Permit<OverseerPermissions>) -> StdResult<Vec<Market<HumanAddr>>>;
+    #[query]
+    fn market(address: HumanAddr) -> StdResult<Market<HumanAddr>>;
 
-    #[query("liquidity")]
+    #[query]
+    fn entered_markets(method: OverseerAuth) -> StdResult<Vec<Market<HumanAddr>>>;
+
+    #[query]
     fn account_liquidity(
-        permit: Permit<OverseerPermissions>,
+        method: OverseerAuth,
         market: Option<HumanAddr>,
+        block: Option<u64>,
         redeem_amount: Uint256,
-        borrow_amount: Uint256,
+        borrow_amount: Uint256
     ) -> StdResult<AccountLiquidity>;
 
-    #[query("can_transfer")]
-    fn can_transfer(
-        permit: Permit<OverseerPermissions>,
+    #[query]
+    fn can_transfer_internal(
+        key: MasterKey,
+        address: HumanAddr,
         market: HumanAddr,
-        amount: Uint256
+        block: u64,
+        amount: Uint256,
     ) -> StdResult<bool>;
 
-    #[query("id")]
-    fn id(permit: Permit<OverseerPermissions>) -> StdResult<Binary>;
+    #[query]
+    fn seize_amount(
+        borrowed: HumanAddr,
+        collateral: HumanAddr,
+        repay_amount: Uint256
+    ) -> StdResult<Uint256>;
 
-    #[query("config")]
+    #[query]
     fn config() -> StdResult<Config>;
 }
+
+pub type OverseerAuth = AuthMethod<OverseerPermissions>;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum OverseerPermissions {
-    AccountInfo,
-    Id,
+    AccountInfo
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
@@ -93,7 +124,7 @@ pub struct Config {
     pub premium: Decimal256,
 }
 
-#[derive(Serialize, Deserialize, schemars::JsonSchema)]
+#[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct Market<A> {
     pub contract: ContractLink<A>,
@@ -103,7 +134,20 @@ pub struct Market<A> {
     pub ltv_ratio: Decimal256,
 }
 
-#[derive(Serialize, Deserialize, schemars::JsonSchema)]
+#[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]
+#[serde(rename_all = "snake_case")]
+pub struct MarketInitConfig {
+    // Underlying asset address.
+    pub underlying_asset: ContractLink<HumanAddr>,
+    /// The percentage rate at which tokens can be borrowed given the size of the collateral.
+    pub ltv_ratio: Decimal256,
+    // Interest model contract address.
+    pub interest_model_contract: ContractLink<HumanAddr>,
+    pub config: MarketConfig,
+    pub prng_seed: Binary
+}
+
+#[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct Pagination {
     pub start: u64,
@@ -143,64 +187,106 @@ impl Humanize<Market<HumanAddr>> for Market<CanonicalAddr> {
 pub fn query_account_liquidity(
     querier: &impl Querier,
     overseer: ContractLink<HumanAddr>,
-    permit: Permit<OverseerPermissions>,
+    key: MasterKey,
+    address: HumanAddr,
     market: Option<HumanAddr>,
+    block: Option<u64>,
     redeem_amount: Uint256,
     borrow_amount: Uint256,
 ) -> StdResult<AccountLiquidity> {
-    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
         msg: to_binary(&QueryMsg::AccountLiquidity {
-            permit,
+            method: OverseerAuth::Internal {
+                key,
+                address
+            },
             market,
+            block,
             redeem_amount,
             borrow_amount,
         })?,
-    }))?;
-
-    match result {
-        QueryResponse::AccountLiquidity { liquidity } => Ok(liquidity),
-        _ => Err(StdError::generic_err("Expecting QueryResponse::AccountLiquidity"))
-    }
-}
-
-pub fn query_id(
-    querier: &impl Querier,
-    overseer: ContractLink<HumanAddr>,
-    permit: Permit<OverseerPermissions>,
-) -> StdResult<Binary> {
-    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-        contract_addr: overseer.address,
-        callback_code_hash: overseer.code_hash,
-        msg: to_binary(&QueryMsg::Id { permit })?
-    }))?;
-
-    match result {
-        QueryResponse::Id { id } => Ok(id),
-        _ => Err(StdError::generic_err("Expecting QueryResponse::Id"))
-    }
+    }))
 }
 
 pub fn query_can_transfer(
     querier: &impl Querier,
     overseer: ContractLink<HumanAddr>,
-    permit: Permit<OverseerPermissions>,
+    key: MasterKey,
+    address: HumanAddr,
     market: HumanAddr,
-    amount: Uint256
+    block: u64,
+    amount: Uint256,
 ) -> StdResult<bool> {
-    let result = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
-        msg: to_binary(&QueryMsg::CanTransfer {
-            permit,
+        msg: to_binary(&QueryMsg::CanTransferInternal {
+            key,
+            address,
             market,
-            amount
-        })?
-    }))?;
+            block,
+            amount,
+        })?,
+    }))
+}
 
-    match result {
-        QueryResponse::CanTransfer { can_transfer } => Ok(can_transfer),
-        _ => Err(StdError::generic_err("QueryResponse::CanTransfer"))
-    }
+pub fn query_market(
+    querier: &impl Querier,
+    overseer: ContractLink<HumanAddr>,
+    address: HumanAddr,
+) -> StdResult<Market<HumanAddr>> {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: overseer.address,
+        callback_code_hash: overseer.code_hash,
+        msg: to_binary(&QueryMsg::Market { address })?,
+    }))
+}
+
+pub fn query_config(
+    querier: &impl Querier,
+    overseer: ContractLink<HumanAddr>
+) -> StdResult<Config> {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: overseer.address,
+        callback_code_hash: overseer.code_hash,
+        msg: to_binary(&QueryMsg::Config { })?
+    }))
+}
+
+pub fn query_seize_amount(
+    querier: &impl Querier,
+    overseer: ContractLink<HumanAddr>,
+    borrowed: HumanAddr,
+    collateral: HumanAddr,
+    repay_amount: Uint256
+) -> StdResult<Uint256> {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: overseer.address,
+        callback_code_hash: overseer.code_hash,
+        msg: to_binary(&QueryMsg::SeizeAmount {
+            borrowed,
+            collateral,
+            repay_amount
+        })?
+    }))
+}
+
+pub fn query_entered_markets(
+    querier: &impl Querier,
+    overseer: ContractLink<HumanAddr>,
+    key: MasterKey,
+    address: HumanAddr
+) -> StdResult<Vec<Market<HumanAddr>>> {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: overseer.address,
+        callback_code_hash: overseer.code_hash,
+        msg: to_binary(&QueryMsg::EnteredMarkets {
+            method: AuthMethod::Internal {
+                key,
+                address
+            }
+        })?,
+    }))
 }

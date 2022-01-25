@@ -104,7 +104,7 @@ fn calc_accrued_interest<S: Storage, A: Api, Q: Querier>(
     current_block: u64,
     balance_prior: Uint128
 ) -> StdResult<Option<AccruedInterest>> {
-    let config = Constants::load(deps)?;
+    let config = Constants::load(&deps.storage)?;
     // Initial block number
     let last_accrual_block = Global::load_accrual_block_number(&deps.storage)?;
 
@@ -128,6 +128,7 @@ fn calc_accrued_interest<S: Storage, A: Api, Q: Querier>(
     )?;
 
     if borrow_rate >= MAX_BORROW_RATE {
+        // TODO: Should this be capped instead of returning an error?
         return Err(StdError::generic_err("Borrow rate is absurdly high"));
     }
 

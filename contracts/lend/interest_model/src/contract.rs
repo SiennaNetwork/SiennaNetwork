@@ -62,7 +62,7 @@ pub trait InterestModel {
         Ok(HandleResponse::default())
     }
 
-    #[query("config")]
+    #[query]
     fn config() -> StdResult<ConfigResponse> {
         let config = state::load_interest_model(&deps.storage)?;
 
@@ -74,7 +74,7 @@ pub trait InterestModel {
         })
     }
 
-    #[query("borrow_rate")]
+    #[query]
     fn borrow_rate(
         market_size: Decimal256,
         num_borrows: Decimal256,
@@ -85,7 +85,7 @@ pub trait InterestModel {
         Ok(interest_model.borrow_rate(market_size, num_borrows, reserves)?)
     }
 
-    #[query("supply_rate")]
+    #[query]
     fn supply_rate(
         market_size: Decimal256,
         num_borrows: Decimal256,

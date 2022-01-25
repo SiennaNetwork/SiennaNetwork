@@ -5,13 +5,11 @@ use lend_shared::{
             StdResult, StdError, HumanAddr,
             Env, HandleResponse, log
         },
-        permit::Permit,
         secret_toolkit::snip20,
         Decimal256, Uint256, ContractLink, BLOCK_SIZE
     },
-    interfaces::{
-        overseer::{OverseerPermissions, query_can_transfer}
-    }
+    interfaces::overseer::query_can_transfer,
+    core::MasterKey
 };
 
 use crate::{accrue_interest, VIEWING_KEY};
@@ -59,7 +57,6 @@ pub fn deposit<S: Storage, A: Api, Q: Querier>(
 pub fn redeem<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S,A,Q>,
     env: Env,
-    permit: Permit<OverseerPermissions>,
     from_sl_token: Uint256,
     from_underlying: Uint256
 ) -> StdResult<HandleResponse> {
@@ -98,8 +95,10 @@ pub fn redeem<S: Storage, A: Api, Q: Querier>(
     let can_transfer = query_can_transfer(
         &deps.querier,
         Contracts::load_overseer(deps)?,
-        permit,
+        MasterKey::load(&deps.storage)?,
+        env.message.sender.clone(),
         env.contract.address,
+        env.block.height,
         burn_amount.clamp_u128()?.into()
     )?;
 
@@ -109,7 +108,7 @@ pub fn redeem<S: Storage, A: Api, Q: Querier>(
 
     TotalSupply::decrease(&mut deps.storage, burn_amount)?;
 
-    let account = Account::new(deps, &env.message.sender)?;
+    let account = Account::of(deps, &env.message.sender)?;
     account.subtract_balance(&mut deps.storage, burn_amount)?;
 
     Ok(HandleResponse {
@@ -139,7 +138,7 @@ pub fn calc_exchange_rate<S: Storage, A: Api, Q: Querier>(
     let total_supply = TotalSupply::load(&deps.storage)?;
 
     if total_supply.is_zero() {
-        let config = Constants::load(deps)?;
+        let config = Constants::load(&deps.storage)?;
 
         return Ok(config.initial_exchange_rate);
     }

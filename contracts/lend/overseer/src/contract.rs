@@ -2,40 +2,60 @@ mod state;
 
 use lend_shared::{
     fadroma::{
+        auth,
         admin,
         admin::{assert_admin, Admin},
         cosmwasm_std,
         cosmwasm_std::{
             log, to_binary, Api, Binary, CosmosMsg, Extern, HandleResponse, HumanAddr,
-            InitResponse, Querier, StdError, StdResult, Storage, Uint128, WasmMsg,
+            InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
+        secret_toolkit::snip20,
         derive_contract::*,
-        require_admin, Callback, ContractInstantiationInfo, ContractLink, Decimal256, Permit,
-        Uint256,
+        require_admin, Callback, ContractInstantiationInfo,
+        ContractLink, Decimal256, Uint256, Humanize, BLOCK_SIZE
     },
     interfaces::{
-        market::{query_exchange_rate, query_account},
+        market::{MarketAuth, query_account, query_exchange_rate, InitMsg as MarketInitMsg},
         oracle::{
             query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
         },
-        overseer::{AccountLiquidity, Config, HandleMsg, Market, OverseerPermissions, Pagination},
+        overseer::{
+            AccountLiquidity, Config, HandleMsg, Market,
+            Pagination, MarketInitConfig, OverseerPermissions,
+            OverseerAuth
+        },
     },
+    core::{MasterKey, AuthenticatedUser}
 };
 
-use state::{Borrower, BorrowerId, Constants, Contracts, Markets};
+use state::{
+    Account, Constants, Contracts,
+    Markets, Whitelisting
+};
 
-#[contract_impl(path = "lend_shared::interfaces::overseer", component(path = "admin"))]
+#[contract_impl(
+    path = "lend_shared::interfaces::overseer",
+    component(path = "admin"),
+    component(path = "auth")
+)]
 pub trait Overseer {
     #[init]
     fn new(
         admin: Option<HumanAddr>,
         prng_seed: Binary,
+        entropy: Binary,
         close_factor: Decimal256,
         premium: Decimal256,
+        market_contract: ContractInstantiationInfo,
         oracle_contract: ContractInstantiationInfo,
-        oracle_source: ContractLink<HumanAddr>,
+        oracle_source: ContractLink<HumanAddr>
     ) -> StdResult<InitResponse> {
-        BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
+        MasterKey::new(
+            &env,
+            prng_seed.as_slice(),
+            entropy.as_slice()
+        ).save(&mut deps.storage)?;
 
         Contracts::save_oracle(
             deps,
@@ -57,6 +77,11 @@ pub trait Overseer {
         };
         Contracts::save_self_ref(deps, &self_ref)?;
 
+        Whitelisting::save_market_contract(
+            &mut deps.storage,
+            &market_contract
+        )?;
+
         let time = env.block.time;
 
         let mut result = admin::DefaultImpl.new(admin.clone(), deps, env)?;
@@ -66,7 +91,7 @@ pub trait Overseer {
             send: vec![],
             label: format!("Sienna Lend Oracle: {}", time),
             msg: to_binary(&OracleInitMsg {
-                admin: admin,
+                admin,
                 source: oracle_source,
                 initial_assets: vec![],
                 callback: Callback {
@@ -102,12 +127,68 @@ pub trait Overseer {
 
     #[handle]
     #[require_admin]
-    fn whitelist(market: Market<HumanAddr>) -> StdResult<HandleResponse> {
+    fn whitelist(config: MarketInitConfig) -> StdResult<HandleResponse> {
+        let token_info = snip20::token_info_query(
+            &deps.querier,
+            BLOCK_SIZE,
+            config.underlying_asset.code_hash.clone(),
+            config.underlying_asset.address.clone()
+        )?;
+        let info = Whitelisting::load_market_contract(&deps.storage)?;
+        
+        let market = Market {
+            contract: ContractLink {
+                address: HumanAddr::default(),
+                code_hash: info.code_hash.clone()
+            },
+            symbol: token_info.symbol.clone(),
+            ltv_ratio: config.ltv_ratio
+        };
         market.validate()?;
+
+        Whitelisting::set_pending(&mut deps.storage, &market)?;
+
+        Ok(HandleResponse {
+            messages: vec![CosmosMsg::Wasm(WasmMsg::Instantiate {
+                label: format!(
+                    "Sienna Lend {} market with overseer: {}",
+                    token_info.symbol,
+                    env.contract.address
+                ),
+                code_id: info.id,
+                callback_code_hash: info.code_hash,
+                send: vec![],
+                msg: to_binary(&MarketInitMsg {
+                    admin: env.message.sender,
+                    prng_seed: config.prng_seed,
+                    interest_model_contract: config.interest_model_contract,
+                    key: MasterKey::load(&deps.storage)?,
+                    config: config.config,
+                    underlying_asset: config.underlying_asset,
+                    callback: Callback {
+                        contract: ContractLink {
+                            address: env.contract.address,
+                            code_hash: env.contract_code_hash
+                        },
+                        msg: to_binary(&HandleMsg::RegisterMarket {})?
+                    }
+                })?,
+            })],
+            log: vec![log("action", "whitelist")],
+            data: None,
+        })
+    }
+
+    #[handle]
+    fn register_market() -> StdResult<HandleResponse> {
+        let mut market = Whitelisting::pop_pending(&mut deps.storage)?;
+        let oracle = Contracts::load_oracle(deps)?;
+
+        market.contract.address = env.message.sender;
 
         Markets::push(deps, &market)?;
 
-        let oracle = Contracts::load_oracle(deps)?;
+        let log_address = market.contract.address.to_string();
 
         Ok(HandleResponse {
             messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
@@ -121,18 +202,21 @@ pub trait Overseer {
                     }],
                 })?,
             })],
-            log: vec![log("action", "whitelist")],
+            log: vec![
+                log("action", "register_market"),
+                log("market_address", log_address)
+            ],
             data: None,
         })
     }
 
     #[handle]
     fn enter(markets: Vec<HumanAddr>) -> StdResult<HandleResponse> {
-        let borrower = Borrower::new(deps, &env.message.sender)?;
+        let account = Account::new(&deps.api, &env.message.sender)?;
 
         for market in markets {
             let id = Markets::get_id(deps, &market)?;
-            borrower.add_market(&mut deps.storage, id)?;
+            account.add_market(&mut deps.storage, id)?;
         }
 
         Ok(HandleResponse {
@@ -144,15 +228,20 @@ pub trait Overseer {
 
     #[handle]
     fn exit(market_address: HumanAddr) -> StdResult<HandleResponse> {
-        let borrower = Borrower::new(deps, &env.message.sender)?;
-        let (id, market) = borrower.get_market(deps, &market_address)?;
+        let account = Account::new(&deps.api, &env.message.sender)?;
+        let (id, market) = account.get_market(deps, &market_address)?;
+
+        let method = MarketAuth::Internal{
+            address: env.message.sender,
+            key: MasterKey::load(&deps.storage)?
+        };
 
         // TODO: Maybe calc_liquidity() can be changed to cover this check in order to avoid calling this twice.
         let snapshot = query_account(
             &deps.querier,
             market.contract,
-            borrower.clone().id(),
-            None
+            method.clone(),
+            None, // None because we only check if borrows balance is zero here.
         )?;
 
         if snapshot.borrow_balance != Uint256::zero() {
@@ -161,8 +250,10 @@ pub trait Overseer {
 
         let liquidity = calc_liquidity(
             deps,
-            &borrower,
+            &account,
+            method,
             Some(market_address),
+            Some(env.block.height),
             snapshot.sl_token_balance,
             Uint256::zero(),
         )?;
@@ -174,7 +265,7 @@ pub trait Overseer {
             )));
         }
 
-        borrower.remove_market(&mut deps.storage, id);
+        account.remove_market(&mut deps.storage, id);
 
         Ok(HandleResponse {
             messages: vec![],
@@ -183,64 +274,105 @@ pub trait Overseer {
         })
     }
 
-    #[query("entered_markets")]
-    fn entered_markets(permit: Permit<OverseerPermissions>) -> StdResult<Vec<Market<HumanAddr>>> {
-        let self_ref = Contracts::load_self_ref(deps)?;
-        let borrower = permit.validate_with_permissions(
-            deps,
-            self_ref.address,
-            vec![OverseerPermissions::AccountInfo],
+    #[handle]
+    #[require_admin]
+    fn set_ltv_ratio(market: HumanAddr, ltv_ratio: Decimal256) -> StdResult<HandleResponse> {
+        let symbol = Markets::get_by_addr(deps, &market)?.1.symbol;
+        let price = query_price(
+            &deps.querier,
+            Contracts::load_oracle(deps)?,
+            symbol.into(),
+            "USD".into(),
+            None,
         )?;
 
-        let borrower = Borrower::new(deps, &borrower)?;
+        // Can't set collateral factor if the price is 0
+        if price.rate == Decimal256::zero() {
+            return Err(StdError::generic_err(
+                "Cannot set the collateral factor if the price is 0",
+            ));
+        }
 
-        borrower.list_markets(deps)
+        Markets::update(deps, &market, |mut m| {
+            m.ltv_ratio = ltv_ratio;
+            m.validate()?;
+            Ok(m)
+        })?;
+
+        Ok(HandleResponse::default())
     }
 
-    #[query("liquidity")]
+    #[query]
+    fn entered_markets(method: OverseerAuth) -> StdResult<Vec<Market<HumanAddr>>> {
+        let account = Account::authenticate(
+            deps,
+            method,
+            OverseerPermissions::AccountInfo,
+            Contracts::load_self_ref
+        )?;
+
+        account.list_markets(deps)
+    }
+
+    #[query]
     fn account_liquidity(
-        permit: Permit<OverseerPermissions>,
+        method: OverseerAuth,
         market: Option<HumanAddr>,
+        block: Option<u64>,
         redeem_amount: Uint256,
         borrow_amount: Uint256,
     ) -> StdResult<AccountLiquidity> {
-        let self_ref = Contracts::load_self_ref(deps)?;
-        let borrower = permit.validate_with_permissions(
+        let account = Account::authenticate(
             deps,
-            self_ref.address,
-            vec![OverseerPermissions::AccountInfo],
+            method,
+            OverseerPermissions::AccountInfo,
+            Contracts::load_self_ref
         )?;
 
         calc_liquidity(
             deps,
-            &Borrower::new(deps, &borrower)?,
+            &account,
+            // This is ugly
+            MarketAuth::Internal {
+                key: MasterKey::load(&deps.storage)?,
+                address: account.0.humanize(&deps.api)?
+            },
             market,
+            block,
             redeem_amount,
             borrow_amount,
         )
     }
 
-    #[query("can_transfer")]
-    fn can_transfer(
-        permit: Permit<OverseerPermissions>,
+    #[query]
+    fn can_transfer_internal(
+        key: MasterKey,
+        address: HumanAddr,
         market: HumanAddr,
+        block: u64,
         amount: Uint256,
     ) -> StdResult<bool> {
-        let self_ref = Contracts::load_self_ref(deps)?;
-        let borrower = permit.validate_with_permissions(
-            deps,
-            self_ref.address,
-            vec![OverseerPermissions::AccountInfo],
-        )?;
+        MasterKey::check(&deps.storage, &key)?;
 
-        let borrower = Borrower::new(&deps, &borrower)?;
+        let account = Account::new(&deps.api, &address)?;
 
         // If not entered the market then transfer is allowed.
-        if borrower.get_market(&deps, &market).is_err() {
+        if account.get_market(&deps, &market).is_err() {
             return Ok(true);
         }
 
-        let result = calc_liquidity(deps, &borrower, Some(market), amount, Uint256::zero())?;
+        let result = calc_liquidity(
+            deps,
+            &account,
+            MarketAuth::Internal {
+                key,
+                address
+            },
+            Some(market),
+            Some(block),
+            amount,
+            Uint256::zero(),
+        )?;
 
         if result.shortfall > Uint256::zero() {
             Ok(false)
@@ -249,24 +381,33 @@ pub trait Overseer {
         }
     }
 
-    #[query("id")]
-    fn id(permit: Permit<OverseerPermissions>) -> StdResult<Binary> {
-        let self_ref = Contracts::load_self_ref(deps)?;
-        let borrower = permit.validate_with_permissions(
+    #[query]
+    fn seize_amount(
+        borrowed: HumanAddr,
+        collateral: HumanAddr,
+        repay_amount: Uint256
+    ) -> StdResult<Uint256> {
+        calc_seize_tokens(
             deps,
-            self_ref.address,
-            vec![OverseerPermissions::Id],
-        )?;
-
-        Ok(BorrowerId::new(deps, &borrower)?.into())
+            borrowed,
+            collateral,
+            repay_amount
+        )
     }
 
-    #[query("whitelist")]
+    #[query]
     fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>> {
         Markets::list(deps, pagination)
     }
 
-    #[query("config")]
+    #[query]
+    fn market(address: HumanAddr) -> StdResult<Market<HumanAddr>> {
+        let (_, market) = Markets::get_by_addr(deps, &address)?;
+
+        Ok(market)
+    }
+
+    #[query]
     fn config() -> StdResult<Config> {
         let Constants {
             close_factor,
@@ -283,8 +424,10 @@ pub trait Overseer {
 /// Determine what the account liquidity would be if the given amounts were redeemed/borrowed.
 fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
-    borrower: &Borrower,
+    account: &Account,
+    method: MarketAuth,
     target_asset: Option<HumanAddr>,
+    block: Option<u64>,
     redeem_amount: Uint256,
     borrow_amount: Uint256,
 ) -> StdResult<AccountLiquidity> {
@@ -294,18 +437,14 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     let mut total_collateral = Uint256::zero();
     let mut total_borrowed = Uint256::zero();
 
-    for market in borrower.list_markets(deps)? {
+    for market in account.list_markets(deps)? {
         let is_target_asset = target_asset == market.contract.address;
 
         let snapshot = query_account(
             &deps.querier,
             market.contract,
-            borrower.clone().id(),
-            // TODO: Compound queries the cached values, possibly due to updating
-            // all interest in all markets and storing it being expensive.
-            // However, here we can just calculate without storing. 
-            // Wouldn't doing this be more accurate? Or is there another reason?
-            None
+            method.clone(),
+            block
         )?;
 
         let price = query_price(
@@ -317,6 +456,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
         )?;
 
         let conversion_factor = ((market.ltv_ratio * snapshot.exchange_rate)? * price.rate)?;
+
         total_collateral = (Uint256::from(snapshot.sl_token_balance)
             .decimal_mul(conversion_factor)?
             + total_collateral)?;
@@ -324,10 +464,8 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
             (Uint256::from(snapshot.borrow_balance).decimal_mul(price.rate)? + total_borrowed)?;
 
         if is_target_asset {
-            total_borrowed =
-                (redeem_amount.decimal_mul(conversion_factor)? + total_borrowed)?;
-            total_borrowed =
-                (borrow_amount.decimal_mul(price.rate)? + total_borrowed)?;
+            total_borrowed = (redeem_amount.decimal_mul(conversion_factor)? + total_borrowed)?;
+            total_borrowed = (borrow_amount.decimal_mul(price.rate)? + total_borrowed)?;
         }
     }
 
@@ -352,11 +490,11 @@ fn calc_seize_tokens<S: Storage, A: Api, Q: Querier>(
     // collateral token
     collateral: HumanAddr,
     // the amount of borrowed to convert into collateral
-    repay_amount: Uint128,
+    repay_amount: Uint256,
 ) -> StdResult<Uint256> {
     let premium = Constants::load(&deps.storage)?.premium;
 
-    //  Read oracle prices for borrowed and collateral markets 
+    //  Read oracle prices for borrowed and collateral markets
     let oracle = Contracts::load_oracle(deps)?;
     let price_borrowed = query_price(
         &deps.querier,
@@ -378,6 +516,5 @@ fn calc_seize_tokens<S: Storage, A: Api, Q: Querier>(
     let exchange_rate = query_exchange_rate(&deps.querier, market.contract, None)?;
     let ratio = ((premium * price_borrowed.rate)? / (price_collateral.rate * exchange_rate)?)?;
 
-    let seize_tokens = (ratio * Decimal256::from_uint256(repay_amount)?)?.round();
-    Ok(seize_tokens)
+    repay_amount.decimal_mul(ratio)
 }

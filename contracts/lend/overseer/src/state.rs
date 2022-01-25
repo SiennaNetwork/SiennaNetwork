@@ -1,20 +1,18 @@
-use std::convert::{TryFrom, TryInto};
-
 use lend_shared::{
     impl_contract_storage,
     fadroma::{
         cosmwasm_std::{
             HumanAddr, CanonicalAddr, Extern,
             StdResult, Api, Storage, Querier,
-            StdError, Binary, Order
+            StdError, Order
         },
         cosmwasm_storage::{Bucket, ReadonlyBucket},
-        crypto::sha_256,
         storage::{load, save, ns_load, ns_save, IterableStorage},
-        Canonize, Humanize,
-        ContractLink, Decimal256
+        Canonize, Humanize, ContractLink,
+        ContractInstantiationInfo, Decimal256
     },
-    interfaces::overseer::{Pagination, Market}
+    interfaces::overseer::{Pagination, Market},
+    core::AuthenticatedUser
 };
 use serde::{Deserialize, Serialize};
 
@@ -30,13 +28,10 @@ pub struct Constants {
 pub struct Contracts;
 pub struct Markets;
 
-#[derive(Clone)]
-pub struct Borrower {
-    id: BorrowerId
-}
+pub struct Whitelisting;
 
-#[derive(PartialEq, Clone, Debug)]
-pub struct BorrowerId([u8; 32]);
+#[derive(Clone)]
+pub struct Account(pub CanonicalAddr);
 
 impl Constants {
     const KEY: &'static [u8] = b"constants";
@@ -58,6 +53,49 @@ impl Constants {
 impl Contracts {
     impl_contract_storage!(save_oracle, load_oracle, b"oracle");
     impl_contract_storage!(save_self_ref, load_self_ref, b"self");
+}
+
+impl Whitelisting {
+    const KEY_MARKET_CONTRACT: &'static [u8] = b"market_contract";
+    const KEY_PENDING: &'static [u8] = b"pending";
+
+    #[inline]
+    pub fn save_market_contract(
+        storage: &mut impl Storage,
+        contract: &ContractInstantiationInfo
+    ) -> StdResult<()> {
+        save(storage, Self::KEY_MARKET_CONTRACT, contract)
+    }
+    
+    #[inline]
+    pub fn load_market_contract(
+        storage: &impl Storage
+    ) -> StdResult<ContractInstantiationInfo> {
+        Ok(load(storage, Self::KEY_MARKET_CONTRACT)?.unwrap())
+    }
+
+    pub fn set_pending(
+        storage: &mut impl Storage,
+        market: &Market<HumanAddr>
+    ) -> StdResult<()> {
+        save(storage, Self::KEY_PENDING, market)
+    }
+
+    pub fn pop_pending(
+        storage: &mut impl Storage
+    ) -> StdResult<Market<HumanAddr>> {
+        let result: Option<Market<HumanAddr>> =
+            load(storage, Self::KEY_PENDING)?;
+
+        match result {
+            Some(market) => {
+                storage.remove(Self::KEY_PENDING);
+
+                Ok(market)
+            },
+            None => Err(StdError::unauthorized())
+        }
+    }
 }
 
 impl Markets {
@@ -177,26 +215,14 @@ impl Markets {
     }
 }
 
-impl Borrower {
-    const NS: &'static [u8] = b"borrowers";
+impl Account {
+    const NS: &'static [u8] = b"accounts";
 
-    pub fn new<S: Storage, A: Api, Q: Querier>(
-        deps: &Extern<S, A, Q>,
+    pub fn new(
+        api: &impl Api,
         address: &HumanAddr
     ) -> StdResult<Self> {
-        Ok(Self {
-            id: BorrowerId::new(deps, address)?
-        })
-    }
-
-    pub fn from_base64(bin: Binary) -> StdResult<Self> {
-        Ok(Self {
-            id: BorrowerId::try_from(bin.0)?
-        })
-    }
-
-    pub fn id(self) -> Binary {
-        self.id.into()
+        Ok(Self(address.canonize(api)?))
     }
 
     pub fn add_market<S: Storage>(
@@ -258,58 +284,15 @@ impl Borrower {
     }
 
     fn create_key(&self) -> Vec<u8> {
-        [ Self::NS, self.id.as_slice() ].concat()
+        [ Self::NS, self.0.as_slice() ].concat()
     }
 }
 
-impl BorrowerId {
-    const KEY: &'static [u8] = b"salt";
-
-    pub fn new<S: Storage, A: Api, Q: Querier>(
-        deps: &Extern<S, A, Q>,
-        address: &HumanAddr
+impl AuthenticatedUser for Account {
+    fn from_canonical<S: Storage, A: Api, Q: Querier>(
+        _deps: &Extern<S, A, Q>,
+        address: CanonicalAddr
     ) -> StdResult<Self> {
-        let address = address.canonize(&deps.api)?;
-        let salt = Self::load_prng_seed(&deps.storage)?;
-
-        let data = vec![ address.as_slice(), salt.as_slice() ].concat();
-
-        Ok(Self(sha_256(&data)))
-    }
-
-    pub fn as_slice(&self) -> &[u8] {
-        &self.0
-    }
-
-    pub fn set_prng_seed(storage: &mut impl Storage, prng_seed: &Binary) -> StdResult<()> {
-        let stored: Option<Binary> = load(storage, Self::KEY)?;
-
-        // Should only set this once, otherwise will break the contract.
-        if stored.is_some() {
-            return Err(StdError::generic_err("Prng seed already set."));
-        }
-
-        save(storage, Self::KEY, prng_seed)
-    }
-
-    fn load_prng_seed(storage: &impl Storage) -> StdResult<Binary> {
-        Ok(load(storage, Self::KEY)?.unwrap())
-    }
-}
-
-impl From<BorrowerId> for Binary {
-    fn from(id: BorrowerId) -> Self {
-        Binary(id.0.into())
-    }
-}
-
-impl TryFrom<Vec<u8>> for BorrowerId {
-    type Error = StdError;
-
-    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        match value.try_into() {
-            Ok(data) => Ok(Self(data)),
-            Err(_) => Err(StdError::generic_err("Couldn't create BorrowerId from bytes."))
-        }
+        Ok(Self(address))
     }
 }
