@@ -1,12 +1,23 @@
+# Read-only public deps
+
+[submodule "deps/ganesha"] # Literate TypeScript on demand
+  path   = deps/ganesha
+  url    = https://github.com/hackbg/ganesha.git
+
+[submodule "deps/fadroma"] # Contract and deployment framework
+  path   = deps/fadroma
+  url    = https://github.com/hackbg/fadroma.git
+  branch = 22.01
+
 [submodule "kukumba"] # BDD test helper
   update = rebase
   path   = libraries/kukumba
-  url    = git@git.sienna.network:siennanetwork/kukumba.git
+  url    = https://github.com/hackbg/kukumba.git
   branch = 21.04
-[submodule "deps/fadroma"]
-  path   = deps/fadroma
-  url    = git@git.sienna.network:siennanetwork/fadroma.git
-  branch = 22.01
+
+
+# Read-write private deps
+
 [submodule "frontends/amm-types"]
   path   = frontends/amm-types
   url    = git@git.sienna.network:siennanetwork/amm-types.git
@@ -19,6 +30,3 @@
 [submodule "frontends/vest"]
   path   = frontends/vest
   url    = git@git.sienna.network:siennanetwork/vest.git
-[submodule "deps/ganesha"]
-  path   = deps/ganesha
-  url    = https://github.com/hackbg/ganesha
