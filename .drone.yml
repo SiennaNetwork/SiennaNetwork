@@ -45,7 +45,7 @@ steps:
     # 4. Thankfully, there's only one level of this, in fact only one `.gitmodules`
     #    file needs to be updated.
     - git submodule update --init
-    - cd libraries/fadroma-next
+    - cd deps/fadroma
     - sed -i -e 's|git@github.com:.\+/|git@git.sienna.network:siennanetwork/|' .gitmodules
     - git submodule update --init
 
