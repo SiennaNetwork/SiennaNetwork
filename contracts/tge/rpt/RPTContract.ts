@@ -7,6 +7,7 @@ import { workspace } from '@sienna/settings'
 import type { LinearMapAnd_Uint128 as LinearMap, Uint128 } from './schema/init'
 import { RPTTransactions } from './RPTTransactions'
 import { RPTQueries }      from './RPTQueries'
+
 export class RPTContract extends Scrt_1_2.Contract<RPTTransactions, RPTQueries> {
 
   workspace = workspace
@@ -46,3 +47,7 @@ export class RPTContract extends Scrt_1_2.Contract<RPTTransactions, RPTQueries> 
   }
 
 }
+
+export type RPTRecipient = string
+export type RPTAmount    = string
+export type RPTConfig    = [RPTRecipient, RPTAmount][]

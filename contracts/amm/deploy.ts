@@ -8,16 +8,56 @@ import {
   IDOContract,
   LPTokenContract,
   LaunchpadContract,
-  RPTContract,
-  RewardsContract,
+  RPTContract, RPTConfig,
+  RewardsContract, RewardsAPIVersion,
   SiennaSNIP20Contract,
 } from '@sienna/api'
 
 const console = Console('@sienna/amm/deploy')
 
-export async function deployAMM ({ run }: MigrationContext) {
+/** Taking a TGE deployment, add the AMM to it,
+  * creating the pre-configured liquidity and reward pools. */
+export async function deployAMM ({
+  deployment, run
+}: MigrationContext) {
+  const SIENNA = new SiennaSNIP20Contract().from(deployment),
   const { FACTORY } = await run(deployAMMFactory)
   const { TOKENS, EXCHANGES, LP_TOKENS } = await run(deployAMMExchanges, { FACTORY })
+  const { SSSSS_POOL, RPT_CONFIG_SSSSS } = await run(deploySSSSS, { SIENNA })
+  const { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS } = await run(deployRewards, {
+    apiVersion?: 'v3', SIENNA, FACTORY, TOKENS
+  })
+  await run(adjustRPTConfig, { RPT_CONFIG_SSSSS, RPT_CONFIG_SWAP_REWARDS })
+}
+
+/** After deploying the SSSSS and the other reward pools,
+  * set their addresses in the deployment's RPT contract. */
+export async function adjustRPTConfig ({
+  deployment, chain, admin,
+  RPT_CONFIG_SSSSS, RPT_CONFIG_SWAP_REWARDS
+}: MigrationContext & {
+  RPT_CONFIG_SSSSS:        RPTConfig,
+  RPT_CONFIG_SWAP_REWARDS: RPTConfig
+}) {
+  const RPT = new RPTContract().from(deployment)
+  const RPT_CONFIG = [...RPT_CONFIG_SSSSS, ...RPT_CONFIG_SWAP_REWARDS]
+  // on mainnet we use a multisig
+  // so we can't run the transaction from here
+  if (chain.isMainnet) {
+    deployment.save({config: RPT_CONFIG}, 'RPTConfig.json')
+    console.info(
+      `\n\nWrote RPT config to deployment ${deployment.prefix}. `+
+      `You should use this file as the basis of a multisig transaction.`
+    )
+    return
+  }
+  console.info(
+    bold(`Configuring RPT`), RPT.address
+  )
+  for (const [address, amount] of RPT_CONFIG) {
+    console.info(`- ${address} ${amount}`)
+  }
+  await RPT.tx(admin).configure(RPT_CONFIG)
 }
 
 /** Deploy the Factory contract which is the hub of the AMM.
@@ -113,9 +153,9 @@ export async function deployAMMExchanges ({
   if (swapPairs.length > 0) {
     // Call the factory to deploy an EXCHANGE for each
     for (const name of swapPairs) {
-      const EXCHANGE = await run(deployAMMExchange, { FACTORY, TOKENS, name })
+      const { EXCHANGE, LP_TOKEN } = await run(deployAMMExchange, { FACTORY, TOKENS, name })
       EXCHANGES.push(EXCHANGE)
-      LP_TOKENS.push(EXCHANGE.lp_token)
+      LP_TOKENS.push(LP_TOKEN)
     }
   }
   return { TOKENS, LP_TOKENS, EXCHANGES }
@@ -128,7 +168,10 @@ export async function deployAMMExchange ({
   FACTORY: FactoryContract
   TOKENS:  Record<string, SNIP20Contract>
   name:    string
-}) {
+}): Promise<{
+  EXCHANGE: AMMContract
+  LP_TOKEN: LPTokenContract
+}> {
   console.info(`Deploying liquidity pool ${bold(name)}...`)
   const [tokenName0, tokenName1] = name.split('-')
   const token0 = TOKENS[tokenName0].asCustomToken
@@ -138,7 +181,10 @@ export async function deployAMMExchange ({
   try {
     const EXCHANGE = await FACTORY.getExchange(token0, token1, admin)
     console.info(`${bold(name)}: Already exists.`)
-    return { EXCHANGE }
+    return {
+      EXCHANGE,
+      LP_TOKEN: EXCHANGE.lpToken
+    }
   } catch (e) {
     if (e.message.includes("Address doesn't exist in storage")) {
       const EXCHANGE = await FACTORY.createExchange(token0, token1)
@@ -147,7 +193,10 @@ export async function deployAMMExchange ({
         `Deployed liquidity pool ${EXCHANGE.exchange.address} `+
         ` and LP token ${EXCHANGE.lp_token.address}`
       )
-      return EXCHANGE
+      return {
+        EXCHANGE,
+        LP_TOKEN: EXCHANGE.lpToken
+      }
     } else {
       throw new Error(`${bold(`Factory::GetExchange(${name})`)}: not found (${e.message})`)
     }
@@ -214,7 +263,7 @@ export function getSwapTokens (
 }
 
 /** Deploy SIENNA/SIENNA SINGLE-SIDED STAKING,
-  * (SSSSS or SSSSSS depending on whether you count the SLASH)
+  * (5- or 6-S depending on whether you count the SLASH)
   * a Sienna Rewards pool where you stake SIENNA to earn SIENNA. */
 export async function deploySSSSS ({
   run, chain,
@@ -222,32 +271,24 @@ export async function deploySSSSS ({
 }: MigrationContext & {
   SIENNA: SiennaSNIP20Contract
 }): Promise<{
-  RPT_CONFIG_PARTIAL: [string, string][]
+  SSSSS_POOL:       RewardsContract
+  RPT_CONFIG_SSSSS: RPTConfig
 }> {
-
-  const singleSidedStaking = await run(deployRewardPool, {
+  const SSSSS_POOL = await run(deployRewardPool, {
     lpToken:     SIENNA,
     rewardToken: SIENNA,
   })
-
   return {
-    RPT_CONFIG_PARTIAL: [
+    SSSSS_POOL,
+    RPT_CONFIG_SSSSS: [
       [
-        singleSidedStaking.address,
+        SSSSS_POOL.address,
         String(BigInt(getSettings(chain.chainId).rewardPairs.SIENNA) * ONE_SIENNA)
       ]
     ]
   }
 
 }
-
-export type RPTRecipient = string
-
-export type RPTAmount    = string
-
-export type RPTConfig    = [RPTRecipient, RPTAmount][]
-
-export type RewardsAPIVersion = 'v2'|'v3'
 
 /** Deploy the rest of the reward pools,
   * where you stake a LP token to earn SIENNA. */
@@ -269,8 +310,8 @@ export async function deployRewards ({
   FACTORY?:    FactoryContract,
   TOKENS?:     Record<string, SNIP20Contract>
 }): Promise<{
-  REWARD_POOLS: RewardsContract[]
-  RPT_CONFIG:   RPTConfig
+  REWARD_POOLS:       RewardsContract[]
+  RPT_CONFIG_SWAP_REWARDS: RPTConfig
 }> {
   const { swapTokens, swapPairs, rewardPairs, } = getSettings(chain.chainId)
   const REWARDS = new RewardsContract({ prefix, admin, ref })
@@ -310,7 +351,7 @@ export async function deployRewards ({
     }
   }
   console.debug('Resulting RPT config:', RPT_CONFIG)
-  return { REWARD_POOLS, RPT_CONFIG }
+  return { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS: RPT_CONFIG }
 }
 
 import { timestamp } from '@hackbg/fadroma'

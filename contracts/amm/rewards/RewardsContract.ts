@@ -9,6 +9,7 @@ import { Init } from './schema/init.d'
 
 import { RewardsTransactions } from './RewardsTransactions'
 import { RewardsQueries } from './RewardsQueries'
+
 export class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, RewardsQueries> {
 
   crate = 'sienna-rewards'
@@ -63,3 +64,5 @@ export class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, Rewa
   }
 
 }
+
+export type RewardsAPIVersion = 'v2'|'v3'

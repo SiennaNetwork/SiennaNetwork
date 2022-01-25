@@ -28,7 +28,7 @@ corresponding pair market while maintaining the pool price.
 * `contracts/amm/router`
 * `libraries/amm-shared`
 
-Refer to [this diagram](./docs/Sienna.drawio.png) for the architectural overview.
+Refer to [this diagram](./docs/amm.png) for the architectural overview.
 
 ## Run tests
 
