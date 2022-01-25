@@ -2,17 +2,43 @@ use std::str::FromStr;
 
 use lend_shared::{
     fadroma::{
-        ensemble::MockEnv, snip20_impl::msg::HandleMsg as Snip20HandleMsg, to_binary, Binary,
-        Decimal256, HumanAddr, Permit, StdError, Uint128, Uint256,
+        ensemble::{ContractHarness, MockDeps, MockEnv},
+        from_binary,
+        snip20_impl::msg::HandleMsg as Snip20HandleMsg,
+        to_binary, Binary, Composable, Decimal256, Env, HandleResponse, HumanAddr, InitResponse,
+        Permit, StdError, StdResult, Uint128, Uint256,
     },
     interfaces::{market, overseer::*},
 };
 
 use crate::setup::Lend;
 
+pub struct MarketImpl;
+impl ContractHarness for MarketImpl {
+    fn init(&self, deps: &mut MockDeps, env: Env, msg: Binary) -> StdResult<InitResponse> {
+        lend_market::init(deps, env, from_binary(&msg)?, lend_market::DefaultImpl)
+    }
+    fn handle(&self, deps: &mut MockDeps, env: Env, msg: Binary) -> StdResult<HandleResponse> {
+        lend_market::handle(deps, env, from_binary(&msg)?, lend_market::DefaultImpl)
+    }
+
+    fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
+        match from_binary(&msg).unwrap() {
+            market::QueryMsg::ExchangeRate { block: _ } => {
+                let res: Option<Decimal256> = deps.get(b"exchange_rate").unwrap_or(None);
+                match res {
+                    Some(value) => to_binary(&value),
+                    None => to_binary(&Decimal256::one()),
+                }
+            }
+            _ => lend_market::query(deps, from_binary(&msg)?, lend_market::DefaultImpl),
+        }
+    }
+}
+
 #[test]
 fn whitelist() {
-    let mut lend = Lend::new();
+    let mut lend = Lend::default();
 
     // can only be called by admin
     let res = lend.ensemble.execute(
@@ -58,7 +84,7 @@ fn whitelist() {
 
 #[test]
 fn enter_and_exit_markets() {
-    let mut lend = Lend::new();
+    let mut lend = Lend::default();
 
     let base_market = lend
         .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(90))
@@ -88,7 +114,8 @@ fn enter_and_exit_markets() {
                     vec![OverseerPermissions::AccountInfo],
                     vec![lend.overseer.address.clone()],
                     "balance",
-                ).into(),
+                )
+                .into(),
             },
         )
         .unwrap();
@@ -115,7 +142,8 @@ fn enter_and_exit_markets() {
                     vec![OverseerPermissions::AccountInfo],
                     vec![lend.overseer.address.clone()],
                     "balance",
-                ).into(),
+                )
+                .into(),
             },
         )
         .unwrap();
@@ -142,7 +170,8 @@ fn enter_and_exit_markets() {
                     vec![OverseerPermissions::AccountInfo],
                     vec![lend.overseer.address.clone()],
                     "balance",
-                ).into(),
+                )
+                .into(),
             },
         )
         .unwrap();
@@ -164,7 +193,7 @@ fn enter_and_exit_markets() {
 
 #[test]
 fn returns_right_liquidity() {
-    let mut lend = Lend::new();
+    let mut lend = Lend::default();
 
     let market = lend
         .whitelist_market(lend.underlying_token_three.clone(), Decimal256::percent(50))
@@ -218,7 +247,7 @@ fn returns_right_liquidity() {
 #[test]
 fn liquidity_collateral_factor() {
     // fails if a market is not listed
-    let mut lend = Lend::new();
+    let mut lend = Lend::default();
     let res = lend.ensemble.execute(
         &HandleMsg::Enter {
             markets: vec!["unknown_addr".into()],
@@ -329,7 +358,7 @@ fn liquidity_collateral_factor() {
 #[test]
 fn liquidity_entering_markets() {
     // allows entering 3 markets, supplying to 2 and borrowing up to collateralFactor in the 3rd
-    let mut lend = Lend::new();
+    let mut lend = Lend::default();
     let market_one = lend
         .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(50))
         .unwrap();
@@ -465,14 +494,34 @@ fn liquidity_entering_markets() {
 }
 
 #[test]
-fn caclulate_amount_seize() {
-    let mut lend = Lend::new();
-
+fn calculate_amount_seize() {
+    let mut lend = Lend::new(Some(Box::new(MarketImpl)), None);
     let collateral_market = lend
         .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(50))
         .unwrap();
     let borrowed_market = lend
         .whitelist_market(lend.underlying_token_two.clone(), Decimal256::permille(666))
+        .unwrap();
+
+    let res: Uint256 = lend
+        .ensemble
+        .query(
+            lend.overseer.address.clone(),
+            QueryMsg::SeizeAmount {
+                borrowed: borrowed_market.contract.address.clone(),
+                collateral: collateral_market.contract.address.clone(),
+                repay_amount: Uint256::from(1_000_000_000_000_000_000u128),
+            },
+        )
+        .unwrap();
+    assert_eq!(res, Uint256::from(1_000_000_000_000_000_000u128));
+
+    // set exchange rate
+    lend.ensemble
+        .deps_mut(collateral_market.contract.address.clone(), |s| {
+            s.set(b"exchange_rate", Decimal256::from_uint256(2u128))
+                .unwrap();
+        })
         .unwrap();
 
     let res: Uint256 = lend
