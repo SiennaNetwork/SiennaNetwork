@@ -1,7 +1,7 @@
 import { TransactionExecutor } from '@hackbg/fadroma'
 import { b64encode } from "@waiting/base64";
 import { TokenType } from './schema/handle_msg.d'
-import { EnigmaUtils } from "secretjs/src/index.ts";
+import { EnigmaUtils } from "secretjs";
 
 export class FactoryTransactions extends TransactionExecutor {
   create_exchange (token_0: TokenType, token_1: TokenType) {

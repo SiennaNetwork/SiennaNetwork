@@ -1,4 +1,4 @@
-import { Migration, Deployment, IChain, IAgent, bold, Console } from '@hackbg/fadroma'
+import { Migration, waitUntilNextBlock, Deployment, IChain, IAgent, bold, Console } from '@hackbg/fadroma'
 
 const console = Console('@sienna/tge/deployVesting')
 
