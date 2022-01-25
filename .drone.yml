@@ -26,27 +26,7 @@ steps:
     - mkdir -p ~/.ssh
     - printenv DRONE_KEY > ~/.ssh/id_rsa
     - chmod 0600 ~/.ssh/id_rsa
-    #
-    # Add git server to known hosts
-    #
     - ssh-keyscan git.sienna.network >> ~/.ssh/known_hosts
-    #
-    # The usual `git submodule update --init --recursive` won't do. Here's why.
-    # 1. The project repo lives on the private forge, and can have
-    #    the correct submodule URLs in its root `.gitmodules` file.
-    # 2. However, some of the public submodules live on GitHub, which
-    #    does not let unauthenticated users clone over SSH, nor does it
-    #    allow the same deploy key to be used across multiple repos.
-    # 3. Those public submodules are also mirrored by the private forge,
-    #    and it is preferable to use those mirrors rather than connect to GitHub.
-    #    Therefore, the `.gitmodules` files of each submodule which has submodules
-    #    need to be edited to point to the private forge URLs, rather than to the
-    #    public GitHub URLs. Otherwise it is impossible to clone the submodules.
-    # 4. Thankfully, there's only one level of this, in fact only one `.gitmodules`
-    #    file needs to be updated.
-    - git submodule update --init
-    - cd deps/fadroma
-    - sed -i -e 's|git@github.com:.\+/|git@git.sienna.network:siennanetwork/|' .gitmodules
     - git submodule update --init
 
   # Rust part ######################################################################################
