@@ -272,3 +272,21 @@ pub fn query_seize_amount(
         })?
     }))
 }
+
+pub fn query_entered_markets(
+    querier: &impl Querier,
+    overseer: ContractLink<HumanAddr>,
+    key: MasterKey,
+    address: HumanAddr
+) -> StdResult<Vec<Market<HumanAddr>>> {
+    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: overseer.address,
+        callback_code_hash: overseer.code_hash,
+        msg: to_binary(&QueryMsg::EnteredMarkets {
+            method: AuthMethod::Internal {
+                key,
+                address
+            }
+        })?,
+    }))
+}

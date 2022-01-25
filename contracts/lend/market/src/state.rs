@@ -14,7 +14,7 @@ use lend_shared::{
         crypto::sha_256,
         Canonize, ContractLink, Decimal256, Humanize, StdError, Uint256,
     },
-    interfaces::market::{BorrowerInfo, Borrower, Config},
+    interfaces::market::{BorrowerInfo, Config},
     core::AuthenticatedUser,
     impl_contract_storage
 };
@@ -34,6 +34,12 @@ pub struct BorrowSnapshot(pub BorrowerInfo);
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct BorrowerId([u8; 32]);
+
+pub struct BorrowerRecord {
+    pub id: Binary,
+    pub address: HumanAddr,
+    pub info: BorrowerInfo
+}
 
 pub struct Global;
 
@@ -156,7 +162,8 @@ impl Global {
 impl Account {
     const NS_BALANCES: &'static [u8] = b"balances";
     const NS_BORROWERS: &'static [u8] = b"borrowers";
-    const NS_ID: &'static [u8] = b"ids";
+    const NS_ID_TO_ADDR: &'static [u8] = b"ids";
+    const NS_ADDR_TO_ID: &'static [u8] = b"addr";
 
     pub fn new<S: Storage, A: Api, Q: Querier>(
         deps: &mut Extern<S, A, Q>,
@@ -165,7 +172,17 @@ impl Account {
         let account = Self(address.canonize(&deps.api)?);
 
         let id = BorrowerId::new(deps, address)?;
-        ns_save(&mut deps.storage, Self::NS_ID, id.as_slice(), &account.0.0)?;
+
+        let is_new_user = ns_load::<CanonicalAddr, S>(
+            &deps.storage,
+            Self::NS_ID_TO_ADDR,
+            id.as_slice()
+        )?.is_none();
+
+        if is_new_user {
+            ns_save(&mut deps.storage, Self::NS_ID_TO_ADDR, id.as_slice(), &account.0.0)?;
+            ns_save(&mut deps.storage, Self::NS_ADDR_TO_ID, account.0.0.as_slice(), &id.0)?;
+        }
 
         Ok(account)
     }
@@ -182,7 +199,7 @@ impl Account {
         id: &Binary
     ) -> StdResult<Self> {
         let result: Option<Binary> =
-            ns_load(storage, Self::NS_ID, id.as_slice())?;
+            ns_load(storage, Self::NS_ID_TO_ADDR, id.as_slice())?;
         
         match result {
             Some(address) => Ok(Self(CanonicalAddr(address))),
@@ -270,11 +287,11 @@ impl AuthenticatedUser for Account {
     }
 }
 
-pub fn load_all_borrowers<S: Storage, A: Api, Q: Querier>(
+pub fn load_borrowers<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     start_after: Option<Binary>,
     limit: Option<u8>
-) -> StdResult<Vec<Borrower>> {
+) -> StdResult<Vec<BorrowerRecord>> {
     let collaterals_bucket: ReadonlyBucket<'_, S, BorrowSnapshot> =
         ReadonlyBucket::new(Account::NS_BORROWERS, &deps.storage);
 
@@ -286,11 +303,13 @@ pub fn load_all_borrowers<S: Storage, A: Api, Q: Querier>(
         .take(limit)
         .map(|elem| {
             let (k, v) = elem?;
-            let id = BorrowerId::try_from(k)?;
+            // TODO: verify that this cannot panic
+            let id = ns_load(&deps.storage, Account::NS_ADDR_TO_ID, k.as_slice())?.unwrap();
 
-            Ok(Borrower {
-                id: id.into(),
-                info: v.0,
+            Ok(BorrowerRecord {
+                id,
+                address: CanonicalAddr::from(k).humanize(&deps.api)?,
+                info: v.0
             })
         })
         .collect()

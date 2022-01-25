@@ -31,9 +31,15 @@ use lend_shared::{
         market::{
             ReceiverCallbackMsg, State, HandleMsg,
             MarketPermissions, AccountInfo, Config,
-            MarketAuth, query_balance, 
+            MarketAuth, Borrower, query_balance, 
         },
-        overseer::{query_can_transfer, query_seize_amount, query_market},
+        overseer::{
+            query_can_transfer,
+            query_seize_amount,
+            query_market,
+            query_account_liquidity,
+            query_entered_markets
+        },
     },
     core::{MasterKey, AuthenticatedUser}
 };
@@ -44,8 +50,8 @@ pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
 pub const MAX_BORROW_RATE: Decimal256 = Decimal256::one();
 
 use state::{
-    Constants, Contracts, Global,
-    Account, TotalBorrows, TotalSupply, BorrowerId
+    Constants, Contracts, Global, BorrowerId,
+    Account, TotalBorrows, TotalSupply, load_borrowers
 };
 use token::calc_exchange_rate;
 use ops::{accrue_interest, accrued_interest_at};
@@ -631,6 +637,44 @@ pub trait Market {
                 interest.total_reserves
             )?
         })
+    }
+
+    #[query]
+    fn borrowers(
+        block: u64,
+        start_after: Option<Binary>,
+        limit: Option<u8>
+    ) -> StdResult<Vec<Borrower>> {
+        let borrowers = load_borrowers(deps, start_after, limit)?;
+        let mut result = Vec::with_capacity(borrowers.len());
+
+        let overseer = Contracts::load_overseer(deps)?;
+        let key = MasterKey::load(&deps.storage)?;
+        
+        for record in borrowers {
+            result.push(Borrower {
+                id: record.id,
+                info: record.info,
+                liquidity: query_account_liquidity(
+                    &deps.querier,
+                    overseer.clone(),
+                    key.clone(),
+                    record.address.clone(),
+                    None,
+                    Some(block),
+                    Uint256::zero(),
+                    Uint256::zero()
+                )?,
+                markets: query_entered_markets(
+                    &deps.querier,
+                    overseer.clone(),
+                    key.clone(),
+                    record.address
+                )?
+            });
+        }
+
+        Ok(result)
     }
 }
 

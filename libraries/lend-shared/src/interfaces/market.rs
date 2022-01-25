@@ -13,6 +13,10 @@ use fadroma::{
 
 use serde::{Deserialize, Serialize};
 
+use crate::interfaces::overseer::{
+    AccountLiquidity,
+    Market as EnteredMarket
+};
 use crate::core::{MasterKey, AuthMethod};
 
 #[interface(component(path = "admin"))]
@@ -123,6 +127,13 @@ pub trait Market {
         method: MarketAuth,
         block: Option<u64>
     ) -> StdResult<AccountInfo>;
+
+    #[query]
+    fn borrowers(
+        block: u64,
+        start_after: Option<Binary>,
+        limit: Option<u8>
+    ) -> StdResult<Vec<Borrower>>;
 }
 
 pub type MarketAuth = AuthMethod<MarketPermissions>;
@@ -166,7 +177,9 @@ pub struct Config {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Borrower {
     pub id: Binary,
-    pub info: BorrowerInfo
+    pub info: BorrowerInfo,
+    pub liquidity: AccountLiquidity,
+    pub markets: Vec<EnteredMarket<HumanAddr>>
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default, JsonSchema)]
