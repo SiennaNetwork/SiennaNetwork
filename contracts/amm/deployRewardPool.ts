@@ -1,7 +1,10 @@
-import { Migration } from '@hackbg/fadroma'
+import { Migration, Console } from '@hackbg/fadroma'
+
 import type { SNIP20Contract } from '@fadroma/snip20'
 import { RewardsContract } from '@sienna/api'
 import { workspace } from '@sienna/settings'
+
+const console = Console('@sienna/amm/deployRewardPool')
 
 export async function deployRewardPool (options: Migration & {
   apiVersion?:  'v2'|'v3'
@@ -16,21 +19,23 @@ export async function deployRewardPool (options: Migration & {
     deployment,
     prefix,
   
-    apiVersion  = 'v3',
-    suffix      = `_${apiVersion}+${timestamp}`,
     lpToken,
-    rewardToken
+    rewardToken,
+    apiVersion  = 'v3',
   } = options
+
+  const tokenInfo = await lpToken.q(admin).tokenInfo()
+  const suffix    = `_${tokenInfo.symbol}_${apiVersion}+${timestamp}`
 
   const contract = new RewardsContract({
     workspace,
     instantiator: admin,
     prefix,
+    name: 'SiennaRewards',
     suffix,
     lpToken,
     rewardToken
   })
-  console.log(contract)
 
   await contract.buildInDocker()
   await contract.uploadAs(admin)

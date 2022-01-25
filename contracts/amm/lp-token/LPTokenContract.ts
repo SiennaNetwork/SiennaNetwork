@@ -12,8 +12,6 @@ export class LPTokenContract extends SNIP20Contract_1_2 {
 
   crate = 'lp-token'
 
-  name = 'LP'
-
   initMsg: InitMsg = {
     name:     "Liquidity Provision Token",
     symbol:   "LPTOKEN",

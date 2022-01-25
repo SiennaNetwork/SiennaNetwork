@@ -37,13 +37,12 @@ export type Outputs = Migration & {
 
 export async function deployVesting (inputs: Inputs): Promise<Outputs> {
 
-  console.log({inputs})
-
   const {
     timestamp,
     chain,
-    admin    = await chain.getAgent(),
-    args     = [],
+    admin,
+    args = [],
+
     schedule = settings.schedule
   } = inputs
 

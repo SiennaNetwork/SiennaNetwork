@@ -1,6 +1,8 @@
-import { Migration, bold, writeFileSync } from '@hackbg/fadroma'
+import { Migration, bold, writeFileSync, Console } from '@hackbg/fadroma'
 import { SNIP20Contract } from '@fadroma/snip20'
 import { FactoryContract } from '@sienna/api'
+
+const console = Console('@sienna/amm/deployLiquidityPool')
 
 export async function deployLiquidityPool (options: Migration & {
   name:    string
@@ -17,10 +19,14 @@ export async function deployLiquidityPool (options: Migration & {
     FACTORY,
   } = options
 
+  console.info(`Deploying liquidity pool ${bold(name)}...`)
+
   const [tokenName0, tokenName1] = name.split('-')
   const token0 = tokens[tokenName0].asCustomToken
   const token1 = tokens[tokenName1].asCustomToken
-  console.log(`\nLiquidity pool ${bold(name)}...`)
+
+  console.info(`- Token 0: ${bold(JSON.stringify(token0))}...`)
+  console.info(`- Token 1: ${bold(JSON.stringify(token1))}...`)
 
   try {
 
@@ -31,13 +37,15 @@ export async function deployLiquidityPool (options: Migration & {
   } catch (e) {
 
     if (e.message.includes("Address doesn't exist in storage")) {
-      console.info(`${bold(`FACTORY.getExchange(${name})`)}: not found (${e.message}), deploying...`)
       const deployed = await FACTORY.createExchange(token0, token1)
-      deployment.save(deployed, `SiennaSwap_${name}.json`)
-      console.info(bold('Deployed.'), deployed)
+      deployment.save(deployed, `SiennaSwap_${name}`)
+      console.info(
+        `Deployed liquidity pool ${deployed.exchange.address} `+
+        ` and LP token ${deployed.lp_token.address}`
+      )
       return deployed
     } else {
-      throw new Error(`${bold(`FACTORY.getExchange(${name})`)}: not found (${e.message})`)
+      throw new Error(`${bold(`Factory::GetExchange(${name})`)}: not found (${e.message})`)
     }
 
   }

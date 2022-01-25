@@ -1,9 +1,12 @@
 import {
-  Migration,
+  MigrationContext,
   IChain, IAgent,
   bold, randomHex, timestamp,
-  writeFileSync
+  writeFileSync,
+  Console
 } from '@hackbg/fadroma'
+
+const console = Console('@sienna/amm/deploySwap')
 
 import type { SNIP20Contract } from '@fadroma/snip20'
 
@@ -28,7 +31,7 @@ import { getSwapTokens } from './getSwapTokens'
 import { deployRewardPool } from './deployRewardPool'
 import { deployLiquidityPool } from './deployLiquidityPool'
 
-export async function deploySwap (inputs: Migration & {
+export async function deploySwap (inputs: MigrationContext & {
   SIENNA?:  SiennaSNIP20Contract
   RPT?:     RPTContract
   settings: { amm: { exchange_settings: any } }
@@ -54,43 +57,26 @@ export async function deploySwap (inputs: Migration & {
 
   const { chainId, isLocalnet, isMainnet } = chain
 
-  // newly deployed contracts
-  // upload them to the chain
+  const options = { workspace, prefix, admin }
+
   const [
-
-    // the factory
+    // only this one will be deployed
     FACTORY,
-
-    // the kinds of contracts that
-    // the factory can instantiate
-    EXCHANGE, 
+    // however all of them must be built, so that
+    // the factory can be given their code ids/hashes
+    EXCHANGE,
     AMMTOKEN,
     LPTOKEN,
-    IDO, 
-    LAUNCHPAD,
-
-  ] = await Promise.all([
-
-    // only this one is being instantiated,
-    // so only it needs the deployment prefix
-    new FactoryContract({ workspace, prefix, admin }),
-
-    // however all of them must be built,
-    // for which they need the source workspace
-    new AMMContract({ workspace }),
-    new AMMSNIP20Contract({ workspace }),
-    new LPTokenContract({ workspace }),
-    new IDOContract({ workspace }),
-    new LaunchpadContract({ workspace })
-
-  ].map(async contract=>{
-    // build and upload each contract
-    contract.workspace = workspace
-    contract.prefix    = prefix
-    contract.agent     = admin
-    await contract.buildInDocker()
-    return contract.uploadAs(admin)
-  }))
+    IDO,
+    LAUNCHPAD
+  ] = await chain.buildAndUpload([
+    new FactoryContract({   ...options }),
+    new AMMContract({       ...options }),
+    new AMMSNIP20Contract({ ...options }),
+    new LPTokenContract({   ...options }),
+    new IDOContract({       ...options }),
+    new LaunchpadContract({ ...options }),
+  ])
 
   const template = contract => ({
     id:        contract.codeId,
@@ -130,13 +116,12 @@ export async function deploySwap (inputs: Migration & {
 
   // 1. Stake SIENNA to earn SIENNA
   const singleSidedStaking = await run(deployRewardPool, {
-    suffix:     '_SIENNA',
     lpToken:     SIENNA,
     rewardToken: SIENNA,
   })
 
   // 2. Add that to the RPT config
-  const rptConfig = [
+  const rptConfig: [string, string][] = [
     [
       singleSidedStaking.address,
       String(BigInt(settings.rewardPairs.SIENNA) * ONE_SIENNA)
@@ -175,7 +160,7 @@ export async function deploySwap (inputs: Migration & {
 
         // 6. Stake LP to earn sienna. 
         const pool = await run(deployRewardPool, {
-          suffix: name,
+          prefix,
           rewardToken: SIENNA,
           lpToken: new LPTokenContract({
             address:  lp_token.address,
@@ -200,6 +185,10 @@ export async function deploySwap (inputs: Migration & {
       `You should use this file as the basis of a multisig transaction.`
     )
   } else {
+    console.info(`Configuring RPT to fund ${bold(String(rptConfig.length))} reward pools:`)
+    for (const [address, amount] of rptConfig) {
+      console.info(`- ${address} ${amount}`)
+    }
     await RPT.tx(admin).configure(rptConfig)
   }
 
