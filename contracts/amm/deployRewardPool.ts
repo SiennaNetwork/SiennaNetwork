@@ -1,4 +1,4 @@
-import { Migration, Console } from '@hackbg/fadroma'
+import { Migration, Console, timestamp } from '@hackbg/fadroma'
 
 import type { SNIP20Contract } from '@fadroma/snip20'
 import { RewardsContract } from '@sienna/api'
@@ -14,7 +14,6 @@ export async function deployRewardPool (options: Migration & {
 }) {
 
   const {
-    timestamp,
     admin,
     deployment,
     prefix,
@@ -25,7 +24,7 @@ export async function deployRewardPool (options: Migration & {
   } = options
 
   const tokenInfo = await lpToken.q(admin).tokenInfo()
-  const suffix    = `_${tokenInfo.symbol}_${apiVersion}+${timestamp}`
+  const suffix    = `_${tokenInfo.symbol}_${apiVersion}+${timestamp()}`
 
   const contract = new RewardsContract({
     workspace,
