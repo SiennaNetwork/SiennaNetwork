@@ -240,7 +240,13 @@ impl Account {
         let mut borrower_bucket: Bucket<'_, S, BorrowSnapshot> =
             Bucket::new(Self::NS_BORROWERS, storage);
 
-        borrower_bucket.save(&self.0.as_slice(), borrow_info)
+        if borrow_info.0.principal.is_zero() {
+            borrower_bucket.remove(&self.0.as_slice());
+
+            Ok(())
+        } else {
+            borrower_bucket.save(&self.0.as_slice(), borrow_info)
+        }
     }
 
     pub fn get_borrow_snapshot(&self, storage: &impl Storage) -> StdResult<BorrowSnapshot> {
