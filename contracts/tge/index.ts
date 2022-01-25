@@ -1,2 +1,2 @@
 export * from './build'
-export * from './deployVesting'
+export * from './deploy'

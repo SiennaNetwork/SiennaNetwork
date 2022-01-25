@@ -1,6 +1,6 @@
 import { Migration, waitUntilNextBlock, Deployment, IChain, IAgent, bold, Console } from '@hackbg/fadroma'
 
-const console = Console('@sienna/tge/deployVesting')
+const console = Console('@sienna/tge/deploy')
 
 import type { ScheduleFor_HumanAddr } from '@sienna/mgmt/schema/handle.d'
 import {
@@ -10,8 +10,6 @@ import {
 } from '@sienna/api'
 
 import settings, { workspace } from '@sienna/settings'
-
-import type { SwapOptions } from './deploySwap'
 
 export type Inputs = Migration & {
 
@@ -37,7 +35,7 @@ export type Outputs = Migration & {
 
 }
 
-export async function deployVesting (inputs: Inputs): Promise<Outputs> {
+export async function deployTGE (inputs: Inputs): Promise<Outputs> {
 
   const {
     timestamp,

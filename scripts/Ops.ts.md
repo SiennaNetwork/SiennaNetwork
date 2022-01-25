@@ -53,36 +53,34 @@ Fadroma.command('select', async ({ chain, admin, args: [ id ] }) => {
 
 ## Deploy contracts
 
-### Deploy all contracts
+### Making a new full deployment
 
 This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 
 ```typescript
 Fadroma.command('deploy all',
-  deployVesting,
-  deploySwap,
+  deployTGE,
+  deployAMM,
   ({chain})=>chain.deployments.printActive())
 ```
 
-### Deploy the TGE
+### Deploy just the TGE
 
 This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 
 ```typescript
-import { deployVesting } from '@sienna/tge'
-Fadroma.command('deploy vesting',
-  deployVesting)
+import { deployTGE } from '@sienna/tge'
+Fadroma.command('deploy tge', deployTGE)
 ```
 
-### Deploy the AMM
+### Add the AMM and Rewards to the TGE
 
 This command requires a [selected deployment](#select-the-active-deployment),
 to which it adds the contracts for Sienna Swap.
 
 ```typescript
-import { deploySwap } from '@sienna/amm'
-Fadroma.command('deploy swap',
-  deploySwap)
+import { deployAMM } from '@sienna/amm'
+Fadroma.command('deploy amm', deployAMM)
 ```
 
 ### Deploying Rewards v2 and v3 side-by-side
@@ -102,9 +100,9 @@ to which it adds the contracts for Sienna Swap to which it adds a Factory instan
 built from `main`.
 
 ```typescript
-import { deployLegacyFactory } from '@sienna/amm'
+import { deployAMMFactoryLegacy } from '@sienna/amm'
 Fadroma.command('deploy legacy-factory',
-  deployLegacyFactory)
+  deployAMMFactoryLegacy)
 ```
 
 ## Upgrades and migrations
@@ -112,9 +110,9 @@ Fadroma.command('deploy legacy-factory',
 ### Migrating to `@sienna/factory v2.0.0` + `@sienna/rewards v3.0.0`
 
 ```typescript
-import { migrateFactoryAndRewards } from '@sienna/amm'
+import { upgradeFactoryAndRewards } from '@sienna/amm'
 Fadroma.command('migrate factory-and-rewards',
-  migrateFactoryAndRewards)
+  upgradeFactoryAndRewards)
 ```
 
 ### Replacing a single reward pool in a deployment with an updated version
