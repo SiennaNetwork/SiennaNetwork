@@ -41,3 +41,7 @@ module.exports.workspace = dirname(__dirname)
 module.exports.abs = (...args) => resolve(module.exports.workspace, ...args)
 
 module.exports.schedule = JSON.parse(readFileSync(resolve(__dirname, 'schedule.json'), 'utf8'))
+
+const SIENNA_DECIMALS = module.exports.SIENNA_DECIMALS = 18
+
+const ONE_SIENNA = module.exports.ONE_SIENNA = BigInt(`1${[...Array(SIENNA_DECIMALS)].map(()=>'0').join('')}`)

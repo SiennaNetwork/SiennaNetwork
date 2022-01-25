@@ -24,32 +24,35 @@ export type RPTAmount    = string
 export type RPTConfig    = [RPTRecipient, RPTAmount][]
 export type RewardsAPIVersion = 'v2'|'v3'
 
-export async function deployRewards (options: Migration & {
+type Inputs = Migration & {
   apiVersion?: 'v2'|'v3'
   suffix?:     string
   split?:      number
   ref?:        string
-}): Promise<{
+}
+
+type Outputs = {
   deployedContracts: RewardsContract[]
   rptConfig:         RPTConfig
-}> {
+}
+
+export async function deployRewards (options: Inputs): Promise<Outputs> {
 
   const {
-    run,
-
     chain,
     admin,
+    deployment,
     prefix,
+    run,
 
     suffix     = '',
     apiVersion = 'v3',
     split      = 1.0,
     ref        = 'HEAD',
-    getContract,
   } = options
 
-  const SIENNA  = getContract(SiennaSNIP20Contract, 'SiennaSNIP20',     admin)
-  const FACTORY = getContract(FactoryContract,      'SiennaAMMFactory', admin)
+  const SIENNA  = deployment.getContract(SiennaSNIP20Contract, 'SiennaSNIP20',     admin)
+  const FACTORY = deployment.getContract(FactoryContract,      'SiennaAMMFactory', admin)
   const REWARDS = new RewardsContract({ prefix, admin, ref })
   await chain.buildAndUpload([REWARDS])
 

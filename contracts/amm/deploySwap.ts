@@ -4,11 +4,10 @@ import {
   bold, randomHex, timestamp,
   writeFileSync
 } from '@hackbg/fadroma'
-import type { SNIP20Contract } from '@fadroma/snip20'
-import settings from '@sienna/settings'
 
-const SIENNA_DECIMALS = 18
-const ONE_SIENNA = BigInt(`1${[...Array(SIENNA_DECIMALS)].map(()=>'0').join('')}`)
+import type { SNIP20Contract } from '@fadroma/snip20'
+
+import getSettings, { workspace, SIENNA_DECIMALS, ONE_SIENNA } from '@sienna/settings'
 
 import {
   FactoryContract,
@@ -29,60 +28,109 @@ import { getSwapTokens } from './getSwapTokens'
 import { deployRewardPool } from './deployRewardPool'
 import { deployLiquidityPool } from './deployLiquidityPool'
 
-export async function deploySwap (migration: Migration) {
+export async function deploySwap (inputs: Migration & {
+  SIENNA?:  SiennaSNIP20Contract
+  RPT?:     RPTContract
+  settings: { amm: { exchange_settings: any } }
+}) {
 
   const {
-    workspace,
     chain,
     admin,
-    prefix
-  } = migration
+    deployment,
+    prefix,
+    run,
 
-  const deployment = chain.deployments.active
+    // expected contracts
+    // get them from the deployment
+    // or from the previous stage (deployVesting.ts)
+    SIENNA = new SiennaSNIP20Contract().from(deployment),
+    RPT    = new RPTContract().from(deployment),
 
-  const SIENNA = deployment.getContract(SiennaSNIP20Contract, 'SiennaSNIP20', admin),
-        RPT    = deployment.getContract(RPTContract,          'SiennaRPT',    admin)
+    // hardcoded initial settings for this chain
+    settings = getSettings(chain.chainId)
 
-  const EXCHANGE  = new AMMContract({ ...migration })
-  await chain.buildAndUpload([EXCHANGE])
+  } = inputs
 
-  const AMMTOKEN  = new AMMSNIP20Contract({ ...migration })
-  const LPTOKEN   = new LPTokenContract({   ...migration })
-  const IDO       = new IDOContract({       ...migration })
-  const LAUNCHPAD = new LaunchpadContract({ ...migration })
-  await buildAndUpload([AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD])
+  const { chainId, isLocalnet, isMainnet } = chain
 
-  const FACTORY = new FactoryContract({
-    ...migration,
-    exchange_settings: settings(chain.chainId).amm.exchange_settings,
-    contracts: {
-      snip20_contract:    AMMTOKEN,
-      pair_contract:      EXCHANGE,
-      lp_token_contract:  LPTOKEN,
-      ido_contract:       IDO,
-      launchpad_contract: LAUNCHPAD,
-    }
+  // newly deployed contracts
+  // upload them to the chain
+  const [
+
+    // the factory
+    FACTORY,
+
+    // the kinds of contracts that
+    // the factory can instantiate
+    EXCHANGE, 
+    AMMTOKEN,
+    LPTOKEN,
+    IDO, 
+    LAUNCHPAD,
+
+  ] = await Promise.all([
+
+    // only this one is being instantiated,
+    // so only it needs the deployment prefix
+    new FactoryContract({ workspace, prefix, admin }),
+
+    // however all of them must be built,
+    // for which they need the source workspace
+    new AMMContract({ workspace }),
+    new AMMSNIP20Contract({ workspace }),
+    new LPTokenContract({ workspace }),
+    new IDOContract({ workspace }),
+    new LaunchpadContract({ workspace })
+
+  ].map(async contract=>{
+    // build and upload each contract
+    contract.workspace = workspace
+    contract.prefix    = prefix
+    contract.agent     = admin
+    await contract.buildInDocker()
+    return contract.uploadAs(admin)
+  }))
+
+  const template = contract => ({
+    id:        contract.codeId,
+    code_hash: contract.codeHash,
   })
 
-  // Deploy the factory
+  // configure factory: set supported contracts
+  FACTORY.setContracts({
+    snip20_contract:    template(AMMTOKEN),
+    pair_contract:      template(EXCHANGE),
+    lp_token_contract:  template(LPTOKEN),
+    ido_contract:       template(IDO),
+    launchpad_contract: template(LAUNCHPAD),
+  })
+
+  // configure factory: set fees etc
+  const { amm: { exchange_settings } } = settings
+  FACTORY.initMsg.exchange_settings = exchange_settings
+
+  // deploy the factory
   await FACTORY.instantiateOrExisting(deployment.contracts['SiennaAMMFactory'])
 
-  // Obtain a list of token addr/hash pairs for creating liquidity pools
+  // obtain a list of token addr/hash pairs for creating liquidity pools
   const tokens: Record<string, SNIP20Contract> = { SIENNA }
-  if (chain.isLocalnet) {
+  if (isLocalnet) {
     // On localnet, placeholder tokens need to be deployed.
-    Object.assign(tokens, await deployPlaceholderTokens({ ...migration }))
+    console.info(`Running on ${bold('localnet')}, deploying placeholder tokens...`)
+    Object.assign(tokens, await run(deployPlaceholderTokens))
   } else {
     // On testnet and mainnet, interoperate with preexisting token contracts.
-    Object.assign(tokens, getSwapTokens(settings(chain.chainId).swapTokens))
+    console.info(`Not running on localnet, using tokens from config:`)
+    Object.assign(tokens, getSwapTokens(settings.swapTokens))
+    console.debug('Tokens', tokens)
   }
 
   // Deploy pools and add them to the RPT configuration.
 
   // 1. Stake SIENNA to earn SIENNA
-  const singleSidedStaking = await deployRewardPool({
-    ...migration,
-    suffix:     'SIENNA',
+  const singleSidedStaking = await run(deployRewardPool, {
+    suffix:     '_SIENNA',
     lpToken:     SIENNA,
     rewardToken: SIENNA,
   })
@@ -91,16 +139,16 @@ export async function deploySwap (migration: Migration) {
   const rptConfig = [
     [
       singleSidedStaking.address,
-      String(BigInt(settings(chain.chainId).rewardPairs.SIENNA) * ONE_SIENNA)
+      String(BigInt(settings.rewardPairs.SIENNA) * ONE_SIENNA)
     ]
   ]
 
   // 3. If there are any initial swap pairs defined
-  const swapPairs = settings(chain.chainId).swapPairs
+  const swapPairs = settings.swapPairs
   if (swapPairs.length > 0) {
 
     const existingExchanges = await FACTORY.listExchanges()
-    const rewardPairs = settings(chain.chainId).rewardPairs
+    const rewardPairs = settings.rewardPairs
     const liquidityPoolOptions = {
       admin,
       FACTORY,
@@ -144,7 +192,7 @@ export async function deploySwap (migration: Migration) {
 
   }
 
-  if (chain.isMainnet) {
+  if (isMainnet) {
     const rptConfigPath = deployment.resolve(`RPTConfig.json`)
     writeFileSync(rptConfigPath, JSON.stringify({config: rptConfig}, null, 2), 'utf8')
     console.info(

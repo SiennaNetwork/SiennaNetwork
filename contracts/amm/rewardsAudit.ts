@@ -10,12 +10,11 @@ import {
 
 export const rewardsAudit = {
 
-  async ['deploy'] (bonding: number) {
+  async ['deploy'] ({ chain, admin, args: [ bonding ] }) {
     bonding = Number(bonding)
     if (isNaN(bonding) || bonding < 0) {
       throw new Error('pass a non-negative bonding period to configure (in seconds)')
     }
-    const {chain, admin} = await init(process.env.CHAIN_NAME)
     const prefix  = `AUDIT-${timestamp()}`
     const SIENNA  = new SiennaSNIP20Contract({ prefix, admin })
     const LPTOKEN = new LPTokenContract({ prefix, admin, name: 'AUDIT' })
@@ -23,7 +22,7 @@ export const rewardsAudit = {
       prefix, admin, name: 'AUDIT',
       lpToken: LPTOKEN, rewardToken: SIENNA
     })
-    await buildAndUpload([SIENNA, LPTOKEN, REWARDS])
+    await chain.buildAndUpload([SIENNA, LPTOKEN, REWARDS])
     await SIENNA.instantiate()
     await LPTOKEN.instantiate()
     await REWARDS.instantiate()
@@ -36,14 +35,13 @@ export const rewardsAudit = {
     })
   },
 
-  async ['epoch'] (amount: string|number) {
+  async ['epoch'] ({ chain, admin, args: [amount] }) {
     amount = Number(amount)
     if (isNaN(amount) || amount < 0) {
       throw new Error('pass a non-negative amount of rewards to vest for this epoch')
     }
     amount = String(amount)
 
-    const {chain, admin} = await init(process.env.CHAIN_NAME)
     const instance = chain.deployments.active
     const SIENNA   = instance.getContract(SiennaSNIP20Contract, 'SiennaSNIP20', admin)
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
@@ -56,8 +54,7 @@ export const rewardsAudit = {
     console.info(`Started epoch ${bold(String(epoch))} with reward budget: ${bold(amount)}`)
   },
 
-  async ['status'] (identity: string) {
-    const {chain, admin} = await init(process.env.CHAIN_NAME)
+  async ['status'] ({ chain, admin, args: [string] }) {
     const instance = chain.deployments.active
     const REWARDS  = instance.getContract(RewardsContract, 'SiennaRewards_AUDIT_Pool', admin)
     if (identity) {
@@ -68,8 +65,7 @@ export const rewardsAudit = {
     }
   },
 
-  async ['deposit'] (user: string, amount: string|number) {
-    const {chain, admin} = await init(process.env.CHAIN_NAME)
+  async ['deposit'] ({ chain, admin, args: [ user, amount ] }) {
     if (!user) {
       chain.printIdentities()
       throw new Error('pass an identity to deposit')
@@ -92,8 +88,7 @@ export const rewardsAudit = {
     console.info(`Deposited ${bold(amount)} LPTOKEN from ${bold(agent.address)} (${user})`)
   },
 
-  async ['withdraw'] (user: string, amount: string|number) {
-    const {chain, admin} = await init(process.env.CHAIN_NAME)
+  async ['withdraw'] ({ chain, admin, args: [ user, amount ] }) {
     if (!user) {
       chain.printIdentities()
       throw new Error('pass an identity to withdraw')
@@ -113,8 +108,7 @@ export const rewardsAudit = {
     console.info(`Withdrew ${bold(amount)} LPTOKEN from ${bold(agent.address)} (${user})`)
   },
 
-  async ['claim'] (user: string) {
-    const {chain, admin} = await init(process.env.CHAIN_NAME)
+  async ['claim'] ({ chain, admin, args: [ user ]}) {
     if (!user) {
       chain.printIdentities()
       throw new Error('pass an identity to claim')
@@ -130,11 +124,9 @@ export const rewardsAudit = {
   },
 
   async ['enable-migration'] () {
-    const {chain, admin} = await init(process.env.CHAIN_NAME)
   },
 
   async ['migrate'] () {
-    const {chain, admin} = await init(process.env.CHAIN_NAME)
   },
 
 }

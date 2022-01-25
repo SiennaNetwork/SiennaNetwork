@@ -58,14 +58,13 @@ Fadroma.command('select', async ({ chain, admin, args: [ id ] }) => {
 This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 
 ```typescript
-Fadroma.command('deploy all',
-  async ({ chain, admin, args = [] }) => {
-    const [ prefix = timestamp() ] = args
-    const vesting = await deployVesting({ chain, admin, prefix })
-    await chain.deployments.select(vesting.prefix)
-    await deploySwap(vesting)
-    chain.deployments.printActive()
-  })
+Fadroma.command('deploy all', async (inputs) => {
+  const vesting = await deployVesting(inputs)
+  const { chain } = inputs
+  await chain.deployments.select(vesting.prefix)
+  await deploySwap(vesting)
+  chain.deployments.printActive()
+})
 ```
 
 ### Deploy the TGE
@@ -75,12 +74,7 @@ This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 ```typescript
 import { deployVesting } from '@sienna/tge'
 Fadroma.command('deploy vesting',
-  async ({ chain, admin, args = [] }) => {
-    const [ prefix = timestamp() ] = args
-    const vesting = await deployVesting({ chain, admin, prefix })
-    await chain.deployments.select(vesting.prefix)
-    chain.deployments.printActive()
-  })
+  deployVesting)
 ```
 
 ### Deploy the AMM

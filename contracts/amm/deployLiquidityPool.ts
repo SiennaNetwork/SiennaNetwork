@@ -9,26 +9,22 @@ export async function deployLiquidityPool (options: Migration & {
 }) {
 
   const {
-    saveReceipt,
+    deployment,
+    admin,
 
     name,
     tokens,
     FACTORY,
-    admin,
   } = options
 
   const [tokenName0, tokenName1] = name.split('-')
-  const token0 = tokens[tokenName0]
-  const token1 = tokens[tokenName1]
+  const token0 = tokens[tokenName0].asCustomToken
+  const token1 = tokens[tokenName1].asCustomToken
   console.log(`\nLiquidity pool ${bold(name)}...`)
 
   try {
 
-    const exchange = await FACTORY.getExchange(
-      token0.asCustomToken,
-      token1.asCustomToken,
-      admin
-    )
+    const exchange = await FACTORY.getExchange(token0, token1, admin)
     console.info(`${bold(name)}: Already exists.`)
     return exchange
 
@@ -36,11 +32,8 @@ export async function deployLiquidityPool (options: Migration & {
 
     if (e.message.includes("Address doesn't exist in storage")) {
       console.info(`${bold(`FACTORY.getExchange(${name})`)}: not found (${e.message}), deploying...`)
-      const deployed = await FACTORY.createExchange(
-        token0.asCustomToken,
-        token1.asCustomToken
-      )
-      saveReceipt(`SiennaSwap_${name}.json`, deployed)
+      const deployed = await FACTORY.createExchange(token0, token1)
+      deployment.save(deployed, `SiennaSwap_${name}.json`)
       console.info(bold('Deployed.'), deployed)
       return deployed
     } else {
