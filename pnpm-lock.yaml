@@ -5,11 +5,11 @@ importers:
   .:
     specifiers:
       '@hackbg/fadroma': workspace:./deps/fadroma
-      '@hackbg/ganesha': workspace:./deps/ganesha
+      '@hackbg/ganesha': ^1
       typescript: ^4.4.4
     dependencies:
       '@hackbg/fadroma': link:deps/fadroma
-      '@hackbg/ganesha': link:deps/ganesha
+      '@hackbg/ganesha': 1.0.0
       typescript: 4.5.5
 
   contracts/amm:
@@ -36,23 +36,21 @@ importers:
     specifiers:
       '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/settings': workspace:^1.0.0
-      secretjs: workspace:*
     dependencies:
       '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/settings': link:../../../settings
-      secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/amm/factory:
     specifiers:
       '@hackbg/fadroma': workspace:../../../deps/fadroma
-      '@sienna/amm-snip20': workspace:^0.1.0
-      '@sienna/exchange': workspace:^1.0.0
-      '@sienna/ido': workspace:^0.1.0
-      '@sienna/launchpad': workspace:^0.1.0
-      '@sienna/lp-token': workspace:^1.0.0
-      '@sienna/settings': workspace:^1.0.0
+      '@sienna/amm-snip20': workspace:^1
+      '@sienna/exchange': workspace:^1
+      '@sienna/ido': workspace:^1
+      '@sienna/launchpad': workspace:^1
+      '@sienna/lp-token': workspace:^1
+      '@sienna/settings': workspace:^1
       '@waiting/base64': ^4.2.9
-      secretjs: workspace:*
+      secretjs: workspace:../../../deps/fadroma/deps/scrt-1.2/
     dependencies:
       '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/amm-snip20': link:../amm-snip20
@@ -62,36 +60,32 @@ importers:
       '@sienna/lp-token': link:../lp-token
       '@sienna/settings': link:../../../settings
       '@waiting/base64': 4.2.9
-      secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: link:../../../deps/fadroma/deps/scrt-1.2
 
   contracts/amm/ido:
     specifiers:
       '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/settings': workspace:^1.0.0
-      secretjs: workspace:*
     dependencies:
       '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/settings': link:../../../settings
-      secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/amm/launchpad:
     specifiers:
       '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/settings': workspace:^1.0.0
-      secretjs: workspace:*
     dependencies:
       '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/settings': link:../../../settings
-      secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/amm/lp-token:
     specifiers:
       '@fadroma/snip20': workspace:*
-      '@hackbg/tools': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/settings': workspace:^1.0.0
     dependencies:
       '@fadroma/snip20': link:../../../deps/fadroma/crates/fadroma-snip20-impl
-      '@hackbg/tools': link:../../../deps/ganesha/deps/toolbox/tools
+      '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/settings': link:../../../settings
 
   contracts/amm/rewards:
@@ -100,23 +94,19 @@ importers:
       '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/lp-token': workspace:^1.0.0
       '@sienna/settings': workspace:^1.0.0
-      secretjs: workspace:*
     dependencies:
       '@fadroma/snip20': link:../../../deps/fadroma/crates/fadroma-snip20-impl
       '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/lp-token': link:../lp-token
       '@sienna/settings': link:../../../settings
-      secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/amm/router:
     specifiers:
       '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/settings': workspace:^1.0.0
-      secretjs: workspace:*
     dependencies:
       '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/settings': link:../../../settings
-      secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/lend:
     specifiers:
@@ -171,33 +161,29 @@ importers:
       '@fadroma/snip20': workspace:*
       '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/settings': workspace:^1.0.0
-      secretjs: workspace:*
     dependencies:
       '@fadroma/snip20': link:../../../deps/fadroma/crates/fadroma-snip20-impl
       '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/settings': link:../../../settings
-      secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/tge/rpt:
     specifiers:
       '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/mgmt': workspace:^2.0.0
       '@sienna/settings': workspace:^1.0.0
-      secretjs: workspace:*
     dependencies:
       '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/mgmt': link:../mgmt
       '@sienna/settings': link:../../../settings
-      secretjs: link:../../../deps/fadroma/deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   contracts/tge/snip20-sienna:
     specifiers:
       '@fadroma/snip20': workspace:*
-      '@hackbg/tools': workspace:*
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/settings': workspace:^1.0.0
     dependencies:
       '@fadroma/snip20': link:../../../deps/fadroma/crates/fadroma-snip20-impl
-      '@hackbg/tools': link:../../../deps/ganesha/deps/toolbox/tools
+      '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/settings': link:../../../settings
 
   contracts/tge/wrapped:
@@ -252,8 +238,8 @@ importers:
       '@fadroma/scrt': workspace:*
       '@fadroma/scrt-1.0': workspace:*
       '@fadroma/scrt-1.2': workspace:*
-      '@hackbg/ganesha': workspace:*
-      '@hackbg/komandi': workspace:*
+      '@hackbg/ganesha': ^1
+      '@hackbg/komandi': ^2
       '@types/node': ^16.11.19
       bignumber.js: ^9.0.2
       typedoc: ^0.21.9
@@ -263,11 +249,11 @@ importers:
       '@fadroma/scrt': link:packages/scrt
       '@fadroma/scrt-1.0': link:packages/scrt-1.0
       '@fadroma/scrt-1.2': link:packages/scrt-1.2
-      '@hackbg/komandi': link:../ganesha/deps/toolbox/komandi
+      '@hackbg/komandi': 2.0.0
       '@types/node': 16.11.21
       bignumber.js: 9.0.2
     devDependencies:
-      '@hackbg/ganesha': link:../ganesha
+      '@hackbg/ganesha': 1.0.0
       typedoc: 0.21.9_typescript@4.5.5
       typescript: 4.5.5
 
@@ -276,239 +262,12 @@ importers:
       '@fadroma/scrt': workspace:*
       '@fadroma/scrt-1.0': workspace:*
       '@fadroma/scrt-1.2': workspace:*
-      '@hackbg/tools': workspace:*
+      '@hackbg/tools': ^1
     dependencies:
       '@fadroma/scrt': link:../../packages/scrt
       '@fadroma/scrt-1.0': link:../../packages/scrt-1.0
       '@fadroma/scrt-1.2': link:../../packages/scrt-1.2
-      '@hackbg/tools': link:../../../ganesha/deps/toolbox/tools
-
-  deps/fadroma/deps/ganesha:
-    specifiers:
-      '@ganesha/node': workspace:^2
-      '@ganesha/node-legacy': workspace:^1
-      '@hackbg/komandi': workspace:./deps/toolbox/komandi
-      '@types/node': latest
-      cross-spawn: ^7.0.3
-      tap: ^15.0.9
-      vite: ^2.7.6
-      vsce: latest
-    dependencies:
-      '@ganesha/node': link:../../../ganesha/src/node
-      '@ganesha/node-legacy': link:../../../ganesha/src/node-legacy
-      '@types/node': 17.0.12
-      cross-spawn: 7.0.3
-    devDependencies:
-      '@hackbg/komandi': link:deps/toolbox/komandi
-      tap: 15.1.6_typescript@4.5.5
-      vite: 2.7.13
-      vsce: 2.6.4
-
-  deps/fadroma/deps/ganesha/deps/toolbox/forkers:
-    specifiers:
-      '@types/node': latest
-      '@types/zen-observable': ^0.8.3
-      typescript: latest
-      zen-observable: ^0.8.15
-    dependencies:
-      '@types/zen-observable': 0.8.3
-      zen-observable: 0.8.15
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/fadroma/deps/ganesha/deps/toolbox/kabinet:
-    specifiers:
-      '@types/node': latest
-      mkdirp: ^1.0.4
-      rimraf: ^3.0.2
-      typescript: latest
-    dependencies:
-      mkdirp: 1.0.4
-      rimraf: 3.0.2
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/fadroma/deps/ganesha/deps/toolbox/komandi:
-    specifiers:
-      '@types/node': latest
-      typescript: latest
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/fadroma/deps/ganesha/deps/toolbox/konzola:
-    specifiers:
-      '@types/node': latest
-      colors: ^1.4.0
-      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      table: ^6.6.0
-      typescript: latest
-    dependencies:
-      colors: 1.4.0
-      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      table: 6.8.0
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/fadroma/deps/ganesha/deps/toolbox/tools:
-    specifiers:
-      '@hackbg/kabinet': workspace:*
-      '@hackbg/komandi': workspace:*
-      '@hackbg/konzola': workspace:*
-      '@types/node': latest
-      colors: ^1.4.0
-      dockerode: ^3.3.0
-      exponential-backoff: ^3.1.0
-      mkdirp: ^1.0.4
-      open: ^8.0.2
-      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: ^2.4.1
-      recursive-copy: ^2.0.13
-      rimraf: ^3.0.2
-      signal-exit: ^3.0.3
-      symlink-dir: ^5.0.1
-      table: ^6.6.0
-      tmp: ^0.2.1
-      typescript: latest
-      wait-port: ^0.2.9
-    dependencies:
-      '@hackbg/kabinet': link:../../../../../../ganesha/deps/toolbox/kabinet
-      '@hackbg/komandi': link:../../../../../../ganesha/deps/toolbox/komandi
-      '@hackbg/konzola': link:../../../../../../ganesha/deps/toolbox/konzola
-      colors: 1.4.0
-      dockerode: 3.3.1
-      exponential-backoff: 3.1.0
-      mkdirp: 1.0.4
-      open: 8.4.0
-      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: 2.4.2
-      recursive-copy: 2.0.13
-      rimraf: 3.0.2
-      signal-exit: 3.0.6
-      symlink-dir: 5.0.1
-      table: 6.8.0
-      tmp: 0.2.1
-      wait-port: 0.2.9
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/fadroma/deps/ganesha/src/core:
-    specifiers:
-      joycon: ^3.0.1
-      jsonc-parser: ^3.0.0
-    dependencies:
-      joycon: 3.1.1
-      jsonc-parser: 3.0.0
-
-  deps/fadroma/deps/ganesha/src/node:
-    specifiers:
-      '@ganesha/core': workspace:*
-      front-matter: ^4.0.2
-      joycon: ^3.0.1
-      jsonc-parser: ^3.0.0
-      source-map-support: ^0.5.20
-    dependencies:
-      '@ganesha/core': link:../../../../../ganesha/src/core
-      front-matter: 4.0.2
-      joycon: 3.1.1
-      jsonc-parser: 3.0.0
-      source-map-support: 0.5.21
-
-  deps/fadroma/deps/ganesha/src/node-legacy:
-    specifiers:
-      '@ganesha/core': workspace:*
-      front-matter: ^4.0.2
-      joycon: ^3.0.1
-      jsonc-parser: ^3.0.0
-      pirates: ^4.0.1
-      source-map-support: ^0.5.20
-    dependencies:
-      '@ganesha/core': link:../../../../../ganesha/src/core
-      front-matter: 4.0.2
-      joycon: 3.1.1
-      jsonc-parser: 3.0.0
-      pirates: 4.0.5
-      source-map-support: 0.5.21
-
-  deps/fadroma/deps/ganesha/src/rollup:
-    specifiers:
-      '@ganesha/core': workspace:*
-    dependencies:
-      '@ganesha/core': link:../../../../../ganesha/src/core
-
-  deps/fadroma/deps/ganesha/src/tsc:
-    specifiers:
-      '@ganesha/core': workspace:*
-      '@ganesha/node': workspace:*
-    dependencies:
-      '@ganesha/core': link:../../../../../ganesha/src/core
-      '@ganesha/node': link:../../../../../ganesha/src/node
-
-  deps/fadroma/deps/ganesha/src/vsc:
-    specifiers:
-      typescript: latest
-      vsce: latest
-    devDependencies:
-      typescript: 4.5.5
-      vsce: 2.6.4
-
-  deps/fadroma/deps/ganesha/src/vsc/client:
-    specifiers:
-      '@ganesha/vscode-shared': workspace:*
-      '@types/vscode': latest
-      vscode-languageclient: ^7.1.0-next.4
-    dependencies:
-      '@ganesha/vscode-shared': link:../../../../../../ganesha/src/vsc/shared
-      vscode-languageclient: 7.1.0-next.5
-    devDependencies:
-      '@types/vscode': 1.63.1
-
-  deps/fadroma/deps/ganesha/src/vsc/server:
-    specifiers:
-      '@ganesha/core': workspace:*
-      '@ganesha/vscode-shared': workspace:*
-      fast-glob: ^3.2.7
-      vscode-languageserver: ^8.0.0-next.1
-      vscode-languageserver-textdocument: ^1.0.1
-      vscode-typescript-languageservice: ^0.27.7
-      vscode-uri: ^3.0.2
-    dependencies:
-      '@ganesha/core': link:../../../../../../ganesha/src/core
-      '@ganesha/vscode-shared': link:../../../../../../ganesha/src/vsc/shared
-      fast-glob: 3.2.11
-      vscode-languageserver: 8.0.0-next.6
-      vscode-languageserver-textdocument: 1.0.3
-      vscode-typescript-languageservice: 0.27.25
-      vscode-uri: 3.0.3
-
-  deps/fadroma/deps/ganesha/src/vsc/shared:
-    specifiers:
-      typescript: latest
-    devDependencies:
-      typescript: 4.5.5
-
-  deps/fadroma/deps/ganesha/test:
-    specifiers:
-      '@ganesha/core': workspace:*
-      '@ganesha/node': workspace:*
-      '@ganesha/rollup': workspace:*
-      mkdirp: ^1.0.4
-      tap: ^15.0.9
-      vite: ^2.7.6
-    devDependencies:
-      '@ganesha/core': link:../../../../ganesha/src/core
-      '@ganesha/node': link:../../../../ganesha/src/node
-      '@ganesha/rollup': link:../../../../ganesha/src/rollup
-      mkdirp: 1.0.4
-      tap: 15.1.6_typescript@4.5.5
-      vite: 2.7.13
-
-  deps/fadroma/deps/ganesha/test/examples/example:
-    specifiers: {}
+      '@hackbg/tools': 1.0.0
 
   deps/fadroma/deps/scrt-1.0:
     specifiers:
@@ -892,130 +651,32 @@ importers:
       '@types/q': 1.5.4
       readonly-date: 1.0.0
 
-  deps/fadroma/deps/toolbox/forkers:
-    specifiers:
-      '@types/node': latest
-      '@types/zen-observable': ^0.8.3
-      typescript: latest
-      zen-observable: ^0.8.15
-    dependencies:
-      '@types/zen-observable': 0.8.3
-      zen-observable: 0.8.15
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/fadroma/deps/toolbox/kabinet:
-    specifiers:
-      '@types/node': latest
-      mkdirp: ^1.0.4
-      rimraf: ^3.0.2
-      typescript: latest
-    dependencies:
-      mkdirp: 1.0.4
-      rimraf: 3.0.2
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/fadroma/deps/toolbox/komandi:
-    specifiers:
-      '@types/node': latest
-      typescript: latest
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/fadroma/deps/toolbox/konzola:
-    specifiers:
-      '@types/node': latest
-      '@types/prettyjson': ^0.0.30
-      colors: ^1.4.0
-      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      table: ^6.6.0
-      typescript: latest
-    dependencies:
-      '@types/prettyjson': 0.0.30
-      colors: 1.4.0
-      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      table: 6.8.0
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/fadroma/deps/toolbox/tools:
-    specifiers:
-      '@hackbg/kabinet': workspace:*
-      '@hackbg/komandi': workspace:*
-      '@hackbg/konzola': workspace:*
-      '@types/mkdirp': ^1.0.2
-      '@types/node': latest
-      '@types/rimraf': ^3.0.2
-      colors: ^1.4.0
-      dockerode: ^3.3.0
-      exponential-backoff: ^3.1.0
-      mkdirp: ^1.0.4
-      open: ^8.0.2
-      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: ^2.4.1
-      recursive-copy: ^2.0.13
-      rimraf: ^3.0.2
-      signal-exit: ^3.0.3
-      symlink-dir: ^5.0.1
-      table: ^6.6.0
-      tmp: ^0.2.1
-      typescript: latest
-      wait-port: ^0.2.9
-    dependencies:
-      '@hackbg/kabinet': link:../../../../ganesha/deps/toolbox/kabinet
-      '@hackbg/komandi': link:../../../../ganesha/deps/toolbox/komandi
-      '@hackbg/konzola': link:../../../../ganesha/deps/toolbox/konzola
-      '@types/mkdirp': 1.0.2
-      '@types/rimraf': 3.0.2
-      colors: 1.4.0
-      dockerode: 3.3.1
-      exponential-backoff: 3.1.0
-      mkdirp: 1.0.4
-      open: 8.4.0
-      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: 2.4.2
-      recursive-copy: 2.0.13
-      rimraf: 3.0.2
-      signal-exit: 3.0.6
-      symlink-dir: 5.0.1
-      table: 6.8.0
-      tmp: 0.2.1
-      wait-port: 0.2.9
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
   deps/fadroma/doc/example:
     specifiers: {}
 
   deps/fadroma/packages/cli:
     specifiers:
-      '@ganesha/node': workspace:*
-      '@hackbg/komandi': workspace:*
+      '@hackbg/ganesha': ^1
+      '@hackbg/komandi': ^2
       cross-spawn: ^7.0.3
       mkdirp: ^1.0.4
       prompts: ^2.4.1
     dependencies:
-      '@ganesha/node': link:../../../ganesha/src/node
-      '@hackbg/komandi': link:../../../ganesha/deps/toolbox/komandi
+      '@hackbg/ganesha': 1.0.0
+      '@hackbg/komandi': 2.0.0
       cross-spawn: 7.0.3
       mkdirp: 1.0.4
       prompts: 2.4.2
 
   deps/fadroma/packages/ops:
     specifiers:
-      '@hackbg/tools': workspace:*
+      '@hackbg/tools': ^1
       ajv: ^8.6.0
       exponential-backoff: ^3.1.0
       json-schema-to-typescript: ^10.1.4
       toml: ^3.0.0
     dependencies:
-      '@hackbg/tools': link:../../../ganesha/deps/toolbox/tools
+      '@hackbg/tools': 1.0.0
       ajv: 8.9.0
       exponential-backoff: 3.1.0
       json-schema-to-typescript: 10.1.5
@@ -1025,40 +686,40 @@ importers:
     specifiers:
       '@cosmjs/crypto': ^0.20.0
       '@fadroma/ops': workspace:*
-      '@hackbg/tools': workspace:*
-      secretjs: workspace:0.17.5
+      '@hackbg/tools': ^1
+      secretjs: workspace:../../deps/scrt-1.2/cosmwasm-js/packages/sdk
     dependencies:
       '@cosmjs/crypto': 0.20.1
       '@fadroma/ops': link:../ops
-      '@hackbg/tools': link:../../../ganesha/deps/toolbox/tools
+      '@hackbg/tools': 1.0.0
       secretjs: link:../../deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   deps/fadroma/packages/scrt-1.0:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@hackbg/tools': workspace:*
-      secretjs: workspace:0.16.5
+      '@hackbg/tools': ^1
+      secretjs: workspace:../../deps/scrt-1.0/cosmwasm-js/packages/sdk
     dependencies:
       '@fadroma/scrt': link:../scrt
-      '@hackbg/tools': link:../../../ganesha/deps/toolbox/tools
+      '@hackbg/tools': 1.0.0
       secretjs: link:../../deps/scrt-1.0/cosmwasm-js/packages/sdk
 
   deps/fadroma/packages/scrt-1.2:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@hackbg/tools': workspace:*
-      secretjs: workspace:0.17.5
+      '@hackbg/tools': ^1
+      secretjs: workspace:../../deps/scrt-1.2/cosmwasm-js/packages/sdk
     dependencies:
       '@fadroma/scrt': link:../scrt
-      '@hackbg/tools': link:../../../ganesha/deps/toolbox/tools
+      '@hackbg/tools': 1.0.0
       secretjs: link:../../deps/scrt-1.2/cosmwasm-js/packages/sdk
 
   deps/fadroma/test:
     specifiers:
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
-      '@hackbg/ganesha': workspace:*
-      '@hackbg/tools': workspace:*
+      '@hackbg/ganesha': ^1
+      '@hackbg/tools': ^1
       '@iov/encoding': ^2.1.0
       '@types/express': ^4.17.13
       '@types/tap': ^15.0.5
@@ -1069,8 +730,8 @@ importers:
     dependencies:
       '@fadroma/ops': link:../packages/ops
       '@fadroma/scrt': link:../packages/scrt
-      '@hackbg/ganesha': link:../../ganesha
-      '@hackbg/tools': link:../../ganesha/deps/toolbox/tools
+      '@hackbg/ganesha': 1.0.0
+      '@hackbg/tools': 1.0.0
       '@iov/encoding': 2.5.0
       '@types/express': 4.17.13
       '@types/tap': 15.0.5
@@ -1078,233 +739,6 @@ importers:
       express: 4.17.2
       freeport-async: 2.0.0
       tap: 15.1.6_typescript@4.5.5
-
-  deps/ganesha:
-    specifiers:
-      '@ganesha/node': workspace:^2
-      '@ganesha/node-legacy': workspace:^1
-      '@hackbg/komandi': workspace:./deps/toolbox/komandi
-      '@types/node': latest
-      cross-spawn: ^7.0.3
-      tap: ^15.0.9
-      vite: ^2.7.6
-      vsce: latest
-    dependencies:
-      '@ganesha/node': link:src/node
-      '@ganesha/node-legacy': link:src/node-legacy
-      '@types/node': 17.0.12
-      cross-spawn: 7.0.3
-    devDependencies:
-      '@hackbg/komandi': link:deps/toolbox/komandi
-      tap: 15.1.6_typescript@4.5.5
-      vite: 2.7.13
-      vsce: 2.6.4
-
-  deps/ganesha/deps/toolbox/forkers:
-    specifiers:
-      '@types/node': latest
-      '@types/zen-observable': ^0.8.3
-      typescript: latest
-      zen-observable: ^0.8.15
-    dependencies:
-      '@types/zen-observable': 0.8.3
-      zen-observable: 0.8.15
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/ganesha/deps/toolbox/kabinet:
-    specifiers:
-      '@types/node': latest
-      mkdirp: ^1.0.4
-      rimraf: ^3.0.2
-      typescript: latest
-    dependencies:
-      mkdirp: 1.0.4
-      rimraf: 3.0.2
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/ganesha/deps/toolbox/komandi:
-    specifiers:
-      '@types/node': latest
-      typescript: latest
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/ganesha/deps/toolbox/konzola:
-    specifiers:
-      '@types/node': latest
-      colors: ^1.4.0
-      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      table: ^6.6.0
-      typescript: latest
-    dependencies:
-      colors: 1.4.0
-      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      table: 6.8.0
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/ganesha/deps/toolbox/tools:
-    specifiers:
-      '@hackbg/kabinet': workspace:*
-      '@hackbg/komandi': workspace:*
-      '@hackbg/konzola': workspace:*
-      '@types/node': latest
-      colors: ^1.4.0
-      dockerode: ^3.3.0
-      exponential-backoff: ^3.1.0
-      mkdirp: ^1.0.4
-      open: ^8.0.2
-      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: ^2.4.1
-      recursive-copy: ^2.0.13
-      rimraf: ^3.0.2
-      signal-exit: ^3.0.3
-      symlink-dir: ^5.0.1
-      table: ^6.6.0
-      tmp: ^0.2.1
-      typescript: latest
-      wait-port: ^0.2.9
-    dependencies:
-      '@hackbg/kabinet': link:../kabinet
-      '@hackbg/komandi': link:../komandi
-      '@hackbg/konzola': link:../konzola
-      colors: 1.4.0
-      dockerode: 3.3.1
-      exponential-backoff: 3.1.0
-      mkdirp: 1.0.4
-      open: 8.4.0
-      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: 2.4.2
-      recursive-copy: 2.0.13
-      rimraf: 3.0.2
-      signal-exit: 3.0.6
-      symlink-dir: 5.0.1
-      table: 6.8.0
-      tmp: 0.2.1
-      wait-port: 0.2.9
-    devDependencies:
-      '@types/node': 17.0.12
-      typescript: 4.5.5
-
-  deps/ganesha/src/core:
-    specifiers:
-      joycon: ^3.0.1
-      jsonc-parser: ^3.0.0
-    dependencies:
-      joycon: 3.1.1
-      jsonc-parser: 3.0.0
-
-  deps/ganesha/src/node:
-    specifiers:
-      '@ganesha/core': workspace:*
-      front-matter: ^4.0.2
-      joycon: ^3.0.1
-      jsonc-parser: ^3.0.0
-      source-map-support: ^0.5.20
-    dependencies:
-      '@ganesha/core': link:../core
-      front-matter: 4.0.2
-      joycon: 3.1.1
-      jsonc-parser: 3.0.0
-      source-map-support: 0.5.21
-
-  deps/ganesha/src/node-legacy:
-    specifiers:
-      '@ganesha/core': workspace:*
-      front-matter: ^4.0.2
-      joycon: ^3.0.1
-      jsonc-parser: ^3.0.0
-      pirates: ^4.0.1
-      source-map-support: ^0.5.20
-    dependencies:
-      '@ganesha/core': link:../core
-      front-matter: 4.0.2
-      joycon: 3.1.1
-      jsonc-parser: 3.0.0
-      pirates: 4.0.5
-      source-map-support: 0.5.21
-
-  deps/ganesha/src/rollup:
-    specifiers:
-      '@ganesha/core': workspace:*
-    dependencies:
-      '@ganesha/core': link:../core
-
-  deps/ganesha/src/tsc:
-    specifiers:
-      '@ganesha/core': workspace:*
-      '@ganesha/node': workspace:*
-    dependencies:
-      '@ganesha/core': link:../core
-      '@ganesha/node': link:../node
-
-  deps/ganesha/src/vsc:
-    specifiers:
-      typescript: latest
-      vsce: latest
-    devDependencies:
-      typescript: 4.5.5
-      vsce: 2.6.4
-
-  deps/ganesha/src/vsc/client:
-    specifiers:
-      '@ganesha/vscode-shared': workspace:*
-      '@types/vscode': latest
-      vscode-languageclient: ^7.1.0-next.4
-    dependencies:
-      '@ganesha/vscode-shared': link:../shared
-      vscode-languageclient: 7.1.0-next.5
-    devDependencies:
-      '@types/vscode': 1.63.1
-
-  deps/ganesha/src/vsc/server:
-    specifiers:
-      '@ganesha/core': workspace:*
-      '@ganesha/vscode-shared': workspace:*
-      fast-glob: ^3.2.7
-      vscode-languageserver: ^8.0.0-next.1
-      vscode-languageserver-textdocument: ^1.0.1
-      vscode-typescript-languageservice: ^0.27.7
-      vscode-uri: ^3.0.2
-    dependencies:
-      '@ganesha/core': link:../../core
-      '@ganesha/vscode-shared': link:../shared
-      fast-glob: 3.2.11
-      vscode-languageserver: 8.0.0-next.6
-      vscode-languageserver-textdocument: 1.0.3
-      vscode-typescript-languageservice: 0.27.25
-      vscode-uri: 3.0.3
-
-  deps/ganesha/src/vsc/shared:
-    specifiers:
-      typescript: latest
-    devDependencies:
-      typescript: 4.5.5
-
-  deps/ganesha/test:
-    specifiers:
-      '@ganesha/core': workspace:*
-      '@ganesha/node': workspace:*
-      '@ganesha/rollup': workspace:*
-      mkdirp: ^1.0.4
-      tap: ^15.0.9
-      vite: ^2.7.6
-    devDependencies:
-      '@ganesha/core': link:../src/core
-      '@ganesha/node': link:../src/node
-      '@ganesha/rollup': link:../src/rollup
-      mkdirp: 1.0.4
-      tap: 15.1.6_typescript@4.5.5
-      vite: 2.7.13
-
-  deps/ganesha/test/examples/example:
-    specifiers: {}
 
   frontends/amm-types:
     specifiers:
@@ -1320,19 +754,19 @@ importers:
   frontends/api:
     specifiers:
       '@fadroma/scrt': workspace:*
-      '@sienna/amm-snip20': workspace:^0.1.0
-      '@sienna/exchange': workspace:^1.0.0
-      '@sienna/factory': workspace:^2.0.0
-      '@sienna/ido': workspace:^0.1.0
-      '@sienna/launchpad': workspace:^0.1.0
+      '@sienna/amm-snip20': workspace:^1
+      '@sienna/exchange': workspace:^1
+      '@sienna/factory': workspace:^2
+      '@sienna/ido': workspace:^1
+      '@sienna/launchpad': workspace:^1
       '@sienna/lend-interest-model': workspace:*
       '@sienna/lend-market': workspace:*
       '@sienna/lend-oracle': workspace:*
       '@sienna/lend-overseer': workspace:*
-      '@sienna/lp-token': workspace:^1.0.0
+      '@sienna/lp-token': workspace:^1
       '@sienna/mgmt': workspace:^2.0.0
-      '@sienna/rewards': workspace:^3.0.0
-      '@sienna/router': workspace:^0.1.0
+      '@sienna/rewards': workspace:^3
+      '@sienna/router': workspace:^0
       '@sienna/rpt': workspace:^1.0.0
       '@sienna/snip20-sienna': workspace:^1.0.0
       '@waiting/base64': ^4.2.9
@@ -1642,7 +1076,7 @@ importers:
     specifiers:
       '@fadroma/snip20': workspace:*
       '@hackbg/fadroma': workspace:../deps/fadroma
-      '@hackbg/komandi': workspace:*
+      '@hackbg/komandi': ^2
       '@sienna/amm': workspace:*
       '@sienna/api': workspace:*
       '@sienna/lend': workspace:*
@@ -1651,7 +1085,7 @@ importers:
     dependencies:
       '@fadroma/snip20': link:../deps/fadroma/crates/fadroma-snip20-impl
       '@hackbg/fadroma': link:../deps/fadroma
-      '@hackbg/komandi': link:../deps/ganesha/deps/toolbox/komandi
+      '@hackbg/komandi': 2.0.0
       '@sienna/amm': link:../contracts/amm
       '@sienna/api': link:../frontends/api
       '@sienna/lend': link:../contracts/lend
@@ -3766,6 +3200,31 @@ packages:
       which: 1.3.1
     dev: true
 
+  /@ganesha/core/1.0.0:
+    resolution: {integrity: sha512-sJEDm3qTXlr5xW1e12YoO1y7CyVgaSyjYiKSJtw44NsQWgboesNzydLjRwZg1KNOXUn9tKJRSsMYMyMGLBk0ZQ==}
+    dependencies:
+      joycon: 3.1.1
+      jsonc-parser: 3.0.0
+
+  /@ganesha/node-legacy/1.0.0:
+    resolution: {integrity: sha512-IAjtymeCLuxXvzwOu8CtAbV4cugfpfqRcrxSwEgKUmZL8UzT9/0X7WMHUKVx+uN3PbbKAnosLD6btvkEtl000w==}
+    dependencies:
+      '@ganesha/core': 1.0.0
+      front-matter: 4.0.2
+      joycon: 3.1.1
+      jsonc-parser: 3.0.0
+      pirates: 4.0.5
+      source-map-support: 0.5.21
+
+  /@ganesha/node/2.0.0:
+    resolution: {integrity: sha512-fR59VbLKA/PJQi8DRhWI76NLJ4SPHqa+4lnKV/9+I7+SJ3ZF5bcP2lBeraOhl+QLcT5XW7S5fQbxTD0zdvfO7w==}
+    dependencies:
+      '@ganesha/core': 1.0.0
+      front-matter: 4.0.2
+      joycon: 3.1.1
+      jsonc-parser: 3.0.0
+      source-map-support: 0.5.21
+
   /@graphql-tools/batch-execute/8.3.1_graphql@15.8.0:
     resolution: {integrity: sha512-63kHY8ZdoO5FoeDXYHnAak1R3ysMViMPwWC2XUblFckuVLMUPmB2ONje8rjr2CvzWBHAW8c1Zsex+U3xhKtGIA==}
     peerDependencies:
@@ -3836,6 +3295,61 @@ packages:
       through2: 2.0.5
     dev: true
     optional: true
+
+  /@hackbg/ganesha/1.0.0:
+    resolution: {integrity: sha512-4dpFC7CwHG+msdq78rt/DUKajg7fq6y4FOEGijQki8RMY+nkoKdvQjktgB71q2TyDQg3X2Azm05aME7uNP2dSw==}
+    hasBin: true
+    dependencies:
+      '@ganesha/node': 2.0.0
+      '@ganesha/node-legacy': 1.0.0
+      '@types/node': 17.0.12
+      cross-spawn: 7.0.3
+
+  /@hackbg/kabinet/1.0.0:
+    resolution: {integrity: sha512-vtVlF8ToYsC7lrGTtEpqDxNaMIrqPMaY88vJHeKr7QJqJ0AI9qO1MVL3BWwURZGXciRQl1/DgIRlj4c2qYY22g==}
+    dependencies:
+      mkdirp: 1.0.4
+      rimraf: 3.0.2
+    dev: false
+
+  /@hackbg/komandi/2.0.0:
+    resolution: {integrity: sha512-zWSD5XTAgI6+373tnLmjQc3fFtGhzHnUPi0JypYzlGoD3mrsd+IxjRJCbHlHDgoYcjdAJMQA8Jki/HW/nOU8AA==}
+    dev: false
+
+  /@hackbg/konzola/1.0.0:
+    resolution: {integrity: sha512-VGFiGjl9dynQPLLsk6QTWwJ6YwJhg9MB+zmoK7A3nDx87cZChBaLiPeu3ihtIlWL2IEqeWiG63xermmWaXf4sA==}
+    dependencies:
+      '@types/prettyjson': 0.0.30
+      colors: 1.4.0
+      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      table: 6.8.0
+    dev: false
+
+  /@hackbg/tools/1.0.0:
+    resolution: {integrity: sha512-6gYrWYryBOEAa9TgoY5fbsQlVwcf1/cWKOjOzEEKUuQDS0w5Aolx1mST1XU+9tlEJ+kT/CrYN5kPzdjCB8piIQ==}
+    dependencies:
+      '@hackbg/kabinet': 1.0.0
+      '@hackbg/komandi': 2.0.0
+      '@hackbg/konzola': 1.0.0
+      '@types/mkdirp': 1.0.2
+      '@types/rimraf': 3.0.2
+      colors: 1.4.0
+      dockerode: 3.3.1
+      exponential-backoff: 3.1.0
+      mkdirp: 1.0.4
+      open: 8.4.0
+      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      prompts: 2.4.2
+      recursive-copy: 2.0.13
+      rimraf: 3.0.2
+      signal-exit: 3.0.6
+      symlink-dir: 5.0.1
+      table: 6.8.0
+      tmp: 0.2.1
+      wait-port: 0.2.9
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
 
   /@hapi/accept/5.0.2:
     resolution: {integrity: sha512-CmzBx/bXUR8451fnZRuZAJRlzgm0Jgu5dltTX/bszmR2lheb9BpyN47Q1RbaGTsvFzn0PXAEs+lXDKfshccYZw==}
@@ -5099,6 +4613,7 @@ packages:
     dependencies:
       '@nodelib/fs.stat': 2.0.5
       run-parallel: 1.2.0
+    dev: true
 
   /@nodelib/fs.stat/1.1.3:
     resolution: {integrity: sha512-shAmDyaQC4H92APFoIaVDHCx5bStIocgvbwQyxPRrbUY20V1EYTbSDchWbuwlMG3V17cprZhA6+78JfB+3DTPw==}
@@ -5108,6 +4623,7 @@ packages:
   /@nodelib/fs.stat/2.0.5:
     resolution: {integrity: sha512-RkhPPp2zrqDAQA/2jNhnztcPAlv64XdhIp7a7454A5ovI7Bukxgt7MX7udwAu3zg1DcpPU0rz3VV1SeaqvY4+A==}
     engines: {node: '>= 8'}
+    dev: true
 
   /@nodelib/fs.walk/1.2.8:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
@@ -5115,6 +4631,7 @@ packages:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.13.0
+    dev: true
 
   /@octokit/auth-token/2.5.0:
     resolution: {integrity: sha512-r5FVUJCOLl19AxiuZD2VRZ/ORjp/4IN98Of6YJoJOkY75CIBuYfmiNHGrDwXr+aLGG55igl9QrxX3hbiXlLb+g==}
@@ -6662,10 +6179,6 @@ packages:
       source-map: 0.6.1
     dev: true
 
-  /@types/vscode/1.63.1:
-    resolution: {integrity: sha512-Z+ZqjRcnGfHP86dvx/BtSwWyZPKQ/LBdmAVImY82TphyjOw2KgTKcp7Nx92oNwCTsHzlshwexAG/WiY2JuUm3g==}
-    dev: true
-
   /@types/webpack-dev-server/3.11.6:
     resolution: {integrity: sha512-XCph0RiiqFGetukCTC3KVnY1jwLcZ84illFRMbyFzCcWl90B/76ew0tSqF46oBhnLC4obNDG7dMO0JfTN0MgMQ==}
     dependencies:
@@ -6719,10 +6232,6 @@ packages:
     dependencies:
       '@types/yargs-parser': 20.2.1
     dev: true
-
-  /@types/zen-observable/0.8.3:
-    resolution: {integrity: sha512-fbF6oTd4sGGy0xjHPKAt+eS2CrxJ3+6gQ3FGcBoIJR2TLAyCkCyI8JqZNy+FeON0AhVgNJoUumVoZQjBFUqHkw==}
-    dev: false
 
   /@typescript-eslint/eslint-plugin/2.34.0_82af9fd0d0c58dde3baf13ff7e56e299:
     resolution: {integrity: sha512-4zY3Z88rEE99+CNvTbXSyovv2z9PNOVffTWD2W8QF5s2prBQtwN2zadqERcrHpcR7O/+KMI3fcTAmUUhK/iQcQ==}
@@ -6971,14 +6480,6 @@ packages:
   /@ungap/promise-all-settled/1.1.2:
     resolution: {integrity: sha512-sL/cEvJWAnClXw0wHk85/2L0G6Sj8UB0Ctc1TEMbKSsmpRosqhwj9gWgFRZSrBr2f9tiXISwNhCPmlfqUqyb9Q==}
     dev: true
-
-  /@volar/shared/0.27.24:
-    resolution: {integrity: sha512-Mi8a4GQaiorfb+o4EqOXDZm9E/uBJXgScFgF+NhtcMBOUKHNMKQyLI7YRGumtyJTTdaX7nSDJjGGTkv23tcOtQ==}
-    dependencies:
-      upath: 2.0.1
-      vscode-jsonrpc: 8.0.0-next.5
-      vscode-uri: 3.0.3
-    dev: false
 
   /@vue/babel-helper-vue-jsx-merge-props/1.2.1:
     resolution: {integrity: sha512-QOi5OW45e2R20VygMSNhyQHvpdUwQZqGPc748JLGCYEy+yp8fNFNdbNIGAgZmi9e+2JHPd6i6idRuqivyicIkA==}
@@ -8361,6 +7862,7 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       default-require-extensions: 3.0.0
+    dev: false
 
   /aproba/1.2.0:
     resolution: {integrity: sha512-Y9J6ZjXtoYh8RnXVCMOU/ttDmk1aBjunq9vO0ta5x85WDQiQfUF9sIPBITdbiiIVcBo03Hi3jMxigBtsddlXRw==}
@@ -8372,6 +7874,7 @@ packages:
 
   /archy/1.0.0:
     resolution: {integrity: sha1-+cjBN1fMHde8N5rHeyxipcKGjEA=}
+    dev: false
 
   /are-we-there-yet/1.1.7:
     resolution: {integrity: sha512-nxwy40TuMiUGqMyRHgCSWZ9FM4VAoRP4xUYSTv5ImRog+h9yISPbVH7H8fASCIzYn9wlEv4zvFL7uKDMCFQm3g==}
@@ -8616,6 +8119,7 @@ packages:
   /async-hook-domain/2.0.4:
     resolution: {integrity: sha512-14LjCmlK1PK8eDtTezR6WX8TMaYNIzBIsd2D1sGoGjgx0BuNMMoSdk7i/drlbtamy0AWv9yv2tkB+ASdmeqFIw==}
     engines: {node: '>=10'}
+    dev: false
 
   /async-limiter/1.0.1:
     resolution: {integrity: sha512-csOlWGAcRFJaI6m+F2WKdnMKr4HhdhFVBk0H/QbJFMCr+uO2kwohwXQPxw/9OCxp05r5ghVBFSyioixx3gfkNQ==}
@@ -8739,13 +8243,6 @@ packages:
 
   /axobject-query/2.2.0:
     resolution: {integrity: sha512-Td525n+iPOOyUQIeBfcASuG6uJsDOITl7Mds5gFyerkWiX7qhUTdYUBlSgNMyVqtSJqwpt1kXGLdUt6SykLMRA==}
-    dev: true
-
-  /azure-devops-node-api/11.1.0:
-    resolution: {integrity: sha512-6/2YZuf+lJzJLrjXNYEA5RXAkMCb8j/4VcHD0qJQRsgG/KsRMYo0HgDh0by1FGHyZkQWY5LmQyJqCwRVUB3Y7Q==}
-    dependencies:
-      tunnel: 0.0.6
-      typed-rest-client: 1.8.6
     dev: true
 
   /babel-code-frame/6.26.0:
@@ -9540,6 +9037,7 @@ packages:
   /bind-obj-methods/3.0.0:
     resolution: {integrity: sha512-nLEaaz3/sEzNSyPWRsN9HNsqwk1AUyECtGj+XwGdIi3xABnEqecvXtIJ0wehQXuuER5uZ/5fTs2usONgYjG+iw==}
     engines: {node: '>=10'}
+    dev: false
 
   /bindings/1.5.0:
     resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
@@ -9892,10 +9390,6 @@ packages:
     dev: true
     optional: true
 
-  /buffer-crc32/0.2.13:
-    resolution: {integrity: sha1-DTM+PwDqxQqhRUq9MO+MKl2ackI=}
-    dev: true
-
   /buffer-from/1.1.0:
     resolution: {integrity: sha512-c5mRlguI/Pe2dSZmpER62rSCu0ryKmWddzRYsuXc50U2/g8jMOulc31VZMa4mYx31U5xsmSOpDCgH88Vl9cDGQ==}
     dev: true
@@ -10135,6 +9629,7 @@ packages:
       make-dir: 3.1.0
       package-hash: 4.0.0
       write-file-atomic: 3.0.3
+    dev: false
 
   /call-bind/1.0.2:
     resolution: {integrity: sha512-7O+FbCihrB5WGbFYesctwmTKae6rOiIzmz1icreWJ+0aA7LJfuqhEso2T9ncpcFtzMQtzXf2QGGueWJGTYsqrA==}
@@ -10863,6 +10358,7 @@ packages:
   /color-support/1.1.3:
     resolution: {integrity: sha512-qiBjkpbMLO/HL68y+lh4q0/O1MZFj2RX6X/KmMa3+gJD3z+WwI1ZzDHysvqHGS3mP6mznPckpXmw1nI9cJjyRg==}
     hasBin: true
+    dev: false
 
   /color/3.2.1:
     resolution: {integrity: sha512-aBl7dZI9ENN6fUGC7mWpMTPNHmWUSNan9tuWN6ahh5ZLNk9baLJOnSMlrQkHcrfFgz2/RigjUVAjdx36VcemKA==}
@@ -11341,6 +10837,7 @@ packages:
       log-driver: 1.2.7
       minimist: 1.2.5
       request: 2.88.2
+    dev: false
 
   /cpu-features/0.0.2:
     resolution: {integrity: sha512-/2yieBqvMcRj8McNzkycjW2v3OIUOibBfd2dLEJ0nWts8NobAxwiyw9phVNS6oDL8x8tz9F7uNVFEVpJncQpeA==}
@@ -11965,13 +11462,6 @@ packages:
       mimic-response: 1.0.1
     dev: true
 
-  /decompress-response/4.2.1:
-    resolution: {integrity: sha512-jOSne2qbyE+/r8G1VU+G/82LBs2Fs4LAsTiLSHOCOMZQl2OKZ6i8i4IyHemTe+/yIXOtTcRQMzPcgyhoFlqPkw==}
-    engines: {node: '>=8'}
-    dependencies:
-      mimic-response: 2.1.0
-    dev: true
-
   /dedent/0.7.0:
     resolution: {integrity: sha1-JJXduvbrh0q7Dhvp3yLS5aVEMmw=}
     dev: true
@@ -12035,6 +11525,7 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       strip-bom: 4.0.0
+    dev: false
 
   /defaults/1.0.3:
     resolution: {integrity: sha1-xlYFHpgX2f8I7YgUd/P+QBnz730=}
@@ -12200,6 +11691,7 @@ packages:
     engines: {node: '>=0.10'}
     hasBin: true
     dev: true
+    optional: true
 
   /detect-newline/2.1.0:
     resolution: {integrity: sha1-9B8cEL5LAOh7XxPaaAdZ8sW/0+I=}
@@ -12764,10 +12256,6 @@ packages:
     resolution: {integrity: sha512-f2LZMYl1Fzu7YSBKg+RoROelpOaNrcGmE9AZubeDfrCEia483oW4MI4VyFd5VNHIgQ/7qm1I0wUHK1eJnn2y2w==}
     dev: true
 
-  /entities/2.1.0:
-    resolution: {integrity: sha512-hCx1oky9PFrJ611mf0ifBLBRW8lUUVRlFolb5gWRfIELabBlbp9xZvrqZLZAs+NxFnbfQoeGd8wDkygjg7U85w==}
-    dev: true
-
   /entities/2.2.0:
     resolution: {integrity: sha512-p92if5Nz619I0w+akJrLZH0MX0Pb5DX39XOwQTtXSdQQOaYH03S1uIQp4mhOZtAXrxq4ViO67YTiLBo2638o9A==}
 
@@ -12883,6 +12371,7 @@ packages:
 
   /es6-error/4.1.1:
     resolution: {integrity: sha512-Um/+FxMr9CISWh0bi5Zv0iOD+4cFh5qLeks1qhAopKVAJw3drgKbKySikp7wGhDL0HPeaja0P5ULZrxLkniUVg==}
+    dev: false
 
   /es6-iterator/0.1.3:
     resolution: {integrity: sha1-1vWLjE/EE8JJtLqhl2j45NfIlE4=}
@@ -14400,6 +13889,7 @@ packages:
 
   /events-to-array/1.1.2:
     resolution: {integrity: sha1-LUH1Y+H+QA7Uli/hpNXGp1Od9/Y=}
+    dev: false
 
   /events/1.1.1:
     resolution: {integrity: sha1-nr23Y1rQmccNzEwqH1AEKI6L2SQ=}
@@ -14502,11 +13992,6 @@ packages:
       fill-range: 2.2.4
     dev: true
     optional: true
-
-  /expand-template/2.0.3:
-    resolution: {integrity: sha512-XYfuKMvj4O35f/pOXLObndIRvyQ+/+6AhODh+OKWj9S9498pHHn/IMszH+gt0fBCRWMNfk1ZSp5x3AifmnI2vg==}
-    engines: {node: '>=6'}
-    dev: true
 
   /expand-tilde/2.0.2:
     resolution: {integrity: sha1-l+gBqgUt8CRU3kawK/YhZCzchQI=}
@@ -14677,6 +14162,7 @@ packages:
       glob-parent: 5.1.2
       merge2: 1.4.1
       micromatch: 4.0.4
+    dev: true
 
   /fast-json-stable-stringify/2.1.0:
     resolution: {integrity: sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==}
@@ -14707,6 +14193,7 @@ packages:
     resolution: {integrity: sha512-YpkpUnK8od0o1hmeSc7UUs/eB/vIPWJYjKck2QKIzAf71Vm1AAQ3EbuZB3g2JIy+pg+ERD0vqI79KyZiB2e2Nw==}
     dependencies:
       reusify: 1.0.4
+    dev: true
 
   /faye-websocket/0.11.4:
     resolution: {integrity: sha512-CzbClwlXAuiRQAlUyfqPgvPoNKTckTPGfwZV4ZdAhVcP2lh9KUxJg2b5GkE7XbjKQ3YJnQ9z6D9ntLAlB+tP8g==}
@@ -14718,12 +14205,6 @@ packages:
     resolution: {integrity: sha512-DkPJKQeY6kKwmuMretBhr7G6Vodr7bFwDYTXIkfG1gjvNpaxBTQV3PbXg6bR1c1UP4jPOX0jHUbbHANL9vRjVg==}
     dependencies:
       bser: 2.1.1
-    dev: true
-
-  /fd-slicer/1.1.0:
-    resolution: {integrity: sha1-JcfInLH5B3+IkbvmHY85Dq4lbx4=}
-    dependencies:
-      pend: 1.2.0
     dev: true
 
   /fetch-cookie/0.10.1:
@@ -14796,6 +14277,7 @@ packages:
 
   /file-uri-to-path/1.0.0:
     resolution: {integrity: sha512-0Zt+s3L7Vf1biwWZ29aARiVYLx7iMGnEUl9x33fbB/j3jR81u/O2LbqK+Bm1CDSNDKVtJ/YjwY7TUd5SkeLQLw==}
+    requiresBuild: true
 
   /filecoin.js/0.0.5-alpha:
     resolution: {integrity: sha512-xPrB86vDnTPfmvtN/rJSrhl4M77694ruOgNXd0+5gP67mgmCDhStLCqcr+zHIDRgDpraf7rY+ELbwjXZcQNdpQ==}
@@ -14946,6 +14428,7 @@ packages:
 
   /findit/2.0.0:
     resolution: {integrity: sha1-ZQnwEmr0wXhVHPqZOU4DLhOk1W4=}
+    dev: false
 
   /findup-sync/3.0.0:
     resolution: {integrity: sha512-YbffarhcicEhOrm4CtrwdKBdCuz576RLdhJDsIfvNtxUuhdRet1qZcsMjqbePtAseKdAnDyM/IyXbu7PRPRLYg==}
@@ -15065,6 +14548,7 @@ packages:
     dependencies:
       cross-spawn: 7.0.3
       signal-exit: 3.0.6
+    dev: false
 
   /forever-agent/0.6.1:
     resolution: {integrity: sha1-+8cfDEGt6zf5bFd60e1C2P2sypE=}
@@ -15128,12 +14612,12 @@ packages:
 
   /fromentries/1.3.2:
     resolution: {integrity: sha512-cHEpEQHUg0f8XdtZCc2ZAhrHzKzT0MrFUTcvx+hfxYu7rGMDc5SKoXFh+n4YigxsHXRzc6OrCshdR1bWH6HHyg==}
+    dev: false
 
   /front-matter/4.0.2:
     resolution: {integrity: sha512-I8ZuJ/qG92NWX8i5x1Y8qyj3vizhXS31OxjKDu3LKP+7/qBgfIKValiZIEwoVoJKUHlhWtYrktkxV1XsX+pPlg==}
     dependencies:
       js-yaml: 3.14.1
-    dev: false
 
   /fs-capacitor/2.0.4:
     resolution: {integrity: sha512-8S4f4WsCryNw2mJJchi46YgB6CR5Ze+4L1h8ewl9tEpL4SJ3ZO+c/bS4BWhB8bK+O3TMqhuZarTitd0S0eh2pA==}
@@ -15143,9 +14627,11 @@ packages:
 
   /fs-constants/1.0.0:
     resolution: {integrity: sha512-y6OAwoSIf7FyjMIv94u+b5rdheZEjzR63GTyZJm5qh4Bi+2YgwLCcI/fPFZkL5PSixOt6ZNKm+w+Hfp/Bciwow==}
+    dev: false
 
   /fs-exists-cached/1.0.0:
     resolution: {integrity: sha1-zyVVTKBQ3EmuZla0HeQiWJidy84=}
+    dev: false
 
   /fs-extra/0.30.0:
     resolution: {integrity: sha1-8jP/zAjU2n1DLapEl3aYnbHfk/A=}
@@ -15264,6 +14750,7 @@ packages:
 
   /function-loop/2.0.1:
     resolution: {integrity: sha512-ktIR+O6i/4h+j/ZhZJNdzeI4i9lEPeEK6UPR2EVyTVBqOwcU3Za9xYKLH64ZR9HmcROyRrOkizNyjjtWJzDDkQ==}
+    dev: false
 
   /functional-red-black-tree/1.0.1:
     resolution: {integrity: sha1-GwqzvVU7Kg1jmdKcDj6gslIHgyc=}
@@ -15531,10 +15018,6 @@ packages:
     resolution: {integrity: sha1-QdBF84UaXqiPA/JMocYXgRRGS5s=}
     dependencies:
       ini: 1.3.8
-    dev: true
-
-  /github-from-package/0.0.0:
-    resolution: {integrity: sha1-l/tdlr/eiXMxPyDoKI75oWf6ZM4=}
     dev: true
 
   /glob-base/0.3.0:
@@ -16114,6 +15597,7 @@ packages:
     dependencies:
       is-stream: 2.0.1
       type-fest: 0.8.1
+    dev: false
 
   /he/1.2.0:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
@@ -17570,6 +17054,7 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       append-transform: 2.0.0
+    dev: false
 
   /istanbul-lib-instrument/4.0.3:
     resolution: {integrity: sha512-BXgQl9kf4WTCPCCpmFGoJkz/+uhvm7h7PFKUYxh7qarQd3ER33vHG//qaE8eN25l07YqZPpHXU9I09l/RD5aGQ==}
@@ -17581,6 +17066,7 @@ packages:
       semver: 6.3.0
     transitivePeerDependencies:
       - supports-color
+    dev: false
 
   /istanbul-lib-instrument/5.1.0:
     resolution: {integrity: sha512-czwUz525rkOFDJxfKK6mYfIs9zBKILyrZQxjz3ABhjQXhbhFsSbo1HW/BFcsDnfJYJWA6thRR5/TUY2qs5W99Q==}
@@ -17606,6 +17092,7 @@ packages:
       p-map: 3.0.0
       rimraf: 3.0.2
       uuid: 3.4.0
+    dev: false
 
   /istanbul-lib-report/3.0.0:
     resolution: {integrity: sha512-wcdi+uAKzfiGT2abPpKZ0hSU1rGQjUQnLvtY5MpQ7QCTahD3VODhcu4wcfY1YtkGaDD5yuydOLINXsfbus9ROw==}
@@ -17739,6 +17226,7 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       cliui: 7.0.4
+    dev: false
 
   /jasmine-core/3.99.0:
     resolution: {integrity: sha512-+ZDaJlEfRopINQqgE+hvzRyDIQDeKfqqTvF8RzXsvU1yE3pBDRud2+Qfh9WvGgRpuzqxyQJVI6Amy5XQ11r/3w==}
@@ -18257,7 +17745,6 @@ packages:
   /joycon/3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
     engines: {node: '>=10'}
-    dev: false
 
   /js-crypto-env/0.3.2:
     resolution: {integrity: sha512-F1uHiCkSOo36qBuuZABA4sBf+xeFBzhJZ0Sd7af8FAruszIhm1Xxv+Zr5Ne90Zlh7/fnxCsrdkj0N8f0a3lVlQ==}
@@ -18767,14 +18254,6 @@ packages:
     dev: true
     optional: true
 
-  /keytar/7.7.0:
-    resolution: {integrity: sha512-YEY9HWqThQc5q5xbXbRwsZTh2PJ36OSYRjSv3NN2xf5s5dpLTjEZnC2YikR29OaVybf9nQ0dJ/80i40RS97t/A==}
-    requiresBuild: true
-    dependencies:
-      node-addon-api: 3.2.1
-      prebuild-install: 6.1.4
-    dev: true
-
   /keyv/3.1.0:
     resolution: {integrity: sha512-9ykJ/46SN/9KPM/sichzQ7OvXyGDYKGTaDlKMGCAlg2UK8KRy4jb0d8sFc+0Tt0YYnThq8X2RZgCg74RPxgcVA==}
     dependencies:
@@ -18927,6 +18406,7 @@ packages:
   /lcov-parse/1.0.0:
     resolution: {integrity: sha1-6w1GtUER68VhrLTECO+TY73I9+A=}
     hasBin: true
+    dev: false
 
   /leb128/0.0.5:
     resolution: {integrity: sha512-elbNtfmu3GndZbesVF6+iQAfVjOXW9bM/aax9WwMlABZW+oK9sbAZEXoewaPHmL34sxa8kVwWsru8cNE/yn2gg==}
@@ -19267,6 +18747,7 @@ packages:
       tcompare: 5.0.7
       trivial-deferred: 1.0.1
       yapool: 1.0.0
+    dev: false
 
   /lines-and-columns/1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
@@ -19274,12 +18755,6 @@ packages:
 
   /linkify-it/2.2.0:
     resolution: {integrity: sha512-GnAl/knGn+i1U/wjBz3akz2stz+HrHLsxMwHQGofCDfPvlf+gDKN58UtfmUquTY4/MXeE2x7k19KQmeoZi94Iw==}
-    dependencies:
-      uc.micro: 1.0.6
-    dev: true
-
-  /linkify-it/3.0.3:
-    resolution: {integrity: sha512-ynTsyrFSdE5oZ/O9GEf00kPngmOfVwazR5GKDq6EYfhlpFug3J2zybX56a2PRRpc9P+FuSoGNAwjlbDs9jJBPQ==}
     dependencies:
       uc.micro: 1.0.6
     dev: true
@@ -19488,6 +18963,7 @@ packages:
 
   /lodash.flattendeep/4.4.0:
     resolution: {integrity: sha1-+wMJF/hqMTTlvJvsDWngAT3f7bI=}
+    dev: false
 
   /lodash.get/4.4.2:
     resolution: {integrity: sha1-LRd/ZS+jHpObRDjVNBSZ36OCXpk=}
@@ -19609,6 +19085,7 @@ packages:
   /log-driver/1.2.7:
     resolution: {integrity: sha512-U7KCmLdqsGHBLeWqYlFA0V0Sl6P08EE1ZrmA9cxjUE0WVqT9qnyVDPz1kzpFEP0jdJuFnasWIfSd7fsaNXkpbg==}
     engines: {node: '>=0.8.6'}
+    dev: false
 
   /log-symbols/2.2.0:
     resolution: {integrity: sha512-VeIAFslyIerEJLXHziedo2basKbMKtTw3vfn5IzG0XTjhAVEJyNHnL2p7vc+wBDSdQuUpNw3M2u6xb9QsAY5Eg==}
@@ -19892,17 +19369,6 @@ packages:
     engines: {node: '>6.4.0'}
     dev: true
 
-  /markdown-it/12.3.2:
-    resolution: {integrity: sha512-TchMembfxfNVpHkbtriWltGWc+m3xszaRD0CZup7GFFhzIgQqxIfn3eGj1yZpfuflzPvfkt611B2Q/Bsk1YnGg==}
-    hasBin: true
-    dependencies:
-      argparse: 2.0.1
-      entities: 2.1.0
-      linkify-it: 3.0.3
-      mdurl: 1.0.1
-      uc.micro: 1.0.6
-    dev: true
-
   /markdown-it/8.4.2:
     resolution: {integrity: sha512-GcRz3AWTqSUphY3vsUqQSFMbgR38a4Lh3GWlHRh/7MRwz8mcu9n2IO7HOh+bXHrR9kOPDl5RNCaEsrneb+xhHQ==}
     hasBin: true
@@ -20131,6 +19597,7 @@ packages:
   /merge2/1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
+    dev: true
 
   /merkle-patricia-tree/2.3.2:
     resolution: {integrity: sha512-81PW5m8oz/pz3GvsAwbauj7Y00rqm81Tzad77tHBwU7pIAtN+TJnMSOJhxBKflSVYhptMMb9RskhqHqrSm1V+g==}
@@ -20252,11 +19719,6 @@ packages:
     engines: {node: '>=4'}
     dev: true
 
-  /mimic-response/2.1.0:
-    resolution: {integrity: sha512-wXqjST+SLt7R009ySCglWBCFpjUygmCIfD790/kVbiGmUgfYGuB14PiTd5DwVxSV4NcYHjzMkoj5LjQZwTQLEA==}
-    engines: {node: '>=8'}
-    dev: true
-
   /min-document/2.19.0:
     resolution: {integrity: sha1-e9KC4/WELtKVu3SM3Z8f+iyCRoU=}
     dependencies:
@@ -20332,6 +19794,7 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       yallist: 4.0.0
+    dev: false
 
   /minizlib/1.3.3:
     resolution: {integrity: sha512-6ZYMOEnmVsdCeTJVE0W9ZD+pVnE8h9Hma/iOwwRDsdQoePpoX56/8B6z3P9VNwppJuBKNRuFDRNRqRWexT9G9Q==}
@@ -20368,6 +19831,7 @@ packages:
 
   /mkdirp-classic/0.5.3:
     resolution: {integrity: sha512-gKLcREMhtuZRwRAfqP3RFW+TK4JqApVBtOIftVgjuABpAtpxhPGaDcfvbhNvD0B8iD1oUr/txX35NjcaY6Ns/A==}
+    dev: false
 
   /mkdirp-promise/5.0.1:
     resolution: {integrity: sha1-6bj2jlUsaKnBcTuEiD96HdA5uKE=}
@@ -20773,10 +20237,6 @@ packages:
       snapdragon: 0.8.2
       to-regex: 3.0.2
 
-  /napi-build-utils/1.0.2:
-    resolution: {integrity: sha512-ONmRUqK7zj7DWX0D9ADe03wbwOBZxNAfF20PlGfCWQcD3+/MakShIHrMqx9YwPTfxDdF1zLeL+RGZiR9kGMLdg==}
-    dev: true
-
   /napi-macros/1.8.2:
     resolution: {integrity: sha512-Tr0DNY4RzTaBG2W2m3l7ZtFuJChTH6VZhXVhkGGjF/4cZTt+i8GcM9ozD+30Lmr4mDoZ5Xx34t2o4GJqYWDGcg==}
     dev: true
@@ -20979,18 +20439,8 @@ packages:
       tslib: 2.3.1
     dev: false
 
-  /node-abi/2.30.1:
-    resolution: {integrity: sha512-/2D0wOQPgaUWzVSVgRMx+trKJRC2UG4SUc4oCJoXx9Uxjtp0Vy3/kt7zcbxHF8+Z/pK3UloLWzBISg72brfy1w==}
-    dependencies:
-      semver: 5.7.1
-    dev: true
-
   /node-addon-api/2.0.2:
     resolution: {integrity: sha512-Ntyt4AIXyaLIuMHF6IOoTakB3K+RWxwtsHNRxllEoA6vPwP9o4866g6YWDLUdnucilZhmkxiHwHr11gAENw+QA==}
-
-  /node-addon-api/3.2.1:
-    resolution: {integrity: sha512-mmcei9JghVNDYydghQmeDX8KoAm0FAiYyIcUt/N4nhyAipB17pllZQDOJD2fotxABnt4Mdz+dKTO7eftLg4d0A==}
-    dev: true
 
   /node-emoji/1.11.0:
     resolution: {integrity: sha512-wo2DpQkQp7Sjm2A0cq+sN7EHKO6Sl0ctXeBdFZrL9T9+UywORbufTcTZxom8YqpLQt/FqNMUkOpkZrJVYSKD3A==}
@@ -21147,6 +20597,7 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       process-on-spawn: 1.0.0
+    dev: false
 
   /node-releases/1.1.77:
     resolution: {integrity: sha512-rB1DUFUNAN4Gn9keO2K1efO35IDK7yKHCdCaIMvFO7yUYmmZYeDjnGKle26G4rwj+LKRQpjyUUvMkPglwGCYNQ==}
@@ -21388,6 +20839,7 @@ packages:
       yargs: 15.4.1
     transitivePeerDependencies:
       - supports-color
+    dev: false
 
   /oauth-sign/0.9.0:
     resolution: {integrity: sha512-fexhUFFPTGV8ybAtSIGbV6gOkSv8UtRbDBnAyLQw4QPKkgNlsH2ByPGtMUqdWkos6YCRmAqViwgZrJc/mRDzZQ==}
@@ -21708,9 +21160,11 @@ packages:
     resolution: {integrity: sha512-NQ7v0fliWtK7Lkb+WdFqe6ky9XAzYmlkXthQrBbzlYbmFKoAYbDDcwmOm6q8kOuwSRXW8bdL5ORksploUJmWgw==}
     dependencies:
       own-or: 1.0.0
+    dev: false
 
   /own-or/1.0.0:
     resolution: {integrity: sha1-Tod/vtqaLsgAD7wLyuOWRe6L+Nw=}
+    dev: false
 
   /p-cancelable/0.3.0:
     resolution: {integrity: sha512-RVbZPLso8+jFeq1MfNvgXtCRED2raz/dKpacfTNxsx6pLEpEomM7gah6VeHSYV3+vo0OAi4MkArtQcWWXuQoyw==}
@@ -21801,6 +21255,7 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       aggregate-error: 3.1.0
+    dev: false
 
   /p-map/4.0.0:
     resolution: {integrity: sha512-/bjOqmgETBYB5BoEeGVea8dmvHb2m9GLy1E9W43yeyfP6QQCZGFNa+XRceJEuDB6zqr+gKpIAmlLebMpykw/MQ==}
@@ -21878,6 +21333,7 @@ packages:
       hasha: 5.2.2
       lodash.flattendeep: 4.4.0
       release-zalgo: 1.0.0
+    dev: false
 
   /package-json/6.5.0:
     resolution: {integrity: sha512-k3bdm2n25tkyxcjSKzB5x8kfVxlMdgsbPr0GkZcwHsLpba6cBjqCt1KlcChKEvxHIcTB1FVMuwoijZ26xex5MQ==}
@@ -22000,12 +21456,6 @@ packages:
       protocols: 1.4.8
       qs: 6.10.3
       query-string: 6.14.1
-    dev: true
-
-  /parse-semver/1.1.1:
-    resolution: {integrity: sha1-mkr9bfBj3Egm+T+6SpnPIj9mbLg=}
-    dependencies:
-      semver: 5.7.1
     dev: true
 
   /parse-url/6.0.0:
@@ -22204,10 +21654,6 @@ packages:
       asn1.js: 5.4.1
     dev: true
     optional: true
-
-  /pend/1.2.0:
-    resolution: {integrity: sha1-elfrVQpng/kRUzH89GY9XI4AelA=}
-    dev: true
 
   /performance-now/2.1.0:
     resolution: {integrity: sha1-Ywn04OX6kT7BxpMHrjZLSzd8nns=}
@@ -22711,6 +22157,7 @@ packages:
       nanoid: 3.2.0
       picocolors: 1.0.0
       source-map-js: 1.0.2
+    dev: false
 
   /pouchdb-abstract-mapreduce/7.2.2:
     resolution: {integrity: sha512-7HWN/2yV2JkwMnGnlp84lGvFtnm0Q55NiBUdbBcaT810+clCGKvhssBCrXnmwShD1SXTwT83aszsgiSfW+SnBA==}
@@ -22984,26 +22431,6 @@ packages:
     dev: true
     optional: true
 
-  /prebuild-install/6.1.4:
-    resolution: {integrity: sha512-Z4vpywnK1lBg+zdPCVCsKq0xO66eEV9rWo2zrROGGiRS4JtueBOdlB1FnY8lcy7JsUud/Q3ijUxyWN26Ika0vQ==}
-    engines: {node: '>=6'}
-    hasBin: true
-    dependencies:
-      detect-libc: 1.0.3
-      expand-template: 2.0.3
-      github-from-package: 0.0.0
-      minimist: 1.2.5
-      mkdirp-classic: 0.5.3
-      napi-build-utils: 1.0.2
-      node-abi: 2.30.1
-      npmlog: 4.1.2
-      pump: 3.0.0
-      rc: 1.2.8
-      simple-get: 3.1.0
-      tar-fs: 2.1.1
-      tunnel-agent: 0.6.0
-    dev: true
-
   /precond/0.2.3:
     resolution: {integrity: sha1-qpWRvKokkj8eD0hJ0kD0fvwQdaw=}
     engines: {node: '>= 0.6'}
@@ -23129,6 +22556,7 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       fromentries: 1.3.2
+    dev: false
 
   /process/0.11.10:
     resolution: {integrity: sha1-czIwDoQBYb2j5podHZGn1LwW8YI=}
@@ -23426,6 +22854,7 @@ packages:
 
   /queue-microtask/1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
+    dev: true
 
   /queue/6.0.2:
     resolution: {integrity: sha512-iHZWu+q3IdFZFX36ro/lKBkSvfkztY5Y7HMiPlOUjhupPcG2JMfst2KKEpu5XndviX/3UhFbRngUPNKtgvtZiA==}
@@ -24573,6 +24002,7 @@ packages:
     engines: {node: '>=4'}
     dependencies:
       es6-error: 4.1.1
+    dev: false
 
   /remove-trailing-separator/1.1.0:
     resolution: {integrity: sha1-wkvOKig62tW8P1jg1IJJuSN52O8=}
@@ -24857,6 +24287,7 @@ packages:
   /reusify/1.0.4:
     resolution: {integrity: sha512-U9nH88a3fc/ekCF1l0/UP1IosiuIjyTh7hBvXVMHYgVcfGvt897Xguj2UOLDeI5BG2m7/uwyaLVT6fbtCwTyzw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
+    dev: true
 
   /rfdc/1.3.0:
     resolution: {integrity: sha512-V2hovdzFbOi77/WajaSMXk2OLm+xNIeQdMMuB7icj7bk6zi2F8GGAxigcnDFpJHbNyNcgyJDiP+8nOrY5cZGrA==}
@@ -24913,14 +24344,6 @@ packages:
     dependencies:
       bn.js: 5.2.0
 
-  /rollup/2.66.1:
-    resolution: {integrity: sha512-crSgLhSkLMnKr4s9iZ/1qJCplgAgrRY+igWv8KhG/AjKOJ0YX/WpmANyn8oxrw+zenF3BXWDLa7Xl/QZISH+7w==}
-    engines: {node: '>=10.0.0'}
-    hasBin: true
-    optionalDependencies:
-      fsevents: 2.3.2
-    dev: true
-
   /rpc-websockets/5.3.1:
     resolution: {integrity: sha512-rIxEl1BbXRlIA9ON7EmY/2GUM7RLMy8zrUPTiLPFiYnYOz0I3PXfCmDDrge5vt4pW4oIcAXBDvgZuJ1jlY5+VA==}
     dependencies:
@@ -24943,6 +24366,7 @@ packages:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}
     dependencies:
       queue-microtask: 1.2.3
+    dev: true
 
   /run-queue/1.0.3:
     resolution: {integrity: sha1-6Eg5bwV9Ij8kOGkkYY4laUFh7Ec=}
@@ -25460,14 +24884,6 @@ packages:
       simple-concat: 1.0.1
     dev: true
 
-  /simple-get/3.1.0:
-    resolution: {integrity: sha512-bCR6cP+aTdScaQCnQKbPKtJOKDp/hj9EDLJo3Nw4y1QksqaovlW/bnptB6/c1e+qmNIDHRK+oXFDdEqBT8WzUA==}
-    dependencies:
-      decompress-response: 4.2.1
-      once: 1.4.0
-      simple-concat: 1.0.1
-    dev: true
-
   /simple-swizzle/0.2.2:
     resolution: {integrity: sha1-pNprY1/8zMoz9w0Xy5JZLeleVXo=}
     dependencies:
@@ -25714,6 +25130,7 @@ packages:
   /source-map-js/1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}
     engines: {node: '>=0.10.0'}
+    dev: false
 
   /source-map-resolve/0.5.3:
     resolution: {integrity: sha512-Htz+RnsXWk5+P2slx5Jh3Q66vhQj1Cllm0zvnaY98+NFx+Dv2CF/f5O/t8x+KaNdrdIAsruNzoh/KpialbqAnw==}
@@ -25809,6 +25226,7 @@ packages:
       rimraf: 3.0.2
       signal-exit: 3.0.6
       which: 2.0.2
+    dev: false
 
   /spdx-correct/3.1.1:
     resolution: {integrity: sha512-cOYcUWwhCuHCXi49RhFRCyJEK3iPj1Ziz9DpViV3tbZOwXD49QzIN3MpOLJNxh2qwq2lJJZaKMVw9qNi4jTC0w==}
@@ -26648,6 +26066,7 @@ packages:
       unicode-length: 2.0.2
     transitivePeerDependencies:
       - supports-color
+    dev: false
 
   /tap-parser/10.1.0:
     resolution: {integrity: sha512-FujQeciDaOiOvaIVGS1Rpb0v4R6XkOjvWCWowlz5oKuhPkEJ8U6pxgqt38xuzYhPt8dWEnfHn2jqpZdJEkW7pA==}
@@ -26657,11 +26076,13 @@ packages:
       events-to-array: 1.1.2
       minipass: 3.1.6
       tap-yaml: 1.0.0
+    dev: false
 
   /tap-yaml/1.0.0:
     resolution: {integrity: sha512-Rxbx4EnrWkYk0/ztcm5u3/VznbyFJpyXO12dDBHKWiDVxy7O2Qw6MRrwO5H6Ww0U5YhRY/4C/VzWmFPhBQc4qQ==}
     dependencies:
       yaml: 1.10.2
+    dev: false
 
   /tap/15.1.6_typescript@4.5.5:
     resolution: {integrity: sha512-TN7xH6Q2tUPTd6qwmkhuFJcx1vUR8e4dDUpBKc61G0krOzne7Ia6aKIFb8O/0kVazachSSuVME1V8nQ2xwWL8w==}
@@ -26704,6 +26125,7 @@ packages:
       which: 2.0.2
     transitivePeerDependencies:
       - supports-color
+    dev: false
     bundledDependencies:
       - ink
       - treport
@@ -26756,15 +26178,6 @@ packages:
       tar-stream: 2.2.0
     dev: false
 
-  /tar-fs/2.1.1:
-    resolution: {integrity: sha512-V0r2Y9scmbDRLCNex/+hYzvp/zyYjvFbHPNgVTKfQvVrb6guiE/fxP+XblDNR011utopbkex2nM4dHNV6GDsng==}
-    dependencies:
-      chownr: 1.1.4
-      mkdirp-classic: 0.5.3
-      pump: 3.0.0
-      tar-stream: 2.2.0
-    dev: true
-
   /tar-stream/2.2.0:
     resolution: {integrity: sha512-ujeqbceABgwMZxEJnk2HDY2DlnUZ+9oEcb1KzTVfYHio0UE6dG71n60d8D2I4qNvleWrrXpmjpt7vZeF1LnMZQ==}
     engines: {node: '>=6'}
@@ -26774,6 +26187,7 @@ packages:
       fs-constants: 1.0.0
       inherits: 2.0.4
       readable-stream: 3.6.0
+    dev: false
 
   /tar/4.4.19:
     resolution: {integrity: sha512-a20gEsvHnWe0ygBY8JbxoM4w3SJdhc7ZAuxkLqh+nvNQN2IOt0B5lLgM490X5Hl8FF0dl0tOf2ewFYAlIFgzVA==}
@@ -26793,6 +26207,7 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       diff: 4.0.2
+    dev: false
 
   /temp-dir/1.0.0:
     resolution: {integrity: sha1-CnwOom06Oa+n4OvqnB/AvE2qAR0=}
@@ -27265,6 +26680,7 @@ packages:
 
   /trivial-deferred/1.0.1:
     resolution: {integrity: sha1-N21NKdlR1jaKb3oK6FwvTV4GWPM=}
+    dev: false
 
   /truffle-plugin-verify/0.5.21:
     resolution: {integrity: sha512-5NxJE/zgep3tWgrjrERhXPPqjB2vXekP6ovGx1AdqdZil7M7CoSWXDum/9cnHAajNJ3uYKsZugM5OoSp8o9cMg==}
@@ -27501,14 +26917,6 @@ packages:
   /type/2.5.0:
     resolution: {integrity: sha512-180WMDQaIMm3+7hGXWf12GtdniDEy7nYcyFMKJn/eZz/6tSLXrUN9V0wKSbMjej0I1WHWbpREDEKHtqPQa9NNw==}
 
-  /typed-rest-client/1.8.6:
-    resolution: {integrity: sha512-xcQpTEAJw2DP7GqVNECh4dD+riS+C1qndXLfBCJ3xk0kqprtGN491P5KlmrDbKdtuW8NEcP/5ChxiJI3S9WYTA==}
-    dependencies:
-      qs: 6.10.3
-      tunnel: 0.0.6
-      underscore: 1.13.2
-    dev: true
-
   /typed-styles/0.0.7:
     resolution: {integrity: sha512-pzP0PWoZUhsECYjABgCGQlRGL1n7tOHsgwYv3oIiEpJwGhFTuty/YNeduxQYzXXa3Ge5BdT6sHYIQYpl4uJ+5Q==}
     dev: false
@@ -27690,10 +27098,6 @@ packages:
       has-symbols: 1.0.2
       which-boxed-primitive: 1.0.2
 
-  /underscore/1.13.2:
-    resolution: {integrity: sha512-ekY1NhRzq0B08g4bGuX4wd2jZx5GnKz6mKSqFL4nqBlfyMGiG10gDFhDTMEfYmDL6Jy0FUIZp7wiRB+0BP7J2g==}
-    dev: true
-
   /underscore/1.9.1:
     resolution: {integrity: sha512-5/4etnCkd9c8gwgowi5/om/mYO5ajCaOgdzj/oW+0eQV9WxKBDZw5+ycmKmeaTXjInS/W0BzpGLo2xR2aBwZdg==}
     dev: true
@@ -27709,6 +27113,7 @@ packages:
     dependencies:
       punycode: 2.1.1
       strip-ansi: 3.0.1
+    dev: false
 
   /unicode-match-property-ecmascript/2.0.0:
     resolution: {integrity: sha512-5kaZCrbp5mmbz5ulBkDkbY0SsPOjKqVS35VpL9ulMPfSl0J0Xsm+9Evphv9CoIZFwre7aJoa94AY6seMKGVN5Q==}
@@ -27815,11 +27220,6 @@ packages:
     resolution: {integrity: sha512-aZwGpamFO61g3OlfT7OQCHqhGnW43ieH9WZeP7QxN/G/jS4jfqUkZxoryvJgVPEcrl5NL/ggHsSmLMHuH64Lhg==}
     engines: {node: '>=4'}
 
-  /upath/2.0.1:
-    resolution: {integrity: sha512-1uEe95xksV1O0CYKXo8vQvN1JEbtJp7lb7C5U9HMsIp6IVwntkH/oNUzyVNQSd4S1sYk2FpSSW44FqMc8qee5w==}
-    engines: {node: '>=4'}
-    dev: false
-
   /update-notifier/4.1.3:
     resolution: {integrity: sha512-Yld6Z0RyCYGB6ckIjffGOSOmHXj1gMeE7aROz4MG+XMkmixBX4jUngrGXNYz7wPKBmtoD4MnBa2Anu7RSKht/A==}
     engines: {node: '>=8'}
@@ -27857,10 +27257,6 @@ packages:
   /urix/0.1.0:
     resolution: {integrity: sha1-2pN/emLiH+wf0Y1Js1wpNQZ6bHI=}
     deprecated: Please see https://github.com/lydell/urix#deprecated
-
-  /url-join/4.0.1:
-    resolution: {integrity: sha512-jk1+QP6ZJqyOiuEI9AEWQfju/nB2Pw466kbA0LEZljHwKeMgd9WrAEgEGxjPDD2+TNbbb37rTyhEfrCXfuKXnA==}
-    dev: true
 
   /url-loader/1.1.2_webpack@4.46.0:
     resolution: {integrity: sha512-dXHkKmw8FhPqu8asTc1puBfe3TehOCo2+RmOOev5suNCIYBcT626kxiWg1NBVkwc4rO8BGa7gP70W7VXuqHrjg==}
@@ -28144,30 +27540,6 @@ packages:
     dev: true
     optional: true
 
-  /vite/2.7.13:
-    resolution: {integrity: sha512-Mq8et7f3aK0SgSxjDNfOAimZGW9XryfHRa/uV0jseQSilg+KhYDSoNb9h1rknOy6SuMkvNDLKCYAYYUMCE+IgQ==}
-    engines: {node: '>=12.2.0'}
-    hasBin: true
-    peerDependencies:
-      less: '*'
-      sass: '*'
-      stylus: '*'
-    peerDependenciesMeta:
-      less:
-        optional: true
-      sass:
-        optional: true
-      stylus:
-        optional: true
-    dependencies:
-      esbuild: 0.13.15
-      postcss: 8.4.5
-      resolve: 1.22.0
-      rollup: 2.66.1
-    optionalDependencies:
-      fsevents: 2.3.2
-    dev: true
-
   /vm-browserify/1.1.2:
     resolution: {integrity: sha512-2ham8XPWTONajOR0ohOKOHXkm3+gaBmGut3SRuu75xLd/RRaY6vqgh8NBYYk7+RW3u5AtzPQZG8F10LHkl0lAQ==}
 
@@ -28176,85 +27548,6 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: true
 
-  /vsce/2.6.4:
-    resolution: {integrity: sha512-1Zvg2sJA/wFd5KCEWlfefXqiZm47d4ATeVKS2lvas0Lo2eLhPA5KRwxvpNvxTGUM9t9hYmAB9ZWtKQRFa9Q0hg==}
-    engines: {node: '>= 14'}
-    hasBin: true
-    dependencies:
-      azure-devops-node-api: 11.1.0
-      chalk: 2.4.2
-      cheerio: 1.0.0-rc.10
-      commander: 6.2.1
-      glob: 7.2.0
-      hosted-git-info: 4.1.0
-      keytar: 7.7.0
-      leven: 3.1.0
-      markdown-it: 12.3.2
-      mime: 1.6.0
-      minimatch: 3.0.4
-      parse-semver: 1.1.1
-      read: 1.0.7
-      semver: 5.7.1
-      tmp: 0.2.1
-      typed-rest-client: 1.8.6
-      url-join: 4.0.1
-      xml2js: 0.4.23
-      yauzl: 2.10.0
-      yazl: 2.5.1
-    dev: true
-
-  /vscode-jsonrpc/7.0.0-next.1:
-    resolution: {integrity: sha512-dEmliPZGbSyIcEeKRGzosCy7y7zsc8FXg1l5BBOGgMUbemlo3vUnsa2GFqpILJwJvlbvkRcF2QASNwIlKe9J7g==}
-    engines: {node: '>=8.0.0 || >=10.0.0'}
-    dev: false
-
-  /vscode-jsonrpc/8.0.0-next.5:
-    resolution: {integrity: sha512-owRllqcFTnz5rXxcbmHPFGmpFmLqj9Z1V3Dzrv+s8ejOHLIT62Pyb5Uqzyl2/in2VP22DmzErPgZwrxjLCIKiQ==}
-    engines: {node: '>=14.0.0'}
-    dev: false
-
-  /vscode-languageclient/7.1.0-next.5:
-    resolution: {integrity: sha512-TpzpAhpdCNJHaLzptFRs54xsU6xTmaiVPCse0W0rRB5jJBPjOBKilrFPMMm/sJA0y8Yxa9sOvZaNu6WPg3dYAw==}
-    engines: {vscode: ^1.53.0}
-    dependencies:
-      minimatch: 3.0.4
-      semver: 7.3.5
-      vscode-languageserver-protocol: 3.17.0-next.6
-    dev: false
-
-  /vscode-languageserver-protocol/3.17.0-next.12:
-    resolution: {integrity: sha512-VLRcWKOpCXcx9UrqrS+NSF6pNxV498VGYGW+eyp9a79/F9ElUq3wdG6acXYlEfpWHuIxpm6MXps8FU88wqIgTg==}
-    dependencies:
-      vscode-jsonrpc: 8.0.0-next.5
-      vscode-languageserver-types: 3.17.0-next.6
-    dev: false
-
-  /vscode-languageserver-protocol/3.17.0-next.6:
-    resolution: {integrity: sha512-f1kGsoOpISB5jSqQNeMDl2446enxVahyux2e5vZap6pu/TC+2UlvPT4DCR0gPph95KOQZweL9zq1SzLoPdqhuA==}
-    dependencies:
-      vscode-jsonrpc: 7.0.0-next.1
-      vscode-languageserver-types: 3.17.0-next.2
-    dev: false
-
-  /vscode-languageserver-textdocument/1.0.3:
-    resolution: {integrity: sha512-ynEGytvgTb6HVSUwPJIAZgiHQmPCx8bZ8w5um5Lz+q5DjP0Zj8wTFhQpyg8xaMvefDytw2+HH5yzqS+FhsR28A==}
-    dev: false
-
-  /vscode-languageserver-types/3.17.0-next.2:
-    resolution: {integrity: sha512-L5S2kNLCgYJMVWgsZjBaorMM/6+itAfvOyl6Kv1bgFzDNaUKm9HsnUlehjpWPdV5DqnfJhJ5E03Z+/3Mw8ii+Q==}
-    dev: false
-
-  /vscode-languageserver-types/3.17.0-next.6:
-    resolution: {integrity: sha512-rHYeCotiabJHgvIYzWjV8g0dHCxyOQtcryTv1Xa1horaQ4jx2V+rjLBstc6zMpCyrnZcjorwEcAvGBDCd6wudw==}
-    dev: false
-
-  /vscode-languageserver/8.0.0-next.6:
-    resolution: {integrity: sha512-RgGRAsXUksdtCrhtxFUeMXzqE4C/7AHSR6loIQY3GFDNIqrlEIkkQZg2Kkouf/i+eE/Iummn2ZB85VKNTBQgsQ==}
-    hasBin: true
-    dependencies:
-      vscode-languageserver-protocol: 3.17.0-next.12
-    dev: false
-
   /vscode-oniguruma/1.6.1:
     resolution: {integrity: sha512-vc4WhSIaVpgJ0jJIejjYxPvURJavX6QG41vu0mGhqywMkQqulezEqEQ3cO3gc8GvcOpX6ycmKGqRoROEMBNXTQ==}
     dev: true
@@ -28262,20 +27555,6 @@ packages:
   /vscode-textmate/5.2.0:
     resolution: {integrity: sha512-Uw5ooOQxRASHgu6C7GVvUxisKXfSgW4oFlO+aa+PAkgmH89O3CXxEEzNRNtHSqtXFTl0nAC1uYj0GMSH27uwtQ==}
     dev: true
-
-  /vscode-typescript-languageservice/0.27.25:
-    resolution: {integrity: sha512-nxpJI9MnF2rn5rKL/032Qrsq3T9DgM3slK5fwZp3suNdo90JG2zFTs3Ola8n62k7+KWu4A775obxyb4wLIW6Gw==}
-    dependencies:
-      '@volar/shared': 0.27.24
-      semver: 7.3.5
-      upath: 2.0.1
-      vscode-languageserver: 8.0.0-next.6
-      vscode-languageserver-textdocument: 1.0.3
-    dev: false
-
-  /vscode-uri/3.0.3:
-    resolution: {integrity: sha512-EcswR2S8bpR7fD0YPeS7r2xXExrScVMxg4MedACaWHEtx9ftCF/qHG1xGkolzTPcEmjTavCQgbVzHUIdTMzFGA==}
-    dev: false
 
   /vue-hot-reload-api/2.3.4:
     resolution: {integrity: sha512-BXq3jwIagosjgNVae6tkHzzIk6a8MHFtzAdwhnV5VlvPTFxDCvIttgSiHWjdGoTJvXtmRu5HacExfdarRcFhog==}
@@ -30129,19 +29408,6 @@ packages:
     resolution: {integrity: sha512-A5CUptxDsvxKJEU3yO6DuWBSJz/qizqzJKOMIfUJHETbBw/sFaDxgd6fxm1ewUaM0jZ444Fc5vC5ROYurg/4Pw==}
     dev: true
 
-  /xml2js/0.4.23:
-    resolution: {integrity: sha512-ySPiMjM0+pLDftHgXY4By0uswI3SPKLDw/i3UXbnO8M/p28zqexCUoPmQFrYD+/1BzhGJSs2i1ERWKJAtiLrug==}
-    engines: {node: '>=4.0.0'}
-    dependencies:
-      sax: 1.2.4
-      xmlbuilder: 11.0.1
-    dev: true
-
-  /xmlbuilder/11.0.1:
-    resolution: {integrity: sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==}
-    engines: {node: '>=4.0'}
-    dev: true
-
   /xmlchars/2.2.0:
     resolution: {integrity: sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==}
     dev: true
@@ -30216,6 +29482,7 @@ packages:
 
   /yapool/1.0.0:
     resolution: {integrity: sha1-9pPymjFbUNmp2iZGp6ZkXJaYW2o=}
+    dev: false
 
   /yargs-parser/13.1.2:
     resolution: {integrity: sha512-3lbsNRf/j+A4QuSZfDRA7HRSfWrzO0YjqTJd5kjAq37Zep1CEgaYmrH9Q3GwPiB9cHyd1Y1UwggGhJGoxipbzg==}
@@ -30413,19 +29680,6 @@ packages:
       yargs-parser: 7.0.0
     dev: true
 
-  /yauzl/2.10.0:
-    resolution: {integrity: sha1-x+sXyT4RLLEIb6bY5R+wZnt5pfk=}
-    dependencies:
-      buffer-crc32: 0.2.13
-      fd-slicer: 1.1.0
-    dev: true
-
-  /yazl/2.5.1:
-    resolution: {integrity: sha512-phENi2PLiHnHb6QBVot+dJnaAZ0xosj7p3fWl+znIjBDlnMI2PsZCJZ306BPTFOaHf5qdDEI8x5qFrSOBN5vrw==}
-    dependencies:
-      buffer-crc32: 0.2.13
-    dev: true
-
   /yeast/0.1.2:
     resolution: {integrity: sha1-AI4G2AlDIMNy28L47XagymyKxBk=}
     dev: true
@@ -30454,6 +29708,8 @@ packages:
 
   /zen-observable/0.8.15:
     resolution: {integrity: sha512-PQ2PC7R9rslx84ndNBZB/Dkv8V8fZEpk83RLgXtYd0fwUgEjseMn1Dgajh2x6S8QbZAFa9p2qVCEuYZNgve0dQ==}
+    dev: true
+    optional: true
 
   /zepto/1.2.0:
     resolution: {integrity: sha1-4Se9nmb9hGvl6rSME5SIL3wOT5g=}

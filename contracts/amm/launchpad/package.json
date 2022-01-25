@@ -1,11 +1,10 @@
 {
   "name":    "@sienna/launchpad",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type":    "module",
   "main":    "./LaunchpadContract.ts",
   "dependencies": {
     "@hackbg/fadroma":  "workspace:../../../deps/fadroma",
-    "@sienna/settings": "workspace:^1.0.0",
-    "secretjs":         "workspace:*"
+    "@sienna/settings": "workspace:^1.0.0"
   }
 }

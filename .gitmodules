@@ -1,9 +1,5 @@
 # Read-only public deps
 
-[submodule "deps/ganesha"] # Literate TypeScript on demand
-  path   = deps/ganesha
-  url    = https://github.com/hackbg/ganesha.git
-
 [submodule "deps/fadroma"] # Contract and deployment framework
   path   = deps/fadroma
   url    = https://github.com/hackbg/fadroma.git

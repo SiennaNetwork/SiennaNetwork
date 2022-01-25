@@ -4,7 +4,7 @@
   "main": "./SiennaSNIP20Contract.ts",
   "type": "module",
   "dependencies": {
-    "@hackbg/tools":    "workspace:*",
+    "@hackbg/fadroma":  "workspace:../../../deps/fadroma",
     "@fadroma/snip20":  "workspace:*",
     "@sienna/settings": "workspace:^1.0.0"
   }
