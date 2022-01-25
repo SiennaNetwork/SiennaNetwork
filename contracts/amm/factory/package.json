@@ -12,6 +12,6 @@
     "@sienna/lp-token":   "workspace:^1",
     "@sienna/settings":   "workspace:^1",
     "@waiting/base64":    "^4.2.9",
-    "secretjs":           "workspace:../../../deps/fadroma/deps/scrt-1.2/"
+    "secretjs":           "workspace:*"
   }
 }
