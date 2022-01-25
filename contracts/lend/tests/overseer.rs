@@ -467,10 +467,24 @@ fn liquidity_entering_markets() {
 #[test]
 fn caclulate_amount_seize() {
     let mut lend = Lend::new();
-    let _collateral_market = lend
+
+    let collateral_market = lend
         .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(50))
         .unwrap();
-    let _borrowed_market = lend
+    let borrowed_market = lend
         .whitelist_market(lend.underlying_token_two.clone(), Decimal256::permille(666))
         .unwrap();
+
+    let res: Uint256 = lend
+        .ensemble
+        .query(
+            lend.overseer.address.clone(),
+            QueryMsg::SeizeAmount {
+                borrowed: borrowed_market.contract.address.clone(),
+                collateral: collateral_market.contract.address.clone(),
+                repay_amount: Uint256::from(1_000_000_000_000_000_000u128),
+            },
+        )
+        .unwrap();
+    assert_eq!(res, Uint256::from(1_000_000_000_000_000_000u128));
 }
