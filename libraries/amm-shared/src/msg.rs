@@ -203,6 +203,7 @@ pub mod exchange {
         },
         // SNIP20 receiver interface
         Receive {
+            sender: HumanAddr,
             from: HumanAddr,
             msg: Option<Binary>,
             amount: Uint128,
