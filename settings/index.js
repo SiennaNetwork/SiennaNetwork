@@ -29,7 +29,8 @@ module.exports = function getSettingsForChain (chainId) {
   function getSettings (file) {
     const path = resolve(directory, file)
     if (!existsSync(path)) {
-      throw new Error(`settings/${chainId}/${file} does not exist`)
+      console.warn(`@sienna/settings: settings/${chainId}/${file} does not exist`)
+      return undefined
     }
     return JSON.parse(readFileSync(path))
   }

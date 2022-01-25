@@ -20,14 +20,23 @@ const console = Console('@sienna/amm/deploy')
 export async function deployAMM ({
   deployment, run
 }: MigrationContext) {
-  const SIENNA = new SiennaSNIP20Contract().from(deployment),
-  const { FACTORY } = await run(deployAMMFactory)
-  const { TOKENS, EXCHANGES, LP_TOKENS } = await run(deployAMMExchanges, { FACTORY })
-  const { SSSSS_POOL, RPT_CONFIG_SSSSS } = await run(deploySSSSS, { SIENNA })
-  const { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS } = await run(deployRewards, {
-    apiVersion?: 'v3', SIENNA, FACTORY, TOKENS
+
+  const SIENNA = new SiennaSNIP20Contract().from(deployment)
+
+  const { FACTORY } = 
+    await run(deployAMMFactory)
+  const { TOKENS, EXCHANGES, LP_TOKENS } =
+    await run(deployAMMExchanges, { SIENNA, FACTORY })
+  const { SSSSS_POOL, RPT_CONFIG_SSSSS } =
+    await run(deploySSSSS, { SIENNA })
+  const { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS } =
+    await run(deployRewards, { apiVersion: 'v3', SIENNA, FACTORY, TOKENS })
+
+  await run(adjustRPTConfig, {
+    RPT_CONFIG_SSSSS,
+    RPT_CONFIG_SWAP_REWARDS
   })
-  await run(adjustRPTConfig, { RPT_CONFIG_SSSSS, RPT_CONFIG_SWAP_REWARDS })
+
 }
 
 /** After deploying the SSSSS and the other reward pools,
@@ -136,13 +145,14 @@ export async function deployAMMExchanges ({
 }> {
   const { swapTokens, swapPairs, rewardPairs } = getSettings(chain.chainId)
   // Collect referenced tokens, and created exchanges/LPs
-  const TOKENS:    Record<string, SNIP20Contract>  = { SIENNA }
+  const TOKENS:    Record<string, SNIP20Contract> = { SIENNA }
   const EXCHANGES: AMMContract[]     = []
   const LP_TOKENS: LPTokenContract[] = []
   if (chain.isLocalnet) {
     // On localnet, deploy some placeholder tokens corresponding to the config.
     console.info(`Running on ${bold('localnet')}, deploying placeholder tokens...`)
-    Object.assign(TOKENS, await run(deployPlaceholderTokens))
+    const { PLACEHOLDER_TOKENS } = await run(deployPlaceholderTokens)
+    Object.assign(TOKENS, PLACEHOLDER_TOKENS)
   } else {
     // On testnet and mainnet, talk to preexisting token contracts from the config.
     console.info(`Not running on localnet, using tokens from config:`)
@@ -314,7 +324,7 @@ export async function deployRewards ({
   RPT_CONFIG_SWAP_REWARDS: RPTConfig
 }> {
   const { swapTokens, swapPairs, rewardPairs, } = getSettings(chain.chainId)
-  const REWARDS = new RewardsContract({ prefix, admin, ref })
+  const REWARDS = new RewardsContract({ workspace, prefix, admin, ref })
   await chain.buildAndUpload([REWARDS])
   Object.assign(TOKENS,
     chain.isLocalnet
