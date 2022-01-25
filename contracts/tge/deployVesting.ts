@@ -1,6 +1,4 @@
-import type { IChain, IAgent } from '@fadroma/scrt'
-import { buildAndUpload, Scrt } from '@fadroma/scrt'
-import { timestamp } from '@hackbg/tools'
+import { Migration, Deployment, IChain, IAgent } from '@hackbg/fadroma'
 
 import type { ScheduleFor_HumanAddr } from '@sienna/mgmt/schema/handle.d'
 import {
@@ -9,51 +7,65 @@ import {
   RPTContract
 } from '@sienna/api'
 
-import settings, { abs } from '@sienna/settings'
+import settings, { workspace } from '@sienna/settings'
 
 import type { SwapOptions } from './deploySwap'
 
-export type VestingOptions = {
-  workspace?: string
-  prefix?:    string
-  chain?:     IChain
-  admin?:     IAgent
-  schedule?:  ScheduleFor_HumanAddr
+export type Inputs = Migration & {
+
+  /** Input: The schedule for the new MGMT.
+    * Defaults to production schedule. */
+  schedule?: ScheduleFor_HumanAddr
+
 }
 
-export async function deployVesting (
-  options: VestingOptions = {}
-): Promise<SwapOptions> {
+export type Outputs = Migration & {
+
+  /** Output: The deployed SIENNA SNIP20 token contract. */
+  SIENNA: SiennaSNIP20Contract
+
+  /** Output: The deployed MGMT contract. */
+  MGMT:   MGMTContract
+
+  /** Output: The deployed RPT contract. */
+  RPT:    RPTContract
+
+  /** Output: The newly created deployment. */
+  deployment: Deployment
+
+}
+
+export async function deployVesting (inputs: Inputs): Promise<Outputs> {
 
   const {
-    workspace = abs(),
-    prefix    = timestamp(),
-    chain     = await new Scrt().ready,
-    admin     = await chain.getAgent(),
-    schedule  = settings.schedule
-  } = options
+    timestamp,
+    chain,
+    admin,
+    args = [],
+
+    schedule = settings.schedule
+  } = inputs
+
+  // ignore deployment/prefix from the inputs;
+  // always start new deployment
+  const prefix = args[0] /* let user name it */ || timestamp /* or default */
+  await chain.deployments.create(prefix)
+  await chain.deployments.select(prefix)
 
   const RPTAccount = getRPTAccount(schedule)
   const portion    = RPTAccount.portion_size
+  const options    = { uploader: admin, instantiator: admin, admin, workspace, chain, prefix }
 
-  const options = { uploader: admin, instantiator: admin, admin, workspace, chain, prefix }
-  const SIENNA = new SiennaSNIP20Contract({ ...options })
-  const MGMT   = new MGMTContract({ ...options, schedule, SIENNA })
-  const RPT    = new RPTContract({ ...options, MGMT, SIENNA, portion })
+  const SIENNA     = new SiennaSNIP20Contract({ ...options })
+  const MGMT       = new MGMTContract({ ...options, schedule, SIENNA })
+  const RPT        = new RPTContract({ ...options, MGMT, SIENNA, portion })
 
-  SIENNA.uploader = MGMT.uploader = RPT.uploader = admin
-  await buildAndUpload([SIENNA, MGMT, RPT])
+  await chain.buildAndUpload([SIENNA, MGMT, RPT])
 
-  SIENNA.instantiator = MGMT.instantiator = RPT.instantiator = admin
   await SIENNA.instantiate()
-
   if (chain.isTestnet) {
-    await SIENNA.setMinters([admin.address])
-    await SIENNA.tx(admin).mint({
-      amount:    "5000000000000000000000",
-      recipient: admin.address,
-      padding:   null,
-    })
+    await SIENNA.tx(admin).setMinters([admin.address])
+    await SIENNA.tx(admin).mint("5000000000000000000000", admin.address)
   }
 
   RPTAccount.address = admin.address
@@ -67,7 +79,15 @@ export async function deployVesting (
   await MGMT.tx().launch()
   await RPT.tx().vest()
 
-  return { workspace, prefix, chain, admin, SIENNA, MGMT, RPT }
+  return {
+    ...inputs,
+    workspace,
+    deployment: chain.deployments.get(prefix),
+    prefix,
+    SIENNA,
+    MGMT,
+    RPT
+  }
 
   /// ### Get the RPT account from the schedule
   /// This is a special entry in MGMT's schedule that must be made to point to

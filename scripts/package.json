@@ -4,11 +4,9 @@
   "type":    "module",
   "dependencies": {
 
-    "@hackbg/tools":   "workspace:*",
-    "@hackbg/komandi": "workspace:*",
-
-    "@fadroma/scrt":   "workspace:*",
-    "@fadroma/snip20": "workspace:*",
+    "@hackbg/komandi":  "workspace:*",
+    "@hackbg/fadroma":  "workspace:../deps/fadroma",
+    "@fadroma/snip20":  "workspace:*",
 
     "@sienna/api":      "workspace:*",
     "@sienna/tge":      "workspace:*",

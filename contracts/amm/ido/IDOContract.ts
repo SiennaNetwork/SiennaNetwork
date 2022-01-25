@@ -1,7 +1,6 @@
-import type { IAgent, ContractAPIOptions } from '@fadroma/scrt'
-import { ScrtContract_1_2 } from "@fadroma/scrt"
+import { IAgent, ContractAPIOptions, Scrt_1_2 } from '@hackbg/fadroma'
 
-export class IDOContract extends ScrtContract_1_2 {
+export class IDOContract extends Scrt_1_2.Contract<any, any> {
 
   crate = 'ido'
 

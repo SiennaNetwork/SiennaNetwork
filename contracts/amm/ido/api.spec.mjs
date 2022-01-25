@@ -1,7 +1,8 @@
+import { Scrt, ScrtGas } from "@hackbg/fadroma";
+
 import debug from "debug";
 import { assert } from "chai";
 import { randomBytes } from "crypto";
-import { Scrt, ScrtGas } from "@fadroma/scrt";
 
 import { SiennaSNIP20 } from "./index";
 import { SNIP20 } from "./SNIP20.ts";

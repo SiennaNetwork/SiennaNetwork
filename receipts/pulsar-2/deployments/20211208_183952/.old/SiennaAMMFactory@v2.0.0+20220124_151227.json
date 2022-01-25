@@ -1,0 +1,93 @@
+{
+  "label": "SiennaAMMFactory@v2.0.0+20220124_151227",
+  "codeId": 235,
+  "codeHash": "8d69b5f625d8e14300ea6b1306fc174d68e711c2ec29f015d682be109ccb386e",
+  "initTx": {
+    "height": "964452",
+    "txhash": "40E89A09013CB3D3692974EA7DE766CCEB4253B47B294A1BC0012051B5F05C5C",
+    "data": "0A460A2E2F7365637265742E636F6D707574652E763162657461312E4D7367496E7374616E7469617465436F6E74726163741214A59B3E34928239EEAFA62067AE146EBF44093554",
+    "raw_log": "[{\"events\":[{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"instantiate\"},{\"key\":\"module\",\"value\":\"compute\"},{\"key\":\"signer\",\"value\":\"secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy\"},{\"key\":\"code_id\",\"value\":\"235\"},{\"key\":\"contract_address\",\"value\":\"secret15kdnudyjsgu7ataxypn6u9rwhazqjd257z8t0n\"}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"contract_address\",\"value\":\"secret15kdnudyjsgu7ataxypn6u9rwhazqjd257z8t0n\"}]}]}]",
+    "logs": [
+      {
+        "events": [
+          {
+            "type": "message",
+            "attributes": [
+              {
+                "key": "action",
+                "value": "instantiate"
+              },
+              {
+                "key": "module",
+                "value": "compute"
+              },
+              {
+                "key": "signer",
+                "value": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy"
+              },
+              {
+                "key": "code_id",
+                "value": "235"
+              },
+              {
+                "key": "contract_address",
+                "value": "secret15kdnudyjsgu7ataxypn6u9rwhazqjd257z8t0n"
+              }
+            ]
+          },
+          {
+            "type": "wasm",
+            "attributes": [
+              {
+                "key": "contract_address",
+                "value": "secret15kdnudyjsgu7ataxypn6u9rwhazqjd257z8t0n"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "gas_wanted": "1000000",
+    "gas_used": "38713",
+    "tx": {
+      "type": "cosmos-sdk/StdTx",
+      "value": {
+        "msg": [
+          {
+            "type": "wasm/MsgInstantiateContract",
+            "value": {
+              "sender": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy",
+              "code_id": "235",
+              "label": "SiennaAMMFactory@v2.0.0+20220124_151227",
+              "init_msg": "wNKeci72Wbi6J1UMabSsoWyQJytRVfnpS0pDlSq9dxnLrXsfhD/yyRyIAGOaPLkTMMdDTzTyBm3DHsCtKfQmMMguRImRdgGjms0tQdmefpB+0CEA+3niZVs5JjdW/CArJFpEaUfn+PhdxkadJ1HPWEMFl1SZuOx+CoxHq/hZj2yXG9bICFoVloqSHK5Tf33Sj1wR2BpREFTjwQfS8zgvC5KdgHREOn0x+9hO3un/QPF3JotIvSAJzWE760vt5Duo49tlUrtEHuBkba8KdxkYwcH56oOMtM+TnhiSz3GNfotq8GGVI+PAKgP1bBJoVvWp3lfXR/ZqLfknU8psPQEfOnCS4/uhknM5iU3QEmOAUtkObls+XUmMf/CyJ8esiftfCRJi2zMrSQJEm28h83roaBbO5ebCEZAbDYovUNUseMfAHw/ARrbizpqdUCVUw+xYZa/vZMqOHoFcvbb0rUY3VJ4vTdENZq5VcxfhF99j587KaevnFovJ3WOiGi3NinJB4TV99vGjJTjA12O2Uzg4PwfxcT4mEyB10+Bm2THdk8FeJdT9GoQUEdLlMI/IeHhRR0yXtcew48Cr58Mix0uXxlN67otbqN9LuJ0vhIlHoKqA6zP/7ysHjGWiYMttr+rbDBVqkg1aZ0pVVyyu3kIaTkR3t147ZjjdKu58FK06Uduohe2PXwrf1GAYXDD/T/WTFixKs/v0C8nUSFxOXo5OUGBv+a8vC33vDO5mah9SvLq5vRvJK/l95278BMNvSUcQV+rc7/WVadJIkKcasBDYZ5kqXqWN3c+ORBnR1BSxPuZOkLViBGUCDVAdcqVBqNtsxEEoWpZek5Lyr87nUisdiMeUjCGpw69zwgPlcxPQbPEQ/uCszdzsOkdipuaEDcfQN3SXxHD/qV0zWbyR8Cm9hDHE8PSqVPpg8jieDzTCaa5G2OtJP26LQiLldKz04E3Uixg4DgfyxpezbmzPwDH6oarMES3REQPJqnZNxcD3TNyNLLyWbyNOZ3Dtq454kyfRM3WUrgd4QEPDpr3F+sVi89gJcSjDwF4bwqtGVEYWWqvIA+PZBFa7b1/zX0UTQXhDiWdYO753M32P04TQlknLqHQ2SafWkebWuA1s9vyUr1iBJBlGNNAtGOPTIVXYPeZ/iVRjhWCbEt3lRNXqW7yMDDjJv+A+yJIBnHDmQzsVogZ9uv7LVADZyiXoq+ed8cTr3AK3AfQcztC6S01kREAHR1lSqYVkpFnzrW5jpIKiZXPhlsjn8g6DpJkHrCK4m58AbxARlEgWPamjYh1whgQI/fRQeT2nMT9+Zv13",
+              "init_funds": []
+            }
+          }
+        ],
+        "fee": {
+          "amount": [
+            {
+              "denom": "uscrt",
+              "amount": "1000000"
+            }
+          ],
+          "gas": "1000000"
+        },
+        "signatures": [
+          {
+            "pub_key": {
+              "type": "tendermint/PubKeySecp256k1",
+              "value": "Ai+My06zdI6JtjUpkqnrDm/Cv1JoggutEuYWVDBiwmWc"
+            },
+            "signature": "u8gTHWVqOJWu1c1rdPwhawEO/QNoA7y8fxLPLugBGkdEdf75+yrHzzDVwubW0lkaQJZIEAcrXAtGnWZdwVn7Iw=="
+          }
+        ],
+        "memo": "",
+        "timeout_height": "0"
+      }
+    },
+    "timestamp": "2022-01-24T15:12:43Z",
+    "transactionHash": "40E89A09013CB3D3692974EA7DE766CCEB4253B47B294A1BC0012051B5F05C5C",
+    "contractAddress": "secret15kdnudyjsgu7ataxypn6u9rwhazqjd257z8t0n"
+  }
+}

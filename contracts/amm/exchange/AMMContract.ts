@@ -1,15 +1,24 @@
-import { ScrtContract_1_2, IAgent, ContractState } from "@fadroma/scrt"
-import { randomHex } from '@hackbg/tools'
-import { workspace } from '@sienna/settings'
-import { InitMsg } from './schema/init_msg.d'
+import { IAgent, ContractState, randomHex, Scrt_1_2 } from "@hackbg/fadroma"
+import { SNIP20Contract } from '@fadroma/snip20'
 
-export class AMMContract extends ScrtContract_1_2 {
+import { AMMTransactions } from './AMMTransactions'
+import { AMMQueries } from './AMMQueries'
+
+import { InitMsg } from './schema/init_msg.d'
+import { TokenType, TokenPair, ContractLink } from './schema/query_msg_response.d'
+
+export class AMMContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> {
 
   crate = 'exchange'
-
   name  = 'SiennaAMMExchange'
 
+  Transactions = AMMTransactions
+  Queries      = AMMQueries
+
   initMsg?: InitMsg
+  token_0?: TokenType
+  token_1?: TokenType
+  lpToken?: SNIP20Contract
 
   constructor (options: ContractState & {
     admin?:    IAgent,
@@ -18,6 +27,7 @@ export class AMMContract extends ScrtContract_1_2 {
     name?:     string,
     symbol?:   string,
     decimals?: number,
+    lpToken?:  SNIP20Contract
   } = {}) {
     super(options)
     this.initMsg = {
@@ -30,6 +40,17 @@ export class AMMContract extends ScrtContract_1_2 {
     }
   }
 
-  pairInfo = () => this.q.pairInfo()
+  async populate () {
+    const pairInfo = await this.pairInfo()
+    const { pair: { token_0, token_1 }, liquidity_token } = pairInfo
+    this.token_0  = token_0
+    this.token_1  = token_1
+    this.lpToken = new SNIP20Contract(liquidity_token)
+    return this
+  }
+
+  pairInfo = (): Promise<{ pair: TokenPair, liquidity_token: ContractLink }> => {
+    return this.q(this.admin).pair_info()
+  }
 
 }

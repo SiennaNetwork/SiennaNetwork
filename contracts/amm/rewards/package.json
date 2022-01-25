@@ -4,9 +4,8 @@
   "type": "module",
   "main": "./RewardsContract.ts",
   "dependencies": {
-    "@fadroma/scrt":    "workspace:*",
+    "@hackbg/fadroma":  "workspace:../../../deps/fadroma",
     "@fadroma/snip20":  "workspace:*",
-    "@hackbg/tools":   "workspace:*",
     "@sienna/lp-token": "workspace:^1.0.0",
     "@sienna/settings": "workspace:^1.0.0",
     "secretjs":         "workspace:*"

@@ -38,7 +38,7 @@ members = [
   "contracts/lend/market",
 
   # Framework
-  "libraries/fadroma-next/crates/*",
+  "deps/fadroma/crates/*",
 
 ]
 

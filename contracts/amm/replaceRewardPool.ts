@@ -1,17 +1,17 @@
-import type { IChain, IAgent } from '@fadroma/scrt'
-import { buildAndUpload } from '@fadroma/scrt'
-import { bold, colors, timestamp } from '@hackbg/tools'
+import { Migration, bold, colors, timestamp, writeFileSync } from '@hackbg/fadroma'
 import { RewardsContract, RPTContract } from '@sienna/api'
 import process from 'process'
-import { writeFileSync } from 'fs'
 
-export async function replaceRewardPool (
-  chain: IChain,
-  admin: IAgent,
-  rewardPoolLabel: string
-) {
+export async function replaceRewardPool (options: Migration & { rewardPoolLabel: string }) {
 
-  const { name: prefix, getContract, resolve } = chain.deployments.active
+  const {
+    resolve,
+    chain,
+    admin,
+    prefix,
+    getContract,
+    rewardPoolLabel
+  } = options
 
   console.log(
     `Upgrading reward pool ${bold(rewardPoolLabel)}` +
@@ -20,41 +20,46 @@ export async function replaceRewardPool (
     `\nas ${bold(admin.address)}\n`
   )
 
-  const OLD_POOL = getContract(RewardsContract, rewardPoolLabel, admin)
-      , RPT      = getContract(RPTContract, 'SiennaRPT', admin)
+  // This is the old reward pool
+  const POOL = getContract(RewardsContract, rewardPoolLabel, admin)
 
+  // Find address of pool in RPT config
+  const RPT  = getContract(RPTContract, 'SiennaRPT', admin)
   const {config} = await RPT.status
   let found: number = NaN
   for (let i = 0; i < config.length; i++) {
     console.log(config[i])
-    if (config[i][0] === OLD_POOL.address) {
+    if (config[i][0] === POOL.address) {
       if (!isNaN(found)) {
-        console.log(`Address ${bold(OLD_POOL.address)} found in RPT config twice.`)
+        console.log(`Address ${bold(POOL.address)} found in RPT config twice.`)
         process.exit(1)
       }
       found = i
     }
   }
-
   if (isNaN(found)) {
-    console.log(`Reward pool ${bold(OLD_POOL.address)} not found in RPT ${bold(RPT.address)}`)
+    console.log(`Reward pool ${bold(POOL.address)} not found in RPT ${bold(RPT.address)}`)
     process.exit(1)
   }
 
-  console.log(`Replacing reward pool ${OLD_POOL.address}`)
+  console.log(`Replacing reward pool ${POOL.address}`)
 
-  const [LP_TOKEN, REWARD_TOKEN] = await Promise.all([
-    OLD_POOL.getLPToken(admin),
-    OLD_POOL.getRewardToken(admin)
+  const [
+    LP_TOKEN,
+    REWARD_TOKEN
+  ] = await Promise.all([
+    POOL.lpToken(),
+    POOL.rewardToken()
   ])
 
   const NEW_POOL = new RewardsContract({
-    prefix, label: `${rewardPoolLabel}@${timestamp()}`, admin,
+    prefix,
+    label: `${rewardPoolLabel}@${timestamp()}`,
+    admin,
     lpToken:     LP_TOKEN,
     rewardToken: REWARD_TOKEN
   })
-
-  await buildAndUpload([NEW_POOL])
+  await chain.buildAndUpload([NEW_POOL])
   await NEW_POOL.instantiate()
 
   config[found][0] = NEW_POOL.address
@@ -67,26 +72,8 @@ export async function replaceRewardPool (
       `You should use this file as the basis of a multisig transaction.`
     )
   } else {
-    await RPT.configure(config)
+    await RPT.tx().configure(config)
   }
 
-  await OLD_POOL.close(`Moved to ${NEW_POOL.address}`)
-}
-
-export function printRewardsContracts (chain: IChain) {
-  if (chain && chain.deployments.active) {
-    const {name, contracts} = chain.deployments.active
-    const isRewardPool = (x: string) => x.startsWith('SiennaRewards_')
-    const rewardsContracts = Object.keys(contracts).filter(isRewardPool)
-    if (rewardsContracts.length > 0) {
-      console.log(`\nRewards contracts in ${bold(name)}:`)
-      for (const name of rewardsContracts) {
-        console.log(`  ${colors.green('✓')}  ${name}`)
-      }
-    } else {
-      console.log(`\nNo rewards contracts.`)
-    }
-  } else {
-    console.log(`\nSelect a deployment to pick a reward contract.`)
-  }
+  await POOL.tx().close(`Moved to ${NEW_POOL.address}`)
 }

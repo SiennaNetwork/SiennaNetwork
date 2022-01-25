@@ -288,7 +288,8 @@
         "token_type": {
           "$ref": "#/definitions/TokenType"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "TokenType": {
       "anyOf": [

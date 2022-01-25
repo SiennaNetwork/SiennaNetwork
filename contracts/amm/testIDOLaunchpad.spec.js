@@ -1,12 +1,13 @@
 import debug from "debug";
 import { assert } from "chai";
 import { randomBytes } from "crypto";
-import { Scrt } from "@fadroma/scrt";
+import { Scrt } from "@hackbg/fadroma";
 
 import { Launchpad } from "./Launchpad";
 import { SNIP20 } from "./SNIP20";
 import { Factory } from "./Factory";
 import { IDO } from "./IDO";
+
 const log = function () {
   debug("out")(JSON.stringify(arguments, null, 2));
 };

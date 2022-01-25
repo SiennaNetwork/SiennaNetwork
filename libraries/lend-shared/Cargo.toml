@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-fadroma = { path = "../fadroma-next/crates/fadroma", features = ["derive"] }
+fadroma = { path = "../../deps/fadroma/crates/fadroma", features = ["derive"] }
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 primitive-types = { version = "0.9.1", default-features = false }

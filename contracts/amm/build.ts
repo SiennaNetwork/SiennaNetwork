@@ -13,33 +13,33 @@ import { workspace } from '@sienna/settings'
 
 export async function buildTokens (): Promise<string[]> {
   return Promise.all([
-    new AMMSNIP20Contract({ workspace }).build(),
-    new LPTokenContract({ workspace }).build(),
+    new AMMSNIP20Contract({ workspace }).buildInDocker(),
+    new LPTokenContract({ workspace }).buildInDocker(),
   ])
 }
 
 export async function buildAmm (): Promise<string[]> {
   return Promise.all([
-    new FactoryContract({ workspace }).build(),
-    new AMMContract({ workspace }).build(),
+    new FactoryContract({ workspace }).buildInDocker(),
+    new AMMContract({ workspace }).buildInDocker(),
   ])
 }
 
 export async function buildIdo (): Promise<string[]> {
   return Promise.all([
-    new IDOContract({ workspace }).build(),
-    new LaunchpadContract({ workspace }).build(),
+    new IDOContract({ workspace }).buildInDocker(),
+    new LaunchpadContract({ workspace }).buildInDocker(),
   ])
 }
 
 export async function buildRewards (): Promise<string[]> {
   return Promise.all([
-    new RewardsContract({ workspace }).build(),
+    new RewardsContract({ workspace }).buildInDocker(),
   ])
 }
 
 export async function buildRouter (): Promise<string[]> {
   return Promise.all([
-    new SwapRouterContract({ workspace }).build()
+    new SwapRouterContract({ workspace }).buildInDocker()
   ])
 }

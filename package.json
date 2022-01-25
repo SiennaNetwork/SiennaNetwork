@@ -6,9 +6,7 @@
   "workspace": true,
 
   "packages": [
-    "./libraries/fadroma-next/deps/*",
-    "./libraries/fadroma-next/packages/*",
-    "./libraries/fadroma-next/crates/fadroma-snip20-impl",
+    "./deps/*",
 
     "./scripts",
     "./settings",
@@ -28,9 +26,9 @@
   ],
 
   "dependencies": {
-    "@ganesha/node": "workspace:*",
-    "@hackbg/tools": "workspace:*",
-    "typescript":    "^4.4.4"
+    "@hackbg/fadroma": "workspace:./deps/fadroma",
+    "@hackbg/ganesha": "workspace:./deps/ganesha",
+    "typescript":      "^4.4.4"
   },
 
   "scripts": {

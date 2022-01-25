@@ -31,7 +31,7 @@ rand_chacha = { version = "0.2.2", default-features = false }
 rand_core = { version =  "0.5.1", default-features = false }
 sha2 = { version = "0.9.1", default-features = false }
 
-fadroma-bind-js = { optional = true, path = "../../../libraries/fadroma-next/crates/fadroma-bind-js" }
+fadroma-bind-js = { optional = true, path = "../../../deps/fadroma/crates/fadroma-bind-js" }
 wasm-bindgen    = { optional = true, version = "0.2" }
 js-sys          = { optional = true, version = "0.3.55" }
 

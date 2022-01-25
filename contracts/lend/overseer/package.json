@@ -4,6 +4,6 @@
   "main":    "./LendOverseerContract.ts",
   "type":    "module",
   "dependencies": {
-    "@fadroma/scrt": "workspace:*"
+    "@hackbg/fadroma": "workspace:../../../deps/fadroma"
   }
 }

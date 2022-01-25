@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "target":                       "es6",
+    "target":                       "es2020",
     "module":                       "nodenext",
     "moduleResolution":             "node",
     "inlineSourceMap":              true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop":              true,
-    "lib": ["ES2020", "node"]
+    "lib":                          ["es2020", "node"]
   }
 }

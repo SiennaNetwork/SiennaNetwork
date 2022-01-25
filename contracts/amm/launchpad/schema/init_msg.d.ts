@@ -45,7 +45,6 @@ export interface InitMsg {
    */
   prng_seed: Binary;
   tokens: TokenSettings[];
-  [k: string]: unknown;
 }
 /**
  * Info needed to have the other contract respond.
@@ -74,5 +73,4 @@ export interface TokenSettings {
   bounding_period: number;
   segment: Uint128;
   token_type: TokenType;
-  [k: string]: unknown;
 }

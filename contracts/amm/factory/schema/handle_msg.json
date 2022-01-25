@@ -673,7 +673,8 @@
             "$ref": "#/definitions/HumanAddr"
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "TokenSettings": {
       "description": "Configuration for single token that can be locked into the launchpad",
@@ -695,7 +696,8 @@
         "token_type": {
           "$ref": "#/definitions/TokenType"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "TokenType": {
       "anyOf": [

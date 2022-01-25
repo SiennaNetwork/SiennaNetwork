@@ -3,13 +3,16 @@
 /// ## Dependencies
 
 
-import { resolve, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import {
+  IAgent,
+  ContractUpload,
+  Scrt,
+  ScrtGas,
+  Console,
+  resolve, dirname, fileURLToPath
+} from '@hackbg/fadroma'
 
-import type { IAgent, ContractUpload } from '@fadroma/scrt'
-import { Scrt, ScrtGas } from '@fadroma/scrt'
-import { Console } from '@hackbg/tools'
-const console = Console(import.meta.url)
+const console = Console('[@sienna/amm/benchmarkRewards]')
 
 import { RewardsContract, SiennaSNIP20Contract, LPTokenContract } from '@sienna/api'
 

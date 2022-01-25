@@ -33,7 +33,6 @@ export interface InitMsg {
   callback?: Callback | null;
   owner?: HumanAddr | null;
   register_tokens?: TokenType[] | null;
-  [k: string]: unknown;
 }
 /**
  * Info needed to have the other contract respond.

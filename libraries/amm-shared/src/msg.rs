@@ -19,6 +19,7 @@ pub mod factory {
     use fadroma::admin::{HandleMsg as AdminHandleMsg, QueryMsg as AdminQueryMsg};
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    #[serde(deny_unknown_fields)]
     pub struct InitMsg {
         pub snip20_contract: ContractInstantiationInfo,
         pub lp_token_contract: ContractInstantiationInfo,
@@ -32,6 +33,7 @@ pub mod factory {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum HandleMsg {
         /// Set pause/migration status
         SetStatus {
@@ -114,6 +116,7 @@ pub mod factory {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum QueryMsg {
         /// Get pause/migration status
         Status,
@@ -136,6 +139,7 @@ pub mod factory {
 
     #[derive(Serialize, Deserialize, Debug, JsonSchema, PartialEq)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum QueryResponse {
         GetExchangeAddress {
             address: HumanAddr,
@@ -167,6 +171,7 @@ pub mod exchange {
     use super::*;
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    #[serde(deny_unknown_fields)]
     pub struct InitMsg {
         /// The tokens that will be managed by the exchange
         pub pair: TokenPair<HumanAddr>,
@@ -182,6 +187,7 @@ pub mod exchange {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum HandleMsg {
         AddLiquidity {
             deposit: TokenPairAmount<HumanAddr>,
@@ -209,6 +215,7 @@ pub mod exchange {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum ReceiverCallbackMsg {
         Swap {
             expected_return: Option<Uint128>,
@@ -221,6 +228,7 @@ pub mod exchange {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum QueryMsg {
         PairInfo,
         SwapSimulation {
@@ -231,6 +239,7 @@ pub mod exchange {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum QueryMsgResponse {
         PairInfo {
             liquidity_token: ContractLink<HumanAddr>,
@@ -244,6 +253,7 @@ pub mod exchange {
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(deny_unknown_fields)]
     pub struct SwapSimulationResponse {
         pub return_amount: Uint128,
         pub spread_amount: Uint128,
@@ -257,6 +267,7 @@ pub mod launchpad {
     use fadroma::admin::{HandleMsg as AdminHandleMsg, QueryMsg as AdminQueryMsg};
 
     #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(deny_unknown_fields)]
     pub struct InitMsg {
         pub tokens: Vec<TokenSettings>,
         /// Should be the address of the original sender, since this is initiated by the factory.
@@ -270,6 +281,7 @@ pub mod launchpad {
 
     /// Configuration for single token that can be locked into the launchpad
     #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(deny_unknown_fields)]
     pub struct TokenSettings {
         pub token_type: TokenType<HumanAddr>,
         pub segment: Uint128,
@@ -278,6 +290,7 @@ pub mod launchpad {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum HandleMsg {
         /// Set pause/migration status
         SetStatus {
@@ -316,6 +329,7 @@ pub mod launchpad {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum QueryMsg {
         /// Get pause/migration status
         Status,
@@ -337,6 +351,7 @@ pub mod launchpad {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum ReceiverCallbackMsg {
         /// Perform locking of the funds into the launchpad contract
         /// Amount sent through the snip20 will be floored to closest
@@ -351,6 +366,7 @@ pub mod launchpad {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum QueryResponse {
         LaunchpadInfo(Vec<QueryTokenConfig>),
         UserInfo(Vec<QueryAccountToken>),
@@ -359,6 +375,7 @@ pub mod launchpad {
 
     /// Token configuration that holds the configuration for each token
     #[derive(Serialize, Deserialize, JsonSchema, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct QueryTokenConfig {
         pub token_type: TokenType<HumanAddr>,
         pub segment: Uint128,
@@ -369,6 +386,7 @@ pub mod launchpad {
 
     /// Account token representation that holds all the entries for this token
     #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(deny_unknown_fields)]
     pub struct QueryAccountToken {
         pub token_type: TokenType<HumanAddr>,
         pub balance: Uint128,
@@ -385,6 +403,7 @@ pub mod ido {
     };
 
     #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(deny_unknown_fields)]
     pub struct InitMsg {
         pub info: TokenSaleConfig,
         /// Should be the address of the original sender, since this is initiated by the factory.
@@ -399,6 +418,7 @@ pub mod ido {
     }
 
     #[derive(Serialize, Deserialize, JsonSchema)]
+    #[serde(deny_unknown_fields)]
     pub struct WhitelistRequest {
         /// Launchpad contract instance information
         pub launchpad: ContractLink<HumanAddr>,
@@ -409,6 +429,7 @@ pub mod ido {
     }
 
     #[derive(Serialize, Deserialize, JsonSchema, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct TokenSaleConfig {
         /// The token that will be used to buy the SNIP20.
         pub input_token: TokenType<HumanAddr>,
@@ -429,6 +450,7 @@ pub mod ido {
     }
 
     #[derive(Clone, Serialize, Deserialize, Eq, PartialEq, JsonSchema, Debug)]
+    #[serde(deny_unknown_fields)]
     pub enum SaleType {
         PreLockAndSwap,
         PreLockOnly,
@@ -459,6 +481,7 @@ pub mod ido {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum HandleMsg {
         /// Set pause/migration status
         SetStatus {
@@ -502,6 +525,7 @@ pub mod ido {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum QueryMsg {
         /// Get pause/migration status
         Status,
@@ -521,6 +545,7 @@ pub mod ido {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum QueryResponse {
         Eligibility {
             can_participate: bool,
@@ -566,6 +591,7 @@ pub mod ido {
 
     #[derive(Serialize, Deserialize, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum ReceiverCallbackMsg {
         Activate {
             /// Time when the sale will start (if None, it will start immediately)
@@ -590,6 +616,7 @@ pub mod router {
     use std::collections::VecDeque;
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    #[serde(deny_unknown_fields)]
     pub struct Asset {
         pub info: AssetInfo,
         pub amount: Uint128,
@@ -597,6 +624,7 @@ pub mod router {
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum AssetInfo {
         CustomToken {
             contract_addr: HumanAddr,
@@ -609,6 +637,7 @@ pub mod router {
     }
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    #[serde(deny_unknown_fields)]
     pub struct InitMsg {
         pub register_tokens: Option<Vec<TokenType<HumanAddr>>>,
         pub owner: Option<HumanAddr>,
@@ -616,6 +645,7 @@ pub mod router {
     }
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    #[serde(deny_unknown_fields)]
     pub struct Hop {
         pub from_token: TokenType<HumanAddr>,
         pub pair_address: HumanAddr,
@@ -623,6 +653,7 @@ pub mod router {
     }
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+    #[serde(deny_unknown_fields)]
     pub struct Route {
         pub hops: VecDeque<Hop>,
         pub expected_return: Option<Uint128>,
@@ -631,6 +662,7 @@ pub mod router {
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum HandleMsg {
         Receive {
             from: HumanAddr,
@@ -654,12 +686,14 @@ pub mod router {
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum QueryMsg {
         SupportedTokens {},
     }
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum Snip20Swap {
         Swap {
             expected_return: Option<Uint128>,
@@ -669,6 +703,7 @@ pub mod router {
 
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum NativeSwap {
         Swap {
             offer_asset: Asset,

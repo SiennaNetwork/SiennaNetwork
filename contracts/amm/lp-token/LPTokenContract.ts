@@ -1,5 +1,4 @@
-import type { IAgent, ContractState } from "@fadroma/scrt"
-import { randomHex } from "@hackbg/tools"
+import { IAgent, ContractState, randomHex } from "@hackbg/fadroma"
 import { SNIP20Contract_1_2 } from "@fadroma/snip20"
 import { InitMsg } from "./schema/init_msg.d"
 
@@ -12,8 +11,6 @@ export type LPTokenOptions = {
 export class LPTokenContract extends SNIP20Contract_1_2 {
 
   crate = 'lp-token'
-
-  name = 'LP'
 
   initMsg: InitMsg = {
     name:     "Liquidity Provision Token",
@@ -29,7 +26,7 @@ export class LPTokenContract extends SNIP20Contract_1_2 {
     prng_seed: randomHex(36),
   }
 
-  constructor (options) {
+  constructor (options = {}) {
     super(options)
     if (options.name) {
       this.name           = `SiennaRewards_${options?.name}_LPToken`

@@ -1,7 +1,7 @@
 import debug from "debug";
 import { assert } from "chai";
 import { randomBytes } from "crypto";
-import { Scrt, ScrtGas } from "@fadroma/scrt";
+import { Scrt, ScrtGas } from "@hackbg/fadroma";
 
 import { Exchange } from "./Exchange";
 import { SwapRouterContract } from "./Router";

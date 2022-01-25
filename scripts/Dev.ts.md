@@ -71,16 +71,20 @@ commands['build']['all'] = () => Promise.all([
 
 These commands are defined in [`@sienna/tge/build.ts`](../contracts/tge/build.ts')
 and [`@sienna/amm/build.ts`](../contracts/amm/build.ts'), and use a build procedure
-that is implemented in [@fadroma/ops/ContractBuild](../libraries/fadroma-next/packages/ops/ContractBuild.ts).
+that is implemented in [@fadroma/ops/ContractBuild](../deps/fadroma/packages/ops/ContractBuild.ts).
 
 The [image of the build container](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtBuild.Dockerfile)
 and the [build script that runs in it](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtBuild.sh)
-are set in [@fadroma/scrt/ScrtContract](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtContract.ts).
+are set in [@hackbg/fadroma/ScrtContract](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtContract.ts).
 
 ## Generate JSON schema
 
+The contracts have the capability to output their API schema in the form of JSON schema.
+From this, we create TypeScript type definitions via `json-schema-to-typescript`.
+These type definitions are imported by the client classes.
+
 ```typescript
-import { generateSchema } from '@fadroma/scrt'
+import { generateSchema } from '@hackbg/fadroma'
 import { abs } from '@sienna/settings'
 commands['schema'] = () => generateSchema(abs(), [
   "tge/mgmt",
@@ -96,11 +100,38 @@ commands['schema'] = () => generateSchema(abs(), [
   "amm/rewards",
   "amm/router",
 
-  "lend/interest_model",
+  /*"lend/interest_model",
   "lend/market",
   "lend/oracle",
-  "lend/overseer"
+  "lend/overseer"*/
 ])
+```
+
+## Tests
+
+### Test client classes
+
+```typescript
+commands['test'] = {}
+
+import * as API from '@sienna/api'
+commands['test']['clients'] = () => {
+  new API.SiennaSNIP20Contract()
+  new API.MGMTContract()
+  new API.RPTContract()
+
+  new API.FactoryContract()
+  new API.AMMContract()
+  new API.AMMSNIP20Contract()
+  new API.LPTokenContract()
+  new API.LaunchpadContract()
+  new API.IDOContract()
+
+  new API.InterestModelContract()
+  new API.LendMarketContract()
+  new API.LendOracleContract()
+  new API.LendOverseerContract()
+}
 ```
 
 ## Entry point

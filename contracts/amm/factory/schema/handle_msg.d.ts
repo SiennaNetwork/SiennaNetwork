@@ -201,7 +201,6 @@ export interface TokenSettings {
   bounding_period: number;
   segment: Uint128;
   token_type: TokenType;
-  [k: string]: unknown;
 }
 export interface TokenSaleConfig {
   /**
@@ -233,7 +232,6 @@ export interface TokenSaleConfig {
    * The addresses that are eligible to participate in the sale.
    */
   whitelist: HumanAddr[];
-  [k: string]: unknown;
 }
 /**
  * Info needed to talk to a contract instance.

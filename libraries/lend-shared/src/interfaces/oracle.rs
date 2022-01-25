@@ -39,6 +39,7 @@ pub trait Oracle {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum AssetType {
     Symbol(String),
     Address(HumanAddr)
@@ -46,12 +47,14 @@ pub enum AssetType {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct Asset {
     pub address: HumanAddr,
     pub symbol: String
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct PriceResponse {
     pub rate: Decimal256,
     pub last_updated_base: u64,
@@ -59,11 +62,13 @@ pub struct PriceResponse {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct PricesResponse {
     pub prices: Vec<PriceResponse>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct TimeConstraints {
     pub block_time: u64,
     pub valid_timeframe: u64,

@@ -1,112 +1,183 @@
-import { writeFileSync } from 'fs'
-import type { IChain, IAgent } from '@fadroma/scrt'
-import { bold, randomHex, buildAndUpload, Scrt } from '@fadroma/scrt'
-import type { SNIP20Contract } from '@fadroma/snip20'
-import settings, { abs } from '@sienna/settings'
+import {
+  MigrationContext,
+  IChain, IAgent,
+  bold, randomHex, timestamp,
+  writeFileSync,
+  Console
+} from '@hackbg/fadroma'
 
-const SIENNA_DECIMALS = 18
-const ONE_SIENNA = BigInt(`1${[...Array(SIENNA_DECIMALS)].map(()=>'0').join('')}`)
+const console = Console('@sienna/amm/deploySwap')
+
+import type { SNIP20Contract } from '@fadroma/snip20'
+
+import getSettings, { workspace, SIENNA_DECIMALS, ONE_SIENNA } from '@sienna/settings'
 
 import {
+  FactoryContract,
+
   AMMContract,
   AMMSNIP20Contract,
-  FactoryContract,
   IDOContract,
   LPTokenContract,
   LaunchpadContract,
+
   RPTContract,
   RewardsContract,
   SiennaSNIP20Contract,
 } from '@sienna/api'
 
-export async function deploySwap ({
-  chain, admin, prefix
-}: {
-  chain:  IChain,
-  admin:  IAgent,
-  prefix: string
+import { deployPlaceholderTokens } from './deployPlaceholderTokens'
+import { getSwapTokens } from './getSwapTokens'
+import { deployRewardPool } from './deployRewardPool'
+import { deployLiquidityPool } from './deployLiquidityPool'
+
+export async function deploySwap (inputs: MigrationContext & {
+  SIENNA?:  SiennaSNIP20Contract
+  RPT?:     RPTContract
+  settings: { amm: { exchange_settings: any } }
 }) {
 
-  const workspace = abs()
+  const {
+    chain,
+    admin,
+    deployment,
+    prefix,
+    run,
 
-  const deployment = chain.deployments.active
+    // expected contracts
+    // get them from the deployment
+    // or from the previous stage (deployVesting.ts)
+    SIENNA = new SiennaSNIP20Contract().from(deployment),
+    RPT    = new RPTContract().from(deployment),
 
-  const SIENNA   = deployment.getContract(SiennaSNIP20Contract, 'SiennaSNIP20', admin),
-        RPT      = deployment.getContract(RPTContract,          'SiennaRPT',    admin),
+    // hardcoded initial settings for this chain
+    settings = getSettings(chain.chainId)
 
-  const options = { uploader: admin, instantiator: admin, workspace, chain, prefix, admin }
-  const EXCHANGE  = new AMMContract({       ...options }),
-        AMMTOKEN  = new AMMSNIP20Contract({ ...options }),
-        LPTOKEN   = new LPTokenContract({   ...options }),
-        IDO       = new IDOContract({       ...options }),
-        LAUNCHPAD = new LaunchpadContract({ ...options }),
-        REWARDS   = new RewardsContract({   ...options })
+  } = inputs
 
-  await buildAndUpload([EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD, REWARDS])
+  const { chainId, isLocalnet, isMainnet } = chain
 
-  const FACTORY = new FactoryContract({
-    ...options,
-    exchange_settings: settings(chain.chainId).amm,
-    contracts: {
-      snip20_contract:    AMMTOKEN,
-      pair_contract:      EXCHANGE,
-      lp_token_contract:  LPTOKEN,
-      ido_contract:       IDO,
-      launchpad_contract: LAUNCHPAD,
-    }
+  const options = { workspace, prefix, admin }
+
+  const [
+    // only this one will be deployed
+    FACTORY,
+    // however all of them must be built, so that
+    // the factory can be given their code ids/hashes
+    EXCHANGE,
+    AMMTOKEN,
+    LPTOKEN,
+    IDO,
+    LAUNCHPAD
+  ] = await chain.buildAndUpload([
+    new FactoryContract({   ...options }),
+    new AMMContract({       ...options }),
+    new AMMSNIP20Contract({ ...options }),
+    new LPTokenContract({   ...options }),
+    new IDOContract({       ...options }),
+    new LaunchpadContract({ ...options }),
+  ])
+
+  const template = contract => ({
+    id:        contract.codeId,
+    code_hash: contract.codeHash,
   })
 
-  await buildAndUpload([FACTORY])
+  // configure factory: set supported contracts
+  FACTORY.setContracts({
+    snip20_contract:    template(AMMTOKEN),
+    pair_contract:      template(EXCHANGE),
+    lp_token_contract:  template(LPTOKEN),
+    ido_contract:       template(IDO),
+    launchpad_contract: template(LAUNCHPAD),
+  })
 
+  // configure factory: set fees etc
+  const { amm: { exchange_settings } } = settings
+  FACTORY.initMsg.exchange_settings = exchange_settings
+
+  // deploy the factory
   await FACTORY.instantiateOrExisting(deployment.contracts['SiennaAMMFactory'])
 
-  /// Obtain a list of token addr/hash pairs for creating liquidity pools
-
-  const tokens = { SIENNA }
-  if (chain.isLocalnet) {
-    Object.assign(tokens, await deployPlaceholderTokens())
+  // obtain a list of token addr/hash pairs for creating liquidity pools
+  const tokens: Record<string, SNIP20Contract> = { SIENNA }
+  if (isLocalnet) {
+    // On localnet, placeholder tokens need to be deployed.
+    console.info(`Running on ${bold('localnet')}, deploying placeholder tokens...`)
+    Object.assign(tokens, await run(deployPlaceholderTokens))
   } else {
-    Object.assign(tokens, getSwapTokens(settings(chain.chainId).swapTokens))
+    // On testnet and mainnet, interoperate with preexisting token contracts.
+    console.info(`Not running on localnet, using tokens from config:`)
+    Object.assign(tokens, getSwapTokens(settings.swapTokens))
+    console.debug('Tokens', tokens)
   }
 
+  // Deploy pools and add them to the RPT configuration.
 
-  /// Define RPT configuration, starting with single-sided staking
+  // 1. Stake SIENNA to earn SIENNA
+  const singleSidedStaking = await run(deployRewardPool, {
+    lpToken:     SIENNA,
+    rewardToken: SIENNA,
+  })
 
-
-  const rptConfig = [
+  // 2. Add that to the RPT config
+  const rptConfig: [string, string][] = [
     [
-      (await deployRewardPool('SIENNA', SIENNA, SIENNA)).address,
-      String(BigInt(settings(chain.chainId).rewardPairs.SIENNA) * ONE_SIENNA)
+      singleSidedStaking.address,
+      String(BigInt(settings.rewardPairs.SIENNA) * ONE_SIENNA)
     ]
   ]
 
-
-  /// Create or retrieve liquidity pools,
-  /// create their corresponding reward pools,
-  /// and add the latter to the RPT configuration.
-
-
-  const swapPairs = settings(chain.chainId).swapPairs
+  // 3. If there are any initial swap pairs defined
+  const swapPairs = settings.swapPairs
   if (swapPairs.length > 0) {
+
     const existingExchanges = await FACTORY.listExchanges()
-    const rewards = settings(chain.chainId).rewardPairs
+    const rewardPairs = settings.rewardPairs
+    const liquidityPoolOptions = {
+      admin,
+      FACTORY,
+      existingExchanges,
+      tokens,
+      deployment
+    }
+
     for (const name of swapPairs) {
-      const {lp_token} = await deployLiquidityPool(name, existingExchanges)
-      if (rewards && rewards[name]) {
+
+      // 4. Instantiate each one in the factory,
+      //    keeping the handle to the LP token
+      const {lp_token} = await run(deployLiquidityPool, {
+        ...liquidityPoolOptions,
+        name
+      })
+
+      // 5. If this swap pair has an assigned reward pool in the config
+      if (rewardPairs && rewardPairs[name]) {
+
         console.info(`Deploying rewards for ${name}...`)
-        const lpToken = new LPTokenContract({
-          address:  lp_token.address,
-          codeHash: lp_token.code_hash,
-          admin
+
+        const reward = String(BigInt(rewardPairs[name]) * ONE_SIENNA)
+
+        // 6. Stake LP to earn sienna. 
+        const pool = await run(deployRewardPool, {
+          prefix,
+          rewardToken: SIENNA,
+          lpToken: new LPTokenContract({
+            address:  lp_token.address,
+            codeHash: lp_token.code_hash,
+            admin
+          }),
         })
-        const reward  = BigInt(rewards[name])
-        const pool    = await deployRewardPool(name, lpToken, SIENNA)
-        rptConfig.push([pool.address, String(reward * ONE_SIENNA)])
+
+        // 7. Add that to the RPT config
+        rptConfig.push([pool.address, reward])
+
       }
     }
+
   }
 
-  if (chain.isMainnet) {
+  if (isMainnet) {
     const rptConfigPath = deployment.resolve(`RPTConfig.json`)
     writeFileSync(rptConfigPath, JSON.stringify({config: rptConfig}, null, 2), 'utf8')
     console.info(
@@ -114,80 +185,11 @@ export async function deploySwap ({
       `You should use this file as the basis of a multisig transaction.`
     )
   } else {
-    await RPT.configure(rptConfig)
-  }
-
-  async function deployLiquidityPool (name: string, existingExchanges: any[]) {
-    const [tokenName0, tokenName1] = name.split('-')
-    const token0 = tokens[tokenName0]
-        , token1 = tokens[tokenName1]
-    console.log(`\nLiquidity pool ${bold(name)}...`)
-    try {
-      const exchange = await FACTORY.getExchange(
-        token0.asCustomToken,
-        token1.asCustomToken,
-        admin
-      );
-      console.info(`${bold(name)}: Already exists.`)
-      return exchange
-    } catch (e) {
-      if (e.message.includes("Address doesn't exist in storage")) {
-        console.info(`${bold(`FACTORY.getExchange(${name})`)}: not found (${e.message}), deploying...`)
-        const deployed = await FACTORY.createExchange(
-          token0.asCustomToken,
-          token1.asCustomToken
-        )
-        const exchangeReceiptPath = deployment.resolve(`SiennaSwap_${name}.json`)
-        writeFileSync(exchangeReceiptPath, JSON.stringify(deployed, null, 2), 'utf8')
-        console.info(`\nWrote ${bold(exchangeReceiptPath)}.`)
-        console.info(bold('Deployed.'), deployed)
-        return deployed
-      } else {
-        throw new Error(`${bold(`FACTORY.getExchange(${name})`)}: not found (${e.message}), deploying...`)
-      }
+    console.info(`Configuring RPT to fund ${bold(String(rptConfig.length))} reward pools:`)
+    for (const [address, amount] of rptConfig) {
+      console.info(`- ${address} ${amount}`)
     }
-  }
-
-  async function deployRewardPool (name: string, lpToken: SNIP20Contract, rewardToken: SNIP20Contract) {
-    const {codeId, codeHash} = REWARDS
-        , options    = { codeId, codeHash, prefix, name, admin, lpToken, rewardToken, }
-        , rewardPool = new RewardsContract(options)
-        , receipt    = deployment.contracts[rewardPool.init.label]
-    await rewardPool.instantiateOrExisting(receipt)
-    return rewardPool
-  }
-
-
-  /// On testnet and mainnet, interoperate with preexisting token contracts.
-
-
-  function getSwapTokens (links: Record<string, { address: string, codeHash: string }>) {
-    const tokens = {}
-    for (const [name, {address, codeHash}] of Object.entries(links)) {
-      tokens[name] = new AMMSNIP20Contract({address, codeHash, admin})
-      console.log('getSwapToken', name, address, codeHash)
-    }
-    return tokens
-  }
-
-  /// On localnet, placeholder tokens need to be deployed.
-
-  async function deployPlaceholderTokens () {
-    const tokens = {}
-    for (
-      const [symbol, {label, initMsg}]
-      of Object.entries(settings(chain.chainId).placeholderTokens)
-    ) {
-      const token = tokens[symbol] = new AMMSNIP20Contract({ admin })
-      Object.assign(token.blob, { codeId: AMMTOKEN.codeId, codeHash: AMMTOKEN.codeHash })
-      Object.assign(token.init, { prefix, label, msg: initMsg })
-      Object.assign(token.init.msg, { prng_seed: randomHex(36) })
-      const existing = deployment.contracts[label]
-      await tokens[symbol].instantiateOrExisting(existing)
-      await tokens[symbol].setMinters([admin.address], admin)
-      await tokens[symbol].mint("100000000000000000000000", admin)
-    }
-    return tokens
+    await RPT.tx(admin).configure(rptConfig)
   }
 
 }
