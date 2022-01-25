@@ -25,7 +25,7 @@ impl ContractHarness for MarketImpl {
     fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
         match from_binary(&msg).unwrap() {
             market::QueryMsg::ExchangeRate { block: _ } => {
-                let res: Option<Decimal256> = deps.get(b"exchange_rate").unwrap_or(None);
+                let res: Option<Decimal256> = deps.get(b"exchange_rate").unwrap();
                 match res {
                     Some(value) => to_binary(&value),
                     None => to_binary(&Decimal256::one()),
@@ -519,7 +519,7 @@ fn calculate_amount_seize() {
     // set exchange rate
     lend.ensemble
         .deps_mut(collateral_market.contract.address.clone(), |s| {
-            s.set(b"exchange_rate", Decimal256::from_uint256(2u128))
+            s.set(b"exchange_rate", Decimal256::from_uint256(2u128).unwrap())
                 .unwrap();
         })
         .unwrap();
@@ -535,5 +535,5 @@ fn calculate_amount_seize() {
             },
         )
         .unwrap();
-    assert_eq!(res, Uint256::from(1_000_000_000_000_000_000u128));
+    assert_eq!(res, Uint256::from(5_00_000_000_000_000_000u128));
 }
