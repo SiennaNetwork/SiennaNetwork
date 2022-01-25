@@ -12,6 +12,7 @@ use lend_shared::{
 };
 
 use crate::setup::Lend;
+use crate::ADMIN;
 
 pub struct MarketImpl;
 impl ContractHarness for MarketImpl {
@@ -503,37 +504,83 @@ fn calculate_amount_seize() {
         .whitelist_market(lend.underlying_token_two.clone(), Decimal256::permille(666))
         .unwrap();
 
-    let res: Uint256 = lend
-        .ensemble
-        .query(
-            lend.overseer.address.clone(),
-            QueryMsg::SeizeAmount {
-                borrowed: borrowed_market.contract.address.clone(),
-                collateral: collateral_market.contract.address.clone(),
-                repay_amount: Uint256::from(1_000_000_000_000_000_000u128),
-            },
-        )
-        .unwrap();
-    assert_eq!(res, Uint256::from(1_000_000_000_000_000_000u128));
+    let cases = [
+        (
+            Decimal256::one(),
+            Uint128(1_000_000_000_000_000_000),
+            Uint128(1_000_000_000_000_000_000),
+            Decimal256::one(),
+            Uint256::from(1_000_000_000_000_000_000u128),
+            Uint256::from(1_000_000_000_000_000_000u128),
+        ),
+        (
+            Decimal256::from_uint256(2u128).unwrap(),
+            Uint128(1_000_000_000_000_000_000),
+            Uint128(1_000_000_000_000_000_000),
+            Decimal256::one(),
+            Uint256::from(1_000_000_000_000_000_000u128),
+            Uint256::from(5_000_000_000_000_000_00u128),
+        ),
+        (
+            Decimal256::from_uint256(2u128).unwrap(),
+            Uint128(2_000_000_000_000_000_000),
+            Uint128(1_420_000_000_000_000_000),
+            Decimal256::percent(130),
+            Uint256::from(2_450_000_000_000_000_000u128),
+            Uint256::from(2_242_957_746_478_873_238u128),
+        ),
+        (
+            Decimal256::from_str("2.789").unwrap(),
+            Uint128(5_230_480_842_000_000_000),
+            Uint128(771_320_000_000_000_000_000),
+            Decimal256::percent(130),
+            Uint256::from(10_002_450_000_000_000_000_000u128),
+            Uint256::from(316_160_966_319_693_285_35u128),
+        ),
+        (
+            Decimal256::from_uint256(7_009_232_529_961_056_000_000_000u128).unwrap(),
+            Uint128(2_527_872_631_724_044_500_000_000),
+            Uint128(2_617_711_209_324_258_500_000_00),
+            Decimal256::from_uint256(1_179_713_989_619_784_000u128).unwrap(),
+            Uint256::from(7_790_468_414_639_561_000_000_000u128),
+            Uint256::from(1_266_202_853_996_821_037_9u128),
+        ),
+    ];
 
-    // set exchange rate
-    lend.ensemble
-        .deps_mut(collateral_market.contract.address.clone(), |s| {
-            s.set(b"exchange_rate", Decimal256::from_uint256(2u128).unwrap())
-                .unwrap();
-        })
-        .unwrap();
+    for case in cases.iter() {
+        let (exchange_rate, borrowed, collateral, premium, repay, result) = case;
+        // set exchange rate
+        lend.ensemble
+            .deps_mut(collateral_market.contract.address.clone(), |s| {
+                s.set(b"exchange_rate", exchange_rate).unwrap();
+            })
+            .unwrap();
 
-    let res: Uint256 = lend
-        .ensemble
-        .query(
-            lend.overseer.address.clone(),
-            QueryMsg::SeizeAmount {
-                borrowed: borrowed_market.contract.address.clone(),
-                collateral: collateral_market.contract.address.clone(),
-                repay_amount: Uint256::from(1_000_000_000_000_000_000u128),
-            },
-        )
-        .unwrap();
-    assert_eq!(res, Uint256::from(5_00_000_000_000_000_000u128));
+        // set underlying prices
+        lend.set_oracle_price(borrowed_market.symbol.as_bytes(), *borrowed)
+            .unwrap();
+        lend.set_oracle_price(collateral_market.symbol.as_bytes(), *collateral)
+            .unwrap();
+
+        // set premium
+        lend.ensemble
+            .execute(
+                &HandleMsg::SetPremium { premium: *premium },
+                MockEnv::new(ADMIN, lend.overseer.clone()),
+            )
+            .unwrap();
+
+            let res: Uint256 = lend
+            .ensemble
+            .query(
+                lend.overseer.address.clone(),
+                QueryMsg::SeizeAmount {
+                    borrowed: borrowed_market.contract.address.clone(),
+                    collateral: collateral_market.contract.address.clone(),
+                    repay_amount: *repay,
+                },
+            )
+            .unwrap();
+        assert_eq!(res, *result);
+    }
 }
