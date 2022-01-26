@@ -1,4 +1,4 @@
-import { IAgent, ContractAPIOptions, Scrt_1_2 } from '@hackbg/fadroma'
+import { Agent, ContractAPIOptions, Scrt_1_2 } from '@hackbg/fadroma'
 
 export class IDOContract extends Scrt_1_2.Contract<any, any> {
 
@@ -72,11 +72,11 @@ export class IDOContract extends Scrt_1_2.Contract<any, any> {
    * receiver callback interface to initiate swap.
    *
    * @param {string|number|bigint} amount
-   * @param {IAgent} [agent]
+   * @param {Agent} [agent]
    * @param {string|null} [receiver]
    * @returns
    */
-  swap(amount: string|number|bigint, agent?: IAgent, receiver: string|null = null) {
+  swap(amount: string|number|bigint, agent?: Agent, receiver: string|null = null) {
     return this.tx.swap(
       { amount: `${amount}`, receiver },
       agent,
@@ -92,10 +92,10 @@ export class IDOContract extends Scrt_1_2.Contract<any, any> {
    * receiver callback interface to initiate pre_lock.
    *
    * @param {number} amount
-   * @param {IAgent} [agent]
+   * @param {Agent} [agent]
    * @returns
    */
-  preLock(amount: string|number|bigint, agent: IAgent) {
+  preLock(amount: string|number|bigint, agent: Agent) {
     return this.tx.pre_lock(
       { amount: `${amount}` },
       agent,
@@ -117,10 +117,10 @@ export class IDOContract extends Scrt_1_2.Contract<any, any> {
    * weren't sold in the IDO sale
    *
    * @param {string} [address]
-   * @param {IAgent} [agent]
+   * @param {Agent} [agent]
    * @return {Promise<object>}
    */
-  adminRefund(address: string, agent: IAgent) {
+  adminRefund(address: string, agent: Agent) {
     return this.tx.admin_refund({ address }, agent)
   }
 
@@ -129,10 +129,10 @@ export class IDOContract extends Scrt_1_2.Contract<any, any> {
    * accumulated during the sale
    *
    * @param {string} [address]
-   * @param {IAgent} [agent]
+   * @param {Agent} [agent]
    * @return {Promise<object>}
    */
-  adminClaim(address: string, agent: IAgent) {
+  adminClaim(address: string, agent: Agent) {
     return this.tx.admin_claim({ address }, agent)
   }
 
@@ -140,10 +140,10 @@ export class IDOContract extends Scrt_1_2.Contract<any, any> {
    * Add addresses on whitelist for IDO contract
    *
    * @param {string[]} addresses
-   * @param {IAgent} [agent]
+   * @param {Agent} [agent]
    * @return {Promise<object>}
    */
-  adminAddAddresses(addresses: string[], agent: IAgent) {
+  adminAddAddresses(addresses: string[], agent: Agent) {
     return this.tx.admin_add_addresses({ addresses }, agent)
   }
 }

@@ -1,4 +1,4 @@
-import { IAgent, ContractState, Scrt_1_2 } from '@hackbg/fadroma'
+import { Agent, ContractState, Scrt_1_2 } from '@hackbg/fadroma'
 import type { SNIP20Contract_1_2 } from '@fadroma/snip20'
 
 import type { MGMTContract } from '@sienna/mgmt'
@@ -18,7 +18,7 @@ export class RPTContract extends Scrt_1_2.Contract<RPTTransactions, RPTQueries> 
   Queries      = RPTQueries
 
   constructor (options: ContractState & {
-    admin?:   IAgent,
+    admin?:   Agent,
     config?:  LinearMap
     portion?: Uint128
     SIENNA?:  SNIP20Contract_1_2

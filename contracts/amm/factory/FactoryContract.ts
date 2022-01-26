@@ -1,4 +1,5 @@
-import { Scrt_1_2, ContractState, IAgent, randomHex } from "@hackbg/fadroma";
+import { Scrt_1_2, ContractState, Agent, randomHex } from "@hackbg/fadroma"
+import { SNIP20Contract } from '@fadroma/snip20'
 
 import { AMMContract        } from "@sienna/exchange";
 import { AMMSNIP20Contract  } from "@sienna/amm-snip20";
@@ -32,9 +33,11 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
 
   Queries      = FactoryQueries
 
+  admin?: Agent
+
   constructor (options: ContractState & {
 
-    admin?: IAgent
+    admin?: Agent
 
     /* AMM config from project settings.
      * First auto-generated type definition
@@ -68,7 +71,7 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     }
 
     if (options.contracts) {
-      this.contracts = options.contracts
+      this.setContracts(options.contracts)
     }
 
   }
@@ -141,22 +144,80 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
   }
 
   /** Get info about an exchange. */
-  async getExchange (token_0: TokenType, token_1: TokenType, agent = this.instantiator) {
+  async getExchange (
+    token_0: TokenType,
+    token_1: TokenType,
+    agent = this.instantiator
+  ): Promise<ExchangeInfo> {
+
+    let TOKEN_0: SNIP20Contract|string
+    if (token_0.custom_token) {
+      TOKEN_0 = new SNIP20Contract({
+        address:  token_0.custom_token.contract_addr,
+        codeHash: token_0.custom_token.token_code_hash
+      })
+    } else if (token_0.native_token) {
+      TOKEN_0 = token_0.native_token.denom
+    }
+
+    let TOKEN_1: SNIP20Contract|string
+    if (token_0.custom_token) {
+      TOKEN_0 = new SNIP20Contract({
+        address:  token_0.custom_token.contract_addr,
+        codeHash: token_0.custom_token.token_code_hash
+      })
+    } else if (token_0.native_token) {
+      TOKEN_0 = token_0.native_token.denom
+    }
+
     const {address} = await this.q(agent).get_exchange_address(token_0, token_1)
-    const exchange  = new AMMContract({address, admin: agent, instantiator: agent})
-    const {liquidity_token:lp_token} = await exchange.pairInfo()
-    return { exchange: exchange.link, lp_token, token_0, token_1 }
+    const EXCHANGE = new AMMContract({address, admin: agent, instantiator: agent})
+
+    const { liquidity_token } = await EXCHANGE.pairInfo()
+    const LP_TOKEN = new LPTokenContract({
+      chain:    this.chain,
+      address:  liquidity_token.address,
+      codeHash: liquidity_token.code_hash
+    })
+
+    const raw = {
+      exchange: {
+        address: EXCHANGE.address
+      },
+      lp_token: {
+        address: LP_TOKEN
+      },
+      token_0,
+      token_1
+    }
+
+    return { TOKEN_0, TOKEN_1, EXCHANGE, LP_TOKEN, raw }
   }
 
   /** Create a liquidity pool, i.e. an instance of the exchange contract. */
-  async createExchange (token_0: TokenType, token_1: TokenType, agent = this.instantiator) {
+  async createExchange (
+    token_0: TokenType,
+    token_1: TokenType,
+    agent = this.agent
+  ): Promise<ExchangeInfo> {
     await this.tx(agent).create_exchange(token_0, token_1)
-    return await this.getExchange(token_0, token_1, agent);
+    return await this.getExchange(token_0, token_1, agent)
   }
 
   /** Create an instance of the launchpad contract. */
-  createLaunchpad (tokens: object[], agent = this.instantiator) {
+  createLaunchpad (
+    tokens: object[],
+    agent = this.agent
+  ) {
     return this.tx(agent).create_launchpad(tokens)
   }
 
+}
+
+export type ExchangeInfo = {
+  EXCHANGE: AMMContract,
+  LP_TOKEN: LPTokenContract,
+  TOKEN_0:  SNIP20Contract|string,
+  TOKEN_1:  SNIP20Contract|string,
+  raw:      any
 }

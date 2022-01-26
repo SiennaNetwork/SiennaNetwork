@@ -17,32 +17,32 @@ type MultisigTX = any
 
 export async function upgradeFactoryAndRewards ({
   timestamp, chain, admin, deployment, prefix,
-}: MigrationContext): Promise<MultisigTX[]> {
-  // the arbiter of it all.
-  // will redirect fundsin a 30:70 proportion
-  // from old version to new version
-  const RPT: RPTContract =
-    deployment.getContract(RPTContract, 'SiennaAMMFactory', admin)
-  // the v1 factory. we'll terminate this now,
+  RPT             = deployment.getContract(RPTContract,      'SiennaAMMFactory', admin),
+  V1_FACTORY      = deployment.getContract(FactoryContract,  'SiennaAMMFactory', admin),
+  V2_REWARD_POOLS = deployment.getContracts(RewardsContract, 'SiennaRewards',    admin)
+}: MigrationContext & {
+  // The arbiter of it all.
+  // Will redirect funds in a 30:70 proportion
+  // from old version to new version.
+  RPT?:             RPTContract,
+  // The v1 factory. We'll terminate this now,
   // so that new pairs cannot be created from the v1 factory.
-  const V1_FACTORY: FactoryContract =
-    deployment.getContract(FactoryContract, 'SiennaAMMFactory', admin)
-  // the liquidity pools of the v1 factory.
-  // we'll disincentivise those in RPT now,
-  // and eventually terminate them in the next migration.
-  const OLD_LIQUIDITY_POOLS: AMMContract[] =
-    await V1_FACTORY.exchanges
-  // the LP tokens of the liquidity pools of the v1 factory.
-  // we'll disincentivise those in RPT now,
-  // and eventually terminate them in the next migration.
-  const OLD_LP_TOKENS: SNIP20Contract[] =
-    OLD_LIQUIDITY_POOLS.map(exchange=>exchange.lpToken)
-  // the reward pools attached to some of the LP tokens
+  V1_FACTORY?:      FactoryContract
+  // The reward pools attached to some of the LP tokens
   // of the liquidity pools of the v1 factory.
-  // we'll disincentivise those in RPT now,
+  // We'll disincentivise those in RPT now,
   // and eventually terminate them in the next migration.
-  const V2_REWARD_POOLS: RewardsContract[] =
-    deployment.getContracts(RewardsContract, 'SiennaRewards', admin)
+  V2_REWARD_POOLS?: RewardsContract[]
+}): Promise<MultisigTX[]> {
+  // The liquidity pools of the v1 factory.
+  // We'll disincentivise those in RPT now,
+  // and eventually terminate them in the next migration.
+  const OLD_LIQUIDITY_POOLS: AMMContract[] = await V1_FACTORY.exchanges
+  // The LP tokens of the liquidity pools of the v1 factory.
+  // We'll disincentivise those in RPT now,
+  // and eventually terminate them in the next migration.
+  const OLD_LP_TOKENS: SNIP20Contract[] = OLD_LIQUIDITY_POOLS.map(exchange=>exchange.lpToken)
+  // Let's report some initial status.
   const pick = (...keys) => x => keys.reduce((y, key)=>{y[key]=x[key];return y}, {})
   const essentials = pick('codeId', 'codeHash', 'address', 'label')
   console.log('V1 factory:')
@@ -79,7 +79,6 @@ export async function upgradeFactoryAndRewards ({
     NEW_LIQUIDITY_POOL.push(NEW_LIQUIDITY_POOL)
     await admin.nextBlock
   }
-
   process.exit(123)
   // The new LP tokens.
   // Their addresses should be added to the frontend.

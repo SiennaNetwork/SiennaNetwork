@@ -1,4 +1,4 @@
-import { IAgent, ContractState, Scrt_1_0 } from '@hackbg/fadroma'
+import { Agent, ContractState, Scrt_1_0 } from '@hackbg/fadroma'
 import type { SNIP20Contract } from '@fadroma/snip20'
 
 import { workspace } from '@sienna/settings'
@@ -21,7 +21,7 @@ export class MGMTContract extends Scrt_1_0.Contract<
   Queries      = MGMTQueries
 
   constructor (options: ContractState & {
-    admin?:    IAgent,
+    admin?:    Agent,
     schedule?: Schedule,
     SIENNA?:   SNIP20Contract
   } = {}) {

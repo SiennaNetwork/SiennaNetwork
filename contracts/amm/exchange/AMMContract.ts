@@ -1,4 +1,4 @@
-import { IAgent, ContractState, randomHex, Scrt_1_2 } from "@hackbg/fadroma"
+import { Agent, ContractState, randomHex, Scrt_1_2 } from "@hackbg/fadroma"
 import { SNIP20Contract } from '@fadroma/snip20'
 
 import { AMMTransactions } from './AMMTransactions'
@@ -21,7 +21,7 @@ export class AMMContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> 
   lpToken?: SNIP20Contract
 
   constructor (options: ContractState & {
-    admin?:    IAgent,
+    admin?:    Agent,
     prefix?:   string,
     label?:    string,
     name?:     string,

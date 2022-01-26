@@ -1,4 +1,4 @@
-import { Migration, waitUntilNextBlock, Deployment, IChain, IAgent, bold, Console } from '@hackbg/fadroma'
+import { timestamp, Migration, waitUntilNextBlock, Deployment, Chain, Agent, bold, Console } from '@hackbg/fadroma'
 
 const console = Console('@sienna/tge/deploy')
 
@@ -38,7 +38,6 @@ export type Outputs = Migration & {
 export async function deployTGE (inputs: Inputs): Promise<Outputs> {
 
   const {
-    timestamp,
     chain,
     admin,
     args = [],
@@ -50,9 +49,10 @@ export async function deployTGE (inputs: Inputs): Promise<Outputs> {
 
   // ignore deployment/prefix from the inputs;
   // always start new deployment
-  const prefix = args[0] /* let user name it */ || timestamp /* or default */
+  const prefix = args[0] /* let user name it */ || timestamp() /* or default */
   await chain.deployments.create(prefix)
   await chain.deployments.select(prefix)
+  const deployment = chain.deployments.active
 
   const RPTAccount = getRPTAccount(schedule)
   const portion    = RPTAccount.portion_size
@@ -84,7 +84,8 @@ export async function deployTGE (inputs: Inputs): Promise<Outputs> {
   return {
     ...inputs,
     workspace,
-    deployment: chain.deployments.get(prefix),
+    deployment,
+    timestamp,
     prefix,
     SIENNA,
     MGMT,

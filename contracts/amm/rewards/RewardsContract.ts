@@ -1,6 +1,6 @@
 import {
   Scrt_1_2,
-  IAgent, IContract,
+  Agent, Contract,
   ContractOptions, ContractConstructor,
   randomHex
 } from "@hackbg/fadroma"
@@ -21,11 +21,11 @@ export class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, Rewa
     config: {}
   }
 
-  admin?: IAgent
+  admin?: Agent
 
   constructor (options: ContractOptions & {
     /** Admin agent */
-    admin?:       IAgent,
+    admin?:       Agent,
     /** Address of other user that can increment the epoch */
     timekeeper?:  string,
     /** Staked token */

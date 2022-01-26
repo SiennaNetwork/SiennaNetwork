@@ -1,6 +1,6 @@
-import { IChain, bold, colors } from '@hackbg/fadroma'
+import { Chain, bold, colors } from '@hackbg/fadroma'
 
-export function printRewardsContracts (chain: IChain) {
+export function printRewardsContracts (chain: Chain) {
 
   if (chain && chain.deployments.active) {
 
