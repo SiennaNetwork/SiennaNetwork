@@ -1,7 +1,5 @@
 use fadroma::{
-    admin,
-    auth,
-    cosmwasm_std,
+    admin, auth, cosmwasm_std,
     cosmwasm_std::{
         to_binary, Api, Binary, CanonicalAddr, HandleResponse, HumanAddr, InitResponse, Querier,
         QueryRequest, StdError, StdResult, WasmQuery,
@@ -12,13 +10,10 @@ use fadroma::{
 
 use serde::{Deserialize, Serialize};
 
+use crate::core::{AuthMethod, MasterKey};
 use crate::interfaces::market::Config as MarketConfig;
-use crate::core::{MasterKey, AuthMethod};
 
-#[interface(
-    component(path = "admin"),
-    component(path = "auth")
-)]
+#[interface(component(path = "admin"), component(path = "auth"))]
 pub trait Overseer {
     #[init]
     fn new(
@@ -39,9 +34,7 @@ pub trait Overseer {
     fn register_oracle() -> StdResult<HandleResponse>;
 
     #[handle]
-    fn whitelist(
-        config: MarketInitConfig
-    ) -> StdResult<HandleResponse>;
+    fn whitelist(config: MarketInitConfig) -> StdResult<HandleResponse>;
 
     #[handle]
     fn register_market() -> StdResult<HandleResponse>;
@@ -53,10 +46,10 @@ pub trait Overseer {
     fn exit(market_address: HumanAddr) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn set_ltv_ratio(
-        market: HumanAddr,
-        ltv_ratio: Decimal256
-    ) -> StdResult<HandleResponse>;
+    fn set_ltv_ratio(market: HumanAddr, ltv_ratio: Decimal256) -> StdResult<HandleResponse>;
+
+    #[handle]
+    fn set_premium(premium: Decimal256) -> StdResult<HandleResponse>;
 
     #[query]
     fn markets(pagination: Pagination) -> StdResult<Vec<Market<HumanAddr>>>;
@@ -73,7 +66,7 @@ pub trait Overseer {
         market: Option<HumanAddr>,
         block: Option<u64>,
         redeem_amount: Uint256,
-        borrow_amount: Uint256
+        borrow_amount: Uint256,
     ) -> StdResult<AccountLiquidity>;
 
     #[query]
@@ -89,7 +82,7 @@ pub trait Overseer {
     fn seize_amount(
         borrowed: HumanAddr,
         collateral: HumanAddr,
-        repay_amount: Uint256
+        repay_amount: Uint256,
     ) -> StdResult<Uint256>;
 
     #[query]
@@ -102,7 +95,7 @@ pub type OverseerAuth = AuthMethod<OverseerPermissions>;
 #[serde(rename_all = "snake_case")]
 #[serde(deny_unknown_fields)]
 pub enum OverseerPermissions {
-    AccountInfo
+    AccountInfo,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, schemars::JsonSchema, Debug)]
@@ -148,7 +141,7 @@ pub struct MarketInitConfig {
     // Interest model contract address.
     pub interest_model_contract: ContractLink<HumanAddr>,
     pub config: MarketConfig,
-    pub prng_seed: Binary
+    pub prng_seed: Binary,
 }
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]
@@ -203,10 +196,7 @@ pub fn query_account_liquidity(
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
         msg: to_binary(&QueryMsg::AccountLiquidity {
-            method: OverseerAuth::Internal {
-                key,
-                address
-            },
+            method: OverseerAuth::Internal { key, address },
             market,
             block,
             redeem_amount,
@@ -251,12 +241,12 @@ pub fn query_market(
 
 pub fn query_config(
     querier: &impl Querier,
-    overseer: ContractLink<HumanAddr>
+    overseer: ContractLink<HumanAddr>,
 ) -> StdResult<Config> {
     querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
         callback_code_hash: overseer.code_hash,
-        msg: to_binary(&QueryMsg::Config { })?
+        msg: to_binary(&QueryMsg::Config {})?,
     }))
 }
 
@@ -265,7 +255,7 @@ pub fn query_seize_amount(
     overseer: ContractLink<HumanAddr>,
     borrowed: HumanAddr,
     collateral: HumanAddr,
-    repay_amount: Uint256
+    repay_amount: Uint256,
 ) -> StdResult<Uint256> {
     querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: overseer.address,
@@ -273,8 +263,8 @@ pub fn query_seize_amount(
         msg: to_binary(&QueryMsg::SeizeAmount {
             borrowed,
             collateral,
-            repay_amount
-        })?
+            repay_amount,
+        })?,
     }))
 }
 

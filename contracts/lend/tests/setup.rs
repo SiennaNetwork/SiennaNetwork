@@ -125,13 +125,16 @@ pub struct Lend {
 }
 
 impl Lend {
-    pub fn new() -> Self {
+    pub fn new(
+        market: Option<Box<dyn ContractHarness>>,
+        overseer: Option<Box<dyn ContractHarness>>,
+    ) -> Self {
         let mut ensemble = ContractEnsemble::new(50);
 
-        let overseer = ensemble.register(Box::new(Overseer));
+        let overseer = ensemble.register(overseer.unwrap_or(Box::new(Overseer)));
+        let market = ensemble.register(market.unwrap_or(Box::new(Market)));
         let oracle = ensemble.register(Box::new(Oracle));
         let mock_band = ensemble.register(Box::new(MockBand));
-        let market = ensemble.register(Box::new(Market));
         let token = ensemble.register(Box::new(Token));
         let interest = ensemble.register(Box::new(InterestModel));
 
@@ -319,7 +322,8 @@ impl Lend {
                     vec![overseer::OverseerPermissions::AccountInfo],
                     vec![self.overseer.address.clone()],
                     "balance",
-                ).into(),
+                )
+                .into(),
                 market,
                 redeem_amount,
                 borrow_amount,
@@ -373,5 +377,11 @@ impl Lend {
             .unwrap();
 
         Ok(())
+    }
+}
+
+impl Default for Lend {
+    fn default() -> Self {
+        Lend::new(None, None)
     }
 }

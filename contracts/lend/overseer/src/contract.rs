@@ -1,38 +1,34 @@
 mod state;
 
 use lend_shared::{
+    core::{AuthenticatedUser, MasterKey},
     fadroma::{
-        auth,
         admin,
         admin::{assert_admin, Admin},
-        cosmwasm_std,
+        auth, cosmwasm_std,
         cosmwasm_std::{
             log, to_binary, Api, Binary, CosmosMsg, Extern, HandleResponse, HumanAddr,
             InitResponse, Querier, StdError, StdResult, Storage, WasmMsg,
         },
-        secret_toolkit::snip20,
         derive_contract::*,
-        require_admin, Callback, ContractInstantiationInfo,
-        ContractLink, Decimal256, Uint256, Humanize, BLOCK_SIZE
+        require_admin,
+        secret_toolkit::snip20,
+        Callback, ContractInstantiationInfo, ContractLink, Decimal256, Humanize, Uint256,
+        BLOCK_SIZE,
     },
     interfaces::{
-        market::{MarketAuth, query_account, query_exchange_rate, InitMsg as MarketInitMsg},
+        market::{query_account, query_exchange_rate, InitMsg as MarketInitMsg, MarketAuth},
         oracle::{
             query_price, Asset, AssetType, HandleMsg as OracleHandleMsg, InitMsg as OracleInitMsg,
         },
         overseer::{
-            AccountLiquidity, Config, HandleMsg, Market,
-            Pagination, MarketInitConfig, OverseerPermissions,
-            OverseerAuth
+            AccountLiquidity, Config, HandleMsg, Market, MarketInitConfig, OverseerAuth,
+            OverseerPermissions, Pagination,
         },
     },
-    core::{MasterKey, AuthenticatedUser}
 };
 
-use state::{
-    Account, Constants, Contracts,
-    Markets, Whitelisting
-};
+use state::{Account, Constants, Contracts, Markets, Whitelisting};
 
 #[contract_impl(
     path = "lend_shared::interfaces::overseer",
@@ -49,13 +45,9 @@ pub trait Overseer {
         premium: Decimal256,
         market_contract: ContractInstantiationInfo,
         oracle_contract: ContractInstantiationInfo,
-        oracle_source: ContractLink<HumanAddr>
+        oracle_source: ContractLink<HumanAddr>,
     ) -> StdResult<InitResponse> {
-        MasterKey::new(
-            &env,
-            prng_seed.as_slice(),
-            entropy.as_slice()
-        ).save(&mut deps.storage)?;
+        MasterKey::new(&env, prng_seed.as_slice(), entropy.as_slice()).save(&mut deps.storage)?;
 
         Contracts::save_oracle(
             deps,
@@ -77,10 +69,7 @@ pub trait Overseer {
         };
         Contracts::save_self_ref(deps, &self_ref)?;
 
-        Whitelisting::save_market_contract(
-            &mut deps.storage,
-            &market_contract
-        )?;
+        Whitelisting::save_market_contract(&mut deps.storage, &market_contract)?;
 
         let time = env.block.time;
 
@@ -132,17 +121,17 @@ pub trait Overseer {
             &deps.querier,
             BLOCK_SIZE,
             config.underlying_asset.code_hash.clone(),
-            config.underlying_asset.address.clone()
+            config.underlying_asset.address.clone(),
         )?;
         let info = Whitelisting::load_market_contract(&deps.storage)?;
-        
+
         let market = Market {
             contract: ContractLink {
                 address: HumanAddr::default(),
-                code_hash: info.code_hash.clone()
+                code_hash: info.code_hash.clone(),
             },
             symbol: token_info.symbol.clone(),
-            ltv_ratio: config.ltv_ratio
+            ltv_ratio: config.ltv_ratio,
         };
         market.validate()?;
 
@@ -152,8 +141,7 @@ pub trait Overseer {
             messages: vec![CosmosMsg::Wasm(WasmMsg::Instantiate {
                 label: format!(
                     "Sienna Lend {} market with overseer: {}",
-                    token_info.symbol,
-                    env.contract.address
+                    token_info.symbol, env.contract.address
                 ),
                 code_id: info.id,
                 callback_code_hash: info.code_hash,
@@ -168,10 +156,10 @@ pub trait Overseer {
                     callback: Callback {
                         contract: ContractLink {
                             address: env.contract.address,
-                            code_hash: env.contract_code_hash
+                            code_hash: env.contract_code_hash,
                         },
-                        msg: to_binary(&HandleMsg::RegisterMarket {})?
-                    }
+                        msg: to_binary(&HandleMsg::RegisterMarket {})?,
+                    },
                 })?,
             })],
             log: vec![log("action", "whitelist")],
@@ -204,7 +192,7 @@ pub trait Overseer {
             })],
             log: vec![
                 log("action", "register_market"),
-                log("market_address", log_address)
+                log("market_address", log_address),
             ],
             data: None,
         })
@@ -231,9 +219,9 @@ pub trait Overseer {
         let account = Account::new(&deps.api, &env.message.sender)?;
         let (id, market) = account.get_market(deps, &market_address)?;
 
-        let method = MarketAuth::Internal{
+        let method = MarketAuth::Internal {
             address: env.message.sender,
-            key: MasterKey::load(&deps.storage)?
+            key: MasterKey::load(&deps.storage)?,
         };
 
         // TODO: Maybe calc_liquidity() can be changed to cover this check in order to avoid calling this twice.
@@ -302,13 +290,24 @@ pub trait Overseer {
         Ok(HandleResponse::default())
     }
 
+    #[handle]
+    #[require_admin]
+    fn set_premium(premium: Decimal256) -> StdResult<HandleResponse> {
+        let mut constants = Constants::load(&deps.storage)?;
+        constants.premium = premium;
+
+        constants.save(&mut deps.storage)?;
+
+        Ok(HandleResponse::default())
+    }
+
     #[query]
     fn entered_markets(method: OverseerAuth) -> StdResult<Vec<Market<HumanAddr>>> {
         let account = Account::authenticate(
             deps,
             method,
             OverseerPermissions::AccountInfo,
-            Contracts::load_self_ref
+            Contracts::load_self_ref,
         )?;
 
         account.list_markets(deps)
@@ -326,7 +325,7 @@ pub trait Overseer {
             deps,
             method,
             OverseerPermissions::AccountInfo,
-            Contracts::load_self_ref
+            Contracts::load_self_ref,
         )?;
 
         calc_liquidity(
@@ -335,7 +334,7 @@ pub trait Overseer {
             // This is ugly
             MarketAuth::Internal {
                 key: MasterKey::load(&deps.storage)?,
-                address: account.0.humanize(&deps.api)?
+                address: account.0.humanize(&deps.api)?,
             },
             market,
             block,
@@ -364,10 +363,7 @@ pub trait Overseer {
         let result = calc_liquidity(
             deps,
             &account,
-            MarketAuth::Internal {
-                key,
-                address
-            },
+            MarketAuth::Internal { key, address },
             Some(market),
             Some(block),
             amount,
@@ -385,14 +381,9 @@ pub trait Overseer {
     fn seize_amount(
         borrowed: HumanAddr,
         collateral: HumanAddr,
-        repay_amount: Uint256
+        repay_amount: Uint256,
     ) -> StdResult<Uint256> {
-        calc_seize_tokens(
-            deps,
-            borrowed,
-            collateral,
-            repay_amount
-        )
+        calc_seize_tokens(deps, borrowed, collateral, repay_amount)
     }
 
     #[query]
@@ -440,12 +431,7 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     for market in account.list_markets(deps)? {
         let is_target_asset = target_asset == market.contract.address;
 
-        let snapshot = query_account(
-            &deps.querier,
-            market.contract,
-            method.clone(),
-            block
-        )?;
+        let snapshot = query_account(&deps.querier, market.contract, method.clone(), block)?;
 
         let price = query_price(
             &deps.querier,
