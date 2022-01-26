@@ -429,7 +429,13 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     let mut total_collateral = Uint256::zero();
     let mut total_borrowed = Uint256::zero();
 
-    for market in account.list_markets(deps)? {
+    let markets = account.list_markets(deps)?;
+    
+    if markets.len() == 0 {
+        return Err(StdError::generic_err("Not entered in any markets."));
+    }
+
+    for market in markets {
         let is_target_asset = target_asset == market.contract.address;
 
         let snapshot = query_account(&deps.querier, market.contract, method.clone(), block)?;
