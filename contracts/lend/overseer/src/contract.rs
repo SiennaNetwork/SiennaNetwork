@@ -31,6 +31,7 @@ use lend_shared::{
 use state::{Account, Constants, Contracts, Markets, Whitelisting};
 
 #[contract_impl(
+    entry,
     path = "lend_shared::interfaces::overseer",
     component(path = "admin"),
     component(path = "auth")
