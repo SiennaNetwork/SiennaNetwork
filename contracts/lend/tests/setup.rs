@@ -3,7 +3,12 @@ use lend_shared::fadroma::{
     ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
     from_binary,
     snip20_impl,
-    snip20_impl::msg::{InitMsg as Snip20InitMsg, InitialBalance},
+    snip20_impl::msg::{
+        InitMsg as Snip20InitMsg,
+        HandleMsg as Snip20HandleMsg,
+        InitConfig as Snip20InitConfig,
+        InitialBalance
+    },
     to_binary, Binary, Composable, ContractLink, Decimal256, Env, HandleResponse, HumanAddr,
     InitResponse, Permit, StdError, StdResult, Uint128, Uint256,
 };
@@ -124,6 +129,8 @@ impl Lend {
         let interest = ensemble.register(Box::new(InterestModel));
 
         let decimals = 6;
+        let token_config = Snip20InitConfig::builder().enable_mint().build();
+
         let underlying_token_one = ensemble
             .instantiate(
                 token.id,
@@ -144,7 +151,7 @@ impl Lend {
                         },
                     ]),
                     prng_seed: Binary::from(b"whatever"),
-                    config: None,
+                    config: Some(token_config.clone()),
                     callback: None,
                 },
                 MockEnv::new(
@@ -177,7 +184,7 @@ impl Lend {
                         },
                     ]),
                     prng_seed: Binary::from(b"whatever"),
-                    config: None,
+                    config: Some(token_config.clone()),
                     callback: None,
                 },
                 MockEnv::new(
@@ -210,7 +217,7 @@ impl Lend {
                         },
                     ]),
                     prng_seed: Binary::from(b"whatever"),
-                    config: None,
+                    config: Some(token_config),
                     callback: None,
                 },
                 MockEnv::new(
@@ -362,6 +369,49 @@ impl Lend {
             .unwrap();
 
         Ok(())
+    }
+
+    pub fn prefund_user(
+        &mut self,
+        address: impl Into<HumanAddr>,
+        amount: Uint128,
+        token: ContractLink<HumanAddr>
+    ) {
+        self.ensemble.execute(
+            &Snip20HandleMsg::Mint {
+                recipient: address.into(),
+                amount,
+                memo: None,
+                padding: None
+            },
+            MockEnv::new(ADMIN, token)
+        ).unwrap()
+    }
+
+    pub fn prefund_and_deposit(
+        &mut self,
+        address: impl Into<HumanAddr>,
+        amount: Uint128,
+        market: HumanAddr
+    ) {
+        let token: ContractLink<HumanAddr> = self.ensemble.query(
+            market.clone(),
+            market::QueryMsg::UnderlyingAsset {}
+        ).unwrap();
+
+        self.prefund_user(address, amount, token.clone());
+
+        self.ensemble.execute(
+            &Snip20HandleMsg::Send {
+                recipient: market,
+                recipient_code_hash: None,
+                amount,
+                msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
+                memo: None,
+                padding: None
+            },
+            MockEnv::new(ADMIN, token)
+        ).unwrap()
     }
 }
 
