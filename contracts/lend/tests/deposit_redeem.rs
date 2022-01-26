@@ -3,11 +3,9 @@ use std::str::FromStr;
 use lend_shared::{
     fadroma::{
         decimal::one_token,
-        ensemble::{ContractHarness, MockDeps, MockEnv},
-        from_binary,
-        snip20_impl::msg::HandleMsg as Snip20HandleMsg,
-        to_binary, Binary, Composable, Decimal256, Env, HandleResponse, HumanAddr, InitResponse,
-        Permit, StdError, StdResult, Uint128, Uint256, ViewingKey,
+        ensemble::MockEnv,
+        snip20_impl::msg::{HandleMsg as Snip20HandleMsg, InitialBalance},
+        to_binary, Decimal256, Permit, Uint128, Uint256,
     },
     interfaces::{
         market::{self, MarketPermissions},
@@ -24,9 +22,20 @@ fn deposit_and_mint() {
     let exchange_rate = Decimal256::from_uint256(50_000u128).unwrap();
     let mut lend = Lend::default();
 
+    let underlying_1 = lend
+        .new_underlying_token(
+            "ONE",
+            6,
+            Some(vec![InitialBalance {
+                address: "borrower".into(),
+                amount: Uint128(5 * one_token(6)),
+            }]),
+        )
+        .unwrap();
+
     let market = lend
         .whitelist_market(
-            lend.underlying_token_one.clone(),
+            underlying_1.clone(),
             Decimal256::percent(50),
             Some(exchange_rate),
         )
@@ -42,7 +51,7 @@ fn deposit_and_mint() {
             padding: None,
             msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
         },
-        MockEnv::new("borrower_2", lend.underlying_token_one.clone()),
+        MockEnv::new("borrower_2", underlying_1.clone()),
     );
     assert!(res.unwrap_err().to_string().contains("insufficient funds"));
 
@@ -56,7 +65,7 @@ fn deposit_and_mint() {
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", lend.underlying_token_one.clone()),
+            MockEnv::new("borrower", underlying_1.clone()),
         )
         .unwrap();
 
@@ -91,9 +100,20 @@ fn redeem_basic() {
     let exchange_rate = Decimal256::from_uint256(50_000u128).unwrap();
     let mut lend = Lend::default();
 
+    let underlying_1 = lend
+        .new_underlying_token(
+            "ONE",
+            6,
+            Some(vec![InitialBalance {
+                address: "borrower".into(),
+                amount: Uint128(5 * one_token(6)),
+            }]),
+        )
+        .unwrap();
+
     let market = lend
         .whitelist_market(
-            lend.underlying_token_one.clone(),
+            underlying_1.clone(),
             Decimal256::percent(50),
             Some(exchange_rate),
         )
@@ -119,16 +139,16 @@ fn redeem_basic() {
                 memo: None,
                 padding: None,
             },
-            MockEnv::new(ADMIN, lend.underlying_token_one.clone()),
+            MockEnv::new(ADMIN, underlying_1.clone()),
         )
         .unwrap();
 
-    // lend.ensemble
-    //     .execute(
-    //         &market::HandleMsg::RedeemToken {
-    //             burn_amount: Uint256::from(redeem_tokens),
-    //         },
-    //         MockEnv::new("borrower", market.contract.clone()),
-    //     )
-    //     .unwrap();
+    lend.ensemble
+        .execute(
+            &market::HandleMsg::RedeemToken {
+                burn_amount: Uint256::from(redeem_tokens),
+            },
+            MockEnv::new("borrower", market.contract.clone()),
+        )
+        .unwrap();
 }

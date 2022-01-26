@@ -1,16 +1,13 @@
 use lend_shared::fadroma::{
     decimal::one_token,
     ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
-    from_binary,
-    snip20_impl,
+    from_binary, snip20_impl,
     snip20_impl::msg::{
-        InitMsg as Snip20InitMsg,
-        HandleMsg as Snip20HandleMsg,
-        InitConfig as Snip20InitConfig,
-        InitialBalance
+        HandleMsg as Snip20HandleMsg, InitConfig as Snip20InitConfig, InitMsg as Snip20InitMsg,
+        InitialBalance,
     },
     to_binary, Binary, Composable, ContractLink, Decimal256, Env, HandleResponse, HumanAddr,
-    InitResponse, Permit, StdError, StdResult, Uint128, Uint256,
+    InitResponse, Permit, StdError, StdResult, Uint128, Uint256, ContractInstantiationInfo,
 };
 
 use lend_shared::interfaces::{interest_model, market, overseer};
@@ -27,11 +24,21 @@ use lend_oracle::SourceQuery;
 pub struct Token;
 impl ContractHarness for Token {
     fn init(&self, deps: &mut MockDeps, env: Env, msg: Binary) -> StdResult<InitResponse> {
-        snip20_impl::snip20_init(deps, env, from_binary(&msg)?, snip20_impl::DefaultSnip20Impl)
+        snip20_impl::snip20_init(
+            deps,
+            env,
+            from_binary(&msg)?,
+            snip20_impl::DefaultSnip20Impl,
+        )
     }
 
     fn handle(&self, deps: &mut MockDeps, env: Env, msg: Binary) -> StdResult<HandleResponse> {
-        snip20_impl::snip20_handle(deps, env, from_binary(&msg)?, snip20_impl::DefaultSnip20Impl)
+        snip20_impl::snip20_handle(
+            deps,
+            env,
+            from_binary(&msg)?,
+            snip20_impl::DefaultSnip20Impl,
+        )
     }
 
     fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
@@ -68,9 +75,7 @@ impl ContractHarness for MockBand {
     fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
         let msg = from_binary(&msg).unwrap();
         match msg {
-            SourceQuery::GetReferenceData {
-                base_symbol, ..
-            } => {
+            SourceQuery::GetReferenceData { base_symbol, .. } => {
                 let key: &[u8] = base_symbol.as_bytes();
                 match deps.get(key).unwrap() {
                     Some(value) => to_binary(&lend_oracle::BandResponse {
@@ -85,9 +90,7 @@ impl ContractHarness for MockBand {
                     }),
                 }
             }
-            SourceQuery::GetReferenceDataBulk {
-                base_symbols, ..
-            } => {
+            SourceQuery::GetReferenceDataBulk { base_symbols, .. } => {
                 let mut results = Vec::new();
                 let data = lend_oracle::BandResponse {
                     rate: Uint128(1_000_000),
@@ -107,11 +110,9 @@ impl ContractHarness for MockBand {
 pub struct Lend {
     pub ensemble: ContractEnsemble,
     pub overseer: ContractLink<HumanAddr>,
-    pub underlying_token_one: ContractLink<HumanAddr>,
-    pub underlying_token_two: ContractLink<HumanAddr>,
-    pub underlying_token_three: ContractLink<HumanAddr>,
     pub interest_model: ContractLink<HumanAddr>,
     pub mock_band: ContractLink<HumanAddr>,
+    pub token: ContractInstantiationInfo,
 }
 
 impl Lend {
@@ -127,108 +128,6 @@ impl Lend {
         let mock_band = ensemble.register(Box::new(MockBand));
         let token = ensemble.register(Box::new(Token));
         let interest = ensemble.register(Box::new(InterestModel));
-
-        let decimals = 6;
-        let token_config = Snip20InitConfig::builder().enable_mint().build();
-
-        let underlying_token_one = ensemble
-            .instantiate(
-                token.id,
-                &Snip20InitMsg {
-                    name: "Underlying Token".into(),
-                    admin: None,
-                    symbol: "EDNO".into(),
-                    decimals,
-                    initial_allowances: None,
-                    initial_balances: Some(vec![
-                        InitialBalance {
-                            address: ADMIN.into(),
-                            amount: Uint128(1000 * one_token(decimals)),
-                        },
-                        InitialBalance {
-                            address: "borrower".into(),
-                            amount: Uint128(5 * one_token(decimals)),
-                        },
-                    ]),
-                    prng_seed: Binary::from(b"whatever"),
-                    config: Some(token_config.clone()),
-                    callback: None,
-                },
-                MockEnv::new(
-                    ADMIN,
-                    ContractLink {
-                        address: "underlying_one".into(),
-                        code_hash: token.code_hash.clone(),
-                    },
-                ),
-            )
-            .unwrap();
-
-        let underlying_token_two = ensemble
-            .instantiate(
-                token.id,
-                &Snip20InitMsg {
-                    name: "Underlying Token".into(),
-                    admin: None,
-                    symbol: "DVE".into(),
-                    decimals: 3,
-                    initial_allowances: None,
-                    initial_balances: Some(vec![
-                        InitialBalance {
-                            address: ADMIN.into(),
-                            amount: Uint128(one_token(3)),
-                        },
-                        InitialBalance {
-                            address: "borrower".into(),
-                            amount: Uint128(5 * one_token(3)),
-                        },
-                    ]),
-                    prng_seed: Binary::from(b"whatever"),
-                    config: Some(token_config.clone()),
-                    callback: None,
-                },
-                MockEnv::new(
-                    ADMIN,
-                    ContractLink {
-                        address: "underlying_two".into(),
-                        code_hash: token.code_hash.clone(),
-                    },
-                ),
-            )
-            .unwrap();
-
-        let underlying_token_three = ensemble
-            .instantiate(
-                token.id,
-                &Snip20InitMsg {
-                    name: "Underlying Token".into(),
-                    admin: None,
-                    symbol: "TRI".into(),
-                    decimals,
-                    initial_allowances: None,
-                    initial_balances: Some(vec![
-                        InitialBalance {
-                            address: ADMIN.into(),
-                            amount: Uint128(one_token(decimals)),
-                        },
-                        InitialBalance {
-                            address: "borrower".into(),
-                            amount: Uint128(5 * one_token(decimals)),
-                        },
-                    ]),
-                    prng_seed: Binary::from(b"whatever"),
-                    config: Some(token_config),
-                    callback: None,
-                },
-                MockEnv::new(
-                    ADMIN,
-                    ContractLink {
-                        address: "underlying_three".into(),
-                        code_hash: token.code_hash.clone(),
-                    },
-                ),
-            )
-            .unwrap();
 
         let mock_band = ensemble
             .instantiate(
@@ -291,11 +190,9 @@ impl Lend {
         Self {
             ensemble,
             overseer,
-            underlying_token_one,
-            underlying_token_two,
-            underlying_token_three,
             interest_model,
             mock_band,
+            token,
         }
     }
 
@@ -340,7 +237,7 @@ impl Lend {
         &mut self,
         underlying_asset: ContractLink<HumanAddr>,
         ltv_ratio: Decimal256,
-        exchange_rate: Option<Decimal256>
+        exchange_rate: Option<Decimal256>,
     ) -> StdResult<overseer::Market<HumanAddr>> {
         self.ensemble.execute(
             &overseer::HandleMsg::Whitelist {
@@ -376,43 +273,79 @@ impl Lend {
         &mut self,
         address: impl Into<HumanAddr>,
         amount: Uint128,
-        token: ContractLink<HumanAddr>
+        token: ContractLink<HumanAddr>,
     ) {
-        self.ensemble.execute(
-            &Snip20HandleMsg::Mint {
-                recipient: address.into(),
-                amount,
-                memo: None,
-                padding: None
-            },
-            MockEnv::new(ADMIN, token)
-        ).unwrap()
+        self.ensemble
+            .execute(
+                &Snip20HandleMsg::Mint {
+                    recipient: address.into(),
+                    amount,
+                    memo: None,
+                    padding: None,
+                },
+                MockEnv::new(ADMIN, token),
+            )
+            .unwrap()
     }
 
     pub fn prefund_and_deposit(
         &mut self,
         address: impl Into<HumanAddr>,
         amount: Uint128,
-        market: HumanAddr
+        market: HumanAddr,
     ) {
-        let token: ContractLink<HumanAddr> = self.ensemble.query(
-            market.clone(),
-            market::QueryMsg::UnderlyingAsset {}
-        ).unwrap();
+        let token: ContractLink<HumanAddr> = self
+            .ensemble
+            .query(market.clone(), market::QueryMsg::UnderlyingAsset {})
+            .unwrap();
 
         self.prefund_user(address, amount, token.clone());
 
-        self.ensemble.execute(
-            &Snip20HandleMsg::Send {
-                recipient: market,
-                recipient_code_hash: None,
-                amount,
-                msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
-                memo: None,
-                padding: None
+        self.ensemble
+            .execute(
+                &Snip20HandleMsg::Send {
+                    recipient: market,
+                    recipient_code_hash: None,
+                    amount,
+                    msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
+                    memo: None,
+                    padding: None,
+                },
+                MockEnv::new(ADMIN, token),
+            )
+            .unwrap()
+    }
+
+    pub fn new_underlying_token(
+        &mut self,
+        symbol: &str,
+        decimals: u8,
+        initial_balances: Option<Vec<InitialBalance>>,
+    ) -> StdResult<ContractLink<HumanAddr>> {
+        let token_config = Snip20InitConfig::builder().enable_mint().build();
+        let underlying_token = self.ensemble.instantiate(
+            self.token.id,
+            &Snip20InitMsg {
+                name: "Underlying Token".into(),
+                admin: None,
+                symbol: symbol.into(),
+                decimals,
+                initial_allowances: None,
+                initial_balances,
+                prng_seed: Binary::from(b"whatever"),
+                config: Some(token_config.clone()),
+                callback: None,
             },
-            MockEnv::new(ADMIN, token)
-        ).unwrap()
+            MockEnv::new(
+                ADMIN,
+                ContractLink {
+                    address: symbol.into(),
+                    code_hash: self.token.code_hash.clone(),
+                },
+            ),
+        )?;
+
+        Ok(underlying_token)
     }
 }
 

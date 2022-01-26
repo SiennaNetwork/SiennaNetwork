@@ -2,9 +2,10 @@ use std::str::FromStr;
 
 use lend_shared::{
     fadroma::{
+        decimal::one_token,
         ensemble::{ContractHarness, MockDeps, MockEnv},
         from_binary,
-        snip20_impl::msg::HandleMsg as Snip20HandleMsg,
+        snip20_impl::msg::{HandleMsg as Snip20HandleMsg, InitialBalance},
         to_binary, Binary, Composable, Decimal256, Env, HandleResponse, HumanAddr, InitResponse,
         Permit, StdError, StdResult, Uint128, Uint256,
     },
@@ -40,13 +41,33 @@ impl ContractHarness for MarketImpl {
 #[test]
 fn whitelist() {
     let mut lend = Lend::default();
+    let underlying_1 = lend
+        .new_underlying_token(
+            "ONE",
+            6,
+            Some(vec![InitialBalance {
+                address: "borrower".into(),
+                amount: Uint128(5 * one_token(6)),
+            }]),
+        )
+        .unwrap();
+    let underlying_2 = lend
+        .new_underlying_token(
+            "TWO",
+            3,
+            Some(vec![InitialBalance {
+                address: "borrower".into(),
+                amount: Uint128(5 * one_token(3)),
+            }]),
+        )
+        .unwrap();
 
     // can only be called by admin
     let res = lend.ensemble.execute(
         &HandleMsg::Whitelist {
             config: MarketInitConfig {
                 prng_seed: Binary::from(b"seed_for_base_market"),
-                underlying_asset: lend.underlying_token_one.clone(),
+                underlying_asset: underlying_1.clone(),
                 ltv_ratio: Decimal256::zero(),
                 config: market::Config {
                     initial_exchange_rate: Decimal256::one(),
@@ -61,10 +82,10 @@ fn whitelist() {
 
     assert_eq!(StdError::unauthorized(), res.unwrap_err());
 
-    lend.whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(90), None)
+    lend.whitelist_market(underlying_1.clone(), Decimal256::percent(90), None)
         .unwrap();
 
-    lend.whitelist_market(lend.underlying_token_two.clone(), Decimal256::percent(90), None)
+    lend.whitelist_market(underlying_2.clone(), Decimal256::percent(90), None)
         .unwrap();
 
     let res: Vec<Market<HumanAddr>> = lend
@@ -87,12 +108,33 @@ fn whitelist() {
 fn enter_and_exit_markets() {
     let mut lend = Lend::default();
 
+    let underlying_1 = lend
+        .new_underlying_token(
+            "ONE",
+            6,
+            Some(vec![InitialBalance {
+                address: "borrower".into(),
+                amount: Uint128(5 * one_token(6)),
+            }]),
+        )
+        .unwrap();
+    let underlying_2 = lend
+        .new_underlying_token(
+            "TWO",
+            3,
+            Some(vec![InitialBalance {
+                address: "borrower".into(),
+                amount: Uint128(5 * one_token(3)),
+            }]),
+        )
+        .unwrap();
+
     let base_market = lend
-        .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(90), None)
+        .whitelist_market(underlying_1.clone(), Decimal256::percent(90), None)
         .unwrap();
 
     let quote_market = lend
-        .whitelist_market(lend.underlying_token_two.clone(), Decimal256::percent(90), None)
+        .whitelist_market(underlying_2.clone(), Decimal256::percent(90), None)
         .unwrap();
 
     // enter market
@@ -195,9 +237,19 @@ fn enter_and_exit_markets() {
 #[test]
 fn returns_right_liquidity() {
     let mut lend = Lend::default();
+    let underlying_1 = lend
+        .new_underlying_token(
+            "ONE",
+            6,
+            Some(vec![InitialBalance {
+                address: "borrower".into(),
+                amount: Uint128(5 * one_token(6)),
+            }]),
+        )
+        .unwrap();
 
     let market = lend
-        .whitelist_market(lend.underlying_token_three.clone(), Decimal256::percent(50), None)
+        .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None)
         .unwrap();
 
     lend.ensemble
@@ -220,7 +272,7 @@ fn returns_right_liquidity() {
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", lend.underlying_token_three.clone()),
+            MockEnv::new("borrower", underlying_1.clone()),
         )
         .unwrap();
 
@@ -247,8 +299,19 @@ fn returns_right_liquidity() {
 
 #[test]
 fn liquidity_collateral_factor() {
-    // fails if a market is not listed
     let mut lend = Lend::default();
+    let underlying_1 = lend
+        .new_underlying_token(
+            "ONE",
+            6,
+            Some(vec![InitialBalance {
+                address: "borrower".into(),
+                amount: Uint128(5 * one_token(6)),
+            }]),
+        )
+        .unwrap();
+
+    // fails if a market is not listed
     let res = lend.ensemble.execute(
         &HandleMsg::Enter {
             markets: vec!["unknown_addr".into()],
@@ -262,7 +325,7 @@ fn liquidity_collateral_factor() {
     );
 
     let market = lend
-        .whitelist_market(lend.underlying_token_three.clone(), Decimal256::percent(50), None)
+        .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None)
         .unwrap();
 
     lend.set_oracle_price(market.symbol.as_bytes(), Uint128(1_000_000_000_000_000_000))
@@ -302,7 +365,7 @@ fn liquidity_collateral_factor() {
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", lend.underlying_token_three.clone()),
+            MockEnv::new("borrower", underlying_1.clone()),
         )
         .unwrap();
 
@@ -360,14 +423,45 @@ fn liquidity_collateral_factor() {
 fn liquidity_entering_markets() {
     // allows entering 3 markets, supplying to 2 and borrowing up to collateralFactor in the 3rd
     let mut lend = Lend::default();
+    let underlying_1 = lend
+        .new_underlying_token(
+            "ONE",
+            6,
+            Some(vec![InitialBalance {
+                address: "borrower".into(),
+                amount: Uint128(5 * one_token(6)),
+            }]),
+        )
+        .unwrap();
+    let underlying_2 = lend
+        .new_underlying_token(
+            "TWO",
+            3,
+            Some(vec![InitialBalance {
+                address: "borrower".into(),
+                amount: Uint128(5 * one_token(3)),
+            }]),
+        )
+        .unwrap();
+    let underlying_3 = lend
+        .new_underlying_token(
+            "TRES",
+            6,
+            Some(vec![InitialBalance {
+                address: "borrower".into(),
+                amount: Uint128(5 * one_token(6)),
+            }]),
+        )
+        .unwrap();
+
     let market_one = lend
-        .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(50), None)
+        .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None)
         .unwrap();
     let market_two = lend
-        .whitelist_market(lend.underlying_token_two.clone(), Decimal256::permille(666), None)
+        .whitelist_market(underlying_2.clone(), Decimal256::permille(666), None)
         .unwrap();
     let market_three = lend
-        .whitelist_market(lend.underlying_token_three.clone(), Decimal256::zero(), None)
+        .whitelist_market(underlying_3.clone(), Decimal256::zero(), None)
         .unwrap();
 
     // set underlying prices
@@ -414,7 +508,7 @@ fn liquidity_entering_markets() {
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", lend.underlying_token_one.clone()),
+            MockEnv::new("borrower", underlying_1.clone()),
         )
         .unwrap();
 
@@ -429,7 +523,7 @@ fn liquidity_entering_markets() {
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", lend.underlying_token_two.clone()),
+            MockEnv::new("borrower", underlying_2.clone()),
         )
         .unwrap();
 
@@ -497,11 +591,32 @@ fn liquidity_entering_markets() {
 #[test]
 fn calculate_amount_seize() {
     let mut lend = Lend::new(Some(Box::new(MarketImpl)), None);
+    let underlying_1 = lend
+        .new_underlying_token(
+            "ONE",
+            6,
+            Some(vec![InitialBalance {
+                address: "borrower".into(),
+                amount: Uint128(5 * one_token(6)),
+            }]),
+        )
+        .unwrap();
+    let underlying_2 = lend
+        .new_underlying_token(
+            "TWO",
+            3,
+            Some(vec![InitialBalance {
+                address: "borrower".into(),
+                amount: Uint128(5 * one_token(3)),
+            }]),
+        )
+        .unwrap();
+
     let collateral_market = lend
-        .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(50), None)
+        .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None)
         .unwrap();
     let borrowed_market = lend
-        .whitelist_market(lend.underlying_token_two.clone(), Decimal256::permille(666), None)
+        .whitelist_market(underlying_2.clone(), Decimal256::permille(666), None)
         .unwrap();
 
     let cases = [
@@ -570,7 +685,7 @@ fn calculate_amount_seize() {
             )
             .unwrap();
 
-            let res: Uint256 = lend
+        let res: Uint256 = lend
             .ensemble
             .query(
                 lend.overseer.address.clone(),
