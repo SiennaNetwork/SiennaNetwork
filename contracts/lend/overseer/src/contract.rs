@@ -424,7 +424,6 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     borrow_amount: Uint256,
 ) -> StdResult<AccountLiquidity> {
     let oracle = Contracts::load_oracle(deps)?;
-    let target_asset = target_asset.unwrap_or_default();
 
     let mut total_collateral = Uint256::zero();
     let mut total_borrowed = Uint256::zero();
@@ -434,6 +433,16 @@ fn calc_liquidity<S: Storage, A: Api, Q: Querier>(
     if markets.len() == 0 {
         return Err(StdError::generic_err("Not entered in any markets."));
     }
+
+    let target_asset = if let Some(asset) = target_asset {
+        if !markets.iter().any(|x| x.contract.address == asset) {
+            return Err(StdError::generic_err(format!("Not entered in market: {}", asset)));
+        }
+
+        asset
+    } else {
+        HumanAddr::default()
+    };
 
     for market in markets {
         let is_target_asset = target_asset == market.contract.address;
