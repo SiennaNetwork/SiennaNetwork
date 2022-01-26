@@ -136,7 +136,7 @@ impl Lend {
                     initial_balances: Some(vec![
                         InitialBalance {
                             address: ADMIN.into(),
-                            amount: Uint128(one_token(decimals)),
+                            amount: Uint128(1000 * one_token(decimals)),
                         },
                         InitialBalance {
                             address: "borrower".into(),
