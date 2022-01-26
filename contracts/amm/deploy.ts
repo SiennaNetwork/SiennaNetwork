@@ -378,13 +378,9 @@ export async function deployRewards ({
   REWARD_POOLS:       RewardsContract[]
   RPT_CONFIG_SWAP_REWARDS: RPTConfig
 }> {
-  const { swapTokens, swapPairs, rewardPairs, } = getSettings(chain.chainId)
+  const { swapPairs, rewardPairs, } = getSettings(chain.chainId)
   const REWARDS = new RewardsContract({ workspace, prefix, admin, ref })
   await chain.buildAndUpload([REWARDS])
-  Object.assign(TOKENS,
-    chain.isLocalnet
-      ? await run(deployPlaceholders, { timestamp: timestamp() })
-      : getSwapTokens(swapTokens, admin))
   const REWARD_POOLS            = []
   const RPT_CONFIG_SWAP_REWARDS = []
   if (swapPairs.length > 0) {
