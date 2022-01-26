@@ -61,10 +61,10 @@ fn whitelist() {
 
     assert_eq!(StdError::unauthorized(), res.unwrap_err());
 
-    lend.whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(90))
+    lend.whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(90), None)
         .unwrap();
 
-    lend.whitelist_market(lend.underlying_token_two.clone(), Decimal256::percent(90))
+    lend.whitelist_market(lend.underlying_token_two.clone(), Decimal256::percent(90), None)
         .unwrap();
 
     let res: Vec<Market<HumanAddr>> = lend
@@ -88,11 +88,11 @@ fn enter_and_exit_markets() {
     let mut lend = Lend::default();
 
     let base_market = lend
-        .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(90))
+        .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(90), None)
         .unwrap();
 
     let quote_market = lend
-        .whitelist_market(lend.underlying_token_two.clone(), Decimal256::percent(90))
+        .whitelist_market(lend.underlying_token_two.clone(), Decimal256::percent(90), None)
         .unwrap();
 
     // enter market
@@ -197,7 +197,7 @@ fn returns_right_liquidity() {
     let mut lend = Lend::default();
 
     let market = lend
-        .whitelist_market(lend.underlying_token_three.clone(), Decimal256::percent(50))
+        .whitelist_market(lend.underlying_token_three.clone(), Decimal256::percent(50), None)
         .unwrap();
 
     lend.ensemble
@@ -262,7 +262,7 @@ fn liquidity_collateral_factor() {
     );
 
     let market = lend
-        .whitelist_market(lend.underlying_token_three.clone(), Decimal256::percent(50))
+        .whitelist_market(lend.underlying_token_three.clone(), Decimal256::percent(50), None)
         .unwrap();
 
     lend.set_oracle_price(market.symbol.as_bytes(), Uint128(1_000_000_000_000_000_000))
@@ -361,13 +361,13 @@ fn liquidity_entering_markets() {
     // allows entering 3 markets, supplying to 2 and borrowing up to collateralFactor in the 3rd
     let mut lend = Lend::default();
     let market_one = lend
-        .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(50))
+        .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(50), None)
         .unwrap();
     let market_two = lend
-        .whitelist_market(lend.underlying_token_two.clone(), Decimal256::permille(666))
+        .whitelist_market(lend.underlying_token_two.clone(), Decimal256::permille(666), None)
         .unwrap();
     let market_three = lend
-        .whitelist_market(lend.underlying_token_three.clone(), Decimal256::zero())
+        .whitelist_market(lend.underlying_token_three.clone(), Decimal256::zero(), None)
         .unwrap();
 
     // set underlying prices
@@ -498,10 +498,10 @@ fn liquidity_entering_markets() {
 fn calculate_amount_seize() {
     let mut lend = Lend::new(Some(Box::new(MarketImpl)), None);
     let collateral_market = lend
-        .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(50))
+        .whitelist_market(lend.underlying_token_one.clone(), Decimal256::percent(50), None)
         .unwrap();
     let borrowed_market = lend
-        .whitelist_market(lend.underlying_token_two.clone(), Decimal256::permille(666))
+        .whitelist_market(lend.underlying_token_two.clone(), Decimal256::permille(666), None)
         .unwrap();
 
     let cases = [

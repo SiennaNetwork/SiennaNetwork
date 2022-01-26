@@ -348,6 +348,7 @@ impl Lend {
         &mut self,
         underlying_asset: ContractLink<HumanAddr>,
         ltv_ratio: Decimal256,
+        exchange_rate: Option<Decimal256>
     ) -> StdResult<overseer::Market<HumanAddr>> {
         self.ensemble.execute(
             &overseer::HandleMsg::Whitelist {
@@ -356,7 +357,7 @@ impl Lend {
                     underlying_asset,
                     ltv_ratio,
                     config: market::Config {
-                        initial_exchange_rate: Decimal256::one(),
+                        initial_exchange_rate: exchange_rate.unwrap_or(Decimal256::one()),
                         reserve_factor: Decimal256::one(),
                         seize_factor: Decimal256::one(),
                     },
