@@ -394,12 +394,14 @@ impl Lend {
         amount: Uint128,
         market: HumanAddr
     ) {
+        let address = address.into();
+        
         let token: ContractLink<HumanAddr> = self.ensemble.query(
             market.clone(),
             market::QueryMsg::UnderlyingAsset {}
         ).unwrap();
 
-        self.prefund_user(address, amount, token.clone());
+        self.prefund_user(address.clone(), amount, token.clone());
 
         self.ensemble.execute(
             &Snip20HandleMsg::Send {
@@ -410,7 +412,7 @@ impl Lend {
                 memo: None,
                 padding: None
             },
-            MockEnv::new(ADMIN, token)
+            MockEnv::new(address, token)
         ).unwrap()
     }
 }
