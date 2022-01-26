@@ -133,7 +133,7 @@ export async function deployAMMFactory ({
   const { amm: { exchange_settings } } = getSettings(chain.chainId)
   FACTORY.initMsg.exchange_settings = exchange_settings
   // deploy the factory
-  const receipt = deployment.contracts['SiennaAMMFactory']
+  const receipt = deployment.receipts['SiennaAMMFactory']
   await FACTORY.instantiateOrExisting(receipt)
   return { FACTORY }
 }
@@ -280,7 +280,7 @@ export async function deployPlaceholders (
   const PLACEHOLDERS = {}
   const { placeholderTokens } = getSettings(chain.chainId)
   console.info(
-    bold(`Deploying placeholder tokens`), JSON.stringify(placeholderTokens)
+    bold(`Deploying placeholder tokens`), Object.keys(placeholderTokens).join(' ')
   )
   type TokenConfig = { label: string, initMsg: any }
   const placeholders: Record<string, TokenConfig> = placeholderTokens
@@ -389,9 +389,10 @@ export async function deployRewards ({
     for (const name of swapPairs) {
       if (rewards && rewards[name]) {
         const exchangeName = `SiennaSwap_${name}`
-        const exchange = deployment.contracts[exchangeName]
+        const exchange = deployment.receipts[exchangeName]
         if (!exchange) {
-          console.error(`${exchangeName} doesn't exist`)
+          console.error(bold(`Contract does not exist in deployment`), exchangeName)
+          console.error(bold(`Contracts in deployment:`), Object.keys(deployment.receipts).join(' '))
           process.exit(1)
         }
         const { lp_token } = exchange
@@ -457,7 +458,7 @@ export async function deployRewardPool ({
     // use Object.assign to avoid type check
     Object.assign(REWARDS, { initMsg })
   }
-  await REWARDS.instantiateOrExisting(deployment.contracts[REWARDS.label])
+  await REWARDS.instantiateOrExisting(deployment.receipts[REWARDS.label])
   return { REWARDS }
 }
 

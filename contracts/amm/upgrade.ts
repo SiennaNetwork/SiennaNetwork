@@ -37,18 +37,18 @@ export async function upgradeFactoryAndRewards ({
   // The liquidity pools of the v1 factory.
   // We'll disincentivise those in RPT now,
   // and eventually terminate them in the next migration.
-  const OLD_LIQUIDITY_POOLS: AMMContract[] = await V1_FACTORY.exchanges
+  const OLD_EXCHANGES: AMMContract[] = await V1_FACTORY.exchanges
   // The LP tokens of the liquidity pools of the v1 factory.
   // We'll disincentivise those in RPT now,
   // and eventually terminate them in the next migration.
-  const OLD_LP_TOKENS: SNIP20Contract[] = OLD_LIQUIDITY_POOLS.map(exchange=>exchange.lpToken)
+  const OLD_LP_TOKENS: SNIP20Contract[] = OLD_EXCHANGES.map(exchange=>exchange.lpToken)
   // Let's report some initial status.
   const pick = (...keys) => x => keys.reduce((y, key)=>{y[key]=x[key];return y}, {})
   const essentials = pick('codeId', 'codeHash', 'address', 'label')
   console.log('V1 factory:')
   console.table(essentials(V1_FACTORY))
   console.log("V1 factory's exchanges (to be disincentivised):")
-  console.table(OLD_LIQUIDITY_POOLS.map(essentials))
+  console.table(OLD_EXCHANGES.map(essentials))
   console.log("V1 factory's exchanges' LP tokens (to be disincentivised):")
   console.table(OLD_LP_TOKENS.map(essentials))
   console.log("V2 rewards attached to V1 factory's LP tokens (to be disincentivised)")
@@ -68,22 +68,20 @@ export async function upgradeFactoryAndRewards ({
   await V2_FACTORY.instantiate()
   // The new liquidity pools.
   // Their addresses should be added to the frontend.
-  const NEW_LIQUIDITY_POOLS: AMMContract[] = []
-  for (const { address, token_0, token_1 } of OLD_LIQUIDITY_POOLS) {
-    const NEW_LIQUIDITY_POOL = await V2_FACTORY.createExchange(token_0, token_1)
-    console.log(`\nOLD LIQUIDITY POOL ${address}`)
-    console.log(`between tokens ${JSON.stringify(token_0)}`)
-    console.log(`           and ${JSON.stringify(token_1)}`)
-    console.log(`becomes NEW LIQUIDITY POOL ${NEW_LIQUIDITY_POOL.address}`)
-    console.log({NEW_LIQUIDITY_POOL})
-    NEW_LIQUIDITY_POOL.push(NEW_LIQUIDITY_POOL)
+  const NEW_EXCHANGES: AMMContract[]     = []
+  const NEW_LP_TOKENS: LPTokenContract[] = []
+  for (const { address, token_0, token_1 } of OLD_EXCHANGES) {
+    const { EXCHANGE, LP_TOKEN } = await V2_FACTORY.createExchange(token_0, token_1)
+    NEW_EXCHANGES.push(EXCHANGE)
+    NEW_LP_TOKENS.push(LP_TOKEN)
     await admin.nextBlock
   }
+
   process.exit(123)
+
   // The new LP tokens.
   // Their addresses should be added to the frontend.
-  const NEW_LP_TOKENS: LPTokenContract[] =
-    NEW_LIQUIDITY_POOLS.forEach(EXCHANGE=>{
+    NEW_EXCHANGES.forEach(EXCHANGE=>{
       console.log(`\nOld LP token ${EXCHANGE.address}`)
       console.log(`of old liquidity pool TODO`)
       console.log(`has become new liquidity pool TODO`)

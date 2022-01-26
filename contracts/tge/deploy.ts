@@ -41,18 +41,13 @@ export async function deployTGE (inputs: Inputs): Promise<Outputs> {
     chain,
     admin,
     args = [],
+    deployment,
+    prefix,
 
     schedule = settings.schedule
   } = inputs
 
   console.info(bold('Admin balance:'), await admin.balance)
-
-  // ignore deployment/prefix from the inputs;
-  // always start new deployment
-  const prefix = args[0] /* let user name it */ || timestamp() /* or default */
-  await chain.deployments.create(prefix)
-  await chain.deployments.select(prefix)
-  const deployment = chain.deployments.active
 
   const RPTAccount = getRPTAccount(schedule)
   const portion    = RPTAccount.portion_size

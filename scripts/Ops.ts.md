@@ -1,7 +1,10 @@
 # Sienna Deployment Procedures
 
 ```typescript
-import Fadroma, { bold, timestamp } from '@hackbg/fadroma'
+import Fadroma, {
+  createNewDeployment, needsActiveDeployment
+  bold, timestamp
+} from '@hackbg/fadroma'
 import from '@hackbg/fadroma'
 ```
 
@@ -59,9 +62,10 @@ This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 
 ```typescript
 Fadroma.command('deploy all',
+  createNewDeployment,
   deployTGE,
   deployAMM,
-  ({chain})=>chain.deployments.printActive())
+  needsActiveDeployment)
 ```
 
 ### Deploy just the TGE
@@ -70,7 +74,9 @@ This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 
 ```typescript
 import { deployTGE } from '@sienna/tge'
-Fadroma.command('deploy tge', deployTGE)
+Fadroma.command('deploy tge',
+  createNewDeployment,
+  deployTGE)
 ```
 
 ### Add the AMM and Rewards to the TGE
@@ -80,7 +86,9 @@ to which it adds the contracts for Sienna Swap.
 
 ```typescript
 import { deployAMM } from '@sienna/amm'
-Fadroma.command('deploy amm', deployAMM)
+Fadroma.command('deploy amm',
+  needsActiveDeployment,
+  deployAMM)
 ```
 
 ### Deploying Rewards v2 and v3 side-by-side
@@ -90,6 +98,7 @@ Used to test the migration from v2 to v3 pools.
 ```typescript
 import { deployRewardsSideBySide } from '@sienna/amm'
 Fadroma.command('deploy rewards-side-by-side',
+  needsActiveDeployment,
   deployRewardsSideBySide)
 ```
 
@@ -102,6 +111,7 @@ built from `main`.
 ```typescript
 import { deployAMMFactoryLegacy } from '@sienna/amm'
 Fadroma.command('deploy legacy-factory',
+  needsActiveDeployment,
   deployAMMFactoryLegacy)
 ```
 
@@ -112,6 +122,7 @@ Fadroma.command('deploy legacy-factory',
 ```typescript
 import { upgradeFactoryAndRewards } from '@sienna/amm'
 Fadroma.command('upgrade factory-and-rewards',
+  needsActiveDeployment,
   upgradeFactoryAndRewards)
 ```
 
@@ -124,6 +135,7 @@ with the latest version of the code.
 ```typescript
 import { replaceRewardPool, printRewardsContracts } from '@sienna/amm'
 Fadroma.command('upgrade reward-pool',
+  needsActiveDeployment,
   async ({ chain, admin, args: [ id ] }) => {
     if (id) {
       await replaceRewardPool(chain, admin, id)
