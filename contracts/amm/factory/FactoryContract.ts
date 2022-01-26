@@ -150,6 +150,18 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     agent = this.instantiator
   ): Promise<ExchangeInfo> {
 
+    const { address } = await this.q(agent).get_exchange_address(
+      token_0,
+      token_1
+    )
+
+    const EXCHANGE = new AMMContract({
+      admin:  this.admin,
+      prefix: this.prefix,
+      chain:  this.chain,
+      address
+    })
+
     let TOKEN_0: SNIP20Contract|string
     if (token_0.custom_token) {
       TOKEN_0 = new SNIP20Contract({
@@ -170,11 +182,9 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
       TOKEN_0 = token_0.native_token.denom
     }
 
-    const {address} = await this.q(agent).get_exchange_address(token_0, token_1)
-    const EXCHANGE = new AMMContract({address, admin: agent, instantiator: agent})
-
     const { liquidity_token } = await EXCHANGE.pairInfo()
     const LP_TOKEN = new LPTokenContract({
+      admin:    this.admin,
       prefix:   this.prefix,
       chain:    this.chain,
       address:  liquidity_token.address,
@@ -182,22 +192,19 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     })
 
     const raw = {
-      codeId: EXCHANGE.codeId,
-      initTx: {
-        contractAddress: EXCHANGE.address
-      },
-      token_0,
-      token_1,
       exchange: {
         address: EXCHANGE.address
       },
+      token_0,
+      token_1,
       lp_token: {
         address:   LP_TOKEN.address,
         code_hash: LP_TOKEN.codeHash
       },
     }
 
-    return { TOKEN_0, TOKEN_1, EXCHANGE, LP_TOKEN, raw }
+    return { EXCHANGE, TOKEN_0, TOKEN_1, LP_TOKEN, raw }
+
   }
 
   /** Create a liquidity pool, i.e. an instance of the exchange contract. */

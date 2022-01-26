@@ -240,14 +240,28 @@ export async function deployAMMExchange ({
     return { EXCHANGE, LP_TOKEN }
   } catch (e) {
     if (e.message.includes("Address doesn't exist in storage")) {
+      const {
+        pair_contract:     { id: ammId, code_hash: ammHash },
+        lp_token_contract: { id: lpId }
+      } = await FACTORY.getContracts()
       const { EXCHANGE, LP_TOKEN, raw } = await FACTORY.createExchange(token0, token1)
-      deployment.save(raw, `SiennaSwap_${name}`)
-      console.info(
-        bold(`Deployed AMM exchange`), EXCHANGE.address,
-        bold(`Deployed LP token`),     LP_TOKEN.address
-      )
+      console.info(bold(`Deployed AMM exchange`), EXCHANGE.address)
+      deployment.save({
+        ...raw,
+        codeId:   ammId,
+        codeHash: ammHash,
+        initTx:   { contractAddress: raw.exchange.address }
+      }, `SiennaSwap_${name}`)
+      console.info(bold(`Deployed LP token`), LP_TOKEN.address)
+      deployment.save({
+        ...raw,
+        codeId:   lpId,
+        codeHash: raw.lp_token.code_hash,
+        initTx:   { contractAddress: raw.lp_token.address }
+      }, `SiennaSwap_LP-${name}`)
       return { EXCHANGE, LP_TOKEN }
     } else {
+      console.error(e)
       throw new Error(`${bold(`Factory::GetExchange(${name})`)}: not found (${e.message})`)
     }
   }
@@ -269,24 +283,30 @@ export async function deployPlaceholders (
   const placeholders: Record<string, TokenConfig> = placeholderTokens
   for (const [symbol, data] of Object.entries(placeholders)) {
     const {label, initMsg} = data
+    const name = `Placeholder_${label}` 
     try {
-      PLACEHOLDERS[symbol] = deployment.getContract(
-        AMMSNIP20Contract,
-        `Placeholder_${label}`,
-        admin
-      )
+      PLACEHOLDERS[symbol] = deployment.getContract(AMMSNIP20Contract, name, admin)
+      console.info(bold('Found, not redeploying:'), name)
     } catch (e) {
-      const TOKEN = PLACEHOLDERS[symbol] = new AMMSNIP20Contract({
-        workspace,
-        prefix, name: `Placeholder_${label}`, suffix: `+${timestamp}`,
-        chain, admin, instantiator: admin, initMsg: {
-          ...initMsg, prng_seed: randomHex(36)
-        }
-      })
-      await chain.buildAndUpload([TOKEN])
-      await TOKEN.instantiate()
-      await TOKEN.tx(admin).setMinters([admin.address])
-      await TOKEN.tx(admin).mint("100000000000000000000000", admin.address)
+      if (e.message.startsWith('@fadroma/ops: no contract')) {
+        console.info(bold('Not found, deploying:'), name)
+        const TOKEN = PLACEHOLDERS[symbol] = new AMMSNIP20Contract({
+          workspace,
+          prefix, name, suffix: `+${timestamp}`,
+          chain, admin, instantiator: admin, initMsg: {
+            ...initMsg, prng_seed: randomHex(36)
+          }
+        })
+        await chain.buildAndUpload([TOKEN])
+        await TOKEN.instantiate()
+        await TOKEN.tx(admin).setMinters([admin.address])
+        await TOKEN.tx(admin).mint("100000000000000000000000", admin.address)
+      } else {
+        console.error(e)
+        throw new Error(
+          `@sienna/amm/deploy: error when deploying placeholder tokens: ${e.message}`
+        )
+      }
     }
   }
   return { PLACEHOLDERS }
@@ -360,7 +380,7 @@ export async function deployRewards ({
   await chain.buildAndUpload([REWARDS])
   Object.assign(TOKENS,
     chain.isLocalnet
-      ? await run(deployPlaceholders)
+      ? await run(deployPlaceholders, { timestamp: timestamp() })
       : getSwapTokens(swapTokens, admin))
   const REWARD_POOLS            = []
   const RPT_CONFIG_SWAP_REWARDS = []

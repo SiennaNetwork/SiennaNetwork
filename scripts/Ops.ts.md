@@ -111,7 +111,7 @@ Fadroma.command('deploy legacy-factory',
 
 ```typescript
 import { upgradeFactoryAndRewards } from '@sienna/amm'
-Fadroma.command('migrate factory-and-rewards',
+Fadroma.command('upgrade factory-and-rewards',
   upgradeFactoryAndRewards)
 ```
 
@@ -123,7 +123,7 @@ with the latest version of the code.
 
 ```typescript
 import { replaceRewardPool, printRewardsContracts } from '@sienna/amm'
-Fadroma.command('migrate reward-pool',
+Fadroma.command('upgrade reward-pool',
   async ({ chain, admin, args: [ id ] }) => {
     if (id) {
       await replaceRewardPool(chain, admin, id)

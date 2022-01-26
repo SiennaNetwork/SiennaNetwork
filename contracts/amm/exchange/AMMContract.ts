@@ -50,7 +50,7 @@ export class AMMContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> 
   }
 
   pairInfo = (): Promise<{ pair: TokenPair, liquidity_token: ContractLink }> => {
-    return this.q(this.admin).pair_info()
+    return this.q().pair_info()
   }
 
 }
