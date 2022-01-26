@@ -36,8 +36,12 @@ export class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, Rewa
     bonding?:     number,
   } = {}) {
     super(options)
-    this.admin = options.admin
-    this.initMsg.admin = options.admin?.address
+    const { name, admin } = options
+    if (name) this.name = name // why
+    if (admin) {
+      this.admin = admin
+      this.initMsg.admin = admin.address
+    }
     this.initMsg.config = {
       reward_vk:    randomHex(36),
       bonding:      options.bonding || 86400,

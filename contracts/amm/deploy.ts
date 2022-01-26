@@ -1,4 +1,4 @@
-import { MigrationContext, bold, Agent, randomHex, Console } from '@hackbg/fadroma'
+import { MigrationContext, bold, Agent, randomHex, Console, timestamp } from '@hackbg/fadroma'
 import getSettings, { workspace, SIENNA_DECIMALS, ONE_SIENNA } from '@sienna/settings'
 import { SNIP20Contract } from '@fadroma/snip20'
 import {
@@ -331,7 +331,7 @@ export function getSwapTokens (
   * (5- or 6-S depending on whether you count the SLASH)
   * a Sienna Rewards pool where you stake SIENNA to earn SIENNA. */
 export async function deploySSSSS ({
-  run, chain,
+  run, chain, deployment,
   SIENNA
 }: MigrationContext & {
   SIENNA: SiennaSNIP20Contract
@@ -339,7 +339,8 @@ export async function deploySSSSS ({
   SSSSS_POOL:       RewardsContract
   RPT_CONFIG_SSSSS: RPTConfig
 }> {
-  const SSSSS_POOL = await run(deployRewardPool, {
+  const { REWARDS: SSSSS_POOL } = await run(deployRewardPool, {
+    name:        'SIENNA_SIENNA',
     lpToken:     SIENNA,
     rewardToken: SIENNA,
   })
@@ -359,8 +360,8 @@ export async function deploySSSSS ({
   * where you stake a LP token to earn SIENNA. */
 export async function deployRewards ({
   chain, admin, deployment, prefix, run,
-  suffix     = '',
   apiVersion = 'v3',
+  suffix     = `_${apiVersion}+${timestamp()}`,
   split      = 1.0,
   ref        = 'HEAD',
   SIENNA     = deployment.getContract(SiennaSNIP20Contract, 'SiennaSNIP20',     admin),
@@ -378,7 +379,7 @@ export async function deployRewards ({
   REWARD_POOLS:       RewardsContract[]
   RPT_CONFIG_SWAP_REWARDS: RPTConfig
 }> {
-  const { swapPairs, rewardPairs, } = getSettings(chain.chainId)
+  const { swapPairs, rewardPairs } = getSettings(chain.chainId)
   const REWARDS = new RewardsContract({ workspace, prefix, admin, ref })
   await chain.buildAndUpload([REWARDS])
   const REWARD_POOLS            = []
@@ -398,42 +399,50 @@ export async function deployRewards ({
           bold(`Deploying rewards for ${name}`),
           JSON.stringify({ lp_token })
         )
-        const lpToken = new LPTokenContract({
-          address:  exchange.lp_token.address,
-          codeHash: exchange.lp_token.code_hash,
-          admin
+        const { REWARDS } = await run(deployRewardPool, {
+          name: `${name}_SIENNA`,
+          suffix,
+          lpToken: new LPTokenContract({
+            address:  exchange.lp_token.address,
+            codeHash: exchange.lp_token.code_hash,
+            admin
+          }),
+          rewardToken: SIENNA
         })
+        REWARD_POOLS.push(REWARDS)
         const reward = BigInt(rewards[name]) / BigInt(1 / split)
-        const pool   = await run(deployRewardPool, { suffix, lpToken, rewardToken: SIENNA })
-        REWARD_POOLS.push(pool)
         RPT_CONFIG_SWAP_REWARDS.push(
-          [pool.address, String(reward * ONE_SIENNA)]
+          [REWARDS.address, String(reward * ONE_SIENNA)]
         )
       }
     }
   }
-  console.debug('Resulting RPT config:', RPT_CONFIG_SWAP_REWARDS)
   return { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS }
 }
 
-import { timestamp } from '@hackbg/fadroma'
 export async function deployRewardPool ({
   admin, deployment, prefix,
-  lpToken, rewardToken, apiVersion
+  name        = 'UNTITLED',
+  lpToken,
+  rewardToken = new SiennaSNIP20Contract().from(deployment),
+  apiVersion  = 'v3',
+  suffix      = `_${apiVersion}+${timestamp()}`,
 }: MigrationContext & {
-  apiVersion?:  'v2'|'v3'
-  suffix?:      string
-  lpToken?:     SNIP20Contract
-  rewardToken?: SNIP20Contract
-}) {
-  const tokenInfo = await lpToken.q(admin).tokenInfo()
-  const suffix    = `_${tokenInfo.symbol}_${apiVersion}+${timestamp()}`
-  const contract  = new RewardsContract({
+  name:        string
+  lpToken:     SNIP20Contract
+  rewardToken: SNIP20Contract
+  apiVersion:  'v2'|'v3'
+  suffix:      string
+}): Promise<{
+  REWARDS:     RewardsContract
+}> {
+  const REWARDS = new RewardsContract({
     workspace, prefix, suffix, lpToken, rewardToken,
-    instantiator: admin, name: 'SiennaRewards',
+    instantiator: admin,
+    name: `SiennaRewards_${name}`,
   })
-  await contract.buildInDocker()
-  await contract.uploadAs(admin)
+  await REWARDS.buildInDocker()
+  await REWARDS.uploadAs(admin)
   if (apiVersion === 'v2') {
     // override init msg for legacy api
     const initMsg = {
@@ -446,26 +455,19 @@ export async function deployRewardPool ({
       cooldown:     15940,
     }
     // use Object.assign to avoid type check
-    Object.assign(contract, { initMsg })
+    Object.assign(REWARDS, { initMsg })
   }
-  const receipt = deployment.contracts[contract.label]
-  await contract.instantiateOrExisting(receipt)
-  return contract
+  await REWARDS.instantiateOrExisting(deployment.contracts[REWARDS.label])
+  return { REWARDS }
 }
 
 export async function deployRewardsSideBySide ({
   timestamp, run, chain, admin, prefix, deployment
 }: MigrationContext) {
-  const v2Suffix = `@v2+${timestamp}`
-  const v3Suffix = `@v3+${timestamp}`
   const options = { chain, admin, prefix }
   const [v2, v3] = await Promise.all([
-    run(deployRewards, {
-      ...options, apiVersion: 'v2', suffix: v2Suffix, split: 0.5, ref: 'rewards-2.1.2'
-    }),
-    run(deployRewards, {
-      ...options, apiVersion: 'v3', suffix: v2Suffix, split: 0.5, ref: 'HEAD'
-    }),
+    run(deployRewards, { ...options, apiVersion: 'v2', split: 0.5, ref: 'rewards-2.1.2' }),
+    run(deployRewards, { ...options, apiVersion: 'v3', split: 0.5, ref: 'HEAD' }),
   ])
   const RPT_CONFIG = [
     ...v2.RPT_CONFIG,
