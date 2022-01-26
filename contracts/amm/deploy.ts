@@ -226,7 +226,9 @@ export async function deployAMMExchange ({
   /* The LP token created for the exchange. */
   LP_TOKEN: LPTokenContract
 }> {
-  console.info(`Deploying AMM exchange ${bold(name)}...`)
+  console.info(
+    bold(`Deploying AMM exchange`), name
+  )
   const [tokenName0, tokenName1] = name.split('-')
   const token0 = TOKENS[tokenName0].asCustomToken
   const token1 = TOKENS[tokenName1].asCustomToken
@@ -252,15 +254,17 @@ export async function deployAMMExchange ({
 }
 
 export async function deployPlaceholders (
-  { deployment, chain, admin, prefix }: MigrationContext
+  { deployment, chain, admin, prefix, timestamp }: MigrationContext
 ): Promise<{
   PLACEHOLDERS: Record<string, SNIP20Contract>
 }> {
-  console.info(bold(`Deploying placeholder tokens`))
   // this can later be used to check if the deployed contracts have
   // gone out of date (by codehash) and offer to redeploy them
   const PLACEHOLDERS = {}
   const { placeholderTokens } = getSettings(chain.chainId)
+  console.info(
+    bold(`Deploying placeholder tokens`), JSON.stringify(placeholderTokens)
+  )
   type TokenConfig = { label: string, initMsg: any }
   const placeholders: Record<string, TokenConfig> = placeholderTokens
   for (const [symbol, data] of Object.entries(placeholders)) {
@@ -273,8 +277,8 @@ export async function deployPlaceholders (
       )
     } catch (e) {
       const TOKEN = PLACEHOLDERS[symbol] = new AMMSNIP20Contract({
-        workspace, codeId, codeHash,
-        prefix, name: `Placeholder_${label}`,
+        workspace,
+        prefix, name: `Placeholder_${label}`, suffix: `+${timestamp}`,
         chain, admin, instantiator: admin, initMsg: {
           ...initMsg, prng_seed: randomHex(36)
         }
@@ -371,7 +375,10 @@ export async function deployRewards ({
           process.exit(1)
         }
         const { lp_token } = exchange
-        console.debug(`Deploying rewards for ${name}...`, { lp_token })
+        console.info(
+          bold(`Deploying rewards for ${name}`),
+          JSON.stringify({ lp_token })
+        )
         const lpToken = new LPTokenContract({
           address:  exchange.lp_token.address,
           codeHash: exchange.lp_token.code_hash,
@@ -386,7 +393,7 @@ export async function deployRewards ({
       }
     }
   }
-  console.debug('Resulting RPT config:', RPT_CONFIG)
+  console.debug('Resulting RPT config:', RPT_CONFIG_SWAP_REWARDS)
   return { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS }
 }
 
