@@ -14,6 +14,8 @@ use lend_shared::{
 use crate::setup::Lend;
 use crate::ADMIN;
 
+const BORROWER: &str = "borrower";
+
 pub struct MarketImpl;
 impl ContractHarness for MarketImpl {
     fn init(&self, deps: &mut MockDeps, env: Env, msg: Binary) -> StdResult<InitResponse> {
@@ -101,7 +103,7 @@ fn enter_and_exit_markets() {
             &HandleMsg::Enter {
                 markets: vec![base_market.contract.address.clone()],
             },
-            MockEnv::new("borrower", lend.overseer.clone()),
+            MockEnv::new(BORROWER, lend.overseer.clone()),
         )
         .unwrap();
 
@@ -111,7 +113,7 @@ fn enter_and_exit_markets() {
             lend.overseer.address.clone(),
             QueryMsg::EnteredMarkets {
                 method: Permit::<OverseerPermissions>::new(
-                    "borrower",
+                    BORROWER,
                     vec![OverseerPermissions::AccountInfo],
                     vec![lend.overseer.address.clone()],
                     "balance",
@@ -129,7 +131,7 @@ fn enter_and_exit_markets() {
             &HandleMsg::Enter {
                 markets: vec![quote_market.contract.address],
             },
-            MockEnv::new("borrower", lend.overseer.clone()),
+            MockEnv::new(BORROWER, lend.overseer.clone()),
         )
         .unwrap();
 
@@ -139,7 +141,7 @@ fn enter_and_exit_markets() {
             lend.overseer.address.clone(),
             QueryMsg::EnteredMarkets {
                 method: Permit::<OverseerPermissions>::new(
-                    "borrower",
+                    BORROWER,
                     vec![OverseerPermissions::AccountInfo],
                     vec![lend.overseer.address.clone()],
                     "balance",
@@ -157,7 +159,7 @@ fn enter_and_exit_markets() {
             &HandleMsg::Exit {
                 market_address: base_market.contract.address.clone(),
             },
-            MockEnv::new("borrower", lend.overseer.clone()),
+            MockEnv::new(BORROWER, lend.overseer.clone()),
         )
         .unwrap();
 
@@ -167,7 +169,7 @@ fn enter_and_exit_markets() {
             lend.overseer.address.clone(),
             QueryMsg::EnteredMarkets {
                 method: Permit::<OverseerPermissions>::new(
-                    "borrower",
+                    BORROWER,
                     vec![OverseerPermissions::AccountInfo],
                     vec![lend.overseer.address.clone()],
                     "balance",
@@ -184,7 +186,7 @@ fn enter_and_exit_markets() {
         &HandleMsg::Exit {
             market_address: base_market.contract.address.clone(),
         },
-        MockEnv::new("borrower", lend.overseer.clone()),
+        MockEnv::new(BORROWER, lend.overseer.clone()),
     );
     assert_eq!(
         StdError::generic_err("Not entered in market."),
@@ -205,7 +207,7 @@ fn returns_right_liquidity() {
             &HandleMsg::Enter {
                 markets: vec![market.contract.address.clone()],
             },
-            MockEnv::new("borrower", lend.overseer.clone()),
+            MockEnv::new(BORROWER, lend.overseer.clone()),
         )
         .unwrap();
 
@@ -220,12 +222,13 @@ fn returns_right_liquidity() {
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", lend.underlying_token_three.clone()),
+            MockEnv::new(BORROWER, lend.underlying_token_three.clone()),
         )
         .unwrap();
 
     let res = lend
         .get_liquidity(
+            BORROWER,
             Some(market.contract.address),
             Uint256::from(0u128),
             Uint256::from(0u128),
@@ -253,7 +256,7 @@ fn liquidity_collateral_factor() {
         &HandleMsg::Enter {
             markets: vec!["unknown_addr".into()],
         },
-        MockEnv::new("borrower", lend.overseer.clone()),
+        MockEnv::new(BORROWER, lend.overseer.clone()),
     );
 
     assert_eq!(
@@ -271,22 +274,22 @@ fn liquidity_collateral_factor() {
     // not in market yet, should have no effect
     let res = lend
         .get_liquidity(
+            BORROWER,
             Some(market.contract.address.clone()),
             Uint256::from(1u128),
             Uint256::from(1u128),
             None,
         )
-        .unwrap();
+        .unwrap_err();
 
-    assert_eq!(Uint256::from(0u128), res.liquidity);
-    assert_eq!(Uint256::from(0u128), res.shortfall);
+    assert_eq!(res, StdError::generic_err("Not entered in any markets."));
 
     lend.ensemble
         .execute(
             &HandleMsg::Enter {
                 markets: vec![market.contract.address.clone()],
             },
-            MockEnv::new("borrower", lend.overseer.clone()),
+            MockEnv::new(BORROWER, lend.overseer.clone()),
         )
         .unwrap();
 
@@ -302,13 +305,14 @@ fn liquidity_collateral_factor() {
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", lend.underlying_token_three.clone()),
+            MockEnv::new(BORROWER, lend.underlying_token_three.clone()),
         )
         .unwrap();
 
     // total account liquidity after supplying `amount`
     let res = lend
         .get_liquidity(
+            BORROWER,
             Some(market.contract.address.clone()),
             Uint256::from(0u128),
             Uint256::from(0u128),
@@ -327,6 +331,7 @@ fn liquidity_collateral_factor() {
     // borrow amount, should shortfall over collateralFactor
     let res = lend
         .get_liquidity(
+            BORROWER,
             Some(market.contract.address.clone()),
             Uint256::from(0u128),
             Uint256::from(1_000_000u128),
@@ -345,6 +350,7 @@ fn liquidity_collateral_factor() {
     // hypothetically redeem `amount`, should be back to even
     let res = lend
         .get_liquidity(
+            BORROWER,
             Some(market.contract.address.clone()),
             Uint256::from(1_000_000u128),
             Uint256::from(0u128),
@@ -397,7 +403,7 @@ fn liquidity_entering_markets() {
                     market_three.contract.address.clone(),
                 ],
             },
-            MockEnv::new("borrower", lend.overseer.clone()),
+            MockEnv::new(BORROWER, lend.overseer.clone()),
         )
         .unwrap();
 
@@ -414,7 +420,7 @@ fn liquidity_entering_markets() {
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", lend.underlying_token_one.clone()),
+            MockEnv::new(BORROWER, lend.underlying_token_one.clone()),
         )
         .unwrap();
 
@@ -429,7 +435,7 @@ fn liquidity_entering_markets() {
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", lend.underlying_token_two.clone()),
+            MockEnv::new(BORROWER, lend.underlying_token_two.clone()),
         )
         .unwrap();
 
@@ -444,13 +450,14 @@ fn liquidity_entering_markets() {
     let collateral_three = (collateral_one + collateral_two).unwrap();
 
     let res = lend
-        .get_liquidity(None, Uint256::from(0u128), Uint256::from(0u128), None)
+        .get_liquidity(BORROWER, None, Uint256::from(0u128), Uint256::from(0u128), None)
         .unwrap();
     assert_eq!(collateral_three, res.liquidity);
     assert_eq!(Uint256::from(0u128), res.shortfall);
 
     let res = lend
         .get_liquidity(
+            BORROWER,
             Some(market_three.contract.address.clone()),
             collateral_two,
             Uint256::from(0u128),
@@ -462,6 +469,7 @@ fn liquidity_entering_markets() {
 
     let res = lend
         .get_liquidity(
+            BORROWER,
             Some(market_three.contract.address.clone()),
             Uint256::from(0u128),
             collateral_two,
@@ -473,6 +481,7 @@ fn liquidity_entering_markets() {
 
     let res = lend
         .get_liquidity(
+            BORROWER,
             Some(market_three.contract.address.clone()),
             Uint256::from(0u128),
             (collateral_three + collateral_one).unwrap(),
@@ -484,6 +493,7 @@ fn liquidity_entering_markets() {
 
     let res = lend
         .get_liquidity(
+            BORROWER,
             Some(market_one.contract.address.clone()),
             Uint256::from(1_000_000u128),
             Uint256::from(0u128),

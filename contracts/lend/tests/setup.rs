@@ -301,6 +301,7 @@ impl Lend {
 
     pub fn get_liquidity(
         &self,
+        account: impl Into<HumanAddr>,
         market: Option<HumanAddr>,
         redeem_amount: Uint256,
         borrow_amount: Uint256,
@@ -310,7 +311,7 @@ impl Lend {
             self.overseer.address.clone(),
             overseer::QueryMsg::AccountLiquidity {
                 method: Permit::<overseer::OverseerPermissions>::new(
-                    "borrower",
+                    account,
                     vec![overseer::OverseerPermissions::AccountInfo],
                     vec![self.overseer.address.clone()],
                     "balance",
@@ -395,7 +396,7 @@ impl Lend {
         market: HumanAddr
     ) {
         let address = address.into();
-        
+
         let token: ContractLink<HumanAddr> = self.ensemble.query(
             market.clone(),
             market::QueryMsg::UnderlyingAsset {}
