@@ -200,9 +200,12 @@ export async function deployAMMExchanges ({
   }
   // If there are any initial swap pairs defined in the config
   if (swapPairs.length > 0) {
-    // Call the factory to deploy an EXCHANGE for each
     for (const name of swapPairs) {
-      const { EXCHANGE, LP_TOKEN } = await run(deployAMMExchange, { FACTORY, TOKENS, name })
+      // Call the factory to deploy an EXCHANGE for each
+      const { EXCHANGE, LP_TOKEN } = await run(deployAMMExchange, {
+        FACTORY, TOKENS, name
+      })
+      // And collect the results
       EXCHANGES.push(EXCHANGE)
       LP_TOKENS.push(LP_TOKEN)
     }
@@ -268,7 +271,7 @@ export async function deployAMMExchange ({
 }
 
 export async function deployPlaceholders (
-  { deployment, chain, admin, prefix, timestamp }: MigrationContext
+  { deployment, chain, admin, prefix }: MigrationContext
 ): Promise<{
   PLACEHOLDERS: Record<string, SNIP20Contract>
 }> {
@@ -292,7 +295,7 @@ export async function deployPlaceholders (
         console.info(bold('Not found, deploying:'), name)
         const TOKEN = PLACEHOLDERS[symbol] = new AMMSNIP20Contract({
           workspace,
-          prefix, name, suffix: `+${timestamp}`,
+          prefix, name, suffix: `+${timestamp()}`,
           chain, admin, instantiator: admin, initMsg: {
             ...initMsg, prng_seed: randomHex(36)
           }

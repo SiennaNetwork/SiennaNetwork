@@ -80,17 +80,13 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     // type kludge!
     if (this.address) {
       // If this contract has an address query this from the contract state
-      return (this.query({'get_config':{}}) as Promise<QueryResponse>).then(response=>{
-        const config: FactoryInventory = response.config
-        return {
-          snip20_contract:    config.snip20_contract,
-          pair_contract:      config.pair_contract,
-          lp_token_contract:  config.lp_token_contract,
-          ido_contract:       config.ido_contract,
-          launchpad_contract: config.launchpad_contract,
-          router_contract:    config.router_contract
-        }
-      })
+      return (this.q().get_config()).then((config: FactoryInventory)=>({
+        snip20_contract:    config.snip20_contract,
+        pair_contract:      config.pair_contract,
+        lp_token_contract:  config.lp_token_contract,
+        ido_contract:       config.ido_contract,
+        launchpad_contract: config.launchpad_contract,
+      }))
     } else {
       // If it's not deployed yet, return the value from the config
       const initMsg: InitMsg = this.initMsg as InitMsg
@@ -100,7 +96,6 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
         lp_token_contract:  initMsg.lp_token_contract  as ContractInstantiationInfo,
         ido_contract:       initMsg.ido_contract       as ContractInstantiationInfo,
         launchpad_contract: initMsg.launchpad_contract as ContractInstantiationInfo,
-        router_contract:    initMsg.router_contract    as ContractInstantiationInfo
       })
     }
   }
