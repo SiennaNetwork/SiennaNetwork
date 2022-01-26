@@ -57,6 +57,7 @@ use token::calc_exchange_rate;
 use ops::{accrue_interest, accrued_interest_at};
 
 #[contract_impl(
+    entry,
     path = "lend_shared::interfaces::market",
     component(path = "admin")
 )]

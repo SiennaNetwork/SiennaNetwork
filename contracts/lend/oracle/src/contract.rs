@@ -10,7 +10,7 @@ use lend_shared::fadroma::{
     derive_contract::*,
     HumanAddr, InitResponse, HandleResponse,
     QueryRequest, StdResult, WasmQuery, CosmosMsg,
-    WasmMsg, log, to_binary,
+    WasmMsg, Uint128, log, to_binary,
     ContractLink, Decimal256
 };
 use lend_shared::interfaces::oracle::{
@@ -21,7 +21,7 @@ use state::{Contracts, SymbolTable, get_symbol};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct BandResponse {
-    pub rate: cosmwasm_std::Uint128,
+    pub rate: Uint128,
     pub last_updated_base: u64,
     pub last_updated_quote: u64,
 }
