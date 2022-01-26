@@ -320,7 +320,6 @@ impl Lend {
         &mut self,
         symbol: &str,
         decimals: u8,
-        initial_balances: Option<Vec<InitialBalance>>,
     ) -> StdResult<ContractLink<HumanAddr>> {
         let token_config = Snip20InitConfig::builder().enable_mint().build();
         let underlying_token = self.ensemble.instantiate(
@@ -331,7 +330,7 @@ impl Lend {
                 symbol: symbol.into(),
                 decimals,
                 initial_allowances: None,
-                initial_balances,
+                initial_balances: None,
                 prng_seed: Binary::from(b"whatever"),
                 config: Some(token_config.clone()),
                 callback: None,

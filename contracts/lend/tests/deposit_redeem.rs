@@ -22,16 +22,8 @@ fn deposit_and_mint() {
     let exchange_rate = Decimal256::from_uint256(50_000u128).unwrap();
     let mut lend = Lend::default();
 
-    let underlying_1 = lend
-        .new_underlying_token(
-            "ONE",
-            6,
-            Some(vec![InitialBalance {
-                address: "borrower".into(),
-                amount: Uint128(5 * one_token(6)),
-            }]),
-        )
-        .unwrap();
+    let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
+    lend.prefund_user("borrower", Uint128(5 * one_token(6)), underlying_1.clone());
 
     let market = lend
         .whitelist_market(
@@ -100,16 +92,9 @@ fn redeem_basic() {
     let exchange_rate = Decimal256::from_uint256(50_000u128).unwrap();
     let mut lend = Lend::default();
 
-    let underlying_1 = lend
-        .new_underlying_token(
-            "ONE",
-            6,
-            Some(vec![InitialBalance {
-                address: "borrower".into(),
-                amount: Uint128(5 * one_token(6)),
-            }]),
-        )
-        .unwrap();
+    let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
+    lend.prefund_user("borrower", Uint128(5 * one_token(6)), underlying_1.clone());
+    lend.prefund_user(ADMIN, Uint128(1000 * one_token(6)), underlying_1.clone());
 
     let market = lend
         .whitelist_market(
@@ -143,12 +128,12 @@ fn redeem_basic() {
         )
         .unwrap();
 
-    lend.ensemble
-        .execute(
-            &market::HandleMsg::RedeemToken {
-                burn_amount: Uint256::from(redeem_tokens),
-            },
-            MockEnv::new("borrower", market.contract.clone()),
-        )
-        .unwrap();
+    // lend.ensemble
+    //     .execute(
+    //         &market::HandleMsg::RedeemToken {
+    //             burn_amount: Uint256::from(redeem_tokens),
+    //         },
+    //         MockEnv::new("borrower", market.contract.clone()),
+    //     )
+    //     .unwrap();
 }

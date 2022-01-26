@@ -41,26 +41,11 @@ impl ContractHarness for MarketImpl {
 #[test]
 fn whitelist() {
     let mut lend = Lend::default();
-    let underlying_1 = lend
-        .new_underlying_token(
-            "ONE",
-            6,
-            Some(vec![InitialBalance {
-                address: "borrower".into(),
-                amount: Uint128(5 * one_token(6)),
-            }]),
-        )
-        .unwrap();
-    let underlying_2 = lend
-        .new_underlying_token(
-            "TWO",
-            3,
-            Some(vec![InitialBalance {
-                address: "borrower".into(),
-                amount: Uint128(5 * one_token(3)),
-            }]),
-        )
-        .unwrap();
+    let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
+    let underlying_2 = lend.new_underlying_token("TWO", 3).unwrap();
+
+    lend.prefund_user("borrower", Uint128(5 * one_token(6)), underlying_1.clone());
+    lend.prefund_user("borrower", Uint128(5 * one_token(3)), underlying_2.clone());
 
     // can only be called by admin
     let res = lend.ensemble.execute(
@@ -108,26 +93,11 @@ fn whitelist() {
 fn enter_and_exit_markets() {
     let mut lend = Lend::default();
 
-    let underlying_1 = lend
-        .new_underlying_token(
-            "ONE",
-            6,
-            Some(vec![InitialBalance {
-                address: "borrower".into(),
-                amount: Uint128(5 * one_token(6)),
-            }]),
-        )
-        .unwrap();
-    let underlying_2 = lend
-        .new_underlying_token(
-            "TWO",
-            3,
-            Some(vec![InitialBalance {
-                address: "borrower".into(),
-                amount: Uint128(5 * one_token(3)),
-            }]),
-        )
-        .unwrap();
+    let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
+    let underlying_2 = lend.new_underlying_token("TWO", 3).unwrap();
+
+    lend.prefund_user("borrower", Uint128(5 * one_token(6)), underlying_1.clone());
+    lend.prefund_user("borrower", Uint128(5 * one_token(3)), underlying_2.clone());
 
     let base_market = lend
         .whitelist_market(underlying_1.clone(), Decimal256::percent(90), None)
@@ -237,16 +207,8 @@ fn enter_and_exit_markets() {
 #[test]
 fn returns_right_liquidity() {
     let mut lend = Lend::default();
-    let underlying_1 = lend
-        .new_underlying_token(
-            "ONE",
-            6,
-            Some(vec![InitialBalance {
-                address: "borrower".into(),
-                amount: Uint128(5 * one_token(6)),
-            }]),
-        )
-        .unwrap();
+    let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
+    lend.prefund_user("borrower", Uint128(5 * one_token(6)), underlying_1.clone());
 
     let market = lend
         .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None)
@@ -300,16 +262,9 @@ fn returns_right_liquidity() {
 #[test]
 fn liquidity_collateral_factor() {
     let mut lend = Lend::default();
-    let underlying_1 = lend
-        .new_underlying_token(
-            "ONE",
-            6,
-            Some(vec![InitialBalance {
-                address: "borrower".into(),
-                amount: Uint128(5 * one_token(6)),
-            }]),
-        )
-        .unwrap();
+    let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
+
+    lend.prefund_user("borrower", Uint128(5 * one_token(6)), underlying_1.clone());
 
     // fails if a market is not listed
     let res = lend.ensemble.execute(
@@ -423,36 +378,13 @@ fn liquidity_collateral_factor() {
 fn liquidity_entering_markets() {
     // allows entering 3 markets, supplying to 2 and borrowing up to collateralFactor in the 3rd
     let mut lend = Lend::default();
-    let underlying_1 = lend
-        .new_underlying_token(
-            "ONE",
-            6,
-            Some(vec![InitialBalance {
-                address: "borrower".into(),
-                amount: Uint128(5 * one_token(6)),
-            }]),
-        )
-        .unwrap();
-    let underlying_2 = lend
-        .new_underlying_token(
-            "TWO",
-            3,
-            Some(vec![InitialBalance {
-                address: "borrower".into(),
-                amount: Uint128(5 * one_token(3)),
-            }]),
-        )
-        .unwrap();
-    let underlying_3 = lend
-        .new_underlying_token(
-            "TRES",
-            6,
-            Some(vec![InitialBalance {
-                address: "borrower".into(),
-                amount: Uint128(5 * one_token(6)),
-            }]),
-        )
-        .unwrap();
+    let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
+    let underlying_2 = lend.new_underlying_token("TWO", 3).unwrap();
+    let underlying_3 = lend.new_underlying_token("TRES", 6).unwrap();
+
+    lend.prefund_user("borrower", Uint128(5 * one_token(6)), underlying_1.clone());
+    lend.prefund_user("borrower", Uint128(5 * one_token(3)), underlying_2.clone());
+    lend.prefund_user("borrower", Uint128(5 * one_token(6)), underlying_3.clone());
 
     let market_one = lend
         .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None)
@@ -591,26 +523,12 @@ fn liquidity_entering_markets() {
 #[test]
 fn calculate_amount_seize() {
     let mut lend = Lend::new(Some(Box::new(MarketImpl)), None);
-    let underlying_1 = lend
-        .new_underlying_token(
-            "ONE",
-            6,
-            Some(vec![InitialBalance {
-                address: "borrower".into(),
-                amount: Uint128(5 * one_token(6)),
-            }]),
-        )
-        .unwrap();
-    let underlying_2 = lend
-        .new_underlying_token(
-            "TWO",
-            3,
-            Some(vec![InitialBalance {
-                address: "borrower".into(),
-                amount: Uint128(5 * one_token(3)),
-            }]),
-        )
-        .unwrap();
+
+    let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
+    let underlying_2 = lend.new_underlying_token("TWO", 3).unwrap();
+
+    lend.prefund_user("borrower", Uint128(5 * one_token(6)), underlying_1.clone());
+    lend.prefund_user("borrower", Uint128(5 * one_token(3)), underlying_2.clone());
 
     let collateral_market = lend
         .whitelist_market(underlying_1.clone(), Decimal256::percent(50), None)
