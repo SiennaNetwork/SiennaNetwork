@@ -45,7 +45,7 @@ pub struct Global;
 
 impl Contracts {
     impl_contract_storage!(save_interest_model, load_interest_model, b"interest_model");
-    impl_contract_storage!(save_overseer, load_overseer, b"interest_model");
+    impl_contract_storage!(save_overseer, load_overseer, b"overseer");
     impl_contract_storage!(save_underlying, load_underlying, b"underlying_asset");
     impl_contract_storage!(save_self_ref, load_self_ref, b"self");
 }

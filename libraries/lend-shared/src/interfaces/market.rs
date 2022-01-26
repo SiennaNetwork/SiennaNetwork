@@ -114,6 +114,9 @@ pub trait Market {
     fn state(block: Option<u64>) -> StdResult<State>;
 
     #[query]
+    fn underlying_asset() -> StdResult<ContractLink<HumanAddr>>;
+
+    #[query]
     fn borrow_rate(block: Option<u64>) -> StdResult<Decimal256>;
 
     #[query]

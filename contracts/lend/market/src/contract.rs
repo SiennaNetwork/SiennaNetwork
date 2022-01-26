@@ -518,6 +518,11 @@ pub trait Market {
     }
 
     #[query]
+    fn underlying_asset() -> StdResult<ContractLink<HumanAddr>> {
+        Contracts::load_underlying(deps)
+    }
+
+    #[query]
     fn borrow_rate(block: Option<u64>) -> StdResult<Decimal256> {
         let underlying_asset = Contracts::load_underlying(deps)?;
 
