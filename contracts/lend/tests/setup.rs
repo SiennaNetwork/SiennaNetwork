@@ -313,7 +313,7 @@ impl Lend {
                 memo: None,
                 padding: None,
             },
-            MockEnv::new(ADMIN, token),
+            MockEnv::new(address, token),
         )
         .unwrap()
     }
