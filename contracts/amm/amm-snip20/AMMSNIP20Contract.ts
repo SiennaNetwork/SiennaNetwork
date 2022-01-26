@@ -19,4 +19,10 @@ export class AMMSNIP20Contract extends SNIP20Contract_1_2 {
     },
   }
 
+  constructor (options) {
+    super(options)
+    const { name } = options
+    if (name) this.name = name // why
+  }
+
 }

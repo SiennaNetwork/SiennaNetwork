@@ -257,27 +257,29 @@ export async function deployPlaceholders (
   PLACEHOLDERS: Record<string, SNIP20Contract>
 }> {
   console.info(bold(`Deploying placeholder tokens`))
-  const AMMTOKEN = new AMMSNIP20Contract({
-    workspace, prefix, chain, admin, builder: admin
-  })
   // this can later be used to check if the deployed contracts have
   // gone out of date (by codehash) and offer to redeploy them
-  await chain.buildAndUpload([AMMTOKEN])
-  const { codeId, codeHash } = AMMTOKEN
   const PLACEHOLDERS = {}
   const { placeholderTokens } = getSettings(chain.chainId)
   type TokenConfig = { label: string, initMsg: any }
   const placeholders: Record<string, TokenConfig> = placeholderTokens
-  for (const [symbol, {label, initMsg}] of Object.entries(placeholders)) {
-    const TOKEN = PLACEHOLDERS[symbol] = new AMMSNIP20Contract({
-      workspace, codeId, codeHash, prefix, name: 'Placeholder', suffix: label,
-      chain, admin, instantiator: admin, initMsg: {
-        ...initMsg, prng_seed: randomHex(36)
-      }
-    })
+  for (const [symbol, data] of Object.entries(placeholders)) {
+    const {label, initMsg} = data
     try {
-      TOKEN.from(deployment)
+      PLACEHOLDERS[symbol] = deployment.getContract(
+        AMMSNIP20Contract,
+        `Placeholder_${label}`,
+        admin
+      )
     } catch (e) {
+      const TOKEN = PLACEHOLDERS[symbol] = new AMMSNIP20Contract({
+        workspace, codeId, codeHash,
+        prefix, name: `Placeholder_${label}`,
+        chain, admin, instantiator: admin, initMsg: {
+          ...initMsg, prng_seed: randomHex(36)
+        }
+      })
+      await chain.buildAndUpload([TOKEN])
       await TOKEN.instantiate()
       await TOKEN.tx(admin).setMinters([admin.address])
       await TOKEN.tx(admin).mint("100000000000000000000000", admin.address)

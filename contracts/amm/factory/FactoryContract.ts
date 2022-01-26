@@ -175,20 +175,26 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
 
     const { liquidity_token } = await EXCHANGE.pairInfo()
     const LP_TOKEN = new LPTokenContract({
+      prefix:   this.prefix,
       chain:    this.chain,
       address:  liquidity_token.address,
       codeHash: liquidity_token.code_hash
     })
 
     const raw = {
+      codeId: EXCHANGE.codeId,
+      initTx: {
+        contractAddress: EXCHANGE.address
+      },
+      token_0,
+      token_1,
       exchange: {
         address: EXCHANGE.address
       },
       lp_token: {
-        address: LP_TOKEN
+        address:   LP_TOKEN.address,
+        code_hash: LP_TOKEN.codeHash
       },
-      token_0,
-      token_1
     }
 
     return { TOKEN_0, TOKEN_1, EXCHANGE, LP_TOKEN, raw }
