@@ -2,6 +2,8 @@
 mod overseer;
 #[cfg(test)]
 mod setup;
+#[cfg(test)]
+mod deposit_redeem;
 
 #[cfg(test)]
 const ADMIN: &str = "admin";
