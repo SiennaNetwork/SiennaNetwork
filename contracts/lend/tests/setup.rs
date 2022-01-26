@@ -1,8 +1,8 @@
 use lend_shared::fadroma::{
     decimal::one_token,
     ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
-    from_binary, schemars,
-    schemars::JsonSchema,
+    from_binary,
+    snip20_impl,
     snip20_impl::msg::{InitMsg as Snip20InitMsg, InitialBalance},
     to_binary, Binary, Composable, ContractLink, Decimal256, Env, HandleResponse, HumanAddr,
     InitResponse, Permit, StdError, StdResult, Uint128, Uint256,
@@ -10,27 +10,27 @@ use lend_shared::fadroma::{
 
 use lend_shared::interfaces::{interest_model, market, overseer};
 use overseer::MarketInitConfig;
-use serde::{Deserialize, Serialize};
 
 use crate::{impl_contract_harness_default, ADMIN};
-use amm_snip20;
 use lend_interest_model;
 use lend_market;
 use lend_oracle;
 use lend_overseer;
 
+use lend_oracle::SourceQuery;
+
 pub struct Token;
 impl ContractHarness for Token {
     fn init(&self, deps: &mut MockDeps, env: Env, msg: Binary) -> StdResult<InitResponse> {
-        amm_snip20::init(deps, env, from_binary(&msg)?)
+        snip20_impl::snip20_init(deps, env, from_binary(&msg)?, snip20_impl::DefaultSnip20Impl)
     }
 
     fn handle(&self, deps: &mut MockDeps, env: Env, msg: Binary) -> StdResult<HandleResponse> {
-        amm_snip20::handle(deps, env, from_binary(&msg)?)
+        snip20_impl::snip20_handle(deps, env, from_binary(&msg)?, snip20_impl::DefaultSnip20Impl)
     }
 
     fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
-        amm_snip20::query(deps, from_binary(&msg)?)
+        snip20_impl::snip20_query(deps, from_binary(&msg)?, snip20_impl::DefaultSnip20Impl)
     }
 }
 
@@ -48,19 +48,6 @@ impl_contract_harness_default!(InterestModel, lend_interest_model);
 
 pub struct MockBand;
 
-#[derive(Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum MockBandQuery {
-    GetReferenceData {
-        base_symbol: String,
-        quote_symbol: String,
-    },
-    GetReferenceDataBulk {
-        base_symbols: Vec<String>,
-        quote_symbols: Vec<String>,
-    },
-}
-
 impl ContractHarness for MockBand {
     fn init(&self, _deps: &mut MockDeps, _env: Env, _msg: Binary) -> StdResult<InitResponse> {
         Ok(InitResponse::default())
@@ -76,9 +63,8 @@ impl ContractHarness for MockBand {
     fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
         let msg = from_binary(&msg).unwrap();
         match msg {
-            MockBandQuery::GetReferenceData {
-                base_symbol,
-                quote_symbol: _,
+            SourceQuery::GetReferenceData {
+                base_symbol, ..
             } => {
                 let key: &[u8] = base_symbol.as_bytes();
                 match deps.get(key).unwrap() {
@@ -94,9 +80,8 @@ impl ContractHarness for MockBand {
                     }),
                 }
             }
-            MockBandQuery::GetReferenceDataBulk {
-                base_symbols,
-                quote_symbols: _,
+            SourceQuery::GetReferenceDataBulk {
+                base_symbols, ..
             } => {
                 let mut results = Vec::new();
                 let data = lend_oracle::BandResponse {
