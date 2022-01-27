@@ -19,9 +19,9 @@ const essentials = pick('codeId', 'codeHash', 'address', 'label')
 
 export async function upgradeFactoryAndRewards ({
   timestamp, chain, admin, deployment, prefix, run,
-  RPT              = deployment.getContract(RPTContract,      'SiennaAMMFactory', admin),
-  OLD_FACTORY      = deployment.getContract(FactoryContract,  'SiennaAMMFactory', admin),
-  OLD_REWARD_POOLS = deployment.getContracts(RewardsContract, 'SiennaRewards',    admin)
+  RPT              = deployment.getContract(admin,  RPTContract,     'SiennaAMMFactory'),
+  OLD_FACTORY      = deployment.getContract(admin,  FactoryContract, 'SiennaAMMFactory'),
+  OLD_REWARD_POOLS = deployment.getContracts(admin, RewardsContract, 'SiennaRewards')
 }: MigrationContext & {
   // The arbiter of it all.
   // Will redirect funds in a 30:70 proportion
@@ -46,53 +46,24 @@ export async function upgradeFactoryAndRewards ({
   // Let's report some initial status.
   console.log()
   console.info(bold('Current factory:'))
-  console.table(essentials(OLD_FACTORY))
-
-  console.log()
-  console.info(bold("Current factory's exchanges"), "(to be disincentivised):")
+  printContract(OLD_FACTORY)
+  const OLD_REWARD_POOL_LP_TOKENS = await Promise.all(
+    OLD_REWARD_POOLS.map(REWARDS=>REWARDS.lpToken())
+  )
   for (const {
-    name,
-    EXCHANGE: { codeId, codeHash, address },
-    TOKEN_0,
-    TOKEN_1,
-    LP_TOKEN
+    name, EXCHANGE: { codeId, codeHash, address },
+    TOKEN_0, TOKEN_1, LP_TOKEN
   } of OLD_EXCHANGES) {
-
     console.info(
       ' ',
       bold(colors.inverse(name)).padEnd(30), // wat
       `(code id ${bold(String(codeId))})`.padEnd(34),
       bold(address)
     )
-
     await printToken(TOKEN_0)
     await printToken(TOKEN_1)
     await printToken(LP_TOKEN)
-
-    async function printToken (TOKEN) {
-      if (typeof TOKEN === 'string') {
-        console.info(
-          `   `,
-          bold(TOKEN.padEnd(10))
-        )
-      } else {
-        const {name, symbol} = await TOKEN.q(admin).tokenInfo()
-        console.info(
-          `   `,
-          bold(symbol.padEnd(10)),
-          name.padEnd(25).slice(0, 25),
-          TOKEN.address
-        )
-      }
-    }
-
   }
-
-  process.exit(123)
-  console.info(bold("Current factory's exchanges' LP tokens"), "(to be disincentivised):")
-  console.table(OLD_LP_TOKENS.map(essentials))
-  console.info(bold("V2 reward pools attached to current factory's LP tokens"), "(to be disincentivised)")
-  console.table(OLD_REWARD_POOLS.map(essentials))
   // The new contracts.
   // Their addresses should be added to the frontend.
   const NEW_FACTORY: FactoryContract = new FactoryContract({
@@ -102,6 +73,7 @@ export async function upgradeFactoryAndRewards ({
     admin,
     exchange_settings: settings(chain.chainId).amm.exchange_settings,
   })
+  console.log()
   console.info(
     bold('Deploying new factory'), NEW_FACTORY.label
   )
@@ -112,7 +84,7 @@ export async function upgradeFactoryAndRewards ({
   console.info(
     bold('Deployed new factory'), NEW_FACTORY.address
   )
-  console.table(essentials(NEW_FACTORY))
+  printContract(NEW_FACTORY)
   // The new liquidity pools.
   // Their addresses should be added to the frontend.
   const NEW_EXCHANGES: AMMContract[]     = []
@@ -142,13 +114,14 @@ export async function upgradeFactoryAndRewards ({
 }
 
 export async function replaceRewardPool ({
-  chain,
-  admin,
-  prefix,
-  deployment,
-  rewardPoolLabel
+  chain, admin, prefix, deployment,
+  rewardPoolLabel,
+  POOL = deployment.getContract(admin, RewardsContract, rewardPoolLabel),
+  RPT  = deployment.getContract(admin, RPTContract,     'SiennaRPT')
 }: MigrationContext & {
   rewardPoolLabel: string
+  POOL:            RewardsContract
+  RPT:             RPTContract
 }) {
   console.info(
     `Upgrading reward pool ${bold(rewardPoolLabel)}` +
@@ -157,9 +130,7 @@ export async function replaceRewardPool ({
     `\nas ${bold(admin.address)}\n`
   )
   // This is the old reward pool
-  const POOL = deployment.getContract(RewardsContract, rewardPoolLabel, admin)
   // Find address of pool in RPT config
-  const RPT  = deployment.getContract(RPTContract, 'SiennaRPT', admin)
   const {config} = await RPT.status
   let found: number = NaN
   for (let i = 0; i < config.length; i++) {
@@ -206,4 +177,28 @@ export async function replaceRewardPool ({
     await RPT.tx().configure(config)
   }
   await POOL.tx().close(`Moved to ${NEW_POOL.address}`)
+}
+
+function printContract (contract) {
+  console.info(bold(`  Code ID:`.padEnd(14)),   contract.codeId)
+  console.info(bold(`  Code hash:`.padEnd(14)), contract.codeHash)
+  console.info(bold(`  Address:`.padEnd(14)),   contract.address)
+  console.info(bold(`  Label:`.padEnd(14)),     contract.label)
+}
+
+async function printToken (TOKEN) {
+  if (typeof TOKEN === 'string') {
+    console.info(
+      `   `,
+      bold(TOKEN.padEnd(10))
+    )
+  } else {
+    const {name, symbol} = await TOKEN.q(admin).tokenInfo()
+    console.info(
+      `   `,
+      bold(symbol.padEnd(10)),
+      name.padEnd(25).slice(0, 25),
+      TOKEN.address
+    )
+  }
 }

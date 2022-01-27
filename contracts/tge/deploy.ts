@@ -1,5 +1,7 @@
 import {
-  MigrationContext, timestamp, printContracts, Deployment, Chain, Agent, bold, Console } from '@hackbg/fadroma'
+  MigrationContext, printContracts, Deployment, Chain, Agent,
+  bold, Console, randomHex, timestamp
+} from '@hackbg/fadroma'
 
 const console = Console('@sienna/amm/upgrade')
 
@@ -20,10 +22,11 @@ export async function deployTGE ({
     * Defaults to production schedule. */
   schedule?: typeof settings.schedule
 }): Promise<{
+  /** Output: Root directory for building the contracts. */
   workspace:  string
-  timestamp:  string
   /** Output: The newly created deployment. */
   deployment: Deployment
+  /** Output: The identifier of the deployment on- and off-chain. */
   prefix:     string
   /** Output: The deployed SIENNA SNIP20 token contract. */
   SIENNA:     SiennaSNIP20Contract
@@ -32,36 +35,62 @@ export async function deployTGE ({
   /** Output: The deployed RPT contract. */
   RPT:        RPTContract
 }> {
+
   console.info(bold('Admin balance:'), await admin.balance)
-  const RPTAccount = getRPTAccount(schedule)
-  const portion    = RPTAccount.portion_size
-  const options    = { uploader: admin, creator: admin, admin, workspace, chain, prefix }
-  const SIENNA     = new SiennaSNIP20Contract({ ...options })
-  const MGMT       = new MGMTContract({ ...options, schedule, SIENNA })
-  const RPT        = new RPTContract({ ...options, MGMT, SIENNA, portion })
-  await chain.buildAndUpload([SIENNA, MGMT, RPT])
-  await SIENNA.instantiate()
+
+  const [SIENNA, MGMT, RPT] = await chain.buildAndUpload(admin, [
+    new SiennaSNIP20Contract({ workspace }),
+    new MGMTContract({         workspace }),
+    new RPTContract({          workspace })
+  ])
+
+  await deployment.createContract(admin, SIENNA, {
+    name:      "Sienna",
+    symbol:    "SIENNA",
+    decimals:  18,
+    config:    { public_total_supply: true },
+    prng_seed: randomHex(36)
+  })
+
   if (chain.isTestnet) {
     await SIENNA.tx(admin).setMinters([admin.address])
     await SIENNA.tx(admin).mint("5000000000000000000000", admin.address)
   }
-  RPTAccount.address = admin.address
-  await MGMT.instantiate()
+
+  const RPTAccount = getRPTAccount(schedule)
+  RPTAccount.address = admin.address // mutate schedule
+  const portion    = RPTAccount.portion_size
+
+  await deployment.createContract(admin, MGMT, {
+    admin: admin.address,
+    token: [SIENNA.address, SIENNA.codeHash],
+    schedule
+  })
+
   await MGMT.tx().acquire(SIENNA)
-  await RPT.instantiate()
+
+  await deployment.createContract(admin, RPT, {
+    token:   [SIENNA.address, SIENNA.codeHash],
+    mgmt:    [MGMT.address, MGMT.codeHash],
+    portion: RPTAccount.portion_size,
+    config:  [[admin.address, RPTAccount.portion_size]]
+  })
+
   console.info(bold('Deployed TGE contracts:'))
   printContracts([SIENNA, MGMT, RPT])
+
   console.info(bold('Setting TGE schedule'))
   RPTAccount.address = RPT.address
   await MGMT.tx().configure(schedule)
+
   console.info(bold('Launching the TGE'))
   await MGMT.tx().launch()
+
   console.info(bold('Vesting RPT'))
   await RPT.tx().vest()
   return {
     workspace,
     deployment,
-    timestamp,
     prefix,
     SIENNA,
     MGMT,

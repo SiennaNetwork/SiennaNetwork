@@ -13,15 +13,12 @@ import { RewardsQueries } from './RewardsQueries'
 export class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, RewardsQueries> {
 
   crate = 'sienna-rewards'
+  name  = 'SiennaRewards'
 
-  name = 'SiennaRewards'
+  Transactions = RewardsTransactions
+  Queries      = RewardsQueries
 
-  initMsg: Init = {
-    admin: this.creator?.address,
-    config: {}
-  }
-
-  admin?: Agent
+  initMsg?: Init
 
   constructor (options: ContractOptions & {
     /** Admin agent */
@@ -36,19 +33,8 @@ export class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, Rewa
     bonding?:     number,
   } = {}) {
     super(options)
-    const { name, admin } = options
+    const { name } = options
     if (name) this.name = name // why
-    if (admin) {
-      this.admin = admin
-      this.initMsg.admin = admin.address
-    }
-    this.initMsg.config = {
-      reward_vk:    randomHex(36),
-      bonding:      options.bonding || 86400,
-      timekeeper:   options.timekeeper,
-      lp_token:     options.lpToken?.link,
-      reward_token: options.rewardToken?.link,
-    }
   }
 
   get epoch (): Promise<number> {

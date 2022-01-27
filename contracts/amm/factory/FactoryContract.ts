@@ -58,18 +58,6 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     contracts?: FactoryInventory
   } = {}) {
     super(options)
-    Object.assign(this.initMsg, {
-      prng_seed: randomHex(36),
-      exchange_settings: {
-        swap_fee:   { nom: 28, denom:  1000 },
-        sienna_fee: { nom:  2, denom: 10000 },
-        sienna_burner: null,
-      }
-    })
-    if (options.admin) {
-      this.creator = options.admin
-      this.initMsg.admin = options.admin.address
-    }
     if (options.exchange_settings) {
       Object.assign(this.initMsg, { exchange_settings: options.exchange_settings })
     }
