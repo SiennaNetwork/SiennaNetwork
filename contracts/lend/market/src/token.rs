@@ -48,7 +48,7 @@ pub fn deposit<S: Storage, A: Api, Q: Querier>(
 
     TotalSupply::increase(&mut deps.storage, mint_amount)?;
 
-    let account = Account::new(deps, &from)?;
+    let account = Account::of(deps, &from)?;
     account.add_balance(&mut deps.storage, mint_amount)?;
 
     Ok(HandleResponse::default())

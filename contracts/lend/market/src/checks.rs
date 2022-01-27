@@ -45,7 +45,7 @@ pub fn assert_borrow_allowed<S: Storage, A: Api, Q: Querier>(
     )?;
 
     if liquidity.shortfall > Uint256::zero() {
-        Err(StdError::generic_err("Insufficient liquidity."))
+        Err(StdError::generic_err(format!("Insufficient liquidity. Shortfall: {}", liquidity.shortfall)))
     } else {
         Ok(())
     }

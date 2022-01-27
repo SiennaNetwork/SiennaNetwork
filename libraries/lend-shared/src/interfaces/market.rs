@@ -132,6 +132,9 @@ pub trait Market {
     ) -> StdResult<AccountInfo>;
 
     #[query]
+    fn id(method: MarketAuth) -> StdResult<Binary>;
+
+    #[query]
     fn borrowers(
         block: u64,
         start_after: Option<Binary>,
@@ -145,7 +148,8 @@ pub type MarketAuth = AuthMethod<MarketPermissions>;
 #[serde(rename_all = "snake_case")]
 pub enum MarketPermissions {
     AccountInfo,
-    Balance
+    Balance,
+    Id
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
