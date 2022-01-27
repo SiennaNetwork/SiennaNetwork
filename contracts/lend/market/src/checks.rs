@@ -21,9 +21,6 @@ pub fn assert_borrow_allowed<S: Storage, A: Api, Q: Querier>(
     self_addr: HumanAddr,
     amount: Uint256
 ) -> StdResult<()> {
-    // Is this here really needed?
-    // https://github.com/compound-finance/compound-protocol/blob/4a8648ec0364d24c4ecfc7d6cae254f55030d65f/contracts/Comptroller.sol#L347-L363
-
     if let Some(cap) = Global::load_borrow_cap(&deps.storage)? {
         let total = TotalBorrows::load(&deps.storage)?;
 
@@ -44,7 +41,7 @@ pub fn assert_borrow_allowed<S: Storage, A: Api, Q: Querier>(
         Some(self_addr),
         Some(block),
         Uint256::zero(),
-        amount.low_u128().into()
+        amount
     )?;
 
     if liquidity.shortfall > Uint256::zero() {
