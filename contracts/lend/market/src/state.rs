@@ -32,7 +32,7 @@ pub struct Account(CanonicalAddr);
 #[derive(Serialize, Deserialize, JsonSchema, Default, Debug)]
 pub struct BorrowSnapshot(pub BorrowerInfo);
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Clone, Debug)]
 pub struct BorrowerId([u8; 32]);
 
 pub struct BorrowerRecord {
@@ -181,7 +181,7 @@ impl Account {
 
         if is_new_user {
             ns_save(&mut deps.storage, Self::NS_ID_TO_ADDR, id.as_slice(), &account.0.0)?;
-            ns_save(&mut deps.storage, Self::NS_ADDR_TO_ID, account.0.0.as_slice(), &id.0)?;
+            ns_save(&mut deps.storage, Self::NS_ADDR_TO_ID, account.0.0.as_slice(), &id)?;
         }
 
         Ok(account)
@@ -273,6 +273,25 @@ impl Account {
     }
 
     #[inline]
+    pub fn get_id(
+        &self,
+        storage: &impl Storage
+    ) -> StdResult<Binary> {
+        match Self::load_id(storage, &self.0)? {
+            Some(id) => Ok(id.into()),
+            None => Err(StdError::generic_err("ID doesn't exist. Need to have borrowed at least once."))
+        }
+    }
+
+    #[inline]
+    fn load_id(
+        storage: &impl Storage,
+        address: &CanonicalAddr
+    ) -> StdResult<Option<BorrowerId>> {
+        ns_load(storage, Self::NS_ADDR_TO_ID, address.as_slice())
+    }
+
+    #[inline]
     fn set_balance(&self, storage: &mut impl Storage, amount: &Uint256) -> StdResult<()> {
         ns_save(storage, Self::NS_BALANCES, self.0.as_slice(), amount)
     }
@@ -303,19 +322,22 @@ pub fn load_borrowers<S: Storage, A: Api, Q: Querier>(
         .take(limit)
         .map(|elem| {
             let (k, v) = elem?;
-            // TODO: verify that this cannot panic
-            let id = ns_load(&deps.storage, Account::NS_ADDR_TO_ID, k.as_slice())?.unwrap();
+            let address = CanonicalAddr::from(k);
+
+            let id = Account::load_id(&deps.storage, &address)?
+                .unwrap()
+                .into();
 
             Ok(BorrowerRecord {
                 id,
-                address: CanonicalAddr::from(k).humanize(&deps.api)?,
+                address: address.humanize(&deps.api)?,
                 info: v.0
             })
         })
         .collect()
 }
 
-// this will set the first key after the provided key, by appending a 1 byte
+// this will set the first key after the provided key, by appending a byte
 fn calc_range_start(start_after: Option<Binary>) -> Option<Vec<u8>> {
     start_after.map(|addr| {
         let mut v = addr.as_slice().to_vec();

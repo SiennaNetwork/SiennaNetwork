@@ -232,7 +232,7 @@ pub trait Market {
 
         let borrow_index = Global::load_borrow_index(&deps.storage)?;
 
-        let account = Account::of(deps, &env.message.sender)?;
+        let account = Account::new(deps, &env.message.sender)?;
 
         let mut snapshot = account.get_borrow_snapshot(&deps.storage)?;
         snapshot.add_balance(borrow_index, amount)?;
@@ -646,6 +646,18 @@ pub trait Market {
                 interest.total_reserves
             )?
         })
+    }
+
+    #[query]
+    fn id(method: MarketAuth) -> StdResult<Binary> {
+        let account = Account::authenticate(
+            deps,
+            method,
+            MarketPermissions::Id,
+            Contracts::load_self_ref
+        )?;
+
+        account.get_id(&deps.storage)
     }
 
     #[query]
