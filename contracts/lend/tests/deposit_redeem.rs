@@ -93,7 +93,6 @@ fn redeem_basic() {
     let mut lend = Lend::default();
 
     let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
-    lend.prefund_user("borrower", Uint128(5 * one_token(6)), underlying_1.clone());
     lend.prefund_user(ADMIN, Uint128(1000 * one_token(6)), underlying_1.clone());
 
     let market = lend
@@ -101,6 +100,15 @@ fn redeem_basic() {
             underlying_1.clone(),
             Decimal256::percent(50),
             Some(exchange_rate),
+        )
+        .unwrap();
+
+    lend.ensemble
+        .execute(
+            &overseer::HandleMsg::Enter {
+                markets: vec![market.contract.address.clone()],
+            },
+            MockEnv::new("borrower", lend.overseer.clone()),
         )
         .unwrap();
 
@@ -115,6 +123,12 @@ fn redeem_basic() {
         .to_string()
         .contains("The protocol has an insufficient amount of the underlying asset"));
 
+    lend.prefund_and_deposit(
+        "borrower",
+        Uint128(5 * one_token(6)),
+        market.contract.address.clone(),
+    );
+
     // fund the market
     lend.ensemble
         .execute(
@@ -128,12 +142,12 @@ fn redeem_basic() {
         )
         .unwrap();
 
-    // lend.ensemble
-    //     .execute(
-    //         &market::HandleMsg::RedeemToken {
-    //             burn_amount: Uint256::from(redeem_tokens),
-    //         },
-    //         MockEnv::new("borrower", market.contract.clone()),
-    //     )
-    //     .unwrap();
+    lend.ensemble
+        .execute(
+            &market::HandleMsg::RedeemToken {
+                burn_amount: Uint256::from(redeem_tokens),
+            },
+            MockEnv::new("borrower", market.contract.clone()),
+        )
+        .unwrap();
 }
