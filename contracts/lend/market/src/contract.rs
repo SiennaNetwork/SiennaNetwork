@@ -90,6 +90,9 @@ pub trait Market {
             code_hash: env.contract_code_hash.clone()
         })?;
 
+        Global::save_borrow_index(&mut deps.storage, &Decimal256::one())?;
+        Global::save_accrual_block_number(&mut deps.storage, env.block.height)?;
+
         admin::DefaultImpl.new(Some(admin), deps, env)?;
 
         Ok(InitResponse {
