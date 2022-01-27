@@ -1,12 +1,14 @@
-extern crate fadroma;
-pub use fadroma::*;
+extern crate fadroma; pub use fadroma::*;
 
-pub mod algo; use crate::algo::{*, RewardsResponse};
-pub mod auth; use crate::auth::{*, Auth};
-pub mod drain; use crate::drain::Drain;
-pub mod errors;
-pub mod keplr; use crate::keplr::*;
+pub mod algo;      use crate::algo::{*, RewardsResponse};
+pub mod auth;      use crate::auth::{*, Auth};
+pub mod drain;     use crate::drain::Drain;
+pub mod keplr;     use crate::keplr::*;
 pub mod migration; use crate::migration::*;
+
+pub mod gov;       use crate::gov::*;
+
+pub mod errors;
 
 #[cfg(test)] #[macro_use] extern crate prettytable;
 #[cfg(test)] mod test;
@@ -36,6 +38,7 @@ pub fn query <S: Storage, A: Api, Q: Querier> (deps: &Extern<S, A, Q>, msg: Quer
 pub trait Contract<S: Storage, A: Api, Q: Querier>: Composable<S, A, Q>
     + Auth<S, A, Q>
     + Rewards<S, A, Q>
+    + Governance<S, A, Q>
     + Immigration<S, A, Q>
     + Emigration<S, A, Q>
     + KeplrCompat<S, A, Q>
@@ -78,6 +81,8 @@ pub enum Handle {
     Emigration(EmigrationHandle),
     Rewards(RewardsHandle),
     Drain { snip20: ContractLink<HumanAddr>, recipient: Option<HumanAddr>, key: String },
+
+    Governance(GovernanceHandle)
 }
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for Handle where
     S: Storage, A: Api, Q: Querier, C: Contract<S, A, Q>
@@ -97,7 +102,10 @@ impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for Handle where
             Handle::Emigration(msg) =>
                 Emigration::handle(core, env, msg),
             Handle::Drain { snip20, recipient, key } =>
-                Drain::drain(core, env, snip20, recipient, key)
+                Drain::drain(core, env, snip20, recipient, key),
+
+            Handle::Governance(msg) =>
+                Governance::handle(core, env, msg)
         }
     }
 }
@@ -107,6 +115,7 @@ impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for Handle where
 pub enum Query {
     Auth(AuthQuery),
     Rewards(RewardsQuery),
+    Governance(GovernanceQuery),
     /// For Keplr integration
     TokenInfo {},
     /// For Keplr integration
@@ -117,8 +126,9 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, Response> for Query where
 {
     fn dispatch_query (self, core: &C) -> StdResult<Response> {
         Ok(match self {
-            Query::Auth(msg)    => Response::Auth(Auth::query(core, msg)?),
-            Query::Rewards(msg) => Response::Rewards(Rewards::query(core, msg)?),
+            Query::Auth(msg)       => Response::Auth(Auth::query(core, msg)?),
+            Query::Rewards(msg)    => Response::Rewards(Rewards::query(core, msg)?),
+            Query::Governance(msg) => Response::Governance(Governance::query(core, msg)?),
             Query::TokenInfo {} => KeplrCompat::token_info(core)?,
             Query::Balance { address, key } => KeplrCompat::balance(core, address, ViewingKey(key))?
         })
@@ -130,6 +140,7 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, Response> for Query where
 pub enum Response {
     Auth(AuthResponse),
     Rewards(RewardsResponse),
+    Governance(GovernanceResponse),
     /// Keplr integration
     TokenInfo { name: String, symbol: String, decimals: u8, total_supply: Option<Amount> },
     /// Keplr integration
@@ -147,6 +158,8 @@ pub enum Response {
         impl<S: Storage, A: Api, Q: Querier> crate::auth::Auth<S, A, Q> for $Core {}
 
         impl<S: Storage, A: Api, Q: Querier> crate::algo::Rewards<S, A, Q> for $Core {}
+
+        impl<S: Storage, A: Api, Q: Querier> crate::gov::Governance<S, A, Q> for $Core {}
 
         impl<S: Storage, A: Api, Q: Querier> crate::keplr::KeplrCompat<S, A, Q> for $Core {
             fn token_info (&self) -> StdResult<Response> {
