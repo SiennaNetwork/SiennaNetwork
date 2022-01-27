@@ -150,6 +150,7 @@ pub trait Overseer {
                 msg: to_binary(&MarketInitMsg {
                     admin: env.message.sender,
                     prng_seed: config.prng_seed,
+                    entropy: config.entropy,
                     interest_model_contract: config.interest_model_contract,
                     key: MasterKey::load(&deps.storage)?,
                     config: config.config,

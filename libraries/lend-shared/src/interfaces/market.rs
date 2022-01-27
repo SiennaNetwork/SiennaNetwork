@@ -25,6 +25,7 @@ pub trait Market {
     fn new(
         admin: HumanAddr,
         prng_seed: Binary,
+        entropy: Binary,
         key: MasterKey,
         // Underlying asset address
         underlying_asset: ContractLink<HumanAddr>,
