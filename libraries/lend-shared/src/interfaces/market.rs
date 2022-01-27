@@ -73,6 +73,7 @@ pub trait Market {
     fn update_config(
         interest_model: Option<ContractLink<HumanAddr>>,
         reserve_factor: Option<Decimal256>,
+        borrow_cap: Option<Uint256>
     ) -> StdResult<HandleResponse>;
 
     #[handle]

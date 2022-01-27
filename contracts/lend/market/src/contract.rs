@@ -357,6 +357,7 @@ pub trait Market {
     fn update_config(
         interest_model: Option<ContractLink<HumanAddr>>,
         reserve_factor: Option<Decimal256>,
+        borrow_cap: Option<Uint256>
     ) -> StdResult<HandleResponse> {
         let mut config = Constants::load_config(&deps.storage)?;
         if let Some(interest_model) = interest_model {
@@ -366,6 +367,10 @@ pub trait Market {
         if let Some(reserve_factor) = reserve_factor {
             config.reserve_factor = reserve_factor;
             Constants::save_config(&mut deps.storage, &config)?;
+        }
+
+        if let Some(borrow_cap) = borrow_cap {
+            Global::save_borrow_cap(&mut deps.storage, &borrow_cap)?;
         }
 
         Ok(HandleResponse::default())
