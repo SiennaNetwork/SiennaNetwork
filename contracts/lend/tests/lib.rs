@@ -6,6 +6,9 @@ mod setup;
 mod deposit_redeem;
 
 #[cfg(test)]
+mod transfer;
+
+#[cfg(test)]
 const ADMIN: &str = "admin";
 
 #[macro_export]
