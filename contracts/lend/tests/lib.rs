@@ -4,6 +4,8 @@ mod overseer;
 mod setup;
 #[cfg(test)]
 mod deposit_redeem;
+#[cfg(test)]
+mod borrow;
 
 #[cfg(test)]
 const ADMIN: &str = "admin";
