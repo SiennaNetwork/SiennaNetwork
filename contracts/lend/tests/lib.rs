@@ -8,6 +8,9 @@ mod deposit_redeem;
 mod borrow;
 
 #[cfg(test)]
+mod transfer;
+
+#[cfg(test)]
 const ADMIN: &str = "admin";
 
 #[macro_export]

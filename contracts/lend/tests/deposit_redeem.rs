@@ -1,21 +1,15 @@
-use std::str::FromStr;
-
 use lend_shared::{
     fadroma::{
-        decimal::one_token,
-        ensemble::MockEnv,
-        snip20_impl::msg::{HandleMsg as Snip20HandleMsg, InitialBalance},
+        decimal::one_token, ensemble::MockEnv, snip20_impl::msg::HandleMsg as Snip20HandleMsg,
         to_binary, Decimal256, Permit, Uint128, Uint256,
     },
-    interfaces::{
-        market::{self, MarketPermissions},
-        overseer,
-    },
+    interfaces::{market, overseer},
 };
 
 use crate::setup::Lend;
 use crate::ADMIN;
 
+const BORROWER: &str = "borrower";
 #[test]
 fn deposit_and_mint() {
     let deposit_amount = Uint128(100_000);
@@ -23,7 +17,7 @@ fn deposit_and_mint() {
     let mut lend = Lend::default();
 
     let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
-    lend.prefund_user("borrower", Uint128(5 * one_token(6)), underlying_1.clone());
+    lend.prefund_user(BORROWER, Uint128(5 * one_token(6)), underlying_1.clone());
 
     let market = lend
         .whitelist_market(
@@ -57,7 +51,7 @@ fn deposit_and_mint() {
                 padding: None,
                 msg: Some(to_binary(&market::ReceiverCallbackMsg::Deposit {}).unwrap()),
             },
-            MockEnv::new("borrower", underlying_1.clone()),
+            MockEnv::new(BORROWER, underlying_1.clone()),
         )
         .unwrap();
 
@@ -67,7 +61,7 @@ fn deposit_and_mint() {
             market.contract.address.clone(),
             &market::QueryMsg::Account {
                 method: Permit::<market::MarketPermissions>::new(
-                    "borrower",
+                    BORROWER,
                     vec![market::MarketPermissions::AccountInfo],
                     vec![market.contract.address.clone()],
                     "balance",
@@ -93,8 +87,6 @@ fn redeem_basic() {
     let mut lend = Lend::default();
 
     let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
-    lend.prefund_user("borrower", Uint128(5 * one_token(6)), underlying_1.clone());
-    lend.prefund_user(ADMIN, Uint128(1000 * one_token(6)), underlying_1.clone());
 
     let market = lend
         .whitelist_market(
@@ -104,36 +96,63 @@ fn redeem_basic() {
         )
         .unwrap();
 
+    lend.ensemble
+        .execute(
+            &overseer::HandleMsg::Enter {
+                markets: vec![market.contract.address.clone()],
+            },
+            MockEnv::new(ADMIN, lend.overseer.clone()),
+        )
+        .unwrap();
+
     let res = lend.ensemble.execute(
         &market::HandleMsg::RedeemToken {
             burn_amount: Uint256::from(redeem_tokens),
         },
-        MockEnv::new("borrower", market.contract.clone()),
+        MockEnv::new(BORROWER, market.contract.clone()),
     );
     assert!(res
         .unwrap_err()
         .to_string()
         .contains("The protocol has an insufficient amount of the underlying asset"));
 
-    // fund the market
+    lend.prefund_and_deposit(
+        BORROWER,
+        Uint128(
+            Uint256::from(redeem_tokens)
+                .decimal_mul(exchange_rate)
+                .unwrap()
+                .clamp_u128()
+                .unwrap(),
+        ),
+        market.contract.address.clone(),
+    );
+
     lend.ensemble
         .execute(
-            &Snip20HandleMsg::Transfer {
-                recipient: market.contract.address.clone(),
-                amount: Uint128(1000 * one_token(6)),
-                memo: None,
-                padding: None,
+            &market::HandleMsg::RedeemToken {
+                burn_amount: Uint256::from(redeem_tokens),
             },
-            MockEnv::new(ADMIN, underlying_1.clone()),
+            MockEnv::new(BORROWER, market.contract.clone()),
         )
         .unwrap();
 
-    // lend.ensemble
-    //     .execute(
-    //         &market::HandleMsg::RedeemToken {
-    //             burn_amount: Uint256::from(redeem_tokens),
-    //         },
-    //         MockEnv::new("borrower", market.contract.clone()),
-    //     )
-    //     .unwrap();
+    let res: market::AccountInfo = lend
+        .ensemble
+        .query(
+            market.contract.address.clone(),
+            &market::QueryMsg::Account {
+                method: Permit::<market::MarketPermissions>::new(
+                    BORROWER,
+                    vec![market::MarketPermissions::AccountInfo],
+                    vec![market.contract.address.clone()],
+                    "balance",
+                )
+                .into(),
+                block: None,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(res.sl_token_balance, Uint256::from(0u128));
 }
