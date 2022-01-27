@@ -153,13 +153,14 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     )
     // ouch, factory-created contracts have nasty labels
     const label = await agent.getLabel(address)
+
     const EXCHANGE = new AMMContract({
       chain,
       address,
       codeHash: await agent.getCodeHash(address),
       codeId:   await agent.getCodeId(address),
       prefix,
-      admin,
+      agent,
     })
 
     const TOKEN_0 = SNIP20Contract.fromTokenSpec(agent, token_0)

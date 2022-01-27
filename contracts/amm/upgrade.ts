@@ -1,8 +1,6 @@
 import process from 'process'
-
 import { Console, MigrationContext, bold, colors, timestamp, writeFileSync } from '@hackbg/fadroma'
 import type { SNIP20Contract } from '@fadroma/snip20'
-
 import {
   RPTContract,
   FactoryContract, ExchangeInfo,
@@ -10,14 +8,14 @@ import {
   LPTokenContract,
   RewardsContract
 } from '@sienna/api'
-
 import settings, { workspace } from '@sienna/settings'
-
 import { deployRewardPool } from './deploy'
 
 type MultisigTX = any
 
-const console = Object.assign(Console('@sienna/amm/upgrade'), { table: global.console.table })
+const console    = Object.assign(Console('@sienna/amm/upgrade'), { table: global.console.table })
+const pick       = (...keys) => x => keys.reduce((y, key)=>{y[key]=x[key];return y}, {})
+const essentials = pick('codeId', 'codeHash', 'address', 'label')
 
 export async function upgradeFactoryAndRewards ({
   timestamp, chain, admin, deployment, prefix, run,
@@ -46,16 +44,49 @@ export async function upgradeFactoryAndRewards ({
   // We'll disincentivise those in RPT now,
   // and eventually terminate them in the next migration.
   // Let's report some initial status.
-  const pick = (...keys) => x => keys.reduce((y, key)=>{y[key]=x[key];return y}, {})
-  const essentials = pick('codeId', 'codeHash', 'address', 'label')
-
   console.log()
   console.info(bold('Current factory:'))
   console.table(essentials(OLD_FACTORY))
 
   console.log()
   console.info(bold("Current factory's exchanges"), "(to be disincentivised):")
-  console.table(OLD_EXCHANGES.map(pick('name', 'EXCHANGE','TOKEN_0','TOKEN_1', 'LP_TOKEN')))
+  for (const {
+    name,
+    EXCHANGE: { codeId, codeHash, address },
+    TOKEN_0,
+    TOKEN_1,
+    LP_TOKEN
+  } of OLD_EXCHANGES) {
+
+    console.info(
+      ' ',
+      bold(colors.inverse(name)).padEnd(30), // wat
+      `(code id ${bold(String(codeId))})`.padEnd(34),
+      bold(address)
+    )
+
+    await printToken(TOKEN_0)
+    await printToken(TOKEN_1)
+    await printToken(LP_TOKEN)
+
+    async function printToken (TOKEN) {
+      if (typeof TOKEN === 'string') {
+        console.info(
+          `   `,
+          bold(TOKEN.padEnd(10))
+        )
+      } else {
+        const {name, symbol} = await TOKEN.q(admin).tokenInfo()
+        console.info(
+          `   `,
+          bold(symbol.padEnd(10)),
+          name.padEnd(25).slice(0, 25),
+          TOKEN.address
+        )
+      }
+    }
+
+  }
 
   process.exit(123)
   console.info(bold("Current factory's exchanges' LP tokens"), "(to be disincentivised):")

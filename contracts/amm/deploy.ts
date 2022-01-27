@@ -304,17 +304,14 @@ export async function deployPlaceholders (
         const TOKEN = PLACEHOLDERS[symbol] = new AMMSNIP20Contract({
           workspace,
           prefix, name, suffix: `+${timestamp()}`,
-          chain, admin, creator: admin, initMsg: {
-            ...initMsg,
-            name,
-            symbol:    label,
-            prng_seed: randomHex(36)
-          }
+          chain, admin,
         })
         await chain.buildAndUpload([TOKEN])
+        TOKEN.initMsg.name   = name
+        TOKEN.initMsg.symbol = symbol.toUpperCase()
         await TOKEN.instantiate()
-        await TOKEN.tx(admin).setMinters([admin.address])
-        await TOKEN.tx(admin).mint("100000000000000000000000", admin.address)
+        await TOKEN.tx().setMinters([admin.address])
+        await TOKEN.tx().mint("100000000000000000000000", admin.address)
       } else {
         console.error(e)
         throw new Error(
