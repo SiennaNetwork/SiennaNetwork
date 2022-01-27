@@ -1,4 +1,6 @@
-import { MigrationContext, bold, Agent, randomHex, Console, timestamp } from '@hackbg/fadroma'
+import {
+  MigrationContext, bold, Agent, randomHex, Console, timestamp, printContracts
+} from '@hackbg/fadroma'
 import getSettings, { workspace, SIENNA_DECIMALS, ONE_SIENNA } from '@sienna/settings'
 import { SNIP20Contract } from '@fadroma/snip20'
 import {
@@ -13,7 +15,7 @@ import {
   SiennaSNIP20Contract,
 } from '@sienna/api'
 
-const console = Console('@sienna/amm/deploy')
+const console = Object.assign(Console('@sienna/amm/upgrade'), { table: global.console.table })
 
 /** Taking a TGE deployment, add the AMM to it,
   * creating the pre-configured liquidity and reward pools. */
@@ -47,6 +49,12 @@ export async function deployAMM ({
     await run(deployRewards, { apiVersion: 'v3', SIENNA, FACTORY, TOKENS })
   const { RPT_CONFIG } =
     await run(adjustRPTConfig, { RPT_CONFIG_SSSSS, RPT_CONFIG_SWAP_REWARDS })
+
+  console.log()
+  console.info(bold('Deployed AMM contracts:'))
+  printContracts([FACTORY,...EXCHANGES,...LP_TOKENS,...REWARD_POOLS])
+  console.log()
+
   return {
     FACTORY,
     TOKENS,
@@ -296,8 +304,11 @@ export async function deployPlaceholders (
         const TOKEN = PLACEHOLDERS[symbol] = new AMMSNIP20Contract({
           workspace,
           prefix, name, suffix: `+${timestamp()}`,
-          chain, admin, instantiator: admin, initMsg: {
-            ...initMsg, prng_seed: randomHex(36)
+          chain, admin, creator: admin, initMsg: {
+            ...initMsg,
+            name,
+            symbol:    label,
+            prng_seed: randomHex(36)
           }
         })
         await chain.buildAndUpload([TOKEN])
@@ -439,7 +450,7 @@ export async function deployRewardPool ({
 }> {
   const REWARDS = new RewardsContract({
     workspace, prefix, suffix, lpToken, rewardToken,
-    instantiator: admin,
+    creator: admin,
     name: `SiennaRewards_${name}`,
   })
   await REWARDS.buildInDocker()

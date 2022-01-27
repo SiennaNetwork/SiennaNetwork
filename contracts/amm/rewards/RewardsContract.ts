@@ -17,7 +17,7 @@ export class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, Rewa
   name = 'SiennaRewards'
 
   initMsg: Init = {
-    admin: this.instantiator?.address,
+    admin: this.creator?.address,
     config: {}
   }
 

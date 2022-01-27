@@ -27,7 +27,8 @@ export class AMMContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> 
     name?:     string,
     symbol?:   string,
     decimals?: number,
-    lpToken?:  SNIP20Contract
+    lpToken?:  SNIP20Contract,
+    initMsg?:  InitMsg
   } = {}) {
     super(options)
     this.initMsg = {
@@ -36,7 +37,8 @@ export class AMMContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> 
       factory_info:      { address: null, code_hash: null },
       lp_token_contract: { id: null, code_hash: null },
       pair:              null,
-      prng_seed:         randomHex(36)
+      prng_seed:         randomHex(36),
+      ...(options.initMsg||{})
     }
   }
 

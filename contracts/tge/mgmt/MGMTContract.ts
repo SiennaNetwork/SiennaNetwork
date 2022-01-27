@@ -29,8 +29,8 @@ export class MGMTContract extends Scrt_1_0.Contract<
     super(options)
 
     if (options.admin) {
-      this.uploader      = options.admin
-      this.instantiator  = options.admin
+      this.uploader = options.admin
+      this.creator  = options.admin
       this.initMsg.admin = options.admin.address
     }
 

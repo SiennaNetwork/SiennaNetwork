@@ -1,4 +1,4 @@
-import { Scrt_1_2, ContractState, Agent, randomHex } from "@hackbg/fadroma"
+import { Scrt_1_2, ContractState, Agent, randomHex, bold, Console } from "@hackbg/fadroma"
 import { SNIP20Contract } from '@fadroma/snip20'
 
 import { AMMContract        } from "@sienna/exchange";
@@ -23,35 +23,41 @@ export type FactoryInventory = {
 import { FactoryTransactions } from './FactoryTransactions'
 import { FactoryQueries }      from './FactoryQueries'
 
+/** An exchange is an interaction between 4 contracts. */
+export type ExchangeInfo = {
+  /** Shorthand to refer to the whole group. */
+  name?: string
+  /** One token. */
+  TOKEN_0:  SNIP20Contract|string,
+  /** Another token. */
+  TOKEN_1:  SNIP20Contract|string,
+  /** The automated market maker/liquidity pool for the token pair. */
+  EXCHANGE: AMMContract,
+  /** The liquidity provision token, which is minted to stakers of the 2 tokens. */
+  LP_TOKEN: LPTokenContract,
+  /** The bare-bones data needed to retrieve the above. */
+  raw:      any
+}
+
+const console = Console('@sienna/amm/factory')
+
 export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, FactoryQueries> {
-
   crate        = 'factory'
-
   name         = 'SiennaAMMFactory'
-
   Transactions = FactoryTransactions
-
   Queries      = FactoryQueries
-
   admin?: Agent
-
   constructor (options: ContractState & {
-
     admin?: Agent
-
     /* AMM config from project settings.
      * First auto-generated type definition
      * finally put to use in the codebase! Hooray */
     exchange_settings?:  ExchangeSettings
-
     /* Contract contracts (id + codehash)
      * for each contract known by the factory */
     contracts?: FactoryInventory
-
   } = {}) {
-
     super(options)
-
     Object.assign(this.initMsg, {
       prng_seed: randomHex(36),
       exchange_settings: {
@@ -60,22 +66,20 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
         sienna_burner: null,
       }
     })
-
     if (options.admin) {
-      this.instantiator = options.admin
+      this.creator = options.admin
       this.initMsg.admin = options.admin.address
     }
-
     if (options.exchange_settings) {
       Object.assign(this.initMsg, { exchange_settings: options.exchange_settings })
     }
-
     if (options.contracts) {
       this.setContracts(options.contracts)
     }
-
   }
-
+  /** Return the collection of contract templates
+    * (`{ id, code_hash }` structs) that the factory
+    * uses to instantiate contracts. */
   getContracts (): Promise<FactoryInventory> {
     // type kludge!
     if (this.address) {
@@ -99,7 +103,7 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
       })
     }
   }
-
+  /** Configure the factory's contract templates before deployment. */
   setContracts (contracts: FactoryInventory) {
     if (this.address) {
       throw new Error('Use the config method to reconfigure a live contract.')
@@ -109,21 +113,19 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
       }
     }
   }
-
-  get exchanges (): Promise<AMMContract[]> {
-    return this.listExchanges().then(exchanges=>Promise.all(
-      exchanges.map(({ contract, pair }) => new AMMContract({
-        admin:    this.admin,
-        address:  contract.address,
-        codeHash: contract.code_hash,
-      }).populate())
-    ))
+  get exchanges (): Promise<ExchangeInfo[]> {
+    return this.listExchanges().then(exchanges=>{
+      return Promise.all(
+        exchanges.map(({ pair: { token_0, token_1 } }) => {
+          return this.getExchange(token_0, token_1)
+        })
+      )
+    })
   }
-
+  /** Get the full list of raw exchange info from the factory. */
   async listExchanges (): Promise<Exchange[]> {
     const result: Exchange[] = []
     const limit = 30
-
     let start = 0
     while (true) {
       const list = await this.q().list_exchanges(start, limit)
@@ -134,48 +136,51 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
         break
       }
     }
-
     return result
   }
-
   /** Get info about an exchange. */
   async getExchange (
     token_0: TokenType,
     token_1: TokenType,
-    agent = this.instantiator
+    agent = this.creator
   ): Promise<ExchangeInfo> {
-
+    //console.info(bold('Looking for exchange'))
+    //console.info(bold('  between'), JSON.stringify(token_0))
+    //console.info(bold('      and'), JSON.stringify(token_1))
+    const { admin, prefix, chain } = this
     const { address } = await this.q(agent).get_exchange_address(
-      token_0,
-      token_1
+      token_0, token_1
     )
-
+    // ouch, factory-created contracts have nasty labels
+    const label = await agent.getLabel(address)
     const EXCHANGE = new AMMContract({
-      admin:  this.admin,
-      prefix: this.prefix,
-      chain:  this.chain,
-      address
+      chain,
+      address,
+      codeHash: await agent.getCodeHash(address),
+      codeId:   await agent.getCodeId(address),
+      prefix,
+      admin,
     })
 
-    let TOKEN_0: SNIP20Contract|string
-    if (token_0.custom_token) {
-      TOKEN_0 = new SNIP20Contract({
-        address:  token_0.custom_token.contract_addr,
-        codeHash: token_0.custom_token.token_code_hash
-      })
-    } else if (token_0.native_token) {
-      TOKEN_0 = token_0.native_token.denom
+    const TOKEN_0 = SNIP20Contract.fromTokenSpec(agent, token_0)
+    let TOKEN_0_NAME: string
+    if (TOKEN_0 instanceof SNIP20Contract) {
+      const TOKEN_0_INFO = await TOKEN_0.q(agent).tokenInfo()
+      TOKEN_0_NAME = TOKEN_0_INFO.symbol
+    } else {
+      TOKEN_0_NAME = 'SCRT'
     }
 
-    let TOKEN_1: SNIP20Contract|string
-    if (token_0.custom_token) {
-      TOKEN_0 = new SNIP20Contract({
-        address:  token_0.custom_token.contract_addr,
-        codeHash: token_0.custom_token.token_code_hash
-      })
-    } else if (token_0.native_token) {
-      TOKEN_0 = token_0.native_token.denom
+    const TOKEN_1 = SNIP20Contract.fromTokenSpec(agent, token_1)
+    let TOKEN_1_NAME: string
+    if (TOKEN_1 instanceof SNIP20Contract) {
+      const TOKEN_1_INFO = await TOKEN_1.q(agent).tokenInfo()
+      TOKEN_1_NAME = TOKEN_1_INFO.symbol
+    } else {
+      TOKEN_1_NAME = 'SCRT'
     }
+
+    const name = `${TOKEN_0_NAME}-${TOKEN_1_NAME}`
 
     const { liquidity_token } = await EXCHANGE.pairInfo()
     const LP_TOKEN = new LPTokenContract({
@@ -183,7 +188,8 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
       prefix:   this.prefix,
       chain:    this.chain,
       address:  liquidity_token.address,
-      codeHash: liquidity_token.code_hash
+      codeHash: liquidity_token.code_hash,
+      codeId:   await this.admin.getCodeId(liquidity_token.address)
     })
 
     const raw = {
@@ -198,8 +204,11 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
       },
     }
 
-    return { EXCHANGE, TOKEN_0, TOKEN_1, LP_TOKEN, raw }
-
+    return {
+      name,
+      EXCHANGE, TOKEN_0, TOKEN_1, LP_TOKEN,
+      raw
+    }
   }
 
   /** Create a liquidity pool, i.e. an instance of the exchange contract. */
@@ -220,12 +229,4 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     return this.tx(agent).create_launchpad(tokens)
   }
 
-}
-
-export type ExchangeInfo = {
-  EXCHANGE: AMMContract,
-  LP_TOKEN: LPTokenContract,
-  TOKEN_0:  SNIP20Contract|string,
-  TOKEN_1:  SNIP20Contract|string,
-  raw:      any
 }
