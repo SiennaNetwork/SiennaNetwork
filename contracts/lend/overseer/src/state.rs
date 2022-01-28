@@ -17,6 +17,7 @@ use lend_shared::{
 use serde::{Deserialize, Serialize};
 
 const PAGINATION_LIMIT: u8 = 30;
+const MAX_MARKETS_ENTERED: usize = 5;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -225,15 +226,28 @@ impl Account {
         Ok(Self(address.canonize(api)?))
     }
 
-    pub fn add_market<S: Storage>(
+    pub fn add_markets<S: Storage>(
         &self,
         storage: &mut S,
-        id: u64
+        ids: Vec<u64>
     ) -> StdResult<()> {
         let mut storage: Bucket<'_, S, u64> =
             Bucket::new(&self.create_key(), storage);
 
-        storage.save(&id.to_be_bytes(), &id)
+        let count = storage.range(None, None, Order::Ascending).count();
+
+        if count + ids.len() > MAX_MARKETS_ENTERED {
+            return Err(StdError::generic_err(format!(
+                "Cannot enter more than {} at a time.",
+                MAX_MARKETS_ENTERED
+            )));
+        }
+
+        for id in ids {
+            storage.save(&id.to_be_bytes(), &id)?;
+        }
+
+        Ok(())
     }
 
     pub fn remove_market<S: Storage>(

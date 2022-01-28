@@ -199,10 +199,11 @@ pub trait Overseer {
     fn enter(markets: Vec<HumanAddr>) -> StdResult<HandleResponse> {
         let account = Account::new(&deps.api, &env.message.sender)?;
 
-        for market in markets {
-            let id = Markets::get_id(deps, &market)?;
-            account.add_market(&mut deps.storage, id)?;
-        }
+        let ids = markets.iter()
+            .map(|x| Markets::get_id(deps, x))
+            .collect::<StdResult<Vec<u64>>>()?;
+            
+        account.add_markets(&mut deps.storage, ids)?;
 
         Ok(HandleResponse {
             messages: vec![],
