@@ -138,7 +138,6 @@ fn liquidate_basic() {
     assert_ne!(liquidity.shortfall, Uint256::zero());
 
     let id = lend.id(BOB, market_2.contract.address.clone());
-    println!("{:#?}", id.to_string());
 
     lend.ensemble
         .execute(
@@ -149,7 +148,7 @@ fn liquidate_basic() {
                 msg: Some(
                     to_binary(&market::ReceiverCallbackMsg::Liquidate {
                         borrower: id,
-                        collateral: underlying_1.address.clone(),
+                        collateral: market_1.contract.address.clone(),
                     })
                     .unwrap(),
                 ),
@@ -159,4 +158,22 @@ fn liquidate_basic() {
             MockEnv::new(ALICE, underlying_2.clone()),
         )
         .unwrap();
+    
+    let res: market::AccountInfo = lend
+        .ensemble
+        .query(
+            market_1.contract.address.clone(),
+            &market::QueryMsg::Account {
+                method: Permit::<market::MarketPermissions>::new(
+                    BOB,
+                    vec![market::MarketPermissions::AccountInfo],
+                    vec![market_1.contract.address.clone()],
+                    "balance",
+                )
+                .into(),
+                block: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(res.sl_token_balance, Uint256::from(1u128));
 }
