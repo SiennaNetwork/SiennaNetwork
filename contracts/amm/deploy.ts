@@ -1,4 +1,6 @@
-import { MigrationContext, bold, IAgent, randomHex, Console } from '@hackbg/fadroma'
+import {
+  MigrationContext, bold, Agent, randomHex, Console, timestamp, printContracts
+} from '@hackbg/fadroma'
 import getSettings, { workspace, SIENNA_DECIMALS, ONE_SIENNA } from '@sienna/settings'
 import { SNIP20Contract } from '@fadroma/snip20'
 import {
@@ -13,16 +15,30 @@ import {
   SiennaSNIP20Contract,
 } from '@sienna/api'
 
-const console = Console('@sienna/amm/deploy')
+const console = Object.assign(Console('@sienna/amm/upgrade'), { table: global.console.table })
 
 /** Taking a TGE deployment, add the AMM to it,
   * creating the pre-configured liquidity and reward pools. */
 export async function deployAMM ({
-  deployment, run
-}: MigrationContext) {
-
-  const SIENNA = new SiennaSNIP20Contract().from(deployment)
-
+  deployment, admin, run,
+  SIENNA = deployment.getContract(admin, SiennaSNIP20Contract, 'SiennaSNIP20')
+}: MigrationContext & {
+  /* The deployment's SIENNA token. */
+  SIENNA: SiennaSNIP20Contract
+}): Promise<{
+  /* The newly created factory contract. */
+  FACTORY:      FactoryContract
+  /* Collection of tokens supported by the AMM. */
+  TOKENS:       Record<string, SNIP20Contract>
+  /* List of exchanges created. */
+  EXCHANGES:    AMMContract[]
+  /* List of LP tokens created. */
+  LP_TOKENS:    LPTokenContract[]
+  /* List of reward pools created. */
+  REWARD_POOLS: RewardsContract[]
+  /* RPT config that was set. */
+  RPT_CONFIG:   RPTConfig
+}> {
   const { FACTORY } = 
     await run(deployAMMFactory)
   const { TOKENS, EXCHANGES, LP_TOKENS } =
@@ -31,25 +47,46 @@ export async function deployAMM ({
     await run(deploySSSSS, { SIENNA })
   const { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS } =
     await run(deployRewards, { apiVersion: 'v3', SIENNA, FACTORY, TOKENS })
+  const { RPT_CONFIG } =
+    await run(adjustRPTConfig, { RPT_CONFIG_SSSSS, RPT_CONFIG_SWAP_REWARDS })
 
-  await run(adjustRPTConfig, {
-    RPT_CONFIG_SSSSS,
-    RPT_CONFIG_SWAP_REWARDS
-  })
+  console.log()
+  console.info(bold('Deployed AMM contracts:'))
+  printContracts([FACTORY,...EXCHANGES,...LP_TOKENS,...REWARD_POOLS])
+  console.log()
 
+  return {
+    FACTORY,
+    TOKENS,
+    EXCHANGES,
+    LP_TOKENS,
+    REWARD_POOLS,
+    RPT_CONFIG
+  }
 }
 
 /** After deploying the SSSSS and the other reward pools,
   * set their addresses in the deployment's RPT contract. */
 export async function adjustRPTConfig ({
   deployment, chain, admin,
-  RPT_CONFIG_SSSSS, RPT_CONFIG_SWAP_REWARDS
+  RPT = deployment.getContract(admin, RPTContract, 'SiennaRPT'),
+  RPT_CONFIG_SSSSS,
+  RPT_CONFIG_SWAP_REWARDS
 }: MigrationContext & {
+  /** The RPT contract to be configured.*/
+  RPT:                     RPTContract,
+  /** The config section for SSSSS (normally 1 entry). */
   RPT_CONFIG_SSSSS:        RPTConfig,
+  /** The config section for Sienna Swap Rewards. */
   RPT_CONFIG_SWAP_REWARDS: RPTConfig
-}) {
-  const RPT = new RPTContract().from(deployment)
-  const RPT_CONFIG = [...RPT_CONFIG_SSSSS, ...RPT_CONFIG_SWAP_REWARDS]
+}): Promise<{
+  /* The final config that was set in the RPT contract. */
+  RPT_CONFIG: RPTConfig
+}> {
+  const RPT_CONFIG = [
+    ...RPT_CONFIG_SSSSS,
+    ...RPT_CONFIG_SWAP_REWARDS
+  ]
   // on mainnet we use a multisig
   // so we can't run the transaction from here
   if (chain.isMainnet) {
@@ -67,6 +104,7 @@ export async function adjustRPTConfig ({
     console.info(`- ${address} ${amount}`)
   }
   await RPT.tx(admin).configure(RPT_CONFIG)
+  return { RPT_CONFIG }
 }
 
 /** Deploy the Factory contract which is the hub of the AMM.
@@ -76,11 +114,12 @@ export async function adjustRPTConfig ({
 export async function deployAMMFactory ({
   prefix, admin, chain, deployment
 }: MigrationContext): Promise<{
+  /* This deployment's Factory context. */
   FACTORY: FactoryContract
 }> {
   const options = { workspace, prefix, admin }
   const FACTORY = new FactoryContract({ ...options })
-  const [_, EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD] = await chain.buildAndUpload([
+  const [_, EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD] = await chain.buildAndUpload(admin, [
     // only this one will be deployed
     FACTORY,
     // however all of them must be built, so that
@@ -93,20 +132,18 @@ export async function deployAMMFactory ({
   ])
   // extract id and code_hash from each uploaded contract
   const template = contract => ({ id: contract.codeId, code_hash: contract.codeHash })
-  // configure factory: set supported contracts
-  FACTORY.setContracts({
+  // configure factory: set fees etc
+  // deploy the factory
+  await deployment.getOrCreateContract(admin, FACTORY, 'SiennaAMMFactory', {
+    admin:              admin.address,
+    prng_seed:          randomHex(36),
+    exchange_settings:  getSettings(chain.chainId).amm.exchange_settings,
     snip20_contract:    template(AMMTOKEN),
     pair_contract:      template(EXCHANGE),
     lp_token_contract:  template(LPTOKEN),
     ido_contract:       template(IDO),
     launchpad_contract: template(LAUNCHPAD),
   })
-  // configure factory: set fees etc
-  const { amm: { exchange_settings } } = getSettings(chain.chainId)
-  FACTORY.initMsg.exchange_settings = exchange_settings
-  // deploy the factory
-  const receipt = deployment.contracts['SiennaAMMFactory']
-  await FACTORY.instantiateOrExisting(receipt)
   return { FACTORY }
 }
 
@@ -114,45 +151,56 @@ export async function deployAMMFactory ({
   * the one that exists in the deployment, but
   * with code from the `main` branch. */
 export async function deployAMMFactoryLegacy ({
-  deployment, prefix, timestamp, chain, admin
-}: MigrationContext): Promise<{
+  deployment, prefix, timestamp, chain, admin,
+  FACTORY = deployment.getContract(admin, FactoryContract, 'SiennaAMMFactory')
+}: MigrationContext & {
+  /* The current factory whose settings will be copied to the legacy factory. */
+  FACTORY: FactoryContract
+}): Promise<{
+  /* The newly deployed legacy factory */
   LEGACY_FACTORY: FactoryContract
 }> {
-  const FACTORY = deployment.getContract(FactoryContract, 'SiennaAMMFactory', admin)
   const LEGACY_FACTORY = new FactoryContract({
-    ref:    `main`,
-    prefix,
-    suffix: `@v1+${timestamp}`,
-    admin,
-    exchange_settings: getSettings(chain.chainId).amm.exchange_settings,
-    contracts:         await FACTORY.getContracts(),
+    workspace, ref: `main`, suffix: `@v1+${timestamp}`
   })
-  await chain.buildAndUpload([LEGACY_FACTORY])
-  await LEGACY_FACTORY.instantiate()
+  await chain.buildAndUpload(admin, [LEGACY_FACTORY])
+  await deployment.createContract(admin, LEGACY_FACTORY, {
+    admin:             admin.address,
+    prng_seed:         randomHex(36),
+    exchange_settings: getSettings(chain.chainId).amm.exchange_settings,
+    ...await FACTORY.getContracts()
+  })
   return { LEGACY_FACTORY }
 }
 
 export async function deployAMMExchanges ({
   chain, run,
-  SIENNA, FACTORY
+  SIENNA,
+  FACTORY,
+  settings: { swapTokens, swapPairs } = getSettings(chain.chainId),
 }: MigrationContext & {
+  /* The SIENNA token. */
   SIENNA:  SiennaSNIP20Contract
-  FACTORY: FactoryContract
+  /* The FACTORY contract that will create the exchanges. */
+  FACTORY: FactoryContract,
+  /* Lists of tokens to know and exchanges to create, from project settings. */
+  settings: { swapTokens: Record<string, any>, swapPairs: Array<any> }
 }): Promise<{
+  /* A collection of the tokens used by the exchanges. */
   TOKENS:    Record<string, SNIP20Contract>,
+  /* The created AMM exchanges. */
   EXCHANGES: AMMContract[],
+  /* The LP tokens of the created exchanges. */
   LP_TOKENS: LPTokenContract[],
 }> {
-  const { swapTokens, swapPairs, rewardPairs } = getSettings(chain.chainId)
   // Collect referenced tokens, and created exchanges/LPs
   const TOKENS:    Record<string, SNIP20Contract> = { SIENNA }
   const EXCHANGES: AMMContract[]     = []
   const LP_TOKENS: LPTokenContract[] = []
   if (chain.isLocalnet) {
     // On localnet, deploy some placeholder tokens corresponding to the config.
-    console.info(`Running on ${bold('localnet')}, deploying placeholder tokens...`)
-    const { PLACEHOLDER_TOKENS } = await run(deployPlaceholderTokens)
-    Object.assign(TOKENS, PLACEHOLDER_TOKENS)
+    const { PLACEHOLDERS } = await run(deployPlaceholders)
+    Object.assign(TOKENS, PLACEHOLDERS)
   } else {
     // On testnet and mainnet, talk to preexisting token contracts from the config.
     console.info(`Not running on localnet, using tokens from config:`)
@@ -161,9 +209,12 @@ export async function deployAMMExchanges ({
   }
   // If there are any initial swap pairs defined in the config
   if (swapPairs.length > 0) {
-    // Call the factory to deploy an EXCHANGE for each
     for (const name of swapPairs) {
-      const { EXCHANGE, LP_TOKEN } = await run(deployAMMExchange, { FACTORY, TOKENS, name })
+      // Call the factory to deploy an EXCHANGE for each
+      const { EXCHANGE, LP_TOKEN } = await run(deployAMMExchange, {
+        FACTORY, TOKENS, name
+      })
+      // And collect the results
       EXCHANGES.push(EXCHANGE)
       LP_TOKENS.push(LP_TOKEN)
     }
@@ -175,99 +226,108 @@ export async function deployAMMExchange ({
   admin, deployment,
   FACTORY, TOKENS, name
 }: MigrationContext & {
+  /* The factory that will be commanded to deploy the exchange. */
   FACTORY: FactoryContract
+  /* A collection of known tokens, between two of which the exchange will be created. */
   TOKENS:  Record<string, SNIP20Contract>
+  /* The name of the exchange, in the form TOKEN0-TOKEN1 */
   name:    string
 }): Promise<{
+  /* The created exchange. */
   EXCHANGE: AMMContract
+  /* The LP token created for the exchange. */
   LP_TOKEN: LPTokenContract
 }> {
-  console.info(`Deploying liquidity pool ${bold(name)}...`)
+  console.info(
+    bold(`Deploying AMM exchange`), name
+  )
   const [tokenName0, tokenName1] = name.split('-')
   const token0 = TOKENS[tokenName0].asCustomToken
   const token1 = TOKENS[tokenName1].asCustomToken
-  console.info(`- Token 0: ${bold(JSON.stringify(token0))}...`)
-  console.info(`- Token 1: ${bold(JSON.stringify(token1))}...`)
+  //console.info(`- Token 0: ${bold(JSON.stringify(token0))}...`)
+  //console.info(`- Token 1: ${bold(JSON.stringify(token1))}...`)
   try {
-    const EXCHANGE = await FACTORY.getExchange(token0, token1, admin)
+    const { EXCHANGE, LP_TOKEN } = await FACTORY.getExchange(token0, token1, admin)
     console.info(`${bold(name)}: Already exists.`)
-    return {
-      EXCHANGE,
-      LP_TOKEN: EXCHANGE.lpToken
-    }
+    return { EXCHANGE, LP_TOKEN }
   } catch (e) {
     if (e.message.includes("Address doesn't exist in storage")) {
-      const EXCHANGE = await FACTORY.createExchange(token0, token1)
-      deployment.save(EXCHANGE, `SiennaSwap_${name}`)
-      console.info(
-        `Deployed liquidity pool ${EXCHANGE.exchange.address} `+
-        ` and LP token ${EXCHANGE.lp_token.address}`
-      )
-      return {
-        EXCHANGE,
-        LP_TOKEN: EXCHANGE.lpToken
-      }
+      const {
+        pair_contract:     { id: ammId, code_hash: ammHash },
+        lp_token_contract: { id: lpId }
+      } = await FACTORY.getContracts()
+      const { EXCHANGE, LP_TOKEN, raw } = await FACTORY.createExchange(token0, token1)
+      console.info(bold(`Deployed AMM exchange`), EXCHANGE.address)
+      deployment.save({
+        ...raw,
+        codeId:   ammId,
+        codeHash: ammHash,
+        initTx:   { contractAddress: raw.exchange.address }
+      }, `SiennaSwap_${name}`)
+      console.info(bold(`Deployed LP token`), LP_TOKEN.address)
+      deployment.save({
+        ...raw,
+        codeId:   lpId,
+        codeHash: raw.lp_token.code_hash,
+        initTx:   { contractAddress: raw.lp_token.address }
+      }, `SiennaSwap_LP-${name}`)
+      return { EXCHANGE, LP_TOKEN }
     } else {
+      console.error(e)
       throw new Error(`${bold(`Factory::GetExchange(${name})`)}: not found (${e.message})`)
     }
   }
 }
 
-export async function deployPlaceholderTokens (
-  { deployment, chain, admin, prefix, timestamp }: MigrationContext
+export async function deployPlaceholders (
+  { deployment, chain, admin, prefix }: MigrationContext
 ): Promise<{
-  PLACEHOLDER_TOKENS: Record<string, SNIP20Contract>
+  PLACEHOLDERS: Record<string, SNIP20Contract>
 }> {
-  const AMMTOKEN = new AMMSNIP20Contract({ workspace, prefix, chain, admin })
   // this can later be used to check if the deployed contracts have
   // gone out of date (by codehash) and offer to redeploy them
-  await chain.buildAndUpload([AMMTOKEN])
-  const PLACEHOLDER_TOKENS = {}
+  const PLACEHOLDERS = {}
   const { placeholderTokens } = getSettings(chain.chainId)
+  console.info(
+    bold(`Deploying placeholder tokens`), Object.keys(placeholderTokens).join(' ')
+  )
   type TokenConfig = { label: string, initMsg: any }
   const placeholders: Record<string, TokenConfig> = placeholderTokens
-  for (const [symbol, {label: suffix, initMsg}] of Object.entries(placeholders)) {
-    const TOKEN = PLACEHOLDER_TOKENS[symbol] = new AMMSNIP20Contract({
-      chain,
-      prefix,
-      admin,
-      instantiator: admin,
-      codeId:       AMMTOKEN.codeId,
-      codeHash:     AMMTOKEN.codeHash,
-      name:         'AMMSNIP20',
-      suffix:       `_${suffix}+${timestamp}`,
-      initMsg: {
-        ...initMsg,
-        prng_seed: randomHex(36)
+  for (const [symbol, {label, initMsg}] of Object.entries(placeholders)) {
+    const name = `Placeholder_${label}` 
+    try {
+      PLACEHOLDERS[symbol] = deployment.getContract(admin, AMMSNIP20Contract, name)
+      console.info(bold('Found, not redeploying:'), name)
+    } catch (e) {
+      if (e.message.startsWith('@fadroma/ops: no contract')) {
+        console.info(bold('Not found, deploying:'), name)
+        const TOKEN = PLACEHOLDERS[symbol] = new AMMSNIP20Contract({
+          workspace, prefix, name, suffix: `+${timestamp()}`,
+        })
+        await chain.buildAndUpload(admin, [TOKEN])
+        await deployment.createContract(admin, TOKEN, {
+          ...initMsg, name, symbol: symbol.toUpperCase()
+        })
+        await TOKEN.tx().setMinters([admin.address])
+        await TOKEN.tx().mint("100000000000000000000000", admin.address)
+      } else {
+        console.error(e)
+        throw new Error(
+          `@sienna/amm/deploy: error when deploying placeholder tokens: ${e.message}`
+        )
       }
-    })
-    // the instantiateOrExisting mechanic needs work -
-    // chiefly, to decide in which subsystem it lives.
-    // probably move that into `deployment` as well.
-    // or, Deployment's child - Migration proper,
-    // represented by a single JSON file containing
-    // all the inputs and outputs of one of these.
-    const existing = deployment.contracts[`AMMSNIP20_${suffix}`]
-    await TOKEN.instantiateOrExisting(existing)
-    // newly deployed placeholder tokens give the admin a large balance.
-    // these are only intended for localnet so when you run out of it
-    // it's a good time to redeploy the localnet to see if all is in order anyway.
-    if (!existing) {
-      await TOKEN.tx(admin).setMinters([admin.address])
-      await TOKEN.tx(admin).mint("100000000000000000000000", admin.address)
     }
   }
-  return { PLACEHOLDER_TOKENS }
+  return { PLACEHOLDERS }
 }
 
 export function getSwapTokens (
   links:  Record<string, { address: string, codeHash: string }>,
-  admin?: IAgent
+  admin?: Agent
 ): Record<string, SNIP20Contract> {
   const tokens = {}
   for (const [name, {address, codeHash}] of Object.entries(links)) {
     tokens[name] = new AMMSNIP20Contract({address, codeHash, admin})
-    console.log('getSwapToken', name, address, codeHash)
   }
   return tokens
 }
@@ -276,7 +336,7 @@ export function getSwapTokens (
   * (5- or 6-S depending on whether you count the SLASH)
   * a Sienna Rewards pool where you stake SIENNA to earn SIENNA. */
 export async function deploySSSSS ({
-  run, chain,
+  run, chain, deployment,
   SIENNA
 }: MigrationContext & {
   SIENNA: SiennaSNIP20Contract
@@ -284,7 +344,8 @@ export async function deploySSSSS ({
   SSSSS_POOL:       RewardsContract
   RPT_CONFIG_SSSSS: RPTConfig
 }> {
-  const SSSSS_POOL = await run(deployRewardPool, {
+  const { REWARDS: SSSSS_POOL } = await run(deployRewardPool, {
+    name:        'SIENNA_SIENNA',
     lpToken:     SIENNA,
     rewardToken: SIENNA,
   })
@@ -304,12 +365,12 @@ export async function deploySSSSS ({
   * where you stake a LP token to earn SIENNA. */
 export async function deployRewards ({
   chain, admin, deployment, prefix, run,
-  suffix     = '',
   apiVersion = 'v3',
+  suffix     = `_${apiVersion}+${timestamp()}`,
   split      = 1.0,
   ref        = 'HEAD',
-  SIENNA     = deployment.getContract(SiennaSNIP20Contract, 'SiennaSNIP20',     admin),
-  FACTORY    = deployment.getContract(FactoryContract,      'SiennaAMMFactory', admin),
+  SIENNA     = deployment.getContract(admin, SiennaSNIP20Contract, 'SiennaSNIP20'),
+  FACTORY    = deployment.getContract(admin, FactoryContract,      'SiennaAMMFactory'),
   TOKENS     = { SIENNA }
 }: MigrationContext & {
   apiVersion?: RewardsAPIVersion
@@ -323,105 +384,114 @@ export async function deployRewards ({
   REWARD_POOLS:       RewardsContract[]
   RPT_CONFIG_SWAP_REWARDS: RPTConfig
 }> {
-  const { swapTokens, swapPairs, rewardPairs, } = getSettings(chain.chainId)
+  const { swapPairs, rewardPairs } = getSettings(chain.chainId)
   const REWARDS = new RewardsContract({ workspace, prefix, admin, ref })
-  await chain.buildAndUpload([REWARDS])
-  Object.assign(TOKENS,
-    chain.isLocalnet
-      ? await run(deployPlaceholderTokens)
-      : getSwapTokens(swapTokens, admin))
-  const REWARD_POOLS = []
-  const RPT_CONFIG   = []
-  const reward       = BigInt(rewardPairs.SIENNA) / BigInt(1 / split)
-  const pool         = await run(deployRewardPool, { suffix, lpToken: SIENNA, rewardToken: SIENNA })
-  REWARD_POOLS.push(pool)
-  RPT_CONFIG.push([pool.address, String(reward * ONE_SIENNA)])
+  await chain.buildAndUpload(admin, [REWARDS])
+  const REWARD_POOLS            = []
+  const RPT_CONFIG_SWAP_REWARDS = []
   if (swapPairs.length > 0) {
     const rewards = rewardPairs
     for (const name of swapPairs) {
       if (rewards && rewards[name]) {
         const exchangeName = `SiennaSwap_${name}`
-        const exchange = deployment.contracts[exchangeName]
+        const exchange = deployment.receipts[exchangeName]
         if (!exchange) {
-          console.log(`${exchangeName} doesn't exist`)
+          console.error(bold(`Contract does not exist in deployment`), exchangeName)
+          console.error(bold(`Contracts in deployment:`), Object.keys(deployment.receipts).join(' '))
           process.exit(1)
         }
         const { lp_token } = exchange
-        console.debug(`Deploying rewards for ${name}...`, { lp_token })
-        const lpToken = new LPTokenContract({
-          address:  exchange.lp_token.address,
-          codeHash: exchange.lp_token.code_hash,
-          admin
+        console.info(
+          bold(`Deploying rewards for ${name}`),
+          JSON.stringify({ lp_token })
+        )
+        const { REWARDS } = await run(deployRewardPool, {
+          name: `${name}_SIENNA`,
+          suffix,
+          lpToken: new LPTokenContract({
+            address:  exchange.lp_token.address,
+            codeHash: exchange.lp_token.code_hash,
+            admin
+          }),
+          rewardToken: SIENNA
         })
+        REWARD_POOLS.push(REWARDS)
         const reward = BigInt(rewards[name]) / BigInt(1 / split)
-        const pool   = await run(deployRewardPool, { suffix, lpToken, rewardToken: SIENNA })
-        REWARD_POOLS.push(pool)
-        RPT_CONFIG.push([pool.address, String(reward * ONE_SIENNA)])
+        RPT_CONFIG_SWAP_REWARDS.push(
+          [REWARDS.address, String(reward * ONE_SIENNA)]
+        )
       }
     }
   }
-  console.debug('Resulting RPT config:', RPT_CONFIG)
-  return { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS: RPT_CONFIG }
+  return { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS }
 }
 
-import { timestamp } from '@hackbg/fadroma'
 export async function deployRewardPool ({
-  admin, deployment, prefix,
-  lpToken, rewardToken, apiVersion
+  admin, chain, deployment, prefix,
+  name        = 'UNTITLED',
+  lpToken,
+  rewardToken = new SiennaSNIP20Contract().from(deployment),
+  apiVersion  = 'v3',
+  suffix      = `_${apiVersion}+${timestamp()}`,
 }: MigrationContext & {
-  apiVersion?:  'v2'|'v3'
-  suffix?:      string
-  lpToken?:     SNIP20Contract
-  rewardToken?: SNIP20Contract
-}) {
-  const tokenInfo = await lpToken.q(admin).tokenInfo()
-  const suffix    = `_${tokenInfo.symbol}_${apiVersion}+${timestamp()}`
-  const contract  = new RewardsContract({
-    workspace, prefix, suffix, lpToken, rewardToken,
-    instantiator: admin, name: 'SiennaRewards',
-  })
-  await contract.buildInDocker()
-  await contract.uploadAs(admin)
-  if (apiVersion === 'v2') {
-    // override init msg for legacy api
-    const initMsg = {
-      admin:        admin.address,
-      lp_token:     lpToken.link,
-      reward_token: rewardToken.link,
-      viewing_key:  "",
-      ratio:        ["1", "1"],
-      threshold:    15940,
-      cooldown:     15940,
-    }
-    // use Object.assign to avoid type check
-    Object.assign(contract, { initMsg })
+  name:        string
+  lpToken:     SNIP20Contract
+  rewardToken: SNIP20Contract
+  apiVersion:  'v2'|'v3'
+  suffix:      string
+}): Promise<{
+  REWARDS:     RewardsContract
+}> {
+  const REWARDS = new RewardsContract({ workspace, name: `SiennaRewards_${name}` })
+  await chain.buildAndUpload(admin, [REWARDS])
+  let initMsg
+  switch (apiVersion) {
+    case 'v3':
+      initMsg = {
+        admin:  admin.address,
+        config: {
+          reward_vk:    randomHex(36),
+          bonding:      86400,
+          timekeeper:   admin.address,
+          lp_token:     lpToken.link,
+          reward_token: rewardToken.link,
+        }
+      }
+      break
+    case 'v2':
+      initMsg = {
+        admin:        admin.address,
+        lp_token:     lpToken.link,
+        reward_token: rewardToken.link,
+        viewing_key:  "",
+        ratio:        ["1", "1"],
+        threshold:    15940,
+        cooldown:     15940,
+      }
+      break
+    default:
+      throw new Error
   }
-  const receipt = deployment.contracts[contract.label]
-  await contract.instantiateOrExisting(receipt)
-  return contract
+  await deployment.getOrCreateContract(
+    admin, REWARDS, REWARDS.label, initMsg
+  )
+  return { REWARDS }
 }
 
 export async function deployRewardsSideBySide ({
   timestamp, run, chain, admin, prefix, deployment
 }: MigrationContext) {
-  const v2Suffix = `@v2+${timestamp}`
-  const v3Suffix = `@v3+${timestamp}`
   const options = { chain, admin, prefix }
   const [v2, v3] = await Promise.all([
-    run(deployRewards, {
-      ...options, apiVersion: 'v2', suffix: v2Suffix, split: 0.5, ref: 'rewards-2.1.2'
-    }),
-    run(deployRewards, {
-      ...options, apiVersion: 'v3', suffix: v2Suffix, split: 0.5, ref: 'HEAD'
-    }),
+    run(deployRewards, { ...options, apiVersion: 'v2', split: 0.5, ref: 'rewards-2.1.2' }),
+    run(deployRewards, { ...options, apiVersion: 'v3', split: 0.5, ref: 'HEAD' }),
   ])
   const RPT_CONFIG = [
     ...v2.RPT_CONFIG,
     ...v3.RPT_CONFIG
   ]
-  const RPT = deployment.getContract(RPTContract, 'SiennaRPT', admin)
+  const RPT = deployment.getContract(admin, RPTContract, 'SiennaRPT')
   await RPT.tx(admin).configure(RPT_CONFIG)
-  console.log({RPT_CONFIG})
   console.table([
     ...v2.REWARD_POOLS,
     ...v3.REWARD_POOLS

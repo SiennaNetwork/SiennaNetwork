@@ -1,13 +1,13 @@
 {
   "sSCRT": {
-    "label":  "placeholder_sSCRT",
+    "label":  "sSCRT",
     "initMsg": { "name": "SecretSCRT", "symbol": "SSCRT", "decimals": 6}},
   "STEST": {
-    "label":  "placeholder_STEST",
+    "label":  "STEST",
     "initMsg": { "name": "STEST",      "symbol": "STEST", "decimals": 9}},
   "SITOK": {
-    "label":  "placeholder_SITOK",
+    "label":  "SITOK",
     "initMsg": { "name": "SITOK",      "symbol": "SITOK", "decimals": 12}},
   "sETH": {
-    "label":  "placeholder_sETH",
+    "label":  "sETH",
     "initMsg": { "name": "SecretETH",  "symbol": "SETH",  "decimals": 15}}}

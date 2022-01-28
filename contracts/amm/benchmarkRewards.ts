@@ -4,7 +4,7 @@
 
 
 import {
-  IAgent,
+  Agent,
   ContractUpload,
   Scrt,
   ScrtGas,
@@ -62,7 +62,7 @@ async function setupNetwork (numberOfAgents: number) {
 
 
 
-async function setupContracts (admin: IAgent) {
+async function setupContracts (admin: Agent) {
 
   const prefix  = `RewardsBenchmark_${+new Date()}`
   const LPTOKEN = new LPTokenContract({ prefix, admin, name: 'BENCHMARK' })
@@ -96,8 +96,8 @@ async function setupContracts (admin: IAgent) {
 /// # Benchmark actions
 
 
-type Action      = (agent: IAgent) => Promise<void>
-type Transaction = [string, IAgent, { transactionHash: string }]
+type Action      = (agent: Agent) => Promise<void>
+type Transaction = [string, Agent, { transactionHash: string }]
 
 
 function setupActions (REWARDS: RewardsContract, LPTOKEN: LPTokenContract) {
@@ -106,18 +106,18 @@ function setupActions (REWARDS: RewardsContract, LPTOKEN: LPTokenContract) {
   const transactionLog: Array<Transaction> = []
 
   const actions = [
-    async (recipient: IAgent) => {
+    async (recipient: Agent) => {
       console.log(`----- ${recipient.name}: lock 100`)
       await LPTOKEN.mint("100", undefined, recipient.address)
       const result = await REWARDS.TX(recipient).deposit("100")
       transactionLog.push(['lock', recipient, result])
     },
-    async (recipient: IAgent) => {
+    async (recipient: Agent) => {
       console.log(`----- ${recipient.name}: retrieve 5`)
       const result = await REWARDS.TX(recipient).withdraw("5")
       transactionLog.push(['retrieve', recipient, result])
     },
-    async (recipient: IAgent) => {
+    async (recipient: Agent) => {
       console.log(`----- ${recipient.name}: claim`)
       const result = await REWARDS.TX(recipient).claim()
       transactionLog.push(['claim', recipient, result])
@@ -128,7 +128,7 @@ function setupActions (REWARDS: RewardsContract, LPTOKEN: LPTokenContract) {
 }
 
 
-async function runBenchmark (actions: Array<Action>, agents: Array<IAgent>) {
+async function runBenchmark (actions: Array<Action>, agents: Array<Agent>) {
   console.info(`Running benchmark`)
 
   for (let i = 0; i < 1000000; i++) {

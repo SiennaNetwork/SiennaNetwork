@@ -6,7 +6,7 @@
    * @param {string} contractAddress Address of the IDO contract where we will send this amount
    * @param {string|number|bigint} amount Amount to send
    * @param {string} [recipient] Recipient of the bought funds from IDO contract
-   * @param {IAgent} [agent]
+   * @param {Agent} [agent]
    * @returns
    */
   sendIdo = (
@@ -31,7 +31,7 @@
    *
    * @param {string} contractAddress Address of the Launchpad contract where we will send this amount
    * @param {string|number|bigint} amount Amount to send
-   * @param {IAgent} [agent]
+   * @param {Agent} [agent]
    * @returns
    */
   lockLaunchpad = (
@@ -54,7 +54,7 @@
    *
    * @param {string} contractAddress Address of the Launchpad contract
    * @param {number} entries Number of entries to unlock
-   * @param {IAgent} [agent]
+   * @param {Agent} [agent]
    * @returns
    */
   unlockLaunchpad = (contractAddress: string, entries: number) => {

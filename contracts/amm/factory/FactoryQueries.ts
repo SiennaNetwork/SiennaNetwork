@@ -4,6 +4,10 @@ import { TokenType } from './schema/handle_msg.d'
 import { Exchange } from './schema/query_response.d'
 
 export class FactoryQueries extends QueryExecutor {
+  async get_config (): Promise<any> {
+    const { config } = await this.query({ get_config: {} })
+    return config
+  }
   async list_exchanges (start: number, limit: number): Promise<Exchange[]> {
     const response = await this.query({ list_exchanges: { pagination: { start, limit } } })
     return response.list_exchanges.exchanges

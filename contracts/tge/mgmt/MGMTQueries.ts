@@ -1,7 +1,7 @@
-import { Scrt_1_0 } from '@hackbg/fadroma'
+import { Scrt_1_2 } from '@hackbg/fadroma'
 import type { SNIP20Contract } from '@fadroma/snip20'
 
-export class MGMTQueries extends Scrt_1_0.Contract.Queries {
+export class MGMTQueries extends Scrt_1_2.Contract.Queries {
 
   /** query contgract status */
   status () {

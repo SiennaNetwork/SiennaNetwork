@@ -1,6 +1,6 @@
 import {
   Scrt_1_2,
-  IAgent, IContract,
+  Agent, Contract,
   ContractOptions, ContractConstructor,
   randomHex
 } from "@hackbg/fadroma"
@@ -13,19 +13,16 @@ import { RewardsQueries } from './RewardsQueries'
 export class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, RewardsQueries> {
 
   crate = 'sienna-rewards'
+  name  = 'SiennaRewards'
 
-  name = 'SiennaRewards'
+  Transactions = RewardsTransactions
+  Queries      = RewardsQueries
 
-  initMsg: Init = {
-    admin: this.instantiator?.address,
-    config: {}
-  }
-
-  admin?: IAgent
+  initMsg?: Init
 
   constructor (options: ContractOptions & {
     /** Admin agent */
-    admin?:       IAgent,
+    admin?:       Agent,
     /** Address of other user that can increment the epoch */
     timekeeper?:  string,
     /** Staked token */
@@ -36,15 +33,8 @@ export class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, Rewa
     bonding?:     number,
   } = {}) {
     super(options)
-    this.admin = options.admin
-    this.initMsg.admin = options.admin?.address
-    this.initMsg.config = {
-      reward_vk:    randomHex(36),
-      bonding:      options.bonding || 86400,
-      timekeeper:   options.timekeeper,
-      lp_token:     options.lpToken?.link,
-      reward_token: options.rewardToken?.link,
-    }
+    const { name } = options
+    if (name) this.name = name // why
   }
 
   get epoch (): Promise<number> {

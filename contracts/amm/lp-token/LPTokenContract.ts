@@ -1,9 +1,9 @@
-import { IAgent, ContractState, randomHex } from "@hackbg/fadroma"
+import { Agent, ContractState, randomHex } from "@hackbg/fadroma"
 import { SNIP20Contract_1_2 } from "@fadroma/snip20"
 import { InitMsg } from "./schema/init_msg.d"
 
 export type LPTokenOptions = {
-  admin?:  IAgent,
+  admin?:  Agent,
   name?:   string,
   prefix?: string,
 }

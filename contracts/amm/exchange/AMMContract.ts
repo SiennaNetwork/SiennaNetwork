@@ -1,4 +1,4 @@
-import { IAgent, ContractState, randomHex, Scrt_1_2 } from "@hackbg/fadroma"
+import { Agent, ContractState, randomHex, Scrt_1_2 } from "@hackbg/fadroma"
 import { SNIP20Contract } from '@fadroma/snip20'
 
 import { AMMTransactions } from './AMMTransactions'
@@ -21,13 +21,14 @@ export class AMMContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> 
   lpToken?: SNIP20Contract
 
   constructor (options: ContractState & {
-    admin?:    IAgent,
+    admin?:    Agent,
     prefix?:   string,
     label?:    string,
     name?:     string,
     symbol?:   string,
     decimals?: number,
-    lpToken?:  SNIP20Contract
+    lpToken?:  SNIP20Contract,
+    initMsg?:  InitMsg
   } = {}) {
     super(options)
     this.initMsg = {
@@ -36,7 +37,8 @@ export class AMMContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> 
       factory_info:      { address: null, code_hash: null },
       lp_token_contract: { id: null, code_hash: null },
       pair:              null,
-      prng_seed:         randomHex(36)
+      prng_seed:         randomHex(36),
+      ...(options.initMsg||{})
     }
   }
 
@@ -50,7 +52,7 @@ export class AMMContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> 
   }
 
   pairInfo = (): Promise<{ pair: TokenPair, liquidity_token: ContractLink }> => {
-    return this.q(this.admin).pair_info()
+    return this.q().pair_info()
   }
 
 }

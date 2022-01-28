@@ -1,150 +1,153 @@
 import process from 'process'
-
-import { MigrationContext, bold, colors, timestamp, writeFileSync } from '@hackbg/fadroma'
+import { Console, MigrationContext, bold, colors, timestamp, writeFileSync } from '@hackbg/fadroma'
 import type { SNIP20Contract } from '@fadroma/snip20'
-
 import {
   RPTContract,
-  FactoryContract,
+  FactoryContract, ExchangeInfo,
   AMMContract,
   LPTokenContract,
   RewardsContract
 } from '@sienna/api'
-
 import settings, { workspace } from '@sienna/settings'
+import { deployRewardPool } from './deploy'
 
 type MultisigTX = any
 
+const console    = Object.assign(Console('@sienna/amm/upgrade'), { table: global.console.table })
+const pick       = (...keys) => x => keys.reduce((y, key)=>{y[key]=x[key];return y}, {})
+const essentials = pick('codeId', 'codeHash', 'address', 'label')
+
 export async function upgradeFactoryAndRewards ({
-  timestamp, chain, admin, deployment, prefix,
-}: MigrationContext): Promise<MultisigTX[]> {
-  // the arbiter of it all.
-  // will redirect fundsin a 30:70 proportion
-  // from old version to new version
-  const RPT: RPTContract =
-    deployment.getContract(RPTContract, 'SiennaAMMFactory', admin)
-  // the v1 factory. we'll terminate this now,
+  timestamp, chain, admin, deployment, prefix, run,
+  RPT              = deployment.getContract(admin,  RPTContract,     'SiennaAMMFactory'),
+  OLD_FACTORY      = deployment.getContract(admin,  FactoryContract, 'SiennaAMMFactory'),
+  OLD_REWARD_POOLS = deployment.getContracts(admin, RewardsContract, 'SiennaRewards')
+}: MigrationContext & {
+  // The arbiter of it all.
+  // Will redirect funds in a 30:70 proportion
+  // from old version to new version.
+  RPT?:             RPTContract,
+  // The v1 factory. We'll terminate this now,
   // so that new pairs cannot be created from the v1 factory.
-  const V1_FACTORY: FactoryContract =
-    deployment.getContract(FactoryContract, 'SiennaAMMFactory', admin)
-  // the liquidity pools of the v1 factory.
-  // we'll disincentivise those in RPT now,
-  // and eventually terminate them in the next migration.
-  const OLD_LIQUIDITY_POOLS: AMMContract[] =
-    await V1_FACTORY.exchanges
-  // the LP tokens of the liquidity pools of the v1 factory.
-  // we'll disincentivise those in RPT now,
-  // and eventually terminate them in the next migration.
-  const OLD_LP_TOKENS: SNIP20Contract[] =
-    OLD_LIQUIDITY_POOLS.map(exchange=>exchange.lpToken)
-  // the reward pools attached to some of the LP tokens
+  OLD_FACTORY?:      FactoryContract
+  // The reward pools attached to some of the LP tokens
   // of the liquidity pools of the v1 factory.
-  // we'll disincentivise those in RPT now,
+  // We'll disincentivise those in RPT now,
   // and eventually terminate them in the next migration.
-  const V2_REWARD_POOLS: RewardsContract[] =
-    deployment.getContracts(RewardsContract, 'SiennaRewards', admin)
-  const pick = (...keys) => x => keys.reduce((y, key)=>{y[key]=x[key];return y}, {})
-  const essentials = pick('codeId', 'codeHash', 'address', 'label')
-  console.log('V1 factory:')
-  console.table(essentials(V1_FACTORY))
-  console.log("V1 factory's exchanges (to be disincentivised):")
-  console.table(OLD_LIQUIDITY_POOLS.map(essentials))
-  console.log("V1 factory's exchanges' LP tokens (to be disincentivised):")
-  console.table(OLD_LP_TOKENS.map(essentials))
-  console.log("V2 rewards attached to V1 factory's LP tokens (to be disincentivised)")
-  console.table(V2_REWARD_POOLS.map(essentials))
+  OLD_REWARD_POOLS?: RewardsContract[]
+}): Promise<MultisigTX[]> {
+  // The liquidity pools of the v1 factory.
+  // We'll disincentivise those in RPT now,
+  // and eventually terminate them in the next migration.
+  const OLD_EXCHANGES: ExchangeInfo[] = await OLD_FACTORY.exchanges
+  // The LP tokens of the liquidity pools of the v1 factory.
+  // We'll disincentivise those in RPT now,
+  // and eventually terminate them in the next migration.
+  // Let's report some initial status.
+  console.log()
+  console.info(bold('Current factory:'))
+  printContract(OLD_FACTORY)
+  const OLD_REWARD_POOL_LP_TOKENS = await Promise.all(
+    OLD_REWARD_POOLS.map(REWARDS=>REWARDS.lpToken())
+  )
+  for (const {
+    name, EXCHANGE: { codeId, codeHash, address },
+    TOKEN_0, TOKEN_1, LP_TOKEN
+  } of OLD_EXCHANGES) {
+    console.info(
+      ' ',
+      bold(colors.inverse(name)).padEnd(30), // wat
+      `(code id ${bold(String(codeId))})`.padEnd(34),
+      bold(address)
+    )
+    await printToken(TOKEN_0)
+    await printToken(TOKEN_1)
+    await printToken(LP_TOKEN)
+  }
   // The new contracts.
   // Their addresses should be added to the frontend.
-  const V2_FACTORY: FactoryContract = new FactoryContract({
+  const NEW_FACTORY: FactoryContract = new FactoryContract({
     workspace,
     prefix,
     suffix: `@v2.0.0+${timestamp}`,
     admin,
     exchange_settings: settings(chain.chainId).amm.exchange_settings,
   })
-  const contracts = await V1_FACTORY.getContracts()
-  V2_FACTORY.setContracts(contracts)
-  await chain.buildAndUpload([V2_FACTORY])
-  await V2_FACTORY.instantiate()
+  console.log()
+  console.info(
+    bold('Deploying new factory'), NEW_FACTORY.label
+  )
+  const contracts = await OLD_FACTORY.getContracts()
+  NEW_FACTORY.setContracts(contracts)
+  await chain.buildAndUpload([NEW_FACTORY])
+  await NEW_FACTORY.instantiate()
+  console.info(
+    bold('Deployed new factory'), NEW_FACTORY.address
+  )
+  printContract(NEW_FACTORY)
   // The new liquidity pools.
   // Their addresses should be added to the frontend.
-  const NEW_LIQUIDITY_POOLS: AMMContract[] = []
-  for (const { address, token_0, token_1 } of OLD_LIQUIDITY_POOLS) {
-    const NEW_LIQUIDITY_POOL = await V2_FACTORY.createExchange(token_0, token_1)
-    console.log(`\nOLD LIQUIDITY POOL ${address}`)
-    console.log(`between tokens ${JSON.stringify(token_0)}`)
-    console.log(`           and ${JSON.stringify(token_1)}`)
-    console.log(`becomes NEW LIQUIDITY POOL ${NEW_LIQUIDITY_POOL.address}`)
-    console.log({NEW_LIQUIDITY_POOL})
-    NEW_LIQUIDITY_POOL.push(NEW_LIQUIDITY_POOL)
-    await admin.nextBlock
+  const NEW_EXCHANGES: AMMContract[]     = []
+  const NEW_LP_TOKENS: LPTokenContract[] = []
+  for (const { address, token_0, token_1 } of OLD_EXCHANGES) {
+    console.info(
+      bold('Upgrading exchange'), address
+    )
+    const { EXCHANGE, LP_TOKEN } = await NEW_FACTORY.createExchange(token_0, token_1)
+    NEW_EXCHANGES.push(EXCHANGE)
+    NEW_LP_TOKENS.push(LP_TOKEN)
   }
-
-  process.exit(123)
-  // The new LP tokens.
-  // Their addresses should be added to the frontend.
-  const NEW_LP_TOKENS: LPTokenContract[] =
-    NEW_LIQUIDITY_POOLS.forEach(EXCHANGE=>{
-      console.log(`\nOld LP token ${EXCHANGE.address}`)
-      console.log(`of old liquidity pool TODO`)
-      console.log(`has become new liquidity pool TODO`)
-      return EXCHANGE.lpToken
-    })
-
+  console.info(bold("Newly created exchanges from V2 factory:"))
+  console.table(NEW_EXCHANGES.map(essentials))
+  console.info(bold("And their new LP tokens:"))
+  console.table(NEW_LP_TOKENS.map(essentials))
   // The v3 reward pools.
   // Their addresses should be added to the frontend.
-  const V3_REWARD_POOLS: RewardsContract[] =
-    V2_REWARD_POOLS.forEach(rewards=>{
-      console.log(`\nOld (v2) reward pool ${rewards.address}`)
-      console.log(`for old LP token TODO`)
-      console.log(`corresponds to new (v3) reward pool TODO`)
-      console.log(`for new LP token TODO`)
-    })
-
+  const NEW_REWARD_POOLS: RewardsContract[] = []
+  //for (const LP_TOKEN of NEW_LP_TOKENS) {
+    //const { REWARDS } = await run(deployRewardPool, {
+    //})
+    //NEW_REWARD_POOLS.push()
+  //}
+  console.table(NEW_REWARD_POOLS.map(essentials))
   return []
 }
 
 export async function replaceRewardPool ({
-  chain,
-  admin,
-  prefix,
-  deployment,
-  rewardPoolLabel
+  chain, admin, prefix, deployment,
+  rewardPoolLabel,
+  POOL = deployment.getContract(admin, RewardsContract, rewardPoolLabel),
+  RPT  = deployment.getContract(admin, RPTContract,     'SiennaRPT')
 }: MigrationContext & {
   rewardPoolLabel: string
+  POOL:            RewardsContract
+  RPT:             RPTContract
 }) {
-
-  console.log(
+  console.info(
     `Upgrading reward pool ${bold(rewardPoolLabel)}` +
     `\nin deployment ${bold(prefix)}` +
     `\non ${bold(chain.chainId)}` +
     `\nas ${bold(admin.address)}\n`
   )
-
   // This is the old reward pool
-  const POOL = deployment.getContract(RewardsContract, rewardPoolLabel, admin)
-
   // Find address of pool in RPT config
-  const RPT  = deployment.getContract(RPTContract, 'SiennaRPT', admin)
   const {config} = await RPT.status
   let found: number = NaN
   for (let i = 0; i < config.length; i++) {
-    console.log(config[i])
+    console.info(config[i])
     if (config[i][0] === POOL.address) {
       if (!isNaN(found)) {
-        console.log(`Address ${bold(POOL.address)} found in RPT config twice.`)
+        console.info(`Address ${bold(POOL.address)} found in RPT config twice.`)
         process.exit(1)
       }
       found = i
     }
   }
   if (isNaN(found)) {
-    console.log(`Reward pool ${bold(POOL.address)} not found in RPT ${bold(RPT.address)}`)
+    console.info(`Reward pool ${bold(POOL.address)} not found in RPT ${bold(RPT.address)}`)
     process.exit(1)
   }
-
-  console.log(`Replacing reward pool ${POOL.address}`)
-
+  console.info(`Replacing reward pool ${POOL.address}`)
   const [
     LP_TOKEN,
     REWARD_TOKEN
@@ -152,19 +155,17 @@ export async function replaceRewardPool ({
     POOL.lpToken(),
     POOL.rewardToken()
   ])
-
   const NEW_POOL = new RewardsContract({
     prefix,
-    label: `${rewardPoolLabel}@${timestamp()}`,
+    name:   `${rewardPoolLabel}`,
+    suffix: `@${timestamp()}`
     admin,
     lpToken:     LP_TOKEN,
     rewardToken: REWARD_TOKEN
   })
   await chain.buildAndUpload([NEW_POOL])
   await NEW_POOL.instantiate()
-
   config[found][0] = NEW_POOL.address
-
   if (chain.isMainnet) {
     const rptConfigPath = deployment.resolve(`RPTConfig.json`)
     writeFileSync(rptConfigPath, JSON.stringify({config}, null, 2), 'utf8')
@@ -175,7 +176,29 @@ export async function replaceRewardPool ({
   } else {
     await RPT.tx().configure(config)
   }
-
   await POOL.tx().close(`Moved to ${NEW_POOL.address}`)
+}
 
+function printContract (contract) {
+  console.info(bold(`  Code ID:`.padEnd(14)),   contract.codeId)
+  console.info(bold(`  Code hash:`.padEnd(14)), contract.codeHash)
+  console.info(bold(`  Address:`.padEnd(14)),   contract.address)
+  console.info(bold(`  Label:`.padEnd(14)),     contract.label)
+}
+
+async function printToken (TOKEN) {
+  if (typeof TOKEN === 'string') {
+    console.info(
+      `   `,
+      bold(TOKEN.padEnd(10))
+    )
+  } else {
+    const {name, symbol} = await TOKEN.q(admin).tokenInfo()
+    console.info(
+      `   `,
+      bold(symbol.padEnd(10)),
+      name.padEnd(25).slice(0, 25),
+      TOKEN.address
+    )
+  }
 }
