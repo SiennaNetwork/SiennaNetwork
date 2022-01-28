@@ -1,11 +1,7 @@
-use std::str::FromStr;
-
 use lend_shared::{
     fadroma::{
-        decimal::one_token,
-        ensemble::MockEnv,
-        snip20_impl::msg::{HandleMsg as Snip20HandleMsg, QueryMsg as Snip20QueryMsg},
-        to_binary, Binary, Decimal256, Permit, Uint128, Uint256,
+        decimal::one_token, ensemble::MockEnv, snip20_impl::msg::HandleMsg as Snip20HandleMsg,
+        to_binary, Decimal256, Permit, Uint128, Uint256,
     },
     interfaces::{market, overseer},
 };
@@ -49,7 +45,7 @@ fn liquidate_basic() {
     // prefund markets
     lend.prefund_and_deposit(
         BOB,
-        Uint128(21 * one_token(17)),
+        Uint128(2 * one_token(18)),
         market_1.contract.address.clone(),
     );
     lend.prefund_user(ALICE, Uint128(5 * one_token(18)), underlying_2.clone());
@@ -158,7 +154,7 @@ fn liquidate_basic() {
             MockEnv::new(ALICE, underlying_2.clone()),
         )
         .unwrap();
-    
+
     let res: market::AccountInfo = lend
         .ensemble
         .query(
@@ -176,4 +172,25 @@ fn liquidate_basic() {
         )
         .unwrap();
     assert_eq!(res.sl_token_balance, Uint256::from(0u128));
+
+    let res: market::AccountInfo = lend
+        .ensemble
+        .query(
+            market_1.contract.address.clone(),
+            &market::QueryMsg::Account {
+                method: Permit::<market::MarketPermissions>::new(
+                    ALICE,
+                    vec![market::MarketPermissions::AccountInfo],
+                    vec![market_1.contract.address.clone()],
+                    "balance",
+                )
+                .into(),
+                block: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        res.sl_token_balance,
+        Uint256::from(3_888_000_000_000_000_000u128)
+    );
 }

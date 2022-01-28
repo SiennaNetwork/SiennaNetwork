@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use lend_shared::fadroma::{
     ensemble::{ContractEnsemble, ContractHarness, MockDeps, MockEnv},
     from_binary, snip20_impl,
@@ -250,7 +252,7 @@ impl Lend {
                     config: market::Config {
                         initial_exchange_rate: exchange_rate.unwrap_or(Decimal256::one()),
                         reserve_factor: Decimal256::one(),
-                        seize_factor: Decimal256::one(),
+                        seize_factor: Decimal256::from_str("0.028").unwrap(),
                     },
                     interest_model_contract: self.interest_model.clone(),
                 },
