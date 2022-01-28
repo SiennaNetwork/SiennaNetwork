@@ -49,6 +49,8 @@ pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
 // TODO: proper value here
 pub const MAX_BORROW_RATE: Decimal256 = Decimal256::one();
 
+const TOKEN_PREFIX: &str = "sl";
+
 use state::{
     Constants, Contracts, Global, BorrowerId,
     Account, TotalBorrows, TotalSupply, load_borrowers
@@ -448,6 +450,25 @@ pub trait Market {
         padding: Option<String>
     ) -> StdResult<HandleResponse> {
         AuthImpl.set_viewing_key(key, padding, deps, env)
+    }
+
+    #[query]
+    fn token_info() -> StdResult<snip20_msg::QueryAnswer> {
+        let underlying = Contracts::load_underlying(deps)?;
+
+        let info = snip20::token_info_query(
+            &deps.querier,
+            BLOCK_SIZE,
+            underlying.code_hash,
+            underlying.address
+        )?;
+
+        Ok(snip20_msg::QueryAnswer::TokenInfo {
+            name: format!("Sienna Lend Market for {}", info.symbol),
+            symbol: format!("{}{}", TOKEN_PREFIX, info.symbol),
+            decimals: info.decimals,
+            total_supply: Some(TotalSupply::load(&deps.storage)?.low_u128().into())
+        })
     }
 
     #[query]
