@@ -137,39 +137,26 @@ fn liquidate_basic() {
     // negative liquidity
     assert_ne!(liquidity.shortfall, Uint256::zero());
 
-    let id: Binary = lend
-        .ensemble
-        .query(
-            market_2.contract.address.clone(),
-            market::QueryMsg::Id {
-                method: Permit::new(
-                    BOB,
-                    vec![market::MarketPermissions::Id],
-                    vec![market_2.contract.address.clone()],
-                    "id",
-                )
-                .into(),
+    let id = lend.id(BOB, market_2.contract.address.clone());
+    println!("{:#?}", id.to_string());
+
+    lend.ensemble
+        .execute(
+            &Snip20HandleMsg::Send {
+                recipient: market_2.contract.address.clone(),
+                recipient_code_hash: None,
+                amount: Uint128(1 * one_token(18)),
+                msg: Some(
+                    to_binary(&market::ReceiverCallbackMsg::Liquidate {
+                        borrower: id,
+                        collateral: underlying_1.address.clone(),
+                    })
+                    .unwrap(),
+                ),
+                memo: None,
+                padding: None,
             },
+            MockEnv::new(ALICE, underlying_2.clone()),
         )
         .unwrap();
-
-    // lend.ensemble
-    //     .execute(
-    //         &Snip20HandleMsg::Send {
-    //             recipient: market_2.contract.address.clone(),
-    //             recipient_code_hash: None,
-    //             amount: Uint128(1 * one_token(18)),
-    //             msg: Some(
-    //                 to_binary(&market::ReceiverCallbackMsg::Liquidate {
-    //                     borrower: id,
-    //                     collateral: underlying_1.address.clone(),
-    //                 })
-    //                 .unwrap(),
-    //             ),
-    //             memo: None,
-    //             padding: None,
-    //         },
-    //         MockEnv::new(ALICE, underlying_2.clone()),
-    //     )
-    //     .unwrap();
 }
