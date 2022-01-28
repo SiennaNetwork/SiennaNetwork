@@ -175,5 +175,5 @@ fn liquidate_basic() {
             },
         )
         .unwrap();
-    assert_eq!(res.sl_token_balance, Uint256::from(1u128));
+    assert_eq!(res.sl_token_balance, Uint256::from(0u128));
 }
