@@ -185,15 +185,11 @@ impl Account {
     ) -> StdResult<Self> {
         let account = Self(address.canonize(&deps.api)?);
 
-        let id = BorrowerId::new(deps, address)?;
-
-        let is_new_user = ns_load::<CanonicalAddr, S>(
-            &deps.storage,
-            Self::NS_ID_TO_ADDR,
-            id.as_slice()
-        )?.is_none();
+        let is_new_user = Self::load_id(&deps.storage, &account.0)?.is_none();
 
         if is_new_user {
+            let id = BorrowerId::new(deps, address)?;
+
             ns_save(&mut deps.storage, Self::NS_ID_TO_ADDR, id.as_slice(), &account.0.0)?;
             ns_save(&mut deps.storage, Self::NS_ADDR_TO_ID, account.0.0.as_slice(), &id)?;
         }
