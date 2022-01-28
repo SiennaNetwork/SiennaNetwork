@@ -828,7 +828,7 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
                     msg: to_binary(&HandleMsg::Seize {
                         liquidator: liquidator_address,
                         borrower: borrower_address,
-                        amount
+                        amount: seize_amount
                     })?
                 })
             ],
@@ -841,7 +841,7 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
             balance.into(),
             liquidator,
             borrower,
-            amount
+            seize_amount
         )
     }
 }
