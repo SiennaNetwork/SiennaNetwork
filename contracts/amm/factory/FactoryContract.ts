@@ -172,10 +172,12 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
 
   /** Create a liquidity pool, i.e. an instance of the exchange contract. */
   async createExchange (
-    token_0: TokenType,
-    token_1: TokenType,
+    token_0: SNIP20Contract|TokenType,
+    token_1: SNIP20Contract|TokenType,
     agent = this.agent
   ): Promise<ExchangeInfo> {
+    if (token_0 instanceof SNIP20Contract) token_0 = token_0.asCustomToken
+    if (token_1 instanceof SNIP20Contract) token_1 = token_1.asCustomToken
     await this.tx(agent).create_exchange(token_0, token_1)
     return await this.getExchange(token_0, token_1, agent)
   }
@@ -228,7 +230,9 @@ export const upgradeAMM = {
 
   async v1_to_v2 ({
     run, chain, admin, deployment, prefix,
-    FACTORY = deployment.getContract(admin, FactoryContract, 'SiennaAMMFactory'),
+    FACTORY = deployment.getContract(
+      admin, FactoryContract, 'SiennaAMMFactory@v1'
+    ),
   }) {
     console.log()
 
@@ -246,14 +250,13 @@ export const upgradeAMM = {
     })
     printContract(NEW_FACTORY)
 
-    const NEW_EXCHANGES = await Promise.all(
-      EXCHANGES.map(({ address, token_0, token_1 })=>{
-        console.info(
-          bold('Upgrading exchange'), address
-        )
-        return NEW_FACTORY.createExchange(token_0, token_1)
-      })
-    )
+    const NEW_EXCHANGES = []
+    for (const EXCHANGE of EXCHANGES) {
+      console.info(bold('Upgrading exchange'), EXCHANGE.name)
+      NEW_EXCHANGES.push(
+        await NEW_FACTORY.createExchange(EXCHANGE.TOKEN_0, EXCHANGE.TOKEN_1,)
+      )
+    }
     await printExchanges(NEW_EXCHANGES)
 
     return { FACTORY: NEW_FACTORY, EXCHANGES: NEW_EXCHANGES }

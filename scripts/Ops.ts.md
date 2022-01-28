@@ -130,7 +130,7 @@ Fadroma.command('deploy factory v1',
 
 ```typescript
 import { upgradeFactoryAndRewards } from '@sienna/amm'
-Fadroma.command('upgrade factory',
+Fadroma.command('upgrade amm v1_to_v2',
   needsActiveDeployment,
   upgradeAMM.v1_to_v2)
 ```
