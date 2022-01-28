@@ -766,9 +766,11 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
     let borrow_index = Global::load_borrow_index(&deps.storage)?;
     let mut snapshot = borrower.get_borrow_snapshot(&deps.storage)?;
 
+    let borrower_address = borrower.address(&deps.api)?;
+
     checks::assert_liquidate_allowed(
         deps,
-        HumanAddr::default(), // TODO: get borrower address
+        borrower_address.clone(),
         snapshot.current_balance(borrow_index)?,
         env.block.height,
         amount
@@ -781,7 +783,6 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
     TotalBorrows::decrease(&mut deps.storage, amount)?;
 
     let overseer = Contracts::load_overseer(deps)?;
-    let borrower_address = borrower.address(&deps.api)?;
 
     let (borrower_balance, market) = if env.contract.address == collateral {
         (borrower.get_balance(&deps.storage)?, None)
