@@ -753,8 +753,10 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
 
     let borrower_address = borrower.address(&deps.api)?;
 
+    let overseer = Contracts::load_overseer(deps)?;
     checks::assert_liquidate_allowed(
         deps,
+        overseer.clone(),
         borrower_address.clone(),
         snapshot.current_balance(borrow_index)?,
         env.block.height,
@@ -769,7 +771,6 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
 
     let this_is_collateral = env.contract.address == collateral;
 
-    let overseer = Contracts::load_overseer(deps)?;
     let seize_amount = query_seize_amount(
         &deps.querier,
         overseer.clone(),
@@ -789,7 +790,7 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
     } else {
         let market = query_market(
             &deps.querier,
-            overseer.clone(),
+            overseer,
             collateral.clone()
         )?;
 
