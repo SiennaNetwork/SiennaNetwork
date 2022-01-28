@@ -4,7 +4,7 @@ use lend_shared::{
             Extern, Storage, Api, Querier,
             StdResult, HumanAddr, StdError
         },
-        Uint256
+        Uint256, ContractLink
     },
     interfaces::overseer::{
         query_config, query_account_liquidity
@@ -53,6 +53,7 @@ pub fn assert_borrow_allowed<S: Storage, A: Api, Q: Querier>(
 
 pub fn assert_liquidate_allowed<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S,A,Q>,
+    overseer: ContractLink<HumanAddr>,
     borrower: HumanAddr,
     borrower_balance: Uint256,
     block: u64,
@@ -61,8 +62,6 @@ pub fn assert_liquidate_allowed<S: Storage, A: Api, Q: Querier>(
     if amount == Uint256::zero() {
         return Err(StdError::generic_err("Repay amount cannot be zero."));
     }
-
-    let overseer = Contracts::load_overseer(deps)?;
 
     let liquidity = query_account_liquidity(
         &deps.querier,
@@ -87,7 +86,11 @@ pub fn assert_liquidate_allowed<S: Storage, A: Api, Q: Querier>(
     let max = borrower_balance.decimal_mul(config.close_factor)?;
 
     if amount > max {
-        Err(StdError::generic_err("Repay amount is too high."))
+        Err(StdError::generic_err(format!(
+            "Repay amount is too high. Amount: {}, Max: {}",
+            amount,
+            max
+        )))
     } else {
         Ok(())
     }

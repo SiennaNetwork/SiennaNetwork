@@ -107,12 +107,6 @@ pub trait Market {
     ) -> StdResult<Uint128>;
 
     #[query]
-    fn balance_internal(
-        address: HumanAddr,
-        key: MasterKey
-    ) -> StdResult<Uint128>;
-
-    #[query]
     fn state(block: Option<u64>) -> StdResult<State>;
 
     #[query]
@@ -257,22 +251,6 @@ pub fn query_account(
         msg: to_binary(&QueryMsg::Account {
             method,
             block
-        })?
-    }))
-}
-
-pub fn query_balance(
-    querier: &impl Querier,
-    market: ContractLink<HumanAddr>,
-    key: MasterKey,
-    address: HumanAddr
-) -> StdResult<Uint128> {
-    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-        contract_addr: market.address,
-        callback_code_hash: market.code_hash,
-        msg: to_binary(&QueryMsg::BalanceInternal {
-            key,
-            address
         })?
     }))
 }

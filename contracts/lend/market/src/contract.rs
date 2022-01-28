@@ -32,7 +32,7 @@ use lend_shared::{
         market::{
             ReceiverCallbackMsg, State, HandleMsg,
             MarketPermissions, AccountInfo, Config,
-            MarketAuth, Borrower, query_balance, 
+            MarketAuth, Borrower 
         },
         overseer::{
             query_can_transfer,
@@ -485,21 +485,6 @@ pub trait Market {
     }
 
     #[query]
-    fn balance_internal(
-        address: HumanAddr,
-        key: MasterKey
-    ) -> StdResult<Uint128> {
-        MasterKey::check(&deps.storage, &key)?;
-
-        let account = Account::of(deps, &address)?;
-
-        Ok(account.get_balance(&deps.storage)?
-            .low_u128()
-            .into()
-        )
-    }
-
-    #[query]
     fn state(block: Option<u64>) -> StdResult<State> {
         let underlying_asset = Contracts::load_underlying(deps)?;
 
@@ -768,8 +753,10 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
 
     let borrower_address = borrower.address(&deps.api)?;
 
+    let overseer = Contracts::load_overseer(deps)?;
     checks::assert_liquidate_allowed(
         deps,
+        overseer.clone(),
         borrower_address.clone(),
         snapshot.current_balance(borrow_index)?,
         env.block.height,
@@ -782,43 +769,31 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
 
     TotalBorrows::decrease(&mut deps.storage, amount)?;
 
-    let overseer = Contracts::load_overseer(deps)?;
-
-    let (borrower_balance, market) = if env.contract.address == collateral {
-        (borrower.get_balance(&deps.storage)?, None)
-    } else {
-        let market = query_market(
-            &deps.querier,
-            overseer.clone(),
-            collateral.clone()
-        )?;
-
-        let borrower_balance: Uint256 = query_balance(
-            &deps.querier,
-            market.contract.clone(),
-            MasterKey::load(&deps.storage)?,
-            borrower_address.clone()
-        )?.into();
-
-        (borrower_balance, Some(market))
-    };
+    let this_is_collateral = env.contract.address == collateral;
 
     let seize_amount = query_seize_amount(
         &deps.querier,
-        overseer,
+        overseer.clone(),
         env.contract.address,
-        collateral,
+        collateral.clone(),
         amount
     )?;
 
-    if borrower_balance < seize_amount {
-        return Err(StdError::generic_err(format!(
-            "Borrow collateral balance is less that the seize amount. Shortfall: {}",
-            (seize_amount - borrower_balance)?
-        )));
-    }
+    if this_is_collateral {
+        seize(
+            deps,
+            balance.into(),
+            liquidator,
+            borrower,
+            seize_amount
+        )
+    } else {
+        let market = query_market(
+            &deps.querier,
+            overseer,
+            collateral.clone()
+        )?;
 
-    if let Some(market) = market {
         Ok(HandleResponse {
             messages: vec![
                 CosmosMsg::Wasm(WasmMsg::Execute {
@@ -835,14 +810,6 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
             log: vec![],
             data: None
         })
-    } else {
-        seize(
-            deps,
-            balance.into(),
-            liquidator,
-            borrower,
-            seize_amount
-        )
     }
 }
 
@@ -853,11 +820,15 @@ fn seize<S: Storage, A: Api, Q: Querier>(
     borrower: Account,
     amount: Uint256
 ) -> StdResult<HandleResponse> {
-    borrower.subtract_balance(&mut deps.storage, amount)?;
+    if borrower.subtract_balance(&mut deps.storage, amount).is_err() {
+        return Err(StdError::generic_err(format!(
+            "Borrower collateral balance is less that the seize amount. Shortfall: {}",
+            (amount - borrower.get_balance(&deps.storage)?)?
+        )));
+    }
 
     let config = Constants::load_config(&deps.storage)?;
-    // TODO: how are those two next lines correct???
-    // https://github.com/compound-finance/compound-protocol/blob/4a8648ec0364d24c4ecfc7d6cae254f55030d65f/contracts/CToken.sol#L1085-L1086
+
     let protocol_share = amount.decimal_mul(config.seize_factor)?;
     let liquidator_share = (amount - protocol_share)?;
 
