@@ -76,6 +76,7 @@ export async function deployTGE ({
     config:  [[admin.address, RPTAccount.portion_size]]
   })
 
+  console.log()
   console.info(bold('Deployed TGE contracts:'))
   printContracts([SIENNA, MGMT, RPT])
 

@@ -1,15 +1,26 @@
-import { Scrt_1_2, ContractState, Agent, randomHex, bold, Console } from "@hackbg/fadroma"
+import {
+  Scrt_1_2, ContractInfo, Agent, MigrationContext,
+  randomHex, colors, bold, Console, timestamp,
+  printContract, printToken, printExchanges, printContracts
+} from "@hackbg/fadroma"
+
 import { SNIP20Contract } from '@fadroma/snip20'
 
-import { AMMContract        } from "@sienna/exchange";
-import { AMMSNIP20Contract  } from "@sienna/amm-snip20";
-import { LPTokenContract    } from "@sienna/lp-token";
-import { IDOContract        } from "@sienna/ido";
-import { LaunchpadContract  } from "@sienna/launchpad";
+import { AMMContract, ExchangeInfo } from "@sienna/exchange"
+import { AMMSNIP20Contract, deployPlaceholders } from "@sienna/amm-snip20"
+import { LPTokenContract } from "@sienna/lp-token"
 
-import { InitMsg, ExchangeSettings, ContractInstantiationInfo } from './schema/init_msg.d';
-import { TokenType } from './schema/handle_msg.d';
+import { IDOContract } from "@sienna/ido"
+import { LaunchpadContract } from "@sienna/launchpad"
+import { SiennaSNIP20Contract } from '@sienna/api'
+
+import getSettings, { workspace } from '@sienna/settings'
+
+import { InitMsg, ExchangeSettings, ContractInstantiationInfo } from './schema/init_msg.d'
+import { TokenType } from './schema/handle_msg.d'
 import { QueryResponse, Exchange } from './schema/query_response.d'
+
+const console = Console('@sienna/factory')
 
 export type FactoryInventory = {
   snip20_contract?:    ContractInstantiationInfo
@@ -20,49 +31,23 @@ export type FactoryInventory = {
   router_contract?:    ContractInstantiationInfo
 }
 
-import { FactoryTransactions } from './FactoryTransactions'
-import { FactoryQueries }      from './FactoryQueries'
-
-/** An exchange is an interaction between 4 contracts. */
-export type ExchangeInfo = {
-  /** Shorthand to refer to the whole group. */
-  name?: string
-  /** One token. */
-  TOKEN_0:  SNIP20Contract|string,
-  /** Another token. */
-  TOKEN_1:  SNIP20Contract|string,
-  /** The automated market maker/liquidity pool for the token pair. */
-  EXCHANGE: AMMContract,
-  /** The liquidity provision token, which is minted to stakers of the 2 tokens. */
-  LP_TOKEN: LPTokenContract,
-  /** The bare-bones data needed to retrieve the above. */
-  raw:      any
-}
-
-const console = Console('@sienna/amm/factory')
-
+import { FactoryTransactions, FactoryQueries } from './FactoryApi'
 export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, FactoryQueries> {
   crate        = 'factory'
   name         = 'SiennaAMMFactory'
+  version      = 'v2'
   Transactions = FactoryTransactions
   Queries      = FactoryQueries
-  admin?: Agent
-  constructor (options: ContractState & {
-    admin?: Agent
-    /* AMM config from project settings.
-     * First auto-generated type definition
-     * finally put to use in the codebase! Hooray */
-    exchange_settings?:  ExchangeSettings
-    /* Contract contracts (id + codehash)
-     * for each contract known by the factory */
-    contracts?: FactoryInventory
-  } = {}) {
+  constructor (options) {
     super(options)
-    if (options.exchange_settings) {
-      Object.assign(this.initMsg, { exchange_settings: options.exchange_settings })
-    }
-    if (options.contracts) {
-      this.setContracts(options.contracts)
+    const { version } = options
+    if (version === 'v1') {
+      this.ref    = 'a99d8273b4'
+      this.suffix = `@v1+${timestamp()}`
+    } else if (version === 'v2') {
+      this.suffix = `@v2+${timestamp()}`
+    } else {
+      /* nop */
     }
   }
   /** Return the collection of contract templates
@@ -80,25 +65,7 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
         launchpad_contract: config.launchpad_contract,
       }))
     } else {
-      // If it's not deployed yet, return the value from the config
-      const initMsg: InitMsg = this.initMsg as InitMsg
-      return Promise.resolve({
-        snip20_contract:    initMsg.snip20_contract    as ContractInstantiationInfo,
-        pair_contract:      initMsg.pair_contract      as ContractInstantiationInfo,
-        lp_token_contract:  initMsg.lp_token_contract  as ContractInstantiationInfo,
-        ido_contract:       initMsg.ido_contract       as ContractInstantiationInfo,
-        launchpad_contract: initMsg.launchpad_contract as ContractInstantiationInfo,
-      })
-    }
-  }
-  /** Configure the factory's contract templates before deployment. */
-  setContracts (contracts: FactoryInventory) {
-    if (this.address) {
-      throw new Error('Use the config method to reconfigure a live contract.')
-    } else {
-      for (const [name, contract] of Object.entries(contracts)) {
-        this.initMsg[name] = contract
-      }
+      throw new Error('not deployed yet')
     }
   }
   get exchanges (): Promise<ExchangeInfo[]> {
@@ -130,7 +97,7 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
   async getExchange (
     token_0: TokenType,
     token_1: TokenType,
-    agent = this.creator
+    agent = this.creator || this.agent
   ): Promise<ExchangeInfo> {
     //console.info(bold('Looking for exchange'))
     //console.info(bold('  between'), JSON.stringify(token_0))
@@ -178,7 +145,7 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
       chain:    this.chain,
       address:  liquidity_token.address,
       codeHash: liquidity_token.code_hash,
-      codeId:   await this.admin.getCodeId(liquidity_token.address)
+      codeId:   await agent.getCodeId(liquidity_token.address)
     })
 
     const raw = {
@@ -218,4 +185,214 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     return this.tx(agent).create_launchpad(tokens)
   }
 
+}
+
+/** Taking a TGE deployment, add the AMM to it,
+  * creating the pre-configured liquidity and reward pools. */
+export async function deployAMM ({
+  deployment, admin, run,
+  SIENNA  = deployment.getContract(admin, SiennaSNIP20Contract, 'SiennaSNIP20'),
+  version = 'v2',
+}): Promise<{
+  /* The newly created factory contract. */
+  FACTORY:   FactoryContract
+  /* Collection of tokens supported by the AMM. */
+  TOKENS:    Record<string, SNIP20Contract>
+  /* List of exchanges created. */
+  EXCHANGES: AMMContract[]
+  /* List of LP tokens created. */
+  LP_TOKENS: LPTokenContract[]
+}> {
+  const {
+    FACTORY
+  } = await run(deployAMMFactory, { version })
+  const {
+    TOKENS, EXCHANGES, LP_TOKENS
+  } = await run(deployAMMExchanges, { SIENNA, FACTORY, version })
+  console.log()
+  console.info(bold('Deployed AMM contracts:'))
+  printContracts([FACTORY,...EXCHANGES,...LP_TOKENS])
+  console.log()
+  return { FACTORY, TOKENS, EXCHANGES, LP_TOKENS, }
+}
+
+Object.assign(deployAMM, { 
+  v1: args => deployAMM({ ...args, version: 'v1' }),
+  v2: args => deployAMM({ ...args, version: 'v2' }),
+})
+
+export const upgradeAMM = {
+
+  async v1_to_v2 ({
+    run, chain, admin, deployment, prefix,
+    FACTORY = deployment.getContract(admin, FactoryContract, 'SiennaAMMFactory'),
+  }) {
+    console.log()
+
+    // old
+    console.info(bold('Current factory:'))
+    printContract(FACTORY)
+    const EXCHANGES: ExchangeInfo[] = await FACTORY.exchanges
+    printExchanges(EXCHANGES)
+
+    // new
+    const { FACTORY: NEW_FACTORY } = await run(deployAMMFactory, {
+      version:  'v2',
+      copyFrom: FACTORY
+    })
+    printContract(NEW_FACTORY)
+    const NEW_EXCHANGES = await Promise.all(
+      EXCHANGES.map(({ address, token_0, token_1 })=>{
+        console.info(
+          bold('Upgrading exchange'), address
+        )
+        return NEW_FACTORY.createExchange(token_0, token_1)
+      })
+    )
+    printExchanges(NEW_EXCHANGES)
+
+    return { FACTORY: NEW_FACTORY, EXCHANGES: NEW_EXCHANGES }
+  }
+}
+
+/** Deploy the Factory contract which is the hub of the AMM.
+  * It needs to be passed code ids and code hashes for
+  * the different kinds of contracts that it can instantiate.
+  * So build and upload versions of those contracts too. */
+export async function deployAMMFactory ({
+  prefix, admin, chain, deployment,
+  version = 'v2',
+  suffix  = `@${version}+${timestamp()}`,
+  copyFrom,
+  initMsg = {
+    admin:             admin.address,
+    prng_seed:         randomHex(36),
+    exchange_settings: getSettings(chain.chainId).amm.exchange_settings,
+  }
+}): Promise<{
+  FACTORY: FactoryContract
+}> {
+  const options = { workspace, prefix, admin }
+  const FACTORY = new FactoryContract({ ...options, version, suffix })
+  await chain.buildAndUpload(admin, [FACTORY])
+  if (copyFrom) {
+    await deployment.createContract(admin, FACTORY, {
+      ...initMsg,
+      ...await copyFrom.getContracts()
+    })
+  } else {
+    const [EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD] = await chain.buildAndUpload(admin, [
+      new AMMContract({       ...options, version }),
+      new AMMSNIP20Contract({ ...options }),
+      new LPTokenContract({   ...options }),
+      new IDOContract({       ...options }),
+      new LaunchpadContract({ ...options }),
+    ])
+    const template = contract => ({
+      id:        contract.codeId,
+      code_hash: contract.codeHash
+    })
+    await deployment.getOrCreateContract(admin, FACTORY, 'SiennaAMMFactory', {
+      ...initMsg,
+      snip20_contract:    template(AMMTOKEN),
+      pair_contract:      template(EXCHANGE),
+      lp_token_contract:  template(LPTOKEN),
+      ido_contract:       template(IDO),
+      launchpad_contract: template(LAUNCHPAD),
+    })
+  }
+  console.log()
+  console.info(
+    bold(`Deployed factory ${version}`), FACTORY.label
+  )
+  printContract(FACTORY)
+  return { FACTORY }
+}
+
+export async function deployAMMExchanges ({
+  run, chain, admin,
+  SIENNA,
+  FACTORY,
+  version,
+  settings: { swapTokens, swapPairs } = getSettings(chain.chainId),
+}) {
+  // Collect referenced tokens, and created exchanges/LPs
+  const TOKENS:    Record<string, SNIP20Contract> = { SIENNA }
+  const EXCHANGES: AMMContract[]     = []
+  const LP_TOKENS: LPTokenContract[] = []
+  if (chain.isLocalnet) {
+    // On localnet, deploy some placeholder tokens corresponding to the config.
+    const { PLACEHOLDERS } = await run(deployPlaceholders)
+    Object.assign(TOKENS, PLACEHOLDERS)
+  } else {
+    // On testnet and mainnet, talk to preexisting token contracts from the config.
+    console.info(`Not running on localnet, using tokens from config:`)
+    const tokens = {}
+    for (
+      const [name, {address, codeHash}] of
+      Object.entries(swapTokens as Record<string, { address: string, codeHash: string }>)
+    ) {
+      tokens[name] = new AMMSNIP20Contract({address, codeHash, admin})
+    }
+    Object.assign(TOKENS, tokens)
+    console.debug(bold('Tokens:'), TOKENS)
+  }
+  // If there are any initial swap pairs defined in the config
+  if (swapPairs.length > 0) {
+    for (const name of swapPairs) {
+      // Call the factory to deploy an EXCHANGE for each
+      const { EXCHANGE, LP_TOKEN } = await run(deployAMMExchange, {
+        FACTORY, TOKENS, name, version
+      })
+      // And collect the results
+      EXCHANGES.push(EXCHANGE)
+      LP_TOKENS.push(LP_TOKEN)
+    }
+  }
+  return { TOKENS, LP_TOKENS, EXCHANGES }
+}
+
+export async function deployAMMExchange ({
+  admin, deployment,
+  FACTORY, TOKENS, name, version
+}) {
+  console.info(
+    bold(`Deploying AMM exchange`), name
+  )
+  const [tokenName0, tokenName1] = name.split('-')
+  const token0 = TOKENS[tokenName0].asCustomToken
+  const token1 = TOKENS[tokenName1].asCustomToken
+  //console.info(`- Token 0: ${bold(JSON.stringify(token0))}...`)
+  //console.info(`- Token 1: ${bold(JSON.stringify(token1))}...`)
+  try {
+    const { EXCHANGE, LP_TOKEN } = await FACTORY.getExchange(token0, token1, admin)
+    console.info(`${bold(name)}: Already exists.`)
+    return { EXCHANGE, LP_TOKEN }
+  } catch (e) {
+    if (e.message.includes("Address doesn't exist in storage")) {
+      const {
+        pair_contract:     { id: ammId, code_hash: ammHash },
+        lp_token_contract: { id: lpId }
+      } = await FACTORY.getContracts()
+      const { EXCHANGE, LP_TOKEN, raw } = await FACTORY.createExchange(token0, token1)
+      console.info(bold(`Deployed AMM exchange`), EXCHANGE.address)
+      deployment.save({
+        ...raw,
+        codeId:   ammId,
+        codeHash: ammHash,
+        initTx:   { contractAddress: raw.exchange.address }
+      }, `SiennaSwap_${name}`)
+      console.info(bold(`Deployed LP token`), LP_TOKEN.address)
+      deployment.save({
+        ...raw,
+        codeId:   lpId,
+        codeHash: raw.lp_token.code_hash,
+        initTx:   { contractAddress: raw.lp_token.address }
+      }, `SiennaSwap_LP-${name}`)
+      return { EXCHANGE, LP_TOKEN }
+    } else {
+      console.error(e)
+      throw new Error(`${bold(`Factory::GetExchange(${name})`)}: not found (${e.message})`)
+    }
+  }
 }

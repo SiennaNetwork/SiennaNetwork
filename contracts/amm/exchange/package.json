@@ -5,6 +5,7 @@
   "main":    "./AMMContract.ts",
   "dependencies": {
     "@hackbg/fadroma":  "workspace:../../../deps/fadroma",
-    "@sienna/settings": "workspace:^1.0.0"
+    "@sienna/settings": "workspace:^1.0.0",
+    "@sienna/lp-token": "workspace:*"
   }
 }

@@ -1,3 +1,8 @@
+import { TransactionExecutor } from '@hackbg/fadroma'
+
+export class AMMTransactions extends TransactionExecutor {
+}
+
 import { QueryExecutor } from '@hackbg/fadroma'
 
 export class AMMQueries extends QueryExecutor {

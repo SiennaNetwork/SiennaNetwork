@@ -11,35 +11,31 @@ import {
 
 import { workspace } from '@sienna/settings'
 
+export * from './rewards/build'
+
 export async function buildTokens (): Promise<string[]> {
   return Promise.all([
-    new AMMSNIP20Contract({ workspace }).buildInDocker(),
-    new LPTokenContract({ workspace }).buildInDocker(),
+    new AMMSNIP20Contract({ workspace }).build(),
+    new LPTokenContract({   workspace }).build(),
   ])
 }
 
 export async function buildAmm (): Promise<string[]> {
   return Promise.all([
-    new FactoryContract({ workspace }).buildInDocker(),
-    new AMMContract({ workspace }).buildInDocker(),
+    new FactoryContract({ workspace }).build(),
+    new AMMContract({     workspace }).build(),
   ])
 }
 
 export async function buildIdo (): Promise<string[]> {
   return Promise.all([
-    new IDOContract({ workspace }).buildInDocker(),
-    new LaunchpadContract({ workspace }).buildInDocker(),
-  ])
-}
-
-export async function buildRewards (): Promise<string[]> {
-  return Promise.all([
-    new RewardsContract({ workspace }).buildInDocker(),
+    new IDOContract({       workspace }).build(),
+    new LaunchpadContract({ workspace }).build(),
   ])
 }
 
 export async function buildRouter (): Promise<string[]> {
   return Promise.all([
-    new SwapRouterContract({ workspace }).buildInDocker()
+    new SwapRouterContract({ workspace }).build()
   ])
 }

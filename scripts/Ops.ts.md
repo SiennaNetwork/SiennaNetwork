@@ -1,10 +1,7 @@
 # Sienna Deployment Procedures
 
 ```typescript
-import Fadroma, {
-  createNewDeployment, needsActiveDeployment
-  bold, timestamp
-} from '@hackbg/fadroma'
+import Fadroma, { bold, timestamp } from '@hackbg/fadroma'
 import from '@hackbg/fadroma'
 ```
 
@@ -61,10 +58,16 @@ Fadroma.command('select', async ({ chain, admin, args: [ id ] }) => {
 This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 
 ```typescript
+import { createNewDeployment, needsActiveDeployment } from '@hackbg/fadroma'
+import { deployTGE } from '@sienna/tge'
+import { deployAMM, deployRewards, upgradeAMM, upgradeRewards } from '@sienna/amm'
 Fadroma.command('deploy all',
   createNewDeployment,
   deployTGE,
-  deployAMM,
+  deployAMM.v1,
+  deployRewards.v2,
+  upgradeAMM.v1_to_v2,
+  upgradeRewards.v2_to_v3,
   needsActiveDeployment)
 ```
 
@@ -88,7 +91,7 @@ to which it adds the contracts for Sienna Swap.
 import { deployAMM } from '@sienna/amm'
 Fadroma.command('deploy amm',
   needsActiveDeployment,
-  deployAMM)
+  deployAMM.v2)
 ```
 
 ### Deploying Rewards v2 and v3 side-by-side
@@ -97,9 +100,15 @@ Used to test the migration from v2 to v3 pools.
 
 ```typescript
 import { deployRewardsSideBySide } from '@sienna/amm'
-Fadroma.command('deploy rewards-side-by-side',
+Fadroma.command('deploy rewards v2',
   needsActiveDeployment,
-  deployRewardsSideBySide)
+  deployRewards.v2)
+Fadroma.command('deploy rewards v3',
+  needsActiveDeployment,
+  deployRewards.v3)
+Fadroma.command('deploy rewards v2_and_v3',
+  needsActiveDeployment,
+  deployRewards.v2_and_v3)
 ```
 
 ### Deploying a v1 factory
@@ -109,10 +118,10 @@ to which it adds the contracts for Sienna Swap to which it adds a Factory instan
 built from `main`.
 
 ```typescript
-import { deployAMMFactoryLegacy } from '@sienna/amm'
+import { deployAMMFactory } from '@sienna/amm'
 Fadroma.command('deploy legacy-factory',
   needsActiveDeployment,
-  deployAMMFactoryLegacy)
+  deployAMMFactory.v1)
 ```
 
 ## Upgrades and migrations
@@ -121,9 +130,9 @@ Fadroma.command('deploy legacy-factory',
 
 ```typescript
 import { upgradeFactoryAndRewards } from '@sienna/amm'
-Fadroma.command('upgrade factory-and-rewards',
+Fadroma.command('upgrade factory',
   needsActiveDeployment,
-  upgradeFactoryAndRewards)
+  upgradeAMM.v1_to_v2)
 ```
 
 ### Replacing a single reward pool in a deployment with an updated version
@@ -133,16 +142,10 @@ This command closes a specified reward pool in the currently selected deployment
 with the latest version of the code.
 
 ```typescript
-import { replaceRewardPool, printRewardsContracts } from '@sienna/amm'
+import { printRewardsContracts } from '@sienna/amm'
 Fadroma.command('upgrade reward-pool',
   needsActiveDeployment,
-  async ({ chain, admin, args: [ id ] }) => {
-    if (id) {
-      await replaceRewardPool(chain, admin, id)
-    } else {
-      printRewardsContracts(chain)
-    }
-  })
+  () => 'vacatin')
 ```
 
 ## Helper commands for auditing the contract logic
