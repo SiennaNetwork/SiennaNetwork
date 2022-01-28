@@ -4,6 +4,7 @@ use fadroma::{
     admin,
     cosmwasm_std,
     derive_contract::*,
+    snip20_impl::msg::QueryAnswer as Snip20Response,
     schemars,
     schemars::JsonSchema,
     ContractLink, Decimal256, HandleResponse, HumanAddr, InitResponse,
@@ -93,6 +94,9 @@ pub trait Market {
         key: String,
         padding: Option<String>
     ) -> StdResult<HandleResponse>;
+
+    #[query]
+    fn token_info() -> StdResult<Snip20Response>;
 
     #[query]
     fn balance(
