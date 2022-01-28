@@ -11,6 +11,9 @@ mod borrow;
 mod transfer;
 
 #[cfg(test)]
+mod liquidate;
+
+#[cfg(test)]
 const ADMIN: &str = "admin";
 
 #[macro_export]

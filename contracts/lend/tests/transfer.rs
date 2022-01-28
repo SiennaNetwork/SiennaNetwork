@@ -9,7 +9,32 @@ const BOB: &str = "Bob";
 const ALICE: &str = "Alice";
 
 #[test]
-fn transfer() {
+fn transefer_no_funds() {
+    let mut lend = Lend::default();
+    let exchange_rate = Decimal256::one();
+
+    let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
+
+    let market = lend
+        .whitelist_market(underlying_1.clone(), Decimal256::one(), Some(exchange_rate))
+        .unwrap();
+
+    // prefund only
+    lend.prefund_user(BOB, Uint128(10), underlying_1);
+
+    // fails if not enough fund, because there's no deposit yet
+    let res = lend.ensemble.execute(
+        &market::HandleMsg::Transfer {
+            recipient: ALICE.into(),
+            amount: Uint256::from(10 * one_token(6)),
+        },
+        MockEnv::new(BOB, market.contract.clone()),
+    );
+    assert!(res.unwrap_err().to_string().contains("insufficient funds"));
+}
+
+#[test]
+fn transfer_basic() {
     let mut lend = Lend::default();
     let exchange_rate = Decimal256::one();
 
