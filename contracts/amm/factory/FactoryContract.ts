@@ -57,13 +57,15 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     // type kludge!
     if (this.address) {
       // If this contract has an address query this from the contract state
-      return (this.q().get_config()).then((config: FactoryInventory)=>({
-        snip20_contract:    config.snip20_contract,
-        pair_contract:      config.pair_contract,
-        lp_token_contract:  config.lp_token_contract,
-        ido_contract:       config.ido_contract,
-        launchpad_contract: config.launchpad_contract,
-      }))
+      return (this.q().get_config()).then((config: FactoryInventory)=>{
+        return {
+          snip20_contract:    config.snip20_contract,
+          pair_contract:      config.pair_contract,
+          lp_token_contract:  config.lp_token_contract,
+          ido_contract:       config.ido_contract,
+          launchpad_contract: config.launchpad_contract,
+        }
+      })
     } else {
       throw new Error('not deployed yet')
     }
@@ -145,7 +147,8 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
       chain:    this.chain,
       address:  liquidity_token.address,
       codeHash: liquidity_token.code_hash,
-      codeId:   await agent.getCodeId(liquidity_token.address)
+      codeId:   await agent.getCodeId(liquidity_token.address),
+      agent
     })
 
     const raw = {
@@ -232,8 +235,9 @@ export const upgradeAMM = {
     // old
     console.info(bold('Current factory:'))
     printContract(FACTORY)
+
     const EXCHANGES: ExchangeInfo[] = await FACTORY.exchanges
-    printExchanges(EXCHANGES)
+    await printExchanges(EXCHANGES)
 
     // new
     const { FACTORY: NEW_FACTORY } = await run(deployAMMFactory, {
@@ -241,6 +245,7 @@ export const upgradeAMM = {
       copyFrom: FACTORY
     })
     printContract(NEW_FACTORY)
+
     const NEW_EXCHANGES = await Promise.all(
       EXCHANGES.map(({ address, token_0, token_1 })=>{
         console.info(
@@ -249,7 +254,7 @@ export const upgradeAMM = {
         return NEW_FACTORY.createExchange(token_0, token_1)
       })
     )
-    printExchanges(NEW_EXCHANGES)
+    await printExchanges(NEW_EXCHANGES)
 
     return { FACTORY: NEW_FACTORY, EXCHANGES: NEW_EXCHANGES }
   }
@@ -269,37 +274,43 @@ export async function deployAMMFactory ({
     prng_seed:         randomHex(36),
     exchange_settings: getSettings(chain.chainId).amm.exchange_settings,
   }
-}): Promise<{
-  FACTORY: FactoryContract
-}> {
+}) {
   const options = { workspace, prefix, admin }
-  const FACTORY = new FactoryContract({ ...options, version, suffix })
-  await chain.buildAndUpload(admin, [FACTORY])
+  const FACTORY   = new FactoryContract({ ...options, version, suffix })
+  const LAUNCHPAD = new LaunchpadContract({ ...options })
+  // launchpad is new to v2 so we build/upload it every time...
+  await chain.buildAndUpload(admin, [FACTORY, LAUNCHPAD])
+  const template = contract => ({
+    id:        contract.codeId,
+    code_hash: contract.codeHash
+  })
   if (copyFrom) {
     await deployment.createContract(admin, FACTORY, {
       ...initMsg,
-      ...await copyFrom.getContracts()
+      ...await copyFrom.getContracts(),
+      // ...because otherwise here it wouldn've be able to copy it from v1...
+      launchpad_contract: template(LAUNCHPAD),
     })
   } else {
-    const [EXCHANGE, AMMTOKEN, LPTOKEN, IDO, LAUNCHPAD] = await chain.buildAndUpload(admin, [
+    const [EXCHANGE, AMMTOKEN, LPTOKEN, IDO] = await chain.buildAndUpload(admin, [
       new AMMContract({       ...options, version }),
       new AMMSNIP20Contract({ ...options }),
       new LPTokenContract({   ...options }),
       new IDOContract({       ...options }),
-      new LaunchpadContract({ ...options }),
     ])
-    const template = contract => ({
-      id:        contract.codeId,
-      code_hash: contract.codeHash
-    })
-    await deployment.getOrCreateContract(admin, FACTORY, 'SiennaAMMFactory', {
-      ...initMsg,
+    const contracts = {
       snip20_contract:    template(AMMTOKEN),
       pair_contract:      template(EXCHANGE),
       lp_token_contract:  template(LPTOKEN),
       ido_contract:       template(IDO),
+      // ...while v1 here would just ignore this config field
       launchpad_contract: template(LAUNCHPAD),
-    })
+    }
+    await deployment.getOrCreateContract(
+      admin, FACTORY, 'SiennaAMMFactory', {
+        ...initMsg,
+        ...contracts
+      })
   }
   console.log()
   console.info(

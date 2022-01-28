@@ -119,7 +119,7 @@ built from `main`.
 
 ```typescript
 import { deployAMMFactory } from '@sienna/amm'
-Fadroma.command('deploy legacy-factory',
+Fadroma.command('deploy factory v1',
   needsActiveDeployment,
   deployAMMFactory.v1)
 ```
