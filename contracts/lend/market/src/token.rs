@@ -12,7 +12,7 @@ use lend_shared::{
     core::MasterKey
 };
 
-use crate::{accrue_interest, VIEWING_KEY};
+use crate::accrue_interest;
 use crate::state::{
     Global, Constants, Contracts,
     Account, TotalSupply, TotalBorrows
@@ -29,7 +29,7 @@ pub fn deposit<S: Storage, A: Api, Q: Querier>(
     let balance = snip20::balance_query(
         &deps.querier,
         env.contract.address,
-        VIEWING_KEY.to_string(),
+        Constants::load_vk(&deps.storage)?,
         BLOCK_SIZE,
         underlying_asset.code_hash,
         underlying_asset.address,
@@ -65,7 +65,7 @@ pub fn redeem<S: Storage, A: Api, Q: Querier>(
     let balance = snip20::balance_query(
         &deps.querier,
         env.contract.address.clone(),
-        VIEWING_KEY.to_string(),
+        Constants::load_vk(&deps.storage)?,
         BLOCK_SIZE,
         underlying_asset.code_hash.clone(),
         underlying_asset.address.clone(),
@@ -138,7 +138,7 @@ pub fn calc_exchange_rate<S: Storage, A: Api, Q: Querier>(
     let total_supply = TotalSupply::load(&deps.storage)?;
 
     if total_supply.is_zero() {
-        let config = Constants::load(&deps.storage)?;
+        let config = Constants::load_config(&deps.storage)?;
 
         return Ok(config.initial_exchange_rate);
     }

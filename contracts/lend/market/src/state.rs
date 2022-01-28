@@ -51,17 +51,31 @@ impl Contracts {
 }
 
 impl Constants {
-    const KEY: &'static [u8] = b"config";
+    const KEY_CONFIG: &'static [u8] = b"config";
+    const KEY_VK: &'static [u8] = b"underlying_vk";
 
-    pub fn save(
+    pub fn save_config(
         storage: &mut impl Storage,
         config: &Config,
     ) -> StdResult<()> {
-        save(storage, Self::KEY, &config)
+        save(storage, Self::KEY_CONFIG, &config)
     }
 
-    pub fn load(storage: &impl Storage) -> StdResult<Config> {
-        let result: Config = load(storage, Self::KEY)?.unwrap();
+    pub fn load_config(storage: &impl Storage) -> StdResult<Config> {
+        let result: Config = load(storage, Self::KEY_CONFIG)?.unwrap();
+
+        Ok(result)
+    }
+
+    pub fn save_vk(
+        storage: &mut impl Storage,
+        key: &String,
+    ) -> StdResult<()> {
+        save(storage, Self::KEY_VK, &key)
+    }
+
+    pub fn load_vk(storage: &impl Storage) -> StdResult<String> {
+        let result: String = load(storage, Self::KEY_VK)?.unwrap();
 
         Ok(result)
     }

@@ -104,7 +104,7 @@ fn calc_accrued_interest<S: Storage, A: Api, Q: Querier>(
     current_block: u64,
     balance_prior: Uint128
 ) -> StdResult<Option<AccruedInterest>> {
-    let config = Constants::load(&deps.storage)?;
+    let config = Constants::load_config(&deps.storage)?;
     // Initial block number
     let last_accrual_block = Global::load_accrual_block_number(&deps.storage)?;
 

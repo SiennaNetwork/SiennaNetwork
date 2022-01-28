@@ -14,6 +14,7 @@ use lend_shared::{
             CosmosMsg, WasmMsg, log
         },
         auth::{
+            ViewingKey,
             vk_auth::{
                 DefaultImpl as AuthImpl, Auth
             }
@@ -44,7 +45,6 @@ use lend_shared::{
     core::{MasterKey, AuthenticatedUser}
 };
 
-pub const VIEWING_KEY: &str = "SiennaLend"; // TODO: This shouldn't be hardcoded.
 pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
 // TODO: proper value here
 pub const MAX_BORROW_RATE: Decimal256 = Decimal256::one();
@@ -66,6 +66,7 @@ pub trait Market {
     fn new(
         admin: HumanAddr,
         prng_seed: Binary,
+        entropy: Binary,
         key: MasterKey,
         underlying_asset: ContractLink<HumanAddr>,
         interest_model_contract: ContractLink<HumanAddr>,
@@ -79,7 +80,7 @@ pub trait Market {
             code_hash: env.contract_code_hash.clone(),
         };
 
-        Constants::save(&mut deps.storage, &config)?;
+        Constants::save_config(&mut deps.storage, &config)?;
 
         BorrowerId::set_prng_seed(&mut deps.storage, &prng_seed)?;
         Contracts::save_overseer(deps, &callback.contract)?;
@@ -93,6 +94,9 @@ pub trait Market {
         Global::save_borrow_index(&mut deps.storage, &Decimal256::one())?;
         Global::save_accrual_block_number(&mut deps.storage, env.block.height)?;
 
+        let viewing_key = ViewingKey::new(&env, prng_seed.as_slice(), entropy.as_slice()).0;
+        Constants::save_vk(&mut deps.storage, &viewing_key)?;
+
         admin::DefaultImpl.new(Some(admin), deps, env)?;
 
         Ok(InitResponse {
@@ -104,7 +108,7 @@ pub trait Market {
                     msg: callback.msg
                 }),
                 snip20::set_viewing_key_msg(
-                    VIEWING_KEY.into(),
+                    viewing_key,
                     None,
                     BLOCK_SIZE,
                     underlying_asset.code_hash.clone(),
@@ -212,7 +216,7 @@ pub trait Market {
         let balance = snip20::balance_query(
             &deps.querier,
             env.contract.address.clone(),
-            VIEWING_KEY.to_string(),
+            Constants::load_vk(&deps.storage)?,
             BLOCK_SIZE,
             underlying_asset.code_hash.clone(),
             underlying_asset.address.clone(),
@@ -302,7 +306,7 @@ pub trait Market {
         let balance = snip20::balance_query(
             &deps.querier,
             env.contract.address.clone(),
-            VIEWING_KEY.to_string(),
+            Constants::load_vk(&deps.storage)?,
             BLOCK_SIZE,
             underlying_asset.code_hash.clone(),
             underlying_asset.address.clone(),
@@ -331,7 +335,7 @@ pub trait Market {
         let balance = snip20::balance_query(
             &deps.querier,
             env.contract.address.clone(),
-            VIEWING_KEY.to_string(),
+            Constants::load_vk(&deps.storage)?,
             BLOCK_SIZE,
             underlying_asset.code_hash.clone(),
             underlying_asset.address.clone(),
@@ -353,15 +357,20 @@ pub trait Market {
     fn update_config(
         interest_model: Option<ContractLink<HumanAddr>>,
         reserve_factor: Option<Decimal256>,
+        borrow_cap: Option<Uint256>
     ) -> StdResult<HandleResponse> {
-        let mut config = Constants::load(&deps.storage)?;
+        let mut config = Constants::load_config(&deps.storage)?;
         if let Some(interest_model) = interest_model {
             Contracts::save_interest_model(deps, &interest_model)?;
         }
 
         if let Some(reserve_factor) = reserve_factor {
             config.reserve_factor = reserve_factor;
-            Constants::save(&mut deps.storage, &config)?;
+            Constants::save_config(&mut deps.storage, &config)?;
+        }
+
+        if let Some(borrow_cap) = borrow_cap {
+            Global::save_borrow_cap(&mut deps.storage, &borrow_cap)?;
         }
 
         Ok(HandleResponse::default())
@@ -375,7 +384,7 @@ pub trait Market {
         let balance = snip20::balance_query(
             &deps.querier,
             env.contract.address.clone(),
-            VIEWING_KEY.to_string(),
+            Constants::load_vk(&deps.storage)?,
             BLOCK_SIZE,
             underlying_asset.code_hash.clone(),
             underlying_asset.address.clone(),
@@ -497,7 +506,7 @@ pub trait Market {
         let balance = snip20::balance_query(
             &deps.querier,
             Contracts::load_self_ref(deps)?.address,
-            VIEWING_KEY.to_string(),
+            Constants::load_vk(&deps.storage)?,
             BLOCK_SIZE,
             underlying_asset.code_hash.clone(),
             underlying_asset.address.clone(),
@@ -516,7 +525,7 @@ pub trait Market {
             borrow_index: interest.borrow_index,
             total_supply: TotalSupply::load(&deps.storage)?,
             accrual_block: Global::load_accrual_block_number(&deps.storage)?,
-            config: Constants::load(&deps.storage)?
+            config: Constants::load_config(&deps.storage)?
         })
     }
 
@@ -532,7 +541,7 @@ pub trait Market {
         let balance = snip20::balance_query(
             &deps.querier,
             Contracts::load_self_ref(deps)?.address,
-            VIEWING_KEY.to_string(),
+            Constants::load_vk(&deps.storage)?,
             BLOCK_SIZE,
             underlying_asset.code_hash.clone(),
             underlying_asset.address.clone(),
@@ -560,7 +569,7 @@ pub trait Market {
         let balance = snip20::balance_query(
             &deps.querier,
             Contracts::load_self_ref(deps)?.address,
-            VIEWING_KEY.to_string(),
+            Constants::load_vk(&deps.storage)?,
             BLOCK_SIZE,
             underlying_asset.code_hash.clone(),
             underlying_asset.address.clone(),
@@ -578,7 +587,7 @@ pub trait Market {
             Decimal256::from_uint256(balance)?,
             Decimal256::from_uint256(interest.total_borrows)?,
             Decimal256::from_uint256(interest.total_reserves)?,
-            Constants::load(&deps.storage)?.reserve_factor
+            Constants::load_config(&deps.storage)?.reserve_factor
         )
     }
 
@@ -589,7 +598,7 @@ pub trait Market {
         let balance = snip20::balance_query(
             &deps.querier,
             Contracts::load_self_ref(deps)?.address,
-            VIEWING_KEY.to_string(),
+            Constants::load_vk(&deps.storage)?,
             BLOCK_SIZE,
             underlying_asset.code_hash.clone(),
             underlying_asset.address.clone(),
@@ -622,7 +631,7 @@ pub trait Market {
         let balance = snip20::balance_query(
             &deps.querier,
             Contracts::load_self_ref(deps)?.address,
-            VIEWING_KEY.to_string(),
+            Constants::load_vk(&deps.storage)?,
             BLOCK_SIZE,
             underlying_asset.code_hash.clone(),
             underlying_asset.address.clone(),
@@ -709,7 +718,7 @@ fn repay<S: Storage, A: Api, Q: Querier>(
     let balance = snip20::balance_query(
         &deps.querier,
         env.contract.address,
-        VIEWING_KEY.to_string(),
+        Constants::load_vk(&deps.storage)?,
         BLOCK_SIZE,
         underlying_asset.code_hash,
         underlying_asset.address,
@@ -746,7 +755,7 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
     let balance = snip20::balance_query(
         &deps.querier,
         env.contract.address.clone(),
-        VIEWING_KEY.to_string(),
+        Constants::load_vk(&deps.storage)?,
         BLOCK_SIZE,
         underlying_asset.code_hash.clone(),
         underlying_asset.address.clone(),
@@ -845,7 +854,7 @@ fn seize<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     borrower.subtract_balance(&mut deps.storage, amount)?;
 
-    let config = Constants::load(&deps.storage)?;
+    let config = Constants::load_config(&deps.storage)?;
     // TODO: how are those two next lines correct???
     // https://github.com/compound-finance/compound-protocol/blob/4a8648ec0364d24c4ecfc7d6cae254f55030d65f/contracts/CToken.sol#L1085-L1086
     let protocol_share = amount.decimal_mul(config.seize_factor)?;

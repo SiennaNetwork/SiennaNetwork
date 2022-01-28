@@ -142,6 +142,7 @@ pub struct MarketInitConfig {
     pub interest_model_contract: ContractLink<HumanAddr>,
     pub config: MarketConfig,
     pub prng_seed: Binary,
+    pub entropy: Binary
 }
 
 #[derive(Serialize, Deserialize, schemars::JsonSchema, Debug)]

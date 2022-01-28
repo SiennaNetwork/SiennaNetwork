@@ -244,6 +244,7 @@ impl Lend {
             &overseer::HandleMsg::Whitelist {
                 config: MarketInitConfig {
                     prng_seed: Binary::from(b"seed_for_sienna_market"),
+                    entropy: Binary::from(b"entropy_for_sienna_market"),
                     underlying_asset,
                     ltv_ratio,
                     config: market::Config {

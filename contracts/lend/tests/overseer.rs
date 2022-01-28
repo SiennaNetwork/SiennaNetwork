@@ -54,6 +54,7 @@ fn whitelist() {
         &HandleMsg::Whitelist {
             config: MarketInitConfig {
                 prng_seed: Binary::from(b"seed_for_base_market"),
+                entropy: Binary::from(b"entropy_for_base_market"),
                 underlying_asset: underlying_1.clone(),
                 ltv_ratio: Decimal256::zero(),
                 config: market::Config {
