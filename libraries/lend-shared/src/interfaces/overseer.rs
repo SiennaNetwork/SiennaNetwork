@@ -46,7 +46,11 @@ pub trait Overseer {
     fn exit(market_address: HumanAddr) -> StdResult<HandleResponse>;
 
     #[handle]
-    fn set_ltv_ratio(market: HumanAddr, ltv_ratio: Decimal256) -> StdResult<HandleResponse>;
+    fn change_market(
+        market: HumanAddr,
+        ltv_ratio:  Option<Decimal256>,
+        symbol: Option<String>
+    ) -> StdResult<HandleResponse>;
 
     #[handle]
     fn set_premium(premium: Decimal256) -> StdResult<HandleResponse>;
@@ -141,6 +145,8 @@ pub struct MarketInitConfig {
     // Interest model contract address.
     pub interest_model_contract: ContractLink<HumanAddr>,
     pub config: MarketConfig,
+    /// Symbol of the underlying asset. Must be the same as what the oracle expects.
+    pub token_symbol: String,
     pub prng_seed: Binary,
     pub entropy: Binary
 }

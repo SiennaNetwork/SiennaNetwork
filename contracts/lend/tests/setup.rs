@@ -4,7 +4,9 @@ use lend_shared::fadroma::{
     snip20_impl::msg::{
         HandleMsg as Snip20HandleMsg,
         InitConfig as Snip20InitConfig,
-        InitMsg as Snip20InitMsg
+        InitMsg as Snip20InitMsg,
+        QueryMsg as Snip20QueryMsg,
+        QueryAnswer as Snip20QueryResp,
     },
     to_binary, Binary, Composable, ContractLink, Decimal256, Env, HandleResponse, HumanAddr,
     InitResponse, Permit, StdError, StdResult, Uint128, Uint256, ContractInstantiationInfo,
@@ -240,9 +242,20 @@ impl Lend {
         ltv_ratio: Decimal256,
         exchange_rate: Option<Decimal256>,
     ) -> StdResult<overseer::Market<HumanAddr>> {
+        let result = self.ensemble.query(
+            underlying_asset.address.clone(),
+            Snip20QueryMsg::TokenInfo {}
+        )?;
+
+        let token_symbol = match result {
+            Snip20QueryResp::TokenInfo { symbol, .. } => symbol,
+            _ => panic!("Expecting Snip20QueryResp::TokenInfo")
+        };
+
         self.ensemble.execute(
             &overseer::HandleMsg::Whitelist {
                 config: MarketInitConfig {
+                    token_symbol,
                     prng_seed: Binary::from(b"seed_for_sienna_market"),
                     entropy: Binary::from(b"entropy_for_sienna_market"),
                     underlying_asset,

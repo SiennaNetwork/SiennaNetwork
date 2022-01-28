@@ -43,7 +43,9 @@ impl ContractHarness for MarketImpl {
 #[test]
 fn whitelist() {
     let mut lend = Lend::default();
-    let underlying_1 = lend.new_underlying_token("ONE", 6).unwrap();
+
+    let underlying_1_symbol = "ONE";
+    let underlying_1 = lend.new_underlying_token(underlying_1_symbol, 6).unwrap();
     let underlying_2 = lend.new_underlying_token("TWO", 3).unwrap();
 
     lend.prefund_user(BORROWER, Uint128(5 * one_token(6)), underlying_1.clone());
@@ -53,6 +55,7 @@ fn whitelist() {
     let res = lend.ensemble.execute(
         &HandleMsg::Whitelist {
             config: MarketInitConfig {
+                token_symbol: underlying_1_symbol.into(),
                 prng_seed: Binary::from(b"seed_for_base_market"),
                 entropy: Binary::from(b"entropy_for_base_market"),
                 underlying_asset: underlying_1.clone(),

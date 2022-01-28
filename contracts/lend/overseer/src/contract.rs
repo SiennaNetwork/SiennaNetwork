@@ -12,9 +12,7 @@ use lend_shared::{
         },
         derive_contract::*,
         require_admin,
-        secret_toolkit::snip20,
         Callback, ContractInstantiationInfo, ContractLink, Decimal256, Humanize, Uint256,
-        BLOCK_SIZE,
     },
     interfaces::{
         market::{query_account, query_exchange_rate, InitMsg as MarketInitMsg, MarketAuth},
@@ -120,20 +118,18 @@ pub trait Overseer {
     #[handle]
     #[require_admin]
     fn whitelist(config: MarketInitConfig) -> StdResult<HandleResponse> {
-        let token_info = snip20::token_info_query(
-            &deps.querier,
-            BLOCK_SIZE,
-            config.underlying_asset.code_hash.clone(),
-            config.underlying_asset.address.clone(),
-        )?;
         let info = Whitelisting::load_market_contract(&deps.storage)?;
+        let label = format!(
+            "Sienna Lend {} market with overseer: {}",
+            config.token_symbol, env.contract.address
+        );
 
         let market = Market {
             contract: ContractLink {
                 address: HumanAddr::default(),
                 code_hash: info.code_hash.clone(),
             },
-            symbol: token_info.symbol.clone(),
+            symbol: config.token_symbol,
             ltv_ratio: config.ltv_ratio,
         };
         market.validate()?;
@@ -142,10 +138,7 @@ pub trait Overseer {
 
         Ok(HandleResponse {
             messages: vec![CosmosMsg::Wasm(WasmMsg::Instantiate {
-                label: format!(
-                    "Sienna Lend {} market with overseer: {}",
-                    token_info.symbol, env.contract.address
-                ),
+                label,
                 code_id: info.id,
                 callback_code_hash: info.code_hash,
                 send: vec![],
@@ -268,30 +261,69 @@ pub trait Overseer {
 
     #[handle]
     #[require_admin]
-    fn set_ltv_ratio(market: HumanAddr, ltv_ratio: Decimal256) -> StdResult<HandleResponse> {
-        let symbol = Markets::get_by_addr(deps, &market)?.1.symbol;
-        let price = query_price(
-            &deps.querier,
-            Contracts::load_oracle(deps)?,
-            symbol.into(),
-            QUOTE_SYMBOL.into(),
-            None,
-        )?;
+    fn change_market(
+        market: HumanAddr,
+        ltv_ratio:  Option<Decimal256>,
+        symbol: Option<String>
+    ) -> StdResult<HandleResponse>{
+        let (_, stored_market) = Markets::get_by_addr(deps, &market)?;
 
-        // Can't set collateral factor if the price is 0
-        if price.rate == Decimal256::zero() {
-            return Err(StdError::generic_err(
-                "Cannot set the collateral factor if the price is 0",
-            ));
-        }
+        let update_oracle = symbol.is_some();
+        let symbol = symbol.unwrap_or(stored_market.symbol);
+
+        let ltv_ratio = if let Some(ltv_ratio) = ltv_ratio {
+            let price = query_price(
+                &deps.querier,
+                Contracts::load_oracle(deps)?,
+                symbol.clone().into(),
+                QUOTE_SYMBOL.into(),
+                None,
+            )?;
+    
+            // Can't set collateral factor if the price is 0
+            if price.rate == Decimal256::zero() {
+                return Err(StdError::generic_err(
+                    "Cannot set LTV ratio if the price is 0",
+                ));
+            }
+            
+            ltv_ratio
+        } else {
+            stored_market.ltv_ratio
+        };
 
         Markets::update(deps, &market, |mut m| {
             m.ltv_ratio = ltv_ratio;
             m.validate()?;
+
+            m.symbol = symbol.clone();
+
             Ok(m)
         })?;
 
-        Ok(HandleResponse::default())
+        let messages = if update_oracle {
+            let oracle = Contracts::load_oracle(deps)?;
+
+            vec![CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: oracle.address,
+                callback_code_hash: oracle.code_hash,
+                send: vec![],
+                msg: to_binary(&OracleHandleMsg::UpdateAssets {
+                    assets: vec![Asset {
+                        address: stored_market.contract.address,
+                        symbol,
+                    }],
+                })?,
+            })]
+        } else {
+            vec![]
+        };
+
+        Ok(HandleResponse {
+            messages,
+            log: vec![],
+            data: None
+        })
     }
 
     #[handle]
