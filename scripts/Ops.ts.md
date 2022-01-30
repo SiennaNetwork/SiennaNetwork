@@ -16,7 +16,7 @@ and a series of [stages](https://github.com/hackbg/fadroma/blob/22.01/packages/o
 that are executed in sequence with a common state object -
 the [`MigrationContext`](https://github.com/hackbg/fadroma/blob/22.01/packages/ops/index.ts),
 into which the values returned by each procedure can also be added
-(for example, see [`needsDeployment`](#needsdeployment)).
+(for example, see [`Deployment.activate`](#needsdeployment)).
 
 ## Chains
 
@@ -49,34 +49,72 @@ depend on each other's existence and configuration. A group of
 such contracts is called a `Deployment`.
 
 ```typescript
-import { createNewDeployment, needsDeployment, selectDeployment } from '@hackbg/fadroma'
-Fadroma.command('status', needsDeployment)
-Fadroma.command('select', selectDeployment)
-Fadroma.command('deploy new', createNewDeployment)
+import { Deployment } from '@hackbg/fadroma'
+Fadroma.command('status', Deployment.activate)
+Fadroma.command('select', Deployment.select)
+Fadroma.command('deploy new', Deployment.new)
 ```
 
-### needsDeployment
+### Deployment.activate
 
-`needsDeployment` acts as a context modifier: it populates the
-`deployment` and `prefix` arguments to subsequent commands -
+`Deployment.activate` is a command step that acts as a context modifier:
+the `deployment` and `prefix` arguments for subsequent steps are taken
+from its return value by the mechanics behind `Fadroma.command`.
 
-## Contracts
+### Deployment.new
 
-### Making a new full deployment
+`Deployment.new` works similarly to `Deployment.activate`, but
+creates a new empty deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
+This is how you start from a clean slate.
 
-This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
+## Deploying contracts
+
+### Deploying Jan 2022 state
 
 ```typescript
 import { deployTGE } from '@sienna/tge'
-import { deployAMM, deployRewards, upgradeAMM, upgradeRewards } from '@sienna/amm'
+import { deployAMM, deployRewards } from '@sienna/amm'
+Fadroma.command('deploy legacy',
+  Deployment.new,
+  deployTGE,
+  Deployment.status,
+  deployAMM.v1,
+  Deployment.status,
+  deployRewards.v2,
+  Deployment.status)
+```
+
+### Upgrading legacy to latest
+
+```typescript
+import { upgradeAMM } from '@sienna/amm'
+Fadroma.command('upgrade amm v1_to_v2',
+  Deployment.activate,
+  upgradeAMM.v1_to_v2)
+
+import { upgradeRewards } from '@sienna/amm'
+Fadroma.command('upgrade rewards v2_to_v3',
+  Deployment.activate,
+  upgradeRewards.v2_to_v3)
+```
+
+### Full up-to-date deployment
+
+Note that we go through the steps for the legacy deployment
+before upgrading it to the latest version. Deploy of latest code
+without migrations is currently discouraged due to implicit
+temporal dependencies in contracts.
+
+```typescript
 Fadroma.command('deploy all',
+  Deployment.new,
   deployTGE,
   deployAMM.v1,
   deployRewards.v2,
-  needsDeployment,
+  Deployment.status,
   upgradeAMM.v1_to_v2,
   upgradeRewards.v2_to_v3,
-  needsDeployment)
+  Deployment.status)
 ```
 
 ### Deploy just the TGE
@@ -84,7 +122,9 @@ Fadroma.command('deploy all',
 This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 
 ```typescript
-Fadroma.command('deploy tge', needsDeployment, deployTGE)
+Fadroma.command('deploy tge',
+  Deployment.activate, 
+  deployTGE)
 ```
 
 ### Add the AMM and Rewards to the TGE
@@ -93,7 +133,9 @@ This command requires a [selected deployment](#select-the-active-deployment),
 to which it adds the contracts for Sienna Swap.
 
 ```typescript
-Fadroma.command('deploy amm', needsDeployment, deployAMM.v2)
+Fadroma.command('deploy amm',
+  Deployment.activate,
+  deployAMM.v2)
 ```
 
 ### Deploying Rewards v2 and v3 side-by-side
@@ -101,10 +143,17 @@ Fadroma.command('deploy amm', needsDeployment, deployAMM.v2)
 Used to test the migration from v2 to v3 pools.
 
 ```typescript
-import { deployRewardsSideBySide } from '@sienna/amm'
-Fadroma.command('deploy rewards v2', needsDeployment, deployRewards.v2)
-Fadroma.command('deploy rewards v3', needsDeployment, deployRewards.v3)
-Fadroma.command('deploy rewards v2_and_v3', needsDeployment, deployRewards.v2_and_v3)
+Fadroma.command('deploy rewards v2',
+  Deployment.activate,
+  deployRewards.v2)
+
+Fadroma.command('deploy rewards v3',
+  Deployment.activate,
+  deployRewards.v3)
+
+Fadroma.command('deploy rewards v2_and_v3',
+  Deployment.activate,
+  deployRewards.v2_and_v3)
 ```
 
 ### Deploying a v1 factory
@@ -115,7 +164,9 @@ built from `main`.
 
 ```typescript
 import { deployAMMFactory } from '@sienna/amm'
-Fadroma.command('deploy factory v1', needsDeployment, deployAMMFactory.v1)
+Fadroma.command('deploy factory v1',
+  Deployment.activate,
+  deployAMMFactory.v1)
 ```
 
 ## Upgrades and migrations
@@ -123,9 +174,6 @@ Fadroma.command('deploy factory v1', needsDeployment, deployAMMFactory.v1)
 ### Migrating to `@sienna/factory v2.0.0` + `@sienna/rewards v3.0.0`
 
 ```typescript
-import { upgradeFactoryAndRewards } from '@sienna/amm'
-Fadroma.command('upgrade amm v1_to_v2', needsDeployment, upgradeAMM.v1_to_v2)
-Fadroma.command('upgrade rewards v2_to_v3', needsDeployment, upgradeRewards.v2_to_v3)
 ```
 
 ## Helper commands for auditing the contract logic

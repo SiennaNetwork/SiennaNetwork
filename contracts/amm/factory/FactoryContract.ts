@@ -244,18 +244,20 @@ export const upgradeAMM = {
     await printExchanges(EXCHANGES)
 
     // new
+    const version = 'v2'
     const { FACTORY: NEW_FACTORY } = await run(deployAMMFactory, {
-      version:  'v2',
+      version,
       copyFrom: FACTORY
     })
     printContract(NEW_FACTORY)
 
     const NEW_EXCHANGES = []
-    for (const EXCHANGE of EXCHANGES) {
-      console.info(bold('Upgrading exchange'), EXCHANGE.name)
-      NEW_EXCHANGES.push(
-        await NEW_FACTORY.createExchange(EXCHANGE.TOKEN_0, EXCHANGE.TOKEN_1,)
-      )
+    for (const { name, TOKEN_0, TOKEN_1 } of EXCHANGES) {
+      console.info(bold('Upgrading exchange'), name)
+      NEW_EXCHANGES.push(saveExchange(
+        { deployment, version },
+        await FACTORY.getContracts(),
+        await FACTORY.createExchange(TOKEN_0, TOKEN_1)))
     }
     await printExchanges(NEW_EXCHANGES)
 
@@ -384,29 +386,35 @@ export async function deployAMMExchange ({
     return { EXCHANGE, LP_TOKEN }
   } catch (e) {
     if (e.message.includes("Address doesn't exist in storage")) {
-      const {
-        pair_contract:     { id: ammId, code_hash: ammHash },
-        lp_token_contract: { id: lpId }
-      } = await FACTORY.getContracts()
-      const { EXCHANGE, LP_TOKEN, raw } = await FACTORY.createExchange(token0, token1)
-      console.info(bold(`Deployed AMM exchange`), EXCHANGE.address)
-      deployment.save({
-        ...raw,
-        codeId:   ammId,
-        codeHash: ammHash,
-        initTx:   { contractAddress: raw.exchange.address }
-      }, `SiennaSwap_${name}`)
-      console.info(bold(`Deployed LP token`), LP_TOKEN.address)
-      deployment.save({
-        ...raw,
-        codeId:   lpId,
-        codeHash: raw.lp_token.code_hash,
-        initTx:   { contractAddress: raw.lp_token.address }
-      }, `SiennaSwap_LP-${name}`)
-      return { EXCHANGE, LP_TOKEN }
+      return saveExchange(
+        { deployment, version },
+        await FACTORY.getContracts(),
+        await FACTORY.createExchange(token0, token1))
     } else {
       console.error(e)
       throw new Error(`${bold(`Factory::GetExchange(${name})`)}: not found (${e.message})`)
     }
   }
+}
+
+function saveExchange (
+  { deployment, version },
+  { pair_contract: { id: ammId, code_hash: ammHash }, lp_token_contract: { id: lpId } },
+  { name, raw, EXCHANGE, LP_TOKEN }
+) {
+  console.info(bold(`Deployed AMM exchange`), EXCHANGE.address)
+  deployment.save({
+    ...raw,
+    codeId:   ammId,
+    codeHash: ammHash,
+    initTx:   { contractAddress: raw.exchange.address }
+  }, `SiennaSwap_${version}_${name}`)
+  console.info(bold(`Deployed LP token`), LP_TOKEN.address)
+  deployment.save({
+    ...raw,
+    codeId:   lpId,
+    codeHash: raw.lp_token.code_hash,
+    initTx:   { contractAddress: raw.lp_token.address }
+  }, `SiennaSwap_${version}_LP-${name}`)
+  return { EXCHANGE, LP_TOKEN }
 }

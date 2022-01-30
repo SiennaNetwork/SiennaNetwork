@@ -4,19 +4,9 @@ import {
   MigrationContext, randomHex, timestamp,
   bold, Console,
 } from "@hackbg/fadroma"
-
 const console = Console('@sienna/rewards')
-
-import {
-  SNIP20Contract
-} from '@fadroma/snip20'
-
-import getSettings, {
-  workspace,
-  SIENNA_DECIMALS,
-  ONE_SIENNA
-} from '@sienna/settings'
-
+import { SNIP20Contract } from '@fadroma/snip20'
+import getSettings, { workspace, SIENNA_DECIMALS, ONE_SIENNA } from '@sienna/settings'
 import {
   SiennaSNIP20Contract,
   FactoryContract, AMMContract,
@@ -27,66 +17,86 @@ import {
 import { Init } from './schema/init.d'
 export * from './RewardsApi'
 import { RewardsTransactions, RewardsQueries, RewardsAPIVersion } from './RewardsApi'
-export class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, RewardsQueries> {
 
-  name         = this.name  || 'SiennaRewards'
-  crate        = this.crate || 'sienna-rewards'
-  version: RewardsAPIVersion = 'v3'
-  Transactions = RewardsTransactions
-  Queries      = RewardsQueries
+export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, RewardsQueries> {
 
-  get epoch (): Promise<number> {
-    return this.q().pool_info().then(pool_info=>pool_info.clock.number)
-  }
+  name  = this.name  || 'SiennaRewards'
+  crate = this.crate || 'sienna-rewards'
+  abstract version: RewardsAPIVersion
 
   RewardTokenContract: ContractConstructor<SNIP20Contract> = SNIP20Contract
-  async rewardToken <T extends SNIP20Contract> (SNIP20 = this.RewardTokenContract) {
-    const { agent } = this
-    const { address, code_hash } = (await this.q().pool_info()).reward_token
-    return new SNIP20({ address, codeHash: code_hash, agent })
-  }
+  abstract rewardToken <T extends SNIP20Contract> (
+    Contract: ContractConstructor<SNIP20Contract>
+  ): Promise<T>
 
-  LPTokenContract: ContractConstructor<SNIP20Contract> = SNIP20Contract
-  async lpToken <T extends SNIP20Contract> (SNIP20 = this.LPTokenContract) {
-    const { agent } = this
-    if (this.version === 'v3') {
-      console.log(await this.q().config())
-      const { address, code_hash } = (await this.q().pool_info()).lp_token
-      return new SNIP20({ address, codeHash: code_hash, agent })
-    } else if (this.version
-  }
+  LPTokenContract: ContractConstructor<SNIP20Contract>     = SNIP20Contract
+  abstract lpToken <T extends SNIP20Contract> (
+    Contract: ContractConstructor<SNIP20Contract>
+  ): Promise<T>
 
-  initMsg?: Init // TODO generic
-
-  constructor (input) {
-    super(input)
-    const { version, lpToken, rewardToken, admin } = input
-    switch (version) {
-
-      case 'v3': this.initMsg = {
-        admin:  admin.address,
-        config: {
-          reward_vk:    randomHex(36),
-          bonding:      86400,
-          timekeeper:   admin.address,
-          lp_token:     lpToken.link,
-          reward_token: rewardToken.link,
-        }
-      }; break
-
-      // @ts-ignore
-      case 'v2': this.initMsg = { 
-        admin:        admin.address,
-        lp_token:     lpToken.link,
-        reward_token: rewardToken.link,
+  static v2 = class RewardsContract_v2 extends RewardsContract {
+    ref     = 'rewards-2.1.2'
+    version = 'v2' as RewardsAPIVersion
+    initMsg?: any // TODO v2 init type
+    Transactions = RewardsTransactions // TODO v2 executors
+    Queries      = RewardsQueries
+    constructor (input) {
+      super(input)
+      const { lpToken, rewardToken, admin } = input
+      this.initMsg = {
+        admin:        admin?.address,
+        lp_token:     lpToken?.link,
+        reward_token: rewardToken?.link,
         viewing_key:  "",
         ratio:        ["1", "1"],
         threshold:    15940,
         cooldown:     15940,
-      }; break
+      }
+    }
+    async lpToken <T extends SNIP20Contract> (T = this.LPTokenContract): Promise<T> {
+      console.log(1, this.address)
+      const info = await this.query({at:+new Date()/1000})
+      console.log(2)
+      console.log(info)
+      console.log(3)
+      throw new Error('TODO')
+      console.log(4)
+      const { address, code_hash } = (await this.q().pool_info()).lp_token
+      console.log(5)
+      return new T({ address, codeHash: code_hash, agent: this.agent }) as T
+    }
+    async rewardToken <T extends SNIP20Contract> (T = this.LPTokenContract): Promise<T> {
+      throw new Error('not implemented')
+    }
+  }
 
-      default: this.initMsg = null
-
+  static v3 = class RewardsContract_v3 extends RewardsContract {
+    version = 'v3' as RewardsAPIVersion
+    initMsg?: Init
+    Transactions = RewardsTransactions
+    Queries      = RewardsQueries
+    constructor (input) {
+      super(input)
+      const { lpToken, rewardToken, admin } = input
+      this.initMsg = {
+        admin: admin?.address,
+        config: {
+          reward_vk:    randomHex(36),
+          bonding:      86400,
+          timekeeper:   admin?.address,
+          lp_token:     lpToken?.link,
+          reward_token: rewardToken?.link,
+        }
+      }
+    }
+    async lpToken (SNIP20 = this.LPTokenContract): Promise<any> {
+      throw new Error('v3 does not expose config')
+    }
+    async rewardToken (SNIP20 = this.RewardTokenContract): Promise<any> {
+      throw new Error('v3 does not expose config')
+    }
+    get epoch (): Promise<number> {
+      return this.q().pool_info().then(pool_info=>pool_info.clock.number)
     }
   }
 
@@ -106,7 +116,7 @@ export async function deployRewards ({
     await run(adjustRPTConfig, { RPT_CONFIG_SSSSS, RPT_CONFIG_SWAP_REWARDS })
   console.log()
   console.info(bold('Deployed reward pools:'))
-  printContracts([REWARD_POOLS])
+  printContracts(REWARD_POOLS)
   console.log()
   return { REWARD_POOLS, RPT_CONFIG }
 }
@@ -143,9 +153,10 @@ Object.assign(deployRewards, {
   * a Sienna Rewards pool where you stake SIENNA to earn SIENNA. */
 export async function deploySSSSS ({
   run, chain, deployment,
-  SIENNA
+  SIENNA, version,
 }) {
   const { REWARDS: SSSSS_POOL } = await run(deployRewardPool, {
+    version,
     name:        'SSSSS',
     lpToken:     SIENNA,
     rewardToken: SIENNA,
@@ -168,12 +179,11 @@ export async function deployRewardPool ({
   version     = 'v3',
   suffix      = `_${version}+${timestamp()}`,
 }) {
-  name = `SiennaRewards_${name}`
-  console.info(bold(`Deploying ${name}`), version)
-  console.info(bold(`LP token`), lpToken.address, lpToken.codeHash)
-  const REWARDS = new RewardsContract({
+  console.info(bold(`Deploying ${name}:`), version)
+  console.info(bold(`Staked token:`), lpToken.address, lpToken.codeHash)
+  const REWARDS = new RewardsContract[version]({
     workspace, name, suffix,
-    version, lpToken, rewardToken, admin
+    lpToken, rewardToken, admin
   })
   await chain.buildAndUpload(admin, [REWARDS])
   await deployment.getOrCreateContract(
@@ -188,43 +198,66 @@ export async function deployRewardPools ({
   chain, admin, deployment, prefix, run,
   SIENNA  = deployment.getContract(admin, SiennaSNIP20Contract, 'SiennaSNIP20'),
   version = 'v3',
-  suffix  = `_${version}+${timestamp()}`,
+  ammVersion = 'v1',
+  suffix  = `+${timestamp()}`,
   split   = 1.0,
 }) {
-  const { swapPairs, rewardPairs } = getSettings(chain.chainId)
+
   const REWARDS = new RewardsContract({ workspace, prefix, admin })
   await chain.buildAndUpload(admin, [REWARDS])
   const REWARD_POOLS            = []
   const RPT_CONFIG_SWAP_REWARDS = []
-  if (swapPairs.length > 0) {
-    const rewards = rewardPairs
-    for (const name of swapPairs) {
-      if (rewards && rewards[name]) {
-        const exchangeName = `SiennaSwap_${name}`
-        const exchange = deployment.receipts[exchangeName]
-        if (!exchange) {
-          console.error(bold(`Contract does not exist in deployment`), exchangeName)
-          console.error(bold(`Contracts in deployment:`), Object.keys(deployment.receipts).join(' '))
-          process.exit(1)
-        }
-        const { REWARDS } = await run(deployRewardPool, {
-          name: `SiennaRewards_${name}_SIENNA`,
-          suffix,
-          lpToken: new LPTokenContract({
-            address:  exchange.lp_token.address,
-            codeHash: exchange.lp_token.code_hash,
-            admin
-          }),
-          rewardToken: SIENNA
-        })
-        REWARD_POOLS.push(REWARDS)
-        const reward = BigInt(rewards[name]) / BigInt(1 / split)
-        RPT_CONFIG_SWAP_REWARDS.push(
-          [REWARDS.address, String(reward * ONE_SIENNA)]
-        )
-      }
-    }
+
+  const { swapPairs } = getSettings(chain.chainId)
+  if (!swapPairs || swapPairs.length === 1) {
+    throw new Error('@sienna/rewards: needs swapPairs setting')
   }
+
+  const { rewardPairs } = getSettings(chain.chainId)
+  if (!rewardPairs || rewardPairs.length === 1) {
+    throw new Error('@sienna/rewards: needs rewardPairs setting')
+  }
+
+  for (const name of swapPairs) {
+
+    console.info(bold('Checking if rewards are allocated for'), name)
+    if (!rewardPairs[name]) {
+      console.info(bold('No rewards for'), name)
+      continue
+    }
+
+    const exchangeName = `SiennaSwap_v1_${name}`
+    console.info(bold('Need LP token of exchange'), exchangeName)
+
+    const exchange = deployment.receipts[exchangeName]
+    if (!exchange) {
+      console.error(bold(`Exchange does not exist in deployment`), exchangeName)
+      console.error(bold(`Contracts in deployment:`), Object.keys(deployment.receipts).join(' '))
+      process.exit(1)
+    }
+
+    const lpToken = new LPTokenContract({
+      address:  exchange.lp_token.address,
+      codeHash: exchange.lp_token.code_hash,
+      admin
+    })
+    console.info(bold('Found LP token:'), lpToken.address)
+
+    const { REWARDS } = await run(deployRewardPool, {
+      name: `SiennaRewards_${version}_${name}_SIENNA`,
+      suffix, rewardToken: SIENNA, lpToken,
+    })
+
+    REWARD_POOLS.push(REWARDS)
+
+    const reward = BigInt(rewardPairs[name]) / BigInt(1 / split)
+
+    RPT_CONFIG_SWAP_REWARDS.push(
+      [REWARDS.address, String(reward * ONE_SIENNA)]
+    )
+
+  }
+
   return { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS }
 }
 
@@ -272,10 +305,11 @@ export async function adjustRPTConfig ({
 
 export async function upgradeRewards ({
   timestamp, chain, admin, deployment, prefix, run,
-  SIENNA       = deployment.getContract(admin,  SiennaSNIP20Contract, 'SiennaSNIP20'),
-  RPT          = deployment.getContract(admin,  RPTContract,          'SiennaRPT'),
-  REWARD_POOLS = deployment.getContracts(admin, RewardsContract,      'SiennaRewards'),
-  version: RewardsAPIVersion = 'v3',
+  SIENNA = deployment.getContract(admin,  SiennaSNIP20Contract, 'SiennaSNIP20'),
+  RPT    = deployment.getContract(admin,  RPTContract,          'SiennaRPT'),
+  OldRewardsContract,
+  REWARD_POOLS = deployment.getContracts(admin, OldRewardsContract, 'SiennaRewards'),
+  NewRewardsContract,
   settings: { rewardPairs, amm: { exchange_settings } } = getSettings(chain.chainId)
 }) {
   console.log()
@@ -292,7 +326,11 @@ export async function upgradeRewards ({
 }
 Object.assign(upgradeRewards, {
   v2_to_v3: function upgradeRewards_v2_to_v3 (input) {
-    return upgradeRewards(input)
+    return upgradeRewards({
+      ...input,
+      OldRewardsContract: RewardsContract.v2,
+      NewRewardsContract: RewardsContract.v3
+    })
   }
 })
 

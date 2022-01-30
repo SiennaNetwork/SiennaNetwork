@@ -49,7 +49,7 @@ export async function deployPlaceholders ({
   type TokenConfig = { label: string, initMsg: any }
   const placeholders: Record<string, TokenConfig> = placeholderTokens
   for (const [symbol, {label, initMsg}] of Object.entries(placeholders)) {
-    const name = `Placeholder_${label}` 
+    const name = `Placeholder_${label}`
     try {
       PLACEHOLDERS[symbol] = deployment.getContract(admin, AMMSNIP20Contract, name)
       console.info(bold('Found, not redeploying:'), name)
