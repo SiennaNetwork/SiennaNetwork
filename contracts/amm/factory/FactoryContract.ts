@@ -128,9 +128,7 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     const name = `${TOKEN_0_NAME}-${TOKEN_1_NAME}`
     const { liquidity_token } = await EXCHANGE.pairInfo()
     const LP_TOKEN = new LPTokenContract({
-      admin:    this.admin,
-      prefix:   this.prefix,
-      chain:    this.chain,
+      admin, prefix, chain,
       address:  liquidity_token.address,
       codeHash: liquidity_token.code_hash,
       codeId:   await agent.getCodeId(liquidity_token.address),
