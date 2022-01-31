@@ -1,19 +1,17 @@
 import {
   Scrt_1_2, ContractInfo, Agent, MigrationContext,
   randomHex, colors, bold, Console, timestamp,
-  printContract, printToken, printExchanges, printContracts
-} from "@hackbg/fadroma"
+  printContract, printToken, printContracts
+} from '@hackbg/fadroma'
 
 import { SNIP20Contract } from '@fadroma/snip20'
 
-import { AMMContract, ExchangeInfo } from "@sienna/exchange"
-import { AMMSNIP20Contract, deployPlaceholders } from "@sienna/amm-snip20"
-import { LPTokenContract } from "@sienna/lp-token"
-
-import { IDOContract } from "@sienna/ido"
-import { LaunchpadContract } from "@sienna/launchpad"
-import { SiennaSNIP20Contract } from '@sienna/api'
-
+import { AMMContract, ExchangeInfo } from '@sienna/exchange'
+import { AMMSNIP20Contract, deployPlaceholders } from '@sienna/amm-snip20'
+import { LPTokenContract } from '@sienna/lp-token'
+import { IDOContract } from '@sienna/ido'
+import { LaunchpadContract } from '@sienna/launchpad'
+import { SiennaSNIP20Contract } from '@sienna/snip20-sienna'
 import getSettings, { workspace } from '@sienna/settings'
 
 import { InitMsg, ExchangeSettings, ContractInstantiationInfo } from './schema/init_msg.d'
@@ -105,12 +103,7 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     //console.info(bold('  between'), JSON.stringify(token_0))
     //console.info(bold('      and'), JSON.stringify(token_1))
     const { admin, prefix, chain } = this
-    const { address } = await this.q(agent).get_exchange_address(
-      token_0, token_1
-    )
-    // ouch, factory-created contracts have nasty labels
-    const label = await agent.getLabel(address)
-
+    const { address } = (await this.q(agent).get_exchange_address(token_0, token_1))
     const EXCHANGE = new AMMContract({
       chain,
       address,
@@ -119,27 +112,20 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
       prefix,
       agent,
     })
-
-    const TOKEN_0 = SNIP20Contract.fromTokenSpec(agent, token_0)
-    let TOKEN_0_NAME: string
-    if (TOKEN_0 instanceof SNIP20Contract) {
-      const TOKEN_0_INFO = await TOKEN_0.q(agent).tokenInfo()
-      TOKEN_0_NAME = TOKEN_0_INFO.symbol
-    } else {
-      TOKEN_0_NAME = 'SCRT'
+    const getTokenName = async TOKEN => {
+      let TOKEN_NAME: string
+      if (TOKEN instanceof SNIP20Contract) {
+        const TOKEN_INFO = await TOKEN.q(agent).tokenInfo()
+        return TOKEN_INFO.symbol
+      } else {
+        return 'SCRT'
+      }
     }
-
-    const TOKEN_1 = SNIP20Contract.fromTokenSpec(agent, token_1)
-    let TOKEN_1_NAME: string
-    if (TOKEN_1 instanceof SNIP20Contract) {
-      const TOKEN_1_INFO = await TOKEN_1.q(agent).tokenInfo()
-      TOKEN_1_NAME = TOKEN_1_INFO.symbol
-    } else {
-      TOKEN_1_NAME = 'SCRT'
-    }
-
+    const TOKEN_0      = SNIP20Contract.fromTokenSpec(agent, token_0)
+    const TOKEN_0_NAME = await getTokenName(TOKEN_0)
+    const TOKEN_1      = SNIP20Contract.fromTokenSpec(agent, token_1)
+    const TOKEN_1_NAME = await getTokenName(TOKEN_1)
     const name = `${TOKEN_0_NAME}-${TOKEN_1_NAME}`
-
     const { liquidity_token } = await EXCHANGE.pairInfo()
     const LP_TOKEN = new LPTokenContract({
       admin:    this.admin,
@@ -150,23 +136,15 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
       codeId:   await agent.getCodeId(liquidity_token.address),
       agent
     })
-
-    const raw = {
-      exchange: {
-        address: EXCHANGE.address
-      },
-      token_0,
-      token_1,
-      lp_token: {
-        address:   LP_TOKEN.address,
-        code_hash: LP_TOKEN.codeHash
-      },
-    }
-
     return {
       name,
       EXCHANGE, TOKEN_0, TOKEN_1, LP_TOKEN,
-      raw
+      raw: {
+        exchange: { address: EXCHANGE.address },
+        token_0,
+        token_1,
+        lp_token: { address: LP_TOKEN.address, code_hash: LP_TOKEN.codeHash },
+      }
     }
   }
 
@@ -196,18 +174,9 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
   * creating the pre-configured liquidity and reward pools. */
 export async function deployAMM ({
   deployment, admin, run,
-  SIENNA  = deployment.getContract(admin, SiennaSNIP20Contract, 'SiennaSNIP20'),
+  SIENNA  = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({admin})),
   version = 'v2',
-}): Promise<{
-  /* The newly created factory contract. */
-  FACTORY:   FactoryContract
-  /* Collection of tokens supported by the AMM. */
-  TOKENS:    Record<string, SNIP20Contract>
-  /* List of exchanges created. */
-  EXCHANGES: AMMContract[]
-  /* List of LP tokens created. */
-  LP_TOKENS: LPTokenContract[]
-}> {
+}) {
   const {
     FACTORY
   } = await run(deployAMMFactory, { version })
@@ -218,10 +187,10 @@ export async function deployAMM ({
   console.info(bold('Deployed AMM contracts:'))
   printContracts([FACTORY,...EXCHANGES,...LP_TOKENS])
   console.log()
-  return { FACTORY, TOKENS, EXCHANGES, LP_TOKENS, }
+  return { FACTORY, TOKENS, EXCHANGES, LP_TOKENS }
 }
 
-Object.assign(deployAMM, { 
+Object.assign(deployAMM, {
   v1: args => deployAMM({ ...args, version: 'v1' }),
   v2: args => deployAMM({ ...args, version: 'v2' }),
 })
@@ -230,9 +199,7 @@ export const upgradeAMM = {
 
   async v1_to_v2 ({
     run, chain, admin, deployment, prefix,
-    FACTORY = deployment.getContract(
-      admin, FactoryContract, 'SiennaAMMFactory@v1'
-    ),
+    FACTORY = deployment.getThe('SiennaAMMFactory@v1', () => new FactoryContract({ admin })),
   }) {
     console.log()
 
@@ -253,11 +220,12 @@ export const upgradeAMM = {
 
     const NEW_EXCHANGES = []
     for (const { name, TOKEN_0, TOKEN_1 } of EXCHANGES) {
-      console.info(bold('Upgrading exchange'), name)
+      console.log()
+      console.info(bold('Creating V2 exchange'), name, 'from corresponding V1 exchange')
       NEW_EXCHANGES.push(saveExchange(
         { deployment, version },
-        await FACTORY.getContracts(),
-        await FACTORY.createExchange(TOKEN_0, TOKEN_1)))
+        await NEW_FACTORY.getContracts(),
+        await NEW_FACTORY.createExchange(TOKEN_0, TOKEN_1)))
     }
     await printExchanges(NEW_EXCHANGES)
 
@@ -317,7 +285,6 @@ export async function deployAMMFactory ({
         ...contracts
       })
   }
-  console.log()
   console.info(
     bold(`Deployed factory ${version}`), FACTORY.label
   )
@@ -354,16 +321,14 @@ export async function deployAMMExchanges ({
     console.debug(bold('Tokens:'), TOKENS)
   }
   // If there are any initial swap pairs defined in the config
-  if (swapPairs.length > 0) {
-    for (const name of swapPairs) {
-      // Call the factory to deploy an EXCHANGE for each
-      const { EXCHANGE, LP_TOKEN } = await run(deployAMMExchange, {
-        FACTORY, TOKENS, name, version
-      })
-      // And collect the results
-      EXCHANGES.push(EXCHANGE)
-      LP_TOKENS.push(LP_TOKEN)
-    }
+  for (const name of swapPairs) {
+    // Call the factory to deploy an EXCHANGE for each
+    const { EXCHANGE, LP_TOKEN } = await run(deployAMMExchange, {
+      FACTORY, TOKENS, name, version
+    })
+    // And collect the results
+    EXCHANGES.push(EXCHANGE)
+    LP_TOKENS.push(LP_TOKEN)
   }
   return { TOKENS, LP_TOKENS, EXCHANGES }
 }
@@ -376,6 +341,7 @@ export async function deployAMMExchange ({
     bold(`Deploying AMM exchange`), name
   )
   const [tokenName0, tokenName1] = name.split('-')
+  console.log(tokenName0, tokenName1, Object.keys(TOKENS))
   const token0 = TOKENS[tokenName0].asCustomToken
   const token1 = TOKENS[tokenName1].asCustomToken
   //console.info(`- Token 0: ${bold(JSON.stringify(token0))}...`)
@@ -400,7 +366,7 @@ export async function deployAMMExchange ({
 function saveExchange (
   { deployment, version },
   { pair_contract: { id: ammId, code_hash: ammHash }, lp_token_contract: { id: lpId } },
-  { name, raw, EXCHANGE, LP_TOKEN }
+  { name, raw, EXCHANGE, LP_TOKEN, TOKEN_0, TOKEN_1 }
 ) {
   console.info(bold(`Deployed AMM exchange`), EXCHANGE.address)
   deployment.save({
@@ -416,5 +382,21 @@ function saveExchange (
     codeHash: raw.lp_token.code_hash,
     initTx:   { contractAddress: raw.lp_token.address }
   }, `SiennaSwap_${version}_LP-${name}`)
-  return { EXCHANGE, LP_TOKEN }
+  return { name, raw, EXCHANGE, LP_TOKEN, TOKEN_0, TOKEN_1 }
+}
+
+export async function printExchanges (EXCHANGES: any[]) {
+  console.log({EXCHANGES})
+  for (const {
+      name, EXCHANGE: { codeId, codeHash, address },
+      TOKEN_0, TOKEN_1, LP_TOKEN
+    } of EXCHANGES) {
+    console.info(
+      ' ', bold(colors.inverse(name)).padEnd(30), // wat
+      `(code id ${bold(String(codeId))})`.padEnd(34), bold(address)
+    )
+    await printToken(TOKEN_0)
+    await printToken(TOKEN_1)
+    await printToken(LP_TOKEN)
+  }
 }

@@ -1,4 +1,4 @@
-import { Agent, ContractState, randomHex } from "@hackbg/fadroma"
+import { Agent, randomHex } from "@hackbg/fadroma"
 import { SNIP20Contract_1_2 } from "@fadroma/snip20"
 import { InitMsg } from "./schema/init_msg.d"
 
@@ -34,4 +34,17 @@ export class LPTokenContract extends SNIP20Contract_1_2 {
       this.initMsg.symbol = `LP-${options?.name}`
     }
   }
+
+  get friendlyName (): Promise<string> {
+    const { chain, agent } = this
+    return this.info.then(async ({name})=>{
+      const fragments = name.split(' ')
+      const [t0addr, t1addr] = fragments[fragments.length-1].split('-')
+      const t0 = new SNIP20Contract_1_2({ chain, agent, address: t0addr })
+      const t1 = new SNIP20Contract_1_2({ chain, agent, address: t1addr })
+      const [t0info, t1info] = await Promise.all([t0.info, t1.info])
+      return `LP-${t0info.symbol}-${t1info.symbol}`
+    })
+  }
+
 }

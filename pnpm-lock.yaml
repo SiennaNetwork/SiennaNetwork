@@ -52,6 +52,7 @@ importers:
       '@sienna/lp-token': workspace:^1
       '@sienna/rewards': workspace:*
       '@sienna/settings': workspace:^1
+      '@sienna/snip20-sienna': workspace:^1
       '@waiting/base64': ^4.2.9
       secretjs: 0.17.5
     dependencies:
@@ -63,6 +64,7 @@ importers:
       '@sienna/lp-token': link:../lp-token
       '@sienna/rewards': link:../rewards
       '@sienna/settings': link:../../../settings
+      '@sienna/snip20-sienna': link:../../tge/snip20-sienna
       '@waiting/base64': 4.2.9
       secretjs: 0.17.5
 
@@ -309,11 +311,13 @@ importers:
       '@cosmjs/crypto': ^0.20.0
       '@fadroma/ops': workspace:*
       '@hackbg/tools': ^1
+      '@iov/encoding': ^2.1.0
       secretjs: 0.17.5
     dependencies:
       '@cosmjs/crypto': 0.20.1
       '@fadroma/ops': link:../ops
       '@hackbg/tools': 1.0.0
+      '@iov/encoding': 2.5.0
       secretjs: 0.17.5
 
   deps/fadroma/packages/scrt-1.0:
@@ -5062,7 +5066,7 @@ packages:
     resolution: {integrity: sha512-ANA4rr2BDcmmAQLOKft2fufrtuvlqR+cXNNinUmvfeSNCOF98PZL+7M/v1zIdGo7OLjEA9J2gXJL+j4zGsl0bA==}
     deprecated: Critical security vulnerability fixed in v0.21.1. For more information, see https://github.com/axios/axios/pull/3410
     dependencies:
-      follow-redirects: 1.14.7_debug@4.3.3
+      follow-redirects: 1.14.7
     transitivePeerDependencies:
       - debug
     dev: true
@@ -5071,7 +5075,7 @@ packages:
   /axios/0.21.1:
     resolution: {integrity: sha512-dKQiRHxGD9PPRIUNIWvZhPTPpl1rf/OxTYKsqKUDjBwYylTvV7SjSHJb9ratfyzM6wCdLCOYLzs73qpg5c4iGA==}
     dependencies:
-      follow-redirects: 1.14.7_debug@4.3.3
+      follow-redirects: 1.14.7
     transitivePeerDependencies:
       - debug
     dev: false
@@ -5087,7 +5091,7 @@ packages:
   /axios/0.21.4:
     resolution: {integrity: sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==}
     dependencies:
-      follow-redirects: 1.14.7_debug@4.3.3
+      follow-redirects: 1.14.7
     transitivePeerDependencies:
       - debug
     dev: true
@@ -10090,6 +10094,15 @@ packages:
     resolution: {integrity: sha1-SiksW8/4s5+mzAyxqFPYbyfu/3s=}
     dev: true
 
+  /follow-redirects/1.14.7:
+    resolution: {integrity: sha512-+hbxoLbFMbRKDwohX8GkTataGqO6Jb7jGwpAlwgy2bIz25XtRm7KEzJM76R1WiNT5SwZkX4Y75SwBolkpmE7iQ==}
+    engines: {node: '>=4.0'}
+    peerDependencies:
+      debug: '*'
+    peerDependenciesMeta:
+      debug:
+        optional: true
+
   /follow-redirects/1.14.7_debug@4.3.3:
     resolution: {integrity: sha512-+hbxoLbFMbRKDwohX8GkTataGqO6Jb7jGwpAlwgy2bIz25XtRm7KEzJM76R1WiNT5SwZkX4Y75SwBolkpmE7iQ==}
     engines: {node: '>=4.0'}
@@ -10100,6 +10113,7 @@ packages:
         optional: true
     dependencies:
       debug: 4.3.3_supports-color@6.1.0
+    dev: false
 
   /for-each/0.3.3:
     resolution: {integrity: sha512-jqYfLp7mo9vIyQf8ykW2v7A+2N4QjeCeI5+Dz9XraiO1ign81wjiH7Fb9vSOWvQfNtmSa4H2RoQTrrXivdUZmw==}
@@ -11200,7 +11214,7 @@ packages:
     engines: {node: '>=8.0.0'}
     dependencies:
       eventemitter3: 4.0.7
-      follow-redirects: 1.14.7_debug@4.3.3
+      follow-redirects: 1.14.7
       requires-port: 1.0.0
     transitivePeerDependencies:
       - debug
