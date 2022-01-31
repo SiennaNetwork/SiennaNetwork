@@ -960,6 +960,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lend-mock-oracle"
+version = "0.0.1"
+dependencies = [
+ "lend-shared",
+ "serde",
+ "snafu",
+]
+
+[[package]]
 name = "lend-oracle"
 version = "0.0.1"
 dependencies = [

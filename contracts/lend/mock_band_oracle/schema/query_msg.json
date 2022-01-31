@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "price"
+      ],
+      "properties": {
+        "price": {
+          "type": "object",
+          "required": [
+            "base_symbol",
+            "quote_symbol"
+          ],
+          "properties": {
+            "base_symbol": {
+              "type": "string"
+            },
+            "quote_symbol": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "prices"
+      ],
+      "properties": {
+        "prices": {
+          "type": "object",
+          "required": [
+            "base_symbols",
+            "quote_symbols"
+          ],
+          "properties": {
+            "base_symbols": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "quote_symbols": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

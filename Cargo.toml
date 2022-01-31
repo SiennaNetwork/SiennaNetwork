@@ -29,14 +29,8 @@ members = [
   "contracts/lend/overseer",
   "contracts/lend/market",
   "contracts/lend/tests",
-
-  # Lend
-  "libraries/lend-shared",         # definitions that are shared across the lending contracts
-  "contracts/lend/interest_model",
-  "contracts/lend/oracle",
-  "contracts/lend/overseer",
-  "contracts/lend/market",
-
+  "contracts/lend/mock_band_oracle",
+ 
   # Framework
   "deps/fadroma/crates/*",
 
