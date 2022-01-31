@@ -46,6 +46,8 @@ pub trait IRewardsConfig <S, A, Q, C> where
     fn initialize    (&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>>;
     /// Commit contract configuration to storage.
     fn store         (&self, core: &mut C) -> StdResult<Vec<CosmosMsg>>;
+    /// Commit contract configuration to storage.
+    fn from_storage  (core: &C) -> StdResult<RewardsConfig>;
     /// Get this contract's address (used in queries where Env is unavailable).
     fn self_link     (core: &C) -> StdResult<ContractLink<HumanAddr>>;
     /// Get an interface to the LP token.
@@ -54,6 +56,8 @@ pub trait IRewardsConfig <S, A, Q, C> where
     fn reward_token  (core: &C) -> StdResult<ISnip20>;
     /// Get the reward viewing key.
     fn reward_vk     (core: &C) -> StdResult<String>;
+    /// Get the configured bonding period.
+    fn bonding       (core: &C) -> StdResult<Duration>;
     /// Get the address authorized to increment the epoch
     fn timekeeper    (core: &C) -> StdResult<HumanAddr>;
     /// Get the address authorized to increment the epoch
@@ -62,6 +66,15 @@ pub trait IRewardsConfig <S, A, Q, C> where
 impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
+    fn from_storage (core: &C) -> StdResult<Self> {
+        Ok(Self {
+            lp_token:     Some(Self::lp_token(core)?.link),
+            reward_token: Some(Self::reward_token(core)?.link),
+            reward_vk:    None,
+            bonding:      Some(Self::bonding(core)?),
+            timekeeper:   Some(Self::timekeeper(core)?)
+        })
+    }
     fn initialize (&mut self, core: &mut C, env: &Env) -> StdResult<Vec<CosmosMsg>> {
         if self.reward_token.is_none() {
             Err(StdError::generic_err("need to provide link to reward token"))
@@ -125,6 +138,10 @@ impl<S, A, Q, C> IRewardsConfig<S, A, Q, C> for RewardsConfig where
     fn reward_vk (core: &C) -> StdResult<String> {
         Ok(core.get::<ViewingKey>(Self::REWARD_VK)?
             .ok_or(StdError::generic_err("no reward viewing key"))?.0)
+    }
+    fn bonding (core: &C) -> StdResult<Duration> {
+        Ok(core.get::<Duration>(Self::BONDING)?
+            .ok_or(StdError::generic_err("no bonding configured"))?)
     }
     fn timekeeper (core: &C) -> StdResult<HumanAddr> {
         Ok(core.humanize(core.get::<CanonicalAddr>(Self::TIMEKEEPER)?
@@ -190,7 +207,11 @@ impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for RewardsHandle where
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub enum RewardsQuery {
+    /// Get the current settings of the contract.
+    Config,
+    /// For a moment in time, report the status of an account, with embedded pool and clock status
     UserInfo { at: Moment, address: HumanAddr, key: String },
+    /// For a moment in time, report pool status, with embedded clock status
     PoolInfo { at: Moment },
 }
 impl<S, A, Q, C> QueryDispatch<S, A, Q, C, RewardsResponse> for RewardsQuery where
@@ -198,6 +219,8 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, RewardsResponse> for RewardsQuery whe
 {
     fn dispatch_query (self, core: &C) -> StdResult<RewardsResponse> {
         match self {
+            RewardsQuery::Config =>
+                RewardsResponse::config(core),
             RewardsQuery::UserInfo { at, address, key } =>
                 RewardsResponse::user_info(core, at, address, key),
             RewardsQuery::PoolInfo { at } =>
@@ -210,26 +233,30 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, RewardsResponse> for RewardsQuery whe
 pub enum RewardsResponse {
     UserInfo(Account),
     PoolInfo(Total),
+    Config(RewardsConfig)
 }
 pub trait IRewardsResponse<S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
-    /// Get account + pool + epoch info
+    /// Populate a response with account + pool + epoch info
     fn user_info (core: &C, time: Moment, address: HumanAddr, key: String) -> StdResult<Self>;
-    /// Get pool + epoch info
+    /// Populate a response with pool + epoch info
     fn pool_info (core: &C, time: Moment) -> StdResult<Self>;
+    /// Populate a response with the contract's configuration
+    fn config (core: &C) -> StdResult<Self>;
 }
 impl<S, A, Q, C> IRewardsResponse<S, A, Q, C> for RewardsResponse where
     S: Storage, A: Api, Q: Querier, C: Rewards<S, A, Q>
 {
-    /// For a moment in time, report the status of an account, with embedded pool and clock status
     fn user_info (core: &C, time: Moment, address: HumanAddr, key: String) -> StdResult<Self> {
         Auth::check_vk(core, &address, &key.into())?;
         Ok(RewardsResponse::UserInfo(Account::from_addr(core, &address, time)?))
     }
-    /// For a moment in time, report pool status, with embedded clock status
     fn pool_info (core: &C, time: Moment) -> StdResult<RewardsResponse> {
         Ok(RewardsResponse::PoolInfo(Total::from_time(core, time)?))
+    }
+    fn config (core: &C) -> StdResult<RewardsResponse> {
+        Ok(RewardsResponse::Config(RewardsConfig::from_storage(core)?))
     }
 }
 /// Reward epoch state. Epoch is incremented after each RPT vesting.

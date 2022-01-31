@@ -1,4 +1,19 @@
-import { TransactionExecutor } from '@hackbg/fadroma'
+import {
+  QueryExecutor,
+  TransactionExecutor,
+  ContractConstructor
+} from '@hackbg/fadroma'
+
+export type RewardsAPIVersion = 'v2'|'v3'
+
+export class RewardsQueries extends QueryExecutor {
+
+  async pool_info (at = Math.floor(+ new Date() / 1000)) {
+    const result = await this.query({ rewards: { pool_info: { at } } })
+    return result.rewards.pool_info
+  }
+
+}
 
 type Link = { address: string, code_hash: string }
 

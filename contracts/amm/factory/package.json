@@ -1,17 +1,18 @@
 {
   "name":    "@sienna/factory",
   "version": "2.0.0",
-  "type":    "module",
   "main":    "./FactoryContract.ts",
   "dependencies": {
-    "@hackbg/fadroma":    "workspace:../../../deps/fadroma",
-    "@sienna/amm-snip20": "workspace:^1",
-    "@sienna/exchange":   "workspace:^1",
-    "@sienna/ido":        "workspace:^1",
-    "@sienna/launchpad":  "workspace:^1",
-    "@sienna/lp-token":   "workspace:^1",
-    "@sienna/settings":   "workspace:^1",
-    "@waiting/base64":    "^4.2.9",
-    "secretjs":           "0.17.5"
+    "@hackbg/fadroma":       "workspace:../../../deps/fadroma",
+    "@sienna/amm-snip20":    "workspace:^1",
+    "@sienna/exchange":      "workspace:^1",
+    "@sienna/ido":           "workspace:^1",
+    "@sienna/launchpad":     "workspace:^1",
+    "@sienna/lp-token":      "workspace:^1",
+    "@sienna/settings":      "workspace:^1",
+    "@sienna/snip20-sienna": "workspace:^1",
+    "@sienna/rewards":       "workspace:*",
+    "@waiting/base64":       "^4.2.9",
+    "secretjs":              "0.17.5"
   }
 }

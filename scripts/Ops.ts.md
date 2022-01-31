@@ -1,71 +1,120 @@
 # Sienna Deployment Procedures
 
 ```typescript
-import Fadroma, {
-  createNewDeployment, needsActiveDeployment
-  bold, timestamp
-} from '@hackbg/fadroma'
-import from '@hackbg/fadroma'
+import Fadroma, { bold, timestamp, Console } from '@hackbg/fadroma'
+const console = new Console('@sienna/ops')
 ```
 
-## Listing supported networks
+## How commands work
 
-All the commands below must be prefixed with a chain ID, e.g. `pnpm -w ops $CHAIN $COMMAND`.
-To list the available chains, run `pnpm -w ops` with no parameters.
+TODO: Literate doc in Fadroma instead the following haphazard explanation:
 
-## Reset the localnet
+Fadroma commands are a match between of a series of keywords
+(represented by a space-separated string)
+and a series of [stages](https://github.com/hackbg/fadroma/blob/22.01/packages/ops/index.ts)
+(represented by async functions)
+that are executed in sequence with a common state object -
+the [`MigrationContext`](https://github.com/hackbg/fadroma/blob/22.01/packages/ops/index.ts),
+into which the values returned by each procedure can also be added
+(for example, see [`Deployment.activate`](#needsdeployment)).
+
+## Chains
+
+The active [`Chain`](https://github.com/hackbg/fadroma/blob/22.01/packages/ops/Chain.ts)
+is selected via the `FADROMA_CHAIN` environment variable.
+
+Run this script with `FADROMA_CHAIN` set to an empty value, to list possible values.
+
+### Reset localnet
 
 Commands that spawn localnets (such as benchmarks and integration tests)
 will do their best to clean up after themselves. However, if you need to
-reset the localnet manually, the `pnpm -w ops $LOCALNET reset` command
-(where `$LOCALNET` is `localnet-1.0` or `localnet-1.2`) will stop the
+reset the localnet manually, the `pnpm -w ops reset` command will stop the
 currently running localnet container, and will delete the localnet data under `/receipts`.
 
 ```typescript
-Fadroma.command('reset', async ({ chain, admin }) => {
-  if (!chain.node) {
-    throw new Error(`${bold(process.env.CHAIN_NAME)}: not a localnet`)
+Fadroma.command('reset', async ({ chain }) => {
+  if (chain.node) {
+    await chain.node.terminate()
+  } else {
+    console.warn(bold(process.env.FADROMA_CHAIN), 'not a localnet')
   }
-  return chain.node.terminate()
 })
 ```
 
-## Select the active deployment
+## Deployments
 
-**FIXME**: In the code, deployments are referred to as "instances", which is less specific.
+The Sienna platform consists of multiple smart contracts that
+depend on each other's existence and configuration. A group of
+such contracts is called a `Deployment`.
 
 ```typescript
-Fadroma.command('select', async ({ chain, admin, args: [ id ] }) => {
-  const {chain} = await init(process.env.CHAIN_NAME)
-  const list = chain.deployments.list()
-  if (list.length < 1) {
-    console.log('\nNo known deployments.')
-  }
-  if (id) {
-    await chain.deployments.select(id)
-  } else if (list.length > 0) {
-    console.log(`\nKnown deployments:`)
-    for (let instance of chain.deployments.list()) {
-      if (instance === chain.deployments.active.name) instance = bold(instance)
-      console.log(`  ${instance}`)
-    }
-  }
-  chain.deployments.printActive()
-})
+import { Deployment } from '@hackbg/fadroma'
+Fadroma.command('status', Deployment.activate)
+Fadroma.command('select', Deployment.select)
+Fadroma.command('deploy new', Deployment.new)
 ```
 
-## Deploy contracts
+### Deployment.activate
 
-### Making a new full deployment
+`Deployment.activate` is a command step that acts as a context modifier:
+the `deployment` and `prefix` arguments for subsequent steps are taken
+from its return value by the mechanics behind `Fadroma.command`.
 
-This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
+### Deployment.new
+
+`Deployment.new` works similarly to `Deployment.activate`, but
+creates a new empty deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
+This is how you start from a clean slate.
+
+## Deploying contracts
+
+### Deploying Jan 2022 state
+
+```typescript
+import { deployTGE } from '@sienna/tge'
+import { deployAMM, deployRewards } from '@sienna/amm'
+Fadroma.command('deploy legacy',
+  Deployment.new,
+  deployTGE,
+  Deployment.status,
+  deployAMM.v1,
+  Deployment.status,
+  deployRewards.v2,
+  Deployment.status)
+```
+
+### Upgrading legacy to latest
+
+```typescript
+import { upgradeAMM } from '@sienna/amm'
+Fadroma.command('upgrade amm v1_to_v2',
+  Deployment.activate,
+  upgradeAMM.v1_to_v2)
+
+import { upgradeRewards } from '@sienna/amm'
+Fadroma.command('upgrade rewards v2_to_v3',
+  Deployment.activate,
+  upgradeRewards.v2_to_v3)
+```
+
+### Full up-to-date deployment
+
+Note that we go through the steps for the legacy deployment
+before upgrading it to the latest version. Deploy of latest code
+without migrations is currently discouraged due to implicit
+temporal dependencies in contracts.
 
 ```typescript
 Fadroma.command('deploy all',
-  createNewDeployment,
+  Deployment.new,
   deployTGE,
-  deployAMM,
-  needsActiveDeployment)
+  deployAMM.v1,
+  deployRewards.v2,
+  Deployment.status,
+  upgradeAMM.v1_to_v2,
+  upgradeRewards.v2_to_v3,
+  Deployment.status)
 ```
 
 ### Deploy just the TGE
@@ -73,9 +122,8 @@ Fadroma.command('deploy all',
 This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 
 ```typescript
-import { deployTGE } from '@sienna/tge'
 Fadroma.command('deploy tge',
-  createNewDeployment,
+  Deployment.activate, 
   deployTGE)
 ```
 
@@ -85,10 +133,9 @@ This command requires a [selected deployment](#select-the-active-deployment),
 to which it adds the contracts for Sienna Swap.
 
 ```typescript
-import { deployAMM } from '@sienna/amm'
 Fadroma.command('deploy amm',
-  needsActiveDeployment,
-  deployAMM)
+  Deployment.activate,
+  deployAMM.v2)
 ```
 
 ### Deploying Rewards v2 and v3 side-by-side
@@ -96,10 +143,17 @@ Fadroma.command('deploy amm',
 Used to test the migration from v2 to v3 pools.
 
 ```typescript
-import { deployRewardsSideBySide } from '@sienna/amm'
-Fadroma.command('deploy rewards-side-by-side',
-  needsActiveDeployment,
-  deployRewardsSideBySide)
+Fadroma.command('deploy rewards v2',
+  Deployment.activate,
+  deployRewards.v2)
+
+Fadroma.command('deploy rewards v3',
+  Deployment.activate,
+  deployRewards.v3)
+
+Fadroma.command('deploy rewards v2_and_v3',
+  Deployment.activate,
+  deployRewards.v2_and_v3)
 ```
 
 ### Deploying a v1 factory
@@ -109,10 +163,10 @@ to which it adds the contracts for Sienna Swap to which it adds a Factory instan
 built from `main`.
 
 ```typescript
-import { deployAMMFactoryLegacy } from '@sienna/amm'
-Fadroma.command('deploy legacy-factory',
-  needsActiveDeployment,
-  deployAMMFactoryLegacy)
+import { deployAMMFactory } from '@sienna/amm'
+Fadroma.command('deploy factory v1',
+  Deployment.activate,
+  deployAMMFactory.v1)
 ```
 
 ## Upgrades and migrations
@@ -120,29 +174,6 @@ Fadroma.command('deploy legacy-factory',
 ### Migrating to `@sienna/factory v2.0.0` + `@sienna/rewards v3.0.0`
 
 ```typescript
-import { upgradeFactoryAndRewards } from '@sienna/amm'
-Fadroma.command('upgrade factory-and-rewards',
-  needsActiveDeployment,
-  upgradeFactoryAndRewards)
-```
-
-### Replacing a single reward pool in a deployment with an updated version
-
-This command closes a specified reward pool in the currently selected deployment
-(see [Select the active deployment](#select-the-active-deployment)) and deploys a new one
-with the latest version of the code.
-
-```typescript
-import { replaceRewardPool, printRewardsContracts } from '@sienna/amm'
-Fadroma.command('upgrade reward-pool',
-  needsActiveDeployment,
-  async ({ chain, admin, args: [ id ] }) => {
-    if (id) {
-      await replaceRewardPool(chain, admin, id)
-    } else {
-      printRewardsContracts(chain)
-    }
-  })
 ```
 
 ## Helper commands for auditing the contract logic
@@ -151,8 +182,7 @@ This spins up a rewards contract on localnet and lets you interact with it.
 
 ```typescript
 import { rewardsAudit } from '@sienna/amm'
-Fadroma.command('audit rewards',
-  rewardsAudit)
+Fadroma.command('audit rewards', rewardsAudit)
 ```
 
 ## Entry point
