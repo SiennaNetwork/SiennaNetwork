@@ -19,6 +19,13 @@ pub struct AccruedInterest {
     pub borrow_index: Decimal256
 }
 
+#[derive(Default)]
+pub struct LatestInterest {
+    total_borrows: Option<Uint256>,
+    total_reserves: Option<Uint256>,
+    borrow_index: Option<Decimal256>
+}
+
 impl BorrowSnapshot {
     pub fn current_balance(&self, borrow_index: Decimal256) -> StdResult<Uint256> {
         if self.0.principal.is_zero() {
@@ -61,7 +68,7 @@ pub fn accrue_interest<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     current_block: u64,
     balance_prior: Uint128
-) -> StdResult<()> {
+) -> StdResult<LatestInterest> {
     let result = calc_accrued_interest(deps, current_block, balance_prior)?;
 
     if let Some(interest) = result {
@@ -70,9 +77,11 @@ pub fn accrue_interest<S: Storage, A: Api, Q: Querier>(
         Global::save_interest_reserve(&mut deps.storage, &interest.total_reserves)?;
         Global::save_borrow_index(&mut deps.storage, &interest.borrow_index)?;
         Global::save_accrual_block_number(&mut deps.storage, current_block)?;
-    }
 
-    Ok(())
+        Ok(LatestInterest::from(interest))
+    } else {
+        Ok(LatestInterest::default())
+    }
 }
 
 /// Calculate accrued interest for the given block. If no block is supplied,
@@ -148,4 +157,52 @@ fn calc_accrued_interest<S: Storage, A: Api, Q: Querier>(
         total_reserves: (interest_accumulated.decimal_mul(config.reserve_factor)? + reserves_prior)?,
         borrow_index: ((borrow_index_prior * simple_interest_factor)? + borrow_index_prior)?
     }))
+}
+
+impl LatestInterest {
+    #[inline]
+    pub fn total_borrows(&mut self, storage: &impl Storage) -> StdResult<Uint256> {
+        if let Some(borrows) = self.total_borrows {
+            Ok(borrows)
+        } else {
+            let result = TotalBorrows::load(storage)?;
+            self.total_borrows = Some(result);
+
+            Ok(result)
+        }
+    }
+
+    #[inline]
+    pub fn total_reserves(&mut self, storage: &impl Storage) -> StdResult<Uint256> {
+        if let Some(reserves) = self.total_reserves {
+            Ok(reserves)
+        } else {
+            let result = Global::load_interest_reserve(storage)?;
+            self.total_reserves = Some(result);
+
+            Ok(result)
+        }
+    }
+
+    #[inline]
+    pub fn borrow_index(&mut self, storage: &impl Storage) -> StdResult<Decimal256> {
+        if let Some(borrows) = self.borrow_index {
+            Ok(borrows)
+        } else {
+            let result = Global::load_borrow_index(storage)?;
+            self.borrow_index = Some(result);
+
+            Ok(result)
+        }
+    }
+}
+
+impl From<AccruedInterest> for LatestInterest {
+    fn from(value: AccruedInterest) -> Self {
+        LatestInterest {
+            total_borrows: Some(value.total_borrows),
+            total_reserves: Some(value.total_reserves),
+            borrow_index: Some(value.borrow_index)
+        }
+    }
 }

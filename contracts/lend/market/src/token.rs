@@ -14,8 +14,7 @@ use lend_shared::{
 
 use crate::accrue_interest;
 use crate::state::{
-    Global, Constants, Contracts,
-    Account, TotalSupply, TotalBorrows
+    Constants, Contracts, Account, TotalSupply
 };
 use crate::checks;
 
@@ -35,13 +34,13 @@ pub fn deposit<S: Storage, A: Api, Q: Querier>(
         underlying_asset.address,
     )?.amount;
 
-    accrue_interest(deps, env.block.height, balance)?;
+    let mut latest = accrue_interest(deps, env.block.height, balance)?;
 
     let exchange_rate = calc_exchange_rate(
         deps,
         balance.into(),
-        TotalBorrows::load(&deps.storage)?,
-        Global::load_interest_reserve(&deps.storage)?
+        latest.total_borrows(&deps.storage)?,
+        latest.total_reserves(&deps.storage)?
     )?;
     let mint_amount = Uint256::from(amount)
         .decimal_div(exchange_rate)?;
@@ -71,13 +70,13 @@ pub fn redeem<S: Storage, A: Api, Q: Querier>(
         underlying_asset.address.clone(),
     )?.amount;
 
-    accrue_interest(deps, env.block.height, balance)?;
+    let mut latest = accrue_interest(deps, env.block.height, balance)?;
 
     let exchange_rate = calc_exchange_rate(
         deps,
         balance.into(),
-        TotalBorrows::load(&deps.storage)?,
-        Global::load_interest_reserve(&deps.storage)?
+        latest.total_borrows(&deps.storage)?,
+        latest.total_reserves(&deps.storage)?
     )?;
 
     let (redeem_amount, burn_amount) = if from_sl_token > Uint256::zero() {

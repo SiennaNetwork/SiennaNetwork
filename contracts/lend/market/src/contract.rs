@@ -56,7 +56,7 @@ use state::{
     Account, TotalBorrows, TotalSupply, load_borrowers
 };
 use token::calc_exchange_rate;
-use ops::{accrue_interest, accrued_interest_at};
+use ops::{LatestInterest, accrue_interest, accrued_interest_at};
 
 #[contract_impl(
     entry,
@@ -226,7 +226,7 @@ pub trait Market {
 
         checks::assert_can_withdraw(balance.into(), amount)?;
     
-        accrue_interest(deps, env.block.height, balance)?;
+        let mut latest = accrue_interest(deps, env.block.height, balance)?;
 
         checks::assert_borrow_allowed(
             deps,
@@ -236,12 +236,10 @@ pub trait Market {
             amount
         )?;
 
-        let borrow_index = Global::load_borrow_index(&deps.storage)?;
-
         let account = Account::new(deps, &env.message.sender)?;
 
         let mut snapshot = account.get_borrow_snapshot(&deps.storage)?;
-        snapshot.add_balance(borrow_index, amount)?;
+        snapshot.add_balance(latest.borrow_index(&deps.storage)?, amount)?;
         account.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
 
         TotalBorrows::increase(&mut deps.storage, amount)?;
@@ -343,10 +341,11 @@ pub trait Market {
             underlying_asset.address.clone(),
         )?.amount;
 
-        accrue_interest(deps, env.block.height, balance)?;
+        let latest = accrue_interest(deps, env.block.height, balance)?;
 
         seize(
             deps,
+            latest,
             balance.into(),
             Account::of(deps, &liquidator)?,
             Account::of(deps, &borrower)?,
@@ -400,10 +399,10 @@ pub trait Market {
             )));
         }
 
-        accrue_interest(deps, env.block.height, balance)?;
+        let mut latest = accrue_interest(deps, env.block.height, balance)?;
 
         // Load after accrue_interest(), because it's updated inside.
-        let reserve = Global::load_interest_reserve(&deps.storage)?;
+        let reserve = latest.total_reserves(&deps.storage)?;
         let amount_256 = Uint256::from(amount);
 
         if reserve < amount_256 {
@@ -730,12 +729,10 @@ fn repay<S: Storage, A: Api, Q: Querier>(
         underlying_asset.address,
     )?.amount;
 
-    accrue_interest(deps, env.block.height, balance)?;
-
-    let borrow_index = Global::load_borrow_index(&deps.storage)?;
+    let mut latest = accrue_interest(deps, env.block.height, balance)?;
 
     let mut snapshot = borrower.get_borrow_snapshot(&deps.storage)?;
-    snapshot.subtract_balance(borrow_index, amount)?;
+    snapshot.subtract_balance(latest.borrow_index(&deps.storage)?, amount)?;
     borrower.save_borrow_snapshot(&mut deps.storage, &snapshot)?;
 
     TotalBorrows::decrease(&mut deps.storage, amount)?;
@@ -767,9 +764,9 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
         underlying_asset.address.clone(),
     )?.amount;
 
-    accrue_interest(deps, env.block.height, balance)?;
+    let mut latest = accrue_interest(deps, env.block.height, balance)?;
 
-    let borrow_index = Global::load_borrow_index(&deps.storage)?;
+    let borrow_index = latest.borrow_index(&deps.storage)?;
     let mut snapshot = borrower.get_borrow_snapshot(&deps.storage)?;
 
     let borrower_address = borrower.address(&deps.api)?;
@@ -803,6 +800,7 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
     if this_is_collateral {
         seize(
             deps,
+            latest,
             balance.into(),
             liquidator,
             borrower,
@@ -836,6 +834,7 @@ fn liquidate<S: Storage, A: Api, Q: Querier>(
 
 fn seize<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
+    mut latest: LatestInterest,
     underlying_balance: Uint256,
     liquidator: Account,
     borrower: Account,
@@ -853,11 +852,11 @@ fn seize<S: Storage, A: Api, Q: Querier>(
     let protocol_share = amount.decimal_mul(config.seize_factor)?;
     let liquidator_share = (amount - protocol_share)?;
 
-    let interest_reserve = Global::load_interest_reserve(&deps.storage)?;
+    let interest_reserve = latest.total_reserves(&deps.storage)?;
     let exchange_rate = calc_exchange_rate(
         deps,
         underlying_balance,
-        TotalBorrows::load(&deps.storage)?,
+        latest.total_borrows(&deps.storage)?,
         interest_reserve
     )?;
 
