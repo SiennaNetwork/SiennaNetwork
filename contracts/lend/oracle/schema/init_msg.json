@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InitMsg",
+  "type": "object",
+  "required": [
+    "callback",
+    "initial_assets",
+    "source"
+  ],
+  "properties": {
+    "admin": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "callback": {
+      "$ref": "#/definitions/Callback"
+    },
+    "initial_assets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Asset"
+      }
+    },
+    "source": {
+      "$ref": "#/definitions/ContractLink"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Asset": {
+      "type": "object",
+      "required": [
+        "address",
+        "symbol"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "Callback": {
+      "description": "Info needed to have the other contract respond.",
+      "type": "object",
+      "required": [
+        "contract",
+        "msg"
+      ],
+      "properties": {
+        "contract": {
+          "description": "Info about the contract requesting the callback.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ContractLink"
+            }
+          ]
+        },
+        "msg": {
+          "description": "The message to call.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ContractLink": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "HumanAddr": {
+      "type": "string"
+    }
+  }
+}

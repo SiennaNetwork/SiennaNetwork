@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HandleMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "update_assets"
+      ],
+      "properties": {
+        "update_assets": {
+          "type": "object",
+          "required": [
+            "assets"
+          ],
+          "properties": {
+            "assets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Asset"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/HandleMsg"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "Asset": {
+      "type": "object",
+      "required": [
+        "address",
+        "symbol"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "HandleMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "change_admin"
+          ],
+          "properties": {
+            "change_admin": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "accept_admin"
+          ],
+          "properties": {
+            "accept_admin": {
+              "type": "object"
+            }
+          }
+        }
+      ]
+    },
+    "HumanAddr": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,408 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "token_info"
+      ],
+      "properties": {
+        "token_info": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "balance"
+      ],
+      "properties": {
+        "balance": {
+          "type": "object",
+          "required": [
+            "address",
+            "key"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "key": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "balance_underlying"
+      ],
+      "properties": {
+        "balance_underlying": {
+          "type": "object",
+          "required": [
+            "method"
+          ],
+          "properties": {
+            "block": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "method": {
+              "$ref": "#/definitions/AuthMethod_for_MarketPermissions"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "type": "object",
+          "properties": {
+            "block": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "underlying_asset"
+      ],
+      "properties": {
+        "underlying_asset": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "borrow_rate"
+      ],
+      "properties": {
+        "borrow_rate": {
+          "type": "object",
+          "properties": {
+            "block": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "supply_rate"
+      ],
+      "properties": {
+        "supply_rate": {
+          "type": "object",
+          "properties": {
+            "block": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "exchange_rate"
+      ],
+      "properties": {
+        "exchange_rate": {
+          "type": "object",
+          "properties": {
+            "block": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "account"
+      ],
+      "properties": {
+        "account": {
+          "type": "object",
+          "required": [
+            "method"
+          ],
+          "properties": {
+            "block": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "method": {
+              "$ref": "#/definitions/AuthMethod_for_MarketPermissions"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "object",
+          "required": [
+            "method"
+          ],
+          "properties": {
+            "method": {
+              "$ref": "#/definitions/AuthMethod_for_MarketPermissions"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "borrowers"
+      ],
+      "properties": {
+        "borrowers": {
+          "type": "object",
+          "required": [
+            "block"
+          ],
+          "properties": {
+            "block": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "limit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint8",
+              "minimum": 0.0
+            },
+            "start_after": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Binary"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/QueryMsg"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "AuthMethod_for_MarketPermissions": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "permit"
+          ],
+          "properties": {
+            "permit": {
+              "$ref": "#/definitions/Permit_for_MarketPermissions"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "viewing_key"
+          ],
+          "properties": {
+            "viewing_key": {
+              "type": "object",
+              "required": [
+                "address",
+                "key"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "key": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "internal"
+          ],
+          "properties": {
+            "internal": {
+              "type": "object",
+              "required": [
+                "address",
+                "key"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "key": {
+                  "$ref": "#/definitions/MasterKey"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "MarketPermissions": {
+      "type": "string",
+      "enum": [
+        "account_info",
+        "balance",
+        "id"
+      ]
+    },
+    "MasterKey": {
+      "description": "A single viewing key that is shared throughout the protocol so that private data can be viewied internally.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/ViewingKey"
+        }
+      ]
+    },
+    "PermitParams_for_MarketPermissions": {
+      "type": "object",
+      "required": [
+        "allowed_tokens",
+        "chain_id",
+        "permissions",
+        "permit_name"
+      ],
+      "properties": {
+        "allowed_tokens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HumanAddr"
+          }
+        },
+        "chain_id": {
+          "type": "string"
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MarketPermissions"
+          }
+        },
+        "permit_name": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Permit_for_MarketPermissions": {
+      "type": "object",
+      "required": [
+        "address",
+        "params"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "params": {
+          "$ref": "#/definitions/PermitParams_for_MarketPermissions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "admin"
+          ],
+          "properties": {
+            "admin": {
+              "type": "object"
+            }
+          }
+        }
+      ]
+    },
+    "ViewingKey": {
+      "type": "string"
+    }
+  }
+}

@@ -35,6 +35,7 @@ export type HandleMsg =
         amount: Uint128;
         from: HumanAddr;
         msg?: Binary | null;
+        sender: HumanAddr;
         [k: string]: unknown;
       };
       [k: string]: unknown;

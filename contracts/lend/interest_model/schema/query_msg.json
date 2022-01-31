@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "config"
+      ],
+      "properties": {
+        "config": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "borrow_rate"
+      ],
+      "properties": {
+        "borrow_rate": {
+          "type": "object",
+          "required": [
+            "market_size",
+            "num_borrows",
+            "reserves"
+          ],
+          "properties": {
+            "market_size": {
+              "$ref": "#/definitions/Decimal256"
+            },
+            "num_borrows": {
+              "$ref": "#/definitions/Decimal256"
+            },
+            "reserves": {
+              "$ref": "#/definitions/Decimal256"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "supply_rate"
+      ],
+      "properties": {
+        "supply_rate": {
+          "type": "object",
+          "required": [
+            "market_size",
+            "num_borrows",
+            "reserve_factor",
+            "reserves"
+          ],
+          "properties": {
+            "market_size": {
+              "$ref": "#/definitions/Decimal256"
+            },
+            "num_borrows": {
+              "$ref": "#/definitions/Decimal256"
+            },
+            "reserve_factor": {
+              "$ref": "#/definitions/Decimal256"
+            },
+            "reserves": {
+              "$ref": "#/definitions/Decimal256"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/QueryMsg"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "Decimal256": {
+      "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0 The greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^128 - 1) / 10^18)",
+      "type": "string"
+    },
+    "QueryMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "admin"
+          ],
+          "properties": {
+            "admin": {
+              "type": "object"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

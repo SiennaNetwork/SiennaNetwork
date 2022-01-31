@@ -74,6 +74,13 @@
     "RewardsQuery": {
       "anyOf": [
         {
+          "type": "string",
+          "enum": [
+            "config"
+          ]
+        },
+        {
+          "description": "For a moment in time, report the status of an account, with embedded pool and clock status",
           "type": "object",
           "required": [
             "user_info"
@@ -103,6 +110,7 @@
           }
         },
         {
+          "description": "For a moment in time, report pool status, with embedded clock status",
           "type": "object",
           "required": [
             "pool_info"

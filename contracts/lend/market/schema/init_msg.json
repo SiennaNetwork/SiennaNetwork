@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InitMsg",
+  "type": "object",
+  "required": [
+    "admin",
+    "callback",
+    "config",
+    "entropy",
+    "interest_model_contract",
+    "key",
+    "prng_seed",
+    "underlying_asset"
+  ],
+  "properties": {
+    "admin": {
+      "$ref": "#/definitions/HumanAddr"
+    },
+    "callback": {
+      "$ref": "#/definitions/Callback"
+    },
+    "config": {
+      "$ref": "#/definitions/Config"
+    },
+    "entropy": {
+      "$ref": "#/definitions/Binary"
+    },
+    "interest_model_contract": {
+      "$ref": "#/definitions/ContractLink"
+    },
+    "key": {
+      "$ref": "#/definitions/MasterKey"
+    },
+    "prng_seed": {
+      "$ref": "#/definitions/Binary"
+    },
+    "underlying_asset": {
+      "$ref": "#/definitions/ContractLink"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "Callback": {
+      "description": "Info needed to have the other contract respond.",
+      "type": "object",
+      "required": [
+        "contract",
+        "msg"
+      ],
+      "properties": {
+        "contract": {
+          "description": "Info about the contract requesting the callback.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ContractLink"
+            }
+          ]
+        },
+        "msg": {
+          "description": "The message to call.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Config": {
+      "type": "object",
+      "required": [
+        "initial_exchange_rate",
+        "reserve_factor",
+        "seize_factor"
+      ],
+      "properties": {
+        "initial_exchange_rate": {
+          "description": "Initial exchange rate used when minting the first slTokens (used when totalSupply = 0)",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Decimal256"
+            }
+          ]
+        },
+        "reserve_factor": {
+          "description": "Fraction of interest currently set aside for reserves",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Decimal256"
+            }
+          ]
+        },
+        "seize_factor": {
+          "description": "Share of seized collateral that is added to reserves",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Decimal256"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ContractLink": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Decimal256": {
+      "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0 The greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^128 - 1) / 10^18)",
+      "type": "string"
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "MasterKey": {
+      "description": "A single viewing key that is shared throughout the protocol so that private data can be viewied internally.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/ViewingKey"
+        }
+      ]
+    },
+    "ViewingKey": {
+      "type": "string"
+    }
+  }
+}

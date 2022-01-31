@@ -1,0 +1,372 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "markets"
+      ],
+      "properties": {
+        "markets": {
+          "type": "object",
+          "required": [
+            "pagination"
+          ],
+          "properties": {
+            "pagination": {
+              "$ref": "#/definitions/Pagination"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "market"
+      ],
+      "properties": {
+        "market": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "entered_markets"
+      ],
+      "properties": {
+        "entered_markets": {
+          "type": "object",
+          "required": [
+            "method"
+          ],
+          "properties": {
+            "method": {
+              "$ref": "#/definitions/AuthMethod_for_OverseerPermissions"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "account_liquidity"
+      ],
+      "properties": {
+        "account_liquidity": {
+          "type": "object",
+          "required": [
+            "borrow_amount",
+            "method",
+            "redeem_amount"
+          ],
+          "properties": {
+            "block": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "borrow_amount": {
+              "$ref": "#/definitions/Uint256"
+            },
+            "market": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "method": {
+              "$ref": "#/definitions/AuthMethod_for_OverseerPermissions"
+            },
+            "redeem_amount": {
+              "$ref": "#/definitions/Uint256"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "can_transfer_internal"
+      ],
+      "properties": {
+        "can_transfer_internal": {
+          "type": "object",
+          "required": [
+            "address",
+            "amount",
+            "block",
+            "key",
+            "market"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "amount": {
+              "$ref": "#/definitions/Uint256"
+            },
+            "block": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "key": {
+              "$ref": "#/definitions/MasterKey"
+            },
+            "market": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "seize_amount"
+      ],
+      "properties": {
+        "seize_amount": {
+          "type": "object",
+          "required": [
+            "borrowed",
+            "collateral",
+            "repay_amount"
+          ],
+          "properties": {
+            "borrowed": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "collateral": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "repay_amount": {
+              "$ref": "#/definitions/Uint256"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "config"
+      ],
+      "properties": {
+        "config": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/QueryMsg"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "auth"
+      ],
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/QueryMsg"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "AuthMethod_for_OverseerPermissions": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "permit"
+          ],
+          "properties": {
+            "permit": {
+              "$ref": "#/definitions/Permit_for_OverseerPermissions"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "viewing_key"
+          ],
+          "properties": {
+            "viewing_key": {
+              "type": "object",
+              "required": [
+                "address",
+                "key"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "key": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "internal"
+          ],
+          "properties": {
+            "internal": {
+              "type": "object",
+              "required": [
+                "address",
+                "key"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                "key": {
+                  "$ref": "#/definitions/MasterKey"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "MasterKey": {
+      "description": "A single viewing key that is shared throughout the protocol so that private data can be viewied internally.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/ViewingKey"
+        }
+      ]
+    },
+    "OverseerPermissions": {
+      "type": "string",
+      "enum": [
+        "account_info"
+      ]
+    },
+    "Pagination": {
+      "type": "object",
+      "required": [
+        "limit",
+        "start"
+      ],
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "format": "uint8",
+          "minimum": 0.0
+        },
+        "start": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "PermitParams_for_OverseerPermissions": {
+      "type": "object",
+      "required": [
+        "allowed_tokens",
+        "chain_id",
+        "permissions",
+        "permit_name"
+      ],
+      "properties": {
+        "allowed_tokens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HumanAddr"
+          }
+        },
+        "chain_id": {
+          "type": "string"
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OverseerPermissions"
+          }
+        },
+        "permit_name": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Permit_for_OverseerPermissions": {
+      "type": "object",
+      "required": [
+        "address",
+        "params"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "params": {
+          "$ref": "#/definitions/PermitParams_for_OverseerPermissions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "admin"
+          ],
+          "properties": {
+            "admin": {
+              "type": "object"
+            }
+          }
+        }
+      ]
+    },
+    "Uint256": {
+      "type": "string"
+    },
+    "ViewingKey": {
+      "type": "string"
+    }
+  }
+}

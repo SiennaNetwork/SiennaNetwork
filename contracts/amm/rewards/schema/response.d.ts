@@ -56,6 +56,10 @@ export type RewardsResponse =
   | {
       pool_info: Total;
       [k: string]: unknown;
+    }
+  | {
+      config: RewardsConfig;
+      [k: string]: unknown;
     };
 export type Uint128 = string;
 export type Uint256 = string;
@@ -178,4 +182,22 @@ export interface Clock {
    */
   volume: Uint256;
   [k: string]: unknown;
+}
+/**
+ * Reward pool configuration
+ */
+export interface RewardsConfig {
+  bonding?: number | null;
+  lp_token?: ContractLink | null;
+  reward_token?: ContractLink | null;
+  reward_vk?: string | null;
+  timekeeper?: HumanAddr | null;
+  [k: string]: unknown;
+}
+/**
+ * Info needed to talk to a contract instance.
+ */
+export interface ContractLink {
+  address: HumanAddr;
+  code_hash: string;
 }

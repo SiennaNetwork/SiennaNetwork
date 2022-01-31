@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "price"
+      ],
+      "properties": {
+        "price": {
+          "type": "object",
+          "required": [
+            "base",
+            "quote"
+          ],
+          "properties": {
+            "base": {
+              "$ref": "#/definitions/AssetType"
+            },
+            "quote": {
+              "$ref": "#/definitions/AssetType"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "prices"
+      ],
+      "properties": {
+        "prices": {
+          "type": "object",
+          "required": [
+            "base",
+            "quote"
+          ],
+          "properties": {
+            "base": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/AssetType"
+              }
+            },
+            "quote": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/AssetType"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/QueryMsg"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "AssetType": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "symbol"
+          ],
+          "properties": {
+            "symbol": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      ]
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "QueryMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "admin"
+          ],
+          "properties": {
+            "admin": {
+              "type": "object"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -5,46 +5,35 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
-export type Query =
+export type HandleMsg =
   | {
-      auth: AuthQuery;
-      [k: string]: unknown;
-    }
-  | {
-      rewards: RewardsQuery;
-      [k: string]: unknown;
-    }
-  | {
-      token_info: {
+      update_assets: {
+        assets: Asset[];
         [k: string]: unknown;
       };
       [k: string]: unknown;
     }
   | {
-      balance: {
-        address: HumanAddr;
-        key: string;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    };
-export type AuthQuery = "admin";
-export type RewardsQuery =
-  | "config"
-  | {
-      user_info: {
-        address: HumanAddr;
-        at: number;
-        key: string;
-        [k: string]: unknown;
-      };
-      [k: string]: unknown;
-    }
-  | {
-      pool_info: {
-        at: number;
-        [k: string]: unknown;
-      };
+      admin: HandleMsg1;
       [k: string]: unknown;
     };
 export type HumanAddr = string;
+export type HandleMsg1 =
+  | {
+      change_admin: {
+        address: HumanAddr;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      accept_admin: {
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    };
+
+export interface Asset {
+  address: HumanAddr;
+  symbol: string;
+}

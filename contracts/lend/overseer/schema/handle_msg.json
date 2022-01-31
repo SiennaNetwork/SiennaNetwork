@@ -1,0 +1,304 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HandleMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "register_oracle"
+      ],
+      "properties": {
+        "register_oracle": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "whitelist"
+      ],
+      "properties": {
+        "whitelist": {
+          "type": "object",
+          "required": [
+            "config"
+          ],
+          "properties": {
+            "config": {
+              "$ref": "#/definitions/MarketInitConfig"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "register_market"
+      ],
+      "properties": {
+        "register_market": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "enter"
+      ],
+      "properties": {
+        "enter": {
+          "type": "object",
+          "required": [
+            "markets"
+          ],
+          "properties": {
+            "markets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/HumanAddr"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "exit"
+      ],
+      "properties": {
+        "exit": {
+          "type": "object",
+          "required": [
+            "market_address"
+          ],
+          "properties": {
+            "market_address": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "change_market"
+      ],
+      "properties": {
+        "change_market": {
+          "type": "object",
+          "required": [
+            "market"
+          ],
+          "properties": {
+            "ltv_ratio": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Decimal256"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "market": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "symbol": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_premium"
+      ],
+      "properties": {
+        "set_premium": {
+          "type": "object",
+          "required": [
+            "premium"
+          ],
+          "properties": {
+            "premium": {
+              "$ref": "#/definitions/Decimal256"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/HandleMsg"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "auth"
+      ],
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/HandleMsg"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "Config": {
+      "type": "object",
+      "required": [
+        "initial_exchange_rate",
+        "reserve_factor",
+        "seize_factor"
+      ],
+      "properties": {
+        "initial_exchange_rate": {
+          "description": "Initial exchange rate used when minting the first slTokens (used when totalSupply = 0)",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Decimal256"
+            }
+          ]
+        },
+        "reserve_factor": {
+          "description": "Fraction of interest currently set aside for reserves",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Decimal256"
+            }
+          ]
+        },
+        "seize_factor": {
+          "description": "Share of seized collateral that is added to reserves",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Decimal256"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ContractLink": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Decimal256": {
+      "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0 The greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^128 - 1) / 10^18)",
+      "type": "string"
+    },
+    "HandleMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "change_admin"
+          ],
+          "properties": {
+            "change_admin": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "accept_admin"
+          ],
+          "properties": {
+            "accept_admin": {
+              "type": "object"
+            }
+          }
+        }
+      ]
+    },
+    "HumanAddr": {
+      "type": "string"
+    },
+    "MarketInitConfig": {
+      "type": "object",
+      "required": [
+        "config",
+        "entropy",
+        "interest_model_contract",
+        "ltv_ratio",
+        "prng_seed",
+        "token_symbol",
+        "underlying_asset"
+      ],
+      "properties": {
+        "config": {
+          "$ref": "#/definitions/Config"
+        },
+        "entropy": {
+          "$ref": "#/definitions/Binary"
+        },
+        "interest_model_contract": {
+          "$ref": "#/definitions/ContractLink"
+        },
+        "ltv_ratio": {
+          "description": "The percentage rate at which tokens can be borrowed given the size of the collateral.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Decimal256"
+            }
+          ]
+        },
+        "prng_seed": {
+          "$ref": "#/definitions/Binary"
+        },
+        "token_symbol": {
+          "description": "Symbol of the underlying asset. Must be the same as what the oracle expects.",
+          "type": "string"
+        },
+        "underlying_asset": {
+          "$ref": "#/definitions/ContractLink"
+        }
+      }
+    }
+  }
+}

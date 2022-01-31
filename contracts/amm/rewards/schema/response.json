@@ -297,8 +297,75 @@
         }
       }
     },
+    "ContractLink": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
     "HumanAddr": {
       "type": "string"
+    },
+    "RewardsConfig": {
+      "description": "Reward pool configuration",
+      "type": "object",
+      "properties": {
+        "bonding": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "lp_token": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContractLink"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reward_token": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContractLink"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reward_vk": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timekeeper": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
     },
     "RewardsResponse": {
       "anyOf": [
@@ -321,6 +388,17 @@
           "properties": {
             "pool_info": {
               "$ref": "#/definitions/Total"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "config"
+          ],
+          "properties": {
+            "config": {
+              "$ref": "#/definitions/RewardsConfig"
             }
           }
         }

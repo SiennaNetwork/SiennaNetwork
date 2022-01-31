@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InitMsg",
+  "type": "object",
+  "required": [
+    "close_factor",
+    "entropy",
+    "market_contract",
+    "oracle_contract",
+    "oracle_source",
+    "premium",
+    "prng_seed"
+  ],
+  "properties": {
+    "admin": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "close_factor": {
+      "$ref": "#/definitions/Decimal256"
+    },
+    "entropy": {
+      "$ref": "#/definitions/Binary"
+    },
+    "market_contract": {
+      "$ref": "#/definitions/ContractInstantiationInfo"
+    },
+    "oracle_contract": {
+      "$ref": "#/definitions/ContractInstantiationInfo"
+    },
+    "oracle_source": {
+      "$ref": "#/definitions/ContractLink"
+    },
+    "premium": {
+      "$ref": "#/definitions/Decimal256"
+    },
+    "prng_seed": {
+      "$ref": "#/definitions/Binary"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "ContractInstantiationInfo": {
+      "description": "Info needed to instantiate a contract.",
+      "type": "object",
+      "required": [
+        "code_hash",
+        "id"
+      ],
+      "properties": {
+        "code_hash": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "ContractLink": {
+      "description": "Info needed to talk to a contract instance.",
+      "type": "object",
+      "required": [
+        "address",
+        "code_hash"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "code_hash": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Decimal256": {
+      "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0 The greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^128 - 1) / 10^18)",
+      "type": "string"
+    },
+    "HumanAddr": {
+      "type": "string"
+    }
+  }
+}
