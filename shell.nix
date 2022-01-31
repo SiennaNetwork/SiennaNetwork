@@ -1,7 +1,7 @@
 {pkgs ? import <nixpkgs> { overlays = [
   (import (builtins.fetchTarball {
     url    = "https://github.com/mozilla/nixpkgs-mozilla/archive/master.tar.gz";
-    sha256 = "1hpig8z4pzdwc2vazr6hg7qyxllbgznsaivaigjnmrdszlxz55zz";
+    sha256 = "1a71nfw7d36vplf89fp65vgj3s66np1dc0hqnqgj5gbdnpm1bihl";
   }))];}}:
 pkgs.mkShell {
   name = "sienna";

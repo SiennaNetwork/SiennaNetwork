@@ -37,6 +37,7 @@ impl RewardsConfig {
     pub const REWARD_VK:    &'static[u8] = b"/config/reward_vk";
     pub const CLOSED:       &'static[u8] = b"/config/closed";
     pub const BONDING:      &'static[u8] = b"/config/bonding";
+
     pub const TIMEKEEPER:   &'static[u8] = b"/config/keeper";
 }
 pub trait IRewardsConfig <S, A, Q, C> where
