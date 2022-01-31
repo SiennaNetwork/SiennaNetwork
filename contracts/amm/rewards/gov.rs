@@ -129,6 +129,18 @@ where
         match self {
             GovernanceHandle::CreatePoll { meta } => {
                 let id = Poll::create_id(core)?;
+                let deadline = GovernanceConfig::deadline(core)?;
+                let expiration = Expiration::AtTime(env.block.time + deadline);
+
+                let poll = Poll {
+                    creator: core.canonize(env.message.sender)?,
+                    expiration,
+                    id,
+                    metadata: meta,
+                    status: PollStatus::Active,
+                };
+
+                poll.store(core)?;
 
                 Ok(HandleResponse::default())
             }
@@ -231,7 +243,7 @@ impl Poll {
     pub const TOTAL: &'static [u8] = b"/gov/poll/total";
 
     pub const CREATOR: &'static [u8] = b"/gov/poll/creator";
-    pub const EXPIRATION: &'static [u8] = b"/gov/poll/deadline";
+    pub const EXPIRATION: &'static [u8] = b"/gov/poll/expiration";
     pub const STATUS: &'static [u8] = b"/gov/poll/status";
 }
 
