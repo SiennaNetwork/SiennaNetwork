@@ -241,7 +241,7 @@ where
     Q: Querier,
     C: Rewards<S, A, Q>,
 {
-    fn create_id(core: &C) -> StdResult<u64>;
+    fn create_id(core: &mut C) -> StdResult<u64>;
 }
 
 impl<S, A, Q, C> IPoll<S, A, Q, C> for Poll
@@ -251,8 +251,17 @@ where
     Q: Querier,
     C: Rewards<S, A, Q>,
 {
-    fn create_id(core: &C) -> StdResult<u64> {
-        Ok(32)
+    fn create_id(core: &mut C) -> StdResult<u64> {
+        let mut total = core
+            .get::<u64>(Self::TOTAL)?
+            .ok_or(StdError::generic_err("can't find total id count"))?;
+        let total = total
+            .checked_add(1)
+            .ok_or(StdError::generic_err("total integer overflow"))?;
+
+        core.set(Self::TOTAL, total)?;
+
+        Ok(total)
     }
 }
 
