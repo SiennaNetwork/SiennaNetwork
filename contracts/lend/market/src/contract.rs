@@ -49,7 +49,7 @@ pub const MAX_RESERVE_FACTOR: Decimal256 = Decimal256::one();
 // TODO: proper value here
 pub const MAX_BORROW_RATE: Decimal256 = Decimal256::one();
 
-const TOKEN_PREFIX: &str = "sl";
+const TOKEN_PREFIX: &str = "sl-";
 
 use state::{
     Constants, Contracts, Global, BorrowerId,
