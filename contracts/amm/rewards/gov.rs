@@ -1,4 +1,4 @@
-use crate::{algo::Rewards, auth::Auth};
+use crate::auth::Auth;
 use core::fmt;
 use cosmwasm_std::BlockInfo;
 use fadroma::*;
@@ -128,13 +128,7 @@ where
     fn dispatch_handle(self, core: &mut C, env: Env) -> StdResult<HandleResponse> {
         match self {
             GovernanceHandle::CreatePoll { meta } => {
-                let poll = Poll {
-                    creator: core.canonize(env.message.sender.clone())?,
-                    expiration: Expiration::AtTime(30),
-                    id: 1,
-                    metadata: meta,
-                    status: PollStatus::Active,
-                };
+                let id = Poll::create_id(core)?;
 
                 Ok(HandleResponse::default())
             }
@@ -246,7 +240,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Rewards<S, A, Q>,
+    C: Governance<S, A, Q>,
     Self: Sized,
 {
     fn create_id(core: &mut C) -> StdResult<u64>;
@@ -268,7 +262,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Rewards<S, A, Q>,
+    C: Governance<S, A, Q>,
 {
     fn create_id(core: &mut C) -> StdResult<u64> {
         let total = core
@@ -360,7 +354,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Rewards<S, A, Q>,
+    C: Governance<S, A, Q>,
     Self: Sized,
 {
     fn store(&self, core: &mut C, poll_id: u64) -> StdResult<()>;
@@ -378,7 +372,7 @@ where
     S: Storage,
     A: Api,
     Q: Querier,
-    C: Rewards<S, A, Q>,
+    C: Governance<S, A, Q>,
 {
     fn store(&self, core: &mut C, poll_id: u64) -> StdResult<()> {
         self.commit_title(core, poll_id)?;
