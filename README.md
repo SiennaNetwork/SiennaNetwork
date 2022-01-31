@@ -49,28 +49,28 @@ See also:
   as well as the TypeScript code necessary to build them and interact with them.
 
   * [📖 tge](./contracts/tge) - **Token Generation Event (TGE)**: mints and vests a new token
-    * [snip20-sienna](./contracts/tge/snip20-sienna) - Main SIENNA governance token
-    * [mgmt](./contracts/tge/mgmt) - Vesting management contract
-    * [rpt](./contracts/tge/rpt) - Remaining pool token splitter contract
-    * [deploy.ts](./contracts/tge/deploy.ts) - TGE deployment
+    * **Contract:** [snip20-sienna](./contracts/tge/snip20-sienna) - Main SIENNA governance token
+    * **Contract:** [mgmt](./contracts/tge/mgmt) - Vesting management contract
+    * **Contract:** [rpt](./contracts/tge/rpt) - Remaining pool token splitter contract
+    * **Script:**   [deploy.ts](./contracts/tge/deploy.ts) - TGE deployment
 
   * [📖 amm](./contracts/amm) - **Automated Market Maker (AMM)**: Sienna Swap and friends
-    * [amm-snip20](./contracts/amm/amm-snip20) - Vanilla SNIP20 token usable by the AMM
-    * [factory](./contracts/amm/factory) - Sienna Swap Factory
-    * [exchange](./contracts/amm/exchange) - Sienna Swap Exchange
-    * [lp-token](./contracts/amm/lp-token) - Sienna Swap LP Token
-    * [router](./contracts/amm/router) - Sienna Swap Router
-    * [📖 rewards](./contracts/amm/rewards) - Sienna Rewards
-    * [launchpad](./contracts/amm/launchpas) - Sienna Launchpad
-    * [ido](./contracts/amm/ido) - Sienna IDO
-    * [deploy.ts](./contracts/tge/deploy.ts) - AMM deployment
-    * [upgrade.ts](./contracts/tge/upgrade.ts) - AMM migrations
+    * **Contract:** [amm-snip20](./contracts/amm/amm-snip20) - Vanilla SNIP20 token usable by the AMM
+    * **Contract:** [factory](./contracts/amm/factory) - Sienna Swap Factory
+    * **Contract:** [exchange](./contracts/amm/exchange) - Sienna Swap Exchange
+    * **Contract:** [lp-token](./contracts/amm/lp-token) - Sienna Swap LP Token
+    * **Contract:** [router](./contracts/amm/router) - Sienna Swap Router
+    * **Contract:** [📖 rewards](./contracts/amm/rewards) - Sienna Rewards
+    * **Contract:** [launchpad](./contracts/amm/launchpas) - Sienna Launchpad
+    * **Contract:** [ido](./contracts/amm/ido) - Sienna IDO
+    * **Script:**   [deploy.ts](./contracts/amm/deploy.ts) - AMM deployment
+    * **Script:**   [upgrade.ts](./contracts/amm/upgrade.ts) - AMM migrations
 
   * [📖 lend](./contracts/amm) - Sienna Lend
-    * [market](./contracts/lend/market)
-    * [oracle](./contracts/lend/oracle)
-    * [overseer](./contracts/lend/overseer)
-    * [interest_model](./contracts/lend/interest_model)
+    * **Contract:** [market](./contracts/lend/market)
+    * **Contract:** [oracle](./contracts/lend/oracle)
+    * **Contract:** [overseer](./contracts/lend/overseer)
+    * **Contract:** [interest_model](./contracts/lend/interest_model)
 
 * [**deps**](./deps) contains submodules of our foundational frameworks.
   * [fadroma](./deps/fadroma) is a Git submodule pointing to the top of
