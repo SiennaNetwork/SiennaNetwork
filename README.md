@@ -48,25 +48,25 @@ See also:
 * [**contracts**](./contracts) contains the Rust source code of the smart contracts,
   as well as the TypeScript code necessary to build them and interact with them.
 
-  * [📄 tge](./contracts/tge) - **Token Generation Event (TGE)**: mints and vests a new token
+  * [📖 tge](./contracts/tge) - **Token Generation Event (TGE)**: mints and vests a new token
     * [snip20-sienna](./contracts/tge/snip20-sienna) - Main SIENNA governance token
     * [mgmt](./contracts/tge/mgmt) - Vesting management contract
     * [rpt](./contracts/tge/rpt) - Remaining pool token splitter contract
     * [deploy.ts](./contracts/tge/deploy.ts) - TGE deployment
 
-  * [📄 amm](./contracts/amm) - **Automated Market Maker (AMM)**: Sienna Swap and friends
+  * [📖 amm](./contracts/amm) - **Automated Market Maker (AMM)**: Sienna Swap and friends
     * [amm-snip20](./contracts/amm/amm-snip20) - Vanilla SNIP20 token usable by the AMM
     * [factory](./contracts/amm/factory) - Sienna Swap Factory
     * [exchange](./contracts/amm/exchange) - Sienna Swap Exchange
     * [lp-token](./contracts/amm/lp-token) - Sienna Swap LP Token
     * [router](./contracts/amm/router) - Sienna Swap Router
-    * [📄 rewards](./contracts/amm/rewards) - Sienna Rewards
+    * [📖 rewards](./contracts/amm/rewards) - Sienna Rewards
     * [launchpad](./contracts/amm/launchpas) - Sienna Launchpad
     * [ido](./contracts/amm/ido) - Sienna IDO
     * [deploy.ts](./contracts/tge/deploy.ts) - AMM deployment
     * [upgrade.ts](./contracts/tge/upgrade.ts) - AMM migrations
 
-  * [📄 lend](./contracts/amm) - Sienna Lend
+  * [📖 lend](./contracts/amm) - Sienna Lend
     * [market](./contracts/lend/market)
     * [oracle](./contracts/lend/oracle)
     * [overseer](./contracts/lend/overseer)
