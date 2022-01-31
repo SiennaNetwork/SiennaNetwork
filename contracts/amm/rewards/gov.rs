@@ -309,7 +309,23 @@ where
     }
 
     fn get(core: &C, poll_id: u64) -> StdResult<Self> {
-        todo!()
+        let get_title_or_description = |key| -> StdResult<String> {
+            Ok(core
+                .get_ns(key, &poll_id.to_be_bytes())?
+                .ok_or(StdError::generic_err(
+                    "failed to parse meta title/description",
+                ))?)
+        };
+        let get_type = |key| -> StdResult<PollType> {
+            Ok(core
+                .get_ns(key, &poll_id.to_be_bytes())?
+                .ok_or(StdError::generic_err("failed to parse poll type"))?)
+        };
+        Ok(PollMetadata {
+            description: get_title_or_description(Self::DESCRIPTION)?,
+            title: get_title_or_description(Self::TITLE)?,
+            poll_type: get_type(Self::POLL_TYPE)?,
+        })
     }
 
     fn commit_title(&self, core: &mut C, poll_id: u64) -> StdResult<()> {
