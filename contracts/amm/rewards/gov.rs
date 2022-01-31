@@ -230,8 +230,10 @@ pub struct Poll {
     pub expiration: Expiration,
 }
 impl Poll {
-    pub const TOTAL: &'static [u8] = b"/polls/total";
-    pub const POLLS: &'static [u8] = b"/polls";
+    pub const TOTAL: &'static [u8] = b"/poll/total";
+
+    pub const CREATOR: &'static [u8] = b"/poll/creator";
+    pub const EXPIRATION: &'static [u8] = b"/poll/expiration";
 }
 
 pub trait IPoll<S, A, Q, C>
@@ -252,7 +254,7 @@ where
     C: Rewards<S, A, Q>,
 {
     fn create_id(core: &mut C) -> StdResult<u64> {
-        let mut total = core
+        let total = core
             .get::<u64>(Self::TOTAL)?
             .ok_or(StdError::generic_err("can't find total id count"))?;
         let total = total
@@ -271,6 +273,67 @@ pub struct PollMetadata {
     pub title: String,
     pub description: String,
     pub poll_type: PollType,
+}
+impl PollMetadata {
+    pub const TITLE: &'static [u8] = b"/poll/meta/title/";
+    pub const DESCRIPTION: &'static [u8] = b"/poll/meta/desc/";
+    pub const POLL_TYPE: &'static [u8] = b"/poll/meta/type/";
+}
+pub trait IPollMetaData<S, A, Q, C>
+where
+    S: Storage,
+    A: Api,
+    Q: Querier,
+    C: Rewards<S, A, Q>,
+    Self: Sized,
+{
+    fn store(&self, core: &mut C, poll_id: u64) -> StdResult<()>;
+    fn get(core: &C, poll_id: u64) -> StdResult<Self>;
+    fn commit_title(&self, core: &mut C, poll_id: u64) -> StdResult<()>;
+    fn commit_description(&self, core: &mut C, poll_id: u64) -> StdResult<()>;
+    fn commit_poll_type(&self, core: &mut C, poll_id: u64) -> StdResult<()>;
+}
+impl<S, A, Q, C> IPollMetaData<S, A, Q, C> for PollMetadata
+where
+    S: Storage,
+    A: Api,
+    Q: Querier,
+    C: Rewards<S, A, Q>,
+{
+    fn store(&self, core: &mut C, poll_id: u64) -> StdResult<()> {
+        self.commit_title(core, poll_id)?;
+        self.commit_description(core, poll_id)?;
+        self.commit_poll_type(core, poll_id)?;
+
+        Ok(())
+    }
+
+    fn get(core: &C, poll_id: u64) -> StdResult<Self> {
+        todo!()
+    }
+
+    fn commit_title(&self, core: &mut C, poll_id: u64) -> StdResult<()> {
+        core.set_ns(Self::TITLE, &poll_id.to_be_bytes(), self.title.as_bytes())?;
+        Ok(())
+    }
+
+    fn commit_description(&self, core: &mut C, poll_id: u64) -> StdResult<()> {
+        core.set_ns(
+            Self::DESCRIPTION,
+            &poll_id.to_be_bytes(),
+            self.description.as_bytes(),
+        )?;
+        Ok(())
+    }
+
+    fn commit_poll_type(&self, core: &mut C, poll_id: u64) -> StdResult<()> {
+        core.set_ns(
+            Self::POLL_TYPE,
+            &poll_id.to_be_bytes(),
+            self.poll_type.clone(),
+        )?;
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
