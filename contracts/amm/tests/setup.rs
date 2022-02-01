@@ -2,7 +2,7 @@ use std::convert::TryInto;
 
 use amm_shared::{
     fadroma::{
-        ContractLink, one_token,
+        ContractLink,
         cosmwasm_std::{
             StdResult, Env, Binary, InitResponse,
             HandleResponse, HumanAddr, Uint128,
@@ -39,6 +39,8 @@ use lp_token;
 pub const ADMIN: &str = "admin";
 pub const USERS: &[&str] = &[ "user_a", "user_b", "user_c" ];
 pub const BURNER: &str = "burner_acc";
+pub const INITIAL_BALANCE: Uint128 = Uint128(1000_000_000_000_000_000_000);
+pub const NATIVE_DENOM: &str = "uscrt";
 
 pub struct Amm {
     pub ensemble: ContractEnsemble,
@@ -78,7 +80,7 @@ impl Amm {
     
         let mut tokens = Vec::new();
     
-        for i in 1..=4 {
+        for i in 1..=2 {
             let name = format!("TOKEN_{}", i);
     
             let token = ensemble.instantiate(
@@ -92,7 +94,7 @@ impl Amm {
                         .iter()
                         .map(|x| InitialBalance {
                             address: (*x).into(),
-                            amount: Uint128(1000 * one_token(18))
+                            amount: INITIAL_BALANCE
                         })
                         .collect()
                     ),
@@ -128,6 +130,19 @@ impl Amm {
                 MockEnv::new(ADMIN, factory.clone())
             ).unwrap();
         }
+
+        ensemble.execute(
+            &msg::factory::HandleMsg::CreateExchange {
+                pair: TokenPair(
+                    TokenType::from(tokens[0].clone()),
+                    TokenType::NativeToken {
+                        denom: NATIVE_DENOM.into()
+                    },
+                ),
+                entropy: Binary::from(b"whatever")
+            },
+            MockEnv::new(ADMIN, factory.clone())
+        ).unwrap();
     
         Amm {
             ensemble,
@@ -156,7 +171,11 @@ impl Amm {
 
     pub fn increase_allowances(&mut self, pair: &Exchange<HumanAddr>) {
         for token in pair.pair.into_iter() {
-            let token: ContractLink<HumanAddr> = token.try_into().unwrap();
+            if token.is_native_token() {
+                continue;
+            }
+
+            let token: ContractLink<HumanAddr> = token.to_owned().try_into().unwrap();
     
             for user in USERS {
                 self.ensemble.execute(
@@ -175,21 +194,28 @@ impl Amm {
     pub fn get_balance(
         &self,
         address: impl Into<HumanAddr>,
-        token: HumanAddr
+        token: TokenType<HumanAddr>
     ) -> Uint128 {
-        let result = self.ensemble.query(token.clone(), Snip20QueryMsg::WithPermit {
-            permit: Permit::<Snip20Permission>::new(
-                address,
-                vec![ Snip20Permission::Balance ],
-                vec![ token ],
-                "balance"
-            ),
-            query: QueryWithPermit::Balance {}
-        }).unwrap();
-
-        match result {
-            QueryAnswer::Balance { amount } => amount,
-            _ => panic!("Expecting QueryAnswer::Balance")
+        match token {
+            TokenType::CustomToken { contract_addr, .. } => {
+                let result = self.ensemble.query(contract_addr.clone(), Snip20QueryMsg::WithPermit {
+                    permit: Permit::<Snip20Permission>::new(
+                        address,
+                        vec![ Snip20Permission::Balance ],
+                        vec![ contract_addr ],
+                        "balance"
+                    ),
+                    query: QueryWithPermit::Balance {}
+                }).unwrap();
+        
+                match result {
+                    QueryAnswer::Balance { amount } => amount,
+                    _ => panic!("Expecting QueryAnswer::Balance")
+                }
+            },
+            TokenType::NativeToken { denom } => {
+                self.ensemble.balances(address).unwrap().get(&denom).unwrap().to_owned()
+            }
         }
     }
 
@@ -205,7 +231,7 @@ impl Amm {
 
         match result {
             msg::exchange::QueryMsgResponse::PairInfo { liquidity_token, .. } => {
-                self.get_balance(address, liquidity_token.address)
+                self.get_balance(address, liquidity_token.into())
             }
         }
     }
