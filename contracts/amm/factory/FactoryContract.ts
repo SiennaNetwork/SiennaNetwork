@@ -38,7 +38,7 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
   Queries      = FactoryQueries
   constructor (options) {
     super(options)
-    const { version } = options
+    const { version } = options||{}
     if (version === 'v1') {
       this.ref    = 'a99d8273b4'
       this.suffix = `@v1+${timestamp()}`
@@ -128,9 +128,7 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     const name = `${TOKEN_0_NAME}-${TOKEN_1_NAME}`
     const { liquidity_token } = await EXCHANGE.pairInfo()
     const LP_TOKEN = new LPTokenContract({
-      admin:    this.admin,
-      prefix:   this.prefix,
-      chain:    this.chain,
+      admin, prefix, chain,
       address:  liquidity_token.address,
       codeHash: liquidity_token.code_hash,
       codeId:   await agent.getCodeId(liquidity_token.address),
@@ -253,10 +251,7 @@ export async function deployAMMFactory ({
   const LAUNCHPAD = new LaunchpadContract({ ...options })
   // launchpad is new to v2 so we build/upload it every time...
   await chain.buildAndUpload(admin, [FACTORY, LAUNCHPAD])
-  const template = contract => ({
-    id:        contract.codeId,
-    code_hash: contract.codeHash
-  })
+  const template = contract => ({ id: contract.codeId, code_hash: contract.codeHash })
   if (copyFrom) {
     await deployment.createContract(admin, FACTORY, {
       ...initMsg,
@@ -312,13 +307,17 @@ export async function deployAMMExchanges ({
     console.info(`Not running on localnet, using tokens from config:`)
     const tokens = {}
     for (
-      const [name, {address, codeHash}] of
+      let [name, {address, codeHash}] of
       Object.entries(swapTokens as Record<string, { address: string, codeHash: string }>)
     ) {
+      if (!codeHash) {
+        codeHash = await admin.getCodeHash(address)
+        console.info(bold(`Code hash of ${address}:`), codeHash)
+      }
       tokens[name] = new AMMSNIP20Contract({address, codeHash, admin})
     }
     Object.assign(TOKENS, tokens)
-    console.debug(bold('Tokens:'), TOKENS)
+    console.log({TOKENS})
   }
   // If there are any initial swap pairs defined in the config
   for (const name of swapPairs) {
@@ -329,6 +328,7 @@ export async function deployAMMExchanges ({
     // And collect the results
     EXCHANGES.push(EXCHANGE)
     LP_TOKENS.push(LP_TOKEN)
+    await admin.nextBlock
   }
   return { TOKENS, LP_TOKENS, EXCHANGES }
 }
