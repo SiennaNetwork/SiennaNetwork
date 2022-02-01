@@ -21,20 +21,7 @@ pub struct BandResponse {
     pub last_updated_quote: u64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub enum SourceQuery {
-    GetReferenceData {
-        base_symbol: String,
-        quote_symbol: String,
-    },
-    GetReferenceDataBulk {
-        base_symbols: Vec<String>,
-        quote_symbols: Vec<String>,
-    },
-}
-
-#[contract]
+#[contract(entry)]
 pub trait BandOracleConsumer {
     #[init]
     fn new() -> StdResult<InitResponse> {

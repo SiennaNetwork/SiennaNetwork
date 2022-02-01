@@ -22,6 +22,7 @@
     "@sienna/lend-market":         "workspace:*",
     "@sienna/lend-oracle":         "workspace:*",
     "@sienna/lend-overseer":       "workspace:*",
+    "@sienna/lend-mock-oracle": "workspace:*",
 
     "@fadroma/scrt":   "workspace:*",
 

@@ -127,6 +127,13 @@ Fadroma.command('deploy tge',
   deployTGE)
 ```
 
+### Deploy just the Lend
+
+```typescript
+import { deployLend } from "@sienna/lend"
+Fadroma.command("deploy lend", Deployment.new, deployLend)
+```
+
 ### Add the AMM and Rewards to the TGE
 
 This command requires a [selected deployment](#select-the-active-deployment),

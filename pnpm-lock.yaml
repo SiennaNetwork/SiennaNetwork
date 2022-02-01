@@ -138,6 +138,12 @@ importers:
     dependencies:
       '@hackbg/fadroma': link:../../../deps/fadroma
 
+  contracts/lend/mock_band_oracle:
+    specifiers:
+      '@hackbg/fadroma': workspace:../../../deps/fadroma
+    dependencies:
+      '@hackbg/fadroma': link:../../../deps/fadroma
+
   contracts/lend/oracle:
     specifiers:
       '@hackbg/fadroma': workspace:../../../deps/fadroma
@@ -648,6 +654,7 @@ importers:
       '@sienna/launchpad': workspace:^1
       '@sienna/lend-interest-model': workspace:*
       '@sienna/lend-market': workspace:*
+      '@sienna/lend-mock-oracle': workspace:*
       '@sienna/lend-oracle': workspace:*
       '@sienna/lend-overseer': workspace:*
       '@sienna/lp-token': workspace:^1
@@ -670,6 +677,7 @@ importers:
       '@sienna/launchpad': link:../../contracts/amm/launchpad
       '@sienna/lend-interest-model': link:../../contracts/lend/interest_model
       '@sienna/lend-market': link:../../contracts/lend/market
+      '@sienna/lend-mock-oracle': link:../../contracts/lend/mock_band_oracle
       '@sienna/lend-oracle': link:../../contracts/lend/oracle
       '@sienna/lend-overseer': link:../../contracts/lend/overseer
       '@sienna/lp-token': link:../../contracts/amm/lp-token
