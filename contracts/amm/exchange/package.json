@@ -2,10 +2,13 @@
   "name":    "@sienna/exchange",
   "version": "1.0.0",
   "type":    "module",
-  "main":    "./AMMContract.ts",
+  "main":    "./index.ts",
+  "browser": "./ExchangeClient.ts",
   "dependencies": {
-    "@hackbg/fadroma":  "workspace:../../../deps/fadroma",
-    "@sienna/settings": "workspace:^1.0.0",
-    "@sienna/lp-token": "workspace:*"
+    "@hackbg/fadroma": "workspace:../../../deps/fadroma",
+
+    "@sienna/settings":   "workspace:^1.0.0",
+    "@sienna/amm-snip20": "workspace:^1",
+    "@sienna/lp-token":   "workspace:*"
   }
 }

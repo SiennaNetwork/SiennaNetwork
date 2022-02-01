@@ -35,15 +35,18 @@ importers:
   contracts/amm/exchange:
     specifiers:
       '@hackbg/fadroma': workspace:../../../deps/fadroma
+      '@sienna/amm-snip20': workspace:^1
       '@sienna/lp-token': workspace:*
       '@sienna/settings': workspace:^1.0.0
     dependencies:
       '@hackbg/fadroma': link:../../../deps/fadroma
+      '@sienna/amm-snip20': link:../amm-snip20
       '@sienna/lp-token': link:../lp-token
       '@sienna/settings': link:../../../settings
 
   contracts/amm/factory:
     specifiers:
+      '@fadroma/snip20': workspace:*
       '@hackbg/fadroma': workspace:../../../deps/fadroma
       '@sienna/amm-snip20': workspace:^1
       '@sienna/exchange': workspace:^1
@@ -56,6 +59,7 @@ importers:
       '@waiting/base64': ^4.2.9
       secretjs: 0.17.5
     dependencies:
+      '@fadroma/snip20': link:../../../deps/fadroma/crates/fadroma-snip20-impl
       '@hackbg/fadroma': link:../../../deps/fadroma
       '@sienna/amm-snip20': link:../amm-snip20
       '@sienna/exchange': link:../exchange
@@ -98,13 +102,21 @@ importers:
     specifiers:
       '@fadroma/snip20': workspace:*
       '@hackbg/fadroma': workspace:../../../deps/fadroma
-      '@sienna/lp-token': workspace:^1.0.0
+      '@sienna/exchange': workspace:^1
+      '@sienna/factory': workspace:^2
+      '@sienna/lp-token': workspace:^1
+      '@sienna/rpt': workspace:^1
       '@sienna/settings': workspace:^1.0.0
+      '@sienna/snip20-sienna': workspace:^1
     dependencies:
       '@fadroma/snip20': link:../../../deps/fadroma/crates/fadroma-snip20-impl
       '@hackbg/fadroma': link:../../../deps/fadroma
+      '@sienna/exchange': link:../exchange
+      '@sienna/factory': link:../factory
       '@sienna/lp-token': link:../lp-token
+      '@sienna/rpt': link:../../tge/rpt
       '@sienna/settings': link:../../../settings
+      '@sienna/snip20-sienna': link:../../tge/snip20-sienna
 
   contracts/amm/router:
     specifiers:
@@ -244,6 +256,7 @@ importers:
       '@fadroma/scrt': workspace:*
       '@fadroma/scrt-1.0': workspace:*
       '@fadroma/scrt-1.2': workspace:*
+      '@fadroma/snip20': workspace:*
       '@hackbg/ganesha': ^1
       '@hackbg/komandi': ^2
       '@types/node': ^16.11.19
@@ -255,6 +268,7 @@ importers:
       '@fadroma/scrt': link:packages/scrt
       '@fadroma/scrt-1.0': link:packages/scrt-1.0
       '@fadroma/scrt-1.2': link:packages/scrt-1.2
+      '@fadroma/snip20': link:crates/fadroma-snip20-impl
       '@hackbg/komandi': 2.0.0
       '@types/node': 16.11.21
       bignumber.js: 9.0.2
@@ -2246,7 +2260,7 @@ packages:
     dependencies:
       '@ganesha/node': 2.0.0
       '@ganesha/node-legacy': 1.0.0
-      '@types/node': 17.0.13
+      '@types/node': 17.0.14
       cross-spawn: 7.0.3
 
   /@hackbg/kabinet/1.0.0:
@@ -4403,6 +4417,9 @@ packages:
 
   /@types/node/17.0.13:
     resolution: {integrity: sha512-Y86MAxASe25hNzlDbsviXl8jQHb0RDvKt4c40ZJQ1Don0AAL0STLZSs4N+6gLEO55pedy7r2cLwS+ZDxPm/2Bw==}
+
+  /@types/node/17.0.14:
+    resolution: {integrity: sha512-SbjLmERksKOGzWzPNuW7fJM7fk3YXVTFiZWB/Hs99gwhk+/dnrQRPBQjPW9aO+fi1tAffi9PrwFvsmOKmDTyng==}
 
   /@types/node/8.10.66:
     resolution: {integrity: sha512-tktOkFUA4kXx2hhhrB8bIFb5TbwzS4uOhKEmwiD+NoiL0qtP2OQ9mFldbgD4dV1djrlBYP6eBuQZiWjuHUpqFw==}

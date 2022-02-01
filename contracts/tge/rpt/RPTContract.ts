@@ -24,3 +24,30 @@ export class RPTContract extends Scrt_1_2.Contract<RPTTransactions, RPTQueries> 
   }
 
 }
+
+/** After deploying the SSSSS and the other reward pools,
+  * set their addresses in the deployment's RPT contract. */
+export async function adjustRPTConfig ({
+  deployment, chain, agent,
+  RPT = deployment.getThe('SiennaRPT', new RPTContract({ agent })),
+  RPT_CONFIG,
+}) {
+  // on mainnet we use a multisig
+  // so we can't run the transaction from here
+  if (chain.isMainnet) {
+    deployment.save({config: RPT_CONFIG}, 'RPTConfig.json')
+    console.info(
+      `\n\nWrote RPT config to deployment ${deployment.prefix}. `+
+      `You should use this file as the basis of a multisig transaction.`
+    )
+    return
+  }
+  console.info(
+    bold(`Configuring RPT`), RPT.address
+  )
+  for (const [address, amount] of RPT_CONFIG) {
+    console.info(`- ${address} ${amount}`)
+  }
+  await RPT.tx(agent).configure(RPT_CONFIG)
+  return { RPT_CONFIG }
+}

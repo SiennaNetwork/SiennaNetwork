@@ -10,8 +10,8 @@ library based on the command line arguments (see [Entry point](#entry-point)). O
 use them from another script by importing this module.
 
 ```typescript
-const commands = {}
-export default commands
+import Fadroma, { bold, timestamp, Console } from '@hackbg/fadroma'
+const console = new Console('@sienna/ops')
 ```
 
 The content below populates the list of commands that are invoked with `pnpm -w dev`,
@@ -49,44 +49,69 @@ The build output consists of two files being written to [/artifacts](../artifact
 Run `pnpm -w dev build all` compile to list the subsets of contracts that can be built.
 
 ```typescript
-import { buildTge } from '@sienna/tge'
-import { buildTokens, buildAmm, buildIdo, buildRewards, buildRouter } from '@sienna/amm'
 import { buildLend } from '@sienna/lend'
-commands['build'] = {}
-commands['build']['tge']     = () => buildTge()
-commands['build']['amm']     = () => buildTokens().then(buildAmm())
-commands['build']['rewards'] = () => buildTokens().then(buildRewards())
-commands['build']['ido']     = () => buildTokens().then(buildIdo())
-commands['build']['router']  = () => buildTokens().then(buildRouter())
-commands['build']['lend']    = () => buildTokens().then(buildLend())
-commands['build']['all'] = () => Promise.all([
-  buildTge(),
-  buildTokens(),
-  buildAmm(),
-  buildRewards(),
-  buildRouter()
-  buildLend()
-])
+
+/* don't fight the platform, follow it! */
+const parallel = (...commands) => input => Promise.all(commands.map(command=>command(input)))
+
+import { buildTge } from '@sienna/tge'
+Fadroma.command('build tge',
+  buildTge)
+
+import { buildTokens, buildAmm } from '@sienna/amm'
+Fadroma.command('build amm',
+  parallel(buildTokens, buildAmm))
+
+import { buildRewards } from '@sienna/amm'
+Fadroma.command('build rewards',
+  parallel(buildTokens, buildRewards))
+
+import { buildIdo } from '@sienna/amm'
+Fadroma.command('build ido',
+  parallel(buildTokens, buildIdo))
+
+import { buildRouter } from '@sienna/amm'
+Fadroma.command('build router',
+  parallel(buildTokens, buildRouter))
+
+import { buildLend } from '@sienna/lend'
+Fadroma.command('build lend',
+  parallel(buildTokens, buildLend))
+
+Fadroma.command('build all',
+  parallel(/* remain flexible */
+    buildTge,
+    buildTokens,
+    buildAmm,
+    buildRewards,
+    buildRouter
+    buildLend
+  ))
 ```
 
-These commands are defined in [`@sienna/tge/build.ts`](../contracts/tge/build.ts')
-and [`@sienna/amm/build.ts`](../contracts/amm/build.ts'), and use a build procedure
-that is implemented in [@fadroma/ops/ContractBuild](../deps/fadroma/packages/ops/ContractBuild.ts).
+Which contracts each `build*` command builds is defined in:
+* [`@sienna/tge/build.ts`](../contracts/tge/build.ts')
+* [`@sienna/amm/build.ts`](../contracts/amm/build.ts')
+* [`@sienna/lend/build.ts`](../contracts/tge/build.ts')
+
+The builder procedure is implemented in [`@fadroma/ops/Build`](https://github.com/hackbg/fadroma/tree/22.01/packages/ops/Build.ts).
 
 The [image of the build container](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtBuild.Dockerfile)
 and the [build script that runs in it](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtBuild.sh)
-are set in [@hackbg/fadroma/ScrtContract](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/ScrtContract.ts).
+are set in [@fadroma/scrt/Scrt](https://github.com/hackbg/fadroma/tree/22.01/packages/scrt/Scrt.ts).
 
-## Generate JSON schema
+### Generate JSON schema
 
 The contracts have the capability to output their API schema in the form of JSON schema.
+
 From this, we create TypeScript type definitions via `json-schema-to-typescript`.
-These type definitions are imported by the client classes.
+
+These type definitions are imported by the `Contract` classes.
 
 ```typescript
 import { generateSchema } from '@hackbg/fadroma'
-import { abs } from '@sienna/settings'
-commands['schema'] = () => generateSchema(abs(), [
+import { workspace } from '@sienna/settings'
+Fadroma.command('schema', () => generateSchema(workspace, [
   "tge/mgmt",
   "tge/rpt",
   "tge/snip20-sienna",
@@ -104,29 +129,30 @@ commands['schema'] = () => generateSchema(abs(), [
   "lend/market",
   "lend/oracle",
   "lend/overseer"*/
-])
+]))
 ```
 
 ## Tests
 
-### Test client classes
+### Smoke test of contract classes
+
+This makes sure each client can be constructed,
+and thus checks there are no "shallow" errors, e.g.
+syntax errors, broken module imports/exports.
 
 ```typescript
-commands['test'] = {}
-
 import * as API from '@sienna/api'
-commands['test']['clients'] = () => {
+Fadroma.command('test clients', () => {
   new API.SiennaSNIP20Contract()
   new API.MGMTContract()
   new API.RPTContract()
-
-  new API.FactoryContract()
-  new API.AMMContract()
+  new API.AMMFactoryContract()
+  new API.AMMExchangeContract()
   new API.AMMSNIP20Contract()
   new API.LPTokenContract()
+  new API.RewardsContract()
   new API.LaunchpadContract()
   new API.IDOContract()
-
   new API.InterestModelContract()
   new API.LendMarketContract()
   new API.LendOracleContract()
@@ -137,12 +163,5 @@ commands['test']['clients'] = () => {
 ## Entry point
 
 ```typescript
-import process from 'process'
-import runCommands from '@hackbg/komandi'
-import { fileURLToPath } from 'url'
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const words = process.argv.slice(2)
-  runCommands.default(commands, words).then(()=>process.exit(0))
-}
+export default Fadroma.module(import.meta.url)
 ```
-

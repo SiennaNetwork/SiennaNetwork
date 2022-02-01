@@ -1,6 +1,8 @@
+import { workspace } from '@sienna/settings'
+
 import {
-  FactoryContract,
-  AMMContract,
+  AMMFactoryContract,
+  AMMExchangeContract,
   AMMSNIP20Contract,
   LPTokenContract,
   RewardsContract,
@@ -8,8 +10,6 @@ import {
   IDOContract,
   LaunchpadContract,
 } from '@sienna/api'
-
-import { workspace } from '@sienna/settings'
 
 export * from './rewards/build'
 
@@ -22,8 +22,9 @@ export async function buildTokens (): Promise<string[]> {
 
 export async function buildAmm (): Promise<string[]> {
   return Promise.all([
-    new FactoryContract({ workspace }).build(),
-    new AMMContract({     workspace }).build(),
+    new AMMFactoryContract({  workspace }).build(),
+    new AMMExchangeContract({ workspace }).build(),
+    new AMMSNIP20Contract({   workspace }).build(),
   ])
 }
 

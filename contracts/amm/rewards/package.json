@@ -3,9 +3,14 @@
   "version": "3.0.0",
   "main": "./RewardsContract.ts",
   "dependencies": {
-    "@hackbg/fadroma":  "workspace:../../../deps/fadroma",
-    "@fadroma/snip20":  "workspace:*",
-    "@sienna/lp-token": "workspace:^1.0.0",
-    "@sienna/settings": "workspace:^1.0.0"
+    "@hackbg/fadroma": "workspace:../../../deps/fadroma",
+    "@fadroma/snip20": "workspace:*",
+
+    "@sienna/factory":       "workspace:^2",
+    "@sienna/exchange":      "workspace:^1",
+    "@sienna/lp-token":      "workspace:^1",
+    "@sienna/rpt":           "workspace:^1",
+    "@sienna/snip20-sienna": "workspace:^1",
+    "@sienna/settings":      "workspace:^1.0.0"
   }
 }

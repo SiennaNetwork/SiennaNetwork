@@ -11,7 +11,7 @@ export type ExchangeInfo = {
   /** Another token. */
   TOKEN_1:  SNIP20Contract|string,
   /** The automated market maker/liquidity pool for the token pair. */
-  EXCHANGE: AMMContract,
+  EXCHANGE: AMMExchangeContract,
   /** The liquidity provision token, which is minted to stakers of the 2 tokens. */
   LP_TOKEN: LPTokenContract,
   /** The bare-bones data needed to retrieve the above. */
@@ -20,8 +20,8 @@ export type ExchangeInfo = {
 
 import { Agent, timestamp, randomHex, Scrt_1_2 } from "@hackbg/fadroma"
 import { SNIP20Contract } from '@fadroma/snip20'
-import { AMMTransactions, AMMQueries } from './AMMApi'
-export class AMMContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> {
+import { AMMTransactions, AMMQueries } from './ExchangeClient'
+export class AMMExchangeContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> {
 
   crate = 'exchange'
   name  = 'SiennaAMMExchange'

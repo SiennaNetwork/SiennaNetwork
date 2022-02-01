@@ -26,11 +26,11 @@ export class AMMSNIP20Contract extends SNIP20Contract_1_2 {
   }
 }
 
-export async function deployPlaceholders ({ chain, admin, deployment, prefix }) {
+export async function deployPlaceholders ({ chain, agent, deployment, prefix }) {
   // this can later be used to check if the deployed contracts have
   // gone out of date (by codehash) and offer to redeploy them
   const PLACEHOLDERS = {}
-  const { placeholderTokens } = getSettings(chain.chainId)
+  const { placeholderTokens } = getSettings(chain.id)
   console.info(
     bold(`Deploying placeholder tokens`), Object.keys(placeholderTokens).join(' ')
   )
@@ -47,10 +47,10 @@ export async function deployPlaceholders ({ chain, admin, deployment, prefix }) 
         const TOKEN = PLACEHOLDERS[name] = new AMMSNIP20Contract({
           workspace, prefix, name: `Placeholder_${label}`, suffix: `+${timestamp()}`,
         })
-        await chain.buildAndUpload(admin, [TOKEN])
-        await deployment.createContract(admin, TOKEN, { ...initMsg, name })
-        await TOKEN.tx().setMinters([admin.address])
-        await TOKEN.tx().mint("100000000000000000000000", admin.address)
+        await chain.buildAndUpload(agent, [TOKEN])
+        await deployment.createContract(agent, TOKEN, { ...initMsg, name })
+        await TOKEN.tx().setMinters([agent.address])
+        await TOKEN.tx().mint("100000000000000000000000", agent.address)
       } else {
         console.error(e)
         throw new Error(
