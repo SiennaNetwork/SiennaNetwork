@@ -1,22 +1,7 @@
 {
-  "sSCRT": {
-    "address":  "secret18vd8fpwxzck93qlwghaj6arh4p7c5n8978vsyg",
-    "codeHash": "cd400fb73f5c99edbc6aab22c2593332b8c9f2ea806bf9b42e3a523f3ad06f62"
-  },
-  "STEST": {
-    "address":  "secret1z47dcajadq8fkvt2kvehw7krjn0ft2z5t99cye",
-    "codeHash": ""
-  },
-  "SITOK": {
-    "address":  "secret1uk0nyasdp5sy0hv042mhe5fpc480zar4z4h2q2",
-    "codeHash": ""
-  },
-  "sETH": {
-    "address":  "secret1hqrdl6wstt8qzshwc6mrumpjk9338k0lpsefm3",
-    "codeHash": ""
-  },
-  "sUSDT": {
-    "address":  "secret18r5szma8hm93pvx6lwpjwyxruw27e0k57tncfy",
-    "codeHash": ""
-  }
+  "SSCRT": { "address":  "secret18vd8fpwxzck93qlwghaj6arh4p7c5n8978vsyg", "codeHash": "cd400fb73f5c99edbc6aab22c2593332b8c9f2ea806bf9b42e3a523f3ad06f62" },
+  "STEST": { "address":  "secret1z47dcajadq8fkvt2kvehw7krjn0ft2z5t99cye", "codeHash": "" },
+  "SITOK": { "address":  "secret1uk0nyasdp5sy0hv042mhe5fpc480zar4z4h2q2", "codeHash": "" },
+  "SETH":  { "address":  "secret1hqrdl6wstt8qzshwc6mrumpjk9338k0lpsefm3", "codeHash": "" },
+  "SUSDT": { "address":  "secret18r5szma8hm93pvx6lwpjwyxruw27e0k57tncfy", "codeHash": "" }
 }

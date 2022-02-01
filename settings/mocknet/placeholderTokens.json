@@ -1,0 +1,6 @@
+{
+  "sSCRT": {"label":  "sSCRT", "initMsg": { "name": "SecretSCRT", "symbol": "SSCRT", "decimals": 6}},
+  "STEST": {"label":  "STEST", "initMsg": { "name": "STEST",      "symbol": "STEST", "decimals": 9}},
+  "SITOK": {"label":  "SITOK", "initMsg": { "name": "SITOK",      "symbol": "SITOK", "decimals": 12}},
+  "sETH":  {"label":  "sETH",  "initMsg": { "name": "SecretETH",  "symbol": "SETH",  "decimals": 15}}
+}

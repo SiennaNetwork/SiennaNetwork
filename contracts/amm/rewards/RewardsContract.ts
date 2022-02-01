@@ -42,9 +42,9 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsTransacti
     Queries      = RewardsQueries
     constructor (input) {
       super(input)
-      const { lpToken, rewardToken, admin } = input
+      const { lpToken, rewardToken, agent } = input
       this.initMsg = {
-        admin:        admin?.address,
+        admin:        agent?.address,
         lp_token:     lpToken?.link,
         reward_token: rewardToken?.link,
         viewing_key:  "",
@@ -71,13 +71,13 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsTransacti
     Queries      = RewardsQueries
     constructor (input) {
       super(input)
-      const { lpToken, rewardToken, admin } = input
+      const { lpToken, rewardToken, agent } = input
       this.initMsg = {
-        admin: admin?.address,
+        admin: agent?.address,
         config: {
           reward_vk:    randomHex(36),
           bonding:      86400,
-          timekeeper:   admin?.address,
+          timekeeper:   agent?.address,
           lp_token:     lpToken?.link,
           reward_token: rewardToken?.link,
         }
@@ -97,8 +97,8 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsTransacti
 }
 
 export async function deployRewards ({
-  deployment, admin, run,
-  SIENNA  = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({ admin })),
+  deployment, agent, run,
+  SIENNA  = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({ agent })),
   version = 'v3'
 }) {
   const { SSSSS_POOL, RPT_CONFIG_SSSSS } =
@@ -168,9 +168,9 @@ export async function deploySSSSS ({
 }
 
 export async function deployRewardPool ({
-  admin, chain, deployment, prefix,
+  agent, chain, deployment, prefix,
   lpToken,
-  rewardToken = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({ admin })),
+  rewardToken = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({ agent })),
   name        = 'UNKNOWN',
   version     = 'v3',
   suffix      = `+${timestamp()}`,
@@ -180,26 +180,25 @@ export async function deployRewardPool ({
   console.info(bold(`Staked token:`), lpToken.address, lpToken.codeHash)
   const REWARDS = new RewardsContract[version]({
     workspace, name, suffix,
-    lpToken, rewardToken, admin
+    lpToken, rewardToken, agent
   })
-  await chain.buildAndUpload(admin, [REWARDS])
-  await deployment.getOrCreateContract(admin, REWARDS, REWARDS.label, REWARDS.initMsg)
+  await chain.buildAndUpload(agent, [REWARDS])
+  await deployment.getOrCreateContract(agent, REWARDS, REWARDS.label, REWARDS.initMsg)
   return { REWARDS }
 }
 
 /** Deploy the rest of the reward pools,
   * where you stake a LP token to earn SIENNA. */
 export async function deployRewardPools ({
-  chain, admin, deployment, prefix, run,
-  SIENNA  = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({ admin })),
+  chain, agent, deployment, prefix, run,
+  SIENNA  = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({ agent })),
   version = 'v3',
   ammVersion = 'v1',
-  suffix  = `+${timestamp()}`,
-  split   = 1.0,
+  suffix  = `+${timestamp()}`  split   = 1.0,
 }) {
 
-  const REWARDS = new RewardsContract[version]({ workspace, prefix, admin })
-  await chain.buildAndUpload(admin, [REWARDS])
+  const REWARDS = new RewardsContract[version]({ workspace, prefix, agent })
+  await chain.buildAndUpload(agent, [REWARDS])
   const REWARD_POOLS            = []
   const RPT_CONFIG_SWAP_REWARDS = []
 
@@ -228,13 +227,13 @@ export async function deployRewardPools ({
     if (!exchange) {
       console.error(bold(`Exchange does not exist in deployment`), exchangeName)
       console.error(bold(`Contracts in deployment:`), Object.keys(deployment.receipts).join(' '))
-      process.exit(1)
+      throw new Error(`@sienna/amm/rewards: Exchange does not exist in deployment: ${exchangeName}`)
     }
 
     const lpToken = new LPTokenContract({
       address:  exchange.lp_token.address,
       codeHash: exchange.lp_token.code_hash,
-      admin
+      agent
     })
     console.info(bold('Found LP token:'), lpToken.address)
 
@@ -259,8 +258,8 @@ export async function deployRewardPools ({
 /** After deploying the SSSSS and the other reward pools,
   * set their addresses in the deployment's RPT contract. */
 export async function adjustRPTConfig ({
-  deployment, chain, admin,
-  RPT = deployment.getThe('SiennaRPT', new RPTContract({ admin })),
+  deployment, chain, agent,
+  RPT = deployment.getThe('SiennaRPT', new RPTContract({ agent })),
   RPT_CONFIG,
 }) {
   // on mainnet we use a multisig
@@ -279,26 +278,22 @@ export async function adjustRPTConfig ({
   for (const [address, amount] of RPT_CONFIG) {
     console.info(`- ${address} ${amount}`)
   }
-  await RPT.tx(admin).configure(RPT_CONFIG)
+  await RPT.tx(agent).configure(RPT_CONFIG)
   return { RPT_CONFIG }
 }
 
 export async function upgradeRewards ({
-  timestamp, chain, admin, deployment, prefix, run,
+  timestamp, chain, agent, deployment, prefix, run,
 
   OldRewardsContract,
   NewRewardsContract,
 
-  SIENNA = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({ admin })),
-  RPT    = deployment.getThe('SiennaRPT',    new SiennaSNIP20Contract({ admin })),
-  REWARD_POOLS = deployment.getAll(
-    'SiennaRewards_v2',
-    name => new OldRewardsContract({ agent: admin })
-  ),
+  SIENNA = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({ agent })),
+  RPT    = deployment.getThe('SiennaRPT',    new SiennaSNIP20Contract({ agent })),
+  REWARD_POOLS = deployment.getAll('SiennaRewards_v2', name => new OldRewardsContract({agent})),
 
   version,
   suffix = `+${timestamp}`
-
 }) {
   const NEW_REWARD_POOLS: RewardsContract[] = []
   for (const REWARDS of REWARD_POOLS) {
@@ -335,7 +330,7 @@ Object.assign(upgradeRewards, {
 type MultisigTX = any
 const pick       = (...keys) => x => keys.reduce((y, key)=>{y[key]=x[key];return y}, {})
 const essentials = pick('codeId', 'codeHash', 'address', 'label')
-export const rewardsAudit = {
+export const rewardsAudit = { // FIXME: OUTDATED, PLEASE UPGRADE
   async ['deploy'] ({ chain, admin, args: [ bonding ] }) {
     bonding = Number(bonding)
     if (isNaN(bonding) || bonding < 0) {

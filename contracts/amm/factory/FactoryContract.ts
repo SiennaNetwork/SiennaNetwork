@@ -97,12 +97,11 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
   async getExchange (
     token_0: TokenType,
     token_1: TokenType,
-    agent = this.creator || this.agent
   ): Promise<ExchangeInfo> {
     //console.info(bold('Looking for exchange'))
     //console.info(bold('  between'), JSON.stringify(token_0))
     //console.info(bold('      and'), JSON.stringify(token_1))
-    const { admin, prefix, chain } = this
+    const { agent, prefix, chain } = this
     const { address } = (await this.q(agent).get_exchange_address(token_0, token_1))
     const EXCHANGE = new AMMContract({
       chain,
@@ -128,7 +127,7 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
     const name = `${TOKEN_0_NAME}-${TOKEN_1_NAME}`
     const { liquidity_token } = await EXCHANGE.pairInfo()
     const LP_TOKEN = new LPTokenContract({
-      admin, prefix, chain,
+      agent, prefix, chain,
       address:  liquidity_token.address,
       codeHash: liquidity_token.code_hash,
       codeId:   await agent.getCodeId(liquidity_token.address),
@@ -171,8 +170,8 @@ export class FactoryContract extends Scrt_1_2.Contract<FactoryTransactions, Fact
 /** Taking a TGE deployment, add the AMM to it,
   * creating the pre-configured liquidity and reward pools. */
 export async function deployAMM ({
-  deployment, admin, run,
-  SIENNA  = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({admin})),
+  deployment, agent, run,
+  SIENNA  = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({agent})),
   version = 'v2',
 }) {
   const {
@@ -196,37 +195,31 @@ Object.assign(deployAMM, {
 export const upgradeAMM = {
 
   async v1_to_v2 ({
-    run, chain, admin, deployment, prefix,
-    FACTORY = deployment.getThe('SiennaAMMFactory@v1', () => new FactoryContract({ admin })),
+    run, chain, agent, deployment, prefix,
+    FACTORY = deployment.getThe('SiennaAMMFactory@v1', new FactoryContract({agent})),
   }) {
     console.log()
-
-    // old
     console.info(bold('Current factory:'))
     printContract(FACTORY)
-
     const EXCHANGES: ExchangeInfo[] = await FACTORY.exchanges
     await printExchanges(EXCHANGES)
-
-    // new
     const version = 'v2'
-    const { FACTORY: NEW_FACTORY } = await run(deployAMMFactory, {
-      version,
-      copyFrom: FACTORY
-    })
+    const { FACTORY: NEW_FACTORY } = await run(deployAMMFactory, { version, copyFrom: FACTORY })
     printContract(NEW_FACTORY)
-
     const NEW_EXCHANGES = []
-    for (const { name, TOKEN_0, TOKEN_1 } of EXCHANGES) {
-      console.log()
-      console.info(bold('Creating V2 exchange'), name, 'from corresponding V1 exchange')
-      NEW_EXCHANGES.push(saveExchange(
-        { deployment, version },
-        await NEW_FACTORY.getContracts(),
-        await NEW_FACTORY.createExchange(TOKEN_0, TOKEN_1)))
+    if (!EXCHANGES) {
+      console.warn('No exchanges in old factory.')
+    } else {
+      for (const { name, TOKEN_0, TOKEN_1 } of EXCHANGES) {
+        console.log()
+        console.info(bold('Creating V2 exchange'), name, 'from corresponding V1 exchange')
+        NEW_EXCHANGES.push(saveExchange(
+          { deployment, version },
+          await NEW_FACTORY.getContracts(),
+          await NEW_FACTORY.createExchange(TOKEN_0, TOKEN_1)))
+      }
+      await printExchanges(NEW_EXCHANGES)
     }
-    await printExchanges(NEW_EXCHANGES)
-
     return { FACTORY: NEW_FACTORY, EXCHANGES: NEW_EXCHANGES }
   }
 }
@@ -236,31 +229,31 @@ export const upgradeAMM = {
   * the different kinds of contracts that it can instantiate.
   * So build and upload versions of those contracts too. */
 export async function deployAMMFactory ({
-  prefix, admin, chain, deployment,
+  prefix, agent, chain, deployment,
   version = 'v2',
   suffix  = `@${version}+${timestamp()}`,
   copyFrom,
   initMsg = {
-    admin:             admin.address,
+    admin:             agent.address,
     prng_seed:         randomHex(36),
     exchange_settings: getSettings(chain.chainId).amm.exchange_settings,
   }
 }) {
-  const options = { workspace, prefix, admin }
+  const options = { workspace, prefix, agent }
   const FACTORY   = new FactoryContract({ ...options, version, suffix })
   const LAUNCHPAD = new LaunchpadContract({ ...options })
   // launchpad is new to v2 so we build/upload it every time...
-  await chain.buildAndUpload(admin, [FACTORY, LAUNCHPAD])
+  await chain.buildAndUpload(agent, [FACTORY, LAUNCHPAD])
   const template = contract => ({ id: contract.codeId, code_hash: contract.codeHash })
   if (copyFrom) {
-    await deployment.createContract(admin, FACTORY, {
+    await deployment.createContract(agent, FACTORY, {
       ...initMsg,
       ...await copyFrom.getContracts(),
       // ...because otherwise here it wouldn've be able to copy it from v1...
       launchpad_contract: template(LAUNCHPAD),
     })
   } else {
-    const [EXCHANGE, AMMTOKEN, LPTOKEN, IDO] = await chain.buildAndUpload(admin, [
+    const [EXCHANGE, AMMTOKEN, LPTOKEN, IDO] = await chain.buildAndUpload(agent, [
       new AMMContract({       ...options, version }),
       new AMMSNIP20Contract({ ...options }),
       new LPTokenContract({   ...options }),
@@ -274,11 +267,10 @@ export async function deployAMMFactory ({
       // ...while v1 here would just ignore this config field
       launchpad_contract: template(LAUNCHPAD),
     }
-    await deployment.getOrCreateContract(
-      admin, FACTORY, 'SiennaAMMFactory', {
-        ...initMsg,
-        ...contracts
-      })
+    await deployment.getOrCreateContract(agent, FACTORY, 'SiennaAMMFactory', {
+      ...initMsg,
+      ...contracts
+    })
   }
   console.info(
     bold(`Deployed factory ${version}`), FACTORY.label
@@ -288,7 +280,7 @@ export async function deployAMMFactory ({
 }
 
 export async function deployAMMExchanges ({
-  run, chain, admin,
+  run, chain, agent,
   SIENNA,
   FACTORY,
   version,
@@ -311,7 +303,7 @@ export async function deployAMMExchanges ({
       let [name, {address, codeHash}] of
       Object.entries(swapTokens as Record<string, { address: string, codeHash: string }>)
     ) {
-      const realCodeHash = await admin.getCodeHash(address)
+      const realCodeHash = await agent.getCodeHash(address)
       if (codeHash !== realCodeHash) {
         console.warn(bold('Code hash mismatch for'), address, `(${name})`)
         console.warn(bold('  Config:'), codeHash)
@@ -319,7 +311,7 @@ export async function deployAMMExchanges ({
       } else {
         console.info(bold(`Code hash of ${address}:`), realCodeHash)
       }
-      tokens[name] = new AMMSNIP20Contract({address, codeHash: realCodeHash, admin})
+      tokens[name] = new AMMSNIP20Contract({address, codeHash: realCodeHash, agent})
     }
     Object.assign(TOKENS, tokens)
   }
@@ -332,7 +324,7 @@ export async function deployAMMExchanges ({
     // And collect the results
     EXCHANGES.push(EXCHANGE)
     LP_TOKENS.push(LP_TOKEN)
-    //await admin.nextBlock
+    //await agent.nextBlock
   }
   return { TOKENS, LP_TOKENS, EXCHANGES }
 }
@@ -340,7 +332,7 @@ export async function deployAMMExchanges ({
 /** Deploy a new exchange. If the exchange already exists, do nothing.
   * Factory doesn't allow 2 identical exchanges to exist (as compared by TOKEN0 and TOKEN1). */
 export async function deployAMMExchange ({
-  admin, deployment,
+  agent, deployment,
   FACTORY, TOKENS, name, version
 }) {
   console.info(bold(`Deploying AMM exchange`), name)
@@ -355,9 +347,8 @@ export async function deployAMMExchange ({
   )
   const token1 = TOKENS[tokenName1].asCustomToken
   //console.info(`- Token 1: ${bold(JSON.stringify(token1))}...`)
-
   try {
-    const { EXCHANGE, LP_TOKEN } = await FACTORY.getExchange(token0, token1, admin)
+    const { EXCHANGE, LP_TOKEN } = await FACTORY.getExchange(token0, token1)
     console.info(`${bold(name)}: Already exists.`)
     return { EXCHANGE, LP_TOKEN }
   } catch (e) {
@@ -396,12 +387,13 @@ function saveExchange (
   return { name, raw, EXCHANGE, LP_TOKEN, TOKEN_0, TOKEN_1 }
 }
 
-export async function printExchanges (EXCHANGES: any[]) {
-  console.log({EXCHANGES})
-  for (const {
-    name, EXCHANGE: { codeId, codeHash, address },
-    TOKEN_0, TOKEN_1, LP_TOKEN
-  } of EXCHANGES) {
+export async function printExchanges (EXCHANGES?: any[]) {
+  if (!EXCHANGES) {
+    console.info('No exchanges found.')
+    return
+  }
+  for (const { name, EXCHANGE, TOKEN_0, TOKEN_1, LP_TOKEN } of EXCHANGES) {
+    const { codeId, codeHash, address } = EXCHANGE
     console.info(
       ' ', bold(colors.inverse(name)).padEnd(30), // wat
       `(code id ${bold(String(codeId))})`.padEnd(34), bold(address)
