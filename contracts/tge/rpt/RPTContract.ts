@@ -1,5 +1,4 @@
-import { Agent, Scrt_1_2 } from '@hackbg/fadroma'
-import type { SNIP20Contract_1_2 } from '@fadroma/snip20'
+import { Agent, Scrt_1_2, SNIP20Contract_1_2, bold } from '@hackbg/fadroma'
 
 import type { MGMTContract } from '@sienna/mgmt'
 
@@ -22,7 +21,6 @@ export class RPTContract extends Scrt_1_2.Contract<RPTTransactions, RPTQueries> 
   get status() {
     return this.q().status().then(({status})=>status)
   }
-
 }
 
 /** After deploying the SSSSS and the other reward pools,

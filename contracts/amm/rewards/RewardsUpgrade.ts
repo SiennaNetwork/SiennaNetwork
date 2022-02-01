@@ -1,4 +1,5 @@
 import { Console, bold, timestamp } from '@hackbg/fadroma'
+
 const console = Console('@sienna/rewards/Upgrade')
 
 import { SiennaSNIP20Contract } from '@sienna/snip20-sienna'

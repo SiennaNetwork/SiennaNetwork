@@ -82,6 +82,11 @@ export async function deployAMMFactory ({
       // ...while v1 here would just ignore this config field
       launchpad_contract: template(LAUNCHPAD),
     }
+    if (version === 'v2') {
+      delete contracts.snip20_contract
+      delete contracts.ido_contract
+      delete contracts.launchpad_contract
+    }
     await deployment.getOrCreateContract(agent, FACTORY, 'SiennaAMMFactory', {
       ...initMsg,
       ...contracts

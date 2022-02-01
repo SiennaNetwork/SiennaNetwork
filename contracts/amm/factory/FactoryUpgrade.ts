@@ -1,8 +1,22 @@
+import {
+  Console, bold, timestamp, randomHex, printContract
+} from '@hackbg/fadroma'
+
+const console = Console('@sienna/factory/Upgrade')
+
+import { ExchangeInfo, saveExchange, printExchanges } from '@sienna/exchange'
+
+import { AMMFactoryContract } from './FactoryContract'
+import { deployAMMFactory } from './FactoryDeploy'
+
 export const upgradeAMM = {
 
   async v1_to_v2 ({
     run, chain, agent, deployment, prefix,
-    FACTORY = deployment.getThe('SiennaAMMFactory@v1', new FactoryContract({agent})),
+    FACTORY = deployment.getThe(
+      'SiennaAMMFactory@v1',
+      new AMMFactoryContract({agent})
+    ),
   }) {
     console.log()
     console.info(bold('Current factory:'))

@@ -1,12 +1,15 @@
 import {
   Console, bold, timestamp, randomHex, SNIP20Contract,
-  printContract, printContracts
+  printContract, printContracts, printToken, colors
 } from '@hackbg/fadroma'
+
 const console = Console('@sienna/factory/Deploy')
 
 import getSettings from '@sienna/settings'
 
-import { deployPlaceholders } from '@sienna/amm-snip20'
+import { AMMSNIP20Contract, deployPlaceholders } from '@sienna/amm-snip20'
+import { LPTokenContract } from '@sienna/lp-token'
+import { AMMExchangeContract } from './ExchangeContract'
 
 export async function deployAMMExchanges ({
   run, chain, agent,
@@ -32,6 +35,7 @@ export async function deployAMMExchanges ({
       let [name, {address, codeHash}] of
       Object.entries(swapTokens as Record<string, { address: string, codeHash: string }>)
     ) {
+      // Soft code hash checking for now
       const realCodeHash = await agent.getCodeHash(address)
       if (codeHash !== realCodeHash) {
         console.warn(bold('Code hash mismatch for'), address, `(${name})`)
@@ -40,20 +44,19 @@ export async function deployAMMExchanges ({
       } else {
         console.info(bold(`Code hash of ${address}:`), realCodeHash)
       }
+      // Always use real code hash - TODO bring settings up to date
       tokens[name] = new AMMSNIP20Contract({address, codeHash: realCodeHash, agent})
     }
     Object.assign(TOKENS, tokens)
   }
-  // If there are any initial swap pairs defined in the config
+  // If there are any initial swap pairs defined in the config...
   for (const name of swapPairs) {
-    // Call the factory to deploy an EXCHANGE for each
-    const { EXCHANGE, LP_TOKEN } = await run(deployAMMExchange, {
-      FACTORY, TOKENS, name, version
-    })
-    // And collect the results
+    // ...call the factory to deploy an EXCHANGE for each...
+    const { EXCHANGE, LP_TOKEN } = await run(
+      deployAMMExchange, { FACTORY, TOKENS, name, version })
+    // ...and collect the results
     EXCHANGES.push(EXCHANGE)
     LP_TOKENS.push(LP_TOKEN)
-    //await agent.nextBlock
   }
   return { TOKENS, LP_TOKENS, EXCHANGES }
 }
@@ -95,8 +98,8 @@ export async function deployAMMExchange ({
 
 /** Since exchange and LP token are deployed through the factory
   * and not though Fadroma Deploy, we need to manually save their
-  * addresses in the deployment. */ 
-function saveExchange (
+  * addresses in the Deployment. */ 
+export function saveExchange (
   { deployment, version },
   { pair_contract: { id: ammId, code_hash: ammHash }, lp_token_contract: { id: lpId } },
   { name, raw, EXCHANGE, LP_TOKEN, TOKEN_0, TOKEN_1 }
