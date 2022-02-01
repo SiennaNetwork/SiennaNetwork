@@ -295,13 +295,15 @@ importers:
   deps/fadroma/packages/ops:
     specifiers:
       '@hackbg/tools': ^1
-      ajv: ^8.6.0
-      exponential-backoff: ^3.1.0
+      ajv: ^8.6
+      dotenv: ^15
+      exponential-backoff: ^3.1
       json-schema-to-typescript: ^10.1.4
-      toml: ^3.0.0
+      toml: ^3
     dependencies:
       '@hackbg/tools': 1.0.0
       ajv: 8.9.0
+      dotenv: 15.0.0
       exponential-backoff: 3.1.0
       json-schema-to-typescript: 10.1.5
       toml: 3.0.0
@@ -9307,6 +9309,11 @@ packages:
   /dotenv/10.0.0:
     resolution: {integrity: sha512-rlBi9d8jpv9Sf1klPjNfFAuWDjKLwTIJJ/VxtoTwIR6hnZxcEOQCZg2oIL3MWBYw5GpUDKOEnND7LXTbIpQ03Q==}
     engines: {node: '>=10'}
+    dev: false
+
+  /dotenv/15.0.0:
+    resolution: {integrity: sha512-/l1sXXm79ry34KwwS0y4oVZjB468iw/6u9g1W26dtexKcIJAnVL2pMF+hxQwzZ7LutxOwEgtym9eIxvX33CMKg==}
+    engines: {node: '>=12'}
     dev: false
 
   /dotenv/8.6.0:

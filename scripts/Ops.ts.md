@@ -1,4 +1,4 @@
-# Sienna Deployment Procedures
+# Sienna Deployments Procedures
 
 ```typescript
 import Fadroma, { bold, timestamp, Console } from '@hackbg/fadroma'
@@ -16,7 +16,7 @@ and a series of [stages](https://github.com/hackbg/fadroma/blob/22.01/packages/o
 that are executed in sequence with a common state object -
 the [`MigrationContext`](https://github.com/hackbg/fadroma/blob/22.01/packages/ops/index.ts),
 into which the values returned by each procedure can also be added
-(for example, see [`Deployment.activate`](#needsdeployment)).
+(for example, see [`Deployments.activate`](#needsdeployment)).
 
 ## Chains
 
@@ -42,28 +42,28 @@ Fadroma.command('reset', async ({ chain }) => {
 })
 ```
 
-## Deployments
+## Deploymentss
 
 The Sienna platform consists of multiple smart contracts that
 depend on each other's existence and configuration. A group of
-such contracts is called a `Deployment`.
+such contracts is called a `Deployments`.
 
 ```typescript
-import { Deployment } from '@hackbg/fadroma'
-Fadroma.command('status', Deployment.activate)
-Fadroma.command('select', Deployment.select)
-Fadroma.command('deploy new', Deployment.new)
+import { Deployments } from '@hackbg/fadroma'
+Fadroma.command('status', Deployments.status)
+Fadroma.command('select', Deployments.select)
+Fadroma.command('deploy new', Deployments.new)
 ```
 
-### Deployment.activate
+### Deployments.activate
 
-`Deployment.activate` is a command step that acts as a context modifier:
+`Deployments.activate` is a command step that acts as a context modifier:
 the `deployment` and `prefix` arguments for subsequent steps are taken
 from its return value by the mechanics behind `Fadroma.command`.
 
-### Deployment.new
+### Deployments.new
 
-`Deployment.new` works similarly to `Deployment.activate`, but
+`Deployments.new` works similarly to `Deployments.activate`, but
 creates a new empty deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 This is how you start from a clean slate.
 
@@ -75,13 +75,13 @@ This is how you start from a clean slate.
 import { deployTGE } from '@sienna/tge'
 import { deployAMM, deployRewards } from '@sienna/amm'
 Fadroma.command('deploy legacy',
-  Deployment.new,
+  Deployments.new,
   deployTGE,
-  Deployment.status,
+  Deployments.status,
   deployAMM.v1,
-  Deployment.status,
+  Deployments.status,
   deployRewards.v2,
-  Deployment.status)
+  Deployments.status)
 ```
 
 ### Upgrading legacy to latest
@@ -89,12 +89,12 @@ Fadroma.command('deploy legacy',
 ```typescript
 import { upgradeAMM } from '@sienna/amm'
 Fadroma.command('upgrade amm v1_to_v2',
-  Deployment.activate,
+  Deployments.activate,
   upgradeAMM.v1_to_v2)
 
 import { upgradeRewards } from '@sienna/amm'
 Fadroma.command('upgrade rewards v2_to_v3',
-  Deployment.activate,
+  Deployments.activate,
   upgradeRewards.v2_to_v3)
 ```
 
@@ -107,14 +107,14 @@ temporal dependencies in contracts.
 
 ```typescript
 Fadroma.command('deploy all',
-  Deployment.new,
+  Deployments.new,
   deployTGE,
   deployAMM.v1,
   deployRewards.v2,
-  Deployment.status,
+  Deployments.status,
   upgradeAMM.v1_to_v2,
   upgradeRewards.v2_to_v3,
-  Deployment.status)
+  Deployments.status)
 ```
 
 ### Deploy just the TGE
@@ -123,7 +123,7 @@ This creates a new deployment under `/receipts/$CHAIN_ID/$TIMESTAMP`.
 
 ```typescript
 Fadroma.command('deploy tge',
-  Deployment.activate, 
+  Deployments.activate,
   deployTGE)
 ```
 
@@ -134,7 +134,7 @@ to which it adds the contracts for Sienna Swap.
 
 ```typescript
 Fadroma.command('deploy amm',
-  Deployment.activate,
+  Deployments.activate,
   deployAMM.v2)
 ```
 
@@ -144,15 +144,15 @@ Used to test the migration from v2 to v3 pools.
 
 ```typescript
 Fadroma.command('deploy rewards v2',
-  Deployment.activate,
+  Deployments.activate,
   deployRewards.v2)
 
 Fadroma.command('deploy rewards v3',
-  Deployment.activate,
+  Deployments.activate,
   deployRewards.v3)
 
 Fadroma.command('deploy rewards v2_and_v3',
-  Deployment.activate,
+  Deployments.activate,
   deployRewards.v2_and_v3)
 ```
 
@@ -165,7 +165,7 @@ built from `main`.
 ```typescript
 import { deployAMMFactory } from '@sienna/amm'
 Fadroma.command('deploy factory v1',
-  Deployment.activate,
+  Deployments.activate,
   deployAMMFactory.v1)
 ```
 
