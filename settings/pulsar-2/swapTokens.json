@@ -14,5 +14,9 @@
   "sETH": {
     "address":  "secret1hqrdl6wstt8qzshwc6mrumpjk9338k0lpsefm3",
     "codeHash": ""
+  },
+  "sUSDT": {
+    "address":  "secret18r5szma8hm93pvx6lwpjwyxruw27e0k57tncfy",
+    "codeHash": ""
   }
 }
