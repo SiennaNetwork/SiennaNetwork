@@ -44,7 +44,7 @@ export class AMMContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> 
 
   constructor (options) {
     super(options)
-    const { version } = options
+    const { version } = options||{}
     if (version === 'v1') {
       this.ref    = 'a99d8273b4'
       this.suffix = `@v1+${timestamp()}`
