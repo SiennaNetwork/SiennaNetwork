@@ -41,8 +41,6 @@ dependencies = [
  "amm-shared",
  "exchange",
  "factory",
- "ido",
- "launchpad",
  "lp-token",
  "router",
  "serde",

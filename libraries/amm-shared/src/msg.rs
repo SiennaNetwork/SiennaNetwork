@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use crate::{TokenPair, TokenPairAmount, TokenType, TokenTypeAmount};
 
 pub mod factory {
-    use super::ido::TokenSaleConfig;
     use super::*;
     use crate::{
         exchange::{Exchange, ExchangeSettings},
@@ -21,11 +20,8 @@ pub mod factory {
     #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
     #[serde(deny_unknown_fields)]
     pub struct InitMsg {
-        pub snip20_contract: ContractInstantiationInfo,
         pub lp_token_contract: ContractInstantiationInfo,
         pub pair_contract: ContractInstantiationInfo,
-        pub launchpad_contract: ContractInstantiationInfo,
-        pub ido_contract: ContractInstantiationInfo,
         pub exchange_settings: ExchangeSettings<HumanAddr>,
         pub admin: Option<HumanAddr>,
         pub prng_seed: Binary,
@@ -43,11 +39,8 @@ pub mod factory {
         },
         /// Set contract templates and exchange settings. Admin only command.
         SetConfig {
-            snip20_contract: Option<ContractInstantiationInfo>,
             lp_token_contract: Option<ContractInstantiationInfo>,
             pair_contract: Option<ContractInstantiationInfo>,
-            launchpad_contract: Option<ContractInstantiationInfo>,
-            ido_contract: Option<ContractInstantiationInfo>,
             exchange_settings: Option<ExchangeSettings<HumanAddr>>,
         },
         /// Instantiates an exchange pair contract
@@ -55,37 +48,10 @@ pub mod factory {
             pair: TokenPair<HumanAddr>,
             entropy: Binary,
         },
-        /// Create the launchpad contract
-        CreateLaunchpad {
-            tokens: Vec<super::launchpad::TokenSettings>,
-            entropy: Binary,
-        },
-        /// Instantiates an IDO contract
-        CreateIdo {
-            info: TokenSaleConfig,
-            // If whitelist addresses will be filled from the launchpad, you'll have to provide
-            // list of tokens that will be used for gathering whitelist addresses.
-            // For native token None is used.
-            tokens: Option<Vec<Option<HumanAddr>>>,
-            entropy: Binary,
-        },
-        /// Add addresses that are allowed to create IDOs
-        IdoWhitelist {
-            addresses: Vec<HumanAddr>,
-        },
         /// Used by a newly instantiated exchange contract to register
         /// itself with the factory
         RegisterExchange {
             pair: TokenPair<HumanAddr>,
-            signature: Binary,
-        },
-        /// Used by the launchpad to register itself
-        RegisterLaunchpad {
-            signature: Binary,
-        },
-        /// Used by a newly instantiated IDO contract to register
-        /// itself with the factory
-        RegisterIdo {
             signature: Binary,
         },
         /// Transfers exchanges to a new instance. Admin only command.
@@ -103,14 +69,6 @@ pub mod factory {
         SetMigrationAddress {
             address: HumanAddr,
         },
-        /// Adds already created IDO addresses to the registry. Admin only command.
-        AddIdos {
-            idos: Vec<HumanAddr>,
-        },
-        /// Adds already existing launchpad contract, admin only command.
-        AddLaunchpad {
-            launchpad: ContractLink<HumanAddr>,
-        },
         Admin(AdminHandleMsg),
     }
 
@@ -122,12 +80,8 @@ pub mod factory {
         Status,
         /// Get configuration (contract templates and exchange settings)
         GetConfig {},
-        GetLaunchpadAddress,
         GetExchangeAddress {
             pair: TokenPair<HumanAddr>,
-        },
-        ListIdos {
-            pagination: Pagination,
         },
         ListExchanges {
             pagination: Pagination,
@@ -157,11 +111,8 @@ pub mod factory {
             settings: ExchangeSettings<HumanAddr>,
         },
         Config {
-            snip20_contract: ContractInstantiationInfo,
             lp_token_contract: ContractInstantiationInfo,
             pair_contract: ContractInstantiationInfo,
-            launchpad_contract: ContractInstantiationInfo,
-            ido_contract: ContractInstantiationInfo,
             exchange_settings: ExchangeSettings<HumanAddr>,
         },
     }

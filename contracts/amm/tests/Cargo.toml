@@ -13,6 +13,4 @@ amm-shared = { path = "../../../libraries/amm-shared" }
 lp-token = { path = "../lp-token" }
 factory = { path = "../factory" }
 exchange = { path = "../exchange" }
-ido = { path = "../ido" }
-launchpad = { path = "../launchpad" }
 router = { path = "../router" }

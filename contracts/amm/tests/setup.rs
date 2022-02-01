@@ -33,8 +33,6 @@ use amm_shared::{
 
 use factory::contract as factory;
 use exchange::contract as exchange;
-use ido::contract as ido;
-use launchpad::contract as launchpad;
 use router::contract as router;
 use lp_token;
 
@@ -57,18 +55,13 @@ impl Amm {
         let snip20 = ensemble.register(Box::new(Token));
         let lp_token = ensemble.register(Box::new(LpToken));
         let pair = ensemble.register(Box::new(Pair));
-        let ido = ensemble.register(Box::new(Ido));
-        let launchpad = ensemble.register(Box::new(Launchpad));
         let _router = ensemble.register(Box::new(Router));
         
         let factory = ensemble.instantiate(
             factory.id,
             &msg::factory::InitMsg {
-                snip20_contract: snip20.clone(),
                 lp_token_contract: lp_token,
                 pair_contract: pair,
-                launchpad_contract: launchpad,
-                ido_contract: ido,
                 exchange_settings: ExchangeSettings {
                     swap_fee: Fee::new(28, 10000),
                     sienna_fee: Fee::new(2, 10000),
@@ -347,66 +340,6 @@ impl ContractHarness for LpToken {
         msg: Binary
     ) -> StdResult<Binary> {
         lp_token::query(deps, from_binary(&msg)?)
-    }
-}
-
-pub struct Ido;
-
-impl ContractHarness for Ido {
-    fn init(
-        &self,
-        deps: &mut MockDeps,
-        env: Env,
-        msg: Binary
-    ) -> StdResult<InitResponse> {
-        ido::init(deps, env, from_binary(&msg)?)
-    }
-
-    fn handle(
-        &self,
-        deps: &mut MockDeps,
-        env: Env,
-        msg: Binary
-    ) -> StdResult<HandleResponse> {
-        ido::handle(deps, env, from_binary(&msg)?)
-    }
-
-    fn query(
-        &self,
-        deps: &MockDeps,
-        msg: Binary
-    ) -> StdResult<Binary> {
-        ido::query(deps, from_binary(&msg)?)
-    }
-}
-
-pub struct Launchpad;
-
-impl ContractHarness for Launchpad {
-    fn init(
-        &self,
-        deps: &mut MockDeps,
-        env: Env,
-        msg: Binary
-    ) -> StdResult<InitResponse> {
-        launchpad::init(deps, env, from_binary(&msg)?)
-    }
-
-    fn handle(
-        &self,
-        deps: &mut MockDeps,
-        env: Env,
-        msg: Binary
-    ) -> StdResult<HandleResponse> {
-        launchpad::handle(deps, env, from_binary(&msg)?)
-    }
-
-    fn query(
-        &self,
-        deps: &MockDeps,
-        msg: Binary
-    ) -> StdResult<Binary> {
-        launchpad::query(deps, from_binary(&msg)?)
     }
 }
 
