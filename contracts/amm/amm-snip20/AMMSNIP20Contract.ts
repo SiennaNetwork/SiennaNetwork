@@ -44,13 +44,13 @@ export async function deployPlaceholders ({ chain, agent, deployment, prefix }) 
     } catch (e) {
       if (e.message.startsWith('@fadroma/ops: no contract')) {
         console.info(bold('Deploying placeholder:'), initMsg.symbol)
-        const TOKEN = PLACEHOLDERS[initMsg.symbol] = new AMMSNIP20Contract({
-          prefix, name, suffix: `+${timestamp()}`,
-        })
+        const TOKEN = PLACEHOLDERS[initMsg.symbol] = new AMMSNIP20Contract({ prefix, name })
         await chain.buildAndUpload(agent, [TOKEN])
         await deployment.init(agent, TOKEN, { ...initMsg, name: initMsg.symbol })
+        const amount = "100000000000000000000000"
+        console.info("Minting", bold(amount), 'to', bold(agent.address))
         await TOKEN.tx().setMinters([agent.address])
-        await TOKEN.tx().mint("100000000000000000000000", agent.address)
+        await TOKEN.tx().mint(amount, agent.address)
       } else {
         console.error(e)
         throw new Error(

@@ -2,23 +2,28 @@ import { Scrt_1_2 } from '@hackbg/fadroma'
 
 export class MGMTQueries extends Scrt_1_2.Contract.Queries {
 
-  /** query contgract status */
+  /** Query contract status */
   status () {
-    const msg = { schedule: {} }
-    return this.query(msg)
+    return this.query({ status: {} })
   }
 
-  /** see how much is claimable by someone at a certain time */
+  /** See the full schedule */
   schedule () {
-    const msg = { schedule: {} }
-    return this.query(msg)
+    return this.query({ schedule: {} })
   }
 
-  /** see how much is claimable by someone at a certain time */
-  progress (address: any, time = +new Date()) {
+  /** Check how much is claimable by someone at a certain time */
+  async progress (address: any, time = +new Date()): Promise<{
+    time:     number
+    launcher: number
+    elapsed:  number
+    unlocked: string
+    claimed:  string
+  }> {
     time = Math.floor(time / 1000) // JS msec -> CosmWasm seconds
-    const msg = { address, time }
-    return this.query(msg)
+    const msg = { progress: { address, time } }
+    const { progress } = await this.query(msg)
+    return progress
   }
 
 }

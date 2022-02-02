@@ -10,8 +10,9 @@ export default function getSettingsForChain (chainId) {
   if (!existsSync(source)) {
     throw new Error(`settings/by-chain-id/${chainId}.yml does not exist`)
   }
-  const settings = YAML.load(readFileSync(source, 'utf8'))
-  console.log({settings})
+  const content = readFileSync(source, 'utf8')
+  console.log(content)
+  const settings = YAML.load(content)
   return settings
 }
 
