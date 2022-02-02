@@ -13,10 +13,7 @@ export const upgradeAMM = {
 
   async v1_to_v2 ({
     run, chain, agent, deployment, prefix,
-    FACTORY = deployment.getThe(
-      'SiennaAMMFactory@v1',
-      new AMMFactoryContract({agent})
-    ),
+    FACTORY = deployment.getThe('AMM[v1].Factory', new AMMFactoryContract({agent, version: 'v1'})),
   }) {
     console.log()
     console.info(bold('Current factory:'))

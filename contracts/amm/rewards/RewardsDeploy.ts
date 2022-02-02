@@ -3,7 +3,7 @@ const console = Console('@sienna/rewards/Deploy')
 
 import { SiennaSNIP20Contract } from '@sienna/snip20-sienna'
 import { adjustRPTConfig } from '@sienna/rpt'
-import getSettings, { workspace, ONE_SIENNA } from '@sienna/settings'
+import getSettings, { ONE_SIENNA } from '@sienna/settings'
 import { LPTokenContract } from '@sienna/lp-token'
 import { RewardsContract } from './RewardsContract'
 
@@ -71,7 +71,7 @@ export async function deploySSSSS ({
   const lpToken = SIENNA
   const rewardToken = SIENNA
   const { REWARDS: SSSSS_POOL } = await run(deployRewardPool, {
-    version, name, lpToken, rewardToken,
+    version, name, lpToken, rewardToken
   })
   return {
     SSSSS_POOL, RPT_CONFIG_SSSSS: [
@@ -90,10 +90,9 @@ export async function deployRewardPools ({
   SIENNA  = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({ agent })),
   version = 'v3',
   ammVersion = 'v1',
-  suffix  = `+${timestamp()}`,
   split   = 1.0,
 }) {
-  const REWARDS = new RewardsContract[version]({ workspace, prefix, agent })
+  const REWARDS = new RewardsContract[version]({ prefix, agent })
   await chain.buildAndUpload(agent, [REWARDS])
   const REWARD_POOLS            = []
   const RPT_CONFIG_SWAP_REWARDS = []
@@ -111,7 +110,7 @@ export async function deployRewardPools ({
       console.info(bold('No rewards for'), name)
       continue
     }
-    const exchangeName = `SiennaSwap_v1_${name}`
+    const exchangeName = `AMM[${ammVersion}].${name}`
     console.info(bold('Need LP token of exchange'), exchangeName)
     const exchange = deployment.receipts[exchangeName]
     if (!exchange) {
@@ -126,8 +125,7 @@ export async function deployRewardPools ({
     })
     console.info(bold('Found LP token:'), lpToken.address)
     const { REWARDS } = await run(deployRewardPool, {
-      version, name, suffix,
-      lpToken, rewardToken: SIENNA,
+      version, name, lpToken, rewardToken: SIENNA,
     })
     REWARD_POOLS.push(REWARDS)
     const reward = BigInt(rewardPairs[name]) / BigInt(1 / split)
@@ -145,16 +143,13 @@ export async function deployRewardPool ({
   rewardToken = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({ agent })),
   name        = 'UNKNOWN',
   version     = 'v3',
-  suffix      = `+${timestamp()}`,
 }) {
-  name = `SiennaRewards_${version}_${name}`
+  name = `Rewards[${version}].${name}`
   console.info(bold(`Deploying ${name}:`), version)
   console.info(bold(`Staked token:`), lpToken.address, lpToken.codeHash)
-  const REWARDS = new RewardsContract[version]({
-    workspace, name, suffix,
-    lpToken, rewardToken, agent
-  })
+  const REWARDS = new RewardsContract[version]({ lpToken, rewardToken, agent })
+  REWARDS.name = name
   await chain.buildAndUpload(agent, [REWARDS])
-  await deployment.getOrCreateContract(agent, REWARDS, REWARDS.label, REWARDS.initMsg)
+  await deployment.getOrInit(agent, REWARDS, REWARDS.label, REWARDS.initMsg)
   return { REWARDS }
 }

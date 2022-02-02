@@ -1,4 +1,4 @@
-# Sienna Deployments Procedures
+# Sienna Deployment Procedures
 
 ```typescript
 import Fadroma, { bold, timestamp, Console } from '@hackbg/fadroma'
@@ -195,13 +195,10 @@ from the mainnet deploy that were previously stored
 in a non-compatible format.
 
 ```typescript
+import { fixReceipts } from '@sienna/receipts'
 Fadroma.command('fix receipts',
   Deployments.activate,
-  ({ agent, deployment }) => {
-    for (const [name, data] of Object.entries(deployment.receipts)) {
-      console.log(name, data)
-    }
-  })
+  fixReceipts)
 ```
 
 ## Entry point

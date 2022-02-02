@@ -61,12 +61,12 @@ export async function deployAMMFactory ({
   await chain.buildAndUpload(agent, [FACTORY, LAUNCHPAD])
   const template = contract => ({ id: contract.codeId, code_hash: contract.codeHash })
   if (copyFrom) {
-    await deployment.createContract(agent, FACTORY, {
-      ...initMsg,
-      ...await copyFrom.getContracts(),
-      // ...because otherwise here it wouldn've be able to copy it from v1...
-      launchpad_contract: template(LAUNCHPAD),
-    })
+    const contracts = await copyFrom.getContracts()
+    if (version === 'v2') {
+      delete contracts.snip20_contract
+      delete contracts.ido_contract
+    }
+    await deployment.init(agent, FACTORY, { ...initMsg, ...contracts })
   } else {
     const [EXCHANGE, AMMTOKEN, LPTOKEN, IDO] = await chain.buildAndUpload(agent, [
       new AMMExchangeContract({ ...options, version }),
@@ -79,15 +79,13 @@ export async function deployAMMFactory ({
       pair_contract:      template(EXCHANGE),
       lp_token_contract:  template(LPTOKEN),
       ido_contract:       template(IDO),
-      // ...while v1 here would just ignore this config field
-      launchpad_contract: template(LAUNCHPAD),
     }
     if (version === 'v2') {
       delete contracts.snip20_contract
       delete contracts.ido_contract
       delete contracts.launchpad_contract
     }
-    await deployment.getOrCreateContract(agent, FACTORY, 'SiennaAMMFactory', {
+    await deployment.getOrInit(agent, FACTORY, 'SiennaAMMFactory', {
       ...initMsg,
       ...contracts
     })

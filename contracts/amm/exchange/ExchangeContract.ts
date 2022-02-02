@@ -1,6 +1,9 @@
-import type { InitMsg } from './schema/init_msg.d'
-import type { TokenType, TokenPair, ContractLink } from './schema/query_msg_response.d'
-import type { LPTokenContract } from '@sienna/lp-token'
+import { timestamp, randomHex, Scrt_1_2, SNIP20Contract } from "@hackbg/fadroma"
+import { InitMsg } from './schema/init_msg.d'
+import { AMMTransactions, AMMQueries } from './ExchangeClient'
+import { TokenType, TokenPair, ContractLink } from './schema/query_msg_response.d'
+import { LPTokenContract } from '@sienna/lp-token'
+import { workspace } from '@sienna/settings'
 
 /** An exchange is an interaction between 4 contracts. */
 export type ExchangeInfo = {
@@ -18,17 +21,10 @@ export type ExchangeInfo = {
   raw:      any
 }
 
-import { Agent, timestamp, randomHex, Scrt_1_2 } from "@hackbg/fadroma"
-import { SNIP20Contract } from '@fadroma/snip20'
-import { AMMTransactions, AMMQueries } from './ExchangeClient'
 export class AMMExchangeContract extends Scrt_1_2.Contract<AMMTransactions, AMMQueries> {
-
-  crate = 'exchange'
-  name  = 'SiennaAMMExchange'
-
-  Transactions = AMMTransactions
-  Queries      = AMMQueries
-
+  workspace = workspace
+  crate     = 'exchange'
+  name      = 'AMMExchange'
   initMsg?: InitMsg = {
     callback:          { contract: null, msg: null },
     entropy:           null,
@@ -37,6 +33,8 @@ export class AMMExchangeContract extends Scrt_1_2.Contract<AMMTransactions, AMMQ
     pair:              null,
     prng_seed:         randomHex(36),
   }
+  Transactions = AMMTransactions
+  Queries      = AMMQueries
 
   token_0?: TokenType
   token_1?: TokenType

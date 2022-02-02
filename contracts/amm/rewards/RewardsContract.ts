@@ -1,11 +1,10 @@
-import { Scrt_1_2, ContractConstructor, randomHex, bold, Console } from "@hackbg/fadroma"
+import { Scrt_1_2, SNIP20Contract, ContractConstructor, randomHex, bold, Console } from "@hackbg/fadroma"
 
 const console = Console('@sienna/rewards/Contract')
 
-import { SNIP20Contract } from '@fadroma/snip20'
 import { SiennaSNIP20Contract } from '@sienna/snip20-sienna'
-import { FactoryContract } from '@sienna/factory'
-import { AMMContract, ExchangeInfo } from '@sienna/exchange'
+import { AMMFactoryContract } from '@sienna/factory'
+import { AMMExchangeContract, ExchangeInfo } from '@sienna/exchange'
 import { LPTokenContract } from '@sienna/lp-token'
 import { RPTContract, RPTConfig } from '@sienna/rpt'
 import getSettings, { workspace, SIENNA_DECIMALS, ONE_SIENNA } from '@sienna/settings'
@@ -16,7 +15,8 @@ import { RewardsTransactions, RewardsQueries, RewardsAPIVersion } from './Reward
 
 export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, RewardsQueries> {
 
-  name  = this.name  || 'SiennaRewards'
+  workspace = workspace
+  name  = this.name  || 'Rewards'
   crate = this.crate || 'sienna-rewards'
   abstract version: RewardsAPIVersion
 
@@ -31,8 +31,9 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsTransacti
   ): Promise<T>
 
   static v2 = class RewardsContract_v2 extends RewardsContract {
-    ref     = 'rewards-2.1.2'
     version = 'v2' as RewardsAPIVersion
+    name    = `Rewards[${this.version}]`
+    ref     = 'rewards-2.1.2'
     initMsg?: any // TODO v2 init type
     Transactions = RewardsTransactions // TODO v2 executors
     Queries      = RewardsQueries
@@ -62,6 +63,7 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsTransacti
 
   static v3 = class RewardsContract_v3 extends RewardsContract {
     version = 'v3' as RewardsAPIVersion
+    name    = `Rewards[${this.version}]`
     initMsg?: Init
     Transactions = RewardsTransactions
     Queries      = RewardsQueries

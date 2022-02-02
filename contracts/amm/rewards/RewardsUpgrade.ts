@@ -13,14 +13,13 @@ export async function upgradeRewards ({
   OldRewardsContract,
   NewRewardsContract,
 
-  SIENNA = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({agent})),
-  RPT    = deployment.getThe('SiennaRPT',    new SiennaSNIP20Contract({agent})),
-  REWARD_POOLS = deployment.getAll('SiennaRewards_v2', name => new OldRewardsContract({agent})),
+  SIENNA = deployment.getThe('SIENNA', new SiennaSNIP20Contract({agent})),
+  RPT    = deployment.getThe('RPT',    new SiennaSNIP20Contract({agent})),
+  REWARD_POOLS = deployment.getAll('Rewards[v2].', name => new OldRewardsContract({agent})),
 
   version,
   suffix = `+${timestamp}`
 }) {
-  console.log({REWARD_POOLS})
   const NEW_REWARD_POOLS: RewardsContract[] = []
   for (const REWARDS of REWARD_POOLS) {
     const LP_TOKEN = await REWARDS.lpToken()

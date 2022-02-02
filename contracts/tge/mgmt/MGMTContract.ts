@@ -1,6 +1,5 @@
 import { Agent, Scrt_1_2 } from '@hackbg/fadroma'
-import type { SNIP20Contract } from '@fadroma/snip20'
-
+import { workspace } from '@sienna/settings'
 import type { Init, Schedule } from './schema/init'
 import { MGMTTransactions } from './MGMTTransactions'
 import { MGMTQueries }      from './MGMTQueries'
@@ -9,11 +8,12 @@ export class MGMTContract extends Scrt_1_2.Contract<
   MGMTTransactions,
   MGMTQueries
 > {
-  crate = 'sienna-mgmt'
-  name  = 'SiennaMGMT'
+  workspace = workspace
+  crate     = 'sienna-mgmt'
+  name      = 'MGMT'
   initMsg?: Init
   Transactions = MGMTTransactions
-  Queries = MGMTQueries
+  Queries      = MGMTQueries
 
   /** query current schedule */
   get schedule (): Promise<Schedule> {

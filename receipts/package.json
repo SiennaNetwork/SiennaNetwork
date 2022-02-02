@@ -1,0 +1,11 @@
+{
+  "name": "@sienna/receipts",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "type": "module",
+  "dependencies": {
+    "align-yaml": "^0.1.8",
+    "js-yaml": "^4.1.0",
+    "@sienna/settings": "workspace:^1"
+  }
+}

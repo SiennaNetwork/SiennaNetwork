@@ -1,0 +1,42 @@
+---
+name:     SiennaAMMFactory
+label:    20211006_051405/SiennaAMMFactory
+codeId:   30690
+codeHash: c3d1e37bf7570d36c1d4e8fd50fd6361c67260e02942ba6b5522d8402d4de823
+initTx:   A9382154AD9DB0AD0E229408412543F1061299AE71CD7D49C41A851F9AD2AE4E
+address:  secret1e54dkzj3sdtj64lnfpa0cjguge23ncrdlywhwy
+---
+name:     SiennaMGMT
+label:    20210913_112306/SiennaMGMT
+codeId:   30429
+codeHash: bfd67c2fb628473ebd5dc6431ee84ad51455f8344916af2c10b567eb60a6e71b
+initTx:   1FCE12778E703950E33502E66060468734BF2191B21CD91585758CBDCD18B07F
+address:  secret14f2r68cfalnp56ecqczv3qhr38ktdez5n4pjxw
+---
+name:     SiennaRPT
+label:    20210913_112306/SiennaRPT
+codeId:   30430
+codeHash: 7941e1cd03f42977e010137c6bcef7fc70fae7c46199855f9cc3a4b1088c1481
+initTx:   3C9D2B9E8BA89FFA7C223459880B4733C57B39CFAB9862163FA25252E9303551
+address:  secret1y9jjpqchrunl3n92hmlflxqk5u97z8rw7p820w
+---
+name:     SiennaRewards_SIENNA-sSCRT_Pool
+label:    20211006_051405/SiennaRewards_SIENNA-sSCRT_Pool
+codeId:   30940
+codeHash: 7a3f39c50a8ab5f3db1ffdeeab3bf548ef22888161392541bdea7ace543c9433
+initTx:   0C45617CF5DFAACFA0A9FB47D432A12A646C85E536212722DB999A1DF8F8DAE2
+address:  secret1zjpjh7dwmmg98u3js4v0rc9n9jyj4styrfl9cl
+---
+name:     SiennaRewards_SIENNA_Pool
+label:    20211006_051405/SiennaRewards_SIENNA_Pool
+codeId:   30940
+codeHash: 7a3f39c50a8ab5f3db1ffdeeab3bf548ef22888161392541bdea7ace543c9433
+initTx:   A1AD20786D2E5166433E1C4151CF7774A84E692CB49A0D8792A6A3F6FA743BBD
+address:  secret1g6efpcsrhpgl06w8z9r23k4gn6d4e63xl52w2s
+---
+name:     SiennaSNIP20
+label:    20210913_112306/SiennaSNIP20
+codeId:   30428
+codeHash: 9f55f7bb6f738258ac37219f1a045d07f1332b17ec550cd8ac73b10cc2ec9e50
+initTx:   D626FF7850E1FC42477DECA1668E91B381472649072BA10D3FFF4FF920A1DBCF
+address:  secret1kja6s43w6r28x87g82zr7a0q2w7n4lnqzm7rmn

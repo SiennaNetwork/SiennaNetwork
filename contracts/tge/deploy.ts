@@ -12,7 +12,7 @@ import {
   RPTContract
 } from '@sienna/api'
 
-import settings, { workspace } from '@sienna/settings'
+import * as settings from '@sienna/settings'
 
 export async function deployTGE ({
   chain, agent, deployment, prefix,
@@ -22,8 +22,6 @@ export async function deployTGE ({
     * Defaults to production schedule. */
   schedule?: typeof settings.schedule
 }): Promise<{
-  /** Output: Root directory for building the contracts. */
-  workspace:  string
   /** Output: The newly created deployment. */
   deployment: Deployment
   /** Output: The identifier of the deployment on- and off-chain. */
@@ -37,12 +35,12 @@ export async function deployTGE ({
 }> {
 
   const [SIENNA, MGMT, RPT] = await chain.buildAndUpload(agent, [
-    new SiennaSNIP20Contract({ workspace }),
-    new MGMTContract({         workspace }),
-    new RPTContract({          workspace })
+    new SiennaSNIP20Contract(),
+    new MGMTContract(),
+    new RPTContract()
   ])
 
-  await deployment.createContract(agent, SIENNA, {
+  await deployment.init(agent, SIENNA, {
     name:      "Sienna",
     symbol:    "SIENNA",
     decimals:  18,
@@ -52,16 +50,16 @@ export async function deployTGE ({
 
   const admin = agent.address
 
-  if (chain.isTestnet) {
+  if (chain.isTestnet || chain.isLocalnet) {
     await SIENNA.tx(agent).setMinters([admin])
     await SIENNA.tx(agent).mint("5000000000000000000000", admin)
   }
 
   const RPTAccount = getRPTAccount(schedule)
   RPTAccount.address = admin // mutate schedule
-  const portion    = RPTAccount.portion_size
+  const portion = RPTAccount.portion_size
 
-  await deployment.createContract(agent, MGMT, {
+  await deployment.init(agent, MGMT, {
     admin: admin,
     token: [SIENNA.address, SIENNA.codeHash],
     schedule
@@ -69,7 +67,7 @@ export async function deployTGE ({
 
   await MGMT.tx().acquire(SIENNA)
 
-  await deployment.createContract(agent, RPT, {
+  await deployment.init(agent, RPT, {
     token:   [SIENNA.address, SIENNA.codeHash],
     mgmt:    [MGMT.address, MGMT.codeHash],
     portion: RPTAccount.portion_size,
@@ -89,14 +87,15 @@ export async function deployTGE ({
 
   console.info(bold('Vesting RPT'))
   await RPT.tx().vest()
+
   return {
-    workspace,
     deployment,
     prefix,
     SIENNA,
     MGMT,
     RPT
   }
+
   /// ### Get the RPT account from the schedule
   /// This is a special entry in MGMT's schedule that must be made to point to
   /// the RPT contract's address - but that's only possible after deploying

@@ -1,5 +1,5 @@
 import {
-  Scrt_1_2, ContractInfo, Agent, MigrationContext,
+  Scrt_1_2, SNIP20Contract, ContractInfo, Agent, MigrationContext,
   randomHex, colors, bold, Console, timestamp,
   printContract, printToken, printContracts
 } from '@hackbg/fadroma'
@@ -8,7 +8,6 @@ const console = Console('@sienna/factory/Contract')
 
 import getSettings, { workspace } from '@sienna/settings'
 
-import { SNIP20Contract } from '@fadroma/snip20'
 import { AMMExchangeContract, ExchangeInfo } from '@sienna/exchange'
 import { AMMSNIP20Contract, deployPlaceholders } from '@sienna/amm-snip20'
 import { LPTokenContract } from '@sienna/lp-token'
@@ -31,14 +30,17 @@ export type FactoryInventory = {
 
 import { FactoryTransactions, FactoryQueries } from './FactoryApi'
 export class AMMFactoryContract extends Scrt_1_2.Contract<FactoryTransactions, FactoryQueries> {
+  //workspace    = 'workspace'
   crate        = 'factory'
-  name         = 'SiennaAMMFactory'
   version      = 'v2'
+  name         = `AMM[${this.version}].Factory`
   Transactions = FactoryTransactions
   Queries      = FactoryQueries
   constructor (options) {
     super(options)
     const { version } = options||{}
+    this.version = version
+    this.name    = `AMM[${this.version}].Factory`
     if (version === 'v1') {
       this.ref    = 'a99d8273b4'
       this.suffix = `@v1+${timestamp()}`
@@ -62,7 +64,6 @@ export class AMMFactoryContract extends Scrt_1_2.Contract<FactoryTransactions, F
           lp_token_contract:  config.lp_token_contract,
           ido_contract:       config.ido_contract,
           launchpad_contract: config.launchpad_contract,
-
         }
       })
     } else {

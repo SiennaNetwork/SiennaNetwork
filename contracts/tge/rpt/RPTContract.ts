@@ -1,18 +1,18 @@
 import { Agent, Scrt_1_2, SNIP20Contract_1_2, bold } from '@hackbg/fadroma'
-
-import type { MGMTContract } from '@sienna/mgmt'
-
-import type { LinearMapAnd_Uint128 as LinearMap, Uint128 } from './schema/init'
+import { workspace } from '@sienna/settings'
+import { MGMTContract } from '@sienna/mgmt'
+import { LinearMapAnd_Uint128 as LinearMap, Uint128 } from './schema/init'
 import { RPTTransactions } from './RPTTransactions'
-import { RPTQueries }      from './RPTQueries'
+import { RPTQueries } from './RPTQueries'
 
 export type RPTRecipient = string
 export type RPTAmount    = string
 export type RPTConfig    = [RPTRecipient, RPTAmount][]
 
 export class RPTContract extends Scrt_1_2.Contract<RPTTransactions, RPTQueries> {
+  workspace = workspace
   crate = 'sienna-rpt'
-  name  = 'SiennaRPT'
+  name  = 'RPT'
 
   Transactions = RPTTransactions
   Queries      = RPTQueries

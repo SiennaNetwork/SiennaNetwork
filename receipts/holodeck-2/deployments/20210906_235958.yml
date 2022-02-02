@@ -1,0 +1,18 @@
+---
+name:     SiennaMGMT
+label:    20210906_235958/SiennaMGMT
+codeId:   30429
+codeHash: bfd67c2fb628473ebd5dc6431ee84ad51455f8344916af2c10b567eb60a6e71b
+address:  secret1dut2xgeh8ks756z97rqv4ehp7apw28jxhqgt08
+---
+name:     SiennaRPT
+label:    20210906_235958/SiennaRPT
+codeId:   30430
+codeHash: 7941e1cd03f42977e010137c6bcef7fc70fae7c46199855f9cc3a4b1088c1481
+address:  secret1mr94hkjmhnem4x2km80x6rnlxk87tpa3pvphvr
+---
+name:     SiennaSNIP20
+label:    20210906_235958/SiennaSNIP20
+codeId:   30428
+codeHash: 9f55f7bb6f738258ac37219f1a045d07f1332b17ec550cd8ac73b10cc2ec9e50
+address:  secret13ee5wc2euj4222a24ajl3nnlngkdw3pzf7d3sq

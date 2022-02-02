@@ -10,6 +10,7 @@
 
     "./scripts",
     "./settings",
+    "./receipts",
 
     "./contracts/tge",
     "./contracts/tge/*",

@@ -1,11 +1,12 @@
 import { Agent, MigrationContext, randomHex, bold, timestamp, Console } from '@hackbg/fadroma'
-import { SNIP20Contract, SNIP20Contract_1_2 } from '@fadroma/snip20'
+import { SNIP20Contract, SNIP20Contract_1_2 } from '@hackbg/fadroma'
 import getSettings, { workspace } from '@sienna/settings'
 import { InitMsg } from './schema/init_msg.d'
 
 const console = Console('@sienna/amm-snip20')
 
 export class AMMSNIP20Contract extends SNIP20Contract_1_2 {
+  workspace = workspace
   crate = 'amm-snip20'
   name  = 'AMMSNIP20'
   initMsg: InitMsg = {
@@ -26,9 +27,8 @@ export class AMMSNIP20Contract extends SNIP20Contract_1_2 {
   }
 }
 
+/** On localnet, the AMM exchanges use these tokens. */
 export async function deployPlaceholders ({ chain, agent, deployment, prefix }) {
-  // this can later be used to check if the deployed contracts have
-  // gone out of date (by codehash) and offer to redeploy them
   const PLACEHOLDERS = {}
   const { placeholderTokens } = getSettings(chain.id)
   console.info(
@@ -37,18 +37,18 @@ export async function deployPlaceholders ({ chain, agent, deployment, prefix }) 
   type TokenConfig = { label: string, initMsg: any }
   const placeholders: Record<string, TokenConfig> = placeholderTokens
   for (const [_, {label, initMsg}] of Object.entries(placeholders)) {
-    const name = initMsg.symbol
+    const name = `Placeholder.${label}`
     try {
-      PLACEHOLDERS[name] = deployment.getThe(`Placeholder_${label}`, new AMMSNIP20Contract({}))
-      console.info(bold('Found, not redeploying:'), name)
+      PLACEHOLDERS[initMsg.symbol] = deployment.getThe(name, new AMMSNIP20Contract({}))
+      console.info(bold('Found, not redeploying:'), initMsg.symbol)
     } catch (e) {
       if (e.message.startsWith('@fadroma/ops: no contract')) {
-        console.info(bold('Deploying placeholder:'), name)
-        const TOKEN = PLACEHOLDERS[name] = new AMMSNIP20Contract({
-          workspace, prefix, name: `Placeholder_${label}`, suffix: `+${timestamp()}`,
+        console.info(bold('Deploying placeholder:'), initMsg.symbol)
+        const TOKEN = PLACEHOLDERS[initMsg.symbol] = new AMMSNIP20Contract({
+          prefix, name, suffix: `+${timestamp()}`,
         })
         await chain.buildAndUpload(agent, [TOKEN])
-        await deployment.createContract(agent, TOKEN, { ...initMsg, name })
+        await deployment.init(agent, TOKEN, { ...initMsg, name: initMsg.symbol })
         await TOKEN.tx().setMinters([agent.address])
         await TOKEN.tx().mint("100000000000000000000000", agent.address)
       } else {

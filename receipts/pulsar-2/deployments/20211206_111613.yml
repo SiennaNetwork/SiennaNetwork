@@ -1,0 +1,35 @@
+---
+name:     SiennaAMMFactory
+label:    20211206_111613/SiennaAMMFactory
+codeId:   235
+codeHash: 8d69b5f625d8e14300ea6b1306fc174d68e711c2ec29f015d682be109ccb386e
+initTx:   C825F2F213FDC5B9C7427749E19A8D9020ACED05208EBFEBB2F15345840074D5
+address:  secret1puxf9lpz55ql8p7msgrsuu4tx0jhnman06kepp
+---
+name:     SiennaMGMT
+label:    20211206_111613/SiennaMGMT
+codeId:   233
+codeHash: 6c7ff371d51930e26335f1364658ed785128768f76ce02d38e31c91f72207ec4
+initTx:   5315FA209BB30D535AB702EF818EAB3CCD9C867AE3F832E76D36411853B4ED67
+address:  secret1xp0q92u28tt5lrgvmjpkcz0dlylfml7fy5xlm3
+---
+name:     SiennaRPT
+label:    20211206_111613/SiennaRPT
+codeId:   234
+codeHash: 2d5aefff63f9edbc870bb2c69799cd03580767734b613388c1294baa39988833
+initTx:   ED73037CC6A2F04EE7D7984375397D8D46792A8AC92A3AA884F1E10846E71635
+address:  secret1jleee0x0mtf96pe9ngwcmpkmsfawzscjdly5pd
+---
+name:     SiennaSNIP20
+label:    20211206_111613/SiennaSNIP20
+codeId:   232
+codeHash: 9746193ec4174effaad3067ce78aa1e03b03fa73ef0c7787dd231a9117b84562
+initTx:   7E2B095D2D2C1F36843758F3EA08C205330B14C23039DBBEB4F516CEBCE4C1E0
+address:  secret1wdvnqyq0sg5mmjp9gudtkz9jesvd55u8dw4hfs
+---
+name:     placeholder_sSCRT
+label:    20211206_111613/placeholder_sSCRT
+codeId:   238
+codeHash: f3e948d28b0fb877d7e1162e07e895e2619e929c9d027f46868f20e5094b2cb4
+initTx:   F117C80CCC2886394ABE81BF962E787D78E061482226048E757CDCFB03B426B9
+address:  secret1ndkmg3jlf42l7fuv52pv2smrdr6s2zav5mu45f

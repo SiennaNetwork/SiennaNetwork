@@ -81,6 +81,7 @@ export async function deployAMMExchange ({
   //console.info(`- Token 1: ${bold(JSON.stringify(token1))}...`)
   try {
     const { EXCHANGE, LP_TOKEN } = await FACTORY.getExchange(token0, token1)
+    EXCHANGE.prefix = LP_TOKEN.prefix = deployment.prefix
     console.info(`${bold(name)}: Already exists.`)
     return { EXCHANGE, LP_TOKEN }
   } catch (e) {
@@ -105,18 +106,28 @@ export function saveExchange (
   { name, raw, EXCHANGE, LP_TOKEN, TOKEN_0, TOKEN_1 }
 ) {
   console.info(bold(`Deployed AMM exchange`), EXCHANGE.address)
-  const ammReceipt = {
-    ...raw, codeId: ammId, codeHash: ammHash,
-    initTx: { contractAddress: raw.exchange.address }
-  } 
-  deployment.save(ammReceipt, `SiennaSwap_${version}_${name}`)
+  deployment.add(`AMM[${version}].${name}`, {
+    ...raw,
+    codeId:   ammId,
+    codeHash: ammHash,
+    address:  raw.exchange.address,
+  })
+
   console.info(bold(`Deployed LP token`), LP_TOKEN.address)
-  const lpReceipt = {
-    ...raw, codeId: lpId, codeHash: raw.lp_token.code_hash,
-    initTx:   { contractAddress: raw.lp_token.address }
+  deployment.add(`AMM[${version}].${name}.LP`, {
+    ...raw,
+    codeId:   lpId,
+    codeHash: raw.lp_token.code_hash,
+    address:  raw.lp_token.address
+  })
+
+  EXCHANGE.prefix = LP_TOKEN.prefix = deployment.prefix
+
+  return {
+    name, raw,
+    EXCHANGE, LP_TOKEN,
+    TOKEN_0, TOKEN_1
   }
-  deployment.save(lpReceipt, `SiennaSwap_${version}_LP-${name}`)
-  return { name, raw, EXCHANGE, LP_TOKEN, TOKEN_0, TOKEN_1 }
 }
 
 export async function printExchanges (EXCHANGES?: any[]) {
