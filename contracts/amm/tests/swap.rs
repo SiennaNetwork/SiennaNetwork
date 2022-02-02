@@ -109,7 +109,8 @@ fn provide_liquidity_slippage_tolerance() {
 
     let token_0: ContractLink<HumanAddr> = pair.pair.0.clone().try_into().unwrap();
 
-    amm.ensemble.execute(&msg::snip20::HandleMsg::Send {
+    amm.ensemble.execute(
+        &msg::snip20::HandleMsg::Send {
             recipient: pair.contract.address.clone(),
             recipient_code_hash: None,
             amount: Uint128(12000),
@@ -284,7 +285,7 @@ fn swap_native() {
     amm.ensemble.execute(
         &msg::exchange::HandleMsg::Swap {
             offer: TokenTypeAmount {
-                token: amm_shared::TokenType::NativeToken { denom: NATIVE_DENOM.into() },
+                token: pair.pair.1.clone(),
                 amount: swap_amount
             },
             to: None,
@@ -318,4 +319,160 @@ fn swap_native() {
             assert_eq!((amount + swap_amount - burner_fee).unwrap(), amount_1);
         }
     };
+}
+
+#[test]
+fn swap_snip20() {
+    let mut amm = Amm::new();
+
+    let pair = amm.get_pairs().drain(..).next().unwrap();
+    amm.increase_allowances(&pair);
+
+    let amount = Uint128(5000000u128);
+    let swap_amount = Uint128(6000000u128);
+
+    amm.ensemble.execute(
+        &msg::exchange::HandleMsg::AddLiquidity {
+            deposit: TokenPairAmount {
+                pair: pair.pair.clone(),
+                amount_0: amount,
+                amount_1: amount
+            },
+            slippage_tolerance: Some(Decimal::from_str("0.5").unwrap())
+        },
+        MockEnv::new(USERS[0], pair.contract.clone())
+    ).unwrap();
+
+    amm.ensemble.execute(
+        &msg::snip20::HandleMsg::Send {
+            recipient: pair.contract.address.clone(),
+            recipient_code_hash: None,
+            amount: swap_amount,
+            memo: None,
+            padding: None,
+            msg: Some(to_binary(&msg::exchange::ReceiverCallbackMsg::Swap {
+                expected_return: None,
+                to: None
+            }).unwrap()),
+        },
+        MockEnv::new(USERS[1], pair.pair.0.clone().try_into().unwrap())
+    ).unwrap();
+
+    let balance_after = amm.get_balance(USERS[1], pair.pair.0.clone());
+    assert_eq!(balance_after, (INITIAL_BALANCE - swap_amount).unwrap());
+
+    let balance_after = amm.get_balance(USERS[1], pair.pair.1.clone());
+
+    let return_amount = Uint128(2723548);
+
+    assert_eq!((balance_after - INITIAL_BALANCE).unwrap(), return_amount);
+
+    let burner_fee = amm.get_balance(BURNER, pair.pair.0);
+
+    assert_eq!(burner_fee, Uint128(1200));
+
+    let result = amm.ensemble.query(
+        pair.contract.address.clone(),
+        msg::exchange::QueryMsg::PairInfo
+    ).unwrap();
+
+    match result {
+        msg::exchange::QueryMsgResponse::PairInfo { amount_0, amount_1, .. } => {
+            assert_eq!((amount + swap_amount - burner_fee).unwrap(), amount_0);
+            assert_eq!((amount - return_amount).unwrap(), amount_1);
+        }
+    };
+}
+
+#[test]
+fn expected_return() {
+    let mut amm = Amm::new();
+
+    let pair = amm.get_pairs().drain(..).next().unwrap();
+    amm.increase_allowances(&pair);
+
+    let amount = Uint128(5000000u128);
+    let swap_amount = Uint128(6000000u128);
+
+    amm.ensemble.execute(
+        &msg::exchange::HandleMsg::AddLiquidity {
+            deposit: TokenPairAmount {
+                pair: pair.pair.clone(),
+                amount_0: amount,
+                amount_1: amount
+            },
+            slippage_tolerance: Some(Decimal::from_str("0.5").unwrap())
+        },
+        MockEnv::new(USERS[0], pair.contract.clone())
+    ).unwrap();
+
+    let return_amount = Uint128(2723548);
+
+    let err = amm.ensemble.execute(
+        &msg::snip20::HandleMsg::Send {
+            recipient: pair.contract.address.clone(),
+            recipient_code_hash: None,
+            amount: swap_amount,
+            memo: None,
+            padding: None,
+            msg: Some(to_binary(&msg::exchange::ReceiverCallbackMsg::Swap {
+                expected_return: Some(return_amount + Uint128(1)),
+                to: None
+            }).unwrap()),
+        },
+        MockEnv::new(USERS[1], pair.pair.0.clone().try_into().unwrap())
+    ).unwrap_err();
+
+    assert_eq!(err, StdError::generic_err("Operation fell short of expected_return"));
+}
+
+#[test]
+fn cannot_swap_snip20_directly() {
+    let mut amm = Amm::new();
+
+    let pair = amm.get_pairs().drain(..).last().unwrap();
+
+    let err = amm.ensemble.execute(
+        &msg::exchange::HandleMsg::Swap {
+            offer: TokenTypeAmount {
+                token: pair.pair.0,
+                amount: Uint128(1)
+            },
+            to: None,
+            expected_return: None,
+        },
+        MockEnv::new(USERS[1], pair.contract.clone())
+    ).unwrap_err();
+
+    assert_eq!(err, StdError::unauthorized());
+
+    let pair = amm.get_pairs().drain(..).next().unwrap();
+
+    let err = amm.ensemble.execute(
+        &msg::exchange::HandleMsg::Swap {
+            offer: TokenTypeAmount {
+                token: pair.pair.0,
+                amount: Uint128(1)
+            },
+            to: None,
+            expected_return: None,
+        },
+        MockEnv::new(USERS[1], pair.contract.clone())
+    ).unwrap_err();
+
+    assert_eq!(err, StdError::unauthorized());
+
+    let err = amm.ensemble.execute(
+        &msg::exchange::HandleMsg::Swap {
+            offer: TokenTypeAmount {
+                token: pair.pair.1,
+                amount: Uint128(1)
+            },
+            to: None,
+            expected_return: None,
+        },
+        MockEnv::new(USERS[1], pair.contract.clone())
+    ).unwrap_err();
+
+    assert_eq!(err, StdError::unauthorized());
 }
