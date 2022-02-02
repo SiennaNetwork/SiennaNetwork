@@ -7,9 +7,10 @@ use amm_shared::{
     fadroma::{
         ContractLink,
         cosmwasm_std::{
-            Decimal, HumanAddr, Uint128, StdError, coin, to_binary
+            HumanAddr, Uint128, StdError, coin, to_binary
         },
         ensemble::MockEnv,
+        Decimal256
     },
     TokenPairAmount, TokenTypeAmount,
     msg
@@ -63,7 +64,7 @@ fn provide_liquidity_empty_pool() {
                 amount_0: deposit_0,
                 amount_1: deposit_1
             },
-            slippage_tolerance: Some(Decimal::from_str("0.5").unwrap())
+            slippage_tolerance: Some(Decimal256::from_str("0.5").unwrap())
         },
         MockEnv::new(USERS[0], pair.contract.clone())
     ).unwrap();
@@ -99,7 +100,7 @@ fn provide_liquidity_slippage_tolerance() {
                 amount_0: Uint128(8000),
                 amount_1: Uint128(2000)
             },
-            slippage_tolerance: Some(Decimal::from_str("0.5").unwrap())
+            slippage_tolerance: Some(Decimal256::from_str("0.5").unwrap())
         },
         MockEnv::new(USERS[0], pair.contract.clone())
     ).unwrap();
@@ -145,7 +146,7 @@ fn provide_liquidity_slippage_tolerance() {
                     amount_0: Uint128(80),
                     amount_1: Uint128(20)
                 },
-                slippage_tolerance: Some(Decimal::from_str(&format!("0.{}", i)).unwrap())
+                slippage_tolerance: Some(Decimal256::from_str(&format!("0.{}", i)).unwrap())
             },
             MockEnv::new(USERS[2], pair.contract.clone())
         ).unwrap_err();
@@ -165,7 +166,7 @@ fn provide_liquidity_slippage_tolerance() {
                 amount_0: Uint128(80),
                 amount_1: Uint128(20)
             },
-            slippage_tolerance: Some(Decimal::from_str("0.9").unwrap())
+            slippage_tolerance: Some(Decimal256::from_str("0.9").unwrap())
         },
         MockEnv::new(USERS[2], pair.contract.clone())
     ).unwrap();
@@ -211,7 +212,7 @@ fn withdraw_liquidity() {
                 amount_0: amount,
                 amount_1: amount
             },
-            slippage_tolerance: Some(Decimal::from_str("0.5").unwrap())
+            slippage_tolerance: Some(Decimal256::from_str("0.5").unwrap())
         },
         MockEnv::new(USERS[0], pair.contract.clone())
     ).unwrap();
@@ -271,7 +272,7 @@ fn swap_native() {
                 amount_0: amount,
                 amount_1: amount
             },
-            slippage_tolerance: Some(Decimal::from_str("0.5").unwrap())
+            slippage_tolerance: Some(Decimal256::from_str("0.5").unwrap())
         },
         MockEnv::new(USERS[0], pair.contract.clone())
             .sent_funds(vec![coin(amount.0, NATIVE_DENOM)])
@@ -338,7 +339,7 @@ fn swap_snip20() {
                 amount_0: amount,
                 amount_1: amount
             },
-            slippage_tolerance: Some(Decimal::from_str("0.5").unwrap())
+            slippage_tolerance: Some(Decimal256::from_str("0.5").unwrap())
         },
         MockEnv::new(USERS[0], pair.contract.clone())
     ).unwrap();
@@ -401,7 +402,7 @@ fn expected_return() {
                 amount_0: amount,
                 amount_1: amount
             },
-            slippage_tolerance: Some(Decimal::from_str("0.5").unwrap())
+            slippage_tolerance: Some(Decimal256::from_str("0.5").unwrap())
         },
         MockEnv::new(USERS[0], pair.contract.clone())
     ).unwrap();

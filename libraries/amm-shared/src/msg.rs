@@ -1,8 +1,9 @@
 pub use crate::snip20_impl::msg as snip20;
 
 use fadroma::{
-    platform::{Binary, Decimal, HumanAddr, Uint128, Callback, ContractInstantiationInfo, ContractLink},
+    platform::{Binary, HumanAddr, Uint128, Callback, ContractInstantiationInfo, ContractLink},
     killswitch::ContractStatusLevel,
+    Decimal256
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -144,7 +145,7 @@ pub mod exchange {
             deposit: TokenPairAmount<HumanAddr>,
             /// The amount the price moves in a trading pair between when a transaction is submitted and when it is executed.
             /// Transactions that exceed this threshold will be rejected.
-            slippage_tolerance: Option<Decimal>,
+            slippage_tolerance: Option<Decimal256>,
         },
         Swap {
             /// The token type to swap from.
