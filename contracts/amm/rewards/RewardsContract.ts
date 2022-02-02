@@ -8,7 +8,12 @@ import { RPTContract } from '@sienna/rpt'
 
 import { Init } from './schema/init.d'
 export * from './RewardsApi'
-import { RewardsTransactions, RewardsQueries, RewardsAPIVersion } from './RewardsApi'
+import {
+  RewardsTransactions_v2,
+  RewardsTransactions_v3,
+  RewardsQueries,
+  RewardsAPIVersion
+} from './RewardsApi'
 
 export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsTransactions, RewardsQueries> {
 
@@ -20,24 +25,6 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsTransacti
   /** Instance representing the reward token. */
   rewardToken: SNIP20Contract
   lpToken:     SNIP20Contract
-
-  /** Command. Attach a spcified version of Sienna Rewards
-    * to a specified version of Sienna Swap. */
-  static deployAll = async function deployAll ({
-    deployment, agent, run,
-    SIENNA     = deployment.getThe('SIENNA', new SiennaSNIP20Contract({ agent })),
-    version    = 'v3',
-    ammVersion = {v3:'v2',v2:'v1'}[version],
-  }) {
-    const { SSSSS_POOL, RPT_CONFIG_SSSSS } =
-      await run(deploySSSSS, { SIENNA, version })
-    const { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS } =
-      await run(deployRewardPools, { SIENNA, version, ammVersion })
-    return {
-      REWARD_POOLS: [ SSSSS_POOL, ...REWARD_POOLS ],
-      RPT_CONFIG:   [ ...RPT_CONFIG_SSSSS, ...RPT_CONFIG_SWAP_REWARDS ]
-    }
-  }
 
   static upgradeRewards = async function upgradeRewards ({
     timestamp, chain, agent, deployment, prefix, run,
@@ -73,6 +60,37 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsTransacti
   }
 
   static v2 = class RewardsContract_v2 extends RewardsContract {
+
+    version = 'v2' as RewardsAPIVersion
+    name    = `Rewards[${this.version}]`
+    ref     = 'rewards-2.1.2'
+    initMsg?: any // TODO v2 init type
+    Transactions = RewardsTransactions_v2
+    Queries      = RewardsQueries
+    constructor (input) {
+      super(input)
+      const { lpToken, rewardToken, agent } = input
+      this.initMsg = {
+        admin:        agent?.address,
+        lp_token:     lpToken?.link,
+        reward_token: rewardToken?.link,
+        viewing_key:  "",
+        ratio:        ["1", "1"],
+        threshold:    15940,
+        cooldown:     15940,
+      }
+    }
+
+    async lpToken <T extends SNIP20Contract> (T = this.LPTokenContract): Promise<T> {
+      const at = Math.floor(+new Date()/1000)
+      const {pool_info} = await this.query({pool_info:{at}})
+      const {address, code_hash} = pool_info.lp_token
+      return new T({ address, codeHash: code_hash, agent: this.agent }) as T
+    }
+    async rewardToken <T extends SNIP20Contract> (T = this.LPTokenContract): Promise<T> {
+      throw new Error('not implemented')
+    }
+
     /** Command. Deploy legacy Rewards v2. */
     static deploy = async function deployRewards_v2 ({run}) {
       const { RPT_CONFIG, REWARD_POOLS } =
@@ -91,37 +109,40 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsTransacti
       }
     }
 
-    version = 'v2' as RewardsAPIVersion
+  }
+
+  static v3 = class RewardsContract_v3 extends RewardsContract {
+
+    version = 'v3' as RewardsAPIVersion
     name    = `Rewards[${this.version}]`
-    ref     = 'rewards-2.1.2'
-    initMsg?: any // TODO v2 init type
-    Transactions = RewardsTransactions // TODO v2 executors
+    initMsg?: Init
+    Transactions = RewardsTransactions_v3
     Queries      = RewardsQueries
     constructor (input) {
       super(input)
       const { lpToken, rewardToken, agent } = input
       this.initMsg = {
-        admin:        agent?.address,
-        lp_token:     lpToken?.link,
-        reward_token: rewardToken?.link,
-        viewing_key:  "",
-        ratio:        ["1", "1"],
-        threshold:    15940,
-        cooldown:     15940,
+        admin: agent?.address,
+        config: {
+          reward_vk:    randomHex(36),
+          bonding:      86400,
+          timekeeper:   agent?.address,
+          lp_token:     lpToken?.link,
+          reward_token: rewardToken?.link,
+        }
       }
     }
-    async lpToken <T extends SNIP20Contract> (T = this.LPTokenContract): Promise<T> {
-      const at = Math.floor(+new Date()/1000)
-      const {pool_info} = await this.query({pool_info:{at}})
-      const {address, code_hash} = pool_info.lp_token
-      return new T({ address, codeHash: code_hash, agent: this.agent }) as T
-    }
-    async rewardToken <T extends SNIP20Contract> (T = this.LPTokenContract): Promise<T> {
-      throw new Error('not implemented')
-    }
-  }
 
-  static v3 = class RewardsContract_v3 extends RewardsContract {
+    async lpToken (SNIP20 = this.LPTokenContract): Promise<any> {
+      throw new Error('v3 does not expose config')
+    }
+    async rewardToken (SNIP20 = this.RewardTokenContract): Promise<any> {
+      throw new Error('v3 does not expose config')
+    }
+    get epoch (): Promise<number> {
+      return this.q().pool_info().then(pool_info=>pool_info.clock.number)
+    }
+
     /** Command. Deploy Rewards v3. */
     static deploy = async function deployRewards_v3 ({run}) {
       const { RPT_CONFIG, REWARD_POOLS } = await run(RewardsContract.deployAll, { version: 'v3' })
@@ -138,33 +159,23 @@ export abstract class RewardsContract extends Scrt_1_2.Contract<RewardsTransacti
       }
     }
 
-    version = 'v3' as RewardsAPIVersion
-    name    = `Rewards[${this.version}]`
-    initMsg?: Init
-    Transactions = RewardsTransactions
-    Queries      = RewardsQueries
-    constructor (input) {
-      super(input)
-      const { lpToken, rewardToken, agent } = input
-      this.initMsg = {
-        admin: agent?.address,
-        config: {
-          reward_vk:    randomHex(36),
-          bonding:      86400,
-          timekeeper:   agent?.address,
-          lp_token:     lpToken?.link,
-          reward_token: rewardToken?.link,
-        }
-      }
-    }
-    async lpToken (SNIP20 = this.LPTokenContract): Promise<any> {
-      throw new Error('v3 does not expose config')
-    }
-    async rewardToken (SNIP20 = this.RewardTokenContract): Promise<any> {
-      throw new Error('v3 does not expose config')
-    }
-    get epoch (): Promise<number> {
-      return this.q().pool_info().then(pool_info=>pool_info.clock.number)
+  }
+
+  /** Command. Attach a spcified version of Sienna Rewards
+    * to a specified version of Sienna Swap. */
+  static deployAll = async function deployAll ({
+    deployment, agent, run,
+    SIENNA     = deployment.getThe('SIENNA', new SiennaSNIP20Contract({ agent })),
+    version    = 'v3',
+    ammVersion = {v3:'v2',v2:'v1'}[version],
+  }) {
+    const { SSSSS_POOL, RPT_CONFIG_SSSSS } =
+      await run(deploySSSSS, { SIENNA, version })
+    const { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS } =
+      await run(deployRewardPools, { SIENNA, version, ammVersion })
+    return {
+      REWARD_POOLS: [ SSSSS_POOL, ...REWARD_POOLS ],
+      RPT_CONFIG:   [ ...RPT_CONFIG_SSSSS, ...RPT_CONFIG_SWAP_REWARDS ]
     }
   }
 
@@ -265,7 +276,6 @@ export async function deployRewardPool ({
   const REWARDS = new RewardsContract[version]({ lpToken, rewardToken, agent })
   await chain.buildAndUpload(agent, [REWARDS])
   REWARDS.name = name
-  await chain.buildAndUpload(agent, [REWARDS])
   await deployment.getOrInit(agent, REWARDS)
   return { REWARDS }
 }

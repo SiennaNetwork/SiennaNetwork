@@ -211,7 +211,7 @@ Fadroma.command('fix receipts',
 ```typescript
 import { schedule } from '@sienna/settings'
 import { AMMSNIP20Contract } from '@sienna/amm'
-Fadroma.command('integration test',
+Fadroma.command('integration test 1',
   // Start in a blank deployment
   Deployments.new,
   // Add the user to the MGMT schedule so that they
@@ -241,7 +241,12 @@ Fadroma.command('integration test',
   MGMTContract.progress,
   // Deploy AMM
   AMMFactoryContract.v1.deployAMM,
-  // Stake SIENNA and SSCRT
+)
+
+Fadroma.command('integration test 2',
+  // Start in current deployment
+  Deployments.activate,
+  // Stake SIENNA and SSCRT to get LP tokens
   async function getLPTokens ({
     agent, deployment,
     FACTORY = deployment.getThe('AMM[v1].Factory',   new AMMFactoryContract['v1']({agent}))
@@ -257,21 +262,28 @@ Fadroma.command('integration test',
     await SSCRT.tx().increaseAllowance("1000", EXCHANGE.address)
     console.info(bold("Lock SIENNA+SSCRT into liquidity pool..."))
     await EXCHANGE.tx().add_liquidity({
-      token_0:SIENNA.asCustomToken,
-      token_1:SSCRT.asCustomToken
+      token_0: SIENNA.asCustomToken,
+      token_1: SSCRT.asCustomToken
     }, "1000", "1000")
     console.info(bold('New LP token balance:'), await LP_TOKEN.q().balance(agent.address, ""))
-    return { EXCHANGE, LP_TOKEN }
+    return { EXCHANGE, LP_TOKEN, SIENNA }
   },
   RewardsContract.v2.deploy,
   async function stakeLPTokens ({
     agent, deployment,
     LP_TOKEN,
-    SSSSS   = deployment.getThe('Rewards[v2].SSSSS',        new RewardsContract['v2']({agent})),
     REWARDS = deployment.getThe('Rewards[v2].SIENNA-SSCRT', new RewardsContract['v2']({agent}))
+    SIENNA,
+    SSSSS   = deployment.getThe('Rewards[v2].SSSSS',        new RewardsContract['v2']({agent})),
+    RPT     = deployment.getThe('RPT',                      new RPTContract({agent})),
   }) {
     await LP_TOKEN.tx().increaseAllowance("1000", REWARDS.address)
-    await REWARDS.tx().deposit("1000")
+    await REWARDS.tx().lock("1000")
+    await SIENNA.tx().increaseAllowance("1000", SSSSS.address)
+    await SSSSS.tx().lock("1000")
+    await RPT.tx().vest()
+    await REWARDS.tx().claim()
+    await SSSSS.tx().claim()
   },
   Deployments.status,
   AMMFactoryContract.v1.upgradeAMM.to_v2,
