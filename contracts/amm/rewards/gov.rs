@@ -112,7 +112,6 @@ where
 #[serde(rename_all = "snake_case")]
 pub enum GovernanceHandle {
     CreatePoll { meta: PollMetadata },
-    EndPoll { poll_id: u64 },
     Vote { variant: VoteType, poll_id: u64 },
     Unvote { poll_id: u64 },
     ChangeVote { variant: VoteType, poll_id: u64 },
@@ -144,8 +143,10 @@ where
 
                 Ok(HandleResponse::default())
             }
-            GovernanceHandle::EndPoll { poll_id } => Ok(HandleResponse::default()),
-            GovernanceHandle::Vote { variant, poll_id } => Ok(HandleResponse::default()),
+            GovernanceHandle::Vote { variant, poll_id } => {
+                //here
+                Ok(HandleResponse::default())
+            }
             GovernanceHandle::ChangeVote { variant, poll_id } => Ok(HandleResponse::default()),
             GovernanceHandle::Unvote { poll_id } => Ok(HandleResponse::default()),
             _ => {
@@ -466,6 +467,63 @@ pub enum PollStatus {
 pub enum VoteType {
     Yes,
     No,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct Vote {
+    pub variant: VoteType,
+    pub vote_power: Uint128,
+    pub voter: CanonicalAddr,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct Votes(Vec<Vote>);
+impl Votes {
+    pub const VOTES: &'static [u8] = b"/gov/votes/";
+}
+pub trait IVotes<S, A, Q, C>
+where
+    S: Storage,
+    A: Api,
+    Q: Querier,
+    C: Governance<S, A, Q>,
+    Self: Sized,
+{
+    fn new() -> Self;
+    fn store(&self, core: &mut C, address: ) -> StdResult<()>;
+    fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self>;
+}
+
+impl<S, A, Q, C> IVotes<S, A, Q, C> for Votes
+where
+    S: Storage ,
+    A: Api,
+    Q: Querier,
+    C: Governance<S, A, Q> + ReadonlyStorage,
+    Self: Sized,
+{
+    fn new() -> Self {
+        Self(vec![])
+    }
+    fn store(&self, core: &mut C, address: HumanAddr) -> StdResult<()> {
+        let address = core.canonize(address)?;
+        core.set_ns(Self::VOTES, address.as_slice(), self.0.clone())?;
+        Ok(())
+    }
+    
+    fn get(core: &C, address: HumanAddr, poll_id: u64) -> StdResult<Self> {
+        //TODO: Better way to combine the slices??
+        let mut key = vec![];
+        key.extend_from_slice(core.canonize(address)?.as_slice());
+        key.extend_from_slice(poll_id.to_be_bytes().to_vec().as_slice());
+        let store = fadroma::ReadonlyPrefixedStorage::multilevel(key, core);
+        let list = core
+            .get_ns::<Vec<Vote>>(Self::VOTES, &key)?
+            .ok_or(StdError::generic_err(
+                "failed to parse meta description from storage",
+            ))?;
+        Ok(Self(list))
+    }
 }
 
 //Expiration utility
