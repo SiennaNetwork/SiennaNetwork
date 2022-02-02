@@ -38,12 +38,12 @@ const projectRoot = resolve(fileURLToPath(dirname(import.meta.url)), '..')
 /** Conducts a test run of the contract deployment. */
 export default async function demo (environment) {
   // * The operational **environment** provided by [Fadroma](https://fadroma.tech/js/)
-  //   contains the `agent` and `builder` helpers, as well as the `chainId` of the `network`.
-  const {network, agent, builder} = environment
+  //   contains the `agent` and `builder` helpers, as well as the `id` of the `chain`.
+  const {chain, agent, builder} = environment
   // * **taskmaster** is a tiny high-level profiler that records how much time and gas
   // each operation took, and writes a report in `artifacts` with a Markdown table of events.
   const header = [ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ]
-      , output = resolve(projectRoot, 'artifacts', network.chainId, 'profile-deploy.md')
+      , output = resolve(projectRoot, 'artifacts', chain.id, 'profile-deploy.md')
       , task   = taskmaster({ header, output, agent })
   // * Prepare **schedule** and **recipients**
   //   * The schedule is shortened by a factor of 86400 (number of seconds in a day)
@@ -52,7 +52,7 @@ export default async function demo (environment) {
   //   *  The recipient wallets are created if they don't exist -
   //      the admin sendings a gas budget to them (in uSCRT).
   const schedule   = loadJSON('../settings/schedule.json', import.meta.url)
-      , prepared   = await prepare({task, network, agent, schedule})
+      , prepared   = await prepare({task, chain, agent, schedule})
       , wallets    = prepared.wallets
       , recipients = prepared.recipients
   // * **Build**, **deploy**, and **initialize** contracts
@@ -69,7 +69,7 @@ export default async function demo (environment) {
 }
 
 // # Preparation
-async function prepare ({task, network, agent, schedule}) {
+async function prepare ({task, chain, agent, schedule}) {
 
   // * Let's delete the `AdvisorN` account from the schedule
   // to allow the `AddAccount` method to be tested.
@@ -88,7 +88,7 @@ async function prepare ({task, network, agent, schedule}) {
     await Promise.all(schedule.pools.map(pool=>Promise.all(pool.accounts.map(
       async function mutateAccount (account) {
         // Create an agent with a new address for each recipient account.
-        const recipient = await network.getAgent(account.name)
+        const recipient = await chain.getAgent(account.name)
         const {address} = recipient
         // Put that address in the schedule
         account.address = address
@@ -104,7 +104,7 @@ async function prepare ({task, network, agent, schedule}) {
   await task('create extra test accounts for reallocation tests', async () => {
     const extras = [ 'NewAdvisor', 'TokenPair1', 'TokenPair2', 'TokenPair3', ]
     for (const name of extras) {
-      const extra = await network.getAgent(name) // create agent
+      const extra = await chain.getAgent(name) // create agent
       wallets.push([extra.address, recipientGasBudget.toString()])
       recipients[name] = {agent: extra, address: extra.address} } })
 
@@ -139,7 +139,7 @@ export async function verify ({task, agent, recipients, wallets, instances, sche
   await task.done()
   task = taskmaster({
     header: [ 'time', 'info', 'time (msec)', 'gas (uSCRT)', 'overhead (msec)' ],
-    output: resolve(projectRoot, 'artifacts', agent.network.chainId, 'profile-runtime.md'),
+    output: resolve(projectRoot, 'artifacts', agent.chain.id, 'profile-runtime.md'),
     agent })
 
   // The following happen **once** in the whole test cycle:

@@ -9,18 +9,18 @@ build () {
   echo "Building $1 from $2..."
   wasm-pack build \
     --dev \
-    --target web \
+    --target bundler \
     --out-dir "../../dashboard/artifacts/$1" \
     --out-name $1 \
     $2 -- --features browser
 }
 
-build sienna  contracts/snip20-sienna
+build sienna  ../contracts/tge/snip20-sienna
 
-build lptoken contracts/lp-token
+build lptoken ../contracts/amm/lp-token
 
-build mgmt    contracts/mgmt
+build mgmt    ../contracts/tge/mgmt
 
-build rpt     contracts/rpt
+build rpt     ../contracts/tge/rpt
 
-build rewards contracts/rewards
+build rewards ../contracts/amm/rewards

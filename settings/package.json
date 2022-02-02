@@ -1,5 +1,9 @@
 {
-  "name":    "@sienna/settings",
-  "version": "1.0.0",
-  "main":    "index.js"
+  "name": "@sienna/settings",
+  "version": "1.1.0",
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
 }

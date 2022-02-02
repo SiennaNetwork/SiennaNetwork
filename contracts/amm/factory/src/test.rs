@@ -2,7 +2,6 @@ use amm_shared::{
     fadroma as fadroma,
     msg::exchange::HandleMsg as ExchangeHandle,
     msg::factory::{HandleMsg, InitMsg, QueryMsg, QueryResponse},
-    msg::ido::TokenSaleConfig,
     Pagination, TokenPair, TokenType,
     Exchange, ExchangeSettings, Fee
 };
@@ -11,7 +10,7 @@ use fadroma::{
         from_binary,
         testing::{mock_dependencies, mock_env},
         to_binary, Api, Binary, CosmosMsg, Env, Extern, HandleResponse, HumanAddr, Querier,
-        StdError, StdResult, Storage, Uint128, WasmMsg,
+        StdError, StdResult, Storage, WasmMsg,
         Canonize,
         {ContractInstantiationInfo, ContractLink},
     },
@@ -24,11 +23,8 @@ use crate::{contract::*, state::*};
 impl Into<InitMsg> for &Config<HumanAddr> {
     fn into(self) -> InitMsg {
         InitMsg {
-            snip20_contract: self.snip20_contract.clone(),
             lp_token_contract: self.lp_token_contract.clone(),
             pair_contract: self.pair_contract.clone(),
-            launchpad_contract: self.launchpad_contract.clone(),
-            ido_contract: self.ido_contract.clone(),
             exchange_settings: self.exchange_settings.clone(),
             admin: None,
             prng_seed: to_binary(&"prng").unwrap(),
@@ -38,11 +34,8 @@ impl Into<InitMsg> for &Config<HumanAddr> {
 impl Into<HandleMsg> for &Config<HumanAddr> {
     fn into(self) -> HandleMsg {
         HandleMsg::SetConfig {
-            snip20_contract: Some(self.snip20_contract.clone()),
             lp_token_contract: Some(self.lp_token_contract.clone()),
             pair_contract: Some(self.pair_contract.clone()),
-            launchpad_contract: Some(self.launchpad_contract.clone()),
-            ido_contract: Some(self.ido_contract.clone()),
             exchange_settings: Some(self.exchange_settings.clone()),
         }
     }
@@ -50,11 +43,8 @@ impl Into<HandleMsg> for &Config<HumanAddr> {
 impl Into<QueryResponse> for &Config<HumanAddr> {
     fn into(self) -> QueryResponse {
         QueryResponse::Config {
-            snip20_contract: self.snip20_contract.clone(),
             lp_token_contract: self.lp_token_contract.clone(),
             pair_contract: self.pair_contract.clone(),
-            launchpad_contract: self.launchpad_contract.clone(),
-            ido_contract: self.ido_contract.clone(),
             exchange_settings: self.exchange_settings.clone(),
         }
     }
@@ -70,10 +60,6 @@ fn mkdeps() -> Extern<impl Storage, impl Api, impl Querier> {
 
 fn mkconfig(id: u64) -> Config<HumanAddr> {
     Config {
-        snip20_contract: ContractInstantiationInfo {
-            id,
-            code_hash: "snip20".into(),
-        },
         lp_token_contract: ContractInstantiationInfo {
             id,
             code_hash: "lptoken".into(),
@@ -81,14 +67,6 @@ fn mkconfig(id: u64) -> Config<HumanAddr> {
         pair_contract: ContractInstantiationInfo {
             id,
             code_hash: "2341586789".into(),
-        },
-        launchpad_contract: ContractInstantiationInfo {
-            id,
-            code_hash: "2312325346".into(),
-        },
-        ido_contract: ContractInstantiationInfo {
-            id,
-            code_hash: "348534835".into(),
         },
         exchange_settings: ExchangeSettings {
             swap_fee: Fee::new(28, 10000),
@@ -296,41 +274,6 @@ mod test_contract {
     }
 
     #[test]
-    fn test_register_ido() -> StdResult<()> {
-        let ref mut deps = mkdeps();
-
-        let sender_addr = HumanAddr("sender1111".into());
-
-        let result = handle(
-            deps,
-            mkenv(sender_addr.clone()),
-            HandleMsg::RegisterIdo {
-                signature: to_binary("whatever")?,
-            },
-        );
-
-        assert_unauthorized(result);
-
-        let config = mkconfig(0);
-        save_config(deps, &config)?;
-
-        let env = mkenv(sender_addr.clone());
-
-        let signature = create_signature(&env)?;
-        save(&mut deps.storage, EPHEMERAL_STORAGE_KEY, &signature)?;
-
-        handle(deps, env, HandleMsg::RegisterIdo { signature })?;
-        //Ensure that the ephemeral storage is empty after the message
-        let result: Option<Binary> = load(&deps.storage, EPHEMERAL_STORAGE_KEY)?;
-        match result {
-            None => {}
-            _ => panic!("Ephemeral storage should be empty!"),
-        }
-
-        Ok(())
-    }
-
-    #[test]
     fn query_exchange() -> StdResult<()> {
         let ref mut deps = mkdeps();
 
@@ -375,141 +318,6 @@ mod test_contract {
             }
         };
         Ok(())
-    }
-
-    #[test]
-    fn test_add_idos() {
-        let ref mut deps = mkdeps();
-        let env = mkenv("admin");
-        let config = mkconfig(0);
-
-        init(deps, env.clone(), (&config).into()).unwrap();
-
-        let mut idos: Vec<HumanAddr> = vec![];
-
-        for i in 0..5 {
-            idos.push(format!("ido_addr_{}", i).into());
-        }
-
-        store_ido_addresses(deps, vec![idos[0].clone()]).unwrap();
-
-        let result = handle(
-            deps,
-            mkenv("unauthorized"),
-            HandleMsg::AddIdos {
-                idos: idos.clone()[1..].into(),
-            },
-        );
-        assert_unauthorized(result);
-
-        handle(
-            deps,
-            env,
-            HandleMsg::AddIdos {
-                idos: idos.clone()[1..].into(),
-            },
-        )
-        .unwrap();
-
-        let result = query(
-            deps,
-            QueryMsg::ListIdos {
-                pagination: pagination(0, PAGINATION_LIMIT),
-            },
-        )
-        .unwrap();
-
-        let response: QueryResponse = from_binary(&result).unwrap();
-
-        match response {
-            QueryResponse::ListIdos { idos: stored } => {
-                assert_eq!(idos, stored)
-            }
-            _ => panic!("QueryResponse::ListIdos"),
-        }
-    }
-
-    #[test]
-    fn test_ido_whitelist() {
-        let ref mut deps = mkdeps();
-        let admin = "admin";
-
-        let env = mkenv(admin);
-        let config = mkconfig(0);
-
-        init(deps, env.clone(), (&config).into()).unwrap();
-
-        let ido_creator = HumanAddr::from("ido_creator");
-
-        let result = handle(
-            deps,
-            mkenv("rando"),
-            HandleMsg::IdoWhitelist {
-                addresses: vec![ido_creator.clone()],
-            },
-        );
-        assert_unauthorized(result);
-
-        handle(
-            deps,
-            mkenv(admin),
-            HandleMsg::IdoWhitelist {
-                addresses: vec![ido_creator.clone()],
-            },
-        )
-        .unwrap();
-
-        let sale_config = TokenSaleConfig {
-            input_token: TokenType::NativeToken {
-                denom: "whatever".into(),
-            },
-            rate: Uint128(100),
-            sold_token: ContractLink {
-                address: "token".into(),
-                code_hash: "token_code_hash".into(),
-            },
-            whitelist: vec![],
-            max_allocation: Uint128(100),
-            max_seats: 20,
-            min_allocation: Uint128(10),
-            sale_type: None,
-        };
-
-        let result = handle(
-            deps,
-            mkenv("rando"),
-            HandleMsg::CreateIdo {
-                info: sale_config.clone(),
-                tokens: None,
-                entropy: to_binary(&"whatever").unwrap(),
-            },
-        );
-        assert_unauthorized(result);
-
-        handle(
-            deps,
-            mkenv(ido_creator.clone()),
-            HandleMsg::CreateIdo {
-                info: sale_config.clone(),
-                tokens: None,
-                entropy: to_binary(&"whatever").unwrap(),
-            },
-        )
-        .unwrap();
-
-        assert!(!is_ido_whitelisted(deps, &ido_creator).unwrap());
-
-        // Admin can always create
-        handle(
-            deps,
-            mkenv(admin),
-            HandleMsg::CreateIdo {
-                info: sale_config,
-                tokens: None,
-                entropy: to_binary(&"whatever").unwrap(),
-            },
-        )
-        .unwrap();
     }
 
     #[test]
@@ -1002,36 +810,6 @@ mod test_state {
             Ok(_) => Err(StdError::generic_err("Exchange already exists")),
             Err(_) => Ok(()),
         }
-    }
-
-    #[test]
-    fn test_get_idos() -> StdResult<()> {
-        let ref mut deps = mkdeps();
-        let mut addresses = vec![];
-
-        for i in 0..33 {
-            let addr = HumanAddr::from(format!("addr_{}", i));
-
-            store_ido_addresses(deps, vec![addr.clone()])?;
-            addresses.push(addr);
-        }
-
-        let result = get_idos(deps, pagination(addresses.len() as u64, 20))?;
-        assert_eq!(result.len(), 0);
-
-        let result = get_idos(deps, pagination((addresses.len() - 1) as u64, 20))?;
-        assert_eq!(result.len(), 1);
-
-        let result = get_idos(deps, pagination(0, 1))?;
-        assert_eq!(result.len(), 1);
-
-        let result = get_idos(deps, pagination(0, PAGINATION_LIMIT + 10))?;
-        assert_eq!(result.len(), PAGINATION_LIMIT as usize);
-
-        let result = get_idos(deps, pagination(3, PAGINATION_LIMIT))?;
-        assert_eq!(result, addresses[3..]);
-
-        Ok(())
     }
 
     #[test]

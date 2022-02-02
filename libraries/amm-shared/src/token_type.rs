@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::convert::TryFrom;
 use fadroma::platform::{
     HumanAddr, CanonicalAddr, Api, StdResult,
     Querier, Uint128, StdError, Env, CosmosMsg,
@@ -183,27 +183,11 @@ impl From<ContractLink<HumanAddr>> for TokenType<HumanAddr> {
     }
 }
 
-impl TryInto<ContractLink<HumanAddr>> for &TokenType<HumanAddr> {
+impl TryFrom<TokenType<HumanAddr>> for ContractLink<HumanAddr> {
     type Error = StdError;
 
-    fn try_into(self) -> Result<ContractLink<HumanAddr>, Self::Error> {
-        match self {
-            TokenType::CustomToken { contract_addr, token_code_hash } => {
-                Ok(ContractLink {
-                    address: contract_addr.clone(),
-                    code_hash: token_code_hash.clone()
-                })
-            },
-            _ => Err(StdError::generic_err("Cannot convert TokenType::NativeToken to ContractLink."))
-        }
-    }
-}
-
-impl TryInto<ContractLink<HumanAddr>> for TokenType<HumanAddr> {
-    type Error = StdError;
-
-    fn try_into(self) -> Result<ContractLink<HumanAddr>, Self::Error> {
-        match self {
+    fn try_from(value: TokenType<HumanAddr>) -> Result<Self, Self::Error> {
+        match value {
             TokenType::CustomToken { contract_addr, token_code_hash } => {
                 Ok(ContractLink {
                     address: contract_addr,

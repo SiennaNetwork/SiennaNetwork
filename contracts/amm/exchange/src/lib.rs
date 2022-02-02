@@ -1,6 +1,5 @@
 pub mod contract;
 mod state;
-mod decimal_math;
 
 #[cfg(test)]
 mod test;

@@ -1,48 +1,29 @@
-const { resolve, dirname } = require('path')
-const { existsSync, readFileSync } = require('fs')
+import { resolve, dirname } from 'path'
+import { existsSync, readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
 
-module.exports = function getSettingsForChain (chainId) {
+import YAML from 'js-yaml'
 
-  const directory = resolve(__dirname, chainId)
-  if (!existsSync(directory)) {
-    throw new Error(`settings/${chainId}/ does not exist`)
+export default function getSettingsForChain (chainId) {
+  const source = resolve(__dirname, 'by-chain-id', chainId + '.yml')
+  console.info('Getting settings from', source)
+  if (!existsSync(source)) {
+    throw new Error(`settings/by-chain-id/${chainId}.yml does not exist`)
   }
-
-  return {
-    get amm () {
-      return getSettings('amm.json')
-    },
-    get placeholderTokens () {
-      return getSettings('placeholderTokens.json')
-    },
-    get rewardPairs () {
-      return getSettings('rewardPairs.json')
-    },
-    get swapPairs () {
-      return getSettings('swapPairs.json')
-    },
-    get swapTokens () {
-      return getSettings('swapTokens.json')
-    }
-  }
-
-  function getSettings (file) {
-    const path = resolve(directory, file)
-    if (!existsSync(path)) {
-      console.warn(`@sienna/settings: settings/${chainId}/${file} does not exist`)
-      return undefined
-    }
-    return JSON.parse(readFileSync(path))
-  }
-
+  const content = readFileSync(source, 'utf8')
+  console.log(content)
+  const settings = YAML.load(content)
+  return settings
 }
 
-module.exports.workspace = dirname(__dirname)
+export const __dirname = dirname(fileURLToPath(import.meta.url))
 
-module.exports.abs = (...args) => resolve(module.exports.workspace, ...args)
+export const workspace = dirname(__dirname)
 
-module.exports.schedule = JSON.parse(readFileSync(resolve(__dirname, 'schedule.json'), 'utf8'))
+export const abs = (...args) => resolve(module.exports.workspace, ...args)
 
-const SIENNA_DECIMALS = module.exports.SIENNA_DECIMALS = 18
+export const schedule = JSON.parse(readFileSync(resolve(__dirname, 'schedule.json'), 'utf8'))
 
-const ONE_SIENNA = module.exports.ONE_SIENNA = BigInt(`1${[...Array(SIENNA_DECIMALS)].map(()=>'0').join('')}`)
+export const SIENNA_DECIMALS = 18
+
+export const ONE_SIENNA = BigInt(`1${[...Array(SIENNA_DECIMALS)].map(()=>'0').join('')}`)

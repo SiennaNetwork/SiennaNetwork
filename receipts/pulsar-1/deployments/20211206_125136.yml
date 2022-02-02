@@ -1,0 +1,63 @@
+---
+name:     AMM[v1].Factory
+label:    20211206_125136/SiennaAMMFactory
+codeId:   235
+codeHash: 8d69b5f625d8e14300ea6b1306fc174d68e711c2ec29f015d682be109ccb386e
+initTx:   B11912CAE1D79EAB3C1D11394554DB31879C46C72B82F3358866F807D3FBA6AF
+address:  secret1xeyq448seahp0qpcaccz56ux7ucmhhxcww805p
+---
+name:     MGMT
+label:    20211206_125136/SiennaMGMT
+codeId:   233
+codeHash: 6c7ff371d51930e26335f1364658ed785128768f76ce02d38e31c91f72207ec4
+initTx:   0E3B610E3E29DEEB73E1FC1F91AF2BDBD52E52E48297684CB2C95109264F867B
+address:  secret1fcfrd6wxxcafatn3adav6g3e36exjzhunesgxr
+---
+name:     RPT
+label:    20211206_125136/SiennaRPT
+codeId:   234
+codeHash: 2d5aefff63f9edbc870bb2c69799cd03580767734b613388c1294baa39988833
+initTx:   75A1F7B275F18CC320E0CA6D796803DB37F1407C72B473AD3167081A0F3BB3C3
+address:  secret1uvculn2lnaxffzxn70e8zheqty5jnh60czksdz
+---
+name:     Rewards[v2].SIENNA
+label:    20211206_125136/SiennaRewards_SIENNA_Pool
+codeId:   242
+codeHash: 26ac6ea2b61be9741d8febdc032065f0ccc2502c0eee93608a3f15c188ff20c6
+initTx:   7C994D911965A670AA9EBD2941C8FA3A8F237BCB226277360192692DFE2EA31F
+address:  secret1hgjpm70vqvhzs7am2h6ykr93luh6ls9zjhjh0z
+---
+name:     SIENNA
+label:    20211206_125136/SiennaSNIP20
+codeId:   232
+codeHash: 9746193ec4174effaad3067ce78aa1e03b03fa73ef0c7787dd231a9117b84562
+initTx:   2448C0CEEF9D342FE7737FBED49425128BD4AC5FB479155F11BE500EC2142E49
+address:  secret1793d6s8acq5ggpf6yg9u2ghnrkcrq9xd6vlhky
+---
+name:     placeholder_SITOK
+label:    20211206_125136/placeholder_SITOK
+codeId:   238
+codeHash: f3e948d28b0fb877d7e1162e07e895e2619e929c9d027f46868f20e5094b2cb4
+initTx:   808D02F458B2B94216DAF8CE8FDC79550D6B9F2B724613D8899427FD019667A5
+address:  secret1j6nwkhmpuln2wn4zl8wwdpdgk59fsnex2nc999
+---
+name:     placeholder_STEST
+label:    20211206_125136/placeholder_STEST
+codeId:   238
+codeHash: f3e948d28b0fb877d7e1162e07e895e2619e929c9d027f46868f20e5094b2cb4
+initTx:   A41A0251AAB892EDE6467870F7062A3FB55C6D8C9265AAC164B6E5014B9E0367
+address:  secret1su7rev4v6t3ear34kpkwh28h4dg2qep87ya553
+---
+name:     placeholder_sETH
+label:    20211206_125136/placeholder_sETH
+codeId:   238
+codeHash: f3e948d28b0fb877d7e1162e07e895e2619e929c9d027f46868f20e5094b2cb4
+initTx:   3561EA0F9E438D937635E8355C4917F454751FABA2D4BCFD8D52867D517EA0B0
+address:  secret18uudc2cdnmlhrmlweyj5dnl4c0wzgng9duqvwr
+---
+name:     placeholder_sSCRT
+label:    20211206_125136/placeholder_sSCRT
+codeId:   238
+codeHash: f3e948d28b0fb877d7e1162e07e895e2619e929c9d027f46868f20e5094b2cb4
+initTx:   E74BB8FDB03B0334F032D420A893283B4830872EB6E0B0B5D41F0F2806CDAA2F
+address:  secret1zatumfhvegqxkzdysghcj7jr4hwecqr4vhww9t

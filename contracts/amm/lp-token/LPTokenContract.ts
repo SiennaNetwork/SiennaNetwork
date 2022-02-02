@@ -1,5 +1,4 @@
-import { Agent, randomHex } from "@hackbg/fadroma"
-import { SNIP20Contract_1_2 } from "@fadroma/snip20"
+import { Agent, randomHex, SNIP20Contract_1_2 } from "@hackbg/fadroma"
 import { InitMsg } from "./schema/init_msg.d"
 
 export type LPTokenOptions = {

@@ -2,7 +2,7 @@ use std::convert::TryInto;
 
 use amm_shared::{
     fadroma::{
-        ContractLink, one_token,
+        ContractLink,
         cosmwasm_std::{
             StdResult, Env, Binary, InitResponse,
             HandleResponse, HumanAddr, Uint128,
@@ -33,14 +33,14 @@ use amm_shared::{
 
 use factory::contract as factory;
 use exchange::contract as exchange;
-use ido::contract as ido;
-use launchpad::contract as launchpad;
 use router::contract as router;
 use lp_token;
 
 pub const ADMIN: &str = "admin";
 pub const USERS: &[&str] = &[ "user_a", "user_b", "user_c" ];
 pub const BURNER: &str = "burner_acc";
+pub const INITIAL_BALANCE: Uint128 = Uint128(1000_000_000_000_000_000_000);
+pub const NATIVE_DENOM: &str = "uscrt";
 
 pub struct Amm {
     pub ensemble: ContractEnsemble,
@@ -57,18 +57,13 @@ impl Amm {
         let snip20 = ensemble.register(Box::new(Token));
         let lp_token = ensemble.register(Box::new(LpToken));
         let pair = ensemble.register(Box::new(Pair));
-        let ido = ensemble.register(Box::new(Ido));
-        let launchpad = ensemble.register(Box::new(Launchpad));
         let _router = ensemble.register(Box::new(Router));
         
         let factory = ensemble.instantiate(
             factory.id,
             &msg::factory::InitMsg {
-                snip20_contract: snip20.clone(),
                 lp_token_contract: lp_token,
                 pair_contract: pair,
-                launchpad_contract: launchpad,
-                ido_contract: ido,
                 exchange_settings: ExchangeSettings {
                     swap_fee: Fee::new(28, 10000),
                     sienna_fee: Fee::new(2, 10000),
@@ -85,7 +80,7 @@ impl Amm {
     
         let mut tokens = Vec::new();
     
-        for i in 1..=4 {
+        for i in 1..=2 {
             let name = format!("TOKEN_{}", i);
     
             let token = ensemble.instantiate(
@@ -99,7 +94,7 @@ impl Amm {
                         .iter()
                         .map(|x| InitialBalance {
                             address: (*x).into(),
-                            amount: Uint128(1000 * one_token(18))
+                            amount: INITIAL_BALANCE
                         })
                         .collect()
                     ),
@@ -135,6 +130,19 @@ impl Amm {
                 MockEnv::new(ADMIN, factory.clone())
             ).unwrap();
         }
+
+        ensemble.execute(
+            &msg::factory::HandleMsg::CreateExchange {
+                pair: TokenPair(
+                    TokenType::from(tokens[0].clone()),
+                    TokenType::NativeToken {
+                        denom: NATIVE_DENOM.into()
+                    },
+                ),
+                entropy: Binary::from(b"whatever")
+            },
+            MockEnv::new(ADMIN, factory.clone())
+        ).unwrap();
     
         Amm {
             ensemble,
@@ -163,7 +171,11 @@ impl Amm {
 
     pub fn increase_allowances(&mut self, pair: &Exchange<HumanAddr>) {
         for token in pair.pair.into_iter() {
-            let token: ContractLink<HumanAddr> = token.try_into().unwrap();
+            if token.is_native_token() {
+                continue;
+            }
+
+            let token: ContractLink<HumanAddr> = token.to_owned().try_into().unwrap();
     
             for user in USERS {
                 self.ensemble.execute(
@@ -182,21 +194,28 @@ impl Amm {
     pub fn get_balance(
         &self,
         address: impl Into<HumanAddr>,
-        token: HumanAddr
+        token: TokenType<HumanAddr>
     ) -> Uint128 {
-        let result = self.ensemble.query(token.clone(), Snip20QueryMsg::WithPermit {
-            permit: Permit::<Snip20Permission>::new(
-                address,
-                vec![ Snip20Permission::Balance ],
-                vec![ token ],
-                "balance"
-            ),
-            query: QueryWithPermit::Balance {}
-        }).unwrap();
-
-        match result {
-            QueryAnswer::Balance { amount } => amount,
-            _ => panic!("Expecting QueryAnswer::Balance")
+        match token {
+            TokenType::CustomToken { contract_addr, .. } => {
+                let result = self.ensemble.query(contract_addr.clone(), Snip20QueryMsg::WithPermit {
+                    permit: Permit::<Snip20Permission>::new(
+                        address,
+                        vec![ Snip20Permission::Balance ],
+                        vec![ contract_addr ],
+                        "balance"
+                    ),
+                    query: QueryWithPermit::Balance {}
+                }).unwrap();
+        
+                match result {
+                    QueryAnswer::Balance { amount } => amount,
+                    _ => panic!("Expecting QueryAnswer::Balance")
+                }
+            },
+            TokenType::NativeToken { denom } => {
+                self.ensemble.balances(address).unwrap().get(&denom).unwrap().to_owned()
+            }
         }
     }
 
@@ -212,7 +231,7 @@ impl Amm {
 
         match result {
             msg::exchange::QueryMsgResponse::PairInfo { liquidity_token, .. } => {
-                self.get_balance(address, liquidity_token.address)
+                self.get_balance(address, liquidity_token.into())
             }
         }
     }
@@ -347,66 +366,6 @@ impl ContractHarness for LpToken {
         msg: Binary
     ) -> StdResult<Binary> {
         lp_token::query(deps, from_binary(&msg)?)
-    }
-}
-
-pub struct Ido;
-
-impl ContractHarness for Ido {
-    fn init(
-        &self,
-        deps: &mut MockDeps,
-        env: Env,
-        msg: Binary
-    ) -> StdResult<InitResponse> {
-        ido::init(deps, env, from_binary(&msg)?)
-    }
-
-    fn handle(
-        &self,
-        deps: &mut MockDeps,
-        env: Env,
-        msg: Binary
-    ) -> StdResult<HandleResponse> {
-        ido::handle(deps, env, from_binary(&msg)?)
-    }
-
-    fn query(
-        &self,
-        deps: &MockDeps,
-        msg: Binary
-    ) -> StdResult<Binary> {
-        ido::query(deps, from_binary(&msg)?)
-    }
-}
-
-pub struct Launchpad;
-
-impl ContractHarness for Launchpad {
-    fn init(
-        &self,
-        deps: &mut MockDeps,
-        env: Env,
-        msg: Binary
-    ) -> StdResult<InitResponse> {
-        launchpad::init(deps, env, from_binary(&msg)?)
-    }
-
-    fn handle(
-        &self,
-        deps: &mut MockDeps,
-        env: Env,
-        msg: Binary
-    ) -> StdResult<HandleResponse> {
-        launchpad::handle(deps, env, from_binary(&msg)?)
-    }
-
-    fn query(
-        &self,
-        deps: &MockDeps,
-        msg: Binary
-    ) -> StdResult<Binary> {
-        launchpad::query(deps, from_binary(&msg)?)
     }
 }
 
