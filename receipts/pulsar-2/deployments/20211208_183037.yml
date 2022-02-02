@@ -1,0 +1,79 @@
+---
+name:     AMM[v1].Factory
+label:    20211208_183037/SiennaAMMFactory
+codeId:   235
+codeHash: 8d69b5f625d8e14300ea6b1306fc174d68e711c2ec29f015d682be109ccb386e
+initTx:   56860637AA47F7F03C860C7AB8E54ADF21FE694D913F2D6885E23E37C0E3BF55
+address:  secret17vnd39g9zyqkkwem7nprskup6tpcaq02u4ah66
+---
+name:     MGMT
+label:    20211208_183037/SiennaMGMT
+codeId:   233
+codeHash: 6c7ff371d51930e26335f1364658ed785128768f76ce02d38e31c91f72207ec4
+initTx:   5E238766C55421601ABCF1939198626CEA24B0D232D31149CA4FE7F13BCE9E2C
+address:  secret1a2dkctlfnsvd4y8v5573kmywcvpfjruztlrcdc
+---
+name:     RPT
+label:    20211208_183037/SiennaRPT
+codeId:   234
+codeHash: 2d5aefff63f9edbc870bb2c69799cd03580767734b613388c1294baa39988833
+initTx:   36964BEEDF0A653505F3C2539ADA1F524DBD362EBAB3C0221CD63C87EED08633
+address:  secret14wq7xjc5u9cnn0s4ke8nujj7y36k4perdmkxqw
+---
+name:     Rewards[v2].SIENNA-sETH
+label:    20211208_183037/SiennaRewards_SIENNA-sETH_Pool
+codeId:   242
+codeHash: 26ac6ea2b61be9741d8febdc032065f0ccc2502c0eee93608a3f15c188ff20c6
+initTx:   05B1A29CB565087BA1B57DC5C457A4B4BD5844D0534F7572951478F84498D026
+address:  secret1vm4r7zsu57gvu4wjd8wk64flwyxnnqxpgdeza9
+---
+name:     Rewards[v2].SIENNA-sSCRT
+label:    20211208_183037/SiennaRewards_SIENNA-sSCRT_Pool
+codeId:   242
+codeHash: 26ac6ea2b61be9741d8febdc032065f0ccc2502c0eee93608a3f15c188ff20c6
+initTx:   E58A516531A948146707A79ABCFDA75F044BF72D1A122C801910CE616FBDACB6
+address:  secret1c6pjl62ql4nmh5up7y6mkguy8d5dpd3cm443g7
+---
+name:     Rewards[v2].SIENNA
+label:    20211208_183037/SiennaRewards_SIENNA_Pool
+codeId:   242
+codeHash: 26ac6ea2b61be9741d8febdc032065f0ccc2502c0eee93608a3f15c188ff20c6
+initTx:   87CF75C987F2EBA15B04D1C4D9B7BCB3C21EA91191798C4487276BC23EAF83DE
+address:  secret1zrft5mu2qhyh57vw2dwq2uk8frufr2jqf63fpu
+---
+name:     SIENNA
+label:    20211208_183037/SiennaSNIP20
+codeId:   232
+codeHash: 9746193ec4174effaad3067ce78aa1e03b03fa73ef0c7787dd231a9117b84562
+initTx:   7DC9BE4FE72BBB6A998FC2C84A0461B459FA7118D3B6128E77D066DA5FE52D0D
+address:  secret1vd20dywemerdqdd5gzqhf99z8cshs8zp8zgd6h
+---
+name:                AMM[v1].SIENNA-sETH
+exchange:
+  address:           secret1y0p294wf4rau2tq94zeyqyu5hwy9wrhjy87p0d
+lp_token:
+  address:           secret178ptj4a9c250fjh9kmg5xu2ptpqzql4nwqxe49
+  code_hash:         aa311ee3c9e7dff9a06e184d60b45638ff3580e2062df178cd89dbf1e029b236
+token_0:
+  custom_token:
+    contract_addr:   secret1vd20dywemerdqdd5gzqhf99z8cshs8zp8zgd6h
+    token_code_hash: 9746193ec4174effaad3067ce78aa1e03b03fa73ef0c7787dd231a9117b84562
+token_1:
+  custom_token:
+    contract_addr:   secret1hqrdl6wstt8qzshwc6mrumpjk9338k0lpsefm3
+    token_code_hash: 9587d60b8e6b078ace12014ceeee089530b9fabcd76535d93666a6c127ad8813
+---
+name:                AMM[v1].SIENNA-sSCRT
+exchange:
+  address:           secret19hwaar00pf2nj5ujslz036r7zup0t958xmajce
+lp_token:
+  address:           secret1plks6sdh59w5vmyywwc922mk0fns0naqasgdtq
+  code_hash:         aa311ee3c9e7dff9a06e184d60b45638ff3580e2062df178cd89dbf1e029b236
+token_0:
+  custom_token:
+    contract_addr:   secret1vd20dywemerdqdd5gzqhf99z8cshs8zp8zgd6h
+    token_code_hash: 9746193ec4174effaad3067ce78aa1e03b03fa73ef0c7787dd231a9117b84562
+token_1:
+  custom_token:
+    contract_addr:   secret18vd8fpwxzck93qlwghaj6arh4p7c5n8978vsyg
+    token_code_hash: 9587d60b8e6b078ace12014ceeee089530b9fabcd76535d93666a6c127ad8813

@@ -1,0 +1,27 @@
+amm: {
+  "exchange_settings": {
+    "swap_fee": {
+      "nom": 28,
+      "denom": 10000
+    },
+    "sienna_fee": {
+      "nom": 2,
+      "denom": 10000
+    },
+    "sienna_burner": null
+  },
+  "admin": null
+}
+
+placeholderTokens: {
+  "sSCRT": {"label":  "sSCRT", "initMsg": { "name": "SecretSCRT", "symbol": "SSCRT", "decimals": 6}},
+}
+
+rewardPairs: {
+  "SIENNA":       1250,
+  "SIENNA-SSCRT": 1250,
+}
+
+swapPairs: [
+  "SIENNA-SSCRT",
+]

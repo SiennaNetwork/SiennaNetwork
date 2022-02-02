@@ -12,18 +12,16 @@ import {
   RPTContract
 } from '@sienna/api'
 
-import settings, { workspace } from '@sienna/settings'
+import * as settings from '@sienna/settings'
 
 export async function deployTGE ({
-  chain, admin, deployment, prefix,
+  chain, agent, deployment, prefix,
   schedule = settings.schedule
 }: MigrationContext & {
   /** Input: The schedule for the new MGMT.
     * Defaults to production schedule. */
   schedule?: typeof settings.schedule
 }): Promise<{
-  /** Output: Root directory for building the contracts. */
-  workspace:  string
   /** Output: The newly created deployment. */
   deployment: Deployment
   /** Output: The identifier of the deployment on- and off-chain. */
@@ -36,15 +34,13 @@ export async function deployTGE ({
   RPT:        RPTContract
 }> {
 
-  console.info(bold('Admin balance:'), await admin.balance)
-
-  const [SIENNA, MGMT, RPT] = await chain.buildAndUpload(admin, [
-    new SiennaSNIP20Contract({ workspace }),
-    new MGMTContract({         workspace }),
-    new RPTContract({          workspace })
+  const [SIENNA, MGMT, RPT] = await chain.buildAndUpload(agent, [
+    new SiennaSNIP20Contract(),
+    new MGMTContract(),
+    new RPTContract()
   ])
 
-  await deployment.createContract(admin, SIENNA, {
+  await deployment.init(agent, SIENNA, {
     name:      "Sienna",
     symbol:    "SIENNA",
     decimals:  18,
@@ -52,28 +48,30 @@ export async function deployTGE ({
     prng_seed: randomHex(36)
   })
 
-  if (chain.isTestnet) {
-    await SIENNA.tx(admin).setMinters([admin.address])
-    await SIENNA.tx(admin).mint("5000000000000000000000", admin.address)
+  const admin = agent.address
+
+  if (chain.isTestnet || chain.isLocalnet) {
+    await SIENNA.tx(agent).setMinters([admin])
+    await SIENNA.tx(agent).mint("5000000000000000000000", admin)
   }
 
   const RPTAccount = getRPTAccount(schedule)
-  RPTAccount.address = admin.address // mutate schedule
-  const portion    = RPTAccount.portion_size
+  RPTAccount.address = admin // mutate schedule
+  const portion = RPTAccount.portion_size
 
-  await deployment.createContract(admin, MGMT, {
-    admin: admin.address,
+  await deployment.init(agent, MGMT, {
+    admin: admin,
     token: [SIENNA.address, SIENNA.codeHash],
     schedule
   })
 
   await MGMT.tx().acquire(SIENNA)
 
-  await deployment.createContract(admin, RPT, {
+  await deployment.init(agent, RPT, {
     token:   [SIENNA.address, SIENNA.codeHash],
     mgmt:    [MGMT.address, MGMT.codeHash],
     portion: RPTAccount.portion_size,
-    config:  [[admin.address, RPTAccount.portion_size]]
+    config:  [[admin, RPTAccount.portion_size]]
   })
 
   console.log()
@@ -89,14 +87,15 @@ export async function deployTGE ({
 
   console.info(bold('Vesting RPT'))
   await RPT.tx().vest()
+
   return {
-    workspace,
     deployment,
     prefix,
     SIENNA,
     MGMT,
     RPT
   }
+
   /// ### Get the RPT account from the schedule
   /// This is a special entry in MGMT's schedule that must be made to point to
   /// the RPT contract's address - but that's only possible after deploying

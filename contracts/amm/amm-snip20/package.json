@@ -4,7 +4,6 @@
   "main":    "./AMMSNIP20Contract.ts",
   "type":    "module",
   "dependencies": {
-    "@hackbg/fadroma": "workspace:../../../deps/fadroma",
-    "@fadroma/snip20": "workspace:*"
+    "@hackbg/fadroma": "workspace:../../../deps/fadroma"
   }
 }

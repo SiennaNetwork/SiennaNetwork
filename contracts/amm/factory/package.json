@@ -3,7 +3,8 @@
   "version": "2.0.0",
   "main":    "./FactoryContract.ts",
   "dependencies": {
-    "@hackbg/fadroma":       "workspace:../../../deps/fadroma",
+    "@hackbg/fadroma": "workspace:../../../deps/fadroma",
+
     "@sienna/amm-snip20":    "workspace:^1",
     "@sienna/exchange":      "workspace:^1",
     "@sienna/ido":           "workspace:^1",
@@ -12,6 +13,7 @@
     "@sienna/settings":      "workspace:^1",
     "@sienna/snip20-sienna": "workspace:^1",
     "@sienna/rewards":       "workspace:*",
+
     "@waiting/base64":       "^4.2.9",
     "secretjs":              "0.17.5"
   }

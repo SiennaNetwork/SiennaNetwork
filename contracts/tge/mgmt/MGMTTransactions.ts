@@ -1,5 +1,4 @@
-import { Scrt_1_2 } from '@hackbg/fadroma'
-import type { SNIP20Contract } from '@fadroma/snip20'
+import { Scrt_1_2,  SNIP20Contract } from '@hackbg/fadroma'
 
 export class MGMTTransactions extends Scrt_1_2.Contract.Transactions {
 

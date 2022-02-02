@@ -2,13 +2,12 @@ use amm_shared::{
     fadroma::{
         platform::{
             from_binary, log, secret_toolkit::snip20, to_binary, Api, BankMsg, Binary, Coin,
-            CosmosMsg, Decimal, Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
-            QueryRequest, QueryResult, StdError, StdResult, Storage, Uint128, WasmMsg, WasmQuery,
-            Callback,
-            ContractLink,
+            CosmosMsg, Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier, QueryRequest,
+            QueryResult, StdError, StdResult, Storage, Uint128, WasmMsg, WasmQuery, 
+            Callback, ContractLink,
         },
         ViewingKey,
-        Uint256
+        Uint256, Decimal256
     },
     msg::{
         exchange::{
@@ -21,10 +20,7 @@ use amm_shared::{
     TokenPairAmount, TokenType, TokenTypeAmount, ExchangeSettings, Fee
 };
 
-use crate::{
-    decimal_math,
-    state::{load_config, store_config, Config},
-};
+use crate::state::{load_config, store_config, Config};
 
 // This should be incremented every time there is a change to the interface of the contract.
 const CONTRACT_VERSION: u32 = 1;
@@ -265,7 +261,7 @@ fn add_liquidity<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
     deposit: TokenPairAmount<HumanAddr>,
-    slippage: Option<Decimal>,
+    slippage: Option<Decimal256>,
 ) -> StdResult<HandleResponse> {
     if deposit.amount_0.is_zero() || deposit.amount_1.is_zero() {
         return Err(StdError::generic_err("Cannot provide zero liquidity."));
@@ -728,43 +724,41 @@ fn percentage_decrease(amount: Uint256, fee: Fee) -> StdResult<Uint128> {
 /// Returns an `StdError` if the range of the expected tokens to be received is exceeded.
 /// Assumes deposits are > 0. 
 fn assert_slippage_tolerance(
-    slippage: Option<Decimal>,
+    slippage: Option<Decimal256>,
     deposits: &[Uint128; 2],
     pools: &[Uint128; 2],
 ) -> StdResult<()> {
-    fn cmp_ratio(price: Decimal, pool_0: Uint128, pool_1: Uint128) -> bool {
+    #[inline]
+    fn cmp_ratio(price: Decimal256, pool_0: Uint128, pool_1: Uint128) -> StdResult<bool> {
         if pool_1.is_zero() {
-            return false;
+            return Ok(false);
         }
 
-        price > Decimal::from_ratio(pool_0, pool_1)
+        Ok(price > Decimal256::from_ratio(pool_0.0, pool_1.0)?)
     }
 
     if let Some(slippage) = slippage {
-        if slippage.is_zero() || slippage >= Decimal::one() {
+        if slippage.is_zero() || slippage >= Decimal256::one() {
             return Err(StdError::generic_err(
                 format!("Slippage tolerance must be between 0.1 and 0.9, got: {}", slippage))
             );
         }
 
-        let one_minus_slippage_tolerance = decimal_math::decimal_subtraction(
-            Decimal::one(),
-            slippage
+        let one_minus_slippage_tolerance = (Decimal256::one() - slippage)?;
+
+        let price_0 = (
+            Decimal256::from_ratio(deposits[0].0, deposits[1].0)? *
+            one_minus_slippage_tolerance
         )?;
 
-        let price_0 = decimal_math::decimal_multiplication(
-            Decimal::from_ratio(deposits[0], deposits[1]),
-            one_minus_slippage_tolerance,
-        );
-
-        let price_1 = decimal_math::decimal_multiplication(
-            Decimal::from_ratio(deposits[1], deposits[0]),
-            one_minus_slippage_tolerance,
-        );
+        let price_1 = (
+            Decimal256::from_ratio(deposits[1].0, deposits[0].0)? *
+            one_minus_slippage_tolerance
+        )?;
 
         // Ensure prices are not dropped as much as slippage tolerance rate
-        if cmp_ratio(price_0, pools[0], pools[1]) ||
-            cmp_ratio(price_1, pools[1], pools[0])
+        if cmp_ratio(price_0, pools[0], pools[1])? ||
+            cmp_ratio(price_1, pools[1], pools[0])?
         {
             return Err(StdError::generic_err(
                 "Operation exceeds max slippage tolerance",
