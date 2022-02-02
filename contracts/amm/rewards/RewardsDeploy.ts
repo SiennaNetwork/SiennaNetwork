@@ -13,13 +13,14 @@ const essentials = pick('codeId', 'codeHash', 'address', 'label')
 
 export async function deployRewards ({
   deployment, agent, run,
-  SIENNA  = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({ agent })),
-  version = 'v3'
+  SIENNA  = deployment.getThe('SIENNA', new SiennaSNIP20Contract({ agent })),
+  version    = 'v3',
+  ammVersion = {v3:'v2',v2:'v1'}[version],
 }) {
   const { SSSSS_POOL, RPT_CONFIG_SSSSS } =
     await run(deploySSSSS, { SIENNA, version })
   const { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS } =
-    await run(deployRewardPools, { SIENNA, version })
+    await run(deployRewardPools, { SIENNA, version, ammVersion })
   return {
     REWARD_POOLS: [ SSSSS_POOL, ...REWARD_POOLS ],
     RPT_CONFIG:   [ ...RPT_CONFIG_SSSSS, ...RPT_CONFIG_SWAP_REWARDS ]
@@ -61,77 +62,59 @@ Object.assign(deployRewards, {
 })
 
 /** Deploy SIENNA/SIENNA SINGLE-SIDED STAKING,
-  * (5- or 6-S depending on whether you count the SLASH)
-  * a Sienna Rewards pool where you stake SIENNA to earn SIENNA. */
+  * where you stake SIENNA to earn SIENNA. */
 export async function deploySSSSS ({
-  run, chain, deployment,
-  SIENNA, version,
+  run, chain, deployment, agent,
+  SIENNA  = deployment.getThe('SIENNA', new SiennaSNIP20Contract({ agent })),
+  version = 'v3',
+  settings: { rewardPairs } = getSettings(chain.id),
 }) {
-  const name = 'SSSSS'
-  const lpToken = SIENNA
+  if (!rewardPairs || rewardPairs.length === 1) {
+    throw new Error(`@sienna/rewards: needs rewardPairs setting for ${chain.id}`)
+  }
+  const name        = 'SSSSS'
+  const lpToken     = SIENNA
   const rewardToken = SIENNA
-  const { REWARDS: SSSSS_POOL } = await run(deployRewardPool, {
-    version, name, lpToken, rewardToken
-  })
+  const { REWARDS } = await run(deployRewardPool, { version, name, lpToken: SIENNA })
   return {
-    SSSSS_POOL, RPT_CONFIG_SSSSS: [
+    SSSSS_POOL: REWARDS, RPT_CONFIG_SSSSS: [
       [
-        SSSSS_POOL.address,
+        REWARDS.address,
         String(BigInt(getSettings(chain.id).rewardPairs.SIENNA) * ONE_SIENNA)
       ]
     ]
   }
 }
 
-/** Deploy the rest of the reward pools,
-  * where you stake a LP token to earn SIENNA. */
+/** Deploy the rest of the reward pools, where you stake a LP token to earn SIENNA. */
 export async function deployRewardPools ({
   chain, agent, deployment, prefix, run,
-  SIENNA  = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({ agent })),
-  version = 'v3',
-  ammVersion = 'v1',
-  split   = 1.0,
+  SIENNA                    = deployment.getThe('SIENNA', new SiennaSNIP20Contract({ agent })),
+  version                   = 'v3',
+  ammVersion                = {v3:'v2',v2:'v1'}[version],
+  settings: { rewardPairs } = getSettings(chain.id),
+  REWARD_POOLS              = [],
+  split                     = 1.0,
+  RPT_CONFIG_SWAP_REWARDS   = [],
 }) {
-  const REWARDS = new RewardsContract[version]({ prefix, agent })
-  await chain.buildAndUpload(agent, [REWARDS])
-  const REWARD_POOLS            = []
-  const RPT_CONFIG_SWAP_REWARDS = []
-  const { swapPairs } = getSettings(chain.id)
-  if (!swapPairs || swapPairs.length === 1) {
-    throw new Error('@sienna/rewards: needs swapPairs setting')
-  }
-  const { rewardPairs } = getSettings(chain.id)
   if (!rewardPairs || rewardPairs.length === 1) {
-    throw new Error('@sienna/rewards: needs rewardPairs setting')
+    throw new Error(`@sienna/rewards: needs rewardPairs setting for ${chain.id}`)
   }
-  for (const name of swapPairs) {
-    console.info(bold('Checking if rewards are allocated for'), name)
-    if (!rewardPairs[name]) {
-      console.info(bold('No rewards for'), name)
-      continue
-    }
-    const exchangeName = `AMM[${ammVersion}].${name}`
-    console.info(bold('Need LP token of exchange'), exchangeName)
-    const exchange = deployment.receipts[exchangeName]
-    if (!exchange) {
-      console.error(bold(`Exchange does not exist in deployment`), exchangeName)
-      console.error(bold(`Contracts in deployment:`), Object.keys(deployment.receipts).join(' '))
-      throw new Error(`@sienna/amm/rewards: Exchange does not exist in deployment: ${exchangeName}`)
-    }
-    const lpToken = new LPTokenContract({
-      address:  exchange.lp_token.address,
-      codeHash: exchange.lp_token.code_hash,
-      agent
-    })
-    console.info(bold('Found LP token:'), lpToken.address)
-    const { REWARDS } = await run(deployRewardPool, {
-      version, name, lpToken, rewardToken: SIENNA,
-    })
+  for (let [name, reward] of Object.entries(rewardPairs)) {
+    // ignore SSSSS pool - that is deployed separately
+    if (name === 'SIENNA') continue
+    // find LP token to attach to
+    const lpTokenName = `AMM[${ammVersion}].${name}.LP`
+    const lpToken = deployment.getThe(lpTokenName, new LPTokenContract({ agent }))
+    // create a reward pool
+    const options = { version, name, lpToken }
+  console.info('Deploying', bold(name), version, 'for', bold(lpTokenName))
+    const { REWARDS } = await run(deployRewardPool, options)
     REWARD_POOLS.push(REWARDS)
+    // collect the RPT budget line
     const reward = BigInt(rewardPairs[name]) / BigInt(1 / split)
-    RPT_CONFIG_SWAP_REWARDS.push(
-      [REWARDS.address, String(reward * ONE_SIENNA)]
-    )
+    const budget = [REWARDS.address, String(reward * ONE_SIENNA)]
+    RPT_CONFIG_SWAP_REWARDS.push(budget)
   }
   return { REWARD_POOLS, RPT_CONFIG_SWAP_REWARDS }
 }
@@ -140,14 +123,16 @@ export async function deployRewardPools ({
 export async function deployRewardPool ({
   agent, chain, deployment, prefix,
   lpToken,
-  rewardToken = deployment.getThe('SiennaSNIP20', new SiennaSNIP20Contract({ agent })),
+  rewardToken = deployment.getThe('SIENNA', new SiennaSNIP20Contract({ agent })),
   name        = 'UNKNOWN',
   version     = 'v3',
 }) {
   name = `Rewards[${version}].${name}`
-  console.info(bold(`Deploying ${name}:`), version)
-  console.info(bold(`Staked token:`), lpToken.address, lpToken.codeHash)
+  console.info(bold(`Staked token:`))
+  console.info(' ', lpToken.address)
+  console.info(' ', lpToken.codeHash)
   const REWARDS = new RewardsContract[version]({ lpToken, rewardToken, agent })
+  await chain.buildAndUpload(agent, [REWARDS])
   REWARDS.name = name
   await chain.buildAndUpload(agent, [REWARDS])
   await deployment.getOrInit(agent, REWARDS)

@@ -36,20 +36,31 @@ export class AMMFactoryContract extends Scrt_1_2.Contract<FactoryTransactions, F
   name         = `AMM[${this.version}].Factory`
   Transactions = FactoryTransactions
   Queries      = FactoryQueries
+
   constructor (options) {
     super(options)
     const { version } = options||{}
     this.version = version
-    this.name    = `AMM[${this.version}].Factory`
+    this.name = `AMM[${this.version}].Factory`
     if (version === 'v1') {
-      this.ref    = 'a99d8273b4'
-      this.suffix = `@v1+${timestamp()}`
+      this.ref = 'a99d8273b4'
     } else if (version === 'v2') {
-      this.suffix = `@v2+${timestamp()}`
     } else {
       /* nop */
     }
   }
+
+  static v1 = class AMMFactoryContract_v1 extends AMMFactoryContract {
+    version = 'v1'
+    name    = `AMM[${this.version}].Factory`
+    ref     = 'a99d8273b4'
+  }
+
+  static v2 = class AMMFactoryContract_v2 extends AMMFactoryContract {
+    version = 'v2'
+    name    = `AMM[${this.version}].Factory`
+  }
+
   /** Return the collection of contract templates
     * (`{ id, code_hash }` structs) that the factory
     * uses to instantiate contracts. */

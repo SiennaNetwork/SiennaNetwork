@@ -16,15 +16,17 @@ export * from './rewards/build'
 export async function buildTokens (): Promise<string[]> {
   return Promise.all([
     new AMMSNIP20Contract({ workspace }).build(),
+    new AMMSNIP20Contract({ workspace }).build(),
     new LPTokenContract({   workspace }).build(),
   ])
 }
 
 export async function buildAmm (): Promise<string[]> {
   return Promise.all([
-    new AMMFactoryContract({  workspace }).build(),
-    new AMMExchangeContract({ workspace }).build(),
-    new AMMSNIP20Contract({   workspace }).build(),
+    new AMMFactoryContract['v1']({ workspace }).build(),
+    new AMMFactoryContract['v2']({ workspace }).build(),
+    new AMMExchangeContract({      workspace }).build(),
+    new AMMSNIP20Contract({        workspace }).build(),
   ])
 }
 

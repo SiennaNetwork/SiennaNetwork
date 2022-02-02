@@ -1,13 +1,9 @@
-import { Scrt_1_2, SNIP20Contract, ContractConstructor, randomHex, bold, Console } from "@hackbg/fadroma"
-
+import { Console, bold, Scrt_1_2, SNIP20Contract, ContractConstructor, randomHex, } from "@hackbg/fadroma"
 const console = Console('@sienna/rewards/Contract')
 
+import { workspace } from '@sienna/settings'
 import { SiennaSNIP20Contract } from '@sienna/snip20-sienna'
-import { AMMFactoryContract } from '@sienna/factory'
-import { AMMExchangeContract, ExchangeInfo } from '@sienna/exchange'
 import { LPTokenContract } from '@sienna/lp-token'
-import { RPTContract, RPTConfig } from '@sienna/rpt'
-import getSettings, { workspace, SIENNA_DECIMALS, ONE_SIENNA } from '@sienna/settings'
 
 import { Init } from './schema/init.d'
 export * from './RewardsApi'

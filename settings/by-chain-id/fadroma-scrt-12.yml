@@ -15,24 +15,13 @@ amm: {
 
 placeholderTokens: {
   "sSCRT": {"label":  "sSCRT", "initMsg": { "name": "SecretSCRT", "symbol": "SSCRT", "decimals": 6}},
-  "STEST": {"label":  "STEST", "initMsg": { "name": "STEST",      "symbol": "STEST", "decimals": 9}},
-  "SITOK": {"label":  "SITOK", "initMsg": { "name": "SITOK",      "symbol": "SITOK", "decimals": 12}},
-  "sETH":  {"label":  "sETH",  "initMsg": { "name": "SecretETH",  "symbol": "SETH",  "decimals": 15}}
 }
 
 rewardPairs: {
-  "SIENNA":       800,
-  "STEST-SITOK":  400,
-  "SIENNA-SSCRT": 400,
-  "SSCRT-SETH":   200,
-  "SIENNA-SETH":  100,
-  "STEST-SIENNA": 600
+  "SIENNA":       1250,
+  "SIENNA-SSCRT": 1250,
 }
 
 swapPairs: [
-  "STEST-SITOK",
   "SIENNA-SSCRT",
-  "SSCRT-SETH",
-  "SIENNA-SETH",
-  "STEST-SIENNA"
 ]

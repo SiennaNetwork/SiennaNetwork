@@ -27,7 +27,7 @@ export class RPTContract extends Scrt_1_2.Contract<RPTTransactions, RPTQueries> 
   * set their addresses in the deployment's RPT contract. */
 export async function adjustRPTConfig ({
   deployment, chain, agent,
-  RPT = deployment.getThe('SiennaRPT', new RPTContract({ agent })),
+  RPT = deployment.getThe('RPT', new RPTContract({ agent })),
   RPT_CONFIG,
 }) {
   // on mainnet we use a multisig

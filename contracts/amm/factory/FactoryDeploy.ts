@@ -55,7 +55,7 @@ export async function deployAMMFactory ({
   }
 }) {
   const options = { workspace, prefix, agent }
-  const FACTORY   = new AMMFactoryContract({ ...options, version, suffix })
+  const FACTORY   = new AMMFactoryContract[version]({ ...options, suffix })
   const LAUNCHPAD = new LaunchpadContract({ ...options })
   // launchpad is new to v2 so we build/upload it every time...
   await chain.buildAndUpload(agent, [FACTORY, LAUNCHPAD])
